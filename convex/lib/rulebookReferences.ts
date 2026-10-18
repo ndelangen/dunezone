@@ -48,8 +48,16 @@ async function savedBoardGeometry(ctx: ReadCtx, assetId: string, data: unknown, 
 /**
  * A saved board's data for drawing markup on it, checked for shape only: deriving its territories here would cost every evaluation of a reactive query.
  * The scene works its territories out where it draws them, and leaves its tints out if the board does not draw.
+ * While a newer capture of the board is pending or has failed, its image still shows the board as it was, so the data is held back rather than drawing tints that no longer line up with it.
  */
-function savedBoardData(data: unknown) {
+async function capturedBoardData(ctx: ReadCtx, assetId: string, data: unknown) {
+  const newerCapture = await ctx.db
+    .query('publication_jobs')
+    .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', 'board').eq('asset_id', assetId))
+    .first();
+  if (newerCapture) {
+    return {};
+  }
   const parsed = BoardAsset.safeParse(data);
   return parsed.success ? { board: parsed.data.board } : {};
 }
@@ -106,7 +114,7 @@ export async function resolveRulebookReferences(
                 ? publishedHref(asset.type, assetId, publication.cache_token)
                 : null,
             ...(asset.type === 'board' && (requested.boardData || tinted.has(assetId))
-              ? savedBoardData(asset.data)
+              ? await capturedBoardData(ctx, assetId, asset.data)
               : {}),
           },
         ];

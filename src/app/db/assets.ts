@@ -30,9 +30,8 @@ export type AssetsByTypesData = FunctionReturnType<typeof api.assets.listByTypes
  * The picker's options read.
  * The browse page deliberately does not share it: a route holds one page query, and giving this one the browse tile's member previews would make every picker pay a relation pass per row for art it never draws.
  */
-export function useAssetsByTypes(types: string[], options?: { initialData?: AssetsByTypesData; skip?: boolean }) {
-  /* An inline picker skips the read until its field first opens, keeping its trigger mounted without a subscription. */
-  const liveData = useQuery(api.assets.listByTypes, options?.skip ? 'skip' : { types });
+export function useAssetsByTypes(types: string[], options?: { initialData?: AssetsByTypesData }) {
+  const liveData = useQuery(api.assets.listByTypes, { types });
   return toLiveQueryResult(liveData, () => options?.initialData);
 }
 

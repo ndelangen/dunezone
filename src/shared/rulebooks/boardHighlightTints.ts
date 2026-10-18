@@ -11,6 +11,8 @@ const GROUP_TYPES: Record<string, NonNullable<BoardTint['types']>[number]> = {
   strongholds: 'stronghold',
 };
 const GROUP_TERRITORIES: Record<string, string> = { polar: 'polar_sink' };
+/* The sector guides are a part of the maintained artwork, not a territory a tint can cover. */
+const NOT_TERRITORIES = new Set(['sectors']);
 
 const DEFAULT_OPACITY = 0.35;
 
@@ -27,7 +29,7 @@ function tintColor(highlight: Highlight) {
  */
 export function boardHighlightTints(highlights: readonly Highlight[]): BoardTint[] {
   const byColor = new Map<string, Highlight[]>();
-  for (const highlight of highlights) {
+  for (const highlight of highlights.filter(({ territory }) => !NOT_TERRITORIES.has(territory))) {
     const color = tintColor(highlight);
     byColor.set(color, [...(byColor.get(color) ?? []), highlight]);
   }

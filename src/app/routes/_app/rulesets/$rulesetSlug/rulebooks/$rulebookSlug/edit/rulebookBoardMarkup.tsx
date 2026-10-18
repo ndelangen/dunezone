@@ -1,7 +1,6 @@
 import { Accordion, Loader } from '@mantine/core';
-import type { Board } from '@shared/boards/geometry';
-import { resolveRulebookBoardDefinition } from '@shared/rulebooks/boardDefinitions';
 import type { RulebookBoardSceneValue } from '@shared/rulebooks/illustratedScenes';
+import { rulebookSceneBoard } from '@shared/rulebooks/sceneBoard';
 import type { RulebookResolvedAssetsById } from '@shared/rulebooks/sources';
 import { createContext, lazy, Suspense, useCallback, useContext, useState } from 'react';
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
@@ -60,15 +59,6 @@ export function useRulebookMarkupUi() {
   return shared ?? local;
 }
 
-/** A saved board scene's board, as the editor's references read it: undefined for the maintained board, null while loading or when it does not read. */
-function sceneBoard(value: RulebookBoardSceneValue, assetsById: RulebookResolvedAssetsById) {
-  if (resolveRulebookBoardDefinition(value.boardId)) {
-    return undefined;
-  }
-  const board = assetsById[value.boardId]?.board;
-  return board && typeof board === 'object' ? (board as Board) : null;
-}
-
 function focusOf([ui, setUi]: readonly [RulebookMarkupUi, Dispatch<SetStateAction<RulebookMarkupUi>>]) {
   return {
     brush: ui.brush,
@@ -79,8 +69,8 @@ function focusOf([ui, setUi]: readonly [RulebookMarkupUi, Dispatch<SetStateActio
 }
 
 /**
- * What the preview does with an open saved board scene: paint while the Tints section is open and a brush is on, drag while the Tokens section is open.
- * None for a scene on the maintained board or a board still loading.
+ * What the preview does with an open board scene: paint while the Tints section is open and a brush is on, drag while the Tokens section is open.
+ * None while a saved board is still loading.
  */
 export function rulebookMarkupEditor({
   value,
@@ -93,7 +83,7 @@ export function rulebookMarkupEditor({
   assetsById: RulebookResolvedAssetsById;
   ui: readonly [RulebookMarkupUi, Dispatch<SetStateAction<RulebookMarkupUi>>];
 }): RulebookBoardMarkupEditor | null {
-  const board = sceneBoard(value, assetsById);
+  const board = rulebookSceneBoard(value.boardId, assetsById);
   if (!board) {
     return null;
   }
@@ -104,7 +94,8 @@ export function rulebookMarkupEditor({
   return {
     board,
     tokens,
-    typeOf: (assetId) => assetsById[assetId]?.type,
+    /* Only a token with a published face is drawn, so only those can be grabbed. */
+    typeOf: (assetId) => (assetsById[assetId]?.imageUrl ? assetsById[assetId]?.type : undefined),
     editing: boardMarkupEditing({
       tints: value.tints ?? [],
       tokens,
@@ -132,7 +123,7 @@ const tokenPicker: AssetPick = (onPick, onCancel) => (
   </Suspense>
 );
 
-/** The Tints and Tokens sections of a scene on a saved board, as accordion items in the scene's panel. */
+/** The Tints and Tokens sections of a board scene, as accordion items in the scene's panel. */
 export function RulebookBoardMarkupFields({
   value,
   onChange,
@@ -145,7 +136,7 @@ export function RulebookBoardMarkupFields({
   const ui = useRulebookMarkupUi();
   const [state] = ui;
   const focus = focusOf(ui);
-  const board = sceneBoard(value, assetsById) ?? null;
+  const board = rulebookSceneBoard(value.boardId, assetsById);
   const tints = value.tints ?? [];
   const tokens = value.tokens ?? [];
   useBrushEscape(state.sections.includes('tints') && tints.some((tint) => tint.id === state.brush), focus.setBrush);

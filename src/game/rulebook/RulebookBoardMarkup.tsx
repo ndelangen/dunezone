@@ -1,3 +1,4 @@
+import { tokenOutline, tokenShapeOfType } from '@shared/assets/tokenOutline';
 /* oxlint-disable jsx-a11y/alt-text -- Static decorative board layers, not content images. */
 import type { Board } from '@shared/boards/geometry';
 import { BOARD_FRAME_SIZE } from '@shared/boards/markup';
@@ -39,9 +40,24 @@ export function useRulebookBoardMarkupEditor(blockId: string | undefined) {
 function Token({ token, selected }: Readonly<{ token: PlacedToken; selected: boolean }>) {
   const href = useAsset(token.imageUrl);
   const height = placedTokenHeight(token, token.type);
+  const shape = tokenShapeOfType(token.type) ?? 'square';
+  /* A published face is an opaque square, so the token's own shape is cut here, as Spice cards and the table cut it. */
+  const { clipPath } = tokenOutline(shape);
   return (
     <g transform={`translate(${token.x} ${token.y}) rotate(${token.rotation})`} data-token-instance={token.layerId}>
-      <image href={href} x={-token.size / 2} y={-height / 2} width={token.size} height={height} />
+      <foreignObject x={-token.size / 2} y={-height / 2} width={token.size} height={height}>
+        <img
+          src={href}
+          style={{
+            display: 'block',
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            borderRadius: shape === 'round' ? '50%' : clipPath ? undefined : '8%',
+            clipPath,
+          }}
+        />
+      </foreignObject>
       {selected ? (
         <rect
           x={-token.size / 2 - 4}

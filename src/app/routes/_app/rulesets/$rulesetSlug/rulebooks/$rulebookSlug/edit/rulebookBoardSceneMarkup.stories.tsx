@@ -135,7 +135,7 @@ export const ChooseABoard = meta.story({
   },
 });
 
-/** Picking the maintained map from the field moves the scene onto it. */
+/** Picking the maintained map from the field moves the scene onto it, keeping its tints and tokens, which draw there too. */
 export const PickTheMaintainedBoard = meta.story({
   parameters: { database: db((baseline) => baseline) },
   render: () => <SceneEditorStory kind="board" initial={scene} references={references} />,
@@ -146,6 +146,8 @@ export const PickTheMaintainedBoard = meta.story({
     await userEvent.click(field);
     await userEvent.click(await body.findByRole('option', { name: /Arrakis board/ }));
     await waitFor(() => expect(field).toHaveValue('Arrakis board'));
-    await expect(canvas.queryByRole('button', { name: 'Tints (2)' })).toBeNull();
+    await expect(canvas.getByRole('button', { name: 'Tints (2)' })).toBeVisible();
+    await expect(canvas.getByRole('button', { name: 'Tokens (2)' })).toBeVisible();
+    await expect(canvasElement.querySelectorAll('[data-tint]')).toHaveLength(2);
   },
 });

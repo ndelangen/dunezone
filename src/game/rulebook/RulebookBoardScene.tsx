@@ -78,14 +78,15 @@ function StormSector({
         stroke="#8b3628"
         strokeWidth={width * 0.003}
       />
-      <image
-        aria-label="Storm"
-        href="/vector/icon/storrm_standalone.svg"
-        x={position.x - iconSize / 2}
-        y={position.y - iconSize / 2}
-        width={iconSize}
-        height={iconSize}
-      />
+      <g aria-label="Storm">
+        <image
+          href="/vector/icon/storrm_standalone.svg"
+          x={position.x - iconSize / 2}
+          y={position.y - iconSize / 2}
+          width={iconSize}
+          height={iconSize}
+        />
+      </g>
     </>
   );
 }

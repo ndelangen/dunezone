@@ -763,6 +763,7 @@ function BoardStormFields({ value, onChange }: BoardSceneFieldsProps) {
 
 /**
  * A scene moved from the maintained board onto a saved one carries its highlights over as tints, which a saved board draws instead.
+ * Tints and tokens draw on the maintained board too, so moving back keeps what the scene showed.
  * A scene that already has tints keeps them and its highlights as they are.
  */
 function withBoard(value: RulebookBoardSceneValue, boardId: string): RulebookBoardSceneValue {
@@ -815,9 +816,7 @@ function BoardSceneFields({ value, references, onChange }: BoardSceneFieldsProps
         <Accordion multiple value={ui.sections} onChange={(sections) => setUi((current) => ({ ...current, sections }))}>
           <BoardPlayerFields value={value} references={references} onChange={onChange} />
           <BoardTroopFields value={value} references={references} onChange={onChange} />
-          {saved ? (
-            <RulebookBoardMarkupFields value={value} onChange={onChange} assetsById={references.assetsById} />
-          ) : null}
+          <RulebookBoardMarkupFields value={value} onChange={onChange} assetsById={references.assetsById} />
           {!saved || value.highlights.length ? (
             <BoardHighlightFields value={value} references={references} onChange={onChange} />
           ) : null}

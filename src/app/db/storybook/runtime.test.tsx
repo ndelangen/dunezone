@@ -54,28 +54,6 @@ test('a revision refresh preserves the current query value until its replacement
   expect(query).toHaveBeenCalledTimes(2);
 });
 
-test('a skipped query reads nothing until it is given arguments', async () => {
-  const query = vi.fn().mockResolvedValue(['board']);
-  const client = {
-    getRevision: () => 0,
-    query,
-    subscribe: () => () => undefined,
-  } as unknown as ConvexStorybookWorkerClient;
-  const wrapper = ({ children }: PropsWithChildren) => (
-    <ConvexStorybookWorkerContext.Provider value={{ client }}>{children}</ConvexStorybookWorkerContext.Provider>
-  );
-  const reference = makeFunctionReference<'query', { types: string[] }, string[]>('test:listByTypes');
-  const hook = renderHook(({ skip }) => useConvexStorybookQuery(reference, skip ? 'skip' : { types: ['board'] }), {
-    wrapper,
-    initialProps: { skip: true },
-  });
-  await act(async () => undefined);
-  expect(hook.result.current).toBeUndefined();
-  expect(query).not.toHaveBeenCalled();
-  hook.rerender({ skip: false });
-  await waitFor(() => expect(hook.result.current).toEqual(['board']));
-});
-
 test('changed arguments clear the value and a retired request cannot replace the new answer', async () => {
   const oldRequest = deferred<string[]>();
   const newRequest = deferred<string[]>();

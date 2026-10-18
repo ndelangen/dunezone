@@ -1,4 +1,3 @@
-import type { Board } from '../boards/geometry';
 import { tintDrawing } from '../boards/tintDrawing';
 import { parseFormattedText } from '../formattedText';
 import { userImageSourceUrlSchema } from '../user-images/contract';
@@ -17,6 +16,7 @@ import type {
   RulebookRenderPageV1,
   RulebookRenderPreviewDocumentV1,
 } from './renderDocument';
+import { rulebookSceneBoard } from './sceneBoard';
 import type { RulebookSettings } from './settings';
 import { resolveRulebookArtworkSource } from './sources';
 import type {
@@ -198,14 +198,14 @@ function projectBoardScene(
 }
 
 /**
- * A scene's tints drawn on its saved board, and its placed tokens that resolved to a published image.
+ * A scene's tints drawn on its board, and its placed tokens that resolved to a published image.
  * Tints draw only once the board's data is at hand;
  * a board that does not draw leaves them out rather than failing the scene.
  */
 function projectBoardMarkup(value: RulebookBoardSceneValue, assetsById: RulebookResolvedAssetsById) {
-  const board = assetsById[value.boardId]?.board as Board | undefined;
+  const board = rulebookSceneBoard(value.boardId, assetsById);
   let tints;
-  if (value.tints?.length && board && typeof board === 'object') {
+  if (value.tints?.length && board) {
     try {
       tints = value.tints.map((tint) => tintDrawing(board, tint));
     } catch {

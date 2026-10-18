@@ -28,4 +28,8 @@ describe('boardHighlightTints', () => {
     ]);
     expect(boardHighlightTints([])).toEqual([]);
   });
+
+  it('leaves out the sector guides, which are artwork rather than a territory', () => {
+    expect(boardHighlightTints([{ territory: 'sectors', color: '#2f7fe0' }])).toEqual([]);
+  });
 });

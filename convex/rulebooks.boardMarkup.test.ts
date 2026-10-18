@@ -41,6 +41,19 @@ test(
       data: { name: 'Arrakis copy', about: '', board: arrakisBoard() },
     });
 
+    /* Until the board's capture lands, its image is missing or older than its data, so the data stays back. */
+    const capturing = await t.run((ctx) =>
+      resolveRulebookReferences(ctx, contentsWith(scene(board.id, {})), { boardData: true })
+    );
+    expect(capturing.assetsById[board.id]?.board).toBeUndefined();
+    await t.run(async (ctx) => {
+      const jobs = await ctx.db
+        .query('publication_jobs')
+        .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', 'board').eq('asset_id', board.id))
+        .collect();
+      await Promise.all(jobs.map((job) => ctx.db.delete('publication_jobs', job._id)));
+    });
+
     const plain = await t.run((ctx) => resolveRulebookReferences(ctx, contentsWith(scene(board.id, {}))));
     expect(plain.assetsById[board.id]?.board).toBeUndefined();
     const editing = await t.run((ctx) =>

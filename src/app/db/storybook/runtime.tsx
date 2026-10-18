@@ -232,7 +232,7 @@ function useStableConvexValue<Value>(value: Value) {
 
 export function useConvexStorybookQuery<Query extends FunctionReference<'query'> | FunctionReference_future<'query'>>(
   query: Query,
-  args: FunctionArgs<Query> | 'skip'
+  args: FunctionArgs<Query>
 ): FunctionReturnType<Query> | undefined {
   const { client, identity } = useConvexStorybookWorkerSession();
   const revision = useSyncExternalStore(client.subscribe, client.getRevision, client.getRevision);
@@ -251,10 +251,6 @@ export function useConvexStorybookQuery<Query extends FunctionReference<'query'>
   }>();
 
   useEffect(() => {
-    /* A skipped query reads nothing, as Convex's own `useQuery` does. */
-    if (stableArgs === 'skip') {
-      return;
-    }
     let active = true;
     void client
       .query(stableQuery, stableArgs, identity)
