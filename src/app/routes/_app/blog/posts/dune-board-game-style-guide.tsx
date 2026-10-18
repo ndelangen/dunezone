@@ -21,8 +21,9 @@ export default function Post() {
         <Anchor href={FONT_THREAD} target="_blank" rel="noreferrer">
           GF9 Dune Font Graphics
         </Anchor>
-        , where Pkfod listed every font family in the game and where each one appears. This post is my attempt to be
-        that page, with the fonts set in their own faces and the colours, textures and art beside them.
+        , where Pkfod listed every font family in the game and where each one appears. The fonts are only part of it,
+        though. I wanted one place for the whole look of the game: its fonts, colours, textures, emblems, decals and
+        portraits, so this post collects all of it.
       </Lead>
       <Paragraph>
         The 2019 game and its Ixians &amp; Tleilaxu expansion were illustrated by Ilya Baranovsky. Solveig Reda drew
