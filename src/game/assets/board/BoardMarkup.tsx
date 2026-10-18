@@ -47,7 +47,12 @@ export function TintDrawingLayers({
       {drawings.map((drawing) => (
         <g key={drawing.id} data-tint={drawing.id}>
           {drawing.outline !== undefined ? (
-            <path d={drawing.outline} fill={drawing.color} fillRule="nonzero" />
+            <path
+              d={drawing.outline}
+              fill={drawing.color}
+              fillOpacity={drawing.outlineOpacity ?? 1}
+              fillRule="nonzero"
+            />
           ) : (
             drawing.fills.map((fill, index) => (
               <g key={index}>

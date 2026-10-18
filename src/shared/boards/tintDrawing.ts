@@ -6,7 +6,7 @@ import type { BoardTint } from './markup';
 import { territoryId } from './schema';
 import { placeStickers } from './stickerPlacement';
 import { offRim, offsetPath, outerSegments, outlinePaths } from './tintOutline';
-import { TINT_STAMPS, tintPaint } from './tints';
+import { TINT_STAMPS, tintOutlineOpacity, tintPaint } from './tints';
 
 /*
  * What a tint draws on a saved board, worked out once from the board and kept as plain SVG paths and positions.
@@ -34,6 +34,8 @@ export const tintDrawingSchema = z.strictObject({
   fills: z.array(z.strictObject({ d: z.string(), edge: z.string() })).max(128),
   /** Set for an outline-only tint: one double line round its territories taken together. */
   outline: z.string().optional(),
+  /** How opaque the outline is; a drawing without one predates outline opacity and draws it solid. */
+  outlineOpacity: z.number().min(0).max(1).optional(),
   stickers: z.array(z.strictObject({ stamp: z.enum(TINT_STAMPS), x: coordinate, y: coordinate, size: coordinate })),
 });
 export type TintDrawing = z.infer<typeof tintDrawingSchema>;
@@ -153,7 +155,7 @@ function drawTint(board: Board, tint: BoardTint): TintDrawing {
     color: paint.color,
     opacity: paint.opacity,
     fills: tint.outline ? [] : territories.map(({ face }) => ({ d: roundPath(face.path), edge: edgePath(face) })),
-    ...(tint.outline ? { outline: outlinePath(territories) } : {}),
+    ...(tint.outline ? { outline: outlinePath(territories), outlineOpacity: tintOutlineOpacity(tint.color) } : {}),
     stickers: territories.flatMap((territory) => stickers(tint, territory)),
   };
 }
