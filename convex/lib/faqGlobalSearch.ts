@@ -1,5 +1,6 @@
 import { v } from 'convex/values';
 
+import { compareCodeUnits } from '../../src/shared/compareText';
 import { FAQ_CATALOGUE_PAGE_SIZE, FAQ_CATALOGUE_QUERY_LIMIT } from '../../src/shared/faq/catalogueSearch';
 import { FAQ_SEARCH_RULESET_LIMIT } from '../../src/shared/faq/globalSearch';
 import type { Doc } from '../_generated/dataModel';
@@ -127,7 +128,7 @@ export async function loadGlobalFaqPage(ctx: QueryCtx, args: { q?: string; rules
   const text = (args.q ?? '').slice(0, FAQ_CATALOGUE_QUERY_LIMIT).trim();
   const page = pageNumber(args.page);
   const base = {
-    selected: picked.map((ruleset) => ruleset.slug).sort(),
+    selected: picked.map((ruleset) => ruleset.slug).sort(compareCodeUnits),
     searched: text !== '',
     page,
     pageSize: FAQ_CATALOGUE_PAGE_SIZE,

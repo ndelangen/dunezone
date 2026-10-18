@@ -1,3 +1,4 @@
+import { compareCodeUnits } from '../compareText';
 import { parseCataloguePage } from '../factions/catalogueSearch';
 import { FAQ_CATALOGUE_QUERY_LIMIT } from './catalogueSearch';
 
@@ -26,7 +27,7 @@ function slugList(value: unknown): string[] {
     .filter((part): part is string => typeof part === 'string')
     .map((part) => part.trim().toLowerCase())
     .filter((part) => SLUG.test(part));
-  return [...new Set(slugs)].sort().slice(0, FAQ_SEARCH_RULESET_LIMIT);
+  return [...new Set(slugs)].sort(compareCodeUnits).slice(0, FAQ_SEARCH_RULESET_LIMIT);
 }
 
 /** The ruleset slugs a parsed search narrows to, empty for every ruleset. */
