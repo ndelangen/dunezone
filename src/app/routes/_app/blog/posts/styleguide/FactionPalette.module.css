@@ -1,0 +1,86 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+  gap: var(--space-md);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A swatch card: the token on top, the two colours as blocks, the texture below, on the page's own surface. */
+.card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-md);
+}
+
+.head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm);
+  text-align: center;
+}
+
+.token {
+  position: relative;
+  flex: 0 0 auto;
+  width: 3.5rem;
+  height: 3.5rem;
+  overflow: hidden;
+  border-radius: 50%;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 45%);
+}
+
+.name {
+  min-width: 0;
+  font-family: var(--mantine-font-family-headings);
+  font-size: var(--mantine-font-size-sm);
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.swatches {
+  display: flex;
+  flex-direction: column;
+}
+
+.swatch {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 var(--space-xs);
+  min-height: 3.5rem;
+  padding: var(--space-xs) var(--space-sm);
+  font-family: var(--mantine-font-family-monospace);
+  font-size: var(--mantine-font-size-xs);
+  align-content: end;
+}
+
+.role {
+  grid-column: 1 / -1;
+  font-family: "C_Candara", sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.8;
+}
+
+.meta {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 2px var(--space-sm);
+  margin: 0;
+  padding: var(--space-xs) var(--space-sm);
+  font-size: var(--mantine-font-size-xs);
+}
+
+.meta dt {
+  color: var(--mantine-color-dimmed);
+}
+
+.meta dd {
+  margin: 0;
+  font-family: var(--mantine-font-family-monospace);
+}

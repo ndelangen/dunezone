@@ -30,6 +30,19 @@ export type BlogPostMeta = {
  * A body file under `posts/` is named for its slug, never `index.tsx` or `*.route.tsx`, which the router would read as a page.
  */
 export const BLOG_POST_META: Record<BlogPostSlug, BlogPostMeta> = {
+  'dune-board-game-style-guide': {
+    slug: 'dune-board-game-style-guide',
+    title: 'The Dune board game style guide: every font, colour and texture in the GF9 edition',
+    date: '2026-10-25',
+    author: 'Central419',
+    summary:
+      'The fonts Gale Force Nine used in Dune and where each one appears, the colours of every faction and card, the textures and frames under them, and how the leader portraits changed from the base game to Ecaz & Moritani.',
+    cover: {
+      key: '/web/blog/why-dune/gf9-board.jpg',
+      alt: 'The Gale Force Nine Dune board',
+      aspect: 1,
+    },
+  },
   'drawing-dune-tokens-and-cards': {
     slug: 'drawing-dune-tokens-and-cards',
     title: 'Recreating Dune board game art, layer by layer',
