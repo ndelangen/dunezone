@@ -131,9 +131,9 @@ const properties = z
   .strictObject({
     ...propertyShape,
     name: territoryName,
+    /* No length cap: IDs saved before they were kept came from names, and normalising a name can lengthen it; the board's size limit bounds them. */
     id: z
       .string()
-      .max(TERRITORY_NAME_LIMIT)
       .regex(/^[a-z0-9]+(?:_[a-z0-9]+)*$/)
       .optional(),
     decals: z.array(decal).max(128),

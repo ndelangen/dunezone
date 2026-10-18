@@ -93,6 +93,15 @@ it('keeps a saved territory ID when the territory is renamed, and gives an older
   expect(parsed.board.properties[second].id).toBe('older_territory');
 });
 
+it('accepts a saved ID longer than its name, as normalising a name can make one', () => {
+  const board = arrakisBoard();
+  const [first] = Object.keys(board.properties);
+  board.properties[first].name = 'ﬃ'.repeat(43);
+  board.properties[first].id = territoryId(board.properties[first].name);
+  expect(board.properties[first].id.length).toBeGreaterThan(128);
+  expect(BoardAsset.safeParse({ name: 'Board', about: '', board }).success).toBe(true);
+});
+
 it('rejects two territories with one ID, and an ID no territory name could spell', () => {
   const duplicate = arrakisBoard();
   const [first, second] = Object.keys(duplicate.properties);
