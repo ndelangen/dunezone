@@ -1722,3 +1722,13 @@
   height: calc(1 * var(--rulebook-mm));
   flex: none;
 }
+
+/* The editor's input surface over a saved board scene: tokens drag, and an open brush paints. */
+.rulebookBoardEditSurface {
+  cursor: grab;
+  touch-action: none;
+}
+
+.rulebookBoardEditSurface[data-brush] {
+  cursor: crosshair;
+}

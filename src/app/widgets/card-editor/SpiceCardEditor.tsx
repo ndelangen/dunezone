@@ -1,6 +1,4 @@
 import { MultiSelect, NumberInput, Stack, TextInput } from '@mantine/core';
-import type { Board } from '@shared/boards/schema';
-import { territoryId } from '@shared/boards/schema';
 import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { AssetSelect } from '@ui/control/AssetSelect';
@@ -10,11 +8,13 @@ import { CanvasScale } from '@ui/layout/CanvasScale';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
 import { Coins, Map as MapIcon, Palette, ScrollText } from 'lucide-react';
-import { useEffect, useReducer, useState } from 'react';
+import { useReducer, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
+import type { BoardSelect } from '@app/pickers/BoardPicker';
 import { aboutChapter } from '@app/widgets/asset-about/AboutChapter';
+import { boardMarkupEditing, useBrushEscape } from '@app/widgets/board-markup/BoardMarkupFields';
 import { assetOptionToPreviewSrc, vectorDecalAssetOptions } from '@app/widgets/faction-editor/factionFormAssetUtils';
 import { SpiceCard } from '@game/assets/card/Spice';
 import { spiceIconSrc, standardSpiceText } from '@game/assets/card/spiceText';
@@ -87,43 +87,6 @@ const HIGHLIGHT_OPTIONS = [
 
 type Patch = (update: Partial<SpiceDraft>) => void;
 
-/**
- * The draft's link with one tint's territory added or taken away: what the proof's brush asks for.
- * A tint carried over from a classic card's region names territory types;
- * painting by hand spells those out as the board's territories first, so the brush can take any of them away.
- */
-function paintTerritory(
-  link: NonNullable<SpiceDraft['board']>,
-  board: Board | undefined,
-  tintId: string,
-  territory: string
-) {
-  return {
-    ...link,
-    tints: link.tints.map((tint) => {
-      if (tint.id !== tintId) {
-        return tint;
-      }
-      const types = new Set<string>(tint.types ?? []);
-      const covered = [
-        ...new Set([
-          ...tint.territories,
-          ...(board && types.size
-            ? Object.values(board.properties)
-                .filter((property) => types.has(property.type))
-                .map((property) => territoryId(property.name))
-            : []),
-        ]),
-      ];
-      const { types: _types, ...rest } = tint;
-      return {
-        ...(board ? rest : tint),
-        territories: covered.includes(territory) ? covered.filter((id) => id !== territory) : [...covered, territory],
-      };
-    }),
-  };
-}
-
 /* The rail proof, at the renderer's own 900 by 1263. On a saved board it is also where tints are painted and tokens dragged. */
 function FillCard({
   draft,
@@ -140,7 +103,6 @@ function FillCard({
   placing: boolean;
 }) {
   const link = draft.board;
-  const brush = focus.brush;
   return (
     <CanvasScale
       rounded
@@ -154,22 +116,15 @@ function FillCard({
         boardTokens={read?.tokens}
         mapEditing={
           link
-            ? {
-                onTerritory: brush
-                  ? (territory) => patch({ board: paintTerritory(link, read?.board ?? undefined, brush, territory) })
-                  : undefined,
-                onTokenMove: placing
-                  ? (layerId, x, y) =>
-                      patch({
-                        board: {
-                          ...link,
-                          tokens: link.tokens.map((token) => (token.layerId === layerId ? { ...token, x, y } : token)),
-                        },
-                      })
-                  : undefined,
-                selectedToken: placing ? focus.token : null,
-                onSelectToken: focus.setToken,
-              }
+            ? boardMarkupEditing({
+                tints: link.tints,
+                tokens: link.tokens,
+                board: read?.board,
+                focus,
+                placing,
+                onTints: (tints) => patch({ board: { ...link, tints } }),
+                onTokens: (tokens) => patch({ board: { ...link, tokens } }),
+              })
             : undefined
         }
       />
@@ -325,14 +280,14 @@ export function SpiceCardEditor({
   onChapterChange,
   onSettle,
   boardRead,
-  boardPicker,
+  boardSelect,
   tokenPicker,
 }: {
   draft: SpiceDraft;
   /** The linked board and token fronts, read by the route while the draft links a board. */
   boardRead?: SpiceBoardRead;
   /** Pickers for a board and a token asset; fetching controls are Pickers the routes own. */
-  boardPicker: AssetPick;
+  boardSelect: BoardSelect;
   tokenPicker: AssetPick;
   /** The Name field, constructed by the route: checking a name's address is a fetch, and fetching controls are Pickers the routes own. */
   nameField: ReactNode;
@@ -347,18 +302,7 @@ export function SpiceCardEditor({
   const focus: SpiceMapFocus = { brush, setBrush, token, setToken };
   /* The brush is for the Map chapter and a tint that still exists; Escape puts it down. */
   const brushing = chapter === 'map' && !!draft.board?.tints.some((tint) => tint.id === brush) && !!boardRead?.board;
-  useEffect(() => {
-    if (!brushing) {
-      return;
-    }
-    const stop = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setBrush(null);
-      }
-    };
-    window.addEventListener('keydown', stop);
-    return () => window.removeEventListener('keydown', stop);
-  }, [brushing]);
+  useBrushEscape(brushing, setBrush);
   const proofFocus: SpiceMapFocus = { ...focus, brush: brushing ? brush : null };
   const link = draft.board;
   const lookPreview: SpiceLookPreview = {
@@ -403,7 +347,7 @@ export function SpiceCardEditor({
                     onLink={(board) => patch({ board })}
                     read={boardRead}
                     focus={proofFocus}
-                    boardPicker={boardPicker}
+                    boardSelect={boardSelect}
                     classic={<ClassicHighlights draft={draft} patch={patch} />}
                   />
                 ),

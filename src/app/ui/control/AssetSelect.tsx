@@ -61,6 +61,8 @@ export interface AssetSelectProps extends Omit<
   allowDeselect?: boolean;
   clearable?: boolean;
   dropdownOpened?: boolean;
+  /** Told each time the list opens or closes, by any path: a pick, Escape, or a click outside. */
+  onDropdownChange?: (opened: boolean) => void;
   comboboxProps?: ComboboxProps;
 }
 
@@ -108,6 +110,7 @@ export function AssetSelect({
   allowDeselect = true,
   clearable = false,
   dropdownOpened,
+  onDropdownChange,
   onBlur,
   onClick,
   placeholder,
@@ -121,7 +124,9 @@ export function AssetSelect({
   });
   const combobox = useCombobox({
     opened: dropdownOpened,
+    onDropdownOpen: () => onDropdownChange?.(true),
     onDropdownClose: (eventSource) => {
+      onDropdownChange?.(false);
       dispatch({ type: 'close' });
       combobox.resetSelectedOption();
       if (trigger && eventSource === 'keyboard') {
