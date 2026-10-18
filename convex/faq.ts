@@ -9,8 +9,9 @@ import { internalMutation, mutation, publicQuery, viewerQuery } from './function
 import { selectCataloguePage } from './lib/catalogueOrder';
 import { faqListItemValidator } from './lib/collaborativeAccessValidators';
 import { faqRulesetPartition, faqTagPartition } from './lib/faqCatalogue';
+import { globalFaqPageValidator, loadGlobalFaqPage } from './lib/faqGlobalSearch';
 import { faqQuestionPublicPageValidator, loadFaqQuestionPublicPage, loadViewerAnswered } from './lib/faqQuestionPage';
-import { projectFaqListItems } from './lib/faqRulesetList';
+import { faqItemsOfEntries, projectFaqListItems } from './lib/faqRulesetList';
 import { faqTagValidator } from './lib/faqTags';
 import { requireAuthUserId } from './lib/policy';
 import { loadPublicRulesetBySlug } from './lib/rulesetDetailPage';
@@ -145,17 +146,7 @@ export const rulesetFaq = publicQuery({
       search: text ? { text, relevance: true } : undefined,
     });
 
-    const items = [];
-    for (const entry of selection.entries) {
-      const itemId = ctx.db.normalizeId('faq_items', entry.source_id);
-      const item = itemId ? await ctx.db.get('faq_items', itemId) : null;
-      if (!item) {
-        /* Drift: the page comes up one row short until the backfill or the question's next save. */
-        console.warn(`Catalogue entry for FAQ item ${entry.source_id} has no question.`);
-        continue;
-      }
-      items.push(item);
-    }
+    const items = await faqItemsOfEntries(ctx, selection.entries);
 
     return {
       ruleset: { id: ruleset._id, name: ruleset.name, slug: ruleset.slug },
@@ -167,6 +158,22 @@ export const rulesetFaq = publicQuery({
       pageSize: FAQ_CATALOGUE_PAGE_SIZE,
     };
   },
+});
+
+/**
+ * One page of the global FAQ: questions matching a search across every ruleset, or the rulesets picked, best match first.
+ * Before any search it returns no questions, only the rulesets the reader can pick;
+ * one cached answer for every viewer.
+ */
+export const search = publicQuery({
+  args: {
+    q: v.optional(v.string()),
+    /** Ruleset slugs; none searches every ruleset. */
+    rulesets: v.optional(v.array(v.string())),
+    page: v.optional(v.number()),
+  },
+  returns: globalFaqPageValidator,
+  handler: async (ctx, args) => await loadGlobalFaqPage(ctx, args),
 });
 
 /** The FAQ question page, one cached answer for every viewer. The browser combines its authorship facts with the viewer. */

@@ -165,6 +165,8 @@ export type CataloguePageRequest = {
   search?: { text: string; relevance: boolean };
   /** An inclusive range of `complexity_score`, 0 to 10. */
   complexity?: [number, number];
+  /** Keeps only the entries it accepts, such as those in one of several lists; the aggregate cannot count these, so the page is bounded. */
+  keep?: (entry: Entry) => boolean;
 };
 
 export type CataloguePageSelection = {
@@ -279,7 +281,8 @@ function boundedMatches(read: Entry[], request: CataloguePageRequest) {
   const inRange = range
     ? read.filter((entry) => entry.complexity_score >= range[0] && entry.complexity_score <= range[1])
     : read;
-  return request.search ? inRange.filter(matchesEveryWord(request.search.text)) : inRange;
+  const kept = request.keep ? inRange.filter(request.keep) : inRange;
+  return request.search ? kept.filter(matchesEveryWord(request.search.text)) : kept;
 }
 
 /** At most `CATALOGUE_BOUNDED_READ` matches, ordered and paged in memory. */
@@ -298,13 +301,13 @@ async function boundedPage(ctx: QueryCtx, request: CataloguePageRequest, offset:
 
 /**
  * One page of one list, exact at any size whenever the aggregate can count it: no search and no complexity range, or a complexity range on the complexity sort.
- * A search, or a complexity range on another sort, reads at most `CATALOGUE_BOUNDED_READ` matches and pages over them in memory.
+ * A search, a `keep` filter, or a complexity range on another sort, reads at most `CATALOGUE_BOUNDED_READ` matches and pages over them in memory.
  */
 export async function selectCataloguePage(
   ctx: QueryCtx,
   request: CataloguePageRequest
 ): Promise<CataloguePageSelection> {
   const offset = (Math.max(1, Math.floor(request.page)) - 1) * request.pageSize;
-  const countable = !request.search && (!request.complexity || request.sort === 'complexity');
+  const countable = !request.search && !request.keep && (!request.complexity || request.sort === 'complexity');
   return countable ? await aggregatePage(ctx, request, offset) : await boundedPage(ctx, request, offset);
 }

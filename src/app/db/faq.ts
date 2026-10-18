@@ -101,6 +101,22 @@ export function useRulesetFaqPage(args: RulesetFaqArgs, options?: { initialData?
   return toLiveQueryResult(liveData, () => options?.initialData);
 }
 
+/** What `api.faq.search` gives the global FAQ page, the same for every viewer. */
+export type GlobalFaqPageData = FunctionReturnType<typeof api.faq.search>;
+/** What one global FAQ page asks for: the search, the ruleset slugs it narrows to, and the page. */
+export type GlobalFaqArgs = FunctionArgs<typeof api.faq.search>;
+
+/** The global FAQ route's loader, paired with `useGlobalFaqPage`; a searched page is not held, as each search is its own subscription. */
+export async function loadGlobalFaqPage(args: GlobalFaqArgs): Promise<GlobalFaqPageData> {
+  return await db.query(api.faq.search, args, { hold: !args.q });
+}
+
+/** One live global FAQ page, taking `loadGlobalFaqPage`'s result for the same arguments as `initialData`. */
+export function useGlobalFaqPage(args: GlobalFaqArgs, options?: { initialData?: GlobalFaqPageData }) {
+  const liveData = useLiveQuery(api.faq.search, args, { hold: !args.q });
+  return toLiveQueryResult(liveData, () => options?.initialData);
+}
+
 /** The question route's loader, paired with `useFaqQuestionPage`. */
 export async function loadFaqQuestionPage(locator: FaqQuestionLocator): Promise<FaqQuestionPublicPage> {
   return await db.query(api.faq.question, locator);
