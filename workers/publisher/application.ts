@@ -1,4 +1,5 @@
 import { RECORDLESS_PUBLIC_PAGES } from '../../src/shared/recordlessPublicPages';
+import { CACHED_NONCE_HEADER, secureApplicationResponse } from './application-security';
 import { PUBLIC_CACHE_SECONDS, publicCachedResponse } from './public-cache';
 import type { PublicCache } from './public-cache';
 
@@ -64,8 +65,8 @@ function isPublicAssetPage(segments: string[]): boolean {
 /** Only anonymous public document reads cross into the application server. */
 export async function handleApplicationRequest(
   request: Request,
-  env: Pick<Env, 'CF_VERSION_METADATA' | 'GIT_SHA'>,
-  render: (request: Request) => Promise<Response>,
+  env: Pick<Env, 'CF_VERSION_METADATA' | 'GIT_SHA' | 'CONVEX_CLOUD_BASE_URL'>,
+  render: (request: Request, nonce: string) => Promise<Response>,
   cache?: PublicCache
 ): Promise<Response | null> {
   if (!['GET', 'HEAD'].includes(request.method) || !isPublicPage(new URL(request.url).pathname)) {
@@ -76,21 +77,23 @@ export async function handleApplicationRequest(
     new URL(request.url),
     'html',
     async () => {
+      const nonce = crypto.randomUUID().replaceAll('-', '');
       const result = await render(
         new Request(request.url, {
-          headers: { Accept: 'text/html' },
+          headers: { Accept: 'text/html', 'X-Application-Nonce': nonce },
           signal: request.signal,
-        })
+        }),
+        nonce
       );
       const publicResult = new Response(result.body, result);
       publicResult.headers.set('X-Public-Renders', '1');
+      publicResult.headers.set(CACHED_NONCE_HEADER, nonce);
       return publicResult;
     },
     () => PUBLIC_CACHE_SECONDS.html
   );
   const headers = new Headers(response.headers);
   headers.delete('Set-Cookie');
-  headers.set('Content-Security-Policy', "frame-ancestors 'self'; base-uri 'self'; object-src 'none'");
   headers.set('X-Frame-Options', 'SAMEORIGIN');
   headers.set('X-Content-Type-Options', 'nosniff');
   headers.set('Cache-Control', 'no-store');
@@ -98,9 +101,13 @@ export async function handleApplicationRequest(
   if (request.method === 'HEAD') {
     await response.body?.cancel();
   }
-  return new Response(request.method === 'HEAD' ? null : response.body, {
-    status: response.status,
-    statusText: response.statusText,
-    headers,
-  });
+  return secureApplicationResponse(
+    new Response(request.method === 'HEAD' ? null : response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+    }),
+    env.CONVEX_CLOUD_BASE_URL,
+    request.url
+  );
 }
