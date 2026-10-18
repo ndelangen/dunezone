@@ -57,6 +57,13 @@ import { captureCompressedRulebookPdf } from './rulebook-pdf-stream';
 
 const repositoryRoot = path.resolve(import.meta.dirname, '../..');
 const publisherDist = path.join(repositoryRoot, 'workers/publisher/dist');
+const applicationCsp = /^\s*Content-Security-Policy: (.+)$/m.exec(
+  await Bun.file(path.join(publisherDist, '_headers')).text()
+)?.[1];
+invariant(
+  applicationCsp && !applicationCsp.includes('__APPLICATION_CSP__'),
+  'Capture regression needs the assembled CSP'
+);
 
 function envelope(assetType: string, payload: unknown) {
   return {
@@ -198,7 +205,9 @@ const server = Bun.serve({
       return new Response('Not found', { status: 404 });
     }
     const file = Bun.file(path.join(publisherDist, relative));
-    return (await file.exists()) ? new Response(file) : new Response('Not found', { status: 404 });
+    return (await file.exists())
+      ? new Response(file, { headers: { 'Content-Security-Policy': applicationCsp } })
+      : new Response('Not found', { status: 404 });
   },
 });
 

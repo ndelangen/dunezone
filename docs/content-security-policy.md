@@ -55,6 +55,8 @@ the configured backend, and blocked injected scripts, event handlers, `eval` and
 `publisher:application-runtime:verify` checks nonces on executable scripts in assembled public responses and
 compares cached HTML after normalizing only its delivery nonce. Publisher assembly tests cover the
 static hash and connection policy.
+The capture contract regression serves its fixtures with the assembled CSP, so publisher scripts,
+fonts, SVG references, images and PDF capture run under the policy shipped to production.
 
 Cloudflare's [Static Assets headers documentation](https://developers.cloudflare.com/workers/static-assets/headers/)
 explains why Worker responses need their own headers. Cloudflare lists the [Web Analytics CSP sources](https://developers.cloudflare.com/fundamentals/reference/policies-compliances/content-security-policies/). The browser semantics are described in the
