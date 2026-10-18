@@ -712,3 +712,32 @@ v2) hashes those same ingredients plus the capture code and PDF contract, with
 per-component digests so a deploy log can attribute an identity change to
 sources, toolchain, code, or contract. A toolchain change (e.g. a sharp bump)
 intentionally triggers a visually-identical recapture wave.
+
+### Browser JavaScript budgets
+
+The app and publisher capture builds enforce a 500,000-byte limit per emitted JavaScript file.
+`scripts/lib/browserBundleBudgets.ts` checks the final minified bytes, including JavaScript emitted
+as static assets. Unknown oversized files fail the build.
+
+Two Three vendor payloads have separate limits:
+
+| Payload | Measured bytes | Limit | Identity check |
+| --- | ---: | ---: | --- |
+| Three WebGPU, core and TSL | 1,096,885 | 1,120,000 | Exactly the three prebuilt vendor modules, with no application modules |
+| Draco decoder | 719,410 | 740,000 | Bytes match an installed Three decoder |
+
+The WebGPU runtime is already distributed as prebuilt modules. The Draco decoder is copied vendor
+JavaScript. Their larger budgets preserve the renderer's module resolution. The build reports each
+verified payload and its budget; Vite's default 500 kB advisory remains visible for the WebGPU chunk.
+A dependency upgrade that changes these identities or exceeds a budget needs another measured review.
+
+Lucide's full media catalogue and the Rulebook capture validation graph use bounded, entry-aware
+chunk groups. Shared icons stay shared, and the complete catalogue remains on the media route.
+Capture builds resolve static URLs against `public/` with `copyPublicDir: false`; the existing
+publisher assembly supplies those files once. Generate vectors as well as images before comparing
+asset counts or unresolved-URL warnings.
+
+The build's plugin timing report remains useful evidence. React Compiler and TanStack transforms
+account for most callback time; no filter hides those reports. Vite's development advice about the
+header's relative `public/video` imports also remains. Those imports deliberately produce matching
+hashed URLs in browser and SSR builds; changing them to `/video/` would lose immutable delivery.
