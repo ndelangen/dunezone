@@ -279,7 +279,7 @@ function interleave(lists: Entry[][]) {
 
 /** Several lists searched at once: an equal share of the bound each, exact only while no list fills its share. */
 async function readBoundedAcross(ctx: QueryCtx, kind: string, partitions: string[], text: string) {
-  const share = Math.ceil(CATALOGUE_BOUNDED_READ / Math.max(1, partitions.length));
+  const share = Math.floor(CATALOGUE_BOUNDED_READ / Math.max(1, partitions.length));
   const reads = await Promise.all(partitions.map((partition) => searchPartition(ctx, kind, partition, text, share)));
   return { read: interleave(reads).flat(), exact: reads.every((read) => read.length < share) };
 }
