@@ -2,7 +2,15 @@
  * Public pages with no record behind them: served by the Worker, rendered on the server, listed in the landing sitemap.
  * Imports nothing, so the Node-run release verification can load it directly.
  */
-export const RECORDLESS_PUBLIC_PAGES = ['/glossary', '/future-plans', '/privacy', '/blog'];
+export const RECORDLESS_PUBLIC_PAGES = ['/glossary', '/contributing', '/future-plans', '/privacy', '/blog'];
+
+/** Guide chapters linked from the contributing overview, each with its own public address. */
+export const CONTRIBUTING_SUBPAGES = [
+  '/contributing/code',
+  '/contributing/deployment',
+  '/contributing/glossary',
+  '/contributing/design-decisions',
+];
 
 /**
  * Record-less pages the page header links to, so the footer leaves them out;

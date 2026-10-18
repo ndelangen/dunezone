@@ -1,10 +1,9 @@
 import { Anchor, Code, List, Stack, Text } from '@mantine/core';
-import { Link, createFileRoute } from '@tanstack/react-router';
+import { Link, createFileRoute, useNavigate } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Bullets } from '@ui/list/Bullets';
-import { Surface } from '@ui/surface';
 import {
   AppWindow,
   Blocks,
@@ -66,7 +65,7 @@ const FOLDERS = [
   {
     icon: <Database size={18} />,
     path: 'src/app/db',
-    detail: 'The doorway to Convex. Nothing else in the app may import it.',
+    detail: 'The doorway to Convex. Other app code imports data hooks and types from here.',
   },
   {
     icon: <Printer size={18} />,
@@ -113,6 +112,7 @@ const SECTIONS = [
 ];
 
 function CodePage() {
+  const navigate = useNavigate();
   return (
     <PageLayout>
       <PageLayout.Header>
@@ -125,14 +125,14 @@ function CodePage() {
         </Stack>
       </PageLayout.Header>
       <PageLayout.Content>
-        <ContributingGuide current="code" sections={SECTIONS}>
+        <ContributingGuide onPageChange={(page) => void navigate({ to: page.to })} current="code" sections={SECTIONS}>
           <Stack gap="xl">
             <Section
               id="folders"
               title="Where code lives"
               description="Every folder answers one question. When none fits, the code is in the wrong place."
             >
-              <Surface padding="lg">
+              <>
                 <Bullets gap="xl" columns={{ base: 1, sm: 2 }}>
                   {FOLDERS.map((folder) => (
                     <Bullets.Item
@@ -143,14 +143,14 @@ function CodePage() {
                     />
                   ))}
                 </Bullets>
-              </Surface>
+              </>
             </Section>
             <Section
               id="data"
               title="How a page gets its data"
               description="There is no client cache to manage: Convex keeps every open page up to date."
             >
-              <Surface padding="lg">
+              <>
                 <List type="ordered" spacing="sm">
                   <List.Item>
                     The route's <Code>loader</Code> asks Convex once through <Code>db.query()</Code>, so the first paint
@@ -169,14 +169,14 @@ function CodePage() {
                     <Code>src/shared</Code> decides whether the change is valid.
                   </List.Item>
                 </List>
-              </Surface>
+              </>
             </Section>
             <Section
               id="pages"
               title="How a page is put together"
               description="Pages compose; components render what they are given."
             >
-              <Surface padding="lg">
+              <>
                 <Stack gap="sm">
                   <Text>
                     Every page mounts <Code>PageLayout</Code> and fills its slots: <Code>Header</Code> for the title on
@@ -200,14 +200,14 @@ function CodePage() {
                     explain why the rules are what they are.
                   </Text>
                 </Stack>
-              </Surface>
+              </>
             </Section>
             <Section
               id="guards"
               title="What keeps it in shape"
               description="A rule we can check is a rule nobody has to remember."
             >
-              <Surface padding="lg">
+              <>
                 <Bullets gap="md">
                   {GUARDS.map((guard) => (
                     <Bullets.Item
@@ -218,10 +218,10 @@ function CodePage() {
                     />
                   ))}
                 </Bullets>
-              </Surface>
+              </>
             </Section>
             <Section id="more" title="Read more" description="The full documentation lives beside the code.">
-              <Surface padding="lg">
+              <>
                 <List spacing="xs">
                   <List.Item>
                     <Anchor href={`${DOCS}/docs/architecture.md`}>Architecture</Anchor>
@@ -241,7 +241,7 @@ function CodePage() {
                     behaviours that look like success while being wrong
                   </List.Item>
                 </List>
-              </Surface>
+              </>
             </Section>
           </Stack>
         </ContributingGuide>

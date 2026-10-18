@@ -1,10 +1,9 @@
 import { Anchor, Code, SimpleGrid, Stack, Text } from '@mantine/core';
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { PageLayout } from '@ui/layout/PageLayout';
-import { Surface } from '@ui/surface';
 import { Code2, Sparkles } from 'lucide-react';
 import type { ReactNode } from 'react';
 
@@ -77,6 +76,7 @@ function DecisionSection({ decision }: Readonly<{ decision: DesignDecision }>) {
               Held by <Code>{decision.guardName}</Code>.{' '}
             </>
           ) : null}
+          {decision.guardScope ? <>{decision.guardScope} </> : null}
           <Anchor href={`${REPOSITORY_FILES}/${decision.source}`} size="sm">
             Read the full decision
           </Anchor>
@@ -87,6 +87,7 @@ function DecisionSection({ decision }: Readonly<{ decision: DesignDecision }>) {
 }
 
 function DesignDecisionsPage() {
+  const navigate = useNavigate();
   return (
     <PageLayout>
       <PageLayout.Header>
@@ -100,6 +101,7 @@ function DesignDecisionsPage() {
       </PageLayout.Header>
       <PageLayout.Content>
         <ContributingGuide
+          onPageChange={(page) => void navigate({ to: page.to })}
           current="decisions"
           sections={DECISION_GROUPS.map((group) => ({ id: `group-${group.id}`, label: group.label }))}
         >
@@ -112,13 +114,13 @@ function DesignDecisionsPage() {
                 title={group.label}
                 description={group.summary}
               >
-                <Surface padding="lg">
+                <>
                   <Stack gap="xl">
                     {DESIGN_DECISIONS.filter((decision) => decision.group === group.id).map((decision) => (
                       <DecisionSection key={decision.id} decision={decision} />
                     ))}
                   </Stack>
-                </Surface>
+                </>
               </Section>
             ))}
           </Stack>

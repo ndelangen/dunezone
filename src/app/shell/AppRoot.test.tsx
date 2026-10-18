@@ -154,6 +154,7 @@ describe('AppRoot page header', () => {
       { href: 'https://storybook.dune.zone', label: 'Component library' },
       { href: 'https://github.com/ndelangen/dunezone', label: 'Source code' },
       { href: '/glossary', label: 'Glossary' },
+      { href: '/contributing', label: 'Contributing' },
       { href: '/future-plans', label: 'Future plans' },
       { href: '/privacy', label: 'Privacy policy' },
       {

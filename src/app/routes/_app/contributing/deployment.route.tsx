@@ -1,10 +1,9 @@
 import { Anchor, Code, List, Stack, Text } from '@mantine/core';
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Bullets } from '@ui/list/Bullets';
-import { Surface } from '@ui/surface';
 import { BookOpenCheck, Database, Dices, Globe, HardDrive, ImageUp } from 'lucide-react';
 
 import { publicPageHead } from '@app/routes/publicPage';
@@ -87,6 +86,7 @@ const SECTIONS = [
 ];
 
 function DeploymentPage() {
+  const navigate = useNavigate();
   return (
     <PageLayout>
       <PageLayout.Header>
@@ -99,14 +99,18 @@ function DeploymentPage() {
         </Stack>
       </PageLayout.Header>
       <PageLayout.Content>
-        <ContributingGuide current="deployment" sections={SECTIONS}>
+        <ContributingGuide
+          onPageChange={(page) => void navigate({ to: page.to })}
+          current="deployment"
+          sections={SECTIONS}
+        >
           <Stack gap="xl">
             <Section
               id="release"
               title="From merge to live"
               description="In this order, and each step waits for the one before."
             >
-              <Surface padding="lg">
+              <>
                 <List type="ordered" spacing="md">
                   {STAGES.map((stage) => (
                     <List.Item key={stage.title}>
@@ -117,23 +121,23 @@ function DeploymentPage() {
                     </List.Item>
                   ))}
                 </List>
-              </Surface>
+              </>
             </Section>
             <Section id="where" title="Where it runs">
-              <Surface padding="lg">
+              <>
                 <Bullets gap="xl" columns={{ base: 1, sm: 2 }}>
                   {PLACES.map((place) => (
                     <Bullets.Item key={place.title} icon={place.icon} title={place.title} detail={place.detail} />
                   ))}
                 </Bullets>
-              </Surface>
+              </>
             </Section>
             <Section
               id="images"
               title="Published images"
               description="Card, token and sheet pictures are drawn by the same renderers the app uses."
             >
-              <Surface padding="lg">
+              <>
                 <Bullets gap="md">
                   <Bullets.Item
                     icon={<ImageUp size={18} />}
@@ -156,24 +160,24 @@ function DeploymentPage() {
                     detail="The jobs page under the admin area switches whether the publisher takes new work."
                   />
                 </Bullets>
-              </Surface>
+              </>
             </Section>
             <Section
               id="schema"
               title="Changing the database"
               description="A breaking change ships in steps, so old and new code never disagree about a record."
             >
-              <Surface padding="lg">
+              <>
                 <List type="ordered" spacing="xs">
                   <List.Item>Widen the schema so it accepts both shapes, and deploy code that reads both.</List.Item>
                   <List.Item>Migrate the records; every deploy runs the migrations it lists.</List.Item>
                   <List.Item>Check that no record of the old shape is left.</List.Item>
                   <List.Item>Narrow the schema and remove the old reading code.</List.Item>
                 </List>
-              </Surface>
+              </>
             </Section>
             <Section id="trouble" title="When something goes wrong" description="We fix forward; there is no rollback.">
-              <Surface padding="lg">
+              <>
                 <Stack gap="sm">
                   <Text>
                     A fix ships as a new release, the same way as any other change. The game Worker and the site Worker
@@ -184,10 +188,10 @@ function DeploymentPage() {
                     already open keeps working after a deploy.
                   </Text>
                 </Stack>
-              </Surface>
+              </>
             </Section>
             <Section id="more" title="Read more">
-              <Surface padding="lg">
+              <>
                 <List spacing="xs">
                   <List.Item>
                     <Anchor href={`${DOCS}/docs/deployment.md`}>Deployment</Anchor>, every step in full
@@ -202,7 +206,7 @@ function DeploymentPage() {
                     <Anchor href={`${DOCS}/docs/technical/play-operations.md`}>Running hosted games</Anchor>
                   </List.Item>
                 </List>
-              </Surface>
+              </>
             </Section>
           </Stack>
         </ContributingGuide>

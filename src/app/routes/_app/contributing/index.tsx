@@ -1,10 +1,9 @@
 import { Anchor, Code, List, Stack, Text } from '@mantine/core';
-import { Link, createFileRoute } from '@tanstack/react-router';
+import { Link, createFileRoute, useNavigate } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Bullets } from '@ui/list/Bullets';
-import { Surface } from '@ui/surface';
 import { ChevronRight, Cloud, Database, FlaskConical, Layers, Route as RouteIcon, Wrench } from 'lucide-react';
 
 import { publicPageHead } from '@app/routes/publicPage';
@@ -65,6 +64,7 @@ const SECTIONS = [
 ];
 
 function ContributingPage() {
+  const navigate = useNavigate();
   return (
     <PageLayout>
       <PageLayout.Header>
@@ -77,10 +77,14 @@ function ContributingPage() {
         </Stack>
       </PageLayout.Header>
       <PageLayout.Content>
-        <ContributingGuide current="overview" sections={SECTIONS}>
+        <ContributingGuide
+          onPageChange={(page) => void navigate({ to: page.to })}
+          current="overview"
+          sections={SECTIONS}
+        >
           <Stack gap="xl">
             <Section id="guide" title="The guide">
-              <Surface padding="lg">
+              <>
                 <Bullets gap="xl" columns={{ base: 1, sm: 2 }}>
                   {CONTRIBUTING_PAGES.filter((page) => page.id !== 'overview').map((page) => {
                     const Icon = page.icon;
@@ -100,42 +104,50 @@ function ContributingPage() {
                     );
                   })}
                 </Bullets>
-              </Surface>
+              </>
             </Section>
             <Section id="stack" title="What it is built from">
-              <Surface padding="lg">
+              <>
                 <Bullets gap="xl" columns={{ base: 1, sm: 2 }}>
                   {STACK.map((item) => (
                     <Bullets.Item key={item.title} icon={item.icon} title={item.title} detail={item.detail} />
                   ))}
                 </Bullets>
-              </Surface>
+              </>
             </Section>
             <Section
               id="start"
               title="Get it running"
               description="Each launch gets its own throwaway backend with test sign-in and sample data."
             >
-              <Surface padding="lg">
+              <>
                 <List type="ordered" spacing="sm">
                   <List.Item>
                     Clone <Anchor href={REPOSITORY}>the repository</Anchor>, run <Code>nvm use</Code>, then{' '}
                     <Code>bun install</Code>.
                   </List.Item>
                   <List.Item>
+                    Set up <Code>.env.e2e.local</Code> from <Code>.env.e2e.local.example</Code> as described in the{' '}
+                    <Anchor href={`${REPOSITORY}/blob/main/docs/README.md#disposable-local-app-development`}>
+                      local development guide
+                    </Anchor>
+                    .
+                  </List.Item>
+                  <List.Item>
                     Start the app with <Code>bun run app:dev --local</Code>. It needs Docker for the local backend; add{' '}
                     <Code>--data=snapshot</Code> to load an anonymised copy of the published content instead of the
-                    sample data.
+                    sample data. Downloading that snapshot also needs GitHub CLI sign-in.
                   </List.Item>
                   <List.Item>
                     Open Storybook with <Code>bun run storybook</Code> to see every component and page on its own.
                   </List.Item>
                   <List.Item>
                     Before a pull request, run <Code>bun run check</Code>, <Code>bun run typecheck</Code> and{' '}
-                    <Code>bun run test</Code>.
+                    <Code>bun run test</Code>. Run the affected browser stories with <Code>bun run storybook:test</Code>
+                    .
                   </List.Item>
                 </List>
-              </Surface>
+              </>
             </Section>
           </Stack>
         </ContributingGuide>

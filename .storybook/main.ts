@@ -107,6 +107,10 @@ export default defineMain({
       titlePrefix: 'Widgets/Page Message',
     },
     {
+      directory: '../src/app/widgets/contributing-guide',
+      titlePrefix: 'Widgets/Contributing Guide',
+    },
+    {
       directory: '../src/app/widgets/blog-byline',
       titlePrefix: 'Widgets/Blog Byline',
     },

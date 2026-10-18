@@ -57,7 +57,7 @@ export const TECHNICAL_GLOSSARY: readonly TechnicalTerm[] = [
     term: 'PageLayout',
     topic: 'page',
     explanation:
-      'The frame every page mounts itself, with three slots: Header, Toolbar and Content. It is the one layout that sizes itself by the window rather than by its container.',
+      'The frame each ordinary application page mounts, with three slots: Header, Toolbar and Content. It is the one layout that sizes itself by the window rather than by its container.',
     where: 'src/app/ui/layout/PageLayout.tsx',
   },
   {
@@ -155,7 +155,7 @@ export const TECHNICAL_GLOSSARY: readonly TechnicalTerm[] = [
     topic: 'structure',
     code: '@ui/*',
     explanation:
-      'Our own components, in six categories under src/app/ui: Content, Controls, Lists, Layout, Surfaces and Blocks. Kit components know nothing about Dune Zone records and are never published as a package.',
+      'Our own components, in six categories under src/app/ui: Content, Controls, Lists, Layout, Surfaces and Blocks. They render the data their caller supplies, may use record types, and never fetch or navigate on their own. The kit stays inside the app.',
     where: 'src/app/ui',
     avoid: ['design system', 'component library'],
   },
@@ -199,7 +199,7 @@ export const TECHNICAL_GLOSSARY: readonly TechnicalTerm[] = [
     term: 'Widget',
     topic: 'structure',
     explanation:
-      'A domain assembly two or more pages install whole, such as the faction editor. It renders what the page hands it and never fetches or routes.',
+      'A domain assembly shared by two or more pages, such as the faction editor, or a child assembly split out of a larger widget. It renders what its caller hands it and never fetches or routes.',
     where: 'src/app/widgets',
   },
   {
@@ -207,7 +207,7 @@ export const TECHNICAL_GLOSSARY: readonly TechnicalTerm[] = [
     term: 'Picker',
     topic: 'structure',
     explanation:
-      'A control that loads its own list of options, only when it opens and only to read. It is the one kind of component allowed to fetch.',
+      'A control that loads its own list of options, only when the reader opens it or a containing popover mounts it. It only reads, releases its subscription when its options close, and reports the choice to its caller. It is the one documented exception to the component fetch ban.',
     where: 'src/app/pickers',
   },
   {
@@ -216,7 +216,7 @@ export const TECHNICAL_GLOSSARY: readonly TechnicalTerm[] = [
     topic: 'structure',
     code: '@shared/*',
     explanation:
-      'A schema or rule the app, Convex and the Workers all read, such as the faction schema. It may not import the app.',
+      'A schema or rule more than one deploy artifact needs, such as the faction schema shared by the app and Convex. It imports neither the app nor the game renderers.',
     where: 'src/shared',
   },
   {
@@ -225,7 +225,7 @@ export const TECHNICAL_GLOSSARY: readonly TechnicalTerm[] = [
     topic: 'structure',
     code: 'src/game',
     explanation:
-      'A component that draws a game artifact, such as a card or a token, exactly as it prints. Renderers import nothing from the app or Mantine, so the same code draws in the browser, in print and in a Worker.',
+      'A component that draws a game artifact, such as a card or a token, exactly as it prints. Renderers import nothing from the app or Mantine. The app and the publisher browser use the same rendering code.',
     where: 'src/game',
   },
   {
@@ -233,7 +233,7 @@ export const TECHNICAL_GLOSSARY: readonly TechnicalTerm[] = [
     term: 'Tint',
     topic: 'board',
     explanation:
-      'A coloured highlight over a set of territories. It has a see-through fill or an outline only, and can carry stickers. The Play table and Spice cards draw tints from the same data.',
+      'A coloured highlight over a set of territories. It has a see-through fill or an outline only, and can carry stickers. The Play table, Spice cards and Rulebook board scenes use the shared tint definition.',
     where: 'src/shared/boards/tints.ts',
     avoid: ['highlight', 'overlay'],
   },

@@ -1,12 +1,7 @@
-import { Button, Group, NavLink, Stack } from '@mantine/core';
-import { Link } from '@tanstack/react-router';
-import { AsymmetricSplitLayout } from '@ui/layout/AsymmetricSplitLayout';
-import { Surface } from '@ui/surface';
+import { Anchor, Group, Stack } from '@mantine/core';
+import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
 import { BookA, Code2, Compass, Rocket, Scale } from 'lucide-react';
-import { createContext, useContext } from 'react';
 import type { ReactNode } from 'react';
-
-import styles from './ContributingGuide.module.css';
 
 export type ContributingPage = 'overview' | 'code' | 'deployment' | 'glossary' | 'decisions';
 
@@ -55,105 +50,55 @@ export const CONTRIBUTING_PAGES = [
   icon: typeof Compass;
 }[];
 
-/* PREVIEW ONLY: the two navigation looks Norbert is choosing between; the losing one goes before merge. */
-export type ContributingGuideLook = 'rail' | 'tabs';
-export const ContributingGuideLookContext = createContext<ContributingGuideLook>('rail');
-
 type GuideSection = { id: string; label: string };
 
-function PageTabs({ current }: { current: ContributingPage }) {
-  return (
-    <nav aria-label="Contributing guide">
-      <Group gap="xs" className={styles.tabs}>
-        {CONTRIBUTING_PAGES.map((page) => {
-          const Icon = page.icon;
-          const active = page.id === current;
-          return (
-            <Button
-              key={page.id}
-              component={Link}
-              to={page.to}
-              activeOptions={{ exact: true }}
-              variant={active ? 'light' : 'subtle'}
-              color={active ? 'selected' : 'gray'}
-              leftSection={<Icon size={16} aria-hidden />}
-              aria-current={active ? 'page' : undefined}
-            >
-              {page.label}
-            </Button>
-          );
-        })}
-      </Group>
-    </nav>
-  );
-}
-
-function PageRail({ current, sections }: { current: ContributingPage; sections: readonly GuideSection[] }) {
-  return (
-    <Surface as="aside" padding="sm" className={styles.rail}>
-      <nav aria-label="Contributing guide">
-        <Stack gap={0}>
-          {CONTRIBUTING_PAGES.map((page) => {
-            const Icon = page.icon;
-            const active = page.id === current;
-            return (
-              <NavLink
-                key={page.id}
-                component={Link}
-                to={page.to}
-                activeOptions={{ exact: true }}
-                label={page.label}
-                leftSection={<Icon size={16} aria-hidden />}
-                active={active}
-                color="selected"
-                aria-current={active ? 'page' : undefined}
-                opened={active && sections.length > 0}
-                childrenOffset="lg"
-              >
-                {active
-                  ? sections.map((section) => (
-                      <NavLink
-                        key={section.id}
-                        href={`#${section.id}`}
-                        label={section.label}
-                        className={styles.anchor}
-                      />
-                    ))
-                  : null}
-              </NavLink>
-            );
-          })}
-        </Stack>
-      </nav>
-    </Surface>
-  );
-}
-
-/**
- * The contributing guide's way between its pages, around one page's own content.
- * Callers own the page's content and the anchors of its sections;
- * this owns how a reader moves between the guide's pages.
- */
+/** Callers own the selected page and navigation; this owns the guide's connected tabs and pane. */
 export function ContributingGuide({
   current,
+  onPageChange,
   sections = [],
   children,
-}: Readonly<{ current: ContributingPage; sections?: readonly GuideSection[]; children: ReactNode }>) {
-  const look = useContext(ContributingGuideLookContext);
-  if (look === 'tabs') {
-    return (
-      <Stack gap="xl">
-        <PageTabs current={current} />
-        {children}
-      </Stack>
-    );
-  }
+}: Readonly<{
+  current: ContributingPage;
+  onPageChange: (page: (typeof CONTRIBUTING_PAGES)[number]) => void;
+  sections?: readonly GuideSection[];
+  children: ReactNode;
+}>) {
+  const content = (
+    <Stack gap="xl">
+      {sections.length > 0 ? (
+        <nav aria-label="On this page">
+          <Group gap="sm">
+            {sections.map((section) => (
+              <Anchor key={section.id} href={`#${section.id}`} size="sm" underline="always">
+                {section.label}
+              </Anchor>
+            ))}
+          </Group>
+        </nav>
+      ) : null}
+      {children}
+    </Stack>
+  );
   return (
-    <AsymmetricSplitLayout narrowSide="start" rail="slim" narrowFallback="stack" stackFirst="narrow">
-      <AsymmetricSplitLayout.Wide>{children}</AsymmetricSplitLayout.Wide>
-      <AsymmetricSplitLayout.Narrow>
-        <PageRail current={current} sections={sections} />
-      </AsymmetricSplitLayout.Narrow>
-    </AsymmetricSplitLayout>
+    <ConnectedTabs
+      value={current}
+      ariaLabel="Contributing guide"
+      onValueChange={(value) => {
+        const page = CONTRIBUTING_PAGES.find((entry) => entry.id === value);
+        if (page) {
+          onPageChange(page);
+        }
+      }}
+      items={CONTRIBUTING_PAGES.map((page) => {
+        const Icon = page.icon;
+        return {
+          value: page.id,
+          label: page.label,
+          icon: <Icon />,
+          panel: page.id === current ? content : null,
+        };
+      })}
+    />
   );
 }

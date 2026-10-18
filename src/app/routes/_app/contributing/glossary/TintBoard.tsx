@@ -1,30 +1,27 @@
-import type { SpiceTint } from '@shared/assets/schema';
 import { arrakisBoard } from '@shared/boards/geometry';
+import type { BoardTint } from '@shared/boards/markup';
 import { CanvasScale } from '@ui/layout/CanvasScale';
-import type { z } from 'zod';
 
 import { SpiceBoardMap } from '@game/assets/card/SpiceBoardMap';
 
 import styles from './TintBoard.module.css';
 
-type Tint = z.infer<typeof SpiceTint>;
-
 const board = arrakisBoard();
 
-const STRONGHOLDS: Tint = {
+const STRONGHOLDS: BoardTint = {
   id: 'strongholds',
   name: 'Strongholds',
   color: '#2f7fe0',
   territories: [],
   types: ['stronghold'],
 };
-const SPICE_BLOW: Tint = {
+const SPICE_BLOW: BoardTint = {
   id: 'spice-blow',
   name: 'Spice Blow',
   color: '#e8b923',
   territories: ['the-great-flat', 'funeral-plain', 'habbanya-erg'],
 };
-const STORM_LINE: Tint = {
+const STORM_LINE: BoardTint = {
   id: 'storm',
   name: 'Storm',
   color: '#d63a2a',
@@ -33,7 +30,7 @@ const STORM_LINE: Tint = {
 };
 
 /* What the board shows for each term; any other term, or none, shows the resting picture. */
-const TINTS: Record<string, readonly Tint[]> = {
+const TINTS: Record<string, readonly BoardTint[]> = {
   tint: [STRONGHOLDS, SPICE_BLOW, STORM_LINE],
   sticker: [
     { ...STRONGHOLDS, stamps: ['city'] },

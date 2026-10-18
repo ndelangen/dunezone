@@ -23,6 +23,8 @@ export type DesignDecision = {
   guard: DecisionGuard;
   /** The script, test or file that holds it; a review-held decision names none. */
   guardName?: string;
+  /** Which part a check covers when the rest still needs review. */
+  guardScope?: string;
   /** Repository path, with an anchor, of the canonical statement. */
   source: string;
 };
@@ -58,6 +60,7 @@ export const DESIGN_DECISIONS: readonly DesignDecision[] = [
     code: 'There is one obvious place to look for a component and one obvious place to put a new one.',
     guard: 'check',
     guardName: 'bun run check:app-layout',
+    guardScope: 'The script checks the top-level folders. Component categories are checked in review.',
     source: `${UI}#six-categories-one-home-each`,
   },
   {
@@ -121,6 +124,7 @@ export const DESIGN_DECISIONS: readonly DesignDecision[] = [
     code: 'There are three widths to test, and a component carries its own responsiveness wherever it goes.',
     guard: 'check',
     guardName: 'bun run check:breakpoints',
+    guardScope: 'The script checks width media queries. Container queries and documented exceptions need review.',
     source: `${UI}#breakpoints-are-one-ladder-and-only-the-window-asks-the-window`,
   },
   {
@@ -132,6 +136,7 @@ export const DESIGN_DECISIONS: readonly DesignDecision[] = [
     code: 'A page reads top-down as its slots, instead of as nested stacks and grids.',
     guard: 'check',
     guardName: 'bun run check:breakpoints',
+    guardScope: 'The script checks width media queries. Slot structure and spacing ownership need review.',
     source: `${UI}#layouts-own-spacing-and-lay-out-through-named-slots`,
   },
   {

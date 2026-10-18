@@ -1,11 +1,10 @@
 import { Anchor, Badge, Code, Group, Select, Stack, Text } from '@mantine/core';
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
 import { SearchRefine } from '@ui/control/SearchRefine';
 import { AsymmetricSplitLayout } from '@ui/layout/AsymmetricSplitLayout';
 import { PageLayout } from '@ui/layout/PageLayout';
-import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
@@ -49,7 +48,12 @@ function matches(term: TechnicalTerm, needle: string) {
 
 function TermSection({ term, onPoint }: Readonly<{ term: TechnicalTerm; onPoint: (term: string | null) => void }>) {
   return (
-    <div onMouseEnter={() => onPoint(term.id)} onMouseLeave={() => onPoint(null)}>
+    <div
+      onMouseEnter={() => onPoint(term.id)}
+      onMouseLeave={() => onPoint(null)}
+      onFocus={() => onPoint(term.id)}
+      onBlur={() => onPoint(null)}
+    >
       <Section
         id={term.id}
         className={styles.term}
@@ -94,7 +98,7 @@ function TopicPane({ topic, terms, flip }: Readonly<{ topic: TechnicalTopic; ter
     </Stack>
   );
   return (
-    <Surface padding="lg">
+    <>
       {picture ? (
         <AsymmetricSplitLayout narrowSide={flip ? 'end' : 'start'} narrowFallback="hide">
           <AsymmetricSplitLayout.Wide>{list}</AsymmetricSplitLayout.Wide>
@@ -105,11 +109,12 @@ function TopicPane({ topic, terms, flip }: Readonly<{ topic: TechnicalTopic; ter
       ) : (
         list
       )}
-    </Surface>
+    </>
   );
 }
 
 function TechnicalGlossaryPage() {
+  const navigate = useNavigate();
   const [query, setQuery] = useState('');
   const [onlyTopic, setOnlyTopic] = useState<TechnicalTopic | null>(null);
   const needle = query.trim().toLowerCase();
@@ -139,8 +144,8 @@ function TechnicalGlossaryPage() {
         <Stack gap="sm" maw="48rem">
           <PageTitle eyebrow="Contributing" title="Technical glossary" />
           <Text size="lg">
-            Every idea in the code has one name, and we use it in code, reviews and conversation alike. A name nobody
-            says stops pointing at its idea, so when you meet a word here, use it.
+            These are the names we use in code, reviews and conversation. Look up a feature such as tint, find the
+            component behind a page region, or follow a term to the code that owns it.
           </Text>
         </Stack>
       </PageLayout.Header>
@@ -165,8 +170,9 @@ function TechnicalGlossaryPage() {
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <ContributingGuide
+          onPageChange={(page) => void navigate({ to: page.to })}
           current="glossary"
-          sections={TECHNICAL_TOPICS.map((topic) => ({ id: `topic-${topic.id}`, label: topic.label }))}
+          sections={topics.map(({ topic }) => ({ id: `topic-${topic.id}`, label: topic.label }))}
         >
           <Stack gap="xl">
             {topics.length === 0 ? <Text c="dimmed">No term matches that search.</Text> : null}
