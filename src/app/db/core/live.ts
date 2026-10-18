@@ -77,9 +77,12 @@ export function useHeldLiveQuery<Query extends FunctionReference<'query'>>(
   query: Query,
   args: FunctionArgs<Query>
 ): FunctionReturnType<Query> | undefined {
-  const key = useWarmHold(query, args);
+  const { key, subscription } = useWarmHold(query, args);
   const [held, setHeld] = useState<{ key: string; data: FunctionReturnType<Query> } | null>(null);
-  const result = useQueries({ held: { query, args } }).held as FunctionReturnType<Query> | Error | undefined;
+  /* Convex tracks the request object's identity in its subscription state. A fresh map schedules
+     another render before commit, even when the answer is still pending. */
+  const queries = useMemo(() => ({ held: subscription }), [subscription]);
+  const result = useQueries(queries).held as FunctionReturnType<Query> | Error | undefined;
   if (result instanceof Error) {
     if (held?.key === key) {
       return held.data;
@@ -92,7 +95,7 @@ export function useHeldLiveQuery<Query extends FunctionReference<'query'>>(
   return result;
 }
 
-/** Holds a page query warm after its page lets go of it, and returns the key naming the query and its arguments. */
+/** Holds a page query warm after its page lets go of it, and returns its stable subscription and key. */
 function useWarmHold<Query extends FunctionReference<'query'>>(query: Query, args: FunctionArgs<Query>, hold = true) {
   const client = useConvex();
   const name = getFunctionName(query);
@@ -113,7 +116,7 @@ function useWarmHold<Query extends FunctionReference<'query'>>(query: Query, arg
     keepWarm(client, subscription.query, subscription.args, PAGE_HOLD_MS);
     return () => keepWarm(client, subscription.query, subscription.args, PAGE_HOLD_MS);
   }, [client, subscription, hold]);
-  return key;
+  return { key, subscription };
 }
 
 export function useLiveMutation<TVariables, TResult>(
