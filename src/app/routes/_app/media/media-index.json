@@ -10091,6 +10091,30 @@
     "subjects": ["patterns"],
     "sourceHash": "98aca64baa2f0745820515169fdbf5acf844b27b50e07bd53264f07a2ab68060"
   },
+  "/web/blog/drawing-dune-tokens-and-cards/atreides-leaders.jpg": {
+    "description": "The House Atreides leader tokens on dune.zone in a row: Lady Jessica, Thufir Hawat, a larger Paul Atreides, Gurney Halleck, Duncan Idaho and Doctor Yueh.",
+    "tags": ["leader tokens", "House Atreides", "blog"],
+    "subjects": ["people", "symbols"],
+    "sourceHash": "ebb942756691887e5cc052071f1378942bd59c51d37bf777e206be33ea884afc"
+  },
+  "/web/blog/drawing-dune-tokens-and-cards/exploded-layers.jpg": {
+    "description": "A treachery card back and Thufir Hawat's leader token pulled apart into their layers in 3D, on a warm parchment background.",
+    "tags": ["leader tokens", "cards", "blog"],
+    "subjects": ["people", "symbols"],
+    "sourceHash": "847bcdfd830a4aaa41f6488e7f3ae960f384cfe027bc833a299b20136247889c"
+  },
+  "/web/blog/drawing-dune-tokens-and-cards/token-details.jpg": {
+    "description": "A grid of close-ups of Thufir Hawat's leader token from September 2021, November 2021, March 2024 and today, comparing the strength number, the emblem, the name and the ring.",
+    "tags": ["leader tokens", "history", "blog"],
+    "subjects": ["people", "symbols"],
+    "sourceHash": "b1ecde01f526df3acfac44754e3d5ff21192010398cef556d9c9ba8f21f1b829"
+  },
+  "/web/blog/drawing-dune-tokens-and-cards/thufir-token-photo.jpg": {
+    "description": "Thufir Hawat's printed GF9 leader token, cropped to the portrait and saved with heavy JPEG compression, with the strength 5, the Atreides emblem and his name printed over it.",
+    "tags": ["leader tokens", "House Atreides", "blog"],
+    "subjects": ["people", "symbols"],
+    "sourceHash": "f8cb0f3093fa2b95b3245edce2706f599aea1d9979cfeee36643b232ecd13d20"
+  },
   "/web/blog/running-from-databases/dune-app-creator.jpg": {
     "description": "The Creator in dune-app: a gallery of editable game assets, with treachery, alliance and leader cards, a faction sheet, tokens and a shield.",
     "tags": ["dune-app", "creator", "cards", "tokens", "blog"],

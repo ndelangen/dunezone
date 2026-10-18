@@ -1,0 +1,45 @@
+.frame {
+  --split: 50%;
+
+  position: relative;
+  align-self: center;
+  width: min(100%, 30rem);
+}
+
+.before {
+  position: absolute;
+  inset: 0;
+}
+
+.line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--split);
+  width: 2px;
+  margin-left: -1px;
+  background: rgb(255 255 255 / 0.85);
+  box-shadow: 0 0 6px rgb(0 0 0 / 0.6);
+  pointer-events: none;
+}
+
+.slider {
+  align-self: center;
+  width: min(100%, 30rem);
+}
+
+/* Shown only without scripts: both pictures, side by side. */
+.fallback {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-sm);
+  align-self: center;
+  width: min(100%, 30rem);
+}
+
+.fallback img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--mantine-radius-md);
+}

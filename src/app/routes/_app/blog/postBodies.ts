@@ -7,10 +7,12 @@ type BodyModule = { default: ComponentType };
 /**
  * Each post's body, by slug, as a dynamic import.
  * Every post becomes its own chunk together with the figures and renderers it embeds, so a reader downloads one post's infographics only on that post's page.
- * A post's own components live next to it (as in `posts/<slug>/`) and are imported only from its body file, never from here.
+ * A post's own components live in a folder beside it (as `posts/assets/` does) and are imported only from its body file;
+ * none of them is named `index.tsx` or `*.route.tsx`, which the router would read as a page.
  */
 export const BLOG_POST_BODIES: Record<BlogPostSlug, () => Promise<BodyModule>> = {
   'all-in-one-dune-board-game-webapp': () => import('./posts/all-in-one-dune-board-game-webapp'),
+  'drawing-dune-tokens-and-cards': () => import('./posts/drawing-dune-tokens-and-cards'),
   'tabletop-simulator': () => import('./posts/tabletop-simulator'),
   'why-dune': () => import('./posts/why-dune'),
 };
@@ -42,7 +44,13 @@ export function blogPostBody(slug: BlogPostSlug): ComponentType {
   if (body) {
     return body;
   }
-  const created = lazy(BLOG_POST_BODIES[slug]);
+  /* A lazy component keeps a failed import forever, so a failed chunk is forgotten and the next visit tries again. */
+  const created = lazy(() =>
+    BLOG_POST_BODIES[slug]().catch((error: unknown) => {
+      lazyBodies.delete(slug);
+      throw error;
+    })
+  );
   lazyBodies.set(slug, created);
   return created;
 }
