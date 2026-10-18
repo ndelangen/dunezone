@@ -50,6 +50,20 @@ function faqPageName(rulesetName: string, page: number | undefined) {
   return page ? `${rulesetName}, page ${page}` : rulesetName;
 }
 
+/** A search or a tag narrows the FAQ; only the plain FAQ's pages are worth a search engine's time, as the rest are the same questions again. */
+function isRefined(search: FaqCatalogueSearch) {
+  return search.q != null || search.tag != null;
+}
+
+/** The page number worth naming and indexing: none on the first page or on a refined one. */
+function indexedPage(search: FaqCatalogueSearch) {
+  return isRefined(search) ? undefined : search.page;
+}
+
+function noindex<T extends { meta?: unknown[] }>(head: T) {
+  return { ...head, meta: [...(head.meta ?? []), { name: 'robots', content: 'noindex' }] };
+}
+
 export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/faq/')({
   ssr: true,
   codeSplitGroupings: [['component', 'notFoundComponent']],
@@ -69,22 +83,22 @@ export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/faq/')({
   notFoundComponent: RulesetFaqNotFound,
   head: ({ loaderData, params, match }) => {
     const search = parseFaqCatalogueSearch(match.search);
-    const refined = search.q != null || search.tag != null;
-    const rulesetPath = `/rulesets/${encodeURIComponent(loaderData?.ruleset.slug ?? params.rulesetSlug)}`;
+    const page = indexedPage(search);
+    const ruleset = loaderData?.ruleset;
+    const rulesetPath = `/rulesets/${encodeURIComponent(ruleset?.slug ?? params.rulesetSlug)}`;
     const head = publicPageHead({
-      /* Only the plain FAQ's pages are worth a search engine's time; a search or a tag is the same questions again. */
-      name: faqPageName(loaderData?.ruleset.name ?? 'Ruleset', refined ? undefined : search.page),
-      kind: loaderData ? 'FAQ' : undefined,
-      pathname: `${rulesetPath}/faq${search.page && !refined ? `?page=${search.page}` : ''}`,
-      description: loaderData ? `Community questions and accepted answers for ${loaderData.ruleset.name}.` : '',
+      name: faqPageName(ruleset?.name ?? 'Ruleset', page),
+      kind: ruleset && 'FAQ',
+      pathname: page ? `${rulesetPath}/faq?page=${page}` : `${rulesetPath}/faq`,
+      description: ruleset ? `Community questions and accepted answers for ${ruleset.name}.` : '',
       social: { kind: 'FAQ', shape: 'portrait' },
       trail: [
         { name: 'Rulesets', pathname: '/rulesets' },
-        ...(loaderData ? [{ name: loaderData.ruleset.name, pathname: rulesetPath }] : []),
+        ...(ruleset ? [{ name: ruleset.name, pathname: rulesetPath }] : []),
       ],
       match,
     });
-    return refined ? { ...head, meta: [...(head.meta ?? []), { name: 'robots', content: 'noindex' }] } : head;
+    return isRefined(search) ? noindex(head) : head;
   },
   component: RulesetFaqPage,
 });
@@ -109,23 +123,9 @@ function RulesetFaqPage() {
     [navigate]
   );
   const query = useSearchDraft(search.q ?? '', commitQuery);
-  useLivePageTitle(faqPageName(data.ruleset.name, search.q || search.tag ? undefined : search.page), 'FAQ');
+  useLivePageTitle(faqPageName(data.ruleset.name, indexedPage(search)), 'FAQ');
+  const changeTag = (tag: string | undefined) => changeSearch({ tag });
 
-  const tagSelect = (label?: string) => (
-    <Select
-      className={label ? undefined : styles.tagSegment}
-      variant={label ? 'default' : 'unstyled'}
-      label={label}
-      aria-label={label ? undefined : 'Tag'}
-      allowDeselect={false}
-      data={[
-        { value: ALL_TAGS, label: 'All tags' },
-        ...FAQ_TAG_VALUES.map((tag) => ({ value: tag, label: FAQ_TAG_LABELS[tag] })),
-      ]}
-      value={search.tag ?? ALL_TAGS}
-      onChange={(value) => changeSearch({ tag: value === ALL_TAGS ? undefined : value })}
-    />
-  );
   return (
     <PageLayout>
       <PageLayout.Header size="compact">
@@ -162,35 +162,67 @@ function RulesetFaqPage() {
                 label: 'Search FAQ questions',
                 placeholder: 'Search questions…',
               }}
-              refine={{ label: 'Refine questions', content: tagSelect('Tag'), active: search.tag ? 1 : 0 }}
+              refine={{
+                label: 'Refine questions',
+                content: <FaqTagSelect label="Tag" tag={search.tag} onChange={changeTag} />,
+                active: search.tag ? 1 : 0,
+              }}
             >
-              {tagSelect()}
+              <FaqTagSelect tag={search.tag} onChange={changeTag} />
             </SearchRefine>
           </Toolbar.Center>
           <Toolbar.Right label="FAQ actions">
-            {profile.data?._id ? (
-              <IconAction
-                label="Ask a question"
-                emphasis="strong"
-                intent="positive"
-                size="lg"
-                renderRoot={(rootProps) => (
-                  <Link
-                    {...rootProps}
-                    to="/rulesets/$rulesetSlug/faq/create"
-                    params={{ rulesetSlug: data.ruleset.slug }}
-                  />
-                )}
-                icon={<MessageCircleQuestionMark size={17} aria-hidden />}
-              />
-            ) : null}
+            {profile.data?._id ? <AskQuestion rulesetSlug={data.ruleset.slug} /> : null}
           </Toolbar.Right>
         </Toolbar>
       </PageLayout.Toolbar>
       <PageLayout.Content>
-        <FaqResults data={data} refined={search.q != null || search.tag != null} pending={live.isPending} />
+        <FaqResults data={data} refined={isRefined(search)} pending={live.isPending} />
       </PageLayout.Content>
     </PageLayout>
+  );
+}
+
+/** The tag filter: a bare segment in the toolbar, or a labelled field where the refine panel holds it. */
+function FaqTagSelect({
+  label,
+  tag,
+  onChange,
+}: {
+  label?: string;
+  tag: string | undefined;
+  onChange: (tag: string | undefined) => void;
+}) {
+  const inToolbar = label == null;
+  return (
+    <Select
+      className={inToolbar ? styles.tagSegment : undefined}
+      variant={inToolbar ? 'unstyled' : 'default'}
+      label={label}
+      aria-label={inToolbar ? 'Tag' : undefined}
+      allowDeselect={false}
+      data={[
+        { value: ALL_TAGS, label: 'All tags' },
+        ...FAQ_TAG_VALUES.map((value) => ({ value, label: FAQ_TAG_LABELS[value] })),
+      ]}
+      value={tag ?? ALL_TAGS}
+      onChange={(value) => onChange(value === ALL_TAGS ? undefined : (value ?? undefined))}
+    />
+  );
+}
+
+function AskQuestion({ rulesetSlug }: { rulesetSlug: string }) {
+  return (
+    <IconAction
+      label="Ask a question"
+      emphasis="strong"
+      intent="positive"
+      size="lg"
+      renderRoot={(rootProps) => (
+        <Link {...rootProps} to="/rulesets/$rulesetSlug/faq/create" params={{ rulesetSlug }} />
+      )}
+      icon={<MessageCircleQuestionMark size={17} aria-hidden />}
+    />
   );
 }
 
@@ -208,19 +240,7 @@ function FaqResults({
   return (
     <>
       {data.total === 0 && refined ? (
-        <Surface padding="xl">
-          <Stack gap="xs" align="center">
-            <Title order={2}>Nothing matches</Title>
-            <Text c="dimmed" ta="center">
-              No question matches this search.
-            </Text>
-            {data.complete ? null : (
-              <Text size="xs" c="dimmed" ta="center">
-                Only the first matches of this search were checked. Add a word to narrow it.
-              </Text>
-            )}
-          </Stack>
-        </Surface>
+        <NothingMatches complete={data.complete} />
       ) : data.page > 1 && data.items.length === 0 ? (
         <Surface padding="xl">
           <PastTheEnd rulesetSlug={data.ruleset.slug} pageCount={data.pageCount} />
@@ -258,6 +278,24 @@ function FaqResults({
         </Stack>
       )}
     </>
+  );
+}
+
+function NothingMatches({ complete }: { complete: boolean }) {
+  return (
+    <Surface padding="xl">
+      <Stack gap="xs" align="center">
+        <Title order={2}>Nothing matches</Title>
+        <Text c="dimmed" ta="center">
+          No question matches this search.
+        </Text>
+        {complete ? null : (
+          <Text size="xs" c="dimmed" ta="center">
+            Only the first matches of this search were checked. Add a word to narrow it.
+          </Text>
+        )}
+      </Stack>
+    </Surface>
   );
 }
 
