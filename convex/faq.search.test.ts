@@ -8,6 +8,7 @@ import { api } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { applicationTest } from './application.test.fixture';
 import { applicationTriggers } from './lib/applicationTriggers';
+import { reconcileCatalogueEntry } from './lib/catalogueEntries';
 import { CATALOGUE_BOUNDED_READ } from './lib/catalogueOrder';
 
 const at = (second: number) => new Date(Date.UTC(2026, 6, 2, 0, 0, second)).toISOString();
@@ -57,6 +58,29 @@ async function seedRulesets(t: ReturnType<typeof applicationTest>, rulesets: Rec
       }
     }
     return ids;
+  });
+}
+
+/*
+ * Questions in a ruleset with only the search rows the triggers would write, not their counting order:
+ * a search reads its rows alone, and seeding a thousand questions through every trigger outlasts a test's time.
+ */
+async function seedSearchOnly(t: ReturnType<typeof applicationTest>, rulesetId: Id<'rulesets'>, count: number) {
+  await t.run(async (ctx) => {
+    const askerId = (await ctx.db.get('rulesets', rulesetId))!.owner_id;
+    for (let index = 0; index < count; index += 1) {
+      const itemId = await ctx.db.insert('faq_items', {
+        ruleset_id: rulesetId,
+        slug: String(index + 1),
+        question: `Storm question ${index}?`,
+        tags: ['rules'],
+        asked_by: askerId,
+        created_at: at(1000 + index),
+        updated_at: at(1000 + index),
+        accepted_answer_id: null,
+      });
+      await reconcileCatalogueEntry(ctx, 'faq', itemId);
+    }
   });
 }
 
@@ -140,9 +164,13 @@ describe('the global FAQ', () => {
 
   test("finds every picked ruleset's matches however many another ruleset holds", async () => {
     const t = applicationTest();
-    /* More questions than one search reads, which takes a while to seed. */
-    const busy = Array.from({ length: CATALOGUE_BOUNDED_READ + 4 }, (_, index) => `Storm question ${index}?`);
-    await seedRulesets(t, { Basic: ['Does the storm move?'], Expansion: ['Is the storm deadly?'], Busy: busy });
+    /* More questions than one search reads. */
+    const { busy } = await seedRulesets(t, {
+      Basic: ['Does the storm move?'],
+      Expansion: ['Is the storm deadly?'],
+      Busy: [],
+    });
+    await seedSearchOnly(t, busy!, CATALOGUE_BOUNDED_READ + 4);
 
     const everywhere = await t.query(api.faq.search, { q: 'storm' });
     expect(everywhere.complete).toBe(false);
@@ -157,5 +185,5 @@ describe('the global FAQ', () => {
         .toSorted()
     ).toEqual(['basic', 'busy']);
     expect(withBusy.complete).toBe(false);
-  }, 60_000);
+  });
 });
