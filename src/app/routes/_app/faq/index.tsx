@@ -1,4 +1,4 @@
-import { Button, MultiSelect, Pill, Stack, Text, Title, VisuallyHidden } from '@mantine/core';
+import { Button, Loader, MultiSelect, Pill, Stack, Text, Title, VisuallyHidden } from '@mantine/core';
 import { FAQ_CATALOGUE_PAGE_SIZE } from '@shared/faq/catalogueSearch';
 import { globalFaqRulesetSlugs, parseGlobalFaqSearch } from '@shared/faq/globalSearch';
 import type { GlobalFaqSearch } from '@shared/faq/globalSearch';
@@ -11,7 +11,7 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { FaqList } from '@ui/list/FaqList';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { loadGlobalFaqPage, loadGlobalFaqRulesetOptions, useGlobalFaqPage, useGlobalFaqRulesetOptions } from '@db/faq';
 import type { GlobalFaqArgs, GlobalFaqPageData, GlobalFaqRulesetOptions } from '@db/faq';
@@ -41,7 +41,7 @@ function faqArgs(deps: FaqDeps, limit: number): GlobalFaqArgs {
  * Before anything is searched the page shows how the FAQ works, not results, so it asks the search for nothing: the plain `/faq` makes one query, for the ruleset picker, and the answer it would have got is known here.
  */
 function unsearched(deps: FaqDeps): GlobalFaqPageData {
-  return { selected: deps.rulesets, searched: false, items: [], hasMore: false, limit: FAQ_SEARCH_STEP };
+  return { selected: deps.rulesets, searched: false, items: [], hasMore: false, capped: false, limit: FAQ_SEARCH_STEP };
 }
 
 /** The search parameters a change writes. */
@@ -276,14 +276,25 @@ function searchKey(deps: FaqDeps) {
   return JSON.stringify([deps.q, deps.rulesets]);
 }
 
+/** The list's rows, as the kit renders them: each is the link that opens its question. */
+function questionRowAt(list: HTMLElement | null, index: number) {
+  return list?.querySelectorAll<HTMLElement>('tr[role="link"]')[index] ?? null;
+}
+
 /**
  * The best matches of a search, live, and a "Load more" that asks for a longer list while there is one.
- * The limit is the page's own, not the address's: it starts again whenever the search or its rulesets change.
+ * The limit is the page's own, not the address's: it starts again whenever the search or its rulesets change, and does not come back with the search.
  * The last answer stays on screen while a longer list loads, so the rows and the button keep their place.
+ * When the longer list arrives, focus moves to its first new row: the button stays where it was, or has gone with the last match, and a keyboard reader carries on from where the list grew.
  */
 function FaqResults({ deps, initial }: { deps: FaqDeps; initial: GlobalFaqPageData }) {
   const key = searchKey(deps);
-  const [grown, setGrown] = useState({ key, limit: FAQ_SEARCH_STEP });
+  /* `from` is how many rows were shown when "Load more" was pressed: the first new row is the one after them. */
+  const [grown, setGrown] = useState({ key, limit: FAQ_SEARCH_STEP, from: -1 });
+  /* Reset during render, so a search that comes back after another starts at its first matches like any other. */
+  if (grown.key !== key) {
+    setGrown({ key, limit: FAQ_SEARCH_STEP, from: -1 });
+  }
   const limit = grown.key === key ? grown.limit : FAQ_SEARCH_STEP;
   const live = useGlobalFaqPage(faqArgs(deps, limit));
   const [shown, setShown] = useState({ key, data: initial });
@@ -292,13 +303,24 @@ function FaqResults({ deps, initial }: { deps: FaqDeps; initial: GlobalFaqPageDa
   }
   const data = live.data ?? (shown.key === key ? shown.data : initial);
   const loading = live.data === undefined && limit > FAQ_SEARCH_STEP;
+  const loaded = grown.key === key && grown.from >= 0 && data.items.length > grown.from;
   const openQuestion = useNavigate();
+  const list = useRef<HTMLDivElement>(null);
+  /* Each press is one focus move, however often the longer list is answered again. */
+  const focusedFor = useRef<typeof grown>(null);
+  useEffect(() => {
+    if (!loaded || focusedFor.current === grown) {
+      return;
+    }
+    focusedFor.current = grown;
+    questionRowAt(list.current, grown.from)?.focus();
+  }, [loaded, grown]);
 
   if (data.items.length === 0) {
-    return <NothingMatches />;
+    return <NothingMatches capped={data.capped} />;
   }
   return (
-    <Stack gap="lg" aria-busy={loading}>
+    <Stack gap="lg" aria-busy={loading} ref={list}>
       <FaqList
         emptyLabel="No questions match."
         items={data.items}
@@ -309,27 +331,49 @@ function FaqResults({ deps, initial }: { deps: FaqDeps; initial: GlobalFaqPageDa
           })
         }
       />
+      {/* The rows say how many arrived; this says only that they did, so a reader hears the list grow without a count the page never shows. */}
+      <VisuallyHidden role="status" aria-live="polite">
+        {loaded ? 'More questions loaded' : null}
+      </VisuallyHidden>
       {data.hasMore ? (
+        /*
+         * Not Mantine's `loading`, which disables the button and drops a keyboard reader's focus to the page;
+         * the button stays focusable and says it is busy, and the click guard keeps a second press from asking twice.
+         */
         <Button
           variant="default"
           className={styles.loadMore}
-          loading={loading}
-          onClick={() => setGrown({ key, limit: limit + FAQ_SEARCH_STEP })}
+          aria-disabled={loading}
+          leftSection={loading ? <Loader size="xs" /> : undefined}
+          onClick={() => {
+            if (loading) {
+              return;
+            }
+            setGrown({ key, limit: limit + FAQ_SEARCH_STEP, from: data.items.length });
+          }}
         >
           Load more
         </Button>
+      ) : null}
+      {data.capped ? (
+        <Text c="dimmed" ta="center">
+          That's as far as this search goes. Add a word to narrow it.
+        </Text>
       ) : null}
     </Stack>
   );
 }
 
-function NothingMatches() {
+/** No match among the questions checked; a capped search did not check them all, so another word may still find one. */
+function NothingMatches({ capped }: { capped: boolean }) {
   return (
     <Surface padding="xl">
       <Stack gap="xs" align="center">
         <Title order={2}>Nothing matches</Title>
         <Text c="dimmed" ta="center">
-          No question matches this search in the rulesets picked.
+          {capped
+            ? 'No question matches this search among those checked, and some were not. A word or two more might help.'
+            : 'No question matches this search in the rulesets picked.'}
         </Text>
       </Stack>
     </Surface>

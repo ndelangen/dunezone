@@ -139,10 +139,14 @@ export const PickedRulesetWithoutQuestions = meta.story({
   },
 });
 
-/** "Load more" lengthens the list in place until every match is shown; picking a ruleset starts the search again at its first matches. */
+/**
+ * "Load more" lengthens the list in place until every match is shown, and hands focus to the first new row so a keyboard reader carries on from there.
+ * Another search starts at its first matches, and so does the first search when it comes back;
+ * picking a ruleset starts it again too.
+ */
 export const LoadMore = meta.story({
   args: { path: '/faq?q=storm' },
-  parameters: { database: db((baseline) => seedRulesets(baseline, 24)) },
+  parameters: { database: db((baseline) => seedRulesets(baseline, 25)) },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const main = within(await page.findByRole('main', {}, { timeout: 30_000 }));
@@ -150,13 +154,35 @@ export const LoadMore = meta.story({
     await expect(questionRows(main)).toHaveLength(24);
 
     await userEvent.click(loadMore);
-    await waitFor(() => expect(questionRows(main)).toHaveLength(27), { timeout: 30_000 });
+    await waitFor(() => expect(questionRows(main)).toHaveLength(28), { timeout: 30_000 });
+    await expect(questionRows(main)[24]).toHaveFocus();
+    await expect(main.getByRole('status')).toHaveTextContent('More questions loaded');
     await expect(main.getByRole('link', { name: 'Storm question 03?' })).toHaveAttribute(
       'href',
       '/rulesets/classicrules/faq/storm-question-03'
     );
     await expect(main.getByRole('link', { name: 'When does the storm move?' })).toBeVisible();
     await expect(main.queryByRole('button', { name: 'Load more' })).toBeNull();
+
+    /* The numbered questions alone outnumber one answer, so this search has more to load too, and starts at its first matches. */
+    const searchBox = page.getByRole('textbox', { name: 'Search FAQ questions' });
+    await userEvent.clear(searchBox);
+    await userEvent.type(searchBox, 'question{Enter}');
+    await waitFor(() => expect(main.queryByRole('link', { name: 'When does the storm move?' })).toBeNull(), {
+      timeout: 30_000,
+    });
+    await expect(questionRows(main)).toHaveLength(24);
+    await expect(main.getByRole('button', { name: 'Load more' })).toBeVisible();
+
+    /* Back to the first search: its longer list is not remembered, and none is being asked for. */
+    await userEvent.clear(searchBox);
+    await userEvent.type(searchBox, 'storm{Enter}');
+    await expect(
+      main.findByRole('link', { name: 'When does the storm move?' }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+    await expect(questionRows(main)).toHaveLength(24);
+    await expect(questionRows(main)[0]?.closest('[aria-busy]')).toHaveAttribute('aria-busy', 'false');
+    await expect(main.getByRole('button', { name: 'Load more' })).toBeVisible();
 
     await userEvent.click(page.getByRole('combobox', { name: 'Rulesets' }));
     await userEvent.click(await page.findByRole('option', { name: /Dreamrules/ }));
@@ -166,6 +192,57 @@ export const LoadMore = meta.story({
     });
     await expect(main.getByRole('link', { name: 'Can I ship troops into the storm?' })).toBeVisible();
     await expect(questionRows(main)).toHaveLength(2);
+    await expect(main.queryByRole('button', { name: 'Load more' })).toBeNull();
+  },
+});
+
+/**
+ * Picked rulesets split what one search may read between them, so with many picked a ruleset full of near misses runs out of reading before its share of the index is checked.
+ * These fillers hold no questions;
+ * ClassicRules holds more storm questions than its share reads.
+ */
+const CAPPED_FILLERS = 14;
+const CAPPED_CLASSIC_QUESTIONS = 70;
+
+function seedCappedSearch(baseline: StorybookDatabase) {
+  for (let index = 1; index <= CAPPED_FILLERS; index++) {
+    baseline.rulesets.push(ruleset({ name: `Filler ${String(index).padStart(2, '0')}` }));
+  }
+  return seedRulesets(baseline, CAPPED_CLASSIC_QUESTIONS);
+}
+
+const cappedRulesets = [
+  'classicrules',
+  'dreamrules',
+  ...Array.from({ length: CAPPED_FILLERS }, (_, index) => `filler-${String(index + 1).padStart(2, '0')}`),
+].join(',');
+
+/** A search that ran out of reading before every question was checked ends in a word of advice instead of "Load more", with no count. */
+export const SearchCapped = meta.story({
+  args: { path: `/faq?q=storm ship&rulesets=${cappedRulesets}` },
+  parameters: { database: db(seedCappedSearch) },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const main = within(await page.findByRole('main', {}, { timeout: 30_000 }));
+    await expect(
+      main.findByRole('link', { name: 'Can I ship troops into the storm?' }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+    await expect(questionRows(main)).toHaveLength(1);
+    await expect(main.getByText("That's as far as this search goes. Add a word to narrow it.")).toBeVisible();
+    await expect(main.queryByRole('button', { name: 'Load more' })).toBeNull();
+    await expect(main.queryByText(/\d+ questions/)).toBeNull();
+  },
+});
+
+/** The same search with nothing found says that some questions went unchecked, so a word or two more may still find one. */
+export const NothingMatchesCapped = meta.story({
+  args: { path: `/faq?q=storm nowhere&rulesets=${cappedRulesets}` },
+  parameters: { database: db(seedCappedSearch) },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const main = within(await page.findByRole('main', {}, { timeout: 30_000 }));
+    await expect(main.findByRole('heading', { name: 'Nothing matches' }, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(main.getByText(/some were not\. A word or two more might help\./)).toBeVisible();
     await expect(main.queryByRole('button', { name: 'Load more' })).toBeNull();
   },
 });

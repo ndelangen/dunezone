@@ -71,7 +71,7 @@ describe('the global FAQ loader', () => {
   });
 
   it('asks the search for its first matches at the default limit, the one the page starts from', async () => {
-    const searched = { selected: [], searched: true, items: [], hasMore: true, limit: 24 };
+    const searched = { selected: [], searched: true, items: [], hasMore: true, capped: false, limit: 24 };
     vi.mocked(loadGlobalFaqPage).mockResolvedValue(searched);
     await expect(loader({ deps: { q: 'storm', rulesets: ['advanced'] } })).resolves.toEqual({
       page: searched,
@@ -83,7 +83,7 @@ describe('the global FAQ loader', () => {
 
   it('runs no search before anything is searched, so the plain page makes one query, for the picker', async () => {
     await expect(loader({ deps: { q: undefined, rulesets: ['advanced'] } })).resolves.toEqual({
-      page: { selected: ['advanced'], searched: false, items: [], hasMore: false, limit: 24 },
+      page: { selected: ['advanced'], searched: false, items: [], hasMore: false, capped: false, limit: 24 },
       rulesets: [],
     });
     expect(loadGlobalFaqPage).not.toHaveBeenCalled();
