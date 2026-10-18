@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 import { ALL, BACKGROUND, TEXTURE } from '../assetIds';
-import { BOARD_FRAME_SIZE, BOARD_TERRITORY_TYPES, boardTints, boardTokens } from '../boards/markup';
+import { BOARD_FRAME_SIZE, boardTints, boardTokens } from '../boards/markup';
 import { Background, Decal } from '../factions/schema';
 import { proseFormattedTextSchema } from '../formattedText';
 import { cardbackPresetKeySchema } from './cardbackPresetKeys';
@@ -34,7 +34,6 @@ export { PHYSICAL_SIZE_MAX, PHYSICAL_SIZE_MIN, PhysicalSize } from './physicalSi
 export const SPICE_BOARD_SIZE = BOARD_FRAME_SIZE;
 /** The Spice renderer revision that draws a linked board; until the publisher runs it, linked cards wait rather than capture the legacy map. */
 export const SPICE_BOARD_REVISION = 2;
-export const SPICE_TERRITORY_TYPES = BOARD_TERRITORY_TYPES;
 
 /** How a linked board's artwork sits in the card's parchment: burnt in like the classic map, toned sepia, or drawn as it is. */
 export const SPICE_BOARD_LOOKS = ['burnt', 'sepia', 'plain'] as const;

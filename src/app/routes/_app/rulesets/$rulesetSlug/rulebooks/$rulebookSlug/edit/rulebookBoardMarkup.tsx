@@ -61,7 +61,7 @@ export function useRulebookMarkupUi() {
 }
 
 /** A saved board scene's board, as the editor's references read it: undefined for the maintained board, null while loading or when it does not read. */
-export function sceneBoard(value: RulebookBoardSceneValue, assetsById: RulebookResolvedAssetsById) {
+function sceneBoard(value: RulebookBoardSceneValue, assetsById: RulebookResolvedAssetsById) {
   if (resolveRulebookBoardDefinition(value.boardId)) {
     return undefined;
   }

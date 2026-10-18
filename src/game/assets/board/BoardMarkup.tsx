@@ -124,7 +124,7 @@ const insideTokenShape = (shape: TokenShape, u: number, v: number) =>
  * The topmost drawn token under the point, the last drawn first, hit on its own rotated and cut shape.
  * `typeOf` gives a placed asset's type, undefined for one that is not drawn.
  */
-export function topTokenAt(
+function topTokenAt(
   tokens: readonly BoardTokenPlacement[],
   typeOf: (assetId: string) => string | undefined,
   [x, y]: readonly [number, number]

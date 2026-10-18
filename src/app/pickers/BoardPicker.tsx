@@ -5,7 +5,7 @@ import type { ReactNode } from 'react';
 import { useAssetsByTypes } from '@app/db/assets';
 
 /** A board offered without loading the catalogue: the maintained map, or the board already chosen. */
-export type BoardChoice = { id: string; name: string; previewSrc: string | null };
+type BoardChoice = { id: string; name: string; previewSrc: string | null };
 
 export type BoardPickerProps = {
   label: string;
