@@ -1,0 +1,170 @@
+.layout {
+  container-type: inline-size;
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-lg);
+  align-items: center;
+}
+
+@container (width >= 48rem) {
+  .columns {
+    grid-template-columns: minmax(0, 1fr) 16rem;
+  }
+}
+
+/* The stage is as tall as the opened stack, which grows with each layer, so no figure carries empty space above and below it. */
+.stage {
+  /* Defaults for the first paint; the component writes the live values inline. */
+  --apart: 0;
+  --fit: 1;
+  --natural-width: 300px;
+  --natural-height: 300px;
+  --layers: 1;
+
+  position: relative;
+  justify-self: center;
+  width: 100%;
+  max-width: 34rem;
+  height: calc(var(--natural-height) * var(--fit) * (0.5 + 0.14 * var(--layers)) + 2rem);
+  overflow: clip;
+  perspective: 1800px;
+}
+
+.scene {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  transform-style: preserve-3d;
+  transform: rotateX(calc(var(--apart) * 62deg)) rotateZ(calc(var(--apart) * -28deg));
+}
+
+/* Every plane is the whole renderer at its natural size, centred on the scene's origin and lifted by its place in the stack. */
+.plane {
+  --index: 0;
+
+  position: absolute;
+  top: calc(var(--natural-height) * var(--fit) / -2);
+  left: calc(var(--natural-width) * var(--fit) / -2);
+  width: calc(var(--natural-width) * var(--fit));
+  height: calc(var(--natural-height) * var(--fit));
+  transform: translateZ(calc(var(--apart) * var(--index) * var(--natural-height) * var(--fit) * 0.16));
+  transition: opacity 150ms ease;
+}
+
+.plane[data-dimmed] {
+  opacity: 0.12;
+}
+
+.content {
+  width: var(--natural-width);
+  height: var(--natural-height);
+  transform: scale(var(--fit));
+  transform-origin: 0 0;
+}
+
+/* The whole renderer sits flat over the closed stack and fades out as soon as the layers start to part. */
+.whole {
+  position: absolute;
+  top: calc(50% - var(--natural-height) * var(--fit) / 2);
+  left: calc(50% - var(--natural-width) * var(--fit) / 2);
+  width: calc(var(--natural-width) * var(--fit));
+  height: calc(var(--natural-height) * var(--fit));
+  opacity: max(0, calc(1 - var(--apart) * 12));
+  pointer-events: none;
+}
+
+/* A dark glass sheet behind each plane, so a layer that is mostly empty, or drawn in the light tint, still reads as a layer once the stack opens. */
+.sheet {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--mantine-radius-md);
+  background: rgb(14 20 32 / 0.14);
+  box-shadow: inset 0 0 0 1px rgb(120 100 60 / 0.35);
+  opacity: min(1, calc(var(--apart) * 4));
+  pointer-events: none;
+}
+
+.stage[data-shape="disc"] .sheet {
+  border-radius: 50%;
+}
+
+/* A token is round and a card has rounded corners only because whatever holds them clips them, so the stage clips every plane the same way. */
+.stage[data-shape="disc"] .content {
+  overflow: hidden;
+  border-radius: 50%;
+}
+
+/* A card's corner is a eighteenth of its width, as `AssetFace` draws it everywhere else on the site. */
+.stage[data-shape="card"] .content {
+  overflow: hidden;
+  border-radius: calc(var(--natural-width) / 18);
+}
+
+.stage[data-shape="card"] .sheet {
+  border-radius: calc(var(--natural-width) * var(--fit) / 18);
+}
+
+/* The bottom layer and the closed object cast the shadow a published face has; every sheet above casts a softer one as the stack opens, so it reads in depth. */
+.plane:first-child,
+.whole {
+  border-radius: calc(var(--natural-width) * var(--fit) / 18);
+  box-shadow: 0 2px 10px rgb(0 0 0 / 0.45);
+}
+
+.stage[data-shape="disc"] .plane:first-child,
+.stage[data-shape="disc"] .whole {
+  border-radius: 50%;
+}
+
+.sheet {
+  box-shadow:
+    inset 0 0 0 1px rgb(120 100 60 / 0.35),
+    0 calc(var(--apart) * 10px) calc(var(--apart) * 22px) rgb(0 0 0 / 0.2);
+}
+
+.controls {
+  min-width: 0;
+}
+
+.legend {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.layerButton {
+  display: grid;
+  grid-template-columns: 1.5rem minmax(0, 1fr);
+  gap: var(--space-xs);
+  width: 100%;
+  padding: var(--space-xs);
+  border-radius: var(--mantine-radius-sm);
+}
+
+.layerButton:hover,
+.layerButton:focus-visible,
+.layerButton[aria-pressed="true"] {
+  background: var(--mantine-color-default-hover);
+}
+
+.number {
+  color: var(--mantine-color-dimmed);
+  font-variant-numeric: tabular-nums;
+}
+
+:global(html[data-motion="reduce"]) .plane {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :global(html:not([data-motion="ok"])) .plane {
+    transition: none;
+  }
+}

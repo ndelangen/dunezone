@@ -7649,6 +7649,42 @@
     "isOpaque": true,
     "color": "#080808"
   },
+  "/web/blog/drawing-dune-tokens-and-cards/atreides-leaders.jpg": {
+    "sha256": "ebb942756691887e5cc052071f1378942bd59c51d37bf777e206be33ea884afc",
+    "bytes": 246873,
+    "width": 2400,
+    "height": 620,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#181808"
+  },
+  "/web/blog/drawing-dune-tokens-and-cards/exploded-layers.jpg": {
+    "sha256": "847bcdfd830a4aaa41f6488e7f3ae960f384cfe027bc833a299b20136247889c",
+    "bytes": 444430,
+    "width": 2400,
+    "height": 1800,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#d8c8a8"
+  },
+  "/web/blog/drawing-dune-tokens-and-cards/thufir-token-photo.jpg": {
+    "sha256": "f8cb0f3093fa2b95b3245edce2706f599aea1d9979cfeee36643b232ecd13d20",
+    "bytes": 26517,
+    "width": 741,
+    "height": 745,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#e8c888"
+  },
+  "/web/blog/drawing-dune-tokens-and-cards/token-details.jpg": {
+    "sha256": "b1ecde01f526df3acfac44754e3d5ff21192010398cef556d9c9ba8f21f1b829",
+    "bytes": 382295,
+    "width": 1900,
+    "height": 1636,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#182838"
+  },
   "/web/blog/running-from-databases/dune-app-creator.jpg": {
     "sha256": "647e14f574719d3e29fcc293ecd4b889ab00028f7aac5c06b817c7614b0bd030",
     "bytes": 531791,
