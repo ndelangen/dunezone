@@ -20,6 +20,7 @@ export type CataloguePagerProps = {
 /**
  * Where the reader is in the results, and real links to the other pages, so a page can be opened, shared and crawled.
  * Nothing to page through on a single page, though an incomplete search still says so.
+ * A search that stopped short pages only the matches it read, and the count says so rather than naming a total nobody counted.
  */
 export function CataloguePager({
   page,
@@ -51,7 +52,7 @@ export function CataloguePager({
         getControlProps={(control) => ({ ...pageLinkProps(target[control]), 'aria-label': controlLabel[control] })}
       />
       <Text size="xs" c="dimmed">
-        {`${first}–${last} of ${catalogueCountLabel(total, complete)} ${noun}`}
+        {complete ? `${first}–${last} of ${total} ${noun}` : `${first}–${last} of the first ${total} matching ${noun}`}
       </Text>
       {complete ? null : <IncompleteNotice noun={noun} />}
     </Stack>

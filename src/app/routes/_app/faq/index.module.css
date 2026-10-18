@@ -1,0 +1,22 @@
+/* Joined into the search field, the ruleset select drops its own border and keeps its pills to one row, so the band stays one row high. */
+.rulesetSegment :is(input, button) {
+  padding-inline: var(--space-sm);
+}
+
+.pillsRow {
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+
+/* A ruleset and how many questions it holds, at the option's two ends. */
+.rulesetOption {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  width: 100%;
+}
+
+/* The way onward sits under whatever the page shows, with air above it. */
+.ask {
+  padding-block: var(--space-md);
+}

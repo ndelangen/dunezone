@@ -35,6 +35,10 @@ function isPublicPage(pathname: string): boolean {
   if (root === 'profiles') {
     return segments.length === 1 || segments.length === 2;
   }
+  /* The global FAQ: one page, whose search and page number ride in the query string. */
+  if (root === 'faq') {
+    return segments.length === 1;
+  }
   if (root === 'groups') {
     return segments.length === 2 && type !== 'create';
   }

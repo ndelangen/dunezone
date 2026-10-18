@@ -4,6 +4,7 @@ import { formatStableDate } from '@ui/content/dates';
 import { FAQ_TAG_LABELS } from '@ui/content/faqTagLabels';
 import { InlineFormattedTextSource } from '@ui/content/FormattedText';
 import { ProfileLink } from '@ui/content/ProfileLink';
+import { TopicIcon } from '@ui/content/TopicIcon';
 import { SectionedSurface } from '@ui/surface/SectionedSurface';
 import { CircleCheck, CircleDashed } from 'lucide-react';
 
@@ -11,15 +12,20 @@ import type { FaqItemWithDetails } from '@db/faq';
 
 import styles from './FaqList.module.css';
 
+/** A question as the list takes it; one drawn from several rulesets names its own, which then shows beside it and owns its link. */
+type FaqListItem = FaqItemWithDetails & { ruleset?: { name: string; slug: string } };
+
 interface FaqListProps {
   /** The questions to show, in order; the page has already searched, narrowed and paged them. */
-  items: FaqItemWithDetails[];
-  rulesetSlug: string;
+  items: FaqListItem[];
+  /** The ruleset every question belongs to, for a list drawn from one; an item that names its own ruleset links there instead. */
+  rulesetSlug?: string;
   /**
    * Opens a question, for the whole row rather than the link inside it.
    * The caller navigates: this list renders the destination as a `Link` too, but where the reader ends up is the page's call.
+   * The ruleset is the item's own where it names one, and the list's otherwise.
    */
-  onOpenQuestion: (questionSlug: string) => void;
+  onOpenQuestion: (questionSlug: string, rulesetSlug: string) => void;
   /** What to say when there is nothing to show. The page owns the words, as no questions and no matches read differently; this owns where they sit. */
   emptyLabel: string;
 }
@@ -40,12 +46,14 @@ export function FaqList({ items, rulesetSlug, onOpenQuestion, emptyLabel }: FaqL
         const hasAcceptedAnswer = item.accepted_answer_id != null;
         const answerLabel = `${answerCount} ${answerCount === 1 ? 'answer' : 'answers'}`;
         const statusLabel = hasAcceptedAnswer ? 'Answered' : 'Unanswered';
+        const ruleset = item.ruleset;
+        const itemRulesetSlug = ruleset?.slug ?? rulesetSlug ?? '';
 
         return (
           <SectionedSurface.Row
             key={item._id}
             ariaLabel={`Open question: ${item.question}`}
-            onActivate={() => onOpenQuestion(item.slug)}
+            onActivate={() => onOpenQuestion(item.slug, itemRulesetSlug)}
           >
             <Stack gap="sm">
               <div className={styles.questionLine}>
@@ -57,7 +65,7 @@ export function FaqList({ items, rulesetSlug, onOpenQuestion, emptyLabel }: FaqL
                     <Link
                       {...rootProps}
                       to="/rulesets/$rulesetSlug/faq/$questionSlug"
-                      params={{ rulesetSlug, questionSlug: item.slug }}
+                      params={{ rulesetSlug: itemRulesetSlug, questionSlug: item.slug }}
                     />
                   )}
                 >
@@ -69,7 +77,20 @@ export function FaqList({ items, rulesetSlug, onOpenQuestion, emptyLabel }: FaqL
                   </Badge>
                 ))}
               </div>
-              <Group justify="flex-end">
+              <Group justify={ruleset ? 'space-between' : 'flex-end'} gap="xs">
+                {ruleset ? (
+                  <Anchor
+                    size="xs"
+                    c="dimmed"
+                    className={styles.rulesetCaption}
+                    renderRoot={(rootProps) => (
+                      <Link {...rootProps} to="/rulesets/$rulesetSlug/faq" params={{ rulesetSlug: ruleset.slug }} />
+                    )}
+                  >
+                    <TopicIcon topic="rulesets" size={14} />
+                    {ruleset.name}
+                  </Anchor>
+                ) : null}
                 <Group gap="xs" wrap="nowrap" justify="flex-end" className={styles.meta}>
                   <Tooltip label={`${statusLabel} · ${answerLabel}`} withArrow>
                     <Badge
