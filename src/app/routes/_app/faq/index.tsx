@@ -1,4 +1,4 @@
-import { Button, Loader, MultiSelect, Pill, Stack, Text, Title, VisuallyHidden } from '@mantine/core';
+import { Button, MultiSelect, Pill, Stack, Text, Title, VisuallyHidden } from '@mantine/core';
 import { FAQ_CATALOGUE_PAGE_SIZE } from '@shared/faq/catalogueSearch';
 import { globalFaqRulesetSlugs, parseGlobalFaqSearch } from '@shared/faq/globalSearch';
 import type { GlobalFaqSearch } from '@shared/faq/globalSearch';
@@ -6,16 +6,17 @@ import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { FaqWalkthrough } from '@ui/block/FaqWalkthrough';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
+import { LoadMoreButton } from '@ui/control/LoadMoreButton';
 import { SearchRefine } from '@ui/control/SearchRefine';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { FaqList } from '@ui/list/FaqList';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import type { RefObject } from 'react';
+import { useCallback, useRef } from 'react';
 
 import { loadGlobalFaqPage, loadGlobalFaqRulesetOptions, useGlobalFaqPage, useGlobalFaqRulesetOptions } from '@db/faq';
 import type { GlobalFaqArgs, GlobalFaqPageData, GlobalFaqRulesetOptions } from '@db/faq';
+import { useFocusFirstNewRow, useGrowingSearch } from '@app/routes/growingSearch';
 import { publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
 import { useSearchDraft } from '@app/routes/searchDraft';
 
@@ -272,83 +273,25 @@ function AskOnRuleset() {
   );
 }
 
-/** One search and its rulesets, as one string, so a change to either is one change. */
-function searchKey(deps: FaqDeps) {
-  return JSON.stringify([deps.q, deps.rulesets]);
-}
-
 /** The list's rows, as the kit renders them: each is the link that opens its question. */
-function questionRowAt(list: HTMLElement | null, index: number) {
-  return list?.querySelectorAll<HTMLElement>('tr[role="link"]')[index] ?? null;
-}
+const QUESTION_ROW = 'tr[role="link"]';
 
-/**
- * The best matches of a search, live, and a "Load more" that asks for a longer list while there is one.
- * The limit is the page's own, not the address's: it starts again whenever the search or its rulesets change, and does not come back with the search.
- * The last answer stays on screen while a longer list loads, so the rows and the button keep their place.
- * When the longer list arrives, focus moves to its first new row: the button stays where it was, or has gone with the last match, and a keyboard reader carries on from where the list grew.
- */
-/** The rows a search shows, grown by "Load more" and kept on screen while a longer list loads; a new search starts at its first matches. */
-function useGrowingSearch(deps: FaqDeps, initial: GlobalFaqPageData) {
-  const key = searchKey(deps);
-  /* `from` is how many rows were shown when "Load more" was pressed: the first new row is the one after them. */
-  const [grown, setGrown] = useState({ key, limit: FAQ_SEARCH_STEP, from: -1 });
-  /* Reset during render, so a search that comes back after another starts at its first matches like any other. */
-  if (grown.key !== key) {
-    setGrown({ key, limit: FAQ_SEARCH_STEP, from: -1 });
-  }
-  const limit = grown.key === key ? grown.limit : FAQ_SEARCH_STEP;
-  const live = useGlobalFaqPage(faqArgs(deps, limit));
-  const [shown, setShown] = useState({ key, data: initial });
-  if (live.data !== undefined && live.data !== shown.data) {
-    setShown({ key, data: live.data });
-  }
-  const data = live.data ?? (shown.key === key ? shown.data : initial);
-  const loading = live.data === undefined && limit > FAQ_SEARCH_STEP;
-  const loaded = grown.key === key && grown.from >= 0 && data.items.length > grown.from;
-  const loadMore = () => setGrown({ key, limit: limit + FAQ_SEARCH_STEP, from: data.items.length });
-  return { data, loading, loaded, grown, loadMore };
-}
-
-/** Moves focus to the first new row once per press, however often the longer list is answered again. */
-function useFocusFirstNewRow(list: RefObject<HTMLDivElement | null>, loaded: boolean, grown: { from: number }) {
-  const focusedFor = useRef<typeof grown>(null);
-  useEffect(() => {
-    if (!loaded || focusedFor.current === grown) {
-      return;
-    }
-    focusedFor.current = grown;
-    questionRowAt(list.current, grown.from)?.focus();
-  }, [list, loaded, grown]);
-}
-
-/*
- * Not Mantine's `loading`, which disables the button and drops a keyboard reader's focus to the page;
- * the button stays focusable and says it is busy, and the click guard keeps a second press from asking twice.
- */
-function LoadMoreButton({ loading, onLoadMore }: { loading: boolean; onLoadMore: () => void }) {
-  return (
-    <Button
-      variant="default"
-      className={styles.loadMore}
-      aria-disabled={loading}
-      leftSection={loading ? <Loader size="xs" /> : undefined}
-      onClick={() => {
-        if (!loading) {
-          onLoadMore();
-        }
-      }}
-    >
-      Load more
-    </Button>
-  );
+/** The live matches of one search at one limit; the growing list asks for a longer one through it. */
+function useFaqRows(deps: FaqDeps, limit: number) {
+  return useGlobalFaqPage(faqArgs(deps, limit)).data;
 }
 
 function FaqResults({ deps, initial }: { deps: FaqDeps; initial: GlobalFaqPageData }) {
-  const { data, loading, loaded, grown, loadMore } = useGrowingSearch(deps, initial);
+  const { data, loading, loaded, grown, loadMore } = useGrowingSearch({
+    args: deps,
+    step: FAQ_SEARCH_STEP,
+    initial,
+    useLive: useFaqRows,
+    rows: (page) => page.items.length,
+  });
   const openQuestion = useNavigate();
   const list = useRef<HTMLDivElement>(null);
-  useFocusFirstNewRow(list, loaded, grown);
+  useFocusFirstNewRow(list, loaded, grown, QUESTION_ROW);
 
   if (data.items.length === 0) {
     return <NothingMatches capped={data.capped} />;

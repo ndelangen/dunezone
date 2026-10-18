@@ -84,13 +84,24 @@ export type FactionCatalogueArgs = FunctionArgs<typeof api.factions.catalogue>;
 /** A ruleset the catalogue can narrow to, with how many live factions it holds. */
 export type FactionCatalogueRuleset = FactionCatalogueRaw['rulesets'][number];
 
-export type FactionCataloguePageData = Omit<FactionCatalogueRaw, 'cards' | 'spotlights'> & {
-  cards: FactionCatalogueEntry[];
-  spotlights: {
-    newArrival: FactionCatalogueEntry | null;
-    freshlyUpdated: FactionCatalogueEntry | null;
+/** A catalogue answer with its cards parsed at the client boundary. */
+type ParsedCatalogue<Raw extends { cards: FactionCatalogueRow[]; spotlights: FactionCatalogueRaw['spotlights'] }> =
+  Omit<Raw, 'cards' | 'spotlights'> & {
+    cards: FactionCatalogueEntry[];
+    spotlights: {
+      newArrival: FactionCatalogueEntry | null;
+      freshlyUpdated: FactionCatalogueEntry | null;
+    };
   };
-};
+
+/** A browsed page of the catalogue: counts, numbered pages, a chosen order. */
+export type FactionCatalogueBrowseData = ParsedCatalogue<Exclude<FactionCatalogueRaw, { mode: 'search' }>>;
+
+/** A searched catalogue: the best matches first, and more by asking for a larger limit. */
+export type FactionCatalogueSearchData = ParsedCatalogue<Extract<FactionCatalogueRaw, { mode: 'search' }>>;
+
+/** What `factions.catalogue` answers, parsed: a browsed page, or a search, told apart by `mode`. */
+export type FactionCataloguePageData = FactionCatalogueBrowseData | FactionCatalogueSearchData;
 
 function toFactionEntry(entry: FactionRow): FactionEntry {
   return {
@@ -133,14 +144,15 @@ export function factionCatalogueRowsToEntries(rows: FactionCatalogueRow[]): Fact
 }
 
 function toFactionCataloguePageData(raw: FactionCatalogueRaw): FactionCataloguePageData {
-  return {
-    ...raw,
+  const parsed = {
     cards: factionCatalogueRowsToEntries(raw.cards),
     spotlights: {
       newArrival: raw.spotlights.newArrival ? toFactionCatalogueEntry(raw.spotlights.newArrival) : null,
       freshlyUpdated: raw.spotlights.freshlyUpdated ? toFactionCatalogueEntry(raw.spotlights.freshlyUpdated) : null,
     },
   };
+  /* Spread apart, so each shape keeps its own fields rather than collapsing to what the two share. */
+  return 'mode' in raw ? { ...raw, ...parsed } : { ...raw, ...parsed };
 }
 
 /** Parse Convex faction rows into typed entries (shared by loaders and group detail). */

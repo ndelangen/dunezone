@@ -20,8 +20,3 @@
 .ask {
   padding-block: var(--space-md);
 }
-
-/* The way to more matches sits under the list at its middle, not stretched to the list's width. */
-.loadMore {
-  align-self: center;
-}

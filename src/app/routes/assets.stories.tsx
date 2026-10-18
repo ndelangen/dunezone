@@ -1,9 +1,10 @@
 import preview from '@sb/preview';
+import { publishingTreacheryCard } from '@shared/assets/fixtures/publishingTreacheryCard';
 import { GF9_LEADER_SKILLS } from '@shared/assets/gf9LeaderSkills';
 import { install } from '@sinonjs/fake-timers';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
-import { db, ref } from '@db/storybook';
+import { asset, db, ref } from '@db/storybook';
 
 import { expectToolbarOnOneLine, findSave } from './authoringToolbarPlay';
 import {
@@ -47,6 +48,42 @@ export const TreacheryCards = meta.story({
     await expect(
       storyPage(canvasElement).findByRole('link', { name: /Lasgun/ }, { timeout: 30_000 })
     ).resolves.toBeVisible();
+  },
+});
+
+/**
+ * A search shows its best matches and loads more in place: no pages, no count, and the sort is best match alone.
+ * An old link's page and order are dropped, so it opens the search's first matches.
+ * "Load more" lengthens the grid until every match is shown, and hands focus to the first new tile.
+ */
+export const TreacheryCardsSearched = meta.story({
+  args: { path: '/assets/card-treachery?q=lasgun&page=2&sort=name' },
+  parameters: {
+    database: db((baseline) => {
+      for (let index = 1; index <= 25; index += 1) {
+        const name = `Lasgun ${String(index).padStart(2, '0')}`;
+        baseline.assets.push(asset({ type: 'card-treachery', data: { ...publishingTreacheryCard, name } }));
+      }
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const page = storyPage(canvasElement);
+    const main = within(await page.findByRole('main', {}, { timeout: 30_000 }));
+    const loadMore = await main.findByRole('button', { name: 'Load more' }, { timeout: 30_000 });
+    await expect(main.getAllByRole('link', { name: /Lasgun/ })).toHaveLength(24);
+    await expect(page.queryByLabelText('Treachery cards pages')).toBeNull();
+    await expect(page.queryByText(/of \d+ treachery cards/)).toBeNull();
+    await expect(page.getByRole('textbox', { name: 'Search treachery cards' })).toHaveValue('lasgun');
+    const sort = page.getByRole('textbox', { name: 'Sort' });
+    await expect(sort).toHaveValue('Best match');
+    await expect(sort).toBeDisabled();
+
+    await userEvent.click(loadMore);
+    /* The baseline's own Lasgun matches too, so the whole grid is one more than the seeded cards. */
+    await waitFor(() => expect(main.getAllByRole('link', { name: /Lasgun/ })).toHaveLength(26), { timeout: 30_000 });
+    await expect(main.getAllByRole('link', { name: /Lasgun/ })[24]).toHaveFocus();
+    await expect(main.getByRole('status')).toHaveTextContent('More treachery cards loaded');
+    await expect(main.queryByRole('button', { name: 'Load more' })).toBeNull();
   },
 });
 

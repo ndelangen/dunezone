@@ -50,6 +50,46 @@ export const CataloguePaged = meta.story({
   },
 });
 
+/** The catalogue's cards, each named by the faction it opens. */
+function factionCards(main: ReturnType<typeof within>, name: RegExp) {
+  return main.getAllByRole('link', { name });
+}
+
+/**
+ * A search shows its best matches and loads more in place: no pages, no count, and the sort is best match alone.
+ * An old link's page and order are dropped, so it opens the search's first matches.
+ * "Load more" lengthens the grid until every match is shown, and hands focus to the first new card.
+ */
+export const CatalogueSearched = meta.story({
+  args: { path: '/factions?q=sietch&page=2&sort=created' },
+  parameters: {
+    database: db((baseline) => {
+      for (let index = 1; index <= 60; index += 1) {
+        baseline.factions.push(faction({ name: `Sietch ${String(index).padStart(2, '0')}` }));
+      }
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const main = within(await page.findByRole('main', {}, { timeout: 30_000 }));
+    const loadMore = await main.findByRole('button', { name: 'Load more' }, { timeout: 30_000 });
+    await expect(factionCards(main, /Sietch/)).toHaveLength(48);
+    await expect(main.queryByRole('link', { name: /House Atreides/ })).toBeNull();
+    await expect(page.queryByLabelText('Faction catalogue pages')).toBeNull();
+    await expect(page.queryByText(/of \d+ factions/)).toBeNull();
+    await expect(page.getByRole('textbox', { name: 'Search factions' })).toHaveValue('sietch');
+    const sort = page.getByRole('textbox', { name: 'Sort factions' });
+    await expect(sort).toHaveValue('Best match');
+    await expect(sort).toBeDisabled();
+
+    await userEvent.click(loadMore);
+    await waitFor(() => expect(factionCards(main, /Sietch/)).toHaveLength(60), { timeout: 30_000 });
+    await expect(factionCards(main, /Sietch/)[48]).toHaveFocus();
+    await expect(main.getByRole('status')).toHaveTextContent('More factions loaded');
+    await expect(main.queryByRole('button', { name: 'Load more' })).toBeNull();
+  },
+});
+
 /**
  * On a phone the faction list shows two columns and each card its compact caption.
  * The list reads its own width and the card its own, so neither needs the page.

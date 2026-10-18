@@ -6,8 +6,9 @@ import { parseCataloguePage } from '../factions/catalogueSearch';
  */
 
 /**
- * The orders a reader can pick.
- * Absent means best match while searching and A to Z otherwise, so `name` is written out only to override best match.
+ * The orders a reader can pick while browsing.
+ * A search is always best match, so `sort` never travels with `q`;
+ * `name` is the default and never written out.
  */
 export const PROFILE_CATALOGUE_SORTS = ['name', 'newest'] as const;
 
@@ -21,8 +22,9 @@ export const PROFILE_CATALOGUE_QUERY_LIMIT = 100;
 
 export type ProfileCatalogueSearch = {
   q?: string;
+  /** Never alongside `q`: a search is always best match. */
   sort?: ProfileCatalogueSort;
-  /** Present only past the first page, so the first page has one address. */
+  /** Present only past the first page, so the first page has one address; never alongside `q`, whose matches load more instead of paging. */
   page?: number;
 };
 
@@ -32,12 +34,12 @@ function isProfileCatalogueSort(value: unknown): value is ProfileCatalogueSort {
 
 /**
  * Every field is spread conditionally, so an absent key is absent rather than present and undefined, and a default never reaches the address.
- * `name` is the default without a search, so it is kept only alongside one.
+ * A search drops the order and the page: its matches come best first and load more in place, so an old link carrying them opens the search's first matches.
  */
 export function parseProfileCatalogueSearch(params: Record<string, unknown>): ProfileCatalogueSearch {
   const q = typeof params.q === 'string' ? params.q.trim().slice(0, PROFILE_CATALOGUE_QUERY_LIMIT).trim() : '';
   const parsedSort = isProfileCatalogueSort(params.sort) ? params.sort : undefined;
-  const sort = parsedSort === 'name' && !q ? undefined : parsedSort;
-  const page = parseCataloguePage(params.page);
+  const sort = parsedSort === 'name' || q ? undefined : parsedSort;
+  const page = q ? undefined : parseCataloguePage(params.page);
   return { ...(q ? { q } : {}), ...(sort ? { sort } : {}), ...(page ? { page } : {}) };
 }

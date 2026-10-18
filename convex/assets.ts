@@ -16,6 +16,7 @@ import {
   ASSET_CATALOGUE_QUERY_LIMIT,
   ASSET_CATALOGUE_SORTS,
 } from '../src/shared/assets/catalogueSearch';
+import type { AssetCatalogueSort } from '../src/shared/assets/catalogueSearch';
 import { GF9_LEADER_SKILLS, GF9_LEADER_SKILL_DECK } from '../src/shared/assets/gf9LeaderSkills';
 import { GF9_NEXUS_CARDS, GF9_NEXUS_DECK } from '../src/shared/assets/gf9Nexus';
 import { GF9_STRONGHOLD_CARDS, GF9_STRONGHOLD_DECK } from '../src/shared/assets/gf9StrongholdDeck';
@@ -51,7 +52,13 @@ import { assertKnownAssetType, assetDisplayName } from './lib/assetInput';
 import { listCardbackPresets, presetFromKey, storeCardbackPreset } from './lib/cardbackPresets';
 import type { CardbackPresetMemo } from './lib/cardbackPresets';
 import { listCardFrontPresets } from './lib/cardFrontPresets';
-import { countCataloguePartitions, selectCataloguePage } from './lib/catalogueOrder';
+import {
+  catalogueSearchLimit,
+  catalogueSearchReach,
+  countCataloguePartitions,
+  selectCataloguePage,
+  selectCatalogueSearch,
+} from './lib/catalogueOrder';
 import {
   assignedGroupSummary,
   requireAssetSoftDelete,
@@ -1066,11 +1073,106 @@ export const browsePage = publicQuery({
   },
 });
 
+/** The tiles of the selected entries: each asset read once, and one deck or owner read once however many tiles share it. */
+async function catalogueEntries(ctx: QueryCtx, type: string, selected: { source_id: string }[]) {
+  const previewKind = memberPreviewKind(type);
+  const decks = new Map<Id<'assets'>, Doc<'assets'> | null>();
+  const owners = new Map<Id<'users'>, Awaited<ReturnType<typeof profileSummary>>>();
+  const presets: CardbackPresetMemo = new Map();
+  const entries: Infer<typeof assetBrowseEntryValidator>[] = [];
+  for (const entry of selected) {
+    const assetId = ctx.db.normalizeId('assets', entry.source_id);
+    const row = assetId ? await ctx.db.get('assets', assetId) : null;
+    if (!row || row.is_deleted) {
+      /* Drift: the page comes up one tile short until the backfill or the asset's next save. */
+      console.warn(`Catalogue entry for asset ${entry.source_id} has no live asset.`);
+      continue;
+    }
+    const members = previewKind ? await memberPreviews(ctx, row._id, previewKind) : [];
+    entries.push({ ...(await toListEntry(ctx, row, { owners, presets }, { deckBacks: decks })), members });
+  }
+  return entries;
+}
+
+/** A browsed page: aggregate counts, numbered pages, a chosen order. */
+const catalogueBrowseValidator = v.object({
+  entries: v.array(assetBrowseEntryValidator),
+  /** Assets matching the search, across every page. */
+  total: v.number(),
+  /** Live assets of this type, before any search. */
+  typeTotal: v.number(),
+  /** False when a search matched more entries than one query reads, so `total` is a floor. */
+  complete: v.boolean(),
+  /** The page these tiles are, which may lie past `pageCount`, with no tiles. */
+  page: v.number(),
+  pageCount: v.number(),
+  pageSize: v.number(),
+});
+
+/** A searched type: the best matches first, no count and no pages, and more by asking for a larger limit. */
+const catalogueSearchValidator = v.object({
+  mode: v.literal('search'),
+  entries: v.array(assetBrowseEntryValidator),
+  /** Whether a larger limit would show more assets. */
+  hasMore: v.boolean(),
+  /** Whether more assets may match than one search shows, so the reader should add a word rather than load more. */
+  capped: v.boolean(),
+  /** The limit these tiles answer, after clamping. */
+  limit: v.number(),
+  /** Live assets of this type, before any search. */
+  typeTotal: v.number(),
+});
+
+type CatalogueArgs = { type: string; q?: string; sort?: AssetCatalogueSort; page?: number; limit?: number };
+
+async function loadCataloguePage(ctx: QueryCtx, args: CatalogueArgs, text: string) {
+  const page = Number.isSafeInteger(args.page) && args.page! > 1 ? args.page! : 1;
+  const [selection, [typeCount = 0]] = await Promise.all([
+    selectCataloguePage(ctx, {
+      kind: 'asset',
+      partition: args.type,
+      ...assetCatalogueOrderOf(args.sort),
+      page,
+      pageSize: ASSET_CATALOGUE_PAGE_SIZE,
+      search: text ? { text, relevance: !args.sort } : undefined,
+    }),
+    /* Without a search the page's own count is the type's, so only a search counts again. */
+    text ? countCataloguePartitions(ctx, 'asset', [args.type]) : Promise.resolve([]),
+  ]);
+  return {
+    entries: await catalogueEntries(ctx, args.type, selection.entries),
+    total: selection.total,
+    typeTotal: text ? typeCount : selection.total,
+    complete: selection.exact,
+    page,
+    pageCount: Math.max(1, Math.ceil(selection.total / ASSET_CATALOGUE_PAGE_SIZE)),
+    pageSize: ASSET_CATALOGUE_PAGE_SIZE,
+  };
+}
+
+async function loadCatalogueSearch(ctx: QueryCtx, args: CatalogueArgs, text: string) {
+  const limit = catalogueSearchLimit(args.limit, ASSET_CATALOGUE_PAGE_SIZE);
+  const [selection, [typeTotal = 0]] = await Promise.all([
+    selectCatalogueSearch(ctx, { kind: 'asset', partition: args.type, text, limit }),
+    countCataloguePartitions(ctx, 'asset', [args.type]),
+  ]);
+  return {
+    mode: 'search' as const,
+    entries: await catalogueEntries(ctx, args.type, selection.entries),
+    ...catalogueSearchReach(selection, limit, ASSET_CATALOGUE_PAGE_SIZE),
+    limit,
+    typeTotal,
+  };
+}
+
 /**
- * One page of one asset type, the same for every viewer: the route's search parameters in, the visible tiles and the counts out.
- * The aggregate counts the type's list and finds the page's first entry;
+ * One asset type's catalogue, the same for every viewer: the route's search parameters in, the visible tiles and the counts out.
+ * The aggregate counts the type's list and finds a page's first entry;
  * a search uses Convex's search index over the asset's name and its owner's.
  * Only the page's own assets are read, so a page costs the same however many assets the type holds.
+ * A search with a `limit` is the load-more search;
+ * without one the type is browsed, in pages.
+ * A searched `q` without `limit` is an old bundle's paged search, kept one release for the bundle deployed before this and dropped in the contract release.
  * Replaces `browsePage`, which stays for one release so a bundle still asking for it keeps working while this one deploys.
  */
 export const catalogue = publicQuery({
@@ -1079,63 +1181,15 @@ export const catalogue = publicQuery({
     q: v.optional(v.string()),
     sort: v.optional(v.union(...ASSET_CATALOGUE_SORTS.map((sort) => v.literal(sort)))),
     page: v.optional(v.number()),
+    /** How many of the best matches to return; Load more asks again with a larger one. */
+    limit: v.optional(v.number()),
   },
-  returns: v.object({
-    entries: v.array(assetBrowseEntryValidator),
-    /** Assets matching the search, across every page. */
-    total: v.number(),
-    /** Live assets of this type, before any search. */
-    typeTotal: v.number(),
-    /** False when a search matched more entries than one query reads, so `total` is a floor. */
-    complete: v.boolean(),
-    /** The page these tiles are, which may lie past `pageCount`, with no tiles. */
-    page: v.number(),
-    pageCount: v.number(),
-    pageSize: v.number(),
-  }),
+  returns: v.union(catalogueBrowseValidator, catalogueSearchValidator),
   handler: async (ctx, args) => {
     const text = args.q?.slice(0, ASSET_CATALOGUE_QUERY_LIMIT).trim() ?? '';
-    const page = Number.isSafeInteger(args.page) && args.page! > 1 ? args.page! : 1;
-    const [selection, [typeCount = 0]] = await Promise.all([
-      selectCataloguePage(ctx, {
-        kind: 'asset',
-        partition: args.type,
-        ...assetCatalogueOrderOf(args.sort),
-        page,
-        pageSize: ASSET_CATALOGUE_PAGE_SIZE,
-        search: text ? { text, relevance: !args.sort } : undefined,
-      }),
-      /* Without a search the page's own count is the type's, so only a search counts again. */
-      text ? countCataloguePartitions(ctx, 'asset', [args.type]) : Promise.resolve([]),
-    ]);
-    const typeTotal = text ? typeCount : selection.total;
-
-    const previewKind = memberPreviewKind(args.type);
-    const decks = new Map<Id<'assets'>, Doc<'assets'> | null>();
-    const owners = new Map<Id<'users'>, Awaited<ReturnType<typeof profileSummary>>>();
-    const presets: CardbackPresetMemo = new Map();
-    const entries: Infer<typeof assetBrowseEntryValidator>[] = [];
-    for (const entry of selection.entries) {
-      const assetId = ctx.db.normalizeId('assets', entry.source_id);
-      const row = assetId ? await ctx.db.get('assets', assetId) : null;
-      if (!row || row.is_deleted) {
-        /* Drift: the page comes up one tile short until the backfill or the asset's next save. */
-        console.warn(`Catalogue entry for asset ${entry.source_id} has no live asset.`);
-        continue;
-      }
-      const members = previewKind ? await memberPreviews(ctx, row._id, previewKind) : [];
-      entries.push({ ...(await toListEntry(ctx, row, { owners, presets }, { deckBacks: decks })), members });
-    }
-
-    return {
-      entries,
-      total: selection.total,
-      typeTotal,
-      complete: selection.exact,
-      page,
-      pageCount: Math.max(1, Math.ceil(selection.total / ASSET_CATALOGUE_PAGE_SIZE)),
-      pageSize: ASSET_CATALOGUE_PAGE_SIZE,
-    };
+    return text && args.limit !== undefined
+      ? await loadCatalogueSearch(ctx, args, text)
+      : await loadCataloguePage(ctx, args, text);
   },
 });
 

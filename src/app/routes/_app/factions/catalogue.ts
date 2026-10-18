@@ -26,18 +26,10 @@ function normalizeFactionCatalogueSearch(
   search: FactionCatalogueSearch,
   rulesets: FactionCatalogueRuleset[]
 ): FactionCatalogueSearch {
-  const parsed = parseFactionCatalogueSearch(search);
-  const validRuleset = rulesets.some((ruleset) => ruleset.slug === parsed.ruleset);
-  /* `name` is written out only to override relevance, so without a search it is the default and leaves the address. */
-  const sort = parsed.sort === 'name' && !parsed.q ? undefined : parsed.sort;
-
-  return {
-    ...(parsed.q ? { q: parsed.q } : {}),
-    ...(validRuleset && parsed.ruleset ? { ruleset: parsed.ruleset } : {}),
-    ...(sort ? { sort } : {}),
-    ...(parsed.complexity ? { complexity: parsed.complexity } : {}),
-    ...(parsed.page ? { page: parsed.page } : {}),
-  };
+  /* The parser already drops the default order, and the order and page of a search; only the ruleset needs the live list to judge. */
+  const { ruleset, ...parsed } = parseFactionCatalogueSearch(search);
+  const validRuleset = rulesets.some((candidate) => candidate.slug === ruleset);
+  return validRuleset && ruleset ? { ...parsed, ruleset } : parsed;
 }
 
 /**

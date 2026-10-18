@@ -1,6 +1,19 @@
-import { Badge, Button, Group, InputBase, Popover, RangeSlider, Select, Stack, Text, Title } from '@mantine/core';
+import {
+  Badge,
+  Button,
+  Group,
+  InputBase,
+  Popover,
+  RangeSlider,
+  Select,
+  Stack,
+  Text,
+  Title,
+  VisuallyHidden,
+} from '@mantine/core';
 import {
   complexityRangeSearchValue,
+  FACTION_CATALOGUE_PAGE_SIZE,
   parseComplexityRange,
   parseFactionCatalogueSearch,
 } from '@shared/factions/catalogueSearch';
@@ -17,22 +30,47 @@ import { errorMessage } from '@ui/content/errorMessage';
 import { CallToAction } from '@ui/control/CallToAction';
 import { CataloguePager, catalogueCountLabel } from '@ui/control/CataloguePager';
 import { IconAction } from '@ui/control/IconAction';
+import { LoadMoreButton } from '@ui/control/LoadMoreButton';
 import { SearchRefine } from '@ui/control/SearchRefine';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { FactionList } from '@ui/list/FactionList';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowDownAZ, ChevronsDown, Filter, Plus } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
+import type { Ref } from 'react';
 
 import { loadFactionCataloguePage, useFactionCataloguePage } from '@db/factions';
-import type { FactionCataloguePageData, FactionCatalogueRuleset } from '@db/factions';
+import type {
+  FactionCatalogueArgs,
+  FactionCatalogueBrowseData,
+  FactionCataloguePageData,
+  FactionCatalogueRuleset,
+  FactionCatalogueSearchData,
+} from '@db/factions';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
+import { useFocusFirstNewRow, useGrowingSearch } from '@app/routes/growingSearch';
 import { publicPageHead } from '@app/routes/publicPage';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import { factionCatalogueArgs, useFactionCatalogueSession } from './catalogue';
 import styles from './index.module.css';
+
+/** How many cards a search shows at first, and how many more each "Load more" asks for. */
+const SEARCH_STEP = FACTION_CATALOGUE_PAGE_SIZE;
+
+/** The cards' links, as the list renders them, in their order. */
+const CARD_LINK = 'a[href^="/factions/"]';
+
+/** The query's arguments at one limit: a search asks for its best matches up to it, a browsed page ignores it. */
+function catalogueQueryArgs(deps: FactionCatalogueArgs, limit: number): FactionCatalogueArgs {
+  return { ...deps, limit: deps.q ? limit : undefined };
+}
+
+/** The live catalogue for a parsed address at one limit; the growing list asks for a longer one through it. */
+function useCatalogueRows(deps: FactionCatalogueArgs, limit: number) {
+  return useFactionCataloguePage(catalogueQueryArgs(deps, limit)).data;
+}
 
 export const Route = createFileRoute('/_app/factions/')({
   ssr: true,
@@ -40,9 +78,9 @@ export const Route = createFileRoute('/_app/factions/')({
   validateSearch: parseFactionCatalogueSearch,
   loaderDeps: ({ search }) => factionCatalogueArgs(search),
   loader: async ({ deps }) => {
-    const data = await loadFactionCataloguePage(deps);
-    /* A page past the end is an address that does not exist, so it answers 404 and points at the last page. */
-    if (data.page > data.pageCount) {
+    const data = await loadFactionCataloguePage(catalogueQueryArgs(deps, SEARCH_STEP));
+    /* A browsed page past the end is an address that does not exist, so it answers 404 and points at the last page. */
+    if (!('mode' in data) && data.page > data.pageCount) {
       throw notFound({ data: { pageCount: data.pageCount } });
     }
     return data;
@@ -72,13 +110,16 @@ export const Route = createFileRoute('/_app/factions/')({
 function FactionsPage() {
   const loaderData = Route.useLoaderData();
   const args = Route.useLoaderDeps();
-  const catalogue = useFactionCataloguePage(args, { initialData: loaderData });
-  const data = catalogue.data;
-  const session = useFactionCatalogueSession(data?.rulesets);
-
-  if (!data) {
-    return <FactionCataloguePending />;
-  }
+  const { data, loading, loaded, grown, loadMore } = useGrowingSearch({
+    args,
+    step: SEARCH_STEP,
+    initial: loaderData,
+    useLive: useCatalogueRows,
+    rows: (page) => page.cards.length,
+  });
+  const session = useFactionCatalogueSession(data.rulesets);
+  const list = useRef<HTMLDivElement>(null);
+  useFocusFirstNewRow(list, loaded, grown, CARD_LINK);
   const hasFactions = data.catalogueTotal > 0;
 
   return (
@@ -94,8 +135,7 @@ function FactionsPage() {
             onCommitQuery={session.query.commit}
             search={session.search}
             rulesets={data.rulesets}
-            visibleCount={data.total}
-            visibleCountComplete={data.complete}
+            matched={'mode' in data ? undefined : { count: data.total, complete: data.complete }}
             totalCount={data.catalogueTotal}
             onSearchChange={session.changeSearch}
           />
@@ -103,24 +143,23 @@ function FactionsPage() {
       </PageLayout.Toolbar>
       <PageLayout.Content>
         {hasFactions ? (
-          data.total === 0 ? (
-            <FilteredEmptyState complete={data.complete} onReset={session.reset} />
-          ) : data.cards.length === 0 ? (
-            <PastTheEnd pageCount={data.pageCount} />
+          'mode' in data ? (
+            <SearchedCatalogue
+              data={data}
+              loading={loading}
+              loaded={loaded}
+              onLoadMore={loadMore}
+              selectedRulesetSlug={session.search.ruleset}
+              onReset={session.reset}
+              ref={list}
+            />
           ) : (
-            <Stack gap="lg" aria-busy={catalogue.isPending}>
-              <FactionList factions={data.cards} selectedRulesetSlug={session.search.ruleset} />
-              <CataloguePager
-                page={data.page}
-                pageCount={data.pageCount}
-                pageSize={data.pageSize}
-                total={data.total}
-                complete={data.complete}
-                noun="factions"
-                label="Faction catalogue pages"
-                pageLinkProps={(page) => ({ component: Link, to: '/factions', search: pageSearch(page) })}
-              />
-            </Stack>
+            <BrowsedCatalogue
+              data={data}
+              loading={loading}
+              selectedRulesetSlug={session.search.ruleset}
+              onReset={session.reset}
+            />
           )
         ) : (
           <Surface padding="xl">
@@ -132,6 +171,83 @@ function FactionsPage() {
         )}
       </PageLayout.Content>
     </PageLayout>
+  );
+}
+
+/** One page of the browsed catalogue, with its pager. */
+function BrowsedCatalogue({
+  data,
+  loading,
+  selectedRulesetSlug,
+  onReset,
+}: {
+  data: FactionCatalogueBrowseData;
+  loading: boolean;
+  selectedRulesetSlug: string | undefined;
+  onReset: () => void;
+}) {
+  if (data.total === 0) {
+    return <FilteredEmptyState complete={data.complete} onReset={onReset} />;
+  }
+  if (data.cards.length === 0) {
+    return <PastTheEnd pageCount={data.pageCount} />;
+  }
+  return (
+    <Stack gap="lg" aria-busy={loading}>
+      <FactionList factions={data.cards} selectedRulesetSlug={selectedRulesetSlug} />
+      <CataloguePager
+        page={data.page}
+        pageCount={data.pageCount}
+        pageSize={data.pageSize}
+        total={data.total}
+        complete={data.complete}
+        noun="factions"
+        label="Faction catalogue pages"
+        pageLinkProps={(page) => ({ component: Link, to: '/factions', search: pageSearch(page) })}
+      />
+    </Stack>
+  );
+}
+
+/**
+ * The best matches of a search, and a "Load more" that asks for a longer list while there is one: no count and no pages.
+ * When the longer list arrives, focus moves to its first new card, so a keyboard reader carries on from where the list grew.
+ */
+function SearchedCatalogue({
+  data,
+  loading,
+  loaded,
+  onLoadMore,
+  selectedRulesetSlug,
+  onReset,
+  ref,
+}: {
+  data: FactionCatalogueSearchData;
+  loading: boolean;
+  /** Whether the longer list asked for has arrived. */
+  loaded: boolean;
+  onLoadMore: () => void;
+  selectedRulesetSlug: string | undefined;
+  onReset: () => void;
+  ref: Ref<HTMLDivElement>;
+}) {
+  if (data.cards.length === 0) {
+    return <FilteredEmptyState complete={!data.capped} onReset={onReset} />;
+  }
+  return (
+    <Stack gap="lg" aria-busy={loading} ref={ref}>
+      <FactionList factions={data.cards} selectedRulesetSlug={selectedRulesetSlug} />
+      {/* The cards say how many arrived; this says only that they did, so a reader hears the list grow without a count the page never shows. */}
+      <VisuallyHidden role="status" aria-live="polite">
+        {loaded ? 'More factions loaded' : null}
+      </VisuallyHidden>
+      {data.hasMore ? <LoadMoreButton loading={loading} onLoadMore={onLoadMore} /> : null}
+      {data.capped ? (
+        <Text c="dimmed" ta="center">
+          That's as far as this search goes. Add a word to narrow it.
+        </Text>
+      ) : null}
+    </Stack>
   );
 }
 
@@ -249,17 +365,14 @@ function CatalogueRefine({
   search,
   rulesetOptions,
   rulesets,
-  visibleCount,
-  visibleCountComplete,
+  matched,
   totalCount,
   onSearchChange,
 }: {
   search: FactionCatalogueSearch;
   rulesetOptions: { value: string; label: string }[];
   rulesets: FactionCatalogueRuleset[];
-  visibleCount: number;
-  /** False when a search matched more than one read can hold, so `visibleCount` is a lower bound. */
-  visibleCountComplete: boolean;
+  matched: MatchedCount | undefined;
   totalCount: number;
   onSearchChange: (patch: Partial<Record<keyof FactionCatalogueSearch, unknown>>) => void;
 }) {
@@ -333,10 +446,11 @@ function CatalogueRefine({
             </Stack>
 
             <Group gap="xs" justify="space-between">
+              {/* A search shows no count of its matches, only the catalogue's size. */}
               <Text size="xs" c="dimmed">
-                {visibleCount === totalCount
+                {matched === undefined || matched.count === totalCount
                   ? `${totalCount} factions`
-                  : `${catalogueCountLabel(visibleCount, visibleCountComplete)} of ${totalCount} factions`}
+                  : `${catalogueCountLabel(matched.count, matched.complete)} of ${totalCount} factions`}
               </Text>
               {activeCount > 0 ? (
                 <Button
@@ -356,14 +470,16 @@ function CatalogueRefine({
   );
 }
 
+/** How many factions a browsed page's filters matched; `complete` is false when the count is a floor. */
+type MatchedCount = { count: number; complete: boolean };
+
 function CatalogueToolbar({
   draftQuery,
   onDraftQueryChange,
   onCommitQuery,
   search,
   rulesets,
-  visibleCount,
-  visibleCountComplete,
+  matched,
   totalCount,
   onSearchChange,
 }: {
@@ -372,9 +488,8 @@ function CatalogueToolbar({
   onCommitQuery: () => void;
   search: FactionCatalogueSearch;
   rulesets: FactionCatalogueRuleset[];
-  visibleCount: number;
-  /** False when a search matched more than one read can hold, so `visibleCount` is a lower bound. */
-  visibleCountComplete: boolean;
+  /** Absent while searching, which shows no count. */
+  matched: MatchedCount | undefined;
   totalCount: number;
   onSearchChange: (patch: Partial<Record<keyof FactionCatalogueSearch, unknown>>) => void;
 }) {
@@ -396,23 +511,26 @@ function CatalogueToolbar({
       leftSection={<Filter size={15} aria-hidden />}
     />
   );
+  /* A search is always best match, so its sort has one option and takes no change; choosing an order is for browsing. */
   const sortSelect = (label?: string, joined = false) => (
     <Select
       variant={joined ? 'unstyled' : 'default'}
       label={label}
-      value={search.sort ?? (search.q ? 'relevance' : 'name')}
-      data={[
-        ...(search.q ? [{ value: 'relevance', label: 'Best match' }] : []),
-        { value: 'name', label: 'Alphabetical (A–Z)' },
-        { value: 'created', label: 'Chronological (created)' },
-        { value: 'updated', label: 'Chronological (updated)' },
-        { value: 'complexity-asc', label: 'Complexity (low → high)' },
-        { value: 'complexity-desc', label: 'Complexity (high → low)' },
-      ]}
-      allowDeselect={false}
-      onChange={(value) =>
-        onSearchChange({ sort: value === 'relevance' || (value === 'name' && !search.q) ? undefined : value })
+      value={search.q ? 'relevance' : (search.sort ?? 'name')}
+      data={
+        search.q
+          ? [{ value: 'relevance', label: 'Best match' }]
+          : [
+              { value: 'name', label: 'Alphabetical (A–Z)' },
+              { value: 'created', label: 'Chronological (created)' },
+              { value: 'updated', label: 'Chronological (updated)' },
+              { value: 'complexity-asc', label: 'Complexity (low → high)' },
+              { value: 'complexity-desc', label: 'Complexity (high → low)' },
+            ]
       }
+      disabled={Boolean(search.q)}
+      allowDeselect={false}
+      onChange={(value) => onSearchChange({ sort: value === 'name' ? undefined : value })}
       aria-label="Sort factions"
       leftSection={<ArrowDownAZ size={15} aria-hidden />}
     />
@@ -460,8 +578,7 @@ function CatalogueToolbar({
             search={search}
             rulesetOptions={rulesetOptions}
             rulesets={rulesets}
-            visibleCount={visibleCount}
-            visibleCountComplete={visibleCountComplete}
+            matched={matched}
             totalCount={totalCount}
             onSearchChange={onSearchChange}
           />

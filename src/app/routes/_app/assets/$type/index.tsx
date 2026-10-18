@@ -1,5 +1,5 @@
-import { Button, Select, Stack, Text, Title } from '@mantine/core';
-import { parseAssetCatalogueSearch } from '@shared/assets/catalogueSearch';
+import { Button, Select, Stack, Text, Title, VisuallyHidden } from '@mantine/core';
+import { ASSET_CATALOGUE_PAGE_SIZE, parseAssetCatalogueSearch } from '@shared/assets/catalogueSearch';
 import type { AssetCatalogueSearch } from '@shared/assets/catalogueSearch';
 import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
 import type { AssetTypeDefinition } from '@shared/assets/types';
@@ -10,16 +10,19 @@ import { PageTitle } from '@ui/block/PageTitle';
 import { CallToAction } from '@ui/control/CallToAction';
 import { CataloguePager } from '@ui/control/CataloguePager';
 import { IconAction } from '@ui/control/IconAction';
+import { LoadMoreButton } from '@ui/control/LoadMoreButton';
 import { SearchRefine } from '@ui/control/SearchRefine';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { TileGrid } from '@ui/list/TileGrid';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowLeft, Plus } from 'lucide-react';
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
+import type { Ref } from 'react';
 
 import { loadAssetBrowsePage, useAssetBrowsePage } from '@app/db/assets';
-import type { AssetBrowseEntry } from '@app/db/assets';
+import type { AssetBrowseArgs, AssetBrowseEntry, AssetBrowsePageData } from '@app/db/assets';
+import { useFocusFirstNewRow, useGrowingSearch } from '@app/routes/growingSearch';
 import { publicPageHead } from '@app/routes/publicPage';
 import { useSearchDraft } from '@app/routes/searchDraft';
 import { AssetFace } from '@app/widgets/asset-face/AssetFace';
@@ -35,19 +38,42 @@ function singularLabel(label: string): string {
   return label.endsWith('s') ? label.slice(0, -1) : label;
 }
 
-/** The sort control's options; best match exists only while searching, and is the default then. */
+/** The sort control's options: a search is always best match, so it has that one option; the orders are for browsing. */
 function sortOptions(searching: boolean) {
-  return [
-    ...(searching ? [{ value: 'relevance', label: 'Best match' }] : []),
-    { value: 'newest', label: 'Newest' },
-    { value: 'updated', label: 'Recently updated' },
-    { value: 'name', label: 'Name' },
-  ];
+  return searching
+    ? [{ value: 'relevance', label: 'Best match' }]
+    : [
+        { value: 'newest', label: 'Newest' },
+        { value: 'updated', label: 'Recently updated' },
+        { value: 'name', label: 'Name' },
+      ];
 }
 
 /** The page query's arguments for a parsed address; every key is spelled out so the loader deps compare equal however the address was written. */
 function browseDeps(search: AssetCatalogueSearch) {
   return { q: search.q, sort: search.sort, page: search.page };
+}
+
+/** How many tiles a search shows at first, and how many more each "Load more" asks for. */
+const SEARCH_STEP = ASSET_CATALOGUE_PAGE_SIZE;
+
+/** The tiles' links, as the grid renders them, in their order. */
+const TILE_LINK = 'a[href^="/assets/"]';
+
+/** A browsed page of the type: counts, numbered pages, a chosen order. */
+type BrowsedType = Exclude<AssetBrowsePageData, { mode: 'search' }>;
+
+/** A searched type: the best matches first, and more by asking for a larger limit. */
+type SearchedType = Extract<AssetBrowsePageData, { mode: 'search' }>;
+
+/** The query's arguments at one limit: a search asks for its best matches up to it, a browsed page ignores it. */
+function catalogueQueryArgs(args: AssetBrowseArgs, limit: number): AssetBrowseArgs {
+  return { ...args, limit: args.q ? limit : undefined };
+}
+
+/** The live type for a parsed address at one limit; the growing list asks for a longer one through it. */
+function useTypeRows(args: AssetBrowseArgs, limit: number) {
+  return useAssetBrowsePage(catalogueQueryArgs(args, limit)).data;
 }
 
 /** The search parameters a change writes: any change but a page turn starts again from the first page. */
@@ -70,9 +96,9 @@ export const Route = createFileRoute('/_app/assets/$type/')({
       /* Aimed past this route's own not-found page, which only knows how to say a page lies past the end. */
       throw notFound({ routeId: '/_app' });
     }
-    const data = await loadAssetBrowsePage({ type: params.type, ...deps });
-    /* A page past the end is an address that does not exist, so it answers 404 and points at the last page. */
-    if (data.page > data.pageCount) {
+    const data = await loadAssetBrowsePage(catalogueQueryArgs({ type: params.type, ...deps }, SEARCH_STEP));
+    /* A browsed page past the end is an address that does not exist, so it answers 404 and points at the last page. */
+    if (!('mode' in data) && data.page > data.pageCount) {
       throw notFound({ data: { pageCount: data.pageCount } });
     }
     return data;
@@ -104,8 +130,15 @@ function AssetTypePage() {
   const loaderData = Route.useLoaderData();
   const validType = isAssetType(type) ? type : 'card-treachery';
   const definition: AssetTypeDefinition = ASSET_TYPES[validType];
-  const live = useAssetBrowsePage({ type: validType, ...deps }, { initialData: loaderData });
-  const data = live.data ?? loaderData;
+  const { data, loading, loaded, grown, loadMore } = useGrowingSearch({
+    args: { type: validType, ...deps },
+    step: SEARCH_STEP,
+    initial: loaderData,
+    useLive: useTypeRows,
+    rows: (page) => page.entries.length,
+  });
+  const grid = useRef<HTMLDivElement>(null);
+  useFocusFirstNewRow(grid, loaded, grown, TILE_LINK);
 
   /* Every write re-parses, so a default never reaches the address. Replacing keeps a browse session to one history entry. */
   const changeSearch = (patch: Partial<Record<keyof AssetCatalogueSearch, unknown>>) => {
@@ -120,6 +153,7 @@ function AssetTypePage() {
   const noun = singularLabel(definition.label);
   const plural = definition.label.toLowerCase();
 
+  /* A search is always best match, so its sort takes no change; choosing an order is for browsing. */
   const sortSelect = (label?: string) => (
     <Select
       className={label ? undefined : styles.sortSegment}
@@ -128,10 +162,9 @@ function AssetTypePage() {
       aria-label="Sort"
       allowDeselect={false}
       data={sortOptions(Boolean(search.q))}
-      value={search.sort ?? (search.q ? 'relevance' : 'newest')}
-      onChange={(value) =>
-        changeSearch({ sort: value === 'relevance' || (value === 'newest' && !search.q) ? undefined : value })
-      }
+      value={search.q ? 'relevance' : (search.sort ?? 'newest')}
+      disabled={Boolean(search.q)}
+      onChange={(value) => changeSearch({ sort: value === 'newest' ? undefined : value })}
     />
   );
 
@@ -209,44 +242,135 @@ function AssetTypePage() {
                 {definition.label} are on the roadmap. This type cannot hold assets yet.
               </Text>
             </Stack>
-          ) : data.total === 0 ? (
+          ) : data.typeTotal === 0 ? (
             <Stack gap="xs" align="center">
-              <Title order={2}>{data.typeTotal === 0 ? 'Nothing here yet' : 'Nothing matches'}</Title>
+              <Title order={2}>Nothing here yet</Title>
               <Text c="dimmed" ta="center">
-                {data.typeTotal === 0
-                  ? `No ${plural} have been created so far.`
-                  : `No ${singularLabel(plural)} matches this search.`}
+                No {plural} have been created so far.
               </Text>
             </Stack>
-          ) : data.entries.length === 0 ? (
-            <PastTheEnd type={validType} pageCount={data.pageCount} />
+          ) : 'mode' in data ? (
+            <SearchedTiles
+              data={data}
+              plural={plural}
+              loading={loading}
+              loaded={loaded}
+              onLoadMore={loadMore}
+              ref={grid}
+            />
           ) : (
-            <Stack gap="lg" aria-busy={live.isPending}>
-              <TileGrid>
-                {data.entries.map((entry) => (
-                  <BrowseTile key={entry.id} entry={entry} />
-                ))}
-              </TileGrid>
-              <CataloguePager
-                page={data.page}
-                pageCount={data.pageCount}
-                pageSize={data.pageSize}
-                total={data.total}
-                complete={data.complete}
-                noun={plural}
-                label={`${definition.label} pages`}
-                pageLinkProps={(page) => ({
-                  component: Link,
-                  to: '/assets/$type',
-                  params: { type: validType },
-                  search: pageSearch(page),
-                })}
-              />
-            </Stack>
+            <BrowsedTiles data={data} type={validType} label={definition.label} plural={plural} loading={loading} />
           )}
         </Surface>
       </PageLayout.Content>
     </PageLayout>
+  );
+}
+
+/** No match among the assets checked; a capped search did not check them all, so another word may still find one. */
+function NothingMatches({ plural, capped }: { plural: string; capped: boolean }) {
+  return (
+    <Stack gap="xs" align="center">
+      <Title order={2}>Nothing matches</Title>
+      <Text c="dimmed" ta="center">
+        No {singularLabel(plural)} matches this search.
+      </Text>
+      {capped ? (
+        <Text size="xs" c="dimmed" ta="center">
+          Only the first matches of this search were checked. Add a word to narrow it.
+        </Text>
+      ) : null}
+    </Stack>
+  );
+}
+
+/** One page of the browsed type, with its pager. */
+function BrowsedTiles({
+  data,
+  type,
+  label,
+  plural,
+  loading,
+}: {
+  data: BrowsedType;
+  type: string;
+  label: string;
+  plural: string;
+  loading: boolean;
+}) {
+  if (data.total === 0) {
+    return <NothingMatches plural={plural} capped={!data.complete} />;
+  }
+  if (data.entries.length === 0) {
+    return <PastTheEnd type={type} pageCount={data.pageCount} />;
+  }
+  return (
+    <Stack gap="lg" aria-busy={loading}>
+      <TileGrid>
+        {data.entries.map((entry) => (
+          <BrowseTile key={entry.id} entry={entry} />
+        ))}
+      </TileGrid>
+      <CataloguePager
+        page={data.page}
+        pageCount={data.pageCount}
+        pageSize={data.pageSize}
+        total={data.total}
+        complete={data.complete}
+        noun={plural}
+        label={`${label} pages`}
+        pageLinkProps={(page) => ({
+          component: Link,
+          to: '/assets/$type',
+          params: { type },
+          search: pageSearch(page),
+        })}
+      />
+    </Stack>
+  );
+}
+
+/**
+ * The best matches of a search, and a "Load more" that asks for a longer grid while there is one: no count and no pages.
+ * When the longer grid arrives, focus moves to its first new tile, so a keyboard reader carries on from where the grid grew.
+ */
+function SearchedTiles({
+  data,
+  plural,
+  loading,
+  loaded,
+  onLoadMore,
+  ref,
+}: {
+  data: SearchedType;
+  plural: string;
+  loading: boolean;
+  /** Whether the longer grid asked for has arrived. */
+  loaded: boolean;
+  onLoadMore: () => void;
+  ref: Ref<HTMLDivElement>;
+}) {
+  if (data.entries.length === 0) {
+    return <NothingMatches plural={plural} capped={data.capped} />;
+  }
+  return (
+    <Stack gap="lg" aria-busy={loading} ref={ref}>
+      <TileGrid>
+        {data.entries.map((entry) => (
+          <BrowseTile key={entry.id} entry={entry} />
+        ))}
+      </TileGrid>
+      {/* The tiles say how many arrived; this says only that they did, so a reader hears the grid grow without a count the page never shows. */}
+      <VisuallyHidden role="status" aria-live="polite">
+        {loaded ? `More ${plural} loaded` : null}
+      </VisuallyHidden>
+      {data.hasMore ? <LoadMoreButton loading={loading} onLoadMore={onLoadMore} /> : null}
+      {data.capped ? (
+        <Text c="dimmed" ta="center">
+          That's as far as this search goes. Add a word to narrow it.
+        </Text>
+      ) : null}
+    </Stack>
   );
 }
 
