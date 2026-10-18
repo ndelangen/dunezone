@@ -4,7 +4,7 @@ import { _roots, createRoot, extend, useFrame, useThree } from '@react-three/fib
 import { act } from '@testing-library/react';
 import { useEffect } from 'react';
 import { EventDispatcher, Group } from 'three';
-import type { WebGPURenderer } from 'three/webgpu';
+import { WebGPURenderer } from 'three/webgpu';
 import { afterEach, expect, test, vi } from 'vite-plus/test';
 
 /* These exercise the patched Fiber root and reconciler; only GPU driver calls are replaced. */
@@ -412,3 +412,31 @@ test.each(['successful', 'failed'] as const)(
     }
   }
 );
+
+test('a real failed renderer startup stays observed during disposal', async () => {
+  const canvas = document.createElement('canvas');
+  vi.spyOn(canvas, 'getContext').mockReturnValue(null);
+  const renderer = new WebGPURenderer({ canvas, forceWebGL: true });
+  const root = createRoot(canvas);
+  await expect(root.configure({ renderer: () => renderer, frameloop: 'never' })).rejects.toThrow(
+    'getSupportedExtensions'
+  );
+  vi.useFakeTimers();
+  await act(async () => {
+    root.unmount();
+  });
+  await vi.advanceTimersByTimeAsync(500);
+  expect(_roots.has(canvas)).toBe(false);
+});
+
+test('disposing a real renderer before startup stays idle and can be repeated', async () => {
+  const canvas = document.createElement('canvas');
+  const getContext = vi.spyOn(canvas, 'getContext').mockReturnValue(null);
+  const renderer = new WebGPURenderer({ canvas, forceWebGL: true });
+  const init = vi.spyOn(renderer, 'init');
+  await renderer.dispose();
+  await renderer.dispose();
+  expect(init).not.toHaveBeenCalled();
+  expect(getContext).not.toHaveBeenCalled();
+  expect(renderer.hasInitialized()).toBe(false);
+});
