@@ -109,7 +109,7 @@ function EmblemsSection() {
         size of a fingernail. On the tokens and shields they are printed in cream, close to #E3DBB3, over the faction's
         colours.
       </Paragraph>
-      <WideFigure caption="The twelve faction emblems in cream on their own colours, and each one as the token wears it, on a dark ground and in ink on parchment.">
+      <WideFigure caption="Eleven faction emblems in cream on their own colours, and each one as the token wears it, on a dark ground and in ink on parchment.">
         <LogoSheet />
       </WideFigure>
       <Paragraph>

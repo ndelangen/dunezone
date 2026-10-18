@@ -18,7 +18,6 @@ const LOGOS = [
   ['Bene Gesserit', 'bene-gesserit', backgroundPresets.beneGesserit],
   ['Ixians', 'ixian', backgroundPresets.ixian],
   ['Bene Tleilaxu', 'bene-tleilaxu', backgroundPresets.beneTleilaxu],
-  ['CHOAM', 'choam', backgroundPresets.choam],
   ['Richese', 'richese', backgroundPresets.richese],
   ['Ecaz', 'ecaz', backgroundPresets.ecaz],
   ['Moritani', 'moritani', backgroundPresets.moritani],
