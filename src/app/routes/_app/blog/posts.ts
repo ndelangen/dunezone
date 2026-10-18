@@ -4,7 +4,7 @@ import { resolveAsset } from '@shared/media/resolveAsset';
 
 /*
  * What the post list, the page head and the sitemap know about each post, without its body.
- * Bodies live in `postBodies.ts`, which only the post page's component imports, so no other page downloads them.
+ * Bodies live in `postBodies.ts`, one chunk per post, which only the post page loads, so no other page downloads them.
  */
 
 export type BlogPostMeta = {
@@ -42,6 +42,19 @@ export const BLOG_POST_META: Record<BlogPostSlug, BlogPostMeta> = {
       key: '/web/blog/anatomy-of-a-dune-faction-atreides/atreides-table-spread.jpg',
       alt: 'House Atreides laid out on a table: its shield, both faction sheet pages, five traitor cards, the alliance card, leader tokens, faction token and troops',
       aspect: 1189 / 1331,
+    },
+  },
+  'drawing-dune-tokens-and-cards': {
+    slug: 'drawing-dune-tokens-and-cards',
+    title: 'Recreating Dune board game art, layer by layer',
+    date: '2026-10-18',
+    author: 'Central419',
+    summary:
+      'How I built the leader tokens and cards on dune.zone, from images cut out in GIMP in 2021 to the SVG layers, masks and textures that draw them today.',
+    cover: {
+      key: '/web/blog/drawing-dune-tokens-and-cards/exploded-layers.jpg',
+      alt: 'A treachery card back and a leader token pulled apart into their layers, floating one above the other',
+      aspect: 1800 / 2400,
     },
   },
   'all-in-one-dune-board-game-webapp': {

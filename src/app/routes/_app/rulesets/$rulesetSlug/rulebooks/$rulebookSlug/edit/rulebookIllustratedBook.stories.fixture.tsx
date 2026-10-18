@@ -91,7 +91,7 @@ function createIllustratedBook(): RulebookContentsDraftV1 {
           text: 'Marks the sector occupied by the storm. At the start of turn one, place the storm in a random sector.',
         },
       ]),
-      SPCE: page('SPCE', 'Spice collection', '/vector/icon/collection_standalone.svg', [
+      SPCE: page('SPCE', 'Spice Collection', '/vector/icon/collection_standalone.svg', [
         {
           id: 'FGRR',
           kind: 'referenced-illustration',

@@ -1,5 +1,6 @@
 import preview from '@sb/preview';
 import { assetPublishingFaction } from '@shared/factions/fixtures/assetPublishingFaction';
+import { expect, within } from 'storybook/test';
 
 import type { FactionCatalogueEntry } from '@db/factions';
 
@@ -72,10 +73,19 @@ export const Mobile = meta.story({
 
 /**
  * With a ruleset chosen, each tile marks its membership against that one rather than listing all of them, which is why this takes a slug rather than deriving it.
+ * Classic is chosen because it is Fremen's second ruleset, so its caption changes where Advanced would leave it as it was.
  */
 export const WithSelectedRuleset = meta.story({
-  args: { selectedRulesetSlug: 'advanced' },
+  args: { selectedRulesetSlug: 'classic' },
   globals: { viewport: { value: 'appDesktop' } },
+  play: async ({ canvasElement }) => {
+    /* Every fixture tile carries the same faction document, so the ruleset captions tell them apart in list order. */
+    const links = within(canvasElement).getAllByRole('link');
+    const captions = ['Atreides Advanced Dune', 'Atreides Classic Dune', 'Atreides Classic Dune +1', 'Atreides'];
+    for (const [index, caption] of captions.entries()) {
+      await expect(links[index]).toHaveAccessibleName(`${caption} Novice complexity, 2 out of 10`);
+    }
+  },
 });
 
 /**
@@ -83,5 +93,9 @@ export const WithSelectedRuleset = meta.story({
  */
 export const SingleEntry = meta.story({
   args: { factions: [factions[0]] },
-  globals: { viewport: { value: 'appDesktop' } },
+  globals: { viewport: { value: 'appLaptop' } },
+  play: async ({ canvasElement }) => {
+    /* The laptop window for the reason `Default` gives: the lone card fills one of the same five tracks. */
+    await expectFactionColumns(canvasElement, 5);
+  },
 });

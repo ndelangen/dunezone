@@ -6,9 +6,9 @@ import { convexTest } from 'convex-test';
 import { createFunctionHandle, makeFunctionReference } from 'convex/server';
 import type { WithoutSystemFields } from 'convex/server';
 
-import type { Doc, Id, TableNames } from '../../../../convex/_generated/dataModel';
-import type { DatabaseWriter } from '../../../../convex/_generated/server';
-import { syncFactionCard } from '../../../../convex/lib/factionCards';
+import type { Doc, TableNames } from '../../../../convex/_generated/dataModel';
+import type { DatabaseWriter, MutationCtx } from '../../../../convex/_generated/server';
+import { applicationTriggers } from '../../../../convex/lib/applicationTriggers';
 import schema from '../../../../convex/schema';
 import aggregateSchema from '../../../../node_modules/@convex-dev/aggregate/src/component/schema';
 import migrationsSchema from '../../../../node_modules/@convex-dev/migrations/src/component/schema';
@@ -124,15 +124,12 @@ async function insertDocument<TableName extends TableNames>(
 async function insertDocuments(world: World, documents: SeedDocument[], delay = 0) {
   await new Promise((resolve) => setTimeout(resolve, delay));
   await world.test.run(async (ctx) => {
+    /* Seeds write through the application's triggers, so every read model a real write keeps is derived the same way here. */
+    const wrapped = applicationTriggers.wrapDB(ctx as unknown as MutationCtx);
     for (const document of documents) {
-      const id = await insertDocument(ctx.db, document, world.references);
+      const id = await insertDocument(wrapped.db, document, world.references);
       if (document.key) {
         world.references.set(document.key, id);
-      }
-      /* A seed insert skips the write triggers, so the card a faction list reads is derived here as a faction write would derive it. */
-      if (document.table === 'factions') {
-        const factionId = id as Id<'factions'>;
-        await syncFactionCard(ctx, factionId, await ctx.db.get('factions', factionId));
       }
     }
   });
@@ -143,6 +140,7 @@ async function createWorld(seed: SeedDocument[]): Promise<World> {
   world.test.registerComponent('statistics', aggregateSchema, aggregateModules);
   world.test.registerComponent('profileActivity', aggregateSchema, aggregateModules);
   world.test.registerComponent('profileDiscovery', aggregateSchema, aggregateModules);
+  world.test.registerComponent('catalogueOrder', aggregateSchema, aggregateModules);
   world.test.registerComponent('migrations', migrationsSchema, migrationsModules);
   world.test.registerComponent('rateLimiter', rateLimiterSchema, rateLimiterModules);
   await insertDocuments(world, seed);
@@ -431,6 +429,11 @@ self.addEventListener('message', (event: MessageEvent<WorkerRequest>) => {
         error: error instanceof Error ? `${error.name}: ${error.message}\n${error.stack ?? ''}` : String(error),
       };
     }
-    self.postMessage(response);
+    try {
+      self.postMessage(response);
+    } catch (error) {
+      /* A result the browser cannot clone must still answer, or the caller waits forever. */
+      self.postMessage({ id: request.id, ok: false, error: error instanceof Error ? error.message : String(error) });
+    }
   });
 });

@@ -1,23 +1,17 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import aggregateTest from '@convex-dev/aggregate/test';
-import { convexTest } from 'convex-test';
 import { describe, expect, test } from 'vite-plus/test';
 
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api } from './_generated/api';
-import schema from './schema';
+import { applicationTest } from './application.test.fixture';
 import { factionPageAs } from './viewerAccess.test.fixture';
 
-const modules = import.meta.glob('./**/*.ts');
 const now = '2026-08-09T00:00:00.000Z';
 
 async function softDeletionFixture() {
-  const t = convexTest(schema, modules);
-  aggregateTest.register(t, 'statistics');
-  aggregateTest.register(t, 'profileActivity');
-  aggregateTest.register(t, 'profileDiscovery');
+  const t = applicationTest();
   const ids = await t.run(async (ctx) => {
     const ownerId = await ctx.db.insert('users', { name: 'Group owner' });
     const memberId = await ctx.db.insert('users', { name: 'Active member' });

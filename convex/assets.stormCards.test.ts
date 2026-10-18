@@ -1,19 +1,17 @@
 /// <reference types="vite/client" />
 /* @vitest-environment edge-runtime */
-import { convexTest } from 'convex-test';
+import type { convexTest } from 'convex-test';
 import { expect, test } from 'vite-plus/test';
 
 import { publishingTokenFace } from '../src/shared/assets/fixtures/publishingTokenFace';
 import { standardStormCard } from '../src/shared/assets/standardStormDeck';
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
-import schema from './schema';
+import { applicationTest } from './application.test.fixture';
 import { assetPageAs } from './viewerAccess.test.fixture';
 
-const modules = import.meta.glob('./**/*.ts');
-
 test('storm cards publish ordered layers and refresh linked tokens', async () => {
-  const t = convexTest(schema, modules);
+  const t = applicationTest();
   const ownerId = await t.run((ctx) => ctx.db.insert('users', { name: 'Creator' }));
   const owner = t.withIdentity({ subject: ownerId });
   const token = await owner.mutation(api.assets.create, {
@@ -67,7 +65,7 @@ test('storm cards publish ordered layers and refresh linked tokens', async () =>
 });
 
 test('storm card writes require an author and preserve the fixed identity and movement range', async () => {
-  const t = convexTest(schema, modules);
+  const t = applicationTest();
   const ownerId = await t.run((ctx) => ctx.db.insert('users', { name: 'Creator' }));
   const owner = t.withIdentity({ subject: ownerId });
   const data = standardStormCard(3);
@@ -86,7 +84,7 @@ test('storm card writes require an author and preserve the fixed identity and mo
 });
 
 test('the standard Storm deck provisions one of each value and reruns without overwriting edits', async () => {
-  const t = convexTest(schema, modules);
+  const t = applicationTest();
   const ownerId = await t.run((ctx) => ctx.db.insert('users', { name: 'Creator' }));
   const result = await t.mutation(internal.assets.provisionStandardStormDeck, { ownerId });
   expect(result.created).toBe(true);
@@ -140,7 +138,7 @@ async function reviewedStormCards(t: ReturnType<typeof convexTest>, cardIds: Id<
 }
 
 test('reviewed Storm designs replace all six cards and the shared back atomically', async () => {
-  const t = convexTest(schema, modules);
+  const t = applicationTest();
   const ownerId = await t.run((ctx) => ctx.db.insert('users', { name: 'Creator' }));
   const { cardIds } = await t.mutation(internal.assets.provisionStandardStormDeck, { ownerId });
   await t.run(async (ctx) => {
@@ -166,7 +164,7 @@ test('reviewed Storm designs replace all six cards and the shared back atomicall
 });
 
 test('a changed Storm card or back cancels the entire reviewed replacement', async () => {
-  const t = convexTest(schema, modules);
+  const t = applicationTest();
   const ownerId = await t.run((ctx) => ctx.db.insert('users', { name: 'Creator' }));
   const { cardIds } = await t.mutation(internal.assets.provisionStandardStormDeck, { ownerId });
   const expectedCards = await reviewedStormCards(t, cardIds);

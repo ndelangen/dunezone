@@ -4,6 +4,7 @@ import type { MutationCtx, QueryCtx } from '../_generated/server';
 import { gameActorIds } from './accountIdentity';
 import { accountStateOf } from './accountLifecycle';
 import { requireUnlockedAccount } from './accountMethods';
+import { queueSessionCutoff } from './playSessionCutoffQueue';
 import { nowIso } from './utils';
 
 const BATCH = 32;
@@ -63,9 +64,10 @@ export async function startAccountMerge(
   if (source === target) {
     throw new Error('Choose two different profiles.');
   }
-  const [sourceUser, targetUser, sourceProfile, targetProfile] = await Promise.all([
+  const [sourceUser, targetUser, requester, sourceProfile, targetProfile] = await Promise.all([
     ctx.db.get(source),
     ctx.db.get(target),
+    ctx.db.get(requestedBy),
     profileForAccount(ctx, source),
     profileForAccount(ctx, target),
   ]);
@@ -104,7 +106,8 @@ export async function startAccountMerge(
   });
   await ctx.db.patch(target, {
     account_merge_operation_id: operationId,
-    isAdmin: !!(sourceUser.isAdmin || targetUser.isAdmin),
+    /* Only an administrator's merge carries the source's admin rights; a self-service connection never grants them. */
+    isAdmin: !!(targetUser.isAdmin || (sourceUser.isAdmin && requester?.isAdmin)),
   });
   await ctx.db.patch(sourceProfile._id, {
     account_state: 'merge_pending',
@@ -325,6 +328,8 @@ async function moveGameRouting(ctx: MutationCtx, operation: Doc<'account_merge_o
     .withIndex('by_user_id', (q) => q.eq('user_id', source))
     .take(BATCH);
   for (const row of rows) {
+    /* Queued while the row still names the source, so its seat passes in that room end with its sessions. */
+    await queueSessionCutoff(ctx, row.game_id, source, Date.now());
     await moveRouting(ctx, row, target);
   }
   return rows.length;

@@ -16,19 +16,24 @@ import {
   TICKET_EXPIRED_CLOSE_CODE,
 } from '@shared/play/protocol';
 import type { ClientMessage, ServerMessage } from '@shared/play/protocol';
+import { peekSeatPass, PLAY_SEAT_PASS_RENEW_MS } from '@shared/play/seatPass';
 import { applyRoomUpdate } from '@shared/play/updates';
 import type { RoomView } from '@shared/play/updates';
 
-import type { requestPlayTicket } from '@db/play';
+import type { requestPlayAdmission, watchSeatPass } from '@db/play';
 import { isReadRequest } from '@db/tabletop/TableSubscription';
 import type { TableSubscriptionEvent, TableConnectionStatus } from '@db/tabletop/TableSubscription';
 
 import { browserGameRuntime } from './gameRuntime';
 import type { GameRuntime, GameSocket } from './gameRuntime';
+import { TableTelemetry, TELEMETRY_REPORT_MS } from './tableTelemetry';
 
 const UNREACHABLE = 'The table could not be reached. Reconnecting...';
+/* Renewal retries after a refused or failed attempt, doubling from a second, about a minute in all. */
+const PASS_RENEWAL_ATTEMPTS = 6;
 
-type TicketResult = Awaited<ReturnType<typeof requestPlayTicket>>;
+type TicketResult = Awaited<ReturnType<typeof requestPlayAdmission>>;
+type Credential = { ticket: string } | { pass: string };
 type TicketAttempt = { readonly generation: number; timer?: ReturnType<typeof setTimeout> };
 type TicketRequest = { readonly result: Promise<TicketResult>; readonly requestedAt: number };
 /**
@@ -66,12 +71,24 @@ export class GameSubscription {
   private admissionRetries = 0;
   /** Why the last attempt failed before a table showed, kept on screen through the retries so a table that never answers never reads as still connecting. */
   private retryReason: string | null = null;
+  private readonly telemetry: TableTelemetry;
+  private telemetryTimer: ReturnType<typeof setInterval> | undefined;
+  private stopLongTasks: (() => void) | undefined;
+  private stopPasses: (() => void) | undefined;
+  /* Renews the seat pass this page holds shortly before it ends, unless a fresher one arrived first. */
+  private passTimer: ReturnType<typeof setTimeout> | undefined;
+  private renewOnOpen = false;
+  /* The latest pass this page holds, which the renewal is timed against. */
+  private renewing: string | undefined;
 
   constructor(
     private readonly gameId: string,
-    private readonly requestTicket: typeof requestPlayTicket,
-    private readonly runtime: GameRuntime = browserGameRuntime
-  ) {}
+    private readonly requestTicket: typeof requestPlayAdmission,
+    private readonly runtime: GameRuntime = browserGameRuntime,
+    private readonly watchPass?: typeof watchSeatPass
+  ) {
+    this.telemetry = new TableTelemetry(runtime.monotonicNow);
+  }
 
   get status() {
     return this.connectionStatus;
@@ -91,6 +108,9 @@ export class GameSubscription {
     this.stopOnline = this.runtime.onOnline(() => this.networkReturned());
     /* A tab frozen in the background would otherwise find a dead socket only after two keepalive intervals. */
     this.stopVisible = this.runtime.onVisible(() => this.networkReturned());
+    this.stopLongTasks = this.runtime.onLongTask?.((durationMs) => this.telemetry.longTask(durationMs));
+    this.telemetryTimer = setInterval(() => this.sendTelemetry(), TELEMETRY_REPORT_MS);
+    this.stopPasses = this.watchPass?.(this.gameId, (pass) => this.handOverPass(pass));
     void this.open();
     let stopped = false;
     return () => {
@@ -108,6 +128,12 @@ export class GameSubscription {
     this.stopOnline = undefined;
     this.stopVisible?.();
     this.stopVisible = undefined;
+    this.stopLongTasks?.();
+    this.stopLongTasks = undefined;
+    clearInterval(this.telemetryTimer);
+    this.stopPasses?.();
+    this.stopPasses = undefined;
+    clearTimeout(this.passTimer);
     ++this.generation;
     clearTimeout(this.reconnectTimer);
     this.reconnectTimer = undefined;
@@ -140,7 +166,78 @@ export class GameSubscription {
       return false;
     }
     this.socket.send(JSON.stringify(message));
+    if (message.type === 'command' || message.type === 'drop') {
+      this.telemetry.sent(message.commandId);
+    }
     return true;
+  }
+
+  /* A report that cannot go out now is dropped with its interval, so a long disconnection never sends a backlog. */
+  private sendTelemetry() {
+    const report = this.telemetry.report();
+    if (report && this.status === 'authorized' && this.socket?.readyState === 1) {
+      this.socket.send(JSON.stringify(report));
+    }
+  }
+
+  /* A fresher pass goes to the room over the open socket, so the connection never has to reconnect when the pass it entered with ends. */
+  private handOverPass(pass: string) {
+    this.schedulePassRenewal(pass);
+    /* The room ignores a pass that arrives before its admission finishes, and the page reconnects with the held one then. */
+    if (this.socket?.readyState === 1) {
+      this.socket.send(JSON.stringify({ type: 'pass', pass } satisfies ClientMessage));
+    }
+  }
+
+  /* Timed on the room's clock, which is the one that ends the pass; until the room's first frame gives it, the renewal waits for that frame. */
+  private schedulePassRenewal(pass: string) {
+    clearTimeout(this.passTimer);
+    this.passTimer = undefined;
+    this.renewing = pass;
+    const payload = peekSeatPass(pass);
+    if (!payload || !Number.isFinite(this.serverOffset)) {
+      return;
+    }
+    this.passTimer = setTimeout(
+      () => void this.renewPass(),
+      Math.max(1000, payload.exp - this.serverNow() - PLAY_SEAT_PASS_RENEW_MS)
+    );
+  }
+
+  /*
+   * Asking for admission renews a pass near its end; the fresh one reaches the socket through the pass watch, which also cancels any retry.
+   * A busy or failed renewal tries again, after Convex's wait when it names one, since the room announces an expired pass only once.
+   */
+  private async renewPass(attempt = 0) {
+    if (!this.listener) {
+      return;
+    }
+    let retryAfterMs: number | undefined;
+    try {
+      const result = await this.requestTicket(this.gameId, { renew: true });
+      if (result.ok) {
+        return;
+      }
+      if (result.reason === 'not_authorized') {
+        this.changeStatus('denied', 'Sign in again to access the table.');
+        this.socket?.close();
+        return;
+      }
+      retryAfterMs = result.retryAfterMs;
+    } catch {
+      /* Convex did not answer; the retry below asks again. */
+    }
+    clearTimeout(this.passTimer);
+    if (attempt < PASS_RENEWAL_ATTEMPTS) {
+      this.passTimer = setTimeout(
+        () => void this.renewPass(attempt + 1),
+        Math.max(retryAfterMs ?? 0, 1000 * 2 ** attempt)
+      );
+      return;
+    }
+    /* Out of quick retries: reconnecting hands recovery to the admission backoff, which keeps trying. */
+    this.renewOnOpen = true;
+    this.socket?.close();
   }
 
   private changeStatus(status: TableConnectionStatus, error: string | null = null) {
@@ -176,6 +273,8 @@ export class GameSubscription {
   }
 
   private renewExpiredTicket() {
+    /* The room said the credential ran out; a held pass the browser still thinks current is renewed rather than offered again. */
+    this.renewOnOpen = true;
     this.changeStatus('suspended');
     this.scheduleReconnect(this.admissionRetryDelay());
   }
@@ -202,13 +301,17 @@ export class GameSubscription {
       this.retryAfterFailure('The table is temporarily unavailable.', Math.max(1000, result.retryAfterMs ?? 1000));
       return;
     }
-    const expiresAt = request.requestedAt + result.expiresInMs;
+    /* A pass carries its own deadline, which the room checks; a ticket's short lifetime is measured here. */
+    const expiresAt = 'pass' in result ? Number.POSITIVE_INFINITY : request.requestedAt + result.expiresInMs;
     if (expiresAt <= this.runtime.monotonicNow()) {
       this.renewExpiredTicket();
       return;
     }
+    if ('pass' in result) {
+      this.schedulePassRenewal(result.pass);
+    }
     try {
-      this.openSocket(result.ticket, expiresAt);
+      this.openSocket('pass' in result ? { pass: result.pass } : { ticket: result.ticket }, expiresAt);
     } catch {
       this.retryAfterFailure('The table could not connect. Reconnecting...');
     }
@@ -230,7 +333,12 @@ export class GameSubscription {
       return this.ticketRequest;
     }
     /* The ticket's lifetime starts somewhere inside the request, so measuring from before it can only end early. */
-    const request: TicketRequest = { result: this.requestTicket(this.gameId), requestedAt: now };
+    const renew = this.renewOnOpen;
+    this.renewOnOpen = false;
+    const request: TicketRequest = {
+      result: renew ? this.requestTicket(this.gameId, { renew }) : this.requestTicket(this.gameId),
+      requestedAt: now,
+    };
     this.ticketRequest = request;
     /* A failed request is never reused; the next attempt asks again. */
     request.result.catch(() => {
@@ -264,17 +372,17 @@ export class GameSubscription {
     }
   }
 
-  private openSocket(issued: string, expiresAt: number) {
+  private openSocket(issued: Credential, expiresAt: number) {
     const socket = this.runtime.openSocket(this.gameId);
     this.socket = socket;
-    let ticket = issued;
+    let credential: Credential | null = issued;
     socket.onopen = () => {
       if (!this.isCurrentSocket(socket)) {
         return;
       }
       /* Detached before closing: the close event reports whatever code the Worker answers with, so the expiry renews the ticket here. */
-      if (expiresAt <= this.runtime.monotonicNow()) {
-        ticket = '';
+      if (expiresAt <= this.runtime.monotonicNow() || !credential) {
+        credential = null;
         this.socket = null;
         socket.close();
         this.renewExpiredTicket();
@@ -285,11 +393,11 @@ export class GameSubscription {
       const admit: ClientMessage = {
         type: 'admit',
         supportsBoard: true,
-        ticket,
+        ...credential,
         ...(this.connectionId ? { replaces: this.connectionId } : {}),
       };
       socket.send(JSON.stringify(admit));
-      ticket = '';
+      credential = null;
       this.startKeepalive(socket, 0);
     };
     socket.onmessage = (event) => this.receiveSocketMessage(socket, event.data);
@@ -297,7 +405,7 @@ export class GameSubscription {
       if (!this.isCurrentSocket(socket)) {
         return;
       }
-      ticket = '';
+      credential = null;
       this.socket = null;
       clearTimeout(this.admissionTimer);
       clearInterval(this.keepaliveTimer);
@@ -348,7 +456,11 @@ export class GameSubscription {
       const frame: unknown = JSON.parse(data);
       message = serverMessageSchema.parse(frame);
       if (message.type !== 'admission') {
+        const known = Number.isFinite(this.serverOffset);
         this.serverOffset = Math.max(this.serverOffset, serverClockSchema.parse(frame).serverNow - receivedAt);
+        if (!known && this.renewing) {
+          this.schedulePassRenewal(this.renewing);
+        }
       }
     } catch {
       this.changeStatus('denied', 'This table needs a newer version of the page. Refresh to continue.');
@@ -440,6 +552,9 @@ export class GameSubscription {
       this.receiveUpdate(message);
       return;
     }
+    if (message.type === 'rejected') {
+      this.telemetry.rejected(message.requestId);
+    }
     this.listener?.(message);
   }
 
@@ -447,6 +562,12 @@ export class GameSubscription {
   private receiveAdmission(message: Extract<ServerMessage, { type: 'admission' }>) {
     if (message.status === 'refresh') {
       this.changeStatus('denied', 'This table needs a newer version of the page. Refresh to continue.');
+      return;
+    }
+    if (message.status === 'pass-expired') {
+      /* The room holds the table until a fresh pass arrives through the pass watch. */
+      void this.renewPass();
+      this.changeStatus('suspended', this.sawView ? 'Renewing access. Table actions are paused.' : null);
       return;
     }
     /* A pause cancels a pending resync, so the wait for its view must not close the socket; the Worker sends a view when the pause lifts. */
@@ -465,6 +586,7 @@ export class GameSubscription {
 
   private receiveView(message: RoomView) {
     this.sawView = true;
+    this.telemetry.completed(message.completedCommandId);
     this.connectionId = message.viewer.connectionId;
     this.admissionRetries = 0;
     this.retryReason = null;
@@ -487,6 +609,7 @@ export class GameSubscription {
   }
 
   private receiveUpdate(message: Extract<ServerMessage, { type: 'update' }>) {
+    this.telemetry.completed(message.completedCommandId);
     const view = this.resyncing ? null : applyRoomUpdate(this.wireView ?? undefined, message);
     if (!view) {
       this.requestFreshView(message.completedCommandId);

@@ -1,24 +1,17 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import aggregateTest from '@convex-dev/aggregate/test';
-import { convexTest } from 'convex-test';
 import { describe, expect, test } from 'vite-plus/test';
 
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api } from './_generated/api';
+import { applicationTest } from './application.test.fixture';
 import { syncSeededFactionCards } from './factions.test.fixture';
-import schema from './schema';
-
-const modules = import.meta.glob('./**/*.ts');
 
 const DESCRIPTION = 'A house ruleset used to prove faction links attach and detach under the right permissions.';
 
 function linkTest() {
-  const t = convexTest(schema, modules);
-  aggregateTest.register(t, 'statistics');
-  aggregateTest.register(t, 'profileActivity');
-  aggregateTest.register(t, 'profileDiscovery');
+  const t = applicationTest();
   return t;
 }
 
@@ -88,14 +81,6 @@ const linkedSlugs = async (t: Awaited<ReturnType<typeof linkFixture>>['t'], slug
 };
 
 describe('ruleset faction links', () => {
-  test('the owner attaches a faction and the page lists it', async () => {
-    const { t, ids, owner, ruleset } = await linkFixture();
-
-    await owner.mutation(api.rulesets.addFaction, { ruleset_id: ruleset._id, faction_id: ids.factionId });
-
-    await expect(linkedSlugs(t, ruleset.slug)).resolves.toEqual(['linkable-faction']);
-  });
-
   test('attaching the same faction twice leaves one link', async () => {
     const { t, ids, owner, ruleset } = await linkFixture();
 

@@ -16,7 +16,7 @@ import type { TopicIconTopic } from '@ui/content/TopicIcon';
 import { useContext, useEffect, useMemo, useReducer, useState, useSyncExternalStore } from 'react';
 import type { ReactNode } from 'react';
 
-import { requestPlayTicket } from '@db/play';
+import { requestPlayAdmission, watchSeatPass } from '@db/play';
 import { GameSubscription } from '@app/routes/_app/play/multiplayer/GameSubscription';
 
 import { TableSession } from '../../../../db/tabletop/TableSession';
@@ -1064,7 +1064,7 @@ function ConnectedTable({
             connectionStatus={<ConnectionStatus table={table} />}
             alliances={<AllianceStrip table={table} />}
             toolbarControl={stageToolbar({ client, table, error, bidderFaded, onBidderFadedChange: setBidderFaded })}
-            /* The gathered Traitor pile lies under the Tleilaxu tanks, below the Map view's frame on a wide screen (#1635). */
+            /* The gathered Traitor pile lies under the Tleilaxu Tanks, below the Map view's frame on a wide screen (#1635). */
             requestedView={table.traitorsGathered ? { view: 'bottom', revision: table.traitorsGathered } : undefined}
             showStormControls={stageInPlay(stage) && progress.activePhaseId === 'storm'}
             sceneContent={
@@ -1130,7 +1130,7 @@ export default function HostedTable({
   const runtime = useContext(GameRuntimeContext);
   const here = useLocation({ select: (location) => location.href });
   const [client] = useState(
-    () => new TableSession(gameId, new GameSubscription(gameId, requestPlayTicket, runtime), runtime)
+    () => new TableSession(gameId, new GameSubscription(gameId, requestPlayAdmission, runtime, watchSeatPass), runtime)
   );
   const view = useSyncExternalStore(client.subscribe, client.getSnapshot);
   useEffect(() => client.connect(), [client]);

@@ -1,5 +1,4 @@
 import type { FactionRender } from '@shared/factions/schema';
-/* oxlint-disable jsx-a11y/alt-text -- Decorative game-card layers. */
 import type { FC } from 'react';
 import type { z } from 'zod';
 
@@ -25,8 +24,8 @@ export const TraitorCard: FC<z.infer<typeof FactionRender.traitors>[0]> = ({
       <div className={styles.head_shade} />
       <div className={styles.shape} />
       <BackgroundRenderer className={`${styles.type} ${unique.type}`} background={backgroundPresets.stripedSpecial}>
-        <img src="/vector/icon/traitor.svg" className={styles.typeOverlay} />
-        <img src="/vector/icon/traitor.svg" className={styles.typeShade} />
+        <img src="/vector/icon/traitor.svg" alt="" className={styles.typeOverlay} />
+        <img src="/vector/icon/traitor.svg" alt="" className={styles.typeShade} />
       </BackgroundRenderer>
       <div className={styles.title}>{name}</div>
       <div className={styles.subtitle}>Traitor - {owner}</div>

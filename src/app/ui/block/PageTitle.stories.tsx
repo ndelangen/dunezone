@@ -36,11 +36,6 @@ const meta = preview.meta({
 /** The app's heading face, which is what a page gets unless it declares otherwise. */
 export const Default = meta.story({});
 
-/** A page whose name needs no classifier above it. */
-export const WithoutEyebrow = meta.story({
-  args: { eyebrow: undefined },
-});
-
 /** A page that declares a hero header: the shields' Desdemona face, uppercase, fluid against the viewport. */
 export const Hero = meta.story({
   args: { size: 'hero', title: 'Make Dune your own', eyebrow: 'A game of conquest, diplomacy & betrayal' },

@@ -9,6 +9,7 @@ import { peekersOf } from '@shared/play/peeking';
 import { CARD_LAYER_STAGGER, stackLayerItemIndex } from '@shared/play/pieceFlip';
 import { isPointerToken } from '@shared/play/pointerToken';
 import type { GameSnapshot } from '@shared/play/protocol';
+import { widestTroopSupply } from '@shared/play/setupLayout';
 import { isSpicePiece, SPICE_LAYER_HEIGHT, SPICE_LAYER_PITCH, SPICE_TOKEN_RADIUS } from '@shared/play/spice';
 import { SPICE_TOKEN_HREF } from '@shared/play/spiceToken';
 import { pointOnPieceDragRay } from '@shared/play/tableDragGeometry';
@@ -69,13 +70,13 @@ import {
   Raycaster,
   RingGeometry,
   SRGBColorSpace,
-  TextureLoader,
   Vector2,
   Vector3,
 } from 'three';
 
 import { useMotionAllowed } from '@app/styles/motion';
 
+import { loadFaceTexture, tableCardFaceKey } from './cardFaceTexture';
 import { ignoreRaycast } from './ignoreRaycast';
 import { swallowLift, watchLongPress } from './longPress';
 import { MapPreviewCamera } from './MapPreviewCamera';
@@ -197,7 +198,7 @@ function PieceFace({ height, underside, children }: { height: number; underside:
 
 /* Every piece and every stack layer that shows the same published image draws one shared texture, so the image is uploaded once rather than once per face. */
 const subscribePublishedFace = sharedPublishedFaces<Texture>({
-  load: (href, onLoad, onError) => new TextureLoader().load(href, onLoad, undefined, onError),
+  load: loadFaceTexture,
   prepare: (value) => {
     value.colorSpace = SRGBColorSpace;
     value.anisotropy = 8;
@@ -287,6 +288,12 @@ function PublishedFace({ href, card, ratio }: { href: string; card: boolean; rat
 /* Holds the image a piece shows on top and says whether it is loaded, so a flip can wait for a card's revealed face instead of turning up a placeholder. */
 function usePublishedFaceReady(href: string | undefined): boolean {
   return usePublishedFace(href) !== undefined || !href;
+}
+
+/* The key a piece's top face loads under, so a flip waits for the same image the face draws. */
+function topFaceKey(piece: TablePiece) {
+  const href = topFaceHref(piece);
+  return href && piece.kind === 'card' ? tableCardFaceKey(href) : href;
 }
 
 /* A card turned face up in hand shows its face only once the room has sent it, so its flip waits for that too. */
@@ -437,7 +444,7 @@ function CardFace({
   const href = artwork?.[faceUp ? 'front' : 'back'];
   return (
     <PieceFace height={CARD_LAYER_HEIGHT} underside={underside}>
-      {href && <PublishedFace href={href} card />}
+      {href && <PublishedFace href={tableCardFaceKey(href)} card />}
       {faceUp && artwork?.prediction && (
         <Suspense fallback={null}>
           <PredictionOverlay prediction={artwork.prediction} />
@@ -1023,7 +1030,7 @@ const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) 
     plateId: isPointerToken(piece) ? piece.id : undefined,
     follows: ridingPlateId,
   });
-  const faceReady = usePublishedFaceReady(topFaceHref(piece)) && !faceStillHidden(piece);
+  const faceReady = usePublishedFaceReady(topFaceKey(piece)) && !faceStillHidden(piece);
   /* A held piece turns over in hand too, so only an emptied projection cuts a flip short. */
   const { pivotRef, labelRef, shadowRef, badgeRef } = usePieceFlipAnimation(
     piece,
@@ -1257,7 +1264,14 @@ export function TabletopScene({
       })),
     []
   );
-  const { tableProgress, trackerSlots, mapFramingPoints, camera } = useTableFraming(stage, providedProgress, seatCount);
+  /* A custom faction with four or more troop kinds spreads its reserves wider than the stock framing reaches. */
+  const troopKinds = useTabletopSelector((table) => widestTroopSupply(table.state.pieces));
+  const { tableProgress, trackerSlots, mapFramingPoints, camera } = useTableFraming(
+    stage,
+    providedProgress,
+    seatCount,
+    troopKinds
+  );
   const areaRef = useRef<HTMLDivElement>(null);
   const painting = usePaintingArea(className);
 

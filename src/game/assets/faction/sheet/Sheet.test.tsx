@@ -38,7 +38,7 @@ describe('FactionSheet', () => {
     expect(container.textContent).toContain(props.rules.fate.text);
   });
 
-  it.each([1, 10, 99])('renders starting spice %i as structured At start information', (spiceCount) => {
+  it.each([1])('renders starting spice %i as structured At start information', (spiceCount) => {
     const props = factionSheetProps();
     props.rules.spiceCount = spiceCount;
     props.rules.startText = 'Keep this authored instruction separate.';

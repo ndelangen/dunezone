@@ -129,6 +129,17 @@ export default defineSchema({
     .index('by_game_id_operation_id', ['game_id', 'operation_id'])
     .index('by_game_operation_user', ['game_id', 'operation_id', 'user_id'])
     .index('by_state_next_attempt_at', ['state', 'next_attempt_at']),
+  /* One pending account-wide sign-out per account per game; a later one raises `through` instead of queueing another. */
+  play_session_cutoffs: defineTable({
+    game_id: v.id('play_games'),
+    principal_id: v.id('users'),
+    through: v.number(),
+    state: v.union(v.literal('pending'), v.literal('acknowledged')),
+    attempts: v.number(),
+    next_attempt_at: v.number(),
+  })
+    .index('by_game_id_principal_id', ['game_id', 'principal_id'])
+    .index('by_state_next_attempt_at', ['state', 'next_attempt_at']),
   users: defineTable({
     name: v.optional(v.string()),
     image: v.optional(v.string()),
@@ -289,6 +300,38 @@ export default defineSchema({
     .index('by_deleted_created', ['is_deleted', 'faction_creation_time'])
     .index('by_owner_deleted_created', ['owner_id', 'is_deleted', 'faction_creation_time'])
     .index('by_group_deleted_created', ['group_id', 'is_deleted', 'faction_creation_time']),
+  /**
+   * Catalogue read models: one small row per listed entity per list it is in, holding only what a catalogue page filters, searches and sorts on.
+   * Derived, never authored: each kind has one reconcile function, run by triggers on its source tables in the writing transaction and by a backfill that rebuilds it from the canonical rows.
+   * `kind` names the catalogue (`faction` today), `source_id` the canonical row, `partition` the list (`'all'`, or a facet such as a linked ruleset id), and `facets` every facet of the source.
+   * Each row has one item per sort in the `catalogueOrder` aggregate, which counts, orders and pages every list;
+   * the indexes serve the bounded reads and the spotlights.
+   * `search_text` holds the searchable names;
+   * `name_key` is the name the default order compares.
+   * The dates are epoch milliseconds, 0 when the source date does not parse;
+   * `complexity_score` is the x/10 score the filter compares.
+   */
+  catalogue_entries: defineTable({
+    kind: v.string(),
+    source_id: v.string(),
+    partition: v.string(),
+    slug: v.string(),
+    search_text: v.string(),
+    name_key: v.string(),
+    created_at: v.number(),
+    updated_at: v.number(),
+    /** `updated_at` once the source changed after it was created, else 0: what "freshly updated" picks from. */
+    edited_at: v.number(),
+    /* Required, so every row sits in the complexity index where its aggregate key says; a kind without complexity writes 0. */
+    complexity: v.number(),
+    complexity_score: v.number(),
+    facets: v.array(v.string()),
+  })
+    .index('by_kind_source', ['kind', 'source_id', 'partition'])
+    .index('by_kind_partition_created', ['kind', 'partition', 'created_at'])
+    .index('by_kind_partition_edited', ['kind', 'partition', 'edited_at'])
+    .index('by_kind_partition_complexity', ['kind', 'partition', 'complexity_score'])
+    .searchIndex('search_text', { searchField: 'search_text', filterFields: ['kind', 'partition'] }),
   leader_skill_stock_sets: defineTable({
     key: v.literal('gf9-leader-skills'),
     owner_id: v.id('users'),

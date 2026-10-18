@@ -1,17 +1,15 @@
 /// <reference types="vite/client" />
 /* @vitest-environment edge-runtime */
-import { convexTest } from 'convex-test';
 import { expect, test } from 'vite-plus/test';
 
 import { INITIAL_CARDBACK_PRESETS } from '../src/shared/assets/cardbackPresets';
 import { api, internal } from './_generated/api';
-import schema from './schema';
+import { applicationTest } from './application.test.fixture';
 import { assetPageAs } from './viewerAccess.test.fixture';
 
-const modules = import.meta.glob('./**/*.ts');
 const cardback = INITIAL_CARDBACK_PRESETS.find((preset) => preset.key === 'traitor')!.cardback;
 async function fixture() {
-  const t = convexTest(schema, modules);
+  const t = applicationTest();
   const ids = await t.run(async (ctx) => ({
     admin: await ctx.db.insert('users', { isAdmin: true }),
     author: await ctx.db.insert('users', {}),
@@ -31,9 +29,14 @@ test('only an Administrator saves presets, with a revision check against concurr
 
 test('disc tint survives saving, loading and publication for presets and authored deck backs', async () => {
   const { t, admin, author } = await fixture();
-  await t.mutation(internal.publicationAdmin.initialize, {
+  /*
+   * The fixture already initialized the settings, so a second initialize answers with the stored revisions and ignores its own.
+   * Deck backs publish without a deck revision, so the tint below still reaches both publications.
+   */
+  const settings = await t.mutation(internal.publicationAdmin.initialize, {
     rendererRevisions: { deck: 2, 'cardback-preset': 1 },
   });
+  expect(settings.rendererRevisions).toEqual({ 'cardback-preset': 1 });
   const tinted = { ...cardback, emblemBackground: { color: '#4466aa', intensity: 0.35 } };
   await admin.mutation(api.cardbackPresets.save, { key: 'traitor', cardback: tinted, revision: 0 });
   const deck = await author.mutation(api.assets.create, {
@@ -147,27 +150,11 @@ test('failed replacements keep the previous shared publication until a retry suc
   expect((await page('second-deck')).resolvedBack?.href).toContain('?v=second');
 });
 
-test('publisher activation seeds once and regeneration keeps saved definitions', async () => {
-  const { t, admin } = await fixture();
-  const scan = { assetType: 'cardback-preset', cursor: null, scanned: 0, enqueued: 0 };
-  await t.mutation(internal.publicationRegeneration.scan, scan);
-  const presets = await t.query(api.cardbackPresets.list, {});
-  expect(presets).toHaveLength(INITIAL_CARDBACK_PRESETS.length);
-  await admin.mutation(api.cardbackPresets.save, {
-    key: 'traitor',
-    cardback: { ...cardback, name: 'Saved design' },
-    revision: 1,
-  });
-  await t.mutation(internal.publicationRegeneration.scan, scan);
-  expect((await t.query(api.cardbackPresets.list, {})).find((entry) => entry.key === 'traitor')?.cardback.name).toBe(
-    'Saved design'
-  );
-});
-
 test('a preset added after activation is seeded by the next scan, beside saved designs', async () => {
   const { t, admin } = await fixture();
   const scan = { assetType: 'cardback-preset', cursor: null, scanned: 0, enqueued: 0 };
   await t.mutation(internal.publicationRegeneration.scan, scan);
+  expect(await t.query(api.cardbackPresets.list, {})).toHaveLength(INITIAL_CARDBACK_PRESETS.length);
   await t.run(async (ctx) => {
     const row = await ctx.db
       .query('cardback_presets')

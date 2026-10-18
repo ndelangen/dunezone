@@ -42,6 +42,7 @@ import {
   tableRosterSchema as roster,
   rosterSeat,
 } from './schema';
+import { seatPassSchema } from './seatPass';
 import { setupActionSchema, setupStateSchema, predictionsSchema } from './setup';
 import { spiceReserveActionSchema, spiceReserveSchema, spiceTransferSchema } from './spiceReserve';
 import { swapActionSchema, swappingStateSchema } from './swapping';
@@ -87,7 +88,7 @@ export const gameSnapshotSchema = z.object({
   setup: setupStateSchema.optional(),
   predictions: predictionsSchema.optional(),
   removalVotes: z.array(removalVoteSchema).optional(),
-  /* Who is determining the winner during Mentat pause, then the declared result once finished. */
+  /* Who is determining the winner during Mentat Pause, then the declared result once finished. */
   ending: gameEndingSchema.nullable().optional(),
   result: gameResultSchema.nullable().optional(),
   controls: publicControlsSchema.optional(),
@@ -220,13 +221,22 @@ export const clientMessageSchema = z.discriminatedUnion('type', [
     peerId: conversationPeerSchema,
     through: count,
   }),
-  z.strictObject({
-    type: z.literal('admit'),
-    supportsBoard: z.literal(true).optional(),
-    ticket: z.string().regex(/^[a-f0-9]{64}$/),
-    /* The connection this page held before it reconnected, which the Worker retires once this one is admitted. */
-    replaces: id.optional(),
-  }),
+  z
+    .strictObject({
+      type: z.literal('admit'),
+      supportsBoard: z.literal(true).optional(),
+      /* A page proves who it is with exactly one of these: a seat pass, or the single-use ticket of browsers from before passes. */
+      ticket: z
+        .string()
+        .regex(/^[a-f0-9]{64}$/)
+        .optional(),
+      pass: seatPassSchema.optional(),
+      /* The connection this page held before it reconnected, which the Worker retires once this one is admitted. */
+      replaces: id.optional(),
+    })
+    .refine((message) => (message.ticket === undefined) !== (message.pass === undefined)),
+  /* A fresher pass for an admitted connection, so it never has to reconnect when the one it entered with ends. */
+  z.strictObject({ type: z.literal('pass'), pass: seatPassSchema }),
   z.strictObject({
     type: z.literal('begin'),
     carryId: id,
@@ -265,6 +275,12 @@ export const clientMessageSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('faction'), factionId: id }),
   z.strictObject({ type: z.literal('metrics') }),
   z.strictObject({ type: z.literal('sync') }),
+  /* A browser's periodic account of how the table felt, in whole milliseconds; the room only logs it. */
+  z.strictObject({
+    type: z.literal('telemetry'),
+    actions: z.strictObject({ count, p50Ms: count, p95Ms: count, maxMs: count }),
+    longTasks: z.strictObject({ count, worstMs: count }),
+  }),
 ]);
 export type ClientMessage = z.infer<typeof clientMessageSchema>;
 /** A message that changes the table: a command or a drop, each answered with a receipt. */
@@ -351,7 +367,8 @@ export const serverMessageSchema = z.discriminatedUnion('type', [
     contents: spawnContentsSchema.nullable().optional(),
     error: z.string().optional(),
   }),
-  z.object({ type: z.literal('admission'), status: z.enum(['suspended', 'denied', 'refresh']) }),
+  /* `pass-expired` reaches only a page that entered with a seat pass: it holds the table until the page sends a fresh one. */
+  z.object({ type: z.literal('admission'), status: z.enum(['suspended', 'denied', 'refresh', 'pass-expired']) }),
   /* `held` is the carried piece as the carrier now sees it, sent after a flip so a face turned up in hand shows at once. */
   z.object({ type: z.literal('carry'), carryId: id, draft: draftSchema, held: pieceSchema.optional() }),
   z.object({ type: z.literal('ping'), ping: pingSchema }),

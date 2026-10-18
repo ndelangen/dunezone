@@ -4,10 +4,6 @@ import { act, cleanup, render } from '@testing-library/react';
 import { useState } from 'react';
 import { afterEach, expect, test, vi } from 'vite-plus/test';
 
-/* The story helper needs no router or fixture transport to open a real Mantine popover. */
-vi.mock('../../storybookConfig', () => ({ pageStoryMeta: {} }));
-vi.stubEnv('VITE_CONVEX_URL', 'https://storybook.invalid');
-
 vi.hoisted(() => {
   let nextFrame = 0;
   window.requestAnimationFrame = () => ++nextFrame;
@@ -55,16 +51,23 @@ function Seat() {
 }
 
 test('the seat story opens a real popover while native frames stay withheld', async () => {
-  const { seatPopover } = await import('./game.stories.fixture');
+  /* The story helper needs no router or fixture transport to open a real Mantine popover. */
+  const { seatPopover } = await import('./seats.stories.fixture');
   const { resetFrameLag } = await import('@sb/storyWaits');
   resetFrameLag();
   render(<Seat />);
   vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval'] });
-  const outcome = seatPopover(document.body, 'You are watching').then(
-    (read) => read().getByText('All 6 seats are taken').textContent,
-    (error: unknown) => error
-  );
-  for (let elapsed = 0; elapsed < 30_100; elapsed += 50) {
+  let finished = false;
+  const outcome = seatPopover(document.body, 'You are watching')
+    .then(
+      (read) => read().getByText('All 6 seats are taken').textContent,
+      (error: unknown) => error
+    )
+    .finally(() => {
+      finished = true;
+    });
+  /* Time runs on until the helper settles, up to its own 30 s bound. */
+  for (let elapsed = 0; !finished && elapsed < 30_100; elapsed += 50) {
     await act(() => vi.advanceTimersByTimeAsync(50));
   }
   expect(await outcome).toBe('All 6 seats are taken');

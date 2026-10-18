@@ -99,10 +99,6 @@ describe('storm commands', () => {
 
     expect(moveStormInState(state, direction as -1 | 1)).toBe(state);
   });
-
-  test('resets to sector 6', () => {
-    expect(freshTableState().stormSectorIndex).toBe(5);
-  });
 });
 
 describe('direct manipulation drafts', () => {

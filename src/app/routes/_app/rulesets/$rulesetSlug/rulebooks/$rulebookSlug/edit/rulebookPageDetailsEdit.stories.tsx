@@ -30,7 +30,7 @@ const movement: RulebookBlockDraft = {
   id: 'MVVE',
   kind: 'text',
   name: 'Movement sequence',
-  text: 'Choose a force, choose an adjacent destination, then resolve the move.',
+  text: 'Choose a troop, choose an adjacent destination, then resolve the move.',
 };
 
 const stormTiming: RulebookBlockDraft = {
@@ -586,4 +586,18 @@ export const InteriorHeadingVisibility = meta.story({
   },
 });
 
-export const HeadingIcon = meta.story({ render: () => <HeadingIconStory /> });
+/** The title icon chosen in the page details leads the rendered page heading, and clearing it takes it away. */
+export const HeadingIcon = meta.story({
+  render: () => <HeadingIconStory />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole('combobox', { name: 'Title icon' })).toHaveValue('Battle');
+    const heading = within(canvas.getByRole('article', { name: 'Rulebook page: Battle' })).getByRole('heading', {
+      name: 'Battle',
+      level: 1,
+    });
+    await expect(heading.querySelector('img')).toHaveAttribute('src', '/vector/icon/combat.svg');
+    await userEvent.click(canvas.getByLabelText('Clear artwork'));
+    await expect(heading.querySelector('img')).toBeNull();
+  },
+});

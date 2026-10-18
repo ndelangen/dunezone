@@ -1,17 +1,14 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import aggregateTest from '@convex-dev/aggregate/test';
-import { convexTest } from 'convex-test';
 import { describe, expect, test } from 'vite-plus/test';
 
 import { blankBoard } from '../src/shared/boards/geometry';
 import { RULESET_ASSET_SLOTS } from '../src/shared/rulesets/assetSlots';
 import { api } from './_generated/api';
+import { applicationTest } from './application.test.fixture';
 import schema from './schema';
 import { assetPageAs } from './viewerAccess.test.fixture';
-
-const modules = import.meta.glob('./**/*.ts');
 
 const DESCRIPTION = 'A house ruleset used to prove asset slots fill, swap and clear under the right permissions.';
 
@@ -34,10 +31,7 @@ const deckData = (name: string) => ({
 });
 
 async function slotFixture() {
-  const t = convexTest(schema, modules);
-  aggregateTest.register(t, 'statistics');
-  aggregateTest.register(t, 'profileActivity');
-  aggregateTest.register(t, 'profileDiscovery');
+  const t = applicationTest();
 
   const ownerId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Ruleset owner' }));
   const owner = t.withIdentity({ subject: ownerId });

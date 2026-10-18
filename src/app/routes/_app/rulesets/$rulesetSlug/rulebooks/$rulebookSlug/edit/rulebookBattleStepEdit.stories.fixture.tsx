@@ -26,7 +26,7 @@ const factions = {
 const initial: RulebookBlockEditorValue<'battle-step'> = {
   step: '3',
   title: 'Build the battle plans',
-  caption: 'Choose the forces committed to this battle.',
+  caption: 'Choose how many troops to dial for this battle.',
   left: {
     factionId: 'atreides',
     role: 'Aggressor',

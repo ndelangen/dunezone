@@ -71,21 +71,6 @@ export const RadialGradient = meta.story({
   },
 });
 
-export const InvertedPattern = meta.story({
-  args: {
-    ...backgroundPresets.atreides,
-    invert: true,
-  },
-});
-
-export const FactionIdentity = meta.story({
-  args: backgroundPresets.beneGesserit,
-});
-
 export const RadialToken = meta.story({
   args: backgroundPresets.terror,
-});
-
-export const StripedTreatment = meta.story({
-  args: backgroundPresets.stripedWeapon,
 });

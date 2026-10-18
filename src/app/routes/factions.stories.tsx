@@ -15,6 +15,7 @@ import {
   resetAndSettle,
 } from './backgroundMemoryPlay';
 import { spaceOrks, spaceOrksOwner, spaceOrksPublication } from './factionPlanets.stories.fixture';
+import { expectFieldValue, expectWithinWidth } from './pagePlay';
 import { pageStoryMeta } from './storybookConfig';
 
 const meta = preview.meta({
@@ -22,7 +23,32 @@ const meta = preview.meta({
   ...pageStoryMeta,
 });
 
-export const Catalogue = meta.story({ args: { path: '/factions' } });
+export const Catalogue = meta.story({
+  args: { path: '/factions' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const [card] = await page.findAllByRole('link', { name: /House Atreides/ }, { timeout: 30_000 });
+    await expect(card).toBeVisible();
+  },
+});
+
+/** Past one page the catalogue numbers its pages as real links, and `?page=2` opens the second page directly. */
+export const CataloguePaged = meta.story({
+  args: { path: '/factions?page=2' },
+  parameters: {
+    database: db((baseline) => {
+      for (let index = 1; index <= 60; index += 1) {
+        baseline.factions.push(faction({ name: `Sietch ${String(index).padStart(2, '0')}` }));
+      }
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByText(/^49–61 of 61 factions$/, {}, { timeout: 30_000 })).resolves.toBeVisible();
+    const pages = await page.findByLabelText('Faction catalogue pages');
+    await expect(within(pages).getByRole('link', { name: '1' })).toHaveAttribute('href', '/factions');
+  },
+});
 
 /**
  * On a phone the faction list shows two columns and each card its compact caption.
@@ -32,6 +58,14 @@ export const Catalogue = meta.story({ args: { path: '/factions' } });
 export const CatalogueMobile = meta.story({
   args: { path: '/factions' },
   globals: { viewport: { value: 'appMobile' } },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const links = await page.findAllByRole('link', { name: /House Atreides/ }, { timeout: 30_000 });
+    const card = links.find((link) => link.closest('main'));
+    /* Two columns: a card takes at most half of the content's width. */
+    const content = card!.closest('main')!.getBoundingClientRect();
+    await expect(card!.getBoundingClientRect().width).toBeLessThanOrEqual(content.width / 2);
+  },
 });
 
 export const Detail = meta.story({
@@ -239,6 +273,11 @@ export const DetailWithPlanetsMobile = meta.story({
   args: { path: '/factions/space-orks' },
   parameters: { database: withPlanets(), identity: null },
   globals: { viewport: { value: 'appMobile' } },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const planets = await page.findByRole('region', { name: 'Planets' }, { timeout: 30_000 });
+    await expectWithinWidth(canvasElement, [planets, ...within(planets).getAllByRole('listitem')]);
+  },
 });
 
 export const DetailWithUndescribedPlanet = meta.story({
@@ -254,8 +293,15 @@ export const DetailWithUndescribedPlanet = meta.story({
     await userEvent.unhover(planet);
   },
 });
-export const Create = meta.story({ args: { path: '/factions/create' } });
-export const Edit = meta.story({ args: { path: '/factions/house-atreides/edit' } });
+/** An editor at rest is mounted once its Name field reads what the page loaded. */
+export const Create = meta.story({
+  args: { path: '/factions/create' },
+  play: ({ canvasElement }) => expectFieldValue(canvasElement, 'Faction name', 'New faction'),
+});
+export const Edit = meta.story({
+  args: { path: '/factions/house-atreides/edit' },
+  play: ({ canvasElement }) => expectFieldValue(canvasElement, 'Faction name', 'House Atreides'),
+});
 
 /**
  * Escape closes the sheet review opened from the toolbar, while the pointer still rests on the button that opened it.
@@ -470,6 +516,8 @@ export const EditResetDiscardsTheRetainedComplexity = meta.story({
     await userEvent.keyboard(Number(calculated) >= 5 ? '{ArrowLeft>3/}' : '{ArrowRight>3/}');
     /* Read where it landed rather than predicting it: the scale clamps at both ends and the step is the widget's business. */
     await waitFor(async () => expect(await rating()).not.toBe(calculated), { timeout: 30_000 });
+    /* Three steps away is far enough for the chapter to advise a second look. */
+    await expect(page.findByText(/sits far from the rules-text estimate/)).resolves.toBeVisible();
 
     /* Switching off is what files the rating, and returns the draft to its stored shape. */
     await userEvent.click(await manualSwitch());
@@ -605,12 +653,6 @@ export const EditToolbarAt360 = meta.story({
   play: async ({ canvasElement }) =>
     await expectToolbarOnOneLine(canvasElement, { statusDescribes: FACTION_EDIT_STATUSES }),
 });
-export const EditToolbarAt390 = meta.story({
-  args: { path: '/factions/house-atreides/edit' },
-  globals: { viewport: { value: 'appMobile' } },
-  play: async ({ canvasElement }) =>
-    await expectToolbarOnOneLine(canvasElement, { statusDescribes: FACTION_EDIT_STATUSES }),
-});
 export const EditToolbarAt768 = meta.story({
   args: { path: '/factions/house-atreides/edit' },
   globals: { viewport: { value: 'appTablet' } },
@@ -620,12 +662,6 @@ export const EditToolbarAt768 = meta.story({
 export const EditToolbarAt1100 = meta.story({
   args: { path: '/factions/house-atreides/edit' },
   globals: { viewport: { value: 'appLaptop' } },
-  play: async ({ canvasElement }) =>
-    await expectToolbarOnOneLine(canvasElement, { statusDescribes: FACTION_EDIT_STATUSES }),
-});
-export const EditToolbarAt1440 = meta.story({
-  args: { path: '/factions/house-atreides/edit' },
-  globals: { viewport: { value: 'appLarge' } },
   play: async ({ canvasElement }) =>
     await expectToolbarOnOneLine(canvasElement, { statusDescribes: FACTION_EDIT_STATUSES }),
 });

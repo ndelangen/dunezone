@@ -11,7 +11,6 @@ import {
   FactionMemberIdSchema,
   factionMembersHaveIds,
 } from '../src/shared/factions/memberIdentity';
-import { withSupportNames } from '../src/shared/factions/schema';
 import {
   assertUniqueFactionTroopIds,
   ensureFactionTroopIds,
@@ -28,7 +27,17 @@ import { accountStateOf } from './lib/accountLifecycle';
 import { hasAuthoredBack, TOKEN_ASSET_TYPES, tokenBackOf } from './lib/assetBacks';
 import { scheduleSessionExpiry } from './lib/authSessionLifecycle';
 import { syncBoardReadiness } from './lib/boardReadiness';
+import { catalogueSourceDrift, isCatalogueKindName, repairCatalogueEntry } from './lib/catalogueEntries';
+import type { CatalogueKindName } from './lib/catalogueEntries';
 import { syncFactionCard } from './lib/factionCards';
+import {
+  allocateNextFaqItemSlug,
+  missingSlug,
+  resolveUniqueGroupSlug,
+  resolveUniqueRulesetSlug,
+  troopHasLegacySupportNames,
+  troopWithSupportNames,
+} from './lib/migrationHelpers';
 import { requireAdminUserId } from './lib/policy';
 import {
   reconcileAnswerActivity,
@@ -46,20 +55,32 @@ import {
 } from './lib/rulebookEditionContents';
 import {
   reconcileAnswerStatistics,
+  reconcileAssetStatistics,
   reconcileFactionStatistics,
+  reconcileGroupStatistics,
   reconcileProfileStatistics,
   reconcileQuestionStatistics,
   reconcileRulesetStatistics,
 } from './lib/statistics';
-import { nowIso, slugify } from './lib/utils';
+import { nowIso } from './lib/utils';
 import { retireHostedFixture } from './playDeletion';
 import schema from './schema';
-import type { MutationCtx, QueryCtx } from './types';
+import type { MutationCtx } from './types';
 
 type MigrationRef = FunctionReference<'mutation', 'internal'>;
 
 const MIGRATION_IDS: Record<string, MigrationRef> = {
   board_readiness_v1: internal.migrations.board_readiness_v1,
+  catalogue_entries_factions_v1: internal.migrations.catalogue_entries_factions_v1,
+  catalogue_entries_assets_v1: internal.migrations.catalogue_entries_assets_v1,
+  catalogue_entries_assets_verify_v1: internal.migrations.catalogue_entries_assets_verify_v1,
+  catalogue_entries_profiles_v1: internal.migrations.catalogue_entries_profiles_v1,
+  catalogue_entries_profiles_verify_v1: internal.migrations.catalogue_entries_profiles_verify_v1,
+  catalogue_entries_faq_v1: internal.migrations.catalogue_entries_faq_v1,
+  catalogue_entries_faq_verify_v1: internal.migrations.catalogue_entries_faq_verify_v1,
+  catalogue_entries_prune_v1: internal.migrations.catalogue_entries_prune_v1,
+  catalogue_entries_verify_v1: internal.migrations.catalogue_entries_verify_v1,
+  catalogue_entries_verify_v2: internal.migrations.catalogue_entries_verify_v2,
   faction_member_ids_v1: internal.migrations.faction_member_ids_v1,
   faction_member_ids_verify_v1: internal.migrations.faction_member_ids_verify_v1,
   groups_slug_v1: internal.migrations.groups_slug_v1,
@@ -80,6 +101,8 @@ const MIGRATION_IDS: Record<string, MigrationRef> = {
   statistics_rulesets_v1: internal.migrations.statistics_rulesets_v1,
   statistics_questions_v1: internal.migrations.statistics_questions_v1,
   statistics_answers_v1: internal.migrations.statistics_answers_v1,
+  statistics_groups_v1: internal.migrations.statistics_groups_v1,
+  statistics_assets_v1: internal.migrations.statistics_assets_v1,
   profile_discovery_profiles_v1: internal.migrations.profile_discovery_profiles_v1,
   profile_activity_memberships_v1: internal.migrations.profile_activity_memberships_v1,
   profile_activity_factions_v1: internal.migrations.profile_activity_factions_v1,
@@ -129,40 +152,6 @@ const migrations = new Migrations(components.migrations, {
   schema,
 });
 
-async function resolveUniqueGroupSlug(ctx: QueryCtx | MutationCtx, name: string, groupId?: Id<'groups'>) {
-  const baseSlug = slugify(name) || 'group';
-  let candidate = baseSlug;
-  let suffix = 1;
-  while (true) {
-    const existing = await ctx.db
-      .query('groups')
-      .withIndex('by_slug', (q) => q.eq('slug', candidate))
-      .unique();
-    if (!existing || (groupId && existing._id === groupId)) {
-      return candidate;
-    }
-    suffix += 1;
-    candidate = `${baseSlug}-${suffix}`;
-  }
-}
-
-async function resolveUniqueRulesetSlug(ctx: QueryCtx | MutationCtx, name: string, rulesetId?: Id<'rulesets'>) {
-  const baseSlug = slugify(name) || 'ruleset';
-  let candidate = baseSlug;
-  let suffix = 1;
-  while (true) {
-    const existing = await ctx.db
-      .query('rulesets')
-      .withIndex('by_slug', (q) => q.eq('slug', candidate))
-      .unique();
-    if (!existing || (rulesetId && existing._id === rulesetId)) {
-      return candidate;
-    }
-    suffix += 1;
-    candidate = `${baseSlug}-${suffix}`;
-  }
-}
-
 function migrationRefsFor(ids: string[]): MigrationRef[] {
   return ids.map((id) => {
     if (!(id in MIGRATION_IDS)) {
@@ -170,40 +159,6 @@ function migrationRefsFor(ids: string[]): MigrationRef[] {
     }
     return MIGRATION_IDS[id as MigrationId];
   });
-}
-
-function missingSlug(value: unknown): boolean {
-  return typeof value !== 'string' || value.trim().length === 0;
-}
-
-async function allocateNextFaqItemSlug(ctx: MutationCtx, rulesetId: Id<'rulesets'>): Promise<string> {
-  const counterKey = `faq_item_slug:${rulesetId}`;
-  let counter = await ctx.db
-    .query('counters')
-    .withIndex('by_key', (q) => q.eq('key', counterKey))
-    .unique();
-
-  if (!counter) {
-    const inserted = await ctx.db.insert('counters', {
-      key: counterKey,
-      value: 0,
-    });
-    counter = { _id: inserted, _creationTime: 0, key: counterKey, value: 0 };
-  }
-
-  let candidate = counter.value + 1;
-  while (true) {
-    const slug = String(candidate);
-    const existing = await ctx.db
-      .query('faq_items')
-      .withIndex('by_ruleset_slug', (q) => q.eq('ruleset_id', rulesetId).eq('slug', slug))
-      .unique();
-    if (!existing) {
-      await ctx.db.patch(counter._id, { value: candidate });
-      return slug;
-    }
-    candidate += 1;
-  }
 }
 
 function toMigrationId(name: string): string {
@@ -488,6 +443,24 @@ export const statistics_answers_v1 = migrations.define({
   batchSize: 50,
   migrateOne: async (ctx, row) => {
     await reconcileAnswerStatistics(ctx, row);
+  },
+});
+
+/** Populates Statistics from canonical groups, excluding soft-deleted rows. */
+export const statistics_groups_v1 = migrations.define({
+  table: 'groups',
+  batchSize: 50,
+  migrateOne: async (ctx, row) => {
+    await reconcileGroupStatistics(ctx, row);
+  },
+});
+
+/** Populates per-type asset Statistics, excluding soft-deleted rows; small batches because boards carry their geometry. */
+export const statistics_assets_v1 = migrations.define({
+  table: 'assets',
+  batchSize: 8,
+  migrateOne: async (ctx, row) => {
+    await reconcileAssetStatistics(ctx, row);
   },
 });
 
@@ -1226,32 +1199,6 @@ export const faction_troop_ids_verify_v1 = migrations.define({
   },
 });
 
-type StoredTroopFace = { combat?: unknown; back?: StoredTroopFace };
-
-function hasLegacySupportNames(combat: unknown): boolean {
-  return typeof combat === 'object' && combat !== null && ('fundedStrength' in combat || 'fundingCost' in combat);
-}
-
-function troopHasLegacySupportNames(troop: unknown): boolean {
-  const face = troop as StoredTroopFace | null;
-  return hasLegacySupportNames(face?.combat) || hasLegacySupportNames(face?.back?.combat);
-}
-
-/* Only `combat` is rewritten, on the front and on an authored back; every other troop field stays as stored. */
-function troopWithSupportNames(troop: unknown): unknown {
-  if (typeof troop !== 'object' || troop === null) {
-    return troop;
-  }
-  const face = troop as StoredTroopFace;
-  return {
-    ...face,
-    ...(face.combat !== undefined && { combat: withSupportNames(face.combat) }),
-    ...(face.back && typeof face.back === 'object' && face.back.combat !== undefined
-      ? { back: { ...face.back, combat: withSupportNames(face.back.combat) } }
-      : {}),
-  };
-}
-
 /**
  * Renames each troop face's `fundedStrength` and `fundingCost` to `supportedStrength` and `supportCost`, without changing the faction's edit timestamp.
  * Troops paid for with spice in battle are supported, not funded.
@@ -1367,6 +1314,120 @@ export const board_readiness_v1 = migrations.define({
     if (asset.type === 'board') {
       await syncBoardReadiness(ctx, asset._id, asset);
     }
+  },
+});
+
+/**
+ * Builds the Faction catalogue's entries from canonical factions, while live writes keep them current through triggers.
+ * Reconciling is idempotent, so every snapshot load can replay it over a catalogue that is already exact.
+ */
+export const catalogue_entries_factions_v1 = migrations.define({
+  table: 'factions',
+  /* Faction text has no length cap and each reconcile rereads the faction, so a batch stays small, like `faction_cards_v1`. */
+  batchSize: 10,
+  migrateOne: async (ctx, row) => {
+    await repairCatalogueEntry(ctx, 'faction', row._id);
+  },
+});
+
+/** Removes entries whose source is gone or unlisted, and duplicates, which a pass over the sources cannot see. */
+export const catalogue_entries_prune_v1 = migrations.define({
+  table: 'catalogue_entries',
+  /* Each entry rereads its whole faction. */
+  batchSize: 10,
+  migrateOne: async (ctx, entry) => {
+    if (isCatalogueKindName(entry.kind)) {
+      await repairCatalogueEntry(ctx, entry.kind, entry.source_id);
+    } else {
+      await ctx.db.delete(entry._id);
+    }
+  },
+});
+
+/** Proves every entry, and its aggregate order, equals what its canonical rows say now, so none has drifted or outlived its source. */
+export const catalogue_entries_verify_v1 = migrations.define({
+  table: 'catalogue_entries',
+  /* Each entry rereads its whole faction. */
+  batchSize: 10,
+  migrateOne: async (ctx, entry) => {
+    if (!isCatalogueKindName(entry.kind)) {
+      throw new Error(`Catalogue entry ${entry._id} has the unknown kind ${entry.kind}.`);
+    }
+    await assertCatalogueSourceExact(ctx, entry.kind, entry.source_id);
+  },
+});
+
+/** Throws unless one source's catalogue entries, and their aggregate order, are exactly what its canonical rows say. */
+async function assertCatalogueSourceExact(ctx: MutationCtx, kind: CatalogueKindName, sourceId: string) {
+  const drift = await catalogueSourceDrift(ctx, kind, sourceId);
+  if (drift.length > 0) {
+    throw new Error(`Catalogue entries for ${kind} ${sourceId} are ${drift.join(' and ')}.`);
+  }
+}
+
+/** Proves the other direction: every live faction is in each of its lists exactly once, exactly, so an empty or partial catalogue cannot pass. */
+export const catalogue_entries_verify_v2 = migrations.define({
+  table: 'factions',
+  batchSize: 10,
+  migrateOne: async (ctx, row) => {
+    await assertCatalogueSourceExact(ctx, 'faction', row._id);
+  },
+});
+
+/**
+ * Builds the asset catalogue's entries from canonical assets, while live writes keep them current through triggers.
+ * Reconciling is idempotent, so every snapshot load can replay it over a catalogue that is already exact.
+ */
+export const catalogue_entries_assets_v1 = migrations.define({
+  table: 'assets',
+  /* Asset data has no length cap and each reconcile rereads the asset and its owner. */
+  batchSize: 10,
+  migrateOne: async (ctx, row) => {
+    await repairCatalogueEntry(ctx, 'asset', row._id);
+  },
+});
+
+/** Proves every live asset is in its type's list and the whole list exactly once, so an empty or partial asset catalogue cannot pass. */
+export const catalogue_entries_assets_verify_v1 = migrations.define({
+  table: 'assets',
+  batchSize: 10,
+  migrateOne: async (ctx, row) => {
+    await assertCatalogueSourceExact(ctx, 'asset', row._id);
+  },
+});
+
+/** Builds the profile directory's entries from canonical profiles, while live writes keep them current through triggers. */
+export const catalogue_entries_profiles_v1 = migrations.define({
+  table: 'profiles',
+  migrateOne: async (ctx, row) => {
+    await repairCatalogueEntry(ctx, 'profile', row._id);
+  },
+});
+
+/** Proves every public profile is in the directory exactly once, so an empty or partial directory cannot pass. */
+export const catalogue_entries_profiles_verify_v1 = migrations.define({
+  table: 'profiles',
+  migrateOne: async (ctx, row) => {
+    await assertCatalogueSourceExact(ctx, 'profile', row._id);
+  },
+});
+
+/** Builds every ruleset's FAQ lists from canonical questions, while live writes keep them current through triggers. */
+export const catalogue_entries_faq_v1 = migrations.define({
+  table: 'faq_items',
+  /* A question is written into up to nine lists, each reconcile rereading it, so a batch stays well inside a transaction's limits. */
+  batchSize: 25,
+  migrateOne: async (ctx, row) => {
+    await repairCatalogueEntry(ctx, 'faq', row._id);
+  },
+});
+
+/** Proves every question is in each of its FAQ lists exactly once, so an empty or partial FAQ cannot pass. */
+export const catalogue_entries_faq_verify_v1 = migrations.define({
+  table: 'faq_items',
+  batchSize: 25,
+  migrateOne: async (ctx, row) => {
+    await assertCatalogueSourceExact(ctx, 'faq', row._id);
   },
 });
 

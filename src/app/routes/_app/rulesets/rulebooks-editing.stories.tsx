@@ -4,6 +4,7 @@ import { waitForFrame } from '@sb/storyWaits';
 import { install } from '@sinonjs/fake-timers';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
+import { loadRulebookEditor } from '@db/rulebooks';
 import { db, ref } from '@db/storybook';
 import type { StorybookDatabase } from '@db/storybook';
 
@@ -169,7 +170,7 @@ export const CoverPresetsAndFooter = meta.story({
     await userEvent.click(await page.findByRole('radio', { name: 'Preset' }, { timeout: 30_000 }));
     await expect(page.queryByRole('switch', { name: 'Show cover footer' })).not.toBeInTheDocument();
     await userEvent.click(page.getByRole('combobox', { name: 'Cover preset' }));
-    await userEvent.click(await page.findByRole('option', { name: 'Worm cavern' }));
+    await userEvent.click(await page.findByRole('option', { name: 'Shai-Hulud cavern' }));
     await expect(page.queryByRole('textbox', { name: 'Background image URL' })).not.toBeInTheDocument();
     const cover = page.getByRole('article', { name: 'Rulebook page: Dreamrules' });
     await expect(cover.querySelector('.rulebookCoverBackground')).toHaveAttribute(
@@ -192,7 +193,7 @@ export const CoverPresetsAndFooter = meta.story({
     await userEvent.click(page.getByRole('switch', { name: 'Show cover footer' }));
     await expect(page.getByRole('textbox', { name: 'Footer title' })).toHaveValue('House Atreides');
     await userEvent.click(page.getByRole('link', { name: 'Page details' }));
-    await expect(page.findByRole('combobox', { name: 'Cover preset' })).resolves.toHaveValue('Worm cavern');
+    await expect(page.findByRole('combobox', { name: 'Cover preset' })).resolves.toHaveValue('Shai-Hulud cavern');
     await expect(page.queryByRole('switch', { name: 'Show cover footer' })).not.toBeInTheDocument();
     await expect(cover.querySelector('.rulebookCoverFooter')).toHaveTextContent('House Atreides');
     await userEvent.click(page.getByRole('link', { name: 'Cover footer' }));
@@ -208,15 +209,17 @@ export const CoverPresetsAndFooter = meta.story({
   },
 });
 
+/** The written-rule page's details at rest: its title in the editor and its page in the preview. */
 export const WrittenRuleEditor = meta.story({
   args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#RULE/details' },
   parameters: { database: db(withFinalRulebooks) },
-});
-
-export const WrittenRuleEditorDark = meta.story({
-  args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#RULE/details' },
-  parameters: { database: db(withFinalRulebooks) },
-  globals: { colorScheme: 'dark' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('textbox', { name: 'Title' }, { timeout: 30_000 })).resolves.toHaveValue(
+      'Introduction'
+    );
+    await expect(page.getByRole('article', { name: 'Rulebook page: Introduction' })).toBeVisible();
+  },
 });
 
 function withLiveReferenceRulebook(baseline: StorybookDatabase) {
@@ -241,7 +244,7 @@ function withLiveReferenceRulebook(baseline: StorybookDatabase) {
         MAPA: {
           id: 'MAPA',
           source: { kind: 'board', boardId: 'arrakis' },
-          text: 'Place forces on the territories.',
+          text: 'Place troops on the territories.',
           quantity: 1,
         },
       },
@@ -270,13 +273,13 @@ export const LiveReferenceEditor = meta.story({
     await expect(page.getByRole('button', { name: 'Save' })).toBeEnabled();
     await userEvent.click(page.getByRole('button', { name: 'Save' }));
     await expect(page.findByRole('button', { name: 'Saved' }, { timeout: 30_000 })).resolves.toBeDisabled();
+    /* The saved draft holds the chosen Leader as the illustration's live source. */
+    const saved = await loadRulebookEditor({ rulesetSlug: 'classicrules', rulebookSlug: 'book-0' });
+    const illustration = saved?.kind === 'editable' ? saved.draft.contents.pagesById.RULE?.blocksById.ARTW : undefined;
+    await expect(illustration).toMatchObject({
+      source: { kind: 'faction-member', memberId: expect.stringMatching(/^10000000-0000-4000-8000-/) },
+    });
   },
-});
-
-export const InventoryEditor = meta.story({
-  args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#RULE/NVNT' },
-  parameters: { database: db(withLiveReferenceRulebook) },
-  globals: { colorScheme: 'dark' },
 });
 
 export const FactionIntroductionEditor = meta.story({

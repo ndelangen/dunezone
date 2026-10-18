@@ -5,6 +5,7 @@ import { createRootRoute, HeadContent, Scripts } from '@tanstack/react-router';
 
 import { convex } from '@db/core';
 import { pageTitle } from '@app/routes/pageTitle';
+import { SignInCallback } from '@app/shell/SignInCallback';
 
 import bandPoster from '../../../public/video/band-poster.jpg?url';
 import '@fontsource/caladea/latin-400.css';
@@ -85,7 +86,8 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        <ConvexAuthProvider client={convex}>
+        <ConvexAuthProvider client={convex} shouldHandleCode={false}>
+          <SignInCallback />
           {children}
           {/* <TanStackDevtools
             config={{

@@ -1,7 +1,7 @@
 import { waitForFrame } from '@sb/storyWaits';
 import { expect, within } from 'storybook/test';
 
-import { mapViewPoint, settled, waitForPlayCamera } from './playing.stories.fixture';
+import { mapViewPoint, settled, waitForPlayCamera } from './mapView.stories.fixture';
 
 /** Carries the battle marker to the given board point and checks the resulting command. */
 export async function dragBattleMarker(

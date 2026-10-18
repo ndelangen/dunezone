@@ -88,7 +88,7 @@ export const AuthorsTroopBattleValues = meta.story({
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
 
-    await userEvent.click(canvas.getByRole('tab', { name: /Forces/ }));
+    await userEvent.click(canvas.getByRole('tab', { name: /Troops/ }));
     const strength = canvas.getByRole('textbox', { name: 'Strength' });
     await expect(strength).toHaveValue('1');
     await expect(canvas.getByRole('textbox', { name: 'Support cost' })).toHaveValue('');
@@ -127,5 +127,10 @@ export const Problems = meta.story({
   args: {
     faction: problematicFaction,
     errors: ['The faction could not be saved. Try again without losing this draft.'],
+  },
+  play: async ({ args, canvasElement }) => {
+    const alert = within(canvasElement).getByRole('alert');
+    await expect(alert).toHaveTextContent('Could not save');
+    await expect(alert).toHaveTextContent(args.errors[0]!);
   },
 });

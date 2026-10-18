@@ -1,5 +1,5 @@
 import preview from '@sb/preview';
-import { expect, within } from 'storybook/test';
+import { expect, waitFor, within } from 'storybook/test';
 
 import { setMotionOverride } from '@app/styles/motion';
 
@@ -32,6 +32,11 @@ export const SneakPeekLink = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByText('Try moving one of the pieces!')).resolves.toBeInTheDocument();
+    /* With room for it, the preview mounts the live table's scene in place of the still. */
+    const preview = canvasElement.ownerDocument.getElementById('play-preview');
+    await waitFor(() => expect(preview?.querySelector('canvas')).toBeInstanceOf(HTMLCanvasElement), {
+      timeout: 30_000,
+    });
   },
 });
 

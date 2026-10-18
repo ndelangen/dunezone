@@ -1,7 +1,6 @@
 // @vitest-environment jsdom
 
 import { MantineProvider } from '@mantine/core';
-import { Link } from '@tanstack/react-router';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
@@ -125,58 +124,43 @@ describe('NestedTabs', () => {
     expect(container?.querySelector('[aria-label="Refreshed navigator"]')).not.toBeNull();
   });
 
-  it('preserves typed TanStack Link destination props', () => {
-    const typedItem = (
-      <NestedTabs.Item
-        as={Link}
-        to="/preview/sheet/$factionSlug"
-        params={{ factionSlug: 'atreides' }}
-        search={{ mode: 'db' }}
-        path={['page-2', 'preview']}
-        label="Preview"
-        icon={<span>P</span>}
-      />
-    );
-
-    expect(typedItem.props.to).toBe('/preview/sheet/$factionSlug');
-  });
-
   it('marks the active path without assigning tab semantics', () => {
     expect(item('Page 1').dataset.pathState).toBe('inactive');
     expect(item('Page 2').dataset.pathState).toBe('ancestor');
     expect(item('Block b').dataset.pathState).toBe('active');
     expect(item('Block b').getAttribute('aria-current')).toBe('page');
     expect(item('Page 2').hasAttribute('aria-current')).toBe(false);
-    expect(container?.querySelector('[role="tab"]')).toBeNull();
+    expect(container?.querySelector('[role="tablist"], [role="tab"], [role="tabpanel"]')).toBeNull();
     expect(container?.querySelectorAll('nav')).toHaveLength(2);
   });
 
   it('opens guidance when the pointer enters from another control without an outgoing event', async () => {
     const previous = container?.querySelector('button');
     expect(previous).toBeInstanceOf(HTMLButtonElement);
-    await act(async () => {
-      item('Page 1').dispatchEvent(new MouseEvent('mouseover', { bubbles: true, relatedTarget: previous }));
-      await new Promise((resolve) => window.setTimeout(resolve, 500));
-    });
-    await act(async () => {
-      await new Promise((resolve) => window.setTimeout(resolve, 150));
-    });
-    expect(document.querySelector('[role="tooltip"]')?.textContent).toContain('Page 1');
-    const icon = item('Page 1').querySelector('span');
-    expect(icon).toBeInstanceOf(HTMLSpanElement);
-    await act(async () => {
-      item('Page 1').dispatchEvent(new MouseEvent('mouseout', { bubbles: true, relatedTarget: icon }));
-      icon?.dispatchEvent(new MouseEvent('mouseover', { bubbles: true, relatedTarget: item('Page 1') }));
-      await new Promise((resolve) => window.setTimeout(resolve, 150));
-    });
-    expect(document.querySelector('[role="tooltip"]')?.textContent).toContain('Page 1');
-    await act(async () => {
-      item('Page 1').dispatchEvent(new MouseEvent('mouseout', { bubbles: true, relatedTarget: previous }));
-    });
-    await act(async () => {
-      await new Promise((resolve) => window.setTimeout(resolve, 150));
-    });
-    expect(document.querySelector('[role="tooltip"]')).toBeNull();
+    vi.useFakeTimers();
+    try {
+      await act(async () => {
+        item('Page 1').dispatchEvent(new MouseEvent('mouseover', { bubbles: true, relatedTarget: previous }));
+        await vi.advanceTimersByTimeAsync(500);
+      });
+      await act(() => vi.advanceTimersByTimeAsync(150));
+      expect(document.querySelector('[role="tooltip"]')?.textContent).toContain('Page 1');
+      const icon = item('Page 1').querySelector('span');
+      expect(icon).toBeInstanceOf(HTMLSpanElement);
+      await act(async () => {
+        item('Page 1').dispatchEvent(new MouseEvent('mouseout', { bubbles: true, relatedTarget: icon }));
+        icon?.dispatchEvent(new MouseEvent('mouseover', { bubbles: true, relatedTarget: item('Page 1') }));
+        await vi.advanceTimersByTimeAsync(150);
+      });
+      expect(document.querySelector('[role="tooltip"]')?.textContent).toContain('Page 1');
+      await act(async () => {
+        item('Page 1').dispatchEvent(new MouseEvent('mouseout', { bubbles: true, relatedTarget: previous }));
+      });
+      await act(() => vi.advanceTimersByTimeAsync(150));
+      expect(document.querySelector('[role="tooltip"]')).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('derives containing Group state from its active descendant', () => {
@@ -409,11 +393,5 @@ describe('NestedTabs with button items', () => {
     tab('Hand').focus();
     act(() => tab('Hand').click());
     expect(selected).toEqual([['hand']]);
-  });
-
-  it('keeps link items as navigation when any item is a link', async () => {
-    await act(async () => root?.render(<Fixture />));
-    expect(container?.querySelector('[role="tablist"], [role="tab"], [role="tabpanel"]')).toBeNull();
-    expect(container?.querySelectorAll('nav')).toHaveLength(2);
   });
 });

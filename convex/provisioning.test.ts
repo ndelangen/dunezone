@@ -1,23 +1,16 @@
 /// <reference types="vite/client" />
 
-import aggregateTest from '@convex-dev/aggregate/test';
-import { convexTest } from 'convex-test';
 import type { WithoutSystemFields } from 'convex/server';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vite-plus/test';
 
 import { placeholderOwner } from '../scripts/lib/snapshot-policy';
 import { internal } from './_generated/api';
 import type { Doc } from './_generated/dataModel';
+import { applicationTest } from './application.test.fixture';
 import { identifiesSomeone } from './lib/provisioningContract';
-import schema from './schema';
-
-const modules = import.meta.glob('./**/*.ts');
 
 function prepared() {
-  const t = convexTest(schema, modules);
-  aggregateTest.register(t, 'statistics');
-  aggregateTest.register(t, 'profileActivity');
-  aggregateTest.register(t, 'profileDiscovery');
+  const t = applicationTest();
   return t;
 }
 

@@ -1,5 +1,6 @@
 import { Button, Checkbox, Group, Menu, NumberInput, Radio, Select, Stack, Text, VisuallyHidden } from '@mantine/core';
 import type { ButtonProps, NumberInputProps } from '@mantine/core';
+import { useElementSize } from '@mantine/hooks';
 import { Html } from '@react-three/drei/webgpu';
 import { useFrame, useThree } from '@react-three/fiber/webgpu';
 import type { Board } from '@shared/boards/schema';
@@ -14,7 +15,7 @@ import type {
   PublicBattle,
 } from '@shared/play/battle';
 import { snapshotFactionLabels } from '@shared/play/factionLabels';
-import { nextHiddenZoneSpot } from '@shared/play/hiddenZone';
+import { hiddenZoneView, nextHiddenZoneSpot } from '@shared/play/hiddenZone';
 import type { TablePiece, Vector3Tuple } from '@shared/play/model';
 import { BOARD_RADIUS } from '@shared/play/tableGeometry';
 import { resolveRulebookBoardDefinition } from '@shared/rulebooks/boardDefinitions';
@@ -466,9 +467,11 @@ function canTakeSelected(piece: TablePiece | undefined) {
 export function HandControls({ client, table, hand }: Props & { hand: TablePiece[] }) {
   const selected = table.snapshot.table.pieces.find((piece) => piece.id === table.state.selectedPieceId);
   const [menu, setMenu] = useState<HandMenuAnchor | null>(null);
+  /* The hidden zone is a tab beside this one, as wide, so a piece moved there lands in what its narrow view shows. */
+  const { ref, width } = useElementSize<HTMLDivElement>();
   return (
     <Section hiddenHeading title="Your hand and leaders" description={handHelp(table)}>
-      <Stack gap="sm">
+      <Stack gap="sm" ref={ref}>
         <Button
           variant="default"
           disabled={!table.canHandleTable || !canTakeSelected(selected)}
@@ -507,7 +510,11 @@ export function HandControls({ client, table, hand }: Props & { hand: TablePiece
           disabled={!table.canHandleTable}
           onClick={() => {
             if (menu) {
-              client.command({ kind: 'hand-zone', pieceId: menu.pieceId, at: nextHiddenZoneSpot(hand) });
+              client.command({
+                kind: 'hand-zone',
+                pieceId: menu.pieceId,
+                at: nextHiddenZoneSpot(hand, width > 0 ? hiddenZoneView(width, Infinity).extent : undefined),
+              });
             }
             setMenu(null);
           }}

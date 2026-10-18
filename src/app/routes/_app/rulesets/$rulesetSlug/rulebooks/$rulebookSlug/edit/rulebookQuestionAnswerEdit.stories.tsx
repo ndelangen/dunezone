@@ -14,14 +14,14 @@ export const QuestionAndAnswer = meta.story({
     <QuestionAnswerStory
       initialValue={{
         topic: 'Movement',
-        question: 'Can a force cross the storm?',
+        question: 'Can a troop cross the storm?',
         answer: 'It cannot move into or through the storm.',
       }}
     />
   ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await userEvent.type(canvas.getByRole('textbox', { name: 'Answer' }), ' Faction abilities can change this.');
-    await expect(questionAnswerChange.mock.lastCall?.[0].answer).toContain('Faction abilities can change this.');
+    await userEvent.type(canvas.getByRole('textbox', { name: 'Answer' }), ' Faction advantages can change this.');
+    await expect(questionAnswerChange.mock.lastCall?.[0].answer).toContain('Faction advantages can change this.');
   },
 });

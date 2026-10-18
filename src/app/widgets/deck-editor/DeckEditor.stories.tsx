@@ -32,16 +32,16 @@ const meta = preview.meta({
   },
 });
 
-/**
- * A stock back, which is where every new deck starts.
- * The tile carries the select naming which stock one, since choosing Stock does not finish the job.
- */
-export const CardbackFromStock = meta.story({});
-
 /** A composed back exposes its background and emblem chapters. */
 export const CardbackComposedHere = meta.story({
   args: {
     draft: draftWith({ mode: 'custom', ...INITIAL_CARDBACK_PRESETS[1]!.cardback, name: 'Hand of the Emperor' }),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole('radio', { name: 'Composed here' })).toBeChecked();
+    await expect(canvas.getByRole('tab', { name: 'Background' })).toBeVisible();
+    await expect(canvas.getByRole('tab', { name: 'Emblem' })).toBeVisible();
   },
 });
 
@@ -56,16 +56,16 @@ export const TintedCardbackComposedHere = meta.story({
       emblemBackground: { color: '#4466aa', intensity: 0.35 },
     }),
   },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole('tab', { name: 'Emblem' })).toHaveAttribute('aria-selected', 'true');
+    await expect(canvas.getByRole('textbox', { name: 'Emblem background shade' })).toHaveValue('#4466aa');
+  },
 });
 
 /** Worn from another deck: the only tile that is a different union member. */
 export const CardbackFromAnotherDeck = meta.story({
   args: { draft: draftWith({ mode: 'reference', asset_id: 'another-deck' }) },
-});
-
-/** Chosen but not yet picked, the state the reference-without-target warning reads. */
-export const CardbackReferenceNotYetPicked = meta.story({
-  args: { draft: draftWith({ mode: 'reference', asset_id: null }) },
 });
 
 export const Identity = meta.story({
@@ -79,6 +79,11 @@ export const Identity = meta.story({
 });
 export const Background = meta.story({
   args: { chapter: 'background' as const, draft: draftWith({ mode: 'custom', ...GF9_LEADER_SKILL_DECK_BACK }) },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole('radiogroup', { name: 'Background' })).toBeVisible();
+    await expect(canvas.queryByRole('textbox', { name: 'Label' })).toBeNull();
+  },
 });
 export const ResetFromEmblemToPreset = meta.story({
   args: { chapter: 'emblem' as const },

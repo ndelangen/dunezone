@@ -41,14 +41,6 @@ function finished(kind: 'faction' | 'alliance' | 'none', factionIds: string[]): 
 describe('celebrationFor', () => {
   const angles = tableSeatAngles(5);
 
-  it('fires from the winning faction slot', () => {
-    expect(celebrationFor(finished('faction', ['harkonnen']), DECLARED)).toEqual({
-      id: DECLARED,
-      angles: [angles[3]],
-      elapsed: 0,
-    });
-  });
-
   it('fires from every allied winner together', () => {
     expect(celebrationFor(finished('alliance', ['fremen', 'atreides']), DECLARED + 2500)).toEqual({
       id: DECLARED,

@@ -1,6 +1,5 @@
 import { describe, expect, test } from 'vite-plus/test';
 
-import type { Id } from '../_generated/dataModel';
 import { evaluateCollaborativeAccess } from './collaborativeAccess';
 
 describe('collaborative access evaluator', () => {
@@ -145,49 +144,6 @@ describe('collaborative access evaluator', () => {
         delete: false,
         addMember: false,
       },
-    });
-  });
-
-  test('an active collaborator may rename nothing, whatever kind it is', () => {
-    const assignedGroup = {
-      id: 'group-1' as Id<'groups'>,
-      name: 'Dune Designers',
-      slug: 'dune-designers',
-    };
-    const viewer = {
-      kind: 'authenticated' as const,
-      membership: 'active' as const,
-      ownsSubject: false,
-    };
-
-    expect(
-      evaluateCollaborativeAccess({
-        kind: 'faction',
-        resource: { available: true },
-        group: { eligible: true, summary: assignedGroup },
-        viewer,
-      }).capabilities
-    ).toEqual({
-      requestMembership: false,
-      edit: true,
-      /* A rename moves the public URL, so it is the owner's alone for every kind (#605). */
-      rename: false,
-      changeGroup: false,
-      delete: false,
-    });
-    expect(
-      evaluateCollaborativeAccess({
-        kind: 'ruleset',
-        resource: { available: true },
-        group: { eligible: true, summary: assignedGroup },
-        viewer,
-      }).capabilities
-    ).toEqual({
-      requestMembership: false,
-      edit: true,
-      rename: false,
-      changeGroup: false,
-      delete: false,
     });
   });
 

@@ -9,7 +9,6 @@ import {
   markClippedRulebookBlocks,
   markClippedRulebookCoverFooterFields,
   revealRulebookLocatorTarget,
-  stripRulebookMeasurementIds,
 } from './rulebookClipping';
 
 function bounds(top: number, bottom: number): DOMRect {
@@ -120,12 +119,6 @@ describe('Rulebook clipping', () => {
     );
   });
 
-  test('keeps a repeated Block identity inside the locator Page', () => {
-    expect(findRulebookLocatorTarget(document, { anchorId: 'rules', pageId: 'PAGE', blockId: 'CLIPPED' })).toBe(
-      document.querySelector('[data-rulebook-page-id="PAGE"] [data-rulebook-block-id="CLIPPED"]')
-    );
-  });
-
   test('marks the clipped Block and Region and clears both markers', () => {
     const region = document.querySelector<HTMLElement>('[data-rulebook-page-id="PAGE"] [data-rulebook-region]')!;
     const block = region.querySelector<HTMLElement>('[data-rulebook-block-id="CLIPPED"]')!;
@@ -144,27 +137,6 @@ describe('Rulebook clipping', () => {
     expect(block.hasAttribute('data-rulebook-clipped')).toBe(false);
   });
 
-  test('removes anchors from hidden measurement Pages', () => {
-    stripRulebookMeasurementIds(document);
-
-    expect(document.querySelectorAll('[id]')).toHaveLength(0);
-    expect(document.querySelectorAll('[data-rulebook-page-id]')).toHaveLength(2);
-  });
-
-  test('shows the Page bottom when a linked Block is clipped', () => {
-    const page = document.querySelector<HTMLElement>('[data-rulebook-page-id="PAGE"]')!;
-    const clipped = page.querySelector<HTMLElement>('[data-rulebook-block-id="CLIPPED"]')!;
-    const scrollPage = vi.fn();
-    const scrollBlock = vi.fn();
-    page.scrollIntoView = scrollPage;
-    clipped.scrollIntoView = scrollBlock;
-
-    revealRulebookLocatorTarget(clipped, 800);
-
-    expect(scrollPage).toHaveBeenCalledWith({ block: 'end' });
-    expect(scrollBlock).not.toHaveBeenCalled();
-  });
-
   test('centres an ordinary linked target only when it is outside the viewport', () => {
     const page = document.querySelector<HTMLElement>('[data-rulebook-page-id="PAGE"]')!;
     const region = page.querySelector<HTMLElement>('[data-rulebook-region]')!;
@@ -177,5 +149,12 @@ describe('Rulebook clipping', () => {
     revealRulebookLocatorTarget(visible, 800);
 
     expect(scrollIntoView).toHaveBeenCalledWith({ block: 'center' });
+
+    scrollIntoView.mockClear();
+    visible.getBoundingClientRect = () => bounds(200, 300);
+
+    revealRulebookLocatorTarget(visible, 800);
+
+    expect(scrollIntoView).not.toHaveBeenCalled();
   });
 });

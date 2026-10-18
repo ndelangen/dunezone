@@ -10,5 +10,7 @@ app.use(rateLimiter);
 app.use(aggregate, { name: 'statistics' });
 app.use(aggregate, { name: 'profileDiscovery' });
 app.use(aggregate, { name: 'profileActivity' });
+/* Every catalogue's order: counts and page offsets, namespaced by [kind, sort, list]. */
+app.use(aggregate, { name: 'catalogueOrder' });
 
 export default app;

@@ -1,6 +1,6 @@
 import preview from '@sb/preview';
 import type { TokenShape } from '@shared/assets/tokenOutline';
-import { expect, within } from 'storybook/test';
+import { expect, waitFor, within } from 'storybook/test';
 
 import { TokenImage } from './TokenImage';
 
@@ -21,14 +21,6 @@ const meta = preview.meta({
   args: { src: face(600, 600), name: 'Disc token', shape: 'round' as const },
 });
 
-export const Disc = meta.story({
-  render: (args) => (
-    <div style={{ width: 160 }}>
-      <TokenImage {...args} />
-    </div>
-  ),
-});
-
 /** Every shape from the same kind of opaque face, side by side. */
 export const Shapes = meta.story({
   render: () => (
@@ -42,8 +34,10 @@ export const Shapes = meta.story({
   ),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement);
+    /* A cold first load lands the images after they mount, so each check waits for its face to show. */
     for (const { name } of SHAPES) {
-      await expect(page.findByRole('img', { name })).resolves.toBeVisible();
+      const image = await page.findByRole('img', { name });
+      await waitFor(() => expect(image).toBeVisible());
     }
   },
 });

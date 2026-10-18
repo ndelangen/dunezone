@@ -1,23 +1,17 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import aggregateTest from '@convex-dev/aggregate/test';
-import { convexTest } from 'convex-test';
 import { describe, expect, test } from 'vite-plus/test';
 
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api } from './_generated/api';
-import schema from './schema';
+import { applicationTest } from './application.test.fixture';
 import { factionPageAs, groupPageAs, rulesetDetailPageAs } from './viewerAccess.test.fixture';
 
-const modules = import.meta.glob('./**/*.ts');
 const now = '2026-08-05T00:00:00.000Z';
 
 async function groupAccessFixture() {
-  const t = convexTest(schema, modules);
-  aggregateTest.register(t, 'statistics');
-  aggregateTest.register(t, 'profileActivity');
-  aggregateTest.register(t, 'profileDiscovery');
+  const t = applicationTest();
   const ids = await t.run(async (ctx) => {
     const ownerId = await ctx.db.insert('users', { name: 'Group owner' });
     const assetOwnerId = await ctx.db.insert('users', { name: 'Asset owner' });
@@ -771,15 +765,10 @@ describe('collaborative access moderation commands', () => {
       'Not authorized'
     );
     await expect(member.mutation(api.factions.softDelete, { id: ids.factionId })).rejects.toThrow('Not authorized');
-  });
 
-  test('the faction owner still renames, and the slug moves with the name', async () => {
-    const { t, ids } = await groupAccessFixture();
-    const assetOwner = t.withIdentity({ subject: ids.assetOwnerId });
-
-    const renamed = await assetOwner.mutation(api.factions.update, {
+    const renamed = await t.withIdentity({ subject: ids.assetOwnerId }).mutation(api.factions.update, {
       id: ids.factionId,
-      data: { ...structuredClone(assetPublishingFaction), name: 'Owner Renamed Faction' },
+      data: { ...stored, name: 'Owner Renamed Faction' },
     });
     expect(renamed).toMatchObject({ slug: 'owner-renamed-faction' });
   });

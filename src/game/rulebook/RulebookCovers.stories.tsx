@@ -3,7 +3,7 @@ import { getRulebookCoverPreset } from '@shared/rulebooks/coverPresets';
 import type { RulebookRenderPageByLayoutV1 } from '@shared/rulebooks/renderDocument';
 import { getRulebookSize, rulebookDesignCatalogue, rulebookSizeCatalogue } from '@shared/rulebooks/settings';
 import type { RulebookSettings } from '@shared/rulebooks/settings';
-import { expect } from 'storybook/test';
+import { expect, within } from 'storybook/test';
 
 import { createCoverFooter, createImageCoverPage } from './RulebookCovers.stories.fixture';
 import { RulebookPageRenderer } from './RulebookRenderer';
@@ -93,15 +93,16 @@ export const DreamrulesRainbow = meta.story({
   },
   play: expectCoverBounds,
 });
-export const KissPlanet = meta.story({
-  args: {
-    backgroundImageUrl: getRulebookCoverPreset('kiss-planet').imageUrl,
-    title: 'Kiss Rules',
-    showSubtitle: false,
+/** The titles stay when only the Dune logo is switched off. */
+export const WithoutLogo = meta.story({
+  args: { showDuneLogo: false },
+  play: async (context) => {
+    await expectCoverBounds(context);
+    const canvas = within(context.canvasElement);
+    await expect(canvas.queryByRole('img', { name: 'Dune' })).toBeNull();
+    await expect(canvas.getByRole('heading', { name: context.args.title })).toBeVisible();
   },
-  play: expectCoverBounds,
 });
-export const WithoutLogo = meta.story({ args: { showDuneLogo: false }, play: expectCoverBounds });
 export const LogoOnBlankCover = meta.story({ args: { backgroundImageUrl: '' }, play: expectCoverBounds });
 export const ArtworkOnly = meta.story({
   args: { showDuneLogo: false, showHeading: false, showSubtitle: false },
@@ -174,7 +175,14 @@ export const FooterWithoutFactions = meta.story({
 
 export const FooterUnavailableFaction = meta.story({
   args: { footer: createCoverFooter({ rightFaction: { status: 'unavailable', factionId: 'richese' } }) },
-  play: expectFooterBounds,
+  /* The right slot holds the unavailable mark instead of the Richese token, and the left slot is untouched. */
+  play: async (context) => {
+    await expectFooterBounds(context);
+    const footer = within(within(context.canvasElement).getByLabelText('Cover footer'));
+    await expect(footer.getByRole('img', { name: 'Faction unavailable' })).toBeVisible();
+    await expect(footer.queryByRole('img', { name: 'Richese' })).toBeNull();
+    await expect(footer.getByRole('img', { name: 'CHOAM' })).toBeVisible();
+  },
 });
 
 export const LegacyCoverWithFooter = meta.story({

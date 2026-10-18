@@ -248,6 +248,12 @@ export class ActorDirectory {
   private anonymize(userId: string, vacatedEventId?: string) {
     const actor = this.storage.sql.exec<Actor>('SELECT * FROM actors WHERE user_id=?', userId).toArray()[0];
     if (!actor) {
+      /* A deletion that reaches the room before the account ever entered leaves a tombstone, so a seat pass signed before it cannot enter later. */
+      this.storage.sql.exec(
+        "INSERT INTO actors (user_id, seat, display_name, deleted) VALUES (?, ?, '[deleted user]', 1)",
+        userId,
+        SPECTATOR_SEAT
+      );
       return;
     }
     this.storage.sql.exec("UPDATE seat_history SET display_name='[deleted user]' WHERE user_id=?", userId);

@@ -6,13 +6,14 @@ import { resolveRulebookBoardDefinition } from '@shared/rulebooks/boardDefinitio
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { dragBattleMarker } from './battles.marker.stories.fixture';
+import { openPanel, WAIT } from './controls.stories.fixture';
 import { gameMeta, install, lastCommand, session } from './game.stories.fixture';
 import { battleStory, expectBattleCalloutPlacement, openTab, settled } from './playing.stories.fixture';
 import { productTransport } from './product.stories.fixture';
 
 const meta = preview.meta({
   ...gameMeta,
-  title: 'Play/Playing/Battles',
+  title: 'Play/Battles',
 });
 
 function battleSetup(
@@ -26,20 +27,6 @@ function battleSetup(
     return productTransport(viewer, snapshot);
   });
 }
-
-export const BattleCalloutBelowNorthernTerritory = meta.story({
-  beforeEach: battleSetup('preparing', 'neutral', (snapshot) => {
-    snapshot.battle!.anchor = [3.6, 0.18, -3.05];
-  }),
-  play: async ({ canvasElement }) => expectBattleCalloutPlacement(canvasElement, [3.6, 0.18, -3.05], 'below'),
-});
-
-export const BattleCalloutAboveSouthernTerritory = meta.story({
-  beforeEach: battleSetup('preparing', 'neutral', (snapshot) => {
-    snapshot.battle!.anchor = [3.6, 0.18, 3.05];
-  }),
-  play: async ({ canvasElement }) => expectBattleCalloutPlacement(canvasElement, [3.6, 0.18, 3.05], 'above'),
-});
 
 /* Each element's box at its first style write, since any later frame would move a callout before an assertion could see where it was first drawn. */
 function recordFirstDraws(document: Document) {
@@ -55,8 +42,166 @@ function recordFirstDraws(document: Document) {
   return { firstDraws, stop: () => observer.disconnect() };
 }
 
+/**
+ * Every element in the wheels whose computed animation name is set.
+ * The name stays after the reveal has finished, where `getAnimations` would come back empty, so a still wheel cannot pass for one that turned in before the check ran.
+ */
+function animatedIn(wheels: readonly HTMLElement[]) {
+  return wheels
+    .flatMap((wheel) => [wheel, ...wheel.querySelectorAll('*')])
+    .filter((element) => getComputedStyle(element).animationName !== 'none');
+}
+
+const readiness = install(() => productTransport('neutral', battleStory('preparing', true)));
+
+async function expectPlanBound(
+  canvasElement: HTMLElement,
+  field: 'Committed spice' | 'Supported',
+  plan: Partial<NonNullable<GameSnapshot['battlePlan']>>
+) {
+  const page = within(canvasElement.ownerDocument.body);
+  await openTab(page, 'Battle');
+  await settled(async () => {
+    const input = page.getByRole('textbox', { name: field });
+    await userEvent.clear(input);
+    await userEvent.type(input, '9');
+    await userEvent.keyboard('{Enter}');
+    await expect(lastCommand()?.action).toMatchObject({ kind: 'battle-plan', plan });
+  });
+  return page;
+}
+
+const revealedPieces = install(() => {
+  const snapshot = battleStory('revealed');
+  const battle = snapshot.battle!;
+  const card = snapshot.table.pieces.find((piece) => piece.id === 'treachery-card-loose')!;
+  card.battleOverlay = battle.id;
+  battle.revealed![0].pieces = [card];
+  battle.revealed![0].cardIds = [card.id];
+  return productTransport('seat-2', snapshot);
+});
+
+/* A real game keys each faction by its Convex document id, so a label that prints the id instead of the roster's name only shows once the stories stop using slugs. */
+const convexIds: Record<string, string> = {
+  'house-harkonnen': 'k175em553h9x2vq0t8c4wj6rsd7ab1ny',
+  'house-atreides': 'k17fybprv2m8kq5z3x0hd9tnwc6js4ge',
+};
+function withConvexIds(snapshot: GameSnapshot): GameSnapshot {
+  return JSON.parse(
+    Object.entries(convexIds).reduce(
+      (json, [slug, id]) => json.replaceAll(`"${slug}"`, `"${id}"`),
+      JSON.stringify(snapshot)
+    )
+  );
+}
+
+function resolvedBattle(rekey: (snapshot: GameSnapshot) => GameSnapshot = (snapshot) => snapshot) {
+  return install(() => {
+    const snapshot = battleStory('revealed');
+    const battle = snapshot.battle!;
+    const card = snapshot.table.pieces.find((piece) => piece.kind === 'card' && piece.items.length === 1)!;
+    const plans = battle.revealed!;
+    plans[0].pieces = [card];
+    plans[0].cardIds = [card.id];
+    snapshot.battleResults = [
+      {
+        id: battle.id,
+        anchor: battle.anchor,
+        territory: battle.territory,
+        factions: ['house-harkonnen', 'house-atreides'],
+        plans,
+        outcome: 'left',
+        revision: 1,
+      },
+    ];
+    snapshot.battle = null;
+    snapshot.battlePlan = null;
+    /* Resolving leaves the revealed card on the table, where its owner discards it by hand. */
+    snapshot.revision = 1;
+    return productTransport('seat-2', rekey(snapshot));
+  });
+}
+
+/** A seated snapshot in play with a loose Treachery card moved into the viewer's hand, as Play/Panels/Hand and spice/Hand does. */
+function withCardInHand(snapshot: GameSnapshot) {
+  const card = snapshot.table.pieces.find((piece) => piece.kind === 'card' && piece.items.length === 1);
+  if (!card || !snapshot.hand) {
+    throw new Error('withCardInHand needs a seated snapshot with a loose Treachery card on the table.');
+  }
+  snapshot.hand.push({ ...card, owner: snapshot.bank?.factionId ?? card.owner });
+  snapshot.table.pieces = snapshot.table.pieces.filter((piece) => piece.id !== card.id);
+  return snapshot;
+}
+
+/** A leader disc from the story's published fronts, as a plan or a reveal carries it. */
+function storyLeader(id: string, image: string, name: string) {
+  const front = new URL(`/play-fixtures/product/${image}.jpg`, location.origin).href;
+  return {
+    id,
+    label: name,
+    owner: 'shared' as const,
+    color: '#3f2523',
+    accent: '#d99b57',
+    kind: 'force' as const,
+    stackKey: null,
+    position: [0, 0.14, 0] as [number, number, number],
+    orientation: 0,
+    zoneId: null,
+    locked: false,
+    items: [{ id: `${id}-item`, faceUp: true, artwork: { front, back: front, name, type: 'token-disc' } }],
+  };
+}
+
+/**
+ * Battle, a part of each plan shown before the reveal: Harkonnen showed its card and its dial, Atreides its leader and a card.
+ * Each side's revealed parts show on its battle wheel for everyone, and the plan editor keeps them fixed while shown.
+ */
+function earlyRevealSnapshot() {
+  const snapshot = withCardInHand(battleStory('preparing'));
+  const card = snapshot.hand!.pop()!;
+  const leader = storyLeader('harkonnen-leader', 'house-harkonnen-1423d459-65bd-4f38-8859-52f69a5b3e2b', 'Feyd-Rautha');
+  const plan = snapshot.battlePlan!;
+  const faceId = plan.faces[0]!.id;
+  Object.assign(plan, {
+    troops: [{ faceId, undialed: 3, dialed: 2 }],
+    spice: 2,
+    strength: 3.5,
+    leaderId: leader.id,
+    cardIds: [card.id],
+    pieces: [leader, card],
+    disclosed: { leader: false, dial: true, cardIds: [card.id] },
+  });
+  const atreidesCard = { ...card, id: 'atreides-disclosed-card' };
+  snapshot.battle!.disclosed = [
+    {
+      cards: [{ ...card, id: 'harkonnen-disclosed-card' }],
+      dial: { strength: 3.5 },
+    },
+    {
+      leader: storyLeader('atreides-leader', 'house-atreides-01f1cf94-2df1-4b96-9fbf-dd757afef27b', 'Duncan Idaho'),
+      cards: [atreidesCard],
+    },
+  ];
+  snapshot.bank!.balance = 8;
+  return snapshot;
+}
+
+export const CalloutBelowNorthernTerritory = meta.story({
+  beforeEach: battleSetup('preparing', 'neutral', (snapshot) => {
+    snapshot.battle!.anchor = [3.6, 0.18, -3.05];
+  }),
+  play: async ({ canvasElement }) => expectBattleCalloutPlacement(canvasElement, [3.6, 0.18, -3.05], 'below'),
+});
+
+export const CalloutAboveSouthernTerritory = meta.story({
+  beforeEach: battleSetup('preparing', 'neutral', (snapshot) => {
+    snapshot.battle!.anchor = [3.6, 0.18, 3.05];
+  }),
+  play: async ({ canvasElement }) => expectBattleCalloutPlacement(canvasElement, [3.6, 0.18, 3.05], 'above'),
+});
+
 /** A battle marked mid-game draws its callout beside the territory on its first frame, since a table that draws on demand may not draw another. */
-export const BattleCalloutArrivesInPlace = meta.story({
+export const CalloutArrivesInPlace = meta.story({
   beforeEach: battleSetup('preparing', 'seat-2', (snapshot) => {
     snapshot.battle = null;
     snapshot.battlePlan = null;
@@ -97,7 +242,7 @@ export const BattleCalloutArrivesInPlace = meta.story({
 });
 
 /** The marker names the territory it lands on from the board's own outlines, so a battle dropped on Carthag is fought at Carthag. */
-export const BattleMarkerNamesItsTerritory = meta.story({
+export const MarkerNamesItsTerritory = meta.story({
   beforeEach: battleSetup('preparing', 'seat-2', (snapshot) => {
     snapshot.battle = null;
     snapshot.battlePlan = null;
@@ -119,7 +264,7 @@ export const BattleMarkerNamesItsTerritory = meta.story({
   },
 });
 
-export const BattleUnclaimed = meta.story({
+export const Unclaimed = meta.story({
   beforeEach: install(() => {
     const snapshot = battleStory('preparing');
     snapshot.battle!.sides = [null, null];
@@ -142,7 +287,7 @@ export const BattleUnclaimed = meta.story({
   },
 });
 
-export const BattleOneClaimed = meta.story({
+export const OneClaimed = meta.story({
   beforeEach: install(() => {
     const snapshot = battleStory('preparing');
     snapshot.battle!.sides = [null, { factionId: 'house-atreides', ready: false, choice: null }];
@@ -167,19 +312,7 @@ export const BattleOneClaimed = meta.story({
   },
 });
 
-/**
- * Every element in the wheels whose computed animation name is set.
- * The name stays after the reveal has finished, where `getAnimations` would come back empty, so a still wheel cannot pass for one that turned in before the check ran.
- */
-function animatedIn(wheels: readonly HTMLElement[]) {
-  return wheels
-    .flatMap((wheel) => [wheel, ...wheel.querySelectorAll('*')])
-    .filter((element) => getComputedStyle(element).animationName !== 'none');
-}
-
-const readiness = install(() => productTransport('neutral', battleStory('preparing', true)));
-
-export const BattleReadiness = meta.story({
+export const Readiness = meta.story({
   beforeEach: readiness,
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -200,7 +333,7 @@ export const BattleReadiness = meta.story({
 });
 
 /** The site's Motion setting reaches the wheels: the preparing side's ring holds still and dashed instead of pulsing. */
-export const BattleReadinessStill = meta.story({
+export const ReadinessStill = meta.story({
   globals: { motion: 'reduce' },
   beforeEach: readiness,
   play: async ({ canvasElement }) => {
@@ -216,7 +349,28 @@ export const BattleReadinessStill = meta.story({
   },
 });
 
-export const BattlePlanner = meta.story({
+/** A live battle's wheels name both sides from the roster in a real game too. */
+export const ReadinessInRealGame = meta.story({
+  beforeEach: install(() => productTransport('neutral', withConvexIds(battleStory('preparing', true)))),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await settled(() =>
+      expect(page.getByRole('img', { name: 'House Harkonnen, left side, aggressor, Preparing' })).toBeVisible()
+    );
+    await expect(page.getByRole('img', { name: 'House Atreides, right side, Ready' })).toBeVisible();
+  },
+});
+
+/** Battle, planning: the troops, leader, cards and spice the plan commits, before Ready. */
+export const Planning = meta.story({
+  beforeEach: install(() => productTransport('seat-2', withCardInHand(battleStory('preparing')))),
+  play: async ({ canvasElement }) => {
+    const page = await openPanel(canvasElement, 'Battle');
+    await expect(page.findByRole('button', { name: 'Ready for battle' }, WAIT)).resolves.toBeVisible();
+  },
+});
+
+export const Planner = meta.story({
   beforeEach: install(() => {
     const snapshot = battleStory('preparing');
     const card = snapshot.table.pieces.find((piece) => piece.kind === 'card' && piece.items.length === 1)!;
@@ -261,7 +415,7 @@ export const BattlePlanner = meta.story({
 });
 
 /** The plan's artwork arrives through `PublishedImage`, and a publication that fails to load draws its missing state. */
-export const BattlePlanArtwork = meta.story({
+export const PlanArtwork = meta.story({
   beforeEach: battleSetup('preparing', 'seat-2', (snapshot) => {
     const named = (name: string) => snapshot.hand!.find((piece) => piece.items[0]?.artwork?.name === name)!;
     named('Duncan Idaho').items[0]!.artwork!.front = new URL(
@@ -287,7 +441,7 @@ export const BattlePlanArtwork = meta.story({
 });
 
 /** A participant sees their planner once, then keeps their chosen group across battle updates. */
-export const BattleFocusOnce = meta.story({
+export const FocusOnce = meta.story({
   beforeEach: battleSetup('preparing'),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -302,126 +456,7 @@ export const BattleFocusOnce = meta.story({
   },
 });
 
-export const BattleReady = meta.story({
-  beforeEach: battleSetup('preparing'),
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await openTab(page, 'Battle');
-    await settled(() => expect(page.getByRole('button', { name: 'Ready for battle' })).toBeEnabled());
-    await userEvent.click(page.getByRole('button', { name: 'Ready for battle' }));
-    await expect(lastCommand()?.action).toEqual({
-      kind: 'battle-ready',
-      battleId: 'story-battle',
-      ready: true,
-    });
-  },
-});
-
-async function expectPlanBound(
-  canvasElement: HTMLElement,
-  field: 'Committed spice' | 'Supported',
-  plan: Partial<NonNullable<GameSnapshot['battlePlan']>>
-) {
-  const page = within(canvasElement.ownerDocument.body);
-  await openTab(page, 'Battle');
-  await settled(async () => {
-    const input = page.getByRole('textbox', { name: field });
-    await userEvent.clear(input);
-    await userEvent.type(input, '9');
-    await userEvent.keyboard('{Enter}');
-    await expect(lastCommand()?.action).toMatchObject({ kind: 'battle-plan', plan });
-  });
-  return page;
-}
-
-export const BattleSpiceBound = meta.story({
-  beforeEach: battleSetup('preparing', 'seat-2', (snapshot) => {
-    snapshot.bank!.balance = 2;
-  }),
-  play: async ({ canvasElement }) => {
-    const page = await expectPlanBound(canvasElement, 'Committed spice', { spice: 2 });
-    await settled(() => expect(page.getByText(/0 in your spice reserve, 2 set aside/)).toBeVisible());
-  },
-});
-
-export const BattleCustomSpiceBound = meta.story({
-  beforeEach: battleSetup('preparing', 'seat-2', (snapshot) => {
-    snapshot.bank!.balance = 2;
-    snapshot.battlePlan!.mode = 'custom';
-  }),
-  play: async ({ canvasElement }) => {
-    await expectPlanBound(canvasElement, 'Supported', {
-      troops: [{ faceId: 'house-harkonnen-front', undialed: 0, dialed: 2 }],
-    });
-  },
-});
-
-export const BattleCountdown = meta.story({
-  beforeEach: battleSetup('countdown'),
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await openTab(page, 'Battle');
-    await settled(() => expect(page.getByRole('button', { name: 'Undo Ready' })).toBeEnabled());
-    await expect(page.getByRole('textbox', { name: 'Committed spice' })).toBeDisabled();
-    await expect(page.queryByRole('button', { name: 'Cancel battle' })).toBeNull();
-  },
-});
-
-export const BattleObserver = meta.story({
-  beforeEach: install(() => productTransport('neutral', battleStory('revealed', true))),
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await openTab(page, 'Battle');
-    await settled(() => expect(page.getByRole('button', { name: 'No winner' })).toBeDisabled());
-    await expect(page.queryByRole('textbox', { name: 'Committed spice' })).toBeNull();
-    await expect(page.queryByRole('region', { name: 'Your hand and leaders' })).toBeNull();
-  },
-});
-
-const revealedPieces = install(() => {
-  const snapshot = battleStory('revealed');
-  const battle = snapshot.battle!;
-  const card = snapshot.table.pieces.find((piece) => piece.id === 'treachery-card-loose')!;
-  card.battleOverlay = battle.id;
-  battle.revealed![0].pieces = [card];
-  battle.revealed![0].cardIds = [card.id];
-  return productTransport('seat-2', snapshot);
-});
-
-export const BattleRevealedPieces = meta.story({
-  beforeEach: revealedPieces,
-  play: async ({ canvasElement }) => {
-    await waitFor(
-      async () => {
-        const callout = canvasElement.ownerDocument.querySelector<HTMLElement>('[data-battle-stage="revealed"]');
-        await expect(callout).not.toBeNull();
-        const card = within(callout!).getByRole('button', { name: 'Drag Snooper onto table' });
-        await expect(finishTransitions(card)).toBeVisible();
-        await expect(card).toBeEnabled();
-      },
-      { timeout: 30_000 }
-    );
-  },
-});
-
-/** The site's Motion setting reaches the wheels: both plans show at once, with no turn. */
-export const BattleRevealedPiecesStill = meta.story({
-  globals: { motion: 'reduce' },
-  beforeEach: revealedPieces,
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    const plans = /^House (Harkonnen|Atreides) plan,/;
-    /* The viewer is a side, so the dock opens on the Battle tab with its own plan's wheel; the two on the table are the reveal. */
-    const revealed = () => page.getAllByLabelText(plans).filter((plan) => !plan.closest('.seated-controls-panel'));
-    await settled(() => expect(revealed()).toHaveLength(2));
-    await expect(animatedIn(page.getAllByLabelText(plans))).toEqual([]);
-    for (const plan of revealed()) {
-      await expect(within(plan).getByText('Strength')).toBeVisible();
-    }
-  },
-});
-
-export const BattleNumericDraft = meta.story({
+export const NumericDraft = meta.story({
   beforeEach: battleSetup('preparing'),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -453,48 +488,185 @@ export const BattleNumericDraft = meta.story({
   },
 });
 
-/* A real game keys each faction by its Convex document id, so a label that prints the id instead of the roster's name only shows once the stories stop using slugs. */
-const convexIds: Record<string, string> = {
-  'house-harkonnen': 'k175em553h9x2vq0t8c4wj6rsd7ab1ny',
-  'house-atreides': 'k17fybprv2m8kq5z3x0hd9tnwc6js4ge',
-};
-function withConvexIds(snapshot: GameSnapshot): GameSnapshot {
-  return JSON.parse(
-    Object.entries(convexIds).reduce(
-      (json, [slug, id]) => json.replaceAll(`"${slug}"`, `"${id}"`),
-      JSON.stringify(snapshot)
-    )
-  );
-}
+export const SpiceBound = meta.story({
+  beforeEach: battleSetup('preparing', 'seat-2', (snapshot) => {
+    snapshot.bank!.balance = 2;
+  }),
+  play: async ({ canvasElement }) => {
+    const page = await expectPlanBound(canvasElement, 'Committed spice', { spice: 2 });
+    await settled(() => expect(page.getByText(/0 in your spice reserve, 2 set aside/)).toBeVisible());
+  },
+});
 
-function resolvedBattle(rekey: (snapshot: GameSnapshot) => GameSnapshot = (snapshot) => snapshot) {
-  return install(() => {
-    const snapshot = battleStory('revealed');
-    const battle = snapshot.battle!;
-    const card = snapshot.table.pieces.find((piece) => piece.kind === 'card' && piece.items.length === 1)!;
-    const plans = battle.revealed!;
-    plans[0].pieces = [card];
-    plans[0].cardIds = [card.id];
-    snapshot.battleResults = [
-      {
-        id: battle.id,
-        anchor: battle.anchor,
-        territory: battle.territory,
-        factions: ['house-harkonnen', 'house-atreides'],
-        plans,
-        outcome: 'left',
-        revision: 1,
+export const CustomSpiceBound = meta.story({
+  beforeEach: battleSetup('preparing', 'seat-2', (snapshot) => {
+    snapshot.bank!.balance = 2;
+    snapshot.battlePlan!.mode = 'custom';
+  }),
+  play: async ({ canvasElement }) => {
+    await expectPlanBound(canvasElement, 'Supported', {
+      troops: [{ faceId: 'house-harkonnen-front', undialed: 0, dialed: 2 }],
+    });
+  },
+});
+
+export const EarlyReveal = meta.story({
+  beforeEach: install(() => productTransport('seat-2', earlyRevealSnapshot())),
+  play: async ({ canvasElement }) => {
+    const page = await openPanel(canvasElement, 'Battle');
+    await expect(page.findByRole('checkbox', { name: 'Dial' }, WAIT)).resolves.toBeChecked();
+    await expect(page.findByRole('checkbox', { name: 'Leader' }, WAIT)).resolves.not.toBeChecked();
+    /* The parts fade in on the table, so the check is that they are drawn, not that the fade has finished. */
+    await expect(
+      page.findByRole('img', { name: /Harkonnen dial revealed early: 3\.5$/ }, WAIT)
+    ).resolves.toBeInTheDocument();
+    await expect(
+      page.findByRole('group', { name: /Atreides leader revealed early$/ }, WAIT)
+    ).resolves.toBeInTheDocument();
+  },
+});
+
+export const Ready = meta.story({
+  beforeEach: battleSetup('preparing'),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await openTab(page, 'Battle');
+    await settled(() => expect(page.getByRole('button', { name: 'Ready for battle' })).toBeEnabled());
+    await userEvent.click(page.getByRole('button', { name: 'Ready for battle' }));
+    await expect(lastCommand()?.action).toEqual({
+      kind: 'battle-ready',
+      battleId: 'story-battle',
+      ready: true,
+    });
+  },
+});
+
+export const Countdown = meta.story({
+  beforeEach: battleSetup('countdown'),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await openTab(page, 'Battle');
+    await settled(() => expect(page.getByRole('button', { name: 'Undo Ready' })).toBeEnabled());
+    await expect(page.getByRole('textbox', { name: 'Committed spice' })).toBeDisabled();
+    await expect(page.queryByRole('button', { name: 'Cancel battle' })).toBeNull();
+  },
+});
+
+/** Battle, both plans revealed: the panel shows the viewer's plan locked, and the winner is called on the table's callout. */
+export const Revealed = meta.story({
+  beforeEach: install(() => productTransport('seat-2', battleStory('revealed'))),
+  play: async ({ canvasElement }) => {
+    const page = await openPanel(canvasElement, 'Battle');
+    await expect(page.findByRole('textbox', { name: 'Adjustment' }, WAIT)).resolves.toBeDisabled();
+    await expect(page.queryByRole('button', { name: /Ready for battle|Undo Ready/ })).toBeNull();
+    await expect(page.findByRole('button', { name: 'No winner' }, WAIT)).resolves.toBeVisible();
+  },
+});
+
+export const RevealedPieces = meta.story({
+  beforeEach: revealedPieces,
+  play: async ({ canvasElement }) => {
+    await waitFor(
+      async () => {
+        const callout = canvasElement.ownerDocument.querySelector<HTMLElement>('[data-battle-stage="revealed"]');
+        await expect(callout).not.toBeNull();
+        const card = within(callout!).getByRole('button', { name: 'Drag Snooper onto table' });
+        await expect(finishTransitions(card)).toBeVisible();
+        await expect(card).toBeEnabled();
       },
-    ];
-    snapshot.battle = null;
-    snapshot.battlePlan = null;
-    /* Resolving leaves the revealed card on the table, where its owner discards it by hand. */
-    snapshot.revision = 1;
-    return productTransport('seat-2', rekey(snapshot));
-  });
-}
+      { timeout: 30_000 }
+    );
+  },
+});
 
-export const BattleResolved = meta.story({
+/** The site's Motion setting reaches the wheels: both plans show at once, with no turn. */
+export const RevealedPiecesStill = meta.story({
+  globals: { motion: 'reduce' },
+  beforeEach: revealedPieces,
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const plans = /^House (Harkonnen|Atreides) plan,/;
+    /* The viewer is a side, so the dock opens on the Battle tab with its own plan's wheel; the two on the table are the reveal. */
+    const revealed = () => page.getAllByLabelText(plans).filter((plan) => !plan.closest('.seated-controls-panel'));
+    await settled(() => expect(revealed()).toHaveLength(2));
+    await expect(animatedIn(page.getAllByLabelText(plans))).toEqual([]);
+    for (const plan of revealed()) {
+      await expect(within(plan).getByText('Strength')).toBeVisible();
+    }
+  },
+});
+
+export const Observer = meta.story({
+  beforeEach: install(() => productTransport('neutral', battleStory('revealed', true))),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    /* A spectator's dock opens on the battle. */
+    await expect(page.findByRole('tab', { name: 'Battle' }, { timeout: 30_000 })).resolves.toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+    await openTab(page, 'Battle');
+    await settled(() => expect(page.getByRole('button', { name: 'No winner' })).toBeDisabled());
+    await expect(page.getByText('Both plans are revealed on the table.')).toBeVisible();
+    await expect(page.queryByRole('textbox', { name: 'Committed spice' })).toBeNull();
+    await expect(page.queryByRole('region', { name: 'Your hand and leaders' })).toBeNull();
+  },
+});
+
+/** A side that called a winner sees who the battle now waits on. */
+export const WinnerCalled = meta.story({
+  beforeEach: battleSetup('revealed', 'seat-2', (snapshot) => {
+    snapshot.battle!.sides[1]!.choice = null;
+  }),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await settled(() => expect(page.getByText('Waiting for House Atreides to agree')).toBeVisible());
+    await expect(page.getByRole('button', { name: 'Left side won' })).toBeVisible();
+  },
+});
+
+/** The other side's call is lit, so agreeing with it is one click. */
+export const WinnerCalledByOpponent = meta.story({
+  beforeEach: battleSetup('revealed', 'seat-2', (snapshot) => {
+    snapshot.battle!.sides[0]!.choice = null;
+    snapshot.battle!.sides[1]!.choice = 'left';
+  }),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await settled(() => expect(page.getByText('House Atreides says left side won')).toBeVisible());
+    await userEvent.click(page.getByRole('button', { name: 'Left side won' }));
+    await expect(lastCommand()?.action).toEqual({ kind: 'battle-outcome', battleId: 'story-battle', outcome: 'left' });
+  },
+});
+
+/** When the sides call different winners, each sees the other's call rather than a wait. */
+export const WinnerCallsDiffer = meta.story({
+  beforeEach: battleSetup('revealed'),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await settled(() => expect(page.getByText('House Atreides says right side won')).toBeVisible());
+  },
+});
+
+/** After the reveal the battle ends as resolved, not cancelled, and it settles with whatever the sides called. */
+export const RevealedResolve = meta.story({
+  beforeEach: battleSetup('revealed', 'seat-2', (snapshot) => {
+    for (const side of snapshot.battle!.sides) {
+      side!.choice = null;
+    }
+  }),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await settled(() => expect(page.getByRole('button', { name: 'Resolve battle' })).toBeEnabled());
+    await expect(page.queryByRole('button', { name: 'Cancel battle' })).toBeNull();
+    await expect(page.queryByText(/^Waiting for /)).toBeNull();
+    await expect(page.queryByText(/ says /)).toBeNull();
+    await userEvent.click(page.getByRole('button', { name: 'Resolve battle' }));
+    await expect(lastCommand()?.action).toEqual({ kind: 'battle-cancel', battleId: 'story-battle' });
+  },
+});
+
+export const Resolved = meta.story({
   beforeEach: resolvedBattle(),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -519,7 +691,7 @@ export const BattleResolved = meta.story({
 });
 
 /** A real game's result names both factions from the roster, never by the Convex ids the result carries. */
-export const BattleResolvedInRealGame = meta.story({
+export const ResolvedInRealGame = meta.story({
   beforeEach: resolvedBattle(withConvexIds),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -533,68 +705,5 @@ export const BattleResolvedInRealGame = meta.story({
       await expect(page.queryByText(new RegExp(id))).toBeNull();
       await expect(page.queryByLabelText(new RegExp(id))).toBeNull();
     }
-  },
-});
-
-/** A live battle's wheels name both sides from the roster in a real game too. */
-export const BattleReadinessInRealGame = meta.story({
-  beforeEach: install(() => productTransport('neutral', withConvexIds(battleStory('preparing', true)))),
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await settled(() =>
-      expect(page.getByRole('img', { name: 'House Harkonnen, left side, aggressor, Preparing' })).toBeVisible()
-    );
-    await expect(page.getByRole('img', { name: 'House Atreides, right side, Ready' })).toBeVisible();
-  },
-});
-
-/** After the reveal the battle ends as resolved, not cancelled, and it settles with whatever the sides called. */
-export const BattleRevealedResolve = meta.story({
-  beforeEach: battleSetup('revealed', 'seat-2', (snapshot) => {
-    for (const side of snapshot.battle!.sides) {
-      side!.choice = null;
-    }
-  }),
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await settled(() => expect(page.getByRole('button', { name: 'Resolve battle' })).toBeEnabled());
-    await expect(page.queryByRole('button', { name: 'Cancel battle' })).toBeNull();
-    await expect(page.queryByText(/^Waiting for /)).toBeNull();
-    await expect(page.queryByText(/ says /)).toBeNull();
-    await userEvent.click(page.getByRole('button', { name: 'Resolve battle' }));
-    await expect(lastCommand()?.action).toEqual({ kind: 'battle-cancel', battleId: 'story-battle' });
-  },
-});
-
-/** A side that called a winner sees who the battle now waits on. */
-export const BattleWinnerCalled = meta.story({
-  beforeEach: battleSetup('revealed', 'seat-2', (snapshot) => {
-    snapshot.battle!.sides[1]!.choice = null;
-  }),
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await settled(() => expect(page.getByText('Waiting for House Atreides to agree')).toBeVisible());
-    await expect(page.getByRole('button', { name: 'Left side won' })).toBeVisible();
-  },
-});
-
-/** The other side's call is lit, so agreeing with it is one click. */
-export const BattleWinnerCalledByOpponent = meta.story({
-  beforeEach: battleSetup('revealed', 'seat-2', (snapshot) => {
-    snapshot.battle!.sides[0]!.choice = null;
-    snapshot.battle!.sides[1]!.choice = 'left';
-  }),
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await settled(() => expect(page.getByText('House Atreides says left side won')).toBeVisible());
-  },
-});
-
-/** When the sides call different winners, each sees the other's call rather than a wait. */
-export const BattleWinnerCallsDiffer = meta.story({
-  beforeEach: battleSetup('revealed'),
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await settled(() => expect(page.getByText('House Atreides says right side won')).toBeVisible());
   },
 });

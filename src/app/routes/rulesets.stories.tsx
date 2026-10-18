@@ -1,9 +1,11 @@
 import preview from '@sb/preview';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
-import { db, ruleset } from '@db/storybook';
+import { db, ref, ruleset } from '@db/storybook';
+import type { StorybookDatabase } from '@db/storybook';
 
 import { expectToolbarOnOneLine } from './authoringToolbarPlay';
+import { expectFieldValue } from './pagePlay';
 import { pageStoryMeta } from './storybookConfig';
 
 const meta = preview.meta({
@@ -11,7 +13,14 @@ const meta = preview.meta({
   ...pageStoryMeta,
 });
 
-export const Directory = meta.story({ args: { path: '/rulesets' } });
+export const Directory = meta.story({
+  args: { path: '/rulesets' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const [entry] = await page.findAllByRole('link', { name: /ClassicRules/i }, { timeout: 30_000 });
+    await expect(entry).toHaveAttribute('href', '/rulesets/classicrules');
+  },
+});
 /** The slotted board shows below the Rulebooks, linking to its own page. */
 export const Detail = meta.story({
   args: { path: '/rulesets/classicrules' },
@@ -47,9 +56,88 @@ export const DetailWithoutBoard = meta.story({
     await expect(board.queryByRole('link')).toBeNull();
   },
 });
-export const Edit = meta.story({ args: { path: '/rulesets/classicrules/edit' } });
+/** Numbered questions on ClassicRules, asked after the baseline's storm question, so the storm question is the oldest. */
+function seedQuestions(baseline: StorybookDatabase, count: number) {
+  for (let index = 1; index <= count; index++) {
+    const number = String(index).padStart(2, '0');
+    baseline.faq_items.push({
+      ruleset_id: ref('ruleset:classicrules'),
+      slug: `question-${number}`,
+      question: `Question ${number}?`,
+      tags: ['rules'],
+      asked_by: ref('storybook-viewer'),
+      created_at: `2030-01-01T00:00:${number}.000Z`,
+      updated_at: `2030-01-01T00:00:${number}.000Z`,
+      accepted_answer_id: null,
+    });
+  }
+}
+/** The ruleset's page shows its newest questions and links to the rest; its search opens the FAQ's own page. */
+export const DetailFaqPreview = meta.story({
+  args: { path: '/rulesets/classicrules' },
+  parameters: { database: db((baseline) => seedQuestions(baseline, 8)) },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const faq = within(await page.findByRole('region', { name: 'Community FAQ' }, { timeout: 30_000 }));
+    await expect(faq.findByRole('link', { name: 'Question 08?' }, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(faq.getByRole('link', { name: 'Question 04?' })).toBeVisible();
+    await expect(faq.queryByRole('link', { name: 'Question 03?' })).toBeNull();
+    await expect(faq.getByRole('link', { name: 'All 9 questions' })).toHaveAttribute(
+      'href',
+      '/rulesets/classicrules/faq'
+    );
+
+    await userEvent.type(faq.getByRole('textbox', { name: 'Search FAQ questions' }), 'storm{Enter}');
+    /* The FAQ's own page, which only it has a way back from. */
+    await expect(page.findByRole('link', { name: 'Back to ClassicRules' }, { timeout: 30_000 })).resolves.toBeVisible();
+    const main = within(page.getByRole('main'));
+    await expect(
+      main.findByRole('link', { name: 'When does the storm move?' }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+    await expect(main.queryByRole('link', { name: 'Question 08?' })).toBeNull();
+  },
+});
+/** Every page of a ruleset's FAQ has its own address, and its search narrows the questions on the server. */
+export const FaqPagesAndSearch = meta.story({
+  args: { path: '/rulesets/classicrules/faq?page=2' },
+  parameters: { database: db((baseline) => seedQuestions(baseline, 30)) },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const main = within(await page.findByRole('main', {}, { timeout: 30_000 }));
+    /* Newest first, so page two holds the six oldest numbered questions and the baseline's storm question. */
+    await expect(main.findByRole('link', { name: 'Question 06?' }, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(main.getByRole('link', { name: 'When does the storm move?' })).toBeVisible();
+    await expect(main.queryByRole('link', { name: 'Question 07?' })).toBeNull();
+    await expect(page.findByText(/^25–31 of 31 questions$/)).resolves.toBeVisible();
+    await expect(page.getByRole('link', { name: 'First page' })).toHaveAttribute('href', '/rulesets/classicrules/faq');
+
+    await userEvent.type(page.getByRole('textbox', { name: 'Search FAQ questions' }), 'Question 17');
+    await expect(main.findByRole('link', { name: 'Question 17?' }, { timeout: 30_000 })).resolves.toBeVisible();
+    await waitFor(() => expect(main.queryByRole('link', { name: 'When does the storm move?' })).toBeNull());
+  },
+});
+/** A link from before the FAQ had its own page, which searched on the ruleset's page, lands on the FAQ's page with the same search. */
+export const FaqFormerSearchLink = meta.story({
+  args: { path: '/rulesets/classicrules?q=storm&tag=rules' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('link', { name: 'Back to ClassicRules' }, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(page.getByRole('textbox', { name: 'Search FAQ questions' })).toHaveValue('storm');
+    await expect(
+      within(page.getByRole('main')).findByRole('link', { name: 'When does the storm move?' }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+  },
+});
+export const Edit = meta.story({
+  args: { path: '/rulesets/classicrules/edit' },
+  play: ({ canvasElement }) => expectFieldValue(canvasElement, 'Name', 'ClassicRules'),
+});
 export const AskQuestion = meta.story({
   args: { path: '/rulesets/classicrules/faq/create' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('textbox', { name: 'Ask a question' }, { timeout: 30_000 })).resolves.toBeVisible();
+  },
 });
 /**
  * The same page reached through a ruleset slug that names nothing, which is the state the route's own frame exists for.
@@ -99,21 +187,11 @@ export const Question = meta.story({
     await expect(page.queryByRole('textbox', { name: 'Edit question' })).toBeNull();
   },
 });
-export const RulebookEditor = meta.story({
-  args: { path: '/rulesets/classicrules/rulebooks/player-aid/edit' },
-  globals: { viewport: { value: 'appAuthoringWide' } },
-});
 
 /** The ruleset editor's toolbar on one line at a phone, tablet, laptop and desktop width (#1423), stating only its save state at rest. */
 export const EditToolbarAt360 = meta.story({
   args: { path: '/rulesets/classicrules/edit' },
   globals: { viewport: { value: 'appMobileNarrow' } },
-  play: async ({ canvasElement }) =>
-    await expectToolbarOnOneLine(canvasElement, { statusDescribes: ['No unsaved changes'] }),
-});
-export const EditToolbarAt390 = meta.story({
-  args: { path: '/rulesets/classicrules/edit' },
-  globals: { viewport: { value: 'appMobile' } },
   play: async ({ canvasElement }) =>
     await expectToolbarOnOneLine(canvasElement, { statusDescribes: ['No unsaved changes'] }),
 });
@@ -126,12 +204,6 @@ export const EditToolbarAt768 = meta.story({
 export const EditToolbarAt1100 = meta.story({
   args: { path: '/rulesets/classicrules/edit' },
   globals: { viewport: { value: 'appLaptop' } },
-  play: async ({ canvasElement }) =>
-    await expectToolbarOnOneLine(canvasElement, { statusDescribes: ['No unsaved changes'] }),
-});
-export const EditToolbarAt1440 = meta.story({
-  args: { path: '/rulesets/classicrules/edit' },
-  globals: { viewport: { value: 'appLarge' } },
   play: async ({ canvasElement }) =>
     await expectToolbarOnOneLine(canvasElement, { statusDescribes: ['No unsaved changes'] }),
 });

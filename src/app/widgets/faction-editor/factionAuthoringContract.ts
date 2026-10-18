@@ -7,12 +7,12 @@ export const factionAuthoringChapters = [
   { id: 'identity', label: 'Identity & Appearance' },
   { id: 'factionLeader', label: 'Faction leader' },
   { id: 'leaders', label: 'Leaders' },
-  /* Two ordering dependencies: Planets precedes Forces because a troop's planet
-     reference selects among the planets, and Forces precedes Alliance because
+  /* Two ordering dependencies: Planets precedes Troops because a troop's planet
+     reference selects among the planets, and Troops precedes Alliance because
      the alliance card's proof needs at least one troop type. The internal
-     chapter id stays `worlds`; only the label says Planets. */
+     chapter ids stay `worlds` and `forces`; only the labels say Planets and Troops. */
   { id: 'worlds', label: 'Planets' },
-  { id: 'forces', label: 'Forces' },
+  { id: 'forces', label: 'Troops' },
   { id: 'alliance', label: 'Alliance' },
   { id: 'rules', label: 'Rules' },
   { id: 'advantages', label: 'Advantages' },
@@ -64,7 +64,7 @@ export function factionAuthoringWarnings(faction: Faction): FactionAuthoringWarn
   });
 
   if (isBlank(faction.rules.alliance.text)) {
-    warnings.push(warning('rules.alliance.text', 'alliance', 'Alliance', 'ability text', 'rules-alliance'));
+    warnings.push(warning('rules.alliance.text', 'alliance', 'Alliance', 'advantage text', 'rules-alliance'));
   }
 
   faction.troops.forEach((troop, index) => {

@@ -11,6 +11,7 @@
  */
 export const BLOG_POST_SLUGS = [
   'anatomy-of-a-dune-faction-atreides',
+  'drawing-dune-tokens-and-cards',
   'all-in-one-dune-board-game-webapp',
   'tabletop-simulator',
   'why-dune',
