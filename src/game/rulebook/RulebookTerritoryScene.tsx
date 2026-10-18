@@ -1,4 +1,5 @@
 import type { ComponentGeometry } from '@shared/asset-publishing/componentGeometry';
+import { useId } from 'react';
 import type { ComponentProps, ReactNode } from 'react';
 
 import { useAsset } from '../assets/assetRenderMode';
@@ -41,6 +42,7 @@ export function RulebookTerritoryScene({
 }: RulebookTerritorySceneProps) {
   const imageUrl = useAsset(board.imageUrl);
   const { width, height } = board.geometry;
+  const discClip = `${useId().replaceAll(':', '')}-disc`;
   return (
     <svg
       className="rulebookTerritoryScene"
@@ -49,7 +51,11 @@ export function RulebookTerritoryScene({
       role="img"
       aria-label={label}
     >
-      <image href={imageUrl} width={width} height={height} />
+      {/* The board is a disc filling its image; anything its artwork draws past the rim, such as sector guides, stays off the page. */}
+      <clipPath id={discClip}>
+        <ellipse cx={width / 2} cy={height / 2} rx={width / 2} ry={height / 2} />
+      </clipPath>
+      <image href={imageUrl} width={width} height={height} clipPath={`url(#${discClip})`} />
       {highlights.map((highlight) => {
         const part = board.geometry.parts.find(({ key }) => key === highlight.territory);
         return part?.highlight ? (
