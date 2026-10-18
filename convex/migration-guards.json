@@ -427,6 +427,16 @@
       "requires": ["catalogue_entries_profiles_v1"]
     },
     {
+      "id": "catalogue_entries_faq_v1",
+      "phase": "widen",
+      "requires": []
+    },
+    {
+      "id": "catalogue_entries_faq_verify_v1",
+      "phase": "widen",
+      "requires": ["catalogue_entries_faq_v1"]
+    },
+    {
       "id": "faction_cards_v1",
       "phase": "widen",
       "requires": []

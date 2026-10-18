@@ -256,7 +256,7 @@ function FaqDetailPage() {
         <PageIdentity
           title={questionTitle(item.text)}
           breadcrumb={
-            <PageIdentity.Breadcrumb to="/rulesets/$rulesetSlug" params={{ rulesetSlug: page.ruleset.slug }} hash="faq">
+            <PageIdentity.Breadcrumb to="/rulesets/$rulesetSlug/faq" params={{ rulesetSlug: page.ruleset.slug }}>
               {page.ruleset.name} FAQ
             </PageIdentity.Breadcrumb>
           }

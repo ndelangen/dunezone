@@ -76,6 +76,8 @@ const MIGRATION_IDS: Record<string, MigrationRef> = {
   catalogue_entries_assets_verify_v1: internal.migrations.catalogue_entries_assets_verify_v1,
   catalogue_entries_profiles_v1: internal.migrations.catalogue_entries_profiles_v1,
   catalogue_entries_profiles_verify_v1: internal.migrations.catalogue_entries_profiles_verify_v1,
+  catalogue_entries_faq_v1: internal.migrations.catalogue_entries_faq_v1,
+  catalogue_entries_faq_verify_v1: internal.migrations.catalogue_entries_faq_verify_v1,
   catalogue_entries_prune_v1: internal.migrations.catalogue_entries_prune_v1,
   catalogue_entries_verify_v1: internal.migrations.catalogue_entries_verify_v1,
   catalogue_entries_verify_v2: internal.migrations.catalogue_entries_verify_v2,
@@ -1407,6 +1409,25 @@ export const catalogue_entries_profiles_verify_v1 = migrations.define({
   table: 'profiles',
   migrateOne: async (ctx, row) => {
     await assertCatalogueSourceExact(ctx, 'profile', row._id);
+  },
+});
+
+/** Builds every ruleset's FAQ lists from canonical questions, while live writes keep them current through triggers. */
+export const catalogue_entries_faq_v1 = migrations.define({
+  table: 'faq_items',
+  /* A question is written into up to nine lists, each reconcile rereading it, so a batch stays well inside a transaction's limits. */
+  batchSize: 25,
+  migrateOne: async (ctx, row) => {
+    await repairCatalogueEntry(ctx, 'faq', row._id);
+  },
+});
+
+/** Proves every question is in each of its FAQ lists exactly once, so an empty or partial FAQ cannot pass. */
+export const catalogue_entries_faq_verify_v1 = migrations.define({
+  table: 'faq_items',
+  batchSize: 25,
+  migrateOne: async (ctx, row) => {
+    await assertCatalogueSourceExact(ctx, 'faq', row._id);
   },
 });
 
