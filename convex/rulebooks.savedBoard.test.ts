@@ -49,6 +49,9 @@ test(
       for (const row of await ctx.db.query('publication_assets').take(10)) {
         await ctx.db.delete(row._id);
       }
+      for (const row of await ctx.db.query('publication_jobs').take(10)) {
+        await ctx.db.delete(row._id);
+      }
     });
     const pending = await t.run((ctx) => resolveRulebookReferences(ctx, contents));
     expect(projectRulebookSource(reference, pending.assetsById).status).toBe('unavailable');
@@ -66,6 +69,14 @@ test(
     expect(source).toMatchObject({ status: 'ready', name: 'Arrakis copy', width: 1948, height: 1948 });
     const parts = source.status === 'ready' ? (source.geometry?.parts ?? []) : [];
     expect(parts.find((part) => part.key === 'funeral-plain')?.highlight?.paths).toHaveLength(1);
+
+    /* A publication from before boards kept their territories only reads the board's data while no newer save is being captured. */
+    await owner.mutation(api.assets.update, {
+      id: board.id,
+      data: { name: 'Arrakis copy', about: 'Edited', board: arrakisBoard() },
+    });
+    const capturing = await t.run((ctx) => resolveRulebookReferences(ctx, contents));
+    expect(capturing.assetsById[board.id]?.geometry).toBeUndefined();
 
     await owner.mutation(api.assets.softDelete, { id: board.id });
     const gone = await t.run((ctx) => resolveRulebookReferences(ctx, contents));

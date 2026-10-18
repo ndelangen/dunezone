@@ -1,6 +1,8 @@
 /* oxlint-disable jsx-a11y/alt-text -- Static decorative game-card layers, not content images. */
 import type { CustomCardTokens, SpiceBoardLook, SpiceTint, SpiceTokenPlacement } from '@shared/assets/schema';
 import { SPICE_BOARD_SIZE } from '@shared/assets/schema';
+import { POINTER_TIP_RATIO, tokenShapeOfType } from '@shared/assets/tokenOutline';
+import type { TokenShape } from '@shared/assets/tokenOutline';
 import { CENTER, RADIUS, derive } from '@shared/boards/geometry';
 import type { Board, Face, Point } from '@shared/boards/geometry';
 import { territoryId } from '@shared/boards/schema';
@@ -213,7 +215,32 @@ function toBoard(event: PointerEvent<HTMLDivElement>): [number, number] {
   ];
 }
 
-/** The topmost drawn token under the point, the last drawn first, hit on its own rotated shape. */
+/* A pointer's round end, as a fraction of its square face: the point at the top centre, the round end filling the bottom. */
+const POINTER_RADIUS = 1 / (2 * (1 + POINTER_TIP_RATIO));
+const POINTER_CENTRE = 1 - POINTER_RADIUS;
+
+/** Whether a point in a token's face, from 0 to 1 across and down, falls inside the shape the card cuts it to. */
+function insideTokenShape(shape: TokenShape, u: number, v: number) {
+  if (u < 0 || u > 1 || v < 0 || v > 1) {
+    return false;
+  }
+  if (shape === 'round' || shape === 'gear') {
+    return Math.hypot(u - 0.5, v - 0.5) <= 0.5;
+  }
+  if (shape === 'pointer') {
+    if (Math.hypot(u - 0.5, v - POINTER_CENTRE) <= POINTER_RADIUS) {
+      return true;
+    }
+    /* Above the round end the teardrop narrows straight to its point along the tangent lines. */
+    const tangent = Math.acos(1 / POINTER_TIP_RATIO);
+    const edgeY = POINTER_CENTRE - POINTER_RADIUS * Math.cos(tangent);
+    const edgeHalfWidth = POINTER_RADIUS * Math.sin(tangent);
+    return v <= edgeY && Math.abs(u - 0.5) <= (v / edgeY) * edgeHalfWidth;
+  }
+  return true;
+}
+
+/** The topmost drawn token under the point, the last drawn first, hit on its own rotated and cut shape. */
 function topTokenAt(tokens: readonly Placement[], assets: TokenAssets, [x, y]: [number, number]) {
   return tokens.findLast((token) => {
     const asset = assets[token.asset_id];
@@ -225,7 +252,11 @@ function topTokenAt(tokens: readonly Placement[], assets: TokenAssets, [x, y]: [
     const dy = y - token.y;
     const along = dx * Math.cos(turn) - dy * Math.sin(turn);
     const across = dx * Math.sin(turn) + dy * Math.cos(turn);
-    return Math.abs(along) <= token.size / 2 && Math.abs(across) <= tokenHeight(token, asset) / 2;
+    return insideTokenShape(
+      tokenShapeOfType(asset.type) ?? 'square',
+      along / token.size + 0.5,
+      across / tokenHeight(token, asset) + 0.5
+    );
   });
 }
 
