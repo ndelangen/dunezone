@@ -52,7 +52,7 @@ function quietDeferredAssetWarnings(): Plugin {
 export default defineConfig({
   build: {
     assetsDir: 'public',
-    target: 'es2020',
+    target: convexWorkerOxc.target,
   },
   define: {
     /**
