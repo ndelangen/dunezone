@@ -150,6 +150,14 @@ export async function catalogueSourceDrift(
   return [...drift];
 }
 
+/** Throws unless one source's catalogue entries, and their aggregate order, are exactly what its canonical rows say; the verify migrations' check. */
+export async function assertCatalogueSourceExact(ctx: QueryCtx, kind: CatalogueKindName, sourceId: string) {
+  const drift = await catalogueSourceDrift(ctx, kind, sourceId);
+  if (drift.length > 0) {
+    throw new Error(`Catalogue entries for ${kind} ${sourceId} are ${drift.join(' and ')}.`);
+  }
+}
+
 /** What an asset entry reads off its owner's profile: the name it is searched by, and only while the profile is active. */
 function ownerSearchName(profile: Doc<'profiles'> | null) {
   return profile && isActiveProfile(profile) ? (profile.username ?? null) : null;

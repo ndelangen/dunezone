@@ -174,14 +174,14 @@ describe('the ruleset catalogue', () => {
     const [rulesetId] = await seedRulesets(t, [{ name: 'Old Timer' }], { triggers: false });
     expect(browsed(await t.query(api.rulesets.catalogue, {})).total).toBe(0);
 
-    await t.mutation(internal.migrations.catalogue_entries_rulesets_verify_v1, {});
+    await t.mutation(internal.catalogueMigrations.catalogue_entries_rulesets_verify_v1, {});
     await t.finishAllScheduledFunctions(() => undefined);
     await expect(
       t.query(internal.migrations.assertReadyForNarrow, { required: ['catalogue_entries_rulesets_verify_v1'] })
     ).rejects.toThrow(/catalogue_entries_rulesets_verify_v1\(failed/);
 
-    await t.mutation(internal.migrations.catalogue_entries_rulesets_v1, {});
-    await t.mutation(internal.migrations.catalogue_entries_rulesets_verify_v1, {});
+    await t.mutation(internal.catalogueMigrations.catalogue_entries_rulesets_v1, {});
+    await t.mutation(internal.catalogueMigrations.catalogue_entries_rulesets_verify_v1, {});
     await t.finishAllScheduledFunctions(() => undefined);
     expect((await t.query(api.rulesets.catalogue, {})).entries.map((entry) => entry.id)).toEqual([rulesetId]);
     await expect(
