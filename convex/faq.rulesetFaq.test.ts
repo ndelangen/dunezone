@@ -74,7 +74,10 @@ const questions = (page: { items: { question: string }[] } | null) => page?.item
 describe("a ruleset's FAQ", () => {
   test('the ruleset page shows the newest few with their answers, and counts every question and every answered one', async () => {
     const t = applicationTest();
-    const { profileId } = await seedFaq(t, [...numbered(FAQ_PREVIEW_SIZE + 3), { question: 'Newest?', answered: true }]);
+    const { profileId } = await seedFaq(t, [
+      ...numbered(FAQ_PREVIEW_SIZE + 3),
+      { question: 'Newest?', answered: true },
+    ]);
 
     const detail = await t.query(api.rulesets.detailPage, { slug: 'advanced' });
     expect(detail?.faqItems.map((item) => item.question)).toEqual([
@@ -126,9 +129,9 @@ describe("a ruleset's FAQ", () => {
     const storm = await t.query(api.faq.rulesetFaq, { rulesetSlug: 'advanced', q: 'storm' });
     expect(questions(storm)?.toSorted()).toEqual(['Does the storm move first?', 'When does the storm stop?']);
     expect(storm).toMatchObject({ total: 2, rulesetTotal: 3 });
-    expect(questions(await t.query(api.faq.rulesetFaq, { rulesetSlug: 'advanced', q: 'storm', tag: 'errata' }))).toEqual(
-      ['When does the storm stop?']
-    );
+    expect(
+      questions(await t.query(api.faq.rulesetFaq, { rulesetSlug: 'advanced', q: 'storm', tag: 'errata' }))
+    ).toEqual(['When does the storm stop?']);
   });
 
   test('follows an accepted answer, a retag and a deletion, and leaves no drift', async () => {

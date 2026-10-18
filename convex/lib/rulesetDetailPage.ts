@@ -1,10 +1,10 @@
+import { FAQ_PREVIEW_SIZE } from '../../src/shared/faq/catalogueSearch';
 import type { Id } from '../_generated/dataModel';
 import type { QueryCtx } from '../types';
 import { ownPublishedFace } from './assetBacks';
+import { countCataloguePartitions } from './catalogueOrder';
 import { assignedGroupSummary } from './collaborativeAccess';
 import { catalogueFactionFromCard, toCatalogueFaction } from './factionCatalogue';
-import { FAQ_PREVIEW_SIZE } from '../../src/shared/faq/catalogueSearch';
-import { countCataloguePartitions } from './catalogueOrder';
 import { faqAnsweredPartition, faqRulesetPartition } from './faqCatalogue';
 import { loadNewestFaqItems } from './faqRulesetList';
 import { profileSummary } from './profileSummary';

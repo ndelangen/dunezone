@@ -1,9 +1,6 @@
 import { v } from 'convex/values';
 
-import {
-  FAQ_CATALOGUE_PAGE_SIZE,
-  FAQ_CATALOGUE_QUERY_LIMIT,
-} from '../src/shared/faq/catalogueSearch';
+import { FAQ_CATALOGUE_PAGE_SIZE, FAQ_CATALOGUE_QUERY_LIMIT } from '../src/shared/faq/catalogueSearch';
 import type { FAQ_TAG_VALUES } from '../src/shared/faq/tags';
 import { faqAnswerSchema, faqQuestionSchema, faqTagsSchema } from '../src/shared/faq/validation';
 import { internal } from './_generated/api';

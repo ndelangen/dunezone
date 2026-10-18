@@ -61,6 +61,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 
+import type { FaqItemWithDetails } from '@db/faq';
 import { useCurrentProfile } from '@db/profiles';
 import { useRetryRulebookFirstPagePreview } from '@db/rulebooks';
 import type { RulebookListEntry } from '@db/rulebooks';
@@ -394,6 +395,104 @@ function FactionCardMenu({
   );
 }
 
+/**
+ * The ruleset's newest questions and a way to the rest.
+ * Searching or narrowing happens on the FAQ's own page, so the search here opens it on Enter and the tag opens it at once.
+ */
+function RulesetFaqPreview({
+  rulesetSlug,
+  items,
+  questionCount,
+}: {
+  rulesetSlug: string;
+  items: FaqItemWithDetails[];
+  questionCount: number;
+}) {
+  const navigate = useNavigate();
+  const [draft, setDraft] = useState('');
+  const openFaq = (patch: { tag?: FaqTag }) => {
+    void navigate({
+      to: '/rulesets/$rulesetSlug/faq',
+      params: { rulesetSlug },
+      search: parseFaqCatalogueSearch({ q: draft, ...patch }),
+    });
+  };
+  return (
+    <Section
+      id="faq"
+      icon={<CircleHelp size={20} aria-hidden />}
+      title="Community FAQ"
+      description="Browse community questions and accepted answers."
+    >
+      <TextInput
+        value={draft}
+        onChange={(event) => setDraft(event.currentTarget.value)}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter') {
+            event.preventDefault();
+            openFaq({});
+          }
+        }}
+        placeholder="Search questions…"
+        aria-label="Search FAQ questions"
+        leftSection={<Search size={16} aria-hidden />}
+        leftSectionPointerEvents="none"
+        rightSectionWidth="8rem"
+        rightSectionPointerEvents="all"
+        size="md"
+        radius="md"
+        classNames={{ wrapper: styles.faqFilterWrapper }}
+        rightSection={
+          <Select
+            value="__all__"
+            onChange={(value) => openFaq({ tag: value === '__all__' || value == null ? undefined : (value as FaqTag) })}
+            data={[
+              { value: '__all__', label: 'All tags' },
+              ...FAQ_TAG_VALUES.map((tag) => ({
+                value: tag,
+                label: FAQ_TAG_LABELS[tag],
+              })),
+            ]}
+            aria-label="Filter FAQ by tag"
+            allowDeselect={false}
+            variant="unstyled"
+            size="sm"
+            rightSectionWidth="2rem"
+            comboboxProps={{ shadow: 'md' }}
+            classNames={{
+              root: styles.faqTagSelect,
+              wrapper: styles.faqTagSelectWrapper,
+              input: styles.faqTagSelectInput,
+            }}
+          />
+        }
+      />
+      <FaqList
+        emptyLabel="No FAQ items yet."
+        items={items}
+        rulesetSlug={rulesetSlug}
+        onOpenQuestion={(questionSlug) =>
+          navigate({
+            to: '/rulesets/$rulesetSlug/faq/$questionSlug',
+            params: { rulesetSlug, questionSlug },
+          })
+        }
+      />
+      {questionCount > items.length ? (
+        <Box>
+          <Button
+            variant="default"
+            rightSection={<ArrowRight size={16} aria-hidden />}
+            renderRoot={(props) => <Link {...props} to="/rulesets/$rulesetSlug/faq" params={{ rulesetSlug }} />}
+          >
+            All {questionCount} questions
+          </Button>
+        </Box>
+      ) : null}
+    </Section>
+  );
+}
+
 export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/')({
   ssr: true,
   codeSplitGroupings: [['component', 'pendingComponent', 'errorComponent']],
@@ -472,7 +571,6 @@ function RulesetDetailPage() {
   const addFaction = useAddRulesetFaction();
   const removeFaction = useRemoveRulesetFaction();
   const routeNotice = resolveRouteNotice(search.notice);
-  const [faqDraft, setFaqDraft] = useState('');
 
   useLivePageTitle(page?.ruleset.name, 'Ruleset');
 
@@ -548,15 +646,6 @@ function RulesetDetailPage() {
   const handleDelete = () => {
     deleteRuleset.mutate(r._id, {
       onSuccess: () => navigate({ to: '/rulesets' }),
-    });
-  };
-
-  /* The ruleset's page shows the newest questions only; searching or narrowing them happens on the FAQ's own page. */
-  const openFaq = (patch: { q?: string; tag?: FaqTag }) => {
-    void navigate({
-      to: '/rulesets/$rulesetSlug/faq',
-      params: { rulesetSlug: r.slug },
-      search: parseFaqCatalogueSearch({ q: faqDraft, ...patch }),
     });
   };
 
@@ -735,82 +824,7 @@ function RulesetDetailPage() {
           </ColumnsWithRailLayout.Primary>
 
           <ColumnsWithRailLayout.Secondary>
-            <Section
-              id="faq"
-              icon={<CircleHelp size={20} aria-hidden />}
-              title="Community FAQ"
-              description="Browse community questions and accepted answers."
-            >
-              <TextInput
-                value={faqDraft}
-                onChange={(event) => setFaqDraft(event.currentTarget.value)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') {
-                    event.preventDefault();
-                    openFaq({});
-                  }
-                }}
-                placeholder="Search questions…"
-                aria-label="Search FAQ questions"
-                leftSection={<Search size={16} aria-hidden />}
-                leftSectionPointerEvents="none"
-                rightSectionWidth="8rem"
-                rightSectionPointerEvents="all"
-                size="md"
-                radius="md"
-                classNames={{ wrapper: styles.faqFilterWrapper }}
-                rightSection={
-                  <Select
-                    value="__all__"
-                    onChange={(value) =>
-                      openFaq({ tag: value === '__all__' || value == null ? undefined : (value as FaqTag) })
-                    }
-                    data={[
-                      { value: '__all__', label: 'All tags' },
-                      ...FAQ_TAG_VALUES.map((tag) => ({
-                        value: tag,
-                        label: FAQ_TAG_LABELS[tag],
-                      })),
-                    ]}
-                    aria-label="Filter FAQ by tag"
-                    allowDeselect={false}
-                    variant="unstyled"
-                    size="sm"
-                    rightSectionWidth="2rem"
-                    comboboxProps={{ shadow: 'md' }}
-                    classNames={{
-                      root: styles.faqTagSelect,
-                      wrapper: styles.faqTagSelectWrapper,
-                      input: styles.faqTagSelectInput,
-                    }}
-                  />
-                }
-              />
-              <FaqList
-                emptyLabel="No FAQ items yet."
-                items={page.faqItems}
-                rulesetSlug={r.slug}
-                onOpenQuestion={(questionSlug) =>
-                  navigate({
-                    to: '/rulesets/$rulesetSlug/faq/$questionSlug',
-                    params: { rulesetSlug: r.slug, questionSlug },
-                  })
-                }
-              />
-              {faqCount > page.faqItems.length ? (
-                <Box>
-                  <Button
-                    variant="default"
-                    rightSection={<ArrowRight size={16} aria-hidden />}
-                    renderRoot={(props) => (
-                      <Link {...props} to="/rulesets/$rulesetSlug/faq" params={{ rulesetSlug: r.slug }} />
-                    )}
-                  >
-                    All {faqCount} questions
-                  </Button>
-                </Box>
-              ) : null}
-            </Section>
+            <RulesetFaqPreview rulesetSlug={r.slug} items={page.faqItems} questionCount={faqCount} />
           </ColumnsWithRailLayout.Secondary>
 
           <ColumnsWithRailLayout.Rail>

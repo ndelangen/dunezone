@@ -23,7 +23,7 @@ export type FaqCatalogueSearch = {
   page?: number;
 };
 
-export function isFaqTag(value: unknown): value is FaqTag {
+function isFaqTag(value: unknown): value is FaqTag {
   return (FAQ_TAG_VALUES as readonly unknown[]).includes(value);
 }
 

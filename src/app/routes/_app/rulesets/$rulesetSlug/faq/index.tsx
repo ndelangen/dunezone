@@ -17,6 +17,7 @@ import { ArrowLeft, MessageCircleQuestionMark } from 'lucide-react';
 import { useCallback } from 'react';
 
 import { loadRulesetFaqPage, useRulesetFaqPage } from '@db/faq';
+import type { RulesetFaqPageData } from '@db/faq';
 import { useCurrentProfile } from '@db/profiles';
 import { publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
 import { useSearchDraft } from '@app/routes/searchDraft';
@@ -88,7 +89,6 @@ function RulesetFaqPage() {
   const search = Route.useSearch();
   const deps = Route.useLoaderDeps();
   const navigate = Route.useNavigate();
-  const openQuestion = useNavigate();
   const loaderData = Route.useLoaderData();
   const live = useRulesetFaqPage({ rulesetSlug, ...deps }, { initialData: loaderData });
   /* A live null is a ruleset deleted while open; the last page stays until the reader leaves. */
@@ -121,8 +121,6 @@ function RulesetFaqPage() {
       onChange={(value) => changeSearch({ tag: value === ALL_TAGS ? undefined : value })}
     />
   );
-  const refined = search.q != null || search.tag != null;
-
   return (
     <PageLayout>
       <PageLayout.Header size="compact">
@@ -172,7 +170,11 @@ function RulesetFaqPage() {
                 intent="positive"
                 size="lg"
                 renderRoot={(rootProps) => (
-                  <Link {...rootProps} to="/rulesets/$rulesetSlug/faq/create" params={{ rulesetSlug: data.ruleset.slug }} />
+                  <Link
+                    {...rootProps}
+                    to="/rulesets/$rulesetSlug/faq/create"
+                    params={{ rulesetSlug: data.ruleset.slug }}
+                  />
                 )}
                 icon={<MessageCircleQuestionMark size={17} aria-hidden />}
               />
@@ -181,58 +183,76 @@ function RulesetFaqPage() {
         </Toolbar>
       </PageLayout.Toolbar>
       <PageLayout.Content>
-        {data.total === 0 && refined ? (
-          <Surface padding="xl">
-            <Stack gap="xs" align="center">
-              <Title order={2}>Nothing matches</Title>
-              <Text c="dimmed" ta="center">
-                No question matches this search.
-              </Text>
-              {data.complete ? null : (
-                <Text size="xs" c="dimmed" ta="center">
-                  Only the first matches of this search were checked. Add a word to narrow it.
-                </Text>
-              )}
-            </Stack>
-          </Surface>
-        ) : data.total > 0 && data.items.length === 0 ? (
-          <Surface padding="xl">
-            <PastTheEnd rulesetSlug={data.ruleset.slug} pageCount={data.pageCount} />
-          </Surface>
-        ) : (
-          <Stack gap="lg" aria-busy={live.isPending}>
-            <FaqList
-              emptyLabel="No FAQ items yet."
-              items={data.items}
-              rulesetSlug={data.ruleset.slug}
-              onOpenQuestion={(questionSlug) =>
-                openQuestion({
-                  to: '/rulesets/$rulesetSlug/faq/$questionSlug',
-                  params: { rulesetSlug: data.ruleset.slug, questionSlug },
-                })
-              }
-            />
-            {data.total > 0 ? (
-              <CataloguePager
-                page={data.page}
-                pageCount={data.pageCount}
-                pageSize={data.pageSize}
-                total={data.total}
-                complete={data.complete}
-                noun="questions"
-                label="FAQ pages"
-                pageLinkProps={(page) => ({
-                  component: Link,
-                  to: '/rulesets/$rulesetSlug/faq',
-                  params: { rulesetSlug: data.ruleset.slug },
-                  search: pageSearch(page),
-                })}
-              />
-            ) : null}
-          </Stack>
-        )}
+        <FaqResults data={data} refined={search.q != null || search.tag != null} pending={live.isPending} />
       </PageLayout.Content>
     </PageLayout>
+  );
+}
+
+/** The page's questions and pager, or why there are none: nothing matches, or the address is past the last page. */
+function FaqResults({
+  data,
+  refined,
+  pending,
+}: {
+  data: NonNullable<RulesetFaqPageData>;
+  refined: boolean;
+  pending: boolean;
+}) {
+  const openQuestion = useNavigate();
+  return (
+    <>
+      {data.total === 0 && refined ? (
+        <Surface padding="xl">
+          <Stack gap="xs" align="center">
+            <Title order={2}>Nothing matches</Title>
+            <Text c="dimmed" ta="center">
+              No question matches this search.
+            </Text>
+            {data.complete ? null : (
+              <Text size="xs" c="dimmed" ta="center">
+                Only the first matches of this search were checked. Add a word to narrow it.
+              </Text>
+            )}
+          </Stack>
+        </Surface>
+      ) : data.total > 0 && data.items.length === 0 ? (
+        <Surface padding="xl">
+          <PastTheEnd rulesetSlug={data.ruleset.slug} pageCount={data.pageCount} />
+        </Surface>
+      ) : (
+        <Stack gap="lg" aria-busy={pending}>
+          <FaqList
+            emptyLabel="No FAQ items yet."
+            items={data.items}
+            rulesetSlug={data.ruleset.slug}
+            onOpenQuestion={(questionSlug) =>
+              openQuestion({
+                to: '/rulesets/$rulesetSlug/faq/$questionSlug',
+                params: { rulesetSlug: data.ruleset.slug, questionSlug },
+              })
+            }
+          />
+          {data.total > 0 ? (
+            <CataloguePager
+              page={data.page}
+              pageCount={data.pageCount}
+              pageSize={data.pageSize}
+              total={data.total}
+              complete={data.complete}
+              noun="questions"
+              label="FAQ pages"
+              pageLinkProps={(page) => ({
+                component: Link,
+                to: '/rulesets/$rulesetSlug/faq',
+                params: { rulesetSlug: data.ruleset.slug },
+                search: pageSearch(page),
+              })}
+            />
+          ) : null}
+        </Stack>
+      )}
+    </>
   );
 }
 
