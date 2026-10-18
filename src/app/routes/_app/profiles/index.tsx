@@ -204,7 +204,7 @@ function DirectoryContent({ data, loading, loaded, onLoadMore, ref }: DirectoryC
   if ('mode' in data) {
     return <SearchedDirectory data={data} loading={loading} loaded={loaded} onLoadMore={onLoadMore} ref={ref} />;
   }
-  return <BrowsedDirectory data={data} loading={loading} />;
+  return <BrowsedDirectory data={data} />;
 }
 
 /** No match among the profiles checked; a capped search did not check them all, so another word may still find one. */
@@ -239,7 +239,7 @@ function ProfileRows({ entries }: { entries: ProfileDirectoryEntry[] }) {
 }
 
 /** One page of the browsed directory, with its pager. */
-function BrowsedDirectory({ data, loading }: { data: BrowsedDirectory; loading: boolean }) {
+function BrowsedDirectory({ data }: { data: BrowsedDirectory }) {
   if (data.total === 0) {
     return <NothingMatches capped={!data.complete} />;
   }
@@ -251,7 +251,7 @@ function BrowsedDirectory({ data, loading }: { data: BrowsedDirectory; loading: 
     );
   }
   return (
-    <Stack gap="lg" aria-busy={loading}>
+    <Stack gap="lg">
       <ProfileRows entries={data.entries} />
       <CataloguePager
         page={data.page}

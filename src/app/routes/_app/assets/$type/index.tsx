@@ -294,7 +294,7 @@ function TypeContent({ definition, type, plural, data, loading, loaded, onLoadMo
       <SearchedTiles data={data} plural={plural} loading={loading} loaded={loaded} onLoadMore={onLoadMore} ref={ref} />
     );
   }
-  return <BrowsedTiles data={data} type={type} label={definition.label} plural={plural} loading={loading} />;
+  return <BrowsedTiles data={data} type={type} label={definition.label} plural={plural} />;
 }
 
 /** No match among the assets checked; a capped search did not check them all, so another word may still find one. */
@@ -320,13 +320,11 @@ function BrowsedTiles({
   type,
   label,
   plural,
-  loading,
 }: {
   data: BrowsedType;
   type: string;
   label: string;
   plural: string;
-  loading: boolean;
 }) {
   if (data.total === 0) {
     return <NothingMatches plural={plural} capped={!data.complete} />;
@@ -335,7 +333,7 @@ function BrowsedTiles({
     return <PastTheEnd type={type} pageCount={data.pageCount} />;
   }
   return (
-    <Stack gap="lg" aria-busy={loading}>
+    <Stack gap="lg">
       <TileGrid>
         {data.entries.map((entry) => (
           <BrowseTile key={entry.id} entry={entry} />

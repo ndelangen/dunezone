@@ -1,6 +1,6 @@
 import { ConvexError, v } from 'convex/values';
 
-import { FACTION_CATALOGUE_SORTS } from '../src/shared/factions/catalogueSearch';
+import { FACTION_CATALOGUE_QUERY_LIMIT, FACTION_CATALOGUE_SORTS } from '../src/shared/factions/catalogueSearch';
 import { factionExtraKey, storedFactionExtrasSchema } from '../src/shared/factions/extras';
 import type { FactionExtra } from '../src/shared/factions/extras';
 import type { Doc, Id } from './_generated/dataModel';
@@ -264,7 +264,8 @@ export const catalogue = publicQuery({
   },
   returns: v.union(catalogueBrowseValidator, catalogueSearchValidator),
   handler: async (ctx, args) =>
-    args.q?.trim() && args.limit !== undefined
+    /* Gated on the text the search runs, so a query that is blank once cut to length browses instead. */
+    args.q?.slice(0, FACTION_CATALOGUE_QUERY_LIMIT).trim() && args.limit !== undefined
       ? await loadFactionCatalogueSearch(ctx, args)
       : await loadFactionCataloguePage(ctx, args),
 });

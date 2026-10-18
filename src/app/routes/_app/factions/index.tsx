@@ -200,18 +200,16 @@ function CatalogueContent({
       />
     );
   }
-  return <BrowsedCatalogue data={data} loading={loading} selectedRulesetSlug={selectedRulesetSlug} onReset={onReset} />;
+  return <BrowsedCatalogue data={data} selectedRulesetSlug={selectedRulesetSlug} onReset={onReset} />;
 }
 
 /** One page of the browsed catalogue, with its pager. */
 function BrowsedCatalogue({
   data,
-  loading,
   selectedRulesetSlug,
   onReset,
 }: {
   data: FactionCatalogueBrowseData;
-  loading: boolean;
   selectedRulesetSlug: string | undefined;
   onReset: () => void;
 }) {
@@ -222,7 +220,7 @@ function BrowsedCatalogue({
     return <PastTheEnd pageCount={data.pageCount} />;
   }
   return (
-    <Stack gap="lg" aria-busy={loading}>
+    <Stack gap="lg">
       <FactionList factions={data.cards} selectedRulesetSlug={selectedRulesetSlug} />
       <CataloguePager
         page={data.page}
