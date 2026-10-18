@@ -15,35 +15,45 @@ const dracoDigests = new Set(
   )
 );
 
+type OutputFile = Rolldown.OutputChunk | Rolldown.OutputAsset;
+type Budget = { limit: number; identity: string };
+const defaultBudget: Budget = { limit: DEFAULT_BYTES, identity: 'browser JavaScript' };
+
+function isThreeWebGpuChunk(file: Rolldown.OutputChunk): boolean {
+  const modules = Object.keys(file.modules).map((id) => THREE_BUILD.exec(id)?.[1]);
+  return modules.length === 3 && new Set(modules).size === 3 && modules.every((kind) => kind !== undefined);
+}
+
+function payloadBudget(file: OutputFile): Budget {
+  if (file.type === 'chunk') {
+    return isThreeWebGpuChunk(file)
+      ? { limit: WEBGPU_BYTES, identity: 'Three WebGPU/core/TSL vendor modules' }
+      : defaultBudget;
+  }
+  return dracoDigests.has(digest(file.source))
+    ? { limit: DRACO_BYTES, identity: 'unchanged Three Draco decoder' }
+    : defaultBudget;
+}
+
+function javascriptBytes(file: OutputFile): number {
+  const source = file.type === 'chunk' ? file.code : file.source;
+  return typeof source === 'string' ? Buffer.byteLength(source) : source.byteLength;
+}
+
+function inspectJavaScriptFile(file: OutputFile): string[] {
+  const bytes = javascriptBytes(file);
+  const { limit, identity } = payloadBudget(file);
+  if (bytes > limit) {
+    throw new Error(`${file.fileName}: ${bytes} bytes exceeds ${limit} bytes for ${identity}.`);
+  }
+  return limit === DEFAULT_BYTES ? [] : [`${file.fileName}: ${bytes}/${limit} bytes, ${identity}`];
+}
+
 /** Fail browser JavaScript growth; only verified Three vendor payloads have larger budgets. */
 export function inspectBrowserJavaScript(bundle: Rolldown.OutputBundle): string[] {
-  const reports: string[] = [];
-  for (const file of Object.values(bundle)) {
-    if (!/\.(?:c|m)?js$/u.test(file.fileName)) {
-      continue;
-    }
-    const source = file.type === 'chunk' ? file.code : file.source;
-    const bytes = typeof source === 'string' ? Buffer.byteLength(source) : source.byteLength;
-    let limit = DEFAULT_BYTES;
-    let identity = 'browser JavaScript';
-    if (file.type === 'chunk') {
-      const modules = Object.keys(file.modules).map((id) => THREE_BUILD.exec(id)?.[1]);
-      if (modules.length === 3 && new Set(modules).size === 3 && modules.every((kind) => kind !== undefined)) {
-        limit = WEBGPU_BYTES;
-        identity = 'Three WebGPU/core/TSL vendor modules';
-      }
-    } else if (dracoDigests.has(digest(source))) {
-      limit = DRACO_BYTES;
-      identity = 'unchanged Three Draco decoder';
-    }
-    if (bytes > limit) {
-      throw new Error(`${file.fileName}: ${bytes} bytes exceeds ${limit} bytes for ${identity}.`);
-    }
-    if (limit !== DEFAULT_BYTES) {
-      reports.push(`${file.fileName}: ${bytes}/${limit} bytes, ${identity}`);
-    }
-  }
-  return reports;
+  return Object.values(bundle)
+    .filter((file) => /\.[cm]?js$/u.test(file.fileName))
+    .flatMap(inspectJavaScriptFile);
 }
 
 export function browserBundleBudgets(): Plugin {
