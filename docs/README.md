@@ -233,7 +233,9 @@ policy and anonymiser (`scripts/lib/snapshot-*.ts`, `scripts/snapshot-*.ts`),
 reaches dev on the merge that makes it. A merge whose only such change is a migration
 (`convex/migrations*.ts` or `convex/migration-guards.json`) reloads nothing: dev runs the new
 migrations on its existing data, as the deploy does on production, which spares a production
-export. `scripts/dev-rebuild-decision.ts` holds the list. Ordinary
+export. If that migrate step fails, the next merge will not retry it: re-run the failed job on the
+`deploy-main` run, or run `bun run provision dev --stage migrate` with the dev deploy key.
+`scripts/dev-rebuild-decision.ts` holds the list. Ordinary
 merges leave your dev session and any dev-side experiments intact.
 
 Dev's data is the anonymised snapshot, never raw production. A data rebuild runs the snapshot job's

@@ -21,7 +21,7 @@ const actionsEnvironment = {
 };
 
 describe('anonymised snapshot job', () => {
-  test('runs from main in the production environment, by hand or at most once a day', () => {
+  test('runs from main in the production environment, by hand or at most once a week', () => {
     const triggers = workflow.slice(workflow.indexOf('\non:\n'), workflow.indexOf('\npermissions:'));
     expect([...triggers.matchAll(/^ {2}(\w+):/gm)].map(([, trigger]) => trigger)).toEqual([
       'schedule',
