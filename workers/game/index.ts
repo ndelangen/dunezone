@@ -145,6 +145,8 @@ function pingSoundAllowed(connection: Pick<Connection, 'rumbledAt'>, sound: Ping
 }
 const COMMAND_RATE_REFUSAL = 'You are acting too fast. Wait a moment, then try again.';
 const SWEEP_MS = 1000;
+/* A normal close the page reconnects after, unlike a refusal. */
+const SEAT_CHANGED_CLOSE_CODE = 1012;
 /** A sweep this late counts as a stall, and the room keeps the most recent ones. */
 const STALL_MS = 250;
 const STALLS = 64;
@@ -1106,11 +1108,17 @@ export class GameRoom extends DurableObject<GameEnv> {
     if (!held || this.connections.get(socket) !== connection) {
       return;
     }
-    if (!checked.ok || checked.pass.principalId !== held.principalId || checked.pass.actorId !== held.actorId) {
+    if (!checked.ok || checked.pass.principalId !== held.principalId) {
       /* An expired renewal is ignored; the page fetches another. Anything else is a page this room no longer trusts. */
       if (checked.ok || checked.reason !== 'expired') {
         this.refuseAdmission(socket, 'pass');
       }
+      return;
+    }
+    if (checked.pass.actorId !== held.actorId) {
+      /* The same account now plays as another actor, as after a merge: the page reconnects with the new pass and takes that actor's seat. */
+      this.disconnect(socket);
+      socket.close(SEAT_CHANGED_CLOSE_CODE, 'Seat changed.');
       return;
     }
     connection.pass = heldPass(checked.pass);

@@ -180,6 +180,22 @@ describe('Seat passes admit players without the room asking Convex about them', 
     expect(late.closeCode).toBe(ADMISSION_REFUSED_CLOSE_CODE);
   });
 
+  it('reconnects rather than refuses a renewal that seats the same account as another actor', async () => {
+    const a = await admitWithPass(runtime, 'a');
+    a.send({ type: 'pass', pass: await fixturePass('a', { actorId: 'user-merged' }) });
+    await eventually(() => a.closed, 'socket closed on an actor change');
+    expect(a.closeCode).toBe(1012);
+    expect(admissionStatuses(a)).not.toContain('denied');
+  });
+
+  it('keeps a player at the seat limit while the seat-limit read fails, and retries it', async () => {
+    peer.seatLimitMode = 'error';
+    const c = await admitWithPass(runtime, 'c');
+    expect(await rejected(c, { kind: 'seat-request' })).toBe(PLAY_SEAT_LIMIT_MESSAGE);
+    await eventually(() => calls('playAdmission:seatLimitReached').length >= 2, 'retried read');
+    expect(await rejected(c, { kind: 'seat-request' })).toBe(PLAY_SEAT_LIMIT_MESSAGE);
+  });
+
   it('plays a pass tab beside a ticket tab of an older browser', async () => {
     await admitWithPass(runtime, 'a');
     const b = await admitPlayer(peer, runtime, 'b');

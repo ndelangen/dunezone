@@ -183,7 +183,8 @@ export class GameSubscription {
   /* A fresher pass goes to the room over the open socket, so the connection never has to reconnect when the pass it entered with ends. */
   private handOverPass(pass: string) {
     this.schedulePassRenewal(pass);
-    if (this.socket?.readyState === 1 && this.sawView) {
+    /* The room ignores a pass that arrives before its admission finishes, and the page reconnects with the held one then. */
+    if (this.socket?.readyState === 1) {
       this.socket.send(JSON.stringify({ type: 'pass', pass } satisfies ClientMessage));
     }
   }
@@ -214,20 +215,29 @@ export class GameSubscription {
     let retryAfterMs: number | undefined;
     try {
       const result = await this.requestTicket(this.gameId, { renew: true });
-      if (result.ok || result.reason === 'not_authorized') {
+      if (result.ok) {
+        return;
+      }
+      if (result.reason === 'not_authorized') {
+        this.changeStatus('denied', 'Sign in again to access the table.');
+        this.socket?.close();
         return;
       }
       retryAfterMs = result.retryAfterMs;
     } catch {
       /* Convex did not answer; the retry below asks again. */
     }
+    clearTimeout(this.passTimer);
     if (attempt < PASS_RENEWAL_ATTEMPTS) {
-      clearTimeout(this.passTimer);
       this.passTimer = setTimeout(
         () => void this.renewPass(attempt + 1),
         Math.max(retryAfterMs ?? 0, 1000 * 2 ** attempt)
       );
+      return;
     }
+    /* Out of quick retries: reconnecting hands recovery to the admission backoff, which keeps trying. */
+    this.renewOnOpen = true;
+    this.socket?.close();
   }
 
   private changeStatus(status: TableConnectionStatus, error: string | null = null) {

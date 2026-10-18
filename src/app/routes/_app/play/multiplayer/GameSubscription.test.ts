@@ -618,3 +618,18 @@ test('a renewal the room asked for retries after a busy answer, waiting as long 
   await vi.advanceTimersByTimeAsync(1);
   expect(requestTicket).toHaveBeenCalledTimes(before + 2);
 });
+
+test('a renewal Convex refuses after the room calls the pass expired ends the table instead of pausing it forever', async () => {
+  const pass = await seatPass(Date.now() + 60 * 60_000);
+  const requestTicket = vi.fn(async (_gameId: string, _options?: { renew?: boolean }) => ({ ok: true as const, pass }));
+  const subscription = new GameSubscription('game', requestTicket, runtime, () => () => true);
+  stops.push(subscription.subscribe(vi.fn()));
+  await vi.advanceTimersByTimeAsync(0);
+  const socket = Socket.instances.at(-1)!;
+  socket.open();
+  socket.deliver(initial());
+  requestTicket.mockResolvedValueOnce({ ok: false, reason: 'not_authorized' } as never);
+  socket.deliver({ type: 'admission', status: 'pass-expired' });
+  await vi.advanceTimersByTimeAsync(0);
+  expect(subscription.status).toBe('denied');
+});
