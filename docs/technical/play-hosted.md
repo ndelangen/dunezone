@@ -157,7 +157,8 @@ an admitted player's room never asks Convex about them again (decided with Norbe
    at or before it. The room stores the cutoff in SQLite, keeping the higher of two, before it
    acknowledges it. The push retries until acknowledged, backing off to one minute, and stops once
    every pass it could end has expired. Account deletion keeps its own durable push; a deletion for
-   an account the room has never seen leaves a `[deleted user]` row that keeps a later pass out.
+   an account the room has never seen leaves a `[deleted user]` row that keeps a later pass out. Deletion also reaches
+   creators of games from before creators were enrolled, through a routing row its fan-out adds.
 
 Accepted trade-offs: a single tab's sign-out, which revokes no other session, does not reach the
 room, so a pass copied out of that tab stays usable until it expires. A lost cutoff push is bounded

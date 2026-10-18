@@ -153,4 +153,19 @@ describe('Session cutoffs', () => {
     await subject.t.finishAllScheduledFunctions(() => vi.runAllTimers());
     expect(await subject.t.run(async (ctx) => await ctx.db.query('play_session_cutoffs').collect())).toEqual([]);
   });
+
+  test('cover a session created in the same millisecond as the revocation', async () => {
+    const subject = await fixture();
+    await subject.player.mutation(api.playAdmission.enrolPlayer, { gameId: subject.gameId });
+    const [event, session] = await subject.t.run(async (ctx) => {
+      const sessionId = await ctx.db.insert('authSessions', {
+        userId: subject.userId,
+        expirationTime: Date.now() + 60_000,
+      });
+      const created = (await ctx.db.get(sessionId))!._creationTime;
+      await revokeAccountSessions(ctx, subject.userId);
+      return [await ctx.db.query('play_session_cutoffs').first(), created] as const;
+    });
+    expect(event!.through).toBeGreaterThanOrEqual(session);
+  });
 });

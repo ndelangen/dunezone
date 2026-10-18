@@ -50,12 +50,13 @@ export async function removeSessionTokens(ctx: MutationCtx, sessionId: Id<'authS
  * Game rooms learn of it by a durable push, queued even when no session remains, since a seat pass outlives the session that signed it.
  */
 export async function revokeAccountSessions(ctx: MutationCtx, userId: Id<'users'>) {
-  await queueAccountCutoffs(ctx, userId, Date.now());
   const newest = await ctx.db
     .query('authSessions')
     .withIndex('userId', (q) => q.eq('userId', userId))
     .order('desc')
     .first();
+  /* A session created in this same millisecond has a fractional creation time above the clock, so the cutoff covers it explicitly. */
+  await queueAccountCutoffs(ctx, userId, Math.max(Date.now(), newest?._creationTime ?? 0));
   if (!newest) {
     return;
   }

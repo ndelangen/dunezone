@@ -19,7 +19,7 @@ import { internalMutation, mutation } from './functions';
 import { authenticatedPlayRequest } from './lib/playAuthorization';
 import { playerSummary } from './lib/playerSummary';
 import { playRateLimiter } from './lib/playRateLimits';
-import { enrolment } from './lib/playSeatPass';
+import { unenrolCreator } from './lib/playSeatPass';
 import { postPlayService } from './lib/playService';
 import { isSyntheticBackend } from './lib/playSynthetic';
 
@@ -175,6 +175,7 @@ export const failProvisioning = mutation({
       return { ok: false };
     }
     await ctx.db.patch(game._id, { state: 'expired', provision_error: reason });
+    await unenrolCreator(ctx, game);
     return { ok: true };
   },
 });
@@ -186,11 +187,7 @@ export const expireProvisioning = internalMutation({
     const game = await ctx.db.get(args.gameId);
     if (game?.state === 'pending' && Date.now() >= game.provision_expires_at) {
       await ctx.db.patch(game._id, { state: 'expired' });
-      /* A game that never opened has no room for deletion or a merge to reach, so its creator is no longer enrolled there. */
-      const routing = game.creator_id ? await enrolment(ctx, game._id, game.creator_id) : null;
-      if (routing) {
-        await ctx.db.delete(routing._id);
-      }
+      await unenrolCreator(ctx, game);
     }
     return null;
   },

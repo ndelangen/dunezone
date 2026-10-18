@@ -64,3 +64,11 @@ export async function enrol(ctx: MutationCtx, gameId: Id<'play_games'>, userId: 
   }
   return true;
 }
+
+/** Drops the creator's enrolment at a game that never opened, so deletion and merges stop routing to a room no player can reach. */
+export async function unenrolCreator(ctx: MutationCtx, game: Doc<'play_games'>) {
+  const routing = game.creator_id ? await enrolment(ctx, game._id, game.creator_id) : null;
+  if (routing) {
+    await ctx.db.delete(routing._id);
+  }
+}

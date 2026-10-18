@@ -10,6 +10,8 @@ import type { Doc, Id } from './_generated/dataModel';
 import { internalAction, internalQuery } from './_generated/server';
 import type { MutationCtx, QueryCtx } from './_generated/server';
 import { internalMutation } from './functions';
+import { gameActorForAccount } from './lib/accountIdentity';
+import { enrolment } from './lib/playSeatPass';
 import { postPlayService } from './lib/playService';
 
 async function queueGameDeletion(
@@ -61,8 +63,50 @@ async function queueDeletionPage(
       operationId: operation._id,
       paginationOpts: { cursor: page.continueCursor, numItems: 32 },
     });
+    return;
   }
+  await ctx.scheduler.runAfter(0, internal.playDeletion.queueCreatorDeletion, {
+    operationId: operation._id,
+    cursor: null,
+  });
 }
+
+/*
+ * Games created before creators were enrolled at creation can seat a creator with no routing row, which rooms used to find only by reconciling.
+ * Seat-pass rooms no longer reconcile, so the fan-out enrols each such creator and queues the deletion through that row like any other.
+ */
+export const queueCreatorDeletion = internalMutation({
+  args: { operationId: v.id('account_deletion_operations'), cursor: v.union(v.string(), v.null()) },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const operation = await ctx.db.get(args.operationId);
+    if (!operation) {
+      return null;
+    }
+    const page = await ctx.db
+      .query('play_games')
+      .withIndex('by_creator_id', (q) => q.eq('creator_id', operation.source_user_id))
+      .paginate({ cursor: args.cursor, numItems: 32 });
+    for (const game of page.page) {
+      if (game.state !== 'ready' || (await enrolment(ctx, game._id, operation.source_user_id))) {
+        continue;
+      }
+      const routingId = await ctx.db.insert('play_game_accounts', {
+        game_id: game._id,
+        user_id: operation.source_user_id,
+        actor_user_ids: [await gameActorForAccount(ctx, game._id, operation.source_user_id)],
+      });
+      await queueGameDeletion(ctx, (await ctx.db.get(routingId))!, operation);
+    }
+    if (!page.isDone) {
+      await ctx.scheduler.runAfter(0, internal.playDeletion.queueCreatorDeletion, {
+        operationId: operation._id,
+        cursor: page.continueCursor,
+      });
+    }
+    return null;
+  },
+});
 
 function isDueDeletion(event: Doc<'play_account_deletions'>) {
   return event.state === 'pending' && Date.now() >= event.next_attempt_at;
@@ -92,7 +136,12 @@ export const claimDelivery = internalMutation({
     await ctx.db.patch(event._id, { attempts: event.attempts + 1, next_attempt_at: nextAttemptAt });
     /* A game that is not ready waits out the same backoff, so its events never crowd the due index. */
     const game = await ctx.db.get(event.game_id);
-    if (game?.state !== 'ready') {
+    /* A game that never opened, unlike the retired fixture, has no room holding the account, so its deletion is done. */
+    if (!game || (game.state === 'expired' && game.fixture_key !== PLAY_FIXTURE_KEY)) {
+      await ctx.db.patch(event._id, { state: 'acknowledged' });
+      return null;
+    }
+    if (game.state !== 'ready') {
       return null;
     }
     await ctx.scheduler.runAt(nextAttemptAt, internal.playDeletion.deliver, { eventId: event._id });

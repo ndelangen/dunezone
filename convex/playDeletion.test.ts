@@ -322,7 +322,7 @@ describe('Play account deletion', () => {
   test('a deletion for a game that is not ready waits out its backoff instead of staying due', async () => {
     const subject = await fixture();
     const { event } = await startDeletion(subject);
-    await subject.t.run(async (ctx) => await ctx.db.patch(subject.game._id, { state: 'expired' }));
+    await subject.t.run(async (ctx) => await ctx.db.patch(subject.game._id, { state: 'pending' }));
     const fetch = vi.fn(async (_url: string, _init?: RequestInit) => new Response(null, { status: 200 }));
     vi.stubGlobal('fetch', fetch);
 
@@ -368,5 +368,36 @@ describe('Play account deletion', () => {
         userIds: [subject.userId],
       })
     ).toEqual({ ok: false });
+  });
+
+  test('reaches a creator of a game from before creators were enrolled, through a routing row the fan-out adds', async () => {
+    const subject = await createdGame();
+    await subject.t.run(async (ctx) => {
+      const rows = await ctx.db.query('play_game_accounts').collect();
+      await Promise.all(rows.map((row) => ctx.db.delete(row._id)));
+    });
+    const { operationId } = await subject.player.mutation(api.accountDeletion.confirm, { replacementUserId: null });
+    await subject.t.mutation(internal.playDeletion.queueAccountDeletion, {
+      operationId,
+      paginationOpts: { cursor: null, numItems: 32 },
+    });
+    await subject.t.mutation(internal.playDeletion.queueCreatorDeletion, { operationId, cursor: null });
+    const events = await subject.t.run(async (ctx) => await ctx.db.query('play_account_deletions').collect());
+    expect(events).toMatchObject([{ game_id: subject.game._id, user_id: subject.userId, state: 'pending' }]);
+  });
+
+  test('settles a deletion queued for a game that never opened', async () => {
+    const subject = await createdGame();
+    const { operationId } = await subject.player.mutation(api.accountDeletion.confirm, { replacementUserId: null });
+    await subject.t.mutation(internal.playDeletion.queueAccountDeletion, {
+      operationId,
+      paginationOpts: { cursor: null, numItems: 32 },
+    });
+    const event = await subject.t.run(async (ctx) => {
+      await ctx.db.patch(subject.game._id, { state: 'expired' });
+      return (await ctx.db.query('play_account_deletions').first())!;
+    });
+    expect(await subject.t.mutation(internal.playDeletion.claimDelivery, { eventId: event._id })).toBeNull();
+    expect((await subject.t.run((ctx) => ctx.db.get(event._id)))?.state).toBe('acknowledged');
   });
 });
