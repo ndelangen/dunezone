@@ -25,6 +25,22 @@ export async function projectFaqListItems(ctx: QueryCtx | MutationCtx, items: Do
   }));
 }
 
+/** The questions a page of catalogue entries names, in its order; an entry whose question is gone is skipped. */
+export async function faqItemsOfEntries(ctx: QueryCtx | MutationCtx, entries: Doc<'catalogue_entries'>[]) {
+  const items: Doc<'faq_items'>[] = [];
+  for (const entry of entries) {
+    const itemId = ctx.db.normalizeId('faq_items', entry.source_id);
+    const item = itemId ? await ctx.db.get('faq_items', itemId) : null;
+    if (!item) {
+      /* Drift: the page comes up one row short until the backfill or the question's next save. */
+      console.warn(`Catalogue entry for FAQ item ${entry.source_id} has no question.`);
+      continue;
+    }
+    items.push(item);
+  }
+  return items;
+}
+
 /** A ruleset's newest questions, for its own page. */
 export async function loadNewestFaqItems(ctx: QueryCtx | MutationCtx, rulesetId: Id<'rulesets'>, limit: number) {
   const newest = await ctx.db

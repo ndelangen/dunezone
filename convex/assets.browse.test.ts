@@ -1,6 +1,7 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
+import type { FunctionReturnType } from 'convex/server';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vite-plus/test';
 
 import { ASSET_CATALOGUE_PAGE_SIZE } from '../src/shared/assets/catalogueSearch';
@@ -59,6 +60,14 @@ async function createTokens(t: ReturnType<typeof applicationTest>, ownerId: stri
 }
 
 const names = (page: { entries: { name: string }[] }) => page.entries.map((entry) => entry.name);
+
+/** The searched shape, which a search with a limit answers with. */
+function searched(answer: FunctionReturnType<typeof api.assets.catalogue>) {
+  if (!('mode' in answer)) {
+    throw new Error('Expected a search, got a browsed page.');
+  }
+  return answer;
+}
 
 describe('the asset type catalogue', () => {
   beforeEach(() => {
@@ -144,6 +153,51 @@ describe('the asset type catalogue', () => {
     expect(await t.query(api.assets.catalogue, { type: 'token-disc', q: `${words.join(' ')} missing` })).toMatchObject({
       total: 0,
     });
+  });
+
+  test('a search with a limit loads more by asking for a larger one, best matches first and only ever appending', async () => {
+    const t = applicationTest();
+    const chani = await seedOwner(t, 'Chani');
+    const stilgar = await seedOwner(t, 'Stilgar');
+    const count = ASSET_CATALOGUE_PAGE_SIZE + 2;
+    await createTokens(
+      t,
+      chani,
+      Array.from({ length: count }, (_, index) => `Shield ${index + 1}`)
+    );
+    await createTokens(t, stilgar, ['Lasgun']);
+
+    const first = searched(
+      await t.query(api.assets.catalogue, { type: 'token-disc', q: 'shield', limit: ASSET_CATALOGUE_PAGE_SIZE })
+    );
+    expect(first).toMatchObject({
+      mode: 'search',
+      hasMore: true,
+      capped: false,
+      limit: ASSET_CATALOGUE_PAGE_SIZE,
+      typeTotal: count + 1,
+    });
+    expect(first.entries).toHaveLength(ASSET_CATALOGUE_PAGE_SIZE);
+    expect(first).not.toHaveProperty('total');
+    expect(first).not.toHaveProperty('page');
+
+    const more = searched(
+      await t.query(api.assets.catalogue, { type: 'token-disc', q: 'shield', limit: ASSET_CATALOGUE_PAGE_SIZE * 2 })
+    );
+    expect(more).toMatchObject({ hasMore: false, limit: ASSET_CATALOGUE_PAGE_SIZE * 2 });
+    expect(more.entries).toHaveLength(count);
+    expect(more.entries.slice(0, ASSET_CATALOGUE_PAGE_SIZE).map((entry) => entry.id)).toEqual(
+      first.entries.map((entry) => entry.id)
+    );
+    expect(names(searched(await t.query(api.assets.catalogue, { type: 'token-disc', q: 'stil', limit: 24 })))).toEqual([
+      'Lasgun',
+    ]);
+
+    /* An old bundle's search, with a page and no limit, still gets the paged shape it reads. */
+    const old = await t.query(api.assets.catalogue, { type: 'token-disc', q: 'shield', page: 2, sort: 'name' });
+    expect(old).toMatchObject({ page: 2, pageCount: 2, total: count, typeTotal: count + 1, complete: true });
+    expect(old).not.toHaveProperty('mode');
+    expect(names(old)).toEqual(['Shield 8', 'Shield 9']);
   });
 
   test('drops a deleted asset from its list and its count', async () => {

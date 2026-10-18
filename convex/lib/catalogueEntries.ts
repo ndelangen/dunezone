@@ -166,6 +166,15 @@ export function registerCatalogueTriggers(triggers: Triggers<DataModel, Mutation
     await reconcileCatalogueEntry(ctx, 'faction', change.id);
   });
   triggers.register('ruleset_factions', async (ctx, change) => {
+    /* A reorder moves a link without changing what it joins, which no entry reads. */
+    if (
+      change.oldDoc &&
+      change.newDoc &&
+      change.oldDoc.faction_id === change.newDoc.faction_id &&
+      change.oldDoc.ruleset_id === change.newDoc.ruleset_id
+    ) {
+      return;
+    }
     for (const factionId of new Set([change.oldDoc?.faction_id, change.newDoc?.faction_id])) {
       if (factionId) {
         await reconcileCatalogueEntry(ctx, 'faction', factionId);

@@ -124,6 +124,7 @@ try {
     '/assets',
     '/assets/token-disc',
     '/rulesets',
+    '/faq',
     '/profiles',
     ...RECORDLESS_PUBLIC_PAGES,
     ...BLOG_POST_PAGES,

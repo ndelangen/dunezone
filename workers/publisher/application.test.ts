@@ -26,6 +26,7 @@ describe('anonymous application dispatch', () => {
     '/assets/unknown-type/missing/extra',
     '/factions/missing/extra',
     '/glossary',
+    '/faq',
     '/blog',
     '/blog/why-dune',
     '/media',

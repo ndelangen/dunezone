@@ -4,8 +4,9 @@
  */
 
 /**
- * The orders a reader can pick.
- * Absent means relevance while searching and `name` otherwise, so `name` is written out only to override relevance.
+ * The orders a reader can pick while browsing.
+ * A search is always best match, so `sort` never travels with `q`;
+ * `name` is the default and never written out.
  */
 export const FACTION_CATALOGUE_SORTS = ['name', 'created', 'updated', 'complexity-asc', 'complexity-desc'] as const;
 
@@ -25,10 +26,11 @@ const FULL_COMPLEXITY_RANGE: FactionComplexityRange = [0, 10];
 export type FactionCatalogueSearch = {
   q?: string;
   ruleset?: string;
+  /** Never alongside `q`: a search is always best match. */
   sort?: FactionCatalogueSort;
   /** Present only when narrower than the full range. */
   complexity?: string;
-  /** Present only past the first page, so the first page has one address. */
+  /** Present only past the first page, so the first page has one address; never alongside `q`, whose matches load more instead of paging. */
   page?: number;
 };
 
@@ -56,12 +58,17 @@ export function parseCataloguePage(value: unknown): number | undefined {
   return typeof page === 'number' && Number.isSafeInteger(page) && page > 1 ? page : undefined;
 }
 
+/**
+ * Every field is spread conditionally, so an absent key is absent rather than present and undefined, and a default never reaches the address.
+ * A search drops the order and the page: its matches come best first and load more in place, so an old link carrying them opens the search's first matches.
+ */
 export function parseFactionCatalogueSearch(params: Record<string, unknown>): FactionCatalogueSearch {
   const q = cleanSearchValue(params.q)?.slice(0, FACTION_CATALOGUE_QUERY_LIMIT).trim();
   const ruleset = cleanSearchValue(params.ruleset);
-  const sort = isFactionCatalogueSort(params.sort) ? params.sort : undefined;
+  const parsedSort = isFactionCatalogueSort(params.sort) ? params.sort : undefined;
+  const sort = parsedSort === 'name' || q ? undefined : parsedSort;
   const complexity = complexityRangeSearchValue(parseComplexityRange(cleanSearchValue(params.complexity)));
-  const page = parseCataloguePage(params.page);
+  const page = q ? undefined : parseCataloguePage(params.page);
 
   return {
     ...(q ? { q } : {}),

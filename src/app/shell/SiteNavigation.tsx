@@ -21,6 +21,7 @@ export interface NavLinkItem {
 export const PRIMARY_LINKS: readonly NavLinkItem[] = [
   { label: 'Factions', to: '/factions' },
   { label: 'Rulesets', to: '/rulesets' },
+  { label: 'FAQ', to: '/faq' },
   { label: 'Profiles', to: '/profiles' },
   { label: 'Assets', to: '/assets' },
   { label: 'Blog', to: '/blog' },
