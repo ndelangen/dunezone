@@ -6,7 +6,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { Anchor, Box, Button, Group, Popover, Stack, Text, TextInput, Title } from '@mantine/core';
+import { Anchor, Button, Group, Popover, Stack, Text, TextInput, Title } from '@mantine/core';
 import { RULESET_ASSET_SLOT_ORDER, RULESET_ASSET_SLOTS } from '@shared/rulesets/assetSlots';
 import type { RulesetAssetSlot } from '@shared/rulesets/assetSlots';
 import { rulesetAboutSchema, rulesetNameSchema } from '@shared/rulesets/validation';
@@ -17,6 +17,7 @@ import { LoadPending } from '@ui/block/LoadPending';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { Section } from '@ui/block/Section';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
+import { FactionLink } from '@ui/content/FactionLink';
 import { RULESET_ABOUT_HELP, rulesetAboutCount } from '@ui/content/rulesetAboutHint';
 import { SlugRenameNotice } from '@ui/content/SlugRenameNotice';
 import { TopicIcon } from '@ui/content/TopicIcon';
@@ -53,7 +54,6 @@ import { AuthoringToolbar, failureStatus } from '@app/widgets/authoring/Authorin
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
-import { Token as FactionToken } from '@game/assets/faction/token/Token';
 
 /**
  * The whole edit page for one ruleset, mounted with `key={r.slug}` so a rename remounts it and resets the draft.
@@ -488,19 +488,13 @@ function RulesetFactions({ rulesetId, rulesetName }: { rulesetId: RulesetEntry['
                       {(handle) => (
                         <Group gap="sm" wrap="nowrap">
                           <SortableReorderHandle label={`Move ${faction.name}`} {...handle} />
-                          <Box aria-hidden w={24} h={24} miw={24}>
-                            <FactionToken logo={faction.logo} background={faction.background} />
-                          </Box>
-                          <Anchor
-                            renderRoot={(props) => (
-                              <Link {...props} to="/factions/$factionId" params={{ factionId: faction.slug }} />
-                            )}
-                            fw={600}
-                            miw={0}
-                            style={{ flex: 1, overflowWrap: 'anywhere' }}
-                          >
-                            {faction.name}
-                          </Anchor>
+                          <FactionLink
+                            slug={faction.slug}
+                            name={faction.name}
+                            logo={faction.logo}
+                            background={faction.background}
+                            style={{ flex: 1, minWidth: 0 }}
+                          />
                           <IconAction
                             label={`Remove ${faction.name} from ${rulesetName}`}
                             intent="neutral"

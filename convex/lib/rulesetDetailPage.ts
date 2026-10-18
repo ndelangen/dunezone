@@ -61,7 +61,7 @@ async function linkedCatalogueFaction(ctx: QueryCtx, factionId: Id<'factions'>) 
 }
 
 /**
- * A ruleset's live factions in its own order, named and addressed but not drawn: behind `api.rulesets.orderedFactions`.
+ * A ruleset's live factions in its own order, each with its name, address and token but not its card: behind `api.rulesets.orderedFactions`.
  * Each is read from its card, or from the faction where the card backfill has not reached it;
  * soft-deleted and dangling links are dropped.
  */
