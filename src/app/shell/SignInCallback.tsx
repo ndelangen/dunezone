@@ -3,7 +3,7 @@ import { signInReturnFrom } from '@shared/authDestination';
 import { useRouter } from '@tanstack/react-router';
 import { useEffect } from 'react';
 
-import { refusedAsInactiveAccount } from '@db/accounts';
+import { refusedAsInactiveAccount, settleStartedSignIn } from '@db/accounts';
 import { storedOAuthVerifierKey } from '@db/playTables';
 import type { SignInFailure } from '@app/routes/_app/auth/signInFailure';
 
@@ -48,6 +48,7 @@ export function SignInCallback() {
     url.searchParams.delete('code');
     const page = url.pathname + url.search + url.hash;
     const fail = (failed: SignInFailure) => {
+      settleStartedSignIn(false);
       if (!explainsItsOwnResult(url.pathname)) {
         void router.navigate({ to: '/auth/login', search: { ...signInReturnFrom(page), failed }, replace: true });
       }
@@ -61,7 +62,7 @@ export function SignInCallback() {
     (signIn as unknown as (provider: undefined, params: { code: string }) => ReturnType<typeof signIn>)(undefined, {
       code,
     }).then(
-      ({ signingIn }) => !signingIn && fail('failed'),
+      ({ signingIn }) => (signingIn ? settleStartedSignIn(true) : fail('failed')),
       (error: unknown) => fail(failureOf(error))
     );
   }, [signIn, router]);

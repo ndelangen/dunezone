@@ -41,6 +41,57 @@ export function useBeginAuthConnection() {
 export function useDisconnectAuthMethod() {
   return useMutation(api.accounts.disconnect);
 }
+export function useSignOutEverywhere() {
+  return useMutation(api.accounts.signOutEverywhere);
+}
+
+const subscribeToNothing = () => () => {};
+
+/*
+ * The sign-in page remembers which provider this browser last finished signing in with, because choosing the other one quietly starts a second account.
+ * The choice is noted when the reader leaves for the provider and kept only once the sign-in it started succeeds.
+ * Signing out keeps it, since that is exactly when the reader next needs it.
+ */
+const STARTED_SIGN_IN_KEY = 'dunezone-sign-in-started';
+const LAST_SIGN_IN_KEY = 'dunezone-last-sign-in';
+
+function storedProvider(key: string): AuthProvider | null {
+  try {
+    const value = localStorage.getItem(key);
+    return value !== null && Object.hasOwn(authProviderNames, value) ? (value as AuthProvider) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Notes the provider a sign-in is leaving for; storage the browser refuses only loses the hint. */
+export function noteSignInStarted(provider: AuthProvider) {
+  try {
+    localStorage.setItem(STARTED_SIGN_IN_KEY, provider);
+  } catch {
+    /* The hint is a convenience, and sign-in goes ahead without it. */
+  }
+}
+
+/** Ends the noted sign-in, keeping its provider as the last one used only when it succeeded. */
+export function settleStartedSignIn(succeeded: boolean) {
+  const provider = storedProvider(STARTED_SIGN_IN_KEY);
+  try {
+    localStorage.removeItem(STARTED_SIGN_IN_KEY);
+    if (succeeded && provider) {
+      localStorage.setItem(LAST_SIGN_IN_KEY, provider);
+    }
+  } catch {
+    /* Storage that cannot be written holds no hint to update. */
+  }
+}
+
+const lastSignInMethod = () => storedProvider(LAST_SIGN_IN_KEY);
+
+/** The provider this browser last signed in with, or `null` when it has none or the page renders on the server. */
+export function useLastSignInMethod(): AuthProvider | null {
+  return useSyncExternalStore(subscribeToNothing, lastSignInMethod, () => null);
+}
 /* The tab that starts a connection holds its token; an address never carries it, so a shared or leaked link cannot confirm someone else's connection. */
 const HELD_CONNECTION_KEY = 'dunezone-account-connection';
 
@@ -57,7 +108,6 @@ function heldConnection(): string {
   }
 }
 
-const subscribeToNothing = () => () => {};
 
 /** The connection this tab started, `''` when it started none, or `undefined` while the page renders on the server. */
 export function useHeldAuthConnection(): string | undefined {
