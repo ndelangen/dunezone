@@ -112,6 +112,7 @@ export const Territories = meta.story({
 /** The Body chapter: the amount is a whole number of at least one, and the body starts as the standard sentence. */
 export const Body = meta.story({
   args: { chapter: 'body' as const },
+  render: (args) => <LiveEditor {...args} initial={publishingSpiceCard} />,
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByRole('textbox', { name: 'Body' })).toHaveValue('Add *6 spice* to\nArsunt');

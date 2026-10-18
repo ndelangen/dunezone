@@ -244,8 +244,6 @@ function isAmount(value: number | string): value is number {
 function BodyFields({ draft, patch }: { draft: SpiceDraft; patch: Patch }) {
   /* An amount left empty or below one is not kept, so leaving the field remounts it on the amount the card still holds. */
   const [amountField, resetAmountField] = useReducer((count: number) => count + 1, 0);
-  /* Once the author types, the field shows their text as it is, so it can be emptied to type afresh; an empty body still prints the standard sentence. */
-  const [typed, setTyped] = useState(false);
   return (
     <Stack gap="md">
       <ControlBlock
@@ -277,11 +275,8 @@ function BodyFields({ draft, patch }: { draft: SpiceDraft; patch: Patch }) {
             aria-label="Body"
             autosize
             minRows={3}
-            value={typed ? (draft.text ?? '') : spiceDraftText(draft)}
-            onChange={(text) => {
-              setTyped(true);
-              patch({ text });
-            }}
+            value={spiceDraftText(draft)}
+            onChange={(text) => patch({ text })}
           />
         }
       />
@@ -289,8 +284,11 @@ function BodyFields({ draft, patch }: { draft: SpiceDraft; patch: Patch }) {
   );
 }
 
-/** The text the card prints: its own, or until it has some, the standard sentence for its icon, amount and name. */
-const spiceDraftText = (draft: SpiceDraft) => draft.text || standardSpiceText(draft);
+/**
+ * The Body field's text: the card's own once the author has typed, even emptied, or until then the standard sentence for its icon, amount and name.
+ * An emptied body still prints that sentence on the card.
+ */
+const spiceDraftText = (draft: SpiceDraft) => draft.text ?? standardSpiceText(draft);
 
 /* Validation. */
 
