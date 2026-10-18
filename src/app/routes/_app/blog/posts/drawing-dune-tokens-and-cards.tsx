@@ -42,11 +42,11 @@ function GimpSection() {
         >
           Dreamrules
         </Anchor>{' '}
-        kept evolving, a leader's strength would go up or an icon would change, and the artwork had to follow. I
-        couldn't keep editing it by hand every time, so in 2021 I used GIMP to separate out the parts I needed. These
-        included card frames, the gold disc and ornaments on the card backs, the parchment behind the pictures, and the
-        faction shields. I wanted to stay as close to the printed game as I could while keeping the text, icons and
-        colours easy to change.
+        evolved, the artwork had to keep up. A leader's strength would go up or an icon would change, and I couldn't
+        keep editing the images by hand every time. So in 2021, I used GIMP to separate out the parts I needed: card
+        frames, the gold disc and ornaments on the card backs, the parchment behind the pictures, and the faction
+        shields. I wanted them to look as close to the printed game as possible, with text, icons and colours I could
+        change independently.
       </Paragraph>
       <Paragraph>
         I didn't expect those files to last this long. Today, dune.zone draws its cards and shields from seven images.
@@ -62,19 +62,19 @@ function FirstTokenSection() {
   return (
     <Section title="The first leader token in code">
       <Paragraph>
-        In 2021, I drew my first leader token in SVG code (instead of GIMP). It already had most of what you see today:
-        a portrait inside a disc, a name curving along the bottom, a large strength number and a faction emblem. I used
-        a mask to cut a gap around the number and emblem, keeping them clear of the portrait. That gap is essential to
-        make the token look right.
+        In 2021, I drew my first leader token in SVG instead of GIMP. It already had most of what you see today: a
+        portrait inside a disc, a name curving along the bottom, a large strength number and a faction emblem. I used a
+        mask to cut a gap around the number and emblem, keeping them clear of the portrait. That gap is essential to
+        making the token look right.
       </Paragraph>
       <Paragraph>
-        The faction emblem started out as a PNG, with a filter expanding its outline to make the gap. In 2021, I
-        replaced it with a vector and used a copy with a thick stroke to cut the gap in the mask.
+        The faction emblem started out as a PNG, with a filter expanding its outline to make the gap. Later that year, I
+        replaced it with a vector and used a copy with a thick outline to cut the gap in the mask.
       </Paragraph>
       <Paragraph>
         There were bugs along the way. Tokens on the same page shared masks and drew each other's cut-outs until I gave
-        every token its own mask in 2022. Tokens couldn't be scaled dynamically without an SVG inside and SVG, something
-        I finally fixed in 2024.
+        every token its own mask in 2022. Scaling them dynamically also required nesting one SVG inside another, a
+        limitation I finally removed in 2024.
       </Paragraph>
       <Figure
         imageKey="/web/blog/drawing-dune-tokens-and-cards/token-details.jpg"
@@ -95,10 +95,10 @@ function NoiseSection() {
         the result always looked like crumpled paper.
       </Paragraph>
       <Paragraph>
-        In 2024, I switched to greyscale texture images, optionally inverted and sharpened, then uses it as a mask. The
-        faction's second colour shows through wherever the photo is bright. There are now 73 textures, including marble,
-        sand ripples, scratches and stripes, all adjusted with the same three settings. Try the old and new approaches
-        below.
+        In 2024, I switched to greyscale texture images. The renderer can invert and sharpen each image before using it
+        as a mask. The faction's second colour shows through wherever the image is bright. There are now 73 textures,
+        including marble, sand ripples, scratches and stripes, all controlled by the same three settings. Try the old
+        and new approaches below.
       </Paragraph>
       <NoiseComparison />
     </Section>
@@ -109,8 +109,9 @@ function TokenSection() {
   return (
     <Section title="The token, pulled apart">
       <Paragraph>
-        Here's how dune.zone draws Thufir's token today. Each layer below comes from the site's own token code, with the
-        other layers hidden. Scroll the token into view to watch it come apart, or drag the slider to control it.
+        Here's how those parts fit together in Thufir's token today. Each layer below is drawn by the site's own token
+        code, with the other layers hidden. Scroll the token into view to watch it come apart, or drag the slider to
+        control it.
       </Paragraph>
       <LeaderTokenLayers />
       <Paragraph>
@@ -126,10 +127,10 @@ function CardsSection() {
   return (
     <Section title="Building the cards">
       <Paragraph>
-        Card fronts work the same way, but have more layers. A treachery card has ten. Two still use the 2021 GIMP
-        files: the parchment behind the picture and the frame. The shading over the title band is another image, added
-        later. Vectors, textures and text make up the rest, so a card's name, rules, colours and picture can change
-        without anyone opening an image editor.
+        Card fronts work the same way, with ten layers in a treachery card. Two still use the 2021 GIMP files: the
+        parchment behind the picture and the frame. The shading over the title band is another image, added later.
+        Vectors, textures and text make up the rest, so a card's name, rules, colours and picture can change without
+        anyone opening an image editor.
       </Paragraph>
       <Paragraph>
         Look at the round type symbol in the corner. The frame leaves a dark hole for it, but the symbol supplies its
@@ -145,13 +146,13 @@ function PortraitSection() {
     <Section title="Improving the art">
       <Paragraph>
         I've written before about tracing the icons and decals into vectors. The leader portraits needed work too. On
-        the printed tokens, the number, emblem, name and ring cover parts of the portrait. The traitor cards gave me
-        another source of artwork to work with.
+        the printed tokens, the number, emblem, name and ring cover parts of the portrait. The traitor cards gave me a
+        second source for those portraits.
       </Paragraph>
       <Paragraph>
         I combined the token and traitor-card artwork and used upscaling tools to produce the portraits you see today. I
-        also replaced the printed backgrounds with flat ones. The finished portraits give dune.zone a clean base for
-        drawing its own numbers, emblems and names in any style.
+        also replaced the printed backgrounds with flat ones. With the portraits separated from the other artwork,
+        dune.zone can draw its own numbers, emblems and names over them in any style.
       </Paragraph>
       <BeforeAfter
         before={{
@@ -173,9 +174,9 @@ function InconsistencySection() {
   return (
     <Section title="When the original art disagrees with itself">
       <Paragraph>
-        The original art isn't always consistent. Icons on the card backs vary in size and height, and pictures shift
-        position from one card to the next. Each difference left me with a choice. Should I reproduce it faithfully, or
-        tidy it up and lose some of the resemblance to the printed game?
+        Recreating the art also meant deciding what to do with its inconsistencies. Icons on the card backs vary in size
+        and height, and pictures shift position from one card to the next. Each difference left me with a choice. Should
+        I reproduce it faithfully, or tidy it up and lose some of the resemblance to the printed game?
       </Paragraph>
       <Paragraph>
         Keeping those quirks meant giving the renderer a way to reproduce them. Each card ended up with its own settings
