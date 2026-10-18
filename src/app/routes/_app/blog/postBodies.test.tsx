@@ -7,7 +7,7 @@ import { MEDIA_MAP } from '@shared/media/map.generated';
 import type * as ResolveAsset from '@shared/media/resolveAsset';
 import type * as TanStackRouter from '@tanstack/react-router';
 import { appContentTheme } from '@ui/theme';
-import type { ReactNode } from 'react';
+import type { ComponentType, ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { expect, test, vi } from 'vite-plus/test';
 
@@ -27,14 +27,29 @@ vi.mock('@shared/media/resolveAsset', async (importOriginal) => {
   };
 });
 
-/* A post's in-site links need no router to be drawn as markup. */
+/*
+ * A post's in-site links need no router to be drawn as markup: `PostLink`, built with `createLink`, reads router context otherwise.
+ * The mock fills the route's params into its path as the router would, so the markup carries each link's real destination.
+ * Whether that route exists is the type checker's job: `PostLink` takes the router's own `to`.
+ */
 vi.mock('@tanstack/react-router', async (importOriginal) => ({
   ...(await importOriginal<typeof TanStackRouter>()),
-  Link: ({ children, className }: { children?: ReactNode; className?: string }) => (
-    <a href="/" className={className}>
-      {children}
-    </a>
-  ),
+  createLink:
+    (Host: ComponentType<{ href: string; children?: ReactNode }>) =>
+    ({
+      children,
+      to,
+      params = {},
+      ...props
+    }: {
+      children?: ReactNode;
+      to: string;
+      params?: Record<string, string>;
+    }) => (
+      <Host {...props} href={to.replace(/\$(\w+)/g, (segment, name: string) => params[name] ?? segment)}>
+        {children}
+      </Host>
+    ),
 }));
 
 /* Text a reader would take as part of the post: a figure's own caption is not among it. */
@@ -75,4 +90,11 @@ test.each(BLOG_POSTS.map(({ slug }) => slug))('every image in the post %s is syn
     rasters.filter((key) => !MEDIA_MAP[key]),
     'run `bun run media:sync` to upload these images'
   ).toEqual([]);
+});
+
+/* Every link from a post to another page on the site fills each of its route's params, so none points at a literal `$param` path. */
+test.each(BLOG_POSTS.map(({ slug }) => slug))('every in-site link in the post %s has its params', async (slug) => {
+  const body = await renderBody(slug);
+  const hrefs = [...body.querySelectorAll('a[href^="/"]')].map((anchor) => anchor.getAttribute('href'));
+  expect(hrefs.filter((href) => href!.includes('$'))).toEqual([]);
 });
