@@ -1,8 +1,10 @@
 import { Badge, Text } from '@mantine/core';
-import { Check, CircleCheck, MousePointer2 } from 'lucide-react';
+import { Check, CircleCheck, MousePointer2, Pause, Play } from 'lucide-react';
+import { useState } from 'react';
 
 import { useMotionAllowed } from '@app/styles/motion';
 
+import { IconAction } from '../control/IconAction';
 import styles from './FaqWalkthrough.module.css';
 
 interface FaqWalkthroughAnswer {
@@ -14,6 +16,7 @@ interface FaqWalkthroughAnswer {
 export interface FaqWalkthroughProps {
   /** Who asks. */
   asker: string;
+  /** One line: it types out across the width it has, and a longer one is cut with an ellipsis until the loop is off. */
   question: string;
   /** The replies, in the order they arrive; the first three arrive one after another, and any past the third arrive with the third. */
   answers: readonly FaqWalkthroughAnswer[];
@@ -39,11 +42,27 @@ function Initial({ name, tone }: { name: string; tone: 'asker' | 'answerer' }) {
  *
  * A reader who keeps the site's motion off, through their device or the motion setting on their profile, sees the end of the story at once and still: the question asked, every reply in, one accepted.
  * The server renders that same end state, so the picture is complete before any script runs.
+ * Everyone else can hold the loop with the pause control, since a story that plays for longer than a moment needs a way to stop it;
+ * whether it is paused is the block's own state.
  */
 export function FaqWalkthrough({ asker, question, answers, accepted }: FaqWalkthroughProps) {
   const motion = useMotionAllowed();
+  const [paused, setPaused] = useState(false);
   return (
-    <div className={styles.stage} data-motion={motion ? undefined : 'reduce'}>
+    <div className={styles.stage} data-motion={motion ? undefined : 'reduce'} data-paused={paused || undefined}>
+      {motion ? (
+        <span className={styles.playback}>
+          <IconAction
+            label={paused ? 'Play animation' : 'Pause animation'}
+            emphasis="quiet"
+            intent="neutral"
+            size="sm"
+            pressed={paused}
+            onClick={() => setPaused((current) => !current)}
+            icon={paused ? <Play size={14} aria-hidden /> : <Pause size={14} aria-hidden />}
+          />
+        </span>
+      ) : null}
       <div className={styles.question}>
         <div className={styles.voice}>
           <Initial name={asker} tone="asker" />

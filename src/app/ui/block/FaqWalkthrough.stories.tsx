@@ -1,5 +1,5 @@
 import preview from '@sb/preview';
-import { expect, within } from 'storybook/test';
+import { expect, userEvent, within } from 'storybook/test';
 
 import { Surface } from '../surface';
 import { FaqWalkthrough } from './FaqWalkthrough';
@@ -31,12 +31,19 @@ const meta = preview.meta({
   ),
 });
 
-/** The loop: the question types out, the replies arrive, the pointer accepts one. */
+/** The loop: the question types out, the replies arrive, the pointer accepts one. The reader can hold it. */
 export const Animated = meta.story({
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByText('Can I ship troops into the storm?')).toBeInTheDocument();
     await expect(canvas.getByText('Accepted answer')).toBeInTheDocument();
+    const reply = canvas.getByText(exchange.answers[0]!.text).closest('li')!;
+    await expect(getComputedStyle(reply).animationPlayState).toBe('running');
+    await userEvent.click(canvas.getByRole('button', { name: 'Pause animation' }));
+    await expect(canvas.getByRole('button', { name: 'Play animation' })).toHaveAttribute('aria-pressed', 'true');
+    await expect(getComputedStyle(reply).animationPlayState).toBe('paused');
+    await userEvent.click(canvas.getByRole('button', { name: 'Play animation' }));
+    await expect(canvas.getByRole('button', { name: 'Pause animation' })).toBeVisible();
   },
 });
 
@@ -47,5 +54,7 @@ export const Still = meta.story({
     const canvas = within(canvasElement);
     await expect(canvas.getByText('Accepted answer')).toBeVisible();
     await expect(canvas.getByText(exchange.answers[2]!.text)).toBeVisible();
+    /* Nothing moves, so there is nothing to pause. */
+    await expect(canvas.queryByRole('button', { name: /animation/ })).toBeNull();
   },
 });

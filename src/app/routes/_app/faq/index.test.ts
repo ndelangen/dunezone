@@ -5,7 +5,14 @@ vi.mock('@tanstack/react-router', async (importOriginal) => {
   const actual = await importOriginal<typeof TanStackRouter>();
   return { ...actual, createFileRoute: () => (options: unknown) => ({ options }) };
 });
-vi.mock('@db/core', () => ({ db: { query: vi.fn() } }));
+vi.mock('@db/faq', () => ({
+  loadGlobalFaqPage: vi.fn(),
+  loadGlobalFaqRulesetOptions: vi.fn(async () => []),
+  useGlobalFaqPage: vi.fn(),
+  useGlobalFaqRulesetOptions: vi.fn(),
+}));
+
+import { loadGlobalFaqPage } from '@db/faq';
 
 import { Route } from './index';
 
@@ -16,8 +23,9 @@ type HeadResult = {
 type RouteOptions = {
   head: (context: { match: { status: string; search: Record<string, unknown> } }) => HeadResult;
   loaderDeps: (context: { search: Record<string, unknown> }) => unknown;
+  loader: (context: { deps: { q?: string; rulesets: string[]; page?: number } }) => Promise<unknown>;
 };
-const { head, loaderDeps } = (Route as unknown as { options: RouteOptions }).options;
+const { head, loaderDeps, loader } = (Route as unknown as { options: RouteOptions }).options;
 
 const page = (search: Record<string, unknown>) => head({ match: { status: 'success', search } });
 
@@ -29,10 +37,11 @@ describe('the global FAQ head', () => {
     expect(result.meta?.some((tag) => tag.name === 'robots')).toBe(false);
   });
 
-  it('numbers a later page of the plain FAQ, which has an address of its own', () => {
+  it('has no numbered pages of its own, as only a search has pages', () => {
     const result = page({ page: '3' });
-    expect(result.links).toContainEqual({ rel: 'canonical', href: 'https://dune.zone/faq?page=3' });
-    expect(result.meta).toContainEqual({ title: 'Community FAQ, page 3 · Dune Zone' });
+    expect(result.links).toContainEqual({ rel: 'canonical', href: 'https://dune.zone/faq' });
+    expect(result.meta).toContainEqual({ title: 'Community FAQ · Dune Zone' });
+    expect(result.meta?.some((tag) => tag.name === 'robots')).toBe(false);
   });
 
   it('keeps a search, and a ruleset pick, out of search engines', () => {
@@ -54,5 +63,18 @@ describe('the global FAQ head', () => {
       page: 2,
     });
     expect(loaderDeps({ search: {} })).toEqual({ q: undefined, rulesets: [], page: undefined });
+  });
+
+  it('answers a page past the end of a search as one that does not exist, naming the last page', async () => {
+    const searched = { selected: [], searched: true, items: [], total: 30, complete: true, pageCount: 2, pageSize: 24 };
+    vi.mocked(loadGlobalFaqPage).mockImplementation(async (args) => ({ ...searched, page: args.page ?? 1 }));
+    await expect(loader({ deps: { q: 'storm', rulesets: [], page: 3 } })).rejects.toMatchObject({
+      isNotFound: true,
+      data: { pageCount: 2 },
+    });
+    await expect(loader({ deps: { q: 'storm', rulesets: [], page: 2 } })).resolves.toMatchObject({
+      page: { page: 2, pageCount: 2 },
+      rulesets: [],
+    });
   });
 });

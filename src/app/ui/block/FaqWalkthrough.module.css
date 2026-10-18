@@ -2,9 +2,12 @@
  * One loop tells the whole story, so every keyframe below is a share of the same cycle:
  * the question types from 6% to 32%, the replies arrive at 38%, 48% and 58%, the pointer travels from 66% and clicks at 79%, and the badge settles by 86%.
  * The resting styles are the end of the story, so dropping the animations leaves the complete picture.
+ * Every cycle-long animation starts at 86%, where the story has just settled: the server renders the end of the story, and hydration then holds that picture a moment before the loop comes round, instead of cutting to a blank question.
  */
 .stage {
   --faq-cycle: 14s;
+  --faq-start: calc(var(--faq-cycle) * -0.86);
+  position: relative;
   container-type: inline-size;
   display: flex;
   flex-direction: column;
@@ -12,6 +15,7 @@
   max-width: 38rem;
   margin-inline: auto;
   animation: loop var(--faq-cycle) linear infinite;
+  animation-delay: var(--faq-start);
 }
 
 .voice {
@@ -52,6 +56,7 @@
 
 .question .voice {
   animation: reveal var(--faq-cycle) linear infinite;
+  animation-delay: var(--faq-start);
 }
 
 .asked {
@@ -62,14 +67,16 @@
   color: var(--color-text);
 }
 
-/* Typed one step at a time: the box widens over the words, and the caret blinks beside the last one while it does. */
+/* Typed one step at a time: the box widens over the words, and the caret blinks beside the last one while it does. A question too long for the line is cut with an ellipsis while it types, and set free to wrap once the loop is off. */
 .typed {
   display: inline-block;
   max-width: 100%;
   overflow: hidden;
   white-space: nowrap;
+  text-overflow: ellipsis;
   vertical-align: bottom;
   animation: typing var(--faq-cycle) steps(36, end) infinite;
+  animation-delay: var(--faq-start);
 }
 
 .typed::after {
@@ -84,6 +91,7 @@
   animation:
     caret var(--faq-cycle) steps(1, end) infinite,
     blink 0.7s steps(1, end) infinite;
+  animation-delay: var(--faq-start), 0s;
 }
 
 .answers {
@@ -112,14 +120,17 @@
 
 .answer:where(:nth-child(1)) {
   animation: arrive-first var(--faq-cycle) linear infinite;
+  animation-delay: var(--faq-start);
 }
 
 .answer:where(:nth-child(2)) {
   animation: arrive-second var(--faq-cycle) linear infinite;
+  animation-delay: var(--faq-start);
 }
 
 .answer:where(:nth-child(n + 3)) {
   animation: arrive-third var(--faq-cycle) linear infinite;
+  animation-delay: var(--faq-start);
 }
 
 /* Two animations on the accepted reply: its arrival, and the tint that marks it once it is chosen. The positions sit in `:where()` so the still rule at the end of this file outranks them. */
@@ -132,18 +143,21 @@
   animation:
     arrive-first var(--faq-cycle) linear infinite,
     settle-row var(--faq-cycle) steps(1, end) infinite;
+  animation-delay: var(--faq-start), var(--faq-start);
 }
 
 .answer[data-accepted]:where(:nth-child(2)) {
   animation:
     arrive-second var(--faq-cycle) linear infinite,
     settle-row var(--faq-cycle) steps(1, end) infinite;
+  animation-delay: var(--faq-start), var(--faq-start);
 }
 
 .answer[data-accepted]:where(:nth-child(n + 3)) {
   animation:
     arrive-third var(--faq-cycle) linear infinite,
     settle-row var(--faq-cycle) steps(1, end) infinite;
+  animation-delay: var(--faq-start), var(--faq-start);
 }
 
 .reply {
@@ -152,6 +166,7 @@
 
 .badge {
   animation: badge var(--faq-cycle) ease-out infinite;
+  animation-delay: var(--faq-start);
 }
 
 .accept {
@@ -174,6 +189,7 @@
   background: var(--action-positive-fg);
   color: var(--action-positive-bg);
   animation: settle-mark var(--faq-cycle) steps(1, end) infinite;
+  animation-delay: var(--faq-start);
 }
 
 /* The pointer rests with its tip on the mark; the keyframes bring it in from below and to the right, and take it away after the click. */
@@ -185,20 +201,22 @@
   color: var(--color-text);
   filter: drop-shadow(0 1px 2px rgb(0 0 0 / 45%));
   animation: point var(--faq-cycle) cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  animation-delay: var(--faq-start);
 }
 
+/* Between loops the finished story dims and the next one brightens over it, rather than cutting to nothing. */
 @keyframes loop {
   0% {
-    opacity: 0;
+    opacity: 0.35;
   }
 
-  2%,
-  96% {
+  4%,
+  94% {
     opacity: 1;
   }
 
   100% {
-    opacity: 0;
+    opacity: 0.35;
   }
 }
 
@@ -400,4 +418,25 @@
 .stage[data-motion="reduce"] *,
 .stage[data-motion="reduce"] *::after {
   animation: none;
+}
+
+/* The pause control sits in the stage's corner, out of the story's way. */
+.playback {
+  position: absolute;
+  inset-inline-end: 0;
+  top: 0;
+  z-index: 1;
+}
+
+/* Paused by the reader: every animation holds its frame, the caret's blink included. */
+.stage[data-paused],
+.stage[data-paused] *,
+.stage[data-paused] *::after {
+  animation-play-state: paused;
+}
+
+/* Held still, the question is text again: it wraps like any other line rather than being cut at the box. */
+.stage[data-motion="reduce"] .typed {
+  white-space: normal;
+  overflow: visible;
 }

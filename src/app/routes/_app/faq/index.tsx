@@ -1,4 +1,4 @@
-import { Button, MultiSelect, Stack, Text, Title } from '@mantine/core';
+import { Button, MultiSelect, Pill, Stack, Text, Title } from '@mantine/core';
 import { globalFaqRulesetSlugs, parseGlobalFaqSearch } from '@shared/faq/globalSearch';
 import type { GlobalFaqSearch } from '@shared/faq/globalSearch';
 import { createFileRoute, Link, notFound, useNavigate } from '@tanstack/react-router';
@@ -42,19 +42,13 @@ function pageSearch(page: number) {
   });
 }
 
-/** The page's name in its title, with the page number past the first. */
-function faqPageName(page: number | undefined) {
-  return page ? `${PAGE_NAME}, page ${page}` : PAGE_NAME;
-}
-
-/** A search narrows the FAQ to its matches, and a ruleset pick narrows those; neither page is worth a search engine's time, as the questions have pages of their own. */
+/**
+ * A search narrows the FAQ to its matches, and a ruleset pick narrows those;
+ * neither page is worth a search engine's time, as the questions have pages of their own.
+ * The plain page has no result pages at all, so `/faq` is this page's one indexed address.
+ */
 function isRefined(search: GlobalFaqSearch) {
   return search.q != null || search.rulesets != null;
-}
-
-/** The page number worth naming and indexing: none on the first page or on a refined one. */
-function indexedPage(search: GlobalFaqSearch) {
-  return isRefined(search) ? undefined : search.page;
 }
 
 function noindex<T extends { meta?: unknown[] }>(head: T) {
@@ -78,10 +72,9 @@ export const Route = createFileRoute('/_app/faq/')({
   notFoundComponent: GlobalFaqNotFound,
   head: ({ match }) => {
     const search = parseGlobalFaqSearch(match.search);
-    const page = indexedPage(search);
     const head = publicPageHead({
-      name: faqPageName(page),
-      pathname: page ? `/faq?page=${page}` : '/faq',
+      name: PAGE_NAME,
+      pathname: '/faq',
       description:
         'Search community questions and accepted answers about the Dune board game across every ruleset on Dune Zone.',
       social: { kind: 'FAQ', shape: 'portrait' },
@@ -111,7 +104,7 @@ function GlobalFaqPage() {
     [navigate]
   );
   const query = useSearchDraft(search.q ?? '', commitQuery);
-  useLivePageTitle(faqPageName(indexedPage(search)));
+  useLivePageTitle(PAGE_NAME);
   const changeRulesets = (rulesets: string[]) => changeSearch({ rulesets });
 
   return (
@@ -180,7 +173,14 @@ function GlobalFaqPage() {
   );
 }
 
-/** The ruleset filter: a bare segment in the toolbar, or a labelled field where the refine panel holds it. Each option says how many questions it holds. */
+/** A ruleset as the select lists it: its slug and name, and its questions for the option to show. */
+type RulesetChoice = { value: string; label: string; questions: number };
+
+/**
+ * The ruleset filter: a bare segment in the toolbar, or a labelled field where the refine panel holds it.
+ * Each option says how many questions it holds, and a picked one stays listed, checked, so it can be dropped from the list as well as from its pill.
+ * The toolbar's segment has room for one pill, so a second pick folds the rest into a count.
+ */
 function RulesetSelect({
   label,
   options,
@@ -193,7 +193,11 @@ function RulesetSelect({
   onChange: (slugs: string[]) => void;
 }) {
   const inToolbar = label == null;
-  const counts = new Map(options.map((option) => [option.slug, option.questions]));
+  const data: RulesetChoice[] = options.map((option) => ({
+    value: option.slug,
+    label: option.name,
+    questions: option.questions,
+  }));
   return (
     <MultiSelect
       className={inToolbar ? styles.rulesetSegment : undefined}
@@ -202,18 +206,36 @@ function RulesetSelect({
       label={label}
       aria-label={inToolbar ? 'Rulesets' : undefined}
       placeholder={value.length === 0 ? 'All rulesets' : undefined}
-      data={options.map((option) => ({ value: option.slug, label: option.name }))}
+      data={data}
       renderOption={({ option }) => (
         <span className={styles.rulesetOption}>
           <span>{option.label}</span>
           <Text component="span" size="xs" c="dimmed">
-            {counts.get(option.value) ?? 0}
+            {(option as RulesetChoice).questions}
           </Text>
         </span>
       )}
+      renderPill={
+        inToolbar
+          ? ({ option, onRemove }) => {
+              const index = value.indexOf(String(option.value));
+              if (index === 0) {
+                return (
+                  <Pill
+                    withRemoveButton
+                    onRemove={onRemove}
+                    removeButtonProps={{ 'aria-label': `Drop ${option.label}` }}
+                  >
+                    {option.label}
+                  </Pill>
+                );
+              }
+              return index === 1 ? <Pill aria-label={`and ${value.length - 1} more`}>+{value.length - 1}</Pill> : null;
+            }
+          : undefined
+      }
       value={value}
       onChange={onChange}
-      hidePickedOptions
       clearable
       searchable={!inToolbar}
       comboboxProps={{ withinPortal: true }}
@@ -292,13 +314,13 @@ function NothingMatches({ complete }: { complete: boolean }) {
   );
 }
 
-/** A page past the end, from an old link or a search that shrank: say where the results end and link there. */
+/** A page past the end of a search, from an old link or matches that went away: say where its results end and link there, with the same search. */
 function PastTheEnd({ pageCount }: { pageCount: number }) {
   return (
     <Stack gap="sm" align="center">
       <Title order={2}>Nothing on this page</Title>
       <Text c="dimmed">
-        {pageCount === 1 ? 'These results fit on one page.' : `These results end on page ${pageCount}.`}
+        {pageCount === 1 ? 'This search fits on one page.' : `This search ends on page ${pageCount}.`}
       </Text>
       <Button variant="default" renderRoot={(props) => <Link {...props} to="/faq" search={pageSearch(pageCount)} />}>
         {pageCount === 1 ? 'Go to the results' : `Go to page ${pageCount}`}
@@ -307,7 +329,7 @@ function PastTheEnd({ pageCount }: { pageCount: number }) {
   );
 }
 
-/** A page past the end, which carries where the results end. */
+/** A page past the end of a search, which carries where its results end. */
 function GlobalFaqNotFound({ data }: NotFoundRouteProps) {
   const pageCount = (data as { pageCount?: number } | undefined)?.pageCount ?? 1;
   return (

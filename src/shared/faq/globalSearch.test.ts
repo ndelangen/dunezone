@@ -4,11 +4,16 @@ import { FAQ_CATALOGUE_QUERY_LIMIT } from './catalogueSearch';
 import { FAQ_SEARCH_RULESET_LIMIT, globalFaqRulesetSlugs, parseGlobalFaqSearch } from './globalSearch';
 
 describe('global FAQ search parameters', () => {
-  test('keeps a page number only from the second page on, so the first page has one address', () => {
-    expect(parseGlobalFaqSearch({ page: '3' })).toEqual({ page: 3 });
+  test('keeps a page number only from the second page of a search on, so the first page has one address', () => {
+    expect(parseGlobalFaqSearch({ q: 'storm', page: '3' })).toEqual({ q: 'storm', page: 3 });
     for (const page of [1, 0, -2, 2.5, 'two', '']) {
-      expect(parseGlobalFaqSearch({ page })).toEqual({});
+      expect(parseGlobalFaqSearch({ q: 'storm', page })).toEqual({ q: 'storm' });
     }
+  });
+
+  test('drops a page number without a search, as the plain page has no pages', () => {
+    expect(parseGlobalFaqSearch({ page: '3' })).toEqual({});
+    expect(parseGlobalFaqSearch({ rulesets: 'dreamrules', page: '3' })).toEqual({ rulesets: 'dreamrules' });
   });
 
   test('keeps a trimmed search, cut at the longest one the FAQ runs', () => {

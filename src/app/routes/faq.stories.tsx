@@ -59,6 +59,7 @@ export const Explainer = meta.story({
     await expect(page.getByRole('heading', { name: 'How the FAQ works' })).toBeVisible();
     await expect(page.getByText('Accepted answer')).toBeInTheDocument();
     await expect(page.getByRole('link', { name: 'Browse the rulesets' })).toHaveAttribute('href', '/rulesets');
+    await expect(page.getByRole('button', { name: 'Pause animation' })).toBeVisible();
     await expect(page.queryByRole('main')?.querySelector('table')).toBeNull();
   },
 });
@@ -96,9 +97,9 @@ export const SearchResults = meta.story({
       '/rulesets/dreamrules/faq'
     );
     await expect(page.getByRole('textbox', { name: 'Search FAQ questions' })).toHaveValue('storm');
-    /* The picked rulesets show as pills on the toolbar's select. */
+    /* The toolbar's select has room for one pill, so the second pick folds into a count. */
     await expect(page.getByText('ClassicRules', { selector: '.mantine-Pill-label' })).toBeVisible();
-    await expect(page.getByText('Dreamrules', { selector: '.mantine-Pill-label' })).toBeVisible();
+    await expect(page.getByLabelText('and 1 more')).toHaveTextContent('+1');
   },
 });
 
