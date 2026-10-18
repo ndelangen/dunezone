@@ -81,6 +81,7 @@ import type * as lib_policy from "../lib/policy.js";
 import type * as lib_profileActivity from "../lib/profileActivity.js";
 import type * as lib_profileAvatar from "../lib/profileAvatar.js";
 import type * as lib_profileBootstrap from "../lib/profileBootstrap.js";
+import type * as lib_profileCatalogue from "../lib/profileCatalogue.js";
 import type * as lib_profileDetail from "../lib/profileDetail.js";
 import type * as lib_profileDiscovery from "../lib/profileDiscovery.js";
 import type * as lib_profileSlugs from "../lib/profileSlugs.js";
@@ -219,6 +220,7 @@ const fullApi: ApiFromModules<{
   "lib/profileActivity": typeof lib_profileActivity;
   "lib/profileAvatar": typeof lib_profileAvatar;
   "lib/profileBootstrap": typeof lib_profileBootstrap;
+  "lib/profileCatalogue": typeof lib_profileCatalogue;
   "lib/profileDetail": typeof lib_profileDetail;
   "lib/profileDiscovery": typeof lib_profileDiscovery;
   "lib/profileSlugs": typeof lib_profileSlugs;

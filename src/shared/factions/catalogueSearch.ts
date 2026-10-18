@@ -12,7 +12,7 @@ export const FACTION_CATALOGUE_SORTS = ['name', 'created', 'updated', 'complexit
 export type FactionCatalogueSort = (typeof FACTION_CATALOGUE_SORTS)[number];
 
 /** How many cards one catalogue page holds. */
-export const FACTION_CATALOGUE_PAGE_SIZE = 24;
+export const FACTION_CATALOGUE_PAGE_SIZE = 48;
 
 /** The longest search the catalogue runs; anything past it is cut, since no name is this long. */
 export const FACTION_CATALOGUE_QUERY_LIMIT = 100;

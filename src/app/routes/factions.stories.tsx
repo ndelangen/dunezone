@@ -37,14 +37,14 @@ export const CataloguePaged = meta.story({
   args: { path: '/factions?page=2' },
   parameters: {
     database: db((baseline) => {
-      for (let index = 1; index <= 30; index += 1) {
+      for (let index = 1; index <= 60; index += 1) {
         baseline.factions.push(faction({ name: `Sietch ${String(index).padStart(2, '0')}` }));
       }
     }),
   },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await expect(page.findByText(/^25–31 of 31 factions$/, {}, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(page.findByText(/^49–61 of 61 factions$/, {}, { timeout: 30_000 })).resolves.toBeVisible();
     const pages = await page.findByLabelText('Faction catalogue pages');
     await expect(within(pages).getByRole('link', { name: '1' })).toHaveAttribute('href', '/factions');
   },
