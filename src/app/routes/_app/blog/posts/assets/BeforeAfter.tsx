@@ -62,6 +62,13 @@ export function BeforeAfter({
         </div>
         <div className={styles.line} aria-hidden />
       </div>
+      {/* `PublishedImage` draws only once the browser runs, so readers and crawlers without scripts get both pictures side by side here. */}
+      <noscript>
+        <div className={styles.fallback}>
+          <img src={before.src} alt={before.alt} />
+          <img src={after.src} alt={after.alt} />
+        </div>
+      </noscript>
       <Slider
         className={styles.slider}
         thumbLabel="Wipe between the printed token and the cleaned-up portrait"
