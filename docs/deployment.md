@@ -741,3 +741,9 @@ The build's plugin timing report remains useful evidence. React Compiler and Tan
 account for most callback time; no filter hides those reports. Vite's development advice about the
 header's relative `public/video` imports also remains. Those imports deliberately produce matching
 hashed URLs in browser and SSR builds; changing them to `/video/` would lose immutable delivery.
+
+Wrangler also reports one ignored bare `lucide-react` import in the generated SSR router. Route
+splitting leaves that import after removing unused UI bindings. Lucide declares `sideEffects: false`,
+and Wrangler drops it while preserving the named icon imports used by server-rendered routes.
+The advisory remains visible; bundling all Lucide icons into the SSR output only to remove it
+would add unnecessary intermediate code.

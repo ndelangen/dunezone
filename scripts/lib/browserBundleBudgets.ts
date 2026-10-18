@@ -49,12 +49,16 @@ export function browserBundleBudgets(): Plugin {
   return {
     name: 'dunezone:browser-bundle-budgets',
     apply: 'build',
-    generateBundle(_, bundle) {
-      if (this.environment.name === 'client') {
-        for (const report of inspectBrowserJavaScript(bundle)) {
-          this.info(`[bundle-budget] ${report}`);
+    enforce: 'post',
+    generateBundle: {
+      order: 'post',
+      handler(_, bundle) {
+        if (this.environment.name === 'client') {
+          for (const report of inspectBrowserJavaScript(bundle)) {
+            this.info(`[bundle-budget] ${report}`);
+          }
         }
-      }
+      },
     },
   };
 }
