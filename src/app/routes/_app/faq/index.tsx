@@ -1,4 +1,4 @@
-import { Button, MultiSelect, Pill, Stack, Text, Title } from '@mantine/core';
+import { Button, MultiSelect, Pill, Stack, Text, Title, VisuallyHidden } from '@mantine/core';
 import { globalFaqRulesetSlugs, parseGlobalFaqSearch } from '@shared/faq/globalSearch';
 import type { GlobalFaqSearch } from '@shared/faq/globalSearch';
 import { createFileRoute, Link, notFound, useNavigate } from '@tanstack/react-router';
@@ -217,20 +217,28 @@ function RulesetSelect({
       )}
       renderPill={
         inToolbar
-          ? ({ option, onRemove }) => {
-              const index = value.indexOf(String(option.value));
+          ? ({ option, value: picked, onRemove }) => {
+              /* A picked ruleset with no questions yet is not among the options, so Mantine hands over no option for it and the slug stands in for its name. */
+              const slug = String(picked ?? option?.value);
+              const name = option?.label ?? slug;
+              const index = value.indexOf(slug);
               if (index === 0) {
                 return (
-                  <Pill
-                    withRemoveButton
-                    onRemove={onRemove}
-                    removeButtonProps={{ 'aria-label': `Drop ${option.label}` }}
-                  >
-                    {option.label}
+                  <Pill withRemoveButton onRemove={onRemove} removeButtonProps={{ 'aria-label': `Drop ${name}` }}>
+                    {name}
                   </Pill>
                 );
               }
-              return index === 1 ? <Pill aria-label={`and ${value.length - 1} more`}>+{value.length - 1}</Pill> : null;
+              if (index !== 1) {
+                return null;
+              }
+              const more = value.length - 1;
+              return (
+                <Pill>
+                  <span aria-hidden>+{more}</span>
+                  <VisuallyHidden>and {more} more rulesets</VisuallyHidden>
+                </Pill>
+              );
             }
           : undefined
       }

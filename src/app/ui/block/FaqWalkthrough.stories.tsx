@@ -39,11 +39,15 @@ export const Animated = meta.story({
     await expect(canvas.getByText('Accepted answer')).toBeInTheDocument();
     const reply = canvas.getByText(exchange.answers[0]!.text).closest('li')!;
     await expect(getComputedStyle(reply).animationPlayState).toBe('running');
-    await userEvent.click(canvas.getByRole('button', { name: 'Pause animation' }));
-    await expect(canvas.getByRole('button', { name: 'Play animation' })).toHaveAttribute('aria-pressed', 'true');
+    /* One name throughout, with the pressed state saying whether it holds. */
+    const pause = canvas.getByRole('button', { name: 'Pause animation' });
+    await expect(pause).toHaveAttribute('aria-pressed', 'false');
+    await userEvent.click(pause);
+    await expect(pause).toHaveAttribute('aria-pressed', 'true');
     await expect(getComputedStyle(reply).animationPlayState).toBe('paused');
-    await userEvent.click(canvas.getByRole('button', { name: 'Play animation' }));
-    await expect(canvas.getByRole('button', { name: 'Pause animation' })).toBeVisible();
+    await userEvent.click(pause);
+    await expect(pause).toHaveAttribute('aria-pressed', 'false');
+    await expect(getComputedStyle(reply).animationPlayState).toBe('running');
   },
 });
 

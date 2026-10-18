@@ -99,7 +99,33 @@ export const SearchResults = meta.story({
     await expect(page.getByRole('textbox', { name: 'Search FAQ questions' })).toHaveValue('storm');
     /* The toolbar's select has room for one pill, so the second pick folds into a count. */
     await expect(page.getByText('ClassicRules', { selector: '.mantine-Pill-label' })).toBeVisible();
-    await expect(page.getByLabelText('and 1 more')).toHaveTextContent('+1');
+    await expect(page.getByText('and 1 more rulesets')).toBeInTheDocument();
+  },
+});
+
+/**
+ * A picked ruleset that holds no questions yet is not among the select's options.
+ * Its pill still stands, named by its slug, since the picks are listed in slug order and it comes first, and the search runs within the rulesets that do have questions.
+ */
+export const PickedRulesetWithoutQuestions = meta.story({
+  args: { path: '/faq?q=storm&rulesets=barren,classicrules' },
+  parameters: {
+    database: db((baseline) => {
+      baseline.rulesets.push(ruleset({ name: 'Barren' }));
+      return baseline;
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const main = within(await page.findByRole('main', {}, { timeout: 30_000 }));
+    await expect(
+      main.findByRole('link', { name: 'When does the storm move?' }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+    const pill = page.getByText('barren', { selector: '.mantine-Pill-label' });
+    await expect(pill).toBeVisible();
+    /* Mantine keeps a pill's remove button from assistive tech, since Backspace drops the last pick, so it is found by its class. */
+    await expect(pill.closest('.mantine-Pill-root')?.querySelector('.mantine-Pill-remove')).not.toBeNull();
+    await expect(page.getByText('and 1 more rulesets')).toBeInTheDocument();
   },
 });
 

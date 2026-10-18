@@ -4,18 +4,26 @@
  * The resting styles are the end of the story, so dropping the animations leaves the complete picture.
  * Every cycle-long animation starts at 86%, where the story has just settled: the server renders the end of the story, and hydration then holds that picture a moment before the loop comes round, instead of cutting to a blank question.
  */
+.walkthrough {
+  position: relative;
+  max-width: 38rem;
+  margin-inline: auto;
+}
+
 .stage {
   --faq-cycle: 14s;
   --faq-start: calc(var(--faq-cycle) * -0.86);
-  position: relative;
   container-type: inline-size;
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
-  max-width: 38rem;
-  margin-inline: auto;
   animation: loop var(--faq-cycle) linear infinite;
   animation-delay: var(--faq-start);
+}
+
+/* With the pause control in the corner, the question's line stops short of it rather than running under it. */
+.walkthrough[data-playback] .question {
+  padding-inline-end: 2.5rem;
 }
 
 .voice {
@@ -67,13 +75,12 @@
   color: var(--color-text);
 }
 
-/* Typed one step at a time: the box widens over the words, and the caret blinks beside the last one while it does. A question too long for the line is cut with an ellipsis while it types, and set free to wrap once the loop is off. */
+/* Typed one step at a time: the box widens over the words, and the caret blinks beside the last one while it does. A question too long for the line is cut at the edge while it types, and set free to wrap once the loop is off. */
 .typed {
   display: inline-block;
   max-width: 100%;
   overflow: hidden;
   white-space: nowrap;
-  text-overflow: ellipsis;
   vertical-align: bottom;
   animation: typing var(--faq-cycle) steps(36, end) infinite;
   animation-delay: var(--faq-start);
@@ -420,7 +427,7 @@
   animation: none;
 }
 
-/* The pause control sits in the stage's corner, out of the story's way. */
+/* The pause control sits in the corner beside the stage, not on it, so the fade between loops never dims it. */
 .playback {
   position: absolute;
   inset-inline-end: 0;
