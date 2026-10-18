@@ -28,6 +28,11 @@ import { Route as AppAuthIndexRouteImport } from './routes/_app/auth/index'
 import { Route as AppAuthErrorRouteRouteImport } from './routes/_app/auth/error.route'
 import { Route as AppAuthLoginRouteRouteImport } from './routes/_app/auth/login.route'
 import { Route as AppBlogIndexRouteImport } from './routes/_app/blog/index'
+import { Route as AppContributingIndexRouteImport } from './routes/_app/contributing/index'
+import { Route as AppContributingCodeRouteRouteImport } from './routes/_app/contributing/code.route'
+import { Route as AppContributingDeploymentRouteRouteImport } from './routes/_app/contributing/deployment.route'
+import { Route as AppContributingDesignDecisionsRouteRouteImport } from './routes/_app/contributing/design-decisions/route'
+import { Route as AppContributingGlossaryRouteRouteImport } from './routes/_app/contributing/glossary/route'
 import { Route as AppFactionsIndexRouteImport } from './routes/_app/factions/index'
 import { Route as AppFactionsCreateRouteRouteImport } from './routes/_app/factions/create.route'
 import { Route as AppFaqIndexRouteImport } from './routes/_app/faq/index'
@@ -161,6 +166,35 @@ const AppBlogIndexRoute = AppBlogIndexRouteImport.update({
   path: '/blog/',
   getParentRoute: () => AppRouteRoute,
 } as any)
+const AppContributingIndexRoute = AppContributingIndexRouteImport.update({
+  id: '/contributing/',
+  path: '/contributing/',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppContributingCodeRouteRoute =
+  AppContributingCodeRouteRouteImport.update({
+    id: '/contributing/code',
+    path: '/contributing/code',
+    getParentRoute: () => AppRouteRoute,
+  } as any)
+const AppContributingDeploymentRouteRoute =
+  AppContributingDeploymentRouteRouteImport.update({
+    id: '/contributing/deployment',
+    path: '/contributing/deployment',
+    getParentRoute: () => AppRouteRoute,
+  } as any)
+const AppContributingDesignDecisionsRouteRoute =
+  AppContributingDesignDecisionsRouteRouteImport.update({
+    id: '/contributing/design-decisions',
+    path: '/contributing/design-decisions',
+    getParentRoute: () => AppRouteRoute,
+  } as any)
+const AppContributingGlossaryRouteRoute =
+  AppContributingGlossaryRouteRouteImport.update({
+    id: '/contributing/glossary',
+    path: '/contributing/glossary',
+    getParentRoute: () => AppRouteRoute,
+  } as any)
 const AppFactionsIndexRoute = AppFactionsIndexRouteImport.update({
   id: '/factions/',
   path: '/factions/',
@@ -387,6 +421,10 @@ export interface FileRoutesByFullPath {
   '/assets/__presets': typeof AppAssets_presetsRouteRoute
   '/auth/error': typeof AppAuthErrorRouteRoute
   '/auth/login': typeof AppAuthLoginRouteRoute
+  '/contributing/code': typeof AppContributingCodeRouteRoute
+  '/contributing/deployment': typeof AppContributingDeploymentRouteRoute
+  '/contributing/design-decisions': typeof AppContributingDesignDecisionsRouteRoute
+  '/contributing/glossary': typeof AppContributingGlossaryRouteRoute
   '/factions/create': typeof AppFactionsCreateRouteRoute
   '/groups/create': typeof AppGroupsCreateRouteRoute
   '/media/$source': typeof AppMediaSourceRouteRouteWithChildren
@@ -397,6 +435,7 @@ export interface FileRoutesByFullPath {
   '/assets/': typeof AppAssetsIndexRoute
   '/auth/': typeof AppAuthIndexRoute
   '/blog/': typeof AppBlogIndexRoute
+  '/contributing/': typeof AppContributingIndexRoute
   '/factions/': typeof AppFactionsIndexRoute
   '/faq/': typeof AppFaqIndexRoute
   '/future-plans/': typeof AppFuturePlansIndexRoute
@@ -444,6 +483,10 @@ export interface FileRoutesByTo {
   '/assets/__presets': typeof AppAssets_presetsRouteRoute
   '/auth/error': typeof AppAuthErrorRouteRoute
   '/auth/login': typeof AppAuthLoginRouteRoute
+  '/contributing/code': typeof AppContributingCodeRouteRoute
+  '/contributing/deployment': typeof AppContributingDeploymentRouteRoute
+  '/contributing/design-decisions': typeof AppContributingDesignDecisionsRouteRoute
+  '/contributing/glossary': typeof AppContributingGlossaryRouteRoute
   '/factions/create': typeof AppFactionsCreateRouteRoute
   '/groups/create': typeof AppGroupsCreateRouteRoute
   '/media/$source': typeof AppMediaSourceRouteRouteWithChildren
@@ -454,6 +497,7 @@ export interface FileRoutesByTo {
   '/assets': typeof AppAssetsIndexRoute
   '/auth': typeof AppAuthIndexRoute
   '/blog': typeof AppBlogIndexRoute
+  '/contributing': typeof AppContributingIndexRoute
   '/factions': typeof AppFactionsIndexRoute
   '/faq': typeof AppFaqIndexRoute
   '/future-plans': typeof AppFuturePlansIndexRoute
@@ -504,6 +548,10 @@ export interface FileRoutesById {
   '/_app/assets/__presets': typeof AppAssets_presetsRouteRoute
   '/_app/auth/error': typeof AppAuthErrorRouteRoute
   '/_app/auth/login': typeof AppAuthLoginRouteRoute
+  '/_app/contributing/code': typeof AppContributingCodeRouteRoute
+  '/_app/contributing/deployment': typeof AppContributingDeploymentRouteRoute
+  '/_app/contributing/design-decisions': typeof AppContributingDesignDecisionsRouteRoute
+  '/_app/contributing/glossary': typeof AppContributingGlossaryRouteRoute
   '/_app/factions/create': typeof AppFactionsCreateRouteRoute
   '/_app/groups/create': typeof AppGroupsCreateRouteRoute
   '/_app/media/$source': typeof AppMediaSourceRouteRouteWithChildren
@@ -514,6 +562,7 @@ export interface FileRoutesById {
   '/_app/assets/': typeof AppAssetsIndexRoute
   '/_app/auth/': typeof AppAuthIndexRoute
   '/_app/blog/': typeof AppBlogIndexRoute
+  '/_app/contributing/': typeof AppContributingIndexRoute
   '/_app/factions/': typeof AppFactionsIndexRoute
   '/_app/faq/': typeof AppFaqIndexRoute
   '/_app/future-plans/': typeof AppFuturePlansIndexRoute
@@ -564,6 +613,10 @@ export interface FileRouteTypes {
     | '/assets/__presets'
     | '/auth/error'
     | '/auth/login'
+    | '/contributing/code'
+    | '/contributing/deployment'
+    | '/contributing/design-decisions'
+    | '/contributing/glossary'
     | '/factions/create'
     | '/groups/create'
     | '/media/$source'
@@ -574,6 +627,7 @@ export interface FileRouteTypes {
     | '/assets/'
     | '/auth/'
     | '/blog/'
+    | '/contributing/'
     | '/factions/'
     | '/faq/'
     | '/future-plans/'
@@ -621,6 +675,10 @@ export interface FileRouteTypes {
     | '/assets/__presets'
     | '/auth/error'
     | '/auth/login'
+    | '/contributing/code'
+    | '/contributing/deployment'
+    | '/contributing/design-decisions'
+    | '/contributing/glossary'
     | '/factions/create'
     | '/groups/create'
     | '/media/$source'
@@ -631,6 +689,7 @@ export interface FileRouteTypes {
     | '/assets'
     | '/auth'
     | '/blog'
+    | '/contributing'
     | '/factions'
     | '/faq'
     | '/future-plans'
@@ -680,6 +739,10 @@ export interface FileRouteTypes {
     | '/_app/assets/__presets'
     | '/_app/auth/error'
     | '/_app/auth/login'
+    | '/_app/contributing/code'
+    | '/_app/contributing/deployment'
+    | '/_app/contributing/design-decisions'
+    | '/_app/contributing/glossary'
     | '/_app/factions/create'
     | '/_app/groups/create'
     | '/_app/media/$source'
@@ -690,6 +753,7 @@ export interface FileRouteTypes {
     | '/_app/assets/'
     | '/_app/auth/'
     | '/_app/blog/'
+    | '/_app/contributing/'
     | '/_app/factions/'
     | '/_app/faq/'
     | '/_app/future-plans/'
@@ -862,6 +926,41 @@ declare module '@tanstack/react-router' {
       path: '/blog'
       fullPath: '/blog/'
       preLoaderRoute: typeof AppBlogIndexRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/contributing/': {
+      id: '/_app/contributing/'
+      path: '/contributing'
+      fullPath: '/contributing/'
+      preLoaderRoute: typeof AppContributingIndexRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/contributing/code': {
+      id: '/_app/contributing/code'
+      path: '/contributing/code'
+      fullPath: '/contributing/code'
+      preLoaderRoute: typeof AppContributingCodeRouteRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/contributing/deployment': {
+      id: '/_app/contributing/deployment'
+      path: '/contributing/deployment'
+      fullPath: '/contributing/deployment'
+      preLoaderRoute: typeof AppContributingDeploymentRouteRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/contributing/design-decisions': {
+      id: '/_app/contributing/design-decisions'
+      path: '/contributing/design-decisions'
+      fullPath: '/contributing/design-decisions'
+      preLoaderRoute: typeof AppContributingDesignDecisionsRouteRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/contributing/glossary': {
+      id: '/_app/contributing/glossary'
+      path: '/contributing/glossary'
+      fullPath: '/contributing/glossary'
+      preLoaderRoute: typeof AppContributingGlossaryRouteRouteImport
       parentRoute: typeof AppRouteRoute
     }
     '/_app/factions/': {
@@ -1187,12 +1286,17 @@ interface AppRouteRouteChildren {
   AppAssets_presetsRouteRoute: typeof AppAssets_presetsRouteRoute
   AppAuthErrorRouteRoute: typeof AppAuthErrorRouteRoute
   AppAuthLoginRouteRoute: typeof AppAuthLoginRouteRoute
+  AppContributingCodeRouteRoute: typeof AppContributingCodeRouteRoute
+  AppContributingDeploymentRouteRoute: typeof AppContributingDeploymentRouteRoute
+  AppContributingDesignDecisionsRouteRoute: typeof AppContributingDesignDecisionsRouteRoute
+  AppContributingGlossaryRouteRoute: typeof AppContributingGlossaryRouteRoute
   AppFactionsCreateRouteRoute: typeof AppFactionsCreateRouteRoute
   AppGroupsCreateRouteRoute: typeof AppGroupsCreateRouteRoute
   AppRulesetsCreateRouteRoute: typeof AppRulesetsCreateRouteRoute
   AppAssetsIndexRoute: typeof AppAssetsIndexRoute
   AppAuthIndexRoute: typeof AppAuthIndexRoute
   AppBlogIndexRoute: typeof AppBlogIndexRoute
+  AppContributingIndexRoute: typeof AppContributingIndexRoute
   AppFactionsIndexRoute: typeof AppFactionsIndexRoute
   AppFaqIndexRoute: typeof AppFaqIndexRoute
   AppFuturePlansIndexRoute: typeof AppFuturePlansIndexRoute
@@ -1239,12 +1343,18 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppAssets_presetsRouteRoute: AppAssets_presetsRouteRoute,
   AppAuthErrorRouteRoute: AppAuthErrorRouteRoute,
   AppAuthLoginRouteRoute: AppAuthLoginRouteRoute,
+  AppContributingCodeRouteRoute: AppContributingCodeRouteRoute,
+  AppContributingDeploymentRouteRoute: AppContributingDeploymentRouteRoute,
+  AppContributingDesignDecisionsRouteRoute:
+    AppContributingDesignDecisionsRouteRoute,
+  AppContributingGlossaryRouteRoute: AppContributingGlossaryRouteRoute,
   AppFactionsCreateRouteRoute: AppFactionsCreateRouteRoute,
   AppGroupsCreateRouteRoute: AppGroupsCreateRouteRoute,
   AppRulesetsCreateRouteRoute: AppRulesetsCreateRouteRoute,
   AppAssetsIndexRoute: AppAssetsIndexRoute,
   AppAuthIndexRoute: AppAuthIndexRoute,
   AppBlogIndexRoute: AppBlogIndexRoute,
+  AppContributingIndexRoute: AppContributingIndexRoute,
   AppFactionsIndexRoute: AppFactionsIndexRoute,
   AppFaqIndexRoute: AppFaqIndexRoute,
   AppFuturePlansIndexRoute: AppFuturePlansIndexRoute,

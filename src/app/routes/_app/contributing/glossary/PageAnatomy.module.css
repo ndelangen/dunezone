@@ -1,0 +1,186 @@
+/* A small drawing of a page; its ink is the text colour at low strength, so it reads in both schemes. */
+.page {
+  --ink: color-mix(in srgb, var(--mantine-color-text) 18%, transparent);
+  --ink-strong: color-mix(in srgb, var(--mantine-color-text) 35%, transparent);
+  --lit: var(--color-link);
+  container-type: inline-size;
+  font-size: var(--mantine-font-size-xs);
+}
+
+.part {
+  position: relative;
+  border-radius: var(--mantine-radius-sm);
+  transition:
+    opacity 200ms ease,
+    box-shadow 200ms ease;
+}
+
+/* While a term is pointed at, everything it does not name steps back. */
+.page[data-teaching] .part:not([data-lit], :has([data-lit])) {
+  opacity: 0.35;
+}
+
+.part[data-lit] {
+  box-shadow:
+    0 0 0 2px var(--lit),
+    0 0 18px color-mix(in srgb, var(--lit) 45%, transparent);
+  z-index: 1;
+}
+
+.label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  translate: 0 -100%;
+  padding: 0 var(--space-xs);
+  border-radius: var(--mantine-radius-xs);
+  background: var(--lit);
+  color: var(--mantine-color-body);
+  font-family: var(--mantine-font-family-monospace);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms ease;
+}
+
+.part[data-lit] > .label {
+  opacity: 1;
+}
+
+.chrome {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding-bottom: var(--space-sm);
+  border: 1px solid var(--ink);
+}
+
+.band {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-sm);
+  border-radius: var(--mantine-radius-sm) var(--mantine-radius-sm) 0 0;
+  background: linear-gradient(160deg, #e9c98f, #c98a4b 60%, #8c4f2a);
+}
+
+.navigation {
+  align-self: flex-end;
+  width: 45%;
+  height: 0.6rem;
+  border-radius: var(--mantine-radius-xl);
+  background: rgb(255 255 255 / 55%);
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  width: 70%;
+  padding: var(--space-xs);
+}
+
+.eyebrow {
+  width: 30%;
+  height: 0.35rem;
+  border-radius: 1px;
+  background: rgb(40 20 0 / 45%);
+}
+
+.title {
+  width: 75%;
+  height: 0.9rem;
+  border-radius: 2px;
+  background: rgb(40 20 0 / 70%);
+}
+
+.toolbar,
+.content {
+  margin-inline: var(--space-sm);
+  padding: var(--space-xs);
+}
+
+.toolbarPane {
+  display: flex;
+  gap: var(--space-xs);
+  justify-content: space-between;
+  padding: var(--space-xs);
+  border: 1px solid var(--ink);
+  background: var(--glass-surface-1);
+}
+
+.search {
+  width: 55%;
+  height: 0.8rem;
+  border-radius: var(--mantine-radius-xl);
+  background: var(--ink);
+}
+
+.primary {
+  width: 18%;
+  height: 0.8rem;
+  border-radius: var(--mantine-radius-sm);
+  background: var(--ink-strong);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-xs);
+}
+
+.heading {
+  display: flex;
+  gap: var(--space-xs);
+  align-items: center;
+}
+
+.adornment {
+  width: 0.8rem;
+  height: 0.8rem;
+  border-radius: 50%;
+  background: var(--ink-strong);
+}
+
+.headingText {
+  width: 40%;
+  height: 0.6rem;
+  border-radius: 2px;
+  background: var(--ink-strong);
+}
+
+.surface {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: var(--space-sm);
+  border: 1px solid var(--ink);
+  background: var(--glass-surface-1);
+}
+
+.line,
+.lineShort {
+  height: 0.35rem;
+  border-radius: 1px;
+  background: var(--ink);
+}
+
+.lineShort {
+  width: 60%;
+}
+
+.footer {
+  display: flex;
+  gap: var(--space-xs);
+  justify-content: center;
+  margin-inline: var(--space-sm);
+  padding: var(--space-xs);
+}
+
+.dot {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  background: var(--ink);
+}

@@ -1,0 +1,24 @@
+/* A heading reached by its anchor keeps some room above it instead of touching the window edge. */
+.topic,
+.term {
+  scroll-margin-top: var(--space-xl);
+}
+
+.avoided {
+  text-decoration: line-through;
+}
+
+.code {
+  white-space: nowrap;
+}
+
+/* The picture stays in view beside a long run of terms. */
+.visual {
+  position: sticky;
+  top: var(--space-md);
+}
+
+/* Joined into the search field, the topic select drops its own border, as the asset shelves' sort does. */
+.topicSegment :is(input, button) {
+  padding-inline: var(--space-sm);
+}
