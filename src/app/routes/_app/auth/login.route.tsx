@@ -188,7 +188,18 @@ function SignInPanel({
             size="xl"
             fullWidth
             justify="space-between"
-            leftSection={<ProviderMark provider={method.provider} />}
+            leftSection={
+              <span className={styles.providerMark}>
+                <ProviderMark provider={method.provider} />
+                {lastUsed === method.provider && (
+                  <Tooltip label="Last used" withArrow>
+                    <span className={styles.lastUsed}>
+                      <History size={10} aria-hidden />
+                    </span>
+                  </Tooltip>
+                )}
+              </span>
+            }
             rightSection={
               method.available ? <ArrowRight size={18} aria-hidden /> : <span aria-hidden>Unavailable</span>
             }
@@ -197,17 +208,7 @@ function SignInPanel({
             onClick={() => void socialLogin(method.provider)}
           >
             Continue with {authProviderNames[method.provider]}
-            {/* A mark on the provider's logo, placed out of the flow so the button keeps its size and its label stays put; the words reach assistive tech through the name. */}
-            {lastUsed === method.provider && (
-              <>
-                <VisuallyHidden> Last used</VisuallyHidden>
-                <Tooltip label="Last used" withArrow>
-                  <span className={styles.lastUsed}>
-                    <History size={13} aria-hidden />
-                  </span>
-                </Tooltip>
-              </>
-            )}
+            {lastUsed === method.provider && <VisuallyHidden> Last used</VisuallyHidden>}
           </Button>
         ))
       ) : (

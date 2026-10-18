@@ -51,14 +51,16 @@
   opacity: 0.75;
 }
 
-/*
- * The last-used mark rides the top right corner of the provider's own mark, out of the flow, so the button keeps its size and its label stays put.
- * It wears the button's own ink and a backing of the button's own fill, so it reads on paper and on blurple alike without merging into the logo.
- */
+.providerMark {
+  position: relative;
+  display: inline-flex;
+}
+
+/* Anchor the badge to the logo without changing the button or label geometry. */
 .lastUsed {
   position: absolute;
-  top: calc(50% - 18px);
-  inset-inline-start: calc(var(--button-padding-x) + 14px);
+  top: -4px;
+  inset-inline-end: -4px;
   display: inline-flex;
   padding: 1px;
   border-radius: 50%;

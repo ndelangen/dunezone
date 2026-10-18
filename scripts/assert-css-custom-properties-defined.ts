@@ -24,7 +24,6 @@ import { join } from 'node:path';
 const PROVIDED_ELSEWHERE = [
   ['--mantine-', 'the Mantine theme runtime'],
   ['--radix-', 'Radix UI primitives'],
-  ['--button-padding-x', 'the Mantine Button, per size, on its root'],
   ['--canvas-width', 'CanvasScale, via setProperty'],
   ['--contain-fit-width', 'the contain-fit observer, via setProperty'],
   ['--contain-fit-height', 'the contain-fit observer, via setProperty'],
