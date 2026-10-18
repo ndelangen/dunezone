@@ -824,7 +824,7 @@ function RulesetDetailPage() {
           </ColumnsWithRailLayout.Primary>
 
           <ColumnsWithRailLayout.Secondary>
-            <RulesetFaqPreview rulesetSlug={r.slug} items={page.faqItems} questionCount={faqCount} />
+            <RulesetFaqPreview rulesetSlug={r.slug} items={page.faqPreview} questionCount={faqCount} />
           </ColumnsWithRailLayout.Secondary>
 
           <ColumnsWithRailLayout.Rail>

@@ -7,6 +7,9 @@ import { assignedGroupSummary } from './collaborativeAccess';
 import { catalogueFactionFromCard, toCatalogueFaction } from './factionCatalogue';
 import { faqAnsweredPartition, faqRulesetPartition } from './faqCatalogue';
 import { loadNewestFaqItems } from './faqRulesetList';
+
+/* What `faqItems` carried before the FAQ had its own page, kept for browsers still on that bundle; the next release drops it. */
+const LEGACY_FAQ_LIST_LIMIT = 200;
 import { profileSummary } from './profileSummary';
 import { listRulesetRulebooks } from './rulebookList';
 import { readRulesetAssetSlots } from './rulesetSlots';
@@ -93,7 +96,8 @@ export async function loadRulesetPublicDetailPageBySlug(ctx: QueryCtx, slug: str
     ruleset: row,
     factions: await listPublicRulesetFactions(ctx, row._id),
     assignedGroup: await assignedGroupSummary(ctx, row.group_id),
-    faqItems: await loadNewestFaqItems(ctx, row._id, FAQ_PREVIEW_SIZE),
+    faqItems: await loadNewestFaqItems(ctx, row._id, LEGACY_FAQ_LIST_LIMIT),
+    faqPreview: await loadNewestFaqItems(ctx, row._id, FAQ_PREVIEW_SIZE),
     faqCounts: await rulesetFaqCounts(ctx, row._id),
     owner: await profileSummary(ctx, row.owner_id),
     assetSlots: slots.map(({ slot, asset }) => ({ slot, asset })),

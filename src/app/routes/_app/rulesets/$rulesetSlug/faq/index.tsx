@@ -157,7 +157,7 @@ function RulesetFaqPage() {
                 label: 'Search FAQ questions',
                 placeholder: 'Search questions…',
               }}
-              refine={{ label: 'Refine questions', content: tagSelect('Tag') }}
+              refine={{ label: 'Refine questions', content: tagSelect('Tag'), active: search.tag ? 1 : 0 }}
             >
               {tagSelect()}
             </SearchRefine>

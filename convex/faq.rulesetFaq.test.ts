@@ -80,7 +80,7 @@ describe("a ruleset's FAQ", () => {
     ]);
 
     const detail = await t.query(api.rulesets.detailPage, { slug: 'advanced' });
-    expect(detail?.faqItems.map((item) => item.question)).toEqual([
+    expect(detail?.faqPreview.map((item) => item.question)).toEqual([
       'Newest?',
       'Question 08?',
       'Question 07?',
@@ -88,8 +88,8 @@ describe("a ruleset's FAQ", () => {
       'Question 05?',
     ]);
     expect(detail?.faqCounts).toEqual({ questions: FAQ_PREVIEW_SIZE + 4, answered: 1 });
-    expect(detail?.faqItems[0]?.faq_answers.map((answer) => answer.answer)).toEqual(['Yes.']);
-    expect(detail?.faqItems[0]?.asker_profile).toMatchObject({ id: profileId, slug: 'asker', username: 'Asker' });
+    expect(detail?.faqPreview[0]?.faq_answers.map((answer) => answer.answer)).toEqual(['Yes.']);
+    expect(detail?.faqPreview[0]?.asker_profile).toMatchObject({ id: profileId, slug: 'asker', username: 'Asker' });
   });
 
   test('pages every question newest first, and counts them', async () => {
@@ -132,6 +132,20 @@ describe("a ruleset's FAQ", () => {
     expect(
       questions(await t.query(api.faq.rulesetFaq, { rulesetSlug: 'advanced', q: 'storm', tag: 'errata' }))
     ).toEqual(['When does the storm stop?']);
+  });
+
+  test('lists a very long question under a bounded prefix of its words', async () => {
+    const t = applicationTest();
+    const long = `Can a Guild ship carry ${'spice and '.repeat(30_000)}troops?`;
+    await seedFaq(t, [{ question: long }]);
+
+    const entries = await t.run(async (ctx) => await ctx.db.query('catalogue_entries').collect());
+    expect(entries.length).toBeGreaterThan(0);
+    for (const entry of entries) {
+      expect(entry.search_text.length).toBeLessThanOrEqual(2000);
+      expect(entry.name_key.length).toBeLessThanOrEqual(200);
+    }
+    expect((await t.query(api.faq.rulesetFaq, { rulesetSlug: 'advanced', q: 'guild ship' }))?.total).toBe(1);
   });
 
   test('follows an accepted answer, a retag and a deletion, and leaves no drift', async () => {

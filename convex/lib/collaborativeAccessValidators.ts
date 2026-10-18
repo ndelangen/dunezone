@@ -213,8 +213,10 @@ export const rulesetAssetSlotValidator = v.object({
 export const rulesetPublicDetailPageValidator = v.union(
   rulesetPageValidator.extend({
     assignedGroup: v.union(assignedGroupSummaryValidator, v.null()),
-    /** The newest few questions; the rest are on the ruleset's FAQ page. */
+    /** The newest 200 questions, for browsers from before the FAQ had its own page. Unread by this bundle; the next release drops it. */
     faqItems: v.array(faqListItemValidator),
+    /** The newest few questions; the rest are on the ruleset's FAQ page. */
+    faqPreview: v.array(faqListItemValidator),
     faqCounts: v.object({ questions: v.number(), answered: v.number() }),
     owner: v.union(profileSummaryValidator, v.null()),
     assetSlots: v.array(rulesetAssetSlotValidator),

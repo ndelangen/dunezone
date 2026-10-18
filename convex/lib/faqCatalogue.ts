@@ -4,6 +4,13 @@ import type { Id } from '../_generated/dataModel';
 import { catalogueEditedAt, catalogueNameKey, catalogueSearchText, catalogueTimestamp } from './catalogueEntryShape';
 import type { CatalogueKind } from './catalogueEntryShape';
 
+/*
+ * A question has no length cap, but its entry is written once per list it is in and read by the hundred when searched,
+ * so it carries a bounded prefix: enough to find any real question by its words, and to order and count it.
+ */
+const FAQ_SEARCH_TEXT_LIMIT = 2000;
+const FAQ_NAME_KEY_LIMIT = 200;
+
 /** The list of one ruleset's questions. */
 export function faqRulesetPartition(rulesetId: Id<'rulesets'>) {
   return rulesetId as string;
@@ -36,8 +43,8 @@ export const faqCatalogueKind: CatalogueKind = {
       kind: 'faq',
       source_id: item._id,
       slug: item.slug,
-      search_text: catalogueSearchText([item.question]),
-      name_key: catalogueNameKey(item.question),
+      search_text: catalogueSearchText([item.question.slice(0, FAQ_SEARCH_TEXT_LIMIT)]),
+      name_key: catalogueNameKey(item.question.slice(0, FAQ_NAME_KEY_LIMIT)),
       created_at: catalogueTimestamp(item.created_at),
       updated_at: catalogueTimestamp(item.updated_at),
       edited_at: catalogueEditedAt(item.created_at, item.updated_at),

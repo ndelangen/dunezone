@@ -52,7 +52,7 @@ export type RulesetDetailPublicPage = RulesetPageData & {
   assignedGroup: AssignedGroupSummary | null;
   owner: ProfileSummary | null;
   /** The newest few questions; the rest are on the ruleset's FAQ page. */
-  faqItems: FaqItemWithDetails[];
+  faqPreview: FaqItemWithDetails[];
   /** Every question the ruleset has, and how many have an accepted answer. */
   faqCounts: { questions: number; answered: number };
   assetSlots: RulesetSlottedAsset[];
@@ -88,7 +88,7 @@ function normalizeRulesetDetailPage(
     factions: factionCatalogueRowsToEntries(raw.factions),
     assignedGroup: raw.assignedGroup,
     owner: raw.owner,
-    faqItems: mapFaqItemsFromConvex(raw.faqItems),
+    faqPreview: mapFaqItemsFromConvex(raw.faqPreview),
     faqCounts: raw.faqCounts,
     assetSlots: raw.assetSlots,
     board: raw.board,
