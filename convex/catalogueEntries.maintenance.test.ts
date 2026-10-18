@@ -31,7 +31,9 @@ async function world() {
       });
     return { classic: await ruleset('classic'), advanced: await ruleset('advanced') };
   });
-  const entries = () => t.run((ctx) => ctx.db.query('catalogue_entries').collect());
+  /* The faction entries alone: the rulesets seeded above have entries of their own kind, which this suite is not about. */
+  const entries = () =>
+    t.run(async (ctx) => (await ctx.db.query('catalogue_entries').collect()).filter((row) => row.kind === 'faction'));
   const drift = () => t.query(internal.catalogueMaintenance.catalogueDrift, { kind: 'faction' });
   const names = async (args = {}) => (await t.query(api.factions.catalogue, args)).cards.map((card) => card.data.name);
   return { t, author, rulesetIds, entries, drift, names };

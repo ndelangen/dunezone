@@ -1,5 +1,6 @@
 import preview from '@sb/preview';
 import { FAQ_CATALOGUE_PAGE_SIZE } from '@shared/faq/catalogueSearch';
+import { RULESET_CATALOGUE_PAGE_SIZE } from '@shared/rulesets/catalogueSearch';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { db, faction, ref, ruleset } from '@db/storybook';
@@ -20,6 +21,72 @@ export const Directory = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     const [entry] = await page.findAllByRole('link', { name: /ClassicRules/i }, { timeout: 30_000 });
     await expect(entry).toHaveAttribute('href', '/rulesets/classicrules');
+  },
+});
+/** Numbered rulesets beside ClassicRules, so the catalogue has more than one page holds. */
+function seedRulesets(baseline: StorybookDatabase, count: number) {
+  for (let index = 1; index <= count; index++) {
+    baseline.rulesets.push(ruleset({ name: `Ruleset ${String(index).padStart(2, '0')}` }));
+  }
+}
+/** The catalogue's tiles, each the link that opens its ruleset. */
+function rulesetTiles(main: ReturnType<typeof within>, name: RegExp) {
+  return main.getAllByRole('link', { name });
+}
+/** More rulesets than one page holds, so the catalogue pages them with an exact count, and a search narrows them. */
+export const DirectoryPagesAndSearch = meta.story({
+  args: { path: '/rulesets?page=2' },
+  parameters: { database: db((baseline) => seedRulesets(baseline, 30)) },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const main = within(await page.findByRole('main', {}, { timeout: 30_000 }));
+    /* A to Z, ClassicRules sorts before every numbered ruleset, so page two holds the last seven of the thirty-one. */
+    await expect(main.findByRole('link', { name: /Ruleset 24/ }, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(main.getByRole('link', { name: /Ruleset 30/ })).toBeVisible();
+    await expect(main.queryByRole('link', { name: /Ruleset 23/ })).toBeNull();
+    await expect(main.queryByRole('link', { name: /ClassicRules/ })).toBeNull();
+    await expect(page.findByText(/^25–31 of 31 rulesets$/)).resolves.toBeVisible();
+    await expect(page.getByRole('link', { name: 'First page' })).toHaveAttribute('href', '/rulesets');
+
+    await userEvent.type(page.getByRole('textbox', { name: 'Search rulesets' }), 'Ruleset 07');
+    await expect(main.findByRole('link', { name: /Ruleset 07/ }, { timeout: 30_000 })).resolves.toBeVisible();
+    await waitFor(() => expect(main.queryByRole('link', { name: /Ruleset 24/ })).toBeNull());
+    /* The search is one short grid: no pages and no count. */
+    await expect(page.queryByRole('link', { name: 'First page' })).toBeNull();
+    await expect(page.queryByText(/of \d+ rulesets/)).toBeNull();
+  },
+});
+/**
+ * A search shows its best matches and loads more in place: no pages, no count, and the sort is best match alone.
+ * An old link's page and order are dropped, so it opens the search's first matches.
+ * "Load more" lengthens the grid until every match is shown, and hands focus to the first new tile.
+ */
+export const DirectorySearched = meta.story({
+  args: { path: '/rulesets?q=ruleset&page=2&sort=newest' },
+  /* One past the first step: the smallest search that has more to load. */
+  parameters: { database: db((baseline) => seedRulesets(baseline, RULESET_CATALOGUE_PAGE_SIZE + 1)) },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    /* Found on the body, not within a `main` found earlier: the pending frame has a `main` of its own, which the loaded page replaces. */
+    const loadMore = await page.findByRole('button', { name: 'Load more' }, { timeout: 60_000 });
+    const main = within(page.getByRole('main'));
+    await expect(rulesetTiles(main, /^Ruleset \d\d$/)).toHaveLength(RULESET_CATALOGUE_PAGE_SIZE);
+    await expect(main.queryByRole('link', { name: /ClassicRules/ })).toBeNull();
+    await expect(page.queryByLabelText('Ruleset pages')).toBeNull();
+    await expect(page.queryByText(/of \d+ rulesets/)).toBeNull();
+    await expect(page.getByRole('textbox', { name: 'Search rulesets' })).toHaveValue('ruleset');
+    const sort = page.getByRole('combobox', { name: 'Sort' });
+    await expect(sort).toHaveValue('Best match');
+    await expect(sort).toBeDisabled();
+
+    await userEvent.click(loadMore);
+    await waitFor(() => expect(rulesetTiles(main, /^Ruleset \d\d$/)).toHaveLength(RULESET_CATALOGUE_PAGE_SIZE + 1), {
+      timeout: 60_000,
+    });
+    /* Focus moves in an effect after the longer grid is committed, so it is waited for rather than read off the first paint. */
+    await waitFor(() => expect(rulesetTiles(main, /^Ruleset \d\d$/)[RULESET_CATALOGUE_PAGE_SIZE]).toHaveFocus());
+    await expect(main.getByRole('status')).toHaveTextContent('More rulesets loaded');
+    await expect(main.queryByRole('button', { name: 'Load more' })).toBeNull();
   },
 });
 /** The slotted board shows below the Rulebooks, linking to its own page. */
