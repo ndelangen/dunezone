@@ -2,7 +2,7 @@
  * The requests Convex sends a game room.
  * One list serves the game Worker's router, the publisher's callback quota and Convex's client, so a new callback cannot reach one and miss the others, as `retire` first missed the publisher's quota.
  */
-export const playCallbackOperations = ['provision', 'account-deletion', 'retire'] as const;
+export const playCallbackOperations = ['provision', 'account-deletion', 'session-cutoff', 'retire'] as const;
 
 export type PlayCallbackOperation = (typeof playCallbackOperations)[number];
 

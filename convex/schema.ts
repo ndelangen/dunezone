@@ -129,6 +129,17 @@ export default defineSchema({
     .index('by_game_id_operation_id', ['game_id', 'operation_id'])
     .index('by_game_operation_user', ['game_id', 'operation_id', 'user_id'])
     .index('by_state_next_attempt_at', ['state', 'next_attempt_at']),
+  /* One pending account-wide sign-out per account per game; a later one raises `through` instead of queueing another. */
+  play_session_cutoffs: defineTable({
+    game_id: v.id('play_games'),
+    principal_id: v.id('users'),
+    through: v.number(),
+    state: v.union(v.literal('pending'), v.literal('acknowledged')),
+    attempts: v.number(),
+    next_attempt_at: v.number(),
+  })
+    .index('by_game_id_principal_id', ['game_id', 'principal_id'])
+    .index('by_state_next_attempt_at', ['state', 'next_attempt_at']),
   users: defineTable({
     name: v.optional(v.string()),
     image: v.optional(v.string()),

@@ -33,6 +33,8 @@ import {
   playProvisionFailureSchema,
   playRedeemTicketRequestSchema,
   playAckAccountDeletionRequestSchema,
+  playAckSessionCutoffRequestSchema,
+  playSeatLimitRequestSchema,
 } from '../../src/shared/play/admission';
 import type { AssetSupply, RulesetSupply, RulesetCapture, FactionCapture } from '../../src/shared/play/capture';
 import type { factionDefinitionSchema } from '../../src/shared/play/capture';
@@ -46,6 +48,8 @@ import {
   serverClockSchema,
 } from '../../src/shared/play/protocol.ts';
 import type { ServerMessage, ClientMessage, PieceAction, ServerClock } from '../../src/shared/play/protocol.ts';
+import type { SeatPassPayload } from '../../src/shared/play/seatPass';
+import { signSeatPass } from '../../src/shared/play/seatPass';
 import type { RoomView } from '../../src/shared/play/updates.ts';
 import { applyRoomUpdate } from '../../src/shared/play/updates.ts';
 import type { StoredSnapshot, storedSnapshotSchema } from './state';
@@ -80,6 +84,8 @@ const peerRequestSchema = z.discriminatedUnion('function', [
   z.object({ function: z.literal('playAdmission:redeemTicket'), args: playRedeemTicketRequestSchema }),
   z.object({ function: z.literal('playAdmission:reconcileAccounts'), args: playReconcileAccountsRequestSchema }),
   z.object({ function: z.literal('playAdmission:ackAccountDeletion'), args: playAckAccountDeletionRequestSchema }),
+  z.object({ function: z.literal('playAdmission:seatLimitReached'), args: playSeatLimitRequestSchema }),
+  z.object({ function: z.literal('playSessionCutoffs:ackSessionCutoff'), args: playAckSessionCutoffRequestSchema }),
 ]);
 export type PeerRequest = z.infer<typeof peerRequestSchema> & {
   path: string | undefined;
@@ -140,6 +146,8 @@ export interface NativePeer {
   reconcileMode: 'answer' | 'hold' | 'error';
   deletedAccounts: Set<string>;
   seatLimitReached: Set<string>;
+  /* `hold` keeps a pass admission's seat-limit read open, `error` fails it. */
+  seatLimitMode: 'answer' | 'hold' | 'error';
   summaries: z.infer<typeof playPublishSummaryRequestSchema>[];
   connections: PeerConnection[];
   requests: PeerRequest[];
@@ -439,7 +447,16 @@ function answerPeerRequest(peer: NativePeer, record: PeerRequest) {
       }
       break;
     case 'playAdmission:ackAccountDeletion':
+    case 'playSessionCutoffs:ackSessionCutoff':
       record.release(null);
+      break;
+    case 'playAdmission:seatLimitReached':
+      if (peer.seatLimitMode === 'error') {
+        record.response.writeHead(503);
+        record.response.end('Seat limit unavailable');
+      } else if (peer.seatLimitMode !== 'hold') {
+        record.release({ ok: true, reached: peer.seatLimitReached.has(record.args.userId) });
+      }
       break;
   }
 }
@@ -473,6 +490,7 @@ export async function createPeer(): Promise<NativePeer> {
     reconcileMode: 'answer',
     deletedAccounts: new Set(),
     seatLimitReached: new Set(),
+    seatLimitMode: 'answer',
     summaries: [],
     connections: [],
     requests: [],
@@ -917,6 +935,42 @@ export async function admitPlayer(peer: NativePeer, runtime: NativeRuntime, suff
   connection.send({ type: 'admit', supportsBoard: true, ticket: 'c'.repeat(64) });
   await connection.message('view');
   return connection;
+}
+
+/** A seat pass the fixture game's secret signs for the suffix's synthetic account, valid for a minute unless the overrides say otherwise. */
+export function fixturePass(suffix: string, overrides: Partial<SeatPassPayload> = {}, signedWith = secret) {
+  const now = Date.now();
+  return signSeatPass(signedWith, {
+    v: 1,
+    gameId,
+    actorId: `user-${suffix}`,
+    principalId: `user-${suffix}`,
+    sessionId: `session-${suffix}`,
+    sessionCreatedAt: now - 1000,
+    issuedAt: now,
+    exp: now + 60_000,
+    displayName: `Synthetic ${suffix.toUpperCase()}`,
+    avatarUrl: null,
+    profileSlug: `synthetic-${suffix}`,
+    ...overrides,
+  });
+}
+
+/** Admits with a seat pass instead of a ticket and waits for the first view. */
+export async function admitWithPass(runtime: NativeRuntime, suffix: string, overrides: Partial<SeatPassPayload> = {}) {
+  const connection = await openGame(runtime);
+  connection.send({ type: 'admit', supportsBoard: true, pass: await fixturePass(suffix, overrides) });
+  await connection.message('view');
+  return connection;
+}
+
+/** Pushes an account-wide sign-out as Convex does, cutting off the account's sessions created at or before `through`. */
+export function pushSessionCutoff(runtime: NativeRuntime, principalId: string, through: number, eventId = 'cutoff-1') {
+  return runtime.fetch(`/__play/games/${gameId}/session-cutoff`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ gameId, secret, eventId, principalId, through }),
+  });
 }
 
 /** Asks for a fresh full view and returns it, ignoring views that were already queued. */

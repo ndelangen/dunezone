@@ -4,6 +4,7 @@ import type { MutationCtx, QueryCtx } from '../_generated/server';
 import { gameActorIds } from './accountIdentity';
 import { accountStateOf } from './accountLifecycle';
 import { requireUnlockedAccount } from './accountMethods';
+import { queueSessionCutoff } from './playSessionCutoffQueue';
 import { nowIso } from './utils';
 
 const BATCH = 32;
@@ -327,6 +328,8 @@ async function moveGameRouting(ctx: MutationCtx, operation: Doc<'account_merge_o
     .withIndex('by_user_id', (q) => q.eq('user_id', source))
     .take(BATCH);
   for (const row of rows) {
+    /* Queued while the row still names the source, so its seat passes in that room end with its sessions. */
+    await queueSessionCutoff(ctx, row.game_id, source, Date.now());
     await moveRouting(ctx, row, target);
   }
   return rows.length;

@@ -23,12 +23,14 @@ import type { MutationCtx, QueryCtx } from './_generated/server';
 import { containerSummary } from './assets';
 import { internalMutation, mutation, viewerQuery } from './functions';
 import { assetDisplayName } from './lib/assetInput';
+import { newestUnusedRefresh } from './lib/authSessionLifecycle';
 import { admitsPlayers, currentPlaySession, isRealGame, livePlaySession } from './lib/playAuthorization';
 import { playGameAddressAvailable } from './lib/playGameAddresses';
 import { hasLocalPlayGameProfanity } from './lib/playGameNameChecks';
 import { checkPlayGameName, PLAY_NAME_CHECK_MODEL, playNameCheckSchema } from './lib/playGameNameProvider';
 import { createPendingGame } from './lib/playProvisioningSchedule';
 import { playCreateQuota, playNameCheckCapacity, playRateLimiter } from './lib/playRateLimits';
+import { enrolment, seatPassFor } from './lib/playSeatPass';
 import { atPlaySeatLimit } from './lib/playSeats';
 import type { BoardReadCache } from './lib/rulesetBoard';
 import { rulesetBoard, rulesetHasBoard } from './lib/rulesetBoard';
@@ -485,7 +487,8 @@ export const getGameByAddress = viewerQuery({
   args: { address: v.string() },
   returns: zodToConvex(playGameAddressAccessSchema),
   handler: async (ctx, { address }) => {
-    if (!(await currentPlaySession(ctx))) {
+    const session = await currentPlaySession(ctx);
+    if (!session) {
       return { status: 'sign_in_required' as const };
     }
     if ((PLAY_RESERVED_GAME_ADDRESSES as readonly string[]).includes(address)) {
@@ -509,9 +512,26 @@ export const getGameByAddress = viewerQuery({
       gameId: game._id,
       name: game.name,
       slug: game.slug,
+      ...(access.status === 'ready' ? { pass: await queryPass(ctx, game, session) } : {}),
     };
   },
 });
+
+/*
+ * The pass is stamped with the session's newest refresh: a query may not read the clock, and each sign-in refresh both rotates that row and re-runs this query, so the pass renews itself while the tab stays signed in.
+ * The page renews through `playAdmission.renewSeatPass` only when no refresh arrived before the pass nears its end.
+ */
+async function queryPass(
+  ctx: QueryCtx,
+  game: Doc<'play_games'>,
+  session: NonNullable<Awaited<ReturnType<typeof currentPlaySession>>>
+) {
+  const [routing, refresh] = await Promise.all([
+    enrolment(ctx, game._id, session.userId),
+    newestUnusedRefresh(ctx, session.sessionId),
+  ]);
+  return routing && refresh ? await seatPassFor(ctx, game, session, refresh._creationTime) : null;
+}
 
 /** What an admitted viewer learns about the game in its current state. */
 async function gameAccess(ctx: QueryCtx, game: Doc<'play_games'>) {
