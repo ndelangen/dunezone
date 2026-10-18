@@ -17,6 +17,7 @@ import { LoadPending } from '@ui/block/LoadPending';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { Section } from '@ui/block/Section';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
+import { FactionLink } from '@ui/content/FactionLink';
 import { RULESET_ABOUT_HELP, rulesetAboutCount } from '@ui/content/rulesetAboutHint';
 import { SlugRenameNotice } from '@ui/content/SlugRenameNotice';
 import { TopicIcon } from '@ui/content/TopicIcon';
@@ -487,16 +488,13 @@ function RulesetFactions({ rulesetId, rulesetName }: { rulesetId: RulesetEntry['
                       {(handle) => (
                         <Group gap="sm" wrap="nowrap">
                           <SortableReorderHandle label={`Move ${faction.name}`} {...handle} />
-                          <Anchor
-                            renderRoot={(props) => (
-                              <Link {...props} to="/factions/$factionId" params={{ factionId: faction.slug }} />
-                            )}
-                            fw={600}
-                            miw={0}
-                            style={{ flex: 1, overflowWrap: 'anywhere' }}
-                          >
-                            {faction.name}
-                          </Anchor>
+                          <FactionLink
+                            slug={faction.slug}
+                            name={faction.name}
+                            logo={faction.logo}
+                            background={faction.background}
+                            style={{ flex: 1, minWidth: 0 }}
+                          />
                           <IconAction
                             label={`Remove ${faction.name} from ${rulesetName}`}
                             intent="neutral"

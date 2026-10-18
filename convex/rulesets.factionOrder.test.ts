@@ -106,7 +106,14 @@ describe('a ruleset’s faction order', () => {
   test('loads the edit list a slice at a time and says when more remain', async () => {
     const fixture = await orderFixture();
     expect(await fixture.t.query(api.rulesets.orderedFactions, { rulesetId: fixture.ruleset._id, limit: 2 })).toEqual({
-      factions: [expect.objectContaining({ name: 'Atreides' }), expect.objectContaining({ name: 'Bene Gesserit' })],
+      factions: [
+        expect.objectContaining({
+          name: 'Atreides',
+          logo: assetPublishingFaction.logo,
+          background: assetPublishingFaction.background,
+        }),
+        expect.objectContaining({ name: 'Bene Gesserit' }),
+      ],
       hasMore: true,
     });
     expect(
