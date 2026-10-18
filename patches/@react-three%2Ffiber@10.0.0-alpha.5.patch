@@ -85,3 +85,137 @@ index 7c11c4f..f1d6411 100644
  type three_d_Color = Color;
  type three_d_ElementProps<T extends ConstructorRepresentation, P = InstanceType<T>> = ElementProps<T, P>;
  type three_d_Euler = Euler;
+diff --git a/dist/webgpu/index.mjs b/dist/webgpu/index.mjs
+--- a/dist/webgpu/index.mjs
++++ b/dist/webgpu/index.mjs
+@@ -1695,6 +1695,7 @@
+   return getScheduler().onIdle(callback);
+ }
+ function invalidate(state, frames = 1, stackFrames = false) {
++  if (state && !state.internal.active) return;
+   const rootId = state?.internal?.rootId;
+   const scheduler = getScheduler();
+   if (rootId) scheduler.invalidateRoot(rootId, frames, stackFrames);
+@@ -14115,7 +14116,12 @@
+   const prevRoot = _roots.get(canvas);
+   const prevFiber = prevRoot?.fiber;
+   const prevStore = prevRoot?.store;
+-  if (prevRoot) console.warn("R3F.createRoot should only be called once!");
++  const resumed = prevRoot?.unmounting;
++  if (resumed) {
++    prevRoot.unmounting = false;
++    prevRoot.teardownGeneration += 1;
++  } else if (prevRoot) console.warn("R3F.createRoot should only be called once!");
++  const renderGeneration = prevRoot?.teardownGeneration || 0;
+   const logRecoverableError = typeof reportError === "function" ? (
+     // In modern browsers, reportError will dispatch an error event,
+     // emulating an uncaught JavaScript error.
+@@ -14153,11 +14159,13 @@
+   const lastConfiguredProps = {};
+   let configured = false;
+   let pending = null;
+-  let rendererSetup = null;
++  let rendererSetup = prevRoot?.rendererSetup || null;
+   return {
+     async configure(props = {}) {
+       let resolve;
+       pending = new Promise((_resolve) => resolve = _resolve);
++      _roots.get(canvas).pendingConfiguration = pending;
++      try {
+       const {
+         id: canvasId,
+         primaryCanvas,
+@@ -14247,11 +14255,14 @@
+                 }));
+               }
+             }
+-          })().catch((err) => {
++          })().catch(async (err) => {
++            if (!primaryCanvas && !state.internal.actualRenderer) await renderer?.dispose?.();
+             rendererSetup = null;
++            if (_roots.get(canvas)?.store === store) _roots.get(canvas).rendererSetup = null;
+             throw err;
+           });
+         }
++        _roots.get(canvas).rendererSetup = rendererSetup;
+         await rendererSetup;
+         state = store.getState();
+         renderer = state.internal.actualRenderer;
+@@ -14561,12 +14572,15 @@
+       lastConfiguredProps.schedulerOrder = schedulerConfig?.order;
+       onCreated = onCreatedCallback;
+       configured = true;
+-      resolve();
+       return this;
++      } finally {
++        resolve();
++      }
+     },
+     render(children) {
+       if (!configured && !pending) this.configure();
+       pending.then(() => {
++        if (!configured || _roots.get(canvas)?.store !== store || _roots.get(canvas)?.unmounting || (_roots.get(canvas)?.teardownGeneration || 0) !== renderGeneration) return;
+         reconciler.updateContainer(
+           /* @__PURE__ */ jsx(Provider, { store, children, onCreated, rootElement: canvas }),
+           fiber,
+@@ -14577,6 +14591,7 @@
+       return store;
+     },
+     unmount() {
++      if ((_roots.get(canvas)?.teardownGeneration || 0) !== renderGeneration) return;
+       unmountComponentAtNode(canvas);
+     }
+   };
+@@ -14598,19 +14613,26 @@
+ function unmountComponentAtNode(canvas, callback) {
+   const root = _roots.get(canvas);
+   const fiber = root?.fiber;
+-  if (fiber) {
+-    const state = root?.store.getState();
++  if (fiber && !root.unmounting) {
++    root.unmounting = true;
++    const teardownGeneration = root.teardownGeneration = (root.teardownGeneration || 0) + 1;
++    root.store.getState().internal.active = false;
++    void (root.pendingConfiguration || Promise.resolve()).then(() => {
++    if (!root.unmounting || root.teardownGeneration !== teardownGeneration) return;
++    const state = root.store.getState();
+     if (state) {
+       state.internal.active = false;
+       const unregisterRoot = state.internal.unregisterRoot;
+       if (unregisterRoot) {
+         unregisterRoot();
+         state.internal.unregisterRoot = void 0;
++        state.internal.rootId = void 0;
+       }
+     }
+     reconciler.updateContainer(null, fiber, null, () => {
+       if (state) {
+-        setTimeout(() => {
++        setTimeout(async () => {
++          if (!root.unmounting || root.teardownGeneration !== teardownGeneration) return;
+           try {
+             const renderer = state.internal.actualRenderer;
+             const unregisterPrimary = state.internal.unregisterPrimary;
+@@ -14625,16 +14647,18 @@
+               renderer.forceContextLoss?.();
+             }
+             if (!state.internal.isSecondary) {
+-              if (renderer?.xr) state.xr.disconnect();
+-            }
+-            dispose(state.scene);
+-            _roots.delete(canvas);
++              if (renderer?.xr) state.xr?.disconnect();
++            }
++            if (state.scene) dispose(state.scene);
++            if (!state.isLegacy && !state.internal.isSecondary) await renderer?.dispose?.();
++            if (_roots.get(canvas) === root) _roots.delete(canvas);
+             if (callback) callback(canvas);
+           } catch (error) {
+             console.warn("[R3F] Error while unmounting root; teardown may be incomplete:", error);
+           }
+         }, 500);
+       }
++    });
+     });
+   }
+ }
