@@ -10091,6 +10091,12 @@
     "subjects": ["patterns"],
     "sourceHash": "98aca64baa2f0745820515169fdbf5acf844b27b50e07bd53264f07a2ab68060"
   },
+  "/web/blog/building-a-dune-sandbox/game-table.jpg": {
+    "description": "The dune.zone game table during the spice blow, with the Dune board, troops, faction shields and the treachery deck.",
+    "tags": ["dune.zone", "game table", "spice blow", "online play", "blog"],
+    "subjects": ["places", "symbols"],
+    "sourceHash": "a341b95b962cd947a2e2564c5f3a53a06ba84d24d26f6a3ce49d907291ac4ab8"
+  },
   "/web/blog/drawing-dune-tokens-and-cards/atreides-leaders.jpg": {
     "description": "The House Atreides leader tokens on dune.zone in a row: Lady Jessica, Thufir Hawat, a larger Paul Atreides, Gurney Halleck, Duncan Idaho and Doctor Yueh.",
     "tags": ["leader tokens", "House Atreides", "blog"],

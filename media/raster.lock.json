@@ -7649,6 +7649,15 @@
     "isOpaque": true,
     "color": "#080808"
   },
+  "/web/blog/building-a-dune-sandbox/game-table.jpg": {
+    "sha256": "a341b95b962cd947a2e2564c5f3a53a06ba84d24d26f6a3ce49d907291ac4ab8",
+    "bytes": 199638,
+    "width": 2048,
+    "height": 1019,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#080808"
+  },
   "/web/blog/drawing-dune-tokens-and-cards/atreides-leaders.jpg": {
     "sha256": "ebb942756691887e5cc052071f1378942bd59c51d37bf777e206be33ea884afc",
     "bytes": 246873,
