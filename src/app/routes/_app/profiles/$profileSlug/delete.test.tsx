@@ -90,7 +90,7 @@ async function renderPage() {
   let view: ReturnType<typeof render> | undefined;
   await act(async () => {
     view = render(
-      <MantineProvider theme={appContentTheme}>
+      <MantineProvider env="test" theme={appContentTheme}>
         <DeletePage />
       </MantineProvider>
     );
