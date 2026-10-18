@@ -175,7 +175,7 @@ export const EditFactionOrder = meta.story({
     await userEvent.keyboard('[ArrowDown]');
     /*
      * Drop only once the drag is over the next row and stays there:
-     * the pickup's own row is announced first, and dnd-kit can still be measuring right after the move, so the check runs twice with a pause between.
+     * the pickup's own row is announced first, and without the pause the drop landed back on the dragged row in every run, as the keyboard sensor's target had not settled.
      */
     const overAnotherRow = () => {
       const announcement = canvasElement.ownerDocument.querySelector('[id^="DndLiveRegion"]')?.textContent ?? '';
