@@ -36,14 +36,10 @@ export function BoardPicker({ label, value, fixed, selected, onPick }: Readonly<
     name: row.name,
     previewSrc: row.previewHref ?? null,
   }));
-  const fixedIds = new Set(fixed.map((board) => board.id));
-  const boards = [
-    ...fixed,
-    ...(saved ?? (selected && !fixedIds.has(selected.id) ? [selected] : [])).map((board) => ({
-      ...board,
-      collection: SAVED_BOARDS,
-    })),
-  ];
+  const offered = new Set([...fixed, ...(saved ?? [])].map((board) => board.id));
+  /* The chosen board stays listed, so the field keeps naming it, even when the catalogue does not hold it. */
+  const kept = selected && !offered.has(selected.id) ? [selected] : [];
+  const boards = [...fixed, ...[...(saved ?? []), ...kept].map((board) => ({ ...board, collection: SAVED_BOARDS }))];
   const previews = new Map(boards.map((board) => [board.id, board.previewSrc]));
   return (
     <AssetSelect
