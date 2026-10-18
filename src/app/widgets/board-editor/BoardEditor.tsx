@@ -26,9 +26,10 @@ import {
   distance,
   movePoint,
 } from '@shared/boards/geometry';
-import type { Board, Point, Face, Properties, Decal, Edge } from '@shared/boards/geometry';
+import type { Board, Point, Face, Properties, Decal } from '@shared/boards/geometry';
 import { territoryId, territoryNameError } from '@shared/boards/schema';
 import { Section } from '@ui/block/Section';
+import { StatusBadge } from '@ui/content/StatusBadge';
 import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
@@ -57,8 +58,9 @@ import {
   Radar,
   Magnet,
   Scan,
+  ImageIcon,
 } from 'lucide-react';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import type { Dispatch, ReactNode } from 'react';
 
@@ -66,7 +68,9 @@ import { BOARD_ARTWORK } from '@game/assets/board/artwork';
 import { BoardArtwork, DecalArtwork } from '@game/assets/board/Board';
 
 import styles from './BoardEditor.module.css';
+import { drawingComplete, drawingEdge } from './drawing';
 import type { BoardEditorState, BoardEditorEvent } from './state';
+import { TracingImageLayer, TracingImagePanel, TracingImageTrigger, useTracingImage } from './TracingImage';
 const artworkOptions = stockAssetOptions(
   ALL.options
     .flatMap((category) => category.options)
@@ -84,66 +88,6 @@ const TOOL_SHORTCUTS: Record<string, BoardEditorState['tool']> = {
   h: 'pan',
 };
 
-type DrawingPoints = BoardEditorState['points'];
-function drawingComplete(tool: BoardEditorState['tool'], points: DrawingPoints) {
-  switch (tool) {
-    case 'cubic':
-      return points.length === 4;
-    case 'arc':
-      return points.length === 3;
-    case 'line':
-      return points.length > 2 && points.at(-1)!.node === points[0].node;
-    default:
-      return false;
-  }
-}
-function circularEdge(points: DrawingPoints): Edge {
-  const [a, m, b] = points.map((p) => p.point);
-  const ab = distance(a, b),
-    am = distance(a, m),
-    mb = distance(m, b);
-  const cross = (m[0] - a[0]) * (b[1] - a[1]) - (m[1] - a[1]) * (b[0] - a[0]);
-  if (Math.abs(cross) < 0.001) {
-    throw new Error('Choose a bend away from the straight line');
-  }
-  const radius = (ab * am * mb) / (2 * Math.abs(cross));
-  const dot = (a[0] - m[0]) * (b[0] - m[0]) + (a[1] - m[1]) * (b[1] - m[1]);
-  return {
-    id: `arc-${crypto.randomUUID()}`,
-    a: points[0].node!,
-    b: points[2].node!,
-    kind: 'arc',
-    arc: [radius, radius, 0, dot > 0 ? 1 : 0, cross > 0 ? 1 : 0],
-  };
-}
-function drawingEdge(tool: BoardEditorState['tool'], points: DrawingPoints): Edge | null {
-  switch (tool) {
-    case 'line': {
-      if (points.length < 2) {
-        return null;
-      }
-      const a = points.at(-2)!.node!,
-        b = points.at(-1)!.node!;
-      return a === b ? null : { id: `cut-${crypto.randomUUID()}`, a, b, kind: 'line' };
-    }
-    case 'cubic':
-      return points.length === 4
-        ? {
-            id: `curve-${crypto.randomUUID()}`,
-            a: points[0].node!,
-            b: points[3].node!,
-            kind: 'cubic',
-            c1: points[1].point,
-            c2: points[2].point,
-          }
-        : null;
-    case 'arc':
-      return points.length === 3 ? circularEdge(points) : null;
-    default:
-      return null;
-  }
-}
-
 export function BoardEditor({
   state,
   dispatch,
@@ -160,6 +104,9 @@ export function BoardEditor({
   const rootRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null),
     panStart = useRef<{ cursor: Point; pan: Point } | null>(null);
+  const tracingControls = useTracingImage();
+  const [tracingOpen, setTracingOpen] = useState(false);
+  const { tracing } = tracingControls;
   const drawBoard = useMemo(() => {
     if (!state.dragNode || !state.dragPoint) {
       return state.board;
@@ -457,6 +404,7 @@ export function BoardEditor({
   );
   const viewTools = (
     <Group gap="xs">
+      <TracingImageTrigger pressed={Boolean(tracing?.visible)} onToggle={() => setTracingOpen((was) => !was)} />
       <IconAction
         label="18-sector guide"
         tooltip="18-sector guide · G"
@@ -889,6 +837,7 @@ export function BoardEditor({
             artwork={BOARD_ARTWORK}
             sectorGuide={!state.compare && state.guide}
           />
+          {!state.compare && tracing?.visible && <TracingImageLayer tracing={tracing} />}
           {!state.compare && selectedFace && (
             <path d={selectedFace.path} fill="none" stroke="#386c8e" strokeWidth="2.5" pointerEvents="none" />
           )}
@@ -963,6 +912,11 @@ export function BoardEditor({
           )}
         </g>
       </svg>
+      {!state.compare && tracing?.visible && (
+        <span className={styles.tracingNotice}>
+          <StatusBadge icon={<ImageIcon size={12} aria-hidden />}>Tracing image · not part of your board</StatusBadge>
+        </span>
+      )}
     </div>
   );
   return (
@@ -1022,12 +976,14 @@ export function BoardEditor({
           </Stack>
         </DocumentEditorLayout.Sidebar>
         <DocumentEditorLayout.PreviewTools>
-          <Toolbar>
-            <Toolbar.Left label="Drawing tools">{tools}</Toolbar.Left>
-            <Toolbar.Right label="Map settings">
-              <Toolbar.Cluster kind="content">{viewTools}</Toolbar.Cluster>
-            </Toolbar.Right>
-          </Toolbar>
+          <TracingImagePanel controls={tracingControls} opened={tracingOpen} onChange={setTracingOpen}>
+            <Toolbar>
+              <Toolbar.Left label="Drawing tools">{tools}</Toolbar.Left>
+              <Toolbar.Right label="Map settings">
+                <Toolbar.Cluster kind="content">{viewTools}</Toolbar.Cluster>
+              </Toolbar.Right>
+            </Toolbar>
+          </TracingImagePanel>
         </DocumentEditorLayout.PreviewTools>
         <DocumentEditorLayout.Preview>
           <div className={styles.editor}>

@@ -1,7 +1,7 @@
 import { assetSubjectFacts } from '@shared/access/collaborativeAccess';
 import type { AssetViewerAccess } from '@shared/access/collaborativeAccess';
 import { useQuery } from 'convex/react';
-import type { FunctionReturnType } from 'convex/server';
+import type { FunctionArgs, FunctionReturnType } from 'convex/server';
 
 import { db } from '@db/core';
 import { toLiveQueryResult, useLiveMutation, useLiveQuery } from '@app/db/core/live';
@@ -35,17 +35,23 @@ export function useAssetsByTypes(types: string[], options?: { initialData?: Asse
   return toLiveQueryResult(liveData, () => options?.initialData);
 }
 
-export type AssetBrowsePageData = FunctionReturnType<typeof api.assets.browsePage>;
+export type AssetBrowsePageData = FunctionReturnType<typeof api.assets.catalogue>;
 export type AssetBrowseEntry = AssetBrowsePageData['entries'][number];
 
-/** One asset type's browse route loader. There is no live twin: the browse page reads once and filters in the client. */
-export async function loadAssetBrowsePage(type: string): Promise<AssetBrowsePageData> {
-  return await db.query(api.assets.browsePage, { type });
+/** What one `/assets/{type}` page asks for: the type and the route's search parameters, as `assets.catalogue` takes them. */
+export type AssetBrowseArgs = FunctionArgs<typeof api.assets.catalogue>;
+
+/** One asset type's browse route loader, paired with `useAssetBrowsePage`; a searched page is not held, for the same reason. */
+export async function loadAssetBrowsePage(args: AssetBrowseArgs): Promise<AssetBrowsePageData> {
+  return await db.query(api.assets.catalogue, args, { hold: !args.q });
 }
 
-/** The browse route's one page query. Search and sort are URL state applied to what this returns, so neither re-fetches. */
-export function useAssetBrowsePage(type: string, options?: { initialData?: AssetBrowsePageData }) {
-  const liveData = useLiveQuery(api.assets.browsePage, { type });
+/**
+ * One live browse page, taking `loadAssetBrowsePage`'s result for the same arguments as `initialData`.
+ * A searched page is not held warm after it is left: every committed search is its own subscription, and holding each would keep re-running them on every asset write.
+ */
+export function useAssetBrowsePage(args: AssetBrowseArgs, options?: { initialData?: AssetBrowsePageData }) {
+  const liveData = useLiveQuery(api.assets.catalogue, args, { hold: !args.q });
   return toLiveQueryResult(liveData, () => options?.initialData);
 }
 
@@ -55,7 +61,10 @@ export function useAssetBrowsePage(type: string, options?: { initialData?: Asset
  * The authoritative parse is the Convex handler's, per the validation standard in `docs/data-layer.md`, so a draft the schema rejects fails at the round trip rather than at this call.
  */
 export function useCreateAsset() {
-  return useLiveMutation<{ type: string; data: unknown }, { id: string; slug: string }>(api.assets.create);
+  return useLiveMutation<
+    { type: string; data: unknown; members_from?: AssetListEntry['id'] },
+    { id: string; slug: string }
+  >(api.assets.create);
 }
 
 /** What `api.assets.page` gives a route: the same for every viewer, and what its loader seeds the live page with. */

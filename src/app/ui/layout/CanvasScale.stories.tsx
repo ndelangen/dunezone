@@ -1,5 +1,6 @@
 import { Box } from '@mantine/core';
 import preview from '@sb/preview';
+import { expect, within } from 'storybook/test';
 
 import { CanvasScale } from './CanvasScale';
 
@@ -34,4 +35,9 @@ export const NarrowContainer = meta.story({
       <CanvasScale {...args} />
     </Box>
   ),
+  play: async ({ canvasElement }) => {
+    const scaled = within(canvasElement).getByText('900 × 1263').getBoundingClientRect();
+    await expect(scaled.width).toBeCloseTo(220, 0);
+    await expect(scaled.height).toBeCloseTo((220 * 1263) / 900, 0);
+  },
 });

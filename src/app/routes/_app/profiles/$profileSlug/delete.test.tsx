@@ -27,6 +27,9 @@ vi.mock('@tanstack/react-router', async (importOriginal) => {
     createLink:
       () =>
       ({ children, to }: { children?: ReactNode; to: string }) => <a href={to}>{children}</a>,
+    /* `LoginGate` reads the page it is on so sign-in can return there. */
+    useLocation: ({ select }: { select: (location: { href: string }) => unknown }) =>
+      select({ href: '/profiles/source/delete' }),
   };
 });
 

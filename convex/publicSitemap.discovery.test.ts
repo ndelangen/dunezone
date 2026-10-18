@@ -1,18 +1,15 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import { convexTest } from 'convex-test';
 import { expect, test } from 'vite-plus/test';
 
 import { ASSET_TYPE_KEYS } from '../src/shared/assets/types';
 import { SITEMAP_RECORD_COLLECTIONS } from '../src/shared/publicDiscovery';
 import { api } from './_generated/api';
-import schema from './schema';
-
-const modules = import.meta.glob('./**/*.ts');
+import { applicationTest } from './application.test.fixture';
 
 test('discovery crosses page bounds, omits deleted records and keeps type-scoped slugs', async () => {
-  const t = convexTest(schema, modules);
+  const t = applicationTest();
   const renamed = await t.run(async (ctx) => {
     const owner_id = await ctx.db.insert('users', { name: 'Owner' });
     const row = {
@@ -66,7 +63,7 @@ test('discovery crosses page bounds, omits deleted records and keeps type-scoped
 });
 
 test('rulesets, rulebooks, FAQ questions, profiles and Groups list only what their public pages serve', async () => {
-  const t = convexTest(schema, modules);
+  const t = applicationTest();
   await t.run(async (ctx) => {
     const owner = await ctx.db.insert('users', { name: 'Owner' });
     const stamp = { created_at: '2026-01-01T00:00:00.000Z', updated_at: '2026-03-03T00:00:00.000Z' };
@@ -122,7 +119,7 @@ test('record sitemap names stay clear of Asset type names', () => {
 });
 
 test('an asset entry names the face its own listing draws, and nothing when that face is not its own', async () => {
-  const t = convexTest(schema, modules);
+  const t = applicationTest();
   await t.run(async (ctx) => {
     const owner_id = await ctx.db.insert('users', { name: 'Owner' });
     const row = { owner_id, group_id: null, is_deleted: false, created_at: 'x', updated_at: 'x' };

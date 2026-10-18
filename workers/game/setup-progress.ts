@@ -337,8 +337,8 @@ export function gatherTraitors(snapshot: StoredSnapshot, reserved: ReadonlySet<s
     { ...snapshot, pendingTraitors: remaining, table: { ...snapshot.table, pieces: pieces ?? snapshot.table.pieces } },
     'traitors-gather',
     waitingForSpace
-      ? 'Traitors are waiting for a clear shared slot below the tanks. Private hands are unchanged.'
-      : 'Tabletop traitors gathered below the tanks. Private hands are unchanged.'
+      ? 'Traitors are waiting for a clear shared slot below the Tleilaxu Tanks. Private hands are unchanged.'
+      : 'Tabletop traitors gathered below the Tleilaxu Tanks. Private hands are unchanged.'
   );
 }
 

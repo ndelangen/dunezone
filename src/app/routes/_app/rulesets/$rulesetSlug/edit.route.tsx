@@ -6,7 +6,6 @@ import { userImageSourceUrlSchema } from '@shared/user-images/contract';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { LoadPending } from '@ui/block/LoadPending';
-import { LoginGate } from '@ui/block/LoginGate';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { Section } from '@ui/block/Section';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
@@ -37,6 +36,7 @@ import { AssetPicker } from '@app/pickers/AssetPicker';
 import { pageHead } from '@app/routes/pageTitle';
 import { AuthoringToolbar, failureStatus } from '@app/widgets/authoring/AuthoringToolbar';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
+import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 /**

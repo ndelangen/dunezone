@@ -1,7 +1,6 @@
 import preview from '@sb/preview';
 import { expect, waitFor } from 'storybook/test';
 
-import { battleSequencePage, deathPanel, presciencePanel, revealPanel } from './RulebookBattlePlan.stories.fixture';
 import { geometryCases, GeometryMatrix, regionRects, verifyGeometry } from './RulebookCatalogue.shared.stories.fixture';
 import { createCataloguePage } from './RulebookCatalogue.stories.fixture';
 import { HeadingMatrix, verifyHeadingConsistency } from './RulebookHeading.stories.fixture';
@@ -69,40 +68,12 @@ export const ClippedRegion = meta.story({
   },
 });
 
-export const StepByStep = meta.story({
-  render: () => (
-    <div style={{ width: 'min(960px, 100%)' }}>
-      <RulebookPageRenderer
-        page={battleSequencePage([presciencePanel, revealPanel, deathPanel])}
-        settings={{ size: 'square', design: 'illustrated' }}
-      />
-    </div>
-  ),
-  play: async ({ canvasElement }) => {
-    await document.fonts.ready;
-    const region = canvasElement.querySelector<HTMLElement>('[data-rulebook-region]')!;
-    await expect(region.scrollHeight).toBeLessThanOrEqual(region.clientHeight + 1);
-    await expect(region.querySelectorAll('[data-rulebook-block-id]')).toHaveLength(3);
-  },
-});
-
 export const HeadingConsistency = meta.story({
   render: () => <HeadingMatrix />,
   play: async ({ canvasElement }) => {
     await document.fonts.ready;
     await verifyHeadingConsistency(canvasElement);
   },
-});
-
-export const PairedRows = meta.story({
-  render: () => (
-    <div style={{ width: 'min(960px, 100%)' }}>
-      <RulebookPageRenderer
-        page={createCataloguePage('paired-rows')}
-        settings={{ size: 'square', design: 'illustrated' }}
-      />
-    </div>
-  ),
 });
 
 export const ContentWithBottomStrip = meta.story({

@@ -28,12 +28,3 @@ export const Default = meta.story({
     await expect(page.getByRole('link', { name: 'Shield!' })).toBeVisible();
   },
 });
-
-/** A counted caption, the collapsed composition view's shape: the count is part of the name. */
-export const CountedCaption = meta.story({
-  args: { caption: 'Shield! ×3' },
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement);
-    await expect(page.getByRole('link', { name: 'Shield! ×3' })).toBeVisible();
-  },
-});

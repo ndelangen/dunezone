@@ -55,8 +55,18 @@ export const Strongholds = meta.story({
     await expect(context.canvasElement.querySelectorAll('[data-rulebook-highlight]')).not.toHaveLength(0);
   },
 });
+/** Manual colours replace the automatic palette on the third and fourth markers and on their legend badges alike. */
 export const CustomMarkerColors = meta.story({
   args: { specimen: 'custom-colors' },
+  play: async (context) => {
+    await expectContained(context);
+    const authored = ['#a87924', '#f8dc24'];
+    const markers = [...context.canvasElement.querySelectorAll('[data-rulebook-marker]')];
+    await expect(markers.slice(2, 4).map((marker) => marker.getAttribute('fill'))).toEqual(authored);
+    const badges = context.canvasElement.querySelectorAll('ol[aria-label="Explanations"] li > span');
+    await expect(badges[2]).toHaveStyle({ backgroundColor: authored[0] });
+    await expect(badges[3]).toHaveStyle({ backgroundColor: authored[1] });
+  },
 });
 
 export const LeaderAnatomy = meta.story({

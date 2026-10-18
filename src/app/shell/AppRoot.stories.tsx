@@ -47,6 +47,12 @@ const meta = preview.meta({
 
 export const Default = meta.story({
   globals: { viewport: { value: 'appDesktop' } },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvasElement.querySelector('[data-app-band]')).toBeVisible();
+    await expect(canvas.getByRole('main')).toBeVisible();
+    await expect(within(canvas.getByRole('contentinfo')).getByRole('navigation', { name: 'Footer' })).toBeVisible();
+  },
 });
 
 export const DefaultMobile = meta.story({
@@ -85,11 +91,6 @@ export const SkipToContent = meta.story({
 
 export const HeaderlessPage = meta.story({
   globals: { viewport: { value: 'appDesktop' } },
-  args: { children: shellPageOptionLabels[2] },
-});
-
-export const HeaderlessPageMobile = meta.story({
-  globals: { viewport: { value: 'appMobile' } },
   args: { children: shellPageOptionLabels[2] },
 });
 
@@ -278,12 +279,6 @@ async function playFullscreenHeight({ canvasElement }: { canvasElement: HTMLElem
   scroller.scrollTop = 0;
 }
 
-export const FullscreenHeight = meta.story({
-  globals: { viewport: { value: 'appLarge' } },
-  args: { children: <FullscreenShellPage /> },
-  play: playFullscreenHeight,
-});
-
 export const FullscreenHeightMobile = meta.story({
   globals: { viewport: { value: 'appMobile' } },
   args: { children: <FullscreenShellPage /> },
@@ -365,10 +360,5 @@ export const ScrollingBackground = meta.story({
       },
     },
   },
-  play: playBackgroundPan,
-});
-
-export const ScrollingBackgroundMobile = meta.story({
-  globals: { viewport: { value: 'appMobile' } },
   play: playBackgroundPan,
 });

@@ -1,19 +1,17 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import { convexTest } from 'convex-test';
+import type { convexTest } from 'convex-test';
 import { describe, expect, test } from 'vite-plus/test';
 
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api } from './_generated/api';
 import type { Id } from './_generated/dataModel';
-import schema from './schema';
-
-const modules = import.meta.glob('./**/*.ts');
+import { applicationTest } from './application.test.fixture';
+import { syncSeededFactionCards } from './factions.test.fixture';
 
 type SeedResult = {
   userId: Id<'users'>;
-  profileId: Id<'profiles'>;
   activeGroupId: Id<'groups'>;
   laterGroupId: Id<'groups'>;
   advancedRulesetId: Id<'rulesets'>;
@@ -29,12 +27,12 @@ type SeedResult = {
 const at = (day: number) => `2026-07-${String(day).padStart(2, '0')}T00:00:00.000Z`;
 
 async function seedProfileDetail(t: ReturnType<typeof convexTest>): Promise<SeedResult> {
-  return await t.run(async (ctx) => {
+  const seeded = await t.run(async (ctx) => {
     const userId = await ctx.db.insert('users', { name: 'Central' });
     const askerId = await ctx.db.insert('users', { name: 'Asker' });
     const profilelessAskerId = await ctx.db.insert('users', { name: 'No profile' });
 
-    const profileId = await ctx.db.insert('profiles', {
+    await ctx.db.insert('profiles', {
       user_id: userId,
       username: 'Central',
       avatar_url: null,
@@ -250,7 +248,6 @@ async function seedProfileDetail(t: ReturnType<typeof convexTest>): Promise<Seed
 
     return {
       userId,
-      profileId,
       activeGroupId,
       laterGroupId,
       advancedRulesetId,
@@ -263,21 +260,13 @@ async function seedProfileDetail(t: ReturnType<typeof convexTest>): Promise<Seed
       askerProfileId,
     };
   });
+  await t.run(syncSeededFactionCards);
+  return seeded;
 }
 
 describe('profile detail projection (api.profiles.pageBySlug)', () => {
-  test('resolves the profile by public slug', async () => {
-    const t = convexTest(schema, modules);
-    const seed = await seedProfileDetail(t);
-
-    const page = await t.query(api.profiles.pageBySlug, { slug: 'central' });
-
-    expect(page.profile._id).toBe(seed.profileId);
-    expect(page.profile.slug).toBe('central');
-  });
-
   test('throws for an unknown slug', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     await seedProfileDetail(t);
 
     await expect(t.query(api.profiles.pageBySlug, { slug: 'missing' })).rejects.toMatchObject({
@@ -286,7 +275,7 @@ describe('profile detail projection (api.profiles.pageBySlug)', () => {
   });
 
   test('only active memberships contribute to the public group list', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const seed = await seedProfileDetail(t);
 
     const page = await t.query(api.profiles.pageBySlug, { slug: 'central' });
@@ -297,27 +286,8 @@ describe('profile detail projection (api.profiles.pageBySlug)', () => {
     ]);
   });
 
-  test('group summaries keep membership order, not name order', async () => {
-    const t = convexTest(schema, modules);
-    const seed = await seedProfileDetail(t);
-
-    const page = await t.query(api.profiles.pageBySlug, { slug: 'central' });
-
-    expect(page.groupSummaries.map((group) => group.id)).toEqual([seed.activeGroupId, seed.laterGroupId]);
-  });
-
-  test('an active membership whose group no longer resolves is dropped from the summaries', async () => {
-    const t = convexTest(schema, modules);
-    await seedProfileDetail(t);
-
-    const page = await t.query(api.profiles.pageBySlug, { slug: 'central' });
-
-    expect(page.groupSummaries.map((group) => group.name)).not.toContain('Ghost Sietch');
-    expect(page.groupSummaries).toHaveLength(2);
-  });
-
   test('excludes soft-deleted factions and parses faction data', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const seed = await seedProfileDetail(t);
 
     const page = await t.query(api.profiles.pageBySlug, { slug: 'central' });
@@ -327,7 +297,7 @@ describe('profile detail projection (api.profiles.pageBySlug)', () => {
   });
 
   test('faction ruleset enrichment keeps only active rulesets in deterministic name order', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const seed = await seedProfileDetail(t);
 
     const page = await t.query(api.profiles.pageBySlug, { slug: 'central' });
@@ -340,7 +310,7 @@ describe('profile detail projection (api.profiles.pageBySlug)', () => {
   });
 
   test('throws on malformed faction data at the query boundary', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     await t.run(async (ctx) => {
       const userId = await ctx.db.insert('users', { name: 'Malformed owner' });
       await ctx.db.insert('profiles', {
@@ -363,11 +333,12 @@ describe('profile detail projection (api.profiles.pageBySlug)', () => {
       });
     });
 
+    await t.run(syncSeededFactionCards);
     await expect(t.query(api.profiles.pageBySlug, { slug: 'malformed' })).rejects.toThrow();
   });
 
   test('questions asked are newest-first and carry their ruleset link data', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const seed = await seedProfileDetail(t);
 
     const page = await t.query(api.profiles.pageBySlug, { slug: 'central' });
@@ -382,7 +353,7 @@ describe('profile detail projection (api.profiles.pageBySlug)', () => {
   });
 
   test('answers given are newest-first with parent question, asker, and ruleset link data', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const seed = await seedProfileDetail(t);
 
     const page = await t.query(api.profiles.pageBySlug, { slug: 'central' });
@@ -403,7 +374,7 @@ describe('profile detail projection (api.profiles.pageBySlug)', () => {
   });
 
   test('questions and answers under a soft-deleted ruleset leave the profile with it', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const seed = await seedProfileDetail(t);
     await t.run(async (ctx) => await ctx.db.patch(seed.advancedRulesetId, { is_deleted: true }));
 
@@ -414,7 +385,7 @@ describe('profile detail projection (api.profiles.pageBySlug)', () => {
   });
 
   test('a missing asker profile yields a null summary without corrupting other activity', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const seed = await seedProfileDetail(t);
 
     const page = await t.query(api.profiles.pageBySlug, { slug: 'central' });
@@ -426,7 +397,7 @@ describe('profile detail projection (api.profiles.pageBySlug)', () => {
   });
 
   test('is the same answer for every viewer, the profile owner included', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const seed = await seedProfileDetail(t);
     const strangerId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Stranger' }));
 

@@ -20,6 +20,7 @@ import {
 } from './lib/groupAssignPicker';
 import { requireAuthUserId } from './lib/policy';
 import { loadRulesetPageBySlug, loadRulesetPublicDetailPageBySlug } from './lib/rulesetDetailPage';
+import { SLOT_CONTENTS_LIMIT } from './lib/rulesetSlots';
 import { allocateCounterSlug } from './lib/slugCounters';
 import { nowIso, slugify } from './lib/utils';
 import type { MutationCtx, QueryCtx } from './types';
@@ -330,9 +331,6 @@ const assetSlotValidator = v.union(
   v.literal('techToken'),
   v.literal('customTokens')
 );
-
-/** Bounds one slot's contents. The many-asset slots are curated by hand, so this is a ceiling on nonsense rather than a paging limit. */
-const SLOT_CONTENTS_LIMIT = 100;
 
 /**
  * Puts an asset in a slot.

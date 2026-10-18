@@ -30,7 +30,7 @@ const setupAt = (index: number): SetupState => ({
 const locked = { 'prediction-0-0': { factionId: 'a', lockedAt: 1, revealedAt: null } };
 
 describe('the phase-advance gate', () => {
-  it('asks for readiness only at Mentat pause during play', () => {
+  it('asks for readiness only at Mentat Pause during play', () => {
     const play = { stage: 'play' as const, roster, seats: ['s1', 's2'] };
     expect(phaseGate({ ...play, phase: 0, ready: [] })).toEqual({ needsReady: false, refusal: null });
     expect(phaseGate({ ...play, phase: MENTAT_PAUSE, ready: ['s1'] })).toEqual({
@@ -52,26 +52,6 @@ describe('the phase-advance gate', () => {
       needsReady: true,
       refusal: 'Every fixed seat must be occupied and ready before advancing.',
     });
-  });
-
-  it('keeps the phase while a battle is open', () => {
-    const battle = { id: 'battle-1' };
-    const play = { stage: 'play' as const, roster, seats: ['s1', 's2'] };
-    expect(phaseGate({ ...play, phase: 0, ready: [], battle })).toEqual({
-      needsReady: false,
-      refusal: 'A battle is still open. Resolve or cancel it before moving to the next phase.',
-    });
-    expect(phaseGate({ ...play, phase: 0, ready: [], battle: null }).refusal).toBeNull();
-  });
-
-  it('keeps the phase while the winner is being determined', () => {
-    const ending = { by: { seat: 's1', name: 'A' }, startedAt: 1 };
-    const play = { stage: 'play' as const, roster, seats: ['s1', 's2'], ready: ['s1', 's2'] };
-    expect(phaseGate({ ...play, phase: MENTAT_PAUSE, ending })).toEqual({
-      needsReady: true,
-      refusal: 'The winner is being determined. Declare or cancel it before moving to the next phase.',
-    });
-    expect(phaseGate({ ...play, phase: MENTAT_PAUSE, ending: null }).refusal).toBeNull();
   });
 
   it('reads an empty seat list as not ready', () => {

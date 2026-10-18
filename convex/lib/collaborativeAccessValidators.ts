@@ -163,7 +163,7 @@ const faqAnswerValidator = docValidator('faq_answers');
 
 const faqItemValidator = docValidator('faq_items');
 
-const faqListItemValidator = faqItemValidator.extend({
+export const faqListItemValidator = faqItemValidator.extend({
   faq_answers: v.array(faqAnswerValidator),
   asker_profile: v.union(profileSummaryValidator, v.null()),
 });
@@ -213,9 +213,23 @@ export const rulesetAssetSlotValidator = v.object({
 export const rulesetPublicDetailPageValidator = v.union(
   rulesetPageValidator.extend({
     assignedGroup: v.union(assignedGroupSummaryValidator, v.null()),
+    /** The newest 200 questions, for browsers from before the FAQ had its own page. Unread by this bundle; the next release drops it. */
     faqItems: v.array(faqListItemValidator),
+    /** The newest few questions; the rest are on the ruleset's FAQ page. */
+    faqPreview: v.array(faqListItemValidator),
+    faqCounts: v.object({ questions: v.number(), answered: v.number() }),
     owner: v.union(profileSummaryValidator, v.null()),
     assetSlots: v.array(rulesetAssetSlotValidator),
+    board: v.union(
+      v.object({
+        id: v.id('assets'),
+        type: v.string(),
+        slug: v.string(),
+        name: v.string(),
+        previewHref: v.union(v.string(), v.null()),
+      }),
+      v.null()
+    ),
     rulebooks: v.array(rulebookListEntryValidator),
   }),
   v.null()

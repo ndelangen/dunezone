@@ -1,24 +1,34 @@
 import { useAuthActions } from '@convex-dev/auth/react';
 import { Button, Stack, Text, TextInput } from '@mantine/core';
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { signInReturnFrom } from '@shared/authDestination';
+import type { SignInReturn } from '@shared/authDestination';
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { PageTitle } from '@ui/block/PageTitle';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { ArrowRight } from 'lucide-react';
-import { useReducer } from 'react';
+import { useEffect, useReducer } from 'react';
 import type { SVGProps } from 'react';
 import { SiDiscord } from 'react-icons/si';
 
 import { authProviderNames, useSignInProviders } from '@db/accounts';
 import type { AuthProvider } from '@db/accounts';
+import { storedOAuthVerifierKey } from '@db/playTables';
 import { useCurrentProfile } from '@db/profiles';
 import { pageHead } from '@app/routes/pageTitle';
 
 import styles from './login.module.css';
+import { isSignInFailure, signInFailures } from './signInFailure';
+import type { SignInFailure } from './signInFailure';
 
 export const Route = createFileRoute('/_app/auth/login')({
   head: () => pageHead('Sign in'),
+  /* A link from another page names it as `redirect`, and signing in returns there; anything off-site is dropped. */
+  validateSearch: (search: Record<string, unknown>): SignInReturn & { failed?: SignInFailure } => ({
+    ...signInReturnFrom(search.redirect),
+    ...(isSignInFailure(search.failed) ? { failed: search.failed } : {}),
+  }),
   component: LoginPage,
 });
 
@@ -70,19 +80,41 @@ function reduceSignIn(state: SignInState, event: SignInEvent): SignInState {
   }
 }
 
-function SignInPanel({ providers }: { providers: ReturnType<typeof useSignInProviders> }) {
+function SignInPanel({
+  providers,
+  returnTo,
+  failed,
+}: {
+  providers: ReturnType<typeof useSignInProviders>;
+  returnTo: string;
+  failed: SignInFailure | undefined;
+}) {
   const { signIn } = useAuthActions();
   const [state, dispatch] = useReducer(reduceSignIn, { busy: null, error: null, email: '', password: '' });
   const localAuthEnabled = import.meta.env.VITE_E2E_LOCAL_AUTH === 'true';
+  /* Back from the provider without signing in: the abandoned verifier must not report a failed sign-in on the next load. */
+  const settleAfterReturn = () => {
+    try {
+      localStorage.removeItem(storedOAuthVerifierKey());
+    } catch {
+      /* Storage that cannot be read holds no verifier. */
+    }
+    dispatch({ kind: 'settled' });
+  };
   const socialLogin = async (provider: AuthProvider) => {
     dispatch({ kind: 'started', provider });
     try {
-      await signIn(provider, { redirectTo: '/' });
+      const { redirect } = await signIn(provider, { redirectTo: returnTo });
+      /* The browser is already leaving for the provider, and a second click would replace this sign-in's verifier.
+         The buttons come back only if the back button restores this page from the browser's cache. */
+      if (redirect) {
+        window.addEventListener('pageshow', settleAfterReturn, { once: true });
+        return;
+      }
     } catch (error) {
       dispatch({ kind: 'failed', message: error instanceof Error ? error.message : 'Sign-in could not start.' });
-    } finally {
-      dispatch({ kind: 'settled' });
     }
+    dispatch({ kind: 'settled' });
   };
   const localLogin = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -105,7 +137,11 @@ function SignInPanel({ providers }: { providers: ReturnType<typeof useSignInProv
   };
   return (
     <Stack gap="sm" className={styles.actions}>
-      {state.error && <FormError title="Sign-in could not start">{state.error}</FormError>}
+      {state.error ? (
+        <FormError title="Sign-in could not start">{state.error}</FormError>
+      ) : (
+        failed && <FormError title="You are not signed in">{`${signInFailures[failed]} Try again below.`}</FormError>
+      )}
       {localAuthEnabled ? (
         <Stack component="form" gap="sm" onSubmit={(event) => void localLogin(event)}>
           <TextInput
@@ -172,6 +208,15 @@ function ProviderMark({ provider }: { provider: AuthProvider }) {
 function LoginPage() {
   const profile = useCurrentProfile();
   const providers = useSignInProviders();
+  const { redirect: returnTo, failed } = Route.useSearch();
+  const navigate = useNavigate();
+  const signedIn = Boolean(profile.data);
+  /* The password form signs in without leaving the page, and a reader who is already signed in has nothing to do here either, so both go back to the page they came from. */
+  useEffect(() => {
+    if (signedIn && returnTo && !failed) {
+      void navigate({ href: returnTo, replace: true });
+    }
+  }, [signedIn, returnTo, failed, navigate]);
   return (
     <PageLayout>
       <PageLayout.Header size="immersive">
@@ -197,7 +242,7 @@ function LoginPage() {
           <>
             <PageTitle eyebrow="The spice must flow" title="Enter the deep desert" />
             <Text className={styles.lead}>Build factions, write your own rulesets and play Dune with friends.</Text>
-            <SignInPanel providers={providers} />
+            <SignInPanel providers={providers} returnTo={returnTo ?? '/'} failed={failed} />
           </>
         )}
       </PageLayout.Header>

@@ -1,5 +1,6 @@
 import { ConvexError, v } from 'convex/values';
 
+import { FACTION_CATALOGUE_SORTS } from '../src/shared/factions/catalogueSearch';
 import { factionExtraKey, storedFactionExtrasSchema } from '../src/shared/factions/extras';
 import type { FactionExtra } from '../src/shared/factions/extras';
 import type { Doc, Id } from './_generated/dataModel';
@@ -9,6 +10,7 @@ import { mutation, publicQuery, viewerQuery } from './functions';
 import { isActiveProfile } from './lib/accountLifecycle';
 import {
   assignedGroupSummary,
+  liveGroupOrNull,
   requireFactionSoftDelete,
   requireFactionUpdate,
   requireGroupReassignment,
@@ -20,7 +22,11 @@ import {
   rulesetSummaryValidator,
 } from './lib/collaborativeAccessValidators';
 import { resolveGroupAssignmentForCreation } from './lib/defaultGroupPreference';
-import { loadFactionCatalogue, selectFactionCatalogueSpotlights } from './lib/factionCatalogue';
+import {
+  loadFactionCatalogue,
+  loadFactionCataloguePage,
+  selectFactionCatalogueSpotlights,
+} from './lib/factionCatalogue';
 import { factionDataValidator } from './lib/factionData';
 import {
   factionInputForWrite,
@@ -171,7 +177,10 @@ export const list = publicQuery({
   },
 });
 
-/** Public, viewer-independent bundle for the Faction catalogue route. */
+/**
+ * The unpaged catalogue bundle, superseded by `catalogue`.
+ * Deleting a public query is expand/contract: this goes in the release after the one that moves the route off it.
+ */
 export const cataloguePage = publicQuery({
   args: {},
   returns: v.object({
@@ -191,6 +200,41 @@ export const cataloguePage = publicQuery({
       spotlights: selectFactionCatalogueSpotlights(factions),
     };
   },
+});
+
+const catalogueSortValidator = v.union(...FACTION_CATALOGUE_SORTS.map((sort) => v.literal(sort)));
+
+/**
+ * One page of the Faction catalogue, the same for every viewer: the route's search parameters in, the visible cards and the counts out.
+ * Replaces `cataloguePage`, which stays for one release so a bundle still asking for it keeps working while this one deploys.
+ */
+export const catalogue = publicQuery({
+  args: {
+    q: v.optional(v.string()),
+    ruleset: v.optional(v.string()),
+    complexity: v.optional(v.string()),
+    sort: v.optional(catalogueSortValidator),
+    page: v.optional(v.number()),
+  },
+  returns: v.object({
+    cards: v.array(catalogueFactionValidator),
+    /** Factions matching the search and filters, across every page. */
+    total: v.number(),
+    /** Live factions in the catalogue, before any search or filter. */
+    catalogueTotal: v.number(),
+    /** False once the catalogue outgrows the entries one query reads; totals and the last pages are then short. */
+    complete: v.boolean(),
+    /** The page these cards are, which may lie past `pageCount`, with no cards. */
+    page: v.number(),
+    pageCount: v.number(),
+    pageSize: v.number(),
+    rulesets: v.array(rulesetSummaryValidator.extend({ factionCount: v.number() })),
+    spotlights: v.object({
+      newArrival: v.union(catalogueFactionValidator, v.null()),
+      freshlyUpdated: v.union(catalogueFactionValidator, v.null()),
+    }),
+  }),
+  handler: async (ctx, args) => await loadFactionCataloguePage(ctx, args),
 });
 
 /** Factions + resolved group/owner labels and the caller's group memberships for the load picker. */
@@ -222,21 +266,21 @@ export const listForLoadPicker = viewerQuery({
       .query('group_members')
       .withIndex('by_user_status', (q) => q.eq('user_id', userId).eq('status', 'active'))
       .take(500);
-    const memberGroupIds = [...new Set(memberships.map((m) => m.group_id))];
-
-    const groupIds = new Set<Id<'groups'>>();
+    const groupIds = new Set<Id<'groups'>>(memberships.map((m) => m.group_id));
     for (const row of factionRows) {
       if (row.group_id) {
         groupIds.add(row.group_id);
       }
     }
+    /* A deleted Group names nothing and reaches no one, as everywhere else (ADR-0003). */
     const groupNameById = new Map<string, string>();
     for (const gid of groupIds) {
-      const group = await ctx.db.get('groups', gid);
+      const group = liveGroupOrNull(await ctx.db.get('groups', gid));
       if (group) {
         groupNameById.set(gid, group.name.trim());
       }
     }
+    const memberGroupIds = [...new Set(memberships.map((m) => m.group_id))].filter((gid) => groupNameById.has(gid));
 
     const ownerIds = [...new Set(factionRows.map((row) => row.owner_id))];
     const ownerUsernameById = new Map<string, string | null>();
@@ -250,8 +294,8 @@ export const listForLoadPicker = viewerQuery({
 
     const rows = factionRows.map((row) => {
       const data = factionDataForClient(row.data);
-      const groupId = row.group_id ?? null;
-      const groupLabel = groupId ? (groupNameById.get(groupId) ?? groupId) : 'No group';
+      const groupId = row.group_id && groupNameById.has(row.group_id) ? row.group_id : null;
+      const groupLabel = groupId ? groupNameById.get(groupId)! : 'No group';
       return {
         id: row._id,
         slug: row.slug,

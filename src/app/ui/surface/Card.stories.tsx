@@ -29,10 +29,6 @@ export const WithAction = meta.story({
   args: { title: 'Files', action: <StatusBadge tone="positive">Current</StatusBadge> },
 });
 
-export const TallBody = meta.story({
-  args: { title: 'Members', children: <SurfaceFiller height={320} /> },
-});
-
 /** The sidebar width every Card in the app has to survive. */
 export const Narrow = meta.story({
   args: { title: 'At a glance' },

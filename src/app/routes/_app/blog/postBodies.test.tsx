@@ -40,8 +40,8 @@ vi.mock('@tanstack/react-router', async (importOriginal) => ({
 /* Text a reader would take as part of the post: a figure's own caption is not among it. */
 const READING_TEXT = 'p:not(figure p), h1, h2, h3, h4, h5, h6, li, blockquote';
 
-function renderBody(slug: BlogPostSlug): HTMLElement {
-  const Body = BLOG_POST_BODIES[slug];
+async function renderBody(slug: BlogPostSlug): Promise<HTMLElement> {
+  const { default: Body } = await BLOG_POST_BODIES[slug]();
   const markup = renderToStaticMarkup(
     <MantineProvider theme={appContentTheme} forceColorScheme="light">
       <Body />
@@ -51,8 +51,8 @@ function renderBody(slug: BlogPostSlug): HTMLElement {
 }
 
 /* Every post closes on a picture, so nothing a reader reads comes after its last figure. */
-test.each(BLOG_POSTS.map(({ slug }) => slug))('the post %s ends with a picture', (slug) => {
-  const body = renderBody(slug);
+test.each(BLOG_POSTS.map(({ slug }) => slug))('the post %s ends with a picture', async (slug) => {
+  const body = await renderBody(slug);
 
   const lastFigure = [...body.querySelectorAll('figure')].at(-1);
   expect(lastFigure, 'the post has no figure').toBeDefined();
@@ -66,9 +66,9 @@ test.each(BLOG_POSTS.map(({ slug }) => slug))('the post %s ends with a picture',
  * The dev server previews an image that is not synced yet from its legacy path, so a post can be drafted before its art is uploaded.
  * Nothing serves that path on the live site, so a post ships only once every image it shows resolves to its synced `/m/` variant.
  */
-test.each(BLOG_POSTS.map(({ slug }) => slug))('every image in the post %s is synced', (slug) => {
+test.each(BLOG_POSTS.map(({ slug }) => slug))('every image in the post %s is synced', async (slug) => {
   resolvedKeys.clear();
-  renderBody(slug);
+  await renderBody(slug);
   const rasters = [...resolvedKeys].filter((key) => /\.(png|jpe?g)$/i.test(key));
   expect(rasters.length, 'the post shows no images').toBeGreaterThan(0);
   expect(

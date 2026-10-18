@@ -122,7 +122,7 @@ describe('Hosted readiness and shared inventory through native commands', () => 
     const a = await admit('a');
     const b = await admit('b');
     const observer = await admit('c');
-    await act(a, { kind: 'ready', ready: true }, 'such as Mentat pause');
+    await act(a, { kind: 'ready', ready: true }, 'such as Mentat Pause');
     for (let index = 0; index < 8; index++) {
       await waitPhase();
       await act(a, { kind: 'phase' });

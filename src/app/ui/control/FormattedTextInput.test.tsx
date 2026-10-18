@@ -192,22 +192,11 @@ it('drops the undo once the author edits the fixed draft', () => {
   const field = screen.getByRole('textbox', { name: 'Text' }) as HTMLTextAreaElement;
 
   fireEvent.click(screen.getByRole('button', { name: 'Fix wording' }));
-  expect(screen.getByRole('note', { name: 'Wording suggestions' }).textContent).toContain('Wording fixed.');
+  const note = screen.getByRole('note', { name: 'Wording suggestions' });
+  expect(note.textContent).toContain('Wording fixed.');
+  expect(field.getAttribute('aria-describedby')?.split(' ')).toContain(note.id);
   fireEvent.change(field, { target: { value: 'Ship three troops now.' } });
   expect(screen.queryByRole('note', { name: 'Wording suggestions' })).toBeNull();
-});
-
-it('keeps the wording note described while it says the wording is fixed', () => {
-  render(
-    <MantineProvider theme={appContentTheme} forceColorScheme="light">
-      <EditableInput initialValue="Ship three forces." />
-    </MantineProvider>
-  );
-  const field = screen.getByRole('textbox', { name: 'Text' });
-
-  fireEvent.click(screen.getByRole('button', { name: 'Fix wording' }));
-  const note = screen.getByRole('note', { name: 'Wording suggestions' });
-  expect(field.getAttribute('aria-describedby')?.split(' ')).toContain(note.id);
 });
 
 it.each([['disabled'], ['readOnly']] as const)('offers no fix when the field is %s', (state) => {

@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 /* @vitest-environment edge-runtime */
-import { convexTest } from 'convex-test';
+import type { convexTest } from 'convex-test';
 import { expect, test } from 'vite-plus/test';
 import type { z } from 'zod';
 
@@ -9,10 +9,8 @@ import type { NexusCardAsset } from '../src/shared/assets/schema';
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
-import schema from './schema';
+import { applicationTest } from './application.test.fixture';
 import { assetPageAs } from './viewerAccess.test.fixture';
-
-const modules = import.meta.glob('./**/*.ts');
 
 async function linkedCard(
   t: ReturnType<typeof convexTest>,
@@ -40,7 +38,7 @@ async function linkedCard(
 }
 
 test('the GF9 import creates twelve published Nexus cards and one deck without overwriting later edits', async () => {
-  const t = convexTest(schema, modules);
+  const t = applicationTest();
   const ownerId = await t.run((ctx) => ctx.db.insert('users', { name: 'Creator' }));
   const first = await t.mutation(internal.assets.seedGf9NexusDeck, { ownerId });
   expect(first.cardIds).toHaveLength(12);
@@ -70,7 +68,7 @@ test('the GF9 import creates twelve published Nexus cards and one deck without o
 });
 
 test('Nexus writes enforce the fixed sections and reject oversized effects without changing the saved card', async () => {
-  const t = convexTest(schema, modules);
+  const t = applicationTest();
   const ownerId = await t.run((ctx) => ctx.db.insert('users', { name: 'Creator' }));
   const owner = t.withIdentity({ subject: ownerId });
   const card = await linkedCard(t, ownerId, GF9_NEXUS_CARDS[0]!);
@@ -94,7 +92,7 @@ test('Nexus writes enforce the fixed sections and reject oversized effects witho
 });
 
 test('a reserved GF9 address rolls back the entire import', async () => {
-  const t = convexTest(schema, modules);
+  const t = applicationTest();
   const [ownerId, otherId] = await t.run(async (ctx) => [
     await ctx.db.insert('users', { name: 'Creator' }),
     await ctx.db.insert('users', { name: 'Other' }),
@@ -108,7 +106,7 @@ test('a reserved GF9 address rolls back the entire import', async () => {
 });
 
 test('a renderer regeneration scan republishes live Nexus cards and skips deleted cards', async () => {
-  const t = convexTest(schema, modules);
+  const t = applicationTest();
   const ownerId = await t.run((ctx) => ctx.db.insert('users', { name: 'Creator' }));
   const owner = t.withIdentity({ subject: ownerId });
   const liveData = await linkedCard(t, ownerId, GF9_NEXUS_CARDS[0]!);
@@ -162,7 +160,7 @@ async function stageOriginalImport(
 }
 
 test('the GF9 correction preserves later edits, ids and membership and republishes only corrected assets', async () => {
-  const t = convexTest(schema, modules);
+  const t = applicationTest();
   const ownerId = await t.run((ctx) => ctx.db.insert('users', { name: 'Creator' }));
   const imported = await t.mutation(internal.assets.seedGf9NexusDeck, { ownerId });
   await stageOriginalImport(t, imported);
@@ -196,7 +194,7 @@ test('the GF9 correction preserves later edits, ids and membership and republish
 });
 
 test('an unexpected GF9 card owner rolls the entire correction back', async () => {
-  const t = convexTest(schema, modules);
+  const t = applicationTest();
   const [ownerId, otherId] = await t.run(async (ctx) => [
     await ctx.db.insert('users', { name: 'Creator' }),
     await ctx.db.insert('users', { name: 'Other' }),
@@ -213,7 +211,7 @@ test('an unexpected GF9 card owner rolls the entire correction back', async () =
 });
 
 test('a renamed deck member is preserved even when another card takes its original address', async () => {
-  const t = convexTest(schema, modules);
+  const t = applicationTest();
   const ownerId = await t.run((ctx) => ctx.db.insert('users', { name: 'Creator' }));
   const imported = await t.mutation(internal.assets.seedGf9NexusDeck, { ownerId });
   await stageOriginalImport(t, imported);
@@ -233,7 +231,7 @@ test('a renamed deck member is preserved even when another card takes its origin
 });
 
 test('new Nexus cards require a live faction and use its authoritative header artwork', async () => {
-  const t = convexTest(schema, modules);
+  const t = applicationTest();
   const ownerId = await t.run((ctx) => ctx.db.insert('users', { name: 'Creator' }));
   const owner = t.withIdentity({ subject: ownerId });
   await expect(owner.mutation(api.assets.create, { type: 'card-nexus', data: GF9_NEXUS_CARDS[0]! })).rejects.toThrow(

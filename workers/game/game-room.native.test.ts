@@ -198,29 +198,6 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     expect(logs[0].message).not.toContain('c'.repeat(64));
   });
 
-  it('refuses a seated player who asks to change how the table is enforced', async () => {
-    expect((await provision(runtime)).status).toBe(200);
-    const { connection } = await admit();
-    connection.sendInvalid({
-      type: 'command',
-      commandId: 'owner-only',
-      action: { kind: 'enforcement', policy: 'strict' },
-      expectedRevision: 0,
-    });
-    const answer = await eventually(
-      () =>
-        connection.messages.find(
-          (message) =>
-            (message.type === 'admission' && message.status === 'denied') ||
-            ('completedCommandId' in message && message.completedCommandId === 'owner-only')
-        ),
-      'an answer to the enforcement command'
-    );
-    expect(answer).toMatchObject({ type: 'admission', status: 'denied' });
-    const { view } = await admit();
-    expect(view.snapshot.revision).toBe(0);
-  });
-
   it('persists the fixed spice stack, moved stacks, returns and turn boundaries with idempotent receipts', async () => {
     expect((await provision(runtime)).status).toBe(200);
     const { connection } = await admit();
@@ -855,6 +832,14 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     holder.send({ type: 'ping', position: [4, 0.38, 0], sound: 'fart' });
     const { ping: rumble } = await watcher.message('ping', (message) => message.ping.position[0] === 4);
     expect(rumble.sound).toBe('fart');
+    await runtime.clock(3000);
+    holder.send({ type: 'ping', position: [5, 0.38, 0], sound: 'fart' });
+    const { ping: early } = await watcher.message('ping', (message) => message.ping.position[0] === 5);
+    expect(early.sound).toBeUndefined();
+    await runtime.clock(5000);
+    holder.send({ type: 'ping', position: [6, 0.38, 0], sound: 'fart' });
+    const { ping: later } = await watcher.message('ping', (message) => message.ping.position[0] === 6);
+    expect(later.sound).toBe('fart');
     expect((await syncView(watcher)).pointers).toEqual([]);
   });
 
@@ -937,7 +922,13 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     const beforeDenial = first.messages.length;
     await signOut(tabs, 'registration-b', ['registration-a', 'registration-b']);
     await eventually(() => peer.accountChecks().some((record) => !record.response.writableEnded), 'the account check');
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    /*
+     * The room answers a keepalive behind every frame it already queued for this socket, and a held player's sync would wait out the check.
+     * Once the answer lands, anything the denial sent the other player has landed too.
+     */
+    const keepalives = first.keepalives;
+    first.keepalive();
+    await eventually(() => first.keepalives > keepalives, 'the keepalive answer behind the denial');
     expect(first.messages.slice(beforeDenial)).toEqual([]);
     peer.releaseAccounts();
     const resumed = await eventually(

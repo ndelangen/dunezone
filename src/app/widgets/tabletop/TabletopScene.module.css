@@ -22,6 +22,8 @@
 /* A piece held up to the eye with Alt: flat, large, beside the pointer. */
 .closeUp {
   position: fixed;
+  top: 0;
+  left: 0;
   z-index: 30;
   display: grid;
   gap: var(--space-xs);
@@ -32,6 +34,9 @@
   border: 1px solid rgb(255 255 255 / 14%);
   border-radius: 14px;
   box-shadow: 0 18px 48px rgb(0 0 0 / 55%);
+
+  /* Placed by a transform that follows the pointer every frame, on its own layer so moving it repaints nothing. */
+  will-change: transform;
 }
 
 /* A disc token sits in a round frame, with its count on the frame's lower edge. */
@@ -229,4 +234,9 @@
   font-size: 0.58rem;
   font-style: italic;
   font-weight: 700;
+}
+
+/* The paintbrush wins over the hand cursor the presence layer puts on the canvas while it is on. */
+.painting canvas {
+  cursor: var(--brush-cursor) !important;
 }

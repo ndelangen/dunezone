@@ -104,7 +104,7 @@ export const spaceOrks = {
       text: 'When making a battle plan, for every force you dial you will grab the same number of D6 dice. After plans are revealed, roll these dice and for every two dice that yield a result of 2 or higher, add 0.5 to your dial.',
     },
     fate: {
-      text: 'During your turn in Shipping and Movement, you may move any number of groups of forces up to 4 territories, as long as they all have the same destination (this does not prevent you from also taking your regular movement or using effects like Hajr).',
+      text: 'During your turn in Shipment and Movement, you may move any number of groups of troops up to 4 territories, as long as they all have the same destination (this does not prevent you from also taking your regular movement or using effects like Hajr).',
       title: 'WAAAGGHHH!!!!:',
     },
     revivalText: 'For every force lost in battle, immediately revive 2 forces.',

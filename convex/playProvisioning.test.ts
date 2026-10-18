@@ -1,19 +1,14 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import rateLimiterTest from '@convex-dev/rate-limiter/test';
-import { convexTest } from 'convex-test';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vite-plus/test';
 
 import { api, internal } from './_generated/api';
+import { applicationTest } from './application.test.fixture';
 import { createPendingGame } from './lib/playProvisioningSchedule';
-import schema from './schema';
-
-const modules = import.meta.glob('./**/*.ts');
 
 function setup() {
-  const t = convexTest(schema, modules);
-  rateLimiterTest.register(t);
+  const t = applicationTest();
   return t;
 }
 
@@ -119,6 +114,15 @@ describe('Play provisioning', () => {
       state: 'expired',
       provision_error: reason,
     });
+    /* A game that never opened enrols nobody, so deletion and merges stop routing to it. */
+    expect(
+      await t.run(async (ctx) =>
+        ctx.db
+          .query('play_game_accounts')
+          .withIndex('by_game_id_user_id', (q) => q.eq('game_id', game._id))
+          .collect()
+      )
+    ).toEqual([]);
     expect(
       await t.mutation(api.playProvisioning.failProvisioning, { ...credentials, reason: 'Another refusal' })
     ).toEqual({ ok: false });

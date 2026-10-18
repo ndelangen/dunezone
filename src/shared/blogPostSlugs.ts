@@ -11,6 +11,7 @@
  */
 export const BLOG_POST_SLUGS = [
   'building-a-dune-sandbox',
+  'drawing-dune-tokens-and-cards',
   'all-in-one-dune-board-game-webapp',
   'tabletop-simulator',
   'why-dune',

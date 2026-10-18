@@ -23,7 +23,7 @@ const meta = preview.meta({
 const MENTAT_PAUSE = 8;
 const factionOf = (snapshot: GameSnapshot, index: number) => snapshot.roster!.seats[index]!.faction!;
 
-/* Turn 1 Mentat pause with every seat filled; the viewer's own faction holds a locked prediction if asked. */
+/* Turn 1 Mentat Pause with every seat filled; the viewer's own faction holds a locked prediction if asked. */
 function mentatSnapshot(viewerSeat: string, { prediction = false, card = false } = {}): GameSnapshot {
   const snapshot = playingSnapshot(viewerSeat === SPECTATOR_SEAT ? 'seat-2' : viewerSeat);
   snapshot.phase = MENTAT_PAUSE;
@@ -55,7 +55,7 @@ export const DetermineWinner = meta.story({
   beforeEach: install(() => productTransport('seat-2', mentatSnapshot('seat-2'))),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    /* Determine winner is a plain control of the Mentat pause phase, in the Phase tab. */
+    /* Determine winner is a plain control of the Mentat Pause phase, in the Phase tab. */
     await openTab(page, 'Phase');
     await userEvent.click(await page.findByRole('button', { name: 'Determine winner' }));
     await expect(lastCommand()?.action).toEqual({ kind: 'result-open' });
@@ -166,6 +166,23 @@ export const DeclaringOnAPhone = meta.story({
       /* The section holds its whole content, so Declare sits inside its frame. */
       await expect(shown.bottom).toBeLessThanOrEqual(bar.getBoundingClientRect().bottom);
     });
+    /* An alliance is declared only once its factions are picked, and the declaration names them. */
+    await expect(declare).toBeDisabled();
+    const snapshot = mentatSnapshot('seat-2');
+    const allies = [factionOf(snapshot, 0), factionOf(snapshot, 2)];
+    /* The field's own input takes no pointer, so it is opened from the keyboard. */
+    for (const ally of allies) {
+      within(bar).getByLabelText('Winning alliance').focus();
+      await userEvent.keyboard('{ArrowDown}');
+      await userEvent.click(await waitForFrame(() => page.getByRole('option', { name: ally.name })));
+    }
+    await waitFor(() => expect(declare).toBeEnabled());
+    await userEvent.click(declare);
+    await expect(lastCommand()?.action).toEqual({
+      kind: 'result-declare',
+      result: 'alliance',
+      factionIds: allies.map((ally) => ally.id),
+    });
   },
 });
 
@@ -252,6 +269,11 @@ export const Celebration = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await page.findByText(/Declared by/, {}, { timeout: 30_000 });
+    /* The foil is drawn on the table's canvas; the game menu offering to clear it is what says it is running. */
+    await userEvent.click(page.getByRole('button', { name: 'Game menu' }));
+    await expect(
+      waitForFrame(() => page.getByRole('menuitem', { name: 'Clear confetti' }))
+    ).resolves.toBeInTheDocument();
   },
 });
 

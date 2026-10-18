@@ -19,6 +19,7 @@ import { internalMutation, mutation } from './functions';
 import { authenticatedPlayRequest } from './lib/playAuthorization';
 import { playerSummary } from './lib/playerSummary';
 import { playRateLimiter } from './lib/playRateLimits';
+import { unenrolCreator } from './lib/playSeatPass';
 import { postPlayService } from './lib/playService';
 import { isSyntheticBackend } from './lib/playSynthetic';
 
@@ -174,6 +175,7 @@ export const failProvisioning = mutation({
       return { ok: false };
     }
     await ctx.db.patch(game._id, { state: 'expired', provision_error: reason });
+    await unenrolCreator(ctx, game);
     return { ok: true };
   },
 });
@@ -184,6 +186,7 @@ export const expireProvisioning = internalMutation({
   handler: async (ctx, args) => {
     const game = await ctx.db.get(args.gameId);
     if (game?.state === 'pending' && Date.now() >= game.provision_expires_at) {
+      /* The room may already hold the creator, so their routing stays: a deletion then empties the room before it settles. */
       await ctx.db.patch(game._id, { state: 'expired' });
     }
     return null;

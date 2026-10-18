@@ -5,7 +5,6 @@ import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { LoadError } from '@ui/block/LoadError';
 import { LoadPending } from '@ui/block/LoadPending';
-import { LoginGate } from '@ui/block/LoginGate';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { errorMessage } from '@ui/content/errorMessage';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
@@ -26,9 +25,10 @@ import { FactionComplexityIndicator } from '@app/widgets/faction-editor/FactionC
 import { FactionEditor } from '@app/widgets/faction-editor/FactionEditor';
 import type { FactionAuthoringViewHandle } from '@app/widgets/faction-editor/FactionEditor';
 import { FactionGroupPopover } from '@app/widgets/faction-editor/FactionGroupPopover';
-import { FactionLoadPopover } from '@app/widgets/faction-editor/FactionLoadPopover';
+import { factionLoadSource } from '@app/widgets/faction-editor/factionLoadSource';
 import { factionPublicationStatus } from '@app/widgets/faction-editor/factionPublicationStatus';
 import { useFactionAuthoring } from '@app/widgets/faction-editor/useFactionAuthoring';
+import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import { factionNameField } from '../factionNameField';
@@ -167,6 +167,13 @@ function FactionEditPage() {
       {validationHeader.slot}
       <PageLayout.Toolbar>
         <AuthoringToolbar
+          load={{
+            noun: 'faction',
+            mode: 'replace',
+            disabled: updateFaction.isPending,
+            source: factionLoadSource(faction.slug),
+            onLoaded: validationHeader.releasing(authoring.actions.loadDraft),
+          }}
           status={{
             isDirty: authoring.editing.isDirty,
             isNameBlank: authoring.editing.isNameBlank,
@@ -188,13 +195,6 @@ function FactionEditPage() {
           }}
           review={{ label: 'Review faction sheet', onOpen: (trigger) => viewRef.current?.openReview(trigger) }}
           centerIndicator={<FactionComplexityIndicator form={authoring.form} />}
-          auxiliaryActions={
-            <FactionLoadPopover
-              disabled={updateFaction.isPending}
-              currentPublicSlug={faction.slug}
-              onLoaded={validationHeader.releasing(authoring.actions.loadDraft)}
-            />
-          }
           accessActions={
             <>
               {canAssignGroup && !assignedGroup ? (

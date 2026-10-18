@@ -17,15 +17,3 @@ const meta = preview.meta({
 });
 
 export const Default = meta.story({});
-
-export const Empty = meta.story({
-  args: {
-    defaultValue: '',
-  },
-});
-
-export const Disabled = meta.story({
-  args: {
-    disabled: true,
-  },
-});

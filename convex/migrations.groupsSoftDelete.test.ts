@@ -1,20 +1,16 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import migrationsTest from '@convex-dev/migrations/test';
-import { convexTest } from 'convex-test';
 import { describe, expect, test } from 'vite-plus/test';
 
 import { internal } from './_generated/api';
-import schema from './schema';
+import { applicationTest } from './application.test.fixture';
 
-const modules = import.meta.glob('./**/*.ts');
 const now = '2026-08-09T00:00:00.000Z';
 
 describe('Group lifecycle audit', () => {
   test('audit counts dangling group references without repairing them', async () => {
-    const t = convexTest(schema, modules);
-    migrationsTest.register(t);
+    const t = applicationTest();
     const ids = await t.run(async (ctx) => {
       const ownerId = await ctx.db.insert('users', { name: 'Migration owner' });
       const deletedGroupId = await ctx.db.insert('groups', {

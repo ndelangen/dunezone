@@ -1,5 +1,5 @@
 import preview from '@sb/preview';
-import { fn } from 'storybook/test';
+import { expect, fn, within } from 'storybook/test';
 
 import type { FaqItemWithDetails } from '@db/faq';
 
@@ -61,25 +61,28 @@ const meta = preview.meta({
   args: {
     items: faqItems,
     rulesetSlug: 'dreamrules',
-    searchQuery: '',
     onOpenQuestion: fn(),
     emptyLabel: 'No FAQ items yet.',
-    noMatchesLabel: 'No questions match your search.',
   },
 });
 
-export const Populated = meta.story({});
+export const Populated = meta.story({
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole('link', { name: 'Can leaders move through the storm?' })).toBeVisible();
+    await expect(canvas.getByLabelText('Answered, 1 answer')).toBeVisible();
+    await expect(canvas.getByRole('link', { name: 'When do reserve forces enter play?' })).toBeVisible();
+    await expect(canvas.getByLabelText('Unanswered, 0 answers')).toBeVisible();
+  },
+});
 
 /** Nothing has been asked yet. The words are the page's, so the story passes them like a page would. */
 export const NoItems = meta.story({
   args: {
     items: [],
   },
-});
-
-/** Questions exist, but the reader's search excludes them all, which reads differently from having none. */
-export const NoFilteredMatches = meta.story({
-  args: {
-    searchQuery: 'ornithopter timing',
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText('No FAQ items yet.')).toBeVisible();
   },
 });

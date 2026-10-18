@@ -445,9 +445,15 @@ async function peer(label: string, context?: BrowserContext): Promise<HostedPeer
       const payload: unknown = JSON.parse(frame.payload.toString());
       const message = (values.flow === 'homepage' ? homepageMessageSchema : clientMessageSchema).parse(payload);
       state.sent.push(
-        message.type === 'admit' || message.type === 'authenticate'
+        message.type === 'authenticate'
           ? { type: message.type, ticketLength: message.ticket.length }
-          : message
+          : message.type === 'admit'
+            ? {
+                type: message.type,
+                ticketLength: (message.pass ?? message.ticket ?? '').length,
+                credential: message.pass === undefined ? 'ticket' : 'pass',
+              }
+            : message
       );
     });
     socket.on('framereceived', (frame: { payload: { toString: () => string } }) => {
@@ -653,7 +659,9 @@ async function admitted(who: HostedPeer) {
     'The UI did not receive an authorized snapshot.'
   );
   assert.equal(who.sent[0].type, 'admit');
-  assert.equal(who.sent[0].ticketLength, 64);
+  /* The page enters with its seat pass; the credential itself never reaches the report. */
+  assert.equal(who.sent[0].credential, 'pass');
+  assert.ok(who.sent[0].ticketLength > 0);
   if (requireView(who).snapshot.stage === 'play') {
     await who.page.getByRole('group', { name: 'Table view' }).waitFor();
     await tableLoaded(who);
@@ -712,11 +720,12 @@ async function createGame(who: HostedPeer) {
   assert.equal(who.sockets.length, 1, 'Canonical creation opens exactly one ID socket.');
   await who.page.getByRole('heading', { name: created.name, level: 1, exact: true }).waitFor();
   const header = who.page.locator('.seated-header');
-  /* Drafting names the ruleset in its chip's heading; from play on it has a chip of its own. */
-  await header
-    .getByText(flow.startsInPlay ? /^Ruleset: / : /^ · /u)
-    .first()
-    .waitFor();
+  /* Drafting names the ruleset in its chip's heading; from play on the header leaves it out. */
+  if (flow.startsInPlay) {
+    await header.getByText(/^Ruleset: /).waitFor({ state: 'hidden' });
+  } else {
+    await header.getByText(/^ · /u).first().waitFor();
+  }
   await header.getByText(created.name, { exact: true }).waitFor({ state: 'hidden' });
   await who.page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
   await who.page.getByRole('button', { name: 'Game menu', exact: true }).click();
@@ -968,7 +977,7 @@ const TAB_GROUPS: Record<string, string> = {
 /** Shows the group holding a dock tab until the tab stays, outlasting a phase opening its own tab. */
 async function revealTab(who: HostedPeer, name: string, tab: Locator) {
   /*
-   * The dock opens a phase's own tab once as the phase begins (Spice for Spice collection, Hand for Bidding), and that
+   * The dock opens a phase's own tab once as the phase begins (Spice for Spice Collection, Hand for Bidding), and that
    * can land just after this looks, moving the dock to another group. So the group is clicked again until the tab stays.
    */
   const deadline = Date.now() + 30_000;
@@ -1967,7 +1976,7 @@ async function verifyRegular() {
 
   await sharedPhaseFlow(a, b);
   await sharedTrackerFlow(a, b);
-  /* The live table sits at Mentat pause, whose advance is gated on readiness (#1139); readiness
+  /* The live table sits at Mentat Pause, whose advance is gated on readiness (#1139); readiness
      is declared before the other player enters read-only playback, where Ready is disabled. */
   await readyBeforeAdvance(a, b);
   const beforePlayback = await verifyCheckpointPlayback(a, b);

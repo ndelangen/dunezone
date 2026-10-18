@@ -45,7 +45,7 @@ export function leaderExplainerFixture(): Explainer {
         label: 'S',
         color: '#244d7c',
         target: { kind: 'named', key: 'strength', source: leaderReference },
-        text: 'Add this value to the forces committed in your battle plan.',
+        text: 'Add this value to the troops dialed in your battle plan.',
       },
       {
         id: 'EMBL',
@@ -88,13 +88,13 @@ export function boardExplainerFixture(): Explainer {
         id: 'ARRA',
         label: 'A',
         target: { kind: 'named', key: 'arrakeen', source },
-        text: 'Home of House Atreides. Forces here provide access to ornithopters and collect 2 spice during collection.',
+        text: 'Home of House Atreides. Troops here provide access to ornithopters and collect 2 spice during collection.',
       },
       {
         id: 'CART',
         label: 'C',
         target: { kind: 'named', key: 'carthag', source },
-        text: 'Home of House Harkonnen. Forces here provide access to ornithopters and collect 2 spice during collection.',
+        text: 'Home of House Harkonnen. Troops here provide access to ornithopters and collect 2 spice during collection.',
       },
       {
         id: 'TABR',
@@ -112,7 +112,7 @@ export function boardExplainerFixture(): Explainer {
         id: 'TUEK',
         label: 'G',
         target: { kind: 'named', key: 'tueks', source },
-        text: 'Home of the Spacing Guild. Forces here collect 1 spice during collection.',
+        text: 'Home of the Spacing Guild. Troops here collect 1 spice during collection.',
       },
       {
         id: 'SHLD',

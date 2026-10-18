@@ -53,7 +53,6 @@ const meta = preview.meta({
   parameters: { layout: 'padded' },
 });
 export const One = meta.story({});
-export const Six = meta.story({ args: { sectors: 6 } });
 export const MovementAndLayers = meta.story({
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);

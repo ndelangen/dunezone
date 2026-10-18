@@ -13,7 +13,6 @@ import {
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { LoadPending } from '@ui/block/LoadPending';
-import { LoginGate } from '@ui/block/LoginGate';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -27,6 +26,7 @@ import { useCreatableRulesets, useCreateGame } from '@db/play';
 import type { CreatableRuleset, CreatableRulesetPreview } from '@db/play';
 import { GameNameInput } from '@app/pickers/GameNameInput';
 import { pageHead } from '@app/routes/pageTitle';
+import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import styles from './create.module.css';

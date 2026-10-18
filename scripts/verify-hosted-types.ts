@@ -15,7 +15,7 @@ export type ObservedMessage = ServerMessage | ActivityFrame;
 export type SentMessage =
   | Exclude<z.infer<typeof homepageMessageSchema>, { type: 'authenticate' }>
   | Exclude<ClientMessage, { type: 'admit' }>
-  | { type: 'admit' | 'authenticate'; ticketLength: number };
+  | { type: 'admit' | 'authenticate'; ticketLength: number; credential?: 'ticket' | 'pass' };
 export type SocketObservation = {
   url: string;
   closed: boolean;

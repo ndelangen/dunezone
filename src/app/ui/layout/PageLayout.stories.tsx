@@ -1,6 +1,6 @@
 import preview from '@sb/preview';
 import type { CSSProperties, ReactNode } from 'react';
-import { expect, waitFor } from 'storybook/test';
+import { expect, waitFor, within } from 'storybook/test';
 
 import { LayoutSlotPlaceholder } from './LayoutSlotPlaceholder.stories.fixture';
 import { PageLayout } from './PageLayout';
@@ -78,6 +78,11 @@ export const CompactHeader = meta.story({
     </PageLayout>
   ),
   globals: { viewport: { value: 'appDesktop' } },
+  play: async ({ canvasElement }) => {
+    /* The compact crop of the band's artwork, where a default header takes the full one. */
+    const header = within(canvasElement).getByRole('banner').getBoundingClientRect();
+    await expect(header.width / header.height).toBeCloseTo(3064 / 580, 1);
+  },
 });
 
 /**
@@ -91,22 +96,10 @@ export const NoHeader = meta.story({
     </PageLayout>
   ),
   globals: { viewport: { value: 'appDesktop' } },
-});
-
-/**
- * The toolbar slot adds nothing around what it is given.
- */
-export const WithToolbar = meta.story({
-  render: () => (
-    <PageLayout>
-      <PageLayout.Header>{headerSlot}</PageLayout.Header>
-      <PageLayout.Toolbar>
-        <LayoutSlotPlaceholder name="toolbar slot" tone="toolbar" minHeight={72} />
-      </PageLayout.Toolbar>
-      <PageLayout.Content>{contentSlot}</PageLayout.Content>
-    </PageLayout>
-  ),
-  globals: { viewport: { value: 'appDesktop' } },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).queryByRole('banner')).not.toBeInTheDocument();
+    await expect(canvasElement.querySelector('[data-page-layout-compact="true"]')).not.toBeNull();
+  },
 });
 
 /**

@@ -1,9 +1,8 @@
-import { finishTransitions, waitForFrame } from '@sb/storyWaits';
 import type { LogEntry } from '@shared/play/log';
 import type { ClientMessage, GameSnapshot } from '@shared/play/protocol';
 import { item, piece } from '@shared/play/setupSupply';
 import type { Decorator } from '@storybook/tanstack-react';
-import { expect, waitFor, within } from 'storybook/test';
+import { expect, waitFor } from 'storybook/test';
 
 import { refText, SEED_REF_TOKEN, STORYBOOK_NOW } from '@db/storybook';
 
@@ -14,6 +13,7 @@ import { browserGameRuntime, GameRuntimeContext } from './multiplayer/gameRuntim
 import type { GameRuntime } from './multiplayer/gameRuntime';
 import type { productTransport } from './product.stories.fixture';
 import { cardBack, GAME_KEY, parameters, playingSnapshot, setupSnapshot, SIX } from './product.stories.fixture';
+import { seatPopover } from './seats.stories.fixture';
 
 /** The story being rendered: the transport `install` put in place and the runtime the `gameMeta` decorator hands the page. */
 export const session: { runtime: GameRuntime; transport: ReturnType<typeof productTransport> } = {
@@ -73,23 +73,10 @@ export function drafting(seatRequests: NonNullable<GameSnapshot['controls']>['se
 export const lastCommand = () =>
   [...session.transport.messages].reverse().find((message) => message.type === 'command');
 
-/** Opens a spectator's seat from the header toolbar and reads it as the named region. */
-export async function seatPopover(canvasElement: HTMLElement, name: string) {
-  const page = within(canvasElement.ownerDocument.body);
-  await expect(
-    page.findByRole('heading', { name: 'Dreamrules', level: 1 }, { timeout: 30_000 })
-  ).resolves.toBeVisible();
-  await press(() => page.getByRole('button', { name: 'Seats' }));
-  await waitForFrame(() => expect(finishTransitions(page.getByRole('region', { name }))).toBeVisible(), {
-    timeout: 30_000,
-  });
-  return () => within(page.getByRole('region', { name }));
-}
-
 /** Reads text under a fresh query until the remounting scene lets it settle. */
 export const shows = (read: () => HTMLElement) => waitFor(() => expect(read()).toBeVisible(), { timeout: 30_000 });
 
-export { press };
+export { press, seatPopover };
 
 /** Deals the locked prediction's card into the viewer's hand, as the Worker does whenever the prediction faces were captured. */
 export function withPredictionCard(snapshot: GameSnapshot, factionId: string, predicted: string, turn = 6) {

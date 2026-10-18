@@ -1,4 +1,3 @@
-import { convexTest } from 'convex-test';
 import { describe, expect, test } from 'vite-plus/test';
 
 import { factionMemberPublicationId } from '../src/shared/asset-publishing/componentPublication';
@@ -7,14 +6,12 @@ import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPub
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
+import { applicationTest } from './application.test.fixture';
 import {
   enqueueFactionLeaderPublications,
   enqueueFactionTokenPublication,
   FACTION_TOKEN_BACK_REVISION,
 } from './lib/publication';
-import schema from './schema';
-
-const modules = import.meta.glob('./**/*.ts');
 
 async function seed(ctx: MutationCtx) {
   const owner = await ctx.db.insert('users', { account_state: 'active', name: 'Author', isAdmin: false });
@@ -58,7 +55,7 @@ async function seed(ctx: MutationCtx) {
 
 describe('the draft reads the catalogue', () => {
   test('lists every live faction that parses, with its ruleset link and whether both token faces are published', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const { ruleset, linked, other } = await t.run(seed);
     const { factions } = await t.query(api.playCatalogue.draftableFactions, { rulesetId: ruleset });
     const byId = (first: readonly unknown[], second: readonly unknown[]) =>
@@ -80,7 +77,7 @@ describe('the draft reads the catalogue', () => {
   });
 
   test('a faction becomes published once its token back completes, and its leader front reads once that face completes', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const { ruleset, other } = await t.run(seed);
     const memberId = assetPublishingFaction.leaders[0].memberId;
     const leaderAssetId = factionMemberPublicationId(other, memberId);
@@ -128,7 +125,7 @@ describe('the draft reads the catalogue', () => {
   });
 
   test('an unknown ruleset links nothing and still lists the factions', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     await t.run(seed);
     const { factions } = await t.query(api.playCatalogue.draftableFactions, { rulesetId: 'nowhere' as Id<'rulesets'> });
     expect(factions).toHaveLength(2);
@@ -136,7 +133,7 @@ describe('the draft reads the catalogue', () => {
   });
 
   test('a ruleset faction created after the first 500 live factions is still listed', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const { ruleset } = await t.run(seed);
     const late = await t.run(async (ctx) => {
       const owner = (await ctx.db.query('users').first())!._id;

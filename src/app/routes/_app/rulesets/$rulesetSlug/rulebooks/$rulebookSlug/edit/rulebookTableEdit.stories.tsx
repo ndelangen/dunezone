@@ -33,7 +33,7 @@ export const ReferenceTable = meta.story({
     );
     await userEvent.keyboard('[Space]');
     await waitFor(() =>
-      expect(renderedHeaders(canvasElement)).toEqual(['Starting spice', 'Faction', 'Forces on Dune', 'Free revival'])
+      expect(renderedHeaders(canvasElement)).toEqual(['Starting spice', 'Faction', 'Troops on Dune', 'Free revival'])
     );
     await expect(renderedRow(canvasElement, 'ATRE')).toEqual(['10', 'Atreides', '10 in Arrakeen', '2']);
 
@@ -51,7 +51,7 @@ export const ReferenceTable = meta.story({
     /* Removing the moved column takes only its cells; the other columns keep theirs. */
     await userEvent.click(canvas.getByRole('button', { name: 'Remove column 2' }));
     await waitFor(() =>
-      expect(renderedHeaders(canvasElement)).toEqual(['Starting spice', 'Forces on Dune', 'Free revival', 'Alliance'])
+      expect(renderedHeaders(canvasElement)).toEqual(['Starting spice', 'Troops on Dune', 'Free revival', 'Alliance'])
     );
     await expect(renderedRow(canvasElement, 'ATRE')).toEqual(['10', '10 in Arrakeen', '2', 'Any']);
 
@@ -64,4 +64,16 @@ export const ReferenceTable = meta.story({
   },
 });
 
-export const WeaponsAndDefenses = meta.story({ render: () => <WeaponTableStory /> });
+/** The weapons table renders on the illustrated Battle page with its headers and a row per match. */
+export const WeaponsAndDefenses = meta.story({
+  render: () => <WeaponTableStory />,
+  play: async ({ canvasElement }) => {
+    const page = within(within(canvasElement).getByRole('article', { name: 'Rulebook page: Battle' }));
+    await expect(page.getAllByRole('columnheader').map((header) => header.textContent)).toEqual([
+      'Weapon',
+      'Defense',
+      'Effect of this weapon',
+    ]);
+    await expect(page.getByRole('row', { name: 'Projectile Shield Stopped' })).toBeVisible();
+  },
+});

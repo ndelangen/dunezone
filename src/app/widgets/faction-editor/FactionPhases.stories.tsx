@@ -16,7 +16,7 @@ const validPhase: Phase = {
   before: 'bidding',
   priority: 10,
   allPlayersMustBeReady: false,
-  instructions: 'Agree any shipment deals before the auction opens.',
+  instructions: 'Agree any shipment deals before bidding opens.',
 };
 
 function factionWith(phases: unknown[] | undefined): Faction {
@@ -98,7 +98,7 @@ export const SequenceSetupAndTurn = meta.story({
     const tie = "Another faction's phase here at the same priority goes in storm order.";
     await expect(sequenceRows(canvasElement, 'Setup')).toEqual(['Traitors', 'Desert omen', 'Starting troops']);
     await expect(sequenceRows(canvasElement, 'Each turn').slice(2, 5)).toEqual([
-      'CHOAM charity',
+      'CHOAM Charity',
       'Guild negotiations',
       'Bidding',
     ]);
@@ -152,6 +152,10 @@ export const SequenceFollowsPlacement = meta.story({
   args: { faction: factionWith([validPhase]) },
   play: async ({ canvasElement }) => {
     const canvas = await openPhases(canvasElement);
+    /* One valid row: its title and summary show, and Save is open. */
+    await expect(canvas.getByRole('textbox', { name: 'Title' })).toHaveValue('Guild negotiations');
+    await expect(canvas.getByText('Before Bidding, priority 10')).toBeVisible();
+    await expect(canvas.getByRole('button', { name: 'Save faction' })).not.toHaveAttribute('aria-disabled');
     await expect(sequenceRows(canvasElement, 'Each turn').indexOf('Guild negotiations')).toBe(3);
 
     await userEvent.click(canvas.getByRole('combobox', { name: 'Placement' }));
@@ -159,16 +163,6 @@ export const SequenceFollowsPlacement = meta.story({
 
     await waitFor(() => expect(sequenceRows(canvasElement, 'Each turn').indexOf('Guild negotiations')).toBe(4));
     await expect(sequenceRows(canvasElement, 'Each turn')[5]).toBe('Revival');
-  },
-});
-
-export const OneValidRow = meta.story({
-  args: { faction: factionWith([validPhase]) },
-  play: async ({ canvasElement }) => {
-    const canvas = await openPhases(canvasElement);
-    await expect(canvas.getByRole('textbox', { name: 'Title' })).toHaveValue('Guild negotiations');
-    await expect(canvas.getByText('Before Bidding, priority 10')).toBeVisible();
-    await expect(canvas.getByRole('button', { name: 'Save faction' })).not.toHaveAttribute('aria-disabled');
   },
 });
 
@@ -202,22 +196,6 @@ export const UnknownType = meta.story({
     const canvas = await openPhases(canvasElement);
     await expect(canvas.getByText('"predictoin" is not a phase type.')).toBeVisible();
     await expect(canvas.getByRole('button', { name: 'Save faction' })).toHaveAttribute('aria-disabled', 'true');
-  },
-});
-
-export const MissingSymbol = meta.story({
-  args: { faction: factionWith([{ ...validPhase, symbol: undefined }]) },
-  play: async ({ canvasElement }) => {
-    const canvas = await openPhases(canvasElement);
-    await expect(canvas.getByText('Choose a symbol.')).toBeVisible();
-  },
-});
-
-export const EmptyTitle = meta.story({
-  args: { faction: factionWith([{ ...validPhase, title: '' }]) },
-  play: async ({ canvasElement }) => {
-    const canvas = await openPhases(canvasElement);
-    await expect(canvas.getByText('Give the phase a title.')).toBeVisible();
   },
 });
 

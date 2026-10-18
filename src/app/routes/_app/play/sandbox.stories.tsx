@@ -35,7 +35,7 @@ const meta = preview.meta({
   beforeEach: ({ args }) =>
     install(() => sandboxTransport({ start: Number(args.step ?? 1) - 1, seat: String(args.seat ?? 'seat-1') }))(),
   decorators: [...gameMeta.decorators, sandboxDecorator],
-  /* The stories load the table chunk before they render, as Play/Playing explains. */
+  /* The stories load the table chunk before they render, so its cold first load falls outside their first wait (#1302). */
   loaders: [
     async () => {
       await import('./multiplayer/HostedTable');
@@ -289,7 +289,15 @@ export const HiddenZone = meta.story({
 });
 
 /** The battle beacon at the Battle phase: pick the acrylic disc up over the tracker's Battle disc and drop it on a territory; it lies flat and fades as the battle shows. */
-export const BattleBeacon = meta.story({ args: { step: chapter('Battle') } });
+export const BattleBeacon = meta.story({
+  args: { step: chapter('Battle') },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(
+      page.findByRole('button', { name: 'Drag battle marker onto territory' }, { timeout: 30_000 })
+    ).resolves.toBeInTheDocument();
+  },
+});
 
 /** An HMS plate for seat 1's faction, set down on the board where nothing stands. */
 function withHms(stored: StoredSnapshot): StoredSnapshot {
@@ -358,7 +366,7 @@ async function boardHms(canvasElement: HTMLElement) {
 }
 
 const hmsSandbox = {
-  args: { step: chapter('Shipment and movement'), seat: 'seat-1' },
+  args: { step: chapter('Shipment and Movement'), seat: 'seat-1' },
   beforeEach: ({ args }: { args: { step?: number; seat?: string } }) =>
     install(() =>
       sandboxTransport({ start: Number(args.step ?? 1) - 1, seat: String(args.seat ?? 'seat-1'), prepare: withHms })
@@ -366,20 +374,11 @@ const hmsSandbox = {
 };
 
 /**
- * The HMS: a teardrop plate that carries whatever stands on it.
- * Seat 1 has set two of its troop stacks on it.
- * Drag the plate and both stacks ride along;
+ * Seat 1 moves the HMS across the board with two troop stacks on it: both ride along, each keeping its place on the plate.
+ * By hand: drag the plate and both stacks ride along;
  * drag a stack off and it stays behind;
  * Q or E turns the plate with its troops.
  */
-export const Hms = meta.story({
-  ...hmsSandbox,
-  play: async ({ canvasElement }) => {
-    await boardHms(canvasElement);
-  },
-});
-
-/** Seat 1 moves the HMS across the board with two troop stacks on it: both ride along, each keeping its place on the plate. */
 export const HmsCarriesItsTroops = meta.story({
   ...hmsSandbox,
   play: async ({ canvasElement }) => {
@@ -421,6 +420,12 @@ export const ThreeColumns = meta.story({
     if (fits) {
       await expect(page.getByRole('separator', { name: 'Resize controls column' })).toBeVisible();
       await expect(page.getByRole('separator', { name: 'Resize players column' })).toBeVisible();
+      /* The header's chips float over the table's column only, between the two separators, and the side columns run to the top. */
+      const header = body.querySelector<HTMLElement>('.seated-header')!.getBoundingClientRect();
+      const controlsEdge = page.getByRole('separator', { name: 'Resize controls column' }).getBoundingClientRect();
+      const playersEdge = page.getByRole('separator', { name: 'Resize players column' }).getBoundingClientRect();
+      await expect(header.left).toBeGreaterThanOrEqual(controlsEdge.right);
+      await expect(header.right).toBeLessThanOrEqual(playersEdge.left);
     }
     const canvas = body.querySelector('canvas');
     const message = (await page.findByPlaceholderText('Message')) as HTMLTextAreaElement;
@@ -456,5 +461,8 @@ export const ThreeColumns = meta.story({
     await expect(focusChanges).toEqual([]);
     message.removeEventListener('focus', count);
     message.removeEventListener('blur', count);
+    /* The story rests in the layout it is named for. */
+    setTableLayout('columns');
+    await waitFor(() => expect(shell().dataset.tableLayout).toBe(fits ? 'columns' : 'stacked'));
   },
 });

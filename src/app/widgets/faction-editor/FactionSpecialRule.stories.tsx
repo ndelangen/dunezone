@@ -33,21 +33,19 @@ export const NamingChoice = meta.story({
       )
     );
     await userEvent.unhover(help);
-    const title = canvas.getByRole('textbox', { name: 'Ability title (optional)' });
-    await userEvent.type(title, 'Preserved ability title');
+    const title = canvas.getByRole('textbox', { name: 'Rule title (optional)' });
+    await userEvent.type(title, 'Preserved rule title');
 
     await userEvent.click(canvas.getByRole('radio', { name: /^Fate$/ }));
     await userEvent.click(canvas.getByRole('tab', { name: /^Advantages/ }));
     await openRules();
     await expect(canvas.getByRole('radio', { name: /^Fate$/ })).toBeChecked();
-    await expect(canvas.getByRole('textbox', { name: 'Ability title (optional)' })).toHaveValue(
-      'Preserved ability title'
-    );
+    await expect(canvas.getByRole('textbox', { name: 'Rule title (optional)' })).toHaveValue('Preserved rule title');
     await userEvent.click(canvas.getByRole('button', { name: 'Save faction' }));
     await expect(args.onSave).toHaveBeenLastCalledWith(
       expect.objectContaining({
         rules: expect.objectContaining({
-          fate: expect.objectContaining({ label: 'fate', title: 'Preserved ability title' }),
+          fate: expect.objectContaining({ label: 'fate', title: 'Preserved rule title' }),
         }),
       })
     );
@@ -56,7 +54,7 @@ export const NamingChoice = meta.story({
     await userEvent.click(canvas.getByRole('button', { name: 'Save faction' }));
     await expect(args.onSave).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        rules: expect.objectContaining({ fate: { text: 'Special rule text.', title: 'Preserved ability title' } }),
+        rules: expect.objectContaining({ fate: { text: 'Special rule text.', title: 'Preserved rule title' } }),
       })
     );
   },
@@ -67,7 +65,7 @@ export const Mobile = meta.story({
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await userEvent.click(canvas.getByRole('combobox', { name: 'Faction editor sections' }));
-    await userEvent.click(screen.getByRole('option', { name: /^Rules/ }));
+    await userEvent.click(await screen.findByRole('option', { name: /^Rules/ }));
     await expect(canvas.getByRole('radio', { name: 'Faction Special Karama' })).toBeVisible();
     await userEvent.click(canvas.getByRole('radio', { name: /^Fate$/ }));
     await expect(canvas.getByRole('radio', { name: /^Fate$/ })).toBeChecked();

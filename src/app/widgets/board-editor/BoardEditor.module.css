@@ -18,6 +18,7 @@
   min-height: 0;
 }
 .canvasFrame {
+  position: relative;
   width: 100%;
   aspect-ratio: 1;
   overflow: hidden;
@@ -36,4 +37,13 @@
 
 .canvas [data-generated-artwork] {
   filter: drop-shadow(0 12px 14px rgba(0, 0, 0, 0.65));
+}
+
+.tracingNotice {
+  position: absolute;
+  top: var(--space-xs);
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: calc(100% - 2 * var(--space-xs));
+  pointer-events: none;
 }

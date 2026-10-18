@@ -24,6 +24,16 @@ const trigger = (
   </Menu.Target>
 );
 
+/** Opens the story's menu and returns the page once its dropdown is showing. */
+async function openMenu(canvasElement: HTMLElement) {
+  const page = within(canvasElement.ownerDocument.body);
+  const target = page.getByRole('button', { name: 'Actions for House Atreides' });
+  await userEvent.click(target);
+  await expect(target).toHaveAttribute('aria-haspopup', 'menu');
+  await waitForFrame(() => expect(finishTransitions(page.getByRole('menu'))).toBeVisible());
+  return page;
+}
+
 /** One destructive choice, the shape a list item's menu usually takes. `color="red"` is how a destructive choice reads. */
 export const Default = meta.story({
   render: (args) => (
@@ -37,15 +47,8 @@ export const Default = meta.story({
     </Menu>
   ),
   play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    const target = page.getByRole('button', { name: 'Actions for House Atreides' });
-
-    await userEvent.click(target);
-
-    await expect(target).toHaveAttribute('aria-haspopup', 'menu');
-    await waitForFrame(() =>
-      expect(finishTransitions(page.getByRole('menuitem', { name: 'Remove from Dreamrules' }))).toBeVisible()
-    );
+    const page = await openMenu(canvasElement);
+    await expect(page.getByRole('menuitem', { name: 'Remove from Dreamrules' })).toBeVisible();
   },
 });
 
@@ -64,6 +67,17 @@ export const SeveralChoices = meta.story({
       </Menu.Dropdown>
     </Menu>
   ),
+  play: async ({ canvasElement }) => {
+    const items = within((await openMenu(canvasElement)).getByRole('menu')).getAllByRole('menuitem');
+    await expect(items.map((item) => item.textContent)).toEqual([
+      'Feature on the page',
+      'Edit this faction',
+      'Remove from Dreamrules',
+    ]);
+    /* Mantine's divider carries no role, so it shows as the wider gap it opens above the destructive choice. */
+    const [feature, edit, remove] = items.map((item) => item.getBoundingClientRect());
+    await expect(remove.top - edit.bottom).toBeGreaterThan(edit.top - feature.bottom);
+  },
 });
 
 /** A choice that is present but unavailable stays visible, so its absence is never a mystery. */
@@ -79,6 +93,11 @@ export const DisabledChoice = meta.story({
       </Menu.Dropdown>
     </Menu>
   ),
+  play: async ({ canvasElement }) => {
+    const item = (await openMenu(canvasElement)).getByRole('menuitem', { name: 'Remove from Dreamrules' });
+    await expect(item).toBeVisible();
+    await expect(item).toBeDisabled();
+  },
 });
 
 /** A labelled group, for a menu long enough to need sections. */
@@ -94,6 +113,13 @@ export const WithLabel = meta.story({
       </Menu.Dropdown>
     </Menu>
   ),
+  play: async ({ canvasElement }) => {
+    const menu = within((await openMenu(canvasElement)).getByRole('menu'));
+    const label = menu.getByText('This ruleset');
+    await expect(label).toBeVisible();
+    const item = menu.getByRole('menuitem', { name: 'Remove from Dreamrules' });
+    await expect(label.getBoundingClientRect().bottom).toBeLessThanOrEqual(item.getBoundingClientRect().top);
+  },
 });
 
 /**

@@ -4,7 +4,6 @@ import { profileSlugBaseFromName, profileUserEditFormSchema } from '@shared/prof
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { LoadPending } from '@ui/block/LoadPending';
-import { LoginGate } from '@ui/block/LoginGate';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { SlugRenameNotice } from '@ui/content/SlugRenameNotice';
 import { StatusBadge } from '@ui/content/StatusBadge';
@@ -18,7 +17,7 @@ import { ArrowLeft, CircleUserRound, Link2, Palette, Save, Trash2, Unlink, Users
 import { useId, useReducer, useRef, useState } from 'react';
 
 import { authProviderNames } from '@db/accounts';
-import { useBeginAuthConnection, useDisconnectAuthMethod } from '@db/accounts';
+import { holdAuthConnection, useBeginAuthConnection, useDisconnectAuthMethod } from '@db/accounts';
 import type { AuthProvider } from '@db/accounts';
 import { useProfileSettings, useSessionViewer, useUpdateCurrentProfile } from '@db/profiles';
 import type { CurrentProfileEntry, ProfileSettingsData, ProfileUserEditInput } from '@db/profiles';
@@ -28,6 +27,7 @@ import type { SchemePreference } from '@app/styles/colorScheme';
 import { setMotionOverride, useMotionPreference } from '@app/styles/motion';
 import type { MotionPreference } from '@app/styles/motion';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
+import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 type ProfileTab = 'profile' | 'defaults' | 'appearance' | 'sign-in' | 'account';
@@ -634,9 +634,8 @@ function SignInMethods({ account }: { account: NonNullable<ProfileSettingsData['
     dispatch({ kind: 'started', provider });
     try {
       const intent = await begin({ provider });
-      await signIn(provider, {
-        redirectTo: `/profiles/${encodeURIComponent(intent.slug)}/connect?connection=${intent.token}`,
-      });
+      holdAuthConnection(intent.token);
+      await signIn(provider, { redirectTo: `/profiles/${encodeURIComponent(intent.slug)}/connect` });
     } catch (error) {
       dispatch({ kind: 'failed', message: error instanceof Error ? error.message : 'The sign-in could not start.' });
     } finally {

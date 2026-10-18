@@ -1,5 +1,6 @@
 import { Button, Checkbox, Group, Menu, NumberInput, Radio, Select, Stack, Text, VisuallyHidden } from '@mantine/core';
 import type { ButtonProps, NumberInputProps } from '@mantine/core';
+import { useElementSize } from '@mantine/hooks';
 import { Html } from '@react-three/drei/webgpu';
 import { useFrame, useThree } from '@react-three/fiber/webgpu';
 import type { Board } from '@shared/boards/schema';
@@ -14,7 +15,7 @@ import type {
   PublicBattle,
 } from '@shared/play/battle';
 import { snapshotFactionLabels } from '@shared/play/factionLabels';
-import { nextHiddenZoneSpot } from '@shared/play/hiddenZone';
+import { hiddenZoneView, nextHiddenZoneSpot } from '@shared/play/hiddenZone';
 import type { TablePiece, Vector3Tuple } from '@shared/play/model';
 import { BOARD_RADIUS } from '@shared/play/tableGeometry';
 import { resolveRulebookBoardDefinition } from '@shared/rulebooks/boardDefinitions';
@@ -23,7 +24,7 @@ import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { CalloutSurface } from '@ui/surface/CalloutSurface';
 import clsx from 'clsx';
 import type { CSSProperties, ReactNode } from 'react';
-import { useEffect, useReducer, useState } from 'react';
+import { useEffect, useReducer, useRef, useState, useSyncExternalStore } from 'react';
 import type { Camera } from 'three';
 import { Plane, Raycaster, Vector2, Vector3 } from 'three';
 
@@ -466,9 +467,11 @@ function canTakeSelected(piece: TablePiece | undefined) {
 export function HandControls({ client, table, hand }: Props & { hand: TablePiece[] }) {
   const selected = table.snapshot.table.pieces.find((piece) => piece.id === table.state.selectedPieceId);
   const [menu, setMenu] = useState<HandMenuAnchor | null>(null);
+  /* The hidden zone is a tab beside this one, as wide, so a piece moved there lands in what its narrow view shows. */
+  const { ref, width } = useElementSize<HTMLDivElement>();
   return (
     <Section hiddenHeading title="Your hand and leaders" description={handHelp(table)}>
-      <Stack gap="sm">
+      <Stack gap="sm" ref={ref}>
         <Button
           variant="default"
           disabled={!table.canHandleTable || !canTakeSelected(selected)}
@@ -507,7 +510,11 @@ export function HandControls({ client, table, hand }: Props & { hand: TablePiece
           disabled={!table.canHandleTable}
           onClick={() => {
             if (menu) {
-              client.command({ kind: 'hand-zone', pieceId: menu.pieceId, at: nextHiddenZoneSpot(hand) });
+              client.command({
+                kind: 'hand-zone',
+                pieceId: menu.pieceId,
+                at: nextHiddenZoneSpot(hand, width > 0 ? hiddenZoneView(width, Infinity).extent : undefined),
+              });
             }
             setMenu(null);
           }}
@@ -598,6 +605,19 @@ export function BattleHistory({ table }: Pick<Props, 'table'>) {
 }
 
 type Placement = { anchor: [number, number]; capsule: [number, number] };
+const UNPLACED: Placement = { anchor: [0, 0], capsule: [0, 0] };
+/* Equal as their JSON would be, so a placement that cannot be projected counts as unchanged too. */
+function sameCoordinate(before: number, next: number) {
+  return before === next || (Number.isNaN(before) && Number.isNaN(next));
+}
+function samePlacement(before: Placement, next: Placement) {
+  return (
+    sameCoordinate(before.anchor[0], next.anchor[0]) &&
+    sameCoordinate(before.anchor[1], next.anchor[1]) &&
+    sameCoordinate(before.capsule[0], next.capsule[0]) &&
+    sameCoordinate(before.capsule[1], next.capsule[1])
+  );
+}
 function battlePlacement(
   battleAnchor: PublicBattle['anchor'],
   camera: Camera,
@@ -614,14 +634,20 @@ function battlePlacement(
 function useBattlePlacement(battle: PublicBattle | null | undefined) {
   const { camera, size, renderer } = useThree();
   const [placement, place] = useReducer(
-    (before: Placement, next: Placement) => (JSON.stringify(before) === JSON.stringify(next) ? before : next),
-    { anchor: [0, 0], capsule: [0, 0] }
+    (before: Placement, next: Placement) => (samePlacement(before, next) ? before : next),
+    UNPLACED
   );
+  /* The placement last sent, so a frame that leaves it where it was sends nothing. */
+  const placed = useRef(UNPLACED);
   useFrame(() => {
     if (!battle) {
       return;
     }
-    place(battlePlacement(battle.anchor, camera, size, renderer.domElement));
+    const next = battlePlacement(battle.anchor, camera, size, renderer.domElement);
+    if (!samePlacement(placed.current, next)) {
+      placed.current = next;
+      place(next);
+    }
   });
   return placement;
 }
@@ -803,9 +829,18 @@ function BattleCentre(props: ActiveProps) {
   if (props.battle.stage !== 'countdown') {
     return null;
   }
+  return <BattleCountdown client={props.client} />;
+}
+/* The seconds left re-render on their own each second; the battle around them waits for the table to change. */
+function BattleCountdown({ client }: { client: TableSession }) {
+  const seconds = useSyncExternalStore(
+    client.subscribeBattleCountdown,
+    client.getBattleCountdownSeconds,
+    client.getBattleCountdownSeconds
+  );
   return (
     <Text size="xl" fw={700} role="timer">
-      {props.table.battleCountdownSeconds}
+      {seconds}
     </Text>
   );
 }

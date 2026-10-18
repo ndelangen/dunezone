@@ -1,6 +1,6 @@
 import type { RouteNoticeCode } from '@shared/routeNotices';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { LoginGate } from '@ui/block/LoginGate';
+import { LoadPending } from '@ui/block/LoadPending';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { useRef } from 'react';
@@ -14,9 +14,10 @@ import { defaultFaction } from '@app/widgets/faction-editor/defaultFaction';
 import { FactionComplexityIndicator } from '@app/widgets/faction-editor/FactionComplexityIndicator';
 import { FactionEditor } from '@app/widgets/faction-editor/FactionEditor';
 import type { FactionAuthoringViewHandle } from '@app/widgets/faction-editor/FactionEditor';
-import { FactionLoadPopover } from '@app/widgets/faction-editor/FactionLoadPopover';
+import { factionLoadSource } from '@app/widgets/faction-editor/factionLoadSource';
 import { factionPublicationStatus } from '@app/widgets/faction-editor/factionPublicationStatus';
 import { useFactionAuthoring } from '@app/widgets/faction-editor/useFactionAuthoring';
+import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import { factionNameField } from './factionNameField';
@@ -68,7 +69,11 @@ function CreateFactionPage() {
         title="Create faction"
         back={<PageMessage.Back to="/factions">Back to factions</PageMessage.Back>}
       >
-        <LoginGate action="create a faction" />
+        {profile.data === undefined ? (
+          <LoadPending title="Loading your profile">Checking whether you are signed in.</LoadPending>
+        ) : (
+          <LoginGate action="create a faction" />
+        )}
       </PageMessage>
     );
   }
@@ -78,6 +83,13 @@ function CreateFactionPage() {
       {validationHeader.slot}
       <PageLayout.Toolbar>
         <AuthoringToolbar
+          load={{
+            noun: 'faction',
+            mode: 'create',
+            disabled: createFaction.isPending,
+            source: factionLoadSource(),
+            onLoaded: validationHeader.releasing(authoring.actions.loadDraft),
+          }}
           status={{
             isDirty: authoring.editing.isDirty,
             isNameBlank: authoring.editing.isNameBlank,
@@ -95,12 +107,6 @@ function CreateFactionPage() {
           }}
           review={{ label: 'Review faction sheet', onOpen: (trigger) => viewRef.current?.openReview(trigger) }}
           centerIndicator={<FactionComplexityIndicator form={authoring.form} />}
-          auxiliaryActions={
-            <FactionLoadPopover
-              disabled={createFaction.isPending}
-              onLoaded={validationHeader.releasing(authoring.actions.loadDraft)}
-            />
-          }
           statuses={[
             factionPublicationStatus(),
             {

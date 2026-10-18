@@ -1,4 +1,3 @@
-/* oxlint-disable jsx-a11y/alt-text -- Static decorative game-card layers, not content images. */
 import { useId } from 'react';
 import type { FC } from 'react';
 import type { z } from 'zod';
@@ -26,8 +25,8 @@ export const SpiceCard: FC<z.infer<typeof Spice>> = ({ name, subName, icon, text
       <div className={styles.head_shade} />
       <div className={`${styles.shape} ${unique.shape}`} />
       <BackgroundRenderer className={`${styles.type} ${unique.type}`} background={backgroundPresets.stripedSpice}>
-        <img src={`/vector/icon/${icon}.svg`} className={unique.typeOverlay} />
-        <img src={`/vector/icon/${icon}.svg`} className={unique.typeShade} />
+        <img src={`/vector/icon/${icon}.svg`} alt="" className={unique.typeOverlay} />
+        <img src={`/vector/icon/${icon}.svg`} alt="" className={unique.typeShade} />
       </BackgroundRenderer>
       <div className={styles.title}>{name}</div>
       <div className={styles.subtitle}>{subName}</div>

@@ -37,9 +37,11 @@ export const db = {
   ): Promise<FunctionReturnType<Action>> => {
     return await convexBackendForDb().action(fn, args as never);
   },
+  /** `hold: false` skips the browser-side hold, for arguments that change as someone types. */
   query: async <Query extends FunctionReference<'query'>>(
     fn: Query,
-    args: FunctionArgs<Query>
+    args: FunctionArgs<Query>,
+    options?: { hold?: boolean }
   ): Promise<FunctionReturnType<Query>> => {
     if (import.meta.env.SSR) {
       const { getResponseHeader, setResponseHeader } = await import('@tanstack/react-start/server');
@@ -47,7 +49,7 @@ export const db = {
       setResponseHeader('X-Public-Metadata-Queries', String(queries + 1));
     }
     /* The hold goes in before the read, so the read answers from it rather than opening and dropping a subscription of its own. */
-    if (!import.meta.env.SSR) {
+    if (!import.meta.env.SSR && (options?.hold ?? true)) {
       keepWarm(convex, fn, args, LOADER_HOLD_MS);
     }
     return await convexBackendForDb().query(fn, args as never);

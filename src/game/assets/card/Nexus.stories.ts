@@ -1,6 +1,6 @@
 import preview from '@sb/preview';
 import { GF9_NEXUS_CARDS } from '@shared/assets/gf9Nexus';
-import { expect, waitFor } from 'storybook/test';
+import { expect, waitFor, within } from 'storybook/test';
 
 import { NexusCard } from './Nexus';
 
@@ -24,7 +24,13 @@ export const Atreides = meta.story({
     );
   },
 });
-export const Emperor = meta.story({ args: GF9_NEXUS_CARDS.find(({ faction }) => faction === 'Emperor')! });
+/** The one faction named in the singular, so its Secret Ally condition reads "is" rather than "are". */
+export const Emperor = meta.story({
+  args: GF9_NEXUS_CARDS.find(({ faction }) => faction === 'Emperor')!,
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByText(/If the Emperor is not in the game/)).toBeVisible();
+  },
+});
 export const LongEffects = meta.story({
   args: {
     faction: 'A faction with a long name of forty chars',

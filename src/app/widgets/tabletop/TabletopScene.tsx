@@ -1,6 +1,7 @@
 /* @jsxImportSource ./three-jsx */
 import { useFrame, useThree } from '@react-three/fiber/webgpu';
 import type { ThreeEvent } from '@react-three/fiber/webgpu';
+import { retainedArrakisBoard } from '@shared/boards/geometry';
 import { isFactionToken } from '@shared/play/factionToken';
 import { gestureBlockReason, pieceCount } from '@shared/play/model';
 import type { TablePiece, TableState, Vector3Tuple } from '@shared/play/model';
@@ -8,6 +9,7 @@ import { peekersOf } from '@shared/play/peeking';
 import { CARD_LAYER_STAGGER, stackLayerItemIndex } from '@shared/play/pieceFlip';
 import { isPointerToken } from '@shared/play/pointerToken';
 import type { GameSnapshot } from '@shared/play/protocol';
+import { widestTroopSupply } from '@shared/play/setupLayout';
 import { isSpicePiece, SPICE_LAYER_HEIGHT, SPICE_LAYER_PITCH, SPICE_TOKEN_RADIUS } from '@shared/play/spice';
 import { SPICE_TOKEN_HREF } from '@shared/play/spiceToken';
 import { pointOnPieceDragRay } from '@shared/play/tableDragGeometry';
@@ -36,12 +38,14 @@ import {
   MARKER_TOP_RADIUS,
   stackTopHeight,
   visibleLayerCount,
+  BOARD_SURFACE_Y,
 } from '@shared/play/tableGeometry';
 import { DEFAULT_TABLE_SEAT_COUNT } from '@shared/play/tableSettings';
 import type { TableSeatCount } from '@shared/play/tableSettings';
 import type { TrackerArcSlot } from '@shared/play/tableTrackers';
 import { TRACKER_DISC_HEIGHT } from '@shared/play/tableTrackers';
 import { isTroopStack } from '@shared/play/troop';
+import clsx from 'clsx';
 import {
   createContext,
   memo,
@@ -56,21 +60,23 @@ import {
   useState,
   useSyncExternalStore,
 } from 'react';
-import type { ReactNode } from 'react';
-import type { Texture } from 'three';
+import type { CSSProperties, ReactNode } from 'react';
+import type { Ray, Texture } from 'three';
 import {
   DoubleSide,
   Mesh,
   MeshBasicMaterial,
+  Plane,
   Raycaster,
   RingGeometry,
   SRGBColorSpace,
-  TextureLoader,
   Vector2,
+  Vector3,
 } from 'three';
 
 import { useMotionAllowed } from '@app/styles/motion';
 
+import { loadFaceTexture, tableCardFaceKey } from './cardFaceTexture';
 import { ignoreRaycast } from './ignoreRaycast';
 import { swallowLift, watchLongPress } from './longPress';
 import { MapPreviewCamera } from './MapPreviewCamera';
@@ -85,6 +91,7 @@ import { useSharedMeshes } from './sharedMeshes';
 import type { SharedMeshes } from './sharedMeshes';
 import { SpiceBankInteraction } from './SpiceBank';
 import { SpiceStackIcon } from './SpiceStackIcon';
+import { loadPieceBadge, loadPlayCamera, loadScenePings, loadScenePresence, loadTabletopTools } from './tableChunks';
 import { useTableFraming } from './tableFraming';
 import { isPublicTablePoint } from './tablePointerPoint';
 import { TabletopBoard } from './TabletopBoard';
@@ -94,6 +101,8 @@ import type { TabletopContextValue } from './TabletopContext';
 import styles from './TabletopScene.module.css';
 import type { PieceMenuAnchor } from './TabletopTools';
 import type { TableProgress } from './tableTrackers';
+import { BRUSH_CURSOR, territoryBrush, useTerritoryBrush } from './territoryBrush';
+import { territoryAtTablePoint } from './TerritoryTints';
 import { useTurnedDownFaces } from './turnedDownFaces';
 import { useDeckShuffleAnimation } from './useDeckShuffleAnimation';
 import { usePieceFlipAnimation } from './usePieceFlipAnimation';
@@ -115,14 +124,53 @@ type TabletopSceneProps = {
   mapVisible?: boolean;
 };
 
-const PieceBadge = lazy(() => import('./PieceBadge').then((module) => ({ default: module.PieceBadge })));
-const ScenePresence = lazy(() => import('./ScenePresence').then((module) => ({ default: module.ScenePresence })));
-const ScenePings = lazy(() => import('./ScenePings').then((module) => ({ default: module.ScenePings })));
+/** The play area's class and style: the paintbrush cursor while the brush is on. */
+function usePaintingArea(className: string | undefined) {
+  const brush = useTerritoryBrush();
+  return brush
+    ? { className: clsx(className, styles.painting), style: { '--brush-cursor': BRUSH_CURSOR } as CSSProperties }
+    : { className };
+}
+
+/** With the paintbrush on, a click on the map adds the territory under it to the brush's tint, or takes it out. */
+/* The board's face, where a paint click lands whatever piece the pointer passed through first. */
+const BOARD_PLANE = new Plane(new Vector3(0, 1, 0), -BOARD_SURFACE_Y);
+
+function paintTerritory(
+  board: GameSnapshot['board'],
+  { stage, mapVisible }: Readonly<{ stage: GameSnapshot['stage']; mapVisible?: boolean }>,
+  ray: Ray
+) {
+  const brush = territoryBrush();
+  /* Setup keeps the map off the table until it is shown, and nothing can be painted on a map that is not there. */
+  const mapShown = stage !== 'setup' || !!mapVisible;
+  const point = brush && mapShown && ray.intersectPlane(BOARD_PLANE, new Vector3());
+  const territory = point && territoryAtTablePoint(board?.definition ?? retainedArrakisBoard(), point.x, point.z);
+  if (brush && territory) {
+    brush.paint(territory);
+  }
+}
+
+/** A click reaches the scene once for each mesh the pointer passed through; the paintbrush takes the first, and paints on the board's face. */
+function paintClick(
+  event: ThreeEvent<MouseEvent>,
+  board: GameSnapshot['board'],
+  view: Readonly<{ stage: GameSnapshot['stage']; mapVisible?: boolean }>
+) {
+  if (territoryBrush()) {
+    event.stopPropagation();
+    paintTerritory(board, view, event.ray);
+  }
+}
+
+const PieceBadge = lazy(() => loadPieceBadge().then((module) => ({ default: module.PieceBadge })));
+const ScenePresence = lazy(() => loadScenePresence().then((module) => ({ default: module.ScenePresence })));
+const ScenePings = lazy(() => loadScenePings().then((module) => ({ default: module.ScenePings })));
 const PredictionOverlay = lazy(() =>
   import('./prediction/PredictionOverlay').then((module) => ({ default: module.PredictionOverlay }))
 );
-const TabletopTools = lazy(() => import('./TabletopTools').then((module) => ({ default: module.TabletopTools })));
-const PlayCamera = lazy(() => import('./PlayCamera').then((module) => ({ default: module.PlayCamera })));
+const TabletopTools = lazy(() => loadTabletopTools().then((module) => ({ default: module.TabletopTools })));
+const PlayCamera = lazy(() => loadPlayCamera().then((module) => ({ default: module.PlayCamera })));
 
 const DEFAULT_CAMERA_VIEW: CameraViewCommand = { view: 'map', revision: 0 };
 const PHYSICAL_OBJECT_RENDER_ORDER = 2;
@@ -150,7 +198,7 @@ function PieceFace({ height, underside, children }: { height: number; underside:
 
 /* Every piece and every stack layer that shows the same published image draws one shared texture, so the image is uploaded once rather than once per face. */
 const subscribePublishedFace = sharedPublishedFaces<Texture>({
-  load: (href, onLoad, onError) => new TextureLoader().load(href, onLoad, undefined, onError),
+  load: loadFaceTexture,
   prepare: (value) => {
     value.colorSpace = SRGBColorSpace;
     value.anisotropy = 8;
@@ -240,6 +288,12 @@ function PublishedFace({ href, card, ratio }: { href: string; card: boolean; rat
 /* Holds the image a piece shows on top and says whether it is loaded, so a flip can wait for a card's revealed face instead of turning up a placeholder. */
 function usePublishedFaceReady(href: string | undefined): boolean {
   return usePublishedFace(href) !== undefined || !href;
+}
+
+/* The key a piece's top face loads under, so a flip waits for the same image the face draws. */
+function topFaceKey(piece: TablePiece) {
+  const href = topFaceHref(piece);
+  return href && piece.kind === 'card' ? tableCardFaceKey(href) : href;
 }
 
 /* A card turned face up in hand shows its face only once the room has sent it, so its flip waits for that too. */
@@ -390,7 +444,7 @@ function CardFace({
   const href = artwork?.[faceUp ? 'front' : 'back'];
   return (
     <PieceFace height={CARD_LAYER_HEIGHT} underside={underside}>
-      {href && <PublishedFace href={href} card />}
+      {href && <PublishedFace href={tableCardFaceKey(href)} card />}
       {faceUp && artwork?.prediction && (
         <Suspense fallback={null}>
           <PredictionOverlay prediction={artwork.prediction} />
@@ -724,6 +778,11 @@ function usePiecePointerEvents({ piece, interactionBlocked, canHandleTable, carr
   const hasMenu = !carrying && pieceHasMenu(piece);
   const stopLongPress = useRef<(() => void) | null>(null);
   useEffect(() => () => stopLongPress.current?.(), []);
+  /* Only a left press handles a piece, and none does while the table blocks it or the paintbrush is on. */
+  const ignoresPress = (event: ThreeEvent<PointerEvent>) => {
+    const notLeftOrBlocked = event.button !== 0 || interactionBlocked;
+    return notLeftOrBlocked || territoryBrush() !== null;
+  };
   /* A piece that leaves the table under a still cursor hears no pointer leave, so its hover would keep the keys aimed at a piece that is gone. */
   const hovered = useRef(false);
   useEffect(
@@ -745,11 +804,14 @@ function usePiecePointerEvents({ piece, interactionBlocked, canHandleTable, carr
         openPieceMenu(piece.id, clientX, clientY, touch);
       }
     },
+    /* While the paintbrush is on, a click on a piece paints the territory under it, and the piece is neither picked up nor selected. */
     onClick: (event: ThreeEvent<MouseEvent>) => {
-      event.stopPropagation();
+      if (!territoryBrush()) {
+        event.stopPropagation();
+      }
     },
     onPointerDown: (event: ThreeEvent<PointerEvent>) => {
-      if (event.button !== 0 || interactionBlocked) {
+      if (ignoresPress(event)) {
         return;
       }
       event.stopPropagation();
@@ -968,7 +1030,7 @@ const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) 
     plateId: isPointerToken(piece) ? piece.id : undefined,
     follows: ridingPlateId,
   });
-  const faceReady = usePublishedFaceReady(topFaceHref(piece)) && !faceStillHidden(piece);
+  const faceReady = usePublishedFaceReady(topFaceKey(piece)) && !faceStillHidden(piece);
   /* A held piece turns over in hand too, so only an emptied projection cuts a flip short. */
   const { pivotRef, labelRef, shadowRef, badgeRef } = usePieceFlipAnimation(
     piece,
@@ -1103,6 +1165,7 @@ function SceneContents({
 }) {
   const table = useTabletop();
   const board = useTabletopSelector((value) => value.snapshot.board);
+  const tints = useTabletopSelector((value) => value.snapshot.tints);
   const { state, renderedPieces, selectPiece } = table;
   const { controlsEnabled, onPointerSessionChange } = useSceneInteractions(onInteractionActiveChange);
   useScenePointerSession(onPointerSessionChange);
@@ -1123,10 +1186,16 @@ function SceneContents({
           <ScenePings />
         </Suspense>
       )}
-      <group onClick={() => selectPiece(null)}>
+      <group
+        onClick={(event) => {
+          paintClick(event, board, { stage, mapVisible });
+          selectPiece(null);
+        }}
+      >
         {drawBoard && (
           <TabletopBoard
             board={board}
+            tints={tints}
             seatCount={seatCount}
             interactive
             stormSectorIndex={state.stormSectorIndex}
@@ -1195,13 +1264,21 @@ export function TabletopScene({
       })),
     []
   );
-  const { tableProgress, trackerSlots, mapFramingPoints, camera } = useTableFraming(stage, providedProgress, seatCount);
+  /* A custom faction with four or more troop kinds spreads its reserves wider than the stock framing reaches. */
+  const troopKinds = useTabletopSelector((table) => widestTroopSupply(table.state.pieces));
+  const { tableProgress, trackerSlots, mapFramingPoints, camera } = useTableFraming(
+    stage,
+    providedProgress,
+    seatCount,
+    troopKinds
+  );
   const areaRef = useRef<HTMLDivElement>(null);
+  const painting = usePaintingArea(className);
 
   return (
     <div
       ref={areaRef}
-      className={className}
+      {...painting}
       onContextMenu={(event) => {
         event.preventDefault();
         if (hasDraft) {

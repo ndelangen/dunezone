@@ -37,7 +37,7 @@ export const WrittenRules = meta.story({
     await expect(canvasElement.querySelectorAll('[data-rulebook-block-id]')).toHaveLength(7);
     await expect(within(canvasElement).getByRole('heading', { name: 'Choose a group', level: 3 })).toBeVisible();
     await expect(canvasElement.querySelector('[data-faction-id="atreides"]')?.textContent).toBe(
-      'Shipment and movement'
+      'Shipment and Movement'
     );
     await expect(canvasElement.querySelectorAll('blockquote')).toHaveLength(1);
     for (const region of canvasElement.querySelectorAll<HTMLElement>('[data-rulebook-region]')) {

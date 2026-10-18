@@ -1,8 +1,7 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import aggregateTest from '@convex-dev/aggregate/test';
-import { convexTest } from 'convex-test';
+import type { convexTest } from 'convex-test';
 import { describe, expect, test } from 'vite-plus/test';
 
 import { PLANET, TROOP_MODIFIER } from '../src/shared/assetIds';
@@ -13,9 +12,7 @@ import { CanonicalFactionStoredSchema, FactionInputSchema } from '../src/shared/
 import type { FactionInput } from '../src/shared/factions/schema';
 import { api } from './_generated/api';
 import type { Id } from './_generated/dataModel';
-import schema from './schema';
-
-const modules = import.meta.glob('./**/*.ts');
+import { applicationTest } from './application.test.fixture';
 
 /** Catalogue rows an Extra can name; the save only checks that a live asset of that type holds the slug. */
 async function seedExtraAssets(t: ReturnType<typeof convexTest>, ownerId: Id<'users'>, assets: [string, string][]) {
@@ -196,10 +193,7 @@ function representativeFullFieldFaction(): FactionInput {
 
 describe('faction authoring full-field round trip', () => {
   test('rejects retired legacy writes while trusting grouped client calculations', async () => {
-    const t = convexTest(schema, modules);
-    aggregateTest.register(t, 'statistics');
-    aggregateTest.register(t, 'profileActivity');
-    aggregateTest.register(t, 'profileDiscovery');
+    const t = applicationTest();
     const userId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Faction transition proof user' }));
     const asUser = t.withIdentity({ subject: userId });
     const { complexity: _complexity, ...legacyData } = structuredClone(assetPublishingFaction);
@@ -267,10 +261,7 @@ describe('faction authoring full-field round trip', () => {
   });
 
   test('creates, schedules, reloads, edits, and shares every admitted field without loss', async () => {
-    const t = convexTest(schema, modules);
-    aggregateTest.register(t, 'statistics');
-    aggregateTest.register(t, 'profileActivity');
-    aggregateTest.register(t, 'profileDiscovery');
+    const t = applicationTest();
     const userId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Faction authoring proof user' }));
     await seedExtraAssets(t, userId, [
       ['deck', 'proof-omens'],
@@ -422,10 +413,7 @@ describe('faction authoring full-field round trip', () => {
   });
 
   test('an added Extra must name a live catalogue asset, and one already listed survives its removal', async () => {
-    const t = convexTest(schema, modules);
-    aggregateTest.register(t, 'statistics');
-    aggregateTest.register(t, 'profileActivity');
-    aggregateTest.register(t, 'profileDiscovery');
+    const t = applicationTest();
     const userId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Faction extras proof user' }));
     const [deckId] = await seedExtraAssets(t, userId, [
       ['deck', 'extras-omens'],

@@ -399,6 +399,39 @@ describe('Tab pings', () => {
     expect(controls.ping.mock.calls).toEqual([[]]);
   });
 
+  test('Shift going down, or a text field taking the focus, lets a held rumble go before Tab repeats', () => {
+    const { controls } = table();
+    const field = document.body.appendChild(document.createElement('textarea'));
+
+    tab('keydown');
+    vi.advanceTimersByTime(1000);
+    key('keydown', { key: 'Shift', code: 'ShiftLeft', shiftKey: true });
+    vi.advanceTimersByTime(5000);
+    tab('keydown');
+    vi.advanceTimersByTime(1000);
+    field.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+    vi.advanceTimersByTime(5000);
+
+    expect(controls.ping.mock.calls).toEqual([[], []]);
+    field.remove();
+  });
+
+  test('Shift pressed during the hold, or a text field taking the focus, rumbles nothing', () => {
+    const { controls } = table();
+    const field = document.body.appendChild(document.createElement('textarea'));
+
+    tab('keydown');
+    vi.advanceTimersByTime(1000);
+    tab('keydown', { repeat: true, shiftKey: true });
+    vi.advanceTimersByTime(5000);
+    tab('keydown');
+    vi.advanceTimersByTime(1000);
+    tab('keydown', { repeat: true }, field);
+    vi.advanceTimersByTime(5000);
+
+    expect(controls.ping.mock.calls).toEqual([[], []]);
+  });
+
   test('a press off the table never rumbles', () => {
     const { controls } = table();
     controls.ping.mockReturnValue(false);

@@ -98,19 +98,12 @@ describe('alert webhook relay', () => {
     expect(send).toHaveBeenCalledTimes(2);
   });
 
-  test('honours a marker another isolate left in the cache', async () => {
-    const { env, send, markers } = relay();
-    await markers.put(ALERT_MARKER, new Response(null));
-    const response = await handleAlertWebhook(webhook(), ALERT_WEBHOOK_PATH, env, { markers, now: laterWindow() });
-    expect(response?.status).toBe(202);
-    expect(send).not.toHaveBeenCalled();
-  });
-
   test('a marker from another isolate does not extend the interval in this one', async () => {
     const { env, send, markers, stored } = relay();
     const start = laterWindow();
     await markers.put(ALERT_MARKER, new Response(null));
-    await handleAlertWebhook(webhook(), ALERT_WEBHOOK_PATH, env, { markers, now: start });
+    const response = await handleAlertWebhook(webhook(), ALERT_WEBHOOK_PATH, env, { markers, now: start });
+    expect(response?.status).toBe(202);
     expect(send).not.toHaveBeenCalled();
     stored.clear();
     await handleAlertWebhook(webhook(), ALERT_WEBHOOK_PATH, env, { markers, now: start + INTERVAL_MS / 2 });

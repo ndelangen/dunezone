@@ -1,12 +1,10 @@
 /// <reference types="vite/client" />
 /* @vitest-environment edge-runtime */
 
-import { convexTest } from 'convex-test';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vite-plus/test';
 
-import schema from './schema';
+import { applicationTest } from './application.test.fixture';
 
-const modules = import.meta.glob('./**/*.ts');
 const path = '/asset-publishing/executor/component/resolve-delivery';
 const assetId = 'aaaaaaaaaaaaaaaa.7a70b096-6c26-4a75-b622-cefab9e987fa';
 
@@ -29,7 +27,7 @@ function request(id: string, secret?: string): RequestInit {
 
 describe('Component delivery HTTP boundary', () => {
   test('requires the executor credential and never exposes its resolution through the activation credential', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     for (const secret of [undefined, 'activation-secret', 'wrong-secret']) {
       expect((await t.fetch(path, request(assetId, secret))).status).toBe(404);
     }
@@ -40,7 +38,7 @@ describe('Component delivery HTTP boundary', () => {
   });
 
   test('rejects malformed member addresses before resolving them', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     for (const id of ['../factions', 'aaaaaaaaaaaaaaaa.Paul', `${assetId}.back`]) {
       expect((await t.fetch(path, request(id, 'executor-secret'))).status).toBe(400);
     }

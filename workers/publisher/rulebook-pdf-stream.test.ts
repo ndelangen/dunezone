@@ -42,9 +42,16 @@ describe('Rulebook PDF streaming', () => {
     const input = new Uint8Array(RULEBOOK_PDF_TRANSFER_BYTES * 2 + 7).fill(17);
     const output = new Uint8Array(RULEBOOK_PDF_TRANSFER_BYTES + 3).fill(29);
     const fixture = capture(input, output);
-    expect(
-      await captureCompressedRulebookPdf(fixture.context, fixture.page, 'tall', 82, performance.now() + 10_000)
-    ).toEqual(output);
+    const result = await captureCompressedRulebookPdf(
+      fixture.context,
+      fixture.page,
+      'tall',
+      82,
+      performance.now() + 10_000
+    );
+    /* A byte comparison keeps this in milliseconds, where a deep equality walks every element. */
+    expect(result).toBeInstanceOf(Uint8Array);
+    expect(Buffer.from(result).equals(output)).toBe(true);
     expect(fixture.chunks).toEqual([
       { offset: 0, length: RULEBOOK_PDF_TRANSFER_BYTES },
       { offset: RULEBOOK_PDF_TRANSFER_BYTES, length: RULEBOOK_PDF_TRANSFER_BYTES },

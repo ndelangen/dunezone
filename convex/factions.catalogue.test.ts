@@ -1,18 +1,16 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import { convexTest } from 'convex-test';
 import { describe, expect, test } from 'vite-plus/test';
 
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api } from './_generated/api';
-import schema from './schema';
-
-const modules = import.meta.glob('./**/*.ts');
+import { applicationTest } from './application.test.fixture';
+import { syncSeededFactionCards } from './factions.test.fixture';
 
 describe('faction catalogue page', () => {
   test('returns active enriched factions, all active rulesets, and distinct spotlights', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     await t.run(async (ctx) => {
       const ownerId = await ctx.db.insert('users', { name: 'Catalogue owner' });
       const advancedId = await ctx.db.insert('rulesets', {
@@ -85,6 +83,7 @@ describe('faction catalogue page', () => {
       });
     });
 
+    await t.run(syncSeededFactionCards);
     const catalogue = await t.query(api.factions.cataloguePage, {});
 
     expect(catalogue.factions.map((faction) => faction.data.name).sort()).toEqual(['New arrival', 'Recently updated']);
@@ -95,7 +94,7 @@ describe('faction catalogue page', () => {
   });
 
   test('ships what the catalogue draws and leaves the rest of the blob behind', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     await t.run(async (ctx) => {
       const ownerId = await ctx.db.insert('users', { name: 'Narrowing owner' });
       await ctx.db.insert('factions', {
@@ -109,6 +108,7 @@ describe('faction catalogue page', () => {
       });
     });
 
+    await t.run(syncSeededFactionCards);
     const catalogue = await t.query(api.factions.cataloguePage, {});
     const row = catalogue.factions[0];
 
@@ -126,7 +126,7 @@ describe('faction catalogue page', () => {
   });
 
   test('rejects malformed faction data at the query boundary', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     await t.run(async (ctx) => {
       const ownerId = await ctx.db.insert('users', { name: 'Malformed owner' });
       await ctx.db.insert('factions', {
@@ -140,6 +140,7 @@ describe('faction catalogue page', () => {
       });
     });
 
+    await t.run(syncSeededFactionCards);
     await expect(t.query(api.factions.cataloguePage, {})).rejects.toThrow();
   });
 });

@@ -37,6 +37,10 @@ export function forgetStoredPlayTables() {
 export const storedAuthTokenKey = () =>
   `__convexAuthJWT_${(import.meta.env.VITE_CONVEX_URL ?? '').replace(/[^a-zA-Z0-9]/g, '')}`;
 
+/** Where Convex Auth keeps the verifier of a Google or Discord sign-in that left for the provider and has not come back. */
+export const storedOAuthVerifierKey = () =>
+  `__convexAuthOAuthVerifier_${(import.meta.env.VITE_CONVEX_URL ?? '').replace(/[^a-zA-Z0-9]/g, '')}`;
+
 /**
  * The auth token Convex Auth keeps for this deployment in localStorage, read without a network, or `null` once signed out.
  * Signing out erases it even when the server cannot be reached.

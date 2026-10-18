@@ -1,12 +1,9 @@
 /// <reference types="vite/client" />
 /* @vitest-environment edge-runtime */
 
-import { convexTest } from 'convex-test';
 import { afterEach, expect, test, vi } from 'vite-plus/test';
 
-import schema from './schema';
-
-const modules = import.meta.glob('./**/*.ts');
+import { applicationTest } from './application.test.fixture';
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -30,7 +27,7 @@ test.each(['google', 'discord'])('%s cancellation is a safe routing probe throug
   );
   vi.stubGlobal('fetch', providerFetch);
 
-  const t = convexTest(schema, modules);
+  const t = applicationTest();
   const response = await t.fetch(`/api/auth/callback/${provider}?error=access_denied`);
   expect(response.status).toBe(302);
   expect(new URL(response.headers.get('Location')!).href).toBe('https://dune.zone/');
