@@ -21,7 +21,10 @@ export function AppErrorComponent({ error }: ErrorComponentProps) {
   return <ErrorComponent error={error} />;
 }
 
-export function getRouter() {
+export async function getRouter() {
+  const nonce = import.meta.env.SSR
+    ? ((await import('@tanstack/react-start/server')).getRequest().headers.get('X-Application-Nonce') ?? undefined)
+    : undefined;
   const router = createTanStackRouter({
     routeTree,
     scrollRestoration: restoresScroll,
@@ -29,6 +32,7 @@ export function getRouter() {
     /* Hovering the same link again within 30 seconds reuses its preloaded result instead of running the loader again. */
     defaultPreloadStaleTime: 30_000,
     defaultErrorComponent: AppErrorComponent,
+    ssr: { nonce },
   });
 
   return router;
@@ -36,6 +40,6 @@ export function getRouter() {
 
 declare module '@tanstack/react-router' {
   interface Register {
-    router: ReturnType<typeof getRouter>;
+    router: Awaited<ReturnType<typeof getRouter>>;
   }
 }
