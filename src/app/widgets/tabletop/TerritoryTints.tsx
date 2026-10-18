@@ -1,7 +1,7 @@
 /* @jsxImportSource ./three-jsx */
 import { CENTER, RADIUS } from '@shared/boards/geometry';
 import type { Board, Point } from '@shared/boards/schema';
-import { territoryId } from '@shared/boards/schema';
+import { propertyId } from '@shared/boards/schema';
 import { placeStickers } from '@shared/boards/stickerPlacement';
 import { boardTerritories, boardTerritoryAt } from '@shared/boards/territories';
 import type { OutlinePath } from '@shared/boards/tintOutline';
@@ -29,7 +29,7 @@ export function territoryAtTablePoint(board: Board, x: number, z: number) {
     CENTER[0] + (x * RADIUS) / BOARD_RADIUS,
     CENTER[1] + (z * RADIUS) / BOARD_RADIUS,
   ]);
-  return property && { id: territoryId(property.name), name: property.name };
+  return property && { id: propertyId(property), name: property.name };
 }
 
 function fillGeometry(rings: Point[][]) {
@@ -283,7 +283,7 @@ export function TerritoryTints({ board, tints }: Readonly<{ board: Board; tints:
   const faces = useMemo<Face[]>(
     () =>
       boardTerritories(board).map((face) => ({
-        id: territoryId(board.properties[face.key].name),
+        id: propertyId(board.properties[face.key]),
         center: face.center,
         rings: face.rings,
         polar: board.properties[face.key].type === 'polar',

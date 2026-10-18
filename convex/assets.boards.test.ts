@@ -97,12 +97,14 @@ test('rejects missing territory names and canonical ID collisions on create and 
     ).rejects.toThrow();
   }
   const renamed = blankBoard();
+  const savedId = Object.values(renamed.properties)[0].id;
   Object.values(renamed.properties)[0].name = 'Rock outcroppings';
   await owner.mutation(api.assets.update, { id: created.id, data: { name: 'Named board', about: '', board: renamed } });
   const page = await assetPageAs(owner, { type: 'board', slug: created.slug });
   expect(Object.values((page!.asset.data as { board: typeof renamed }).board.properties)[0]).toMatchObject({
     name: 'Rock outcroppings',
-    id: 'rock_outcroppings',
+    /* A rename keeps the territory's saved ID, so markup that names it still finds it. */
+    id: savedId,
   });
 });
 
