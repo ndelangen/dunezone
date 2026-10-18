@@ -40,7 +40,7 @@ export const profileCatalogueKind: CatalogueKind = {
       kind: 'profile',
       source_id: profile._id,
       slug: profile.slug,
-      search_text: catalogueSearchText([name, profile.slug]),
+      search_text: catalogueSearchText([profile.username?.trim() ?? '', profile.slug]),
       name_key: catalogueNameKey(name),
       created_at: catalogueTimestamp(profile.created_at),
       updated_at: catalogueTimestamp(profile.updated_at),
