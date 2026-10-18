@@ -172,6 +172,13 @@ describe('provision pipeline', () => {
       stagesExplicit: true,
       snapshotFile: null,
     });
+    expect(parseProvisionArgs(['dev', '--stage', 'migrate'])).toEqual({
+      target: 'dev',
+      stages: ['migrate'],
+      stagesExplicit: true,
+      snapshotFile: null,
+    });
+    expect(() => parseProvisionArgs(['e2e', '--stage', 'migrate'])).toThrow('Invalid stage for target e2e');
     expect(() => parseProvisionArgs(['prod'])).toThrow('Usage: provision');
     expect(() => parseProvisionArgs(['dev', '--stage', 'backend'])).toThrow('Invalid stage for target dev');
   });

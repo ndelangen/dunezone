@@ -35,6 +35,7 @@ export function collectRulebookReferenceIds(
   const assetIds = new Set(requested.assetIds);
   const factionIds = new Set(requested.factionIds);
   const troopSources = new Map<string, Extract<RulebookSourceReference, { kind: 'faction-troop' }>>();
+  const markupBoardIds = new Set<string>();
   const collectSource = (source: RulebookSourceReference | undefined) => {
     if (source?.kind === 'faction-troop') {
       troopSources.set(`${source.factionId}.${source.troopId}.${source.face}`, source);
@@ -63,6 +64,12 @@ export function collectRulebookReferenceIds(
     /* A board ID the maintained definitions do not have names a saved board asset. */
     if (!resolveRulebookBoardDefinition(board.boardId)) {
       assetIds.add(board.boardId);
+    }
+    if (board.tints?.length) {
+      markupBoardIds.add(board.boardId);
+    }
+    for (const token of board.tokens ?? []) {
+      assetIds.add(token.asset_id);
     }
     for (const item of [...board.players, ...board.troops]) {
       if (item.factionId) {
@@ -134,5 +141,7 @@ export function collectRulebookReferenceIds(
     assetIds: [...assetIds].sort(compareCodeUnits),
     factionIds: [...factionIds].sort(compareCodeUnits),
     ...(troopSources.size ? { troopSources: [...troopSources.values()] } : {}),
+    /** Saved boards a scene draws tints on, whose data the scene needs to draw them. */
+    ...(markupBoardIds.size ? { markupBoardIds: [...markupBoardIds].sort(compareCodeUnits) } : {}),
   };
 }

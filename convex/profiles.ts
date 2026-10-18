@@ -5,13 +5,21 @@ import {
   PROFILE_CATALOGUE_QUERY_LIMIT,
   PROFILE_CATALOGUE_SORTS,
 } from '../src/shared/profiles/catalogueSearch';
+import type { ProfileCatalogueSort } from '../src/shared/profiles/catalogueSearch';
 import { profileUserEditFormSchema } from '../src/shared/profiles/validation';
 import type { Id } from './_generated/dataModel';
-import type { MutationCtx } from './_generated/server';
+import type { MutationCtx, QueryCtx } from './_generated/server';
 import { mutation, publicQuery, viewerQuery } from './functions';
 import { isActiveProfile, isPublicProfile, optionalActiveUserId } from './lib/accountLifecycle';
 import { accountMethods, authMethodValidator } from './lib/accountMethods';
-import { ALL_PARTITION, countCataloguePartitions, selectCataloguePage } from './lib/catalogueOrder';
+import {
+  ALL_PARTITION,
+  catalogueSearchLimit,
+  catalogueSearchReach,
+  countCataloguePartitions,
+  selectCataloguePage,
+  selectCatalogueSearch,
+} from './lib/catalogueOrder';
 import {
   assignedGroupSummaryValidator,
   profilePageValidator,
@@ -243,10 +251,110 @@ const profileDirectoryEntryValidator = v.object({
   }),
 });
 
+/** The rows of the selected entries, each profile read once with its activity counts. */
+async function directoryEntries(ctx: QueryCtx, selected: { source_id: string }[]) {
+  const profiles = [];
+  for (const entry of selected) {
+    const profileId = ctx.db.normalizeId('profiles', entry.source_id);
+    const profile = profileId ? await ctx.db.get('profiles', profileId) : null;
+    if (!profile || !isPublicProfile(profile)) {
+      /* Drift: the page comes up one row short until the backfill or the profile's next save. */
+      console.warn(`Catalogue entry for profile ${entry.source_id} has no public profile.`);
+      continue;
+    }
+    profiles.push(profile);
+  }
+  const activity = await loadProfileActivityCounts(
+    ctx,
+    profiles.map((profile) => profile.user_id)
+  );
+  return profiles.map((profile, index) => ({
+    id: profile._id,
+    slug: profile.slug,
+    name: profileListName(profile),
+    image: profile.avatar?.url ?? profile.avatar_url,
+    activity: activity[index] ?? { groupCount: 0, factionCount: 0, questionCount: 0, answerCount: 0 },
+  }));
+}
+
+/** A browsed page: aggregate counts, numbered pages, a chosen order. */
+const catalogueBrowseValidator = v.object({
+  entries: v.array(profileDirectoryEntryValidator),
+  /** Profiles matching the search, across every page. */
+  total: v.number(),
+  /** Listed profiles, before any search. */
+  directoryTotal: v.number(),
+  /** False when a search matched more entries than one query reads, so `total` is a floor. */
+  complete: v.boolean(),
+  /** The page these rows are, which may lie past `pageCount`, with no rows. */
+  page: v.number(),
+  pageCount: v.number(),
+  pageSize: v.number(),
+});
+
+/** A searched directory: the best matches first, no count and no pages, and more by asking for a larger limit. */
+const catalogueSearchValidator = v.object({
+  mode: v.literal('search'),
+  entries: v.array(profileDirectoryEntryValidator),
+  /** Whether a larger limit would show more profiles. */
+  hasMore: v.boolean(),
+  /** Whether more profiles may match than one search shows, so the reader should add a word rather than load more. */
+  capped: v.boolean(),
+  /** The limit these rows answer, after clamping. */
+  limit: v.number(),
+  /** Listed profiles, before any search. */
+  directoryTotal: v.number(),
+});
+
+type CatalogueArgs = { q?: string; sort?: ProfileCatalogueSort; page?: number; limit?: number };
+
+async function loadDirectoryPage(ctx: QueryCtx, args: CatalogueArgs, text: string) {
+  const page = Number.isSafeInteger(args.page) && args.page! > 1 ? args.page! : 1;
+  const [selection, [directoryCount = 0]] = await Promise.all([
+    selectCataloguePage(ctx, {
+      kind: 'profile',
+      partition: ALL_PARTITION,
+      ...profileCatalogueOrderOf(args.sort),
+      page,
+      pageSize: PROFILE_CATALOGUE_PAGE_SIZE,
+      search: text ? { text, relevance: !args.sort } : undefined,
+    }),
+    /* Without a search the page's own count is the directory's, so only a search counts again. */
+    text ? countCataloguePartitions(ctx, 'profile', [ALL_PARTITION]) : Promise.resolve([]),
+  ]);
+  return {
+    entries: await directoryEntries(ctx, selection.entries),
+    total: selection.total,
+    directoryTotal: text ? directoryCount : selection.total,
+    complete: selection.exact,
+    page,
+    pageCount: Math.max(1, Math.ceil(selection.total / PROFILE_CATALOGUE_PAGE_SIZE)),
+    pageSize: PROFILE_CATALOGUE_PAGE_SIZE,
+  };
+}
+
+async function loadDirectorySearch(ctx: QueryCtx, args: CatalogueArgs, text: string) {
+  const limit = catalogueSearchLimit(args.limit, PROFILE_CATALOGUE_PAGE_SIZE);
+  const [selection, [directoryTotal = 0]] = await Promise.all([
+    selectCatalogueSearch(ctx, { kind: 'profile', partition: ALL_PARTITION, text, limit }),
+    countCataloguePartitions(ctx, 'profile', [ALL_PARTITION]),
+  ]);
+  return {
+    mode: 'search' as const,
+    entries: await directoryEntries(ctx, selection.entries),
+    ...catalogueSearchReach(selection, limit, PROFILE_CATALOGUE_PAGE_SIZE),
+    limit,
+    directoryTotal,
+  };
+}
+
 /**
- * One page of the profile directory: the aggregate counts the directory and finds the page's first profile;
+ * The profile directory: the aggregate counts it and finds a page's first profile;
  * a search uses Convex's search index over username and slug.
  * Only the page's own profiles and their activity counts are read, so a page costs the same however many profiles there are.
+ * A search with a `limit` is the load-more search;
+ * without one the directory is browsed, in pages.
+ * A searched `q` without `limit` is an old bundle's paged search, kept one release for the bundle deployed before this and dropped in the contract release.
  * Replaces `list`, which stays for one release so a bundle still asking for it keeps working while this one deploys.
  */
 export const catalogue = publicQuery({
@@ -254,67 +362,15 @@ export const catalogue = publicQuery({
     q: v.optional(v.string()),
     sort: v.optional(v.union(...PROFILE_CATALOGUE_SORTS.map((sort) => v.literal(sort)))),
     page: v.optional(v.number()),
+    /** How many of the best matches to return; Load more asks again with a larger one. */
+    limit: v.optional(v.number()),
   },
-  returns: v.object({
-    entries: v.array(profileDirectoryEntryValidator),
-    /** Profiles matching the search, across every page. */
-    total: v.number(),
-    /** Listed profiles, before any search. */
-    directoryTotal: v.number(),
-    /** False when a search matched more entries than one query reads, so `total` is a floor. */
-    complete: v.boolean(),
-    /** The page these rows are, which may lie past `pageCount`, with no rows. */
-    page: v.number(),
-    pageCount: v.number(),
-    pageSize: v.number(),
-  }),
+  returns: v.union(catalogueBrowseValidator, catalogueSearchValidator),
   handler: async (ctx, args) => {
     const text = args.q?.slice(0, PROFILE_CATALOGUE_QUERY_LIMIT).trim() ?? '';
-    const page = Number.isSafeInteger(args.page) && args.page! > 1 ? args.page! : 1;
-    const [selection, [directoryCount = 0]] = await Promise.all([
-      selectCataloguePage(ctx, {
-        kind: 'profile',
-        partition: ALL_PARTITION,
-        ...profileCatalogueOrderOf(args.sort),
-        page,
-        pageSize: PROFILE_CATALOGUE_PAGE_SIZE,
-        search: text ? { text, relevance: !args.sort } : undefined,
-      }),
-      /* Without a search the page's own count is the directory's, so only a search counts again. */
-      text ? countCataloguePartitions(ctx, 'profile', [ALL_PARTITION]) : Promise.resolve([]),
-    ]);
-
-    const profiles = [];
-    for (const entry of selection.entries) {
-      const profileId = ctx.db.normalizeId('profiles', entry.source_id);
-      const profile = profileId ? await ctx.db.get('profiles', profileId) : null;
-      if (!profile || !isPublicProfile(profile)) {
-        /* Drift: the page comes up one row short until the backfill or the profile's next save. */
-        console.warn(`Catalogue entry for profile ${entry.source_id} has no public profile.`);
-        continue;
-      }
-      profiles.push(profile);
-    }
-    const activity = await loadProfileActivityCounts(
-      ctx,
-      profiles.map((profile) => profile.user_id)
-    );
-
-    return {
-      entries: profiles.map((profile, index) => ({
-        id: profile._id,
-        slug: profile.slug,
-        name: profileListName(profile),
-        image: profile.avatar?.url ?? profile.avatar_url,
-        activity: activity[index] ?? { groupCount: 0, factionCount: 0, questionCount: 0, answerCount: 0 },
-      })),
-      total: selection.total,
-      directoryTotal: text ? directoryCount : selection.total,
-      complete: selection.exact,
-      page,
-      pageCount: Math.max(1, Math.ceil(selection.total / PROFILE_CATALOGUE_PAGE_SIZE)),
-      pageSize: PROFILE_CATALOGUE_PAGE_SIZE,
-    };
+    return text && args.limit !== undefined
+      ? await loadDirectorySearch(ctx, args, text)
+      : await loadDirectoryPage(ctx, args, text);
   },
 });
 

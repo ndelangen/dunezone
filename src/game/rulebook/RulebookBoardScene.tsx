@@ -7,6 +7,11 @@ import { useId } from 'react';
 import { Token } from '../assets/faction/token/Token';
 import { RulebookAnnotationMarks } from './RulebookAnnotationMarks';
 import { RulebookAssetExplainer } from './RulebookAssetExplainer';
+import {
+  RulebookBoardEditSurface,
+  RulebookBoardMarkupLayer,
+  useRulebookBoardMarkupEditor,
+} from './RulebookBoardMarkup';
 import { RulebookTerritoryScene } from './RulebookTerritoryScene';
 import { rulebookTroopArtwork } from './rulebookTroopArtwork';
 
@@ -23,6 +28,12 @@ function pointOnRing(geometry: TableGeometry, angle: number, distance = geometry
   };
 }
 
+/** The storm icon's width as a share of the board's. */
+const STORM_ICON_SIZE = 0.045;
+/* The space a scene leaves round the board by default: room for the storm icon past the rim when there is a storm. */
+const BOARD_MARGIN = 0.03;
+const STORM_MARGIN = BOARD_MARGIN + STORM_ICON_SIZE * 1.25;
+
 function StormSector({
   angle,
   geometry,
@@ -37,8 +48,9 @@ function StormSector({
   const stormRadius = Math.min(width, height) / 2;
   const first = pointOnRing(geometry, angle - 10, stormRadius);
   const last = pointOnRing(geometry, angle + 10, stormRadius);
-  const position = pointOnRing(geometry, angle, stormRadius * 0.9);
-  const iconSize = width * 0.045;
+  const iconSize = width * STORM_ICON_SIZE;
+  /* The icon sits just past the rim at the storm's sector, clear of the board's own artwork. */
+  const position = pointOnRing(geometry, angle, stormRadius + iconSize * 0.65);
   return (
     <>
       {shelteredArea ? (
@@ -66,12 +78,11 @@ function StormSector({
         stroke="#8b3628"
         strokeWidth={width * 0.003}
       />
-      <g transform={`translate(${position.x} ${position.y})`} aria-label="Storm">
-        <circle r={width * 0.0308} fill="#fff9eb" stroke="#8b3628" strokeWidth={width * 0.004} />
+      <g aria-label="Storm">
         <image
           href="/vector/icon/storrm_standalone.svg"
-          x={-iconSize / 2}
-          y={-iconSize / 2}
+          x={position.x - iconSize / 2}
+          y={position.y - iconSize / 2}
           width={iconSize}
           height={iconSize}
         />
@@ -300,8 +311,15 @@ function TableOverlay({
   );
 }
 
-/** A board scene keeps markers, troops, and annotations tied to the supplied board geometry. */
-export function RulebookBoardSceneVisual({ scene }: Readonly<{ scene: RulebookBoardScene }>) {
+/**
+ * A board scene keeps markers, troops, and annotations tied to the supplied board geometry.
+ * `blockId` names the Block the scene belongs to, so the editor's preview can paint and drag on the one it has open.
+ */
+export function RulebookBoardSceneVisual({
+  scene,
+  blockId,
+}: Readonly<{ scene: RulebookBoardScene; blockId?: string }>) {
+  const editor = useRulebookBoardMarkupEditor(blockId);
   const source = scene.board;
   if (source.status !== 'ready' || !source.geometry) {
     return (
@@ -323,7 +341,8 @@ export function RulebookBoardSceneVisual({ scene }: Readonly<{ scene: RulebookBo
     );
   }
   const geometry = source.geometry;
-  const viewport = scene.viewport ?? { x: -0.03, y: -0.03, width: 1.06, height: 1.06 };
+  const margin = scene.storm ? STORM_MARGIN : BOARD_MARGIN;
+  const viewport = scene.viewport ?? { x: -margin, y: -margin, width: 1 + 2 * margin, height: 1 + 2 * margin };
   const draw = (projection?: RulebookAnnotationProjection) => (
     <RulebookTerritoryScene
       board={{ imageUrl: source.imageUrl, geometry }}
@@ -345,7 +364,20 @@ export function RulebookBoardSceneVisual({ scene }: Readonly<{ scene: RulebookBo
         gap: troop.gap * geometry.width,
       }))}
       labels={[]}
-      overlay={<TableOverlay scene={scene} width={geometry.width} height={geometry.height} projection={projection} />}
+      underlay={
+        <RulebookBoardMarkupLayer
+          scene={scene}
+          width={geometry.width}
+          height={geometry.height}
+          selectedToken={editor?.editing.selectedToken}
+        />
+      }
+      overlay={
+        <>
+          <TableOverlay scene={scene} width={geometry.width} height={geometry.height} projection={projection} />
+          {editor ? <RulebookBoardEditSurface editor={editor} width={geometry.width} height={geometry.height} /> : null}
+        </>
+      }
     />
   );
   if (!scene.annotations.length) {
@@ -398,7 +430,7 @@ export function RulebookBoardSceneVisual({ scene }: Readonly<{ scene: RulebookBo
 export function RulebookBoardSceneBlock({ block }: Readonly<{ block: BoardBlock }>) {
   return (
     <section id={block.anchor} data-rulebook-block-anchor={block.anchor} data-rulebook-block-id={block.id}>
-      <RulebookBoardSceneVisual scene={block} />
+      <RulebookBoardSceneVisual scene={block} blockId={block.id} />
     </section>
   );
 }

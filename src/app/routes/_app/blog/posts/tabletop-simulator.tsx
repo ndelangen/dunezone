@@ -1,8 +1,7 @@
 import { Anchor } from '@mantine/core';
-import { Link } from '@tanstack/react-router';
 import { Section } from '@ui/block/Section';
 
-import { Figure, FigureRow, Lead, Paragraph } from '../postContent';
+import { Figure, FigureRow, Lead, Paragraph, PostLink } from '../postContent';
 import { BLOG_POST_META } from '../posts';
 
 const meta = BLOG_POST_META['tabletop-simulator'];
@@ -15,9 +14,9 @@ export default function Post() {
     <>
       <Lead>
         In the{' '}
-        <Anchor renderRoot={(props) => <Link {...props} to="/blog/$postSlug" params={{ postSlug: 'why-dune' }} />}>
+        <PostLink to="/blog/$postSlug" params={{ postSlug: 'why-dune' }}>
           last post
-        </Anchor>{' '}
+        </PostLink>{' '}
         I told how I ended up playing Dune online every week. All of those games happened in{' '}
         <Anchor href={TTS}>Tabletop Simulator</Anchor> (TTS), on the{' '}
         <Anchor href={`${WORKSHOP}1972622978`}>GF9 Dune 2019 (Discord Mod)</Anchor>, maintained by Krell. It&rsquo;s
@@ -254,12 +253,9 @@ function FundamentalsSection() {
             caption: (
               <>
                 The{' '}
-                <Anchor
-                  renderRoot={(props) => <Link {...props} to="/factions/$factionId" params={{ factionId: 'iduali' }} />}
-                  inherit
-                >
+                <PostLink to="/factions/$factionId" params={{ factionId: 'iduali' }} inherit>
                   Iduali
-                </Anchor>{' '}
+                </PostLink>{' '}
                 on dune.zone today.
               </>
             ),
@@ -272,11 +268,8 @@ function FundamentalsSection() {
 
 function RidwanLink() {
   return (
-    <Anchor
-      renderRoot={(props) => <Link {...props} to="/profiles/$profileSlug" params={{ profileSlug: 'ridwan' }} />}
-      inherit
-    >
+    <PostLink to="/profiles/$profileSlug" params={{ profileSlug: 'ridwan' }} inherit>
       Ridwan
-    </Anchor>
+    </PostLink>
   );
 }

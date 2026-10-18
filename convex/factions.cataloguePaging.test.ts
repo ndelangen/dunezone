@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import type { FunctionArgs } from 'convex/server';
+import type { FunctionArgs, FunctionReturnType } from 'convex/server';
 import { describe, expect, test } from 'vitest';
 
 import { compareCodeUnits } from '../src/shared/compareText';
@@ -13,13 +13,31 @@ import { factionTest } from './factions.test.fixture';
 import { applicationTriggers } from './lib/applicationTriggers';
 
 type CatalogueArgs = FunctionArgs<typeof api.factions.catalogue>;
+type CatalogueAnswer = FunctionReturnType<typeof api.factions.catalogue>;
+
+/** The browsed shape, which every call without a limit answers with. */
+function browsed(answer: CatalogueAnswer) {
+  if ('mode' in answer) {
+    throw new Error('Expected a browsed page, got a search.');
+  }
+  return answer;
+}
+
+/** The searched shape, which a search with a limit answers with. */
+function searched(answer: CatalogueAnswer) {
+  if (!('mode' in answer)) {
+    throw new Error('Expected a search, got a browsed page.');
+  }
+  return answer;
+}
 
 async function catalogueWith(factions: SeededFaction[], rulesets: Parameters<typeof seedCatalogue>[2] = []) {
   const t = factionTest();
   const seeded = await seedCatalogue(t, factions, rulesets);
-  const page = (args: CatalogueArgs = {}) => t.query(api.factions.catalogue, args);
+  const page = async (args: CatalogueArgs = {}) => browsed(await t.query(api.factions.catalogue, args));
+  const search = async (args: CatalogueArgs) => searched(await t.query(api.factions.catalogue, args));
   const names = async (args: CatalogueArgs = {}) => (await page(args)).cards.map((card) => card.data.name);
-  return { t, seeded, page, names };
+  return { t, seeded, page, search, names };
 }
 
 /** Every page of one question, in order, as a reader paging through would see them. */
@@ -265,4 +283,60 @@ describe('faction catalogue query', () => {
     await expect(t.query(api.factions.catalogue, { q: 'Fine' })).resolves.toMatchObject({ total: 1 });
     await expect(t.query(api.factions.catalogue, {})).rejects.toThrow();
   });
+
+  test('a search with a limit loads more by asking for a larger one, best matches first and only ever appending', async () => {
+    const count = FACTION_CATALOGUE_PAGE_SIZE + 3;
+    const { page, search } = await catalogueWith(
+      Array.from({ length: count }, (_, index) => ({
+        name: `Sietch ${String(index).padStart(2, '0')}`,
+        complexity: (index % 10) / 10,
+        rulesets: index % 2 === 0 ? ['classic'] : [],
+      })),
+      [{ slug: 'classic', name: 'Classic' }]
+    );
+
+    const first = await search({ q: 'sietch', limit: FACTION_CATALOGUE_PAGE_SIZE });
+    expect(first).toMatchObject({ mode: 'search', hasMore: true, capped: false, limit: FACTION_CATALOGUE_PAGE_SIZE });
+    expect(first.cards).toHaveLength(FACTION_CATALOGUE_PAGE_SIZE);
+    expect(first).not.toHaveProperty('total');
+    expect(first).not.toHaveProperty('page');
+    /* The toolbar still has what it draws: the catalogue's size, each ruleset's count and the spotlights. */
+    expect(first.catalogueTotal).toBe(count);
+    expect(first.rulesets.map(({ slug, factionCount }) => [slug, factionCount])).toEqual([['classic', 26]]);
+    expect(first.spotlights.newArrival?.data.name).toBe('Sietch 50');
+
+    const more = await search({ q: 'sietch', limit: FACTION_CATALOGUE_PAGE_SIZE * 2 });
+    expect(more).toMatchObject({ hasMore: false, limit: FACTION_CATALOGUE_PAGE_SIZE * 2 });
+    expect(more.cards).toHaveLength(count);
+    expect(more.cards.slice(0, FACTION_CATALOGUE_PAGE_SIZE).map((card) => card._id)).toEqual(
+      first.cards.map((card) => card._id)
+    );
+    /* An odd limit is one step; past the ceiling it is the ceiling. */
+    expect((await search({ q: 'sietch', limit: 0 })).limit).toBe(FACTION_CATALOGUE_PAGE_SIZE);
+    expect((await search({ q: 'sietch', limit: 1e9 })).limit).toBe(FACTION_CATALOGUE_PAGE_SIZE * 10);
+
+    /* The ruleset is the list searched, and the complexity range still narrows it. */
+    const classic = await search({ q: 'sietch', ruleset: 'classic', limit: FACTION_CATALOGUE_PAGE_SIZE });
+    expect(classic.cards).toHaveLength(26);
+    expect(classic.hasMore).toBe(false);
+    const ranged = await search({ q: 'sietch', complexity: '0-4', limit: FACTION_CATALOGUE_PAGE_SIZE });
+    expect(ranged.cards.map((card) => card.data.name).toSorted()).toEqual(
+      Array.from({ length: count }, (_, index) => index)
+        .filter((index) => index % 10 <= 4)
+        .map((index) => `Sietch ${String(index).padStart(2, '0')}`)
+    );
+    expect(await search({ q: 'sietch nowhere', limit: FACTION_CATALOGUE_PAGE_SIZE })).toMatchObject({
+      cards: [],
+      hasMore: false,
+      capped: false,
+    });
+
+    /* An old bundle's search, with a page and no limit, still gets the paged shape it reads. */
+    const old = await page({ q: 'sietch', page: 2, sort: 'name' });
+    expect(old).toMatchObject({ page: 2, pageCount: 2, total: count, complete: true });
+    expect(old.cards.map((card) => card.data.name)).toEqual(['Sietch 48', 'Sietch 49', 'Sietch 50']);
+    expect(old).not.toHaveProperty('mode');
+    /* A browsed page ignores a limit. */
+    expect(await page({ limit: 5 })).toMatchObject({ page: 1, total: count });
+  }, 60_000);
 });

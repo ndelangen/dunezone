@@ -846,6 +846,7 @@ export const editorPage = viewerQuery({
         assetIds: args.reference_asset_ids,
         factionIds: args.reference_faction_ids,
         factionTokenImages: args.faction_token_images === true,
+        boardData: true,
       })),
     };
   },

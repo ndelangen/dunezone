@@ -10,11 +10,14 @@ describe('profile directory search parameters', () => {
     }
   });
 
-  test('writes A to Z out only to override best match while searching', () => {
+  test('never writes the default order out, and drops anything else', () => {
     expect(parseProfileCatalogueSearch({ sort: 'name' })).toEqual({});
-    expect(parseProfileCatalogueSearch({ sort: 'name', q: ' stilgar ' })).toEqual({ sort: 'name', q: 'stilgar' });
     expect(parseProfileCatalogueSearch({ sort: 'newest' })).toEqual({ sort: 'newest' });
     expect(parseProfileCatalogueSearch({ sort: 'relevance', q: '  ' })).toEqual({});
+  });
+
+  test('drops the order and the page alongside a search, which is always best match and loads more in place', () => {
+    expect(parseProfileCatalogueSearch({ sort: 'newest', q: ' stilgar ', page: '2' })).toEqual({ q: 'stilgar' });
   });
 
   test('cuts a search at the longest one the directory runs', () => {

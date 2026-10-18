@@ -19,3 +19,11 @@
 .askerLink {
   flex: 0 0 auto;
 }
+
+/* Which ruleset a question belongs to, where the list draws from several: a quiet caption, since the question is the point. */
+.rulesetCaption {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+}

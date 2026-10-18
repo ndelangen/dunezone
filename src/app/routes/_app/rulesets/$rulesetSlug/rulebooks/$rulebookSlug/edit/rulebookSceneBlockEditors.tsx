@@ -12,20 +12,23 @@ import {
   Textarea,
 } from '@mantine/core';
 import { resolveRulebookBoardDefinition, RULEBOOK_BOARD_DEFINITIONS } from '@shared/rulebooks/boardDefinitions';
+import { boardHighlightTints } from '@shared/rulebooks/boardHighlightTints';
 import { createRulebookLocalId } from '@shared/rulebooks/contents';
 import type { RulebookBoardSceneValue, RulebookPieceMovementValue } from '@shared/rulebooks/illustratedScenes';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
 import { createContext, lazy, Suspense, useContext, useState } from 'react';
 
+import { BoardPicker } from '@app/pickers/BoardPicker';
+
 import { BattleSourceControl, BattleStepEdit } from './rulebookBattleStepEdit';
 import type { RulebookBlockEditorProps } from './rulebookBlockEditors';
+import { RulebookBoardMarkupFields, useRulebookMarkupUi } from './rulebookBoardMarkup';
 import type { RulebookEditorReferences } from './rulebookVisualBlockEditors';
 
 const FactionPicker = lazy(() =>
   import('@app/pickers/FactionPicker').then((module) => ({ default: module.FactionPicker }))
 );
-const AssetPicker = lazy(() => import('@app/pickers/AssetPicker').then((module) => ({ default: module.AssetPicker })));
 const emptyReferences = { assetsById: {}, factionsById: {} };
 
 /* The editor's resolved references, for the parts of a saved board the fields below offer. */
@@ -39,7 +42,7 @@ function useBoardParts(boardId: string) {
   );
 }
 
-/** The maintained boards and saved board assets; a saved board is chosen in the asset picker and listed once chosen. */
+/** The maintained boards and saved board assets in one field, each beside its face. */
 function BoardChoice({
   boardId,
   references,
@@ -49,48 +52,33 @@ function BoardChoice({
   references: RulebookEditorReferences;
   onChange: (boardId: string) => void;
 }) {
-  const [picking, setPicking] = useState(false);
-  const saved = resolveRulebookBoardDefinition(boardId)
-    ? []
-    : [{ value: boardId, label: references.assetsById[boardId]?.name ?? 'Unavailable board' }];
+  const chosen = references.assetsById[boardId];
   return (
-    <Stack gap="xs">
-      <Group align="end" gap="sm">
-        <Select
-          flex={1}
+    <ControlBlock
+      title="Board"
+      description="The board the scene draws: the maintained Arrakis map, or a saved board. Saved boards take tints and tokens."
+      input={
+        <BoardPicker
           label="Board"
-          data={[...RULEBOOK_BOARD_DEFINITIONS.map((board) => ({ value: board.id, label: board.name })), ...saved]}
           value={boardId}
-          onChange={(next) => {
-            if (next) {
-              onChange(next);
-            }
-          }}
+          fixed={RULEBOOK_BOARD_DEFINITIONS.map((board) => ({
+            id: board.id,
+            name: board.name,
+            previewSrc: board.imageUrl,
+            collection: 'Maintained boards',
+          }))}
+          selected={
+            resolveRulebookBoardDefinition(boardId)
+              ? undefined
+              : { id: boardId, name: chosen?.name ?? 'Unavailable board', previewSrc: chosen?.imageUrl ?? null }
+          }
+          onPick={onChange}
         />
-        <Button variant="default" onClick={() => setPicking(true)}>
-          Choose a saved board
-        </Button>
-      </Group>
-      {picking ? (
-        <Suspense fallback={<Loader size="sm" />}>
-          <AssetPicker
-            types={['board']}
-            copy={{
-              searchLabel: 'Find a board',
-              searchPlaceholder: 'Name or creator',
-              emptyMessage: 'No board assets are available yet.',
-            }}
-            onPick={(picked) => {
-              onChange(picked.id);
-              setPicking(false);
-            }}
-            onCancel={() => setPicking(false)}
-          />
-        </Suspense>
-      ) : null}
-    </Stack>
+      }
+    />
   );
 }
+
 const emptyBoard: RulebookBoardSceneValue = {
   boardId: 'arrakis',
   caption: '',
@@ -773,14 +761,32 @@ function BoardStormFields({ value, onChange }: BoardSceneFieldsProps) {
   );
 }
 
+/**
+ * A scene moved from the maintained board onto a saved one carries its highlights over as tints, which a saved board draws instead.
+ * Tints and tokens draw on the maintained board too, so moving back keeps what the scene showed.
+ * A scene that already has tints keeps them and its highlights as they are.
+ */
+function withBoard(value: RulebookBoardSceneValue, boardId: string): RulebookBoardSceneValue {
+  const carry =
+    !resolveRulebookBoardDefinition(boardId) &&
+    resolveRulebookBoardDefinition(value.boardId) &&
+    value.highlights.length &&
+    !value.tints?.length;
+  return carry
+    ? { ...value, boardId, highlights: [], tints: boardHighlightTints(value.highlights) }
+    : { ...value, boardId };
+}
+
 function BoardSceneFields({ value, references, onChange }: BoardSceneFieldsProps) {
+  const [ui, setUi] = useRulebookMarkupUi();
+  const saved = !resolveRulebookBoardDefinition(value.boardId);
   return (
     <BoardReferences.Provider value={references}>
       <Stack gap="md">
         <BoardChoice
           boardId={value.boardId}
           references={references}
-          onChange={(boardId) => onChange({ ...value, boardId })}
+          onChange={(boardId) => onChange(withBoard(value, boardId))}
         />
         <Textarea
           label="Caption"
@@ -807,10 +813,13 @@ function BoardSceneFields({ value, references, onChange }: BoardSceneFieldsProps
         />
         <BoardViewportFields value={value} references={references} onChange={onChange} />
         <BoardStormFields value={value} references={references} onChange={onChange} />
-        <Accordion multiple>
+        <Accordion multiple value={ui.sections} onChange={(sections) => setUi((current) => ({ ...current, sections }))}>
           <BoardPlayerFields value={value} references={references} onChange={onChange} />
           <BoardTroopFields value={value} references={references} onChange={onChange} />
-          <BoardHighlightFields value={value} references={references} onChange={onChange} />
+          <RulebookBoardMarkupFields value={value} onChange={onChange} assetsById={references.assetsById} />
+          {!saved || value.highlights.length ? (
+            <BoardHighlightFields value={value} references={references} onChange={onChange} />
+          ) : null}
           <BoardRouteFields value={value} references={references} onChange={onChange} />
           <BoardAnnotationFields value={value} references={references} onChange={onChange} />
         </Accordion>

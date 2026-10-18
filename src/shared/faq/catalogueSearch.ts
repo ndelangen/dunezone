@@ -19,7 +19,7 @@ export const FAQ_CATALOGUE_QUERY_LIMIT = 200;
 export type FaqCatalogueSearch = {
   q?: string;
   tag?: FaqTag;
-  /** Present only past the first page, so the first page has one address. */
+  /** Present only past the first page, so the first page has one address; never alongside `q`, whose matches load more instead of paging. */
   page?: number;
 };
 
@@ -27,10 +27,13 @@ function isFaqTag(value: unknown): value is FaqTag {
   return (FAQ_TAG_VALUES as readonly unknown[]).includes(value);
 }
 
-/** Every field is spread conditionally, so an absent key is absent rather than present and undefined, and a default never reaches the address. */
+/**
+ * Every field is spread conditionally, so an absent key is absent rather than present and undefined, and a default never reaches the address.
+ * A search drops the page: its matches come best first and load more in place, so an old link carrying one opens the search's first matches.
+ */
 export function parseFaqCatalogueSearch(params: Record<string, unknown>): FaqCatalogueSearch {
   const q = typeof params.q === 'string' ? params.q.trim().slice(0, FAQ_CATALOGUE_QUERY_LIMIT).trim() : '';
   const tag = isFaqTag(params.tag) ? params.tag : undefined;
-  const page = parseCataloguePage(params.page);
+  const page = q ? undefined : parseCataloguePage(params.page);
   return { ...(q ? { q } : {}), ...(tag ? { tag } : {}), ...(page ? { page } : {}) };
 }

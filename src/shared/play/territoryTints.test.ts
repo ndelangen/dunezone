@@ -1,5 +1,6 @@
 import { expect, test } from 'vite-plus/test';
 
+import { tintOutlineOpacity } from '../boards/tints';
 import { fitsTintCommand, territoryTintActionSchema, tintPaint } from './territoryTints';
 
 const tintId = 'tint-6f1c1d2e-9a7b-4c3d-8e5f-0a1b2c3d4e5f';
@@ -31,6 +32,9 @@ test('a tint colour is a hex colour, optionally with its fill opacity', () => {
   ).toBe(true);
   expect(tintPaint('#7a3e9d33')).toEqual({ color: '#7a3e9d', opacity: 0.2 });
   expect(tintPaint('#7a3e9d')).toEqual({ color: '#7a3e9d', opacity: 0.5 });
+  /* An outline takes the colour's own see-through amount, and stays solid for a colour without one. */
+  expect(tintOutlineOpacity('#7a3e9d33')).toBe(0.2);
+  expect(tintOutlineOpacity('#7a3e9d')).toBe(1);
   expect(territoryTintActionSchema.safeParse({ kind: 'tint-color', tintId: 'tint-a', color: 'red' }).success).toBe(
     false
   );

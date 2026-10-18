@@ -1,5 +1,6 @@
 import preview from '@sb/preview';
 import { waitForFrame } from '@sb/storyWaits';
+import { FACTION_CATALOGUE_PAGE_SIZE } from '@shared/factions/catalogueSearch';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { db, faction, refText, SEED_REF_TOKEN } from '@db/storybook';
@@ -47,6 +48,50 @@ export const CataloguePaged = meta.story({
     await expect(page.findByText(/^49–61 of 61 factions$/, {}, { timeout: 30_000 })).resolves.toBeVisible();
     const pages = await page.findByLabelText('Faction catalogue pages');
     await expect(within(pages).getByRole('link', { name: '1' })).toHaveAttribute('href', '/factions');
+  },
+});
+
+/** The catalogue's cards, each named by the faction it opens. */
+function factionCards(main: ReturnType<typeof within>, name: RegExp) {
+  return main.getAllByRole('link', { name });
+}
+
+/**
+ * A search shows its best matches and loads more in place: no pages, no count, and the sort is best match alone.
+ * An old link's page and order are dropped, so it opens the search's first matches.
+ * "Load more" lengthens the grid until every match is shown, and hands focus to the first new card.
+ */
+export const CatalogueSearched = meta.story({
+  args: { path: '/factions?q=sietch&page=2&sort=created' },
+  parameters: {
+    database: db((baseline) => {
+      /* One past the first step: the smallest search that has more to load. */
+      for (let index = 1; index <= FACTION_CATALOGUE_PAGE_SIZE + 1; index += 1) {
+        baseline.factions.push(faction({ name: `Sietch ${String(index).padStart(2, '0')}` }));
+      }
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    /* Found on the body, not within a `main` found earlier: the pending frame has a `main` of its own, which the loaded page replaces. */
+    const loadMore = await page.findByRole('button', { name: 'Load more' }, { timeout: 60_000 });
+    const main = within(page.getByRole('main'));
+    await expect(factionCards(main, /Sietch/)).toHaveLength(FACTION_CATALOGUE_PAGE_SIZE);
+    await expect(main.queryByRole('link', { name: /House Atreides/ })).toBeNull();
+    await expect(page.queryByLabelText('Faction catalogue pages')).toBeNull();
+    await expect(page.queryByText(/of \d+ factions/)).toBeNull();
+    await expect(page.getByRole('textbox', { name: 'Search factions' })).toHaveValue('sietch');
+    const sort = page.getByRole('combobox', { name: 'Sort factions' });
+    await expect(sort).toHaveValue('Best match');
+    await expect(sort).toBeDisabled();
+
+    await userEvent.click(loadMore);
+    await waitFor(() => expect(factionCards(main, /Sietch/)).toHaveLength(FACTION_CATALOGUE_PAGE_SIZE + 1), {
+      timeout: 60_000,
+    });
+    await expect(factionCards(main, /Sietch/)[FACTION_CATALOGUE_PAGE_SIZE]).toHaveFocus();
+    await expect(main.getByRole('status')).toHaveTextContent('More factions loaded');
+    await expect(main.queryByRole('button', { name: 'Load more' })).toBeNull();
   },
 });
 

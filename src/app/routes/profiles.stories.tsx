@@ -4,6 +4,7 @@ import { expectFactionColumns } from '@ui/list/factionListPlay';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { db, ref } from '@db/storybook';
+import type { StorybookDatabase } from '@db/storybook';
 
 import { expectFieldValue } from './pagePlay';
 import { pageStoryMeta } from './storybookConfig';
@@ -25,26 +26,32 @@ export const Directory = meta.story({
   },
 });
 
+/** Thirty Fremen beside the viewer, so the directory has more than one page holds. */
+function seedFremen(baseline: StorybookDatabase) {
+  for (let index = 1; index <= 30; index++) {
+    const number = String(index).padStart(2, '0');
+    baseline.users.push({ $key: `fremen-${number}`, name: `Fremen ${number}` });
+    baseline.profiles.push({
+      user_id: ref(`fremen-${number}`),
+      username: `Fremen ${number}`,
+      slug: `fremen-${number}`,
+      avatar_url: null,
+      account_state: 'active',
+      created_at: '2026-01-01T00:00:00Z',
+      updated_at: '2026-01-01T00:00:00Z',
+    });
+  }
+}
+
+/** The directory's rows, each named by the profile it opens. */
+function profileRows(main: ReturnType<typeof within>, name: RegExp) {
+  return main.getAllByRole('link', { name });
+}
+
 /** More profiles than one page holds, so the directory pages them and a search narrows them. */
 export const DirectoryPagesAndSearch = meta.story({
   args: { path: '/profiles?page=2' },
-  parameters: {
-    database: db((baseline) => {
-      for (let index = 1; index <= 30; index++) {
-        const number = String(index).padStart(2, '0');
-        baseline.users.push({ $key: `fremen-${number}`, name: `Fremen ${number}` });
-        baseline.profiles.push({
-          user_id: ref(`fremen-${number}`),
-          username: `Fremen ${number}`,
-          slug: `fremen-${number}`,
-          avatar_url: null,
-          account_state: 'active',
-          created_at: '2026-01-01T00:00:00Z',
-          updated_at: '2026-01-01T00:00:00Z',
-        });
-      }
-    }),
-  },
+  parameters: { database: db(seedFremen) },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const main = within(await page.findByRole('main', {}, { timeout: 30_000 }));
@@ -57,6 +64,38 @@ export const DirectoryPagesAndSearch = meta.story({
     await userEvent.type(page.getByRole('textbox', { name: 'Search profiles' }), 'Fremen 07');
     await expect(main.findByRole('link', { name: /Fremen 07/ }, { timeout: 30_000 })).resolves.toBeVisible();
     await waitFor(() => expect(main.queryByRole('link', { name: /storybook-viewer/ })).toBeNull());
+    /* The search is one short list: no pages and no count. */
+    await expect(page.queryByRole('link', { name: 'First page' })).toBeNull();
+    await expect(page.queryByText(/of \d+ profiles/)).toBeNull();
+  },
+});
+
+/**
+ * A search shows its best matches and loads more in place: no pages, no count, and the sort is best match alone.
+ * An old link's page and order are dropped, so it opens the search's first matches.
+ * "Load more" lengthens the list until every match is shown, and hands focus to the first new row.
+ */
+export const DirectorySearched = meta.story({
+  args: { path: '/profiles?q=fremen&page=2&sort=newest' },
+  parameters: { database: db(seedFremen) },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const main = within(await page.findByRole('main', {}, { timeout: 30_000 }));
+    const loadMore = await main.findByRole('button', { name: 'Load more' }, { timeout: 30_000 });
+    await expect(profileRows(main, /Fremen/)).toHaveLength(24);
+    await expect(main.queryByRole('link', { name: /storybook-viewer/ })).toBeNull();
+    await expect(page.queryByLabelText('Profile pages')).toBeNull();
+    await expect(page.queryByText(/of \d+ profiles/)).toBeNull();
+    await expect(page.getByRole('textbox', { name: 'Search profiles' })).toHaveValue('fremen');
+    const sort = page.getByRole('combobox', { name: 'Sort' });
+    await expect(sort).toHaveValue('Best match');
+    await expect(sort).toBeDisabled();
+
+    await userEvent.click(loadMore);
+    await waitFor(() => expect(profileRows(main, /Fremen/)).toHaveLength(30), { timeout: 30_000 });
+    await expect(profileRows(main, /Fremen/)[24]).toHaveFocus();
+    await expect(main.getByRole('status')).toHaveTextContent('More profiles loaded');
+    await expect(main.queryByRole('button', { name: 'Load more' })).toBeNull();
   },
 });
 /**

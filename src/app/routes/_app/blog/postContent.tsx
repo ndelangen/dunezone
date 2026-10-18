@@ -1,9 +1,11 @@
-import { UnstyledButton } from '@mantine/core';
+import { Anchor, UnstyledButton } from '@mantine/core';
+import type { AnchorProps } from '@mantine/core';
 import { resolveAsset } from '@shared/media/resolveAsset';
+import { createLink } from '@tanstack/react-router';
 import { PublishedImage } from '@ui/content/PublishedImage';
 import { Play } from 'lucide-react';
-import { useState } from 'react';
-import type { CSSProperties, ReactNode } from 'react';
+import { forwardRef, useState } from 'react';
+import type { ComponentPropsWithoutRef, CSSProperties, ReactNode } from 'react';
 
 import styles from './postContent.module.css';
 
@@ -25,6 +27,19 @@ export function Lead({ children }: { children: ReactNode }) {
 export function Paragraph({ children }: { children: ReactNode }) {
   return <p className={styles.paragraph}>{children}</p>;
 }
+
+const PostAnchor = forwardRef<HTMLAnchorElement, AnchorProps & ComponentPropsWithoutRef<'a'>>(
+  function PostAnchor(props, ref) {
+    return <Anchor ref={ref} {...props} />;
+  }
+);
+
+/**
+ * A link from a post to another page on the site, drawn as the themed anchor.
+ * It takes the router's own `to` and `params`, so a link to a page that does not exist fails the type check;
+ * an `Anchor` whose `renderRoot` spreads its props into a `Link` is not checked, because Mantine types those props as `any`.
+ */
+export const PostLink = createLink(PostAnchor);
 
 type FigureProps = Readonly<{
   imageKey: string;
