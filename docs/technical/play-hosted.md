@@ -158,7 +158,9 @@ an admitted player's room never asks Convex about them again (decided with Norbe
    acknowledges it. The push retries until acknowledged, backing off to one minute, and stops once
    every pass it could end has expired. Account deletion keeps its own durable push; a deletion for
    an account the room has never seen leaves a `[deleted user]` row that keeps a later pass out. Deletion also reaches
-   creators of games from before creators were enrolled, through a routing row its fan-out adds. A
+   creators of games from before creators were enrolled, through a routing row its fan-out adds; a
+   creator deleted before seat passes, whom no deletion reached, is removed by the one account
+   reconciliation each room runs in the background on its first pass admission after it starts. A
    game that expired before Convex confirmed it may still have a room that stored its creator, so its
    deletion asks that room to retire, which only an unconfirmed room or the hosted fixture accepts,
    and settles once the room answers empty.

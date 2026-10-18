@@ -35,7 +35,7 @@ describe('Seat passes admit players without the room asking Convex about them', 
     return connection;
   }
 
-  it('seats the creator from a pass and plays with no ticket, watch or account check', async () => {
+  it('seats the creator from a pass and plays with no ticket, watch or per-admission account check', async () => {
     const a = await admitWithPass(runtime, 'a');
     const view = await syncView(a);
     expect(view.viewer).toMatchObject({ userId: 'user-a', displayName: 'Synthetic A', viewerSeat: 'seat-1' });
@@ -44,14 +44,27 @@ describe('Seat passes admit players without the room asking Convex about them', 
       gameId: 'fixture-game',
       userId: 'user-a',
     });
-    for (const name of [
-      'playAdmission:redeemTicket',
-      'playAdmission:watchAuthorizations',
-      'playAdmission:reconcileAccounts',
-    ]) {
+    for (const name of ['playAdmission:redeemTicket', 'playAdmission:watchAuthorizations']) {
       expect(calls(name)).toEqual([]);
     }
     expect(peer.connections).toEqual([]);
+    /* Only the first pass admission since the room started reconciles its accounts, once. */
+    await eventually(() => calls('playAdmission:reconcileAccounts').length === 1, 'one account sweep');
+    await syncView(await admitWithPass(runtime, 'b'));
+    expect(calls('playAdmission:reconcileAccounts')).toHaveLength(1);
+  });
+
+  it('removes a creator deleted before seat passes, whom no deletion reached, on the first pass admission', async () => {
+    peer.deletedAccounts.add('user-a');
+    const b = await admitWithPass(runtime, 'b');
+    await eventually(async () => {
+      const [{ data }] = await runtime.exec<{ data: string }>('SELECT data FROM metadata');
+      return (
+        (JSON.parse(data) as { game?: { creator: { displayName: string } } }).game?.creator.displayName ===
+        '[deleted user]'
+      );
+    }, 'the deleted creator scrubbed');
+    expect(JSON.stringify((await syncView(b)).snapshot)).not.toContain('Synthetic A');
   });
 
   it('refuses a forged pass, one for another game, and closes an expired one as a ticket that ran out', async () => {

@@ -269,6 +269,8 @@ export class GameRoom extends DurableObject<GameEnv> {
   private sweepTimer: ReturnType<typeof setInterval> | undefined;
   private reconcilePromise: Promise<void> | undefined;
   private reconciled = false;
+  /* Whether this room instance has reconciled its accounts once since it started, as the first pass admission asks. */
+  private sweptAccounts = false;
   private reconcileUntil = 0;
   private nextReconcileAt = 0;
   private reconcileFailures = 0;
@@ -1099,7 +1101,25 @@ export class GameRoom extends DurableObject<GameEnv> {
     /* Unknown reads as at the limit, so a seat request waits for the answer rather than slipping past it. */
     connection.seatLimitReached = true;
     void this.readSeatLimit(connection);
+    this.sweepAccountsOnce();
     this.authorizationChanged();
+  }
+
+  /*
+   * A room from before seat passes can still hold an account deleted while no routing row reached it, which only a ticket admission's reconciliation used to remove.
+   * Pass admissions never wait on it: the first one after each start reconciles in the background, and a failure leaves the next one to try again.
+   */
+  private sweepAccountsOnce() {
+    if (this.sweptAccounts) {
+      return;
+    }
+    this.sweptAccounts = true;
+    void this.reconcileAccounts().then(
+      () => this.authorizationChanged(),
+      () => {
+        this.sweptAccounts = false;
+      }
+    );
   }
 
   /** A fresher pass for an admitted connection: it must name the same game, account and actor, and may arrive after the old one expired. */
