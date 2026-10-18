@@ -334,6 +334,24 @@ export type CatalogueSearchSelection = {
   capped: boolean;
 };
 
+/* How many steps of its page size one search shows at most: each row reads its own source, so a reactive answer stays small, and a reader past it is better served by another word. */
+const CATALOGUE_SEARCH_STEPS = 10;
+
+/** The rows a search asks for: at least one, at most the ceiling of ten steps. */
+export function catalogueSearchLimit(limit: number | undefined, step: number) {
+  const rows = limit !== undefined && Number.isSafeInteger(limit) && limit > 0 ? limit : step;
+  return Math.min(step * CATALOGUE_SEARCH_STEPS, rows);
+}
+
+/**
+ * A selection as the page reports it once the ceiling is reached: nothing more to load, and matches past it may exist that no limit reaches.
+ * `limit` is the clamped one the selection was read with.
+ */
+export function catalogueSearchReach(selection: CatalogueSearchSelection, limit: number, step: number) {
+  const atCeiling = selection.hasMore && limit >= step * CATALOGUE_SEARCH_STEPS;
+  return { hasMore: selection.hasMore && !atCeiling, capped: selection.capped || atCeiling };
+}
+
 /* How many candidates one pull reads per match still wanted, for those the filters drop. */
 const SEARCH_READ_HEADROOM = 2;
 

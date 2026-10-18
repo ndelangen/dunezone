@@ -13,7 +13,14 @@ import type { Doc, Id } from '../_generated/dataModel';
 import type { QueryCtx } from '../types';
 import { catalogueEditedAt, catalogueNameKey, catalogueSearchText, catalogueTimestamp } from './catalogueEntryShape';
 import type { CatalogueKind } from './catalogueEntryShape';
-import { ALL_PARTITION, countCataloguePartitions, selectCataloguePage } from './catalogueOrder';
+import {
+  ALL_PARTITION,
+  catalogueSearchLimit,
+  catalogueSearchReach,
+  countCataloguePartitions,
+  selectCataloguePage,
+  selectCatalogueSearch,
+} from './catalogueOrder';
 import type { CatalogueDirection, CatalogueSort } from './catalogueOrder';
 import type { catalogueFactionValidator } from './collaborativeAccessValidators';
 import { parseStoredFactionForRead } from './factionInput';
@@ -358,37 +365,35 @@ async function selectSpotlightEntries(ctx: QueryCtx) {
 }
 
 /**
- * One page of the Faction catalogue, the same for every viewer.
- * The aggregate counts the list and finds the page's first entry;
- * a search uses Convex's search index over the same entries.
- * Only the visible cards and the two spotlights read card rows.
- * A page past the end answers with no cards and the real page count, so the reader can be told where the catalogue ends.
+ * What every catalogue answer carries beside its rows: the live rulesets with their faction counts, the whole catalogue's count, and the two spotlight entries.
+ * An unknown or deleted ruleset narrows nothing;
+ * the route drops it from the address.
  */
-export async function loadFactionCataloguePage(ctx: QueryCtx, query: FactionCatalogueQuery) {
+async function loadCatalogueFurniture(ctx: QueryCtx, query: FactionCatalogueQuery) {
   const rulesets = await listActiveRulesetSummaries(ctx);
-  const activeRulesetById = new Map<string, FactionRulesetSummary>(rulesets.map((ruleset) => [ruleset.id, ruleset]));
-  /* An unknown or deleted ruleset narrows nothing; the route drops it from the address. */
   const partition = rulesets.find((ruleset) => ruleset.slug === query.ruleset)?.id ?? ALL_PARTITION;
-  const complexity = query.complexity ? parseComplexityRange(query.complexity) : undefined;
-  const text = query.q?.slice(0, FACTION_CATALOGUE_QUERY_LIMIT).trim() ?? '';
-  const page = parseCataloguePage(query.page) ?? 1;
-
-  const [selection, counts, spotlightEntries] = await Promise.all([
-    selectCataloguePage(ctx, {
-      kind: 'faction',
-      partition,
-      ...catalogueOrderOf(query.sort),
-      page,
-      pageSize: FACTION_CATALOGUE_PAGE_SIZE,
-      search: text ? { text, relevance: !query.sort } : undefined,
-      complexity,
-    }),
+  const [counts, spotlightEntries] = await Promise.all([
     countCataloguePartitions(ctx, 'faction', [ALL_PARTITION, ...rulesets.map((ruleset) => ruleset.id)]),
     selectSpotlightEntries(ctx),
   ]);
   const [catalogueTotal = 0, ...rulesetCounts] = counts;
+  return {
+    partition,
+    complexity: query.complexity ? parseComplexityRange(query.complexity) : undefined,
+    text: query.q?.slice(0, FACTION_CATALOGUE_QUERY_LIMIT).trim() ?? '',
+    catalogueTotal,
+    rulesets: rulesets.map((ruleset, index) => ({ ...ruleset, factionCount: rulesetCounts[index] ?? 0 })),
+    spotlightEntries,
+  };
+}
 
-  const card = async (entry: { source_id: string; facets: string[] } | null) => {
+/** Reads the card an entry stands for, naming only its live rulesets, name then id. */
+function factionCardReader(ctx: QueryCtx, rulesets: FactionRulesetSummary[]) {
+  /* A card cites a ruleset by its summary alone, not by the count the toolbar's list carries. */
+  const activeRulesetById = new Map<string, FactionRulesetSummary>(
+    rulesets.map(({ id, slug, name }) => [id, { id, slug, name }])
+  );
+  return async (entry: { source_id: string; facets: string[] } | null) => {
     const factionId = entry ? ctx.db.normalizeId('factions', entry.source_id) : null;
     const row = factionId
       ? await ctx.db
@@ -412,21 +417,76 @@ export async function loadFactionCataloguePage(ctx: QueryCtx, query: FactionCata
         .sort(compareRulesets)
     );
   };
+}
+
+/** The cards of the selected entries and of the two spotlights, read together. */
+async function loadCards(
+  ctx: QueryCtx,
+  furniture: Awaited<ReturnType<typeof loadCatalogueFurniture>>,
+  entries: { source_id: string; facets: string[] }[]
+) {
+  const card = factionCardReader(ctx, furniture.rulesets);
   const [cards, newArrival, freshlyUpdated] = await Promise.all([
-    Promise.all(selection.entries.map((entry) => card(entry))),
-    card(spotlightEntries.newArrival),
-    card(spotlightEntries.freshlyUpdated),
+    Promise.all(entries.map((entry) => card(entry))),
+    card(furniture.spotlightEntries.newArrival),
+    card(furniture.spotlightEntries.freshlyUpdated),
   ]);
+  return { cards: cards.filter((faction) => faction != null), spotlights: { newArrival, freshlyUpdated } };
+}
+
+/**
+ * One page of the Faction catalogue, the same for every viewer.
+ * The aggregate counts the list and finds the page's first entry;
+ * a search uses Convex's search index over the same entries.
+ * Only the visible cards and the two spotlights read card rows.
+ * A page past the end answers with no cards and the real page count, so the reader can be told where the catalogue ends.
+ */
+export async function loadFactionCataloguePage(ctx: QueryCtx, query: FactionCatalogueQuery) {
+  const furniture = await loadCatalogueFurniture(ctx, query);
+  const { partition, complexity, text, catalogueTotal, rulesets } = furniture;
+  const page = parseCataloguePage(query.page) ?? 1;
+  const selection = await selectCataloguePage(ctx, {
+    kind: 'faction',
+    partition,
+    ...catalogueOrderOf(query.sort),
+    page,
+    pageSize: FACTION_CATALOGUE_PAGE_SIZE,
+    search: text ? { text, relevance: !query.sort } : undefined,
+    complexity,
+  });
+  const { cards, spotlights } = await loadCards(ctx, furniture, selection.entries);
 
   return {
-    cards: cards.filter((faction) => faction != null),
+    cards,
     total: selection.total,
     catalogueTotal,
     complete: selection.exact,
     page,
     pageCount: Math.max(1, Math.ceil(selection.total / FACTION_CATALOGUE_PAGE_SIZE)),
     pageSize: FACTION_CATALOGUE_PAGE_SIZE,
-    rulesets: rulesets.map((ruleset, index) => ({ ...ruleset, factionCount: rulesetCounts[index] ?? 0 })),
-    spotlights: { newArrival, freshlyUpdated },
+    rulesets,
+    spotlights,
+  };
+}
+
+/**
+ * The best factions matching a search, the same for every viewer, with whether there are more: no count and no pages, and "Load more" asks again with a larger limit.
+ * The ruleset is the list searched and the complexity range still narrows it.
+ */
+export async function loadFactionCatalogueSearch(ctx: QueryCtx, query: FactionCatalogueQuery & { limit?: number }) {
+  const furniture = await loadCatalogueFurniture(ctx, query);
+  const { partition, complexity, text, catalogueTotal, rulesets } = furniture;
+  const limit = catalogueSearchLimit(query.limit, FACTION_CATALOGUE_PAGE_SIZE);
+  const selection = await selectCatalogueSearch(ctx, { kind: 'faction', partition, text, limit, complexity });
+  const { cards, spotlights } = await loadCards(ctx, furniture, selection.entries);
+
+  return {
+    mode: 'search' as const,
+    cards,
+    ...catalogueSearchReach(selection, limit, FACTION_CATALOGUE_PAGE_SIZE),
+    limit,
+    catalogueTotal,
+    rulesets,
+    spotlights,
   };
 }

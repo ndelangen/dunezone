@@ -84,13 +84,25 @@ export type FactionCatalogueArgs = FunctionArgs<typeof api.factions.catalogue>;
 /** A ruleset the catalogue can narrow to, with how many live factions it holds. */
 export type FactionCatalogueRuleset = FactionCatalogueRaw['rulesets'][number];
 
-export type FactionCataloguePageData = Omit<FactionCatalogueRaw, 'cards' | 'spotlights'> & {
-  cards: FactionCatalogueEntry[];
-  spotlights: {
-    newArrival: FactionCatalogueEntry | null;
-    freshlyUpdated: FactionCatalogueEntry | null;
-  };
-};
+/** A catalogue answer with its cards parsed at the client boundary; distributive, so each shape keeps its own fields. */
+type ParsedCatalogue<Raw> = Raw extends unknown
+  ? Omit<Raw, 'cards' | 'spotlights'> & {
+      cards: FactionCatalogueEntry[];
+      spotlights: {
+        newArrival: FactionCatalogueEntry | null;
+        freshlyUpdated: FactionCatalogueEntry | null;
+      };
+    }
+  : never;
+
+/** A browsed page of the catalogue: counts, numbered pages, a chosen order. */
+export type FactionCatalogueBrowseData = ParsedCatalogue<Exclude<FactionCatalogueRaw, { mode: 'search' }>>;
+
+/** A searched catalogue: the best matches first, and more by asking for a larger limit. */
+export type FactionCatalogueSearchData = ParsedCatalogue<Extract<FactionCatalogueRaw, { mode: 'search' }>>;
+
+/** What `factions.catalogue` answers, parsed: a browsed page, or a search, told apart by `mode`. */
+export type FactionCataloguePageData = FactionCatalogueBrowseData | FactionCatalogueSearchData;
 
 function toFactionEntry(entry: FactionRow): FactionEntry {
   return {

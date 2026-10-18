@@ -1,6 +1,6 @@
 import { ConvexError, v } from 'convex/values';
 
-import { FACTION_CATALOGUE_SORTS } from '../src/shared/factions/catalogueSearch';
+import { FACTION_CATALOGUE_QUERY_LIMIT, FACTION_CATALOGUE_SORTS } from '../src/shared/factions/catalogueSearch';
 import { factionExtraKey, storedFactionExtrasSchema } from '../src/shared/factions/extras';
 import type { FactionExtra } from '../src/shared/factions/extras';
 import type { Doc, Id } from './_generated/dataModel';
@@ -25,6 +25,7 @@ import { resolveGroupAssignmentForCreation } from './lib/defaultGroupPreference'
 import {
   loadFactionCatalogue,
   loadFactionCataloguePage,
+  loadFactionCatalogueSearch,
   selectFactionCatalogueSpotlights,
 } from './lib/factionCatalogue';
 import { factionDataValidator } from './lib/factionData';
@@ -204,8 +205,51 @@ export const cataloguePage = publicQuery({
 
 const catalogueSortValidator = v.union(...FACTION_CATALOGUE_SORTS.map((sort) => v.literal(sort)));
 
+const catalogueSpotlightsValidator = v.object({
+  newArrival: v.union(catalogueFactionValidator, v.null()),
+  freshlyUpdated: v.union(catalogueFactionValidator, v.null()),
+});
+
+const catalogueRulesetsValidator = v.array(rulesetSummaryValidator.extend({ factionCount: v.number() }));
+
+/** A browsed page: aggregate counts, numbered pages, a chosen order. */
+const catalogueBrowseValidator = v.object({
+  cards: v.array(catalogueFactionValidator),
+  /** Factions matching the search and filters, across every page. */
+  total: v.number(),
+  /** Live factions in the catalogue, before any search or filter. */
+  catalogueTotal: v.number(),
+  /** False once the catalogue outgrows the entries one query reads; totals and the last pages are then short. */
+  complete: v.boolean(),
+  /** The page these cards are, which may lie past `pageCount`, with no cards. */
+  page: v.number(),
+  pageCount: v.number(),
+  pageSize: v.number(),
+  rulesets: catalogueRulesetsValidator,
+  spotlights: catalogueSpotlightsValidator,
+});
+
+/** A searched catalogue: the best matches first, no count and no pages, and more by asking for a larger limit. */
+const catalogueSearchValidator = v.object({
+  mode: v.literal('search'),
+  cards: v.array(catalogueFactionValidator),
+  /** Whether a larger limit would show more factions. */
+  hasMore: v.boolean(),
+  /** Whether more factions may match than one search shows, so the reader should add a word rather than load more. */
+  capped: v.boolean(),
+  /** The limit these cards answer, after clamping. */
+  limit: v.number(),
+  /** Live factions in the catalogue, before any search or filter. */
+  catalogueTotal: v.number(),
+  rulesets: catalogueRulesetsValidator,
+  spotlights: catalogueSpotlightsValidator,
+});
+
 /**
- * One page of the Faction catalogue, the same for every viewer: the route's search parameters in, the visible cards and the counts out.
+ * The Faction catalogue, the same for every viewer: the route's search parameters in, the visible cards and the counts out.
+ * A search with a `limit` is the load-more search;
+ * without one it is browsed, in pages.
+ * A searched `q` without `limit` is an old bundle's paged search, kept one release for the bundle deployed before this and dropped in the contract release.
  * Replaces `cataloguePage`, which stays for one release so a bundle still asking for it keeps working while this one deploys.
  */
 export const catalogue = publicQuery({
@@ -215,26 +259,15 @@ export const catalogue = publicQuery({
     complexity: v.optional(v.string()),
     sort: v.optional(catalogueSortValidator),
     page: v.optional(v.number()),
+    /** How many of the best matches to return; Load more asks again with a larger one. */
+    limit: v.optional(v.number()),
   },
-  returns: v.object({
-    cards: v.array(catalogueFactionValidator),
-    /** Factions matching the search and filters, across every page. */
-    total: v.number(),
-    /** Live factions in the catalogue, before any search or filter. */
-    catalogueTotal: v.number(),
-    /** False once the catalogue outgrows the entries one query reads; totals and the last pages are then short. */
-    complete: v.boolean(),
-    /** The page these cards are, which may lie past `pageCount`, with no cards. */
-    page: v.number(),
-    pageCount: v.number(),
-    pageSize: v.number(),
-    rulesets: v.array(rulesetSummaryValidator.extend({ factionCount: v.number() })),
-    spotlights: v.object({
-      newArrival: v.union(catalogueFactionValidator, v.null()),
-      freshlyUpdated: v.union(catalogueFactionValidator, v.null()),
-    }),
-  }),
-  handler: async (ctx, args) => await loadFactionCataloguePage(ctx, args),
+  returns: v.union(catalogueBrowseValidator, catalogueSearchValidator),
+  handler: async (ctx, args) =>
+    /* Gated on the text the search runs, so a query that is blank once cut to length browses instead. */
+    args.q?.slice(0, FACTION_CATALOGUE_QUERY_LIMIT).trim() && args.limit !== undefined
+      ? await loadFactionCatalogueSearch(ctx, args)
+      : await loadFactionCataloguePage(ctx, args),
 });
 
 /** Factions + resolved group/owner labels and the caller's group memberships for the load picker. */

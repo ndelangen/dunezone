@@ -5,7 +5,13 @@ import { FAQ_CATALOGUE_PAGE_SIZE, FAQ_CATALOGUE_QUERY_LIMIT } from '../../src/sh
 import { FAQ_SEARCH_RULESET_LIMIT } from '../../src/shared/faq/globalSearch';
 import type { Doc } from '../_generated/dataModel';
 import type { QueryCtx } from '../types';
-import { ALL_PARTITION, countCataloguePartitions, selectCatalogueSearch } from './catalogueOrder';
+import {
+  ALL_PARTITION,
+  catalogueSearchLimit,
+  catalogueSearchReach,
+  countCataloguePartitions,
+  selectCatalogueSearch,
+} from './catalogueOrder';
 import { faqListItemValidator } from './collaborativeAccessValidators';
 import { faqEntryRulesetId, faqRulesetPartition } from './faqCatalogue';
 import { faqItemsOfEntries, projectFaqListItems } from './faqRulesetList';
@@ -112,15 +118,6 @@ async function citeRulesets(items: Awaited<ReturnType<typeof projectFaqListItems
   });
 }
 
-/* The most questions one search shows: each row reads its answers and asker, so a reactive answer stays small, and a reader past it is better served by another word. */
-const FAQ_SEARCH_ROW_CEILING = FAQ_CATALOGUE_PAGE_SIZE * 10;
-
-/** The rows a search asks for: at least one, at most the ceiling. */
-function rowLimit(limit: number | undefined) {
-  const rows = limit !== undefined && Number.isSafeInteger(limit) && limit > 0 ? limit : FAQ_CATALOGUE_PAGE_SIZE;
-  return Math.min(FAQ_SEARCH_ROW_CEILING, rows);
-}
-
 /**
  * The best questions matching a search across rulesets, the same for every viewer, with whether there are more.
  * Picked rulesets are searched in their own lists, taken in turn, so one ruleset's matches never crowd out another's;
@@ -129,7 +126,7 @@ function rowLimit(limit: number | undefined) {
 export async function loadGlobalFaqPage(ctx: QueryCtx, args: { q?: string; rulesets?: string[]; limit?: number }) {
   const picked = await loadPickedRulesets(ctx, args.rulesets ?? []);
   const text = (args.q ?? '').slice(0, FAQ_CATALOGUE_QUERY_LIMIT).trim();
-  const limit = rowLimit(args.limit);
+  const limit = catalogueSearchLimit(args.limit, FAQ_CATALOGUE_PAGE_SIZE);
   const base = {
     selected: picked.map((ruleset) => ruleset.slug).sort(compareCodeUnits),
     searched: text !== '',
@@ -149,11 +146,9 @@ export async function loadGlobalFaqPage(ctx: QueryCtx, args: { q?: string; rules
     keep: picked.length > 0 ? undefined : keepLiveRulesets(rulesetOf),
   });
   const items = await projectFaqListItems(ctx, await faqItemsOfEntries(ctx, selection.entries));
-  const atCeiling = selection.hasMore && limit >= FAQ_SEARCH_ROW_CEILING;
   return {
     ...base,
     items: await citeRulesets(items, rulesetOf),
-    hasMore: selection.hasMore && !atCeiling,
-    capped: selection.capped || atCeiling,
+    ...catalogueSearchReach(selection, limit, FAQ_CATALOGUE_PAGE_SIZE),
   };
 }
