@@ -36,9 +36,13 @@ const SEARCH_STEP = FAQ_CATALOGUE_PAGE_SIZE;
 /** The list's rows, as the kit renders them: each is the link that opens its question. */
 const QUESTION_ROW = 'tr[role="link"]';
 
-/** The page query's arguments for a parsed address; every key is spelled out so the loader deps compare equal however the address was written. */
+/**
+ * The page query's arguments for an address, parsed again since the router keeps a parameter the parser dropped, such as an old link's page beside a search;
+ * every key is spelled out so the loader deps compare equal however the address was written.
+ */
 function faqDeps(search: FaqCatalogueSearch) {
-  return { q: search.q, tag: search.tag, page: search.page };
+  const parsed = parseFaqCatalogueSearch(search);
+  return { q: parsed.q, tag: parsed.tag, page: parsed.page };
 }
 
 /** What one FAQ page asks for before its limit: the ruleset and the parsed address. */
