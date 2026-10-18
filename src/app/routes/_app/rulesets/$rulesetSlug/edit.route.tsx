@@ -517,8 +517,7 @@ function RulesetFactions({ rulesetId, rulesetName }: { rulesetId: RulesetEntry['
           {ordered?.hasMore ? (
             <Button
               variant="default"
-              disabled={answered === undefined}
-              onClick={() => setLimit((current) => current + FACTION_LIST_STEP)}
+              onClick={() => setLimit((current) => (answered === undefined ? current : current + FACTION_LIST_STEP))}
             >
               Load more
             </Button>

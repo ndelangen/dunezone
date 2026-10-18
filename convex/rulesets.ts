@@ -309,7 +309,7 @@ export const addFaction = mutation({
     if (!existing) {
       const links = await ctx.db
         .query('ruleset_factions')
-        .withIndex('by_ruleset', (q) => q.eq('ruleset_id', args.ruleset_id))
+        .withIndex('by_ruleset_position', (q) => q.eq('ruleset_id', args.ruleset_id))
         .take(RULESET_FACTION_LIMIT);
       if (links.length === RULESET_FACTION_LIMIT) {
         throw new Error(`A ruleset holds at most ${RULESET_FACTION_LIMIT} factions.`);

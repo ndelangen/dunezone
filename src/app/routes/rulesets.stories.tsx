@@ -167,21 +167,33 @@ export const EditFactionOrder = meta.story({
     await expect(list.getByRole('button', { name: 'Remove Duncan from ClassicRules' })).toBeVisible();
 
     const handle = list.getByRole('button', { name: 'Move House Atreides' });
-    /* As in the sortable list's own story: let the runner's late resize land before the pickup, since dnd-kit cancels a drag on resize (#2309). */
-    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
-    handle.focus();
-    await userEvent.keyboard('[Space]');
-    await waitFor(() => expect(handle).toHaveAttribute('aria-pressed', 'true'));
-    await userEvent.keyboard('[ArrowDown]');
+    const announced = (text: string) => page.queryByText(text) !== null;
     /*
-     * Drop only once the drag is over the next row and stays there:
-     * the pickup's own row is announced first, and without the pause the drop landed back on the dragged row in every run, as the keyboard sensor's target had not settled.
+     * dnd-kit cancels a drag on any window resize (#2309), and this page can still be resizing in CI, so a cancelled drag is tried again; the list's own order decides the result.
+     * Before each drop the drag must be over the next row and stay there: the pickup's own row is announced first, and without the pause the drop landed back on the dragged row in every run, as the keyboard sensor's target had not settled.
      */
-    const overSecondRow = () => expect(page.getByText('House Atreides is over position 2 of 3.')).toBeInTheDocument();
-    await waitFor(overSecondRow);
-    await new Promise<void>((resolve) => setTimeout(resolve, 300));
-    await waitFor(overSecondRow);
-    await userEvent.keyboard('[Space]');
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      handle.focus();
+      await userEvent.keyboard('[Space]');
+      await waitFor(() => expect(handle).toHaveAttribute('aria-pressed', 'true'));
+      await userEvent.keyboard('[ArrowDown]');
+      await waitFor(() => expect(announced('House Atreides is over position 2 of 3.')).toBe(true));
+      await new Promise<void>((resolve) => setTimeout(resolve, 300));
+      if (announced('Moving House Atreides was cancelled.')) {
+        continue;
+      }
+      await userEvent.keyboard('[Space]');
+      await waitFor(() =>
+        expect(
+          announced('House Atreides was dropped at position 2 of 3.') ||
+            announced('Moving House Atreides was cancelled.')
+        ).toBe(true)
+      );
+      if (announced('House Atreides was dropped at position 2 of 3.')) {
+        break;
+      }
+    }
     await waitFor(() => expect(names()).toEqual(['Choam', 'House Atreides', 'Duncan']), { timeout: 30_000 });
   },
 });
