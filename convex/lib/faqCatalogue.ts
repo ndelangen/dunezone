@@ -16,6 +16,11 @@ export function faqRulesetPartition(rulesetId: Id<'rulesets'>) {
   return rulesetId as string;
 }
 
+/** The ruleset a question's entry belongs to: its one facet that is a ruleset's own list, as every other facet names a ruleset and something more. */
+export function faqEntryRulesetId(facets: readonly string[]) {
+  return facets.find((facet) => !facet.includes(':'));
+}
+
 /** The list of one ruleset's questions carrying one tag. */
 export function faqTagPartition(rulesetId: Id<'rulesets'>, tag: FaqTag) {
   return `${rulesetId}:tag:${tag}`;

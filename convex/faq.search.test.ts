@@ -63,13 +63,14 @@ const found = (page: { items: { question: string; ruleset: { slug: string } }[] 
   page.items.map((item) => `${item.ruleset.slug}: ${item.question}`).toSorted();
 
 describe('the global FAQ', () => {
-  test('before a search, offers only the rulesets that hold questions, by name, with their counts', async () => {
+  test('before a search, finds nothing, and offers only the rulesets that hold questions, by name, with their counts', async () => {
     const t = applicationTest();
     await seedRulesets(t, { Basic: ['Does the storm move?'], Advanced: ['Can I ship?', 'Can I revive?'], Empty: [] });
 
     const page = await t.query(api.faq.search, {});
     expect(page).toMatchObject({ searched: false, items: [], total: 0, page: 1, pageCount: 1, selected: [] });
-    expect(page.rulesets.map(({ slug, questions }) => [slug, questions])).toEqual([
+    const options = await t.query(api.faq.rulesetOptions, {});
+    expect(options.map(({ slug, questions }) => [slug, questions])).toEqual([
       ['advanced', 2],
       ['basic', 1],
     ]);
@@ -94,7 +95,7 @@ describe('the global FAQ', () => {
     expect(found(await t.query(api.faq.search, { q: 'storm fremen', rulesets: ['basic', 'expansion'] }))).toEqual([
       'expansion: Is the storm deadly to Fremen?',
     ]);
-    /* A slug that names no ruleset with questions is dropped, and with none left the search covers every ruleset. */
+    /* A slug that names no live ruleset is dropped, and with none left the search covers every ruleset. */
     const unknown = await t.query(api.faq.search, { q: 'worms', rulesets: ['nowhere'] });
     expect(unknown.selected).toEqual([]);
     expect(found(unknown)).toEqual(['basic: Can Fremen ride worms?']);
@@ -102,15 +103,26 @@ describe('the global FAQ', () => {
 
   test("leaves out a deleted ruleset's questions", async () => {
     const t = applicationTest();
-    const ids = await seedRulesets(t, { Basic: ['Does the storm move?'], Gone: ['Is the storm gone?'] });
+    const ids = await seedRulesets(t, {
+      Basic: ['Does the storm move?'],
+      Gone: ['Is the storm gone?'],
+      Other: ['Storm again?'],
+    });
     await t.run(async (ctx) => {
       await ctx.db.patch(ids.gone!, { is_deleted: true });
     });
 
     const page = await t.query(api.faq.search, { q: 'storm' });
-    expect(found(page)).toEqual(['basic: Does the storm move?']);
-    expect(page.rulesets.map((ruleset) => ruleset.slug)).toEqual(['basic']);
-    expect((await t.query(api.faq.search, { q: 'storm', rulesets: ['gone'] })).selected).toEqual([]);
+    expect(found(page)).toEqual(['basic: Does the storm move?', 'other: Storm again?']);
+    expect((await t.query(api.faq.rulesetOptions, {})).map((ruleset) => ruleset.slug)).toEqual(['basic', 'other']);
+    const picked = await t.query(api.faq.search, { q: 'storm', rulesets: ['gone', 'basic'] });
+    expect(picked.selected).toEqual(['basic']);
+    expect(found(picked)).toEqual(['basic: Does the storm move?']);
+    /* Two picked rulesets search the list of every question, which still leaves the deleted one out. */
+    expect(found(await t.query(api.faq.search, { q: 'storm', rulesets: ['basic', 'other', 'gone'] }))).toEqual([
+      'basic: Does the storm move?',
+      'other: Storm again?',
+    ]);
   });
 
   test('pages the matches with a page count, across rulesets', async () => {

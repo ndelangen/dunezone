@@ -165,8 +165,8 @@ export type CataloguePageRequest = {
   search?: { text: string; relevance: boolean };
   /** An inclusive range of `complexity_score`, 0 to 10. */
   complexity?: [number, number];
-  /** Keeps only the entries it accepts, such as those in one of several lists; the aggregate cannot count these, so the page is bounded. */
-  keep?: (entry: Entry) => boolean;
+  /** Keeps only the matches it returns, such as those in one of several lists, in their order; the aggregate cannot count these, so the page is bounded. */
+  keep?: (matches: Entry[]) => Promise<Entry[]>;
 };
 
 export type CataloguePageSelection = {
@@ -281,14 +281,14 @@ function boundedMatches(read: Entry[], request: CataloguePageRequest) {
   const inRange = range
     ? read.filter((entry) => entry.complexity_score >= range[0] && entry.complexity_score <= range[1])
     : read;
-  const kept = request.keep ? inRange.filter(request.keep) : inRange;
-  return request.search ? kept.filter(matchesEveryWord(request.search.text)) : kept;
+  return request.search ? inRange.filter(matchesEveryWord(request.search.text)) : inRange;
 }
 
 /** At most `CATALOGUE_BOUNDED_READ` matches, ordered and paged in memory. */
 async function boundedPage(ctx: QueryCtx, request: CataloguePageRequest, offset: number) {
   const read = await readBounded(ctx, request);
-  const matches = boundedMatches(read, request);
+  const matched = boundedMatches(read, request);
+  const matches = request.keep ? await request.keep(matched) : matched;
   if (!request.search?.relevance) {
     matches.sort(compareBy(request.sort, request.direction));
   }

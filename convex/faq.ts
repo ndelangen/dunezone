@@ -9,7 +9,12 @@ import { internalMutation, mutation, publicQuery, viewerQuery } from './function
 import { selectCataloguePage } from './lib/catalogueOrder';
 import { faqListItemValidator } from './lib/collaborativeAccessValidators';
 import { faqRulesetPartition, faqTagPartition } from './lib/faqCatalogue';
-import { globalFaqPageValidator, loadGlobalFaqPage } from './lib/faqGlobalSearch';
+import {
+  globalFaqPageValidator,
+  globalFaqRulesetOptionsValidator,
+  loadGlobalFaqPage,
+  loadGlobalFaqRulesetOptions,
+} from './lib/faqGlobalSearch';
 import { faqQuestionPublicPageValidator, loadFaqQuestionPublicPage, loadViewerAnswered } from './lib/faqQuestionPage';
 import { faqItemsOfEntries, projectFaqListItems } from './lib/faqRulesetList';
 import { faqTagValidator } from './lib/faqTags';
@@ -160,10 +165,16 @@ export const rulesetFaq = publicQuery({
   },
 });
 
+/** The rulesets the global FAQ can be narrowed to: every live one holding questions, by name, with its count. One cached answer for every viewer and every search. */
+export const rulesetOptions = publicQuery({
+  args: {},
+  returns: globalFaqRulesetOptionsValidator,
+  handler: async (ctx) => await loadGlobalFaqRulesetOptions(ctx),
+});
+
 /**
  * One page of the global FAQ: questions matching a search across every ruleset, or the rulesets picked, best match first.
- * Before any search it returns no questions, only the rulesets the reader can pick;
- * one cached answer for every viewer.
+ * Before any search it returns no questions; one cached answer for every viewer.
  */
 export const search = publicQuery({
   args: {
