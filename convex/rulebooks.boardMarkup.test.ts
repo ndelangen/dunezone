@@ -30,29 +30,46 @@ const contentsWith = (block: ReturnType<typeof scene>) =>
     pagesById: { page: { layoutId: 'standard', blocksById: { scene: block } } },
   }) as unknown as Parameters<typeof resolveRulebookReferences>[1];
 
-test(
-  'a scene reads its saved board only to draw tints on it, and resolves its placed tokens',
-  async () => {
-    const t = applicationTest();
-    const ownerId = await t.run((ctx) => ctx.db.insert('users', { name: 'Creator' }));
-    const owner = t.withIdentity({ subject: ownerId });
-    const board = await owner.mutation(api.assets.create, {
-      type: 'board',
-      data: { name: 'Arrakis copy', about: '', board: arrakisBoard() },
-    });
+/** A saved Arrakis board, freshly created, so its first capture is still queued. */
+async function savedBoard() {
+  const t = applicationTest();
+  const ownerId = await t.run((ctx) => ctx.db.insert('users', { name: 'Creator' }));
+  const owner = t.withIdentity({ subject: ownerId });
+  const board = await owner.mutation(api.assets.create, {
+    type: 'board',
+    data: { name: 'Arrakis copy', about: '', board: arrakisBoard() },
+  });
+  return { t, board };
+}
 
-    /* Until the board's capture lands, its image is missing or older than its data, so the data stays back. */
+/** Clears the board's queued captures, as the publisher does once it has captured the board. */
+async function settleCaptures(t: ReturnType<typeof applicationTest>, boardId: string) {
+  await t.run(async (ctx) => {
+    const jobs = await ctx.db
+      .query('publication_jobs')
+      .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', 'board').eq('asset_id', boardId))
+      .collect();
+    await Promise.all(jobs.map((job) => ctx.db.delete('publication_jobs', job._id)));
+  });
+}
+
+test(
+  'a saved board whose capture is still queued keeps its data back, so tints never run ahead of its image',
+  async () => {
+    const { t, board } = await savedBoard();
     const capturing = await t.run((ctx) =>
       resolveRulebookReferences(ctx, contentsWith(scene(board.id, {})), { boardData: true })
     );
     expect(capturing.assetsById[board.id]?.board).toBeUndefined();
-    await t.run(async (ctx) => {
-      const jobs = await ctx.db
-        .query('publication_jobs')
-        .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', 'board').eq('asset_id', board.id))
-        .collect();
-      await Promise.all(jobs.map((job) => ctx.db.delete('publication_jobs', job._id)));
-    });
+  },
+  BUDGET_MS
+);
+
+test(
+  'a scene reads its saved board only to draw tints on it, and resolves its placed tokens',
+  async () => {
+    const { t, board } = await savedBoard();
+    await settleCaptures(t, board.id);
 
     const plain = await t.run((ctx) => resolveRulebookReferences(ctx, contentsWith(scene(board.id, {}))));
     expect(plain.assetsById[board.id]?.board).toBeUndefined();
