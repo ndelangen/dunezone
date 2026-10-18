@@ -113,6 +113,16 @@ test(
       data: { ...publishingSpiceCard, name: 'Legacy' },
     });
     expect(await jobsFor(t, unlinked.id)).toHaveLength(1);
+    /* Linking that card drops its queued unlinked draft rather than letting it publish over the save. */
+    await owner.mutation(api.assets.update, { id: unlinked.id, data: { ...card, name: 'Legacy' } });
+    expect(await jobsFor(t, unlinked.id)).toEqual([]);
+    /* A draft carrying IDs from another deployment reads as missing instead of failing the editor. */
+    await expect(
+      t.query(api.assets.spiceCardBoard, { boardId: 'arrakis-board', tokenIds: ['spice-token'] })
+    ).resolves.toMatchObject({
+      board: null,
+      boardName: null,
+    });
   },
   BUDGET_MS
 );

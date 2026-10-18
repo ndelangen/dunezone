@@ -328,6 +328,12 @@ async function enqueueSpiceCardPublication(
     });
   }
   if (((await publicationSettings(ctx))?.renderer_revisions[SPICE_CARD_ASSET_TYPE] ?? 0) < SPICE_BOARD_REVISION) {
+    /* The renderer cannot draw boards yet; an earlier queued draft or error would otherwise stand for this save until the revision scan re-enqueues it. */
+    for (const job of await publicationJobsForAsset(ctx, asset.type, asset._id)) {
+      if (job.status !== 'in_progress') {
+        await ctx.db.delete(job._id);
+      }
+    }
     return null;
   }
   const resolved = await resolveSpiceCardBoard(ctx, link.asset_id, spiceCardTokenIds(asset.data));

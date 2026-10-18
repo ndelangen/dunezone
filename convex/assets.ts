@@ -1229,7 +1229,8 @@ export const refreshSpiceCard = internalMutation({
 
 /** A Spice card editor's live view of its linked board and placed tokens. */
 export const spiceCardBoard = publicQuery({
-  args: { boardId: v.optional(v.id('assets')), tokenIds: v.array(v.id('assets')) },
+  /* A draft may carry IDs from another deployment; they resolve as missing rather than failing the editor's read. */
+  args: { boardId: v.optional(v.string()), tokenIds: v.array(v.string()) },
   returns: v.object({
     board: v.union(zodToConvex(HistoricalBoardDefinition), v.null()),
     boardName: v.union(v.string(), v.null()),
@@ -1238,7 +1239,8 @@ export const spiceCardBoard = publicQuery({
   }),
   handler: async (ctx, args) => {
     const resolved = await resolveSpiceCardBoard(ctx, args.boardId, args.tokenIds);
-    const row = resolved.board && args.boardId ? await ctx.db.get('assets', args.boardId) : null;
+    const boardId = resolved.board && args.boardId ? ctx.db.normalizeId('assets', args.boardId) : null;
+    const row = boardId ? await ctx.db.get('assets', boardId) : null;
     return { ...resolved, boardName: row ? nameOf(row) : null };
   },
 });

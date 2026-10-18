@@ -154,13 +154,19 @@ function TintLayer({
   );
 }
 
+type TokenAssets = z.infer<typeof CustomCardTokens>;
+
+/* An enhance token is drawn 186 high for every 300 wide; every other token is square. */
+const tokenHeight = (token: Placement, asset: NonNullable<TokenAssets[string]>) =>
+  (token.size * (asset.type === 'token-enhance' ? 186 : 300)) / 300;
+
 function PlacedToken({
   token,
   asset,
   selected,
 }: {
   token: Placement;
-  asset: NonNullable<z.infer<typeof CustomCardTokens>[string]>;
+  asset: NonNullable<TokenAssets[string]>;
   selected: boolean;
 }) {
   const percent = (value: number) => `${(value / SPICE_BOARD_SIZE) * 100}%`;
@@ -173,7 +179,7 @@ function PlacedToken({
         left: percent(token.x),
         top: percent(token.y),
         width: percent(token.size),
-        height: percent((token.size * (asset.type === 'token-enhance' ? 186 : 300)) / 300),
+        height: percent(tokenHeight(token, asset)),
         transform: `translate(-50%, -50%) rotate(${token.rotation}deg)`,
       }}
     >
@@ -207,9 +213,20 @@ function toBoard(event: PointerEvent<HTMLDivElement>): [number, number] {
   ];
 }
 
-/** The topmost token under the point, the last drawn first. */
-function topTokenAt(tokens: readonly Placement[], [x, y]: [number, number]) {
-  return tokens.findLast((token) => Math.hypot(token.x - x, token.y - y) <= token.size / 2);
+/** The topmost drawn token under the point, the last drawn first, hit on its own rotated shape. */
+function topTokenAt(tokens: readonly Placement[], assets: TokenAssets, [x, y]: [number, number]) {
+  return tokens.findLast((token) => {
+    const asset = assets[token.asset_id];
+    if (!asset) {
+      return false;
+    }
+    const turn = (-token.rotation * Math.PI) / 180;
+    const dx = x - token.x;
+    const dy = y - token.y;
+    const along = dx * Math.cos(turn) - dy * Math.sin(turn);
+    const across = dx * Math.sin(turn) + dy * Math.cos(turn);
+    return Math.abs(along) <= token.size / 2 && Math.abs(across) <= tokenHeight(token, asset) / 2;
+  });
 }
 
 function paintTerritoryAt(board: Board, editing: SpiceMapEditing, point: [number, number]) {
@@ -223,14 +240,17 @@ function paintTerritoryAt(board: Board, editing: SpiceMapEditing, point: [number
 function EditSurface({
   board,
   tokens,
+  tokenAssets,
   editing,
 }: {
   board: Board;
   tokens: readonly Placement[];
+  tokenAssets: TokenAssets;
   editing: SpiceMapEditing;
 }) {
   const drag = useRef<{ layerId: string; dx: number; dy: number; pointerId: number } | null>(null);
-  const tokenAt = (point: [number, number]) => (editing.onTokenMove ? topTokenAt(tokens, point) : undefined);
+  const tokenAt = (point: [number, number]) =>
+    editing.onTokenMove ? topTokenAt(tokens, tokenAssets, point) : undefined;
   const grab = (event: PointerEvent<HTMLDivElement>, token: Placement, [x, y]: [number, number]) => {
     /* Capture keeps the drag when the pointer outruns the map; a synthetic pointer has nothing to capture. */
     try {
@@ -284,7 +304,7 @@ export function SpiceBoardMap({
   tints: readonly Tint[];
   look?: Look;
   tokens?: readonly Placement[];
-  tokenAssets?: z.infer<typeof CustomCardTokens>;
+  tokenAssets?: TokenAssets;
   editing?: SpiceMapEditing;
 }) {
   const stickerFilter = `${useId().replaceAll(':', '')}-sticker`;
@@ -347,7 +367,7 @@ export function SpiceBoardMap({
           ) : null;
         })}
       </div>
-      {editing ? <EditSurface board={board} tokens={tokens} editing={editing} /> : null}
+      {editing ? <EditSurface board={board} tokens={tokens} tokenAssets={tokenAssets} editing={editing} /> : null}
     </>
   );
 }
