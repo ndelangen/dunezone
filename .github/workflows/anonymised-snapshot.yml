@@ -6,8 +6,9 @@ name: Anonymised snapshot
 # before anonymising, and the last step deletes the job's directory whatever happened before.
 on:
   schedule:
-    # Once a day. GitHub runs scheduled workflows from the default branch only.
-    - cron: "17 5 * * *"
+    # Once a week, on Mondays: the export reads all of production, and local snapshot launches tolerate week-old data
+    # (Norbert, 18 October 2026). GitHub runs scheduled workflows from the default branch only.
+    - cron: "17 5 * * 1"
   workflow_dispatch:
 
 permissions:
@@ -47,7 +48,8 @@ jobs:
         with:
           name: anonymised-snapshot
           path: ${{ runner.temp }}/anonymised-snapshot/snapshot.zip
-          retention-days: 1
+          # Kept until the next weekly run has uploaded its own, with a day of slack for GitHub's schedule drift.
+          retention-days: 8
           if-no-files-found: error
 
       - name: Delete the export and the snapshot from the runner

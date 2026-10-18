@@ -154,8 +154,8 @@ Without `--snapshot-file <zip>`, the launch downloads the newest snapshot that t
 snapshot` workflow uploaded from `main`, using the GitHub CLI (`gh auth login` first). It ignores an
 artifact of that name from any other workflow, event, branch or fork, and one from a run that did
 not succeed. The download goes to the launch's private temporary directory, and the launch deletes
-it as soon as the import finishes or fails. Nothing is cached between launches. The workflow keeps
-each upload for one day, and uploads only while its `SNAPSHOT_UPLOAD` switch is `"true"`. With no
+it as soon as the import finishes or fails. Nothing is cached between launches. The workflow runs weekly and
+keeps each upload for eight days, so the newest is usually under a week old (after a failed Monday run the previous upload lasts about one more day, then none is left until the next Monday's run or a manual dispatch), and it uploads only while its `SNAPSHOT_UPLOAD` switch is `"true"`. With no
 artifact, or when GitHub cannot be reached, the launch stops before Docker starts and points at
 `--data=fixture`.
 
@@ -225,13 +225,17 @@ tables as the e2e target does; the snapshot load belongs to `app:dev --local` al
 `deploy-main` calls the `Rebuild dev deployment` workflow once production has shipped, so a
 failed rebuild reddens the run without ever gating the release. Every merge pushes main's
 functions to the dev deployment; the **data** is only reloaded when the deploy cannot tell which
-commits it adds to production, or when those commits touch `convex/schema.ts`,
-`convex/migrations*.ts`, or `convex/migration-guards.json`, the changes that can invalidate or
-reshape dev's existing data, or the files that make, load and check the snapshot: the snapshot
+commits it adds to production, or when those commits touch `convex/schema.ts`, which can invalidate
+dev's existing data, or the files that make, load and check the snapshot: the snapshot
 policy and anonymiser (`scripts/lib/snapshot-*.ts`, `scripts/snapshot-*.ts`),
 `scripts/anonymised-snapshot.ts`, the rebuild contract (`convex/lib/provisioningContract.ts`,
 `convex/provisioningChecks.ts`) and `.github/workflows/dev-rebuild.yml`. So a tightened policy
-reaches dev on the merge that makes it. `scripts/dev-rebuild-decision.ts` holds the list. Ordinary
+reaches dev on the merge that makes it. A merge whose only such change is a migration
+(`convex/migrations*.ts` or `convex/migration-guards.json`) reloads nothing: dev runs the new
+migrations on its existing data, as the deploy does on production, which spares a production
+export. When the code push or that migrate step fails, for instance because the schema narrowed through a
+validator it imports, the job falls back to the full rebuild.
+`scripts/dev-rebuild-decision.ts` holds the list. Ordinary
 merges leave your dev session and any dev-side experiments intact.
 
 Dev's data is the anonymised snapshot, never raw production. A data rebuild runs the snapshot job's

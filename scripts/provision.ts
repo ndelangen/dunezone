@@ -34,7 +34,7 @@ import { verifySnapshotFile } from './snapshot-anonymise';
  */
 
 export type ProvisionTarget = 'e2e' | 'local' | 'dev';
-export type ProvisionStage = 'backend' | 'configure' | 'code' | 'data';
+export type ProvisionStage = 'backend' | 'configure' | 'code' | 'data' | 'migrate';
 
 const CONVEX_ADMIN_CREDENTIAL_KEYS = [
   'CONVEX_DEPLOY_KEY',
@@ -643,6 +643,11 @@ export function stagesForTarget(target: ProvisionTarget): ProvisionStage[] {
   return ['backend', 'configure', 'code', 'data'];
 }
 
+/** The stages a target accepts by name: dev also takes `migrate`, which runs the migrations a merge added on the data dev already holds. */
+function allowedStagesForTarget(target: ProvisionTarget): ProvisionStage[] {
+  return target === 'dev' ? ['code', 'data', 'migrate'] : stagesForTarget(target);
+}
+
 export type ProvisionArgs = {
   target: ProvisionTarget;
   stages: ProvisionStage[];
@@ -655,7 +660,7 @@ export type ProvisionArgs = {
 const PROVISION_TARGETS: readonly ProvisionTarget[] = ['e2e', 'local', 'dev'];
 
 const USAGE =
-  'Usage: provision <e2e|local|dev> [--stage <backend|configure|code|data>]... [--snapshot-file <zip>, dev data stage only]';
+  'Usage: provision <e2e|local|dev> [--stage <backend|configure|code|data|migrate>]... [--snapshot-file <zip>, dev data stage only; migrate is dev only]';
 
 const SNAPSHOT_FILE_REQUIRED =
   'The dev data stage loads the anonymised snapshot, never production: pass --snapshot-file <zip>';
@@ -665,7 +670,7 @@ function isProvisionTarget(value: string | undefined): value is ProvisionTarget 
 }
 
 function parseFlags(rest: string[], target: ProvisionTarget) {
-  const allowed = stagesForTarget(target);
+  const allowed = allowedStagesForTarget(target);
   const stages: ProvisionStage[] = [];
   let snapshotFile: string | null = null;
   for (let index = 0; index < rest.length; index += 2) {
@@ -730,8 +735,18 @@ function provisionCloudDev(
     console.log('Cloud dev deployment rebuilt from the anonymised snapshot.');
     return;
   }
-  console.log('Pushing code to the cloud dev deployment...');
-  pushCode(deployment, env);
+  if (stages.includes('code')) {
+    console.log('Pushing code to the cloud dev deployment...');
+    pushCode(deployment, env);
+  }
+  /*
+   * A migration-only merge migrates the data dev already holds instead of exporting production again.
+   * Migrations dev has finished are recorded as done there, so only the ones the merge added run.
+   */
+  if (stages.includes('migrate')) {
+    console.log('Running the required migrations on the cloud dev deployment...');
+    runMigrationGuards(deployment, env);
+  }
 }
 
 async function resolveSelfHostedDeployment(

@@ -12,7 +12,7 @@ import { verifySnapshotFile } from './snapshot-anonymise';
  *
  * A file the caller names is used where it is, and stays there.
  * Otherwise the newest artifact the snapshot job uploaded from main is downloaded with the GitHub CLI into the launch's private temporary directory.
- * The launch deletes that download as soon as the import has finished or failed, so no copy outlives the one-day artifact, and nothing is cached between launches.
+ * The launch deletes that download as soon as the import has finished or failed, so no copy outlives the artifact, and nothing is cached between launches.
  */
 
 const REPOSITORY = 'ndelangen/dunezone';
@@ -135,7 +135,7 @@ function newestArtifact(github: GitHubCli): SnapshotArtifact {
   }
   if (!artifact) {
     throw new Error(
-      `No anonymised snapshot is available. The snapshot job keeps each upload for one day, and uploads only while its SNAPSHOT_UPLOAD switch is on. ${FIXTURE_HINT}`
+      `No anonymised snapshot is available. The weekly snapshot job keeps each upload for eight days, and uploads only while its SNAPSHOT_UPLOAD switch is on. ${FIXTURE_HINT}`
     );
   }
   return artifact;
