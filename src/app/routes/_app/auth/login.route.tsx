@@ -12,7 +12,13 @@ import { useEffect, useReducer } from 'react';
 import type { SVGProps } from 'react';
 import { SiDiscord } from 'react-icons/si';
 
-import { authProviderNames, useSignInProviders } from '@db/accounts';
+import {
+  authProviderNames,
+  noteSignInStarted,
+  settleStartedSignIn,
+  useLastSignInMethod,
+  useSignInProviders,
+} from '@db/accounts';
 import type { AuthProvider } from '@db/accounts';
 import { storedOAuthVerifierKey } from '@db/playTables';
 import { useCurrentProfile } from '@db/profiles';
@@ -91,6 +97,7 @@ function SignInPanel({
 }) {
   const { signIn } = useAuthActions();
   const [state, dispatch] = useReducer(reduceSignIn, { busy: null, error: null, email: '', password: '' });
+  const lastUsed = useLastSignInMethod();
   const localAuthEnabled = import.meta.env.VITE_E2E_LOCAL_AUTH === 'true';
   /* Back from the provider without signing in: the abandoned verifier must not report a failed sign-in on the next load. */
   const settleAfterReturn = () => {
@@ -99,10 +106,12 @@ function SignInPanel({
     } catch {
       /* Storage that cannot be read holds no verifier. */
     }
+    settleStartedSignIn(false);
     dispatch({ kind: 'settled' });
   };
   const socialLogin = async (provider: AuthProvider) => {
     dispatch({ kind: 'started', provider });
+    noteSignInStarted(provider);
     try {
       const { redirect } = await signIn(provider, { redirectTo: returnTo });
       /* The browser is already leaving for the provider, and a second click would replace this sign-in's verifier.
@@ -114,6 +123,7 @@ function SignInPanel({
     } catch (error) {
       dispatch({ kind: 'failed', message: error instanceof Error ? error.message : 'Sign-in could not start.' });
     }
+    settleStartedSignIn(false);
     dispatch({ kind: 'settled' });
   };
   const localLogin = async (event: React.FormEvent) => {
@@ -179,6 +189,7 @@ function SignInPanel({
             fullWidth
             justify="space-between"
             leftSection={<ProviderMark provider={method.provider} />}
+            classNames={{ label: styles.providerLabel }}
             rightSection={
               method.available ? <ArrowRight size={18} aria-hidden /> : <span aria-hidden>Unavailable</span>
             }
@@ -187,6 +198,8 @@ function SignInPanel({
             onClick={() => void socialLogin(method.provider)}
           >
             Continue with {authProviderNames[method.provider]}
+            {/* A second line inside the button rather than a badge beside the arrow, which a phone's width cannot hold. */}
+            {lastUsed === method.provider && <span className={styles.lastUsed}>Last used</span>}
           </Button>
         ))
       ) : (

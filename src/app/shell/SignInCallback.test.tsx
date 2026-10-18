@@ -15,7 +15,10 @@ vi.mock('@convex-dev/auth/react', () => ({ useAuthActions: () => ({ signIn: mock
 vi.mock('@tanstack/react-router', () => ({
   useRouter: () => ({ navigate: mocks.navigate, history: { replace: mocks.replace } }),
 }));
-vi.mock('@db/accounts', () => ({ refusedAsInactiveAccount: (error: unknown) => error === mocks.inactive }));
+vi.mock('@db/accounts', () => ({
+  refusedAsInactiveAccount: (error: unknown) => error === mocks.inactive,
+  settleStartedSignIn: () => {},
+}));
 
 const VERIFIER = '__convexAuthOAuthVerifier_test';
 vi.mock('@db/playTables', () => ({ storedOAuthVerifierKey: () => VERIFIER }));

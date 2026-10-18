@@ -16,6 +16,7 @@ const mocks = vi.hoisted(() => ({
   signIn: vi.fn(),
   signOut: vi.fn(),
   disconnectMethod: vi.fn(),
+  signOutEverywhere: vi.fn(),
   mutate: vi.fn(),
   useSessionViewer: vi.fn(),
   useProfileSettings: vi.fn(),
@@ -60,6 +61,7 @@ vi.mock('@db/accounts', async (importOriginal) => ({
   ...(await importOriginal<typeof Accounts>()),
   useBeginAuthConnection: () => mocks.beginConnection,
   useDisconnectAuthMethod: () => mocks.disconnectMethod,
+  useSignOutEverywhere: () => mocks.signOutEverywhere,
 }));
 
 import { Route } from './edit.route';
@@ -125,6 +127,7 @@ beforeEach(() => {
   mocks.signIn.mockReset().mockResolvedValue(undefined);
   mocks.signOut.mockReset().mockResolvedValue(undefined);
   mocks.disconnectMethod.mockReset().mockResolvedValue(undefined);
+  mocks.signOutEverywhere.mockReset().mockResolvedValue(null);
   mocks.mutate.mockReset();
   mocks.useSessionViewer.mockReset();
   mocks.useSessionViewer.mockReturnValue({ kind: 'profile', profile });
@@ -248,6 +251,38 @@ describe('profile settings page', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it('ends every session after a held sign-out, then clears local authentication', async () => {
+    const view = await renderPage();
+    await chooseTab(view, 'Sign-in methods');
+    const trigger = view.getByRole('button', { name: 'Sign out on all devices' });
+    expect(trigger).toHaveProperty('disabled', false);
+    vi.useFakeTimers();
+    try {
+      fireEvent.keyDown(trigger, { key: 'Enter' });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(5000);
+      });
+      expect(mocks.signOutEverywhere).toHaveBeenCalledWith({});
+      expect(mocks.signOut).toHaveBeenCalledOnce();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('keeps the sign-out everywhere control locked while a merge is in progress', async () => {
+    mocks.useProfileSettings.mockReturnValue({
+      data: {
+        account: {
+          merging: true,
+          methods: [{ provider: 'google', connected: true, available: true }],
+        },
+      },
+    });
+    const view = await renderPage();
+    await chooseTab(view, 'Sign-in methods');
+    expect(view.getByRole('button', { name: 'Sign out on all devices' })).toHaveProperty('disabled', true);
   });
 
   it('connects from its own tab without saving the draft and releases buttons when sign-in settles', async () => {

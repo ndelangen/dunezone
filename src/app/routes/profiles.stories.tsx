@@ -262,6 +262,7 @@ export const SignInMethods = meta.story({
       page.findByText('Connected · keep one sign-in method', {}, { timeout: 30_000 })
     ).resolves.toBeVisible();
     await expect(page.getByRole('button', { name: /^Disconnect Google$/ })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Sign out on all devices' })).toBeEnabled();
     await userEvent.click(page.getByRole('tab', { name: 'Account' }));
     await expect(page.getByRole('link', { name: /^Delete account$/ })).toBeVisible();
   },

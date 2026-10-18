@@ -108,7 +108,6 @@ function heldConnection(): string {
   }
 }
 
-
 /** The connection this tab started, `''` when it started none, or `undefined` while the page renders on the server. */
 export function useHeldAuthConnection(): string | undefined {
   return useSyncExternalStore(subscribeToNothing, heldConnection, () => undefined);
