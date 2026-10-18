@@ -174,7 +174,8 @@ export const rulesetOptions = publicQuery({
 
 /**
  * One page of the global FAQ: questions matching a search across every ruleset, or the rulesets picked, best match first.
- * Before any search it returns no questions; one cached answer for every viewer.
+ * Before any search it returns no questions;
+ * one cached answer for every viewer.
  */
 export const search = publicQuery({
   args: {
