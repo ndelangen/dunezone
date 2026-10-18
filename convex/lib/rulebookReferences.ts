@@ -6,7 +6,6 @@ import {
   resolvePublicationCapture,
 } from '../../src/shared/asset-publishing/publicationTargets';
 import { parseBoardData } from '../../src/shared/assets/validation';
-import { boardComponentGeometry } from '../../src/shared/boards/componentGeometry';
 import { CanonicalFactionStoredSchema, TroopArtwork } from '../../src/shared/factions/schema';
 import type { RulebookEditionContentsV1 } from '../../src/shared/rulebooks/contents';
 import type {
@@ -17,18 +16,21 @@ import { collectRulebookReferenceIds } from '../../src/shared/rulebooks/referenc
 import type { RulebookResolvedSource } from '../../src/shared/rulebooks/sources';
 import type { MutationCtx, QueryCtx } from '../types';
 import { assetDisplayName } from './assetInput';
+import { boardPublicationGeometry } from './boardPublicationGeometry';
 import { resolveRulebookTroopSource, rulebookTroopReferences } from './rulebookTroopSources';
 
 type ReadCtx = Pick<QueryCtx, 'db'> | Pick<MutationCtx, 'db'>;
 
 /**
- * A saved board publishes only its image, so a Rulebook reads the territories it highlights from the board's own data, in that image's frame.
- * While a new save is still being captured the two can briefly differ;
- * the next publication brings the image level.
+ * A saved board publishes only its image and stores the territories of the save it captured beside it.
+ * A publication from before that keeps nothing, and reads them from the board's own data.
  */
-function savedBoardGeometry(data: unknown, widthPx: number, heightPx: number) {
+function savedBoardGeometry(data: unknown, stored: unknown) {
+  if (stored) {
+    return stored;
+  }
   try {
-    return boardComponentGeometry(parseBoardData(data).board, widthPx, heightPx);
+    return boardPublicationGeometry(parseBoardData(data).board) ?? null;
   } catch {
     return null;
   }
@@ -57,8 +59,8 @@ export async function resolveRulebookReferences(
           : null;
         const capture = isPublicationAssetType(asset.type) ? resolvePublicationCapture(asset.type) : null;
         const geometry = componentGeometrySchema.safeParse(
-          asset.type === 'board' && publication && capture?.output === 'image'
-            ? savedBoardGeometry(asset.data, capture.widthPx, capture.heightPx)
+          asset.type === 'board' && publication
+            ? savedBoardGeometry(asset.data, publication.component_geometry)
             : publication?.component_geometry
         );
         return [

@@ -8,7 +8,7 @@ import { placeStickers } from '@shared/boards/stickerPlacement';
 import { boardTerritoryAt } from '@shared/boards/territories';
 import { offRim, offsetPath, outerSegments, outlinePaths } from '@shared/boards/tintOutline';
 import { TINT_STICKER_ARTWORK, tintPaint } from '@shared/boards/tints';
-import { useId, useRef } from 'react';
+import { useId, useMemo, useRef } from 'react';
 import type { PointerEvent } from 'react';
 import type { z } from 'zod';
 
@@ -310,7 +310,23 @@ export function SpiceBoardMap({
   const stickerFilter = `${useId().replaceAll(':', '')}-sticker`;
   const territories = boardTerritoryList(board);
   const viewBox = `0 0 ${SPICE_BOARD_SIZE} ${SPICE_BOARD_SIZE}`;
-  const artwork = <BoardArtwork board={board} faces={territories.map(({ face }) => face)} artwork={BOARD_ARTWORK} />;
+  /* Game renderers sit outside the React Compiler; the board and its tints are kept by hand so a token drag only redraws the tokens. */
+  const artwork = useMemo(
+    () => <BoardArtwork board={board} faces={territories.map(({ face }) => face)} artwork={BOARD_ARTWORK} />,
+    [board, territories]
+  );
+  const tintLayers = useMemo(
+    () =>
+      tints.map((tint) => (
+        <TintLayer
+          key={tint.id}
+          tint={tint}
+          territories={tintTerritories(board, territories, tint)}
+          stickerFilter={stickerFilter}
+        />
+      )),
+    [board, territories, tints, stickerFilter]
+  );
 
   return (
     <>
@@ -345,14 +361,7 @@ export function SpiceBoardMap({
             </feMerge>
           </filter>
         </defs>
-        {tints.map((tint) => (
-          <TintLayer
-            key={tint.id}
-            tint={tint}
-            territories={tintTerritories(board, territories, tint)}
-            stickerFilter={stickerFilter}
-          />
-        ))}
+        {tintLayers}
       </svg>
       <div className={unique.mapTokens}>
         {tokens.map((token) => {
