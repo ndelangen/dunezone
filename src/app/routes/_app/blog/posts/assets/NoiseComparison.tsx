@@ -2,7 +2,7 @@ import { ColorInput, Group, SimpleGrid, Slider, Stack, Switch, Text, UnstyledBut
 import type { Background as BackgroundSchema } from '@shared/factions/schema';
 import { resolveAsset } from '@shared/media/resolveAsset';
 import { useId, useReducer } from 'react';
-import type { ReactNode } from 'react';
+import type { Dispatch, ReactNode } from 'react';
 import type { z } from 'zod';
 
 import { Background } from '@game/assets/utils/Background';
@@ -66,150 +66,158 @@ function reduce(state: State, event: Event): State {
  */
 export function NoiseComparison() {
   const [state, dispatch] = useReducer(reduce, { pattern: PATTERN_1, texture: THUFIR.background });
-  const filter = useId().replace(/:/g, '');
-  const { pattern, texture } = state;
 
   return (
     <WideFigure caption="On the left, the November 2021 noise filter with the five numbers every faction stored. On the right, the renderer dune.zone uses today, set up for House Atreides.">
       <SimpleGrid cols={{ base: 1, xs: 2 }} spacing="xl" className={styles.grid}>
-        <Stack gap="md">
-          <Text fw={600}>2021: generated noise</Text>
-          <div className={styles.disc} style={{ color: pattern.color }}>
-            <svg viewBox="0 0 300 300" role="img" aria-label="Noise generated in the browser, lit like paper">
-              <filter id={filter} x="0" y="0" width="100%" height="100%">
-                <feTurbulence
-                  type="fractalNoise"
-                  baseFrequency="0.03"
-                  numOctaves={pattern.octaves}
-                  seed={pattern.seed}
-                />
-                <feDiffuseLighting lightingColor="currentColor" surfaceScale={pattern.surface}>
-                  <feDistantLight azimuth={pattern.azimuth} elevation={pattern.elevation} />
-                </feDiffuseLighting>
-              </filter>
-              <rect width="300" height="300" fill="white" filter={`url(#${filter})`} />
-            </svg>
-          </div>
-          <SimpleGrid cols={2} spacing="md" verticalSpacing="sm">
-            <Setting label="Seed" value={pattern.seed}>
-              <Slider
-                thumbLabel="Seed"
-                min={1}
-                max={400}
-                value={pattern.seed}
-                onChange={(seed) => dispatch({ type: 'pattern', change: { seed } })}
-                label={null}
-              />
-            </Setting>
-            <Setting label="Octaves" value={pattern.octaves}>
-              <Slider
-                thumbLabel="Octaves"
-                min={1}
-                max={8}
-                value={pattern.octaves}
-                onChange={(octaves) => dispatch({ type: 'pattern', change: { octaves } })}
-                label={null}
-              />
-            </Setting>
-            <Setting label="Surface" value={pattern.surface}>
-              <Slider
-                thumbLabel="Surface"
-                min={1}
-                max={15}
-                value={pattern.surface}
-                onChange={(surface) => dispatch({ type: 'pattern', change: { surface } })}
-                label={null}
-              />
-            </Setting>
-            <Setting label="Light direction" value={`${pattern.azimuth}°`}>
-              <Slider
-                thumbLabel="Light direction"
-                min={0}
-                max={360}
-                value={pattern.azimuth}
-                onChange={(azimuth) => dispatch({ type: 'pattern', change: { azimuth } })}
-                label={null}
-              />
-            </Setting>
-            <Setting label="Light height" value={`${pattern.elevation}°`}>
-              <Slider
-                thumbLabel="Light height"
-                min={10}
-                max={90}
-                value={pattern.elevation}
-                onChange={(elevation) => dispatch({ type: 'pattern', change: { elevation } })}
-                label={null}
-              />
-            </Setting>
-            <ColorInput
-              size="xs"
-              label="Colour"
-              value={pattern.color}
-              onChange={(color) => dispatch({ type: 'pattern', change: { color } })}
-            />
-          </SimpleGrid>
-        </Stack>
-        <Stack gap="md">
-          <Text fw={600}>Today: photo textures</Text>
-          <div className={styles.disc}>
-            <Background {...texture} />
-          </div>
-          <Group gap="xs">
-            {TEXTURES.map((image) => (
-              <UnstyledButton
-                key={image}
-                className={styles.swatch}
-                style={{ backgroundImage: `url(${resolveAsset(image, 'small')})` }}
-                aria-label={`Texture ${image.slice(-7, -4)}`}
-                aria-pressed={texture.image === image}
-                onClick={() => dispatch({ type: 'texture', change: { image } })}
-              />
-            ))}
-          </Group>
-          <SimpleGrid cols={2} spacing="md" verticalSpacing="sm">
-            <Setting label="Definition" value={(texture.definition ?? 0).toFixed(2)}>
-              <Slider
-                thumbLabel="Definition"
-                min={0}
-                max={1}
-                step={0.01}
-                value={texture.definition ?? 0}
-                onChange={(definition) => dispatch({ type: 'texture', change: { definition } })}
-                label={null}
-              />
-            </Setting>
-            <Setting label="Influence" value={(texture.influence ?? 0).toFixed(2)}>
-              <Slider
-                thumbLabel="Influence"
-                min={0}
-                max={1}
-                step={0.01}
-                value={texture.influence ?? 0}
-                onChange={(influence) => dispatch({ type: 'texture', change: { influence } })}
-                label={null}
-              />
-            </Setting>
-            <ColorInput
-              size="xs"
-              label="Colour one"
-              value={plainColour(texture.colors[0])}
-              onChange={(value) => dispatch({ type: 'colour', index: 0, value })}
-            />
-            <ColorInput
-              size="xs"
-              label="Colour two"
-              value={plainColour(texture.colors[1])}
-              onChange={(value) => dispatch({ type: 'colour', index: 1, value })}
-            />
-            <Switch
-              label="Invert"
-              checked={texture.invert ?? true}
-              onChange={(event) => dispatch({ type: 'texture', change: { invert: event.currentTarget.checked } })}
-            />
-          </SimpleGrid>
-        </Stack>
+        <GeneratedNoise pattern={state.pattern} dispatch={dispatch} />
+        <PhotoTexture texture={state.texture} dispatch={dispatch} />
       </SimpleGrid>
     </WideFigure>
+  );
+}
+
+/** The November 2021 noise filter, rebuilt with the five numbers a faction stored and its colour. */
+function GeneratedNoise({ pattern, dispatch }: Readonly<{ pattern: Pattern; dispatch: Dispatch<Event> }>) {
+  const filter = useId().replace(/:/g, '');
+  return (
+    <Stack gap="md">
+      <Text fw={600}>2021: generated noise</Text>
+      <div className={styles.disc} style={{ color: pattern.color }}>
+        <svg viewBox="0 0 300 300" role="img" aria-label="Noise generated in the browser, lit like paper">
+          <filter id={filter} x="0" y="0" width="100%" height="100%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.03" numOctaves={pattern.octaves} seed={pattern.seed} />
+            <feDiffuseLighting lightingColor="currentColor" surfaceScale={pattern.surface}>
+              <feDistantLight azimuth={pattern.azimuth} elevation={pattern.elevation} />
+            </feDiffuseLighting>
+          </filter>
+          <rect width="300" height="300" fill="white" filter={`url(#${filter})`} />
+        </svg>
+      </div>
+      <SimpleGrid cols={2} spacing="md" verticalSpacing="sm">
+        <Setting label="Seed" value={pattern.seed}>
+          <Slider
+            thumbLabel="Seed"
+            min={1}
+            max={400}
+            value={pattern.seed}
+            onChange={(seed) => dispatch({ type: 'pattern', change: { seed } })}
+            label={null}
+          />
+        </Setting>
+        <Setting label="Octaves" value={pattern.octaves}>
+          <Slider
+            thumbLabel="Octaves"
+            min={1}
+            max={8}
+            value={pattern.octaves}
+            onChange={(octaves) => dispatch({ type: 'pattern', change: { octaves } })}
+            label={null}
+          />
+        </Setting>
+        <Setting label="Surface" value={pattern.surface}>
+          <Slider
+            thumbLabel="Surface"
+            min={1}
+            max={15}
+            value={pattern.surface}
+            onChange={(surface) => dispatch({ type: 'pattern', change: { surface } })}
+            label={null}
+          />
+        </Setting>
+        <Setting label="Light direction" value={`${pattern.azimuth}°`}>
+          <Slider
+            thumbLabel="Light direction"
+            min={0}
+            max={360}
+            value={pattern.azimuth}
+            onChange={(azimuth) => dispatch({ type: 'pattern', change: { azimuth } })}
+            label={null}
+          />
+        </Setting>
+        <Setting label="Light height" value={`${pattern.elevation}°`}>
+          <Slider
+            thumbLabel="Light height"
+            min={10}
+            max={90}
+            value={pattern.elevation}
+            onChange={(elevation) => dispatch({ type: 'pattern', change: { elevation } })}
+            label={null}
+          />
+        </Setting>
+        <ColorInput
+          size="xs"
+          label="Colour"
+          value={pattern.color}
+          onChange={(color) => dispatch({ type: 'pattern', change: { color } })}
+        />
+      </SimpleGrid>
+    </Stack>
+  );
+}
+
+/** Today's `Background` renderer, with the texture, colours and treatment an author picks. */
+function PhotoTexture({ texture, dispatch }: Readonly<{ texture: TextureState; dispatch: Dispatch<Event> }>) {
+  return (
+    <Stack gap="md">
+      <Text fw={600}>Today: photo textures</Text>
+      <div className={styles.disc}>
+        <Background {...texture} />
+      </div>
+      <Group gap="xs">
+        {TEXTURES.map((image) => (
+          <UnstyledButton
+            key={image}
+            className={styles.swatch}
+            style={{ backgroundImage: `url(${resolveAsset(image, 'small')})` }}
+            aria-label={`Texture ${image.slice(-7, -4)}`}
+            aria-pressed={texture.image === image}
+            onClick={() => dispatch({ type: 'texture', change: { image } })}
+          />
+        ))}
+      </Group>
+      <SimpleGrid cols={2} spacing="md" verticalSpacing="sm">
+        <Setting label="Definition" value={(texture.definition ?? 0).toFixed(2)}>
+          <Slider
+            thumbLabel="Definition"
+            min={0}
+            max={1}
+            step={0.01}
+            value={texture.definition ?? 0}
+            onChange={(definition) => dispatch({ type: 'texture', change: { definition } })}
+            label={null}
+          />
+        </Setting>
+        <Setting label="Influence" value={(texture.influence ?? 0).toFixed(2)}>
+          <Slider
+            thumbLabel="Influence"
+            min={0}
+            max={1}
+            step={0.01}
+            value={texture.influence ?? 0}
+            onChange={(influence) => dispatch({ type: 'texture', change: { influence } })}
+            label={null}
+          />
+        </Setting>
+        <ColorInput
+          size="xs"
+          label="Colour one"
+          value={plainColour(texture.colors[0])}
+          onChange={(value) => dispatch({ type: 'colour', index: 0, value })}
+        />
+        <ColorInput
+          size="xs"
+          label="Colour two"
+          value={plainColour(texture.colors[1])}
+          onChange={(value) => dispatch({ type: 'colour', index: 1, value })}
+        />
+        <Switch
+          label="Invert"
+          checked={texture.invert ?? true}
+          onChange={(event) => dispatch({ type: 'texture', change: { invert: event.currentTarget.checked } })}
+        />
+      </SimpleGrid>
+    </Stack>
   );
 }
 
