@@ -121,6 +121,11 @@ export const Body = meta.story({
     await userEvent.tripleClick(amount);
     await userEvent.keyboard('9');
     await expect(args.patch).toHaveBeenLastCalledWith({ amount: 9 });
+    /* Emptying the body leaves it empty to type afresh, rather than refilling the standard sentence. */
+    const body = canvas.getByRole('textbox', { name: 'Body' });
+    await userEvent.clear(body);
+    await expect(args.patch).toHaveBeenLastCalledWith({ text: '' });
+    await expect(body).toHaveValue('');
   },
 });
 

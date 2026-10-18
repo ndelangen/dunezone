@@ -244,6 +244,8 @@ function isAmount(value: number | string): value is number {
 function BodyFields({ draft, patch }: { draft: SpiceDraft; patch: Patch }) {
   /* An amount left empty or below one is not kept, so leaving the field remounts it on the amount the card still holds. */
   const [amountField, resetAmountField] = useReducer((count: number) => count + 1, 0);
+  /* Once the author types, the field shows their text as it is, so it can be emptied to type afresh; an empty body still prints the standard sentence. */
+  const [typed, setTyped] = useState(false);
   return (
     <Stack gap="md">
       <ControlBlock
@@ -269,14 +271,17 @@ function BodyFields({ draft, patch }: { draft: SpiceDraft; patch: Patch }) {
       />
       <ControlBlock
         title="Body"
-        description="The card's text. It starts as the standard sentence for its name and amount, and follows them until you edit it."
+        description="The card's text. It starts as the standard sentence for its name and amount, and follows them until you edit it; an emptied body prints that sentence again."
         input={
           <FormattedTextInput
             aria-label="Body"
             autosize
             minRows={3}
-            value={spiceDraftText(draft)}
-            onChange={(text) => patch({ text })}
+            value={typed ? (draft.text ?? '') : spiceDraftText(draft)}
+            onChange={(text) => {
+              setTyped(true);
+              patch({ text });
+            }}
           />
         }
       />

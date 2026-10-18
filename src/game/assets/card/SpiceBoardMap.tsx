@@ -216,7 +216,7 @@ function toBoard(event: PointerEvent<HTMLDivElement>): [number, number] {
 }
 
 /* A pointer's round end, as a fraction of its square face: the point at the top centre, the round end filling the bottom. */
-const POINTER_RADIUS = 1 / (2 * (1 + POINTER_TIP_RATIO));
+const POINTER_RADIUS = 1 / (1 + POINTER_TIP_RATIO);
 const POINTER_CENTRE = 1 - POINTER_RADIUS;
 
 /** Whether a point in a pointer's square face, from 0 to 1, falls in its teardrop. */
