@@ -38,9 +38,9 @@ export const BLOG_POST_META: Record<BlogPostSlug, BlogPostMeta> = {
     summary:
       'The fonts Gale Force Nine used in Dune and where each one appears, the colours of every faction and card, the textures and frames under them, and how the leader portraits changed from the base game to Ecaz & Moritani.',
     cover: {
-      key: '/web/blog/why-dune/gf9-board.jpg',
-      alt: 'The Gale Force Nine Dune board',
-      aspect: 1,
+      key: '/web/blog/dune-board-game-style-guide/faction-palette.jpg',
+      alt: 'Swatch cards for twelve Dune factions, each with its token, its light and shade colours in hex and its texture number',
+      aspect: 1330 / 1792,
     },
   },
   'drawing-dune-tokens-and-cards': {
