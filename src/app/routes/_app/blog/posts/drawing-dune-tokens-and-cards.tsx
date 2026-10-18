@@ -38,7 +38,7 @@ function GimpSection() {
       <Paragraph>
         As{' '}
         <Anchor
-          renderRoot={(props) => <Link {...props} to="/rulesets/$postSlug" params={{ postSlug: 'dreamrules' }} />}
+          renderRoot={(props) => <Link {...props} to="/rulesets/$rulesetSlug" params={{ rulesetSlug: 'dreamrules' }} />}
         >
           Dreamrules
         </Anchor>{' '}
