@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -41,6 +42,23 @@ afterEach(() => {
 });
 
 describe('publisher Static Assets assembly', () => {
+  test('hashes normalized inline scripts and limits connections to the configured backend', () => {
+    const { app, publisher, headers } = fixture();
+    writeFileSync(headers, '/*\n  Content-Security-Policy: __APPLICATION_CSP__\n');
+    writeFileSync(
+      path.join(app, '_shell.html'),
+      '<head></head><script>window.start=1</script><script src="/public/app-hash.js"></script>'
+    );
+    assemblePublisherAssets(app, publisher, headers, 'https://test.eu-west-1.convex.cloud');
+    const policy = readFileSync(path.join(publisher, '_headers'), 'utf8');
+    expect(policy).toContain(`'sha256-${createHash('sha256').update('window.start=1').digest('base64')}'`);
+    expect(policy).toContain(
+      "connect-src 'self' https://test.eu-west-1.convex.cloud wss://test.eu-west-1.convex.cloud"
+    );
+    expect(policy).not.toMatch(/unsafe-eval|script-src[^;]*unsafe-inline|__APPLICATION_CSP__/);
+    expect(policy).toContain("script-src-attr 'none'");
+  });
+
   test('omits the generated raster trees and keeps the committed web files', () => {
     const { app, publisher, headers } = fixture();
     for (const file of [

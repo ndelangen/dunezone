@@ -176,7 +176,23 @@ try {
     const hit = await worker.fetch(pathname);
     assert.equal(hit.headers.get('X-Public-Cache'), 'hit', pathname);
     assert.equal(hit.headers.get('X-Public-Metadata-Queries'), '0', pathname);
-    assert.equal(await hit.text(), html, pathname);
+    const hitHtml = await hit.text();
+    const nonce = /'nonce-([a-f0-9]+)'/.exec(response.headers.get('Content-Security-Policy') ?? '')?.[1];
+    const hitNonce = /'nonce-([a-f0-9]+)'/.exec(hit.headers.get('Content-Security-Policy') ?? '')?.[1];
+    assert.ok(nonce && hitNonce, `${pathname} needs a CSP nonce on both deliveries`);
+    assert.notEqual(nonce, hitNonce, `${pathname} must not reuse a cached CSP nonce`);
+    assert.equal(response.headers.get('X-Application-Render-Nonce'), null);
+    assert.equal(hit.headers.get('X-Application-Render-Nonce'), null);
+    assert.equal(hitHtml.replaceAll(hitNonce, 'NONCE'), html.replaceAll(nonce, 'NONCE'), pathname);
+    for (const script of html.matchAll(/<script\b([^>]*)>/gi)) {
+      if (/\btype="application\/ld\+json"/.test(script[1])) {
+        continue;
+      }
+      assert.ok(
+        script[1].includes(`nonce="${nonce}"`),
+        `${pathname} has a script without its delivery nonce: ${script[0]}`
+      );
+    }
     if (pathname === '/factions' || pathname === '/assets/token-disc' || pathname === '/rulesets') {
       const links = [...html.matchAll(/<a[^>]+href="([^"]+)"/g)].map((match) => match[1]!);
       if (pathname === '/rulesets') {
