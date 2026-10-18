@@ -48,16 +48,15 @@ export function useSignOutEverywhere() {
 const subscribeToNothing = () => () => {};
 
 /*
- * The sign-in page remembers which provider this browser last finished signing in with, because choosing the other one quietly starts a second account.
- * The choice is noted when the reader leaves for the provider and kept only once the sign-in it started succeeds.
- * Signing out keeps it, since that is exactly when the reader next needs it.
+ * Pending sign-ins stay in their starting tab so another tab's callback cannot settle them.
+ * Only a successful login saves the browser-wide hint. Signing out keeps that hint.
  */
 const STARTED_SIGN_IN_KEY = 'dunezone-sign-in-started';
 const LAST_SIGN_IN_KEY = 'dunezone-last-sign-in';
 
-function storedProvider(key: string): AuthProvider | null {
+function storedProvider(key: string, pending = false): AuthProvider | null {
   try {
-    const value = localStorage.getItem(key);
+    const value = (pending ? sessionStorage : localStorage).getItem(key);
     return value !== null && Object.hasOwn(authProviderNames, value) ? (value as AuthProvider) : null;
   } catch {
     return null;
@@ -67,7 +66,7 @@ function storedProvider(key: string): AuthProvider | null {
 /** Notes the provider a sign-in is leaving for; storage the browser refuses only loses the hint. */
 export function noteSignInStarted(provider: AuthProvider) {
   try {
-    localStorage.setItem(STARTED_SIGN_IN_KEY, provider);
+    sessionStorage.setItem(STARTED_SIGN_IN_KEY, provider);
   } catch {
     /* The hint is a convenience, and sign-in goes ahead without it. */
   }
@@ -75,9 +74,9 @@ export function noteSignInStarted(provider: AuthProvider) {
 
 /** Ends the noted sign-in, keeping its provider as the last one used only when it succeeded. */
 export function settleStartedSignIn(succeeded: boolean) {
-  const provider = storedProvider(STARTED_SIGN_IN_KEY);
+  const provider = storedProvider(STARTED_SIGN_IN_KEY, true);
   try {
-    localStorage.removeItem(STARTED_SIGN_IN_KEY);
+    sessionStorage.removeItem(STARTED_SIGN_IN_KEY);
     if (succeeded && provider) {
       localStorage.setItem(LAST_SIGN_IN_KEY, provider);
     }

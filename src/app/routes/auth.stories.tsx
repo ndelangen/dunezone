@@ -38,7 +38,7 @@ const lastSignedInWithDiscord = () => {
   localStorage.setItem('dunezone-last-sign-in', 'discord');
   return () => localStorage.removeItem('dunezone-last-sign-in');
 };
-/** The provider this browser last signed in with carries a small mark beside its arrow, so a returning reader does not start a second account with the other one; the words reach assistive tech through the button's name. */
+/** The last-used provider has a mark on its logo and "Last used" in its accessible name. */
 export const LoginLastUsed = meta.story({
   args: { path: '/auth/login' },
   parameters: { identity: null },
@@ -52,7 +52,7 @@ export const LoginLastUsed = meta.story({
     );
   },
 });
-/** On a phone the mark still fits beside the arrow without clipping the label. */
+/** On a phone the mark stays on the logo without clipping the label. */
 export const LoginLastUsedMobile = meta.story({
   args: { path: '/auth/login' },
   parameters: { identity: null },

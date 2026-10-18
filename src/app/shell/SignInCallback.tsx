@@ -62,7 +62,7 @@ export function SignInCallback() {
     (signIn as unknown as (provider: undefined, params: { code: string }) => ReturnType<typeof signIn>)(undefined, {
       code,
     }).then(
-      ({ signingIn }) => (signingIn ? settleStartedSignIn(true) : fail('failed')),
+      ({ signingIn }) => (signingIn ? settleStartedSignIn(!explainsItsOwnResult(url.pathname)) : fail('failed')),
       (error: unknown) => fail(failureOf(error))
     );
   }, [signIn, router]);
