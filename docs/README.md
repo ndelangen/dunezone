@@ -95,6 +95,12 @@ Three 0.186 now removes destroyed bind groups itself, so that part of the old pa
 The patch covers `build/three.webgpu.js`,
 `build/three.webgpu.nodes.js` and the matching `src/` files.
 
+The Storybook React 10.6.1 patch uses an asynchronous `act` callback when unmounting a story.
+Its test environment flag then stays enabled until React drains the cleanup work. A synchronous
+callback restores the flag before the awaited cleanup finishes, so Fiber reports an unsupported
+act environment during later stories. The two-story Play table loop reproduces the warning.
+Remove the patch when Storybook uses an asynchronous unmount callback itself.
+
 The Floating UI 1.8.0 patch coalesces positions requested by `ResizeObserver` into the next
 animation frame. Updating a portalled tooltip inside resize delivery can change its wrapping and
 leave undelivered notifications in the same browser cycle. Initial placement and scroll updates

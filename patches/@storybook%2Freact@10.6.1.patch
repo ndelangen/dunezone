@@ -1,0 +1,13 @@
+diff --git a/dist/_browser-chunks/chunk-7HUHAOMV.js b/dist/_browser-chunks/chunk-7HUHAOMV.js
+index 56eb0b2cba6ed910538a4593a0b088b92d26c681..9d390d57fd43c27bf0ab16a701b6e2f447d914fa 100644
+--- a/dist/_browser-chunks/chunk-7HUHAOMV.js
++++ b/dist/_browser-chunks/chunk-7HUHAOMV.js
+@@ -135,7 +135,7 @@ async function renderToCanvas({
+       }
+     }), processActQueue();
+   }), async () => {
+-    await act(() => {
++    await act(async () => {
+       unmountElement(canvasElement);
+     });
+   };

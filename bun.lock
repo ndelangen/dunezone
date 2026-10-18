@@ -161,6 +161,7 @@
     "three@0.186.1": "patches/three@0.186.1.patch",
     "harfbuzzjs@0.10.0": "patches/harfbuzzjs@0.10.0.patch",
     "@floating-ui/dom@1.8.0": "patches/@floating-ui%2Fdom@1.8.0.patch",
+    "@storybook/react@10.6.1": "patches/@storybook%2Freact@10.6.1.patch",
     "@storybook/tanstack-react@10.6.1": "patches/@storybook%2Ftanstack-react@10.6.1.patch",
     "@convex-dev/auth@0.0.96": "patches/@convex-dev%2Fauth@0.0.96.patch",
   },

@@ -248,6 +248,7 @@
     "three@0.186.1": "patches/three@0.186.1.patch",
     "@react-three/fiber@10.0.0-alpha.5": "patches/@react-three%2Ffiber@10.0.0-alpha.5.patch",
     "convex@1.46.0": "patches/convex@1.46.0.patch",
-    "@floating-ui/dom@1.8.0": "patches/@floating-ui%2Fdom@1.8.0.patch"
+    "@floating-ui/dom@1.8.0": "patches/@floating-ui%2Fdom@1.8.0.patch",
+    "@storybook/react@10.6.1": "patches/@storybook%2Freact@10.6.1.patch"
   }
 }

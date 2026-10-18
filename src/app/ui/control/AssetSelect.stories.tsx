@@ -180,7 +180,7 @@ export const IconPicker = meta.story({
     await expect(search).toHaveFocus();
     await userEvent.type(search, 'ocean');
     const ocean = await screen.findByRole('option', { name: 'Ocean emblem' });
-    await act(() => userEvent.click(ocean));
+    await act(async () => ocean.click());
     await expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
     await waitFor(() => expect(canvas.getByRole('button', { name: 'Add decal' })).toHaveFocus());
   },
