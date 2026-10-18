@@ -181,6 +181,43 @@ type RulesetChoice = { value: string; label: string; questions: number };
  * Each option says how many questions it holds, and a picked one stays listed, checked, so it can be dropped from the list as well as from its pill.
  * The toolbar's segment has room for one pill, so a second pick folds the rest into a count.
  */
+type MultiSelectProps = Parameters<typeof MultiSelect>[0];
+
+const renderRulesetOption: NonNullable<MultiSelectProps['renderOption']> = ({ option }) => (
+  <span className={styles.rulesetOption}>
+    <span>{option.label}</span>
+    <Text component="span" size="xs" c="dimmed">
+      {(option as RulesetChoice).questions}
+    </Text>
+  </span>
+);
+
+/** Shows the first picked ruleset and folds the rest into one "+N" pill, so the toolbar stays one line. */
+function summaryPill(value: string[]): NonNullable<MultiSelectProps['renderPill']> {
+  return ({ option, value: picked, onRemove }) => {
+    /* A picked ruleset with no questions yet is not among the options, so Mantine hands over no option for it and the slug stands in for its name. */
+    const slug = String(picked ?? option?.value);
+    const index = value.indexOf(slug);
+    if (index === 0) {
+      return (
+        <Pill withRemoveButton onRemove={onRemove}>
+          {option?.label ?? slug}
+        </Pill>
+      );
+    }
+    if (index !== 1) {
+      return null;
+    }
+    const more = value.length - 1;
+    return (
+      <Pill>
+        <span aria-hidden>+{more}</span>
+        <VisuallyHidden>and {more} more rulesets</VisuallyHidden>
+      </Pill>
+    );
+  };
+}
+
 function RulesetSelect({
   label,
   options,
@@ -207,41 +244,8 @@ function RulesetSelect({
       aria-label={inToolbar ? 'Rulesets' : undefined}
       placeholder={value.length === 0 ? 'All rulesets' : undefined}
       data={data}
-      renderOption={({ option }) => (
-        <span className={styles.rulesetOption}>
-          <span>{option.label}</span>
-          <Text component="span" size="xs" c="dimmed">
-            {(option as RulesetChoice).questions}
-          </Text>
-        </span>
-      )}
-      renderPill={
-        inToolbar
-          ? ({ option, value: picked, onRemove }) => {
-              /* A picked ruleset with no questions yet is not among the options, so Mantine hands over no option for it and the slug stands in for its name. */
-              const slug = String(picked ?? option?.value);
-              const name = option?.label ?? slug;
-              const index = value.indexOf(slug);
-              if (index === 0) {
-                return (
-                  <Pill withRemoveButton onRemove={onRemove} removeButtonProps={{ 'aria-label': `Drop ${name}` }}>
-                    {name}
-                  </Pill>
-                );
-              }
-              if (index !== 1) {
-                return null;
-              }
-              const more = value.length - 1;
-              return (
-                <Pill>
-                  <span aria-hidden>+{more}</span>
-                  <VisuallyHidden>and {more} more rulesets</VisuallyHidden>
-                </Pill>
-              );
-            }
-          : undefined
-      }
+      renderOption={renderRulesetOption}
+      renderPill={inToolbar ? summaryPill(value) : undefined}
       value={value}
       onChange={onChange}
       clearable
