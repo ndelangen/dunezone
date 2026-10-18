@@ -177,16 +177,10 @@ export const EditFactionOrder = meta.story({
      * Drop only once the drag is over the next row and stays there:
      * the pickup's own row is announced first, and without the pause the drop landed back on the dragged row in every run, as the keyboard sensor's target had not settled.
      */
-    const overAnotherRow = () => {
-      const announcement = canvasElement.ownerDocument.querySelector('[id^="DndLiveRegion"]')?.textContent ?? '';
-      const [, dragged, over] = /item (\S+) was moved over droppable area (\S+)/.exec(announcement) ?? [];
-      if (!over || over === dragged) {
-        throw new Error(`Not over another row yet: ${announcement}`);
-      }
-    };
-    await waitFor(overAnotherRow);
+    const overSecondRow = () => expect(page.getByText('House Atreides is over position 2 of 3.')).toBeInTheDocument();
+    await waitFor(overSecondRow);
     await new Promise<void>((resolve) => setTimeout(resolve, 300));
-    await waitFor(overAnotherRow);
+    await waitFor(overSecondRow);
     await userEvent.keyboard('[Space]');
     await waitFor(() => expect(names()).toEqual(['Choam', 'House Atreides', 'Duncan']), { timeout: 30_000 });
   },

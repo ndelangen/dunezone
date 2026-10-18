@@ -307,6 +307,13 @@ export const addFaction = mutation({
       .withIndex('by_ruleset_faction', (q) => q.eq('ruleset_id', args.ruleset_id).eq('faction_id', args.faction_id))
       .unique();
     if (!existing) {
+      const links = await ctx.db
+        .query('ruleset_factions')
+        .withIndex('by_ruleset', (q) => q.eq('ruleset_id', args.ruleset_id))
+        .take(RULESET_FACTION_LIMIT);
+      if (links.length === RULESET_FACTION_LIMIT) {
+        throw new Error(`A ruleset holds at most ${RULESET_FACTION_LIMIT} factions.`);
+      }
       /* Appended: a reorder numbers from 0 and every earlier append was made sooner, so now is past them all. */
       await ctx.db.insert('ruleset_factions', {
         ruleset_id: args.ruleset_id,

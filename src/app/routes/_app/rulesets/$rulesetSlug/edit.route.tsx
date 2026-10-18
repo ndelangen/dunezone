@@ -1,5 +1,5 @@
 import { closestCenter, DndContext, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
-import type { DragEndEvent } from '@dnd-kit/core';
+import type { Announcements, DragEndEvent } from '@dnd-kit/core';
 import {
   arrayMove,
   SortableContext,
@@ -399,9 +399,30 @@ const FACTION_LIST_STEP = 50;
  * A drag saves at once and the list keeps the new order until the saved one arrives;
  * dragging among the loaded factions leaves the unloaded ones after them.
  */
+/** What a screen reader hears while a faction is dragged: its name and places, never its id. */
+function factionAnnouncements(factions: { _id: string; name: string }[]): Announcements {
+  const name = (id: string | number) => factions.find((faction) => faction._id === id)?.name ?? 'Faction';
+  const place = (id: string | number) =>
+    `position ${factions.findIndex((faction) => faction._id === id) + 1} of ${factions.length}`;
+  return {
+    onDragStart: ({ active }) => `Picked up ${name(active.id)}, at ${place(active.id)}.`,
+    onDragOver: ({ active, over }) =>
+      over ? `${name(active.id)} is over ${place(over.id)}.` : `${name(active.id)} is no longer over the list.`,
+    onDragEnd: ({ active, over }) =>
+      over ? `${name(active.id)} was dropped at ${place(over.id)}.` : `${name(active.id)} was dropped.`,
+    onDragCancel: ({ active }) => `Moving ${name(active.id)} was cancelled.`,
+  };
+}
+
 function RulesetFactions({ rulesetId, rulesetName }: { rulesetId: RulesetEntry['_id']; rulesetName: string }) {
   const [limit, setLimit] = useState(FACTION_LIST_STEP);
-  const ordered = useOrderedRulesetFactions(rulesetId, limit);
+  const answered = useOrderedRulesetFactions(rulesetId, limit);
+  /* The last answer stays on screen while Load more asks for a longer list, so the list and the button keep their place and focus. */
+  const [lastAnswered, setLastAnswered] = useState(answered);
+  if (answered !== undefined && answered !== lastAnswered) {
+    setLastAnswered(answered);
+  }
+  const ordered = answered ?? lastAnswered;
   const addFaction = useAddRulesetFaction();
   const removeFaction = useRemoveRulesetFaction();
   const reorder = useReorderRulesetFactions();
@@ -424,9 +445,13 @@ function RulesetFactions({ rulesetId, rulesetName }: { rulesetId: RulesetEntry['
     if (from < 0 || to < 0 || from === to) {
       return;
     }
-    const next = arrayMove(factions, from, to);
-    setDraftOrder({ basis: ordered, ids: next.map((faction) => faction._id) });
-    reorder.mutate({ rulesetId, factionIds: next.map((faction) => faction._id) });
+    const ids = arrayMove(factions, from, to).map((faction) => faction._id);
+    setDraftOrder({ basis: ordered, ids });
+    /* A refused save drops its own draft, so the list shows the saved order again; a later drag's draft stays. */
+    reorder.mutate(
+      { rulesetId, factionIds: ids },
+      { onError: () => setDraftOrder((current) => (current?.ids === ids ? null : current)) }
+    );
   };
 
   return (
@@ -440,7 +465,7 @@ function RulesetFactions({ rulesetId, rulesetName }: { rulesetId: RulesetEntry['
             </Text>
             <AddFactionPopover
               disabled={pending}
-              linkedIds={saved.map((faction) => faction._id)}
+              linkedSlugs={saved.map((faction) => faction.slug)}
               rulesetName={rulesetName}
               onAdd={(factionId) => addFaction.mutate({ rulesetId, factionId })}
             />
@@ -449,7 +474,12 @@ function RulesetFactions({ rulesetId, rulesetName }: { rulesetId: RulesetEntry['
             <Text c="dimmed">No factions have been added to this ruleset yet.</Text>
           ) : null}
           {factions.length > 0 ? (
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+              accessibility={{ announcements: factionAnnouncements(factions) }}
+            >
               <SortableContext items={factions.map((faction) => faction._id)} strategy={verticalListSortingStrategy}>
                 <Stack component="ol" aria-label="Factions" gap="xs" m={0} p={0} style={{ listStyle: 'none' }}>
                   {factions.map((faction) => (
@@ -485,7 +515,11 @@ function RulesetFactions({ rulesetId, rulesetName }: { rulesetId: RulesetEntry['
             </DndContext>
           ) : null}
           {ordered?.hasMore ? (
-            <Button variant="default" onClick={() => setLimit((current) => current + FACTION_LIST_STEP)}>
+            <Button
+              variant="default"
+              disabled={answered === undefined}
+              onClick={() => setLimit((current) => current + FACTION_LIST_STEP)}
+            >
               Load more
             </Button>
           ) : null}
@@ -507,13 +541,13 @@ function RulesetFactions({ rulesetId, rulesetName }: { rulesetId: RulesetEntry['
  */
 function AddFactionPopover({
   disabled,
-  linkedIds,
+  linkedSlugs,
   rulesetName,
   onAdd,
 }: {
   disabled: boolean;
   /** The loaded linked factions, which the picker leaves out; adding an unloaded one again changes nothing. */
-  linkedIds: string[];
+  linkedSlugs: string[];
   rulesetName: string;
   onAdd: (factionId: string) => void;
 }) {
@@ -546,7 +580,7 @@ function AddFactionPopover({
       <Popover.Dropdown>
         {opened ? (
           <FactionPicker
-            excludeIds={linkedIds}
+            excludeSlugs={linkedSlugs}
             copy={{
               title: 'Add a faction',
               intro: `Choose a faction to add to ${rulesetName}. Factions already in it are not listed.`,

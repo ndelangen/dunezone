@@ -213,7 +213,7 @@ export const rulesetAssetSlotValidator = v.object({
 export const rulesetPublicDetailPageValidator = v.union(
   rulesetPageValidator.extend({
     assignedGroup: v.union(assignedGroupSummaryValidator, v.null()),
-    /** The first few factions by name; the rest are in the catalogue under this ruleset's filter. */
+    /** The first few factions in the ruleset's own order; the rest are in the catalogue under this ruleset's filter. */
     factionPreview: v.array(catalogueFactionValidator),
     /** Live factions in this ruleset, from the catalogue's list for it. */
     factionCount: v.number(),

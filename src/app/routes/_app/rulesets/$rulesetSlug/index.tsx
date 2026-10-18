@@ -699,7 +699,7 @@ function RulesetDetailPage() {
 
           <ColumnsWithRailLayout.Rail>
             <Section id="factions" icon={<Layers3 size={20} aria-hidden />} title="Factions">
-              {page.factionPreview.length > 0 ? (
+              {factionCount > 0 ? (
                 <Stack gap="md">
                   {page.factionPreview.map((faction) => (
                     <FactionCard key={faction._id} faction={faction} />

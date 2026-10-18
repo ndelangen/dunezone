@@ -50,7 +50,7 @@ type RulesetSlottedAsset = { slot: string; asset: { id: string; type: string; sl
 /** What `api.rulesets.detailPage` gives the detail routes, the same for every viewer: the page data plus everything the toolbar and FAQ draw. */
 export type RulesetDetailPublicPage = {
   ruleset: RulesetEntry;
-  /** The first few factions by name; the rest are in the catalogue under this ruleset's filter. */
+  /** The first few factions in the ruleset's own order; the rest are in the catalogue under this ruleset's filter. */
   factionPreview: FactionCatalogueEntry[];
   /** Every live faction the ruleset has. */
   factionCount: number;
@@ -190,7 +190,8 @@ export function useRulesetDetailPage(slug: string, options?: { initialData?: Rul
 
 /** A ruleset's first `limit` factions in its own order, live, and whether more remain; a larger limit loads more. */
 export function useOrderedRulesetFactions(rulesetId: Id<'rulesets'>, limit: number) {
-  return useLiveQuery(api.rulesets.orderedFactions, { rulesetId, limit });
+  /* Not held: each Load more is a longer prefix, and holding the shorter ones would keep them all subscribed. */
+  return useLiveQuery(api.rulesets.orderedFactions, { rulesetId, limit }, { hold: false });
 }
 
 /** Puts a ruleset's factions in the order given; the ones it leaves out follow, in their current order. */
@@ -200,8 +201,14 @@ export function useReorderRulesetFactions() {
   );
   return {
     ...mutation,
-    mutate: (variables: { rulesetId: Id<'rulesets'>; factionIds: Id<'factions'>[] }) =>
-      mutation.mutate({ ruleset_id: variables.rulesetId, faction_ids: variables.factionIds }),
+    mutate: (
+      variables: { rulesetId: Id<'rulesets'>; factionIds: Id<'factions'>[] },
+      options?: { onError?: () => void }
+    ) =>
+      mutation.mutate(
+        { ruleset_id: variables.rulesetId, faction_ids: variables.factionIds },
+        { onError: () => options?.onError?.() }
+      ),
   };
 }
 

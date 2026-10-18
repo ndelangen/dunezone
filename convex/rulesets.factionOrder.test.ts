@@ -8,6 +8,7 @@ import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { applicationTest } from './application.test.fixture';
 import { applicationTriggers } from './lib/applicationTriggers';
+import { RULESET_FACTION_LIMIT } from './lib/rulesetDetailPage';
 
 const ABOUT = 'A house ruleset used to prove its factions keep the order its maintainers give them.';
 
@@ -122,6 +123,44 @@ describe('a ruleset’s faction order', () => {
     expect(await railNames(fixture)).toEqual({ names: ['Bene Gesserit', 'Choam', 'Duncan'], count: 3 });
   });
 
+  test('fills the page past any number of soft-deleted factions at the top', async () => {
+    const names = [...Array.from({ length: 14 }, (_, index) => `Gone ${index}`), 'Atreides', 'Bene Gesserit'];
+    const fixture = await orderFixture(names);
+    await fixture.t.run(async (rawCtx) => {
+      const ctx = applicationTriggers.wrapDB(rawCtx);
+      for (const factionId of fixture.factionIds.slice(0, 14)) {
+        await ctx.db.patch(factionId, { is_deleted: true });
+      }
+    });
+    expect(await railNames(fixture)).toEqual({ names: ['Atreides', 'Bene Gesserit'], count: 2 });
+  });
+
+  test('refuses a faction past the limit, so the edit list never has more than it can load', async () => {
+    const fixture = await orderFixture(['Atreides', 'Bene Gesserit']);
+    const [atreides, beneGesserit] = fixture.factionIds;
+    await fixture.owner.mutation(api.rulesets.removeFaction, {
+      ruleset_id: fixture.ruleset._id,
+      faction_id: beneGesserit,
+    });
+    await fixture.t.run(async (ctx) => {
+      for (let index = 0; index < RULESET_FACTION_LIMIT - 1; index++) {
+        await ctx.db.insert('ruleset_factions', {
+          ruleset_id: fixture.ruleset._id,
+          faction_id: atreides,
+          position: index,
+        });
+      }
+    });
+    await expect(
+      fixture.owner.mutation(api.rulesets.addFaction, { ruleset_id: fixture.ruleset._id, faction_id: beneGesserit })
+    ).rejects.toThrow(`at most ${RULESET_FACTION_LIMIT} factions`);
+    const { hasMore } = await fixture.t.query(api.rulesets.orderedFactions, {
+      rulesetId: fixture.ruleset._id,
+      limit: RULESET_FACTION_LIMIT,
+    });
+    expect(hasMore).toBe(false);
+  });
+
   test('refuses a reorder from someone who cannot maintain the ruleset', async () => {
     const fixture = await orderFixture(['Atreides', 'Bene Gesserit']);
     await expect(
@@ -150,9 +189,17 @@ describe('a ruleset’s faction order', () => {
         await ctx.db.patch('ruleset_factions', link._id, { position: undefined });
       }
     });
+    /* Before the backfill runs, unset positions read in the order they were made, and a new link goes after them. */
+    expect(await editOrder(fixture)).toEqual(['Atreides', 'Bene Gesserit', 'Choam']);
+    const { owner, ruleset, factionIds } = fixture;
+    await owner.mutation(api.rulesets.removeFaction, { ruleset_id: ruleset._id, faction_id: factionIds[0] });
+    await owner.mutation(api.rulesets.addFaction, { ruleset_id: ruleset._id, faction_id: factionIds[0] });
+    expect(await editOrder(fixture)).toEqual(['Bene Gesserit', 'Choam', 'Atreides']);
+
     await fixture.t.mutation(internal.migrations.ruleset_factions_position_v1, {});
     const links = await fixture.t.run(async (ctx) => await ctx.db.query('ruleset_factions').collect());
-    expect(links.every((link) => link.position === link._creationTime)).toBe(true);
-    expect(await editOrder(fixture)).toEqual(['Atreides', 'Bene Gesserit', 'Choam']);
+    const backfilled = links.filter((link) => link.faction_id !== factionIds[0]);
+    expect(backfilled.every((link) => link.position === link._creationTime)).toBe(true);
+    expect(await editOrder(fixture)).toEqual(['Bene Gesserit', 'Choam', 'Atreides']);
   });
 });

@@ -78,7 +78,8 @@ export async function listOrderedRulesetFactions(ctx: QueryCtx, rulesetId: Id<'r
     factions: factions
       .filter((faction) => faction !== null)
       .map((faction) => ({ _id: faction._id, slug: faction.slug, name: faction.data.name })),
-    hasMore: links.length > bounded,
+    /* Never past the limit, which `addFaction` holds rulesets to, so Load more cannot stall on the same page. */
+    hasMore: links.length > bounded && bounded < RULESET_FACTION_LIMIT,
   };
 }
 
@@ -100,26 +101,34 @@ function rulesetBoardFace(slots: Awaited<ReturnType<typeof readRulesetAssetSlots
   return entry ? { ...entry.asset, previewHref: ownPublishedFace(entry.doc) } : null;
 }
 
-/* Links read past the preview's size, so a few soft-deleted factions near the top still leave it full. */
-const RULESET_FACTION_PREVIEW_READ = 12;
-
 /**
  * The ruleset's first factions in its own order, and how many live ones it has from the faction catalogue's list for it, so the page reads a few cards whatever the ruleset's size.
  * Soft-deleted and dangling links are skipped.
  */
 async function rulesetFactionPreview(ctx: QueryCtx, rulesetId: Id<'rulesets'>) {
-  const [links, [factionCount = 0]] = await Promise.all([
-    ctx.db
-      .query('ruleset_factions')
-      .withIndex('by_ruleset_position', (q) => q.eq('ruleset_id', rulesetId))
-      .take(RULESET_FACTION_PREVIEW_READ),
+  const [factionPreview, [factionCount = 0]] = await Promise.all([
+    firstLiveRulesetFactions(ctx, rulesetId),
     countCataloguePartitions(ctx, 'faction', [rulesetId]),
   ]);
-  const factions = await Promise.all(links.map((link) => linkedCatalogueFaction(ctx, link.faction_id)));
-  return {
-    factionPreview: factions.filter((faction) => faction !== null).slice(0, RULESET_FACTION_PREVIEW_SIZE),
-    factionCount,
-  };
+  return { factionPreview, factionCount };
+}
+
+/* Walks the links in order until the preview is full, so any number of soft-deleted factions near the top still leave it full; a ruleset holds at most `RULESET_FACTION_LIMIT` links. */
+async function firstLiveRulesetFactions(ctx: QueryCtx, rulesetId: Id<'rulesets'>) {
+  const preview: NonNullable<Awaited<ReturnType<typeof linkedCatalogueFaction>>>[] = [];
+  const links = ctx.db.query('ruleset_factions').withIndex('by_ruleset_position', (q) => q.eq('ruleset_id', rulesetId));
+  let read = 0;
+  for await (const link of links) {
+    read += 1;
+    const faction = await linkedCatalogueFaction(ctx, link.faction_id);
+    if (faction) {
+      preview.push(faction);
+    }
+    if (preview.length === RULESET_FACTION_PREVIEW_SIZE || read === RULESET_FACTION_LIMIT) {
+      break;
+    }
+  }
+  return preview;
 }
 
 /** How many questions a ruleset has, and how many of them have an accepted answer, from its FAQ lists' counts. */
