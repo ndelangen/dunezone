@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 
 import { componentGeometrySchema } from '../asset-publishing/componentGeometry';
 import { RULEBOOK_BOARD_DEFINITIONS, resolveRulebookBoardDefinition } from './boardDefinitions';

@@ -1,16 +1,13 @@
 /// <reference types="vite/client" />
 /* @vitest-environment edge-runtime */
-import { convexTest } from 'convex-test';
-import { expect, test } from 'vitest';
+import { expect, test } from 'vite-plus/test';
 
 import { GF9_LEADER_SKILLS } from '../src/shared/assets/gf9LeaderSkills';
 import { api, internal } from './_generated/api';
-import schema from './schema';
-
-const modules = import.meta.glob('./**/*.ts');
+import { applicationTest } from './application.test.fixture';
 
 test('renderer regeneration republishes live leader skills and skips deleted cards', async () => {
-  const t = convexTest(schema, modules);
+  const t = applicationTest();
   const ownerId = await t.run((ctx) => ctx.db.insert('users', { name: 'Creator' }));
   const owner = t.withIdentity({ subject: ownerId });
   const live = await owner.mutation(api.assets.create, {
@@ -35,4 +32,30 @@ test('renderer regeneration republishes live leader skills and skips deleted car
   expect(jobs).toHaveLength(1);
   expect(jobs[0]?.asset_id).toBe(live.id);
   expect(jobs[0]?.asset_data.card).toEqual(GF9_LEADER_SKILLS[0]);
+});
+
+test('one stored card its schema refuses is skipped rather than ending the scan for the rest', async () => {
+  const t = applicationTest();
+  const ownerId = await t.run((ctx) => ctx.db.insert('users', { name: 'Creator' }));
+  const owner = t.withIdentity({ subject: ownerId });
+  const broken = await owner.mutation(api.assets.create, {
+    type: 'card-leaderability',
+    data: GF9_LEADER_SKILLS[0]!,
+  });
+  const live = await owner.mutation(api.assets.create, {
+    type: 'card-leaderability',
+    data: GF9_LEADER_SKILLS[1]!,
+  });
+  await t.run(async (ctx) => {
+    await ctx.db.patch(broken.id, { data: { legacy: true } });
+    await Promise.all((await ctx.db.query('publication_jobs').collect()).map((job) => ctx.db.delete(job._id)));
+  });
+  await t.mutation(internal.publicationRegeneration.scan, {
+    assetType: 'card-leaderability',
+    cursor: null,
+    scanned: 0,
+    enqueued: 0,
+  });
+  const jobs = await t.run((ctx) => ctx.db.query('publication_jobs').collect());
+  expect(jobs.map((job) => job.asset_id)).toEqual([live.id]);
 });

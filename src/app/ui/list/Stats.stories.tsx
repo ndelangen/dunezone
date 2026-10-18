@@ -66,20 +66,12 @@ const meta = preview.meta({
   args: { items: RULESET_STATS },
 });
 
-/** The compact shape. Hover any stat to see the phrase the number stands for. */
-export const Row = meta.story({});
-
-/** The labelled shape, for a sidebar panel with room to spell each fact out. */
-export const Column = meta.story({
-  args: { orientation: 'column', items: PROFILE_STATS },
-});
-
-export const SingleStat = meta.story({
-  args: { items: [RULESET_STATS[0]!] },
-});
-
-/** Not every fact is a count: an unset version renders as an em dash. */
-export const NonNumericValue = meta.story({
+/**
+ * The compact shape.
+ * Hover any stat to see the phrase the number stands for.
+ * Not every fact is a count: an unset version renders as an em dash.
+ */
+export const Row = meta.story({
   args: {
     items: [
       ...RULESET_STATS,
@@ -91,6 +83,11 @@ export const NonNumericValue = meta.story({
       },
     ],
   },
+});
+
+/** The labelled shape, for a sidebar panel with room to spell each fact out. */
+export const Column = meta.story({
+  args: { orientation: 'column', items: PROFILE_STATS },
 });
 
 /** A row wraps rather than overflowing once the strip runs out of width. */

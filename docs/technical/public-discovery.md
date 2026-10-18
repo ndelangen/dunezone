@@ -67,6 +67,13 @@ no invented modification time. Dates describe edits to the record, not changes t
   as already accepted for public delivery.
 - Successful public HTML carries no `noindex`. Social PNGs and publisher health diagnostics carry
   `X-Robots-Tag: noindex`. Social URLs still return PNG bytes, including for social-platform fetches.
+- An Asset's detail page writes its own published face into the server HTML as its main image, and
+  its sitemap entry names that face with Google's image extension (`<image:image>`), by the same
+  href the page draws. A bundle, and a deck wearing a preset or another deck's cardback, name none.
+  Published images carry no `noindex`.
+- Faction sheet PDFs carry no `noindex` and are titled after their faction. A Rulebook's newest
+  ready Edition PDF is open to search; earlier Editions, the Edition HTML files and any PDF whose
+  standing cannot be checked carry `X-Robots-Tag: noindex`.
 - Sitemap responses carry XML content types and `X-Robots-Tag: noindex`. Unknown sitemap names
   return 404 instead of the application shell. Unsupported methods return 405.
 

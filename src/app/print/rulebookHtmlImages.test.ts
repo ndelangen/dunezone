@@ -1,5 +1,5 @@
 import { parseHTML } from 'linkedom';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { factionTokenFixtures } from '../../game/fixtures/factionTokens';
 import { factionMemberPublicationId } from '../../shared/asset-publishing/componentPublication';

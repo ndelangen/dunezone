@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test';
 import { z } from 'zod';
 
 import { publishingDeckCardback } from '../../src/shared/assets/fixtures/publishingDeckCardback';
@@ -122,7 +122,7 @@ describe('Hosted readiness and shared inventory through native commands', () => 
     const a = await admit('a');
     const b = await admit('b');
     const observer = await admit('c');
-    await act(a, { kind: 'ready', ready: true }, 'such as Mentat pause');
+    await act(a, { kind: 'ready', ready: true }, 'such as Mentat Pause');
     for (let index = 0; index < 8; index++) {
       await waitPhase();
       await act(a, { kind: 'phase' });
@@ -238,7 +238,7 @@ describe('Hosted readiness and shared inventory through native commands', () => 
     state = await act(restored, { kind: 'spawn-dismiss', requestId: required(state.controls).requests[0].id });
     expect(required(state.controls).requests).toEqual([]);
     expect(state.table.pieces.some((piece) => piece.inventory)).toBe(false);
-    const invalidPages: { rejection: string; change(page: AssetSupply): void }[] = [
+    const invalidPages: { rejection: string; change: (page: AssetSupply) => void }[] = [
       {
         rejection: 'definition',
         change: (page) => {

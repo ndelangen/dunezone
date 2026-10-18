@@ -3,7 +3,7 @@ import { expect, userEvent, waitFor, within } from 'storybook/test';
 import { press } from './gameInteractions.stories.fixture';
 
 /*
- * The shortcut the Play/Controls stories share: open the page straight on one panel of the controls,
+ * The shortcut the Play stories share: open the page straight on one panel of the controls,
  * so a story shows a panel in one state without clicking there first.
  */
 
@@ -40,6 +40,7 @@ export async function openControl(page: Page, tab: string, subtab?: string) {
     Alliances: 'Game',
     Result: 'Game',
     'Shared inventory': 'Table',
+    'Territory tints': 'Table',
     Settings: 'Table',
     'Game log': 'History',
     Audit: 'History',
@@ -82,3 +83,6 @@ export async function openPlayer(canvasElement: HTMLElement, player: string, tab
   await choose(players, whole(tab));
   return page;
 }
+
+/* The panel's content can commit well after its tab turns current on a slow runner, so every read waits as long as the tab does. */
+export const WAIT = { timeout: 30_000 };

@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { ImageInspectionError, jpegProfile, pngDimensions } from './image-inspection';
 import { pngBytes } from './test-helpers';

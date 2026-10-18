@@ -21,9 +21,9 @@ export async function expectContainedReferences({ canvasElement }: { canvasEleme
   }
   const region = canvasElement.querySelector('[data-rulebook-region]')!.getBoundingClientRect();
   const block = canvasElement.querySelector('[data-rulebook-block-id]')!.getBoundingClientRect();
-  expect(block.left).toBeGreaterThanOrEqual(region.left - 1);
-  expect(block.right).toBeLessThanOrEqual(region.right + 1);
-  expect(block.bottom).toBeLessThanOrEqual(region.bottom + 1);
+  await expect(block.left).toBeGreaterThanOrEqual(region.left - 1);
+  await expect(block.right).toBeLessThanOrEqual(region.right + 1);
+  await expect(block.bottom).toBeLessThanOrEqual(region.bottom + 1);
 }
 
 export function IllustrationStory({ size = 'a4' }: { size?: RulebookSize }) {

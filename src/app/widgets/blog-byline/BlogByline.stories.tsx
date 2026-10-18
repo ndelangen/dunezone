@@ -28,3 +28,16 @@ export const UnlinkedAuthor = meta.story({
     await expect(story.queryByRole('link')).not.toBeInTheDocument();
   },
 });
+
+/** Over header artwork the byline is white with a shadow, and a known author shows their avatar. */
+export const InverseWithAvatar = meta.story({
+  args: {
+    tone: 'inverse',
+    author: { name: 'Central419', profileSlug: 'central', image: '/web/logo.svg' },
+  },
+  play: async ({ canvasElement }) => {
+    const story = within(canvasElement);
+    const link = await story.findByRole('link', { name: 'Central419' });
+    await expect(link.querySelector('img')).toHaveAttribute('src', '/web/logo.svg');
+  },
+});

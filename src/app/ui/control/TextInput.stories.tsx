@@ -22,9 +22,3 @@ export const ValidationError = meta.story({
     error: 'This name is already in use.',
   },
 });
-
-export const Disabled = meta.story({
-  args: {
-    disabled: true,
-  },
-});

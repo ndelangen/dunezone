@@ -1,6 +1,7 @@
 /* @jsxImportSource ./three-jsx */
 import { useTexture } from '@react-three/drei/webgpu';
 import { useFrame, useThree } from '@react-three/fiber/webgpu';
+import { retainedArrakisBoard } from '@shared/boards/geometry';
 import type { Vector3Tuple } from '@shared/play/model';
 import type { GameSnapshot } from '@shared/play/protocol';
 import {
@@ -28,7 +29,7 @@ import { TRACKER_DISC_HEIGHT } from '@shared/play/tableTrackers';
 import type { TrackerArcSlot } from '@shared/play/tableTrackers';
 import { lazy, Suspense, useMemo, useRef, useLayoutEffect, useEffect } from 'react';
 import type { ExtrudeGeometry, Group } from 'three';
-import { BufferGeometry, EdgesGeometry, Float32BufferAttribute, RingGeometry, SRGBColorSpace } from 'three';
+import { BufferGeometry, CircleGeometry, EdgesGeometry, Float32BufferAttribute, SRGBColorSpace } from 'three';
 
 import { useMotionAllowed } from '@app/styles/motion';
 
@@ -37,6 +38,7 @@ import arrakisMapSvg from './assets/arrakis-map.svg?raw';
 import stormMarkerUrl from './assets/storm-marker.webp?url';
 import { boardFurnitureFor } from './boardFurniture';
 import { boardMapGeometry } from './boardMapGeometry';
+import { POLAR_SINK_RENDER_ORDER, STORM_OUTLINE_RENDER_ORDER, STORM_SECTOR_RENDER_ORDER } from './boardRenderOrder';
 import {
   BOARD_RIM_COLOR,
   BOARD_RIM_DEPTH,
@@ -48,11 +50,13 @@ import { ignoreRaycast } from './ignoreRaycast';
 import { PhaseSymbol } from './PhaseSymbol';
 import { useSharedMeshes } from './sharedMeshes';
 import { SoftShadow } from './SoftShadow';
+import { loadSpiceBank } from './tableChunks';
 import { TableFurniture } from './TableFurniture';
 import { activePhaseIndex, trackerDiscColor } from './tableTrackers';
 import type { TableProgress } from './tableTrackers';
+import { TerritoryTints } from './TerritoryTints';
 import { TurnTracker } from './TurnTracker';
-const SpiceBank = lazy(() => import('./SpiceBank').then((module) => ({ default: module.SpiceBank })));
+const SpiceBank = lazy(() => loadSpiceBank().then((module) => ({ default: module.SpiceBank })));
 useTexture.preload(stormMarkerUrl);
 
 /* Under the map's own shapes, the colour of its outer ring, and how far above the disc the shapes lie. */
@@ -272,7 +276,7 @@ function StormSectorHighlight({ sectorIndex }: { sectorIndex: number }) {
   }, [loadedMarkerTexture]);
   const markerGeometry = useMemo(() => createStormMarkerGeometry(), []);
   const outlineGeometry = useMemo(() => {
-    const sectorGeometry = new RingGeometry(0.72, BOARD_RADIUS, 96, 1, -STORM_SECTOR_ANGLE / 2, STORM_SECTOR_ANGLE);
+    const sectorGeometry = new CircleGeometry(BOARD_RADIUS, 96, -STORM_SECTOR_ANGLE / 2, STORM_SECTOR_ANGLE);
     const outline = new EdgesGeometry(sectorGeometry, 15);
     sectorGeometry.dispose();
     return outline;
@@ -332,10 +336,11 @@ function StormSectorHighlight({ sectorIndex }: { sectorIndex: number }) {
       <mesh
         position={[0, BOARD_SURFACE_Y + 0.002, 0]}
         rotation={[-Math.PI / 2, 0, 0]}
-        renderOrder={-2}
+        renderOrder={STORM_SECTOR_RENDER_ORDER}
         raycast={ignoreRaycast}
       >
-        <ringGeometry args={[0.72, BOARD_RADIUS, 96, 1, -STORM_SECTOR_ANGLE / 2, STORM_SECTOR_ANGLE]} />
+        {/* The storm's sides meet at the board's centre, under the Polar Sink, which is drawn above it. */}
+        <circleGeometry args={[BOARD_RADIUS, 96, -STORM_SECTOR_ANGLE / 2, STORM_SECTOR_ANGLE]} />
         <meshBasicMaterial
           color="#e13632"
           transparent
@@ -350,7 +355,7 @@ function StormSectorHighlight({ sectorIndex }: { sectorIndex: number }) {
         geometry={outlineGeometry}
         position={[0, BOARD_SURFACE_Y + 0.003, 0]}
         rotation={[-Math.PI / 2, 0, 0]}
-        renderOrder={1}
+        renderOrder={STORM_OUTLINE_RENDER_ORDER}
         raycast={ignoreRaycast}
       >
         <lineBasicMaterial
@@ -387,11 +392,23 @@ const AuthoredBoard = lazy(() => import('./AuthoredBoard'));
 
 function LegacyBoardPaint() {
   const geometry = useMemo(() => boardMapGeometry(arrakisMapSvg, BOARD_RADIUS), []);
-  useEffect(() => () => geometry.dispose(), [geometry]);
+  const polarSink = useMemo(() => boardMapGeometry(arrakisMapSvg, BOARD_RADIUS, 'polar'), []);
+  useEffect(
+    () => () => {
+      geometry.dispose();
+      polarSink.dispose();
+    },
+    [geometry, polarSink]
+  );
   return (
-    <mesh receiveShadow geometry={geometry} renderOrder={BOARD_MAP_RENDER_ORDER} raycast={ignoreRaycast}>
-      <meshStandardMaterial vertexColors transparent depthWrite={false} roughness={0.88} metalness={0} />
-    </mesh>
+    <>
+      <mesh receiveShadow geometry={geometry} renderOrder={BOARD_MAP_RENDER_ORDER} raycast={ignoreRaycast}>
+        <meshStandardMaterial vertexColors transparent depthWrite={false} roughness={0.88} metalness={0} />
+      </mesh>
+      <mesh receiveShadow geometry={polarSink} renderOrder={POLAR_SINK_RENDER_ORDER} raycast={ignoreRaycast}>
+        <meshStandardMaterial vertexColors transparent depthWrite={false} roughness={0.88} metalness={0} />
+      </mesh>
+    </>
   );
 }
 
@@ -406,7 +423,15 @@ function BoardPaint({ board }: { board: GameSnapshot['board'] }) {
   );
 }
 
-function BoardMap({ animate = false, board }: { animate?: boolean; board: GameSnapshot['board'] }) {
+function BoardMap({
+  animate = false,
+  board,
+  tints,
+}: {
+  animate?: boolean;
+  board: GameSnapshot['board'];
+  tints?: GameSnapshot['tints'];
+}) {
   const invalidate = useThree((state) => state.invalidate);
   const group = useRef<Group>(null);
   const motion = useMotionAllowed();
@@ -433,6 +458,7 @@ function BoardMap({ animate = false, board }: { animate?: boolean; board: GameSn
       */}
       <group position={[0, BOARD_SURFACE_Y + BOARD_MAP_LIFT, 0]}>
         <BoardPaint board={board} />
+        {tints?.length ? <TerritoryTints board={board?.definition ?? retainedArrakisBoard()} tints={tints} /> : null}
       </group>
     </group>
   );
@@ -440,6 +466,7 @@ function BoardMap({ animate = false, board }: { animate?: boolean; board: GameSn
 
 export function TabletopBoard({
   board,
+  tints,
   seatCount,
   stormSectorIndex,
   stage,
@@ -450,6 +477,7 @@ export function TabletopBoard({
   onClick,
 }: {
   board?: GameSnapshot['board'];
+  tints?: GameSnapshot['tints'];
   seatCount: TableSeatCount;
   stormSectorIndex?: number;
   stage: GameSnapshot['stage'];
@@ -457,7 +485,7 @@ export function TabletopBoard({
   tableProgress?: TableProgress;
   trackerSlots: readonly TrackerArcSlot[];
   interactive?: boolean;
-  onClick?(): void;
+  onClick?: () => void;
 }) {
   const meshes = useSharedMeshes();
   return (
@@ -466,7 +494,7 @@ export function TabletopBoard({
       <BoardRim seatCount={seatCount} />
       <BoardRimShadow />
       {/* The storm's texture must suspend inside its boundary so it cannot hide an already-painted board. */}
-      {(stage !== 'setup' || mapVisible) && <BoardMap animate={stage === 'setup'} board={board} />}
+      {(stage !== 'setup' || mapVisible) && <BoardMap animate={stage === 'setup'} board={board} tints={tints} />}
       <Suspense fallback={<ArtworkPending />}>
         {boardFurnitureFor(stage).storm && stormSectorIndex !== undefined && (
           <StormSectorHighlight sectorIndex={stormSectorIndex} />

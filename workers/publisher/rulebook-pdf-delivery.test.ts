@@ -1,6 +1,11 @@
-import { describe, expect, test, vi } from 'vitest';
+import { describe, expect, test, vi } from 'vite-plus/test';
 
 import { rulebookEditionArtifactKey } from '../../src/shared/rulebooks/editionArtifacts';
+import type { RulebookEditionArtifactKind } from '../../src/shared/rulebooks/editionArtifacts';
+import type {
+  RulebookArtifactDeliveryResolution,
+  RulebookArtifactRoute,
+} from '../../src/shared/rulebooks/editionArtifactWork';
 import { handlePublicAssetRequest } from './delivery';
 import { handleRulebookPdfRequest } from './rulebook-pdf-delivery';
 import { fakeR2Object } from './test-helpers';
@@ -22,7 +27,7 @@ function objectBody(etag = 'etag-four'): R2ObjectBody {
   } as unknown as R2ObjectBody;
 }
 
-function dependencies(status: 'found' | 'missing' = 'found') {
+function dependencies(status: 'found' | 'missing' = 'found', newest: number | Error = 4) {
   const metadata = objectBody();
   return {
     bucket: {
@@ -30,10 +35,22 @@ function dependencies(status: 'found' | 'missing' = 'found') {
       get: vi.fn(async () => objectBody()),
     },
     client: {
-      resolveRulebookArtifactDelivery: vi.fn(async () =>
-        status === 'found'
-          ? { ok: true as const, status: 'found' as const, editionNumber: 4, key: KEY }
-          : { ok: true as const, status: 'missing' as const }
+      resolveRulebookArtifactDelivery: vi.fn(
+        async (
+          _kind: RulebookEditionArtifactKind,
+          route: RulebookArtifactRoute<'pdf'>
+        ): Promise<RulebookArtifactDeliveryResolution> => {
+          if (status === 'missing') {
+            return { ok: true as const, status: 'missing' as const };
+          }
+          if ('editionNumber' in route) {
+            return { ok: true as const, status: 'found' as const, editionNumber: 4, key: KEY };
+          }
+          if (newest instanceof Error) {
+            throw newest;
+          }
+          return { ok: true as const, status: 'found' as const, editionNumber: newest, key: KEY };
+        }
       ),
     },
   };
@@ -55,7 +72,7 @@ describe('Rulebook PDF delivery', () => {
     expect(response?.headers.get('Content-Type')).toBe('application/pdf');
   });
 
-  test('serves immutable Edition bytes with download and noindex headers', async () => {
+  test('serves immutable Edition bytes with download headers, open to search while it is the newest', async () => {
     const current = dependencies();
     const response = await handleRulebookPdfRequest(
       new Request(`https://dune.zone/published/rulebooks/${RULEBOOK_ID}/editions/4/rulebook.pdf`),
@@ -65,14 +82,30 @@ describe('Rulebook PDF delivery', () => {
 
     expect(response.status).toBe(200);
     expect(new Uint8Array(await response.arrayBuffer())).toEqual(PDF);
-    expect(response.headers.get('Cache-Control')).toBe('public, max-age=31536000, immutable');
+    expect(response.headers.get('Cache-Control')).toBe('public, max-age=3600');
     expect(response.headers.get('Content-Disposition')).toBe('attachment; filename="rulebook.pdf"');
     expect(response.headers.get('Content-Location')).toContain('/editions/4/rulebook.pdf');
-    expect(response.headers.get('X-Robots-Tag')).toBe('noindex');
+    expect(response.headers.get('X-Robots-Tag')).toBeNull();
     expect(current.bucket.get).toHaveBeenCalledWith(KEY, { onlyIf: { etagMatches: 'etag-four' } });
     expect(current.client.resolveRulebookArtifactDelivery.mock.calls).toEqual([
+      ['pdf', { rulebookId: RULEBOOK_ID }],
       ['pdf', { rulebookId: RULEBOOK_ID, editionNumber: 4 }],
     ]);
+  });
+
+  test('keeps a superseded Edition, or one whose standing cannot be told, out of search', async () => {
+    for (const newest of [5, new Error('Convex unavailable')]) {
+      const response = await handleRulebookPdfRequest(
+        new Request(`https://dune.zone/published/rulebooks/${RULEBOOK_ID}/editions/4/rulebook.pdf`),
+        { rulebookId: RULEBOOK_ID, editionNumber: 4 },
+        dependencies('found', newest)
+      );
+      expect(response.status).toBe(200);
+      expect(response.headers.get('X-Robots-Tag')).toBe('noindex');
+      expect(response.headers.get('Cache-Control')).toBe(
+        newest === 5 ? 'public, max-age=31536000, immutable' : 'public, max-age=3600'
+      );
+    }
   });
 
   test('returns 304 without loading bytes and gates a deleted Rulebook before R2', async () => {

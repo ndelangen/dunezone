@@ -1,6 +1,6 @@
 import { initialSnapshot } from '@shared/play/commands';
 import type { GameSnapshot, Viewer } from '@shared/play/protocol';
-import { afterEach, beforeEach, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, expect, test, vi } from 'vite-plus/test';
 
 import { forgetStoredPlayTable, keepsPlayTable } from '@db/playTables';
 import { GameSubscription } from '@app/routes/_app/play/multiplayer/GameSubscription';
@@ -113,6 +113,7 @@ test('a friendly reload restores the same locked ID table, unlocks on a fresh vi
   socket().deliver({ type: 'admission', status: 'denied' });
   expect(storage.size).toBe(0);
   expect(reloaded.getSnapshot().table).toBeNull();
+  expect(load().getSnapshot().table).toBeNull();
 });
 
 async function live(frame: Partial<{ snapshot: GameSnapshot; viewer: Viewer }> = {}) {
@@ -141,14 +142,9 @@ test('a reload shows the last table locked, with the hand, before anything conne
   await vi.advanceTimersByTimeAsync(0);
   socket().open();
   expect(socket().sent.filter((message) => message.type === 'command')).toEqual([]);
-});
-
-test('the first live view replaces the kept table and unlocks it', async () => {
-  await visitAndLeave();
-  const reloaded = load();
-  await live({ snapshot: { ...snapshot, bank: { factionId: 'one', balance: 9 } } });
-
-  expect(reloaded.getSnapshot().table).toMatchObject({ reconnecting: false, snapshot: { bank: { balance: 9 } } });
+  socket().deliver({ type: 'admission', status: 'denied' });
+  expect(reloaded.getSnapshot().table).toBeNull();
+  expect(storage.size).toBe(0);
 });
 
 test('another account or a new sign-in on this tab never sees the kept table, and the record is dropped', async () => {
@@ -163,18 +159,6 @@ test('another account or a new sign-in on this tab never sees the kept table, an
 
   await visitAndLeave();
   account = null;
-  expect(load().getSnapshot().table).toBeNull();
-});
-
-test('a refusal clears the kept table', async () => {
-  await visitAndLeave();
-  const reloaded = load();
-  await vi.advanceTimersByTimeAsync(0);
-  socket().open();
-  socket().deliver({ type: 'admission', status: 'denied' });
-
-  expect(reloaded.getSnapshot().table).toBeNull();
-  expect(storage.size).toBe(0);
   expect(load().getSnapshot().table).toBeNull();
 });
 

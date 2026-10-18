@@ -6,10 +6,13 @@ import { internalQuery } from './_generated/server';
 import { internalMutation, publicQuery } from './functions';
 import {
   clearStatistics,
+  loadAssetTypeStatisticsTotal,
   loadGlobalStatisticsTotals,
   loadRulesetStatisticsTotals,
   reconcileAnswerStatistics,
+  reconcileAssetStatistics,
   reconcileFactionStatistics,
+  reconcileGroupStatistics,
   reconcileProfileStatistics,
   reconcileQuestionStatistics,
   reconcileRulesetStatistics,
@@ -21,6 +24,8 @@ const globalTotalsValidator = v.object({
   rulesets: v.number(),
   questions: v.number(),
   answers: v.number(),
+  groups: v.number(),
+  assets: v.number(),
 });
 
 const rulesetTotalsValidator = v.object({
@@ -32,6 +37,8 @@ const reconciliationItemValidator = v.object({
   id: v.string(),
   included: v.boolean(),
   rulesetId: v.union(v.string(), v.null()),
+  /** Set for assets only, so the verifier can check each type's total. */
+  assetType: v.optional(v.string()),
   parentExists: v.boolean(),
 });
 
@@ -40,13 +47,29 @@ const rebuildSourceValidator = v.union(
   v.literal('factions'),
   v.literal('rulesets'),
   v.literal('faq_items'),
-  v.literal('faq_answers')
+  v.literal('faq_answers'),
+  v.literal('groups'),
+  v.literal('assets')
 );
 
-type RebuildSource = 'profiles' | 'factions' | 'rulesets' | 'faq_items' | 'faq_answers';
+type RebuildSource = 'profiles' | 'factions' | 'rulesets' | 'faq_items' | 'faq_answers' | 'groups' | 'assets';
 
-const REBUILD_SOURCES: RebuildSource[] = ['profiles', 'factions', 'rulesets', 'faq_items', 'faq_answers'];
+const REBUILD_SOURCES: RebuildSource[] = [
+  'profiles',
+  'factions',
+  'rulesets',
+  'faq_items',
+  'faq_answers',
+  'groups',
+  'assets',
+];
 const REBUILD_BATCH_SIZE = 64;
+/* Board assets carry their geometry (up to ~750 KB), so a page of them must stay well inside the 16 MiB read limit. */
+const ASSET_REBUILD_BATCH_SIZE = 8;
+
+function rebuildBatchSize(source: RebuildSource) {
+  return source === 'assets' ? ASSET_REBUILD_BATCH_SIZE : REBUILD_BATCH_SIZE;
+}
 
 export const getGlobalTotals = publicQuery({
   args: {},
@@ -58,6 +81,12 @@ export const getRulesetTotals = publicQuery({
   args: { rulesetId: v.id('rulesets') },
   returns: rulesetTotalsValidator,
   handler: async (ctx, args) => await loadRulesetStatisticsTotals(ctx, args.rulesetId),
+});
+
+export const getAssetTypeTotal = publicQuery({
+  args: { type: v.string() },
+  returns: v.number(),
+  handler: async (ctx, args) => await loadAssetTypeStatisticsTotal(ctx, args.type),
 });
 
 /**
@@ -139,6 +168,31 @@ export const getCanonicalReconciliationPage = internalQuery({
           ),
         };
       }
+      case 'groups': {
+        const result = await ctx.db.query('groups').paginate(args.paginationOpts);
+        return {
+          ...result,
+          page: result.page.map((row) => ({
+            id: row._id,
+            included: !row.is_deleted,
+            rulesetId: null,
+            parentExists: true,
+          })),
+        };
+      }
+      case 'assets': {
+        const result = await ctx.db.query('assets').paginate(args.paginationOpts);
+        return {
+          ...result,
+          page: result.page.map((row) => ({
+            id: row._id,
+            included: !row.is_deleted,
+            rulesetId: null,
+            assetType: row.type,
+            parentExists: true,
+          })),
+        };
+      }
     }
   },
 });
@@ -150,7 +204,7 @@ export const rebuild = internalMutation({
     await clearStatistics(ctx);
     await ctx.scheduler.runAfter(0, internal.statistics.rebuildBatch, {
       source: REBUILD_SOURCES[0],
-      paginationOpts: { cursor: null, numItems: REBUILD_BATCH_SIZE },
+      paginationOpts: { cursor: null, numItems: rebuildBatchSize(REBUILD_SOURCES[0]) },
     });
     return { scheduled: true };
   },
@@ -229,6 +283,26 @@ export const rebuildBatch = internalMutation({
         continueCursor = result.continueCursor;
         break;
       }
+      case 'groups': {
+        const result = await ctx.db.query('groups').paginate(args.paginationOpts);
+        for (const row of result.page) {
+          await reconcileGroupStatistics(ctx, row);
+        }
+        processed = result.page.length;
+        isDone = result.isDone;
+        continueCursor = result.continueCursor;
+        break;
+      }
+      case 'assets': {
+        const result = await ctx.db.query('assets').paginate(args.paginationOpts);
+        for (const row of result.page) {
+          await reconcileAssetStatistics(ctx, row);
+        }
+        processed = result.page.length;
+        isDone = result.isDone;
+        continueCursor = result.continueCursor;
+        break;
+      }
     }
 
     if (!isDone) {
@@ -244,7 +318,7 @@ export const rebuildBatch = internalMutation({
     if (nextSource) {
       await ctx.scheduler.runAfter(0, internal.statistics.rebuildBatch, {
         source: nextSource,
-        paginationOpts: { cursor: null, numItems: REBUILD_BATCH_SIZE },
+        paginationOpts: { cursor: null, numItems: rebuildBatchSize(nextSource) },
       });
       return { source: args.source, processed, complete: false };
     }

@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 
-import { expect, test } from 'vitest';
+import { expect, test } from 'vite-plus/test';
 
 const run = promisify(execFile);
 const recorder = fileURLToPath(new URL('./workerd-exit-record.ts', import.meta.url));

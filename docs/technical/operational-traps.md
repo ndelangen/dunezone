@@ -168,7 +168,7 @@ is then a fact about your working tree and not about what CI will see.
 
 **What it looks like when it bites:** you report `lint 0`, CI reports the same file red, and the
 disagreement invites a theory about the two commands differing. They do not. `lint` and `lint:ci` are
-`oxlint . --deny-warnings` with and without `--format=github`, identical in strictness, and plain
+`vp lint . --deny-warnings` with and without `--format=github`, identical in strictness, and plain
 `bun run lint` reproduces the CI failure once you are on the tree CI saw. On
 [#887](https://github.com/ndelangen/dunezone/pull/887) the local branch was two commits behind, both
 of them applied suggestions, and one had wrapped a sentence mid-clause.
@@ -179,7 +179,7 @@ Before reporting any gate result for a branch, fetch and confirm you are not beh
 git fetch real-origin <branch> && git status -sb   # "behind" means your gate ran on something else
 ```
 
-Fix a refused comment shape with `oxlint --fix` rather than by hand, because the plugin owns the
+Fix a refused comment shape with `bun run lint:fix` rather than by hand, because the plugin owns the
 shape and reverts a hand-reflow.
 
 The suggestions themselves are not the trap and were correct on substance in that case, including two

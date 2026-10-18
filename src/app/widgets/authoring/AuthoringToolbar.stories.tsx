@@ -127,9 +127,14 @@ export const SaveFailed = meta.story({
   },
 });
 
-/** Saved: Save shows a check. */
+/** Saved: Save shows a check, and its description and the live region say so. */
 export const Saved = meta.story({
   args: { ...cleanToolbar, status: { ...cleanStatus, saveState: 'saved' } },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.getByRole('button', { name: 'Save faction' })).toHaveAccessibleDescription('Saved');
+    await expect(page.getByRole('status')).toHaveTextContent('Saved');
+  },
 });
 
 /**
@@ -149,12 +154,5 @@ export const CrowdedPhone = meta.story({
     const actions = page.getByRole('group', { name: 'Editing actions' });
     await expect(actions.getBoundingClientRect().height).toBeLessThanOrEqual(40);
     await expect(page.getByRole('button', { name: 'Save faction' })).toBeVisible();
-  },
-});
-
-export const WithReviewAction = meta.story({
-  args: {
-    ...cleanToolbar,
-    review: { label: 'Review faction sheet', onOpen: () => undefined },
   },
 });

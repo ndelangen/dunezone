@@ -143,7 +143,7 @@ load_app_pid() {
 # keeps that mapping near-exact (validated on prototype/e2e-coverage-build-serve).
 build_app() {
   VITE_E2E_LOCAL_AUTH="$VITE_E2E_LOCAL_AUTH" VITE_CONVEX_URL="$VITE_CONVEX_URL" \
-    bun run vite build --sourcemap --minify false >"$BUILD_LOG" 2>&1
+    bun run vp build . --sourcemap --minify false >"$BUILD_LOG" 2>&1
 }
 
 # The build needs only the VITE_* values from the env file, not a running
@@ -156,7 +156,7 @@ build_app() {
 # runner reaps leftover processes only when the job ends. Its status crosses
 # the step boundary as a file, because a later shell cannot `wait` on it.
 start_background_build() {
-  echo "Building app in the background (vite build --sourcemap --minify false)..."
+  echo "Building app in the background (vp build --sourcemap --minify false)..."
   (
     status=0
     build_app || status=$?
@@ -193,12 +193,12 @@ wait_for_background_build() {
   done
   if [[ ! -f "$BUILD_EXIT_FILE" ]]; then
     stop_background_build
-    echo "vite build did not report a status."
+    echo "vp build did not report a status."
     tail -n 60 "$BUILD_LOG" || true
     exit 1
   fi
   if [[ "$(<"$BUILD_EXIT_FILE")" != "0" ]]; then
-    echo "vite build failed."
+    echo "vp build failed."
     tail -n 60 "$BUILD_LOG" || true
     exit 1
   fi
@@ -250,9 +250,9 @@ phase_serve() {
     wait_for_background_build
   else
     # No `up` started a build in this checkout, e.g. `serve` run by hand.
-    echo "Building app (vite build --sourcemap --minify false)..."
+    echo "Building app (vp build --sourcemap --minify false)..."
     build_app || {
-      echo "vite build failed."
+      echo "vp build failed."
       tail -n 60 "$BUILD_LOG" || true
       exit 1
     }
@@ -319,8 +319,8 @@ phase_test() {
   fi
 
   # A CI shard runs only its files from e2e/shards.json (every spec is assigned to exactly one
-  # shard, guarded by check:e2e-shards); the animation project runs in each shard as their
-  # dependency. Without E2E_SHARD the whole suite runs, as it does locally.
+  # shard, guarded by check:e2e-shards), the animation project's file included.
+  # Without E2E_SHARD the whole suite runs, as it does locally.
   local -a targets=()
   if [[ -n "${E2E_SHARD:-}" ]]; then
     local shard_files

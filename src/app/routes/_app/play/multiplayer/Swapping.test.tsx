@@ -3,7 +3,7 @@ import { MantineProvider } from '@mantine/core';
 import { initialSnapshot } from '@shared/play/commands';
 import { act, cleanup, render, screen } from '@testing-library/react';
 import { appContentTheme } from '@ui/theme';
-import { afterEach, expect, test, vi } from 'vitest';
+import { afterEach, expect, test, vi } from 'vite-plus/test';
 
 import { GameSubscription } from '@app/routes/_app/play/multiplayer/GameSubscription';
 

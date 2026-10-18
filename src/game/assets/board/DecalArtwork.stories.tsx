@@ -55,18 +55,17 @@ const meta = preview.meta({
         }
       }
     }
-    expect(inkTop).toBeLessThan(512);
+    await expect(inkTop).toBeLessThan(512);
     if (args.decal.outline) {
-      expect(inkTop - outlineTop).toBeGreaterThanOrEqual(3);
-      expect(inkTop - outlineTop).toBeLessThanOrEqual(5);
+      await expect(inkTop - outlineTop).toBeGreaterThanOrEqual(3);
+      await expect(inkTop - outlineTop).toBeLessThanOrEqual(5);
     } else {
-      expect(outlineTop).toBe(512);
+      await expect(outlineTop).toBe(512);
     }
   },
 });
 
 export const PresetOutline = meta.story({ args: { decal, svg: preset } });
-export const VectorOutline = meta.story({ args: { decal, svg: BOARD_ARTWORK['/vector/icon/ornithopter.svg'] } });
 export const ImageOutline = meta.story({
   args: {
     svg: '',

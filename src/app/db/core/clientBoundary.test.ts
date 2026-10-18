@@ -1,5 +1,5 @@
 import { ConvexError } from 'convex/values';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 import { z } from 'zod';
 
 import { isStaleClientData, parseClientBoundary } from './clientBoundary';

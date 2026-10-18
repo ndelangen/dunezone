@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test';
 
 import { readSnapshot } from './native-runtime.fixture.ts';
 import { required } from './native-runtime.fixture.ts';

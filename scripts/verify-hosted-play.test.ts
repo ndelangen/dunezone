@@ -5,7 +5,7 @@ import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-import { afterAll, beforeAll, beforeEach, expect, test } from 'vitest';
+import { afterAll, beforeAll, beforeEach, expect, test } from 'vite-plus/test';
 
 /* The backend counts every request, so a refusal that comes after a network call fails the count. */
 let requests = 0;
@@ -36,6 +36,7 @@ afterAll(async () => {
 /*
  * The launcher runs the protocol verifier unbundled under Node, so the test does too.
  * PORT stands for the counting backend's port.
+ * A cold Node start on a loaded runner took 9 s once, so each case outlasts the spawn's own 10 s limit.
  */
 test.each([
   ['--origin', 'a default port', 'http://127.0.0.1:PORT', 'http://127.0.0.1/'],
@@ -43,30 +44,34 @@ test.each([
   ['--origin', 'a password', 'http://127.0.0.1:PORT', 'http://:password@127.0.0.1:PORT/'],
   /* A password rather than a fragment, because parseEnv drops an unquoted # and the rest of the line. */
   ['CONVEX_SELF_HOSTED_URL', 'a password', 'http://:password@127.0.0.1:PORT/', 'http://127.0.0.1:PORT'],
-])('the protocol verifier refuses %s with %s before any network call', async (label, _, selfHosted, origin) => {
-  const envFile = path.join(directory, 'local.env');
-  writeFileSync(
-    envFile,
-    `CONVEX_SELF_HOSTED_URL=${selfHosted.replace('PORT', String(port))}\nCONVEX_SELF_HOSTED_ADMIN_KEY=isolated-test-key\n`
-  );
-  const verifier = spawn(
-    process.execPath,
-    [
-      path.resolve('scripts/verify-hosted-play.ts'),
-      '--env-file',
+])(
+  'the protocol verifier refuses %s with %s before any network call',
+  { timeout: 15_000 },
+  async (label, _, selfHosted, origin) => {
+    const envFile = path.join(directory, 'local.env');
+    writeFileSync(
       envFile,
-      '--origin',
-      origin.replace('PORT', String(port)),
-    ],
-    { timeout: 10_000 }
-  );
-  let stderr = '';
-  verifier.stderr.on('data', (chunk) => {
-    stderr += chunk;
-  });
-  /* 'close' rather than 'exit', because 'close' waits for stderr to drain. */
-  const [code] = await once(verifier, 'close');
-  expect(code).toBe(1);
-  expect(stderr).toContain(`${label} must be an explicit http://127.0.0.1:PORT origin.`);
-  expect(requests).toBe(0);
-});
+      `CONVEX_SELF_HOSTED_URL=${selfHosted.replace('PORT', String(port))}\nCONVEX_SELF_HOSTED_ADMIN_KEY=isolated-test-key\n`
+    );
+    const verifier = spawn(
+      process.execPath,
+      [
+        path.resolve('scripts/verify-hosted-play.ts'),
+        '--env-file',
+        envFile,
+        '--origin',
+        origin.replace('PORT', String(port)),
+      ],
+      { timeout: 10_000 }
+    );
+    let stderr = '';
+    verifier.stderr.on('data', (chunk) => {
+      stderr += chunk;
+    });
+    /* 'close' rather than 'exit', because 'close' waits for stderr to drain. */
+    const [code] = await once(verifier, 'close');
+    expect(code).toBe(1);
+    expect(stderr).toContain(`${label} must be an explicit http://127.0.0.1:PORT origin.`);
+    expect(requests).toBe(0);
+  }
+);

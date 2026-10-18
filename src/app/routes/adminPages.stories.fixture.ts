@@ -19,5 +19,5 @@ export async function expectRefused(
 ) {
   const page = within(canvasElement.ownerDocument.body);
   await expect(page.findByRole('heading', { name: heading }, { timeout: 30_000 })).resolves.toBeVisible();
-  expect(page.queryByRole(hidden.role, { name: hidden.name })).toBeNull();
+  await expect(page.queryByRole(hidden.role, { name: hidden.name })).toBeNull();
 }

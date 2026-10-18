@@ -763,7 +763,13 @@ export const restore = mutation({
       throw new Error('Completed account deletion operation not found');
     }
     const source = await ctx.db.get('users', operation.source_user_id);
-    if (!source || accountStateOf(source) !== 'deleted') {
+    /* Only the deletion that left the account deleted can undo it: an older one would reactivate it past a later deletion or a merge. */
+    if (
+      !source ||
+      accountStateOf(source) !== 'deleted' ||
+      source.account_deletion_operation_id !== operation._id ||
+      source.merged_into_user_id
+    ) {
       throw new Error('Deleted source account not found');
     }
     if (operation.replacement_user_id) {

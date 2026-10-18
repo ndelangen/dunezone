@@ -320,6 +320,25 @@ cannot acknowledge (see "A room stuck"). For the retired hosted fixture, `retire
 up after 17 attempts with a logged error, and its comment says running it again from attempt 0
 resumes (`convex/playDeletion.ts:168-199`). The repository does not document the command to do so.
 
+### Watching a live session
+
+Each game room writes one `game-room-summary` line every ten minutes while players are connected,
+and one when the last player leaves (`workers/game/roomSummary.ts`). A line carries the opaque room
+identity and release, connections, messages in and out, bytes sent, saved-command timings from
+handling to a confirmed write, late sweeps, dropped motion, and each Convex function the room called
+with its count, failures and durations. Live answers on the authorization subscription appear as
+`playAdmission:watchAuthorizations (live)`. Each browser also reports, every five minutes, how long
+its saved actions took to be confirmed and its longest main-thread stall
+(`src/app/routes/_app/play/multiplayer/tableTelemetry.ts`). The room folds the latest report from
+each connection into its next line. No account, seat, faction or game content is recorded.
+
+To watch a session from a machine with a Wrangler login, run `bun run play:watch`. It runs the
+read-only `wrangler tail dunezone-game --format json`, keeps the summary, failure, recovery and
+refusal records in `play-watch-<date>.jsonl`, and prints one line per record. Failures start with
+`ALERT`, so a watcher can grep for them; `--out <file>` picks the file. Cloudflare may sample a tail under heavy load, so the Workers Logs view stays the complete
+record. To find a session's cost, compare the Convex usage page and the `dunezone-game` metrics just
+before and just after it.
+
 ### Rollback
 
 There is no rollback procedure. Fixes ship as new forward deployments, and the game Worker is never

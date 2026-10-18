@@ -4,6 +4,7 @@ import { expect, userEvent, waitFor, within } from 'storybook/test';
 import { db, ruleset } from '@db/storybook';
 
 import { expectToolbarOnOneLine } from './authoringToolbarPlay';
+import { expectFieldValue } from './pagePlay';
 import { pageStoryMeta } from './storybookConfig';
 
 const meta = preview.meta({
@@ -11,11 +12,59 @@ const meta = preview.meta({
   ...pageStoryMeta,
 });
 
-export const Directory = meta.story({ args: { path: '/rulesets' } });
-export const Detail = meta.story({ args: { path: '/rulesets/classicrules' } });
-export const Edit = meta.story({ args: { path: '/rulesets/classicrules/edit' } });
+export const Directory = meta.story({
+  args: { path: '/rulesets' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const [entry] = await page.findAllByRole('link', { name: /ClassicRules/i }, { timeout: 30_000 });
+    await expect(entry).toHaveAttribute('href', '/rulesets/classicrules');
+  },
+});
+/** The slotted board shows below the Rulebooks, linking to its own page. */
+export const Detail = meta.story({
+  args: { path: '/rulesets/classicrules' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const board = within(await page.findByRole('region', { name: 'Board' }, { timeout: 30_000 }));
+    await expect(board.getByRole('link', { name: 'Arrakis Official' })).toHaveAttribute(
+      'href',
+      '/assets/board/arrakis-official'
+    );
+    /* The face itself, not only the link: a missing publication would still render the link around the matte placeholder. */
+    const face = await board.findByRole('img', { name: 'Arrakis Official' }, { timeout: 30_000 });
+    await waitFor(() => expect((face as HTMLImageElement).naturalWidth).toBeGreaterThan(0), { timeout: 30_000 });
+  },
+});
+/** A ruleset with no board keeps the section, drawn as the missing face with a line saying so. */
+export const DetailWithoutBoard = meta.story({
+  args: { path: '/rulesets/classicrules' },
+  parameters: {
+    database: db((baseline) => {
+      const slots = baseline.ruleset_asset_slots;
+      slots.splice(
+        slots.findIndex((row) => row.slot === 'board'),
+        1
+      );
+      return baseline;
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const board = within(await page.findByRole('region', { name: 'Board' }, { timeout: 30_000 }));
+    await expect(board.getByText('This ruleset has no board yet.')).toBeVisible();
+    await expect(board.queryByRole('link')).toBeNull();
+  },
+});
+export const Edit = meta.story({
+  args: { path: '/rulesets/classicrules/edit' },
+  play: ({ canvasElement }) => expectFieldValue(canvasElement, 'Name', 'ClassicRules'),
+});
 export const AskQuestion = meta.story({
   args: { path: '/rulesets/classicrules/faq/create' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('textbox', { name: 'Ask a question' }, { timeout: 30_000 })).resolves.toBeVisible();
+  },
 });
 /**
  * The same page reached through a ruleset slug that names nothing, which is the state the route's own frame exists for.
@@ -31,7 +80,7 @@ export const AskQuestionMissingRuleset = meta.story({
        back that lives in the band are what only the frame produces. */
     await expect(page.findByText('This ruleset could not be loaded', {}, { timeout: 30_000 })).resolves.toBeVisible();
     const back = await page.findByRole('link', { name: 'Back to rulesets' }, { timeout: 30_000 });
-    expect(back.closest('main')).toBeNull();
+    await expect(back.closest('main')).toBeNull();
   },
 });
 /** The question names itself in the header band, and the asker, who is the viewer here, gets Edit and Delete in the toolbar. */
@@ -56,30 +105,20 @@ export const Question = meta.story({
     await userEvent.clear(question);
     await userEvent.type(question, 'When does the storm move in round two?');
     await userEvent.click(page.getByRole('checkbox', { name: 'Strategy' }));
-    expect(page.getByRole('checkbox', { name: 'Rules' })).toBeChecked();
-    expect(question).toHaveValue('When does the storm move in round two?');
+    await expect(page.getByRole('checkbox', { name: 'Rules' })).toBeChecked();
+    await expect(question).toHaveValue('When does the storm move in round two?');
     await userEvent.click(page.getByRole('button', { name: 'Save question' }));
     await waitFor(() =>
       expect(page.getByRole('heading', { name: 'When does the storm move in round two?' })).toBeVisible()
     );
-    expect(page.queryByRole('textbox', { name: 'Edit question' })).toBeNull();
+    await expect(page.queryByRole('textbox', { name: 'Edit question' })).toBeNull();
   },
-});
-export const RulebookEditor = meta.story({
-  args: { path: '/rulesets/classicrules/rulebooks/player-aid/edit' },
-  globals: { viewport: { value: 'appAuthoringWide' } },
 });
 
 /** The ruleset editor's toolbar on one line at a phone, tablet, laptop and desktop width (#1423), stating only its save state at rest. */
 export const EditToolbarAt360 = meta.story({
   args: { path: '/rulesets/classicrules/edit' },
   globals: { viewport: { value: 'appMobileNarrow' } },
-  play: async ({ canvasElement }) =>
-    await expectToolbarOnOneLine(canvasElement, { statusDescribes: ['No unsaved changes'] }),
-});
-export const EditToolbarAt390 = meta.story({
-  args: { path: '/rulesets/classicrules/edit' },
-  globals: { viewport: { value: 'appMobile' } },
   play: async ({ canvasElement }) =>
     await expectToolbarOnOneLine(canvasElement, { statusDescribes: ['No unsaved changes'] }),
 });
@@ -92,12 +131,6 @@ export const EditToolbarAt768 = meta.story({
 export const EditToolbarAt1100 = meta.story({
   args: { path: '/rulesets/classicrules/edit' },
   globals: { viewport: { value: 'appLaptop' } },
-  play: async ({ canvasElement }) =>
-    await expectToolbarOnOneLine(canvasElement, { statusDescribes: ['No unsaved changes'] }),
-});
-export const EditToolbarAt1440 = meta.story({
-  args: { path: '/rulesets/classicrules/edit' },
-  globals: { viewport: { value: 'appLarge' } },
   play: async ({ canvasElement }) =>
     await expectToolbarOnOneLine(canvasElement, { statusDescribes: ['No unsaved changes'] }),
 });
@@ -132,7 +165,7 @@ export const EditShowsOnlyTheLatestSaveFailure = meta.story({
     await waitFor(() => expect(save()).toHaveAccessibleDescription(/The cover could not be stored/), {
       timeout: 30_000,
     });
-    expect(page.queryByText('Ruleset could not be saved')).toBeNull();
-    expect(save()).not.toHaveAccessibleDescription(/Ruleset name already exists/);
+    await expect(page.queryByText('Ruleset could not be saved')).toBeNull();
+    await expect(save()).not.toHaveAccessibleDescription(/Ruleset name already exists/);
   },
 });

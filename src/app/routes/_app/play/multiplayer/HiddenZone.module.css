@@ -2,6 +2,7 @@
 .zone {
   position: relative;
   width: 100%;
+  min-height: 8rem;
   overflow: hidden;
   border-radius: var(--mantine-radius-md);
   background: radial-gradient(circle at 50% 40%, rgb(255 255 255 / 6%), transparent 70%), #3b2a1e;

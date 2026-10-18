@@ -1,17 +1,13 @@
 /// <reference types="vite/client" />
 /* @vitest-environment edge-runtime */
-import migrationsTest from '@convex-dev/migrations/test';
-import { convexTest } from 'convex-test';
-import { afterEach, beforeEach, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, expect, test, vi } from 'vite-plus/test';
 
 import { internal } from './_generated/api';
+import { applicationTest } from './application.test.fixture';
 import { revokeAccountSessions } from './lib/authSessionLifecycle';
-import schema from './schema';
 
-const modules = import.meta.glob('./**/*.ts');
 function setup() {
-  const t = convexTest(schema, modules);
-  migrationsTest.register(t);
+  const t = applicationTest();
   return t;
 }
 async function seed(t: ReturnType<typeof setup>, count = 1) {

@@ -1,4 +1,5 @@
 import type { TablePiece } from './model';
+import { isPointerToken, POINTER_BODY_RADIUS } from './pointerToken';
 import {
   CARD_WIDTH,
   TROOP_BOTTOM_RADIUS,
@@ -123,6 +124,10 @@ export function canAnimatePieceChange(previous: TablePiece, next: TablePiece): b
 function pieceHalfWidth(piece: TablePiece): number {
   if (piece.kind === 'card') {
     return (CARD_WIDTH + (visibleLayerCount(piece) - 1) * CARD_LAYER_STAGGER) / 2;
+  }
+  /* A plate turns over about its own length, so its round end is what swings past the table. */
+  if (isPointerToken(piece)) {
+    return POINTER_BODY_RADIUS;
   }
   return Math.max(TROOP_BOTTOM_RADIUS, TROOP_TOP_RADIUS) * troopScale(piece);
 }

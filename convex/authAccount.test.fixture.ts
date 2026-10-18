@@ -1,20 +1,16 @@
 /// <reference types="vite/client" />
 import aggregateTest from '@convex-dev/aggregate/test';
-import rateLimiterTest from '@convex-dev/rate-limiter/test';
-import { convexTest } from 'convex-test';
-import { vi } from 'vitest';
+import { vi } from 'vite-plus/test';
 
+import { applicationTest } from './application.test.fixture';
 import type { AuthProvider } from './lib/accountMethods';
 import { applicationTriggers } from './lib/applicationTriggers';
-import schema from './schema';
 
-const modules = import.meta.glob('./**/*.ts');
 export function setup() {
-  const t = convexTest(schema, modules);
+  const t = applicationTest();
   for (const name of ['statistics', 'profileDiscovery', 'profileActivity']) {
     aggregateTest.register(t, name);
   }
-  rateLimiterTest.register(t);
   return t;
 }
 export function account(t: ReturnType<typeof setup>, slug: string, provider: AuthProvider, admin = false) {

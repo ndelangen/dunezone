@@ -1,24 +1,19 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import rateLimiterTest from '@convex-dev/rate-limiter/test';
-import { convexTest } from 'convex-test';
-import { describe, expect, test, vi } from 'vitest';
+import { describe, expect, test, vi } from 'vite-plus/test';
 
 import { publishingDeckCardback } from '../src/shared/assets/fixtures/publishingDeckCardback';
 import { arrakisBoardCapture } from '../src/shared/play/fixtures/board';
 import { normalizePlayGameSlug, playGameNameSchema } from '../src/shared/play/gameNames';
 import { playGameNameVocabulary } from '../src/shared/play/generatedGameNames';
 import { api, internal } from './_generated/api';
+import { applicationTest } from './application.test.fixture';
 import { hasLocalPlayGameProfanity } from './lib/playGameNameChecks';
 import { playRateLimiter } from './lib/playRateLimits';
-import schema from './schema';
-
-const modules = import.meta.glob('./**/*.ts');
 
 async function world() {
-  const t = convexTest(schema, modules);
-  rateLimiterTest.register(t);
+  const t = applicationTest();
   const seeded = await t.run(async (ctx) => {
     const userId = await ctx.db.insert('users', { name: 'Name allocator', account_state: 'active' });
     const sessionId = await ctx.db.insert('authSessions', { userId, expirationTime: Date.now() + 3_600_000 });
@@ -126,6 +121,16 @@ describe('permanent Play names and addresses', () => {
     for (const name of ['5h1t storm', 'Dune 5h1t storm', 'Big shi7 energy', 'Spice b1tch', 'a55hole parade']) {
       expect(hasLocalPlayGameProfanity(name)).toBe(true);
     }
+  });
+
+  test('Latin letters that do not decompose keep a plain spelling in the address', () => {
+    expect(['Straße', 'Øresund game', 'Łódź', 'Ø', 'Æon'].map(normalizePlayGameSlug)).toEqual([
+      'strasse',
+      'oresund-game',
+      'lodz',
+      'o',
+      'aeon',
+    ]);
   });
 
   test('custom spelling, apostrophes, Gom Jabbar and accented equivalents share one normalizer', async () => {
@@ -386,17 +391,6 @@ describe('permanent Play names and addresses', () => {
     } finally {
       random.mockRestore();
     }
-  });
-
-  test('legacy creation keeps its request and response while assigning a reviewed name', async () => {
-    const { t, viewer, request } = await world();
-    const result = await viewer.mutation(api.playGames.createGame, request);
-    if (!result.ok) {
-      throw new Error('Creation refused');
-    }
-    const game = await t.run(async (ctx) => await ctx.db.get(result.gameId));
-    expect(playGameNameVocabulary().some(({ name }) => name === game?.name)).toBe(true);
-    expect(game?.slug).toBe(normalizePlayGameSlug(game!.name!));
   });
 
   test('the generated name the create page showed is kept, numbered when taken, and only from the vocabulary', async () => {

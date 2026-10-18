@@ -1,26 +1,17 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import aggregateTest from '@convex-dev/aggregate/test';
-import rateLimiterTest from '@convex-dev/rate-limiter/test';
-import { convexTest } from 'convex-test';
-
 import { publishingDeckCardback } from '../src/shared/assets/fixtures/publishingDeckCardback';
 import { arrakisBoardCapture } from '../src/shared/play/fixtures/board';
 import type { Id } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
-import schema from './schema';
+import { applicationTest } from './application.test.fixture';
 
 const modules = import.meta.glob('./**/*.ts');
 
 /** A fresh test world with the components Play's functions reach. */
 export function playTest(moduleOverrides: typeof modules = {}) {
-  const t = convexTest(schema, { ...modules, ...moduleOverrides });
-  rateLimiterTest.register(t);
-  aggregateTest.register(t, 'statistics');
-  aggregateTest.register(t, 'profileActivity');
-  aggregateTest.register(t, 'profileDiscovery');
-  return t;
+  return applicationTest({ modules: { ...modules, ...moduleOverrides } });
 }
 
 /** A signed-in account with a live session, an unused refresh and a profile, as Play reads one. */

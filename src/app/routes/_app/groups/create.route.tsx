@@ -2,7 +2,6 @@ import { Stack, TextInput } from '@mantine/core';
 import { groupInputSchema } from '@shared/groups/validation';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { LoadPending } from '@ui/block/LoadPending';
-import { LoginGate } from '@ui/block/LoginGate';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
@@ -14,6 +13,7 @@ import { useCreateGroup } from '@db/groups';
 import { useSessionViewer } from '@db/profiles';
 import { pageHead } from '@app/routes/pageTitle';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
+import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 export const Route = createFileRoute('/_app/groups/create')({
@@ -114,7 +114,7 @@ function GroupCreatePage() {
                 { input: nameCheck.data },
                 {
                   onSuccess: () => {
-                    navigate({
+                    void navigate({
                       to: '/profiles/$profileSlug',
                       params: { profileSlug: profileRow.slug },
                     });

@@ -12,6 +12,8 @@ import { useId } from 'react';
 import type { ReactNode } from 'react';
 
 import styles from './AuthoringToolbar.module.css';
+import { LoadExisting } from './LoadExisting';
+import type { LoadExistingProps } from './LoadExisting';
 
 /* The words for where the work stands, which Save wears as its hover text and a screen reader hears as its description. */
 function saveStateWords(saveState: AuthoringSaveState, isDirty: boolean): string {
@@ -94,7 +96,7 @@ export interface AuthoringToolbarActions {
  * The page owns all data and wording;
  * the toolbar owns the arrangement.
  */
-export function AuthoringToolbar({
+export function AuthoringToolbar<Draft>({
   status,
   copy,
   actions,
@@ -105,13 +107,14 @@ export function AuthoringToolbar({
   destructiveActions,
   centerIndicator,
   navigationActions,
+  load,
 }: {
   status: AuthoringStatus;
   copy: AuthoringCopy;
   actions: AuthoringToolbarActions;
   /** An optional artifact-review action (the eye); absent editors have no review. */
   review?: { label: string; onOpen: (trigger: HTMLButtonElement) => void };
-  /** The editor's own actions on what it edits, such as loading a draft, before review. */
+  /** The editor's own actions on what it edits, after the load action and before review. */
   auxiliaryActions?: ReactNode;
   /** Who may touch the thing: assigning or removing its Group. */
   accessActions?: ReactNode;
@@ -121,6 +124,8 @@ export function AuthoringToolbar({
   centerIndicator?: ReactNode;
   /** Navigation supplied by the page, beside Back. */
   navigationActions?: ReactNode;
+  /** Loading an existing thing of the same kind into the draft; its action leads the editor's own actions. */
+  load?: Omit<LoadExistingProps<Draft>, 'children'>;
 }) {
   const { isDirty, isNameBlank, saveState, invalid } = status;
   const { onSave, onReset, onBack } = actions;
@@ -144,7 +149,7 @@ export function AuthoringToolbar({
             ? 'saved'
             : 'clean';
 
-  return (
+  const bar = (loadAction: ReactNode) => (
     <div className={styles.sticky}>
       {/* Save's state is a glyph, and a screen reader does not announce a glyph changing, so the words live here too. */}
       <VisuallyHidden id={describedBy} role="status">
@@ -173,6 +178,7 @@ export function AuthoringToolbar({
             />
           </Toolbar.Cluster>
           <Toolbar.Cluster kind="content">
+            {loadAction}
             {auxiliaryActions}
             {review ? (
               <span className={styles.reviewAction}>
@@ -214,4 +220,5 @@ export function AuthoringToolbar({
       </Toolbar>
     </div>
   );
+  return load ? <LoadExisting {...load}>{bar}</LoadExisting> : bar(null);
 }

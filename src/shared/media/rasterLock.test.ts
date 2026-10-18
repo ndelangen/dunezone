@@ -4,7 +4,7 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 
 import sharp from 'sharp';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import lockJson from '../../../media/raster.lock.json';
 import { MEDIA_MAP } from './map.generated';

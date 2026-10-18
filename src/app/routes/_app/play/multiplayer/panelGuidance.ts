@@ -80,7 +80,9 @@ export const SPICE_GUIDANCE: Guidance = {
 
 export const LOG_GUIDANCE: Guidance = { description: 'What happened at this table, newest first.' };
 
-export const GAME_LOG_GUIDANCE: Guidance = { description: 'Phases, spice, battles, predictions and deleted pieces.' };
+export const GAME_LOG_GUIDANCE: Guidance = {
+  description: 'Phases, spice, battles, predictions, alliances and deleted pieces.',
+};
 
 export const AUDIT_LOG_GUIDANCE: Guidance = { description: 'Seats and removal votes.' };
 
@@ -116,5 +118,5 @@ export const PLAYER_INFO_GUIDANCE: Guidance = { description: 'Their faction and 
 
 export const RESULT_GUIDANCE: Guidance = {
   description: 'Determine the winner, or see who won.',
-  help: 'One player determines the winner during Mentat pause and declares it; anyone holding a locked prediction can reveal it first. Once declared, any player can continue the game from Mentat pause of this turn.',
+  help: 'One player determines the winner during Mentat Pause and declares it; anyone holding a locked prediction can reveal it first. Once declared, any player can continue the game from Mentat Pause of this turn.',
 };

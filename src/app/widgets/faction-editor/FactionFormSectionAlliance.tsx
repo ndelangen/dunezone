@@ -59,7 +59,7 @@ function AllianceCardPreview({ form }: { form: FactionFormApi }) {
             <AllianceCard {...preview} />
           </CanvasScale>
           <Text size="xs" c="dimmed" ta="center">
-            The preview updates from the ability and every decal control.
+            The preview updates from the advantage and every decal control.
           </Text>
         </Stack>
       )}
@@ -85,12 +85,12 @@ export function FactionFormSectionAlliance({
                 return (
                   <Stack gap="md">
                     <ControlBlock
-                      title="Alliance ability"
+                      title="Alliance advantage"
                       description="Rules text printed on the alliance card. Use the shared formatted-text syntax."
                       input={
                         <FormattedTextInput
                           id="rules-alliance"
-                          aria-label="Alliance ability"
+                          aria-label="Alliance advantage"
                           autosize
                           minRows={4}
                           value={field.state.value}
@@ -102,7 +102,7 @@ export function FactionFormSectionAlliance({
                     />
                     {blank ? (
                       <Text id="rules-alliance-warning" c="var(--color-caution)" size="xs" role="status">
-                        The alliance ability is empty. This is advisory and does not prevent saving.
+                        The alliance advantage is empty. This is advisory and does not prevent saving.
                       </Text>
                     ) : null}
                   </Stack>

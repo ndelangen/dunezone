@@ -1,5 +1,4 @@
 import preview from '@sb/preview';
-import { publishingTreacheryCard } from '@shared/assets/fixtures/publishingTreacheryCard';
 import { expect } from 'storybook/test';
 
 import { treacheryCardFixtures } from '../../fixtures/treacheryCards';
@@ -10,10 +9,10 @@ const meta = preview.meta({
   play: async ({ canvasElement }) => {
     await document.fonts.ready;
     const text = canvasElement.querySelector<HTMLElement>('[data-component-part="name"] span');
-    expect(text).not.toBeNull();
-    expect(text!.scrollWidth).toBeLessThanOrEqual(text!.parentElement!.clientWidth + 1);
+    await expect(text).not.toBeNull();
+    await expect(text!.scrollWidth).toBeLessThanOrEqual(text!.parentElement!.clientWidth + 1);
     const icon = canvasElement.querySelector('[data-component-part="icon"]');
-    expect(text!.getBoundingClientRect().right).toBeLessThanOrEqual(icon!.getBoundingClientRect().left);
+    await expect(text!.getBoundingClientRect().right).toBeLessThanOrEqual(icon!.getBoundingClientRect().left);
   },
   globals: {
     viewport: {
@@ -25,10 +24,8 @@ const meta = preview.meta({
 export const Weapon = meta.story({ args: treacheryCardFixtures.lasgun });
 export const FullBleedDecal = meta.story({ args: treacheryCardFixtures.weirdingWay });
 export const Defense = meta.story({ args: treacheryCardFixtures.shield });
-export const MulticolorDecal = meta.story({ args: treacheryCardFixtures.chemistry });
 export const Special = meta.story({ args: treacheryCardFixtures.cheapHero });
 export const Worthless = meta.story({ args: treacheryCardFixtures.baliset });
-export const LongText = meta.story({ args: treacheryCardFixtures.supplies });
 export const LongTitle = meta.story({
   args: { ...treacheryCardFixtures.cheapHero, name: 'An exceptionally long card title' },
 });
@@ -39,7 +36,5 @@ export const FactionIcon = meta.story({ args: treacheryCardFixtures.richeseKaram
 export const ScaledIcon = meta.story({ args: treacheryCardFixtures.shaiHulud });
 export const Voice = meta.story({ args: treacheryCardFixtures.noSnooper });
 export const LayeredDecals = meta.story({ args: treacheryCardFixtures.layeredDecals });
-
-export const ConversionSource = meta.story({ args: publishingTreacheryCard });
 
 export const FullWidthTitle = meta.story({ args: { ...treacheryCardFixtures.lasgun, name: '沙漠'.repeat(20) } });

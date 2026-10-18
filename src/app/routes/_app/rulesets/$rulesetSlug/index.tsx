@@ -62,6 +62,7 @@ import { FactionPicker } from '@app/pickers/FactionPicker';
 import { redirectFromFormerAddress } from '@app/routes/formerAddress';
 import { profileLink, publicDescription, publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
 import { resolveRouteNotice } from '@app/routes/routeNotices';
+import { AssetFace } from '@app/widgets/asset-face/AssetFace';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import styles from './index.module.css';
@@ -236,6 +237,40 @@ function RulesetRulebooks({
 }
 
 /**
+ * The board this ruleset plays on, drawn as its published face and linking to its page.
+ * An empty board slot draws the missing face as its placeholder, so the section keeps its shape whether or not a board was chosen.
+ */
+function RulesetBoard({
+  board,
+}: {
+  board: { type: string; slug: string; name: string; previewHref: string | null } | null;
+}) {
+  return (
+    <Section id="board" icon={<TopicIcon topic="assets" size={20} />} title="Board">
+      <Stack gap="xs" align="center">
+        {board ? (
+          <Link
+            to="/assets/$type/$slug"
+            params={{ type: board.type, slug: board.slug }}
+            className={styles.boardFace}
+            aria-label={board.name}
+          >
+            <AssetFace type="board" data={null} name={board.name} href={board.previewHref} />
+          </Link>
+        ) : (
+          <div className={styles.boardFace}>
+            <AssetFace type="board" data={null} name="No board chosen" href={null} />
+          </div>
+        )}
+        <Text size="sm" c={board ? undefined : 'dimmed'}>
+          {board ? board.name : 'This ruleset has no board yet.'}
+        </Text>
+      </Stack>
+    </Section>
+  );
+}
+
+/**
  * The toolbar affordance that adds a faction to this ruleset.
  * It owns the open state and nothing else: the picker is mounted only while the popover is open, so its subscription lives exactly that long, which is the contract `AGENTS.md` sets for a Picker's container.
  * The commit is the caller's;
@@ -372,9 +407,9 @@ export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/')({
       name: loaderData?.ruleset.name ?? 'Ruleset',
       kind: loaderData ? 'Ruleset' : undefined,
       pathname: `/rulesets/${encodeURIComponent(loaderData?.ruleset.slug ?? params.rulesetSlug)}`,
-      description:
-        publicDescription(loaderData?.ruleset.about) ||
-        `Explore ${loaderData?.ruleset.name ?? 'this ruleset'} and its published Rulebooks.`,
+      description: loaderData
+        ? publicDescription(loaderData.ruleset.about) || 'Read its published Rulebooks and rules questions.'
+        : '',
       image: loaderData?.ruleset.coverThumbUrl,
       social: { shape: 'portrait' },
       trail: [{ name: 'Rulesets', pathname: '/rulesets' }],
@@ -496,7 +531,7 @@ function RulesetDetailPage() {
   };
 
   const handleFaqSearchChange = (value: string) => {
-    navigate({
+    void navigate({
       to: '.',
       search: (prev) => ({ ...prev, q: value.trim() || undefined }),
       replace: true,
@@ -504,7 +539,7 @@ function RulesetDetailPage() {
   };
 
   const handleFaqTagChange = (value: string | null) => {
-    navigate({
+    void navigate({
       to: '.',
       search: (prev) => ({
         ...prev,
@@ -683,6 +718,8 @@ function RulesetDetailPage() {
                 rulesetSlug={r.slug}
                 canEdit={viewerAccess.capabilities.edit}
               />
+
+              <RulesetBoard board={page.board} />
             </Stack>
           </ColumnsWithRailLayout.Primary>
 

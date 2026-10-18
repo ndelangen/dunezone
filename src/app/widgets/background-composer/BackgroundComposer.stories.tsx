@@ -1,6 +1,8 @@
 import { Box } from '@mantine/core';
 import preview from '@sb/preview';
+import { waitForFrame } from '@sb/storyWaits';
 import { useState } from 'react';
+import { expect, userEvent, within } from 'storybook/test';
 
 import type { BackgroundData } from '@game/data/backgrounds';
 
@@ -21,6 +23,13 @@ function BackgroundStudioFixture({ background }: { background: BackgroundData })
       />
     </Box>
   );
+}
+
+/* Opens one color layer's editor, which the composer keeps collapsed until a layer is picked. */
+async function openLayer(canvasElement: HTMLElement, layer: 'base' | 'pattern') {
+  const page = within(canvasElement.ownerDocument.body);
+  await userEvent.click(page.getByRole('button', { name: `Edit ${layer} color layer` }));
+  return page;
 }
 
 const meta = preview.meta({
@@ -44,18 +53,6 @@ export const SolidSoftSubtle = meta.story({
       invert: false,
       definition: 0,
       influence: 0.15,
-    },
-  },
-});
-
-export const SolidCrispStrongInverted = meta.story({
-  args: {
-    background: {
-      image: '/image/texture/038.jpg',
-      colors: ['#1b1717', '#bb4435'],
-      invert: true,
-      definition: 1,
-      influence: 1,
     },
   },
 });
@@ -87,6 +84,15 @@ export const LinearLayers = meta.story({
       definition: 0.68,
       influence: 0.62,
     },
+  },
+  play: async ({ canvasElement }) => {
+    for (const [layer, angle] of [
+      ['base', '135°'],
+      ['pattern', '35°'],
+    ] as const) {
+      const page = await openLayer(canvasElement, layer);
+      await expect(await waitForFrame(() => page.getByRole('textbox', { name: 'Gradient angle' }))).toHaveValue(angle);
+    }
   },
 });
 
@@ -121,5 +127,19 @@ export const RadialLayers = meta.story({
       definition: 0.48,
       influence: 0.7,
     },
+  },
+  play: async ({ canvasElement }) => {
+    for (const [layer, center] of [
+      ['base', ['68', '30', '82']],
+      ['pattern', ['35', '65', '76']],
+    ] as const) {
+      const page = await openLayer(canvasElement, layer);
+      await expect(await waitForFrame(() => page.getByRole('textbox', { name: 'Center X (optional)' }))).toHaveValue(
+        center[0]
+      );
+      await expect(page.getByRole('textbox', { name: 'Center Y (optional)' })).toHaveValue(center[1]);
+      await expect(page.getByRole('textbox', { name: 'Radius (optional)' })).toHaveValue(center[2]);
+      await expect(page.queryByRole('textbox', { name: 'Gradient angle' })).toBeNull();
+    }
   },
 });

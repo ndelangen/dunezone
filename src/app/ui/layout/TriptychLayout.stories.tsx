@@ -1,6 +1,6 @@
 import preview from '@sb/preview';
 
-import { LayoutSlotPlaceholder } from './LayoutSlotPlaceholder.stories.fixture';
+import { expectStackedSlots, LayoutSlotPlaceholder } from './LayoutSlotPlaceholder.stories.fixture';
 import { TriptychLayout } from './TriptychLayout';
 
 const meta = preview.meta({
@@ -42,4 +42,7 @@ export const ThreeColumns = meta.story({
 export const Stacked = meta.story({
   render: () => <Triptych />,
   globals: { viewport: { value: 'appConstrained' } },
+  play: async ({ canvasElement }) => {
+    await expectStackedSlots(canvasElement, ['left', 'center', 'right']);
+  },
 });

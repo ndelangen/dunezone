@@ -45,6 +45,7 @@ import {
 import { setupActionSchema, setupStateSchema, predictionsSchema } from './setup';
 import { spiceReserveActionSchema, spiceReserveSchema, spiceTransferSchema } from './spiceReserve';
 import { swapActionSchema, swappingStateSchema } from './swapping';
+import { territoryTintActionSchema, territoryTintsSchema } from './territoryTints';
 
 const factionArtworkSchema = z.record(
   z.string(),
@@ -86,7 +87,7 @@ export const gameSnapshotSchema = z.object({
   setup: setupStateSchema.optional(),
   predictions: predictionsSchema.optional(),
   removalVotes: z.array(removalVoteSchema).optional(),
-  /* Who is determining the winner during Mentat pause, then the declared result once finished. */
+  /* Who is determining the winner during Mentat Pause, then the declared result once finished. */
   ending: gameEndingSchema.nullable().optional(),
   result: gameResultSchema.nullable().optional(),
   controls: publicControlsSchema.optional(),
@@ -98,6 +99,8 @@ export const gameSnapshotSchema = z.object({
   alliances: allianceStateSchema.optional(),
   /* The turn the table agreed the game ends after; absent means the standard ten. */
   lastTurn: lastTurnSchema.optional(),
+  /* Tints the table laid over territories, for everyone to see; absent until a faction makes one. */
+  tints: territoryTintsSchema.optional(),
   battle: publicBattleSchema.nullable().optional(),
   battlePlan: battlePlanSchema.nullable().optional(),
   hand: z.array(pieceSchema).optional(),
@@ -130,14 +133,19 @@ const carrySchema = publicIdentitySchema.extend({
   held: pieceSchema,
   withdrawnCounts: z.record(z.string(), count),
   reservedIds: z.array(id),
+  /* What rode a carried plate when it was picked up; a piece set down where the plate lay since stays behind on the drop. */
+  riderIds: z.array(id).optional(),
   expiresAt: count,
   sourceSeq: z.number().int().min(-1).optional(),
 });
 const pointerSchema = publicIdentitySchema.extend({ position, updatedAt: count, sourceSeq: count.optional() });
 export type PublicCarry = z.infer<typeof carrySchema>;
 export type PublicPointer = z.infer<typeof pointerSchema>;
+/* A ping with no sound plays the usual tone; an easter egg can ask for another. */
+const pingSound = z.enum(['fart']);
+export type PingSound = z.infer<typeof pingSound>;
 /* A ping a player sent from their cursor: shown and heard once by everyone at the table, then gone. Never stored or logged. */
-const pingSchema = publicIdentitySchema.omit({ avatarUrl: true }).extend({ position });
+const pingSchema = publicIdentitySchema.omit({ avatarUrl: true }).extend({ position, sound: pingSound.optional() });
 export type TablePing = z.infer<typeof pingSchema>;
 /** A connection pings at most this often; the Worker drops a ping that comes sooner, and the page does not send one. */
 export const TABLE_PING_INTERVAL_MS = 400;
@@ -176,6 +184,7 @@ const pieceActionSchema = z.discriminatedUnion('kind', [
   ...biddingActionSchema.options,
   ...allianceActionSchema.options,
   lastTurnActionSchema,
+  ...territoryTintActionSchema.options,
   ...spiceReserveActionSchema.options,
   ...publicActionSchema.options,
   ...seatActionSchema.options,
@@ -233,7 +242,7 @@ export const clientMessageSchema = z.discriminatedUnion('type', [
     orientation,
   }),
   z.strictObject({ type: z.literal('pointer'), seq: count, position: position.nullable() }),
-  z.strictObject({ type: z.literal('ping'), position }),
+  z.strictObject({ type: z.literal('ping'), position, sound: pingSound.optional() }),
   z.strictObject({ type: z.literal('take'), requestId: id, carryId: id, donorPieceId: id }),
   /* The carrier turned the held piece over in hand, for the count-th time this carry. */
   z.strictObject({ type: z.literal('flip'), carryId: id, flips: carryFlips }),
@@ -256,6 +265,12 @@ export const clientMessageSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('faction'), factionId: id }),
   z.strictObject({ type: z.literal('metrics') }),
   z.strictObject({ type: z.literal('sync') }),
+  /* A browser's periodic account of how the table felt, in whole milliseconds; the room only logs it. */
+  z.strictObject({
+    type: z.literal('telemetry'),
+    actions: z.strictObject({ count, p50Ms: count, p95Ms: count, maxMs: count }),
+    longTasks: z.strictObject({ count, worstMs: count }),
+  }),
 ]);
 export type ClientMessage = z.infer<typeof clientMessageSchema>;
 /** A message that changes the table: a command or a drop, each answered with a receipt. */

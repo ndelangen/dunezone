@@ -1,5 +1,5 @@
 import preview from '@sb/preview';
-import { expect, userEvent, waitFor, within } from 'storybook/test';
+import { expect, fn, userEvent, waitFor, within } from 'storybook/test';
 
 import { LayoutSlotPlaceholder } from './LayoutSlotPlaceholder.stories.fixture';
 import { SplitPanels } from './SplitPanels';
@@ -82,22 +82,22 @@ export const SideBySide = meta.story({
   globals: { viewport: { value: 'region' } },
   play: async ({ canvasElement }) => {
     const separator = separatorOf(canvasElement);
-    expect(separator).toHaveAttribute('aria-orientation', 'vertical');
+    await expect(separator).toHaveAttribute('aria-orientation', 'vertical');
     separator.focus();
     await userEvent.keyboard('{Home}');
-    expect(sizeOf(separator)).toBe(EVEN_LIMITS.min);
+    await expect(sizeOf(separator)).toBe(EVEN_LIMITS.min);
     await userEvent.keyboard('{ArrowRight}');
-    expect(sizeOf(separator)).toBe(EVEN_LIMITS.min + 2);
+    await expect(sizeOf(separator)).toBe(EVEN_LIMITS.min + 2);
     await userEvent.keyboard('{ArrowUp}');
-    expect(sizeOf(separator)).toBe(EVEN_LIMITS.min + 2);
+    await expect(sizeOf(separator)).toBe(EVEN_LIMITS.min + 2);
     await userEvent.keyboard('{PageUp}');
-    expect(sizeOf(separator)).toBe(EVEN_LIMITS.min + 7);
+    await expect(sizeOf(separator)).toBe(EVEN_LIMITS.min + 7);
     await userEvent.keyboard('{End}');
-    expect(sizeOf(separator)).toBe(EVEN_LIMITS.max);
+    await expect(sizeOf(separator)).toBe(EVEN_LIMITS.max);
     await userEvent.keyboard('{ArrowRight}{PageUp}');
-    expect(sizeOf(separator)).toBe(EVEN_LIMITS.max);
+    await expect(sizeOf(separator)).toBe(EVEN_LIMITS.max);
     await userEvent.keyboard('{ArrowLeft}');
-    expect(sizeOf(separator)).toBe(EVEN_LIMITS.max - 2);
+    await expect(sizeOf(separator)).toBe(EVEN_LIMITS.max - 2);
   },
 });
 
@@ -120,17 +120,17 @@ export const Stacked = meta.story({
     const separator = separatorOf(canvasElement);
     const layout = separator.parentElement!;
     const ceiling = Number(separator.getAttribute('aria-valuemax'));
-    expect(ceiling).toBeLessThan(50);
-    expect(sizeOf(separator)).toBe(30);
+    await expect(ceiling).toBeLessThan(50);
+    await expect(sizeOf(separator)).toBe(30);
 
     await pointer(separator, 'pointerdown', { button: 2, buttons: 2 });
     await pointer(separator, 'pointermove', { buttons: 2, offset: -60 });
-    expect(sizeOf(separator)).toBe(30);
-    expect(layout).toHaveAttribute('data-resizing', 'false');
+    await expect(sizeOf(separator)).toBe(30);
+    await expect(layout).toHaveAttribute('data-resizing', 'false');
 
     /* A pointer the browser knows is down, so capture would succeed if the one-finger rule let it through. */
     await pointer(separator, 'pointerdown', { isPrimary: false });
-    expect(layout).toHaveAttribute('data-resizing', 'false');
+    await expect(layout).toHaveAttribute('data-resizing', 'false');
 
     await pointer(separator, 'pointerdown', {});
     await waitFor(() => expect(layout).toHaveAttribute('data-resizing', 'true'));
@@ -139,14 +139,14 @@ export const Stacked = meta.story({
     const dragged = sizeOf(separator);
     /* Moves from any pointer but the captured one leave the split alone. */
     await pointer(separator, 'pointermove', { pointerType: 'touch', pointerId: 7, isPrimary: false, offset: 120 });
-    expect(sizeOf(separator)).toBe(dragged);
+    await expect(sizeOf(separator)).toBe(dragged);
     await pointer(separator, 'pointermove', { offset: -600 });
     await waitFor(() => expect(sizeOf(separator)).toBe(ceiling));
 
     await pointer(separator, 'pointercancel', { buttons: 0 });
     await waitFor(() => expect(layout).toHaveAttribute('data-resizing', 'false'));
     await pointer(separator, 'pointermove', { offset: 200 });
-    expect(sizeOf(separator)).toBe(ceiling);
+    await expect(sizeOf(separator)).toBe(ceiling);
   },
 });
 
@@ -160,6 +160,36 @@ export const NarrowContainer = meta.story({
   },
   globals: { viewport: { value: 'appMobile' } },
   play: async ({ canvasElement }) => {
-    expect(within(canvasElement).queryByRole('separator')).toBeNull();
+    await expect(within(canvasElement).queryByRole('separator')).toBeNull();
+  },
+});
+
+/**
+ * A caller hears only the sizes the reader settles: a key press, or a drag once it lets go.
+ * A default the limits clamp is not one, so a caller that remembers the size keeps what the reader chose rather than what a narrow window allowed.
+ */
+export const ReportsSettledSizes = meta.story({
+  args: {
+    orientation: 'vertical',
+    defaultSize: 90,
+    limits: evenLimits,
+    label: 'Resize the two panels',
+    onSizeChange: fn(),
+  },
+  globals: { viewport: { value: 'region' } },
+  play: async ({ args, canvasElement }) => {
+    const separator = separatorOf(canvasElement);
+    await waitFor(() => expect(sizeOf(separator)).toBe(EVEN_LIMITS.max));
+    await expect(args.onSizeChange).not.toHaveBeenCalled();
+    separator.focus();
+    await userEvent.keyboard('{ArrowLeft}');
+    await expect(args.onSizeChange).toHaveBeenLastCalledWith(EVEN_LIMITS.max - 2);
+    await pointer(separator, 'pointerdown', {});
+    await pointer(separator, 'pointermove', { clientX: separator.getBoundingClientRect().left - 40 });
+    await expect(args.onSizeChange).toHaveBeenCalledTimes(1);
+    await pointer(separator, 'pointerup', { buttons: 0 });
+    await expect(args.onSizeChange).toHaveBeenCalledTimes(2);
+    /* The separator reports its size in tenths; the caller hears the exact size. */
+    await expect((args.onSizeChange as ReturnType<typeof fn>).mock.lastCall?.[0]).toBeCloseTo(sizeOf(separator), 1);
   },
 });

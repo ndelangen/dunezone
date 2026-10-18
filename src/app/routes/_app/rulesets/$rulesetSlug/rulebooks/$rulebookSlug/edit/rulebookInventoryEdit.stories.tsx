@@ -21,7 +21,7 @@ export const IllustratedInventory = meta.story({
             id: 'MAPA',
             source: { kind: 'board', boardId: 'arrakis' },
             quantity: 1,
-            text: 'Place forces on the territories.',
+            text: 'Place troops on the territories.',
           },
           WORM: {
             id: 'WORM',
@@ -35,7 +35,7 @@ export const IllustratedInventory = meta.story({
   ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByRole('textbox', { name: 'Explanation' })).toHaveValue('Place forces on the territories.');
+    await expect(canvas.getByRole('textbox', { name: 'Explanation' })).toHaveValue('Place troops on the territories.');
     const handle = canvas.getByRole('button', { name: 'Reorder entry 1' });
     handle.focus();
     await userEvent.keyboard('[Space][ArrowDown][Space]');

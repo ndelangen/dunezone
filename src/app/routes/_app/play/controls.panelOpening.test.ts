@@ -1,7 +1,7 @@
 /* @vitest-environment jsdom */
 
 import type * as storyTest from 'storybook/test';
-import { afterEach, expect, test, vi } from 'vitest';
+import { afterEach, expect, test, vi } from 'vite-plus/test';
 
 import { openPanel } from './controls.stories.fixture';
 import { press } from './gameInteractions.stories.fixture';

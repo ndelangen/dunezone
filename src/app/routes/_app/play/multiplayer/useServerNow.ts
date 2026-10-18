@@ -20,7 +20,7 @@ function secondReadings(serverNow: ServerClock) {
   let reading: number | undefined;
   let timer: ReturnType<typeof setInterval> | undefined;
   return {
-    subscribe(listener: () => void) {
+    subscribe: (listener: () => void) => {
       listeners.add(listener);
       timer ??= setInterval(() => {
         reading = serverNow();
@@ -50,8 +50,24 @@ function readingsOf(serverNow: ServerClock) {
   return clock;
 }
 
-/** Server time as read at the latest one-second tick, the same reading for every caller at one table. */
-export function useServerNow() {
+/* A caller that shows no clock right now takes no readings, so the tick does not render it. */
+const unsubscribed = () => () => {};
+const noReading = () => 0;
+
+/**
+ * Server time as read at the latest one-second tick, the same reading for every caller at one table.
+ * With `live` false the caller shows no clock: it reads 0 and the tick leaves it alone.
+ */
+export function useServerNow(live = true) {
   const { subscribe, read } = readingsOf(useContext(ServerClockContext));
-  return useSyncExternalStore(subscribe, read);
+  return useSyncExternalStore(live ? subscribe : unsubscribed, live ? read : noReading);
+}
+
+/**
+ * What `select` makes of server time at the latest tick.
+ * The caller renders again only when that changes, so a label that moves once a minute is not drawn again every second.
+ */
+export function useServerNowAs<T extends string | number | boolean>(select: (now: number) => T) {
+  const { subscribe, read } = readingsOf(useContext(ServerClockContext));
+  return useSyncExternalStore(subscribe, () => select(read()));
 }

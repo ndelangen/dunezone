@@ -1,6 +1,6 @@
 import { DOMParser } from 'linkedom';
 import svgpath from 'svgpath';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 
 import { blankBoard, CENTER, RADIUS, referenceSectors, snapPoint } from './geometry';
 import type { Board, Point } from './geometry';

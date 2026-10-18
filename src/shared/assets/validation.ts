@@ -87,6 +87,7 @@ export function parseAssetDataForWrite(type: string, data: unknown): { data: unk
     /* The three shapes share one schema: shape is the Asset type, never a field, so only the clip differs downstream. */
     case 'token-disc':
     case 'token-tech':
+    case 'token-pointer':
     case 'token-plate': {
       const parsed = TokenAssetInput.parse(data);
       return { data: parsed, name: parsed.name };

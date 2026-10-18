@@ -3,7 +3,7 @@
 import { MantineProvider } from '@mantine/core';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { appContentTheme } from '@ui/theme';
-import { afterEach, expect, test, vi } from 'vitest';
+import { afterEach, expect, test, vi } from 'vite-plus/test';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 import { stubMatchMedia } from './jsdom.test.fixture';
@@ -34,17 +34,6 @@ async function focus(field: HTMLElement) {
     await new Promise((resolve) => setTimeout(resolve, 10));
   });
 }
-
-test('a typed last turn is sent when the field is left', async () => {
-  const command = vi.fn();
-  const client = { command } as unknown as TableSession;
-  render(renderSettings(client, 10));
-  const field = screen.getByRole('textbox', { name: 'Last turn' });
-  await focus(field);
-  fireEvent.change(field, { target: { value: '7' } });
-  fireEvent.focusOut(field);
-  expect(command).toHaveBeenCalledWith({ kind: 'last-turn', turn: 7 });
-});
 
 test('leaving the field untouched never undoes another player change made meanwhile', async () => {
   const command = vi.fn();

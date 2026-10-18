@@ -1,16 +1,13 @@
 /// <reference types="vite/client" />
 /* @vitest-environment edge-runtime */
 
-import { convexTest } from 'convex-test';
-import { expect, test } from 'vitest';
+import { expect, test } from 'vite-plus/test';
 
 import { api } from './_generated/api';
-import schema from './schema';
-
-const modules = import.meta.glob('./**/*.ts');
+import { applicationTest } from './application.test.fixture';
 
 test("settings returns only the authenticated owner's methods and rejects a revoked session", async () => {
-  const t = convexTest(schema, modules);
+  const t = applicationTest();
   const { userId, sessionId } = await t.run(async (ctx) => {
     const userId = await ctx.db.insert('users', { account_state: 'active' });
     const otherId = await ctx.db.insert('users', { account_state: 'active' });

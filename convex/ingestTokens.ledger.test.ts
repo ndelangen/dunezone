@@ -1,14 +1,10 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import aggregateTest from '@convex-dev/aggregate/test';
-import { convexTest } from 'convex-test';
-import { afterEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vite-plus/test';
 
 import { api, internal } from './_generated/api';
-import schema from './schema';
-
-const modules = import.meta.glob('./**/*.ts');
+import { applicationTest } from './application.test.fixture';
 
 const ABOUT = 'A test ruleset with a description long enough to satisfy the fifty character floor.';
 const SOURCE_URL = 'https://images.example/cover.png';
@@ -22,10 +18,7 @@ const RESULT = {
 };
 
 async function ledgerFixture() {
-  const t = convexTest(schema, modules);
-  aggregateTest.register(t, 'statistics');
-  aggregateTest.register(t, 'profileActivity');
-  aggregateTest.register(t, 'profileDiscovery');
+  const t = applicationTest();
   const ownerId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Ledger owner' }));
   const owner = t.withIdentity({ subject: ownerId });
   const ruleset = await owner.mutation(api.rulesets.create, {
@@ -50,10 +43,7 @@ const AVATAR_RESULT = {
 
 /** A profile still carrying its external URL, plus a minted avatar token pinned to that source. */
 async function avatarLedgerFixture() {
-  const t = convexTest(schema, modules);
-  aggregateTest.register(t, 'statistics');
-  aggregateTest.register(t, 'profileActivity');
-  aggregateTest.register(t, 'profileDiscovery');
+  const t = applicationTest();
   const now = new Date().toISOString();
   const profileId = await t.run(async (ctx) => {
     const userId = await ctx.db.insert('users', { name: 'Avatar owner' });

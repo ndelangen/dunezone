@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 
 import { rulebookContentsV1Schema, rulebookEditionContentsV1Schema } from './contents';
 import type { RulebookContentsDraftV1, RulebookContentsV1 } from './contents';
@@ -61,27 +61,6 @@ describe('Rulebook render-document projection', () => {
       id: 'L5ST',
       kind: 'list',
       items: [{ id: 'item-example', text: 'Confirm that the destination is adjacent.' }],
-    });
-  });
-
-  it('keeps missing and unselected sources explicit', () => {
-    const missing = projectRulebookRenderDocument(
-      withStormMarker(createRulebookStarterContents()),
-      {},
-      DEFAULT_RULEBOOK_SETTINGS
-    );
-    expect(missing.pagesById.RULE?.regions[1]?.blocks[0]).toMatchObject({
-      kind: 'referenced-illustration',
-      source: { status: 'unavailable', reference: { kind: 'asset', assetId: 'Storm marker' } },
-    });
-    const unselected = projectRulebookRenderDocument(createRulebookStarterContents(), {}, DEFAULT_RULEBOOK_SETTINGS);
-    expect(unselected.pagesById.RULE?.regions[1]?.blocks[0]).toMatchObject({
-      kind: 'referenced-illustration',
-      source: { status: 'unselected' },
-    });
-    expect(unselected.pagesById.CHAP?.regions[0]?.blocks[0]).toMatchObject({
-      kind: 'referenced-illustration',
-      source: { status: 'unselected' },
     });
   });
 

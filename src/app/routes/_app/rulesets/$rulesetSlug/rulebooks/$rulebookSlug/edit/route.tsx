@@ -66,7 +66,6 @@ import { createFileRoute, deepEqual, Link, useNavigate } from '@tanstack/react-r
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { LoadError } from '@ui/block/LoadError';
 import { LoadPending } from '@ui/block/LoadPending';
-import { LoginGate } from '@ui/block/LoginGate';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { Section } from '@ui/block/Section';
 import { errorMessage } from '@ui/content/errorMessage';
@@ -127,6 +126,7 @@ import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { FactionPicker } from '@app/pickers/FactionPicker';
 import { pageHead } from '@app/routes/pageTitle';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
+import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { RulebookPageRenderer } from '@game/rulebook/RulebookRenderer';
 
@@ -2174,12 +2174,22 @@ function placementName(contents: RulebookContentsDraftV1, placement?: Placement)
   return `${containerName(contents, container)}, ${boundary}`;
 }
 
+const SHOWN_PRIMITIVES: ReadonlySet<string> = new Set(['string', 'number', 'boolean', 'bigint']);
+
+function isShownPrimitive(value: unknown): value is string | number | boolean | bigint {
+  return SHOWN_PRIMITIVES.has(typeof value);
+}
+
 function reviewValue(value: unknown): ReactNode {
   if (value === undefined || value === null || value === '') {
     return <Text c="dimmed">Not set</Text>;
   }
-  if (typeof value !== 'object') {
+  if (isShownPrimitive(value)) {
     return <Text style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{String(value)}</Text>;
+  }
+  if (typeof value !== 'object') {
+    /* A draft is JSON, so it holds no functions or symbols to show. */
+    return null;
   }
   return (
     <Stack gap="xs">

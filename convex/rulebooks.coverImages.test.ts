@@ -1,6 +1,6 @@
 // @vitest-environment edge-runtime
 
-import { afterEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vite-plus/test';
 
 import { RULEBOOK_CATALOGUE_VERSION, rulebookContentsV1Schema } from '../src/shared/rulebooks/contents';
 import type { RulebookContentsV1 } from '../src/shared/rulebooks/contents';
@@ -240,7 +240,7 @@ describe('Rulebook cover image staging', () => {
     vi.stubEnv('USER_IMAGE_INGEST_BASE_URL', 'https://worker.test');
     let token = '';
     const fetchMock = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
-      const body = JSON.parse(String(init?.body)) as { token: string; source_url: string };
+      const body = JSON.parse(init?.body as string) as { token: string; source_url: string };
       token = body.token;
       expect(body.source_url).toBe(SOURCE_URL);
       expect(await f.t.query(api.ingestTokens.check, { token, now: Date.now() })).toEqual({
@@ -279,13 +279,19 @@ describe('Rulebook cover image staging', () => {
 
   test('unauthorized authors and unsafe sources are refused before minting or fetching', async () => {
     const f = await fixture();
+    /* A configured Worker means each refusal below comes from the guard it names, not from a missing ingest setting. */
+    vi.stubEnv('USER_IMAGE_INGEST_BASE_URL', 'https://worker.test');
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
     const args = { rulebookId: f.created.rulebook._id, sourceUrl: SOURCE_URL };
-    await expect(f.outsider.action(api.rulebookCoverImages.rehost, args)).rejects.toThrow();
-    await expect(f.t.action(api.rulebookCoverImages.rehost, args)).rejects.toThrow();
-    for (const sourceUrl of ['http://images.example/a.png', 'https://user:secret@images.example/a.png', 'bad']) {
-      await expect(f.owner.action(api.rulebookCoverImages.rehost, { ...args, sourceUrl })).rejects.toThrow();
+    await expect(f.outsider.action(api.rulebookCoverImages.rehost, args)).rejects.toThrow('Not authorized');
+    await expect(f.t.action(api.rulebookCoverImages.rehost, args)).rejects.toThrow('Not authenticated');
+    for (const [sourceUrl, message] of [
+      ['http://images.example/a.png', 'Cover image must use a full https:// URL'],
+      ['https://user:secret@images.example/a.png', 'Cover image URL must not carry credentials'],
+      ['bad', 'Cover image must be a full https:// URL'],
+    ]) {
+      await expect(f.owner.action(api.rulebookCoverImages.rehost, { ...args, sourceUrl })).rejects.toThrow(message);
     }
     expect(fetchMock).not.toHaveBeenCalled();
     expect(await f.t.run(async (ctx) => await ctx.db.query('user_image_ingest_tokens').take(1))).toEqual([]);

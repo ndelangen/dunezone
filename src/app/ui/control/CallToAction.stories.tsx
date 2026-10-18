@@ -1,5 +1,6 @@
 import preview from '@sb/preview';
 import { Link } from '@tanstack/react-router';
+import { expect, within } from 'storybook/test';
 
 import { CallToAction } from './CallToAction';
 
@@ -27,10 +28,6 @@ export const Small = meta.story({
   args: { size: 'sm' },
 });
 
-export const SmallForward = meta.story({
-  args: { size: 'sm', direction: 'forward', children: 'Start creating' },
-});
-
 /**
  * Pulses every five seconds.
  * Watch for a moment, and note it stops entirely under `prefers-reduced-motion`.
@@ -38,6 +35,10 @@ export const SmallForward = meta.story({
  */
 export const Attention = meta.story({
   args: { attention: true },
+  play: async ({ canvasElement }) => {
+    const action = within(canvasElement).getByRole('link', { name: 'Create your own faction' });
+    await expect(getComputedStyle(action).animationName).toMatch(/attention/);
+  },
 });
 
 /** Long labels keep the icon pinned to the edge rather than centring with the text. */

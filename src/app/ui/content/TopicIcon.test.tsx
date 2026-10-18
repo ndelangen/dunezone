@@ -1,5 +1,5 @@
 import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 
 import { TOPIC_ICON_TOPICS, TopicIcon } from './TopicIcon';
 import type { TopicIconTopic } from './TopicIcon';
@@ -20,11 +20,12 @@ const COMPONENT_TOPICS: TopicIconTopic[] = ['face', 'text', 'head', 'symbol', 't
 
 /*
  * The registry's own list, so a topic added there gets the render check below without anyone
- * extending anything. Only that check. The two lists above are written by hand and carry the sharper
- * assertions, and they do not follow the registry: today they omit the four complexity masks and the
- * identity, about and contents glyphs.
+ * extending anything. Only that check, and only for topics the two lists above leave out: those are
+ * written by hand and carry the sharper assertions, and they do not follow the registry: today they
+ * omit the four complexity masks and the identity, about and contents glyphs.
  */
-const ALL_TOPICS = TOPIC_ICON_TOPICS;
+const HAND_LISTED = new Set<TopicIconTopic>([...MASK_TOPICS.map(([topic]) => topic), ...COMPONENT_TOPICS]);
+const ALL_TOPICS = TOPIC_ICON_TOPICS.filter((topic) => !HAND_LISTED.has(topic));
 
 describe('TopicIcon', () => {
   it.each(ALL_TOPICS)('renders the %s topic at all', (topic) => {

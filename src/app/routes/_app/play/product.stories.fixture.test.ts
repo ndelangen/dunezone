@@ -2,7 +2,7 @@
 
 import { rosterFactionNames } from '@shared/play/protocol';
 import { labelForCount } from '@shared/play/tableState';
-import { describe, expect, test, vi } from 'vitest';
+import { describe, expect, test, vi } from 'vite-plus/test';
 
 import { playingSnapshot, preparedSnapshot } from './product.stories.fixture';
 

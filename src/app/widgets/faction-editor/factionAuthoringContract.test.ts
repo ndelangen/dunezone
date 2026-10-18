@@ -1,5 +1,5 @@
 import { FactionInputSchema } from '@shared/factions/schema';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 import { z } from 'zod';
 
 import { defaultFaction } from './defaultFaction';
@@ -73,7 +73,7 @@ describe('faction authoring contract', () => {
     expect(parsed.rules.alliance.text).toBe('');
   });
 
-  it('round-trips the complete Forces and Worlds and Rules and Advantages contract', () => {
+  it('round-trips the complete Troops and Planets and Rules and Advantages contract', () => {
     const faction = structuredClone(defaultFaction);
     faction.troops = [
       {
@@ -111,8 +111,8 @@ describe('faction authoring contract', () => {
     ];
     faction.rules = {
       ...faction.rules,
-      startText: 'Place forces on World Alpha.',
-      revivalText: 'Revive one force normally.',
+      startText: 'Place troops on World Alpha.',
+      revivalText: 'Revive one troop normally.',
       spiceCount: 7,
       fate: {
         text: 'Fate without a title remains valid.',

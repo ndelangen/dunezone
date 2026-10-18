@@ -1,14 +1,12 @@
 /// <reference types="vite/client" />
 /* @vitest-environment edge-runtime */
-import { convexTest } from 'convex-test';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { arrakisBoard, blankBoard } from '../src/shared/boards/geometry';
 import { api } from './_generated/api';
-import schema from './schema';
+import { applicationTest } from './application.test.fixture';
 import { assetPageAs } from './viewerAccess.test.fixture';
 
-const modules = import.meta.glob('./**/*.ts');
 /*
  * The first test loads the Convex modules and validates the full Arrakis board on each of two creates.
  * It took about 2 s with coverage on an idle machine and 2.9 to 5.2 s in CI's coverage run, which runs test files in parallel, so Vitest's 5 s default failed it.
@@ -18,7 +16,7 @@ describe('authored board Assets', () => {
   test(
     'saves editable Arrakis, clones it, and publishes the latest saved geometry',
     async () => {
-      const t = convexTest(schema, modules);
+      const t = applicationTest();
       const ownerId = await t.run((ctx) => ctx.db.insert('users', { name: 'Board owner' }));
       const owner = t.withIdentity({ subject: ownerId });
       const board = arrakisBoard();
@@ -52,7 +50,7 @@ describe('authored board Assets', () => {
     ARRAKIS_TEST_BUDGET_MS
   );
   test('refuses invalid board payloads and unauthorized writes', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const ownerId = await t.run((ctx) => ctx.db.insert('users', { name: 'Owner' }));
     const otherId = await t.run((ctx) => ctx.db.insert('users', { name: 'Other' }));
     const owner = t.withIdentity({ subject: ownerId });
@@ -75,7 +73,7 @@ describe('authored board Assets', () => {
 });
 
 test('rejects missing territory names and canonical ID collisions on create and update', async () => {
-  const t = convexTest(schema, modules);
+  const t = applicationTest();
   const ownerId = await t.run((ctx) => ctx.db.insert('users', { name: 'Owner' }));
   const owner = t.withIdentity({ subject: ownerId });
   const created = await owner.mutation(api.assets.create, {
@@ -109,7 +107,7 @@ test('rejects missing territory names and canonical ID collisions on create and 
 });
 
 test('rejects face-less writes while accepting unfinished cuts inside the circular rim', async () => {
-  const t = convexTest(schema, modules);
+  const t = applicationTest();
   const ownerId = await t.run((ctx) => ctx.db.insert('users', { name: 'Owner' }));
   const owner = t.withIdentity({ subject: ownerId });
   const open = {

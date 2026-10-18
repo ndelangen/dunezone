@@ -4,7 +4,7 @@ import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-import { expect, onTestFinished, test } from 'vitest';
+import { expect, onTestFinished, test } from 'vite-plus/test';
 import { WebSocketServer } from 'ws';
 
 import { browsers, socketOriginAllowed } from './browsers.ts';

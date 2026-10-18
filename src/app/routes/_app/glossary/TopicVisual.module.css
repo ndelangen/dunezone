@@ -125,6 +125,10 @@
   font-size: var(--mantine-font-size-md);
   font-weight: 600;
   color: var(--color-text);
+  justify-self: start;
+  border-radius: 999px;
+  padding-inline: var(--space-xs) var(--space-md);
+  transform-origin: left center;
 }
 
 .phase a {
@@ -222,10 +226,6 @@
   width: 100%;
 }
 
-.deal .spicePile {
-  grid-template-columns: auto;
-}
-
 .troopStack .disc + .disc {
   margin-inline-start: calc(var(--leader-size) / 2 * -0.55);
 }
@@ -260,4 +260,135 @@
     flex-wrap: wrap;
     justify-content: center;
   }
+}
+
+/* Teaching: the term a reader points at lights up its pieces in the picture and the rest step back. */
+.piece,
+.phase,
+.faction {
+  transition:
+    opacity 200ms ease,
+    transform 200ms ease,
+    filter 200ms ease,
+    background-color 200ms ease,
+    box-shadow 200ms ease;
+}
+
+.stage:has([data-demonstrating]) .piece:not([data-demonstrating]),
+.phases[data-demonstrating] .phase:not([data-lit]),
+.factions[data-demonstrating] .faction:not([data-lit]) {
+  opacity: 0.45;
+}
+
+.piece[data-demonstrating] .art,
+.faction[data-lit] {
+  transform: translateY(-4px) scale(1.04);
+  filter: drop-shadow(0 0 12px rgb(240 180 80 / 55%));
+}
+
+/* Fanned cards keep their tilt while they lift. */
+.fan .piece[data-demonstrating]:nth-child(1) .art {
+  transform: rotate(-6deg) translateY(calc(var(--space-xs) - 4px)) scale(1.04);
+}
+
+.fan .piece[data-demonstrating]:nth-child(3) .art {
+  transform: rotate(6deg) translateY(calc(var(--space-xs) - 4px)) scale(1.04);
+}
+
+.phases[data-demonstrating] .phase:not([data-lit]) {
+  opacity: 0.25;
+}
+
+/* A lit phase steps out of the list in the same spice gold as the glow on lit pieces. */
+.phase[data-lit] {
+  color: rgb(100 58 8);
+  background: rgb(240 180 80 / 22%);
+  box-shadow: 0 0 18px rgb(240 180 80 / 45%);
+  transform: scale(1.08);
+}
+
+:global(html[data-mantine-color-scheme="dark"]) .phase[data-lit] {
+  color: rgb(240 180 80);
+}
+
+/* Troops and leaders that go to the Tleilaxu Tanks fade and sink out of play. */
+.stage[data-term="tleilaxu-tanks"] .piece[data-demonstrating] .art {
+  transform: translateY(6px) scale(0.92);
+  filter: grayscale(1) brightness(0.6);
+}
+
+/* An alliance draws its two factions together. */
+.factions[data-allied] .faction[data-lit]:nth-child(1) {
+  transform: translateX(25%) scale(1.04);
+}
+
+.factions[data-allied] .faction[data-lit]:nth-child(4) {
+  transform: translateX(-25%) scale(1.04);
+}
+
+.flip {
+  display: grid;
+  perspective: 600px;
+}
+
+.face {
+  grid-area: 1 / 1;
+  backface-visibility: hidden;
+  transition: transform 500ms ease;
+}
+
+.back {
+  transform: rotateY(180deg);
+}
+
+.flip[data-flipped] .face {
+  transform: rotateY(180deg);
+}
+
+.flip[data-flipped] .back {
+  transform: rotateY(360deg);
+}
+
+/* Reserves arrive one by one, and the spice supporting troops drops onto the wheel token by token. */
+@keyframes arrive {
+  0%,
+  10% {
+    opacity: 0;
+    transform: translateY(-40%);
+  }
+
+  35%,
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+[data-demonstrating] .arriving > * {
+  animation: arrive 2.4s ease-out infinite both;
+}
+
+[data-demonstrating] .arriving > :nth-child(2) {
+  animation-delay: 300ms;
+}
+
+[data-demonstrating] .arriving > :nth-child(3) {
+  animation-delay: 600ms;
+}
+
+/* A bribe's spice sits beside the paying faction and crosses to the receiving one token by token. */
+.bribeLane {
+  position: relative;
+  width: calc(var(--leader-size) * 1.4);
+  height: calc(var(--leader-size) * 0.95);
+}
+
+.bribeSpice {
+  position: absolute;
+  left: 0;
+  transition: left 550ms cubic-bezier(0.5, 0, 0.3, 1);
+}
+
+.bribeSpice[data-moved] {
+  left: calc(100% - var(--leader-size) / 2);
 }

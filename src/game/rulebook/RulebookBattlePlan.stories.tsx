@@ -90,12 +90,12 @@ async function expectSquarePage(canvasElement: HTMLElement) {
   await document.fonts.ready;
   const page = canvasElement.querySelector('[data-rulebook-page]')!.getBoundingClientRect();
   const region = canvasElement.querySelector<HTMLElement>('[data-rulebook-region]')!;
-  expect(region.scrollHeight).toBeLessThanOrEqual(region.clientHeight + 1);
+  await expect(region.scrollHeight).toBeLessThanOrEqual(region.clientHeight + 1);
   const bottom = region.getBoundingClientRect().bottom;
   for (const block of region.querySelectorAll('[data-rulebook-block-id]')) {
-    expect(block.getBoundingClientRect().bottom).toBeLessThanOrEqual(bottom + 1);
+    await expect(block.getBoundingClientRect().bottom).toBeLessThanOrEqual(bottom + 1);
   }
-  expect(page.height).toBeLessThanOrEqual((page.width * 254) / 255 + 1);
+  await expect(page.height).toBeLessThanOrEqual((page.width * 254) / 255 + 1);
 }
 
 export const PrivateInformation = meta.story({
@@ -107,12 +107,6 @@ export const PrivateInformation = meta.story({
     ).not.toBeInTheDocument();
     await expect(canvas.getAllByAltText('Gom Jabbar')).toHaveLength(3);
     await expect(canvas.queryByText('Uncommitted:')).not.toBeInTheDocument();
-  },
-});
-export const RevealAndWeapons = meta.story({
-  args: { specimen: 'reveal' },
-  play: async ({ canvasElement }) => {
-    await expectSquarePage(canvasElement);
   },
 });
 export const LeaderDeathAndResult = meta.story({
@@ -157,9 +151,9 @@ export const IndependentExamples = meta.story({
     await expect(right).toBeVisible();
     const leftBox = left.getBoundingClientRect();
     const rightBox = right.getBoundingClientRect();
-    expect(Math.abs(leftBox.top - rightBox.top)).toBeLessThan(1);
-    expect(leftBox.right).toBeLessThan(rightBox.left);
-    expect(canvas.queryByRole('region', { name: /^Step / })).not.toBeInTheDocument();
+    await expect(Math.abs(leftBox.top - rightBox.top)).toBeLessThan(1);
+    await expect(leftBox.right).toBeLessThan(rightBox.left);
+    await expect(canvas.queryByRole('region', { name: /^Step / })).not.toBeInTheDocument();
   },
 });
 
@@ -174,19 +168,19 @@ export const PreparingThenUsingPrescience = meta.story({
     await expectSquarePage(canvasElement);
     const preparation = within(canvas.getByRole('region', { name: 'Step 2: Prepare a battle plan' }));
     const prescience = within(canvas.getByRole('region', { name: 'Step 3: Ask with Battle Prescience' }));
-    expect(
+    await expect(
       preparation.queryByLabelText('Atreides: illustrative hidden cards; the opponent does not know their number')
     ).not.toBeInTheDocument();
-    expect(preparation.getAllByAltText('Hidden card')).toHaveLength(2);
-    expect(preparation.queryByAltText('Gom Jabbar')).not.toBeInTheDocument();
-    expect(
+    await expect(preparation.getAllByAltText('Hidden card')).toHaveLength(2);
+    await expect(preparation.queryByAltText('Gom Jabbar')).not.toBeInTheDocument();
+    await expect(
       within(
         prescience.getByLabelText('Atreides: illustrative hidden cards; the opponent does not know their number')
       ).getAllByAltText('Hidden card')
     ).toHaveLength(2);
-    expect(prescience.getAllByAltText('Hidden card')).toHaveLength(3);
-    expect(prescience.getByAltText('Gom Jabbar')).toBeVisible();
-    expect(prescience.queryByAltText('Maula Pistol')).not.toBeInTheDocument();
-    expect(prescience.queryByAltText('Snooper')).not.toBeInTheDocument();
+    await expect(prescience.getAllByAltText('Hidden card')).toHaveLength(3);
+    await expect(prescience.getByAltText('Gom Jabbar')).toBeVisible();
+    await expect(prescience.queryByAltText('Maula Pistol')).not.toBeInTheDocument();
+    await expect(prescience.queryByAltText('Snooper')).not.toBeInTheDocument();
   },
 });

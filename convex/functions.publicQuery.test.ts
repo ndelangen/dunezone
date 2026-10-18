@@ -1,12 +1,10 @@
-import aggregateTest from '@convex-dev/aggregate/test';
 import { getAuthUserId } from '@convex-dev/auth/server';
-import { convexTest } from 'convex-test';
 import { createFunctionHandle, makeFunctionReference } from 'convex/server';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { components } from './_generated/api';
+import { applicationTest } from './application.test.fixture';
 import { publicQuery, viewerQuery } from './functions';
-import schema from './schema';
 
 /* Probe functions registered only for this suite, under a module name no real file uses. */
 const probes = {
@@ -56,29 +54,28 @@ function probe(name: keyof typeof probes) {
 
 describe('publicQuery', () => {
   test('refuses to read the viewer through an auth helper', async () => {
-    const t = convexTest(schema, modules).withIdentity({ subject: 'probe-viewer' });
+    const t = applicationTest({ modules }).withIdentity({ subject: 'probe-viewer' });
     await expect(t.query(probe('readsAuth'), {})).rejects.toThrow('A publicQuery cannot read the viewer');
   });
 
   test('refuses a nested query, which would run with the caller identity', async () => {
-    const t = convexTest(schema, modules).withIdentity({ subject: 'probe-viewer' });
+    const t = applicationTest({ modules }).withIdentity({ subject: 'probe-viewer' });
     await expect(t.query(probe('viewer'), {})).resolves.toBe('probe-viewer');
     await expect(t.query(probe('nestsViewerQuery'), {})).rejects.toThrow('Nested ctx.runQuery is refused');
   });
 
   test('refuses a nested query by function handle, which can name an app query as easily as a component', async () => {
-    const t = convexTest(schema, modules).withIdentity({ subject: 'probe-viewer' });
+    const t = applicationTest({ modules }).withIdentity({ subject: 'probe-viewer' });
     await expect(t.query(probe('nestsViewerQueryByHandle'), {})).rejects.toThrow('Nested ctx.runQuery is refused');
   });
 
   test('a reference that names an app query while claiming a component path never reaches the app query', async () => {
-    const t = convexTest(schema, modules).withIdentity({ subject: 'probe-viewer' });
+    const t = applicationTest({ modules }).withIdentity({ subject: 'probe-viewer' });
     await expect(t.query(probe('nestsDisguisedViewerQuery'), {})).rejects.toThrow();
   });
 
   test('a name planted on Object.prototype cannot redirect a component call, which still reaches the component', async () => {
-    const base = convexTest(schema, modules);
-    aggregateTest.register(base, 'statistics');
+    const base = applicationTest({ modules });
     const t = base.withIdentity({ subject: 'probe-viewer' });
     await expect(t.query(probe('nestsUnderPollutedPrototype'), {})).resolves.toEqual({ count: 0, sum: 0 });
   });

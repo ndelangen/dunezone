@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 
 import { chromium } from 'playwright';
-import { expect, onTestFinished, test } from 'vitest';
+import { expect, onTestFinished, test } from 'vite-plus/test';
 import { WebSocketServer } from 'ws';
 import { z } from 'zod';
 

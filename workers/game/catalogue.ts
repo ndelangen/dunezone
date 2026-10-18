@@ -32,6 +32,7 @@ import { GameRejection } from '../../src/shared/play/rejection';
 import type { RulesetAssetSlot } from '../../src/shared/rulesets/assetSlots';
 import { RULESET_ASSET_SLOTS } from '../../src/shared/rulesets/assetSlots';
 import { gameHttpClient } from './authorization';
+import type { ConvexObserver } from './authorization';
 
 const entrySchema = z.object({
   id: z.string(),
@@ -86,17 +87,20 @@ const REQUIRED_DECKS: Partial<Record<RulesetAssetSlot, string>> = {
 export class GameCatalogue {
   /** Every live faction with its link to the game's ruleset, for the draft; the capture at assignment judges readiness. */
   async draftableFactions(rulesetId: string): Promise<DraftFaction[]> {
-    const raw: unknown = await gameHttpClient(this.convexUrl).query(api.playCatalogue.draftableFactions, { rulesetId });
+    const raw: unknown = await gameHttpClient(this.convexUrl, this.observe).query(api.playCatalogue.draftableFactions, {
+      rulesetId,
+    });
     return playDraftableFactionsSchema.parse(raw).factions;
   }
 
   constructor(
     private readonly convexUrl: string,
-    private readonly applicationOrigin: string
+    private readonly applicationOrigin: string,
+    private readonly observe?: ConvexObserver
   ) {}
 
   async list() {
-    const raw = await gameHttpClient(this.convexUrl).query(api.assets.listByTypes, {
+    const raw = await gameHttpClient(this.convexUrl, this.observe).query(api.assets.listByTypes, {
       types: [...SPAWN_TYPES],
     });
     return z
@@ -106,7 +110,10 @@ export class GameCatalogue {
   }
 
   private async supply(selection: SpawnSelection): Promise<AssetSupply> {
-    const raw: unknown = await gameHttpClient(this.convexUrl).query(api.playCatalogue.assetSupply, selection);
+    const raw: unknown = await gameHttpClient(this.convexUrl, this.observe).query(
+      api.playCatalogue.assetSupply,
+      selection
+    );
     const result = assetSupplySchema.safeParse(raw);
     if (!result.success || result.data.membersTruncated) {
       throw new GameRejection('This asset has no complete playable definition.');
@@ -225,7 +232,7 @@ export class GameCatalogue {
    * the verdict names both required decks when they are absent or empty.
    */
   async captureRuleset(rulesetId: string, now = Date.now()): Promise<RulesetCapture> {
-    const raw = await gameHttpClient(this.convexUrl).query(api.playCatalogue.rulesetSupply, {
+    const raw = await gameHttpClient(this.convexUrl, this.observe).query(api.playCatalogue.rulesetSupply, {
       rulesetId,
     });
     const supply = rulesetSupplySchema.nullable().parse(raw);
@@ -375,7 +382,9 @@ export class GameCatalogue {
    * Faces the catalogue does not publish yet stay null and are named in the verdict, so the isolated development path can proceed on provisional content while a real game is refused.
    */
   async captureFaction(factionId: string, now = Date.now()): Promise<FactionCapture> {
-    const raw = await gameHttpClient(this.convexUrl).query(api.playCatalogue.factionDefinition, { factionId });
+    const raw = await gameHttpClient(this.convexUrl, this.observe).query(api.playCatalogue.factionDefinition, {
+      factionId,
+    });
     const source = factionDefinitionSchema.nullable().parse(raw);
     if (!source) {
       throw new GameRejection('This faction is not available.');

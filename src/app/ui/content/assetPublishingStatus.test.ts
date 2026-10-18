@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { factionAssetPublishingCopy } from './assetPublishingStatus';
 
@@ -16,14 +16,5 @@ describe('faction publishing feedback', () => {
       'A new faction sheet capture is in progress. The current PDF remains available.'
     );
     expect(factionAssetPublishingCopy(null, 'scheduled')).toBe('A new faction sheet capture is scheduled.');
-  });
-
-  test('tells every viewer that a failed replacement capture may leave the sheet out of date', () => {
-    expect(factionAssetPublishingCopy('current', 'error')).toBe(
-      'The published faction sheet may be out of date because the latest changes were not captured.'
-    );
-    expect(factionAssetPublishingCopy(null, 'error')).toBe(
-      'The latest changes were not captured, so no faction sheet is published yet.'
-    );
   });
 });

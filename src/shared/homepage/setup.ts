@@ -40,11 +40,11 @@ function homepagePieces(origin: string): StoredPiece[] {
       );
     });
   });
-  placeStartingForces(pieces);
+  placeStartingTroops(pieces);
   return [...pieces, ...treacheryPieces(artwork)];
 }
 
-function placeStartingForces(pieces: StoredPiece[]) {
+function placeStartingTroops(pieces: StoredPiece[]) {
   const placements: Array<[number, number, string]> = [
     [0, 10, 'arrakeen'],
     [1, 10, 'carthag'],

@@ -27,7 +27,7 @@ import {
 } from '@shared/play/tableTrackers';
 import type { TrackerArcSlot } from '@shared/play/tableTrackers';
 import { Vector3 } from 'three';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { PHASE_DISC_COLOR } from './phaseSymbolLayout';
 import {
@@ -84,7 +84,7 @@ const MAP_FRAMING_CASES = ([2, 9, 18] as const satisfies readonly TableSeatCount
  * Zero phases leaves no pitch, one to eight keep full-size discs, and nine is the fixed standard arc.
  * Ten to twenty-two shrink discs by the edge gap, and twenty-three onward give up the gap to keep discs positive.
  */
-const ARC_PHASE_COUNTS = [0, 1, 9, 18, 30];
+const ARC_PHASE_COUNTS = [0, 1, 9, 18, 30, 200];
 
 describe('table trackers', () => {
   test.each(ARC_PHASE_COUNTS)(
@@ -205,11 +205,6 @@ describe('table trackers', () => {
     expect(PHASE_TRACKER_RADIUS).toBe(0.26);
     expect(TURN_TRACKER_RADIUS).toBe(0.76);
     expect(TRACKER_EDGE_GAP).toBe(0.045);
-  });
-
-  test('keeps every disc of a very long turn a positive size', () => {
-    const slots = trackerArcSlots(200);
-    expect(slots.slice(2).every((slot) => slot.radius > 0)).toBe(true);
   });
 
   test('highlights one phase and keeps the Spice Bank muted', () => {

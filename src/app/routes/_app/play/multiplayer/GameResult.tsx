@@ -215,7 +215,7 @@ function FinishedBar({ client, table, result }: Props & Readonly<{ result: GameR
         result.kind,
         result.factionIds.map((id) => factionName(table, id))
       )}
-      context={`Declared by ${result.by.name}. ${player ? 'Continue playing, at the top right, resumes the game from Mentat pause of this turn.' : 'The table stays as it was.'}`}
+      context={`Declared by ${result.by.name}. ${player ? 'Continue playing, at the top right, resumes the game from Mentat Pause of this turn.' : 'The table stays as it was.'}`}
       action={player && stepId && <RevealButton client={client} table={table} stepId={stepId} />}
     />
   );
@@ -232,7 +232,7 @@ export function resultTitle(table: TableProjection): string | undefined {
     : undefined;
 }
 
-/** A finished game's one phase control, where Next phase sat: any player resumes it from Mentat pause of this turn. */
+/** A finished game's one phase control, where Next phase sat: any player resumes it from Mentat Pause of this turn. */
 export function ContinuePlaying({ client, table }: Props) {
   if (table.playback || table.snapshot.stage !== 'finished' || !table.snapshot.result || !seated(table)) {
     return null;
@@ -244,14 +244,14 @@ export function ContinuePlaying({ client, table }: Props) {
   );
 }
 
-/** Any seated player may open the sequence during Mentat pause of play while nobody else has. */
+/** Any seated player may open the sequence during Mentat Pause of play while nobody else has. */
 function canDetermine(table: TableProjection) {
   const { stage, phase, phases, ending } = table.snapshot;
   const mentat = stage === 'play' && phaseAt(phase, phases).id === 'mentat-pause';
   return mentat && !ending && seated(table);
 }
 
-/** The plain Mentat pause control that opens the end-of-game sequence for every player. */
+/** The plain Mentat Pause control that opens the end-of-game sequence for every player. */
 export function DetermineWinner({ client, table }: Props) {
   if (table.playback || !canDetermine(table)) {
     return null;

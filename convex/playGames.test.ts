@@ -1,10 +1,7 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import aggregateTest from '@convex-dev/aggregate/test';
-import rateLimiterTest from '@convex-dev/rate-limiter/test';
-import { convexTest } from 'convex-test';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 import type { z } from 'zod';
 
 import { publishingDeckCardback } from '../src/shared/assets/fixtures/publishingDeckCardback';
@@ -19,18 +16,12 @@ import { PLAY_SEAT_LIMIT } from '../src/shared/play/seatLimit';
 import { api } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
+import { applicationTest } from './application.test.fixture';
 import { insertPendingGame } from './lib/playProvisioningSchedule';
 import { playRateLimiter } from './lib/playRateLimits';
-import schema from './schema';
-
-const modules = import.meta.glob('./**/*.ts');
 
 function setup() {
-  const t = convexTest(schema, modules);
-  rateLimiterTest.register(t);
-  aggregateTest.register(t, 'statistics');
-  aggregateTest.register(t, 'profileActivity');
-  aggregateTest.register(t, 'profileDiscovery');
+  const t = applicationTest();
   return t;
 }
 

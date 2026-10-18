@@ -33,16 +33,16 @@ export async function expectContained({ canvasElement }: { canvasElement: HTMLEl
   const region = canvasElement.querySelector('[data-rulebook-region]')!.getBoundingClientRect();
   for (const block of canvasElement.querySelectorAll('[data-rulebook-block-id]')) {
     const bounds = block.getBoundingClientRect();
-    expect(bounds.left).toBeGreaterThanOrEqual(region.left - 1);
-    expect(bounds.right).toBeLessThanOrEqual(region.right + 1);
-    expect(bounds.bottom).toBeLessThanOrEqual(region.bottom + 1);
+    await expect(bounds.left).toBeGreaterThanOrEqual(region.left - 1);
+    await expect(bounds.right).toBeLessThanOrEqual(region.right + 1);
+    await expect(bounds.bottom).toBeLessThanOrEqual(region.bottom + 1);
   }
 }
 
 export /* A whole word in a header or first-column cell paints on one line: a column never shrinks below its longest word. */
-function expectWholeWords(canvasElement: HTMLElement) {
+async function expectWholeWords(canvasElement: HTMLElement) {
   const cells = canvasElement.querySelectorAll('th, tbody tr > td:first-child');
-  expect(cells.length).toBeGreaterThan(0);
+  await expect(cells.length).toBeGreaterThan(0);
   for (const cell of cells) {
     const text = cell.querySelector('strong') ?? cell;
     const words = (text.textContent ?? '').split(' ').filter(Boolean);
@@ -55,7 +55,7 @@ function expectWholeWords(canvasElement: HTMLElement) {
       }
       range.setStart(node, start);
       range.setEnd(node, start + word.length);
-      expect(range.getClientRects().length, `${word} paints on one line`).toBe(1);
+      await expect(range.getClientRects().length, `${word} paints on one line`).toBe(1);
     }
   }
 }

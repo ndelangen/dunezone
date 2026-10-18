@@ -3,7 +3,7 @@
 import { COMPONENT_GEOMETRY_PROTOCOL } from '@shared/asset-publishing/componentGeometry';
 import { publishingTreacheryCard } from '@shared/assets/fixtures/publishingTreacheryCard';
 import { render } from '@testing-library/react';
-import { expect, it } from 'vitest';
+import { expect, it } from 'vite-plus/test';
 
 import { TreacheryCard } from './Treachery';
 

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 
 import { resolveRulebookBoardDefinition } from './boardDefinitions';
 import { rulebookContentsV1Schema, rulebookEditionContentsV1Schema } from './contents';

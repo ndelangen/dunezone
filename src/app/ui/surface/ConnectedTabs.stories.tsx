@@ -141,9 +141,9 @@ const meta = preview.meta({
 export const FirstActive = meta.story({
   args: { value: 'overview' },
   play: async ({ canvasElement }) => {
-    await waitFor(() => {
-      expect(canvasElement.querySelector('[class*="glassSurface"]')).not.toBeNull();
-      expect(canvasElement.querySelector('svg[class*="geometryContour"] path')).not.toBeNull();
+    await waitFor(async () => {
+      await expect(canvasElement.querySelector('[class*="glassSurface"]')).not.toBeNull();
+      await expect(canvasElement.querySelector('svg[class*="geometryContour"] path')).not.toBeNull();
     });
 
     const surface = canvasElement.querySelector<HTMLElement>('[class*="glassSurface"]');
@@ -170,6 +170,17 @@ export const ContentDrivenHeight = meta.story({
         story: 'The surface grows beyond the tab rail when its selected panel contains taller content.',
       },
     },
+  },
+  play: async ({ canvasElement }) => {
+    /* The rail ends with its last tab; the list itself stretches with the surface. */
+    const lastTab = within(canvasElement).getAllByRole('tab').at(-1)!.getBoundingClientRect();
+    await waitFor(async () => {
+      const surface = canvasElement.querySelector('[class*="glassSurface"]')!.getBoundingClientRect();
+      const contour = canvasElement.querySelector('svg[class*="geometryContour"] path')!.getBoundingClientRect();
+      await expect(surface.bottom).toBeGreaterThan(lastTab.bottom + 100);
+      /* The contour is drawn round the whole surface, not just the rail. */
+      await expect(contour.bottom).toBeCloseTo(surface.bottom, -1);
+    });
   },
 });
 
@@ -213,18 +224,18 @@ export const MobileViewport = meta.story({
     const mobilePicker = canvasElement.querySelector<HTMLElement>('[data-connected-tabs-mobile-picker]');
     const canvas = within(canvasElement);
 
-    await waitFor(() => {
+    await waitFor(async () => {
       const canvasRect = canvasElement.getBoundingClientRect();
       const rootRect = root?.getBoundingClientRect();
 
-      expect(root).not.toBeNull();
-      expect(panel).not.toBeNull();
-      expect(mobilePicker).not.toBeNull();
-      expect(rootRect?.width).toBeCloseTo(canvasRect.width);
-      expect(rootRect?.right).toBeLessThanOrEqual(canvasRect.right);
-      expect(getComputedStyle(tabList as HTMLElement).display).toBe('none');
-      expect(getComputedStyle(mobilePicker as HTMLElement).display).toBe('grid');
-      expect(getComputedStyle(root as HTMLElement).backdropFilter).toBe('blur(8px)');
+      await expect(root).not.toBeNull();
+      await expect(panel).not.toBeNull();
+      await expect(mobilePicker).not.toBeNull();
+      await expect(rootRect?.width).toBeCloseTo(canvasRect.width);
+      await expect(rootRect?.right).toBeLessThanOrEqual(canvasRect.right);
+      await expect(getComputedStyle(tabList as HTMLElement).display).toBe('none');
+      await expect(getComputedStyle(mobilePicker as HTMLElement).display).toBe('grid');
+      await expect(getComputedStyle(root as HTMLElement).backdropFilter).toBe('blur(8px)');
     });
 
     const picker = canvas.getByRole('combobox', { name: 'Workbench sections' });

@@ -1,13 +1,13 @@
 import { waitForFrame } from '@sb/storyWaits';
 import { expect, within } from 'storybook/test';
 
-import { mapViewPoint, settled, waitForPlayCamera } from './playing.stories.fixture';
+import { mapViewPoint, settled, waitForPlayCamera } from './mapView.stories.fixture';
 
 /** Carries the battle marker to the given board point and checks the resulting command. */
 export async function dragBattleMarker(
   document: Document,
   point: readonly [number, number, number],
-  placed: () => void
+  placed: () => void | Promise<void>
 ) {
   const page = within(document.body);
   await waitForPlayCamera(document);
@@ -17,10 +17,10 @@ export async function dragBattleMarker(
   let clientY = 0;
   /* A projected point must also receive the drop in the browser's drawn layout. */
   await waitForFrame(
-    () => {
+    async () => {
       [clientX, clientY] = mapViewPoint(document, point);
       const under = document.elementFromPoint(clientX, clientY);
-      expect(under === scene || Boolean(under?.closest('[data-local-carry]'))).toBe(true);
+      await expect(under === scene || Boolean(under?.closest('[data-local-carry]'))).toBe(true);
     },
     { timeout: 30_000 }
   );

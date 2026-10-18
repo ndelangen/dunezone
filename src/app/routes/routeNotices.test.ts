@@ -1,5 +1,5 @@
 import { defaultGroupUnavailableRouteNoticeCode } from '@shared/routeNotices';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { resolveRouteNotice } from './routeNotices';
 

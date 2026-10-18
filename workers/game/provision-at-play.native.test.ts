@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vite-plus/test';
 
 import { dealt, draftingRuntime, playToTurnOne } from './native-drafting.fixture.ts';
 import type { NativeView } from './native-runtime.fixture.ts';

@@ -53,6 +53,8 @@ export type RulesetDetailPublicPage = RulesetPageData & {
   owner: ProfileSummary | null;
   faqItems: FaqItemWithDetails[];
   assetSlots: RulesetSlottedAsset[];
+  /** The slotted board with its publication, or null when the slot is empty. */
+  board: { id: string; type: string; slug: string; name: string; previewHref: string | null } | null;
   rulebooks: NonNullable<FunctionReturnType<typeof api.rulesets.detailPage>>['rulebooks'];
 };
 
@@ -85,6 +87,7 @@ function normalizeRulesetDetailPage(
     owner: raw.owner,
     faqItems: mapFaqItemsFromConvex(raw.faqItems),
     assetSlots: raw.assetSlots,
+    board: raw.board,
     rulebooks: raw.rulebooks,
   };
 }

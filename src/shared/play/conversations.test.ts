@@ -1,4 +1,4 @@
-import { expect, test } from 'vitest';
+import { expect, test } from 'vite-plus/test';
 
 import { conversationMembers, conversationPeerFor, conversationPeerSchema, TABLE_CONVERSATION } from './conversations';
 

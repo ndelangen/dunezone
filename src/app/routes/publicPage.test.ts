@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { countOf, profileLink, publicDescription, publicPageHead } from './publicPage';
 
@@ -143,6 +143,39 @@ describe('public page heads', () => {
     expect(graphOf(post)?.[0]).toMatchObject({ author: { '@type': 'Person', name: 'Guest author' } });
     expect(graphOf(post)?.[0].author).not.toHaveProperty('url');
     expect(metaOf(post).some((meta) => meta.property === 'article:author')).toBe(false);
+  });
+
+  test('a work tells search which game it is for and who made it, and the card and graph keep its own text', () => {
+    const head = publicPageHead({ ...faction, social: { shape: 'round' } });
+    const lead = 'Atreides, a custom faction for the Dune board game by Paul. Prescience.';
+    expect(metaOf(head)).toContainEqual({ name: 'description', content: lead });
+    expect(metaOf(head)).toContainEqual({ property: 'og:description', content: lead });
+    expect(metaOf(head)).toContainEqual({ name: 'twitter:description', content: lead });
+    const card = new URL(String(metaOf(head).find((meta) => meta.property === 'og:image')?.content));
+    expect([...card.searchParams.values()]).toContain('Prescience.');
+    expect(graphOf(head)?.[1]).toHaveProperty('description', 'Prescience.');
+  });
+
+  test('a creatorless work without text still names itself, with the right article', () => {
+    const head = publicPageHead({
+      ...faction,
+      name: 'Crysknife',
+      kind: 'Enhance token',
+      description: '',
+      entity: { type: 'work', author: null },
+    });
+    expect(metaOf(head)).toContainEqual({
+      name: 'description',
+      content: 'Crysknife, an enhance token for the Dune board game.',
+    });
+  });
+
+  test('long authored text is shortened at a word so the lead stays whole', () => {
+    const head = publicPageHead({ ...faction, description: 'spice '.repeat(60).trim() });
+    const content = String(metaOf(head).find((meta) => meta.name === 'description')?.content);
+    expect(content.startsWith('Atreides, a custom faction for the Dune board game by Paul. spice')).toBe(true);
+    expect(content.endsWith('spice…')).toBe(true);
+    expect(Array.from(content).length).toBeLessThanOrEqual(200);
   });
 
   test('a page that threw notFound has no head at all', () => {

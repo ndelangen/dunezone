@@ -35,6 +35,8 @@ const revealedArgs = {
   troops: [troop],
 } satisfies ComponentProps<typeof BattleWheel>;
 
+const wheelCards = [treacheryCardFixtures.maulaPistol, treacheryCardFixtures.shield];
+
 const meta = preview.meta({
   component: BattleWheel,
   parameters: { layout: 'centered' },
@@ -53,14 +55,6 @@ const meta = preview.meta({
 });
 
 export const Revealed = meta.story({ args: revealedArgs });
-export const HighStrength = meta.story({
-  args: {
-    ...revealedArgs,
-    troops: [{ ...troop, dialed: 17, undialed: 1 }],
-    strength: 17 * 1 + 1 * 0.5,
-    spice: 17,
-  },
-});
 export const Empty = meta.story({ args: { ...revealedArgs, strength: 0, spice: 0, troops: [] } });
 export const WithLeader = meta.story({
   args: {
@@ -81,7 +75,7 @@ export const WithLeader = meta.story({
 export const WithCards = meta.story({
   args: {
     ...revealedArgs,
-    cards: [treacheryCardFixtures.maulaPistol, treacheryCardFixtures.shield].map((front) => (
+    cards: wheelCards.map((front) => (
       <div key={front.name} style={{ width: 60, height: (60 * card.height) / card.width }}>
         <div
           style={{
@@ -97,6 +91,14 @@ export const WithCards = meta.story({
     )),
     adjustment: 1.5,
     strength: 3 * 1 + 2 * 0.5 + 1.5,
+  },
+  /* Both played cards sit above the wheel, and a positive adjustment reads as a signed bonus. */
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    for (const { name } of wheelCards) {
+      await expect(canvas.getByText(name)).toBeInTheDocument();
+    }
+    await expect(canvas.getByLabelText('Strength adjustment plus 1.5')).toHaveTextContent('+1.5');
   },
 });
 export const MultipleTroopFaces = meta.story({
@@ -132,23 +134,6 @@ export const MultipleTroopFaces = meta.story({
     spice: 12,
     adjustment: -0.5,
     strength: 10 * 1 + 2 * 0.5 + 1 * 2 + 1 * 1 - 0.5,
-  },
-});
-export const CustomArtwork = meta.story({
-  args: {
-    ...revealedArgs,
-    label: 'Harkonnen battle plan',
-    background: factionTokenFixtures.harkonnen.background,
-    troops: [
-      {
-        ...troop,
-        artwork: {
-          ...troop.artwork,
-          background: factionTokenFixtures.harkonnen.background,
-          image: '/vector/troop/harkonnen.svg',
-        },
-      },
-    ],
   },
 });
 
@@ -190,10 +175,10 @@ export const Reveal = meta.story({
     const animations = canvasElement.getAnimations({ subtree: true });
     if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
       const reveal = animations.find((animation) => animation.effect?.getTiming().duration === 400);
-      expect(reveal).toBeDefined();
+      await expect(reveal).toBeDefined();
       reveal!.finish();
     } else {
-      expect(animations).toHaveLength(0);
+      await expect(animations).toHaveLength(0);
     }
     await expect(canvas.getByText('No leader')).toBeVisible();
     await expect(canvas.queryByRole('button')).toBeNull();

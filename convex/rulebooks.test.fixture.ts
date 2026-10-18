@@ -1,8 +1,6 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import aggregateTest from '@convex-dev/aggregate/test';
-import { convexTest } from 'convex-test';
 import type { TestConvex } from 'convex-test';
 
 import { createRulebookStarterContents } from '../src/shared/rulebooks/fixtures';
@@ -10,11 +8,11 @@ import { rulebookNameKey } from '../src/shared/rulebooks/metadata';
 import { rulebookDesignCatalogue, rulebookSizeCatalogue } from '../src/shared/rulebooks/settings';
 import type { RulebookSettings } from '../src/shared/rulebooks/settings';
 import type { Id } from './_generated/dataModel';
+import { applicationTest } from './application.test.fixture';
 import { applicationTriggers } from './lib/applicationTriggers';
 import { rulebookDraftContentsHash, rulebookEditionContentsHash } from './lib/rulebookEditionContents';
-import schema from './schema';
+import type schema from './schema';
 
-const modules = import.meta.glob('./**/*.ts');
 const AT = '2026-08-30T00:00:00.000Z';
 
 type RulebookTest = TestConvex<typeof schema>;
@@ -69,10 +67,7 @@ export function coveringRulebookSettings(): RulebookSettings[] {
 }
 
 export async function rulebookFixture() {
-  const t = convexTest(schema, modules);
-  aggregateTest.register(t, 'statistics');
-  aggregateTest.register(t, 'profileActivity');
-  aggregateTest.register(t, 'profileDiscovery');
+  const t = applicationTest();
 
   const ids = await t.run(async (rawCtx) => {
     const ctx = applicationTriggers.wrapDB(rawCtx);

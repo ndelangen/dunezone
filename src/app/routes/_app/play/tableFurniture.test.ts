@@ -25,7 +25,7 @@ import { trackerArcSlots } from '@shared/play/tableTrackers';
 import type { TrackerArcSlot } from '@shared/play/tableTrackers';
 import { ExtrudeGeometry, Mesh, MeshBasicMaterial, Raycaster, Vector3 } from 'three';
 import { acceleratedRaycast, MeshBVH } from 'three-mesh-bvh';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { cameraPoseFor, tableCamera } from '../../../widgets/tabletop/playView';
 import {
@@ -276,7 +276,7 @@ describe('table furniture', () => {
   test.each(
     [1440 / 695, 1, 0.75, 390 / 844].flatMap((aspectRatio) => [0, 0.5, 1].map((tilt) => ({ aspectRatio, tilt })))
   )('frames the complete Tanks shelf at aspect $aspectRatio and tilt $tilt', ({ aspectRatio, tilt }) => {
-    const camera = tableCamera(cameraPoseFor('bottom', aspectRatio, undefined, undefined, tilt), aspectRatio);
+    const camera = tableCamera(cameraPoseFor('bottom', aspectRatio, undefined, tilt), aspectRatio);
 
     for (const xDirection of [-1, 1]) {
       for (const zDirection of [-1, 1]) {

@@ -1,4 +1,5 @@
 import preview from '@sb/preview';
+import { expect, within } from 'storybook/test';
 
 import { AppFooter } from './AppFooter';
 
@@ -17,6 +18,17 @@ const meta = preview.meta({
 
 export const Default = meta.story({
   globals: { viewport: { value: 'appDesktop' } },
+  play: async ({ canvasElement }) => {
+    const footer = within(within(canvasElement).getByRole('navigation', { name: 'Footer' }));
+    for (const [name, href] of [
+      ['Glossary', '/glossary'],
+      ['Future plans', '/future-plans'],
+      ['Privacy policy', '/privacy'],
+      ['Source code', 'https://github.com/ndelangen/dunezone'],
+    ]) {
+      await expect(footer.getByRole('link', { name })).toHaveAttribute('href', href);
+    }
+  },
 });
 
 /** The waypoints stack once the row no longer fits. */

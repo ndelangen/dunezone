@@ -51,6 +51,7 @@ function tokenFront(row: Doc<'assets'> | null): z.infer<typeof CustomCardTokens>
     }
     case 'token-disc':
     case 'token-tech':
+    case 'token-pointer':
     case 'token-plate': {
       const parsed = TokenAsset.safeParse(row.data);
       return parsed.success ? { type: row.type, name: parsed.data.name, face: parsed.data.front } : null;

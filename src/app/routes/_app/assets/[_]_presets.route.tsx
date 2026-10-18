@@ -10,7 +10,6 @@ import { CardBack as CardBackSchema } from '@shared/assets/schema';
 import { standardStormCard } from '@shared/assets/standardStormDeck';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { LoadPending } from '@ui/block/LoadPending';
-import { LoginGate } from '@ui/block/LoginGate';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
@@ -29,6 +28,7 @@ import type { BackgroundModeMemory } from '@app/widgets/background-composer/Back
 import { BackgroundComposer, emptyBackgroundModeMemory } from '@app/widgets/background-composer/BackgroundComposer';
 import { INITIAL_TREACHERY_DRAFT } from '@app/widgets/card-editor/TreacheryCardEditor';
 import { CardbackFields } from '@app/widgets/cardback-editor/CardbackFields';
+import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { CardBack } from '@game/assets/card/Back';
 import { LeaderSkillCard } from '@game/assets/card/LeaderSkill';

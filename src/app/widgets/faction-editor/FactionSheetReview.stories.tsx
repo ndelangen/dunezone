@@ -17,7 +17,7 @@ function EditorChapter({ index }: { index: number }) {
         Chapter {String(index).padStart(2, '0')}
       </Text>
       <Title order={2}>
-        {['Identity & Appearance', 'Leaders', 'Alliance', 'Forces & Worlds', 'Rules & Advantages'][index - 1]}
+        {['Identity & Appearance', 'Leaders', 'Alliance', 'Planets & Troops', 'Rules & Advantages'][index - 1]}
       </Title>
       <Text c="dimmed" mt="sm">
         Representative editor content preserves this plane&apos;s width and height while review is open.
@@ -73,6 +73,12 @@ async function openReview(canvasElement: HTMLElement) {
   await waitForFrame(() => page.getByRole('heading', { name: 'Review faction artifacts' }));
 }
 
+/* Both sheet-page tiles of an open review, by the titles their preview frames carry. */
+function sheetPageBounds(canvasElement: HTMLElement) {
+  const page = within(canvasElement.ownerDocument.body);
+  return [1, 2].map((pageNumber) => page.getByTitle(`Faction sheet page ${pageNumber}`).getBoundingClientRect());
+}
+
 const storyFaction = structuredClone(defaultFaction);
 
 export const DesktopHorizontal = meta.story({
@@ -84,7 +90,13 @@ export const DesktopHorizontal = meta.story({
       value: 'appLarge',
     },
   },
-  play: async ({ canvasElement }) => openReview(canvasElement),
+  /* The two pages sit side by side. */
+  play: async ({ canvasElement }) => {
+    await openReview(canvasElement);
+    const [first, second] = sheetPageBounds(canvasElement);
+    await expect(Math.abs(first!.top - second!.top)).toBeLessThan(2);
+    await expect(second!.left).toBeGreaterThanOrEqual(first!.right - 1);
+  },
 });
 
 export const ConstrainedStacked = meta.story({
@@ -96,7 +108,13 @@ export const ConstrainedStacked = meta.story({
       value: 'appConstrained',
     },
   },
-  play: async ({ canvasElement }) => openReview(canvasElement),
+  /* The second page stacks under the first. */
+  play: async ({ canvasElement }) => {
+    await openReview(canvasElement);
+    const [first, second] = sheetPageBounds(canvasElement);
+    await expect(Math.abs(first!.left - second!.left)).toBeLessThan(2);
+    await expect(second!.top).toBeGreaterThanOrEqual(first!.bottom - 1);
+  },
 });
 
 /**
@@ -119,7 +137,13 @@ export const WithoutASecondPage = meta.story({
       value: 'appLarge',
     },
   },
-  play: async ({ canvasElement }) => openReview(canvasElement),
+  play: async ({ canvasElement }) => {
+    await openReview(canvasElement);
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.getByTitle('Faction sheet page 1')).toBeInTheDocument();
+    await expect(page.queryByTitle('Faction sheet page 2')).toBeNull();
+    await expect(page.queryByText('Scroll for page 2')).toBeNull();
+  },
 });
 
 /** Resolves after the next frame's resize observers have run, so a check that nothing moved is not made before they could move it. */
@@ -171,5 +195,13 @@ export const LongContent = meta.story({
     faction: storyFaction,
     longContent: true,
   },
-  play: async ({ canvasElement }) => openReview(canvasElement),
+  /* However long the editor runs, the review panel stays inside the editor document rather than hanging past its end. */
+  play: async ({ canvasElement }) => {
+    await openReview(canvasElement);
+    const stage = canvasElement.querySelector('[data-faction-sheet-review]');
+    const panel = within(canvasElement.ownerDocument.body).getByRole('complementary');
+    await waitForFrame(() =>
+      expect(panel.getBoundingClientRect().bottom).toBeLessThanOrEqual((stage?.getBoundingClientRect().bottom ?? 0) + 1)
+    );
+  },
 });

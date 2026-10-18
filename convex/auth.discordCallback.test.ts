@@ -1,14 +1,13 @@
 /// <reference types="vite/client" />
 /* @vitest-environment edge-runtime */
 
-import aggregateTest from '@convex-dev/aggregate/test';
-import { convexTest } from 'convex-test';
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { generateKeyPairSync } from 'node:crypto';
+
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vite-plus/test';
 
 import { api } from './_generated/api';
-import schema from './schema';
-
-const modules = import.meta.glob('./**/*.ts');
+import { applicationTest } from './application.test.fixture';
+import { applicationTriggers } from './lib/applicationTriggers';
 
 beforeEach(() => {
   vi.stubEnv('AUTH_DISCORD_ID', 'test-discord-client');
@@ -24,16 +23,13 @@ afterEach(() => {
 
 async function discordCallback(
   issuer: string,
-  expectedCallback = 'https://backend.convex.site/api/auth/callback/discord'
+  expectedCallback = 'https://backend.convex.site/api/auth/callback/discord',
+  t = applicationTest()
 ) {
-  const t = convexTest(schema, modules);
-  aggregateTest.register(t, 'statistics');
-  aggregateTest.register(t, 'profileActivity');
-  aggregateTest.register(t, 'profileDiscovery');
   const providerFetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
     if (url === 'https://discord.com/api/oauth2/token') {
-      expect(new URLSearchParams(String(init?.body)).get('redirect_uri')).toBe(expectedCallback);
+      expect(new URLSearchParams(init?.body as string).get('redirect_uri')).toBe(expectedCallback);
       return Response.json({ access_token: 'test-access-token', token_type: 'Bearer', expires_in: 3600 });
     }
     if (url === 'https://discord.com/api/users/@me') {
@@ -67,7 +63,7 @@ async function discordCallback(
       )
       .unique()
   );
-  return { response, account, providerFetch };
+  return { response, account, providerFetch, verifier: signIn.verifier, t };
 }
 
 describe('Discord authorization callback', () => {
@@ -96,5 +92,43 @@ describe('Discord authorization callback', () => {
     expect(response.headers.get('Location')).toBe('https://dune.zone/');
     expect(account).toBeNull();
     expect(providerFetch).not.toHaveBeenCalled();
+  });
+
+  test('a login whose account was deleted starts a new account and leaves the deleted one untouched', async () => {
+    vi.stubEnv(
+      'JWT_PRIVATE_KEY',
+      generateKeyPairSync('rsa', { modulusLength: 2048 }).privateKey.export({ type: 'pkcs8', format: 'pem' }).toString()
+    );
+    const t = applicationTest();
+    const deletedUserId = await t.run(async (raw) => {
+      const ctx = applicationTriggers.wrapDB(raw);
+      const userId = await ctx.db.insert('users', { name: 'Old name', account_state: 'deleted' });
+      await ctx.db.insert('profiles', {
+        user_id: userId,
+        username: 'Old name',
+        slug: 'discord-player',
+        avatar_url: null,
+        account_state: 'deleted',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
+      await ctx.db.insert('authAccounts', { userId, provider: 'discord', providerAccountId: '123456789012345678' });
+      return userId;
+    });
+    const { response, account, verifier } = await discordCallback('https://discord.com', undefined, t);
+    const code = new URL(response.headers.get('Location')!).searchParams.get('code')!;
+    expect(account?.userId).not.toBe(deletedUserId);
+    const signedIn = await t.action(api.auth.signIn, { params: { code }, verifier });
+    expect(signedIn.tokens?.token).toEqual(expect.any(String));
+    await t.run(async (ctx) => {
+      expect(await ctx.db.get(deletedUserId)).toMatchObject({ name: 'Old name', account_state: 'deleted' });
+      expect(await ctx.db.get(account!.userId)).toMatchObject({ name: 'Discord player' });
+      const profile = await ctx.db
+        .query('profiles')
+        .withIndex('by_user_id', (q) => q.eq('user_id', account!.userId))
+        .unique();
+      expect(profile).toMatchObject({ username: 'Discord player', account_state: 'active' });
+      expect(profile?.slug).not.toBe('discord-player');
+    });
   });
 });

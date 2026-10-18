@@ -9,14 +9,11 @@ import { Surface } from '@ui/surface';
 import { useReducer } from 'react';
 
 import { authProviderNames } from '@db/accounts';
-import { useAuthConnection, useConfirmAuthConnection } from '@db/accounts';
+import { useAuthConnection, useConfirmAuthConnection, useHeldAuthConnection } from '@db/accounts';
 import { pageHead } from '@app/routes/pageTitle';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 export const Route = createFileRoute('/_app/profiles/$profileSlug/connect')({
-  validateSearch: (search: Record<string, unknown>) => ({
-    connection: typeof search.connection === 'string' ? search.connection : '',
-  }),
   head: () => ({
     meta: [
       ...pageHead('Connect sign-in method', { noindex: true }).meta!,
@@ -27,7 +24,22 @@ export const Route = createFileRoute('/_app/profiles/$profileSlug/connect')({
 });
 
 function ConnectAccountPage() {
-  const { connection: token } = Route.useSearch();
+  const token = useHeldAuthConnection();
+  if (token === undefined) {
+    return <ConnectionPending />;
+  }
+  return <ConnectAccount token={token} />;
+}
+
+function ConnectionPending() {
+  return (
+    <PageMessage title="Connect sign-in method">
+      <LoadPending title="Checking the connection">The sign-in result is loading.</LoadPending>
+    </PageMessage>
+  );
+}
+
+function ConnectAccount({ token }: { token: string }) {
   const connection = useAuthConnection(token);
   const confirm = useConfirmAuthConnection();
   const { signIn } = useAuthActions();
@@ -46,11 +58,7 @@ function ConnectAccountPage() {
     }
   };
   if (connection === undefined) {
-    return (
-      <PageMessage title="Connect sign-in method">
-        <LoadPending title="Checking the connection">The sign-in result is loading.</LoadPending>
-      </PageMessage>
-    );
+    return <ConnectionPending />;
   }
   if (!connection) {
     return (

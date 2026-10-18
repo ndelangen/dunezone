@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test';
 
 import { PLAY_DIRECTORY_ACTIVITY_MS, PLAY_DIRECTORY_RETRY_MS } from '../../src/shared/play/directory';
 import { arrakisBoardCapture } from '../../src/shared/play/fixtures/board';
@@ -152,7 +152,7 @@ describe('A real game keeps the directory current', () => {
   it('publishes an accepted command as activity once per activity interval, and never a pointer', async () => {
     expect((await provision(runtime)).status).toBe(200);
     await eventually(() => summaries().length === 1, 'opening summary');
-    /* Play at the Mentat pause, where readiness is accepted: a stage no delivered path reaches yet. */
+    /* Play at the Mentat Pause, where readiness is accepted: a stage no delivered path reaches yet. */
     const mentat = TABLE_PHASES.findIndex((phase) => phase.id === 'mentat-pause');
     await runtime.exec("UPDATE current_state SET data=json_set(data, '$.stage', 'play', '$.phase', ?) WHERE id=1", [
       mentat,

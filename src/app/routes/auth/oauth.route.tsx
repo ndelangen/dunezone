@@ -1,6 +1,5 @@
+import { safeAuthDestination } from '@shared/authDestination';
 import { createFileRoute, redirect } from '@tanstack/react-router';
-
-import { safeAuthDestination } from './oauthDestination';
 
 export const Route = createFileRoute('/auth/oauth')({
   preload: false,

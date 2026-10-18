@@ -1,6 +1,6 @@
 import { RULEBOOK_PDF_TRANSFER_BYTES } from '@shared/rulebooks/pdfOptimization';
 import { PDFDict, PDFDocument, PDFName, PDFRef, StandardFonts } from 'pdf-lib';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { binaryText, pageContent } from './content';
 import { createRulebookPdfOptimizer } from './optimizer';

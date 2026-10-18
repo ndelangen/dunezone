@@ -14,11 +14,11 @@ export const TABLE_PHASES = [
   phase('storm', 'Storm', '/vector/icon/storrm_standalone.svg', 'Move the storm using the storm controls.'),
   phase(
     'spice-blow',
-    'Spice blow',
+    'Spice Blow',
     '/vector/icon/spice-blow_standalone.svg',
     'Reveal spice cards and place spice on the board.'
   ),
-  phase('choam-charity', 'CHOAM charity', '/vector/generic/chaom.svg', 'Collect any spice granted by your ruleset.'),
+  phase('choam-charity', 'CHOAM Charity', '/vector/generic/chaom.svg', 'Collect any spice granted by your ruleset.'),
   phase(
     'bidding',
     'Bidding',
@@ -33,7 +33,7 @@ export const TABLE_PHASES = [
   ),
   phase(
     'shipment-and-movement',
-    'Shipment and movement',
+    'Shipment and Movement',
     '/vector/icon/shipment_disc.svg',
     'Ship and move your troops on the board.'
   ),
@@ -45,13 +45,13 @@ export const TABLE_PHASES = [
   ),
   phase(
     'spice-collection',
-    'Spice collection',
+    'Spice Collection',
     '/vector/icon/collection_standalone.svg',
     'Collect spice from the board.'
   ),
   phase(
     'mentat-pause',
-    'Mentat pause',
+    'Mentat Pause',
     '/vector/icon/mentat.svg',
     'Check the game outcome and prepare for the next turn.'
   ),
@@ -74,7 +74,7 @@ export type PhaseEntry = {
   before?: TablePhaseId;
 };
 
-/* Only Mentat pause asks every player to be ready among the standard phases. */
+/* Only Mentat Pause asks every player to be ready among the standard phases. */
 export const STANDARD_PHASES: readonly PhaseEntry[] = TABLE_PHASES.map((entry) => ({
   ...entry,
   allPlayersMustBeReady: entry.id === 'mentat-pause',
@@ -88,6 +88,33 @@ export function standardPhaseOf(entry: PhaseEntry): TablePhaseId {
 
 export function phaseAt(index: number, phases: readonly PhaseEntry[] = STANDARD_PHASES): PhaseEntry {
   return phases[index % phases.length]!;
+}
+
+/**
+ * The turn the table plays once its factions' order may have changed, as when the storm moves or a faction token changes sector.
+ * The new order takes effect only while every phase played so far this turn, the current one included, keeps its place;
+ * otherwise the turn runs out in the order it started, so no phase is skipped or played twice, and the new order starts with the next turn.
+ * `previous` is the index the table was at before this change: stepping into a new turn takes the new order before its first phase is played.
+ */
+export function recomposedTurn(
+  index: number,
+  previous: number | undefined,
+  before: readonly PhaseEntry[] | undefined,
+  after: readonly PhaseEntry[] | undefined
+): PhaseEntry[] | undefined {
+  if (!before || !after || before.length !== after.length) {
+    return after as PhaseEntry[] | undefined;
+  }
+  const turnOf = (at: number) => Math.floor(at / before.length);
+  if (previous !== undefined && turnOf(index) > turnOf(previous)) {
+    return after as PhaseEntry[];
+  }
+  const played = (phases: readonly PhaseEntry[]) =>
+    phases
+      .slice(0, (index % phases.length) + 1)
+      .map((entry) => entry.id)
+      .join('\n');
+  return (played(before) === played(after) ? after : before) as PhaseEntry[];
 }
 
 export function tableProgressFor(index: number, phases: readonly PhaseEntry[] = STANDARD_PHASES) {
@@ -199,7 +226,7 @@ export function stepPhase(index: number, direction: -1 | 1 = 1): number {
   return next;
 }
 
-/** Players change the turn only by moving through the phases, so Mentat pause always asks everyone to be ready (#1683). */
+/** Players change the turn only by moving through the phases, so Mentat Pause always asks everyone to be ready (#1683). */
 export const TURN_SELECT_REFUSAL = 'The turn changes only by moving through the phases.';
 
 export const PHASE_CHANGE_COOLDOWN_MS = 2000;

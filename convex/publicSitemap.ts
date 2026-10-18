@@ -13,6 +13,7 @@ import type { Doc, Id } from './_generated/dataModel';
 import type { QueryCtx } from './_generated/server';
 import { publicQuery } from './functions';
 import { isPublicProfile } from './lib/accountLifecycle';
+import { ownPublishedFace } from './lib/assetBacks';
 import { liveGroupOrNull } from './lib/collaborativeAccess';
 
 type Entry = SitemapPage['entries'][number];
@@ -38,7 +39,7 @@ async function listed<Row>(
   result: PaginationResult<Row>,
   toEntry: (row: Row) => Entry | null | Promise<Entry | null>
 ): Promise<SitemapPage> {
-  const entries = await Promise.all(result.page.map(toEntry));
+  const entries = await Promise.all(result.page.map(async (row) => toEntry(row)));
   return {
     entries: entries.filter((value): value is Entry => value !== null),
     cursor: result.isDone ? null : result.continueCursor,
@@ -119,6 +120,12 @@ export const page = publicQuery({
     const rows = ctx.db
       .query('assets')
       .withIndex('by_type_deleted', (q) => q.eq('type', collection).eq('is_deleted', false));
-    return await listed(await rows.paginate(pagination), at(['assets', collection]));
+    const assetEntry = at(['assets', collection]);
+    /* The page's own face rides along, so image search ties the generated image to the page that shows it. */
+    return await listed(await rows.paginate(pagination), (row) => {
+      const found = assetEntry(row);
+      const image = ownPublishedFace(row);
+      return found && image ? { ...found, image } : found;
+    });
   },
 });

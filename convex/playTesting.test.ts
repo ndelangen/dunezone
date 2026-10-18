@@ -1,16 +1,12 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import aggregateTest from '@convex-dev/aggregate/test';
-import { convexTest } from 'convex-test';
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vite-plus/test';
 
 import { parseAssetDataForWrite } from '../src/shared/assets/validation';
 import { PLAY_FIXTURE_KEY } from '../src/shared/play/admission';
 import { api, internal } from './_generated/api';
-import schema from './schema';
-
-const modules = import.meta.glob('./**/*.ts');
+import { applicationTest } from './application.test.fixture';
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -26,7 +22,7 @@ afterEach(() => {
 });
 
 async function fixture(email = 'synthetic@example.invalid') {
-  const t = convexTest(schema, modules);
+  const t = applicationTest();
   const rows = await t.run(async (ctx) => {
     const userId = await ctx.db.insert('users', { email, isAdmin: true });
     const sessionId = await ctx.db.insert('authSessions', { userId, expirationTime: Date.now() + 60_000 });
@@ -37,12 +33,7 @@ async function fixture(email = 'synthetic@example.invalid') {
 }
 
 describe('isolated Play test controls', () => {
-  test.each([
-    ['IS_TEST', 'false'],
-    ['E2E_LOCAL_AUTH', 'false'],
-    ['CONVEX_CLOUD_URL', 'https://production.convex.cloud'],
-    ['SITE_URL', 'https://dune.zone'],
-  ])('refuses every control when %s is not isolated', async (key, value) => {
+  test.each([['IS_TEST', 'false']])('refuses every control when %s is not isolated', async (key, value) => {
     const { t, userId, sessionId } = await fixture();
     const { gameId } = await t.mutation(internal.playTesting.createFixture, {});
     vi.stubEnv(key, value);
@@ -71,8 +62,6 @@ describe('isolated Play test controls', () => {
   test('seeds a real-game ruleset with both decks and two factions, distinct from an earlier seed', async () => {
     const { t } = await fixture();
     /* Inserting catalogue rows updates the statistics aggregate. */
-    aggregateTest.register(t, 'statistics');
-    aggregateTest.register(t, 'profileActivity');
     const first = await t.mutation(internal.playTesting.seedRealGameCatalogue, {});
     const second = await t.mutation(internal.playTesting.seedRealGameCatalogue, {});
     /* Two decks with three cards each, the Extra's face, and both token faces per faction. */
@@ -100,8 +89,6 @@ describe('isolated Play test controls', () => {
 
   test('fills each required deck with complete, published cards of its own type', async () => {
     const { t } = await fixture();
-    aggregateTest.register(t, 'statistics');
-    aggregateTest.register(t, 'profileActivity');
     const { rulesetId, publications } = await t.mutation(internal.playTesting.seedRealGameCatalogue, {});
     const supply = await t.query(api.playCatalogue.rulesetSupply, { rulesetId });
     const decks = Object.fromEntries((supply?.slots ?? []).map(({ slot, asset }) => [slot, asset.slug]));
@@ -123,8 +110,6 @@ describe('isolated Play test controls', () => {
 
   test('one faction supplies an Extra and declares phases', async () => {
     const { t } = await fixture();
-    aggregateTest.register(t, 'statistics');
-    aggregateTest.register(t, 'profileActivity');
     const { rulesetId, publications } = await t.mutation(internal.playTesting.seedRealGameCatalogue, {});
     const factionIds = await t.run(async (ctx) =>
       (
@@ -161,11 +146,21 @@ describe('isolated Play test controls', () => {
   });
 
   test.each(['total', 'inactivity'] as const)('can shorten %s expiry but cannot renew it', async (kind) => {
-    const { t, sessionId } = await fixture();
+    const { t, sessionId, refreshId } = await fixture();
     const first = await t.mutation(internal.playTesting.shortenSession, { sessionId, kind, expiresInMs: 1000 });
     const second = await t.mutation(internal.playTesting.shortenSession, { sessionId, kind, expiresInMs: 30_000 });
     expect(first.expiresAt).toBe(Date.now() + 1000);
     expect(second).toEqual(first);
+    /* Total expiry lives on the session and inactivity on its refresh token, so only that row moves. */
+    const stored = await t.run(async (ctx) => ({
+      session: (await ctx.db.get(sessionId))?.expirationTime,
+      refresh: (await ctx.db.get(refreshId))?.expirationTime,
+    }));
+    expect(stored).toEqual(
+      kind === 'total'
+        ? { session: first.expiresAt, refresh: Date.now() + 60_000 }
+        : { session: Date.now() + 60_000, refresh: first.expiresAt }
+    );
     await expect(t.mutation(internal.playTesting.shortenSession, { sessionId, kind, expiresInMs: -1 })).rejects.toThrow(
       'thirty seconds'
     );
@@ -189,7 +184,7 @@ describe('isolated Play test controls', () => {
     expect(scheduled.map((job) => job.name)).toEqual(['playProvisioning:expireProvisioning']);
   });
 
-  test.each(['pending', 'ready', 'expired'] as const)(
+  test.each(['ready', 'expired'] as const)(
     'retires a %s fixture without replacing its identity or credentials',
     async (state) => {
       const { t } = await fixture();

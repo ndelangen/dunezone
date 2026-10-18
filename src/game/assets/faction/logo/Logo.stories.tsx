@@ -1,5 +1,6 @@
 import preview from '@sb/preview';
 import type { ComponentProps } from 'react';
+import { expect, within } from 'storybook/test';
 
 import { Token } from '../token/Token';
 
@@ -120,7 +121,23 @@ function Emblem({ logo, size }: { logo: Logo; size: number }) {
   );
 }
 
+/**
+ * Every emblem on a token and at 32 and 48 pixels.
+ * A `<use>` whose target is missing draws nothing and reports nothing, so the play fetches each file and looks for the `root` it points at.
+ */
 export const NewEmblems = meta.story({
+  play: async ({ canvasElement }) => {
+    const entries = Object.values(emblems);
+    await expect(within(canvasElement).getAllByRole('article')).toHaveLength(entries.length);
+    const broken = await Promise.all(
+      entries.map(async ({ logo }) => {
+        const response = await fetch(logo);
+        const source = await response.text();
+        return response.ok && source.includes('id="root"') ? null : `${logo} ${response.status} ${source.slice(0, 80)}`;
+      })
+    );
+    await expect(broken.filter(Boolean)).toEqual([]);
+  },
   globals: { viewport: { value: undefined } },
   parameters: { layout: 'fullscreen' },
   render: () => (
@@ -182,59 +199,3 @@ export const NewEmblems = meta.story({
     </main>
   ),
 });
-
-export const AtSmallSizes = meta.story({
-  globals: { viewport: { value: undefined } },
-  parameters: { layout: 'fullscreen' },
-  render: () => (
-    <main style={{ padding: 28, background: '#eee5d2', color: '#292c31', minHeight: '100vh' }}>
-      <h1 style={{ fontFamily: 'Caladea, serif', marginTop: 0 }}>Emblems at small sizes</h1>
-      <p>Each mark at 24, 32, 48, and 72 pixels, in dark ink and reversed on navy.</p>
-      {Object.values(emblems).map(({ name, logo }) => (
-        <section
-          key={logo}
-          aria-label={name}
-          style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 20, marginBottom: 16 }}
-        >
-          <h2 style={{ fontSize: 14, width: 150 }}>{name}</h2>
-          {['light', 'dark'].map((tone) => (
-            <div
-              key={tone}
-              style={{
-                display: 'flex',
-                gap: 18,
-                alignItems: 'center',
-                padding: 16,
-                background: tone === 'dark' ? '#101d2d' : '#faf5e9',
-                color: tone === 'dark' ? '#eee7d7' : '#292c31',
-              }}
-            >
-              {[24, 32, 48, 72].map((size) => (
-                <Emblem key={size} logo={logo} size={size} />
-              ))}
-            </div>
-          ))}
-        </section>
-      ))}
-    </main>
-  ),
-});
-
-export const SiroccoRaptor = meta.story({ args: { logo: emblems.SiroccoRaptor.logo } });
-export const DuneJackal = meta.story({ args: { logo: emblems.DuneJackal.logo } });
-export const CrownedIbex = meta.story({ args: { logo: emblems.CrownedIbex.logo } });
-export const ObsidianMantis = meta.story({ args: { logo: emblems.ObsidianMantis.logo } });
-export const CoilViper = meta.story({ args: { logo: emblems.CoilViper.logo } });
-export const CinderPhoenix = meta.story({ args: { logo: emblems.CinderPhoenix.logo } });
-export const WormCrown = meta.story({ args: { logo: emblems.WormCrown.logo } });
-export const SietchWell = meta.story({ args: { logo: emblems.SietchWell.logo } });
-export const ThornBloom = meta.story({ args: { logo: emblems.ThornBloom.logo } });
-export const TwinMoons = meta.story({ args: { logo: emblems.TwinMoons.logo } });
-export const PilgrimLantern = meta.story({ args: { logo: emblems.PilgrimLantern.logo } });
-export const CrescentBlade = meta.story({ args: { logo: emblems.CrescentBlade.logo } });
-export const FoldspaceKnot = meta.story({ args: { logo: emblems.FoldspaceKnot.logo } });
-export const PrismEngine = meta.story({ args: { logo: emblems.PrismEngine.logo } });
-export const OracleEye = meta.story({ args: { logo: emblems.OracleEye.logo } });
-export const MerchantSeal = meta.story({ args: { logo: emblems.MerchantSeal.logo } });
-export const StormCompass = meta.story({ args: { logo: emblems.StormCompass.logo } });
-export const SaltScarab = meta.story({ args: { logo: emblems.SaltScarab.logo } });

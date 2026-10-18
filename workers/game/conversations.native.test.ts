@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test';
 
 import { clientMessageSchema } from '../../src/shared/play/protocol';
 import type { ClientMessage } from '../../src/shared/play/protocol';
@@ -210,6 +210,20 @@ describe('Faction conversations in the game database', () => {
         (entry): entry is Extract<NativeMessage, { type: 'conversations' }> => entry.type === 'conversations'
       )
     ).toMatchObject({ factionId: bId });
+  });
+
+  it('sends summaries with an update only when they changed, and with every view', async () => {
+    const { a, b } = await setup();
+    const piece = required((await syncView(a)).snapshot.table.pieces.find((entry) => !entry.inventory));
+    const offset = b.messages.length;
+    await accepted(a, { kind: 'lock' as const, pieceId: piece.id });
+    const view = b.messages.lastIndexOf(await syncView(b));
+    const summaries = (from: number, to?: number) =>
+      b.messages.slice(from, to).filter((entry) => entry.type === 'conversations');
+
+    expect(b.messages.slice(offset, view).some((entry) => entry.type === 'update' && entry.snapshot)).toBe(true);
+    expect(summaries(offset, view)).toEqual([]);
+    await eventually(() => summaries(view).length === 1 || undefined, 'summaries with the view');
   });
 
   it('revokes former owners before retry lookup and gives replacements the full faction conversation', async () => {
