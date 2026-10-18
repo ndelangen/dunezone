@@ -250,3 +250,99 @@ test('an immediate remount shares pending initialization and retires the abandon
   expect(renderer.dispose).toHaveBeenCalledOnce();
   expect(warn).not.toHaveBeenCalled();
 });
+
+test('a completed root handle cannot unmount a new root on the same canvas', async () => {
+  const warn = vi.spyOn(console, 'warn');
+  const canvas = document.createElement('canvas');
+  const originalRenderer = rendererFor(canvas);
+  const first = createRoot(canvas);
+  await first.configure({ renderer: () => originalRenderer as unknown as WebGPURenderer, frameloop: 'never' });
+  await act(async () => {
+    first.render(<group name="first" />);
+  });
+  vi.useFakeTimers();
+  await act(async () => {
+    first.unmount();
+  });
+  await vi.advanceTimersByTimeAsync(500);
+  expect(_roots.has(canvas)).toBe(false);
+  const renderer = rendererFor(canvas);
+  const replacement = createRoot(canvas);
+  await replacement.configure({ renderer: () => renderer as unknown as WebGPURenderer, frameloop: 'never' });
+  await act(async () => {
+    replacement.render(<group name="replacement" />);
+  });
+  await act(async () => {
+    first.unmount();
+  });
+  await vi.advanceTimersByTimeAsync(500);
+  expect(_roots.get(canvas)?.store.getState().scene.getObjectByName('replacement')).toBeDefined();
+  expect(renderer.dispose).not.toHaveBeenCalled();
+  await act(async () => {
+    replacement.unmount();
+  });
+  await vi.advanceTimersByTimeAsync(500);
+  expect(_roots.has(canvas)).toBe(false);
+  expect(renderer.dispose).toHaveBeenCalledOnce();
+  expect(originalRenderer.dispose).toHaveBeenCalledOnce();
+  expect(warn).not.toHaveBeenCalled();
+});
+
+test.each(['successful', 'failed'] as const)(
+  'a remount waits for %s asynchronous disposal before creating a fresh renderer',
+  async (outcome) => {
+    const warn = vi.spyOn(console, 'warn');
+    const disposalError = new Error('backend disposal failed');
+    let finish!: () => void;
+    const disposing = new Promise<void>((resolve, reject) => {
+      finish = () => (outcome === 'failed' ? reject(disposalError) : resolve());
+    });
+    if (outcome === 'failed') {
+      warn.mockImplementation(() => {});
+    }
+    const canvas = document.createElement('canvas');
+    const originalRenderer = rendererFor(canvas);
+    originalRenderer.dispose.mockImplementation(() => disposing);
+    const first = createRoot(canvas);
+    await first.configure({ renderer: () => originalRenderer as unknown as WebGPURenderer, frameloop: 'never' });
+    await act(async () => {
+      first.render(<group name="first" />);
+    });
+    vi.useFakeTimers();
+    await act(async () => {
+      first.unmount();
+    });
+    await vi.advanceTimersByTimeAsync(500);
+    expect(originalRenderer.dispose).toHaveBeenCalledOnce();
+    const renderer = rendererFor(canvas);
+    const makeRenderer = vi.fn(() => renderer as unknown as WebGPURenderer);
+    const replacement = createRoot(canvas);
+    const configured = replacement.configure({ renderer: makeRenderer, frameloop: 'never' });
+    expect(makeRenderer).not.toHaveBeenCalled();
+    await act(async () => {
+      finish();
+      await configured;
+      replacement.render(<group name="replacement" />);
+    });
+    const state = _roots.get(canvas)?.store.getState();
+    expect(state?.scene.getObjectByName('replacement')).toBeDefined();
+    expect(state?.renderer).toBe(renderer);
+    expect(makeRenderer).toHaveBeenCalledOnce();
+    expect(renderer.dispose).not.toHaveBeenCalled();
+    await act(async () => {
+      replacement.unmount();
+    });
+    await vi.advanceTimersByTimeAsync(500);
+    expect(_roots.has(canvas)).toBe(false);
+    expect(renderer.dispose).toHaveBeenCalledOnce();
+    expect(originalRenderer.dispose).toHaveBeenCalledOnce();
+    if (outcome === 'failed') {
+      expect(warn).toHaveBeenCalledExactlyOnceWith(
+        '[R3F] Error while unmounting root; teardown may be incomplete:',
+        disposalError
+      );
+    } else {
+      expect(warn).not.toHaveBeenCalled();
+    }
+  }
+);

@@ -96,8 +96,14 @@ diff --git a/dist/webgpu/index.mjs b/dist/webgpu/index.mjs
    const rootId = state?.internal?.rootId;
    const scheduler = getScheduler();
    if (rootId) scheduler.invalidateRoot(rootId, frames, stackFrames);
-@@ -14115,7 +14116,12 @@
-   const prevRoot = _roots.get(canvas);
+@@ -14112,10 +14113,17 @@
+   return { width: 0, height: 0, top: 0, left: 0, ...size };
+ }
+ function createRoot(canvas) {
+-  const prevRoot = _roots.get(canvas);
++  let prevRoot = _roots.get(canvas);
++  const pendingDisposal = prevRoot?.teardownStarted ? prevRoot.disposalComplete : null;
++  if (pendingDisposal) prevRoot = void 0;
    const prevFiber = prevRoot?.fiber;
    const prevStore = prevRoot?.store;
 -  if (prevRoot) console.warn("R3F.createRoot should only be called once!");
@@ -110,7 +116,7 @@ diff --git a/dist/webgpu/index.mjs b/dist/webgpu/index.mjs
    const logRecoverableError = typeof reportError === "function" ? (
      // In modern browsers, reportError will dispatch an error event,
      // emulating an uncaught JavaScript error.
-@@ -14153,11 +14159,13 @@
+@@ -14153,11 +14161,14 @@
    const lastConfiguredProps = {};
    let configured = false;
    let pending = null;
@@ -122,10 +128,11 @@ diff --git a/dist/webgpu/index.mjs b/dist/webgpu/index.mjs
        pending = new Promise((_resolve) => resolve = _resolve);
 +      _roots.get(canvas).pendingConfiguration = pending;
 +      try {
++      if (pendingDisposal) await pendingDisposal;
        const {
          id: canvasId,
          primaryCanvas,
-@@ -14247,11 +14255,14 @@
+@@ -14247,11 +14258,14 @@
                  }));
                }
              }
@@ -141,7 +148,7 @@ diff --git a/dist/webgpu/index.mjs b/dist/webgpu/index.mjs
          await rendererSetup;
          state = store.getState();
          renderer = state.internal.actualRenderer;
-@@ -14561,12 +14572,15 @@
+@@ -14561,12 +14575,15 @@
        lastConfiguredProps.schedulerOrder = schedulerConfig?.order;
        onCreated = onCreatedCallback;
        configured = true;
@@ -158,15 +165,15 @@ diff --git a/dist/webgpu/index.mjs b/dist/webgpu/index.mjs
          reconciler.updateContainer(
            /* @__PURE__ */ jsx(Provider, { store, children, onCreated, rootElement: canvas }),
            fiber,
-@@ -14577,6 +14591,7 @@
+@@ -14577,6 +14594,7 @@
        return store;
      },
      unmount() {
-+      if ((_roots.get(canvas)?.teardownGeneration || 0) !== renderGeneration) return;
++      if (_roots.get(canvas)?.store !== store || (_roots.get(canvas)?.teardownGeneration || 0) !== renderGeneration) return;
        unmountComponentAtNode(canvas);
      }
    };
-@@ -14598,19 +14613,26 @@
+@@ -14598,19 +14616,29 @@
  function unmountComponentAtNode(canvas, callback) {
    const root = _roots.get(canvas);
    const fiber = root?.fiber;
@@ -193,10 +200,13 @@ diff --git a/dist/webgpu/index.mjs b/dist/webgpu/index.mjs
 -        setTimeout(() => {
 +        setTimeout(async () => {
 +          if (!root.unmounting || root.teardownGeneration !== teardownGeneration) return;
++          root.teardownStarted = true;
++          let finishDisposal;
++          root.disposalComplete = new Promise((resolve) => finishDisposal = resolve);
            try {
              const renderer = state.internal.actualRenderer;
              const unregisterPrimary = state.internal.unregisterPrimary;
-@@ -14625,16 +14647,18 @@
+@@ -14625,16 +14653,21 @@
                renderer.forceContextLoss?.();
              }
              if (!state.internal.isSecondary) {
@@ -208,10 +218,13 @@ diff --git a/dist/webgpu/index.mjs b/dist/webgpu/index.mjs
 +            }
 +            if (state.scene) dispose(state.scene);
 +            if (!state.isLegacy && !state.internal.isSecondary) await renderer?.dispose?.();
-+            if (_roots.get(canvas) === root) _roots.delete(canvas);
++            if (_roots.get(canvas) === root && root.teardownGeneration === teardownGeneration) _roots.delete(canvas);
              if (callback) callback(canvas);
            } catch (error) {
              console.warn("[R3F] Error while unmounting root; teardown may be incomplete:", error);
++          } finally {
++            if (_roots.get(canvas) === root && root.teardownGeneration === teardownGeneration) _roots.delete(canvas);
++            finishDisposal();
            }
          }, 500);
        }
