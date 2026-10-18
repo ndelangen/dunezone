@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - ".github/workflows/scorecard.yml"
+      - "scripts/normalize-scorecard-sarif*"
   schedule:
     - cron: "43 4 * * 3"
   workflow_dispatch:
@@ -34,14 +35,19 @@ jobs:
           results_file: scorecard.sarif
           results_format: sarif
           publish_results: true
+      - uses: ./.github/actions/setup
+      - name: Normalize repository-wide finding locations
+        run: node scripts/normalize-scorecard-sarif.ts scorecard.sarif scorecard.normalized.sarif
       - name: Retain repository findings
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: scorecard-${{ github.run_id }}
-          path: scorecard.sarif
+          path: |
+            scorecard.sarif
+            scorecard.normalized.sarif
           retention-days: 14
       - name: Publish repository findings
         uses: github/codeql-action/upload-sarif@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
         with:
-          sarif_file: scorecard.sarif
+          sarif_file: scorecard.normalized.sarif
           category: openssf-scorecard

@@ -193,6 +193,8 @@ describe('AssetExplainer SVG composition', () => {
     expect(svg).toContain('data:image/svg+xml;base64,');
     expect(() =>
       composeRulebookAssetExplainerSvg({
+        /* This negative fixture proves script-bearing SVG input is rejected before rendering. */
+        /* nosemgrep: javascript.lang.security.audit.unknown-value-with-script-tag.unknown-value-with-script-tag */
         projection,
         imageDataUrl: `data:image/svg+xml;base64,${btoa('<svg><script>alert(1)</script></svg>')}`,
       })
