@@ -1,4 +1,6 @@
 import preview from '@sb/preview';
+import { spiceBoardLink, spiceBoardTokens } from '@shared/assets/fixtures/spiceBoardCard';
+import { arrakisBoard } from '@shared/boards/geometry';
 import { resolveAsset } from '@shared/media/resolveAsset';
 import type { ComponentProps } from 'react';
 import { expect } from 'storybook/test';
@@ -138,4 +140,53 @@ export const SpiceDeck = meta.story({
       ))}
     </CardGallery>
   ),
+});
+
+const discoveryOnBoard: SpiceCardProps = {
+  name: 'Funeral Plain',
+  subName: 'Spice blow - Discovery',
+  icon: 'spice',
+  highlights: [],
+  amount: 6,
+  text: `**Smuggler token** on Pasty Mesa\n+\n**6 spice** on Funeral Plain`,
+  board: spiceBoardLink,
+};
+
+/** A card linked to a saved board: Play tints over the board's own artwork, then tokens placed freely. */
+export const OnSavedBoard = meta.story({
+  args: { ...discoveryOnBoard, boardDefinition: arrakisBoard(), boardTokens: spiceBoardTokens },
+  play: async ({ canvasElement }) => {
+    await expect(canvasElement.querySelectorAll('[data-tint]')).toHaveLength(3);
+    /* The type-wide tint covers every stronghold on the board. */
+    await expect(canvasElement.querySelectorAll('[data-tint="strongholds"] > g')).toHaveLength(5);
+    await expect(canvasElement.querySelectorAll('[data-tint-sticker="spice"]')).toHaveLength(1);
+    await expect(canvasElement.querySelectorAll('[data-token-instance]')).toHaveLength(4);
+  },
+});
+
+/** A board the card names but no longer has a territory of: the rest still draws. */
+export const MissingTerritory = meta.story({
+  args: {
+    ...discoveryOnBoard,
+    boardDefinition: (() => {
+      const board = arrakisBoard();
+      const key = Object.keys(board.properties).find((k) => board.properties[k].name === 'Funeral plain')!;
+      board.properties[key] = { ...board.properties[key], name: 'Funeral flats' };
+      return board;
+    })(),
+    boardTokens: spiceBoardTokens,
+  },
+  play: async ({ canvasElement }) => {
+    await expect(canvasElement.querySelectorAll('[data-tint="blow"] > g')).toHaveLength(0);
+    await expect(canvasElement.querySelectorAll('[data-tint="strongholds"] > g')).toHaveLength(5);
+  },
+});
+
+/** A linked board that is gone draws an empty map, never the legacy Arrakis one. */
+export const MissingBoard = meta.story({
+  args: { ...discoveryOnBoard, boardDefinition: null },
+  play: async ({ canvasElement }) => {
+    await expect(canvasElement.querySelector('[data-missing-board]')).not.toBeNull();
+    await expect(canvasElement.querySelector('[data-tint]')).toBeNull();
+  },
 });

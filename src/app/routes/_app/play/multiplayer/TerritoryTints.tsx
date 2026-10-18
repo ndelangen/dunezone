@@ -1,69 +1,22 @@
-import {
-  ActionIcon,
-  Button,
-  ColorPicker,
-  ColorSwatch,
-  Group,
-  Popover,
-  SimpleGrid,
-  Stack,
-  Text,
-  Tooltip,
-} from '@mantine/core';
+import { ActionIcon, Button, Group, Stack, Text, Tooltip } from '@mantine/core';
 import { retainedArrakisBoard } from '@shared/boards/geometry';
 import { territoryId } from '@shared/boards/schema';
-import {
-  fitsTintCommand,
-  MAX_TINTS,
-  TINT_COLOR_NAMES,
-  TINT_COLORS,
-  TINT_STAMPS,
-  tintSetting,
-  withFillOpacity,
-} from '@shared/play/territoryTints';
-import type { TerritoryTint, TerritoryTintAction, TintStamp } from '@shared/play/territoryTints';
+import { fitsTintCommand, MAX_TINTS, tintSetting } from '@shared/play/territoryTints';
+import type { TerritoryTint, TerritoryTintAction } from '@shared/play/territoryTints';
 import { Section } from '@ui/block/Section';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
-import { Brush, Eye, EyeOff, Square, Sticker } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { ReactNode } from 'react';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 import type { TerritoryBrush } from '../../../../widgets/tabletop/territoryBrush';
 import { setTerritoryBrush, territoryBrush, useTerritoryBrush } from '../../../../widgets/tabletop/territoryBrush';
-import { TINT_STICKERS } from '../../../../widgets/tabletop/tintStickers';
+import { NewTints, TintRow } from '../../../../widgets/tabletop/TintControls';
 import { territoryTintPresets } from './territoryTintPresets';
 
 type Props = { client: TableSession; table: TableProjection };
 type TintDraft = Omit<TerritoryTint, 'id'>;
 type TintSetting = Extract<TerritoryTintAction, { kind: 'tint-set' }>['setting'];
-
-const svgUrl = (svg: string) => `url("data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}")`;
-const STICKER_MASKS = Object.fromEntries(
-  TINT_STAMPS.map((stamp) => [stamp, svgUrl(TINT_STICKERS[stamp].svg)])
-) as Record<TintStamp, string>;
-
-/** A sticker's artwork in the button's own colour, so it follows the button's state like a lucide icon. */
-function StickerIcon({ stamp }: Readonly<{ stamp: TintStamp }>) {
-  const mask = `${STICKER_MASKS[stamp]} center / contain no-repeat`;
-  return (
-    <span
-      aria-hidden
-      style={{ display: 'block', width: 18, height: 18, background: 'currentColor', mask, WebkitMask: mask }}
-    />
-  );
-}
-
-/** "Blue tint", or "Blue tint 2" when the table already has one by that name. */
-function freshName(color: (typeof TINT_COLORS)[number], tints: readonly TerritoryTint[]) {
-  const base = `${TINT_COLOR_NAMES[color]} tint`;
-  const names = new Set(tints.map((tint) => tint.name));
-  let name = base;
-  for (let count = 2; names.has(name); count++) {
-    name = `${base} ${count}`;
-  }
-  return name;
-}
 
 /**
  * A brush that outlived this player's right to change the table, or a tint the table had and no longer has, is put down.
@@ -86,127 +39,6 @@ function tintSummary(tint: TerritoryTint, painting: boolean, names: ReadonlyMap<
     return names.get(tint.territories[0]) ?? '1 territory';
   }
   return `${tint.territories.length} territories`;
-}
-
-/** A switch on a tint's row: the button looks pressed while the setting is on. */
-function SettingToggle({
-  label,
-  on,
-  enabled,
-  onToggle,
-  children,
-}: Readonly<{ label: string; on: boolean; enabled: boolean; onToggle: () => void; children: ReactNode }>) {
-  return (
-    <Tooltip label={label}>
-      <ActionIcon
-        variant={on ? 'light' : 'subtle'}
-        color={on ? 'yellow' : 'gray'}
-        aria-label={label}
-        aria-pressed={on}
-        disabled={!enabled}
-        onClick={onToggle}
-      >
-        {children}
-      </ActionIcon>
-    </Tooltip>
-  );
-}
-
-/** One button for a tint's stickers, opening a picker where each sticker switches on and off. */
-function StickerPicker({
-  tint,
-  enabled,
-  onToggle,
-}: Readonly<{ tint: TerritoryTint; enabled: boolean; onToggle: (stamp: TintStamp) => void }>) {
-  const count = tint.stamps?.length ?? 0;
-  const label = `Stickers on ${tint.name}`;
-  return (
-    <Popover position="bottom-end" shadow="md" withArrow>
-      <Popover.Target>
-        <Tooltip label={count ? `${label}: ${count}` : label}>
-          <ActionIcon
-            variant={count ? 'light' : 'subtle'}
-            color={count ? 'yellow' : 'gray'}
-            aria-label={label}
-            disabled={!enabled}
-          >
-            <Sticker size={18} />
-          </ActionIcon>
-        </Tooltip>
-      </Popover.Target>
-      <Popover.Dropdown aria-label={label}>
-        <Text size="xs" c="dimmed" mb={6}>
-          On every territory in {tint.name}
-        </Text>
-        <SimpleGrid cols={2} spacing={4} verticalSpacing={4}>
-          {TINT_STAMPS.map((stamp) => {
-            const on = tintSetting(tint, stamp);
-            return (
-              <Button
-                key={stamp}
-                size="compact-sm"
-                justify="flex-start"
-                variant={on ? 'light' : 'subtle'}
-                color={on ? 'yellow' : 'gray'}
-                aria-pressed={on}
-                leftSection={<StickerIcon stamp={stamp} />}
-                onClick={() => onToggle(stamp)}
-              >
-                {TINT_STICKERS[stamp].label}
-              </Button>
-            );
-          })}
-        </SimpleGrid>
-      </Popover.Dropdown>
-    </Popover>
-  );
-}
-
-/** The tint's colour swatch, which opens a picker: a preset colour or any other, sent once the pick settles. */
-function TintColor({
-  tint,
-  enabled,
-  onColor,
-}: Readonly<{ tint: TerritoryTint; enabled: boolean; onColor: (color: string) => void }>) {
-  const [draft, setDraft] = useState(withFillOpacity(tint.color));
-  const [opened, setOpened] = useState(false);
-  const label = `Colour of ${tint.name}`;
-  return (
-    <Popover position="bottom-start" shadow="md" withArrow opened={opened} onChange={setOpened} disabled={!enabled}>
-      <Popover.Target>
-        <Tooltip label={label} disabled={opened}>
-          <ColorSwatch
-            component="button"
-            type="button"
-            color={tint.color}
-            size={22}
-            aria-label={label}
-            disabled={!enabled}
-            onClick={() => {
-              setDraft(withFillOpacity(tint.color));
-              setOpened((open) => !open);
-            }}
-            style={{ cursor: enabled ? 'pointer' : 'default', flexShrink: 0 }}
-          />
-        </Tooltip>
-      </Popover.Target>
-      <Popover.Dropdown aria-label={label}>
-        <ColorPicker
-          format="hexa"
-          value={draft}
-          swatches={TINT_COLORS.map(withFillOpacity)}
-          swatchesPerRow={TINT_COLORS.length}
-          onChange={setDraft}
-          onChangeEnd={(color) => {
-            const hex = color.toLowerCase();
-            if (hex !== withFillOpacity(tint.color)) {
-              onColor(hex);
-            }
-          }}
-        />
-      </Popover.Dropdown>
-    </Popover>
-  );
 }
 
 /** A tint's removal. The hold latches once it fires; when the table refuses the removal, or it never went out, the trigger remounts (the attempt) so the hold can be tried again. A removal that goes through takes the row with it. */
@@ -240,7 +72,7 @@ function useTintRemoval(client: TableSession, tintId: string) {
   return { attempt, remove };
 }
 
-function TintRow({
+function TableTintRow({
   tint,
   painting,
   canEdit,
@@ -260,27 +92,17 @@ function TintRow({
   client: TableSession;
 }>) {
   const removal = useTintRemoval(client, tint.id);
-  const toggle = (setting: TintSetting) => () => onSet(setting);
   return (
-    <Group
-      justify="space-between"
-      wrap="nowrap"
-      px="sm"
-      py={6}
-      style={{ borderRadius: 8, border: `1px solid ${painting ? tint.color : 'var(--mantine-color-default-border)'}` }}
-    >
-      <Group gap="sm" wrap="nowrap" style={{ opacity: tint.hidden ? 0.5 : 1 }}>
-        <TintColor tint={tint} enabled={canEdit} onColor={onColor} />
-        <div>
-          <Text size="sm" fw={600}>
-            {tint.name}
-          </Text>
-          <Text size="xs" c="dimmed">
-            {tintSummary(tint, painting, names)}
-          </Text>
-        </div>
-      </Group>
-      <Group gap={4} wrap="nowrap">
+    <TintRow
+      tint={tint}
+      summary={tintSummary(tint, painting, names)}
+      painting={painting}
+      enabled={canEdit}
+      onBrush={onBrush}
+      onOutline={() => onSet('outline')}
+      onStamp={onSet}
+      onColor={onColor}
+      before={
         <Tooltip label={tint.hidden ? `Show ${tint.name}` : `Hide ${tint.name}`}>
           <ActionIcon
             variant="subtle"
@@ -288,28 +110,13 @@ function TintRow({
             aria-label={`Show ${tint.name}`}
             aria-pressed={!tint.hidden}
             disabled={!canEdit}
-            onClick={toggle('hidden')}
+            onClick={() => onSet('hidden')}
           >
             {tint.hidden ? <EyeOff size={18} /> : <Eye size={18} />}
           </ActionIcon>
         </Tooltip>
-        <SettingToggle label="Outline only" on={!!tint.outline} enabled={canEdit} onToggle={toggle('outline')}>
-          <Square size={18} />
-        </SettingToggle>
-        <StickerPicker tint={tint} enabled={canEdit} onToggle={(stamp) => toggle(stamp)()} />
-        <Tooltip label={painting ? 'Stop painting (Esc)' : `Paint ${tint.name}`}>
-          <ActionIcon
-            variant={painting ? 'filled' : 'subtle'}
-            color={painting ? 'yellow' : 'gray'}
-            autoContrast
-            aria-label={`Paint ${tint.name}`}
-            aria-pressed={painting}
-            disabled={!canEdit || !!tint.hidden}
-            onClick={onBrush}
-          >
-            <Brush size={18} />
-          </ActionIcon>
-        </Tooltip>
+      }
+      after={
         <ConfirmDeleteAction
           key={removal.attempt}
           label={`Remove ${tint.name}`}
@@ -319,39 +126,8 @@ function TintRow({
           disabled={!canEdit}
           onConfirm={removal.remove}
         />
-      </Group>
-    </Group>
-  );
-}
-
-function NewTints({
-  tints,
-  enabled,
-  onCreate,
-}: Readonly<{ tints: readonly TerritoryTint[]; enabled: boolean; onCreate: (tint: TintDraft) => void }>) {
-  return (
-    <Group gap="xs">
-      <Text size="xs" c="dimmed" mr={4}>
-        New tint
-      </Text>
-      {TINT_COLORS.map((color) => {
-        const label = `New ${TINT_COLOR_NAMES[color].toLowerCase()} tint`;
-        return (
-          <Tooltip key={color} label={label}>
-            <ColorSwatch
-              component="button"
-              type="button"
-              color={color}
-              size={22}
-              aria-label={label}
-              disabled={!enabled}
-              style={{ cursor: enabled ? 'pointer' : 'not-allowed' }}
-              onClick={() => onCreate({ name: freshName(color, tints), color, territories: [] })}
-            />
-          </Tooltip>
-        );
-      })}
-    </Group>
+      }
+    />
   );
 }
 
@@ -485,7 +261,7 @@ export function TerritoryTints({ client, table }: Props) {
     >
       <Stack gap="xs">
         {tints.map((tint) => (
-          <TintRow
+          <TableTintRow
             key={tint.id}
             tint={tint}
             painting={brush?.tintId === tint.id}
@@ -497,7 +273,7 @@ export function TerritoryTints({ client, table }: Props) {
             client={client}
           />
         ))}
-        <NewTints tints={tints} enabled={canCreate} onCreate={(tint) => create(tint, true)} />
+        <NewTints tints={tints} enabled={canCreate} onCreate={(tint) => create({ ...tint, territories: [] }, true)} />
         <Presets presets={presets} enabled={canCreate} onCreate={(tint) => create(tint, false)} />
       </Stack>
     </Section>

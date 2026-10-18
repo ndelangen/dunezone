@@ -14,7 +14,7 @@ import {
   TokenFace,
   TreacheryAsset,
 } from '../assets/schema';
-import { BoardDefinition } from '../boards/schema';
+import { BoardDefinition, HistoricalBoardDefinition } from '../boards/schema';
 import {
   FactionRowSlugSchema,
   HeroKeyedHistoricalFactionObject,
@@ -130,11 +130,17 @@ export const stormCardAssetDataSchema = customCardAssetDataSchema.extend({
   frontPreset: cardFrontSnapshotSchema.optional(),
 });
 
-/** The same envelope for a spice card, whose stored shape is the renderer's props plus its About. */
+/**
+ * The same envelope for a spice card, whose stored shape is the renderer's props plus its About.
+ * A card linked to a board carries that board and its token fronts, resolved at enqueue;
+ * a gone board is null and draws an empty map (#1973).
+ */
 export const spiceCardAssetDataSchema = z.strictObject({
   assetId: z.string().min(1),
   slug: z.string().min(1),
   card: SpiceAsset,
+  board: HistoricalBoardDefinition.nullable().optional(),
+  tokens: CustomCardTokens.optional(),
 });
 
 /**

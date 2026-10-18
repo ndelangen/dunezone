@@ -7,6 +7,8 @@ import type { SpiceChapter, SpiceDraft } from '@app/widgets/card-editor/SpiceCar
 import { SpiceAsset } from '@game/data/objects';
 
 import { assetNameField } from '../../assetEditorStates';
+import { layeredCardTokenPicker } from '../../layeredCardTokenPicker';
+import { SpiceBoardRead, spiceBoardPicker } from '../../spiceCardBoard';
 import { CardCreateFrame, useCardCreate } from './cardCreatePage';
 
 /**
@@ -35,7 +37,7 @@ function reduce(state: SpiceState, event: SpiceEvent): SpiceState {
 /** The spice card create page. Mounted by the generic `$type/create` route when the type is `card-spice`. */
 export function SpiceCreatePage() {
   const saving = useCardCreate('card-spice');
-  const [chapter, setChapter] = useState<SpiceChapter>('head');
+  const [chapter, setChapter] = useState<SpiceChapter>('identity');
   const [state, dispatch] = useReducer(reduce, { data: INITIAL_SPICE_DRAFT, baseline: INITIAL_SPICE_DRAFT });
   const patch = (update: Partial<SpiceDraft>) => dispatch({ kind: 'patch', update });
   const nameField = assetNameField({
@@ -67,18 +69,26 @@ export function SpiceCreatePage() {
         schema: SpiceAsset,
         onLoaded: header.releasing((data) => {
           dispatch({ kind: 'replace', data });
-          setChapter('head');
+          setChapter('identity');
         }),
       }}
       saveError={saving.error}
     >
-      <SpiceCardEditor
-        nameField={nameField}
+      <SpiceBoardRead
         draft={state.data}
-        patch={patch}
-        chapter={chapter}
-        onChapterChange={setChapter}
-        onSettle={header.settle}
+        render={(boardRead) => (
+          <SpiceCardEditor
+            nameField={nameField}
+            draft={state.data}
+            patch={patch}
+            chapter={chapter}
+            onChapterChange={setChapter}
+            onSettle={header.settle}
+            boardRead={boardRead}
+            boardPicker={spiceBoardPicker}
+            tokenPicker={layeredCardTokenPicker}
+          />
+        )}
       />
     </CardCreateFrame>
   );

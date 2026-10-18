@@ -5,6 +5,7 @@ import {
   publishedHref,
   resolvePublicationCapture,
 } from '../../src/shared/asset-publishing/publicationTargets';
+import { parseBoardData } from '../../src/shared/assets/validation';
 import { CanonicalFactionStoredSchema, TroopArtwork } from '../../src/shared/factions/schema';
 import type { RulebookEditionContentsV1 } from '../../src/shared/rulebooks/contents';
 import type {
@@ -15,9 +16,33 @@ import { collectRulebookReferenceIds } from '../../src/shared/rulebooks/referenc
 import type { RulebookResolvedSource } from '../../src/shared/rulebooks/sources';
 import type { MutationCtx, QueryCtx } from '../types';
 import { assetDisplayName } from './assetInput';
+import { boardPublicationGeometry } from './boardPublicationGeometry';
 import { resolveRulebookTroopSource, rulebookTroopReferences } from './rulebookTroopSources';
 
 type ReadCtx = Pick<QueryCtx, 'db'> | Pick<MutationCtx, 'db'>;
+
+/**
+ * A saved board publishes only its image and stores the territories of the save it captured beside it.
+ * A publication from before that keeps none;
+ * its territories are read from the board's own data only while no capture of a newer save is queued, running or failed, since only then does the image show that data.
+ */
+async function savedBoardGeometry(ctx: ReadCtx, assetId: string, data: unknown, stored: unknown) {
+  if (stored) {
+    return stored;
+  }
+  const newerCapture = await ctx.db
+    .query('publication_jobs')
+    .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', 'board').eq('asset_id', assetId))
+    .first();
+  if (newerCapture) {
+    return null;
+  }
+  try {
+    return boardPublicationGeometry(parseBoardData(data).board) ?? null;
+  } catch {
+    return null;
+  }
+}
 
 /** Resolves only the live sources this Contents references, for both the reader and publication. */
 export async function resolveRulebookReferences(
@@ -40,8 +65,12 @@ export async function resolveRulebookReferences(
               .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', asset.type).eq('asset_id', assetId))
               .unique()
           : null;
-        const geometry = componentGeometrySchema.safeParse(publication?.component_geometry);
         const capture = isPublicationAssetType(asset.type) ? resolvePublicationCapture(asset.type) : null;
+        const geometry = componentGeometrySchema.safeParse(
+          asset.type === 'board' && publication
+            ? await savedBoardGeometry(ctx, assetId, asset.data, publication.component_geometry)
+            : publication?.component_geometry
+        );
         return [
           assetId,
           {
