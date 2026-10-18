@@ -8,6 +8,7 @@ import { api } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { applicationTest } from './application.test.fixture';
 import { applicationTriggers } from './lib/applicationTriggers';
+import { CATALOGUE_BOUNDED_READ } from './lib/catalogueOrder';
 
 const at = (second: number) => new Date(Date.UTC(2026, 6, 2, 0, 0, second)).toISOString();
 
@@ -136,4 +137,25 @@ describe('the global FAQ', () => {
     expect((await t.query(api.faq.search, { q: 'spice', page: 2 })).items).toHaveLength(1);
     expect((await t.query(api.faq.search, { q: 'spice', page: 3 })).items).toHaveLength(0);
   });
+
+  test("finds every picked ruleset's matches however many another ruleset holds", async () => {
+    const t = applicationTest();
+    /* More questions than one search reads, which takes a while to seed. */
+    const busy = Array.from({ length: CATALOGUE_BOUNDED_READ + 4 }, (_, index) => `Storm question ${index}?`);
+    await seedRulesets(t, { Basic: ['Does the storm move?'], Expansion: ['Is the storm deadly?'], Busy: busy });
+
+    const everywhere = await t.query(api.faq.search, { q: 'storm' });
+    expect(everywhere.complete).toBe(false);
+    const picked = await t.query(api.faq.search, { q: 'storm', rulesets: ['basic', 'expansion'] });
+    expect(found(picked)).toEqual(['basic: Does the storm move?', 'expansion: Is the storm deadly?']);
+    expect(picked).toMatchObject({ total: 2, complete: true });
+    const withBusy = await t.query(api.faq.search, { q: 'storm', rulesets: ['basic', 'busy'] });
+    expect(
+      withBusy.items
+        .map((item) => item.ruleset.slug)
+        .slice(0, 2)
+        .toSorted()
+    ).toEqual(['basic', 'busy']);
+    expect(withBusy.complete).toBe(false);
+  }, 60_000);
 });

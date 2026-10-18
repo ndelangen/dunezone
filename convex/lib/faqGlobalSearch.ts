@@ -89,19 +89,17 @@ function rulesetReader(ctx: QueryCtx, known: Doc<'rulesets'>[]) {
 
 type RulesetReader = ReturnType<typeof rulesetReader>;
 
-/** Whether an entry's question sits in a live ruleset, and in one of the picked ones when any are. */
-async function inSearchedRuleset(entry: Doc<'catalogue_entries'>, pickedIds: Set<string>, rulesetOf: RulesetReader) {
+/** Whether an entry's question sits in a live ruleset. */
+async function inLiveRuleset(entry: Doc<'catalogue_entries'>, rulesetOf: RulesetReader) {
   const id = faqEntryRulesetId(entry.facets);
-  const allowed = id !== undefined && (pickedIds.size === 0 || pickedIds.has(id));
-  const ruleset = allowed ? await rulesetOf(id) : null;
+  const ruleset = id === undefined ? null : await rulesetOf(id);
   return ruleset !== null && !ruleset.is_deleted;
 }
 
-/** The matches whose questions sit in a searched ruleset, in their order. */
-function keepSearchedRulesets(picked: Doc<'rulesets'>[], rulesetOf: RulesetReader) {
-  const pickedIds = new Set<string>(picked.map((ruleset) => ruleset._id));
+/** The matches whose questions sit in a live ruleset, in their order. */
+function keepLiveRulesets(rulesetOf: RulesetReader) {
   return async (matches: Doc<'catalogue_entries'>[]) => {
-    const kept = await Promise.all(matches.map((entry) => inSearchedRuleset(entry, pickedIds, rulesetOf)));
+    const kept = await Promise.all(matches.map((entry) => inLiveRuleset(entry, rulesetOf)));
     return matches.filter((_, index) => kept[index]);
   };
 }
@@ -121,9 +119,9 @@ function pageNumber(page: number | undefined) {
 
 /**
  * One page of questions matching a search across rulesets, best match first, the same for every viewer.
- * One picked ruleset searches its own list;
- * several, or none, search the list of every question and keep those in a picked, or any live, ruleset.
- * That list is read up to the catalogue's bound before it is narrowed, so `complete` says when the total is a floor.
+ * Picked rulesets are searched in their own lists, sharing the catalogue's bound;
+ * none searches the list of every question up to the bound and keeps those in a live ruleset.
+ * `complete` says when a bound was reached, so the total is a floor.
  */
 export async function loadGlobalFaqPage(ctx: QueryCtx, args: { q?: string; rulesets?: string[]; page?: number }) {
   const picked = await loadPickedRulesets(ctx, args.rulesets ?? []);
@@ -140,20 +138,21 @@ export async function loadGlobalFaqPage(ctx: QueryCtx, args: { q?: string; rules
   }
 
   const rulesetOf = rulesetReader(ctx, picked);
-  const own = picked.length === 1 ? picked[0]! : null;
   /*
    * Relevance decides the order while searching; the sort is only the catalogue's required order and never applies here.
-   * A ruleset of its own is searched in its own list, so its matches are never crowded out by other rulesets'.
+   * Picked rulesets are searched in their own lists, so one ruleset's matches are never crowded out by another's;
+   * with none picked, the list of every question is searched and kept to live rulesets.
    */
   const selection = await selectCataloguePage(ctx, {
     kind: 'faq',
-    partition: own ? faqRulesetPartition(own._id) : ALL_PARTITION,
+    partition: ALL_PARTITION,
+    partitions: picked.length > 0 ? picked.map((ruleset) => faqRulesetPartition(ruleset._id)) : undefined,
     sort: 'created',
     direction: 'desc',
     page,
     pageSize: FAQ_CATALOGUE_PAGE_SIZE,
     search: { text, relevance: true },
-    keep: own ? undefined : keepSearchedRulesets(picked, rulesetOf),
+    keep: picked.length > 0 ? undefined : keepLiveRulesets(rulesetOf),
   });
   const items = await projectFaqListItems(ctx, await faqItemsOfEntries(ctx, selection.entries));
   return {
