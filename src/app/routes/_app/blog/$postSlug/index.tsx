@@ -3,24 +3,30 @@ import { createFileRoute, Link, notFound } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { ArrowLeft } from 'lucide-react';
+import { createElement, Suspense } from 'react';
 
 import { publicPageHead } from '@app/routes/publicPage';
 
 import { AuthorByline } from '../AuthorByline';
-import { BLOG_POST_BODIES } from '../postBodies';
+import { blogPostBody } from '../postBodies';
 import styles from './index.module.css';
 
 export const Route = createFileRoute('/_app/blog/$postSlug/')({
   ssr: true,
   /*
    * The loader and head ship with the route tree to every page, so the registry and the media map it resolves the cover through load only here, on demand.
+   * The post's body is its own chunk; the loader fetches only this post's, so its figures never reach another page.
    */
   loader: async ({ params }) => {
-    const { blogPostImage, findBlogPost, blogPostAuthor } = await import('../posts');
+    const [{ blogPostImage, findBlogPost, blogPostAuthor }, { preloadBlogPostBody }] = await Promise.all([
+      import('../posts'),
+      import('../postBodies'),
+    ]);
     const post = findBlogPost(params.postSlug);
     if (!post) {
       throw notFound();
     }
+    await preloadBlogPostBody(post.slug);
     return { meta: post, image: blogPostImage(post), author: blogPostAuthor(post) };
   },
   head: ({ loaderData, match }) =>
@@ -51,7 +57,6 @@ export const Route = createFileRoute('/_app/blog/$postSlug/')({
 
 function BlogPostPage() {
   const { meta, author } = Route.useLoaderData();
-  const Body = BLOG_POST_BODIES[meta.slug];
 
   return (
     <PageLayout>
@@ -69,7 +74,7 @@ function BlogPostPage() {
               All posts
             </Text>
           </Anchor>
-          <Body />
+          <Suspense>{createElement(blogPostBody(meta.slug))}</Suspense>
         </article>
       </PageLayout.Content>
     </PageLayout>

@@ -4,7 +4,7 @@ import { resolveAsset } from '@shared/media/resolveAsset';
 
 /*
  * What the post list, the page head and the sitemap know about each post, without its body.
- * Bodies live in `postBodies.ts`, which only the post page's component imports, so no other page downloads them.
+ * Bodies live in `postBodies.ts`, one chunk per post, which only the post page loads, so no other page downloads them.
  */
 
 export type BlogPostMeta = {
