@@ -28,7 +28,7 @@ jobs:
   # start first.
   hosted_play:
     name: hosted_play (${{ matrix.shard }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # Above the launcher's own budgets, so a slow flow ends with its name and its evidence, not a
     # cancelled job. The protocol shard's budgets add up to 27 minutes: 180 s for the protocol
     # verifier, then 480 s for each of private-spice-reserves, decks and results.
@@ -187,7 +187,7 @@ jobs:
   # above hosted_play on a job's place in this file.
   storybook:
     name: storybook (${{ matrix.shard }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     if: ${{ !inputs.hosted_only && !inputs.draft }}
     strategy:
@@ -274,7 +274,7 @@ jobs:
   # dependency audit jobs joined it for the same reason (#1590): each spent about 40 s on checkout,
   # install and caches for less work than that, and none of them was on the run's critical path.
   lint:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     if: ${{ !inputs.hosted_only }}
     steps:
@@ -378,7 +378,7 @@ jobs:
         run: bun run dependencies:audit
 
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     if: ${{ !inputs.hosted_only }}
     steps:
@@ -415,7 +415,7 @@ jobs:
           fail_ci_if_error: false
 
   generate_and_build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     if: ${{ !inputs.hosted_only && !inputs.draft }}
     env:
@@ -489,7 +489,7 @@ jobs:
         run: bun run test:local-convex-isolation
 
   publisher_release:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     if: ${{ !inputs.hosted_only && !inputs.draft }}
     permissions:
@@ -570,7 +570,7 @@ jobs:
           files: coverage/lcov.info
 
   game_release:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     if: ${{ !inputs.hosted_only }}
     permissions:
@@ -649,7 +649,7 @@ jobs:
   # deploy-main.yml runs the Storybook check again before it deploys the artifact. Each check runs
   # unless the job was cancelled, so one failure does not hide the others' results.
   browser_checks:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     if: ${{ !inputs.hosted_only && !inputs.draft }}
     steps:
@@ -689,7 +689,7 @@ jobs:
         run: bun run verify:storybook-publication
 
   e2e_docker:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
     if: ${{ !inputs.hosted_only && !inputs.draft }}
     strategy:
