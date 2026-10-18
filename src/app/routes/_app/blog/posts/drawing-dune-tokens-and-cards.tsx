@@ -1,9 +1,7 @@
-import { Anchor } from '@mantine/core';
 import { resolveAsset } from '@shared/media/resolveAsset';
-import { Link } from '@tanstack/react-router';
 import { Section } from '@ui/block/Section';
 
-import { Figure, Lead, Paragraph } from '../postContent';
+import { Figure, Lead, Paragraph, PostLink } from '../postContent';
 import { BeforeAfter } from './assets/BeforeAfter';
 import { CardBackLayers, CardFrontLayers, LeaderTokenLayers } from './assets/figures';
 import { NoiseComparison } from './assets/NoiseComparison';
@@ -14,11 +12,9 @@ export default function Post() {
       <Lead>
         Every leader token and card on dune.zone is drawn in your browser, one layer at a time. A few of those layers
         are images I cut out in GIMP in 2021, when I was still making assets for{' '}
-        <Anchor
-          renderRoot={(props) => <Link {...props} to="/blog/$postSlug" params={{ postSlug: 'tabletop-simulator' }} />}
-        >
+        <PostLink to="/blog/$postSlug" params={{ postSlug: 'tabletop-simulator' }}>
           Tabletop Simulator
-        </Anchor>
+        </PostLink>
         . The SVG code around them has changed many times since then.
       </Lead>
       <GimpSection />
@@ -37,11 +33,9 @@ function GimpSection() {
     <Section title="Layers cut in GIMP">
       <Paragraph>
         As{' '}
-        <Anchor
-          renderRoot={(props) => <Link {...props} to="/rulesets/$postSlug" params={{ postSlug: 'dreamrules' }} />}
-        >
+        <PostLink to="/rulesets/$rulesetSlug" params={{ rulesetSlug: 'dreamrules' }}>
           Dreamrules
-        </Anchor>{' '}
+        </PostLink>{' '}
         evolved, the artwork had to keep up. A leader's strength would go up or an icon would change, and I couldn't
         keep editing the images by hand every time. So in 2021, I used GIMP to separate out the parts I needed: card
         frames, the gold disc and ornaments on the card backs, the parchment behind the pictures, and the faction
@@ -184,11 +178,9 @@ function InconsistencySection() {
       </Paragraph>
       <Paragraph>
         Those layers and adjustments come together in the{' '}
-        <Anchor
-          renderRoot={(props) => <Link {...props} to="/factions/$factionId" params={{ factionId: 'house-atreides' }} />}
-        >
+        <PostLink to="/factions/$factionId" params={{ factionId: 'house-atreides' }}>
           House Atreides
-        </Anchor>{' '}
+        </PostLink>{' '}
         leaders shown below.
       </Paragraph>
       <Figure
