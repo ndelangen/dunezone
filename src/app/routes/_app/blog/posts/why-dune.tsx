@@ -1,9 +1,8 @@
 import { Anchor } from '@mantine/core';
-import { Link } from '@tanstack/react-router';
 import { Section } from '@ui/block/Section';
 import { Surface } from '@ui/surface';
 
-import { Figure, FigureRow, Lead, Paragraph, YouTube } from '../postContent';
+import { Figure, FigureRow, Lead, Paragraph, PostLink, YouTube } from '../postContent';
 import { BLOG_POST_META } from '../posts';
 
 const meta = BLOG_POST_META['why-dune'];
@@ -194,11 +193,9 @@ function ImprovingSection() {
       <Paragraph>
         But I also love sharing and experimenting. GF9 started releasing FAQ documents that explained, and sometimes
         quietly changed, their rules. Meanwhile the group I played with started writing a rule set of our own:{' '}
-        <Anchor
-          renderRoot={(props) => <Link {...props} to="/rulesets/$rulesetSlug" params={{ rulesetSlug: 'dreamrules' }} />}
-        >
+        <PostLink to="/rulesets/$rulesetSlug" params={{ rulesetSlug: 'dreamrules' }}>
           Dreamrules
-        </Anchor>
+        </PostLink>
         .
       </Paragraph>
       <Paragraph>
@@ -217,12 +214,9 @@ function ImprovingSection() {
             Tabletop Simulator
           </Anchor>{' '}
           mod, in which all those assets could be used together seamlessly, which I talk about in the{' '}
-          <Anchor
-            renderRoot={(props) => <Link {...props} to="/blog/$postSlug" params={{ postSlug: 'tabletop-simulator' }} />}
-            inherit
-          >
+          <PostLink to="/blog/$postSlug" params={{ postSlug: 'tabletop-simulator' }} inherit>
             next post
-          </Anchor>
+          </PostLink>
           .
         </Paragraph>
       </Surface>
@@ -233,18 +227,13 @@ function ImprovingSection() {
         caption={
           <>
             The{' '}
-            <Anchor
-              renderRoot={(props) => (
-                <Link
-                  {...props}
-                  to="/rulesets/$rulesetSlug/rulebooks/$rulebookSlug"
-                  params={{ rulesetSlug: 'dreamrules', rulebookSlug: 'dream-rulebook' }}
-                />
-              )}
+            <PostLink
+              to="/rulesets/$rulesetSlug/rulebooks/$rulebookSlug"
+              params={{ rulesetSlug: 'dreamrules', rulebookSlug: 'dream-rulebook' }}
               inherit
             >
               Dream Rulebook
-            </Anchor>{' '}
+            </PostLink>{' '}
             on dune.zone today.
           </>
         }
