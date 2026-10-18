@@ -13,17 +13,13 @@ function playedAt(height: number): number {
 
 /**
  * Reports how far a figure has played, from 0 to 1, each frame the page scrolls.
- * A reader who asked for less motion gets a single report of 1, so the figure shows its end state and holds still.
+ * It plays for readers who asked for less motion too: it moves only while the reader scrolls and stops when they stop, so the reader drives it, and it never plays on its own.
  */
 export function useScrollDriven(element: RefObject<HTMLElement | null>, onPlayed: (played: number) => void) {
   const report = useEffectEvent(onPlayed);
 
   /* The scroll position is read from the page, so this subscribes to it. */
   useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      report(1);
-      return;
-    }
     const scrolled = () => {
       const { top, height } = element.current!.getBoundingClientRect();
       report(playedAt(1 - (top + height / 2) / window.innerHeight));
