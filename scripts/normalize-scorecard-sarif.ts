@@ -21,19 +21,16 @@ const reportSchema = z.looseObject({
 /** Keeps repository-wide Scorecard findings without inventing a source file or line for them. */
 export function normalizeScorecardSarif(input: unknown) {
   const report = reportSchema.parse(input);
-  for (const run of report.runs) {
-    for (const result of run.results ?? []) {
-      for (const location of result.locations ?? []) {
-        const physical = location.physicalLocation;
-        if (physical?.artifactLocation.uri !== 'no file associated with this alert') {
-          continue;
-        }
-        physical.artifactLocation.uri = './';
-        /* The upstream line-one placeholder is not a source coordinate. */
-        delete physical.region;
-        delete physical.contextRegion;
-      }
+  const locations = report.runs.flatMap((run) => run.results ?? []).flatMap((result) => result.locations ?? []);
+  for (const location of locations) {
+    const physical = location.physicalLocation;
+    if (physical?.artifactLocation.uri !== 'no file associated with this alert') {
+      continue;
     }
+    physical.artifactLocation.uri = './';
+    /* The upstream line-one placeholder is not a source coordinate. */
+    delete physical.region;
+    delete physical.contextRegion;
   }
   return report;
 }
