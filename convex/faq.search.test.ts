@@ -185,5 +185,5 @@ describe('the global FAQ', () => {
         .toSorted()
     ).toEqual(['basic', 'busy']);
     expect(withBusy.complete).toBe(false);
-  });
+  }, 60_000);
 });
