@@ -171,6 +171,8 @@ describe('scheduled production deployment shape', () => {
       '/assets/*',
       '/glossary',
       '/glossary/*',
+      '/faq',
+      '/faq/*',
       '/future-plans',
       '/future-plans/*',
       '/privacy',

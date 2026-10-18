@@ -71,9 +71,11 @@ async function loadPickedRulesets(ctx: QueryCtx, slugs: string[]) {
   return rulesets.filter((ruleset): ruleset is Doc<'rulesets'> => ruleset !== null && !ruleset.is_deleted);
 }
 
-/** Reads each ruleset once however many entries name it, so a filter over a thousand matches reads only the rulesets among them. */
-function rulesetReader(ctx: QueryCtx) {
-  const cache = new Map<string, Promise<Doc<'rulesets'> | null>>();
+/** Reads each ruleset once however many entries name it, starting from the ones already read, so a filter over a thousand matches reads only the rulesets among them. */
+function rulesetReader(ctx: QueryCtx, known: Doc<'rulesets'>[]) {
+  const cache = new Map<string, Promise<Doc<'rulesets'> | null>>(
+    known.map((ruleset) => [ruleset._id, Promise.resolve(ruleset)])
+  );
   return (id: string) => {
     let pending = cache.get(id);
     if (!pending) {
@@ -137,7 +139,7 @@ export async function loadGlobalFaqPage(ctx: QueryCtx, args: { q?: string; rules
     return { ...base, items: [], total: 0, complete: true, pageCount: 1 };
   }
 
-  const rulesetOf = rulesetReader(ctx);
+  const rulesetOf = rulesetReader(ctx, picked);
   const own = picked.length === 1 ? picked[0]! : null;
   /*
    * Relevance decides the order while searching; the sort is only the catalogue's required order and never applies here.
