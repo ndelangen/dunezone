@@ -16,7 +16,7 @@ import { toLiveQueryResult, useLiveMutation, useLiveQuery } from '@app/db/core/l
 import { useAssetAccess, useViewerAssignableGroups, UNAVAILABLE_SUBJECT } from '@app/db/viewerAccess';
 
 import { api } from '../../../convex/_generated/api';
-import type { Doc } from '../../../convex/_generated/dataModel';
+import type { Doc, Id } from '../../../convex/_generated/dataModel';
 import type { AssignedGroupSummary } from '../../../convex/lib/collaborativeAccess';
 import type { ProfileSummary } from '../../../convex/lib/collaborativeAccessValidators';
 
@@ -48,7 +48,12 @@ export type RulesetPageData = {
 type RulesetSlottedAsset = { slot: string; asset: { id: string; type: string; slug: string; name: string } };
 
 /** What `api.rulesets.detailPage` gives the detail routes, the same for every viewer: the page data plus everything the toolbar and FAQ draw. */
-export type RulesetDetailPublicPage = RulesetPageData & {
+export type RulesetDetailPublicPage = {
+  ruleset: RulesetEntry;
+  /** The first few factions in the ruleset's own order; the rest are in the catalogue under this ruleset's filter. */
+  factionPreview: FactionCatalogueEntry[];
+  /** Every live faction the ruleset has. */
+  factionCount: number;
   assignedGroup: AssignedGroupSummary | null;
   owner: ProfileSummary | null;
   /** The newest few questions; the rest are on the ruleset's FAQ page. */
@@ -85,7 +90,8 @@ function normalizeRulesetDetailPage(
 ): RulesetDetailPublicPage {
   return {
     ruleset: toRulesetEntry(raw.ruleset),
-    factions: factionCatalogueRowsToEntries(raw.factions),
+    factionPreview: factionCatalogueRowsToEntries(raw.factionPreview),
+    factionCount: raw.factionCount,
     assignedGroup: raw.assignedGroup,
     owner: raw.owner,
     faqPreview: mapFaqItemsFromConvex(raw.faqPreview),
@@ -180,6 +186,30 @@ export function useRulesetDetailPage(slug: string, options?: { initialData?: Rul
     ? { ...page, viewerResolved: resolved, viewerAccess, assignableGroups }
     : page;
   return { ...result, data };
+}
+
+/** A ruleset's first `limit` factions in its own order, live, and whether more remain; a larger limit loads more. */
+export function useOrderedRulesetFactions(rulesetId: Id<'rulesets'>, limit: number) {
+  /* Not held: each Load more is a longer prefix, and holding the shorter ones would keep them all subscribed. */
+  return useLiveQuery(api.rulesets.orderedFactions, { rulesetId, limit }, { hold: false });
+}
+
+/** Puts a ruleset's factions in the order given; the ones it leaves out follow, in their current order. */
+export function useReorderRulesetFactions() {
+  const mutation = useLiveMutation<{ ruleset_id: Id<'rulesets'>; faction_ids: Id<'factions'>[] }, null>(
+    api.rulesets.reorderFactions
+  );
+  return {
+    ...mutation,
+    mutate: (
+      variables: { rulesetId: Id<'rulesets'>; factionIds: Id<'factions'>[] },
+      options?: { onError?: () => void }
+    ) =>
+      mutation.mutate(
+        { ruleset_id: variables.rulesetId, faction_ids: variables.factionIds },
+        { onError: () => options?.onError?.() }
+      ),
+  };
 }
 
 /** Creates a ruleset. `onSuccess` receives the new entry with the `route_notice` the redirect reads. */
