@@ -159,8 +159,12 @@
   font-variant-numeric: tabular-nums;
 }
 
+:global(html[data-motion="reduce"]) .plane {
+  transition: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .plane {
+  :global(html:not([data-motion="ok"])) .plane {
     transition: none;
   }
 }

@@ -1,6 +1,8 @@
 import { useEffect, useEffectEvent } from 'react';
 import type { RefObject } from 'react';
 
+import { useMotionAllowed } from '@app/styles/motion';
+
 /*
  * How far a scroll-driven figure has played when its centre is `height` of the way up the screen, 0 at the bottom edge and 1 at the top.
  * It starts as the centre passes 30% of the way up, finishes at 65%, and stays finished after that.
@@ -13,13 +15,18 @@ function playedAt(height: number): number {
 
 /**
  * Reports how far a figure has played, from 0 to 1, each frame the page scrolls.
- * It plays for readers who asked for less motion too: it moves only while the reader scrolls and stops when they stop, so the reader drives it, and it never plays on its own.
+ * A reader who keeps the site's motion off, through their device or the motion setting on their profile, gets a single report of 1, so the figure shows its end state and holds still.
  */
 export function useScrollDriven(element: RefObject<HTMLElement | null>, onPlayed: (played: number) => void) {
   const report = useEffectEvent(onPlayed);
+  const motionAllowed = useMotionAllowed();
 
   /* The scroll position is read from the page, so this subscribes to it. */
   useEffect(() => {
+    if (!motionAllowed) {
+      report(1);
+      return;
+    }
     const scrolled = () => {
       const { top, height } = element.current!.getBoundingClientRect();
       report(playedAt(1 - (top + height / 2) / window.innerHeight));
@@ -35,5 +42,5 @@ export function useScrollDriven(element: RefObject<HTMLElement | null>, onPlayed
       cancelAnimationFrame(frame);
       window.removeEventListener('scroll', onScroll);
     };
-  }, [element]);
+  }, [element, motionAllowed]);
 }
