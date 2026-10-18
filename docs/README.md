@@ -155,7 +155,7 @@ snapshot` workflow uploaded from `main`, using the GitHub CLI (`gh auth login` f
 artifact of that name from any other workflow, event, branch or fork, and one from a run that did
 not succeed. The download goes to the launch's private temporary directory, and the launch deletes
 it as soon as the import finishes or fails. Nothing is cached between launches. The workflow runs weekly and
-keeps each upload for eight days, so the newest is usually under a week old (a failed Monday run leaves none until it is dispatched by hand), and it uploads only while its `SNAPSHOT_UPLOAD` switch is `"true"`. With no
+keeps each upload for eight days, so the newest is usually under a week old (after a failed Monday run the previous upload lasts about one more day, then none is left until the next Monday's run or a manual dispatch), and it uploads only while its `SNAPSHOT_UPLOAD` switch is `"true"`. With no
 artifact, or when GitHub cannot be reached, the launch stops before Docker starts and points at
 `--data=fixture`.
 

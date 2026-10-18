@@ -68,10 +68,12 @@ jobs:
 
       # Dev runs the migrations the merge added, as the deploy did on production, instead of exporting production again.
       # A failure or timeout here also falls back to the rebuild, which clears dev's migration state with its data.
+      # The step timeout sits above the guard's ten-minute wait and leaves the job time for that rebuild (about six minutes).
       - name: Run the new migrations on dev's data
         id: migrate
         if: steps.decision.outputs.migrate == 'true' && steps.push.outcome == 'success'
         continue-on-error: true
+        timeout-minutes: 12
         run: bun run provision dev --stage migrate
         env:
           CONVEX_DEV_DEPLOY_KEY: ${{ secrets.CONVEX_DEV_DEPLOY_KEY }}
