@@ -9,16 +9,18 @@ import { useSearchDraft } from '@app/routes/searchDraft';
 const factionCatalogueRoute = getRouteApi('/_app/factions/');
 
 /**
- * The page query's arguments for a parsed address, shared by the loader's deps and the live hook so both ask the identical question.
- * Every key is spelled out, `undefined` included, so the loader deps compare equal however the address was written.
+ * The page query's arguments for an address, shared by the loader's deps and the live hook so both ask the identical question.
+ * Parsed again here, since the router keeps a parameter the parser dropped, such as an old link's page beside a search;
+ * every key is spelled out, `undefined` included, so the loader deps compare equal however the address was written.
  */
 export function factionCatalogueArgs(search: FactionCatalogueSearch): FactionCatalogueArgs {
+  const parsed = parseFactionCatalogueSearch(search);
   return {
-    q: search.q,
-    ruleset: search.ruleset,
-    complexity: search.complexity,
-    sort: search.sort,
-    page: search.page,
+    q: parsed.q,
+    ruleset: parsed.ruleset,
+    complexity: parsed.complexity,
+    sort: parsed.sort,
+    page: parsed.page,
   };
 }
 

@@ -35,9 +35,13 @@ function sortOptions(searching: boolean) {
       ];
 }
 
-/** The page query's arguments for a parsed address; every key is spelled out so the loader deps compare equal however the address was written. */
+/**
+ * The page query's arguments for an address, parsed again since the router keeps a parameter the parser dropped, such as an old link's page beside a search;
+ * every key is spelled out so the loader deps compare equal however the address was written.
+ */
 function directoryDeps(search: ProfileCatalogueSearch) {
-  return { q: search.q, sort: search.sort, page: search.page };
+  const parsed = parseProfileCatalogueSearch(search);
+  return { q: parsed.q, sort: parsed.sort, page: parsed.page };
 }
 
 /** How many rows a search shows at first, and how many more each "Load more" asks for. */
@@ -173,18 +177,34 @@ function ProfilesPage() {
         </PageLayout.Toolbar>
       ) : null}
       <PageLayout.Content>
-        {data.directoryTotal === 0 ? (
-          <Text size="sm" c="dimmed">
-            No profiles yet.
-          </Text>
-        ) : 'mode' in data ? (
-          <SearchedDirectory data={data} loading={loading} loaded={loaded} onLoadMore={loadMore} ref={list} />
-        ) : (
-          <BrowsedDirectory data={data} loading={loading} />
-        )}
+        <DirectoryContent data={data} loading={loading} loaded={loaded} onLoadMore={loadMore} ref={list} />
       </PageLayout.Content>
     </PageLayout>
   );
+}
+
+type DirectoryContentProps = {
+  data: ProfileDirectoryPageData;
+  loading: boolean;
+  /** Whether the longer list asked for has arrived. */
+  loaded: boolean;
+  onLoadMore: () => void;
+  ref: Ref<HTMLDivElement>;
+};
+
+/** The page's body: an empty directory, a search, or a browsed page. */
+function DirectoryContent({ data, loading, loaded, onLoadMore, ref }: DirectoryContentProps) {
+  if (data.directoryTotal === 0) {
+    return (
+      <Text size="sm" c="dimmed">
+        No profiles yet.
+      </Text>
+    );
+  }
+  if ('mode' in data) {
+    return <SearchedDirectory data={data} loading={loading} loaded={loaded} onLoadMore={onLoadMore} ref={ref} />;
+  }
+  return <BrowsedDirectory data={data} loading={loading} />;
 }
 
 /** No match among the profiles checked; a capped search did not check them all, so another word may still find one. */

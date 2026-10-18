@@ -87,7 +87,7 @@ export const DirectorySearched = meta.story({
     await expect(page.queryByLabelText('Profile pages')).toBeNull();
     await expect(page.queryByText(/of \d+ profiles/)).toBeNull();
     await expect(page.getByRole('textbox', { name: 'Search profiles' })).toHaveValue('fremen');
-    const sort = page.getByRole('textbox', { name: 'Sort' });
+    const sort = page.getByRole('combobox', { name: 'Sort' });
     await expect(sort).toHaveValue('Best match');
     await expect(sort).toBeDisabled();
 

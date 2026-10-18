@@ -84,15 +84,16 @@ export type FactionCatalogueArgs = FunctionArgs<typeof api.factions.catalogue>;
 /** A ruleset the catalogue can narrow to, with how many live factions it holds. */
 export type FactionCatalogueRuleset = FactionCatalogueRaw['rulesets'][number];
 
-/** A catalogue answer with its cards parsed at the client boundary. */
-type ParsedCatalogue<Raw extends { cards: FactionCatalogueRow[]; spotlights: FactionCatalogueRaw['spotlights'] }> =
-  Omit<Raw, 'cards' | 'spotlights'> & {
-    cards: FactionCatalogueEntry[];
-    spotlights: {
-      newArrival: FactionCatalogueEntry | null;
-      freshlyUpdated: FactionCatalogueEntry | null;
-    };
-  };
+/** A catalogue answer with its cards parsed at the client boundary; distributive, so each shape keeps its own fields. */
+type ParsedCatalogue<Raw> = Raw extends unknown
+  ? Omit<Raw, 'cards' | 'spotlights'> & {
+      cards: FactionCatalogueEntry[];
+      spotlights: {
+        newArrival: FactionCatalogueEntry | null;
+        freshlyUpdated: FactionCatalogueEntry | null;
+      };
+    }
+  : never;
 
 /** A browsed page of the catalogue: counts, numbered pages, a chosen order. */
 export type FactionCatalogueBrowseData = ParsedCatalogue<Exclude<FactionCatalogueRaw, { mode: 'search' }>>;
@@ -144,15 +145,14 @@ export function factionCatalogueRowsToEntries(rows: FactionCatalogueRow[]): Fact
 }
 
 function toFactionCataloguePageData(raw: FactionCatalogueRaw): FactionCataloguePageData {
-  const parsed = {
+  return {
+    ...raw,
     cards: factionCatalogueRowsToEntries(raw.cards),
     spotlights: {
       newArrival: raw.spotlights.newArrival ? toFactionCatalogueEntry(raw.spotlights.newArrival) : null,
       freshlyUpdated: raw.spotlights.freshlyUpdated ? toFactionCatalogueEntry(raw.spotlights.freshlyUpdated) : null,
     },
   };
-  /* Spread apart, so each shape keeps its own fields rather than collapsing to what the two share. */
-  return 'mode' in raw ? { ...raw, ...parsed } : { ...raw, ...parsed };
 }
 
 /** Parse Convex faction rows into typed entries (shared by loaders and group detail). */

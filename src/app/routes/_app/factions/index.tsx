@@ -142,36 +142,65 @@ function FactionsPage() {
         ) : undefined}
       </PageLayout.Toolbar>
       <PageLayout.Content>
-        {hasFactions ? (
-          'mode' in data ? (
-            <SearchedCatalogue
-              data={data}
-              loading={loading}
-              loaded={loaded}
-              onLoadMore={loadMore}
-              selectedRulesetSlug={session.search.ruleset}
-              onReset={session.reset}
-              ref={list}
-            />
-          ) : (
-            <BrowsedCatalogue
-              data={data}
-              loading={loading}
-              selectedRulesetSlug={session.search.ruleset}
-              onReset={session.reset}
-            />
-          )
-        ) : (
-          <Surface padding="xl">
-            <Title order={2}>There are no factions</Title>
-            <Text c="dimmed" mt="xs">
-              Create the first faction to begin the collection.
-            </Text>
-          </Surface>
-        )}
+        <CatalogueContent
+          data={data}
+          loading={loading}
+          loaded={loaded}
+          onLoadMore={loadMore}
+          selectedRulesetSlug={session.search.ruleset}
+          onReset={session.reset}
+          ref={list}
+        />
       </PageLayout.Content>
     </PageLayout>
   );
+}
+
+type CatalogueContentProps = {
+  data: FactionCataloguePageData;
+  loading: boolean;
+  /** Whether the longer list asked for has arrived. */
+  loaded: boolean;
+  onLoadMore: () => void;
+  selectedRulesetSlug: string | undefined;
+  onReset: () => void;
+  ref: Ref<HTMLDivElement>;
+};
+
+/** The page's body: an empty collection, a search, or a browsed page. */
+function CatalogueContent({
+  data,
+  loading,
+  loaded,
+  onLoadMore,
+  selectedRulesetSlug,
+  onReset,
+  ref,
+}: CatalogueContentProps) {
+  if (data.catalogueTotal === 0) {
+    return (
+      <Surface padding="xl">
+        <Title order={2}>There are no factions</Title>
+        <Text c="dimmed" mt="xs">
+          Create the first faction to begin the collection.
+        </Text>
+      </Surface>
+    );
+  }
+  if ('mode' in data) {
+    return (
+      <SearchedCatalogue
+        data={data}
+        loading={loading}
+        loaded={loaded}
+        onLoadMore={onLoadMore}
+        selectedRulesetSlug={selectedRulesetSlug}
+        onReset={onReset}
+        ref={ref}
+      />
+    );
+  }
+  return <BrowsedCatalogue data={data} loading={loading} selectedRulesetSlug={selectedRulesetSlug} onReset={onReset} />;
 }
 
 /** One page of the browsed catalogue, with its pager. */

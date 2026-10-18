@@ -17,6 +17,27 @@ export type GrowingSearchOptions<Args, Data> = {
 /** How many rows were shown when "Load more" was pressed: the first new row is the one after them. */
 export type GrownFrom = { from: number };
 
+/** The limit a search is shown at, grown by "Load more" and starting again at one step whenever the search changes. */
+function useGrowingLimit(key: string, step: number) {
+  const [grown, setGrown] = useState({ key, limit: step, from: -1 });
+  /* Reset during render, so a search that comes back after another starts at its first matches like any other. */
+  if (grown.key !== key) {
+    setGrown({ key, limit: step, from: -1 });
+  }
+  const limit = grown.key === key ? grown.limit : step;
+  const grow = (from: number) => setGrown({ key, limit: limit + step, from });
+  return { grown, limit, grow };
+}
+
+/** The answer on screen: the live one, else the last one shown for this search, else the loader's. */
+function useShownAnswer<Data>(key: string, live: Data | undefined, initial: Data) {
+  const [shown, setShown] = useState({ key, data: initial });
+  if (live !== undefined && live !== shown.data) {
+    setShown({ key, data: live });
+  }
+  return live ?? (shown.key === key ? shown.data : initial);
+}
+
 /**
  * The rows a search shows, grown by "Load more" and kept on screen while a longer list loads;
  * a new search starts at its first matches.
@@ -25,22 +46,12 @@ export type GrownFrom = { from: number };
  */
 export function useGrowingSearch<Args, Data>({ args, step, initial, useLive, rows }: GrowingSearchOptions<Args, Data>) {
   const key = JSON.stringify(args);
-  const [grown, setGrown] = useState({ key, limit: step, from: -1 });
-  /* Reset during render, so a search that comes back after another starts at its first matches like any other. */
-  if (grown.key !== key) {
-    setGrown({ key, limit: step, from: -1 });
-  }
-  const limit = grown.key === key ? grown.limit : step;
+  const { grown, limit, grow } = useGrowingLimit(key, step);
   const live = useLive(args, limit);
-  const [shown, setShown] = useState({ key, data: initial });
-  if (live !== undefined && live !== shown.data) {
-    setShown({ key, data: live });
-  }
-  const data = live ?? (shown.key === key ? shown.data : initial);
+  const data = useShownAnswer(key, live, initial);
   const loading = live === undefined && limit > step;
   const loaded = grown.key === key && grown.from >= 0 && rows(data) > grown.from;
-  const loadMore = () => setGrown({ key, limit: limit + step, from: rows(data) });
-  return { data, loading, loaded, grown, loadMore };
+  return { data, loading, loaded, grown, loadMore: () => grow(rows(data)) };
 }
 
 /**

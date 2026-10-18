@@ -1,5 +1,6 @@
 import preview from '@sb/preview';
 import { waitForFrame } from '@sb/storyWaits';
+import { FACTION_CATALOGUE_PAGE_SIZE } from '@shared/factions/catalogueSearch';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { db, faction, refText, SEED_REF_TOKEN } from '@db/storybook';
@@ -64,27 +65,31 @@ export const CatalogueSearched = meta.story({
   args: { path: '/factions?q=sietch&page=2&sort=created' },
   parameters: {
     database: db((baseline) => {
-      for (let index = 1; index <= 60; index += 1) {
+      /* One past the first step: the smallest search that has more to load. */
+      for (let index = 1; index <= FACTION_CATALOGUE_PAGE_SIZE + 1; index += 1) {
         baseline.factions.push(faction({ name: `Sietch ${String(index).padStart(2, '0')}` }));
       }
     }),
   },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    const main = within(await page.findByRole('main', {}, { timeout: 30_000 }));
-    const loadMore = await main.findByRole('button', { name: 'Load more' }, { timeout: 30_000 });
-    await expect(factionCards(main, /Sietch/)).toHaveLength(48);
+    /* Found on the body, not within a `main` found earlier: the pending frame has a `main` of its own, which the loaded page replaces. */
+    const loadMore = await page.findByRole('button', { name: 'Load more' }, { timeout: 60_000 });
+    const main = within(page.getByRole('main'));
+    await expect(factionCards(main, /Sietch/)).toHaveLength(FACTION_CATALOGUE_PAGE_SIZE);
     await expect(main.queryByRole('link', { name: /House Atreides/ })).toBeNull();
     await expect(page.queryByLabelText('Faction catalogue pages')).toBeNull();
     await expect(page.queryByText(/of \d+ factions/)).toBeNull();
     await expect(page.getByRole('textbox', { name: 'Search factions' })).toHaveValue('sietch');
-    const sort = page.getByRole('textbox', { name: 'Sort factions' });
+    const sort = page.getByRole('combobox', { name: 'Sort factions' });
     await expect(sort).toHaveValue('Best match');
     await expect(sort).toBeDisabled();
 
     await userEvent.click(loadMore);
-    await waitFor(() => expect(factionCards(main, /Sietch/)).toHaveLength(60), { timeout: 30_000 });
-    await expect(factionCards(main, /Sietch/)[48]).toHaveFocus();
+    await waitFor(() => expect(factionCards(main, /Sietch/)).toHaveLength(FACTION_CATALOGUE_PAGE_SIZE + 1), {
+      timeout: 60_000,
+    });
+    await expect(factionCards(main, /Sietch/)[FACTION_CATALOGUE_PAGE_SIZE]).toHaveFocus();
     await expect(main.getByRole('status')).toHaveTextContent('More factions loaded');
     await expect(main.queryByRole('button', { name: 'Load more' })).toBeNull();
   },

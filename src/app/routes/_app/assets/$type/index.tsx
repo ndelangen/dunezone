@@ -49,9 +49,13 @@ function sortOptions(searching: boolean) {
       ];
 }
 
-/** The page query's arguments for a parsed address; every key is spelled out so the loader deps compare equal however the address was written. */
+/**
+ * The page query's arguments for an address, parsed again since the router keeps a parameter the parser dropped, such as an old link's page beside a search;
+ * every key is spelled out so the loader deps compare equal however the address was written.
+ */
 function browseDeps(search: AssetCatalogueSearch) {
-  return { q: search.q, sort: search.sort, page: search.page };
+  const parsed = parseAssetCatalogueSearch(search);
+  return { q: parsed.q, sort: parsed.sort, page: parsed.page };
 }
 
 /** How many tiles a search shows at first, and how many more each "Load more" asks for. */
@@ -235,36 +239,62 @@ function AssetTypePage() {
       ) : null}
       <PageLayout.Content>
         <Surface padding="xl">
-          {definition.status === 'planned' ? (
-            <Stack gap="xs" align="center">
-              <Title order={2}>Planned</Title>
-              <Text c="dimmed" ta="center">
-                {definition.label} are on the roadmap. This type cannot hold assets yet.
-              </Text>
-            </Stack>
-          ) : data.typeTotal === 0 ? (
-            <Stack gap="xs" align="center">
-              <Title order={2}>Nothing here yet</Title>
-              <Text c="dimmed" ta="center">
-                No {plural} have been created so far.
-              </Text>
-            </Stack>
-          ) : 'mode' in data ? (
-            <SearchedTiles
-              data={data}
-              plural={plural}
-              loading={loading}
-              loaded={loaded}
-              onLoadMore={loadMore}
-              ref={grid}
-            />
-          ) : (
-            <BrowsedTiles data={data} type={validType} label={definition.label} plural={plural} loading={loading} />
-          )}
+          <TypeContent
+            definition={definition}
+            type={validType}
+            plural={plural}
+            data={data}
+            loading={loading}
+            loaded={loaded}
+            onLoadMore={loadMore}
+            ref={grid}
+          />
         </Surface>
       </PageLayout.Content>
     </PageLayout>
   );
+}
+
+type TypeContentProps = {
+  definition: AssetTypeDefinition;
+  type: string;
+  plural: string;
+  data: AssetBrowsePageData;
+  loading: boolean;
+  /** Whether the longer grid asked for has arrived. */
+  loaded: boolean;
+  onLoadMore: () => void;
+  ref: Ref<HTMLDivElement>;
+};
+
+/** The page's body: a type still planned, an empty type, a search, or a browsed page. */
+function TypeContent({ definition, type, plural, data, loading, loaded, onLoadMore, ref }: TypeContentProps) {
+  if (definition.status === 'planned') {
+    return (
+      <Stack gap="xs" align="center">
+        <Title order={2}>Planned</Title>
+        <Text c="dimmed" ta="center">
+          {definition.label} are on the roadmap. This type cannot hold assets yet.
+        </Text>
+      </Stack>
+    );
+  }
+  if (data.typeTotal === 0) {
+    return (
+      <Stack gap="xs" align="center">
+        <Title order={2}>Nothing here yet</Title>
+        <Text c="dimmed" ta="center">
+          No {plural} have been created so far.
+        </Text>
+      </Stack>
+    );
+  }
+  if ('mode' in data) {
+    return (
+      <SearchedTiles data={data} plural={plural} loading={loading} loaded={loaded} onLoadMore={onLoadMore} ref={ref} />
+    );
+  }
+  return <BrowsedTiles data={data} type={type} label={definition.label} plural={plural} loading={loading} />;
 }
 
 /** No match among the assets checked; a capped search did not check them all, so another word may still find one. */

@@ -74,7 +74,7 @@ export const TreacheryCardsSearched = meta.story({
     await expect(page.queryByLabelText('Treachery cards pages')).toBeNull();
     await expect(page.queryByText(/of \d+ treachery cards/)).toBeNull();
     await expect(page.getByRole('textbox', { name: 'Search treachery cards' })).toHaveValue('lasgun');
-    const sort = page.getByRole('textbox', { name: 'Sort' });
+    const sort = page.getByRole('combobox', { name: 'Sort' });
     await expect(sort).toHaveValue('Best match');
     await expect(sort).toBeDisabled();
 
