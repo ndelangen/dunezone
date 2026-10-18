@@ -331,3 +331,13 @@ export const disconnect = mutation({
     return null;
   },
 });
+
+/** Ends every session of the account, this one included, so a lost or shared device stops being signed in. */
+export const signOutEverywhere = mutation({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx) => {
+    await revokeAccountSessions(ctx, await requireAuthUserId(ctx));
+    return null;
+  },
+});
