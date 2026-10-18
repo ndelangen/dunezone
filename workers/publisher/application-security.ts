@@ -5,8 +5,11 @@ export function applicationContentSecurityPolicy(
   documentUrl = 'https://dune.zone'
 ): string {
   const backend = new URL(convexUrl);
-  if (!['https:', 'http:'].includes(backend.protocol) || backend.username || backend.password) {
+  if (!['https:', 'http:'].includes(backend.protocol)) {
     throw new Error('CSP requires an HTTP Convex origin');
+  }
+  if (backend.username || backend.password) {
+    throw new Error('CSP Convex origins cannot contain credentials');
   }
   const socket = new URL(backend.origin);
   socket.protocol = backend.protocol === 'https:' ? 'wss:' : 'ws:';
