@@ -1,0 +1,350 @@
+/*
+ * Three bands: the editor's ingredients in three clusters by kind, the machine that keeps the record, and the assets drawn from it, with curves behind joining them.
+ * The figure takes the wide figure column, like a row of figures does, and everything wraps, so a phone gets the same diagram in more rows.
+ */
+.root {
+  --base-art: 2.5rem;
+  --output-height: 7.5rem;
+  /* One round of pulses, as long as the figure's own tour lingers on an ingredient (`TOUR_MS`). */
+  --pulse-duration: 2600ms;
+
+  container: faction-recipe / inline-size;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xl);
+  align-self: center;
+  width: min(56rem, calc(100vw - 2 * var(--app-shell-inline-gutter, 20px)));
+  padding-block: var(--space-md);
+}
+
+/* On a phone the article column is the whole width, so the figure keeps to it rather than to the viewport. */
+@container blog-article (width < 36rem) {
+  .root {
+    --base-art: 2.25rem;
+    --output-height: 5.5rem;
+
+    width: 100%;
+    gap: var(--space-lg);
+  }
+}
+
+.lines {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.line {
+  fill: none;
+  stroke: var(--color-text);
+  stroke-width: 1;
+  opacity: 0.14;
+  transition:
+    opacity 250ms ease,
+    stroke 250ms ease,
+    stroke-width 250ms ease;
+}
+
+.line.lit {
+  stroke: var(--color-brand);
+  stroke-width: 1.5;
+  opacity: 0.6;
+}
+
+/*
+ * A short bright dash runs along each lit line: first from the editor into the record, then out of the record to the assets.
+ * `pathLength="1"` makes the dash and its travel fractions of the line, whatever its drawn length.
+ */
+.pulse {
+  fill: none;
+  stroke: var(--color-brand);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-dasharray: 0.06 1;
+  stroke-dashoffset: 0.06;
+  opacity: 0;
+  filter: drop-shadow(0 0 4px var(--color-brand));
+  animation: var(--pulse-duration) linear infinite;
+}
+
+.pulseIn {
+  animation-name: pulse-in;
+}
+
+.pulseOut {
+  animation-name: pulse-out;
+}
+
+@keyframes pulse-in {
+  0% {
+    stroke-dashoffset: 0.06;
+    opacity: 1;
+  }
+
+  45% {
+    stroke-dashoffset: -1;
+    opacity: 1;
+  }
+
+  46%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes pulse-out {
+  0%,
+  45% {
+    stroke-dashoffset: 0.06;
+    opacity: 0;
+  }
+
+  46% {
+    opacity: 1;
+  }
+
+  90% {
+    stroke-dashoffset: -1;
+    opacity: 1;
+  }
+
+  91%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse {
+    display: none;
+  }
+}
+
+.band {
+  margin: 0;
+  color: var(--mantine-color-dimmed);
+  font-size: var(--mantine-font-size-xs);
+  letter-spacing: 0.12em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+/*
+ * The four kinds sit side by side as clusters, each over its own bus; the big vectors and a lowered colouring cluster keep the row from reading as a flat line.
+ * On a phone they take two rows of two, and the top row's trunks run down the gap between the bottom pair.
+ */
+.groups {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto auto;
+  justify-content: space-between;
+  align-items: stretch;
+  gap: var(--space-xl) var(--space-md);
+  width: 100%;
+}
+
+/* Clusters in a row share a baseline, so their buses line up across the figure. */
+.group .bus {
+  margin-block-start: auto;
+}
+
+@container blog-article (width < 36rem) {
+  /* The doubled vectors would crowd a phone, so they come back down to their neighbours' size. */
+  .group:nth-child(3) .tile {
+    --art-height: calc(var(--base-art) * var(--zoom) * 0.55);
+  }
+}
+
+/* The four clusters stand side by side only once the figure itself is wide enough to hold them, whatever the article column measures. */
+@container faction-recipe (width >= 54rem) {
+  .groups {
+    grid-template-columns: auto auto auto auto;
+    gap: var(--space-md);
+  }
+
+  .group .inputs {
+    flex-wrap: nowrap;
+  }
+
+  .group:nth-child(2) {
+    align-self: start;
+    margin-block-start: 3.5rem;
+  }
+}
+
+/* A cluster is named like a callout on a drawing: a small spaced label over its ingredients, with no box around it. */
+.group {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-xs);
+}
+
+.groupTitle {
+  margin: 0;
+  color: #e4f0ff;
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  text-align: center;
+  text-transform: uppercase;
+  text-shadow: 0 0 3px rgb(0 0 0 / 90%);
+}
+
+/* The bus the cluster's lines drop onto: a hairline bracket with ticks at both ends, drawn under the ingredients. */
+.bus {
+  display: block;
+  height: 6px;
+  margin-inline: var(--space-md);
+  border: 1px solid rgb(228 240 255 / 45%);
+  border-block-end: 0;
+}
+
+.inputs,
+.outputs {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-end;
+  gap: var(--space-sm) var(--space-xs);
+}
+
+.outputs {
+  gap: var(--space-md);
+}
+
+.tile {
+  --zoom: 1;
+  --art-height: calc(var(--base-art) * var(--zoom));
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: 4px;
+  color: var(--color-text);
+  /* Without a box behind it, the text sits on the page artwork, which is light in places. */
+  text-shadow:
+    0 0 3px rgb(0 0 0 / 90%),
+    0 1px 6px rgb(0 0 0 / 80%);
+  transition: opacity 250ms ease;
+}
+
+.focused .tile {
+  opacity: 0.35;
+}
+
+.focused .tile.lit {
+  opacity: 1;
+}
+
+.focused .tile.lit .label {
+  color: var(--color-brand);
+}
+
+.label {
+  max-width: 4rem;
+  font-size: var(--mantine-font-size-xs);
+  line-height: 1.25;
+  text-align: center;
+}
+
+.outputs .label {
+  max-width: none;
+  white-space: nowrap;
+}
+
+.inputArt {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--art-height);
+  min-width: var(--art-height);
+}
+
+.outputArt {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  height: calc(var(--output-height) * 1.15);
+}
+
+.name {
+  max-width: 4.5rem;
+  font-family: var(--mantine-font-family-headings);
+  font-size: var(--mantine-font-size-md);
+  line-height: 1.1;
+  text-align: center;
+}
+
+.glyph {
+  display: block;
+  width: calc(var(--art-height) * 0.8);
+  height: calc(var(--art-height) * 0.8);
+  background: currentColor;
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: contain;
+}
+
+.texture {
+  display: block;
+  width: var(--art-height);
+  height: var(--art-height);
+  border-radius: var(--mantine-radius-sm);
+  object-fit: cover;
+}
+
+.swatches {
+  display: flex;
+  gap: 4px;
+}
+
+.swatch {
+  display: block;
+  width: calc(var(--art-height) * 0.5);
+  height: var(--art-height);
+  border: 1px solid rgb(255 255 255 / 20%);
+  border-radius: var(--mantine-radius-sm);
+}
+
+.portraits {
+  display: flex;
+}
+
+.portraits .portrait + .portrait {
+  margin-inline-start: calc(var(--art-height) * -0.65);
+}
+
+.portrait {
+  display: block;
+  width: var(--art-height);
+  height: var(--art-height);
+  border: 2px solid var(--mantine-color-body);
+  border-radius: 50%;
+  background: rgb(255 255 255 / 8%);
+  object-fit: cover;
+}
+
+.text {
+  display: -webkit-box;
+  max-width: 4.25rem;
+  overflow: hidden;
+  font-size: var(--mantine-font-size-xs);
+  line-height: 1.3;
+  text-align: start;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+/* The machine that keeps the record, between the ingredients and the assets. */
+.hub {
+  width: min(40rem, 100%);
+  margin-block: var(--space-xl) var(--space-md);
+}

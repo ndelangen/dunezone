@@ -10091,6 +10091,12 @@
     "subjects": ["patterns"],
     "sourceHash": "98aca64baa2f0745820515169fdbf5acf844b27b50e07bd53264f07a2ab68060"
   },
+  "/web/blog/anatomy-of-a-dune-faction-atreides/atreides-table-spread.jpg": {
+    "description": "House Atreides laid out on a table as dune.zone draws it: the shield, both faction sheet pages, five traitor cards, the alliance card, leader tokens, the faction token and troops.",
+    "tags": ["Atreides", "faction shield", "faction sheet", "traitor cards", "blog"],
+    "subjects": ["symbols", "culture"],
+    "sourceHash": "13f00b3582d81614dc5682b39a0961cbc4b49c3c8455ddb091e54f0f5dd86a24"
+  },
   "/web/blog/drawing-dune-tokens-and-cards/atreides-leaders.jpg": {
     "description": "The House Atreides leader tokens on dune.zone in a row: Lady Jessica, Thufir Hawat, a larger Paul Atreides, Gurney Halleck, Duncan Idaho and Doctor Yueh.",
     "tags": ["leader tokens", "House Atreides", "blog"],

@@ -1,0 +1,127 @@
+/*
+ * One compact tray holding the faction's whole set, with the custom assets in a marked bay at its end.
+ * The tray and its labels share the main figure's drafting hand, so the two figures read as one set without repeating its diagram.
+ */
+.root {
+  --output-height: 4.25rem;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+  align-self: center;
+  width: min(56rem, calc(100vw - 2 * var(--app-shell-inline-gutter, 20px)));
+  padding-block: var(--space-md);
+}
+
+.title,
+.extrasTitle {
+  margin: 0;
+  color: #e4f0ff;
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  text-shadow: 0 0 3px rgb(0 0 0 / 90%);
+}
+
+.tray {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: stretch;
+  gap: var(--space-md);
+  box-sizing: border-box;
+  width: 100%;
+  padding: var(--space-md);
+  border: 1px solid rgb(228 240 255 / 45%);
+  border-radius: 6px;
+  background: rgb(10 22 40 / 45%);
+}
+
+.own {
+  display: flex;
+  flex: 1 1 0;
+  min-width: min(100%, 26rem);
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-end;
+  gap: var(--space-sm) var(--space-md);
+}
+
+/* The paper pieces take the first row and the shield and tokens the second, on any width. */
+.rowBreak {
+  flex-basis: 100%;
+}
+
+/* The bay for the custom assets: a dashed frame in the brand colour, sliding in from the side once the figure is seen. */
+.extras {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border: 1px dashed var(--color-brand);
+  border-radius: 4px;
+  transition:
+    opacity 700ms ease,
+    transform 700ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.waiting .extras {
+  opacity: 0;
+  transform: translateX(2rem);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .extras {
+    transition: none;
+  }
+}
+
+.extrasTitle {
+  color: var(--color-brand);
+}
+
+.extrasArt {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-sm);
+}
+
+.fan,
+.stack {
+  display: flex;
+}
+
+.fan > * + * {
+  margin-inline-start: calc(var(--output-height) * -0.35);
+}
+
+.stack > * + * {
+  margin-inline-start: calc(var(--output-height) * -0.2);
+}
+
+.caption {
+  margin: 0;
+  max-width: 34rem;
+  color: var(--mantine-color-dimmed);
+  font-size: var(--mantine-font-size-xs);
+  text-align: center;
+}
+
+/* On a phone the article column is the whole width, so the tray keeps to it rather than to the viewport. */
+@container blog-article (width < 36rem) {
+  .root {
+    --output-height: 3.75rem;
+
+    width: 100%;
+  }
+
+  /* Edge to edge, the tray keeps only its top and bottom rules. */
+  .tray {
+    border-inline: 0;
+    border-radius: 0;
+  }
+}

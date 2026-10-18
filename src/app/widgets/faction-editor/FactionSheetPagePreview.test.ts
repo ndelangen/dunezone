@@ -2,10 +2,10 @@ import { FactionRender } from '@shared/factions/schema';
 import { describe, expect, it } from 'vite-plus/test';
 
 import type { Faction } from '@db/factions';
+import { factionDraftForRenderer } from '@app/print/sheet/FactionSheetPagePreview';
 
 import { representativeFaction } from './FactionAuthoringStoryFixtures';
 import { defaultPhaseDeclaration } from './factionFormDefaults';
-import { factionDraftForRenderer } from './FactionSheetPagePreview';
 
 describe('factionDraftForRenderer', () => {
   it.each(['', '家族', 'Ééé'])('keeps sheet and shield review renderable while the name is %j', (name) => {

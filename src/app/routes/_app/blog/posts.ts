@@ -28,8 +28,22 @@ export type BlogPostMeta = {
  * Publishing a post is adding its slug to `BLOG_POST_SLUGS`, its metadata here, and its body to `postBodies.ts`;
  * the types refuse a slug that is missing from either, and `postBodies.test.tsx` refuses a body that does not end on a picture.
  * A body file under `posts/` is named for its slug, never `index.tsx` or `*.route.tsx`, which the router would read as a page.
+ * A folder beside it, like `posts/anatomy/`, holds that post's own figures and follows the same naming rule.
  */
 export const BLOG_POST_META: Record<BlogPostSlug, BlogPostMeta> = {
+  'anatomy-of-a-dune-faction-atreides': {
+    slug: 'anatomy-of-a-dune-faction-atreides',
+    title: 'Anatomy of a Dune faction: how House Atreides becomes every card, token and sheet',
+    date: '2026-10-28',
+    author: 'Central419',
+    summary:
+      'House Atreides, taken apart: the logo, colours, leaders and rules it is made of, and how dune.zone draws every card, token and sheet from that one faction.',
+    cover: {
+      key: '/web/blog/anatomy-of-a-dune-faction-atreides/atreides-table-spread.jpg',
+      alt: 'House Atreides laid out on a table: its shield, both faction sheet pages, five traitor cards, the alliance card, leader tokens, faction token and troops',
+      aspect: 1189 / 1331,
+    },
+  },
   'drawing-dune-tokens-and-cards': {
     slug: 'drawing-dune-tokens-and-cards',
     title: 'Recreating Dune board game art, layer by layer',
