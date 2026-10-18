@@ -303,6 +303,8 @@ jobs:
         run: bun run check:e2e-shards
       - name: Check the src/app top-level layout
         run: bun run check:app-layout
+      - name: Check the React Compiler rollout
+        run: bun run check:react-compiler
       - name: Check developer-facing prose
         run: bun run check:prose
       # The gates below ran as jobs of their own and reported whatever the lint steps found, so they keep running after an earlier step fails.

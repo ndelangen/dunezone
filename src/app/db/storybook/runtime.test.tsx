@@ -132,8 +132,9 @@ test('query batches return failures as values, clear changed arguments, and reco
   const listeners = new Set<() => void>();
   let revision = 0;
   const error = new Error('Query timed out');
+  let unavailable = true;
   const query = vi.fn((_reference: unknown, args: { scope: string }) =>
-    args.scope === 'failed' ? Promise.reject(error) : Promise.resolve(args.scope)
+    unavailable && args.scope === 'failed' ? Promise.reject(error) : Promise.resolve(args.scope)
   );
   const client = {
     getRevision: () => revision,
@@ -157,15 +158,17 @@ test('query batches return failures as values, clear changed arguments, and reco
   );
   expect(hook.result.current).toEqual({ ready: undefined, changing: undefined });
   await waitFor(() => expect(hook.result.current).toEqual({ ready: 'ready', changing: error }));
-  hook.rerender({ scope: 'recovered' });
-  expect(hook.result.current).toEqual({ ready: 'ready', changing: undefined });
-  await waitFor(() => expect(hook.result.current.changing).toBe('recovered'));
   act(() => {
+    unavailable = false;
     revision += 1;
     for (const listener of listeners) {
       listener();
     }
   });
-  expect(hook.result.current.changing).toBe('recovered');
+  expect(hook.result.current).toEqual({ ready: 'ready', changing: undefined });
+  await waitFor(() => expect(hook.result.current.changing).toBe('failed'));
+  hook.rerender({ scope: 'recovered' });
+  expect(hook.result.current).toEqual({ ready: 'ready', changing: undefined });
+  await waitFor(() => expect(hook.result.current.changing).toBe('recovered'));
   await waitFor(() => expect(query).toHaveBeenCalledTimes(6));
 });
