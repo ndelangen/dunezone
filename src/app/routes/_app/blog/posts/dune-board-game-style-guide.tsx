@@ -114,7 +114,7 @@ function EmblemsSection() {
       <Paragraph>
         The pictures on the treachery cards follow the same idea. Each one is a black silhouette on the gold panel of
         the card: a weapon, a tool or a figure caught mid-action, with highlights cut out of the black. A few cards,
-        such as Family Atomics and Weirding Way, add a second colour, a pale tan.
+        such as Weirding Way and Chemistry, add a second colour, a pale tan.
       </Paragraph>
       <WideFigure caption="One decal four ways, as the card renderer draws it, and every printed silhouette in ink on parchment.">
         <DecalSheet />

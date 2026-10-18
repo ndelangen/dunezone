@@ -33,7 +33,7 @@ export const BLOG_POST_META: Record<BlogPostSlug, BlogPostMeta> = {
   'dune-board-game-style-guide': {
     slug: 'dune-board-game-style-guide',
     title: 'The Dune board game style guide: every font, colour and texture in the GF9 edition',
-    date: '2026-10-25',
+    date: '2026-10-20',
     author: 'Central419',
     summary:
       'The fonts Gale Force Nine used in Dune and where each one appears, the colours of every faction and card, the textures and frames under them, and how the leader portraits changed from the base game to Ecaz & Moritani.',

@@ -48,8 +48,8 @@ const TREATMENTS: readonly { name: string; spec: string; decal: DecalData }[] = 
   },
   {
     name: 'Multicolour',
-    spec: 'A second fill of tan #DED4A3 drawn into the file itself, never outlined',
-    decal: decal('atomics-multicolor'),
+    spec: 'A second colour, tan #DED4A3, drawn into the file as part of the picture, so the renderer adds no outline',
+    decal: decal('weirding-way-multicolor', { scale: 1.1 }),
   },
 ];
 
@@ -65,7 +65,15 @@ function Treatment({ decal: data }: { decal: DecalData }) {
         className={styles.panel}
       />
       <svg className={styles.slot} viewBox={`${TILE.x} ${TILE.y} ${TILE.size} ${TILE.size}`} aria-hidden>
-        <FrontDecals prefix={`${prefix}_`} decals={[data]} />
+        {/* A card-sized viewport, so the muted decal's mask region (a share of the viewport) covers the whole slot. */}
+        <defs>
+          <clipPath id={`${prefix}_window`}>
+            <rect {...WINDOW} />
+          </clipPath>
+        </defs>
+        <svg width={card.width} height={card.height} overflow="visible" clipPath={`url(#${prefix}_window)`}>
+          <FrontDecals prefix={`${prefix}_`} decals={[data]} />
+        </svg>
       </svg>
     </div>
   );
