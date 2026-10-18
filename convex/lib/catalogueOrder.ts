@@ -367,7 +367,8 @@ function interleave(lists: Entry[][]) {
 
 /**
  * The first `limit` matches of a text search, best first, and whether there are more: no count and no pages, so it reads only as much of the search index as the limit needs.
- * Each list reads at most its share of `CATALOGUE_BOUNDED_READ`; a match past that is never returned.
+ * Each list reads at most its share of `CATALOGUE_BOUNDED_READ`;
+ * a match past that is never returned.
  */
 export async function selectCatalogueSearch(
   ctx: QueryCtx,
