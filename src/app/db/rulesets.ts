@@ -5,7 +5,7 @@ import { rulesetCoverThumbUrl } from '@shared/rulesets/cover';
 import { rulesetInputSchema } from '@shared/rulesets/validation';
 import type { RulesetInput } from '@shared/rulesets/validation';
 import { useAction, useQuery } from 'convex/react';
-import type { FunctionReturnType } from 'convex/server';
+import type { FunctionArgs, FunctionReturnType } from 'convex/server';
 import { ConvexError } from 'convex/values';
 
 import { db } from '@db/core';
@@ -130,10 +130,27 @@ export function rulesetRowsToEntries(entries: RulesetRow[]): RulesetEntry[] {
   return entries.map(toRulesetEntry);
 }
 
-/** The index route's loader, paired with `useRulesetsAll`. */
-export async function loadRulesetsAll(): Promise<RulesetEntry[]> {
-  const entries = await db.query(api.rulesets.list, {});
-  return rulesetRowsToEntries(entries);
+/** What `api.rulesets.catalogue` gives the index page, the same for every viewer: a browsed page or a search, told apart by `mode`. */
+export type RulesetCataloguePageData = FunctionReturnType<typeof api.rulesets.catalogue>;
+export type RulesetCatalogueEntry = RulesetCataloguePageData['entries'][number];
+/** What one `/rulesets` page asks for: the route's search parameters and how many of a search's best matches to show, as `rulesets.catalogue` takes them. */
+export type RulesetCatalogueArgs = FunctionArgs<typeof api.rulesets.catalogue>;
+
+/** The index route's loader, paired with `useRulesetCataloguePage`; a searched page is not held, for the same reason. */
+export async function loadRulesetCataloguePage(args: RulesetCatalogueArgs): Promise<RulesetCataloguePageData> {
+  return await db.query(api.rulesets.catalogue, args, { hold: !args.q });
+}
+
+/**
+ * One live catalogue page, taking `loadRulesetCataloguePage`'s result for the same arguments as `initialData`.
+ * A searched page is not held warm after it is left: every committed search is its own subscription, and holding each would keep re-running them on every ruleset write.
+ */
+export function useRulesetCataloguePage(
+  args: RulesetCatalogueArgs,
+  options?: { initialData?: RulesetCataloguePageData }
+) {
+  const liveData = useLiveQuery(api.rulesets.catalogue, args, { hold: !args.q });
+  return toLiveQueryResult(liveData, () => options?.initialData);
 }
 
 /** The loader behind pages that need the ruleset and its factions only, paired with `useRulesetBySlug`. */
@@ -150,13 +167,6 @@ export async function loadRulesetBySlug(slug: string): Promise<RulesetPageData> 
 export async function loadRulesetDetailPage(slug: string): Promise<RulesetDetailPublicPage | null> {
   const raw = await db.query(api.rulesets.detailPage, { slug });
   return raw ? normalizeRulesetDetailPage(raw) : null;
-}
-
-/** Every ruleset, live. Hand `loadRulesetsAll`'s result as `initialData` so the first paint is not empty. */
-export function useRulesetsAll(options?: { initialData?: RulesetEntry[] }) {
-  const liveData = useLiveQuery(api.rulesets.list, {});
-  const normalized = liveData?.map(toRulesetEntry);
-  return toLiveQueryResult(normalized, () => options?.initialData);
 }
 
 /** One ruleset with its factions, live, taking `loadRulesetBySlug`'s result as `initialData`. */

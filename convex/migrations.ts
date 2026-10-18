@@ -27,8 +27,7 @@ import { accountStateOf } from './lib/accountLifecycle';
 import { hasAuthoredBack, TOKEN_ASSET_TYPES, tokenBackOf } from './lib/assetBacks';
 import { scheduleSessionExpiry } from './lib/authSessionLifecycle';
 import { syncBoardReadiness } from './lib/boardReadiness';
-import { catalogueSourceDrift, isCatalogueKindName, repairCatalogueEntry } from './lib/catalogueEntries';
-import type { CatalogueKindName } from './lib/catalogueEntries';
+import { assertCatalogueSourceExact, isCatalogueKindName, repairCatalogueEntry } from './lib/catalogueEntries';
 import { syncFactionCard } from './lib/factionCards';
 import {
   allocateNextFaqItemSlug,
@@ -78,6 +77,8 @@ const MIGRATION_IDS: Record<string, MigrationRef> = {
   catalogue_entries_profiles_verify_v1: internal.migrations.catalogue_entries_profiles_verify_v1,
   catalogue_entries_faq_v1: internal.migrations.catalogue_entries_faq_v1,
   catalogue_entries_faq_verify_v1: internal.migrations.catalogue_entries_faq_verify_v1,
+  catalogue_entries_rulesets_v1: internal.catalogueMigrations.catalogue_entries_rulesets_v1,
+  catalogue_entries_rulesets_verify_v1: internal.catalogueMigrations.catalogue_entries_rulesets_verify_v1,
   ruleset_factions_position_v1: internal.migrations.ruleset_factions_position_v1,
   catalogue_entries_prune_v1: internal.migrations.catalogue_entries_prune_v1,
   catalogue_entries_verify_v1: internal.migrations.catalogue_entries_verify_v1,
@@ -1357,14 +1358,6 @@ export const catalogue_entries_verify_v1 = migrations.define({
     await assertCatalogueSourceExact(ctx, entry.kind, entry.source_id);
   },
 });
-
-/** Throws unless one source's catalogue entries, and their aggregate order, are exactly what its canonical rows say. */
-async function assertCatalogueSourceExact(ctx: MutationCtx, kind: CatalogueKindName, sourceId: string) {
-  const drift = await catalogueSourceDrift(ctx, kind, sourceId);
-  if (drift.length > 0) {
-    throw new Error(`Catalogue entries for ${kind} ${sourceId} are ${drift.join(' and ')}.`);
-  }
-}
 
 /** Proves the other direction: every live faction is in each of its lists exactly once, exactly, so an empty or partial catalogue cannot pass. */
 export const catalogue_entries_verify_v2 = migrations.define({
