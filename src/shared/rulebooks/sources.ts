@@ -54,6 +54,8 @@ export const rulebookResolvedAssetsByIdSchema = z.record(
     assetId: z.string(),
     type: z.string(),
     imageUrl: z.string().nullable(),
+    /** A saved board's own data, read only for boards a scene draws markup on: tints are worked out from it when a scene is projected. */
+    board: z.unknown().optional(),
   })
 );
 export type RulebookResolvedAssetsById = Readonly<z.infer<typeof rulebookResolvedAssetsByIdSchema>>;

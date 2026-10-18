@@ -2,23 +2,13 @@ import { compareCodeUnits } from '@shared/compareText';
 import type { ReactNode } from 'react';
 
 import { useSpiceCardBoard } from '@app/db/assets';
-import { AssetPicker } from '@app/pickers/AssetPicker';
-import type { AssetPick, SpiceBoardRead } from '@app/widgets/card-editor/SpiceBoardFields';
+import { BoardPicker } from '@app/pickers/BoardPicker';
+import type { BoardSelect } from '@app/pickers/BoardPicker';
+import type { SpiceBoardRead } from '@app/widgets/card-editor/SpiceBoardFields';
 import type { SpiceDraft } from '@app/widgets/card-editor/SpiceCardEditor';
 
-/** Create and edit pages install the same read-only board picker on Spice cards. */
-export const spiceBoardPicker: AssetPick = (onPick, onCancel) => (
-  <AssetPicker
-    types={['board']}
-    copy={{
-      searchLabel: 'Find a board',
-      searchPlaceholder: 'Name or creator',
-      emptyMessage: 'No board assets are available yet.',
-    }}
-    onPick={(picked) => onPick(picked.id)}
-    onCancel={onCancel}
-  />
-);
+/** Create and edit pages install the same board field on Spice cards. */
+export const spiceBoardSelect: BoardSelect = (props) => <BoardPicker {...props} />;
 
 function LinkedBoardRead({
   link,
