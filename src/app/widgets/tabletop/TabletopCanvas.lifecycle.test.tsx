@@ -346,3 +346,86 @@ test.each(['successful', 'failed'] as const)(
     }
   }
 );
+
+test.each(['successful', 'failed'] as const)(
+  'repeated waiting replacements inherit the %s disposal gate and create only the latest renderer',
+  async (outcome) => {
+    const warn = vi.spyOn(console, 'warn');
+    const disposalError = new Error('backend disposal failed');
+    let finish!: () => void;
+    const disposing = new Promise<void>((resolve, reject) => {
+      finish = () => (outcome === 'failed' ? reject(disposalError) : resolve());
+    });
+    if (outcome === 'failed') {
+      warn.mockImplementation(() => {});
+    }
+    const canvas = document.createElement('canvas');
+    const originalRenderer = rendererFor(canvas);
+    originalRenderer.dispose.mockImplementation(() => disposing);
+    const first = createRoot(canvas);
+    await first.configure({ renderer: () => originalRenderer as unknown as WebGPURenderer, frameloop: 'never' });
+    await act(async () => {
+      first.render(<group name="first" />);
+    });
+    vi.useFakeTimers();
+    await act(async () => {
+      first.unmount();
+    });
+    await vi.advanceTimersByTimeAsync(500);
+    expect(originalRenderer.dispose).toHaveBeenCalledOnce();
+    const unconfigured = createRoot(canvas);
+    await act(async () => {
+      unconfigured.unmount();
+    });
+    await vi.advanceTimersByTimeAsync(500);
+    const waiting: {
+      renderer: ReturnType<typeof rendererFor>;
+      factory: ReturnType<typeof vi.fn<() => WebGPURenderer>>;
+      root: ReturnType<typeof createRoot>;
+      configured: ReturnType<ReturnType<typeof createRoot>['configure']>;
+    }[] = [];
+    for (let cycle = 0; cycle < 6; cycle += 1) {
+      const renderer = rendererFor(canvas);
+      const factory = vi.fn(() => renderer as unknown as WebGPURenderer);
+      const root = createRoot(canvas);
+      const configured = root.configure({ renderer: factory, frameloop: 'never' });
+      root.render(<group name={`replacement-${cycle}`} />);
+      await act(async () => {});
+      waiting.push({ renderer, factory, root, configured });
+      expect(waiting.flatMap((entry) => entry.factory.mock.calls)).toHaveLength(0);
+      if (cycle < 5) {
+        root.unmount();
+      }
+    }
+    await act(async () => {
+      finish();
+      await Promise.all(waiting.map((entry) => entry.configured));
+    });
+    const latest = waiting.at(-1)!;
+    expect(waiting.flatMap((entry) => entry.factory.mock.calls)).toHaveLength(1);
+    expect(latest.factory).toHaveBeenCalledOnce();
+    const state = _roots.get(canvas)!.store.getState();
+    expect(state.renderer).toBe(latest.renderer);
+    expect(state.scene.getObjectByName('replacement-5')).toBeDefined();
+    expect(state.scene.children.filter((child) => child.name.startsWith('replacement-'))).toHaveLength(1);
+    for (const entry of waiting) {
+      expect(entry.renderer.dispose).not.toHaveBeenCalled();
+    }
+    await act(async () => {
+      latest.root.unmount();
+    });
+    await vi.advanceTimersByTimeAsync(500);
+    expect(_roots.has(canvas)).toBe(false);
+    expect(latest.renderer.dispose).toHaveBeenCalledOnce();
+    expect(waiting.slice(0, -1).flatMap((entry) => entry.renderer.dispose.mock.calls)).toHaveLength(0);
+    expect(originalRenderer.dispose).toHaveBeenCalledOnce();
+    if (outcome === 'failed') {
+      expect(warn).toHaveBeenCalledExactlyOnceWith(
+        '[R3F] Error while unmounting root; teardown may be incomplete:',
+        disposalError
+      );
+    } else {
+      expect(warn).not.toHaveBeenCalled();
+    }
+  }
+);

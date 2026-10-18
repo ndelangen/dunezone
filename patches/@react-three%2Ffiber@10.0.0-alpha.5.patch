@@ -102,8 +102,8 @@ diff --git a/dist/webgpu/index.mjs b/dist/webgpu/index.mjs
  function createRoot(canvas) {
 -  const prevRoot = _roots.get(canvas);
 +  let prevRoot = _roots.get(canvas);
-+  const pendingDisposal = prevRoot?.teardownStarted ? prevRoot.disposalComplete : null;
-+  if (pendingDisposal) prevRoot = void 0;
++  const pendingDisposal = prevRoot?.teardownStarted ? prevRoot.disposalComplete : prevRoot?.pendingDisposal;
++  if (prevRoot?.teardownStarted) prevRoot = void 0;
    const prevFiber = prevRoot?.fiber;
    const prevStore = prevRoot?.store;
 -  if (prevRoot) console.warn("R3F.createRoot should only be called once!");
@@ -116,7 +116,14 @@ diff --git a/dist/webgpu/index.mjs b/dist/webgpu/index.mjs
    const logRecoverableError = typeof reportError === "function" ? (
      // In modern browsers, reportError will dispatch an error event,
      // emulating an uncaught JavaScript error.
-@@ -14153,11 +14161,14 @@
+@@ -14147,17 +14155,22 @@
+     null
+     // transitionCallbacks
+   );
+-  if (!prevRoot) _roots.set(canvas, { fiber, store });
++  if (!prevRoot) _roots.set(canvas, { fiber, store, pendingDisposal });
+   let onCreated;
+   let lastCamera;
    const lastConfiguredProps = {};
    let configured = false;
    let pending = null;
@@ -129,10 +136,12 @@ diff --git a/dist/webgpu/index.mjs b/dist/webgpu/index.mjs
 +      _roots.get(canvas).pendingConfiguration = pending;
 +      try {
 +      if (pendingDisposal) await pendingDisposal;
++      if (_roots.get(canvas)?.store !== store || (_roots.get(canvas)?.teardownGeneration || 0) !== renderGeneration) return this;
++      rendererSetup = _roots.get(canvas).rendererSetup || rendererSetup;
        const {
          id: canvasId,
          primaryCanvas,
-@@ -14247,11 +14258,14 @@
+@@ -14247,11 +14260,14 @@
                  }));
                }
              }
@@ -148,7 +157,7 @@ diff --git a/dist/webgpu/index.mjs b/dist/webgpu/index.mjs
          await rendererSetup;
          state = store.getState();
          renderer = state.internal.actualRenderer;
-@@ -14561,12 +14575,15 @@
+@@ -14561,12 +14577,15 @@
        lastConfiguredProps.schedulerOrder = schedulerConfig?.order;
        onCreated = onCreatedCallback;
        configured = true;
@@ -165,7 +174,7 @@ diff --git a/dist/webgpu/index.mjs b/dist/webgpu/index.mjs
          reconciler.updateContainer(
            /* @__PURE__ */ jsx(Provider, { store, children, onCreated, rootElement: canvas }),
            fiber,
-@@ -14577,6 +14594,7 @@
+@@ -14577,6 +14596,7 @@
        return store;
      },
      unmount() {
@@ -173,7 +182,7 @@ diff --git a/dist/webgpu/index.mjs b/dist/webgpu/index.mjs
        unmountComponentAtNode(canvas);
      }
    };
-@@ -14598,19 +14616,29 @@
+@@ -14598,19 +14618,29 @@
  function unmountComponentAtNode(canvas, callback) {
    const root = _roots.get(canvas);
    const fiber = root?.fiber;
@@ -183,7 +192,7 @@ diff --git a/dist/webgpu/index.mjs b/dist/webgpu/index.mjs
 +    root.unmounting = true;
 +    const teardownGeneration = root.teardownGeneration = (root.teardownGeneration || 0) + 1;
 +    root.store.getState().internal.active = false;
-+    void (root.pendingConfiguration || Promise.resolve()).then(() => {
++    void (root.pendingConfiguration || root.pendingDisposal || Promise.resolve()).then(() => {
 +    if (!root.unmounting || root.teardownGeneration !== teardownGeneration) return;
 +    const state = root.store.getState();
      if (state) {
@@ -206,7 +215,7 @@ diff --git a/dist/webgpu/index.mjs b/dist/webgpu/index.mjs
            try {
              const renderer = state.internal.actualRenderer;
              const unregisterPrimary = state.internal.unregisterPrimary;
-@@ -14625,16 +14653,21 @@
+@@ -14625,16 +14655,21 @@
                renderer.forceContextLoss?.();
              }
              if (!state.internal.isSecondary) {
