@@ -715,9 +715,12 @@ intentionally triggers a visually-identical recapture wave.
 
 ### Browser JavaScript budgets
 
-The app and publisher capture builds enforce a 500,000-byte limit per emitted JavaScript file.
-`scripts/lib/browserBundleBudgets.ts` checks the final minified bytes, including JavaScript emitted
-as static assets. Unknown oversized files fail the build.
+The minified app and publisher capture builds enforce a 500,000-byte limit per emitted JavaScript
+file. `scripts/lib/browserBundleBudgets.ts` checks final minified bytes, including JavaScript emitted
+as static assets. Unknown oversized files fail the build. The plugin uses each environment's resolved
+`build.minify` setting. E2E coverage builds deliberately use `--sourcemap --minify false` for accurate
+V8 coverage mapping, so those unminified files are outside the delivery budget, even in production
+mode. Production release builds retain minification and the same enforced limits.
 
 Two Three vendor payloads have separate limits:
 

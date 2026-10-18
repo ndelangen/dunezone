@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import { URL } from 'node:url';
+import { createRequire } from 'node:module';
 
 import type { Plugin, Rolldown } from 'vite-plus';
 
@@ -9,9 +9,10 @@ const WEBGPU_BYTES = 1_120_000;
 const DRACO_BYTES = 740_000;
 const THREE_BUILD = /\/node_modules\/three\/build\/three\.(core|webgpu|tsl)\.js$/u;
 const digest = (source: string | Uint8Array) => createHash('sha256').update(source).digest('hex');
+const require = createRequire(import.meta.url);
 const dracoDigests = new Set(
   ['draco_decoder.js', 'gltf/draco_decoder.js'].map((name) =>
-    digest(readFileSync(new URL(`../examples/jsm/libs/draco/${name}`, import.meta.resolve('three'))))
+    digest(readFileSync(require.resolve(`three/examples/jsm/libs/draco/${name}`)))
   )
 );
 
@@ -60,14 +61,22 @@ export function browserBundleBudgets(): Plugin {
   return {
     name: 'dunezone:browser-bundle-budgets',
     apply: 'build',
+    applyToEnvironment({ name, config, logger }) {
+      if (name !== 'client') {
+        return false;
+      }
+      if (config.build.minify === false) {
+        logger.info('[bundle-budget] Skipping minified delivery budgets for this unminified client build.');
+        return false;
+      }
+      return true;
+    },
     enforce: 'post',
     generateBundle: {
       order: 'post',
       handler(_, bundle) {
-        if (this.environment.name === 'client') {
-          for (const report of inspectBrowserJavaScript(bundle)) {
-            this.info(`[bundle-budget] ${report}`);
-          }
+        for (const report of inspectBrowserJavaScript(bundle)) {
+          this.info(`[bundle-budget] ${report}`);
         }
       },
     },
