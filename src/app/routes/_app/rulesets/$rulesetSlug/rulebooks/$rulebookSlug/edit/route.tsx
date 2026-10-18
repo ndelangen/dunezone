@@ -1255,13 +1255,19 @@ function FactionReferenceControl({
   );
 }
 
+/** The Block the editor has open, if it has one open. */
+const openBlockId = (active: ReturnType<typeof activeEditorPath>) =>
+  active?.kind === 'block' ? active.blockId : undefined;
+
 /** The open Block's board scene markup for the preview to paint and drag on: a board scene's own, or a piece movement's board. */
 function activeBoardMarkup(
-  block: RulebookBlockDraft | undefined,
+  blocksById: Readonly<Record<string, RulebookBlockDraft>>,
+  blockId: string | undefined,
   replaceBlock: (block: RulebookBlockDraft) => void,
   assetsById: RulebookResolvedAssetsById,
   ui: Parameters<typeof rulebookMarkupEditor>[0]['ui']
 ) {
+  const block = blockId === undefined ? undefined : blocksById[blockId];
   const scene =
     block?.kind === 'board-scene'
       ? { value: block, onChange: (value: RulebookBoardSceneValue) => replaceBlock({ ...block, ...value }) }
@@ -1483,7 +1489,7 @@ function RulebookWorkspace({
   const size = getRulebookSize(settings.size);
   const active = activeEditorPath(result.draft, hash);
   const activeHash = active?.hash;
-  const markupUi = useRulebookMarkupUiState(active?.kind === 'block' ? active.blockId : undefined);
+  const markupUi = useRulebookMarkupUiState(openBlockId(active));
   const [collapsedRegionKeys, setCollapsedRegionKeys] = useState<ReadonlySet<string>>(() => new Set());
   const [dragState, sendDrag] = useReducer(reduceWorkspaceDragState, idleWorkspaceDragState);
   const railDrag = activeRailDrag(dragState);
@@ -1871,12 +1877,7 @@ function RulebookWorkspace({
   const activeClippedBlock =
     active.kind === 'block' ? clippedBlocks.find((block) => block.id === active.blockId) : undefined;
 
-  const markupEditing = activeBoardMarkup(
-    active.kind === 'block' ? page.blocksById[active.blockId] : undefined,
-    replaceBlock,
-    assetsById,
-    markupUi
-  );
+  const markupEditing = activeBoardMarkup(page.blocksById, openBlockId(active), replaceBlock, assetsById, markupUi);
 
   const panel: ReactNode =
     active.kind === 'details' ? (
