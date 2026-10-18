@@ -1,8 +1,7 @@
 import { Anchor } from '@mantine/core';
-import { Link } from '@tanstack/react-router';
 import { Section } from '@ui/block/Section';
 
-import { Figure, FigureRow, Lead, Paragraph } from '../postContent';
+import { Figure, FigureRow, Lead, Paragraph, PostLink } from '../postContent';
 import { BLOG_POST_META } from '../posts';
 
 const meta = BLOG_POST_META['all-in-one-dune-board-game-webapp'];
@@ -14,11 +13,9 @@ export default function Post() {
     <>
       <Lead>
         In the{' '}
-        <Anchor
-          renderRoot={(props) => <Link {...props} to="/blog/$postSlug" params={{ postSlug: 'tabletop-simulator' }} />}
-        >
+        <PostLink to="/blog/$postSlug" params={{ postSlug: 'tabletop-simulator' }}>
           last post
-        </Anchor>{' '}
+        </PostLink>{' '}
         I ended on an asset generator: one source of truth for the factions, with every image drawn from it. That sounds
         like a single project. In fact it was several, and looking back, they share a theme I never planned: I kept
         switching databases. Or trying very hard to have none at all.
@@ -195,14 +192,9 @@ function NowSection() {
         caption={
           <>
             House Atreides in 2023, and on{' '}
-            <Anchor
-              renderRoot={(props) => (
-                <Link {...props} to="/factions/$factionId" params={{ factionId: 'house-atreides' }} />
-              )}
-              inherit
-            >
+            <PostLink to="/factions/$factionId" params={{ factionId: 'house-atreides' }} inherit>
               dune.zone
-            </Anchor>{' '}
+            </PostLink>{' '}
             today.
           </>
         }
