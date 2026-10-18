@@ -219,26 +219,30 @@ function toBoard(event: PointerEvent<HTMLDivElement>): [number, number] {
 const POINTER_RADIUS = 1 / (2 * (1 + POINTER_TIP_RATIO));
 const POINTER_CENTRE = 1 - POINTER_RADIUS;
 
-/** Whether a point in a token's face, from 0 to 1 across and down, falls inside the shape the card cuts it to. */
-function insideTokenShape(shape: TokenShape, u: number, v: number) {
-  if (u < 0 || u > 1 || v < 0 || v > 1) {
-    return false;
+/** Whether a point in a pointer's square face, from 0 to 1, falls in its teardrop. */
+function insidePointer(u: number, v: number) {
+  if (Math.hypot(u - 0.5, v - POINTER_CENTRE) <= POINTER_RADIUS) {
+    return true;
   }
-  if (shape === 'round' || shape === 'gear') {
-    return Math.hypot(u - 0.5, v - 0.5) <= 0.5;
-  }
-  if (shape === 'pointer') {
-    if (Math.hypot(u - 0.5, v - POINTER_CENTRE) <= POINTER_RADIUS) {
-      return true;
-    }
-    /* Above the round end the teardrop narrows straight to its point along the tangent lines. */
-    const tangent = Math.acos(1 / POINTER_TIP_RATIO);
-    const edgeY = POINTER_CENTRE - POINTER_RADIUS * Math.cos(tangent);
-    const edgeHalfWidth = POINTER_RADIUS * Math.sin(tangent);
-    return v <= edgeY && Math.abs(u - 0.5) <= (v / edgeY) * edgeHalfWidth;
-  }
-  return true;
+  /* Above the round end the teardrop narrows straight to its point along the tangent lines. */
+  const tangent = Math.acos(1 / POINTER_TIP_RATIO);
+  const edgeY = POINTER_CENTRE - POINTER_RADIUS * Math.cos(tangent);
+  return v <= edgeY && Math.abs(u - 0.5) <= (v / edgeY) * POINTER_RADIUS * Math.sin(tangent);
 }
+
+const SHAPE_HITS: Record<TokenShape, (u: number, v: number) => boolean> = {
+  round: (u, v) => Math.hypot(u - 0.5, v - 0.5) <= 0.5,
+  gear: (u, v) => Math.hypot(u - 0.5, v - 0.5) <= 0.5,
+  pointer: insidePointer,
+  square: () => true,
+  rectangle: () => true,
+};
+
+const withinFace = (value: number) => value >= 0 && value <= 1;
+
+/** Whether a point in a token's face, from 0 to 1 across and down, falls inside the shape the card cuts it to. */
+const insideTokenShape = (shape: TokenShape, u: number, v: number) =>
+  withinFace(u) && withinFace(v) && SHAPE_HITS[shape](u, v);
 
 /** The topmost drawn token under the point, the last drawn first, hit on its own rotated and cut shape. */
 function topTokenAt(tokens: readonly Placement[], assets: TokenAssets, [x, y]: [number, number]) {
