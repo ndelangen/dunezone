@@ -254,7 +254,8 @@ jobs:
           disable_search: true
           fail_ci_if_error: false
       - name: Upload storybook test results to Codecov
-        if: ${{ !cancelled() }}
+        # Reused passes restore coverage only, so upload test results only when this run wrote them.
+        if: ${{ !cancelled() && hashFiles('test-results/vitest-storybook.junit.xml') != '' }}
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           report_type: test_results
@@ -405,8 +406,8 @@ jobs:
           disable_search: true
           fail_ci_if_error: false
       - name: Upload test results to Codecov
-        # Failure results are the point of Test Analytics, so upload unless cancelled.
-        if: ${{ !cancelled() }}
+        # Failure reports still upload; setup failures may produce no report.
+        if: ${{ !cancelled() && hashFiles('test-results/vitest-unit.junit.xml') != '' }}
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           report_type: test_results
@@ -540,7 +541,7 @@ jobs:
           disable_search: true
           fail_ci_if_error: false
       - name: Upload publisher test results to Codecov
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && hashFiles('test-results/vitest-publisher.junit.xml') != '' }}
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           report_type: test_results
@@ -616,7 +617,7 @@ jobs:
           disable_search: true
           fail_ci_if_error: false
       - name: Upload game test results to Codecov
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && hashFiles('test-results/vitest-game.junit.xml') != '' }}
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           report_type: test_results
@@ -674,8 +675,8 @@ jobs:
         if: ${{ !cancelled() }}
         run: bun run test:browser-launch --reporter=default --reporter=junit --outputFile.junit=test-results/vitest-browser-launch.junit.xml
       - name: Upload test results to Codecov
-        # Failure results are the point of Test Analytics, so upload unless cancelled.
-        if: ${{ !cancelled() }}
+        # Failure reports still upload; setup failures may produce no report.
+        if: ${{ !cancelled() && hashFiles('test-results/vitest-browser-launch.junit.xml') != '' }}
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           report_type: test_results
@@ -828,7 +829,7 @@ jobs:
         env:
           E2E_ENV_FILE: ${{ runner.temp }}/.env.e2e.local
       - name: Upload e2e test results to Codecov
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && hashFiles('test-results/playwright.junit.xml') != '' }}
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           report_type: test_results
