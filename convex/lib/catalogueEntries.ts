@@ -17,6 +17,7 @@ import {
 import { factionCatalogueKind } from './factionCatalogue';
 import { faqCatalogueKind } from './faqCatalogue';
 import { profileCatalogueKind } from './profileCatalogue';
+import { rulesetCatalogueKind } from './rulesetCatalogue';
 
 /**
  * Catalogue read models (`catalogue_entries`): one slim row per listed entity per list it is in, rebuilt from the canonical rows at will.
@@ -29,6 +30,7 @@ export const CATALOGUE_KINDS = {
   asset: assetCatalogueKind,
   profile: profileCatalogueKind,
   faq: faqCatalogueKind,
+  ruleset: rulesetCatalogueKind,
 } as const satisfies Record<string, CatalogueKind>;
 
 export type CatalogueKindName = keyof typeof CATALOGUE_KINDS;
@@ -156,10 +158,10 @@ function ownerSearchName(profile: Doc<'profiles'> | null) {
 /**
  * Every writer of a kind's source tables keeps its entries exact in its own transaction, and every entry write keeps the aggregate order exact in turn.
  * A faction's entries read the faction and its links;
- * which linked rulesets are live is resolved when the catalogue is read, so a ruleset's own writes reach no entry.
+ * which linked rulesets are live is resolved when the catalogue is read, so a ruleset's own writes reach no faction entry.
  * An asset's entries read the asset and its owner's name;
  * one owner can hold more assets than a transaction should rewrite, so a rename is carried to them in scheduled pages.
- * A profile's entry reads the profile alone, and a question's the question alone.
+ * A profile's entry reads the profile alone, a question's the question alone, and a ruleset's the ruleset alone.
  */
 export function registerCatalogueTriggers(triggers: Triggers<DataModel, MutationCtx>) {
   triggers.register('factions', async (ctx, change) => {
@@ -200,6 +202,9 @@ export function registerCatalogueTriggers(triggers: Triggers<DataModel, Mutation
   });
   triggers.register('faq_items', async (ctx, change) => {
     await reconcileCatalogueEntry(ctx, 'faq', change.id);
+  });
+  triggers.register('rulesets', async (ctx, change) => {
+    await reconcileCatalogueEntry(ctx, 'ruleset', change.id);
   });
   registerCatalogueOrderTriggers(triggers, (kind) => (isCatalogueKindName(kind) ? CATALOGUE_KINDS[kind].sorts : []));
 }

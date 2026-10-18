@@ -78,6 +78,8 @@ const MIGRATION_IDS: Record<string, MigrationRef> = {
   catalogue_entries_profiles_verify_v1: internal.migrations.catalogue_entries_profiles_verify_v1,
   catalogue_entries_faq_v1: internal.migrations.catalogue_entries_faq_v1,
   catalogue_entries_faq_verify_v1: internal.migrations.catalogue_entries_faq_verify_v1,
+  catalogue_entries_rulesets_v1: internal.migrations.catalogue_entries_rulesets_v1,
+  catalogue_entries_rulesets_verify_v1: internal.migrations.catalogue_entries_rulesets_verify_v1,
   ruleset_factions_position_v1: internal.migrations.ruleset_factions_position_v1,
   catalogue_entries_prune_v1: internal.migrations.catalogue_entries_prune_v1,
   catalogue_entries_verify_v1: internal.migrations.catalogue_entries_verify_v1,
@@ -1429,6 +1431,25 @@ export const catalogue_entries_faq_verify_v1 = migrations.define({
   batchSize: 25,
   migrateOne: async (ctx, row) => {
     await assertCatalogueSourceExact(ctx, 'faq', row._id);
+  },
+});
+
+/** Builds the ruleset catalogue's entries from canonical rulesets, while live writes keep them current through triggers. */
+export const catalogue_entries_rulesets_v1 = migrations.define({
+  table: 'rulesets',
+  /* A ruleset's About has no length cap and each reconcile rereads the ruleset, so a batch stays small. */
+  batchSize: 25,
+  migrateOne: async (ctx, row) => {
+    await repairCatalogueEntry(ctx, 'ruleset', row._id);
+  },
+});
+
+/** Proves every live ruleset is in the catalogue exactly once, so an empty or partial catalogue cannot pass. */
+export const catalogue_entries_rulesets_verify_v1 = migrations.define({
+  table: 'rulesets',
+  batchSize: 25,
+  migrateOne: async (ctx, row) => {
+    await assertCatalogueSourceExact(ctx, 'ruleset', row._id);
   },
 });
 
