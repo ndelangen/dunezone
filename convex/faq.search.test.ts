@@ -93,7 +93,7 @@ describe('the global FAQ', () => {
     await seedRulesets(t, { Basic: ['Does the storm move?'], Advanced: ['Can I ship?', 'Can I revive?'], Empty: [] });
 
     const page = await t.query(api.faq.search, {});
-    expect(page).toMatchObject({ searched: false, items: [], total: 0, page: 1, pageCount: 1, selected: [] });
+    expect(page).toEqual({ searched: false, items: [], hasMore: false, limit: FAQ_CATALOGUE_PAGE_SIZE, selected: [] });
     const options = await t.query(api.faq.rulesetOptions, {});
     expect(options.map(({ slug, questions }) => [slug, questions])).toEqual([
       ['advanced', 2],
@@ -116,7 +116,7 @@ describe('the global FAQ', () => {
     ]);
     const one = await t.query(api.faq.search, { q: 'storm', rulesets: ['basic'] });
     expect(found(one)).toEqual(['basic: Does the storm move first?']);
-    expect(one).toMatchObject({ searched: true, selected: ['basic'], total: 1, complete: true });
+    expect(one).toMatchObject({ searched: true, selected: ['basic'], hasMore: false });
     expect(found(await t.query(api.faq.search, { q: 'storm fremen', rulesets: ['basic', 'expansion'] }))).toEqual([
       'expansion: Is the storm deadly to Fremen?',
     ]);
@@ -150,16 +150,35 @@ describe('the global FAQ', () => {
     ]);
   });
 
-  test('pages the matches with a page count, across rulesets', async () => {
+  test('loads more by asking for a larger limit, best matches first and in the same order', async () => {
     const t = applicationTest();
     const many = Array.from({ length: FAQ_CATALOGUE_PAGE_SIZE + 1 }, (_, index) => `Spice question ${index}?`);
     await seedRulesets(t, { Basic: many.slice(0, 10), Advanced: many.slice(10) });
 
     const first = await t.query(api.faq.search, { q: 'spice' });
-    expect(first).toMatchObject({ total: FAQ_CATALOGUE_PAGE_SIZE + 1, pageCount: 2 });
+    expect(first).toMatchObject({ hasMore: true, limit: FAQ_CATALOGUE_PAGE_SIZE });
     expect(first.items).toHaveLength(FAQ_CATALOGUE_PAGE_SIZE);
-    expect((await t.query(api.faq.search, { q: 'spice', page: 2 })).items).toHaveLength(1);
-    expect((await t.query(api.faq.search, { q: 'spice', page: 3 })).items).toHaveLength(0);
+    const more = await t.query(api.faq.search, { q: 'spice', limit: FAQ_CATALOGUE_PAGE_SIZE * 2 });
+    expect(more).toMatchObject({ hasMore: false, limit: FAQ_CATALOGUE_PAGE_SIZE * 2 });
+    expect(more.items).toHaveLength(FAQ_CATALOGUE_PAGE_SIZE + 1);
+    expect(more.items.slice(0, FAQ_CATALOGUE_PAGE_SIZE).map((item) => item._id)).toEqual(
+      first.items.map((item) => item._id)
+    );
+    expect((await t.query(api.faq.search, { q: 'spice', limit: 0 })).limit).toBe(FAQ_CATALOGUE_PAGE_SIZE);
+    expect((await t.query(api.faq.search, { q: 'spice', limit: 1e9 })).limit).toBe(CATALOGUE_BOUNDED_READ);
+  });
+
+  test("reads further when a deleted ruleset's matches fill the first read", async () => {
+    const t = applicationTest();
+    const { gone } = await seedRulesets(t, { Basic: ['Does the storm move?'], Gone: [] });
+    await seedSearchOnly(t, gone!, FAQ_CATALOGUE_PAGE_SIZE * 4);
+    await t.run(async (ctx) => {
+      await ctx.db.patch(gone!, { is_deleted: true });
+    });
+
+    const page = await t.query(api.faq.search, { q: 'storm' });
+    expect(found(page)).toEqual(['basic: Does the storm move?']);
+    expect(page.hasMore).toBe(false);
   });
 
   test("finds every picked ruleset's matches however many another ruleset holds", async () => {
@@ -173,10 +192,11 @@ describe('the global FAQ', () => {
     await seedSearchOnly(t, busy!, CATALOGUE_BOUNDED_READ + 4);
 
     const everywhere = await t.query(api.faq.search, { q: 'storm' });
-    expect(everywhere.complete).toBe(false);
+    expect(everywhere.items).toHaveLength(FAQ_CATALOGUE_PAGE_SIZE);
+    expect(everywhere.hasMore).toBe(true);
     const picked = await t.query(api.faq.search, { q: 'storm', rulesets: ['basic', 'expansion'] });
     expect(found(picked)).toEqual(['basic: Does the storm move?', 'expansion: Is the storm deadly?']);
-    expect(picked).toMatchObject({ total: 2, complete: true });
+    expect(picked.hasMore).toBe(false);
     const withBusy = await t.query(api.faq.search, { q: 'storm', rulesets: ['basic', 'busy'] });
     expect(
       withBusy.items
@@ -184,6 +204,6 @@ describe('the global FAQ', () => {
         .slice(0, 2)
         .toSorted()
     ).toEqual(['basic', 'busy']);
-    expect(withBusy.complete).toBe(false);
+    expect(withBusy.hasMore).toBe(true);
   }, 60_000);
 });

@@ -182,7 +182,8 @@ export const search = publicQuery({
     q: v.optional(v.string()),
     /** Ruleset slugs; none searches every ruleset. */
     rulesets: v.optional(v.array(v.string())),
-    page: v.optional(v.number()),
+    /** How many of the best matches to return; Load more asks again with a larger one. */
+    limit: v.optional(v.number()),
   },
   returns: globalFaqPageValidator,
   handler: async (ctx, args) => await loadGlobalFaqPage(ctx, args),

@@ -103,7 +103,7 @@ export function useRulesetFaqPage(args: RulesetFaqArgs, options?: { initialData?
 
 /** What `api.faq.search` gives the global FAQ page, the same for every viewer. */
 export type GlobalFaqPageData = FunctionReturnType<typeof api.faq.search>;
-/** What one global FAQ page asks for: the search, the ruleset slugs it narrows to, and the page. */
+/** What one global FAQ search asks for: the search, the ruleset slugs it narrows to, and how many of the best matches to show. */
 export type GlobalFaqArgs = FunctionArgs<typeof api.faq.search>;
 
 /** What `api.faq.rulesetOptions` gives the global FAQ's ruleset picker: every live ruleset holding questions, by name. */

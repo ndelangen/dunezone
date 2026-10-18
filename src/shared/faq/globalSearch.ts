@@ -1,5 +1,4 @@
 import { compareCodeUnits } from '../compareText';
-import { parseCataloguePage } from '../factions/catalogueSearch';
 import { FAQ_CATALOGUE_QUERY_LIMIT } from './catalogueSearch';
 
 /*
@@ -14,8 +13,6 @@ export type GlobalFaqSearch = {
   q?: string;
   /** The rulesets searched, as slugs joined by commas, sorted so one selection has one address; absent searches every ruleset. */
   rulesets?: string;
-  /** Present only past the first page of a search, so the first page has one address; the plain page has no pages. */
-  page?: number;
 };
 
 /* A slug is lowercase letters, digits and dashes, so a comma never appears in one. */
@@ -39,7 +36,6 @@ export function globalFaqRulesetSlugs(search: GlobalFaqSearch): string[] {
 export function parseGlobalFaqSearch(params: Record<string, unknown>): GlobalFaqSearch {
   const q = typeof params.q === 'string' ? params.q.trim().slice(0, FAQ_CATALOGUE_QUERY_LIMIT).trim() : '';
   const rulesets = slugList(params.rulesets).join(',');
-  /* Only a search has pages; the plain page shows how the FAQ works, so a page number without a search names nothing. */
-  const page = q ? parseCataloguePage(params.page) : undefined;
-  return { ...(q ? { q } : {}), ...(rulesets ? { rulesets } : {}), ...(page ? { page } : {}) };
+  /* A search has no pages: it shows its best matches and loads more in place, so the address names only what was searched. */
+  return { ...(q ? { q } : {}), ...(rulesets ? { rulesets } : {}) };
 }

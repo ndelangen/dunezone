@@ -5,7 +5,12 @@ import { FAQ_CATALOGUE_PAGE_SIZE, FAQ_CATALOGUE_QUERY_LIMIT } from '../../src/sh
 import { FAQ_SEARCH_RULESET_LIMIT } from '../../src/shared/faq/globalSearch';
 import type { Doc } from '../_generated/dataModel';
 import type { QueryCtx } from '../types';
-import { ALL_PARTITION, countCataloguePartitions, selectCataloguePage } from './catalogueOrder';
+import {
+  ALL_PARTITION,
+  CATALOGUE_BOUNDED_READ,
+  countCataloguePartitions,
+  selectCatalogueSearch,
+} from './catalogueOrder';
 import { faqListItemValidator } from './collaborativeAccessValidators';
 import { faqEntryRulesetId, faqRulesetPartition } from './faqCatalogue';
 import { faqItemsOfEntries, projectFaqListItems } from './faqRulesetList';
@@ -30,15 +35,12 @@ export const globalFaqPageValidator = v.object({
   selected: v.array(v.string()),
   /** False until the reader searches for something; the page then shows how the FAQ works instead of results. */
   searched: v.boolean(),
+  /** The best matches first, at most `limit` of them; a search shows no count and no pages, and loads more by asking for a larger limit. */
   items: v.array(faqListItemValidator.extend({ ruleset: rulesetCitation })),
-  /** Questions matching the search, across every page. */
-  total: v.number(),
-  /** False when the search matched more questions than one query reads, so `total` is a floor and the pages hold only the matches read. */
-  complete: v.boolean(),
-  /** The page these rows are, which may lie past `pageCount`, with no rows. */
-  page: v.number(),
-  pageCount: v.number(),
-  pageSize: v.number(),
+  /** Whether a larger limit would show more questions. */
+  hasMore: v.boolean(),
+  /** The limit these rows answer, after clamping. */
+  limit: v.number(),
 });
 
 /** Live rulesets that hold questions, by name, each with its question count from the catalogue's own order: what the reader can narrow a search to. */
@@ -113,53 +115,39 @@ async function citeRulesets(items: Awaited<ReturnType<typeof projectFaqListItems
   });
 }
 
-function pageNumber(page: number | undefined) {
-  return page !== undefined && Number.isSafeInteger(page) && page > 1 ? page : 1;
+/** The rows a search asks for: a whole number of pages, at least one, at most what one search reads. */
+function rowLimit(limit: number | undefined) {
+  const rows = limit !== undefined && Number.isSafeInteger(limit) && limit > 0 ? limit : FAQ_CATALOGUE_PAGE_SIZE;
+  return Math.min(CATALOGUE_BOUNDED_READ, rows);
 }
 
 /**
- * One page of questions matching a search across rulesets, best match first, the same for every viewer.
- * Picked rulesets are searched in their own lists, sharing the catalogue's bound;
- * none searches the list of every question up to the bound and keeps those in a live ruleset.
- * `complete` says when a bound was reached, so the total is a floor.
+ * The best questions matching a search across rulesets, the same for every viewer, with whether there are more.
+ * Picked rulesets are searched in their own lists, taken in turn, so one ruleset's matches never crowd out another's;
+ * none searches the list of every question and keeps those in a live ruleset.
  */
-export async function loadGlobalFaqPage(ctx: QueryCtx, args: { q?: string; rulesets?: string[]; page?: number }) {
+export async function loadGlobalFaqPage(ctx: QueryCtx, args: { q?: string; rulesets?: string[]; limit?: number }) {
   const picked = await loadPickedRulesets(ctx, args.rulesets ?? []);
   const text = (args.q ?? '').slice(0, FAQ_CATALOGUE_QUERY_LIMIT).trim();
-  const page = pageNumber(args.page);
+  const limit = rowLimit(args.limit);
   const base = {
     selected: picked.map((ruleset) => ruleset.slug).sort(compareCodeUnits),
     searched: text !== '',
-    page,
-    pageSize: FAQ_CATALOGUE_PAGE_SIZE,
+    limit,
   };
   if (!text) {
-    return { ...base, items: [], total: 0, complete: true, pageCount: 1 };
+    return { ...base, items: [], hasMore: false };
   }
 
   const rulesetOf = rulesetReader(ctx, picked);
-  /*
-   * Relevance decides the order while searching; the sort is only the catalogue's required order and never applies here.
-   * Picked rulesets are searched in their own lists, so one ruleset's matches are never crowded out by another's;
-   * with none picked, the list of every question is searched and kept to live rulesets.
-   */
-  const selection = await selectCataloguePage(ctx, {
+  const selection = await selectCatalogueSearch(ctx, {
     kind: 'faq',
     partition: ALL_PARTITION,
     partitions: picked.length > 0 ? picked.map((ruleset) => faqRulesetPartition(ruleset._id)) : undefined,
-    sort: 'created',
-    direction: 'desc',
-    page,
-    pageSize: FAQ_CATALOGUE_PAGE_SIZE,
-    search: { text, relevance: true },
+    text,
+    limit,
     keep: picked.length > 0 ? undefined : keepLiveRulesets(rulesetOf),
   });
   const items = await projectFaqListItems(ctx, await faqItemsOfEntries(ctx, selection.entries));
-  return {
-    ...base,
-    items: await citeRulesets(items, rulesetOf),
-    total: selection.total,
-    complete: selection.exact,
-    pageCount: Math.max(1, Math.ceil(selection.total / FAQ_CATALOGUE_PAGE_SIZE)),
-  };
+  return { ...base, items: await citeRulesets(items, rulesetOf), hasMore: selection.hasMore };
 }
