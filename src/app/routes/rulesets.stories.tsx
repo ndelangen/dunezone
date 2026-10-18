@@ -1,4 +1,5 @@
 import preview from '@sb/preview';
+import { FAQ_CATALOGUE_PAGE_SIZE } from '@shared/faq/catalogueSearch';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { db, faction, ref, ruleset } from '@db/storybook';
@@ -114,6 +115,42 @@ export const FaqPagesAndSearch = meta.story({
     await userEvent.type(page.getByRole('textbox', { name: 'Search FAQ questions' }), 'Question 17');
     await expect(main.findByRole('link', { name: 'Question 17?' }, { timeout: 30_000 })).resolves.toBeVisible();
     await waitFor(() => expect(main.queryByRole('link', { name: 'When does the storm move?' })).toBeNull());
+  },
+});
+/** The FAQ's rows, each the link that opens its question. */
+function questionRows(main: ReturnType<typeof within>, name: RegExp) {
+  return main.getAllByRole('link', { name });
+}
+
+/**
+ * A search shows its best matches and loads more in place: no pages and no count.
+ * An old link's page is dropped, so it opens the search's first matches.
+ * "Load more" lengthens the list until every match is shown, and hands focus to the first new row.
+ */
+export const FaqSearched = meta.story({
+  args: { path: '/rulesets/classicrules/faq?q=question&page=2' },
+  /* One past the first step: the smallest search that has more to load. */
+  parameters: { database: db((baseline) => seedQuestions(baseline, FAQ_CATALOGUE_PAGE_SIZE + 1)) },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    /* Found on the body, not within a `main` found earlier: the pending frame has a `main` of its own, which the loaded page replaces. */
+    const loadMore = await page.findByRole('button', { name: 'Load more' }, { timeout: 60_000 });
+    const main = within(page.getByRole('main'));
+    await expect(questionRows(main, /^Question \d\d\?$/)).toHaveLength(FAQ_CATALOGUE_PAGE_SIZE);
+    await expect(main.queryByRole('link', { name: 'When does the storm move?' })).toBeNull();
+    await expect(page.queryByLabelText('FAQ pages')).toBeNull();
+    await expect(page.queryByText(/of \d+ questions/)).toBeNull();
+    await expect(page.getByRole('textbox', { name: 'Search FAQ questions' })).toHaveValue('question');
+
+    await userEvent.click(loadMore);
+    await waitFor(() => expect(questionRows(main, /^Question \d\d\?$/)).toHaveLength(FAQ_CATALOGUE_PAGE_SIZE + 1), {
+      timeout: 60_000,
+    });
+    await expect(
+      main.getAllByRole('link', { name: /^Open question: Question/ })[FAQ_CATALOGUE_PAGE_SIZE]
+    ).toHaveFocus();
+    await expect(main.getByRole('status')).toHaveTextContent('More questions loaded');
+    await expect(main.queryByRole('button', { name: 'Load more' })).toBeNull();
   },
 });
 /** A link from before the FAQ had its own page, which searched on the ruleset's page, lands on the FAQ's page with the same search. */
