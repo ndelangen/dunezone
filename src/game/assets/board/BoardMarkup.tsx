@@ -19,6 +19,8 @@ import type { PointerEvent } from 'react';
 
 const STICKER_INK = '#1a0b00';
 const STICKER_OUTLINE = '#fffed8';
+/* The pale outline as thick as the board draws round its own glyphs, such as the strongholds' (Board.tsx). */
+const STICKER_OUTLINE_RADIUS = 0.5;
 
 /**
  * Tints in board units, oldest first, for an SVG whose user space is the board's frame.
@@ -33,7 +35,7 @@ export function TintDrawingLayers({
       <defs>
         {/* The board's glyph colours: near-black ink inside a pale outline. */}
         <filter id={filterId} x="-20%" y="-20%" width="140%" height="140%" colorInterpolationFilters="sRGB">
-          <feMorphology in="SourceAlpha" operator="dilate" radius={1} result="WIDE" />
+          <feMorphology in="SourceAlpha" operator="dilate" radius={STICKER_OUTLINE_RADIUS} result="WIDE" />
           <feFlood floodColor={STICKER_OUTLINE} result="PALE" />
           <feComposite in="PALE" in2="WIDE" operator="in" result="OUTLINE" />
           <feFlood floodColor={STICKER_INK} result="DARK" />
