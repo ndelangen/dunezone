@@ -1,8 +1,7 @@
 import { Anchor } from '@mantine/core';
-import { Link } from '@tanstack/react-router';
 import { Section } from '@ui/block/Section';
 
-import { Lead, Paragraph, WideFigure } from '../postContent';
+import { Lead, Paragraph, PostLink, WideFigure } from '../postContent';
 import { DecalSheet, DecalStack } from './styleguide/DecalSheet';
 import { FactionPalette } from './styleguide/FactionPalette';
 import { FrameParts, PortraitWall, TextureLibrary } from './styleguide/library';
@@ -79,13 +78,9 @@ function ColoursSection() {
       <Paragraph>
         Every faction comes down to two colours: a darker one and a lighter one, mixed through a greyscale photograph so
         the surface looks printed rather than flat. I wrote about{' '}
-        <Anchor
-          renderRoot={(props) => (
-            <Link {...props} to="/blog/$postSlug" params={{ postSlug: 'drawing-dune-tokens-and-cards' }} />
-          )}
-        >
+        <PostLink to="/blog/$postSlug" params={{ postSlug: 'drawing-dune-tokens-and-cards' }}>
           how those layers stack
-        </Anchor>{' '}
+        </PostLink>{' '}
         in an earlier post. These are the values dune.zone uses to match each faction's printed pieces.
       </Paragraph>
       <WideFigure caption="Each faction's token, its two colours and the number of the texture between them. CHOAM's colours are split down the middle.">
