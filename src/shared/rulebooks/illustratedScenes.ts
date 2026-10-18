@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { boardTints, boardTokens } from '../boards/markup';
 import { FactionTroopIdSchema } from '../factions/troopIdentity';
 import { rulebookBattleStepFields } from './battleStep';
 import { rulebookSourceReferenceSchema } from './sources';
@@ -109,6 +110,9 @@ export const rulebookBoardSceneSchema = z.strictObject({
   players: identifiedItems(rulebookBoardPlayerSchema),
   troops: identifiedItems(rulebookBoardTroopSchema),
   highlights: z.array(rulebookBoardHighlightSchema).max(64),
+  /** Markup over a saved board, kept as a Spice card keeps it: Play's tints, and token assets in the board's own frame. */
+  tints: boardTints.optional(),
+  tokens: boardTokens.optional(),
   annotations: identifiedItems(rulebookBoardAnnotationSchema),
 });
 export type RulebookBoardSceneValue = z.infer<typeof rulebookBoardSceneSchema>;

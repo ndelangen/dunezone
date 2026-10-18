@@ -6,6 +6,7 @@ import { placeStickers } from '@shared/boards/stickerPlacement';
 import { boardTerritories, boardTerritoryAt } from '@shared/boards/territories';
 import type { OutlinePath } from '@shared/boards/tintOutline';
 import { offRim, offsetPath, outerSegments, outlinePaths } from '@shared/boards/tintOutline';
+import { tintOutlineOpacity } from '@shared/boards/tints';
 import { BOARD_RADIUS } from '@shared/play/tableGeometry';
 import type { TerritoryTint, TintStamp } from '@shared/play/territoryTints';
 import { tintPaint } from '@shared/play/territoryTints';
@@ -150,9 +151,10 @@ function TintOutline({ tint, faces }: Readonly<{ tint: TerritoryTint; faces: rea
     [geometries]
   );
   const color = tintPaint(tint.color).color;
+  const opacity = tintOutlineOpacity(tint.color);
   return geometries.map(({ geometry, order }) => (
     <mesh key={order} geometry={geometry} raycast={ignoreRaycast} renderOrder={order}>
-      <meshBasicMaterial color={color} transparent depthWrite={false} side={DoubleSide} />
+      <meshBasicMaterial color={color} transparent opacity={opacity} depthWrite={false} side={DoubleSide} />
     </mesh>
   ));
 }
