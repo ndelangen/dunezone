@@ -95,6 +95,14 @@ Three 0.186 now removes destroyed bind groups itself, so that part of the old pa
 The patch covers `build/three.webgpu.js`,
 `build/three.webgpu.nodes.js` and the matching `src/` files.
 
+The Floating UI 1.8.0 patch coalesces positions requested by `ResizeObserver` into the next
+animation frame. Updating a portalled tooltip inside resize delivery can change its wrapping and
+leave undelivered notifications in the same browser cycle. Initial placement and scroll updates
+still run immediately. Cleanup cancels both pending resize updates and floating-element
+reobservation. The installed-package regression checks scheduling, coalescing and disposal; the
+Faction Special Rule and board editor stories cover the original browser failures. Remove the
+patch when Floating UI provides the same resize scheduling and cleanup.
+
 The `miniflare` entry in `package.json` `overrides` moves only miniflare's own `undici` to 7.30.0,
 for [GHSA-3wwx-pv8p-q78v](https://github.com/advisories/GHSA-3wwx-pv8p-q78v). miniflare pins
 `undici` to exactly 7.29.0, which no range can reach, and an override of `undici` everywhere would
