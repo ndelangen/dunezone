@@ -69,6 +69,7 @@ export default defineConfig({
       'linkedom/worker',
       'react-icons/fa6',
       'react-icons/si',
+      'react-icons/vsc',
       'storybook/internal/core-events',
       'three/examples/jsm/loaders/SVGLoader.js',
       'crypto-js/sha256',

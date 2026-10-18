@@ -1,0 +1,53 @@
+.source {
+  margin: 0;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  font-family: var(--mantine-font-family-monospace);
+  font-size: var(--mantine-font-size-sm);
+  line-height: 1.75;
+  color: var(--color-text);
+  tab-size: 2;
+}
+
+.source:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.line {
+  display: flex;
+  min-width: max-content;
+}
+
+.marker {
+  flex: 0 0 2ch;
+  user-select: none;
+}
+
+.marker[data-kind="added"] {
+  color: light-dark(#176b32, #8adfa1);
+}
+.marker[data-kind="removed"] {
+  color: light-dark(#ad2525, #ffa09b);
+}
+.source :global(.hljs-keyword),
+.source :global(.hljs-selector-class) {
+  color: light-dark(#7430a0, #d4afff);
+}
+.source :global(.hljs-string),
+.source :global(.hljs-attr) {
+  color: light-dark(#176b32, #8adfa1);
+}
+.source :global(.hljs-title),
+.source :global(.hljs-name),
+.source :global(.hljs-built_in) {
+  color: light-dark(#145e9a, #8ecbff);
+}
+.source :global(.hljs-number),
+.source :global(.hljs-literal) {
+  color: light-dark(#8b4d06, #f4c478);
+}
+.source :global(.hljs-comment) {
+  color: var(--color-muted);
+}

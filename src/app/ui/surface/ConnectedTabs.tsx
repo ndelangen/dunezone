@@ -37,6 +37,8 @@ export interface ConnectedTabsProps<Value extends string> {
   items: readonly ConnectedTabsItem<Value>[];
   ariaLabel: string;
   className?: string;
+  /** Keep the wide tab rail in view while its panel scrolls past. */
+  stickyRail?: boolean;
 }
 
 /**
@@ -127,10 +129,12 @@ function useConnectedTabsGeometry({
   value,
   rootRef,
   panelRef,
+  stickyRail,
 }: {
   value: string;
   rootRef: React.RefObject<HTMLDivElement | null>;
   panelRef: React.RefObject<HTMLDivElement | null>;
+  stickyRail: boolean;
 }) {
   const [geometry, setGeometry] = useState<GlassOutlineGeometry | null>(null);
 
@@ -178,9 +182,11 @@ function useConnectedTabsGeometry({
     };
 
     measure();
-
     if (typeof ResizeObserver === 'undefined') {
       return;
+    }
+    if (stickyRail) {
+      window.addEventListener('scroll', scheduleMeasure, { passive: true, capture: true });
     }
     const observer = new ResizeObserver(scheduleMeasure);
     observer.observe(root);
@@ -190,8 +196,9 @@ function useConnectedTabsGeometry({
     return () => {
       cancelAnimationFrame(animationFrame);
       observer.disconnect();
+      window.removeEventListener('scroll', scheduleMeasure, true);
     };
-  }, [panelRef, rootRef, value]);
+  }, [panelRef, rootRef, stickyRail, value]);
 
   return geometry;
 }
@@ -227,10 +234,11 @@ export function ConnectedTabs<Value extends string>({
   items,
   ariaLabel,
   className,
+  stickyRail = false,
 }: ConnectedTabsProps<Value>) {
   const rootRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
-  const geometry = useConnectedTabsGeometry({ value, rootRef, panelRef });
+  const geometry = useConnectedTabsGeometry({ value, rootRef, panelRef, stickyRail });
   const activeItem = items.find((item) => item.value === value);
   const hasMultipleEnabledItems = items.filter((item) => !item.disabled).length > 1;
   const selectAdjacent = (direction: -1 | 1) => onValueChange(findAdjacentEnabledValue({ value, items, direction }));
@@ -244,6 +252,7 @@ export function ConnectedTabs<Value extends string>({
         onValueChange={(nextValue) => onValueChange(nextValue as Value)}
         orientation="vertical"
         activationMode="automatic"
+        data-sticky-rail={stickyRail || undefined}
       >
         <div className={styles.surfaceLayer} aria-hidden>
           <GlassOutline geometry={geometry} />

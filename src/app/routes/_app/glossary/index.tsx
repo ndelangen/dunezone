@@ -17,6 +17,8 @@ import { useState } from 'react';
 import { publicPageHead } from '@app/routes/publicPage';
 
 import styles from './index.module.css';
+import { ProductTerms } from './ProductTerms';
+import { PRODUCT_TERMS, productTermMatches } from './productVocabulary';
 import { TeachingRunContext, TeachingTermContext } from './teaching';
 import { TopicVisual } from './TopicVisual';
 
@@ -169,6 +171,7 @@ function GlossaryPage() {
   const [query, setQuery] = useState('');
   const [onlyTopic, setOnlyTopic] = useState<GlossaryTopic | null>(null);
   const needle = query.trim().toLowerCase();
+  const hasProductMatches = !onlyTopic && PRODUCT_TERMS.some((term) => productTermMatches(term, query));
   const topics = GLOSSARY_TOPICS.filter((topic) => !onlyTopic || topic.id === onlyTopic)
     .map((topic) => ({
       topic,
@@ -221,7 +224,7 @@ function GlossaryPage() {
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <Stack gap="xl">
-          {topics.length === 0 ? <Text c="dimmed">No term matches that search.</Text> : null}
+          {topics.length === 0 && !hasProductMatches ? <Text c="dimmed">No term matches that search.</Text> : null}
           {topics.map(({ topic, terms }, index) => (
             <Section
               key={topic.id}
@@ -234,6 +237,7 @@ function GlossaryPage() {
               <TopicPane topic={topic.id} terms={terms} flip={index % 2 === 1} />
             </Section>
           ))}
+          {!onlyTopic ? <ProductTerms query={query} /> : null}
         </Stack>
       </PageLayout.Content>
     </PageLayout>

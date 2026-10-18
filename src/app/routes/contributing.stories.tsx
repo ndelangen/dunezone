@@ -1,51 +1,431 @@
 import preview from '@sb/preview';
-import { expect, userEvent, within } from 'storybook/test';
+import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { pageStoryMeta } from './storybookConfig';
 
-const meta = preview.meta({
-  title: 'Contributing',
-  ...pageStoryMeta,
-});
+const meta = preview.meta({ title: 'Contributing', ...pageStoryMeta });
 
-/** The guide's front page: what each sub-page covers, what the app is built from and how to run it. */
 export const Overview = meta.story({
   args: { path: '/contributing' },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await expect(page.findByRole('heading', { name: 'Contributing' }, { timeout: 30_000 })).resolves.toBeVisible();
-    await expect(page.findAllByRole('link', { name: /Technical glossary/ })).resolves.not.toHaveLength(0);
+    await expect(
+      page.findByRole('heading', { name: 'Contributing', level: 1 }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+    for (const title of [
+      'Start here',
+      'Codebase',
+      'Data',
+      'Interface',
+      'How it ships',
+      'Technical glossary',
+      'Design decisions',
+    ]) {
+      await expect(page.getByRole('heading', { name: title, level: 2 })).toBeVisible();
+      await expect(
+        page.getByRole('region', { name: title }).querySelector('[data-connected-tabs-mobile-picker]')
+      ).not.toBeNull();
+    }
+    const icons = page.getAllByRole('tab').map((tab) => tab.querySelector('svg')?.getAttribute('class'));
+    await expect(icons.every(Boolean)).toBe(true);
+    await expect(new Set(icons).size).toBe(icons.length);
   },
 });
 
-export const Code = meta.story({ args: { path: '/contributing/code' } });
-
-export const Deployment = meta.story({ args: { path: '/contributing/deployment' } });
-
-/** The technical glossary, found by the word it replaces: PageHead finds the page header. */
+export const Code = meta.story({
+  args: { path: '/contributing/code' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const tree = within(await page.findByRole('tree', { name: 'Repository files' }, { timeout: 30_000 }));
+    await userEvent.click(tree.getByText('Kit components render caller-supplied data.'));
+    await expect(tree.getByRole('link', { name: 'content/' })).toHaveAttribute(
+      'href',
+      'https://github.com/ndelangen/dunezone/tree/main/src/app/ui/content'
+    );
+  },
+});
+export const Deployment = meta.story({
+  args: { path: '/contributing/deployment' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const deployment = within(await page.findByRole('region', { name: 'How it ships' }, { timeout: 30_000 }));
+    const backend = within(deployment.getByRole('figure', { name: 'Step 2: Deploy compatible Convex functions' }));
+    await expect(backend.getByRole('img', { name: 'Convex runs new code, changes at this step' })).toBeVisible();
+    await expect(backend.getByRole('img', { name: 'Site Worker runs previous code' })).toBeVisible();
+    const game = within(deployment.getByRole('figure', { name: 'Step 5: Deploy the game Worker' }));
+    await expect(game.getByRole('img', { name: 'Game Worker runs new code, changes at this step' })).toBeVisible();
+    await expect(game.getByRole('img', { name: 'Site Worker runs previous code' })).toBeVisible();
+    const site = within(deployment.getByRole('figure', { name: 'Step 7: Deploy and check the site Worker' }));
+    await expect(site.getByRole('img', { name: 'Site Worker runs new code, changes at this step' })).toBeVisible();
+    await expect(site.getByRole('img', { name: 'Open tab runs previous code' })).toBeVisible();
+    await expect(deployment.getByRole('heading', { name: 'Check the commit' })).toBeVisible();
+    await expect(deployment.getByRole('heading', { name: 'Publish Storybook and queue image updates' })).toBeVisible();
+    await expect(deployment.queryByRole('button', { name: 'Next step' })).toBeNull();
+  },
+});
 export const Glossary = meta.story({
   args: { path: '/contributing/glossary' },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await expect(page.findByRole('heading', { name: 'Tint' }, { timeout: 30_000 })).resolves.toBeVisible();
-    await userEvent.type(page.getByRole('textbox', { name: 'Search the technical glossary' }), 'PageHead');
-    await expect(page.findByRole('heading', { name: 'Page header' })).resolves.toBeVisible();
-    await expect(page.queryByRole('heading', { name: 'Tint' })).toBeNull();
-    const guide = page.getByRole('navigation', { name: 'On this page' });
-    await expect(within(guide).getByRole('link', { name: 'Parts of a page' })).toBeVisible();
-    await expect(within(guide).queryByRole('link', { name: 'Boards and the Play table' })).toBeNull();
+    const glossary = within(await page.findByRole('region', { name: 'Technical glossary' }, { timeout: 30_000 }));
+    await expect(glossary.getByRole('tab', { name: 'Code structure' })).toHaveAttribute('aria-selected', 'true');
+    await expect(glossary.queryByRole('tab', { name: 'Parts of a page' })).toBeNull();
+    await expect(
+      page.getAllByRole('img', {
+        name: 'Application chrome contains the header band, optional page toolbar, main content and shell footer',
+      })
+    ).toHaveLength(1);
   },
 });
-
 export const DesignDecisions = meta.story({ args: { path: '/contributing/design-decisions' } });
 
+/** Topic choices stay independent, and no panel introduces another navigation level. */
 export const Navigation = meta.story({
   args: { path: '/contributing' },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    const code = await page.findByRole('tab', { name: 'How the code works' }, { timeout: 30_000 });
-    await userEvent.click(code);
-    await expect(page.findByRole('heading', { name: 'How the code works' })).resolves.toBeVisible();
-    await expect(page.getByRole('tab', { name: 'How the code works' })).toHaveAttribute('aria-selected', 'true');
+    const code = within(await page.findByRole('region', { name: 'Codebase' }, { timeout: 30_000 }));
+    const data = within(page.getByRole('region', { name: 'Data' }));
+    const glossary = within(page.getByRole('region', { name: 'Technical glossary' }));
+    const decisions = within(page.getByRole('region', { name: 'Design decisions' }));
+    await userEvent.click(code.getByRole('tab', { name: 'Checks' }));
+    await userEvent.click(data.getByRole('tab', { name: 'Reads and saves' }));
+    await userEvent.click(glossary.getByRole('tab', { name: 'Image terms' }));
+    await userEvent.click(decisions.getByRole('tab', { name: 'Layout and spacing' }));
+    for (const [section, title] of [
+      [code, 'Checks'],
+      [data, 'Reads and saves'],
+      [glossary, 'Image terms'],
+      [decisions, 'Layout and spacing'],
+    ] as const) {
+      await expect(section.getByRole('tab', { name: title })).toHaveAttribute('aria-selected', 'true');
+    }
+    for (const panel of page.getAllByRole('tabpanel')) {
+      await expect(within(panel).queryByRole('tablist')).toBeNull();
+      await expect(within(panel).queryByRole('combobox')).toBeNull();
+      await expect(within(panel).queryByRole('button', { name: 'Next step' })).toBeNull();
+      await expect(within(panel).queryByRole('button', { name: 'Previous step' })).toBeNull();
+    }
+  },
+});
+
+export const TechnologyStack = meta.story({
+  args: { path: '/contributing/stack' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const stack = within(await page.findByRole('tabpanel', { name: 'Technology stack' }, { timeout: 30_000 }));
+    await expect(stack.getByRole('link', { name: 'TanStack Router and Start' })).toHaveAttribute(
+      'href',
+      'https://tanstack.com/'
+    );
+    await expect(stack.getByRole('link', { name: 'Vite+' })).toHaveAttribute('href', 'https://viteplus.dev/');
+    await expect(stack.queryByRole('heading')).toBeNull();
+    await expect(stack.queryByText('What the application is built from.')).toBeNull();
+  },
+});
+export const LocalSetup = meta.story({
+  args: { path: '/contributing/setup' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const prompt = within(await page.findByRole('region', { name: 'Agent setup prompt' }, { timeout: 30_000 }));
+    await expect(prompt.getByRole('button', { name: 'Copy agent prompt' })).toBeVisible();
+    await expect(prompt.getByText(/Set up this Dune Zone checkout/)).toHaveTextContent('bun run app:dev --local');
+  },
+});
+export const PhoneNavigation = meta.story({
+  args: { path: '/contributing/glossary' },
+  globals: { viewport: { value: 'appMobile' } },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const picker = await page.findByRole('combobox', { name: 'Technical glossary topics' }, { timeout: 30_000 });
+    await userEvent.click(picker);
+    await userEvent.click(await page.findByRole('option', { name: 'Image terms' }));
+    const glossary = within(page.getByRole('region', { name: 'Technical glossary' }));
+    await expect(glossary.getByRole('tabpanel', { name: 'Image terms' })).toBeVisible();
+    await expect(glossary.getByRole('combobox', { name: 'Technical glossary topics' })).toHaveTextContent(
+      'Image terms'
+    );
+    await expect(page.getByRole('combobox', { name: 'Codebase topics' })).toHaveTextContent('Repository map');
+  },
+});
+
+export const PageData = meta.story({
+  args: { path: '/contributing/code/data' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const data = within(await page.findByRole('region', { name: 'Data' }, { timeout: 30_000 }));
+    const readers = data.getByLabelText('Signed-in viewers looking at the same faction');
+    await userEvent.clear(readers);
+    await userEvent.type(readers, '6');
+    await expect(data.getByRole('region', { name: 'Shared page query' })).toHaveTextContent(
+      '1 public page result for 6 viewers'
+    );
+    await expect(data.getByRole('region', { name: 'Viewer-dependent page query' })).toHaveTextContent(
+      'Up to 6 page-result variants'
+    );
+  },
+});
+export const PageInterface = meta.story({ args: { path: '/contributing/code/interface' } });
+export const CheckingChanges = meta.story({ args: { path: '/contributing/code/testing' } });
+export const Publishing = meta.story({ args: { path: '/contributing/deployment/publishing' } });
+export const SchemaChange = meta.story({
+  args: { path: '/contributing/deployment/schema' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const deployment = within(await page.findByRole('region', { name: 'How it ships' }, { timeout: 30_000 }));
+    const narrow = within(deployment.getByRole('region', { name: 'Narrow' }));
+    const old = within(deployment.getByRole('region', { name: 'Old shape' }));
+    const widen = within(deployment.getByRole('region', { name: 'Widen' }));
+    const migrate = within(deployment.getByRole('region', { name: 'Migrate' }));
+    const verify = within(deployment.getByRole('region', { name: 'Verify' }));
+    await expect(widen.getByRole('img', { name: /4 old records, 0 new records/ })).toBeVisible();
+    await expect(migrate.getByRole('img', { name: /2 old records, 2 new records/ })).toBeVisible();
+    await expect(verify.getByRole('img', { name: /0 old records, 4 new records/ })).toBeVisible();
+    await expect(verify.getByText('Accepted', { exact: true })).toBeVisible();
+    await expect(narrow.getByText('Rejected', { exact: true })).toBeVisible();
+    await expect(old.getByText('Accepted', { exact: true })).toBeVisible();
+    await userEvent.click(deployment.getByRole('switch', { name: 'Send the old client shape' }));
+    await expect(narrow.getByText('Accepted', { exact: true })).toBeVisible();
+    await expect(old.getByText('Rejected', { exact: true })).toBeVisible();
+    await expect(widen.getByText('Accepted', { exact: true })).toBeVisible();
+    await expect(widen.getByRole('img', { name: /4 old records, 0 new records/ })).toBeVisible();
+  },
+});
+export const PhoneRolloutDiagrams = meta.story({
+  args: { path: '/contributing/deployment' },
+  globals: { viewport: { value: 'appMobileNarrow' } },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const shipping = await page.findByRole('region', { name: 'How it ships' }, { timeout: 30_000 });
+    const diagramsFit = async () => {
+      for (const drawing of shipping.querySelectorAll<SVGSVGElement>('svg[role="img"]')) {
+        const bounds = drawing.getBoundingClientRect();
+        if (!bounds.width) {
+          continue;
+        }
+        for (const label of drawing.querySelectorAll('text')) {
+          const ink = label.getBoundingClientRect();
+          await expect(ink.left).toBeGreaterThanOrEqual(bounds.left - 1);
+          await expect(ink.right, `${drawing.getAttribute('aria-label')}: ${label.textContent}`).toBeLessThanOrEqual(
+            bounds.right + 1
+          );
+        }
+      }
+      const tooWide = Array.from(shipping.querySelectorAll<HTMLElement>('figure, section, ol, pre, code'))
+        .filter((element) => element.clientWidth > shipping.clientWidth)
+        .map((element) => `${element.tagName}.${element.className}: ${element.clientWidth}`);
+      await expect(shipping.scrollWidth, tooWide.join('\n')).toBeLessThanOrEqual(shipping.clientWidth + 1);
+    };
+    await expect(
+      within(shipping).getByRole('figure', { name: 'Step 7: Deploy and check the site Worker' })
+    ).toBeVisible();
+    await diagramsFit();
+    await userEvent.click(within(shipping).getByRole('combobox', { name: 'How it ships topics' }));
+    await userEvent.click(await page.findByRole('option', { name: 'Schema changes' }));
+    await expect(within(shipping).getByRole('region', { name: 'Verify' })).toBeVisible();
+    await diagramsFit();
+  },
+});
+export const PageAnatomy = meta.story({
+  args: { path: '/contributing/glossary/page' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const term = await page.findByRole('region', { name: 'Page toolbar' }, { timeout: 30_000 });
+    window.scrollBy(0, term.getBoundingClientRect().top - Math.min(window.innerHeight * 0.3, 240) + 1);
+    await waitFor(async () => {
+      const active = page
+        .getByRole('img', {
+          name: 'Application chrome contains the header band, optional page toolbar, main content and shell footer',
+        })
+        .querySelector('[data-region="toolbar"]');
+      await expect(active).toHaveAttribute('data-active', 'true');
+    });
+  },
+});
+export const CodeStructure = meta.story({ args: { path: '/contributing/glossary/structure' } });
+export const BoardsAndTints = meta.story({
+  args: { path: '/contributing/glossary/board' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const glossary = within(await page.findByRole('region', { name: 'Dune Zone product terms' }, { timeout: 30_000 }));
+    await userEvent.click(glossary.getByRole('switch', { name: 'Add stickers' }));
+    await userEvent.click(glossary.getByRole('switch', { name: 'Outline only' }));
+    await expect(glossary.getByRole('status')).toHaveTextContent(
+      'Strongholds: 5 territories, outline only, with stickers.'
+    );
+    await userEvent.click(glossary.getByRole('radio', { name: 'Spice blow' }));
+    await expect(glossary.getByRole('status')).toHaveTextContent(
+      'Spice blow: 3 territories, outline only, with stickers.'
+    );
+    await userEvent.click(glossary.getByRole('tab', { name: 'Play' }));
+    await expect(glossary.getByRole('figure', { name: 'Game stages and the phases inside play' })).toHaveTextContent(
+      'Mentat Pause'
+    );
+    await userEvent.click(glossary.getByRole('tab', { name: 'Artwork' }));
+    await expect(glossary.getByRole('heading', { name: 'Decal' })).toBeVisible();
+    await expect(glossary.getByRole('heading', { name: 'Edition' })).toBeVisible();
+  },
+});
+export const PublishingWords = meta.story({
+  args: { path: '/contributing/glossary/assets' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const diagram = await page.findByRole(
+      'figure',
+      { name: 'How records, publication jobs and public images connect' },
+      { timeout: 30_000 }
+    );
+    await expect(diagram).toHaveTextContent('1. Queue the asset');
+    await expect(diagram).toHaveTextContent('2. Capture in a browser');
+    await expect(diagram).toHaveTextContent('3. Serve the publication');
+    await expect(within(diagram).getByRole('link', { name: 'Cloudflare R2 object storage' })).toHaveAttribute(
+      'href',
+      'https://developers.cloudflare.com/r2/'
+    );
+    await expect(within(diagram).getByRole('link', { name: 'Cloudflare Browser Run' })).toHaveAttribute(
+      'href',
+      'https://developers.cloudflare.com/browser-run/'
+    );
+    await expect(
+      within(diagram).getByRole('img', {
+        name: 'R2 stores a captured image file, then a public page displays that image through PublishedImage',
+      })
+    ).toBeVisible();
+  },
+});
+export const DataWords = meta.story({
+  args: { path: '/contributing/glossary/data' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const name = await page.findByRole('textbox', { name: 'Try a faction name' }, { timeout: 30_000 });
+    await userEvent.clear(name);
+    await userEvent.type(name, 'Desert Alliance');
+    await expect(page.getByRole('status', { name: 'Example faction URL' })).toHaveTextContent(
+      'https://dune.zone/factions/desert-alliance'
+    );
+  },
+});
+export const ComponentDecisions = meta.story({ args: { path: '/contributing/design-decisions/components' } });
+export const LayoutDecisions = meta.story({
+  args: { path: '/contributing/design-decisions/layout' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const slider = await page.findByRole('slider', { name: 'Container width' }, { timeout: 30_000 });
+    await expect(page.getByRole('figure', { name: 'AtlasLayout named slots' })).toBeVisible();
+    await expect(page.getByLabelText('Named slots · TSX')).toHaveTextContent('AtlasLayout.Content');
+    await expect(
+      page.getByRole('img', { name: 'Avoid: a menu opens an editor which opens another floating picker' })
+    ).toBeVisible();
+    const items = page.getByLabelText('Responsive layout demonstration').children;
+    slider.focus();
+    await userEvent.keyboard('{Home}');
+    await expect(slider).toHaveAttribute('aria-valuenow', '240');
+    await expect(items[1]!.getBoundingClientRect().top).toBeGreaterThan(items[0]!.getBoundingClientRect().top);
+    await userEvent.keyboard('{End}');
+    await expect(slider).toHaveAttribute('aria-valuenow', '800');
+    await expect(items[1]!.getBoundingClientRect().top).toBe(items[0]!.getBoundingClientRect().top);
+  },
+});
+export const DataDecisions = meta.story({ args: { path: '/contributing/design-decisions/data' } });
+export const InteractionDecisions = meta.story({
+  args: { path: '/contributing/design-decisions/look' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const toolbar = within(await page.findByRole('toolbar', { name: 'Example faction toolbar' }, { timeout: 30_000 }));
+    await userEvent.click(toolbar.getByRole('button', { name: 'Save sample' }));
+    await expect(page.getByText('Sample saved in this example.')).toBeVisible();
+    await userEvent.click(toolbar.getByRole('button', { name: 'Reset sample' }));
+    const deletion = within(page.getByRole('region', { name: 'Hold to delete' }));
+    const trigger = deletion.getByRole('button', { name: 'Delete sample' });
+    const pointer = userEvent.setup();
+    await pointer.pointer([{ keys: '[MouseLeft>]', target: trigger }]);
+    await expect(trigger).toHaveTextContent('deletion in 5..');
+    await pointer.pointer([{ keys: '[/MouseLeft]', target: trigger }]);
+    await expect(trigger).toHaveTextContent('Delete sample');
+    await expect(deletion.queryByText('Sample deleted')).toBeNull();
+    await pointer.pointer([{ keys: '[MouseLeft>]', target: trigger }]);
+    await expect(deletion.findByText('Sample deleted', {}, { timeout: 8000 })).resolves.toBeVisible();
+    await pointer.pointer([{ keys: '[/MouseLeft]' }]);
+    await userEvent.click(deletion.getByRole('button', { name: 'Restore sample' }));
+    await expect(deletion.getByRole('button', { name: 'Delete sample' })).toBeVisible();
+  },
+});
+export const CodeDecisions = meta.story({
+  args: { path: '/contributing/design-decisions/code' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const example = await page.findByLabelText(
+      'Test the refusal a caller receives · Convex seam test excerpt',
+      {},
+      { timeout: 30_000 }
+    );
+    await expect(example).toHaveTextContent('rejects.toThrow("Not authorized")');
+    await expect(page.getByLabelText('Avoid · the comment repeats the value')).toHaveTextContent('120_000');
+    await expect(page.getByLabelText('Use · explain why the query stays open')).toHaveTextContent('back navigation');
+  },
+});
+
+export const DataLifecycle = meta.story({
+  args: { path: '/contributing?data=lifecycle#guide-data' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const example = within(
+      await page.findByRole('figure', { name: 'A save updates both subscribed browsers' }, { timeout: 30_000 })
+    );
+    const name = example.getByRole('textbox', { name: 'Try a local name change' });
+    const save = example.getByRole('button', { name: 'Save sample name' });
+    await expect(save).toBeDisabled();
+    await userEvent.clear(name);
+    await userEvent.type(name, 'Desert Alliance');
+    await expect(example.getByRole('img', { name: 'Another reader shows House Atreides' })).toBeVisible();
+    await userEvent.click(save);
+    await expect(example.getByRole('img', { name: 'Your page shows Desert Alliance' })).toBeVisible();
+    await expect(example.getByRole('img', { name: 'Another reader shows Desert Alliance' })).toBeVisible();
+    await expect(save).toBeDisabled();
+    await userEvent.clear(name);
+    await userEvent.type(name, '   ');
+    await expect(save).toBeDisabled();
+    await expect(example.getByRole('status')).toHaveTextContent('Both readers now show Desert Alliance.');
+  },
+});
+export const PhoneSaveLoop = meta.story({
+  args: { path: '/contributing?data=lifecycle#guide-data' },
+  globals: { viewport: { value: 'appMobileNarrow' } },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const figure = await page.findByRole(
+      'figure',
+      { name: 'A save updates both subscribed browsers' },
+      { timeout: 30_000 }
+    );
+    const example = within(figure);
+    const name = example.getByRole('textbox', { name: 'Try a local name change' });
+    await userEvent.clear(name);
+    await userEvent.type(name, 'Desert Alliance');
+    await userEvent.click(example.getByRole('button', { name: 'Save sample name' }));
+    await expect(
+      example.getByRole('img', { name: /Your page and another reader both show Desert Alliance/ })
+    ).toBeVisible();
+    await expect(figure.scrollWidth).toBeLessThanOrEqual(figure.clientWidth);
+  },
+});
+export const ComponentMembrane = meta.story({
+  args: { path: '/contributing?ui=membrane#guide-ui' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(
+      page.findByRole(
+        'img',
+        {
+          name: 'Use: the page reads data and passes a name in; the component reports a change and the page saves it',
+        },
+        { timeout: 30_000 }
+      )
+    ).resolves.toBeVisible();
+    await expect(
+      page.getByRole('img', {
+        name: 'Avoid: a component fetches from the database and navigates without involving its caller',
+      })
+    ).toBeVisible();
   },
 });

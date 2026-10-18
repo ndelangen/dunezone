@@ -1,0 +1,182 @@
+.root {
+  container: guide-experiment / inline-size;
+  min-width: 0;
+}
+.journey {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+.journey > li {
+  border-inline-start: 2px solid var(--color-muted);
+  padding-inline-start: var(--space-md);
+}
+.membrane {
+  width: 100%;
+  height: auto;
+}
+.membraneExamples {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+  gap: var(--space-lg);
+}
+.contractFigure {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin: 0;
+}
+.membrane rect {
+  fill: none;
+  stroke: var(--color-muted);
+  stroke-width: 2;
+}
+.membrane path {
+  fill: none;
+  stroke: var(--color-muted);
+  stroke-width: 2;
+}
+.membrane text {
+  fill: var(--color-text);
+  font-size: 15px;
+  font-family: var(--mantine-font-family);
+}
+.membrane .values {
+  color: var(--action-export-fg);
+}
+.membrane .intents {
+  color: var(--action-positive-fg);
+}
+.membrane .values path,
+.membrane .intents path {
+  stroke: currentColor;
+  stroke-width: 2;
+}
+.membrane .values text,
+.membrane .intents text {
+  fill: currentColor;
+}
+.membrane .callerOutline {
+  stroke: var(--color-muted);
+}
+.membrane .boundary {
+  stroke: var(--action-publish-fg);
+  stroke-dasharray: 5 4;
+}
+.membrane .membraneLabel {
+  fill: var(--action-publish-fg);
+}
+.membrane .bypass path {
+  stroke: var(--color-error);
+}
+.membrane .bypass text {
+  fill: var(--color-error);
+}
+.schemaStages {
+  display: flex;
+  flex-direction: column;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  gap: var(--space-xl);
+  counter-reset: schema-stage;
+}
+.schemaStages > li {
+  counter-increment: schema-stage;
+  position: relative;
+  padding-inline-start: var(--space-xl);
+  border-inline-start: 2px solid var(--action-export-fg);
+}
+.schemaStages > li::before {
+  content: counter(schema-stage);
+  position: absolute;
+  inset-inline-start: var(--space-xs);
+  top: 0;
+  color: var(--action-export-fg);
+  font-weight: 700;
+}
+.schemaStages > li:not(:last-child)::after {
+  content: "↓";
+  position: absolute;
+  inset-inline-start: var(--space-xs);
+  bottom: calc(-1 * var(--space-lg));
+  color: var(--action-export-fg);
+}
+.schemaSnapshot {
+  display: block;
+  width: 100%;
+  max-width: 30rem;
+  height: auto;
+  fill: none;
+  stroke: var(--color-muted);
+  stroke-width: 1.6;
+}
+.schemaStageBody {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-lg);
+}
+@container guide-experiment (width >= 48rem) {
+  .schemaStageBody {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+.schemaSnapshot text {
+  fill: var(--color-text);
+  stroke: none;
+  font: 15px var(--mantine-font-family);
+}
+.schemaSnapshot .fieldLabel {
+  font: 10px var(--mantine-font-family-monospace);
+}
+.schemaSnapshot .legacyShape {
+  color: var(--action-publish-fg);
+}
+.schemaSnapshot .newShape {
+  color: var(--action-export-fg);
+}
+.schemaSnapshot .acceptedShape {
+  color: var(--action-positive-fg);
+}
+.schemaSnapshot .rejectedShape {
+  color: var(--color-error);
+}
+.schemaSnapshot .legacyShape,
+.schemaSnapshot .newShape,
+.schemaSnapshot .acceptedShape,
+.schemaSnapshot .rejectedShape {
+  stroke: currentColor;
+}
+.schemaSnapshot .legacyShape text,
+.schemaSnapshot .newShape text,
+.schemaSnapshot text.legacyShape,
+.schemaSnapshot text.newShape,
+.schemaSnapshot .acceptedShape text,
+.schemaSnapshot .rejectedShape text {
+  fill: currentColor;
+  stroke: none;
+}
+.resizeHost {
+  container: lesson-room / inline-size;
+  max-width: 100%;
+}
+.resizeGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-sm);
+}
+.resizeItem {
+  padding: var(--space-md);
+  border: 2px dashed var(--color-link);
+  text-align: center;
+  font-family: var(--mantine-font-family-monospace);
+}
+@container lesson-room (width >= 30rem) {
+  .resizeGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
