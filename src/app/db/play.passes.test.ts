@@ -1,4 +1,4 @@
-import { signSeatPass } from '@shared/play/seatPass';
+import { testSeatPass as seatPass } from '@shared/play/seatPass.test.fixture';
 import { getFunctionName } from 'convex/server';
 import { afterEach, beforeEach, expect, test, vi } from 'vite-plus/test';
 
@@ -8,22 +8,6 @@ vi.mock('@db/core', () => ({ db: { mutation: mocks.mutation } }));
 
 import { rememberSeatPass, requestPlayAdmission, watchSeatPass } from './play';
 
-function seatPass(exp: number, identity: { principalId?: string; actorId?: string } = {}) {
-  return signSeatPass('a'.repeat(64), {
-    v: 1,
-    gameId: 'game',
-    actorId: 'user',
-    principalId: 'user',
-    sessionId: 'session',
-    sessionCreatedAt: 0,
-    issuedAt: Date.now(),
-    exp,
-    displayName: 'Player',
-    avatarUrl: null,
-    profileSlug: null,
-    ...identity,
-  });
-}
 const called = () => mocks.mutation.mock.calls.map(([reference]) => getFunctionName(reference));
 
 beforeEach(() => {

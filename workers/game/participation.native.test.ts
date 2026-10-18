@@ -1,49 +1,25 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test';
 
-import { arrakisBoardCapture } from '../../src/shared/play/fixtures/board';
-import type { PieceAction } from '../../src/shared/play/protocol';
 import { PLAY_SEAT_LIMIT_APPROVAL_MESSAGE, PLAY_SEAT_LIMIT_MESSAGE } from '../../src/shared/play/seatLimit';
-import { cardPage, deckPage, slot } from './native-catalogue.fixture.ts';
+import { realGame, rejected } from './native-real-game.fixture.ts';
 import { readHistoricalSnapshot } from './native-runtime.fixture.ts';
-import type { NativeView, NativeConnection } from './native-runtime.fixture.ts';
+import type { NativeView } from './native-runtime.fixture.ts';
 import { required } from './native-runtime.fixture.ts';
 import type { NativePeer, NativeRuntime } from './native-runtime.fixture.ts';
 import {
   accepted,
   admitPlayer,
-  createPeer,
-  createRuntime,
   eventually,
-  provision,
   seat,
   sendCommand,
   storedEventMessages,
   syncView,
 } from './native-runtime.fixture.ts';
 
-const CREATOR = { userId: 'user-a', displayName: 'Synthetic A' };
-
 describe('Explicit participation on a real game', () => {
   let peer: NativePeer, runtime: NativeRuntime;
   beforeEach(async () => {
-    peer = await createPeer();
-    peer.watchMode = 'allow';
-    peer.expiresAt = () => Date.now() + 600_000;
-    peer.game = { rulesetId: 'ruleset-one', minimumPlayers: 3, creator: CREATOR };
-    const card = cardPage('card-one');
-    const [treachery, spice] = [deckPage('treachery-deck', [card]), deckPage('spice-deck', [card], 5)];
-    for (const page of [card, treachery, spice]) {
-      peer.catalogue.set(`${page.asset.type}/${page.asset.slug}`, page);
-    }
-    peer.rulesets.set('ruleset-one', {
-      board: arrakisBoardCapture,
-      ruleset: { id: 'ruleset-one', slug: 'classic', name: 'Classic' },
-      slots: [slot('treachery', treachery), slot('spice', spice)],
-    });
-    runtime = await createRuntime(peer, 'game');
-    if ((await provision(runtime)).status !== 200) {
-      throw new Error('The real game did not provision.');
-    }
+    ({ peer, runtime } = await realGame());
   });
   afterEach(async () => {
     await runtime?.close();
@@ -66,12 +42,6 @@ describe('Explicit participation on a real game', () => {
         deletionOperationId: `operation-${userId}`,
       }),
     });
-
-  const rejected = async (connection: NativeConnection, action: PieceAction) => {
-    const { reply } = await sendCommand(connection, action);
-    expect(reply.type).toBe('rejected');
-    return required(reply.type === 'rejected' ? reply.message : undefined);
-  };
 
   it('seats a watching visitor only through a request one current player approves, in server order', async () => {
     const a = await admit('a');

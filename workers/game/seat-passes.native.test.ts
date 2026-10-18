@@ -1,22 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test';
 
-import { arrakisBoardCapture } from '../../src/shared/play/fixtures/board';
-import type { PieceAction } from '../../src/shared/play/protocol';
 import { ADMISSION_REFUSED_CLOSE_CODE, TICKET_EXPIRED_CLOSE_CODE } from '../../src/shared/play/protocol';
 import { PLAY_SEAT_LIMIT_MESSAGE } from '../../src/shared/play/seatLimit';
-import { cardPage, deckPage, slot } from './native-catalogue.fixture.ts';
+import { realGame, rejected } from './native-real-game.fixture.ts';
 import type { NativeConnection, NativePeer, NativeRuntime } from './native-runtime.fixture.ts';
 import {
   admitPlayer,
   admitWithPass,
-  createPeer,
-  createRuntime,
   eventually,
   fixturePass,
   openGame,
-  provision,
   pushSessionCutoff,
-  required,
   sendCommand,
   syncView,
 } from './native-runtime.fixture.ts';
@@ -24,28 +18,7 @@ import {
 describe('Seat passes admit players without the room asking Convex about them', () => {
   let peer: NativePeer, runtime: NativeRuntime;
   beforeEach(async () => {
-    peer = await createPeer();
-    peer.watchMode = 'allow';
-    peer.expiresAt = () => Date.now() + 600_000;
-    peer.game = {
-      rulesetId: 'ruleset-one',
-      minimumPlayers: 3,
-      creator: { userId: 'user-a', displayName: 'Synthetic A' },
-    };
-    const card = cardPage('card-one');
-    const [treachery, spice] = [deckPage('treachery-deck', [card]), deckPage('spice-deck', [card], 5)];
-    for (const page of [card, treachery, spice]) {
-      peer.catalogue.set(`${page.asset.type}/${page.asset.slug}`, page);
-    }
-    peer.rulesets.set('ruleset-one', {
-      board: arrakisBoardCapture,
-      ruleset: { id: 'ruleset-one', slug: 'classic', name: 'Classic' },
-      slots: [slot('treachery', treachery), slot('spice', spice)],
-    });
-    runtime = await createRuntime(peer, 'game');
-    if ((await provision(runtime)).status !== 200) {
-      throw new Error('The real game did not provision.');
-    }
+    ({ peer, runtime } = await realGame());
   });
   afterEach(async () => {
     await runtime?.close();
@@ -55,11 +28,6 @@ describe('Seat passes admit players without the room asking Convex about them', 
   const calls = (name: string) => peer.requests.filter((request) => request.function === name);
   const admissionStatuses = (connection: NativeConnection) =>
     connection.messages.flatMap((message) => (message.type === 'admission' ? [message.status] : []));
-  const rejected = async (connection: NativeConnection, action: PieceAction) => {
-    const { reply } = await sendCommand(connection, action);
-    expect(reply.type).toBe('rejected');
-    return required(reply.type === 'rejected' ? reply.message : undefined);
-  };
   async function refusedWith(raw: Promise<string>) {
     const connection = await openGame(runtime);
     connection.send({ type: 'admit', supportsBoard: true, pass: await raw });

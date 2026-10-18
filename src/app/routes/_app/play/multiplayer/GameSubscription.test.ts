@@ -11,7 +11,7 @@ import {
   KEEPALIVE_PONG,
   TICKET_EXPIRED_CLOSE_CODE,
 } from '@shared/play/protocol';
-import { signSeatPass } from '@shared/play/seatPass';
+import { testSeatPass as seatPass } from '@shared/play/seatPass.test.fixture';
 import { frameChange } from '@shared/play/updates';
 import type { RoomView } from '@shared/play/updates';
 import { afterEach, beforeEach, expect, test, vi } from 'vite-plus/test';
@@ -531,20 +531,17 @@ test('a refusal that arrives only as the close code still says why', async () =>
   });
 });
 
-function seatPass(exp: number) {
-  return signSeatPass('a'.repeat(64), {
-    v: 1,
-    gameId: 'game',
-    actorId: 'user',
-    principalId: 'user',
-    sessionId: 'session',
-    sessionCreatedAt: 0,
-    issuedAt: Date.now(),
-    exp,
-    displayName: 'Player',
-    avatarUrl: null,
-    profileSlug: null,
-  });
+/** A table admitted with a long-lived pass, whose admission requests the test can answer differently from then on. */
+async function passTable() {
+  const pass = await seatPass(Date.now() + 60 * 60_000);
+  const requestTicket = vi.fn(async (_gameId: string, _options?: { renew?: boolean }) => ({ ok: true as const, pass }));
+  const subscription = new GameSubscription('game', requestTicket, runtime, () => () => true);
+  stops.push(subscription.subscribe(vi.fn()));
+  await vi.advanceTimersByTimeAsync(0);
+  const socket = Socket.instances.at(-1)!;
+  socket.open();
+  socket.deliver(initial());
+  return { subscription, requestTicket, socket };
 }
 
 test('a seat pass admits, hands a fresher one to the open socket and renews before it ends or when the room says it ran out', async () => {
@@ -602,14 +599,7 @@ test('a socket closed for an expired pass reconnects with a renewed one', async 
 });
 
 test('a renewal the room asked for retries after a busy answer, waiting as long as Convex says', async () => {
-  const pass = await seatPass(Date.now() + 60 * 60_000);
-  const requestTicket = vi.fn(async (_gameId: string, _options?: { renew?: boolean }) => ({ ok: true as const, pass }));
-  const subscription = new GameSubscription('game', requestTicket, runtime, () => () => true);
-  stops.push(subscription.subscribe(vi.fn()));
-  await vi.advanceTimersByTimeAsync(0);
-  const socket = Socket.instances.at(-1)!;
-  socket.open();
-  socket.deliver(initial());
+  const { requestTicket, socket } = await passTable();
   requestTicket.mockResolvedValueOnce({ ok: false, reason: 'rate_limited', retryAfterMs: 5000 } as never);
   const before = requestTicket.mock.calls.length;
   socket.deliver({ type: 'admission', status: 'pass-expired' });
@@ -620,14 +610,7 @@ test('a renewal the room asked for retries after a busy answer, waiting as long 
 });
 
 test('a renewal Convex refuses after the room calls the pass expired ends the table instead of pausing it forever', async () => {
-  const pass = await seatPass(Date.now() + 60 * 60_000);
-  const requestTicket = vi.fn(async (_gameId: string, _options?: { renew?: boolean }) => ({ ok: true as const, pass }));
-  const subscription = new GameSubscription('game', requestTicket, runtime, () => () => true);
-  stops.push(subscription.subscribe(vi.fn()));
-  await vi.advanceTimersByTimeAsync(0);
-  const socket = Socket.instances.at(-1)!;
-  socket.open();
-  socket.deliver(initial());
+  const { subscription, requestTicket, socket } = await passTable();
   requestTicket.mockResolvedValueOnce({ ok: false, reason: 'not_authorized' } as never);
   socket.deliver({ type: 'admission', status: 'pass-expired' });
   await vi.advanceTimersByTimeAsync(0);
