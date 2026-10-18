@@ -29,6 +29,33 @@ function rendererFor(canvas: HTMLCanvasElement, init = async () => {}) {
   };
 }
 
+async function startPendingDisposal(outcome: 'successful' | 'failed') {
+  const warn = vi.spyOn(console, 'warn');
+  const disposalError = new Error('backend disposal failed');
+  let finish!: () => void;
+  const disposing = new Promise<void>((resolve, reject) => {
+    finish = () => (outcome === 'failed' ? reject(disposalError) : resolve());
+  });
+  if (outcome === 'failed') {
+    warn.mockImplementation(() => {});
+  }
+  const canvas = document.createElement('canvas');
+  const originalRenderer = rendererFor(canvas);
+  originalRenderer.dispose.mockImplementation(() => disposing);
+  const first = createRoot(canvas);
+  await first.configure({ renderer: () => originalRenderer as unknown as WebGPURenderer, frameloop: 'never' });
+  await act(async () => {
+    first.render(<group name="first" />);
+  });
+  vi.useFakeTimers();
+  await act(async () => {
+    first.unmount();
+  });
+  await vi.advanceTimersByTimeAsync(500);
+  expect(originalRenderer.dispose).toHaveBeenCalledOnce();
+  return { warn, disposalError, finish, canvas, originalRenderer };
+}
+
 function InvalidateOnUnmount() {
   useFrame(() => {});
   const invalidate = useThree((state) => state.invalidate);
@@ -291,29 +318,7 @@ test('a completed root handle cannot unmount a new root on the same canvas', asy
 test.each(['successful', 'failed'] as const)(
   'a remount waits for %s asynchronous disposal before creating a fresh renderer',
   async (outcome) => {
-    const warn = vi.spyOn(console, 'warn');
-    const disposalError = new Error('backend disposal failed');
-    let finish!: () => void;
-    const disposing = new Promise<void>((resolve, reject) => {
-      finish = () => (outcome === 'failed' ? reject(disposalError) : resolve());
-    });
-    if (outcome === 'failed') {
-      warn.mockImplementation(() => {});
-    }
-    const canvas = document.createElement('canvas');
-    const originalRenderer = rendererFor(canvas);
-    originalRenderer.dispose.mockImplementation(() => disposing);
-    const first = createRoot(canvas);
-    await first.configure({ renderer: () => originalRenderer as unknown as WebGPURenderer, frameloop: 'never' });
-    await act(async () => {
-      first.render(<group name="first" />);
-    });
-    vi.useFakeTimers();
-    await act(async () => {
-      first.unmount();
-    });
-    await vi.advanceTimersByTimeAsync(500);
-    expect(originalRenderer.dispose).toHaveBeenCalledOnce();
+    const { warn, disposalError, finish, canvas, originalRenderer } = await startPendingDisposal(outcome);
     const renderer = rendererFor(canvas);
     const makeRenderer = vi.fn(() => renderer as unknown as WebGPURenderer);
     const replacement = createRoot(canvas);
@@ -350,29 +355,7 @@ test.each(['successful', 'failed'] as const)(
 test.each(['successful', 'failed'] as const)(
   'repeated waiting replacements inherit the %s disposal gate and create only the latest renderer',
   async (outcome) => {
-    const warn = vi.spyOn(console, 'warn');
-    const disposalError = new Error('backend disposal failed');
-    let finish!: () => void;
-    const disposing = new Promise<void>((resolve, reject) => {
-      finish = () => (outcome === 'failed' ? reject(disposalError) : resolve());
-    });
-    if (outcome === 'failed') {
-      warn.mockImplementation(() => {});
-    }
-    const canvas = document.createElement('canvas');
-    const originalRenderer = rendererFor(canvas);
-    originalRenderer.dispose.mockImplementation(() => disposing);
-    const first = createRoot(canvas);
-    await first.configure({ renderer: () => originalRenderer as unknown as WebGPURenderer, frameloop: 'never' });
-    await act(async () => {
-      first.render(<group name="first" />);
-    });
-    vi.useFakeTimers();
-    await act(async () => {
-      first.unmount();
-    });
-    await vi.advanceTimersByTimeAsync(500);
-    expect(originalRenderer.dispose).toHaveBeenCalledOnce();
+    const { warn, disposalError, finish, canvas, originalRenderer } = await startPendingDisposal(outcome);
     const unconfigured = createRoot(canvas);
     await act(async () => {
       unconfigured.unmount();
