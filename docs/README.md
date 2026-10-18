@@ -465,6 +465,7 @@ the geometry used to fit illustrations after square normalization.
 - [Data Layer](./data-layer.md) - Domain patterns, DB syncing, structure
 - [Routing](./routing.md) - Route configuration, file-based routing
 - [Authentication](./authentication.md) - Auth patterns, Convex Auth integration
+- [Content security policy](./content-security-policy.md) - Browser resource origins, inline scripts and cached HTML delivery
 - [User Data Contract](./user-data-contract.md) - What belongs in `users` vs `profiles`
 - [State Management](./state-management.md) - Convex live subscriptions, the loader/`initialData` handoff
 - [Membership](./membership.md) - Group membership approval flow
