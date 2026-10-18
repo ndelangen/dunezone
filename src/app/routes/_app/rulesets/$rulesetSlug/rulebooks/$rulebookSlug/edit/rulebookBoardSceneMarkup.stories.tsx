@@ -7,6 +7,8 @@ import { RULEBOOK_BOARD_DEFINITIONS } from '@shared/rulebooks/boardDefinitions';
 import type { RulebookBlockDraft } from '@shared/rulebooks/contents';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
+import { db } from '@db/storybook';
+
 import { SceneEditorStory } from './rulebookScenes.stories.fixture';
 import type { RulebookEditorReferences } from './rulebookVisualBlockEditors';
 
@@ -111,5 +113,20 @@ export const PaintOnThePreview = meta.story({
     await waitFor(() =>
       expect(canvasElement.querySelectorAll('[data-tint="tint-spice"] path').length).toBeGreaterThan(before)
     );
+  },
+});
+
+/** The Board field lists the maintained map and the saved boards, each beside its face; the saved boards load once it opens. */
+export const ChooseABoard = meta.story({
+  /* The story database's baseline catalogue holds a saved board, which the Board field lists once opened. */
+  parameters: { database: db((baseline) => baseline) },
+  render: () => <SceneEditorStory kind="board" initial={scene} references={references} />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const field = await canvas.findByRole('combobox', { name: 'Board' }, { timeout: 20_000 });
+    await expect(field).toHaveValue('Arrakis Official');
+    await userEvent.click(field);
+    const body = within(canvasElement.ownerDocument.body);
+    await expect(await body.findByRole('option', { name: /Arrakis Official/ })).toBeVisible();
   },
 });

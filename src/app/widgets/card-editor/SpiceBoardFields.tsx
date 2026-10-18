@@ -1,14 +1,15 @@
-import { Button, Group, Slider, Stack, Text } from '@mantine/core';
+import { Slider } from '@mantine/core';
 import { SPICE_BOARD_LOOKS } from '@shared/assets/schema';
 import type { CustomCardTokens, SpiceBoardLink } from '@shared/assets/schema';
 import type { Board } from '@shared/boards/schema';
 import { legacyHighlightTint } from '@shared/boards/spiceHighlights';
+import { RULEBOOK_BOARD_DEFINITIONS } from '@shared/rulebooks/boardDefinitions';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { PreviewChoice } from '@ui/control/PreviewChoice';
-import { useState } from 'react';
 import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
+import type { BoardSelect } from '@app/pickers/BoardPicker';
 import { BoardTintFields, BoardTokenFields } from '@app/widgets/board-markup/BoardMarkupFields';
 import type { AssetPick, BoardMarkupFocus } from '@app/widgets/board-markup/BoardMarkupFields';
 import { CardToken } from '@game/assets/card/CardToken';
@@ -37,16 +38,8 @@ export type SpiceBoardRead =
 /** The editor's state for the card's map that the live proof needs too: which tint paints and which token is open. */
 export type SpiceMapFocus = BoardMarkupFocus;
 
-/** What the card's map draws from: the classic map, or the linked board by name once it has loaded. */
-function boardLabel(link: Link | undefined, read: SpiceBoardRead) {
-  if (!link) {
-    return 'The classic Arrakis map';
-  }
-  if (!read) {
-    return 'Loading board...';
-  }
-  return read.boardName ?? 'This board is no longer available. Choose another.';
-}
+/** The classic map's place among the boards; choosing it unlinks the card's board. */
+const CLASSIC_MAP = 'classic';
 
 const LOOK_LABELS: Record<Look['style'], string> = { burnt: 'Burnt in', sepia: 'Sepia', plain: 'Plain' };
 const DEFAULT_LOOK: Look = { style: 'burnt', strength: 1 };
@@ -99,49 +92,45 @@ function LookChoice({
   );
 }
 
-/** The saved board the card draws, and the way back to the classic map. */
+/** The saved board the card draws, or the classic map, in one field with each board's face beside its name. */
 function BoardChoice({
   link,
   read,
-  boardPicker,
+  boardSelect,
   onBoard,
   onUnlink,
 }: Readonly<{
   link: Link | undefined;
   read: SpiceBoardRead;
-  boardPicker: AssetPick;
+  boardSelect: BoardSelect;
   onBoard: (id: string) => void;
   onUnlink: () => void;
 }>) {
-  const [picking, setPicking] = useState(false);
+  const chosenName = read ? (read.boardName ?? 'Unavailable board') : 'Loading board...';
   return (
     <ControlBlock
       title="Board"
-      description="The saved board the card's map draws. Saving that board redraws this card."
-      input={
-        <Stack gap="xs">
-          <Text size="sm">{boardLabel(link, read)}</Text>
-          <Group gap="xs">
-            <Button variant="default" size="compact-sm" onClick={() => setPicking(true)}>
-              {link ? 'Replace board' : 'Use a saved board'}
-            </Button>
-            {link ? (
-              <Button variant="subtle" color="gray" size="compact-sm" onClick={onUnlink}>
-                Use the classic map
-              </Button>
-            ) : null}
-          </Group>
-          {picking
-            ? boardPicker(
-                (id) => {
-                  onBoard(id);
-                  setPicking(false);
-                },
-                () => setPicking(false)
-              )
-            : null}
-        </Stack>
-      }
+      description="The board the card's map draws: the classic Arrakis map, or a saved board. Saving that board redraws this card."
+      input={boardSelect({
+        label: 'Board',
+        value: link?.asset_id ?? CLASSIC_MAP,
+        fixed: [
+          {
+            id: CLASSIC_MAP,
+            name: 'The classic Arrakis map',
+            previewSrc: RULEBOOK_BOARD_DEFINITIONS[0]?.imageUrl ?? null,
+            collection: 'Classic map',
+          },
+        ],
+        selected: link ? { id: link.asset_id, name: chosenName, previewSrc: null } : undefined,
+        onPick: (id) => {
+          if (id === CLASSIC_MAP) {
+            onUnlink();
+          } else if (id !== link?.asset_id) {
+            onBoard(id);
+          }
+        },
+      })}
     />
   );
 }
@@ -155,14 +144,14 @@ export function SpiceMapFields({
   onLink,
   read,
   focus,
-  boardPicker,
+  boardSelect,
   classic,
 }: Readonly<{
   draft: { board?: Link; highlights: Parameters<typeof legacyHighlightTint>[0]; subName: string };
   onLink: (link: Link | undefined) => void;
   read: SpiceBoardRead;
   focus: SpiceMapFocus;
-  boardPicker: AssetPick;
+  boardSelect: BoardSelect;
   classic: ReactNode;
 }>) {
   const link = draft.board;
@@ -170,7 +159,7 @@ export function SpiceMapFields({
     <BoardChoice
       link={link}
       read={read}
-      boardPicker={boardPicker}
+      boardSelect={boardSelect}
       onBoard={(asset_id) => {
         if (link) {
           onLink({ ...link, asset_id });

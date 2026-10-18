@@ -19,6 +19,8 @@ import { ControlBlock } from '@ui/control/ControlBlock';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
 import { createContext, lazy, Suspense, useContext, useState } from 'react';
 
+import { BoardPicker } from '@app/pickers/BoardPicker';
+
 import { BattleSourceControl, BattleStepEdit } from './rulebookBattleStepEdit';
 import type { RulebookBlockEditorProps } from './rulebookBlockEditors';
 import { RulebookBoardMarkupFields, useRulebookMarkupUi } from './rulebookBoardMarkup';
@@ -27,7 +29,6 @@ import type { RulebookEditorReferences } from './rulebookVisualBlockEditors';
 const FactionPicker = lazy(() =>
   import('@app/pickers/FactionPicker').then((module) => ({ default: module.FactionPicker }))
 );
-const AssetPicker = lazy(() => import('@app/pickers/AssetPicker').then((module) => ({ default: module.AssetPicker })));
 const emptyReferences = { assetsById: {}, factionsById: {} };
 
 /* The editor's resolved references, for the parts of a saved board the fields below offer. */
@@ -41,7 +42,7 @@ function useBoardParts(boardId: string) {
   );
 }
 
-/** The maintained boards and saved board assets; a saved board is chosen in the asset picker and listed once chosen. */
+/** The maintained boards and saved board assets in one field, each beside its face. */
 function BoardChoice({
   boardId,
   references,
@@ -51,48 +52,33 @@ function BoardChoice({
   references: RulebookEditorReferences;
   onChange: (boardId: string) => void;
 }) {
-  const [picking, setPicking] = useState(false);
-  const saved = resolveRulebookBoardDefinition(boardId)
-    ? []
-    : [{ value: boardId, label: references.assetsById[boardId]?.name ?? 'Unavailable board' }];
+  const chosen = references.assetsById[boardId];
   return (
-    <Stack gap="xs">
-      <Group align="end" gap="sm">
-        <Select
-          flex={1}
+    <ControlBlock
+      title="Board"
+      description="The board the scene draws: the maintained Arrakis map, or a saved board. Saved boards take tints and tokens."
+      input={
+        <BoardPicker
           label="Board"
-          data={[...RULEBOOK_BOARD_DEFINITIONS.map((board) => ({ value: board.id, label: board.name })), ...saved]}
           value={boardId}
-          onChange={(next) => {
-            if (next) {
-              onChange(next);
-            }
-          }}
+          fixed={RULEBOOK_BOARD_DEFINITIONS.map((board) => ({
+            id: board.id,
+            name: board.name,
+            previewSrc: board.imageUrl,
+            collection: 'Maintained boards',
+          }))}
+          selected={
+            resolveRulebookBoardDefinition(boardId)
+              ? undefined
+              : { id: boardId, name: chosen?.name ?? 'Unavailable board', previewSrc: chosen?.imageUrl ?? null }
+          }
+          onPick={onChange}
         />
-        <Button variant="default" onClick={() => setPicking(true)}>
-          Choose a saved board
-        </Button>
-      </Group>
-      {picking ? (
-        <Suspense fallback={<Loader size="sm" />}>
-          <AssetPicker
-            types={['board']}
-            copy={{
-              searchLabel: 'Find a board',
-              searchPlaceholder: 'Name or creator',
-              emptyMessage: 'No board assets are available yet.',
-            }}
-            onPick={(picked) => {
-              onChange(picked.id);
-              setPicking(false);
-            }}
-            onCancel={() => setPicking(false)}
-          />
-        </Suspense>
-      ) : null}
-    </Stack>
+      }
+    />
   );
 }
+
 const emptyBoard: RulebookBoardSceneValue = {
   boardId: 'arrakis',
   caption: '',

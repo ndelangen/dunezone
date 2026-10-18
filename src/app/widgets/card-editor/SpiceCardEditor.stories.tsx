@@ -9,6 +9,8 @@ import { useState } from 'react';
 import type { ComponentProps } from 'react';
 import { expect, fn, userEvent, waitFor, within } from 'storybook/test';
 
+import type { BoardSelect } from '@app/pickers/BoardPicker';
+
 import type { AssetPick } from './SpiceBoardFields';
 import { INITIAL_SPICE_DRAFT, SpiceCardEditor, spiceDraftWarnings } from './SpiceCardEditor';
 import type { SpiceChapter, SpiceDraft } from './SpiceCardEditor';
@@ -21,6 +23,17 @@ const pickOne =
       {label}
     </button>
   );
+
+/* Stand-in for the page's board field: the offered boards plus one saved fixture board, as a plain select. */
+const boardSelect: BoardSelect = ({ label, value, fixed, onPick }) => (
+  <select aria-label={label} value={value} onChange={(event) => onPick(event.currentTarget.value)}>
+    {[...fixed, { id: 'arrakis-board', name: 'Arrakis' }].map((board) => (
+      <option key={board.id} value={board.id}>
+        {board.name}
+      </option>
+    ))}
+  </select>
+);
 
 const BOARD = arrakisBoard();
 const boardRead = { board: BOARD, boardName: 'Arrakis', tokens: spiceBoardTokens, error: null };
@@ -43,7 +56,7 @@ const meta = preview.meta({
     chapter: 'identity' as const,
     onChapterChange: fn(),
     onSettle: fn(),
-    boardPicker: pickOne('Pick Arrakis', 'arrakis-board'),
+    boardSelect,
     tokenPicker: pickOne('Pick the spice token', 'spice-token'),
   },
 });
@@ -251,9 +264,8 @@ export const LinkBoard = meta.story({
   render: (args) => <LiveEditor {...args} initial={publishingSpiceCard} />,
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByText('The classic Arrakis map')).toBeVisible();
-    await userEvent.click(canvas.getByRole('button', { name: 'Use a saved board' }));
-    await userEvent.click(canvas.getByRole('button', { name: 'Pick Arrakis' }));
+    await expect(canvas.getByRole('combobox', { name: 'Board' })).toHaveValue('classic');
+    await userEvent.selectOptions(canvas.getByRole('combobox', { name: 'Board' }), 'arrakis-board');
     await expect(args.patch).toHaveBeenLastCalledWith({
       board: {
         asset_id: 'arrakis-board',

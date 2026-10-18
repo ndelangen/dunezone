@@ -12,6 +12,7 @@ import { useReducer, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
+import type { BoardSelect } from '@app/pickers/BoardPicker';
 import { aboutChapter } from '@app/widgets/asset-about/AboutChapter';
 import { boardMarkupEditing, useBrushEscape } from '@app/widgets/board-markup/BoardMarkupFields';
 import { assetOptionToPreviewSrc, vectorDecalAssetOptions } from '@app/widgets/faction-editor/factionFormAssetUtils';
@@ -279,14 +280,14 @@ export function SpiceCardEditor({
   onChapterChange,
   onSettle,
   boardRead,
-  boardPicker,
+  boardSelect,
   tokenPicker,
 }: {
   draft: SpiceDraft;
   /** The linked board and token fronts, read by the route while the draft links a board. */
   boardRead?: SpiceBoardRead;
   /** Pickers for a board and a token asset; fetching controls are Pickers the routes own. */
-  boardPicker: AssetPick;
+  boardSelect: BoardSelect;
   tokenPicker: AssetPick;
   /** The Name field, constructed by the route: checking a name's address is a fetch, and fetching controls are Pickers the routes own. */
   nameField: ReactNode;
@@ -346,7 +347,7 @@ export function SpiceCardEditor({
                     onLink={(board) => patch({ board })}
                     read={boardRead}
                     focus={proofFocus}
-                    boardPicker={boardPicker}
+                    boardSelect={boardSelect}
                     classic={<ClassicHighlights draft={draft} patch={patch} />}
                   />
                 ),
