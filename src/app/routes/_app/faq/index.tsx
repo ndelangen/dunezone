@@ -12,6 +12,7 @@ import { FaqList } from '@ui/list/FaqList';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { RefObject } from 'react';
 
 import { loadGlobalFaqPage, loadGlobalFaqRulesetOptions, useGlobalFaqPage, useGlobalFaqRulesetOptions } from '@db/faq';
 import type { GlobalFaqArgs, GlobalFaqPageData, GlobalFaqRulesetOptions } from '@db/faq';
@@ -287,7 +288,8 @@ function questionRowAt(list: HTMLElement | null, index: number) {
  * The last answer stays on screen while a longer list loads, so the rows and the button keep their place.
  * When the longer list arrives, focus moves to its first new row: the button stays where it was, or has gone with the last match, and a keyboard reader carries on from where the list grew.
  */
-function FaqResults({ deps, initial }: { deps: FaqDeps; initial: GlobalFaqPageData }) {
+/** The rows a search shows, grown by "Load more" and kept on screen while a longer list loads; a new search starts at its first matches. */
+function useGrowingSearch(deps: FaqDeps, initial: GlobalFaqPageData) {
   const key = searchKey(deps);
   /* `from` is how many rows were shown when "Load more" was pressed: the first new row is the one after them. */
   const [grown, setGrown] = useState({ key, limit: FAQ_SEARCH_STEP, from: -1 });
@@ -304,9 +306,12 @@ function FaqResults({ deps, initial }: { deps: FaqDeps; initial: GlobalFaqPageDa
   const data = live.data ?? (shown.key === key ? shown.data : initial);
   const loading = live.data === undefined && limit > FAQ_SEARCH_STEP;
   const loaded = grown.key === key && grown.from >= 0 && data.items.length > grown.from;
-  const openQuestion = useNavigate();
-  const list = useRef<HTMLDivElement>(null);
-  /* Each press is one focus move, however often the longer list is answered again. */
+  const loadMore = () => setGrown({ key, limit: limit + FAQ_SEARCH_STEP, from: data.items.length });
+  return { data, loading, loaded, grown, loadMore };
+}
+
+/** Moves focus to the first new row once per press, however often the longer list is answered again. */
+function useFocusFirstNewRow(list: RefObject<HTMLDivElement | null>, loaded: boolean, grown: { from: number }) {
   const focusedFor = useRef<typeof grown>(null);
   useEffect(() => {
     if (!loaded || focusedFor.current === grown) {
@@ -314,7 +319,36 @@ function FaqResults({ deps, initial }: { deps: FaqDeps; initial: GlobalFaqPageDa
     }
     focusedFor.current = grown;
     questionRowAt(list.current, grown.from)?.focus();
-  }, [loaded, grown]);
+  }, [list, loaded, grown]);
+}
+
+/*
+ * Not Mantine's `loading`, which disables the button and drops a keyboard reader's focus to the page;
+ * the button stays focusable and says it is busy, and the click guard keeps a second press from asking twice.
+ */
+function LoadMoreButton({ loading, onLoadMore }: { loading: boolean; onLoadMore: () => void }) {
+  return (
+    <Button
+      variant="default"
+      className={styles.loadMore}
+      aria-disabled={loading}
+      leftSection={loading ? <Loader size="xs" /> : undefined}
+      onClick={() => {
+        if (!loading) {
+          onLoadMore();
+        }
+      }}
+    >
+      Load more
+    </Button>
+  );
+}
+
+function FaqResults({ deps, initial }: { deps: FaqDeps; initial: GlobalFaqPageData }) {
+  const { data, loading, loaded, grown, loadMore } = useGrowingSearch(deps, initial);
+  const openQuestion = useNavigate();
+  const list = useRef<HTMLDivElement>(null);
+  useFocusFirstNewRow(list, loaded, grown);
 
   if (data.items.length === 0) {
     return <NothingMatches capped={data.capped} />;
@@ -335,26 +369,7 @@ function FaqResults({ deps, initial }: { deps: FaqDeps; initial: GlobalFaqPageDa
       <VisuallyHidden role="status" aria-live="polite">
         {loaded ? 'More questions loaded' : null}
       </VisuallyHidden>
-      {data.hasMore ? (
-        /*
-         * Not Mantine's `loading`, which disables the button and drops a keyboard reader's focus to the page;
-         * the button stays focusable and says it is busy, and the click guard keeps a second press from asking twice.
-         */
-        <Button
-          variant="default"
-          className={styles.loadMore}
-          aria-disabled={loading}
-          leftSection={loading ? <Loader size="xs" /> : undefined}
-          onClick={() => {
-            if (loading) {
-              return;
-            }
-            setGrown({ key, limit: limit + FAQ_SEARCH_STEP, from: data.items.length });
-          }}
-        >
-          Load more
-        </Button>
-      ) : null}
+      {data.hasMore ? <LoadMoreButton loading={loading} onLoadMore={loadMore} /> : null}
       {data.capped ? (
         <Text c="dimmed" ta="center">
           That's as far as this search goes. Add a word to narrow it.
