@@ -1,7 +1,7 @@
 import preview from '@sb/preview';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
-import { db, ref, ruleset } from '@db/storybook';
+import { db, faction, ref, ruleset } from '@db/storybook';
 import type { StorybookDatabase } from '@db/storybook';
 
 import { expectToolbarOnOneLine } from './authoringToolbarPlay';
@@ -126,6 +126,69 @@ export const FaqFormerSearchLink = meta.story({
     await expect(
       within(page.getByRole('main')).findByRole('link', { name: 'When does the storm move?' }, { timeout: 30_000 })
     ).resolves.toBeVisible();
+  },
+});
+/** More factions on ClassicRules, linked after the baseline's House Atreides, so they follow it in the ruleset's order. */
+function seedLinkedFactions(baseline: StorybookDatabase, names: string[]) {
+  for (const name of names) {
+    const key = `faction:${name.toLowerCase().replace(/\s+/g, '-')}`;
+    baseline.factions.push({ ...faction({ name }), $key: key });
+    baseline.ruleset_factions.push({ ruleset_id: ref('ruleset:classicrules'), faction_id: ref(key) });
+  }
+}
+/** The ruleset's page shows its first three factions in its own order and links to the rest in the catalogue. */
+export const DetailFactionRail = meta.story({
+  args: { path: '/rulesets/classicrules' },
+  parameters: { database: db((baseline) => seedLinkedFactions(baseline, ['Choam', 'Duncan', 'Ecaz', 'Fremen'])) },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const factions = within(await page.findByRole('region', { name: 'Factions' }, { timeout: 30_000 }));
+    await expect(factions.findByRole('link', { name: /House Atreides/ }, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(factions.getByRole('link', { name: /Choam/ })).toBeVisible();
+    await expect(factions.getByRole('link', { name: /Duncan/ })).toBeVisible();
+    await expect(factions.queryByRole('link', { name: /Ecaz/ })).toBeNull();
+    await expect(factions.getByRole('link', { name: 'All 5 factions' })).toHaveAttribute(
+      'href',
+      '/factions?ruleset=classicrules'
+    );
+    /* Maintenance lives on the edit page now: the page's cards carry no menu. */
+    await expect(factions.queryByRole('button', { name: /Actions for/ })).toBeNull();
+  },
+});
+/** The edit page lists the ruleset's factions as links in its own order, and a drag saves the new order. */
+export const EditFactionOrder = meta.story({
+  args: { path: '/rulesets/classicrules/edit' },
+  parameters: { database: db((baseline) => seedLinkedFactions(baseline, ['Choam', 'Duncan'])) },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const list = within(await page.findByRole('list', { name: 'Factions' }, { timeout: 30_000 }));
+    const names = () => list.getAllByRole('link').map((link) => link.textContent);
+    await waitFor(() => expect(names()).toEqual(['House Atreides', 'Choam', 'Duncan']), { timeout: 30_000 });
+    await expect(list.getByRole('button', { name: 'Remove Duncan from ClassicRules' })).toBeVisible();
+
+    const handle = list.getByRole('button', { name: 'Move House Atreides' });
+    /* As in the sortable list's own story: let the runner's late resize land before the pickup, since dnd-kit cancels a drag on resize (#2309). */
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+    handle.focus();
+    await userEvent.keyboard('[Space]');
+    await waitFor(() => expect(handle).toHaveAttribute('aria-pressed', 'true'));
+    await userEvent.keyboard('[ArrowDown]');
+    /*
+     * Drop only once the drag is over the next row and stays there:
+     * the pickup's own row is announced first, and dnd-kit can still be measuring right after the move, so the check runs twice with a pause between.
+     */
+    const overAnotherRow = () => {
+      const announcement = canvasElement.ownerDocument.querySelector('[id^="DndLiveRegion"]')?.textContent ?? '';
+      const [, dragged, over] = /item (\S+) was moved over droppable area (\S+)/.exec(announcement) ?? [];
+      if (!over || over === dragged) {
+        throw new Error(`Not over another row yet: ${announcement}`);
+      }
+    };
+    await waitFor(overAnotherRow);
+    await new Promise<void>((resolve) => setTimeout(resolve, 300));
+    await waitFor(overAnotherRow);
+    await userEvent.keyboard('[Space]');
+    await waitFor(() => expect(names()).toEqual(['Choam', 'House Atreides', 'Duncan']), { timeout: 30_000 });
   },
 });
 export const Edit = meta.story({

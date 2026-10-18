@@ -78,6 +78,7 @@ const MIGRATION_IDS: Record<string, MigrationRef> = {
   catalogue_entries_profiles_verify_v1: internal.migrations.catalogue_entries_profiles_verify_v1,
   catalogue_entries_faq_v1: internal.migrations.catalogue_entries_faq_v1,
   catalogue_entries_faq_verify_v1: internal.migrations.catalogue_entries_faq_verify_v1,
+  ruleset_factions_position_v1: internal.migrations.ruleset_factions_position_v1,
   catalogue_entries_prune_v1: internal.migrations.catalogue_entries_prune_v1,
   catalogue_entries_verify_v1: internal.migrations.catalogue_entries_verify_v1,
   catalogue_entries_verify_v2: internal.migrations.catalogue_entries_verify_v2,
@@ -1428,6 +1429,16 @@ export const catalogue_entries_faq_verify_v1 = migrations.define({
   batchSize: 25,
   migrateOne: async (ctx, row) => {
     await assertCatalogueSourceExact(ctx, 'faq', row._id);
+  },
+});
+
+/** Gives every existing ruleset link a place in its ruleset's order: its creation time, which keeps the order links were made in and sorts before any later append. Rerunning it writes nothing. */
+export const ruleset_factions_position_v1 = migrations.define({
+  table: 'ruleset_factions',
+  migrateOne: async (ctx, link) => {
+    if (link.position === undefined) {
+      await ctx.db.patch('ruleset_factions', link._id, { position: link._creationTime });
+    }
   },
 });
 

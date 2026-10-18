@@ -14,7 +14,9 @@ import { profileSummary } from './profileSummary';
 import { listRulesetRulebooks } from './rulebookList';
 import { readRulesetAssetSlots } from './rulesetSlots';
 
-const RULESET_FACTION_LIMIT = 500;
+export const RULESET_FACTION_LIMIT = 500;
+/** Factions the ruleset page shows; "All N factions" opens the catalogue filtered to the ruleset for the rest. */
+export const RULESET_FACTION_PREVIEW_SIZE = 3;
 
 /** A non-deleted ruleset resolved by its public slug, or null. The one soft-delete gate. */
 export async function loadPublicRulesetBySlug(ctx: QueryCtx, slug: string) {
@@ -58,6 +60,28 @@ async function linkedCatalogueFaction(ctx: QueryCtx, factionId: Id<'factions'>) 
   return faction && !faction.is_deleted ? toCatalogueFaction(faction, []) : null;
 }
 
+/**
+ * A ruleset's live factions in its own order, named and addressed but not drawn: behind `api.rulesets.orderedFactions`.
+ * Each is read from its card, or from the faction where the card backfill has not reached it;
+ * soft-deleted and dangling links are dropped.
+ */
+export async function listOrderedRulesetFactions(ctx: QueryCtx, rulesetId: Id<'rulesets'>, limit: number) {
+  const bounded = Math.min(Math.max(1, Math.floor(limit)), RULESET_FACTION_LIMIT);
+  const links = await ctx.db
+    .query('ruleset_factions')
+    .withIndex('by_ruleset_position', (q) => q.eq('ruleset_id', rulesetId))
+    .take(bounded + 1);
+  const factions = await Promise.all(
+    links.slice(0, bounded).map((link) => linkedCatalogueFaction(ctx, link.faction_id))
+  );
+  return {
+    factions: factions
+      .filter((faction) => faction !== null)
+      .map((faction) => ({ _id: faction._id, slug: faction.slug, name: faction.data.name })),
+    hasMore: links.length > bounded,
+  };
+}
+
 /** The ruleset and its factions, the same for every viewer: behind `api.rulesets.page`. Throws for an unknown slug. */
 export async function loadRulesetPageBySlug(ctx: QueryCtx, slug: string) {
   const row = await loadPublicRulesetBySlug(ctx, slug);
@@ -74,6 +98,28 @@ export async function loadRulesetPageBySlug(ctx: QueryCtx, slug: string) {
 function rulesetBoardFace(slots: Awaited<ReturnType<typeof readRulesetAssetSlots>>) {
   const entry = slots.find((slot) => slot.slot === 'board');
   return entry ? { ...entry.asset, previewHref: ownPublishedFace(entry.doc) } : null;
+}
+
+/* Links read past the preview's size, so a few soft-deleted factions near the top still leave it full. */
+const RULESET_FACTION_PREVIEW_READ = 12;
+
+/**
+ * The ruleset's first factions in its own order, and how many live ones it has from the faction catalogue's list for it, so the page reads a few cards whatever the ruleset's size.
+ * Soft-deleted and dangling links are skipped.
+ */
+async function rulesetFactionPreview(ctx: QueryCtx, rulesetId: Id<'rulesets'>) {
+  const [links, [factionCount = 0]] = await Promise.all([
+    ctx.db
+      .query('ruleset_factions')
+      .withIndex('by_ruleset_position', (q) => q.eq('ruleset_id', rulesetId))
+      .take(RULESET_FACTION_PREVIEW_READ),
+    countCataloguePartitions(ctx, 'faction', [rulesetId]),
+  ]);
+  const factions = await Promise.all(links.map((link) => linkedCatalogueFaction(ctx, link.faction_id)));
+  return {
+    factionPreview: factions.filter((faction) => faction !== null).slice(0, RULESET_FACTION_PREVIEW_SIZE),
+    factionCount,
+  };
 }
 
 /** How many questions a ruleset has, and how many of them have an accepted answer, from its FAQ lists' counts. */
@@ -94,7 +140,9 @@ export async function loadRulesetPublicDetailPageBySlug(ctx: QueryCtx, slug: str
   const slots = await readRulesetAssetSlots(ctx, row._id);
   return {
     ruleset: row,
+    /* Every linked faction, for browsers from before the rail showed a few; this bundle reads `factionPreview`, and the next release drops it. */
     factions: await listPublicRulesetFactions(ctx, row._id),
+    ...(await rulesetFactionPreview(ctx, row._id)),
     assignedGroup: await assignedGroupSummary(ctx, row.group_id),
     faqItems: await loadNewestFaqItems(ctx, row._id, LEGACY_FAQ_LIST_LIMIT),
     faqPreview: await loadNewestFaqItems(ctx, row._id, FAQ_PREVIEW_SIZE),

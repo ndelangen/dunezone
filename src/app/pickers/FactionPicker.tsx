@@ -71,6 +71,8 @@ interface FactionPickerConfirmCopy {
 export type FactionPickerProps = {
   /** Faction URL slugs to leave out: the one being edited, or every one already linked. */
   excludeSlugs?: string[];
+  /** Faction ids to leave out, for a caller that knows the linked factions by id. */
+  excludeIds?: string[];
   onPick: (picked: PickedFaction) => void;
 } & (
   | { commitOnSelect?: false; copy: FactionPickerCopy & FactionPickerConfirmCopy; onCancel: () => void }
@@ -88,7 +90,7 @@ export type FactionPickerProps = {
  * AGENTS.md.
  */
 export function FactionPicker(props: FactionPickerProps) {
-  const { excludeSlugs, copy, onPick } = props;
+  const { excludeSlugs, excludeIds, copy, onPick } = props;
   const picker = useFactionLoadPicker();
   const combobox = useCombobox();
 
@@ -114,9 +116,9 @@ export function FactionPicker(props: FactionPickerProps) {
 
   const availableRows = useMemo(() => {
     /* Built inside the memo that uses it: callers pass a fresh array each render, so memoizing the set separately never hits. */
-    const excluded = new Set(excludeSlugs ?? []);
-    return (picker.data?.rows ?? []).filter((row) => !excluded.has(row.slug));
-  }, [picker.data?.rows, excludeSlugs]);
+    const excluded = new Set([...(excludeSlugs ?? []), ...(excludeIds ?? [])]);
+    return (picker.data?.rows ?? []).filter((row) => !excluded.has(row.slug) && !excluded.has(row.id));
+  }, [picker.data?.rows, excludeSlugs, excludeIds]);
 
   const query = search.trim().toLocaleLowerCase();
   const filteredRows = query

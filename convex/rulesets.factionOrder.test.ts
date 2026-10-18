@@ -1,0 +1,158 @@
+/// <reference types="vite/client" />
+// @vitest-environment edge-runtime
+
+import { describe, expect, test } from 'vite-plus/test';
+
+import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
+import { api, internal } from './_generated/api';
+import type { Id } from './_generated/dataModel';
+import { applicationTest } from './application.test.fixture';
+import { applicationTriggers } from './lib/applicationTriggers';
+
+const ABOUT = 'A house ruleset used to prove its factions keep the order its maintainers give them.';
+
+/** An owner, an outsider, a ruleset and five factions linked in alphabetical order, through the triggers so the catalogue counts them. */
+async function orderFixture(names = ['Atreides', 'Bene Gesserit', 'Choam', 'Duncan', 'Ecaz']) {
+  const t = applicationTest();
+  const { ownerId, outsiderId, factionIds } = await t.run(async (rawCtx) => {
+    const ctx = applicationTriggers.wrapDB(rawCtx);
+    const ownerId = await ctx.db.insert('users', { name: 'Ruleset owner' });
+    const outsiderId = await ctx.db.insert('users', { name: 'Outsider' });
+    const factionIds: Id<'factions'>[] = [];
+    for (const name of names) {
+      factionIds.push(
+        await ctx.db.insert('factions', {
+          owner_id: ownerId,
+          data: { ...assetPublishingFaction, name },
+          slug: name.toLowerCase().replace(/\s+/g, '-'),
+          created_at: '2026-01-01T00:00:00.000Z',
+          updated_at: '2026-01-01T00:00:00.000Z',
+          is_deleted: false,
+          group_id: null,
+        })
+      );
+    }
+    return { ownerId, outsiderId, factionIds };
+  });
+  const owner = t.withIdentity({ subject: ownerId });
+  const ruleset = await owner.mutation(api.rulesets.create, {
+    name: 'OrderedRuleset',
+    about: ABOUT,
+    group_id: null,
+    image_cover: null,
+  });
+  for (const factionId of factionIds) {
+    await owner.mutation(api.rulesets.addFaction, { ruleset_id: ruleset._id, faction_id: factionId });
+  }
+  return { t, owner, outsider: t.withIdentity({ subject: outsiderId }), ruleset, factionIds };
+}
+
+type Fixture = Awaited<ReturnType<typeof orderFixture>>;
+
+async function editOrder({ t, ruleset }: Fixture, limit = 50) {
+  const { factions } = await t.query(api.rulesets.orderedFactions, { rulesetId: ruleset._id, limit });
+  return factions.map((faction) => faction.name);
+}
+
+async function railNames({ t, ruleset }: Fixture) {
+  const page = await t.query(api.rulesets.detailPage, { slug: ruleset.slug });
+  return { names: page!.factionPreview.map((faction) => faction.data.name), count: page!.factionCount };
+}
+
+describe('a ruleset’s faction order', () => {
+  test('starts in the order the factions were added, and the page shows the first three of all five', async () => {
+    const fixture = await orderFixture();
+    expect(await editOrder(fixture)).toEqual(['Atreides', 'Bene Gesserit', 'Choam', 'Duncan', 'Ecaz']);
+    expect(await railNames(fixture)).toEqual({ names: ['Atreides', 'Bene Gesserit', 'Choam'], count: 5 });
+  });
+
+  test('follows a reorder on the edit list and on the page, and appends a faction added afterwards', async () => {
+    const fixture = await orderFixture(['Atreides', 'Bene Gesserit', 'Choam', 'Duncan']);
+    const [a, b, c, d] = fixture.factionIds;
+    await fixture.owner.mutation(api.rulesets.reorderFactions, {
+      ruleset_id: fixture.ruleset._id,
+      faction_ids: [d, b, a, c],
+    });
+    expect(await editOrder(fixture)).toEqual(['Duncan', 'Bene Gesserit', 'Atreides', 'Choam']);
+    expect((await railNames(fixture)).names).toEqual(['Duncan', 'Bene Gesserit', 'Atreides']);
+
+    const late = await fixture.t.run(async (rawCtx) =>
+      applicationTriggers.wrapDB(rawCtx).db.insert('factions', {
+        owner_id: fixture.ruleset.owner_id,
+        data: { ...assetPublishingFaction, name: 'Arrival' },
+        slug: 'arrival',
+        created_at: '2026-01-02T00:00:00.000Z',
+        updated_at: '2026-01-02T00:00:00.000Z',
+        is_deleted: false,
+        group_id: null,
+      })
+    );
+    await fixture.owner.mutation(api.rulesets.addFaction, { ruleset_id: fixture.ruleset._id, faction_id: late });
+    expect(await editOrder(fixture)).toEqual(['Duncan', 'Bene Gesserit', 'Atreides', 'Choam', 'Arrival']);
+  });
+
+  test('keeps what a stale or partial order leaves out after what it names, and ignores what is no longer linked', async () => {
+    const fixture = await orderFixture(['Atreides', 'Bene Gesserit', 'Choam', 'Duncan']);
+    const [a, b, c] = fixture.factionIds;
+    await fixture.owner.mutation(api.rulesets.removeFaction, { ruleset_id: fixture.ruleset._id, faction_id: b });
+    await fixture.owner.mutation(api.rulesets.reorderFactions, {
+      ruleset_id: fixture.ruleset._id,
+      faction_ids: [c, b, a],
+    });
+    expect(await editOrder(fixture)).toEqual(['Choam', 'Atreides', 'Duncan']);
+  });
+
+  test('loads the edit list a slice at a time and says when more remain', async () => {
+    const fixture = await orderFixture();
+    expect(await fixture.t.query(api.rulesets.orderedFactions, { rulesetId: fixture.ruleset._id, limit: 2 })).toEqual({
+      factions: [expect.objectContaining({ name: 'Atreides' }), expect.objectContaining({ name: 'Bene Gesserit' })],
+      hasMore: true,
+    });
+    expect(
+      (await fixture.t.query(api.rulesets.orderedFactions, { rulesetId: fixture.ruleset._id, limit: 5 })).hasMore
+    ).toBe(false);
+  });
+
+  test('skips a soft-deleted faction on the page and the edit list', async () => {
+    const fixture = await orderFixture(['Atreides', 'Bene Gesserit', 'Choam', 'Duncan']);
+    await fixture.t.run(async (rawCtx) => {
+      await applicationTriggers.wrapDB(rawCtx).db.patch(fixture.factionIds[0], { is_deleted: true });
+    });
+    expect(await editOrder(fixture)).toEqual(['Bene Gesserit', 'Choam', 'Duncan']);
+    expect(await railNames(fixture)).toEqual({ names: ['Bene Gesserit', 'Choam', 'Duncan'], count: 3 });
+  });
+
+  test('refuses a reorder from someone who cannot maintain the ruleset', async () => {
+    const fixture = await orderFixture(['Atreides', 'Bene Gesserit']);
+    await expect(
+      fixture.outsider.mutation(api.rulesets.reorderFactions, {
+        ruleset_id: fixture.ruleset._id,
+        faction_ids: [...fixture.factionIds].reverse(),
+      })
+    ).rejects.toThrow();
+    expect(await editOrder(fixture)).toEqual(['Atreides', 'Bene Gesserit']);
+  });
+
+  test('a reorder leaves the catalogue untouched', async () => {
+    const fixture = await orderFixture(['Atreides', 'Bene Gesserit', 'Choam']);
+    await fixture.owner.mutation(api.rulesets.reorderFactions, {
+      ruleset_id: fixture.ruleset._id,
+      faction_ids: [...fixture.factionIds].reverse(),
+    });
+    const drift = await fixture.t.query(internal.catalogueMaintenance.catalogueDrift, { kind: 'faction', limit: 100 });
+    expect(drift).toMatchObject({ missing: [], stale: [], duplicated: [], unordered: [], orphaned: [] });
+  });
+
+  test('the backfill places links made before the order existed in the order they were made', async () => {
+    const fixture = await orderFixture(['Atreides', 'Bene Gesserit', 'Choam']);
+    await fixture.t.run(async (ctx) => {
+      for (const link of await ctx.db.query('ruleset_factions').collect()) {
+        await ctx.db.patch('ruleset_factions', link._id, { position: undefined });
+      }
+    });
+    await fixture.t.mutation(internal.migrations.ruleset_factions_position_v1, {});
+    const links = await fixture.t.run(async (ctx) => await ctx.db.query('ruleset_factions').collect());
+    expect(links.every((link) => link.position === link._creationTime)).toBe(true);
+    expect(await editOrder(fixture)).toEqual(['Atreides', 'Bene Gesserit', 'Choam']);
+  });
+});

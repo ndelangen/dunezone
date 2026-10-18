@@ -19,7 +19,12 @@ import {
   ownedForGroupAssignRowValidator,
 } from './lib/groupAssignPicker';
 import { requireAuthUserId } from './lib/policy';
-import { loadRulesetPageBySlug, loadRulesetPublicDetailPageBySlug } from './lib/rulesetDetailPage';
+import {
+  listOrderedRulesetFactions,
+  loadRulesetPageBySlug,
+  RULESET_FACTION_LIMIT,
+  loadRulesetPublicDetailPageBySlug,
+} from './lib/rulesetDetailPage';
 import { SLOT_CONTENTS_LIMIT } from './lib/rulesetSlots';
 import { allocateCounterSlug } from './lib/slugCounters';
 import { nowIso, slugify } from './lib/utils';
@@ -109,6 +114,17 @@ export const detailPage = publicQuery({
   args: { slug: v.string() },
   returns: rulesetPublicDetailPageValidator,
   handler: async (ctx, args) => await loadRulesetPublicDetailPageBySlug(ctx, args.slug),
+});
+
+/** A ruleset's first live factions in its own order, one cached answer for every viewer: the edit page's list, which loads more by asking for more. */
+export const orderedFactions = publicQuery({
+  args: { rulesetId: v.id('rulesets'), limit: v.number() },
+  returns: v.object({
+    factions: v.array(v.object({ _id: v.id('factions'), slug: v.string(), name: v.string() })),
+    /** True when links remain past `limit`, which a larger limit loads. */
+    hasMore: v.boolean(),
+  }),
+  handler: async (ctx, args) => await listOrderedRulesetFactions(ctx, args.rulesetId, args.limit),
 });
 
 /**
@@ -291,12 +307,46 @@ export const addFaction = mutation({
       .withIndex('by_ruleset_faction', (q) => q.eq('ruleset_id', args.ruleset_id).eq('faction_id', args.faction_id))
       .unique();
     if (!existing) {
+      /* Appended: a reorder numbers from 0 and every earlier append was made sooner, so now is past them all. */
       await ctx.db.insert('ruleset_factions', {
         ruleset_id: args.ruleset_id,
         faction_id: args.faction_id,
+        position: Date.now(),
       });
     }
     return args;
+  },
+});
+
+/**
+ * Puts a ruleset's factions in the order given.
+ * The list can be stale, as someone may have added or removed a faction meanwhile: an id no longer linked is ignored, and a link the list leaves out keeps its place relative to the others, after the ones it names.
+ * Only the links whose place changed are written.
+ */
+export const reorderFactions = mutation({
+  args: {
+    ruleset_id: v.id('rulesets'),
+    faction_ids: v.array(v.id('factions')),
+  },
+  handler: async (ctx, args) => {
+    await requireRulesetMaintenance(ctx, args.ruleset_id);
+    if (args.faction_ids.length > RULESET_FACTION_LIMIT) {
+      throw new Error(`A ruleset's order holds at most ${RULESET_FACTION_LIMIT} factions.`);
+    }
+    const links = await ctx.db
+      .query('ruleset_factions')
+      .withIndex('by_ruleset_position', (q) => q.eq('ruleset_id', args.ruleset_id))
+      .take(RULESET_FACTION_LIMIT);
+    const linkByFaction = new Map(links.map((link) => [link.faction_id, link]));
+    const named = [...new Set(args.faction_ids)].flatMap((factionId) => linkByFaction.get(factionId) ?? []);
+    const namedIds = new Set(named.map((link) => link._id));
+    const ordered = [...named, ...links.filter((link) => !namedIds.has(link._id))];
+    for (const [position, link] of ordered.entries()) {
+      if (link.position !== position) {
+        await ctx.db.patch('ruleset_factions', link._id, { position });
+      }
+    }
+    return null;
   },
 });
 
