@@ -12,6 +12,7 @@ import {
 } from './lib/collaborativeAccess';
 import { rulesetPageValidator, rulesetPublicDetailPageValidator } from './lib/collaborativeAccessValidators';
 import { resolveGroupAssignmentForCreation } from './lib/defaultGroupPreference';
+import { catalogueFactionDataValidator } from './lib/factionData';
 import { recordFormerSlug } from './lib/formerSlugs';
 import {
   buildOwnedForGroupAssignRows,
@@ -120,7 +121,16 @@ export const detailPage = publicQuery({
 export const orderedFactions = publicQuery({
   args: { rulesetId: v.id('rulesets'), limit: v.number() },
   returns: v.object({
-    factions: v.array(v.object({ _id: v.id('factions'), slug: v.string(), name: v.string() })),
+    factions: v.array(
+      v.object({
+        _id: v.id('factions'),
+        slug: v.string(),
+        name: v.string(),
+        /** Enough to draw the faction's token beside its name. */
+        logo: catalogueFactionDataValidator.fields.logo,
+        background: catalogueFactionDataValidator.fields.background,
+      })
+    ),
     /** True when links remain past `limit`, which a larger limit loads. */
     hasMore: v.boolean(),
   }),

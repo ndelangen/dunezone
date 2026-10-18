@@ -6,7 +6,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { Anchor, Button, Group, Popover, Stack, Text, TextInput, Title } from '@mantine/core';
+import { Anchor, Box, Button, Group, Popover, Stack, Text, TextInput, Title } from '@mantine/core';
 import { RULESET_ASSET_SLOT_ORDER, RULESET_ASSET_SLOTS } from '@shared/rulesets/assetSlots';
 import type { RulesetAssetSlot } from '@shared/rulesets/assetSlots';
 import { rulesetAboutSchema, rulesetNameSchema } from '@shared/rulesets/validation';
@@ -53,6 +53,7 @@ import { AuthoringToolbar, failureStatus } from '@app/widgets/authoring/Authorin
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
+import { Token as FactionToken } from '@game/assets/faction/token/Token';
 
 /**
  * The whole edit page for one ruleset, mounted with `key={r.slug}` so a rename remounts it and resets the draft.
@@ -487,6 +488,9 @@ function RulesetFactions({ rulesetId, rulesetName }: { rulesetId: RulesetEntry['
                       {(handle) => (
                         <Group gap="sm" wrap="nowrap">
                           <SortableReorderHandle label={`Move ${faction.name}`} {...handle} />
+                          <Box aria-hidden w={24} h={24} miw={24}>
+                            <FactionToken logo={faction.logo} background={faction.background} />
+                          </Box>
                           <Anchor
                             renderRoot={(props) => (
                               <Link {...props} to="/factions/$factionId" params={{ factionId: faction.slug }} />
