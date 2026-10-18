@@ -45,6 +45,11 @@ function pageSearch(page: number) {
   });
 }
 
+/** The page's name in its title: the ruleset's, and the page number past the first; the title adds that it is the FAQ. */
+function faqPageName(rulesetName: string, page: number | undefined) {
+  return page ? `${rulesetName}, page ${page}` : rulesetName;
+}
+
 export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/faq/')({
   ssr: true,
   codeSplitGroupings: [['component', 'notFoundComponent']],
@@ -68,7 +73,7 @@ export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/faq/')({
     const rulesetPath = `/rulesets/${encodeURIComponent(loaderData?.ruleset.slug ?? params.rulesetSlug)}`;
     const head = publicPageHead({
       /* Only the plain FAQ's pages are worth a search engine's time; a search or a tag is the same questions again. */
-      name: `${loaderData?.ruleset.name ?? 'Ruleset'} FAQ${search.page && !refined ? `, page ${search.page}` : ''}`,
+      name: faqPageName(loaderData?.ruleset.name ?? 'Ruleset', refined ? undefined : search.page),
       kind: loaderData ? 'FAQ' : undefined,
       pathname: `${rulesetPath}/faq${search.page && !refined ? `?page=${search.page}` : ''}`,
       description: loaderData ? `Community questions and accepted answers for ${loaderData.ruleset.name}.` : '',
@@ -104,7 +109,7 @@ function RulesetFaqPage() {
     [navigate]
   );
   const query = useSearchDraft(search.q ?? '', commitQuery);
-  useLivePageTitle(`${data.ruleset.name} FAQ`, 'FAQ');
+  useLivePageTitle(faqPageName(data.ruleset.name, search.q || search.tag ? undefined : search.page), 'FAQ');
 
   const tagSelect = (label?: string) => (
     <Select
@@ -216,7 +221,7 @@ function FaqResults({
             )}
           </Stack>
         </Surface>
-      ) : data.total > 0 && data.items.length === 0 ? (
+      ) : data.page > 1 && data.items.length === 0 ? (
         <Surface padding="xl">
           <PastTheEnd rulesetSlug={data.ruleset.slug} pageCount={data.pageCount} />
         </Surface>

@@ -424,49 +424,60 @@ function RulesetFaqPreview({
       title="Community FAQ"
       description="Browse community questions and accepted answers."
     >
-      <TextInput
-        value={draft}
-        onChange={(event) => setDraft(event.currentTarget.value)}
-        onKeyDown={(event) => {
-          if (event.key === 'Enter') {
-            event.preventDefault();
-            openFaq({});
-          }
+      <form
+        role="search"
+        aria-label="Search this ruleset's FAQ"
+        onSubmit={(event) => {
+          event.preventDefault();
+          openFaq({});
         }}
-        placeholder="Search questions…"
-        aria-label="Search FAQ questions"
-        leftSection={<Search size={16} aria-hidden />}
-        leftSectionPointerEvents="none"
-        rightSectionWidth="8rem"
-        rightSectionPointerEvents="all"
-        size="md"
-        radius="md"
-        classNames={{ wrapper: styles.faqFilterWrapper }}
-        rightSection={
-          <Select
-            value="__all__"
-            onChange={(value) => openFaq({ tag: value === '__all__' || value == null ? undefined : (value as FaqTag) })}
-            data={[
-              { value: '__all__', label: 'All tags' },
-              ...FAQ_TAG_VALUES.map((tag) => ({
-                value: tag,
-                label: FAQ_TAG_LABELS[tag],
-              })),
-            ]}
-            aria-label="Filter FAQ by tag"
-            allowDeselect={false}
-            variant="unstyled"
-            size="sm"
-            rightSectionWidth="2rem"
-            comboboxProps={{ shadow: 'md' }}
-            classNames={{
-              root: styles.faqTagSelect,
-              wrapper: styles.faqTagSelectWrapper,
-              input: styles.faqTagSelectInput,
-            }}
-          />
-        }
-      />
+      >
+        <TextInput
+          value={draft}
+          onChange={(event) => setDraft(event.currentTarget.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault();
+              openFaq({});
+            }
+          }}
+          placeholder="Search questions…"
+          aria-label="Search FAQ questions"
+          leftSection={<Search size={16} aria-hidden />}
+          leftSectionPointerEvents="none"
+          rightSectionWidth="8rem"
+          rightSectionPointerEvents="all"
+          size="md"
+          radius="md"
+          classNames={{ wrapper: styles.faqFilterWrapper }}
+          rightSection={
+            <Select
+              value="__all__"
+              onChange={(value) =>
+                openFaq({ tag: value === '__all__' || value == null ? undefined : (value as FaqTag) })
+              }
+              data={[
+                { value: '__all__', label: 'All tags' },
+                ...FAQ_TAG_VALUES.map((tag) => ({
+                  value: tag,
+                  label: FAQ_TAG_LABELS[tag],
+                })),
+              ]}
+              aria-label="Filter FAQ by tag"
+              allowDeselect={false}
+              variant="unstyled"
+              size="sm"
+              rightSectionWidth="2rem"
+              comboboxProps={{ shadow: 'md' }}
+              classNames={{
+                root: styles.faqTagSelect,
+                wrapper: styles.faqTagSelectWrapper,
+                input: styles.faqTagSelectInput,
+              }}
+            />
+          }
+        />
+      </form>
       <FaqList
         emptyLabel="No FAQ items yet."
         items={items}
@@ -498,7 +509,8 @@ export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/')({
   codeSplitGroupings: [['component', 'pendingComponent', 'errorComponent']],
   validateSearch: (params: Record<string, unknown>): { q?: string; tag?: FaqTag; notice?: RouteNoticeCode } => {
     const notice = params?.notice;
-    return { ...parseFaqCatalogueSearch(params), ...(isRouteNoticeCode(notice) ? { notice } : {}) };
+    const { q, tag } = parseFaqCatalogueSearch(params);
+    return { ...(q ? { q } : {}), ...(tag ? { tag } : {}), ...(isRouteNoticeCode(notice) ? { notice } : {}) };
   },
   /* The FAQ's search moved to its own page; an older link that searched here lands there. */
   beforeLoad: ({ search, params }) => {
@@ -588,7 +600,9 @@ function RulesetDetailPage() {
   const r = page.ruleset;
   const assignedGroup = viewerAccess.assignedGroup;
   const membershipStatus = viewerAccess.viewer.kind === 'authenticated' ? viewerAccess.viewer.membership : 'none';
-  const { questions: faqCount, answered: answeredFaqCount } = page.faqCounts;
+  /* The counts come from the FAQ's lists, which are empty while their backfill runs; the preview is never more than there are. */
+  const faqCount = Math.max(page.faqCounts.questions, page.faqPreview.length);
+  const answeredFaqCount = page.faqCounts.answered;
   const mutationError =
     deleteRuleset.error?.message ??
     setRulesetGroup.error?.message ??

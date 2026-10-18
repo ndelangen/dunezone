@@ -6,7 +6,7 @@ import { faqAnswerSchema, faqQuestionSchema, faqTagsSchema } from '../src/shared
 import { internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { internalMutation, mutation, publicQuery, viewerQuery } from './functions';
-import { countCataloguePartitions, selectCataloguePage } from './lib/catalogueOrder';
+import { selectCataloguePage } from './lib/catalogueOrder';
 import { faqListItemValidator } from './lib/collaborativeAccessValidators';
 import { faqRulesetPartition, faqTagPartition } from './lib/faqCatalogue';
 import { faqQuestionPublicPageValidator, loadFaqQuestionPublicPage, loadViewerAnswered } from './lib/faqQuestionPage';
@@ -118,8 +118,6 @@ export const rulesetFaq = publicQuery({
       items: v.array(faqListItemValidator),
       /** Questions matching the search and tag, across every page. */
       total: v.number(),
-      /** The ruleset's questions, before any search or tag. */
-      rulesetTotal: v.number(),
       /** False when a search matched more questions than one query reads, so `total` is a floor. */
       complete: v.boolean(),
       /** The page these rows are, which may lie past `pageCount`, with no rows. */
@@ -136,21 +134,16 @@ export const rulesetFaq = publicQuery({
     }
     const text = args.q?.slice(0, FAQ_CATALOGUE_QUERY_LIMIT).trim() ?? '';
     const page = Number.isSafeInteger(args.page) && args.page! > 1 ? args.page! : 1;
-    const allPartition = faqRulesetPartition(ruleset._id);
-    const partition = args.tag ? faqTagPartition(ruleset._id, args.tag) : allPartition;
-    const [selection, [rulesetCount = 0]] = await Promise.all([
-      selectCataloguePage(ctx, {
-        kind: 'faq',
-        partition,
-        sort: 'created',
-        direction: 'desc',
-        page,
-        pageSize: FAQ_CATALOGUE_PAGE_SIZE,
-        search: text ? { text, relevance: true } : undefined,
-      }),
-      /* The unrefined page's own count is the ruleset's, so only a search or a tag counts again. */
-      text || args.tag ? countCataloguePartitions(ctx, 'faq', [allPartition]) : Promise.resolve([]),
-    ]);
+    const partition = args.tag ? faqTagPartition(ruleset._id, args.tag) : faqRulesetPartition(ruleset._id);
+    const selection = await selectCataloguePage(ctx, {
+      kind: 'faq',
+      partition,
+      sort: 'created',
+      direction: 'desc',
+      page,
+      pageSize: FAQ_CATALOGUE_PAGE_SIZE,
+      search: text ? { text, relevance: true } : undefined,
+    });
 
     const items = [];
     for (const entry of selection.entries) {
@@ -168,7 +161,6 @@ export const rulesetFaq = publicQuery({
       ruleset: { id: ruleset._id, name: ruleset.name, slug: ruleset.slug },
       items: await projectFaqListItems(ctx, items),
       total: selection.total,
-      rulesetTotal: text || args.tag ? rulesetCount : selection.total,
       complete: selection.exact,
       page,
       pageCount: Math.max(1, Math.ceil(selection.total / FAQ_CATALOGUE_PAGE_SIZE)),

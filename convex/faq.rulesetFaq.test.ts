@@ -100,7 +100,6 @@ describe("a ruleset's FAQ", () => {
     expect(first).toMatchObject({
       ruleset: { slug: 'advanced', name: 'Advanced' },
       total: FAQ_CATALOGUE_PAGE_SIZE + 2,
-      rulesetTotal: FAQ_CATALOGUE_PAGE_SIZE + 2,
       complete: true,
       page: 1,
       pageCount: 2,
@@ -114,7 +113,7 @@ describe("a ruleset's FAQ", () => {
     expect(await t.query(api.faq.rulesetFaq, { rulesetSlug: 'nowhere' })).toBeNull();
   });
 
-  test('narrows to one tag and finds questions by their words, counting the ruleset apart from the matches', async () => {
+  test('narrows to one tag and finds questions by their words', async () => {
     const t = applicationTest();
     await seedFaq(t, [
       { question: 'Does the storm move first?', tags: ['rules'] },
@@ -124,14 +123,32 @@ describe("a ruleset's FAQ", () => {
 
     const balance = await t.query(api.faq.rulesetFaq, { rulesetSlug: 'advanced', tag: 'balance' });
     expect(questions(balance)).toEqual(['Is Harkonnen too strong?']);
-    expect(balance).toMatchObject({ total: 1, rulesetTotal: 3 });
+    expect(balance).toMatchObject({ total: 1 });
 
     const storm = await t.query(api.faq.rulesetFaq, { rulesetSlug: 'advanced', q: 'storm' });
     expect(questions(storm)?.toSorted()).toEqual(['Does the storm move first?', 'When does the storm stop?']);
-    expect(storm).toMatchObject({ total: 2, rulesetTotal: 3 });
+    expect(storm).toMatchObject({ total: 2 });
     expect(
       questions(await t.query(api.faq.rulesetFaq, { rulesetSlug: 'advanced', q: 'storm', tag: 'errata' }))
     ).toEqual(['When does the storm stop?']);
+  });
+
+  test('lists a question from before tags under its ruleset alone, and answers nothing for a deleted ruleset', async () => {
+    const t = applicationTest();
+    const {
+      rulesetId,
+      itemIds: [legacy],
+    } = await seedFaq(t, [{ question: 'Untagged?' }]);
+    await t.run(async (rawCtx) => {
+      await applicationTriggers.wrapDB(rawCtx).db.patch(legacy!, { tags: undefined });
+    });
+    expect(questions(await t.query(api.faq.rulesetFaq, { rulesetSlug: 'advanced' }))).toEqual(['Untagged?']);
+    expect(await t.query(api.faq.rulesetFaq, { rulesetSlug: 'advanced', tag: 'rules' })).toMatchObject({ total: 0 });
+
+    await t.run(async (ctx) => {
+      await ctx.db.patch(rulesetId, { is_deleted: true });
+    });
+    expect(await t.query(api.faq.rulesetFaq, { rulesetSlug: 'advanced' })).toBeNull();
   });
 
   test('lists a very long question under a bounded prefix of its words', async () => {
