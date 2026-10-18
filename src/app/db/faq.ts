@@ -85,9 +85,13 @@ function voidCommand<TVariables, TResult>(
   };
 }
 
-/** What `api.faq.rulesetFaq` gives a ruleset's FAQ page, the same for every viewer; null for an unknown ruleset. */
+/** What `api.faq.rulesetFaq` gives a ruleset's FAQ page, the same for every viewer: a browsed page or a search, told apart by `mode`; null for an unknown ruleset. */
 export type RulesetFaqPageData = FunctionReturnType<typeof api.faq.rulesetFaq>;
-/** What one ruleset FAQ page asks for: the ruleset and the route's search parameters, as `faq.rulesetFaq` takes them. */
+/** A browsed page of a ruleset's FAQ: newest first, counted, in numbered pages. */
+export type RulesetFaqBrowseData = Exclude<NonNullable<RulesetFaqPageData>, { mode: 'search' }>;
+/** A searched FAQ: the best matches first, and more by asking for a larger limit. */
+export type RulesetFaqSearchData = Extract<NonNullable<RulesetFaqPageData>, { mode: 'search' }>;
+/** What one ruleset FAQ page asks for: the ruleset, the route's search parameters and how many of a search's best matches to show, as `faq.rulesetFaq` takes them. */
 export type RulesetFaqArgs = FunctionArgs<typeof api.faq.rulesetFaq>;
 
 /** The ruleset FAQ route's loader, paired with `useRulesetFaqPage`; a searched page is not held, as each search is its own subscription. */

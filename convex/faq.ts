@@ -1,14 +1,12 @@
 import { v } from 'convex/values';
 
-import { FAQ_CATALOGUE_PAGE_SIZE, FAQ_CATALOGUE_QUERY_LIMIT } from '../src/shared/faq/catalogueSearch';
 import type { FAQ_TAG_VALUES } from '../src/shared/faq/tags';
 import { faqAnswerSchema, faqQuestionSchema, faqTagsSchema } from '../src/shared/faq/validation';
 import { internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { internalMutation, mutation, publicQuery, viewerQuery } from './functions';
-import { selectCataloguePage } from './lib/catalogueOrder';
 import { faqListItemValidator } from './lib/collaborativeAccessValidators';
-import { faqRulesetPartition, faqTagPartition } from './lib/faqCatalogue';
+import { loadRulesetFaqPage, loadRulesetFaqSearch, rulesetFaqSearchText } from './lib/faqCatalogue';
 import {
   globalFaqPageValidator,
   globalFaqRulesetOptionsValidator,
@@ -16,7 +14,6 @@ import {
   loadGlobalFaqRulesetOptions,
 } from './lib/faqGlobalSearch';
 import { faqQuestionPublicPageValidator, loadFaqQuestionPublicPage, loadViewerAnswered } from './lib/faqQuestionPage';
-import { faqItemsOfEntries, projectFaqListItems } from './lib/faqRulesetList';
 import { faqTagValidator } from './lib/faqTags';
 import { requireAuthUserId } from './lib/policy';
 import { loadPublicRulesetBySlug } from './lib/rulesetDetailPage';
@@ -107,8 +104,38 @@ async function allocateNextFaqItemSlug(ctx: MutationCtx, rulesetId: Id<'rulesets
   }
 }
 
+const rulesetCitationValidator = v.object({ id: v.id('rulesets'), name: v.string(), slug: v.string() });
+
+/** A browsed page of a ruleset's FAQ: newest first, counted, in numbered pages. */
+const rulesetFaqBrowseValidator = v.object({
+  ruleset: rulesetCitationValidator,
+  items: v.array(faqListItemValidator),
+  /** Questions matching the search and tag, across every page. */
+  total: v.number(),
+  /** False when a search matched more questions than one query reads, so `total` is a floor. */
+  complete: v.boolean(),
+  /** The page these rows are, which may lie past `pageCount`, with no rows. */
+  page: v.number(),
+  pageCount: v.number(),
+  pageSize: v.number(),
+});
+
+/** A searched FAQ: the best matches first, no count and no pages, and more by asking for a larger limit. */
+const rulesetFaqSearchValidator = v.object({
+  mode: v.literal('search'),
+  ruleset: rulesetCitationValidator,
+  items: v.array(faqListItemValidator),
+  /** Whether a larger limit would show more questions. */
+  hasMore: v.boolean(),
+  /** Whether more questions may match than one search shows, so the reader should add a word rather than load more. */
+  capped: v.boolean(),
+  /** The limit these rows answer, after clamping. */
+  limit: v.number(),
+});
+
 /**
- * One page of a ruleset's FAQ, newest first or by best match while searching, one cached answer for every viewer.
+ * A ruleset's FAQ, one cached answer for every viewer: newest first in pages while browsing, and the best matches of a search with a `limit`, which loads more.
+ * A searched `q` without `limit` is an old bundle's paged search, kept one release for the bundle deployed before this and dropped in the contract release.
  * Null for an unknown ruleset.
  */
 export const rulesetFaq = publicQuery({
@@ -117,51 +144,22 @@ export const rulesetFaq = publicQuery({
     q: v.optional(v.string()),
     tag: v.optional(faqTagValidator),
     page: v.optional(v.number()),
+    /** How many of the best matches to return; Load more asks again with a larger one. */
+    limit: v.optional(v.number()),
   },
-  returns: v.union(
-    v.object({
-      ruleset: v.object({ id: v.id('rulesets'), name: v.string(), slug: v.string() }),
-      items: v.array(faqListItemValidator),
-      /** Questions matching the search and tag, across every page. */
-      total: v.number(),
-      /** False when a search matched more questions than one query reads, so `total` is a floor. */
-      complete: v.boolean(),
-      /** The page these rows are, which may lie past `pageCount`, with no rows. */
-      page: v.number(),
-      pageCount: v.number(),
-      pageSize: v.number(),
-    }),
-    v.null()
-  ),
+  returns: v.union(rulesetFaqBrowseValidator, rulesetFaqSearchValidator, v.null()),
   handler: async (ctx, args) => {
     const ruleset = await loadPublicRulesetBySlug(ctx, args.rulesetSlug);
     if (!ruleset) {
       return null;
     }
-    const text = args.q?.slice(0, FAQ_CATALOGUE_QUERY_LIMIT).trim() ?? '';
-    const page = Number.isSafeInteger(args.page) && args.page! > 1 ? args.page! : 1;
-    const partition = args.tag ? faqTagPartition(ruleset._id, args.tag) : faqRulesetPartition(ruleset._id);
-    const selection = await selectCataloguePage(ctx, {
-      kind: 'faq',
-      partition,
-      sort: 'created',
-      direction: 'desc',
-      page,
-      pageSize: FAQ_CATALOGUE_PAGE_SIZE,
-      search: text ? { text, relevance: true } : undefined,
-    });
-
-    const items = await faqItemsOfEntries(ctx, selection.entries);
-
-    return {
-      ruleset: { id: ruleset._id, name: ruleset.name, slug: ruleset.slug },
-      items: await projectFaqListItems(ctx, items),
-      total: selection.total,
-      complete: selection.exact,
-      page,
-      pageCount: Math.max(1, Math.ceil(selection.total / FAQ_CATALOGUE_PAGE_SIZE)),
-      pageSize: FAQ_CATALOGUE_PAGE_SIZE,
-    };
+    const citation = { id: ruleset._id, name: ruleset.name, slug: ruleset.slug };
+    /* Gated on the text the search runs, so a query that is blank once cut to length browses instead. */
+    const list =
+      rulesetFaqSearchText(args.q) && args.limit !== undefined
+        ? await loadRulesetFaqSearch(ctx, ruleset._id, args)
+        : await loadRulesetFaqPage(ctx, ruleset._id, args);
+    return { ruleset: citation, ...list };
   },
 });
 
