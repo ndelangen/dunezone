@@ -8,7 +8,7 @@ import { SpiceAsset } from '@game/data/objects';
 
 import { assetNameField } from '../../assetEditorStates';
 import { layeredCardTokenPicker } from '../../layeredCardTokenPicker';
-import { SpiceBoardRead, spiceBoardPicker } from '../../spiceCardBoard';
+import { SpiceBoardRead, spiceBoardSelect } from '../../spiceCardBoard';
 import { CardCreateFrame, useCardCreate } from './cardCreatePage';
 
 /**
@@ -85,7 +85,7 @@ export function SpiceCreatePage() {
             onChapterChange={setChapter}
             onSettle={header.settle}
             boardRead={boardRead}
-            boardPicker={spiceBoardPicker}
+            boardSelect={spiceBoardSelect}
             tokenPicker={layeredCardTokenPicker}
           />
         )}
