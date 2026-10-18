@@ -12,6 +12,8 @@ import {
 } from 'node:fs';
 import path from 'node:path';
 
+import { parseHTML } from 'linkedom';
+
 import { COMMITTED_WEB_FILES } from '../../src/shared/assetRules';
 import { applicationContentSecurityPolicy } from '../../workers/publisher/application-security';
 
@@ -26,12 +28,12 @@ function shellSecurityHeaders(template: string, shell: string, convexUrl: string
   if (!convexUrl) {
     throw new Error('VITE_CONVEX_URL is required to assemble the application CSP');
   }
-  const scripts = [...shell.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)]
-    .filter(([, attributes, source]) => !/\bsrc\s*=/i.test(attributes) && source.length > 0)
+  const scripts = [...parseHTML(shell).document.querySelectorAll('script')]
+    .filter((script) => !script.hasAttribute('src') && script.textContent.length > 0)
     /* HTML parsing normalizes line endings and replaces NULLs before CSP hashes script text. */
     .map(
-      ([, , source]) =>
-        `'sha256-${createHash('sha256').update(source.replace(/\r\n?/g, '\n').replaceAll('\0', '\uFFFD')).digest('base64')}'`
+      (script) =>
+        `'sha256-${createHash('sha256').update(script.textContent.replace(/\r\n?/g, '\n').replaceAll('\0', '\uFFFD')).digest('base64')}'`
     );
   const policy = applicationContentSecurityPolicy(convexUrl, [...new Set(scripts)]);
   const result = template.replace('__APPLICATION_CSP__', policy);

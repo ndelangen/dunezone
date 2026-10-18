@@ -47,7 +47,7 @@ describe('publisher Static Assets assembly', () => {
     writeFileSync(headers, readFileSync(path.resolve(import.meta.dirname, '../workers/publisher/_headers')));
     writeFileSync(
       path.join(app, '_shell.html'),
-      '<head></head><script>window.start=1\r\nwindow.text="x\0y"</script><script src="/public/app-hash.js"></script>'
+      '<head></head><script>window.start=1\r\nwindow.text="x\0y"</script ><script src="/public/app-hash.js"></script>'
     );
     assemblePublisherAssets(app, publisher, headers, 'https://test.eu-west-1.convex.cloud');
     const policy = readFileSync(path.join(publisher, '_headers'), 'utf8');
