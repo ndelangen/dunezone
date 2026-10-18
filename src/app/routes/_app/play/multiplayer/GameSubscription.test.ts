@@ -534,7 +534,7 @@ test('a refusal that arrives only as the close code still says why', async () =>
 /** A table admitted with a long-lived pass, whose admission requests the test can answer differently from then on. */
 async function passTable() {
   const pass = await seatPass(Date.now() + 60 * 60_000);
-  const requestTicket = vi.fn(async (_gameId: string, _options?: { renew?: boolean }) => ({ ok: true as const, pass }));
+  const requestTicket = vi.fn<ConstructorParameters<typeof GameSubscription>[1]>(async () => ({ ok: true, pass }));
   const subscription = new GameSubscription('game', requestTicket, runtime, () => () => true);
   stops.push(subscription.subscribe(vi.fn()));
   await vi.advanceTimersByTimeAsync(0);
@@ -615,4 +615,21 @@ test('a renewal Convex refuses after the room calls the pass expired ends the ta
   socket.deliver({ type: 'admission', status: 'pass-expired' });
   await vi.advanceTimersByTimeAsync(0);
   expect(subscription.status).toBe('denied');
+});
+
+test('a renewal reply belongs to the connection that requested it, even when a reconnect uses the same pass', async () => {
+  const { subscription, requestTicket, socket } = await passTable();
+  const renewal = Promise.withResolvers<Awaited<ReturnType<ConstructorParameters<typeof GameSubscription>[1]>>>();
+  requestTicket.mockReturnValueOnce(renewal.promise);
+  socket.deliver({ type: 'admission', status: 'pass-expired' });
+  socket.close();
+  await vi.advanceTimersByTimeAsync(1000);
+  const replacement = Socket.instances.at(-1)!;
+  replacement.open();
+  replacement.deliver(initial());
+  expect(subscription.ready).toBe(true);
+  renewal.resolve({ ok: false, reason: 'not_authorized' });
+  await vi.advanceTimersByTimeAsync(0);
+  expect(subscription.ready).toBe(true);
+  expect(replacement.readyState).toBe(1);
 });

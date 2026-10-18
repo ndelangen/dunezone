@@ -165,22 +165,30 @@ function nearExpiry(pass: string) {
  */
 export async function requestPlayAdmission(gameId: string, { renew = false }: { renew?: boolean } = {}) {
   const entry = passEntry(gameId);
-  await untilHeld(entry);
-  const held = entry.held!;
-  if (held === LEGACY) {
-    return await requestPlayTicket(gameId);
+  let forceRenewal = renew;
+  while (true) {
+    await untilHeld(entry);
+    const held = entry.held!;
+    if (held === LEGACY) {
+      return await requestPlayTicket(gameId);
+    }
+    /* `renew` is the room saying the pass ran out, which outranks this browser's clock unless Convex only just signed it. */
+    const justRenewed = held === entry.renewed?.pass && Date.now() - entry.renewed.at < JUST_RENEWED_MS;
+    if (held !== null && (justRenewed || (!forceRenewal && !nearExpiry(held)))) {
+      return { ok: true as const, pass: held };
+    }
+    const result = await db.mutation(held === null ? api.playAdmission.enrolPlayer : api.playAdmission.renewSeatPass, {
+      gameId,
+    });
+    /* A query or another renewal replaced the credential while this request waited; only the held one may be published. */
+    if (entry.held !== held) {
+      forceRenewal = false;
+      continue;
+    }
+    if (result.ok) {
+      entry.renewed = { pass: result.pass, at: Date.now() };
+      holdPass(gameId, result.pass);
+    }
+    return result;
   }
-  /* `renew` is the room saying the pass ran out, which outranks this browser's clock unless Convex only just signed it. */
-  const justRenewed = held === entry.renewed?.pass && Date.now() - entry.renewed.at < JUST_RENEWED_MS;
-  if (held !== null && (justRenewed || (!renew && !nearExpiry(held)))) {
-    return { ok: true as const, pass: held };
-  }
-  const result = await db.mutation(held === null ? api.playAdmission.enrolPlayer : api.playAdmission.renewSeatPass, {
-    gameId,
-  });
-  if (result.ok) {
-    entry.renewed = { pass: result.pass, at: Date.now() };
-    holdPass(gameId, result.pass);
-  }
-  return result;
 }

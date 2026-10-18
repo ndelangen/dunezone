@@ -1,3 +1,4 @@
+import { initialSnapshot } from '@shared/play/commands';
 import { testSeatPass as seatPass } from '@shared/play/seatPass.test.fixture';
 import { getFunctionName } from 'convex/server';
 import { afterEach, beforeEach, expect, test, vi } from 'vite-plus/test';
@@ -6,14 +7,20 @@ const mocks = vi.hoisted(() => ({ mutation: vi.fn() }));
 
 vi.mock('@db/core', () => ({ db: { mutation: mocks.mutation } }));
 
+import { runtime, Socket } from '../routes/_app/play/multiplayer/gameRuntime.test.fixture';
+import { GameSubscription } from '../routes/_app/play/multiplayer/GameSubscription';
 import { rememberSeatPass, requestPlayAdmission, watchSeatPass } from './play';
 
 const called = () => mocks.mutation.mock.calls.map(([reference]) => getFunctionName(reference));
+const stops: (() => void)[] = [];
 
 beforeEach(() => {
   mocks.mutation.mockReset();
 });
 afterEach(() => {
+  for (const stop of stops.splice(0)) {
+    stop();
+  }
   vi.useRealTimers();
 });
 
@@ -74,4 +81,77 @@ test('replaces the held pass with one for another account or actor even when it 
   const merged = await seatPass(exp - 1000, { actorId: 'other-actor' });
   rememberSeatPass('merged', merged);
   expect(await requestPlayAdmission('merged')).toEqual({ ok: true, pass: merged });
+});
+
+const authorizedView = () => ({
+  type: 'view' as const,
+  viewer: { connectionId: 'one', userId: 'user', viewerSeat: 'harkonnen', displayName: 'Player', color: '#fff' },
+  epoch: 'epoch',
+  sequence: 1,
+  snapshot: initialSnapshot(),
+  carries: [],
+  pointers: [],
+});
+
+async function admittedGame(gameId: string) {
+  vi.useFakeTimers();
+  Socket.instances = [];
+  rememberSeatPass(gameId, await seatPass(Date.now() + 60 * 60_000));
+  const renewal = Promise.withResolvers<Awaited<ReturnType<typeof requestPlayAdmission>>>();
+  mocks.mutation.mockReturnValueOnce(renewal.promise);
+  const subscription = new GameSubscription(gameId, requestPlayAdmission, runtime, watchSeatPass);
+  stops.push(subscription.subscribe(vi.fn()));
+  await vi.advanceTimersByTimeAsync(0);
+  const socket = Socket.instances.at(-1)!;
+  socket.open();
+  socket.deliver(authorizedView());
+  await vi.advanceTimersByTimeAsync(55 * 60_000);
+  expect(called()).toEqual(['playAdmission:renewSeatPass']);
+  return { subscription, socket, renewal };
+}
+
+test('an old renewal refusal cannot deny a connection admitted with a fresh session pass', async () => {
+  const gameId = 'reconnected-renewal';
+  const { subscription, socket, renewal } = await admittedGame(gameId);
+  socket.close();
+  rememberSeatPass(gameId, await seatPass(Date.now() + 60 * 60_000, { sessionId: 'fresh-session' }));
+  await vi.advanceTimersByTimeAsync(1000);
+  const replacement = Socket.instances.at(-1)!;
+  replacement.open();
+  replacement.deliver(authorizedView());
+  expect(subscription.ready).toBe(true);
+  renewal.resolve({ ok: false, reason: 'not_authorized' });
+  await vi.advanceTimersByTimeAsync(0);
+  expect(subscription.ready).toBe(true);
+  expect(replacement.readyState).toBe(1);
+});
+
+test('an old successful renewal cannot publish its pass over a replacement session', async () => {
+  const gameId = 'successful-old-renewal';
+  const { subscription, socket, renewal } = await admittedGame(gameId);
+  socket.close();
+  const fresh = await seatPass(Date.now() + 60 * 60_000, { sessionId: 'fresh-session' });
+  rememberSeatPass(gameId, fresh);
+  await vi.advanceTimersByTimeAsync(1000);
+  const replacement = Socket.instances.at(-1)!;
+  replacement.open();
+  replacement.deliver(authorizedView());
+  renewal.resolve({ ok: true, pass: await seatPass(Date.now() + 61 * 60_000) });
+  await vi.advanceTimersByTimeAsync(0);
+  expect(await requestPlayAdmission(gameId)).toEqual({ ok: true, pass: fresh });
+  expect(replacement.sent.filter((message) => message.type === 'pass')).toEqual([]);
+  expect(subscription.ready).toBe(true);
+});
+
+test('a failed renewal of an older pass cannot replace the fresh pass renewal timer on the same socket', async () => {
+  const gameId = 'replaced-renewal';
+  const { subscription, socket, renewal } = await admittedGame(gameId);
+  rememberSeatPass(gameId, await seatPass(Date.now() + 60 * 60_000));
+  renewal.reject(new Error('The earlier request lost its connection.'));
+  await vi.advanceTimersByTimeAsync(1000);
+  expect(called()).toEqual(['playAdmission:renewSeatPass']);
+  expect(subscription.ready).toBe(true);
+  expect(socket.readyState).toBe(1);
+  await vi.advanceTimersByTimeAsync(55 * 60_000 - 1000);
+  expect(called()).toEqual(['playAdmission:renewSeatPass', 'playAdmission:renewSeatPass']);
 });

@@ -171,7 +171,8 @@ export const MissingTerritory = meta.story({
     boardDefinition: (() => {
       const board = arrakisBoard();
       const key = Object.keys(board.properties).find((k) => board.properties[k].name === 'Funeral plain')!;
-      board.properties[key] = { ...board.properties[key], name: 'Funeral flats' };
+      /* A territory that is no longer on the board: another one stands where it was. A rename alone keeps its ID and its tint. */
+      board.properties[key] = { ...board.properties[key], name: 'Funeral flats', id: 'funeral_flats' };
       return board;
     })(),
     boardTokens: spiceBoardTokens,
@@ -179,6 +180,23 @@ export const MissingTerritory = meta.story({
   play: async ({ canvasElement }) => {
     await expect(canvasElement.querySelectorAll('[data-tint="blow"] > g')).toHaveLength(0);
     await expect(canvasElement.querySelectorAll('[data-tint="strongholds"] > g')).toHaveLength(5);
+  },
+});
+
+/** Renaming a territory keeps its ID, so the card's tint on it still draws. */
+export const RenamedTerritory = meta.story({
+  args: {
+    ...discoveryOnBoard,
+    boardDefinition: (() => {
+      const board = arrakisBoard();
+      const key = Object.keys(board.properties).find((k) => board.properties[k].name === 'Funeral plain')!;
+      board.properties[key] = { ...board.properties[key], name: 'Funeral flats' };
+      return board;
+    })(),
+    boardTokens: spiceBoardTokens,
+  },
+  play: async ({ canvasElement }) => {
+    await expect(canvasElement.querySelectorAll('[data-tint="blow"] > g').length).toBeGreaterThan(0);
   },
 });
 

@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { CENTER, RADIUS, derive } from './geometry';
 import type { Board, Face, Point } from './geometry';
 import type { BoardTint } from './markup';
-import { territoryId } from './schema';
+import { propertyId } from './schema';
 import { placeStickers } from './stickerPlacement';
 import { offRim, offsetPath, outerSegments, outlinePaths } from './tintOutline';
 import { TINT_STAMPS, tintOutlineOpacity, tintPaint } from './tints';
@@ -47,7 +47,7 @@ const territoryCache = new WeakMap<Board, BoardTerritory[]>();
 export function boardTerritoryList(board: Board): BoardTerritory[] {
   let territories = territoryCache.get(board);
   if (!territories) {
-    territories = derive(board).faces.map((face) => ({ id: territoryId(board.properties[face.key].name), face }));
+    territories = derive(board).faces.map((face) => ({ id: propertyId(board.properties[face.key]), face }));
     territoryCache.set(board, territories);
   }
   return territories;
@@ -64,13 +64,13 @@ function tintTerritories(board: Board, tint: BoardTint) {
 
 /** Territory IDs the markup keeps that the board does not have; they stay stored and only drop out of the drawing. */
 export function missingTintTerritories(board: Board, tints: readonly BoardTint[]) {
-  const known = new Set(Object.values(board.properties).map((property) => territoryId(property.name)));
+  const known = new Set(Object.values(board.properties).map((property) => propertyId(property)));
   return [...new Set(tints.flatMap((tint) => tint.territories))].filter((id) => !known.has(id));
 }
 
 /** Each territory ID on the board with the name its author gave it. */
 export function boardTerritoryNames(board: Board | null | undefined): ReadonlyMap<string, string> {
-  return new Map(Object.values(board?.properties ?? {}).map((property) => [territoryId(property.name), property.name]));
+  return new Map(Object.values(board?.properties ?? {}).map((property) => [propertyId(property), property.name]));
 }
 
 /* Two decimals of a board unit is far below a pixel at any size a page or card is drawn, and halves what a stored drawing weighs. */

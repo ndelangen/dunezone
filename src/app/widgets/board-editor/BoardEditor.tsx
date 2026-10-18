@@ -27,7 +27,7 @@ import {
   movePoint,
 } from '@shared/boards/geometry';
 import type { Board, Point, Face, Properties, Decal } from '@shared/boards/geometry';
-import { territoryId, territoryNameError } from '@shared/boards/schema';
+import { territoryNameError } from '@shared/boards/schema';
 import { Section } from '@ui/block/Section';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { stockAssetOptions } from '@ui/content/stockAssetOptions';
@@ -170,7 +170,7 @@ export function BoardEditor({
         ...state.board,
         properties: {
           ...state.board.properties,
-          [selectedKey]: { ...property, ...patch, id: territoryId(patch.name ?? property.name) },
+          [selectedKey]: { ...property, ...patch },
         },
       },
       'Territory updated',
@@ -474,7 +474,6 @@ export function BoardEditor({
             onChange={(e) => patchProperty({ name: e.currentTarget.value }, 'territory-name')}
             onBlur={() => dispatch({ type: 'history.group-ended' })}
           />
-          <TextInput label="Territory ID" value={territoryId(property.name)} readOnly />
           <Select
             label="Territory type"
             value={property.type}

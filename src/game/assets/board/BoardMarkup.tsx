@@ -4,7 +4,7 @@ import type { TokenShape } from '@shared/assets/tokenOutline';
 import type { Board } from '@shared/boards/geometry';
 import { BOARD_FRAME_SIZE } from '@shared/boards/markup';
 import type { BoardTokenPlacement } from '@shared/boards/markup';
-import { territoryId } from '@shared/boards/schema';
+import { propertyId } from '@shared/boards/schema';
 import { boardTerritoryAt } from '@shared/boards/territories';
 import { TINT_EDGE_WIDTH } from '@shared/boards/tintDrawing';
 import type { TintDrawing } from '@shared/boards/tintDrawing';
@@ -206,7 +206,7 @@ export function useBoardMarkupPointer<Element extends HTMLElement | SVGElement>(
       }
       const property = editing.onTerritory ? boardTerritoryAt(board, point) : undefined;
       if (property) {
-        editing.onTerritory?.(territoryId(property.name));
+        editing.onTerritory?.(propertyId(property));
       }
     },
     onPointerMove: (event: PointerEvent<Element>) => {

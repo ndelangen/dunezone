@@ -72,6 +72,40 @@ test('sign-out revokes the session for account deletion as well as ordinary writ
   expect((await t.run((ctx) => ctx.db.get(user.userId)))?.account_state).toBe('active');
 });
 
+test('signing out everywhere ends every session, this one included, while a later sign-in works', async () => {
+  const t = setup();
+  const user = await account(t, 'everywhere', 'google');
+  const other = await t.run(async (ctx) => {
+    const id = await ctx.db.insert('authSessions', { userId: user.userId, expirationTime: Date.now() + 3_600_000 });
+    const tokenId = await ctx.db.insert('authRefreshTokens', { sessionId: id, expirationTime: Date.now() + 600_000 });
+    return { id, tokenId };
+  });
+  const bystander = await account(t, 'bystander', 'discord');
+  const here = t.withIdentity({ subject: `${user.userId}|${user.sessionId}` });
+  await here.mutation(api.accounts.signOutEverywhere, {});
+  for (const sessionId of [user.sessionId, other.id]) {
+    const caller = t.withIdentity({ subject: `${user.userId}|${sessionId}` });
+    expect((await caller.query(api.profiles.settings, {})).account).toBeNull();
+    await expect(
+      caller.mutation(api.profiles.updateCurrent, { username: 'Rejected', avatar_url: 'https://example.com/a.png' })
+    ).rejects.toThrow('Not authenticated');
+  }
+  expect((await t.action(api.auth.signIn, { refreshToken: `${other.tokenId}|${other.id}` })).tokens).toBeNull();
+  const untouched = t.withIdentity({ subject: `${bystander.userId}|${bystander.sessionId}` });
+  expect((await untouched.query(api.profiles.settings, {})).account).not.toBeNull();
+  vi.advanceTimersByTime(1);
+  const fresh = await t.run((ctx) =>
+    ctx.db.insert('authSessions', { userId: user.userId, expirationTime: Date.now() + 3_600_000 })
+  );
+  await t.finishAllScheduledFunctions(() => vi.runAllTimers());
+  const signedIn = t.withIdentity({ subject: `${user.userId}|${fresh}` });
+  await signedIn.mutation(api.profiles.updateCurrent, {
+    username: 'BackAgain',
+    avatar_url: 'https://example.com/avatar.png',
+  });
+  await expect(t.mutation(api.accounts.signOutEverywhere, {})).rejects.toThrow('Not authenticated');
+});
+
 test('disconnect revokes all existing sessions and real refreshes before cleanup, while a new session remains usable', async () => {
   const t = setup();
   const user = await account(t, 'disconnect-session', 'google');
