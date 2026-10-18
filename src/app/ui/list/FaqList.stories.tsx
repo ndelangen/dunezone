@@ -86,3 +86,29 @@ export const NoItems = meta.story({
     await expect(canvas.getByText('No FAQ items yet.')).toBeVisible();
   },
 });
+
+/** Drawn from several rulesets, as the global FAQ's search is: each question says which ruleset it belongs to and links there. */
+export const AcrossRulesets = meta.story({
+  args: {
+    rulesetSlug: undefined,
+    items: [
+      { ...faqItems[0]!, ruleset: { name: 'Dreamrules', slug: 'dreamrules' } },
+      { ...faqItems[1]!, ruleset: { name: 'ClassicRules', slug: 'classicrules' } },
+    ],
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole('link', { name: 'Can leaders move through the storm?' })).toHaveAttribute(
+      'href',
+      '/rulesets/dreamrules/faq/storm-movement'
+    );
+    await expect(canvas.getByRole('link', { name: 'When do reserve forces enter play?' })).toHaveAttribute(
+      'href',
+      '/rulesets/classicrules/faq/reserve-forces'
+    );
+    await expect(canvas.getByRole('link', { name: 'ClassicRules' })).toHaveAttribute(
+      'href',
+      '/rulesets/classicrules/faq'
+    );
+  },
+});

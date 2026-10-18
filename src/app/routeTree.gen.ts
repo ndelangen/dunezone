@@ -30,6 +30,7 @@ import { Route as AppAuthLoginRouteRouteImport } from './routes/_app/auth/login.
 import { Route as AppBlogIndexRouteImport } from './routes/_app/blog/index'
 import { Route as AppFactionsIndexRouteImport } from './routes/_app/factions/index'
 import { Route as AppFactionsCreateRouteRouteImport } from './routes/_app/factions/create.route'
+import { Route as AppFaqIndexRouteImport } from './routes/_app/faq/index'
 import { Route as AppFuturePlansIndexRouteImport } from './routes/_app/future-plans/index'
 import { Route as AppGlossaryIndexRouteImport } from './routes/_app/glossary/index'
 import { Route as AppGroupsCreateRouteRouteImport } from './routes/_app/groups/create.route'
@@ -168,6 +169,11 @@ const AppFactionsIndexRoute = AppFactionsIndexRouteImport.update({
 const AppFactionsCreateRouteRoute = AppFactionsCreateRouteRouteImport.update({
   id: '/factions/create',
   path: '/factions/create',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppFaqIndexRoute = AppFaqIndexRouteImport.update({
+  id: '/faq/',
+  path: '/faq/',
   getParentRoute: () => AppRouteRoute,
 } as any)
 const AppFuturePlansIndexRoute = AppFuturePlansIndexRouteImport.update({
@@ -392,6 +398,7 @@ export interface FileRoutesByFullPath {
   '/auth/': typeof AppAuthIndexRoute
   '/blog/': typeof AppBlogIndexRoute
   '/factions/': typeof AppFactionsIndexRoute
+  '/faq/': typeof AppFaqIndexRoute
   '/future-plans/': typeof AppFuturePlansIndexRoute
   '/glossary/': typeof AppGlossaryIndexRoute
   '/play/': typeof AppPlayIndexRoute
@@ -448,6 +455,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AppAuthIndexRoute
   '/blog': typeof AppBlogIndexRoute
   '/factions': typeof AppFactionsIndexRoute
+  '/faq': typeof AppFaqIndexRoute
   '/future-plans': typeof AppFuturePlansIndexRoute
   '/glossary': typeof AppGlossaryIndexRoute
   '/play': typeof AppPlayIndexRoute
@@ -507,6 +515,7 @@ export interface FileRoutesById {
   '/_app/auth/': typeof AppAuthIndexRoute
   '/_app/blog/': typeof AppBlogIndexRoute
   '/_app/factions/': typeof AppFactionsIndexRoute
+  '/_app/faq/': typeof AppFaqIndexRoute
   '/_app/future-plans/': typeof AppFuturePlansIndexRoute
   '/_app/glossary/': typeof AppGlossaryIndexRoute
   '/_app/play/': typeof AppPlayIndexRoute
@@ -566,6 +575,7 @@ export interface FileRouteTypes {
     | '/auth/'
     | '/blog/'
     | '/factions/'
+    | '/faq/'
     | '/future-plans/'
     | '/glossary/'
     | '/play/'
@@ -622,6 +632,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/blog'
     | '/factions'
+    | '/faq'
     | '/future-plans'
     | '/glossary'
     | '/play'
@@ -680,6 +691,7 @@ export interface FileRouteTypes {
     | '/_app/auth/'
     | '/_app/blog/'
     | '/_app/factions/'
+    | '/_app/faq/'
     | '/_app/future-plans/'
     | '/_app/glossary/'
     | '/_app/play/'
@@ -864,6 +876,13 @@ declare module '@tanstack/react-router' {
       path: '/factions/create'
       fullPath: '/factions/create'
       preLoaderRoute: typeof AppFactionsCreateRouteRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/faq/': {
+      id: '/_app/faq/'
+      path: '/faq'
+      fullPath: '/faq/'
+      preLoaderRoute: typeof AppFaqIndexRouteImport
       parentRoute: typeof AppRouteRoute
     }
     '/_app/future-plans/': {
@@ -1175,6 +1194,7 @@ interface AppRouteRouteChildren {
   AppAuthIndexRoute: typeof AppAuthIndexRoute
   AppBlogIndexRoute: typeof AppBlogIndexRoute
   AppFactionsIndexRoute: typeof AppFactionsIndexRoute
+  AppFaqIndexRoute: typeof AppFaqIndexRoute
   AppFuturePlansIndexRoute: typeof AppFuturePlansIndexRoute
   AppGlossaryIndexRoute: typeof AppGlossaryIndexRoute
   AppPrivacyIndexRoute: typeof AppPrivacyIndexRoute
@@ -1226,6 +1246,7 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppAuthIndexRoute: AppAuthIndexRoute,
   AppBlogIndexRoute: AppBlogIndexRoute,
   AppFactionsIndexRoute: AppFactionsIndexRoute,
+  AppFaqIndexRoute: AppFaqIndexRoute,
   AppFuturePlansIndexRoute: AppFuturePlansIndexRoute,
   AppGlossaryIndexRoute: AppGlossaryIndexRoute,
   AppPrivacyIndexRoute: AppPrivacyIndexRoute,
