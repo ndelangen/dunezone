@@ -3,12 +3,11 @@ import preview from '@sb/preview';
 import { publishingSpiceCard } from '@shared/assets/fixtures/publishingSpiceCard';
 import { spiceBoardLink, spiceBoardTokens } from '@shared/assets/fixtures/spiceBoardCard';
 import { arrakisBoard } from '@shared/boards/geometry';
+import { boardTerritoryList } from '@shared/boards/tintDrawing';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { useState } from 'react';
 import type { ComponentProps } from 'react';
 import { expect, fn, userEvent, waitFor, within } from 'storybook/test';
-
-import { boardTerritoryList } from '@game/assets/card/SpiceBoardMap';
 
 import type { AssetPick } from './SpiceBoardFields';
 import { INITIAL_SPICE_DRAFT, SpiceCardEditor, spiceDraftWarnings } from './SpiceCardEditor';

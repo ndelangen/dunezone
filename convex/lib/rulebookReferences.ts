@@ -6,6 +6,7 @@ import {
   resolvePublicationCapture,
 } from '../../src/shared/asset-publishing/publicationTargets';
 import { parseBoardData } from '../../src/shared/assets/validation';
+import { BoardAsset } from '../../src/shared/boards/schema';
 import { CanonicalFactionStoredSchema, TroopArtwork } from '../../src/shared/factions/schema';
 import type { RulebookEditionContentsV1 } from '../../src/shared/rulebooks/contents';
 import type {
@@ -44,13 +45,34 @@ async function savedBoardGeometry(ctx: ReadCtx, assetId: string, data: unknown, 
   }
 }
 
+/**
+ * A saved board's data for drawing markup on it, checked for shape only: deriving its territories here would cost every evaluation of a reactive query.
+ * The scene works its territories out where it draws them, and leaves its tints out if the board does not draw.
+ */
+function savedBoardData(data: unknown) {
+  const parsed = BoardAsset.safeParse(data);
+  return parsed.success ? { board: parsed.data.board } : {};
+}
+
 /** Resolves only the live sources this Contents references, for both the reader and publication. */
 export async function resolveRulebookReferences(
   ctx: ReadCtx,
   contents: RulebookEditionContentsV1,
-  requested: { assetIds?: readonly string[]; factionIds?: readonly string[]; factionTokenImages?: boolean } = {}
+  requested: {
+    assetIds?: readonly string[];
+    factionIds?: readonly string[];
+    factionTokenImages?: boolean;
+    /** Every saved board's data, for an editor that paints tints; readers get it only for boards a scene tints. */
+    boardData?: boolean;
+  } = {}
 ) {
-  const { assetIds, factionIds, troopSources = [] } = collectRulebookReferenceIds(contents, requested);
+  const {
+    assetIds,
+    factionIds,
+    troopSources = [],
+    markupBoardIds = [],
+  } = collectRulebookReferenceIds(contents, requested);
+  const tinted = new Set(markupBoardIds);
   const [assets, factions] = await Promise.all([
     Promise.all(
       assetIds.map(async (assetId): Promise<readonly [string, RulebookResolvedAssetsById[string]] | null> => {
@@ -83,6 +105,9 @@ export async function resolveRulebookReferences(
               publication && isPublicationAssetType(asset.type)
                 ? publishedHref(asset.type, assetId, publication.cache_token)
                 : null,
+            ...(asset.type === 'board' && (requested.boardData || tinted.has(assetId))
+              ? savedBoardData(asset.data)
+              : {}),
           },
         ];
       })

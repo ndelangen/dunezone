@@ -1,3 +1,5 @@
+import type { Board } from '../boards/geometry';
+import { tintDrawing } from '../boards/tintDrawing';
 import { parseFormattedText } from '../formattedText';
 import { userImageSourceUrlSchema } from '../user-images/contract';
 import type { RulebookBattleSideValue } from './battleStep';
@@ -190,8 +192,31 @@ function projectBoardScene(
       return { ...troop, faction, ...projectTroopArtwork(faction, troop.troopId, troop.face) };
     }),
     highlights: value.highlights,
+    ...projectBoardMarkup(value, assetsById),
     annotations: value.annotations,
   };
+}
+
+/**
+ * A scene's tints drawn on its saved board, and its placed tokens that resolved to a published image.
+ * Tints draw only once the board's data is at hand;
+ * a board that does not draw leaves them out rather than failing the scene.
+ */
+function projectBoardMarkup(value: RulebookBoardSceneValue, assetsById: RulebookResolvedAssetsById) {
+  const board = assetsById[value.boardId]?.board as Board | undefined;
+  let tints;
+  if (value.tints?.length && board && typeof board === 'object') {
+    try {
+      tints = value.tints.map((tint) => tintDrawing(board, tint));
+    } catch {
+      tints = undefined;
+    }
+  }
+  const tokens = value.tokens?.flatMap((token) => {
+    const asset = assetsById[token.asset_id];
+    return asset?.imageUrl ? [{ ...token, name: asset.name, type: asset.type, imageUrl: asset.imageUrl }] : [];
+  });
+  return { ...(tints ? { tints } : {}), ...(tokens?.length ? { tokens } : {}) };
 }
 
 function projectMovementGroup(

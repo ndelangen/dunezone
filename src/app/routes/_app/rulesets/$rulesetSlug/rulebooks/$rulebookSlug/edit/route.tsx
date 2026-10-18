@@ -52,6 +52,7 @@ import type {
 } from '@shared/rulebooks/contents';
 import { RULEBOOK_EDITION_ARTIFACT_KINDS } from '@shared/rulebooks/editionArtifacts';
 import type { RulebookEditionArtifactKind } from '@shared/rulebooks/editionArtifacts';
+import type { RulebookBoardSceneValue } from '@shared/rulebooks/illustratedScenes';
 import { rulebookNameSchema } from '@shared/rulebooks/metadata';
 import {
   projectRulebookDraftRenderPage,
@@ -128,6 +129,7 @@ import { pageHead } from '@app/routes/pageTitle';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
+import { RulebookBoardMarkupEditing } from '@game/rulebook/RulebookBoardMarkup';
 import { RulebookPageRenderer } from '@game/rulebook/RulebookRenderer';
 
 import {
@@ -147,6 +149,7 @@ import {
   verticalRectCenter,
 } from './rulebookBlockPlacement';
 import type { BlockPlacement, VerticalRect } from './rulebookBlockPlacement';
+import { rulebookMarkupEditor, RulebookMarkupUiProvider, useRulebookMarkupUiState } from './rulebookBoardMarkup';
 import { RulebookClippedBlockPanel } from './rulebookClippedBlockPanel';
 import { CoverEdit, CoverFooterEdit } from './rulebookControlRegionEditors';
 import {
@@ -1252,6 +1255,23 @@ function FactionReferenceControl({
   );
 }
 
+/** The open Block's board scene markup for the preview to paint and drag on: a board scene's own, or a piece movement's board. */
+function activeBoardMarkup(
+  block: RulebookBlockDraft | undefined,
+  replaceBlock: (block: RulebookBlockDraft) => void,
+  assetsById: RulebookResolvedAssetsById,
+  ui: Parameters<typeof rulebookMarkupEditor>[0]['ui']
+) {
+  const scene =
+    block?.kind === 'board-scene'
+      ? { value: block, onChange: (value: RulebookBoardSceneValue) => replaceBlock({ ...block, ...value }) }
+      : block?.kind === 'piece-movement' && block.board
+        ? { value: block.board, onChange: (board: RulebookBoardSceneValue) => replaceBlock({ ...block, board }) }
+        : undefined;
+  const editor = block && scene ? rulebookMarkupEditor({ ...scene, assetsById, ui }) : null;
+  return block && editor ? { blockId: block.id, editor } : null;
+}
+
 function blockEditorPanel(
   block: RulebookBlockDraft,
   replaceBlock: (block: RulebookBlockDraft) => void,
@@ -1463,6 +1483,7 @@ function RulebookWorkspace({
   const size = getRulebookSize(settings.size);
   const active = activeEditorPath(result.draft, hash);
   const activeHash = active?.hash;
+  const markupUi = useRulebookMarkupUiState(active?.kind === 'block' ? active.blockId : undefined);
   const [collapsedRegionKeys, setCollapsedRegionKeys] = useState<ReadonlySet<string>>(() => new Set());
   const [dragState, sendDrag] = useReducer(reduceWorkspaceDragState, idleWorkspaceDragState);
   const railDrag = activeRailDrag(dragState);
@@ -1850,6 +1871,13 @@ function RulebookWorkspace({
   const activeClippedBlock =
     active.kind === 'block' ? clippedBlocks.find((block) => block.id === active.blockId) : undefined;
 
+  const markupEditing = activeBoardMarkup(
+    active.kind === 'block' ? page.blocksById[active.blockId] : undefined,
+    replaceBlock,
+    assetsById,
+    markupUi
+  );
+
   const panel: ReactNode =
     active.kind === 'details' ? (
       <PageDetailsEdit
@@ -1892,7 +1920,9 @@ function RulebookWorkspace({
       controlRegionPanel(page, active.regionKey, replacePage, factionsById)
     ) : (
       <Stack gap="md">
-        {blockEditorPanel(page.blocksById[active.blockId]!, replaceBlock, factionsById, assetsById, result.draft)}
+        <RulebookMarkupUiProvider state={markupUi}>
+          {blockEditorPanel(page.blocksById[active.blockId]!, replaceBlock, factionsById, assetsById, result.draft)}
+        </RulebookMarkupUiProvider>
         <Group justify="flex-end">
           <ConfirmDeleteAction
             key={active.blockId}
@@ -2089,11 +2119,13 @@ function RulebookWorkspace({
           <div className={styles.previewPage}>
             <div ref={previewRef} className={styles.previewVisible}>
               {previewPage ? (
-                <RulebookPageRenderer
-                  page={previewPage}
-                  settings={settings}
-                  pageNumber={result.draft.pageOrder.indexOf(page.id) + 1}
-                />
+                <RulebookBoardMarkupEditing.Provider value={markupEditing}>
+                  <RulebookPageRenderer
+                    page={previewPage}
+                    settings={settings}
+                    pageNumber={result.draft.pageOrder.indexOf(page.id) + 1}
+                  />
+                </RulebookBoardMarkupEditing.Provider>
               ) : null}
             </div>
             <div className={styles.clippingMeasurements} aria-hidden>

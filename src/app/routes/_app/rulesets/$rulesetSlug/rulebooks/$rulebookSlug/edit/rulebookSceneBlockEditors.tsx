@@ -12,6 +12,7 @@ import {
   Textarea,
 } from '@mantine/core';
 import { resolveRulebookBoardDefinition, RULEBOOK_BOARD_DEFINITIONS } from '@shared/rulebooks/boardDefinitions';
+import { boardHighlightTints } from '@shared/rulebooks/boardHighlightTints';
 import { createRulebookLocalId } from '@shared/rulebooks/contents';
 import type { RulebookBoardSceneValue, RulebookPieceMovementValue } from '@shared/rulebooks/illustratedScenes';
 import { ControlBlock } from '@ui/control/ControlBlock';
@@ -20,6 +21,7 @@ import { createContext, lazy, Suspense, useContext, useState } from 'react';
 
 import { BattleSourceControl, BattleStepEdit } from './rulebookBattleStepEdit';
 import type { RulebookBlockEditorProps } from './rulebookBlockEditors';
+import { RulebookBoardMarkupFields, useRulebookMarkupUi } from './rulebookBoardMarkup';
 import type { RulebookEditorReferences } from './rulebookVisualBlockEditors';
 
 const FactionPicker = lazy(() =>
@@ -773,14 +775,31 @@ function BoardStormFields({ value, onChange }: BoardSceneFieldsProps) {
   );
 }
 
+/**
+ * A scene moved from the maintained board onto a saved one carries its highlights over as tints, which a saved board draws instead.
+ * A scene that already has tints keeps them and its highlights as they are.
+ */
+function withBoard(value: RulebookBoardSceneValue, boardId: string): RulebookBoardSceneValue {
+  const carry =
+    !resolveRulebookBoardDefinition(boardId) &&
+    resolveRulebookBoardDefinition(value.boardId) &&
+    value.highlights.length &&
+    !value.tints?.length;
+  return carry
+    ? { ...value, boardId, highlights: [], tints: boardHighlightTints(value.highlights) }
+    : { ...value, boardId };
+}
+
 function BoardSceneFields({ value, references, onChange }: BoardSceneFieldsProps) {
+  const [ui, setUi] = useRulebookMarkupUi();
+  const saved = !resolveRulebookBoardDefinition(value.boardId);
   return (
     <BoardReferences.Provider value={references}>
       <Stack gap="md">
         <BoardChoice
           boardId={value.boardId}
           references={references}
-          onChange={(boardId) => onChange({ ...value, boardId })}
+          onChange={(boardId) => onChange(withBoard(value, boardId))}
         />
         <Textarea
           label="Caption"
@@ -807,10 +826,15 @@ function BoardSceneFields({ value, references, onChange }: BoardSceneFieldsProps
         />
         <BoardViewportFields value={value} references={references} onChange={onChange} />
         <BoardStormFields value={value} references={references} onChange={onChange} />
-        <Accordion multiple>
+        <Accordion multiple value={ui.sections} onChange={(sections) => setUi((current) => ({ ...current, sections }))}>
           <BoardPlayerFields value={value} references={references} onChange={onChange} />
           <BoardTroopFields value={value} references={references} onChange={onChange} />
-          <BoardHighlightFields value={value} references={references} onChange={onChange} />
+          {saved ? (
+            <RulebookBoardMarkupFields value={value} onChange={onChange} assetsById={references.assetsById} />
+          ) : null}
+          {!saved || value.highlights.length ? (
+            <BoardHighlightFields value={value} references={references} onChange={onChange} />
+          ) : null}
           <BoardRouteFields value={value} references={references} onChange={onChange} />
           <BoardAnnotationFields value={value} references={references} onChange={onChange} />
         </Accordion>

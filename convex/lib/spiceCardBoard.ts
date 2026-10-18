@@ -1,9 +1,10 @@
 import { ConvexError } from 'convex/values';
 import type { z } from 'zod';
 
-import { SpiceAsset, SPICE_MAX_TOKENS } from '../../src/shared/assets/schema';
+import { SpiceAsset } from '../../src/shared/assets/schema';
 import type { CustomCardTokens, SpiceBoardLink } from '../../src/shared/assets/schema';
 import { parseBoardData } from '../../src/shared/assets/validation';
+import { BOARD_MAX_TOKENS } from '../../src/shared/boards/markup';
 import type { Board } from '../../src/shared/boards/schema';
 import { compareCodeUnits } from '../../src/shared/compareText';
 import type { Doc, Id } from '../_generated/dataModel';
@@ -62,7 +63,7 @@ export async function resolveSpiceCardBoard(
   boardId: string | undefined,
   tokenIds: readonly string[]
 ): Promise<SpiceCardBoardResolution> {
-  if (tokenIds.length > SPICE_MAX_TOKENS) {
+  if (tokenIds.length > BOARD_MAX_TOKENS) {
     throw new ConvexError('Too many linked tokens');
   }
   const board = boardId ? await readLinkedBoard(ctx, boardId) : null;
@@ -119,7 +120,7 @@ async function syncRelation(ctx: MutationCtx, cardId: Id<'assets'>, kind: SpiceC
   const current = await ctx.db
     .query('asset_relations')
     .withIndex('by_from_kind', (q) => q.eq('from_asset_id', cardId).eq('kind', kind))
-    .take(SPICE_MAX_TOKENS + 1);
+    .take(BOARD_MAX_TOKENS + 1);
   const kept = new Set<string>(current.map((relation) => relation.to_asset_id));
   const stale = current.filter((relation) => !wanted.has(relation.to_asset_id));
   const added = [...wanted]

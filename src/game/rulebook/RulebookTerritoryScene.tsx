@@ -21,6 +21,8 @@ export type RulebookTerritorySceneProps = Readonly<{
     size: number;
     gap: number;
   })[];
+  /** Drawn over the board and its highlights, under the troops: a saved board's tints and tokens. */
+  underlay?: ReactNode;
   overlay?: ReactNode;
   labels: readonly (Point & { text: string; width: number })[];
 }>;
@@ -34,6 +36,7 @@ export function RulebookTerritoryScene({
   highlights,
   troops,
   labels,
+  underlay,
   overlay,
 }: RulebookTerritorySceneProps) {
   const imageUrl = useAsset(board.imageUrl);
@@ -65,6 +68,7 @@ export function RulebookTerritoryScene({
           </g>
         ) : null;
       })}
+      {underlay}
       {troops.map((group) =>
         Array.from({ length: group.count }, (_, index) => (
           <foreignObject

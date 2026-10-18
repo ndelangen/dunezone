@@ -7,6 +7,11 @@ import { useId } from 'react';
 import { Token } from '../assets/faction/token/Token';
 import { RulebookAnnotationMarks } from './RulebookAnnotationMarks';
 import { RulebookAssetExplainer } from './RulebookAssetExplainer';
+import {
+  RulebookBoardEditSurface,
+  RulebookBoardMarkupLayer,
+  useRulebookBoardMarkupEditor,
+} from './RulebookBoardMarkup';
 import { RulebookTerritoryScene } from './RulebookTerritoryScene';
 import { rulebookTroopArtwork } from './rulebookTroopArtwork';
 
@@ -300,8 +305,15 @@ function TableOverlay({
   );
 }
 
-/** A board scene keeps markers, troops, and annotations tied to the supplied board geometry. */
-export function RulebookBoardSceneVisual({ scene }: Readonly<{ scene: RulebookBoardScene }>) {
+/**
+ * A board scene keeps markers, troops, and annotations tied to the supplied board geometry.
+ * `blockId` names the Block the scene belongs to, so the editor's preview can paint and drag on the one it has open.
+ */
+export function RulebookBoardSceneVisual({
+  scene,
+  blockId,
+}: Readonly<{ scene: RulebookBoardScene; blockId?: string }>) {
+  const editor = useRulebookBoardMarkupEditor(blockId);
   const source = scene.board;
   if (source.status !== 'ready' || !source.geometry) {
     return (
@@ -345,7 +357,20 @@ export function RulebookBoardSceneVisual({ scene }: Readonly<{ scene: RulebookBo
         gap: troop.gap * geometry.width,
       }))}
       labels={[]}
-      overlay={<TableOverlay scene={scene} width={geometry.width} height={geometry.height} projection={projection} />}
+      underlay={
+        <RulebookBoardMarkupLayer
+          scene={scene}
+          width={geometry.width}
+          height={geometry.height}
+          selectedToken={editor?.editing.selectedToken}
+        />
+      }
+      overlay={
+        <>
+          <TableOverlay scene={scene} width={geometry.width} height={geometry.height} projection={projection} />
+          {editor ? <RulebookBoardEditSurface editor={editor} width={geometry.width} height={geometry.height} /> : null}
+        </>
+      }
     />
   );
   if (!scene.annotations.length) {
@@ -398,7 +423,7 @@ export function RulebookBoardSceneVisual({ scene }: Readonly<{ scene: RulebookBo
 export function RulebookBoardSceneBlock({ block }: Readonly<{ block: BoardBlock }>) {
   return (
     <section id={block.anchor} data-rulebook-block-anchor={block.anchor} data-rulebook-block-id={block.id}>
-      <RulebookBoardSceneVisual scene={block} />
+      <RulebookBoardSceneVisual scene={block} blockId={block.id} />
     </section>
   );
 }
