@@ -386,7 +386,7 @@ describe('Play account deletion', () => {
     expect(events).toMatchObject([{ game_id: subject.game._id, user_id: subject.userId, state: 'pending' }]);
   });
 
-  test('settles a deletion queued for a game that never opened', async () => {
+  test('settles a deletion queued for a game that never opened only once its room has emptied', async () => {
     const subject = await createdGame();
     const { operationId } = await subject.player.mutation(api.accountDeletion.confirm, { replacementUserId: null });
     await subject.t.mutation(internal.playDeletion.queueAccountDeletion, {
@@ -397,7 +397,19 @@ describe('Play account deletion', () => {
       await ctx.db.patch(subject.game._id, { state: 'expired' });
       return (await ctx.db.query('play_account_deletions').first())!;
     });
-    expect(await subject.t.mutation(internal.playDeletion.claimDelivery, { eventId: event._id })).toBeNull();
-    expect((await subject.t.run((ctx) => ctx.db.get(event._id)))?.state).toBe('acknowledged');
+    const state = async () => (await subject.t.run((ctx) => ctx.db.get(event._id)))?.state;
+    const fetch = vi.fn(async () => new Response(null, { status: 403 }));
+    vi.stubGlobal('fetch', fetch);
+    await subject.t.action(internal.playDeletion.deliver, { eventId: event._id });
+    expect(fetch).toHaveBeenCalledWith(
+      `https://dune.zone/__play/games/${subject.game._id}/retire`,
+      expect.objectContaining({ body: JSON.stringify({ gameId: subject.game._id, secret: subject.game.secret }) })
+    );
+    expect(await state()).toBe('pending');
+
+    fetch.mockResolvedValue(new Response(JSON.stringify({ ok: true }), { status: 200 }));
+    vi.setSystemTime((await subject.t.run((ctx) => ctx.db.get(event._id)))!.next_attempt_at);
+    await subject.t.action(internal.playDeletion.deliver, { eventId: event._id });
+    expect(await state()).toBe('acknowledged');
   });
 });

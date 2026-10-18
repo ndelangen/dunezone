@@ -186,8 +186,8 @@ export const expireProvisioning = internalMutation({
   handler: async (ctx, args) => {
     const game = await ctx.db.get(args.gameId);
     if (game?.state === 'pending' && Date.now() >= game.provision_expires_at) {
+      /* The room may already hold the creator, so their routing stays: a deletion then empties the room before it settles. */
       await ctx.db.patch(game._id, { state: 'expired' });
-      await unenrolCreator(ctx, game);
     }
     return null;
   },

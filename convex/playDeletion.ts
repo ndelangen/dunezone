@@ -125,7 +125,11 @@ export const queueAccountDeletion = internalMutation({
 /** Claiming a delivery also persists its next retry, before any external request can fail. */
 export const claimDelivery = internalMutation({
   args: { eventId: v.id('play_account_deletions') },
-  returns: zodToConvex(playAccountDeletionRequestSchema.nullable()),
+  returns: v.union(
+    v.object({ operation: v.literal('account-deletion'), request: zodToConvex(playAccountDeletionRequestSchema) }),
+    v.object({ operation: v.literal('retire'), request: zodToConvex(playRetireFixtureRequestSchema) }),
+    v.null()
+  ),
   handler: async (ctx, args) => {
     const event = await ctx.db.get(args.eventId);
     if (!event || !isDueDeletion(event)) {
@@ -136,21 +140,31 @@ export const claimDelivery = internalMutation({
     await ctx.db.patch(event._id, { attempts: event.attempts + 1, next_attempt_at: nextAttemptAt });
     /* A game that is not ready waits out the same backoff, so its events never crowd the due index. */
     const game = await ctx.db.get(event.game_id);
-    /* A game that never opened, unlike the retired fixture, has no room holding the account, so its deletion is done. */
-    if (!game || (game.state === 'expired' && game.fixture_key !== PLAY_FIXTURE_KEY)) {
+    if (!game) {
       await ctx.db.patch(event._id, { state: 'acknowledged' });
       return null;
+    }
+    /*
+     * A game that never opened can still have a room that stored the creator before its confirmation failed past the deadline.
+     * Such a room is never confirmed now, so it is asked to delete everything; the deletion is done once it answers, empty or emptied.
+     */
+    if (isUnopened(game)) {
+      await ctx.scheduler.runAt(nextAttemptAt, internal.playDeletion.deliver, { eventId: event._id });
+      return { operation: 'retire' as const, request: { gameId: game._id, secret: game.secret } };
     }
     if (game.state !== 'ready') {
       return null;
     }
     await ctx.scheduler.runAt(nextAttemptAt, internal.playDeletion.deliver, { eventId: event._id });
     return {
-      gameId: game._id,
-      secret: game.secret,
-      eventId: event._id,
-      userId: event.user_id,
-      deletionOperationId: event.operation_id,
+      operation: 'account-deletion' as const,
+      request: {
+        gameId: game._id,
+        secret: game.secret,
+        eventId: event._id,
+        userId: event.user_id,
+        deletionOperationId: event.operation_id,
+      },
     };
   },
 });
@@ -160,12 +174,43 @@ export const deliver = internalAction({
   returns: v.null(),
   handler: async (ctx, args) => {
     const delivery = await ctx.runMutation(internal.playDeletion.claimDelivery, args);
-    if (delivery) {
-      try {
-        await postPlayService(delivery.gameId, 'account-deletion', playAccountDeletionRequestSchema.parse(delivery));
-      } catch {
-        // Only the authenticated acknowledgement retires this event. The retry is already durable.
+    try {
+      if (delivery?.operation === 'account-deletion') {
+        await postPlayService(
+          delivery.request.gameId,
+          'account-deletion',
+          playAccountDeletionRequestSchema.parse(delivery.request)
+        );
+      } else if (
+        delivery?.operation === 'retire' &&
+        (await postPlayService(
+          delivery.request.gameId,
+          'retire',
+          playRetireFixtureRequestSchema.parse(delivery.request)
+        ))
+      ) {
+        await ctx.runMutation(internal.playDeletion.settleUnopenedDeletion, args);
       }
+    } catch {
+      // Only the authenticated acknowledgement, or an emptied room, retires this event. The retry is already durable.
+    }
+    return null;
+  },
+});
+
+function isUnopened(game: Doc<'play_games'>) {
+  return game.state === 'expired' && game.fixture_key !== PLAY_FIXTURE_KEY;
+}
+
+/** The room of a game that never opened answered its retirement, so it holds nothing of the account. */
+export const settleUnopenedDeletion = internalMutation({
+  args: { eventId: v.id('play_account_deletions') },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const event = await ctx.db.get(args.eventId);
+    const game = event && (await ctx.db.get(event.game_id));
+    if (event?.state === 'pending' && game && isUnopened(game)) {
+      await ctx.db.patch(event._id, { state: 'acknowledged' });
     }
     return null;
   },

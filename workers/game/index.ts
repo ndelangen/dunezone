@@ -625,13 +625,15 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
   }
 
-  /** Only the hosted fixture's own room retires, and only for the secret it was provisioned with. */
+  /**
+   * Only the hosted fixture's own room, or a room Convex never confirmed, retires, and only for the secret it was provisioned with.
+   * Convex asks an unconfirmed room only once its game expired, when no confirmation can succeed any more.
+   */
   private retiresAs(metadata: Metadata, gameId: string, secret: string) {
     return (
       metadata.gameId === gameId &&
       credentialsMatch(secret, metadata.secret) &&
-      !metadata.game &&
-      this.fixturePlan.hosted
+      (!metadata.confirmed || (!metadata.game && this.fixturePlan.hosted))
     );
   }
 
