@@ -34,6 +34,10 @@ export function phaseControls(canvasElement: HTMLElement) {
     const item = await openPrevious();
     /* A phase change's cooldown may still hold the item, so its state is awaited while the menu stays open. */
     await waitFor(() => expect((item as HTMLButtonElement).disabled).toBe(!enabled));
+    /* Escape belongs to the dropdown, so its focus trap must receive focus first. */
+    await waitForFrame(() =>
+      expect(page.getByRole('menu').contains(canvasElement.ownerDocument.activeElement)).toBe(true)
+    );
     await userEvent.keyboard('{Escape}');
     await waitForFrame(() => expect(page.queryByRole('menuitem', { name: 'Previous phase' })).toBeNull());
   };
