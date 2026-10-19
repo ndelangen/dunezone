@@ -14,6 +14,11 @@ export const CreateSaves = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.type(await page.findByRole('textbox', { name: 'Name' }, { timeout: 30_000 }), 'My Homeworld');
     await expect(page.queryByRole('tab', { name: 'Faction' })).toBeNull();
+    await userEvent.click(page.getByRole('tab', { name: 'Planet' }));
+    const size = page.getByRole('slider', { name: 'Planet size slider' });
+    size.focus();
+    await userEvent.keyboard('{Home}{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}');
+    await expect(page.getByRole('textbox', { name: 'Planet size' })).toHaveValue('0.8');
     await userEvent.click(page.getByRole('tab', { name: 'Effects' }));
     const threshold = page.getByRole('textbox', { name: 'High reserve threshold' });
     await userEvent.clear(threshold);
@@ -26,6 +31,8 @@ export const CreateSaves = meta.story({
     await userEvent.type(strength, '1');
     await userEvent.click(page.getByRole('button', { name: 'Save card' }));
     await expect(page.findByRole('button', { name: 'Delete card' }, { timeout: 30_000 })).resolves.toBeVisible();
+    await userEvent.click(page.getByRole('tab', { name: 'Planet' }));
+    await expect(page.getByRole('textbox', { name: 'Planet size' })).toHaveValue('0.8');
     await userEvent.click(page.getByRole('tab', { name: 'Effects' }));
     await expect(page.getByRole('textbox', { name: 'High reserve threshold' })).toHaveValue('8');
     await expect(page.getByRole('textbox', { name: 'Low reserves strength' })).toHaveValue('1');

@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 import { Background } from '../factions/schema';
 import { LEADER_SKILL_HEAD, LEADER_SKILL_SYMBOL } from './gf9LeaderSkills';
-import { HOMEWORLD_HEAD } from './homeworldTemplate';
+import { HOMEWORLD_HEAD, HOMEWORLD_ICON_BACKGROUND } from './homeworldTemplate';
 import { NEXUS_HEAD } from './nexusTemplate';
 import { TreacheryAsset } from './schema';
 import { STORM_CARD_HEAD, STORM_CARD_ICON } from './standardStormDeck';
@@ -45,7 +45,7 @@ export const INITIAL_CARD_FRONT_PRESETS: CardFrontPreset[] = [
   {
     key: 'homeworld',
     label: 'Homeworld',
-    style: { head: HOMEWORLD_HEAD, iconBackground: HOMEWORLD_HEAD },
+    style: { head: HOMEWORLD_HEAD, iconBackground: HOMEWORLD_ICON_BACKGROUND },
     revision: 0,
   },
   { key: 'nexus', label: 'Nexus', style: { head: NEXUS_HEAD, iconBackground: null }, revision: 0 },

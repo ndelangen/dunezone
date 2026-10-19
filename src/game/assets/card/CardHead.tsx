@@ -43,9 +43,7 @@ export function CardHeadContents({
         background={icon[0]}
         componentPart={measureParts ? 'icon' : undefined}
       >
-        {iconPresentation === 'image' ? (
-          <img alt="" src={image} className={styles.picture} />
-        ) : (
+        {iconPresentation === 'symbol' ? (
           <>
             <img
               alt=""
@@ -75,8 +73,11 @@ export function CardHeadContents({
               }}
             />
           </>
-        )}
+        ) : null}
       </BackgroundRenderer>
+      {iconPresentation === 'image' ? (
+        <img alt="" src={image} className={styles.picture} style={{ transform: `scale(${iconScale})` }} />
+      ) : null}
       <div
         className={styles.title}
         style={{ width: 560, fontSize: cardTitleFontSize(name) }}

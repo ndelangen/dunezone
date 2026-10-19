@@ -12,7 +12,7 @@ export type BackgroundPatternOption = {
 export const BACKGROUND_PATTERN_CATALOGUE = [
   ...BACKGROUND.options.map((image) => ({
     image,
-    label: image.endsWith('/map.svg') ? 'Map lines' : 'Moons',
+    label: image.endsWith('/map.svg') ? 'Map lines' : image.endsWith('/starfield.svg') ? 'Starfield' : 'Moons',
   })),
   ...TEXTURE.options.map((image) => {
     const number = image.slice('/image/texture/'.length, -'.jpg'.length);

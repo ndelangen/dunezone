@@ -20,6 +20,7 @@ import { card as CARD_SIZE } from '@game/data/sizes';
 
 import styles from './CardEditor.module.css';
 import { fixedCardHeadChapter } from './CardHeadChapters';
+import { CardIconScaleControl } from './CardIconAdjustments';
 
 export type HomeworldDraft = z.infer<typeof HomeworldCardAsset>;
 export type HomeworldChapter = 'head' | 'planet' | 'effects' | 'about';
@@ -78,25 +79,33 @@ export function HomeworldCardEditor({
                 label: 'Planet',
                 icon: <Globe size={21} aria-hidden />,
                 panel: (
-                  <ControlBlock
-                    title="Planet illustration"
-                    description="Shown in the card head. Any faction can use this homeworld."
-                    input={
-                      <AssetSelect
-                        aria-label="Planet illustration"
-                        allowDeselect={false}
-                        data={planets}
-                        getPreviewSrc={(image) => resolveAsset(image, 'small')}
-                        value={draft.icon[1]}
-                        onChange={(image) => {
-                          const selected = PLANET.safeParse(image);
-                          if (selected.success) {
-                            patch({ icon: [draft.icon[0], selected.data] });
-                          }
-                        }}
-                      />
-                    }
-                  />
+                  <Stack gap="md">
+                    <ControlBlock
+                      title="Planet illustration"
+                      description="Shown in the card head. Any faction can use this homeworld."
+                      input={
+                        <AssetSelect
+                          aria-label="Planet illustration"
+                          allowDeselect={false}
+                          data={planets}
+                          getPreviewSrc={(image) => resolveAsset(image, 'small')}
+                          value={draft.icon[1]}
+                          onChange={(image) => {
+                            const selected = PLANET.safeParse(image);
+                            if (selected.success) {
+                              patch({ icon: [draft.icon[0], selected.data] });
+                            }
+                          }}
+                        />
+                      }
+                    />
+                    <CardIconScaleControl
+                      value={draft}
+                      onChange={patch}
+                      label="Planet size"
+                      description="Resize the whole planet above the frame, including its rings. A size of 1 fits the illustration inside the disc."
+                    />
+                  </Stack>
                 ),
               },
               {

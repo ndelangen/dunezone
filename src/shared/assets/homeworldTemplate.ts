@@ -6,13 +6,21 @@ import type { HomeworldCardAsset } from './schema';
 /** Homeworld keeps the Nexus texture treatment with its own teal palette. */
 export const HOMEWORLD_HEAD: typeof NEXUS_HEAD = { ...NEXUS_HEAD, colors: ['#07585C', '#249397'] };
 
+export const HOMEWORLD_ICON_BACKGROUND: typeof NEXUS_HEAD = {
+  image: '/vector/background/starfield.svg',
+  colors: ['#0A1126', '#B7CAE2'],
+  influence: 1,
+  invert: false,
+  definition: 1,
+};
+
 /** The empty Homeworld uses the shared card head and the existing planet catalogue. */
 export const EMPTY_HOMEWORLD_CARD: z.infer<typeof HomeworldCardAsset> = {
   name: '',
   subName: 'Homeworld',
   about: '',
   head: HOMEWORLD_HEAD,
-  icon: [HOMEWORLD_HEAD, '/image/planet/04.png'],
+  icon: [HOMEWORLD_ICON_BACKGROUND, '/image/planet/04.png'],
   threshold: 6,
   high: { strength: 2, text: '' },
   low: { strength: 2, text: '' },
