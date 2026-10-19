@@ -63,6 +63,7 @@ import {
   assignedGroupSummary,
   requireAssetSoftDelete,
   requireAssetUpdate,
+  requireAssignableGroup,
   requireGroupReassignment,
 } from './lib/collaborativeAccess';
 import { assetPublishingValidator, assignedGroupSummaryValidator } from './lib/collaborativeAccessValidators';
@@ -611,6 +612,7 @@ export const create = mutation({
     data: v.any(),
     /** A deck or bundle loaded as this one's starting point: its members are copied onto the new container. */
     members_from: v.optional(v.id('assets')),
+    group_id: v.optional(v.union(v.id('groups'), v.null())),
   },
   returns: v.object({ id: v.id('assets'), slug: v.string() }),
   handler: async (ctx, args) => {
@@ -618,7 +620,13 @@ export const create = mutation({
     if (args.type === 'card-nexus' && !parseNexusCardInput(args.data).factionLink) {
       throw new ConvexError('Choose a faction before creating this Nexus card');
     }
+    if (args.group_id) {
+      await requireAssignableGroup(ctx, args.group_id);
+    }
     const created = await createOwnedAsset(ctx, userId, args.type, args.data);
+    if (args.group_id) {
+      await ctx.db.patch('assets', created.id, { group_id: args.group_id });
+    }
     if (args.members_from) {
       await copyMembers(ctx, args.members_from, created.id, args.type);
     }
@@ -849,20 +857,21 @@ export const setMemberCount = mutation({
     /* Membership changes touch no name, so the rename gate has nothing to compare. */
     await requireAssetUpdate(ctx, args.container_id);
 
-    const member = await ctx.db.get('assets', args.member_id);
-    if (!member || member.is_deleted) {
-      throw new Error(`Asset with id ${args.member_id} not found`);
-    }
-    if (!rules.holds(member.type)) {
-      throw new Error(`A ${container.type} holds ${rules.noun}, not ${member.type}`);
-    }
-
     const existing = await ctx.db
       .query('asset_relations')
       .withIndex('by_from_to_kind', (q) =>
         q.eq('from_asset_id', args.container_id).eq('to_asset_id', args.member_id).eq('kind', rules.kind)
       )
       .unique();
+    if (args.count > 0) {
+      const member = await ctx.db.get('assets', args.member_id);
+      if (!member || member.is_deleted) {
+        throw new Error(`Asset with id ${args.member_id} not found`);
+      }
+      if (!rules.holds(member.type)) {
+        throw new Error(`A ${container.type} holds ${rules.noun}, not ${member.type}`);
+      }
+    }
     if (args.count === 0) {
       if (existing) {
         await ctx.db.delete(existing._id);

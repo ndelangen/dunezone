@@ -97,6 +97,7 @@ const readerEditionContents: Projection = {
 };
 
 export const snapshotPolicy = {
+  content_import_receipts: { drop: 'deployment-specific import receipts and author identities' },
   board_readiness: {
     fields: {
       asset_id: { parent: 'assets' },

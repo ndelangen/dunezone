@@ -16,6 +16,7 @@ import { Route as App_iconsRouteRouteImport } from './routes/_app/[_]_icons.rout
 import { Route as App_jobsRouteRouteImport } from './routes/_app/[_]_jobs.route'
 import { Route as App_mediaRouteRouteImport } from './routes/_app/[_]_media.route'
 import { Route as AppJobsRouteRouteImport } from './routes/_app/[_]jobs.route'
+import { Route as AppImportsRouteRouteImport } from './routes/_app/imports.route'
 import { Route as AppMediaRouteRouteImport } from './routes/_app/media/route'
 import { Route as AppPlayRouteRouteImport } from './routes/_app/play/route'
 import { Route as AuthOauthRouteRouteImport } from './routes/auth/oauth.route'
@@ -109,6 +110,11 @@ const App_mediaRouteRoute = App_mediaRouteRouteImport.update({
 const AppJobsRouteRoute = AppJobsRouteRouteImport.update({
   id: '/_jobs',
   path: '/_jobs',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppImportsRouteRoute = AppImportsRouteRouteImport.update({
+  id: '/imports',
+  path: '/imports',
   getParentRoute: () => AppRouteRoute,
 } as any)
 const AppMediaRouteRoute = AppMediaRouteRouteImport.update({
@@ -447,6 +453,7 @@ export interface FileRoutesByFullPath {
   '/__jobs': typeof App_jobsRouteRoute
   '/__media': typeof App_mediaRouteRoute
   '/_jobs': typeof AppJobsRouteRoute
+  '/imports': typeof AppImportsRouteRoute
   '/media': typeof AppMediaRouteRouteWithChildren
   '/play': typeof AppPlayRouteRouteWithChildren
   '/auth/oauth': typeof AuthOauthRouteRoute
@@ -514,6 +521,7 @@ export interface FileRoutesByTo {
   '/__jobs': typeof App_jobsRouteRoute
   '/__media': typeof App_mediaRouteRoute
   '/_jobs': typeof AppJobsRouteRoute
+  '/imports': typeof AppImportsRouteRoute
   '/media': typeof AppMediaRouteRouteWithChildren
   '/auth/oauth': typeof AuthOauthRouteRoute
   '/': typeof AppIndexRoute
@@ -583,6 +591,7 @@ export interface FileRoutesById {
   '/_app/__jobs': typeof App_jobsRouteRoute
   '/_app/__media': typeof App_mediaRouteRoute
   '/_app/_jobs': typeof AppJobsRouteRoute
+  '/_app/imports': typeof AppImportsRouteRoute
   '/_app/media': typeof AppMediaRouteRouteWithChildren
   '/_app/play': typeof AppPlayRouteRouteWithChildren
   '/auth/oauth': typeof AuthOauthRouteRoute
@@ -654,6 +663,7 @@ export interface FileRouteTypes {
     | '/__jobs'
     | '/__media'
     | '/_jobs'
+    | '/imports'
     | '/media'
     | '/play'
     | '/auth/oauth'
@@ -721,6 +731,7 @@ export interface FileRouteTypes {
     | '/__jobs'
     | '/__media'
     | '/_jobs'
+    | '/imports'
     | '/media'
     | '/auth/oauth'
     | '/'
@@ -789,6 +800,7 @@ export interface FileRouteTypes {
     | '/_app/__jobs'
     | '/_app/__media'
     | '/_app/_jobs'
+    | '/_app/imports'
     | '/_app/media'
     | '/_app/play'
     | '/auth/oauth'
@@ -907,6 +919,13 @@ declare module '@tanstack/react-router' {
       path: '/_jobs'
       fullPath: '/_jobs'
       preLoaderRoute: typeof AppJobsRouteRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/imports': {
+      id: '/_app/imports'
+      path: '/imports'
+      fullPath: '/imports'
+      preLoaderRoute: typeof AppImportsRouteRouteImport
       parentRoute: typeof AppRouteRoute
     }
     '/_app/media': {
@@ -1377,6 +1396,7 @@ interface AppRouteRouteChildren {
   App_jobsRouteRoute: typeof App_jobsRouteRoute
   App_mediaRouteRoute: typeof App_mediaRouteRoute
   AppJobsRouteRoute: typeof AppJobsRouteRoute
+  AppImportsRouteRoute: typeof AppImportsRouteRoute
   AppMediaRouteRoute: typeof AppMediaRouteRouteWithChildren
   AppPlayRouteRoute: typeof AppPlayRouteRouteWithChildren
   AppIndexRoute: typeof AppIndexRoute
@@ -1439,6 +1459,7 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   App_jobsRouteRoute: App_jobsRouteRoute,
   App_mediaRouteRoute: App_mediaRouteRoute,
   AppJobsRouteRoute: AppJobsRouteRoute,
+  AppImportsRouteRoute: AppImportsRouteRoute,
   AppMediaRouteRoute: AppMediaRouteRouteWithChildren,
   AppPlayRouteRoute: AppPlayRouteRouteWithChildren,
   AppIndexRoute: AppIndexRoute,
