@@ -163,12 +163,13 @@ function RulesetEditor({
         return;
       }
     }
+    const imageCover = coverChanged && trimmedCover === '' ? null : undefined;
     try {
       const entry = await updateRuleset.mutateAsync({
         id: initial._id,
         input: { name: nameCheck.data, about: aboutCheck.data },
         /* Clearing travels through the legacy channel; a rehosted cover is already committed, so absent means untouched. */
-        imageCover: coverChanged && trimmedCover === '' ? null : undefined,
+        imageCover,
       });
       if (previousSlug !== entry.slug) {
         void navigate({

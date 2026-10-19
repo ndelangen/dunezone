@@ -149,14 +149,6 @@ beforeEach(() => {
   document.cookie = 'motion=; path=/; max-age=0';
   document.documentElement.removeAttribute('data-mantine-color-scheme');
   vi.stubGlobal('ResizeObserver', ResizeObserverStub);
-  vi.stubGlobal(
-    'requestAnimationFrame',
-    vi.fn((callback: FrameRequestCallback) => {
-      callback(0);
-      return 1;
-    })
-  );
-  vi.stubGlobal('cancelAnimationFrame', vi.fn());
   Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
     configurable: true,
     value: vi.fn(),

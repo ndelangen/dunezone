@@ -9,6 +9,7 @@ import { configDefaults, defineConfig } from 'vite-plus';
 
 import { browserLaunchTests } from './browser-launch-tests.ts';
 import { coverageExclude, coverageInclude } from './coverage-denominator.ts';
+import { browserBundleBudgets } from './scripts/lib/browserBundleBudgets.ts';
 import { readJsonc } from './scripts/lib/jsonc.ts';
 import { reactCompiler } from './scripts/lib/reactCompiler.ts';
 import { threeRendererStackAliases, threeRendererStackTreeShaking } from './scripts/lib/threeRendererStack.ts';
@@ -80,7 +81,9 @@ const config = defineConfig({
   },
   build: {
     assetsDir: 'public', // will make your static assets appear under /public/
-    rollupOptions: { output: { assetFileNames: publicAssetFileName } },
+    rollupOptions: {
+      output: { assetFileNames: publicAssetFileName },
+    },
   },
   environments: {
     /**
@@ -92,6 +95,9 @@ const config = defineConfig({
       build: {
         rollupOptions: {
           output: {
+            codeSplitting: {
+              groups: [{ name: 'lucide', test: /\/lucide-react\//u, maxSize: 500_000, entriesAware: true }],
+            },
             entryFileNames: ({ name }) => `public/${codecovSafeName(name)}-[hash].js`,
             chunkFileNames: ({ name }) => `public/${codecovSafeName(name)}-[hash].js`,
           },
@@ -149,6 +155,7 @@ const config = defineConfig({
         },
       },
     }),
+    browserBundleBudgets(),
     viteReact(),
     reactCompiler(),
     threeRendererStackTreeShaking(),

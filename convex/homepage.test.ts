@@ -8,17 +8,20 @@ import { api, internal } from './_generated/api';
 import { applicationTest } from './application.test.fixture';
 import { applicationTriggers } from './lib/applicationTriggers';
 import { ensureProfileForUser } from './lib/profileBootstrap';
+import { storedProfileAvatar } from './profiles.test.fixture';
 
 describe('homepage page data', () => {
   test('serves exact Statistics totals without migration readiness', async () => {
     const t = applicationTest();
     const userId = await t.run((ctx) => ctx.db.insert('users', { name: 'Homepage maker' }));
-    await t.run((rawCtx) =>
-      ensureProfileForUser(applicationTriggers.wrapDB(rawCtx), userId, {
+    await t.run(async (rawCtx) => {
+      const ctx = applicationTriggers.wrapDB(rawCtx);
+      const profile = await ensureProfileForUser(ctx, userId, {
         displayName: 'Homepage maker',
-        imageUrl: 'https://example.com/avatar.png',
-      })
-    );
+        imageUrl: null,
+      });
+      await ctx.db.patch(profile._id, storedProfileAvatar);
+    });
     const asUser = t.withIdentity({ subject: userId });
     const faction = await asUser.mutation(api.factions.create, {
       data: { ...assetPublishingFaction, name: 'Homepage faction' },

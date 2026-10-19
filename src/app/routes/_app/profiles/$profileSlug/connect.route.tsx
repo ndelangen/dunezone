@@ -53,9 +53,8 @@ function ConnectAccount({ token }: { token: string }) {
       await confirm({ token });
     } catch (error) {
       dispatch({ error: error instanceof Error ? error.message : 'The connection could not be completed.' });
-    } finally {
-      dispatch({ busy: false });
     }
+    dispatch({ busy: false });
   };
   if (connection === undefined) {
     return <ConnectionPending />;

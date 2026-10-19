@@ -60,6 +60,7 @@ export default defineConfig({
       /* Hold helpers must be bundled before the first story starts. */
       '@sinonjs/fake-timers',
       '@mantine/hooks',
+      '@testing-library/react/pure',
       /* Prebundle imports discovered by full page stories before Chromium starts testing. */
       '@convex-dev/auth/react',
       '@radix-ui/react-select',

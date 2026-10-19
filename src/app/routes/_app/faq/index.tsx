@@ -16,7 +16,7 @@ import { useCallback, useRef } from 'react';
 
 import { loadGlobalFaqPage, loadGlobalFaqRulesetOptions, useGlobalFaqPage, useGlobalFaqRulesetOptions } from '@db/faq';
 import type { GlobalFaqArgs, GlobalFaqPageData, GlobalFaqRulesetOptions } from '@db/faq';
-import { useFocusFirstNewRow, useGrowingSearch } from '@app/routes/growingSearch';
+import { useFocusFirstNewRow, useGrowingLimit, useGrowingSearch } from '@app/routes/growingSearch';
 import { publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
 import { useSearchDraft } from '@app/routes/searchDraft';
 
@@ -282,11 +282,12 @@ function useFaqRows(deps: FaqDeps, limit: number) {
 }
 
 function FaqResults({ deps, initial }: { deps: FaqDeps; initial: GlobalFaqPageData }) {
+  const growing = useGrowingLimit(deps, FAQ_SEARCH_STEP);
+  const live = useFaqRows(deps, growing.limit);
   const { data, loading, loaded, grown, loadMore } = useGrowingSearch({
-    args: deps,
-    step: FAQ_SEARCH_STEP,
+    search: growing,
     initial,
-    useLive: useFaqRows,
+    live,
     rows: (page) => page.items.length,
   });
   const openQuestion = useNavigate();

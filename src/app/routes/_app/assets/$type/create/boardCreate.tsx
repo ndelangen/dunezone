@@ -57,14 +57,15 @@ export function BoardCreatePage() {
   const parsed = useMemo(() => BoardAsset.safeParse(state.draft), [state.draft]);
   const { nodes, edges } = state.draft.board;
   const geometryError = useMemo(() => {
+    let result: ReturnType<typeof derive>;
     try {
-      const result = derive({ nodes, edges, properties: {} });
-      return result.unrecoveredSegments || !result.faces.length
-        ? 'A boundary could not be rendered. Undo the last edit before saving.'
-        : undefined;
+      result = derive({ nodes, edges, properties: {} });
     } catch {
       return 'A boundary could not be rendered. Undo the last edit before saving.';
     }
+    return result.unrecoveredSegments || !result.faces.length
+      ? 'A boundary could not be rendered. Undo the last edit before saving.'
+      : undefined;
   }, [nodes, edges]);
   const isDirty = useMemo(
     () => JSON.stringify(state.draft) !== JSON.stringify(state.baseline),

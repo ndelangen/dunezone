@@ -1,8 +1,8 @@
-import { useConvex, useMutation as useConvexMutation, useQuery } from 'convex/react';
-import { getFunctionName } from 'convex/server';
+import { useConvex, useMutation as useConvexMutation, useQueries, useQuery } from 'convex/react';
+import { getFunctionName, makeFunctionReference } from 'convex/server';
 import type { FunctionArgs, FunctionReference, FunctionReturnType } from 'convex/server';
-import { convexToJson } from 'convex/values';
-import { useCallback, useEffect, useState } from 'react';
+import { convexToJson, jsonToConvex } from 'convex/values';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { keepWarm, PAGE_HOLD_MS } from './warm';
 
@@ -77,17 +77,17 @@ export function useHeldLiveQuery<Query extends FunctionReference<'query'>>(
   query: Query,
   args: FunctionArgs<Query>
 ): FunctionReturnType<Query> | undefined {
-  const key = useWarmHold(query, args);
+  const { key, subscription } = useWarmHold(query, args);
   const [held, setHeld] = useState<{ key: string; data: FunctionReturnType<Query> } | null>(null);
-  let result: FunctionReturnType<Query> | undefined;
-  try {
-    /* `useQuery` throws a failed run only after its own hooks have run, so catching it here keeps the hook order. */
-    result = useQuery(query, args);
-  } catch (error) {
+  /* Convex tracks the request object's identity in its subscription state. A fresh map schedules
+     another render before commit, even when the answer is still pending. */
+  const queries = useMemo(() => ({ held: subscription }), [subscription]);
+  const result = useQueries(queries).held as FunctionReturnType<Query> | Error | undefined;
+  if (result instanceof Error) {
     if (held?.key === key) {
       return held.data;
     }
-    throw error;
+    throw result;
   }
   if (result !== undefined && (held?.key !== key || held.data !== result)) {
     setHeld({ key, data: result });
@@ -95,20 +95,28 @@ export function useHeldLiveQuery<Query extends FunctionReference<'query'>>(
   return result;
 }
 
-/** Holds a page query warm after its page lets go of it, and returns the key naming the query and its arguments. */
+/** Holds a page query warm after its page lets go of it, and returns its stable subscription and key. */
 function useWarmHold<Query extends FunctionReference<'query'>>(query: Query, args: FunctionArgs<Query>, hold = true) {
   const client = useConvex();
-  const key = JSON.stringify([getFunctionName(query), convexToJson(args)]);
-  /* This effect must stay above the subscription: its cleanup takes the hold before the subscription lets go, so the query is never dropped and re-added. */
+  const name = getFunctionName(query);
+  const serializedArgs = JSON.stringify(convexToJson(args));
+  const subscription = useMemo(
+    () => ({
+      query: makeFunctionReference<'query'>(name),
+      args: jsonToConvex(JSON.parse(serializedArgs)) as FunctionArgs<Query>,
+    }),
+    [name, serializedArgs]
+  );
+  const key = JSON.stringify([name, convexToJson(args)]);
+  /* Take the hold before the subscription lets go, so the query never drops between pages. */
   useEffect(() => {
     if (!hold) {
       return;
     }
-    keepWarm(client, query, args, PAGE_HOLD_MS);
-    return () => keepWarm(client, query, args, PAGE_HOLD_MS);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- `key` already covers the query and its arguments, which arrive as new objects each render.
-  }, [key, hold]);
-  return key;
+    keepWarm(client, subscription.query, subscription.args, PAGE_HOLD_MS);
+    return () => keepWarm(client, subscription.query, subscription.args, PAGE_HOLD_MS);
+  }, [client, subscription, hold]);
+  return { key, subscription };
 }
 
 export function useLiveMutation<TVariables, TResult>(
@@ -137,13 +145,13 @@ export function useLiveOperation<TVariables, TResult>(
       try {
         const result = await operation(variables);
         setData(result);
+        setIsPending(false);
         return result;
       } catch (err) {
         const normalized = err instanceof Error ? err : new Error(String(err));
         setError(normalized);
-        throw normalized;
-      } finally {
         setIsPending(false);
+        throw normalized;
       }
     },
     [operation]

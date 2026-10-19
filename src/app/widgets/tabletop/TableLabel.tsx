@@ -75,13 +75,15 @@ function createLabelTexture(text: string, { color, fontFamily, fontSize, maxWidt
   };
 }
 
+const FLAT_ROTATION: [number, number, number] = [-Math.PI / 2, 0, 0];
+
 export function TableLabel({
   children,
   color = '#d2ae68',
   fontSize = 0.36,
   maxWidth,
   position,
-  rotation = [-Math.PI / 2, 0, 0],
+  rotation = FLAT_ROTATION,
 }: TableLabelProps) {
   const [fontFamily, setFontFamily] = useState<string | null>(null);
 
