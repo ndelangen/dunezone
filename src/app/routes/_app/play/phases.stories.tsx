@@ -1,5 +1,5 @@
 import preview from '@sb/preview';
-import { composeTurn, TABLE_PHASES } from '@shared/play/phases';
+import { composeTurn, PHASE_CHANGE_COOLDOWN_MS, TABLE_PHASES } from '@shared/play/phases';
 import type { GameSnapshot } from '@shared/play/protocol';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
@@ -219,45 +219,52 @@ export const Cooldown = meta.story({
   play: async ({ canvasElement }) => {
     const { page, waitForPhase, openPrevious } = phaseControls(canvasElement);
     await waitForPhase(() => expect(page.getByRole('button', { name: 'Next phase' })).toBeEnabled());
-    /* The menu opens first and stays open, so reading Previous phase cannot outlast the cooldown. */
+    /* The menu is already open when the cooldown arrives. */
     const previous = await openPrevious();
-    /*
-     * The client cools down for as long as the view says, counted from its arrival.
-     * The real two seconds can end before a frame that runs seconds late commits the menu item, so this cooldown outlasts every wait below, and the next view ends it.
-     */
-    session.transport.deliver({
-      ...session.transport.view({
-        ...initialSnapshot(),
-        phase: 1,
-        revision: 1,
-        controls: {
-          ...initialSnapshot().controls!,
-          phaseChangedAt: STORYBOOK_NOW - 3_600_000,
-        },
-      }),
-      phaseCooldownMs: 60_000,
-    });
-    await waitFor(() => expect(page.getByRole('button', { name: 'Next phase' })).toBeDisabled());
-    /* The open menu's item re-renders on its own commit, which can land a frame after the button's. */
-    await waitFor(() => expect(previous).toBeDisabled());
-    const toolbar = canvasElement.ownerDocument.querySelector('.seated-toolbar');
-    /* Phase navigation keeps its place at the end of the toolbar, just before the settings gear. */
-    await expect(toolbar?.lastElementChild).toHaveClass('seated-toolbar__settings');
-    await expect(toolbar?.lastElementChild?.previousElementSibling).toHaveAttribute('aria-label', 'Phase navigation');
-    session.transport.deliver({
-      ...session.transport.view({
-        ...initialSnapshot(),
-        phase: 1,
-        revision: 2,
-        controls: {
-          ...initialSnapshot().controls!,
-          phaseChangedAt: STORYBOOK_NOW + 3_600_000,
-        },
-      }),
-      phaseCooldownMs: 20,
-    });
-    await waitFor(() => expect(page.getByRole('button', { name: 'Next phase' })).toBeEnabled());
-    await waitFor(() => expect(previous).toBeEnabled());
+    const runtime = session.runtime;
+    const monotonicNow = runtime.monotonicNow;
+    let monotonicTime = monotonicNow();
+    /* The session clock holds the cooldown while both controls commit, even when a frame stalls. */
+    runtime.monotonicNow = () => monotonicTime;
+    try {
+      session.transport.deliver({
+        ...session.transport.view({
+          ...initialSnapshot(),
+          phase: 1,
+          revision: 1,
+          controls: {
+            ...initialSnapshot().controls!,
+            phaseChangedAt: STORYBOOK_NOW - 3_600_000,
+          },
+        }),
+        phaseCooldownMs: PHASE_CHANGE_COOLDOWN_MS,
+      });
+      await waitFor(() => expect(page.getByRole('button', { name: 'Next phase' })).toBeDisabled());
+      /* The open menu's item re-renders on its own commit, which can land a frame after the button's. */
+      await waitFor(() => expect(previous).toBeDisabled());
+      const toolbar = canvasElement.ownerDocument.querySelector('.seated-toolbar');
+      /* Phase navigation keeps its place at the end of the toolbar, just before the settings gear. */
+      await expect(toolbar?.lastElementChild).toHaveClass('seated-toolbar__settings');
+      await expect(toolbar?.lastElementChild?.previousElementSibling).toHaveAttribute('aria-label', 'Phase navigation');
+      const remainingCooldownMs = 20;
+      session.transport.deliver({
+        ...session.transport.view({
+          ...initialSnapshot(),
+          phase: 1,
+          revision: 2,
+          controls: {
+            ...initialSnapshot().controls!,
+            phaseChangedAt: STORYBOOK_NOW + 3_600_000,
+          },
+        }),
+        phaseCooldownMs: remainingCooldownMs,
+      });
+      monotonicTime += remainingCooldownMs;
+      await waitFor(() => expect(page.getByRole('button', { name: 'Next phase' })).toBeEnabled());
+      await waitFor(() => expect(previous).toBeEnabled());
+    } finally {
+      runtime.monotonicNow = monotonicNow;
+    }
   },
 });
 
