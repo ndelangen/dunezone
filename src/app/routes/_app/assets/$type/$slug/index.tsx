@@ -93,7 +93,12 @@ export const Route = createFileRoute('/_app/assets/$type/$slug/')({
       description: publicDescription(loaderData?.asset.data.about),
       image: loaderData?.asset.previewHref,
       social: {
-        shape: params.type === 'token-disc' ? 'round' : params.type === 'token-enhance' ? 'landscape' : 'portrait',
+        shape:
+          params.type === 'token-disc' || params.type === 'board'
+            ? 'round'
+            : params.type === 'token-enhance'
+              ? 'landscape'
+              : 'portrait',
       },
       trail: [
         { name: 'Assets', pathname: '/assets' },
