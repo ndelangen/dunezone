@@ -76,20 +76,15 @@
   flex-shrink: 0;
   width: 115px;
   padding-top: 20px;
-  text-align: center;
+  text-align: right;
 }
 .value {
   display: flex;
-  justify-content: center;
+  justify-content: flex-end;
   align-items: center;
-  gap: 5px;
   font:
     bold 108px/1 "Caladea",
     serif;
-}
-.value img {
-  width: 34px;
-  height: 34px;
 }
 .strengthLabel {
   font:
@@ -99,8 +94,4 @@
 
 .value[data-wide="true"] {
   font-size: 72px;
-}
-.value[data-wide="true"] img {
-  width: 24px;
-  height: 24px;
 }

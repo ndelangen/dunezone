@@ -1,5 +1,5 @@
 import type { CardFrontStyle } from '@shared/assets/cardFrontPresets';
-import { NEXUS_HEAD } from '@shared/assets/nexusTemplate';
+import { HOMEWORLD_HEAD } from '@shared/assets/homeworldTemplate';
 import type { HomeworldCard as HomeworldCardSchema } from '@shared/assets/schema';
 import type { z } from 'zod';
 
@@ -20,7 +20,7 @@ export function HomeworldCard({
       <CustomCard
         {...card}
         icon={[frontStyle?.iconBackground ?? card.icon[0], card.icon[1]]}
-        head={frontStyle?.head ?? NEXUS_HEAD}
+        head={frontStyle?.head ?? HOMEWORLD_HEAD}
         format="plain"
         layers={[]}
         iconPresentation="image"

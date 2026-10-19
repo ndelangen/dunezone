@@ -60,7 +60,6 @@ export function CardEffects({ effects }: { effects: readonly [Effect, Effect, Ef
                 </div>
                 <div className={styles.strength} aria-label={`${title} strength ${strength}`}>
                   <div className={styles.value} data-wide={strength >= 10}>
-                    <img src="/vector/icon/combat.svg" alt="" />
                     <span>{strength}</span>
                   </div>
                   <div className={styles.strengthLabel}>Strength</div>
