@@ -1,3 +1,5 @@
+/** @vitest-environment jsdom */
+
 import { publishingTreacheryCard } from '@shared/assets/fixtures/publishingTreacheryCard';
 import type * as TanStackRouter from '@tanstack/react-router';
 import {
@@ -12,7 +14,6 @@ import {
 } from '@tanstack/react-router';
 import { hydrate } from '@tanstack/react-router/ssr/client';
 import { createRequestHandler, defaultRenderHandler } from '@tanstack/react-router/ssr/server';
-import { JSDOM } from 'jsdom';
 import { createElement } from 'react';
 import { describe, expect, it, vi } from 'vite-plus/test';
 
@@ -89,14 +90,20 @@ async function hydratedTitle(options: {
     request: new Request(new URL(options.url, 'http://localhost')),
   })(defaultRenderHandler);
   expect(response.status).toBe(options.status === 'notFound' ? 404 : 200);
-  const browser = new JSDOM(await response.text(), {
-    url: new URL(options.url, 'http://localhost').href,
-    runScripts: 'dangerously',
-  });
-  vi.stubGlobal('window', browser.window);
-  vi.stubGlobal('document', browser.window.document);
-  vi.stubGlobal('self', browser.window);
+  /* Each response gets a fresh window so TanStack's bootstrap state does not carry between cases. */
+  const frame = document.createElement('iframe');
+  document.body.append(frame);
+  const browser = frame.contentWindow;
   try {
+    if (!browser) {
+      throw new Error('The hydration fixture needs an iframe window.');
+    }
+    browser.document.open();
+    browser.document.write(await response.text());
+    browser.document.close();
+    vi.stubGlobal('window', browser);
+    vi.stubGlobal('document', browser.document);
+    vi.stubGlobal('self', browser);
     const router = createFixtureRouter(false);
     await hydrate(router);
     /* HeadContent keeps the deepest match's title. */
@@ -105,11 +112,11 @@ async function hydratedTitle(options: {
       .flatMap((match) => match.meta ?? [])
       .flatMap((tag) => (tag && 'title' in tag && tag.title ? [tag.title] : []));
     const title = titles.at(-1);
-    expect(title).toBe(browser.window.document.title);
+    expect(title).toBe(browser.document.title);
     return title;
   } finally {
     vi.unstubAllGlobals();
-    browser.window.close();
+    frame.remove();
   }
 }
 
