@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { ALL, BACKGROUND, TEXTURE } from '../assetIds';
+import { ALL, BACKGROUND, PLANET, TEXTURE } from '../assetIds';
 import { BOARD_FRAME_SIZE, boardTints, boardTokens } from '../boards/markup';
 import { Background, Decal } from '../factions/schema';
 import { proseFormattedTextSchema } from '../formattedText';
@@ -146,7 +146,7 @@ export const CardHead = z.strictObject({
   name: z.string(),
   subName: z.string(),
   head: Background,
-  icon: z.tuple([Background, ALL]),
+  icon: z.tuple([Background, z.union([ALL, PLANET])]),
   ...ICON_PLACEMENT,
   /** Flips the icon vector from dark to light artwork. */
   iconInvert: z.boolean().optional(),
@@ -511,7 +511,7 @@ export const LeaderSkillAssetInput = LeaderSkillAsset.extend({
 });
 
 /** A Nexus card keeps three rules regions and a faction identity inside the standard custom-card frame. */
-const NexusEffect = proseFormattedTextSchema
+const CardEffect = proseFormattedTextSchema
   .refine((text) => text.length <= 400, {
     message: 'An effect can hold at most 400 characters',
   })
@@ -523,12 +523,28 @@ export const NexusCard = CardHead.extend({
   faction: z.string().trim(),
   factionLink: z.strictObject({ id: z.string().min(1), slug: z.string().min(1) }).optional(),
   factionSymbol: FactionSide,
-  betrayal: NexusEffect,
-  cunning: NexusEffect,
-  secretAlly: NexusEffect,
+  betrayal: CardEffect,
+  cunning: CardEffect,
+  secretAlly: CardEffect,
 });
 export const NexusCardAsset = NexusCard.extend({ about: About });
 export const NexusCardAssetInput = NexusCardAsset.extend({ about: FormattedAbout });
+
+/** A single-face homeworld has no faction link; each reserve state carries its own rules and strength. */
+const HomeworldReserve = z.strictObject({
+  text: CardEffect,
+  strength: z.number().int().min(0).max(99),
+});
+export const HomeworldCard = CardHead.extend({
+  subName: z.literal('Homeworld'),
+  icon: z.tuple([Background, PLANET]),
+  threshold: z.number().int().min(1).max(999),
+  high: HomeworldReserve,
+  low: HomeworldReserve,
+  occupied: CardEffect,
+});
+export const HomeworldCardAsset = HomeworldCard.extend({ about: About });
+export const HomeworldCardAssetInput = HomeworldCardAsset.extend({ about: FormattedAbout });
 /** A stronghold authors its name, Decals and Body inside one fixed card template. */
 export const StrongholdCard = Treachery.pick({ name: true, decals: true, text: true }).extend({
   decals: z.array(Decal).max(16),

@@ -5,6 +5,7 @@ import {
   CustomCardAsset,
   LeaderSkillAsset,
   NexusCardAsset,
+  HomeworldCardAsset,
   CustomCardTokens,
   CardBack,
   RectangleTokenFace,
@@ -43,6 +44,7 @@ export const TREACHERY_CARD_ASSET_TYPE = 'card-treachery' as const;
 export const LEADER_SKILL_ASSET_TYPE = 'card-leaderability' as const;
 export const STRONGHOLD_CARD_ASSET_TYPE = 'card-stronghold' as const;
 export const CUSTOM_CARD_ASSET_TYPE = 'card-custom' as const;
+export const HOMEWORLD_CARD_ASSET_TYPE = 'card-homeworld' as const;
 export const NEXUS_CARD_ASSET_TYPE = 'card-nexus' as const;
 export const STORM_CARD_ASSET_TYPE = 'card-storm' as const;
 export const SPICE_CARD_ASSET_TYPE = 'card-spice' as const;
@@ -110,6 +112,8 @@ export const nexusCardAssetDataSchema = z.strictObject({
   card: NexusCardAsset,
   frontPreset: cardFrontSnapshotSchema.optional(),
 });
+
+export const homeworldCardAssetDataSchema = nexusCardAssetDataSchema.extend({ card: HomeworldCardAsset });
 
 export const strongholdCardAssetDataSchema = z.strictObject({
   assetId: z.string().min(1),
@@ -208,6 +212,7 @@ const PUBLICATION_ASSET_DATA_SCHEMAS = {
   [CUSTOM_CARD_ASSET_TYPE]: customCardAssetDataSchema,
   [LEADER_SKILL_ASSET_TYPE]: leaderSkillAssetDataSchema,
   [NEXUS_CARD_ASSET_TYPE]: nexusCardAssetDataSchema,
+  [HOMEWORLD_CARD_ASSET_TYPE]: homeworldCardAssetDataSchema,
   [STRONGHOLD_CARD_ASSET_TYPE]: strongholdCardAssetDataSchema,
   [STORM_CARD_ASSET_TYPE]: stormCardAssetDataSchema,
   [DECK_ASSET_TYPE]: deckCardbackAssetDataSchema,

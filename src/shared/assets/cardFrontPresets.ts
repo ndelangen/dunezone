@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { Background } from '../factions/schema';
 import { LEADER_SKILL_HEAD, LEADER_SKILL_SYMBOL } from './gf9LeaderSkills';
+import { HOMEWORLD_HEAD, HOMEWORLD_ICON_BACKGROUND } from './homeworldTemplate';
 import { NEXUS_HEAD } from './nexusTemplate';
 import { TreacheryAsset } from './schema';
 import { STORM_CARD_HEAD, STORM_CARD_ICON } from './standardStormDeck';
@@ -12,6 +13,7 @@ export const cardFrontPresetKeySchema = z.enum([
   'stronghold',
   'storm',
   'nexus',
+  'homeworld',
   'leader-skill',
   'treachery-weapon',
   'treachery-defense',
@@ -40,6 +42,12 @@ export const INITIAL_CARD_FRONT_PRESETS: CardFrontPreset[] = [
     revision: 0,
   },
   { key: 'storm', label: 'Storm', style: { head: STORM_CARD_HEAD, iconBackground: STORM_CARD_ICON[0] }, revision: 0 },
+  {
+    key: 'homeworld',
+    label: 'Homeworld',
+    style: { head: HOMEWORLD_HEAD, iconBackground: HOMEWORLD_ICON_BACKGROUND },
+    revision: 0,
+  },
   { key: 'nexus', label: 'Nexus', style: { head: NEXUS_HEAD, iconBackground: null }, revision: 0 },
   {
     key: 'leader-skill',
@@ -59,6 +67,7 @@ export const CARD_FRONT_PUBLICATION_REVISIONS = {
   'card-stronghold': 4,
   'card-storm': 4,
   'card-nexus': 4,
+  'card-homeworld': 1,
   'card-leaderability': 4,
   'card-treachery': 6,
 } as const;
@@ -66,6 +75,7 @@ export const cardFrontAssetTypeSchema = z.enum([
   'card-stronghold',
   'card-storm',
   'card-nexus',
+  'card-homeworld',
   'card-leaderability',
   'card-treachery',
 ]);
@@ -77,6 +87,8 @@ export function cardFrontPresetKey(type: string, data: unknown): CardFrontPreset
       return 'stronghold';
     case 'card-storm':
       return 'storm';
+    case 'card-homeworld':
+      return 'homeworld';
     case 'card-nexus':
       return 'nexus';
     case 'card-leaderability':

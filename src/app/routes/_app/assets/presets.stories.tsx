@@ -95,6 +95,30 @@ export const FrontAdministrator = meta.story({
   },
 });
 
+export const HomeworldAdministrator = meta.story({
+  parameters: { database: administratorDatabase },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('tab', { name: 'Front' }, { timeout: 30_000 }));
+    await userEvent.click(page.getByRole('combobox', { name: 'Preset' }));
+    await userEvent.click(page.getByRole('option', { name: 'Homeworld' }));
+    await userEvent.click(page.getByRole('button', { name: 'Browse' }));
+    await userEvent.click(page.getByRole('button', { name: 'Use Starfield background pattern' }));
+    await userEvent.click(page.getByRole('button', { name: 'Edit base color layer' }));
+    const color = await page.findByRole('textbox', { name: 'Base color' });
+    await userEvent.clear(color);
+    await userEvent.type(color, '#07585C');
+    await userEvent.click(page.getByRole('button', { name: 'Save and publish' }));
+    await expect(page.findByText('Preset saved. Cards update when publication finishes.')).resolves.toBeVisible();
+    await userEvent.click(page.getByRole('combobox', { name: 'Preset' }));
+    await userEvent.click(page.getByRole('option', { name: 'Storm' }));
+    await userEvent.click(page.getByRole('combobox', { name: 'Preset' }));
+    await userEvent.click(page.getByRole('option', { name: 'Homeworld' }));
+    await expect(page.getByText('Starfield', { exact: true })).toBeVisible();
+    await expect(page.findByRole('textbox', { name: 'Base color' })).resolves.toHaveValue('#07585C');
+  },
+});
+
 export const SignedOut = meta.story({
   parameters: { identity: null },
   play: async ({ canvasElement }) => {

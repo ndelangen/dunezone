@@ -69,17 +69,21 @@ function IconTreatment({
 export function CardIconScaleControl({
   value: draft,
   onChange: patch,
+  label = 'Icon scale',
+  description = 'Resize the icon within its disc; 1 is the reference size.',
 }: Readonly<{
   value: Pick<IconAdjustments, 'iconScale'>;
   onChange: (update: Pick<IconAdjustments, 'iconScale'>) => void;
+  label?: string;
+  description?: string;
 }>) {
   return (
     <ControlBlock
-      title="Icon scale"
-      description="Resize the icon within its disc; 1 is the reference size."
+      title={label}
+      description={description}
       tool={
         <NumberInput
-          aria-label="Icon scale"
+          aria-label={label}
           w={96}
           min={0.5}
           max={2}
@@ -95,8 +99,8 @@ export function CardIconScaleControl({
       }
       input={
         <Slider
-          aria-label="Icon scale slider"
-          thumbLabel="Icon scale slider"
+          aria-label={`${label} slider`}
+          thumbLabel={`${label} slider`}
           min={0.5}
           max={2}
           step={0.05}

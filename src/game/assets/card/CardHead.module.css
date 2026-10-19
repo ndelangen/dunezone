@@ -66,6 +66,14 @@
   display: inline-block;
   white-space: nowrap;
 }
+.picture {
+  position: absolute;
+  top: 94px;
+  right: 101px;
+  width: 129px;
+  height: 129px;
+  object-fit: contain;
+}
 .symbolOverlay {
   width: 85px;
   height: 85px;

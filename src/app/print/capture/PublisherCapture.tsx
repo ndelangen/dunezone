@@ -17,6 +17,7 @@ import { AssetRenderModeProvider } from '@game/assets/assetRenderMode';
 import { BoardMap } from '@game/assets/board/Board';
 import { CardBack } from '@game/assets/card/Back';
 import { CustomCard } from '@game/assets/card/Custom';
+import { HomeworldCard } from '@game/assets/card/Homeworld';
 import { LeaderSkillCard } from '@game/assets/card/LeaderSkill';
 import { NexusCard } from '@game/assets/card/Nexus';
 import { SpiceCard } from '@game/assets/card/Spice';
@@ -110,6 +111,11 @@ function captureSubject(snapshot: PublisherCaptureSnapshot): CaptureSubject {
       return printedImage(
         snapshot.assetType,
         <TreacheryCard {...snapshot.payload.card} frontStyle={snapshot.payload.frontPreset?.style} />
+      );
+    case 'card-homeworld':
+      return printedImage(
+        snapshot.assetType,
+        <HomeworldCard {...snapshot.payload.card} frontStyle={snapshot.payload.frontPreset?.style} />
       );
     case 'card-nexus':
       return printedImage(

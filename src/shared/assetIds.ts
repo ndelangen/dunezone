@@ -1,6 +1,10 @@
 import { z } from 'zod';
 
-export const BACKGROUND = z.enum(['/vector/background/map.svg', '/vector/background/moon.svg']);
+export const BACKGROUND = z.enum([
+  '/vector/background/map.svg',
+  '/vector/background/moon.svg',
+  '/vector/background/starfield.svg',
+]);
 
 export const GENERIC = z.enum([
   '/vector/generic/6star.svg',

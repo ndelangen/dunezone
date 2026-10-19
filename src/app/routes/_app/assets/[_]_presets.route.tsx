@@ -6,6 +6,7 @@ import type { CardFrontPreset, CardFrontPresetKey, CardFrontStyle } from '@share
 import { GF9_LEADER_SKILLS } from '@shared/assets/gf9LeaderSkills';
 import { GF9_NEXUS_CARDS } from '@shared/assets/gf9Nexus';
 import { GF9_STRONGHOLD_CARDS } from '@shared/assets/gf9StrongholdDeck';
+import { EXAMPLE_HOMEWORLD_CARD } from '@shared/assets/homeworldTemplate';
 import { CardBack as CardBackSchema } from '@shared/assets/schema';
 import { standardStormCard } from '@shared/assets/standardStormDeck';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
@@ -31,6 +32,7 @@ import { CardbackFields } from '@app/widgets/cardback-editor/CardbackFields';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { CardBack } from '@game/assets/card/Back';
+import { HomeworldCard } from '@game/assets/card/Homeworld';
 import { LeaderSkillCard } from '@game/assets/card/LeaderSkill';
 import { NexusCard } from '@game/assets/card/Nexus';
 import { StormCard } from '@game/assets/card/Storm';
@@ -392,6 +394,8 @@ function FrontPreview({ preset, style }: { preset: CardFrontPreset; style: CardF
       return <StrongholdCard {...GF9_STRONGHOLD_CARDS[5]!} frontStyle={style} />;
     case 'storm':
       return <StormCard {...standardStormCard(3)} frontStyle={style} />;
+    case 'homeworld':
+      return <HomeworldCard {...EXAMPLE_HOMEWORLD_CARD} frontStyle={style} />;
     case 'nexus':
       return <NexusCard {...GF9_NEXUS_CARDS[0]!} frontStyle={style} />;
     case 'leader-skill':

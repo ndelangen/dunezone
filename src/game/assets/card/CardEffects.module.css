@@ -1,9 +1,3 @@
-.card {
-  position: relative;
-  width: 900px;
-  height: 1263px;
-  overflow: hidden;
-}
 .reference {
   position: absolute;
   top: 0;
@@ -51,7 +45,7 @@
   line-height: 1.2;
   overflow-wrap: anywhere;
 }
-.secret {
+.final {
   position: relative;
   margin-top: auto;
   margin-left: -12px;
@@ -61,11 +55,43 @@
   color: #fffef0;
   border-radius: 0 0 38px 38px;
 }
-.secret .condition {
+.final .condition {
   padding-bottom: 10px;
   border-bottom: 1px solid #25241b;
 }
-.secret .rules {
+.final .rules {
   margin-top: 6px;
   text-shadow: 1px 2px 2px rgb(0 0 0 / 0.5);
+}
+
+.row {
+  display: flex;
+  gap: 18px;
+}
+.body {
+  flex: 1;
+  min-width: 0;
+}
+.strength {
+  flex-shrink: 0;
+  width: 115px;
+  padding-top: 20px;
+  text-align: right;
+}
+.value {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  font:
+    bold 108px/1 "Caladea",
+    serif;
+}
+.strengthLabel {
+  font:
+    bold 20px/1.1 "C_Trebuchet",
+    sans-serif;
+}
+
+.value[data-wide="true"] {
+  font-size: 72px;
 }
