@@ -153,14 +153,7 @@ div.shape {
 
 .mapToken {
   position: absolute;
-  filter: drop-shadow(0 4px 6px #000a);
-}
-
-/* An editor's own outline on the token it has open. */
-.mapToken[data-selected] {
-  outline: 6px solid #ffd43b;
-  outline-offset: 4px;
-  border-radius: 50%;
+  filter: drop-shadow(0 1px 0.5px #000c);
 }
 
 /* The editor's input surface, over the map and its tokens; a scaled proof turns pointer input off for everything else. */

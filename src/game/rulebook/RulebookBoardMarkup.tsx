@@ -44,7 +44,12 @@ function Token({ token, selected }: Readonly<{ token: PlacedToken; selected: boo
   /* A published face is an opaque square, so the token's own shape is cut here, as Spice cards and the table cut it. */
   const { clipPath } = tokenOutline(shape);
   return (
-    <g transform={`translate(${token.x} ${token.y}) rotate(${token.rotation})`} data-token-instance={token.layerId}>
+    <g
+      transform={`translate(${token.x} ${token.y}) rotate(${token.rotation})`}
+      data-token-instance={token.layerId}
+      data-selected={selected ? '' : undefined}
+      style={{ filter: 'drop-shadow(0 1px 0.5px #000c)' }}
+    >
       <foreignObject x={-token.size / 2} y={-height / 2} width={token.size} height={height}>
         <img
           src={href}
@@ -58,18 +63,6 @@ function Token({ token, selected }: Readonly<{ token: PlacedToken; selected: boo
           }}
         />
       </foreignObject>
-      {selected ? (
-        <rect
-          x={-token.size / 2 - 4}
-          y={-height / 2 - 4}
-          width={token.size + 8}
-          height={height + 8}
-          rx={Math.min(token.size, height) / 2 + 4}
-          fill="none"
-          stroke="#ffd43b"
-          strokeWidth={3}
-        />
-      ) : null}
     </g>
   );
 }

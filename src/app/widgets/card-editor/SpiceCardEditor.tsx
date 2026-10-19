@@ -23,6 +23,7 @@ import type { SpiceAsset } from '@game/data/objects';
 import { card as CARD_SIZE } from '@game/data/sizes';
 
 import styles from './CardEditor.module.css';
+import { CardIconScaleControl, CardIconVerticalOffsetControl } from './CardIconAdjustments';
 import { SpiceLookFields, SpiceMapFields, SpiceTokenFields } from './SpiceBoardFields';
 import type { AssetPick, SpiceBoardRead, SpiceLookPreview, SpiceMapFocus } from './SpiceBoardFields';
 
@@ -167,6 +168,8 @@ function IdentityFields({ draft, patch, nameField }: { draft: SpiceDraft; patch:
           />
         }
       />
+      <CardIconScaleControl value={draft} onChange={patch} />
+      <CardIconVerticalOffsetControl value={draft} onChange={patch} />
     </Stack>
   );
 }

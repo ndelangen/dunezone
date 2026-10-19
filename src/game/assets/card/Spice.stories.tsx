@@ -164,6 +164,24 @@ export const OnSavedBoard = meta.story({
   },
 });
 
+/** Opening a placed token in the editor keeps its shadow without adding a border. */
+export const SelectedTokenOnSavedBoard = meta.story({
+  args: {
+    ...discoveryOnBoard,
+    boardDefinition: arrakisBoard(),
+    boardTokens: spiceBoardTokens,
+    mapEditing: { selectedToken: 't1' },
+  },
+  play: async ({ canvasElement }) => {
+    const token = canvasElement.querySelector<HTMLElement>('[data-token-instance="t1"][data-selected]')!;
+    await expect(token).not.toBeNull();
+    const style = getComputedStyle(token);
+    await expect(style.outlineStyle).toBe('none');
+    await expect(style.borderTopWidth).toBe('0px');
+    await expect(style.filter).toMatch(/drop-shadow\(.+ 0px 1px 0\.5px\)/);
+  },
+});
+
 /** A custom palace decal receives the same card treatment as the preset stronghold glyphs. */
 export const PalaceOnSavedBoard = meta.story({
   args: {

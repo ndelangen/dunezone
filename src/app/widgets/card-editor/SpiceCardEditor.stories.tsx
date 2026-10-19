@@ -2,6 +2,7 @@ import { TextInput } from '@mantine/core';
 import preview from '@sb/preview';
 import { publishingSpiceCard } from '@shared/assets/fixtures/publishingSpiceCard';
 import { spiceBoardLink, spiceBoardTokens } from '@shared/assets/fixtures/spiceBoardCard';
+import { SpiceAsset } from '@shared/assets/schema';
 import { arrakisBoard } from '@shared/boards/geometry';
 import { boardTerritoryList } from '@shared/boards/tintDrawing';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
@@ -106,6 +107,29 @@ export const Identity = meta.story({
     const shields = await page.findAllByRole('option', { name: /^Shield$/ });
     await userEvent.click(shields.find((option) => option.getAttribute('value') === '/vector/icon/shield.svg')!);
     await expect(args.patch).toHaveBeenLastCalledWith({ icon: '/vector/icon/shield.svg' });
+  },
+});
+
+/** Icon placement controls update the saved draft and the live card together. */
+export const IconPlacement = meta.story({
+  render: (args) => (
+    <LiveEditor {...args} initial={SpiceAsset.parse({ ...publishingSpiceCard, iconScale: 1, iconOffset: [7, 0] })} />
+  ),
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement);
+    const scale = canvas.getByRole('slider', { name: 'Icon scale slider' });
+    scale.focus();
+    await userEvent.keyboard('{End}');
+    await expect(args.patch).toHaveBeenLastCalledWith({ iconScale: 2 });
+    const vertical = canvas.getByRole('slider', { name: 'Vertical icon offset slider' });
+    vertical.focus();
+    await userEvent.keyboard('{End}');
+    await expect(args.patch).toHaveBeenLastCalledWith({ iconOffset: [7, 60] });
+    const icon = canvasElement.querySelector<HTMLImageElement>(
+      '[class*="proofFrame"] img[src="/vector/icon/spice.svg"]'
+    )!;
+    await expect(getComputedStyle(icon).width).toBe('170px');
+    await expect(icon.style.marginTop).toBe('120px');
   },
 });
 
