@@ -28,6 +28,7 @@ import path from 'node:path';
 
 import {
   allowsBakedPaint,
+  VECTOR_ARTWORK_ALIASES,
   MAP_PLACE_IDS,
   VECTOR_AUTHORED_ATTRIBUTE,
   VECTOR_CATEGORY_RULES,
@@ -136,6 +137,18 @@ if (existsSync(mapPath)) {
    * source vanished too (the per-source check only fires while a source exists).
    */
   failures.push('background/map.svg: missing generated map (place-id API unavailable)');
+}
+
+for (const [alias, target] of Object.entries(VECTOR_ARTWORK_ALIASES)) {
+  if (existsSync(path.join(repoRoot, 'media', alias))) {
+    failures.push(`${alias}: retired artwork must not have a separate source`);
+  }
+  const aliasPath = path.join(repoRoot, 'public', alias);
+  const targetPath = path.join(repoRoot, 'public', target);
+  if (!existsSync(aliasPath) || !existsSync(targetPath) || !readFileSync(aliasPath).equals(readFileSync(targetPath))) {
+    failures.push(`${alias}: retired artwork must match ${target}`);
+  }
+  sourceRelatives.add(alias.replace('/vector/', ''));
 }
 
 // 6. no orphans

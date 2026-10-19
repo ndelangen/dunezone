@@ -610,7 +610,7 @@ export function BoardEditor({
                         />
                       ))}
                       <Switch
-                        label={`Decal ${i + 1} white outline`}
+                        label={`Decal ${i + 1} outline`}
                         checked={decal.outline}
                         onChange={(e) => patchDecal(decal.id, { outline: e.currentTarget.checked })}
                       />

@@ -3642,7 +3642,7 @@
             "x": 322.81402587890625,
             "y": 57.099483489990234,
             "scale": 21.03594970703125,
-            "artwork": "/vector/icon/arrakis-city.svg",
+            "artwork": "/vector/icon/city.svg",
             "rotation": 0,
             "outline": true
           }
@@ -6613,7 +6613,7 @@
             "x": 237.1844482421875,
             "y": 76.3754653930664,
             "scale": 21.0369873046875,
-            "artwork": "/vector/icon/arrakis-city.svg",
+            "artwork": "/vector/icon/city.svg",
             "rotation": 0,
             "outline": true
           }
@@ -7567,7 +7567,7 @@
             "x": 417.8551330566406,
             "y": 329.8085479736328,
             "scale": 18.25579833984375,
-            "artwork": "/vector/icon/arrakis-sietch.svg",
+            "artwork": "/vector/icon/seitch.svg",
             "rotation": 0,
             "outline": true
           }
@@ -8445,7 +8445,7 @@
             "x": 70.40001106262207,
             "y": 128.75052642822266,
             "scale": 18.256023406982422,
-            "artwork": "/vector/icon/arrakis-sietch.svg",
+            "artwork": "/vector/icon/seitch.svg",
             "rotation": 0,
             "outline": true
           }
@@ -9042,7 +9042,7 @@
             "x": 77.00701522827148,
             "y": 342.1576385498047,
             "scale": 18.256019592285156,
-            "artwork": "/vector/icon/arrakis-sietch.svg",
+            "artwork": "/vector/icon/seitch.svg",
             "rotation": 0,
             "outline": true
           }

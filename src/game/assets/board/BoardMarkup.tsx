@@ -12,15 +12,12 @@ import { TINT_STICKER_ARTWORK } from '@shared/boards/tints';
 import { useRef } from 'react';
 import type { PointerEvent } from 'react';
 
+import { GlyphOutlineFilter } from './glyphOutline';
+
 /*
  * Board markup as Spice cards and Rulebook board scenes both draw and edit it: tints over the board, token assets placed on it.
  * Everything here works in the board's own frame, BOARD_FRAME_SIZE units square.
  */
-
-const STICKER_INK = '#1a0b00';
-const STICKER_OUTLINE = '#fffed8';
-/* The pale outline as thick as the board draws round its own glyphs, such as the strongholds' (Board.tsx). */
-const STICKER_OUTLINE_RADIUS = 0.5;
 
 /**
  * Tints in board units, oldest first, for an SVG whose user space is the board's frame.
@@ -33,18 +30,7 @@ export function TintDrawingLayers({
   return (
     <>
       <defs>
-        {/* The board's glyph colours: near-black ink inside a pale outline. */}
-        <filter id={filterId} x="-20%" y="-20%" width="140%" height="140%" colorInterpolationFilters="sRGB">
-          <feMorphology in="SourceAlpha" operator="dilate" radius={STICKER_OUTLINE_RADIUS} result="WIDE" />
-          <feFlood floodColor={STICKER_OUTLINE} result="PALE" />
-          <feComposite in="PALE" in2="WIDE" operator="in" result="OUTLINE" />
-          <feFlood floodColor={STICKER_INK} result="DARK" />
-          <feComposite in="DARK" in2="SourceAlpha" operator="in" result="INK" />
-          <feMerge>
-            <feMergeNode in="OUTLINE" />
-            <feMergeNode in="INK" />
-          </feMerge>
-        </filter>
+        <GlyphOutlineFilter id={filterId} recolor />
       </defs>
       {drawings.map((drawing) => (
         <g key={drawing.id} data-tint={drawing.id}>
