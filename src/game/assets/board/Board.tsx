@@ -31,6 +31,7 @@ export function DecalArtwork({ decal, svg }: { decal: Decal; svg?: string }) {
       <g filter={decal.outline ? `url(#${outlineId})` : undefined}>
         {svg ? (
           <svg
+            aria-hidden="true"
             x={-decal.scale / 2}
             y={-decal.scale / 2}
             width={decal.scale}
@@ -39,7 +40,14 @@ export function DecalArtwork({ decal, svg }: { decal: Decal; svg?: string }) {
             dangerouslySetInnerHTML={{ __html: inner }}
           />
         ) : (
-          <svg x={-decal.scale / 2} y={-decal.scale / 2} width={decal.scale} height={decal.scale} viewBox="0 0 100 100">
+          <svg
+            aria-hidden="true"
+            x={-decal.scale / 2}
+            y={-decal.scale / 2}
+            width={decal.scale}
+            height={decal.scale}
+            viewBox="0 0 100 100"
+          >
             <use href={`${decal.artwork}#root`} width="100" height="100" />
           </svg>
         )}
