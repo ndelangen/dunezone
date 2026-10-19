@@ -5,6 +5,7 @@ import { expect } from 'storybook/test';
 import palace from '../../../../media/vector/decal/palace.svg?raw';
 import { BOARD_ARTWORK } from './artwork';
 import { DecalArtwork } from './Board';
+import { TintDrawingLayers } from './BoardMarkup';
 
 const decal: Decal = {
   id: 'city',
@@ -73,7 +74,7 @@ const meta = preview.meta({
         if (pixels[offset + 2] > pixels[offset] + 10 && pixels[offset + 2] > pixels[offset + 1]) {
           blue++;
         }
-        if (pixels[offset] > 240 && pixels[offset + 1] > 240 && pixels[offset + 2] > 240) {
+        if (pixels[offset] === 255 && pixels[offset + 1] === 254 && pixels[offset + 2] === 216) {
           outlineTop = Math.min(outlineTop, y);
         }
       }
@@ -95,6 +96,19 @@ const meta = preview.meta({
 });
 
 export const PresetOutline = meta.story({ args: { decal, svg: preset } });
+export const PlacedCity = meta.story({
+  args: { decal },
+  render: () => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="-32 -32 64 64" width="256" height="256">
+      <TintDrawingLayers
+        filterId="placed-city-outline"
+        drawings={[
+          { id: 'city', color: '#000', opacity: 0, fills: [], stickers: [{ stamp: 'city', x: 0, y: 0, size: 24 }] },
+        ]}
+      />
+    </svg>
+  ),
+});
 export const ImageOutline = meta.story({
   args: {
     svg: '',
