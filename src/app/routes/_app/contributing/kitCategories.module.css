@@ -1,0 +1,57 @@
+.categories {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr));
+  gap: var(--space-lg);
+}
+.category {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  margin: 0;
+  gap: var(--space-xs);
+}
+.sketch {
+  --category-ink: var(--action-export-fg);
+  width: 100%;
+  height: auto;
+  fill: none;
+  stroke: var(--category-ink);
+  stroke-width: 1.6;
+}
+.sketch[data-kind="control"] {
+  --category-ink: var(--action-positive-fg);
+}
+.sketch[data-kind="list"],
+.sketch[data-kind="block"] {
+  --category-ink: var(--action-publish-fg);
+}
+.sketch[data-kind="layout"],
+.sketch[data-kind="surface"] {
+  --category-ink: var(--color-brand-strong);
+}
+.sketch text {
+  fill: var(--category-ink);
+  stroke: none;
+  font: 15px var(--mantine-font-family);
+}
+.sketch .label {
+  fill: var(--color-muted);
+  font-size: 14px;
+}
+.sketch .example {
+  font-size: 17px;
+}
+.sketch .blockTitle {
+  font-size: 19px;
+  font-weight: 700;
+}
+.sketch .slot {
+  stroke-dasharray: 5 4;
+}
+.sketch .measure {
+  stroke: var(--color-muted);
+}
+.sketch .pane {
+  fill: color-mix(in srgb, var(--category-ink) 16%, transparent);
+  stroke-width: 2;
+}

@@ -14,6 +14,11 @@
   outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
+.source > code {
+  display: block;
+  width: max-content;
+  min-width: 100%;
+}
 
 .line {
   display: flex;

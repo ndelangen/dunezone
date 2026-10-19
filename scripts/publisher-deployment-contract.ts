@@ -177,6 +177,8 @@ export function validatePublisherDeployContract(config: JsonObject, environment:
         '/assets/*',
         '/glossary',
         '/glossary/*',
+        '/contributing',
+        '/contributing/*',
         '/faq',
         '/faq/*',
         '/future-plans',

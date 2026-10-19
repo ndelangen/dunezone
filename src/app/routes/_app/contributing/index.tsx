@@ -59,6 +59,7 @@ import {
   ToolbarExample,
 } from './illustrations';
 import styles from './index.module.css';
+import { KitCategories } from './kitCategories';
 import { ReleaseTeaching } from './releaseTeaching';
 import { RepositoryTree } from './repository';
 import { TECHNICAL_GLOSSARY } from './technicalTerms';
@@ -476,6 +477,7 @@ function GlossaryContent({ topic }: { topic: string }) {
   return (
     <Stack gap="xl">
       {topic === 'assets' ? <PublishingDiagram /> : null}
+      {topic === 'structure' ? <KitCategories /> : null}
       <Stack gap="lg">
         {TECHNICAL_GLOSSARY.filter((term) => term.topic === topic).map((term) => (
           <TermSection key={term.id} term={term} />
@@ -574,7 +576,7 @@ function Benefit({
   audience,
 }: Readonly<{ icon: ReactNode; label: string; children: string; audience: 'users' | 'contributors' }>) {
   return (
-    <Stack gap={2}>
+    <Stack gap="xs">
       <Text size="sm" fw={700} className={styles.benefitLabel} data-audience={audience}>
         {icon}
         {label}

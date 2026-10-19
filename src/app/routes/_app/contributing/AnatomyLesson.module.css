@@ -14,7 +14,7 @@
   width: min(100%, 24rem);
   align-self: center;
 }
-@container anatomy-lesson (width >= 40rem) {
+@container anatomy-lesson (width >= 48rem) {
   .layout {
     display: grid;
     grid-template-columns: minmax(0, 1.3fr) minmax(13rem, 1fr);

@@ -1,5 +1,5 @@
 import preview from '@sb/preview';
-import { expect, within } from 'storybook/test';
+import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { CodeExample } from './CodeExample';
 
@@ -30,5 +30,27 @@ export const EscapedMarkup = meta.story({
   play: async ({ canvasElement }) => {
     await expect(canvasElement.querySelector('script')).toBeNull();
     await expect(within(canvasElement).getByLabelText('Page.tsx')).toHaveTextContent('<script>');
+  },
+});
+
+export const KeyboardScroll = meta.story({
+  args: { code: `const longName = "${'example '.repeat(40)}";` },
+  globals: { viewport: { value: 'appMobileNarrow' } },
+  decorators: [
+    (Story) => (
+      <div style={{ width: '20rem', maxWidth: '100%' }}>
+        <Story />
+      </div>
+    ),
+  ],
+  play: async ({ canvasElement }) => {
+    const source = within(canvasElement).getByLabelText('Page.tsx');
+    await waitFor(async () => {
+      await expect(source).toHaveAttribute('tabindex', '0');
+    });
+    await userEvent.tab();
+    await expect(source).toHaveFocus();
+    await expect(source.scrollWidth).toBeGreaterThan(source.clientWidth);
+    await expect(source).toHaveAttribute('role', 'region');
   },
 });

@@ -7,6 +7,7 @@ import type { StatusBadgeTone } from '@ui/content/StatusBadge';
 import { useState } from 'react';
 
 import styles from './experiments.module.css';
+import { TestingLayerSketch } from './testingLayers';
 
 export type GuideExperimentKind = 'membrane' | 'page' | 'publishing' | 'migration' | 'layout' | 'meaning' | 'tests';
 const source = (...lines: string[]) => lines.join('\n');
@@ -86,6 +87,18 @@ const FLOWS: Record<'publishing' | 'tests', { steps: FlowStep[] }> = {
         ),
       },
       {
+        title: 'Broken user journey',
+        place: 'End-to-end test',
+        explanation:
+          'A few end-to-end tests run complete journeys through the real local stack. Saving must still work after sign-in and a reload.',
+        code: source(
+          'await signIn(page);',
+          'await editFaction(page, "Atreides");',
+          'await page.reload();',
+          'await expect(page.getByText("Atreides")).toBeVisible();'
+        ),
+      },
+      {
         title: 'Wrong release',
         place: 'Runtime verification',
         explanation:
@@ -107,6 +120,7 @@ function FlowLab({ kind }: { kind: keyof typeof FLOWS }) {
       {model.steps.map((step, index) => (
         <li key={step.title}>
           <Section eyebrow={`${index + 1} · ${step.place}`} title={step.title}>
+            {kind === 'tests' ? <TestingLayerSketch layer={index} /> : null}
             <Text>{step.explanation}</Text>
             <CodeExample
               label={`${step.title} · example code`}

@@ -166,7 +166,18 @@ export const PageData = meta.story({
   },
 });
 export const PageInterface = meta.story({ args: { path: '/contributing/code/interface' } });
-export const CheckingChanges = meta.story({ args: { path: '/contributing/code/testing' } });
+export const CheckingChanges = meta.story({
+  args: { path: '/contributing/code/testing' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const checks = within(await page.findByRole('tabpanel', { name: 'Checks' }, { timeout: 30_000 }));
+    await expect(checks.getByRole('img', { name: /Types reject a number/ })).toBeVisible();
+    await expect(checks.getByRole('img', { name: /A seam test calls a mutation/ })).toBeVisible();
+    await expect(checks.getByRole('img', { name: /A browser story clicks the real page/ })).toBeVisible();
+    await expect(checks.getByRole('img', { name: /An end-to-end test signs in/ })).toBeVisible();
+    await expect(checks.getByRole('img', { name: /Runtime verification checks assembled files/ })).toBeVisible();
+  },
+});
 export const Publishing = meta.story({ args: { path: '/contributing/deployment/publishing' } });
 export const SchemaChange = meta.story({
   args: { path: '/contributing/deployment/schema' },
@@ -242,7 +253,63 @@ export const PageAnatomy = meta.story({
     });
   },
 });
-export const CodeStructure = meta.story({ args: { path: '/contributing/glossary/structure' } });
+export const CodeStructure = meta.story({
+  args: { path: '/contributing/glossary/structure' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const categories = within(await page.findByRole('region', { name: 'Six kit categories' }, { timeout: 30_000 }));
+    await expect(categories.getAllByRole('img')).toHaveLength(6);
+    const name = categories.getByRole('textbox', { name: 'Example name' });
+    await userEvent.clear(name);
+    await userEvent.type(name, 'Desert Alliance');
+    await expect(
+      categories.getByRole('img', { name: /Content receives data.*Example value: Desert Alliance/ })
+    ).toBeVisible();
+    await expect(
+      categories.getByRole('img', { name: /Controls receives value.*Example value: Desert Alliance/ })
+    ).toBeVisible();
+    await expect(
+      categories.getByRole('img', { name: 'Layout receives named slots. Positions the slots.' })
+    ).toBeVisible();
+  },
+});
+export const KeyboardNavigation = meta.story({
+  args: { path: '/contributing' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const code = within(await page.findByRole('region', { name: 'Codebase' }, { timeout: 30_000 }));
+    await userEvent.click(code.getByRole('tab', { name: 'Repository map' }));
+    await userEvent.keyboard('{ArrowDown}');
+    await expect(code.getByRole('tab', { name: 'Checks' })).toHaveFocus();
+    await expect(code.getByRole('tabpanel', { name: 'Checks' })).toBeVisible();
+    await userEvent.keyboard('{Home}');
+    await expect(code.getByRole('tab', { name: 'Repository map' })).toHaveFocus();
+    await expect(code.getByRole('tabpanel', { name: 'Repository map' })).toBeVisible();
+  },
+});
+export const PhoneKitAndTests = meta.story({
+  args: { path: '/contributing?code=testing&glossary=structure' },
+  globals: { viewport: { value: 'appMobileNarrow' } },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const categories = await page.findByRole('region', { name: 'Six kit categories' }, { timeout: 30_000 });
+    const name = within(categories).getByRole('textbox', { name: 'Example name' });
+    await userEvent.clear(name);
+    await userEvent.type(name, 'WWWWWWWWWWWWWWWW');
+    const checks = page.getByRole('tabpanel', { name: 'Checks' });
+    for (const region of [categories, checks]) {
+      await expect(region.scrollWidth).toBeLessThanOrEqual(region.clientWidth + 1);
+      for (const svg of region.querySelectorAll<SVGSVGElement>('svg[role="img"]')) {
+        const bounds = svg.getBoundingClientRect();
+        for (const label of svg.querySelectorAll('text')) {
+          const ink = label.getBoundingClientRect();
+          await expect(ink.left, label.textContent ?? '').toBeGreaterThanOrEqual(bounds.left - 1);
+          await expect(ink.right, label.textContent ?? '').toBeLessThanOrEqual(bounds.right + 1);
+        }
+      }
+    }
+  },
+});
 export const BoardsAndTints = meta.story({
   args: { path: '/contributing/glossary/board' },
   play: async ({ canvasElement }) => {
