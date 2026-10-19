@@ -8,6 +8,7 @@ import { customCardEditing, stormCardEditing } from '../../layeredCardEditing';
 import { BoardCreatePage } from './boardCreate';
 import { BundleCreatePage } from './bundleCreate';
 import { DeckCreatePage } from './deckCreate';
+import { HomeworldCreatePage } from './homeworldCreate';
 import { LayeredCreatePage } from './layeredCreate';
 import { LeaderSkillCreatePage } from './leaderSkillCreate';
 import { NexusCreatePage } from './nexusCreate';
@@ -45,6 +46,8 @@ function CreateAssetPage() {
       return <TreacheryCreatePage />;
     case 'card-leaderability':
       return <LeaderSkillCreatePage />;
+    case 'card-homeworld':
+      return <HomeworldCreatePage />;
     case 'card-nexus':
       return <NexusCreatePage />;
     case 'card-custom':

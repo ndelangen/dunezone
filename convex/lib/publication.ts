@@ -24,6 +24,7 @@ import {
   CUSTOM_CARD_ASSET_TYPE,
   LEADER_SKILL_ASSET_TYPE,
   NEXUS_CARD_ASSET_TYPE,
+  HOMEWORLD_CARD_ASSET_TYPE,
   STORM_CARD_ASSET_TYPE,
   SPICE_CARD_ASSET_TYPE,
   STRONGHOLD_CARD_ASSET_TYPE,
@@ -240,6 +241,7 @@ export async function enqueueAssetPublication(
       return await enqueueSpiceCardPublication(ctx, asset, now);
     case LEADER_SKILL_ASSET_TYPE:
     case NEXUS_CARD_ASSET_TYPE:
+    case HOMEWORLD_CARD_ASSET_TYPE:
     case TREACHERY_CARD_ASSET_TYPE:
     case STRONGHOLD_CARD_ASSET_TYPE:
       return await enqueuePublicationJob(ctx, {

@@ -27,6 +27,7 @@ import { publishingTreacheryCard } from '../../src/shared/assets/fixtures/publis
 import { GF9_LEADER_SKILLS } from '../../src/shared/assets/gf9LeaderSkills';
 import { GF9_NEXUS_CARDS } from '../../src/shared/assets/gf9Nexus';
 import { GF9_STRONGHOLD_CARDS } from '../../src/shared/assets/gf9StrongholdDeck';
+import { EXAMPLE_HOMEWORLD_CARD } from '../../src/shared/assets/homeworldTemplate';
 import { STANDARD_STORM_CARDS, STANDARD_STORM_CARDBACK } from '../../src/shared/assets/standardStormDeck';
 import { arrakisBoard } from '../../src/shared/boards/geometry';
 import { assetPublishingFaction } from '../../src/shared/factions/fixtures/assetPublishingFaction';
@@ -472,6 +473,7 @@ async function checkPublisherImageCapture(
     | 'card-custom'
     | 'card-leaderability'
     | 'card-nexus'
+    | 'card-homeworld'
     | 'card-stronghold'
     | 'card-storm'
     | 'faction-troop'
@@ -509,10 +511,10 @@ async function checkPublisherImageCapture(
     invariant(errors.length === 0, `${label} capture emitted errors: ${errors.join(' | ')}`);
     await assertCaptureImageBounds(page, capture);
     await assertPage?.(page);
-    if (assetType === 'card-nexus') {
+    if (assetType === 'card-nexus' || assetType === 'card-homeworld') {
       const regions = await page.locator('section').evaluateAll((sections) =>
         sections.map((section) => {
-          const rules = section.lastElementChild as HTMLElement;
+          const rules = section.querySelector<HTMLElement>('[data-card-effect-text]')!;
           return {
             height: rules.clientHeight,
             contentHeight: rules.scrollHeight,
@@ -524,7 +526,7 @@ async function checkPublisherImageCapture(
           };
         })
       );
-      invariant(regions.length === 3, 'Nexus capture must contain its three effects');
+      invariant(regions.length === 3, `${assetType} capture must contain its three effects`);
       invariant(
         regions.every(
           ({ height, contentHeight, width, contentWidth, top, bottom, availableBottom }) =>
@@ -534,7 +536,7 @@ async function checkPublisherImageCapture(
             bottom <= availableBottom + 1 &&
             bottom <= capture.heightPx
         ),
-        `Nexus effect text must fit its printed region: ${JSON.stringify(regions)}`
+        `Card effect text must fit its printed region: ${JSON.stringify(regions)}`
       );
     }
     if (isComponentAssetType(assetType)) {
@@ -615,6 +617,12 @@ try {
     await Bun.write(process.env.BOARD_PROOF_PATH, boardCapture);
   }
   await checkPublisherImageCapture(browser, 'card-treachery', cardSnapshot, 'card');
+  await checkPublisherImageCapture(
+    browser,
+    'card-homeworld',
+    envelope('card-homeworld', { assetId: 'k17publisherHomeworld', slug: 'pelagos', card: EXAMPLE_HOMEWORLD_CARD }),
+    'Homeworld'
+  );
   for (const card of GF9_NEXUS_CARDS) {
     await checkNexusCapture(browser, card); /* NOSONAR: Captures share the active snapshot. */
   }

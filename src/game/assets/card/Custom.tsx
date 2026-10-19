@@ -24,8 +24,10 @@ export function CustomCard({
   iconOpacity = 1,
   layers,
   tokens = {},
+  iconPresentation,
 }: z.infer<typeof CustomCardSchema> & {
   tokens?: z.infer<typeof CustomCardTokens>;
+  iconPresentation?: 'symbol' | 'image';
 }) {
   const prefix = useId();
   const shiftedWindow = format === 'decal-window' && windowOffsetY !== 0;
@@ -83,6 +85,7 @@ export function CustomCard({
           <CardLayer key={layer.layerId} layer={layer} tokens={tokens} />
         ))}
       <CardHeadContents
+        iconPresentation={iconPresentation}
         name={name}
         subName={subName}
         icon={icon}

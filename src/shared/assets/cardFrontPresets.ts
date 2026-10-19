@@ -12,6 +12,7 @@ export const cardFrontPresetKeySchema = z.enum([
   'stronghold',
   'storm',
   'nexus',
+  'homeworld',
   'leader-skill',
   'treachery-weapon',
   'treachery-defense',
@@ -40,6 +41,7 @@ export const INITIAL_CARD_FRONT_PRESETS: CardFrontPreset[] = [
     revision: 0,
   },
   { key: 'storm', label: 'Storm', style: { head: STORM_CARD_HEAD, iconBackground: STORM_CARD_ICON[0] }, revision: 0 },
+  { key: 'homeworld', label: 'Homeworld', style: { head: NEXUS_HEAD, iconBackground: NEXUS_HEAD }, revision: 0 },
   { key: 'nexus', label: 'Nexus', style: { head: NEXUS_HEAD, iconBackground: null }, revision: 0 },
   {
     key: 'leader-skill',
@@ -59,6 +61,7 @@ export const CARD_FRONT_PUBLICATION_REVISIONS = {
   'card-stronghold': 4,
   'card-storm': 4,
   'card-nexus': 4,
+  'card-homeworld': 1,
   'card-leaderability': 4,
   'card-treachery': 6,
 } as const;
@@ -66,6 +69,7 @@ export const cardFrontAssetTypeSchema = z.enum([
   'card-stronghold',
   'card-storm',
   'card-nexus',
+  'card-homeworld',
   'card-leaderability',
   'card-treachery',
 ]);
@@ -77,6 +81,8 @@ export function cardFrontPresetKey(type: string, data: unknown): CardFrontPreset
       return 'stronghold';
     case 'card-storm':
       return 'storm';
+    case 'card-homeworld':
+      return 'homeworld';
     case 'card-nexus':
       return 'nexus';
     case 'card-leaderability':

@@ -9,6 +9,7 @@ import { customCardEditing, stormCardEditing } from '../../../layeredCardEditing
 import { BoardEditPage } from './boardEdit';
 import { BundleEditPage } from './bundleEdit';
 import { DeckEditPage } from './deckEdit';
+import { HomeworldEditPage } from './homeworldEdit';
 import { LayeredEditPage } from './layeredEdit';
 import { LeaderSkillEditPage } from './leaderSkillEdit';
 import { NexusEditPage } from './nexusEdit';
@@ -44,6 +45,8 @@ function EditAssetPage() {
       return <TreacheryEditPage slug={slug} loaderData={loaderData} />;
     case 'card-leaderability':
       return <LeaderSkillEditPage slug={slug} loaderData={loaderData} />;
+    case 'card-homeworld':
+      return <HomeworldEditPage slug={slug} loaderData={loaderData} />;
     case 'card-nexus':
       return <NexusEditPage slug={slug} loaderData={loaderData} />;
     case 'card-custom':

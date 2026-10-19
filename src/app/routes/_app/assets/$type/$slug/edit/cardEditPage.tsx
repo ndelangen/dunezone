@@ -36,6 +36,7 @@ type CardType =
   | 'card-spice'
   | 'card-custom'
   | 'card-nexus'
+  | 'card-homeworld'
   | 'card-stronghold'
   | 'card-storm'
   | 'card-leaderability'

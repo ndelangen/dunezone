@@ -8,6 +8,7 @@ import {
   CUSTOM_CARD_ASSET_TYPE,
   LEADER_SKILL_ASSET_TYPE,
   NEXUS_CARD_ASSET_TYPE,
+  HOMEWORLD_CARD_ASSET_TYPE,
   STORM_CARD_ASSET_TYPE,
   SPICE_CARD_ASSET_TYPE,
   STRONGHOLD_CARD_ASSET_TYPE,
@@ -176,6 +177,7 @@ async function scanPage(ctx: MutationCtx, assetType: string, cursor: string | nu
     case CUSTOM_CARD_ASSET_TYPE:
     case LEADER_SKILL_ASSET_TYPE:
     case NEXUS_CARD_ASSET_TYPE:
+    case HOMEWORLD_CARD_ASSET_TYPE:
     case STORM_CARD_ASSET_TYPE:
     case DECK_ASSET_TYPE:
     case 'token-disc':
