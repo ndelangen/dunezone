@@ -373,6 +373,54 @@ describe('Content import', () => {
     ).toEqual([]);
   });
 
+  test('reapplies an identical reviewed package when an editor restores its exported starting state', async () => {
+    const { t, owner } = await rulebookFixture();
+    const original = packageFor([
+      {
+        key: 'reviewed-card',
+        kind: 'asset',
+        type: 'card-stronghold',
+        data: GF9_STRONGHOLD_CARDS[0]!,
+      },
+    ]);
+    const first = await owner.mutation(api.contentImports.applyItem, {
+      packageKey: original.packageKey,
+      item: original.items[0]!,
+      target,
+      expectedHash: null,
+    });
+    const exported = await owner.mutation(api.contentImports.exportRecord, {
+      target,
+      kind: 'asset',
+      type: 'card-stronghold',
+      slug: first.slug,
+    });
+    const exportedItem = contentImportPackageSchema.parse(exported.package).items[0]!;
+    const reviewed = packageFor([
+      {
+        ...exportedItem,
+        key: 'reviewed-card',
+        data: { ...exportedItem.data, about: 'Reviewed revised card.' },
+      },
+    ]);
+    const applyReviewed = async () => {
+      const preview = await owner.mutation(api.contentImports.preview, { package: reviewed, target });
+      expect(preview.entries[0]!.status).toBe('update');
+      return await owner.mutation(api.contentImports.applyItem, {
+        packageKey: reviewed.packageKey,
+        item: reviewed.items[0]!,
+        target,
+        expectedHash: preview.entries[0]!.expectedHash,
+      });
+    };
+    expect(await applyReviewed()).toMatchObject({ status: 'updated' });
+    await owner.mutation(api.assets.update, { id: first.id as Id<'assets'>, data: exportedItem.data });
+    expect(await applyReviewed()).toMatchObject({ status: 'updated' });
+    expect(await t.run(async (ctx) => (await ctx.db.get('assets', first.id as Id<'assets'>))!.data)).toMatchObject({
+      about: 'Reviewed revised card.',
+    });
+  });
+
   test('allows reviewed reconciliation with an exported state hash and refuses an older review', async () => {
     const { t, owner } = await rulebookFixture();
     const original = packageFor([bookItem()]);

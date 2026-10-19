@@ -301,7 +301,9 @@ export const preview = mutation({
             ? ('conflict' as const)
             : !subject
               ? ('create' as const)
-              : !item.bindings?.length && receipt?.item_hash === rulebookContentsHash(item)
+              : !item.bindings?.length &&
+                  receipt?.item_hash === rulebookContentsHash(item) &&
+                  receipt.state_hash === hash
                 ? ('unchanged' as const)
                 : ('update' as const),
           ...(conflict
@@ -382,7 +384,12 @@ export const applyItem = mutation({
       await authorizeSubject(ctx, target, item, previous, data);
     }
     const resolvedHash = rulebookContentsHash([...bindings.entries()]);
-    if (receipt?.item_hash === inputHash && receipt.resolved_hash === resolvedHash && previous) {
+    if (
+      receipt?.item_hash === inputHash &&
+      receipt.resolved_hash === resolvedHash &&
+      receipt.state_hash === hash &&
+      previous
+    ) {
       return { id: previous.id, slug: previous.slug, status: 'unchanged', hash: hash! };
     }
     if (args.expectedHash !== destination.expectedHash) {
