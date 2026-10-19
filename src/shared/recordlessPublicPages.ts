@@ -45,7 +45,7 @@ export const CONTRIBUTING_LESSONS = {
 
 export type ContributingCategory = keyof typeof CONTRIBUTING_LESSONS;
 
-export function contributingLessonPath(category: ContributingCategory, slug: string) {
+function contributingLessonPath(category: ContributingCategory, slug: string) {
   const folder = category === 'decisions' ? 'design-decisions' : category;
   return '/contributing/' + folder + '/' + slug;
 }

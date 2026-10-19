@@ -5,6 +5,26 @@ import { pageStoryMeta } from './storybookConfig';
 
 const meta = preview.meta({ title: 'Contributing', ...pageStoryMeta });
 
+async function expectDiagramLabelsFit(region: HTMLElement) {
+  const labels = Array.from(region.querySelectorAll<SVGSVGElement>('svg[role="img"]')).flatMap((drawing) => {
+    const bounds = drawing.getBoundingClientRect();
+    if (!bounds.width) {
+      return [];
+    }
+    return Array.from(drawing.querySelectorAll('text')).map((label) => ({
+      bounds,
+      ink: label.getBoundingClientRect(),
+      label: label.textContent ?? '',
+    }));
+  });
+  await Promise.all(
+    labels.map(async ({ bounds, ink, label }) => {
+      await expect(ink.left, label).toBeGreaterThanOrEqual(bounds.left - 1);
+      await expect(ink.right, label).toBeLessThanOrEqual(bounds.right + 1);
+    })
+  );
+}
+
 export const Overview = meta.story({
   args: { path: '/contributing' },
   play: async ({ canvasElement }) => {
@@ -12,20 +32,16 @@ export const Overview = meta.story({
     await expect(
       page.findByRole('heading', { name: 'Contributing', level: 1 }, { timeout: 30_000 })
     ).resolves.toBeVisible();
-    for (const title of [
-      'Start here',
-      'Codebase',
-      'Data',
-      'Interface',
-      'How it ships',
-      'Technical glossary',
-      'Design decisions',
-    ]) {
-      await expect(page.getByRole('heading', { name: title, level: 2 })).toBeVisible();
-      await expect(
-        page.getByRole('region', { name: title }).querySelector('[data-connected-tabs-mobile-picker]')
-      ).not.toBeNull();
-    }
+    await Promise.all(
+      ['Start here', 'Codebase', 'Data', 'Interface', 'How it ships', 'Technical glossary', 'Design decisions'].map(
+        async (title) => {
+          await expect(page.getByRole('heading', { name: title, level: 2 })).toBeVisible();
+          await expect(
+            page.getByRole('region', { name: title }).querySelector('[data-connected-tabs-mobile-picker]')
+          ).not.toBeNull();
+        }
+      )
+    );
     const icons = page.getAllByRole('tab').map((tab) => tab.querySelector('svg')?.getAttribute('class'));
     await expect(icons.every(Boolean)).toBe(true);
     await expect(new Set(icons).size).toBe(icons.length);
@@ -92,20 +108,26 @@ export const Navigation = meta.story({
     await userEvent.click(data.getByRole('tab', { name: 'Reads and saves' }));
     await userEvent.click(glossary.getByRole('tab', { name: 'Image terms' }));
     await userEvent.click(decisions.getByRole('tab', { name: 'Layout and spacing' }));
-    for (const [section, title] of [
-      [code, 'Checks'],
-      [data, 'Reads and saves'],
-      [glossary, 'Image terms'],
-      [decisions, 'Layout and spacing'],
-    ] as const) {
-      await expect(section.getByRole('tab', { name: title })).toHaveAttribute('aria-selected', 'true');
-    }
-    for (const panel of page.getAllByRole('tabpanel')) {
-      await expect(within(panel).queryByRole('tablist')).toBeNull();
-      await expect(within(panel).queryByRole('combobox')).toBeNull();
-      await expect(within(panel).queryByRole('button', { name: 'Next step' })).toBeNull();
-      await expect(within(panel).queryByRole('button', { name: 'Previous step' })).toBeNull();
-    }
+    await Promise.all(
+      (
+        [
+          [code, 'Checks'],
+          [data, 'Reads and saves'],
+          [glossary, 'Image terms'],
+          [decisions, 'Layout and spacing'],
+        ] as const
+      ).map(async ([section, title]) => {
+        await expect(section.getByRole('tab', { name: title })).toHaveAttribute('aria-selected', 'true');
+      })
+    );
+    await Promise.all(
+      page.getAllByRole('tabpanel').map(async (panel) => {
+        await expect(within(panel).queryByRole('tablist')).toBeNull();
+        await expect(within(panel).queryByRole('combobox')).toBeNull();
+        await expect(within(panel).queryByRole('button', { name: 'Next step' })).toBeNull();
+        await expect(within(panel).queryByRole('button', { name: 'Previous step' })).toBeNull();
+      })
+    );
   },
 });
 
@@ -209,19 +231,7 @@ export const PhoneRolloutDiagrams = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     const shipping = await page.findByRole('region', { name: 'How it ships' }, { timeout: 30_000 });
     const diagramsFit = async () => {
-      for (const drawing of shipping.querySelectorAll<SVGSVGElement>('svg[role="img"]')) {
-        const bounds = drawing.getBoundingClientRect();
-        if (!bounds.width) {
-          continue;
-        }
-        for (const label of drawing.querySelectorAll('text')) {
-          const ink = label.getBoundingClientRect();
-          await expect(ink.left).toBeGreaterThanOrEqual(bounds.left - 1);
-          await expect(ink.right, `${drawing.getAttribute('aria-label')}: ${label.textContent}`).toBeLessThanOrEqual(
-            bounds.right + 1
-          );
-        }
-      }
+      await expectDiagramLabelsFit(shipping);
       const tooWide = Array.from(shipping.querySelectorAll<HTMLElement>('figure, section, ol, pre, code'))
         .filter((element) => element.clientWidth > shipping.clientWidth)
         .map((element) => `${element.tagName}.${element.className}: ${element.clientWidth}`);
@@ -297,17 +307,12 @@ export const PhoneKitAndTests = meta.story({
     await userEvent.clear(name);
     await userEvent.type(name, 'WWWWWWWWWWWWWWWW');
     const checks = page.getByRole('tabpanel', { name: 'Checks' });
-    for (const region of [categories, checks]) {
-      await expect(region.scrollWidth).toBeLessThanOrEqual(region.clientWidth + 1);
-      for (const svg of region.querySelectorAll<SVGSVGElement>('svg[role="img"]')) {
-        const bounds = svg.getBoundingClientRect();
-        for (const label of svg.querySelectorAll('text')) {
-          const ink = label.getBoundingClientRect();
-          await expect(ink.left, label.textContent ?? '').toBeGreaterThanOrEqual(bounds.left - 1);
-          await expect(ink.right, label.textContent ?? '').toBeLessThanOrEqual(bounds.right + 1);
-        }
-      }
-    }
+    await Promise.all(
+      [categories, checks].map(async (region) => {
+        await expect(region.scrollWidth).toBeLessThanOrEqual(region.clientWidth + 1);
+        await expectDiagramLabelsFit(region);
+      })
+    );
   },
 });
 export const BoardsAndTints = meta.story({
@@ -495,4 +500,20 @@ export const ComponentMembrane = meta.story({
       })
     ).toBeVisible();
   },
+});
+
+async function expectMissingLesson({ canvasElement }: { canvasElement: HTMLElement }) {
+  await expect(
+    within(canvasElement.ownerDocument.body).findByRole('heading', { name: 'Page not found' }, { timeout: 30_000 })
+  ).resolves.toBeVisible();
+}
+
+export const UnknownCodeLesson = meta.story({
+  args: { path: '/contributing/code/toString' },
+  play: expectMissingLesson,
+});
+
+export const UnknownGlossaryTopic = meta.story({
+  args: { path: '/contributing/glossary/constructor' },
+  play: expectMissingLesson,
 });

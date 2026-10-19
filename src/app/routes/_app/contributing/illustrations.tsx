@@ -12,119 +12,137 @@ import styles from './illustrations.module.css';
 
 const REPOSITORY = 'https://github.com/ndelangen/dunezone/blob/main';
 
+function QueuePublication() {
+  return (
+    <div className={styles.publishStep} data-kind="record">
+      <Text fw={700}>1. Queue the asset</Text>
+      <div className={styles.publishDrawing}>
+        <svg
+          className={styles.queueDrawing}
+          viewBox="0 0 280 210"
+          role="img"
+          aria-label="An asset update creates a queued publication job"
+        >
+          <text x="62" y="28" textAnchor="middle">
+            Asset record
+          </text>
+          <rect x="22" y="43" width="80" height="100" rx="4" />
+          <path d="M34 64H90M34 82H77M34 100H88M34 118H67M109 95H151M143 87L151 95 143 103" />
+          <text x="214" y="28" textAnchor="middle">
+            Job queue
+          </text>
+          {[49, 86, 123].map((y) => (
+            <g key={y}>
+              <rect x="165" y={y} width="97" height="27" rx="3" />
+              <circle cx="179" cy={y + 13} r="4" />
+              <path d={`M191 ${y + 13}H250`} />
+            </g>
+          ))}
+          <path d="M30 173H250M242 165L250 173 242 181" />
+          <text x="140" y="204" textAnchor="middle">
+            Saved now, image later
+          </text>
+        </svg>
+        <Anchor href="https://docs.convex.dev/" size="sm">
+          Convex database and job records
+        </Anchor>
+      </div>
+      <Text size="sm" c="dimmed">
+        Convex stores the asset and publication job. Saving requests a new capture. A renderer revision increase
+        requests captures for that asset type.
+      </Text>
+    </div>
+  );
+}
+
+function CapturePublication() {
+  return (
+    <div className={styles.publishStep} data-kind="capture">
+      <Text fw={700}>2. Capture in a browser</Text>
+      <div className={styles.publishDrawing}>
+        <svg
+          className={styles.artifact}
+          viewBox="0 0 280 210"
+          role="img"
+          aria-label="A capture page renders one game card without application chrome"
+        >
+          <rect x="8" y="8" width="264" height="170" rx="5" />
+          <path d="M8 32H272" />
+          <circle cx="21" cy="20" r="2" />
+          <circle cx="31" cy="20" r="2" />
+          <text x="145" y="25" textAnchor="middle">
+            Capture page
+          </text>
+          <rect x="104" y="50" width="72" height="111" rx="4" />
+          <circle cx="140" cy="94" r="26" />
+          <path d="M117 111L136 79 155 107M116 138H165M126 150H156" />
+          <g className={styles.captureCorners}>
+            <path d="M94 66V40H119M162 40H187V66M187 146V171H162M119 171H94V146" />
+          </g>
+          <text x="140" y="204" textAnchor="middle">
+            Renderer → screenshot
+          </text>
+        </svg>
+        <Anchor href="https://developers.cloudflare.com/browser-run/" size="sm">
+          Cloudflare Browser Run
+        </Anchor>
+      </div>
+      <Text size="sm" c="dimmed">
+        A <Anchor href="https://developers.cloudflare.com/workers/">Cloudflare Worker</Anchor> leases up to 20 jobs
+        every five minutes when enabled. Browser Run opens each capture page and screenshots its game renderer.
+      </Text>
+    </div>
+  );
+}
+
+function ServePublication() {
+  return (
+    <div className={styles.publishStep} data-kind="image">
+      <Text fw={700}>3. Serve the publication</Text>
+      <div className={styles.publishDrawing}>
+        <svg
+          className={styles.storageDrawing}
+          viewBox="0 0 280 210"
+          role="img"
+          aria-label="R2 stores a captured image file, then a public page displays that image through PublishedImage"
+        >
+          <path d="M22 40L32 129Q65 146 98 129L108 40M22 40Q65 22 108 40Q65 58 22 40" />
+          <rect x="47" y="62" width="36" height="50" rx="2" />
+          <path d="M52 101L63 82 77 99" />
+          <text x="65" y="165" textAnchor="middle">
+            R2
+          </text>
+          <path d="M109 92H154M146 84L154 92 146 100" />
+          <rect x="165" y="40" width="107" height="109" rx="4" />
+          <path d="M165 60H272M178 74H203M178 84H195M178 94H203M178 117H258M178 130H243" />
+          <rect x="216" y="73" width="40" height="34" rx="2" />
+          <path d="M222 100L235 82 250 100" />
+          <text x="219" y="165" textAnchor="middle">
+            Public page
+          </text>
+          <text x="140" y="204" textAnchor="middle">
+            PublishedImage
+          </text>
+        </svg>
+        <Anchor href="https://developers.cloudflare.com/r2/" size="sm">
+          Cloudflare R2 object storage
+        </Anchor>
+      </div>
+      <Text size="sm" c="dimmed">
+        R2 stores the image file. The publication identity selects that file, and PublishedImage displays it while
+        reserving its space.
+      </Text>
+    </div>
+  );
+}
+
 export function PublishingDiagram() {
   return (
     <figure className={styles.figure} aria-label="How records, publication jobs and public images connect">
       <div className={styles.publishing}>
-        <div className={styles.publishStep} data-kind="record">
-          <Text fw={700}>1. Queue the asset</Text>
-          <div className={styles.publishDrawing}>
-            <svg
-              className={styles.queueDrawing}
-              viewBox="0 0 280 210"
-              role="img"
-              aria-label="An asset update creates a queued publication job"
-            >
-              <text x="62" y="28" textAnchor="middle">
-                Asset record
-              </text>
-              <rect x="22" y="43" width="80" height="100" rx="4" />
-              <path d="M34 64H90M34 82H77M34 100H88M34 118H67M109 95H151M143 87L151 95 143 103" />
-              <text x="214" y="28" textAnchor="middle">
-                Job queue
-              </text>
-              {[49, 86, 123].map((y) => (
-                <g key={y}>
-                  <rect x="165" y={y} width="97" height="27" rx="3" />
-                  <circle cx="179" cy={y + 13} r="4" />
-                  <path d={`M191 ${y + 13}H250`} />
-                </g>
-              ))}
-              <path d="M30 173H250M242 165L250 173 242 181" />
-              <text x="140" y="204" textAnchor="middle">
-                Saved now, image later
-              </text>
-            </svg>
-            <Anchor href="https://docs.convex.dev/" size="sm">
-              Convex database and job records
-            </Anchor>
-          </div>
-          <Text size="sm" c="dimmed">
-            Convex stores the asset and publication job. Saving requests a new capture. A renderer revision increase
-            requests captures for that asset type.
-          </Text>
-        </div>
-        <div className={styles.publishStep} data-kind="capture">
-          <Text fw={700}>2. Capture in a browser</Text>
-          <div className={styles.publishDrawing}>
-            <svg
-              className={styles.artifact}
-              viewBox="0 0 280 210"
-              role="img"
-              aria-label="A capture page renders one game card without application chrome"
-            >
-              <rect x="8" y="8" width="264" height="170" rx="5" />
-              <path d="M8 32H272" />
-              <circle cx="21" cy="20" r="2" />
-              <circle cx="31" cy="20" r="2" />
-              <text x="145" y="25" textAnchor="middle">
-                Capture page
-              </text>
-              <rect x="104" y="50" width="72" height="111" rx="4" />
-              <circle cx="140" cy="94" r="26" />
-              <path d="M117 111L136 79 155 107M116 138H165M126 150H156" />
-              <g className={styles.captureCorners}>
-                <path d="M94 66V40H119M162 40H187V66M187 146V171H162M119 171H94V146" />
-              </g>
-              <text x="140" y="204" textAnchor="middle">
-                Renderer → screenshot
-              </text>
-            </svg>
-            <Anchor href="https://developers.cloudflare.com/browser-run/" size="sm">
-              Cloudflare Browser Run
-            </Anchor>
-          </div>
-          <Text size="sm" c="dimmed">
-            A <Anchor href="https://developers.cloudflare.com/workers/">Cloudflare Worker</Anchor> leases up to 20 jobs
-            every five minutes when enabled. Browser Run opens each capture page and screenshots its game renderer.
-          </Text>
-        </div>
-        <div className={styles.publishStep} data-kind="image">
-          <Text fw={700}>3. Serve the publication</Text>
-          <div className={styles.publishDrawing}>
-            <svg
-              className={styles.storageDrawing}
-              viewBox="0 0 280 210"
-              role="img"
-              aria-label="R2 stores a captured image file, then a public page displays that image through PublishedImage"
-            >
-              <path d="M22 40L32 129Q65 146 98 129L108 40M22 40Q65 22 108 40Q65 58 22 40" />
-              <rect x="47" y="62" width="36" height="50" rx="2" />
-              <path d="M52 101L63 82 77 99" />
-              <text x="65" y="165" textAnchor="middle">
-                R2
-              </text>
-              <path d="M109 92H154M146 84L154 92 146 100" />
-              <rect x="165" y="40" width="107" height="109" rx="4" />
-              <path d="M165 60H272M178 74H203M178 84H195M178 94H203M178 117H258M178 130H243" />
-              <rect x="216" y="73" width="40" height="34" rx="2" />
-              <path d="M222 100L235 82 250 100" />
-              <text x="219" y="165" textAnchor="middle">
-                Public page
-              </text>
-              <text x="140" y="204" textAnchor="middle">
-                PublishedImage
-              </text>
-            </svg>
-            <Anchor href="https://developers.cloudflare.com/r2/" size="sm">
-              Cloudflare R2 object storage
-            </Anchor>
-          </div>
-          <Text size="sm" c="dimmed">
-            R2 stores the image file. The publication identity selects that file, and PublishedImage displays it while
-            reserving its space.
-          </Text>
-        </div>
+        <QueuePublication />
+        <CapturePublication />
+        <ServePublication />
       </div>
       <figcaption>
         <Text size="sm" c="dimmed">
@@ -141,10 +159,10 @@ export function SlugExample() {
   return (
     <Stack gap="sm">
       <TextInput label="Try a faction name" value={name} onChange={(event) => setName(event.currentTarget.value)} />
-      <div className={styles.address} role="status" aria-label="Example faction URL">
+      <output className={styles.address} aria-label="Example faction URL">
         <span>https://dune.zone/factions/</span>
         <strong>{slug || '…'}</strong>
-      </div>
+      </output>
       <Text size="sm" c="dimmed">
         The highlighted part is the slug. If <Code>house-atreides</Code> is taken, a new faction can receive{' '}
         <Code>house-atreides-1</Code>.
@@ -188,7 +206,7 @@ export function NamedSlotsExample() {
   );
 }
 
-function FloatingSketch({ nested }: { nested: boolean }) {
+function FloatingSketch({ nested }: Readonly<{ nested: boolean }>) {
   return (
     <svg
       className={styles.floatingSketch}

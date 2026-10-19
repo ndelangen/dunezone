@@ -22,7 +22,7 @@ const REGIONS: Record<string, AnatomyRegion> = {
 };
 
 /** The diagram follows the nearest term without changing the visible lesson. */
-export function AnatomyLesson({ children }: { children: ReactNode }) {
+export function AnatomyLesson({ children }: Readonly<{ children: ReactNode }>) {
   const root = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState<AnatomyRegion>('chrome');
   useEffect(() => {
@@ -39,7 +39,7 @@ export function AnatomyLesson({ children }: { children: ReactNode }) {
         const distance = rect.top <= target && rect.bottom >= target ? 0 : Math.abs(rect.top - target);
         const bestDistance = previous.top <= target && previous.bottom >= target ? 0 : Math.abs(previous.top - target);
         return distance < bestDistance ? term : best;
-      });
+      }, terms[0]!);
       setActive(REGIONS[nearest.dataset.anatomyTerm!] ?? 'content');
     };
     const schedule = () => {

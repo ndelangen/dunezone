@@ -113,7 +113,7 @@ const FLOWS: Record<'publishing' | 'tests', { steps: FlowStep[] }> = {
   },
 };
 
-function FlowLab({ kind }: { kind: keyof typeof FLOWS }) {
+function FlowLab({ kind }: Readonly<{ kind: keyof typeof FLOWS }>) {
   const model = FLOWS[kind];
   return (
     <ol className={styles.journey}>
@@ -134,7 +134,7 @@ function FlowLab({ kind }: { kind: keyof typeof FLOWS }) {
   );
 }
 
-function MembraneSketch({ bypass = false }: { bypass?: boolean }) {
+function MembraneSketch({ bypass = false }: Readonly<{ bypass?: boolean }>) {
   return (
     <figure className={styles.contractFigure}>
       <Text fw={700} c={bypass ? 'var(--color-error)' : 'var(--action-positive-fg)'}>
@@ -351,15 +351,26 @@ const MIGRATION_SCHEMAS = [
   },
 ] as const;
 
-function SchemaSnapshot({ stage, oldClient }: { stage: (typeof MIGRATION_SCHEMAS)[number]; oldClient: boolean }) {
+function SchemaSnapshot({
+  stage,
+  oldClient,
+}: Readonly<{ stage: (typeof MIGRATION_SCHEMAS)[number]; oldClient: boolean }>) {
   const accepts = oldClient ? stage.acceptsOld : stage.acceptsNew;
   const requestY = oldClient ? 58 : 94;
+  const fields = [
+    { field: 'name', allowed: stage.acceptsOld },
+    { field: 'displayName', allowed: stage.acceptsNew },
+  ];
+  const acceptedFields = fields
+    .filter(({ allowed }) => allowed)
+    .map(({ field }) => field)
+    .join(' and ');
   return (
     <svg
       className={styles.schemaSnapshot}
       viewBox="0 0 360 318"
       role="img"
-      aria-label={`${stage.title}: accepts ${stage.acceptsOld ? 'name' : ''}${stage.acceptsOld && stage.acceptsNew ? ' and ' : ''}${stage.acceptsNew ? 'displayName' : ''}. ${stage.oldRows} old records, ${4 - stage.oldRows} new records. Sample request ${accepts ? 'accepted' : 'rejected'}.`}
+      aria-label={`${stage.title}: accepts ${acceptedFields}. ${stage.oldRows} old records, ${4 - stage.oldRows} new records. Sample request ${accepts ? 'accepted' : 'rejected'}.`}
     >
       <g className={oldClient ? styles.legacyShape : styles.newShape}>
         <rect x="8" y="12" width="139" height="88" rx="4" />
@@ -380,10 +391,7 @@ function SchemaSnapshot({ stage, oldClient }: { stage: (typeof MIGRATION_SCHEMAS
       <text x="283" y="29" textAnchor="middle">
         Schema accepts
       </text>
-      {[
-        { field: 'name', allowed: stage.acceptsOld },
-        { field: 'displayName', allowed: stage.acceptsNew },
-      ].map(({ field, allowed }, index) => (
+      {fields.map(({ field, allowed }, index) => (
         <g key={field} className={allowed ? styles.acceptedShape : styles.rejectedShape}>
           <rect x="222" y={42 + index * 36} width="122" height="29" rx="3" />
           <text x="273" y={62 + index * 36} textAnchor="middle">
@@ -531,23 +539,27 @@ function MeaningLab() {
   );
 }
 
+const EXPERIMENTS = {
+  page: AnatomyLab,
+  membrane: MembraneLab,
+  migration: MigrationLab,
+  layout: LayoutLab,
+  meaning: MeaningLab,
+};
+
 /** Controls change example values. Each example keeps its explanation visible. */
 export function GuideExperiment({ kind }: Readonly<{ kind: GuideExperimentKind }>) {
+  if (kind === 'publishing' || kind === 'tests') {
+    return (
+      <div className={styles.root}>
+        <FlowLab kind={kind} />
+      </div>
+    );
+  }
+  const Experiment = EXPERIMENTS[kind];
   return (
     <div className={styles.root}>
-      {kind === 'page' ? (
-        <AnatomyLab />
-      ) : kind === 'membrane' ? (
-        <MembraneLab />
-      ) : kind === 'migration' ? (
-        <MigrationLab />
-      ) : kind === 'layout' ? (
-        <LayoutLab />
-      ) : kind === 'meaning' ? (
-        <MeaningLab />
-      ) : (
-        <FlowLab kind={kind} />
-      )}
+      <Experiment />
     </div>
   );
 }

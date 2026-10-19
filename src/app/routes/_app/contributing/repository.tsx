@@ -88,6 +88,22 @@ function nodes(entries: RepositoryEntry[]): TreeNodeData[] {
 const DATA = nodes(ENTRIES);
 
 /** The repository hierarchy stays in the tree; expanding a folder reveals its children in place. */
+function repositoryIcon(path: string, expanded: boolean) {
+  if (!/\.[a-z]+$/.test(path)) {
+    return expanded ? VscFolderOpened : VscFolder;
+  }
+  if (path.endsWith('.json')) {
+    return VscJson;
+  }
+  if (/\.tsx?$/.test(path)) {
+    return SiTypescript;
+  }
+  if (path.endsWith('.yml')) {
+    return SiYaml;
+  }
+  return VscFileText;
+}
+
 export function RepositoryTree() {
   const tree = useTree({
     initialExpandedState: getTreeExpandedState(DATA, ['src', 'src/app']),
@@ -103,17 +119,8 @@ export function RepositoryTree() {
       renderNode={({ node, expanded, hasChildren, elementProps }) => {
         const entry = BY_PATH.get(node.value)!;
         const file = /\.[a-z]+$/.test(node.value);
-        const FileIcon = !file
-          ? expanded
-            ? VscFolderOpened
-            : VscFolder
-          : node.value.endsWith('.json')
-            ? VscJson
-            : /\.tsx?$/.test(node.value)
-              ? SiTypescript
-              : node.value.endsWith('.yml')
-                ? SiYaml
-                : VscFileText;
+        const FileIcon = repositoryIcon(node.value, expanded);
+        const ExpansionIcon = expanded ? ChevronDown : ChevronRight;
         return (
           <Group
             {...elementProps}
@@ -123,7 +130,7 @@ export function RepositoryTree() {
             className={`${elementProps.className} ${styles.row}`}
           >
             <span className={styles.chevron} aria-hidden>
-              {hasChildren ? expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} /> : null}
+              {hasChildren ? <ExpansionIcon size={14} /> : null}
             </span>
             <FileIcon className={styles.icon} aria-hidden />
             <Group gap="sm" className={styles.details}>

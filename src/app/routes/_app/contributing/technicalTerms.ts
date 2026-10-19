@@ -4,7 +4,7 @@
  * Game terms live in src/shared/glossary/terms.ts, and CONTEXT.md defines product terms.
  */
 
-export type TechnicalTopic = 'page' | 'structure' | 'assets' | 'data';
+type TechnicalTopic = 'page' | 'structure' | 'assets' | 'data';
 
 export type TechnicalTerm = {
   /** Stable anchor on the page; never reuse one for a different idea. */
@@ -19,17 +19,6 @@ export type TechnicalTerm = {
   /** Words for the same idea we do not use, with the reason in the explanation when it is not obvious. */
   avoid?: readonly string[];
 };
-
-export const TECHNICAL_TOPICS: readonly { id: TechnicalTopic; label: string; summary: string }[] = [
-  { id: 'page', label: 'Parts of a page', summary: 'Names for the shell and the regions within a page.' },
-  {
-    id: 'structure',
-    label: 'How the code is organised',
-    summary: 'Names for components, modules and import boundaries.',
-  },
-  { id: 'assets', label: 'Pictures and publishing', summary: 'How game artwork is drawn, stored and served.' },
-  { id: 'data', label: 'Data and delivery', summary: 'Names for queries, addresses, migrations and releases.' },
-];
 
 export const TECHNICAL_GLOSSARY: readonly TechnicalTerm[] = [
   {

@@ -3,7 +3,7 @@ import styles from './PageAnatomy.module.css';
 export type AnatomyRegion = 'chrome' | 'band' | 'header' | 'toolbar' | 'content' | 'section' | 'footer';
 
 /** Labels identify the shell and the slots each route fills. */
-export function PageAnatomy({ active = 'chrome' }: { active?: AnatomyRegion }) {
+export function PageAnatomy({ active = 'chrome' }: Readonly<{ active?: AnatomyRegion }>) {
   return (
     <figure className={styles.figure}>
       <svg

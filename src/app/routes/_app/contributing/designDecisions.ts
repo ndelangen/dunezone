@@ -3,7 +3,7 @@
  * Each entry links to its source in AGENTS.md, the UI decisions or an ADR.
  */
 
-export type DecisionGroup = 'components' | 'layout' | 'data' | 'look' | 'code';
+type DecisionGroup = 'components' | 'layout' | 'data' | 'look' | 'code';
 
 /** How we enforce a decision. */
 export type DecisionGuard = 'lint' | 'check' | 'test' | 'warning' | 'review';
@@ -27,14 +27,6 @@ export type DesignDecision = {
   /** Repository path, with an anchor, of the canonical statement. */
   source: string;
 };
-
-export const DECISION_GROUPS: readonly { id: DecisionGroup; label: string; summary: string }[] = [
-  { id: 'components', label: 'Components', summary: 'What a component may do, and where it lives.' },
-  { id: 'layout', label: 'Layout and spacing', summary: 'How layouts adapt to the available width.' },
-  { id: 'data', label: 'Data', summary: 'How pages query data and manage editing state.' },
-  { id: 'look', label: 'Look and interaction', summary: 'How statuses and actions appear in the interface.' },
-  { id: 'code', label: 'Code and tests', summary: 'How we write, test and explain the code.' },
-];
 
 const UI = 'docs/technical/ui-design-decisions.md';
 

@@ -7,7 +7,7 @@ import styles from './dataTeaching.module.css';
 
 const REPOSITORY = 'https://github.com/ndelangen/dunezone/blob/main';
 
-function AudienceSketch({ privateData = false }: { privateData?: boolean }) {
+function AudienceSketch({ privateData = false }: Readonly<{ privateData?: boolean }>) {
   const rows = [30, 76, 122];
   return (
     <svg
@@ -200,6 +200,162 @@ function saveExampleReducer(state: SaveExample, event: { type: 'edit'; name: str
     : { ...state, saved: state.draft.trim(), saves: state.saves + 1 };
 }
 
+function SaveDesktop({ saved }: Readonly<{ saved: string }>) {
+  return (
+    <div className={styles.saveDrawing}>
+      <div className={styles.readers}>
+        {[false, true].map((otherReader) => (
+          <svg
+            key={String(otherReader)}
+            className={styles.reader}
+            viewBox="0 0 320 155"
+            role="img"
+            aria-label={`${otherReader ? 'Another reader' : 'Your page'} shows ${saved}`}
+          >
+            <rect x="8" y="8" width="304" height="139" rx="6" />
+            <path d="M8 36H312" />
+            <circle cx="22" cy="22" r="3" />
+            <circle cx="33" cy="22" r="3" />
+            <text x="160" y="64" textAnchor="middle">
+              {otherReader ? 'Another reader' : 'Your page'}
+            </text>
+            <g className={styles.publicData}>
+              <rect x="26" y="80" width="268" height="48" rx="3" />
+              <text
+                x="160"
+                y="110"
+                textAnchor="middle"
+                textLength={saved.length > 20 ? 236 : undefined}
+                lengthAdjust="spacingAndGlyphs"
+              >
+                {saved}
+              </text>
+            </g>
+          </svg>
+        ))}
+      </div>
+      <svg
+        className={styles.saveArrows}
+        viewBox="0 0 180 330"
+        role="img"
+        aria-label="The editor sends a mutation; Convex sends changed query results to both readers"
+      >
+        <g className={styles.mutation}>
+          <text x="90" y="22" textAnchor="middle">
+            1. Save
+          </text>
+          <path d="M4 62H168M158 54L168 62 158 70" />
+          <text x="90" y="47" textAnchor="middle">
+            mutation
+          </text>
+        </g>
+        <g className={styles.publicData}>
+          <path d="M174 188H92V113H4M14 105L4 113 14 121M92 188V281H4M14 273L4 281 14 289" />
+          <text x="130" y="217" textAnchor="middle">
+            2. Live
+          </text>
+          <text x="130" y="240" textAnchor="middle">
+            results
+          </text>
+        </g>
+      </svg>
+      <div className={styles.server}>
+        <svg className={styles.database} viewBox="0 0 240 270" role="img" aria-label={`Convex stores ${saved}`}>
+          <text x="120" y="26" textAnchor="middle">
+            Convex
+          </text>
+          <g className={styles.mutation}>
+            <path d="M104 48L120 43 136 48V64Q135 76 120 83Q105 76 104 64ZM112 62L118 68 128 55" />
+            <text x="120" y="108" textAnchor="middle">
+              Check permission
+            </text>
+          </g>
+          <g className={styles.publicData}>
+            <ellipse cx="120" cy="150" rx="90" ry="22" />
+            <path d="M30 150V220Q120 267 210 220V150" />
+            <text
+              x="120"
+              y="202"
+              textAnchor="middle"
+              textLength={saved.length > 14 ? 164 : undefined}
+              lengthAdjust="spacingAndGlyphs"
+            >
+              {saved}
+            </text>
+          </g>
+        </svg>
+      </div>
+    </div>
+  );
+}
+
+function SaveMobile({ saved }: Readonly<{ saved: string }>) {
+  return (
+    <svg
+      className={styles.saveMobile}
+      viewBox="0 0 360 400"
+      role="img"
+      aria-label={`Your page and another reader both show ${saved}. A save passes a permission check, then Convex updates both readers.`}
+    >
+      {[0, 184].map((x, index) => (
+        <g key={x} transform={`translate(${x} 0)`}>
+          <rect x="4" y="4" width="168" height="108" rx="5" />
+          <path d="M4 25H172" />
+          <text x="88" y="49" textAnchor="middle">
+            {index ? 'Another reader' : 'Your page'}
+          </text>
+          <g className={styles.publicData}>
+            <path d="M17 61H159" />
+            <text
+              x="88"
+              y="85"
+              textAnchor="middle"
+              textLength={saved.length > 14 ? 148 : undefined}
+              lengthAdjust="spacingAndGlyphs"
+            >
+              {saved}
+            </text>
+          </g>
+        </g>
+      ))}
+      <g className={styles.mutation}>
+        <path d="M49 115V208H142M134 200L142 208 134 216" />
+        <text x="85" y="151" textAnchor="middle">
+          1. Save
+        </text>
+      </g>
+      <g className={styles.publicData}>
+        <path d="M180 296V165H121V116M113 124L121 116 129 124M180 165H268V116M260 124L268 116 276 124" />
+        <text x="263" y="193" textAnchor="middle">
+          2. Live results
+        </text>
+      </g>
+      <g className={styles.mutation}>
+        <path d="M164 194L180 189 196 194V210Q195 222 180 229Q165 222 164 210ZM172 208L178 214 188 201" />
+        <text x="180" y="254" textAnchor="middle">
+          Check permission
+        </text>
+      </g>
+      <g className={styles.publicData}>
+        <ellipse cx="180" cy="292" rx="97" ry="18" />
+        <path d="M83 292V350Q180 386 277 350V292" />
+        <text
+          x="180"
+          y="337"
+          textAnchor="middle"
+          textLength={saved.length > 18 ? 176 : undefined}
+          lengthAdjust="spacingAndGlyphs"
+        >
+          {saved}
+        </text>
+      </g>
+      <text x="180" y="395" textAnchor="middle">
+        Convex
+      </text>
+    </svg>
+  );
+}
+
 function SaveLoop() {
   const [example, dispatch] = useReducer(saveExampleReducer, {
     draft: 'House Atreides',
@@ -208,157 +364,8 @@ function SaveLoop() {
   });
   return (
     <figure className={styles.saveLoop} aria-label="A save updates both subscribed browsers">
-      <div className={styles.saveDrawing}>
-        <div className={styles.readers}>
-          {[false, true].map((otherReader) => (
-            <svg
-              key={String(otherReader)}
-              className={styles.reader}
-              viewBox="0 0 320 155"
-              role="img"
-              aria-label={`${otherReader ? 'Another reader' : 'Your page'} shows ${example.saved}`}
-            >
-              <rect x="8" y="8" width="304" height="139" rx="6" />
-              <path d="M8 36H312" />
-              <circle cx="22" cy="22" r="3" />
-              <circle cx="33" cy="22" r="3" />
-              <text x="160" y="64" textAnchor="middle">
-                {otherReader ? 'Another reader' : 'Your page'}
-              </text>
-              <g className={styles.publicData}>
-                <rect x="26" y="80" width="268" height="48" rx="3" />
-                <text
-                  x="160"
-                  y="110"
-                  textAnchor="middle"
-                  textLength={example.saved.length > 20 ? 236 : undefined}
-                  lengthAdjust="spacingAndGlyphs"
-                >
-                  {example.saved}
-                </text>
-              </g>
-            </svg>
-          ))}
-        </div>
-        <svg
-          className={styles.saveArrows}
-          viewBox="0 0 180 330"
-          role="img"
-          aria-label="The editor sends a mutation; Convex sends changed query results to both readers"
-        >
-          <g className={styles.mutation}>
-            <text x="90" y="22" textAnchor="middle">
-              1. Save
-            </text>
-            <path d="M4 62H168M158 54L168 62 158 70" />
-            <text x="90" y="47" textAnchor="middle">
-              mutation
-            </text>
-          </g>
-          <g className={styles.publicData}>
-            <path d="M174 188H92V113H4M14 105L4 113 14 121M92 188V281H4M14 273L4 281 14 289" />
-            <text x="130" y="217" textAnchor="middle">
-              2. Live
-            </text>
-            <text x="130" y="240" textAnchor="middle">
-              results
-            </text>
-          </g>
-        </svg>
-        <div className={styles.server}>
-          <svg
-            className={styles.database}
-            viewBox="0 0 240 270"
-            role="img"
-            aria-label={`Convex stores ${example.saved}`}
-          >
-            <text x="120" y="26" textAnchor="middle">
-              Convex
-            </text>
-            <g className={styles.mutation}>
-              <path d="M104 48L120 43 136 48V64Q135 76 120 83Q105 76 104 64ZM112 62L118 68 128 55" />
-              <text x="120" y="108" textAnchor="middle">
-                Check permission
-              </text>
-            </g>
-            <g className={styles.publicData}>
-              <ellipse cx="120" cy="150" rx="90" ry="22" />
-              <path d="M30 150V220Q120 267 210 220V150" />
-              <text
-                x="120"
-                y="202"
-                textAnchor="middle"
-                textLength={example.saved.length > 14 ? 164 : undefined}
-                lengthAdjust="spacingAndGlyphs"
-              >
-                {example.saved}
-              </text>
-            </g>
-          </svg>
-        </div>
-      </div>
-      <svg
-        className={styles.saveMobile}
-        viewBox="0 0 360 400"
-        role="img"
-        aria-label={`Your page and another reader both show ${example.saved}. A save passes a permission check, then Convex updates both readers.`}
-      >
-        {[0, 184].map((x, index) => (
-          <g key={x} transform={`translate(${x} 0)`}>
-            <rect x="4" y="4" width="168" height="108" rx="5" />
-            <path d="M4 25H172" />
-            <text x="88" y="49" textAnchor="middle">
-              {index ? 'Another reader' : 'Your page'}
-            </text>
-            <g className={styles.publicData}>
-              <path d="M17 61H159" />
-              <text
-                x="88"
-                y="85"
-                textAnchor="middle"
-                textLength={example.saved.length > 14 ? 148 : undefined}
-                lengthAdjust="spacingAndGlyphs"
-              >
-                {example.saved}
-              </text>
-            </g>
-          </g>
-        ))}
-        <g className={styles.mutation}>
-          <path d="M49 115V208H142M134 200L142 208 134 216" />
-          <text x="85" y="151" textAnchor="middle">
-            1. Save
-          </text>
-        </g>
-        <g className={styles.publicData}>
-          <path d="M180 296V165H121V116M113 124L121 116 129 124M180 165H268V116M260 124L268 116 276 124" />
-          <text x="263" y="193" textAnchor="middle">
-            2. Live results
-          </text>
-        </g>
-        <g className={styles.mutation}>
-          <path d="M164 194L180 189 196 194V210Q195 222 180 229Q165 222 164 210ZM172 208L178 214 188 201" />
-          <text x="180" y="254" textAnchor="middle">
-            Check permission
-          </text>
-        </g>
-        <g className={styles.publicData}>
-          <ellipse cx="180" cy="292" rx="97" ry="18" />
-          <path d="M83 292V350Q180 386 277 350V292" />
-          <text
-            x="180"
-            y="337"
-            textAnchor="middle"
-            textLength={example.saved.length > 18 ? 176 : undefined}
-            lengthAdjust="spacingAndGlyphs"
-          >
-            {example.saved}
-          </text>
-        </g>
-        <text x="180" y="395" textAnchor="middle">
-          Convex
-        </text>
-      </svg>
+      <SaveDesktop saved={example.saved} />
+      <SaveMobile saved={example.saved} />
       <Group align="end" gap="sm">
         <TextInput
           label="Try a local name change"
@@ -418,6 +425,6 @@ function DataLifecycle() {
   );
 }
 
-export function DataTeaching({ topic }: { topic: 'queries' | 'lifecycle' }) {
+export function DataTeaching({ topic }: Readonly<{ topic: 'queries' | 'lifecycle' }>) {
   return topic === 'queries' ? <QuerySharing /> : <DataLifecycle />;
 }

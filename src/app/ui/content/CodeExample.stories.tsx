@@ -22,13 +22,14 @@ export const Diff = meta.story({
     const source = within(canvasElement).getByLabelText('Page.tsx');
     await expect(source).toHaveTextContent('Contributing');
     await expect(source.querySelector('script')).toBeNull();
+    await expect(source.querySelector('.hljs-string')).not.toBeNull();
   },
 });
 
 export const EscapedMarkup = meta.story({
-  args: { code: '<script>alert("example")</script>' },
+  args: { code: '<script>alert("example")</script><img src=x onerror=alert(1)>' },
   play: async ({ canvasElement }) => {
-    await expect(canvasElement.querySelector('script')).toBeNull();
+    await expect(canvasElement.querySelector('script, img')).toBeNull();
     await expect(within(canvasElement).getByLabelText('Page.tsx')).toHaveTextContent('<script>');
   },
 });
@@ -51,6 +52,6 @@ export const KeyboardScroll = meta.story({
     await userEvent.tab();
     await expect(source).toHaveFocus();
     await expect(source.scrollWidth).toBeGreaterThan(source.clientWidth);
-    await expect(source).toHaveAttribute('role', 'region');
+    await expect(source).toHaveRole('region');
   },
 });

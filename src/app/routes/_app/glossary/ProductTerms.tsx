@@ -117,8 +117,8 @@ function TintDemo() {
   );
 }
 
-export function ProductTerms({ query = '' }: { query?: string }) {
-  const [selected, setTopic] = useState('board');
+export function ProductTerms({ query = '' }: Readonly<{ query?: string }>) {
+  const [selected, setSelected] = useState('board');
   const terms = PRODUCT_TERMS.filter((term) => productTermMatches(term, query));
   const topics = [
     { value: 'board', label: 'Boards and tints', icon: <Map /> },
@@ -134,7 +134,7 @@ export function ProductTerms({ query = '' }: { query?: string }) {
       <ConnectedTabs
         stickyRail
         value={topic}
-        onValueChange={setTopic}
+        onValueChange={setSelected}
         ariaLabel="Product glossary topics"
         items={topics.map((item) => ({
           ...item,

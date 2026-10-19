@@ -1,5 +1,4 @@
 import { Anchor, Badge, Button, Code, CopyButton, Group, List, SimpleGrid, Stack, Text } from '@mantine/core';
-import { CONTRIBUTING_INTRO_PAGES, CONTRIBUTING_LESSONS } from '@shared/recordlessPublicPages';
 import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
@@ -60,75 +59,14 @@ import {
 } from './illustrations';
 import styles from './index.module.css';
 import { KitCategories } from './kitCategories';
+import { SUBJECTS, validateGuideSearch } from './navigation';
+import type { GuideSubject } from './navigation';
 import { ReleaseTeaching } from './releaseTeaching';
 import { RepositoryTree } from './repository';
 import { TECHNICAL_GLOSSARY } from './technicalTerms';
 import type { TechnicalTerm } from './technicalTerms';
 /* Vite+ brand mark from https://viteplus.dev/icon.svg. */
 import vitePlusLogo from './viteplus.svg';
-
-type GuideSubject = 'start' | 'code' | 'data' | 'ui' | 'deployment' | 'glossary' | 'decisions';
-type GuideSearch = Partial<Record<GuideSubject, string>>;
-type GuideTopic = { slug: string; title: string };
-const SUBJECTS: readonly {
-  id: GuideSubject;
-  title: string;
-  topics: readonly GuideTopic[];
-}[] = [
-  {
-    id: 'start',
-    title: 'Start here',
-    topics: [{ slug: 'intro', title: 'Overview' }, ...CONTRIBUTING_INTRO_PAGES],
-  },
-  {
-    id: 'code',
-    title: 'Codebase',
-    topics: [
-      { slug: 'repository', title: 'Repository map' },
-      ...CONTRIBUTING_LESSONS.code.filter((topic) => topic.slug === 'testing'),
-    ],
-  },
-  {
-    id: 'data',
-    title: 'Data',
-    topics: [
-      {
-        slug: 'queries',
-        title: 'Public and private',
-      },
-      {
-        slug: 'lifecycle',
-        title: 'Reads and saves',
-      },
-    ],
-  },
-  {
-    id: 'ui',
-    title: 'Interface',
-    topics: [
-      { slug: 'page', title: 'Page anatomy' },
-      {
-        slug: 'membrane',
-        title: 'Props and callbacks',
-      },
-    ],
-  },
-  {
-    id: 'deployment',
-    title: 'How it ships',
-    topics: [{ slug: 'release', title: 'Release process' }, ...CONTRIBUTING_LESSONS.deployment],
-  },
-  {
-    id: 'glossary',
-    title: 'Technical glossary',
-    topics: CONTRIBUTING_LESSONS.glossary.filter((topic) => topic.slug !== 'page' && topic.slug !== 'board'),
-  },
-  {
-    id: 'decisions',
-    title: 'Design decisions',
-    topics: [{ slug: 'reading', title: 'About these rules' }, ...CONTRIBUTING_LESSONS.decisions],
-  },
-];
 
 const TOPIC_ICONS: Record<GuideSubject, Record<string, LucideIcon>> = {
   start: { intro: Info, stack: Layers, setup: Terminal },
@@ -146,26 +84,6 @@ const TOPIC_ICONS: Record<GuideSubject, Record<string, LucideIcon>> = {
     code: FileCode2,
   },
 };
-
-function validateGuideSearch(raw: Record<string, unknown>): GuideSearch {
-  const search: GuideSearch = {};
-  if (raw.glossary === 'board') {
-    search.glossary = 'board';
-  }
-  for (const subject of SUBJECTS) {
-    const value = raw[subject.id];
-    if (typeof value === 'string' && subject.topics.some((topic) => topic.slug === value)) {
-      search[subject.id] = value;
-    }
-  }
-  if (raw.code === 'data' && !search.data) {
-    search.data = 'queries';
-  }
-  if ((raw.code === 'interface' || raw.glossary === 'page') && !search.ui) {
-    search.ui = 'page';
-  }
-  return search;
-}
 
 export const Route = createFileRoute('/_app/contributing/')({
   ssr: true,
@@ -322,7 +240,7 @@ const PLACES = [
   { icon: <BookOpenCheck size={18} />, title: 'Storybook Worker', detail: 'Serves storybook.dune.zone.' },
 ];
 
-function TopicContent({ subject, topic }: { subject: GuideSubject; topic: string }) {
+function TopicContent({ subject, topic }: Readonly<{ subject: GuideSubject; topic: string }>) {
   switch (subject) {
     case 'start':
       return <StartContent topic={topic} />;
@@ -341,7 +259,7 @@ function TopicContent({ subject, topic }: { subject: GuideSubject; topic: string
   }
 }
 
-function StartContent({ topic }: { topic: string }) {
+function StartContent({ topic }: Readonly<{ topic: string }>) {
   if (topic === 'stack') {
     return (
       <Bullets gap="xl" columns={{ base: 1, sm: 2 }}>
@@ -422,7 +340,7 @@ function StartContent({ topic }: { topic: string }) {
   );
 }
 
-function CodeContent({ topic }: { topic: string }) {
+function CodeContent({ topic }: Readonly<{ topic: string }>) {
   return topic === 'repository' ? (
     <RepositoryTree />
   ) : (
@@ -435,7 +353,7 @@ function CodeContent({ topic }: { topic: string }) {
   );
 }
 
-function InterfaceContent({ topic }: { topic: string }) {
+function InterfaceContent({ topic }: Readonly<{ topic: string }>) {
   return topic === 'page' ? (
     <AnatomyLesson>
       <GuideExperiment kind="page" />
@@ -450,7 +368,7 @@ function InterfaceContent({ topic }: { topic: string }) {
   );
 }
 
-function DeploymentContent({ topic }: { topic: string }) {
+function DeploymentContent({ topic }: Readonly<{ topic: string }>) {
   if (topic === 'release') {
     return (
       <Stack gap="xl">
@@ -473,7 +391,7 @@ function DeploymentContent({ topic }: { topic: string }) {
   );
 }
 
-function GlossaryContent({ topic }: { topic: string }) {
+function GlossaryContent({ topic }: Readonly<{ topic: string }>) {
   return (
     <Stack gap="xl">
       {topic === 'assets' ? <PublishingDiagram /> : null}
@@ -487,7 +405,17 @@ function GlossaryContent({ topic }: { topic: string }) {
   );
 }
 
-function DecisionsContent({ topic }: { topic: string }) {
+function DecisionTopicExample({ topic }: Readonly<{ topic: string }>) {
+  if (topic === 'layout') {
+    return <GuideExperiment kind="layout" />;
+  }
+  if (topic === 'look') {
+    return <GuideExperiment kind="meaning" />;
+  }
+  return null;
+}
+
+function DecisionsContent({ topic }: Readonly<{ topic: string }>) {
   if (topic === 'reading') {
     return (
       <Stack gap="md">
@@ -502,11 +430,7 @@ function DecisionsContent({ topic }: { topic: string }) {
   }
   return (
     <Stack gap="xl">
-      {topic === 'layout' ? (
-        <GuideExperiment kind="layout" />
-      ) : topic === 'look' ? (
-        <GuideExperiment kind="meaning" />
-      ) : null}
+      <DecisionTopicExample topic={topic} />
       <Stack gap="xl">
         {DESIGN_DECISIONS.filter((decision) => decision.group === topic).map((decision) => (
           <DecisionSection key={decision.id} decision={decision} />
@@ -629,7 +553,7 @@ function DecisionSection({ decision }: Readonly<{ decision: DesignDecision }>) {
   );
 }
 
-function DecisionExample({ id }: { id: string }) {
+function DecisionExample({ id }: Readonly<{ id: string }>) {
   switch (id) {
     case 'layouts-own-spacing':
       return <NamedSlotsExample />;
