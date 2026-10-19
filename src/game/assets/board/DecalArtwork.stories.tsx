@@ -16,6 +16,26 @@ const decal: Decal = {
   outline: true,
 };
 const preset = BOARD_ARTWORK['/vector/icon/city.svg'];
+
+/* A standalone SVG image cannot fetch external fragments. Embed the same vector for the pixel check. */
+async function embedArtwork(svg: SVGSVGElement, artwork: string) {
+  const linkedVector = svg.querySelector('use, image');
+  if (!linkedVector) {
+    return;
+  }
+  const source = await fetch(artwork).then((response) => response.text());
+  if (linkedVector.localName === 'image') {
+    linkedVector.setAttribute('href', `data:image/svg+xml;charset=utf-8,${encodeURIComponent(source)}`);
+    return;
+  }
+  const root = new DOMParser().parseFromString(source, 'image/svg+xml').documentElement;
+  root.id = 'resolved-artwork';
+  const definitions = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+  definitions.append(root);
+  svg.prepend(definitions);
+  linkedVector.setAttribute('href', '#resolved-artwork');
+}
+
 const meta = preview.meta({
   component: DecalArtwork,
   render: (args) => (
@@ -25,21 +45,7 @@ const meta = preview.meta({
   ),
   play: async ({ canvasElement, args }) => {
     const svg = canvasElement.querySelector('svg')!.cloneNode(true) as SVGSVGElement;
-    /* A standalone SVG image cannot fetch external fragments. Embed the same vector for the pixel check. */
-    const linkedVector = svg.querySelector('use, image');
-    if (linkedVector) {
-      const source = await fetch(args.decal.artwork).then((response) => response.text());
-      if (linkedVector.localName === 'image') {
-        linkedVector.setAttribute('href', `data:image/svg+xml;charset=utf-8,${encodeURIComponent(source)}`);
-      } else {
-        const root = new DOMParser().parseFromString(source, 'image/svg+xml').documentElement;
-        root.id = 'resolved-artwork';
-        const definitions = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-        definitions.append(root);
-        svg.prepend(definitions);
-        linkedVector.setAttribute('href', '#resolved-artwork');
-      }
-    }
+    await embedArtwork(svg, args.decal.artwork);
     const image = new Image();
     image.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(new XMLSerializer().serializeToString(svg))}`;
     await image.decode();
