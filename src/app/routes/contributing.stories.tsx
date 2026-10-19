@@ -53,6 +53,7 @@ export const Code = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const tree = within(await page.findByRole('tree', { name: 'Repository files' }, { timeout: 30_000 }));
+    await expect(tree.getByRole('link', { name: '.github/workflows/' })).toBeVisible();
     await userEvent.click(tree.getByText('Kit components render caller-supplied data.'));
     await expect(tree.getByRole('link', { name: 'content/' })).toHaveAttribute(
       'href',
@@ -74,6 +75,7 @@ export const Deployment = meta.story({
     const site = within(deployment.getByRole('figure', { name: 'Step 7: Deploy and check the site Worker' }));
     await expect(site.getByRole('img', { name: 'Site Worker runs new code, changes at this step' })).toBeVisible();
     await expect(site.getByRole('img', { name: 'Open tab runs previous code' })).toBeVisible();
+    await expect(deployment.getByRole('heading', { name: 'Release gate' })).toBeVisible();
     await expect(deployment.getByRole('heading', { name: 'Check the commit' })).toBeVisible();
     await expect(deployment.getByRole('heading', { name: 'Publish Storybook and queue image updates' })).toBeVisible();
     await expect(deployment.queryByRole('button', { name: 'Next step' })).toBeNull();
@@ -304,6 +306,9 @@ export const PhoneKitAndTests = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     const categories = await page.findByRole('region', { name: 'Six kit categories' }, { timeout: 30_000 });
     const name = within(categories).getByRole('textbox', { name: 'Example name' });
+    await userEvent.clear(name);
+    await userEvent.type(name, 'WWWWWWWWWWWW');
+    await expectDiagramLabelsFit(categories);
     await userEvent.clear(name);
     await userEvent.type(name, 'WWWWWWWWWWWWWWWW');
     const checks = page.getByRole('tabpanel', { name: 'Checks' });

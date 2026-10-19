@@ -78,11 +78,11 @@ function flatten(entries: RepositoryEntry[]): RepositoryEntry[] {
   return entries.flatMap((entry) => [entry, ...flatten(entry.children ?? [])]);
 }
 const BY_PATH = new Map(flatten(ENTRIES).map((entry) => [entry.path, entry]));
-function nodes(entries: RepositoryEntry[]): TreeNodeData[] {
+function nodes(entries: RepositoryEntry[], parent = ''): TreeNodeData[] {
   return entries.map((entry) => ({
     value: entry.path,
-    label: entry.path.split('/').at(-1),
-    children: entry.children ? nodes(entry.children) : undefined,
+    label: parent ? entry.path.slice(parent.length + 1) : entry.path,
+    children: entry.children ? nodes(entry.children, entry.path) : undefined,
   }));
 }
 const DATA = nodes(ENTRIES);

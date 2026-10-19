@@ -257,7 +257,7 @@ function FloatingSketch({ nested }: Readonly<{ nested: boolean }>) {
 
 export function FloatingExamples() {
   return (
-    <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="lg">
+    <SimpleGrid type="container" cols={{ base: 1, '30rem': 2 }} spacing="lg">
       <figure className={styles.figure}>
         <Group gap="xs">
           <Check size={18} className={styles.positive} aria-hidden />

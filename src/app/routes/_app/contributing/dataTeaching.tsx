@@ -117,7 +117,7 @@ function QuerySharing() {
             }
           }}
         />
-        <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="lg">
+        <SimpleGrid type="container" cols={{ base: 1, '30rem': 2 }} spacing="lg">
           <Section title="Shared page query">
             <Text className={styles.count} role="status">
               1 public page result for {readers} viewers
@@ -144,7 +144,7 @@ function QuerySharing() {
       <CodeExample
         label="Public page and private viewer hooks"
         code={
-          'const page = useFaction(factionId, { initialData });\nconst viewer = useCurrentProfile();\n\n// Share page content. Read the viewer separately.\n// Access-aware screens also use useFactionAccess(pageData).'
+          'const page = useFaction(slug, { initialData });\nconst viewer = useCurrentProfile();\n\n// Share page content. Read the viewer separately.\n// Access-aware screens also use useFactionAccess(pageData).'
         }
       />
       <CodeExample

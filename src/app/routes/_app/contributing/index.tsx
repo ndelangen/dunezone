@@ -373,6 +373,9 @@ function DeploymentContent({ topic }: Readonly<{ topic: string }>) {
     return (
       <Stack gap="xl">
         <ReleaseTeaching />
+        {TECHNICAL_GLOSSARY.filter((term) => term.topic === 'deployment').map((term) => (
+          <TermSection key={term.id} term={term} />
+        ))}
         <Section title="Where it runs">
           <Bullets gap="md" columns={{ base: 1, sm: 2 }}>
             {PLACES.map((place) => (
@@ -529,7 +532,7 @@ function DecisionSection({ decision }: Readonly<{ decision: DesignDecision }>) {
           {decision.rule}
         </Text>
         <DecisionExample id={decision.id} />
-        <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
+        <SimpleGrid type="container" cols={{ base: 1, '30rem': 2 }} spacing="md">
           <Benefit icon={<Sparkles size={14} aria-hidden />} label="For users" audience="users">
             {decision.product}
           </Benefit>

@@ -4,7 +4,7 @@
  * Game terms live in src/shared/glossary/terms.ts, and CONTEXT.md defines product terms.
  */
 
-type TechnicalTopic = 'page' | 'structure' | 'assets' | 'data';
+type TechnicalTopic = 'page' | 'structure' | 'assets' | 'data' | 'deployment';
 
 export type TechnicalTerm = {
   /** Stable anchor on the page; never reuse one for a different idea. */
@@ -301,7 +301,7 @@ export const TECHNICAL_GLOSSARY: readonly TechnicalTerm[] = [
   {
     id: 'release-gate',
     term: 'Release gate',
-    topic: 'data',
+    topic: 'deployment',
     code: 'release_gate',
     explanation:
       'The first deployment job. It checks the live Worker commits and skips releases that are already deployed or have been superseded.',

@@ -524,7 +524,7 @@ const MEANINGS: { value: StatusBadgeTone; label: string; words: string }[] = [
 function MeaningLab() {
   return (
     <Section title="Let status choose the appearance">
-      <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
+      <SimpleGrid type="container" cols={{ base: 1, '30rem': 2 }} spacing="md">
         {MEANINGS.map((meaning) => (
           <Stack key={meaning.value} gap="xs">
             <Text size="sm">{meaning.label}</Text>

@@ -1,6 +1,6 @@
 import { Code, Group, Text, TextInput } from '@mantine/core';
 import { Section } from '@ui/block/Section';
-import { useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 
 import styles from './kitCategories.module.css';
 
@@ -21,19 +21,62 @@ const CATEGORIES = [
 type Category = (typeof CATEGORIES)[number];
 type ExampleProps = Readonly<{ name: string }>;
 
+function FittedExampleText({
+  name,
+  max,
+  x,
+  y,
+  className,
+  textAnchor,
+}: Readonly<{
+  name: string;
+  max: number;
+  x: number;
+  y: number;
+  className: string;
+  textAnchor?: 'middle';
+}>) {
+  const ref = useRef<SVGTextElement>(null);
+  const [width, setWidth] = useState(0);
+  useLayoutEffect(() => {
+    const node = ref.current;
+    if (!node) {
+      return;
+    }
+    const measure = () => {
+      const fitted = node.getAttribute('textLength');
+      node.removeAttribute('textLength');
+      const naturalWidth = node.getComputedTextLength();
+      /* Restore the attribute before React compares the next render with its previous props. */
+      if (fitted !== null) {
+        node.setAttribute('textLength', fitted);
+      }
+      setWidth(naturalWidth);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [name]);
+  return (
+    <text
+      ref={ref}
+      className={className}
+      x={x}
+      y={y}
+      textAnchor={textAnchor}
+      textLength={width > max ? max : undefined}
+      lengthAdjust="spacingAndGlyphs"
+    >
+      {name}
+    </text>
+  );
+}
+
 function ContentDrawing({ name }: ExampleProps) {
   return (
     <>
-      <text
-        className={styles.example}
-        textLength={name.length > 12 ? 150 : undefined}
-        lengthAdjust="spacingAndGlyphs"
-        x="232"
-        y="92"
-        textAnchor="middle"
-      >
-        {name}
-      </text>
+      <FittedExampleText name={name} max={150} className={styles.example} x={232} y={92} textAnchor="middle" />
       <path d="M154 110H311" />
     </>
   );
@@ -43,16 +86,7 @@ function ControlDrawing({ name }: ExampleProps) {
   return (
     <>
       <rect x="143" y="61" width="184" height="49" rx="4" />
-      <text
-        className={styles.example}
-        textLength={name.length > 12 ? 150 : undefined}
-        lengthAdjust="spacingAndGlyphs"
-        x="235"
-        y="92"
-        textAnchor="middle"
-      >
-        {name}
-      </text>
+      <FittedExampleText name={name} max={150} className={styles.example} x={235} y={92} textAnchor="middle" />
       <path d="M307 71V100M212 114V147H62M70 139L62 147 70 155M236 141H222V147H212" />
       <rect x="236" y="125" width="90" height="32" rx="3" />
       <text x="281" y="147" textAnchor="middle">
@@ -72,15 +106,7 @@ function ListDrawing({ name }: ExampleProps) {
         <g key={y}>
           <circle cx="149" cy={y + 5} r="3" />
           {index === 0 ? (
-            <text
-              className={styles.example}
-              textLength={name.length > 12 ? 150 : undefined}
-              lengthAdjust="spacingAndGlyphs"
-              x="166"
-              y={y + 10}
-            >
-              {name}
-            </text>
+            <FittedExampleText name={name} max={160} className={styles.example} x={166} y={y + 10} />
           ) : (
             <path d={`M166 ${y + 5}H${index === 1 ? 301 : 280}`} />
           )}
@@ -122,15 +148,7 @@ function SurfaceDrawing() {
 function BlockDrawing({ name }: ExampleProps) {
   return (
     <>
-      <text
-        className={styles.blockTitle}
-        textLength={name.length > 12 ? 150 : undefined}
-        lengthAdjust="spacingAndGlyphs"
-        x="144"
-        y="69"
-      >
-        {name}
-      </text>
+      <FittedExampleText name={name} max={182} className={styles.blockTitle} x={144} y={69} />
       <path d="M144 88H326M144 102H300" />
       <rect className={styles.slot} x="144" y="117" width="182" height="37" rx="3" />
       <text x="235" y="142" textAnchor="middle">
