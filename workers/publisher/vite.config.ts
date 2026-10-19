@@ -21,6 +21,8 @@ export default defineConfig({
     rollupOptions: {
       input: path.join(repositoryRoot, 'publisher-capture.html'),
       output: {
+        /* Chunk boundaries must not evaluate schemas before their shared contracts. */
+        strictExecutionOrder: true,
         codeSplitting: {
           groups: [
             {
