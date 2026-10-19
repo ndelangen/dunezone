@@ -551,7 +551,7 @@ export const SpiceDiscForgetsAPlaybackHover = meta.story({
     await waitFor(
       async () => {
         scene.dispatchEvent(new PointerEvent('pointermove', pointer));
-        await expect(scene.style.cursor).toBe('pointer');
+        await expect(scene.style.cursor, 'the initial hover reaches the live disc').toBe('pointer');
       },
       { timeout: 30_000 }
     );
@@ -560,18 +560,21 @@ export const SpiceDiscForgetsAPlaybackHover = meta.story({
     session.transport.deliver({ type: 'history', step: 0, lastStep: 1, snapshot: playingSnapshot() });
     await waitFor(async () => {
       await expect(page.getByRole('button', { name: 'Earlier phase' })).toBeVisible();
-      await expect(scene.style.cursor).toBe('default');
+      await expect(scene.style.cursor, 'playback disables the disc').toBe('default');
     });
     leaveTheCanvas(page, scene, pointer);
 
     await userEvent.click(page.getByRole('button', { name: 'Return to live' }));
     await waitFor(() => expect(page.getByRole('button', { name: 'Replay from start' })).toBeEnabled());
     await userEvent.keyboard('3');
-    await expect(scene.style.cursor).toBe('default');
+    await expect(scene.style.cursor, 'returning to live retains no earlier hover').toBe('default');
     await expect(session.transport.messages.some((message) => message.type === 'command')).toBe(false);
 
-    scene.dispatchEvent(new PointerEvent('pointermove', { ...pointer, clientX: clientX + 1 }));
-    await waitFor(() => expect(scene.style.cursor).toBe('pointer'));
+    /* Move onto the returning disc on each poll, as for the initial hover, while its 3D target settles. */
+    await waitFor(async () => {
+      scene.dispatchEvent(new PointerEvent('pointermove', { ...pointer, clientX: clientX + 1 }));
+      await expect(scene.style.cursor, 'the pointer returns to the live disc').toBe('pointer');
+    });
     await userEvent.keyboard('3');
     await waitFor(() =>
       expect(lastCommand()).toMatchObject({ type: 'command', action: { kind: 'spice-spawn', count: 3 } })
