@@ -12,12 +12,9 @@ export function DecalArtwork({ decal, svg }: { decal: Decal; svg?: string }) {
     .replace(/\bid="([^"]+)"/g, (_, id: string) => `id="${outlineId}-${id}"`)
     .replace(/url\(#([^)]+)\)/g, (_, id: string) => `url(#${outlineId}-${id})`)
     .replace(/(href=")#([^"]+)/g, (_, attr: string, id: string) => `${attr}#${outlineId}-${id}`);
-  const inner = source
-    .replace(/^[\s\S]*?<svg[^>]*>/, '')
-    .replace(/<\/svg>[\s\S]*$/, '')
-    .replace(/<path[^>]*data-decal-outline[^>]*\/>/g, '');
+  const inner = source.replace(/^[\s\S]*?<svg[^>]*>/, '').replace(/<\/svg>[\s\S]*$/, '');
   return (
-    <g transform={`translate(${decal.x} ${decal.y}) rotate(${decal.rotation})`}>
+    <g transform={`translate(${decal.x} ${decal.y}) rotate(${decal.rotation})`} fill="#1a0b00">
       {decal.outline && (
         <defs>
           <filter id={outlineId} x="-50%" y="-50%" width="200%" height="200%" colorInterpolationFilters="sRGB">
@@ -42,13 +39,9 @@ export function DecalArtwork({ decal, svg }: { decal: Decal; svg?: string }) {
             dangerouslySetInnerHTML={{ __html: inner }}
           />
         ) : (
-          <image
-            href={decal.artwork}
-            x={-decal.scale / 2}
-            y={-decal.scale / 2}
-            width={decal.scale}
-            height={decal.scale}
-          />
+          <svg x={-decal.scale / 2} y={-decal.scale / 2} width={decal.scale} height={decal.scale} viewBox="0 0 100 100">
+            <use href={`${decal.artwork}#root`} width="100" height="100" />
+          </svg>
         )}
       </g>
     </g>

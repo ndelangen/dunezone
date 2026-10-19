@@ -30,8 +30,6 @@ export const commonArtwork = {
   city: '/vector/icon/city.svg',
   sietch: '/vector/icon/seitch.svg',
   ornithopter: '/vector/icon/ornithopter.svg',
-  arrakisCity: '/vector/icon/arrakis-city.svg',
-  arrakisSietch: '/vector/icon/arrakis-sietch.svg',
 } as const;
 export const CENTER: Point = [243.53, 243.53];
 export const RADIUS = 242.5;

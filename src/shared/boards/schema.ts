@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { ALL } from '../assetIds';
+import { canonicalVectorArtwork } from '../vectorRules';
 import { at } from './curves';
 
 const finite = z.number().finite();
@@ -59,9 +60,12 @@ const edge = z
   });
 const decal = z.strictObject({
   id: identity,
-  artwork: z.string().refine((path) => path.startsWith('/vector/') && ALL.safeParse(path).success, {
-    message: 'Choose bundled vector artwork',
-  }),
+  artwork: z
+    .string()
+    .transform(canonicalVectorArtwork)
+    .refine((path) => path.startsWith('/vector/') && ALL.safeParse(path).success, {
+      message: 'Choose bundled vector artwork',
+    }),
   x: finite,
   y: finite,
   scale: finite.positive().max(487.06),

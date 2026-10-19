@@ -4,6 +4,17 @@ import { arrakisBoard, blankBoard } from './geometry';
 import { BoardAsset, territoryId } from './schema';
 
 describe('Saved boards', () => {
+  it('loads retired outlined glyph references as the plain city and sietch', () => {
+    const board = arrakisBoard();
+    const city = Object.values(board.properties).find(({ name }) => name === 'Arrakeen')!.decals[0];
+    const sietch = Object.values(board.properties).find(({ name }) => name === 'Tabr')!.decals[0];
+    city.artwork = '/vector/icon/arrakis-city.svg';
+    sietch.artwork = '/vector/icon/arrakis-sietch.svg';
+    const parsed = BoardAsset.parse({ name: 'Saved board', about: '', board });
+    const decals = Object.values(parsed.board.properties).flatMap(({ decals }) => decals);
+    expect(decals.find(({ id }) => id === city.id)?.artwork).toBe('/vector/icon/city.svg');
+    expect(decals.find(({ id }) => id === sietch.id)?.artwork).toBe('/vector/icon/seitch.svg');
+  });
   it('accepts the complete editable Arrakis preset', () => {
     const board = arrakisBoard();
     const parsed = BoardAsset.parse({ name: 'Arrakis', about: '', board });

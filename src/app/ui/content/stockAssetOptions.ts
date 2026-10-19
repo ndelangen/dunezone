@@ -1,4 +1,5 @@
 import stockAssetCollections from '@shared/stockAssetCollections.json';
+import { canonicalVectorArtwork } from '@shared/vectorRules';
 
 const collectionsByAsset = new Map<string, (typeof stockAssetCollections)[number]>(
   stockAssetCollections.flatMap((collection) => collection.assets.map((asset) => [asset, collection] as const))
@@ -58,9 +59,9 @@ function fallbackCollection(value: string) {
   return `${categoryLabel} / ${theme}`;
 }
 
-/** Labels and browsing collections for stock artwork, without changing its saved identifier. */
+/** Labels and browsing collections for canonical stock artwork. */
 export function stockAssetOptions(values: readonly string[]) {
-  return values
+  return [...new Set(values.map(canonicalVectorArtwork))]
     .map((value) => {
       const collection = collectionsByAsset.get(value);
       const name = (value.split('/').at(-1) ?? value).replace(/\.[^.]+$/, '');

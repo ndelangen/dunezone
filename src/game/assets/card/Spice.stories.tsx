@@ -164,6 +164,24 @@ export const OnSavedBoard = meta.story({
   },
 });
 
+/** A custom palace decal receives the same card treatment as the preset stronghold glyphs. */
+export const PalaceOnSavedBoard = meta.story({
+  args: {
+    name: '',
+    subName: 'Spice blow',
+    icon: 'spice',
+    highlights: [],
+    amount: 6,
+    board: { asset_id: 'palace-board', tints: [], tokens: [] },
+    boardDefinition: (() => {
+      const board = arrakisBoard();
+      const territory = Object.values(board.properties).find(({ name }) => name === 'Tueks')!;
+      territory.decals[0] = { ...territory.decals[0], artwork: '/vector/decal/palace.svg' };
+      return board;
+    })(),
+  },
+});
+
 /** A board the card names but no longer has a territory of: the rest still draws. */
 export const MissingTerritory = meta.story({
   args: {

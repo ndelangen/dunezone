@@ -53,7 +53,7 @@ export const SaveAndReopen = meta.story({
     await userEvent.keyboard('[Space]');
     await waitFor(() => expect(page.getByText('Decal 1 · Seitch')).toBeVisible());
     await userEvent.click(page.getByRole('button', { name: /^Undo$/ }));
-    await expect(page.getByText('Decal 1 · Arrakis City')).toBeVisible();
+    await expect(page.getByText('Decal 1 · City')).toBeVisible();
     await userEvent.click(page.getByRole('button', { name: /^Redo$/ }));
     await expect(page.getByText('Decal 1 · Seitch')).toBeVisible();
     await userEvent.click(page.getByRole('button', { name: 'Show decal before cropping' }));
@@ -71,7 +71,7 @@ export const SaveAndReopen = meta.story({
       Object.values(properties)
         .find((territory) => territory.id === 'arrakeen')
         ?.decals.map((decal) => decal.artwork)
-    ).toEqual(['/vector/icon/seitch.svg', '/vector/icon/arrakis-city.svg']);
+    ).toEqual(['/vector/icon/seitch.svg', '/vector/icon/city.svg']);
   },
 });
 

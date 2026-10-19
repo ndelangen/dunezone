@@ -85,8 +85,6 @@ const HOSTED_PLAY_CLOSURE: readonly string[] = [
   /* `scripts/generate.ts` reads the raster asset ids from the lock (#1888). */
   'media/raster.lock.json',
   'media/vector/icon/spice.svg',
-  'media/vector/icon/arrakis-city.svg',
-  'media/vector/icon/arrakis-sietch.svg',
   'media/vector/icon/city.svg',
   'media/vector/icon/seitch.svg',
   'media/vector/icon/ornithopter.svg',
