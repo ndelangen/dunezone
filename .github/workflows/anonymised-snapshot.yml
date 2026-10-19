@@ -44,7 +44,7 @@ jobs:
       # Runs while SNAPSHOT_UPLOAD is "true" (Norbert, 30 September 2026, #1559). It uploads the anonymised file alone, never the directory.
       - name: Upload the anonymised snapshot
         if: success() && env.SNAPSHOT_UPLOAD == 'true'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: anonymised-snapshot
           path: ${{ runner.temp }}/anonymised-snapshot/snapshot.zip
