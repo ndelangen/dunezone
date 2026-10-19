@@ -5,6 +5,7 @@ vi.mock('@tanstack/react-router', async (importOriginal) => {
   const actual = await importOriginal<typeof TanStackRouter>();
   return { ...actual, createFileRoute: () => (options: unknown) => ({ options }) };
 });
+vi.mock('@app/db/core', () => ({ convex: {} }));
 
 import { Route } from './index';
 
