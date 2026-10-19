@@ -3,7 +3,7 @@ import { useLayoutEffect, useRef } from 'react';
 import styles from './CardEffects.module.css';
 import { CardText } from './CardText';
 
-type Effect = { title: string; condition: string; text: string; strength?: number };
+type Effect = { title: string; condition?: string; text: string; strength?: number };
 
 /** Nexus and Homeworld cards share three fitted rules regions and the dark final section. */
 export function CardEffects({ effects }: { effects: readonly [Effect, Effect, Effect] }) {
@@ -48,14 +48,14 @@ export function CardEffects({ effects }: { effects: readonly [Effect, Effect, Ef
             {strength === undefined ? (
               <>
                 <div className={styles.heading}>{title}</div>
-                <div className={styles.condition}>{condition}</div>
+                {condition ? <div className={styles.condition}>{condition}</div> : null}
                 <CardText data-card-effect-text className={styles.rules} value={text} />
               </>
             ) : (
               <div className={styles.row}>
                 <div className={styles.body}>
                   <div className={styles.heading}>{title}</div>
-                  <div className={styles.condition}>{condition}</div>
+                  {condition ? <div className={styles.condition}>{condition}</div> : null}
                   <CardText data-card-effect-text className={styles.rules} value={text} />
                 </div>
                 <div className={styles.strength} aria-label={`${title} strength ${strength}`}>

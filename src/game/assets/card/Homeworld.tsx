@@ -39,7 +39,7 @@ export function HomeworldCard({
             text: low.text,
             strength: low.strength,
           },
-          { title: 'Occupied', condition: 'For the occupier', text: occupied },
+          { title: 'Occupied', text: occupied },
         ]}
       />
     </div>
