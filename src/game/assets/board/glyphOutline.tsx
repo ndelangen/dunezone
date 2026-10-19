@@ -3,7 +3,7 @@ const OUTLINE_COLOR = '#fffed8';
 const OUTLINE_RADIUS = 0.5;
 
 /** The same pale outline for authored decals and placed stickers, in board units. */
-export function GlyphOutlineFilter({ id, recolor = false }: { id: string; recolor?: boolean }) {
+export function GlyphOutlineFilter({ id, recolor = false }: Readonly<{ id: string; recolor?: boolean }>) {
   return (
     <filter id={id} x="-50%" y="-50%" width="200%" height="200%" colorInterpolationFilters="sRGB">
       <feMorphology in="SourceAlpha" operator="dilate" radius={OUTLINE_RADIUS} result="WIDE" />

@@ -99,7 +99,13 @@ export const PresetOutline = meta.story({ args: { decal, svg: preset } });
 export const PlacedCity = meta.story({
   args: { decal },
   render: () => (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="-32 -32 64 64" width="256" height="256">
+    <svg
+      aria-label="Placed city sticker"
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="-32 -32 64 64"
+      width="256"
+      height="256"
+    >
       <TintDrawingLayers
         filterId="placed-city-outline"
         drawings={[
