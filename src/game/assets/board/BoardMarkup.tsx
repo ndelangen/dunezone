@@ -142,7 +142,7 @@ export type BoardMarkupEditing = {
   /** Set while a tint's brush is on: called with the territory ID under the click. */
   onTerritory?: (territory: string) => void;
   onTokenMove?: (layerId: string, x: number, y: number) => void;
-  /** The placed token the editor has open, drawn with a ring. */
+  /** The placed token the editor has open. */
   selectedToken?: string | null;
   onSelectToken?: (layerId: string) => void;
 };

@@ -9,6 +9,10 @@ import { PhysicalSize } from './physicalSize';
 
 const OFFSET = z.tuple([z.number(), z.number()]);
 const SCALE = z.number().min(0).max(1);
+const ICON_PLACEMENT = {
+  iconOffset: OFFSET.optional(),
+  iconScale: z.number().min(0).max(2).optional(),
+};
 
 /**
  * Off-face prose explaining rule details the face cannot or should not carry.
@@ -57,6 +61,7 @@ export const SpiceBoardLink = z.strictObject({
  * No `about`, and deliberately so: `SpiceCard` draws exactly these fields, and the stored superset is `SpiceAsset` below, the same split `Treachery` and `TreacheryAsset` make.
  */
 export const Spice = z.strictObject({
+  ...ICON_PLACEMENT,
   name: z.string(),
   subName: z.string(),
   /** A classic card's icon key, or any vector a newer card picked. */
@@ -142,8 +147,7 @@ export const CardHead = z.strictObject({
   subName: z.string(),
   head: Background,
   icon: z.tuple([Background, ALL]),
-  iconOffset: z.tuple([z.number(), z.number()]).optional(),
-  iconScale: z.number().min(0).max(2).optional(),
+  ...ICON_PLACEMENT,
   /** Flips the icon vector from dark to light artwork. */
   iconInvert: z.boolean().optional(),
   /** Fades the icon vector; 1 (the default) is fully opaque. */

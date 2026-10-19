@@ -31,10 +31,25 @@ export const SpiceCard: FC<
     /** The editor's brush and token dragging on the linked board's map. */
     mapEditing?: SpiceMapEditing;
   }
-> = ({ name, subName, icon, text, amount, highlights, overlays, board, boardDefinition, boardTokens, mapEditing }) => {
+> = ({
+  name,
+  subName,
+  icon,
+  iconScale = 1,
+  iconOffset = [0, 0],
+  text,
+  amount,
+  highlights,
+  overlays,
+  board,
+  boardDefinition,
+  boardTokens,
+  mapEditing,
+}) => {
   const resolveOverlay = useAssetResolver();
   const prefix = useId();
   const decalsFilter = `${prefix}decals-filter`;
+  const iconSize = 85 * iconScale;
 
   return (
     <div className={styles.card}>
@@ -42,8 +57,30 @@ export const SpiceCard: FC<
       <div className={styles.head_shade} />
       <div className={`${styles.shape} ${unique.shape}`} />
       <BackgroundRenderer className={`${styles.type} ${unique.type}`} background={backgroundPresets.stripedSpice}>
-        <img src={spiceIconSrc(icon)} alt="" className={unique.typeOverlay} />
-        <img src={spiceIconSrc(icon)} alt="" className={unique.typeShade} />
+        <img
+          src={spiceIconSrc(icon)}
+          alt=""
+          className={unique.typeOverlay}
+          style={{
+            width: iconSize,
+            height: iconSize,
+            marginLeft: iconOffset[0] * 2,
+            marginTop: iconOffset[1] * 2,
+          }}
+        />
+        <img
+          src={spiceIconSrc(icon)}
+          alt=""
+          className={unique.typeShade}
+          style={{
+            width: iconSize,
+            height: iconSize,
+            left: (125 - iconSize) / 2,
+            top: (125 - iconSize) / 2,
+            marginLeft: iconOffset[0],
+            marginTop: iconOffset[1],
+          }}
+        />
       </BackgroundRenderer>
       <div className={styles.title}>{name}</div>
       <div className={styles.subtitle}>{subName}</div>
