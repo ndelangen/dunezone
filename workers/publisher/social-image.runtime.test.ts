@@ -137,16 +137,16 @@ test('renders bounded PNGs from local publications with zero outbound requests',
         )
       );
       for (const png of boards) {
-        for (const top of [148, 498]) {
-          for (const [left, channel] of [
-            [755, 0],
-            [1105, 2],
-          ] as const) {
-            const pixel = await sharp(png).extract({ left, top, width: 1, height: 1 }).raw().toBuffer();
-            expect(pixel[channel]).toBeGreaterThan(240);
-            expect(pixel[1]).toBeLessThan(15);
-            expect(pixel[3]).toBe(255);
-          }
+        for (const [left, top, channel] of [
+          [755, 148, 0],
+          [1105, 148, 2],
+          [755, 498, 0],
+          [1105, 498, 2],
+        ] as const) {
+          const pixel = await sharp(png).extract({ left, top, width: 1, height: 1 }).raw().toBuffer();
+          expect(pixel[channel]).toBeGreaterThan(240);
+          expect(pixel[1]).toBeLessThan(15);
+          expect(pixel[3]).toBe(255);
         }
       }
     }
