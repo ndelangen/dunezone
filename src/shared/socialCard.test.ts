@@ -76,6 +76,7 @@ describe('social image URL contract', () => {
 });
 
 test.each([
+  '/published/boards/abcdefghijklmnop/board.jpg',
   '/published/rulebooks/abcdefghijklmnop/first-page.jpg',
   '/user-images/' + 'a'.repeat(64) + '.jpg',
   '/m/efda3b20bc25196a8b9b.85e0cb5d2b.jpg',

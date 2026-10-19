@@ -23,6 +23,43 @@ function object(bytes: Uint8Array, size = bytes.byteLength): R2ObjectBody {
 }
 
 describe('social PNG delivery', () => {
+  test.each([
+    { widthPx: 1948, heightPx: 1948, size: 2_500_000, fallback: false },
+    { widthPx: 1948, heightPx: 1948, size: 3_000_001, fallback: true },
+    { widthPx: 1949, heightPx: 1948, size: 2_500_000, fallback: true },
+  ])(
+    'uses the board publication bounds: $widthPx x $heightPx, $size bytes',
+    async ({ widthPx, heightPx, size, fallback }) => {
+      const bytes = jpegBytes({ widthPx, heightPx, progressive: true });
+      const get = vi.fn<R2Bucket['get']>().mockResolvedValue(object(bytes, size));
+      const render = vi.fn().mockResolvedValue(pngBytes(1200, 630));
+      const href = socialCardHref({
+        name: 'Arrakis with Palace',
+        kind: 'Board',
+        description: '',
+        image: '/published/boards/abcdefghijklmnop/board.jpg',
+      });
+      const response = await handleSocialImageRequest(request(href), { ASSET_BUCKET: { get } }, render);
+      expect(get).toHaveBeenCalledExactlyOnceWith('boards/abcdefghijklmnop/board.jpg', {
+        range: { offset: 0, length: 3_000_001 },
+      });
+      expect(response?.headers.get('X-Public-Fallback')).toBe(String(fallback));
+      expect(render).toHaveBeenCalledWith(
+        expect.objectContaining({ name: 'Arrakis with Palace' }),
+        fallback ? null : bytes.buffer
+      );
+    }
+  );
+
+  test('keeps the two-million-pixel bound for other artwork', async () => {
+    const bytes = jpegBytes({ widthPx: 1948, heightPx: 1948, progressive: true });
+    const get = vi.fn<R2Bucket['get']>().mockResolvedValue(object(bytes));
+    const render = vi.fn().mockResolvedValue(pngBytes(1200, 630));
+    const response = await handleSocialImageRequest(request(), { ASSET_BUCKET: { get } }, render);
+    expect(response?.headers.get('X-Public-Fallback')).toBe('true');
+    expect(render).toHaveBeenCalledWith(expect.anything(), null);
+  });
+
   test('reads only one bounded R2 object and passes JPEG data to the renderer', async () => {
     const bytes = jpegBytes({ widthPx: 600, heightPx: 600, progressive: true });
     const get = vi.fn<R2Bucket['get']>().mockResolvedValue(object(bytes));
