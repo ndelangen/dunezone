@@ -106,6 +106,50 @@ test('renders bounded PNGs from local publications with zero outbound requests',
       completedRenders += 1;
       return png;
     };
+    phase = 'full-size boards';
+    const boardKey = 'boards/abcdefghijklmnop/board.jpg';
+    const board = await sharp(
+      Buffer.from(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="1948" height="1948">' +
+          '<rect width="1948" height="1948" fill="#ff0000"/>' +
+          '<rect x="974" width="974" height="1948" fill="#0000ff"/></svg>'
+      )
+    )
+      .jpeg()
+      .toBuffer();
+    const boardComment = Buffer.alloc(60_004, 32);
+    boardComment.set([0xff, 0xfe, 0xea, 0x62]);
+    const fullBoard = Buffer.concat([board.subarray(0, 2), ...Array<Buffer>(40).fill(boardComment), board.subarray(2)]);
+    expect(fullBoard.byteLength).toBeGreaterThan(2_000_000);
+    expect(fullBoard.byteLength).toBeLessThan(3_000_000);
+    await bucket.put(boardKey, fullBoard);
+    for (let batch = 0; batch < 3; batch += 1) {
+      const boards = await Promise.all(
+        [0, 1].map((index) =>
+          render(
+            socialCardHref({
+              name: `Arrakis ${batch}-${index}`,
+              kind: 'Board',
+              description: '',
+              image: `/published/${boardKey}`,
+            })
+          )
+        )
+      );
+      for (const png of boards) {
+        for (const top of [148, 498]) {
+          for (const [left, channel] of [
+            [755, 0],
+            [1105, 2],
+          ] as const) {
+            const pixel = await sharp(png).extract({ left, top, width: 1, height: 1 }).raw().toBuffer();
+            expect(pixel[channel]).toBeGreaterThan(240);
+            expect(pixel[1]).toBeLessThan(15);
+            expect(pixel[3]).toBe(255);
+          }
+        }
+      }
+    }
     phase = 'publications and cache';
     const cover = await sharp({ create: { width: 840, height: 1188, channels: 3, background: '#ff0000' } })
       .jpeg()

@@ -35,7 +35,7 @@ builder fixes parameter order for the edge cache.
 | Artwork | Up to 180 characters, a supported stable publication path |
 | Revision hint | Up to 64 letters, digits, underscores, dots, colons or hyphens |
 
-Artwork is limited to faction tokens, treachery and spice cards, deck cardbacks, cardback presets,
+Artwork is limited to boards, faction tokens, treachery and spice cards, deck cardbacks, cardback presets,
 the four token types, published Rulebook first pages and content-addressed user-image JPEGs.
 Rulebooks use the selected published Edition's first page, including historical Edition links.
 Rulesets use their stored cover thumbnail. User images are read from their existing bucket;
@@ -43,6 +43,9 @@ published first pages use the publication bucket. Neither path fetches external 
 R2 key. PDFs, private component envelopes and arbitrary URLs are rejected. One direct R2 range read
 is capped at 2,000,001 bytes; objects over 2,000,000 bytes use the fallback. JPEG headers must declare
 positive dimensions no greater than 2,048 per axis and 2,000,000 total pixels before decoding starts.
+Boards instead use the board publication contract's bounds, currently 1,948 by 1,948 pixels and
+3,000,000 encoded bytes. This lets existing board publications fit inside the social card without
+republishing them or creating another image.
 
 Missing, oversized, unreadable or unavailable artwork uses the selected Dune Zone monogram. Bundles
 without a published preview use it too. The artwork fits inside its frame. A long name uses smaller
