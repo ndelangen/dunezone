@@ -5603,6 +5603,12 @@
     "subjects": ["space"],
     "sourceHash": "cb91942b074559a821075d7a09ef77f7ae709606bbe7b16c228aadae752d6a9f"
   },
+  "/vector/background/starfield.svg": {
+    "description": "White stars of varied sizes scattered across a black sky.",
+    "tags": ["starfield", "stars", "space", "sky", "vector"],
+    "subjects": ["space"],
+    "sourceHash": "b83fcadd58095498b27d614e816d3102eb5e6b81b0c581730d98bbcb524d5c9d"
+  },
   "/image/leader/official/dryeuh.png": {
     "description": "Dr. Yueh. Illustrated head-and-shoulders character portrait. Forehead diamond, short beard and brown scarf.",
     "tags": ["portrait", "head", "diamond", "illustration"],
