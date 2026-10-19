@@ -351,6 +351,21 @@ const MIGRATION_SCHEMAS = [
   },
 ] as const;
 
+function StoredSchemaRecords({ oldRows }: Readonly<{ oldRows: number }>) {
+  return [0, 1, 2, 3].map((row) => {
+    const legacy = row < oldRows;
+    return (
+      <g key={row} className={legacy ? styles.legacyShape : styles.newShape} transform={`translate(${row * 89} 0)`}>
+        <path d="M8 176H66L82 192V249H8ZM66 176V192H82" />
+        <text className={styles.fieldLabel} x="45" y="214" textAnchor="middle">
+          {legacy ? 'name' : 'displayName'}
+        </text>
+        <path d="M18 229H70M18 239H53" />
+      </g>
+    );
+  });
+}
+
 function SchemaSnapshot({
   stage,
   oldClient,
@@ -403,18 +418,7 @@ function SchemaSnapshot({
       <text x="180" y="158" textAnchor="middle">
         Stored records
       </text>
-      {[0, 1, 2, 3].map((row) => {
-        const legacy = row < stage.oldRows;
-        return (
-          <g key={row} className={legacy ? styles.legacyShape : styles.newShape} transform={`translate(${row * 89} 0)`}>
-            <path d="M8 176H66L82 192V249H8ZM66 176V192H82" />
-            <text className={styles.fieldLabel} x="45" y="214" textAnchor="middle">
-              {legacy ? 'name' : 'displayName'}
-            </text>
-            <path d="M18 229H70M18 239H53" />
-          </g>
-        );
-      })}
+      <StoredSchemaRecords oldRows={stage.oldRows} />
       <text className={styles.legacyShape} x="89" y="276" textAnchor="middle">
         {stage.oldRows} old
       </text>
