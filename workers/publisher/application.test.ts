@@ -1,5 +1,6 @@
 import { describe, expect, test, vi } from 'vite-plus/test';
 
+import { CONTRIBUTING_SUBPAGES } from '../../src/shared/recordlessPublicPages';
 import { handleApplicationRequest } from './application';
 
 const env: Pick<Env, 'CF_VERSION_METADATA' | 'GIT_SHA' | 'CONVEX_CLOUD_BASE_URL'> = {
@@ -27,6 +28,8 @@ describe('anonymous application dispatch', () => {
     '/assets/unknown-type/missing/extra',
     '/factions/missing/extra',
     '/glossary',
+    '/contributing',
+    ...CONTRIBUTING_SUBPAGES,
     '/faq',
     '/blog',
     '/blog/why-dune',

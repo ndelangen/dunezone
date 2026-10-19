@@ -273,3 +273,27 @@ export const OverflowPreserved = meta.story({
     await expect(getComputedStyle(root as Element).overflow).toBe('visible');
   },
 });
+
+export const StickyRail = meta.story({
+  args: { value: 'people', stickyRail: true, items: examplePanels({ contentHeight: 1600 }) },
+  globals: { viewport: { value: 'appDesktop' } },
+  play: async ({ canvasElement }) => {
+    const root = canvasElement.querySelector<HTMLElement>('[data-sticky-rail]')!;
+    const rail = within(canvasElement).getByRole('tablist');
+    const contour = root.querySelector('svg[class*="geometryContour"] path');
+    await waitFor(async () => {
+      await expect(contour).not.toBeNull();
+    });
+    const before = contour?.getAttribute('d');
+    window.scrollTo(0, 350);
+    try {
+      await waitFor(async () => {
+        await expect(root.getBoundingClientRect().top).toBeLessThan(0);
+        await expect(rail.getBoundingClientRect().top).toBeGreaterThanOrEqual(0);
+        await expect(contour?.getAttribute('d')).not.toBe(before);
+      });
+    } finally {
+      window.scrollTo(0, 0);
+    }
+  },
+});

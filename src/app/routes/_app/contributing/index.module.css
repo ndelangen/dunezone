@@ -1,0 +1,41 @@
+.term {
+  scroll-margin-top: var(--space-xl);
+}
+.code {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.location {
+  overflow-wrap: anywhere;
+}
+
+/* A heading reached by its anchor keeps some room above it instead of touching the window edge. */
+.decision {
+  scroll-margin-top: var(--space-xl);
+}
+
+.benefitLabel {
+  display: flex;
+  gap: var(--space-xs);
+  align-items: center;
+}
+
+.subject {
+  scroll-margin-top: var(--space-xl);
+}
+
+.prompt {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.benefitLabel[data-audience="users"] {
+  color: var(--action-positive-fg);
+}
+.benefitLabel[data-audience="contributors"] {
+  color: var(--action-export-fg);
+}
+.rule {
+  max-width: 70ch;
+}
