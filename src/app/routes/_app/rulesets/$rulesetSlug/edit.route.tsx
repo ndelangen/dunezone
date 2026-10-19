@@ -1,3 +1,11 @@
+import { closestCenter, DndContext, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import type { Announcements, DragEndEvent } from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
 import { Anchor, Button, Group, Popover, Stack, Text, TextInput, Title } from '@mantine/core';
 import { RULESET_ASSET_SLOT_ORDER, RULESET_ASSET_SLOTS } from '@shared/rulesets/assetSlots';
 import type { RulesetAssetSlot } from '@shared/rulesets/assetSlots';
@@ -6,10 +14,10 @@ import { userImageSourceUrlSchema } from '@shared/user-images/contract';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { LoadPending } from '@ui/block/LoadPending';
-import { LoginGate } from '@ui/block/LoginGate';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { Section } from '@ui/block/Section';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
+import { FactionLink } from '@ui/content/FactionLink';
 import { RULESET_ABOUT_HELP, rulesetAboutCount } from '@ui/content/rulesetAboutHint';
 import { SlugRenameNotice } from '@ui/content/SlugRenameNotice';
 import { TopicIcon } from '@ui/content/TopicIcon';
@@ -17,26 +25,34 @@ import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FORMATTED_TEXT_SYNTAX_HELP, FormattedTextInput } from '@ui/control/FormattedTextInput';
 import { IconAction } from '@ui/control/IconAction';
+import { SortableItem } from '@ui/control/SortableItem';
+import { SortableReorderHandle } from '@ui/control/SortableReorderHandle';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
-import { ArrowDown, ArrowUp, Pencil, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, Layers3, Link2, Link2Off, Pencil, X } from 'lucide-react';
 import { useReducer, useState } from 'react';
 
 import { useReorderRulebooks, useSoftDeleteRulebook } from '@db/rulebooks';
 import type { RulebookMetadata } from '@db/rulebooks';
 import {
   loadRulesetDetailPage,
+  useAddRulesetFaction,
   useClearRulesetAssetSlot,
   useRehostRulesetCover,
+  useOrderedRulesetFactions,
+  useRemoveRulesetFaction,
+  useReorderRulesetFactions,
   useRulesetDetailPage,
   useSetRulesetAssetSlot,
   useUpdateRuleset,
 } from '@db/rulesets';
 import type { RulesetEntry } from '@db/rulesets';
 import { AssetPicker } from '@app/pickers/AssetPicker';
+import { FactionPicker } from '@app/pickers/FactionPicker';
 import { pageHead } from '@app/routes/pageTitle';
 import { AuthoringToolbar, failureStatus } from '@app/widgets/authoring/AuthoringToolbar';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
+import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 /**
@@ -147,15 +163,16 @@ function RulesetEditor({
         return;
       }
     }
+    const imageCover = coverChanged && trimmedCover === '' ? null : undefined;
     try {
       const entry = await updateRuleset.mutateAsync({
         id: initial._id,
         input: { name: nameCheck.data, about: aboutCheck.data },
         /* Clearing travels through the legacy channel; a rehosted cover is already committed, so absent means untouched. */
-        imageCover: coverChanged && trimmedCover === '' ? null : undefined,
+        imageCover,
       });
       if (previousSlug !== entry.slug) {
-        navigate({
+        void navigate({
           to: '/rulesets/$rulesetSlug/edit',
           params: { rulesetSlug: entry.slug },
           replace: true,
@@ -269,6 +286,7 @@ function RulesetEditor({
             rulesetId={initial._id}
             canDelete={canDelete}
           />
+          <RulesetFactions rulesetId={initial._id} rulesetName={initial.name} />
           {/* A sibling pane rather than a nested one: surfaces do not nest, and slots are a different subject from the ruleset's own fields. */}
           <Surface padding="lg">
             <RulesetAssetSlots rulesetId={initial.id} slots={assetSlots} />
@@ -373,6 +391,215 @@ function RulesetEditPage() {
 }
 
 type SlottedAsset = { id: string; type: string; slug: string; name: string };
+
+/* The Factions list's first load and each "Load more": a ruleset seldom has more, and dragging only reorders what is loaded. */
+const FACTION_LIST_STEP = 50;
+
+/**
+ * The ruleset's factions in its own order, as plain links: drag one to move it, remove one with its button, and add one from the picker.
+ * The ruleset's page shows the first few in this order, so this is where the order is set.
+ * A drag saves at once and the list keeps the new order until the saved one arrives;
+ * dragging among the loaded factions leaves the unloaded ones after them.
+ */
+/** What a screen reader hears while a faction is dragged: its name and places, never its id. */
+function factionAnnouncements(factions: { _id: string; name: string }[]): Announcements {
+  const name = (id: string | number) => factions.find((faction) => faction._id === id)?.name ?? 'Faction';
+  const place = (id: string | number) =>
+    `position ${factions.findIndex((faction) => faction._id === id) + 1} of ${factions.length}`;
+  return {
+    onDragStart: ({ active }) => `Picked up ${name(active.id)}, at ${place(active.id)}.`,
+    onDragOver: ({ active, over }) =>
+      over ? `${name(active.id)} is over ${place(over.id)}.` : `${name(active.id)} is no longer over the list.`,
+    onDragEnd: ({ active, over }) =>
+      over ? `${name(active.id)} was dropped at ${place(over.id)}.` : `${name(active.id)} was dropped.`,
+    onDragCancel: ({ active }) => `Moving ${name(active.id)} was cancelled.`,
+  };
+}
+
+function RulesetFactions({ rulesetId, rulesetName }: { rulesetId: RulesetEntry['_id']; rulesetName: string }) {
+  const [limit, setLimit] = useState(FACTION_LIST_STEP);
+  const answered = useOrderedRulesetFactions(rulesetId, limit);
+  /* The last answer stays on screen while Load more asks for a longer list, so the list and the button keep their place and focus. */
+  const [lastAnswered, setLastAnswered] = useState(answered);
+  if (answered !== undefined && answered !== lastAnswered) {
+    setLastAnswered(answered);
+  }
+  const ordered = answered ?? lastAnswered;
+  const addFaction = useAddRulesetFaction();
+  const removeFaction = useRemoveRulesetFaction();
+  const reorder = useReorderRulesetFactions();
+  /* The order a drag asked for, shown until the query answers with a new list; keyed by that list so a fresh answer replaces it. */
+  const [draftOrder, setDraftOrder] = useState<{ basis: unknown; ids: string[] } | null>(null);
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+  const saved = ordered?.factions ?? [];
+  const byId = new Map(saved.map((faction) => [faction._id as string, faction]));
+  const factions =
+    draftOrder && draftOrder.basis === ordered ? draftOrder.ids.flatMap((id) => byId.get(id) ?? []) : saved;
+  const error = addFaction.error ?? removeFaction.error ?? reorder.error;
+  const pending = addFaction.isPending || removeFaction.isPending;
+
+  const handleDragEnd = ({ active, over }: DragEndEvent) => {
+    const from = factions.findIndex((faction) => faction._id === active.id);
+    const to = over ? factions.findIndex((faction) => faction._id === over.id) : -1;
+    if (from < 0 || to < 0 || from === to) {
+      return;
+    }
+    const ids = arrayMove(factions, from, to).map((faction) => faction._id);
+    setDraftOrder({ basis: ordered, ids });
+    /* A refused save drops its own draft, so the list shows the saved order again; a later drag's draft stays. */
+    reorder.mutate(
+      { rulesetId, factionIds: ids },
+      { onError: () => setDraftOrder((current) => (current?.ids === ids ? null : current)) }
+    );
+  };
+
+  return (
+    <Section id="factions" title="Factions" icon={<Layers3 size={20} aria-hidden />}>
+      <Surface padding="lg">
+        <Stack gap="md">
+          {error ? <FormError title="Factions could not be updated">{error.message}</FormError> : null}
+          <Group justify="space-between" wrap="nowrap">
+            <Text size="sm" c="dimmed">
+              {ordered === undefined ? 'Loading factions…' : 'Drag a faction to change its place.'}
+            </Text>
+            <AddFactionPopover
+              disabled={pending}
+              linkedSlugs={saved.map((faction) => faction.slug)}
+              rulesetName={rulesetName}
+              onAdd={(factionId) => addFaction.mutate({ rulesetId, factionId })}
+            />
+          </Group>
+          {ordered && factions.length === 0 ? (
+            <Text c="dimmed">No factions have been added to this ruleset yet.</Text>
+          ) : null}
+          {factions.length > 0 ? (
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+              accessibility={{ announcements: factionAnnouncements(factions) }}
+            >
+              <SortableContext items={factions.map((faction) => faction._id)} strategy={verticalListSortingStrategy}>
+                <Stack component="ol" aria-label="Factions" gap="xs" m={0} p={0} style={{ listStyle: 'none' }}>
+                  {factions.map((faction) => (
+                    <SortableItem as="li" key={faction._id} id={faction._id}>
+                      {(handle) => (
+                        <Group gap="sm" wrap="nowrap">
+                          <SortableReorderHandle label={`Move ${faction.name}`} {...handle} />
+                          <FactionLink
+                            slug={faction.slug}
+                            name={faction.name}
+                            logo={faction.logo}
+                            background={faction.background}
+                            style={{ flex: 1, minWidth: 0 }}
+                          />
+                          <IconAction
+                            label={`Remove ${faction.name} from ${rulesetName}`}
+                            intent="neutral"
+                            emphasis="quiet"
+                            size="sm"
+                            disabled={pending}
+                            onClick={() => removeFaction.mutate({ rulesetId, factionId: faction._id })}
+                            icon={<Link2Off size={16} aria-hidden />}
+                          />
+                        </Group>
+                      )}
+                    </SortableItem>
+                  ))}
+                </Stack>
+              </SortableContext>
+            </DndContext>
+          ) : null}
+          {ordered?.hasMore ? (
+            <Button
+              variant="default"
+              onClick={() => setLimit((current) => (answered === undefined ? current : current + FACTION_LIST_STEP))}
+            >
+              Load more
+            </Button>
+          ) : null}
+          <Text size="xs" c="dimmed">
+            Changes save immediately. The ruleset page shows the first three. Removing a faction only takes it out of
+            this ruleset.
+          </Text>
+        </Stack>
+      </Surface>
+    </Section>
+  );
+}
+
+/**
+ * The Factions section's affordance that adds a faction to this ruleset.
+ * It owns the open state and nothing else: the picker is mounted only while the popover is open, so its subscription lives exactly that long, which is the contract `AGENTS.md` sets for a Picker's container.
+ * The commit is the caller's;
+ * this reports the chosen faction's id and closes.
+ */
+function AddFactionPopover({
+  disabled,
+  linkedSlugs,
+  rulesetName,
+  onAdd,
+}: {
+  disabled: boolean;
+  /** The loaded linked factions, which the picker leaves out; adding an unloaded one again changes nothing. */
+  linkedSlugs: string[];
+  rulesetName: string;
+  onAdd: (factionId: string) => void;
+}) {
+  const [opened, setOpened] = useState(false);
+
+  return (
+    <Popover
+      opened={opened}
+      onChange={setOpened}
+      position="bottom-end"
+      width={440}
+      shadow="md"
+      withArrow
+      /* A 440px pane over a 40px trigger is slid by `shift` to fit, and a side-anchored arrow goes with the pane rather than staying on the control that opened it (#715). */
+      arrowPosition="center"
+      trapFocus
+      returnFocus
+    >
+      <Popover.Target>
+        <IconAction
+          label="Add a faction"
+          emphasis="standard"
+          intent="neutral"
+          size="sm"
+          disabled={disabled}
+          onClick={() => setOpened((current) => !current)}
+          icon={<Link2 size={17} aria-hidden />}
+        />
+      </Popover.Target>
+      <Popover.Dropdown>
+        {opened ? (
+          <FactionPicker
+            excludeSlugs={linkedSlugs}
+            copy={{
+              title: 'Add a faction',
+              intro: `Choose a faction to add to ${rulesetName}. Factions already in it are not listed.`,
+              errorTitle: 'Faction could not be added',
+              emptyMessage: 'Every faction is already in this ruleset.',
+              confirmTitle: `Add this faction to ${rulesetName}?`,
+              /* No warning: nothing is overwritten, and the list's remove button takes it straight back out. */
+              confirmLabel: 'Add faction',
+              confirmIntent: 'positive',
+            }}
+            onCancel={() => setOpened(false)}
+            onPick={(picked) => {
+              onAdd(picked.id);
+              setOpened(false);
+            }}
+          />
+        ) : null}
+      </Popover.Dropdown>
+    </Popover>
+  );
+}
 
 function RulesetRulebooks({
   rulebooks,

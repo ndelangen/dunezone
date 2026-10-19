@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 const run = promisify(execFile);
 
@@ -20,7 +20,7 @@ async function gate(change: (root: string) => void): Promise<{ code: number; out
     });
     change(root);
     try {
-      const { stdout } = await run('node', ['scripts/assert-breakpoints.mjs'], {
+      const { stdout } = await run('node', ['scripts/assert-breakpoints.ts'], {
         env: { ...process.env, BREAKPOINTS_ROOT: root },
       });
       return { code: 0, output: stdout };

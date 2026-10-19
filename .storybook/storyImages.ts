@@ -1,5 +1,5 @@
 /**
- * Registers the story image worker (`static/story-images.sw.js`) and settles once it controls this page, so a story's first image request already goes through it.
+ * Registers the story image worker (`../workers/storybook/story-images.sw.ts`) and settles once it controls this page, so a story's first image request already goes through it.
  * Use it as the loader of a story that slows an image;
  * a story that does not slow one renders without it.
  * The worker stays registered, and every request it does not name passes through.

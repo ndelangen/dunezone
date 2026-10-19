@@ -24,21 +24,9 @@ const meta = preview.meta({
 
 export const Default = meta.story({});
 
-export const Searchable = meta.story({
-  args: {
-    searchable: true,
-  },
-});
-
 export const Empty = meta.story({
   args: {
     defaultValue: null,
     placeholder: 'Choose a color',
-  },
-});
-
-export const Disabled = meta.story({
-  args: {
-    disabled: true,
   },
 });

@@ -1,32 +1,27 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import aggregateTest from '@convex-dev/aggregate/test';
-import migrationsTest from '@convex-dev/migrations/test';
-import { convexTest } from 'convex-test';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api, internal } from './_generated/api';
+import { applicationTest } from './application.test.fixture';
 import { applicationTriggers } from './lib/applicationTriggers';
 import { ensureProfileForUser } from './lib/profileBootstrap';
-import schema from './schema';
-
-const modules = import.meta.glob('./**/*.ts');
+import { storedProfileAvatar } from './profiles.test.fixture';
 
 describe('homepage page data', () => {
   test('serves exact Statistics totals without migration readiness', async () => {
-    const t = convexTest(schema, modules);
-    aggregateTest.register(t, 'statistics');
-    aggregateTest.register(t, 'profileActivity');
-    aggregateTest.register(t, 'profileDiscovery');
+    const t = applicationTest();
     const userId = await t.run((ctx) => ctx.db.insert('users', { name: 'Homepage maker' }));
-    await t.run((rawCtx) =>
-      ensureProfileForUser(applicationTriggers.wrapDB(rawCtx), userId, {
+    await t.run(async (rawCtx) => {
+      const ctx = applicationTriggers.wrapDB(rawCtx);
+      const profile = await ensureProfileForUser(ctx, userId, {
         displayName: 'Homepage maker',
-        imageUrl: 'https://example.com/avatar.png',
-      })
-    );
+        imageUrl: null,
+      });
+      await ctx.db.patch(profile._id, storedProfileAvatar);
+    });
     const asUser = t.withIdentity({ subject: userId });
     const faction = await asUser.mutation(api.factions.create, {
       data: { ...assetPublishingFaction, name: 'Homepage faction' },
@@ -86,11 +81,7 @@ describe('homepage page data', () => {
   });
 
   test('reuses discoverable profiles in the homepage with exact eligibility and ordering', async () => {
-    const t = convexTest(schema, modules);
-    aggregateTest.register(t, 'statistics');
-    aggregateTest.register(t, 'profileActivity');
-    aggregateTest.register(t, 'profileDiscovery');
-    migrationsTest.register(t);
+    const t = applicationTest();
     await t.run(async (ctx) => {
       const users = await Promise.all(
         Array.from({ length: 6 }, (_, index) => ctx.db.insert('users', { name: `Homepage member ${index}` }))

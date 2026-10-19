@@ -20,6 +20,7 @@ const ASSET_EXTENSIONS = [
   '.woff2',
   '.ttf',
   '.mp3',
+  '.mp4',
   '.glb',
   '.hdr',
   '.wasm',
@@ -27,15 +28,15 @@ const ASSET_EXTENSIONS = [
 ];
 
 /**
- * Every repository file the entry points import, in code-unit order.
+ * Every repository file the entry points import, in code-unit order, with the repository files that import it.
  * `outside` names the imports the graph stops at: an absolute url, for instance, names a file under public/ a page loads at run time.
  */
-export async function importedFiles(
+export async function importGraph(
   root: string,
   entries: readonly string[],
   outside: RegExp,
   outdir: string
-): Promise<string[]> {
+): Promise<Map<string, string[]>> {
   const result = await build({
     absWorkingDir: root,
     entryPoints: entries.map((entry) => resolve(root, entry)),
@@ -61,8 +62,34 @@ export async function importedFiles(
     ],
   });
   /* A stylesheet imported with `?inline` is the same file. */
-  const files = Object.keys(result.metafile.inputs).map((file) => file.replace(/\?.*$/u, ''));
-  return [...new Set(files)]
-    .filter((file) => !file.startsWith('node_modules/') && !file.includes(':'))
-    .sort(byCodeUnit);
+  const repositoryFile = (file: string) => {
+    const [path] = file.split('?');
+    return path.startsWith('node_modules/') || path.includes(':') ? undefined : path;
+  };
+  const graph = new Map<string, Set<string>>();
+  for (const [input, { imports }] of Object.entries(result.metafile.inputs)) {
+    const file = repositoryFile(input);
+    if (file === undefined) {
+      continue;
+    }
+    graph.set(file, graph.get(file) ?? new Set());
+    /* An external import is one the graph stops at, not a file it reads. */
+    for (const { path, external } of imports) {
+      const imported = external ? undefined : repositoryFile(path);
+      if (imported !== undefined) {
+        graph.set(imported, (graph.get(imported) ?? new Set()).add(file));
+      }
+    }
+  }
+  return new Map([...graph.keys()].sort(byCodeUnit).map((file) => [file, [...graph.get(file)!].sort(byCodeUnit)]));
+}
+
+/** Every repository file the entry points import, in code-unit order; see `importGraph`. */
+export async function importedFiles(
+  root: string,
+  entries: readonly string[],
+  outside: RegExp,
+  outdir: string
+): Promise<string[]> {
+  return [...(await importGraph(root, entries, outside, outdir)).keys()];
 }

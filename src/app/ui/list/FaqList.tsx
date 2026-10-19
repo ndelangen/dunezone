@@ -1,63 +1,52 @@
 import { Anchor, Badge, Group, Stack, Text, Tooltip } from '@mantine/core';
-import type { FaqTag } from '@shared/faq/tags';
 import { Link } from '@tanstack/react-router';
 import { formatStableDate } from '@ui/content/dates';
 import { FAQ_TAG_LABELS } from '@ui/content/faqTagLabels';
 import { InlineFormattedTextSource } from '@ui/content/FormattedText';
 import { ProfileLink } from '@ui/content/ProfileLink';
+import { TopicIcon } from '@ui/content/TopicIcon';
 import { SectionedSurface } from '@ui/surface/SectionedSurface';
-import Fuse from 'fuse.js';
 import { CircleCheck, CircleDashed } from 'lucide-react';
-import { useMemo } from 'react';
 
 import type { FaqItemWithDetails } from '@db/faq';
 
 import styles from './FaqList.module.css';
 
-interface FaqListProps {
-  items: FaqItemWithDetails[];
-  rulesetSlug: string;
-  searchQuery: string;
-  selectedTag?: FaqTag;
+/** The ruleset a question belongs to, as a list drawn from several names it on each question. */
+type FaqListRuleset = { name: string; slug: string };
+
+interface FaqListBaseProps {
   /**
    * Opens a question, for the whole row rather than the link inside it.
    * The caller navigates: this list renders the destination as a `Link` too, but where the reader ends up is the page's call.
+   * The ruleset is the list's own where it has one, and the question's otherwise.
    */
-  onOpenQuestion: (questionSlug: string) => void;
-  /** What to say when the ruleset carries no questions at all. The page owns the words; this owns where they sit. */
+  onOpenQuestion: (questionSlug: string, rulesetSlug: string) => void;
+  /** What to say when there is nothing to show. The page owns the words, as no questions and no matches read differently; this owns where they sit. */
   emptyLabel: string;
-  /** What to say when a search or tag leaves nothing, which is a different situation and reads differently. */
-  noMatchesLabel: string;
 }
 
 /**
- * The questions a reader asked for: the chosen tag narrows the set, then the words rank what is left by fuzzy match on the question itself.
+ * The questions to show, in order;
+ * the page has already searched, narrowed and paged them.
+ * A list drawn from one ruleset names it once;
+ * one drawn from several has every question name its own, which then shows beside it and owns its link.
  */
-function matchingFaqItems(
-  items: FaqItemWithDetails[],
-  searchQuery: string,
-  selectedTag?: FaqTag
-): FaqItemWithDetails[] {
-  const tagged = selectedTag ? items.filter((item) => (item.tags ?? []).includes(selectedTag)) : items;
-  const query = searchQuery.trim();
-  if (!query) {
-    return tagged;
-  }
-  return new Fuse(tagged, { keys: ['question'], threshold: 0.4 }).search(query).map((result) => result.item);
-}
+type FaqListProps = FaqListBaseProps &
+  (
+    | { rulesetSlug: string; items: FaqItemWithDetails[] }
+    | { rulesetSlug?: undefined; items: (FaqItemWithDetails & { ruleset: FaqListRuleset })[] }
+  );
 
-export function FaqList({
-  items,
-  rulesetSlug,
-  searchQuery,
-  selectedTag,
-  onOpenQuestion,
-  emptyLabel,
-  noMatchesLabel,
-}: FaqListProps) {
-  const filtered = useMemo(() => matchingFaqItems(items, searchQuery, selectedTag), [items, searchQuery, selectedTag]);
+export function FaqList(props: FaqListProps) {
+  const { onOpenQuestion, emptyLabel } = props;
+  /* Narrowed once, so a row knows its ruleset without a fallback it could never need. */
+  const rows =
+    props.rulesetSlug === undefined
+      ? props.items.map((item) => ({ item, rulesetSlug: item.ruleset.slug, ruleset: item.ruleset }))
+      : props.items.map((item) => ({ item, rulesetSlug: props.rulesetSlug, ruleset: undefined }));
 
-  if (items.length === 0) {
+  if (rows.length === 0) {
     return (
       <Text size="sm" c="dimmed">
         {emptyLabel}
@@ -66,87 +55,92 @@ export function FaqList({
   }
 
   return (
-    <Stack gap="md">
-      {filtered.length === 0 ? (
-        <Text size="sm" c="dimmed">
-          {noMatchesLabel}
-        </Text>
-      ) : (
-        <SectionedSurface>
-          {filtered.map((item) => {
-            const answerCount = item.faq_answers?.length ?? 0;
-            const hasAcceptedAnswer = item.accepted_answer_id != null;
-            const answerLabel = `${answerCount} ${answerCount === 1 ? 'answer' : 'answers'}`;
-            const statusLabel = hasAcceptedAnswer ? 'Answered' : 'Unanswered';
+    <SectionedSurface>
+      {rows.map(({ item, rulesetSlug, ruleset }) => {
+        const answerCount = item.faq_answers?.length ?? 0;
+        const hasAcceptedAnswer = item.accepted_answer_id != null;
+        const answerLabel = `${answerCount} ${answerCount === 1 ? 'answer' : 'answers'}`;
+        const statusLabel = hasAcceptedAnswer ? 'Answered' : 'Unanswered';
 
-            return (
-              <SectionedSurface.Row
-                key={item._id}
-                ariaLabel={`Open question: ${item.question}`}
-                onActivate={() => onOpenQuestion(item.slug)}
-              >
-                <Stack gap="sm">
-                  <div className={styles.questionLine}>
-                    <Anchor
-                      fw={700}
-                      fz="md"
-                      className={styles.question}
-                      renderRoot={(rootProps) => (
-                        <Link
-                          {...rootProps}
-                          to="/rulesets/$rulesetSlug/faq/$questionSlug"
-                          params={{ rulesetSlug, questionSlug: item.slug }}
-                        />
-                      )}
+        return (
+          <SectionedSurface.Row
+            key={item._id}
+            ariaLabel={`Open question: ${item.question}`}
+            onActivate={() => onOpenQuestion(item.slug, rulesetSlug)}
+          >
+            <Stack gap="sm">
+              <div className={styles.questionLine}>
+                <Anchor
+                  fw={700}
+                  fz="md"
+                  className={styles.question}
+                  renderRoot={(rootProps) => (
+                    <Link
+                      {...rootProps}
+                      to="/rulesets/$rulesetSlug/faq/$questionSlug"
+                      params={{ rulesetSlug, questionSlug: item.slug }}
+                    />
+                  )}
+                >
+                  <InlineFormattedTextSource source={item.question} />
+                </Anchor>
+                {(item.tags ?? []).map((tag) => (
+                  <Badge key={`${item._id}:${tag}`} size="xs" variant="outline" color="dune">
+                    {FAQ_TAG_LABELS[tag]}
+                  </Badge>
+                ))}
+              </div>
+              <Group justify={ruleset ? 'space-between' : 'flex-end'} gap="xs">
+                {ruleset ? (
+                  <Anchor
+                    size="xs"
+                    c="dimmed"
+                    className={styles.rulesetCaption}
+                    renderRoot={(rootProps) => (
+                      <Link {...rootProps} to="/rulesets/$rulesetSlug/faq" params={{ rulesetSlug: ruleset.slug }} />
+                    )}
+                  >
+                    <TopicIcon topic="rulesets" size={14} />
+                    {ruleset.name}
+                  </Anchor>
+                ) : null}
+                <Group gap="xs" wrap="nowrap" justify="flex-end" className={styles.meta}>
+                  <Tooltip label={`${statusLabel} · ${answerLabel}`} withArrow>
+                    <Badge
+                      size="md"
+                      variant={hasAcceptedAnswer ? 'filled' : 'outline'}
+                      color={hasAcceptedAnswer ? 'green' : 'dark'}
+                      leftSection={
+                        hasAcceptedAnswer ? (
+                          <CircleCheck size={14} aria-hidden />
+                        ) : (
+                          <CircleDashed size={14} aria-hidden />
+                        )
+                      }
+                      aria-label={`${statusLabel}, ${answerLabel}`}
                     >
-                      <InlineFormattedTextSource source={item.question} />
-                    </Anchor>
-                    {(item.tags ?? []).map((tag) => (
-                      <Badge key={`${item._id}:${tag}`} size="xs" variant="outline" color="dune">
-                        {FAQ_TAG_LABELS[tag as FaqTag]}
-                      </Badge>
-                    ))}
-                  </div>
-                  <Group justify="flex-end">
-                    <Group gap="xs" wrap="nowrap" justify="flex-end" className={styles.meta}>
-                      <Tooltip label={`${statusLabel} · ${answerLabel}`} withArrow>
-                        <Badge
-                          size="md"
-                          variant={hasAcceptedAnswer ? 'filled' : 'outline'}
-                          color={hasAcceptedAnswer ? 'green' : 'dark'}
-                          leftSection={
-                            hasAcceptedAnswer ? (
-                              <CircleCheck size={14} aria-hidden />
-                            ) : (
-                              <CircleDashed size={14} aria-hidden />
-                            )
-                          }
-                          aria-label={`${statusLabel}, ${answerLabel}`}
-                        >
-                          {answerCount}
-                        </Badge>
-                      </Tooltip>
-                      {item.asker_profile ? (
-                        <ProfileLink
-                          slug={item.asker_profile.slug}
-                          name={item.asker_profile.username}
-                          image={item.asker_profile.avatar_url}
-                          className={styles.askerLink}
-                          showName={false}
-                          title={item.asker_profile.username ?? 'View asker profile'}
-                        />
-                      ) : null}
-                      <Text component="time" dateTime={item.created_at} size="xs" c="dimmed">
-                        {formatStableDate(item.created_at)}
-                      </Text>
-                    </Group>
-                  </Group>
-                </Stack>
-              </SectionedSurface.Row>
-            );
-          })}
-        </SectionedSurface>
-      )}
-    </Stack>
+                      {answerCount}
+                    </Badge>
+                  </Tooltip>
+                  {item.asker_profile ? (
+                    <ProfileLink
+                      slug={item.asker_profile.slug}
+                      name={item.asker_profile.username}
+                      image={item.asker_profile.avatar_url}
+                      className={styles.askerLink}
+                      showName={false}
+                      title={item.asker_profile.username ?? 'View asker profile'}
+                    />
+                  ) : null}
+                  <Text component="time" dateTime={item.created_at} size="xs" c="dimmed">
+                    {formatStableDate(item.created_at)}
+                  </Text>
+                </Group>
+              </Group>
+            </Stack>
+          </SectionedSurface.Row>
+        );
+      })}
+    </SectionedSurface>
   );
 }

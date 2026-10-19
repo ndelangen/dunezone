@@ -15,7 +15,7 @@ export function referenceTableFixture(): ReferenceTable {
     columnsById: {
       FACT: { id: 'FACT', label: 'Faction' },
       SPCE: { id: 'SPCE', label: 'Starting spice' },
-      FRCE: { id: 'FRCE', label: 'Forces on Dune' },
+      FRCE: { id: 'FRCE', label: 'Troops on Dune' },
       REVV: { id: 'REVV', label: 'Free revival' },
     },
     rowOrder: ['ATRE', 'HARK', 'FREM', 'EMPR', 'GUIL', 'BENE'],
@@ -41,7 +41,7 @@ export function referenceTableFixture(): ReferenceTable {
         cellsByColumnId: { FACT: '*Bene Gesserit*', SPCE: '5', FRCE: '1 in the Polar Sink', REVV: '1' },
       },
     },
-    note: 'Forces not listed on Dune begin in reserve off-planet. Free revival counts are per turn; further revivals cost spice.',
+    note: 'Troops not listed on Dune begin in reserves. Free revival counts are per turn; further revivals cost spice.',
   };
 }
 

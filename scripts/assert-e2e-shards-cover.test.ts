@@ -1,13 +1,13 @@
 import { execFile } from 'node:child_process';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { promisify } from 'node:util';
 
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 const run = promisify(execFile);
-const script = join(import.meta.dirname, 'assert-e2e-shards-cover.mjs');
+const script = join(import.meta.dirname, 'assert-e2e-shards-cover.ts');
 /* A cold node spawn on a loaded runner is the shape that timed out the oxlint gate test (#1048); the budgets follow that file. */
 const SPAWN_BUDGET_MS = 20_000;
 const TEST_BUDGET_MS = 30_000;
@@ -20,6 +20,7 @@ async function gate(specs: string[], shards: Record<string, string[]>): Promise<
   try {
     mkdirSync(join(root, 'e2e'));
     for (const spec of specs) {
+      mkdirSync(dirname(join(root, 'e2e', spec)), { recursive: true });
       writeFileSync(join(root, 'e2e', spec), '');
     }
     writeFileSync(join(root, 'e2e', 'shards.json'), JSON.stringify(shards));
@@ -54,6 +55,17 @@ describe('assert-e2e-shards-cover', { timeout: TEST_BUDGET_MS }, () => {
     const verdict = await gate(['a.spec.ts', 'b.spec.ts'], { first: ['e2e/a.spec.ts'] });
     expect(verdict.code).toBe(1);
     expect(verdict.stderr).toContain('e2e/b.spec.ts is assigned to no shard');
+  });
+
+  test('fails on a test file Playwright collects that no shard can list', async () => {
+    const verdict = await gate(['a.spec.ts', 'journeys/b.spec.ts', 'c.test.ts', 'd.spec.tsx', 'helper.ts'], {
+      first: ['e2e/a.spec.ts'],
+    });
+    expect(verdict.code).toBe(1);
+    expect(verdict.stderr).toContain('e2e/journeys/b.spec.ts is a test file Playwright collects');
+    expect(verdict.stderr).toContain('e2e/c.test.ts is a test file Playwright collects');
+    expect(verdict.stderr).toContain('e2e/d.spec.tsx is a test file Playwright collects');
+    expect(verdict.stderr).not.toContain('helper.ts');
   });
 
   test('fails on a spec two shards list', async () => {

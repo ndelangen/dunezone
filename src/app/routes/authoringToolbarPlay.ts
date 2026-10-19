@@ -53,30 +53,30 @@ function barItems(row: Element): BarItem[] {
 }
 
 /** One line: nothing stacks under anything else, so the row is no taller than its tallest item, and nothing runs past its edges. */
-function expectOneLine(row: Element, items: BarItem[]) {
+async function expectOneLine(row: Element, items: BarItem[]) {
   const rowBox = row.getBoundingClientRect();
-  expect(rowBox.height).toBeLessThanOrEqual(Math.max(...items.map(({ box }) => box.height)) + 1);
+  await expect(rowBox.height).toBeLessThanOrEqual(Math.max(...items.map(({ box }) => box.height)) + 1);
   for (const { item, box } of items) {
-    expect(box.left, `${nameOf(item)} starts before the bar`).toBeGreaterThanOrEqual(rowBox.left - 1);
-    expect(box.right, `${nameOf(item)} ends past the bar`).toBeLessThanOrEqual(rowBox.right + 1);
+    await expect(box.left, `${nameOf(item)} starts before the bar`).toBeGreaterThanOrEqual(rowBox.left - 1);
+    await expect(box.right, `${nameOf(item)} ends past the bar`).toBeLessThanOrEqual(rowBox.right + 1);
   }
 }
 
 /** Side by side: each item starts where the one before it ends, or later, so nothing covers its neighbour. */
-function expectNoOverlap(items: BarItem[]) {
-  items.slice(1).forEach(({ item, box }, index) => {
+async function expectNoOverlap(items: BarItem[]) {
+  for (const [index, { item, box }] of items.slice(1).entries()) {
     const previous = items[index];
-    expect(box.left, `${nameOf(item)} overlaps ${nameOf(previous.item)}`).toBeGreaterThanOrEqual(
+    await expect(box.left, `${nameOf(item)} overlaps ${nameOf(previous.item)}`).toBeGreaterThanOrEqual(
       previous.box.right - 0.5
     );
-  });
+  }
 }
 
-function expectEachInItsSlot(row: Element, items: BarItem[]) {
+async function expectEachInItsSlot(row: Element, items: BarItem[]) {
   for (const { item, box } of items) {
     const slot = slotOf(row, item).getBoundingClientRect();
-    expect(box.left, `${nameOf(item)} leaves its slot`).toBeGreaterThanOrEqual(slot.left - 0.5);
-    expect(box.right, `${nameOf(item)} leaves its slot`).toBeLessThanOrEqual(slot.right + 0.5);
+    await expect(box.left, `${nameOf(item)} leaves its slot`).toBeGreaterThanOrEqual(slot.left - 0.5);
+    await expect(box.right, `${nameOf(item)} leaves its slot`).toBeLessThanOrEqual(slot.right + 0.5);
   }
 }
 
@@ -108,14 +108,14 @@ export async function expectToolbarOnOneLine(
   /* Back leads the bar and Save ends it, so the element holding both is the row the bar lays out. */
   const row = lowestCommonAncestor(back, save);
   const items = barItems(row);
-  expect(row.querySelector('[role="img"]'), 'the bar carries no status marks').toBeNull();
-  expectOneLine(row, items);
-  expectNoOverlap(items);
+  await expect(row.querySelector('[role="img"]'), 'the bar carries no status marks').toBeNull();
+  await expectOneLine(row, items);
+  await expectNoOverlap(items);
   /*
    * With room for everything, each item also sits inside its own slot.
    * Once runs have folded into More actions the bar has run out of room and its centre gives way to the edges (Toolbar), so only overlap is ruled out there.
    */
   if (!within(row as HTMLElement).queryByRole('button', { name: 'More actions' })) {
-    expectEachInItsSlot(row, items);
+    await expectEachInItsSlot(row, items);
   }
 }

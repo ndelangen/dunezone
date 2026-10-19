@@ -20,7 +20,7 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowLeft, Check, MessageCircleReply, MessageSquarePlus, Pencil, X } from 'lucide-react';
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 
 import { isPublicPageNotFound, loadPublicPage } from '@db/core/publicPage';
 import { loadFaqQuestionPage, useFaqQuestionPage } from '@db/faq';
@@ -31,7 +31,7 @@ import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import styles from './$questionSlug.module.css';
 import { INITIAL_FAQ_EDITING_STATE, createFaqEditingSession } from './faqEditingSession';
-import type { FaqEditingSession } from './faqEditingSession';
+import type { FaqEditingPorts } from './faqEditingSession';
 import { questionTitle } from './questionTitle';
 
 export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/faq/$questionSlug')({
@@ -154,6 +154,20 @@ function AddAnswerForm({ createAnswer }: { createAnswer: FaqQuestionCommands['cr
   );
 }
 
+function createPageEditingSession(initial: ReturnType<typeof useFaqQuestionPage>, onState: FaqEditingPorts['onState']) {
+  let commands = initial;
+  return {
+    session: createFaqEditingSession({
+      editQuestion: (input) => commands.editQuestion.run(input),
+      editAnswer: (input) => commands.editAnswer.run(input),
+      onState,
+    }),
+    update(next: typeof initial) {
+      commands = next;
+    },
+  };
+}
+
 function FaqDetailPage() {
   const { rulesetSlug, questionSlug } = Route.useParams();
   const loaderData = Route.useLoaderData();
@@ -168,17 +182,9 @@ function FaqDetailPage() {
   useLivePageTitle(faq.page ? questionTitle(faq.page.question.text) : undefined, 'FAQ');
 
   const [editing, setEditing] = useState(INITIAL_FAQ_EDITING_STATE);
-  const editingSessionRef = useRef<FaqEditingSession>(undefined);
-  const commandsRef = useRef({ faq });
-  useLayoutEffect(() => {
-    commandsRef.current = { faq };
-  }, [faq]);
-  editingSessionRef.current ??= createFaqEditingSession({
-    editQuestion: (input) => commandsRef.current.faq.editQuestion.run(input),
-    editAnswer: (input) => commandsRef.current.faq.editAnswer.run(input),
-    onState: setEditing,
-  });
-  const editingSession = editingSessionRef.current;
+  const [binding] = useState(() => createPageEditingSession(faq, setEditing));
+  useLayoutEffect(() => binding.update(faq), [binding, faq]);
+  const editingSession = binding.session;
 
   const page = faq.page;
   const item = page?.question;
@@ -256,7 +262,7 @@ function FaqDetailPage() {
         <PageIdentity
           title={questionTitle(item.text)}
           breadcrumb={
-            <PageIdentity.Breadcrumb to="/rulesets/$rulesetSlug" params={{ rulesetSlug: page.ruleset.slug }} hash="faq">
+            <PageIdentity.Breadcrumb to="/rulesets/$rulesetSlug/faq" params={{ rulesetSlug: page.ruleset.slug }}>
               {page.ruleset.name} FAQ
             </PageIdentity.Breadcrumb>
           }

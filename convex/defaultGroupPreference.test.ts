@@ -1,23 +1,18 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import aggregateTest from '@convex-dev/aggregate/test';
-import { convexTest } from 'convex-test';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { defaultGroupUnavailableRouteNoticeCode } from '../src/shared/routeNotices';
 import { api } from './_generated/api';
-import schema from './schema';
+import { applicationTest } from './application.test.fixture';
+import { storedProfileAvatar } from './profiles.test.fixture';
 
-const modules = import.meta.glob('./**/*.ts');
 const ABOUT = 'A test ruleset with About text long enough to satisfy the fifty character floor.';
 
 async function defaultGroupFixture() {
-  const t = convexTest(schema, modules);
-  aggregateTest.register(t, 'statistics');
-  aggregateTest.register(t, 'profileActivity');
-  aggregateTest.register(t, 'profileDiscovery');
+  const t = applicationTest();
   const ids = await t.run(async (ctx) => {
     const ownerId = await ctx.db.insert('users', { name: 'Default Group Owner' });
     const memberId = await ctx.db.insert('users', { name: 'Default Group Member' });
@@ -31,7 +26,7 @@ async function defaultGroupFixture() {
     const memberProfileId = await ctx.db.insert('profiles', {
       user_id: memberId,
       username: 'DefaultGroupMember',
-      avatar_url: 'https://example.com/member.png',
+      ...storedProfileAvatar,
       account_state: 'active',
       slug: 'default-group-member',
       created_at: '2026-08-20T00:00:00.000Z',
@@ -64,7 +59,7 @@ async function selectDefaultGroup(
 ) {
   return await member.mutation(api.profiles.updateCurrent, {
     username: 'DefaultGroupMember',
-    avatar_url: 'https://example.com/member.png',
+    avatar_url: storedProfileAvatar.avatar_url,
     default_group_id: groupId,
   });
 }
@@ -107,7 +102,7 @@ describe('default Group preference', () => {
     await expect(
       member.mutation(api.profiles.updateCurrent, {
         username: 'DefaultGroupMember',
-        avatar_url: 'https://example.com/member.png',
+        avatar_url: storedProfileAvatar.avatar_url,
         default_group_id: null,
       })
     ).resolves.toMatchObject({
@@ -156,7 +151,7 @@ describe('default Group preference', () => {
     await expect(
       member.mutation(api.profiles.updateCurrent, {
         username: 'DefaultGroupMember',
-        avatar_url: 'https://example.com/avatar.png',
+        avatar_url: storedProfileAvatar.avatar_url,
       })
     ).resolves.toMatchObject({
       profile: { default_group_id: ids.groupId },

@@ -1,3 +1,4 @@
+import { tintDrawing } from '../boards/tintDrawing';
 import { parseFormattedText } from '../formattedText';
 import { userImageSourceUrlSchema } from '../user-images/contract';
 import type { RulebookBattleSideValue } from './battleStep';
@@ -15,6 +16,7 @@ import type {
   RulebookRenderPageV1,
   RulebookRenderPreviewDocumentV1,
 } from './renderDocument';
+import { rulebookSceneBoard } from './sceneBoard';
 import type { RulebookSettings } from './settings';
 import { resolveRulebookArtworkSource } from './sources';
 import type {
@@ -72,6 +74,22 @@ export function projectRulebookSource(
   const artwork = resolveRulebookArtworkSource(reference);
   if (artwork) {
     return artwork;
+  }
+  if (reference.kind === 'board') {
+    /* A saved board resolves like any asset, and only as a board. */
+    const board = assetsById[reference.boardId];
+    return board?.type === 'board' && board.imageUrl && board.geometry
+      ? {
+          status: 'ready',
+          reference,
+          name: board.name,
+          imageUrl: board.imageUrl,
+          width: board.geometry.width,
+          height: board.geometry.height,
+          geometry: board.geometry,
+          publicationRevision: board.publicationRevision,
+        }
+      : { status: 'unavailable', reference };
   }
   if (reference.kind === 'asset') {
     const asset = assetsById[reference.assetId];
@@ -174,8 +192,31 @@ function projectBoardScene(
       return { ...troop, faction, ...projectTroopArtwork(faction, troop.troopId, troop.face) };
     }),
     highlights: value.highlights,
+    ...projectBoardMarkup(value, assetsById),
     annotations: value.annotations,
   };
+}
+
+/**
+ * A scene's tints drawn on its board, and its placed tokens that resolved to a published image.
+ * Tints draw only once the board's data is at hand;
+ * a board that does not draw leaves them out rather than failing the scene.
+ */
+function projectBoardMarkup(value: RulebookBoardSceneValue, assetsById: RulebookResolvedAssetsById) {
+  const board = rulebookSceneBoard(value.boardId, assetsById);
+  let tints;
+  if (value.tints?.length && board) {
+    try {
+      tints = value.tints.map((tint) => tintDrawing(board, tint));
+    } catch {
+      tints = undefined;
+    }
+  }
+  const tokens = value.tokens?.flatMap((token) => {
+    const asset = assetsById[token.asset_id];
+    return asset?.imageUrl ? [{ ...token, name: asset.name, type: asset.type, imageUrl: asset.imageUrl }] : [];
+  });
+  return { ...(tints ? { tints } : {}), ...(tokens?.length ? { tokens } : {}) };
 }
 
 function projectMovementGroup(
@@ -196,12 +237,25 @@ function projectMovementGroup(
   };
 }
 
+/**
+ * A page, or an anchored block on it, that text can link to.
+ * A page target has no `blockId`.
+ * The type is spelled out because an inferred one collapsed both shapes into the page shape and lost `blockId`.
+ */
+export type RulebookReferenceTarget = {
+  pageId: string;
+  blockId?: string;
+  label: string;
+  anchor: string;
+  pageNumber: number;
+};
+
 /** Names an authored destination without copying its label or position into the referring text. */
 export function rulebookReferenceTargets(
   contents: RulebookContentsDraftV1,
   assetsById: RulebookResolvedAssetsById = {},
   factionsById: RulebookResolvedFactionsById = {}
-) {
+): RulebookReferenceTarget[] {
   return contents.pageOrder.flatMap((pageId, index) => {
     const page = contents.pagesById[pageId];
     if (!page) {
@@ -233,10 +287,7 @@ export function projectRulebookTextReferences(
   targets: ReturnType<typeof rulebookReferenceTargets>
 ) {
   return references.map((reference) => {
-    const target = targets.find(
-      (target) =>
-        target.pageId === reference.pageId && ('blockId' in target ? target.blockId : undefined) === reference.blockId
-    );
+    const target = targets.find((target) => target.pageId === reference.pageId && target.blockId === reference.blockId);
     return target
       ? { label: target.label, anchor: target.anchor, pageNumber: target.pageNumber }
       : { label: 'Reference unavailable' };

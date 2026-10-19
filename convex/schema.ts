@@ -129,6 +129,17 @@ export default defineSchema({
     .index('by_game_id_operation_id', ['game_id', 'operation_id'])
     .index('by_game_operation_user', ['game_id', 'operation_id', 'user_id'])
     .index('by_state_next_attempt_at', ['state', 'next_attempt_at']),
+  /* One pending account-wide sign-out per account per game; a later one raises `through` instead of queueing another. */
+  play_session_cutoffs: defineTable({
+    game_id: v.id('play_games'),
+    principal_id: v.id('users'),
+    through: v.number(),
+    state: v.union(v.literal('pending'), v.literal('acknowledged')),
+    attempts: v.number(),
+    next_attempt_at: v.number(),
+  })
+    .index('by_game_id_principal_id', ['game_id', 'principal_id'])
+    .index('by_state_next_attempt_at', ['state', 'next_attempt_at']),
   users: defineTable({
     name: v.optional(v.string()),
     image: v.optional(v.string()),
@@ -250,11 +261,77 @@ export default defineSchema({
     .index('by_owner_deleted', ['owner_id', 'is_deleted'])
     .index('by_group_deleted', ['group_id', 'is_deleted'])
     .index('by_group_id', ['group_id']),
-  /* Small eligibility rows let Play list rulesets without loading every board definition. */
+  /*
+   * Small eligibility rows let Play list rulesets without loading every board definition.
+   * The optional listing fields let board lists skip the geometry; they turn required once `board_readiness_listing_v1` has run everywhere.
+   */
   board_readiness: defineTable({
     asset_id: v.id('assets'),
     usable: v.boolean(),
-  }).index('by_asset', ['asset_id']),
+    name: v.optional(v.string()),
+    slug: v.optional(v.string()),
+    owner_id: v.optional(v.id('users')),
+    group_id: v.optional(v.union(v.id('groups'), v.null())),
+    created_at: v.optional(v.string()),
+    updated_at: v.optional(v.string()),
+    is_deleted: v.optional(v.boolean()),
+    asset_creation_time: v.optional(v.number()),
+  })
+    .index('by_asset', ['asset_id'])
+    .index('by_deleted_created', ['is_deleted', 'asset_creation_time']),
+  /*
+   * One card-sized row per faction, kept by a trigger on every faction write, so list pages never read the authored blob.
+   * `data` is the catalogue projection of the faction at version `projection` (see `FACTION_CARD_PROJECTION`), or null while the stored faction fails to parse.
+   * Indexes end in the faction's own creation time, so a list reads cards in the order it read factions.
+   */
+  faction_cards: defineTable({
+    faction_id: v.id('factions'),
+    owner_id: v.id('users'),
+    group_id: v.union(v.id('groups'), v.null()),
+    slug: v.string(),
+    created_at: v.string(),
+    updated_at: v.string(),
+    is_deleted: v.boolean(),
+    faction_creation_time: v.number(),
+    projection: v.number(),
+    data: v.any(),
+  })
+    .index('by_faction', ['faction_id'])
+    .index('by_deleted_created', ['is_deleted', 'faction_creation_time'])
+    .index('by_owner_deleted_created', ['owner_id', 'is_deleted', 'faction_creation_time'])
+    .index('by_group_deleted_created', ['group_id', 'is_deleted', 'faction_creation_time']),
+  /**
+   * Catalogue read models: one small row per listed entity per list it is in, holding only what a catalogue page filters, searches and sorts on.
+   * Derived, never authored: each kind has one reconcile function, run by triggers on its source tables in the writing transaction and by a backfill that rebuilds it from the canonical rows.
+   * `kind` names the catalogue (`faction` today), `source_id` the canonical row, `partition` the list (`'all'`, or a facet such as a linked ruleset id), and `facets` every facet of the source.
+   * Each row has one item per sort in the `catalogueOrder` aggregate, which counts, orders and pages every list;
+   * the indexes serve the bounded reads and the spotlights.
+   * `search_text` holds the searchable names;
+   * `name_key` is the name the default order compares.
+   * The dates are epoch milliseconds, 0 when the source date does not parse;
+   * `complexity_score` is the x/10 score the filter compares.
+   */
+  catalogue_entries: defineTable({
+    kind: v.string(),
+    source_id: v.string(),
+    partition: v.string(),
+    slug: v.string(),
+    search_text: v.string(),
+    name_key: v.string(),
+    created_at: v.number(),
+    updated_at: v.number(),
+    /** `updated_at` once the source changed after it was created, else 0: what "freshly updated" picks from. */
+    edited_at: v.number(),
+    /* Required, so every row sits in the complexity index where its aggregate key says; a kind without complexity writes 0. */
+    complexity: v.number(),
+    complexity_score: v.number(),
+    facets: v.array(v.string()),
+  })
+    .index('by_kind_source', ['kind', 'source_id', 'partition'])
+    .index('by_kind_partition_created', ['kind', 'partition', 'created_at'])
+    .index('by_kind_partition_edited', ['kind', 'partition', 'edited_at'])
+    .index('by_kind_partition_complexity', ['kind', 'partition', 'complexity_score'])
+    .searchIndex('search_text', { searchField: 'search_text', filterFields: ['kind', 'partition'] }),
   leader_skill_stock_sets: defineTable({
     key: v.literal('gf9-leader-skills'),
     owner_id: v.id('users'),
@@ -536,8 +613,16 @@ export default defineSchema({
   ruleset_factions: defineTable({
     ruleset_id: v.id('rulesets'),
     faction_id: v.id('factions'),
+    /**
+     * Where the faction sits in the ruleset's own order, lowest first;
+     * its maintainers set it by dragging on the edit page, and the ruleset page shows the first few.
+     * Only the order matters, not the numbers: a new link is appended with the time it was made, and a reorder renumbers every link from 0.
+     * Optional until `ruleset_factions_position_v1` has given every existing link its creation time.
+     */
+    position: v.optional(v.number()),
   })
     .index('by_ruleset', ['ruleset_id'])
+    .index('by_ruleset_position', ['ruleset_id', 'position'])
     .index('by_faction', ['faction_id'])
     .index('by_ruleset_faction', ['ruleset_id', 'faction_id']),
   faq_items: defineTable({

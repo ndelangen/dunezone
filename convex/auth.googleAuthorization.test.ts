@@ -1,13 +1,10 @@
 /// <reference types="vite/client" />
 /* @vitest-environment edge-runtime */
 
-import { convexTest } from 'convex-test';
-import { afterEach, expect, test, vi } from 'vitest';
+import { afterEach, expect, test, vi } from 'vite-plus/test';
 
 import { api } from './_generated/api';
-import schema from './schema';
-
-const modules = import.meta.glob('./**/*.ts');
+import { applicationTest } from './application.test.fixture';
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -42,7 +39,7 @@ test.each([
       })
     );
 
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const signIn = await t.action(api.auth.signIn, { provider: 'google', params: { redirectTo: '/' } });
     if (!signIn.redirect) {
       throw new Error('Google sign-in did not start authorization');

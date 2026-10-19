@@ -3,7 +3,7 @@ import { getRulebookCoverPreset } from '@shared/rulebooks/coverPresets';
 import type { RulebookRenderPageByLayoutV1 } from '@shared/rulebooks/renderDocument';
 import { getRulebookSize, rulebookDesignCatalogue, rulebookSizeCatalogue } from '@shared/rulebooks/settings';
 import type { RulebookSettings } from '@shared/rulebooks/settings';
-import { expect } from 'storybook/test';
+import { expect, within } from 'storybook/test';
 
 import { createCoverFooter, createImageCoverPage } from './RulebookCovers.stories.fixture';
 import { RulebookPageRenderer } from './RulebookRenderer';
@@ -63,23 +63,23 @@ async function expectCoverBounds({ canvasElement }: { canvasElement: HTMLElement
   await document.fonts.ready;
   await Promise.all([...canvasElement.querySelectorAll<HTMLImageElement>('img')].map((image) => image.decode()));
   const pages = [...canvasElement.querySelectorAll<HTMLElement>('[data-rulebook-page]')];
-  expect(pages.length).toBeGreaterThan(0);
+  await expect(pages.length).toBeGreaterThan(0);
   for (const page of pages) {
     const dimensions = getRulebookSize(page.dataset.rulebookSize as RulebookSettings['size']);
     const bounds = page.getBoundingClientRect();
-    expect(bounds.width / bounds.height).toBeCloseTo(dimensions.widthMm / dimensions.heightMm, 2);
-    expect(page.querySelector('.rulebookPageFolio')).toBeNull();
-    expect(page.querySelector('.rulebookPageArtwork')).toBeNull();
-    expect(getComputedStyle(page, '::after').content).toBe('none');
-    expect(getComputedStyle(page.querySelector('.rulebookPageContent')!).padding).toBe('0px');
+    await expect(bounds.width / bounds.height).toBeCloseTo(dimensions.widthMm / dimensions.heightMm, 2);
+    await expect(page.querySelector('.rulebookPageFolio')).toBeNull();
+    await expect(page.querySelector('.rulebookPageArtwork')).toBeNull();
+    await expect(getComputedStyle(page, '::after').content).toBe('none');
+    await expect(getComputedStyle(page.querySelector('.rulebookPageContent')!).padding).toBe('0px');
     const background = page.querySelector('.rulebookCoverBackground');
     if (background) {
       const imageBounds = background.getBoundingClientRect();
-      expect(imageBounds.x).toBeCloseTo(bounds.x, 1);
-      expect(imageBounds.y).toBeCloseTo(bounds.y, 1);
-      expect(imageBounds.width).toBeCloseTo(bounds.width, 1);
-      expect(imageBounds.height).toBeCloseTo(bounds.height, 1);
-      expect(getComputedStyle(background).objectFit).toBe('cover');
+      await expect(imageBounds.x).toBeCloseTo(bounds.x, 1);
+      await expect(imageBounds.y).toBeCloseTo(bounds.y, 1);
+      await expect(imageBounds.width).toBeCloseTo(bounds.width, 1);
+      await expect(imageBounds.height).toBeCloseTo(bounds.height, 1);
+      await expect(getComputedStyle(background).objectFit).toBe('cover');
     }
   }
 }
@@ -93,15 +93,16 @@ export const DreamrulesRainbow = meta.story({
   },
   play: expectCoverBounds,
 });
-export const KissPlanet = meta.story({
-  args: {
-    backgroundImageUrl: getRulebookCoverPreset('kiss-planet').imageUrl,
-    title: 'Kiss Rules',
-    showSubtitle: false,
+/** The titles stay when only the Dune logo is switched off. */
+export const WithoutLogo = meta.story({
+  args: { showDuneLogo: false },
+  play: async (context) => {
+    await expectCoverBounds(context);
+    const canvas = within(context.canvasElement);
+    await expect(canvas.queryByRole('img', { name: 'Dune' })).toBeNull();
+    await expect(canvas.getByRole('heading', { name: context.args.title })).toBeVisible();
   },
-  play: expectCoverBounds,
 });
-export const WithoutLogo = meta.story({ args: { showDuneLogo: false }, play: expectCoverBounds });
 export const LogoOnBlankCover = meta.story({ args: { backgroundImageUrl: '' }, play: expectCoverBounds });
 export const ArtworkOnly = meta.story({
   args: { showDuneLogo: false, showHeading: false, showSubtitle: false },
@@ -128,29 +129,29 @@ async function expectFooterBounds({ canvasElement }: { canvasElement: HTMLElemen
     const bounds = page.getBoundingClientRect();
     const footer = page.querySelector<HTMLElement>('.rulebookCoverFooter')!;
     const footerBounds = footer.getBoundingClientRect();
-    expect(bounds.width / bounds.height).toBeCloseTo(dimensions.widthMm / dimensions.heightMm, 2);
-    expect(footerBounds.x).toBeCloseTo(bounds.x, 1);
-    expect(footerBounds.width).toBeCloseTo(bounds.width, 1);
-    expect(footerBounds.bottom).toBeCloseTo(bounds.bottom, 1);
-    expect(footerBounds.height).toBeCloseTo((bounds.width / dimensions.widthMm) * 46, 0);
-    expect(page.querySelector('.rulebookPageFolio')).toBeNull();
+    await expect(bounds.width / bounds.height).toBeCloseTo(dimensions.widthMm / dimensions.heightMm, 2);
+    await expect(footerBounds.x).toBeCloseTo(bounds.x, 1);
+    await expect(footerBounds.width).toBeCloseTo(bounds.width, 1);
+    await expect(footerBounds.bottom).toBeCloseTo(bounds.bottom, 1);
+    await expect(footerBounds.height).toBeCloseTo((bounds.width / dimensions.widthMm) * 46, 0);
+    await expect(page.querySelector('.rulebookPageFolio')).toBeNull();
     for (const text of page.querySelectorAll<HTMLElement>(
       '.rulebookCoverTitles, .rulebookCover > header, .rulebookCover > .rulebookCoverSupportingText'
     )) {
-      expect(text.getBoundingClientRect().bottom).toBeLessThan(footerBounds.top);
+      await expect(text.getBoundingClientRect().bottom).toBeLessThan(footerBounds.top);
     }
     const title = footer.querySelector<HTMLElement>('.rulebookCoverFooterTitle')!;
     const label = footer.querySelector<HTMLElement>('.rulebookCoverFooterLabel')!;
-    expect(getComputedStyle(title).whiteSpace).toBe('pre-line');
-    expect(title.getBoundingClientRect().bottom).toBeLessThanOrEqual(label.getBoundingClientRect().top);
+    await expect(getComputedStyle(title).whiteSpace).toBe('pre-line');
+    await expect(title.getBoundingClientRect().bottom).toBeLessThanOrEqual(label.getBoundingClientRect().top);
     for (const field of [title, label]) {
-      expect(field.scrollHeight).toBeLessThanOrEqual(field.clientHeight + 1);
-      expect(field.scrollWidth).toBeLessThanOrEqual(field.clientWidth + 1);
+      await expect(field.scrollHeight).toBeLessThanOrEqual(field.clientHeight + 1);
+      await expect(field.scrollWidth).toBeLessThanOrEqual(field.clientWidth + 1);
     }
     for (const emblem of footer.querySelectorAll('.rulebookCoverFooterEmblem')) {
       const emblemBounds = emblem.getBoundingClientRect();
-      expect(emblemBounds.top).toBeGreaterThanOrEqual(footerBounds.top);
-      expect(emblemBounds.bottom).toBeLessThanOrEqual(label.getBoundingClientRect().top);
+      await expect(emblemBounds.top).toBeGreaterThanOrEqual(footerBounds.top);
+      await expect(emblemBounds.bottom).toBeLessThanOrEqual(label.getBoundingClientRect().top);
     }
   }
 }
@@ -174,7 +175,14 @@ export const FooterWithoutFactions = meta.story({
 
 export const FooterUnavailableFaction = meta.story({
   args: { footer: createCoverFooter({ rightFaction: { status: 'unavailable', factionId: 'richese' } }) },
-  play: expectFooterBounds,
+  /* The right slot holds the unavailable mark instead of the Richese token, and the left slot is untouched. */
+  play: async (context) => {
+    await expectFooterBounds(context);
+    const footer = within(within(context.canvasElement).getByLabelText('Cover footer'));
+    await expect(footer.getByRole('img', { name: 'Faction unavailable' })).toBeVisible();
+    await expect(footer.queryByRole('img', { name: 'Richese' })).toBeNull();
+    await expect(footer.getByRole('img', { name: 'CHOAM' })).toBeVisible();
+  },
 });
 
 export const LegacyCoverWithFooter = meta.story({

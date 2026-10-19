@@ -1,4 +1,3 @@
-/* oxlint-disable jsx-a11y/alt-text -- Decorative game-card layers. */
 import { useId, useLayoutEffect, useRef } from 'react';
 import type { FC } from 'react';
 import type { z } from 'zod';

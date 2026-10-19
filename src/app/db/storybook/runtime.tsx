@@ -1,8 +1,3 @@
-import {
-  useMutation as convexUseMutation,
-  usePaginatedQuery as convexUsePaginatedQuery,
-  useQuery as convexUseQuery,
-} from 'convex/react';
 import type {
   PaginatedQueryArgs,
   PaginatedQueryItem,
@@ -37,12 +32,13 @@ import type {
 type WithoutId<Request> = Request extends unknown ? Omit<Request, 'id'> : never;
 type WorkerRequestPayload = WithoutId<WorkerRequest>;
 
-export class ConvexStorybookWorkerClient {
+/** The worker itself. Stories never hold one directly, so a pooled worker can serve the next story without the last one reaching it. */
+export class ConvexStorybookWorker {
   private readonly worker = new Worker(new URL('./convexStorybook.worker.ts', import.meta.url), { type: 'module' });
   private readonly pending = new Map<number, { resolve: (value: unknown) => void; reject: (error: Error) => void }>();
-  private readonly listeners = new Set<() => void>();
   private nextId = 1;
-  private revision = 0;
+  /** False once the worker crashed or stopped, so it is never handed to another story. */
+  healthy = true;
 
   constructor() {
     this.worker.addEventListener('message', (event: MessageEvent<WorkerResponse>) => {
@@ -59,9 +55,44 @@ export class ConvexStorybookWorkerClient {
       }
     });
     this.worker.addEventListener('error', (event) => {
+      this.healthy = false;
       this.rejectPending(new Error(event.message));
     });
   }
+
+  async request(request: WorkerRequestPayload): Promise<unknown> {
+    if (!this.healthy) {
+      throw new Error('The Convex Storybook worker stopped.');
+    }
+    const id = this.nextId;
+    this.nextId += 1;
+    return await new Promise((resolve, reject) => {
+      this.pending.set(id, { resolve, reject });
+      this.worker.postMessage({ ...request, id } satisfies WorkerRequest);
+    });
+  }
+
+  terminate() {
+    this.healthy = false;
+    this.worker.terminate();
+    this.rejectPending(new Error('The Convex Storybook worker stopped.'));
+  }
+
+  private rejectPending(error: Error) {
+    for (const pending of this.pending.values()) {
+      pending.reject(error);
+    }
+    this.pending.clear();
+  }
+}
+
+/** One story's session on a worker. Once retired it refuses every call, so a late handler from a finished story cannot write into the next story's database. */
+export class ConvexStorybookWorkerClient {
+  private readonly listeners = new Set<() => void>();
+  private revision = 0;
+  private retired = false;
+
+  constructor(private readonly worker = new ConvexStorybookWorker()) {}
 
   query = async <Query extends FunctionReference<'query'> | FunctionReference_future<'query'>>(
     fn: Query,
@@ -141,8 +172,6 @@ export class ConvexStorybookWorkerClient {
   runContextConformance = async () =>
     (await this.request({ operation: 'contextConformance' })) as ContextConformanceResult;
 
-  waitForIdle = async () => await this.request({ operation: 'ping' });
-
   subscribe = (listener: () => void) => {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
@@ -150,9 +179,15 @@ export class ConvexStorybookWorkerClient {
 
   getRevision = () => this.revision;
 
+  /** Ends this session and hands back its worker, which the next story reseeds before using. */
+  retire(): ConvexStorybookWorker {
+    this.retired = true;
+    return this.worker;
+  }
+
   terminate() {
+    this.retired = true;
     this.worker.terminate();
-    this.rejectPending(new Error('The Convex Storybook worker stopped.'));
   }
 
   private notifyQueries() {
@@ -163,19 +198,10 @@ export class ConvexStorybookWorkerClient {
   }
 
   private async request(request: WorkerRequestPayload): Promise<unknown> {
-    const id = this.nextId;
-    this.nextId += 1;
-    return await new Promise((resolve, reject) => {
-      this.pending.set(id, { resolve, reject });
-      this.worker.postMessage({ ...request, id } satisfies WorkerRequest);
-    });
-  }
-
-  private rejectPending(error: Error) {
-    for (const pending of this.pending.values()) {
-      pending.reject(error);
+    if (this.retired) {
+      throw new Error('This story has finished, so its Convex Storybook database is gone.');
     }
-    this.pending.clear();
+    return await this.worker.request(request);
   }
 }
 
@@ -197,6 +223,64 @@ function useConvexStorybookWorkerSession() {
 function useStableConvexValue<Value>(value: Value) {
   const serialized = JSON.stringify(convexToJson(value as ConvexValue));
   return useMemo(() => jsonToConvex(JSON.parse(serialized)) as Value, [serialized]);
+}
+
+type StorybookQueries = Record<
+  string,
+  {
+    query: FunctionReference<'query'> | FunctionReference_future<'query'>;
+    args: Record<string, ConvexValue>;
+  }
+>;
+
+/** Query failures stay beside their own keys, as in Convex's useQueries, so a held page can keep its last answer. */
+export function useConvexStorybookQueries(queries: StorybookQueries): Record<string, unknown> {
+  const { client, identity } = useConvexStorybookWorkerSession();
+  const revision = useSyncExternalStore(client.subscribe, client.getRevision, client.getRevision);
+  const requests = useStableConvexValue(
+    Object.fromEntries(
+      Object.entries(queries).map(([key, request]) => [
+        key,
+        { name: getFunctionName(request.query), args: request.args },
+      ])
+    )
+  );
+  const scope = useMemo(() => ({ client, identity }), [client, identity]);
+  type Answer = { signature: string; revision: number; value: unknown };
+  const [result, setResult] = useState<{ scope: typeof scope; answers: Record<string, Answer> }>();
+  useEffect(() => {
+    let active = true;
+    for (const [key, request] of Object.entries(requests)) {
+      const signature = JSON.stringify([request.name, convexToJson(request.args)]);
+      const receive = (value: unknown) => {
+        if (active) {
+          setResult((previous) => ({
+            scope,
+            answers: {
+              ...(previous?.scope === scope ? previous.answers : {}),
+              [key]: { signature, revision, value },
+            },
+          }));
+        }
+      };
+      void client
+        .query(makeFunctionReference<'query'>(request.name), request.args, identity)
+        .then(receive, (error: unknown) => receive(error instanceof Error ? error : new Error(String(error))));
+    }
+    return () => {
+      active = false;
+    };
+  }, [client, identity, requests, revision, scope]);
+  return Object.fromEntries(
+    Object.entries(requests).map(([key, request]) => {
+      const answer = result?.scope === scope ? result.answers[key] : undefined;
+      const signature = JSON.stringify([request.name, convexToJson(request.args)]);
+      if (answer?.signature !== signature || (answer.value instanceof Error && answer.revision !== revision)) {
+        return [key, undefined];
+      }
+      return [key, answer.value];
+    })
+  );
 }
 
 export function useConvexStorybookQuery<Query extends FunctionReference<'query'> | FunctionReference_future<'query'>>(
@@ -370,5 +454,10 @@ export const convexStorybookReferences = {
   rulesetsList: api.rulesets.list,
 };
 
-export { convexUseMutation, convexUsePaginatedQuery, convexUseQuery };
+export {
+  useMutation as convexUseMutation,
+  usePaginatedQuery as convexUsePaginatedQuery,
+  useQuery as convexUseQuery,
+  useQueries as convexUseQueries,
+} from 'convex/react';
 export type { FunctionArgs, FunctionReference, FunctionReturnType };

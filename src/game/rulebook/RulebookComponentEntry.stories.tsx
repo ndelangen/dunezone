@@ -33,7 +33,7 @@ export const TechToken = meta.story({
     const image = canvasElement.querySelector('img')!;
     await image.decode();
     const bounds = image.getBoundingClientRect();
-    expect(bounds.width / bounds.height).toBeCloseTo(1, 2);
-    expect(getComputedStyle(image).clipPath).toMatch(/^polygon\(/);
+    await expect(bounds.width / bounds.height).toBeCloseTo(1, 2);
+    await expect(getComputedStyle(image).clipPath).toMatch(/^polygon\(/);
   },
 });

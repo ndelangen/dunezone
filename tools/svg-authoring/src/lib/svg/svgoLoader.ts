@@ -49,17 +49,8 @@ export function optimizeWithSvgo(svg: string, precision: number): string {
     const result = cached(svg, {
       multipass: true,
       floatPrecision: precision,
-      plugins: [
-        {
-          name: "preset-default",
-          params: {
-            overrides: {
-              // Keep the viewBox — it is the contract for our pipeline.
-              removeViewBox: false,
-            },
-          },
-        },
-      ],
+      /* SVGO 4's default preset preserves the viewBox. */
+      plugins: ["preset-default"],
     });
     return result.data || svg;
   } catch {

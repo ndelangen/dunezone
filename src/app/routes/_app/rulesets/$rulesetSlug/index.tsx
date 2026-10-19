@@ -1,10 +1,11 @@
-import { Alert, Avatar, Badge, Box, Menu, Popover, Select, Stack, Text, TextInput, Tooltip } from '@mantine/core';
+import { Alert, Avatar, Badge, Box, Button, Menu, Select, Stack, Text, TextInput, Tooltip } from '@mantine/core';
+import { parseFaqCatalogueSearch } from '@shared/faq/catalogueSearch';
 import { FAQ_TAG_VALUES } from '@shared/faq/tags';
 import type { FaqTag } from '@shared/faq/tags';
 import { isRouteNoticeCode } from '@shared/routeNotices';
 import type { RouteNoticeCode } from '@shared/routeNotices';
 import { getRulebookSize } from '@shared/rulebooks/settings';
-import { Link, createFileRoute, notFound, useNavigate } from '@tanstack/react-router';
+import { Link, createFileRoute, notFound, redirect, useNavigate } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { FactionCard } from '@ui/block/FactionCard';
 import { LoadError } from '@ui/block/LoadError';
@@ -28,6 +29,7 @@ import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import {
   ArrowLeft,
+  ArrowRight,
   CheckCircle2,
   CircleHelp,
   EllipsisVertical,
@@ -35,8 +37,6 @@ import {
   FileText,
   History,
   Layers3,
-  Link2,
-  Link2Off,
   MessageCircleQuestionMark,
   Pencil,
   RefreshCw,
@@ -46,22 +46,16 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 
+import type { FaqItemWithDetails } from '@db/faq';
 import { useCurrentProfile } from '@db/profiles';
 import { useRetryRulebookFirstPagePreview } from '@db/rulebooks';
 import type { RulebookListEntry } from '@db/rulebooks';
-import {
-  loadRulesetDetailPage,
-  useAddRulesetFaction,
-  useDeleteRuleset,
-  useRemoveRulesetFaction,
-  useRulesetDetailPage,
-  useSetRulesetGroup,
-} from '@db/rulesets';
+import { loadRulesetDetailPage, useDeleteRuleset, useRulesetDetailPage, useSetRulesetGroup } from '@db/rulesets';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
-import { FactionPicker } from '@app/pickers/FactionPicker';
 import { redirectFromFormerAddress } from '@app/routes/formerAddress';
 import { profileLink, publicDescription, publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
 import { resolveRouteNotice } from '@app/routes/routeNotices';
+import { AssetFace } from '@app/widgets/asset-face/AssetFace';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import styles from './index.module.css';
@@ -236,111 +230,145 @@ function RulesetRulebooks({
 }
 
 /**
- * The toolbar affordance that adds a faction to this ruleset.
- * It owns the open state and nothing else: the picker is mounted only while the popover is open, so its subscription lives exactly that long, which is the contract `AGENTS.md` sets for a Picker's container.
- * The commit is the caller's;
- * this reports the chosen faction's id and closes.
+ * The board this ruleset plays on, drawn as its published face and linking to its page.
+ * An empty board slot draws the missing face as its placeholder, so the section keeps its shape whether or not a board was chosen.
  */
-function AddFactionPopover({
-  disabled,
-  linkedSlugs,
-  rulesetName,
-  onAdd,
+function RulesetBoard({
+  board,
 }: {
-  disabled: boolean;
-  /** Every faction already in this ruleset, so the picker cannot offer a duplicate. */
-  linkedSlugs: string[];
-  rulesetName: string;
-  onAdd: (factionId: string) => void;
+  board: { type: string; slug: string; name: string; previewHref: string | null } | null;
 }) {
-  const [opened, setOpened] = useState(false);
-
   return (
-    <Popover
-      opened={opened}
-      onChange={setOpened}
-      position="bottom-end"
-      width={440}
-      shadow="md"
-      withArrow
-      /* A 440px pane over a 40px trigger is slid by `shift` to fit, and a side-anchored arrow goes with the pane rather than staying on the control that opened it (#715). */
-      arrowPosition="center"
-      trapFocus
-      returnFocus
-    >
-      <Popover.Target>
-        <IconAction
-          label="Add a faction"
-          emphasis="standard"
-          intent="neutral"
-          size="lg"
-          disabled={disabled}
-          onClick={() => setOpened((current) => !current)}
-          icon={<Link2 size={17} aria-hidden />}
-        />
-      </Popover.Target>
-      <Popover.Dropdown>
-        {opened ? (
-          <FactionPicker
-            excludeSlugs={linkedSlugs}
-            copy={{
-              title: 'Add a faction',
-              intro: `Choose a faction to add to ${rulesetName}. Factions already in it are not listed.`,
-              errorTitle: 'Faction could not be added',
-              emptyMessage: 'Every faction is already in this ruleset.',
-              confirmTitle: `Add this faction to ${rulesetName}?`,
-              /* No warning: nothing is overwritten, and the card's own menu takes it straight back out. */
-              confirmLabel: 'Add faction',
-              confirmIntent: 'positive',
-            }}
-            onCancel={() => setOpened(false)}
-            onPick={(picked) => {
-              onAdd(picked.id);
-              setOpened(false);
-            }}
-          />
-        ) : null}
-      </Popover.Dropdown>
-    </Popover>
+    <Section id="board" icon={<TopicIcon topic="assets" size={20} />} title="Board">
+      <Stack gap="xs" align="center">
+        {board ? (
+          <Link
+            to="/assets/$type/$slug"
+            params={{ type: board.type, slug: board.slug }}
+            className={styles.boardFace}
+            aria-label={board.name}
+          >
+            <AssetFace type="board" data={null} name={board.name} href={board.previewHref} />
+          </Link>
+        ) : (
+          <div className={styles.boardFace}>
+            <AssetFace type="board" data={null} name="No board chosen" href={null} />
+          </div>
+        )}
+        <Text size="sm" c={board ? undefined : 'dimmed'}>
+          {board ? board.name : 'This ruleset has no board yet.'}
+        </Text>
+      </Stack>
+    </Section>
   );
 }
 
 /**
- * The menu in a faction card's action slot, on the ruleset page.
- * Mantine's `Menu` directly: the theme gives its dropdown the same pane a `Popover` gets, and `color="red"` is how a destructive choice reads, so a wrapper here would only forward props.
- * See the Mantine-component stories in `src/app/ui/control`.
- * A menu rather than a bare button because the card is a link: a menu target is unambiguously not part of the navigation, and further per-faction actions land here rather than crowding the tile.
- * No confirmation: the toolbar's picker puts the faction straight back.
+ * The ruleset's newest questions and a way to the rest.
+ * Searching or narrowing happens on the FAQ's own page, so the search here opens it on Enter and the tag opens it at once.
  */
-function FactionCardMenu({
-  factionName,
-  rulesetName,
-  disabled,
-  onRemove,
+function RulesetFaqPreview({
+  rulesetSlug,
+  items,
+  questionCount,
 }: {
-  factionName: string;
-  rulesetName: string;
-  disabled: boolean;
-  onRemove: () => void;
+  rulesetSlug: string;
+  items: FaqItemWithDetails[];
+  questionCount: number;
 }) {
+  const navigate = useNavigate();
+  const [draft, setDraft] = useState('');
+  const openFaq = (patch: { tag?: FaqTag }) => {
+    void navigate({
+      to: '/rulesets/$rulesetSlug/faq',
+      params: { rulesetSlug },
+      search: parseFaqCatalogueSearch({ q: draft, ...patch }),
+    });
+  };
   return (
-    <Menu position="bottom-end" shadow="md" withinPortal>
-      <Menu.Target>
-        <IconAction
-          label={`Actions for ${factionName}`}
-          emphasis="standard"
-          intent="neutral"
-          size="sm"
-          disabled={disabled}
-          icon={<EllipsisVertical size={15} aria-hidden />}
+    <Section
+      id="faq"
+      icon={<CircleHelp size={20} aria-hidden />}
+      title="Community FAQ"
+      description="Browse community questions and accepted answers."
+    >
+      <form
+        role="search"
+        aria-label="Search this ruleset's FAQ"
+        onSubmit={(event) => {
+          event.preventDefault();
+          openFaq({});
+        }}
+      >
+        <TextInput
+          value={draft}
+          onChange={(event) => setDraft(event.currentTarget.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault();
+              openFaq({});
+            }
+          }}
+          placeholder="Search questions…"
+          aria-label="Search FAQ questions"
+          leftSection={<Search size={16} aria-hidden />}
+          leftSectionPointerEvents="none"
+          rightSectionWidth="8rem"
+          rightSectionPointerEvents="all"
+          size="md"
+          radius="md"
+          classNames={{ wrapper: styles.faqFilterWrapper }}
+          rightSection={
+            <Select
+              value="__all__"
+              onChange={(value) =>
+                openFaq({ tag: value === '__all__' || value == null ? undefined : (value as FaqTag) })
+              }
+              data={[
+                { value: '__all__', label: 'All tags' },
+                ...FAQ_TAG_VALUES.map((tag) => ({
+                  value: tag,
+                  label: FAQ_TAG_LABELS[tag],
+                })),
+              ]}
+              aria-label="Filter FAQ by tag"
+              allowDeselect={false}
+              variant="unstyled"
+              size="sm"
+              rightSectionWidth="2rem"
+              comboboxProps={{ shadow: 'md' }}
+              classNames={{
+                root: styles.faqTagSelect,
+                wrapper: styles.faqTagSelectWrapper,
+                input: styles.faqTagSelectInput,
+              }}
+            />
+          }
         />
-      </Menu.Target>
-      <Menu.Dropdown>
-        <Menu.Item color="red" leftSection={<Link2Off size={15} aria-hidden />} onClick={onRemove}>
-          Remove from {rulesetName}
-        </Menu.Item>
-      </Menu.Dropdown>
-    </Menu>
+      </form>
+      <FaqList
+        emptyLabel="No FAQ items yet."
+        items={items}
+        rulesetSlug={rulesetSlug}
+        onOpenQuestion={(questionSlug) =>
+          navigate({
+            to: '/rulesets/$rulesetSlug/faq/$questionSlug',
+            params: { rulesetSlug, questionSlug },
+          })
+        }
+      />
+      {questionCount > items.length ? (
+        <Box>
+          <Button
+            variant="default"
+            rightSection={<ArrowRight size={16} aria-hidden />}
+            renderRoot={(props) => <Link {...props} to="/rulesets/$rulesetSlug/faq" params={{ rulesetSlug }} />}
+          >
+            All {questionCount} questions
+          </Button>
+        </Box>
+      ) : null}
+    </Section>
   );
 }
 
@@ -348,14 +376,20 @@ export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/')({
   ssr: true,
   codeSplitGroupings: [['component', 'pendingComponent', 'errorComponent']],
   validateSearch: (params: Record<string, unknown>): { q?: string; tag?: FaqTag; notice?: RouteNoticeCode } => {
-    const q = params?.q;
-    const tag = params?.tag;
     const notice = params?.notice;
-    return {
-      ...(typeof q === 'string' ? { q } : {}),
-      ...(typeof tag === 'string' && FAQ_TAG_VALUES.includes(tag as FaqTag) ? { tag: tag as FaqTag } : {}),
-      ...(isRouteNoticeCode(notice) ? { notice } : {}),
-    };
+    const { q, tag } = parseFaqCatalogueSearch(params);
+    return { ...(q ? { q } : {}), ...(tag ? { tag } : {}), ...(isRouteNoticeCode(notice) ? { notice } : {}) };
+  },
+  /* The FAQ's search moved to its own page; an older link that searched here lands there. */
+  beforeLoad: ({ search, params }) => {
+    if (search.q != null || search.tag != null) {
+      throw redirect({
+        to: '/rulesets/$rulesetSlug/faq',
+        params,
+        search: { q: search.q, tag: search.tag },
+        replace: true,
+      });
+    }
   },
   loader: async ({ params, location }) => {
     const detailPage = await loadRulesetDetailPage(params.rulesetSlug);
@@ -372,9 +406,9 @@ export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/')({
       name: loaderData?.ruleset.name ?? 'Ruleset',
       kind: loaderData ? 'Ruleset' : undefined,
       pathname: `/rulesets/${encodeURIComponent(loaderData?.ruleset.slug ?? params.rulesetSlug)}`,
-      description:
-        publicDescription(loaderData?.ruleset.about) ||
-        `Explore ${loaderData?.ruleset.name ?? 'this ruleset'} and its published Rulebooks.`,
+      description: loaderData
+        ? publicDescription(loaderData.ruleset.about) || 'Read its published Rulebooks and rules questions.'
+        : '',
       image: loaderData?.ruleset.coverThumbUrl,
       social: { shape: 'portrait' },
       trail: [{ name: 'Rulesets', pathname: '/rulesets' }],
@@ -414,8 +448,6 @@ function RulesetDetailPage() {
   const profile = useCurrentProfile();
   const deleteRuleset = useDeleteRuleset();
   const setRulesetGroup = useSetRulesetGroup();
-  const addFaction = useAddRulesetFaction();
-  const removeFaction = useRemoveRulesetFaction();
   const routeNotice = resolveRouteNotice(search.notice);
 
   useLivePageTitle(page?.ruleset.name, 'Ruleset');
@@ -434,12 +466,12 @@ function RulesetDetailPage() {
   const r = page.ruleset;
   const assignedGroup = viewerAccess.assignedGroup;
   const membershipStatus = viewerAccess.viewer.kind === 'authenticated' ? viewerAccess.viewer.membership : 'none';
-  const answeredFaqCount = page.faqItems.filter((item) => item.accepted_answer_id != null).length;
-  const mutationError =
-    deleteRuleset.error?.message ??
-    setRulesetGroup.error?.message ??
-    addFaction.error?.message ??
-    removeFaction.error?.message;
+  /* The counts come from the FAQ's lists, which are empty while their backfill runs; the preview is never more than there are. */
+  const faqCount = Math.max(page.faqCounts.questions, page.faqPreview.length);
+  /* Likewise the faction count, from the catalogue's list for this ruleset. */
+  const factionCount = Math.max(page.factionCount, page.factionPreview.length);
+  const answeredFaqCount = page.faqCounts.answered;
+  const mutationError = deleteRuleset.error?.message ?? setRulesetGroup.error?.message;
   const dismissRouteNotice = () =>
     navigate({
       to: '.',
@@ -462,14 +494,14 @@ function RulesetDetailPage() {
     {
       key: 'factions',
       icon: <Layers3 size={17} aria-hidden />,
-      value: page.factions.length,
-      label: `${page.factions.length} ${page.factions.length === 1 ? 'faction' : 'factions'}`,
+      value: factionCount,
+      label: `${factionCount} ${factionCount === 1 ? 'faction' : 'factions'}`,
     },
     {
       key: 'questions',
       icon: <CircleHelp size={17} aria-hidden />,
-      value: page.faqItems.length,
-      label: `${page.faqItems.length} ${page.faqItems.length === 1 ? 'question' : 'questions'}`,
+      value: faqCount,
+      label: `${faqCount} ${faqCount === 1 ? 'question' : 'questions'}`,
     },
     {
       key: 'answered',
@@ -492,25 +524,6 @@ function RulesetDetailPage() {
   const handleDelete = () => {
     deleteRuleset.mutate(r._id, {
       onSuccess: () => navigate({ to: '/rulesets' }),
-    });
-  };
-
-  const handleFaqSearchChange = (value: string) => {
-    navigate({
-      to: '.',
-      search: (prev) => ({ ...prev, q: value.trim() || undefined }),
-      replace: true,
-    });
-  };
-
-  const handleFaqTagChange = (value: string | null) => {
-    navigate({
-      to: '.',
-      search: (prev) => ({
-        ...prev,
-        tag: value == null || value === '__all__' ? undefined : (value as FaqTag),
-      }),
-      replace: true,
     });
   };
 
@@ -590,14 +603,6 @@ function RulesetDetailPage() {
                     <Link {...props} to="/rulesets/$rulesetSlug/faq/create" params={{ rulesetSlug: r.slug }} />
                   )}
                   icon={<MessageCircleQuestionMark size={17} aria-hidden />}
-                />
-              ) : null}
-              {viewerAccess.capabilities.edit ? (
-                <AddFactionPopover
-                  disabled={addFaction.isPending}
-                  linkedSlugs={page.factions.map((faction) => faction.slug)}
-                  rulesetName={r.name}
-                  onAdd={(factionId) => addFaction.mutate({ rulesetId: r._id, factionId })}
                 />
               ) : null}
             </Toolbar.Cluster>
@@ -683,90 +688,30 @@ function RulesetDetailPage() {
                 rulesetSlug={r.slug}
                 canEdit={viewerAccess.capabilities.edit}
               />
+
+              <RulesetBoard board={page.board} />
             </Stack>
           </ColumnsWithRailLayout.Primary>
 
           <ColumnsWithRailLayout.Secondary>
-            <Section
-              id="faq"
-              icon={<CircleHelp size={20} aria-hidden />}
-              title="Community FAQ"
-              description="Browse community questions and accepted answers."
-            >
-              <TextInput
-                value={search.q ?? ''}
-                onChange={(event) => handleFaqSearchChange(event.currentTarget.value)}
-                placeholder="Search questions…"
-                aria-label="Search FAQ questions"
-                leftSection={<Search size={16} aria-hidden />}
-                leftSectionPointerEvents="none"
-                rightSectionWidth="8rem"
-                rightSectionPointerEvents="all"
-                size="md"
-                radius="md"
-                classNames={{ wrapper: styles.faqFilterWrapper }}
-                rightSection={
-                  <Select
-                    value={search.tag ?? '__all__'}
-                    onChange={handleFaqTagChange}
-                    data={[
-                      { value: '__all__', label: 'All tags' },
-                      ...FAQ_TAG_VALUES.map((tag) => ({
-                        value: tag,
-                        label: FAQ_TAG_LABELS[tag],
-                      })),
-                    ]}
-                    aria-label="Filter FAQ by tag"
-                    allowDeselect={false}
-                    variant="unstyled"
-                    size="sm"
-                    rightSectionWidth="2rem"
-                    comboboxProps={{ shadow: 'md' }}
-                    classNames={{
-                      root: styles.faqTagSelect,
-                      wrapper: styles.faqTagSelectWrapper,
-                      input: styles.faqTagSelectInput,
-                    }}
-                  />
-                }
-              />
-              <FaqList
-                emptyLabel="No FAQ items yet."
-                noMatchesLabel="No questions match your search."
-                items={page.faqItems}
-                rulesetSlug={r.slug}
-                searchQuery={search.q ?? ''}
-                selectedTag={search.tag}
-                onOpenQuestion={(questionSlug) =>
-                  navigate({
-                    to: '/rulesets/$rulesetSlug/faq/$questionSlug',
-                    params: { rulesetSlug: r.slug, questionSlug },
-                  })
-                }
-              />
-            </Section>
+            <RulesetFaqPreview rulesetSlug={r.slug} items={page.faqPreview} questionCount={faqCount} />
           </ColumnsWithRailLayout.Secondary>
 
           <ColumnsWithRailLayout.Rail>
             <Section id="factions" icon={<Layers3 size={20} aria-hidden />} title="Factions">
-              {page.factions.length > 0 ? (
+              {factionCount > 0 ? (
                 <Stack gap="md">
-                  {page.factions.map((faction) => (
-                    <FactionCard
-                      key={faction._id}
-                      faction={faction}
-                      action={
-                        viewerAccess.capabilities.edit ? (
-                          <FactionCardMenu
-                            factionName={faction.data.name}
-                            rulesetName={r.name}
-                            disabled={removeFaction.isPending}
-                            onRemove={() => removeFaction.mutate({ rulesetId: r._id, factionId: faction._id })}
-                          />
-                        ) : null
-                      }
-                    />
+                  {page.factionPreview.map((faction) => (
+                    <FactionCard key={faction._id} faction={faction} />
                   ))}
+                  {factionCount > page.factionPreview.length ? (
+                    <Button
+                      variant="default"
+                      renderRoot={(props) => <Link {...props} to="/factions" search={{ ruleset: r.slug }} />}
+                    >
+                      All {factionCount} factions
+                    </Button>
+                  ) : null}
                 </Stack>
               ) : (
                 <Surface padding="lg">

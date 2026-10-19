@@ -5,7 +5,6 @@ import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { LoadError } from '@ui/block/LoadError';
 import { LoadPending } from '@ui/block/LoadPending';
-import { LoginGate } from '@ui/block/LoginGate';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { errorMessage } from '@ui/content/errorMessage';
 import { SlugRenameNotice } from '@ui/content/SlugRenameNotice';
@@ -21,6 +20,7 @@ import type { GroupEntry } from '@db/groups';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { pageHead } from '@app/routes/pageTitle';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
+import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 /* The form's id, so Save can sit in the toolbar with every other page's Save and still submit it. */
@@ -62,7 +62,7 @@ function GroupEditor({ initial }: { initial: GroupEntry }) {
       {
         onSuccess: (entry) => {
           if (previousSlug !== entry.slug) {
-            navigate({
+            void navigate({
               to: '/groups/$groupSlug/edit',
               params: { groupSlug: entry.slug },
               replace: true,

@@ -23,6 +23,8 @@ const baseFaction = {
   rulesets: [{ id: 'ruleset-advanced', slug: 'advanced', name: 'Advanced Dune' }],
 } as unknown as FactionCatalogueEntry;
 
+const longName = 'The Very Long and Distinguished House of Atreides Expeditionary Council';
+
 const meta = preview.meta({
   component: FactionCard,
   parameters: { layout: 'centered' },
@@ -57,18 +59,8 @@ export const MultipleRulesets = meta.story({
       ],
     } as FactionCatalogueEntry,
   },
-});
-
-export const SelectedRulesetPriority = meta.story({
-  args: {
-    faction: {
-      ...baseFaction,
-      rulesets: [
-        { id: 'ruleset-advanced', slug: 'advanced', name: 'Advanced Dune' },
-        { id: 'ruleset-classic', slug: 'classic', name: 'Classic Dune' },
-      ],
-    } as FactionCatalogueEntry,
-    selectedRulesetSlug: 'classic',
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByText('Advanced Dune +2')).toBeVisible();
   },
 });
 
@@ -78,7 +70,7 @@ export const ContentStress = meta.story({
       ...baseFaction,
       data: {
         ...assetPublishingFaction,
-        name: 'The Very Long and Distinguished House of Atreides Expeditionary Council',
+        name: longName,
         leaders: assetPublishingFaction.leaders.slice(0, 3),
       },
       rulesets: [],
@@ -91,6 +83,16 @@ export const ContentStress = meta.story({
       </div>
     ),
   ],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    /* The link's name is the caption alone, so no ruleset label renders. */
+    const card = canvas
+      .getByRole('link', { name: `${longName} Novice complexity, 2 out of 10` })
+      .getBoundingClientRect();
+    const name = canvas.getByText(longName).getBoundingClientRect();
+    await expect(name.left).toBeGreaterThanOrEqual(card.left);
+    await expect(name.right).toBeLessThanOrEqual(card.right);
+  },
 });
 
 /** With an adornment: a control that acts on the faction where it is listed, top-left because the other corners are taken. */
@@ -136,18 +138,18 @@ function withImages(image: string): FactionCatalogueEntry {
 export const Published = meta.story({
   args: { faction: withImages(publishedImage) },
   play: async ({ canvasElement }) => {
-    await waitFor(() => {
+    await waitFor(async () => {
       const images = canvasElement.querySelectorAll('img');
-      expect(images).toHaveLength(5);
-      expect([...images].every((image) => image.naturalWidth === 600)).toBe(true);
+      await expect(images).toHaveLength(5);
+      await expect([...images].every((image) => image.naturalWidth === 600)).toBe(true);
     });
   },
 });
 
 export const MissingPublications = meta.story({
   play: async ({ canvasElement }) => {
-    expect(within(canvasElement).getByText('LJ')).toBeVisible();
-    expect(canvasElement.querySelectorAll('img')).toHaveLength(0);
+    await expect(within(canvasElement).getByText('LJ')).toBeVisible();
+    await expect(canvasElement.querySelectorAll('img')).toHaveLength(0);
   },
 });
 
@@ -159,7 +161,7 @@ export const FailedPublications = meta.story({
   play: async ({ canvasElement }) => {
     await expect(within(canvasElement).findByRole('img', missingToken)).resolves.toBeVisible();
     await waitFor(() => expect(canvasElement.querySelectorAll('img')).toHaveLength(0));
-    expect(within(canvasElement).getByRole('link')).toHaveAttribute('href', '/factions/atreides');
+    await expect(within(canvasElement).getByRole('link')).toHaveAttribute('href', '/factions/atreides');
   },
 });
 
@@ -179,10 +181,10 @@ export const PublicationAfterFailure = meta.story({
     const canvas = within(canvasElement);
     await canvas.findByRole('img', missingToken);
     await userEvent.click(canvas.getByRole('button', { name: 'Use new publication' }));
-    await waitFor(() => {
+    await waitFor(async () => {
       const images = canvasElement.querySelectorAll('img');
-      expect(images).toHaveLength(5);
-      expect([...images].every((image) => image.naturalWidth === 600)).toBe(true);
+      await expect(images).toHaveLength(5);
+      await expect([...images].every((image) => image.naturalWidth === 600)).toBe(true);
     });
   },
 });
@@ -190,7 +192,7 @@ export const PublicationAfterFailure = meta.story({
 export const LiveDraftPreview = meta.story({
   args: { livePreview: true, faction: withImages(failedImage) },
   play: async ({ canvasElement }) => {
-    expect(within(canvasElement).getByLabelText('Lady Jessica')).toBeVisible();
-    expect(canvasElement.querySelectorAll('img')).toHaveLength(0);
+    await expect(within(canvasElement).getByLabelText('Lady Jessica')).toBeVisible();
+    await expect(canvasElement.querySelectorAll('img')).toHaveLength(0);
   },
 });

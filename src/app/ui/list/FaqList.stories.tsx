@@ -1,5 +1,5 @@
 import preview from '@sb/preview';
-import { fn } from 'storybook/test';
+import { expect, fn, within } from 'storybook/test';
 
 import type { FaqItemWithDetails } from '@db/faq';
 
@@ -61,25 +61,54 @@ const meta = preview.meta({
   args: {
     items: faqItems,
     rulesetSlug: 'dreamrules',
-    searchQuery: '',
     onOpenQuestion: fn(),
     emptyLabel: 'No FAQ items yet.',
-    noMatchesLabel: 'No questions match your search.',
   },
 });
 
-export const Populated = meta.story({});
+export const Populated = meta.story({
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole('link', { name: 'Can leaders move through the storm?' })).toBeVisible();
+    await expect(canvas.getByLabelText('Answered, 1 answer')).toBeVisible();
+    await expect(canvas.getByRole('link', { name: 'When do reserve forces enter play?' })).toBeVisible();
+    await expect(canvas.getByLabelText('Unanswered, 0 answers')).toBeVisible();
+  },
+});
 
 /** Nothing has been asked yet. The words are the page's, so the story passes them like a page would. */
 export const NoItems = meta.story({
   args: {
     items: [],
   },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText('No FAQ items yet.')).toBeVisible();
+  },
 });
 
-/** Questions exist, but the reader's search excludes them all, which reads differently from having none. */
-export const NoFilteredMatches = meta.story({
+/** Drawn from several rulesets, as the global FAQ's search is: each question says which ruleset it belongs to and links there. */
+export const AcrossRulesets = meta.story({
   args: {
-    searchQuery: 'ornithopter timing',
+    rulesetSlug: undefined,
+    items: [
+      { ...faqItems[0]!, ruleset: { name: 'Dreamrules', slug: 'dreamrules' } },
+      { ...faqItems[1]!, ruleset: { name: 'ClassicRules', slug: 'classicrules' } },
+    ],
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole('link', { name: 'Can leaders move through the storm?' })).toHaveAttribute(
+      'href',
+      '/rulesets/dreamrules/faq/storm-movement'
+    );
+    await expect(canvas.getByRole('link', { name: 'When do reserve forces enter play?' })).toHaveAttribute(
+      'href',
+      '/rulesets/classicrules/faq/reserve-forces'
+    );
+    await expect(canvas.getByRole('link', { name: 'ClassicRules' })).toHaveAttribute(
+      'href',
+      '/rulesets/classicrules/faq'
+    );
   },
 });

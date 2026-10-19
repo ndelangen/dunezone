@@ -1,5 +1,5 @@
 import type { Browser, Page } from '@cloudflare/playwright';
-import { describe, expect, test, vi } from 'vitest';
+import { describe, expect, test, vi } from 'vite-plus/test';
 
 import {
   assertCaptureDiagnostics,
@@ -112,13 +112,17 @@ describe('production capture output validation', () => {
     expect(jobCookie?.url).not.toContain(jobId);
   });
 
-  test('closes the provider Browser session exactly once', async () => {
+  test('closes through Browser.close once without closing its contexts', async () => {
     const close = vi.fn(async () => {});
-    const browser = { close } as unknown as Browser;
+    const contextClose = vi.fn(async () => {});
+    const contexts = vi.fn(() => [{ close: contextClose }]);
+    const browser = { close, contexts } as unknown as Browser;
     const session = new PublisherBrowserSession(browser, 'https://publisher.example.com');
 
     await session.close();
 
     expect(close).toHaveBeenCalledOnce();
+    expect(contexts).not.toHaveBeenCalled();
+    expect(contextClose).not.toHaveBeenCalled();
   });
 });

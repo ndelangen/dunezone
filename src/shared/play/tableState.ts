@@ -1,5 +1,14 @@
+import {
+  factionTokenInSector,
+  factionTokenRingAngle,
+  factionTokenRingPose,
+  factionTokenSectorPose,
+  isFactionToken,
+  sectorIndexAt,
+} from './factionToken';
 import { gestureBlockReason, isFlippablePiece, nearestZone, pieceCount, zoneById } from './model';
 import type { DraftMove, TableEvent, TableItem, TablePiece, TableState, Vector3Tuple } from './model';
+import { placementRules, withRidersCarried } from './pointerRiders';
 import { isSpicePiece } from './spice';
 import { isSpiceBankPosition } from './spiceBank';
 import { moveStormCounterclockwise } from './stormSector';
@@ -341,6 +350,10 @@ export function projectCarryAtPosition(state: TableState, draft: DraftMove, posi
   if (isSpicePiece(piece) && isSpiceBankPosition(position)) {
     return moveDraftTo(draft, [...position], null);
   }
+  if (isFactionToken(piece)) {
+    const pose = factionTokenRingPose(factionTokenRingAngle(position), position[1]);
+    return { ...moveDraftTo(draft, pose.position, null), orientation: pose.orientation };
+  }
   const placementAnchor = placementAnchorAtPosition(piece, position);
   const targetPiece = anchoredStackTarget(state, draft, piece, position, placementAnchor);
   if (targetPiece) {
@@ -371,12 +384,43 @@ function anchoredStackTarget(
   return compatibleStackTarget(state, projectedPiece, targetPosition, { draft });
 }
 
+/* A faction token settles at the centre of the sector it is over; a locked token already standing there keeps its place. */
+function settleFactionTokenAt(state: TableState, draft: DraftMove, piece: TablePiece, position: Vector3Tuple) {
+  const pose = factionTokenSectorPose(position);
+  const occupant = factionTokenInSector(state.pieces, pose.position, draft.sourcePieceId);
+  if (occupant?.locked) {
+    return null;
+  }
+  /* The occupant steps aside only when it trades sectors; one already sharing the carried token's own sector stays an obstacle. */
+  const swapping = occupant && sectorIndexAt(occupant.position) !== sectorIndexAt(draft.origin) ? occupant : undefined;
+  const obstacles = placementObstaclesFor(state, draft).filter((candidate) => candidate.id !== swapping?.id);
+  const placed = { ...piece, orientation: pose.orientation };
+  const resting = restingPositionAt(pose.position, placed);
+  if (!isOverlapFreePosition(placed, resting, obstacles)) {
+    return null;
+  }
+  if (swapping && !swapLandingIsClear(swapping, draft, obstacles)) {
+    return null;
+  }
+  return { ...moveDraftTo(draft, resting, null), orientation: pose.orientation };
+}
+
+/* The token traded out takes the sector the carried one came from, which must be clear of everything but the two tokens. */
+function swapLandingIsClear(occupant: TablePiece, draft: DraftMove, obstacles: TablePiece[]) {
+  const pose = factionTokenSectorPose(draft.origin);
+  const moved = { ...occupant, orientation: pose.orientation };
+  return isOverlapFreePosition(moved, restingPositionAt(pose.position, moved), obstacles);
+}
+
 function settleMoveAtPosition(
   state: TableState,
   draft: DraftMove,
   piece: TablePiece,
   position: Vector3Tuple
 ): DraftMove | null {
+  if (isFactionToken(piece)) {
+    return settleFactionTokenAt(state, draft, piece, position);
+  }
   const placementAnchor = placementAnchorAtPosition(piece, position);
   if (placementAnchor) {
     const anchoredPiece = {
@@ -384,13 +428,18 @@ function settleMoveAtPosition(
       orientation: placementAnchor.orientation,
     };
     const anchoredPosition = restingPositionAt(placementAnchor.position, anchoredPiece);
-    if (!isOverlapFreePosition(anchoredPiece, anchoredPosition, placementObstaclesFor(state, draft))) {
+    const rules = placementRules(state.pieces, piece, placementObstaclesFor(state, draft));
+    if (
+      !isOverlapFreePosition(anchoredPiece, anchoredPosition, rules.obstacles) ||
+      !rules.fits(anchoredPosition, placementAnchor.orientation)
+    ) {
       return null;
     }
     return { ...moveDraftTo(draft, anchoredPosition, null), orientation: placementAnchor.orientation };
   }
   const clampedPosition = clampPositionToTable(piece, restingPositionAt(position, piece));
-  const resolvedPosition = nearestCollisionFreePosition(piece, clampedPosition, placementObstaclesFor(state, draft));
+  const rules = placementRules(state.pieces, piece, placementObstaclesFor(state, draft));
+  const resolvedPosition = nearestCollisionFreePosition(piece, clampedPosition, rules.obstacles, rules.fits);
   if (!resolvedPosition) {
     return null;
   }
@@ -698,7 +747,38 @@ function piecesAfterMove(current: TableState, draft: DraftMove, movedPiece: Tabl
   if (draft.withdrawals.length) {
     return [...piecesWithoutHeld(current, draft, movedPiece), movedPiece];
   }
-  return current.pieces.map((candidate) => (candidate.id === movedPiece.id ? movedPiece : candidate));
+  return withRidersCarried(current.pieces, movedPiece).map((candidate) =>
+    candidate.id === movedPiece.id ? movedPiece : candidate
+  );
+}
+
+/* A faction token set down in a sector another token holds trades places with it: that token takes the sector the carried one came from. */
+function swappedFactionTokens(current: TableState, draft: DraftMove, piece: TablePiece, pieces: TablePiece[]) {
+  const occupant = isFactionToken(piece) && factionTokenInSector(current.pieces, draft.position, draft.sourcePieceId);
+  if (!occupant || sectorIndexAt(occupant.position) === sectorIndexAt(draft.origin)) {
+    return null;
+  }
+  const pose = factionTokenSectorPose(draft.origin);
+  const moved = { ...occupant, orientation: pose.orientation, zoneId: null };
+  return {
+    occupant,
+    pieces: pieces.map((candidate) =>
+      candidate.id === occupant.id ? { ...moved, position: restingPositionAt(pose.position, moved) } : candidate
+    ),
+  };
+}
+
+function applyFactionTokenMove(application: DraftApplication, movedPiece: TablePiece): TableState {
+  const { current, draft, piece } = application;
+  const pieces = piecesAfterMove(current, draft, movedPiece);
+  const swap = swappedFactionTokens(current, draft, piece, pieces);
+  return accepted(
+    { ...current, pieces: swap?.pieces ?? pieces, selectedPieceId: movedPiece.id, draftMove: null },
+    'piece.move',
+    swap
+      ? `${piece.label} swapped places with ${swap.occupant.label}.`
+      : `${piece.label} moved to sector ${sectorIndexAt(draft.position) + 1}.`
+  );
 }
 
 function applyMove(application: DraftApplication): TableState {
@@ -710,6 +790,9 @@ function applyMove(application: DraftApplication): TableState {
     orientation: draft.orientation,
     zoneId: draft.targetZoneId,
   };
+  if (isFactionToken(piece)) {
+    return applyFactionTokenMove(application, movedPiece);
+  }
   return accepted(
     {
       ...current,

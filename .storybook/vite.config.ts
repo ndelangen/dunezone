@@ -1,10 +1,13 @@
 import viteReact from '@vitejs/plugin-react';
-import { defineConfig } from 'vite';
-import type { Plugin } from 'vite';
+import { defineConfig } from 'vite-plus';
+import type { Plugin } from 'vite-plus';
 
 import { reactCompiler } from '../scripts/lib/reactCompiler.ts';
 import { threeRendererStackAliases, threeRendererStackTreeShaking } from '../scripts/lib/threeRendererStack.ts';
+import { convexPackageMocks } from './convexPackageMocks.ts';
 import { pageStylesheetStaysWithItsStory } from './pageStylesheet.ts';
+import { storyBoardFace } from './storyBoardFace.ts';
+import { storyImagesWorker } from './storyImagesWorker.ts';
 import {
   convexWorkerAliases,
   convexWorkerBuildPlugins,
@@ -49,7 +52,7 @@ function quietDeferredAssetWarnings(): Plugin {
 export default defineConfig({
   build: {
     assetsDir: 'public',
-    target: 'es2020',
+    target: convexWorkerOxc.target,
   },
   define: {
     /**
@@ -79,13 +82,16 @@ export default defineConfig({
   },
   resolve: {
     // Keep Storybook path resolution aligned with the app config.
-    ...({ tsconfigPaths: true } as Record<string, unknown>),
+    tsconfigPaths: true,
     alias: [
+      ...convexPackageMocks,
       ...Object.entries(convexWorkerAliases).map(([find, replacement]) => ({ find, replacement })),
       ...threeRendererStackAliases,
     ],
   },
   plugins: [
+    storyImagesWorker(),
+    storyBoardFace(),
     ...convexWorkerServePlugins(),
     pageStylesheetStaysWithItsStory(),
     viteReact(),

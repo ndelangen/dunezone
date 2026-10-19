@@ -59,20 +59,37 @@ function publicationText(element: Element & { innerText?: string }) {
   return element.innerText ?? element.textContent ?? '';
 }
 
-function isExecutableAttribute(attribute: Attr) {
+function isExecutableAttribute(element: Element, attribute: Attr) {
   if (/^on/i.test(attribute.name)) {
     return true;
   }
-  if (!['href', 'src', 'xlink:href'].includes(attribute.name)) {
+  if (!['href', 'src', 'xlink:href'].includes(attribute.name.toLowerCase())) {
     return false;
   }
-  return /^\s*(javascript|vbscript):/i.test(attribute.value);
+  /* URL parsing matches browser removal of tabs/newlines and trimming of leading C0 controls.
+   * LinkeDOM has already decoded character references in the attribute value.
+   */
+  let url: URL;
+  try {
+    url = new URL(attribute.value, PUBLIC_SITE_ORIGIN);
+  } catch {
+    return true;
+  }
+  if (url.protocol === 'https:' || url.protocol === 'http:') {
+    return false;
+  }
+  /* Data images are inert only in image elements, never in links or SVG use references. */
+  return !(
+    url.protocol === 'data:' &&
+    ['img', 'image'].includes(element.tagName.toLowerCase()) &&
+    /^data:image\/(?:png|jpeg|gif|webp|avif|svg\+xml)[;,]/i.test(url.href)
+  );
 }
 
 function assertNoExecutableAttributes(body: Element) {
   for (const element of [body, ...body.querySelectorAll('*')]) {
     for (const attribute of element.attributes) {
-      if (isExecutableAttribute(attribute)) {
+      if (isExecutableAttribute(element, attribute)) {
         throw new Error('Published Rulebook HTML contains executable content');
       }
     }
@@ -157,6 +174,9 @@ export function parsePublishedRulebook(html: string, href: string): PublishedRul
   }
   if (!root || !css) {
     throw new Error('Published Rulebook HTML is unavailable');
+  }
+  if (document.body.querySelector('foreignObject, animate, animateMotion, animateTransform, set, meta, link')) {
+    throw new Error('Published Rulebook HTML contains executable content');
   }
   assertNoExecutableAttributes(document.body);
   return {

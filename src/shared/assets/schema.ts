@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { ALL, BACKGROUND, TEXTURE } from '../assetIds';
+import { BOARD_FRAME_SIZE, boardTints, boardTokens } from '../boards/markup';
 import { Background, Decal } from '../factions/schema';
 import { proseFormattedTextSchema } from '../formattedText';
 import { cardbackPresetKeySchema } from './cardbackPresetKeys';
@@ -29,6 +30,28 @@ const FormattedAbout = z.string().trim().pipe(proseFormattedTextSchema);
 export { Decal };
 export { PHYSICAL_SIZE_MAX, PHYSICAL_SIZE_MIN, PhysicalSize } from './physicalSize';
 
+/** The board's coordinate frame, which placed tokens share so a board switch leaves them where the author put them. */
+export const SPICE_BOARD_SIZE = BOARD_FRAME_SIZE;
+/** The Spice renderer revision that draws a linked board; until the publisher runs it, linked cards wait rather than capture the legacy map. */
+export const SPICE_BOARD_REVISION = 2;
+
+/** How a linked board's artwork sits in the card's parchment: burnt in like the classic map, toned sepia, or drawn as it is. */
+export const SPICE_BOARD_LOOKS = ['burnt', 'sepia', 'plain'] as const;
+
+/** A board's look and how strongly it applies, 0 to 1; a card without one is burnt in fully, as the classic map is. */
+export const SpiceBoardLook = z.strictObject({
+  style: z.enum(SPICE_BOARD_LOOKS),
+  strength: z.number().min(0).max(1),
+});
+
+/** A linked board Asset with the card's tints and tokens; a card without one still draws the legacy Arrakis map. */
+export const SpiceBoardLink = z.strictObject({
+  asset_id: z.string().min(1),
+  tints: boardTints,
+  tokens: boardTokens,
+  look: SpiceBoardLook.optional(),
+});
+
 /**
  * The spice-card renderer's props.
  * No `about`, and deliberately so: `SpiceCard` draws exactly these fields, and the stored superset is `SpiceAsset` below, the same split `Treachery` and `TreacheryAsset` make.
@@ -36,7 +59,11 @@ export { PHYSICAL_SIZE_MAX, PHYSICAL_SIZE_MIN, PhysicalSize } from './physicalSi
 export const Spice = z.strictObject({
   name: z.string(),
   subName: z.string(),
-  icon: z.enum(['spice-mine', 'spice'] as const),
+  /** A classic card's icon key, or any vector a newer card picked. */
+  icon: z.union([
+    z.enum(['spice-mine', 'spice'] as const),
+    ALL.refine((image) => image.startsWith('/vector/') && image.endsWith('.svg'), { message: 'Pick a vector icon.' }),
+  ]),
   highlights: z.array(
     z.enum([
       //sand
@@ -107,6 +134,7 @@ export const Spice = z.strictObject({
     .optional(),
   text: z.string().optional(),
   amount: z.number().int().positive(),
+  board: SpiceBoardLink.optional(),
 });
 
 export const CardHead = z.strictObject({
@@ -394,7 +422,11 @@ const CUSTOM_CARD_MAX_COMPOSITION_BYTES = 262_144;
 
 /** A token's current front, resolved separately from the card's stored references. */
 export const CustomCardToken = z.discriminatedUnion('type', [
-  z.strictObject({ type: z.enum(['token-disc', 'token-tech', 'token-plate']), name: z.string(), face: TokenFace }),
+  z.strictObject({
+    type: z.enum(['token-disc', 'token-tech', 'token-plate', 'token-pointer']),
+    name: z.string(),
+    face: TokenFace,
+  }),
   z.strictObject({ type: z.literal('token-enhance'), name: z.string(), face: RectangleTokenFace }),
 ]);
 export const CustomCardTokens = z.record(z.string(), CustomCardToken.nullable());

@@ -5,9 +5,18 @@ import { faqAnswerSchema, faqQuestionSchema, faqTagsSchema } from '../src/shared
 import { internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { internalMutation, mutation, publicQuery, viewerQuery } from './functions';
+import { faqListItemValidator } from './lib/collaborativeAccessValidators';
+import { loadRulesetFaqPage, loadRulesetFaqSearch, rulesetFaqSearchText } from './lib/faqCatalogue';
+import {
+  globalFaqPageValidator,
+  globalFaqRulesetOptionsValidator,
+  loadGlobalFaqPage,
+  loadGlobalFaqRulesetOptions,
+} from './lib/faqGlobalSearch';
 import { faqQuestionPublicPageValidator, loadFaqQuestionPublicPage, loadViewerAnswered } from './lib/faqQuestionPage';
 import { faqTagValidator } from './lib/faqTags';
 import { requireAuthUserId } from './lib/policy';
+import { loadPublicRulesetBySlug } from './lib/rulesetDetailPage';
 import { nowIso } from './lib/utils';
 import type { MutationCtx, QueryCtx } from './types';
 
@@ -94,6 +103,89 @@ async function allocateNextFaqItemSlug(ctx: MutationCtx, rulesetId: Id<'rulesets
     candidate += 1;
   }
 }
+
+const rulesetCitationValidator = v.object({ id: v.id('rulesets'), name: v.string(), slug: v.string() });
+
+/** A browsed page of a ruleset's FAQ: newest first, counted, in numbered pages. */
+const rulesetFaqBrowseValidator = v.object({
+  ruleset: rulesetCitationValidator,
+  items: v.array(faqListItemValidator),
+  /** Questions matching the search and tag, across every page. */
+  total: v.number(),
+  /** False when a search matched more questions than one query reads, so `total` is a floor. */
+  complete: v.boolean(),
+  /** The page these rows are, which may lie past `pageCount`, with no rows. */
+  page: v.number(),
+  pageCount: v.number(),
+  pageSize: v.number(),
+});
+
+/** A searched FAQ: the best matches first, no count and no pages, and more by asking for a larger limit. */
+const rulesetFaqSearchValidator = v.object({
+  mode: v.literal('search'),
+  ruleset: rulesetCitationValidator,
+  items: v.array(faqListItemValidator),
+  /** Whether a larger limit would show more questions. */
+  hasMore: v.boolean(),
+  /** Whether more questions may match than one search shows, so the reader should add a word rather than load more. */
+  capped: v.boolean(),
+  /** The limit these rows answer, after clamping. */
+  limit: v.number(),
+});
+
+/**
+ * A ruleset's FAQ, one cached answer for every viewer: newest first in pages while browsing, and the best matches of a search with a `limit`, which loads more.
+ * A searched `q` without `limit` is an old bundle's paged search, kept one release for the bundle deployed before this and dropped in the contract release.
+ * Null for an unknown ruleset.
+ */
+export const rulesetFaq = publicQuery({
+  args: {
+    rulesetSlug: v.string(),
+    q: v.optional(v.string()),
+    tag: v.optional(faqTagValidator),
+    page: v.optional(v.number()),
+    /** How many of the best matches to return; Load more asks again with a larger one. */
+    limit: v.optional(v.number()),
+  },
+  returns: v.union(rulesetFaqBrowseValidator, rulesetFaqSearchValidator, v.null()),
+  handler: async (ctx, args) => {
+    const ruleset = await loadPublicRulesetBySlug(ctx, args.rulesetSlug);
+    if (!ruleset) {
+      return null;
+    }
+    const citation = { id: ruleset._id, name: ruleset.name, slug: ruleset.slug };
+    /* Gated on the text the search runs, so a query that is blank once cut to length browses instead. */
+    const list =
+      rulesetFaqSearchText(args.q) && args.limit !== undefined
+        ? await loadRulesetFaqSearch(ctx, ruleset._id, args)
+        : await loadRulesetFaqPage(ctx, ruleset._id, args);
+    return { ruleset: citation, ...list };
+  },
+});
+
+/** The rulesets the global FAQ can be narrowed to: every live one holding questions, by name, with its count. One cached answer for every viewer and every search. */
+export const rulesetOptions = publicQuery({
+  args: {},
+  returns: globalFaqRulesetOptionsValidator,
+  handler: async (ctx) => await loadGlobalFaqRulesetOptions(ctx),
+});
+
+/**
+ * One page of the global FAQ: questions matching a search across every ruleset, or the rulesets picked, best match first.
+ * Before any search it returns no questions;
+ * one cached answer for every viewer.
+ */
+export const search = publicQuery({
+  args: {
+    q: v.optional(v.string()),
+    /** Ruleset slugs; none searches every ruleset. */
+    rulesets: v.optional(v.array(v.string())),
+    /** How many of the best matches to return; Load more asks again with a larger one. */
+    limit: v.optional(v.number()),
+  },
+  returns: globalFaqPageValidator,
+  handler: async (ctx, args) => await loadGlobalFaqPage(ctx, args),
+});
 
 /** The FAQ question page, one cached answer for every viewer. The browser combines its authorship facts with the viewer. */
 export const question = publicQuery({
@@ -390,6 +482,11 @@ async function editAnswerHandler(ctx: MutationCtx, args: { answerId: Id<'faq_ans
   }
   if (answer.answered_by !== userId) {
     throw new Error('Not authorized');
+  }
+  const item = await getFaqItem(ctx, answer.faq_item_id);
+  const ruleset = item ? await getRuleset(ctx, item.ruleset_id) : null;
+  if (!ruleset || ruleset.is_deleted) {
+    throw new Error('Ruleset not found');
   }
 
   await ctx.db.patch(answer._id, { answer: parsedAnswer.data });

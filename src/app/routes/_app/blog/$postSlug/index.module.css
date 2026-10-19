@@ -1,5 +1,6 @@
 /* A readable measure for prose; embeds and figures size from the same column. */
 .article {
+  container-name: blog-article;
   container-type: inline-size;
   display: flex;
   flex-direction: column;

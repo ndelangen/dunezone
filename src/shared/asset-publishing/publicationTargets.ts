@@ -38,6 +38,7 @@ export const PUBLICATION_ASSET_TYPES = [
   'token-disc',
   'token-tech',
   'token-plate',
+  'token-pointer',
   'token-enhance',
   'rulebook-first-page',
 ] as const;
@@ -101,6 +102,7 @@ const TOKEN_TARGETS = {
   'token-disc': tokenTarget('round', 600, 600),
   'token-tech': tokenTarget('gear', 600, 600),
   'token-plate': tokenTarget('square', 600, 600),
+  'token-pointer': tokenTarget('pointer', 600, 600),
   'token-enhance': tokenTarget('rectangle', 600, 372),
 } as const satisfies Record<string, PublicationTarget>;
 

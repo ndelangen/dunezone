@@ -183,7 +183,15 @@ export function RulebookSourcePicker({
       />
       {state.kind === 'asset' ? (
         <AssetPicker
-          types={['card-treachery', 'deck', 'token-disc', 'token-tech', 'token-plate', 'token-enhance']}
+          types={[
+            'card-treachery',
+            'deck',
+            'token-disc',
+            'token-tech',
+            'token-plate',
+            'token-pointer',
+            'token-enhance',
+          ]}
           copy={{
             searchLabel: 'Find Asset',
             searchPlaceholder: 'Search Assets',

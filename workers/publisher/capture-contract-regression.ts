@@ -57,6 +57,13 @@ import { captureCompressedRulebookPdf } from './rulebook-pdf-stream';
 
 const repositoryRoot = path.resolve(import.meta.dirname, '../..');
 const publisherDist = path.join(repositoryRoot, 'workers/publisher/dist');
+const applicationCsp = /^\s*Content-Security-Policy: (.+)$/m.exec(
+  await Bun.file(path.join(publisherDist, '_headers')).text()
+)?.[1];
+invariant(
+  applicationCsp && !applicationCsp.includes('__APPLICATION_CSP__'),
+  'Capture regression needs the assembled CSP'
+);
 
 function envelope(assetType: string, payload: unknown) {
   return {
@@ -81,6 +88,22 @@ const spiceSnapshot = envelope('card-spice', {
   assetId: 'k17publisherContractSpice',
   slug: 'publisher-contract-spice',
   card: publishingSpiceCard,
+});
+/* A card linked to a saved board, as a save enqueues it: the board's data and each placed token's face ride in the payload (#1973). */
+const linkedSpiceSnapshot = envelope('card-spice', {
+  assetId: 'k17publisherContractLinkedSpice',
+  slug: 'publisher-contract-linked-spice',
+  card: {
+    ...publishingSpiceCard,
+    highlights: [],
+    board: {
+      asset_id: 'k17publisherBoard',
+      tints: [{ id: 'blow', name: 'Spice blow', color: '#e8b923', territories: ['funeral_plain'] }],
+      tokens: [{ layerId: 'spice-token', asset_id: 'disc-token', x: 240, y: 240, size: 40, rotation: 0 }],
+    },
+  },
+  board: arrakisBoard(),
+  tokens: { 'disc-token': publishingCustomCardTokens['disc-token'] },
 });
 const tokenSnapshot = envelope('token-disc', {
   assetId: 'k17publisherContractToken',
@@ -182,7 +205,9 @@ const server = Bun.serve({
       return new Response('Not found', { status: 404 });
     }
     const file = Bun.file(path.join(publisherDist, relative));
-    return (await file.exists()) ? new Response(file) : new Response('Not found', { status: 404 });
+    return (await file.exists())
+      ? new Response(file, { headers: { 'Content-Security-Policy': applicationCsp } })
+      : new Response('Not found', { status: 404 });
   },
 });
 
@@ -459,7 +484,8 @@ async function checkPublisherImageCapture(
     | 'rulebook-first-page',
   snapshot: ReturnType<typeof envelope>,
   label: string,
-  size?: RulebookSize
+  size?: RulebookSize,
+  assertPage?: (page: Page) => Promise<void>
 ): Promise<Uint8Array> {
   const capture = resolvePublicationCapture(assetType, size);
   invariant(capture.output === 'image', `${label} must publish as an image`);
@@ -482,6 +508,7 @@ async function checkPublisherImageCapture(
     invariant(result.payloadHash === snapshot.payloadHash, `${label} capture did not expose the exact payload hash`);
     invariant(errors.length === 0, `${label} capture emitted errors: ${errors.join(' | ')}`);
     await assertCaptureImageBounds(page, capture);
+    await assertPage?.(page);
     if (assetType === 'card-nexus') {
       const regions = await page.locator('section').evaluateAll((sections) =>
         sections.map((section) => {
@@ -643,7 +670,30 @@ try {
       await Bun.write(path.join(process.env.STORM_PROOF_DIRECTORY, `storm-${card.sectors}.png`), proof);
     }
   }
-  await checkPublisherImageCapture(browser, 'card-spice', spiceSnapshot, 'spice card');
+  const classicSpice = await checkPublisherImageCapture(browser, 'card-spice', spiceSnapshot, 'spice card');
+  const linkedSpice = await checkPublisherImageCapture(
+    browser,
+    'card-spice',
+    linkedSpiceSnapshot,
+    'linked spice card',
+    undefined,
+    async (page) => {
+      invariant((await page.locator('[data-tint="blow"] path').count()) > 0, 'Linked spice card must draw its tint');
+      invariant(
+        (await page.locator('[data-token-instance="spice-token"]').count()) === 1,
+        'Linked spice card must draw its placed token'
+      );
+    }
+  );
+  invariant(
+    !Buffer.from(classicSpice).equals(Buffer.from(linkedSpice)),
+    'A linked board must change the spice capture'
+  );
+  if (process.env.SPICE_PROOF_DIRECTORY) {
+    await mkdir(process.env.SPICE_PROOF_DIRECTORY, { recursive: true });
+    await Bun.write(path.join(process.env.SPICE_PROOF_DIRECTORY, 'classic.png'), classicSpice);
+    await Bun.write(path.join(process.env.SPICE_PROOF_DIRECTORY, 'linked.png'), linkedSpice);
+  }
   await checkPublisherImageCapture(browser, 'deck', deckSnapshot, 'deck cardback');
   const stormBack = await checkPublisherImageCapture(
     browser,

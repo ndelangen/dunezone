@@ -5,7 +5,7 @@ import type * as TanStackRouter from '@tanstack/react-router';
 import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react';
 import { appContentTheme } from '@ui/theme';
 import type { ComponentType, ReactNode } from 'react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 
 const mocks = vi.hoisted(() => ({
   page: vi.fn(),
@@ -27,6 +27,9 @@ vi.mock('@tanstack/react-router', async (importOriginal) => {
     createLink:
       () =>
       ({ children, to }: { children?: ReactNode; to: string }) => <a href={to}>{children}</a>,
+    /* `LoginGate` reads the page it is on so sign-in can return there. */
+    useLocation: ({ select }: { select: (location: { href: string }) => unknown }) =>
+      select({ href: '/profiles/source/delete' }),
   };
 });
 
@@ -87,7 +90,7 @@ async function renderPage() {
   let view: ReturnType<typeof render> | undefined;
   await act(async () => {
     view = render(
-      <MantineProvider theme={appContentTheme}>
+      <MantineProvider env="test" theme={appContentTheme}>
         <DeletePage />
       </MantineProvider>
     );
@@ -138,7 +141,9 @@ describe('account deletion page', () => {
     vi.useFakeTimers();
     const submit = view.getByRole('button', { name: 'Transfer ownership and delete account' });
     fireEvent.pointerDown(submit, { isPrimary: true, button: 0 });
-    act(() => vi.advanceTimersByTime(5000));
+    act(() => {
+      vi.advanceTimersByTime(5000);
+    });
     vi.useRealTimers();
     expect(mocks.mutate).toHaveBeenCalledWith({ replacementUserId: 'user-2' });
   });
@@ -154,7 +159,9 @@ describe('account deletion page', () => {
     expect(mocks.mutate).not.toHaveBeenCalled();
     vi.useFakeTimers();
     fireEvent.pointerDown(submit, { isPrimary: true, button: 0 });
-    act(() => vi.advanceTimersByTime(5000));
+    act(() => {
+      vi.advanceTimersByTime(5000);
+    });
     vi.useRealTimers();
     expect(mocks.mutate).toHaveBeenCalledWith({ replacementUserId: null });
   });

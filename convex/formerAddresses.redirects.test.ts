@@ -2,12 +2,13 @@
 // @vitest-environment edge-runtime
 
 import type { FunctionArgs } from 'convex/server';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { publishingTreacheryCard } from '../src/shared/assets/fixtures/publishingTreacheryCard';
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { RULEBOOK_CATALOGUE_VERSION } from '../src/shared/rulebooks/contents';
 import { api } from './_generated/api';
+import { storedProfileAvatar } from './profiles.test.fixture';
 import { rulesetOwner, VALID_ABOUT } from './rulesets.test.fixture';
 
 async function world() {
@@ -75,15 +76,28 @@ describe('former addresses', () => {
     await expect(resolve('sietch')).resolves.toBe('/groups/tabr');
   });
 
-  test('a renamed profile page answers at its old address', async () => {
+  test('a profile old address still answers when a newer profile that left it is deleted', async () => {
     const { t, owner } = await world();
     const before = await owner.mutation(api.profiles.bootstrapCurrent, {});
+    await t.run((ctx) => ctx.db.patch(before._id, storedProfileAvatar));
     await owner.mutation(api.profiles.updateCurrent, {
       username: 'Stilgar',
-      avatar_url: 'https://example.com/avatar.png',
+      avatar_url: storedProfileAvatar.avatar_url,
     });
-    expect(before.slug).not.toBe('stilgar');
-    /* The page answers with the profile's current slug, and its loader redirects the old address there. */
+    /* Another profile took the address, left it in turn, then was deleted. */
+    await t.run(async (ctx) => {
+      const userId = await ctx.db.insert('users', { account_state: 'deleted' });
+      const profileId = await ctx.db.insert('profiles', {
+        user_id: userId,
+        username: 'Gone',
+        avatar_url: null,
+        account_state: 'deleted',
+        slug: 'gone',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
+      await ctx.db.insert('former_slugs', { kind: 'profile', scope: '', slug: before.slug, record_id: profileId });
+    });
     const page = await t.query(api.profiles.pageBySlug, { slug: before.slug });
     expect(page.profile.slug).toBe('stilgar');
   });

@@ -38,9 +38,10 @@ export const SignedOut = meta.story({
     ).resolves.toBeVisible();
     await expect(page.findByRole('link', { name: 'Log in' }, { timeout: 30_000 })).resolves.toHaveAttribute(
       'href',
-      '/auth/login'
+      /* Signing in returns the reader to the page they asked from. */
+      '/auth/login?redirect=%2Fplay%2Fcreate'
     );
-    expect(page.queryByRole('button', { name: 'Create game' })).toBeNull();
+    await expect(page.queryByRole('button', { name: 'Create game' })).toBeNull();
   },
 });
 
@@ -50,15 +51,19 @@ export const Member = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const create = await page.findByRole('button', { name: 'Create game' }, { timeout: 30_000 });
-    expect(create).toBeDisabled();
+    await expect(create).toBeDisabled();
     await userEvent.click(page.getByRole('combobox', { name: 'Ruleset' }));
     /* The dropdown says why a ruleset cannot start a game before it is chosen. */
-    expect(await page.findByRole('option', { name: /^Dreamrules/ })).toHaveTextContent('No spice deck is linked.');
+    await expect(await page.findByRole('option', { name: /^Dreamrules/ })).toHaveTextContent(
+      'No spice deck is linked.'
+    );
     await userEvent.click(page.getByRole('option', { name: /^Dreamrules/ }));
-    expect(page.getByRole('combobox', { name: 'Ruleset' })).toHaveAccessibleDescription('No spice deck is linked.');
+    await expect(page.getByRole('combobox', { name: 'Ruleset' })).toHaveAccessibleDescription(
+      'No spice deck is linked.'
+    );
     await expect(page.findByRole('status')).resolves.toHaveTextContent('Dreamrules cannot start a game yet.');
-    expect(page.getByRole('slider', { name: 'Minimum players' })).toHaveAttribute('aria-valuenow', '6');
-    expect(create).toBeDisabled();
+    await expect(page.getByRole('slider', { name: 'Minimum players' })).toHaveAttribute('aria-valuenow', '6');
+    await expect(create).toBeDisabled();
   },
 });
 
@@ -70,8 +75,8 @@ export const ServerUnreachable = meta.story({
     await expect(
       page.findByRole('heading', { name: "Can't reach the server" }, { timeout: 30_000 })
     ).resolves.toBeVisible();
-    expect(page.getByRole('link', { name: 'Go back home' })).toHaveAttribute('href', '/');
-    expect(page.queryByText('Loading rulesets')).toBeNull();
+    await expect(page.getByRole('link', { name: 'Go back home' })).toHaveAttribute('href', '/');
+    await expect(page.queryByText('Loading rulesets')).toBeNull();
   },
 });
 
@@ -128,29 +133,29 @@ export const Creatable = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await chooseRuleset(page);
     const first = shownName(page);
-    expect(first).not.toBe('');
+    await expect(first).not.toBe('');
     /* One draw in 840 repeats the last, so three tries rule out chance. */
     for (let tries = 0; tries < 3 && shownName(page) === first; tries += 1) {
       await userEvent.click(page.getByRole('button', { name: 'Roll another name' }));
     }
-    expect(shownName(page)).not.toBe(first);
-    expect(page.getByRole('img', { name: '6 seats round the board' })).toBeVisible();
+    await expect(shownName(page)).not.toBe(first);
+    await expect(page.getByRole('img', { name: '6 seats round the board' })).toBeVisible();
     page.getByRole('slider', { name: 'Minimum players' }).focus();
     await userEvent.keyboard('{ArrowRight}{ArrowRight}');
-    expect(page.getByRole('img', { name: '8 seats round the board' })).toBeVisible();
-    expect(page.getByRole('slider', { name: 'Last turn' })).toHaveAttribute('aria-valuenow', '10');
-    expect(page.getByRole('button', { name: 'Create game' })).toBeEnabled();
+    await expect(page.getByRole('img', { name: '8 seats round the board' })).toBeVisible();
+    await expect(page.getByRole('slider', { name: 'Last turn' })).toHaveAttribute('aria-valuenow', '10');
+    await expect(page.getByRole('button', { name: 'Create game' })).toBeEnabled();
     /* The chosen ruleset's manifest is printed on the pass, its page a new tab away. */
     const manifest = within(
       await page.findByRole('region', { name: 'What Dreamrules puts on the table' }, { timeout: 10_000 })
     );
-    expect(manifest.getByText('Treachery deck')).toBeVisible();
-    expect(manifest.getAllByLabelText('3 cards')).toHaveLength(2);
-    expect(manifest.getByText('Custom tokens')).toBeVisible();
-    expect(manifest.getByText('6 factions')).toBeVisible();
-    expect(manifest.getByText('Made for Dreamrules')).toBeVisible();
-    expect(manifest.getByText('Also in other rulesets')).toBeVisible();
-    expect(manifest.getByRole('link', { name: /Read the ruleset/ })).toHaveAttribute('target', '_blank');
+    await expect(manifest.getByText('Treachery deck')).toBeVisible();
+    await expect(manifest.getAllByLabelText('3 cards')).toHaveLength(2);
+    await expect(manifest.getByText('Custom tokens')).toBeVisible();
+    await expect(manifest.getByText('6 factions')).toBeVisible();
+    await expect(manifest.getByText('Made for Dreamrules')).toBeVisible();
+    await expect(manifest.getByText('Also in other rulesets')).toBeVisible();
+    await expect(manifest.getByRole('link', { name: /Read the ruleset/ })).toHaveAttribute('target', '_blank');
   },
 });
 
@@ -162,8 +167,8 @@ export const DuplicateName = meta.story({
     await chooseRuleset(page);
     await typeCustomName(page, 'Arrakeen picnic');
     await expect(page.findByText(/You can keep the name/, {}, { timeout: 10_000 })).resolves.toBeVisible();
-    expect(page.getByLabelText('Custom name')).not.toHaveAttribute('aria-invalid', 'true');
-    expect(page.getByRole('button', { name: 'Create game' })).toBeEnabled();
+    await expect(page.getByLabelText('Custom name')).not.toHaveAttribute('aria-invalid', 'true');
+    await expect(page.getByRole('button', { name: 'Create game' })).toBeEnabled();
   },
 });
 
@@ -180,9 +185,9 @@ export const NameRefused = meta.story({
     await expect(
       page.findByText(/Choose a game name without profanity/, {}, { timeout: 10_000 })
     ).resolves.toBeVisible();
-    expect(page.getByLabelText('Custom name')).toHaveValue('Fuck the spice harvest');
-    expect(page.getByRole('combobox', { name: 'Ruleset' })).toHaveValue('Dreamrules');
-    expect(page.getByRole('slider', { name: 'Minimum players' })).toHaveAttribute('aria-valuenow', '4');
+    await expect(page.getByLabelText('Custom name')).toHaveValue('Fuck the spice harvest');
+    await expect(page.getByRole('combobox', { name: 'Ruleset' })).toHaveValue('Dreamrules');
+    await expect(page.getByRole('slider', { name: 'Minimum players' })).toHaveAttribute('aria-valuenow', '4');
   },
 });
 
@@ -203,7 +208,7 @@ export const CustomNameCreated = meta.story({
       'writeText'
     ).mockResolvedValue();
     await userEvent.click(await page.findByRole('button', { name: 'Copy game link' }));
-    expect(writeText).toHaveBeenCalledWith(expect.stringMatching(/\/play\/arrakeen-picnic-1$/));
+    await expect(writeText).toHaveBeenCalledWith(expect.stringMatching(/\/play\/arrakeen-picnic-1$/));
     await expect(page.findByRole('button', { name: 'Game link copied' })).resolves.toBeVisible();
   },
 });
@@ -218,9 +223,9 @@ export const GeneratedNameCreated = meta.story({
     await userEvent.click(page.getByRole('button', { name: 'Create game' }));
     /* Query the committed page each time, because a route update can replace the first share button. */
     await waitFor(
-      () => {
-        expect(page.getByRole('button', { name: 'Copy game link' })).toBeVisible();
-        expect(page.getByRole('heading', { level: 1 })).toHaveTextContent(name);
+      async () => {
+        await expect(page.getByRole('button', { name: 'Copy game link' })).toBeVisible();
+        await expect(page.getByRole('heading', { level: 1 })).toHaveTextContent(name);
       },
       { timeout: 30_000 }
     );
@@ -245,10 +250,10 @@ export const MissingBoard = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(await page.findByRole('combobox', { name: 'Ruleset' }));
     const option = await page.findByRole('option', { name: /^Dreamrules/ });
-    expect(option).toHaveAttribute('data-combobox-disabled', 'true');
+    await expect(option).toHaveAttribute('data-combobox-disabled', 'true');
     await userEvent.click(option);
-    expect(page.getByRole('combobox', { name: 'Ruleset' })).toHaveValue('');
-    expect(option).toHaveTextContent('No usable board is linked.');
-    expect(page.getByRole('button', { name: 'Create game' })).toBeDisabled();
+    await expect(page.getByRole('combobox', { name: 'Ruleset' })).toHaveValue('');
+    await expect(option).toHaveTextContent('No usable board is linked.');
+    await expect(page.getByRole('button', { name: 'Create game' })).toBeDisabled();
   },
 });

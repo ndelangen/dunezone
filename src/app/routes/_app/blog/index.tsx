@@ -1,24 +1,26 @@
 import { Anchor, Grid, SimpleGrid, Stack, Text, Title, VisuallyHidden } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
-import { Eyebrow } from '@ui/content/Eyebrow';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { ArrowRight } from 'lucide-react';
 
 import { publicPageHead } from '@app/routes/publicPage';
 
+import { AuthorByline } from './AuthorByline';
 import styles from './index.module.css';
-import { BLOG_POSTS, blogPostByline } from './posts';
+import { BLOG_POSTS, blogPostAuthor } from './posts';
 import type { BlogPostMeta } from './posts';
 
 export const Route = createFileRoute('/_app/blog/')({
   ssr: true,
   head: () =>
     publicPageHead({
-      name: 'Building Dune Zone',
+      name: 'Developer blog: Building Dune Zone',
+      kind: 'Dune board game tools',
       pathname: '/blog',
-      description: 'Stories from building Dune Zone: the ideas, experiments and decisions behind the site.',
+      description:
+        'Stories and development notes about building tools for the Dune board game, from custom factions and printable Rulebooks to online play.',
       social: { kind: 'Dune Zone', shape: 'portrait' },
     }),
   component: BlogPage,
@@ -30,7 +32,7 @@ function BlogPage() {
       <PageLayout.Header size="hero">
         <SimpleGrid className={styles.hero} cols={{ base: 1, md: 2 }} spacing="xl">
           <div className={styles.title}>
-            <PageTitle eyebrow="Notes from" title="Building Dune Zone" />
+            <PageTitle eyebrow="Developer blog" title="Building Dune Zone" />
           </div>
           <Surface padding="lg" className={styles.intro}>
             <Text size="lg">
@@ -64,7 +66,7 @@ function PostEntry({ meta, number }: { meta: BlogPostMeta; number: number }) {
       </Grid.Col>
       <Grid.Col span={{ base: 12, sm: 10 }}>
         <Stack gap="sm">
-          <Eyebrow tone="accent">{blogPostByline(meta)}</Eyebrow>
+          <AuthorByline date={meta.date} author={blogPostAuthor(meta)} />
           <Title order={2}>
             <Anchor renderRoot={postLink} inherit c="inherit">
               {meta.title}

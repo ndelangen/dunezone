@@ -118,26 +118,47 @@ export const Rename = meta.story({
   args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#RULE/details' },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await userEvent.click(await page.findByRole('button', { name: 'Rename Rulebook' }, { timeout: 30_000 }));
+    await page.findByRole('button', { name: 'Rename Rulebook' }, { timeout: 30_000 });
+    /* On a cold start the editor can still settle after the form opens, which closes it, so the form is reopened and refilled until the name holds. */
+    await waitFor(
+      async () => {
+        if (!page.queryByRole('form', { name: 'Rename Rulebook' })) {
+          await userEvent.click(page.getByRole('button', { name: 'Rename Rulebook' }));
+        }
+        const name = within(page.getByRole('form', { name: 'Rename Rulebook' })).getByRole('textbox', {
+          name: 'Rulebook name',
+        });
+        await userEvent.clear(name);
+        await userEvent.type(name, 'Battle reference');
+        await expect(page.getByRole('textbox', { name: 'Rulebook name' })).toHaveValue('Battle reference');
+      },
+      { timeout: 30_000 }
+    );
     const form = page.getByRole('form', { name: 'Rename Rulebook' });
-    await userEvent.clear(within(form).getByRole('textbox', { name: 'Rulebook name' }));
-    await userEvent.type(within(form).getByRole('textbox', { name: 'Rulebook name' }), 'Battle reference');
-    expect(page.getByText(/bookmarks or shared links to the old one stop/)).toBeVisible();
+    await expect(page.getByText(/bookmarks or shared links to the old one stop/)).toBeVisible();
     await userEvent.click(within(form).getByRole('button', { name: 'Rename Rulebook' }));
     await waitFor(() => expect(page.queryByRole('textbox', { name: 'Rulebook name' })).toBeNull());
     /* The toolbar carries no name any more, so the new one is read back from the form it was set in. */
     /* A rename re-slugs, so the editor remounts at its new address before the action is back, and it stays unavailable until the draft settles. */
     const rename = await page.findByRole('button', { name: 'Rename Rulebook' }, { timeout: 30_000 });
     await waitFor(() => expect(rename).not.toHaveAttribute('aria-disabled'), { timeout: 30_000 });
-    await userEvent.click(rename);
-    await expect(page.findByRole('textbox', { name: 'Rulebook name' })).resolves.toHaveValue('Battle reference');
+    /* The remounted editor can settle after the form reopens, which closes it again, so it is reopened until the name shows. */
+    await waitFor(
+      async () => {
+        if (!page.queryByRole('form', { name: 'Rename Rulebook' })) {
+          await userEvent.click(page.getByRole('button', { name: 'Rename Rulebook' }));
+        }
+        await expect(page.getByRole('textbox', { name: 'Rulebook name' })).toHaveValue('Battle reference');
+      },
+      { timeout: 30_000 }
+    );
     /* The form's submit shares the name, and the toolbar's toggle comes first. */
     await userEvent.click(page.getAllByRole('button', { name: 'Rename Rulebook' })[0]!);
     await waitFor(() => expect(page.queryByRole('textbox', { name: 'Rulebook name' })).toBeNull());
-    expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
     const title = page.getByRole('textbox', { name: 'Title' });
     await userEvent.type(title, ' revised');
-    expect(page.getByRole('button', { name: 'Rename Rulebook' })).toHaveAttribute('aria-disabled', 'true');
+    await expect(page.getByRole('button', { name: 'Rename Rulebook' })).toHaveAttribute('aria-disabled', 'true');
   },
 });
 
@@ -146,7 +167,7 @@ export const RenameForm = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(await page.findByRole('button', { name: 'Rename Rulebook' }, { timeout: 30_000 }));
-    expect(page.getByRole('textbox', { name: 'Rulebook name' })).toBeVisible();
+    await expect(page.getByRole('textbox', { name: 'Rulebook name' })).toBeVisible();
   },
 });
 
@@ -160,9 +181,9 @@ export const MemberEditor = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByRole('button', { name: 'Save' }, { timeout: 30_000 })).resolves.toBeDisabled();
     /* The next Edition's number is on the action that makes it; the toolbar states no Edition and no files. */
-    expect(page.getByRole('button', { name: 'Publish Edition 2' })).not.toHaveAttribute('aria-disabled');
-    expect(page.queryByRole('group', { name: 'Status' })).toBeNull();
-    expect(page.queryByRole('button', { name: 'Rename Rulebook' })).toBeNull();
+    await expect(page.getByRole('button', { name: 'Publish Edition 2' })).not.toHaveAttribute('aria-disabled');
+    await expect(page.queryByRole('group', { name: 'Status' })).toBeNull();
+    await expect(page.queryByRole('button', { name: 'Rename Rulebook' })).toBeNull();
   },
 });
 
@@ -171,18 +192,8 @@ export const DeepLinkedEditorBlock = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const editor = await page.findByRole('region', { name: 'Markers and tokens editor' }, { timeout: 30_000 });
-    expect(within(editor).getByRole('textbox', { name: 'Anchor' })).toHaveValue('marker-note');
-    expect(page.getByRole('article', { name: 'Rulebook page: Markers and tokens' })).toBeVisible();
-  },
-});
-
-export const DeepLinkedEditorPage = meta.story({
-  args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#REFS/details' },
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    const editor = await page.findByRole('region', { name: 'Markers and tokens editor' }, { timeout: 30_000 });
-    expect(within(editor).getByRole('textbox', { name: 'Title' })).toHaveValue('Markers and tokens');
-    expect(page.getByRole('article', { name: 'Rulebook page: Markers and tokens' })).toBeVisible();
+    await expect(within(editor).getByRole('textbox', { name: 'Anchor' })).toHaveValue('marker-note');
+    await expect(page.getByRole('article', { name: 'Rulebook page: Markers and tokens' })).toBeVisible();
   },
 });
 
@@ -191,8 +202,8 @@ export const InvalidEditorDeepLink = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const editor = await page.findByRole('region', { name: 'Welcome to Arrakis editor' }, { timeout: 30_000 });
-    expect(within(editor).getByRole('textbox', { name: 'Title' })).toHaveValue('Welcome to Arrakis');
-    expect(page.getByRole('article', { name: 'Rulebook page: Welcome to Arrakis' })).toBeVisible();
+    await expect(within(editor).getByRole('textbox', { name: 'Title' })).toHaveValue('Welcome to Arrakis');
+    await expect(page.getByRole('article', { name: 'Rulebook page: Welcome to Arrakis' })).toBeVisible();
   },
 });
 
@@ -204,9 +215,9 @@ export const ClippedAuthorWarning = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await page.findByRole('button', { name: 'Page 1 / Referenced illustration: is clipped' }, { timeout: 30_000 });
-    expect(page.getByText('Needs attention')).toBeVisible();
-    expect(page.queryByRole('alert', { name: 'Referenced illustration is clipped' })).toBeNull();
-    expect(page.getByRole('button', { name: 'Publish Edition 2' })).not.toHaveAttribute('aria-disabled');
+    await expect(page.getByText('Needs attention')).toBeVisible();
+    await expect(page.queryByRole('alert', { name: 'Referenced illustration is clipped' })).toBeNull();
+    await expect(page.getByRole('button', { name: 'Publish Edition 2' })).not.toHaveAttribute('aria-disabled');
     if (canvasElement.ownerDocument.defaultView) {
       canvasElement.ownerDocument.defaultView.location.hash = '#RULE/details';
     }
@@ -214,13 +225,13 @@ export const ClippedAuthorWarning = meta.story({
     /* The header reads a report the hidden Pages publish a commit after they mount or unmount, so the warning is read under a retry rather than from the header the open Page arrived with.
      * The warning comes before the Page count inside the retry, so a measurement that stops covering every Page reports the warning it lost rather than the elements it stopped drawing. */
     await waitFor(
-      () => {
-        expect(page.getByRole('button', { name: 'Page 1 / Referenced illustration: is clipped' })).toBeVisible();
-        expect(renderedPageCount(canvasElement)).toBe(4);
+      async () => {
+        await expect(page.getByRole('button', { name: 'Page 1 / Referenced illustration: is clipped' })).toBeVisible();
+        await expect(renderedPageCount(canvasElement)).toBe(4);
       },
       { timeout: 30_000 }
     );
-    expect(canvasElement.ownerDocument.querySelectorAll('#movement')).toHaveLength(1);
+    await expect(canvasElement.ownerDocument.querySelectorAll('#movement')).toHaveLength(1);
     /* Changing the open Page replaces the header's measurement report, so use its current warning. */
     const warning = page.getByRole('button', { name: 'Page 1 / Referenced illustration: is clipped' });
     await userEvent.hover(warning);
@@ -237,7 +248,7 @@ export const ClippedAuthorWarning = meta.story({
     ).resolves.toHaveTextContent(
       'Part of this Block will not be visible in the published Rulebook. Shorten the Block to show all of it.'
     );
-    expect((within(editor).getByRole('textbox', { name: 'Caption' }) as HTMLTextAreaElement).value).toContain(
+    await expect((within(editor).getByRole('textbox', { name: 'Caption' }) as HTMLTextAreaElement).value).toContain(
       'The rule continues below the fixed Page.'
     );
   },
@@ -255,26 +266,30 @@ export const RepeatedClippedAuthorWarnings = meta.story({
       { name: 'Page 1 / Referenced illustration 1: is clipped' },
       { timeout: 30_000 }
     );
-    expect(first).toBeVisible();
-    expect(page.getByRole('button', { name: 'Page 1 / Referenced illustration 2: is clipped' })).toBeVisible();
+    await expect(first).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Page 1 / Referenced illustration 2: is clipped' })).toBeVisible();
     /* Both warnings name Page 1, so opening Page 2 is what proves they cover a Page the editor does not have open. */
     if (canvasElement.ownerDocument.defaultView) {
       canvasElement.ownerDocument.defaultView.location.hash = '#RULE/details';
     }
     await expect(page.findByRole('region', { name: 'Movement editor' })).resolves.toBeVisible();
     await waitFor(
-      () => {
-        expect(page.getByRole('button', { name: 'Page 1 / Referenced illustration 1: is clipped' })).toBeVisible();
-        expect(page.getByRole('button', { name: 'Page 1 / Referenced illustration 2: is clipped' })).toBeVisible();
-        expect(renderedPageCount(canvasElement)).toBe(4);
+      async () => {
+        await expect(
+          page.getByRole('button', { name: 'Page 1 / Referenced illustration 1: is clipped' })
+        ).toBeVisible();
+        await expect(
+          page.getByRole('button', { name: 'Page 1 / Referenced illustration 2: is clipped' })
+        ).toBeVisible();
+        await expect(renderedPageCount(canvasElement)).toBe(4);
       },
       { timeout: 30_000 }
     );
     await userEvent.click(page.getByRole('button', { name: 'Page 1 / Referenced illustration 2: is clipped' }));
     await waitFor(() => expect(canvasElement.ownerDocument.defaultView?.location.hash).toBe('#CHAP/HERB'));
     const editor = page.getByRole('region', { name: 'Saved movement revision editor' });
-    expect(within(editor).getByRole('alert', { name: 'Referenced illustration is clipped' })).toBeVisible();
-    expect((within(editor).getByRole('textbox', { name: 'Caption' }) as HTMLTextAreaElement).value).toBe(
+    await expect(within(editor).getByRole('alert', { name: 'Referenced illustration is clipped' })).toBeVisible();
+    await expect((within(editor).getByRole('textbox', { name: 'Caption' }) as HTMLTextAreaElement).value).toBe(
       'A second clipped illustration.'
     );
   },
@@ -290,10 +305,10 @@ export const PublishIsHeld = meta.story({
     await userEvent.hover(trigger);
     await waitForFrame(() => expect(page.getByRole('tooltip')).toHaveTextContent('hold to publish'));
     await userEvent.click(trigger);
-    expect(
+    await expect(
       page.queryByText('The new Edition is now current. HTML and PDF are being prepared independently.')
     ).toBeNull();
-    expect(trigger).not.toHaveAttribute('aria-disabled');
+    await expect(trigger).not.toHaveAttribute('aria-disabled');
   },
 });
 
@@ -364,7 +379,7 @@ async function checkTitleMeasurements(canvasElement: HTMLElement, expectedPages:
     await waitFor(() => expect([...measured.observed].sort(compareCodeUnits)).toEqual(expectedPages), {
       timeout: 30_000,
     });
-    expect(renderedPageCount(canvasElement)).toBe(31);
+    await expect(renderedPageCount(canvasElement)).toBe(31);
   } finally {
     measured.restore();
   }
@@ -410,12 +425,12 @@ export const ReferenceEditsWithoutLoaderData = meta.story({
     await userEvent.clear(caption);
     await userEvent.type(caption, 'A local caption');
     await waitFor(() => expect(page.getByRole('textbox', { name: 'Caption' })).toHaveValue('A local caption'));
-    expect(page.getByRole('button', { name: 'Save' })).toBeEnabled();
+    await expect(page.getByRole('button', { name: 'Save' })).toBeEnabled();
     await userEvent.click(page.getByRole('button', { name: 'Revoke editing access' }));
     await expect(
       page.findByRole('heading', { name: 'You cannot edit this Rulebook' }, { timeout: 30_000 })
     ).resolves.toBeVisible();
-    expect(page.queryByRole('textbox', { name: 'Caption' })).not.toBeInTheDocument();
+    await expect(page.queryByRole('textbox', { name: 'Caption' })).not.toBeInTheDocument();
   },
 });
 
@@ -438,8 +453,8 @@ export const StaleEditor = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     /* A page story: the route is still loading when the play starts, as the sibling stories allow for. */
-    expect(await page.findByRole('heading', { name: 'This page changed' }, { timeout: 30_000 })).toBeVisible();
-    expect(page.getByRole('button', { name: 'Refresh' })).toBeVisible();
-    expect(page.queryByText(/unrecognized_keys/)).not.toBeInTheDocument();
+    await expect(await page.findByRole('heading', { name: 'This page changed' }, { timeout: 30_000 })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Refresh' })).toBeVisible();
+    await expect(page.queryByText(/unrecognized_keys/)).not.toBeInTheDocument();
   },
 });

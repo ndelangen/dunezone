@@ -2,13 +2,7 @@
   "schemaVersion": 1,
   "publisherWorker": "faction-sheet-asset-publisher",
   "ownedQueuePrefix": "faction-sheet-",
-  "queues": [
-    {
-      "name": "faction-sheet-asset-publisher",
-      "producers": 0,
-      "consumers": 0
-    }
-  ],
+  "queues": [],
   "buckets": [
     {
       "name": "tanstack-start-faction-sheet-assets",

@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 
 import { getPlatformProxy, unstable_dev } from 'wrangler';
 
-import { BLOG_POST_PAGES, MEDIA_PUBLIC_PAGES, RECORDLESS_PUBLIC_PAGES } from '../src/shared/recordlessPublicPages.ts';
+import { BLOG_POST_PAGES } from '../src/shared/blogPostSlugs.ts';
+import { MEDIA_PUBLIC_PAGES, RECORDLESS_PUBLIC_PAGES } from '../src/shared/recordlessPublicPages.ts';
 import { jpegProfile, pngDimensions } from '../workers/publisher/image-inspection.ts';
 
 /* Exercise the assembled Worker, including Static Assets precedence and the real TanStack entry. */
@@ -76,6 +77,36 @@ const worker = await unstable_dev('index.ts', {
   experimental: { disableExperimentalWarning: true, watch: false },
 });
 try {
+  const bundledAssets = readdirSync('dist/public');
+  const bandPoster = bundledAssets.find((name) => /^band_poster-[\w-]+\.jpg$/.test(name));
+  const bandVideo = bundledAssets.find((name) => /^band-[\w-]+\.mp4$/.test(name));
+  assert.ok(bandPoster, 'The header poster needs a content-hashed URL');
+  assert.ok(bandVideo, 'The header video needs a content-hashed URL');
+  for (const [name, source] of [
+    [bandPoster, 'band-poster.jpg'],
+    [bandVideo, 'band.mp4'],
+  ]) {
+    const response = await worker.fetch(`/public/${name}`);
+    assert.equal(response.status, 200, name);
+    assert.equal(response.headers.get('Cache-Control'), 'public, max-age=31536000, immutable', name);
+    const original = readFileSync(`../../public/video/${source}`);
+    assert.equal(Buffer.compare(Buffer.from(await response.arrayBuffer()), original), 0, name);
+    const legacy = await worker.fetch(`/video/${source}`);
+    assert.equal(legacy.status, 200, source);
+    assert.equal(Buffer.compare(Buffer.from(await legacy.arrayBuffer()), original), 0, source);
+  }
+  const videoRange = await worker.fetch(`/public/${bandVideo}`, { headers: { Range: 'bytes=0-1023' } });
+  /* Static Assets may answer a range request with the complete file, as the legacy video does. */
+  assert.ok([200, 206].includes(videoRange.status));
+  assert.equal(videoRange.headers.get('Cache-Control'), 'public, max-age=31536000, immutable');
+  const originalVideo = readFileSync('../../public/video/band.mp4');
+  assert.equal(
+    Buffer.compare(
+      Buffer.from(await videoRange.arrayBuffer()),
+      videoRange.status === 206 ? originalVideo.subarray(0, 1024) : originalVideo
+    ),
+    0
+  );
   const healthResponse = await worker.fetch('/__asset-publisher/health');
   assert.equal(healthResponse.status, 200);
   const health = (await healthResponse.json()) as { application: { release: string } };
@@ -93,6 +124,7 @@ try {
     '/assets',
     '/assets/token-disc',
     '/rulesets',
+    '/faq',
     '/profiles',
     ...RECORDLESS_PUBLIC_PAGES,
     ...BLOG_POST_PAGES,
@@ -123,6 +155,8 @@ try {
     assert.equal(response.headers.get('X-Robots-Tag'), null, pathname);
     const historicalFallback = Boolean(fixture && pathname.endsWith('/runtime-manual?edition=1'));
     const html = await response.text();
+    assert.ok(html.includes(`href="/public/${bandPoster}"`), `${pathname} does not preload the hashed poster`);
+    assert.ok(html.includes(`src="/public/${bandPoster}"`), `${pathname} does not display the preloaded poster`);
     assert.doesNotMatch(html, /<meta\b[^>]*\bname=["']robots["']/i, pathname);
     assertPublicMetadataQueries(
       Number(response.headers.get('X-Public-Metadata-Queries') ?? 0),
@@ -142,7 +176,23 @@ try {
     const hit = await worker.fetch(pathname);
     assert.equal(hit.headers.get('X-Public-Cache'), 'hit', pathname);
     assert.equal(hit.headers.get('X-Public-Metadata-Queries'), '0', pathname);
-    assert.equal(await hit.text(), html, pathname);
+    const hitHtml = await hit.text();
+    const nonce = /'nonce-([a-f0-9]+)'/.exec(response.headers.get('Content-Security-Policy') ?? '')?.[1];
+    const hitNonce = /'nonce-([a-f0-9]+)'/.exec(hit.headers.get('Content-Security-Policy') ?? '')?.[1];
+    assert.ok(nonce && hitNonce, `${pathname} needs a CSP nonce on both deliveries`);
+    assert.notEqual(nonce, hitNonce, `${pathname} must not reuse a cached CSP nonce`);
+    assert.equal(response.headers.get('X-Application-Render-Nonce'), null);
+    assert.equal(hit.headers.get('X-Application-Render-Nonce'), null);
+    assert.equal(hitHtml.replaceAll(hitNonce, 'NONCE'), html.replaceAll(nonce, 'NONCE'), pathname);
+    for (const script of html.matchAll(/<script\b([^>]*)>/gi)) {
+      if (/\btype="application\/ld\+json"/.test(script[1])) {
+        continue;
+      }
+      assert.ok(
+        script[1].includes(`nonce="${nonce}"`),
+        `${pathname} has a script without its delivery nonce: ${script[0]}`
+      );
+    }
     if (pathname === '/factions' || pathname === '/assets/token-disc' || pathname === '/rulesets') {
       const links = [...html.matchAll(/<a[^>]+href="([^"]+)"/g)].map((match) => match[1]!);
       if (pathname === '/rulesets') {
@@ -257,7 +307,11 @@ try {
       assert.equal(png.headers.get('Content-Type'), 'image/png');
       assert.deepEqual(pngDimensions(new Uint8Array(await png.arrayBuffer())), { widthPx: 1200, heightPx: 630 });
       const imageHit = await worker.fetch(imageUrl.pathname + imageUrl.search);
-      assert.equal(imageHit.headers.get('X-Public-Cache'), 'hit');
+      assert.equal(
+        imageHit.headers.get('X-Public-Cache'),
+        'hit',
+        `${pathname}: ${JSON.stringify(Object.fromEntries(imageHit.headers))}`
+      );
       assert.equal(imageHit.headers.get('X-Public-Renders'), '0');
       assert.equal(imageHit.headers.get('X-Public-Artwork-Reads'), '0');
       await imageHit.arrayBuffer();
@@ -269,7 +323,10 @@ try {
       const asset = await worker.fetch(script);
       assert.equal(asset.status, 200, script);
       assert.match(asset.headers.get('Content-Type') ?? '', /javascript/, script);
-      await asset.body?.cancel();
+      /* Cancelling a compressed asset logs a broken pipe from workerd on Linux.
+       * Read the complete delivery so a truncated hydration entry also fails verification.
+       */
+      await asset.arrayBuffer();
     }
   }
   assert.ok(rulebookPage, 'No Ruleset has a published Rulebook link');
@@ -295,7 +352,8 @@ try {
     const response = await worker.fetch(pathname);
     assert.equal(response.status, 200, pathname);
     assert.equal(response.headers.get('X-Application-Release'), null, pathname);
-    await response.body?.cancel();
+    /* Sign-in, editors and Play are not search results; a crawler that runs the shell would otherwise index them. */
+    assert.match(await response.text(), /<meta name="robots" content="noindex"\/>/, pathname);
   }
   for (const pathname of [
     `${rulebookPage}?edition=${Number.MAX_SAFE_INTEGER}`,
@@ -323,6 +381,7 @@ try {
       publicPages: verifiedPages,
       browserOnlyPages: browserOnlyPages.length,
       captureProtected: true,
+      headerMedia: { poster: `/public/${bandPoster}`, video: `/public/${bandVideo}`, rangeStatus: videoRange.status },
     })
   );
 } finally {

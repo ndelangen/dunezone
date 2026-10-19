@@ -1,7 +1,7 @@
 import type { ProfileUserEditInput } from '@shared/profiles/validation';
 import { profileUserEditFormSchema } from '@shared/profiles/validation';
 import { useMutation } from 'convex/react';
-import type { FunctionReturnType } from 'convex/server';
+import type { FunctionArgs, FunctionReturnType } from 'convex/server';
 import { useEffect, useRef } from 'react';
 
 import { db } from '@db/core';
@@ -24,7 +24,10 @@ export function profileAvatarUrl(profile: Pick<ProfileRow, 'avatar' | 'avatar_ur
 }
 export type CurrentProfileEntry = NonNullable<FunctionReturnType<typeof api.profiles.session>['profile']>;
 export type ProfileUpdateResult = FunctionReturnType<typeof api.profiles.updateCurrent>;
-export type ProfileListEntry = FunctionReturnType<typeof api.profiles.list>[number];
+export type ProfileDirectoryPageData = FunctionReturnType<typeof api.profiles.catalogue>;
+export type ProfileDirectoryEntry = ProfileDirectoryPageData['entries'][number];
+/** What one `/profiles` page asks for: the route's search parameters, as `profiles.catalogue` takes them. */
+export type ProfileDirectoryArgs = FunctionArgs<typeof api.profiles.catalogue>;
 
 /** Server-owned profile page contract, the same for every viewer; the read model lives in `convex/lib/profileDetail.ts`. */
 export type ProfileDetailResult = FunctionReturnType<typeof api.profiles.pageBySlug>;
@@ -50,10 +53,20 @@ export async function loadProfileBySlug(slug: string): Promise<ProfilePageData> 
   return normalizeProfilePage(result);
 }
 
-/** The directory route's loader, paired with `useProfilesAll`. */
-export async function loadProfilesAll(): Promise<ProfileListEntry[]> {
-  const entries = await db.query(api.profiles.list, {});
-  return entries;
+/** A profile as `ProfileLink` cites it, or null when no public profile holds the slug. */
+export type ProfileLinkEntry = FunctionReturnType<typeof api.profiles.linkBySlug>;
+
+/**
+ * One profile's link fields, live, for a page that cites a person without loading their page.
+ * It is a hook rather than a loader so a record-less page (the blog) keeps rendering on the server without a query.
+ */
+export function useProfileLink(slug: string): ProfileLinkEntry | undefined {
+  return useLiveQuery(api.profiles.linkBySlug, { slug });
+}
+
+/** The directory route's loader, paired with `useProfileDirectoryPage`; a searched page is not held, for the same reason. */
+export async function loadProfileDirectoryPage(args: ProfileDirectoryArgs): Promise<ProfileDirectoryPageData> {
+  return await db.query(api.profiles.catalogue, args, { hold: !args.q });
 }
 
 /** One profile's page, live, taking `loadProfileBySlug`'s result as `initialData`. */
@@ -69,13 +82,16 @@ export function useProfileBySlug(
   return result;
 }
 
-/** Every profile, live, taking `loadProfilesAll`'s result as `initialData`. */
-export function useProfilesAll(options?: { initialData?: ProfileListEntry[] }) {
-  const liveData = useLiveQuery(api.profiles.list, {});
-  const result = toLiveQueryResult(liveData, () => options?.initialData ?? undefined);
-  return {
-    ...result,
-  };
+/**
+ * One live directory page, taking `loadProfileDirectoryPage`'s result for the same arguments as `initialData`.
+ * A searched page is not held warm after it is left: every committed search is its own subscription, and holding each would keep re-running them on every profile write.
+ */
+export function useProfileDirectoryPage(
+  args: ProfileDirectoryArgs,
+  options?: { initialData?: ProfileDirectoryPageData }
+) {
+  const liveData = useLiveQuery(api.profiles.catalogue, args, { hold: !args.q });
+  return toLiveQueryResult(liveData, () => options?.initialData);
 }
 
 /**

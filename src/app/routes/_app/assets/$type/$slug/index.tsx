@@ -90,10 +90,7 @@ export const Route = createFileRoute('/_app/assets/$type/$slug/')({
       name: loaderData?.asset.name ?? 'Asset',
       kind: noun,
       pathname: `/assets/${encodeURIComponent(params.type)}/${encodeURIComponent(loaderData?.asset.slug ?? params.slug)}`,
-      description: loaderData
-        ? publicDescription(loaderData.asset.data.about) ||
-          `${loaderData.asset.name} is ${/^[aeiou]/i.test(noun ?? 'asset') ? 'an' : 'a'} ${(noun ?? 'asset').toLowerCase()} for Dune${loaderData.asset.owner?.username ? ` by ${loaderData.asset.owner.username}` : ''}.`
-        : '',
+      description: publicDescription(loaderData?.asset.data.about),
       image: loaderData?.asset.previewHref,
       social: {
         shape: params.type === 'token-disc' ? 'round' : params.type === 'token-enhance' ? 'landscape' : 'portrait',
@@ -241,13 +238,14 @@ function AssetFaces({ page }: { page: AssetPage }) {
           }
         >
           {backDeck ? (
-            <AssetFace href={backDeck.previewHref} type="deck" data={backDeck.data} name={backDeck.name} />
+            <AssetFace priority href={backDeck.previewHref} type="deck" data={backDeck.data} name={backDeck.name} />
           ) : danglingDeck && page.resolvedBack?.href ? (
             /* The note below carries the words, so the image is decorative to a screen reader. */
             <img src={page.resolvedBack.href} alt="" className={styles.fallbackCardback} />
           ) : (
             /* A deck's cards reach `AssetFace` here too and are ignored, which is that prop's documented contract rather than an accident. */
             <AssetFace
+              priority
               href={asset.previewHref}
               type={asset.type}
               data={asset.data}
@@ -271,7 +269,7 @@ function AssetFaces({ page }: { page: AssetPage }) {
     return (
       <Stack gap="sm" align="center">
         <FaceStage caption="Front & back">
-          <AssetFace href={asset.previewHref} type={asset.type} data={asset.data} name={asset.name} />
+          <AssetFace priority href={asset.previewHref} type={asset.type} data={asset.data} name={asset.name} />
         </FaceStage>
         {dangling ? (
           <Text size="sm" c="dimmed">
@@ -284,7 +282,7 @@ function AssetFaces({ page }: { page: AssetPage }) {
   return (
     <Stack gap="lg" align="center">
       <FaceStage caption="Front">
-        <AssetFace href={asset.previewHref} type={asset.type} data={asset.data} name={asset.name} />
+        <AssetFace priority href={asset.previewHref} type={asset.type} data={asset.data} name={asset.name} />
       </FaceStage>
       {back?.mode === 'reference' && backToken ? (
         <FaceStage
@@ -295,6 +293,7 @@ function AssetFaces({ page }: { page: AssetPage }) {
           }
         >
           <AssetFace
+            priority
             href={page.resolvedBack?.href ?? null}
             type={backToken.type}
             data={backToken.data}
@@ -303,7 +302,13 @@ function AssetFaces({ page }: { page: AssetPage }) {
         </FaceStage>
       ) : (
         <FaceStage caption="Back">
-          <AssetFace href={page.resolvedBack?.href ?? null} type={asset.type} data={asset.data} name={asset.name} />
+          <AssetFace
+            priority
+            href={page.resolvedBack?.href ?? null}
+            type={asset.type}
+            data={asset.data}
+            name={asset.name}
+          />
         </FaceStage>
       )}
     </Stack>

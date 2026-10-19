@@ -5,6 +5,8 @@ import {
   publishedHref,
   resolvePublicationCapture,
 } from '../../src/shared/asset-publishing/publicationTargets';
+import { parseBoardData } from '../../src/shared/assets/validation';
+import { BoardAsset } from '../../src/shared/boards/schema';
 import { CanonicalFactionStoredSchema, TroopArtwork } from '../../src/shared/factions/schema';
 import type { RulebookEditionContentsV1 } from '../../src/shared/rulebooks/contents';
 import type {
@@ -15,17 +17,70 @@ import { collectRulebookReferenceIds } from '../../src/shared/rulebooks/referenc
 import type { RulebookResolvedSource } from '../../src/shared/rulebooks/sources';
 import type { MutationCtx, QueryCtx } from '../types';
 import { assetDisplayName } from './assetInput';
+import { boardPublicationGeometry } from './boardPublicationGeometry';
 import { resolveRulebookTroopSource, rulebookTroopReferences } from './rulebookTroopSources';
 
 type ReadCtx = Pick<QueryCtx, 'db'> | Pick<MutationCtx, 'db'>;
+
+/**
+ * A saved board publishes only its image and stores the territories of the save it captured beside it.
+ * A publication from before that keeps none;
+ * its territories are read from the board's own data only while no capture of a newer save is queued, running or failed, since only then does the image show that data.
+ */
+async function savedBoardGeometry(ctx: ReadCtx, assetId: string, data: unknown, stored: unknown) {
+  if (stored) {
+    return stored;
+  }
+  const newerCapture = await ctx.db
+    .query('publication_jobs')
+    .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', 'board').eq('asset_id', assetId))
+    .first();
+  if (newerCapture) {
+    return null;
+  }
+  try {
+    return boardPublicationGeometry(parseBoardData(data).board) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * A saved board's data for drawing markup on it, checked for shape only: deriving its territories here would cost every evaluation of a reactive query.
+ * The scene works its territories out where it draws them, and leaves its tints out if the board does not draw.
+ * While a newer capture of the board is pending or has failed, its image still shows the board as it was, so the data is held back rather than drawing tints that no longer line up with it.
+ */
+async function capturedBoardData(ctx: ReadCtx, assetId: string, data: unknown) {
+  const newerCapture = await ctx.db
+    .query('publication_jobs')
+    .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', 'board').eq('asset_id', assetId))
+    .first();
+  if (newerCapture) {
+    return {};
+  }
+  const parsed = BoardAsset.safeParse(data);
+  return parsed.success ? { board: parsed.data.board } : {};
+}
 
 /** Resolves only the live sources this Contents references, for both the reader and publication. */
 export async function resolveRulebookReferences(
   ctx: ReadCtx,
   contents: RulebookEditionContentsV1,
-  requested: { assetIds?: readonly string[]; factionIds?: readonly string[]; factionTokenImages?: boolean } = {}
+  requested: {
+    assetIds?: readonly string[];
+    factionIds?: readonly string[];
+    factionTokenImages?: boolean;
+    /** Every saved board's data, for an editor that paints tints; readers get it only for boards a scene tints. */
+    boardData?: boolean;
+  } = {}
 ) {
-  const { assetIds, factionIds, troopSources = [] } = collectRulebookReferenceIds(contents, requested);
+  const {
+    assetIds,
+    factionIds,
+    troopSources = [],
+    markupBoardIds = [],
+  } = collectRulebookReferenceIds(contents, requested);
+  const tinted = new Set(markupBoardIds);
   const [assets, factions] = await Promise.all([
     Promise.all(
       assetIds.map(async (assetId): Promise<readonly [string, RulebookResolvedAssetsById[string]] | null> => {
@@ -40,8 +95,12 @@ export async function resolveRulebookReferences(
               .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', asset.type).eq('asset_id', assetId))
               .unique()
           : null;
-        const geometry = componentGeometrySchema.safeParse(publication?.component_geometry);
         const capture = isPublicationAssetType(asset.type) ? resolvePublicationCapture(asset.type) : null;
+        const geometry = componentGeometrySchema.safeParse(
+          asset.type === 'board' && publication
+            ? await savedBoardGeometry(ctx, assetId, asset.data, publication.component_geometry)
+            : publication?.component_geometry
+        );
         return [
           assetId,
           {
@@ -54,6 +113,9 @@ export async function resolveRulebookReferences(
               publication && isPublicationAssetType(asset.type)
                 ? publishedHref(asset.type, assetId, publication.cache_token)
                 : null,
+            ...(asset.type === 'board' && (requested.boardData || tinted.has(assetId))
+              ? await capturedBoardData(ctx, assetId, asset.data)
+              : {}),
           },
         ];
       })

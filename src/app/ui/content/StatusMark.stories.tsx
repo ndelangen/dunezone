@@ -1,3 +1,4 @@
+import { Group } from '@mantine/core';
 import preview from '@sb/preview';
 import { waitForFrame } from '@sb/storyWaits';
 import { CircleAlert, CircleCheck, CircleDashed, FileText, History, RefreshCw, UsersRound } from 'lucide-react';
@@ -27,35 +28,31 @@ export const Neutral = meta.story({
   },
 });
 
-/** Work that would be lost, which warns without failing. */
-export const Caution = meta.story({
-  args: { tone: 'caution', icon: <CircleDashed size={16} aria-hidden />, label: 'Unsaved changes' },
-});
-
-export const Negative = meta.story({
-  args: { tone: 'negative', icon: <CircleAlert size={16} aria-hidden />, label: 'Save failed' },
-});
-
-export const Positive = meta.story({
-  args: { tone: 'positive', label: 'Saved' },
-});
-
-/** Waiting on something else to start. */
-export const Pending = meta.story({
-  args: {
-    tone: 'pending',
-    icon: <History size={16} aria-hidden />,
-    label: 'A new faction sheet capture is scheduled. The current PDF remains available.',
-  },
-});
-
-/** Underway right now. */
-export const Progress = meta.story({
-  args: {
-    tone: 'progress',
-    icon: <RefreshCw size={16} aria-hidden />,
-    label: 'A new faction sheet capture is in progress. The current PDF remains available.',
-  },
+/**
+ * Every tone beside Neutral, so the glyph colours can be compared.
+ * Caution warns without failing;
+ * pending waits on something else to start;
+ * progress is underway right now.
+ */
+export const Tones = meta.story({
+  render: () => (
+    <Group gap="xs">
+      <StatusMark icon={<CircleCheck size={16} aria-hidden />} label="No unsaved changes" />
+      <StatusMark tone="caution" icon={<CircleDashed size={16} aria-hidden />} label="Unsaved changes" />
+      <StatusMark tone="negative" icon={<CircleAlert size={16} aria-hidden />} label="Save failed" />
+      <StatusMark tone="positive" icon={<CircleCheck size={16} aria-hidden />} label="Saved" />
+      <StatusMark
+        tone="pending"
+        icon={<History size={16} aria-hidden />}
+        label="A new faction sheet capture is scheduled. The current PDF remains available."
+      />
+      <StatusMark
+        tone="progress"
+        icon={<RefreshCw size={16} aria-hidden />}
+        label="A new faction sheet capture is in progress. The current PDF remains available."
+      />
+    </Group>
+  ),
 });
 
 /**

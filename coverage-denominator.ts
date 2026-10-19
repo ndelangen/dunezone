@@ -4,7 +4,7 @@
  * @see https://github.com/ndelangen/dunezone/issues/301 (decision)
  * @see docs/research/combined-coverage-codecov.md §8 (corrections; local research notes, untracked by design)
  */
-import { coverageConfigDefaults } from 'vitest/config';
+import { coverageConfigDefaults } from 'vite-plus';
 
 /**
  * Extension-scoped rather than bare globs: bare `src/**` pulled non-code files (local publisher dist output, tsconfig.json) into the denominator.

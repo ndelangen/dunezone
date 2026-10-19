@@ -1,16 +1,34 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
-import { afterEach, beforeEach, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, expect, test, vi } from 'vite-plus/test';
 
 import { api, internal } from './_generated/api';
 import { account, setup, stubAuthEnvironment, restoreAuthEnvironment } from './authAccount.test.fixture';
 import { applicationTriggers } from './lib/applicationTriggers';
+import { insertPendingGame } from './lib/playProvisioningSchedule';
+
+/* Answers a merge's session cutoff as the room does, acknowledging it as soon as it arrives; unanswered, it would retry for the pass lifetime. */
+function roomAcknowledgesCutoffs(t: ReturnType<typeof setup>) {
+  vi.stubEnv('PLAY_SERVICE_URL', 'http://127.0.0.1:8787');
+  vi.stubGlobal('fetch', async (url: string, init: RequestInit) => {
+    if (!url.endsWith('/session-cutoff')) {
+      return new Response(null, { status: 404 });
+    }
+    const { gameId, secret, eventId, through } = JSON.parse(init.body as string) as Record<string, never>;
+    await t.mutation(api.playSessionCutoffs.ackSessionCutoff, { gameId, secret, eventId, through });
+    return Response.json({ ok: true });
+  });
+}
 
 beforeEach(stubAuthEnvironment);
-afterEach(restoreAuthEnvironment);
+afterEach(() => {
+  restoreAuthEnvironment();
+  vi.unstubAllGlobals();
+});
 
 test('admin merges drain multiple batches, preserve overlapping memberships, credentials and old profile links, and revoke the source session', async () => {
   const t = setup();
+  roomAcknowledgesCutoffs(t);
   const source = await account(t, 'other', 'discord');
   const target = await account(t, 'kept', 'google', true);
   const groups = await t.run(async (raw) => {
@@ -80,6 +98,7 @@ test('admin merges drain multiple batches, preserve overlapping memberships, cre
 
 test('a failed partial transfer resumes without undoing completed writes and unlocks the kept account', async () => {
   const t = setup();
+  roomAcknowledgesCutoffs(t);
   const source = await account(t, 'source', 'discord');
   const target = await account(t, 'target', 'google', true);
   const groups = await t.run(async (raw) => {
@@ -132,6 +151,7 @@ test('a failed partial transfer resumes without undoing completed writes and unl
 test('Discord connection requires both proofs and a fresh second session, then consumes the intent once', async () => {
   const provider = 'discord';
   const t = setup();
+  roomAcknowledgesCutoffs(t);
   const target = await account(t, 'kept', 'google');
   const source = await account(t, 'other', provider);
   const original = t.withIdentity({ subject: `${target.userId}|${target.sessionId}` });
@@ -158,8 +178,31 @@ test('Discord connection requires both proofs and a fresh second session, then c
   expect(await t.query(api.accounts.connection, { token: intent.token })).toBeNull();
 });
 
+test("a self-service connection never carries the source account's admin rights", async () => {
+  const provider = 'discord';
+  const t = setup();
+  roomAcknowledgesCutoffs(t);
+  const target = await account(t, 'requester', 'google');
+  const source = await account(t, 'administrator', provider, true);
+  const intent = await t
+    .withIdentity({ subject: `${target.userId}|${target.sessionId}` })
+    .mutation(api.accounts.beginConnection, { provider });
+  const secondSession = await t.run(
+    async (ctx) => await ctx.db.insert('authSessions', { userId: source.userId, expirationTime: Date.now() + 600_000 })
+  );
+  await t
+    .withIdentity({ subject: `${source.userId}|${secondSession}` })
+    .mutation(api.accounts.confirmConnection, { token: intent.token });
+  await t.finishAllScheduledFunctions(() => vi.runAllTimers());
+  await t.run(async (ctx) => {
+    expect((await ctx.db.get(source.authId))?.userId).toBe(target.userId);
+    expect((await ctx.db.get(target.userId))?.isAdmin).toBeFalsy();
+  });
+});
+
 test('a source player survives game reconciliation before and after routing transfer while old sessions lose access', async () => {
   const t = setup();
+  roomAcknowledgesCutoffs(t);
   const source = await account(t, 'player', 'discord');
   const target = await account(t, 'spectator', 'google', true);
   const game = await t.mutation(internal.playTesting.createFixture, {});
@@ -197,6 +240,7 @@ test('a source player survives game reconciliation before and after routing tran
 
 test('ordinary users cannot perform admin merges, and expired connection credentials cannot authorize a merge', async () => {
   const t = setup();
+  roomAcknowledgesCutoffs(t);
   const target = await account(t, 'kept', 'google');
   const source = await account(t, 'other', 'discord');
   const original = t.withIdentity({ subject: `${target.userId}|${target.sessionId}` });
@@ -217,6 +261,7 @@ test('ordinary users cannot perform admin merges, and expired connection credent
 
 test('merges refuse overlapping private seats and unfinished provisioning, then admit the kept account under its retained actor', async () => {
   const t = setup();
+  roomAcknowledgesCutoffs(t);
   const source = await account(t, 'source', 'discord');
   const target = await account(t, 'target', 'google', true);
   const game = await t.mutation(internal.playTesting.createFixture, {});
@@ -278,6 +323,7 @@ test.each(['target', 'source'] as const)(
   'a %s creator with no admission row or directory summary retains its original game actor',
   async (creator) => {
     const t = setup();
+    roomAcknowledgesCutoffs(t);
     const source = await account(t, 'source', 'discord');
     const target = await account(t, 'target', 'google', true);
     const game = await t.mutation(internal.playTesting.createFixture, {});
@@ -314,6 +360,7 @@ test.each(['target', 'source'] as const)(
 
 test('two retained answers to one question remain readable and do not allow a third answer', async () => {
   const t = setup();
+  roomAcknowledgesCutoffs(t);
   const source = await account(t, 'source', 'discord');
   const target = await account(t, 'target', 'google', true);
   const questionId = await t.run(async (raw) => {
@@ -352,6 +399,15 @@ test('two retained answers to one question remain readable and do not allow a th
   const admin = t.withIdentity({ subject: `${target.userId}|${target.sessionId}` });
   await admin.mutation(api.accounts.merge, { sourceUserId: source.userId, targetUserId: target.userId });
   await t.finishAllScheduledFunctions(() => vi.runAllTimers());
+  await t.run(async (ctx) => {
+    /* The merge moves the question and the source's answer to the target, so both answers now belong to one account. */
+    await expect(ctx.db.get('faq_items', questionId)).resolves.toMatchObject({ asked_by: target.userId });
+    const answers = await ctx.db
+      .query('faq_answers')
+      .withIndex('by_faq_item_created', (q) => q.eq('faq_item_id', questionId))
+      .collect();
+    expect(answers.map((answer) => answer.answered_by)).toEqual([target.userId, target.userId]);
+  });
   const page = await admin.query(api.faq.question, { rulesetSlug: 'rules', questionSlug: '1' });
   expect(page).not.toBeNull();
   await expect(
@@ -362,8 +418,55 @@ test('two retained answers to one question remain readable and do not allow a th
   ).rejects.toThrow('already answered');
 });
 
+test('a creator who never entered keeps their seat when merged into an account already routed to the game', async () => {
+  const t = setup();
+  roomAcknowledgesCutoffs(t);
+  const source = await account(t, 'creator', 'discord');
+  const target = await account(t, 'spectator', 'google', true);
+  const game = await t.run(async (ctx) => {
+    const now = new Date().toISOString();
+    const rulesetId = await ctx.db.insert('rulesets', {
+      name: 'Classic',
+      slug: 'classic',
+      about: 'A ruleset for merge coverage.',
+      created_at: now,
+      updated_at: now,
+      owner_id: source.userId,
+      group_id: null,
+      is_deleted: false,
+      image_cover: null,
+    });
+    return await insertPendingGame(ctx, { ruleset_id: rulesetId, minimum_players: 4, creator_id: source.userId });
+  });
+  await t.mutation(api.playProvisioning.confirmProvisioning, {
+    gameId: game.gameId,
+    secret: game.secret,
+    attemptId: game.attemptId,
+  });
+  await t.run(async (ctx) => {
+    await ctx.db.insert('play_game_accounts', {
+      game_id: game.gameId,
+      user_id: target.userId,
+      actor_user_ids: [target.userId],
+    });
+  });
+  const admin = t.withIdentity({ subject: `${target.userId}|${target.sessionId}` });
+  await admin.mutation(api.accounts.merge, { sourceUserId: source.userId, targetUserId: target.userId });
+  const args = { gameId: game.gameId, secret: game.secret, userIds: [source.userId, target.userId] };
+  const expected = {
+    accounts: [
+      { userId: source.userId, state: 'active' },
+      { userId: target.userId, state: 'active' },
+    ],
+  };
+  expect(await t.query(api.playAdmission.reconcileAccounts, args)).toMatchObject(expected);
+  await t.finishAllScheduledFunctions(() => vi.runAllTimers());
+  expect(await t.query(api.playAdmission.reconcileAccounts, args)).toMatchObject(expected);
+});
+
 test('a connected Discord account protects the last usable method', async () => {
   const t = setup();
+  roomAcknowledgesCutoffs(t);
   const owner = await account(t, 'discord-owner', 'discord');
   const viewer = t.withIdentity({ subject: `${owner.userId}|${owner.sessionId}` });
   await expect(viewer.mutation(api.accounts.disconnect, { provider: 'discord' })).rejects.toThrow('Keep at least one');

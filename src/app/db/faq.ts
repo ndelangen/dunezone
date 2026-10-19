@@ -1,7 +1,7 @@
 import { faqQuestionPageForViewer } from '@shared/faq/questionPageAccess';
 import type { FaqTag } from '@shared/faq/tags';
 import { faqAnswerSchema, faqQuestionSchema, faqTagsSchema } from '@shared/faq/validation';
-import type { FunctionReturnType } from 'convex/server';
+import type { FunctionArgs, FunctionReturnType } from 'convex/server';
 import { useMemo } from 'react';
 
 import { db } from '@db/core';
@@ -83,6 +83,56 @@ function voidCommand<TVariables, TResult>(
     },
     ...commandState(mutation),
   };
+}
+
+/** What `api.faq.rulesetFaq` gives a ruleset's FAQ page, the same for every viewer: a browsed page or a search, told apart by `mode`; null for an unknown ruleset. */
+export type RulesetFaqPageData = FunctionReturnType<typeof api.faq.rulesetFaq>;
+/** A browsed page of a ruleset's FAQ: newest first, counted, in numbered pages. */
+export type RulesetFaqBrowseData = Exclude<NonNullable<RulesetFaqPageData>, { mode: 'search' }>;
+/** A searched FAQ: the best matches first, and more by asking for a larger limit. */
+export type RulesetFaqSearchData = Extract<NonNullable<RulesetFaqPageData>, { mode: 'search' }>;
+/** What one ruleset FAQ page asks for: the ruleset, the route's search parameters and how many of a search's best matches to show, as `faq.rulesetFaq` takes them. */
+export type RulesetFaqArgs = FunctionArgs<typeof api.faq.rulesetFaq>;
+
+/** The ruleset FAQ route's loader, paired with `useRulesetFaqPage`; a searched page is not held, as each search is its own subscription. */
+export async function loadRulesetFaqPage(args: RulesetFaqArgs): Promise<RulesetFaqPageData> {
+  return await db.query(api.faq.rulesetFaq, args, { hold: !args.q });
+}
+
+/** One live ruleset FAQ page, taking `loadRulesetFaqPage`'s result for the same arguments as `initialData`. */
+export function useRulesetFaqPage(args: RulesetFaqArgs, options?: { initialData?: RulesetFaqPageData }) {
+  const liveData = useLiveQuery(api.faq.rulesetFaq, args, { hold: !args.q });
+  return toLiveQueryResult(liveData, () => options?.initialData);
+}
+
+/** What `api.faq.search` gives the global FAQ page, the same for every viewer. */
+export type GlobalFaqPageData = FunctionReturnType<typeof api.faq.search>;
+/** What one global FAQ search asks for: the search, the ruleset slugs it narrows to, and how many of the best matches to show. */
+export type GlobalFaqArgs = FunctionArgs<typeof api.faq.search>;
+
+/** What `api.faq.rulesetOptions` gives the global FAQ's ruleset picker: every live ruleset holding questions, by name. */
+export type GlobalFaqRulesetOptions = FunctionReturnType<typeof api.faq.rulesetOptions>;
+
+/** The global FAQ route's loader for the ruleset picker, paired with `useGlobalFaqRulesetOptions`; one held answer for every search. */
+export async function loadGlobalFaqRulesetOptions(): Promise<GlobalFaqRulesetOptions> {
+  return await db.query(api.faq.rulesetOptions, {}, { hold: true });
+}
+
+/** The ruleset picker's options, live, taking `loadGlobalFaqRulesetOptions`'s result as `initialData`. */
+export function useGlobalFaqRulesetOptions(options?: { initialData?: GlobalFaqRulesetOptions }) {
+  const liveData = useLiveQuery(api.faq.rulesetOptions, {}, { hold: true });
+  return toLiveQueryResult(liveData, () => options?.initialData);
+}
+
+/** The global FAQ route's loader, paired with `useGlobalFaqPage`; a searched page is not held, as each search is its own subscription. */
+export async function loadGlobalFaqPage(args: GlobalFaqArgs): Promise<GlobalFaqPageData> {
+  return await db.query(api.faq.search, args, { hold: !args.q });
+}
+
+/** One live global FAQ page, taking `loadGlobalFaqPage`'s result for the same arguments as `initialData`. */
+export function useGlobalFaqPage(args: GlobalFaqArgs, options?: { initialData?: GlobalFaqPageData }) {
+  const liveData = useLiveQuery(api.faq.search, args, { hold: !args.q });
+  return toLiveQueryResult(liveData, () => options?.initialData);
 }
 
 /** The question route's loader, paired with `useFaqQuestionPage`. */

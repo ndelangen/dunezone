@@ -4,7 +4,6 @@ import { profileSlugBaseFromName, profileUserEditFormSchema } from '@shared/prof
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { LoadPending } from '@ui/block/LoadPending';
-import { LoginGate } from '@ui/block/LoginGate';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { SlugRenameNotice } from '@ui/content/SlugRenameNotice';
 import { StatusBadge } from '@ui/content/StatusBadge';
@@ -14,11 +13,16 @@ import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
 import { Toolbar } from '@ui/surface/Toolbar';
-import { ArrowLeft, CircleUserRound, Link2, Palette, Save, Trash2, Unlink, UsersRound } from 'lucide-react';
+import { ArrowLeft, CircleUserRound, Link2, LogOut, Palette, Save, Trash2, Unlink, UsersRound } from 'lucide-react';
 import { useId, useReducer, useRef, useState } from 'react';
 
 import { authProviderNames } from '@db/accounts';
-import { useBeginAuthConnection, useDisconnectAuthMethod } from '@db/accounts';
+import {
+  holdAuthConnection,
+  useBeginAuthConnection,
+  useDisconnectAuthMethod,
+  useSignOutEverywhere,
+} from '@db/accounts';
 import type { AuthProvider } from '@db/accounts';
 import { useProfileSettings, useSessionViewer, useUpdateCurrentProfile } from '@db/profiles';
 import type { CurrentProfileEntry, ProfileSettingsData, ProfileUserEditInput } from '@db/profiles';
@@ -28,6 +32,7 @@ import type { SchemePreference } from '@app/styles/colorScheme';
 import { setMotionOverride, useMotionPreference } from '@app/styles/motion';
 import type { MotionPreference } from '@app/styles/motion';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
+import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 type ProfileTab = 'profile' | 'defaults' | 'appearance' | 'sign-in' | 'account';
@@ -301,7 +306,7 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
             window.alert('Profile saved, but the selected default Group was no longer available.');
           }
           if (previousSlug !== entry.slug) {
-            navigate({
+            void navigate({
               to: '/profiles/$profileSlug',
               params: { profileSlug: entry.slug },
               replace: true,
@@ -608,9 +613,11 @@ function ProfileSettingsPage() {
   return <EditableProfilePage key={viewer.profile.slug} initial={viewer.profile} />;
 }
 
-type SignInMethodsState = { busy: AuthProvider | null; error: string | null };
+/* The tab's one busy action: a provider being connected or disconnected, or the sign-out of every session. */
+type SignInMethodsAction = AuthProvider | 'everywhere';
+type SignInMethodsState = { busy: SignInMethodsAction | null; error: string | null };
 type SignInMethodsEvent =
-  | { kind: 'started'; provider: AuthProvider }
+  | { kind: 'started'; provider: SignInMethodsAction }
   | { kind: 'failed'; message: string }
   | { kind: 'settled' };
 
@@ -628,20 +635,19 @@ function reduceSignInMethods(state: SignInMethodsState, event: SignInMethodsEven
 function SignInMethods({ account }: { account: NonNullable<ProfileSettingsData['account']> }) {
   const begin = useBeginAuthConnection();
   const disconnect = useDisconnectAuthMethod();
+  const revokeSessions = useSignOutEverywhere();
   const { signIn, signOut } = useAuthActions();
   const [state, dispatch] = useReducer(reduceSignInMethods, { busy: null, error: null });
   const connect = async (provider: AuthProvider) => {
     dispatch({ kind: 'started', provider });
     try {
       const intent = await begin({ provider });
-      await signIn(provider, {
-        redirectTo: `/profiles/${encodeURIComponent(intent.slug)}/connect?connection=${intent.token}`,
-      });
+      holdAuthConnection(intent.token);
+      await signIn(provider, { redirectTo: `/profiles/${encodeURIComponent(intent.slug)}/connect` });
     } catch (error) {
       dispatch({ kind: 'failed', message: error instanceof Error ? error.message : 'The sign-in could not start.' });
-    } finally {
-      dispatch({ kind: 'settled' });
     }
+    dispatch({ kind: 'settled' });
   };
   const remove = async (provider: AuthProvider) => {
     dispatch({ kind: 'started', provider });
@@ -653,9 +659,22 @@ function SignInMethods({ account }: { account: NonNullable<ProfileSettingsData['
         kind: 'failed',
         message: error instanceof Error ? error.message : 'The sign-in method could not be disconnected.',
       });
-    } finally {
-      dispatch({ kind: 'settled' });
     }
+    dispatch({ kind: 'settled' });
+  };
+  /* The server ends every session first, this one included; clearing this browser's tokens then only makes the page agree. */
+  const signOutEverywhere = async () => {
+    dispatch({ kind: 'started', provider: 'everywhere' });
+    try {
+      await revokeSessions({});
+      await signOut();
+    } catch (error) {
+      dispatch({
+        kind: 'failed',
+        message: error instanceof Error ? error.message : 'The sign-out could not finish.',
+      });
+    }
+    dispatch({ kind: 'settled' });
   };
   return (
     <Stack gap="md">
@@ -719,6 +738,24 @@ function SignInMethods({ account }: { account: NonNullable<ProfileSettingsData['
           />
         );
       })}
+      <ControlBlock
+        title="Sign out on all devices"
+        description="Signs this profile out everywhere, including here. Use it if you lost a device or signed in on a shared computer."
+        input={
+          <Group justify="space-between">
+            <Text size="sm">Ends every session, including this one.</Text>
+            <ConfirmDeleteAction
+              label="Sign out on all devices"
+              verb="sign out"
+              size="lg"
+              icon={<LogOut size={17} aria-hidden />}
+              pending={state.busy === 'everywhere'}
+              disabled={!!state.busy || account.merging}
+              onConfirm={() => void signOutEverywhere()}
+            />
+          </Group>
+        }
+      />
     </Stack>
   );
 }

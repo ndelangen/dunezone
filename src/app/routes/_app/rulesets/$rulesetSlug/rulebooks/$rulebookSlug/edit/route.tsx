@@ -52,6 +52,7 @@ import type {
 } from '@shared/rulebooks/contents';
 import { RULEBOOK_EDITION_ARTIFACT_KINDS } from '@shared/rulebooks/editionArtifacts';
 import type { RulebookEditionArtifactKind } from '@shared/rulebooks/editionArtifacts';
+import type { RulebookBoardSceneValue } from '@shared/rulebooks/illustratedScenes';
 import { rulebookNameSchema } from '@shared/rulebooks/metadata';
 import {
   projectRulebookDraftRenderPage,
@@ -66,7 +67,6 @@ import { createFileRoute, deepEqual, Link, useNavigate } from '@tanstack/react-r
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { LoadError } from '@ui/block/LoadError';
 import { LoadPending } from '@ui/block/LoadPending';
-import { LoginGate } from '@ui/block/LoginGate';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { Section } from '@ui/block/Section';
 import { errorMessage } from '@ui/content/errorMessage';
@@ -127,7 +127,9 @@ import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { FactionPicker } from '@app/pickers/FactionPicker';
 import { pageHead } from '@app/routes/pageTitle';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
+import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
+import { RulebookBoardMarkupEditing } from '@game/rulebook/RulebookBoardMarkup';
 import { RulebookPageRenderer } from '@game/rulebook/RulebookRenderer';
 
 import {
@@ -147,6 +149,7 @@ import {
   verticalRectCenter,
 } from './rulebookBlockPlacement';
 import type { BlockPlacement, VerticalRect } from './rulebookBlockPlacement';
+import { rulebookMarkupEditor, RulebookMarkupUiProvider, useRulebookMarkupUiState } from './rulebookBoardMarkup';
 import { RulebookClippedBlockPanel } from './rulebookClippedBlockPanel';
 import { CoverEdit, CoverFooterEdit } from './rulebookControlRegionEditors';
 import {
@@ -1252,6 +1255,29 @@ function FactionReferenceControl({
   );
 }
 
+/** The Block the editor has open, if it has one open. */
+const openBlockId = (active: ReturnType<typeof activeEditorPath>) =>
+  active?.kind === 'block' ? active.blockId : undefined;
+
+/** The open Block's board scene markup for the preview to paint and drag on: a board scene's own, or a piece movement's board. */
+function activeBoardMarkup(
+  blocksById: Readonly<Record<string, RulebookBlockDraft>>,
+  blockId: string | undefined,
+  replaceBlock: (block: RulebookBlockDraft) => void,
+  assetsById: RulebookResolvedAssetsById,
+  ui: Parameters<typeof rulebookMarkupEditor>[0]['ui']
+) {
+  const block = blockId === undefined ? undefined : blocksById[blockId];
+  const scene =
+    block?.kind === 'board-scene'
+      ? { value: block, onChange: (value: RulebookBoardSceneValue) => replaceBlock({ ...block, ...value }) }
+      : block?.kind === 'piece-movement' && block.board
+        ? { value: block.board, onChange: (board: RulebookBoardSceneValue) => replaceBlock({ ...block, board }) }
+        : undefined;
+  const editor = block && scene ? rulebookMarkupEditor({ ...scene, assetsById, ui }) : null;
+  return block && editor ? { blockId: block.id, editor } : null;
+}
+
 function blockEditorPanel(
   block: RulebookBlockDraft,
   replaceBlock: (block: RulebookBlockDraft) => void,
@@ -1463,6 +1489,7 @@ function RulebookWorkspace({
   const size = getRulebookSize(settings.size);
   const active = activeEditorPath(result.draft, hash);
   const activeHash = active?.hash;
+  const markupUi = useRulebookMarkupUiState(openBlockId(active));
   const [collapsedRegionKeys, setCollapsedRegionKeys] = useState<ReadonlySet<string>>(() => new Set());
   const [dragState, sendDrag] = useReducer(reduceWorkspaceDragState, idleWorkspaceDragState);
   const railDrag = activeRailDrag(dragState);
@@ -1850,6 +1877,8 @@ function RulebookWorkspace({
   const activeClippedBlock =
     active.kind === 'block' ? clippedBlocks.find((block) => block.id === active.blockId) : undefined;
 
+  const markupEditing = activeBoardMarkup(page.blocksById, openBlockId(active), replaceBlock, assetsById, markupUi);
+
   const panel: ReactNode =
     active.kind === 'details' ? (
       <PageDetailsEdit
@@ -1892,7 +1921,9 @@ function RulebookWorkspace({
       controlRegionPanel(page, active.regionKey, replacePage, factionsById)
     ) : (
       <Stack gap="md">
-        {blockEditorPanel(page.blocksById[active.blockId]!, replaceBlock, factionsById, assetsById, result.draft)}
+        <RulebookMarkupUiProvider state={markupUi}>
+          {blockEditorPanel(page.blocksById[active.blockId]!, replaceBlock, factionsById, assetsById, result.draft)}
+        </RulebookMarkupUiProvider>
         <Group justify="flex-end">
           <ConfirmDeleteAction
             key={active.blockId}
@@ -2089,11 +2120,13 @@ function RulebookWorkspace({
           <div className={styles.previewPage}>
             <div ref={previewRef} className={styles.previewVisible}>
               {previewPage ? (
-                <RulebookPageRenderer
-                  page={previewPage}
-                  settings={settings}
-                  pageNumber={result.draft.pageOrder.indexOf(page.id) + 1}
-                />
+                <RulebookBoardMarkupEditing.Provider value={markupEditing}>
+                  <RulebookPageRenderer
+                    page={previewPage}
+                    settings={settings}
+                    pageNumber={result.draft.pageOrder.indexOf(page.id) + 1}
+                  />
+                </RulebookBoardMarkupEditing.Provider>
               ) : null}
             </div>
             <div className={styles.clippingMeasurements} aria-hidden>
@@ -2174,12 +2207,22 @@ function placementName(contents: RulebookContentsDraftV1, placement?: Placement)
   return `${containerName(contents, container)}, ${boundary}`;
 }
 
+const SHOWN_PRIMITIVES: ReadonlySet<string> = new Set(['string', 'number', 'boolean', 'bigint']);
+
+function isShownPrimitive(value: unknown): value is string | number | boolean | bigint {
+  return SHOWN_PRIMITIVES.has(typeof value);
+}
+
 function reviewValue(value: unknown): ReactNode {
   if (value === undefined || value === null || value === '') {
     return <Text c="dimmed">Not set</Text>;
   }
-  if (typeof value !== 'object') {
+  if (isShownPrimitive(value)) {
     return <Text style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{String(value)}</Text>;
+  }
+  if (typeof value !== 'object') {
+    /* A draft is JSON, so it holds no functions or symbols to show. */
+    return null;
   }
   return (
     <Stack gap="xs">
@@ -2629,6 +2672,10 @@ function artifactStatus(kind: RulebookEditionArtifactKind, status: ArtifactStatu
   }
 }
 
+function saveResponseEvent(kind: 'saved' | 'stale', saved: Parameters<typeof createRulebookEditorStateManager>[0]) {
+  return kind === 'saved' ? { kind: 'save-succeeded' as const, saved } : { kind: 'save-stale' as const, latest: saved };
+}
+
 type DraftReferences = ReturnType<typeof collectRulebookReferenceIds>;
 
 function RulebookEditorSession({
@@ -2759,9 +2806,7 @@ function RulebookEditorSession({
       sendView({
         kind: 'result',
         notice: response.kind,
-        result: manager.dispatch(
-          response.kind === 'saved' ? { kind: 'save-succeeded', saved } : { kind: 'save-stale', latest: saved }
-        ),
+        result: manager.dispatch(saveResponseEvent(response.kind, saved)),
       });
     } catch (error) {
       dispatch({

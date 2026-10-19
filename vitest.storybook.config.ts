@@ -6,10 +6,13 @@
  */
 import { storybookTest } from '@storybook/addon-vitest/vitest-plugin';
 import viteReact from '@vitejs/plugin-react';
-import { playwright } from '@vitest/browser-playwright';
-import { defineConfig } from 'vitest/config';
+import { defineConfig } from 'vite-plus';
+import { playwright } from 'vite-plus/test/browser-playwright';
 
+import { convexPackageMocks } from './.storybook/convexPackageMocks.ts';
 import { pageStylesheetStaysWithItsStory } from './.storybook/pageStylesheet.ts';
+import { storyBoardFace } from './.storybook/storyBoardFace.ts';
+import { storyImagesWorker } from './.storybook/storyImagesWorker.ts';
 import {
   convexWorkerAliases,
   convexWorkerBuildPlugins,
@@ -57,6 +60,7 @@ export default defineConfig({
       /* Hold helpers must be bundled before the first story starts. */
       '@sinonjs/fake-timers',
       '@mantine/hooks',
+      '@testing-library/react/pure',
       /* Prebundle imports discovered by full page stories before Chromium starts testing. */
       '@convex-dev/auth/react',
       '@radix-ui/react-select',
@@ -78,15 +82,16 @@ export default defineConfig({
     rolldownOptions: { plugins: [threeRendererStackTreeShaking()] },
   },
   resolve: {
-    /* Typings in the current Vite package lag behind docs/runtime support
-       (same cast as .storybook/vite.config.ts). */
-    ...({ tsconfigPaths: true } as Record<string, unknown>),
+    tsconfigPaths: true,
     alias: [
+      ...convexPackageMocks,
       ...Object.entries(convexWorkerAliases).map(([find, replacement]) => ({ find, replacement })),
       ...threeRendererStackAliases,
     ],
   },
   plugins: [
+    storyImagesWorker(),
+    storyBoardFace(),
     ...convexWorkerServePlugins(),
     pageStylesheetStaysWithItsStory(),
     viteReact(),
@@ -111,7 +116,7 @@ export default defineConfig({
      */
     isolate: false,
     /*
-     * Sized for the browser-local Convex conformance story, which starts and retires 21 workers and costs 48 to 54 seconds in a full run against 4 seconds alone.
+     * Sized for the browser-local Convex conformance story, which cost 48 to 54 seconds in a full run against 4 seconds alone while every reset booted a fresh worker; pooled workers brought it to about 13 seconds.
      * At 45_000 that story was inside the kill by itself and outside it in a suite, and its own assertion carried the same 45_000, so the kill and the report fell due together and a failure could not say what it was waiting for.
      * The next slowest story here takes 21 seconds, so this is the heavy one's headroom rather than a budget the rest spend.
      */

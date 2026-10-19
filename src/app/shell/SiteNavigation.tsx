@@ -1,7 +1,8 @@
 import { useAuthActions } from '@convex-dev/auth/react';
 import { Menu } from '@mantine/core';
+import { signInReturnFrom } from '@shared/authDestination';
 import type { LinkProps } from '@tanstack/react-router';
-import { Link } from '@tanstack/react-router';
+import { Link, useLocation } from '@tanstack/react-router';
 import type { RefObject } from 'react';
 import { useLayoutEffect, useRef, useState } from 'react';
 
@@ -17,11 +18,13 @@ export interface NavLinkItem {
 
 /* The link set is content, not structure: the system renders whatever list it is given, at any
    count and any label length, so editing this array is the whole job of changing the navigation. */
-const PRIMARY_LINKS: readonly NavLinkItem[] = [
+export const PRIMARY_LINKS: readonly NavLinkItem[] = [
   { label: 'Factions', to: '/factions' },
   { label: 'Rulesets', to: '/rulesets' },
+  { label: 'FAQ', to: '/faq' },
   { label: 'Profiles', to: '/profiles' },
   { label: 'Assets', to: '/assets' },
+  { label: 'Blog', to: '/blog' },
 ];
 
 /* Room reserved for the More control before deciding which links fit. It cannot be measured
@@ -47,6 +50,7 @@ export interface SiteNavigationProps {
 export function SiteNavigation({ links = PRIMARY_LINKS }: SiteNavigationProps) {
   const profile = useCurrentProfile();
   const { signOut } = useAuthActions();
+  const here = useLocation({ select: (location) => location.href });
   const groupRef = useRef<HTMLDivElement>(null);
   const measureRef = useRef<HTMLDivElement>(null);
   const visibleCount = useVisibleLinkCount(groupRef, measureRef, links);
@@ -156,7 +160,7 @@ export function SiteNavigation({ links = PRIMARY_LINKS }: SiteNavigationProps) {
             </Menu>
           </>
         ) : (
-          <Link to="/auth/login" activeProps={{ className: styles.activeLink }}>
+          <Link to="/auth/login" search={signInReturnFrom(here)} activeProps={{ className: styles.activeLink }}>
             Login
           </Link>
         )}

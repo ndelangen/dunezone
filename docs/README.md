@@ -2,6 +2,17 @@
 
 Quick reference for understanding and working with the codebase.
 
+## TypeScript source
+
+Maintained scripts, tests, mocks and Convex generated modules use TypeScript. `convex.json`
+selects TypeScript code generation. The pinned Convex patch replaces the generator's explicit
+`any` annotations with function-kind unions and preserves its generated API casts through
+`unknown`. Keep the patch aligned with Convex upgrades and regenerate with `convex codegen`.
+
+Storybook compiles `workers/storybook/story-images.sw.ts` during development and builds, then
+serves it at `/story-images.sw.js`. The source has a separate strict WebWorker type check in
+`bun run typecheck`. Both Storybook runners resolve the package mocks to their `.ts` sources.
+
 ## Entry points
 
 **Starting a new feature?**
@@ -84,6 +95,20 @@ Three 0.186 now removes destroyed bind groups itself, so that part of the old pa
 The patch covers `build/three.webgpu.js`,
 `build/three.webgpu.nodes.js` and the matching `src/` files.
 
+The Storybook React 10.6.1 patch uses an asynchronous `act` callback when unmounting a story.
+Its test environment flag then stays enabled until React drains the cleanup work. A synchronous
+callback restores the flag before the awaited cleanup finishes, so Fiber reports an unsupported
+act environment during later stories. The two-story Play table loop reproduces the warning.
+Remove the patch when Storybook uses an asynchronous unmount callback itself.
+
+The Floating UI 1.8.0 patch coalesces positions requested by `ResizeObserver` into the next
+animation frame. Updating a portalled tooltip inside resize delivery can change its wrapping and
+leave undelivered notifications in the same browser cycle. Initial placement and scroll updates
+still run immediately. Cleanup cancels both pending resize updates and floating-element
+reobservation. The installed-package regression checks scheduling, coalescing and disposal; the
+Faction Special Rule and board editor stories cover the original browser failures. Remove the
+patch when Floating UI provides the same resize scheduling and cleanup.
+
 The `miniflare` entry in `package.json` `overrides` moves only miniflare's own `undici` to 7.30.0,
 for [GHSA-3wwx-pv8p-q78v](https://github.com/advisories/GHSA-3wwx-pv8p-q78v). miniflare pins
 `undici` to exactly 7.29.0, which no range can reach, and an override of `undici` everywhere would
@@ -143,8 +168,8 @@ Without `--snapshot-file <zip>`, the launch downloads the newest snapshot that t
 snapshot` workflow uploaded from `main`, using the GitHub CLI (`gh auth login` first). It ignores an
 artifact of that name from any other workflow, event, branch or fork, and one from a run that did
 not succeed. The download goes to the launch's private temporary directory, and the launch deletes
-it as soon as the import finishes or fails. Nothing is cached between launches. The workflow keeps
-each upload for one day, and uploads only while its `SNAPSHOT_UPLOAD` switch is `"true"`. With no
+it as soon as the import finishes or fails. Nothing is cached between launches. The workflow runs weekly and
+keeps each upload for eight days, so the newest is usually under a week old (after a failed Monday run the previous upload lasts about one more day, then none is left until the next Monday's run or a manual dispatch), and it uploads only while its `SNAPSHOT_UPLOAD` switch is `"true"`. With no
 artifact, or when GitHub cannot be reached, the launch stops before Docker starts and points at
 `--data=fixture`.
 
@@ -214,13 +239,17 @@ tables as the e2e target does; the snapshot load belongs to `app:dev --local` al
 `deploy-main` calls the `Rebuild dev deployment` workflow once production has shipped, so a
 failed rebuild reddens the run without ever gating the release. Every merge pushes main's
 functions to the dev deployment; the **data** is only reloaded when the deploy cannot tell which
-commits it adds to production, or when those commits touch `convex/schema.ts`,
-`convex/migrations*.ts`, or `convex/migration-guards.json`, the changes that can invalidate or
-reshape dev's existing data, or the files that make, load and check the snapshot: the snapshot
+commits it adds to production, or when those commits touch `convex/schema.ts`, which can invalidate
+dev's existing data, or the files that make, load and check the snapshot: the snapshot
 policy and anonymiser (`scripts/lib/snapshot-*.ts`, `scripts/snapshot-*.ts`),
 `scripts/anonymised-snapshot.ts`, the rebuild contract (`convex/lib/provisioningContract.ts`,
 `convex/provisioningChecks.ts`) and `.github/workflows/dev-rebuild.yml`. So a tightened policy
-reaches dev on the merge that makes it. `scripts/dev-rebuild-decision.ts` holds the list. Ordinary
+reaches dev on the merge that makes it. A merge whose only such change is a migration
+(`convex/migrations*.ts` or `convex/migration-guards.json`) reloads nothing: dev runs the new
+migrations on its existing data, as the deploy does on production, which spares a production
+export. When the code push or that migrate step fails, for instance because the schema narrowed through a
+validator it imports, the job falls back to the full rebuild.
+`scripts/dev-rebuild-decision.ts` holds the list. Ordinary
 merges leave your dev session and any dev-side experiments intact.
 
 Dev's data is the anonymised snapshot, never raw production. A data rebuild runs the snapshot job's
@@ -450,6 +479,7 @@ the geometry used to fit illustrations after square normalization.
 - [Data Layer](./data-layer.md) - Domain patterns, DB syncing, structure
 - [Routing](./routing.md) - Route configuration, file-based routing
 - [Authentication](./authentication.md) - Auth patterns, Convex Auth integration
+- [Content security policy](./content-security-policy.md) - Browser resource origins, inline scripts and cached HTML delivery
 - [User Data Contract](./user-data-contract.md) - What belongs in `users` vs `profiles`
 - [State Management](./state-management.md) - Convex live subscriptions, the loader/`initialData` handoff
 - [Membership](./membership.md) - Group membership approval flow

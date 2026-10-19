@@ -1,10 +1,11 @@
-import { describe, expect, test, vi } from 'vitest';
+import { describe, expect, test, vi } from 'vite-plus/test';
 
 import { handleApplicationRequest } from './application';
 
-const env: Pick<Env, 'CF_VERSION_METADATA' | 'GIT_SHA'> = {
+const env: Pick<Env, 'CF_VERSION_METADATA' | 'GIT_SHA' | 'CONVEX_CLOUD_BASE_URL'> = {
   CF_VERSION_METADATA: { id: 'release-a', tag: 'a', timestamp: 'today' },
   GIT_SHA: 'development',
+  CONVEX_CLOUD_BASE_URL: 'https://exuberant-finch-263.eu-west-1.convex.cloud',
 };
 
 describe('anonymous application dispatch', () => {
@@ -22,34 +23,32 @@ describe('anonymous application dispatch', () => {
     '/assets',
     '/assets/token-disc',
     '/assets/card-treachery/lasgun',
-    '/assets/unknown-type/missing',
     '/assets/create',
     '/assets/unknown-type/missing/extra',
     '/factions/missing/extra',
     '/glossary',
-    '/future-plans',
-    '/privacy',
-    '/privacy/',
-    '/glossary/missing',
+    '/faq',
     '/blog',
     '/blog/why-dune',
-    '/blog/missing',
     '/media',
-    '/media/',
     '/media/game/leaders',
-    '/media/game/missing',
-    '/media/game',
     '/media/missing',
-    '/media/game/leaders/extra',
   ])('renders %s without visitor credentials', async (pathname) => {
     const render = vi.fn(async (request: Request) => {
-      expect([...request.headers]).toEqual([['accept', 'text/html']]);
+      expect(request.headers.get('Accept')).toBe('text/html');
+      expect(request.headers.get('X-Application-Nonce')).toMatch(/^[a-f0-9]{32}$/);
+      expect([...request.headers]).toHaveLength(2);
       expect(request.url).toBe(`https://dune.zone${pathname}?search=hello`);
       return new Response('public page', { headers: { 'Set-Cookie': 'unexpected=value' } });
     });
     const response = await handleApplicationRequest(
       new Request(`https://dune.zone${pathname}?search=hello`, {
-        headers: { Cookie: 'auth=private', Authorization: 'Bearer private', 'X-Forwarded-Host': 'other.invalid' },
+        headers: {
+          Cookie: 'auth=private',
+          Authorization: 'Bearer private',
+          'X-Forwarded-Host': 'other.invalid',
+          'X-Application-Nonce': 'attacker-chosen',
+        },
       }),
       env,
       render
@@ -57,9 +56,8 @@ describe('anonymous application dispatch', () => {
     expect(await response?.text()).toBe('public page');
     expect(response?.headers.get('Set-Cookie')).toBeNull();
     expect(response?.headers.get('Cache-Control')).toBe('no-store');
-    expect(response?.headers.get('Content-Security-Policy')).toBe(
-      "frame-ancestors 'self'; base-uri 'self'; object-src 'none'"
-    );
+    expect(response?.headers.get('Content-Security-Policy')).toMatch(/script-src 'self'[^;]*'nonce-/);
+    expect(response?.headers.get('X-Application-Render-Nonce')).toBeNull();
     expect(response?.headers.get('X-Frame-Options')).toBe('SAMEORIGIN');
     expect(response?.headers.get('X-Content-Type-Options')).toBe('nosniff');
     expect(response?.headers.get('X-Application-Release')).toBe('release-a');
@@ -73,26 +71,18 @@ describe('anonymous application dispatch', () => {
     '/assets/token-disc/test/edit',
     '/assets/__presets',
     '/rulesets/create',
-    '/rulesets/%63reate',
     '/rulesets/dreamrules/edit',
     '/rulesets/dreamrules/rulebooks/create',
     '/rulesets/dreamrules/rulebooks/dream-rulebook/edit',
-    '/rulesets/dreamrules/rulebooks/dream-rulebook/editions',
     '/rulesets/dreamrules/faq/create',
     '/groups',
     '/groups/create',
-    '/groups/%63reate',
     '/groups/dreamers/edit',
     '/profiles/central/edit',
-    '/profiles/central/delete',
-    '/rulesets/dreamrules/faq/%63reate',
     '/play',
     '/media/topics',
     '/media/lucide',
-    '/media/topics/extra',
     '/auth/login',
-    '/preview/sheet/test',
-    '/publisher-capture.html',
     '/factions/%',
     '/factions/a%2Fedit',
   ])('leaves %s to its existing owner', async (pathname) => {

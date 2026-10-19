@@ -1,5 +1,5 @@
 import { serializePublisherLogEvent } from '../../src/shared/asset-publishing/publisher-diagnostics';
-import { rendererManifest } from './renderer-manifest.generated';
+import { RENDERER_IDENTITY, RENDERER_MANIFEST_DIGEST } from './renderer-identity';
 
 export const MAX_TELEMETRY_EVENT_BYTES = 8192;
 
@@ -18,8 +18,8 @@ export function publisherBuildIdentity(metadata: WorkerVersionMetadata, gitSha: 
     workerVersionId: metadata.id,
     workerVersionTag: metadata.tag,
     workerVersionTimestamp: metadata.timestamp,
-    rendererIdentity: rendererManifest.rendererIdentity,
-    rendererManifestDigest: rendererManifest.digest,
+    rendererIdentity: RENDERER_IDENTITY,
+    rendererManifestDigest: RENDERER_MANIFEST_DIGEST,
   };
 }
 

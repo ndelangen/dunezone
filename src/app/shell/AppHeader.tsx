@@ -1,8 +1,12 @@
 import type { ReactNode, RefObject } from 'react';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 
+/* File imports give the build hashed URLs while preserving the legacy /video/ paths for older bundles. */
+import bandPoster from '../../../public/video/band-poster.jpg?url';
+import bandVideo from '../../../public/video/band.mp4?url';
 import { useMotionAllowed } from '../styles/motion';
 import styles from './AppHeader.module.css';
+import { useBandMotion } from './bandMotion';
 import { SiteNavigation } from './SiteNavigation';
 
 /*
@@ -38,6 +42,10 @@ export function AppHeader({ children }: AppHeaderProps) {
   const motionOk = useMotionAllowed();
   const bandShown = useShown(bandRef);
   const playVideo = motionOk && bandShown;
+  const frameRef = useRef<HTMLDivElement>(null);
+  const mediaRef = useRef<HTMLDivElement>(null);
+  useFrameLeft(frameRef);
+  useBandMotion(frameRef, bandRef, mediaRef, motionOk);
 
   if (!playVideo && videoReady) {
     setVideoReady(false);
@@ -55,31 +63,60 @@ export function AppHeader({ children }: AppHeaderProps) {
   }, [playVideo]);
 
   return (
-    <div className={styles.frame}>
+    <div ref={frameRef} className={styles.frame} data-app-frame>
       {/* Artwork and site navigation, not the banner: the page's own header is that landmark (see PageLayout). */}
       <div ref={bandRef} className={styles.band} data-app-band>
-        <img alt="" aria-hidden className={styles.bandPlaceholder} src={bandPlaceholder} />
-        <img alt="" aria-hidden className={styles.bandPoster} src="/video/band-poster.jpg" />
-        {playVideo && (
-          <video
-            ref={videoRef}
-            className={styles.bandVideo}
-            data-ready={videoReady || undefined}
-            onPlaying={() => setVideoReady(true)}
-            src="/video/band.mp4"
-            autoPlay
-            muted
-            loop
-            playsInline
-            aria-hidden
-            tabIndex={-1}
-          />
-        )}
+        <div ref={mediaRef} className={styles.bandMedia}>
+          <img alt="" aria-hidden className={styles.bandPlaceholder} src={bandPlaceholder} />
+          <img alt="" aria-hidden className={styles.bandPoster} src={bandPoster} />
+          {playVideo && (
+            <video
+              ref={videoRef}
+              className={styles.bandVideo}
+              data-ready={videoReady || undefined}
+              onPlaying={() => setVideoReady(true)}
+              src={bandVideo}
+              autoPlay
+              muted
+              loop
+              playsInline
+              aria-hidden
+              tabIndex={-1}
+            />
+          )}
+        </div>
         <SiteNavigation />
       </div>
       {children}
     </div>
   );
+}
+
+/* Publishes the frame's distance from the window's left edge as `--app-frame-left`, for the immersive band to bleed back to the edge. */
+function useFrameLeft(frameRef: RefObject<HTMLDivElement | null>) {
+  useEffect(() => {
+    const frame = frameRef.current;
+    if (!frame || typeof ResizeObserver === 'undefined') {
+      return;
+    }
+    let published = '';
+    const measure = () => {
+      const left = `${frame.getBoundingClientRect().left + window.scrollX}px`;
+      if (left !== published) {
+        published = left;
+        frame.style.setProperty('--app-frame-left', left);
+      }
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(document.documentElement);
+    observer.observe(frame);
+    window.addEventListener('resize', measure);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', measure);
+    };
+  }, [frameRef]);
 }
 
 /* Whether the element has a box: `display: none` reports an empty one, and showing it again reports its size. */

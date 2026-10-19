@@ -1,18 +1,35 @@
+import { RULESET_ASSET_SLOTS } from '../../src/shared/rulesets/assetSlots';
 import type { Id } from '../_generated/dataModel';
 import type { QueryCtx } from '../types';
 import { assetDisplayName } from './assetInput';
 
-/** Bounds one ruleset's slot contents. Slots are curated by hand, so this is a ceiling on nonsense rather than a paging limit. */
-const RULESET_SLOT_LIMIT = 200;
+/** Bounds one many-asset slot's contents. The many-asset slots are curated by hand, so this is a ceiling on nonsense rather than a paging limit. */
+export const SLOT_CONTENTS_LIMIT = 100;
+
+/* Every slot at its capacity, so a full ruleset's newest row is still read. */
+const RULESET_SLOT_LIMIT = Object.values(RULESET_ASSET_SLOTS).reduce(
+  (total, rule) => total + (rule.single ? 1 : SLOT_CONTENTS_LIMIT),
+  0
+);
 
 /**
  * The assets a ruleset has slotted, by slot.
  *
  * A soft-deleted asset is filtered here rather than having its row removed, which is the same bargain `listPublicRulesetFactions` makes: the slot row survives, the slot presents empty, and undeleting the asset restores it.
  * Reads `by_ruleset` only.
- * Two readers: the ruleset detail page, and the capture a game makes of a ruleset's supply.
+ * Read by the capture a game makes of a ruleset's supply;
+ * the ruleset detail page uses `readRulesetAssetSlots`, which keeps each asset's document.
  */
-export async function listRulesetAssetSlots(ctx: QueryCtx, rulesetId: Id<'rulesets'>) {
+export async function listRulesetAssetSlots(ctx: QueryCtx, rulesetId: Id<'rulesets'>, options: SlotReadOptions = {}) {
+  return (await readRulesetAssetSlots(ctx, rulesetId, options)).map(({ slot, asset }) => ({ slot, asset }));
+}
+
+/** The slot entries with each live asset document, for a caller that needs more of a slotted asset than its name without reading it twice. */
+export async function readRulesetAssetSlots(
+  ctx: QueryCtx,
+  rulesetId: Id<'rulesets'>,
+  { skipBoard = false }: SlotReadOptions = {}
+) {
   const rows = await ctx.db
     .query('ruleset_asset_slots')
     .withIndex('by_ruleset', (q) => q.eq('ruleset_id', rulesetId))
@@ -20,6 +37,10 @@ export async function listRulesetAssetSlots(ctx: QueryCtx, rulesetId: Id<'rulese
 
   const entries = [];
   for (const row of rows) {
+    /* A board row is the whole board definition, hundreds of kilobytes; a caller that resolves the board its own way skips it. */
+    if (skipBoard && row.slot === 'board') {
+      continue;
+    }
     const asset = await ctx.db.get('assets', row.asset_id);
     if (asset && !asset.is_deleted) {
       entries.push({
@@ -30,8 +51,11 @@ export async function listRulesetAssetSlots(ctx: QueryCtx, rulesetId: Id<'rulese
           slug: asset.slug,
           name: assetDisplayName(asset),
         },
+        doc: asset,
       });
     }
   }
   return entries;
 }
+
+type SlotReadOptions = { skipBoard?: boolean };

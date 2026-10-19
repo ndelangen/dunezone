@@ -1,7 +1,11 @@
 import { ConvexError } from 'convex/values';
 
 import { NO_DECK_BACK_HREF } from '../../src/shared/asset-publishing/fallbacks';
-import { isPublicationAssetType, publicationFaceId } from '../../src/shared/asset-publishing/publicationTargets';
+import {
+  isPublicationAssetType,
+  publicationFaceId,
+  publishedHref,
+} from '../../src/shared/asset-publishing/publicationTargets';
 import type { Doc, Id } from '../_generated/dataModel';
 import { publicationHrefFor } from '../assetPublishingStatus';
 import type { MutationCtx, QueryCtx } from '../types';
@@ -11,8 +15,8 @@ import { supersedePendingPublication } from './publication';
 
 type ReadCtx = Pick<QueryCtx, 'db'> | Pick<MutationCtx, 'db'>;
 
-/** The four token types, the set every back rule ranges over. */
-export const TOKEN_ASSET_TYPES = new Set(['token-disc', 'token-tech', 'token-plate', 'token-enhance']);
+/** The token types, the set every back rule ranges over. */
+export const TOKEN_ASSET_TYPES = new Set(['token-disc', 'token-tech', 'token-plate', 'token-pointer', 'token-enhance']);
 
 /** A token's stored back, read without trusting the row to satisfy the current schema. */
 export function tokenBackOf(data: unknown): { mode?: unknown; asset_id?: unknown } | null {
@@ -51,6 +55,19 @@ export function authoredDeckCardback(row: Doc<'assets'>): Record<string, unknown
   }
   const cardback = deckCardbackOf(row.data);
   return cardback ? cardbackComposition(cardback) : null;
+}
+
+/**
+ * The face an Asset publishes as its own, by the href its listing and detail page draw, or null when it publishes none.
+ * A bundle publishes nothing, and a deck publishes a cardback only when it authored one;
+ * a preset or another deck's cardback is not its own.
+ * The browse presentation and the sitemap's image entries share this, so the URL image search is given is the URL the page shows.
+ */
+export function ownPublishedFace(row: Doc<'assets'>): string | null {
+  if (!isPublicationAssetType(row.type) || (row.type === 'deck' && !authoredDeckCardback(row))) {
+    return null;
+  }
+  return publishedHref(row.type, row._id, row.updated_at);
 }
 
 /**

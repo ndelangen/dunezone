@@ -1,23 +1,16 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import aggregateTest from '@convex-dev/aggregate/test';
-import migrationsTest from '@convex-dev/migrations/test';
-import { convexTest } from 'convex-test';
-
 import type { Id } from './_generated/dataModel';
-import schema from './schema';
+import { applicationTest } from './application.test.fixture';
+import { syncFactionCard } from './lib/factionCards';
+import type { MutationCtx } from './types';
 
-const modules = import.meta.glob('./**/*.ts');
 const STAMP = '2026-09-28T00:00:00.000Z';
 
 /** A fresh test world with the components faction writes and migrations touch. */
 export function factionTest() {
-  const t = convexTest(schema, modules);
-  aggregateTest.register(t, 'statistics');
-  aggregateTest.register(t, 'profileActivity');
-  aggregateTest.register(t, 'profileDiscovery');
-  migrationsTest.register(t);
+  const t = applicationTest();
   return t;
 }
 
@@ -66,4 +59,11 @@ export async function insertStoredFactions(
 
 export async function storedFactionData(t: FactionTest, ids: Id<'factions'>[]) {
   return await t.run(async (ctx) => Promise.all(ids.map(async (id) => (await ctx.db.get('factions', id))!)));
+}
+
+/** Gives factions seeded through the raw database the cards their triggers would have written, the way the card backfill does. */
+export async function syncSeededFactionCards(ctx: MutationCtx) {
+  for (const faction of await ctx.db.query('factions').collect()) {
+    await syncFactionCard(ctx, faction._id, faction);
+  }
 }

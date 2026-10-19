@@ -340,7 +340,7 @@ fixture HTTP-request budget. Only the native test adapter exposes `/native-test/
 Run the boundary checks with:
 
 ```sh
-bunx vitest run workers/game/load-limits.native.test.mjs
+bunx vitest run workers/game/load-limits.native.test.ts
 ```
 
 These use native workerd, SQLite and the real game class with a controlled Convex protocol peer.
@@ -395,7 +395,7 @@ temporary directory, reported by `node -p "require('node:os').tmpdir()"`. In the
 JSON files must be mode 0600. Generate a backend copy in a new directory:
 
 ```sh
-bun --no-env-file scripts/prepare-hosted-play.mjs backend \
+bun --no-env-file scripts/prepare-hosted-play.ts backend \
   --target /PRIVATE_TEMP/target.json --directory /PRIVATE_TEMP/backend
 ```
 
@@ -426,7 +426,7 @@ must finish before creating a fixture because they can take longer than its one-
 lease. The same command generates each cell's activation file once its game ID is available:
 
 ```sh
-bun --no-env-file scripts/prepare-hosted-play.mjs workers \
+bun --no-env-file scripts/prepare-hosted-play.ts workers \
   --target /PRIVATE_TEMP/target.json --run /PRIVATE_TEMP/window.json \
   --cell /PRIVATE_TEMP/cell.json --game-id GAME_ID \
   --assets /PRIVATE_TEMP/assets --directory /PRIVATE_TEMP/workers
@@ -478,7 +478,7 @@ Then run the cells one at a time. For each cell:
 7. Capture the providers' counters for the cell beside its report:
 
    ```sh
-   CLOUDFLARE_ANALYTICS_TOKEN=... CLOUDFLARE_ACCOUNT_ID=... node scripts/play-load/provider-usage.mjs \
+   CLOUDFLARE_ANALYTICS_TOKEN=... CLOUDFLARE_ACCOUNT_ID=... node scripts/play-load/provider-usage.ts \
      --report /ABSOLUTE_CHECKOUT/test-results/play-load/stacked-steady-1789262547416 \
      --baseline /ABSOLUTE_CHECKOUT/test-results/play-load/PREVIOUS_CELL/provider-usage.json
    ```

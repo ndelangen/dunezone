@@ -12,7 +12,7 @@ import {
 import { CanonicalFactionStoredSchema, toStoredHeroKey } from '../src/shared/factions/schema';
 import { assetSupplySchema, factionDefinitionWireSchema, rulesetSupplySchema } from '../src/shared/play/capture';
 import { playDraftableFactionsSchema } from '../src/shared/play/drafting';
-import type { Doc } from './_generated/dataModel';
+import type { Doc, Id } from './_generated/dataModel';
 import type { QueryCtx } from './_generated/server';
 import { publicationHrefFor } from './assetPublishingStatus';
 import { CONTAINER_KINDS, liveAsset, membersOf, referencedCardbackDeck, tokenBackFor } from './assets';
@@ -66,7 +66,7 @@ export const rulesetSupply = publicQuery({
     return {
       ruleset: { id: row._id, slug: row.slug, name: row.name },
       /* Older Workers accept only deck and bundle slots during the additive rollout. */
-      slots: (await listRulesetAssetSlots(ctx, row._id)).filter((entry) => entry.slot !== 'board'),
+      slots: await listRulesetAssetSlots(ctx, row._id, { skipBoard: true }),
       board: await rulesetBoard(ctx, row._id),
     };
   },
@@ -134,6 +134,27 @@ export const factionDefinition = publicQuery({
   },
 });
 
+const DRAFTABLE_FACTION_LIMIT = 500;
+
+/* The ruleset's own factions always make the list; the rest of it holds the newest live factions, in creation order. */
+async function draftCandidates(ctx: QueryCtx, linked: ReadonlySet<Id<'factions'>>) {
+  const rows = await Promise.all([...linked].map((id) => ctx.db.get(id)));
+  const chosen = new Map(
+    rows.filter((row): row is Doc<'factions'> => row !== null && !row.is_deleted).map((row) => [row._id, row])
+  );
+  const newest = ctx.db
+    .query('factions')
+    .withIndex('by_deleted', (q) => q.eq('is_deleted', false))
+    .order('desc');
+  for await (const row of newest) {
+    if (chosen.size >= DRAFTABLE_FACTION_LIMIT) {
+      break;
+    }
+    chosen.set(row._id, row);
+  }
+  return [...chosen.values()].sort((a, b) => a._creationTime - b._creationTime);
+}
+
 /**
  * Every live faction as a drafting game reads it: its token's render data, its theme colour, whether it is linked to the game's ruleset and whether its token is published.
  * A row that does not parse is left out;
@@ -151,10 +172,7 @@ export const draftableFactions = publicQuery({
           .take(500)
       : [];
     const linked = new Set(links.map((link) => link.faction_id));
-    const rows = await ctx.db
-      .query('factions')
-      .withIndex('by_deleted', (q) => q.eq('is_deleted', false))
-      .take(500);
+    const rows = await draftCandidates(ctx, linked);
     const factions = [];
     for (const row of rows) {
       const parsed = CanonicalFactionStoredSchema.safeParse(row.data);

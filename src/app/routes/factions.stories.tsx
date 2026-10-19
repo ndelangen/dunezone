@@ -1,5 +1,6 @@
 import preview from '@sb/preview';
 import { waitForFrame } from '@sb/storyWaits';
+import { FACTION_CATALOGUE_PAGE_SIZE } from '@shared/factions/catalogueSearch';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { db, faction, refText, SEED_REF_TOKEN } from '@db/storybook';
@@ -15,6 +16,7 @@ import {
   resetAndSettle,
 } from './backgroundMemoryPlay';
 import { spaceOrks, spaceOrksOwner, spaceOrksPublication } from './factionPlanets.stories.fixture';
+import { expectFieldValue, expectWithinWidth } from './pagePlay';
 import { pageStoryMeta } from './storybookConfig';
 
 const meta = preview.meta({
@@ -22,7 +24,76 @@ const meta = preview.meta({
   ...pageStoryMeta,
 });
 
-export const Catalogue = meta.story({ args: { path: '/factions' } });
+export const Catalogue = meta.story({
+  args: { path: '/factions' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const [card] = await page.findAllByRole('link', { name: /House Atreides/ }, { timeout: 30_000 });
+    await expect(card).toBeVisible();
+  },
+});
+
+/** Past one page the catalogue numbers its pages as real links, and `?page=2` opens the second page directly. */
+export const CataloguePaged = meta.story({
+  args: { path: '/factions?page=2' },
+  parameters: {
+    database: db((baseline) => {
+      for (let index = 1; index <= 60; index += 1) {
+        baseline.factions.push(faction({ name: `Sietch ${String(index).padStart(2, '0')}` }));
+      }
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByText(/^49–61 of 61 factions$/, {}, { timeout: 30_000 })).resolves.toBeVisible();
+    const pages = await page.findByLabelText('Faction catalogue pages');
+    await expect(within(pages).getByRole('link', { name: '1' })).toHaveAttribute('href', '/factions');
+  },
+});
+
+/** The catalogue's cards, each named by the faction it opens. */
+function factionCards(main: ReturnType<typeof within>, name: RegExp) {
+  return main.getAllByRole('link', { name });
+}
+
+/**
+ * A search shows its best matches and loads more in place: no pages, no count, and the sort is best match alone.
+ * An old link's page and order are dropped, so it opens the search's first matches.
+ * "Load more" lengthens the grid until every match is shown, and hands focus to the first new card.
+ */
+export const CatalogueSearched = meta.story({
+  args: { path: '/factions?q=sietch&page=2&sort=created' },
+  parameters: {
+    database: db((baseline) => {
+      /* One past the first step: the smallest search that has more to load. */
+      for (let index = 1; index <= FACTION_CATALOGUE_PAGE_SIZE + 1; index += 1) {
+        baseline.factions.push(faction({ name: `Sietch ${String(index).padStart(2, '0')}` }));
+      }
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    /* Found on the body, not within a `main` found earlier: the pending frame has a `main` of its own, which the loaded page replaces. */
+    const loadMore = await page.findByRole('button', { name: 'Load more' }, { timeout: 60_000 });
+    const main = within(page.getByRole('main'));
+    await expect(factionCards(main, /Sietch/)).toHaveLength(FACTION_CATALOGUE_PAGE_SIZE);
+    await expect(main.queryByRole('link', { name: /House Atreides/ })).toBeNull();
+    await expect(page.queryByLabelText('Faction catalogue pages')).toBeNull();
+    await expect(page.queryByText(/of \d+ factions/)).toBeNull();
+    await expect(page.getByRole('textbox', { name: 'Search factions' })).toHaveValue('sietch');
+    const sort = page.getByRole('combobox', { name: 'Sort factions' });
+    await expect(sort).toHaveValue('Best match');
+    await expect(sort).toBeDisabled();
+
+    await userEvent.click(loadMore);
+    await waitFor(() => expect(factionCards(main, /Sietch/)).toHaveLength(FACTION_CATALOGUE_PAGE_SIZE + 1), {
+      timeout: 60_000,
+    });
+    await expect(factionCards(main, /Sietch/)[FACTION_CATALOGUE_PAGE_SIZE]).toHaveFocus();
+    await expect(main.getByRole('status')).toHaveTextContent('More factions loaded');
+    await expect(main.queryByRole('button', { name: 'Load more' })).toBeNull();
+  },
+});
 
 /**
  * On a phone the faction list shows two columns and each card its compact caption.
@@ -32,6 +103,14 @@ export const Catalogue = meta.story({ args: { path: '/factions' } });
 export const CatalogueMobile = meta.story({
   args: { path: '/factions' },
   globals: { viewport: { value: 'appMobile' } },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const links = await page.findAllByRole('link', { name: /House Atreides/ }, { timeout: 30_000 });
+    const card = links.find((link) => link.closest('main'));
+    /* Two columns: a card takes at most half of the content's width. */
+    const content = card!.closest('main')!.getBoundingClientRect();
+    await expect(card!.getBoundingClientRect().width).toBeLessThanOrEqual(content.width / 2);
+  },
 });
 
 export const Detail = meta.story({
@@ -39,7 +118,7 @@ export const Detail = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByRole('heading', { name: 'House Atreides' })).resolves.toBeVisible();
-    expect(page.queryByRole('region', { name: 'Planets' })).not.toBeInTheDocument();
+    await expect(page.queryByRole('region', { name: 'Planets' })).not.toBeInTheDocument();
   },
 });
 
@@ -92,13 +171,15 @@ export const DetailWithTroopStrengths = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     const troops = within(await page.findByRole('region', { name: 'Troops' }));
     const soldiers = within(troops.getByRole('article', { name: 'Soldiers' }));
-    expect(soldiers.getByRole('img', { name: 'Strength per troop: 0.5 unsupported | 1 supported' })).toBeVisible();
-    expect(soldiers.getByRole('img', { name: 'Support cost: 1 spice per supported troop' })).toBeVisible();
-    expect(soldiers.getByRole('img', { name: 'Cannot participate in battle' })).toBeVisible();
-    expect(soldiers.getByRole('img', { name: '15 troop tokens' })).toBeVisible();
+    await expect(
+      soldiers.getByRole('img', { name: 'Strength per troop: 0.5 unsupported | 1 supported' })
+    ).toBeVisible();
+    await expect(soldiers.getByRole('img', { name: 'Support cost: 1 spice per supported troop' })).toBeVisible();
+    await expect(soldiers.getByRole('img', { name: 'Cannot participate in battle' })).toBeVisible();
+    await expect(soldiers.getByRole('img', { name: '15 troop tokens' })).toBeVisible();
     const reverse = soldiers.getByRole('img', { name: 'Advisors, reverse side' });
-    expect(reverse).toHaveAccessibleDescription('The reverse side supports the faction without joining battles.');
-    expect(
+    await expect(reverse).toHaveAccessibleDescription('The reverse side supports the faction without joining battles.');
+    await expect(
       within(troops.getByRole('article', { name: 'Recruits' })).getByRole('img', {
         name: 'Battle strengths have not been set. This side is unavailable in battle plans.',
       })
@@ -106,7 +187,7 @@ export const DetailWithTroopStrengths = meta.story({
     reverse.focus();
     await userEvent.tab({ shift: true });
     await userEvent.tab();
-    expect(reverse).toHaveFocus();
+    await expect(reverse).toHaveFocus();
     await expect(page.findByRole('tooltip')).resolves.toHaveTextContent(
       'The reverse side supports the faction without joining battles.'
     );
@@ -125,9 +206,9 @@ export const DetailWithTroopStrengthsMobile = meta.story({
     const sectionBounds = troops.getBoundingClientRect();
     for (const card of within(troops).getAllByRole('article')) {
       const bounds = card.getBoundingClientRect();
-      expect(bounds.left).toBeGreaterThanOrEqual(sectionBounds.left);
-      expect(bounds.right).toBeLessThanOrEqual(sectionBounds.right);
-      expect(card.scrollWidth).toBeLessThanOrEqual(card.clientWidth);
+      await expect(bounds.left).toBeGreaterThanOrEqual(sectionBounds.left);
+      await expect(bounds.right).toBeLessThanOrEqual(sectionBounds.right);
+      await expect(card.scrollWidth).toBeLessThanOrEqual(card.clientWidth);
     }
   },
 });
@@ -159,11 +240,11 @@ export const DetailWithIndependentTroopFaces = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const troops = within(await page.findByRole('region', { name: 'Troops' }));
-    expect(troops.getByRole('img', { name: 'Strength per troop: 0 unsupported | 1.5 supported' })).toBeVisible();
-    expect(troops.getByRole('img', { name: 'Support cost: 0 spice per supported troop' })).toBeVisible();
-    expect(troops.getByRole('img', { name: 'Strength per troop: 0.5 unsupported | 1 supported' })).toBeVisible();
+    await expect(troops.getByRole('img', { name: 'Strength per troop: 0 unsupported | 1.5 supported' })).toBeVisible();
+    await expect(troops.getByRole('img', { name: 'Support cost: 0 spice per supported troop' })).toBeVisible();
+    await expect(troops.getByRole('img', { name: 'Strength per troop: 0.5 unsupported | 1 supported' })).toBeVisible();
     const card = troops.getByRole('article');
-    expect(card.scrollWidth).toBeLessThanOrEqual(card.clientWidth);
+    await expect(card.scrollWidth).toBeLessThanOrEqual(card.clientWidth);
     const flip = troops
       .getByRole('img', { name: 'Flip side: An independently authored reverse' })
       .getBoundingClientRect();
@@ -174,8 +255,8 @@ export const DetailWithIndependentTroopFaces = meta.story({
       .getByRole('img', { name: 'Support cost: 2 spice per supported troop' })
       .getBoundingClientRect();
     const count = troops.getByRole('img', { name: '1 troop token' }).getBoundingClientRect();
-    expect(frontCost.right).toBeLessThanOrEqual(flip.left);
-    expect(backCost.right).toBeLessThanOrEqual(count.left);
+    await expect(frontCost.right).toBeLessThanOrEqual(flip.left);
+    await expect(backCost.right).toBeLessThanOrEqual(count.left);
   },
 });
 
@@ -216,7 +297,7 @@ export const DetailWithPlanets = meta.story({
     const sidebar = await page.findByRole('complementary', { name: 'Faction details' });
     const planets = within(sidebar).getByRole('region', { name: 'Planets' });
     const planet = within(planets).getByRole('listitem', { name: 'Space Hulk Leviathan' });
-    expect(planet).toHaveAccessibleDescription(spaceOrks.planet[0].description);
+    await expect(planet).toHaveAccessibleDescription(spaceOrks.planet[0].description);
     await userEvent.hover(planet);
     await expect(page.findByRole('tooltip')).resolves.toHaveTextContent(spaceOrks.planet[0].description);
     await userEvent.unhover(planet);
@@ -225,7 +306,7 @@ export const DetailWithPlanets = meta.story({
     planet.focus();
     await userEvent.tab({ shift: true });
     await userEvent.tab();
-    expect(planet).toHaveFocus();
+    await expect(planet).toHaveFocus();
     // The troop hint behind Shift+Tab can still be fading out, so wait for the planet's own tooltip.
     await page.findByRole('tooltip', { name: spaceOrks.planet[0].description });
     await userEvent.keyboard('{Escape}');
@@ -237,6 +318,11 @@ export const DetailWithPlanetsMobile = meta.story({
   args: { path: '/factions/space-orks' },
   parameters: { database: withPlanets(), identity: null },
   globals: { viewport: { value: 'appMobile' } },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const planets = await page.findByRole('region', { name: 'Planets' }, { timeout: 30_000 });
+    await expectWithinWidth(canvasElement, [planets, ...within(planets).getAllByRole('listitem')]);
+  },
 });
 
 export const DetailWithUndescribedPlanet = meta.story({
@@ -246,14 +332,21 @@ export const DetailWithUndescribedPlanet = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     const planet = await page.findByRole('listitem', { name: 'Space Hulk Leviathan' });
     await userEvent.hover(planet);
-    expect(page.queryByRole('tooltip')).not.toBeInTheDocument();
-    expect(planet).not.toHaveAccessibleDescription();
-    expect(planet.tabIndex).toBe(-1);
+    await expect(page.queryByRole('tooltip')).not.toBeInTheDocument();
+    await expect(planet).not.toHaveAccessibleDescription();
+    await expect(planet.tabIndex).toBe(-1);
     await userEvent.unhover(planet);
   },
 });
-export const Create = meta.story({ args: { path: '/factions/create' } });
-export const Edit = meta.story({ args: { path: '/factions/house-atreides/edit' } });
+/** An editor at rest is mounted once its Name field reads what the page loaded. */
+export const Create = meta.story({
+  args: { path: '/factions/create' },
+  play: ({ canvasElement }) => expectFieldValue(canvasElement, 'Faction name', 'New faction'),
+});
+export const Edit = meta.story({
+  args: { path: '/factions/house-atreides/edit' },
+  play: ({ canvasElement }) => expectFieldValue(canvasElement, 'Faction name', 'House Atreides'),
+});
 
 /**
  * Escape closes the sheet review opened from the toolbar, while the pointer still rests on the button that opened it.
@@ -310,7 +403,7 @@ export const DetailTellsItsEditorsAReplacementFailed = meta.story({
       page.findByText('The published faction sheet may be out of date because the latest changes were not captured.')
     ).resolves.toBeVisible();
     await expect(page.findByText('Update failed')).resolves.toBeVisible();
-    expect(page.queryByText('Current')).toBeNull();
+    await expect(page.queryByText('Current')).toBeNull();
     await expect(page.findByRole('link', { name: 'Open published PDF' })).resolves.toBeVisible();
   },
 });
@@ -332,8 +425,8 @@ export const DetailTellsReadersAReplacementFailed = meta.story({
       )
     ).resolves.toBeVisible();
     await expect(page.findByText('Update failed')).resolves.toBeVisible();
-    expect(page.queryByText('Current')).toBeNull();
-    expect(page.queryByRole('link', { name: 'Edit faction' })).toBeNull();
+    await expect(page.queryByText('Current')).toBeNull();
+    await expect(page.queryByRole('link', { name: 'Edit faction' })).toBeNull();
     await expect(page.findByRole('link', { name: 'Open published PDF' })).resolves.toBeVisible();
   },
 });
@@ -368,8 +461,8 @@ export const DetailTellsReadersTheFirstPublishFailed = meta.story({
       )
     ).resolves.toBeVisible();
     await expect(page.findByText('Publish failed')).resolves.toBeVisible();
-    expect(page.queryByText('Update failed')).toBeNull();
-    expect(page.queryByRole('link', { name: 'Open published PDF' })).toBeNull();
+    await expect(page.queryByText('Update failed')).toBeNull();
+    await expect(page.queryByRole('link', { name: 'Open published PDF' })).toBeNull();
   },
 });
 
@@ -400,7 +493,7 @@ export const DetailNotFoundDeclaresTheLoadedBand = meta.story({
     await expect(page.findByText('Back to factions', {}, { timeout: 30_000 })).resolves.toBeVisible();
 
     const root = canvasElement.ownerDocument.querySelector('[data-page-layout-header-size]');
-    expect(root?.getAttribute('data-page-layout-header-size')).toBe('compact');
+    await expect(root?.getAttribute('data-page-layout-header-size')).toBe('compact');
   },
 });
 
@@ -468,6 +561,8 @@ export const EditResetDiscardsTheRetainedComplexity = meta.story({
     await userEvent.keyboard(Number(calculated) >= 5 ? '{ArrowLeft>3/}' : '{ArrowRight>3/}');
     /* Read where it landed rather than predicting it: the scale clamps at both ends and the step is the widget's business. */
     await waitFor(async () => expect(await rating()).not.toBe(calculated), { timeout: 30_000 });
+    /* Three steps away is far enough for the chapter to advise a second look. */
+    await expect(page.findByText(/sits far from the rules-text estimate/)).resolves.toBeVisible();
 
     /* Switching off is what files the rating, and returns the draft to its stored shape. */
     await userEvent.click(await manualSwitch());
@@ -513,7 +608,7 @@ export const EditRandomColorsFilesTheGradientItReplaces = meta.story({
       }).catch(() => undefined);
       landed = await currentLayerMode(page, 'pattern');
     }
-    expect(landed).not.toBe('linear');
+    await expect(landed).not.toBe('linear');
 
     /* The recipe replaced a linear gradient with no flip, so the memory is the only place 135 still exists. */
     await userEvent.click((await layerModeControl(page, 'pattern')).getByRole('radio', { name: 'Linear' }));
@@ -560,9 +655,9 @@ export const CreateResetClosesTheValidationBand = meta.story({
     const body = canvasElement.ownerDocument.body;
     /* Anchor on the rendered page before the null read, or the empty shell satisfies it (the zero-count trap). */
     await page.findByRole('textbox', { name: 'Faction name' }, { timeout: 30_000 });
-    expect(body.querySelector('[data-page-layout-header-size]')).toBeNull();
+    await expect(body.querySelector('[data-page-layout-header-size]')).toBeNull();
     await raiseAWarning(page);
-    expect(body.querySelector('[data-page-layout-header-size]')).not.toBeNull();
+    await expect(body.querySelector('[data-page-layout-header-size]')).not.toBeNull();
     await userEvent.click(page.getByRole('button', { name: 'Reset unsaved edits' }));
     await waitFor(() => expect(body.querySelector('[data-page-layout-header-size]')).toBeNull(), { timeout: 30_000 });
   },
@@ -583,7 +678,7 @@ export const CreateLoadClosesTheValidationBand = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     const body = canvasElement.ownerDocument.body;
     await raiseAWarning(page);
-    expect(body.querySelector('[data-page-layout-header-size]')).not.toBeNull();
+    await expect(body.querySelector('[data-page-layout-header-size]')).not.toBeNull();
     await userEvent.click(page.getByRole('button', { name: 'Load existing faction' }));
     await userEvent.click((await waitForFrame(() => page.getAllByRole('option'), { timeout: 30_000 }))[0]!);
     await userEvent.click(await page.findByRole('button', { name: 'Load faction' }, { timeout: 30_000 }));
@@ -603,12 +698,6 @@ export const EditToolbarAt360 = meta.story({
   play: async ({ canvasElement }) =>
     await expectToolbarOnOneLine(canvasElement, { statusDescribes: FACTION_EDIT_STATUSES }),
 });
-export const EditToolbarAt390 = meta.story({
-  args: { path: '/factions/house-atreides/edit' },
-  globals: { viewport: { value: 'appMobile' } },
-  play: async ({ canvasElement }) =>
-    await expectToolbarOnOneLine(canvasElement, { statusDescribes: FACTION_EDIT_STATUSES }),
-});
 export const EditToolbarAt768 = meta.story({
   args: { path: '/factions/house-atreides/edit' },
   globals: { viewport: { value: 'appTablet' } },
@@ -618,12 +707,6 @@ export const EditToolbarAt768 = meta.story({
 export const EditToolbarAt1100 = meta.story({
   args: { path: '/factions/house-atreides/edit' },
   globals: { viewport: { value: 'appLaptop' } },
-  play: async ({ canvasElement }) =>
-    await expectToolbarOnOneLine(canvasElement, { statusDescribes: FACTION_EDIT_STATUSES }),
-});
-export const EditToolbarAt1440 = meta.story({
-  args: { path: '/factions/house-atreides/edit' },
-  globals: { viewport: { value: 'appLarge' } },
   play: async ({ canvasElement }) =>
     await expectToolbarOnOneLine(canvasElement, { statusDescribes: FACTION_EDIT_STATUSES }),
 });

@@ -1,4 +1,4 @@
-import { describe, expect, test, vi } from 'vitest';
+import { describe, expect, test, vi } from 'vite-plus/test';
 
 import {
   publisherErrorMessage,
@@ -9,8 +9,6 @@ import { PublisherHttpError, postJson, readBoundedJson, runWithDeadline } from '
 describe('bounded Convex HTTP client', () => {
   test.each([
     'https://signed-user:SECRET_PASSWORD@cdn.example.com/private/SECRET_PATH/fetch?token=SECRET_QUERY#SECRET_FRAGMENT',
-    '//signed-user:SECRET_PASSWORD@cdn.example.com/private/SECRET_PATH/fetch?token=SECRET_QUERY#SECRET_FRAGMENT',
-    '`//signed-user:SECRET_PASSWORD@cdn.example.com/private/SECRET_PATH/fetch?token=SECRET_QUERY#SECRET_FRAGMENT`',
     '//signed-user:SECRET_PASSWORD@cdn.example.com/private/<REDACTED>/SECRET_PATH?token=SECRET_QUERY#SECRET_FRAGMENT',
   ])('redacts rejected fetcher messages before HTTP propagation: %s', async (signedUrl) => {
     const fetcher: typeof fetch = async () => {

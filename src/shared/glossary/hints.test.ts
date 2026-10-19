@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { distinctTermHints, findTermHints, fixTermWording } from './hints';
 import { GLOSSARY } from './terms';
@@ -9,10 +9,6 @@ function summary(text: string) {
 }
 
 describe('findTermHints', () => {
-  test('suggests the preferred term for an avoided word', () => {
-    expect(summary('Ship 3 forces to Arrakeen.')).toEqual([['forces', 'Troop']]);
-  });
-
   test('matches whole words only, ignoring case', () => {
     expect(summary('Combat is fierce. Their strongholds are safe.')).toEqual([['Combat', 'Battle']]);
     expect(summary('Abattoirs and fighters')).toEqual([]);
@@ -60,6 +56,11 @@ describe('findTermHints', () => {
     expect(fixTermWording('Our hero leads two supporting leaders.')).toBe(
       'Our faction leader leads two supporting leaders.'
     );
+  });
+
+  test('leaves the special Karama power alone while still hinting other powers', () => {
+    expect(summary('Use your special Karama power.')).toEqual([]);
+    expect(summary('Their powers are strong.')).toEqual([['powers', 'Advantage']]);
   });
 
   test('leaves fight alone, since it is plain English', () => {
@@ -123,6 +124,10 @@ describe('fixTermWording', () => {
     expect(fixTermWording('Spend troops wisely; never commit troops blindly.')).toBe(
       'Dial troops wisely; never commit troops blindly.'
     );
+  });
+
+  test('points sandworms and thopters to their rulebook names', () => {
+    expect(fixTermWording('A sandworm eats the thopters.')).toBe('A Shai-Hulud eats the ornithopters.');
   });
 
   test('points a pact to a deal', () => {

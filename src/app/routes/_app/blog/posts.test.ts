@@ -1,7 +1,7 @@
-import { BLOG_POST_SLUGS } from '@shared/recordlessPublicPages';
-import { expect, test } from 'vitest';
+import { BLOG_POST_SLUGS } from '@shared/blogPostSlugs';
+import { expect, test } from 'vite-plus/test';
 
-import { BLOG_POSTS } from './posts';
+import { BLOG_POSTS, blogPostAuthor } from './posts';
 
 /* The sitemap lists posts by the shared slugs, so a post missing from either list would be unreachable or unlisted. */
 test('the sitemap lists exactly the published posts, newest first', () => {
@@ -16,4 +16,13 @@ test('the sitemap lists exactly the published posts, newest first', () => {
     expect(new Date(`${date}T00:00:00Z`).toISOString().slice(0, 10)).toBe(date);
     expect(slug).toMatch(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
   }
+});
+
+test('bylines link verified authors and leave unknown authors unlinked', () => {
+  const post = BLOG_POSTS[0];
+  expect(blogPostAuthor(post)).toEqual({ name: 'Central419', profileSlug: 'central' });
+  expect(blogPostAuthor({ ...post, author: 'Guest author' })).toEqual({
+    name: 'Guest author',
+    profileSlug: undefined,
+  });
 });

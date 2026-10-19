@@ -10,7 +10,7 @@ import {
   utimesSync,
   writeFileSync,
 } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { constants, tmpdir } from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
@@ -72,12 +72,28 @@ environment.CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV = 'false';
 environment.CLOUDFLARE_INCLUDE_PROCESS_ENV = 'false';
 environment.WRANGLER_SEND_METRICS = 'false';
 
+/** A child's exit as a shell reports it: its code, or 128 plus the signal that killed it, so a crash never reads as success. */
+function exitStatus(code: number | null, signal: NodeJS.Signals | null) {
+  return code ?? (signal ? 128 + (constants.signals[signal] ?? 0) : 1);
+}
+
+/** Runs one build step, passing a stop on to it so a launcher that gives up on the build leaves nothing writing to the outputs. */
 async function command(args: string[]) {
   const child = spawn(process.execPath, args, { cwd: root, env: environment, stdio: 'inherit' });
-  await new Promise<void>((resolve, reject) => {
-    child.once('error', reject);
-    child.once('exit', (code) => (code === 0 ? resolve() : reject(new Error(`bun ${args.join(' ')} exited ${code}`))));
-  });
+  const stop = (signal: NodeJS.Signals) => child.kill(signal);
+  process.on('SIGINT', stop);
+  process.on('SIGTERM', stop);
+  try {
+    await new Promise<void>((resolve, reject) => {
+      child.once('error', reject);
+      child.once('exit', (code, signal) =>
+        code === 0 ? resolve() : reject(new Error(`bun ${args.join(' ')} exited ${exitStatus(code, signal)}`))
+      );
+    });
+  } finally {
+    process.removeListener('SIGINT', stop);
+    process.removeListener('SIGTERM', stop);
+  }
 }
 
 /**
@@ -155,6 +171,7 @@ Object.assign(publisher, local, {
     USER_IMAGE_PUBLIC_BASE_URL: origin,
     CAPTURE_BASE_URL: origin,
     CONVEX_CLOUD_BASE_URL: convexUrl,
+    CONVEX_AUTH_BASE_URL: convexSiteUrl,
     CONVEX_EXECUTOR_BASE_URL: `${convexSiteUrl}/asset-publishing/executor`,
     CONVEX_RENDER_URL: `${convexSiteUrl}/asset-publishing/render`,
     GIT_SHA: LOCAL_ISOLATED_GIT_SHA,
@@ -194,7 +211,7 @@ const child = spawn(
   [
     /* Wrangler passes Node's flags on to the process that runs workerd, where this records how workerd exits. */
     '--import',
-    pathToFileURL(path.join(root, 'scripts/workerd-exit-record.mjs')).href,
+    pathToFileURL(path.join(root, 'scripts/workerd-exit-record.ts')).href,
     path.join(root, 'node_modules/wrangler/bin/wrangler.js'),
     'dev',
     '--local',
@@ -219,7 +236,7 @@ process.once('SIGTERM', stop);
 try {
   const exitCode = await new Promise<number>((resolve, reject) => {
     child.once('error', reject);
-    child.once('exit', (code) => resolve(code ?? 0));
+    child.once('exit', (code, signal) => resolve(exitStatus(code, signal)));
   });
   process.exitCode = exitCode;
 } finally {

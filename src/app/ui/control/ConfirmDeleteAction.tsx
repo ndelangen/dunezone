@@ -17,11 +17,11 @@ export interface ConfirmDeleteActionProps {
   /** Fires once the hold completes. The caller owns the mutation and navigates to the parent page on success. */
   onConfirm: () => void;
   /**
-   * The word the hover text and countdown use, `delete` unless the action removes a thing from somewhere rather than from existence.
-   * A removal held five seconds is the same commitment;
+   * The word the hover text and countdown use, `delete` unless the action removes a thing from somewhere rather than from existence, or signs the reader out.
+   * A removal or a sign-out held five seconds is the same commitment;
    * only the words differ.
    */
-  verb?: 'delete' | 'remove';
+  verb?: 'delete' | 'remove' | 'sign out';
   /** The glyph, when the action is not the trash can. A member removal keeps its own icon. */
   icon?: ReactNode;
   /** Disables the trigger entirely, for callers whose action is sometimes unavailable rather than in flight. */
@@ -30,8 +30,8 @@ export interface ConfirmDeleteActionProps {
   size?: 'sm' | 'md' | 'lg';
 }
 
-/** What the countdown announces per verb: "deletion in 4..", "removal in 4..". */
-const COUNTDOWN_NOUN = { delete: 'deletion', remove: 'removal' } as const;
+/** What the countdown announces per verb: "deletion in 4..", "removal in 4..", "sign-out in 4..". */
+const COUNTDOWN_NOUN = { delete: 'deletion', remove: 'removal', 'sign out': 'sign-out' } as const;
 
 /**
  * Deletes (or removes) something, if you mean it for five seconds.

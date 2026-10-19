@@ -7,6 +7,7 @@ import { publisherErrorMessage } from '@shared/asset-publishing/publisher-diagno
 import { assertRequiredPublisherFonts } from '@shared/asset-publishing/publisher-fonts';
 import type { PublisherCaptureSnapshot } from '@shared/asset-publishing/publisher-snapshot';
 import { publisherCaptureSnapshotSchema } from '@shared/asset-publishing/publisher-snapshot';
+import { tokenShapeOfType } from '@shared/assets/tokenOutline';
 import type { RulebookSize } from '@shared/rulebooks/settings';
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
@@ -81,8 +82,9 @@ function printedImage(assetType: PublicationAssetType, node: ReactNode): Capture
  * What each Publication asset type draws, and what it needs of the document around it.
  *
  * `documentFlag` is a `data-` attribute set on `<html>` while the subject is mounted: the faction sheet neutralizes the app's page decoration that way, and an image capture wants none of it.
+ * `title` is the document title while it is mounted, which Chromium writes into a PDF as its title, the name search engines show for the file.
  */
-type CaptureSubject = { documentFlag?: string; node: ReactNode };
+type CaptureSubject = { documentFlag?: string; title?: string; node: ReactNode };
 
 function captureSubject(snapshot: PublisherCaptureSnapshot): CaptureSubject {
   switch (snapshot.assetType) {
@@ -91,6 +93,8 @@ function captureSubject(snapshot: PublisherCaptureSnapshot): CaptureSubject {
     case 'faction_sheet':
       return {
         documentFlag: 'factionSheet',
+        /* The site's title grammar, as the faction's own page reads "Atreides · Custom faction · Dune Zone". */
+        title: `${snapshot.payload.faction.name.trim() || 'Faction'} · Faction sheet · Dune Zone`,
         node: (
           <AssetRenderModeProvider mode="print">
             <FactionSheetView faction={snapshot.payload.faction} />
@@ -132,7 +136,14 @@ function captureSubject(snapshot: PublisherCaptureSnapshot): CaptureSubject {
         />
       );
     case 'card-spice':
-      return printedImage(snapshot.assetType, <SpiceCard {...snapshot.payload.card} />);
+      return printedImage(
+        snapshot.assetType,
+        <SpiceCard
+          {...snapshot.payload.card}
+          boardDefinition={snapshot.payload.board}
+          boardTokens={snapshot.payload.tokens}
+        />
+      );
     case 'faction-token':
       return printedImage(snapshot.assetType, <FactionToken {...snapshot.payload} />);
     case 'faction-troop':
@@ -165,10 +176,12 @@ function captureSubject(snapshot: PublisherCaptureSnapshot): CaptureSubject {
      */
     case 'token-disc':
     case 'token-tech':
+    case 'token-pointer':
     case 'token-plate':
       return printedImage(
         snapshot.assetType,
         <CustomToken
+          shape={tokenShapeOfType(snapshot.assetType) ?? 'round'}
           background={snapshot.payload.face.background}
           image={snapshot.payload.face.image}
           circle={snapshot.payload.face.ring}
@@ -265,6 +278,7 @@ export function PublisherCapture() {
 
   const subject = snapshot ? captureSubject(snapshot) : undefined;
   const documentFlag = subject?.documentFlag;
+  const title = subject?.title;
 
   useEffect(() => {
     if (!documentFlag) {
@@ -275,6 +289,17 @@ export function PublisherCapture() {
       delete document.documentElement.dataset[documentFlag];
     };
   }, [documentFlag]);
+
+  useEffect(() => {
+    if (!title) {
+      return;
+    }
+    const previous = document.title;
+    document.title = title;
+    return () => {
+      document.title = previous;
+    };
+  }, [title]);
 
   useEffect(() => {
     if (!snapshot) {

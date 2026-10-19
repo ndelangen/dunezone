@@ -31,7 +31,7 @@ const movementLocator: RulebookTextLocator = {
     { kind: 'block', id: 'MVVE' },
   ],
   exact: 'Movement sequence',
-  suffix: 'Choose a force',
+  suffix: 'Choose a troop',
 };
 const movementLocatorParam = encodeRulebookTextLocator(movementLocator);
 const historicalOnlyLocator = encodeRulebookTextLocator({
@@ -136,7 +136,7 @@ async function expectTextFragmentHighlights(storyWindow: Window, fragment: Ruleb
   storyWindow.getSelection()?.removeAllRanges();
   storyWindow.scrollTo({ top: 0 });
   await new Promise<void>((resolve) => storyWindow.requestAnimationFrame(() => resolve()));
-  expect(storyWindow.scrollY).toBe(0);
+  await expect(storyWindow.scrollY).toBe(0);
   try {
     storyWindow.location.hash = `:~:${buildTextFragmentDirective(fragment)}`;
     await waitFor(() => expect(storyWindow.scrollY).toBeGreaterThan(0), { timeout: SETTLE_TIMEOUT_MS });
@@ -190,11 +190,11 @@ async function prepareTargetRecovery(canvasElement: HTMLElement) {
   const originalBounds = target.getBoundingClientRect.bind(target);
   const originalScrollIntoView = target.scrollIntoView.bind(target);
   const scrollIntoView = fn();
-  target.getBoundingClientRect = () => ({
-    ...originalBounds(),
-    top: storyWindow.innerHeight + 200,
-    bottom: storyWindow.innerHeight + 400,
-  });
+  /* A DOMRect's fields are prototype getters, so spreading one copies none of them; a new rect keeps the target's horizontal span. */
+  target.getBoundingClientRect = () => {
+    const bounds = originalBounds();
+    return new DOMRect(bounds.x, storyWindow.innerHeight + 200, bounds.width, 200);
+  };
   target.scrollIntoView = scrollIntoView;
   return {
     page,
@@ -224,17 +224,17 @@ export const EditionHistory = meta.story({
     await expect(
       page.findByRole('heading', { name: 'Rules of Arrakis', level: 1 }, { timeout: 30_000 })
     ).resolves.toBeVisible();
-    expect(page.getByText('2 Editions')).toBeVisible();
+    await expect(page.getByText('2 Editions')).toBeVisible();
     const list = within(page.getByRole('list', { name: 'Editions' }));
     const items = list.getAllByRole('listitem');
-    expect(items).toHaveLength(2);
-    expect(within(items[0]!).getByText('Edition 2')).toBeVisible();
-    expect(within(items[0]!).getByText('Current')).toBeVisible();
-    expect(within(items[1]!).queryByText('Current')).not.toBeInTheDocument();
-    expect(list.getByRole('link', { name: 'Read Edition 2' })).toHaveAttribute('href', readerPath);
-    expect(list.getByRole('link', { name: 'Read Edition 1' })).toHaveAttribute('href', `${readerPath}?edition=1`);
-    expect(list.getAllByText('HTML preparing')).toHaveLength(2);
-    expect(list.getAllByText('PDF preparing')).toHaveLength(2);
+    await expect(items).toHaveLength(2);
+    await expect(within(items[0]!).getByText('Edition 2')).toBeVisible();
+    await expect(within(items[0]!).getByText('Current')).toBeVisible();
+    await expect(within(items[1]!).queryByText('Current')).not.toBeInTheDocument();
+    await expect(list.getByRole('link', { name: 'Read Edition 2' })).toHaveAttribute('href', readerPath);
+    await expect(list.getByRole('link', { name: 'Read Edition 1' })).toHaveAttribute('href', `${readerPath}?edition=1`);
+    await expect(list.getAllByText('HTML preparing')).toHaveLength(2);
+    await expect(list.getAllByText('PDF preparing')).toHaveLength(2);
   },
 });
 
@@ -244,14 +244,16 @@ export const CurrentEdition = meta.story({
     await expect(
       page.findByRole('heading', { name: 'Rules of Arrakis', level: 1 }, { timeout: 30_000 })
     ).resolves.toBeVisible();
-    expect(page.getByText('Edition 2')).toBeVisible();
-    expect(page.getByRole('heading', { name: 'The gathered rules' })).toBeVisible();
+    await expect(page.getByText('Edition 2')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'The gathered rules' })).toBeVisible();
     const pageNavigation = within(page.getByRole('navigation', { name: 'Rulebook Pages' }));
-    expect(pageNavigation.getAllByRole('link', { current: 'page' })).toHaveLength(1);
-    expect(pageNavigation.getByRole('link', { current: 'page' })).toHaveAttribute('data-active', 'true');
+    await expect(pageNavigation.getAllByRole('link', { current: 'page' })).toHaveLength(1);
+    await expect(pageNavigation.getByRole('link', { current: 'page' })).toHaveAttribute('data-active', 'true');
     const articles = page.getAllByRole('article');
-    expect(articles).toHaveLength(3);
-    expect(canvasElement.ownerDocument.defaultView?.getComputedStyle(articles[1]!).contentVisibility).toBe('auto');
+    await expect(articles).toHaveLength(3);
+    await expect(canvasElement.ownerDocument.defaultView?.getComputedStyle(articles[1]!).contentVisibility).toBe(
+      'auto'
+    );
   },
 });
 
@@ -268,9 +270,12 @@ export const HistoricalEdition = meta.story({
       waitForFrame(() => page.getByRole('menuitem', { name: 'Edition 1, Jul 1, 2026', current: true }))
     ).resolves.toBeInTheDocument();
     await userEvent.keyboard('{Escape}');
-    expect(page.getByRole('heading', { name: 'Welcome to Arrakis' })).toBeVisible();
-    expect(page.queryByRole('heading', { name: 'The gathered rules' })).not.toBeInTheDocument();
-    expect(page.getByRole('link', { name: /Movement/ })).toHaveAttribute('href', `${readerPath}?edition=1#movement`);
+    await expect(page.getByRole('heading', { name: 'Welcome to Arrakis' })).toBeVisible();
+    await expect(page.queryByRole('heading', { name: 'The gathered rules' })).not.toBeInTheDocument();
+    await expect(page.getByRole('link', { name: /Movement/ })).toHaveAttribute(
+      'href',
+      `${readerPath}?edition=1#movement`
+    );
   },
 });
 
@@ -304,8 +309,8 @@ export const StaleSelectedText = meta.story({
     await expect(
       page.findByText(/The words changed, but the stable Page or Block link/, {}, { timeout: 30_000 })
     ).resolves.toBeVisible();
-    expect(page.getByRole('button', { name: 'Unpin linked target' })).toBeVisible();
-    expect(page.getByRole('heading', { name: 'Movement' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Unpin linked target' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Movement' })).toBeVisible();
   },
 });
 
@@ -335,9 +340,9 @@ export const ClippedLinkedBlock = meta.story({
       () => expect(Math.abs(rulebookPage.getBoundingClientRect().bottom - storyWindow.innerHeight)).toBeLessThan(1),
       { timeout: SETTLE_TIMEOUT_MS }
     );
-    expect(rulebookPage.dataset.rulebookPageId).toBe('CHAP');
-    expect(target.getBoundingClientRect().bottom).toBeGreaterThan(region.getBoundingClientRect().bottom);
-    expect(page.queryByText('Part of this Block will not be visible in the published Rulebook.')).toBeNull();
+    await expect(rulebookPage.dataset.rulebookPageId).toBe('CHAP');
+    await expect(target.getBoundingClientRect().bottom).toBeGreaterThan(region.getBoundingClientRect().bottom);
+    await expect(page.queryByText('Part of this Block will not be visible in the published Rulebook.')).toBeNull();
   },
 });
 
@@ -348,8 +353,8 @@ export const HostileLocator = meta.story({
     await expect(page.findByRole('alert', {}, { timeout: 30_000 })).resolves.toHaveTextContent(
       'The link contains an invalid or oversized locator'
     );
-    expect(canvasElement.ownerDocument.body).not.toHaveTextContent('<script>reader-locator-marker</script>');
-    expect(
+    await expect(canvasElement.ownerDocument.body).not.toHaveTextContent('<script>reader-locator-marker</script>');
+    await expect(
       [...canvasElement.ownerDocument.body.querySelectorAll('script')].some((script) =>
         script.textContent?.includes('reader-locator-marker')
       )
@@ -364,7 +369,7 @@ export const MissingLocator = meta.story({
     await expect(page.findByRole('alert', {}, { timeout: 30_000 })).resolves.toHaveTextContent(
       'The linked target does not exist'
     );
-    expect(page.getByRole('heading', { name: 'The gathered rules' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'The gathered rules' })).toBeVisible();
   },
 });
 
@@ -411,15 +416,15 @@ export const SelectedTextLink = meta.story({
         { timeout: SETTLE_TIMEOUT_MS }
       );
       await waitFor(() => expect(liveRegion).toBeEmptyDOMElement(), { timeout: SETTLE_TIMEOUT_MS });
-      expect(
+      await expect(
         page.queryByText('Selected-text link copied.', { selector: '[aria-hidden="true"]' })
       ).not.toBeInTheDocument();
-      expect(writeText).toHaveBeenCalledTimes(2);
+      await expect(writeText).toHaveBeenCalledTimes(2);
       const copiedUrl = new URL(writeText.mock.calls[0]![0]);
-      expect(copiedUrl.origin).toBe(storyWindow.location.origin);
-      expect(copiedUrl.pathname).toBe(storyWindow.location.pathname);
-      expect(copiedUrl.searchParams.has('edition')).toBe(false);
-      expect(parseRulebookTextLocator(copiedUrl.searchParams.get('loc') ?? undefined)).toMatchObject({
+      await expect(copiedUrl.origin).toBe(storyWindow.location.origin);
+      await expect(copiedUrl.pathname).toBe(storyWindow.location.pathname);
+      await expect(copiedUrl.searchParams.has('edition')).toBe(false);
+      await expect(parseRulebookTextLocator(copiedUrl.searchParams.get('loc') ?? undefined)).toMatchObject({
         status: 'valid',
         locator: {
           path: [
@@ -428,7 +433,7 @@ export const SelectedTextLink = meta.story({
           ],
         },
       });
-      expect(copiedUrl.hash).toMatch(/^#movement:~:text=/);
+      await expect(copiedUrl.hash).toMatch(/^#movement:~:text=/);
     } finally {
       observer.disconnect();
       if (clipboardDescriptor) {
@@ -463,17 +468,17 @@ export const CopyFeedbackSurvivesSamePageTracking = meta.story({
       { timeout: SETTLE_TIMEOUT_MS }
     );
     await trackReaderScroll(storyWindow);
-    expect(firstPage).toHaveAttribute('aria-current', 'page');
-    expect(feedback).toBeVisible();
-    expect(page.getByRole('status')).toHaveTextContent('Select some Rulebook text first.');
+    await expect(firstPage).toHaveAttribute('aria-current', 'page');
+    await expect(feedback).toBeVisible();
+    await expect(page.getByRole('status')).toHaveTextContent('Select some Rulebook text first.');
 
     page.getByRole('article', { name: 'Rulebook page: Movement' }).scrollIntoView({ block: 'start' });
     await trackReaderScroll(storyWindow);
     await waitFor(() => expect(page.getByRole('link', { name: /Movement/ })).toHaveAttribute('aria-current', 'page'), {
       timeout: SETTLE_TIMEOUT_MS,
     });
-    expect(feedback).not.toBeInTheDocument();
-    expect(page.getByRole('status')).toBeEmptyDOMElement();
+    await expect(feedback).not.toBeInTheDocument();
+    await expect(page.getByRole('status')).toBeEmptyDOMElement();
   },
 });
 
@@ -492,8 +497,8 @@ export const PageScopedSelectedTextLink = meta.story({
     const contents = createRulebookStarterContents();
     const renderDocument = projectRulebookRenderDocument(contents, {}, DEFAULT_RULEBOOK_SETTINGS);
 
-    expect(locator.locator.path).toEqual([{ kind: 'page', id: 'RULE' }]);
-    expect(
+    await expect(locator.locator.path).toEqual([{ kind: 'page', id: 'RULE' }]);
+    await expect(
       resolveRulebookTextLocator(contents, renderDocument, { status: 'valid', locator: locator.locator })
     ).toMatchObject({
       status: 'matched',
@@ -511,7 +516,7 @@ export const BlockSelectedTextHighlightsAcrossContainers = meta.story({
       throw new Error('Rulebook reader Story requires a browser Window');
     }
     const heading = await page.findByRole('heading', { name: 'Movement sequence' }, { timeout: 30_000 });
-    const paragraph = page.getAllByText('Choose a force, choose an adjacent destination, then resolve the move.')[0];
+    const paragraph = page.getAllByText('Choose a troop, choose an adjacent destination, then resolve the move.')[0];
     const start = heading.firstChild;
     const end = paragraph?.firstChild;
     const locator = selectRulebookRange(storyWindow, start, end);
@@ -557,7 +562,7 @@ export const SidebarNavigationStaysInDocument = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     const storyDocument = canvasElement.ownerDocument;
     const link = await page.findByRole('link', { name: /Markers and tokens/ }, { timeout: 30_000 });
-    expect(link).toHaveAttribute('href', `${readerPath}?loc=${movementLocatorParam}#markers-and-tokens`);
+    await expect(link).toHaveAttribute('href', `${readerPath}?loc=${movementLocatorParam}#markers-and-tokens`);
 
     let routerIntercepted = false;
     const observeNavigation = (event: MouseEvent) => {
@@ -566,7 +571,7 @@ export const SidebarNavigationStaysInDocument = meta.story({
     };
     storyDocument.addEventListener('click', observeNavigation, { once: true });
     await userEvent.click(link);
-    expect(routerIntercepted).toBe(true);
+    await expect(routerIntercepted).toBe(true);
     await userEvent.click(page.getByRole('button', { name: 'Choose Edition' }));
     await userEvent.click(await waitForFrame(() => page.getByRole('menuitem', { name: 'Edition 1, Jul 1, 2026' })));
     await waitFor(() => expect(page.getByText('Edition 1', { exact: true })).toBeVisible(), {
@@ -577,8 +582,8 @@ export const SidebarNavigationStaysInDocument = meta.story({
       throw new Error('Rulebook reader Page link is missing its href');
     }
     const nextPageUrl = new URL(nextPageHref, 'https://dune.zone');
-    expect(nextPageUrl.searchParams.get('edition')).toBe('1');
-    expect(nextPageUrl.searchParams.get('loc')).toBe(movementLocatorParam);
+    await expect(nextPageUrl.searchParams.get('edition')).toBe('1');
+    await expect(nextPageUrl.searchParams.get('loc')).toBe(movementLocatorParam);
   },
 });
 
@@ -599,16 +604,13 @@ export const ScrollTrackingWritesOnlyChangedAnchors = meta.story({
     }
     storyWindow.scrollTo({ top: 0 });
     await new Promise<void>((resolve) => storyWindow.requestAnimationFrame(() => resolve()));
-    const originalReplaceState = storyWindow.history.replaceState;
-    originalReplaceState.call(
-      storyWindow.history,
+    const originalReplaceState = storyWindow.history.replaceState.bind(storyWindow.history);
+    originalReplaceState(
       storyWindow.history.state,
       '',
       `${storyWindow.location.pathname}${storyWindow.location.search}`
     );
-    const replaceState = fn((...args: Parameters<History['replaceState']>) =>
-      originalReplaceState.apply(storyWindow.history, args)
-    );
+    const replaceState = fn((...args: Parameters<History['replaceState']>) => originalReplaceState(...args));
     storyWindow.history.replaceState = replaceState;
     try {
       storyWindow.dispatchEvent(new WheelEvent('wheel'));
@@ -616,10 +618,11 @@ export const ScrollTrackingWritesOnlyChangedAnchors = meta.story({
         storyWindow.dispatchEvent(new Event('scroll'));
         await new Promise<void>((resolve) => storyWindow.requestAnimationFrame(() => resolve()));
       }
-      expect(replaceState).toHaveBeenCalledTimes(1);
-      expect(new URL(storyWindow.location.href).hash).toBe('#welcome-to-arrakis');
+      await expect(replaceState).toHaveBeenCalledTimes(1);
+      await expect(new URL(storyWindow.location.href).hash).toBe('#welcome-to-arrakis');
     } finally {
-      storyWindow.history.replaceState = originalReplaceState;
+      /* The spy is an own property of this history object, so removing it uncovers the prototype's method again. */
+      Reflect.deleteProperty(storyWindow.history, 'replaceState');
     }
   },
 });
@@ -641,7 +644,7 @@ export const MeaningfulScrollCancelsTargetRecovery = meta.story({
        * The sibling story below proves the same arrangement does scroll when nothing cancels it.
        */
       await new Promise((resolve) => storyWindow.setTimeout(resolve, RULEBOOK_TARGET_RECOVERY_MS * 2));
-      expect(scrollIntoView).not.toHaveBeenCalled();
+      await expect(scrollIntoView).not.toHaveBeenCalled();
     } finally {
       restore();
     }
@@ -685,10 +688,10 @@ export const EditionChangeDropsAnUnresolvedPin = meta.story({
       throw new Error('The pinned Block is missing from the historical Edition');
     }
     await waitFor(
-      () => {
+      async () => {
         const bounds = pinnedBlock.getBoundingClientRect();
-        expect(bounds.top).toBeGreaterThanOrEqual(0);
-        expect(bounds.bottom).toBeLessThanOrEqual(storyWindow.innerHeight);
+        await expect(bounds.top).toBeGreaterThanOrEqual(0);
+        await expect(bounds.bottom).toBeLessThanOrEqual(storyWindow.innerHeight);
       },
       { timeout: SETTLE_TIMEOUT_MS }
     );
@@ -703,8 +706,8 @@ export const EditionChangeDropsAnUnresolvedPin = meta.story({
       'The linked target does not exist'
     );
     await expect(page.findByText('Tracking', {}, { timeout: 30_000 })).resolves.toBeVisible();
-    expect(page.queryByRole('button', { name: 'Unpin linked target' })).not.toBeInTheDocument();
-    expect(page.queryByText('Select some Rulebook text first.')).not.toBeInTheDocument();
+    await expect(page.queryByRole('button', { name: 'Unpin linked target' })).not.toBeInTheDocument();
+    await expect(page.queryByText('Select some Rulebook text first.')).not.toBeInTheDocument();
   },
 });
 

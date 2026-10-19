@@ -1,4 +1,6 @@
 import { Anchor, Button, Group, List, Loader, NumberInput, Select, Stack, Text, Tooltip } from '@mantine/core';
+import { signInReturnFrom } from '@shared/authDestination';
+import { tableHandlingOpen } from '@shared/play/admission';
 import { snapshotFactionLabels } from '@shared/play/factionLabels';
 import type { PublicControls, SpawnSelection } from '@shared/play/inventory';
 import { lastTurnOf } from '@shared/play/lastTurn';
@@ -6,7 +8,7 @@ import { phaseAt, tableProgressFor } from '@shared/play/phases';
 import { setupMapVisible, setupStep } from '@shared/play/setup';
 import type { SpiceTransfer } from '@shared/play/spiceReserve';
 import { DEFAULT_TABLE_SEAT_COUNT } from '@shared/play/tableSettings';
-import { Link } from '@tanstack/react-router';
+import { Link, useLocation } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { Section } from '@ui/block/Section';
 import { InlineFormattedTextSource } from '@ui/content/FormattedText';
@@ -14,7 +16,7 @@ import type { TopicIconTopic } from '@ui/content/TopicIcon';
 import { useContext, useEffect, useMemo, useReducer, useState, useSyncExternalStore } from 'react';
 import type { ReactNode } from 'react';
 
-import { requestPlayTicket } from '@db/play';
+import { requestPlayAdmission, watchSeatPass } from '@db/play';
 import { GameSubscription } from '@app/routes/_app/play/multiplayer/GameSubscription';
 
 import { TableSession } from '../../../../db/tabletop/TableSession';
@@ -71,6 +73,7 @@ import type { GameIdentity } from './StageHeader';
 import { SwapScene } from './SwapScene';
 import { factionName, factionOptions, isSpectator, stageInPlay, viewerFaction } from './tableFactions';
 import { TableSettings } from './TableSettings';
+import { TerritoryTints } from './TerritoryTints';
 import { ServerClockContext } from './useServerNow';
 import '../dune-play.css';
 
@@ -841,13 +844,24 @@ function tableTab({ client, table, error }: ConnectionControlsProps): PanelTab {
         ...SHARED_INVENTORY_GUIDANCE,
         content: <SharedInventory client={client} table={table} />,
       },
+      ...(tableHandlingOpen(table.snapshot.stage)
+        ? [
+            {
+              key: 'tints',
+              label: 'Territory tints',
+              topic: 'tints' as const,
+              description: 'Colour territories for everyone to see.',
+              content: withTableError(error, <TerritoryTints client={client} table={table} />),
+            },
+          ]
+        : []),
       ...(table.snapshot.stage === 'play'
         ? [
             {
               key: 'settings',
               label: 'Settings',
               topic: 'controls' as const,
-              description: 'Game length and bidding time.',
+              description: 'Game length.',
               content: withTableError(error, <TableSettings client={client} table={table} />),
             },
           ]
@@ -1043,14 +1057,6 @@ function ConnectedTable({
         {/* A boxless wrapper carries the connection state the browser verification waits on, whichever tab is open. */}
         <div data-connection={connection} data-revision={table.liveRevision} style={{ display: 'contents' }}>
           <GameTable
-            gameIdentity={
-              /* While drafting the ruleset heads the drafting chip, so it is not said twice. */
-              identity.rulesetName && stage !== 'drafting' ? (
-                <Text size="xs" c="dimmed">
-                  Ruleset: {identity.rulesetName}
-                </Text>
-              ) : null
-            }
             seatCount={table.snapshot.roster?.seatCount ?? DEFAULT_TABLE_SEAT_COUNT}
             tableProgress={progress}
             stage={stage}
@@ -1058,7 +1064,7 @@ function ConnectedTable({
             connectionStatus={<ConnectionStatus table={table} />}
             alliances={<AllianceStrip table={table} />}
             toolbarControl={stageToolbar({ client, table, error, bidderFaded, onBidderFadedChange: setBidderFaded })}
-            /* The gathered Traitor pile lies under the Tleilaxu tanks, below the Map view's frame on a wide screen (#1635). */
+            /* The gathered Traitor pile lies under the Tleilaxu Tanks, below the Map view's frame on a wide screen (#1635). */
             requestedView={table.traitorsGathered ? { view: 'bottom', revision: table.traitorsGathered } : undefined}
             showStormControls={stageInPlay(stage) && progress.activePhaseId === 'storm'}
             sceneContent={
@@ -1122,8 +1128,9 @@ export default function HostedTable({
   identity: GameIdentity;
 }>) {
   const runtime = useContext(GameRuntimeContext);
+  const here = useLocation({ select: (location) => location.href });
   const [client] = useState(
-    () => new TableSession(gameId, new GameSubscription(gameId, requestPlayTicket, runtime), runtime)
+    () => new TableSession(gameId, new GameSubscription(gameId, requestPlayAdmission, runtime, watchSeatPass), runtime)
   );
   const view = useSyncExternalStore(client.subscribe, client.getSnapshot);
   useEffect(() => client.connect(), [client]);
@@ -1132,7 +1139,7 @@ export default function HostedTable({
     return (
       <TableWait status={view.error ?? 'Connecting to the hosted table...'} connection={view.status}>
         {view.status === 'denied' && (
-          <Anchor component={Link} to="/auth/login">
+          <Anchor renderRoot={(props) => <Link {...props} to="/auth/login" search={signInReturnFrom(here)} />}>
             Sign in again
           </Anchor>
         )}

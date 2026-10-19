@@ -1,13 +1,13 @@
-import { defineConfig } from "vite";
+import { defineConfig, lazyPlugins } from "vite-plus";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import viteReact from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
-import tsConfigPaths from "vite-tsconfig-paths";
 
 export default defineConfig({
   server: {
     port: 3000,
   },
+  resolve: { tsconfigPaths: true },
   optimizeDeps: {
     /** Pre-bundle the lazily imported, heavy deps so the dev dep-optimizer
      *  doesn't kick in mid-session (which makes dynamic imports fail to fetch). */
@@ -19,8 +19,7 @@ export default defineConfig({
       "three/examples/jsm/utils/BufferGeometryUtils.js",
     ],
   },
-  plugins: [
-    tsConfigPaths({ projects: ["./tsconfig.json"] }),
+  plugins: lazyPlugins(() => [
     tailwindcss(),
     tanstackStart({
       spa: {
@@ -28,5 +27,5 @@ export default defineConfig({
       },
     }),
     viteReact(),
-  ],
+  ]),
 });

@@ -11,8 +11,9 @@ Players reach a named game at `/play/<slug>`. The ID address `/play/<gameId>` op
 and replaces itself with its friendly address, retaining query parameters and the fragment.
 `/play` is the lobby, and any signed-in player creates a real game at `/play/create`.
 Nothing in the application links to `/play`, and every play page is
-`noindex`, through a robots meta tag and through the `X-Robots-Tag` header the publisher's `_headers`
-file adds to `/play` and `/play/*` ([deployment](../deployment.md#build-process)):
+`noindex`, through the robots meta tag every browser-only shell page carries, the play pages' own
+robots meta tag, and the `X-Robots-Tag` header the publisher's `_headers` file adds to `/play` and
+`/play/*` ([deployment](../deployment.md#build-process)):
 real games are an unlisted beta, shared privately, until the public-release decision
 ([#1094](https://github.com/ndelangen/dunezone/issues/1094)). The retired `/play/hosted` and `/play/demo` pages
 ([#1296](https://github.com/ndelangen/dunezone/issues/1296)) no longer exist in the application,
@@ -126,6 +127,53 @@ asynchronously, so a reset after the adoption brings the real cards to a running
 re-provisioning.
 
 ## Connection lifetime
+
+### Seat passes
+
+A browser enters a game with a seat pass: the account's own proof of who it is at that game,
+signed by Convex with the game's server-only secret (HMAC-SHA256) and checked by the room alone, so
+an admitted player's room never asks Convex about them again (decided with Norbert on 2026-10-17).
+
+1. The game page's query (`playGames.getGameByAddress`) carries the pass, so a reload has one
+   without another round trip. A query cannot read the clock, so its pass counts from the session's
+   newest refresh token. An account that has never opened the game gets `pass: null` and enrols
+   once with `playAdmission.enrolPlayer`, which writes its routing row, the row deletion fan-out,
+   merges and seat counting follow, in the same transaction that checks the account may play.
+2. A pass names the game, the game actor it seats, the signed-in account, the Auth session and that
+   session's creation time, and ends at the earlier of the Auth expiry and one hour after signing
+   (`PLAY_SEAT_PASS_TTL_MS`). The browser keeps it in memory and sends it in its first socket
+   message in place of a ticket.
+3. The room checks the signature, the game, its own clock and the cutoffs Convex pushed. A forged
+   pass, or one for another game, is refused. An expired pass closes with code 4410 as an expired
+   ticket does, and the browser reconnects with a renewed one. Until the room has read the
+   account's seat count (`playAdmission.seatLimitReached`), the player counts as at the seat limit.
+4. Five minutes before a pass ends, timed on the room's clock, the page renews it with
+   `playAdmission.renewSeatPass` unless the query already brought a fresher one, and hands it to the
+   open socket in a `pass` message. A room that finds a pass expired first pauses the table with a
+   `pass-expired` admission and resumes on the renewal, with no reconnect.
+5. A pass is identity, never a seat. The room owns seats, so giving one up ends it at once.
+6. Revoking every session of an account (disconnecting a sign-in method does) and merging it push a session cutoff to every game the account is
+   enrolled in (`convex/playSessionCutoffs.ts`). A cutoff ends every pass whose session was created
+   at or before it. The room stores the cutoff in SQLite, keeping the higher of two, before it
+   acknowledges it. The push retries until acknowledged, backing off to one minute, and stops once
+   every pass it could end has expired. Account deletion keeps its own durable push; a deletion for
+   an account the room has never seen leaves a `[deleted user]` row that keeps a later pass out. Deletion also reaches
+   creators of games from before creators were enrolled, through a routing row its fan-out adds; a
+   creator deleted before seat passes, whom no deletion reached, is removed by the one account
+   reconciliation each room runs in the background on its first pass admission after it starts. A
+   game that expired before Convex confirmed it may still have a room that stored its creator, so its
+   deletion asks that room to retire, which only an unconfirmed room or the hosted fixture accepts,
+   and settles once the room answers empty.
+
+Accepted trade-offs: a single tab's sign-out, which revokes no other session, does not reach the
+room, so a pass copied out of that tab stays usable until it expires. A lost cutoff push is bounded
+the same way. A pass can be replayed by whoever holds it for its lifetime, as a bearer token is.
+
+### Tickets (older pages)
+
+A page that predates passes, or a deployment whose query sends no `pass`, still enters with a
+ticket. The room keeps the ticket path, its account lease and reconciliation for those connections
+only; a room whose players all hold passes never runs them.
 
 1. The signed-in browser requests a single-use opaque ticket from Convex. Convex resolves the
    current user and Auth session itself; the browser cannot select another identity.
@@ -281,7 +329,13 @@ WebGPU reports, turned most of this job's runs red while the Linux shards stayed
 In CI the hosted shards run on a pull request only when its diff can reach the flows, decided at
 the start of each shard by the `play-closure` action from the closure in `scripts/lib/hosted-play-closure.ts`; a daily run on
 `main` runs them once more when the tree at its tip has not had them
-([deployment](../deployment.md#hosted-gameplay)).
+([deployment](../deployment.md#hosted-gameplay)). Art the pickers do not list, such as blog
+and page pictures, does not run them: the action reads both versions of the raster lock and media
+map, and when those only gained keys, with every existing key and recipe unchanged, they cannot reach
+a flow. Picker art still runs them, through the asset ids and collections it regenerates under
+`src/shared`, and so does a changed or removed original. The blog's post list and the publisher's
+renderer manifest are imported but never observed by a flow; the closure test holds which files
+import them and what they read.
 
 `bun --no-env-file scripts/verify-hosted-play-stack.ts --browser-only --flow all` boots one stack and
 runs every browser flow against it, each on a fresh game with fresh accounts. `--flow` repeats to
@@ -329,13 +383,13 @@ signed-in browser processes and a spectator, and it retains received game frames
 `decks-frames.json`.
 
 Run `bun --no-env-file scripts/verify-hosted-play-stack.ts --browser-only --flow results` for the end
-of a real game. Two players step to Mentat pause, one opens Determine winner and declares a faction,
+of a real game. Two players step to Mentat Pause, one opens Determine winner and declares a faction,
 and a spectator watches. It checks each panel's Result tab, the result in the header, a reload into the
-finished game, the lobby's Past entry with its winner, and Continue playing back to Mentat pause and the Ongoing list.
+finished game, the lobby's Past entry with its winner, and Continue playing back to Mentat Pause and the Ongoing list.
 
 ### Real-game journeys
 
-`workers/game/journey.native.test.mjs` takes whole real games through the native workerd runtime,
+`workers/game/journey.native.test.ts` takes whole real games through the native workerd runtime,
 each on its own miniflare store with synthetic accounts and catalogue. Every other native suite
 proves one rule; these prove the rules still hold when one game passes through all of them.
 
@@ -344,7 +398,7 @@ proves one rule; these prove the rules still hold when one game passes through a
   the owed summary, the socket drops right after a withdrawal and its identical retries debit once,
   a player reconnects, and the room restarts cold in play and again while finished.
 - Eighteen accounts are each dealt a distinct faction, station and spice reserve, finish as an alliance,
-  restart cold and continue at Mentat pause. A spectator holds no spice reserve and cannot end the game.
+  restart cold and continue at Mentat Pause. A spectator holds no spice reserve and cannot end the game.
 - In a running game a player leaves and a spectator takes the seat with its faction and spice reserve. The
   replacement declares a result and then deletes their account. The result, log and stored history
   name `[deleted user]` through a restart, and the last departure discards the game.
@@ -450,7 +504,7 @@ Create a mode-0700 directory under the operating system temporary directory, rep
 directory; it must be replaced with its absolute path:
 
 ```sh
-bun --no-env-file scripts/verify-hosted-play-browser.mjs \
+bun --no-env-file scripts/verify-hosted-play-browser.ts \
   --origin http://127.0.0.1:8787 \
   --env-file /PRIVATE_TEMP/local.env \
   --credentials-file /PRIVATE_TEMP/browser-accounts.json \

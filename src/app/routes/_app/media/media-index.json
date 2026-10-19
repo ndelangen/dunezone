@@ -5604,292 +5604,292 @@
     "sourceHash": "cb91942b074559a821075d7a09ef77f7ae709606bbe7b16c228aadae752d6a9f"
   },
   "/image/leader/official/dryeuh.png": {
-    "description": "Dryeuh. Illustrated head-and-shoulders character portrait. Forehead diamond, short beard and brown scarf.",
+    "description": "Dr. Yueh. Illustrated head-and-shoulders character portrait. Forehead diamond, short beard and brown scarf.",
     "tags": ["portrait", "head", "diamond", "illustration"],
     "subjects": ["people", "symbols"],
-    "sourceHash": "d87539a0e438e6e2e2ff344499c01a7e600628c42e468830d910a0b2567e751a"
+    "sourceHash": "8d663fe6acd75ac8ede074bee4d35e8c36156f613e79c21f29a2b5586984e50a"
   },
   "/image/leader/official/duncan.png": {
     "description": "Duncan. Illustrated head-and-shoulders character portrait. Short brown hair and green uniform.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "362aa280f84ce6ecbb34e523e22c59632d2e90908411daacba497df41b17b2f8"
+    "sourceHash": "14d2d75078b3abbd7fbc5218c6b5ed3dd70320575976f61ce5c7edd73935b6c5"
   },
   "/image/leader/official/gurney.png": {
     "description": "Gurney. Illustrated head-and-shoulders character portrait. Short blond hair and green uniform.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "8cf45b4bc8bc74149fc5ca51e7e62eeb8e4e158ed99ef541ecb9e2040d5f31f3"
+    "sourceHash": "9e570a128511cf5a9f7ad02b28335160024fc1e5f9834acc2501f8bf43ac7067"
   },
   "/image/leader/official/jessica.png": {
     "description": "Jessica. Illustrated head-and-shoulders character portrait. Long brown hair and headband.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "8d3977939db0e63131087e7e42f8475bdb80ec26bad2ce5a473cf45f20b8d4a4"
+    "sourceHash": "da403ec1a1756825579a4f9b625ff3ebc892f0ee0971eb9fce691a3afdb9a4f4"
   },
   "/image/leader/official/paul.jpg": {
     "description": "Paul. Illustrated head-and-shoulders character portrait. Short dark hair and green uniform.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "3699f31ca0bf7f3ec66cbac461a9eee298c7f5a691664e42e48f2a1ff006049b"
+    "sourceHash": "903478d0de2471059a02af72514c6133b920f26063de44073b1cce05813adcc0"
   },
   "/image/leader/official/thufir.png": {
     "description": "Thufir. Illustrated head-and-shoulders character portrait. Gray hair and mustache with a red cloak.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "75196b534e50c62d6649b4de8969db22a6d2cc1ae2f0039157a1a87cbaab74c1"
+    "sourceHash": "f297853baace49bdc4e7a25fb00c0d300b421ec0b82e23cf479b43e15783b96b"
   },
   "/image/leader/official/baron.jpg": {
     "description": "Baron. Illustrated head-and-shoulders character portrait. Broad face and orange patterned coat.",
     "tags": ["portrait", "head", "face", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "eba4c9c117162861f17e372f877be642c5a687a061957b8fa19897b9754ff784"
+    "sourceHash": "3f19a9977ad02a00570ce843a5800bfe632bacfd94e3a6c0642eb09c0ed61e36"
   },
   "/image/leader/official/beast.png": {
     "description": "Beast. Illustrated head-and-shoulders character portrait. Bald head and black-gold coat.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "cd0f60aa4cc204b11aaf25e5aa9c0f0bf11134fb5756afdf4b7e82953404996a"
+    "sourceHash": "5e5dcad902437ea754c2fb35d22231dbf2225a7c9f080ff333bcbe083850e13f"
   },
   "/image/leader/official/feyd.png": {
     "description": "Feyd. Illustrated head-and-shoulders character portrait. Dark hair and white ruffled collar.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "731a3ad2c0155787e177b785f586710332a8f10a789d017471c5ccbb469bd83b"
+    "sourceHash": "911be8f690fc79eccab551505acae2ae85a0c6a4202c947d0cfb2e5a447c2cb6"
   },
   "/image/leader/official/nafud.png": {
-    "description": "Nafud. Illustrated head-and-shoulders character portrait. Red scarf and raised black collar.",
+    "description": "Nefud. Illustrated head-and-shoulders character portrait. Red scarf and raised black collar.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "d264a8bbd3d3e159089ad42b6280731102e7bbcad5ab97c11e2057761f70eef0"
+    "sourceHash": "bc7d4970cd440d8e4bccc5902a2bc8fd9e9deebd06fac2abb9968c953a6e345d"
   },
   "/image/leader/official/piter.png": {
     "description": "Piter. Illustrated head-and-shoulders character portrait. Red hair and gray coat.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "794828f20f1a8fea542f2f0c3a543ab3620df4a330df7f1c90f27babac887c30"
+    "sourceHash": "937b3f8679437b9f763e5977e3da75000579c99c8acb70d8ebd0b230c5fbe72b"
   },
   "/image/leader/official/uman.png": {
-    "description": "Uman. Illustrated head-and-shoulders character portrait. Goggles above the forehead.",
+    "description": "Umman Kudu. Illustrated head-and-shoulders character portrait. Goggles above the forehead.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "bc51f3a0bc4358dde9eecce913be8d1fde33102318d0ed64e63fd59b09d30151"
+    "sourceHash": "493c5da41bc0ff3024e8198aa53eb07e9dcc8545debcd17baf2327e2d9f5bad7"
   },
   "/image/leader/official/alia.png": {
     "description": "Alia. Illustrated head-and-shoulders character portrait.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "17712bcbf65f970e32a8d4aceab94a65eb1b360c61d4c8cc2b8c32f69279cadb"
+    "sourceHash": "3743ab758252c3958c857418638dfed10be9d8714cd84081454c56016727f713"
   },
   "/image/leader/official/irulan.png": {
     "description": "Irulan. Illustrated head-and-shoulders character portrait.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "e7c1dec058dea2bce6674d8ed1950006681ea2fda7266bfabab71965f035b4b4"
+    "sourceHash": "8846b2bd71006d5854b624358777dfc49b0be0cba78d5b09060c38f29599def9"
   },
   "/image/leader/official/lady-fenring.png": {
     "description": "Lady Fenring. Illustrated head-and-shoulders character portrait.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "8bfc17518323277a8d4389c1d5b27c970cbd67c31026d5653377600d51b48155"
+    "sourceHash": "53790e0e8a24fb455bb8c08c03a64f97026732601e063c00155aa8b4f1dbc2f7"
   },
   "/image/leader/official/mohiam.jpg": {
     "description": "Mohiam. Illustrated head-and-shoulders character portrait.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "e1f85293766ef9175abb218142ade3331277c636a1c6769cbcfe2afed8bf9d14"
+    "sourceHash": "73fcf07764ada22725acae0aab28c7a384e1bb3520f6997e520e3fb312534064"
   },
   "/image/leader/official/ramallo.png": {
     "description": "Ramallo. Illustrated head-and-shoulders character portrait.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "30d31969f0504c9e8e75f96139081a2150cc7fb991ceabe72af727abafc7480d"
+    "sourceHash": "f6dbc79268affe32ad6cb6d253f0d9ee843532470c7afe20c234d88a48e8cc85"
   },
   "/image/leader/official/wanna.png": {
     "description": "Wanna. Illustrated head-and-shoulders character portrait.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "d68628c49cb6ddc7d12714f4339fd42af7418408e4250d7dac03117dd783cc98"
+    "sourceHash": "a163129c0c18d62e82702e35811d90549803ecf7e564faf3e822f6e7e15caa89"
   },
   "/image/leader/official/aramsham.png": {
     "description": "Aramsham. Illustrated head-and-shoulders character portrait. Gray beard and brown coat.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "6dba5af3de94dc2d6f9429e204f1b276ef898db12f869dcd6161f5d7c49d2ba7"
+    "sourceHash": "59a2710e0d646f3c5130acf8b31cad8577acffbde480b89b92a8d290127b3f40"
   },
   "/image/leader/official/bashar.png": {
     "description": "Bashar. Illustrated head-and-shoulders character portrait.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "5d665242a26df7a04be684c9e25c0e652110961a6c127e877578b72012f6a83a"
+    "sourceHash": "e6e2559ea87f2ba26b64e7a3c19fff2d670086b0a735dfcf822212977747ee69"
   },
   "/image/leader/official/burseg.png": {
     "description": "Burseg. Illustrated head-and-shoulders character portrait.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "43c2fae878798eaae3b3aa61d7b9c4f6e5a6fab30a122655a58f6f87edab3d64"
+    "sourceHash": "285d998eacaa3b9ce829bda4dd44f77e2438de58bbdd715fcf65946ee5529b60"
   },
   "/image/leader/official/caid.png": {
     "description": "Caid. Illustrated head-and-shoulders character portrait.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "6da8f2a7dde7c35260211a5a59b2de916cd97c7d008f5d6d3cc69263732430f8"
+    "sourceHash": "776b5d96b43ce0fca4d26afc7d902486fc9d420d12c2b83c6535fda14c8562bf"
   },
   "/image/leader/official/hasimir.png": {
     "description": "Hasimir. Illustrated head-and-shoulders character portrait.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "1903b7ab00fa539bec7ab7296469b41c25a6cba83fed8ab5a09865f07ab1cdca"
+    "sourceHash": "69b18a4de8507ae82a3ff775c85aace46871df706a01048bc285f86e1103fe54"
   },
   "/image/leader/official/shadam.jpg": {
     "description": "Shadam. Illustrated head-and-shoulders character portrait.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "7fa380be571d0e048a5390cf73e928eec0768acd23b9a9837992a08f16a08aa4"
+    "sourceHash": "21aa779ce5be2680c7bfaebdb2cbdf80fdefb1d85f6c21dbb9a71f2a8e03446b"
   },
   "/image/leader/official/chani.png": {
     "description": "Chani. Illustrated head-and-shoulders character portrait. Face paint, dark hair and brown scarf.",
     "tags": ["portrait", "head", "face", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "fcd7cfe1e8eb2185942f73975c582fb8b7051f9205826aa1e17921a1971169a5"
+    "sourceHash": "6f604dee12941a56247c4589cfad23233a08b4f09a405eba65b992aa843a882c"
   },
   "/image/leader/official/jamis.png": {
     "description": "Jamis. Illustrated head-and-shoulders character portrait.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "1e4cb2573f556ac00d9cd96cd8c032d32e0974a518e34c3347f179f9553c8306"
+    "sourceHash": "317e3ecb576c49d047f3fa1eb8a9e5f8feb7216d6a71c139dcaa238a0605b6f6"
   },
   "/image/leader/official/liet.jpg": {
     "description": "Liet. Illustrated head-and-shoulders character portrait.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "6d1967cd0a2db40f6a625281f1aecd71b9561871530d925d32b521d874aa7053"
+    "sourceHash": "d4d3685a54f47d620658a3cb15ec991ca197f45f2dcff2e5dd97a89859d16dbc"
   },
   "/image/leader/official/mapes.png": {
     "description": "Mapes. Illustrated head-and-shoulders character portrait. Long white hair and forehead markings.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "3d75bfba3a82cab013a7a82f25f1ee19d5e5b59d3e97d2bf50477964c8307790"
+    "sourceHash": "0be0b47426bf86e472c3e2c2dc18f85dd1231fe2158e92441829d6fa146858be"
   },
   "/image/leader/official/otheym.png": {
     "description": "Otheym. Illustrated head-and-shoulders character portrait. Goggles and dark beard.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "332b41722d71d906ae19566ebf23c38823cdc543328ff2dbbf124930d773bdc5"
+    "sourceHash": "ef0479c5f8b5965fca255dc55b639fef43a1acc605b263dcfb0eed545df28490"
   },
   "/image/leader/official/stilgar.png": {
     "description": "Stilgar. Illustrated head-and-shoulders character portrait.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "6e7a7de6083b6834b6bfb38c5b3dc4c9feff59cfffc6fc03f317919a2d7b44ab"
+    "sourceHash": "2905b5c7047bb919d5589be3f806e193a5b4a23af3f39b076917600598ca8797"
   },
   "/image/leader/official/bewt.png": {
     "description": "Bewt. Illustrated head-and-shoulders character portrait.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "6d95c9c362b65d98b2a99323f9c154fc227858b124da31d9eeff5c5b99c3e5b9"
+    "sourceHash": "8b8de4f2768724727b13d6e06e69cf8394a1d11c92648c7fb9fd763364a794bd"
   },
   "/image/leader/official/edric.jpg": {
     "description": "Edric. Illustrated head-and-shoulders character portrait. Elongated ridged alien head.",
     "tags": ["portrait", "head", "alien", "illustration"],
     "subjects": ["people", "creatures"],
-    "sourceHash": "c921b8d33e85d980e890b28a8c01a35aa0e6602099a7df09b35551e2550f0d97"
+    "sourceHash": "ed46b2826dd616678e27b18d180a79b7a0ae9bb27bbb2c394b32e7f9abccd51d"
   },
   "/image/leader/official/esmar.png": {
     "description": "Esmar. Illustrated head-and-shoulders character portrait.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "bfc2c0d82af540aa2461e95f65ec4b245925445ac1822a471edce3b371faf81e"
+    "sourceHash": "b2d37b3fd7c94f708186a08b8e08642979be1472ffda7115d6ed6e2d9b92f9b7"
   },
   "/image/leader/official/guildrep.png": {
-    "description": "Guildrep. Illustrated head-and-shoulders character portrait.",
+    "description": "Guild Rep. Illustrated head-and-shoulders character portrait.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "36eaac8543e704ae2ea7e40033d18ba1e82ed0489de8813b025ab8c853b01bf6"
+    "sourceHash": "7b93578a8f522960aca486b4be91c4ddf08975859ddbd0078ccab390cca78ede"
   },
   "/image/leader/official/soo-soo-sook.png": {
     "description": "Soo Soo Sook. Illustrated head-and-shoulders character portrait.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "dd93366186695847d982b476e09c31d32a4b75d24448028d28e088228ae8937d"
+    "sourceHash": "04e72de309669777d368e70d1ab4869a4dba8470c83d9b2171533b73d8f3c5e7"
   },
   "/image/leader/official/staban.png": {
     "description": "Staban. Illustrated head-and-shoulders character portrait. Bald head, white mustache and red scarf.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "38431d0d898a58964ecfeb98fb470d6de745858c3725a7fd60c2bddd771f6106"
+    "sourceHash": "d5999bd60fd3b8d9a8e93903f6810bb00d1df6997c7710420e60dc7caf5242c6"
   },
   "/image/leader/official/cammar.png": {
     "description": "Cammar. Illustrated head-and-shoulders character portrait.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "115610929fac49f17aff667e8bd9443dda28c470cc5b7018d430268c50ae9373"
+    "sourceHash": "be1691c865209ace3f62af876f30e647f5c1b6a62c184ea5513d46fa9270fc2c"
   },
   "/image/leader/official/ctair.png": {
-    "description": "Ctair. Illustrated head-and-shoulders character portrait.",
+    "description": "C'Tair. Illustrated head-and-shoulders character portrait.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "756fda949d428c33c56bfa4bff57bac42152be9c275345364da896f75e6773c1"
+    "sourceHash": "a41337a2df819bebe6980bfab44fda604484cf361685b8fb9394740c293d0141"
   },
   "/image/leader/official/dominic.png": {
     "description": "Dominic. Illustrated head-and-shoulders character portrait.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "0df4bc476f086e6124a54ccb4ca9d7984ddb20632e7aa5bc351c9c2ff84d5e53"
+    "sourceHash": "adf4e3525b19733d96eff449af0a5554c17829c077a65e654f035664183612fa"
   },
   "/image/leader/official/kailea.png": {
     "description": "Kailea. Illustrated head-and-shoulders character portrait.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "0dca2d7afad299c326af734950e578424b3dcaedc552cd77bfb0eacd57619417"
+    "sourceHash": "1eb2fa35c0aadee95eb9f92564cfbef307251354598779df0c211351c83db726"
   },
   "/image/leader/official/rhombor.jpg": {
-    "description": "Rhombor. Illustrated head-and-shoulders character portrait.",
+    "description": "Rhombur. Illustrated head-and-shoulders character portrait.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "809cb47bb26bd3415759a34705ac86b241d6db82834e28ff27f438d0c527cf82"
+    "sourceHash": "8e89d30a2480380fc684ad42098b0fae470094968c94f0112799c1c700848cdc"
   },
   "/image/leader/official/tessia.png": {
     "description": "Tessia. Illustrated head-and-shoulders character portrait.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "01c03caa900e2fd9f73fa1ba4b026225547ce69c0e46ad9ef2f2efe9879b91a6"
+    "sourceHash": "8df13629ca3bab9379c7fbe2f0a224775689a9c5f75dc7a56567878ade18eddf"
   },
   "/image/leader/official/blin.png": {
     "description": "Blin. Illustrated head-and-shoulders character portrait. Partly shaved head with a red braid.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "fc75f95d83fa87344a8ddf4348c1e944fad1cba82e7c3ca88e0dc8bc7cbf6e8e"
+    "sourceHash": "bfca42d49bd171eea0454e47defa487c57b5fd8878547bc0bbad759f97967ccb"
   },
   "/image/leader/official/hidar.png": {
     "description": "Hidar. Illustrated head-and-shoulders character portrait.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "ad3f6a619c85084602b19e343668794735c658b6a7ea82e0948a59cc129a027f"
+    "sourceHash": "bd8a75780506cb3d8140e010d54a6f44ffeb97884a4f96f0bfa131eac3eff449"
   },
   "/image/leader/official/masters.jpg": {
     "description": "Masters. Illustrated head-and-shoulders character portrait.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "b35ce62c96362af54932250e923c509ba4f158717e06e2b5599d482e2caf38aa"
+    "sourceHash": "ee094f1b9ef7bb3a52a9facc719f9eea4bbc4e5afe4eb8b7c385087a1fb9dd40"
   },
   "/image/leader/official/wykk.png": {
     "description": "Wykk. Illustrated head-and-shoulders character portrait.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "57c9d4cf69473ba90e80956a2326d339de380355b83b0e35eddd41aef21060e7"
+    "sourceHash": "af1802ce01aa5696aa513cea650290f019212d09ef81034812e0ca9b065cbe57"
   },
   "/image/leader/official/zaaf.png": {
     "description": "Zaaf. Illustrated head-and-shoulders character portrait.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "586193916efa3e805770560a5135e6cfbbc1b32c4fe74c9c506847d54e2c88f6"
+    "sourceHash": "6c1a584b3eb8323cbc205ac936b8e410d652ac4e977e03aab8bd1a449e55f2be"
   },
   "/image/leader/official/zoal.png": {
     "description": "Zoal. Illustrated head-and-shoulders character portrait. Dark hood with gold trim.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "c3efdbf3e02ec1e0a73a97e4cb4935c9a37dc2d9632cc4a152cb6c6b0619feff"
+    "sourceHash": "cafb064fe147fbb4f2cf594fb26008658ae164582a6332bb7bb979bea9ee8ab1"
   },
   "/image/leader/official/auditor.png": {
     "description": "Auditor. Illustrated head-and-shoulders character portrait.",
@@ -5925,19 +5925,19 @@
     "description": "Viscount Tull. Illustrated head-and-shoulders character portrait.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "db317f5c2bcf3aa43a63ade4889ca8e28b1860c7228a280330febde9860639d1"
+    "sourceHash": "321ba5c0e1320fa3286c99a6cbf4230c5f43022616fd9f4c3b704eb83d82e958"
   },
   "/image/leader/official/ein-calimar.png": {
     "description": "Ein Calimar. Illustrated head-and-shoulders character portrait. Gold spectacles and gray hair.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "e0eba598870ea6edc8e80d0f031d3a85a59ab98aa140cc6fb01873db25c1059c"
+    "sourceHash": "9e207ca32e96e161f63cc2ade11b935df23fcc817c708d61ebdff5bd46d37075"
   },
   "/image/leader/official/flinto-kinnis.png": {
     "description": "Flinto Kinnis. Illustrated head-and-shoulders character portrait. Round spectacles and gray hair.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "284fcd214b404f10ec9e4ff16c968c9af7932b27dc298ba5e341d3e405fdc651"
+    "sourceHash": "98632e5356f792bf765e06ca93d9a1723fdc31f746d141b97038d32ff2a2ed0d"
   },
   "/image/leader/official/haloa-rund.png": {
     "description": "Haloa Rund. Illustrated head-and-shoulders character portrait.",
@@ -5949,7 +5949,7 @@
     "description": "Lady Helena. Illustrated head-and-shoulders character portrait.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "305747333475d3aa68f04e3c979b3ed843b395c07c7cb3b89a703eab66e495ec"
+    "sourceHash": "0f0d9e12d470c90383a158c75411a0ff85276a19b8918b42e58e2a3f5202be08"
   },
   "/image/leader/official/talis-balt.png": {
     "description": "Talis Balt. Illustrated head-and-shoulders character portrait.",
@@ -5961,7 +5961,7 @@
     "description": "Bindikk Narvi. Illustrated head-and-shoulders character portrait. Bearded face inside a green hood.",
     "tags": ["portrait", "head", "face", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "7ae2433fe942c6bdee29b7ab2ae8e28108b1b15d66fdff88ded9156c11176fe9"
+    "sourceHash": "3f0d93dcc093a14772c7bd40c7599e0bc231a6da801f0f594058f27a6a5b64d0"
   },
   "/image/leader/ilya/ecaz.jpg": {
     "description": "Ecaz. Illustrated head-and-shoulders character portrait.",
@@ -5973,7 +5973,7 @@
     "description": "Ilesa Ecaz. Illustrated head-and-shoulders character portrait.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "49b1ac6d754f4251e79f738b5ec8b0a7bdf02cce8d234e5befe0de68791a1b86"
+    "sourceHash": "325ab1c1d5672140ca0e10f69c0d2b34a9877a46b4b3857beeb3f48fff0f897e"
   },
   "/image/leader/brainfood/rivvy-dinari.png": {
     "description": "Rivvy Dinari. Illustrated head-and-shoulders character portrait.",
@@ -5988,22 +5988,22 @@
     "sourceHash": "3f61e0a60643f1438ba52fc5136d8cd2c1fcc1ce3453ddc2a3dc1233ff49adde"
   },
   "/image/leader/official/whitemore-bludd.png": {
-    "description": "Whitemore Bludd. Illustrated head-and-shoulders character portrait.",
+    "description": "Whitmore Bludd. Illustrated head-and-shoulders character portrait.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "3fda2713be1f819f101e8aca7cc72a1f9947c7f29a2f532240db07986cb697ca"
+    "sourceHash": "7e807e531cbf2cf88fdd1aa70941baf0ca52bc9f330512c2c45484294d254eae"
   },
   "/image/leader/official/whitmore.jpg": {
     "description": "Whitmore. Illustrated head-and-shoulders character portrait.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "5313a14461a7797156b9bbe7ba9a840dafa932872a8b6c8543acb9ad8e26ca27"
+    "sourceHash": "72727bbfd62f84fc65864f9f678bfe63c627c843f50333894f07d881cabea952"
   },
   "/image/leader/official/grieu-kronos.png": {
     "description": "Grieu Kronos. Illustrated head-and-shoulders character portrait. Long dark hair and beard.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "a86fdb5146157124c977b2ba3c8239e68a51b35d35903a8f5d8608a52e53585a"
+    "sourceHash": "89fd92891c7e9a9587aa7127060972fb0566666d6b72e781f7dd5ca398df8926"
   },
   "/image/leader/brainfood/grumman.png": {
     "description": "Grumman. Illustrated head-and-shoulders character portrait. Green hood and red hair.",
@@ -6015,7 +6015,7 @@
     "description": "Hiih Resser. Illustrated head-and-shoulders character portrait.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "eb86900ee635e28203fcf645660a99c5553a91ba6aa3e0ea796cd7a12886c2b7"
+    "sourceHash": "5986f7e59276757e5a1c3882621facfdb06fe3fe98bfde06a1706ba43cd53d9c"
   },
   "/image/leader/brainfood/hiir.png": {
     "description": "Hiir. Illustrated head-and-shoulders character portrait.",
@@ -6051,7 +6051,7 @@
     "description": "Lupino Ord. Illustrated head-and-shoulders character portrait.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "3d514ec3d3ace36319f0944e0c636f7897c43a5e520bb455f8f023fb31f2855a"
+    "sourceHash": "1e393d363e1cac4b7d3a7449d84f36533983985bc3c510630160a2996d214b87"
   },
   "/image/leader/official/trin-kronos.png": {
     "description": "Trin Kronos. Illustrated head-and-shoulders character portrait.",
@@ -6063,7 +6063,7 @@
     "description": "Vando Terboli. Illustrated head-and-shoulders character portrait. Forehead diamond and long blond hair.",
     "tags": ["portrait", "head", "diamond", "illustration"],
     "subjects": ["people", "symbols"],
-    "sourceHash": "c07f9bb020a5383e94fe9d81a3c588e543c613fea054f901698e63ee68296eb5"
+    "sourceHash": "453cc1774e00e7b417ce6e4a4cc4d3152c1b47511f399b348f080eabff06c345"
   },
   "/image/leader/official/jammo.png": {
     "description": "Jammo. Illustrated head-and-shoulders character portrait.",
@@ -6120,10 +6120,10 @@
     "sourceHash": "68365cb49b2a3581be8cb8c7cda13a778730bfd43966291c2e01f5c7111dfef3"
   },
   "/image/leader/official/smuggler2.png": {
-    "description": "Smuggler2. Illustrated head-and-shoulders character portrait. Dark round goggles.",
+    "description": "Smuggler 2. Illustrated head-and-shoulders character portrait. Dark round goggles.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "sourceHash": "5d021b9fca7a0cfdb943648ae56ab080b87d2db7cff010064471eed663b123cc"
+    "sourceHash": "2b614a6f9b7085f2aea0fa44b6b4bd68e7d37d17980219bcbadd22dcef0add5b"
   },
   "/image/leader/brainfood/bain.png": {
     "description": "Bain. Illustrated head-and-shoulders character portrait.",
@@ -10091,11 +10091,83 @@
     "subjects": ["patterns"],
     "sourceHash": "98aca64baa2f0745820515169fdbf5acf844b27b50e07bd53264f07a2ab68060"
   },
+  "/web/blog/drawing-dune-tokens-and-cards/atreides-leaders.jpg": {
+    "description": "The House Atreides leader tokens on dune.zone in a row: Lady Jessica, Thufir Hawat, a larger Paul Atreides, Gurney Halleck, Duncan Idaho and Doctor Yueh.",
+    "tags": ["leader tokens", "House Atreides", "blog"],
+    "subjects": ["people", "symbols"],
+    "sourceHash": "ebb942756691887e5cc052071f1378942bd59c51d37bf777e206be33ea884afc"
+  },
+  "/web/blog/drawing-dune-tokens-and-cards/exploded-layers.jpg": {
+    "description": "A treachery card back and Thufir Hawat's leader token pulled apart into their layers in 3D, on a warm parchment background.",
+    "tags": ["leader tokens", "cards", "blog"],
+    "subjects": ["people", "symbols"],
+    "sourceHash": "847bcdfd830a4aaa41f6488e7f3ae960f384cfe027bc833a299b20136247889c"
+  },
+  "/web/blog/drawing-dune-tokens-and-cards/token-details.jpg": {
+    "description": "A grid of close-ups of Thufir Hawat's leader token from September 2021, November 2021, March 2024 and today, comparing the strength number, the emblem, the name and the ring.",
+    "tags": ["leader tokens", "history", "blog"],
+    "subjects": ["people", "symbols"],
+    "sourceHash": "b1ecde01f526df3acfac44754e3d5ff21192010398cef556d9c9ba8f21f1b829"
+  },
+  "/web/blog/drawing-dune-tokens-and-cards/thufir-token-photo.jpg": {
+    "description": "Thufir Hawat's printed GF9 leader token, cropped to the portrait and saved with heavy JPEG compression, with the strength 5, the Atreides emblem and his name printed over it.",
+    "tags": ["leader tokens", "House Atreides", "blog"],
+    "subjects": ["people", "symbols"],
+    "sourceHash": "f8cb0f3093fa2b95b3245edce2706f599aea1d9979cfeee36643b232ecd13d20"
+  },
+  "/web/blog/running-from-databases/dune-app-creator.jpg": {
+    "description": "The Creator in dune-app: a gallery of editable game assets, with treachery, alliance and leader cards, a faction sheet, tokens and a shield.",
+    "tags": ["dune-app", "creator", "cards", "tokens", "blog"],
+    "subjects": ["symbols", "culture"],
+    "sourceHash": "647e14f574719d3e29fcc293ecd4b889ab00028f7aac5c06b817c7614b0bd030"
+  },
+  "/web/blog/running-from-databases/dune-app-leader-card.jpg": {
+    "description": "Duncan Idaho's traitor card in dune-app, next to an editor for his name, faction, image, strength and colour.",
+    "tags": ["dune-app", "leader card", "Duncan Idaho", "editor", "blog"],
+    "subjects": ["people", "symbols", "culture"],
+    "sourceHash": "e9c600befebfa7c52e78ab8075ad013bea1667d8e6c3c998703f6f4e59a0542f"
+  },
+  "/web/blog/running-from-databases/dune-assets.jpg": {
+    "description": "Cards and tokens generated by the dune-assets repository: traitor and treachery cards, leader, faction and troop tokens.",
+    "tags": ["dune-assets", "generated assets", "cards", "tokens", "blog"],
+    "subjects": ["symbols", "culture"],
+    "sourceHash": "9087e9601c9160f238ae367656e74309b9216d9de5f9bfe2f3ae746c714168ad"
+  },
+  "/web/blog/running-from-databases/dune-games-empty.jpg": {
+    "description": "The Dune Dashboard at dune.games today, with empty chart panels for playtime, victory turns and victory methods.",
+    "tags": ["dune.games", "dashboard", "statistics", "blog"],
+    "subjects": ["culture"],
+    "sourceHash": "6ec69ba006b376527198f31b0728ba6cb5c8d8267fabcb9e2ae0414eb8a6f5d9"
+  },
+  "/web/blog/running-from-databases/first-leader-token.jpg": {
+    "description": "An early leader token drawn in code: a red ring around a black disc, the strength 12 and the name Brainfood.",
+    "tags": ["leader token", "prototype", "code", "blog"],
+    "subjects": ["symbols", "culture"],
+    "sourceHash": "56561e0887ad2dfe60109b2a52216d4badb66cea417556766c0c2b332486ef1f"
+  },
+  "/web/blog/running-from-databases/then-and-now.jpg": {
+    "description": "The Atreides faction sheet from the 2023 StackBlitz prototype next to the House Atreides page on dune.zone.",
+    "tags": ["Atreides", "faction sheet", "prototype", "dune.zone", "blog"],
+    "subjects": ["symbols", "culture"],
+    "sourceHash": "1b48985704f1853ad66c00c48acd7cad4cb5e8b63082d0fb33d7df2ff52d1305"
+  },
+  "/web/blog/running-from-databases/victory-turns-2021.jpg": {
+    "description": "Three nested half-ring charts from March 2021 showing on which turn games were won, for GF9 basic, GF9 advanced and Dreamrules.",
+    "tags": ["dune.games", "statistics", "victory turns", "Dreamrules", "blog"],
+    "subjects": ["culture"],
+    "sourceHash": "e1899ec0e622e0c9b06fcc589022271e5be56e4cdaf5b974ed616fd6515d8fd4"
+  },
   "/web/blog/why-dune/avalon-hill-set.jpg": {
     "description": "The original Avalon Hill edition of Dune laid out on a table: the board, faction shields, leader discs, combat wheels, troops and cards.",
     "tags": ["Avalon Hill", "board game", "faction shields", "combat wheel", "blog"],
     "subjects": ["places", "symbols", "culture"],
     "sourceHash": "f34aeff4a07bbcb65dde18304f112572b21fa2d613daf9f713aaecd0c982dd22"
+  },
+  "/web/blog/why-dune/dream-rulebook.jpg": {
+    "description": "The cover of the Dream Rulebook on dune.zone: a sandworm rising from orange dunes beneath a rainbow sky and two moons, under the Dune logo.",
+    "tags": ["Dreamrules", "rulebook cover", "sandworm", "rainbow", "blog"],
+    "subjects": ["places", "space", "creatures", "people"],
+    "sourceHash": "6588f45c4ad391d46e425c5a79ef686862b3b69563f6f9df4c166de185b456da"
   },
   "/web/blog/why-dune/gf9-board.jpg": {
     "description": "A close-up of the GF9 edition board with stacked leader discs, faction tokens and treachery cards on Arrakis.",
@@ -10120,6 +10192,102 @@
     "tags": ["Tabletop Simulator", "online play", "faction shields", "board", "blog"],
     "subjects": ["places", "symbols"],
     "sourceHash": "9fed016ad4bce2224b6f4757436971b26ca9660d1ebb2a8f33a9b38ffe57b1f2"
+  },
+  "/web/blog/tabletop-simulator/abomination.jpg": {
+    "description": "A custom Abomination treachery card in the GF9 card style, with layered head silhouettes and its rules text.",
+    "tags": ["treachery card", "custom card", "homebrew", "blog"],
+    "subjects": ["symbols"],
+    "sourceHash": "113a383e19f3ce97fabb03519d15fc407cbd4bded9026efd90e559eef828634d"
+  },
+  "/web/blog/tabletop-simulator/battle-wheels.jpg": {
+    "description": "Two scripted battle wheels in Tabletop Simulator with leader discs and treachery cards laid between them.",
+    "tags": ["Tabletop Simulator", "battle wheel", "leaders", "blog"],
+    "subjects": ["symbols"],
+    "sourceHash": "f8cf1fe8b56433fdbe57c7e27cbf17b5b7658c3c0d39edc2cefd160720e24026"
+  },
+  "/web/blog/tabletop-simulator/bidder-next.jpg": {
+    "description": "A later Tabletop Simulator bidder that never shipped: a red faction disc showing a bid of 1, with a countdown timer and a Pass button.",
+    "tags": ["Tabletop Simulator", "bidding", "online play", "blog"],
+    "subjects": ["symbols"],
+    "sourceHash": "d04f92f523ab114e5f9cd1475a5f2c1ca0912268e1b42078f784704174c418d1"
+  },
+  "/web/blog/tabletop-simulator/bidder.jpg": {
+    "description": "The Dune board in Krell's Tabletop Simulator mod, with the bidder at its centre showing a faction symbol and a Next arm.",
+    "tags": ["Tabletop Simulator", "bidding", "online play", "blog"],
+    "subjects": ["symbols"],
+    "sourceHash": "5cea100bbf1aad1428da870c4119c86bd5ceaefd6bdcb212578d3d52d17a5ce9"
+  },
+  "/web/blog/tabletop-simulator/bidding-decks.jpg": {
+    "description": "Two treachery decks in Tabletop Simulator with Take and Next buttons and a card counter.",
+    "tags": ["Tabletop Simulator", "treachery card", "bidding", "blog"],
+    "subjects": ["symbols"],
+    "sourceHash": "da635e66697754bbdb5eed49f6a3a1a27d3f8c11362b7c95d6e1940c68754922"
+  },
+  "/web/blog/tabletop-simulator/blender-models.jpg": {
+    "description": "Two gold 3D models on a dark background: a gavel over cards for the bidding phase, and a running Emperor troop.",
+    "tags": ["3D model", "Blender", "bidding", "troop", "blog"],
+    "subjects": ["symbols", "people"],
+    "sourceHash": "435a61b57d69f6284a68512477aa39d6d8a75c354b668568a42db7dec2ff4f87"
+  },
+  "/web/blog/tabletop-simulator/faction-tables.jpg": {
+    "description": "Tabletop Simulator tables for many Dune factions floating in a starry sky, each with its shield, leaders and tokens.",
+    "tags": ["Tabletop Simulator", "faction shields", "online play", "blog"],
+    "subjects": ["space", "symbols"],
+    "sourceHash": "5cae80ea6665ebcbbbdf82f8ffadf08b4cbe9bff24eaf9f308bbd42219343bea"
+  },
+  "/web/blog/tabletop-simulator/game-night.jpg": {
+    "description": "A game of Dune in Tabletop Simulator seen from above, with player areas, cards and tokens around the round board.",
+    "tags": ["Tabletop Simulator", "online play", "board", "blog"],
+    "subjects": ["places", "symbols"],
+    "sourceHash": "c5021c63a3c7e76ccd4f2c023db0b1f8c02fa39906a9531f02400b121d68e87a"
+  },
+  "/web/blog/tabletop-simulator/iduali-dune-zone.jpg": {
+    "description": "The Iduali faction page on dune.zone, with leader discs, troops and a grid of advantages.",
+    "tags": ["Iduali", "faction sheet", "dune.zone", "blog"],
+    "subjects": ["people", "symbols"],
+    "sourceHash": "d5d8e1dcbc76b2c91e480464ad1b99225fa45d83aa0ee6894914f52fb62f7de1"
+  },
+  "/web/blog/tabletop-simulator/iduali-sheet.jpg": {
+    "description": "The Iduali homebrew faction sheet as a text document, with a scorpion emblem and lists of advantages.",
+    "tags": ["Iduali", "faction sheet", "homebrew", "blog"],
+    "subjects": ["symbols"],
+    "sourceHash": "07716abd78b04adf3644129d369c3797d337a498261ced765e41e47d6d1e4c0e"
+  },
+  "/web/blog/tabletop-simulator/planets.jpg": {
+    "description": "Dozens of textured planets floating against a starry sky in Tabletop Simulator.",
+    "tags": ["Tabletop Simulator", "planets", "blog"],
+    "subjects": ["space"],
+    "sourceHash": "0ee886187a197523140eca8b689b42e5327d7a80d76baad425ad8f34022dd3f5"
+  },
+  "/web/blog/tabletop-simulator/rainbow-troops.jpg": {
+    "description": "Force tokens on the Imperial Basin of the Dune board in Tabletop Simulator, one stack painted in rainbow colours.",
+    "tags": ["Tabletop Simulator", "troops", "board", "blog"],
+    "subjects": ["places", "people"],
+    "sourceHash": "ccb8e91cd9c31faaaf6311d29bde93922cd79b705c1c34279506e6b032a06d1a"
+  },
+  "/web/blog/tabletop-simulator/storm-cards.jpg": {
+    "description": "Two storm cards in Tabletop Simulator, one showing its Move storm tracker button.",
+    "tags": ["Tabletop Simulator", "storm", "cards", "blog"],
+    "subjects": ["symbols"],
+    "sourceHash": "0799cdc35d71e0b91fa6a23da705c1b8d87fbb04442be7f1770070c914ddda3d"
+  },
+  "/web/blog/tabletop-simulator/board-fonts.jpg": {
+    "description": "A low view across the vectorized Dune board in Tabletop Simulator, with territory names such as Cielago Depression and Meridian in the board's font.",
+    "tags": ["Tabletop Simulator", "board", "territories", "blog"],
+    "subjects": ["places", "symbols"],
+    "sourceHash": "faf5578cc339343630a0a0e250a6ea107cadc861f764641bb9baa45755e05077"
+  },
+  "/web/blog/tabletop-simulator/faction-pieces.jpg": {
+    "description": "A Tabletop Simulator table with every faction's leaders, tokens and reveal discs laid out in rows.",
+    "tags": ["Tabletop Simulator", "faction tokens", "leaders", "blog"],
+    "subjects": ["symbols"],
+    "sourceHash": "6238e69cde33a4a00435b213f19c8d39324d81fa5e7dccbc197ce65991d7704e"
+  },
+  "/web/blog/tabletop-simulator/vector-board.jpg": {
+    "description": "The vectorized Dune board in Tabletop Simulator seen from above, with every territory and stronghold named.",
+    "tags": ["Tabletop Simulator", "board", "territories", "blog"],
+    "subjects": ["places", "symbols"],
+    "sourceHash": "075492dd4461d9f1266b277f38454df71e1dde49f9ae9ee2e14714ae9f6ef0bd"
   },
   "/web/head.png": {
     "description": "Wide desert banner with a sandworm, moons and a pale empty central area.",

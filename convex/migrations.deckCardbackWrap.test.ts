@@ -1,14 +1,11 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import migrationsTest from '@convex-dev/migrations/test';
-import { convexTest } from 'convex-test';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { internal } from './_generated/api';
-import schema from './schema';
+import { applicationTest } from './application.test.fixture';
 
-const modules = import.meta.glob('./**/*.ts');
 const now = '2026-08-21T00:00:00.000Z';
 
 const REQUIRED = ['assets_deck_cardback_wrap_v1', 'assets_deck_cardback_wrap_verify_v1'];
@@ -23,8 +20,7 @@ const composition = {
 
 describe('the deck cardback wrap pair', () => {
   test('bare cardbacks gain the custom tag, tagged rows and other types pass untouched', async () => {
-    const t = convexTest(schema, modules);
-    migrationsTest.register(t);
+    const t = applicationTest();
 
     const ids = await t.run(async (ctx) => {
       const ownerId = await ctx.db.insert('users', { name: 'Wrap owner' });
@@ -65,8 +61,7 @@ describe('the deck cardback wrap pair', () => {
   });
 
   test('the verify alone blocks the gate while a bare cardback remains', async () => {
-    const t = convexTest(schema, modules);
-    migrationsTest.register(t);
+    const t = applicationTest();
 
     await t.run(async (ctx) => {
       const ownerId = await ctx.db.insert('users', { name: 'Wrap owner' });

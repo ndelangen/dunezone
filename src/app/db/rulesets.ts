@@ -5,7 +5,7 @@ import { rulesetCoverThumbUrl } from '@shared/rulesets/cover';
 import { rulesetInputSchema } from '@shared/rulesets/validation';
 import type { RulesetInput } from '@shared/rulesets/validation';
 import { useAction, useQuery } from 'convex/react';
-import type { FunctionReturnType } from 'convex/server';
+import type { FunctionArgs, FunctionReturnType } from 'convex/server';
 import { ConvexError } from 'convex/values';
 
 import { db } from '@db/core';
@@ -16,7 +16,7 @@ import { toLiveQueryResult, useLiveMutation, useLiveQuery } from '@app/db/core/l
 import { useAssetAccess, useViewerAssignableGroups, UNAVAILABLE_SUBJECT } from '@app/db/viewerAccess';
 
 import { api } from '../../../convex/_generated/api';
-import type { Doc } from '../../../convex/_generated/dataModel';
+import type { Doc, Id } from '../../../convex/_generated/dataModel';
 import type { AssignedGroupSummary } from '../../../convex/lib/collaborativeAccess';
 import type { ProfileSummary } from '../../../convex/lib/collaborativeAccessValidators';
 
@@ -48,11 +48,21 @@ export type RulesetPageData = {
 type RulesetSlottedAsset = { slot: string; asset: { id: string; type: string; slug: string; name: string } };
 
 /** What `api.rulesets.detailPage` gives the detail routes, the same for every viewer: the page data plus everything the toolbar and FAQ draw. */
-export type RulesetDetailPublicPage = RulesetPageData & {
+export type RulesetDetailPublicPage = {
+  ruleset: RulesetEntry;
+  /** The first few factions in the ruleset's own order; the rest are in the catalogue under this ruleset's filter. */
+  factionPreview: FactionCatalogueEntry[];
+  /** Every live faction the ruleset has. */
+  factionCount: number;
   assignedGroup: AssignedGroupSummary | null;
   owner: ProfileSummary | null;
-  faqItems: FaqItemWithDetails[];
+  /** The newest few questions; the rest are on the ruleset's FAQ page. */
+  faqPreview: FaqItemWithDetails[];
+  /** Every question the ruleset has, and how many have an accepted answer. */
+  faqCounts: { questions: number; answered: number };
   assetSlots: RulesetSlottedAsset[];
+  /** The slotted board with its publication, or null when the slot is empty. */
+  board: { id: string; type: string; slug: string; name: string; previewHref: string | null } | null;
   rulebooks: NonNullable<FunctionReturnType<typeof api.rulesets.detailPage>>['rulebooks'];
 };
 
@@ -80,11 +90,14 @@ function normalizeRulesetDetailPage(
 ): RulesetDetailPublicPage {
   return {
     ruleset: toRulesetEntry(raw.ruleset),
-    factions: factionCatalogueRowsToEntries(raw.factions),
+    factionPreview: factionCatalogueRowsToEntries(raw.factionPreview),
+    factionCount: raw.factionCount,
     assignedGroup: raw.assignedGroup,
     owner: raw.owner,
-    faqItems: mapFaqItemsFromConvex(raw.faqItems),
+    faqPreview: mapFaqItemsFromConvex(raw.faqPreview),
+    faqCounts: raw.faqCounts,
     assetSlots: raw.assetSlots,
+    board: raw.board,
     rulebooks: raw.rulebooks,
   };
 }
@@ -117,10 +130,27 @@ export function rulesetRowsToEntries(entries: RulesetRow[]): RulesetEntry[] {
   return entries.map(toRulesetEntry);
 }
 
-/** The index route's loader, paired with `useRulesetsAll`. */
-export async function loadRulesetsAll(): Promise<RulesetEntry[]> {
-  const entries = await db.query(api.rulesets.list, {});
-  return rulesetRowsToEntries(entries);
+/** What `api.rulesets.catalogue` gives the index page, the same for every viewer: a browsed page or a search, told apart by `mode`. */
+export type RulesetCataloguePageData = FunctionReturnType<typeof api.rulesets.catalogue>;
+export type RulesetCatalogueEntry = RulesetCataloguePageData['entries'][number];
+/** What one `/rulesets` page asks for: the route's search parameters and how many of a search's best matches to show, as `rulesets.catalogue` takes them. */
+export type RulesetCatalogueArgs = FunctionArgs<typeof api.rulesets.catalogue>;
+
+/** The index route's loader, paired with `useRulesetCataloguePage`; a searched page is not held, for the same reason. */
+export async function loadRulesetCataloguePage(args: RulesetCatalogueArgs): Promise<RulesetCataloguePageData> {
+  return await db.query(api.rulesets.catalogue, args, { hold: !args.q });
+}
+
+/**
+ * One live catalogue page, taking `loadRulesetCataloguePage`'s result for the same arguments as `initialData`.
+ * A searched page is not held warm after it is left: every committed search is its own subscription, and holding each would keep re-running them on every ruleset write.
+ */
+export function useRulesetCataloguePage(
+  args: RulesetCatalogueArgs,
+  options?: { initialData?: RulesetCataloguePageData }
+) {
+  const liveData = useLiveQuery(api.rulesets.catalogue, args, { hold: !args.q });
+  return toLiveQueryResult(liveData, () => options?.initialData);
 }
 
 /** The loader behind pages that need the ruleset and its factions only, paired with `useRulesetBySlug`. */
@@ -137,13 +167,6 @@ export async function loadRulesetBySlug(slug: string): Promise<RulesetPageData> 
 export async function loadRulesetDetailPage(slug: string): Promise<RulesetDetailPublicPage | null> {
   const raw = await db.query(api.rulesets.detailPage, { slug });
   return raw ? normalizeRulesetDetailPage(raw) : null;
-}
-
-/** Every ruleset, live. Hand `loadRulesetsAll`'s result as `initialData` so the first paint is not empty. */
-export function useRulesetsAll(options?: { initialData?: RulesetEntry[] }) {
-  const liveData = useLiveQuery(api.rulesets.list, {});
-  const normalized = liveData?.map(toRulesetEntry);
-  return toLiveQueryResult(normalized, () => options?.initialData);
 }
 
 /** One ruleset with its factions, live, taking `loadRulesetBySlug`'s result as `initialData`. */
@@ -173,6 +196,30 @@ export function useRulesetDetailPage(slug: string, options?: { initialData?: Rul
     ? { ...page, viewerResolved: resolved, viewerAccess, assignableGroups }
     : page;
   return { ...result, data };
+}
+
+/** A ruleset's first `limit` factions in its own order, live, and whether more remain; a larger limit loads more. */
+export function useOrderedRulesetFactions(rulesetId: Id<'rulesets'>, limit: number) {
+  /* Not held: each Load more is a longer prefix, and holding the shorter ones would keep them all subscribed. */
+  return useLiveQuery(api.rulesets.orderedFactions, { rulesetId, limit }, { hold: false });
+}
+
+/** Puts a ruleset's factions in the order given; the ones it leaves out follow, in their current order. */
+export function useReorderRulesetFactions() {
+  const mutation = useLiveMutation<{ ruleset_id: Id<'rulesets'>; faction_ids: Id<'factions'>[] }, null>(
+    api.rulesets.reorderFactions
+  );
+  return {
+    ...mutation,
+    mutate: (
+      variables: { rulesetId: Id<'rulesets'>; factionIds: Id<'factions'>[] },
+      options?: { onError?: () => void }
+    ) =>
+      mutation.mutate(
+        { ruleset_id: variables.rulesetId, faction_ids: variables.factionIds },
+        { onError: () => options?.onError?.() }
+      ),
+  };
 }
 
 /** Creates a ruleset. `onSuccess` receives the new entry with the `route_notice` the redirect reads. */

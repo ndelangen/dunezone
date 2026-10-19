@@ -5,7 +5,7 @@ import { tableCountSchema, tableIdentitySchema } from './schema';
 import { TABLE_SEAT_COUNTS } from './tableSettings';
 
 /**
- * The end of a real game: Determine winner opens the sequence during Mentat pause, its player declares one faction, an alliance or no winner, and Continue playing drops the result again.
+ * The end of a real game: Determine winner opens the sequence during Mentat Pause, its player declares one faction, an alliance or no winner, and Continue playing drops the result again.
  * One seated player acts each time;
  * nobody votes or confirms.
  */

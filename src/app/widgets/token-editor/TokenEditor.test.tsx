@@ -4,7 +4,7 @@ import { MantineProvider } from '@mantine/core';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { appContentTheme } from '@ui/theme';
 import { useState } from 'react';
-import { afterEach, expect, it, vi } from 'vitest';
+import { afterEach, expect, it, vi } from 'vite-plus/test';
 
 import { initialTokenDraft, initialTokenMemory, TokenEditor, tokenDraftWarnings } from './TokenEditor';
 import type { TokenChapter, TokenDraft, TokenMemory } from './TokenEditor';
@@ -93,10 +93,10 @@ it('keeps the picked target across a trip through another back mode', () => {
  */
 it('warns that a chosen reference has no token picked, from the draft alone', () => {
   expect(
-    tokenDraftWarnings({ ...initialTokenDraft(TYPE), back: { mode: 'reference', asset_id: null } })
+    tokenDraftWarnings({ ...initialTokenDraft(TYPE), back: { mode: 'reference', asset_id: null } }, TYPE)
   ).toContainEqual({ source: 'Identity', missing: 'a back token', chapter: 'identity' });
   expect(
-    tokenDraftWarnings({ ...initialTokenDraft(TYPE), back: { mode: 'reference', asset_id: 'picked' } })
+    tokenDraftWarnings({ ...initialTokenDraft(TYPE), back: { mode: 'reference', asset_id: 'picked' } }, TYPE)
   ).not.toContainEqual({ source: 'Identity', missing: 'a back token', chapter: 'identity' });
 });
 
@@ -115,4 +115,14 @@ it('settles when focus leaves a field', () => {
   fireEvent.focus(name);
   fireEvent.focusOut(name);
   expect(onSettle).toHaveBeenCalled();
+});
+
+/** A pointer carries no labels, so a bare one is complete rather than missing any. */
+it('never asks a pointer token for a label', () => {
+  expect(tokenDraftWarnings(initialTokenDraft('token-pointer'), 'token-pointer')).toEqual([]);
+  expect(tokenDraftWarnings(initialTokenDraft(TYPE), TYPE)).toContainEqual({
+    source: 'Front rim',
+    missing: 'any label',
+    chapter: 'front-rim',
+  });
 });

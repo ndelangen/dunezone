@@ -15,6 +15,7 @@ import { isPublicationAssetType, PUBLICATION_ASSET_TYPES } from '../src/shared/a
 import type { Doc } from './_generated/dataModel';
 import { internalQuery } from './_generated/server';
 import { internalMutation } from './functions';
+import { capturedBoardGeometry } from './lib/boardPublicationGeometry';
 import {
   currentFactionComponentData,
   currentFactionLeaderData,
@@ -46,6 +47,11 @@ function renderPayloadHash(job: Doc<'publication_jobs'>, payload: unknown) {
 
 /* How many pending jobs one pickup reads past held ones to fill its batch. */
 const PUBLICATION_PICKUP_SCAN = PUBLICATION_MAX_PICKUP * 5;
+/*
+ * What one more job may still read: itself, its siblings and its parent checks.
+ * A board job carries its whole board definition (hundreds of KB), so recovery and pickup counted only in rows could pass the transaction's read limit, and every retry would then roll back without recovering or assigning anything.
+ */
+const PUBLICATION_JOB_READ_RESERVE_BYTES = 5_000_000;
 
 const publicationJobResult = v.object({
   jobId: v.id('publication_jobs'),
@@ -107,36 +113,42 @@ export const takeWork = internalMutation({
     const settings = await publicationSettings(ctx);
     const pickupEnabled = settings?.publication_pickup_enabled ?? false;
 
-    const expired = await ctx.db
+    const hasReadHeadroom = async () =>
+      (await ctx.meta.getTransactionMetrics()).bytesRead.remaining > PUBLICATION_JOB_READ_RESERVE_BYTES;
+
+    let recovered = 0;
+    for await (const job of ctx.db
       .query('publication_jobs')
       .withIndex('by_status_and_expires_at', (q) => q.eq('status', 'in_progress').lte('expires_at', now))
       /* Newest lease first, so of two overlapping captures the later one is recovered before the earlier is weighed against it. */
-      .order('desc')
-      .take(PUBLICATION_MAX_PICKUP);
-    for (const job of expired) {
+      .order('desc')) {
+      if (recovered >= PUBLICATION_MAX_PICKUP || !(await hasReadHeadroom())) {
+        break;
+      }
       await recordFailure(ctx, job, 'Capture expired before completion', now);
+      recovered += 1;
     }
 
     if (!pickupEnabled) {
       return {
         status: 'empty' as const,
         reason: 'disabled' as const,
-        recovered: expired.length,
+        recovered,
         items: [],
       };
     }
 
     /* Held jobs, such as successors waiting on their asset's capture, are read past rather than filling the batch, up to a bounded scan. */
-    const pending = await ctx.db
-      .query('publication_jobs')
-      .withIndex('by_status_and_created_at', (q) => q.eq('status', 'pending'))
-      .take(PUBLICATION_PICKUP_SCAN);
     const expiresAt = now + PUBLICATION_JOB_EXPIRY_MS;
     const items = [];
-    for (const job of pending) {
-      if (items.length >= PUBLICATION_MAX_PICKUP) {
+    let scanned = 0;
+    for await (const job of ctx.db
+      .query('publication_jobs')
+      .withIndex('by_status_and_created_at', (q) => q.eq('status', 'pending'))) {
+      if (items.length >= PUBLICATION_MAX_PICKUP || scanned >= PUBLICATION_PICKUP_SCAN || !(await hasReadHeadroom())) {
         break;
       }
+      scanned += 1;
       /*
        * The new Worker deploys before activation makes this type eligible for pickup.
        * Until then its jobs are dropped rather than held, where they would fill the scan and keep other work waiting; activation rescans every faction.
@@ -193,12 +205,12 @@ export const takeWork = internalMutation({
       ? {
           status: 'empty' as const,
           reason: 'no_pending_work' as const,
-          recovered: expired.length,
+          recovered,
           items,
         }
       : {
           status: 'assigned' as const,
-          recovered: expired.length,
+          recovered,
           items,
         };
   },
@@ -323,11 +335,13 @@ export const completeJob = internalMutation({
         return { status: 'missing' as const };
       }
     }
+    /* A saved board publishes only its image; its territories are kept from the same captured save, so a Rulebook never pairs an old image with newer geometry. */
+    const storedGeometry = job.asset_type === 'board' ? capturedBoardGeometry(job.asset_data) : geometry;
     const publishedAt = Date.now();
     if (existing[0]) {
       await ctx.db.patch(existing[0]._id, {
         cache_token: args.cacheToken,
-        component_geometry: geometry,
+        component_geometry: storedGeometry,
         component_version: job.component_version,
         published_at: publishedAt,
       });
@@ -336,7 +350,7 @@ export const completeJob = internalMutation({
         asset_type: job.asset_type,
         asset_id: job.asset_id,
         cache_token: args.cacheToken,
-        component_geometry: geometry,
+        component_geometry: storedGeometry,
         component_version: job.component_version,
         published_at: publishedAt,
       });

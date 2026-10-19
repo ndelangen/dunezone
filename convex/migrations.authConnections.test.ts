@@ -1,17 +1,12 @@
 /// <reference types="vite/client" />
 /* @vitest-environment edge-runtime */
-import migrationsTest from '@convex-dev/migrations/test';
-import { convexTest } from 'convex-test';
-import { expect, test } from 'vitest';
+import { expect, test } from 'vite-plus/test';
 
 import { internal } from './_generated/api';
-import schema from './schema';
-
-const modules = import.meta.glob('./**/*.ts');
+import { applicationTest } from './application.test.fixture';
 
 test('expires old accepted and pending credentials while preserving unexpired progress', async () => {
-  const t = convexTest(schema, modules);
-  migrationsTest.register(t);
+  const t = applicationTest();
   const rows = await t.run(async (ctx) => {
     const userId = await ctx.db.insert('users', {});
     const sessionId = await ctx.db.insert('authSessions', { userId, expirationTime: Date.now() + 3_600_000 });

@@ -46,9 +46,10 @@ export const Route = createFileRoute('/_app/')({
    * then carries none, rather than telling crawlers that /glossary, /privacy and every unknown path are the homepage.
    */
   loader: () => ({
-    name: '',
+    name: 'Dune board game factions and rulebooks',
     pathname: '/',
-    description: 'Dune Play is coming soon. Read Rulebooks, create factions and assets, and build with your allies.',
+    description:
+      "Custom factions, faction sheets and Rulebooks for the Dune board game, Avalon Hill's 1979 classic reissued by Gale Force Nine. Create and share your own factions, cards, tokens and boards.",
     image: '/web/homepage-social-play-large.jpg',
     entity: { type: 'site' } as const,
     imageDetails: {
@@ -92,7 +93,7 @@ function IndexPage() {
       <PageLayout.Header size="hero">
         <Stack align="center" gap="lg">
           <PageTitle
-            eyebrow="A first look at our next chapter"
+            eyebrow="Custom factions and Rulebooks for the Dune board game"
             title="Dune Play is coming soon"
             subtitle="Soon, your next game of Dune will be right here."
           />
@@ -222,7 +223,15 @@ function AssetInvitation() {
   );
 }
 
-function PreviewCopy({ invitation, viewer }: { invitation: boolean; viewer: SessionViewer }) {
+function PreviewCopy({
+  invitation,
+  viewer,
+  handling,
+}: {
+  invitation: boolean;
+  viewer: SessionViewer;
+  handling: boolean;
+}) {
   return (
     <Section alignment="center" eyebrow="A sneak peek · Coming soon" title="Your next game is taking shape.">
       <Text size="lg">
@@ -239,7 +248,9 @@ function PreviewCopy({ invitation, viewer }: { invitation: boolean; viewer: Sess
           <Surface padding="md">
             <Group justify="center" gap="sm">
               <Hand size={20} aria-hidden />
-              <Text fw={700}>Try moving one of the pieces!</Text>
+              <Text fw={700}>
+                {viewer.kind === 'profile' && !handling ? 'Connecting the pieces…' : 'Try moving one of the pieces!'}
+              </Text>
               {viewer.kind === 'signed-out' && (
                 <Anchor renderRoot={(props) => <Link {...props} to="/auth/login" />}>Sign in to join in.</Anchor>
               )}
@@ -418,7 +429,7 @@ function VectorCopy() {
   return (
     <Section alignment="center" eyebrow="New vectors, ready to use" title="An army of possibilities.">
       <Text size="lg">
-        Blade dancers, gene-forged brutes and water keepers. Pick the forces that belong in your world.
+        Blade dancers, gene-forged brutes and water keepers. Pick the troops that belong in your world.
       </Text>
       <Text>Combine the artwork with your faction's colours to make tokens of your own.</Text>
       <Button className={styles.centerAction} w="fit-content" renderRoot={(props) => <Link {...props} to="/media" />}>
@@ -580,12 +591,13 @@ function CommunityCopy() {
 }
 
 function HomepageChapters({ invitation, viewer }: { invitation: boolean; viewer: SessionViewer }) {
+  const [handling, setHandling] = useState(false);
   return (
     <div className={styles.cinemaFlow}>
       <section id="play-preview" className={styles.cinemaOpening} data-marketing-arrival>
-        <LiveBoardPreview viewer={viewer} />
+        <LiveBoardPreview viewer={viewer} onHandlingChange={setHandling} />
         <div className={styles.previewCopy}>
-          <PreviewCopy invitation={invitation} viewer={viewer} />
+          <PreviewCopy invitation={invitation} viewer={viewer} handling={handling} />
         </div>
       </section>
       <section id="make" className={styles.cinemaFeature} data-marketing-arrival>
@@ -625,7 +637,13 @@ function HomepageChapters({ invitation, viewer }: { invitation: boolean; viewer:
   );
 }
 
-function LiveBoardPreview({ viewer }: { viewer: SessionViewer }) {
+function LiveBoardPreview({
+  viewer,
+  onHandlingChange,
+}: {
+  viewer: SessionViewer;
+  onHandlingChange: (handling: boolean) => void;
+}) {
   const member = viewer.kind === 'profile';
   const identity = member ? viewer.profile._id : 'observer';
   const region = useRef<HTMLDivElement>(null);
@@ -686,6 +704,7 @@ function LiveBoardPreview({ viewer }: { viewer: SessionViewer }) {
             className={styles.liveBoard}
             sceneClassName={styles.liveScene}
             onUnavailable={unavailable}
+            onHandlingChange={onHandlingChange}
           />
         </Suspense>
       )}

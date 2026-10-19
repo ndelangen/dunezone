@@ -128,8 +128,8 @@ description, resting 1.8 s swaps in the full help, and keyboard focus opens the 
 panels have no help button. Play is desktop-only for the beta, so a touch path to that guidance is
 out of scope until touch is.
 
-*Guarded in part: `check:css-orphans` reads route stylesheets, and the `PanelSchemeIsland` story in
-[`playing.stories.tsx`](../../src/app/routes/_app/play/playing.stories.tsx) holds the island and
+*Guarded in part: `check:css-orphans` reads route stylesheets, and the `SchemeIsland` story in
+[`panel.layout.stories.tsx`](../../src/app/routes/_app/play/panel.layout.stories.tsx) holds the island and
 a piece menu and a tab's tooltip opened on it, painted with the island's raised tooltip surface; the
 `TabGuidance` story in [`NestedTabs.stories.tsx`](../../src/app/ui/surface/NestedTabs.stories.tsx)
 holds a tab's description, its rested help and its accessible description. The vocabulary on the panel, the parts ledger and the
@@ -220,7 +220,7 @@ query shows is displayed. A `matchMedia` copy of the threshold disagrees with th
 shell's gutters. The homepage's live board is the example.
 
 *Media queries enforced by `check:breakpoints`
-([`assert-breakpoints.mjs`](../../scripts/assert-breakpoints.mjs)): a width query outside the window
+([`assert-breakpoints.ts`](../../scripts/assert-breakpoints.ts)): a width query outside the window
 chrome, off the ladder, or in a form other than `width < step` or `width >= step`, fails. Media
 conditions written in TypeScript and container queries are checked in review. Canonical here.*
 
@@ -491,7 +491,7 @@ from stops being greppable and two files quietly co-own one class. Ownership you
 Exactly one TSX component imports each `.module.css`; share through the component, not the stylesheet.
 
 *`check:css-orphans`
-([`assert-no-orphan-css-classes.mjs`](../../scripts/assert-no-orphan-css-classes.mjs)) catches
+([`assert-no-orphan-css-classes.ts`](../../scripts/assert-no-orphan-css-classes.ts)) catches
 orphaned or unimported stylesheets, modules and the plain stylesheet a route imports alike, not
 `composes` itself; the one-owner rule is convention.
 Canonical in [`ui-component-hierarchy.md`](./ui-component-hierarchy.md) (Styling).*
@@ -533,7 +533,7 @@ renderer and editor support. An isolated block story may exercise the component 
 story may not substitute its own page body. Examples use the example callout block.
 
 A chapter teaching a game phase uses the phase name as its opening page title, such as
-"Shipment and movement". Put its introduction between that title and the first subsections.
+"Shipment and Movement". Put its introduction between that title and the first subsections.
 Later pages may use descriptive titles for the part of the phase they explain.
 
 This follows the rejected combat prototypes, which ran in Storybook but used their own page bodies,
@@ -611,5 +611,5 @@ it pairs with, the default worth knowing. The test stays the same; from outside 
 the reader cannot see is all of it.
 
 *Convention, with no automated guard. (`local/no-ai-tells` in
-[`oxlint-local-plugin.mjs`](../../scripts/oxlint-local-plugin.mjs) and `check:prose` police how a
+[`oxlint-local-plugin.ts`](../../scripts/oxlint-local-plugin.ts) and `check:prose` police how a
 comment reads, never whether it earned its place.) Stated here.*

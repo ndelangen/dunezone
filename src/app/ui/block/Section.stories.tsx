@@ -1,6 +1,7 @@
 import { Anchor, SimpleGrid, Stack } from '@mantine/core';
 import preview from '@sb/preview';
 import { ArrowRight, Layers3 } from 'lucide-react';
+import { expect, within } from 'storybook/test';
 
 import { Card } from '../surface/Card';
 import { Surface } from '../surface/Surface';
@@ -30,16 +31,6 @@ const meta = preview.meta({
 
 /** A name over content that carries its own panes. */
 export const Default = meta.story({});
-
-/** What kind of thing this part of the page is. */
-export const WithEyebrow = meta.story({
-  args: { eyebrow: 'From the catalogue' },
-});
-
-/** One line saying what the part is for. Its presence moves the action to the top. */
-export const WithDescription = meta.story({
-  args: { description: 'Every faction published against this ruleset.' },
-});
 
 /** The one control that belongs beside the name, usually a link onward. */
 export const WithAction = meta.story({
@@ -94,6 +85,17 @@ export const ExpertControls = meta.story({
     title: 'Spice reserve',
     description: 'Only you see this balance. Withdraw spice onto the table.',
     hiddenHeading: true,
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const region = canvas.getByRole('region', { name: 'Spice reserve' });
+    await expect(region).toHaveAccessibleDescription('Only you see this balance. Withdraw spice onto the table.');
+    /* Present for assistive technology, yet inside a box clipped to a single pixel on screen. */
+    const heading = canvas.getByRole('heading', { name: 'Spice reserve' });
+    const clip = region.firstElementChild?.getBoundingClientRect();
+    await expect(region.firstElementChild?.contains(heading)).toBe(true);
+    await expect(clip?.width).toBeLessThanOrEqual(1);
+    await expect(clip?.height).toBeLessThanOrEqual(1);
   },
 });
 

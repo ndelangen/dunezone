@@ -195,7 +195,11 @@ function checkBindings(settings: JsonRecord, config: JsonRecord): Omit<GameDrift
     'bindings'
   );
   for (const binding of bindings.filter((value) => ALERT_BINDINGS.includes(value.name as string))) {
-    exact(binding.type, binding.name === 'ALERT_EMAIL' ? 'send_email' : 'secret_text', `${binding.name} binding type`);
+    exact(
+      binding.type,
+      binding.name === 'ALERT_EMAIL' ? 'send_email' : 'secret_text',
+      `${binding.name as string} binding type`
+    );
   }
   checkVariables(bindings, record(config.vars, 'configured variables'));
   exact(

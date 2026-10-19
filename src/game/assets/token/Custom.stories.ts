@@ -58,23 +58,15 @@ export const OutlinedArtwork = meta.story({
   },
 });
 
-export const TerrorTreatment = meta.story({
+/**
+ * A pointer token's face, laid out for the teardrop the consumer cuts from this square: point at the top, round end on the bottom edge.
+ * One symbol and the background sit on the round end's centre, the ring follows the outline, and labels are not drawn.
+ */
+export const Pointer = meta.story({
   args: {
-    background: backgroundPresets.terror,
-    image: '/vector/decal/extortion.svg',
-    circle: false,
-    size: { width: 170, height: 170 },
-    fill: '#000000',
-    stroke: '#DED4A3',
-    strokeWidth: 8,
-  },
-});
-
-export const Spice = meta.story({
-  args: {
-    background: backgroundPresets.spiceToken,
-    image: '/vector/icon/spice.svg',
-    circle: false,
-    size: { width: 190, height: 190 },
+    shape: 'pointer',
+    background: backgroundPresets.techBlue,
+    image: '/vector/icon/heighliners.svg',
+    circle: true,
   },
 });

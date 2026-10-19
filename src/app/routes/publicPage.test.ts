@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { countOf, profileLink, publicDescription, publicPageHead } from './publicPage';
 
@@ -109,7 +109,11 @@ describe('public page heads', () => {
       description: 'How a group of players came to Dune.',
       image: '/m/board.webp',
       trail: [{ name: 'Blog', pathname: '/blog' }],
-      entity: { type: 'article', author: 'Central419', published: '2026-10-14' },
+      entity: {
+        type: 'article',
+        author: { name: 'Central419', pathname: '/profiles/central' },
+        published: '2026-10-14',
+      },
     });
     expect(graphOf(post)?.[1]).toEqual({
       '@type': 'BlogPosting',
@@ -118,12 +122,60 @@ describe('public page heads', () => {
       image: 'https://dune.zone/m/board.webp',
       description: 'How a group of players came to Dune.',
       datePublished: '2026-10-14',
-      author: { '@type': 'Person', name: 'Central419' },
+      author: { '@type': 'Person', name: 'Central419', url: 'https://dune.zone/profiles/central' },
     });
     expect(metaOf(post)).toContainEqual({ property: 'og:type', content: 'article' });
     expect(metaOf(post)).toContainEqual({ property: 'article:published_time', content: '2026-10-14' });
-    expect(metaOf(post).some((meta) => meta.property === 'article:author')).toBe(false);
+    expect(metaOf(post)).toContainEqual({
+      property: 'article:author',
+      content: 'https://dune.zone/profiles/central',
+    });
     expect(metaOf(publicPageHead(faction))).toContainEqual({ property: 'og:type', content: 'website' });
+  });
+
+  test('an author without a verified profile is named without inventing a profile URL', () => {
+    const post = publicPageHead({
+      name: 'A new post',
+      pathname: '/blog/new-post',
+      description: 'A development note.',
+      entity: { type: 'article', author: { name: 'Guest author' }, published: '2026-10-14' },
+    });
+    expect(graphOf(post)?.[0]).toMatchObject({ author: { '@type': 'Person', name: 'Guest author' } });
+    expect(graphOf(post)?.[0].author).not.toHaveProperty('url');
+    expect(metaOf(post).some((meta) => meta.property === 'article:author')).toBe(false);
+  });
+
+  test('a work tells search which game it is for and who made it, and the card and graph keep its own text', () => {
+    const head = publicPageHead({ ...faction, social: { shape: 'round' } });
+    const lead = 'Atreides, a custom faction for the Dune board game by Paul. Prescience.';
+    expect(metaOf(head)).toContainEqual({ name: 'description', content: lead });
+    expect(metaOf(head)).toContainEqual({ property: 'og:description', content: lead });
+    expect(metaOf(head)).toContainEqual({ name: 'twitter:description', content: lead });
+    const card = new URL(String(metaOf(head).find((meta) => meta.property === 'og:image')?.content));
+    expect([...card.searchParams.values()]).toContain('Prescience.');
+    expect(graphOf(head)?.[1]).toHaveProperty('description', 'Prescience.');
+  });
+
+  test('a creatorless work without text still names itself, with the right article', () => {
+    const head = publicPageHead({
+      ...faction,
+      name: 'Crysknife',
+      kind: 'Enhance token',
+      description: '',
+      entity: { type: 'work', author: null },
+    });
+    expect(metaOf(head)).toContainEqual({
+      name: 'description',
+      content: 'Crysknife, an enhance token for the Dune board game.',
+    });
+  });
+
+  test('long authored text is shortened at a word so the lead stays whole', () => {
+    const head = publicPageHead({ ...faction, description: 'spice '.repeat(60).trim() });
+    const content = String(metaOf(head).find((meta) => meta.name === 'description')?.content);
+    expect(content.startsWith('Atreides, a custom faction for the Dune board game by Paul. spice')).toBe(true);
+    expect(content.endsWith('spice…')).toBe(true);
+    expect(Array.from(content).length).toBeLessThanOrEqual(200);
   });
 
   test('a page that threw notFound has no head at all', () => {

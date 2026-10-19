@@ -14,7 +14,7 @@ import { hydrate } from '@tanstack/react-router/ssr/client';
 import { createRequestHandler, defaultRenderHandler } from '@tanstack/react-router/ssr/server';
 import { JSDOM } from 'jsdom';
 import { createElement } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vite-plus/test';
 
 import { pageHead } from '@app/routes/pageTitle';
 

@@ -1,6 +1,6 @@
 import preview from '@sb/preview';
 import type { CSSProperties, ReactNode } from 'react';
-import { expect, waitFor } from 'storybook/test';
+import { expect, waitFor, within } from 'storybook/test';
 
 import { LayoutSlotPlaceholder } from './LayoutSlotPlaceholder.stories.fixture';
 import { PageLayout } from './PageLayout';
@@ -78,6 +78,11 @@ export const CompactHeader = meta.story({
     </PageLayout>
   ),
   globals: { viewport: { value: 'appDesktop' } },
+  play: async ({ canvasElement }) => {
+    /* The compact crop of the band's artwork, where a default header takes the full one. */
+    const header = within(canvasElement).getByRole('banner').getBoundingClientRect();
+    await expect(header.width / header.height).toBeCloseTo(3064 / 580, 1);
+  },
 });
 
 /**
@@ -91,22 +96,10 @@ export const NoHeader = meta.story({
     </PageLayout>
   ),
   globals: { viewport: { value: 'appDesktop' } },
-});
-
-/**
- * The toolbar slot adds nothing around what it is given.
- */
-export const WithToolbar = meta.story({
-  render: () => (
-    <PageLayout>
-      <PageLayout.Header>{headerSlot}</PageLayout.Header>
-      <PageLayout.Toolbar>
-        <LayoutSlotPlaceholder name="toolbar slot" tone="toolbar" minHeight={72} />
-      </PageLayout.Toolbar>
-      <PageLayout.Content>{contentSlot}</PageLayout.Content>
-    </PageLayout>
-  ),
-  globals: { viewport: { value: 'appDesktop' } },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).queryByRole('banner')).not.toBeInTheDocument();
+    await expect(canvasElement.querySelector('[data-page-layout-compact="true"]')).not.toBeNull();
+  },
 });
 
 /**
@@ -139,21 +132,21 @@ export const ViewportContent = meta.story({
     const toolbar = canvasElement.querySelector<HTMLElement>('[data-page-layout-toolbar]');
     const content = canvasElement.querySelector<HTMLElement>('[data-page-layout-content]');
 
-    await waitFor(() => {
-      expect(toolbar).not.toBeNull();
-      expect(content).not.toBeNull();
+    await waitFor(async () => {
+      await expect(toolbar).not.toBeNull();
+      await expect(content).not.toBeNull();
 
       const toolbarRect = toolbar?.getBoundingClientRect();
       const contentRect = content?.getBoundingClientRect();
       const documentElement = canvasElement.ownerDocument.documentElement;
       const viewportWidth = documentElement.clientWidth;
 
-      expect(getComputedStyle(documentElement).scrollbarGutter).toBe('stable both-edges');
-      expect(documentElement.scrollHeight).toBeGreaterThan(documentElement.clientHeight);
-      expect(contentRect?.width).toBeCloseTo(viewportWidth - 40, 0);
-      expect(contentRect?.width).toBeGreaterThan(toolbarRect?.width ?? Number.POSITIVE_INFINITY);
-      expect(contentRect?.left).toBeCloseTo(20, 0);
-      expect(contentRect?.right).toBeCloseTo(viewportWidth - 20, 0);
+      await expect(getComputedStyle(documentElement).scrollbarGutter).toBe('stable both-edges');
+      await expect(documentElement.scrollHeight).toBeGreaterThan(documentElement.clientHeight);
+      await expect(contentRect?.width).toBeCloseTo(viewportWidth - 40, 0);
+      await expect(contentRect?.width).toBeGreaterThan(toolbarRect?.width ?? Number.POSITIVE_INFINITY);
+      await expect(contentRect?.left).toBeCloseTo(20, 0);
+      await expect(contentRect?.right).toBeCloseTo(viewportWidth - 20, 0);
     });
   },
 });

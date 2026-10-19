@@ -1,11 +1,10 @@
+import { BLOG_POST_SLUGS } from '@shared/blogPostSlugs';
+import type { BlogPostSlug } from '@shared/blogPostSlugs';
 import { resolveAsset } from '@shared/media/resolveAsset';
-import { BLOG_POST_SLUGS } from '@shared/recordlessPublicPages';
-import type { BlogPostSlug } from '@shared/recordlessPublicPages';
-import { formatStableDate } from '@ui/content/dates';
 
 /*
  * What the post list, the page head and the sitemap know about each post, without its body.
- * Bodies live in `postBodies.ts`, which only the post page's component imports, so no other page downloads them.
+ * Bodies live in `postBodies.ts`, one chunk per post, which only the post page loads, so no other page downloads them.
  */
 
 export type BlogPostMeta = {
@@ -27,10 +26,49 @@ export type BlogPostMeta = {
 /**
  * Every published post's metadata, by slug.
  * Publishing a post is adding its slug to `BLOG_POST_SLUGS`, its metadata here, and its body to `postBodies.ts`;
- * the types refuse a slug that is missing from either.
+ * the types refuse a slug that is missing from either, and `postBodies.test.tsx` refuses a body that does not end on a picture.
  * A body file under `posts/` is named for its slug, never `index.tsx` or `*.route.tsx`, which the router would read as a page.
  */
 export const BLOG_POST_META: Record<BlogPostSlug, BlogPostMeta> = {
+  'drawing-dune-tokens-and-cards': {
+    slug: 'drawing-dune-tokens-and-cards',
+    title: 'Recreating Dune board game art, layer by layer',
+    date: '2026-10-18',
+    author: 'Central419',
+    summary:
+      'How I built the leader tokens and cards on dune.zone, from images cut out in GIMP in 2021 to the SVG layers, masks and textures that draw them today.',
+    cover: {
+      key: '/web/blog/drawing-dune-tokens-and-cards/exploded-layers.jpg',
+      alt: 'A treachery card back and a leader token pulled apart into their layers, floating one above the other',
+      aspect: 1800 / 2400,
+    },
+  },
+  'all-in-one-dune-board-game-webapp': {
+    slug: 'all-in-one-dune-board-game-webapp',
+    title: 'My earlier attempts at building an all-in-one webapp for the Dune board game',
+    date: '2026-10-16',
+    author: 'Central419',
+    summary:
+      'Long before this site, I built a stats dashboard, a card creator, a database-free prototype and a repository that drew its own images. Each was a different answer to the same two questions: where does the data live, and who turns it into images?',
+    cover: {
+      key: '/web/blog/running-from-databases/dune-assets.jpg',
+      alt: 'Generated Dune cards and tokens: a Duncan Idaho traitor card, Crysknife, an Atreides alliance card, a spice card and faction tokens',
+      aspect: 1062 / 2048,
+    },
+  },
+  'tabletop-simulator': {
+    slug: 'tabletop-simulator',
+    title: 'Building Dune on Tabletop Simulator',
+    date: '2026-10-15',
+    author: 'Central419',
+    summary:
+      "Before dune.zone there was Tabletop Simulator: the scripts and models I added to the community's Dune mod, the mods I built on my own, and how the tedium of making assets by hand led me to the fundamentals.",
+    cover: {
+      key: '/web/blog/tabletop-simulator/faction-tables.jpg',
+      alt: 'Tabletop Simulator tables for many Dune factions, floating among the stars',
+      aspect: 819 / 1080,
+    },
+  },
   'why-dune': {
     slug: 'why-dune',
     title: 'Why Dune?',
@@ -53,9 +91,11 @@ export function findBlogPost(slug: string): BlogPostMeta | undefined {
   return BLOG_POSTS.find((post) => post.slug === slug);
 }
 
-/** The date and author line the post list and the post page both show above a title. */
-export function blogPostByline(meta: BlogPostMeta): string {
-  return `${formatStableDate(meta.date)} · ${meta.author}`;
+/** Only verified author profiles become links; another author keeps their written byline. */
+const AUTHOR_PROFILES = new Map([['Central419', 'central']]);
+
+export function blogPostAuthor(meta: BlogPostMeta): { name: string; profileSlug?: string } {
+  return { name: meta.author, profileSlug: AUTHOR_PROFILES.get(meta.author) };
 }
 
 /**

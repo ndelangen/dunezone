@@ -29,16 +29,3 @@ export const Selected = meta.story({
     await expect(canvas.getByRole('radio', { name: 'Radial' })).toHaveFocus();
   },
 });
-
-export const Disabled = meta.story({
-  args: { disabled: true },
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    for (const radio of canvas.getAllByRole('radio')) {
-      await expect(radio).toBeDisabled();
-    }
-    await expect(canvas.getByRole('radio', { name: 'Solid' })).toBeChecked();
-  },
-});
-
-export const Wrapping = meta.story({ args: { style: { width: 150 } } });

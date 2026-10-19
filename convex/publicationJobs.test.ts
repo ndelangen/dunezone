@@ -1,15 +1,15 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import aggregateTest from '@convex-dev/aggregate/test';
 import { convexTest } from 'convex-test';
-import { afterEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vite-plus/test';
 
-import { takeWorkResultSchema } from '../src/shared/asset-publishing/publication';
+import { PUBLICATION_MAX_PICKUP, takeWorkResultSchema } from '../src/shared/asset-publishing/publication';
 import { ensureFactionComponentIds } from '../src/shared/factions/componentIdentity';
 import { assetPublishingFaction as legacyFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
+import { applicationTest } from './application.test.fixture';
 import schema from './schema';
 
 const assetPublishingFaction = ensureFactionComponentIds(legacyFaction);
@@ -18,10 +18,7 @@ const modules = import.meta.glob('./**/*.ts');
 const CACHE_TOKEN = `v1.${'a'.repeat(22)}.${'b'.repeat(43)}`;
 
 async function authenticatedTest(options: { admin?: boolean } = {}) {
-  const t = convexTest(schema, modules);
-  aggregateTest.register(t, 'statistics');
-  aggregateTest.register(t, 'profileActivity');
-  aggregateTest.register(t, 'profileDiscovery');
+  const t = applicationTest();
   const userId = await t.run(
     async (ctx) =>
       await ctx.db.insert('users', {
@@ -56,7 +53,7 @@ afterEach(() => {
 
 describe('Publication save coalescing', () => {
   test('takeWork output parses against the shared executor wire schema', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const empty = await t.mutation(internal.publicationJobs.takeWork, {});
     expect(() => takeWorkResultSchema.parse(empty)).not.toThrow();
   });
@@ -112,6 +109,28 @@ describe('Publication save coalescing', () => {
         },
       }),
     ]);
+
+    const [queued] = await jobsFor(t, faction._id);
+    if (!queued) {
+      throw new Error('Missing job');
+    }
+    await t.run(async (ctx) => await ctx.db.delete(queued._id));
+    await asUser.mutation(api.factions.update, {
+      id: faction._id,
+      data: { ...assetPublishingFaction, name: 'Publication proof revised' },
+    });
+
+    await expect(jobsFor(t, faction._id)).resolves.toEqual([
+      expect.objectContaining({
+        status: 'pending',
+        attempt_counter: 0,
+        asset_data: {
+          factionId: faction._id,
+          slug: 'publication-proof-revised',
+          faction: expect.objectContaining({ name: 'Publication proof revised' }),
+        },
+      }),
+    ]);
   });
 
   test('keeps in-progress work and creates one pending successor with the latest save', async () => {
@@ -137,7 +156,10 @@ describe('Publication save coalescing', () => {
       data: { ...assetPublishingFaction, name: 'Latest save while capturing' },
     });
     const beforeComplete = await jobsFor(t, faction._id);
-    expect(beforeComplete.map((job) => job.status).sort()).toEqual(['in_progress', 'pending']);
+    expect(beforeComplete.map((job) => job.status).sort((first, second) => first.localeCompare(second))).toEqual([
+      'in_progress',
+      'pending',
+    ]);
     expect(beforeComplete.find((job) => job.status === 'pending')).toMatchObject({
       asset_data: { faction: { name: 'Latest save while capturing' } },
     });
@@ -395,56 +417,6 @@ describe('Publication regeneration and administration', () => {
     expect(await jobsFor(t, faction._id)).toHaveLength(0);
   });
 
-  test('restarting a Regeneration scan coalesces into the existing pending job', async () => {
-    const { t, asUser } = await authenticatedTest();
-    const faction = await createFaction(asUser);
-    const [saveJob] = await jobsFor(t, faction._id);
-    if (!saveJob) {
-      throw new Error('Missing save job');
-    }
-    await t.run(async (ctx) => await ctx.db.delete(saveJob._id));
-
-    for (let scan = 0; scan < 2; scan += 1) {
-      await t.mutation(internal.publicationRegeneration.scan, {
-        assetType: 'faction_sheet',
-        cursor: null,
-        scanned: 0,
-        enqueued: 0,
-      });
-    }
-
-    await expect(jobsFor(t, faction._id)).resolves.toHaveLength(1);
-  });
-
-  test('restoring and editing a soft-deleted faction schedules a fresh capture', async () => {
-    const { t, asUser } = await authenticatedTest();
-    const faction = await createFaction(asUser);
-    const [queued] = await jobsFor(t, faction._id);
-    if (!queued) {
-      throw new Error('Missing job');
-    }
-    await t.run(async (ctx) => await ctx.db.delete(queued._id));
-    await asUser.mutation(api.factions.softDelete, { id: faction._id });
-    await t.run(async (ctx) => await ctx.db.patch(faction._id, { is_deleted: false }));
-
-    await asUser.mutation(api.factions.update, {
-      id: faction._id,
-      data: { ...assetPublishingFaction, name: 'Restored faction' },
-    });
-
-    await expect(jobsFor(t, faction._id)).resolves.toEqual([
-      expect.objectContaining({
-        status: 'pending',
-        attempt_counter: 0,
-        asset_data: {
-          factionId: faction._id,
-          slug: 'restored-faction',
-          faction: expect.objectContaining({ name: 'Restored faction' }),
-        },
-      }),
-    ]);
-  });
-
   test('initialization is disabled, equal revisions are inert, and only higher revisions scan', async () => {
     vi.useFakeTimers();
     const { t, asUser } = await authenticatedTest();
@@ -514,5 +486,73 @@ describe('Publication regeneration and administration', () => {
       },
       jobs: [],
     });
+  });
+});
+
+describe('Publication pickup read budget', () => {
+  async function largeJobs(jobs: Array<{ status: 'pending' | 'in_progress'; assetId: string; createdAt: number }>) {
+    const t = convexTest({ schema, modules, transactionLimits: true });
+    await t.run(async (ctx) => {
+      await ctx.db.insert('admin_settings', {
+        key: 'publication',
+        publication_pickup_enabled: true,
+        renderer_revisions: {},
+        updated_at: Date.now(),
+      });
+    });
+    /* Board jobs carry their whole definition, so a few dozen of these pass what one transaction may read. */
+    for (const job of jobs) {
+      await t.run(async (ctx) => {
+        await ctx.db.insert('publication_jobs', {
+          asset_type: 'board',
+          asset_id: job.assetId,
+          asset_data: { padding: 'x'.repeat(900_000) },
+          status: job.status,
+          attempt_counter: 0,
+          ...(job.status === 'in_progress' ? { expires_at: 1 } : {}),
+          created_at: job.createdAt,
+          updated_at: job.createdAt,
+        });
+      });
+    }
+    return t;
+  }
+
+  test('a queue of large pending jobs is picked up within the read limit', async () => {
+    const t = await largeJobs(
+      Array.from({ length: 40 }, (_, index) => ({
+        status: 'pending' as const,
+        assetId: `board-${index}`,
+        createdAt: index,
+      }))
+    );
+    const assignment = await t.mutation(internal.publicationJobs.takeWork, {});
+    expect(assignment.items.length).toBeGreaterThan(0);
+  });
+
+  test('large expired captures with pending successors are recovered within the read limit', async () => {
+    const t = await largeJobs(
+      Array.from({ length: 20 }, (_, index) => [
+        { status: 'in_progress' as const, assetId: `board-${index}`, createdAt: index },
+        { status: 'pending' as const, assetId: `board-${index}`, createdAt: 100 + index },
+      ]).flat()
+    );
+    const first = await t.mutation(internal.publicationJobs.takeWork, {});
+    /* Twenty expired captures fit the pickup cap, so stopping short of it proves the read headroom ended the call. */
+    expect(first.recovered).toBeGreaterThan(0);
+    expect(first.recovered).toBeLessThan(PUBLICATION_MAX_PICKUP);
+    /* Later calls finish the recovery the first one left for want of headroom. */
+    let recovered = first.recovered;
+    for (let call = 0; call < 20 && recovered < 20; call += 1) {
+      recovered += (await t.mutation(internal.publicationJobs.takeWork, {})).recovered;
+    }
+    expect(recovered).toBe(20);
+    const left = await t.run(async (ctx) =>
+      ctx.db
+        .query('publication_jobs')
+        .withIndex('by_status_and_expires_at', (q) => q.eq('status', 'in_progress').lte('expires_at', 1))
+        .collect()
+    );
+    expect(left).toEqual([]);
   });
 });

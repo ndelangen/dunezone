@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-import { afterEach, beforeEach, expect, test } from 'vitest';
+import { afterEach, beforeEach, expect, test } from 'vite-plus/test';
 
 /*
  * scripts/lib/isolated-stack.test.ts and scripts/play-load/hosted-paths.test.ts cover the loopback and private-file rules.
@@ -29,7 +29,7 @@ function run(
   return spawnSync(
     'bun',
     [
-      path.resolve('scripts/verify-hosted-play-browser.mjs'),
+      path.resolve('scripts/verify-hosted-play-browser.ts'),
       '--origin',
       origin,
       '--env-file',

@@ -1,12 +1,18 @@
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, readdirSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
-import { decideHostedPlay, globToRegExp, reachesHostedPlay } from './lib/hosted-play-closure';
-import { importedFiles } from './lib/import-graph';
+import {
+  UNOBSERVED_IMPORTS,
+  decideHostedPlay,
+  globToRegExp,
+  onlyAddsArt,
+  reachesHostedPlay,
+} from './lib/hosted-play-closure';
+import { importGraph } from './lib/import-graph';
 
 const root = resolve(import.meta.dirname, '..');
 
@@ -37,7 +43,7 @@ const ENTRY_POINTS = [
   'workers/game/load-entry.ts',
   'workers/publisher/index.ts',
   'scripts/play-local.ts',
-  'scripts/play-load/run.mjs',
+  'scripts/play-load/run.ts',
   'vite.config.ts',
   'workers/publisher/vite.config.ts',
   'workers/publisher/rulebook-html-renderer.vite.config.ts',
@@ -45,16 +51,22 @@ const ENTRY_POINTS = [
   'src/app/print/rulebookHtmlRuntime.ts',
   'scripts/assemble-publisher-assets.ts',
   'scripts/verify-rulebook-html-runtime.ts',
-  'scripts/workerd-exit-record.mjs',
+  'scripts/workerd-exit-record.ts',
   ...scriptsNamed(/^(?:generate|verify-hosted-)/u),
 ];
 describe('the hosted play closure', () => {
   test('covers every file the play pages, the Workers and the launcher import', async () => {
     /* Absolute urls name files under public/ the pages load at run time, a directory the closure names whole, and the route tree names every page, not the ones a flow visits. */
-    const files = await importedFiles(root, ENTRY_POINTS, /^\/|routeTree\.gen$/, 'test-results/hosted-play-closure');
+    const graph = await importGraph(root, ENTRY_POINTS, /^\/|routeTree\.gen$/, 'test-results/hosted-play-closure');
+    const files = [...graph.keys()];
     expect(files.length).toBeGreaterThan(200);
-    const outside = files.filter((file) => !reachesHostedPlay(file));
+    const outside = files.filter((file) => !reachesHostedPlay(file) && !Object.hasOwn(UNOBSERVED_IMPORTS, file));
     expect(outside, 'files the hosted flows exercise that no closure glob names').toEqual([]);
+    /* An unobserved file stays unobserved only while the files that read it are the ones its entry names. */
+    for (const [file, { importers }] of Object.entries(UNOBSERVED_IMPORTS)) {
+      expect(graph.get(file), `${file} is no longer imported by the flows' code; drop its entry`).toBeDefined();
+      expect(graph.get(file), `the files in the flows' import graph that import ${file}`).toEqual(importers);
+    }
   }, 60_000);
 
   test.each([
@@ -71,7 +83,6 @@ describe('the hosted play closure', () => {
     ['convex/playAdmission.ts', true],
     ['src/shared/assetIds.ts', true],
     ['src/app/ui/control/Button.tsx', true],
-    ['scripts/verify-hosted-results.mjs', true],
     ['.github/workflows/reusable-verify.yml', true],
     ['.github/workflows/deploy-main.yml', false],
     ['.github/actions/hosted-play-summary/action.yml', true],
@@ -80,12 +91,7 @@ describe('the hosted play closure', () => {
     ['convex.json', true],
     ['convex/rulebooks.test.ts', false],
     ['convex/_generated/ai/guidelines.md', false],
-    ['scripts/generate-images.ts', true],
-    ['scripts/assemble-publisher-assets.ts', true],
-    ['scripts/workerd-exit-record.mjs', true],
-    ['src/app/print/rulebookHtmlRuntime.ts', true],
     ['publisher-capture.html', true],
-    ['src/app/routes/_app/play/$gameId.route.tsx', true],
     ['workers/game/a file.ts', true],
     ['AGENTS.md', false],
     ['.oxlintrc.json', false],
@@ -95,8 +101,14 @@ describe('the hosted play closure', () => {
     ['src/game/rulebook/RulebookRenderer.tsx', true],
     ['src/game/rulebook/RulebookRenderer.stories.tsx', false],
     ['scripts/lib/reactCompiler.ts', true],
+    ['scripts/lib/browserBundleBudgets.ts', true],
     ['scripts/lib/storybook-shards.ts', false],
     ['coverage-denominator.ts', true],
+    ['src/shared/recordlessPublicPages.ts', true],
+    ['src/shared/blogPostSlugs.ts', false],
+    ['workers/publisher/renderer-manifest.generated.ts', false],
+    ['workers/publisher/renderer-manifest-build.ts', true],
+    ['media/raster.lock.json', true],
   ])('%s reaches the flows: %s', (file, reaches) => {
     expect(reachesHostedPlay(file)).toBe(reaches);
   });
@@ -111,27 +123,123 @@ describe('the hosted play closure', () => {
       reaching: ['workers/game/index.ts'],
     });
     expect(decideHostedPlay([])).toMatchObject({ run: true });
+    expect(decideHostedPlay(['.nvmrc'])).toMatchObject({ run: true, reaching: ['.nvmrc'] });
+  });
+
+  /* PR #2217's files: a blog post with new pictures, which no flow can see. */
+  const blogPost = [
+    'media/raster.lock.json',
+    'src/shared/media/map.generated.ts',
+    'src/shared/blogPostSlugs.ts',
+    'workers/publisher/renderer-manifest.generated.ts',
+    'src/app/routes/_app/blog/posts.ts',
+    'src/app/routes/_app/blog/posts/tabletop-simulator.tsx',
+    'src/app/routes/_app/media/media-index.json',
+    'src/app/routes/site.stories.tsx',
+  ];
+  const art = ['media/raster.lock.json', 'src/shared/media/map.generated.ts'];
+
+  test('a blog post with new art skips the shards, unless the art files changed more than new art', () => {
+    expect(decideHostedPlay(blogPost, new Set(art))).toMatchObject({ run: false, reaching: [] });
+    expect(decideHostedPlay(blogPost, new Set([art[0]]))).toMatchObject({ run: true, reaching: [art[1]] });
+    expect(decideHostedPlay(blogPost)).toMatchObject({ run: true, reaching: art });
+  });
+
+  const entry = {
+    sha256: 'a'.repeat(64),
+    bytes: 1,
+    width: 1,
+    height: 1,
+    format: 'png',
+    isOpaque: true,
+    color: '#000000',
+  };
+
+  test.each([
+    ['a new original', { '/a.png': entry }, { '/a.png': entry, '/b.png': entry }, true],
+    ['nothing new', { '/a.png': entry }, { '/a.png': entry }, true],
+    [
+      'a changed original',
+      { '/a.png': entry },
+      { '/a.png': { ...entry, sha256: 'b'.repeat(64) }, '/b.png': entry },
+      false,
+    ],
+    ['a field added to an original', { '/a.png': entry }, { '/a.png': { ...entry, extra: 1 } }, false],
+    ['a removed original', { '/a.png': entry, '/b.png': entry }, { '/a.png': entry }, false],
+    ['a version that could not be read', { '/a.png': entry }, undefined, false],
+  ])('the raster lock with %s only adds art: %s', (_, before, after, expected) => {
+    expect(onlyAddsArt('media/raster.lock.json', before, after)).toBe(expected);
+  });
+
+  const map = {
+    MEDIA_RECIPES: { 'image/card': { small: '78b25dffe3', large: '6a76de3578' } },
+    MEDIA_CANONICAL_RECIPES: { 'image/card': { jpeg: '0123456789' } },
+    MEDIA_MAP: { '/image/card/a.jpg': ['0123456789abcdef0123', '#000000'] },
+  };
+
+  test.each([
+    [
+      'a new entry',
+      { ...map, MEDIA_MAP: { ...map.MEDIA_MAP, '/web/b.jpg': ['1123456789abcdef0123', '#ffffff'] } },
+      true,
+    ],
+    ['a changed entry', { ...map, MEDIA_MAP: { '/image/card/a.jpg': ['1123456789abcdef0123', '#000000'] } }, false],
+    ['a removed entry', { ...map, MEDIA_MAP: {} }, false],
+    [
+      'a new recipe',
+      { ...map, MEDIA_RECIPES: { ...map.MEDIA_RECIPES, 'web/blog': { small: '0', large: '1' } } },
+      false,
+    ],
+    ['a changed canonical recipe', { ...map, MEDIA_CANONICAL_RECIPES: {} }, false],
+    ['a new export', { ...map, OTHER: {} }, false],
+  ])('the media map with %s only adds art: %s', (_, after, expected) => {
+    expect(onlyAddsArt('src/shared/media/map.generated.ts', map, after)).toBe(expected);
+  });
+
+  test('no other file can only add art', () => {
+    expect(onlyAddsArt('src/shared/stockAssetCollections.json', {}, { a: 1 })).toBe(false);
   });
 
   test('globs match whole paths, with ** across directories and * within one', () => {
     expect(globToRegExp('convex/**').test('convex/lib/playSynthetic.ts')).toBe(true);
-    expect(globToRegExp('scripts/verify-hosted-*').test('scripts/verify-hosted-decks.mjs')).toBe(true);
+    expect(globToRegExp('scripts/verify-hosted-*').test('scripts/verify-hosted-decks.ts')).toBe(true);
     expect(globToRegExp('scripts/verify-hosted-*').test('scripts/verify-hosted/decks.mjs')).toBe(false);
     expect(globToRegExp('**/*.test.*').test('workers/game/session.test.ts')).toBe(true);
     expect(globToRegExp('package.json').test('workers/game/package.json')).toBe(false);
   });
 
+  /* The committed map, and the same map with one more entry, as the action leaves them for the script. */
+  const committedMap = readFileSync(resolve(root, 'src/shared/media/map.generated.ts'), 'utf8');
+  const grownMap = committedMap.replace(
+    /(export const MEDIA_MAP[^{]*\{\n)/u,
+    "$1  '/web/new-art.jpg': ['0123456789abcdef0123', '#000000'],\n"
+  );
+
   test.each([
-    ['docs/deployment.md\nmedia/vector/icon/drup.svg\n', 'false'],
-    ['docs/deployment.md\nworkers/game/index.ts\n', 'true'],
-    ['', 'true'],
-  ])('the script writes the decision for %j to the job outputs: run=%s', (list, run) => {
+    ['docs/deployment.md\nmedia/vector/icon/drup.svg\n', undefined, 'false'],
+    ['docs/deployment.md\nworkers/game/index.ts\n', undefined, 'true'],
+    ['src/shared/media/map.generated.ts\n', undefined, 'true'],
+    ['src/shared/media/map.generated.ts\n', [committedMap, grownMap], 'false'],
+    ['src/shared/media/map.generated.ts\n', [grownMap, committedMap], 'true'],
+    ['', undefined, 'true'],
+  ])('the script writes the decision for %j to the job outputs: run=%s', (list, versions, run) => {
     const directory = mkdtempSync(join(tmpdir(), 'hosted-play-closure-'));
     const env = {
       ...process.env,
       GITHUB_OUTPUT: join(directory, 'output'),
       GITHUB_STEP_SUMMARY: join(directory, 'summary.md'),
+      ART_BEFORE: join(directory, 'before'),
+      ART_AFTER: join(directory, 'after'),
     };
+    if (versions !== undefined) {
+      for (const [side, source] of [
+        [env.ART_BEFORE, versions[0]],
+        [env.ART_AFTER, versions[1]],
+      ]) {
+        mkdirSync(join(side, 'src/shared/media'), { recursive: true });
+        writeFileSync(join(side, 'src/shared/media/map.generated.ts'), source);
+      }
+    }
     const printed = execFileSync('bun', [resolve(root, 'scripts/hosted-play-closure.ts')], {
       input: list,
       env,

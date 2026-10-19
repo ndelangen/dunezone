@@ -2,12 +2,9 @@
 
 import { act, cleanup, renderHook } from '@testing-library/react';
 import { PerspectiveCamera } from 'three';
-import { afterEach, expect, test, vi } from 'vitest';
+import { afterEach, expect, test, vi } from 'vite-plus/test';
 
 import { useBeaconCarry } from './multiplayer/useBeaconCarry';
-
-vi.mock('../../storybookConfig', () => ({ pageStoryMeta: {} }));
-vi.stubEnv('VITE_CONVEX_URL', 'https://storybook.invalid');
 
 afterEach(() => {
   cleanup();

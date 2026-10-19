@@ -1,5 +1,4 @@
-import { convexTest } from 'convex-test';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { factionMemberPublicationId } from '../src/shared/asset-publishing/componentPublication';
 import { publishedHref } from '../src/shared/asset-publishing/publicationTargets';
@@ -7,14 +6,12 @@ import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPub
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
+import { applicationTest } from './application.test.fixture';
 import {
   enqueueFactionLeaderPublications,
   enqueueFactionTokenPublication,
   FACTION_TOKEN_BACK_REVISION,
 } from './lib/publication';
-import schema from './schema';
-
-const modules = import.meta.glob('./**/*.ts');
 
 async function seed(ctx: MutationCtx) {
   const owner = await ctx.db.insert('users', { account_state: 'active', name: 'Author', isAdmin: false });
@@ -58,14 +55,16 @@ async function seed(ctx: MutationCtx) {
 
 describe('the draft reads the catalogue', () => {
   test('lists every live faction that parses, with its ruleset link and whether both token faces are published', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const { ruleset, linked, other } = await t.run(seed);
     const { factions } = await t.query(api.playCatalogue.draftableFactions, { rulesetId: ruleset });
-    expect(factions.map((faction) => [faction.id, faction.linked, faction.published]).sort()).toEqual(
+    const byId = (first: readonly unknown[], second: readonly unknown[]) =>
+      String(first[0]).localeCompare(String(second[0]));
+    expect(factions.map((faction) => [faction.id, faction.linked, faction.published]).sort(byId)).toEqual(
       [
         [linked, true, true],
         [other, false, false],
-      ].sort()
+      ].sort(byId)
     );
     const atreides = factions.find((faction) => faction.id === linked)!;
     expect(atreides).toMatchObject({
@@ -78,7 +77,7 @@ describe('the draft reads the catalogue', () => {
   });
 
   test('a faction becomes published once its token back completes, and its leader front reads once that face completes', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     const { ruleset, other } = await t.run(seed);
     const memberId = assetPublishingFaction.leaders[0].memberId;
     const leaderAssetId = factionMemberPublicationId(other, memberId);
@@ -126,10 +125,41 @@ describe('the draft reads the catalogue', () => {
   });
 
   test('an unknown ruleset links nothing and still lists the factions', async () => {
-    const t = convexTest(schema, modules);
+    const t = applicationTest();
     await t.run(seed);
     const { factions } = await t.query(api.playCatalogue.draftableFactions, { rulesetId: 'nowhere' as Id<'rulesets'> });
     expect(factions).toHaveLength(2);
     expect(factions.every((faction) => !faction.linked)).toBe(true);
+  });
+
+  test('a ruleset faction created after the first 500 live factions is still listed', async () => {
+    const t = applicationTest();
+    const { ruleset } = await t.run(seed);
+    const late = await t.run(async (ctx) => {
+      const owner = (await ctx.db.query('users').first())!._id;
+      const stamp = { created_at: '2026-09-19T00:00:00.000Z', updated_at: '2026-09-19T00:00:00.000Z' };
+      for (let index = 0; index < 500; index += 1) {
+        await ctx.db.insert('factions', {
+          owner_id: owner,
+          slug: `filler-${index}`,
+          data: { ...assetPublishingFaction, name: `Filler ${index}` },
+          group_id: null,
+          is_deleted: false,
+          ...stamp,
+        });
+      }
+      const id = await ctx.db.insert('factions', {
+        owner_id: owner,
+        slug: 'late',
+        data: { ...assetPublishingFaction, name: 'Late' },
+        group_id: null,
+        is_deleted: false,
+        ...stamp,
+      });
+      await ctx.db.insert('ruleset_factions', { ruleset_id: ruleset, faction_id: id });
+      return id;
+    });
+    const { factions } = await t.query(api.playCatalogue.draftableFactions, { rulesetId: ruleset });
+    expect(factions.find((faction) => faction.id === late)).toMatchObject({ linked: true });
   });
 });

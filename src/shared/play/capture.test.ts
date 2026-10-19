@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 
 import { assetPublishingFaction } from '../factions/fixtures/assetPublishingFaction';
 import { toStoredHeroKey } from '../factions/schema';
@@ -19,12 +19,7 @@ describe('the `hero` literal on captures', () => {
 
     expect(parsed.data).toEqual(toStoredHeroKey(assetPublishingFaction));
     expect(parsed.data).not.toHaveProperty('factionLeader');
-  });
-
-  it('keeps a `hero`-keyed catalogue answer as it is', () => {
-    const data = toStoredHeroKey(assetPublishingFaction);
-
-    expect(factionDefinitionSchema.parse({ ...definition, data }).data).toEqual(data);
+    expect(factionDefinitionSchema.parse({ ...definition, data: parsed.data }).data).toEqual(parsed.data);
   });
 
   it('stores a capture definition under `hero`, whichever key it arrives with', () => {

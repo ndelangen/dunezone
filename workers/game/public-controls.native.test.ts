@@ -1,0 +1,873 @@
+import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test';
+import { z } from 'zod';
+
+import { publishingDeckCardback } from '../../src/shared/assets/fixtures/publishingDeckCardback';
+import { publishingRectangleTokenFace } from '../../src/shared/assets/fixtures/publishingRectangleTokenFace';
+import { publishingTokenFace } from '../../src/shared/assets/fixtures/publishingTokenFace';
+import { publishingTreacheryCard } from '../../src/shared/assets/fixtures/publishingTreacheryCard';
+import type { AssetSupply } from '../../src/shared/play/capture';
+import { assetSupplySchema } from '../../src/shared/play/capture';
+import { spawnContentsSchema } from '../../src/shared/play/inventory';
+import { PHASE_CHANGE_COOLDOWN_MS } from '../../src/shared/play/phases';
+import type { GameSnapshot } from '../../src/shared/play/protocol';
+import type { ClientMessage } from '../../src/shared/play/protocol';
+import type { PieceAction } from '../../src/shared/play/protocol';
+import { spiceBankSlot } from '../../src/shared/play/spiceBank';
+import { SHARED_ITEM_PLACEMENT_ANCHORS } from '../../src/shared/play/tableFurnitureLayout';
+import { messageOf } from './native-runtime.fixture.ts';
+import type { NativeMessage } from './native-runtime.fixture.ts';
+import type { NativeConnection } from './native-runtime.fixture.ts';
+import { required } from './native-runtime.fixture.ts';
+import type { NativePeer, NativeRuntime } from './native-runtime.fixture.ts';
+import {
+  admitPlayer,
+  createPeer,
+  createRuntime,
+  openGame,
+  provision,
+  eventually,
+  storedEventMessages,
+} from './native-runtime.fixture.ts';
+import { storedSnapshotSchema } from './state';
+
+function tokenPage(name = 'Recovery token') {
+  return assetSupplySchema.parse({
+    asset: {
+      id: 'token-asset',
+      type: 'token-disc',
+      slug: 'recovery',
+      name,
+      data: {
+        name,
+        about: '',
+        front: publishingTokenFace,
+        back: { mode: 'same' },
+      },
+    },
+    members: [],
+    membersTruncated: false,
+    backToken: null,
+    backDeck: null,
+    front: '/published/tokens/token-asset/token.png',
+    back: '/published/tokens/token-asset/token.png',
+    backMode: 'same',
+  });
+}
+
+describe('Hosted readiness and shared inventory through native commands', () => {
+  let peer: NativePeer, runtime: NativeRuntime, number: number, offset: number, committedRevision: number;
+  beforeEach(async () => {
+    peer = await createPeer();
+    peer.watchMode = 'allow';
+    peer.expiresAt = () => Date.now() + 3_600_000;
+    peer.catalogue.set('token-disc/recovery', tokenPage());
+    runtime = await createRuntime(peer, 'game');
+    number = 0;
+    offset = 0;
+    committedRevision = 0;
+    if ((await provision(runtime)).status !== 200) {
+      throw new Error('Fixture provisioning failed');
+    }
+  });
+  afterEach(async () => {
+    await runtime?.close();
+    await peer?.close();
+  });
+  const admit = (suffix: string) => admitPlayer(peer, runtime, suffix);
+  async function snapshot(connection: NativeConnection) {
+    return (
+      await eventually(
+        () =>
+          connection.messages.findLast(
+            (message): message is Extract<NativeMessage, { type: 'view' }> =>
+              message.type === 'view' && message.snapshot.revision >= committedRevision
+          ),
+        'current committed view'
+      )
+    ).snapshot;
+  }
+  async function act(connection: NativeConnection, action: PieceAction, rejected?: string) {
+    const current = await snapshot(connection);
+    const message = {
+      type: 'command' as const,
+      commandId: `command-${++number}`,
+      action,
+      expectedRevision: current.revision,
+    };
+    connection.send(message);
+    const reply = await eventually(
+      () =>
+        connection.messages.find((entry) =>
+          entry.type === 'rejected'
+            ? entry.requestId === message.commandId
+            : entry.type === 'view' && entry.completedCommandId === message.commandId
+        ),
+      'command outcome'
+    );
+    if (rejected) {
+      expect(reply).toMatchObject({ type: 'rejected', message: expect.stringContaining(rejected) });
+      return current;
+    }
+    expect(reply.type).toBe('view');
+    const view = messageOf(reply, 'view');
+    committedRevision = view.snapshot.revision;
+    return view.snapshot;
+  }
+  async function waitPhase() {
+    offset += PHASE_CHANGE_COOLDOWN_MS + 1;
+    await runtime.clock(offset);
+  }
+
+  it('gates Mentat on every occupied seat, survives reconnect, and requires explicit advance and fresh readiness', async () => {
+    const a = await admit('a');
+    const b = await admit('b');
+    const observer = await admit('c');
+    await act(a, { kind: 'ready', ready: true }, 'such as Mentat Pause');
+    for (let index = 0; index < 8; index++) {
+      await waitPhase();
+      await act(a, { kind: 'phase' });
+      const phaseView = a.messages.findLast(
+        (message): message is Extract<NativeMessage, { type: 'view' }> => message.type === 'view'
+      );
+      expect(required(phaseView).phaseCooldownMs).toBeGreaterThan(0);
+      expect(required(phaseView).phaseCooldownMs).toBeLessThanOrEqual(PHASE_CHANGE_COOLDOWN_MS);
+    }
+    await waitPhase();
+    await act(a, { kind: 'phase' }, 'Every seated player');
+    await act(observer, { kind: 'ready', ready: true }, 'Spectators');
+    await act(observer, { kind: 'phase' }, 'Spectators');
+    let state = await act(a, { kind: 'ready', ready: true });
+    expect(state.phase).toBe(8);
+    expect(required(state.controls).ready).toEqual(['harkonnen']);
+    a.socket.close();
+    await act(b, { kind: 'phase' }, 'Every seated player');
+    state = await act(b, { kind: 'ready', ready: true });
+    expect(state.phase).toBe(8);
+    expect(required(state.controls).ready).toEqual(['harkonnen', 'atreides']);
+    const reconnected = await admit('a');
+    expect(required((await snapshot(reconnected)).controls).ready).toEqual(required(state.controls).ready);
+    await act(reconnected, { kind: 'ready', ready: false });
+    await act(b, { kind: 'phase' }, 'Every seated player');
+    await act(reconnected, { kind: 'ready', ready: true });
+    const pieces = (await act(b, { kind: 'spice-spawn', count: 3 })).table.pieces;
+    expect(required((await snapshot(b)).controls).ready).toHaveLength(2);
+    state = await act(b, { kind: 'phase' });
+    expect(state.phase).toBe(9);
+    expect(required(state.controls).ready).toEqual([]);
+    await act(reconnected, { kind: 'phase' }, 'between phase changes');
+    await act(b, { kind: 'phase', direction: -1 }, 'between phase changes');
+    await act(b, { kind: 'turn', turn: 3 }, 'only by moving through the phases');
+    await waitPhase();
+    state = await act(b, { kind: 'phase', direction: -1 });
+    expect(state.phase).toBe(8);
+    expect(required(state.controls).ready).toEqual([]);
+    expect(state.table.pieces).toEqual(pieces);
+    await waitPhase();
+    await runtime.restart();
+    const restored = await admit('a');
+    expect(required((await snapshot(restored)).controls).ready).toEqual([]);
+    expect((await snapshot(restored)).table.pieces).toEqual(pieces);
+  });
+
+  it('captures contents before approval, retains offline requests, and never duplicates requests or spawns', async () => {
+    const a = await admit('a');
+    const b = await admit('b');
+    const observer = await admit('c');
+    const initial = await snapshot(a);
+    const request = {
+      type: 'command',
+      commandId: 'request-once',
+      expectedRevision: initial.revision,
+      action: { kind: 'spawn-request', type: 'token-disc', slug: 'recovery' },
+    } satisfies ClientMessage;
+    a.send(request);
+    const requested = (await a.message('view', (view) => view.completedCommandId === request.commandId)).snapshot;
+    expect(required(requested.controls).requests).toHaveLength(1);
+    expect(requested.table.pieces).toEqual(initial.table.pieces);
+    a.messages.length = 0;
+    a.send(request);
+    const replay = await eventually(
+      () =>
+        a.messages.find((entry) =>
+          entry.type === 'rejected'
+            ? entry.requestId === request.commandId
+            : entry.type === 'view' && entry.completedCommandId === request.commandId
+        ),
+      'request replay outcome'
+    );
+    expect(replay.type).toBe('view');
+    expect(messageOf(replay, 'view').snapshot).toEqual(requested);
+    const id = required(requested.controls).requests[0].id;
+    await act(a, { kind: 'spawn-approve', requestId: id }, 'different seated player');
+    await act(observer, { kind: 'spawn-approve', requestId: id }, 'Spectators');
+    await act(observer, { kind: 'spawn-dismiss', requestId: id }, 'Spectators');
+    await act(observer, request.action, 'Only seated players');
+    peer.catalogue.set('token-disc/recovery', tokenPage('Changed later'));
+    a.socket.close();
+    const approved = await act(b, { kind: 'spawn-approve', requestId: id });
+    expect(required(approved.controls).requests).toEqual([]);
+    const piece = approved.table.pieces.find((piece) => piece.inventory);
+    expect(required(piece).label).toBe('Recovery token');
+    expect(required(required(piece).items[0].artwork).name).toBe('Recovery token');
+    await act(b, { kind: 'spawn-approve', requestId: id }, 'already been resolved');
+    expect((await snapshot(observer)).table.pieces).toEqual(approved.table.pieces);
+    await runtime.restart();
+    const restored = await admit('b');
+    expect((await snapshot(restored)).table.pieces).toEqual(approved.table.pieces);
+    expect(await runtime.audit()).toHaveLength(2);
+    expect((await runtime.audit()).every((row) => required(row.contents).includes('Recovery token'))).toBe(true);
+    expect(
+      peer.requests
+        .filter((request) => request.function === 'playCatalogue:assetSupply')
+        .every((request) => JSON.stringify(Object.keys(request.args).sort()) === JSON.stringify(['slug', 'type']))
+    ).toBe(true);
+    expect(
+      peer.requests
+        .filter((request) => /^(assets|playCatalogue):/.test(request.function))
+        .every((request) => !request.headers.authorization)
+    ).toBe(true);
+  });
+
+  it('dismisses without spawning and refuses incomplete definitions, missing backs and missing members', async () => {
+    const a = await admit('a');
+    await admit('b');
+    let state = await act(a, { kind: 'spawn-request', type: 'token-disc', slug: 'recovery' });
+    await runtime.restart();
+    const restored = await admit('a');
+    expect(required((await snapshot(restored)).controls).requests).toEqual(required(state.controls).requests);
+    state = await act(restored, { kind: 'spawn-dismiss', requestId: required(state.controls).requests[0].id });
+    expect(required(state.controls).requests).toEqual([]);
+    expect(state.table.pieces.some((piece) => piece.inventory)).toBe(false);
+    const invalidPages: { rejection: string; change: (page: AssetSupply) => void }[] = [
+      {
+        rejection: 'definition',
+        change: (page) => {
+          page.asset.data = {};
+        },
+      },
+      {
+        rejection: 'Publish every',
+        change: (page) => {
+          page.front = null;
+        },
+      },
+      {
+        rejection: 'Publish every',
+        change: (page) => {
+          page.back = null;
+        },
+      },
+      {
+        rejection: 'definition',
+        change: (page) => {
+          page.membersTruncated = true;
+        },
+      },
+      {
+        rejection: 'definition',
+        change: (page) => {
+          page.backMode = 'dangling';
+        },
+      },
+      {
+        rejection: 'invalid publication',
+        change: (page) => {
+          page.front = 'https://other.example/published/token.jpg';
+        },
+      },
+    ];
+    for (const { rejection, change } of invalidPages) {
+      const page = tokenPage();
+      change(page);
+      peer.catalogue.set('token-disc/recovery', page);
+      await act(restored, { kind: 'spawn-request', type: 'token-disc', slug: 'recovery' }, rejection);
+    }
+  });
+
+  it('spawns directly only for a sole seat and drags out face down with ordinary flip controls', async () => {
+    const a = await admit('a');
+    let state = await act(a, { kind: 'spawn-request', type: 'token-disc', slug: 'recovery' });
+    expect(required(state.controls).requests).toEqual([]);
+    const piece = state.table.pieces.find((piece) => piece.inventory);
+    await act(a, { kind: 'flip', pieceId: required(piece).id }, 'Drag this item');
+    a.send({
+      type: 'begin',
+      carryId: 'inventory-drag',
+      sourcePieceId: required(piece).id,
+      expectedVersion: state.versions[required(piece).id],
+      pickup: 'whole',
+    });
+    await a.message('carry');
+    const drop = {
+      type: 'drop',
+      commandId: 'drop-once',
+      carryId: 'inventory-drag',
+      position: [
+        SHARED_ITEM_PLACEMENT_ANCHORS[7].position[0] + 0.1,
+        0.38,
+        SHARED_ITEM_PLACEMENT_ANCHORS[7].position[2] - 0.1,
+      ],
+      orientation: Math.PI / 4,
+    } satisfies ClientMessage;
+    a.send(drop);
+    state = (await a.message('view', (message) => message.completedCommandId === drop.commandId)).snapshot;
+    const dropped = state.table.pieces.find((candidate) => candidate.id === required(piece).id);
+    expect(required(dropped).inventory).toBeUndefined();
+    expect([required(dropped).position[0], required(dropped).position[2]]).toEqual([
+      SHARED_ITEM_PLACEMENT_ANCHORS[7].position[0],
+      SHARED_ITEM_PLACEMENT_ANCHORS[7].position[2],
+    ]);
+    expect(required(dropped).orientation).toBe(0);
+    expect(required(dropped).items.every((item) => !item.faceUp)).toBe(true);
+    state = await act(a, { kind: 'flip', pieceId: required(piece).id });
+    expect(required(state.table.pieces.find((candidate) => candidate.id === required(piece).id)).items[0].faceUp).toBe(
+      true
+    );
+    for (let phase = 0; phase < 8; phase++) {
+      await waitPhase();
+      await act(a, { kind: 'phase' });
+    }
+    await waitPhase();
+    await act(a, { kind: 'phase' }, 'Every seated player');
+    await act(a, { kind: 'ready', ready: true });
+    expect((await act(a, { kind: 'phase' })).phase).toBe(9);
+    await admit('b');
+    state = await act(a, { kind: 'spawn-request', type: 'token-disc', slug: 'recovery' });
+    expect(required(state.controls).requests).toHaveLength(1);
+    expect(state.table.pieces.filter((piece) => piece.inventory)).toHaveLength(0);
+  });
+  it('captures complete decks and mixed token bundles with every member quantity and back', async () => {
+    const a = await admit('a');
+    const token = tokenPage();
+    const rectangle = tokenPage('Rectangle');
+    rectangle.asset = {
+      ...rectangle.asset,
+      id: 'rectangle',
+      type: 'token-enhance',
+      slug: 'rectangle',
+      data: { name: 'Rectangle', about: '', front: publishingRectangleTokenFace, back: { mode: 'same' } },
+    };
+    peer.catalogue.set('token-enhance/rectangle', rectangle);
+    const bundle = {
+      ...tokenPage('Bundle'),
+      asset: {
+        id: 'bundle',
+        type: 'bundle',
+        slug: 'bundle',
+        name: 'Bundle',
+        data: { name: 'Bundle', about: '', band: { label: 'Bundle', background: publishingTokenFace.background } },
+      },
+      members: [
+        { ...token, count: 3 },
+        { ...rectangle, count: 2 },
+      ],
+      front: null,
+      back: null,
+      backMode: null,
+    };
+    peer.catalogue.set('bundle/bundle', bundle);
+    let state = await act(a, { kind: 'spawn-request', type: 'bundle', slug: 'bundle' });
+    expect(state.table.pieces.filter((piece) => piece.inventory).map((piece) => piece.items.length)).toEqual([3, 2]);
+    const card = {
+      ...tokenPage('Card'),
+      asset: { id: 'card', type: 'card-treachery', slug: 'card', name: 'Card', data: publishingTreacheryCard },
+      back: null,
+      backMode: null,
+    };
+    peer.catalogue.set('card-treachery/card', card);
+    const deck: AssetSupply = {
+      ...tokenPage('Deck'),
+      asset: {
+        id: 'deck',
+        type: 'deck',
+        slug: 'deck',
+        name: 'Deck',
+        data: { name: 'Deck', about: '', cardback: publishingDeckCardback },
+      },
+      members: [{ ...card, count: 4 }],
+      back: '/published/decks/deck/cardback.jpg',
+      backMode: 'authored-cardback',
+    };
+    peer.catalogue.set('deck/deck', deck);
+    const b = await admit('b');
+    state = await act(a, { kind: 'spawn-request', type: 'deck', slug: 'deck' });
+    const captured = required(state.controls).requests[0].contents;
+    expect(captured.members).toEqual([{ assetId: 'card', count: 4 }]);
+    /* The live snapshot omits the captured definitions; the audit row carries them. */
+    expect(captured.definitions).toEqual([]);
+    const audited = spawnContentsSchema.parse(
+      JSON.parse(required(required(required(await runtime.audit()).at(-1)).contents))
+    );
+    expect(audited.definitions.map((entry) => entry.id)).toEqual(['deck', 'card']);
+    expect(captured.pieces[0].items).toHaveLength(4);
+    expect(
+      captured.pieces[0].items.every((item) =>
+        required(item.artwork).back.endsWith('/published/decks/deck/cardback.jpg')
+      )
+    ).toBe(true);
+    state = await act(b, { kind: 'spawn-approve', requestId: required(state.controls).requests[0].id });
+    const observer = await admit('c');
+    const stack = state.table.pieces.find((piece) => piece.kind === 'card' && piece.inventory);
+    const hidden = (piece: GameSnapshot['table']['pieces'][number] | undefined) => {
+      for (const item of required(piece).items) {
+        expect(item.faceUp).toBe(false);
+        expect(item.artwork).not.toHaveProperty('front');
+        expect(item.artwork).not.toHaveProperty('name');
+        expect(item.id).toMatch(/^card-[a-f0-9]{64}$/);
+      }
+    };
+    hidden(captured.pieces[0]);
+    hidden(required(stack));
+    a.send({ type: 'catalogue', requestId: 'deck-preview', selection: { type: 'deck', slug: 'deck' } });
+    hidden(
+      required(required(await a.message('catalogue', (message) => message.requestId === 'deck-preview')).contents)
+        .pieces[0]
+    );
+    hidden((await snapshot(observer)).table.pieces.find((piece) => piece.id === required(stack).id));
+    b.send({
+      type: 'begin',
+      carryId: 'inventory-top',
+      sourcePieceId: required(stack).id,
+      expectedVersion: state.versions[required(stack).id],
+      pickup: 'top',
+    });
+    const carrying = await b.message('carry', (message) => message.carryId === 'inventory-top');
+    expect(carrying.draft.pickedUpItemIds).toEqual([required(required(stack).items.at(-1)).id]);
+    const carried = await observer.message('view', (message) =>
+      message.carries.some((carry) => carry.id === 'inventory-top')
+    );
+    hidden(required(required(carried).carries.find((carry) => carry.id === 'inventory-top')).held);
+    b.send({
+      type: 'drop',
+      commandId: 'drop-top',
+      carryId: 'inventory-top',
+      position: SHARED_ITEM_PLACEMENT_ANCHORS[6].position,
+      orientation: Math.PI / 4,
+    });
+    state = (await b.message('view', (message) => message.completedCommandId === 'drop-top')).snapshot;
+    expect(required(state.table.pieces.find((piece) => piece.id === required(stack).id)).items).toHaveLength(3);
+    expect(state.table.pieces.find((piece) => piece.id === 'carry-inventory-top')).toMatchObject({
+      items: [expect.objectContaining({ faceUp: false })],
+    });
+    expect(required(state.table.pieces.find((piece) => piece.id === 'carry-inventory-top')).inventory).toBeUndefined();
+    hidden(state.table.pieces.find((piece) => piece.id === 'carry-inventory-top'));
+    expect(required(state.table.pieces.find((piece) => piece.id === 'carry-inventory-top')).position).toEqual(
+      SHARED_ITEM_PLACEMENT_ANCHORS[6].position
+    );
+    expect(required(state.table.pieces.find((piece) => piece.id === 'carry-inventory-top')).orientation).toBe(0);
+    await act(b, { kind: 'phase' });
+    observer.send({ type: 'history', step: 1 });
+    hidden(
+      (await observer.message('history')).snapshot.table.pieces.find((piece) => piece.id === 'carry-inventory-top')
+    );
+    state = await act(b, { kind: 'flip', pieceId: 'carry-inventory-top' });
+    expect(
+      required(state.table.pieces.find((piece) => piece.id === 'carry-inventory-top')).items[0].artwork
+    ).toMatchObject({
+      name: 'Card',
+      front: expect.any(String),
+    });
+
+    deck.members = [];
+    await act(a, { kind: 'spawn-request', type: 'deck', slug: 'deck' }, 'Add playable members');
+    deck.members = [{ ...token, count: 1 }];
+    await act(a, { kind: 'spawn-request', type: 'deck', slug: 'deck' }, 'incompatible members');
+  });
+
+  it('never lets the requester approve their own request, even as the last seat, and lets them spawn and dismiss', async () => {
+    const a = await admit('a');
+    const b = await admit('b');
+    const requested = await act(a, { kind: 'spawn-request', type: 'token-disc', slug: 'recovery' });
+    const requestId = required(requested.controls).requests[0].id;
+    expect(required(requested.controls).requests[0]).toMatchObject({
+      requesterSeat: 'harkonnen',
+      requesterName: 'Synthetic A',
+    });
+    expect(JSON.stringify(requested.controls)).not.toContain('user-a');
+    await act(b, { kind: 'phase' });
+    const response = await runtime.fetch('/__play/games/fixture-game/account-deletion', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        gameId: 'fixture-game',
+        secret: 'a'.repeat(64),
+        userId: 'user-b',
+        eventId: 'deletion-b',
+        deletionOperationId: 'operation-b',
+      }),
+    });
+    expect(response.status).toBe(200);
+    await eventually(
+      () =>
+        a.messages.findLast((message): message is Extract<NativeMessage, { type: 'view' }> => message.type === 'view')
+          ?.snapshot.controls?.seats.length === 1,
+      'sole seat'
+    );
+    await act(a, { kind: 'spawn-approve', requestId }, 'different seated player');
+    const spawned = await act(a, { kind: 'spawn-request', type: 'token-disc', slug: 'recovery' });
+    expect(spawned.table.pieces.filter((piece) => piece.inventory)).toHaveLength(1);
+    expect(required(spawned.controls).requests).toHaveLength(1);
+    const dismissed = await act(a, { kind: 'spawn-dismiss', requestId });
+    expect(required(dismissed.controls).requests).toHaveLength(0);
+  });
+
+  it('refuses catalogue reads from spectators and runs one capture per connection at a time', async () => {
+    const a = await admit('a');
+    await admit('b');
+    const observer = await admit('c');
+    observer.send({ type: 'catalogue', requestId: 'browse-1' });
+    const refused = await observer.message('rejected', (message) => message.requestId === 'browse-1');
+    expect(refused.message).toContain('seated');
+    peer.catalogueMode = 'hold';
+    const before = peer.requests.length;
+    a.send({ type: 'catalogue', requestId: 'capture-1', selection: { type: 'token-disc', slug: 'recovery' } });
+    const held = await eventually(
+      () => peer.requests.slice(before).find((request) => request.function === 'playCatalogue:assetSupply'),
+      'held capture'
+    );
+    a.send({ type: 'catalogue', requestId: 'capture-2', selection: { type: 'token-disc', slug: 'recovery' } });
+    const second = await a.message('rejected', (message) => message.requestId === 'capture-2');
+    expect(second.message).toContain('already in flight');
+    expect(
+      peer.requests.slice(before).filter((request) => request.function === 'playCatalogue:assetSupply')
+    ).toHaveLength(1);
+    peer.catalogueMode = 'allow';
+    held.release(peer.catalogue.get('token-disc/recovery'));
+    const first = await a.message('catalogue', (message) => message.requestId === 'capture-1');
+    expect(required(first.contents).name).toBe('Recovery token');
+    a.send({ type: 'catalogue', requestId: 'capture-3', selection: { type: 'token-disc', slug: 'recovery' } });
+    expect(
+      required(required(await a.message('catalogue', (message) => message.requestId === 'capture-3')).contents).name
+    ).toBe('Recovery token');
+  });
+
+  it('sends controls in a compact update only when they changed, without captured definitions', async () => {
+    const a = await admit('a');
+    await admit('b');
+    a.send({ type: 'sync' });
+    await a.message('view', (message) => required(message.sequence) > 0);
+    a.send({
+      type: 'command',
+      commandId: 'request',
+      expectedRevision: 0,
+      action: { kind: 'spawn-request', type: 'token-disc', slug: 'recovery' },
+    });
+    const requested = await a.message('update', (message) => message.completedCommandId === 'request');
+    expect(required(required(requested.snapshot).controls).requests).toHaveLength(1);
+    expect(required(required(requested.snapshot).controls).requests[0].contents.definitions).toEqual([]);
+    a.send({ type: 'command', commandId: 'spice', expectedRevision: 1, action: { kind: 'spice-spawn', count: 2 } });
+    const spiced = await a.message('update', (message) => message.completedCommandId === 'spice');
+    expect(required(spiced.snapshot).controls).toBeUndefined();
+    expect(required(required(await runtime.audit()).at(-1)).contents).toContain('"definitions":[{');
+  });
+
+  it('scrubs deleted attribution from live state, stored checkpoints and patches, and cold replay', async () => {
+    const a = await admit('a');
+    const b = await admit('b');
+    const requested = await act(a, { kind: 'spawn-request', type: 'token-disc', slug: 'recovery' });
+    const ownRequest = required(requested.controls).requests[0].id;
+    const otherRequest = required(
+      (await act(b, { kind: 'spawn-request', type: 'token-disc', slug: 'recovery' })).controls
+    ).requests[1].id;
+    await act(a, { kind: 'spice-spawn', count: 3 });
+    /* Private hand changes advance the revision without appending a table event. */
+    await act(b, { kind: 'hand-take', pieceId: 'treachery-card-loose' });
+    let current = await snapshot(a);
+    const stack = current.table.pieces.find((piece) => piece.stackKey === 'spice');
+    a.send({
+      type: 'begin',
+      carryId: 'dispose',
+      sourcePieceId: required(stack).id,
+      expectedVersion: current.versions[required(stack).id],
+      pickup: 'whole',
+    });
+    await a.message('carry');
+    a.send({
+      type: 'drop',
+      commandId: 'dispose',
+      carryId: 'dispose',
+      position: spiceBankSlot().position,
+      orientation: 0,
+    });
+    const dropped = await a.message('view', (message) => message.completedCommandId === 'dispose');
+    committedRevision = dropped.snapshot.revision;
+    await act(b, { kind: 'spice-spawn', count: 2 });
+    await act(b, { kind: 'phase' });
+    const rows = await runtime.exec('SELECT * FROM history ORDER BY step');
+    expect(rows[1].kind).toBe('patch');
+    expect(rows[1].data).toContain('Synthetic A');
+    /* The names live in the structured fields; the spice events themselves name the seat. */
+    expect(
+      (await storedEventMessages(runtime)).filter((message: string | string[]) => message.includes('Synthetic'))
+    ).toEqual([]);
+    /* A retained checkpoint can carry the same names as a phase patch. */
+    const raw = storedSnapshotSchema.parse(
+      JSON.parse((await runtime.exec<{ data: string }>('SELECT data FROM current_state'))[0].data)
+    );
+    const checkpoint = JSON.stringify(raw);
+    await runtime.exec("UPDATE history SET kind='checkpoint', data=?, bytes=? WHERE step=1", [
+      checkpoint,
+      Buffer.byteLength(checkpoint),
+    ]);
+    await waitPhase();
+    await act(b, { kind: 'phase' });
+    /* Keep a second patch with request and event arrays, rather than only a phase field. */
+    await act(a, { kind: 'spice-spawn', count: 1 });
+    await waitPhase();
+    await act(b, { kind: 'phase' });
+    const response = await runtime.fetch('/__play/games/fixture-game/account-deletion', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        gameId: 'fixture-game',
+        secret: 'a'.repeat(64),
+        userId: 'user-a',
+        eventId: 'deletion-a',
+        deletionOperationId: 'operation-a',
+      }),
+    });
+    expect(response.status).toBe(200);
+    async function assertScrubbed(connection: NativeConnection) {
+      current = (
+        await connection.message('view', (message) =>
+          required(message.snapshot.controls).requests.some((request) => request.requesterName === '[deleted user]')
+        )
+      ).snapshot;
+      expect(JSON.stringify(current)).not.toContain('Synthetic A');
+      expect(
+        required(required(current.controls).requests.find((request) => request.id === ownRequest)).requesterName
+      ).toBe('[deleted user]');
+      expect(
+        required(required(current.controls).requests.find((request) => request.id === otherRequest)).requesterName
+      ).toBe('Synthetic B');
+      for (let step = 1; step <= 3; step++) {
+        connection.send({ type: 'history', step });
+        const historical = (await connection.message('history', (message) => message.step === step)).snapshot;
+        expect(JSON.stringify(historical)).not.toContain('Synthetic A');
+        expect(
+          required(required(historical.controls).requests.find((request) => request.id === ownRequest)).requesterName
+        ).toBe('[deleted user]');
+        expect(
+          required(required(historical.controls).requests.find((request) => request.id === otherRequest)).requesterName
+        ).toBe('Synthetic B');
+        expect(historical.table.events.some((event) => event.message === 'Atreides spawned 2 spice.')).toBe(true);
+      }
+      const stored = await runtime.exec<{ data: string; bytes: number }>('SELECT data, bytes FROM history');
+      expect(JSON.stringify(stored)).not.toContain('Synthetic A');
+      for (const row of stored) {
+        expect(row.bytes).toBe(Buffer.byteLength(row.data));
+      }
+      expect(JSON.stringify(await runtime.exec<{ data: string }>('SELECT data FROM current_state'))).not.toContain(
+        'Synthetic A'
+      );
+    }
+    await assertScrubbed(b);
+    b.send({ type: 'history', step: 1 });
+    const events = (await b.message('history', (message) => message.step === 1)).snapshot.table.events;
+    expect(required(required(events).find((event) => event.command === 'spice.return')).message).toBe(
+      'Harkonnen returned 3 spice to the Spice Bank.'
+    );
+    expect(
+      required(required(events).find((event) => event.command === 'spice.spawn' && event.message.endsWith('3 spice.')))
+        .message
+    ).toBe('Harkonnen spawned 3 spice.');
+    /* A new history boundary must not reintroduce names from the pre-deletion cache. */
+    await waitPhase();
+    await act(b, { kind: 'phase' });
+    expect(JSON.stringify(await runtime.exec<{ data: string }>('SELECT data FROM history'))).not.toContain(
+      'Synthetic A'
+    );
+    await runtime.restart();
+    await assertScrubbed(await admit('b'));
+  }, 30_000);
+
+  it('masks by actor identity, not by name, and rolls back a failed history scrub', async () => {
+    const a = await admit('a');
+    await admit('b');
+    await runtime.exec("UPDATE actors SET display_name='Synthetic A' WHERE user_id='user-b'");
+    const b = await admit('b');
+    const first = await act(a, { kind: 'spawn-request', type: 'token-disc', slug: 'recovery' });
+    const firstId = required(first.controls).requests[0].id;
+    const second = await act(b, { kind: 'spawn-request', type: 'token-disc', slug: 'recovery' });
+    const secondId = required(second.controls).requests[1].id;
+    await act(a, { kind: 'spice-spawn', count: 3 });
+    await act(b, { kind: 'phase' });
+    await act(b, { kind: 'reset' });
+    await act(b, { kind: 'spice-spawn', count: 2 });
+    await act(a, { kind: 'spice-spawn', count: 1 });
+    await waitPhase();
+    await act(b, { kind: 'phase' });
+    const beforeCurrent = await runtime.exec<{ data: string }>('SELECT data FROM current_state');
+    const beforeRows = await runtime.exec('SELECT * FROM history ORDER BY step');
+    const deletion = () =>
+      runtime.fetch('/__play/games/fixture-game/account-deletion', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          gameId: 'fixture-game',
+          secret: 'a'.repeat(64),
+          userId: 'user-a',
+          eventId: 'deletion-a',
+          deletionOperationId: 'operation-a',
+        }),
+      });
+    await runtime.exec(
+      "CREATE TRIGGER fail_history_scrub BEFORE UPDATE ON history BEGIN SELECT RAISE(ABORT, 'Fixture scrub failure'); END"
+    );
+    expect((await deletion()).status).toBe(403);
+    expect(await runtime.exec('SELECT * FROM history ORDER BY step')).toEqual(beforeRows);
+    expect(await runtime.exec<{ data: string }>('SELECT data FROM current_state')).toEqual(beforeCurrent);
+    expect(
+      (await runtime.exec<{ deleted: number }>("SELECT deleted FROM actors WHERE user_id='user-a'"))[0].deleted
+    ).toBe(0);
+    expect(await runtime.exec("SELECT * FROM receipts WHERE actor_id='user-a'")).not.toHaveLength(0);
+    expect(await runtime.exec('SELECT * FROM deletion_receipts')).toHaveLength(0);
+    await runtime.exec('DROP TRIGGER fail_history_scrub');
+    expect((await deletion()).status).toBe(200);
+    b.send({ type: 'history', step: 3 });
+    const historical = (await b.message('history')).snapshot;
+    expect(
+      required(required(required(historical).controls).requests.find((request) => request.id === firstId)).requesterName
+    ).toBe('[deleted user]');
+    expect(
+      required(required(required(historical).controls).requests.find((request) => request.id === secondId))
+        .requesterName
+    ).toBe('Synthetic A');
+    expect(
+      required(required(historical).table.events.find((event) => event.message.endsWith('1 spice.'))).message
+    ).toBe('Harkonnen spawned 1 spice.');
+    expect(
+      required(required(historical).table.events.find((event) => event.message.endsWith('2 spice.'))).message
+    ).toBe('Atreides spawned 2 spice.');
+    expect(
+      required(required(required(historical).spiceTransfers).find((transfer) => transfer.amount === 2)).actor
+    ).toBe('Synthetic A');
+    const scrubbed = await runtime.exec('SELECT * FROM history ORDER BY step');
+    expect((await deletion()).status).toBe(200);
+    expect(await runtime.exec('SELECT * FROM history ORDER BY step')).toEqual(scrubbed);
+    /* Before the spice ledger shipped, deletion removed receipts but left these names. */
+    await runtime.exec('DELETE FROM spice_transfers');
+    for (const table of ['current_state', 'history']) {
+      await runtime.exec(`UPDATE ${table} SET data=replace(data, '[deleted user]', 'Synthetic A')`);
+    }
+    /* A room of that release carries no repair version, which is what makes the next start repair it. */
+    await runtime.exec("UPDATE metadata SET data=json_remove(data, '$.historyRepair')");
+    await runtime.restart();
+    const restored = await admit('b');
+    restored.send({ type: 'history', step: 3 });
+    expect((await restored.message('history')).snapshot).toEqual(historical);
+  }, 30_000);
+
+  it('repairs retained history once per scrub version and leaves later deletions to the deletion transaction', async () => {
+    const a = await admit('a');
+    const b = await admit('b');
+    await act(b, { kind: 'reset' });
+    await act(a, { kind: 'spice-spawn', count: 3 });
+    await act(b, { kind: 'spice-spawn', count: 2 });
+    await waitPhase();
+    await act(b, { kind: 'phase' });
+    const deletion = (userId: string, eventId: string) =>
+      runtime.fetch('/__play/games/fixture-game/account-deletion', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          gameId: 'fixture-game',
+          secret: 'a'.repeat(64),
+          userId,
+          eventId,
+          deletionOperationId: `operation-${eventId}`,
+        }),
+      });
+    expect((await deletion('user-a', 'deletion-a')).status).toBe(200);
+    const restoreNames = () => runtime.exec("UPDATE history SET data=replace(data, '[deleted user]', 'Synthetic A')");
+    const armFailure = () =>
+      runtime.exec(
+        "CREATE TRIGGER fail_history_scrub BEFORE UPDATE ON history BEGIN SELECT RAISE(ABORT, 'Fixture scrub failure'); END"
+      );
+    const version = (rows: { data: string }[]) => JSON.parse(rows[0].data).historyRepair;
+    /* A room provisioned by this release is already repaired; an older room carries no version. */
+    await restoreNames();
+    await runtime.exec("UPDATE metadata SET data=json_remove(data, '$.historyRepair')");
+    await armFailure();
+    await runtime.restart();
+    /* A failed repair rolls back with its version unsaved, and the room refuses until the next start repairs again. */
+    await expect(openGame(runtime)).rejects.toThrow('Socket refused: 403');
+    expect(JSON.stringify(await runtime.offline('SELECT data FROM history'))).toContain('Synthetic A');
+    expect(
+      version(
+        (await runtime.offline('SELECT data FROM metadata')).map((row) => z.object({ data: z.string() }).parse(row))
+      )
+    ).toBeUndefined();
+    await runtime.offline('DROP TRIGGER fail_history_scrub');
+    expect(JSON.stringify(await runtime.exec<{ data: string }>('SELECT data FROM history'))).not.toContain(
+      'Synthetic A'
+    );
+    expect(version(await runtime.exec<{ data: string }>('SELECT data FROM metadata'))).toBe(2);
+    /* A repaired room starts without touching history: the armed trigger never fires. */
+    await restoreNames();
+    await armFailure();
+    await runtime.restart();
+    const restored = await admit('b');
+    expect(restored.closed).toBe(false);
+    await runtime.exec('DROP TRIGGER fail_history_scrub');
+    /* A later deletion scrubs in its own transaction and the result survives the next start. */
+    expect((await deletion('user-b', 'deletion-b')).status).toBe(200);
+    expect(JSON.stringify(await runtime.exec<{ data: string }>('SELECT data FROM history'))).not.toContain('Synthetic');
+    await runtime.restart();
+    const observer = await admit('c');
+    const transfers = JSON.stringify((await snapshot(observer)).spiceTransfers);
+    expect(transfers).toContain('[deleted user]');
+    expect(transfers).not.toContain('Synthetic');
+  }, 30_000);
+
+  it('retains requests after account deletion and anonymizes attribution in replay and cold recovery', async () => {
+    const a = await admit('a');
+    const b = await admit('b');
+    const requested = await act(a, { kind: 'spawn-request', type: 'token-disc', slug: 'recovery' });
+    await act(b, { kind: 'phase' });
+    const beforeDeletion = b.messages.length;
+    const response = await runtime.fetch('/__play/games/fixture-game/account-deletion', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        gameId: 'fixture-game',
+        secret: 'a'.repeat(64),
+        userId: 'user-a',
+        eventId: 'deletion-a',
+        deletionOperationId: 'operation-a',
+      }),
+    });
+    expect(response.status).toBe(200);
+    const current = (
+      await eventually(
+        () =>
+          b.messages
+            .slice(beforeDeletion)
+            .find((message): message is Extract<NativeMessage, { type: 'view' }> => message.type === 'view'),
+        'deletion view'
+      )
+    ).snapshot;
+    expect(required(current.controls).requests[0]).toMatchObject({
+      id: required(requested.controls).requests[0].id,
+      requesterSeat: 'harkonnen',
+      requesterName: '[deleted user]',
+    });
+    b.send({ type: 'history', step: 1 });
+    const historical = (await b.message('history')).snapshot;
+    expect(required(historical.controls).requests[0]).toMatchObject({
+      requesterSeat: 'harkonnen',
+      requesterName: '[deleted user]',
+    });
+    expect(JSON.stringify(historical)).not.toContain('Synthetic A');
+    expect((await runtime.audit())[0]).toMatchObject({ user_id: null, display_name: '[deleted user]' });
+    expect(JSON.stringify(await runtime.audit())).not.toContain('user-a');
+    await runtime.restart();
+    const restored = await admit('b');
+    restored.send({ type: 'history', step: 1 });
+    expect(required(required(await restored.message('history')).snapshot.controls).requests[0].requesterName).toBe(
+      '[deleted user]'
+    );
+    await act(restored, { kind: 'spawn-approve', requestId: required(current.controls).requests[0].id });
+    expect((await snapshot(restored)).table.pieces.filter((piece) => piece.inventory)).toHaveLength(1);
+  });
+});

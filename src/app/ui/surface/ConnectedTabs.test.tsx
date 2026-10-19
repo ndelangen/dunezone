@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
 
+import { waitFor } from '@testing-library/react';
 import { act, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 
 import { ConnectedTabs } from './ConnectedTabs';
 
@@ -156,6 +157,15 @@ describe('ConnectedTabs', () => {
   });
 
   it('emits selection requests without owning the selected tab', async () => {
+    /* A stateful parent takes the request, so the clicked tab becomes active. */
+    const final = getTab('3Final');
+    await act(async () => {
+      final.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0 }));
+      final.click();
+    });
+    expect(final.getAttribute('data-state')).toBe('active');
+    expect(container?.textContent).toContain('Final panel');
+
     const onValueChange = vi.fn();
     await act(async () =>
       root?.render(
@@ -220,23 +230,12 @@ describe('ConnectedTabs', () => {
     const first = getTab('1First');
     const middle = getTab('2Middle');
 
-    first.focus();
+    act(() => first.focus());
     await act(async () => first.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true })));
 
-    expect(document.activeElement).toBe(middle);
+    await waitFor(() => expect(document.activeElement).toBe(middle));
     expect(middle.getAttribute('data-state')).toBe('active');
     expect(container?.textContent).toContain('Middle panel');
-  });
-
-  it('supports pointer activation with controlled state', async () => {
-    const final = getTab('3Final');
-    await act(async () => {
-      final.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0 }));
-      final.click();
-    });
-
-    expect(final.getAttribute('data-state')).toBe('active');
-    expect(container?.textContent).toContain('Final panel');
   });
 
   it('steps through enabled items in the compact picker and wraps', async () => {

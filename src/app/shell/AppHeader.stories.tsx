@@ -1,8 +1,7 @@
 import preview from '@sb/preview';
-import { expect } from 'storybook/test';
+import { expect, waitFor, within } from 'storybook/test';
 
 import { AppHeader } from './AppHeader';
-import { playHeaderResize } from './headerResize.stories.fixture';
 import { shellPageOptionLabels, shellPageOptions } from './ShellStoryPage.stories.fixture';
 
 const meta = preview.meta({
@@ -32,7 +31,14 @@ const meta = preview.meta({
 });
 
 export const DefaultHeader = meta.story({
-  globals: { viewport: { value: 'appDesktop' } },
+  globals: { viewport: { value: 'appDesktop' }, motion: 'on' },
+  play: async ({ canvasElement }) => {
+    const band = canvasElement.querySelector<HTMLElement>('[data-app-band]');
+    await expect(band).toBeVisible();
+    await expect(within(band!).getByRole('navigation', { name: 'Primary navigation' })).toBeVisible();
+    /* Motion is pinned on, so the loop mounts over the poster once the band has its height, whatever the runner prefers. */
+    await waitFor(() => expect(band!.querySelector('video')).not.toBeNull(), { timeout: 30_000 });
+  },
 });
 
 /** Below 62rem the band drops to a fixed height and the artwork anchors left. */
@@ -53,21 +59,6 @@ export const ReducedMotion = meta.story({
 export const CompactHeader = meta.story({
   globals: { viewport: { value: 'appDesktop' } },
   args: { children: shellPageOptionLabels[1] },
-});
-
-export const CompactHeaderMobile = meta.story({
-  globals: { viewport: { value: 'appMobile' } },
-  args: { children: shellPageOptionLabels[1] },
-});
-
-export const HeaderlessPage = meta.story({
-  globals: { viewport: { value: 'appDesktop' } },
-  args: { children: shellPageOptionLabels[2] },
-});
-
-export const HeaderlessPageMobile = meta.story({
-  globals: { viewport: { value: 'appMobile' } },
-  args: { children: shellPageOptionLabels[2] },
 });
 
 /**
@@ -100,45 +91,4 @@ export const HeaderlessPageResponsive = meta.story({
     }
     canvasElement.style.removeProperty('width');
   },
-});
-
-async function playResizing(context: Parameters<typeof playHeaderResize>[0]) {
-  const band = context.canvasElement.querySelector<HTMLElement>('[data-app-band]');
-  const view = context.canvasElement.ownerDocument.defaultView;
-  if (!band || !view) {
-    throw new Error('The resize story requires a mounted header and browser window.');
-  }
-  const hasTransitionDuration = view
-    .getComputedStyle(band)
-    .transitionDuration.split(',')
-    .some((duration) => Number.parseFloat(duration) > 0);
-  const { jumped, remounted } = await playHeaderResize(context);
-
-  await expect(remounted).toBe(false);
-  if (hasTransitionDuration) {
-    await expect(jumped).toBe(false);
-  }
-}
-
-/**
- * Steps the `children` arg through every route state on the same mounted band.
- * Animated resizes must pass through intermediate heights;
- * reduced-motion resizes may change immediately.
- */
-export const Resizing = meta.story({
-  globals: { viewport: { value: 'appDesktop' } },
-  parameters: {
-    docs: {
-      description: {
-        story:
-          'In the interactive preview, walks the band through all three heights on the same mounted element. With motion enabled, each resize must pass through intermediate sizes. Use the `children` control to resize it by hand.',
-      },
-    },
-  },
-  play: playResizing,
-});
-
-export const ResizingMobile = meta.story({
-  globals: { viewport: { value: 'appMobile' } },
-  play: playResizing,
 });

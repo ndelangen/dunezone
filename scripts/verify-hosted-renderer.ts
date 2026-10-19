@@ -9,7 +9,7 @@ export const rendererKinds = ['webgpu', 'webgl2-swiftshader', 'webgl2-other'] as
 type RendererKind = (typeof rendererKinds)[number];
 
 /** What the table's page reports: the backend three.js initialised, or why none was read. */
-type TableRendererObservation =
+export type TableRendererObservation =
   | { backend: 'webgpu'; adapter: { vendor: string; architecture: string } }
   | { backend: 'webgl2'; glRenderer: string }
   | { unidentified: string };

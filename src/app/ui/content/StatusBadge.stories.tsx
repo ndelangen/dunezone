@@ -1,5 +1,7 @@
+import { Group } from '@mantine/core';
 import preview from '@sb/preview';
 import { Crown } from 'lucide-react';
+import { expect, within } from 'storybook/test';
 
 import { StatusBadge } from './StatusBadge';
 
@@ -14,36 +16,34 @@ const meta = preview.meta({
 /** A state with no positive or negative charge: not a member, no file published. */
 export const Neutral = meta.story({});
 
-/** The desired end state: an active membership, a current publication. */
-export const Positive = meta.story({
-  args: { tone: 'positive', children: 'Active' },
-});
-
-/** Waiting on someone else to act. */
-export const Pending = meta.story({
-  args: { tone: 'pending', children: 'Scheduled' },
-});
-
-/** Underway right now. */
-export const Progress = meta.story({
-  args: { tone: 'progress', children: 'In progress' },
-});
-
-export const Negative = meta.story({
-  args: { tone: 'negative', children: 'Failed' },
-});
-
 /**
- * Ownership uses slate, as the group page's Owner badge does.
- * The icon slot exists for exactly this fold.
+ * Every tone side by side, so their contrast can be compared: positive is the desired end state, pending waits on someone else, progress is underway now.
+ * Ownership uses slate, as the group page's Owner badge does;
+ * the icon slot exists for exactly this fold.
  */
-export const Brand = meta.story({
-  args: { tone: 'brand', icon: <Crown size={12} aria-hidden />, children: 'Owner' },
+export const Tones = meta.story({
+  render: () => (
+    <Group gap="xs">
+      <StatusBadge>Not a member</StatusBadge>
+      <StatusBadge tone="positive">Active</StatusBadge>
+      <StatusBadge tone="pending">Scheduled</StatusBadge>
+      <StatusBadge tone="progress">In progress</StatusBadge>
+      <StatusBadge tone="negative">Failed</StatusBadge>
+      <StatusBadge tone="brand" icon={<Crown size={12} aria-hidden />}>
+        Owner
+      </StatusBadge>
+    </Group>
+  ),
 });
 
 /** For statuses that change without the reader acting, announced politely to assistive tech. */
 export const Live = meta.story({
   args: { tone: 'progress', live: true, children: 'In progress' },
+  play: async ({ canvasElement }) => {
+    const status = within(canvasElement).getByRole('status');
+    await expect(status).toHaveAttribute('aria-live', 'polite');
+    await expect(status).toHaveTextContent('In progress');
+  },
 });
 
 export const LongLabel = meta.story({

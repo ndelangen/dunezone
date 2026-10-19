@@ -1,29 +1,27 @@
-import { waitForFrame } from '@sb/storyWaits';
+import { finishTransitions, waitForFrame } from '@sb/storyWaits';
 import { emptyBattlePlan } from '@shared/play/battle';
+import type { TablePiece } from '@shared/play/model';
 import { TABLE_PHASES } from '@shared/play/phases';
 import type { GameSnapshot } from '@shared/play/protocol';
-import { DEFAULT_TABLE_SEAT_COUNT } from '@shared/play/tableSettings';
-import { trackerArcSlots } from '@shared/play/tableTrackers';
+import { stackTopHeight } from '@shared/play/tableGeometry';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
-import { Vector3 } from 'three';
 
 import { STORYBOOK_NOW } from '@db/storybook';
 
-import { cameraPoseFor, mapViewTopLimitForViewport, tableCamera } from '../../../widgets/tabletop/playView';
-import { mapViewFramingPoints } from '../../../widgets/tabletop/tablePlateGeometry';
 import { openControl } from './controls.stories.fixture';
+import { SETTLE, mapViewPoint, settled, waitForPlayCamera } from './mapView.stories.fixture';
 import { productTransport, playingSnapshot as initialSnapshot, SIX, factions } from './product.stories.fixture';
 
 export function phaseControls(canvasElement: HTMLElement) {
   const page = within(canvasElement.ownerDocument.body);
   const controls = () => within(page.getByRole('group', { name: 'Phase navigation' }));
   /* The table mounts once the connection settles, so each assertion reads the currently visible controls. */
-  const waitForPhase = (assert: () => void) =>
+  const waitForPhase = (assert: () => void | Promise<void>) =>
     waitFor(
-      () => {
-        expect(controls().getByRole('button', { name: 'More phase actions' })).toBeVisible();
-        expect(controls().getByRole('button', { name: 'Next phase' })).toBeVisible();
-        assert();
+      async () => {
+        await expect(controls().getByRole('button', { name: 'More phase actions' })).toBeVisible();
+        await expect(controls().getByRole('button', { name: 'Next phase' })).toBeVisible();
+        await assert();
       },
       { timeout: 30_000 }
     );
@@ -44,23 +42,19 @@ export function phaseControls(canvasElement: HTMLElement) {
 }
 
 export { openControl as openTab };
+export { mapViewPoint, settled, waitForPlayCamera };
 
-const SETTLE = { timeout: 30_000 } as const;
-
-/** Waits for the visible panel, which arrives with the connection. */
-export const settled = (assert: () => void) => waitFor(assert, SETTLE);
-
-export function expectHeaderPhase(canvasElement: HTMLElement, phaseIndex: number) {
+export async function expectHeaderPhase(canvasElement: HTMLElement, phaseIndex: number) {
   const header = canvasElement.ownerDocument.querySelector('.seated-header');
   if (!(header instanceof HTMLElement)) {
     throw new TypeError('The hosted table header is missing.');
   }
   const phase = TABLE_PHASES[phaseIndex];
-  expect(within(header).queryByRole('img', { name: 'Dune' })).toBeNull();
-  expect(within(header).getByText(phase.label)).toBeVisible();
-  expect(header.querySelector('use')).toHaveAttribute('href', `${phase.symbol}#root`);
-  expect(within(header).queryByText(/^Phase \d+ of \d+$/)).toBeNull();
-  expect(within(header).queryByText(/^(Center|Help|Setup|Lobby)$/)).toBeNull();
+  await expect(within(header).queryByRole('img', { name: 'Dune' })).toBeNull();
+  await expect(within(header).getByText(phase.label)).toBeVisible();
+  await expect(header.querySelector('use')).toHaveAttribute('href', `${phase.symbol}#root`);
+  await expect(within(header).queryByText(/^Phase \d+ of \d+$/)).toBeNull();
+  await expect(within(header).queryByText(/^(Center|Help|Setup|Lobby)$/)).toBeNull();
 }
 
 /** The transport for `install`: a table with one shared inventory piece and one pending request from the other seat. */
@@ -162,38 +156,6 @@ export function battleStory(stage: 'preparing' | 'countdown' | 'revealed', obser
   };
 }
 
-/** Where a point on the table lands in the viewport while the table shows the map view. */
-/* The seated camera loads in its own chunk and the preview camera frames the table until it arrives, which on a busy runner takes many seconds (#1987). */
-export async function waitForPlayCamera(document: Document) {
-  await waitFor(
-    () => expect(document.querySelector('.dune-play-shell canvas[data-play-camera="ready"]')).not.toBeNull(),
-    {
-      timeout: 60_000,
-    }
-  );
-}
-
-export function mapViewPoint(document: Document, point: readonly [number, number, number]): [number, number] {
-  const scene = document.querySelector('canvas');
-  if (!scene) {
-    throw new TypeError('The table scene is missing.');
-  }
-  const sceneBounds = scene.getBoundingClientRect();
-  const headerHeight = document.querySelector<HTMLElement>('.seated-header')?.getBoundingClientRect().height ?? 0;
-  const aspectRatio = sceneBounds.width / sceneBounds.height;
-  const pose = cameraPoseFor(
-    'map',
-    aspectRatio,
-    mapViewFramingPoints(trackerArcSlots(TABLE_PHASES.length), DEFAULT_TABLE_SEAT_COUNT),
-    mapViewTopLimitForViewport(sceneBounds.height, headerHeight)
-  );
-  const projected = new Vector3(...point).project(tableCamera(pose, aspectRatio));
-  return [
-    sceneBounds.left + ((projected.x + 1) * sceneBounds.width) / 2,
-    sceneBounds.top + ((1 - projected.y) * sceneBounds.height) / 2,
-  ];
-}
-
 export async function expectBattleCalloutPlacement(
   canvasElement: HTMLElement,
   battleAnchor: [number, number, number],
@@ -202,9 +164,9 @@ export async function expectBattleCalloutPlacement(
   const page = within(canvasElement.ownerDocument.body);
   await waitForPlayCamera(canvasElement.ownerDocument);
   /* The scene writes the callout's position and shape only from inside its animation-frame callbacks, so each poll runs the waiting frames itself (https://github.com/ndelangen/dunezone/issues/1443). */
-  await waitForFrame(() => {
+  await waitForFrame(async () => {
     const cancel = page.getByRole('button', { name: 'Cancel battle' });
-    expect(cancel).toBeVisible();
+    await expect(cancel).toBeVisible();
     const callout = cancel.closest<HTMLElement>('[data-battle-stage]');
     if (!callout) {
       throw new TypeError('The battle callout is missing.');
@@ -220,18 +182,18 @@ export async function expectBattleCalloutPlacement(
     const centreX = bounds.left + bounds.width / 2;
     const centreY = bounds.top + bounds.height / 2;
     const verticalMidpoint = sceneBounds.top + sceneBounds.height / 2;
-    expect(bounds.width).toBeGreaterThan(0);
-    expect(Math.abs(centreX - viewport.width / 2)).toBeLessThanOrEqual(1);
+    await expect(bounds.width).toBeGreaterThan(0);
+    await expect(Math.abs(centreX - viewport.width / 2)).toBeLessThanOrEqual(1);
     if (expectedHalf === 'above') {
-      expect(centreY).toBeLessThan(verticalMidpoint);
+      await expect(centreY).toBeLessThan(verticalMidpoint);
     } else {
-      expect(centreY).toBeGreaterThan(verticalMidpoint);
+      await expect(centreY).toBeGreaterThan(verticalMidpoint);
     }
     const shapes = callout.querySelectorAll<SVGPathElement>('svg path');
-    expect(shapes).toHaveLength(1);
+    await expect(shapes).toHaveLength(1);
     const shape = shapes[0];
     const shapeBounds = shape.ownerSVGElement?.getBoundingClientRect();
-    expect(shapeBounds).toBeDefined();
+    await expect(shapeBounds).toBeDefined();
     const shapeRoot = shape.ownerSVGElement?.parentElement;
     const content = shapeRoot?.children.item(1);
     if (!shapeBounds || !content) {
@@ -240,15 +202,15 @@ export async function expectBattleCalloutPlacement(
     const contentBounds = content.getBoundingClientRect();
     const capsuleRadius = Math.min(shapeBounds.width / 2, contentBounds.height / 2);
     const arcRadii = Array.from(shape.getAttribute('d')?.matchAll(/\bA ([\d.]+) /g) ?? [], (match) => Number(match[1]));
-    expect(arcRadii.filter((radius) => Math.abs(radius - capsuleRadius) < 0.1)).toHaveLength(4);
+    await expect(arcRadii.filter((radius) => Math.abs(radius - capsuleRadius) < 0.1)).toHaveLength(4);
     const probe = shape.ownerSVGElement!.createSVGPoint();
     for (const direction of [-1, 1]) {
       probe.x = direction < 0 ? capsuleRadius * 0.27 : shapeBounds.width - capsuleRadius * 0.27;
       probe.y = contentBounds.height - capsuleRadius * 0.27;
-      expect(shape.isPointInFill(probe)).toBe(false);
+      await expect(shape.isPointInFill(probe)).toBe(false);
       probe.x = direction < 0 ? capsuleRadius * 0.31 : shapeBounds.width - capsuleRadius * 0.31;
       probe.y = contentBounds.height - capsuleRadius * 0.31;
-      expect(shape.isPointInFill(probe)).toBe(true);
+      await expect(shape.isPointInFill(probe)).toBe(true);
     }
     const pathLength = shape.getTotalLength();
     let closestDistance = Number.POSITIVE_INFINITY;
@@ -262,6 +224,77 @@ export async function expectBattleCalloutPlacement(
         )
       );
     }
-    expect(closestDistance).toBeLessThan(6);
+    await expect(closestDistance).toBeLessThan(6);
   }, SETTLE);
+}
+
+export async function tablePage(canvasElement: HTMLElement, phaseLabel: string = TABLE_PHASES[0].label) {
+  const page = within(canvasElement.ownerDocument.body);
+  const viewControls = await page.findByRole('group', { name: 'Table view' }, { timeout: 30_000 });
+  const document = canvasElement.ownerDocument;
+  await waitFor(
+    async () => {
+      await expect(viewControls).toBeVisible();
+      const canvas = document.querySelector('.dune-play-shell canvas');
+      await expect(canvas).toBeVisible();
+      await expect(canvas?.getBoundingClientRect().height).toBeGreaterThan(100);
+      await expect(document.querySelector('[data-piece-id="treachery-deck"]')).toHaveTextContent('10');
+      await expect(
+        Array.from(document.fonts).some(
+          (font) => font.family.replaceAll('"', '') === 'Dune Play Table Label' && font.status === 'loaded'
+        )
+      ).toBe(true);
+    },
+    { timeout: 30_000 }
+  );
+  const shell = document.querySelector<HTMLElement>('.dune-play-shell');
+  if (!shell) {
+    throw new Error('The Play route did not mount its table.');
+  }
+  await waitForPlayCamera(document);
+  await expect(document.querySelector('[data-page-layout-height="fullscreen"]')).not.toBeNull();
+  const header = shell.querySelector('header');
+  if (!header) {
+    throw new Error('The table header is missing.');
+  }
+  /* The table runs to the top: no brand mark, only the floating phase and game chips. */
+  await expect(within(header).queryByRole('img', { name: 'Dune' })).toBeNull();
+  await expect(within(header).getByText(phaseLabel)).toBeVisible();
+  await expect(within(header).queryByText(/^Phase \d+ of \d+$/)).toBeNull();
+  await expect(within(header).queryByText(/^(Center|Help|Setup|Lobby)$/)).toBeNull();
+  await expect(page.queryByRole('link', { name: /^(Dune )?Play$/ })).toBeNull();
+  return { page, shell, document };
+}
+
+/**
+ * Right-clicks a piece on the table, in the map view, until its menu opens.
+ * The right-click is a pointerdown and then a `contextmenu` PointerEvent with the same pointer id, because the scene fires a click on an object only when the pointerdown with that id hit it;
+ * user-event's `[MouseRight]` sends its `contextmenu` without a pointer id, and no menu opens.
+ * The events go to the canvas `mapViewPoint` projects against, the document's first.
+ * The menu is found by the name a screen reader announces.
+ */
+export async function openPieceMenu(document: Document, piece: TablePiece, name: string) {
+  const page = within(document.body);
+  const [clientX, clientY] = mapViewPoint(document, [
+    piece.position[0],
+    piece.position[1] + stackTopHeight(piece),
+    piece.position[2],
+  ]);
+  const press = { clientX, clientY, bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse', button: 2 };
+  /* The menu enters the DOM only from inside an animation-frame callback, so each poll runs the waiting frames itself (https://github.com/ndelangen/dunezone/issues/1443). */
+  return waitForFrame(
+    async () => {
+      const scene = document.querySelector('canvas');
+      if (scene && !page.queryByRole('menu')) {
+        scene.dispatchEvent(new PointerEvent('pointerdown', { ...press, buttons: 2 }));
+        scene.dispatchEvent(new PointerEvent('contextmenu', { ...press, buttons: 2 }));
+        scene.dispatchEvent(new PointerEvent('pointerup', { ...press, buttons: 0 }));
+      }
+      const menu = page.getByRole('menu');
+      await expect(finishTransitions(menu)).toBeVisible();
+      await expect(menu).toHaveAccessibleName(name);
+      return menu;
+    },
+    { timeout: 30_000 }
+  );
 }

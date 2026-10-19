@@ -70,7 +70,7 @@ export async function shareImages(document: PDFDocument): Promise<void> {
     const dictionary = object.dict
       .entries()
       .filter(([key]) => key !== PDFName.Length)
-      .map(([key, value]) => `${key} ${value}`)
+      .map(([key, value]) => `${key.toString()} ${value.toString()}`)
       .sort()
       .join('\n');
     const signature = (await digest(Uint8Array.from(object.contents))) + (await digest(binaryBytes(dictionary)));
@@ -97,7 +97,7 @@ export function compactObjects(document: PDFDocument): void {
       reachable.add(object);
       const target = document.context.lookup(object);
       if (!target) {
-        throw new Error(`PDF contains a dangling reference: ${object}`);
+        throw new Error(`PDF contains a dangling reference: ${object.toString()}`);
       }
       visit(target);
     } else if (object instanceof PDFRawStream) {

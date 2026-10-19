@@ -1,13 +1,63 @@
+/*
+ * The opening paragraph reads like the first page of a book chapter:
+ * a drop cap in the headings' face, a first line in spaced small caps, and a short rule that closes it off from the body.
+ */
 .lead {
   margin: 0;
   font-size: var(--mantine-font-size-xl);
-  line-height: 1.55;
+  line-height: 1.6;
+}
+
+/* The cap stays under two lines' height (3.2em of lead text), or the third line is indented beside it too. */
+.lead::first-letter {
+  float: inline-start;
+  margin-block-start: 0.04em;
+  margin-inline-end: 0.1em;
+  font-family: var(--mantine-font-family-headings);
+  font-size: 3.5em;
+  font-weight: 700;
+  font-variant: normal;
+  letter-spacing: 0;
+  line-height: 0.85;
+}
+
+.lead::first-line {
+  font-variant: small-caps;
+  letter-spacing: 0.06em;
+}
+
+.lead::after {
+  content: "";
+  display: block;
+  clear: both;
+  width: 6rem;
+  height: 1px;
+  margin: var(--space-lg) auto 0;
+  background: currentColor;
+  opacity: 0.35;
 }
 
 .paragraph {
   margin: 0;
   font-size: var(--mantine-font-size-lg);
   line-height: 1.7;
+}
+
+/* A link in running text keeps the text's size, and is underlined so it reads as a link without relying on colour. */
+.lead a,
+.paragraph a {
+  font-size: inherit;
+  line-height: inherit;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+}
+
+@media (hover: hover) {
+  .lead a:hover,
+  .paragraph a:hover {
+    text-decoration-thickness: 2px;
+  }
 }
 
 .figure {
@@ -17,14 +67,25 @@
   margin: 0;
 }
 
-/* The stage is its own container, so embedded artwork sizes from the column rather than the window. */
-.stage {
-  container-type: inline-size;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+.figureRow {
+  --figure-columns: minmax(0, 1fr);
+
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-lg);
-  padding: var(--space-lg) 0;
+}
+
+/* Both break out of the reading column to the same width. */
+.figureRow,
+.wide {
+  align-self: center;
+  width: min(56rem, calc(100vw - 2 * var(--app-shell-inline-gutter, 20px)));
+}
+
+@container blog-article (width >= 30rem) {
+  .figureRow {
+    grid-template-columns: var(--figure-columns);
+  }
 }
 
 /* Shown only without scripts, in place of the image `PublishedImage` would draw. */
@@ -33,6 +94,7 @@
   width: 100%;
   height: auto;
   border-radius: var(--mantine-radius-md);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
 }
 
 .caption {

@@ -1,7 +1,7 @@
 import { fileURLToPath } from 'node:url';
 
-import { parseSync, transformWithOxc } from 'vite';
-import type { Plugin } from 'vite';
+import { parseSync, transformWithOxc } from 'vite-plus';
+import type { Plugin } from 'vite-plus';
 
 const SCRIPT_FILE = /\.[cm]?[jt]sx?$/;
 const WORKER_PACKAGE_PATHS = [
@@ -48,7 +48,9 @@ function assertNoNativeAsync(code: string, filename: string) {
   }
 }
 
-export const convexWorkerOxc = { target: 'es2020' } as const;
+/* Coverage also transforms the publisher entry, whose batch PDF setup uses top-level await.
+   The browser target supports it; the Convex worker closure still lowers async to es2016 below. */
+export const convexWorkerOxc = { target: 'es2022' } as const;
 
 export const convexWorkerOptimizeDeps = {
   /* Optimized dependencies bypass Vite's Oxc transform and retain native await.

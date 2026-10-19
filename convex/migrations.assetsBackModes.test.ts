@@ -1,22 +1,18 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import migrationsTest from '@convex-dev/migrations/test';
-import { convexTest } from 'convex-test';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { internal } from './_generated/api';
-import schema from './schema';
+import { applicationTest } from './application.test.fixture';
 
-const modules = import.meta.glob('./**/*.ts');
 const now = '2026-08-21T00:00:00.000Z';
 
 const REQUIRED = ['assets_back_modes_v1', 'asset_relations_token_back_drop_v1', 'assets_back_modes_verify_v1'];
 
 describe('the back-modes widen, drop, and verify trio', () => {
   test('honored references gain their target in data, every invalid class becomes same, and the relation rows drop', async () => {
-    const t = convexTest(schema, modules);
-    migrationsTest.register(t);
+    const t = applicationTest();
 
     const ids = await t.run(async (ctx) => {
       const ownerId = await ctx.db.insert('users', { name: 'Back owner' });
@@ -98,8 +94,7 @@ describe('the back-modes widen, drop, and verify trio', () => {
   });
 
   test('the verify alone blocks the gate while a legacy reference remains', async () => {
-    const t = convexTest(schema, modules);
-    migrationsTest.register(t);
+    const t = applicationTest();
 
     await t.run(async (ctx) => {
       const ownerId = await ctx.db.insert('users', { name: 'Back owner' });

@@ -82,9 +82,8 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
     await loadFactionDraft(page, factionBName);
 
     await page.getByRole('tab', { name: /^Identity & Appearance/ }).click();
-    /* The name-conflict chip arrives asynchronously and re-centres the strip; wait for it so the click below
-       cannot land on it instead of the leader chip. */
-    await expect(page.getByRole('button', { name: /^Faction identity:/ })).toBeVisible();
+    await expect(page.getByRole('textbox', { name: 'Faction name' })).toHaveValue(factionBName);
+    await expect(page.getByRole('button', { name: /^Faction identity:/ })).toHaveCount(0);
     /* The validation header is open whenever a warning exists, so there is no toolbar count to click through;
        the header's per-source chip is what jumps to and focuses the field. */
     await page.getByRole('button', { name: 'Faction leader: missing name' }).click();
@@ -206,16 +205,14 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
     const search = page.getByRole('textbox', { name: 'Search factions' });
     await search.fill(importedLeaderName);
     await expect(updatedFaction).toBeVisible();
+    /* The search runs on the server, so the list narrows once typing settles into the address. */
     await expect(otherFaction).toBeHidden();
-    /* Polled like its positive twin below: a bare read passes on any URL write that has not landed yet, which is the same failure the draft/committed split is here to catch. */
-    await expect.poll(() => new URL(page.url()).searchParams.get('q')).toBeNull();
+    await expect.poll(() => new URL(page.url()).searchParams.get('q')).toBe(importedLeaderName);
 
     await search.press('Enter');
     await expect.poll(() => new URL(page.url()).searchParams.get('q')).toBe(importedLeaderName);
-
-    await page.getByRole('combobox', { name: 'Sort factions' }).click();
-    await page.getByRole('option', { name: 'Chronological (updated)' }).click();
-    await expect.poll(() => new URL(page.url()).searchParams.get('sort')).toBe('updated');
+    /* A search is always its best matches; ordering belongs to browsing. */
+    await expect(page.getByRole('combobox', { name: 'Sort factions' })).toBeDisabled();
 
     await page.getByRole('button', { name: /^Refine/ }).click();
     await page
@@ -228,6 +225,10 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
 
     await expect(updatedFaction).toBeVisible();
     await expect(otherFaction).toBeVisible();
+    await expect.poll(() => new URL(page.url()).searchParams.toString()).toBe('');
+
+    await page.getByRole('combobox', { name: 'Sort factions' }).click();
+    await page.getByRole('option', { name: 'Chronological (updated)' }).click();
     await expect.poll(() => new URL(page.url()).searchParams.toString()).toBe('sort=updated');
 
     await page.goBack();
@@ -260,5 +261,40 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
     /* The rating reads in the header band: the number shows, and its full phrase is the stat's accessible label. */
     await expect(page.getByText('7/10', { exact: true })).toBeVisible();
     await expect(page.getByText('Complexity 7/10 · Expert', { exact: true })).toHaveCount(1);
+  });
+
+  await test.step('factions can share a display name while keeping distinct URLs', async () => {
+    const name = `House Atreides E2E${Date.now()}`;
+    const slug = name.toLowerCase().replaceAll(' ', '-');
+    const field = () => page.getByRole('textbox', { name: 'Faction name' });
+    const save = () => page.getByRole('button', { name: 'Save faction' });
+
+    for (const address of [slug, `${slug}-1`]) {
+      await page.goto('/factions/create');
+      await field().fill(name);
+      await expect(page.getByText(/its name is already taken/)).toHaveCount(0);
+      await save().click();
+      await expect(page).toHaveURL(new RegExp(`/factions/${address}/edit$`));
+      await expect(field()).toHaveValue(name);
+    }
+
+    await page.getByRole('tab', { name: /^Faction leader/ }).click();
+    await page.getByRole('textbox', { name: 'Faction leader name' }).fill('Duke Leto');
+    await save().click();
+    await expect(save()).toHaveAccessibleDescription(/^Saved/);
+    await expect(page).toHaveURL(new RegExp(`/factions/${slug}-1/edit$`));
+    await page.reload();
+    await expect(field()).toHaveValue(name);
+
+    const previousPublicUrl = page.url().replace(/\/edit$/, '');
+    await field().fill(`${name} renamed`);
+    await save().click();
+    await expect(page).toHaveURL(new RegExp(`/factions/${slug}-renamed/edit$`));
+    await page.goto(previousPublicUrl);
+    await expect(page).toHaveURL(new RegExp(`/factions/${slug}-renamed/?$`));
+    await expect(page.getByRole('heading', { name: `${name} renamed`, exact: true })).toBeVisible();
+
+    await page.goto(`/factions/${slug}`);
+    await expect(page.getByRole('heading', { name, exact: true })).toBeVisible();
   });
 });

@@ -28,7 +28,8 @@ test('owner adds an owned, unassigned faction to their Group', async ({ page }) 
   await test.step('owner adds the faction to the Group from the picker', async () => {
     await page.goto(`/groups/${groupName.toLowerCase()}`);
     await expect(page.getByRole('heading', { name: groupName })).toBeVisible();
-    await expect(page.getByText(factionName)).not.toBeVisible();
+    /* The empty state, not the faction's absence: an absence also holds before the list has rendered. */
+    await expect(page.getByText('No factions in this group yet.', { exact: true })).toBeVisible();
 
     await page.getByRole('button', { name: 'Add a faction you own' }).click();
     /* The suggestions are inline in the pane and choosing one is the commit. */

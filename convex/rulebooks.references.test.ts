@@ -1,6 +1,6 @@
 // @vitest-environment edge-runtime
 
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { publishedHref } from '../src/shared/asset-publishing/publicationTargets';
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';

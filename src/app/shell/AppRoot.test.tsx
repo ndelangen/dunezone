@@ -1,15 +1,16 @@
 /** @vitest-environment jsdom */
 
 import { MantineProvider } from '@mantine/core';
-import { RECORDLESS_PUBLIC_PAGES, UNLINKED_PUBLIC_PAGES } from '@shared/recordlessPublicPages';
+import { RECORDLESS_PUBLIC_PAGES, HEADER_PUBLIC_PAGES } from '@shared/recordlessPublicPages';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { appContentTheme } from '@ui/theme';
 import { act } from 'react';
 import type { ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 
 import { AppRoot } from './AppRoot';
+import { PRIMARY_LINKS } from './SiteNavigation';
 
 /* The chrome renders inside `ApplicationChrome`'s Mantine provider; mirror that here. */
 function chrome(children: ReactNode) {
@@ -17,11 +18,23 @@ function chrome(children: ReactNode) {
 }
 
 vi.mock('@tanstack/react-router', () => ({
-  Link: ({ children, to, ...rest }: { children: ReactNode; to: string }) => (
+  Link: ({
+    children,
+    to,
+    search: _search,
+    activeProps: _activeProps,
+    ...rest
+  }: {
+    children: ReactNode;
+    to: string;
+    search?: unknown;
+    activeProps?: unknown;
+  }) => (
     <a href={to} {...rest}>
       {children}
     </a>
   ),
+  useLocation: ({ select }: { select: (location: { href: string }) => unknown }) => select({ href: '/' }),
 }));
 
 vi.mock('@db/profiles', () => ({
@@ -51,6 +64,7 @@ class ResizeObserverStub {
 
 describe('AppRoot page header', () => {
   beforeEach(() => {
+    vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
     vi.stubGlobal('ResizeObserver', ResizeObserverStub);
   });
 
@@ -166,14 +180,17 @@ describe('AppRoot page header', () => {
     ]);
     /*
      * Every page the sitemap lists without a record also needs a footer link, or nothing on the site leads to it.
-     * Pages listed as unlinked are the exception, and the footer must not link them early.
+     * Pages the header links to are the exception: the header carries them instead.
      */
     const footerHrefs = [...container.querySelectorAll('footer nav a')].map((link) => link.getAttribute('href'));
     expect(footerHrefs).toEqual(
-      expect.arrayContaining(RECORDLESS_PUBLIC_PAGES.filter((page) => !UNLINKED_PUBLIC_PAGES.includes(page)))
+      expect.arrayContaining(RECORDLESS_PUBLIC_PAGES.filter((page) => !HEADER_PUBLIC_PAGES.includes(page)))
     );
-    for (const page of UNLINKED_PUBLIC_PAGES) {
+    /* The header row collapses links into its More menu by measured width, so the contract is read from its link set. */
+    const headerHrefs = PRIMARY_LINKS.map((link) => link.to);
+    for (const page of HEADER_PUBLIC_PAGES) {
       expect(footerHrefs).not.toContain(page);
+      expect(headerHrefs).toContain(page);
     }
     const componentLibrary = container.querySelector('footer a[aria-label="Component library"]');
     expect(componentLibrary?.getAttribute('target')).toBe('_blank');

@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import { afterEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vite-plus/test';
 import type { z } from 'zod';
 
 import { placeholderOwner } from '../scripts/lib/snapshot-policy';
@@ -98,6 +98,7 @@ describe('a snapshot load', () => {
     await expect(t.query(internal.migrations.assertReadyForNarrow, { required })).resolves.toMatchObject({ ok: true });
     expect(await rows()).toEqual(loaded);
     expect((await t.query(api.homepage.get, {})).community.counts).toMatchObject({ factions: 1, members: 1 });
+    expect(await t.query(api.factions.catalogue, {})).toMatchObject({ catalogueTotal: 1, total: 1 });
   });
 
   test('seeds each live Rulebook a draft of its current Edition as the public reader shows it, so the editor opens', async () => {

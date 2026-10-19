@@ -36,6 +36,7 @@ export const ASSET_TYPES = {
   'token-disc': { category: 'tokens', label: 'Disc tokens', shortLabel: 'Disc', status: 'live' },
   'token-tech': { category: 'tokens', label: 'Tech tokens', shortLabel: 'Tech', status: 'live' },
   'token-plate': { category: 'tokens', label: 'Plate tokens', shortLabel: 'Plate', status: 'live' },
+  'token-pointer': { category: 'tokens', label: 'Pointer tokens', shortLabel: 'Pointer', status: 'live' },
   'token-enhance': { category: 'tokens', label: 'Enhance tokens', shortLabel: 'Enhance', status: 'live' },
   /* A container of tokens, so it groups with them rather than earning a fifth category (see CONTEXT.md: Asset category). */
   bundle: { category: 'tokens', label: 'Bundles', shortLabel: 'Bundles', status: 'live' },

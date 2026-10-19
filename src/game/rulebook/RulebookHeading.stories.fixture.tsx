@@ -39,7 +39,7 @@ export function HeadingMatrix() {
   );
 }
 
-export function verifyHeadingConsistency(canvasElement: HTMLElement) {
+export async function verifyHeadingConsistency(canvasElement: HTMLElement) {
   const baselines = new Map<string, string[]>();
   const properties = [
     'color',
@@ -70,7 +70,7 @@ export function verifyHeadingConsistency(canvasElement: HTMLElement) {
     const key = host.dataset.headingCase!;
     const baseline = baselines.get(key);
     if (baseline) {
-      expect(
+      await expect(
         appearance,
         `${key} / ${host.querySelector('[data-rulebook-layout]')?.getAttribute('data-rulebook-layout')}`
       ).toEqual(baseline);

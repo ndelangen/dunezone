@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import {
   copyFileSync,
   cpSync,
@@ -11,10 +12,36 @@ import {
 } from 'node:fs';
 import path from 'node:path';
 
+import { parseHTML } from 'linkedom';
+
 import { COMMITTED_WEB_FILES } from '../../src/shared/assetRules';
+import { applicationContentSecurityPolicy } from '../../workers/publisher/application-security';
 
 const WORKERS_FREE_STATIC_ASSET_LIMIT = 20_000;
 export const WORKERS_STATIC_ASSET_FILE_LIMIT_BYTES = 25 * 1024 * 1024;
+
+/** Hash the final shell bytes, after timestamp normalization, so the build permits only its inline scripts. */
+function shellSecurityHeaders(template: string, shell: string, convexUrl: string | undefined): string {
+  if (!template.includes('__APPLICATION_CSP__')) {
+    return template;
+  }
+  if (!convexUrl) {
+    throw new Error('VITE_CONVEX_URL is required to assemble the application CSP');
+  }
+  const scripts = [...parseHTML(shell).document.querySelectorAll('script')]
+    .filter((script) => !script.hasAttribute('src') && script.textContent.length > 0)
+    /* HTML parsing normalizes line endings and replaces NULLs before CSP hashes script text. */
+    .map(
+      (script) =>
+        `'sha256-${createHash('sha256').update(script.textContent.replace(/\r\n?/g, '\n').replaceAll('\0', '\uFFFD')).digest('base64')}'`
+    );
+  const policy = applicationContentSecurityPolicy(convexUrl, [...new Set(scripts)]);
+  const result = template.replace('__APPLICATION_CSP__', policy);
+  if (result.split('\n').some((line) => line.length > 2000)) {
+    throw new Error('Static Assets security headers exceed the 2000-character line limit');
+  }
+  return result;
+}
 
 export type PublisherAssetReport = {
   assetCount: number;
@@ -27,6 +54,26 @@ function normalizePublisherShell(shell: string): string {
     /(i:"__root__\0",u:)\d+(,s:"success",ssr:!0)/g,
     (_match, prefix: string, suffix: string) => `${prefix}0${suffix}`
   );
+}
+
+/**
+ * Every browser-only path is served the shell: sign-in, editors, Play and unknown addresses.
+ * None of them is a search result, but a crawler that runs the shell's script indexes whatever it draws, as Bing did with the sign-in page.
+ * Public pages are server-rendered by the Worker and never served the shell, so the shell alone says noindex, before any script runs.
+ */
+const SHELL_ROBOTS = '<meta name="robots" content="noindex"/>';
+
+/** Only the head counts: the same text in the body would not stop a crawler. */
+function headCarriesNoindex(shell: string): boolean {
+  const end = shell.indexOf('</head>');
+  return end !== -1 && shell.slice(0, end).includes(SHELL_ROBOTS);
+}
+
+function markShellNoindex(shell: string): string {
+  if (!shell.includes('<head>')) {
+    throw new Error('The SPA shell has no <head> to carry its robots noindex');
+  }
+  return headCarriesNoindex(shell) ? shell : shell.replace('<head>', `<head>${SHELL_ROBOTS}`);
 }
 
 /** Every browser-only path is served this one document, so a page identity in it would claim them all. */
@@ -98,6 +145,9 @@ export function inspectPublisherAssets(directory: string): PublisherAssetReport 
   if (!shell.equals(index)) {
     throw new Error('Worker index.html must be an exact copy of the TanStack SPA shell');
   }
+  if (!headCarriesNoindex(shell.toString('utf8'))) {
+    throw new Error('The SPA shell must carry a robots noindex in its head; re-run publisher:assets');
+  }
 
   /* The required-file checks above guarantee `files` is not empty. */
   const largestAsset = files.reduce((largest, file) => (file.bytes > largest.bytes ? file : largest), files[0]);
@@ -111,7 +161,8 @@ export function inspectPublisherAssets(directory: string): PublisherAssetReport 
 export function assemblePublisherAssets(
   appDirectory: string,
   publisherDirectory: string,
-  headersFile: string
+  headersFile: string,
+  convexUrl = process.env.VITE_CONVEX_URL
 ): PublisherAssetReport {
   assertDirectory(appDirectory, 'Application build');
   assertDirectory(publisherDirectory, 'Publisher capture build');
@@ -132,16 +183,19 @@ export function assemblePublisherAssets(
       force: true,
     });
   }
-  /* The Static Assets cache policy ships beside the bundle, from the Worker's own directory rather than the app's public files, so Storybook's copy of those files never carries it. */
-  copyFileSync(headersFile, path.join(publisherDirectory, '_headers'));
   const shell = path.join(publisherDirectory, '_shell.html');
   if (!existsSync(shell)) {
     throw new Error('Application build is missing the TanStack SPA shell');
   }
-  const normalizedShell = normalizePublisherShell(readFileSync(shell, 'utf8'));
+  const normalizedShell = markShellNoindex(normalizePublisherShell(readFileSync(shell, 'utf8')));
   assertAnonymousShell(normalizedShell);
   writeFileSync(shell, normalizedShell);
   copyFileSync(shell, path.join(publisherDirectory, 'index.html'));
+  /* The Static Assets headers ship only with the publisher; Storybook's copy of the app's public files never carries them. */
+  writeFileSync(
+    path.join(publisherDirectory, '_headers'),
+    shellSecurityHeaders(readFileSync(headersFile, 'utf8'), normalizedShell, convexUrl)
+  );
   return inspectPublisherAssets(publisherDirectory);
 }
 

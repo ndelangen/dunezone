@@ -16,7 +16,7 @@ import { handleLegacyMediaRequest, mediaFetcher } from './media-legacy';
 import { handleMediaReleaseRequest } from './media-release';
 import { handleMediaSourceRequest } from './media-source';
 import { handlePublicDiscovery } from './public-discovery';
-import { rendererManifest } from './renderer-manifest.generated';
+import { RENDERER_IDENTITY } from './renderer-identity';
 import { handleRulebookHtmlRequest } from './rulebook-html-delivery';
 import { executeRulebookHtmlWork } from './rulebook-html-executor';
 import { executeRulebookPdfWork } from './rulebook-pdf-executor';
@@ -176,7 +176,7 @@ const publisherWorker = {
           maxItems: MAX_ASSIGNED_ITEMS,
           schedule: '*/5 * * * *',
           application: { release: applicationReleaseIdentity(env), serverRendering: true },
-          rendererIdentity: rendererManifest.rendererIdentity,
+          rendererIdentity: RENDERER_IDENTITY,
           identity,
         },
         { headers: { 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex' } }
@@ -224,14 +224,14 @@ const publisherWorker = {
         bucket: env.ASSET_BUCKET,
         client: publisher,
         publicBaseUrl: config.publicBaseUrl,
-        rendererIdentity: rendererManifest.rendererIdentity,
+        rendererIdentity: RENDERER_IDENTITY,
       });
       const rulebookPdfItems = await publisher.takeRulebookArtifactWork('pdf', Date.now() + EXECUTOR_REQUEST_MARGIN_MS);
       const rulebookPdfExecution = await executeRulebookPdfWork(config, rulebookPdfItems, {
         bucket: env.ASSET_BUCKET,
         client: publisher,
         openBrowser: async () => await openPublisherBrowser(env.BROWSER, config.captureBaseUrl),
-        rendererIdentity: rendererManifest.rendererIdentity,
+        rendererIdentity: RENDERER_IDENTITY,
       });
       const work = await publisher.takeWork(Date.now() + EXECUTOR_REQUEST_MARGIN_MS);
       if (work.status === 'empty') {

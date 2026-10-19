@@ -3,7 +3,7 @@ import { mkdtempSync, readdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-import { describe, expect, test, vi } from 'vitest';
+import { describe, expect, test, vi } from 'vite-plus/test';
 
 import type { CloudDevDeployment, SelfHostedDeployment } from './provision';
 import {
@@ -172,6 +172,13 @@ describe('provision pipeline', () => {
       stagesExplicit: true,
       snapshotFile: null,
     });
+    expect(parseProvisionArgs(['dev', '--stage', 'migrate'])).toEqual({
+      target: 'dev',
+      stages: ['migrate'],
+      stagesExplicit: true,
+      snapshotFile: null,
+    });
+    expect(() => parseProvisionArgs(['e2e', '--stage', 'migrate'])).toThrow('Invalid stage for target e2e');
     expect(() => parseProvisionArgs(['prod'])).toThrow('Usage: provision');
     expect(() => parseProvisionArgs(['dev', '--stage', 'backend'])).toThrow('Invalid stage for target dev');
   });

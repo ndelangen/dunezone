@@ -1,9 +1,10 @@
 import preview from '@sb/preview';
+import { publishingTreacheryCard } from '@shared/assets/fixtures/publishingTreacheryCard';
 import { GF9_LEADER_SKILLS } from '@shared/assets/gf9LeaderSkills';
 import { install } from '@sinonjs/fake-timers';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
-import { db, ref } from '@db/storybook';
+import { asset, db, ref } from '@db/storybook';
 
 import { expectToolbarOnOneLine, findSave } from './authoringToolbarPlay';
 import {
@@ -13,6 +14,7 @@ import {
   openLayerEditor,
   resetAndSettle,
 } from './backgroundMemoryPlay';
+import { expectFieldValue } from './pagePlay';
 import { pageStoryMeta } from './storybookConfig';
 
 const meta = preview.meta({
@@ -20,43 +22,151 @@ const meta = preview.meta({
   ...pageStoryMeta,
 });
 
-export const Catalogue = meta.story({ args: { path: '/assets' } });
+const storyPage = (canvasElement: HTMLElement) => within(canvasElement.ownerDocument.body);
+
+/** The detail page's heading names the asset, and its head shows the face beside it. */
+async function findDetailFace(canvasElement: HTMLElement, name: string) {
+  const page = storyPage(canvasElement);
+  await expect(page.findByRole('heading', { name, level: 1 }, { timeout: 30_000 })).resolves.toBeVisible();
+  return page.getByRole('img', { name: `${name} face` });
+}
+
+export const Catalogue = meta.story({
+  args: { path: '/assets' },
+  play: async ({ canvasElement }) => {
+    const page = storyPage(canvasElement);
+    await page.findByRole('heading', { name: 'Assets', level: 1 }, { timeout: 30_000 });
+    /* Each row's label also names a pile inside it, so the first match is the row's own. */
+    for (const row of ['Cards & decks', 'Tokens', 'Boards']) {
+      await expect((await page.findAllByText(row))[0]).toBeVisible();
+    }
+  },
+});
 export const TreacheryCards = meta.story({
   args: { path: '/assets/card-treachery' },
+  play: async ({ canvasElement }) => {
+    await expect(
+      storyPage(canvasElement).findByRole('link', { name: /Lasgun/ }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+  },
+});
+
+/**
+ * A search shows its best matches and loads more in place: no pages, no count, and the sort is best match alone.
+ * An old link's page and order are dropped, so it opens the search's first matches.
+ * "Load more" lengthens the grid until every match is shown, and hands focus to the first new tile.
+ */
+export const TreacheryCardsSearched = meta.story({
+  args: { path: '/assets/card-treachery?q=lasgun&page=2&sort=name' },
+  parameters: {
+    database: db((baseline) => {
+      for (let index = 1; index <= 25; index += 1) {
+        const name = `Lasgun ${String(index).padStart(2, '0')}`;
+        baseline.assets.push(asset({ type: 'card-treachery', data: { ...publishingTreacheryCard, name } }));
+      }
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const page = storyPage(canvasElement);
+    const main = within(await page.findByRole('main', {}, { timeout: 30_000 }));
+    const loadMore = await main.findByRole('button', { name: 'Load more' }, { timeout: 30_000 });
+    await expect(main.getAllByRole('link', { name: /Lasgun/ })).toHaveLength(24);
+    await expect(page.queryByLabelText('Treachery cards pages')).toBeNull();
+    await expect(page.queryByText(/of \d+ treachery cards/)).toBeNull();
+    await expect(page.getByRole('textbox', { name: 'Search treachery cards' })).toHaveValue('lasgun');
+    const sort = page.getByRole('combobox', { name: 'Sort' });
+    await expect(sort).toHaveValue('Best match');
+    await expect(sort).toBeDisabled();
+
+    await userEvent.click(loadMore);
+    /* The baseline's own Lasgun matches too, so the whole grid is one more than the seeded cards. */
+    await waitFor(() => expect(main.getAllByRole('link', { name: /Lasgun/ })).toHaveLength(26), { timeout: 30_000 });
+    await expect(main.getAllByRole('link', { name: /Lasgun/ })[24]).toHaveFocus();
+    await expect(main.getByRole('status')).toHaveTextContent('More treachery cards loaded');
+    await expect(main.queryByRole('button', { name: 'Load more' })).toBeNull();
+  },
 });
 
 export const TreacheryCard = meta.story({
   args: { path: '/assets/card-treachery/lasgun' },
+  play: async ({ canvasElement }) => {
+    await expect(findDetailFace(canvasElement, 'Lasgun')).resolves.toBeVisible();
+    await expect(storyPage(canvasElement).getByRole('link', { name: 'House Treachery ×3' })).toBeVisible();
+  },
 });
-export const Deck = meta.story({ args: { path: '/assets/deck/house-treachery' } });
-export const DiscToken = meta.story({ args: { path: '/assets/token-disc/karama' } });
+export const Deck = meta.story({
+  args: { path: '/assets/deck/house-treachery' },
+  play: async ({ canvasElement }) => {
+    await expect(findDetailFace(canvasElement, 'House Treachery')).resolves.toBeVisible();
+    const [member] = await storyPage(canvasElement).findAllByRole('link', { name: /Lasgun/ });
+    await expect(member).toBeVisible();
+  },
+});
+export const DiscToken = meta.story({
+  args: { path: '/assets/token-disc/karama' },
+  play: async ({ canvasElement }) => {
+    const { width, height } = (await findDetailFace(canvasElement, 'Karama')).getBoundingClientRect();
+    await expect(width / height).toBeCloseTo(1, 1);
+  },
+});
 export const EnhanceToken = meta.story({
   args: { path: '/assets/token-enhance/kwisatz-haderach' },
+  play: async ({ canvasElement }) => {
+    const { width, height } = (await findDetailFace(canvasElement, 'Kwisatz Haderach')).getBoundingClientRect();
+    await expect(width).toBeGreaterThan(height);
+  },
 });
-export const Bundle = meta.story({ args: { path: '/assets/bundle/atreides-tokens' } });
+export const Bundle = meta.story({
+  args: { path: '/assets/bundle/atreides-tokens' },
+  play: async ({ canvasElement }) => {
+    const page = storyPage(canvasElement);
+    await expect(findDetailFace(canvasElement, 'Atreides Tokens')).resolves.toBeVisible();
+    await expect(page.findByRole('link', { name: /Karama/ })).resolves.toBeVisible();
+    await expect(page.findByRole('link', { name: /Kwisatz Haderach/ })).resolves.toBeVisible();
+  },
+});
 
-export const CreateLeaderSkillCard = meta.story({ args: { path: '/assets/card-leaderability/create' } });
+export const CreateLeaderSkillCard = meta.story({
+  args: { path: '/assets/card-leaderability/create' },
+  play: ({ canvasElement }) => expectFieldValue(canvasElement, 'Name', ''),
+});
 
 export const CreateTreacheryCard = meta.story({
   args: { path: '/assets/card-treachery/create' },
+  play: ({ canvasElement }) => expectFieldValue(canvasElement, 'Name', ''),
 });
-export const CreateDeck = meta.story({ args: { path: '/assets/deck/create' } });
-export const CreateDiscToken = meta.story({ args: { path: '/assets/token-disc/create' } });
+export const CreateDeck = meta.story({
+  args: { path: '/assets/deck/create' },
+  play: ({ canvasElement }) => expectFieldValue(canvasElement, 'Name', ''),
+});
 export const CreateEnhanceToken = meta.story({
   args: { path: '/assets/token-enhance/create' },
+  play: ({ canvasElement }) => expectFieldValue(canvasElement, 'Name', ''),
 });
-export const CreateBundle = meta.story({ args: { path: '/assets/bundle/create' } });
+export const CreateBundle = meta.story({
+  args: { path: '/assets/bundle/create' },
+  play: ({ canvasElement }) => expectFieldValue(canvasElement, 'Name', ''),
+});
 
 export const EditTreacheryCard = meta.story({
   args: { path: '/assets/card-treachery/lasgun/edit' },
+  play: ({ canvasElement }) => expectFieldValue(canvasElement, 'Name', 'Lasgun'),
 });
-export const EditDeck = meta.story({ args: { path: '/assets/deck/house-treachery/edit' } });
-export const EditDiscToken = meta.story({ args: { path: '/assets/token-disc/karama/edit' } });
+export const EditDeck = meta.story({
+  args: { path: '/assets/deck/house-treachery/edit' },
+  play: ({ canvasElement }) => expectFieldValue(canvasElement, 'Name', 'House Treachery'),
+});
+export const EditDiscToken = meta.story({
+  args: { path: '/assets/token-disc/karama/edit' },
+  play: ({ canvasElement }) => expectFieldValue(canvasElement, 'Name', 'Karama'),
+});
 export const EditEnhanceToken = meta.story({
   args: { path: '/assets/token-enhance/kwisatz-haderach/edit' },
+  play: ({ canvasElement }) => expectFieldValue(canvasElement, 'Name', 'Kwisatz Haderach'),
 });
 export const EditBundle = meta.story({
   args: { path: '/assets/bundle/atreides-tokens/edit' },
+  play: ({ canvasElement }) => expectFieldValue(canvasElement, 'Name', 'Atreides Tokens'),
 });
 
 /**
@@ -77,7 +187,7 @@ export const EditDeckSignedOut = meta.story({
     /* The words here did not change, only who owns them: this route's own frame used to put the way
        back inside the pane, below the sentence, and the shared frame puts it in the band. Asserting
        the position is what makes this story discriminate rather than pass against either version. */
-    expect(back.closest('main')).toBeNull();
+    await expect(back.closest('main')).toBeNull();
   },
 });
 
@@ -94,7 +204,7 @@ export const CreateTreacheryCardSignedOut = meta.story({
     await expect(
       page.findByRole('link', { name: 'Back to treachery cards' }, { timeout: 30_000 })
     ).resolves.toBeVisible();
-    expect(page.queryByRole('button', { name: 'Save card' })).toBeNull();
+    await expect(page.queryByRole('button', { name: 'Save card' })).toBeNull();
   },
 });
 
@@ -105,7 +215,7 @@ export const CreateDeckSignedOut = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByRole('link', { name: 'Log in' }, { timeout: 30_000 })).resolves.toBeVisible();
     await expect(page.findByRole('link', { name: 'Back to decks' }, { timeout: 30_000 })).resolves.toBeVisible();
-    expect(page.queryByRole('button', { name: 'Save deck' })).toBeNull();
+    await expect(page.queryByRole('button', { name: 'Save deck' })).toBeNull();
   },
 });
 
@@ -116,7 +226,7 @@ export const CreateDiscTokenSignedOut = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByRole('link', { name: 'Log in' }, { timeout: 30_000 })).resolves.toBeVisible();
     await expect(page.findByRole('link', { name: 'Back to disc tokens' }, { timeout: 30_000 })).resolves.toBeVisible();
-    expect(page.queryByRole('button', { name: 'Save token' })).toBeNull();
+    await expect(page.queryByRole('button', { name: 'Save token' })).toBeNull();
   },
 });
 
@@ -129,7 +239,7 @@ export const CreateEnhanceTokenSignedOut = meta.story({
     await expect(
       page.findByRole('link', { name: 'Back to enhance tokens' }, { timeout: 30_000 })
     ).resolves.toBeVisible();
-    expect(page.queryByRole('button', { name: 'Save token' })).toBeNull();
+    await expect(page.queryByRole('button', { name: 'Save token' })).toBeNull();
   },
 });
 
@@ -140,7 +250,7 @@ export const CreateBundleSignedOut = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByRole('link', { name: 'Log in' }, { timeout: 30_000 })).resolves.toBeVisible();
     await expect(page.findByRole('link', { name: 'Back to bundles' }, { timeout: 30_000 })).resolves.toBeVisible();
-    expect(page.queryByRole('button', { name: 'Save bundle' })).toBeNull();
+    await expect(page.queryByRole('button', { name: 'Save bundle' })).toBeNull();
   },
 });
 
@@ -193,7 +303,7 @@ export const CreateTreacheryCardChapterJump = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await page.findByRole('textbox', { name: 'Name' }, { timeout: 30_000 });
-    expect(page.queryByRole('textbox', { name: 'Body' })).toBeNull();
+    await expect(page.queryByRole('textbox', { name: 'Body' })).toBeNull();
     const chip = await page.findByRole('button', { name: /Body/ }, { timeout: 30_000 });
     await userEvent.click(chip);
     await expect(page.findByRole('textbox', { name: 'Body' }, { timeout: 30_000 })).resolves.toBeVisible();
@@ -350,7 +460,7 @@ export const EditDeckShowsOnlyTheLatestSaveFailure = meta.story({
     await userEvent.click(page.getByRole('radio', { name: "Another deck's back" }));
     await userEvent.click(page.getByRole('button', { name: 'Save deck' }));
     await expect(page.findByText('No deck picked', {}, { timeout: 30_000 })).resolves.toBeVisible();
-    expect(page.queryByText('Could not save')).toBeNull();
+    await expect(page.queryByText('Could not save')).toBeNull();
   },
 });
 
@@ -366,12 +476,6 @@ export const EditDeckToolbarAt360 = meta.story({
   play: async ({ canvasElement }) =>
     await expectToolbarOnOneLine(canvasElement, { statusDescribes: DECK_EDIT_STATUSES }),
 });
-export const EditDeckToolbarAt390 = meta.story({
-  args: { path: '/assets/deck/house-treachery/edit' },
-  globals: { viewport: { value: 'appMobile' } },
-  play: async ({ canvasElement }) =>
-    await expectToolbarOnOneLine(canvasElement, { statusDescribes: DECK_EDIT_STATUSES }),
-});
 export const EditDeckToolbarAt768 = meta.story({
   args: { path: '/assets/deck/house-treachery/edit' },
   globals: { viewport: { value: 'appTablet' } },
@@ -384,18 +488,15 @@ export const EditDeckToolbarAt1100 = meta.story({
   play: async ({ canvasElement }) =>
     await expectToolbarOnOneLine(canvasElement, { statusDescribes: DECK_EDIT_STATUSES }),
 });
-export const EditDeckToolbarAt1440 = meta.story({
-  args: { path: '/assets/deck/house-treachery/edit' },
-  globals: { viewport: { value: 'appLarge' } },
-  play: async ({ canvasElement }) =>
-    await expectToolbarOnOneLine(canvasElement, { statusDescribes: DECK_EDIT_STATUSES }),
-});
 
-/* The spice card pages, the second live card type. */
-export const SpiceCards = meta.story({ args: { path: '/assets/card-spice' } });
-export const SpiceCard = meta.story({ args: { path: '/assets/card-spice/arsunt' } });
-export const CreateSpiceCard = meta.story({ args: { path: '/assets/card-spice/create' } });
-export const EditSpiceCard = meta.story({ args: { path: '/assets/card-spice/arsunt/edit' } });
+export const CreateSpiceCard = meta.story({
+  args: { path: '/assets/card-spice/create' },
+  play: ({ canvasElement }) => expectFieldValue(canvasElement, 'Name', ''),
+});
+export const EditSpiceCard = meta.story({
+  args: { path: '/assets/card-spice/arsunt/edit' },
+  play: ({ canvasElement }) => expectFieldValue(canvasElement, 'Name', 'Arsunt'),
+});
 
 /**
  * A spice card saves through the same create flow and lands on its own editor.
@@ -426,11 +527,15 @@ export const EditSpiceCardReadsTheStoredCard = meta.story({
   },
 });
 
-export const CreateCustomCard = meta.story({ args: { path: '/assets/card-custom/create' } });
+export const CreateCustomCard = meta.story({
+  args: { path: '/assets/card-custom/create' },
+  play: ({ canvasElement }) => expectFieldValue(canvasElement, 'Name', ''),
+});
 
-export const EditCustomCard = meta.story({ args: { path: '/assets/card-custom/battle-reference/edit' } });
-export const CustomCards = meta.story({ args: { path: '/assets/card-custom' } });
-export const CustomCard = meta.story({ args: { path: '/assets/card-custom/battle-reference' } });
+export const EditCustomCard = meta.story({
+  args: { path: '/assets/card-custom/battle-reference/edit' },
+  play: ({ canvasElement }) => expectFieldValue(canvasElement, 'Name', 'Battle reference'),
+});
 
 /** An administrator converts the existing card and arrives at its editable layers. */
 export const ConvertTreacheryCard = meta.story({
@@ -467,7 +572,7 @@ export const TreacheryConversionUnavailable = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await page.findByRole('heading', { name: 'Lasgun' }, { timeout: 30_000 });
-    expect(page.queryByRole('button', { name: 'Convert to custom card' })).toBeNull();
+    await expect(page.queryByRole('button', { name: 'Convert to custom card' })).toBeNull();
   },
 });
 
@@ -478,6 +583,18 @@ export const ConvertAnotherCreatorsCard = meta.story({
     database: db((baseline) => ({
       ...baseline,
       users: [...baseline.users!, { $key: 'other-card-owner', name: 'Another creator' }],
+      profiles: [
+        ...baseline.profiles!,
+        {
+          user_id: ref('other-card-owner'),
+          username: 'Another creator',
+          slug: 'another-creator',
+          avatar_url: null,
+          account_state: 'active',
+          created_at: '2026-01-01T12:00:00.000Z',
+          updated_at: '2026-01-01T12:00:00.000Z',
+        },
+      ],
       assets: baseline.assets!.map((asset) =>
         asset.type === 'card-treachery' && asset.slug === 'lasgun'
           ? { ...asset, owner_id: ref('other-card-owner'), group_id: null }
@@ -499,8 +616,9 @@ export const ConvertAnotherCreatorsCard = meta.story({
     }
     await expect(page.findByRole('link', { name: /^Custom cards$/ }, { timeout: 30_000 })).resolves.toBeVisible();
     await expect(page.getByRole('link', { name: 'House Treachery ×3' })).toBeVisible();
-    expect(page.queryByRole('link', { name: 'Edit Lasgun' })).toBeNull();
-    expect(page.queryByRole('button', { name: 'Convert to custom card' })).toBeNull();
+    await expect(page.getByRole('link', { name: 'Another creator' })).toBeVisible();
+    await expect(page.queryByRole('link', { name: 'Edit Lasgun' })).toBeNull();
+    await expect(page.queryByRole('button', { name: 'Convert to custom card' })).toBeNull();
   },
 });
 
@@ -573,10 +691,10 @@ export const EditLeaderSkillCard = meta.story({
   },
 });
 
-export const StrongholdCards = meta.story({ args: { path: '/assets/card-stronghold' } });
-export const StrongholdCard = meta.story({ args: { path: '/assets/card-stronghold/arrakeen' } });
-export const StrongholdDeck = meta.story({ args: { path: '/assets/deck/gf9-stronghold-deck' } });
-export const EditStrongholdCard = meta.story({ args: { path: '/assets/card-stronghold/arrakeen/edit' } });
+export const EditStrongholdCard = meta.story({
+  args: { path: '/assets/card-stronghold/arrakeen/edit' },
+  play: ({ canvasElement }) => expectFieldValue(canvasElement, 'Name', 'Arrakeen'),
+});
 
 /** A new stronghold saves its constrained face and reopens for editing. */
 export const CreateStrongholdCardSaves = meta.story({

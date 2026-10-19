@@ -1,9 +1,24 @@
 import { v } from 'convex/values';
 
 import { RULESET_ASSET_SLOTS } from '../src/shared/rulesets/assetSlots';
+import {
+  RULESET_CATALOGUE_PAGE_SIZE,
+  RULESET_CATALOGUE_QUERY_LIMIT,
+  RULESET_CATALOGUE_SORTS,
+} from '../src/shared/rulesets/catalogueSearch';
+import type { RulesetCatalogueSort } from '../src/shared/rulesets/catalogueSearch';
+import { rulesetCoverThumbUrl } from '../src/shared/rulesets/cover';
 import { rulesetInputSchema } from '../src/shared/rulesets/validation';
 import type { Doc, Id } from './_generated/dataModel';
 import { mutation, publicQuery, viewerQuery } from './functions';
+import {
+  ALL_PARTITION,
+  catalogueSearchLimit,
+  catalogueSearchReach,
+  countCataloguePartitions,
+  selectCataloguePage,
+  selectCatalogueSearch,
+} from './lib/catalogueOrder';
 import {
   requireGroupReassignment,
   requireRulesetMaintenance,
@@ -12,6 +27,7 @@ import {
 } from './lib/collaborativeAccess';
 import { rulesetPageValidator, rulesetPublicDetailPageValidator } from './lib/collaborativeAccessValidators';
 import { resolveGroupAssignmentForCreation } from './lib/defaultGroupPreference';
+import { catalogueFactionDataValidator } from './lib/factionData';
 import { recordFormerSlug } from './lib/formerSlugs';
 import {
   buildOwnedForGroupAssignRows,
@@ -19,7 +35,14 @@ import {
   ownedForGroupAssignRowValidator,
 } from './lib/groupAssignPicker';
 import { requireAuthUserId } from './lib/policy';
-import { loadRulesetPageBySlug, loadRulesetPublicDetailPageBySlug } from './lib/rulesetDetailPage';
+import { rulesetCatalogueOrderOf } from './lib/rulesetCatalogue';
+import {
+  listOrderedRulesetFactions,
+  loadRulesetPageBySlug,
+  RULESET_FACTION_LIMIT,
+  loadRulesetPublicDetailPageBySlug,
+} from './lib/rulesetDetailPage';
+import { SLOT_CONTENTS_LIMIT } from './lib/rulesetSlots';
 import { allocateCounterSlug } from './lib/slugCounters';
 import { nowIso, slugify } from './lib/utils';
 import type { MutationCtx, QueryCtx } from './types';
@@ -71,6 +94,7 @@ async function resolveUniqueRulesetSlug(ctx: MutationCtx, name: string, own?: Do
   });
 }
 
+/** The index page before `catalogue`; kept one release for bundles that still ask for it, and dropped in the contract release. */
 export const list = publicQuery({
   args: {},
   handler: async (ctx) => {
@@ -79,6 +103,122 @@ export const list = publicQuery({
       .withIndex('by_deleted_name', (q) => q.eq('is_deleted', false))
       .take(500);
     return rows;
+  },
+});
+
+const rulesetCatalogueEntryValidator = v.object({
+  id: v.id('rulesets'),
+  slug: v.string(),
+  name: v.string(),
+  /** The grid's cover rendition, or null for a ruleset without a cover. */
+  coverThumbUrl: v.union(v.string(), v.null()),
+});
+
+/** The tiles of the selected entries, each ruleset read once. */
+async function catalogueEntries(ctx: QueryCtx, selected: { source_id: string }[]) {
+  const entries = [];
+  for (const entry of selected) {
+    const rulesetId = ctx.db.normalizeId('rulesets', entry.source_id);
+    const ruleset = rulesetId ? await ctx.db.get('rulesets', rulesetId) : null;
+    if (!ruleset || ruleset.is_deleted) {
+      /* Drift: the page comes up one tile short until the backfill or the ruleset's next save. */
+      console.warn(`Catalogue entry for ruleset ${entry.source_id} has no live ruleset.`);
+      continue;
+    }
+    entries.push({
+      id: ruleset._id,
+      slug: ruleset.slug,
+      name: ruleset.name,
+      coverThumbUrl: rulesetCoverThumbUrl(ruleset),
+    });
+  }
+  return entries;
+}
+
+/** A browsed page: aggregate counts, numbered pages, a chosen order. */
+const catalogueBrowseValidator = v.object({
+  entries: v.array(rulesetCatalogueEntryValidator),
+  /** Rulesets across every page. */
+  total: v.number(),
+  /** Listed rulesets, before any search; the same as `total` while browsing. */
+  rulesetTotal: v.number(),
+  /** Always true while browsing, since the aggregate counts exactly; kept so the pager reads one shape across the catalogues. */
+  complete: v.boolean(),
+  /** The page these tiles are, which may lie past `pageCount`, with no tiles. */
+  page: v.number(),
+  pageCount: v.number(),
+  pageSize: v.number(),
+});
+
+/** A searched catalogue: the best matches first, no count and no pages, and more by asking for a larger limit. */
+const catalogueSearchValidator = v.object({
+  mode: v.literal('search'),
+  entries: v.array(rulesetCatalogueEntryValidator),
+  /** Whether a larger limit would show more rulesets. */
+  hasMore: v.boolean(),
+  /** Whether more rulesets may match than one search shows, so the reader should add a word rather than load more. */
+  capped: v.boolean(),
+  /** The limit these tiles answer, after clamping. */
+  limit: v.number(),
+  /** Listed rulesets, before any search. */
+  rulesetTotal: v.number(),
+});
+
+type CatalogueArgs = { q?: string; sort?: RulesetCatalogueSort; page?: number; limit?: number };
+
+async function loadCataloguePage(ctx: QueryCtx, args: CatalogueArgs) {
+  const page = Number.isSafeInteger(args.page) && args.page! > 1 ? args.page! : 1;
+  const selection = await selectCataloguePage(ctx, {
+    kind: 'ruleset',
+    partition: ALL_PARTITION,
+    ...rulesetCatalogueOrderOf(args.sort),
+    page,
+    pageSize: RULESET_CATALOGUE_PAGE_SIZE,
+  });
+  return {
+    entries: await catalogueEntries(ctx, selection.entries),
+    total: selection.total,
+    rulesetTotal: selection.total,
+    complete: selection.exact,
+    page,
+    pageCount: Math.max(1, Math.ceil(selection.total / RULESET_CATALOGUE_PAGE_SIZE)),
+    pageSize: RULESET_CATALOGUE_PAGE_SIZE,
+  };
+}
+
+async function loadCatalogueSearch(ctx: QueryCtx, args: CatalogueArgs, text: string) {
+  const limit = catalogueSearchLimit(args.limit, RULESET_CATALOGUE_PAGE_SIZE);
+  const [selection, [rulesetTotal = 0]] = await Promise.all([
+    selectCatalogueSearch(ctx, { kind: 'ruleset', partition: ALL_PARTITION, text, limit }),
+    countCataloguePartitions(ctx, 'ruleset', [ALL_PARTITION]),
+  ]);
+  return {
+    mode: 'search' as const,
+    entries: await catalogueEntries(ctx, selection.entries),
+    ...catalogueSearchReach(selection, limit, RULESET_CATALOGUE_PAGE_SIZE),
+    limit,
+    rulesetTotal,
+  };
+}
+
+/**
+ * The ruleset catalogue, the same for every viewer: the aggregate counts it and finds a page's first ruleset;
+ * a search uses Convex's search index over the names, best matches first, and loads more by asking again with a larger `limit`.
+ * Only the page's own rulesets are read, so a page costs the same however many rulesets there are.
+ * Replaces `list`, which stays for one release so a bundle still asking for it keeps working while this one deploys.
+ */
+export const catalogue = publicQuery({
+  args: {
+    q: v.optional(v.string()),
+    sort: v.optional(v.union(...RULESET_CATALOGUE_SORTS.map((sort) => v.literal(sort)))),
+    page: v.optional(v.number()),
+    /** How many of the best matches to return; Load more asks again with a larger one. */
+    limit: v.optional(v.number()),
+  },
+  returns: v.union(catalogueBrowseValidator, catalogueSearchValidator),
+  handler: async (ctx, args) => {
+    const text = args.q?.slice(0, RULESET_CATALOGUE_QUERY_LIMIT).trim() ?? '';
+    return text ? await loadCatalogueSearch(ctx, args, text) : await loadCataloguePage(ctx, args);
   },
 });
 
@@ -108,6 +248,26 @@ export const detailPage = publicQuery({
   args: { slug: v.string() },
   returns: rulesetPublicDetailPageValidator,
   handler: async (ctx, args) => await loadRulesetPublicDetailPageBySlug(ctx, args.slug),
+});
+
+/** A ruleset's first live factions in its own order, one cached answer for every viewer: the edit page's list, which loads more by asking for more. */
+export const orderedFactions = publicQuery({
+  args: { rulesetId: v.id('rulesets'), limit: v.number() },
+  returns: v.object({
+    factions: v.array(
+      v.object({
+        _id: v.id('factions'),
+        slug: v.string(),
+        name: v.string(),
+        /** Enough to draw the faction's token beside its name. */
+        logo: catalogueFactionDataValidator.fields.logo,
+        background: catalogueFactionDataValidator.fields.background,
+      })
+    ),
+    /** True when links remain past `limit`, which a larger limit loads. */
+    hasMore: v.boolean(),
+  }),
+  handler: async (ctx, args) => await listOrderedRulesetFactions(ctx, args.rulesetId, args.limit),
 });
 
 /**
@@ -290,12 +450,53 @@ export const addFaction = mutation({
       .withIndex('by_ruleset_faction', (q) => q.eq('ruleset_id', args.ruleset_id).eq('faction_id', args.faction_id))
       .unique();
     if (!existing) {
+      const links = await ctx.db
+        .query('ruleset_factions')
+        .withIndex('by_ruleset_position', (q) => q.eq('ruleset_id', args.ruleset_id))
+        .take(RULESET_FACTION_LIMIT);
+      if (links.length === RULESET_FACTION_LIMIT) {
+        throw new Error(`A ruleset holds at most ${RULESET_FACTION_LIMIT} factions.`);
+      }
+      /* Appended: a reorder numbers from 0 and every earlier append was made sooner, so now is past them all. */
       await ctx.db.insert('ruleset_factions', {
         ruleset_id: args.ruleset_id,
         faction_id: args.faction_id,
+        position: Date.now(),
       });
     }
     return args;
+  },
+});
+
+/**
+ * Puts a ruleset's factions in the order given.
+ * The list can be stale, as someone may have added or removed a faction meanwhile: an id no longer linked is ignored, and a link the list leaves out keeps its place relative to the others, after the ones it names.
+ * Only the links whose place changed are written.
+ */
+export const reorderFactions = mutation({
+  args: {
+    ruleset_id: v.id('rulesets'),
+    faction_ids: v.array(v.id('factions')),
+  },
+  handler: async (ctx, args) => {
+    await requireRulesetMaintenance(ctx, args.ruleset_id);
+    if (args.faction_ids.length > RULESET_FACTION_LIMIT) {
+      throw new Error(`A ruleset's order holds at most ${RULESET_FACTION_LIMIT} factions.`);
+    }
+    const links = await ctx.db
+      .query('ruleset_factions')
+      .withIndex('by_ruleset_position', (q) => q.eq('ruleset_id', args.ruleset_id))
+      .take(RULESET_FACTION_LIMIT);
+    const linkByFaction = new Map(links.map((link) => [link.faction_id, link]));
+    const named = [...new Set(args.faction_ids)].flatMap((factionId) => linkByFaction.get(factionId) ?? []);
+    const namedIds = new Set(named.map((link) => link._id));
+    const ordered = [...named, ...links.filter((link) => !namedIds.has(link._id))];
+    for (const [position, link] of ordered.entries()) {
+      if (link.position !== position) {
+        await ctx.db.patch('ruleset_factions', link._id, { position });
+      }
+    }
+    return null;
   },
 });
 
@@ -330,9 +531,6 @@ const assetSlotValidator = v.union(
   v.literal('techToken'),
   v.literal('customTokens')
 );
-
-/** Bounds one slot's contents. The many-asset slots are curated by hand, so this is a ceiling on nonsense rather than a paging limit. */
-const SLOT_CONTENTS_LIMIT = 100;
 
 /**
  * Puts an asset in a slot.

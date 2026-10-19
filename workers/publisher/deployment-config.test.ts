@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { MEDIA_PUBLIC_PAGES, RECORDLESS_PUBLIC_PAGES } from '../../src/shared/recordlessPublicPages';
 
@@ -171,6 +171,8 @@ describe('scheduled production deployment shape', () => {
       '/assets/*',
       '/glossary',
       '/glossary/*',
+      '/faq',
+      '/faq/*',
       '/future-plans',
       '/future-plans/*',
       '/privacy',

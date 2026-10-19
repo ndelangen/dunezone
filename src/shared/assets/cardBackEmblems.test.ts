@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 
 import { GF9_STRONGHOLD_DECK } from './gf9StrongholdDeck';
 import { CardBack, DeckAsset } from './schema';

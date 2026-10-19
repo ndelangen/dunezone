@@ -50,6 +50,12 @@ no invented modification time. Dates describe edits to the record, not changes t
 - The browser-only shell names no page: no canonical, `og:url` or description. Pages served from it
   take only their title, once JavaScript runs, and stay out of the sitemap until they are
   server-rendered.
+- The browser-only shell carries `<meta name="robots" content="noindex">`, added when the release is
+  assembled (`scripts/lib/publisher-assets.ts`). Sign-in, editors, Play and unknown addresses are all
+  served the shell, and a crawler that runs its script would otherwise index what it draws: Bing
+  listed the sign-in page as the top result for "dune.zone". Public pages are server-rendered by the
+  Worker and never served the shell. A browser-only page that should be found must become a public,
+  server-rendered page first.
 - Search, filter and sort variants retain their working browser URLs but point to the unfiltered
   catalogue as canonical. They are not listed separately in sitemaps. No robots rule prevents a
   crawler from reading their canonical tag.
@@ -61,6 +67,13 @@ no invented modification time. Dates describe edits to the record, not changes t
   as already accepted for public delivery.
 - Successful public HTML carries no `noindex`. Social PNGs and publisher health diagnostics carry
   `X-Robots-Tag: noindex`. Social URLs still return PNG bytes, including for social-platform fetches.
+- An Asset's detail page writes its own published face into the server HTML as its main image, and
+  its sitemap entry names that face with Google's image extension (`<image:image>`), by the same
+  href the page draws. A bundle, and a deck wearing a preset or another deck's cardback, name none.
+  Published images carry no `noindex`.
+- Faction sheet PDFs carry no `noindex` and are titled after their faction. A Rulebook's newest
+  ready Edition PDF is open to search; earlier Editions, the Edition HTML files and any PDF whose
+  standing cannot be checked carry `X-Robots-Tag: noindex`.
 - Sitemap responses carry XML content types and `X-Robots-Tag: noindex`. Unknown sitemap names
   return 404 instead of the application shell. Unsupported methods return 405.
 

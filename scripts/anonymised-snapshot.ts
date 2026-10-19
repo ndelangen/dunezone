@@ -89,7 +89,7 @@ const code = (name: string) => `\`${name}\``;
 
 function uploadLine(upload: boolean) {
   return upload
-    ? `Upload: on. The next step uploads ${code(SNAPSHOT_FILE)} as an artifact kept for one day.`
+    ? `Upload: on. The next step uploads ${code(SNAPSHOT_FILE)} as an artifact kept for eight days.`
     : 'Upload: off. Nothing from this run is uploaded.';
 }
 

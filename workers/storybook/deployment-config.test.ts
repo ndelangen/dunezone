@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
-import { describe, expect, test, vi } from 'vitest';
+import { describe, expect, test, vi } from 'vite-plus/test';
 
 import worker, { isMediaPath } from './index';
 
@@ -62,6 +62,21 @@ describe('public Storybook deployment', () => {
       });
       expect(put.status).toBe(405);
       expect(upstream).toHaveBeenCalledTimes(1);
+    } finally {
+      upstream.mockRestore();
+    }
+  });
+
+  test('retries a raster once when the connection drops', async () => {
+    const assets = { fetch: vi.fn(async () => new Response('asset')) };
+    const upstream = vi
+      .spyOn(globalThis, 'fetch')
+      .mockRejectedValueOnce(new Error('Network connection lost.'))
+      .mockResolvedValueOnce(new Response('raster'));
+    try {
+      const response = await worker.fetch(new Request('https://storybook.dune.zone/m/a.b.jpg'), { ASSETS: assets });
+      expect(await response.text()).toBe('raster');
+      expect(upstream).toHaveBeenCalledTimes(2);
     } finally {
       upstream.mockRestore();
     }

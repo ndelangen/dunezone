@@ -1,5 +1,6 @@
 import { ErrorComponent, createRouter as createTanStackRouter } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
+import { createIsomorphicFn } from '@tanstack/react-start';
 
 import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { restoresScroll } from '@app/shell/scrollRestoration';
@@ -21,7 +22,13 @@ export function AppErrorComponent({ error }: ErrorComponentProps) {
   return <ErrorComponent error={error} />;
 }
 
-export function getRouter() {
+const getRequestNonce = createIsomorphicFn().server(async () => {
+  const { getRequest } = await import('@tanstack/react-start/server');
+  return getRequest().headers.get('X-Application-Nonce') ?? undefined;
+});
+
+export async function getRouter() {
+  const nonce = await getRequestNonce();
   const router = createTanStackRouter({
     routeTree,
     scrollRestoration: restoresScroll,
@@ -29,6 +36,7 @@ export function getRouter() {
     /* Hovering the same link again within 30 seconds reuses its preloaded result instead of running the loader again. */
     defaultPreloadStaleTime: 30_000,
     defaultErrorComponent: AppErrorComponent,
+    ssr: { nonce },
   });
 
   return router;
@@ -36,6 +44,6 @@ export function getRouter() {
 
 declare module '@tanstack/react-router' {
   interface Register {
-    router: ReturnType<typeof getRouter>;
+    router: Awaited<ReturnType<typeof getRouter>>;
   }
 }

@@ -19,9 +19,10 @@ export const Route = createFileRoute('/_app/assets/')({
   loader: loadAssetCataloguePage,
   head: () =>
     publicPageHead({
-      name: 'Assets',
+      name: 'Dune board game cards, tokens and boards',
       pathname: '/assets',
-      description: 'Browse community cards, decks, tokens and boards for Dune.',
+      description:
+        'Browse community cards, decks, tokens and boards for the Dune board game. Find artwork for your table or create and share your own game assets.',
     }),
   component: AssetsLandingPage,
 });
@@ -221,6 +222,7 @@ function emptyOutlineShape(
   switch (type) {
     case 'token-disc':
     case 'token-tech':
+    case 'token-pointer':
       return { width: TOKEN_PILE_FACE, height: TOKEN_PILE_FACE * assetFaceAspect(type), borderRadius: '50%' };
     case 'token-plate':
       return { width: TOKEN_PILE_FACE, height: TOKEN_PILE_FACE * assetFaceAspect(type), borderRadius: 8 };

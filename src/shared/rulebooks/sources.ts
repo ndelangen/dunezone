@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 import { componentGeometrySchema } from '../asset-publishing/componentGeometry';
 import { BACKGROUND, DECAL, GENERIC, ICON, LEADERS, LOGO, PLANET, TEXTURE, TROOP, TROOP_MODIFIER } from '../assetIds';
-import { GEAR_CLIP } from '../assets/tokenOutline';
+import { GEAR_CLIP, POINTER_CLIP } from '../assets/tokenOutline';
 import { FactionMemberIdSchema } from '../factions/memberIdentity';
 import { FactionTroopIdSchema } from '../factions/troopIdentity';
 import { RULEBOOK_BOARD_DEFINITIONS } from './boardDefinitions';
@@ -54,6 +54,8 @@ export const rulebookResolvedAssetsByIdSchema = z.record(
     assetId: z.string(),
     type: z.string(),
     imageUrl: z.string().nullable(),
+    /** A saved board's own data, read only for boards a scene draws markup on: tints are worked out from it when a scene is projected. */
+    board: z.unknown().optional(),
   })
 );
 export type RulebookResolvedAssetsById = Readonly<z.infer<typeof rulebookResolvedAssetsByIdSchema>>;
@@ -84,7 +86,7 @@ export function rulebookArtworkName(path: string): string {
     .replaceAll('_', ' ');
 }
 
-/** Maintained artwork resolves locally; database-backed sources resolve in the owning route query. */
+/** Maintained artwork resolves locally; database-backed sources, saved boards among them, resolve in the owning route query. */
 export function resolveRulebookArtworkSource(reference: RulebookSourceReference): RulebookResolvedSource | null {
   if (reference.kind === 'stock') {
     return stockArtworkIds.has(reference.artworkId)
@@ -104,7 +106,7 @@ export function resolveRulebookArtworkSource(reference: RulebookSourceReference)
           geometry: board.geometry,
           publicationRevision: board.revision,
         }
-      : { status: 'unavailable', reference };
+      : null;
   }
   return null;
 }
@@ -123,6 +125,9 @@ export function rulebookSourceClipPath(source: RulebookResolvedSource): string |
   }
   if (source.assetType === 'token-tech') {
     return GEAR_CLIP;
+  }
+  if (source.assetType === 'token-pointer') {
+    return POINTER_CLIP;
   }
   return undefined;
 }

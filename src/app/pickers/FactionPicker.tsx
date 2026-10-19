@@ -48,12 +48,17 @@ const CONFIRM_INTENT_COLOR = { positive: 'confirm', caution: 'orange' } as const
  * No defaults on purpose: the first caller loads a faction into a draft and the second adds one to a ruleset, and a default phrased for either would read as a mistake in the other.
  */
 interface FactionPickerCopy {
-  title: string;
-  intro: string;
+  /** Omitted where the surrounding frame already says what the choice is for. */
+  title?: string;
+  intro?: string;
   /** Heading on the alert when the chosen faction cannot be used. */
   errorTitle: string;
   /** Shown in place of the field when there is nothing left to choose. */
   emptyMessage: string;
+}
+
+/** The picker's own confirmation step, for callers that do not confirm the choice themselves. */
+interface FactionPickerConfirmCopy {
   /** Heading over the chosen faction, where the caller asks for confirmation. */
   confirmTitle: string;
   /** A consequence the reader must see before committing. Omitted when there is nothing to warn about. */
@@ -63,13 +68,15 @@ interface FactionPickerCopy {
   confirmIntent: 'positive' | 'caution';
 }
 
-export interface FactionPickerProps {
+export type FactionPickerProps = {
   /** Faction URL slugs to leave out: the one being edited, or every one already linked. */
   excludeSlugs?: string[];
-  copy: FactionPickerCopy;
   onPick: (picked: PickedFaction) => void;
-  onCancel: () => void;
-}
+} & (
+  | { commitOnSelect?: false; copy: FactionPickerCopy & FactionPickerConfirmCopy; onCancel: () => void }
+  /** Reports every selection straight away, for a caller such as `LoadExisting` that owns the confirmation. */
+  | { commitOnSelect: true; copy: FactionPickerCopy; onCancel?: undefined; onUnusable: () => void }
+);
 
 /**
  * A Picker: the connected control that fetches the viewer's loadable factions, lets one be chosen, and hands the choice back through `onPick`.
@@ -80,7 +87,8 @@ export interface FactionPickerProps {
  * see the Pickers section in
  * AGENTS.md.
  */
-export function FactionPicker({ excludeSlugs, copy, onPick, onCancel }: FactionPickerProps) {
+export function FactionPicker(props: FactionPickerProps) {
+  const { excludeSlugs, copy, onPick } = props;
   const picker = useFactionLoadPicker();
   const combobox = useCombobox();
 
@@ -116,29 +124,38 @@ export function FactionPicker({ excludeSlugs, copy, onPick, onCancel }: FactionP
     : availableRows;
 
   const selectedRow = selectedId ? rowsById.get(selectedId) : undefined;
-  const handleLoad = () => {
-    if (!selectedRow) {
+  const commit = (row: FactionLoadPickerRow | undefined) => {
+    if (!row) {
       return;
     }
-    const parsed = FactionInputSchema.safeParse(selectedRow.data);
+    const parsed = FactionInputSchema.safeParse(row.data);
     if (!parsed.success) {
       setError(formatZodIssues(parsed.error));
+      if (props.commitOnSelect) {
+        props.onUnusable();
+      }
       return;
     }
     setError(null);
-    onPick({ id: selectedRow.id, slug: selectedRow.slug, data: structuredClone(parsed.data) });
+    onPick({ id: row.id, slug: row.slug, data: structuredClone(parsed.data) });
   };
 
   return (
     <Stack gap="md">
-      <Stack gap="md">
-        <Title order={3} size="h4">
-          {copy.title}
-        </Title>
-        <Text size="sm" c="dimmed">
-          {copy.intro}
-        </Text>
-      </Stack>
+      {copy.title || copy.intro ? (
+        <Stack gap="md">
+          {copy.title ? (
+            <Title order={3} size="h4">
+              {copy.title}
+            </Title>
+          ) : null}
+          {copy.intro ? (
+            <Text size="sm" c="dimmed">
+              {copy.intro}
+            </Text>
+          ) : null}
+        </Stack>
+      ) : null}
       {error && (
         <Alert color="red" title={copy.errorTitle} role="alert">
           {error}
@@ -160,6 +177,9 @@ export function FactionPicker({ excludeSlugs, copy, onPick, onCancel }: FactionP
           onOptionSubmit={(id) => {
             setSelectedId(id);
             setError(null);
+            if (props.commitOnSelect) {
+              commit(rowsById.get(id));
+            }
           }}
         >
           <Combobox.EventsTarget>
@@ -207,14 +227,14 @@ export function FactionPicker({ excludeSlugs, copy, onPick, onCancel }: FactionP
         </Combobox>
       )}
 
-      {selectedRow ? (
+      {selectedRow && !props.commitOnSelect ? (
         /* The popover dropdown is already a painted pane; the confirm region
            separates with a divider rather than nesting a second surface. */
         <>
           <Divider />
           <Stack gap="sm">
             <Text size="sm" fw={700}>
-              {copy.confirmTitle}
+              {props.copy.confirmTitle}
             </Text>
             <FactionLoadOptionRow
               name={selectedRow.data.name}
@@ -225,22 +245,22 @@ export function FactionPicker({ excludeSlugs, copy, onPick, onCancel }: FactionP
               groupLabel={selectedRow.groupLabel}
               isMember={selectedRow.groupId ? memberGroupSet.has(String(selectedRow.groupId)) : false}
             />
-            {copy.confirmNote ? (
+            {props.copy.confirmNote ? (
               <Text size="xs" c="orange.9">
-                {copy.confirmNote}
+                {props.copy.confirmNote}
               </Text>
             ) : null}
             <Group justify="flex-end" gap="xs">
-              <Button type="button" variant="default" size="compact-sm" onClick={onCancel}>
+              <Button type="button" variant="default" size="compact-sm" onClick={props.onCancel}>
                 Cancel
               </Button>
               <Button
                 type="button"
-                color={CONFIRM_INTENT_COLOR[copy.confirmIntent]}
+                color={CONFIRM_INTENT_COLOR[props.copy.confirmIntent]}
                 size="compact-sm"
-                onClick={handleLoad}
+                onClick={() => commit(selectedRow)}
               >
-                {copy.confirmLabel}
+                {props.copy.confirmLabel}
               </Button>
             </Group>
           </Stack>

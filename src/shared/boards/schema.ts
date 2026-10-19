@@ -78,6 +78,21 @@ export function territoryId(name: string): string {
     .replace(/^_|_$/g, '');
 }
 
+/** A saved territory's ID, kept when the territory is renamed; one saved before IDs were stored takes it from its name. */
+export function propertyId(property: { id?: string; name: string }): string {
+  return property.id || territoryId(property.name);
+}
+
+/** The ID for a new territory: its name's, with a number added when another territory already holds that one. */
+export function freshTerritoryId(name: string, taken: ReadonlySet<string>): string {
+  const base = territoryId(name) || 'territory';
+  let id = base;
+  for (let suffix = 2; taken.has(id); suffix++) {
+    id = `${base}_${suffix}`;
+  }
+  return id;
+}
+
 export const TERRITORY_NAME_LIMIT = 128;
 const territoryName = z
   .string()
@@ -92,7 +107,7 @@ export function territoryNameError(name: string, otherNames: string[]): string |
     return parsed.error.issues[0].message;
   }
   const id = territoryId(name);
-  return otherNames.some((other) => territoryId(other) === id) ? `Territory ID "${id}" is already in use` : undefined;
+  return otherNames.some((other) => territoryId(other) === id) ? 'Another territory already has this name' : undefined;
 }
 
 const propertyShape = {
@@ -116,10 +131,15 @@ const properties = z
   .strictObject({
     ...propertyShape,
     name: territoryName,
-    id: z.string().optional(),
+    /* No length cap: IDs saved before they were kept came from names, and normalising a name can lengthen it; the board's size limit bounds them. */
+    id: z
+      .string()
+      .regex(/^[a-z0-9]+(?:_[a-z0-9]+)*$/)
+      .optional(),
     decals: z.array(decal).max(128),
   })
-  .transform((property) => ({ ...property, id: territoryId(property.name) }));
+  /* A saved ID stays when the territory is renamed, so tints and scenes that name it keep finding it. */
+  .transform((property) => ({ ...property, id: propertyId(property) }));
 
 /* Retained games read structure without renaming territories or consulting today's artwork catalogue. */
 export const HistoricalBoardDefinition = z.object({
@@ -173,6 +193,10 @@ export const BoardDefinition = z
       if (error) {
         ctx.addIssue({ code: 'custom', path: ['properties', key, 'name'], message: error });
       }
+    }
+    const ids = territories.map(([, property]) => property.id);
+    if (new Set(ids).size !== ids.length) {
+      ctx.addIssue({ code: 'custom', message: 'Territory IDs must be unique' });
     }
     if (Object.values(board.properties).some((p) => new Set(p.decals.map((d) => d.id)).size !== p.decals.length)) {
       ctx.addIssue({ code: 'custom', message: 'Decal identities must be unique within a territory' });

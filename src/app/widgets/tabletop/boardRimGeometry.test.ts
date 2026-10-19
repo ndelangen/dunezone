@@ -5,7 +5,7 @@ import {
   tableSeatAngles,
   TABLE_SEAT_COUNTS,
 } from '@shared/play/tableSettings';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { createBoardRimShape } from './boardRimGeometry';
 

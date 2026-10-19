@@ -1,22 +1,15 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import aggregateTest from '@convex-dev/aggregate/test';
-import migrationsTest from '@convex-dev/migrations/test';
-import { convexTest } from 'convex-test';
-import { expect, test, vi } from 'vitest';
+import { expect, test, vi } from 'vite-plus/test';
 
 import { api, internal } from './_generated/api';
+import type { Id } from './_generated/dataModel';
+import { applicationTest } from './application.test.fixture';
 import { applicationTriggers } from './lib/applicationTriggers';
-import schema from './schema';
-
-const modules = import.meta.glob('./**/*.ts');
 
 test('maintains global and per-ruleset totals through wrapped writes', async () => {
-  const t = convexTest(schema, modules);
-  aggregateTest.register(t, 'statistics');
-  aggregateTest.register(t, 'profileActivity');
-  aggregateTest.register(t, 'profileDiscovery');
+  const t = applicationTest();
 
   const ids = await t.run(async (rawCtx) => {
     const ctx = applicationTriggers.wrapDB(rawCtx);
@@ -112,6 +105,8 @@ test('maintains global and per-ruleset totals through wrapped writes', async () 
     rulesets: 1,
     questions: 2,
     answers: 2,
+    groups: 0,
+    assets: 0,
   });
   await expect(t.query(api.statistics.getRulesetTotals, { rulesetId: ids.activeRulesetId })).resolves.toEqual({
     questions: 1,
@@ -136,6 +131,8 @@ test('maintains global and per-ruleset totals through wrapped writes', async () 
     rulesets: 0,
     questions: 1,
     answers: 1,
+    groups: 0,
+    assets: 0,
   });
   await expect(t.query(api.statistics.getRulesetTotals, { rulesetId: ids.activeRulesetId })).resolves.toEqual({
     questions: 0,
@@ -144,11 +141,7 @@ test('maintains global and per-ruleset totals through wrapped writes', async () 
 });
 
 test('backfills Statistics resumably and rebuilds after later writes bypass triggers', async () => {
-  const t = convexTest(schema, modules);
-  aggregateTest.register(t, 'statistics');
-  aggregateTest.register(t, 'profileActivity');
-  aggregateTest.register(t, 'profileDiscovery');
-  migrationsTest.register(t);
+  const t = applicationTest();
 
   const ids = await t.run(async (ctx) => {
     const userId = await ctx.db.insert('users', { name: 'Dashboard editor' });
@@ -197,6 +190,8 @@ test('backfills Statistics resumably and rebuilds after later writes bypass trig
     rulesets: 0,
     questions: 0,
     answers: 0,
+    groups: 0,
+    assets: 0,
   });
 
   await t.mutation(internal.migrations.statistics_profiles_v1, {});
@@ -211,6 +206,8 @@ test('backfills Statistics resumably and rebuilds after later writes bypass trig
     rulesets: 1,
     questions: 1,
     answers: 1,
+    groups: 0,
+    assets: 0,
   });
   await expect(t.query(api.statistics.getRulesetTotals, { rulesetId: ids.rulesetId })).resolves.toEqual({
     questions: 1,
@@ -236,9 +233,77 @@ test('backfills Statistics resumably and rebuilds after later writes bypass trig
     rulesets: 1,
     questions: 0,
     answers: 0,
+    groups: 0,
+    assets: 0,
   });
   await expect(t.query(api.statistics.getRulesetTotals, { rulesetId: ids.rulesetId })).resolves.toEqual({
     questions: 0,
     answers: 0,
   });
+});
+
+test('counts live groups and each asset type, through writes, the backfill and a rebuild', async () => {
+  const t = applicationTest();
+  const asset = (ownerId: Id<'users'>, type: string, slug: string, isDeleted = false) => ({
+    owner_id: ownerId,
+    type,
+    data: {},
+    slug,
+    created_at: '2026-08-04T10:00:00.000Z',
+    updated_at: '2026-08-04T10:00:00.000Z',
+    is_deleted: isDeleted,
+    group_id: null,
+  });
+  const group = (createdBy: Id<'users'>, slug: string, isDeleted = false) => ({
+    name: slug,
+    slug,
+    created_at: '2026-08-04T10:00:00.000Z',
+    created_by: createdBy,
+    is_deleted: isDeleted,
+  });
+  const totals = async () => {
+    const global = await t.query(api.statistics.getGlobalTotals, {});
+    return {
+      groups: global.groups,
+      assets: global.assets,
+      boards: await t.query(api.statistics.getAssetTypeTotal, { type: 'board' }),
+      tokens: await t.query(api.statistics.getAssetTypeTotal, { type: 'token' }),
+    };
+  };
+
+  /* Rows written before the triggers existed reach the totals only through the backfill. */
+  const ids = await t.run(async (ctx) => {
+    const userId = await ctx.db.insert('users', { name: 'Asset owner' });
+    const boardId = await ctx.db.insert('assets', asset(userId, 'board', 'board-a'));
+    await ctx.db.insert('assets', asset(userId, 'board', 'board-deleted', true));
+    await ctx.db.insert('assets', asset(userId, 'token', 'token-a'));
+    const groupId = await ctx.db.insert('groups', group(userId, 'group-a'));
+    await ctx.db.insert('groups', group(userId, 'group-deleted', true));
+    return { userId, boardId, groupId };
+  });
+  await expect(totals()).resolves.toEqual({ groups: 0, assets: 0, boards: 0, tokens: 0 });
+
+  await t.mutation(internal.migrations.statistics_groups_v1, {});
+  await t.mutation(internal.migrations.statistics_assets_v1, {});
+  await expect(totals()).resolves.toEqual({ groups: 1, assets: 2, boards: 1, tokens: 1 });
+
+  await t.run(async (rawCtx) => {
+    const ctx = applicationTriggers.wrapDB(rawCtx);
+    await ctx.db.insert('assets', asset(ids.userId, 'token', 'token-b'));
+    await ctx.db.patch(ids.boardId, { type: 'token' });
+    await ctx.db.patch(ids.groupId, { is_deleted: true });
+  });
+  await expect(totals()).resolves.toEqual({ groups: 0, assets: 3, boards: 0, tokens: 3 });
+
+  await t.run(async (ctx) => {
+    await ctx.db.insert('groups', group(ids.userId, 'group-unseen'));
+  });
+  vi.useFakeTimers();
+  try {
+    await t.mutation(internal.statistics.rebuild, {});
+    await t.finishAllScheduledFunctions(() => vi.runAllTimers());
+  } finally {
+    vi.useRealTimers();
+  }
+  await expect(totals()).resolves.toEqual({ groups: 1, assets: 3, boards: 0, tokens: 3 });
 });

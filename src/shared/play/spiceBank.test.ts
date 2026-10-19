@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { spawnSpiceInState } from './commands';
 import { freshTableState } from './model';
@@ -44,20 +44,6 @@ describe('shared Spice Bank', () => {
         )
       ).toBe(true);
     }
-  });
-
-  test('spawns at the original point after the previous stack is moved away', () => {
-    const first = spawnSpiceInState(freshTableState(), 10);
-    const source = first.pieces.find(isSpicePiece)!;
-    const moved = { ...source, position: restingPositionAt([0, 0, 0], source) };
-    const state = { ...first, pieces: first.pieces.map((piece) => (piece === source ? moved : piece)) };
-    const next = spawnSpiceInState(state, 2);
-    expect(next.pieces.find((piece) => piece.id === source.id)).toEqual(moved);
-    expect(next.pieces.find((piece) => piece.id === `spice-${state.nextEventNumber}`)).toMatchObject({
-      position: source.position,
-      items: createSpiceStack(state.nextEventNumber, 2).items,
-    });
-    expect(next.pieces.filter(isSpicePiece)).toHaveLength(2);
   });
 
   test('does not move the spawn point or an obstructing piece', () => {

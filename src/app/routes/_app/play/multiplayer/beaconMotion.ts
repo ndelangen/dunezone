@@ -1,8 +1,10 @@
 import { BOARD_SURFACE_Y } from '@shared/play/tableGeometry';
 
+import { TRACKER_BEACON_HEIGHT } from '../../../../widgets/tabletop/tablePlateGeometry';
+
 /* How far under the table the beacon waits before it rises, and where it sinks back to. */
 const SUNK_DEPTH = 1.4;
-export const HOME_HEIGHT = 0.6;
+export const HOME_HEIGHT = TRACKER_BEACON_HEIGHT;
 const CARRY_HEIGHT = 0.45;
 /* The hovering beacon stands out over the tracker; once dropped it shrinks to a marker the size of a faction token. */
 const HOVER_SCALE = 1.9;

@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-import { afterEach, expect, test, vi } from 'vitest';
+import { afterEach, expect, test, vi } from 'vite-plus/test';
 
 import {
   APPLICATION_ASSET_MANIFEST,
@@ -79,6 +79,8 @@ test('bootstraps transitive Vite imports, preload maps and CSS font URLs', async
     'public/font-abcd.woff2': 'font bytes',
   };
   const read = vi.fn(async (file: string) => new TextEncoder().encode(files[file]));
+  /* The script tag and byte reader are fixed fixtures; this test never executes HTML. */
+  /* nosemgrep: javascript.lang.security.audit.unknown-value-with-script-tag.unknown-value-with-script-tag */
   const result = await bootstrapApplicationAssets('<script src="/public/index-abcd.js"></script>', read, 1);
   expect(result.manifest.files.map((file) => file.path).sort()).toEqual(Object.keys(files).sort());
   expect(read).toHaveBeenCalledTimes(6);

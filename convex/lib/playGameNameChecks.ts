@@ -78,7 +78,7 @@ function letterForm(letter: string) {
   return digits ? `(?:${others}|(?!${alone})[${digits}])` : form;
 }
 const SEPARATOR = `${SEPARATOR_CHARACTER}{0,3}`;
-const WORD_PATTERNS = PROFANE_WORDS.map((word) => [...word].map(letterForm).join(SEPARATOR)).join('|');
+const WORD_PATTERNS = PROFANE_WORDS.map((word) => Array.from(word).map(letterForm).join(SEPARATOR)).join('|');
 const WHOLE_WORD = new RegExp(`(?<![\\p{L}\\p{N}])(?:${WORD_PATTERNS})(?![\\p{L}\\p{N}])`, 'u');
 const SUFFIX_WORD = new RegExp(`${WORD_PATTERNS}|bastard|ass|cock|dick|prick`, 'u');
 /* Matching the base character includes presentation selectors and skin-tone variants. */

@@ -2,8 +2,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import viteReact from '@vitejs/plugin-react';
-import { defineConfig } from 'vite';
-import type { Rolldown } from 'vite';
+import { defineConfig } from 'vite-plus';
+import type { Rolldown } from 'vite-plus';
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const runtimeEntry = 'virtual:rulebook-html-runtime';
@@ -27,7 +27,8 @@ function takeRendererCss(bundle: Rolldown.OutputBundle) {
 
 export default defineConfig({
   root: repositoryRoot,
-  publicDir: false,
+  /* Resolve shared static URLs; assembly supplies these files after the capture build. */
+  publicDir: path.join(repositoryRoot, 'public'),
   resolve: { tsconfigPaths: true },
   plugins: [
     viteReact(),
@@ -64,6 +65,7 @@ export const rulebookRendererCss = ${JSON.stringify(emittedCssMarker)};`;
   ],
   ssr: { noExternal: true },
   build: {
+    copyPublicDir: false,
     ssr: true,
     ssrEmitAssets: true,
     cssCodeSplit: false,

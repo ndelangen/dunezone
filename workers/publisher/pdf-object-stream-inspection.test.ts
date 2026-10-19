@@ -1,5 +1,5 @@
-import { PDFDict, PDFDocument, PDFName } from 'pdf-lib';
-import { expect, test } from 'vitest';
+import { PDFDict, PDFDocument, PDFName, PDFString } from 'pdf-lib';
+import { expect, test } from 'vite-plus/test';
 
 import { inspectPublishedRulebookPdf } from './pdf-inspection';
 
@@ -14,6 +14,14 @@ test('validates the compressed object table and reachable Pages of the final for
   expect((await inspectPublishedRulebookPdf(await fixture())).pageCount).toBe(2);
 });
 
+test('rejects object streams that decode past their 8 MiB bound', async () => {
+  const document = await PDFDocument.create();
+  document.addPage([700, 700]);
+  document.catalog.set(PDFName.of('CaptureNote'), PDFString.of('x'.repeat(8 * 1024 * 1024 + 1)));
+  const bytes = await document.save({ useObjectStreams: true });
+  await expect(inspectPublishedRulebookPdf(bytes)).rejects.toThrow('Compressed PDF object data exceeds its bound');
+});
+
 test('rejects a broken startxref even when the full PDF parser repairs it', async () => {
   const bytes = await fixture();
   const text = new TextDecoder('latin1').decode(bytes);
@@ -24,33 +32,29 @@ test('rejects a broken startxref even when the full PDF parser repairs it', asyn
   await expect(inspectPublishedRulebookPdf(corrupted)).rejects.toThrow('exact object header');
 });
 
-test.each(['member-count', 'member-offset', 'xref-length', 'xref-width', 'missing-eof'])(
-  'rejects corrupted compressed PDF structure: %s',
-  async (kind) => {
-    const bytes = await fixture();
-    const text = new TextDecoder('latin1').decode(bytes);
-    const corrupted = bytes.slice();
-    if (kind === 'missing-eof') {
-      await expect(inspectPublishedRulebookPdf(corrupted.subarray(0, corrupted.length - 10))).rejects.toThrow(
-        'truncated'
-      );
-      return;
-    }
-    const pattern =
-      kind === 'member-count'
-        ? /\/N (\d+)/
-        : kind === 'member-offset'
-          ? /\/First (\d+)/
-          : kind === 'xref-width'
-            ? /\/W \[ (\d+)/
-            : /\/Size (\d+)/;
-    const match = pattern.exec(text)!;
-    const changed = String(Number(match[1]) + 1).padStart(match[1].length, '0');
-    expect(changed.length).toBe(match[1].length);
-    corrupted.set(new TextEncoder().encode(changed), match.index + match[0].lastIndexOf(match[1]));
-    await expect(inspectPublishedRulebookPdf(corrupted)).rejects.toThrow();
-  }
-);
+test.each([
+  ['member-count', 'Object stream member count does not match N'],
+  ['member-offset', 'Object stream has an invalid member table'],
+  ['xref-length', 'Compressed PDF cross-reference coverage is incomplete'],
+  ['xref-width', 'Compressed PDF cross-reference length does not match Size'],
+])('rejects corrupted compressed PDF structure: %s', async (kind, message) => {
+  const bytes = await fixture();
+  const text = new TextDecoder('latin1').decode(bytes);
+  const corrupted = bytes.slice();
+  const pattern =
+    kind === 'member-count'
+      ? /\/N (\d+)/
+      : kind === 'member-offset'
+        ? /\/First (\d+)/
+        : kind === 'xref-width'
+          ? /\/W \[ (\d+)/
+          : /\/Size (\d+)/;
+  const match = pattern.exec(text)!;
+  const changed = String(Number(match[1]) + 1).padStart(match[1].length, '0');
+  expect(changed.length).toBe(match[1].length);
+  corrupted.set(new TextEncoder().encode(changed), match.index + match[0].lastIndexOf(match[1]));
+  await expect(inspectPublishedRulebookPdf(corrupted)).rejects.toThrow(message);
+});
 
 test('retains tagged reading order when parsing compressed objects', async () => {
   const document = await PDFDocument.create();

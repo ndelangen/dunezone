@@ -228,7 +228,7 @@ function baselineDatabase(): StorybookDatabase {
   return baseline;
 }
 
-function asset({ data, type }: Readonly<{ data: unknown; type: string }>): StorybookRow<'assets'> {
+export function asset({ data, type }: Readonly<{ data: unknown; type: string }>): StorybookRow<'assets'> {
   const parsed = parseAssetDataForWrite(type, data);
   return {
     $key: `asset:${type}:${slugify(parsed.name)}`,

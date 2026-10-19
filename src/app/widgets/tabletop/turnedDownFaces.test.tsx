@@ -2,7 +2,7 @@
 
 import type { TablePiece } from '@shared/play/model';
 import { renderHook } from '@testing-library/react';
-import { expect, test } from 'vitest';
+import { expect, test } from 'vite-plus/test';
 
 import { useTurnedDownFaces } from './turnedDownFaces';
 

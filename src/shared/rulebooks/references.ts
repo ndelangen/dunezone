@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { compareCodeUnits } from '../compareText';
 import { CanonicalFactionStoredObject, TroopArtwork } from '../factions/schema';
 import type { RulebookBattleSideValue } from './battleStep';
+import { resolveRulebookBoardDefinition } from './boardDefinitions';
 import { getRulebookCoverFooter } from './contents';
 import type { RulebookContentsDraftV1 } from './contents';
 import type { RulebookBoardSceneValue } from './illustratedScenes';
@@ -34,12 +35,16 @@ export function collectRulebookReferenceIds(
   const assetIds = new Set(requested.assetIds);
   const factionIds = new Set(requested.factionIds);
   const troopSources = new Map<string, Extract<RulebookSourceReference, { kind: 'faction-troop' }>>();
+  const markupBoardIds = new Set<string>();
   const collectSource = (source: RulebookSourceReference | undefined) => {
     if (source?.kind === 'faction-troop') {
       troopSources.set(`${source.factionId}.${source.troopId}.${source.face}`, source);
     }
     if (source?.kind === 'asset') {
       assetIds.add(source.assetId);
+    }
+    if (source?.kind === 'board' && !resolveRulebookBoardDefinition(source.boardId)) {
+      assetIds.add(source.boardId);
     }
     if (source?.kind === 'faction' || source?.kind === 'faction-member' || source?.kind === 'faction-troop') {
       factionIds.add(source.factionId);
@@ -56,6 +61,16 @@ export function collectRulebookReferenceIds(
     }
   };
   const collectBoard = (board: RulebookBoardSceneValue) => {
+    /* A board ID the maintained definitions do not have names a saved board asset. */
+    if (!resolveRulebookBoardDefinition(board.boardId)) {
+      assetIds.add(board.boardId);
+    }
+    if (board.tints?.length) {
+      markupBoardIds.add(board.boardId);
+    }
+    for (const token of board.tokens ?? []) {
+      assetIds.add(token.asset_id);
+    }
     for (const item of [...board.players, ...board.troops]) {
       if (item.factionId) {
         factionIds.add(item.factionId);
@@ -126,5 +141,7 @@ export function collectRulebookReferenceIds(
     assetIds: [...assetIds].sort(compareCodeUnits),
     factionIds: [...factionIds].sort(compareCodeUnits),
     ...(troopSources.size ? { troopSources: [...troopSources.values()] } : {}),
+    /** Saved boards a scene draws tints on, whose data the scene needs to draw them. */
+    ...(markupBoardIds.size ? { markupBoardIds: [...markupBoardIds].sort(compareCodeUnits) } : {}),
   };
 }

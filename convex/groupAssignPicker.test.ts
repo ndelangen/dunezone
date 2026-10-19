@@ -1,15 +1,13 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import { convexTest } from 'convex-test';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api } from './_generated/api';
-import schema from './schema';
+import { applicationTest } from './application.test.fixture';
 import type { MutationCtx } from './types';
 
-const modules = import.meta.glob('./**/*.ts');
 const now = '2026-08-10T00:00:00.000Z';
 
 async function seedUsersAndGroups(ctx: MutationCtx) {
@@ -134,7 +132,7 @@ async function seedRulesets(ctx: MutationCtx, seeded: Awaited<ReturnType<typeof 
 }
 
 async function fixture() {
-  const t = convexTest(schema, modules);
+  const t = applicationTest();
   const ids = await t.run(async (ctx) => {
     const seeded = await seedUsersAndGroups(ctx);
     const factionIds = await seedFactions(ctx, seeded);

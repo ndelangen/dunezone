@@ -1,14 +1,11 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import aggregateTest from '@convex-dev/aggregate/test';
-import { convexTest } from 'convex-test';
-import { afterEach, describe, expect, test, vi } from 'vitest';
+import type { convexTest } from 'convex-test';
+import { afterEach, describe, expect, test, vi } from 'vite-plus/test';
 
 import { api, internal } from './_generated/api';
-import schema from './schema';
-
-const modules = import.meta.glob('./**/*.ts');
+import { applicationTest } from './application.test.fixture';
 
 const ABOUT = 'A test ruleset with a description long enough to satisfy the fifty character floor.';
 const SOURCE_URL = 'https://images.example/cover.png';
@@ -23,10 +20,7 @@ const STORED_COVER = {
 };
 
 async function coverFixture() {
-  const t = convexTest(schema, modules);
-  aggregateTest.register(t, 'statistics');
-  aggregateTest.register(t, 'profileActivity');
-  aggregateTest.register(t, 'profileDiscovery');
+  const t = applicationTest();
   const ids = await t.run(async (ctx) => {
     const ownerId = await ctx.db.insert('users', { name: 'Cover owner' });
     const strangerId = await ctx.db.insert('users', { name: 'Cover stranger' });
@@ -69,7 +63,7 @@ function ingestSuccess() {
  */
 function ingestWorkerSimulation(t: ReturnType<typeof convexTest>) {
   return vi.fn(async (_input: string | URL | Request, init?: RequestInit) => {
-    const body = JSON.parse(String(init?.body)) as { source_url: string; token: string };
+    const body = JSON.parse(init?.body as string) as { source_url: string; token: string };
     const answer = await t.mutation(api.ingestTokens.consume, {
       token: body.token,
       result: { url: DELIVERY_URL, thumb_url: DELIVERY_THUMB_URL, width: 800, height: 600 },
@@ -103,7 +97,10 @@ describe('ruleset cover rehosting', () => {
     const [request, init] = fetchMock.mock.calls[0] ?? [];
     expect(request).toBe('https://worker.test/__user-images/ingest');
     expect(new Headers(init?.headers).get('Authorization')).toBeNull();
-    const sent = JSON.parse(String(init?.body)) as { source_url: string; token: string };
+    /* The Convex side bounds its own wait, so a Worker that has stopped answering cannot hold the save open. */
+    expect(init?.signal).toBeInstanceOf(AbortSignal);
+    expect(init?.signal?.aborted).toBe(false);
+    const sent = JSON.parse(init?.body as string) as { source_url: string; token: string };
     expect(sent.source_url).toBe(SOURCE_URL);
     expect(sent.token).toMatch(/^[0-9a-f]{64}$/);
 
@@ -147,7 +144,7 @@ describe('ruleset cover rehosting', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async (_input: string | URL | Request, init?: RequestInit) => {
-        const body = JSON.parse(String(init?.body)) as { token: string };
+        const body = JSON.parse(init?.body as string) as { token: string };
         await t.run(async (ctx) => {
           await ctx.db.patch(ruleset._id, { is_deleted: true });
         });
@@ -333,25 +330,6 @@ describe('ruleset cover rehosting', () => {
     expect([...firstIds, ...secondIds].sort()).toEqual([ruleset._id, second._id, third._id].sort());
   });
 
-  /*
-   * The Convex side bounds its own wait, so a Worker that has stopped answering cannot hold an author's
-   * save open to the platform ceiling.
-   * This asserts the wiring rather than the elapsed time: the deadline is real but waiting it out in a
-   * unit test would cost the deadline itself.
-   */
-  test('the ingest call carries its own deadline', async () => {
-    const { t, owner, ruleset } = await coverFixture();
-    stubIngestEnvironment();
-    const fetchMock = ingestWorkerSimulation(t);
-    vi.stubGlobal('fetch', fetchMock);
-
-    await owner.action(api.rulesetCovers.rehost, { id: ruleset._id, source_url: SOURCE_URL });
-
-    const [, init] = fetchMock.mock.calls[0] ?? [];
-    expect(init?.signal).toBeInstanceOf(AbortSignal);
-    expect(init?.signal?.aborted).toBe(false);
-  });
-
   test('the backfill rehosts legacy rows and reports rows whose source fails', async () => {
     const { t, owner, ruleset } = await coverFixture();
     stubIngestEnvironment();
@@ -369,7 +347,7 @@ describe('ruleset cover rehosting', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async (_input: string | URL | Request, init?: RequestInit) => {
-        const body = JSON.parse(String(init?.body)) as { source_url: string; token: string };
+        const body = JSON.parse(init?.body as string) as { source_url: string; token: string };
         if (body.source_url === SOURCE_URL) {
           await t.mutation(api.ingestTokens.consume, {
             token: body.token,
@@ -410,7 +388,7 @@ describe('ruleset cover rehosting', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async (_input: string | URL | Request, init?: RequestInit) => {
-        const body = JSON.parse(String(init?.body)) as { token: string };
+        const body = JSON.parse(init?.body as string) as { token: string };
         /* The author edits while the backfill is fetching, so the scan's snapshot is stale by the time the callback lands. */
         await t.run(async (ctx) => {
           await ctx.db.patch(ruleset._id, { image_cover: 'https://elsewhere.example/new.png' });

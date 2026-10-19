@@ -17,8 +17,9 @@
 /application-assets.json
   Cache-Control: no-store
 
-# Application documents cannot be embedded in another site.
+# Assembly inserts the configured Convex origin and hashes of the final SPA shell's inline scripts.
+# Public SSR uses the same resource policy with a fresh nonce on every delivery, including cache hits.
 /*
-  Content-Security-Policy: frame-ancestors 'self'; base-uri 'self'; object-src 'none'
+  Content-Security-Policy: __APPLICATION_CSP__
   X-Frame-Options: SAMEORIGIN
   X-Content-Type-Options: nosniff

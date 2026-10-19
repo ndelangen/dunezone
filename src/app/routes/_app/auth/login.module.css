@@ -1,0 +1,69 @@
+/*
+ * The sign-in page lays its words over the band, which grows to fill the window for it (the immersive header).
+ * The band never flips with the colour scheme, so neither does this ink.
+ */
+.lead {
+  color: var(--color-paper);
+  font-size: 1.25rem;
+  line-height: 1.5;
+  text-shadow: 0 2px 12px rgb(0 0 0 / 60%);
+}
+
+.actions {
+  width: 100%;
+  max-width: 25rem;
+}
+
+.provider {
+  height: auto;
+  padding-block: var(--space-md);
+  border: 0;
+  border-radius: var(--radius-md);
+  --provider-bg: var(--color-paper);
+  background-color: var(--provider-bg);
+  color: var(--color-ink);
+  box-shadow: 0 10px 30px rgb(0 0 0 / 35%);
+  transition:
+    transform var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.provider:hover:not(:disabled) {
+  background-color: var(--provider-bg);
+  transform: translateY(-1px);
+  box-shadow: 0 14px 34px rgb(0 0 0 / 45%);
+}
+
+/* Discord's own blurple, as Google keeps its four colours in its mark. */
+.provider[data-provider="discord"],
+.provider[data-provider="discord"]:hover:not(:disabled) {
+  --provider-bg: #5865f2;
+  background-color: var(--provider-bg);
+  color: white;
+}
+
+.provider:disabled {
+  opacity: 0.55;
+}
+
+.fine {
+  color: var(--color-paper);
+  opacity: 0.75;
+}
+
+.providerMark {
+  position: relative;
+  display: inline-flex;
+}
+
+/* Anchor the badge to the logo without changing the button or label geometry. */
+.lastUsed {
+  position: absolute;
+  top: -4px;
+  inset-inline-end: -4px;
+  display: inline-flex;
+  padding: 1px;
+  border-radius: 50%;
+  background-color: var(--provider-bg);
+  opacity: 0.85;
+}

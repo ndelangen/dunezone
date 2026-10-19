@@ -1,4 +1,5 @@
-.shape {
+/* Card.module.css's .shape sets the decal frame with the `background` shorthand. On a tie the sheet a page loads last wins, which in the card editor is that one, so this selector outranks it. */
+div.shape {
   background-image: url("/image/card/base-full-large.webp");
 }
 
@@ -71,6 +72,23 @@
   filter: saturate(0.1);
 }
 
+.map[data-look] {
+  mix-blend-mode: normal;
+  filter: none;
+}
+
+/* The classic map's look; the strength fades the plain board over it. */
+.map[data-look="burnt"] {
+  mix-blend-mode: color-burn;
+  filter: saturate(0.1);
+}
+
+/* Toned brown and laid into the parchment's own grain. */
+.map[data-look="sepia"] {
+  mix-blend-mode: multiply;
+  filter: sepia(1) contrast(0.7) brightness(1.1);
+}
+
 .map_overlay {
   position: absolute;
   top: 235px;
@@ -121,4 +139,42 @@
   color: #0b0503;
   text-align: right;
   line-height: 1.25em;
+}
+
+/* Placed token instances share the map's box so their board coordinates land on the map. */
+.mapTokens {
+  position: absolute;
+  top: 235px;
+  height: 700px;
+  width: 700px;
+  left: 95px;
+  pointer-events: none;
+}
+
+.mapToken {
+  position: absolute;
+  filter: drop-shadow(0 4px 6px #000a);
+}
+
+/* An editor's own outline on the token it has open. */
+.mapToken[data-selected] {
+  outline: 6px solid #ffd43b;
+  outline-offset: 4px;
+  border-radius: 50%;
+}
+
+/* The editor's input surface, over the map and its tokens; a scaled proof turns pointer input off for everything else. */
+.mapEdit {
+  pointer-events: auto;
+  position: absolute;
+  top: 235px;
+  height: 700px;
+  width: 700px;
+  left: 95px;
+  border-radius: 50%;
+  touch-action: none;
+}
+
+.mapEdit[data-brush] {
+  cursor: crosshair;
 }

@@ -70,6 +70,59 @@
   }
 }
 
+/*
+ * The immersive header covers the full-window box the band grows into (see the AppHeader stylesheet), below the band's 51px navigation strip, so its words sit on the artwork and the site links stay clickable.
+ * They rise in once the band has mostly grown, which is what makes arriving read as one movement rather than a cut.
+ */
+.layout[data-page-layout-header-size="immersive"] .headerContent {
+  align-self: start;
+  align-items: flex-start;
+  width: 100vw;
+  height: calc(100vh - 51px);
+  height: calc(100dvh - 51px);
+  aspect-ratio: auto;
+  margin-left: calc(-1 * var(--app-frame-left, 0px));
+  margin-top: 11px;
+  padding: var(--space-xl) clamp(var(--space-md), 6vw, 5rem);
+  gap: var(--space-lg);
+  overflow-y: auto;
+}
+
+.layout[data-page-layout-header-size="immersive"] .headerContent > * {
+  max-width: 33rem;
+  animation: immersive-rise 0.6s 0.35s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.layout[data-page-layout-header-size="immersive"] .headerContent > :nth-child(2) {
+  animation-delay: 0.45s;
+}
+
+.layout[data-page-layout-header-size="immersive"] .headerContent > :nth-child(n + 3) {
+  animation-delay: 0.55s;
+}
+
+@keyframes immersive-rise {
+  from {
+    opacity: 0;
+    transform: translateY(1.5rem);
+  }
+}
+
+:global(html[data-motion="reduce"]) .layout[data-page-layout-header-size="immersive"] .headerContent > * {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :global(html:not([data-motion="ok"])) .layout[data-page-layout-header-size="immersive"] .headerContent > * {
+    animation: none;
+  }
+}
+
+/* While the band shrinks back from an immersive page it covers the arriving page; the header rides above it, over the art it lands on. */
+:global([data-band-unwinding]) .headerContent {
+  z-index: 3;
+}
+
 /* Keep the route's heading in the accessibility tree without taking space from the workspace. */
 .layout[data-page-layout-height="fullscreen"] .headerContent {
   position: absolute;

@@ -16,8 +16,8 @@ export const NumberedList = meta.story({
         style: 'numbered',
         itemOrder: ['AAAA', 'BBBB'],
         itemsById: {
-          AAAA: { id: 'AAAA', name: 'Ship forces', text: 'Pay spice to bring reserves to Dune.' },
-          BBBB: { id: 'BBBB', name: 'Move forces', text: 'Choose one group to move.' },
+          AAAA: { id: 'AAAA', name: 'Ship troops', text: 'Pay spice to bring reserves to Dune.' },
+          BBBB: { id: 'BBBB', name: 'Move troops', text: 'Choose one group to move.' },
         },
       }}
     />
@@ -29,21 +29,29 @@ export const NumberedList = meta.story({
     await userEvent.click(canvas.getByRole('combobox', { name: 'Item 1 icon' }));
     await userEvent.type(canvas.getByRole('combobox', { name: 'Item 1 icon' }), 'storm');
     await userEvent.click(await within(document.body).findByRole('option', { name: 'Storm' }));
-    expect(listChange.mock.lastCall?.[0].itemsById.AAAA.icon).toBe('/vector/icon/storrm_standalone.svg');
+    await expect(listChange.mock.lastCall?.[0].itemsById.AAAA.icon).toBe('/vector/icon/storrm_standalone.svg');
     await userEvent.click(canvas.getByRole('button', { name: 'Reorder item 1' }));
     await userEvent.keyboard('[Space][ArrowDown][Space]');
     await waitFor(() => expect(listChange.mock.lastCall?.[0].itemOrder).toEqual(['BBBB', 'AAAA']));
-    expect(listChange.mock.lastCall?.[0].itemsById.AAAA.name).toBe('Ship forces first');
-    expect(listChange.mock.lastCall?.[0].itemsById.AAAA.icon).toBe('/vector/icon/storrm_standalone.svg');
+    await expect(listChange.mock.lastCall?.[0].itemsById.AAAA.name).toBe('Ship troops first');
+    await expect(listChange.mock.lastCall?.[0].itemsById.AAAA.icon).toBe('/vector/icon/storrm_standalone.svg');
     await userEvent.click(canvas.getByLabelText('Clear artwork'));
-    expect(listChange.mock.lastCall?.[0].itemsById.AAAA.icon).toBeUndefined();
+    await expect(listChange.mock.lastCall?.[0].itemsById.AAAA.icon).toBeUndefined();
     await userEvent.click(canvas.getByRole('button', { name: 'Add item' }));
-    expect(listChange.mock.lastCall?.[0].itemOrder).toHaveLength(3);
+    await expect(listChange.mock.lastCall?.[0].itemOrder).toHaveLength(3);
     await userEvent.click(canvas.getByRole('button', { name: 'Remove last item' }));
-    expect(listChange.mock.lastCall?.[0].itemOrder).toEqual(['BBBB', 'AAAA']);
+    await expect(listChange.mock.lastCall?.[0].itemOrder).toEqual(['BBBB', 'AAAA']);
   },
 });
 
+/** An empty bulleted list previews as a bulleted list with no items, and offers its first one. */
 export const EmptyBulletedList = meta.story({
   render: () => <ListStory initialValue={{ style: 'bulleted', itemOrder: [], itemsById: {} }} />,
+  play: async ({ canvasElement }) => {
+    const preview = within(canvasElement.querySelector<HTMLElement>('[data-rulebook-block-canvas]')!);
+    const list = preview.getByRole('list');
+    await expect(list.tagName).toBe('UL');
+    await expect(within(list).queryAllByRole('listitem')).toHaveLength(0);
+    await expect(within(canvasElement).getByRole('button', { name: 'Add item' })).toBeVisible();
+  },
 });

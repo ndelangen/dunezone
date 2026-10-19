@@ -1,16 +1,31 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
+import { parse } from 'yaml';
 
 import { JOB_DIRECTORY, jobEnvironment, SNAPSHOT_FILE, summaryMarkdown } from './anonymised-snapshot';
 
-const workflow = readFileSync(path.resolve(process.cwd(), '.github/workflows/anonymised-snapshot.yml'), 'utf8');
+interface Step {
+  name?: string;
+  if?: string;
+  uses?: string;
+  run?: string;
+  with?: Record<string, string | number>;
+  env?: Record<string, string>;
+}
 
-/** The workflow's steps in order, each as the text of its list item. */
-const steps = workflow.slice(workflow.indexOf('\n    steps:\n')).split('\n      - ').slice(1);
+const workflowSource = readFileSync(path.resolve(process.cwd(), '.github/workflows/anonymised-snapshot.yml'), 'utf8');
+const workflow = parse(workflowSource) as {
+  on: { schedule: { cron: string }[] } & Record<string, unknown>;
+  env: Record<string, string>;
+  jobs: { snapshot: { if: string; environment: string; steps: Step[] } };
+};
 
-const stepNamed = (name: string) => steps.findIndex((step) => step.startsWith(`name: ${name}\n`));
+const job = workflow.jobs.snapshot;
+const steps = job.steps;
+
+const stepNamed = (name: string) => steps.findIndex((step) => step.name === name);
 
 const actionsEnvironment = {
   GITHUB_ACTIONS: 'true',
@@ -21,32 +36,30 @@ const actionsEnvironment = {
 };
 
 describe('anonymised snapshot job', () => {
-  test('runs from main in the production environment, by hand or at most once a day', () => {
-    const triggers = workflow.slice(workflow.indexOf('\non:\n'), workflow.indexOf('\npermissions:'));
-    expect([...triggers.matchAll(/^ {2}(\w+):/gm)].map(([, trigger]) => trigger)).toEqual([
-      'schedule',
-      'workflow_dispatch',
-    ]);
-    const crons = [...triggers.matchAll(/- cron: "(.+)"/g)].map(([, cron]) => cron!.split(' '));
+  test('runs from main in the production environment, by hand or at most once a week', () => {
+    expect(Object.keys(workflow.on)).toEqual(['schedule', 'workflow_dispatch']);
+    const crons = workflow.on.schedule.map(({ cron }) => cron.split(' '));
     expect(crons).toHaveLength(1);
     expect(crons[0]!.slice(0, 2)).toEqual([expect.stringMatching(/^\d+$/), expect.stringMatching(/^\d+$/)]);
-    expect(workflow).toContain("if: github.ref == 'refs/heads/main'\n    environment: production\n");
-    expect(workflow.match(/secrets\./g)).toHaveLength(1);
-    expect(steps[stepNamed('Export production, anonymise it and scan the snapshot')]).toContain(
-      'CONVEX_PROD_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}'
-    );
+    expect(crons[0]!.slice(2)).toEqual(['*', '*', '1']);
+    expect(job).toMatchObject({ if: "github.ref == 'refs/heads/main'", environment: 'production' });
+    expect(JSON.stringify(workflow).match(/secrets\./g)).toHaveLength(1);
+    expect(steps[stepNamed('Export production, anonymise it and scan the snapshot')]?.env).toEqual({
+      CONVEX_PROD_DEPLOY_KEY: '${{ secrets.CONVEX_DEPLOY_KEY }}',
+    });
   });
 
   test('uploads only the snapshot file, only when SNAPSHOT_UPLOAD is on, and always deletes the job directory', () => {
-    expect(workflow).toMatch(/\nenv:\n(?: {2}#.*\n)* {2}SNAPSHOT_UPLOAD: "(?:false|true)"\n/);
+    expect(['false', 'true']).toContain(workflow.env.SNAPSHOT_UPLOAD);
     const upload = stepNamed('Upload the anonymised snapshot');
     const cleanup = stepNamed('Delete the export and the snapshot from the runner');
-    expect(steps.filter((step) => step.includes('actions/upload-artifact@'))).toEqual([steps[upload]]);
-    expect(steps[upload]).toContain("if: success() && env.SNAPSHOT_UPLOAD == 'true'\n");
-    expect(steps[upload]).toContain(`path: \${{ runner.temp }}/${JOB_DIRECTORY}/${SNAPSHOT_FILE}\n`);
-    expect(steps[upload]).toContain('retention-days: 1\n');
+    expect(steps.filter((step) => step.uses?.startsWith('actions/upload-artifact@'))).toEqual([steps[upload]]);
+    expect(steps[upload]).toMatchObject({
+      if: "success() && env.SNAPSHOT_UPLOAD == 'true'",
+      with: { path: `\${{ runner.temp }}/${JOB_DIRECTORY}/${SNAPSHOT_FILE}`, 'retention-days': 8 },
+    });
     expect(cleanup).toBe(steps.length - 1);
-    expect(steps[cleanup]).toContain(`if: always()\n        run: rm -rf "\${RUNNER_TEMP:?}/${JOB_DIRECTORY}"\n`);
+    expect(steps[cleanup]).toMatchObject({ if: 'always()', run: `rm -rf "\${RUNNER_TEMP:?}/${JOB_DIRECTORY}"` });
   });
 
   test('refuses to start outside a GitHub Actions run on main that holds the deploy key', () => {

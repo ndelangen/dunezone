@@ -1,4 +1,4 @@
-import { describe, expect, test, vi } from 'vitest';
+import { describe, expect, test, vi } from 'vite-plus/test';
 
 import { socialCardHref } from '../../src/shared/socialCard';
 import { handleApplicationRequest } from './application';
@@ -35,7 +35,11 @@ function edgeCache() {
     evict: () => entries.clear(),
   };
 }
-const env = { CF_VERSION_METADATA: { id: 'a', tag: 'a', timestamp: 'now' }, GIT_SHA: 'development' } as const;
+const env = {
+  CF_VERSION_METADATA: { id: 'a', tag: 'a', timestamp: 'now' },
+  GIT_SHA: 'development',
+  CONVEX_CLOUD_BASE_URL: 'https://exuberant-finch-263.eu-west-1.convex.cloud',
+} as const;
 const page = 'https://dune.zone/factions/test-faction';
 const artwork = '/published/faction-tokens/abcdefghijklmnop/token.jpg';
 const image = socialCardHref({ name: 'Test faction', kind: 'Faction', description: '', image: artwork });
@@ -61,7 +65,9 @@ describe('public HTML edge cache', () => {
   test('credentials never reach rendering and both visitors reuse exactly the same public body', async () => {
     const { cache } = edgeCache();
     const render = vi.fn(async (request: Request) => {
-      expect([...request.headers]).toEqual([['accept', 'text/html']]);
+      expect(request.headers.get('Accept')).toBe('text/html');
+      expect(request.headers.get('X-Application-Nonce')).toMatch(/^[a-f0-9]{32}$/);
+      expect([...request.headers]).toHaveLength(2);
       return new Response('public', { headers: { 'X-Public-Metadata-Queries': '1' } });
     });
     const first = await handleApplicationRequest(

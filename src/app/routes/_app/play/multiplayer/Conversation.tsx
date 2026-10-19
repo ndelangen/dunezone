@@ -8,7 +8,7 @@ import type { ConversationView } from '../../../../db/tabletop/ConversationSessi
 import type { TableSession } from '../../../../db/tabletop/TableSession';
 import styles from './Conversation.module.css';
 import { CONVERSATION_HELP } from './panelGuidance';
-import { useServerNow } from './useServerNow';
+import { useServerNowAs } from './useServerNow';
 
 const EMPTY_MESSAGES: ConversationMessage[] = [];
 /* A message keeps its line breaks and wraps even a long unbroken word. */
@@ -321,25 +321,28 @@ const RELATIVE_UNITS = [
   { limit: Infinity, seconds: 86_400, unit: 'day' },
 ] as const;
 
+/* One formatter for every message's time, built once rather than on each render. */
+const RELATIVE_TIME = new Intl.RelativeTimeFormat('en', { numeric: 'always' });
+
 function relativeMessageTime(savedAt: number, now: number) {
   const elapsed = Math.max(0, (now - savedAt) / 1000);
   if (elapsed < 60) {
     return 'Just now';
   }
   const scale = RELATIVE_UNITS.find((entry) => elapsed < entry.limit)!;
-  return new Intl.RelativeTimeFormat('en', { numeric: 'always' }).format(
-    -Math.floor(elapsed / scale.seconds),
-    scale.unit
-  );
+  return RELATIVE_TIME.format(-Math.floor(elapsed / scale.seconds), scale.unit);
 }
 
-/* Saved history exists only while the table is connected, so every caller sits inside the server clock's provider. */
+/*
+ * Saved history exists only while the table is connected, so every caller sits inside the server clock's provider.
+ * The time renders again only when its words change, at most once a minute, not on every tick of the clock.
+ */
 function MessageTime({ savedAt }: Readonly<{ savedAt: number }>) {
-  const now = useServerNow();
+  const label = useServerNowAs((now) => relativeMessageTime(savedAt, now));
   const date = new Date(savedAt);
   return (
     <Text component="time" dateTime={date.toISOString()} title={date.toLocaleString()} size="xs" c="dimmed">
-      {relativeMessageTime(savedAt, now)}
+      {label}
     </Text>
   );
 }

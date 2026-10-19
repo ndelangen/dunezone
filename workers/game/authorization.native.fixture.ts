@@ -21,7 +21,7 @@ export class AuthorizationProbe extends DurableObject<ProbeEnv> {
       { gameId: 'fixture-game', secret: 'a'.repeat(64) },
       () => this.events.push(this.watch?.status('registration-a') ?? 'suspended'),
       undefined,
-      { leaseMs: duration('leaseMs'), renewalMs: duration('renewalMs') }
+      { leaseMs: duration('leaseMs'), renewalMs: duration('renewalMs'), recoveryMs: duration('recoveryMs') }
     );
     this.latestRound = this.watch.add('registration-a', { userId: 'user-a', sessionId: 'session-a' });
   }

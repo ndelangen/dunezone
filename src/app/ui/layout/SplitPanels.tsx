@@ -1,4 +1,4 @@
-import { Children, isValidElement, useEffect, useId, useLayoutEffect, useReducer, useRef } from 'react';
+import { Children, isValidElement, useEffect, useEffectEvent, useId, useLayoutEffect, useReducer, useRef } from 'react';
 import type {
   AriaAttributes,
   CSSProperties,
@@ -44,11 +44,14 @@ type SplitPanelsProps = PropsWithChildren<{
   label: string;
   /** Words for the primary panel's size, when a bare percentage would not say what it measures. */
   valueText?: (size: number) => string;
+  /** Hears the primary panel's size once a drag or a key settles it, so a caller can remember it. */
+  onSizeChange?: (size: number) => void;
 }>;
 
 type Orientation = SplitPanelsProps['orientation'];
 
-type SplitState = Readonly<{ size: number; limits: SplitLimits; pointerId: number | null }>;
+/* `settled` counts the sizes the reader chose, a drag let go or a key pressed; a clamp to new limits is not one. */
+type SplitState = Readonly<{ size: number; limits: SplitLimits; pointerId: number | null; settled: number }>;
 
 type SplitEvent =
   | { type: 'limit.changed'; limits: SplitLimits }
@@ -86,9 +89,12 @@ function reduceSplit(state: SplitState, event: SplitEvent): SplitState {
       if (state.pointerId !== event.pointerId) {
         return state;
       }
-      return { ...state, pointerId: null };
-    case 'key.pressed':
-      return { ...state, size: clamp(event.size, state.limits) };
+      return { ...state, pointerId: null, settled: state.settled + 1 };
+    case 'key.pressed': {
+      /* A key against a limit moves nothing, so it settles nothing either. */
+      const size = clamp(event.size, state.limits);
+      return size === state.size ? state : { ...state, size, settled: state.settled + 1 };
+    }
   }
 }
 
@@ -151,6 +157,7 @@ function SplitPanelsBase({
   pageStep,
   label,
   valueText,
+  onSizeChange,
   children,
 }: SplitPanelsProps) {
   const primaryId = useId();
@@ -160,6 +167,7 @@ function SplitPanelsBase({
     size: defaultSize,
     limits: { min: 0, max: 100 },
     pointerId: null,
+    settled: 0,
   });
 
   /* The room both panels share is the one thing the split learns from outside React: a ResizeObserver reports it, and the caller turns it into limits. */
@@ -180,6 +188,14 @@ function SplitPanelsBase({
     observer.observe(layout);
     return () => observer.disconnect();
   }, [limits, orientation]);
+
+  /* Only a size the reader settled is reported: none while a drag is under way, none for the default, and none when new limits clamp it, so a caller remembers what the reader chose rather than what a narrow window allowed. */
+  const reportSize = useEffectEvent(() => onSizeChange?.(state.size));
+  useEffect(() => {
+    if (state.settled > 0) {
+      reportSize();
+    }
+  }, [state.settled]);
 
   /* A separator concealed while it holds focus gives it up: not every browser moves focus off a hidden element. */
   useEffect(() => {

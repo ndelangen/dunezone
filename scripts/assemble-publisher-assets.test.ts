@@ -1,8 +1,9 @@
+import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-import { afterEach, describe, expect, test } from 'vitest';
+import { afterEach, describe, expect, test } from 'vite-plus/test';
 
 import {
   assemblePublisherAssets,
@@ -25,7 +26,7 @@ function fixture() {
   const publisher = path.join(root, 'publisher');
   mkdirSync(path.join(app, 'public'), { recursive: true });
   mkdirSync(path.join(publisher, 'publisher-capture'), { recursive: true });
-  writeFileSync(path.join(app, '_shell.html'), '<html>spa shell</html>');
+  writeFileSync(path.join(app, '_shell.html'), '<html><head></head>spa shell</html>');
   writeFileSync(path.join(app, 'public', 'app-hash.js'), 'application');
   writeFileSync(path.join(publisher, 'publisher-capture.html'), '<html>capture</html>');
   writeFileSync(path.join(publisher, 'publisher-capture', 'entry-hash.js'), 'capture');
@@ -41,6 +42,25 @@ afterEach(() => {
 });
 
 describe('publisher Static Assets assembly', () => {
+  test('hashes normalized inline scripts and limits connections to the configured backend', () => {
+    const { app, publisher, headers } = fixture();
+    writeFileSync(headers, readFileSync(path.resolve(import.meta.dirname, '../workers/publisher/_headers')));
+    writeFileSync(
+      path.join(app, '_shell.html'),
+      '<head></head><script>window.start=1\r\nwindow.text="x\0y"</script ><script src="/public/app-hash.js"></script>'
+    );
+    assemblePublisherAssets(app, publisher, headers, 'https://test.eu-west-1.convex.cloud');
+    const policy = readFileSync(path.join(publisher, '_headers'), 'utf8');
+    expect(policy).toContain(
+      `'sha256-${createHash('sha256').update('window.start=1\nwindow.text="x\uFFFDy"').digest('base64')}'`
+    );
+    expect(policy).toContain(
+      "connect-src 'self' https://test.eu-west-1.convex.cloud wss://test.eu-west-1.convex.cloud"
+    );
+    expect(policy).not.toMatch(/unsafe-eval|script-src[^;]*unsafe-inline|__APPLICATION_CSP__/);
+    expect(policy).toContain("script-src-attr 'none'");
+  });
+
   test('omits the generated raster trees and keeps the committed web files', () => {
     const { app, publisher, headers } = fixture();
     for (const file of [
@@ -69,8 +89,9 @@ describe('publisher Static Assets assembly', () => {
 
     expect(report.assetCount).toBe(6);
     expect(readFileSync(path.join(publisher, '_headers'), 'utf8')).toContain('immutable');
-    expect(readFileSync(path.join(publisher, 'index.html'), 'utf8')).toBe('<html>spa shell</html>');
-    expect(readFileSync(path.join(publisher, '_shell.html'), 'utf8')).toBe('<html>spa shell</html>');
+    const shell = '<html><head><meta name="robots" content="noindex"/></head>spa shell</html>';
+    expect(readFileSync(path.join(publisher, 'index.html'), 'utf8')).toBe(shell);
+    expect(readFileSync(path.join(publisher, '_shell.html'), 'utf8')).toBe(shell);
     expect(report.largestAsset.bytes).toBeGreaterThan(0);
   });
 
@@ -78,12 +99,13 @@ describe('publisher Static Assets assembly', () => {
     const { app, publisher, headers } = fixture();
     writeFileSync(
       path.join(app, '_shell.html'),
-      '<script>before;i:"__root__\0",u:1784218854699,s:"success",ssr:!0;after</script>'
+      '<head></head><script>before;i:"__root__\0",u:1784218854699,s:"success",ssr:!0;after</script>'
     );
 
     assemblePublisherAssets(app, publisher, headers);
 
-    const expected = '<script>before;i:"__root__\0",u:0,s:"success",ssr:!0;after</script>';
+    const expected =
+      '<head><meta name="robots" content="noindex"/></head><script>before;i:"__root__\0",u:0,s:"success",ssr:!0;after</script>';
     expect(readFileSync(path.join(publisher, '_shell.html'), 'utf8')).toBe(expected);
     expect(readFileSync(path.join(publisher, 'index.html'), 'utf8')).toBe(expected);
   });
@@ -97,6 +119,27 @@ describe('publisher Static Assets assembly', () => {
     writeFileSync(path.join(app, '_shell.html'), `<html><head>${tag}</head></html>`);
 
     expect(() => assemblePublisherAssets(app, publisher, headers)).toThrow('must not carry a page identity');
+  });
+
+  test.each([
+    ['already in the head', '<html><head><meta name="robots" content="noindex"/></head>spa shell</html>', 1],
+    ['only in the body', '<html><head></head><meta name="robots" content="noindex"/></html>', 2],
+  ])('marks a shell whose robots noindex is %s once in its head', (_case, input, count) => {
+    const { app, publisher, headers } = fixture();
+    writeFileSync(path.join(app, '_shell.html'), input);
+
+    assemblePublisherAssets(app, publisher, headers);
+
+    const shell = readFileSync(path.join(publisher, '_shell.html'), 'utf8');
+    expect(shell.startsWith('<html><head><meta name="robots" content="noindex"/>')).toBe(true);
+    expect(shell.split('name="robots"').length - 1).toBe(count);
+  });
+
+  test('refuses a shell with no head to carry its noindex', () => {
+    const { app, publisher, headers } = fixture();
+    writeFileSync(path.join(app, '_shell.html'), '<html>spa shell</html>');
+
+    expect(() => assemblePublisherAssets(app, publisher, headers)).toThrow('no <head>');
   });
 
   test('removes stale assembled assets while preserving the fresh capture build', () => {

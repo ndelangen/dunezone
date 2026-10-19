@@ -1,6 +1,6 @@
 import preview from '@sb/preview';
 import { projectRulebookDraftRenderBlock } from '@shared/rulebooks/projectRenderDocument';
-import { expect } from 'storybook/test';
+import { expect, within } from 'storybook/test';
 
 import { RulebookBlockCanvas } from './RulebookBlockRenderer';
 import { techTokenAssets } from './RulebookCardGuides.stories.fixture';
@@ -34,6 +34,16 @@ export const MissingSource = meta.story({
       },
       (block) => (block.source = { status: 'unavailable', reference: { kind: 'asset', assetId: 'Storm marker' } })
     ),
+  /* The placeholder takes the artwork's place and the caption is kept. */
+  play: async ({ canvasElement }) => {
+    const block = canvasElement.querySelector<HTMLElement>('[data-rulebook-block-id="ASST"]')!;
+    const canvas = within(block);
+    await expect(canvas.getByRole('img', { name: 'Referenced source is unavailable' })).toHaveTextContent(
+      'Source unavailable'
+    );
+    await expect(canvas.getByText('The storm closes the boundary between its two sectors.')).toBeVisible();
+    await expect(block.querySelector('img')).toBeNull();
+  },
 });
 
 export const SmallToken = meta.story({
@@ -55,7 +65,7 @@ export const SmallToken = meta.story({
     const image = canvasElement.querySelector('img')!;
     await image.decode();
     const bounds = image.getBoundingClientRect();
-    expect(bounds.width / bounds.height).toBeCloseTo(1, 2);
-    expect(getComputedStyle(image).clipPath).toMatch(/^polygon\(/);
+    await expect(bounds.width / bounds.height).toBeCloseTo(1, 2);
+    await expect(getComputedStyle(image).clipPath).toMatch(/^polygon\(/);
   },
 });

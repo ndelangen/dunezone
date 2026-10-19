@@ -1,6 +1,6 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
-import { decide, needsDataRebuild } from './dev-rebuild-decision';
+import { decide, needsDataRebuild, needsOnlyMigrations } from './dev-rebuild-decision';
 
 describe('dev rebuild trigger', () => {
   test('rebuilds when the schema or a migration changed', () => {
@@ -44,5 +44,28 @@ describe('dev rebuild trigger', () => {
     expect(decide('any-base', 'HEAD', true).rebuild).toBe(true);
     expect(decide('', 'HEAD', false).rebuild).toBe(true);
     expect(decide('0000000000000000000000000000000000000000', 'HEAD', false).rebuild).toBe(true);
+  });
+
+  test('migrates dev in place when the only data-relevant change is a migration', () => {
+    expect(needsOnlyMigrations(['convex/migrations.ts'])).toBe(true);
+    expect(
+      needsOnlyMigrations(['convex/migration-guards.json', 'convex/migrations.ts', 'src/app/routes/index.tsx'])
+    ).toBe(true);
+    expect(
+      needsOnlyMigrations(['convex/migrations/backfillFactionSlugs.ts', 'convex/migrations.groupsSoftDelete.test.ts'])
+    ).toBe(true);
+  });
+
+  test('rebuilds rather than migrating when the schema or the snapshot pipeline changed too, and does neither for ordinary merges', () => {
+    expect(needsOnlyMigrations(['convex/migrations.ts', 'convex/schema.ts'])).toBe(false);
+    expect(needsOnlyMigrations(['convex/migration-guards.json', 'scripts/lib/snapshot-policy.ts'])).toBe(false);
+    expect(needsOnlyMigrations(['convex/migrations.ts', '.github/workflows/dev-rebuild.yml'])).toBe(false);
+    expect(needsOnlyMigrations(['convex/factions.ts'])).toBe(false);
+    expect(needsOnlyMigrations([])).toBe(false);
+  });
+
+  test('a forced or untrusted range rebuilds and never migrates in place', () => {
+    expect(decide('any-base', 'HEAD', true)).toMatchObject({ rebuild: true, migrate: false });
+    expect(decide('', 'HEAD', false)).toMatchObject({ rebuild: true, migrate: false });
   });
 });

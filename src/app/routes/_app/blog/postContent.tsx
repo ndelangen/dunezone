@@ -1,9 +1,11 @@
-import { UnstyledButton } from '@mantine/core';
+import { Anchor, UnstyledButton } from '@mantine/core';
+import type { AnchorProps } from '@mantine/core';
 import { resolveAsset } from '@shared/media/resolveAsset';
+import { createLink } from '@tanstack/react-router';
 import { PublishedImage } from '@ui/content/PublishedImage';
 import { Play } from 'lucide-react';
-import { useState } from 'react';
-import type { ReactNode } from 'react';
+import { forwardRef, useState } from 'react';
+import type { ComponentPropsWithoutRef, CSSProperties, ReactNode } from 'react';
 
 import styles from './postContent.module.css';
 
@@ -17,7 +19,7 @@ import styles from './postContent.module.css';
  * a figure or an embed goes between them, never inside.
  */
 
-/** The opening paragraph, set larger than the rest. */
+/** The opening paragraph, set larger than the rest, with a drop cap and a small-caps first line. */
 export function Lead({ children }: { children: ReactNode }) {
   return <p className={styles.lead}>{children}</p>;
 }
@@ -26,26 +28,51 @@ export function Paragraph({ children }: { children: ReactNode }) {
   return <p className={styles.paragraph}>{children}</p>;
 }
 
+const PostAnchor = forwardRef<HTMLAnchorElement, AnchorProps & ComponentPropsWithoutRef<'a'>>(
+  function PostAnchor(props, ref) {
+    return <Anchor ref={ref} {...props} />;
+  }
+);
+
 /**
- * An image from `media/`, served through the media pipeline, with an optional caption under it.
- * Blog images live under `web/`, whose small tier is 1080px wide, enough for the reading column on a high-density screen.
+ * A link from a post to another page on the site, drawn as the themed anchor.
+ * It takes the router's own `to` and `params`, so a link to a page that does not exist fails the type check;
+ * an `Anchor` whose `renderRoot` spreads its props into a `Link` is not checked, because Mantine types those props as `any`.
  */
-export function Figure({
-  imageKey,
-  alt,
-  aspect,
-  caption,
-}: {
+export const PostLink = createLink(PostAnchor);
+
+type FigureProps = Readonly<{
   imageKey: string;
   alt: string;
   /** Height over width, held while the image loads. */
   aspect: number;
-  caption?: string;
-}) {
+  caption?: ReactNode;
+}>;
+
+/** A wide row whose column widths preserve each image's proportions at a shared height. */
+export function FigureRow({ figures }: Readonly<{ figures: readonly FigureProps[] }>) {
+  const columns = {
+    '--figure-columns': figures.map(({ aspect }) => `minmax(0, ${1 / aspect}fr)`).join(' '),
+  } as CSSProperties;
+
+  return (
+    <div className={styles.figureRow} style={columns}>
+      {figures.map((figure) => (
+        <Figure key={figure.imageKey} {...figure} />
+      ))}
+    </div>
+  );
+}
+
+/**
+ * An image from `media/`, served through the media pipeline, with an optional caption under it.
+ * Blog images live under `web/`, whose small tier is 1080px wide, enough for the reading column on a high-density screen.
+ */
+export function Figure({ imageKey, alt, aspect, caption }: FigureProps) {
   const src = resolveAsset(imageKey, 'small');
   return (
     <figure className={styles.figure}>
-      <PublishedImage src={src} name={alt} aspect={aspect} radius="var(--mantine-radius-md)" />
+      <PublishedImage src={src} name={alt} aspect={aspect} radius="var(--mantine-radius-md)" raised />
       {/* `PublishedImage` draws its image only once the browser runs, so readers and crawlers without scripts get it here. */}
       <noscript>
         <img src={src} alt={alt} className={styles.fallback} />
@@ -55,25 +82,19 @@ export function Figure({
   );
 }
 
-/** Live site artwork or components shown inside a post, centred, with a caption saying what it is. */
-export function LiveEmbed({
-  caption,
-  width = '100%',
-  children,
-}: {
-  caption: string;
-  /** How wide the embed may grow, as a CSS width; `cqi` units measure the post's column. */
-  width?: string;
-  children: ReactNode;
-}) {
+/** A figure as wide as `FigureRow`, for an interactive picture that needs more room than the reading column. */
+export function WideFigure({ children, caption }: Readonly<{ children: ReactNode; caption?: ReactNode }>) {
   return (
-    <figure className={styles.figure}>
-      <div className={styles.stage}>
-        <div style={{ width }}>{children}</div>
-      </div>
-      <figcaption className={styles.caption}>{caption}</figcaption>
+    <figure className={`${styles.figure} ${styles.wide}`}>
+      {children}
+      {caption ? <figcaption className={styles.caption}>{caption}</figcaption> : null}
     </figure>
   );
+}
+
+/** The play button goes away when pressed, so the player takes the focus and a keyboard reader keeps their place; one function for every render, so a re-render never moves the focus again. */
+function focusOnMount(element: HTMLElement | null) {
+  element?.focus();
 }
 
 /**
@@ -101,6 +122,7 @@ export function YouTube({
       <div className={styles.video}>
         {playing ? (
           <iframe
+            ref={focusOnMount}
             className={styles.player}
             src={`https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}?autoplay=1`}
             title={title}

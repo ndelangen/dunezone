@@ -6,7 +6,7 @@ import type {
   RulebookRenderSourceV1,
 } from '@shared/rulebooks/renderDocument';
 import { render } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 
 import { factionTokenFixtures } from '../fixtures/factionTokens';
 import { RulebookBlockCanvas } from './RulebookBlockRenderer';
@@ -42,6 +42,7 @@ describe('Rulebook renderer', () => {
     expect(container.querySelector('[data-member-id]')?.getAttribute('data-member-id')).toBe(source.reference.memberId);
     expect(container.textContent).toContain(block.caption);
     expect(container.textContent).toContain('Source unavailable');
+    expect(container.querySelector('[aria-label="Referenced source is unavailable"]')).not.toBeNull();
   });
 
   it('renders every inventory entry in order, retaining quantities and prose for unavailable sources', () => {
@@ -312,7 +313,7 @@ describe('Rulebook renderer', () => {
     expect(
       [...container.querySelectorAll('ol > li')].map((item) => item.getAttribute('data-rulebook-item-id'))
     ).toEqual(['choose', 'move']);
-    expect(container.querySelector('[data-rulebook-block-id="TEXT"] h3')?.textContent).toBe('Moving your forces');
+    expect(container.querySelector('[data-rulebook-block-id="TEXT"] h3')?.textContent).toBe('Moving your troops');
     expect(container.querySelector('blockquote')?.textContent).toBe('Plans within plans.');
     expect(container.querySelector('[data-rulebook-block-id="QUTE"]')?.textContent).toContain('A Mentat reminder');
     expect(container.querySelector('[data-rulebook-block-id="QUES"]')?.textContent).toContain('Answer:');
@@ -434,17 +435,5 @@ describe('Rulebook renderer', () => {
     expect(container.querySelector(`[data-rulebook-block-id="${block.id}"]`)).not.toBeNull();
     expect(container.querySelector('article')).toBeNull();
     expect(container.querySelector('h1, h2')).toBeNull();
-  });
-
-  it('renders a standard placeholder when a source is missing', () => {
-    const document: RulebookRenderPreviewDocumentV1 = createRulebookRenderDocumentFixture();
-    const block = document.pagesById.RULE!.regions[1]!.blocks[0]!;
-    if (block.kind !== 'referenced-illustration') {
-      throw new Error('Expected the ASST fixture to be a referenced illustration Block');
-    }
-    block.source = { status: 'unavailable', reference: { kind: 'asset', assetId: 'Storm marker' } };
-    const { container } = render(<RulebookPageRenderer page={document.pagesById.RULE!} />);
-
-    expect(container.querySelector('[aria-label="Referenced source is unavailable"]')).not.toBeNull();
   });
 });

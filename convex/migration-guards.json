@@ -116,6 +116,16 @@
       "requires": []
     },
     {
+      "id": "statistics_groups_v1",
+      "phase": "widen",
+      "requires": []
+    },
+    {
+      "id": "statistics_assets_v1",
+      "phase": "widen",
+      "requires": []
+    },
+    {
       "id": "profile_discovery_profiles_v1",
       "phase": "widen",
       "requires": []
@@ -370,6 +380,86 @@
       "id": "rulebook_contents_hash_editions_v1",
       "phase": "widen",
       "requires": []
+    },
+    {
+      "id": "board_readiness_listing_v1",
+      "phase": "widen",
+      "requires": []
+    },
+    {
+      "id": "catalogue_entries_factions_v1",
+      "phase": "widen",
+      "requires": []
+    },
+    {
+      "id": "catalogue_entries_prune_v1",
+      "phase": "widen",
+      "requires": []
+    },
+    {
+      "id": "catalogue_entries_verify_v1",
+      "phase": "widen",
+      "requires": ["catalogue_entries_factions_v1", "catalogue_entries_prune_v1"]
+    },
+    {
+      "id": "catalogue_entries_verify_v2",
+      "phase": "widen",
+      "requires": ["catalogue_entries_factions_v1", "catalogue_entries_prune_v1"]
+    },
+    {
+      "id": "catalogue_entries_assets_v1",
+      "phase": "widen",
+      "requires": []
+    },
+    {
+      "id": "catalogue_entries_assets_verify_v1",
+      "phase": "widen",
+      "requires": ["catalogue_entries_assets_v1"]
+    },
+    {
+      "id": "catalogue_entries_profiles_v1",
+      "phase": "widen",
+      "requires": []
+    },
+    {
+      "id": "catalogue_entries_profiles_verify_v1",
+      "phase": "widen",
+      "requires": ["catalogue_entries_profiles_v1"]
+    },
+    {
+      "id": "catalogue_entries_faq_v1",
+      "phase": "widen",
+      "requires": []
+    },
+    {
+      "id": "catalogue_entries_faq_verify_v1",
+      "phase": "widen",
+      "requires": ["catalogue_entries_faq_v1"]
+    },
+    {
+      "id": "catalogue_entries_rulesets_v1",
+      "phase": "widen",
+      "requires": []
+    },
+    {
+      "id": "catalogue_entries_rulesets_verify_v1",
+      "phase": "widen",
+      "requires": ["catalogue_entries_rulesets_v1"]
+    },
+    {
+      "id": "ruleset_factions_position_v1",
+      "phase": "widen",
+      "requires": []
+    },
+    {
+      "id": "faction_cards_v1",
+      "phase": "widen",
+      "requires": []
+    },
+    {
+      "id": "faction_cards_ready",
+      "phase": "narrow",
+      "requires": ["faction_cards_v1"]
     }
   ]
 }

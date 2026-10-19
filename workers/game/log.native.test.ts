@@ -1,0 +1,298 @@
+import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test';
+
+import type { LogTab } from '../../src/shared/play/log';
+import { PHASE_CHANGE_COOLDOWN_MS } from '../../src/shared/play/phases';
+import type { ClientMessage } from '../../src/shared/play/protocol';
+import { draftingRuntime } from './native-drafting.fixture.ts';
+import type { NativeMessage } from './native-runtime.fixture.ts';
+import type { NativeConnection, NativeView } from './native-runtime.fixture.ts';
+import { required } from './native-runtime.fixture.ts';
+import type { NativePeer, NativeRuntime } from './native-runtime.fixture.ts';
+import { accepted, admitPlayer, eventually, seat, syncView } from './native-runtime.fixture.ts';
+
+const LATEST = Number.MAX_SAFE_INTEGER;
+
+describe('The retained public log', { timeout: 20_000 }, () => {
+  let peer: NativePeer, runtime: NativeRuntime, offset: number;
+  beforeEach(async () => {
+    ({ peer, runtime } = await draftingRuntime());
+    offset = 0;
+  });
+  afterEach(async () => {
+    await runtime?.close();
+    await peer?.close();
+  });
+  const admit = (suffix: string) => admitPlayer(peer, runtime, suffix);
+  async function page(connection: NativeConnection, tab: LogTab, before = LATEST) {
+    const start = connection.messages.length;
+    connection.send({ type: 'log-history', tab, before });
+    return eventually(
+      () =>
+        connection.messages
+          .slice(start)
+          .find(
+            (message): message is Extract<NativeMessage, { type: 'log-history' }> =>
+              message.type === 'log-history' && message.tab === tab && message.before === before
+          ),
+      `${tab} log page`
+    );
+  }
+  const texts = (result: Extract<NativeMessage, { type: 'log-history' }>) => result.entries.map((entry) => entry.text);
+  async function deleteAccount(userId: string) {
+    const response = await runtime.fetch('/__play/games/fixture-game/account-deletion', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        gameId: 'fixture-game',
+        secret: 'a'.repeat(64),
+        userId,
+        eventId: `deletion-${userId}`,
+        deletionOperationId: `operation-${userId}`,
+      }),
+    });
+    expect(response.status).toBe(200);
+  }
+
+  it('files every seat change with its cause and approver, newest first, in the stage it happened', async () => {
+    const a = await admit('a');
+    const b = await admit('b');
+    await seat(b, a);
+    const c = await admit('c');
+    await seat(c, a);
+    await accepted(c, { kind: 'seat-depart' });
+    const audit = await page(a, 'audit');
+    expect(texts(audit)).toEqual([
+      'Synthetic C left seat 3.',
+      'Synthetic C took seat 3, approved by Synthetic A.',
+      'Synthetic B took seat 2, approved by Synthetic A.',
+      'Synthetic A created the game and took seat 1.',
+    ]);
+    expect(audit.entries.map((entry) => [entry.class, entry.context])).toEqual(
+      Array.from({ length: 4 }, () => ['seat', 'Drafting'])
+    );
+    expect(audit.more).toBe(false);
+    expect((await page(a, 'game')).entries).toEqual([]);
+    /* A spectator reads the same public record. */
+    expect(texts(await page(c, 'audit'))).toEqual(texts(audit));
+  });
+
+  it('files the discard when the last player leaves', async () => {
+    const a = await admit('a');
+    await accepted(a, { kind: 'seat-depart' });
+    expect(texts(await page(a, 'game'))).toEqual(['The game was discarded: no players remain.']);
+    expect((await page(a, 'game')).entries[0].context).toBe('Discarded');
+    expect(texts(await page(a, 'audit'))).toEqual([
+      'Synthetic A left seat 1.',
+      'Synthetic A created the game and took seat 1.',
+    ]);
+  });
+
+  it('keeps filing entries after the room restarts cold', async () => {
+    await admit('a');
+    await runtime.restart();
+    const a = await admit('a');
+    await accepted(a, { kind: 'seat-depart' });
+    expect(texts(await page(a, 'game'))).toEqual(['The game was discarded: no players remain.']);
+    expect(texts(await page(a, 'audit'))).toEqual([
+      'Synthetic A left seat 1.',
+      'Synthetic A created the game and took seat 1.',
+    ]);
+  });
+
+  it('files one entry for a command however often its id is retried', async () => {
+    const a = await admit('a');
+    const b = await admit('b');
+    const next = await accepted(b, { kind: 'seat-request' });
+    const request = required(next.snapshot.controls).seatRequests.find((entry) => entry.own);
+    const view = await syncView(a);
+    const message: ClientMessage = {
+      type: 'command',
+      commandId: 'approve-once',
+      action: { kind: 'seat-approve', requestId: required(request).id },
+      expectedRevision: view.snapshot.revision,
+    };
+    a.send(message);
+    a.send(message);
+    await eventually(
+      () =>
+        a.messages.filter((entry) => 'completedCommandId' in entry && entry.completedCommandId === 'approve-once')
+          .length >= 2,
+      'both completions'
+    );
+    expect(texts(await page(a, 'audit'))).toEqual([
+      'Synthetic B took seat 2, approved by Synthetic A.',
+      'Synthetic A created the game and took seat 1.',
+    ]);
+  });
+
+  it('records a removal vote with its final breakdown beside the seat it vacated, and a failed one with who kept it', async () => {
+    const a = await admit('a');
+    const b = await admit('b');
+    await seat(b, a);
+    const c = await admit('c');
+    await seat(c, a);
+    const seatOfC = (await syncView(c)).viewer.viewerSeat;
+    const seatOfB = (await syncView(b)).viewer.viewerSeat;
+    const failing = required(
+      required(await accepted(a, { kind: 'removal-start', seat: seatOfB })).snapshot.removalVotes
+    ).find((vote) => vote.target.seat === seatOfB);
+    await accepted(c, { kind: 'removal-ballot', voteId: required(failing).id, choice: 'keep' });
+    const vote = required(
+      required(await accepted(a, { kind: 'removal-start', seat: seatOfC })).snapshot.removalVotes
+    ).find((entry) => entry.target.seat === seatOfC);
+    await accepted(b, { kind: 'removal-ballot', voteId: required(vote).id, choice: 'remove' });
+    const audit = await page(a, 'audit');
+    expect(texts(audit).slice(0, 3)).toEqual([
+      'Synthetic C was removed from seat 3.',
+      'Synthetic C is removed from seat 3: Synthetic A and Synthetic B voted remove.',
+      'Synthetic B keeps seat 2: Synthetic A voted remove; Synthetic C voted keep.',
+    ]);
+    expect(audit.entries.slice(0, 3).map((entry) => entry.class)).toEqual(['seat', 'vote', 'vote']);
+  });
+
+  it('names a deleted account [deleted user] in every entry and keeps the events', async () => {
+    const a = await admit('a');
+    const b = await admit('b');
+    await seat(b, a);
+    await deleteAccount('user-a');
+    expect(texts(await page(b, 'audit'))).toEqual([
+      '[deleted user] left seat 1 when the account was deleted.',
+      'Synthetic B took seat 2, approved by [deleted user].',
+      '[deleted user] created the game and took seat 1.',
+    ]);
+  });
+
+  it('pages twenty entries at a time per tab and keeps the order stable', async () => {
+    const a = await admit('a');
+    for (let index = 0; index < 25; index++) {
+      await runtime.exec('INSERT INTO public_log(key,class,template,people,context,created_at) VALUES(?,?,?,?,?,?)', [
+        `test:${index}`,
+        'phase',
+        `Entry ${index} began.`,
+        '[]',
+        'Turn 1, Storm',
+        index,
+      ]);
+    }
+    const first = await page(a, 'game');
+    expect(first.entries).toHaveLength(20);
+    expect(first.more).toBe(true);
+    expect(texts(first)[0]).toBe('Entry 24 began.');
+    const second = await page(a, 'game', required(first.entries.at(-1)).sequence);
+    expect(texts(second)).toEqual([
+      'Entry 4 began.',
+      'Entry 3 began.',
+      'Entry 2 began.',
+      'Entry 1 began.',
+      'Entry 0 began.',
+    ]);
+    expect(second.more).toBe(false);
+    expect((await page(a, 'audit')).entries.map((entry) => entry.class)).toEqual(['seat']);
+  });
+
+  describe('in a game that reaches play', () => {
+    beforeEach(async () => {
+      for (const id of ['atreides', 'harkonnen']) {
+        await runtime.capture('faction', id, { provisional: true });
+      }
+      await runtime.exec(
+        "UPDATE captures SET data=json_set(data,'$.definition.extraPhases',json(?)) WHERE kind='faction' AND source_id='atreides'",
+        [
+          JSON.stringify([
+            {
+              id: 'winner',
+              type: 'prediction',
+              title: 'Predict victory',
+              instructions: 'Choose the winner and turn.',
+              symbol: '/vector/icon/traitor.svg',
+              before: 'traitors',
+              priority: 10,
+              allPlayersMustBeReady: false,
+            },
+          ]),
+        ]
+      );
+    });
+    async function next(connection: NativeConnection, direction: -1 | 1 = 1) {
+      offset += PHASE_CHANGE_COOLDOWN_MS + 1;
+      await runtime.clock(offset);
+      return accepted(connection, { kind: 'phase', direction });
+    }
+    async function enter() {
+      const a = await admit('a');
+      const b = await admit('b');
+      await seat(b, a);
+      await accepted(a, { kind: 'draft-ready', ready: true });
+      await accepted(b, { kind: 'draft-ready', ready: true });
+      await eventually(async () => (await syncView(a)).snapshot.stage === 'swapping', 'assignment');
+      for (const connection of [a, b]) {
+        const view = await syncView(connection);
+        await accepted(connection, {
+          kind: 'swap-ready',
+          ready: true,
+          round: required(view.snapshot.swapping).round,
+          seat: view.viewer.viewerSeat,
+        });
+      }
+      expect((await syncView(a)).snapshot.stage).toBe('setup');
+      return [a, b];
+    }
+    const factionOf = (view: NativeView) =>
+      required(
+        required(required(view.snapshot.roster).seats.find((seat) => seat.id === view.viewer.viewerSeat)).faction
+      ).id;
+
+    it('files predictions without their private choice until revealed, then every phase it enters', async () => {
+      const players = await enter();
+      const views = await Promise.all(players.map(syncView));
+      const ownerIndex = views.findIndex((view) => factionOf(view) === 'atreides');
+      const owner = players[ownerIndex];
+      const other = players[1 - ownerIndex];
+      const stepId = required(required(views)[ownerIndex].snapshot.setup).steps[0].id;
+      await accepted(owner, { kind: 'prediction-lock', stepId, choice: { factionId: 'harkonnen', turn: 4 } });
+      let game = await page(other, 'game');
+      expect(texts(game)).toEqual([
+        'Atreides locked its prediction.',
+        'Trading ended and setup began.',
+        'The factions were dealt and swapping began.',
+      ]);
+      expect(game.entries.map((entry) => entry.context)).toEqual([
+        'Setup, Predict victory',
+        'Setup, Predict victory',
+        'Swapping',
+      ]);
+      await accepted(owner, { kind: 'prediction-reveal', stepId });
+      expect(texts(await page(other, 'game'))[0]).toBe('Atreides revealed its prediction: Harkonnen, turn 4.');
+      let playing = null;
+      for (let guard = 0; guard < 6 && !playing; guard++) {
+        const { snapshot } = await next(owner);
+        if (snapshot.stage === 'setup' && required(snapshot.controls).ready.length === 0) {
+          await accepted(owner, { kind: 'ready', ready: true });
+          await accepted(other, { kind: 'ready', ready: true });
+        }
+        if (snapshot.stage === 'play') {
+          playing = snapshot;
+        }
+      }
+      if (!playing) {
+        const { snapshot } = await next(owner);
+        playing = snapshot.stage === 'play' ? snapshot : null;
+      }
+      expect(playing?.stage).toBe('play');
+      await next(owner);
+      await next(owner);
+      await next(owner, -1);
+      game = await page(other, 'game');
+      expect(texts(game).slice(0, 4)).toEqual([
+        'Returned to Spice Blow.',
+        'CHOAM Charity began.',
+        'Spice Blow began.',
+        'Turn 1 began.',
+      ]);
+      expect(game.entries[0].context).toBe('Turn 1, Spice Blow');
+      expect(game.entries[3].context).toBe('Turn 1, Storm');
+      expect(game.entries.slice(0, 4).every((entry) => entry.class === 'phase')).toBe(true);
+      expect(game.entries.slice(4).map((entry) => entry.class)).toEqual(['prediction', 'prediction', 'phase', 'phase']);
+    });
+  });
+});

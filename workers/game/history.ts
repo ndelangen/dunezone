@@ -1,4 +1,5 @@
 import type { GameSnapshot } from '../../src/shared/play/protocol';
+import type { StoredSnapshot } from './state';
 
 type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
 export type Patch = { path: string[]; value?: Json; remove?: true };
@@ -10,7 +11,7 @@ const object = (value: Json): value is Record<string, Json> =>
  * a changed element by its index, an added one at its new index and a shorter array by its `length`.
  * These are the same set operations `applyPatch` has always read, so a room rolled back to an older release still restores them.
  */
-export function diff(base: GameSnapshot, next: GameSnapshot): Patch[] {
+export function diff(base: GameSnapshot | StoredSnapshot, next: GameSnapshot | StoredSnapshot): Patch[] {
   return visit(base as Json, next as Json, []);
 }
 
@@ -46,11 +47,25 @@ function elements(a: Json[], b: Json[], path: string[]): Patch[] {
   return JSON.stringify(patches).length < JSON.stringify(whole).length ? patches : whole;
 }
 
-export function applyPatch(base: GameSnapshot, patches: Patch[]): GameSnapshot {
-  let result: Json = structuredClone(base) as Json;
+export function applyPatch<Snapshot extends GameSnapshot | StoredSnapshot>(base: Snapshot, patches: Patch[]): Snapshot {
+  return applyPatchInPlace(
+    structuredClone(base),
+    patches.map((patch) => structuredClone(patch))
+  );
+}
+
+/**
+ * `applyPatch` without its copies: `target` is changed and returned, and the patches' values become part of it.
+ * Only for a target and patches nothing else holds, such as a restore's freshly read rows.
+ */
+export function applyPatchInPlace<Snapshot extends GameSnapshot | StoredSnapshot>(
+  target: Snapshot,
+  patches: Patch[]
+): Snapshot {
+  let result = target as Json;
   for (const patch of patches) {
     if (patch.path.length === 0) {
-      result = structuredClone(patch.value!);
+      result = patch.value!;
       continue;
     }
     let parent = result as Record<string, Json>;
@@ -61,8 +76,8 @@ export function applyPatch(base: GameSnapshot, patches: Patch[]): GameSnapshot {
     if (patch.remove) {
       delete parent[key];
     } else {
-      parent[key] = structuredClone(patch.value!);
+      parent[key] = patch.value!;
     }
   }
-  return result as GameSnapshot;
+  return result as Snapshot;
 }

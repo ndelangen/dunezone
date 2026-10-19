@@ -40,7 +40,7 @@ jobs:
     name: ${{ github.event.pull_request.draft == true && 'ci_draft' || 'ci_ok' }}
     if: ${{ always() && !(cancelled() && github.event.pull_request.draft == true) }}
     needs: verify
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - name: Require full verify success

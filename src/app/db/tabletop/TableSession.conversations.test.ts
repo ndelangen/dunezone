@@ -1,6 +1,6 @@
 import { initialSnapshot } from '@shared/play/commands';
 import type { GameSnapshot, ServerMessage, Viewer } from '@shared/play/protocol';
-import { afterEach, beforeEach, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, expect, test, vi } from 'vite-plus/test';
 
 import { GameSubscription } from '@app/routes/_app/play/multiplayer/GameSubscription';
 
@@ -188,6 +188,7 @@ test('offers history retry after a response is lost and ignores the late page', 
   expect(client.getSnapshot().conversations.pages.two?.load).toEqual({
     state: 'failed',
     error: 'History could not load. Try again.',
+    before: Number.MAX_SAFE_INTEGER,
   });
   client.conversations.load({ peerId: 'two' });
   socket().deliver({
@@ -200,4 +201,45 @@ test('offers history retry after a response is lost and ignores the late page', 
     more: false,
   } as ServerMessage);
   expect(client.getSnapshot().conversations.pages.two?.entries).toEqual([]);
+});
+
+test('retries the earlier conversation page after a refusal or timeout, retaining the messages already loaded', async () => {
+  const client = await connect();
+  const historyRequests = () => socket().sent.filter((entry) => entry.type === 'conversation-history');
+  client.conversations.load({ peerId: 'two' });
+  const first = historyRequests().at(-1)!;
+  socket().deliver({
+    ...first,
+    entries: [{ ...saved('latest'), sequence: 101 }],
+    more: true,
+  });
+  client.conversations.load({ peerId: 'two', before: 101 });
+  const older = historyRequests().at(-1)!;
+  socket().deliver({ type: 'rejected', requestId: older.requestId, message: 'History temporarily unavailable.' });
+  client.conversations.load({ peerId: 'two' });
+  expect(historyRequests().at(-1)).toMatchObject({ before: 101 });
+  await vi.advanceTimersByTimeAsync(15_000);
+  client.conversations.load({ peerId: 'two' });
+  const retry = historyRequests().at(-1)!;
+  expect(retry).toMatchObject({ before: 101 });
+  socket().deliver({ ...retry, entries: [{ ...saved('earlier'), sequence: 51 }], more: true });
+  expect(client.getSnapshot().conversations.pages.two?.entries.map((entry) => entry.sequence)).toEqual([51, 101]);
+});
+
+test('a snapshot that changes nothing the conversations show keeps their view, and a renamed peer replaces it', async () => {
+  const client = await connect();
+  client.conversations.submit({ peerId: 'two', text: 'A plan' });
+  const shown = client.getSnapshot().conversations;
+  const view = (next: GameSnapshot) =>
+    socket().deliver({ type: 'view', viewer, epoch: 'epoch', snapshot: next, carries: [], pointers: [] });
+
+  view({ ...structuredClone(snapshot), revision: 1 });
+  expect(client.getSnapshot().conversations).toBe(shown);
+
+  const renamed = structuredClone(snapshot);
+  renamed.roster!.seats[1]!.faction!.name = 'Renamed';
+  view({ ...renamed, revision: 2 });
+  expect(client.getSnapshot().conversations).not.toBe(shown);
+  expect(client.getSnapshot().conversations.context?.peers).toEqual([{ id: 'two', name: 'Renamed', color: 'blue' }]);
+  expect(client.getSnapshot().conversations.pending).toBe(shown.pending);
 });

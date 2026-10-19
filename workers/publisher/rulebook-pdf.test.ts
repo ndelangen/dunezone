@@ -1,5 +1,5 @@
 import { PDFArray, PDFDict, PDFDocument, PDFName, PDFString, StandardFonts } from 'pdf-lib';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vite-plus/test';
 
 import { assetPublishingFaction } from '../../src/shared/factions/fixtures/assetPublishingFaction';
 import { planRulebookPdfBatches } from '../../src/shared/rulebooks/pdfPublication';
@@ -7,8 +7,15 @@ import type { RulebookRenderPageByLayoutV1 } from '../../src/shared/rulebooks/re
 import { createRulebookRenderDocumentFixture } from '../../src/shared/rulebooks/renderDocument.fixture';
 import { getRulebookSize } from '../../src/shared/rulebooks/settings';
 import type { RulebookSize } from '../../src/shared/rulebooks/settings';
+import * as pdfInspection from './pdf-inspection';
 import { inspectPublishedRulebookPdf } from './pdf-inspection';
 import { composeRulebookPdf, RulebookPdfGenerationError } from './rulebook-pdf';
+
+/* Final inspection runs for real unless a test rejects one call, so the classification needs no 8 MiB PDF. */
+vi.mock('./pdf-inspection', async (importOriginal) => {
+  const original = await importOriginal<typeof pdfInspection>();
+  return { ...original, inspectPublishedRulebookPdf: vi.fn(original.inspectPublishedRulebookPdf) };
+});
 
 function fivePageDocument(size: RulebookSize = 'a4') {
   const fixture = createRulebookRenderDocumentFixture();
@@ -80,14 +87,17 @@ function jobFor(size: RulebookSize = 'a4') {
 describe('Rulebook PDF composition', () => {
   test('classifies a bounded capture rejected by final object-stream inspection as a document failure', async () => {
     const { job, batches } = jobFor();
-    const source = await PDFDocument.load(await capturedPdf(job.document.pageOrder));
-    source.catalog.set(PDFName.of('CaptureNote'), PDFString.of('x'.repeat(8 * 1024 * 1024 + 1)));
-    const bytes = await source.save({ useObjectStreams: false });
+    const bytes = await capturedPdf(job.document.pageOrder);
+    /* The bound itself is pinned in pdf-object-stream-inspection.test.ts. */
+    const rejection = new Error('Compressed PDF object data exceeds its bound');
+    vi.mocked(pdfInspection.inspectPublishedRulebookPdf).mockRejectedValueOnce(rejection);
     await expect(composeRulebookPdf(job, [{ batch: batches[0], bytes }])).rejects.toMatchObject({
       constructor: RulebookPdfGenerationError,
-      cause: { message: 'Compressed PDF object data exceeds its bound' },
+      message: 'Rulebook PDF finalization failed',
+      cause: rejection,
     });
-  }, 20_000);
+    expect(pdfInspection.inspectPublishedRulebookPdf).toHaveBeenCalledOnce();
+  });
 
   test('allows an image-only Cover while retaining the font check for visible text', async () => {
     const cover: RulebookRenderPageByLayoutV1<'cover'> = {

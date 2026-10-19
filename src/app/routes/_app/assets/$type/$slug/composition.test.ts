@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vite-plus/test';
 
 import { compositionTiles, omissionNote } from './composition';
 
@@ -22,12 +22,10 @@ describe('composition tiles', () => {
     expect(omittedCopies).toBe(14);
     expect(omittedMembers).toBe(1);
     expect(tiles[199]?.key).toBe('b-49');
-  });
-
-  test('below the cap, every copy draws with a stable per-copy key', () => {
-    const { tiles, omittedCopies } = compositionTiles([member('a', 3)], { duplicated: true, cap: 200 });
-    expect(tiles.map(({ key }) => key)).toEqual(['a-0', 'a-1', 'a-2']);
-    expect(omittedCopies).toBe(0);
+    expect(compositionTiles([member('a', 3)], { duplicated: true, cap: 200 })).toMatchObject({
+      tiles: [{ key: 'a-0' }, { key: 'a-1' }, { key: 'a-2' }],
+      omittedCopies: 0,
+    });
   });
 });
 
