@@ -150,6 +150,26 @@ test('renders bounded PNGs from local publications with zero outbound requests',
         }
       }
     }
+    const roundBoard = await render(
+      socialCardHref({
+        name: 'Arrakis',
+        kind: 'Board',
+        description: '',
+        image: `/published/${boardKey}`,
+        shape: 'round',
+      })
+    );
+    for (const [left, top] of [
+      [755, 148],
+      [1105, 148],
+      [755, 498],
+      [1105, 498],
+    ]) {
+      const corner = await sharp(roundBoard).extract({ left, top, width: 1, height: 1 }).raw().toBuffer();
+      expect([...corner]).toEqual([23, 46, 48, 255]);
+    }
+    const boardCenter = await sharp(roundBoard).extract({ left: 950, top: 323, width: 1, height: 1 }).raw().toBuffer();
+    expect(boardCenter[2]).toBeGreaterThan(240);
     phase = 'publications and cache';
     const cover = await sharp({ create: { width: 840, height: 1188, channels: 3, background: '#ff0000' } })
       .jpeg()

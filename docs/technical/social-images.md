@@ -46,6 +46,7 @@ positive dimensions no greater than 2,048 per axis and 2,000,000 total pixels be
 Boards instead use the board publication contract's bounds, currently 1,948 by 1,948 pixels and
 3,000,000 encoded bytes. This lets existing board publications fit inside the social card without
 republishing them or creating another image.
+Board detail pages select the round frame so the JPEG background outside the circular map is clipped away.
 
 Missing, oversized, unreadable or unavailable artwork uses the selected Dune Zone monogram. Bundles
 without a published preview use it too. The artwork fits inside its frame. A long name uses smaller
