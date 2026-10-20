@@ -13,6 +13,37 @@ test.afterEach(async ({ context }) => {
   await context.storageState({ path: '.playwright/user-a-rulebook-save.json' });
 });
 
+test('settings-only changes save and publish as a new Edition', async ({ page }, testInfo) => {
+  const fixture = await seedRulebookEditor();
+  await page.goto(`${fixture.path}#RULE/details`);
+  const bookSize = page.getByRole('combobox', { name: 'Book size' });
+  await bookSize.click();
+  await page.getByRole('option', { name: 'GF9 core (254 × 254 mm)' }).click();
+  await expect(page.getByRole('article', { name: 'Rulebook page: Movement' })).toHaveAttribute(
+    'data-rulebook-size',
+    'gf9-core'
+  );
+  await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeEnabled();
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Saved', exact: true })).toBeDisabled();
+  await page.reload();
+  await expect(page.getByRole('combobox', { name: 'Book size' })).toHaveValue('GF9 core (254 × 254 mm)');
+  await holdToPublish(page.getByRole('button', { name: 'Publish Edition 2' }));
+  await expect(page.getByText('The new Edition is now current.')).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath('settings-published.png') });
+  const reader = fixture.path.replace(/\/edit$/, '');
+  await page.goto(reader);
+  await expect(page.getByRole('article', { name: 'Rulebook page: Movement' })).toHaveAttribute(
+    'data-rulebook-size',
+    'gf9-core'
+  );
+  await page.goto(`${reader}?edition=1`);
+  await expect(page.getByRole('article', { name: 'Rulebook page: Movement' })).toHaveAttribute(
+    'data-rulebook-size',
+    'a4'
+  );
+});
+
 type SaveControl = {
   saves: number;
   pauseUpdates: boolean;

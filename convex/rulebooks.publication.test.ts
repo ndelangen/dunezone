@@ -194,7 +194,9 @@ describe('Rulebook first-page publication', () => {
     );
     expect(persisted.edition).not.toHaveProperty('contents');
     expect(persisted.contents).toMatchObject({ contents: created.edition.contents });
-    expect(persisted.draft).toEqual(expect.objectContaining(created.draft));
+    expect(persisted.draft).toEqual(
+      expect.objectContaining(Object.fromEntries(Object.entries(created.draft).filter(([key]) => key !== 'settings')))
+    );
   });
 
   test('a future Edition gets a new URL while soft deletion leaves historical bytes immutable', async () => {

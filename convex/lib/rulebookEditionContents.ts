@@ -6,6 +6,7 @@ import {
   rulebookEditionContentsV1Schema,
 } from '../../src/shared/rulebooks/contents';
 import type { RulebookContentsV1 } from '../../src/shared/rulebooks/contents';
+import type { RulebookSettings } from '../../src/shared/rulebooks/settings';
 import type { Doc, Id } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../types';
 import { canonicalJson } from './canonicalJson';
@@ -76,6 +77,20 @@ export function rulebookEditionContentsHash(stored: unknown) {
  */
 export function rulebookContentsHashesMatch(left: string | undefined, right: string | undefined) {
   if (!left?.startsWith(RULEBOOK_CONTENTS_HASH_VERSION) || !right?.startsWith(RULEBOOK_CONTENTS_HASH_VERSION)) {
+    return undefined;
+  }
+  return left === right;
+}
+
+/** Settings and Contents travel together without changing the existing Contents digest. */
+export function rulebookAuthoredHash(settings: RulebookSettings, contentsHash: string | undefined) {
+  return contentsHash?.startsWith(RULEBOOK_CONTENTS_HASH_VERSION)
+    ? `authored-v1:${SHA256(canonicalJson({ settings, contentsHash })).toString()}`
+    : undefined;
+}
+
+export function rulebookAuthoredHashesMatch(left: string | undefined, right: string | undefined) {
+  if (!left?.startsWith('authored-v1:') || !right?.startsWith('authored-v1:')) {
     return undefined;
   }
   return left === right;

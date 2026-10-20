@@ -143,6 +143,42 @@ export function CardEntryEdit({
         }
       />
       <IllustrationSizeControl value={value.size} onChange={(size) => onChange({ ...value, size })} />
+      <ControlBlock
+        title="Image side"
+        input={
+          <Select
+            aria-label="Image side"
+            value={value.imageSide ?? 'left'}
+            data={[
+              { value: 'left', label: 'Left' },
+              { value: 'right', label: 'Right' },
+            ]}
+            onChange={(imageSide) => {
+              if (imageSide === 'left' || imageSide === 'right') {
+                onChange({ ...value, imageSide });
+              }
+            }}
+          />
+        }
+      />
+      <ControlBlock
+        title="Text flow"
+        input={
+          <Select
+            aria-label="Text flow"
+            value={value.textFlow ?? 'beside'}
+            data={[
+              { value: 'beside', label: 'Beside image' },
+              { value: 'wrap', label: 'Wrap below image' },
+            ]}
+            onChange={(textFlow) => {
+              if (textFlow === 'beside' || textFlow === 'wrap') {
+                onChange({ ...value, textFlow });
+              }
+            }}
+          />
+        }
+      />
       <CardGuidanceFields
         text={value.text}
         quantity={value.quantity}

@@ -35,6 +35,7 @@ import {
   getRulebookLayoutsForSize,
   getRulebookRegionOrder,
   isRulebookCollectionBlock,
+  isRulebookLayoutSupported,
   rulebookBlockKindLabels,
   rulebookBlockKinds,
   rulebookDraftEntitySchemas,
@@ -61,7 +62,12 @@ import {
 } from '@shared/rulebooks/projectRenderDocument';
 import type { RulebookResolvedAssetsById, RulebookResolvedFactionsById } from '@shared/rulebooks/projectRenderDocument';
 import { collectRulebookReferenceIds } from '@shared/rulebooks/references';
-import { getRulebookSize } from '@shared/rulebooks/settings';
+import {
+  getRulebookSize,
+  rulebookSizeCatalogue,
+  rulebookDesignCatalogue,
+  rulebookSettingsSchema,
+} from '@shared/rulebooks/settings';
 import type { RulebookSettings } from '@shared/rulebooks/settings';
 import { createFileRoute, deepEqual, Link, useNavigate } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
@@ -2629,10 +2635,8 @@ function isCleanSettledDraft(result: RulebookEditorResult): boolean {
   if (result.status !== 'ready') {
     return false;
   }
-  const hasLocalChanges = Object.values(result.rebasedPatch)
-    .filter(Array.isArray)
-    .some((value) => value.length > 0);
-  return !hasLocalChanges && result.incompatibilities.length === 0 && !result.isSaving;
+  const hasLocalChanges = result.hasLocalChanges;
+  return !hasLocalChanges && result.incompatibilities.length === 0 && !result.settingsConflict && !result.isSaving;
 }
 
 function editorViewReducer(view: EditorView, action: EditorViewAction): EditorView {
@@ -2678,6 +2682,113 @@ function saveResponseEvent(kind: 'saved' | 'stale', saved: Parameters<typeof cre
 
 type DraftReferences = ReturnType<typeof collectRulebookReferenceIds>;
 
+function rulebookClippingWarnings(draft: RulebookContentsDraftV1, clippingReport: RulebookClippingReport) {
+  return clippingReport.flatMap(({ pageId, blocks, footerFields }) => {
+    const page = draft.pagesById[pageId];
+    if (!page) {
+      return [];
+    }
+    const pageNumber = draft.pageOrder.indexOf(page.id) + 1;
+    const blockWarnings = blocks.flatMap(({ blockId, regionKey }) => {
+      const block = page.blocksById[blockId];
+      const region = getRulebookLayout(page.layoutId).regions.find((candidate) => candidate.key === regionKey);
+      return block && region?.kind === 'block'
+        ? [
+            {
+              source: `Page ${pageNumber} / ${blockWarningLabel(page, block)}`,
+              complaint: 'is clipped',
+              help: 'Part of this Block will not be visible in the published Rulebook.',
+              pageId: page.id,
+              leaf: block.id,
+            },
+          ]
+        : [];
+    });
+    const footerWarnings =
+      page.layoutId === 'cover' && getRulebookCoverFooter(page.controlValues).enabled
+        ? footerFields.map((field) => ({
+            source: `Page ${pageNumber} / Cover footer ${field}`,
+            complaint: 'is clipped',
+            help: `Part of this footer ${field} will not be visible in the published Rulebook.`,
+            pageId,
+            leaf: 'footer',
+          }))
+        : [];
+    return [...blockWarnings, ...footerWarnings];
+  });
+}
+
+function RulebookSettingsEditor({
+  settings,
+  layoutIds,
+  conflict,
+  onChange,
+  onResolve,
+}: {
+  settings: RulebookSettings;
+  layoutIds: readonly RulebookPageLayoutId[];
+  conflict: boolean;
+  onChange: (settings: RulebookSettings) => void;
+  onResolve: (choice: 'local' | 'saved') => void;
+}) {
+  return (
+    <>
+      <Group align="start" grow>
+        <ControlBlock
+          title="Book size"
+          input={
+            <Select
+              aria-label="Book size"
+              value={settings.size}
+              data={rulebookSizeCatalogue.map(({ id, label, widthMm, heightMm }) => {
+                const supported = layoutIds.every((layoutId) => isRulebookLayoutSupported(layoutId, id));
+                return {
+                  value: id,
+                  label: `${label} (${widthMm} × ${heightMm} mm)${supported ? '' : ' (Page layouts do not fit)'}`,
+                  disabled: !supported,
+                };
+              })}
+              onChange={(size) => {
+                const parsed = rulebookSettingsSchema.safeParse({ ...settings, size });
+                if (parsed.success) {
+                  onChange(parsed.data);
+                }
+              }}
+            />
+          }
+        />
+        <ControlBlock
+          title="Book design"
+          input={
+            <Select
+              aria-label="Book design"
+              value={settings.design}
+              data={rulebookDesignCatalogue.map(({ id, label }) => ({ value: id, label }))}
+              onChange={(design) => {
+                const parsed = rulebookSettingsSchema.safeParse({ ...settings, design });
+                if (parsed.success) {
+                  onChange(parsed.data);
+                }
+              }}
+            />
+          }
+        />
+      </Group>
+      {conflict ? (
+        <Alert color="red" title="Book settings changed in another editor">
+          <Stack gap="sm">
+            <Text>Choose which size and design to save. Your Contents changes stay in the draft.</Text>
+            <Group>
+              <Button onClick={() => onResolve('local')}>Keep my settings</Button>
+              <Button onClick={() => onResolve('saved')}>Use saved settings</Button>
+            </Group>
+          </Stack>
+        </Alert>
+      ) : null}
+    </>
+  );
+}
+
 function RulebookEditorSession({
   data,
   onReferencesChange,
@@ -2687,7 +2798,11 @@ function RulebookEditorSession({
 }) {
   const { rulesetSlug } = Route.useParams();
   const [manager] = useState(() =>
-    createRulebookEditorStateManager({ revision: String(data.draft.revision), contents: data.draft.contents })
+    createRulebookEditorStateManager({
+      revision: String(data.draft.revision),
+      contents: data.draft.contents,
+      settings: data.draft.settings,
+    })
   );
   const [view, sendView] = useReducer(editorViewReducer, {
     result: manager.result,
@@ -2708,42 +2823,7 @@ function RulebookEditorSession({
   const receiveClippingReport = useCallback((next: RulebookClippingReport) => {
     setClippingReport((current) => (sameClippingReport(current, next) ? current : next));
   }, []);
-  const clippingWarnings =
-    result.status === 'ready'
-      ? clippingReport.flatMap(({ pageId, blocks, footerFields }) => {
-          const page = result.draft.pagesById[pageId];
-          if (!page) {
-            return [];
-          }
-          const pageNumber = result.draft.pageOrder.indexOf(page.id) + 1;
-          const blockWarnings = blocks.flatMap(({ blockId, regionKey }) => {
-            const block = page.blocksById[blockId];
-            const region = getRulebookLayout(page.layoutId).regions.find((candidate) => candidate.key === regionKey);
-            return block && region?.kind === 'block'
-              ? [
-                  {
-                    source: `Page ${pageNumber} / ${blockWarningLabel(page, block)}`,
-                    complaint: 'is clipped',
-                    help: 'Part of this Block will not be visible in the published Rulebook.',
-                    pageId: page.id,
-                    leaf: block.id,
-                  },
-                ]
-              : [];
-          });
-          const footerWarnings =
-            page.layoutId === 'cover' && getRulebookCoverFooter(page.controlValues).enabled
-              ? footerFields.map((field) => ({
-                  source: `Page ${pageNumber} / Cover footer ${field}`,
-                  complaint: 'is clipped',
-                  help: `Part of this footer ${field} will not be visible in the published Rulebook.`,
-                  pageId,
-                  leaf: 'footer',
-                }))
-              : [];
-          return [...blockWarnings, ...footerWarnings];
-        })
-      : [];
+  const clippingWarnings = result.status === 'ready' ? rulebookClippingWarnings(result.draft, clippingReport) : [];
   const header = useEditPageHeader({
     warnings: clippingWarnings,
     onFocusWarning: (warning) => {
@@ -2766,7 +2846,11 @@ function RulebookEditorSession({
         kind: 'result',
         result: manager.dispatch({
           kind: 'receive-latest',
-          latest: { revision: String(data.draft.revision), contents: data.draft.contents },
+          latest: {
+            revision: String(data.draft.revision),
+            contents: data.draft.contents,
+            settings: data.draft.settings,
+          },
         }),
       });
     }
@@ -2784,9 +2868,7 @@ function RulebookEditorSession({
     );
   }
 
-  const hasLocalChanges = Object.values(result.rebasedPatch)
-    .filter(Array.isArray)
-    .some((value) => value.length > 0);
+  const hasLocalChanges = result.hasLocalChanges;
   const save = async () => {
     if (!manager.result.canSave) {
       return;
@@ -2801,8 +2883,13 @@ function RulebookEditorSession({
         rulebookId: data.rulebook._id,
         expectedRevision: Number(saving.saveRequest.expectedRevision),
         contents: saving.saveRequest.contents,
+        settings: saving.saveRequest.settings,
       });
-      const saved = { revision: String(response.draft.revision), contents: response.draft.contents };
+      const saved = {
+        revision: String(response.draft.revision),
+        contents: response.draft.contents,
+        settings: response.draft.settings,
+      };
       sendView({
         kind: 'result',
         notice: response.kind,
@@ -2818,7 +2905,7 @@ function RulebookEditorSession({
       });
     }
   };
-  const needsReview = result.incompatibilities.length > 0;
+  const needsReview = result.incompatibilities.length > 0 || result.settingsConflict;
   const draftIsCurrent = Number(result.latest.revision) === data.draft.revision;
   /* What makes an Edition publishable at all, which the open panel keeps holding while its own mutation is
      in flight. `canPublish` adds the conditions that only gate the toolbar trigger. */
@@ -2837,7 +2924,11 @@ function RulebookEditorSession({
         expectedRevision: data.draft.revision,
       });
       if (response.kind === 'stale') {
-        const latest = { revision: String(response.draft.revision), contents: response.draft.contents };
+        const latest = {
+          revision: String(response.draft.revision),
+          contents: response.draft.contents,
+          settings: response.draft.settings,
+        };
         sendView({
           kind: 'result',
           notice: 'stale',
@@ -2982,6 +3073,13 @@ function RulebookEditorSession({
               />
             </Surface>
           ) : null}
+          <RulebookSettingsEditor
+            settings={result.settings}
+            layoutIds={result.draft.pageOrder.map((id) => result.draft.pagesById[id]!.layoutId)}
+            conflict={result.settingsConflict}
+            onChange={(settings) => dispatch({ kind: 'replace-settings', settings })}
+            onResolve={(choice) => dispatch({ kind: 'resolve-settings', choice })}
+          />
           {result.operationError ? <Alert color="red">{result.operationError}</Alert> : null}
           {publishMutation.error ? (
             <Alert color="red" role="alert" title="Edition could not be published">
@@ -3016,7 +3114,7 @@ function RulebookEditorSession({
           <section className={styles.editorRoot} aria-label="Rulebook editing workspace" hidden={view.reviewing}>
             <RulebookWorkspace
               result={result}
-              settings={data.rulebook.settings}
+              settings={result.settings}
               dispatch={dispatch}
               fit={fit}
               assetsById={data.assetsById}

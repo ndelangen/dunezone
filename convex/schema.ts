@@ -461,6 +461,8 @@ export default defineSchema({
      * A missing hash means a full comparison.
      */
     contents_hash: v.optional(v.string()),
+    /* Versioned settings and Contents comparison, with read fallback for older rows. */
+    authored_hash: v.optional(v.string()),
     updated_by: v.id('users'),
     updated_at: v.string(),
   })
@@ -478,6 +480,8 @@ export default defineSchema({
      * A missing hash means a full comparison.
      */
     contents_hash: v.optional(v.string()),
+    /* Versioned settings and Contents comparison, with read fallback for older rows. */
+    authored_hash: v.optional(v.string()),
     created_by: v.id('users'),
     created_at: v.string(),
   })

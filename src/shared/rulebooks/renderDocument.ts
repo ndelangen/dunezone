@@ -237,6 +237,8 @@ const renderBlockSchemas = {
   'card-entry': z.strictObject({
     ...renderBlockBase,
     kind: z.literal('card-entry'),
+    imageSide: z.enum(['left', 'right']).optional(),
+    textFlow: z.enum(['beside', 'wrap']).optional(),
     ...renderCardGuideFields,
     name: z.string().optional(),
     size: rulebookIllustrationSizeSchema.optional(),
