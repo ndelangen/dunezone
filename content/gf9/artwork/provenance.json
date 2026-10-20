@@ -7,22 +7,38 @@
       "role": "maintained-portrait",
       "assetKey": "/image/leader/gf9/ur-director-malina-aru.png",
       "collection": "Faction portraits / CHOAM",
-      "operation": "Approved wider pixel-exact crop, without resampling or generated detail",
-      "referenceCommit": "2981ba53216abca5913098c4fa0e99ae28153858",
+      "operation": "AI-assisted restoration of the approved wider portrait, preserving the depicted identity and pose while removing printed token rims and badges and matching the painted leader portrait family.",
       "path": "media/image/leader/gf9/ur-director-malina-aru.png",
-      "sha256": "83e3b0e3a9a20fe23df1c41f087ca75edebb69dd73bf7b20138f696decf3712e",
-      "bytes": 44356
+      "sha256": "8837fa06740d9ee0bb6a37e1651bf99dd661acc40c76f316460211a44e55ce98",
+      "bytes": 1716215,
+      "previous": {
+        "sha256": "83e3b0e3a9a20fe23df1c41f087ca75edebb69dd73bf7b20138f696decf3712e",
+        "bytes": 44356,
+        "operation": "Approved wider pixel-exact crop, without resampling or generated detail",
+        "referenceCommit": "2981ba53216abca5913098c4fa0e99ae28153858"
+      },
+      "generation": "Built-in image_gen; Ilban second pass restores his pointed white goatee.",
+      "approval": "User approved both displayed restorations in this chat on 2026-10-20: \"those look really good!\"",
+      "pixels": [1254, 1254]
     },
     {
       "key": "count-ilban-richese",
       "role": "maintained-portrait",
       "assetKey": "/image/leader/gf9/count-ilban-richese.png",
       "collection": "Faction portraits / Richese",
-      "operation": "Approved wider pixel-exact crop, without resampling or generated detail",
-      "referenceCommit": "2981ba53216abca5913098c4fa0e99ae28153858",
+      "operation": "AI-assisted restoration of the approved wider portrait, preserving the depicted identity and pose while removing printed token rims and badges and matching the painted leader portrait family.",
       "path": "media/image/leader/gf9/count-ilban-richese.png",
-      "sha256": "ec49d29ea1fc3b1cb76834047f922cb8105a8595cb017c3c71ab48808eb1b2b6",
-      "bytes": 48529
+      "sha256": "61b2044852c51c0715761f55170d37d26e8ca7ffd4369997f2eb936c089c597f",
+      "bytes": 1799540,
+      "previous": {
+        "sha256": "ec49d29ea1fc3b1cb76834047f922cb8105a8595cb017c3c71ab48808eb1b2b6",
+        "bytes": 48529,
+        "operation": "Approved wider pixel-exact crop, without resampling or generated detail",
+        "referenceCommit": "2981ba53216abca5913098c4fa0e99ae28153858"
+      },
+      "generation": "Built-in image_gen; Ilban second pass restores his pointed white goatee.",
+      "approval": "User approved both displayed restorations in this chat on 2026-10-20: \"those look really good!\"",
+      "pixels": [1254, 1254]
     },
     {
       "key": "ruleset-logo",
