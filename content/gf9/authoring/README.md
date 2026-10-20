@@ -30,7 +30,7 @@ Alongside each export, capture a read-only observation of the same saved record 
 
 These are file evidence formats, not new app endpoints or authority tokens. The tool checks consistency and hashes; it cannot authenticate how an operator obtained a file. Never manufacture identities or populate a readback from assumptions. Use evidence from the actual signed-in runtime and retain the source response or browser proof. Keep credentials and account profile data outside the repository.
 
-A checkpoint contains `openDrafts: saved-or-discarded`, capture time, actual origins and each record's relative readback/export paths, SHA-256 hashes and export time. Checkpoints and per-record observations must be at most 30 minutes old. Refresh captures for a longer operation. This age limit is an evidence guard, not a database lease or a concurrency lock.
+A checkpoint contains `openDrafts: saved-or-discarded`, capture time, actual origins and each record's relative readback/export paths, SHA-256 hashes and export time. New preparation, inspection and collection require checkpoints and per-record observations at most 30 minutes old. Refresh captures before starting a later operation. This age limit is an evidence guard, not a database lease or a concurrency lock.
 
 Populate `environments/local.json` or `production.json` from those observations. A bound record contains actual ID, slug, kind/type and Group. Start without baseline hashes if needed, then run `inspect` to print the measured `savedHash` and `protectedHash`. Review those observations and copy their hashes to `baselineSavedHash` and `baselineProtectedHash`. Preparation refuses missing baselines. An explicitly new record may instead be `uncreated`; create through the normal UI, bind its real result, and capture its baseline before preparing its consumers.
 
@@ -63,7 +63,7 @@ Review every changed path and the complete proposed JSON. Apply only the reviewe
 bun content/gf9/authoring.ts collect --apply generated/local/<collect-run>/report.json --reviewed-hash <plan-hash>
 ```
 
-This `--apply` writes authored JSON and the local synchronization file only. It never calls the importer or an application writer. It rechecks all captured input hashes and recomputes the plan first. Each file replacement is atomic; a multi-file apply is not a database transaction. If the process stops partway through, retain the report and files, capture saved state again, then review and reconcile a fresh collection plan. Do not reset the runtime or rerun an old plan blindly.
+This `--apply` writes authored JSON and the local synchronization file only. It never calls the importer or an application writer. It rechecks all captured input hashes and recomputes the plan first, using the recorded collection time for the capture freshness checks. An unchanged reviewed plan remains applicable after 30 minutes; changed inputs require a new plan and fresh captures. Each file replacement is atomic; a multi-file apply is not a database transaction. If the process stops partway through, retain the report and files, capture saved state again, then review and reconcile a fresh collection plan. Do not reset the runtime or rerun an old plan blindly.
 
 Prepare again from the collected files and compare the saved value after normal normalization. A local saved change not in the last collected checkpoint blocks that entity and its consumers. Creating or converting a target requires updating its actual binding, not guessing a future ID or type.
 

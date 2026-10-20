@@ -708,6 +708,7 @@ const planSchema = z.strictObject({
   format: z.literal('gf9-collection-plan'),
   version: z.literal(1),
   environment: z.literal('local'),
+  collectedAt: z.iso.datetime(),
   environmentFingerprint: z.string(),
   checkpoint: z.string(),
   checkpointHash: z.string(),
@@ -831,6 +832,7 @@ async function makeCollectionPlan(options: Options) {
     format: 'gf9-collection-plan',
     version: 1,
     environment: 'local',
+    collectedAt: now.toISOString(),
     environmentFingerprint: fingerprint(environment),
     checkpoint: options.checkpoint,
     checkpointHash: checkpoint.hash,
@@ -847,7 +849,7 @@ export async function collect(options: Options) {
   const output = await immutableReport(project, `generated/local/${options.run}`, plan, new Map());
   return { plan, output, planHash: valueHash(plan) };
 }
-export async function applyCollection(options: { root: string; plan: string; reviewedHash: string; now?: Date }) {
+export async function applyCollection(options: { root: string; plan: string; reviewedHash: string }) {
   const project = await loadProject(options.root),
     file = await inside(project.root, options.plan),
     plan = await readJson(file, planSchema);
@@ -866,7 +868,8 @@ export async function applyCollection(options: { root: string; plan: string; rev
     run: 'recheck',
     keys: plan.changes.map((change) => change.key),
     prepared: plan.prepared,
-    now: options.now,
+    // Reproduce the reviewed capture checks at collection time, after verifying every input hash.
+    now: new Date(plan.collectedAt),
   });
   if (
     canonical(computed.plan.changes) !== canonical(plan.changes) ||

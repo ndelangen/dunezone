@@ -92,12 +92,15 @@ function normalExport(saved: Readback) {
     ],
   };
 }
-async function fixture() {
+async function fixture(capturedAt = now) {
   const root = await mkdtemp(path.join(os.tmpdir(), 'gf9-authoring-test-'));
   roots.push(root);
   const records = ['gf9-a', 'gf9-b', 'gf9-c'].map(spec);
   const saved = new Map(
-    records.map((record) => [record.key, readback(record.key, normalize(record, token(record.key)))])
+    records.map((record) => [
+      record.key,
+      { ...readback(record.key, normalize(record, token(record.key))), observedAt: capturedAt.toISOString() },
+    ])
   );
   saved.get('gf9-a')!.data = { ...token('gf9-a'), back: { mode: 'reference', asset_id: 'fixture-gf9-b' } };
   const authored = new Map(
@@ -160,7 +163,7 @@ async function fixture() {
         readbackSha256: await fileHash(path.join(root, readbackPath)),
         export: exportPath,
         exportSha256: await fileHash(path.join(root, exportPath)),
-        exportedAt: now.toISOString(),
+        exportedAt: capturedAt.toISOString(),
       });
     }
     const file = `review/${name}/checkpoint.json`;
@@ -170,7 +173,7 @@ async function fixture() {
       environment: 'local',
       applicationOrigin: environment.identity!.applicationOrigin,
       backendOrigin: environment.identity!.backendOrigin,
-      capturedAt: now.toISOString(),
+      capturedAt: capturedAt.toISOString(),
       openDrafts: 'saved-or-discarded',
       records: captured,
     });
@@ -205,7 +208,7 @@ describe('file-only GF9 authoring', () => {
     expect(plan.plan.blocked).toEqual([]);
     expect(plan.plan.changes[0].paths).toContain('$.about');
     expect((plan.plan.changes[0].data as { back: unknown }).back).toEqual({ mode: 'reference', asset_id: '@gf9/b' });
-    const applied = await applyCollection({ root: f.root, plan: plan.output, reviewedHash: plan.planHash, now });
+    const applied = await applyCollection({ root: f.root, plan: plan.output, reviewedHash: plan.planHash });
     expect(applied.applied).toHaveLength(3);
     const prepared = await prepare({ root: f.root, environment: 'local', checkpoint: next, run: 'again', now });
     expect(prepared.report.entries.every((row) => row.status === 'ready')).toBe(true);
@@ -213,6 +216,83 @@ describe('file-only GF9 authoring', () => {
       f.saved.get('gf9-a')!.data
     );
   });
+  test('applies an unchanged reviewed collection after the capture freshness window', async () => {
+    const collectedAt = new Date(Date.now() - 31 * 60_000),
+      f = await fixture(collectedAt),
+      checkpoint = await f.checkpoint();
+    await prepare({
+      root: f.root,
+      environment: 'local',
+      checkpoint,
+      run: 'baseline',
+      initialBaseline: true,
+      now: collectedAt,
+    });
+    (f.saved.get('gf9-c')!.data as { about: string }).about = 'A reviewed saved correction.';
+    const plan = await collect({
+      root: f.root,
+      environment: 'local',
+      checkpoint: await f.checkpoint('saved'),
+      run: 'collect',
+      keys: ['gf9-c'],
+      now: collectedAt,
+    });
+    expect(plan.plan.blocked).toEqual([]);
+    const applied = await applyCollection({ root: f.root, plan: plan.output, reviewedHash: plan.planHash });
+    expect(applied.applied).toEqual(['gf9-c']);
+    expect(JSON.parse(await readFile(path.join(f.root, 'authoring/assets/gf9-c.json'), 'utf8')).about).toBe(
+      'A reviewed saved correction.'
+    );
+  });
+  test.each(['plan', 'input'] as const)(
+    'refuses a changed %s hash after the capture freshness window',
+    async (changed) => {
+      const collectedAt = new Date(Date.now() - 31 * 60_000),
+        f = await fixture(collectedAt),
+        checkpoint = await f.checkpoint();
+      await prepare({
+        root: f.root,
+        environment: 'local',
+        checkpoint,
+        run: 'baseline',
+        initialBaseline: true,
+        now: collectedAt,
+      });
+      const plan = await collect({ root: f.root, environment: 'local', checkpoint, run: 'collect', now: collectedAt });
+      const authoredFile = path.join(f.root, 'authoring/assets/gf9-c.json');
+      if (changed === 'plan') {
+        await atomicJson(path.join(f.root, plan.output), { ...plan.plan, authoringHash: 'changed-after-review' });
+      } else {
+        await atomicJson(authoredFile, { ...f.authored.get('gf9-c'), about: 'Changed after review.' });
+      }
+      const before = await readFile(authoredFile, 'utf8');
+      await expect(applyCollection({ root: f.root, plan: plan.output, reviewedHash: plan.planHash })).rejects.toThrow(
+        changed === 'plan' ? 'plan changed after review' : 'Input changed'
+      );
+      expect(await readFile(authoredFile, 'utf8')).toBe(before);
+    }
+  );
+  test.each(['prepare', 'collect'] as const)(
+    'refuses stale captures for a new %s after a reviewed collection',
+    async (operation) => {
+      const collectedAt = new Date(Date.now() - 31 * 60_000),
+        f = await fixture(collectedAt),
+        checkpoint = await f.checkpoint();
+      await prepare({
+        root: f.root,
+        environment: 'local',
+        checkpoint,
+        run: 'baseline',
+        initialBaseline: true,
+        now: collectedAt,
+      });
+      await collect({ root: f.root, environment: 'local', checkpoint, run: 'reviewed', now: collectedAt });
+      const run = operation === 'prepare' ? prepare : collect;
+      await expect(run({ root: f.root, environment: 'local', checkpoint, run: 'new' })).rejects.toThrow(
+        'fresh normal authenticated'
+      );
+    }
+  );
   test('blocks only a changed local record and its consumers', async () => {
     const f = await fixture();
     await prepare({
@@ -321,7 +401,7 @@ describe('file-only GF9 authoring', () => {
     expect(accepted.plan.blocked).toEqual([]);
     await writeFile(file, JSON.stringify({ ...newValue, about: 'Edited after review.' }));
     await expect(
-      applyCollection({ root: f.root, plan: accepted.output, reviewedHash: accepted.planHash, now })
+      applyCollection({ root: f.root, plan: accepted.output, reviewedHash: accepted.planHash })
     ).rejects.toThrow('Input changed');
   });
   test('unknown or mis-typed references never use name-based guessing', async () => {
@@ -540,7 +620,7 @@ describe('production preparation gates', () => {
       run: 'collect',
       now,
     });
-    await applyCollection({ root: f.root, plan: collection.output, reviewedHash: collection.planHash, now });
+    await applyCollection({ root: f.root, plan: collection.output, reviewedHash: collection.planHash });
     const production = structuredClone(f.environment);
     production.name = 'production';
     production.identity = {
