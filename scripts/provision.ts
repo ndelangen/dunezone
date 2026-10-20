@@ -268,11 +268,15 @@ export type BackendOptions = {
   adminKeyPersistPath?: string;
   /** Capture compose's output instead of inheriting it, for a launch the caller expects to be refused. */
   quiet?: boolean;
+  /** Keep the existing named volume and backend configuration. */
+  preserve?: boolean;
 };
 
 /** Backend stage: reset and start the disposable docker backend. */
 export async function backendUp(env: NodeJS.ProcessEnv, options: BackendOptions): Promise<SelfHostedDeployment> {
-  compose(['down', '-v'], env, { quiet: true });
+  if (!options.preserve) {
+    compose(['down', '-v'], env, { quiet: true });
+  }
   compose(['up', '-d'], env, { quiet: options.quiet === true });
   await waitForBackendHealth(options.url);
 
@@ -290,6 +294,33 @@ export async function backendUp(env: NodeJS.ProcessEnv, options: BackendOptions)
     writeFileSync(options.adminKeyPersistPath, adminKey);
   }
   return { kind: 'self-hosted', url: options.url, adminKey };
+}
+
+export function composeStop(env: NodeJS.ProcessEnv) {
+  compose(['stop'], env, { quiet: true, timeout: 30_000 });
+}
+
+export function assertLocalVolumeExists(env: NodeJS.ProcessEnv) {
+  run(resolveDockerExecutable(env), ['volume', 'inspect', `${env.COMPOSE_PROJECT_NAME}_convex_local_e2e_data`], {
+    env: localApplicationEnvironment(env),
+    quiet: true,
+  });
+}
+
+export function setLocalBackendVariable(
+  deployment: SelfHostedDeployment,
+  env: NodeJS.ProcessEnv,
+  name: string,
+  value: string
+) {
+  const directory = mkdtempSync(path.join(process.env.LOCAL_DEV_TEMPORARY_DIRECTORY ?? '/tmp', 'local-setting-'));
+  const file = path.join(directory, 'value');
+  try {
+    writeFileSync(file, value, { mode: 0o600 });
+    targetConvex(deployment, ['env', 'set', name, '--from-file', file], env);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
 }
 
 export function composeDown(env: NodeJS.ProcessEnv, quiet = true) {
@@ -317,8 +348,8 @@ export function configureLocalAuth(
   mkdirSync(options.artifactsDirectory, { recursive: true });
   const privateKeyPath = path.join(options.artifactsDirectory, 'jwt-private-key.pem');
   const jwksPath = path.join(options.artifactsDirectory, 'jwks.json');
-  writeFileSync(privateKeyPath, privateKeyValue);
-  writeFileSync(jwksPath, jwksValue);
+  writeFileSync(privateKeyPath, privateKeyValue, { mode: 0o600 });
+  writeFileSync(jwksPath, jwksValue, { mode: 0o600 });
 
   const settings: Array<[string, ...string[]]> = [
     ['SITE_URL', options.siteUrl],
@@ -362,6 +393,17 @@ export function loadSnapshotData(deployment: TargetDeployment, env: NodeJS.Proce
   verifySnapshotFile(snapshotFile);
   console.log('Importing the anonymised snapshot into the target deployment...');
   targetConvex(deployment, ['import', '--replace-all', '-y', snapshotFile], env);
+  finishSnapshotData(deployment, env);
+}
+
+/** Import into an empty backend before the schema allocates table numbers. */
+export function importSnapshotData(deployment: SelfHostedDeployment, env: NodeJS.ProcessEnv, snapshotFile: string) {
+  verifySnapshotFile(snapshotFile);
+  targetConvex(deployment, ['import', '--replace-all', '-y', snapshotFile], env);
+}
+
+/** These checks need deployed functions and therefore follow the first schema push. */
+export function finishSnapshotData(deployment: TargetDeployment, env: NodeJS.ProcessEnv) {
   seedSnapshotRulebookDrafts(deployment, env);
   assertRebuildContract(deployment, env);
 }
@@ -461,7 +503,9 @@ function clearTables(
 type BatchResult = { isDone: boolean; continueCursor: string };
 
 const REMAP_BATCH_SIZE = 50;
-const DRAFT_SEED_BATCH_SIZE = 10;
+// A complete book can approach the document limit. One per mutation also fits
+// the local backend's one-second UDF budget during a loaded workstation bootstrap.
+const DRAFT_SEED_BATCH_SIZE = 1;
 
 /**
  * Parses a `convex run` result: non-TTY output is pretty-printed JSON spanning multiple lines, so the whole output is one JSON value.

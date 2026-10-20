@@ -1,0 +1,145 @@
+import { spawn, spawnSync } from 'node:child_process';
+import { writeFileSync } from 'node:fs';
+import path from 'node:path';
+
+import type { PersistentManifest, PersistentSecrets } from './local-dev-persistence';
+import { assertLoopbackUrl, writePrivateJson } from './local-dev-persistence';
+import { localApplicationEnvironment } from './provision';
+
+const root = path.resolve(import.meta.dirname, '..');
+export const localPublisherPaths = [
+  '/__asset-publisher',
+  '/published',
+  '/publisher-capture',
+  '/user-images',
+  '/__user-images',
+  '/__media',
+  '/m/',
+  '/image/',
+  '/web/',
+];
+
+/** Construct local configuration from an allowlist. Hosted routes, secrets and service bindings never enter it. */
+export function localPublisherConfiguration(manifest: PersistentManifest, sourceCommit: string) {
+  const { instance } = manifest;
+  const publisherOrigin = assertLoopbackUrl(`http://127.0.0.1:${manifest.publisherPort}`);
+  const app = assertLoopbackUrl(instance.appUrl);
+  const site = assertLoopbackUrl(instance.siteUrl);
+  const backend = assertLoopbackUrl(instance.backendUrl);
+  return {
+    name: 'dunezone-isolated-local-publisher',
+    main: path.join(root, 'workers/publisher/local-review.ts'),
+    compatibility_date: '2026-07-17',
+    compatibility_flags: ['nodejs_compat'],
+    define: { 'process.env.NODE_ENV': '"production"' },
+    alias: {
+      'rulebook-html-renderer-runtime': path.join(
+        root,
+        'workers/publisher/runtime-generated/rulebook-html-renderer.mjs'
+      ),
+      'application-ssr-runtime': path.join(root, 'dist/server/server.js'),
+    },
+    assets: {
+      directory: path.join(root, 'workers/publisher/dist'),
+      binding: 'ASSETS',
+      html_handling: 'none',
+      not_found_handling: 'none',
+      run_worker_first: true,
+    },
+    browser: { binding: 'BROWSER', remote: false },
+    images: { binding: 'IMAGES', remote: false },
+    version_metadata: { binding: 'CF_VERSION_METADATA' },
+    r2_buckets: [
+      'ASSET_BUCKET',
+      'USER_IMAGE_BUCKET',
+      'MEDIA_SOURCE_BUCKET',
+      'MEDIA_BUCKET',
+      'MEDIA_RELEASES_BUCKET',
+    ].map((binding) => ({
+      binding,
+      bucket_name: `review-${manifest.instance.composeProjectName.slice(-36)}-${binding.toLowerCase().replaceAll('_bucket', '').replaceAll('_', '-')}`,
+      remote: false,
+    })),
+    rules: [
+      { type: 'Text', globs: ['**/*.css'], fallthrough: true },
+      { type: 'Data', globs: ['**/*.woff2', '**/*.woff'], fallthrough: true },
+    ],
+    vars: {
+      LOCAL_REVIEW: 'isolated-local-v1',
+      PUBLIC_BASE_URL: app,
+      USER_IMAGE_PUBLIC_BASE_URL: app,
+      CAPTURE_BASE_URL: publisherOrigin,
+      CONVEX_EXECUTOR_BASE_URL: `${site}/asset-publishing/executor`,
+      CONVEX_AUTH_BASE_URL: site,
+      CONVEX_RENDER_URL: `${site}/asset-publishing/render`,
+      CONVEX_CLOUD_BASE_URL: backend,
+      GIT_SHA: sourceCommit,
+      WORK_WINDOW_MS: '240000',
+      BROWSER_CAPTURE_TIMEOUT_MS: '45000',
+      BROWSER_CLEANUP_GRACE_MS: '15000',
+      PDF_MAX_BYTES: '8000000',
+    },
+  };
+}
+
+export function buildLocalPublisher(environment: NodeJS.ProcessEnv) {
+  const result = spawnSync(process.execPath, ['--no-env-file', 'run', 'publisher:assets'], {
+    cwd: root,
+    env: localApplicationEnvironment(environment),
+    stdio: 'inherit',
+  });
+  if (result.status !== 0) {
+    throw new Error('Local publisher asset build failed. Restore required maintained media and retry.');
+  }
+}
+
+export function startLocalPublisher(
+  manifest: PersistentManifest,
+  secrets: PersistentSecrets,
+  environment: NodeJS.ProcessEnv,
+  sourceCommit: string
+) {
+  const configFile = path.join(manifest.stateDirectory, 'wrangler.json');
+  writePrivateJson(configFile, localPublisherConfiguration(manifest, sourceCommit));
+  // Wrangler reads only this adjacent private file, never the production worker's .dev.vars.
+  writeFileSync(
+    path.join(manifest.stateDirectory, '.dev.vars'),
+    `ASSET_PUBLISHER_EXECUTOR_SECRET=${secrets.executorSecret}\n`,
+    { mode: 0o600 }
+  );
+  const workerEnv = Object.fromEntries(
+    Object.entries(localApplicationEnvironment(environment)).filter(
+      ([key]) => !/^(CLOUDFLARE_|CF_|AWS_|MEDIA_|ASSET_PUBLISHER_|WRANGLER_)/.test(key)
+    )
+  );
+  return spawn(
+    process.execPath,
+    [
+      '--no-env-file',
+      'x',
+      'wrangler',
+      'dev',
+      '--local',
+      '--config',
+      configFile,
+      '--persist-to',
+      path.join(manifest.stateDirectory, 'objects'),
+      '--ip',
+      '127.0.0.1',
+      '--port',
+      String(manifest.publisherPort),
+      '--inspector-port',
+      '0',
+      '--test-scheduled',
+    ],
+    {
+      cwd: root,
+      env: {
+        ...workerEnv,
+        WRANGLER_SEND_METRICS: 'false',
+        WRANGLER_LOG_PATH: path.join(manifest.stateDirectory, 'logs'),
+      },
+      stdio: 'inherit',
+    }
+  );
+}

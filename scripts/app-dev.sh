@@ -7,6 +7,24 @@ if [[ "${1:-}" != "--local" ]]; then
   exec bun "$ROOT_DIR/scripts/app-dev.ts" "$@"
 fi
 
+# The OS lock covers the entire supervisor, including service shutdown in its EXIT trap.
+# Python's standard-library flock works on macOS and Linux and releases after a crash/reboot.
+PERSIST_DIRECTORY=""
+EXPECT_PERSIST_DIRECTORY=0
+for argument in "$@"; do
+  if (( EXPECT_PERSIST_DIRECTORY )); then
+    PERSIST_DIRECTORY="$argument"
+    EXPECT_PERSIST_DIRECTORY=0
+  elif [[ "$argument" == "--persist-dir" ]]; then
+    EXPECT_PERSIST_DIRECTORY=1
+  elif [[ "$argument" == --persist-dir=* ]]; then
+    PERSIST_DIRECTORY="${argument#--persist-dir=}"
+  fi
+done
+if [[ -n "$PERSIST_DIRECTORY" && -z "${LOCAL_DEV_OS_LOCK:-}" ]]; then
+  exec python3 "$ROOT_DIR/scripts/local-dev-lock.py" "$PERSIST_DIRECTORY" /bin/bash "$ROOT_DIR/scripts/app-dev.sh" "$@"
+fi
+
 LOCAL_DEV_TEMPORARY_DIRECTORY="$(mktemp -d "${TMPDIR:-/tmp}/dunezone-app-dev.XXXXXXXX")"
 export LOCAL_DEV_TEMPORARY_DIRECTORY
 WORKER_PID=""

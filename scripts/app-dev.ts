@@ -1,6 +1,7 @@
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import type { ChildProcess } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { existsSync, readFileSync, mkdirSync, rmSync } from 'node:fs';
 import { constants as osConstants } from 'node:os';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
@@ -13,14 +14,29 @@ import {
   resolveGitCommonDirectory,
   resolveLocalDevelopmentEnvFile,
 } from './local-dev-instance';
+import {
+  assertPersistentDiskBudget,
+  createPersistentManifest,
+  lockPersistentDirectory,
+  newPersistentSecrets,
+  readPersistentManifest,
+  readPersistentSecrets,
+  releasePersistentLock,
+  writePrivateJson,
+} from './local-dev-persistence';
+import { buildLocalPublisher, startLocalPublisher } from './local-dev-publisher';
 import { discardDownloadedSnapshot, githubCli, resolveLocalSnapshot } from './local-snapshot';
 import type { LocalSnapshot } from './local-snapshot';
 import {
   backendUp,
+  assertLocalVolumeExists,
+  composeDown,
+  importSnapshotData,
+  finishSnapshotData,
+  setLocalBackendVariable,
   commandEnvironment,
   configureLocalAuth,
   loadFixtureData,
-  loadSnapshotData,
   localApplicationEnvironment,
   parseEnvFile,
   pushCode,
@@ -40,7 +56,10 @@ type LocalData = { kind: 'fixture' } | { kind: 'snapshot'; file: string | null }
 /** The data a launch loads, once a requested snapshot is found and checked. */
 type LaunchData = { kind: 'fixture' } | { kind: 'snapshot'; snapshot: LocalSnapshot };
 
-type AppDevMode = { kind: 'cloud' } | { kind: 'help' } | { kind: 'local'; data: LocalData };
+type AppDevMode =
+  | { kind: 'cloud' }
+  | { kind: 'help' }
+  | { kind: 'local'; data: LocalData; persistDir?: string; reset?: boolean };
 
 const rootDirectory = path.resolve(import.meta.dirname, '..');
 const viteDevRunnerPath = path.join(import.meta.dirname, 'vite-dev-runner.ts');
@@ -51,17 +70,28 @@ function unknownArguments(args: string[]): Error {
 }
 
 function parseLocalData(args: string[]): LocalData {
-  let values: { data?: string; 'snapshot-file'?: string };
+  let values: { data?: string; 'snapshot-file'?: string; 'persist-dir'?: string; reset?: boolean };
   try {
     ({ values } = parseArgs({
       args,
       strict: true,
-      options: { data: { type: 'string' }, 'snapshot-file': { type: 'string' } },
+      options: {
+        data: { type: 'string' },
+        'snapshot-file': { type: 'string' },
+        'persist-dir': { type: 'string' },
+        reset: { type: 'boolean' },
+      },
     }));
   } catch {
     throw unknownArguments(['--local', ...args]);
   }
   const { data, 'snapshot-file': file } = values;
+  if (
+    (values['persist-dir'] && (data !== 'snapshot' || !path.isAbsolute(values['persist-dir']))) ||
+    (values.reset && !values['persist-dir'])
+  ) {
+    throw unknownArguments(['--local', ...args]);
+  }
   switch (true) {
     case data === 'snapshot':
       return { kind: 'snapshot', file: file ?? null };
@@ -78,8 +108,23 @@ export function parseAppDevMode(args: string[]): AppDevMode {
   switch (true) {
     case first === undefined:
       return { kind: 'cloud' };
-    case first === '--local':
-      return { kind: 'local', data: parseLocalData(rest) };
+    case first === '--local': {
+      const data = parseLocalData(rest);
+      const { values } = parseArgs({
+        args: rest,
+        options: {
+          data: { type: 'string' },
+          'snapshot-file': { type: 'string' },
+          'persist-dir': { type: 'string' },
+          reset: { type: 'boolean' },
+        },
+      });
+      return {
+        kind: 'local',
+        data,
+        ...(values['persist-dir'] ? { persistDir: values['persist-dir'], reset: values.reset ?? false } : {}),
+      };
+    }
     case (first === '--help' || first === '-h') && rest.length === 0:
       return { kind: 'help' };
     default:
@@ -200,22 +245,16 @@ function printHelp() {
                                         The same with the anonymised production snapshot, which holds
                                         published content only. Without --snapshot-file it downloads the
                                         newest one with the GitHub CLI, and deletes the download once it
-                                        is imported.`);
+                                        is imported.
+  bun run app:dev --local --data=snapshot --persist-dir=/absolute/review-directory [--reset]
+                                        Initialize or resume a named local environment. Normal stop keeps
+                                        data, auth and object stores. --reset replaces only its runtime state.`);
 }
 
 async function runCloudDevelopment() {
   const port = process.env.APP_DEV_PORT ?? process.env.PORT ?? '3000';
   const vite = startVite(port, process.env);
   process.exitCode = await waitForExit(vite);
-}
-
-/** Loads the snapshot, then deletes it if this launch downloaded it, whether the import succeeded or not (#1559). */
-function loadLocalSnapshot(deployment: SelfHostedDeployment, env: NodeJS.ProcessEnv, snapshot: LocalSnapshot) {
-  try {
-    loadSnapshotData(deployment, env, snapshot.file);
-  } finally {
-    discardDownloadedSnapshot(snapshot);
-  }
 }
 
 async function runLocalDevelopment(requested: LocalData) {
@@ -293,6 +332,13 @@ async function runLocalDevelopment(requested: LocalData) {
       CONVEX_SELF_HOSTED_ADMIN_KEY: deployment.adminKey,
     });
 
+    if (data.kind === 'snapshot') {
+      try {
+        importSnapshotData(deployment, localEnv, data.snapshot.file);
+      } finally {
+        discardDownloadedSnapshot(data.snapshot);
+      }
+    }
     console.log('Configuring and deploying the local Convex backend...');
     configureLocalAuth(deployment, localEnv, {
       siteUrl: instance.appUrl,
@@ -307,7 +353,7 @@ async function runLocalDevelopment(requested: LocalData) {
         break;
       case 'snapshot':
         console.log(`Loading the anonymised snapshot ${data.snapshot.file} into local Convex...`);
-        loadLocalSnapshot(deployment, localEnv, data.snapshot);
+        finishSnapshotData(deployment, localEnv);
         break;
     }
 
@@ -343,6 +389,227 @@ async function runLocalDevelopment(requested: LocalData) {
   }
 }
 
+async function runPersistentDevelopment(requested: LocalData, directory: string, reset: boolean) {
+  if (requested.kind !== 'snapshot') {
+    throw new Error('Persistent review requires --data=snapshot');
+  }
+  const canonicalDirectory = path.resolve(directory);
+  if (canonicalDirectory === rootDirectory || canonicalDirectory.startsWith(`${rootDirectory}${path.sep}`)) {
+    throw new Error('Keep --persist-dir outside the disposable worktree');
+  }
+  const temporaryDirectory = localTemporaryDirectory();
+  const lock = lockPersistentDirectory(directory);
+  let cleanupRecorded = false;
+  let vite: ChildProcess | null = null;
+  let watcher: ChildProcess | null = null;
+  let publisher: ChildProcess | null = null;
+  let scheduler: ReturnType<typeof setTimeout> | undefined;
+  let stopping = false;
+  const schedulerAbort = new AbortController();
+  const cleanup = () => {
+    stopping = true;
+    schedulerAbort.abort();
+    clearTimeout(scheduler);
+    vite?.kill('SIGTERM');
+    watcher?.kill('SIGTERM');
+    publisher?.kill('SIGTERM');
+  };
+  process.once('SIGINT', () => {
+    cleanup();
+    process.exit(130);
+  });
+  process.once('SIGTERM', () => {
+    cleanup();
+    process.exit(143);
+  });
+  try {
+    assertPersistentDiskBudget(lock.stateDirectory);
+    let manifest = readPersistentManifest(lock.stateDirectory);
+    if (reset && manifest) {
+      console.log(
+        `Resetting only Docker project ${manifest.instance.composeProjectName}, its volume, and ${lock.stateDirectory}.`
+      );
+      composeDown({ ...process.env, ...localDevelopmentEnvironmentOverrides(manifest.instance) });
+      rmSync(lock.stateDirectory, { recursive: true });
+      manifest = null;
+    }
+    if (existsSync(lock.stateDirectory) && !manifest) {
+      throw new Error(
+        'Persistent runtime state has no manifest. Restore it or inspect and remove only the incomplete runtime directory.'
+      );
+    }
+    const fresh = manifest === null;
+    if (manifest && manifest.status === 'initializing') {
+      throw new Error(
+        'The first bootstrap was interrupted. Inspect its manifest, then use explicit --reset to rebuild. No snapshot was reimported.'
+      );
+    }
+    const sourceCommit = spawnSync('git', ['rev-parse', 'HEAD'], {
+      cwd: rootDirectory,
+      encoding: 'utf8',
+    }).stdout.trim();
+    const localEnvFile = resolveLocalDevelopmentEnvFile(
+      rootDirectory,
+      process.env,
+      resolveGitCommonDirectory(rootDirectory)
+    );
+    const values = fresh ? { ...parseEnvFile(readFileSync(localEnvFile, 'utf8')), ...process.env } : process.env;
+    const secrets = fresh
+      ? newPersistentSecrets(
+          requireValue(values as Record<string, string>, 'PLAYWRIGHT_USER_A_EMAIL', localEnvFile),
+          requireValue(values as Record<string, string>, 'PLAYWRIGHT_USER_B_EMAIL', localEnvFile),
+          requireValue(values as Record<string, string>, 'PLAYWRIGHT_USER_PASSWORD', localEnvFile)
+        )
+      : readPersistentSecrets(lock.stateDirectory);
+    // Verify/download before creating any backend resources. Resume never resolves a snapshot.
+    const snapshot = fresh
+      ? resolveLocalSnapshot({ snapshotFile: requested.file, temporaryDirectory, github: githubCli })
+      : null;
+    manifest ??= createPersistentManifest(lock.stateDirectory, sourceCommit);
+    mkdirSync(lock.stateDirectory, { recursive: true, mode: 0o700 });
+    if (snapshot) {
+      manifest.snapshot = {
+        sha256: createHash('sha256').update(readFileSync(snapshot.file)).digest('hex'),
+        runId: snapshot.artifact?.runId ?? null,
+        artifactId: snapshot.artifact?.artifactId ?? null,
+        createdAt: snapshot.artifact ? new Date(snapshot.artifact.createdAt).toISOString() : null,
+      };
+    }
+    writePrivateJson(path.join(lock.stateDirectory, 'manifest.json'), manifest);
+    writePrivateJson(path.join(lock.stateDirectory, 'secrets.json'), secrets);
+    const instance = manifest.instance;
+    let localEnv = commandEnvironment(values, {
+      ...localDevelopmentEnvironmentOverrides(instance),
+      E2E_LOCAL_AUTH: 'true',
+      VITE_E2E_LOCAL_AUTH: 'true',
+      IS_TEST: 'true',
+      LOCAL_REVIEW_PUBLISHER_URL: `http://127.0.0.1:${manifest.publisherPort}`,
+    });
+    // Avoid Docker's optional external database/S3 settings inherited from a developer shell.
+    for (const key of Object.keys(localEnv)) {
+      if (/^(AWS_|S3_|DATABASE_URL$|MYSQL_URL$|POSTGRES_URL$|INSTANCE_)/.test(key)) {
+        delete localEnv[key];
+      }
+    }
+    recordLocalDevelopmentCleanup(temporaryDirectory, localEnv, lock);
+    cleanupRecorded = true;
+    console.log(
+      `${fresh ? 'Initializing' : 'Resuming'} persistent local review at ${instance.appUrl}. Docker project ${instance.composeProjectName}.`
+    );
+    console.log(`State: ${lock.stateDirectory}. Ctrl+C stops owned services and retains authored data.`);
+    if (!fresh) {
+      assertLocalVolumeExists(localEnv);
+    }
+    const deployment = await backendUp(localEnv, {
+      url: instance.backendUrl,
+      ...(secrets.adminKey ? { adminKey: secrets.adminKey } : {}),
+      preserve: true,
+    });
+    localEnv = commandEnvironment(localEnv, {
+      CONVEX_SELF_HOSTED_URL: deployment.url,
+      CONVEX_SELF_HOSTED_ADMIN_KEY: deployment.adminKey,
+    });
+    secrets.adminKey = deployment.adminKey;
+    writePrivateJson(path.join(lock.stateDirectory, 'secrets.json'), secrets);
+    if (snapshot) {
+      try {
+        importSnapshotData(deployment, localEnv, snapshot.file);
+      } finally {
+        discardDownloadedSnapshot(snapshot);
+      }
+      configureLocalAuth(deployment, localEnv, { siteUrl: instance.appUrl, artifactsDirectory: lock.stateDirectory });
+    }
+    pushCode(deployment, localEnv);
+    if (fresh) {
+      finishSnapshotData(deployment, localEnv);
+    }
+    runMigrationGuards(deployment, localEnv);
+    if (fresh) {
+      manifest.status = 'provisioned';
+      writePrivateJson(path.join(lock.stateDirectory, 'manifest.json'), manifest);
+    }
+    setLocalBackendVariable(deployment, localEnv, 'ASSET_PUBLISHER_EXECUTOR_SECRET', secrets.executorSecret);
+    setLocalBackendVariable(deployment, localEnv, 'USER_IMAGE_PUBLIC_BASE_URL', instance.appUrl);
+    setLocalBackendVariable(
+      deployment,
+      localEnv,
+      'USER_IMAGE_INGEST_BASE_URL',
+      `http://host.docker.internal:${manifest.publisherPort}`
+    );
+    buildLocalPublisher(localEnv);
+    publisher = startLocalPublisher(manifest, secrets, localEnv, sourceCommit);
+    const publisherExit = waitForExit(publisher);
+    const health = `http://127.0.0.1:${manifest.publisherPort}/__asset-publisher/health`;
+    for (let attempt = 0; ; attempt += 1) {
+      if (attempt >= 60) {
+        throw new Error('The local publisher did not become ready');
+      }
+      const ready = await fetch(health, { signal: AbortSignal.timeout(1000) }).catch(() => null);
+      if (ready?.ok) {
+        break;
+      }
+      await Promise.race([
+        new Promise((resolve) => setTimeout(resolve, 1000)),
+        publisherExit.then((code) => unexpectedProcessExit('Local publisher', code)),
+      ]);
+    }
+    const viteReadyFile = path.join(temporaryDirectory, 'vite-ready.json');
+    vite = startOwnedVite(instance.appPort, viteReadyFile, localApplicationEnvironment(localEnv));
+    await waitForOwnedViteUrl(instance.appUrl, viteReadyFile, instance.appPort, vite);
+    if (manifest.status !== 'ready') {
+      await ensureLocalAuthUser(instance.appUrl, secrets.ownerEmail, secrets.password);
+      await ensureLocalAuthUser(instance.appUrl, secrets.collaboratorEmail, secrets.password);
+      remapOwnershipToLocalUsers(deployment, localEnv, secrets.ownerEmail, secrets.collaboratorEmail);
+    }
+    watcher = startLocalConvexWatcher(deployment, localEnv);
+    const watcherExit = waitForExit(watcher);
+    await requireProcessToStayRunning(watcherExit, 'The local Convex watcher');
+    manifest.status = 'ready';
+    manifest.lastSourceCommit = sourceCommit;
+    writePrivateJson(path.join(lock.stateDirectory, 'manifest.json'), manifest);
+    let refuseScheduler!: (error: Error) => void;
+    const schedulerFailure = new Promise<never>((_resolve, reject) => {
+      refuseScheduler = reject;
+    });
+    const schedule = async () => {
+      try {
+        assertPersistentDiskBudget(lock.stateDirectory);
+      } catch (error) {
+        refuseScheduler(error instanceof Error ? error : new Error(String(error)));
+        return;
+      }
+      try {
+        await fetch(`http://127.0.0.1:${manifest.publisherPort}/__scheduled`, {
+          signal: AbortSignal.any([schedulerAbort.signal, AbortSignal.timeout(260_000)]),
+        });
+      } catch (error) {
+        console.error('Local publisher cycle failed:', error instanceof Error ? error.message : error);
+      }
+      if (!stopping) {
+        scheduler = setTimeout(() => {
+          void schedule();
+        }, 5000);
+      }
+    };
+    scheduler = setTimeout(() => {
+      void schedule();
+    }, 5000);
+    console.log(`Persistent local development is ready at ${instance.appUrl}. Dashboard: ${instance.dashboardUrl}.`);
+    process.exitCode = await Promise.race([
+      schedulerFailure,
+      waitForExit(vite),
+      watcherExit.then((code) => unexpectedProcessExit('Local Convex watcher', code)),
+      publisherExit.then((code) => unexpectedProcessExit('Local publisher', code)),
+    ]);
+  } finally {
+    cleanup();
+    // Once recorded, the shell supervisor stops Docker before releasing the lock.
+    if (!cleanupRecorded) {
+      releasePersistentLock(lock.lockDirectory, lock.owner.nonce);
+    }
+  }
+}
+
 async function main() {
   const mode = parseAppDevMode(process.argv.slice(2));
   switch (mode.kind) {
@@ -350,7 +617,11 @@ async function main() {
       printHelp();
       return;
     case 'local':
-      await runLocalDevelopment(mode.data);
+      if (mode.persistDir) {
+        await runPersistentDevelopment(mode.data, mode.persistDir, mode.reset ?? false);
+      } else {
+        await runLocalDevelopment(mode.data);
+      }
       return;
     case 'cloud':
       await runCloudDevelopment();
