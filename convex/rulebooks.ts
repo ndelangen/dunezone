@@ -27,11 +27,8 @@ import {
 import { rulesetViewerAccessValidator } from './lib/collaborativeAccessValidators';
 import { recordFormerSlug } from './lib/formerSlugs';
 import { requireAuthUserId } from './lib/policy';
-import {
-  assertFixedPageLayouts,
-  assertFixedBlockOwnership,
-  assertStoredRulebookCoverImages,
-} from './lib/rulebookDraftValidation';
+import { rulebookCoverImageOrigins } from './lib/rulebookCoverImage';
+import { assertRulebookDraftCompatibility } from './lib/rulebookDraftValidation';
 import {
   ensureRulebookEditionArtifacts,
   rulebookEditionArtifactReadinessValidator,
@@ -355,8 +352,7 @@ async function contentsForCreation(ctx: MutationCtx, rulesetId: Id<'rulesets'>, 
   if (source.kind === 'json') {
     const contents = parseContents(source.contents);
     const settings = rulebookSettingsSchema.parse(source.settings);
-    assertFixedPageLayouts({ schemaVersion: 1, pageOrder: [], pagesById: {} }, contents, settings);
-    assertStoredRulebookCoverImages(contents);
+    assertRulebookDraftCompatibility({ schemaVersion: 1, pageOrder: [], pagesById: {} }, contents, settings);
     return { contents, settings };
   }
   if (source.kind === 'starter') {
@@ -849,6 +845,7 @@ export const editorPage = viewerQuery({
       hasUnpublishedChanges: v.boolean(),
       assetsById: resolvedAssetsValidator,
       factionsById: resolvedFactionsValidator,
+      coverImageOrigins: v.array(v.string()),
     })
   ),
   handler: async (ctx, args) => {
@@ -881,6 +878,7 @@ export const editorPage = viewerQuery({
         : !pairMatch;
     return {
       kind: 'editable' as const,
+      coverImageOrigins: rulebookCoverImageOrigins(),
       canRename: viewerAccess.capabilities.rename,
       rulebook: metadataFrom(rulebook, draft.settings),
       draft,
@@ -952,9 +950,7 @@ export const save = mutation({
       return { kind: 'stale' as const, draft: current };
     }
     const settings = rulebookSettingsSchema.parse(args.settings ?? current.settings);
-    assertFixedPageLayouts(current.contents, contents, settings, current.settings);
-    assertFixedBlockOwnership(current.contents, contents);
-    assertStoredRulebookCoverImages(contents);
+    assertRulebookDraftCompatibility(current.contents, contents, settings, current.settings);
     const now = nowIso();
     const saved = {
       revision: current.revision + 1,

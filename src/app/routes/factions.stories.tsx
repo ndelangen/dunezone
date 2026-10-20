@@ -743,7 +743,6 @@ export const RawJsonKeepsComponentIdentities = meta.story({
     await userEvent.click(await page.findByRole('button', { name: 'Paste JSON' }));
     await userEvent.click(page.getByRole('textbox', { name: 'Writable JSON' }));
     await userEvent.paste(JSON.stringify(value));
-    await userEvent.click(page.getByRole('button', { name: 'Validate JSON' }));
     await waitFor(() => expect(page.getByRole('button', { name: 'Load faction' })).toBeEnabled());
     await expect(page.getByRole('checkbox', { name: 'Also rename' })).not.toBeChecked();
     await userEvent.click(page.getByRole('checkbox', { name: 'Also rename' }));

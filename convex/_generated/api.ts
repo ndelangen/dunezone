@@ -8,13 +8,18 @@
  * @module
  */
 
+import type {
+  ApiFromModules,
+  FilterApi,
+  FunctionReference,
+} from "convex/server";
+import { anyApi, componentsGeneric } from "convex/server";
 import type * as accountDeletion from "../accountDeletion.js";
 import type * as accounts from "../accounts.js";
 import type * as assetPublishingStatus from "../assetPublishingStatus.js";
 import type * as assets from "../assets.js";
 import type * as auth from "../auth.js";
 import type * as authSessions from "../authSessions.js";
-import type * as authoringValidation from "../authoringValidation.js";
 import type * as cardFrontPresets from "../cardFrontPresets.js";
 import type * as cardbackPresets from "../cardbackPresets.js";
 import type * as catalogueMaintenance from "../catalogueMaintenance.js";
@@ -97,7 +102,6 @@ import type * as lib_profileSummary from "../lib/profileSummary.js";
 import type * as lib_provisioningContract from "../lib/provisioningContract.js";
 import type * as lib_publication from "../lib/publication.js";
 import type * as lib_publicationHttp from "../lib/publicationHttp.js";
-import type * as lib_rawRulebookValidation from "../lib/rawRulebookValidation.js";
 import type * as lib_rulebookCoverImage from "../lib/rulebookCoverImage.js";
 import type * as lib_rulebookDraftValidation from "../lib/rulebookDraftValidation.js";
 import type * as lib_rulebookEditionArtifacts from "../lib/rulebookEditionArtifacts.js";
@@ -152,13 +156,6 @@ import type * as slugAllocationTesting from "../slugAllocationTesting.js";
 import type * as statistics from "../statistics.js";
 import type * as types from "../types.js";
 
-import type {
-  ApiFromModules,
-  FilterApi,
-  FunctionReference,
-} from "convex/server";
-import { anyApi, componentsGeneric } from "convex/server";
-
 const fullApi: ApiFromModules<{
   accountDeletion: typeof accountDeletion;
   accounts: typeof accounts;
@@ -166,7 +163,6 @@ const fullApi: ApiFromModules<{
   assets: typeof assets;
   auth: typeof auth;
   authSessions: typeof authSessions;
-  authoringValidation: typeof authoringValidation;
   cardFrontPresets: typeof cardFrontPresets;
   cardbackPresets: typeof cardbackPresets;
   catalogueMaintenance: typeof catalogueMaintenance;
@@ -249,7 +245,6 @@ const fullApi: ApiFromModules<{
   "lib/provisioningContract": typeof lib_provisioningContract;
   "lib/publication": typeof lib_publication;
   "lib/publicationHttp": typeof lib_publicationHttp;
-  "lib/rawRulebookValidation": typeof lib_rawRulebookValidation;
   "lib/rulebookCoverImage": typeof lib_rulebookCoverImage;
   "lib/rulebookDraftValidation": typeof lib_rulebookDraftValidation;
   "lib/rulebookEditionArtifacts": typeof lib_rulebookEditionArtifacts;

@@ -1,13 +1,12 @@
 import { Button, Group, Stack } from '@mantine/core';
 import { ASSET_TYPES } from '@shared/assets/types';
 import type { AssetType } from '@shared/assets/types';
-import { parseRawAsset, readRawAuthoringJson } from '@shared/authoring/raw';
 import { useRef } from 'react';
 import type { z } from 'zod';
 
 import { loadAssetPage } from '@db/assets';
 import type { AssetPublicPage } from '@db/assets';
-import { loadRawAuthoringBack, validateRawAuthoring } from '@db/authoring';
+import { prepareRawAsset } from '@db/authoring';
 import type { LoadChoice, LoadExistingProps, LoadSource } from '@app/widgets/authoring/LoadExisting';
 
 import { AssetPicker } from './AssetPicker';
@@ -20,7 +19,7 @@ import { AssetPicker } from './AssetPicker';
 export type LoadedAsset<Data> = {
   data: Data;
   source: NonNullable<AssetPublicPage> | null;
-  referencedBack?: Awaited<ReturnType<typeof loadRawAuthoringBack>>;
+  referencedBack?: Awaited<ReturnType<typeof prepareRawAsset>>['referencedBack'];
   raw?: true;
 };
 
@@ -78,21 +77,9 @@ export function assetLoad<Data extends { name: string }>({
     source: assetLoadSource({ type, schema, excludeId: editing?.id }),
     raw: {
       validate: async (text) => {
-        const parsed = parseRawAsset(type, readRawAuthoringJson(text));
+        const parsed = await prepareRawAsset({ type, text, ...(editing ? { targetId: editing.id } : {}) });
         const data = schema.parse(parsed.data);
-        await validateRawAuthoring({ kind: 'asset', type, ...(editing ? { targetId: editing.id } : {}), text });
-        const stored = parsed.data as Record<string, unknown>;
-        const back = (type === 'deck' ? stored.cardback : type.startsWith('token-') ? stored.back : undefined) as
-          | { mode?: string; asset_id?: string }
-          | undefined;
-        const referencedBack =
-          back?.mode === 'reference' && back.asset_id
-            ? await loadRawAuthoringBack({
-                type,
-                referenceId: back.asset_id,
-                ...(editing ? { targetId: editing.id } : {}),
-              })
-            : undefined;
+        const referencedBack = parsed.referencedBack;
         return {
           name: parsed.name,
           draft: { data, source: null, raw: true, ...(referencedBack ? { referencedBack } : {}) },

@@ -241,7 +241,6 @@ export const RawJsonReplacement = meta.story({
       const input = page.getByRole('textbox', { name: 'Writable JSON' });
       await userEvent.click(input);
       await userEvent.paste(JSON.stringify(replacement));
-      await userEvent.click(page.getByRole('button', { name: 'Validate JSON' }));
       await waitFor(() => expect(page.getByRole('button', { name: 'Load card' })).toBeEnabled());
     };
     await open();
@@ -274,7 +273,6 @@ export const RawJsonErrorAndCancel = meta.story({
     const input = page.getByRole('textbox', { name: 'Writable JSON' });
     await userEvent.click(input);
     await userEvent.paste('{"owner_id":"no"}');
-    await userEvent.click(page.getByRole('button', { name: 'Validate JSON' }));
     await expect(page.findByRole('alert')).resolves.toBeVisible();
     await expect(input).toHaveValue('{"owner_id":"no"}');
     await expect(page.getByRole('button', { name: 'Load card' })).toBeDisabled();
