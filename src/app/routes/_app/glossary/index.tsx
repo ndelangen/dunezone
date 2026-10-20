@@ -78,7 +78,7 @@ const TERM_ICONS: Partial<Record<string, TopicIconTopic>> = {
 function matches(term: GlossaryTerm, needle: string) {
   return (
     !needle ||
-    term.term.toLowerCase().includes(needle) ||
+    [term.term, ...(term.searchTerms ?? [])].some((word) => word.toLowerCase().includes(needle)) ||
     term.avoid.some((avoided) =>
       [avoided.word, ...(avoided.forms ?? [])].some((word) => word.toLowerCase().includes(needle))
     )

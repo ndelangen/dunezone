@@ -34,6 +34,8 @@ export type GlossaryTerm = {
   /** Stable anchor on the glossary page; never reuse one for a different idea. */
   id: string;
   term: string;
+  /** Other spellings or inflections readers can search for without treating them as wording to avoid. */
+  searchTerms?: readonly string[];
   topic: GlossaryTopic;
   /** What the term means, written for someone who has never played. */
   explanation: string;
@@ -224,9 +226,10 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
   {
     id: 'intrusion',
     term: 'Intrusion',
+    searchTerms: ['intrusions'],
     topic: 'turn',
     explanation:
-      'Shipping or moving troops into a territory occupied by another faction, where your faction has no troops yet. For example, the Bene Gesserit may respond to an intrusion by flipping their fighters there to peaceful advisors. Intrusion and reinforcement are mutually exclusive: if your faction already has troops there before the arrival, it is reinforcement instead.',
+      'Shipping or moving troops into a territory occupied by another faction, where your faction has no troops yet. For example, the Bene Gesserit may respond to an intrusion by flipping their fighters there to peaceful advisors. They may also make this response to a reinforcement. Intrusion and reinforcement are mutually exclusive: if your faction already has troops there before the arrival, it is reinforcement instead.',
     reason:
       'Dune Zone uses intrusion for the entry itself, so any faction can refer to it. The Bene Gesserit advantage is one example of a response to an intrusion.',
     source: 'house',
@@ -235,6 +238,7 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
   {
     id: 'reinforcement',
     term: 'Reinforcement',
+    searchTerms: ['reinforcements'],
     topic: 'turn',
     explanation:
       'Shipping or moving additional troops into a territory where your faction already has troops. It remains a reinforcement even if another faction also has troops there. Normal shipment or movement rules and costs apply. Reinforcement and intrusion are mutually exclusive: an arrival is never both.',
@@ -723,6 +727,7 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
   {
     id: 'thrown-fight',
     term: 'Thrown fight',
+    searchTerms: ['thrown fights'],
     topic: 'deals',
     explanation:
       'A battle one faction agrees to lose as part of a deal. Unless the players negotiate otherwise, neither side calls a traitor or plays a weapon, and the faction throwing the fight uses its lowest possible legal dial and its lowest-strength available leader. These are the assumed terms when players agree to "a thrown fight" without discussing the details. Players may negotiate different terms, but both battle plans must remain legal, and the battle resolves normally.',
