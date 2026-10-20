@@ -10,6 +10,7 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { useReducer, useState } from 'react';
 
+import { useAuthoringAccountKey } from '@db/authoring';
 import { useAssetPage, useUpdateAsset } from '@app/db/assets';
 import type { AssetPageData, AssetPublicPage } from '@app/db/assets';
 import { AssetPicker } from '@app/pickers/AssetPicker';
@@ -160,6 +161,7 @@ function TokenEditSession({
   danglingBack: boolean;
   initialDraft: TokenDraft;
 }) {
+  const authoringAccountKey = useAuthoringAccountKey();
   const navigate = useNavigate();
   const groupActions = useAssetGroupActions({ asset, access });
   const updateAsset = useUpdateAsset();
@@ -236,7 +238,16 @@ function TokenEditSession({
       {header.slot}
       <PageLayout.Toolbar>
         <AuthoringToolbar
-          load={tokenLoad({ type, schema: LoadedTokenDraft, editing: asset, saveState, header, dispatch })}
+          scopeKey={authoringAccountKey}
+          load={tokenLoad({
+            type,
+            schema: LoadedTokenDraft,
+            editing: asset,
+            canRename: access.viewerAccess.capabilities.rename,
+            saveState,
+            header,
+            dispatch,
+          })}
           status={{ isDirty, isNameBlank, saveState }}
           copy={{
             saveLabel: 'Save token',

@@ -451,3 +451,42 @@ export const AuthoredBookSettings = meta.story({
     await expect(saved.rulebook.settings.size).toBe('gf9-core');
   },
 });
+
+export const RawJsonSettingsAndContents = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#RULE/details' },
+  parameters: { database: db(withFinalRulebooks) },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await page.findByRole('button', { name: 'Load existing Rulebook' });
+    const before = await loadRulebookEditor({ rulesetSlug: 'classicrules', rulebookSlug: 'book-0' });
+    if (before?.kind !== 'editable') {
+      throw new Error('Expected an editable Rulebook.');
+    }
+    const value = { settings: { size: 'gf9-core', design: 'illustrated' }, contents: before.draft.contents };
+    const open = async () => {
+      await userEvent.click(await page.findByRole('button', { name: 'Load existing Rulebook' }));
+      await userEvent.click(page.getByRole('textbox', { name: 'Writable JSON' }));
+      await userEvent.paste(JSON.stringify(value));
+      await userEvent.click(page.getByRole('button', { name: 'Validate JSON' }));
+      const load = page.getByRole('button', { name: 'Load Rulebook' });
+      await waitFor(() => expect(load).toBeEnabled());
+      await userEvent.click(load);
+    };
+    await open();
+    const untouched = await loadRulebookEditor({ rulesetSlug: 'classicrules', rulebookSlug: 'book-0' });
+    await expect(untouched?.kind === 'editable' && untouched.draft.revision).toBe(before.draft.revision);
+    await userEvent.click(page.getByRole('button', { name: 'Reset unsaved edits' }));
+    await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
+    await open();
+    await userEvent.click(page.getByRole('button', { name: 'Save' }));
+    await expect(page.findByRole('button', { name: 'Saved' })).resolves.toBeDisabled();
+    const saved = await loadRulebookEditor({ rulesetSlug: 'classicrules', rulebookSlug: 'book-0' });
+    if (saved?.kind !== 'editable') {
+      throw new Error('Expected a saved Rulebook.');
+    }
+    await expect(saved.draft.settings).toEqual(value.settings);
+    await expect(saved.draft.contents).toEqual(before.draft.contents);
+    await expect(saved.rulebook._id).toBe(before.rulebook._id);
+    await expect(saved.currentEdition.edition_number).toBe(before.currentEdition.edition_number);
+  },
+});

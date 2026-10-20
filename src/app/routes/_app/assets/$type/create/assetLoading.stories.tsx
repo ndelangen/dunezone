@@ -131,3 +131,29 @@ export const DeckEditLoad = meta.story({
     await expect(saved?.members.map((entry) => entry.count)).toEqual([3]);
   },
 });
+
+/** Raw data replacement never replaces a container's relation rows or quantities. */
+export const RawDeckKeepsMembers = meta.story({
+  args: { path: '/assets/deck/standard-storm-deck/edit' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await page.findByRole('textbox', { name: 'Name' });
+    const before = (await loadAssetPage('deck', 'standard-storm-deck'))!;
+    await userEvent.click(page.getByRole('button', { name: 'Load existing deck' }));
+    await userEvent.click(await page.findByRole('button', { name: 'Paste JSON' }));
+    await userEvent.click(page.getByRole('textbox', { name: 'Writable JSON' }));
+    await userEvent.paste(
+      JSON.stringify({ ...(before.asset.data as Record<string, unknown>), about: 'Reviewed deck description.' })
+    );
+    await userEvent.click(page.getByRole('button', { name: 'Validate JSON' }));
+    await waitFor(() => expect(page.getByRole('button', { name: 'Load deck' })).toBeEnabled());
+    await userEvent.click(page.getByRole('button', { name: 'Load deck' }));
+    await userEvent.click(page.getByRole('button', { name: 'Save deck' }));
+    await waitFor(() => expect(page.getByRole('button', { name: 'Save deck' })).toHaveAccessibleDescription(/^Saved/));
+    const after = (await loadAssetPage('deck', 'standard-storm-deck'))!;
+    await expect(after.asset.id).toBe(before.asset.id);
+    await expect(after.members.map((entry) => [entry.member.id, entry.count])).toEqual(
+      before.members.map((entry) => [entry.member.id, entry.count])
+    );
+  },
+});

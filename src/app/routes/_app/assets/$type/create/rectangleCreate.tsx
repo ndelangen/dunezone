@@ -7,6 +7,7 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { useReducer, useState } from 'react';
 
+import { useAuthoringAccountKey } from '@db/authoring';
 import { useSessionViewer } from '@db/profiles';
 import { useCreateAsset } from '@app/db/assets';
 import { postedPayload } from '@app/widgets/authoring/authoringEnvelope';
@@ -73,6 +74,7 @@ function reduce(state: PageState, event: PageEvent): PageState {
 }
 
 export function RectangleCreatePage() {
+  const authoringAccountKey = useAuthoringAccountKey();
   const navigate = useNavigate();
   const viewer = useSessionViewer();
   const createAsset = useCreateAsset();
@@ -146,6 +148,7 @@ export function RectangleCreatePage() {
       {header.slot}
       <PageLayout.Toolbar>
         <AuthoringToolbar
+          scopeKey={authoringAccountKey}
           load={tokenLoad({ type: TYPE, schema: LoadedRectangleDraft, saveState, header, dispatch })}
           status={{ isDirty, isNameBlank, saveState }}
           copy={{

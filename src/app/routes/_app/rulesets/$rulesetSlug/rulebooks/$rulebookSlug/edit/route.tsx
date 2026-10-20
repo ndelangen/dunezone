@@ -27,6 +27,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { Alert, Badge, Box, Button, Group, Menu, Select, Stack, Text, TextInput } from '@mantine/core';
+import { rawRulebookSchema, readRawAuthoringJson } from '@shared/authoring/raw';
 import {
   canonicalRulebookCoverControlValues,
   createRulebookLocalId,
@@ -100,6 +101,7 @@ import {
   History,
   Link2,
   LoaderCircle,
+  Undo2,
   PencilLine,
   MoveHorizontal,
   MoveVertical,
@@ -119,6 +121,7 @@ import {
 } from 'react';
 import type { ComponentPropsWithoutRef, CSSProperties, KeyboardEvent, ReactNode } from 'react';
 
+import { useAuthoringAccountKey, validateRawAuthoring } from '@db/authoring';
 import { mutationErrorMessage } from '@db/core/mutationError';
 import {
   loadRulebookEditor,
@@ -131,6 +134,7 @@ import type { RulebookEditorPageData, RulebookMetadata } from '@db/rulebooks';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { FactionPicker } from '@app/pickers/FactionPicker';
 import { pageHead } from '@app/routes/pageTitle';
+import { LoadExisting } from '@app/widgets/authoring/LoadExisting';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
@@ -2688,6 +2692,7 @@ function RulebookEditorSession({
   data: EditablePageData;
   onReferencesChange: (references: DraftReferences) => void;
 }) {
+  const authoringAccountKey = useAuthoringAccountKey();
   const { rulesetSlug } = Route.useParams();
   const [manager] = useState(() =>
     createRulebookEditorStateManager({
@@ -2917,77 +2922,114 @@ function RulebookEditorSession({
     <PageLayout>
       {header.slot}
       <PageLayout.Toolbar>
-        <Toolbar>
-          <Toolbar.Left label="Navigation">
-            <IconAction
-              label="Back to ruleset"
-              emphasis="standard"
-              intent="neutral"
-              size="lg"
-              icon={<ArrowLeft size={17} aria-hidden />}
-              renderRoot={(props) => <Link {...props} to="/rulesets/$rulesetSlug" params={{ rulesetSlug }} />}
-            />
-          </Toolbar.Left>
-          <Toolbar.Right label="Editing actions">
-            <Toolbar.Cluster kind="about">
-              <StatusInfo label="Rulebook status" statuses={statuses} />
-            </Toolbar.Cluster>
-            <Toolbar.Cluster kind="content">
-              {data.canRename ? (
+        <LoadExisting
+          noun="Rulebook"
+          mode="replace"
+          disabled={result.isSaving || publishMutation.isPending}
+          scopeKey={`${data.rulebook._id}:${authoringAccountKey}`}
+          raw={{
+            validate: async (text) => {
+              const draft = rawRulebookSchema.parse(readRawAuthoringJson(text));
+              await validateRawAuthoring({ kind: 'rulebook', text });
+              return { name: data.rulebook.name, draft };
+            },
+          }}
+          onLoaded={(draft) => dispatch({ kind: 'replace-draft', draft: draft.contents, settings: draft.settings })}
+        >
+          {(loadAction) => (
+            <Toolbar>
+              <Toolbar.Left label="Navigation">
                 <IconAction
-                  label="Rename Rulebook"
-                  tooltip={`Rename ${data.rulebook.name}`}
-                  intent="neutral"
+                  label="Back to ruleset"
                   emphasis="standard"
+                  intent="neutral"
                   size="lg"
-                  disabledReason={
-                    hasLocalChanges || needsReview || result.isSaving
-                      ? 'Save your changes before renaming this Rulebook.'
-                      : undefined
-                  }
-                  icon={<TextCursorInput size={17} aria-hidden />}
-                  onClick={() => sendView({ kind: 'rename', open: !view.renaming })}
+                  icon={<ArrowLeft size={17} aria-hidden />}
+                  renderRoot={(props) => <Link {...props} to="/rulesets/$rulesetSlug" params={{ rulesetSlug }} />}
                 />
-              ) : null}
-              <IconAction
-                label={`Fit ${fit === 'height' ? 'width' : 'height'}`}
-                intent="neutral"
-                emphasis="standard"
-                size="lg"
-                icon={
-                  fit === 'height' ? <MoveHorizontal size={17} aria-hidden /> : <MoveVertical size={17} aria-hidden />
-                }
-                onClick={() => sendView({ kind: 'fit' })}
-              />
-            </Toolbar.Cluster>
-            <Toolbar.Cluster kind="commit">
-              {/* Held like a deletion, because an Edition is as permanent, and violet, because it is not a second Save (Norbert, 2026-09-29). */}
-              <ConfirmPublishAction
-                label={`Publish Edition ${nextEditionNumber}`}
-                pending={publishMutation.isPending}
-                disabledReason={publishBlocker}
-                onConfirm={() => void publish()}
-              />
-              {/* Save last, as on every editor. Its name and glyph carry the draft's state, since there are no words beside it. */}
-              <SaveAction
-                label={saveLabel}
-                state={
-                  result.isSaving
-                    ? 'saving'
-                    : hasLocalChanges || needsReview
-                      ? 'dirty'
-                      : view.notice === 'saved'
-                        ? 'saved'
-                        : 'clean'
-                }
-                lines={saveLines}
-                disabled={!needsReview && !result.canSave}
-                icon={needsReview ? <GitCompareArrows size={17} aria-hidden /> : undefined}
-                onSave={() => (needsReview ? sendView({ kind: 'review', open: true }) : void save())}
-              />
-            </Toolbar.Cluster>
-          </Toolbar.Right>
-        </Toolbar>
+              </Toolbar.Left>
+              <Toolbar.Right label="Editing actions">
+                <Toolbar.Cluster kind="about">
+                  <StatusInfo label="Rulebook status" statuses={statuses} />
+                </Toolbar.Cluster>
+                <Toolbar.Cluster kind="content">
+                  {loadAction}
+                  <IconAction
+                    label="Reset unsaved edits"
+                    intent="negative"
+                    emphasis="standard"
+                    size="lg"
+                    disabled={!hasLocalChanges || result.isSaving || needsReview}
+                    icon={<Undo2 size={17} aria-hidden />}
+                    onClick={() =>
+                      dispatch({
+                        kind: 'replace-draft',
+                        draft: result.latest.contents,
+                        settings: result.latest.settings,
+                      })
+                    }
+                  />
+                  {data.canRename ? (
+                    <IconAction
+                      label="Rename Rulebook"
+                      tooltip={`Rename ${data.rulebook.name}`}
+                      intent="neutral"
+                      emphasis="standard"
+                      size="lg"
+                      disabledReason={
+                        hasLocalChanges || needsReview || result.isSaving
+                          ? 'Save your changes before renaming this Rulebook.'
+                          : undefined
+                      }
+                      icon={<TextCursorInput size={17} aria-hidden />}
+                      onClick={() => sendView({ kind: 'rename', open: !view.renaming })}
+                    />
+                  ) : null}
+                  <IconAction
+                    label={`Fit ${fit === 'height' ? 'width' : 'height'}`}
+                    intent="neutral"
+                    emphasis="standard"
+                    size="lg"
+                    icon={
+                      fit === 'height' ? (
+                        <MoveHorizontal size={17} aria-hidden />
+                      ) : (
+                        <MoveVertical size={17} aria-hidden />
+                      )
+                    }
+                    onClick={() => sendView({ kind: 'fit' })}
+                  />
+                </Toolbar.Cluster>
+                <Toolbar.Cluster kind="commit">
+                  {/* Held like a deletion, because an Edition is as permanent, and violet, because it is not a second Save (Norbert, 2026-09-29). */}
+                  <ConfirmPublishAction
+                    label={`Publish Edition ${nextEditionNumber}`}
+                    pending={publishMutation.isPending}
+                    disabledReason={publishBlocker}
+                    onConfirm={() => void publish()}
+                  />
+                  {/* Save last, as on every editor. Its name and glyph carry the draft's state, since there are no words beside it. */}
+                  <SaveAction
+                    label={saveLabel}
+                    state={
+                      result.isSaving
+                        ? 'saving'
+                        : hasLocalChanges || needsReview
+                          ? 'dirty'
+                          : view.notice === 'saved'
+                            ? 'saved'
+                            : 'clean'
+                    }
+                    lines={saveLines}
+                    disabled={!needsReview && !result.canSave}
+                    icon={needsReview ? <GitCompareArrows size={17} aria-hidden /> : undefined}
+                    onSave={() => (needsReview ? sendView({ kind: 'review', open: true }) : void save())}
+                  />
+                </Toolbar.Cluster>
+              </Toolbar.Right>
+            </Toolbar>
+          )}
+        </LoadExisting>
       </PageLayout.Toolbar>
       <PageLayout.Content width="viewport">
         <Stack gap="md">

@@ -10,7 +10,7 @@ import type { LoadSource } from '@app/widgets/authoring/LoadExisting';
  *
  * The editor wants a draft, not a row, so this is where the picked faction's identifiers are dropped: loading one into a draft only needs its data, with fresh component ids so the copy shares none with its source.
  */
-export function factionLoadSource(currentPublicSlug?: string): LoadSource<Faction> {
+export function factionLoadSource(currentPublicSlug?: string, currentName?: string): LoadSource<Faction> {
   return (report) => (
     <FactionPicker
       commitOnSelect
@@ -21,7 +21,14 @@ export function factionLoadSource(currentPublicSlug?: string): LoadSource<Factio
       }}
       onUnusable={() => report({ kind: 'error', message: 'This faction could not be loaded. Choose another.' })}
       onPick={(picked) =>
-        report({ kind: 'chosen', name: picked.data.name, draft: renewFactionComponentIds(picked.data) })
+        report({
+          kind: 'chosen',
+          name: picked.data.name,
+          draft: renewFactionComponentIds({
+            ...picked.data,
+            ...(currentName === undefined ? {} : { name: currentName }),
+          }),
+        })
       }
     />
   );

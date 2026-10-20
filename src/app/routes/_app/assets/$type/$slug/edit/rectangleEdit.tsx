@@ -8,6 +8,7 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { useReducer, useState } from 'react';
 
+import { useAuthoringAccountKey } from '@db/authoring';
 import { useAssetPage, useUpdateAsset } from '@app/db/assets';
 import type { AssetPageData, AssetPublicPage } from '@app/db/assets';
 import { AssetPicker } from '@app/pickers/AssetPicker';
@@ -172,6 +173,7 @@ function RectangleEditSession({
   danglingBack: boolean;
   initialDraft: RectangleDraft;
 }) {
+  const authoringAccountKey = useAuthoringAccountKey();
   const navigate = useNavigate();
   const groupActions = useAssetGroupActions({ asset, access });
   const updateAsset = useUpdateAsset();
@@ -248,10 +250,12 @@ function RectangleEditSession({
       {header.slot}
       <PageLayout.Toolbar>
         <AuthoringToolbar
+          scopeKey={authoringAccountKey}
           load={tokenLoad({
             type: 'token-enhance',
             schema: LoadedRectangleDraft,
             editing: asset,
+            canRename: access.viewerAccess.capabilities.rename,
             saveState,
             header,
             dispatch,

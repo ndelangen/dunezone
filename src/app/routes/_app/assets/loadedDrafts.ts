@@ -42,6 +42,7 @@ export function tokenLoad<Data extends { name: string }>({
   schema,
   editing,
   saveState,
+  canRename,
   header,
   dispatch,
 }: {
@@ -49,6 +50,7 @@ export function tokenLoad<Data extends { name: string }>({
   schema: z.ZodType<Data>;
   editing?: { id: string; name: string };
   saveState: AuthoringSaveState;
+  canRename?: boolean;
   header: Pick<EditPageHeader, 'releasing'>;
   dispatch: (action: { kind: 'replace'; data: Data; pick: { name: string; data: unknown } | null }) => void;
 }) {
@@ -57,6 +59,7 @@ export function tokenLoad<Data extends { name: string }>({
     type,
     schema,
     editing,
+    canRename,
     disabled: saveState === 'saving',
     onLoaded: header.releasing((loaded) =>
       dispatch({ kind: 'replace', data: loaded.data, pick: loaded.source?.backToken ?? null })

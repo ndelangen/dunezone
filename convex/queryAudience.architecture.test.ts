@@ -11,6 +11,7 @@ import type { QueryAudience } from './functions';
  * Adding a line to this list is a reviewed decision, never a way to make a failing test pass.
  */
 const VIEWER_QUERIES: Record<string, string> = {
+  'authoringValidation:raw': 'Requires a signed-in author before validating pasted editor data.',
   'accountDeletion:page': "The viewer's own account deletion state.",
   'accountDeletion:listReplacementProfiles': 'Excludes the viewer from the replacement-owner search.',
   'accounts:connection': "Resolves a connection intent against the viewer's session.",

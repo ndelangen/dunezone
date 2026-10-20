@@ -12,6 +12,8 @@ import { Fragment } from 'react';
 
 import { useAssetPage, useUpdateAsset } from '@db/assets';
 import type { AssetPublicPage } from '@db/assets';
+import { useAuthoringAccountKey } from '@db/authoring';
+import { assetLoad } from '@app/pickers/assetLoadSource';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { BoardEditor } from '@app/widgets/board-editor/BoardEditor';
 import { boardLoadSource } from '@app/widgets/board-editor/boardLoadSource';
@@ -68,6 +70,7 @@ export function BoardEditPage({ slug, loaderData }: { slug: string; loaderData: 
   );
 }
 function BoardSession({ asset, initialDraft, access }: CardEditSessionProps<BoardAssetData>) {
+  const authoringAccountKey = useAuthoringAccountKey();
   const navigate = useNavigate();
   const saving = useUpdateAsset();
   const deletion = useAssetDeletion(asset);
@@ -112,12 +115,27 @@ function BoardSession({ asset, initialDraft, access }: CardEditSessionProps<Boar
     <PageLayout>
       <PageLayout.Toolbar>
         <AuthoringToolbar
+          scopeKey={authoringAccountKey}
           load={{
             noun: 'board',
+            scopeKey: asset.id,
             mode: 'replace',
             disabled: saving.isPending,
+            raw: assetLoad({
+              noun: 'board',
+              type: 'board',
+              schema: BoardAsset,
+              editing: asset,
+              canRename: access.viewerAccess.capabilities.rename,
+              disabled: saving.isPending,
+              onLoaded: () => {},
+            }).raw,
             source: boardLoadSource(asset.id),
-            onLoaded: (loaded) => dispatch({ kind: 'replace', draft: { ...loaded.data, name: state.draft.name } }),
+            onLoaded: (loaded) =>
+              dispatch({
+                kind: 'replace',
+                draft: { ...loaded.data, name: loaded.raw ? loaded.data.name : state.draft.name },
+              }),
           }}
           status={{
             isDirty,

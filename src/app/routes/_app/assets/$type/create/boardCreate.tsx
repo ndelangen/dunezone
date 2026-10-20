@@ -10,7 +10,9 @@ import { Undo2, Redo2 } from 'lucide-react';
 import { useReducer, useMemo } from 'react';
 
 import { useCreateAsset } from '@db/assets';
+import { useAuthoringAccountKey } from '@db/authoring';
 import { useSessionViewer } from '@db/profiles';
+import { assetLoad } from '@app/pickers/assetLoadSource';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { BoardEditor } from '@app/widgets/board-editor/BoardEditor';
 import { boardLoadSource } from '@app/widgets/board-editor/boardLoadSource';
@@ -50,6 +52,7 @@ function reduce(state: State, event: Event): State {
 }
 
 export function BoardCreatePage() {
+  const authoringAccountKey = useAuthoringAccountKey();
   const navigate = useNavigate();
   const viewer = useSessionViewer();
   const saving = useCreateAsset();
@@ -105,10 +108,19 @@ export function BoardCreatePage() {
     <PageLayout>
       <PageLayout.Toolbar>
         <AuthoringToolbar
+          scopeKey={authoringAccountKey}
           load={{
             noun: 'board',
+            scopeKey: 'create:board',
             mode: 'create',
             disabled: saving.isPending,
+            raw: assetLoad({
+              noun: 'board',
+              type: 'board',
+              schema: BoardAsset,
+              disabled: saving.isPending,
+              onLoaded: () => {},
+            }).raw,
             source: boardLoadSource(),
             onLoaded: (loaded) => dispatch({ kind: 'replace', draft: loaded.data }),
           }}

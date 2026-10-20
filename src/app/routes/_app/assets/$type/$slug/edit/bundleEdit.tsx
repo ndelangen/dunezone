@@ -9,6 +9,7 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { useReducer, useState } from 'react';
 
+import { useAuthoringAccountKey } from '@db/authoring';
 import { useAssetPage, useSetMemberCount, useUpdateAsset } from '@app/db/assets';
 import type { AssetPageData, AssetPublicPage } from '@app/db/assets';
 import { mutationErrorMessage } from '@app/db/core/mutationError';
@@ -137,6 +138,7 @@ function BundleEditSession({
   members: NonNullable<AssetPageData>['members'];
   initialDraft: BundleDraft;
 }) {
+  const authoringAccountKey = useAuthoringAccountKey();
   const navigate = useNavigate();
   const groupActions = useAssetGroupActions({ asset, access });
   const updateAsset = useUpdateAsset();
@@ -197,11 +199,13 @@ function BundleEditSession({
       {header.slot}
       <PageLayout.Toolbar>
         <AuthoringToolbar
+          scopeKey={authoringAccountKey}
           load={assetLoad({
             noun: 'bundle',
             type: 'bundle',
             schema: BundleAsset,
             editing: asset,
+            canRename: access.viewerAccess.capabilities.rename,
             disabled: saveState === 'saving',
             onLoaded: header.releasing((loaded) => dispatch({ kind: 'replace', data: loaded.data })),
           })}
