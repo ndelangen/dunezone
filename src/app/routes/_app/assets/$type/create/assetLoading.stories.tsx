@@ -197,7 +197,21 @@ function rawLinkedToken(type: 'token-disc' | 'token-enhance', slug: string) {
       const value = { ...(before.asset.data as object), back: { mode: 'reference', asset_id: source.asset.id } };
       await userEvent.click(page.getByRole('button', { name: 'Load existing token' }));
       await userEvent.click(await page.findByRole('button', { name: 'Paste JSON' }));
-      await userEvent.click(page.getByRole('textbox', { name: 'Writable JSON' }));
+      const input = page.getByRole('textbox', { name: 'Writable JSON' });
+      const invalid = JSON.stringify({ ...value, back: { mode: 'reference', asset_id: before.asset.id } });
+      await userEvent.click(input);
+      await userEvent.paste(invalid);
+      await waitFor(() =>
+        expect(page.getByRole('alert')).toHaveTextContent(
+          'A token cannot reference itself; use the same-front-and-back mode'
+        )
+      );
+      await expect(page.getByRole('alert')).not.toHaveTextContent('[CONVEX');
+      await expect(input).toHaveValue(invalid);
+      await expect(page.getByRole('button', { name: 'Load token' })).toBeDisabled();
+      await expect(page.getAllByText('Back, from Original token back')[0]).toBeVisible();
+      await expect((await loadAssetPage(type, slug))!.asset.data).toEqual(before.asset.data);
+      await userEvent.clear(input);
       await userEvent.paste(JSON.stringify(value));
       await waitFor(() => expect(page.getByRole('button', { name: 'Load token' })).toBeEnabled());
       await userEvent.click(page.getByRole('button', { name: 'Load token' }));
