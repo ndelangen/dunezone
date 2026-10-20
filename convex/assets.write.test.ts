@@ -1080,6 +1080,14 @@ describe('slug allocation', () => {
 
 test('normal Treachery Save preserves text-only layout and complete formatted body in its publication', async () => {
   const t = applicationTest();
+  await t.run((ctx) =>
+    ctx.db.insert('admin_settings', {
+      key: 'publication',
+      publication_pickup_enabled: true,
+      renderer_revisions: { 'card-treachery': 8 },
+      updated_at: 1,
+    })
+  );
   const { ownerId, created } = await seedCard(t);
   const data = { ...cardData('Karama'), ...karamaReplacement };
   await t.withIdentity({ subject: ownerId }).mutation(api.assets.update, { id: created.id, data });

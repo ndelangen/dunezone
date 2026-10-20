@@ -4,7 +4,7 @@ import { expect, test, vi } from 'vite-plus/test';
 
 import { publishingSpiceCard } from '../src/shared/assets/fixtures/publishingSpiceCard';
 import { publishingTokenFace } from '../src/shared/assets/fixtures/publishingTokenFace';
-import { SPICE_BOARD_REVISION } from '../src/shared/assets/schema';
+import { SPICE_BOARD_REVISION, SPICE_DISCOVERY_REVISION } from '../src/shared/assets/schema';
 import { arrakisBoard } from '../src/shared/boards/geometry';
 import { api } from './_generated/api';
 import { applicationTest } from './application.test.fixture';
@@ -132,7 +132,7 @@ test(
   async () => {
     vi.useFakeTimers();
     try {
-      const { t, owner, card, token, tokenData } = await setup(SPICE_BOARD_REVISION);
+      const { t, owner, card, token, tokenData } = await setup(SPICE_DISCOVERY_REVISION);
       const fixed = {
         ...card,
         board: {
@@ -184,6 +184,39 @@ test(
     } finally {
       vi.useRealTimers();
     }
+  },
+  BUDGET_MS
+);
+
+test.each(['type-token', 'textured-look'])(
+  'native Discovery %s waits for its renderer while legacy linked cards still publish',
+  async (feature) => {
+    const { t, owner, card, token } = await setup(SPICE_DISCOVERY_REVISION - 1);
+    const data = {
+      ...card,
+      board: {
+        ...card.board,
+        ...(feature === 'type-token'
+          ? { typeToken: { asset_id: token.id } }
+          : { look: { style: 'textured-burn', strength: 1 } }),
+      },
+    };
+    const pending = await owner.mutation(api.assets.create, { type: 'card-spice', data });
+    expect(await jobsFor(t, pending.id)).toHaveLength(0);
+    const legacy = await owner.mutation(api.assets.create, {
+      type: 'card-spice',
+      data: { ...card, name: 'Legacy linked card' },
+    });
+    expect(await jobsFor(t, legacy.id)).toHaveLength(1);
+    await t.run(async (ctx) => {
+      const settings = await ctx.db
+        .query('admin_settings')
+        .withIndex('by_key', (q) => q.eq('key', 'publication'))
+        .unique();
+      await ctx.db.patch(settings!._id, { renderer_revisions: { 'card-spice': SPICE_DISCOVERY_REVISION } });
+    });
+    await owner.mutation(api.assets.update, { id: pending.id, data });
+    expect(await jobsFor(t, pending.id)).toHaveLength(1);
   },
   BUDGET_MS
 );

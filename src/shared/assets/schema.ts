@@ -38,6 +38,13 @@ export { PHYSICAL_SIZE_MAX, PHYSICAL_SIZE_MIN, PhysicalSize } from './physicalSi
 export const SPICE_BOARD_SIZE = BOARD_FRAME_SIZE;
 /** The Spice renderer revision that draws a linked board; until the publisher runs it, linked cards wait rather than capture the legacy map. */
 export const SPICE_BOARD_REVISION = 2;
+/** Native Discovery composition adds the textured board recipe and fixed type-token slot. */
+export const SPICE_DISCOVERY_REVISION = 4;
+/** Renderer support for the optional native component treatments. */
+export const TREACHERY_TEXT_ONLY_REVISION = 8;
+export const ROUND_TOKEN_SYMBOL_STYLE_REVISION = 3;
+export const CUSTOM_CARD_STYLED_TOKEN_REVISION = 4;
+export const STORM_CARD_STYLED_TOKEN_REVISION = 6;
 
 /** Named board treatments keep tints and placed tokens in their own colours. */
 export const SPICE_BOARD_LOOKS = ['burnt', 'sepia', 'plain', 'textured-burn'] as const;
