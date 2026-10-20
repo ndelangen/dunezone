@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "approval": "https://github.com/ndelangen/dunezone/issues/2362#issuecomment-6292530247",
+  "records": [
+    {
+      "key": "ur-director-malina-aru",
+      "role": "maintained-portrait",
+      "assetKey": "/image/leader/gf9/ur-director-malina-aru.png",
+      "collection": "Faction portraits / CHOAM",
+      "operation": "Approved wider pixel-exact crop, without resampling or generated detail",
+      "referenceCommit": "2981ba53216abca5913098c4fa0e99ae28153858",
+      "path": "media/image/leader/gf9/ur-director-malina-aru.png",
+      "sha256": "83e3b0e3a9a20fe23df1c41f087ca75edebb69dd73bf7b20138f696decf3712e",
+      "bytes": 44356
+    },
+    {
+      "key": "count-ilban-richese",
+      "role": "maintained-portrait",
+      "assetKey": "/image/leader/gf9/count-ilban-richese.png",
+      "collection": "Faction portraits / Richese",
+      "operation": "Approved wider pixel-exact crop, without resampling or generated detail",
+      "referenceCommit": "2981ba53216abca5913098c4fa0e99ae28153858",
+      "path": "media/image/leader/gf9/count-ilban-richese.png",
+      "sha256": "ec49d29ea1fc3b1cb76834047f922cb8105a8595cb017c3c71ab48808eb1b2b6",
+      "bytes": 48529
+    },
+    {
+      "key": "ruleset-logo",
+      "role": "maintained-ruleset-logo",
+      "pixels": [384, 384],
+      "operation": "Original transparent mark composited at native pixels, centered; no resampling",
+      "path": "media/web/rulesets/gf9-logo.png",
+      "sha256": "ca0d8a68fbf167ab4385422fd97663c281a574e21d3fccf995d0e15bba5662ae",
+      "bytes": 19151,
+      "reviewSourceUrl": "https://raw.githubusercontent.com/ndelangen/dunezone/2981ba53216abca5913098c4fa0e99ae28153858/content/gf9/component-prototype/public/art/gf9-ruleset-tile.png",
+      "sourceUrl": "https://dune.zone/__media/src/ca0d8a68fbf167ab4385422fd97663c281a574e21d3fccf995d0e15bba5662ae",
+      "assetKey": "/web/rulesets/gf9-logo.png"
+    },
+    {
+      "key": "discovery-type-texture",
+      "role": "maintained-grayscale-texture",
+      "assetKey": "/image/texture/hiereg-discovery.png",
+      "pixels": [1254, 1254],
+      "operation": "Encoded as a single-channel grayscale PNG with the existing Sharp texture pipeline. The AI output had small neutral-channel deviations, so final source pixels are explicitly grayscale.",
+      "provenanceCommit": "2981ba53216abca5913098c4fa0e99ae28153858",
+      "generation": "Built-in image_gen, initial extraction plus targeted grayscale and outer-edge correction",
+      "sharedBy": ["Hiereg", "Smuggler"],
+      "path": "media/image/texture/hiereg-discovery.png",
+      "sha256": "17418d80b07639ef6c52abfc087ff4777e2a0145eec81413672e9a71614f95c6",
+      "bytes": 1311372
+    }
+  ]
+}

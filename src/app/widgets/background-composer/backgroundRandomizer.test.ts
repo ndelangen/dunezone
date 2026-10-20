@@ -22,8 +22,11 @@ const original: Faction['background'] = {
 
 describe('background studio random actions', () => {
   it('exposes the complete public pattern library', () => {
-    expect(BACKGROUND_PATTERN_CATALOGUE).toHaveLength(76);
-    expect(new Set(BACKGROUND_PATTERN_CATALOGUE.map((option) => option.image))).toHaveLength(76);
+    expect(BACKGROUND_PATTERN_CATALOGUE).toHaveLength(77);
+    expect(new Set(BACKGROUND_PATTERN_CATALOGUE.map((option) => option.image))).toHaveLength(77);
+    expect(BACKGROUND_PATTERN_CATALOGUE).toEqual(
+      expect.arrayContaining([expect.objectContaining({ image: '/image/texture/hiereg-discovery.png' })])
+    );
     expect(BACKGROUND_PATTERN_CATALOGUE).toContainEqual({
       image: '/image/texture/021.jpg',
       label: 'Texture 021',
