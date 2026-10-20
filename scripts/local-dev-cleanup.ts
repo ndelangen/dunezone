@@ -1,7 +1,8 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
-import { composeDown, resolveDockerExecutable } from './provision';
+import { releasePersistentLock } from './local-dev-persistence';
+import { composeDown, composeStop, resolveDockerExecutable } from './provision';
 
 const cleanupFile = 'compose-cleanup.json';
 const dockerEnvironmentKeys = new Set([
@@ -18,7 +19,11 @@ const dockerEnvironmentKeys = new Set([
 ]);
 
 /** Record only this launch's Docker connection and project, before provisioning can create resources. */
-export function recordLocalDevelopmentCleanup(directory: string, environment: NodeJS.ProcessEnv) {
+export function recordLocalDevelopmentCleanup(
+  directory: string,
+  environment: NodeJS.ProcessEnv,
+  persistent?: { lockDirectory: string; owner: { nonce: string } }
+) {
   const dockerEnvironment = Object.fromEntries(
     Object.entries(environment).filter(([key]) => dockerEnvironmentKeys.has(key))
   );
@@ -26,6 +31,13 @@ export function recordLocalDevelopmentCleanup(directory: string, environment: No
     path.join(directory, cleanupFile),
     JSON.stringify({
       ...dockerEnvironment,
+      ...(persistent
+        ? {
+            LOCAL_DEV_PERSISTENT: 'true',
+            LOCAL_DEV_LOCK_DIRECTORY: persistent.lockDirectory,
+            LOCAL_DEV_LOCK_NONCE: persistent.owner.nonce,
+          }
+        : {}),
       LOCAL_DEV_DOCKER_PATH: resolveDockerExecutable(environment),
       COMPOSE_PROJECT_NAME: environment.COMPOSE_PROJECT_NAME,
     }),
@@ -48,7 +60,13 @@ function main() {
   if (!/^dunezone-local-[a-f0-9-]{36}$/.test(environment.COMPOSE_PROJECT_NAME ?? '')) {
     throw new Error('Cleanup requires the dunezone-local UUID project printed by app:dev --local');
   }
-  composeDown({ ...environment, COMPOSE_PROFILES: 'worktree-local' });
+  const local = { ...environment, COMPOSE_PROFILES: 'worktree-local' };
+  if (environment.LOCAL_DEV_PERSISTENT === 'true') {
+    composeStop(local);
+    releasePersistentLock(environment.LOCAL_DEV_LOCK_DIRECTORY!, environment.LOCAL_DEV_LOCK_NONCE!);
+  } else {
+    composeDown(local);
+  }
 }
 
 if (import.meta.main) {

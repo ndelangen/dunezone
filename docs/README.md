@@ -470,6 +470,8 @@ section of [`AGENTS.md`](../AGENTS.md) and the [media runbooks](./technical/medi
 the typed public-asset catalog used by game schemas, and `src/shared/media/vectorCrops.generated.ts`,
 the geometry used to fit illustrations after square normalization.
 
+Persistent authoring reviews can keep local data, auth and publishing artifacts across restarts. See [Persistent local review](./technical/persistent-local-review.md) for the explicit launcher flags and reset scope.
+
 ## Detailed documentation
 
 - [Architecture](./architecture.md) - Request flow, structure, tsconfig paths

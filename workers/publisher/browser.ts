@@ -168,6 +168,18 @@ export function registerCaptureDiagnostics(page: Page): CaptureDiagnostics {
  * The credentials the capture page runs under, delivered as cookies rather than in the URL so the job id never reaches a browser history, a log line or page script.
  * The job cookie is what the page presents to Convex to fetch its own snapshot, and the deadline cookie caps how long that fetch may take: the page clamps it against its own ceiling, so this can only shorten the window and never extend it.
  */
+/** HTTPS retains the production cookie contract; the isolated HTTP transport uses private local names. */
+function captureCookieTransport(captureBaseUrl: string, name: string) {
+  const url = new URL(captureBaseUrl);
+  if (url.protocol === 'https:') {
+    return { name, secure: true };
+  }
+  if (url.protocol === 'http:' && url.hostname === '127.0.0.1' && url.port && !url.username && !url.password) {
+    return { name: name.replace('__Host-', 'local-'), secure: false };
+  }
+  throw new Error('Capture cookies require HTTPS or an explicit isolated loopback origin');
+}
+
 export function publisherCaptureCookies(
   captureBaseUrl: string,
   jobId: string,
@@ -175,19 +187,17 @@ export function publisherCaptureCookies(
 ): Parameters<BrowserContext['addCookies']>[0] {
   return [
     {
-      name: CAPTURE_PROTOCOL.credentials.jobCookie,
+      ...captureCookieTransport(captureBaseUrl, CAPTURE_PROTOCOL.credentials.jobCookie),
       value: jobId,
       url: captureBaseUrl,
       httpOnly: true,
-      secure: true,
       sameSite: 'Strict',
     },
     {
-      name: CAPTURE_PROTOCOL.credentials.deadlineCookie,
+      ...captureCookieTransport(captureBaseUrl, CAPTURE_PROTOCOL.credentials.deadlineCookie),
       value: String(lifecycleDeadlineAt),
       url: captureBaseUrl,
       httpOnly: true,
-      secure: true,
       sameSite: 'Strict',
     },
   ];
@@ -201,19 +211,17 @@ function rulebookPdfCaptureCookies(
 ): Parameters<BrowserContext['addCookies']>[0] {
   return [
     {
-      name: CAPTURE_PROTOCOL.credentials.rulebookPdfCookie,
+      ...captureCookieTransport(captureBaseUrl, CAPTURE_PROTOCOL.credentials.rulebookPdfCookie),
       value: token,
       url: captureBaseUrl,
       httpOnly: true,
-      secure: true,
       sameSite: 'Strict',
     },
     {
-      name: CAPTURE_PROTOCOL.credentials.deadlineCookie,
+      ...captureCookieTransport(captureBaseUrl, CAPTURE_PROTOCOL.credentials.deadlineCookie),
       value: String(lifecycleDeadlineAt),
       url: captureBaseUrl,
       httpOnly: true,
-      secure: true,
       sameSite: 'Strict',
     },
   ];
