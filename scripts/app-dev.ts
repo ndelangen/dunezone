@@ -34,6 +34,7 @@ import {
   importSnapshotData,
   finishSnapshotData,
   setLocalBackendVariable,
+  prepareLocalPublisher,
   commandEnvironment,
   configureLocalAuth,
   loadFixtureData,
@@ -539,6 +540,7 @@ async function runPersistentDevelopment(requested: LocalData, directory: string,
       manifest.status = 'provisioned';
       writePrivateJson(path.join(lock.stateDirectory, 'manifest.json'), manifest);
     }
+    prepareLocalPublisher(deployment, localEnv);
     setLocalBackendVariable(deployment, localEnv, 'ASSET_PUBLISHER_EXECUTOR_SECRET', secrets.executorSecret);
     setLocalBackendVariable(deployment, localEnv, 'USER_IMAGE_PUBLIC_BASE_URL', instance.appUrl);
     setLocalBackendVariable(
@@ -547,7 +549,7 @@ async function runPersistentDevelopment(requested: LocalData, directory: string,
       'USER_IMAGE_INGEST_BASE_URL',
       `http://host.docker.internal:${manifest.publisherPort}`
     );
-    buildLocalPublisher(localEnv);
+    buildLocalPublisher(localEnv, lock.stateDirectory);
     publisher = startLocalPublisher(manifest, secrets, localEnv, sourceCommit);
     const publisherExit = waitForExit(publisher);
     const health = `http://127.0.0.1:${manifest.publisherPort}/__asset-publisher/health`;

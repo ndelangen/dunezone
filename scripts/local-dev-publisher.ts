@@ -1,5 +1,5 @@
 import { spawn, spawnSync } from 'node:child_process';
-import { writeFileSync } from 'node:fs';
+import { cpSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 import type { PersistentManifest, PersistentSecrets } from './local-dev-persistence';
@@ -17,6 +17,7 @@ export const localPublisherPaths = [
   '/m/',
   '/image/',
   '/web/',
+  '/vector/',
 ];
 
 /** Construct local configuration from an allowlist. Hosted routes, secrets and service bindings never enter it. */
@@ -34,13 +35,13 @@ export function localPublisherConfiguration(manifest: PersistentManifest, source
     define: { 'process.env.NODE_ENV': '"production"' },
     alias: {
       'rulebook-html-renderer-runtime': path.join(
-        root,
-        'workers/publisher/runtime-generated/rulebook-html-renderer.mjs'
+        manifest.stateDirectory,
+        'publisher-build/rulebook-html-renderer.mjs'
       ),
-      'application-ssr-runtime': path.join(root, 'dist/server/server.js'),
+      'application-ssr-runtime': path.join(manifest.stateDirectory, 'publisher-build/server/server.js'),
     },
     assets: {
-      directory: path.join(root, 'workers/publisher/dist'),
+      directory: path.join(manifest.stateDirectory, 'publisher-build/assets'),
       binding: 'ASSETS',
       html_handling: 'none',
       not_found_handling: 'none',
@@ -82,7 +83,7 @@ export function localPublisherConfiguration(manifest: PersistentManifest, source
   };
 }
 
-export function buildLocalPublisher(environment: NodeJS.ProcessEnv) {
+function buildAndCopyLocalPublisher(environment: NodeJS.ProcessEnv, stateDirectory: string) {
   const result = spawnSync(process.execPath, ['--no-env-file', 'run', 'publisher:assets'], {
     cwd: root,
     env: localApplicationEnvironment(environment),
@@ -90,6 +91,39 @@ export function buildLocalPublisher(environment: NodeJS.ProcessEnv) {
   });
   if (result.status !== 0) {
     throw new Error('Local publisher asset build failed. Restore required maintained media and retry.');
+  }
+  // Snapshot documents retain maintained vector URLs. Serve their actual local source bytes.
+  const output = path.join(stateDirectory, 'publisher-build');
+  rmSync(output, { recursive: true, force: true });
+  mkdirSync(output, { recursive: true });
+  cpSync(path.join(root, 'workers/publisher/dist'), path.join(output, 'assets'), { recursive: true });
+  cpSync(path.join(root, 'media/vector'), path.join(output, 'assets/vector'), { recursive: true });
+  cpSync(path.join(root, 'dist/server'), path.join(output, 'server'), { recursive: true });
+  cpSync(
+    path.join(root, 'workers/publisher/runtime-generated/rulebook-html-renderer.mjs'),
+    path.join(output, 'rulebook-html-renderer.mjs')
+  );
+}
+
+/** Serialize generation and copying, then serve only this environment's copied build. */
+export function buildLocalPublisher(environment: NodeJS.ProcessEnv, stateDirectory: string) {
+  const result = spawnSync(
+    'python3',
+    [
+      path.join(root, 'scripts/local-dev-lock.py'),
+      path.join(root, 'node_modules/.cache/local-review-build'),
+      process.execPath,
+      '--no-env-file',
+      path.join(root, 'scripts/local-dev-publisher.ts'),
+      '--build',
+      stateDirectory,
+    ],
+    { cwd: root, env: environment, stdio: 'inherit' }
+  );
+  if (result.status !== 0) {
+    throw new Error(
+      'Local publisher build failed or another launcher owns the checkout build lock. Retry after that build finishes.'
+    );
   }
 }
 
@@ -142,4 +176,12 @@ export function startLocalPublisher(
       stdio: 'inherit',
     }
   );
+}
+
+if (import.meta.main) {
+  const [operation, stateDirectory] = process.argv.slice(2);
+  if (operation !== '--build' || !stateDirectory || !path.isAbsolute(stateDirectory)) {
+    throw new Error('Local publisher build requires an absolute state directory');
+  }
+  buildAndCopyLocalPublisher(process.env, stateDirectory);
 }

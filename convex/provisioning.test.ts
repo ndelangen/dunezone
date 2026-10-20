@@ -169,3 +169,57 @@ describe('snapshot Rulebook draft seed', () => {
     await expect(seed(t)).rejects.toThrow(refusal);
   });
 });
+
+describe('isolated local publisher provisioning', () => {
+  afterEach(() => vi.unstubAllEnvs());
+  function isolated() {
+    vi.stubEnv('IS_TEST', 'true');
+    vi.stubEnv('E2E_LOCAL_AUTH', 'true');
+    vi.stubEnv('SITE_URL', 'http://127.0.0.1:4300');
+    vi.stubEnv('CONVEX_CLOUD_URL', 'http://127.0.0.1:4301');
+  }
+  test('enables only a fresh isolated ledger and enqueues no baseline catalogue jobs', async () => {
+    isolated();
+    const t = prepared();
+    await t.mutation(internal.provisioning.prepareLocalPublisher, {});
+    await t.run(async (ctx) => {
+      const settings = await ctx.db
+        .query('admin_settings')
+        .withIndex('by_key', (q) => q.eq('key', 'publication'))
+        .unique();
+      expect(settings?.publication_pickup_enabled).toBe(true);
+      expect(await ctx.db.query('publication_jobs').take(1)).toEqual([]);
+      if (settings) {
+        await ctx.db.patch(settings._id, { publication_pickup_enabled: false });
+      }
+    });
+    await t.mutation(internal.provisioning.prepareLocalPublisher, {});
+    await t.run(async (ctx) => {
+      expect(
+        (
+          await ctx.db
+            .query('admin_settings')
+            .withIndex('by_key', (q) => q.eq('key', 'publication'))
+            .unique()
+        )?.publication_pickup_enabled
+      ).toBe(false);
+    });
+  });
+  test('refuses hosted or partially enabled test settings before writing', async () => {
+    isolated();
+    const t = prepared();
+    for (const [key, value] of [
+      ['CONVEX_CLOUD_URL', 'https://production.convex.cloud'],
+      ['SITE_URL', 'https://dune.zone'],
+      ['E2E_LOCAL_AUTH', 'false'],
+      ['IS_TEST', 'false'],
+    ]) {
+      isolated();
+      vi.stubEnv(key!, value!);
+      await expect(t.mutation(internal.provisioning.prepareLocalPublisher, {})).rejects.toThrow('isolated loopback');
+    }
+    await t.run(async (ctx) => {
+      expect(await ctx.db.query('admin_settings').take(1)).toEqual([]);
+    });
+  });
+});

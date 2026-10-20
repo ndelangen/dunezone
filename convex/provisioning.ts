@@ -2,12 +2,15 @@ import { paginationOptsValidator } from 'convex/server';
 import type { WithoutSystemFields } from 'convex/server';
 import { v } from 'convex/values';
 
+import { CHECKED_IN_RENDERER_REVISIONS } from '../src/shared/asset-publishing/renderer-revisions';
 import { resolveSeedValue } from '../src/shared/seedReferences';
 import type { Doc, Id, TableNames } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
 import { internalMutation } from './functions';
+import { isIsolatedLoopbackBackend } from './lib/isolatedBackend';
 import { ensureProfileForUser } from './lib/profileBootstrap';
 import { identifiesSomeone } from './lib/provisioningContract';
+import { publicationSettings } from './lib/publication';
 import { nowIso } from './lib/utils';
 import { seedRulebookDraftFromCurrentEdition } from './rulebooks';
 
@@ -217,5 +220,28 @@ export const insertSeedDocuments = internalMutation({
       }
     }
     return { inserted: documents.length };
+  },
+});
+
+/** Configure this isolated ledger without enqueuing baseline catalogue work or granting an account admin rights. */
+export const prepareLocalPublisher = internalMutation({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx) => {
+    if (!isIsolatedLoopbackBackend()) {
+      throw new Error('Local publisher provisioning requires an isolated loopback backend');
+    }
+    const existing = await publicationSettings(ctx);
+    if (existing) {
+      await ctx.db.patch(existing._id, { renderer_revisions: CHECKED_IN_RENDERER_REVISIONS, updated_at: Date.now() });
+    } else {
+      await ctx.db.insert('admin_settings', {
+        key: 'publication',
+        publication_pickup_enabled: true,
+        renderer_revisions: CHECKED_IN_RENDERER_REVISIONS,
+        updated_at: Date.now(),
+      });
+    }
+    return null;
   },
 });

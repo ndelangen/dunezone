@@ -307,6 +307,11 @@ export function assertLocalVolumeExists(env: NodeJS.ProcessEnv) {
   });
 }
 
+/** Local-only setup, guarded again by the deployed function's isolated-backend check. */
+export function prepareLocalPublisher(deployment: SelfHostedDeployment, env: NodeJS.ProcessEnv) {
+  targetConvex(deployment, ['run', 'provisioning:prepareLocalPublisher', '{}'], env);
+}
+
 export function setLocalBackendVariable(
   deployment: SelfHostedDeployment,
   env: NodeJS.ProcessEnv,

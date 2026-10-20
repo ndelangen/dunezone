@@ -1,4 +1,5 @@
 /** Local entry point only. The production configuration never references this file. */
+import { CAPTURE_PROTOCOL } from '../../src/shared/asset-publishing/capture-protocol';
 import { publisherTransportUrl } from './config';
 import publisherWorker from './index';
 
@@ -25,6 +26,27 @@ export default {
     const pathname = new URL(request.url).pathname;
     if (pathname === '/__play' || pathname.startsWith('/__play/')) {
       return new Response('Play is unavailable in the isolated review runtime', { status: 404 });
+    }
+    const cookies = request.headers.get('Cookie');
+    if (cookies) {
+      const names = [
+        CAPTURE_PROTOCOL.credentials.jobCookie,
+        CAPTURE_PROTOCOL.credentials.deadlineCookie,
+        CAPTURE_PROTOCOL.credentials.rulebookPdfCookie,
+      ];
+      const headers = new Headers(request.headers);
+      headers.set(
+        'Cookie',
+        cookies
+          .split(';')
+          .map((part) => {
+            const value = part.trim();
+            const name = names.find((candidate) => value.startsWith(`${candidate.replace('__Host-', 'local-')}=`));
+            return name ? `${name}=${value.slice(value.indexOf('=') + 1)}` : value;
+          })
+          .join('; ')
+      );
+      request = new Request(request, { headers });
     }
     return publisherWorker.fetch(request, env, ctx);
   },
