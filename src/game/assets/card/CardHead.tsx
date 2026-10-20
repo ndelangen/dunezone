@@ -4,8 +4,8 @@ import type { z } from 'zod';
 
 import { useAsset } from '../assetRenderMode';
 import { BackgroundRenderer } from '../utils/BackgroundRenderer';
+import { CardTitle } from '../utils/CardTitle';
 import styles from './CardHead.module.css';
-import { cardTitleFontSize } from './cardTitleFontSize';
 
 type HeadProps = z.infer<typeof CardHead> & {
   measureParts?: boolean;
@@ -36,6 +36,8 @@ export function CardHeadContents({
 }: Omit<HeadProps, 'head'>) {
   const iconSize = 85 * iconScale;
   const image = useAsset(icon[1]);
+  /* The unmasked image scales around its centre and can extend left of the printed symbol disc. */
+  const titleWidth = iconPresentation === 'image' ? Math.min(560, 694 - 64.5 * (1 + iconScale)) : 560;
   return (
     <>
       <BackgroundRenderer
@@ -78,23 +80,22 @@ export function CardHeadContents({
       {iconPresentation === 'image' ? (
         <img alt="" src={image} className={styles.picture} style={{ transform: `scale(${iconScale})` }} />
       ) : null}
-      <div
+      <CardTitle
         className={styles.title}
-        style={{ width: 560, fontSize: cardTitleFontSize(name) }}
+        text={name}
+        style={{ width: titleWidth }}
         {...{
           [COMPONENT_GEOMETRY_PROTOCOL.partAttribute]: measureParts && name.trim() ? 'name' : undefined,
         }}
-      >
-        <span className={styles.titleText}>{name}</span>
-      </div>
-      <div
+      />
+      <CardTitle
         className={styles.subtitle}
+        text={subName}
+        baseSize={40}
         {...{
           [COMPONENT_GEOMETRY_PROTOCOL.partAttribute]: measureParts && subName.trim() ? 'type' : undefined,
         }}
-      >
-        {subName}
-      </div>
+      />
     </>
   );
 }

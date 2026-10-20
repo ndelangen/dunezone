@@ -9,6 +9,7 @@ import styles from '../../card/Card.module.css';
 import { CardText } from '../../card/CardText';
 import { FrontDecals } from '../../card/Decals';
 import { BackgroundRenderer } from '../../utils/BackgroundRenderer';
+import { CardTitle } from '../../utils/CardTitle';
 import { StrokedUse } from '../../utils/StrokedUse';
 import unique from './Alliance.module.css';
 
@@ -71,8 +72,8 @@ export const AllianceCard: FC<z.infer<typeof FactionRender.alliance>> = ({
         <img src="/vector/icon/alliance.svg" alt="" className={unique.typeOverlay} />
         <img src="/vector/icon/alliance.svg" alt="" className={unique.typeShade} />
       </BackgroundRenderer>
-      <div className={styles.title}>{title}</div>
-      <div className={styles.subtitle}>Alliance</div>
+      <CardTitle className={styles.title} text={title} />
+      <CardTitle className={styles.subtitle} text="Alliance" baseSize={40} />
       <div className={unique.ring} />
       <svg className={unique.logo} viewBox="0 0 300 300">
         <StrokedUse
