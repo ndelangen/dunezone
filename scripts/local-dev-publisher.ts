@@ -97,7 +97,7 @@ function serverDependencySpecifiers(serverDirectory: string) {
   );
   for (const file of files) {
     for (const entry of transpiler.scan(readFileSync(path.join(serverDirectory, file), 'utf8')).imports) {
-      if (!/^[./]|:/.test(entry.path)) {
+      if (!/(?:^[./]|:)/.test(entry.path)) {
         serverAliases[entry.path] = '';
       }
     }

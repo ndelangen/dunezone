@@ -88,28 +88,23 @@ describe('persistent publication scheduling', () => {
     expect(vi.getTimerCount()).toBe(0);
   });
 
-  test('Stop aborts an active request and completion cannot schedule more work', async () => {
-    const { requests, fetch } = heldRequests();
-    const scheduler = startPersistentPublicationScheduler(manifest());
-    await vi.advanceTimersByTimeAsync(5000);
-    scheduler.stop();
-    expect(requests[0].signal.aborted).toBe(true);
-    await vi.advanceTimersByTimeAsync(500_000);
-    expect(fetch).toHaveBeenCalledOnce();
-    expect(vi.getTimerCount()).toBe(0);
-  });
-
-  test('Stop clears the next-cycle timer after an invocation completes', async () => {
-    const { requests, fetch } = heldRequests();
-    const scheduler = startPersistentPublicationScheduler(manifest());
-    await vi.advanceTimersByTimeAsync(5000);
-    requests[0].complete();
-    await vi.advanceTimersByTimeAsync(0);
-    scheduler.stop();
-    await vi.advanceTimersByTimeAsync(500_000);
-    expect(fetch).toHaveBeenCalledOnce();
-    expect(vi.getTimerCount()).toBe(0);
-  });
+  test.each(['active', 'completed'] as const)(
+    'Stop prevents another cycle when the current request is %s',
+    async (phase) => {
+      const { requests, fetch } = heldRequests();
+      const scheduler = startPersistentPublicationScheduler(manifest());
+      await vi.advanceTimersByTimeAsync(5000);
+      if (phase === 'completed') {
+        requests[0].complete();
+        await vi.advanceTimersByTimeAsync(0);
+      }
+      scheduler.stop();
+      expect(requests[0].signal.aborted).toBe(true);
+      await vi.advanceTimersByTimeAsync(500_000);
+      expect(fetch).toHaveBeenCalledOnce();
+      expect(vi.getTimerCount()).toBe(0);
+    }
+  );
 
   test('a disk-budget failure terminates scheduling before dispatch and remains terminal', async () => {
     const { requests, fetch } = heldRequests();

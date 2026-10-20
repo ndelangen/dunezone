@@ -61,7 +61,7 @@ export type PersistentSecrets = z.infer<typeof secretsSchema>;
 export function assertLoopbackUrl(value: string): string {
   const url = new URL(value);
   const hasForbiddenParts = [url.username, url.password, url.hash].some(Boolean);
-  if (!/^http:\/\/127\.0\.0\.1:[0-9]+$/.test(url.origin) || hasForbiddenParts) {
+  if (!/^http:\/\/127\.0\.0\.1:\d+$/.test(url.origin) || hasForbiddenParts) {
     throw new Error(`Persistent local services require an explicit http://127.0.0.1 port: ${value}`);
   }
   return url.href.replace(/\/$/, '');

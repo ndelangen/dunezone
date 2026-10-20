@@ -32,11 +32,13 @@ function assertBootstrapSource({ fresh, snapshot, manifest }: PersistentBootstra
   if (fresh !== (snapshot !== null)) {
     throw new Error('Only first bootstrap may supply a snapshot; resume keeps authored data');
   }
-  if (!fresh && manifest.status === 'initializing') {
-    throw new Error('Interrupted first bootstrap requires explicit reset');
-  }
-  if (fresh && manifest.status !== 'initializing') {
-    throw new Error('First bootstrap requires an initializing manifest');
+  const initializing = manifest.status === 'initializing';
+  if (fresh !== initializing) {
+    throw new Error(
+      fresh
+        ? 'First bootstrap requires an initializing manifest'
+        : 'Interrupted first bootstrap requires explicit reset'
+    );
   }
 }
 
