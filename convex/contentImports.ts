@@ -1,4 +1,5 @@
 import { ConvexError, v } from 'convex/values';
+import { z } from 'zod';
 
 import {
   bindImportData,
@@ -329,7 +330,12 @@ export const preview = mutation({
           name: itemName(item.data),
           expectedHash: null,
           status: 'conflict' as const,
-          message: error instanceof Error ? error.message : 'Cannot import this record.',
+          message:
+            error instanceof z.ZodError
+              ? z.prettifyError(error)
+              : error instanceof Error
+                ? error.message
+                : 'Cannot import this record.',
         });
       }
       end += 1;

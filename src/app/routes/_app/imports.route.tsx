@@ -8,6 +8,7 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { useReducer } from 'react';
 import type { Dispatch } from 'react';
+import { z } from 'zod';
 
 import { applyContentImportItem, exportContentRecord, previewContentImport } from '@db/contentImports';
 import type { ContentImportPreview, ContentImportResult } from '@db/contentImports';
@@ -66,6 +67,9 @@ function reducer(state: State, event: Event): State {
 }
 
 function message(error: unknown) {
+  if (error instanceof z.ZodError) {
+    return z.prettifyError(error);
+  }
   return error instanceof Error ? error.message : 'The operation could not be completed.';
 }
 
@@ -87,8 +91,12 @@ async function inspect(state: State, dispatch: Dispatch<Event>) {
   const patch = (update: Partial<State>) => dispatch({ kind: 'patch', patch: update });
   patch({ busy: 'preview', error: null, preview: null, results: [] });
   try {
-    const bundle = contentImportPackageSchema.parse(JSON.parse(state.json));
-    patch({ preview: await previewContentImport(bundle, target) });
+    const parsed = contentImportPackageSchema.safeParse(JSON.parse(state.json));
+    if (!parsed.success) {
+      patch({ error: z.prettifyError(parsed.error) });
+      return;
+    }
+    patch({ preview: await previewContentImport(parsed.data, target) });
   } catch (error) {
     patch({ error: message(error) });
   } finally {
@@ -163,7 +171,7 @@ function ImportExportPage() {
           <Stack gap="xl">
             <Section
               title="Destination"
-              description={`Signed in as ${viewer.profile.username}. Your usual editing and group permissions apply.`}
+              description={`Signed in as ${viewer.profile.username ?? 'your account'}. Your usual editing and group permissions apply.`}
             >
               <Surface>
                 <Group grow align="start">
