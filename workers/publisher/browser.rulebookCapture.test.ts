@@ -4,7 +4,7 @@ import { describe, expect, test, vi } from 'vite-plus/test';
 import { CAPTURE_PROTOCOL } from '../../src/shared/asset-publishing/capture-protocol';
 import { planRulebookPdfBatches } from '../../src/shared/rulebooks/pdfPublication';
 import { createRulebookRenderDocumentFixture } from '../../src/shared/rulebooks/renderDocument.fixture';
-import { getRulebookSize } from '../../src/shared/rulebooks/settings';
+import { getRulebookSize, rulebookSizeCatalogue } from '../../src/shared/rulebooks/settings';
 import type { RulebookSize } from '../../src/shared/rulebooks/settings';
 import { PublisherBrowserSession, TargetRenderError } from './browser';
 import { captureCompressedRulebookPdf, RulebookPdfOutputError } from './rulebook-pdf-stream';
@@ -77,21 +77,24 @@ function snapshot(size: RulebookSize) {
 }
 
 describe('Rulebook browser capture', () => {
-  test.each(['square', 'a4', 'tall'] as const)('captures a %s first Page at its chosen proportions', async (size) => {
-    const dimensions = getRulebookSize(size);
-    const bytes = pngBytes(dimensions.widthMm * 4, dimensions.heightMm * 4);
-    const { session, page } = captureBrowser(size, bytes);
-    await expect(session.capture('job', 'rulebook-first-page', 30_000)).resolves.toEqual({
-      bytes,
-      payloadHash: HASH,
-      output: 'png',
-    });
-    expect(page.setViewportSize).toHaveBeenCalledWith({
-      width: dimensions.widthMm * 4,
-      height: dimensions.heightMm * 4,
-    });
-    expect(page.screenshot).toHaveBeenCalledOnce();
-  });
+  test.each(rulebookSizeCatalogue.map(({ id }) => id))(
+    'captures a %s first Page at its chosen proportions',
+    async (size) => {
+      const dimensions = getRulebookSize(size);
+      const bytes = pngBytes(Math.round(dimensions.widthMm * 4), Math.round(dimensions.heightMm * 4));
+      const { session, page } = captureBrowser(size, bytes);
+      await expect(session.capture('job', 'rulebook-first-page', 30_000)).resolves.toEqual({
+        bytes,
+        payloadHash: HASH,
+        output: 'png',
+      });
+      expect(page.setViewportSize).toHaveBeenCalledWith({
+        width: Math.round(dimensions.widthMm * 4),
+        height: Math.round(dimensions.heightMm * 4),
+      });
+      expect(page.screenshot).toHaveBeenCalledOnce();
+    }
+  );
 
   test('limits the first-page Size lookup to the remaining capture time', async () => {
     let now = 1000;
@@ -120,7 +123,7 @@ describe('Rulebook browser capture', () => {
     );
   });
 
-  test.each(['square', 'a4', 'tall'] as const)(
+  test.each(rulebookSizeCatalogue.map(({ id }) => id))(
     'prints a %s PDF batch with the selected physical dimensions',
     async (size) => {
       const bytes = await pdfBytes(size);

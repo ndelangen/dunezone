@@ -1,8 +1,16 @@
 import type { RulebookBlockDraft } from '@shared/rulebooks/contents';
+import { projectRulebookDraftRenderBlock } from '@shared/rulebooks/projectRenderDocument';
+import { getRulebookSize } from '@shared/rulebooks/settings';
 import type { RulebookSize } from '@shared/rulebooks/settings';
 import { expect } from 'storybook/test';
 
-import { cardEntryFixture, cardGroupFixture, cardGuidePage } from './RulebookCardGuides.stories.fixture';
+import {
+  cardEntryFixture,
+  cardGroupFixture,
+  cardGuidePage,
+  cardGuideAssets,
+  techTokenAssets,
+} from './RulebookCardGuides.stories.fixture';
 import { RulebookPageRenderer } from './RulebookRenderer';
 
 type GroupVariant = Extract<RulebookBlockDraft, { kind: 'card-group' }>['variant'];
@@ -76,4 +84,41 @@ export function CardGroupStory({
   size?: RulebookSize;
 }) {
   return <CardGuideStory treatment={treatment} size={size} />;
+}
+
+export function CardEntryLayoutMatrix() {
+  return (
+    <div>
+      {(['gf9-core', 'gf9-expansion'] as const).flatMap((size) =>
+        (['left', 'right'] as const).flatMap((imageSide) =>
+          (['beside', 'wrap'] as const).flatMap((textFlow) =>
+            (['card', 'token'] as const).map((source) => {
+              const entry = cardEntryFixture();
+              entry.imageSide = imageSide;
+              entry.textFlow = textFlow;
+              entry.name = `${size} ${source} ${imageSide} ${textFlow}`;
+              entry.text =
+                'A short opening paragraph.\n\n' +
+                'Keep each illustration beside the explanation. Text below the image uses the complete available width. '
+                  .repeat(size === 'gf9-core' ? 21 : 11)
+                  .trim();
+              if (source === 'token') {
+                entry.source = { kind: 'asset', assetId: 'tech' };
+              }
+              const page = cardGuidePage([]);
+              page.title = entry.name;
+              page.regions[0]!.blocks = [
+                projectRulebookDraftRenderBlock(entry, { ...cardGuideAssets, ...techTokenAssets }),
+              ];
+              return (
+                <div key={entry.name} style={{ width: `${getRulebookSize(size).widthMm}mm` }}>
+                  <RulebookPageRenderer page={page} settings={{ size, design: 'illustrated' }} />
+                </div>
+              );
+            })
+          )
+        )
+      )}
+    </div>
+  );
 }

@@ -429,6 +429,8 @@ export function projectRulebookDraftRenderBlock(
       kind: block.kind,
       source: projectRulebookSource(block.source, assetsById, factionsById),
       name: block.name,
+      imageSide: block.imageSide,
+      textFlow: block.textFlow,
       size: block.size,
       text: block.text,
       quantity: block.quantity,

@@ -261,7 +261,9 @@ describe('Rulebook cover image staging', () => {
       })
     ).toEqual(IMAGE);
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(await f.t.run(async (ctx) => await ctx.db.get(f.created.draft._id))).toEqual(f.created.draft);
+    expect(await f.t.run(async (ctx) => await ctx.db.get(f.created.draft._id))).toEqual(
+      Object.fromEntries(Object.entries(f.created.draft).filter(([key]) => key !== 'settings'))
+    );
     const edition = await f.t.run(
       async (ctx) =>
         await ctx.db
@@ -322,7 +324,9 @@ describe('Rulebook cover image staging', () => {
       );
       expect(row).toMatchObject({ consumed: true, r2_keys: [KEY] });
       expect(row?.rulebook_cover_image).toBeUndefined();
-      expect(await f.t.run(async (ctx) => await ctx.db.get(f.created.draft._id))).toEqual(f.created.draft);
+      expect(await f.t.run(async (ctx) => await ctx.db.get(f.created.draft._id))).toEqual(
+        Object.fromEntries(Object.entries(f.created.draft).filter(([key]) => key !== 'settings'))
+      );
     }
   );
 
