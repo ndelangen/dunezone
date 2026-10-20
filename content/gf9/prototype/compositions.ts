@@ -59,7 +59,7 @@ export function illustration(pageId: string): RulebookRenderBlockV1 {
   };
   else if (pageId === 'core-shipment') block = shipmentIllustration();
   else if (pageId === 'core-battle') block = { id: 'ART', kind: 'battle-plans', left: battleSide('gf9-emperor', battleExample.aggressor, 'Aggressor'), right: battleSide('gf9-spacing-guild', battleExample.defender, 'Defender'), showSideLabels: true };
-  else if (pageId === 'core-atreides') block = { id: 'ART', kind: 'faction-introduction', faction: faction('gf9-atreides'), text: 'Knowledge is your advantage. Inspect cards and ask about an opposing battle plan before committing your own.' };
+  else if (pageId === 'core-atreides') block = { id: 'ART', kind: 'faction-introduction', faction: faction('gf9-atreides'), text: 'In the Basic Game, knowledge is your advantage. Inspect cards and ask about an opposing battle plan before committing your own.' };
   else if (pageId === 'ixian-tech') block = { id: 'ART', kind: 'illustrated-inventory', introduction: '', items: [
     ['axlotl-tanks', 'Axlotl Tanks'], ['heighliners', 'Heighliners'], ['spice-production', 'Spice Production'],
   ].map(([key, name]) => ({ id: key, source: { status: 'ready', reference: { kind: 'asset', assetId: `gf9-tech-${key}` }, name, assetType: 'token-disc', imageUrl: `/reference/tech-token-${key}.png`, width: 321, height: 321 }, text: '' })) };
@@ -81,8 +81,7 @@ function blocks(section: PrototypeSection, prefix: string): RulebookRenderBlockV
 
 function pageFixture(id: string, title: string, layoutId: string, regions: Record<string, RulebookRenderBlockV1[]>, controlValues: object = {}): RulebookRenderPageV1 {
   const definition = rulebookLayoutCatalogue.find(layout => layout.id === layoutId)!;
-  const scope = id.startsWith('core-') ? 'Basic game' : 'Optional module';
-  return rulebookRenderPageV1Schema.parse({ id, anchor: id, title: `${title} | ${scope}`, showHeading: true, layoutId, controlValues, regions: definition.regions.filter(region => region.kind === 'block').map(region => ({ key: region.key, blocks: regions[region.key] ?? [] })) });
+  return rulebookRenderPageV1Schema.parse({ id, anchor: id, title, showHeading: true, layoutId, controlValues, regions: definition.regions.filter(region => region.kind === 'block').map(region => ({ key: region.key, blocks: regions[region.key] ?? [] })) });
 }
 export function renderPage(caseId: string, variant: Variant): RulebookRenderPageV1 {
   const cover = covers.find(item => item.id === caseId);
@@ -95,7 +94,7 @@ export function renderPage(caseId: string, variant: Variant): RulebookRenderPage
     if (income.kind !== 'list') throw new Error('Tech Token income needs one explanation per token');
     const startingHolders = ['Tleilaxu', 'Ixians', 'Fremen'];
     const paired = { ...art, id: 'tech-token-rules', items: art.items.map((item, index) => ({ ...item, text: `Starts with ${startingHolders[index]}. ` + income.items[index].replace(/^(Axlotl Tanks|Heighliners|Spice Production) triggers/, 'Triggers') })) };
-    const setup = { id: 'tech-token-setup', kind: 'text', text: "Keep tokens visible by shields. After the first storm movement, assign absent factions' tokens at random to the next factions in turn order without one." } as RulebookRenderBlockV1;
+    const setup = { id: 'tech-token-setup', kind: 'text', text: "Tech Tokens are an optional module. Keep tokens visible by shields. After the first storm movement, assign absent factions' tokens at random to the next factions in turn order without one." } as RulebookRenderBlockV1;
     return pageFixture(caseId, page.title, 'single-column', { content: [sections[0][0], setup, sections[1][0], paired, ...sections[1].slice(2), ...sections[2]] });
   }
   if (caseId === 'core-battle') {
@@ -132,7 +131,7 @@ export function renderPages(caseId: string, variant: Variant): RulebookRenderPag
     ] } as RulebookRenderBlockV1;
     return [
       pageFixture(caseId, page.title, 'single-column', { content: variant === 'C' ? [
-        { ...illustration(caseId), id: 'discovery-illustrated-rule', name: page.sections[0].title, text: page.sections[0].blocks.flatMap(block => block.kind === 'text' ? [block.text] : block.kind === 'callout' ? [`${block.title}. ${block.text}`] : []).join('\n\n') } as RulebookRenderBlockV1,
+        { ...illustration(caseId), id: 'discovery-illustrated-rule', name: page.sections[0].title, text: 'Discovery is an optional module. ' + page.sections[0].blocks.flatMap(block => block.kind === 'text' ? [block.text] : block.kind === 'callout' ? [`${block.title}. ${block.text}`] : []).join('\n\n') } as RulebookRenderBlockV1,
       ] : variant === 'A' ? [illustration(caseId), ...sections[0]] : [...sections[0], illustration(caseId)] }),
       pageFixture(caseId + '-continued', 'Enter the revealed location', 'single-column', { content: [...sections.slice(1).flat(), token] }),
     ];

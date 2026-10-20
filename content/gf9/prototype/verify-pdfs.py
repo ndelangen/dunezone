@@ -34,7 +34,11 @@ def verify(spec):
         assert abs(width - expected[0]) < 0.05 and abs(height - expected[1]) < 0.05, (filename, index, width, height, expected)
         text = " ".join(page.extract_text().split())
         if key == 'focused' or key != "comparison" and index >= 4:
-            assert "BASIC GAME" in text or "OPTIONAL MODULE" in text, (filename, index, text[:200])
+            assert "| BASIC GAME" not in text and "| OPTIONAL MODULE" not in text
+            if key == 'focused' and index == 0:
+                assert 'These examples use the Basic Game.' in text
+            if key == 'focused' and index >= 4:
+                assert 'optional module' in text
             assert "Sources" not in text and "FAQ" not in text
         pages.append({"page": index + 1, "points": [width, height], "mm": [round(width * 25.4 / 72, 3), round(height * 25.4 / 72, 3)], "textCharacters": len(text)})
     subprocess.run(["pdftoppm", "-scale-to", "1200", "-png", str(source), str(RENDERS / key)], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)

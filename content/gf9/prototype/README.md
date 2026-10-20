@@ -39,7 +39,7 @@ The prototype uses the real Rulebook renderer and existing Blocks. It runs witho
 
 ## Sample scope
 
-The core excerpts cover components and setup, shipment and movement, a legal Basic battle and an Atreides introduction. The printed headings identify Basic game scope. The narrow samples cover optional Tech Tokens and Discovery. Discovery uses two pages in every variant. B also gives battle a second page.
+The core excerpts cover components and setup, shipment and movement, a legal Basic battle and an Atreides introduction. Introduce Basic, Advanced or optional scope at the chapter or sequence opening and flag actual rule differences where they occur. The user rejected repeating that scope in every page title. The narrow samples cover optional Tech Tokens and Discovery. Discovery uses two pages in every variant. B also gives battle a second page.
 
 C's revised movement sequence uses four pages. `shipment-notes.md` records the source and legality checks. Dreamrules' illustrated shipment, distant-group movement, storm and stronghold comparisons informed the teaching sequence. The rules and worked positions use GF9 sources. The focused review includes only Discovery's revised first page.
 

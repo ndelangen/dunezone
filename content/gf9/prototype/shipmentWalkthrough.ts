@@ -57,7 +57,7 @@ function table(id: string, labels: string[], rows: string[][]): Block {
   return { id, kind: 'reference-table', columns: labels.map((label, index) => ({ id: `c${index}`, label })), rows: rows.map((row, index) => ({ id: `r${index}`, cells: row.map((value, column) => ({ columnId: `c${column}`, text: value })) })), note: '' };
 }
 function page(id: string, title: string, column1: Block[], column2: Block[]): RulebookRenderPageV1 {
-  return rulebookRenderPageV1Schema.parse({ id, anchor: id, title: `${title} | Basic game`, showHeading: true, layoutId: 'two-columns', controlValues: {}, regions: [{ key: 'column1', blocks: column1 }, { key: 'column2', blocks: column2 }] });
+  return rulebookRenderPageV1Schema.parse({ id, anchor: id, title, showHeading: true, layoutId: 'two-columns', controlValues: {}, regions: [{ key: 'column1', blocks: column1 }, { key: 'column2', blocks: column2 }] });
 }
 function transfer(id: string, from: string, to: string, count: number, price: string): Block {
   const selected = faction();
@@ -88,7 +88,7 @@ export function shipmentWalkthrough(): RulebookRenderPageV1[] {
   return [
     page('core-shipment', 'Ship first, move second', [
       heading('ship-turn-heading', 'Finish both actions'),
-      text('ship-turn', 'In storm order, each faction may make one shipment, then one on-planet movement. Finish both before the next faction acts. Either action is optional. Newly shipped forces may move immediately.'),
+      text('ship-turn', 'These examples use the Basic Game. In storm order, each faction may make one shipment, then one on-planet movement. Finish both before the next faction acts. Either action is optional. Newly shipped forces may move immediately.'),
       heading('ship-cost-heading', 'What does shipment buy?'),
       table('ship-costs', ['Destination', 'Cost per force'], [['Stronghold', '1 spice'], ['Other territory', '2 spice']]),
       text('ship-payee', 'Send reserves to one territory and choose their sector. Pay the Guild if it is playing, otherwise the Bank. The Guild pays the Bank. Ordinary shipment cannot retrieve forces or move them between board territories.'),
