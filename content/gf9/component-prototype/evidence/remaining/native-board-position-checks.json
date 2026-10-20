@@ -1,0 +1,220 @@
+[
+  {
+    "key": "gf9-discovery-spice-sihaya-ridge",
+    "spice": [404.863, 76.185],
+    "discovery": [320.689, 394.842],
+    "spiceInside": true,
+    "discoveryInside": true,
+    "nativeSpiceSchemaValidatedWithActualRegisteredIcon": true,
+    "markerSchemasValidatedWithActualRegisteredVectors": true,
+    "icon": "/vector/logo/fremen.svg",
+    "tintTerritoryIdsValid": true,
+    "tintCount": 2,
+    "tintRoles": {
+      "spice": {
+        "color": "#e67920c0",
+        "territories": ["sihaya_ridge"]
+      },
+      "discovery": {
+        "color": "#315c51b0",
+        "territories": ["cielago_east"]
+      }
+    },
+    "markerBindingsResolve": true,
+    "amount": 6,
+    "deckCount": 1,
+    "sourcePairingMatchesRealCardReference": true,
+    "pointSource": {
+      "source": "/tmp/gf9-skin.json",
+      "mapping": "/tmp/gf9-card-scans/Map.cs",
+      "spiceLocationId": 45,
+      "spiceRaw": [442, 144],
+      "discoveryLocationId": 19,
+      "discoveryRaw": [358, 462],
+      "transform": "native = [243.53,243.53] + (source - [281,311]) * (242.5 / 242)",
+      "adjustment": "Source-authored sector point transformed into the native board frame, rounded to three decimals."
+    }
+  },
+  {
+    "key": "gf9-discovery-spice-rock-outcroppings",
+    "spice": [56.144, 108.251],
+    "discovery": [179.398, 443.943],
+    "spiceInside": true,
+    "discoveryInside": true,
+    "nativeSpiceSchemaValidatedWithActualRegisteredIcon": true,
+    "markerSchemasValidatedWithActualRegisteredVectors": true,
+    "icon": "/vector/logo/fremen.svg",
+    "tintTerritoryIdsValid": true,
+    "tintCount": 2,
+    "tintRoles": {
+      "spice": {
+        "color": "#e67920c0",
+        "territories": ["rock_outcroppings"]
+      },
+      "discovery": {
+        "color": "#315c51b0",
+        "territories": ["meridian"]
+      }
+    },
+    "markerBindingsResolve": true,
+    "amount": 6,
+    "deckCount": 1,
+    "sourcePairingMatchesRealCardReference": true,
+    "pointSource": {
+      "source": "/tmp/gf9-skin.json",
+      "mapping": "/tmp/gf9-card-scans/Map.cs",
+      "spiceLocationId": 60,
+      "spiceRaw": [94, 176],
+      "discoveryLocationId": 15,
+      "discoveryRaw": [217, 511],
+      "transform": "native = [243.53,243.53] + (source - [281,311]) * (242.5 / 242)",
+      "adjustment": "Source-authored sector point transformed into the native board frame, rounded to three decimals."
+    }
+  },
+  {
+    "key": "gf9-discovery-spice-hagga-basin",
+    "spice": [178.396, 165.369],
+    "discovery": [439.935, 122.28],
+    "spiceInside": true,
+    "discoveryInside": true,
+    "nativeSpiceSchemaValidatedWithActualRegisteredIcon": true,
+    "markerSchemasValidatedWithActualRegisteredVectors": true,
+    "icon": "/vector/logo/fremen.svg",
+    "tintTerritoryIdsValid": true,
+    "tintCount": 2,
+    "tintRoles": {
+      "spice": {
+        "color": "#e67920c0",
+        "territories": ["hagga_basin"]
+      },
+      "discovery": {
+        "color": "#315c51b0",
+        "territories": ["gara_kulon"]
+      }
+    },
+    "markerBindingsResolve": true,
+    "amount": 6,
+    "deckCount": 1,
+    "sourcePairingMatchesRealCardReference": true,
+    "pointSource": {
+      "source": "/tmp/gf9-skin.json",
+      "mapping": "/tmp/gf9-card-scans/Map.cs",
+      "spiceLocationId": 65,
+      "spiceRaw": [216, 233],
+      "discoveryLocationId": 48,
+      "discoveryRaw": [477, 190],
+      "transform": "native = [243.53,243.53] + (source - [281,311]) * (242.5 / 242)",
+      "adjustment": "Source-authored sector point transformed into the native board frame, rounded to three decimals."
+    }
+  },
+  {
+    "key": "gf9-discovery-spice-funeral-plain",
+    "spice": [21.071, 198.437],
+    "discovery": [401.856, 220.482],
+    "spiceInside": true,
+    "discoveryInside": true,
+    "nativeSpiceSchemaValidatedWithActualRegisteredIcon": true,
+    "markerSchemasValidatedWithActualRegisteredVectors": true,
+    "icon": "/vector/logo/guild.svg",
+    "tintTerritoryIdsValid": true,
+    "tintCount": 2,
+    "tintRoles": {
+      "spice": {
+        "color": "#e67920c0",
+        "territories": ["funeral_plain"]
+      },
+      "discovery": {
+        "color": "#355b8ab0",
+        "territories": ["pasty_mesa"]
+      }
+    },
+    "markerBindingsResolve": true,
+    "amount": 6,
+    "deckCount": 1,
+    "sourcePairingMatchesRealCardReference": true,
+    "pointSource": {
+      "source": "/tmp/gf9-skin.json",
+      "mapping": "/tmp/gf9-card-scans/Map.cs",
+      "spiceLocationId": 68,
+      "spiceRaw": [59, 266],
+      "discoveryLocationId": 36,
+      "discoveryRaw": [439, 288],
+      "transform": "native = [243.53,243.53] + (source - [281,311]) * (242.5 / 242)",
+      "adjustment": "Source-authored sector point transformed into the native board frame, rounded to three decimals."
+    }
+  },
+  {
+    "key": "gf9-discovery-spice-wind-pass-north",
+    "spice": [195.431, 272.59],
+    "discovery": [127.29, 97.228],
+    "spiceInside": true,
+    "discoveryInside": true,
+    "nativeSpiceSchemaValidatedWithActualRegisteredIcon": true,
+    "markerSchemasValidatedWithActualRegisteredVectors": true,
+    "icon": "/vector/logo/guild.svg",
+    "tintTerritoryIdsValid": true,
+    "tintCount": 2,
+    "tintRoles": {
+      "spice": {
+        "color": "#e67920c0",
+        "territories": ["wind_pass_north"]
+      },
+      "discovery": {
+        "color": "#355b8ab0",
+        "territories": ["plastic_basin"]
+      }
+    },
+    "markerBindingsResolve": true,
+    "amount": 6,
+    "deckCount": 1,
+    "sourcePairingMatchesRealCardReference": true,
+    "pointSource": {
+      "source": "/tmp/gf9-skin.json",
+      "mapping": "/tmp/gf9-card-scans/Map.cs",
+      "spiceLocationId": 80,
+      "spiceRaw": [233, 340],
+      "discoveryLocationId": 62,
+      "discoveryRaw": [165, 165],
+      "transform": "native = [243.53,243.53] + (source - [281,311]) * (242.5 / 242)",
+      "adjustment": "Source-authored sector point transformed into the native board frame, rounded to three decimals."
+    }
+  },
+  {
+    "key": "gf9-discovery-spice-old-gap",
+    "spice": [297.642, 18.065],
+    "discovery": [133.845, 323.279],
+    "spiceInside": true,
+    "discoveryInside": true,
+    "nativeSpiceSchemaValidatedWithActualRegisteredIcon": true,
+    "markerSchemasValidatedWithActualRegisteredVectors": true,
+    "icon": "/vector/logo/guild.svg",
+    "tintTerritoryIdsValid": true,
+    "tintCount": 2,
+    "tintRoles": {
+      "spice": {
+        "color": "#e67920c0",
+        "territories": ["old_gap"]
+      },
+      "discovery": {
+        "color": "#355b8ab0",
+        "territories": ["false_wall_west"]
+      }
+    },
+    "markerBindingsResolve": true,
+    "amount": 6,
+    "deckCount": 1,
+    "sourcePairingMatchesRealCardReference": true,
+    "pointSource": {
+      "source": "/tmp/gf9-skin.json",
+      "mapping": "/tmp/gf9-card-scans/Map.cs",
+      "spiceLocationId": 50,
+      "spiceRaw": [335, 86],
+      "discoveryLocationId": 78,
+      "discoveryRaw": [196, 374],
+      "transform": "native = [243.53,243.53] + (source - [281,311]) * (242.5 / 242)",
+      "adjustment": "Original transformed Discovery point was outside the native False Wall West polygon. Current point is inside False Wall West, farther outward, preserving the middle-sector direction. It is an authored geometry correction, not a traced original-print marker position.",
+      "originalTransformedDiscovery": [158.354, 306.66],
+      "angularDifferenceDegrees": 0.525
+    }
+  }
+]

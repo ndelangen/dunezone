@@ -1,0 +1,405 @@
+{
+  "format": "gf9-remaining-card-prototype",
+  "productionWrites": false,
+  "artworkRegistrationRequired": false,
+  "cards": [
+    {
+      "key": "gf9-discovery-spice-sihaya-ridge",
+      "type": "card-spice",
+      "deckCount": 1,
+      "spiceTerritory": "Sihaya Ridge",
+      "spiceSector": "only",
+      "discoveryTerritory": "Cielago East",
+      "discoverySector": "west",
+      "discoveryType": "Hiereg",
+      "data": {
+        "name": "Sihaya Ridge",
+        "subName": "Spice Blow - Discovery",
+        "icon": "/vector/logo/fremen.svg",
+        "iconScale": 1,
+        "amount": 6,
+        "highlights": [],
+        "text": "Add:\n*6 spice* on Sihaya Ridge\n*Hiereg token* on Cielago East",
+        "about": "Discovery blow. Destroy all existing spice and forces throughout Sihaya Ridge, including Fremen and Bene Gesserit advisors. Place 6 spice in its only sector unless that sector is in storm. Place one random Hiereg token face down in Cielago East, west sector. Fremen may inspect that token at any time without revealing it. Other factions with non-advisor forces there may inspect and optionally reveal it during Spice Collection. The blow and token have separate locations; destruction applies to the blow territory, not the token territory.",
+        "board": {
+          "asset_id": "gf9-board",
+          "look": {
+            "style": "burnt",
+            "strength": 1
+          },
+          "tints": [
+            {
+              "id": "spice-blow",
+              "name": "Spice blow",
+              "color": "#e67920c0",
+              "territories": ["sihaya_ridge"]
+            },
+            {
+              "id": "discovery-destination",
+              "name": "Discovery destination",
+              "color": "#315c51b0",
+              "territories": ["cielago_east"]
+            }
+          ],
+          "tokens": [
+            {
+              "layerId": "spice-sihaya-ridge",
+              "asset_id": "gf9-spice-location-marker",
+              "x": 404.863,
+              "y": 76.185,
+              "size": 20,
+              "rotation": 0
+            },
+            {
+              "layerId": "discovery-sihaya-ridge",
+              "asset_id": "gf9-hiereg-discovery-marker",
+              "x": 320.689,
+              "y": 394.842,
+              "size": 33,
+              "rotation": 0
+            }
+          ]
+        }
+      },
+      "sourceReference": "/card-references/local-sihaya-ridge.png",
+      "originalAssetType": "card-custom",
+      "requiresAuthenticatedTypeConversion": true
+    },
+    {
+      "key": "gf9-discovery-spice-rock-outcroppings",
+      "type": "card-spice",
+      "deckCount": 1,
+      "spiceTerritory": "Rock Outcroppings",
+      "spiceSector": "south",
+      "discoveryTerritory": "Meridian",
+      "discoverySector": "west",
+      "discoveryType": "Hiereg",
+      "data": {
+        "name": "Rock Outcroppings",
+        "subName": "Spice Blow - Discovery",
+        "icon": "/vector/logo/fremen.svg",
+        "iconScale": 1,
+        "amount": 6,
+        "highlights": [],
+        "text": "Add:\n*6 spice* on Rock Outcroppings\n*Hiereg token* on Meridian",
+        "about": "Discovery blow. Destroy all existing spice and forces throughout Rock Outcroppings, including Fremen and Bene Gesserit advisors. Place 6 spice in its south sector unless that sector is in storm. Place one random Hiereg token face down in Meridian, west sector. Fremen may inspect that token at any time without revealing it. Other factions with non-advisor forces there may inspect and optionally reveal it during Spice Collection. The blow and token have separate locations; destruction applies to the blow territory, not the token territory.",
+        "board": {
+          "asset_id": "gf9-board",
+          "look": {
+            "style": "burnt",
+            "strength": 1
+          },
+          "tints": [
+            {
+              "id": "spice-blow",
+              "name": "Spice blow",
+              "color": "#e67920c0",
+              "territories": ["rock_outcroppings"]
+            },
+            {
+              "id": "discovery-destination",
+              "name": "Discovery destination",
+              "color": "#315c51b0",
+              "territories": ["meridian"]
+            }
+          ],
+          "tokens": [
+            {
+              "layerId": "spice-rock-outcroppings",
+              "asset_id": "gf9-spice-location-marker",
+              "x": 56.144,
+              "y": 108.251,
+              "size": 20,
+              "rotation": 0
+            },
+            {
+              "layerId": "discovery-rock-outcroppings",
+              "asset_id": "gf9-hiereg-discovery-marker",
+              "x": 179.398,
+              "y": 443.943,
+              "size": 33,
+              "rotation": 0
+            }
+          ]
+        }
+      },
+      "sourceReference": "/card-references/local-rock-outcroppings.png",
+      "originalAssetType": "card-custom",
+      "requiresAuthenticatedTypeConversion": true
+    },
+    {
+      "key": "gf9-discovery-spice-hagga-basin",
+      "type": "card-spice",
+      "deckCount": 1,
+      "spiceTerritory": "Hagga Basin",
+      "spiceSector": "west",
+      "discoveryTerritory": "Gara Kulon",
+      "discoverySector": "only",
+      "discoveryType": "Hiereg",
+      "data": {
+        "name": "Hagga Basin",
+        "subName": "Spice Blow - Discovery",
+        "icon": "/vector/logo/fremen.svg",
+        "iconScale": 1,
+        "amount": 6,
+        "highlights": [],
+        "text": "Add:\n*6 spice* on Hagga Basin\n*Hiereg token* on Gara Kulon",
+        "about": "Discovery blow. Destroy all existing spice and forces throughout Hagga Basin, including Fremen and Bene Gesserit advisors. Place 6 spice in its west sector unless that sector is in storm. Place one random Hiereg token face down in Gara Kulon, only sector. Fremen may inspect that token at any time without revealing it. Other factions with non-advisor forces there may inspect and optionally reveal it during Spice Collection. The blow and token have separate locations; destruction applies to the blow territory, not the token territory.",
+        "board": {
+          "asset_id": "gf9-board",
+          "look": {
+            "style": "burnt",
+            "strength": 1
+          },
+          "tints": [
+            {
+              "id": "spice-blow",
+              "name": "Spice blow",
+              "color": "#e67920c0",
+              "territories": ["hagga_basin"]
+            },
+            {
+              "id": "discovery-destination",
+              "name": "Discovery destination",
+              "color": "#315c51b0",
+              "territories": ["gara_kulon"]
+            }
+          ],
+          "tokens": [
+            {
+              "layerId": "spice-hagga-basin",
+              "asset_id": "gf9-spice-location-marker",
+              "x": 178.396,
+              "y": 165.369,
+              "size": 20,
+              "rotation": 0
+            },
+            {
+              "layerId": "discovery-hagga-basin",
+              "asset_id": "gf9-hiereg-discovery-marker",
+              "x": 439.935,
+              "y": 122.28,
+              "size": 33,
+              "rotation": 0
+            }
+          ]
+        }
+      },
+      "sourceReference": "/card-references/local-hagga-basin.png",
+      "originalAssetType": "card-custom",
+      "requiresAuthenticatedTypeConversion": true
+    },
+    {
+      "key": "gf9-discovery-spice-funeral-plain",
+      "type": "card-spice",
+      "deckCount": 1,
+      "spiceTerritory": "Funeral Plain",
+      "spiceSector": "only",
+      "discoveryTerritory": "Pasty Mesa",
+      "discoverySector": "north",
+      "discoveryType": "Smuggler",
+      "data": {
+        "name": "Funeral Plain",
+        "subName": "Spice Blow - Discovery",
+        "icon": "/vector/logo/guild.svg",
+        "iconScale": 1,
+        "amount": 6,
+        "highlights": [],
+        "text": "Add:\n*6 spice* on Funeral Plain\n*Smuggler token* on Pasty Mesa",
+        "about": "Discovery blow. Destroy all existing spice and forces throughout Funeral Plain, including Fremen and Bene Gesserit advisors. Place 6 spice in its only sector unless that sector is in storm. Place one random Smuggler token face down in Pasty Mesa, north sector. Spacing Guild may inspect that token at any time without revealing it. Other factions with non-advisor forces there may inspect and optionally reveal it during Spice Collection. The blow and token have separate locations; destruction applies to the blow territory, not the token territory.",
+        "board": {
+          "asset_id": "gf9-board",
+          "look": {
+            "style": "burnt",
+            "strength": 1
+          },
+          "tints": [
+            {
+              "id": "spice-blow",
+              "name": "Spice blow",
+              "color": "#e67920c0",
+              "territories": ["funeral_plain"]
+            },
+            {
+              "id": "discovery-destination",
+              "name": "Discovery destination",
+              "color": "#355b8ab0",
+              "territories": ["pasty_mesa"]
+            }
+          ],
+          "tokens": [
+            {
+              "layerId": "spice-funeral-plain",
+              "asset_id": "gf9-spice-location-marker",
+              "x": 21.071,
+              "y": 198.437,
+              "size": 20,
+              "rotation": 0
+            },
+            {
+              "layerId": "discovery-funeral-plain",
+              "asset_id": "gf9-smuggler-discovery-marker",
+              "x": 401.856,
+              "y": 220.482,
+              "size": 33,
+              "rotation": 0
+            }
+          ]
+        }
+      },
+      "sourceReference": "/card-references/local-funeral-plain.png",
+      "originalAssetType": "card-custom",
+      "requiresAuthenticatedTypeConversion": true
+    },
+    {
+      "key": "gf9-discovery-spice-wind-pass-north",
+      "type": "card-spice",
+      "deckCount": 1,
+      "spiceTerritory": "Wind Pass North",
+      "spiceSector": "north",
+      "discoveryTerritory": "Plastic Basin",
+      "discoverySector": "middle",
+      "discoveryType": "Smuggler",
+      "data": {
+        "name": "Wind Pass North",
+        "subName": "Spice Blow - Discovery",
+        "icon": "/vector/logo/guild.svg",
+        "iconScale": 1,
+        "amount": 6,
+        "highlights": [],
+        "text": "Add:\n*6 spice* on Wind Pass North\n*Smuggler token* on Plastic Basin",
+        "about": "Discovery blow. Destroy all existing spice and forces throughout Wind Pass North, including Fremen and Bene Gesserit advisors. Place 6 spice in its north sector unless that sector is in storm. Place one random Smuggler token face down in Plastic Basin, middle sector. Spacing Guild may inspect that token at any time without revealing it. Other factions with non-advisor forces there may inspect and optionally reveal it during Spice Collection. The blow and token have separate locations; destruction applies to the blow territory, not the token territory.",
+        "board": {
+          "asset_id": "gf9-board",
+          "look": {
+            "style": "burnt",
+            "strength": 1
+          },
+          "tints": [
+            {
+              "id": "spice-blow",
+              "name": "Spice blow",
+              "color": "#e67920c0",
+              "territories": ["wind_pass_north"]
+            },
+            {
+              "id": "discovery-destination",
+              "name": "Discovery destination",
+              "color": "#355b8ab0",
+              "territories": ["plastic_basin"]
+            }
+          ],
+          "tokens": [
+            {
+              "layerId": "spice-wind-pass-north",
+              "asset_id": "gf9-spice-location-marker",
+              "x": 195.431,
+              "y": 272.59,
+              "size": 20,
+              "rotation": 0
+            },
+            {
+              "layerId": "discovery-wind-pass-north",
+              "asset_id": "gf9-smuggler-discovery-marker",
+              "x": 127.29,
+              "y": 97.228,
+              "size": 33,
+              "rotation": 0
+            }
+          ]
+        }
+      },
+      "sourceReference": "/card-references/local-wind-pass-north.png",
+      "originalAssetType": "card-custom",
+      "requiresAuthenticatedTypeConversion": true
+    },
+    {
+      "key": "gf9-discovery-spice-old-gap",
+      "type": "card-spice",
+      "deckCount": 1,
+      "spiceTerritory": "Old Gap",
+      "spiceSector": "middle",
+      "discoveryTerritory": "False Wall West",
+      "discoverySector": "middle",
+      "discoveryType": "Smuggler",
+      "data": {
+        "name": "Old Gap",
+        "subName": "Spice Blow - Discovery",
+        "icon": "/vector/logo/guild.svg",
+        "iconScale": 1,
+        "amount": 6,
+        "highlights": [],
+        "text": "Add:\n*6 spice* on Old Gap\n*Smuggler token* on False Wall West",
+        "about": "Discovery blow. Destroy all existing spice and forces throughout Old Gap, including Fremen and Bene Gesserit advisors. Place 6 spice in its middle sector unless that sector is in storm. Place one random Smuggler token face down in False Wall West, middle sector. Spacing Guild may inspect that token at any time without revealing it. Other factions with non-advisor forces there may inspect and optionally reveal it during Spice Collection. The blow and token have separate locations; destruction applies to the blow territory, not the token territory.",
+        "board": {
+          "asset_id": "gf9-board",
+          "look": {
+            "style": "burnt",
+            "strength": 1
+          },
+          "tints": [
+            {
+              "id": "spice-blow",
+              "name": "Spice blow",
+              "color": "#e67920c0",
+              "territories": ["old_gap"]
+            },
+            {
+              "id": "discovery-destination",
+              "name": "Discovery destination",
+              "color": "#355b8ab0",
+              "territories": ["false_wall_west"]
+            }
+          ],
+          "tokens": [
+            {
+              "layerId": "spice-old-gap",
+              "asset_id": "gf9-spice-location-marker",
+              "x": 297.642,
+              "y": 18.065,
+              "size": 20,
+              "rotation": 0
+            },
+            {
+              "layerId": "discovery-old-gap",
+              "asset_id": "gf9-smuggler-discovery-marker",
+              "x": 133.845,
+              "y": 323.279,
+              "size": 33,
+              "rotation": 0
+            }
+          ]
+        }
+      },
+      "sourceReference": "/card-references/local-old-gap.png",
+      "originalAssetType": "card-custom",
+      "requiresAuthenticatedTypeConversion": true,
+      "placementNote": "False Wall West marker adjusted radially into the linked board territory while keeping the source middle-sector direction. Original source point lay across its geometry boundary. Verified against native board polygon."
+    }
+  ],
+  "karama": {
+    "keys": ["gf9-karama", "gf9-karama-richese-cache"],
+    "type": "card-treachery",
+    "mainDeckCount": 2,
+    "richeseCacheCount": 1,
+    "name": "Karama",
+    "text": "After game setup and factions have completed their \"At Start\" actions, use this card to stop one use of a faction advantage (including alliance abilities) when a player attempts to use it. When used on faction advantages during a battle this must be played before Battle Plans are revealed.\n\nOr, this card may be used to do either of these things when appropriate:\n- Purchase a shipment of forces onto the planet at Guild rates (1/2 normal) paid to the Spice Bank, or\n- Bid more spice than you have (without revealing this card) and/or purchase a Treachery Card without paying spice for it (cannot be used if your hand is full).\n\nCannot be used to stop a Special Victory Condition or special Karama power.",
+    "decals": [],
+    "artworkProvenance": "Main replacement verified in Table Talks physical unboxing at 26:56. Text-only face with hand badge. Richese cache has the same text-only structure with its own Richese badge, independently verified in the local clean cache sheet and physical photograph.",
+    "textProvenance": "Transcribed from the visible 2021 replacement face in the physical unboxing, cross-checked against the clean Richese cache sheet. Straight quotes and list markup adapted to the Dune Zone text parser. Additional rulebook rules stay in about and the books.",
+    "icon": "/vector/icon/hand.svg",
+    "bodyLayout": "text-only",
+    "bodyFontSize": 38.75,
+    "sourceUrl": "https://www.youtube.com/watch?v=H2FJtqZjMXI&t=1616s",
+    "sourceReference": "/card-references/karama-main-replacement-video.png",
+    "about": "Use the CHOAM & Richese replacement as the active main-deck card, two copies. The Richese cache member retains its separate identity and membership. Karama is discarded after use. The book explains Special Karama in Advanced play and the Richese-auction restriction; those clauses are not printed on this replacement face.",
+    "acceptance": "Accepted by the user on 2026-10-20. Do not reopen."
+  },
+  "boardBinding": {
+    "key": "gf9-board",
+    "existingSlug": "arrakis-official",
+    "note": "Resolve the existing board entity through local/production package bindings. The prototype draws its recorded authored definition."
+  },
+  "discoveryMapDecision": "Use the existing linked-board Spice renderer. Spice-blow territories are orange; Hiereg destinations green; Smuggler destinations blue. Place matching type markers. No embedded map artwork or new vectors.",
+  "discoveryIconDecision": "Use only existing vectors. Hiereg uses the existing Fremen symbol and Smuggler uses the existing Guild symbol, matching the existing Discovery token-back data. No new vectors."
+}

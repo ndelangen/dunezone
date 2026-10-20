@@ -1,0 +1,62 @@
+[
+  {
+    "bodyFits": true,
+    "brokenImages": [],
+    "key": "gf9-discovery-spice-sihaya-ridge",
+    "nativeBoardCount": 1,
+    "tintCount": 2,
+    "title": "Sihaya Ridge",
+    "titleFits": true,
+    "tokenCount": 2
+  },
+  {
+    "bodyFits": true,
+    "brokenImages": [],
+    "key": "gf9-discovery-spice-rock-outcroppings",
+    "nativeBoardCount": 1,
+    "tintCount": 2,
+    "title": "Rock Outcroppings",
+    "titleFits": true,
+    "tokenCount": 2
+  },
+  {
+    "bodyFits": true,
+    "brokenImages": [],
+    "key": "gf9-discovery-spice-hagga-basin",
+    "nativeBoardCount": 1,
+    "tintCount": 2,
+    "title": "Hagga Basin",
+    "titleFits": true,
+    "tokenCount": 2
+  },
+  {
+    "bodyFits": true,
+    "brokenImages": [],
+    "key": "gf9-discovery-spice-funeral-plain",
+    "nativeBoardCount": 1,
+    "tintCount": 2,
+    "title": "Funeral Plain",
+    "titleFits": true,
+    "tokenCount": 2
+  },
+  {
+    "bodyFits": true,
+    "brokenImages": [],
+    "key": "gf9-discovery-spice-wind-pass-north",
+    "nativeBoardCount": 1,
+    "tintCount": 2,
+    "title": "Wind Pass North",
+    "titleFits": true,
+    "tokenCount": 2
+  },
+  {
+    "bodyFits": true,
+    "brokenImages": [],
+    "key": "gf9-discovery-spice-old-gap",
+    "nativeBoardCount": 1,
+    "tintCount": 2,
+    "title": "Old Gap",
+    "titleFits": true,
+    "tokenCount": 2
+  }
+]

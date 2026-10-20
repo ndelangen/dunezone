@@ -1,0 +1,111 @@
+{
+  "format": "gf9-local-card-source-v1",
+  "source": "/Users/me/Projects/Dune/dune-assets/spice/expansion3.png",
+  "sourceSha256": "bae7fde54c0890a8f55c7efcf7a0714e8a5be26bc69624f7752a74decb7ceabd",
+  "sourceDimensions": [
+    5272,
+    2096
+  ],
+  "records": [
+    {
+      "slug": "funeral-plain",
+      "index": 0,
+      "fullCard": {
+        "file": "/card-references/local-funeral-plain.png",
+        "crop": {
+          "left": 0,
+          "top": 0,
+          "width": 753,
+          "height": 1048
+        },
+        "sha256": "c01a845126b58514a071ee14901400a8089c4bc5e0a797980da11c26c5879160"
+      }
+    },
+    {
+      "slug": "hagga-basin",
+      "index": 2,
+      "fullCard": {
+        "file": "/card-references/local-hagga-basin.png",
+        "crop": {
+          "left": 1506,
+          "top": 0,
+          "width": 753,
+          "height": 1048
+        },
+        "sha256": "2b8c736ef6bea5a00258871a38c94557c3b9892679887f388a2fdf90a96eac24"
+      }
+    },
+    {
+      "slug": "old-gap",
+      "index": 3,
+      "fullCard": {
+        "file": "/card-references/local-old-gap.png",
+        "crop": {
+          "left": 2259,
+          "top": 0,
+          "width": 754,
+          "height": 1048
+        },
+        "sha256": "59cf9186419d186d98bd6009f27cc329d89e1ab0a3130804984f889df06a1865"
+      }
+    },
+    {
+      "slug": "rock-outcroppings",
+      "index": 4,
+      "fullCard": {
+        "file": "/card-references/local-rock-outcroppings.png",
+        "crop": {
+          "left": 3013,
+          "top": 0,
+          "width": 753,
+          "height": 1048
+        },
+        "sha256": "2ba1edd4b95bd0e39aeb36058b8326af29abc73801661f7066c42c0dce4b1943"
+      }
+    },
+    {
+      "slug": "sihaya-ridge",
+      "index": 5,
+      "fullCard": {
+        "file": "/card-references/local-sihaya-ridge.png",
+        "crop": {
+          "left": 3766,
+          "top": 0,
+          "width": 753,
+          "height": 1048
+        },
+        "sha256": "e14ffb57236ddbc9a754355acb92d60e749dee16755695a26e08e8d1e46ec223"
+      }
+    },
+    {
+      "slug": "wind-pass-north",
+      "index": 6,
+      "fullCard": {
+        "file": "/card-references/local-wind-pass-north.png",
+        "crop": {
+          "left": 4519,
+          "top": 0,
+          "width": 753,
+          "height": 1048
+        },
+        "sha256": "096959c6f45496dad31970721922e77b090abbde19bacb693539e78d2b1f105e"
+      }
+    }
+  ],
+  "sourceProvenance": "Local asset supplied by the user. Original GF9 third-expansion Spice Card faces; no claim about its earlier upstream download history.",
+  "sourceRow": {
+    "top": 0,
+    "height": 1048,
+    "cells": 7,
+    "cellBoundaryRule": "round(index * 5272 / 7), giving 753 or 754 pixels per full-card crop. Source lower row is black and excluded."
+  },
+  "processing": "Lossless PNG extraction. No resizing or RGB resampling. Outside-map alpha is cleared using the recorded circle-and-pips mask to remove adjacent large-six/Add ink while preserving protruding pips. Badge alpha uses a circle.",
+  "productionRegistration": "All /card-art/local-* paths are prototype-only. Register the source-derived images in the maintained media catalogue and bind production references before authenticated Save or Publish. Full card references are review evidence, not additional production cards.",
+  "stableLayerIdentity": "Each existing map decal UUID is retained. Each original production body text UUID now owns the minimal Add procedure. The prior prototype spice-heading UUID now owns the large six. New spice glyph decals have new UUIDs.",
+  "use": "Full-card reference images only. Proposed cards use the existing linked-board renderer, not cropped map or badge artwork.",
+  "symbols": {
+    "Hiereg": "/vector/logo/fremen.svg",
+    "Smuggler": "/vector/logo/guild.svg",
+    "decision": "Use existing Discovery token-back vectors only. Newly authored icons rejected."
+  }
+}

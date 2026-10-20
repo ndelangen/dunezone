@@ -1,0 +1,187 @@
+.gf9-remaining-review {
+  max-width: 1300px;
+  margin: auto;
+  color: #243440;
+}
+.gf9-remaining-intro {
+  max-width: 950px;
+  line-height: 1.5;
+}
+.gf9-card-review-controls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 24px;
+}
+.gf9-card-review-controls button {
+  font: inherit;
+  background: #fffaf0;
+  color: #243440;
+  border: 1px solid #8b7957;
+  border-radius: 3px;
+  padding: 7px 12px;
+  cursor: pointer;
+}
+.gf9-card-review-controls button[aria-pressed="true"] {
+  background: #e4ce95;
+}
+.gf9-remaining-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 28px;
+  margin-bottom: 30px;
+  align-items: start;
+}
+.gf9-remaining-card-example {
+  margin: 0;
+}
+.gf9-remaining-card-example > figcaption {
+  font:
+    17px system-ui,
+    sans-serif;
+  margin-bottom: 9px;
+}
+.gf9-remaining-card-frame {
+  position: relative;
+  overflow: hidden;
+}
+.gf9-remaining-native {
+  position: relative;
+  width: 900px;
+  height: 1263px;
+  transform-origin: top left;
+  text-align: left;
+}
+.gf9-card-review-caption {
+  font:
+    13px/1.45 system-ui,
+    sans-serif;
+  width: 63mm;
+  max-width: 100%;
+  margin: 8px 0 0;
+}
+.gf9-card-map-legend {
+  display: flex;
+  gap: 25px;
+  font:
+    14px system-ui,
+    sans-serif;
+  margin-bottom: 20px;
+}
+.gf9-card-map-legend span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.gf9-card-map-legend i {
+  display: block;
+  width: 16px;
+  height: 16px;
+  border: 1px solid #584e39;
+}
+.gf9-remaining-provenance {
+  max-width: 950px;
+  font:
+    14px/1.5 system-ui,
+    sans-serif;
+}
+.gf9-remaining-provenance p {
+  margin: 12px 0;
+}
+@media print {
+  .gf9-card-review-controls,
+  .gf9-remaining-provenance {
+    display: none;
+  }
+  .gf9-remaining-card-example {
+    break-inside: avoid;
+  }
+  .gf9-remaining-review > h2 {
+    break-after: avoid;
+  }
+}
+.gf9-physical-video-reference {
+  margin: 18px 0 24px;
+}
+.gf9-physical-video-reference figcaption {
+  margin-bottom: 8px;
+  font:
+    14px/1.4 system-ui,
+    sans-serif;
+}
+.gf9-physical-video-reference img {
+  display: block;
+  width: min(100%, 750px);
+  height: auto;
+}
+.gf9-discovery-comparisons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 30px;
+  margin-bottom: 30px;
+}
+.gf9-card-comparison {
+  min-width: 0;
+}
+.gf9-card-comparison h3 {
+  margin: 0 0 12px;
+  font:
+    600 20px/1.3 system-ui,
+    sans-serif;
+}
+.gf9-card-comparison-pair {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+}
+.gf9-original-card {
+  display: block;
+  object-fit: fill;
+}
+.gf9-map-adjustments {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(205px, 1fr));
+  gap: 12px 20px;
+  padding: 14px 16px;
+  margin-bottom: 24px;
+  background: #efede4;
+  border: 1px solid #b5aa92;
+  box-shadow: 0 3px 7px #0002;
+  font:
+    14px/1.35 system-ui,
+    sans-serif;
+}
+.gf9-map-slider {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 5px 10px;
+}
+.gf9-map-slider input {
+  grid-column: 1 / -1;
+  width: 100%;
+  margin: 0;
+}
+.gf9-map-slider output {
+  font-variant-numeric: tabular-nums;
+}
+.gf9-map-blend {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.gf9-map-blend select,
+.gf9-map-adjustments button {
+  font: inherit;
+  color: inherit;
+  background: #fffaf0;
+  border: 1px solid #8b7957;
+  border-radius: 3px;
+  padding: 6px 9px;
+}
+.gf9-map-control-note {
+  align-self: center;
+  font-size: 12px;
+}
