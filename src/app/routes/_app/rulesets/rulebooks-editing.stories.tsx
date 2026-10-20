@@ -457,6 +457,8 @@ export const RawJsonSettingsAndContents = meta.story({
   parameters: { database: db(withFinalRulebooks) },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
+    /* Account changes discard pending Load sessions; settle the signed-in identity before pasting. */
+    await page.findByRole('button', { name: 'storybook-viewer' });
     await page.findByRole('button', { name: 'Load existing Rulebook' });
     const before = await loadRulebookEditor({ rulesetSlug: 'classicrules', rulebookSlug: 'book-0' });
     if (before?.kind !== 'editable') {
@@ -467,6 +469,7 @@ export const RawJsonSettingsAndContents = meta.story({
       await userEvent.click(await page.findByRole('button', { name: 'Load existing Rulebook' }));
       await userEvent.click(page.getByRole('textbox', { name: 'Writable JSON' }));
       await userEvent.paste(JSON.stringify(value));
+      await expect(page.getByRole('textbox', { name: 'Writable JSON' })).toHaveValue(JSON.stringify(value));
       await userEvent.click(page.getByRole('button', { name: 'Validate JSON' }));
       const load = page.getByRole('button', { name: 'Load Rulebook' });
       await waitFor(() => expect(load).toBeEnabled());
