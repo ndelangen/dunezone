@@ -1,12 +1,14 @@
 # GF9 content
 
+The [GF9 correction implementation specification](implementation-spec.md) is the review entry point for the new correction. Its linked decisions supersede this directory's original manuscript/compiler/import workflow. Preserve the old files as delivery and source evidence; do not run the historical build to regenerate corrected authoring files. The new file-backed authoring and raw Load tooling remain implementation work, not commands already available here.
+
 This directory holds the locally authored content for the existing [GF9 Ruleset](https://dune.zone/rulesets/gf9) and [GF9 Group](https://dune.zone/groups/gf9). The scope is the 2019 GF9 game in Basic and Advanced play, all twelve factions, and the Ixians & Tleilaxu, CHOAM & Richese, and Ecaz & Moritani expansions. The companion books cover Tech Tokens, Leader Skills, Stronghold Cards, Nexus Cards, Homeworlds and Discovery Tokens.
 
 The public source ticket used for this delivery is [Create GF9 ruleset, #2216](https://github.com/ndelangen/dunezone/issues/2216). Contradictions and adopted interpretations belong in [GF9 judgements, #2352](https://github.com/ndelangen/dunezone/issues/2352). Application limitations belong in [DuneZone GF9 missing features, #2353](https://github.com/ndelangen/dunezone/issues/2353).
 
 The requested Discord creation ticket could not be located. The private browser session was signed out; the other browser session used a different Discord account. The native app had the intended Central account. Its Dreamrules posts confirmed the FAQ dataset and its link to #2284. The creation-week GF9 and ruleset search results were read in full in Dreamrules and Dune Tabletop, but did not identify a creation ticket. The GitHub ticket and all its supplied PDFs were read; the Discord and GitHub tickets have not been established as the same record.
 
-## Authoring and build
+## Historical authoring and build
 
 - `*-manuscript.json`: four teaching manuscripts, with applicability and source references on each section. Edit these before rebuilding the rulebook data.
 - `base-factions.json`: six original factions in the shared faction input shape.

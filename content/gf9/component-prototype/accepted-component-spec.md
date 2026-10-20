@@ -2,6 +2,8 @@
 
 Resolved through live review on 20 October 2026 for [Approve faction, logo and component correction treatments](https://github.com/ndelangen/dunezone/issues/2362). This is the visual and authoring contract for later implementation. The planning map excludes production execution. Earlier exploratory notes, old proofs and the original package are reference inputs, not independent competing specifications.
 
+Later [content acceptance](../acceptance/acceptance-contract.md) and [production-batch](../release/production-batches.md) decisions control delivery order and review gates. They supersede older PDF/physical-proof wording below. The user reviews all four complete local web books, without a human PDF or physical-print approval step. The accepted component appearances and exact data remain unchanged.
+
 ## Identity and visible names
 
 Use the existing GF9 Ruleset and Group. All associated assets belong to that Group. Preserve production entity IDs, owners, member UUIDs, ordering, references, deck quantities and unrelated stock. Resolve authoring keys to verified destination records through the map's authenticated workflow. Never infer an owner from the package.
@@ -32,7 +34,7 @@ The accepted text-only design and exact 705-character replacement transcription 
 
 The prototype uses the existing plain Custom Card frame only to demonstrate the desired Treachery format. Expose a backward-compatible text-only Treachery treatment rather than converting Karama to Custom Card. Its accepted native Candara body size is 38.75. Physical main and cache provenance are in remaining-source-comparison.md and local-card-source-manifest.json. The previous meditation illustration and obsolete core wording are rejected.
 
-## Six Discovery Spice cards
+## Discovery cards
 
 Use all six card records in remaining-card-data.json. Each remains one copy, amount six, with the recorded separate blow and Discovery destinations. Preserve the two bold spans in the stored formatted text. Do not substitute plain text or move complete procedures onto the face.
 
