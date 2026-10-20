@@ -3,9 +3,16 @@
 import { COMPONENT_GEOMETRY_PROTOCOL } from '@shared/asset-publishing/componentGeometry';
 import { publishingTreacheryCard } from '@shared/assets/fixtures/publishingTreacheryCard';
 import { render } from '@testing-library/react';
-import { expect, it } from 'vite-plus/test';
+import { expect, it, vi } from 'vite-plus/test';
 
+import type * as TitleFitModule from '../utils/cardTitleFit';
 import { TreacheryCard } from './Treachery';
+
+// These tests own card anatomy. Loaded-font fitting runs in the Chromium renderer stories.
+vi.mock('../utils/cardTitleFit', async (importOriginal) => ({
+  ...(await importOriginal<typeof TitleFitModule>()),
+  useCardTitleFit: () => undefined,
+}));
 
 it('exposes the maintained Card anatomy only while each part has content', () => {
   const { container, rerender } = render(<TreacheryCard {...publishingTreacheryCard} />);

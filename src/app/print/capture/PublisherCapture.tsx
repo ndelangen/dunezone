@@ -31,6 +31,7 @@ import { TroopToken } from '@game/assets/faction/troop/Troop';
 import { CustomToken } from '@game/assets/token/Custom';
 import { RectangleToken } from '@game/assets/token/Rectangle';
 import { TreacheryCard } from '@game/assets/treachery/Treachery';
+import { settleCardTitles } from '@game/assets/utils/cardTitleFit';
 import { RulebookDocumentRenderer, RulebookPageRenderer } from '@game/rulebook/RulebookRenderer';
 
 import { afterPaint, ASSET_SETTLE_TIMEOUT_MS, settleHtmlImages, settleSvgResources } from './captureSettle';
@@ -324,6 +325,7 @@ export function PublisherCapture() {
         await assertRequiredPublisherFonts(document.fonts);
         await settleHtmlImages(controller.signal);
         await settleSvgResources(controller.signal);
+        await settleCardTitles(document, controller.signal);
         if (!disposed && !controller.signal.aborted) {
           if (isComponentAssetType(snapshot.assetType)) {
             const frame = document.querySelector<HTMLElement>(CAPTURE_PROTOCOL.frameMarker.selector);
