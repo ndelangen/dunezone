@@ -6,7 +6,7 @@ The first example is a position during a game, not Emperor's starting setup. Emp
 
 The route Tuek's Sietch, Pasty Mesa, Shield Wall, Imperial Basin follows the supplied original GF9 movement example. All three shared borders were checked against `src/shared/boards/arrakis.json` through the existing geometry derivation. Waypoint and troop positions are interior points in the supplied board geometry. They position a game diagram, never a paragraph.
 
-The storm comparison uses a 70-degree storm sector. The direct Imperial Basin waypoint at 0.52, 0.28 is in that territory but outside the storm. The following segment crosses the storm and receives the blocked mark. The alternate route Carthag, Arsunt, Polar Sink, False Wall East has three verified shared borders and avoids the storm. The existing renderer masks the Polar Sink from its storm overlay.
+The storm comparison uses a 70-degree storm sector. The direct Imperial Basin waypoint at 0.53, 0.28 is in that territory but outside the storm. The following segment crosses the storm and receives the blocked mark. Both route origins are at 0.505, 0.228, clear of the enlarged force markers. The alternate route Carthag, Arsunt, Polar Sink, False Wall East has three verified shared borders and avoids the storm. The existing renderer masks the Polar Sink from its storm overlay.
 
 The stronghold examples use Guild alone, then Guild and Atreides. Emperor can enter the first but cannot enter or cross the second. The ordinary troop anchors are verified inside Carthag. Advanced advisors and allied coexistence are explained separately.
 
@@ -15,3 +15,5 @@ The collection example uses the same 2 Hagga Basin forces beside 6 spice. Six ex
 Dreamrules pages 22–26 inspired the progression from shipment to range, storm restrictions and stronghold entry. GF9 mechanics come from the existing reviewed core manuscript sections for shipment, movement, collection, battle and victory. No Dreamrules faction mechanics were imported.
 
 These fixtures still require browser and PDF inspection for clipping, figure scale and reading order. Map routes illustrate authored legal examples; they do not calculate legality. Exact physical page dimensions and publication remain the enclosing prototype's responsibility.
+
+Live review increased stronghold troop diameter from 0.021 to 0.044 of the board, about 12.7 mm in the close-up. Range markers use 0.04 and storm markers 0.038. The 18 troop discs were checked at 64 perimeter points each to keep them within their named territories. This is figure markup, not a change to game mechanics or the shared board. The final collection comparison uses the existing paired-rows layout, and minor headings use the Text Block's existing name field.

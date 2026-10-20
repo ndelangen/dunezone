@@ -12,6 +12,8 @@ The question is which page compositions teach the reviewed GF9 rules clearly whi
 
 The user's response supersedes the earlier A-with-B recommendation. Keep C's compact structure, but place a component image beside its explanation when the reader needs to identify or interpret it. An illustrated closing strip is suitable only when it does not separate a rule from the image it needs.
 
+Subsequent live feedback rejects a blue bar for every subheading and asks for larger troop markers. Use the existing Text Block's `name` for quieter minor headings. Reserve the strongest bar treatment for the page title or a major division. Movement's collection comparison now uses the existing paired-rows layout, with the two figures beside one another and consequences below. Figure placement should help comparison and reading order rather than repeat the same two-column stack on every page.
+
 The next review is focused. It contains the four-page Shipment and Movement walkthrough, Tech Token images paired with their own starting-holder and trigger rules, and text flowing beside a Discovery card. Accepted covers and unchanged pages are excluded. Do not ask the user to approve them again.
 
 ## Run and review

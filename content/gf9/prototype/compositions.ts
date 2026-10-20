@@ -83,6 +83,38 @@ function pageFixture(id: string, title: string, layoutId: string, regions: Recor
   const definition = rulebookLayoutCatalogue.find(layout => layout.id === layoutId)!;
   return rulebookRenderPageV1Schema.parse({ id, anchor: id, title, showHeading: true, layoutId, controlValues, regions: definition.regions.filter(region => region.kind === 'block').map(region => ({ key: region.key, blocks: regions[region.key] ?? [] })) });
 }
+function refineCPage(input: RulebookRenderPageV1): RulebookRenderPageV1 {
+  let page = input;
+  if (page.id === 'core-shipment-position') {
+    const byId = new Map(page.regions.flatMap(region => region.blocks).map(block => [block.id, block]));
+    const pick = (id: string) => byId.get(id)!;
+    const named = (id: string, title: string) => ({ ...pick(id), name: title });
+    const comparison = (id: string) => {
+      const block = pick(id);
+      if (block.kind !== 'callout') throw new Error('Collection comparison needs its explanation');
+      return { id: block.id, kind: 'text', name: block.title, text: block.text } as RulebookRenderBlockV1;
+    };
+    page = { ...page, layoutId: 'paired-rows', regions: [
+      { key: 'opening', blocks: [named('collect-rule', 'Two collectors, six spice')] },
+      { key: 'upperLeft', blocks: [pick('collection-no-city-map'), comparison('collect-four')] },
+      { key: 'upperRight', blocks: [pick('collection-city-map'), comparison('collect-six')] },
+      { key: 'lowerLeft', blocks: [named('position-text', 'What did you leave behind?'), pick('planning-check')] },
+      { key: 'lowerRight', blocks: [named('battle-later', 'Entry is followed by battle'), named('victory-later', 'Hold until the victory check')] },
+      { key: 'closing', blocks: [] },
+    ] };
+  }
+  return rulebookRenderPageV1Schema.parse({ ...page, regions: page.regions.map(region => {
+    const result: RulebookRenderBlockV1[] = [];
+    for (let index = 0; index < region.blocks.length; index++) {
+      const block = region.blocks[index];
+      if (block.kind !== 'section-heading') { result.push(block); continue; }
+      const next = region.blocks[index + 1];
+      if (next?.kind === 'text' && !next.name) { result.push({ ...next, name: block.title }); index++; }
+      else result.push({ id: block.id, kind: 'text', name: block.title, text: '' });
+    }
+    return { ...region, blocks: result };
+  }) });
+}
 export function renderPage(caseId: string, variant: Variant): RulebookRenderPageV1 {
   const cover = covers.find(item => item.id === caseId);
   if (cover) return rulebookRenderPageV1Schema.parse({ id: caseId, anchor: caseId, title: cover.title, showHeading: false, layoutId: 'cover', regions: [], controlValues: { cover: { artwork: unselected, backgroundImageUrl: '/reference/' + cover.image, showDuneLogo: false, showSubtitle: false, subtitle: '', supportingText: '' } } });
@@ -121,7 +153,7 @@ export function renderPage(caseId: string, variant: Variant): RulebookRenderPage
 }
 
 export function renderPages(caseId: string, variant: Variant): RulebookRenderPageV1[] {
-  if (caseId === 'core-shipment' && variant === 'C') return shipmentWalkthrough();
+  if (caseId === 'core-shipment' && variant === 'C') return shipmentWalkthrough().map(refineCPage);
   const page = prototypePages.find(item => item.id === caseId);
   if (caseId === 'ecaz-discovery' && page) {
     const sections = page.sections.map((section, i) => blocks(section, page.id + '-' + i));
@@ -129,12 +161,13 @@ export function renderPages(caseId: string, variant: Variant): RulebookRenderPag
       { id: 'hidden', source: source('gf9-discovery-cistern-authored-back', 'Hidden Hiereg token', 'token-disc'), text: '' },
       { id: 'revealed', source: source('gf9-discovery-cistern-front-cardback', 'Cistern revealed', 'token-disc'), text: '' },
     ] } as RulebookRenderBlockV1;
-    return [
+    const pages = [
       pageFixture(caseId, page.title, 'single-column', { content: variant === 'C' ? [
         { ...illustration(caseId), id: 'discovery-illustrated-rule', name: page.sections[0].title, text: 'Discovery is an optional module. ' + page.sections[0].blocks.flatMap(block => block.kind === 'text' ? [block.text] : block.kind === 'callout' ? [`${block.title}. ${block.text}`] : []).join('\n\n') } as RulebookRenderBlockV1,
       ] : variant === 'A' ? [illustration(caseId), ...sections[0]] : [...sections[0], illustration(caseId)] }),
       pageFixture(caseId + '-continued', 'Enter the revealed location', 'single-column', { content: [...sections.slice(1).flat(), token] }),
     ];
+    return variant === 'C' ? pages.map(refineCPage) : pages;
   }
   if (caseId === 'core-battle' && variant === 'B' && page) {
     const sections = page.sections.map((section, i) => blocks(section, page.id + '-' + i));
@@ -143,7 +176,8 @@ export function renderPages(caseId: string, variant: Variant): RulebookRenderPag
       pageFixture(caseId + '-continued', 'Resolve weapons and losses', 'two-columns', { column1: [sections[0][3], ...sections[1]], column2: sections[2] }),
     ];
   }
-  return [renderPage(caseId, variant)];
+  const renderedPage = renderPage(caseId, variant);
+  return [variant === 'C' ? refineCPage(renderedPage) : renderedPage];
 }
 
 export function settingsFor(caseId: string) {

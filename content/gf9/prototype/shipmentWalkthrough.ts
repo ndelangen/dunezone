@@ -30,12 +30,11 @@ function faction(key = 'gf9-emperor') {
     artwork: TroopArtwork.strip().parse(data.troops[0]),
   };
 }
-function forces(id: string, territory: string, count: number, key = 'gf9-emperor', position = locations[territory]): Scene['troops'][number] {
+function forces(id: string, territory: string, count: number, key = 'gf9-emperor', position = locations[territory], size = .044, requestedColumns = Math.min(count, 2)): Scene['troops'][number] {
   const selected = faction(key);
-  const columns = Math.min(count, 2);
+  const columns = requestedColumns;
   const rows = Math.ceil(count / columns);
-  const size = .021;
-  const gap = .002;
+  const gap = .004;
   return { id, faction: selected.value, artwork: selected.artwork, troopId: selected.artwork.troopId, face: 'front', count, x: position.x - (columns * size + (columns - 1) * gap) / 2, y: position.y - (rows * size + (rows - 1) * gap) / 2, columns, size, gap };
 }
 function route(id: string, label: string, territories: string[], color = '#215f89'): NonNullable<Scene['routes']>[number] {
@@ -70,21 +69,25 @@ export function shipmentWalkthrough(): RulebookRenderPageV1[] {
   const viaCity = transfer('ship-city-transfer', 'Reserves', 'Arrakeen', 1, 'Shipment: 1 spice');
   const distantMove = transfer('ship-distant-transfer', 'Tuek\'s Sietch', 'Imperial Basin', 3, 'Movement: 0 spice');
   const mainRoute = route('three-territory-route', '0 Tuek\'s Sietch → 1 Pasty Mesa → 2 Shield Wall → 3 Imperial Basin', ['tueks', 'pasty-mesa', 'shield-wall', 'imperial-basin']);
-  const rangeMap = scene('range-map', 'Before movement: 1 force in Arrakeen grants the distant group its three-territory range. Move the 3 forces together along the numbered route.', [forces('range-city', 'arrakeen', 1), forces('range-origin', 'tueks', 3)], { routes: [mainRoute], highlights: [{ territory: 'arrakeen', color: '#487b37', opacity: .24 }, { territory: 'imperial-basin', color: '#215f89', opacity: .18 }] });
+  mainRoute.waypoints[0] = { territory: 'tueks', position: { x: .85, y: .64 } };
+  const rangeMap = scene('range-map', 'Before movement: 1 force in Arrakeen grants the distant group its three-territory range. Move the 3 forces together along the numbered route.', [forces('range-city', 'arrakeen', 1), forces('range-origin', 'tueks', 3, 'gf9-emperor', { x: .864, y: .704 }, .04)], { routes: [mainRoute], highlights: [{ territory: 'arrakeen', color: '#487b37', opacity: .24 }, { territory: 'imperial-basin', color: '#215f89', opacity: .18 }] });
   const directStorm = route('blocked-storm', 'Blocked: Carthag → Imperial Basin → False Wall East', ['carthag', 'imperial-basin', 'false-wall-east'], '#a33328');
-  directStorm.waypoints[1] = { territory: 'imperial-basin', position: { x: .52, y: .28 } };
+  directStorm.waypoints[0] = { territory: 'carthag', position: { x: .505, y: .228 } };
+  directStorm.waypoints[1] = { territory: 'imperial-basin', position: { x: .53, y: .28 } };
   directStorm.blockedAfter = 1;
   const stormCrop = { x: .39, y: .04, width: .31, height: .59 };
-  const stormStart = [forces('storm-origin', 'carthag', 3)];
+  const stormStart = [forces('storm-origin', 'carthag', 3, 'gf9-emperor', { x: .49, y: .184 }, .038)];
   const blockedMap = scene('storm-blocked-map', 'The red shaded sector is the storm. Clear endpoints do not make the crossing legal.', stormStart, { viewport: stormCrop, storm: { angle: 70 }, routes: [directStorm] });
-  const detourMap = scene('storm-detour-map', 'The blue path avoids the storm: Arsunt, Polar Sink, then False Wall East. Legal with ornithopters.', stormStart, { viewport: stormCrop, storm: { angle: 70 }, routes: [route('clear-detour', '0 Carthag → 1 Arsunt → 2 Polar Sink → 3 False Wall East', ['carthag', 'arsunt', 'polar', 'false-wall-east'])] });
+  const detour = route('clear-detour', '0 Carthag → 1 Arsunt → 2 Polar Sink → 3 False Wall East', ['carthag', 'arsunt', 'polar', 'false-wall-east']);
+  detour.waypoints[0] = { territory: 'carthag', position: { x: .505, y: .228 } };
+  const detourMap = scene('storm-detour-map', 'The blue path avoids the storm: Arsunt, Polar Sink, then False Wall East. Legal with ornithopters.', stormStart, { viewport: stormCrop, storm: { angle: 70 }, routes: [detour] });
   const cityCrop = { x: .405, y: .105, width: .17, height: .17 };
-  const oneOpponent = scene('one-occupant-map', 'Guild alone: Emperor may enter Carthag.', [forces('single-occupant', 'carthag', 1, 'gf9-spacing-guild', { x: .47, y: .17 })], { viewport: cityCrop, highlights: [{ territory: 'carthag', color: '#487b37', opacity: .18 }] });
-  const twoOpponents = scene('two-occupants-map', 'Guild + Atreides: Emperor may not enter or pass through.', [forces('first-occupant', 'carthag', 1, 'gf9-spacing-guild', { x: .47, y: .17 }), forces('second-occupant', 'carthag', 1, 'gf9-atreides', { x: .50, y: .19 })], { viewport: cityCrop, highlights: [{ territory: 'carthag', color: '#a33328', opacity: .18 }] });
+  const oneOpponent = scene('one-occupant-map', 'Guild alone: Emperor may enter Carthag.', [forces('single-occupant', 'carthag', 1, 'gf9-spacing-guild', { x: .473, y: .163 })], { viewport: cityCrop, highlights: [{ territory: 'carthag', color: '#487b37', opacity: .18 }] });
+  const twoOpponents = scene('two-occupants-map', 'Guild + Atreides: Emperor may not enter or pass through.', [forces('first-occupant', 'carthag', 1, 'gf9-spacing-guild', { x: .473, y: .163 }), forces('second-occupant', 'carthag', 1, 'gf9-atreides', { x: .50, y: .205 })], { viewport: cityCrop, highlights: [{ territory: 'carthag', color: '#a33328', opacity: .18 }] });
   const collectionCrop = { x: .25, y: .075, width: .49, height: .40 };
-  const spice: NonNullable<Scene['tokens']> = Array.from({ length: 6 }, (_, index) => ({ layerId: `spice-${index}`, asset_id: 'gf9-spice-token-1', x: (.35 + (index % 3) * .025) * 487.06, y: (.345 + Math.floor(index / 3) * .025) * 487.06, size: 8, rotation: 0, name: '1 spice', type: 'token-disc', imageUrl: '/vector/icon/spice.svg' }));
-  const noCity = scene('collection-no-city-map', '2 forces and 6 spice in one Hagga Basin sector. Each black spice symbol is 1 spice. No city is occupied.', [forces('collectors', 'hagga-basin', 2, 'gf9-emperor', { x: .345, y: .29 })], { viewport: collectionCrop, tokens: spice, highlights: [{ territory: 'hagga-basin', color: '#d79a28', opacity: .25 }] });
-  const withCity = scene('collection-city-map', 'The same 2 forces and 6 spice, plus a surviving Emperor force in Arrakeen. City access helps this distant group.', [forces('city-collectors', 'hagga-basin', 2, 'gf9-emperor', { x: .345, y: .29 }), forces('collection-city', 'arrakeen', 1)], { viewport: collectionCrop, tokens: spice, highlights: [{ territory: 'hagga-basin', color: '#d79a28', opacity: .25 }, { territory: 'arrakeen', color: '#487b37', opacity: .22 }] });
+  const spice: NonNullable<Scene['tokens']> = Array.from({ length: 6 }, (_, index) => ({ layerId: `spice-${index}`, asset_id: 'gf9-spice-token-1', x: (.345 + (index % 3) * .025 + Math.floor(index / 3) * .015) * 487.06, y: (.34 + Math.floor(index / 3) * .025) * 487.06, size: 10, rotation: 0, name: '1 spice', type: 'token-disc', imageUrl: '/vector/icon/spice.svg' }));
+  const noCity = scene('collection-no-city-map', '2 forces and 6 spice in one Hagga Basin sector. Each black spice symbol is 1 spice. No city is occupied.', [forces('collectors', 'hagga-basin', 2, 'gf9-emperor', { x: .33, y: .29 }, .044, 1)], { viewport: collectionCrop, tokens: spice, highlights: [{ territory: 'hagga-basin', color: '#d79a28', opacity: .25 }] });
+  const withCity = scene('collection-city-map', 'The same 2 forces and 6 spice, plus a surviving Emperor force in Arrakeen. City access helps this distant group.', [forces('city-collectors', 'hagga-basin', 2, 'gf9-emperor', { x: .33, y: .29 }, .044, 1), forces('collection-city', 'arrakeen', 1)], { viewport: collectionCrop, tokens: spice, highlights: [{ territory: 'hagga-basin', color: '#d79a28', opacity: .25 }, { territory: 'arrakeen', color: '#487b37', opacity: .22 }] });
   return [
     page('core-shipment', 'Ship first, move second', [
       heading('ship-turn-heading', 'Finish both actions'),
