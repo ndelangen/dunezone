@@ -1,0 +1,191 @@
+{
+  "gf9-atreides-faction-token": {
+    "source": "/Users/me/Projects/Dune/gf9-delivery/production-images/images/gf9-atreides-faction-token.jpg",
+    "sha256": "187f678debe0359ba0c1569b292cdcc8094803ae28989618f050e441893bdc73"
+  },
+  "gf9-atreides-leader-lady-jessica": {
+    "source": "/Users/me/Projects/Dune/gf9-delivery/production-images/images/gf9-atreides-leader-lady-jessica.jpg",
+    "sha256": "c26e2e0794a84125414fe50ce455d28a03de6c10fbeb39bc4f5a1faf133207c6"
+  },
+  "gf9-atreides-leader-thufir-hawat": {
+    "source": "/Users/me/Projects/Dune/gf9-delivery/production-images/images/gf9-atreides-leader-thufir-hawat.jpg",
+    "sha256": "682125cc9dd928bbc0bc9488818688ca79ef2b891b0cbcd9084e0cb6228ba0e6"
+  },
+  "gf9-atreides-leader-gurney-halleck": {
+    "source": "/Users/me/Projects/Dune/gf9-delivery/production-images/images/gf9-atreides-leader-gurney-halleck.jpg",
+    "sha256": "d26be8a76245b5828ebf5321f6962f8e7b83bc99eb495aca622114e5cb069104"
+  },
+  "gf9-atreides-leader-duncan-idaho": {
+    "source": "/Users/me/Projects/Dune/gf9-delivery/production-images/images/gf9-atreides-leader-duncan-idaho.jpg",
+    "sha256": "dfa064c784780738f7568bb18b7d572c36f96ff9a4240cdb4ec0fb475c2aeaaa"
+  },
+  "gf9-atreides-leader-doctor-yueh": {
+    "source": "/Users/me/Projects/Dune/gf9-delivery/production-images/images/gf9-atreides-leader-doctor-yueh.jpg",
+    "sha256": "8bc2111df645bdde3ffe610bd93477f135852269b65d36b98c982e1fb953f11d"
+  },
+  "gf9-atreides-troop-normal-troop": {
+    "source": "/Users/me/Projects/Dune/gf9-delivery/production-images/images/gf9-atreides-troop-normal-troop.jpg",
+    "sha256": "bf2273da6c17620c1c0d1878d778f4a0b2d79bef34da39eefb274e8f41362460"
+  },
+  "gf9-emperor-leader-caid": {
+    "source": "/Users/me/Projects/Dune/gf9-delivery/production-images/images/gf9-emperor-leader-caid.jpg",
+    "sha256": "6d41398684dc095af1d30a62b0c00dea8d7f42f9fbb48c8ddf35104746229dea"
+  },
+  "gf9-spacing-guild-leader-staban-tuek": {
+    "source": "/Users/me/Projects/Dune/gf9-delivery/production-images/images/gf9-spacing-guild-leader-staban-tuek.jpg",
+    "sha256": "95c005dabed7e214b4bccc54fff637fb036119a76f7aa1ef0206e7a755ff0b0e"
+  },
+  "gf9-crysknife-front-cardback": {
+    "source": "/Users/me/Projects/Dune/gf9-delivery/production-images/images/gf9-crysknife-front-cardback.jpg",
+    "sha256": "67fe265f51a3278f7fcf8836a7eee57d304ff3dee9948af4d33715dfacbb101a"
+  },
+  "gf9-shield-front-cardback": {
+    "source": "/Users/me/Projects/Dune/gf9-delivery/production-images/images/gf9-shield-front-cardback.jpg",
+    "sha256": "af0b0c5ea9884268804ababe314bad9a6e522d63c2c086f6c35c65d34b009b98"
+  },
+  "gf9-chaumas-front-cardback": {
+    "source": "/Users/me/Projects/Dune/gf9-delivery/production-images/images/gf9-chaumas-front-cardback.jpg",
+    "sha256": "4cae585abc3b4d5761078c3fba9b85453678acdbe5755f669c0ac9b87089c4c8"
+  },
+  "gf9-snooper-front-cardback": {
+    "source": "/Users/me/Projects/Dune/gf9-delivery/production-images/images/gf9-snooper-front-cardback.jpg",
+    "sha256": "82255eb1d1ce32369fd62549223c05da83978c298346467d2d57f192514c67f4"
+  },
+  "gf9-discovery-spice-sihaya-ridge-front-cardback": {
+    "source": "/Users/me/Projects/Dune/gf9-delivery/production-images/images/gf9-discovery-spice-sihaya-ridge-front-cardback.jpg",
+    "sha256": "95f235c7ed473737f9d6c9ddaaa8ef42413bbae0c4ac82c1af0e918d652d3c5d"
+  },
+  "gf9-discovery-cistern-front-cardback": {
+    "source": "/Users/me/Projects/Dune/gf9-delivery/production-images/images/gf9-discovery-cistern-front-cardback.jpg",
+    "sha256": "d566dcbec1da28d1134b99d5b7f7069d8e9f0d3f9b3e02898774ff310e36e145"
+  },
+  "gf9-discovery-cistern-authored-back": {
+    "source": "/Users/me/Projects/Dune/gf9-delivery/production-images/images/gf9-discovery-cistern-authored-back.jpg",
+    "sha256": "ad2fbe4bd4029b4a073435884aa0caa28eba8754fcb5a82f9a437976afbf0d6a"
+  },
+  "/image/texture/004.jpg": {
+    "source": "https://dune.zone/m/00612fb479202d2ef72a.5f553140bc.jpg",
+    "local": "/m/00612fb479202d2ef72a.5f553140bc.jpg",
+    "sha256": "2a3d56ef2870c6d6099c0ca763a6c05e877e913af22756ec6cb4bd5a83ec1f7a"
+  },
+  "/image/texture/082.jpg": {
+    "source": "https://dune.zone/m/4e47f3e5fc4284ed21ac.5f553140bc.jpg",
+    "local": "/m/4e47f3e5fc4284ed21ac.5f553140bc.jpg",
+    "sha256": "a3ce980b15a24f21e6de0c0d6c33ec59f79f592062482112b54ace5521e67783"
+  },
+  "/image/leader/official/paul.jpg": {
+    "source": "https://dune.zone/m/903478d0de2471059a02.bfc53569b2.webp",
+    "local": "/m/903478d0de2471059a02.bfc53569b2.webp",
+    "sha256": "d94838bc5e9b81c9867ec9a08147f92674590985121914ec8874b141c8607909"
+  },
+  "/image/texture/055.jpg": {
+    "source": "https://dune.zone/m/12ac89979a974f061077.5f553140bc.jpg",
+    "local": "/m/12ac89979a974f061077.5f553140bc.jpg",
+    "sha256": "f5fb5c7c765fc80df262a319e8782352dd02263aa0b6366a927100490410fb27"
+  },
+  "/image/texture/006.jpg": {
+    "source": "https://dune.zone/m/d3e58550c4e71cf08a26.5f553140bc.jpg",
+    "local": "/m/d3e58550c4e71cf08a26.5f553140bc.jpg",
+    "sha256": "54eda41844153138116670eed6bf052a9cb3a12160257455f46619eb3fc372db"
+  },
+  "current:core-cover": {
+    "source": "gf9-dune-core-rules.pdf",
+    "page": 1,
+    "physicalMm": [
+      210,
+      297
+    ],
+    "note": "Archived first delivery, not a fresh production capture",
+    "sourceSha256": "c651c7b1a10d9af0f3acb01e64eec3b0588bb7b681b2a69c05d9fb470f0431e0"
+  },
+  "current:ixian-cover": {
+    "source": "gf9-ixians-tleilaxu.pdf",
+    "page": 1,
+    "physicalMm": [
+      210,
+      297
+    ],
+    "note": "Archived first delivery, not a fresh production capture",
+    "sourceSha256": "0de44bc6ff28744f7980c185af5fb653ce6902b7926cb82b4709e9ac8bc9ceba"
+  },
+  "current:choam-cover": {
+    "source": "gf9-choam-richese.pdf",
+    "page": 1,
+    "physicalMm": [
+      210,
+      297
+    ],
+    "note": "Archived first delivery, not a fresh production capture",
+    "sourceSha256": "1bf8a23d4fc4e100904b5d931d94b89ec1953d6a95494cea0dbdadddac77b99e"
+  },
+  "current:ecaz-cover": {
+    "source": "gf9-ecaz-moritani.pdf",
+    "page": 1,
+    "physicalMm": [
+      210,
+      297
+    ],
+    "note": "Archived first delivery, not a fresh production capture",
+    "sourceSha256": "2a24d4ec1ef9858c28435e331ed9ba399e53d061b4ae23d0aff5b7681a1e665c"
+  },
+  "current:core-setup": {
+    "source": "gf9-dune-core-rules.pdf",
+    "page": 6,
+    "physicalMm": [
+      210,
+      297
+    ],
+    "note": "Archived first delivery, not a fresh production capture",
+    "sourceSha256": "c651c7b1a10d9af0f3acb01e64eec3b0588bb7b681b2a69c05d9fb470f0431e0"
+  },
+  "current:core-shipment": {
+    "source": "gf9-dune-core-rules.pdf",
+    "page": 17,
+    "physicalMm": [
+      210,
+      297
+    ],
+    "note": "Archived first delivery, not a fresh production capture",
+    "sourceSha256": "c651c7b1a10d9af0f3acb01e64eec3b0588bb7b681b2a69c05d9fb470f0431e0"
+  },
+  "current:core-battle": {
+    "source": "gf9-dune-core-rules.pdf",
+    "page": 21,
+    "physicalMm": [
+      210,
+      297
+    ],
+    "note": "Archived first delivery, not a fresh production capture",
+    "sourceSha256": "c651c7b1a10d9af0f3acb01e64eec3b0588bb7b681b2a69c05d9fb470f0431e0"
+  },
+  "current:core-atreides": {
+    "source": "gf9-dune-core-rules.pdf",
+    "page": 31,
+    "physicalMm": [
+      210,
+      297
+    ],
+    "note": "Archived first delivery, not a fresh production capture",
+    "sourceSha256": "c651c7b1a10d9af0f3acb01e64eec3b0588bb7b681b2a69c05d9fb470f0431e0"
+  },
+  "current:ixian-tech": {
+    "source": "gf9-ixians-tleilaxu.pdf",
+    "page": 8,
+    "physicalMm": [
+      210,
+      297
+    ],
+    "note": "Archived first delivery, not a fresh production capture",
+    "sourceSha256": "0de44bc6ff28744f7980c185af5fb653ce6902b7926cb82b4709e9ac8bc9ceba"
+  },
+  "current:ecaz-discovery": {
+    "source": "gf9-ecaz-moritani.pdf",
+    "page": 14,
+    "physicalMm": [
+      210,
+      297
+    ],
+    "note": "Archived first delivery, not a fresh production capture",
+    "sourceSha256": "2a24d4ec1ef9858c28435e331ed9ba399e53d061b4ae23d0aff5b7681a1e665c"
+  }
+}

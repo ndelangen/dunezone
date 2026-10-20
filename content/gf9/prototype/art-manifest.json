@@ -1,0 +1,497 @@
+{
+  "status": "Prototype reference assets. Not final publication files.",
+  "note": "Page renders preserve original lettering and layout. Rendering at 300 dpi preserves vector edges but does not add detail to embedded raster artwork.",
+  "sourcePageNumbering": "One-based PDF page numbers",
+  "sources": {
+    "base": {
+      "fileName": "base.pdf",
+      "sha256": "6c55d28e93b6948a34d20b0f50e1087494e06f237f8c43e7e4c0cac3810b752d"
+    },
+    "ixian-tleilaxu": {
+      "fileName": "ixian-tleilaxu.pdf",
+      "sha256": "9dc631968839d6e8935acb30ac301301cfea7ed07a78a3aac266648f21cf357d"
+    },
+    "choam-richese": {
+      "fileName": "choam-richese.pdf",
+      "sha256": "ee08ac180ca9824728532212bbd54de3e258ed81ad30051063f5633928fb7407"
+    },
+    "ecaz-moritani": {
+      "fileName": "ecaz-moritani.pdf",
+      "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9"
+    }
+  },
+  "assets": [
+    {
+      "id": "core-cover",
+      "purpose": "Original core cover",
+      "source": "base",
+      "pageNumber": 1,
+      "mediaBoxPoints": [
+        0.0,
+        0.0,
+        720.0,
+        720.0
+      ],
+      "pageSizeMm": [
+        254.0,
+        254.0
+      ],
+      "operation": "Full unchanged PDF page rendered with Poppler. No crop or retouch.",
+      "renderDpi": 300,
+      "path": "public/reference/core-cover.png",
+      "sha256": "42d42a02c092a5bdc71e107fc1aeb1896131d8a8c15182ba43820d59667a8694",
+      "pixels": [
+        3000,
+        3000
+      ],
+      "colorMode": "RGB",
+      "bytes": 978615
+    },
+    {
+      "id": "ixian-cover",
+      "purpose": "Original Ixians and Tleilaxu cover",
+      "source": "ixian-tleilaxu",
+      "pageNumber": 1,
+      "mediaBoxPoints": [
+        0.0,
+        0.0,
+        374.4,
+        720.0
+      ],
+      "pageSizeMm": [
+        132.08,
+        254.0
+      ],
+      "operation": "Full unchanged PDF page rendered with Poppler. No crop or retouch.",
+      "renderDpi": 300,
+      "path": "public/reference/ixian-cover.png",
+      "sha256": "655b6aab5a91b5e2b48ae55d1396565fc679aaea49d0435cce3986ffb3af31f1",
+      "pixels": [
+        1560,
+        3000
+      ],
+      "colorMode": "RGB",
+      "bytes": 775659
+    },
+    {
+      "id": "choam-cover",
+      "purpose": "Original CHOAM and Richese cover",
+      "source": "choam-richese",
+      "pageNumber": 1,
+      "mediaBoxPoints": [
+        0.0,
+        0.0,
+        374.4,
+        720.0
+      ],
+      "pageSizeMm": [
+        132.08,
+        254.0
+      ],
+      "operation": "Full unchanged PDF page rendered with Poppler. No crop or retouch.",
+      "renderDpi": 300,
+      "path": "public/reference/choam-cover.png",
+      "sha256": "d779cfe84fe365869eff7976ad6cddba9a68b259b8b35ed51d38b24273eeb9aa",
+      "pixels": [
+        1560,
+        3000
+      ],
+      "colorMode": "RGB",
+      "bytes": 1590126
+    },
+    {
+      "id": "ecaz-cover",
+      "purpose": "Original Ecaz and Moritani cover",
+      "source": "ecaz-moritani",
+      "pageNumber": 1,
+      "mediaBoxPoints": [
+        0.0,
+        0.0,
+        374.4,
+        720.0
+      ],
+      "pageSizeMm": [
+        132.08,
+        254.0
+      ],
+      "operation": "Full unchanged PDF page rendered with Poppler. No crop or retouch.",
+      "renderDpi": 300,
+      "path": "public/reference/ecaz-cover.png",
+      "sha256": "b16d49d8a6a738d8803c8408abf5b4f7ba2f3e7d7c80d86c820d4c004c4be171",
+      "pixels": [
+        1560,
+        3000
+      ],
+      "colorMode": "RGB",
+      "bytes": 1993349
+    },
+    {
+      "id": "core-components",
+      "purpose": "Physical board and components",
+      "source": "base",
+      "pageNumber": 4,
+      "mediaBoxPoints": [
+        0.0,
+        0.0,
+        720.0,
+        720.0
+      ],
+      "pageSizeMm": [
+        254.0,
+        254.0
+      ],
+      "operation": "Full unchanged PDF page rendered with Poppler. No crop or retouch.",
+      "renderDpi": 150,
+      "path": "public/reference/core-components.png",
+      "sha256": "efd29f2e6335a34c289a08dbb4cc80942e808020abf05965a5b2d22fc5236642",
+      "pixels": [
+        1500,
+        1500
+      ],
+      "colorMode": "RGB",
+      "bytes": 1564841
+    },
+    {
+      "id": "core-faction-components-p5",
+      "purpose": "Faction sets and component inventory",
+      "source": "base",
+      "pageNumber": 5,
+      "mediaBoxPoints": [
+        0.0,
+        0.0,
+        720.0,
+        720.0
+      ],
+      "pageSizeMm": [
+        254.0,
+        254.0
+      ],
+      "operation": "Full unchanged PDF page rendered with Poppler. No crop or retouch.",
+      "renderDpi": 150,
+      "path": "public/reference/core-faction-components-p5.png",
+      "sha256": "492e79a1c830c17e887169fedf6d72f38d7504672b3e3d65b642f65548f96fe8",
+      "pixels": [
+        1500,
+        1500
+      ],
+      "colorMode": "RGB",
+      "bytes": 1328982
+    },
+    {
+      "id": "core-setup-p6",
+      "purpose": "Basic game objective and setup",
+      "source": "base",
+      "pageNumber": 6,
+      "mediaBoxPoints": [
+        0.0,
+        0.0,
+        720.0,
+        720.0
+      ],
+      "pageSizeMm": [
+        254.0,
+        254.0
+      ],
+      "operation": "Full unchanged PDF page rendered with Poppler. No crop or retouch.",
+      "renderDpi": 150,
+      "path": "public/reference/core-setup-p6.png",
+      "sha256": "87163e92a21eec3adb678b1419abbce25e0aae317a196fd3e7e8a13018ab55eb",
+      "pixels": [
+        1500,
+        1500
+      ],
+      "colorMode": "RGB",
+      "bytes": 559014
+    },
+    {
+      "id": "core-phases-p7",
+      "purpose": "Sequence of play and storm",
+      "source": "base",
+      "pageNumber": 7,
+      "mediaBoxPoints": [
+        0.0,
+        0.0,
+        720.0,
+        720.0
+      ],
+      "pageSizeMm": [
+        254.0,
+        254.0
+      ],
+      "operation": "Full unchanged PDF page rendered with Poppler. No crop or retouch.",
+      "renderDpi": 150,
+      "path": "public/reference/core-phases-p7.png",
+      "sha256": "8894116e4df2f4dead914b067e0ae18891a3a0b60e74362e392e388d295ef5bb",
+      "pixels": [
+        1500,
+        1500
+      ],
+      "colorMode": "RGB",
+      "bytes": 515204
+    },
+    {
+      "id": "core-movement",
+      "purpose": "Revival, shipment and movement",
+      "source": "base",
+      "pageNumber": 9,
+      "mediaBoxPoints": [
+        0.0,
+        0.0,
+        720.0,
+        720.0
+      ],
+      "pageSizeMm": [
+        254.0,
+        254.0
+      ],
+      "operation": "Full unchanged PDF page rendered with Poppler. No crop or retouch.",
+      "renderDpi": 150,
+      "path": "public/reference/core-movement.png",
+      "sha256": "f059ed4cc97fef44a73240eeca28c8a81ff48fb3cf232fd5e4dd32452eacca4f",
+      "pixels": [
+        1500,
+        1500
+      ],
+      "colorMode": "RGB",
+      "bytes": 531729
+    },
+    {
+      "id": "core-battle",
+      "purpose": "Battle Wheel and battle resolution",
+      "source": "base",
+      "pageNumber": 10,
+      "mediaBoxPoints": [
+        0.0,
+        0.0,
+        720.0,
+        720.0
+      ],
+      "pageSizeMm": [
+        254.0,
+        254.0
+      ],
+      "operation": "Full unchanged PDF page rendered with Poppler. No crop or retouch.",
+      "renderDpi": 150,
+      "path": "public/reference/core-battle.png",
+      "sha256": "f8b1ea73894945c0bbdfe21f363e1c52da356f75d5d2f7db70479c62f5a53b51",
+      "pixels": [
+        1500,
+        1500
+      ],
+      "colorMode": "RGB",
+      "bytes": 709557
+    },
+    {
+      "id": "core-faction",
+      "purpose": "Atreides faction rules",
+      "source": "base",
+      "pageNumber": 17,
+      "mediaBoxPoints": [
+        0.0,
+        0.0,
+        720.0,
+        720.0
+      ],
+      "pageSizeMm": [
+        254.0,
+        254.0
+      ],
+      "operation": "Full unchanged PDF page rendered with Poppler. No crop or retouch.",
+      "renderDpi": 150,
+      "path": "public/reference/core-faction.png",
+      "sha256": "882a83d0e5172753dbf2ab9ff1b88ba0ef83b739d419af101e5759740ee5349c",
+      "pixels": [
+        1500,
+        1500
+      ],
+      "colorMode": "RGB",
+      "bytes": 629720
+    },
+    {
+      "id": "ixian-tech",
+      "purpose": "Narrow expansion flow and Tech Tokens",
+      "source": "ixian-tleilaxu",
+      "pageNumber": 4,
+      "mediaBoxPoints": [
+        0.0,
+        0.0,
+        374.4,
+        720.0
+      ],
+      "pageSizeMm": [
+        132.08,
+        254.0
+      ],
+      "operation": "Full unchanged PDF page rendered with Poppler. No crop or retouch.",
+      "renderDpi": 150,
+      "path": "public/reference/ixian-tech.png",
+      "sha256": "2992e0f6f8fecb3c630e9f7565fb4cf0430e70fba5ec0fb7abd70d0ae6cd0270",
+      "pixels": [
+        780,
+        1500
+      ],
+      "colorMode": "RGB",
+      "bytes": 353765
+    },
+    {
+      "id": "ecaz-module-p11",
+      "purpose": "Nexus Cards module",
+      "source": "ecaz-moritani",
+      "pageNumber": 11,
+      "mediaBoxPoints": [
+        0.0,
+        0.0,
+        374.4,
+        720.0
+      ],
+      "pageSizeMm": [
+        132.08,
+        254.0
+      ],
+      "operation": "Full unchanged PDF page rendered with Poppler. No crop or retouch.",
+      "renderDpi": 150,
+      "path": "public/reference/ecaz-module-p11.png",
+      "sha256": "461646bc2b27d1ad95ec175aed5c674b292e9c2a2f921c5a922a2735292f91f9",
+      "pixels": [
+        780,
+        1500
+      ],
+      "colorMode": "RGB",
+      "bytes": 492075
+    },
+    {
+      "id": "ecaz-discovery",
+      "purpose": "Discovery Tokens module",
+      "source": "ecaz-moritani",
+      "pageNumber": 12,
+      "mediaBoxPoints": [
+        0.0,
+        0.0,
+        374.4,
+        720.0
+      ],
+      "pageSizeMm": [
+        132.08,
+        254.0
+      ],
+      "operation": "Full unchanged PDF page rendered with Poppler. No crop or retouch.",
+      "renderDpi": 150,
+      "path": "public/reference/ecaz-discovery.png",
+      "sha256": "4f49b3790de04d4e986e22d094a078bc68928111c305bde2fc5bcb463c83f28b",
+      "pixels": [
+        780,
+        1500
+      ],
+      "colorMode": "RGB",
+      "bytes": 628956
+    },
+    {
+      "id": "tech-token-axlotl-tanks",
+      "purpose": "Original Tech Token for the composition prototype",
+      "source": "ixian-tleilaxu",
+      "pageNumber": 4,
+      "mediaBoxPoints": [
+        0.0,
+        0.0,
+        374.4,
+        720.0
+      ],
+      "pageSizeMm": [
+        132.08,
+        254.0
+      ],
+      "resourceName": "Im2",
+      "placementBoundsPointsFromTopLeft": [
+        49.5288048,
+        457.5118103,
+        126.402751,
+        534.3857565
+      ],
+      "placedSizeMm": [
+        27.11942,
+        27.11942
+      ],
+      "operation": "Native embedded image decoded with its original alpha mask. No enlargement or retouch.",
+      "path": "public/reference/tech-token-axlotl-tanks.png",
+      "sha256": "99f4712a589500b577d2b9c09732a9b1146881a889bd90faab620f63587b9496",
+      "pixels": [
+        321,
+        321
+      ],
+      "colorMode": "RGBA",
+      "bytes": 144051
+    },
+    {
+      "id": "tech-token-heighliners",
+      "purpose": "Original Tech Token for the composition prototype",
+      "source": "ixian-tleilaxu",
+      "pageNumber": 4,
+      "mediaBoxPoints": [
+        0.0,
+        0.0,
+        374.4,
+        720.0
+      ],
+      "pageSizeMm": [
+        132.08,
+        254.0
+      ],
+      "resourceName": "Im0",
+      "placementBoundsPointsFromTopLeft": [
+        138.1965179,
+        457.5118103,
+        215.0704641,
+        534.3857565
+      ],
+      "placedSizeMm": [
+        27.11942,
+        27.11942
+      ],
+      "operation": "Native embedded image decoded with its original alpha mask. No enlargement or retouch.",
+      "path": "public/reference/tech-token-heighliners.png",
+      "sha256": "6a1730ab9c8553be9130e8f2968cb1cbb1694dcdf7162b6adaa9243aab38f3b9",
+      "pixels": [
+        321,
+        321
+      ],
+      "colorMode": "RGBA",
+      "bytes": 121881
+    },
+    {
+      "id": "tech-token-spice-production",
+      "purpose": "Original Tech Token for the composition prototype",
+      "source": "ixian-tleilaxu",
+      "pageNumber": 4,
+      "mediaBoxPoints": [
+        0.0,
+        0.0,
+        374.4,
+        720.0
+      ],
+      "pageSizeMm": [
+        132.08,
+        254.0
+      ],
+      "resourceName": "Im1",
+      "placementBoundsPointsFromTopLeft": [
+        228.9978027,
+        457.5118103,
+        305.8717489,
+        534.3857565
+      ],
+      "placedSizeMm": [
+        27.11942,
+        27.11942
+      ],
+      "operation": "Native embedded image decoded with its original alpha mask. No enlargement or retouch.",
+      "path": "public/reference/tech-token-spice-production.png",
+      "sha256": "cad6ede1d7dd9c2e3ee029c7cc23c26e9680096628e05d0f4b079ce84d893b07",
+      "pixels": [
+        321,
+        321
+      ],
+      "colorMode": "RGBA",
+      "bytes": 158647
+    }
+  ]
+}

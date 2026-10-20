@@ -2,6 +2,9 @@ import { z } from 'zod';
 
 /** Physical Page dimensions shared by authoring, reading, and publication. */
 export const rulebookSizeCatalogue = [
+  // Throwaway GF9 page-composition prototype. These entries are not a production migration.
+  { id: 'gf9-core-prototype', label: 'GF9 core prototype', widthMm: 254, heightMm: 254 },
+  { id: 'gf9-expansion-prototype', label: 'GF9 expansion prototype', widthMm: 132.08, heightMm: 254 },
   { id: 'square', label: 'Square', widthMm: 255, heightMm: 254 },
   { id: 'a4', label: 'A4', widthMm: 210, heightMm: 297 },
   { id: 'tall', label: 'Tall', widthMm: 105, heightMm: 297 },
