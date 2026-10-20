@@ -42,6 +42,7 @@ import {
   parseEnvFile,
   pushCode,
   remapOwnershipToLocalUsers,
+  remapLocalAuthoringOwnership,
   runMigrationGuards,
   seedLocalFixtureData,
   selfHostedEnvironment,
@@ -575,6 +576,8 @@ async function runPersistentDevelopment(requested: LocalData, directory: string,
       await ensureLocalAuthUser(instance.appUrl, secrets.ownerEmail, secrets.password);
       await ensureLocalAuthUser(instance.appUrl, secrets.collaboratorEmail, secrets.password);
       remapOwnershipToLocalUsers(deployment, localEnv, secrets.ownerEmail, secrets.collaboratorEmail);
+      remapLocalAuthoringOwnership(deployment, localEnv, secrets.ownerEmail);
+      manifest.ownershipProvisioning = 'snapshot-placeholder-to-reviewer-a';
     }
     watcher = startLocalConvexWatcher(deployment, localEnv);
     const watcherExit = waitForExit(watcher);

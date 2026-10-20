@@ -233,7 +233,13 @@ export const prepareLocalPublisher = internalMutation({
     }
     const existing = await publicationSettings(ctx);
     if (existing) {
-      await ctx.db.patch(existing._id, { renderer_revisions: CHECKED_IN_RENDERER_REVISIONS, updated_at: Date.now() });
+      const revisions = Object.entries(CHECKED_IN_RENDERER_REVISIONS);
+      const unchanged =
+        Object.keys(existing.renderer_revisions).length === revisions.length &&
+        revisions.every(([kind, revision]) => existing.renderer_revisions[kind] === revision);
+      if (!unchanged) {
+        await ctx.db.patch(existing._id, { renderer_revisions: CHECKED_IN_RENDERER_REVISIONS, updated_at: Date.now() });
+      }
     } else {
       await ctx.db.insert('admin_settings', {
         key: 'publication',
@@ -243,5 +249,55 @@ export const prepareLocalPublisher = internalMutation({
       });
     }
     return null;
+  },
+});
+
+/** Snapshot-only local ownership. Existing local authors and immutable Edition history keep their identities. */
+export const remapLocalAuthoringOwnershipBatch = internalMutation({
+  args: {
+    ownerEmail: v.string(),
+    table: v.union(v.literal('assets'), v.literal('rulesets'), v.literal('rulebooks')),
+    paginationOpts: paginationOptsValidator,
+  },
+  returns: batchResultValidator.extend({ updated: v.number() }),
+  handler: async (ctx, args) => {
+    if (!isIsolatedLoopbackBackend()) {
+      throw new Error('Local authoring ownership requires an isolated loopback backend');
+    }
+    const placeholders = (await ctx.db.query('users').take(500)).filter((user) => !identifiesSomeone(user));
+    if (placeholders.length !== 1) {
+      throw new Error('Local authoring ownership requires the anonymised snapshot placeholder');
+    }
+    const placeholder = placeholders[0]!;
+    const owner = await findUserByEmail(ctx, args.ownerEmail);
+    let updated = 0;
+    if (args.table === 'assets') {
+      const batch = await ctx.db.query('assets').paginate(args.paginationOpts);
+      for (const row of batch.page) {
+        if (row.owner_id === placeholder._id) {
+          await ctx.db.patch(row._id, { owner_id: owner._id });
+          updated += 1;
+        }
+      }
+      return { isDone: batch.isDone, continueCursor: batch.continueCursor, updated };
+    }
+    if (args.table === 'rulesets') {
+      const batch = await ctx.db.query('rulesets').paginate(args.paginationOpts);
+      for (const row of batch.page) {
+        if (row.owner_id === placeholder._id) {
+          await ctx.db.patch(row._id, { owner_id: owner._id });
+          updated += 1;
+        }
+      }
+      return { isDone: batch.isDone, continueCursor: batch.continueCursor, updated };
+    }
+    const batch = await ctx.db.query('rulebooks').paginate(args.paginationOpts);
+    for (const row of batch.page) {
+      if (row.created_by === placeholder._id) {
+        await ctx.db.patch(row._id, { created_by: owner._id });
+        updated += 1;
+      }
+    }
+    return { isDone: batch.isDone, continueCursor: batch.continueCursor, updated };
   },
 });

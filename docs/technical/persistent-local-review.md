@@ -9,6 +9,8 @@ bun run generate:images
 bun run app:dev --local --data=snapshot --persist-dir=/Users/me/Projects/Dune/gf9-review
 ```
 
+Initial local provisioning assigns placeholder-owned assets, Rulesets and Rulebooks to the verified reviewer A account, beside the existing faction/Group provisioning. This enables owner-only naming and cover operations. It preserves every record ID, immutable Edition and any record already owned by another local user. The manifest records this local ownership difference. Ordinary resume never repeats that ownership operation.
+
 The generated launcher manifest records the snapshot artifact/run/time/hash, code commit, stable loopback origins and Docker project. State lives in `.dunezone-runtime/` within the selected directory. The separate `secrets.json`, JWT material and Worker `.dev.vars` have private file permissions. Keep this directory private. Authored payloads and review evidence belong alongside the runtime directory or elsewhere, never inside it.
 
 Python 3 provides the standard-library OS lock on macOS and Linux. A second launcher, including an attempted reset, refuses while the first supervisor owns that lock. The supervisor retains the lock until its process group and local backend stop. The OS releases it after a crash or reboot.

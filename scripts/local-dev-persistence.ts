@@ -38,6 +38,7 @@ const manifestSchema = z.object({
   lastSourceCommit: z.string(),
   instance: instanceSchema,
   publisherPort: port,
+  ownershipProvisioning: z.literal('snapshot-placeholder-to-reviewer-a').optional(),
   snapshot: z
     .object({
       sha256: z.string(),

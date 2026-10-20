@@ -688,6 +688,30 @@ export function remapOwnershipToLocalUsers(
   );
 }
 
+/** Extend the snapshot's first reviewer setup to owner-only authoring operations. */
+export function remapLocalAuthoringOwnership(
+  deployment: SelfHostedDeployment,
+  env: NodeJS.ProcessEnv,
+  ownerEmail: string
+) {
+  for (const table of ['assets', 'rulesets', 'rulebooks'] as const) {
+    let updated = 0;
+    drainBatches((cursor) => {
+      const batch = runProvisioningMutation<BatchResult & { updated: number }>(
+        deployment,
+        env,
+        'provisioning:remapLocalAuthoringOwnershipBatch',
+        { ownerEmail, table, paginationOpts: { numItems: 5, cursor } }
+      );
+      updated += batch.updated;
+      return batch;
+    });
+    console.log(
+      `Local ownership: assigned ${updated} snapshot ${table} to reviewer A. Immutable Editions are unchanged.`
+    );
+  }
+}
+
 export function stagesForTarget(target: ProvisionTarget): ProvisionStage[] {
   if (target === 'dev') {
     // The cloud deployment always exists and keeps its env vars.
