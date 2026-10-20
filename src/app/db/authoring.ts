@@ -9,11 +9,28 @@ import type { RulebookContentsDraftV1 } from '@shared/rulebooks/contents';
 import { rulebookDraftCompatibilityError, rulebookCoverImagesError } from '@shared/rulebooks/draftCompatibility';
 import { assertRulebookReferences, collectRulebookReferenceIds } from '@shared/rulebooks/references';
 import type { RulebookSettings } from '@shared/rulebooks/settings';
+import type { FunctionArgs, FunctionReference, FunctionReturnType } from 'convex/server';
+import { ConvexError } from 'convex/values';
 
 import { db } from '@db/core';
 import { useSessionViewer } from '@db/profiles';
 
 import { api } from '../../../convex/_generated/api';
+
+/** Selected-reference refusals cross the doorway as plain editor messages. */
+async function readSelectedReference<Query extends FunctionReference<'query'>>(
+  query: Query,
+  args: FunctionArgs<Query>
+): Promise<FunctionReturnType<Query>> {
+  try {
+    return await db.query(query, args, { hold: false });
+  } catch (error) {
+    if (error instanceof ConvexError && typeof error.data === 'string') {
+      throw new Error(error.data);
+    }
+    throw error;
+  }
+}
 
 /** Resolves only the pasted Asset's selected links through the same reads as its editor. */
 export async function prepareRawAsset(args: { type: string; targetId?: string; text: string }) {
@@ -24,27 +41,19 @@ export async function prepareRawAsset(args: { type: string; targetId?: string; t
     | undefined;
   const referencedBack =
     back?.mode === 'reference' && back.asset_id
-      ? await db.query(
-          api.assets.linkedBack,
-          {
-            type: args.type,
-            targetId: args.targetId,
-            referenceId: back.asset_id,
-          },
-          { hold: false }
-        )
+      ? await readSelectedReference(api.assets.linkedBack, {
+          type: args.type,
+          targetId: args.targetId,
+          referenceId: back.asset_id,
+        })
       : undefined;
   const board = data.board as { asset_id: string } | undefined;
   if (args.type === 'card-spice' && board) {
     const tokenIds = spiceCardTokenIds(data);
-    const resolved = await db.query(
-      api.assets.spiceCardBoard,
-      {
-        boardId: board.asset_id,
-        tokenIds,
-      },
-      { hold: false }
-    );
+    const resolved = await readSelectedReference(api.assets.spiceCardBoard, {
+      boardId: board.asset_id,
+      tokenIds,
+    });
     const error = spiceCardPublicationError(data, resolved);
     if (error) {
       throw new Error(error);
@@ -59,7 +68,7 @@ export async function prepareRawAsset(args: { type: string; targetId?: string; t
   if (args.type === 'card-custom' || args.type === 'card-storm') {
     const ids = customCardTokenIds(data);
     const resolved = ids.length
-      ? await db.query(api.assets.customCardTokens, { ids }, { hold: false })
+      ? await readSelectedReference(api.assets.customCardTokens, { ids })
       : { tokens: {}, error: null };
     const error = customCardPublicationError(data, resolved);
     if (error) {
@@ -71,7 +80,7 @@ export async function prepareRawAsset(args: { type: string; targetId?: string; t
   }
   const linkedFaction = data.factionLink as { id: string; slug: string } | undefined;
   if (linkedFaction) {
-    const slug = await db.query(api.factions.pageSlug, { id: linkedFaction.id }, { hold: false });
+    const slug = await readSelectedReference(api.factions.pageSlug, { id: linkedFaction.id });
     if (!slug) {
       throw new Error('$.factionLink: Choose an available faction.');
     }
@@ -88,7 +97,7 @@ export async function prepareRawFaction(text: string) {
   for (const [index, extra] of (draft.extras ?? []).entries()) {
     const key = `${extra.type}/${extra.slug}`;
     if (!resolved.has(key)) {
-      resolved.set(key, !!(await db.query(api.assets.page, { type: extra.type, slug: extra.slug }, { hold: false })));
+      resolved.set(key, !!(await readSelectedReference(api.assets.page, { type: extra.type, slug: extra.slug })));
     }
     if (!resolved.get(key)) {
       throw new Error(`$.extras.${index}: The ${key} asset is unavailable.`);
@@ -117,17 +126,13 @@ export async function prepareRawRulebook(
     throw new Error(currentError);
   }
   const references = collectRulebookReferenceIds(draft.contents);
-  const page = await db.query(
-    api.rulebooks.editorPage,
-    {
-      ruleset_slug: target.rulesetSlug,
-      rulebook_slug: target.rulebookSlug,
-      reference_asset_ids: references.assetIds,
-      reference_faction_ids: references.factionIds,
-      faction_token_images: false,
-    },
-    { hold: false }
-  );
+  const page = await readSelectedReference(api.rulebooks.editorPage, {
+    ruleset_slug: target.rulesetSlug,
+    rulebook_slug: target.rulebookSlug,
+    reference_asset_ids: references.assetIds,
+    reference_faction_ids: references.factionIds,
+    faction_token_images: false,
+  });
   if (!page) {
     throw new Error('Choose an available destination Rulebook.');
   }
