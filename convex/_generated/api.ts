@@ -97,6 +97,7 @@ import type * as lib_provisioningContract from "../lib/provisioningContract.js";
 import type * as lib_publication from "../lib/publication.js";
 import type * as lib_publicationHttp from "../lib/publicationHttp.js";
 import type * as lib_rulebookCoverImage from "../lib/rulebookCoverImage.js";
+import type * as lib_rulebookDraftValidation from "../lib/rulebookDraftValidation.js";
 import type * as lib_rulebookEditionArtifacts from "../lib/rulebookEditionArtifacts.js";
 import type * as lib_rulebookEditionContents from "../lib/rulebookEditionContents.js";
 import type * as lib_rulebookList from "../lib/rulebookList.js";
@@ -246,6 +247,7 @@ const fullApi: ApiFromModules<{
   "lib/publication": typeof lib_publication;
   "lib/publicationHttp": typeof lib_publicationHttp;
   "lib/rulebookCoverImage": typeof lib_rulebookCoverImage;
+  "lib/rulebookDraftValidation": typeof lib_rulebookDraftValidation;
   "lib/rulebookEditionArtifacts": typeof lib_rulebookEditionArtifacts;
   "lib/rulebookEditionContents": typeof lib_rulebookEditionContents;
   "lib/rulebookList": typeof lib_rulebookList;

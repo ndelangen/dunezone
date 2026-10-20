@@ -83,6 +83,9 @@ test('members create clean Rulebooks and owners manage the saved Ruleset list', 
   await page.getByRole('link', { name: 'Back to ruleset', exact: true }).click();
   await page.getByRole('button', { name: 'Actions for Member copy', exact: true }).click();
   await page.getByRole('menuitem', { name: 'Edit', exact: true }).click();
+  const moreActions = page.getByRole('button', { name: 'More actions', exact: true });
+  await expect(moreActions).toBeVisible();
+  await moreActions.click();
   await page.getByRole('button', { name: 'Rename Rulebook', exact: true }).click();
   await page.getByRole('textbox', { name: 'Rulebook name' }).fill('Battle reference');
   await expect(page.getByText(/bookmarks or shared links to the old one stop/)).toBeVisible();

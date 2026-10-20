@@ -3,6 +3,7 @@ import { waitForFrame } from '@sb/storyWaits';
 import { FACTION_CATALOGUE_PAGE_SIZE } from '@shared/factions/catalogueSearch';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
+import { loadFaction } from '@db/factions';
 import { db, faction, refText, SEED_REF_TOKEN } from '@db/storybook';
 
 import { expectToolbarOnOneLine } from './authoringToolbarPlay';
@@ -728,5 +729,35 @@ export const EditToolbarWithBlankNameAt552 = meta.story({
         'The public asset will be available soon.',
       ],
     });
+  },
+});
+
+export const RawJsonKeepsComponentIdentities = meta.story({
+  args: { path: '/factions/house-atreides/edit' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await page.findByRole('textbox', { name: 'Faction name' });
+    const before = await loadFaction('house-atreides');
+    const value = { ...before.faction.data, name: 'Reviewed Atreides' };
+    await userEvent.click(await page.findByRole('button', { name: 'Load existing faction' }));
+    await userEvent.click(await page.findByRole('button', { name: 'Paste JSON' }));
+    await userEvent.click(page.getByRole('textbox', { name: 'Writable JSON' }));
+    await userEvent.paste(JSON.stringify(value));
+    await waitFor(() => expect(page.getByRole('button', { name: 'Load faction' })).toBeEnabled());
+    await expect(page.getByRole('checkbox', { name: 'Also rename' })).not.toBeChecked();
+    await userEvent.click(page.getByRole('checkbox', { name: 'Also rename' }));
+    await userEvent.click(page.getByRole('button', { name: 'Load faction' }));
+    await expect((await loadFaction('house-atreides')).faction.data.name).toBe(before.faction.data.name);
+    await userEvent.click(page.getByRole('button', { name: 'Save faction' }));
+    await waitFor(async () => expect((await loadFaction('reviewed-atreides')).faction._id).toBe(before.faction._id));
+    const saved = (await loadFaction('reviewed-atreides')).faction;
+    await expect(saved.data.factionLeader.memberId).toBe(before.faction.data.factionLeader.memberId);
+    await expect(saved.data.leaders.map((member) => member.memberId)).toEqual(
+      before.faction.data.leaders.map((member) => member.memberId)
+    );
+    await expect(saved.data.troops.map((troop) => troop.troopId)).toEqual(
+      before.faction.data.troops.map((troop) => troop.troopId)
+    );
+    await expect(saved.group_id).toBe(before.faction.group_id);
   },
 });

@@ -5,6 +5,7 @@ import { TopicIcon } from '@ui/content/TopicIcon';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { useRef } from 'react';
 
+import { useAuthoringAccountKey } from '@db/authoring';
 import { useCreateFaction } from '@db/factions';
 import { useCurrentProfile } from '@db/profiles';
 import { pageHead } from '@app/routes/pageTitle';
@@ -21,6 +22,7 @@ import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import { factionNameField } from './factionNameField';
+import { rawFactionLoad } from './rawFactionLoad';
 
 export const Route = createFileRoute('/_app/factions/create')({
   head: () => pageHead('Create faction'),
@@ -28,6 +30,7 @@ export const Route = createFileRoute('/_app/factions/create')({
 });
 
 function CreateFactionPage() {
+  const authoringAccountKey = useAuthoringAccountKey();
   const profile = useCurrentProfile();
   const ownerUserId = profile.data?.user_id;
   const navigate = useNavigate();
@@ -83,10 +86,12 @@ function CreateFactionPage() {
       {validationHeader.slot}
       <PageLayout.Toolbar>
         <AuthoringToolbar
+          scopeKey={authoringAccountKey}
           load={{
             noun: 'faction',
             mode: 'create',
             disabled: createFaction.isPending,
+            raw: rawFactionLoad(),
             source: factionLoadSource(),
             onLoaded: validationHeader.releasing(authoring.actions.loadDraft),
           }}

@@ -13,6 +13,7 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { UserRoundMinus } from 'lucide-react';
 import { useRef } from 'react';
 
+import { useAuthoringAccountKey } from '@db/authoring';
 import { useDeleteFaction, useFaction, useFactionAccess, useSetFactionGroup, useUpdateFaction } from '@db/factions';
 import { loadFaction } from '@db/factions';
 import { useViewerAssignableGroups } from '@db/viewerAccess';
@@ -32,6 +33,7 @@ import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import { factionNameField } from '../factionNameField';
+import { rawFactionLoad } from '../rawFactionLoad';
 
 export const Route = createFileRoute('/_app/factions/$factionId/edit')({
   validateSearch: (params: Record<string, unknown>): { notice?: RouteNoticeCode } => {
@@ -65,6 +67,7 @@ function FactionEditError({ error }: ErrorComponentProps) {
 }
 
 function FactionEditPage() {
+  const authoringAccountKey = useAuthoringAccountKey();
   const { factionId } = Route.useParams();
   const search = Route.useSearch();
   const loaderData = Route.useLoaderData();
@@ -167,10 +170,13 @@ function FactionEditPage() {
       {validationHeader.slot}
       <PageLayout.Toolbar>
         <AuthoringToolbar
+          scopeKey={authoringAccountKey}
           load={{
             noun: 'faction',
+            scopeKey: faction._id,
             mode: 'replace',
             disabled: updateFaction.isPending,
+            raw: rawFactionLoad(faction.data.name, viewerAccess.capabilities.rename),
             source: factionLoadSource(faction.slug),
             onLoaded: validationHeader.releasing(authoring.actions.loadDraft),
           }}

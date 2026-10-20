@@ -6,6 +6,7 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { useReducer, useState } from 'react';
 
+import { useAuthoringAccountKey } from '@db/authoring';
 import { useCardbackPresets } from '@db/cardbackPresets';
 import { useSessionViewer } from '@db/profiles';
 import { useCreateAsset } from '@app/db/assets';
@@ -83,6 +84,7 @@ function reduce(state: DeckState, event: DeckEvent): DeckState {
  * The Cards chapter says so rather than offering steppers that cannot write.
  */
 export function DeckCreatePage() {
+  const authoringAccountKey = useAuthoringAccountKey();
   const presets = useCardbackPresets();
   const navigate = useNavigate();
   const viewer = useSessionViewer();
@@ -162,6 +164,7 @@ export function DeckCreatePage() {
       {header.slot}
       <PageLayout.Toolbar>
         <AuthoringToolbar
+          scopeKey={authoringAccountKey}
           load={assetLoad({
             noun: 'deck',
             type: 'deck',
@@ -171,7 +174,7 @@ export function DeckCreatePage() {
               dispatch({
                 kind: 'replace',
                 data: loaded.data,
-                pick: loaded.source?.backDeck ?? null,
+                pick: loaded.referencedBack ?? loaded.source?.backDeck ?? null,
                 clonedFrom: clonedMembersOf(loaded),
               })
             ),

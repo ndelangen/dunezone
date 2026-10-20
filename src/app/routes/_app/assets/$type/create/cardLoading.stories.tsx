@@ -222,3 +222,62 @@ export const OverflowHandoff = meta.story({
     );
   },
 });
+
+/** Pasted data stays local until Save, and a rename requires a separate choice. */
+export const RawJsonReplacement = meta.story({
+  args: { path: '/assets/card-treachery/lasgun/edit' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await page.findByRole('textbox', { name: 'Name' });
+    const original = (await loadAssetPage('card-treachery', 'lasgun'))!;
+    const replacement = {
+      ...(original.asset.data as Record<string, unknown>),
+      name: 'Reviewed Lasgun',
+      about: 'Reviewed card description.',
+    };
+    const open = async () => {
+      await userEvent.click(await page.findByRole('button', { name: 'Load existing card' }));
+      await userEvent.click(await page.findByRole('button', { name: 'Paste JSON' }));
+      const input = page.getByRole('textbox', { name: 'Writable JSON' });
+      await userEvent.click(input);
+      await userEvent.paste(JSON.stringify(replacement));
+      await waitFor(() => expect(page.getByRole('button', { name: 'Load card' })).toBeEnabled());
+    };
+    await open();
+    await expect(page.getByRole('checkbox', { name: 'Also rename' })).not.toBeChecked();
+    await userEvent.click(page.getByRole('button', { name: 'Load card' }));
+    await expect(page.getByRole('textbox', { name: 'Name' })).toHaveValue('Lasgun');
+    await expect((await loadAssetPage('card-treachery', 'lasgun'))!.asset.data).toEqual(original.asset.data);
+    await userEvent.click(page.getByRole('button', { name: 'Reset unsaved edits' }));
+    await open();
+    await userEvent.click(page.getByRole('checkbox', { name: 'Also rename' }));
+    await userEvent.click(page.getByRole('button', { name: 'Load card' }));
+    await expect(page.getByRole('textbox', { name: 'Name' })).toHaveValue('Reviewed Lasgun');
+    await userEvent.click(page.getByRole('button', { name: 'Save card' }));
+    await waitFor(async () =>
+      expect((await loadAssetPage('card-treachery', 'reviewed-lasgun'))?.asset.id).toBe(original.asset.id)
+    );
+    const saved = (await loadAssetPage('card-treachery', 'reviewed-lasgun'))!;
+    await expect(saved.asset.data).toMatchObject(replacement);
+    await expect(saved.assignedGroup).toEqual(original.assignedGroup);
+    await expect(saved.inDecks).toEqual(original.inDecks);
+  },
+});
+
+export const RawJsonErrorAndCancel = meta.story({
+  args: { path: '/assets/card-treachery/lasgun/edit' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('button', { name: 'Load existing card' }));
+    await userEvent.click(await page.findByRole('button', { name: 'Paste JSON' }));
+    const input = page.getByRole('textbox', { name: 'Writable JSON' });
+    await userEvent.click(input);
+    await userEvent.paste('{"owner_id":"no"}');
+    await expect(page.findByRole('alert')).resolves.toBeVisible();
+    await expect(input).toHaveValue('{"owner_id":"no"}');
+    await expect(page.getByRole('button', { name: 'Load card' })).toBeDisabled();
+    await userEvent.click(page.getByRole('button', { name: 'Cancel' }));
+    await expect(page.getByRole('textbox', { name: 'Name' })).toHaveValue('Lasgun');
+    await expect(page.getByRole('button', { name: 'Reset unsaved edits' })).toBeDisabled();
+  },
+});

@@ -1,12 +1,20 @@
+import {
+  spiceCardBoardLink,
+  spiceCardTokenIds,
+  spiceCardPublicationError,
+} from '../../src/shared/assets/cardReferences';
+export {
+  spiceCardBoardLink,
+  spiceCardTokenIds,
+  spiceCardPublicationError,
+} from '../../src/shared/assets/cardReferences';
 import { ConvexError } from 'convex/values';
 import type { z } from 'zod';
 
-import { SpiceAsset } from '../../src/shared/assets/schema';
 import type { CustomCardTokens, SpiceBoardLink } from '../../src/shared/assets/schema';
 import { parseBoardData } from '../../src/shared/assets/validation';
 import { BOARD_MAX_TOKENS } from '../../src/shared/boards/markup';
 import type { Board } from '../../src/shared/boards/schema';
-import { compareCodeUnits } from '../../src/shared/compareText';
 import type { Doc, Id } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../types';
 import { resolveCustomCardTokens } from './customCardTokens';
@@ -19,20 +27,6 @@ export const SPICE_CARD_BOARD_RELATION = 'spice-card-board';
 export const SPICE_CARD_TOKEN_RELATION = 'spice-card-token';
 export const SPICE_CARD_RELATIONS = [SPICE_CARD_BOARD_RELATION, SPICE_CARD_TOKEN_RELATION] as const;
 export type SpiceCardRelation = (typeof SPICE_CARD_RELATIONS)[number];
-
-/* The resolved board rides in the publication payload beside the card and its tokens. */
-const MAX_PAYLOAD_BYTES = 786_432;
-
-export function spiceCardBoardLink(data: unknown): z.infer<typeof SpiceBoardLink> | undefined {
-  const parsed = SpiceAsset.safeParse(data);
-  return parsed.success ? parsed.data.board : undefined;
-}
-
-/** Repeated instances of one token share one read and one reverse row. */
-export function spiceCardTokenIds(data: unknown): string[] {
-  const link = spiceCardBoardLink(data);
-  return link ? [...new Set(link.tokens.map((token) => token.asset_id))].sort(compareCodeUnits) : [];
-}
 
 const isLiveBoard = (row: Doc<'assets'> | null): row is Doc<'assets'> =>
   row !== null && !row.is_deleted && row.type === 'board';
@@ -71,16 +65,6 @@ export async function resolveSpiceCardBoard(
     ? await resolveCustomCardTokens(ctx, tokenIds)
     : { tokens: {}, error: null };
   return { board, tokens, error };
-}
-
-export function spiceCardPublicationError(data: unknown, resolved: SpiceCardBoardResolution) {
-  return (
-    resolved.error ??
-    (new TextEncoder().encode(JSON.stringify({ card: data, board: resolved.board, tokens: resolved.tokens })).length >
-    MAX_PAYLOAD_BYTES
-      ? 'The card, its board and its tokens are too large to publish. Simplify the board or remove tokens.'
-      : null)
-  );
 }
 
 /** The first link problem of a card: a payload too large, a new board that is gone, or a new token that is. */

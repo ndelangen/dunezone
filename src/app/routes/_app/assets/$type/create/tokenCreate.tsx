@@ -9,6 +9,7 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { useReducer, useState } from 'react';
 
+import { useAuthoringAccountKey } from '@db/authoring';
 import { useSessionViewer } from '@db/profiles';
 import { useCreateAsset } from '@app/db/assets';
 import { postedPayload } from '@app/widgets/authoring/authoringEnvelope';
@@ -69,6 +70,7 @@ function reduce(state: PageState, event: PageEvent): PageState {
  * A referenced backside cannot be set here: the relation needs an asset id, and there is none until the first save, so creation always starts from a custom back and the edit page offers the choice.
  */
 export function TokenCreatePage({ type }: { type: AssetType }) {
+  const authoringAccountKey = useAuthoringAccountKey();
   const navigate = useNavigate();
   const viewer = useSessionViewer();
   const createAsset = useCreateAsset();
@@ -146,6 +148,7 @@ export function TokenCreatePage({ type }: { type: AssetType }) {
       {header.slot}
       <PageLayout.Toolbar>
         <AuthoringToolbar
+          scopeKey={authoringAccountKey}
           load={tokenLoad({ type, schema: LoadedTokenDraft, saveState, header, dispatch })}
           status={{ isDirty, isNameBlank, saveState }}
           copy={{
