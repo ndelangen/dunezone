@@ -51,7 +51,15 @@ export type TitlePath =
   | 'back';
 
 /** Changes names without remounting the renderer and exercises scaled editor/catalogue space. */
-export function ChangingCardTitle({ path, scale = 1 }: { path: TitlePath; scale?: number }) {
+export function ChangingCardTitle({
+  path,
+  scale = 1,
+  iconScale = 1,
+}: {
+  path: TitlePath;
+  scale?: number;
+  iconScale?: number;
+}) {
   const [index, setIndex] = useState(0);
   const name = titleCases[index]!;
   const owner =
@@ -77,7 +85,7 @@ export function ChangingCardTitle({ path, scale = 1 }: { path: TitlePath; scale?
       card = <NexusCard {...GF9_NEXUS_CARDS[0]!} name={name} />;
       break;
     case 'homeworld':
-      card = <HomeworldCard {...EXAMPLE_HOMEWORLD_CARD} name={name} />;
+      card = <HomeworldCard {...EXAMPLE_HOMEWORLD_CARD} name={name} iconScale={iconScale} />;
       break;
     case 'spice':
       card = <SpiceCard {...publishingSpiceCard} name={name} />;

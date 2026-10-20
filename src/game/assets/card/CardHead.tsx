@@ -36,6 +36,8 @@ export function CardHeadContents({
 }: Omit<HeadProps, 'head'>) {
   const iconSize = 85 * iconScale;
   const image = useAsset(icon[1]);
+  /* The unmasked image scales around its centre and can extend left of the printed symbol disc. */
+  const titleWidth = iconPresentation === 'image' ? Math.min(560, 694 - 64.5 * (1 + iconScale)) : 560;
   return (
     <>
       <BackgroundRenderer
@@ -81,6 +83,7 @@ export function CardHeadContents({
       <CardTitle
         className={styles.title}
         text={name}
+        style={{ width: titleWidth }}
         {...{
           [COMPONENT_GEOMETRY_PROTOCOL.partAttribute]: measureParts && name.trim() ? 'name' : undefined,
         }}

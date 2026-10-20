@@ -741,6 +741,25 @@ try {
     envelope('card-homeworld', { assetId: 'k17publisherHomeworld', slug: 'pelagos', card: EXAMPLE_HOMEWORLD_CARD }),
     'Homeworld'
   );
+  await checkPublisherImageCapture(
+    browser,
+    'card-homeworld',
+    envelope('card-homeworld', {
+      assetId: 'k17publisherScaledHomeworld',
+      slug: 'scaled-homeworld',
+      card: { ...EXAMPLE_HOMEWORLD_CARD, name: 'Habbanya Ridge Flat', iconScale: 2 },
+    }),
+    'Homeworld with scaled planet',
+    undefined,
+    async (page) => {
+      const clearance = await page.evaluate(() => {
+        const title = document.querySelector<HTMLElement>('[aria-label="Habbanya Ridge Flat"]')!;
+        const picture = document.querySelector<HTMLImageElement>('img[class*="picture"]')!;
+        return picture.getBoundingClientRect().left - title.getBoundingClientRect().right;
+      });
+      invariant(clearance >= 9.98, `Scaled Homeworld planet overlaps the settled title: ${clearance}`);
+    }
+  );
   for (const card of GF9_NEXUS_CARDS) {
     await checkNexusCapture(browser, card); /* NOSONAR: Captures share the active snapshot. */
   }

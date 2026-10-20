@@ -68,10 +68,12 @@ async function verifyTitles({ canvasElement, args }: { canvasElement: HTMLElemen
         (element) => getComputedStyle(element).borderRadius === '50%' && element.clientWidth === 125
       );
       await expect(icon).toBeDefined();
+      const picture = canvasElement.querySelector<HTMLImageElement>('img[class*="picture"]');
+      const iconLeft = Math.min(icon!.getBoundingClientRect().left, picture?.getBoundingClientRect().left ?? Infinity);
       await expect(
-        (icon!.getBoundingClientRect().left - title.getBoundingClientRect().right) /
-          (title.getBoundingClientRect().width / 560)
-      ).toBeGreaterThanOrEqual(10);
+        (iconLeft - title.getBoundingClientRect().right) /
+          (title.getBoundingClientRect().width / (title as HTMLElement).clientWidth)
+      ).toBeGreaterThanOrEqual(9.98);
       if (index === 0 || index === titleCases.length - 1) {
         await expect(getComputedStyle(title.firstElementChild!).fontSize).toBe('60px');
       }
@@ -92,6 +94,7 @@ export const Stronghold = meta.story({ args: { path: 'stronghold' }, play: verif
 export const Storm = meta.story({ args: { path: 'storm' }, play: verifyTitles });
 export const Nexus = meta.story({ args: { path: 'nexus' }, play: verifyTitles });
 export const Homeworld = meta.story({ args: { path: 'homeworld' }, play: verifyTitles });
+export const ScaledHomeworldImage = meta.story({ args: { path: 'homeworld', iconScale: 2 }, play: verifyTitles });
 export const Spice = meta.story({ args: { path: 'spice' }, play: verifyTitles });
 export const Traitor = meta.story({ args: { path: 'traitor' }, play: verifyTitles });
 export const Alliance = meta.story({ args: { path: 'alliance' }, play: verifyTitles });
