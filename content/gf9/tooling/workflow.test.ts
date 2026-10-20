@@ -216,6 +216,120 @@ describe('file-only GF9 authoring', () => {
       f.saved.get('gf9-a')!.data
     );
   });
+  test.each(['dot segments', 'directory symlink', 'file symlink'] as const)(
+    'refuses different entities owning one authored file through %s',
+    async (alias) => {
+      const f = await fixture();
+      f.records[1].file = 'assets/shared.json';
+      await atomicJson(path.join(f.root, 'authoring/assets/shared.json'), token('Shared'));
+      if (alias === 'dot segments') {
+        f.records[2].file = 'assets/./shared.json';
+      } else if (alias === 'directory symlink') {
+        f.records[2].file = 'assets/alias/shared.json';
+        await symlink('.', path.join(f.root, 'authoring/assets/alias'));
+      } else {
+        f.records[2].file = 'assets/alias.json';
+        await symlink('shared.json', path.join(f.root, 'authoring/assets/alias.json'));
+      }
+      await atomicJson(path.join(f.root, 'authoring/manifest.json'), {
+        version: 1,
+        status: 'ready',
+        records: f.records,
+      });
+      const before = await readFile(path.join(f.root, 'authoring/assets/shared.json'), 'utf8');
+      await expect(loadProject(f.root)).rejects.toThrow(/canonical|two owners/);
+      await expect(
+        prepare({
+          root: f.root,
+          environment: 'local',
+          checkpoint: await f.checkpoint(),
+          run: 'alias',
+          initialBaseline: true,
+          now,
+        })
+      ).rejects.toThrow(/canonical|two owners/);
+      expect(await readFile(path.join(f.root, 'authoring/assets/shared.json'), 'utf8')).toBe(before);
+      await expect(readFile(path.join(f.root, 'environments/local-sync.json'))).rejects.toMatchObject({
+        code: 'ENOENT',
+      });
+      await expect(readFile(path.join(f.root, 'generated/local/alias/report.json'))).rejects.toMatchObject({
+        code: 'ENOENT',
+      });
+    }
+  );
+  test.each(['dot segments', 'directory symlink'] as const)(
+    'refuses an authored Asset escaping its category through %s',
+    async (alias) => {
+      const f = await fixture();
+      await atomicJson(path.join(f.root, 'authoring/factions/shared.json'), token('Wrong directory'));
+      if (alias === 'dot segments') {
+        f.records[1].file = 'assets/../factions/shared.json';
+      } else {
+        f.records[1].file = 'assets/wrong-category/shared.json';
+        await symlink('../factions', path.join(f.root, 'authoring/assets/wrong-category'));
+      }
+      await atomicJson(path.join(f.root, 'authoring/manifest.json'), {
+        version: 1,
+        status: 'ready',
+        records: f.records,
+      });
+      await expect(loadProject(f.root)).rejects.toThrow(/canonical.*assets/);
+    }
+  );
+  test('accepts distinct canonical authored files in a real category subdirectory', async () => {
+    const f = await fixture();
+    f.records[1].file = 'assets/nested/gf9-b.json';
+    await atomicJson(path.join(f.root, 'authoring', f.records[1].file), f.authored.get('gf9-b'));
+    await atomicJson(path.join(f.root, 'authoring/manifest.json'), { version: 1, status: 'ready', records: f.records });
+    expect((await loadProject(f.root)).values.get('gf9-b')).toEqual(f.authored.get('gf9-b'));
+  });
+  test('apply refuses a directory alias introduced after review without writing files or a false sync baseline', async () => {
+    const f = await fixture();
+    f.records[1].file = 'assets/b/shared.json';
+    f.records[2].file = 'assets/c/shared.json';
+    for (const record of f.records) {
+      record.changes = { rename: true, assignGroup: false, relationships: [] };
+    }
+    for (const record of f.records.slice(1)) {
+      await atomicJson(path.join(f.root, 'authoring', record.file!), token('Same captured bytes'));
+    }
+    await atomicJson(path.join(f.root, 'authoring/manifest.json'), { version: 1, status: 'ready', records: f.records });
+    await prepare({
+      root: f.root,
+      environment: 'local',
+      checkpoint: await f.checkpoint(),
+      run: 'baseline',
+      initialBaseline: true,
+      now,
+    });
+    (f.saved.get('gf9-b')!.data as { about: string }).about = 'Reviewed correction for B';
+    (f.saved.get('gf9-c')!.data as { about: string }).about = 'Reviewed correction for C';
+    const plan = await collect({
+      root: f.root,
+      environment: 'local',
+      checkpoint: await f.checkpoint('changed'),
+      run: 'collection',
+      keys: ['gf9-b', 'gf9-c'],
+      now,
+    });
+    expect(plan.plan.blocked).toEqual([]);
+    expect(plan.plan.changes.map((row) => row.key)).toEqual(['gf9-b', 'gf9-c']);
+    const source = path.join(f.root, 'authoring/assets/b/shared.json');
+    const before = await readFile(source, 'utf8');
+    const sync = path.join(f.root, 'environments/local-sync.json');
+    const priorSync = await readFile(sync, 'utf8');
+    await rm(path.join(f.root, 'authoring/assets/c'), { recursive: true });
+    await symlink('b', path.join(f.root, 'authoring/assets/c'));
+    // The alias preserves captured bytes, so file hashes alone cannot catch the changed destination.
+    expect(await fileHash(path.join(f.root, 'authoring/assets/c/shared.json'))).toBe(
+      plan.plan.inputFiles['authoring/assets/c/shared.json']
+    );
+    await expect(applyCollection({ root: f.root, plan: plan.output, reviewedHash: plan.planHash })).rejects.toThrow(
+      /canonical|two owners/
+    );
+    expect(await readFile(source, 'utf8')).toBe(before);
+    expect(await readFile(sync, 'utf8')).toBe(priorSync);
+  });
   test('applies an unchanged reviewed collection after the capture freshness window', async () => {
     const collectedAt = new Date(Date.now() - 31 * 60_000),
       f = await fixture(collectedAt),

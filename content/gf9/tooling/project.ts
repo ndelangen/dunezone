@@ -1,4 +1,5 @@
 import { readFile, readdir, realpath } from 'node:fs/promises';
+import path from 'node:path';
 
 import { z } from 'zod';
 
@@ -91,17 +92,21 @@ export async function loadProject(directory: string, options: { inspectIdentitie
     if (!spec.file?.startsWith(expected) || !spec.file.endsWith('.json')) {
       throw new Error(`Use ${expected}<key>.json for ${spec.key}.`);
     }
-    if (fileOwners.has(spec.file)) {
-      throw new Error(`Authored file has two owners: ${spec.file}`);
-    }
-    fileOwners.add(spec.file);
     if (spec.kind === 'rulebook') {
       const bookPath = `books/${spec.book === 'ixian-tleilaxu' ? 'ixians-tleilaxu' : spec.book}.json`;
       if (spec.file !== bookPath) {
         throw new Error(`Use the canonical book path ${bookPath}.`);
       }
     }
-    const file = await inside(root, `authoring/${spec.file}`);
+    const file = await realpath(await inside(root, `authoring/${spec.file}`));
+    const canonicalFile = path.relative(root, file).split(path.sep).join('/');
+    if (!canonicalFile.startsWith(`authoring/${expected}`) || canonicalFile !== `authoring/${spec.file}`) {
+      throw new Error(`Use a canonical ${expected} path for ${spec.key}: ${spec.file}`);
+    }
+    if (fileOwners.has(file)) {
+      throw new Error(`Authored file has two owners: ${spec.file}`);
+    }
+    fileOwners.add(file);
     const data = normalize(spec, readRawAuthoringJson(await readFile(file, 'utf8')));
     fileHashes[`authoring/${spec.file}`] = await fileHash(file);
     values.set(spec.key, data);
