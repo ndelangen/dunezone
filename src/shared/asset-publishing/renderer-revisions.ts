@@ -27,34 +27,34 @@ export const CHECKED_IN_RENDERER_REVISIONS = {
   'faction-token': 2,
   /* The first activation publishes every identified troop's front, and its back where one is authored (#1228). */
   'faction-troop': 1,
-  /* The first activations publish a traitor front per identified supporting leader, and one alliance front per faction (#1228). */
-  'faction-traitor': 1,
-  'faction-alliance': 1,
+  /* Revision 2 fits complete Traitor titles, owner subtitles and Alliance titles. */
+  'faction-traitor': 2,
+  'faction-alliance': 2,
   // 9: formatted text replaces Markdown while setup and revival stay inline (wayfinder #669).
   // 10: the PDF is titled after its faction rather than the capture page, since search engines show that title.
   /* Revision 11 uses the faction's section name, defaulting to Faction Special Karama (#2271). */
   [FACTION_SHEET_ASSET_TYPE]: 11,
-  /* Revision 6 captures the shared front preset for each Treachery category. */
+  /* The next revisions settle complete card titles against their loaded fonts before capture. */
   // 1: cards join the pipeline (wayfinder #516). Activating this is also the backfill for cards that predate it.
-  [TREACHERY_CARD_ASSET_TYPE]: CARD_FRONT_PUBLICATION_REVISIONS[TREACHERY_CARD_ASSET_TYPE],
+  [TREACHERY_CARD_ASSET_TYPE]: CARD_FRONT_PUBLICATION_REVISIONS[TREACHERY_CARD_ASSET_TYPE] + 1,
   // 1: spice cards join the pipeline with their editor (#1229).
-  /* Revision 2 draws a linked board with its tints and placed tokens (#1973); unlinked cards draw as before. */
-  [SPICE_CARD_ASSET_TYPE]: SPICE_BOARD_REVISION,
-  /* Revision 2 supports a movable decal window without changing existing layouts. */
-  [CUSTOM_CARD_ASSET_TYPE]: 2,
+  /* Revision 3 retains linked boards and fits complete Spice titles. */
+  [SPICE_CARD_ASSET_TYPE]: SPICE_BOARD_REVISION + 1,
+  /* Revision 3 retains the decal window and fits complete Custom Card titles. */
+  [CUSTOM_CARD_ASSET_TYPE]: 3,
   /* Revision 4 captures the shared Leader Skill front preset. */
-  [LEADER_SKILL_ASSET_TYPE]: CARD_FRONT_PUBLICATION_REVISIONS[LEADER_SKILL_ASSET_TYPE],
+  [LEADER_SKILL_ASSET_TYPE]: CARD_FRONT_PUBLICATION_REVISIONS[LEADER_SKILL_ASSET_TYPE] + 1,
   /* Revision 4 captures the shared Nexus front preset while retaining its faction symbol. */
-  [HOMEWORLD_CARD_ASSET_TYPE]: CARD_FRONT_PUBLICATION_REVISIONS[HOMEWORLD_CARD_ASSET_TYPE],
-  [NEXUS_CARD_ASSET_TYPE]: CARD_FRONT_PUBLICATION_REVISIONS[NEXUS_CARD_ASSET_TYPE],
+  [HOMEWORLD_CARD_ASSET_TYPE]: CARD_FRONT_PUBLICATION_REVISIONS[HOMEWORLD_CARD_ASSET_TYPE] + 1,
+  [NEXUS_CARD_ASSET_TYPE]: CARD_FRONT_PUBLICATION_REVISIONS[NEXUS_CARD_ASSET_TYPE] + 1,
   /* Revision 4 captures the shared Stronghold front preset and restores icon texture contrast. */
-  [STRONGHOLD_CARD_ASSET_TYPE]: CARD_FRONT_PUBLICATION_REVISIONS[STRONGHOLD_CARD_ASSET_TYPE],
+  [STRONGHOLD_CARD_ASSET_TYPE]: CARD_FRONT_PUBLICATION_REVISIONS[STRONGHOLD_CARD_ASSET_TYPE] + 1,
   /* Revision 4 captures the shared Storm front preset. */
-  [STORM_CARD_ASSET_TYPE]: CARD_FRONT_PUBLICATION_REVISIONS[STORM_CARD_ASSET_TYPE],
-  /* Revision 4 clips back emblems inside the gold disc beneath the frame. */
-  [DECK_ASSET_TYPE]: 4,
-  /* Revision 6 clips back emblems inside the gold disc beneath the frame; saved designs are kept. */
-  'cardback-preset': 6,
+  [STORM_CARD_ASSET_TYPE]: CARD_FRONT_PUBLICATION_REVISIONS[STORM_CARD_ASSET_TYPE] + 1,
+  /* Revision 5 retains clipped back emblems and fits complete back labels. */
+  [DECK_ASSET_TYPE]: 5,
+  /* Revision 7 fits complete back labels while keeping saved designs. */
+  'cardback-preset': 7,
   /*
    * 1: token faces join the pipeline (wayfinder #547). Activating these is also the backfill for tokens that predate them.
    * One entry per shape rather than one per face, because both faces of a shape are drawn by one renderer, so bumping a front without its back is not a thing that can be meant.

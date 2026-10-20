@@ -510,6 +510,96 @@ async function checkPublisherImageCapture(
     invariant(result.payloadHash === snapshot.payloadHash, `${label} capture did not expose the exact payload hash`);
     invariant(errors.length === 0, `${label} capture emitted errors: ${errors.join(' | ')}`);
     await assertCaptureImageBounds(page, capture);
+    if (
+      [
+        'card-treachery',
+        'card-spice',
+        'card-custom',
+        'card-leaderability',
+        'card-nexus',
+        'card-homeworld',
+        'card-stronghold',
+        'card-storm',
+        'faction-traitor',
+        'faction-alliance',
+      ].includes(assetType)
+    ) {
+      const titles = await page.evaluate(() =>
+        Array.from(document.querySelectorAll<HTMLDivElement>('div[aria-label]'))
+          .filter(
+            (element) =>
+              element.firstElementChild instanceof HTMLSpanElement &&
+              (element.firstElementChild as HTMLElement).style.whiteSpace === 'pre'
+          )
+          .map((element) => {
+            const span = element.firstElementChild as HTMLSpanElement;
+            const range = document.createRange();
+            range.selectNodeContents(span);
+            const rect = element.getBoundingClientRect();
+            const scale = rect.width / element.clientWidth;
+            const font = getComputedStyle(span);
+            const context = document.createElement('canvas').getContext('2d')!;
+            context.font = `${font.fontStyle} ${font.fontWeight} ${font.fontSize} ${font.fontFamily}`;
+            const ink = context.measureText(span.innerText);
+            const baseline =
+              (span.getBoundingClientRect().top - rect.top) / scale +
+              (Number.parseFloat(font.lineHeight) + ink.fontBoundingBoxAscent - ink.fontBoundingBoxDescent) / 2;
+            return {
+              full: element.getAttribute('aria-label'),
+              text: span.textContent,
+              lines: range.getClientRects().length,
+              width: span.getBoundingClientRect().width / scale,
+              available: element.clientWidth,
+              top: baseline - ink.actualBoundingBoxAscent,
+              bottom: baseline + ink.actualBoundingBoxDescent,
+              height: element.clientHeight,
+            };
+          })
+      );
+      invariant(titles.length === 2, `${label} must register and render both title and subtitle`);
+      invariant(
+        titles.every(
+          (title) =>
+            title.text === title.full?.replaceAll(/\s+/gu, ' ').trim() &&
+            title.lines <= 1 &&
+            title.width <= title.available + 0.02 &&
+            title.top >= -0.02 &&
+            title.bottom <= title.height + 0.02
+        ),
+        `${label} titles were not settled before CAPTURE_PROTOCOL ready: ${JSON.stringify(titles)}`
+      );
+    }
+
+    if (assetType === 'deck' || assetType === 'cardback-preset') {
+      const glyphs = await page.locator('svg[aria-label]').evaluate((element) => {
+        const full = element.getAttribute('aria-label')!;
+        return Array.from(element.querySelectorAll('text')).map((text) => {
+          const box = text.getBBox();
+          return {
+            full,
+            text: text.textContent,
+            width: text.getComputedTextLength(),
+            x: box.x,
+            y: box.y,
+            right: box.x + box.width,
+            bottom: box.y + box.height,
+          };
+        });
+      });
+      invariant(
+        glyphs.length === 4 &&
+          glyphs.every(
+            (text) =>
+              text.text === text.full.replaceAll(/\s+/gu, ' ').trim() &&
+              text.width <= 680.02 &&
+              text.x >= 109.98 &&
+              text.right <= 790.02 &&
+              text.y >= 962.98 &&
+              text.bottom <= 1063.02
+          ),
+        `${label} mask and shade titles must fit before capture ready`
+      );
+    }
     await assertPage?.(page);
     if (assetType === 'card-nexus' || assetType === 'card-homeworld') {
       const regions = await page.locator('section').evaluateAll((sections) =>
@@ -616,12 +706,59 @@ try {
   if (process.env.BOARD_PROOF_PATH) {
     await Bun.write(process.env.BOARD_PROOF_PATH, boardCapture);
   }
+  for (const name of ['Rock Outcroppings', 'Habbanya Ridge Flat']) {
+    const captured = await checkPublisherImageCapture(
+      browser,
+      'card-spice',
+      envelope('card-spice', { ...(spiceSnapshot.payload as object), card: { ...publishingSpiceCard, name } }),
+      `full Spice title ${name}`
+    );
+    if (process.env.CARD_TITLE_PROOF_DIRECTORY) {
+      await mkdir(process.env.CARD_TITLE_PROOF_DIRECTORY, { recursive: true });
+      await Bun.write(path.join(process.env.CARD_TITLE_PROOF_DIRECTORY, `${name.replaceAll(' ', '-')}.png`), captured);
+    }
+  }
+  for (const name of ['Captain Iakin Nefud', 'Margot Lady Fenring', 'Premier Ein Calimar']) {
+    const captured = await checkPublisherImageCapture(
+      browser,
+      'faction-traitor',
+      envelope('faction-traitor', {
+        ...(traitorSnapshot.payload as object),
+        name,
+        owner: 'A long non-GF9 faction owner with an unabridged name',
+      }),
+      `full Traitor title ${name}`
+    );
+    if (process.env.CARD_TITLE_PROOF_DIRECTORY) {
+      await mkdir(process.env.CARD_TITLE_PROOF_DIRECTORY, { recursive: true });
+      await Bun.write(path.join(process.env.CARD_TITLE_PROOF_DIRECTORY, `${name.replaceAll(' ', '-')}.png`), captured);
+    }
+  }
   await checkPublisherImageCapture(browser, 'card-treachery', cardSnapshot, 'card');
   await checkPublisherImageCapture(
     browser,
     'card-homeworld',
     envelope('card-homeworld', { assetId: 'k17publisherHomeworld', slug: 'pelagos', card: EXAMPLE_HOMEWORLD_CARD }),
     'Homeworld'
+  );
+  await checkPublisherImageCapture(
+    browser,
+    'card-homeworld',
+    envelope('card-homeworld', {
+      assetId: 'k17publisherScaledHomeworld',
+      slug: 'scaled-homeworld',
+      card: { ...EXAMPLE_HOMEWORLD_CARD, name: 'Habbanya Ridge Flat', iconScale: 2 },
+    }),
+    'Homeworld with scaled planet',
+    undefined,
+    async (page) => {
+      const clearance = await page.evaluate(() => {
+        const title = document.querySelector<HTMLElement>('[aria-label="Habbanya Ridge Flat"]')!;
+        const picture = document.querySelector<HTMLImageElement>('img[class*="picture"]')!;
+        return picture.getBoundingClientRect().left - title.getBoundingClientRect().right;
+      });
+      invariant(clearance >= 9.98, `Scaled Homeworld planet overlaps the settled title: ${clearance}`);
+    }
   );
   for (const card of GF9_NEXUS_CARDS) {
     await checkNexusCapture(browser, card); /* NOSONAR: Captures share the active snapshot. */
@@ -703,6 +840,17 @@ try {
     await Bun.write(path.join(process.env.SPICE_PROOF_DIRECTORY, 'linked.png'), linkedSpice);
   }
   await checkPublisherImageCapture(browser, 'deck', deckSnapshot, 'deck cardback');
+  await checkPublisherImageCapture(
+    browser,
+    'deck',
+    envelope('deck', {
+      assetId: 'k17publisherLongDeck',
+      slug: 'long-storm-deck',
+      cardback: { ...publishingDeckCardback, name: 'A very long custom Storm deck label: Écaz & Moritani' },
+    }),
+    'long Storm deck back title'
+  );
+
   const stormBack = await checkPublisherImageCapture(
     browser,
     'cardback-preset',
