@@ -21,9 +21,9 @@ The two-env comparison recorded Edition 3 in A and Edition 1 in B. Further authe
 
 Reviewer A signed in through the local Password flow, saved a faction name and card subtype, then saved and published the Ixians & Tleilaxu Rulebook through its normal editor. No supplied identity or administrative content mutation performed those saves or publications.
 
-The cover source was the approved `ixian-cover.png` at commit `8f932fcbbf538ecbfa66aefe4d45308cc3158f5f` in `content/gf9/artwork/originals`. The normal authenticated ingest capability names `rulebook_cover` and Rulebook `pd757fwer2cfxyq4m9b4z446kx8gmb1g`. The consuming callback recorded the source URL, exact stored dimensions and R2 key, and marked the capability consumed. The stored JPEG is progressive, 1560 by 3000 pixels and 427998 bytes. Its SHA-256 and local delivery key are `cfce5d1a2aa33d1eab50184ba23389efb830cae621ea911096cd51507ba66242` and that hash plus `.jpg`. No upscale was needed.
+This integration run used a temporary dedicated cover rendition, which was later removed in favor of stock cover presets. The cover source was the approved `ixian-cover.png` at commit `8f932fcbbf538ecbfa66aefe4d45308cc3158f5f` in `content/gf9/artwork/originals`. The normal authenticated ingest capability names `rulebook_cover` and Rulebook `pd757fwer2cfxyq4m9b4z446kx8gmb1g`. The consuming callback recorded the source URL, exact stored dimensions and R2 key, and marked the capability consumed. The stored JPEG is progressive, 1560 by 3000 pixels and 427998 bytes. Its SHA-256 and local delivery key are `cfce5d1a2aa33d1eab50184ba23389efb830cae621ea911096cd51507ba66242` and that hash plus `.jpg`. No upscale was needed.
 
-The existing publisher completed HTML, a fourteen-page PDF and its cover. Its completion log reports zero failed or missing work and `browserClosed: true`. The PDF is tagged and embeds four subset fonts. It uses the pre-existing A4 layout and photo downsampling settings. The original rehosted cover retains its full native dimensions. Final GF9 page dimensions, overlay choices and content remain separate authoring work.
+The existing publisher completed HTML, a fourteen-page PDF and its cover. Its completion log reports zero failed or missing work and `browserClosed: true`. The PDF is tagged and embeds four subset fonts. It uses the pre-existing A4 layout and photo downsampling settings. That temporary rehosted cover retained its full native dimensions. Final GF9 covers use the existing stock preset list and normal media pipeline. This historical ingest proof does not establish their final composition or resolution.
 
 ## Restart and interrupted work
 
@@ -45,7 +45,7 @@ Seven runtime/provisioning suites passed all 45 tests. The full publisher suite 
 
 Sanitized evidence lives alongside A's runtime, outside resettable state. `resume-result.json`, `two-environment-isolation.json`, `build-isolation.json`, `ingest-ledger-summary.json` and `interruption.json` record the checks above. `published-reader-focused.png`, `cover-ingested.png`, `cover-edition-3.png`, `edition-3.pdf`, `edition-5.pdf` and `ingested-cover.jpg` provide focused browser and artifact proof. These local files need permanent publication when preparing the PR.
 
-From the integrated checkout with the cover dependency, resume A with:
+From the integrated checkout, resume A with:
 
 ```sh
 PATH=/Users/me/.nvm/versions/node/v24.21.0/bin:$PATH bun run app:dev --local --data=snapshot --persist-dir=/Users/me/Projects/Dune/gf9-runtime-proof-a

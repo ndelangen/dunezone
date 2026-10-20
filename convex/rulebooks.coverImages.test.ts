@@ -377,6 +377,32 @@ describe('Rulebook cover image staging', () => {
     expect(await f.t.query(internal.rulebookCoverImages.stagedImage, { token })).toEqual({ ...IMAGE, ...result });
   });
 
+  test('a local Docker ingest can deliver through its configured browser proxy', async () => {
+    const f = await fixture();
+    vi.stubEnv('USER_IMAGE_INGEST_BASE_URL', 'http://host.docker.internal:7777');
+    vi.stubEnv('USER_IMAGE_PUBLIC_BASE_URL', 'http://127.0.0.1:7778');
+    const { token } = await mint(f);
+    const result = { ...RESULT, url: `http://127.0.0.1:7778/user-images/${KEY}` };
+    expect(await f.t.mutation(api.ingestTokens.consume, { token, result, r2_keys: [KEY] })).toEqual({ ok: true });
+    expect(await f.t.query(internal.rulebookCoverImages.stagedImage, { token })).toEqual({ ...IMAGE, ...result });
+  });
+
+  test.each([
+    ['https://worker.test', 'http://127.0.0.1:7778'],
+    ['http://host.docker.internal:7777', 'https://elsewhere.example'],
+    ['http://host.docker.internal:7777', 'http://user:password@127.0.0.1:7778'],
+  ])('local delivery cannot widen a nonlocal or credential-bearing configuration', async (ingest, delivery) => {
+    const f = await fixture();
+    vi.stubEnv('USER_IMAGE_INGEST_BASE_URL', ingest);
+    vi.stubEnv('USER_IMAGE_PUBLIC_BASE_URL', delivery);
+    const { token } = await mint(f);
+    const result = { ...RESULT, url: `${new URL(delivery).origin}/user-images/${KEY}` };
+    expect(await f.t.mutation(api.ingestTokens.consume, { token, result, r2_keys: [KEY] })).toEqual({
+      ok: false,
+      reason: 'invalid_payload',
+    });
+  });
+
   test('Save accepts a matching stored image, rejects a raw source, and leaves the previous Edition intact', async () => {
     const f = await fixture();
     const contents = rulebookContentsV1Schema.parse(f.created.draft.contents);
