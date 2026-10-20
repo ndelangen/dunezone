@@ -102,6 +102,7 @@ function ConversionSession({ asset, initialDraft, access }: CardEditSessionProps
     type: 'card-spice',
     schema: SpiceAsset,
     editing: asset,
+    canRename: access.viewerAccess.capabilities.rename,
     disabled: conversion.isPending,
     onLoaded: header.releasing(({ data }) => {
       dispatch({ kind: 'replace', draft: data });
