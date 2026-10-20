@@ -333,9 +333,17 @@ async function requireRulebookOwner(ctx: MutationCtx, rulebookId: Id<'rulebooks'
 
 type RulebookCreationSource =
   | { kind: 'starter'; settings?: RulebookSettings }
-  | { kind: 'clone'; rulebook_id: Id<'rulebooks'>; design?: RulebookDesign };
+  | { kind: 'clone'; rulebook_id: Id<'rulebooks'>; design?: RulebookDesign }
+  | { kind: 'json'; contents: unknown; settings: RulebookSettings };
 
 async function contentsForCreation(ctx: MutationCtx, rulesetId: Id<'rulesets'>, source: RulebookCreationSource) {
+  if (source.kind === 'json') {
+    const contents = parseContents(source.contents);
+    const settings = rulebookSettingsSchema.parse(source.settings);
+    assertFixedPageLayouts({ schemaVersion: 1, pageOrder: [], pagesById: {} }, contents, settings);
+    assertStoredRulebookCoverImages(contents);
+    return { contents, settings };
+  }
   if (source.kind === 'starter') {
     return {
       contents: createRulebookEditorialStarterContents(),
@@ -859,6 +867,7 @@ export const create = mutation({
     name: v.string(),
     source: v.union(
       v.object({ kind: v.literal('starter'), settings: v.optional(rulebookSettingsValidator) }),
+      v.object({ kind: v.literal('json'), contents: v.any(), settings: rulebookSettingsValidator }),
       v.object({
         kind: v.literal('clone'),
         rulebook_id: v.id('rulebooks'),
@@ -918,6 +927,23 @@ function assertFixedPageLayouts(previous: RulebookContentsV1, next: RulebookCont
   }
 }
 
+function assertStoredRulebookCoverImages(contents: RulebookContentsV1) {
+  for (const page of Object.values(contents.pagesById)) {
+    if (page.layoutId !== 'cover') {
+      continue;
+    }
+    const { backgroundImageUrl, backgroundImage, backgroundSource } = page.controlValues.cover;
+    const usesUrl = backgroundSource?.kind !== 'preset';
+    if (
+      (usesUrl && backgroundImageUrl && backgroundImageUrl !== backgroundImage?.sourceUrl) ||
+      (backgroundImage &&
+        ((usesUrl && backgroundImageUrl === '') || !isRulebookCoverImageDeliveryUrl(backgroundImage.url)))
+    ) {
+      throw new ConvexError('Store the cover image before saving the Rulebook.');
+    }
+  }
+}
+
 export const save = mutation({
   args: {
     rulebook_id: v.id('rulebooks'),
@@ -936,20 +962,7 @@ export const save = mutation({
       return { kind: 'stale' as const, draft: current };
     }
     assertFixedPageLayouts(current.contents, contents, rulebook.settings ?? DEFAULT_RULEBOOK_SETTINGS);
-    for (const page of Object.values(contents.pagesById)) {
-      if (page.layoutId !== 'cover') {
-        continue;
-      }
-      const { backgroundImageUrl, backgroundImage, backgroundSource } = page.controlValues.cover;
-      const usesUrl = backgroundSource?.kind !== 'preset';
-      if (
-        (usesUrl && backgroundImageUrl && backgroundImageUrl !== backgroundImage?.sourceUrl) ||
-        (backgroundImage &&
-          ((usesUrl && backgroundImageUrl === '') || !isRulebookCoverImageDeliveryUrl(backgroundImage.url)))
-      ) {
-        throw new ConvexError('Store the cover image before saving the Rulebook.');
-      }
-    }
+    assertStoredRulebookCoverImages(contents);
     const now = nowIso();
     const saved = {
       revision: current.revision + 1,

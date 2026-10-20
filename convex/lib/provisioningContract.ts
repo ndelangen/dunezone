@@ -24,6 +24,7 @@ type RebuildContract = {
  */
 export const SNAPSHOT_REBUILD_CONTRACT = {
   empty: [
+    'content_import_receipts',
     'authAccounts',
     'authSessions',
     'authRefreshTokens',

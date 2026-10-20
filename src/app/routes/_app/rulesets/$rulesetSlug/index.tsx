@@ -593,6 +593,18 @@ function RulesetDetailPage() {
                   )}
                 />
               ) : null}
+              {viewerAccess.capabilities.edit && assignedGroup ? (
+                <IconAction
+                  label="Import and export JSON"
+                  emphasis="standard"
+                  intent="neutral"
+                  size="lg"
+                  icon={<FileDown size={17} aria-hidden />}
+                  renderRoot={(props) => (
+                    <Link {...props} to="/imports" search={{ ruleset: r.slug, group: assignedGroup.slug }} />
+                  )}
+                />
+              ) : null}
               {actionVisibility.askQuestion ? (
                 <IconAction
                   label="Ask a question"

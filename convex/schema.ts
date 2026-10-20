@@ -413,6 +413,18 @@ export default defineSchema({
     .index('by_owner_deleted', ['owner_id', 'is_deleted'])
     .index('by_group_deleted', ['group_id', 'is_deleted'])
     .index('by_deleted_name', ['is_deleted', 'name']),
+  /** Import identity and reviewed state for one package item in one Ruleset. */
+  content_import_receipts: defineTable({
+    ruleset_id: v.id('rulesets'),
+    package_key: v.string(),
+    item_key: v.string(),
+    kind: v.union(v.literal('asset'), v.literal('faction'), v.literal('rulebook')),
+    subject_id: v.string(),
+    item_hash: v.string(),
+    resolved_hash: v.optional(v.string()),
+    state_hash: v.string(),
+    updated_by: v.id('users'),
+  }).index('by_ruleset_package_item', ['ruleset_id', 'package_key', 'item_key']),
   /**
    * Ruleset-owned Rulebook metadata and list placement.
    * Authorship stays on the Ruleset and Contents stay in `rulebook_drafts` and `rulebook_edition_contents`.
