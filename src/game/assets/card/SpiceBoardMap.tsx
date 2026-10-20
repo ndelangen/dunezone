@@ -69,7 +69,9 @@ function EditSurface({
   tokens,
   tokenAssets,
   editing,
+  shifted,
 }: {
+  shifted: boolean;
   board: Board;
   tokens: readonly Placement[];
   tokenAssets: TokenAssets;
@@ -82,7 +84,13 @@ function EditSurface({
     editing,
     toBoard,
   });
-  return <div className={unique.mapEdit} data-brush={editing.onTerritory ? '' : undefined} {...handlers} />;
+  return (
+    <div
+      className={`${unique.mapEdit} ${shifted ? unique.shiftedMap : ''}`}
+      data-brush={editing.onTerritory ? '' : undefined}
+      {...handlers}
+    />
+  );
 }
 
 /** A Spice card's map drawn from its linked board: the board's own artwork in the card's look, its tints oldest first over it in their own colours, then its placed tokens. */
@@ -101,6 +109,8 @@ export function SpiceBoardMap({
   tokenAssets?: TokenAssets;
   editing?: SpiceMapEditing;
 }) {
+  const shifted = look.style === 'textured-burn';
+  const mapClass = `${unique.map} ${shifted ? unique.shiftedMap : ''}`;
   const stickerFilter = `${useId().replaceAll(':', '')}-sticker`;
   const territories = boardTerritoryList(board);
   const viewBox = `0 0 ${SPICE_BOARD_SIZE} ${SPICE_BOARD_SIZE}`;
@@ -117,13 +127,13 @@ export function SpiceBoardMap({
   return (
     <>
       {look.style === 'textured-burn' ? <div className={unique.mapPaper} aria-hidden /> : null}
-      <svg className={unique.map} data-look={look.style} viewBox={viewBox} fillRule="evenodd" clipRule="evenodd">
+      <svg className={mapClass} data-look={look.style} viewBox={viewBox} fillRule="evenodd" clipRule="evenodd">
         {artwork}
       </svg>
       {/* The board as it is, faded over the look: full strength shows only the look, none only the board. */}
       {look.style === 'plain' || look.strength >= 1 ? null : (
         <svg
-          className={unique.map}
+          className={mapClass}
           data-look="plain"
           style={{ opacity: 1 - look.strength }}
           viewBox={viewBox}
@@ -133,10 +143,15 @@ export function SpiceBoardMap({
           {artwork}
         </svg>
       )}
-      <svg className={unique.map_overlay} viewBox={viewBox} fillRule="evenodd" clipRule="evenodd">
+      <svg
+        className={`${unique.map_overlay} ${shifted ? unique.shiftedMap : ''}`}
+        viewBox={viewBox}
+        fillRule="evenodd"
+        clipRule="evenodd"
+      >
         {tintLayers}
       </svg>
-      <div className={unique.mapTokens}>
+      <div className={`${unique.mapTokens} ${shifted ? unique.shiftedMap : ''}`}>
         {tokens.map((token) => {
           const asset = tokenAssets[token.asset_id];
           return asset ? (
@@ -149,7 +164,9 @@ export function SpiceBoardMap({
           ) : null;
         })}
       </div>
-      {editing ? <EditSurface board={board} tokens={tokens} tokenAssets={tokenAssets} editing={editing} /> : null}
+      {editing ? (
+        <EditSurface shifted={shifted} board={board} tokens={tokens} tokenAssets={tokenAssets} editing={editing} />
+      ) : null}
     </>
   );
 }

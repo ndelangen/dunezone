@@ -39,7 +39,7 @@ export const SPICE_BOARD_SIZE = BOARD_FRAME_SIZE;
 /** The Spice renderer revision that draws a linked board; until the publisher runs it, linked cards wait rather than capture the legacy map. */
 export const SPICE_BOARD_REVISION = 2;
 
-/** How a linked board's artwork sits in the card's parchment: burnt in like the classic map, toned sepia, or drawn as it is. */
+/** Named board treatments keep tints and placed tokens in their own colours. */
 export const SPICE_BOARD_LOOKS = ['burnt', 'sepia', 'plain', 'textured-burn'] as const;
 
 /** A board's look and how strongly it applies, 0 to 1; a card without one is burnt in fully, as the classic map is. */

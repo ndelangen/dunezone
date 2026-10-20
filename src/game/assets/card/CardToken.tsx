@@ -4,6 +4,7 @@ import type { z } from 'zod';
 
 import { CustomToken } from '../token/Custom';
 import { RectangleToken } from '../token/Rectangle';
+import { tokenFaceProps } from '../token/tokenFace';
 
 /** Clips the linked front to its token shape; the caller draws the shadow outside this clipping box. */
 export function CardToken({ token }: { token: z.infer<typeof CustomCardToken> }) {
@@ -24,24 +25,7 @@ export function CardToken({ token }: { token: z.infer<typeof CustomCardToken> })
       {rectangle ? (
         <RectangleToken {...token.face} />
       ) : (
-        <CustomToken
-          shape={shape ?? 'round'}
-          background={token.face.background}
-          image={token.face.image}
-          circle={token.face.ring}
-          circleShadow={token.face.ringShadow}
-          fill={token.face.symbolFill}
-          stroke={token.face.symbolStroke}
-          strokeWidth={token.face.symbolStrokeWidth}
-          symbolShadow={token.face.symbolShadow}
-          top={token.face.top || undefined}
-          bottom={
-            token.face.bottomFirst || token.face.bottomSecond
-              ? `${token.face.bottomFirst}\n${token.face.bottomSecond}`
-              : undefined
-          }
-          size={{ width: 100 * token.face.symbolScale, height: 100 * token.face.symbolScale }}
-        />
+        <CustomToken shape={shape ?? 'round'} {...tokenFaceProps(token.face)} />
       )}
     </div>
   );

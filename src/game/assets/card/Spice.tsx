@@ -98,7 +98,10 @@ export const SpiceCard: FC<
             editing={mapEditing}
           />
         ) : (
-          <div className={unique.map} data-missing-board />
+          <div
+            className={`${unique.map} ${board.look?.style === 'textured-burn' ? unique.shiftedMap : ''}`}
+            data-missing-board
+          />
         )
       ) : (
         <>

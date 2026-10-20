@@ -30,6 +30,7 @@ import { TraitorCard } from '@game/assets/faction/traitor/Traitor';
 import { TroopToken } from '@game/assets/faction/troop/Troop';
 import { CustomToken } from '@game/assets/token/Custom';
 import { RectangleToken } from '@game/assets/token/Rectangle';
+import { tokenFaceProps } from '@game/assets/token/tokenFace';
 import { TreacheryCard } from '@game/assets/treachery/Treachery';
 import { settleCardTitles } from '@game/assets/utils/cardTitleFit';
 import { RulebookDocumentRenderer, RulebookPageRenderer } from '@game/rulebook/RulebookRenderer';
@@ -189,25 +190,7 @@ function captureSubject(snapshot: PublisherCaptureSnapshot): CaptureSubject {
         snapshot.assetType,
         <CustomToken
           shape={tokenShapeOfType(snapshot.assetType) ?? 'round'}
-          background={snapshot.payload.face.background}
-          image={snapshot.payload.face.image}
-          circle={snapshot.payload.face.ring}
-          circleShadow={snapshot.payload.face.ringShadow ?? false}
-          fill={snapshot.payload.face.symbolFill}
-          stroke={snapshot.payload.face.symbolStroke}
-          strokeWidth={snapshot.payload.face.symbolStrokeWidth}
-          symbolShadow={snapshot.payload.face.symbolShadow}
-          top={snapshot.payload.face.top || undefined}
-          bottom={
-            snapshot.payload.face.bottomFirst || snapshot.payload.face.bottomSecond
-              ? `${snapshot.payload.face.bottomFirst}\n${snapshot.payload.face.bottomSecond}`
-              : undefined
-          }
-          /* The renderer centres the symbol in a 300 unit box, so scale is expressed against its reference size, the same arithmetic the editor's proof uses. */
-          size={{
-            width: 100 * snapshot.payload.face.symbolScale,
-            height: 100 * snapshot.payload.face.symbolScale,
-          }}
+          {...tokenFaceProps(snapshot.payload.face)}
         />
       );
     case 'token-enhance':

@@ -5,7 +5,9 @@ import type { convexTest } from 'convex-test';
 import { describe, expect, test } from 'vite-plus/test';
 
 import { publicationFaceId } from '../src/shared/asset-publishing/publicationTargets';
+import karamaReplacement from '../src/shared/assets/fixtures/karamaReplacement.json';
 import { publishingSpiceCard } from '../src/shared/assets/fixtures/publishingSpiceCard';
+import { parseFormattedText } from '../src/shared/formattedText';
 import { api } from './_generated/api';
 import { applicationTest } from './application.test.fixture';
 import { assetPageAs } from './viewerAccess.test.fixture';
@@ -1074,4 +1076,27 @@ describe('slug allocation', () => {
     expect(copy.slug).toBe('lasgun-1');
     expect((await assetPageAs(t, { type: 'token-disc', slug: copy.slug }))?.asset.name).toBe('Lasgun');
   });
+});
+
+test('normal Treachery Save preserves text-only layout and complete formatted body in its publication', async () => {
+  const t = applicationTest();
+  const { ownerId, created } = await seedCard(t);
+  const data = { ...cardData('Karama'), ...karamaReplacement };
+  await t.withIdentity({ subject: ownerId }).mutation(api.assets.update, { id: created.id, data });
+  const stored = await t.run((ctx) => ctx.db.get('assets', created.id));
+  expect(stored?.type).toBe('card-treachery');
+  const { text, ...identity } = data;
+  expect(stored?.data).toMatchObject(identity);
+  expect(parseFormattedText(stored!.data.text).blocks).toEqual(parseFormattedText(text).blocks);
+  const jobs = await t.run((ctx) =>
+    ctx.db
+      .query('publication_jobs')
+      .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', 'card-treachery').eq('asset_id', created.id))
+      .take(10)
+  );
+  expect(
+    jobs.some(
+      (job) => job.asset_data.card?.bodyLayout === 'text-only' && job.asset_data.card?.text === stored?.data.text
+    )
+  ).toBe(true);
 });

@@ -177,13 +177,8 @@ div.shape {
   filter: saturate(0) contrast(2.6) brightness(0.55);
 }
 
-:global([data-spice-look="textured-burn"]) {
-  & .map,
-  & .map_overlay,
-  & .mapTokens,
-  & .mapEdit {
-    top: 263px;
-  }
+.shiftedMap {
+  top: 263px;
 }
 
 .mapPaper {
