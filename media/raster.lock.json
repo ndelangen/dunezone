@@ -4553,6 +4553,24 @@
     "isOpaque": true,
     "color": "#c8b878"
   },
+  "/image/leader/gf9/count-ilban-richese.png": {
+    "sha256": "ec49d29ea1fc3b1cb76834047f922cb8105a8595cb017c3c71ab48808eb1b2b6",
+    "bytes": 48529,
+    "width": 162,
+    "height": 162,
+    "format": "png",
+    "isOpaque": true,
+    "color": "#d8c898"
+  },
+  "/image/leader/gf9/ur-director-malina-aru.png": {
+    "sha256": "83e3b0e3a9a20fe23df1c41f087ca75edebb69dd73bf7b20138f696decf3712e",
+    "bytes": 44356,
+    "width": 150,
+    "height": 150,
+    "format": "png",
+    "isOpaque": true,
+    "color": "#d8c898"
+  },
   "/image/leader/hivers/hiver-amber-pendant.png": {
     "sha256": "22a36c5ae022ede61b1b8935f69e03a00ae66b4e95cf95a23cf7c4ad38145732",
     "bytes": 1650616,
@@ -7649,6 +7667,15 @@
     "isOpaque": true,
     "color": "#080808"
   },
+  "/image/texture/hiereg-discovery.png": {
+    "sha256": "17418d80b07639ef6c52abfc087ff4777e2a0145eec81413672e9a71614f95c6",
+    "bytes": 1311372,
+    "width": 1254,
+    "height": 1254,
+    "format": "png",
+    "isOpaque": true,
+    "color": "#c8c8c8"
+  },
   "/web/blog/drawing-dune-tokens-and-cards/atreides-leaders.jpg": {
     "sha256": "ebb942756691887e5cc052071f1378942bd59c51d37bf777e206be33ea884afc",
     "bytes": 246873,
@@ -8017,6 +8044,15 @@
     "format": "jpeg",
     "isOpaque": true,
     "color": "#f8e8d8"
+  },
+  "/web/rulesets/gf9-logo.png": {
+    "sha256": "ca0d8a68fbf167ab4385422fd97663c281a574e21d3fccf995d0e15bba5662ae",
+    "bytes": 19151,
+    "width": 384,
+    "height": 384,
+    "format": "png",
+    "isOpaque": true,
+    "color": "#183848"
   },
   "/web/tablet1.jpg": {
     "sha256": "8636b17960e8ad9fc297f9979c955b74e95a7e25bde4d84550226ca9a98072ae",
