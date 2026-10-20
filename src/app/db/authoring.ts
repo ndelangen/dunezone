@@ -13,6 +13,11 @@ export async function validateRawAuthoring(args: {
   await db.query(api.authoringValidation.raw, args, { hold: false });
 }
 
+/** The Load picker reads only a linked back's display data, without container membership. */
+export async function loadRawAuthoringBack(args: { type: string; targetId?: string; referenceId: string }) {
+  return await db.query(api.authoringValidation.linkedBack, args, { hold: false });
+}
+
 /** The owning route passes account changes into its open Load session. */
 export function useAuthoringAccountKey() {
   const viewer = useSessionViewer();

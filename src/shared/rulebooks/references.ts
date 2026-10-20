@@ -27,6 +27,127 @@ export type RulebookResolvedFactionsById = Readonly<
   Record<string, Readonly<z.infer<typeof rulebookResolvedFactionSchema>>>
 >;
 
+type TroopSelection = { factionId?: string; troopId?: string; face: 'front' | 'back' };
+type RulebookReferenceUse =
+  | {
+      kind: 'source';
+      path: string;
+      source: RulebookSourceReference;
+      assetTypes?: readonly string[];
+      markupBoard?: boolean;
+    }
+  | { kind: 'troop'; path: string; factionPath: string; selection: TroopSelection };
+
+/** Typed reference slots, shared by resolution and strict raw authoring checks. */
+export function rulebookReferenceUses(contents: RulebookContentsDraftV1): RulebookReferenceUse[] {
+  const uses: RulebookReferenceUse[] = [];
+  const source = (value: RulebookSourceReference | undefined, path: string, assetTypes?: readonly string[]) => {
+    if (value) {
+      uses.push({ kind: 'source', source: value, path, ...(assetTypes ? { assetTypes } : {}) });
+    }
+  };
+  const faction = (factionId: string | undefined, path: string) => {
+    if (factionId) {
+      source({ kind: 'faction', factionId }, path);
+    }
+  };
+  const troop = (selection: TroopSelection, path: string, factionPath = `${path}.factionId`) => {
+    uses.push({ kind: 'troop', selection, path, factionPath });
+  };
+  const battleSide = (side: RulebookBattleSideValue, path: string) => {
+    faction(side.factionId, `${path}.factionId`);
+    source(side.leader, `${path}.leader`);
+    source(side.knownCard, `${path}.knownCard`, ['card-treachery']);
+    side.cards.forEach((card, index) => source(card, `${path}.cards.${index}`, ['card-treachery']));
+    side.troops.forEach((selection, index) =>
+      troop({ ...selection, factionId: side.factionId }, `${path}.troops.${index}`, `${path}.factionId`)
+    );
+  };
+  const board = (value: RulebookBoardSceneValue, path: string) => {
+    uses.push({
+      kind: 'source',
+      path: `${path}.boardId`,
+      source: { kind: 'board', boardId: value.boardId },
+      markupBoard: Boolean(value.tints?.length),
+    });
+    value.tokens?.forEach((token, index) =>
+      source({ kind: 'asset', assetId: token.asset_id }, `${path}.tokens.${index}.asset_id`, [
+        'token-disc',
+        'token-tech',
+        'token-plate',
+        'token-pointer',
+        'token-enhance',
+      ])
+    );
+    value.players.forEach((player, index) => faction(player.factionId, `${path}.players.${index}.factionId`));
+    value.troops.forEach((selection, index) => troop(selection, `${path}.troops.${index}`));
+  };
+  for (const [pageId, page] of Object.entries(contents.pagesById)) {
+    const path = `$.contents.pagesById.${pageId}`;
+    const footer = page.layoutId === 'cover' ? getRulebookCoverFooter(page.controlValues) : undefined;
+    if (footer?.enabled) {
+      faction(footer.leftFactionId, `${path}.controlValues.footer.leftFactionId`);
+      faction(footer.rightFactionId, `${path}.controlValues.footer.rightFactionId`);
+    }
+    if (page.layoutId === 'cover' && page.controlValues.cover.artworkAssetId) {
+      source(
+        { kind: 'asset', assetId: page.controlValues.cover.artworkAssetId },
+        `${path}.controlValues.cover.artworkAssetId`
+      );
+    }
+    for (const [blockId, block] of Object.entries(page.blocksById)) {
+      const at = `${path}.blocksById.${blockId}`;
+      if ((block.kind === 'section-heading' || block.kind === 'faction-introduction') && block.factionId) {
+        faction(block.factionId, `${at}.factionId`);
+      }
+      if (block.kind === 'referenced-illustration' || block.kind === 'card-entry' || block.kind === 'asset-explainer') {
+        source(block.source, `${at}.source`);
+      }
+      if (block.kind === 'battle-step' || block.kind === 'battle-plans') {
+        battleSide(block.left, `${at}.left`);
+        battleSide(block.right, `${at}.right`);
+      }
+      if (block.kind === 'battle-comparison') {
+        block.examples.forEach((example, index) => {
+          battleSide(example.left, `${at}.examples.${index}.left`);
+          battleSide(example.right, `${at}.examples.${index}.right`);
+        });
+      }
+      if (block.kind === 'board-scene') {
+        board(block, at);
+      }
+      if (block.kind === 'piece-movement' || block.kind === 'piece-transfer') {
+        for (const side of ['left', 'right'] as const) {
+          block[side].pieces.forEach((piece, index) => {
+            const position = `${at}.${side}.pieces.${index}`;
+            if (piece.kind === 'source') {
+              source(piece.source, `${position}.source`);
+            } else {
+              troop(piece, position);
+            }
+          });
+        }
+      }
+      if (block.kind === 'piece-movement') {
+        block.notes?.forEach((note, index) => source(note.source, `${at}.notes.${index}.source`));
+        if (block.board) {
+          board(block.board, `${at}.board`);
+        }
+      }
+      if (block.kind === 'illustrated-inventory' || block.kind === 'card-group') {
+        for (const [itemId, item] of Object.entries(block.itemsById)) {
+          source(
+            item.source,
+            `${at}.itemsById.${itemId}.source`,
+            block.kind === 'card-group' ? ['card-treachery'] : undefined
+          );
+        }
+      }
+    }
+  }
+  return uses;
+}
+
 /** Collects selected live sources once, including unsaved picks, in a stable order for query inputs. */
 export function collectRulebookReferenceIds(
   contents: RulebookContentsDraftV1,
@@ -36,112 +157,36 @@ export function collectRulebookReferenceIds(
   const factionIds = new Set(requested.factionIds);
   const troopSources = new Map<string, Extract<RulebookSourceReference, { kind: 'faction-troop' }>>();
   const markupBoardIds = new Set<string>();
-  const collectSource = (source: RulebookSourceReference | undefined) => {
-    if (source?.kind === 'faction-troop') {
-      troopSources.set(`${source.factionId}.${source.troopId}.${source.face}`, source);
+  for (const use of rulebookReferenceUses(contents)) {
+    if (use.kind === 'troop') {
+      if (use.selection.factionId) {
+        factionIds.add(use.selection.factionId);
+      }
+      continue;
     }
-    if (source?.kind === 'asset') {
+    const source = use.source;
+    if (source.kind === 'asset') {
       assetIds.add(source.assetId);
     }
-    if (source?.kind === 'board' && !resolveRulebookBoardDefinition(source.boardId)) {
-      assetIds.add(source.boardId);
+    if (source.kind === 'board') {
+      if (!resolveRulebookBoardDefinition(source.boardId)) {
+        assetIds.add(source.boardId);
+      }
+      if (use.markupBoard) {
+        markupBoardIds.add(source.boardId);
+      }
     }
-    if (source?.kind === 'faction' || source?.kind === 'faction-member' || source?.kind === 'faction-troop') {
+    if (source.kind === 'faction-troop') {
+      troopSources.set(`${source.factionId}.${source.troopId}.${source.face}`, source);
+    }
+    if (source.kind === 'faction' || source.kind === 'faction-member' || source.kind === 'faction-troop') {
       factionIds.add(source.factionId);
-    }
-  };
-  const collectBattleSide = (side: RulebookBattleSideValue) => {
-    if (side.factionId) {
-      factionIds.add(side.factionId);
-    }
-    collectSource(side.leader);
-    collectSource(side.knownCard);
-    for (const card of side.cards) {
-      collectSource(card);
-    }
-  };
-  const collectBoard = (board: RulebookBoardSceneValue) => {
-    /* A board ID the maintained definitions do not have names a saved board asset. */
-    if (!resolveRulebookBoardDefinition(board.boardId)) {
-      assetIds.add(board.boardId);
-    }
-    if (board.tints?.length) {
-      markupBoardIds.add(board.boardId);
-    }
-    for (const token of board.tokens ?? []) {
-      assetIds.add(token.asset_id);
-    }
-    for (const item of [...board.players, ...board.troops]) {
-      if (item.factionId) {
-        factionIds.add(item.factionId);
-      }
-    }
-  };
-  for (const page of Object.values(contents.pagesById)) {
-    const footer = page.layoutId === 'cover' ? getRulebookCoverFooter(page.controlValues) : undefined;
-    if (footer?.enabled) {
-      const { leftFactionId, rightFactionId } = footer;
-      if (leftFactionId) {
-        factionIds.add(leftFactionId);
-      }
-      if (rightFactionId) {
-        factionIds.add(rightFactionId);
-      }
-    }
-    if (page.layoutId === 'cover' && page.controlValues.cover.artworkAssetId) {
-      assetIds.add(page.controlValues.cover.artworkAssetId);
-    }
-    for (const block of Object.values(page.blocksById)) {
-      if ((block.kind === 'section-heading' || block.kind === 'faction-introduction') && block.factionId) {
-        factionIds.add(block.factionId);
-      }
-      if (block.kind === 'referenced-illustration' || block.kind === 'card-entry' || block.kind === 'asset-explainer') {
-        collectSource(block.source);
-      }
-      if (block.kind === 'battle-step' || block.kind === 'battle-plans') {
-        collectBattleSide(block.left);
-        collectBattleSide(block.right);
-      }
-      if (block.kind === 'battle-comparison') {
-        for (const example of block.examples) {
-          collectBattleSide(example.left);
-          collectBattleSide(example.right);
-        }
-      }
-      if (block.kind === 'board-scene') {
-        collectBoard(block);
-      }
-      if (block.kind === 'piece-movement' || block.kind === 'piece-transfer') {
-        for (const group of [block.left, block.right]) {
-          for (const piece of group.pieces) {
-            if (piece.kind === 'source') {
-              collectSource(piece.source);
-            } else if (piece.factionId) {
-              factionIds.add(piece.factionId);
-            }
-          }
-        }
-      }
-      if (block.kind === 'piece-movement') {
-        for (const note of block.notes ?? []) {
-          collectSource(note.source);
-        }
-        if (block.board) {
-          collectBoard(block.board);
-        }
-      }
-      if (block.kind === 'illustrated-inventory' || block.kind === 'card-group') {
-        for (const item of Object.values(block.itemsById)) {
-          collectSource(item.source);
-        }
-      }
     }
   }
   return {
     assetIds: [...assetIds].sort(compareCodeUnits),
     factionIds: [...factionIds].sort(compareCodeUnits),
     ...(troopSources.size ? { troopSources: [...troopSources.values()] } : {}),
-    /** Saved boards a scene draws tints on, whose data the scene needs to draw them. */
     ...(markupBoardIds.size ? { markupBoardIds: [...markupBoardIds].sort(compareCodeUnits) } : {}),
   };
 }

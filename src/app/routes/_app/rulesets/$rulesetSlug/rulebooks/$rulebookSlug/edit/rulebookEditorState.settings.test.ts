@@ -14,6 +14,41 @@ const core = { size: 'gf9-core', design: 'illustrated' } as const;
 const expansion = { size: 'gf9-expansion', design: 'illustrated' } as const;
 
 describe('Rulebook authored settings', () => {
+  test('Reset after raw Contents replacement restores the complete saved pair', () => {
+    const initial = createCleanSavedRevision();
+    const manager = createRulebookEditorStateManager(initial);
+    const next = structuredClone(initial.contents);
+    const page = next.pagesById[next.pageOrder[0]];
+    if (page.layoutId !== 'single-column') {
+      throw new Error('Expected a single-column first Page.');
+    }
+    page.blocksById = { RAWW: { id: 'RAWW', kind: 'referenced-illustration', caption: 'Raw replacement' } };
+    page.blockOrderByRegion = { content: ['RAWW'] };
+    expect(ready(manager.dispatch({ kind: 'replace-draft', draft: next, settings: core })).hasLocalChanges).toBe(true);
+    const reset = ready(manager.dispatch({ kind: 'discard-draft' }));
+    expect(reset.draft).toEqual(initial.contents);
+    expect(reset.hasLocalChanges).toBe(false);
+    expect(reset.canSave).toBe(false);
+  });
+
+  test('discard refuses an in-flight Save and later resets to its acknowledged saved pair', () => {
+    const initial = createCleanSavedRevision();
+    const manager = createRulebookEditorStateManager(initial);
+    manager.dispatch({ kind: 'replace-settings', settings: core });
+    manager.dispatch({ kind: 'begin-save' });
+    const refused = ready(manager.dispatch({ kind: 'discard-draft' }));
+    expect(refused.isSaving).toBe(true);
+    expect(refused.settings).toEqual(core);
+    expect(refused.operationError).toContain('Wait for Save');
+    manager.dispatch({ kind: 'save-succeeded', saved: { ...initial, revision: '2', settings: core } });
+    manager.dispatch({ kind: 'replace-settings', settings: expansion });
+    const reset = ready(manager.dispatch({ kind: 'discard-draft' }));
+    expect(reset.settings).toEqual(core);
+    expect(reset.latest.revision).toBe('2');
+    expect(reset.hasLocalChanges).toBe(false);
+    expect(reset.canSave).toBe(false);
+  });
+
   test('settings-only edits enable Save and preserve an edit made while Save is in flight', () => {
     const initial = createCleanSavedRevision();
     const manager = createRulebookEditorStateManager(initial);

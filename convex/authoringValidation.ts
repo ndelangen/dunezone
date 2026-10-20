@@ -1,26 +1,52 @@
 import { ConvexError, v } from 'convex/values';
 
 import { parseRawAsset, parseRawFaction, rawRulebookSchema, readRawAuthoringJson } from '../src/shared/authoring/raw';
-import { CanonicalFactionStoredSchema } from '../src/shared/factions/schema';
-import { resolveRulebookBoardDefinition } from '../src/shared/rulebooks/boardDefinitions';
-import { collectRulebookReferenceIds } from '../src/shared/rulebooks/references';
-import { resolveRulebookArtworkSource } from '../src/shared/rulebooks/sources';
-import type { Id } from './_generated/dataModel';
 import { viewerQuery } from './functions';
-import { TOKEN_ASSET_TYPES, assertReferenceableDeckCardback, assertReferenceableTokenBack } from './lib/assetBacks';
+import {
+  TOKEN_ASSET_TYPES,
+  assertReferenceableDeckCardback,
+  assertReferenceableTokenBack,
+  ownPublishedFace,
+} from './lib/assetBacks';
+import { assetDisplayName } from './lib/assetInput';
 import { resolveCustomCardTokens, customCardTokenIds, customCardPublicationError } from './lib/customCardTokens';
 import { requireAuthUserId } from './lib/policy';
+import { assertRawRulebookDestination, assertRawRulebookReferences } from './lib/rawRulebookValidation';
 import { resolveSpiceCardBoard, spiceCardTokenIds, spiceCardPublicationError } from './lib/spiceCardBoard';
 import type { QueryCtx } from './types';
 
-async function asset(ctx: QueryCtx, id: string, path: string, types?: readonly string[]) {
-  const key = ctx.db.normalizeId('assets', id);
-  const row = key ? await ctx.db.get('assets', key) : null;
-  if (!row || row.is_deleted || (types && !types.includes(row.type))) {
-    throw new ConvexError(`${path}: Choose an available ${types?.join(' or ') ?? 'asset'}.`);
+async function linkedBackRow(ctx: QueryCtx, args: { type: string; targetId?: string; referenceId: string }) {
+  const ownId = args.targetId ? ctx.db.normalizeId('assets', args.targetId) : null;
+  const referenceId = ctx.db.normalizeId('assets', args.referenceId);
+  if ((args.targetId && !ownId) || !referenceId) {
+    throw new ConvexError('Choose an available back reference.');
   }
-  return row;
+  const target = { _id: ownId, type: args.type };
+  if (TOKEN_ASSET_TYPES.has(args.type)) {
+    return await assertReferenceableTokenBack(ctx, target, referenceId);
+  }
+  if (args.type === 'deck') {
+    return await assertReferenceableDeckCardback(ctx, target, referenceId);
+  }
+  throw new ConvexError('This Asset type has no linked back.');
 }
+
+/** Display data for a validated linked back, read lazily before explicit Load. */
+export const linkedBack = viewerQuery({
+  args: { type: v.string(), targetId: v.optional(v.string()), referenceId: v.string() },
+  returns: v.object({
+    id: v.id('assets'),
+    name: v.string(),
+    data: v.any(),
+    previewHref: v.union(v.string(), v.null()),
+  }),
+  handler: async (ctx, args) => {
+    await requireAuthUserId(ctx);
+    const row = await linkedBackRow(ctx, args);
+    return { id: row._id, name: assetDisplayName(row), data: row.data, previewHref: ownPublishedFace(row) };
+  },
+});
+
 async function faction(ctx: QueryCtx, id: string, path: string) {
   const key = ctx.db.normalizeId('factions', id);
   const row = key ? await ctx.db.get('factions', key) : null;
@@ -57,59 +83,21 @@ export const raw = viewerQuery({
     }
     if (args.kind === 'rulebook') {
       const data = rawRulebookSchema.parse(input);
-      const refs = collectRulebookReferenceIds(data.contents);
-      await Promise.all([
-        ...refs.assetIds.map((id) => asset(ctx, id, '$.contents')),
-        ...refs.factionIds.map((id) => faction(ctx, id, '$.contents')),
-      ]);
-      /* Source kinds carry stricter identities than a generic asset ID. */
-      const pending: unknown[] = [data.contents];
-      while (pending.length) {
-        const value = pending.pop();
-        if (!value || typeof value !== 'object') {
-          continue;
-        }
-        const record = value as Record<string, unknown>;
-        if (typeof record.boardId === 'string' && !resolveRulebookBoardDefinition(record.boardId)) {
-          await asset(ctx, record.boardId, '$.contents.source', ['board']);
-        }
-        if (
-          record.kind === 'stock' &&
-          typeof record.artworkId === 'string' &&
-          resolveRulebookArtworkSource({ kind: 'stock', artworkId: record.artworkId })?.status !== 'ready'
-        ) {
-          throw new ConvexError('$.contents.source.artworkId: Maintained artwork is unavailable.');
-        }
-        if (
-          (record.kind === 'faction-member' || record.kind === 'faction-troop') &&
-          typeof record.factionId === 'string'
-        ) {
-          const row = await faction(ctx, record.factionId, '$.contents.source');
-          const parsed = CanonicalFactionStoredSchema.parse(row.data);
-          const exists =
-            record.kind === 'faction-member'
-              ? [parsed.factionLeader, ...parsed.leaders].some((member) => member.memberId === record.memberId)
-              : parsed.troops.some((troop) => troop.troopId === record.troopId);
-          if (!exists) {
-            throw new ConvexError('$.contents.source: This faction component is unavailable.');
-          }
-        }
-        pending.push(...Object.values(record));
-      }
+      await assertRawRulebookDestination(ctx, args.targetId, data);
+      await assertRawRulebookReferences(ctx, data.contents);
       return null;
     }
     if (!args.type) {
       throw new ConvexError('Choose an Asset type.');
     }
     const data = parseRawAsset(args.type, input).data as Record<string, unknown>;
-    const ownId = args.targetId ? ctx.db.normalizeId('assets', args.targetId) : null;
     const back = data.back as { mode?: string; asset_id?: string } | undefined;
     if (TOKEN_ASSET_TYPES.has(args.type) && back?.mode === 'reference' && back.asset_id) {
-      await assertReferenceableTokenBack(ctx, { _id: ownId, type: args.type }, back.asset_id as Id<'assets'>);
+      await linkedBackRow(ctx, { ...args, type: args.type, referenceId: back.asset_id });
     }
     const cardback = data.cardback as { mode?: string; asset_id?: string } | undefined;
     if (args.type === 'deck' && cardback?.mode === 'reference' && cardback.asset_id) {
-      await assertReferenceableDeckCardback(ctx, { _id: ownId, type: args.type }, cardback.asset_id as Id<'assets'>);
+      await linkedBackRow(ctx, { ...args, type: args.type, referenceId: cardback.asset_id });
     }
     const board = data.board as { asset_id: string } | undefined;
     if (args.type === 'card-spice' && board) {

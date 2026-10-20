@@ -268,7 +268,11 @@ function DeckEditSession({
             canRename: access.viewerAccess.capabilities.rename,
             disabled: saveState === 'saving',
             onLoaded: header.releasing((loaded) =>
-              dispatch({ kind: 'replace', data: loaded.data, pick: loaded.source?.backDeck ?? null })
+              dispatch({
+                kind: 'replace',
+                data: loaded.data,
+                pick: loaded.referencedBack ?? loaded.source?.backDeck ?? null,
+              })
             ),
           })}
           status={{ isDirty, isNameBlank, saveState }}

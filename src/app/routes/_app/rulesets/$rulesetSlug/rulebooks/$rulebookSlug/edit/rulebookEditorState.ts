@@ -604,6 +604,7 @@ type RulebookEditorAction =
   | Omit<RulebookDeleteIntent, 'deletedRefs'>
   | Omit<RulebookPlaceIntent, 'original'>
   | { readonly kind: 'replace-draft'; readonly draft: RulebookContentsDraftV1; readonly settings?: RulebookSettings }
+  | { readonly kind: 'discard-draft' }
   | { readonly kind: 'replace-settings'; readonly settings: RulebookSettings }
   | { readonly kind: 'resolve-settings'; readonly choice: 'local' | 'saved' }
   | { readonly kind: 'receive-latest'; readonly latest: SavedRulebookRevision }
@@ -3632,6 +3633,18 @@ function dispatchReady(
   if (action.kind === 'replace-settings') {
     state.settings = rulebookSettingsSchema.parse(action.settings);
     return undefined;
+  }
+  if (action.kind === 'discard-draft') {
+    if (state.isSaving) {
+      throw new Error('Wait for Save before discarding this draft.');
+    }
+    state.baseline = clone(state.latest);
+    state.draft = clone(state.latest.contents);
+    state.settings = clone(state.latest.settings ?? DEFAULT_RULEBOOK_SETTINGS);
+    state.settingsBaseline = clone(state.settings);
+    state.patch = emptyPatch(state.latest.revision);
+    state.ledger = [];
+    return stabilize(state);
   }
   if (action.kind === 'resolve-settings') {
     if (action.choice === 'saved') {
