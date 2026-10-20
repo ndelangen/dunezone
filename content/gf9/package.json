@@ -22295,7 +22295,7 @@
           },
           {
             "memberId": "c6c37ae9-932e-460f-826d-5b9553693b5d",
-            "name": "Captain Iakin Nefud",
+            "name": "Cpt. Iakin Nefud",
             "strength": 2,
             "image": "/image/leader/official/nafud.png"
           },
@@ -22831,7 +22831,7 @@
           },
           {
             "memberId": "5a19b7d3-0256-4013-8478-8343a47f8a46",
-            "name": "Margot Lady Fenring",
+            "name": "Margot Fenring",
             "strength": 5,
             "image": "/image/leader/official/lady-fenring.png"
           }
@@ -23251,7 +23251,7 @@
         "leaders": [
           {
             "memberId": "0c17e2fb-bb4b-5658-a1fe-a31ce1d5a793",
-            "name": "Premier Ein Calimar",
+            "name": "Ein Calimar",
             "strength": 5,
             "image": "/image/leader/official/ein-calimar.png"
           },

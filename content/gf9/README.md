@@ -11,6 +11,7 @@ The requested Discord creation ticket could not be located. The private browser 
 - `*-manuscript.json`: four teaching manuscripts, with applicability and source references on each section. Edit these before rebuilding the rulebook data.
 - `base-factions.json`: six original factions in the shared faction input shape.
 - `expansion-factions.json`: six expansion faction drafts, completed by the assembler with stable component IDs and existing illustration references.
+- `leader-labels.json`: three printed rank/title abbreviations for the existing Traitor title box. Full source names remain in the faction inputs. The assembler preserves personal names, strengths and component IDs.
 - `assets-package.json`: curated asset input, including decks and their member quantities. Its provenance and inventory are recorded in `assets-source-manifest.json`.
 - `core-judgements.json` and `expansion-judgements.json`: local evidence and decisions for the GitHub judgement ledger.
 - `core-coverage.json`, `expansion-coverage.json`, both `faq-review*.json` files and `asset-review.json`: reading and content-review evidence. Review evidence is distinct from rendering or production verification.
@@ -96,3 +97,5 @@ Faction rules were authored from GF9 sources. Existing Dune Zone illustration ID
 `assets-source-manifest.json` records source locations and SHA-256 fingerprints for the curated assets. `asset-review.json` records the independent 235-item content review, printed Homeworld face comparisons, corrected copy, inventory checks and data-hash checks. Generated faction outputs supply force tokens, leaders, traitors, Alliance Cards and shields; explicit Prediction Cards and the shared Duke Vidal token fill the component gaps documented there.
 
 An existing stock asset may be reused only within the delivery task's verified ownership and approved scope. In particular, adoption of the existing Arrakis board preserves its other Ruleset links. No new artwork was generated as part of this source-authoring pass. Source provenance is not a new licence grant for GF9 text, trademarks or artwork.
+
+Derived Traitor cards use a fixed 640-pixel title box at a 60-pixel font size. Production image review found Captain Iakin Nefud's surname clipped. Checking all 61 supporting leaders identified the same overflow risk for Margot Lady Fenring and Premier Ein Calimar. Their printed labels are Cpt. Iakin Nefud, Margot Fenring and Ein Calimar. These retain the personal names and leave space beside the card's symbol. The label file records exact font measurements. This correction changes no rule or component identity. The earlier faction PDF review did not cover these derived card headers; the delivery now checks those images separately.
