@@ -1,0 +1,45 @@
+.gf9-faction-frame {
+  width: 100%;
+  margin: 0;
+  background: #fffdf1;
+  color: #0b0503;
+  font-family: Caladea, serif;
+  line-height: 1.35;
+}
+.gf9-faction-review {
+  color: #243440;
+  font-family: system-ui, sans-serif;
+}
+.gf9-faction-comparison {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+}
+.gf9-faction-comparison figure {
+  margin: 0;
+  width: 476.22048px;
+}
+.gf9-faction-comparison figcaption {
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+.gf9-faction-frame-window {
+  width: 476.22048px;
+  height: 673.51182px;
+  overflow: hidden;
+  background: #fffdf1;
+  border: 1px solid #736755;
+}
+.gf9-faction-frame-window iframe {
+  display: block;
+  border: 0;
+  transform: scale(0.6);
+  transform-origin: top left;
+  max-width: none;
+}
+@media print {
+  .gf9-faction-frame {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+}

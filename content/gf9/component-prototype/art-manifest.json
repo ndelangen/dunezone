@@ -1,0 +1,161 @@
+{
+  "scope": "Throwaway source-preserving GF9 component art review; no production assets changed",
+  "sources": [
+    {
+      "key": "malina",
+      "source": "/Users/me/Projects/Dune/gf9-delivery/iteration-plan/original-art-research/choam-richese-page3-Im11.png",
+      "sourcePixels": [227, 215],
+      "sourceSha256": "81be409f927581043c3bac3f66e556e1d78cfd80e26eb517402015129ec3b66d",
+      "variants": [
+        {
+          "file": "malina-bust.png",
+          "cropXYXY": [40, 14, 190, 164],
+          "pixels": [150, 150],
+          "operation": "Pixel-exact rectangular crop; no resampling, repainting or generated detail",
+          "sha256": "83e3b0e3a9a20fe23df1c41f087ca75edebb69dd73bf7b20138f696decf3712e"
+        },
+        {
+          "file": "malina-face.png",
+          "cropXYXY": [53, 10, 183, 140],
+          "pixels": [130, 130],
+          "operation": "Pixel-exact rectangular crop; no resampling, repainting or generated detail",
+          "sha256": "078c99eb708251ded3cbaa687c75823b9d607b617e97dbd150b6d2c23a95c7a9"
+        }
+      ],
+      "pdfExtraction": {
+        "document": "choam-richese.pdf",
+        "page": 3,
+        "imageName": "Im11.jp2",
+        "decodedPixels": [227, 215],
+        "pixelMatchAgainstExtractedPNG": true,
+        "filter": "/DCTDecode"
+      }
+    },
+    {
+      "key": "ilban",
+      "source": "/Users/me/Projects/Dune/gf9-delivery/iteration-plan/original-art-research/choam-richese-page3-Im12.png",
+      "sourcePixels": [226, 214],
+      "sourceSha256": "39ef54e2ae2bc90b06cedab644da5f5bc9372cae81cc8b70cc59d4d30c48fc27",
+      "variants": [
+        {
+          "file": "ilban-bust.png",
+          "cropXYXY": [32, 8, 194, 170],
+          "pixels": [162, 162],
+          "operation": "Pixel-exact rectangular crop; no resampling, repainting or generated detail",
+          "sha256": "ec49d29ea1fc3b1cb76834047f922cb8105a8595cb017c3c71ab48808eb1b2b6"
+        },
+        {
+          "file": "ilban-face.png",
+          "cropXYXY": [47, 8, 183, 144],
+          "pixels": [136, 136],
+          "operation": "Pixel-exact rectangular crop; no resampling, repainting or generated detail",
+          "sha256": "4a3a8cd12576f16e454d1af148564c2b13ab479f98761f0e1b7b7954c6fd12ee"
+        }
+      ],
+      "pdfExtraction": {
+        "document": "choam-richese.pdf",
+        "page": 3,
+        "imageName": "Im12.jp2",
+        "decodedPixels": [226, 214],
+        "pixelMatchAgainstExtractedPNG": true,
+        "filter": "/DCTDecode"
+      }
+    },
+    {
+      "key": "gf9-mark",
+      "source": "/Users/me/Projects/Dune/gf9-delivery/iteration-plan/original-art-research/ixian-tleilaxu-page1-Im2.png",
+      "sourcePixels": [313, 142],
+      "sourceSha256": "053b83618bf48b8105e12bb5d7eb7d047ee680c89cb0394dd96b00a76795cd16",
+      "operation": "Unmodified PNG copied from embedded PDF image extraction",
+      "pdfExtraction": {
+        "document": "ixian-tleilaxu.pdf",
+        "page": 1,
+        "imageName": "Im2.png",
+        "decodedPixels": [313, 142],
+        "pixelMatchAgainstExtractedPNG": true,
+        "filter": "/FlateDecode"
+      }
+    },
+    {
+      "key": "choam-disc",
+      "source": "/Users/me/Projects/Dune/gf9-delivery/iteration-plan/original-art-research/choam-richese-page3-Im14.png",
+      "sourcePixels": [144, 144],
+      "sourceSha256": "eb5bed36a191b717899361789408c21e33795cfad510432fbe9dc61f9bd15362",
+      "operation": "Unmodified PNG copied from embedded PDF image extraction",
+      "pdfExtraction": {
+        "document": "choam-richese.pdf",
+        "page": 3,
+        "imageName": "Im14.jp2",
+        "decodedPixels": [144, 144],
+        "pixelMatchAgainstExtractedPNG": true,
+        "filter": "/DCTDecode"
+      }
+    }
+  ],
+  "tile": {
+    "file": "gf9-ruleset-tile.png",
+    "pixels": [384, 384],
+    "background": "#203746",
+    "logoPixels": [313, 142],
+    "placementXY": [35, 121],
+    "operation": "Original transparent mark composited at native pixels, centered; no resampling"
+  },
+  "pdfSources": [
+    {
+      "file": "/Users/me/Projects/Dune/gf9-delivery/sources/choam-richese.pdf",
+      "sha256": "ee08ac180ca9824728532212bbd54de3e258ed81ad30051063f5633928fb7407"
+    },
+    {
+      "file": "/Users/me/Projects/Dune/gf9-delivery/sources/ixian-tleilaxu.pdf",
+      "sha256": "9dc631968839d6e8935acb30ac301301cfea7ed07a78a3aac266648f21cf357d"
+    }
+  ],
+  "outputHashes": {
+    "choam-disc-original.png": "eb5bed36a191b717899361789408c21e33795cfad510432fbe9dc61f9bd15362",
+    "gf9-mark-original.png": "053b83618bf48b8105e12bb5d7eb7d047ee680c89cb0394dd96b00a76795cd16",
+    "gf9-ruleset-tile.png": "ca0d8a68fbf167ab4385422fd97663c281a574e21d3fccf995d0e15bba5662ae",
+    "ilban-bust.png": "ec49d29ea1fc3b1cb76834047f922cb8105a8595cb017c3c71ab48808eb1b2b6",
+    "ilban-face.png": "4a3a8cd12576f16e454d1af148564c2b13ab479f98761f0e1b7b7954c6fd12ee",
+    "ilban-original.png": "39ef54e2ae2bc90b06cedab644da5f5bc9372cae81cc8b70cc59d4d30c48fc27",
+    "malina-bust.png": "83e3b0e3a9a20fe23df1c41f087ca75edebb69dd73bf7b20138f696decf3712e",
+    "malina-face.png": "078c99eb708251ded3cbaa687c75823b9d607b617e97dbd150b6d2c23a95c7a9",
+    "malina-original.png": "81be409f927581043c3bac3f66e556e1d78cfd80e26eb517402015129ec3b66d"
+  },
+  "humanDecision": {
+    "portraits": "Use the wider crops instead",
+    "malina": "/art/malina-bust.png",
+    "ilban": "/art/ilban-bust.png",
+    "status": "Accepted in live Wayfinder review; do not reopen in routine later review."
+  },
+  "backgroundRevision": {
+    "reason": "User rejected uniform red background; recreate original horizontal split with existing gradients and texture. Accepted wider crops unchanged.",
+    "gradientGeometry": {
+      "type": "linear",
+      "angle": 270,
+      "stopsAt": 0.5
+    },
+    "choam": {
+      "image": "/image/texture/082.jpg",
+      "colors": [
+        ["#EB0220", "#252527"],
+        ["#B90010", "#0C0C0C"]
+      ],
+      "influence": 0.65,
+      "invert": false,
+      "definition": 0.5
+    },
+    "richese": {
+      "treatment": "Uniform grey textured background from the existing Richese authored data. No split gradient.",
+      "humanCorrection": "Only CHOAM has the horizontal split."
+    },
+    "capability": "Existing Background schema and renderer, no new gradient feature."
+  },
+  "choamIdentity": {
+    "logo": "/vector/logo/choam.svg",
+    "emptyLogoIntentional": true,
+    "visualCharacteristic": "Horizontal red upper half, black lower half, with texture. Existing Background gradients.",
+    "scope": "CHOAM only; Richese has no split.",
+    "userCorrection": "CHOAM has no logo; the empty logo was on purpose.",
+    "discarded": "Invented scoped emblem and all mask exceptions."
+  }
+}

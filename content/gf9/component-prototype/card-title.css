@@ -1,0 +1,27 @@
+.gf9-prototype-card-title {
+  position: absolute;
+  box-sizing: border-box;
+  height: 86px;
+  margin: 0;
+  padding: 0;
+  color: white;
+  opacity: 0.937;
+  pointer-events: none;
+  font-family: "C_Copperplate_Gothic", sans-serif;
+  font-style: normal;
+  font-weight: normal;
+  font-kerning: auto;
+  font-variant: normal;
+  letter-spacing: normal;
+  text-transform: none;
+  line-height: 86px;
+  text-align: left;
+  white-space: nowrap;
+  overflow: visible;
+}
+
+.gf9-prototype-card-title > span {
+  display: block;
+  width: max-content;
+  white-space: nowrap;
+}

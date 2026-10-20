@@ -1,0 +1,95 @@
+.gf9-art-review {
+  color: #243440;
+  max-width: 1100px;
+  margin: auto;
+}
+.gf9-art-review section {
+  margin-block: 28px 44px;
+  padding: 24px;
+  background: #fffaf0;
+  border: 1px solid #cfc7b5;
+  border-radius: 8px;
+}
+.gf9-art-review h2 {
+  margin: 0 0 14px;
+  font-size: 24px;
+}
+.gf9-art-review h3 {
+  margin: 22px 0 12px;
+  font-size: 19px;
+}
+.gf9-art-review p {
+  max-width: 82ch;
+  line-height: 1.5;
+}
+.gf9-art-comparison {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 26px;
+  margin: 20px 0;
+}
+.gf9-art-comparison figure {
+  margin: 0;
+  width: 230px;
+}
+.gf9-art-comparison figcaption {
+  font-size: 13px;
+  line-height: 1.45;
+  margin-top: 12px;
+}
+.gf9-art-original {
+  max-width: 227px;
+  height: auto;
+  display: block;
+}
+.gf9-art-disc {
+  width: 40mm;
+  height: 40mm;
+  overflow: hidden;
+  border-radius: 50%;
+}
+.gf9-art-token {
+  width: 25mm;
+  height: 25mm;
+  border-radius: 50%;
+  overflow: hidden;
+}
+.gf9-art-sheet-logo {
+  width: 16mm;
+  height: 16mm;
+  border-radius: 50%;
+  overflow: hidden;
+}
+.gf9-art-logo-original {
+  background: #203746;
+  width: 313px;
+  height: 142px;
+}
+.gf9-art-logo-original img {
+  width: 313px;
+  height: 142px;
+  display: block;
+}
+.gf9-art-comparison figure:has(.gf9-art-logo-original) {
+  width: 340px;
+}
+.gf9-art-ruleset-tile {
+  width: 200px;
+  height: 200px;
+  object-fit: cover;
+  display: block;
+  border-radius: 5px;
+}
+.gf9-art-note {
+  font-size: 13px;
+  color: #4b575d;
+}
+@media print {
+  .gf9-art-review section {
+    break-inside: avoid;
+  }
+  .gf9-art-head {
+    break-inside: avoid;
+  }
+}

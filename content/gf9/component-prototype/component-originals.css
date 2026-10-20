@@ -1,0 +1,62 @@
+.gf9-original-references {
+  background: #fffaf0;
+  color: #243440;
+  border: 1px solid #cfc7b5;
+  border-radius: 8px;
+  padding: 24px;
+  margin: 28px auto 44px;
+  max-width: 1100px;
+}
+.gf9-original-references h2 {
+  font-size: 24px;
+  margin: 0 0 14px;
+}
+.gf9-original-references h3 {
+  font-size: 19px;
+  margin: 28px 0 16px;
+}
+.gf9-original-references p {
+  max-width: 85ch;
+  line-height: 1.5;
+}
+.gf9-original-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(195px, 1fr));
+  gap: 28px 18px;
+}
+.gf9-original-figure {
+  margin: 0;
+}
+.gf9-original-image-area {
+  min-height: 210px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+.gf9-original-image-area img {
+  display: block;
+  max-width: 100%;
+  object-fit: contain;
+}
+.gf9-original-circle {
+  border-radius: 50%;
+}
+.gf9-original-figure figcaption {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+.gf9-original-figure figcaption strong {
+  font-size: 15px;
+}
+.gf9-original-note {
+  font-size: 13px;
+  color: #4b575d;
+}
+@media print {
+  .gf9-original-figure {
+    break-inside: avoid;
+  }
+}

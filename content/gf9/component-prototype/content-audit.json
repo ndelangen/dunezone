@@ -1,0 +1,2359 @@
+{
+  "status": "Planning prototype; no production updates. Source data is the final public readback archived on 20 October 2026.",
+  "scope": "Faction names, sheet connector and explicit Vidal revival wording. All other mechanics and member identities are preserved.",
+  "sheetFormat": {
+    "widthMm": 210,
+    "heightMm": 297,
+    "viewportWidthPx": 793.7008,
+    "viewportHeightPx": 1122.5197,
+    "pages": 2
+  },
+  "summary": {
+    "factions": 12,
+    "supportingLeaders": 61,
+    "allFactionSuppliesTwenty": true,
+    "memberIdsUnique": true
+  },
+  "proposedEdits": [
+    {
+      "scope": "All twelve factions",
+      "field": "name",
+      "change": "Remove only the leading GF9 display prefix. Preserve entity IDs, component IDs, force counts and rules."
+    },
+    {
+      "scope": "Bene Gesserit and non-GF9 reversible troop example",
+      "field": "Prototype stylesheet",
+      "change": "Only circular troop artwork containers receive circular geometry and clipping. The to: text connector keeps its natural width and visible overflow."
+    },
+    {
+      "scope": "Ecaz",
+      "field": "rules.advantages[Duke Vidal revival].text",
+      "change": "Write the existing only-Ecaz, Ghola, cost, neutral return and at-least-five eligibility clauses together. Source ecaz-moritani.txt pages 8\u20139 and existing ecaz-moritani-manuscript.json shared Vidal section. No judgement changes."
+    },
+    {
+      "scope": "Special Karama titles",
+      "field": "rules.fate.title",
+      "change": "Remove trailing colon and nonbreaking spacing. Bene Gesserit heading becomes No special power. Power bodies and Faction Special Karama label stay unchanged."
+    },
+    {
+      "scope": "Harkonnen, Bene Gesserit and Richese",
+      "field": "leaders[].name",
+      "change": "Restore Captain Iakin Nefud, Margot Lady Fenring and Premier Ein Calimar by existing member UUID. Preserve strengths, image references, order and component UUIDs."
+    }
+  ],
+  "clauseAudit": {
+    "karama": {
+      "keys": ["gf9-karama", "gf9-karama-richese-cache"],
+      "retained": [
+        "after setup",
+        "one faction or alliance advantage use",
+        "battle play before reveal",
+        "pay any player shipment to Bank at Guild rates",
+        "unlimited bid and free card with room in hand",
+        "exclude Richese auctions",
+        "Advanced once-per-game Special Karama",
+        "cannot stop special victory or Special Karama",
+        "discard after use"
+      ],
+      "finding": "Shortened faces preserve the reviewed clauses. No new omission found in the recorded layout follow-up. Full independent rules audit belongs to the rules acceptance ticket.",
+      "evidence": "content/gf9/asset-review.json layoutFollowup.karama; choam-richese.txt replacement Karama and Black Market restrictions; package card bodies"
+    },
+    "spice": {
+      "ordinaryCount": 15,
+      "discoveryCustomCount": 6,
+      "finding": "The shorter ordinary captions still identify territory, spice amount and relevant sector through structured data and face text. Rock Outcroppings and Habbanya Ridge Flat have abbreviated printed titles with full names in about. Discovery uses Custom Cards for full procedures; it is not an ordinary-caption truncation.",
+      "records": [
+        {
+          "key": "gf9-spice-cielago-north",
+          "name": "Cielago North",
+          "amount": 8,
+          "highlights": ["cielago-north"],
+          "caption": "East sector.",
+          "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 8 spice in Cielago North in its east sector."
+        },
+        {
+          "key": "gf9-spice-cielago-south",
+          "name": "Cielago South",
+          "amount": 12,
+          "highlights": ["cielago-south"],
+          "caption": "West sector.",
+          "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 12 spice in Cielago South in its west sector."
+        },
+        {
+          "key": "gf9-spice-the-minor-erg",
+          "name": "The Minor Erg",
+          "amount": 8,
+          "highlights": ["the-minor-erg"],
+          "caption": "Far North sector.",
+          "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 8 spice in The Minor Erg in its far north sector."
+        },
+        {
+          "key": "gf9-spice-red-chasm",
+          "name": "Red Chasm",
+          "amount": 8,
+          "highlights": ["red-chasm"],
+          "caption": "Spice blow.",
+          "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 8 spice in Red Chasm."
+        },
+        {
+          "key": "gf9-spice-south-mesa",
+          "name": "South Mesa",
+          "amount": 10,
+          "highlights": ["south-mesa"],
+          "caption": "Middle sector.",
+          "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 10 spice in South Mesa in its middle sector."
+        },
+        {
+          "key": "gf9-spice-sihaya-ridge",
+          "name": "Sihaya Ridge",
+          "amount": 6,
+          "highlights": ["sihaya-ridge"],
+          "caption": "Spice blow.",
+          "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 6 spice in Sihaya Ridge."
+        },
+        {
+          "key": "gf9-spice-old-gap",
+          "name": "Old Gap",
+          "amount": 6,
+          "highlights": ["old-gap"],
+          "caption": "Middle sector.",
+          "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 6 spice in Old Gap in its middle sector."
+        },
+        {
+          "key": "gf9-spice-broken-land",
+          "name": "Broken Land",
+          "amount": 8,
+          "highlights": ["broken-land"],
+          "caption": "West sector.",
+          "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 8 spice in Broken Land in its west sector."
+        },
+        {
+          "key": "gf9-spice-rock-outcroppings",
+          "name": "Rock Outcrops",
+          "amount": 6,
+          "highlights": ["rock-outcroppings"],
+          "caption": "South sector.",
+          "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 6 spice in Rock Outcroppings in its south sector. The face abbreviates Rock Outcroppings to fit the printed title."
+        },
+        {
+          "key": "gf9-spice-hagga-basin",
+          "name": "Hagga Basin",
+          "amount": 6,
+          "highlights": ["hagga-basin"],
+          "caption": "West sector.",
+          "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 6 spice in Hagga Basin in its west sector."
+        },
+        {
+          "key": "gf9-spice-funeral-plain",
+          "name": "Funeral Plain",
+          "amount": 6,
+          "highlights": ["funeral-plain"],
+          "caption": "Spice blow.",
+          "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 6 spice in Funeral Plain."
+        },
+        {
+          "key": "gf9-spice-the-great-flat",
+          "name": "The Great Flat",
+          "amount": 10,
+          "highlights": ["the-great-flat"],
+          "caption": "Spice blow.",
+          "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 10 spice in The Great Flat."
+        },
+        {
+          "key": "gf9-spice-habbanya-erg",
+          "name": "Habbanya Erg",
+          "amount": 8,
+          "highlights": ["habbanya-erg"],
+          "caption": "West sector.",
+          "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 8 spice in Habbanya Erg in its west sector."
+        },
+        {
+          "key": "gf9-spice-wind-pass-north",
+          "name": "Wind Pass North",
+          "amount": 6,
+          "highlights": ["wind-pass-north"],
+          "caption": "North sector.",
+          "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 6 spice in Wind Pass North in its north sector."
+        },
+        {
+          "key": "gf9-spice-habbanya-ridge-flat",
+          "name": "Habbanya R. Flat",
+          "amount": 10,
+          "highlights": ["habbanya-ridge-flat"],
+          "caption": "East sector.",
+          "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 10 spice in Habbanya Ridge Flat in its east sector. The face abbreviates Habbanya Ridge Flat to fit the printed title."
+        }
+      ]
+    },
+    "tokenLabels": [
+      {
+        "key": "gf9-tech-spice-production",
+        "fullName": "GF9 Spice Production",
+        "faceLabels": ["Spice Tech", "CHOAM Charity", ""],
+        "retainedEffect": "If at least one faction takes CHOAM Charity, gain 1 spice from the Bank per Tech token you control, once this phase. No income if the only collectors are Bene Gesserit and/or CHOAM using their faction Charity advantages. Place income on this token and collect at phase end. A battle winner takes one Tech token of its choice from a defeated holder. One faction holding all three counts as one stronghold; allies cannot pool them. Inflation never changes this income.",
+        "historicalArcFit": [
+          {
+            "text": "Spice Tech",
+            "length": 189.92578125,
+            "available": 314.20361328125
+          },
+          {
+            "text": "CHOAM Charity",
+            "length": 116.2890625,
+            "available": 282.783203125
+          },
+          {
+            "text": "",
+            "length": 0,
+            "available": 329.91357421875
+          }
+        ],
+        "judgement": "Label abbreviation only. Keep the full name and effect available beside the component in the books; no new rules interpretation."
+      },
+      {
+        "key": "gf9-atomics-aftermath",
+        "fullName": "GF9 Atomics Aftermath",
+        "faceLabels": ["Aftermath"],
+        "retainedEffect": "No force may ship into this territory for the rest of the game, including Fremen. Normal movement and an explicit Sneak Attack remain allowed. Place after resolving the Atomics Terror token.",
+        "historicalArcFit": [
+          {
+            "text": "Aftermath",
+            "length": 196.6640625,
+            "available": 314.20361328125
+          }
+        ],
+        "judgement": "Label abbreviation only. Keep the full name and effect available beside the component in the books; no new rules interpretation."
+      },
+      {
+        "key": "gf9-discovery-ecological-testing-station",
+        "fullName": "GF9 Ecological Testing Station",
+        "faceLabels": ["Testing Station", "Hiereg", ""],
+        "retainedEffect": "If occupied during Storm, you may add or subtract the movement of the storm by 1, not affecting Weather Control.",
+        "historicalArcFit": [
+          {
+            "text": "Testing Station",
+            "length": 278.87109375,
+            "available": 314.20361328125
+          },
+          {
+            "text": "Hiereg",
+            "length": 50.97265625,
+            "available": 282.783203125
+          },
+          {
+            "text": "",
+            "length": 0,
+            "available": 329.91357421875
+          }
+        ],
+        "judgement": "Label abbreviation only. Keep the full name and effect available beside the component in the books; no new rules interpretation."
+      },
+      {
+        "key": "gf9-discovery-orgiz-processing-station",
+        "fullName": "GF9 Orgiz Processing Station",
+        "faceLabels": ["Orgiz Station", "Smuggler", ""],
+        "retainedEffect": "If occupied during Collection, steal 1 spice of each spice blow collected.",
+        "historicalArcFit": [
+          {
+            "text": "Orgiz Station",
+            "length": 241.07421875,
+            "available": 314.20361328125
+          },
+          {
+            "text": "Smuggler",
+            "length": 78.0703125,
+            "available": 282.783203125
+          },
+          {
+            "text": "",
+            "length": 0,
+            "available": 329.91357421875
+          }
+        ],
+        "judgement": "Label abbreviation only. Keep the full name and effect available beside the component in the books; no new rules interpretation."
+      },
+      {
+        "key": "gf9-discovery-treachery-card-stash",
+        "fullName": "GF9 Treachery Card Stash",
+        "faceLabels": ["Card Stash", "Smuggler", ""],
+        "retainedEffect": "Gain a treachery card, remove this token from the game and discard a card if you exceed your maximum hand size.",
+        "historicalArcFit": [
+          {
+            "text": "Card Stash",
+            "length": 203.4609375,
+            "available": 314.20361328125
+          },
+          {
+            "text": "Smuggler",
+            "length": 78.0703125,
+            "available": 282.783203125
+          },
+          {
+            "text": "",
+            "length": 0,
+            "available": 329.91357421875
+          }
+        ],
+        "judgement": "Label abbreviation only. Keep the full name and effect available beside the component in the books; no new rules interpretation."
+      },
+      {
+        "key": "gf9-hidden-mobile-stronghold",
+        "fullName": "GF9 Hidden Mobile Stronghold",
+        "faceLabels": ["Hidden HMS"],
+        "retainedEffect": "Ixian separate stronghold pointing at a sector of any non-stronghold territory, including the Polar Sink. Its occupants are protected from storm and worms. While Ixians occupy it, move it up to 3 territories before later storm movement is dialed or revealed; never into, out of or through storm. During its movement through a spice-bearing sector, immediately collect up to 2 spice per troop inside. Ixians may ship directly inside; other factions enter from the pointed territory by movement, with BG accompanying-shipment and Fremen worm-ride exceptions. It is separate for battles and counts as one stronghold.",
+        "historicalArcFit": [
+          {
+            "text": "Hidden HMS",
+            "length": 204.08203125,
+            "available": 314.20361328125
+          }
+        ],
+        "judgement": "Label abbreviation only. Keep the full name and effect available beside the component in the books; no new rules interpretation."
+      },
+      {
+        "key": "gf9-destroyed-shield-wall",
+        "fullName": "GF9 Destroyed Shield Wall",
+        "faceLabels": ["Shield Wall"],
+        "retainedEffect": "Marks the permanent loss of Shield Wall protection for Arrakeen, Carthag and Imperial Basin after Family Atomics.",
+        "historicalArcFit": [
+          {
+            "text": "Shield Wall",
+            "length": 217.015625,
+            "available": 314.20361328125
+          }
+        ],
+        "judgement": "Label abbreviation only. Keep the full name and effect available beside the component in the books; no new rules interpretation."
+      },
+      {
+        "key": "gf9-kwisatz-haderach-token",
+        "fullName": "GF9 Kwisatz Haderach",
+        "faceLabels": ["Kwisatz", "+2", ""],
+        "retainedEffect": "Advanced Atreides companion token. Activate after 7 force losses in battles. Use the matching reference card and faction rules.",
+        "historicalArcFit": [
+          {
+            "text": "Kwisatz",
+            "length": 142.22265625,
+            "available": 314.20361328125
+          },
+          {
+            "text": "+2",
+            "length": 16.4453125,
+            "available": 282.783203125
+          },
+          {
+            "text": "",
+            "length": 0,
+            "available": 329.91357421875
+          }
+        ],
+        "judgement": "Label abbreviation only. Keep the full name and effect available beside the component in the books; no new rules interpretation."
+      }
+    ],
+    "ecaz": {
+      "finding": "Existing data has not lost the revival cost, exclusive Ecaz revival, neutral return or other-leader eligibility. The local fixture makes Ghola inclusion and at-least-five eligibility explicit beside the existing Vidal advantage. The full Ambassador effects remain component and rulebook content, not repeated in this two-page sheet.",
+      "source": "ecaz-moritani.txt printed pages 8 and 9; content/gf9/ecaz-moritani-manuscript.json shared Vidal revival paragraph",
+      "existingRevivalText": "2 troops free. Only you may revive Duke Vidal, for 5 spice, returning him to the set-aside supply.",
+      "existingAdvantage": {
+        "text": "Revive Vidal regardless of your other leaders. With 5 leaders in the Tanks, including Vidal, you may revive your other leaders normally.",
+        "title": "Duke Vidal revival"
+      }
+    }
+  },
+  "factions": [
+    {
+      "key": "atreides",
+      "sourceFile": "0253-faction-gf9-atreides.json",
+      "entityId": "k177h1yvxp36dxsxjfmgqx4jw58gm5jk",
+      "sourceSlug": "gf9-atreides",
+      "proposedName": "Atreides",
+      "data": {
+        "background": {
+          "colors": ["#393d05", "#5c5d10"],
+          "definition": 0.5,
+          "image": "/image/texture/082.jpg",
+          "influence": 1,
+          "invert": true
+        },
+        "colors": ["Green", "Teal"],
+        "complexity": {
+          "calculated": 0.2854838709677419
+        },
+        "decals": [],
+        "extraPhases": [],
+        "extras": [
+          {
+            "slug": "gf9-kwisatz-haderach-tokens",
+            "type": "bundle"
+          },
+          {
+            "slug": "gf9-kwisatz-haderach-reference",
+            "type": "deck"
+          }
+        ],
+        "factionLeader": {
+          "image": "/image/leader/official/paul.jpg",
+          "memberId": "b6b51658-3ab4-46c9-8dd0-10dda4014987",
+          "name": "Paul Atreides"
+        },
+        "leaders": [
+          {
+            "image": "/image/leader/official/jessica.png",
+            "memberId": "92a82f05-9387-4358-b5eb-b25cc775cb5f",
+            "name": "Lady Jessica",
+            "strength": 5
+          },
+          {
+            "image": "/image/leader/official/thufir.png",
+            "memberId": "1cbb3205-43b5-46db-8265-2d5e407a14a0",
+            "name": "Thufir Hawat",
+            "strength": 5
+          },
+          {
+            "image": "/image/leader/official/gurney.png",
+            "memberId": "f6de205e-0bfa-4720-83a7-788cdb5db378",
+            "name": "Gurney Halleck",
+            "strength": 4
+          },
+          {
+            "image": "/image/leader/official/duncan.png",
+            "memberId": "918acfed-e08e-46bc-8e11-ef6e789fa347",
+            "name": "Duncan Idaho",
+            "strength": 2
+          },
+          {
+            "image": "/image/leader/official/dryeuh.png",
+            "memberId": "066d6195-2255-4c9e-aec8-06fa9c636220",
+            "name": "Doctor Yueh",
+            "strength": 1
+          }
+        ],
+        "logo": "/vector/logo/atreides.svg",
+        "name": "GF9 Atreides",
+        "planet": [],
+        "rules": {
+          "advantages": [
+            {
+              "karama": "Prevent inspection of one card.",
+              "text": "Before bidding begins on each Treachery Card, you may inspect it. You alone may keep written records about Treachery Cards. You may share what you learn.",
+              "title": "Bidding"
+            },
+            {
+              "karama": "Prevent this inspection.",
+              "text": "At the start of Shipment and Movement, before anyone moves, you may inspect the single top card of the Spice Deck, even with Double Spice Blow.",
+              "title": "Next spice"
+            },
+            {
+              "karama": "Prevent one battle question.",
+              "text": "In each battle you may require your opponent to reveal the leader, weapon, defense or number dialed. An answer of no weapon or no defense uses the question. Voice precedes Prescience. You may not ask for the dial against a Richese No-Field.",
+              "title": "Battle prescience"
+            },
+            {
+              "karama": "Prevent use in one battle before plans are revealed, not activation.",
+              "text": "After losing at least 7 force tokens in battles, immediately activate the Kwisatz Haderach. In one territory per turn, it may accompany your leader or Cheap Hero for +2 strength. If that leader is killed, the bonus is lost. An accompanied leader cannot turn traitor. Only a lasgun-shield explosion kills the token. Revive it for 2 spice under leader revival rules; its status never delays revival of your five leaders.",
+              "title": "Advanced: Kwisatz Haderach"
+            }
+          ],
+          "alliance": {
+            "text": "You may require your ally's opponent to reveal one chosen battle-plan element to your ally."
+          },
+          "fate": {
+            "label": "karama",
+            "text": "Advanced Game, once per game during Battle: spend a Karama before plans are revealed to inspect any one player's entire Battle Plan.",
+            "title": "Complete prescience:\u00a0"
+          },
+          "revivalText": "2 forces free; normal total limit 3.",
+          "spiceCount": 10,
+          "startText": "10 forces in Arrakeen and 10 in reserves. Start with 10 spice and 1 Treachery Card."
+        },
+        "themeColor": "#4a4c08",
+        "troops": [
+          {
+            "combat": {
+              "strength": 0.5,
+              "supportCost": 1,
+              "supportedStrength": 1
+            },
+            "count": 20,
+            "description": "Basic: strength 1. Advanced: strength 1/2 without spice, or 1 with 1 spice support.",
+            "image": "/vector/troop/atreides.svg",
+            "name": "Normal troop",
+            "troopId": "448681e5-a635-48e9-8ec1-859dbee97975"
+          }
+        ]
+      },
+      "factionLeaderMemberId": "b6b51658-3ab4-46c9-8dd0-10dda4014987",
+      "leaders": [
+        {
+          "memberId": "92a82f05-9387-4358-b5eb-b25cc775cb5f",
+          "name": "Lady Jessica",
+          "strength": 5
+        },
+        {
+          "memberId": "1cbb3205-43b5-46db-8265-2d5e407a14a0",
+          "name": "Thufir Hawat",
+          "strength": 5
+        },
+        {
+          "memberId": "f6de205e-0bfa-4720-83a7-788cdb5db378",
+          "name": "Gurney Halleck",
+          "strength": 4
+        },
+        {
+          "memberId": "918acfed-e08e-46bc-8e11-ef6e789fa347",
+          "name": "Duncan Idaho",
+          "strength": 2
+        },
+        {
+          "memberId": "066d6195-2255-4c9e-aec8-06fa9c636220",
+          "name": "Doctor Yueh",
+          "strength": 1
+        }
+      ],
+      "troops": [
+        {
+          "troopId": "448681e5-a635-48e9-8ec1-859dbee97975",
+          "name": "Normal troop",
+          "count": 20,
+          "hasBack": false
+        }
+      ],
+      "physicalForces": 20
+    },
+    {
+      "key": "harkonnen",
+      "sourceFile": "0254-faction-gf9-harkonnen.json",
+      "entityId": "k1758sk6c1qky3yknx56hstk8x8gmcxm",
+      "sourceSlug": "gf9-harkonnen",
+      "proposedName": "Harkonnen",
+      "data": {
+        "background": {
+          "colors": ["#0a080b", "#363636"],
+          "definition": 0.1,
+          "image": "/image/texture/026.jpg",
+          "influence": 1,
+          "invert": false
+        },
+        "colors": ["White", "Brown"],
+        "complexity": {
+          "calculated": 0.35
+        },
+        "decals": [],
+        "extraPhases": [],
+        "extras": [],
+        "factionLeader": {
+          "image": "/image/leader/official/baron.jpg",
+          "memberId": "e6b3a54e-f351-4b55-8b8f-f2a0414b77e3",
+          "name": "Baron Vladimir Harkonnen"
+        },
+        "leaders": [
+          {
+            "image": "/image/leader/official/feyd.png",
+            "memberId": "39a71d18-1bc1-4628-b528-0a4f774fd47d",
+            "name": "Feyd-Rautha",
+            "strength": 6
+          },
+          {
+            "image": "/image/leader/official/beast.png",
+            "memberId": "61ae9c1f-bd2a-4cf8-b229-8714baabd730",
+            "name": "Beast Rabban",
+            "strength": 4
+          },
+          {
+            "image": "/image/leader/official/piter.png",
+            "memberId": "9b22b658-ba56-4037-9776-f381c0c62230",
+            "name": "Piter De Vries",
+            "strength": 3
+          },
+          {
+            "image": "/image/leader/official/nafud.png",
+            "memberId": "c6c37ae9-932e-460f-826d-5b9553693b5d",
+            "name": "Cpt. Iakin Nefud",
+            "strength": 2
+          },
+          {
+            "image": "/image/leader/official/uman.png",
+            "memberId": "cc089141-a48f-436e-b0c5-66c1ef4709a5",
+            "name": "Umman Kudu",
+            "strength": 1
+          }
+        ],
+        "logo": "/vector/logo/harkonnen.svg",
+        "name": "GF9 Harkonnen",
+        "planet": [],
+        "rules": {
+          "advantages": [
+            {
+              "karama": "Cannot stop a traitor call in your own battle.",
+              "text": "Keep all 4 Traitor Cards dealt at setup, including your own. You may reveal a matching opponent leader in your own battle.",
+              "title": "Traitors"
+            },
+            {
+              "karama": "Prevent one bonus card, not your hand limit.",
+              "text": "Your hand limit is 8. Whenever you buy a Treachery Card, draw one extra from the deck if room remains. With 7 cards, buying fills your hand and gives no bonus card. With 8, you must pass.",
+              "title": "Treachery"
+            },
+            {
+              "karama": "Prevent capture after one battle.",
+              "text": "After a win you may randomly capture one available leader from the loser, including the battle leader if alive. Exclude dead leaders and those used elsewhere that turn. Inspect it, then kill it face down for 2 spice or keep it for one battle. A face-down execution counts as dying twice.",
+              "title": "Advanced: captured leaders"
+            },
+            {
+              "karama": "Cannot stop use of an already captured leader.",
+              "text": "A captive may turn traitor. Return it to its faction after its one battle if it survives. A killed captive goes to the Tanks for its own faction. Return all captives immediately when all your own leaders are dead. You and the original owner know its identity and may disclose it.",
+              "title": "Advanced: using a captive"
+            }
+          ],
+          "alliance": {
+            "text": "You may reveal a traitor matching the opposing leader in your ally's battle. Karama may prevent this allied traitor call."
+          },
+          "fate": {
+            "label": "karama",
+            "text": "Advanced Game, once per game during Bidding: spend a Karama to take up to 4 random cards from another hand. Combine them with your hand, then give that player the same number of cards of your choice. You may return cards just taken. A full hand does not prevent this temporary exchange.",
+            "title": "Exchange secrets:\u00a0"
+          },
+          "revivalText": "2 forces free; normal total limit 3.",
+          "spiceCount": 10,
+          "startText": "10 forces in Carthag and 10 in reserves. Start with 10 spice and 2 Treachery Cards."
+        },
+        "themeColor": "#151315",
+        "troops": [
+          {
+            "combat": {
+              "strength": 0.5,
+              "supportCost": 1,
+              "supportedStrength": 1
+            },
+            "count": 20,
+            "description": "Basic: strength 1. Advanced: strength 1/2 without spice, or 1 with 1 spice support.",
+            "image": "/vector/troop/harkonnen.svg",
+            "name": "Harkonnen Troop",
+            "troopId": "31423b96-bc64-4e63-be15-5f58fdf681ad"
+          }
+        ]
+      },
+      "factionLeaderMemberId": "e6b3a54e-f351-4b55-8b8f-f2a0414b77e3",
+      "leaders": [
+        {
+          "memberId": "39a71d18-1bc1-4628-b528-0a4f774fd47d",
+          "name": "Feyd-Rautha",
+          "strength": 6
+        },
+        {
+          "memberId": "61ae9c1f-bd2a-4cf8-b229-8714baabd730",
+          "name": "Beast Rabban",
+          "strength": 4
+        },
+        {
+          "memberId": "9b22b658-ba56-4037-9776-f381c0c62230",
+          "name": "Piter De Vries",
+          "strength": 3
+        },
+        {
+          "memberId": "c6c37ae9-932e-460f-826d-5b9553693b5d",
+          "name": "Cpt. Iakin Nefud",
+          "strength": 2
+        },
+        {
+          "memberId": "cc089141-a48f-436e-b0c5-66c1ef4709a5",
+          "name": "Umman Kudu",
+          "strength": 1
+        }
+      ],
+      "troops": [
+        {
+          "troopId": "31423b96-bc64-4e63-be15-5f58fdf681ad",
+          "name": "Harkonnen Troop",
+          "count": 20,
+          "hasBack": false
+        }
+      ],
+      "physicalForces": 20
+    },
+    {
+      "key": "emperor",
+      "sourceFile": "0255-faction-gf9-emperor.json",
+      "entityId": "k174q1wrg9y646pdvbdr9r1sxx8gmct2",
+      "sourceSlug": "gf9-emperor",
+      "proposedName": "Emperor",
+      "data": {
+        "background": {
+          "colors": ["#8C0402", "#db1918"],
+          "definition": 0.31,
+          "image": "/image/texture/055.jpg",
+          "influence": 1,
+          "invert": false
+        },
+        "colors": ["Red", "Orange"],
+        "complexity": {
+          "calculated": 0.2306451612903226
+        },
+        "decals": [],
+        "extraPhases": [],
+        "extras": [],
+        "factionLeader": {
+          "image": "/image/leader/official/shadam.jpg",
+          "memberId": "2bdb6a44-9079-4ebb-b4f6-02acca2f445d",
+          "name": "Shaddam Corrino IV"
+        },
+        "leaders": [
+          {
+            "image": "/image/leader/official/hasimir.png",
+            "memberId": "4cf337f6-8487-4f98-bdc8-e6948cf6ecfe",
+            "name": "Hasimir Fenring",
+            "strength": 6
+          },
+          {
+            "image": "/image/leader/official/aramsham.png",
+            "memberId": "2d83065e-f4ca-4ff6-8d0a-d24cffaec647",
+            "name": "Cpt. Aramsham",
+            "strength": 5
+          },
+          {
+            "image": "/image/leader/official/caid.png",
+            "memberId": "37c58b9a-c36c-411f-9097-8876eda02ed1",
+            "name": "Caid",
+            "strength": 3
+          },
+          {
+            "image": "/image/leader/official/burseg.png",
+            "memberId": "94fd7927-9e00-421b-b32e-73322bc54d63",
+            "name": "Burseg",
+            "strength": 3
+          },
+          {
+            "image": "/image/leader/official/bashar.png",
+            "memberId": "822709e6-e300-4db0-90d4-cab409278cde",
+            "name": "Bashar",
+            "strength": 2
+          }
+        ],
+        "logo": "/vector/logo/emperor.svg",
+        "name": "GF9 Emperor",
+        "planet": [],
+        "rules": {
+          "advantages": [
+            {
+              "karama": "Redirect one purchase payment to the Bank.",
+              "text": "Other factions pay their normal Treachery auction purchases to you. You may not discount their price. Pay the Spice Bank for your own purchases.",
+              "title": "Bidding income"
+            },
+            {
+              "karama": "Treat Sardaukar as ordinary forces for one battle; play before reveal.",
+              "text": "Your 5 starred forces are Sardaukar. Each has strength 2 when supported with 1 spice, or strength 1 without support. Against Fremen each counts as an ordinary force, strength 1 with spice or 1/2 without it. Only 1 Sardaukar may be revived each turn, including Ghola and allied effects. In the Basic Game starred forces are ordinary.",
+              "title": "Advanced: Sardaukar"
+            }
+          ],
+          "alliance": {
+            "text": "You may give your ally spice directly at any time for any reason; it is immediately usable. During Revival you may pay for up to 3 extra of its forces, beyond its normal limit, at 2 spice each. Pay the Bank, or Tleilaxu if its revival-income advantage applies. Karama may prevent one affected spice gift or the extra revivals."
+          },
+          "fate": {
+            "label": "karama",
+            "text": "Advanced Game, once per game during Revival: spend a Karama to revive up to 3 forces or 1 leader free. These are additional to normal revival, but do not bypass the one-Sardaukar-per-turn limit.",
+            "title": "Imperial revival:\u00a0"
+          },
+          "revivalText": "1 force free; normal total limit 3. Advanced: at most 1 Sardaukar per turn.",
+          "spiceCount": 10,
+          "startText": "20 forces in reserves. Start with 10 spice and 1 Treachery Card."
+        },
+        "themeColor": "#be1010",
+        "troops": [
+          {
+            "combat": {
+              "strength": 0.5,
+              "supportCost": 1,
+              "supportedStrength": 1
+            },
+            "count": 15,
+            "description": "Basic: strength 1. Advanced: strength 1/2 without spice, or 1 with 1 spice support.",
+            "image": "/vector/troop/emperor.svg",
+            "name": "Normal troop",
+            "troopId": "20d19e36-b903-4069-a66a-cbed1d0d0b4f"
+          },
+          {
+            "combat": {
+              "strength": 1,
+              "supportCost": 1,
+              "supportedStrength": 2
+            },
+            "count": 5,
+            "description": "Basic: ordinary force. Advanced: strength 1 without spice, or 2 with 1 spice; ordinary against Fremen.",
+            "hue": "#e6de12",
+            "image": "/vector/troop/emperor.svg",
+            "name": "Sardaukar",
+            "star": "/vector/troop_modifier/star-right.svg",
+            "troopId": "abbf72a5-4967-41f6-838e-5e99ac26f049"
+          }
+        ]
+      },
+      "factionLeaderMemberId": "2bdb6a44-9079-4ebb-b4f6-02acca2f445d",
+      "leaders": [
+        {
+          "memberId": "4cf337f6-8487-4f98-bdc8-e6948cf6ecfe",
+          "name": "Hasimir Fenring",
+          "strength": 6
+        },
+        {
+          "memberId": "2d83065e-f4ca-4ff6-8d0a-d24cffaec647",
+          "name": "Cpt. Aramsham",
+          "strength": 5
+        },
+        {
+          "memberId": "37c58b9a-c36c-411f-9097-8876eda02ed1",
+          "name": "Caid",
+          "strength": 3
+        },
+        {
+          "memberId": "94fd7927-9e00-421b-b32e-73322bc54d63",
+          "name": "Burseg",
+          "strength": 3
+        },
+        {
+          "memberId": "822709e6-e300-4db0-90d4-cab409278cde",
+          "name": "Bashar",
+          "strength": 2
+        }
+      ],
+      "troops": [
+        {
+          "troopId": "20d19e36-b903-4069-a66a-cbed1d0d0b4f",
+          "name": "Normal troop",
+          "count": 15,
+          "hasBack": false
+        },
+        {
+          "troopId": "abbf72a5-4967-41f6-838e-5e99ac26f049",
+          "name": "Sardaukar",
+          "count": 5,
+          "hasBack": false
+        }
+      ],
+      "physicalForces": 20
+    },
+    {
+      "key": "spacing-guild",
+      "sourceFile": "0256-faction-gf9-spacing-guild.json",
+      "entityId": "k1782pjyezpza51gk5fj8rr47s8gnp0w",
+      "sourceSlug": "gf9-spacing-guild",
+      "proposedName": "Spacing Guild",
+      "data": {
+        "background": {
+          "colors": ["#bd3108", "#e05719"],
+          "definition": 0.2,
+          "image": "/image/texture/006.jpg",
+          "influence": 1,
+          "invert": false
+        },
+        "colors": ["Orange", "Red"],
+        "complexity": {
+          "calculated": 0.3225806451612903
+        },
+        "decals": [],
+        "extraPhases": [],
+        "extras": [],
+        "factionLeader": {
+          "image": "/image/leader/official/edric.jpg",
+          "memberId": "10f775db-8ae8-4d54-89ba-6dfcd37224c1",
+          "name": "Navigator Edric"
+        },
+        "leaders": [
+          {
+            "image": "/image/leader/official/staban.png",
+            "memberId": "695097f4-12fb-4004-b42c-bafe7a3ae58e",
+            "name": "Staban Tuek",
+            "strength": 5
+          },
+          {
+            "image": "/image/leader/official/esmar.png",
+            "memberId": "e245de2e-16d7-4e0b-a246-877edc6c09f5",
+            "name": "Esmar Tuek",
+            "strength": 3
+          },
+          {
+            "image": "/image/leader/official/bewt.png",
+            "memberId": "6230265a-ca3d-472f-adb5-27391791751c",
+            "name": "Master Bewt",
+            "strength": 3
+          },
+          {
+            "image": "/image/leader/official/soo-soo-sook.png",
+            "memberId": "d782ab19-7a01-41b2-a08b-c887f2a3fbc9",
+            "name": "Soo Soo Sook",
+            "strength": 2
+          },
+          {
+            "image": "/image/leader/official/guildrep.png",
+            "memberId": "4fae7b75-137a-4fcb-b922-76ef7f5eb53e",
+            "name": "Guild Rep.",
+            "strength": 1
+          }
+        ],
+        "logo": "/vector/logo/guild.svg",
+        "name": "GF9 Spacing Guild",
+        "planet": [],
+        "rules": {
+          "advantages": [
+            {
+              "karama": "Redirect one shipment payment to the Bank.",
+              "text": "Other factions pay you for shipments from their reserves onto Arrakis. Pay the Spice Bank for your own shipments.",
+              "title": "Shipment income"
+            },
+            {
+              "karama": "Prevent one cross-shipment or return to reserves.",
+              "text": "For your one shipment, either ship reserves to one Arrakis territory, cross-ship a group between two Arrakis territories, or return a group from a territory to reserves. Apply storm and occupancy rules.",
+              "title": "Three shipment types"
+            },
+            {
+              "karama": "Remove your half-price rate for one shipment.",
+              "text": "For shipment to Arrakis or cross-shipment, pay half normal cost, rounding the total up. Returning forces to reserves costs 1 spice per 2 forces, rounded up; do not halve that rate again.",
+              "title": "Guild rates"
+            },
+            {
+              "karama": "Cannot prevent the special victory.",
+              "text": "If the game ends without a normal winner and the Fremen Special Victory Condition is not met, you and your ally win. Bene Gesserit cannot predict this special victory.",
+              "title": "Special victory"
+            },
+            {
+              "karama": "Take shipment and movement in normal storm order this turn; do not retry the out-of-order advantage later.",
+              "text": "Take your whole shipment-and-movement turn first, last or between other factions. Announce when taking it. Other players keep normal order. Do not interrupt another player's turn.",
+              "title": "Advanced: choose your moment"
+            }
+          ],
+          "alliance": {
+            "text": "Your ally may ship reserves to Arrakis or cross-ship at your half-price rates, paying you. It cannot ship forces back to reserves. Allied Fremen may use the reserve cross-shipment allowed by the November 2020 FAQ. Your ally shares your special victory."
+          },
+          "fate": {
+            "label": "karama",
+            "text": "Advanced Game, once per game during Shipment and Movement: spend a Karama to stop one other player's off-planet shipment.",
+            "title": "Deny passage:\u00a0"
+          },
+          "revivalText": "1 force free; normal total limit 3.",
+          "spiceCount": 5,
+          "startText": "5 forces in Tuek's Sietch and 15 in reserves. Start with 5 spice and 1 Treachery Card."
+        },
+        "themeColor": "#dc5317",
+        "troops": [
+          {
+            "combat": {
+              "strength": 0.5,
+              "supportCost": 1,
+              "supportedStrength": 1
+            },
+            "count": 20,
+            "description": "Basic: strength 1. Advanced: strength 1/2 without spice, or 1 with 1 spice support.",
+            "hue": "#ffffff",
+            "image": "/vector/troop/guild.svg",
+            "name": "Troop",
+            "troopId": "b495d280-18c8-41d7-96de-578a5fe25f80"
+          }
+        ]
+      },
+      "factionLeaderMemberId": "10f775db-8ae8-4d54-89ba-6dfcd37224c1",
+      "leaders": [
+        {
+          "memberId": "695097f4-12fb-4004-b42c-bafe7a3ae58e",
+          "name": "Staban Tuek",
+          "strength": 5
+        },
+        {
+          "memberId": "e245de2e-16d7-4e0b-a246-877edc6c09f5",
+          "name": "Esmar Tuek",
+          "strength": 3
+        },
+        {
+          "memberId": "6230265a-ca3d-472f-adb5-27391791751c",
+          "name": "Master Bewt",
+          "strength": 3
+        },
+        {
+          "memberId": "d782ab19-7a01-41b2-a08b-c887f2a3fbc9",
+          "name": "Soo Soo Sook",
+          "strength": 2
+        },
+        {
+          "memberId": "4fae7b75-137a-4fcb-b922-76ef7f5eb53e",
+          "name": "Guild Rep.",
+          "strength": 1
+        }
+      ],
+      "troops": [
+        {
+          "troopId": "b495d280-18c8-41d7-96de-578a5fe25f80",
+          "name": "Troop",
+          "count": 20,
+          "hasBack": false
+        }
+      ],
+      "physicalForces": 20
+    },
+    {
+      "key": "fremen",
+      "sourceFile": "0257-faction-gf9-fremen.json",
+      "entityId": "k170rt7fn11fxdtbe3vx2bg0xx8gnrx1",
+      "sourceSlug": "gf9-fremen",
+      "proposedName": "Fremen",
+      "data": {
+        "background": {
+          "colors": ["#fcb843", "#d2781d"],
+          "definition": 0.3,
+          "image": "/image/texture/019.jpg",
+          "influence": 0.634,
+          "invert": false
+        },
+        "colors": ["Yellow", "Orange"],
+        "complexity": {
+          "calculated": 0.5806451612903226
+        },
+        "decals": [],
+        "extraPhases": [],
+        "extras": [],
+        "factionLeader": {
+          "image": "/image/leader/official/liet.jpg",
+          "memberId": "fb36e676-7e9f-4a8d-b349-d3f4f624c765",
+          "name": "Liet-Kynes"
+        },
+        "leaders": [
+          {
+            "image": "/image/leader/official/stilgar.png",
+            "memberId": "4f1b9a93-0064-49aa-82ef-819cf168b1ac",
+            "name": "Stilgar",
+            "strength": 7
+          },
+          {
+            "image": "/image/leader/official/chani.png",
+            "memberId": "8cce5f0e-2c66-4761-9464-991aea172c58",
+            "name": "Chani",
+            "strength": 6
+          },
+          {
+            "image": "/image/leader/official/otheym.png",
+            "memberId": "588ef0f5-8098-4246-a16a-5f1834f72f94",
+            "name": "Otheym",
+            "strength": 5
+          },
+          {
+            "image": "/image/leader/official/mapes.png",
+            "memberId": "8bd9ffeb-21fe-4196-9aeb-7584e1548f03",
+            "name": "Shaddout Mapes",
+            "strength": 3
+          },
+          {
+            "image": "/image/leader/official/jamis.png",
+            "memberId": "1ab6dd8d-51fe-4ef3-93b9-97adb20e9381",
+            "name": "Jamis",
+            "strength": 2
+          }
+        ],
+        "logo": "/vector/logo/fremen.svg",
+        "name": "GF9 Fremen",
+        "planet": [],
+        "rules": {
+          "advantages": [
+            {
+              "karama": "Cannot prevent normal reserve placement.",
+              "text": "For shipment, place any number of reserves free in The Great Flat or one territory within 2 territory borders of it. Do not count The Great Flat itself. Apply storm and occupancy rules. This is not an ordinary paid off-planet shipment.",
+              "title": "Reserve placement"
+            },
+            {
+              "karama": "Limit one movement to 1 territory without ornithopters.",
+              "text": "Your normal movement range is 2 territories, or 3 with ornithopters.",
+              "title": "Movement"
+            },
+            {
+              "karama": "Cancel protection and riding against one worm.",
+              "text": "Worms do not devour your forces. After the Nexus you may ride a worm with some or all forces at its location to any one territory, including a stronghold, subject to storm and occupancy. This does not use normal movement.",
+              "title": "Shai-Hulud"
+            },
+            {
+              "karama": "Cannot prevent the special victory.",
+              "text": "If no normal victory occurred by the end of turn 10, win with your ally if only you or nobody occupies Sietch Tabr and Habbanya Sietch, and neither Atreides, Harkonnen nor Emperor occupies Tuek's Sietch. Richese also prevents the Tuek's condition when in play. Ecaz has its printed Occupy exception.",
+              "title": "Special victory"
+            },
+            {
+              "karama": "Prevent viewing the next card, not movement by its revealed distance.",
+              "text": "After the first dialed storm, secretly select a Storm Card for the next turn. Reveal it next Storm Phase, move that distance, return and shuffle it, then select the following card.",
+              "title": "Advanced: storm cards"
+            },
+            {
+              "karama": "Cancel one relevant storm or additional-worm advantage.",
+              "text": "Lose half the force tokens caught by storm, rounding losses up. You may place reserves into storm at half loss, but cannot move or worm ride into or out of storm. Additional consecutive worms after the first may be placed in sand territories of your choice.",
+              "title": "Advanced: desert survival"
+            },
+            {
+              "karama": "Cancel doubled Fedaykin strength or no-spice support separately, before reveal.",
+              "text": "Your 3 Fedaykin count as strength 2 in battle and losses. All your forces fight at full strength without spice. At most 1 Fedaykin may be revived per turn. Starred forces are ordinary in the Basic Game.",
+              "title": "Advanced: Fedaykin and support"
+            }
+          ],
+          "alliance": {
+            "text": "You may protect your ally from a worm and allow it 3 free revivals, subject to its applicable revival limit. It does not gain worm riding. Your ally shares your special victory."
+          },
+          "fate": {
+            "label": "karama",
+            "text": "Advanced Game, once per game during Spice Blow and Nexus: spend a Karama to place a worm in a chosen sand territory. Destroy its spice and unprotected other forces, allow your forces to ride, and cause a Nexus at phase end.",
+            "title": "Call a worm:\u00a0"
+          },
+          "revivalText": "3 forces free; no extra paid base-game revivals. Advanced: at most 1 Fedaykin per turn.",
+          "spiceCount": 3,
+          "startText": "Divide 10 forces between Sietch Tabr, False Wall South and False Wall West; 10 in reserves. Start with 3 spice and 1 Treachery Card."
+        },
+        "themeColor": "#e4942e",
+        "troops": [
+          {
+            "combat": {
+              "strength": 1,
+              "supportCost": 0,
+              "supportedStrength": 1
+            },
+            "count": 17,
+            "description": "Basic: strength 1. Advanced: strength 1 without spice.",
+            "image": "/vector/troop/fremen.svg",
+            "name": "Normal troop",
+            "troopId": "e212481b-8f96-4b46-8389-a5cfb7760e7c"
+          },
+          {
+            "combat": {
+              "strength": 2,
+              "supportCost": 0,
+              "supportedStrength": 2
+            },
+            "count": 3,
+            "description": "Basic: ordinary force. Advanced: strength 2 without spice.",
+            "hue": "#edecd5",
+            "image": "/vector/troop/fremen.svg",
+            "name": "Fedaykin",
+            "star": "/vector/troop_modifier/star-right.svg",
+            "troopId": "3ac897c0-82d1-4c94-a796-2ce2788fab66"
+          }
+        ]
+      },
+      "factionLeaderMemberId": "fb36e676-7e9f-4a8d-b349-d3f4f624c765",
+      "leaders": [
+        {
+          "memberId": "4f1b9a93-0064-49aa-82ef-819cf168b1ac",
+          "name": "Stilgar",
+          "strength": 7
+        },
+        {
+          "memberId": "8cce5f0e-2c66-4761-9464-991aea172c58",
+          "name": "Chani",
+          "strength": 6
+        },
+        {
+          "memberId": "588ef0f5-8098-4246-a16a-5f1834f72f94",
+          "name": "Otheym",
+          "strength": 5
+        },
+        {
+          "memberId": "8bd9ffeb-21fe-4196-9aeb-7584e1548f03",
+          "name": "Shaddout Mapes",
+          "strength": 3
+        },
+        {
+          "memberId": "1ab6dd8d-51fe-4ef3-93b9-97adb20e9381",
+          "name": "Jamis",
+          "strength": 2
+        }
+      ],
+      "troops": [
+        {
+          "troopId": "e212481b-8f96-4b46-8389-a5cfb7760e7c",
+          "name": "Normal troop",
+          "count": 17,
+          "hasBack": false
+        },
+        {
+          "troopId": "3ac897c0-82d1-4c94-a796-2ce2788fab66",
+          "name": "Fedaykin",
+          "count": 3,
+          "hasBack": false
+        }
+      ],
+      "physicalForces": 20
+    },
+    {
+      "key": "bene-gesserit",
+      "sourceFile": "0258-faction-gf9-bene-gesserit.json",
+      "entityId": "k172tkm3r2r4sc96q7wnb3axvx8gn8g1",
+      "sourceSlug": "gf9-bene-gesserit",
+      "proposedName": "Bene Gesserit",
+      "data": {
+        "background": {
+          "colors": ["#132b74", "#34478b"],
+          "definition": 0.09,
+          "image": "/image/texture/019.jpg",
+          "influence": 0.8878,
+          "invert": false
+        },
+        "colors": ["Blue", "Teal"],
+        "complexity": {
+          "calculated": 0.5112903225806451
+        },
+        "decals": [],
+        "extraPhases": [],
+        "extras": [
+          {
+            "slug": "gf9-prediction-faction-deck",
+            "type": "deck"
+          },
+          {
+            "slug": "gf9-prediction-turn-deck",
+            "type": "deck"
+          }
+        ],
+        "factionLeader": {
+          "image": "/image/leader/official/mohiam.jpg",
+          "memberId": "ba20d29d-6cd7-4d85-a603-3bc794fbb13d",
+          "name": "Gaius Helen Mohiam"
+        },
+        "leaders": [
+          {
+            "image": "/image/leader/official/alia.png",
+            "memberId": "6875fec9-a8ff-478f-8b04-c6a1babdab5d",
+            "name": "Alia",
+            "strength": 5
+          },
+          {
+            "image": "/image/leader/official/irulan.png",
+            "memberId": "41101ead-6efa-4cd1-9aeb-462571fca76d",
+            "name": "Princess Irulan",
+            "strength": 5
+          },
+          {
+            "image": "/image/leader/official/ramallo.png",
+            "memberId": "09388176-6ad7-45a9-89a5-ac548b583e33",
+            "name": "Mother Ramallo",
+            "strength": 5
+          },
+          {
+            "image": "/image/leader/official/wanna.png",
+            "memberId": "70b72294-b07a-47e0-a5bd-3ebf520d5b02",
+            "name": "Wanna Yueh",
+            "strength": 5
+          },
+          {
+            "image": "/image/leader/official/lady-fenring.png",
+            "memberId": "5a19b7d3-0256-4013-8478-8343a47f8a46",
+            "name": "Margot Fenring",
+            "strength": 5
+          }
+        ],
+        "logo": "/vector/logo/bene-gesserit.svg",
+        "name": "GF9 Bene Gesserit",
+        "planet": [],
+        "rules": {
+          "advantages": [
+            {
+              "karama": "Cannot stop prediction.",
+              "text": "After positions are chosen, secretly predict one other faction and turn. If it wins normally on that turn, alone or in an alliance, reveal your prediction and win alone instead. You may also win normally. You cannot predict Fremen or Guild special victories.",
+              "title": "Prediction"
+            },
+            {
+              "karama": "Prevent one accompanying shipment.",
+              "text": "When another faction ships from off-planet to Arrakis, you may ship 1 reserve force free to Polar Sink. Advanced: instead accompany that shipment to its destination as an advisor. Fremen reserve placement and Guild cross-shipment do not trigger this.",
+              "title": "Spiritual advisors"
+            },
+            {
+              "karama": "Prevent one Voice.",
+              "text": "Before Prescience, require your opponent to play or not play one weapon, defense, Worthless Card or Cheap Hero in its plan. You may name a legal category or a specific special card. If compliance is impossible it may make any otherwise legal plan.",
+              "title": "Voice"
+            },
+            {
+              "karama": "Prevent charity beyond normal eligibility, or prevent one Worthless Card being used as Karama; that card is discarded.",
+              "text": "Receive 2 spice in every Charity Phase regardless of holdings, including turn 1. You may use any Worthless Card as a Karama.",
+              "title": "Advanced: charity and Karama"
+            },
+            {
+              "karama": "Prevent one relevant flip.",
+              "text": "Advisors cannot fight, collect spice, count for control or stronghold limits, give ornithopters, or enable Family Atomics. They remain vulnerable to worm, storm, lasgun-shield explosion and atomics. All your forces in a territory must be the same type. Advisors alone automatically become fighters.",
+              "title": "Advanced: advisors"
+            },
+            {
+              "text": "After Spice Blow and Nexus but before any shipment, announce and flip advisors to fighters where you wish to battle, except under storm or with an ally. When another faction enters your fighters' territory, you may flip them to advisors immediately. Advisors moving into another occupied territory may stay advisors or flip. Forces joining your existing forces take their type.",
+              "title": "Advanced: flipping"
+            },
+            {
+              "text": "An advisor accompanying another shipment cannot flip to fighter that turn unless alone. When alone at setup it flips immediately. Normal alliance separation applies to advisors; Homeworlds cannot receive them.",
+              "title": "Advanced: accompanying"
+            }
+          ],
+          "alliance": {
+            "text": "You may Voice your ally's opponent before any Atreides battle question."
+          },
+          "fate": {
+            "label": "karama",
+            "text": "You have no once-per-game Special Karama Power. In the Advanced Game, your ordinary faction advantage lets you use Worthless Cards as Karama Cards.",
+            "title": "No separate special power:\u00a0"
+          },
+          "revivalText": "1 force free; normal total limit 3.",
+          "spiceCount": 5,
+          "startText": "Basic: 1 force in Polar Sink, 19 in reserves. Advanced: 1 advisor anywhere after Fremen placement, 19 in reserves. Start with 5 spice and 1 card."
+        },
+        "themeColor": "#253b82",
+        "troops": [
+          {
+            "back": {
+              "capable": false,
+              "combat": {
+                "strength": 0,
+                "supportCost": 0,
+                "supportedStrength": 0
+              },
+              "description": "Advanced advisor: cannot fight, collect spice, provide ornithopters or count toward control.",
+              "image": "/vector/troop/bene-gesserit.svg",
+              "name": "Advisor",
+              "striped": true
+            },
+            "combat": {
+              "strength": 0.5,
+              "supportCost": 1,
+              "supportedStrength": 1
+            },
+            "count": 20,
+            "description": "Basic: strength 1. Advanced: strength 1/2 without spice, or 1 with 1 spice support.",
+            "image": "/vector/troop/bene-gesserit.svg",
+            "name": "Fighter",
+            "troopId": "a89c1e4b-379f-46da-8781-04b02b04686a"
+          }
+        ]
+      },
+      "factionLeaderMemberId": "ba20d29d-6cd7-4d85-a603-3bc794fbb13d",
+      "leaders": [
+        {
+          "memberId": "6875fec9-a8ff-478f-8b04-c6a1babdab5d",
+          "name": "Alia",
+          "strength": 5
+        },
+        {
+          "memberId": "41101ead-6efa-4cd1-9aeb-462571fca76d",
+          "name": "Princess Irulan",
+          "strength": 5
+        },
+        {
+          "memberId": "09388176-6ad7-45a9-89a5-ac548b583e33",
+          "name": "Mother Ramallo",
+          "strength": 5
+        },
+        {
+          "memberId": "70b72294-b07a-47e0-a5bd-3ebf520d5b02",
+          "name": "Wanna Yueh",
+          "strength": 5
+        },
+        {
+          "memberId": "5a19b7d3-0256-4013-8478-8343a47f8a46",
+          "name": "Margot Fenring",
+          "strength": 5
+        }
+      ],
+      "troops": [
+        {
+          "troopId": "a89c1e4b-379f-46da-8781-04b02b04686a",
+          "name": "Fighter",
+          "count": 20,
+          "hasBack": true
+        }
+      ],
+      "physicalForces": 20
+    },
+    {
+      "key": "ixians",
+      "sourceFile": "0259-faction-gf9-ixians.json",
+      "entityId": "k178rj7eevbaab0dnnb9474t3h8gn526",
+      "sourceSlug": "gf9-ixians",
+      "proposedName": "Ixians",
+      "data": {
+        "background": {
+          "colors": ["#A8A172", "#252527"],
+          "definition": 0.5,
+          "image": "/image/texture/082.jpg",
+          "influence": 0.65,
+          "invert": false
+        },
+        "colors": ["White"],
+        "complexity": {
+          "calculated": 0.4854838709677419
+        },
+        "decals": [],
+        "extras": [
+          {
+            "slug": "gf9-hidden-mobile-stronghold",
+            "type": "bundle"
+          }
+        ],
+        "factionLeader": {
+          "image": "/image/leader/official/rhombor.jpg",
+          "memberId": "53116a87-d096-5ded-a036-19c0cfd390db",
+          "name": "Prince Rhombur Vernius"
+        },
+        "leaders": [
+          {
+            "image": "/image/leader/official/dominic.png",
+            "memberId": "bfa1f913-90cc-5e33-a1df-1191dacd3522",
+            "name": "Dominic Vernius",
+            "strength": 4
+          },
+          {
+            "image": "/image/leader/official/ctair.png",
+            "memberId": "d308552e-0fc6-5bec-abe1-b88c4eca1930",
+            "name": "C'Tair Pilru",
+            "strength": 5
+          },
+          {
+            "image": "/image/leader/official/tessia.png",
+            "memberId": "cd1092e1-4cb1-5dfb-a043-9034f2a24c6a",
+            "name": "Tessia Vernius",
+            "strength": 5
+          },
+          {
+            "image": "/image/leader/official/kailea.png",
+            "memberId": "2bef742e-98fb-564d-a896-50b22587e97a",
+            "name": "Kailea Vernius",
+            "strength": 2
+          },
+          {
+            "image": "/image/leader/official/cammar.png",
+            "memberId": "649a57a3-3fac-5ef6-a140-651274a61e83",
+            "name": "Cammar Pilru",
+            "strength": 1
+          }
+        ],
+        "logo": "/vector/logo/ixian.svg",
+        "name": "GF9 Ixians",
+        "planet": [],
+        "rules": {
+          "advantages": [
+            {
+              "text": "Before starting Treachery is dealt, draw one card per faction. Keep one, shuffle the rest and deal one to each other faction. Harkonnen then draw their extra starting card.",
+              "title": "Starting Treachery"
+            },
+            {
+              "karama": "Prevent one use of the inspection and selection.",
+              "text": "Before normal auctions, inspect one more card than the normal auction supply. Put one face down on the top or bottom of the deck and shuffle the rest as the auction supply.",
+              "title": "Bidding"
+            },
+            {
+              "karama": "Prevent its movement or spice collection for that attempted use.",
+              "text": "Before later storm movement is dialed or revealed, while you occupy it, move it up to 3 territories, pointing at a sector of a non-stronghold territory. It cannot enter, leave or cross storm. When moving through a spice-bearing sector, collect up to 2 spice per troop inside. It is protected from storm and worms and counts as a stronghold. Only you ship directly inside; other factions enter from its parent territory. BG advisors may accompany your shipments and Fremen may worm-ride inside.",
+              "title": "Hidden Mobile Stronghold"
+            },
+            {
+              "karama": "Prevent extra movement, Cyborg strength advantage, or one Suboid replacement, as appropriate. Reduce an unsupported dial to its legal maximum.",
+              "text": "Cyborgs count 2 in Basic battle. After battle losses, exchange surviving Suboids in that territory for Cyborgs lost in that battle, one for one.",
+              "title": "Cyborgs and Suboids"
+            },
+            {
+              "karama": "Prevent the card swap.",
+              "text": "Once per Bidding round, before a normal card is bid on or Atreides inspects it, exchange it with a card in your hand. This is permitted with a full hand.",
+              "title": "Advanced: Technology"
+            },
+            {
+              "text": "Suboids always count 1/2, without spice; paying spice cannot strengthen them. Cyborgs need support for full strength.",
+              "title": "Advanced: Suboid strength"
+            }
+          ],
+          "alliance": {
+            "text": "After buying a normal auction or Black Market card, your ally may inspect it, immediately discard it and draw the top Treachery Card. This does not apply to a separate Richese cache auction."
+          },
+          "fate": {
+            "label": "karama",
+            "text": "Advanced game, once per game. Spend a Karama Card on your Shipment and Movement turn to move the Hidden Mobile Stronghold up to 2 territories in addition to normal movement."
+          },
+          "revivalText": "1 troop free, either type. Paid Cyborg revival costs 3 spice; Suboids cost the normal 2.",
+          "spiceCount": 10,
+          "startText": "3 Cyborgs and 3 Suboids in the Hidden Mobile Stronghold; 4 Cyborgs and 10 Suboids in reserves. Place the stronghold after first storm movement in any non-stronghold territory. Start with 10 spice."
+        },
+        "themeColor": "#A8A172",
+        "troops": [
+          {
+            "combat": {
+              "strength": 1,
+              "supportCost": 1,
+              "supportedStrength": 2
+            },
+            "count": 7,
+            "description": "Basic strength 2. Advanced strength 1 unsupported or 2 with 1 spice. Move 2 territories; collect 3 spice.",
+            "image": "/vector/troop/ixian.svg",
+            "name": "Cyborg",
+            "troopId": "52fdb566-e7cc-5e3e-acbb-b815ca354832"
+          },
+          {
+            "combat": {
+              "strength": 0.5,
+              "supportCost": 0,
+              "supportedStrength": 0.5
+            },
+            "count": 13,
+            "description": "Always strength 1/2. Move 2 territories with a Cyborg, otherwise 1; normal ornithopters and collection apply. Cannot be supported with spice.",
+            "image": "/vector/troop/ixian-engineer.svg",
+            "name": "Suboid",
+            "troopId": "507743d1-1167-5b46-a930-1e8b3246ae1d"
+          }
+        ]
+      },
+      "factionLeaderMemberId": "53116a87-d096-5ded-a036-19c0cfd390db",
+      "leaders": [
+        {
+          "memberId": "bfa1f913-90cc-5e33-a1df-1191dacd3522",
+          "name": "Dominic Vernius",
+          "strength": 4
+        },
+        {
+          "memberId": "d308552e-0fc6-5bec-abe1-b88c4eca1930",
+          "name": "C'Tair Pilru",
+          "strength": 5
+        },
+        {
+          "memberId": "cd1092e1-4cb1-5dfb-a043-9034f2a24c6a",
+          "name": "Tessia Vernius",
+          "strength": 5
+        },
+        {
+          "memberId": "2bef742e-98fb-564d-a896-50b22587e97a",
+          "name": "Kailea Vernius",
+          "strength": 2
+        },
+        {
+          "memberId": "649a57a3-3fac-5ef6-a140-651274a61e83",
+          "name": "Cammar Pilru",
+          "strength": 1
+        }
+      ],
+      "troops": [
+        {
+          "troopId": "52fdb566-e7cc-5e3e-acbb-b815ca354832",
+          "name": "Cyborg",
+          "count": 7,
+          "hasBack": false
+        },
+        {
+          "troopId": "507743d1-1167-5b46-a930-1e8b3246ae1d",
+          "name": "Suboid",
+          "count": 13,
+          "hasBack": false
+        }
+      ],
+      "physicalForces": 20
+    },
+    {
+      "key": "tleilaxu",
+      "sourceFile": "0260-faction-gf9-tleilaxu.json",
+      "entityId": "k171j14cgdjbev5xyghs0ejc918gm9he",
+      "sourceSlug": "gf9-tleilaxu",
+      "proposedName": "Tleilaxu",
+      "data": {
+        "background": {
+          "colors": ["#6A1B8E", "#252527"],
+          "definition": 0.5,
+          "image": "/image/texture/082.jpg",
+          "influence": 0.65,
+          "invert": false
+        },
+        "colors": ["Purple"],
+        "complexity": {
+          "calculated": 0.5403225806451613
+        },
+        "decals": [],
+        "extras": [],
+        "factionLeader": {
+          "image": "/image/leader/official/masters.jpg",
+          "memberId": "c0a4143e-337c-5e3b-a822-b57236e4d62e",
+          "name": "Masters Council"
+        },
+        "leaders": [
+          {
+            "image": "/image/leader/official/zoal.png",
+            "memberId": "de398dd9-1621-54cc-a678-8fc4c2bd6ed6",
+            "name": "Zoal",
+            "strength": "X"
+          },
+          {
+            "image": "/image/leader/official/hidar.png",
+            "memberId": "2ee17023-8eca-5a01-a79c-8b6b3f9f72a4",
+            "name": "Hidar Fen Ajidica",
+            "strength": 4
+          },
+          {
+            "image": "/image/leader/official/zaaf.png",
+            "memberId": "1b14ef5a-8a4d-5816-a8aa-8bdaaf230964",
+            "name": "Master Zaaf",
+            "strength": 3
+          },
+          {
+            "image": "/image/leader/official/wykk.png",
+            "memberId": "50c536dd-2ea6-5d91-aab1-e6295e2a0b9f",
+            "name": "Wykk",
+            "strength": 2
+          },
+          {
+            "image": "/image/leader/official/blin.png",
+            "memberId": "c0263b1b-878c-52f2-a2a8-4fb56fa2c23d",
+            "name": "Blin",
+            "strength": 1
+          }
+        ],
+        "logo": "/vector/logo/bene-tleilaxu.svg",
+        "name": "GF9 Tleilaxu",
+        "planet": [],
+        "rules": {
+          "advantages": [
+            {
+              "karama": "Only the Mentat Pause replacement can be stopped; the reveal and replacement of troops cannot.",
+              "text": "After another faction wins any battle, reveal a Face Dancer matching its leader. Resolve the win normally, then send that leader to the Tanks without spice for the reveal. Return the winner's surviving troops to reserves and replace up to that number with your troops from reserves and/or Arrakis. KH does not protect against this. Revealed cards stay face up until all 3 are revealed; then return all, shuffle and draw 3. Each Mentat Pause you may instead replace one unrevealed Face Dancer.",
+              "title": "Face Dancers"
+            },
+            {
+              "karama": "Prevent the payment or income for the relevant revival.",
+              "text": "Other factions pay you their revival costs. For each faction using free revival or a Ghola Card, including yourself, take 1 spice from the Bank.",
+              "title": "Revival income"
+            },
+            {
+              "karama": "Prevent the increased limit for the relevant revival.",
+              "text": "You may let another faction revive up to 5 troops instead of 3, including paid extra Fremen revival. Special elite limits still apply.",
+              "title": "Revival limits"
+            },
+            {
+              "karama": "Prevent that early revival.",
+              "text": "A faction not otherwise eligible to revive a leader may ask you for one particular dead leader, face up or down. Set a price and revive it if paid. This remains one leader per faction per Revival phase.",
+              "title": "Early leader revival"
+            },
+            {
+              "text": "For battle and spice from his death, Zoal copies the opposing leader disc value, 0 against a Cheap Hero. Do not copy KH or skill bonuses. Reviving Zoal costs 3 spice; do not halve this explicit price again.",
+              "title": "Zoal"
+            },
+            {
+              "karama": "Prevent using the ghola acquisition advantage that turn.",
+              "text": "With fewer than 5 active leaders, revive other factions' dead leaders at your discount up to 5 active leaders. Face-down leaders qualify. A ghola can still turn traitor. Do not draw a Leader Skill. Only sell a ghola back after it dies and returns to the Tanks. Auditor and Duke Vidal cannot be your gholas.",
+              "title": "Advanced: Gholas"
+            }
+          ],
+          "alliance": {
+            "text": "You may offer your ally half-price troop and leader revival, rounding the total up. Your ally pays you; you cannot pay its revival bill. CHOAM may halve its total troop cost."
+          },
+          "fate": {
+            "label": "karama",
+            "text": "Advanced game, once per game. Spend a Karama Card during Revival to prevent one player from reviving troops and/or a leader."
+          },
+          "revivalText": "2 troops free. No troop revival limit; pay the Bank half the normal total revival cost, rounded up.",
+          "spiceCount": 5,
+          "startText": "20 troops in reserves. Start with 5 spice. No normal Traitor selection. After other factions select traitors and return unused cards, shuffle and draw 3 Face Dancers."
+        },
+        "themeColor": "#6A1B8E",
+        "troops": [
+          {
+            "combat": {
+              "strength": 0.5,
+              "supportCost": 1,
+              "supportedStrength": 1
+            },
+            "count": 20,
+            "description": "Normal battle strength and spice support.",
+            "image": "/vector/troop/bene-tleilaxu.svg",
+            "name": "Tleilaxu troop",
+            "troopId": "0f63e91b-a811-5a24-aa28-188459251fe1"
+          }
+        ]
+      },
+      "factionLeaderMemberId": "c0a4143e-337c-5e3b-a822-b57236e4d62e",
+      "leaders": [
+        {
+          "memberId": "de398dd9-1621-54cc-a678-8fc4c2bd6ed6",
+          "name": "Zoal",
+          "strength": "X"
+        },
+        {
+          "memberId": "2ee17023-8eca-5a01-a79c-8b6b3f9f72a4",
+          "name": "Hidar Fen Ajidica",
+          "strength": 4
+        },
+        {
+          "memberId": "1b14ef5a-8a4d-5816-a8aa-8bdaaf230964",
+          "name": "Master Zaaf",
+          "strength": 3
+        },
+        {
+          "memberId": "50c536dd-2ea6-5d91-aab1-e6295e2a0b9f",
+          "name": "Wykk",
+          "strength": 2
+        },
+        {
+          "memberId": "c0263b1b-878c-52f2-a2a8-4fb56fa2c23d",
+          "name": "Blin",
+          "strength": 1
+        }
+      ],
+      "troops": [
+        {
+          "troopId": "0f63e91b-a811-5a24-aa28-188459251fe1",
+          "name": "Tleilaxu troop",
+          "count": 20,
+          "hasBack": false
+        }
+      ],
+      "physicalForces": 20
+    },
+    {
+      "key": "richese",
+      "sourceFile": "0261-faction-gf9-richese.json",
+      "entityId": "k172w8tgrgjy7hehp17p9hr9xs8gms95",
+      "sourceSlug": "gf9-richese",
+      "proposedName": "Richese",
+      "data": {
+        "background": {
+          "colors": ["#B7B6A9", "#252527"],
+          "definition": 0.5,
+          "image": "/image/texture/082.jpg",
+          "influence": 0.65,
+          "invert": false
+        },
+        "colors": ["White"],
+        "complexity": {
+          "calculated": 0.4758064516129033
+        },
+        "decals": [],
+        "extras": [
+          {
+            "slug": "gf9-richese-cache",
+            "type": "deck"
+          },
+          {
+            "slug": "gf9-no-field-tokens",
+            "type": "bundle"
+          }
+        ],
+        "factionLeader": {
+          "image": "/image/leader/ilya/cheap-hero.png",
+          "memberId": "44a133d0-e760-595d-ae36-9ce9ae923f59",
+          "name": "Count Ilban Richese"
+        },
+        "leaders": [
+          {
+            "image": "/image/leader/official/ein-calimar.png",
+            "memberId": "0c17e2fb-bb4b-5658-a1fe-a31ce1d5a793",
+            "name": "Ein Calimar",
+            "strength": 5
+          },
+          {
+            "image": "/image/leader/official/lady-helena.png",
+            "memberId": "af90d68a-d43b-5cf5-aaf9-06e79757d3e2",
+            "name": "Lady Helena",
+            "strength": 4
+          },
+          {
+            "image": "/image/leader/official/flinto-kinnis.png",
+            "memberId": "9626a0fa-7946-5cfb-a38a-40f79027e6b5",
+            "name": "Flinto Kinnis",
+            "strength": 3
+          },
+          {
+            "image": "/image/leader/official/haloa-rund.png",
+            "memberId": "0470e355-888f-5b3c-a1ff-6ba1539f0cdf",
+            "name": "Haloa Rund",
+            "strength": 2
+          },
+          {
+            "image": "/image/leader/official/talis-balt.png",
+            "memberId": "8356c1f8-2386-537b-ad0c-6b7253da8256",
+            "name": "Talis Balt",
+            "strength": 2
+          }
+        ],
+        "logo": "/vector/logo/richese.svg",
+        "name": "GF9 Richese",
+        "planet": [],
+        "rules": {
+          "advantages": [
+            {
+              "karama": "Prevent the cache auction at the start of the round.",
+              "text": "Each Bidding round replace one normal card with a revealed cache card. Before Ixians act, declare it first or last. Use Once Around or Silent Auction. Other buyers pay you; your own purchase pays Emperor or Bank. No Karama acquisition. If nobody pays, take it free or remove it. Used cache cards enter normal discards.",
+              "title": "Cache auction"
+            },
+            {
+              "text": "Choose a direction. Starting with your neighbor on that side, each eligible player may pass or bid higher once. You bid last or let the high bidder buy.",
+              "title": "Once Around"
+            },
+            {
+              "text": "Eligible factions secretly hold spice and reveal together. Highest wins; ties use storm order. If all offer zero, take the card free or remove it.",
+              "title": "Silent Auction"
+            },
+            {
+              "karama": "Prevent one No-Field shipment.",
+              "text": "Pay for one shipped troop and place a token face down instead. It counts as one troop until revealed, even 0. Move it normally. Reveal before Battle if desired, or with Battle Plans, placing that many reserve troops, limited by availability. Storm/worm reveals and kills them. You cannot dial more than available reserves, and Atreides cannot ask your dial. Only one token on Arrakis; never use the same number consecutively for yourself or your ally.",
+              "title": "No-Field"
+            },
+            {
+              "karama": "Prevent the Black Market sale.",
+              "text": "Before Bidding Declaration offer one hand card without revealing it; you may lie, Atreides may inspect. Use normal, Once Around or Silent bidding. If sold, collect payment and replace one normal auction card. If no bid, keep it. No Karama acquisition.",
+              "title": "Advanced: Black Market"
+            },
+            {
+              "text": "Your occupation of Tuek's Sietch prevents the Fremen special victory in Basic and Advanced play, alongside Atreides, Harkonnen and Emperor occupation.",
+              "title": "Fremen victory"
+            }
+          ],
+          "alliance": {
+            "text": "Ship an ally with an available No-Field, paying for one troop and immediately revealing up to its number from the ally's reserves. Reveal any token already on Arrakis first. Either ally may pay. You may give your ally a Richese card from your hand if it has room."
+          },
+          "fate": {
+            "label": "karama",
+            "text": "Advanced game, once per game. Spend a Karama Card and 3 spice at any time to secretly buy one card remaining in your cache."
+          },
+          "revivalText": "2 troops free.",
+          "spiceCount": 5,
+          "startText": "20 troops in reserves. Start with 5 spice. Keep a separate 10-card Richese cache, outside your hand, and No-Field tokens 0, 3 and 5."
+        },
+        "themeColor": "#B7B6A9",
+        "troops": [
+          {
+            "combat": {
+              "strength": 0.5,
+              "supportCost": 1,
+              "supportedStrength": 1
+            },
+            "count": 20,
+            "description": "Normal battle strength and spice support.",
+            "image": "/vector/troop/richese.svg",
+            "name": "Richese troop",
+            "troopId": "d6e371eb-2bf1-500f-aa27-a3814e8e825c"
+          }
+        ]
+      },
+      "factionLeaderMemberId": "44a133d0-e760-595d-ae36-9ce9ae923f59",
+      "leaders": [
+        {
+          "memberId": "0c17e2fb-bb4b-5658-a1fe-a31ce1d5a793",
+          "name": "Ein Calimar",
+          "strength": 5
+        },
+        {
+          "memberId": "af90d68a-d43b-5cf5-aaf9-06e79757d3e2",
+          "name": "Lady Helena",
+          "strength": 4
+        },
+        {
+          "memberId": "9626a0fa-7946-5cfb-a38a-40f79027e6b5",
+          "name": "Flinto Kinnis",
+          "strength": 3
+        },
+        {
+          "memberId": "0470e355-888f-5b3c-a1ff-6ba1539f0cdf",
+          "name": "Haloa Rund",
+          "strength": 2
+        },
+        {
+          "memberId": "8356c1f8-2386-537b-ad0c-6b7253da8256",
+          "name": "Talis Balt",
+          "strength": 2
+        }
+      ],
+      "troops": [
+        {
+          "troopId": "d6e371eb-2bf1-500f-aa27-a3814e8e825c",
+          "name": "Richese troop",
+          "count": 20,
+          "hasBack": false
+        }
+      ],
+      "physicalForces": 20
+    },
+    {
+      "key": "choam",
+      "sourceFile": "0262-faction-gf9-choam.json",
+      "entityId": "k171sa4cvaa4qnn1n1x6rsedf58gnyp0",
+      "sourceSlug": "gf9-choam",
+      "proposedName": "CHOAM",
+      "data": {
+        "background": {
+          "colors": ["#B11B20", "#252527"],
+          "definition": 0.5,
+          "image": "/image/texture/082.jpg",
+          "influence": 0.65,
+          "invert": false
+        },
+        "colors": ["Brown"],
+        "complexity": {
+          "calculated": 0.5306451612903226
+        },
+        "decals": [],
+        "extras": [
+          {
+            "slug": "gf9-inflation-token",
+            "type": "bundle"
+          }
+        ],
+        "factionLeader": {
+          "image": "/image/leader/ilya/cheap-hero.png",
+          "memberId": "c2bcd015-97c5-5736-a6d1-78cc4787cedb",
+          "name": "Ur-Director Malina Aru"
+        },
+        "leaders": [
+          {
+            "image": "/image/leader/official/frankos-aru.png",
+            "memberId": "f214ee6a-d67f-5bbc-a586-ec2070f69591",
+            "name": "Frankos Aru",
+            "strength": 4
+          },
+          {
+            "image": "/image/leader/official/lady-yalma.png",
+            "memberId": "728a6883-99e1-5e68-a894-e39c5cd56edf",
+            "name": "Lady Jalma",
+            "strength": 4
+          },
+          {
+            "image": "/image/leader/official/rajiv-londine.png",
+            "memberId": "3cd5e9fd-4c82-5aa9-a83e-bcf0ed24d558",
+            "name": "Rajiv Londine",
+            "strength": 3
+          },
+          {
+            "image": "/image/leader/official/duke-verdun.png",
+            "memberId": "68bdcc78-df32-5195-a95d-5ec051c31d61",
+            "name": "Duke Verdun",
+            "strength": 3
+          },
+          {
+            "image": "/image/leader/official/viscount-tull.png",
+            "memberId": "ef8c32e5-8e8f-5683-a853-29ac88e925b2",
+            "name": "Viscount Tull",
+            "strength": 2
+          },
+          {
+            "image": "/image/leader/official/auditor.png",
+            "memberId": "a83dc233-1358-5eff-aa07-f7cc3fa20bf5",
+            "name": "Auditor",
+            "strength": 2
+          }
+        ],
+        "logo": "/vector/logo/choam.svg",
+        "name": "GF9 CHOAM",
+        "planet": [],
+        "rules": {
+          "advantages": [
+            {
+              "karama": "Prevent special income for that use. Ordinary qualifying Charity is paid by the Bank.",
+              "text": "Before anyone collects Charity, take 2 spice per faction from the Bank. Pay other factions' normal Charity from your spice. Your faction income alone does not trigger Spice Production.",
+              "title": "Charity"
+            },
+            {
+              "karama": "Prevent a discard for spice or the relevant Worthless effect.",
+              "text": "Hand limit 5. At any phase end, reveal exact duplicates and discard surplus for 3 spice each, or discard a Worthless Card for 2 spice. Different Snooper types are not duplicates.",
+              "title": "Treachery"
+            },
+            {
+              "text": "Instead of spice, discard: Baliset to prevent one player's movement into your territory, not shipment; Jubba Cloak to protect your troops in one territory from storm; Kull Wahad when attempted to stop that player playing Karama for the phase; Kulon for one extra movement territory; La La La to prevent one free revival; Trip to Gamont in Mentat Pause to return one enemy troop to reserves. Use reactive effects when their event occurs.",
+              "title": "Worthless effects"
+            },
+            {
+              "karama": "Prevent initial placement, not later flipping.",
+              "text": "In Mentat Pause place Double or Cancel to affect next turn's Charity, including your own income and BG. Flip next pause; remove after the following turn. No bribes while Double is face up.",
+              "title": "Inflation"
+            },
+            {
+              "karama": "Prevent the audit.",
+              "text": "After using the Auditor in battle, inspect 2 random unused opponent hand cards if it lives, 1 if killed. The opponent may pay 1 spice per card actually available to cancel the whole audit. Revive Auditor as your one leader for the turn regardless of other leaders. It returns to the Tanks face up and cannot be captured, a ghola or skilled.",
+              "title": "Advanced: Auditor"
+            },
+            {
+              "karama": "Prevent income for that battle.",
+              "text": "Receive half, rounded down, of each other faction's spice support payment in battle, including Arrakeen-card support. Your own support goes to the Bank. Receive none if a traitor is called.",
+              "title": "Advanced: Support income"
+            }
+          ],
+          "alliance": {
+            "text": "Once per turn at any phase end, exchange one Treachery Card each with your ally. The trade must be two-way. You may also pay some or all of your ally's spice support in battle, to the Bank."
+          },
+          "fate": {
+            "label": "karama",
+            "text": "Advanced game, once per game. Spend a Karama Card at any time to discard any number of other Treachery Cards from your hand for 3 spice each, including Worthless Cards."
+          },
+          "revivalText": "0 troops free. Unlimited paid troop revival at 1 spice each.",
+          "spiceCount": 2,
+          "startText": "20 troops in reserves. Start with 2 spice. In Advanced play include the Auditor and its Traitor Card; the Auditor is unavailable in Basic play."
+        },
+        "themeColor": "#B11B20",
+        "troops": [
+          {
+            "combat": {
+              "strength": 0.5,
+              "supportCost": 1,
+              "supportedStrength": 1
+            },
+            "count": 20,
+            "description": "Normal battle strength and spice support.",
+            "image": "/vector/troop/choam.svg",
+            "name": "CHOAM troop",
+            "troopId": "1c264059-208c-59fc-a440-e944bc6ec6ab"
+          }
+        ]
+      },
+      "factionLeaderMemberId": "c2bcd015-97c5-5736-a6d1-78cc4787cedb",
+      "leaders": [
+        {
+          "memberId": "f214ee6a-d67f-5bbc-a586-ec2070f69591",
+          "name": "Frankos Aru",
+          "strength": 4
+        },
+        {
+          "memberId": "728a6883-99e1-5e68-a894-e39c5cd56edf",
+          "name": "Lady Jalma",
+          "strength": 4
+        },
+        {
+          "memberId": "3cd5e9fd-4c82-5aa9-a83e-bcf0ed24d558",
+          "name": "Rajiv Londine",
+          "strength": 3
+        },
+        {
+          "memberId": "68bdcc78-df32-5195-a95d-5ec051c31d61",
+          "name": "Duke Verdun",
+          "strength": 3
+        },
+        {
+          "memberId": "ef8c32e5-8e8f-5683-a853-29ac88e925b2",
+          "name": "Viscount Tull",
+          "strength": 2
+        },
+        {
+          "memberId": "a83dc233-1358-5eff-aa07-f7cc3fa20bf5",
+          "name": "Auditor",
+          "strength": 2
+        }
+      ],
+      "troops": [
+        {
+          "troopId": "1c264059-208c-59fc-a440-e944bc6ec6ab",
+          "name": "CHOAM troop",
+          "count": 20,
+          "hasBack": false
+        }
+      ],
+      "physicalForces": 20
+    },
+    {
+      "key": "ecaz",
+      "sourceFile": "0263-faction-gf9-ecaz.json",
+      "entityId": "k172hdb8cgry21wrdwxvavqc0h8gmp1k",
+      "sourceSlug": "gf9-ecaz",
+      "proposedName": "Ecaz",
+      "data": {
+        "background": {
+          "colors": ["#8B3C8C", "#252527"],
+          "definition": 0.5,
+          "image": "/image/texture/082.jpg",
+          "influence": 0.65,
+          "invert": false
+        },
+        "colors": ["Purple"],
+        "complexity": {
+          "calculated": 0.4629032258064516
+        },
+        "decals": [],
+        "extras": [
+          {
+            "slug": "gf9-ambassador-tokens",
+            "type": "bundle"
+          },
+          {
+            "slug": "gf9-duke-vidal",
+            "type": "token-disc"
+          }
+        ],
+        "factionLeader": {
+          "image": "/image/leader/ilya/ecaz.jpg",
+          "memberId": "a4806892-1cf1-5dd1-a2e5-9894d53def61",
+          "name": "Archduke Armand Ecaz"
+        },
+        "leaders": [
+          {
+            "image": "/image/leader/official/sanya-ecaz.png",
+            "memberId": "f1133c5f-a5cf-5179-ae56-29b0280a2b07",
+            "name": "Sanya Ecaz",
+            "strength": 4
+          },
+          {
+            "image": "/image/leader/official/whitemore-bludd.png",
+            "memberId": "a9cd17e4-6f50-5119-a26f-d88db02ec7c7",
+            "name": "Whitmore Bludd",
+            "strength": 4
+          },
+          {
+            "image": "/image/leader/official/ilesa-ecaz.png",
+            "memberId": "6ec5029f-823f-52df-a65f-d927c4fa08c8",
+            "name": "Ilesa Ecaz",
+            "strength": 3
+          },
+          {
+            "image": "/image/leader/brainfood/rivvy-dinari.png",
+            "memberId": "8b743e4f-9f8c-5a84-aca0-b080a60139e8",
+            "name": "Rivvy Dinari",
+            "strength": 3
+          },
+          {
+            "image": "/image/leader/official/bindikk-narvi.png",
+            "memberId": "df67a977-d0a2-51d8-a0f5-57a6401f4b00",
+            "name": "Bindikk Narvi",
+            "strength": 2
+          }
+        ],
+        "logo": "/vector/logo/ecaz.svg",
+        "name": "GF9 Ecaz",
+        "planet": [],
+        "rules": {
+          "advantages": [
+            {
+              "karama": "Prevent Ambassador placement for that turn.",
+              "text": "At end of Revival buy placements in strongholds not in storm and without another Ambassador: costs 1, then 2, then 3 spice that turn. An entering faction may trigger the effect, except your ally, advisors or the matching faction. Resolve immediately and set aside. After all 5 random tokens trigger, redraw 5 from the unused pool. Ecaz returns after use; BG leaves the game. Storm/explosion returns tokens to your supply.",
+              "title": "Ambassadors"
+            },
+            {
+              "karama": "Before Battle Plans, prevent battle cooperation: the battling faction dials its own troops and the other contributes zero. Does not change the 3-stronghold win.",
+              "text": "You and your ally may co-occupy territories as one faction. Split desert spice by agreement, or evenly with the odd spice to your ally. Both get ornithopters when applicable. Co-occupied strongholds count once and you control them. Win with 3 if both of you occupy all 3.",
+              "title": "Occupy"
+            },
+            {
+              "text": "Choose the battling faction's leader, cards and abilities after battle order is fixed. Dial the ally's troops normally and add half your Ecaz troops rounded up, without spice for your contribution. On a win, half your Ecaz troops rounded down remain; send the rest to the Tanks. Use the printed rule over its contradictory example.",
+              "title": "Co-occupied battles"
+            },
+            {
+              "text": "Revive Vidal regardless of your other leaders. With 5 leaders in the Tanks, including Vidal, you may revive your other leaders normally.",
+              "title": "Duke Vidal revival"
+            },
+            {
+              "text": "Before Traitor selection, set aside one random Ecaz Traitor Card face up. Never add it to the deck.",
+              "title": "Advanced: Loyalty"
+            },
+            {
+              "karama": "Prevent Ecaz's income; the ally still collects.",
+              "text": "Both you and your ally collect full stronghold income from co-occupied Arrakeen, Carthag or Tuek's Sietch.",
+              "title": "Advanced: Collection"
+            }
+          ],
+          "alliance": {
+            "text": "You may choose to give your ally a triggered Ambassador's benefit."
+          },
+          "fate": {
+            "label": "karama",
+            "text": "Advanced game, once per game. If you played neither a weapon nor defense, spend a Karama Card before revealing plans to add the absolute difference between the two printed leader values to your dial."
+          },
+          "revivalText": "2 troops free. Only you may revive Duke Vidal, for 5 spice, returning him to the set-aside supply.",
+          "spiceCount": 12,
+          "startText": "6 troops in Imperial Basin, 14 in reserves. Start with 12 spice. Take your Ecaz Ambassador and 5 random Ambassadors from the remaining 10. Set Duke Vidal aside."
+        },
+        "themeColor": "#8B3C8C",
+        "troops": [
+          {
+            "combat": {
+              "strength": 0.5,
+              "supportCost": 1,
+              "supportedStrength": 1
+            },
+            "count": 20,
+            "description": "Normal battle strength and spice support.",
+            "image": "/vector/troop/ecaz.svg",
+            "name": "Ecaz troop",
+            "troopId": "4c199d85-c2cc-5e4c-af52-74367d932714"
+          }
+        ]
+      },
+      "factionLeaderMemberId": "a4806892-1cf1-5dd1-a2e5-9894d53def61",
+      "leaders": [
+        {
+          "memberId": "f1133c5f-a5cf-5179-ae56-29b0280a2b07",
+          "name": "Sanya Ecaz",
+          "strength": 4
+        },
+        {
+          "memberId": "a9cd17e4-6f50-5119-a26f-d88db02ec7c7",
+          "name": "Whitmore Bludd",
+          "strength": 4
+        },
+        {
+          "memberId": "6ec5029f-823f-52df-a65f-d927c4fa08c8",
+          "name": "Ilesa Ecaz",
+          "strength": 3
+        },
+        {
+          "memberId": "8b743e4f-9f8c-5a84-aca0-b080a60139e8",
+          "name": "Rivvy Dinari",
+          "strength": 3
+        },
+        {
+          "memberId": "df67a977-d0a2-51d8-a0f5-57a6401f4b00",
+          "name": "Bindikk Narvi",
+          "strength": 2
+        }
+      ],
+      "troops": [
+        {
+          "troopId": "4c199d85-c2cc-5e4c-af52-74367d932714",
+          "name": "Ecaz troop",
+          "count": 20,
+          "hasBack": false
+        }
+      ],
+      "physicalForces": 20
+    },
+    {
+      "key": "moritani",
+      "sourceFile": "0264-faction-gf9-moritani.json",
+      "entityId": "k179ta04t9nz6hjjrgtcq1pmx58gnp4y",
+      "sourceSlug": "gf9-moritani",
+      "proposedName": "Moritani",
+      "data": {
+        "background": {
+          "colors": ["#3C8798", "#252527"],
+          "definition": 0.5,
+          "image": "/image/texture/082.jpg",
+          "influence": 0.65,
+          "invert": false
+        },
+        "colors": ["Teal"],
+        "complexity": {
+          "calculated": 0.4967741935483871
+        },
+        "decals": [],
+        "extras": [
+          {
+            "slug": "gf9-terror-tokens",
+            "type": "bundle"
+          },
+          {
+            "slug": "gf9-atomics-aftermath",
+            "type": "token-disc"
+          },
+          {
+            "slug": "gf9-duke-vidal",
+            "type": "token-disc"
+          }
+        ],
+        "factionLeader": {
+          "image": "/image/leader/ilya/hundro.jpg",
+          "memberId": "f6a34b7f-cc2c-51e3-a551-d6b207f89bf1",
+          "name": "Viscount Hundro Moritani"
+        },
+        "leaders": [
+          {
+            "image": "/image/leader/official/lupino-ord.png",
+            "memberId": "689e5af8-1717-5040-a1dc-befaf5060211",
+            "name": "Lupino Ord",
+            "strength": 5
+          },
+          {
+            "image": "/image/leader/official/grieu-kronos.png",
+            "memberId": "8f8c4635-875d-57ee-a0ce-64d56337e4f3",
+            "name": "Grieu Kronos",
+            "strength": 4
+          },
+          {
+            "image": "/image/leader/official/hiih-resser.png",
+            "memberId": "94d3e94c-233c-5438-aa85-34ad665f97bd",
+            "name": "Hiih Resser",
+            "strength": 4
+          },
+          {
+            "image": "/image/leader/official/trin-kronos.png",
+            "memberId": "9bb28d13-b701-55c9-a8ba-21ee13c470bd",
+            "name": "Trin Kronos",
+            "strength": 2
+          },
+          {
+            "image": "/image/leader/official/vando-terboli.png",
+            "memberId": "3ead0ab6-d19a-53dc-a6fa-0083e1ce1528",
+            "name": "Vando Terboli",
+            "strength": 1
+          }
+        ],
+        "logo": "/vector/logo/moritani.svg",
+        "name": "GF9 Moritani",
+        "planet": [],
+        "rules": {
+          "advantages": [
+            {
+              "karama": "Prevent placing or moving a token.",
+              "text": "In Mentat Pause place one hidden Terror in a stronghold without one, or move one there, even under storm. Never use HMS or Homeworlds. Reveal when another non-ally moves or ships in, including advisors and No-Field 0. Terror survives storm/explosion. A Face Dancer or No-Field reveal does not trigger it.",
+              "title": "Terrorize"
+            },
+            {
+              "text": "Assassination: kill a random enemy leader for its value, 3 for Zoal. Atomics: kill all troops, prohibit future shipments and reduce your and your ally's hand limits by 1. Extortion: gain 5 delayed spice and recover token in Mentat Pause unless one player pays 3. Robbery: steal half their spice rounded up or draw a card then discard if over limit. Sabotage: discard a random enemy card, then optionally give one of yours. Sneak Attack: place up to 5 reserves here free, even in Aftermath, obeying storm and occupancy. Revealed tokens otherwise leave the game.",
+              "title": "Terror effects"
+            },
+            {
+              "karama": "Prevent forming the alliance; you may still reveal Terror.",
+              "text": "Before revealing Terror triggered by a non-Ecaz faction, offer it an alliance. Acceptance breaks existing alliances and returns the token to you. Refusal requires the reveal.",
+              "title": "Enemy of My Enemy"
+            },
+            {
+              "karama": "Prevent gaining him; does not remove him if already held.",
+              "text": "At end of Shipment and Movement, gain Vidal if you face battles in at least 2 strongholds, excluding Ecaz battles, and he is available. Use him once, then set aside by turn end if not in Tanks or captured.",
+              "title": "Duke Vidal"
+            },
+            {
+              "text": "After losing with no traitor called and the enemy leader surviving, reveal a Traitor Card for another leader of that enemy faction. If alive, kill it for its value, 3 for Zoal. In Mentat Pause set the card face up as a marker and draw another. Once per enemy faction. Revealing a traitor normally forfeits this advantage permanently. Karama cannot stop it.",
+              "title": "Advanced: Assassinate Leaders"
+            }
+          ],
+          "alliance": {
+            "text": "When your ally loses a battle that had a winner, it may keep one played card it could have kept had it won."
+          },
+          "fate": {
+            "label": "karama",
+            "text": "Advanced game, once per game. After you lose a battle, spend a Karama Card to choose which of your opponent's played Treachery Cards they keep or discard."
+          },
+          "revivalText": "2 troops free.",
+          "spiceCount": 12,
+          "startText": "After all other factions set up, place 6 troops in any unoccupied territory, with 14 in reserves. Start with 12 spice. Keep 6 Terror tokens hidden."
+        },
+        "themeColor": "#3C8798",
+        "troops": [
+          {
+            "combat": {
+              "strength": 0.5,
+              "supportCost": 1,
+              "supportedStrength": 1
+            },
+            "count": 20,
+            "description": "Normal battle strength and spice support.",
+            "image": "/vector/troop/moritani.svg",
+            "name": "Moritani troop",
+            "troopId": "ce9f6ae5-19ad-5e3f-a2f5-e7f1ca995b8d"
+          }
+        ]
+      },
+      "factionLeaderMemberId": "f6a34b7f-cc2c-51e3-a551-d6b207f89bf1",
+      "leaders": [
+        {
+          "memberId": "689e5af8-1717-5040-a1dc-befaf5060211",
+          "name": "Lupino Ord",
+          "strength": 5
+        },
+        {
+          "memberId": "8f8c4635-875d-57ee-a0ce-64d56337e4f3",
+          "name": "Grieu Kronos",
+          "strength": 4
+        },
+        {
+          "memberId": "94d3e94c-233c-5438-aa85-34ad665f97bd",
+          "name": "Hiih Resser",
+          "strength": 4
+        },
+        {
+          "memberId": "9bb28d13-b701-55c9-a8ba-21ee13c470bd",
+          "name": "Trin Kronos",
+          "strength": 2
+        },
+        {
+          "memberId": "3ead0ab6-d19a-53dc-a6fa-0083e1ce1528",
+          "name": "Vando Terboli",
+          "strength": 1
+        }
+      ],
+      "troops": [
+        {
+          "troopId": "ce9f6ae5-19ad-5e3f-a2f5-e7f1ca995b8d",
+          "name": "Moritani troop",
+          "count": 20,
+          "hasBack": false
+        }
+      ],
+      "physicalForces": 20
+    }
+  ]
+}

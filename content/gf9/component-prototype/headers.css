@@ -1,0 +1,146 @@
+.gf9-header-card {
+  position: relative;
+  width: 900px;
+  height: 1263px;
+  flex: none;
+  isolation: isolate;
+  text-align: left;
+}
+
+.gf9-header-name,
+.gf9-header-subtitle,
+.gf9-header-type {
+  position: absolute;
+  pointer-events: none;
+  box-sizing: border-box;
+  opacity: 0.937;
+  margin: 0;
+  padding: 0;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.gf9-header-name {
+  left: 95px;
+  top: 73px;
+  width: 560px;
+  height: 86px;
+  font-family: "C_Copperplate_Gothic", sans-serif;
+  font-size: var(--gf9-header-font-size);
+  line-height: 86px;
+  font-weight: normal;
+  color: white;
+}
+
+.gf9-header-name > span {
+  display: block;
+  width: max-content;
+  white-space: nowrap;
+}
+
+.gf9-header-subtitle > span {
+  display: inline-block;
+  width: max-content;
+}
+
+.gf9-header-subtitle {
+  left: 93px;
+  top: 176px;
+  width: 560px;
+  height: 67px;
+  font-family: "C_Trebuchet", sans-serif;
+  font-weight: bold;
+  font-size: var(--gf9-header-subtitle-size);
+  line-height: 67px;
+  color: #0b0503;
+  white-space: nowrap;
+}
+
+.gf9-header-card--B .gf9-header-name {
+  top: 51px;
+  height: 108px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  line-height: 51px;
+}
+
+.gf9-header-card--C .gf9-header-name {
+  top: 35px;
+  width: 710px;
+  height: 57px;
+  line-height: 57px;
+}
+
+.gf9-header-card--C .gf9-header-type {
+  top: 116px;
+  left: 95px;
+  width: 560px;
+  font-family: "C_Trebuchet", sans-serif;
+  font-size: 31px;
+  font-weight: bold;
+  line-height: 42px;
+  color: white;
+}
+
+.gf9-header-print-frame {
+  width: 63mm;
+  height: 88mm;
+  position: relative;
+  overflow: hidden;
+}
+
+.gf9-header-print-frame > .gf9-header-card {
+  transform-origin: top left;
+  transform: scale(0.2645669291, 0.2633518799);
+}
+
+.gf9-header-enlarged-frame {
+  width: 113.386mm;
+  height: 31.75mm;
+  position: relative;
+  overflow: hidden;
+}
+
+.gf9-header-enlarged-frame > .gf9-header-card {
+  transform-origin: top left;
+  transform: scale(0.4761904762);
+}
+
+.gf9-header-review-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 510px), 1fr));
+  gap: 2rem;
+}
+
+.gf9-header-comparison {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.gf9-header-review-example figure {
+  margin: 0;
+}
+
+.gf9-header-review-example figcaption {
+  margin-block-end: 0.5rem;
+}
+
+.gf9-header-review-example details {
+  margin-block-start: 1rem;
+}
+
+.gf9-header-provenance {
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
+}
+
+@media print {
+  .gf9-header-print-frame,
+  .gf9-header-enlarged-frame {
+    break-inside: avoid;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+}

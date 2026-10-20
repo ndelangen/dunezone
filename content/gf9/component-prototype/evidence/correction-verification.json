@@ -1,0 +1,143 @@
+{
+  "labels": [
+    {
+      "text": "Karama",
+      "fontSize": "60px",
+      "oneLine": true,
+      "fits": true,
+      "prefixed": false
+    },
+    {
+      "text": "Karama",
+      "fontSize": "60px",
+      "oneLine": true,
+      "fits": true,
+      "prefixed": false
+    },
+    {
+      "text": "Rock Outcroppings",
+      "fontSize": "50.5039px",
+      "oneLine": true,
+      "fits": true,
+      "prefixed": false
+    },
+    {
+      "text": "Habbanya Ridge Flat",
+      "fontSize": "47.0327px",
+      "oneLine": true,
+      "fits": true,
+      "prefixed": false
+    },
+    {
+      "text": "Sihaya Ridge",
+      "fontSize": "60px",
+      "oneLine": true,
+      "fits": true,
+      "prefixed": false
+    }
+  ],
+  "missingImages": [],
+  "headers": [
+    {
+      "text": "Captain Iakin Nefud",
+      "fontSize": "49.5786px",
+      "oneLine": true,
+      "fits": true,
+      "prefixed": false
+    },
+    {
+      "text": "Captain Iakin Nefud",
+      "fontSize": "49.5786px",
+      "oneLine": true,
+      "fits": true,
+      "prefixed": false
+    },
+    {
+      "text": "Margot Lady Fenring",
+      "fontSize": "45.8952px",
+      "oneLine": true,
+      "fits": true,
+      "prefixed": false
+    },
+    {
+      "text": "Margot Lady Fenring",
+      "fontSize": "45.8952px",
+      "oneLine": true,
+      "fits": true,
+      "prefixed": false
+    },
+    {
+      "text": "Premier Ein Calimar",
+      "fontSize": "48.5972px",
+      "oneLine": true,
+      "fits": true,
+      "prefixed": false
+    },
+    {
+      "text": "Premier Ein Calimar",
+      "fontSize": "48.5972px",
+      "oneLine": true,
+      "fits": true,
+      "prefixed": false
+    },
+    {
+      "text": "Bene Gesserit",
+      "fontSize": "60px",
+      "oneLine": true,
+      "fits": true,
+      "prefixed": false
+    },
+    {
+      "text": "Bene Gesserit",
+      "fontSize": "60px",
+      "oneLine": true,
+      "fits": true,
+      "prefixed": false
+    },
+    {
+      "text": "Spacing Guild",
+      "fontSize": "60px",
+      "oneLine": true,
+      "fits": true,
+      "prefixed": false
+    },
+    {
+      "text": "Spacing Guild",
+      "fontSize": "60px",
+      "oneLine": true,
+      "fits": true,
+      "prefixed": false
+    },
+    {
+      "text": "Margot Lady Fenring",
+      "fontSize": "45.8952px",
+      "oneLine": true,
+      "fits": true,
+      "prefixed": false
+    },
+    {
+      "text": "Margot Lady Fenring",
+      "fontSize": "45.8952px",
+      "oneLine": true,
+      "fits": true,
+      "prefixed": false
+    },
+    {
+      "text": "House Harkonnen",
+      "fontSize": "54.2653px",
+      "oneLine": true,
+      "fits": true,
+      "prefixed": false
+    },
+    {
+      "text": "House Harkonnen",
+      "fontSize": "54.2653px",
+      "oneLine": true,
+      "fits": true,
+      "prefixed": false
+    }
+  ],
+  "mapNormalized": true,
+  "errors": [],
+  "failed": []
+}
