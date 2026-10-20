@@ -53,7 +53,7 @@ Keep the actual publisher execution, Browser capture, R2 delivery and existing J
 
 The selected correction must preserve the measured scale-down and cover geometry, forward quality and encode progressive JPEG. It must apply only to the isolated local runtime. Production must retain the existing Cloudflare Images binding and assertion behavior. Do not weaken the progressive contract, silently accept baseline as equivalent or switch these bindings to hosted resources.
 
-Because local Chrome 126 differs from the remote browser service, local review remains a content and layout check. The eventual implementation still needs ordinary CI and actual production artifact verification. A full local acceptance run must prove authenticated edit, ingest, scheduled publication, job completion, component image, cover, PDF, HTML delivery, restart persistence and no outgoing application writes to remote origins.
+This local Chrome 126 smoke does not establish equivalence with the production browser service. Local review remains a content and layout check. The eventual implementation still needs ordinary CI and actual production artifact verification. A full local acceptance run must prove authenticated edit, ingest, scheduled publication, job completion, component image, cover, PDF, HTML delivery, restart persistence and no outgoing application writes to remote origins.
 
 ## Documentation reconciliation
 
