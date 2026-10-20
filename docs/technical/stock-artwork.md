@@ -128,6 +128,17 @@ When adding or changing artwork:
 5. Run `bunx vitest run src/app/routes/_app/media`, then check real searches and the focused preview.
    Run the Media page stories and the required release verification before updating the PR.
 
+### GF9 artwork provenance
+
+`content/gf9/artwork/provenance.json` keeps source references, preparation notes and approval
+evidence, identified by canonical asset key. Shared approval evidence is recorded once with its
+scope in the field name. Git holds earlier versions; do not embed previous-version snapshots.
+
+The raster lock owns current image hashes, byte counts and dimensions. Collection membership
+belongs to `stockAssetCollections.json`. The media index owns descriptions, tags, subjects and
+the hash of the image reviewed for its description. Provenance does not duplicate these facts.
+Keep references that locate original source material, including source material stored in Git.
+
 ### Public galleries
 
 Leaders use circular portrait previews; decals use larger vector previews. Both keep their collection
