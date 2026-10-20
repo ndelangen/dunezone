@@ -4554,22 +4554,22 @@
     "color": "#c8b878"
   },
   "/image/leader/gf9/count-ilban-richese.png": {
-    "sha256": "ec49d29ea1fc3b1cb76834047f922cb8105a8595cb017c3c71ab48808eb1b2b6",
-    "bytes": 48529,
-    "width": 162,
-    "height": 162,
+    "sha256": "61b2044852c51c0715761f55170d37d26e8ca7ffd4369997f2eb936c089c597f",
+    "bytes": 1799540,
+    "width": 1254,
+    "height": 1254,
     "format": "png",
     "isOpaque": true,
-    "color": "#d8c898"
+    "color": "#c8b868"
   },
   "/image/leader/gf9/ur-director-malina-aru.png": {
-    "sha256": "83e3b0e3a9a20fe23df1c41f087ca75edebb69dd73bf7b20138f696decf3712e",
-    "bytes": 44356,
-    "width": 150,
-    "height": 150,
+    "sha256": "8837fa06740d9ee0bb6a37e1651bf99dd661acc40c76f316460211a44e55ce98",
+    "bytes": 1716215,
+    "width": 1254,
+    "height": 1254,
     "format": "png",
     "isOpaque": true,
-    "color": "#d8c898"
+    "color": "#c8b868"
   },
   "/image/leader/hivers/hiver-amber-pendant.png": {
     "sha256": "22a36c5ae022ede61b1b8935f69e03a00ae66b4e95cf95a23cf7c4ad38145732",
