@@ -26,7 +26,7 @@ function integer(name: string, value: string, minimum: number, maximum: number):
   return parsed;
 }
 
-export function absoluteHttpsUrl(name: string, value: string): string {
+function absoluteHttpsUrl(name: string, value: string): string {
   const url = new URL(value);
   if (url.protocol !== 'https:' || url.username || url.password || url.hash) {
     throw new Error(`${name} must be an absolute HTTPS URL without credentials or fragment`);
@@ -34,7 +34,26 @@ export function absoluteHttpsUrl(name: string, value: string): string {
   return url.toString().replace(/\/$/, '');
 }
 
-export function parsePublisherConfig(env: Env): PublisherConfig {
+/** Loopback HTTP is opt-in and exists only in the generated isolated local configuration. */
+export function publisherTransportUrl(name: string, value: string, env: { LOCAL_REVIEW?: string }): string {
+  const url = new URL(value);
+  if (env.LOCAL_REVIEW === 'isolated-local-v1') {
+    if (
+      url.protocol !== 'http:' ||
+      url.hostname !== '127.0.0.1' ||
+      !url.port ||
+      url.username ||
+      url.password ||
+      url.hash
+    ) {
+      throw new Error(`${name} must target explicit loopback HTTP in isolated local review`);
+    }
+    return url.toString().replace(/\/$/, '');
+  }
+  return absoluteHttpsUrl(name, value);
+}
+
+export function parsePublisherConfig(env: Env & { LOCAL_REVIEW?: string }): PublisherConfig {
   if (!env.ASSET_PUBLISHER_EXECUTOR_SECRET) {
     throw new Error('Executor secret must be present');
   }
@@ -51,11 +70,11 @@ export function parsePublisherConfig(env: Env): PublisherConfig {
       'Browser capture, cleanup, and completion margins must fit the absolute executor lifecycle deadline'
     );
   }
-  absoluteHttpsUrl('CONVEX_RENDER_URL', env.CONVEX_RENDER_URL);
+  publisherTransportUrl('CONVEX_RENDER_URL', env.CONVEX_RENDER_URL, env);
   return {
-    publicBaseUrl: absoluteHttpsUrl('PUBLIC_BASE_URL', env.PUBLIC_BASE_URL),
-    captureBaseUrl: absoluteHttpsUrl('CAPTURE_BASE_URL', env.CAPTURE_BASE_URL),
-    convexExecutorBaseUrl: absoluteHttpsUrl('CONVEX_EXECUTOR_BASE_URL', env.CONVEX_EXECUTOR_BASE_URL),
+    publicBaseUrl: publisherTransportUrl('PUBLIC_BASE_URL', env.PUBLIC_BASE_URL, env),
+    captureBaseUrl: publisherTransportUrl('CAPTURE_BASE_URL', env.CAPTURE_BASE_URL, env),
+    convexExecutorBaseUrl: publisherTransportUrl('CONVEX_EXECUTOR_BASE_URL', env.CONVEX_EXECUTOR_BASE_URL, env),
     workWindowMs,
     browserCaptureTimeoutMs,
     browserCleanupGraceMs,
