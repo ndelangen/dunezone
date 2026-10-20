@@ -6,6 +6,7 @@ import type { Browser, Page } from 'playwright';
 
 import { rulebookCoverPresetCatalogue } from '../src/shared/rulebooks/coverPresets';
 import { RETRYABLE_BROWSER_CHECK_STATUS, runBrowserCheck } from './storybook-publication-browser';
+import { decodeStoryImage } from './storybook-publication-images';
 
 const repositoryRoot = path.resolve(import.meta.dir, '..');
 const artifactDirectory = path.join(repositoryRoot, 'storybook-static');
@@ -204,8 +205,8 @@ async function verifyCoverStories(page: Page) {
   });
   const background = page.locator('.rulebookCoverBackground');
   await background.waitFor();
-  await background.evaluate((element: HTMLImageElement) => element.decode());
-  await page.getByRole('img', { name: 'Dune', exact: true }).evaluate((element: HTMLImageElement) => element.decode());
+  await decodeStoryImage(background);
+  await decodeStoryImage(page.getByRole('img', { name: 'Dune', exact: true }));
   await page.goto(
     `${origin}/iframe.html?id=pages-rulesets-rulebooks-editing--cover-presets-and-footer&viewMode=story`,
     {
@@ -223,13 +224,13 @@ async function verifyCoverStories(page: Page) {
     'The Cover picker did not show every preset.'
   );
   for (const image of await page.locator('img[src*="/image/rulebook-cover/"]').all()) {
-    await image.evaluate((element: HTMLImageElement) => element.decode());
+    await decodeStoryImage(image);
   }
   await page.goto(`${origin}/iframe.html?id=rulebook-page-cover-rendered--footer&viewMode=story`, {
     waitUntil: 'networkidle',
   });
   await page.locator('.rulebookCoverFooter').waitFor();
-  await page.locator('.rulebookCoverBackground').evaluate((element: HTMLImageElement) => element.decode());
+  await decodeStoryImage(page.locator('.rulebookCoverBackground'));
   invariant(
     (await page.locator('.rulebookCoverFooterEmblem svg').count()) > 0,
     'The Cover footer did not render faction tokens.'
@@ -253,7 +254,7 @@ async function verifyPublishedFactionImages(page: Page) {
   for (const image of await images.all()) {
     const url = new URL((await image.getAttribute('src')) ?? '', origin);
     invariant(isPublishedFactionImage(url), `The faction introduction rendered an unexpected image URL: ${url}`);
-    await image.evaluate((element: HTMLImageElement) => element.decode());
+    await decodeStoryImage(image);
   }
 }
 
@@ -289,7 +290,7 @@ async function verifyBrowser(browser: Browser, workerPath: string) {
   const cardImages = page.getByRole('img');
   invariant((await cardImages.count()) === 3, 'The Card gallery did not render its three published image snapshots.');
   for (const image of await cardImages.all()) {
-    await image.evaluate((element: HTMLImageElement) => element.decode());
+    await decodeStoryImage(image);
   }
   await verifyCoverStories(page);
   await verifyPublishedFactionImages(page);

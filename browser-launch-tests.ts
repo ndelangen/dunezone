@@ -5,6 +5,7 @@
  */
 export const browserLaunchTests = [
   'scripts/application-security.browser.test.ts',
+  'scripts/storybook-publication-images.test.ts',
   '.storybook/storyImagesWorker.test.ts',
   'scripts/lib/synthetic-accounts.test.ts',
   'scripts/play-load/browsers.test.ts',
