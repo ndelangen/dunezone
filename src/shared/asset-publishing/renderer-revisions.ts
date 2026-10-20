@@ -68,8 +68,8 @@ export const CHECKED_IN_RENDERER_REVISIONS = {
   /* Revision 3 retains optional symbol colours, outlines and shadow on both faces. */
   'token-disc': ROUND_TOKEN_SYMBOL_STYLE_REVISION,
   'token-tech': ROUND_TOKEN_SYMBOL_STYLE_REVISION,
-  'token-plate': 2,
-  'token-pointer': 2,
+  'token-plate': ROUND_TOKEN_SYMBOL_STYLE_REVISION,
+  'token-pointer': ROUND_TOKEN_SYMBOL_STYLE_REVISION,
   [RECTANGLE_TOKEN_ASSET_TYPE]: 2,
   // 1: immutable Edition first pages join the publication pipeline (wayfinder #935).
   [RULEBOOK_FIRST_PAGE_ASSET_TYPE]: 1,

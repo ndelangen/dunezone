@@ -3,6 +3,7 @@
 import { expect, test, vi } from 'vite-plus/test';
 
 import { publicationFaceId } from '../src/shared/asset-publishing/publicationTargets';
+import { CHECKED_IN_RENDERER_REVISIONS } from '../src/shared/asset-publishing/renderer-revisions';
 import { publishingCustomCard } from '../src/shared/assets/fixtures/publishingCustomCard';
 import { publishingSpiceCard } from '../src/shared/assets/fixtures/publishingSpiceCard';
 import { publishingTokenFace } from '../src/shared/assets/fixtures/publishingTokenFace';
@@ -94,7 +95,7 @@ test.each(['token-disc', 'token-tech', 'token-pointer', 'token-plate'])(
     await owner.mutation(api.assets.update, { id: token.id, data: changed });
     expect(await jobs(t, type, token.id)).toHaveLength(1);
     expect(await jobs(t, type, backId)).toHaveLength(0);
-    await activate(t, { [type]: ROUND_TOKEN_SYMBOL_STYLE_REVISION });
+    await activate(t, CHECKED_IN_RENDERER_REVISIONS);
     await owner.mutation(api.assets.update, { id: token.id, data: changed });
     expect((await jobs(t, type, backId))[0].asset_data.face.symbolShadow).toBe(false);
   }
