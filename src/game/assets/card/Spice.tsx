@@ -11,6 +11,7 @@ import { BackgroundRenderer } from '../utils/BackgroundRenderer';
 import { CardTitle } from '../utils/CardTitle';
 import { FormattedText } from '../utils/FormattedText';
 import styles from './Card.module.css';
+import { CardToken } from './CardToken';
 import unique from './Spice.module.css';
 import { SpiceBoardMap } from './SpiceBoardMap';
 import type { SpiceMapEditing } from './SpiceBoardMap';
@@ -53,7 +54,7 @@ export const SpiceCard: FC<
   const iconSize = 85 * iconScale;
 
   return (
-    <div className={styles.card}>
+    <div className={styles.card} data-spice-look={board?.look?.style}>
       <BackgroundRenderer className={`${styles.head} ${unique.head}`} background={backgroundPresets.spice} />
       <div className={styles.head_shade} />
       <div className={`${styles.shape} ${unique.shape}`} />
@@ -164,7 +165,12 @@ export const SpiceCard: FC<
         </>
       )}
 
-      <div className={unique.body}>
+      {board?.typeToken && boardTokens?.[board.typeToken.asset_id] ? (
+        <div className={unique.typeToken} data-spice-type-token>
+          <CardToken token={boardTokens[board.typeToken.asset_id]!} />
+        </div>
+      ) : null}
+      <div className={board?.typeToken ? `${unique.body} ${unique.discoveryBody}` : unique.body}>
         <div>
           <FormattedText value={text || standardSpiceText({ icon, amount, name })} />
         </div>

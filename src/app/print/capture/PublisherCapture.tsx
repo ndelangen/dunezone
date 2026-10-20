@@ -193,6 +193,10 @@ function captureSubject(snapshot: PublisherCaptureSnapshot): CaptureSubject {
           image={snapshot.payload.face.image}
           circle={snapshot.payload.face.ring}
           circleShadow={snapshot.payload.face.ringShadow ?? false}
+          fill={snapshot.payload.face.symbolFill}
+          stroke={snapshot.payload.face.symbolStroke}
+          strokeWidth={snapshot.payload.face.symbolStrokeWidth}
+          symbolShadow={snapshot.payload.face.symbolShadow}
           top={snapshot.payload.face.top || undefined}
           bottom={
             snapshot.payload.face.bottomFirst || snapshot.payload.face.bottomSecond

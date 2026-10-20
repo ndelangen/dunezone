@@ -126,3 +126,64 @@ test(
   },
   BUDGET_MS
 );
+
+test(
+  'a fixed type-token slot validates, saves, publishes and refreshes through normal token dependencies',
+  async () => {
+    vi.useFakeTimers();
+    try {
+      const { t, owner, card, token, tokenData } = await setup(SPICE_BOARD_REVISION);
+      const fixed = {
+        ...card,
+        board: {
+          ...card.board,
+          tokens: [],
+          typeToken: { asset_id: token.id },
+          look: { style: 'textured-burn', strength: 1 },
+        },
+      };
+      const created = await owner.mutation(api.assets.create, { type: 'card-spice', data: fixed });
+      const first = (await jobsFor(t, created.id))[0];
+      expect(first.asset_data.card.board.typeToken).toEqual({ asset_id: token.id });
+      expect(first.asset_data.tokens[token.id].face).toEqual(publishingTokenFace);
+      const relations = await t.run((ctx) =>
+        ctx.db
+          .query('asset_relations')
+          .withIndex('by_from_kind', (q) => q.eq('from_asset_id', created.id).eq('kind', 'spice-card-token'))
+          .take(10)
+      );
+      expect(relations.map((row) => row.to_asset_id)).toEqual([token.id]);
+      const styled = {
+        ...publishingTokenFace,
+        symbolFill: '#07120f',
+        symbolStroke: '#f3edbf',
+        symbolStrokeWidth: 5.5,
+        symbolShadow: false,
+      };
+      await owner.mutation(api.assets.update, { id: token.id, data: { ...tokenData, front: styled } });
+      await t.finishAllScheduledFunctions(vi.runAllTimers);
+      const jobs = await jobsFor(t, created.id);
+      expect(jobs.some((job) => job.asset_data.tokens[token.id]?.face.symbolShadow === false)).toBe(true);
+      await expect(
+        owner.mutation(api.assets.update, {
+          id: created.id,
+          data: { ...fixed, board: { ...fixed.board, typeToken: { asset_id: 'missing' } } },
+        })
+      ).rejects.toThrow('Choose an available token');
+      await owner.mutation(api.assets.update, {
+        id: created.id,
+        data: { ...fixed, board: { ...fixed.board, typeToken: undefined } },
+      });
+      const removed = await t.run((ctx) =>
+        ctx.db
+          .query('asset_relations')
+          .withIndex('by_from_kind', (q) => q.eq('from_asset_id', created.id).eq('kind', 'spice-card-token'))
+          .take(10)
+      );
+      expect(removed).toHaveLength(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  },
+  BUDGET_MS
+);

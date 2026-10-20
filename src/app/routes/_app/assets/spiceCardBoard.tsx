@@ -1,4 +1,4 @@
-import { compareCodeUnits } from '@shared/compareText';
+import { spiceBoardTokenIds } from '@shared/assets/spiceCardReferences';
 import type { ReactNode } from 'react';
 
 import { useSpiceCardBoard } from '@app/db/assets';
@@ -17,7 +17,8 @@ function LinkedBoardRead({
   link: NonNullable<SpiceDraft['board']>;
   render: (read: SpiceBoardRead) => ReactNode;
 }) {
-  const tokenIds = [...new Set(link.tokens.map((token) => token.asset_id))].sort(compareCodeUnits);
+  const tokenIds = spiceBoardTokenIds(link);
+
   return render(useSpiceCardBoard(link.asset_id, tokenIds));
 }
 

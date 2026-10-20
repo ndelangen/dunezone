@@ -40,7 +40,7 @@ export const SPICE_BOARD_SIZE = BOARD_FRAME_SIZE;
 export const SPICE_BOARD_REVISION = 2;
 
 /** How a linked board's artwork sits in the card's parchment: burnt in like the classic map, toned sepia, or drawn as it is. */
-export const SPICE_BOARD_LOOKS = ['burnt', 'sepia', 'plain'] as const;
+export const SPICE_BOARD_LOOKS = ['burnt', 'sepia', 'plain', 'textured-burn'] as const;
 
 /** A board's look and how strongly it applies, 0 to 1; a card without one is burnt in fully, as the classic map is. */
 export const SpiceBoardLook = z.strictObject({
@@ -54,6 +54,8 @@ export const SpiceBoardLink = z.strictObject({
   tints: boardTints,
   tokens: boardTokens,
   look: SpiceBoardLook.optional(),
+  /** One token front above the amount, independent of map placement. */
+  typeToken: z.strictObject({ asset_id: z.string().min(1) }).optional(),
 });
 
 /**
@@ -155,6 +157,7 @@ export const CardHead = z.strictObject({
 });
 
 export const Treachery = CardHead.extend({
+  bodyLayout: z.enum(['illustrated', 'text-only']).optional(),
   decals: z.array(Decal),
   text: z.string(),
 });
@@ -191,6 +194,17 @@ export const FactionSide = z.strictObject({
 export const TokenFace = FactionSide.extend({
   /** Multiplies the renderer's reference symbol size. */
   symbolScale: z.number().min(0.5).max(2),
+  symbolFill: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/)
+    .optional(),
+  symbolStroke: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/)
+    .optional(),
+  symbolStrokeWidth: z.number().min(0).max(20).optional(),
+  /** Missing keeps the established two-pass symbol shadow. */
+  symbolShadow: z.boolean().optional(),
   /** The curved label along the top edge. */
   top: z.string(),
   /**

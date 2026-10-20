@@ -30,6 +30,10 @@ export function CardToken({ token }: { token: z.infer<typeof CustomCardToken> })
           image={token.face.image}
           circle={token.face.ring}
           circleShadow={token.face.ringShadow}
+          fill={token.face.symbolFill}
+          stroke={token.face.symbolStroke}
+          strokeWidth={token.face.symbolStrokeWidth}
+          symbolShadow={token.face.symbolShadow}
           top={token.face.top || undefined}
           bottom={
             token.face.bottomFirst || token.face.bottomSecond

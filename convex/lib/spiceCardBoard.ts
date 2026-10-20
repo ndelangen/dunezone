@@ -3,10 +3,10 @@ import type { z } from 'zod';
 
 import { SpiceAsset } from '../../src/shared/assets/schema';
 import type { CustomCardTokens, SpiceBoardLink } from '../../src/shared/assets/schema';
+import { spiceBoardTokenIds } from '../../src/shared/assets/spiceCardReferences';
 import { parseBoardData } from '../../src/shared/assets/validation';
 import { BOARD_MAX_TOKENS } from '../../src/shared/boards/markup';
 import type { Board } from '../../src/shared/boards/schema';
-import { compareCodeUnits } from '../../src/shared/compareText';
 import type { Doc, Id } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../types';
 import { resolveCustomCardTokens } from './customCardTokens';
@@ -30,8 +30,7 @@ export function spiceCardBoardLink(data: unknown): z.infer<typeof SpiceBoardLink
 
 /** Repeated instances of one token share one read and one reverse row. */
 export function spiceCardTokenIds(data: unknown): string[] {
-  const link = spiceCardBoardLink(data);
-  return link ? [...new Set(link.tokens.map((token) => token.asset_id))].sort(compareCodeUnits) : [];
+  return spiceBoardTokenIds(spiceCardBoardLink(data));
 }
 
 const isLiveBoard = (row: Doc<'assets'> | null): row is Doc<'assets'> =>
@@ -63,7 +62,7 @@ export async function resolveSpiceCardBoard(
   boardId: string | undefined,
   tokenIds: readonly string[]
 ): Promise<SpiceCardBoardResolution> {
-  if (tokenIds.length > BOARD_MAX_TOKENS) {
+  if (tokenIds.length > BOARD_MAX_TOKENS + 1) {
     throw new ConvexError('Too many linked tokens');
   }
   const board = boardId ? await readLinkedBoard(ctx, boardId) : null;
@@ -120,7 +119,7 @@ async function syncRelation(ctx: MutationCtx, cardId: Id<'assets'>, kind: SpiceC
   const current = await ctx.db
     .query('asset_relations')
     .withIndex('by_from_kind', (q) => q.eq('from_asset_id', cardId).eq('kind', kind))
-    .take(BOARD_MAX_TOKENS + 1);
+    .take(BOARD_MAX_TOKENS + 2);
   const kept = new Set<string>(current.map((relation) => relation.to_asset_id));
   const stale = current.filter((relation) => !wanted.has(relation.to_asset_id));
   const added = [...wanted]

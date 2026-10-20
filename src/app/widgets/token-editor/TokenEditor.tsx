@@ -1,4 +1,4 @@
-import { Group, Slider, Stack, Switch, Text, TextInput } from '@mantine/core';
+import { ColorInput, Group, NumberInput, Slider, Stack, Switch, Text, TextInput } from '@mantine/core';
 import type { TokenAsset } from '@shared/assets/schema';
 import { tokenShapeOfType } from '@shared/assets/tokenOutline';
 import { stockAssetOptions } from '@ui/content/stockAssetOptions';
@@ -119,6 +119,10 @@ export function TokenProof({ face, type }: { face: TokenFaceDraft; type: string 
         image={face.image}
         circle={face.ring}
         circleShadow={face.ringShadow ?? false}
+        fill={face.symbolFill}
+        stroke={face.symbolStroke}
+        strokeWidth={face.symbolStrokeWidth}
+        symbolShadow={face.symbolShadow}
         top={face.top || undefined}
         bottom={face.bottomFirst || face.bottomSecond ? bottomFor(face) : undefined}
         /* The renderer centres the symbol in a 300-unit box, so scale is expressed against its reference size. */
@@ -180,6 +184,49 @@ function FaceFields({
                 patch({ image: next as TokenFaceDraft['image'] });
               }
             }}
+          />
+        }
+      />
+      <ControlBlock
+        title="Symbol colours"
+        description="Leave a colour empty to use the renderer's default."
+        input={
+          <Group grow>
+            <ColorInput
+              label="Symbol fill"
+              format="hexa"
+              value={face.symbolFill ?? ''}
+              onChange={(value) => patch({ symbolFill: value || undefined })}
+            />
+            <ColorInput
+              label="Symbol outline"
+              format="hexa"
+              value={face.symbolStroke ?? ''}
+              onChange={(value) => patch({ symbolStroke: value || undefined })}
+            />
+          </Group>
+        }
+      />
+      <ControlBlock
+        title="Symbol outline width"
+        input={
+          <NumberInput
+            aria-label="Symbol outline width"
+            min={0}
+            max={20}
+            step={0.5}
+            value={face.symbolStrokeWidth ?? ''}
+            onChange={(value) => patch({ symbolStrokeWidth: typeof value === 'number' ? value : undefined })}
+          />
+        }
+      />
+      <ControlBlock
+        title="Symbol shadow"
+        input={
+          <Switch
+            aria-label="Symbol shadow"
+            checked={face.symbolShadow ?? true}
+            onChange={(event) => patch({ symbolShadow: event.currentTarget.checked })}
           />
         }
       />

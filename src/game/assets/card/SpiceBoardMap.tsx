@@ -116,6 +116,7 @@ export function SpiceBoardMap({
 
   return (
     <>
+      {look.style === 'textured-burn' ? <div className={unique.mapPaper} aria-hidden /> : null}
       <svg className={unique.map} data-look={look.style} viewBox={viewBox} fillRule="evenodd" clipRule="evenodd">
         {artwork}
       </svg>
