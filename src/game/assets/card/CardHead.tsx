@@ -4,8 +4,8 @@ import type { z } from 'zod';
 
 import { useAsset } from '../assetRenderMode';
 import { BackgroundRenderer } from '../utils/BackgroundRenderer';
+import { CardTitle } from '../utils/CardTitle';
 import styles from './CardHead.module.css';
-import { cardTitleFontSize } from './cardTitleFontSize';
 
 type HeadProps = z.infer<typeof CardHead> & {
   measureParts?: boolean;
@@ -78,23 +78,21 @@ export function CardHeadContents({
       {iconPresentation === 'image' ? (
         <img alt="" src={image} className={styles.picture} style={{ transform: `scale(${iconScale})` }} />
       ) : null}
-      <div
+      <CardTitle
         className={styles.title}
-        style={{ width: 560, fontSize: cardTitleFontSize(name) }}
+        text={name}
         {...{
           [COMPONENT_GEOMETRY_PROTOCOL.partAttribute]: measureParts && name.trim() ? 'name' : undefined,
         }}
-      >
-        <span className={styles.titleText}>{name}</span>
-      </div>
-      <div
+      />
+      <CardTitle
         className={styles.subtitle}
+        text={subName}
+        baseSize={40}
         {...{
           [COMPONENT_GEOMETRY_PROTOCOL.partAttribute]: measureParts && subName.trim() ? 'type' : undefined,
         }}
-      >
-        {subName}
-      </div>
+      />
     </>
   );
 }
