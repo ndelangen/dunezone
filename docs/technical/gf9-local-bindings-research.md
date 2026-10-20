@@ -10,7 +10,14 @@ This is a binding smoke, not a complete Dune Zone publication proof. The final c
 
 ## Runtime and isolation
 
-The smoke used Node 24.21.0, Wrangler 4.149.0, Miniflare 5.20261006.0-alpha and @cloudflare/playwright 1.3.6 installed in the root worktree. Wrangler launched local Chrome 126.0.6478.182. These package identities come from their installed package.json files. Miniflare's installed source sets `BROWSER_VERSION` to that exact Chrome version.
+The smoke used Node 24.21.0, Wrangler 4.149.0, its nested Miniflare 5.20261006.1-alpha and @cloudflare/playwright 1.3.6 installed in the root worktree. Wrangler launched local Chrome 126.0.6478.182. The root's direct Miniflare package is 5.20261006.0-alpha, but Wrangler resolves its own nested package. Resolve dependencies from Wrangler's real package path to identify the implementation the CLI actually runs:
+
+```js
+const requireFromWrangler = createRequire(realpathSync('node_modules/wrangler/package.json'));
+const miniflarePackagePath = requireFromWrangler.resolve('miniflare/package.json');
+```
+
+That path is `node_modules/.bun/miniflare@5.20261006.1-alpha+54bb80aa5fe8cac3/node_modules/miniflare/package.json` in the tested checkout. Its sibling `dist/src/index.js` is the source cited below. The nested source sets `BROWSER_VERSION` to Chrome 126.0.6478.182 at line 127970. The first report mistook the root's direct package for Wrangler's runtime dependency. Rechecking the nested source confirms the same Browser, fit, baseline JPEG and quality behavior, so this identity correction does not require repeating the observed smoke.
 
 A temporary Worker at `/tmp/gf9-local-bindings-smoke` declared only Browser, Images and a fresh R2 bucket name. It had no account ID, routes, production variables, secrets, service bindings, schedules or remote resources. The process used an environment allowlist, a new XDG configuration directory and explicit `--local`. Its working directory was outside the repository, so no repository `.env` or `.dev.vars` loaded. Wrangler printed all three bindings as local. No production or shared-development application records, storage or publisher queues were accessed. Wrangler may perform public package update checks; local bindings do not imply a network air gap.
 
@@ -41,7 +48,7 @@ The quality 20, 82 and 95 files were byte-identical, with SHA-256 `a82af7262d08c
 
 ## Source explanation and contract impact
 
-Miniflare's installed `dist/src/index.js` implements a local Browser session service at lines 116522 onward and launches Chrome at line 116606. At line 119240, `imagesLocalFetcher` delegates local image processing to Sharp. The transformation path reads `output_format`, applies dimensions and fit, then calls `transformer.jpeg()` without encoding options at line 119376. `resolveFit` at line 119426 maps `scale-down` to inside without enlargement and `cover` to cover. This matches the observed dimensions and unchanged quality bytes. A different hosted-image transformation path elsewhere in this file reads quality; that does not change this tested binding path.
+Wrangler's nested Miniflare 5.20261006.1-alpha `dist/src/index.js` implements a local Browser session service at lines 126107 onward and launches Chrome at line 126191. At line 128899, `imagesLocalFetcher` delegates local image processing to Sharp. The transformation path reads `output_format`, applies dimensions and fit, then calls `transformer.jpeg()` without encoding options at line 129039. `resolveFit` at line 129089 maps `scale-down` to inside without enlargement and `cover` to cover. This matches the observed dimensions and unchanged quality bytes. A different hosted-image transformation path elsewhere in this file reads quality; that does not change this tested binding path.
 
 The application's [JPEG publication assertion](https://github.com/ndelangen/dunezone/blob/77c26fcfa1a5ff61ae36b087fb55150f4da99497/workers/publisher/image-encode.ts#L31) rejects every measured output because it requires progressive JPEG, SOF2, as well as exact dimensions. The [image-ingest encoder](https://github.com/ndelangen/dunezone/blob/77c26fcfa1a5ff61ae36b087fb55150f4da99497/workers/publisher/user-images.ts#L190) uses scale-down for covers and cover for avatars. Full covers and avatars also require progressive JPEG. A Ruleset thumbnail can accept baseline in its special small-edge case, but its full rendition must pass first. The local binding therefore blocks normal cover/logo ingest and final published component images even though screenshot and fit operations work.
 
