@@ -588,6 +588,85 @@ describe('file-only GF9 authoring', () => {
       normalize(bookSpec, { settings: { size: 'gf9-core', design: 'illustrated' }, contents: many })
     ).not.toThrow();
   });
+  test.each([
+    { book: 'core', file: 'books/core.json', accepted: true },
+    { book: 'ixian-tleilaxu', file: 'books/ixians-tleilaxu.json', accepted: true },
+    { book: 'choam-richese', file: 'books/choam-richese.json', accepted: true },
+    { book: 'ecaz-moritani', file: 'books/ecaz-moritani.json', accepted: true },
+    { book: 'ixian-tleilaxu', file: 'books/ixian-tleilaxu.json', accepted: false },
+    { book: 'ixian-tleilaxu', file: 'books/arbitrary.json', accepted: false },
+  ] as const)('loadProject enforces the canonical $book filename: $file', async ({ book, file, accepted }) => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'gf9-book-path-test-'));
+    roots.push(root);
+    const record: RecordSpec = {
+      key: `${book}-rules`,
+      kind: 'rulebook',
+      operation: 'update',
+      scope: 'gf9',
+      book,
+      file,
+    };
+    const contents = {
+      schemaVersion: 1,
+      pageOrder: ['CVER'],
+      pagesById: {
+        CVER: {
+          id: 'CVER',
+          anchor: 'cover',
+          title: 'Fixture book',
+          layoutId: 'cover',
+          showHeading: false,
+          controlValues: {
+            cover: {
+              subtitle: '',
+              supportingText: '',
+              showDuneLogo: false,
+              showSubtitle: false,
+              backgroundSource: { kind: 'preset', presetId: 'sandworm' },
+            },
+          },
+          blockOrderByRegion: {},
+          blocksById: {},
+        },
+      },
+    };
+    const data = { settings: { size: book === 'core' ? 'gf9-core' : 'gf9-expansion', design: 'restrained' }, contents };
+    await atomicJson(path.join(root, 'authoring', file), data);
+    await atomicJson(path.join(root, 'authoring/manifest.json'), { version: 1, status: 'ready', records: [record] });
+    await atomicJson(path.join(root, 'authoring/reference-bindings.json'), { version: 1, bindings: [] });
+    await atomicJson(path.join(root, 'authoring/identities.json'), {
+      version: 1,
+      records: [
+        {
+          entityKey: record.key,
+          entries: [
+            {
+              key: 'cover',
+              kind: 'page',
+              path: ['contents', 'pagesById', 'CVER', 'id'],
+              value: 'CVER',
+              layoutId: 'cover',
+            },
+          ],
+          retired: [],
+        },
+      ],
+    });
+    await atomicJson(path.join(root, 'authoring/links.json'), { version: 1, retired: [], links: [] });
+    await atomicJson(path.join(root, 'authoring/artwork.json'), {
+      version: 1,
+      maintainedCatalogue: '../artwork/provenance.json',
+      records: [],
+    });
+    await atomicJson(path.join(root, 'artwork/provenance.json'), { records: [] });
+    if (accepted) {
+      const project = await loadProject(root);
+      expect(project.manifest.records).toEqual([record]);
+      expect(project.values.get(record.key)).toEqual(data);
+    } else {
+      await expect(loadProject(root)).rejects.toThrow('Use the canonical book path books/ixians-tleilaxu.json.');
+    }
+  });
   test('scaffolds and unbound environments never become ready payloads', async () => {
     const f = await fixture();
     await atomicJson(path.join(f.root, 'authoring/manifest.json'), { version: 1, status: 'scaffold', records: [] });

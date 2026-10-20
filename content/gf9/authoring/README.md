@@ -6,7 +6,7 @@ The initial inventory is deliberately empty and marked `scaffold`. Both environm
 
 ## Files and identities
 
-Each manifest record has a semantic `key`, `kind`, explicit Asset `type`, `operation`, `scope` and a `file` relative to `authoring/`. Books use `books/core.json`, `books/ixian-tleilaxu.json`, `books/choam-richese.json` and `books/ecaz-moritani.json`. Each is the full `{settings, contents}` value. Factions and Assets use their full writable objects. An existing record is an `update`; additions and Custom-to-Spice conversions are explicit. Shared stock is `reference` only and has no replacement file.
+Each manifest record has a semantic `key`, `kind`, explicit Asset `type`, `operation`, `scope` and a `file` relative to `authoring/`. Books use `books/core.json`, `books/ixians-tleilaxu.json`, `books/choam-richese.json` and `books/ecaz-moritani.json`. Each is the full `{settings, contents}` value. Factions and Assets use their full writable objects. An existing record is an `update`; additions and Custom-to-Spice conversions are explicit. Shared stock is `reference` only and has no replacement file.
 
 Books retain their original GF9 dimensions. Both supported designs, Illustrated classic and Restrained expansion, pass the shared settings schema. Preparation and collection preserve the selected design.
 

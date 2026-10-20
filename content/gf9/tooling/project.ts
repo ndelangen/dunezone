@@ -95,8 +95,11 @@ export async function loadProject(directory: string, options: { inspectIdentitie
       throw new Error(`Authored file has two owners: ${spec.file}`);
     }
     fileOwners.add(spec.file);
-    if (spec.kind === 'rulebook' && spec.file !== `books/${spec.book}.json`) {
-      throw new Error(`Use the canonical book path books/${spec.book}.json.`);
+    if (spec.kind === 'rulebook') {
+      const bookPath = `books/${spec.book === 'ixian-tleilaxu' ? 'ixians-tleilaxu' : spec.book}.json`;
+      if (spec.file !== bookPath) {
+        throw new Error(`Use the canonical book path ${bookPath}.`);
+      }
     }
     const file = await inside(root, `authoring/${spec.file}`);
     const data = normalize(spec, readRawAuthoringJson(await readFile(file, 'utf8')));
