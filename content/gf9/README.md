@@ -6,26 +6,13 @@ The public source ticket used for this delivery is [Create GF9 ruleset, #2216](h
 
 The requested Discord creation ticket could not be located. The private browser session was signed out; the other browser session used a different Discord account. The native app had the intended Central account. Its Dreamrules posts confirmed the FAQ dataset and its link to #2284. The creation-week GF9 and ruleset search results were read in full in Dreamrules and Dune Tabletop, but did not identify a creation ticket. The GitHub ticket and all its supplied PDFs were read; the Discord and GitHub tickets have not been established as the same record.
 
-## Authoring and build
+## Current authoring workflow
 
-- `*-manuscript.json`: four teaching manuscripts, with applicability and source references on each section. Edit these before rebuilding the rulebook data.
-- `base-factions.json`: six original factions in the shared faction input shape.
-- `expansion-factions.json`: six expansion faction drafts, completed by the assembler with stable component IDs and existing illustration references.
-- `leader-labels.json`: three printed rank/title abbreviations for the existing Traitor title box. Full source names remain in the faction inputs. The assembler preserves personal names, strengths and component IDs.
-- `assets-package.json`: curated asset input, including decks and their member quantities. Its provenance and inventory are recorded in `assets-source-manifest.json`.
-- `core-judgements.json` and `expansion-judgements.json`: local evidence and decisions for the GitHub judgement ledger.
-- `core-coverage.json`, `expansion-coverage.json`, both `faq-review*.json` files and `asset-review.json`: reading and content-review evidence. Review evidence is distinct from rendering or production verification.
-- `*-rules.json`, `rulebooks-package.json`, `package.json` and `portrait-provenance.json`: generated outputs. Rebuild rather than editing them directly.
+The approved correction uses full composed files under [`authoring/`](authoring/README.md), file-only preparation/collection and normal authenticated Load/Save/Publish. Its inventory and environment bindings begin as explicit unbound scaffolds until the content staging pass records actual targets. See the authoring workflow before editing or preparing content.
 
-From the repository root, with the repository dependencies installed:
+The `*-manuscript.json`, `*-rules.json`, historical Faction drafts, importer packages, `build.ts` and `assemble.ts` below describe the earlier delivery. They are superseded as publication sources for this correction. Keep them as research/history; do not edit or regenerate them to replace composed books. In particular, `content:gf9:build` must be retired from the correction workflow because its old pagination and presentation would discard accepted changes.
 
-```sh
-bun run content:gf9:build
-```
-
-The script compiles and paginates the four manuscripts, then validates the shared import contracts, assembles assets, twelve factions and four rulebooks, recalculates faction complexity, checks twenty forces per faction, binds dependent records, and writes `package.json`. It finishes with the repository's formatter. It does not write to production. The asset package is a curated input; there is no checked-in command that recreates it from remote sources.
-
-Import through the authenticated application flow into the existing GF9 Ruleset and assign every associated record to the existing GF9 Group. Preview and review creates, updates, record reuse and bindings before applying. Existing stock reuse must preserve other Ruleset associations. A successful local build proves data shape and references; inspect the resulting HTML, cards, faction sheets and every PDF page before publication. Production import and publication evidence is tracked by the delivery task.
+Existing reading, coverage, judgement and asset-review records remain historical evidence. Carry a result forward only after checking its exact source/authored/artifact identity against the acceptance contract. They do not certify the new local content or production update.
 
 ## Sources and precedence
 
@@ -35,7 +22,7 @@ Use the applicable official rule and card edition first. An explicit official co
 
 The two unofficial compilations contain intentional changes and repeated answers that disagree. The revised PDF filename says v2.3 while its internal heading says Version 2.2. Its outlined text identifies unofficial changes. Preserve that version discrepancy when citing it.
 
-Numeric page references mean PDF pages counted from the cover as page 1. The revised compilation's printed page number is two less than its PDF page. A named page reference identifies a section or source-code location instead. The source legend at the end of each authored book explains these short keys.
+Numeric page references mean PDF pages counted from the cover as page 1. The revised compilation's printed page number is two less than its PDF page. A named page reference identifies a section or source-code location instead. These short keys identify sources in the historical evidence. Source notes stay outside the corrected visible books.
 
 | Key | Source and copy read | PDF pages | SHA-256 |
 | --- | --- | ---: | --- |

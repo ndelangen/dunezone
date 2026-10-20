@@ -1,3 +1,4 @@
+// Historical delivery generator. Superseded for the GF9 correction; use authoring.ts and authoring/README.md.
 import { createHash } from 'node:crypto';
 import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
