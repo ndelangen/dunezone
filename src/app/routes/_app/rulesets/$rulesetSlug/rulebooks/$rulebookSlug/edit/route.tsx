@@ -61,7 +61,12 @@ import {
 } from '@shared/rulebooks/projectRenderDocument';
 import type { RulebookResolvedAssetsById, RulebookResolvedFactionsById } from '@shared/rulebooks/projectRenderDocument';
 import { collectRulebookReferenceIds } from '@shared/rulebooks/references';
-import { getRulebookSize } from '@shared/rulebooks/settings';
+import {
+  getRulebookSize,
+  rulebookSizeCatalogue,
+  rulebookDesignCatalogue,
+  rulebookSettingsSchema,
+} from '@shared/rulebooks/settings';
 import type { RulebookSettings } from '@shared/rulebooks/settings';
 import { createFileRoute, deepEqual, Link, useNavigate } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
@@ -2629,10 +2634,8 @@ function isCleanSettledDraft(result: RulebookEditorResult): boolean {
   if (result.status !== 'ready') {
     return false;
   }
-  const hasLocalChanges = Object.values(result.rebasedPatch)
-    .filter(Array.isArray)
-    .some((value) => value.length > 0);
-  return !hasLocalChanges && result.incompatibilities.length === 0 && !result.isSaving;
+  const hasLocalChanges = result.hasLocalChanges;
+  return !hasLocalChanges && result.incompatibilities.length === 0 && !result.settingsConflict && !result.isSaving;
 }
 
 function editorViewReducer(view: EditorView, action: EditorViewAction): EditorView {
@@ -2687,7 +2690,11 @@ function RulebookEditorSession({
 }) {
   const { rulesetSlug } = Route.useParams();
   const [manager] = useState(() =>
-    createRulebookEditorStateManager({ revision: String(data.draft.revision), contents: data.draft.contents })
+    createRulebookEditorStateManager({
+      revision: String(data.draft.revision),
+      contents: data.draft.contents,
+      settings: data.draft.settings,
+    })
   );
   const [view, sendView] = useReducer(editorViewReducer, {
     result: manager.result,
@@ -2766,7 +2773,11 @@ function RulebookEditorSession({
         kind: 'result',
         result: manager.dispatch({
           kind: 'receive-latest',
-          latest: { revision: String(data.draft.revision), contents: data.draft.contents },
+          latest: {
+            revision: String(data.draft.revision),
+            contents: data.draft.contents,
+            settings: data.draft.settings,
+          },
         }),
       });
     }
@@ -2784,9 +2795,7 @@ function RulebookEditorSession({
     );
   }
 
-  const hasLocalChanges = Object.values(result.rebasedPatch)
-    .filter(Array.isArray)
-    .some((value) => value.length > 0);
+  const hasLocalChanges = result.hasLocalChanges;
   const save = async () => {
     if (!manager.result.canSave) {
       return;
@@ -2801,8 +2810,13 @@ function RulebookEditorSession({
         rulebookId: data.rulebook._id,
         expectedRevision: Number(saving.saveRequest.expectedRevision),
         contents: saving.saveRequest.contents,
+        settings: saving.saveRequest.settings,
       });
-      const saved = { revision: String(response.draft.revision), contents: response.draft.contents };
+      const saved = {
+        revision: String(response.draft.revision),
+        contents: response.draft.contents,
+        settings: response.draft.settings,
+      };
       sendView({
         kind: 'result',
         notice: response.kind,
@@ -2818,7 +2832,7 @@ function RulebookEditorSession({
       });
     }
   };
-  const needsReview = result.incompatibilities.length > 0;
+  const needsReview = result.incompatibilities.length > 0 || result.settingsConflict;
   const draftIsCurrent = Number(result.latest.revision) === data.draft.revision;
   /* What makes an Edition publishable at all, which the open panel keeps holding while its own mutation is
      in flight. `canPublish` adds the conditions that only gate the toolbar trigger. */
@@ -2837,7 +2851,11 @@ function RulebookEditorSession({
         expectedRevision: data.draft.revision,
       });
       if (response.kind === 'stale') {
-        const latest = { revision: String(response.draft.revision), contents: response.draft.contents };
+        const latest = {
+          revision: String(response.draft.revision),
+          contents: response.draft.contents,
+          settings: response.draft.settings,
+        };
         sendView({
           kind: 'result',
           notice: 'stale',
@@ -2982,6 +3000,58 @@ function RulebookEditorSession({
               />
             </Surface>
           ) : null}
+          <Group align="start" grow>
+            <ControlBlock
+              title="Book size"
+              input={
+                <Select
+                  aria-label="Book size"
+                  value={result.settings.size}
+                  data={rulebookSizeCatalogue.map(({ id, label, widthMm, heightMm }) => ({
+                    value: id,
+                    label: `${label} (${widthMm} × ${heightMm} mm)`,
+                  }))}
+                  onChange={(size) => {
+                    const settings = rulebookSettingsSchema.safeParse({ ...result.settings, size });
+                    if (settings.success) {
+                      dispatch({ kind: 'replace-settings', settings: settings.data });
+                    }
+                  }}
+                />
+              }
+            />
+            <ControlBlock
+              title="Book design"
+              input={
+                <Select
+                  aria-label="Book design"
+                  value={result.settings.design}
+                  data={rulebookDesignCatalogue.map(({ id, label }) => ({ value: id, label }))}
+                  onChange={(design) => {
+                    const settings = rulebookSettingsSchema.safeParse({ ...result.settings, design });
+                    if (settings.success) {
+                      dispatch({ kind: 'replace-settings', settings: settings.data });
+                    }
+                  }}
+                />
+              }
+            />
+          </Group>
+          {result.settingsConflict ? (
+            <Alert color="red" title="Book settings changed in another editor">
+              <Stack gap="sm">
+                <Text>Choose which size and design to save. Your Contents changes stay in the draft.</Text>
+                <Group>
+                  <Button onClick={() => dispatch({ kind: 'resolve-settings', choice: 'local' })}>
+                    Keep my settings
+                  </Button>
+                  <Button onClick={() => dispatch({ kind: 'resolve-settings', choice: 'saved' })}>
+                    Use saved settings
+                  </Button>
+                </Group>
+              </Stack>
+            </Alert>
+          ) : null}
           {result.operationError ? <Alert color="red">{result.operationError}</Alert> : null}
           {publishMutation.error ? (
             <Alert color="red" role="alert" title="Edition could not be published">
@@ -3016,7 +3086,7 @@ function RulebookEditorSession({
           <section className={styles.editorRoot} aria-label="Rulebook editing workspace" hidden={view.reviewing}>
             <RulebookWorkspace
               result={result}
-              settings={data.rulebook.settings}
+              settings={result.settings}
               dispatch={dispatch}
               fit={fit}
               assetsById={data.assetsById}

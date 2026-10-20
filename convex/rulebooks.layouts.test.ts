@@ -115,6 +115,36 @@ describe('Rulebook Page creation and fixed layout settings', () => {
     expect(final).toMatchObject({ kind: 'editable', draft: { revision: 3, contents: edited } });
   });
 
+  test('a Block crossing Page ownership needs a new ID, while a replacement Page may retain its anchor', async () => {
+    const { ids, owner } = await rulebookFixture();
+    const created = await owner.mutation(api.rulebooks.create, {
+      catalogue_version: RULEBOOK_CATALOGUE_VERSION,
+      ruleset_id: ids.rulesetId,
+      name: 'Page ownership',
+      source: { kind: 'starter' },
+    });
+    const previous = created.draft.contents;
+    const page = structuredClone(previous.pagesById.RULE);
+    page.id = 'NEXT';
+    const replacement = { ...previous, pageOrder: ['NEXT'], pagesById: { NEXT: page } };
+    await expect(
+      owner.mutation(api.rulebooks.save, {
+        rulebook_id: created.rulebook._id,
+        expected_revision: 1,
+        contents: replacement,
+      })
+    ).rejects.toThrow('Block moved to another Page needs a new ID');
+    page.blocksById = {};
+    page.blockOrderByRegion = { content: [] };
+    await expect(
+      owner.mutation(api.rulebooks.save, {
+        rulebook_id: created.rulebook._id,
+        expected_revision: 1,
+        contents: replacement,
+      })
+    ).resolves.toMatchObject({ kind: 'saved', draft: { contents: { pagesById: { NEXT: { anchor: page.anchor } } } } });
+  });
+
   test('rejects a valid grid unsupported by Tall and accepts a Cover with blank details', async () => {
     const { ids, owner } = await rulebookFixture();
     const created = await owner.mutation(api.rulebooks.create, {

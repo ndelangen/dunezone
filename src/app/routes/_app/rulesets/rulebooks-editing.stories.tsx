@@ -428,3 +428,26 @@ export const FlipFactionIntroduction = meta.story({
     await expect(block).toHaveAttribute('data-flipped', 'true');
   },
 });
+
+export const AuthoredBookSettings = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#RULE/details' },
+  parameters: { database: db(withFinalRulebooks) },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const size = await page.findByRole('combobox', { name: 'Book size' }, { timeout: 30_000 });
+    await userEvent.click(size);
+    await userEvent.click(page.getByRole('option', { name: 'GF9 core (254 × 254 mm)' }));
+    const preview = page.getByRole('article', { name: 'Rulebook page: Introduction' });
+    await expect(preview).toHaveAttribute('data-rulebook-size', 'gf9-core');
+    await expect(page.getByRole('button', { name: 'Save' })).toBeEnabled();
+    await userEvent.click(page.getByRole('button', { name: 'Save' }));
+    await expect(page.findByRole('button', { name: 'Saved' }, { timeout: 30_000 })).resolves.toBeDisabled();
+    const saved = await loadRulebookEditor({ rulesetSlug: 'classicrules', rulebookSlug: 'book-0' });
+    if (saved?.kind !== 'editable') {
+      throw new Error('Expected editable saved book');
+    }
+    await expect(saved.draft.settings).toEqual({ size: 'gf9-core', design: 'illustrated' });
+    await expect(saved.draft.revision).toBe(2);
+    await expect(saved.rulebook.settings.size).toBe('gf9-core');
+  },
+});

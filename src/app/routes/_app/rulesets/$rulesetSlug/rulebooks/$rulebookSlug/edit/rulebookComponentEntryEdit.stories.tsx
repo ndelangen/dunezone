@@ -14,6 +14,12 @@ export const CardEntry = meta.story({
   render: () => <CardEntryStory />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole('combobox', { name: 'Image side' }));
+    await userEvent.click(within(canvasElement.ownerDocument.body).getByRole('option', { name: 'Right' }));
+    await userEvent.click(canvas.getByRole('combobox', { name: 'Text flow' }));
+    await userEvent.click(within(canvasElement.ownerDocument.body).getByRole('option', { name: 'Wrap below image' }));
+    await expect(canvasElement.querySelector('.rulebookCardGuide')).toHaveAttribute('data-image-side', 'right');
+    await expect(canvasElement.querySelector('.rulebookCardGuide')).toHaveAttribute('data-text-flow', 'wrap');
     const guidance = canvas.getByRole('textbox', { name: 'Guidance' });
     const original = (guidance as HTMLTextAreaElement).value;
     await userEvent.click(canvas.getByRole('button', { name: 'Clear source' }));
