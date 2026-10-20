@@ -424,7 +424,9 @@ async function runPersistentDevelopment(requested: LocalData, directory: string,
     process.exit(143);
   });
   try {
-    assertPersistentDiskBudget(lock.stateDirectory);
+    if (!reset) {
+      assertPersistentDiskBudget(lock.stateDirectory);
+    }
     let manifest = readPersistentManifest(lock.stateDirectory);
     if (reset && manifest) {
       console.log(

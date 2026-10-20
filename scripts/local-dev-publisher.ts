@@ -1,6 +1,8 @@
 import { spawn, spawnSync } from 'node:child_process';
-import { cpSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+
+import { build } from 'esbuild';
 
 import type { PersistentManifest, PersistentSecrets } from './local-dev-persistence';
 import { assertLoopbackUrl, writePrivateJson } from './local-dev-persistence';
@@ -23,7 +25,6 @@ export const localPublisherPaths = [
 /** Construct local configuration from an allowlist. Hosted routes, secrets and service bindings never enter it. */
 export function localPublisherConfiguration(manifest: PersistentManifest, sourceCommit: string) {
   const { instance } = manifest;
-  const publisherOrigin = assertLoopbackUrl(`http://127.0.0.1:${manifest.publisherPort}`);
   const app = assertLoopbackUrl(instance.appUrl);
   const site = assertLoopbackUrl(instance.siteUrl);
   const backend = assertLoopbackUrl(instance.backendUrl);
@@ -34,6 +35,11 @@ export function localPublisherConfiguration(manifest: PersistentManifest, source
     compatibility_flags: ['nodejs_compat'],
     define: { 'process.env.NODE_ENV': '"production"' },
     alias: {
+      ...(existsSync(path.join(manifest.stateDirectory, 'publisher-build/server-aliases.json'))
+        ? (JSON.parse(
+            readFileSync(path.join(manifest.stateDirectory, 'publisher-build/server-aliases.json'), 'utf8')
+          ) as Record<string, string>)
+        : {}),
       'rulebook-html-renderer-runtime': path.join(
         manifest.stateDirectory,
         'publisher-build/rulebook-html-renderer.mjs'
@@ -69,7 +75,7 @@ export function localPublisherConfiguration(manifest: PersistentManifest, source
       LOCAL_REVIEW: 'isolated-local-v1',
       PUBLIC_BASE_URL: app,
       USER_IMAGE_PUBLIC_BASE_URL: app,
-      CAPTURE_BASE_URL: publisherOrigin,
+      CAPTURE_BASE_URL: app,
       CONVEX_EXECUTOR_BASE_URL: `${site}/asset-publishing/executor`,
       CONVEX_AUTH_BASE_URL: site,
       CONVEX_RENDER_URL: `${site}/asset-publishing/render`,
@@ -83,7 +89,7 @@ export function localPublisherConfiguration(manifest: PersistentManifest, source
   };
 }
 
-function buildAndCopyLocalPublisher(environment: NodeJS.ProcessEnv, stateDirectory: string) {
+async function buildAndCopyLocalPublisher(environment: NodeJS.ProcessEnv, stateDirectory: string) {
   const result = spawnSync(process.execPath, ['--no-env-file', 'run', 'publisher:assets'], {
     cwd: root,
     env: localApplicationEnvironment(environment),
@@ -99,6 +105,56 @@ function buildAndCopyLocalPublisher(environment: NodeJS.ProcessEnv, stateDirecto
   cpSync(path.join(root, 'workers/publisher/dist'), path.join(output, 'assets'), { recursive: true });
   cpSync(path.join(root, 'media/vector'), path.join(output, 'assets/vector'), { recursive: true });
   cpSync(path.join(root, 'dist/server'), path.join(output, 'server'), { recursive: true });
+  // Copied SSR chunks sit outside the checkout. Resolve their bare imports through
+  // this checkout's frozen dependency graph rather than an ancestor's node_modules.
+  const serverAliases: Record<string, string> = {};
+  const transpiler = new Bun.Transpiler({ loader: 'js' });
+  const files = readdirSync(path.join(root, 'dist/server'), { recursive: true }).filter(
+    (file): file is string => typeof file === 'string' && file.endsWith('.js')
+  );
+  for (const file of files) {
+    for (const entry of transpiler.scan(readFileSync(path.join(root, 'dist/server', file), 'utf8')).imports) {
+      if (!entry.path.startsWith('.') && !entry.path.startsWith('/') && !entry.path.includes(':')) {
+        serverAliases[entry.path] = '';
+      }
+    }
+  }
+  await build({
+    stdin: {
+      contents: Object.keys(serverAliases)
+        .map((specifier) => `import ${JSON.stringify(specifier)};`)
+        .join('\n'),
+      resolveDir: root,
+    },
+    bundle: true,
+    write: false,
+    platform: 'browser',
+    format: 'esm',
+    conditions: ['workerd', 'browser'],
+    plugins: [
+      {
+        name: 'local-ssr-dependencies',
+        setup(builder) {
+          builder.onResolve({ filter: /.*/ }, async (args) => {
+            if (args.pluginData?.resolvedForAlias) {
+              return undefined;
+            }
+            const resolved = await builder.resolve(args.path, {
+              resolveDir: root,
+              kind: args.kind,
+              pluginData: { resolvedForAlias: true },
+            });
+            if (resolved.errors.length > 0) {
+              return { errors: resolved.errors };
+            }
+            serverAliases[args.path] = resolved.path;
+            return { path: resolved.path, external: true };
+          });
+        },
+      },
+    ],
+  });
+  writePrivateJson(path.join(output, 'server-aliases.json'), serverAliases);
   cpSync(
     path.join(root, 'workers/publisher/runtime-generated/rulebook-html-renderer.mjs'),
     path.join(output, 'rulebook-html-renderer.mjs')
@@ -183,5 +239,5 @@ if (import.meta.main) {
   if (operation !== '--build' || !stateDirectory || !path.isAbsolute(stateDirectory)) {
     throw new Error('Local publisher build requires an absolute state directory');
   }
-  buildAndCopyLocalPublisher(process.env, stateDirectory);
+  await buildAndCopyLocalPublisher(process.env, stateDirectory);
 }

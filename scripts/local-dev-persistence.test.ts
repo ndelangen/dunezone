@@ -85,6 +85,9 @@ describe('persistent local review', () => {
     expect(config.browser.remote).toBe(false);
     expect(config.images.remote).toBe(false);
     expect(config.assets.not_found_handling).toBe('none');
+    expect(config.vars.CAPTURE_BASE_URL).toBe(config.vars.PUBLIC_BASE_URL);
+    expect(config.assets.directory).toBe('/tmp/local-review/publisher-build/assets');
+    expect(config.alias['application-ssr-runtime']).toBe('/tmp/local-review/publisher-build/server/server.js');
     for (const bucket of config.r2_buckets) {
       expect(bucket).toMatchObject({ remote: false });
     }
