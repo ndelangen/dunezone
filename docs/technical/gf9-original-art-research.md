@@ -73,14 +73,14 @@ The original pages provide concrete targets for the visual prototypes. Use origi
 | Teaching purpose | Original reference | Available material and constraints |
 | --- | --- | --- |
 | Board and component orientation | Core page 4 | Annotated complete physical board, turn track, sectors, spice bank, player circles and Battle Wheel assembly. Board image `Im0` is 465 × 516 pixels at `[286.65, 70.15, 635.32, 457.11]`, about 96 dpi. Annotation lines and labels are separate page objects. A bare image extraction loses them. |
-| Faction sets, decks and pieces | Core page 5 and faction pages 3, 16–19 | Source component pictures plus existing saved GF9 faction/member/troop/card references. Small raster components are around 96 dpi, so prefer matching maintained renderers for large diagrams. |
-| Basic phases and battle | Core pages 7–11 | Storm/phase examples and Battle Wheel. Rebuild legal GF9 plans with existing battle and transfer Blocks rather than copying a small diagram whose text becomes unreadable. |
+| Faction sets, decks and pieces | Core page 5 and faction pages 3, 16-19 | Source component pictures plus existing saved GF9 faction/member/troop/card references. Small raster components are around 96 dpi, so prefer matching maintained renderers for large diagrams. |
+| Basic phases and battle | Core pages 7-11 | Storm/phase examples and Battle Wheel. Rebuild legal GF9 plans with existing battle and transfer Blocks rather than copying a small diagram whose text becomes unreadable. |
 | Advanced forces | Core page 13 | Illustrated advanced-faction force material; use the actual GF9 force variant and quantity in any reconstruction. |
 | Tech Tokens | Ixians & Tleilaxu page 4 | Three source token pictures, each 321 × 321 pixels at about 300 dpi. Their bounds are `[49.53,457.51,126.40,534.39]`, `[138.20,457.51,215.07,534.39]` and `[229.00,457.51,305.87,534.39]`. The visible left-to-right order is Axlotl Tanks, Heighliners, Spice Production. |
 | Ixian forces and mobile stronghold | Ixians & Tleilaxu page 9 | Four source component images. Existing authored troop and stronghold references avoid a new block type. |
-| No-Field and auction support | CHOAM & Richese pages 5–6 | Richese component pictures and rules; use current saved GF9 token/card identities. |
-| Terror tokens | Ecaz & Moritani pages 5–6 | Actual token pictures next to their effects, around 150 dpi in this low resolution source. |
-| Homeworld, Nexus and Discovery | Ecaz & Moritani pages 9–13 | Rules and illustrated cards/tokens, with four images on page 11, five on page 12 and eight on page 13. Prefer the saved GF9 cards/tokens where they provide sharper equivalent components. Do not copy the source FAQ pages into the teaching books. |
+| No-Field and auction support | CHOAM & Richese pages 5-6 | Richese component pictures and rules; use current saved GF9 token/card identities. |
+| Terror tokens | Ecaz & Moritani pages 5-6 | Actual token pictures next to their effects, around 150 dpi in this low resolution source. |
+| Homeworld, Nexus and Discovery | Ecaz & Moritani pages 9-13 | Rules and illustrated cards/tokens, with four images on page 11, five on page 12 and eight on page 13. Prefer the saved GF9 cards/tokens where they provide sharper equivalent components. Do not copy the source FAQ pages into the teaching books. |
 
 Core page 4 is visibly mixed-column, with an unequal text/diagram composition. The original narrow expansion page 4 is one readable main flow with inline Tech Tokens. This is evidence for varying the core grids while retaining single-column expansion pages where they fit. It does not require two columns on every core page or any narrow expansion page.
 
