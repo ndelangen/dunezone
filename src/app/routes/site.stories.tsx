@@ -178,6 +178,9 @@ export const Glossary = meta.story({
       ['reinforcements', 'Reinforcement'],
       ['re-enforcements', 'Reinforcement'],
       ['thrown fights', 'Thrown fight'],
+      ['occupies', 'Occupy'],
+      ['occupation', 'Occupy'],
+      ['occupier', 'Occupy'],
     ]) {
       const search = page.getByRole('textbox', { name: 'Search the glossary' });
       await userEvent.clear(search);
