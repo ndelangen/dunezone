@@ -29,14 +29,14 @@ const leaderLabels = (await Bun.file(path.join(directory, 'leader-labels.json'))
   sourceName: string;
   displayName: string;
 }[];
-const usedLeaderLabels = new Set<string>();
+const usedLeaderLabels = new Set<(typeof leaderLabels)[number]>();
 
 function leaderNameForPrint(faction: string, sourceName: string) {
   const label = leaderLabels.find((entry) => entry.faction === faction && entry.sourceName === sourceName);
   if (!label) {
     return sourceName;
   }
-  usedLeaderLabels.add(`${faction}:${sourceName}`);
+  usedLeaderLabels.add(label);
   return label.displayName;
 }
 
@@ -134,7 +134,7 @@ for (const draft of expansion) {
   factions.push({ key: draft.key, kind: 'faction', data, bindings, link: true });
 }
 for (const label of leaderLabels) {
-  if (!usedLeaderLabels.has(`${label.faction}:${label.sourceName}`)) {
+  if (!usedLeaderLabels.has(label)) {
     throw new Error(`Unused leader label for ${label.faction}: ${label.sourceName}`);
   }
 }
