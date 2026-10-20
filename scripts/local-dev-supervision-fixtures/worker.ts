@@ -22,8 +22,9 @@ if (process.argv[2] === 'child') {
     { ...process.env, ...localDevelopmentEnvironmentOverrides(instance) },
     persistent
   );
-  if (process.env.TEST_PERSIST_DIRECTORY)
+  if (process.env.TEST_PERSIST_DIRECTORY) {
     writeFileSync(path.join(process.env.TEST_PERSIST_DIRECTORY, 'authored.json'), 'saved draft');
+  }
   writeFileSync(path.join(temporaryDirectory, 'private-artifact'), 'temporary auth material');
   writeFileSync(
     path.join(directory, 'launch.json'),
