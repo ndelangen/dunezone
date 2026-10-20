@@ -1,4 +1,4 @@
-import { useId, useLayoutEffect, useRef } from 'react';
+import { useCallback, useId, useRef } from 'react';
 import type { FC } from 'react';
 import type { z } from 'zod';
 
@@ -6,6 +6,7 @@ import type { CardBack as CardBackType } from '../../data/objects';
 import { card } from '../../data/sizes';
 import { useAssetResolver } from '../assetRenderMode';
 import { BackgroundRenderer } from '../utils/BackgroundRenderer';
+import { fitCardTitle, singleLineTitle, useCardTitleFit } from '../utils/cardTitleFit';
 import styles from './Back.module.css';
 
 export const CardBack: FC<z.infer<typeof CardBackType>> = ({
@@ -19,30 +20,30 @@ export const CardBack: FC<z.infer<typeof CardBackType>> = ({
   const prefix = useId();
   const resolveAsset = useAssetResolver();
   const label = useRef<SVGSVGElement>(null);
-  useLayoutEffect(() => {
-    const element = label.current!;
-    let active = true;
-    /* Start every label at the original size, reducing it only when its measured width exceeds the panel. */
-    const fit = () => {
-      if (!active) {
-        return;
-      }
-      let size = 90;
-      for (let pass = 0; pass < 4; pass++) {
-        element.style.fontSize = `${size}px`;
-        const width = element.querySelector('text')!.getComputedTextLength();
-        if (width <= 680) {
-          break;
+  const fit = useCallback((element: SVGSVGElement) => {
+    fitCardTitle(90, 680, 100, (size) => {
+      element.style.fontSize = `${size}px`;
+      let width = 0;
+      let height = 0;
+      for (const text of element.querySelectorAll('text')) {
+        if (!text.textContent) {
+          continue;
         }
-        size *= (680 / width) * 0.9999;
+        const bounds = text.getBBox();
+        // Repeated mask and shade text share this fit, including the raised shade baseline.
+        width = Math.max(
+          width,
+          text.getComputedTextLength(),
+          (450 - bounds.x) * 2,
+          (bounds.x + bounds.width - 450) * 2
+        );
+        height = Math.max(height, (1013 - bounds.y) * 2, (bounds.y + bounds.height - 1013) * 2);
       }
-    };
-    fit();
-    void document.fonts.load('90px C_Busorama', name.toUpperCase()).then(fit);
-    return () => {
-      active = false;
-    };
-  }, [name]);
+      return { width, height };
+    });
+  }, []);
+  useCardTitleFit(label, fit);
+  const title = singleLineTitle(name);
 
   const gradient = `${prefix}gradient`;
   const textMask = `${prefix}text-mask`;
@@ -104,7 +105,7 @@ export const CardBack: FC<z.infer<typeof CardBackType>> = ({
         }}
       />
 
-      <svg ref={label} className={styles.svg} fontSize={90}>
+      <svg ref={label} className={styles.svg} fontSize={90} aria-label={name} style={{ fontFamily: 'C_Busorama' }}>
         <defs>
           {tintMatrix && (
             <filter id={emblemBackgroundFilter} colorInterpolationFilters="sRGB">
@@ -127,7 +128,7 @@ export const CardBack: FC<z.infer<typeof CardBackType>> = ({
               x="50%"
               y={card.height - 250}
             >
-              {name}
+              {title}
             </text>
           </mask>
           <mask id={textShadeMask} maskUnits="userSpaceOnUse">
@@ -142,7 +143,7 @@ export const CardBack: FC<z.infer<typeof CardBackType>> = ({
               x="50%"
               y={card.height - 250}
             >
-              {name}
+              {title}
             </text>
             <text
               dominantBaseline="middle"
@@ -154,7 +155,7 @@ export const CardBack: FC<z.infer<typeof CardBackType>> = ({
               x="50%"
               y={card.height - 254}
             >
-              {name}
+              {title}
             </text>
           </mask>
 
@@ -174,7 +175,7 @@ export const CardBack: FC<z.infer<typeof CardBackType>> = ({
             x="50%"
             y={card.height - 250}
           >
-            {name}
+            {title}
           </text>
         </g>
         <rect fill={`url(#${gradient})`} {...card} y={card.height - 300} height={100} mask={`url(#${textMask})`} />
