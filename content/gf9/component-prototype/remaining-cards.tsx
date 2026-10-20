@@ -107,12 +107,12 @@ function CardProof({ record, zoom }: { record: Record; zoom: number }) {
 }
 
 const mapDefaults = {
-  brightness: 1.25,
-  contrast: 1.35,
+  brightness: 0.55,
+  contrast: 2.6,
   saturation: 0,
-  paper: 0.2,
+  paper: 0.65,
   opacity: 1,
-  shift: 24,
+  shift: 28,
   blend: 'color-burn',
 };
 type MapControls = typeof mapDefaults;
@@ -211,7 +211,7 @@ export function RemainingCardsReview() {
         <span>Map treatment</span>
         {[
           ['burnt', 'Current burnt'],
-          ['textured-burn', 'Custom map'],
+          ['textured-burn', 'Accepted GF9 treatment'],
           ['sepia', 'Current sepia'],
           ['parchment', 'Darker parchment'],
         ].map(([value, label]) => (
@@ -262,7 +262,7 @@ export function RemainingCardsReview() {
           </select>
         </label>
         <button type="button" onClick={() => changeControls({ type: 'reset' })}>
-          Reset custom settings
+          Reset accepted settings
         </button>
         <span className="gf9-map-control-note">
           Changes apply to every map and stay in the URL. Tints and tokens keep their colors.

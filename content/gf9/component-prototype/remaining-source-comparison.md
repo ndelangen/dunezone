@@ -44,3 +44,9 @@ The six existing records are Custom Cards. The current authenticated writers can
 ## Review scope
 
 Karama, covers, faction treatments, logo, full-title fitting and the accepted central-vector token treatment stay settled. Review only the six revised Discovery cards and any new product decision exposed by their native implementation.
+
+## Accepted map recipe
+
+The user accepted this combination on 20 October 2026: brightness 55%, contrast 260%, map color 0%, paper color 65%, opacity 100%, downward shift 28 and color-burn blending. Preserve those values as the named GF9 treatment and the reset state. The corresponding native map top is 263. The board, tints, neutral paper texture and token placements move together; the filter never changes tint or token colors.
+
+The paper control uses an aligned copy of the existing card-paper image beneath the native board, rather than applying a backdrop filter to the SVG. No new map artwork or vectors are introduced. Verify the accepted layered treatment through the publication renderer before production recapture. This acceptance settles map appearance, not future production implementation or unseen content.

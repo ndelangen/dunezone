@@ -401,5 +401,21 @@
     "note": "Resolve the existing board entity through local/production package bindings. The prototype draws its recorded authored definition."
   },
   "discoveryMapDecision": "Use the existing linked-board Spice renderer. Spice-blow territories are orange; Hiereg destinations green; Smuggler destinations blue. Place matching type markers. No embedded map artwork or new vectors.",
-  "discoveryIconDecision": "Use only existing vectors. Hiereg uses the existing Fremen symbol and Smuggler uses the existing Guild symbol, matching the existing Discovery token-back data. No new vectors."
+  "discoveryIconDecision": "Use only existing vectors. Hiereg uses the existing Fremen symbol and Smuggler uses the existing Guild symbol, matching the existing Discovery token-back data. No new vectors.",
+  "acceptedMapTreatment": {
+    "accepted": "2026-10-20",
+    "brightness": 0.55,
+    "contrast": 2.6,
+    "saturation": 0,
+    "paperSaturation": 0.65,
+    "opacity": 1,
+    "offsetY": 28,
+    "nativeMapTop": 263,
+    "blend": "color-burn",
+    "boardFilter": "saturate(0) contrast(2.6) brightness(0.55)",
+    "paperFilter": "saturate(0.65)",
+    "paperSource": "/image/card/base-full-large.webp",
+    "paperNote": "Reuse and align the existing card-paper texture beneath the map; apply paper saturation to this layer. No backdrop filter on the SVG.",
+    "scope": "Map appearance accepted. Karama remains accepted. Do not infer approval of unrelated future content or functionality."
+  }
 }
