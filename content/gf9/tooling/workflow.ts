@@ -4,8 +4,12 @@ import path from 'node:path';
 
 import { z } from 'zod';
 
-import { rawRulebookSchema, readRawAuthoringJson } from '../../../src/shared/authoring/raw';
+import { authoredCardback, DeckAsset } from '../../../src/shared/assets/schema';
+import { parseRawFaction, rawRulebookSchema, readRawAuthoringJson } from '../../../src/shared/authoring/raw';
 import { contentImportPackageSchema } from '../../../src/shared/contentImports/package';
+import { assertRulebookReferences } from '../../../src/shared/rulebooks/references';
+import type { RulebookResolvedFactionsById } from '../../../src/shared/rulebooks/references';
+import type { RulebookResolvedAssetsById } from '../../../src/shared/rulebooks/sources';
 import { checkpointSchema, readbackSchema, reviewSchema, syncSchema } from './contracts';
 import type { BoundRecord, Checkpoint, Environment, Readback, RecordSpec, Sync } from './contracts';
 import { atomicJson, at, canonical, differences, fileHash, inside, pretty, readJson, sha256, valueHash } from './files';
@@ -258,6 +262,66 @@ function requireSaved(checkpoint: SavedCheckpoint, key: string) {
     throw new Error(checkpoint.errors.get(key) ?? `Missing fresh saved checkpoint for ${key}`);
   }
   return record;
+}
+/** Readiness uses captured saved sources, never a dependency's proposed replacement. */
+function assertCapturedReferences(spec: RecordSpec, desired: unknown, targetId: string | undefined, sources: Saved[]) {
+  if (spec.kind === 'asset') {
+    const data = desired as Record<string, unknown>;
+    const back = (spec.type === 'deck' ? data.cardback : spec.type?.startsWith('token-') ? data.back : undefined) as
+      | { mode?: string; asset_id?: string }
+      | undefined;
+    if (back?.mode !== 'reference' || !back.asset_id) {
+      return;
+    }
+    if (back.asset_id === targetId) {
+      throw new Error(
+        spec.type === 'deck' ? 'A deck cannot reference its own cardback.' : 'A token cannot reference itself.'
+      );
+    }
+    const source = sources.find((row) => row.readback.record.id === back.asset_id);
+    if (!source || source.readback.record.kind !== 'asset' || source.readback.record.type !== spec.type) {
+      throw new Error(`Choose a captured ${spec.type} for the referenced back.`);
+    }
+    if (spec.type === 'deck') {
+      if (!authoredCardback(DeckAsset.parse(source.data).cardback)) {
+        throw new Error('Only a deck with an authored cardback can be referenced.');
+      }
+    } else if ((source.data as { back: { mode: string } }).back.mode !== 'custom') {
+      throw new Error('Only a token with an authored back can be referenced.');
+    }
+  } else if (spec.kind === 'rulebook') {
+    const assets: Record<string, RulebookResolvedAssetsById[string]> = Object.create(null);
+    const factions: Record<string, RulebookResolvedFactionsById[string]> = Object.create(null);
+    for (const { readback, data } of sources) {
+      const { id, kind, type } = readback.record;
+      if (kind === 'asset') {
+        assets[id] = { assetId: id, type: type!, name: (data as { name: string }).name, imageUrl: null };
+      } else if (kind === 'faction') {
+        const faction = parseRawFaction(data);
+        const background = faction.background.colors[0];
+        const members: NonNullable<RulebookResolvedFactionsById[string]['leaders']> = [
+          faction.factionLeader,
+          ...faction.leaders,
+        ].map((member) =>
+          member.memberId
+            ? {
+                status: 'unavailable',
+                reference: { kind: 'faction-member', factionId: id, memberId: member.memberId },
+              }
+            : { status: 'unselected' }
+        );
+        factions[id] = {
+          factionId: id,
+          name: faction.name,
+          color: typeof background === 'string' ? background : (background.stops[0]?.[0] ?? '#20394a'),
+          troops: faction.troops,
+          ruler: members[0],
+          leaders: members.slice(1),
+        };
+      }
+    }
+    assertRulebookReferences(rawRulebookSchema.parse(desired).contents, assets, factions);
+  }
 }
 function verifyProtected(spec: RecordSpec, binding: BoundRecord, saved: Saved) {
   if (!binding.baselineSavedHash || !binding.baselineProtectedHash) {
@@ -607,6 +671,12 @@ export async function prepare(options: Options) {
           checkLocal(dependency, referenced);
         }
       }
+      assertCapturedReferences(
+        spec,
+        desired,
+        binding.state === 'bound' ? binding.id : undefined,
+        dependencies.map((key) => requireSaved(checkpoint, key))
+      );
       if (environment.name === 'production') {
         for (const key of [spec.key, ...dependencies]) {
           if (project.records.get(key)!.operation !== 'reference') {

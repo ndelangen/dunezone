@@ -5,6 +5,8 @@ import path from 'node:path';
 import { afterEach, describe, expect, test } from 'vite-plus/test';
 
 import { rulebookContentsHash } from '../../../convex/lib/rulebookEditionContents';
+import { publishingDeckCardback } from '../../../src/shared/assets/fixtures/publishingDeckCardback';
+import { publishingTreacheryCard } from '../../../src/shared/assets/fixtures/publishingTreacheryCard';
 import { assetPublishingFaction } from '../../../src/shared/factions/fixtures/assetPublishingFaction';
 import { createRulebookEditorialStarterContents } from '../../../src/shared/rulebooks/fixtures';
 import { environmentSchema } from './contracts';
@@ -102,8 +104,9 @@ async function fixture(capturedAt = now) {
       { ...readback(record.key, normalize(record, token(record.key))), observedAt: capturedAt.toISOString() },
     ])
   );
+  saved.get('gf9-b')!.data = { ...token('gf9-b'), back: { mode: 'custom', face: token('gf9-b').front } };
   saved.get('gf9-a')!.data = { ...token('gf9-a'), back: { mode: 'reference', asset_id: 'fixture-gf9-b' } };
-  const authored = new Map(
+  const authored = new Map<string, Record<string, unknown>>(
     [...saved].map(([key, row]) => [key, { ...structuredClone(row.data as object), about: 'Reviewed fixture text.' }])
   );
   (authored.get('gf9-a') as { back?: unknown }).back = { mode: 'reference', asset_id: '@gf9/b' };
@@ -180,6 +183,28 @@ async function fixture(capturedAt = now) {
     return file;
   }
   return { root, records, saved, authored, environment, checkpoint };
+}
+async function refreshCapturedFixture(f: Awaited<ReturnType<typeof fixture>>) {
+  for (const record of f.records) {
+    const row = f.saved.get(record.key);
+    if (row) {
+      f.environment.bindings[record.key] = {
+        state: 'bound',
+        id: row.record.id,
+        slug: row.record.slug,
+        kind: record.kind,
+        ...(record.kind === 'asset' ? { type: record.type } : {}),
+        groupId: row.record.groupId,
+        baselineSavedHash: valueHash(normalize(record, row.data)),
+        baselineProtectedHash: valueHash(protectedValue(row, record)),
+      };
+    }
+    if (record.file) {
+      await atomicJson(path.join(f.root, 'authoring', record.file), f.authored.get(record.key));
+    }
+  }
+  await atomicJson(path.join(f.root, 'authoring/manifest.json'), { version: 1, status: 'ready', records: f.records });
+  await atomicJson(path.join(f.root, 'environments/local.json'), f.environment);
 }
 afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
@@ -1220,4 +1245,274 @@ test('native piece kinds stay items and board token layers are owned by their Bl
   expect(owned.map((item) => item.kind)).toEqual(['page', 'block', 'item', 'layer']);
   expect(owned[2].ownerPath).toEqual(['contents', 'pagesById', 'PAGE', 'blocksById', 'BLOK']);
   expect(owned[3].ownerPath).toEqual(owned[2].ownerPath);
+});
+
+describe('captured reference compatibility before ready payloads', () => {
+  test.each(['custom', 'same', 'reference', 'self'] as const)(
+    'a token back checks the captured target rather than its future authored %s back',
+    async (mode) => {
+      const f = await fixture();
+      f.saved.get('gf9-a')!.data = token('gf9-a');
+      f.saved.get('gf9-b')!.data = {
+        ...token('gf9-b'),
+        back:
+          mode === 'custom'
+            ? { mode: 'custom', face: token('gf9-b').front }
+            : mode === 'reference'
+              ? { mode: 'reference', asset_id: 'fixture-gf9-c' }
+              : { mode: 'same' },
+      };
+      f.saved.get('gf9-c')!.data = { ...token('gf9-c'), back: { mode: 'custom', face: token('gf9-c').front } };
+      if (mode === 'self') {
+        (f.authored.get('gf9-a') as { back: unknown }).back = { mode: 'reference', asset_id: '@gf9/a' };
+        await atomicJson(path.join(f.root, 'authoring/reference-bindings.json'), {
+          version: 1,
+          bindings: [{ ...bindings[0], targetKey: 'gf9-a' }],
+        });
+      }
+      await refreshCapturedFixture(f);
+      const prepared = await prepare({
+        root: f.root,
+        environment: 'local',
+        checkpoint: await f.checkpoint(),
+        run: 'references',
+        initialBaseline: true,
+        now,
+      });
+      const entry = prepared.report.entries.find((row) => row.key === 'gf9-a')!;
+      expect(entry.status).toBe(mode === 'custom' ? 'ready' : 'blocked');
+      if (mode !== 'custom') {
+        expect(entry.error).toMatch(mode === 'self' ? /itself/ : /authored back/);
+        await expect(readFile(path.join(f.root, 'generated/local/references/gf9-a.json'))).rejects.toMatchObject({
+          code: 'ENOENT',
+        });
+      }
+    }
+  );
+  test.each(['custom', 'bare', 'preset', 'reference', 'self'] as const)(
+    'a deck cardback checks the captured target %s mode and refuses self-reference',
+    async (mode) => {
+      const f = await fixture();
+      for (const record of f.records) {
+        record.type = 'deck';
+        const data = { name: record.key, about: '', cardback: { mode: 'custom', ...publishingDeckCardback } };
+        f.saved.get(record.key)!.record.type = 'deck';
+        f.saved.get(record.key)!.data = data;
+        f.authored.set(record.key, structuredClone(data));
+      }
+      const cardback =
+        mode === 'bare'
+          ? publishingDeckCardback
+          : mode === 'preset'
+            ? { mode: 'preset', key: 'treachery' }
+            : mode === 'reference'
+              ? { mode: 'reference', asset_id: 'fixture-gf9-c' }
+              : { mode: 'custom', ...publishingDeckCardback };
+      f.saved.get('gf9-b')!.data = { name: 'gf9-b', about: '', cardback };
+      (f.authored.get('gf9-a') as { cardback?: unknown }).cardback = {
+        mode: 'reference',
+        asset_id: mode === 'self' ? '@gf9/a' : '@gf9/b',
+      };
+      await atomicJson(path.join(f.root, 'authoring/reference-bindings.json'), {
+        version: 1,
+        bindings: [{ ...bindings[0], path: ['cardback', 'asset_id'], targetKey: mode === 'self' ? 'gf9-a' : 'gf9-b' }],
+      });
+      await refreshCapturedFixture(f);
+      const prepared = await prepare({
+        root: f.root,
+        environment: 'local',
+        checkpoint: await f.checkpoint(),
+        run: 'references',
+        initialBaseline: true,
+        now,
+      });
+      const entry = prepared.report.entries.find((row) => row.key === 'gf9-a')!;
+      expect(entry.status).toBe(['custom', 'bare'].includes(mode) ? 'ready' : 'blocked');
+      if (!['custom', 'bare'].includes(mode)) {
+        expect(entry.error).toMatch(mode === 'self' ? /own cardback/ : /authored cardback/);
+        await expect(readFile(path.join(f.root, 'generated/local/references/gf9-a.json'))).rejects.toMatchObject({
+          code: 'ENOENT',
+        });
+      }
+    }
+  );
+
+  async function bookFixture(block: unknown, target: 'asset' | 'faction', paths: (string | number)[][]) {
+    const f = await fixture();
+    const book: RecordSpec = {
+      key: 'gf9-core',
+      kind: 'rulebook',
+      operation: 'create',
+      scope: 'gf9',
+      file: 'books/core.json',
+      book: 'core',
+    };
+    const source: RecordSpec = { key: 'gf9-faction', kind: 'faction', operation: 'reference', scope: 'shared' };
+    f.records.push(book, source);
+    const faction = normalize(source, assetPublishingFaction);
+    const row = readback(source.key, faction);
+    row.record.kind = 'faction';
+    delete row.record.type;
+    f.saved.set(source.key, row);
+    f.environment.bindings[book.key] = { state: 'uncreated', kind: 'rulebook' };
+    const value = normalize(book, {
+      settings: { size: 'gf9-core', design: 'illustrated' },
+      contents: {
+        schemaVersion: 1,
+        pageOrder: ['CVER', 'PAGE'],
+        pagesById: {
+          CVER: {
+            id: 'CVER',
+            anchor: 'cover',
+            title: 'Dune',
+            layoutId: 'cover',
+            showHeading: false,
+            controlValues: {
+              cover: {
+                backgroundSource: { kind: 'preset', presetId: 'sandworm' },
+                showDuneLogo: false,
+                showSubtitle: false,
+                subtitle: '',
+                supportingText: '',
+              },
+            },
+            blockOrderByRegion: {},
+            blocksById: {},
+          },
+          PAGE: {
+            id: 'PAGE',
+            anchor: 'examples',
+            title: 'Examples',
+            layoutId: 'single-column',
+            showHeading: true,
+            controlValues: {},
+            blockOrderByRegion: { content: ['TEST'] },
+            blocksById: { TEST: block },
+          },
+        },
+      },
+    });
+    f.authored.set(book.key, value as Record<string, unknown>);
+    const identities = ownedIdentities(book, value);
+    const entries = identities.map((entry, index) => ({
+      key: `identity-${index}`,
+      path: entry.path,
+      value: entry.value,
+      kind: entry.kind,
+      ...(entry.layoutId ? { layoutId: entry.layoutId } : {}),
+      ...(entry.ownerPath
+        ? {
+            owner: `identity-${identities.findIndex(
+              (candidate) => JSON.stringify(candidate.path.slice(0, -1)) === JSON.stringify(entry.ownerPath)
+            )}`,
+          }
+        : {}),
+    }));
+    await atomicJson(path.join(f.root, 'authoring/identities.json'), {
+      version: 1,
+      records: [{ entityKey: book.key, entries, retired: [] }],
+    });
+    await atomicJson(path.join(f.root, 'authoring/reference-bindings.json'), {
+      version: 1,
+      bindings: [
+        ...bindings,
+        ...paths.map((relative) => ({
+          entityKey: book.key,
+          path: ['contents', 'pagesById', 'PAGE', 'blocksById', 'TEST', ...relative],
+          targetKey: target === 'asset' ? 'gf9-b' : source.key,
+          field: 'id',
+        })),
+      ],
+    });
+    await refreshCapturedFixture(f);
+    return f;
+  }
+  const cardGroup = {
+    id: 'TEST',
+    kind: 'card-group',
+    title: '',
+    text: '',
+    variant: 'gallery',
+    itemOrder: ['card'],
+    itemsById: { card: { id: 'card', text: '', source: { kind: 'asset', assetId: '@gf9/b' } } },
+  };
+  test.each(['token-disc', 'card-treachery'] as const)(
+    'a Rulebook card group checks the captured %s role',
+    async (type) => {
+      const f = await bookFixture(cardGroup, 'asset', [['itemsById', 'card', 'source', 'assetId']]);
+      if (type === 'card-treachery') {
+        f.records[1].type = type;
+        f.saved.get('gf9-b')!.record.type = type;
+        f.saved.get('gf9-b')!.data = { ...publishingTreacheryCard, name: 'gf9-b', about: '' };
+        f.authored.set('gf9-b', f.saved.get('gf9-b')!.data as Record<string, unknown>);
+        // The unrelated fixture token no longer consumes this newly typed source.
+        f.authored.set('gf9-a', token('gf9-a'));
+        f.saved.get('gf9-a')!.data = token('gf9-a');
+        const declared = JSON.parse(await readFile(path.join(f.root, 'authoring/reference-bindings.json'), 'utf8'));
+        declared.bindings.shift();
+        await atomicJson(path.join(f.root, 'authoring/reference-bindings.json'), declared);
+        await refreshCapturedFixture(f);
+      }
+      const prepared = await prepare({
+        root: f.root,
+        environment: 'local',
+        checkpoint: await f.checkpoint(),
+        run: 'book',
+        initialBaseline: true,
+        now,
+      });
+      const entry = prepared.report.entries.find((row) => row.key === 'gf9-core')!;
+      expect(entry.status).toBe(type === 'card-treachery' ? 'ready' : 'blocked');
+      if (type === 'token-disc') {
+        expect(entry.error).toMatch(/itemsById.card.source.*card-treachery/);
+        await expect(readFile(path.join(f.root, 'generated/local/book/gf9-core.json'))).rejects.toMatchObject({
+          code: 'ENOENT',
+        });
+      }
+    }
+  );
+  test.each(['member', 'missing-member', 'troop-front', 'missing-troop', 'troop-back', 'troop-authored-back'] as const)(
+    'a Rulebook checks the captured owning faction and %s selection',
+    async (selection) => {
+      const missing = '11111111-1111-4111-8111-111111111111';
+      const source = selection.includes('member')
+        ? {
+            kind: 'faction-member',
+            factionId: '@gf9/faction',
+            memberId: selection === 'member' ? assetPublishingFaction.factionLeader.memberId : missing,
+          }
+        : {
+            kind: 'faction-troop',
+            factionId: '@gf9/faction',
+            troopId: selection === 'missing-troop' ? missing : assetPublishingFaction.troops[0].troopId,
+            face: selection.includes('back') ? 'back' : 'front',
+          };
+      const f = await bookFixture({ id: 'TEST', kind: 'referenced-illustration', caption: '', source }, 'faction', [
+        ['source', 'factionId'],
+      ]);
+      if (selection === 'troop-authored-back') {
+        const data = structuredClone(assetPublishingFaction);
+        data.troops[0].back = { name: 'Authored back', description: '', image: data.troops[0].image };
+        f.saved.get('gf9-faction')!.data = data;
+        await refreshCapturedFixture(f);
+      }
+      const prepared = await prepare({
+        root: f.root,
+        environment: 'local',
+        checkpoint: await f.checkpoint(),
+        run: 'book',
+        initialBaseline: true,
+        now,
+      });
+      const entry = prepared.report.entries.find((row) => row.key === 'gf9-core')!;
+      const valid = ['member', 'troop-front', 'troop-authored-back'].includes(selection);
+      expect(entry.status).toBe(valid ? 'ready' : 'blocked');
+      if (!valid) {
+        expect(entry.error).toMatch(/memberId|troopId|face/);
+        await expect(readFile(path.join(f.root, 'generated/local/book/gf9-core.json'))).rejects.toMatchObject({
+          code: 'ENOENT',
+        });
+      }
+    }
+  );
 });
