@@ -21,7 +21,7 @@ import {
 import type { Project } from './project';
 import { assertNoUnboundMarkers, bindValue, collectValue } from './references';
 
-export const CHECKPOINT_MAX_AGE_MS = 30 * 60 * 1000;
+const CHECKPOINT_MAX_AGE_MS = 30 * 60 * 1000;
 const fingerprint = (environment: Environment) => valueHash(environment.identity);
 export type Options = {
   root: string;

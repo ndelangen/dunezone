@@ -9,7 +9,7 @@ const timestamp = z.iso.datetime();
 const pathPart = z
   .union([z.string().min(1), z.number().int().nonnegative()])
   .refine((value) => !['__proto__', 'prototype', 'constructor'].includes(String(value)));
-export const dataPath = z.array(pathPart).min(1).max(64);
+const dataPath = z.array(pathPart).min(1).max(64);
 export type DataPath = z.infer<typeof dataPath>;
 const kind = z.enum(['rulebook', 'faction', 'asset']);
 export const manifestSchema = z.strictObject({
@@ -33,7 +33,7 @@ export const manifestSchema = z.strictObject({
     )
     .max(1000),
 });
-export type Manifest = z.infer<typeof manifestSchema>;
+type Manifest = z.infer<typeof manifestSchema>;
 export type RecordSpec = Manifest['records'][number];
 export const bindingsSchema = z.strictObject({
   version: z.literal(1),
@@ -226,32 +226,4 @@ export const reviewSchema = z.strictObject({
   workflowReview: z.string().min(1),
   userBookApproval: z.string().min(1).optional(),
   reviewedKeys: z.array(key).min(1),
-});
-
-/** Durable observed progress, separate from authored content and generated preparation. */
-export const runSchema = z.strictObject({
-  version: z.literal(1),
-  run: key,
-  authoringCommit: z.string().regex(/^[a-f0-9]{40}$/),
-  authoringHash: hash,
-  environmentFingerprint: hash,
-  preparationReport: z.string().min(1),
-  preparationHash: hash,
-  operations: z.array(
-    z.strictObject({
-      entityKey: key,
-      action: z.enum(['load', 'save', 'assign-group', 'rename', 'convert', 'publish', 'verify']),
-      observedAt: timestamp,
-      targetId: z.string().min(1),
-      desiredHash: hash,
-      beforeHash: hash.optional(),
-      afterHash: hash.optional(),
-      revision: z.number().int().positive().optional(),
-      edition: z.number().int().positive().optional(),
-      artifact: z.strictObject({ identity: z.string().min(1), sha256: hash, url: z.string().url() }).optional(),
-      evidence: z.array(z.string().min(1)).min(1),
-      result: z.enum(['passed', 'blocked']),
-      detail: z.string().min(1),
-    })
-  ),
 });

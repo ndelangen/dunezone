@@ -9,11 +9,11 @@ export type TypedReference = {
   types?: readonly string[];
 };
 const tokenTypes = ['token-disc', 'token-tech', 'token-plate', 'token-pointer', 'token-enhance'];
-export const marker = (key: string) => `@gf9/${key.replace(/^gf9-/, '')}`;
+const marker = (key: string) => `@gf9/${key.replace(/^gf9-/, '')}`;
 const pathKey = (value: DataPath) => JSON.stringify(value.map(String));
 
 /** Only schema-defined reference fields are binding sites. Prose and component UUIDs never are. */
-export function typedReferences(spec: RecordSpec, value: unknown): TypedReference[] {
+function typedReferences(spec: RecordSpec, value: unknown): TypedReference[] {
   const refs: TypedReference[] = [];
   const add = (path: DataPath, kind: 'asset' | 'faction', field: 'id' | 'slug' = 'id', types?: readonly string[]) =>
     refs.push({ path, kind, field, ...(types ? { types } : {}) });
@@ -81,7 +81,7 @@ export function typedReferences(spec: RecordSpec, value: unknown): TypedReferenc
   }
   return refs;
 }
-export function assertBindingTarget(ref: TypedReference, target: RecordSpec) {
+function assertBindingTarget(ref: TypedReference, target: RecordSpec) {
   if (target.kind !== ref.kind || (ref.types && !ref.types.includes(target.type ?? ''))) {
     throw new Error(
       `Reference ${ref.path.join('.')} requires ${ref.types?.join(' or ') ?? ref.kind}; ${target.key} has ${target.kind}/${target.type ?? ''}.`
