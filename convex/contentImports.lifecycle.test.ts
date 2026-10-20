@@ -3,6 +3,7 @@ import { describe, expect, test } from 'vite-plus/test';
 
 import { GF9_NEXUS_CARDS } from '../src/shared/assets/gf9Nexus';
 import { GF9_STRONGHOLD_CARDS, GF9_STRONGHOLD_DECK } from '../src/shared/assets/gf9StrongholdDeck';
+import { StrongholdCardAssetInput } from '../src/shared/assets/schema';
 import { contentImportPackageSchema } from '../src/shared/contentImports/package';
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { normalizeFormattedText } from '../src/shared/formattedText';
@@ -400,7 +401,7 @@ describe('Content import', () => {
       {
         ...exportedItem,
         key: 'reviewed-card',
-        data: { ...exportedItem.data, about: 'Reviewed revised card.' },
+        data: { ...StrongholdCardAssetInput.parse(exportedItem.data), about: 'Reviewed revised card.' },
       },
     ]);
     const applyReviewed = async () => {

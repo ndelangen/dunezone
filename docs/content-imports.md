@@ -6,6 +6,8 @@ New factions and assets belong to the signed-in account. All imported factions a
 
 A new Rulebook receives the complete imported content as Edition 1. Updating a Rulebook saves and publishes the new content as its next Edition. Faction and asset changes become live when their writes complete; derived images and PDFs finish afterward. Import reviewed content, and check publication readiness before treating delivery as complete.
 
+The preview reads up to 50 items per transaction and the browser collects every page before offering Import. It checks the Ruleset, Group and signed-in account on every page. If any target changes while the preview is being assembled, preview again. Each item's state hash still guards its later write. Container membership replacement reads its existing relations once and checks every added member through the same rules as the editor.
+
 ## Package format
 
 The envelope is versioned. Payloads use the existing write contracts rather than raw database rows.

@@ -13,6 +13,7 @@ import { DEFAULT_RULEBOOK_SETTINGS } from '../src/shared/rulebooks/settings';
 import { RULESET_ASSET_SLOTS } from '../src/shared/rulesets/assetSlots';
 import { api } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
+import { replaceAssetMembers } from './assets';
 import { mutation } from './functions';
 import { canonicalJson } from './lib/canonicalJson';
 import {
@@ -259,9 +260,12 @@ async function authorizeSubject(
 }
 
 export const preview = mutation({
-  args: { package: v.any(), target: targetValidator },
+  args: { package: v.any(), target: targetValidator, cursor: v.optional(v.number()) },
   returns: v.object({
     packageKey: v.string(),
+    rulesetId: v.id('rulesets'),
+    groupId: v.id('groups'),
+    nextCursor: v.union(v.number(), v.null()),
     rulesetName: v.string(),
     groupName: v.string(),
     ownerId: v.string(),
@@ -278,9 +282,15 @@ export const preview = mutation({
   }),
   handler: async (ctx, args) => {
     const bundle = contentImportPackageSchema.parse(args.package);
+    const cursor = args.cursor ?? 0;
+    if (!Number.isSafeInteger(cursor) || cursor < 0 || cursor > bundle.items.length) {
+      throw new ConvexError('The preview cursor must be a whole number within this package.');
+    }
     const target = await targetFor(ctx, args.target);
+    const maximumEnd = Math.min(cursor + 50, bundle.items.length);
+    let end = cursor;
     const entries = [];
-    for (const item of bundle.items) {
+    for (const item of bundle.items.slice(cursor, maximumEnd)) {
       try {
         const data = bindImportData(item, (key) => ({ id: key, slug: key }));
         validateImportData(item, data);
@@ -322,9 +332,21 @@ export const preview = mutation({
           message: error instanceof Error ? error.message : 'Cannot import this record.',
         });
       }
+      end += 1;
+      const metrics = await ctx.meta.getTransactionMetrics();
+      if (
+        metrics.bytesRead.remaining < 4 * 1024 * 1024 ||
+        metrics.documentsRead.remaining < 1500 ||
+        metrics.databaseQueries.remaining < 100
+      ) {
+        break;
+      }
     }
     return {
       packageKey: bundle.packageKey,
+      rulesetId: target.ruleset._id,
+      groupId: target.group._id,
+      nextCursor: end < bundle.items.length ? end : null,
       rulesetName: target.ruleset.name,
       groupName: target.group.name,
       ownerId: target.viewerId,
@@ -425,23 +447,11 @@ export const applyItem = mutation({
         id = created.id;
       }
       if (item.members) {
-        const desired = new Set(item.members.map((member) => bindings.get(member.key)!.id));
-        for (const old of previous?.members ?? []) {
-          if (!desired.has(old.id)) {
-            await ctx.runMutation(api.assets.setMemberCount, {
-              container_id: id as Id<'assets'>,
-              member_id: old.id as Id<'assets'>,
-              count: 0,
-            });
-          }
-        }
-        for (const member of item.members) {
-          await ctx.runMutation(api.assets.setMemberCount, {
-            container_id: id as Id<'assets'>,
-            member_id: bindings.get(member.key)!.id as Id<'assets'>,
-            count: member.count,
-          });
-        }
+        await replaceAssetMembers(
+          ctx,
+          id as Id<'assets'>,
+          item.members.map((member) => ({ id: bindings.get(member.key)!.id as Id<'assets'>, count: member.count }))
+        );
       }
       if (item.slot) {
         await ctx.runMutation(api.rulesets.setAssetSlot, {

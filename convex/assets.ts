@@ -830,6 +830,40 @@ export async function referencedCardbackDeck(ctx: QueryCtx, row: Doc<'assets'>) 
   return target && authoredDeckCardback(target) ? target : null;
 }
 
+function assertMemberCount(count: number) {
+  if (!Number.isInteger(count) || count < 0 || count > 99) {
+    throw new ConvexError('A member count must be a whole number between 0 and 99');
+  }
+}
+
+async function editableContainer(ctx: MutationCtx, id: Id<'assets'>) {
+  const container = await ctx.db.get('assets', id);
+  if (!container || container.is_deleted) {
+    throw new Error(`Asset with id ${id} not found`);
+  }
+  const rules = CONTAINER_KINDS[container.type];
+  if (!rules) {
+    throw new Error(`Asset type ${container.type} holds nothing`);
+  }
+  await requireAssetUpdate(ctx, id);
+  return { container, rules };
+}
+
+async function requireLiveContainerMember(
+  ctx: MutationCtx,
+  container: Doc<'assets'>,
+  rules: NonNullable<(typeof CONTAINER_KINDS)[string]>,
+  id: Id<'assets'>
+) {
+  const member = await ctx.db.get('assets', id);
+  if (!member || member.is_deleted) {
+    throw new Error(`Asset with id ${id} not found`);
+  }
+  if (!rules.holds(member.type)) {
+    throw new Error(`A ${container.type} holds ${rules.noun}, not ${member.type}`);
+  }
+}
+
 /**
  * How many of one member a container holds.
  * Zero removes it.
@@ -843,20 +877,8 @@ export async function referencedCardbackDeck(ctx: QueryCtx, row: Doc<'assets'>) 
 export const setMemberCount = mutation({
   args: { container_id: v.id('assets'), member_id: v.id('assets'), count: v.number() },
   handler: async (ctx, args) => {
-    if (!Number.isInteger(args.count) || args.count < 0 || args.count > 99) {
-      throw new ConvexError('A member count must be a whole number between 0 and 99');
-    }
-    const container = await ctx.db.get('assets', args.container_id);
-    if (!container || container.is_deleted) {
-      throw new Error(`Asset with id ${args.container_id} not found`);
-    }
-    const rules = CONTAINER_KINDS[container.type];
-    if (!rules) {
-      throw new Error(`Asset type ${container.type} holds nothing`);
-    }
-    /* Membership changes touch no name, so the rename gate has nothing to compare. */
-    await requireAssetUpdate(ctx, args.container_id);
-
+    assertMemberCount(args.count);
+    const { container, rules } = await editableContainer(ctx, args.container_id);
     const existing = await ctx.db
       .query('asset_relations')
       .withIndex('by_from_to_kind', (q) =>
@@ -864,13 +886,7 @@ export const setMemberCount = mutation({
       )
       .unique();
     if (args.count > 0) {
-      const member = await ctx.db.get('assets', args.member_id);
-      if (!member || member.is_deleted) {
-        throw new Error(`Asset with id ${args.member_id} not found`);
-      }
-      if (!rules.holds(member.type)) {
-        throw new Error(`A ${container.type} holds ${rules.noun}, not ${member.type}`);
-      }
+      await requireLiveContainerMember(ctx, container, rules, args.member_id);
     }
     if (args.count === 0) {
       if (existing) {
@@ -889,6 +905,49 @@ export const setMemberCount = mutation({
     await ctx.db.patch(args.container_id, { updated_at: nowIso() });
   },
 });
+
+/** Replaces reviewed membership with the editor's permissions and member checks, authorizing its container once. */
+export async function replaceAssetMembers(
+  ctx: MutationCtx,
+  containerId: Id<'assets'>,
+  members: { id: Id<'assets'>; count: number }[]
+) {
+  if (members.length > 500 || new Set(members.map((member) => member.id)).size !== members.length) {
+    throw new ConvexError('A membership import holds at most 500 distinct members.');
+  }
+  const { container, rules } = await editableContainer(ctx, containerId);
+  const relations = await ctx.db
+    .query('asset_relations')
+    .withIndex('by_from_kind', (q) => q.eq('from_asset_id', containerId).eq('kind', rules.kind))
+    .take(501);
+  if (relations.length > 500) {
+    throw new ConvexError('This container has too many members to import.');
+  }
+  const remaining = new Map(relations.map((relation) => [relation.to_asset_id, relation]));
+  for (const member of members) {
+    assertMemberCount(member.count);
+    if (member.count === 0) {
+      throw new ConvexError('Omit a member from the replacement list to remove it.');
+    }
+    await requireLiveContainerMember(ctx, container, rules, member.id);
+    const existing = remaining.get(member.id);
+    if (!existing) {
+      await ctx.db.insert('asset_relations', {
+        from_asset_id: containerId,
+        to_asset_id: member.id,
+        kind: rules.kind,
+        count: member.count,
+      });
+    } else if (existing.count !== member.count) {
+      await ctx.db.patch('asset_relations', existing._id, { count: member.count });
+    }
+    remaining.delete(member.id);
+  }
+  for (const relation of remaining.values()) {
+    await ctx.db.delete('asset_relations', relation._id);
+  }
+  await ctx.db.patch('assets', containerId, { updated_at: nowIso() });
+}
 
 /** Bounds a deck's composition read; a deck far below this is the ordinary case. */
 const DECK_CARD_LIMIT = 500;
