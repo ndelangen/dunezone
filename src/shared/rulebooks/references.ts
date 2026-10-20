@@ -199,7 +199,7 @@ export function assertRulebookReferences(
   factionsById: RulebookResolvedFactionsById
 ) {
   const faction = (id: string, path: string) => {
-    const value = factionsById[id];
+    const value = Object.hasOwn(factionsById, id) ? factionsById[id] : undefined;
     if (!value) {
       throw new Error(`${path}: Choose an available faction.`);
     }
@@ -225,7 +225,7 @@ export function assertRulebookReferences(
     }
   };
   const asset = (id: string, path: string, types?: readonly string[]) => {
-    const value = assetsById[id];
+    const value = Object.hasOwn(assetsById, id) ? assetsById[id] : undefined;
     const image =
       value && isPublicationAssetType(value.type) && resolvePublicationCapture(value.type).output === 'image';
     if (!value || (types ? !types.includes(value.type) : !image)) {

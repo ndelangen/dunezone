@@ -36,11 +36,12 @@ export async function prepareRawAsset(args: { type: string; targetId?: string; t
       : undefined;
   const board = data.board as { asset_id: string } | undefined;
   if (args.type === 'card-spice' && board) {
+    const tokenIds = spiceCardTokenIds(data);
     const resolved = await db.query(
       api.assets.spiceCardBoard,
       {
         boardId: board.asset_id,
-        tokenIds: spiceCardTokenIds(data),
+        tokenIds,
       },
       { hold: false }
     );
@@ -51,7 +52,7 @@ export async function prepareRawAsset(args: { type: string; targetId?: string; t
     if (!resolved.board) {
       throw new Error('$.board.asset_id: Choose an available, renderable board.');
     }
-    if (Object.values(resolved.tokens).some((token) => token === null)) {
+    if (tokenIds.some((id) => !Object.hasOwn(resolved.tokens, id) || !resolved.tokens[id])) {
       throw new Error('$.board.tokens: A token is unavailable.');
     }
   }
@@ -64,7 +65,7 @@ export async function prepareRawAsset(args: { type: string; targetId?: string; t
     if (error) {
       throw new Error(error);
     }
-    if (Object.values(resolved.tokens).some((token) => token === null)) {
+    if (ids.some((id) => !Object.hasOwn(resolved.tokens, id) || !resolved.tokens[id])) {
       throw new Error('$.layers: A linked token is unavailable.');
     }
   }

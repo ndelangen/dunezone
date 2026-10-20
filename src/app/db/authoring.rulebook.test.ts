@@ -330,6 +330,9 @@ describe('raw Rulebook typed reference slots', () => {
       },
     };
     await expect(f.check(f.withBlock(block))).resolves.toBeNull();
+    await expect(
+      f.check(f.withBlock({ ...block, source: { kind: 'faction', factionId: '__proto__' } }))
+    ).rejects.toThrow(/TEST.source/);
     block.source.factionId = f.rows.otherFactionId;
     await expect(f.check(f.withBlock(block))).rejects.toThrow(/TEST.source.memberId/);
     block.source.factionId = f.rows.factionId;

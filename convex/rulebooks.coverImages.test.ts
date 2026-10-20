@@ -385,6 +385,21 @@ describe('Rulebook cover image staging', () => {
     const f = await fixture();
     vi.stubEnv('USER_IMAGE_INGEST_BASE_URL', 'http://host.docker.internal:7777');
     vi.stubEnv('USER_IMAGE_PUBLIC_BASE_URL', 'http://127.0.0.1:7778');
+    const editor = await f.owner.query(api.rulebooks.editorPage, {
+      ruleset_slug: 'rulebook-test-rules',
+      rulebook_slug: f.created.rulebook.slug,
+    });
+    expect(editor?.kind === 'editable' && editor.coverImageOrigins).toEqual([
+      'https://dune.zone',
+      'http://host.docker.internal:7777',
+      'http://127.0.0.1:7778',
+    ]);
+    const anonymous = await f.t.query(api.rulebooks.editorPage, {
+      ruleset_slug: 'rulebook-test-rules',
+      rulebook_slug: f.created.rulebook.slug,
+    });
+    expect(anonymous?.kind).toBe('sign-in-required');
+    expect(anonymous).not.toHaveProperty('coverImageOrigins');
     const { token } = await mint(f);
     const result = { ...RESULT, url: `http://127.0.0.1:7778/user-images/${KEY}` };
     expect(await f.t.mutation(api.ingestTokens.consume, { token, result, r2_keys: [KEY] })).toEqual({ ok: true });

@@ -96,7 +96,7 @@ test('custom card preparation resolves only deduplicated selected IDs and reject
     { ids: [ids.token] },
     { hold: false }
   );
-  for (const id of [ids.target, 'foreign-token-id']) {
+  for (const id of [ids.target, 'foreign-token-id', '__proto__']) {
     await expect(prepareRawAsset({ type: 'card-custom', text: JSON.stringify(card(id)) })).rejects.toThrow('$.layers');
   }
   await t.run(async (ctx) => {
@@ -188,7 +188,7 @@ test('Spice preparation uses its board read and rejects unavailable placed token
         ...card,
         board: {
           ...card.board,
-          tokens: [{ layerId: 'missing', asset_id: 'foreign-token-id', x: 100, y: 100, size: 40, rotation: 0 }],
+          tokens: [{ layerId: 'missing', asset_id: '__proto__', x: 100, y: 100, size: 40, rotation: 0 }],
         },
       }),
     })
