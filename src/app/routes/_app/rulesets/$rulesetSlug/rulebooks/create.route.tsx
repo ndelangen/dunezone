@@ -97,7 +97,7 @@ function creationSubmission(draft: CreationDraft, page: RulebookCreationPageData
     draft.source === 'starter'
       ? { kind: 'starter', settings: draft.starterSettings }
       : clone
-        ? { kind: 'clone', rulebookId: clone._id, design: draft.cloneDesign ?? clone.settings.design }
+        ? { kind: 'clone', rulebookId: clone._id, design: draft.cloneDesign ?? clone.draft_settings.design }
         : null;
   return { input: source ? { rulesetId: page.ruleset._id, name: name.data, source } : null, nameError: undefined };
 }
@@ -254,7 +254,7 @@ function CreateRulebookForm({ page }: { page: RulebookCreationPageData }) {
     draft.source === 'starter'
       ? draft.starterSettings
       : clone
-        ? { size: clone.settings.size, design: draft.cloneDesign ?? clone.settings.design }
+        ? { size: clone.draft_settings.size, design: draft.cloneDesign ?? clone.draft_settings.design }
         : undefined;
   return (
     <Stack

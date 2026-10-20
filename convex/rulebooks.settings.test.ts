@@ -123,6 +123,11 @@ describe('Rulebook settings', () => {
       size: 'a4',
       design: 'illustrated',
     });
+    const creation = await owner.query(api.rulebooks.creationPage, { ruleset_slug: 'rulebook-test-rules' });
+    expect(creation?.rulebooks.find((row) => row._id === created.rulebook._id)).toMatchObject({
+      settings: { size: 'a4', design: 'illustrated' },
+      draft_settings: settings,
+    });
     const locator = { ruleset_slug: 'rulebook-test-rules', rulebook_slug: created.rulebook.slug };
     await expect(owner.query(api.rulebooks.editorPage, locator)).resolves.toMatchObject({
       hasUnpublishedChanges: true,

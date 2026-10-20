@@ -17,6 +17,7 @@ export const rulebookMetadataValidator = schema.tables.rulebooks.validator.omit(
 const unreservedArtifact = { status: 'preparing' as const, href: null };
 
 export const rulebookListEntryValidator = rulebookMetadataValidator.extend({
+  draft_settings: rulebookSettingsValidator,
   edition_published_at: v.union(v.string(), v.null()),
   html: rulebookEditionArtifactReadinessValidator,
   pdf: rulebookEditionArtifactReadinessValidator,
@@ -55,6 +56,7 @@ export async function listRulesetRulebooks(ctx: QueryCtx, rulesetId: Id<'ruleset
         settings: edition
           ? (edition.settings ?? DEFAULT_RULEBOOK_SETTINGS)
           : (row.settings ?? DEFAULT_RULEBOOK_SETTINGS),
+        draft_settings: row.settings ?? DEFAULT_RULEBOOK_SETTINGS,
         edition_published_at: edition?.created_at ?? null,
         html: artifacts.html,
         pdf: artifacts.pdf,
