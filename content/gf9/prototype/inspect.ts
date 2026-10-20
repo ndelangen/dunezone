@@ -4,7 +4,8 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 const root = fileURLToPath(new URL('./', import.meta.url));
-const output = path.join(root, 'output');
+const focused = process.argv.includes('--focused');
+const output = path.join(root, focused ? 'output/focused' : 'output');
 mkdirSync(output, { recursive: true });
 const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage({ viewport: { width: 1400, height: 1200 }, deviceScaleFactor: 1 });
@@ -12,8 +13,8 @@ const errors: string[] = [];
 page.on('pageerror', error => errors.push(error.message));
 page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
 const records = [];
-for (const variant of ['A', 'B', 'C']) {
-  await page.goto(`http://127.0.0.1:39611/?variant=${variant}&print=1`);
+for (const variant of focused ? ['C'] : ['A', 'B', 'C']) {
+  await page.goto(`http://127.0.0.1:39611/?variant=${variant}&print=1${focused ? '&review=revision-2' : ''}`);
   await page.waitForSelector('html[data-prototype-ready="ready"]', { timeout: 90_000 });
   await page.waitForTimeout(500);
   const diagnostics = await page.evaluate(() => [...document.querySelectorAll<HTMLElement>('.proof-paper')].map(paper => {
@@ -30,7 +31,7 @@ for (const variant of ['A', 'B', 'C']) {
   }
   records.push({ variant, diagnostics });
 }
-await page.goto('http://127.0.0.1:39611/?variant=A&case=core-setup&zoom=35');
+await page.goto(focused ? 'http://127.0.0.1:39611/?variant=C&review=revision-2&case=core-shipment&zoom=35' : 'http://127.0.0.1:39611/?variant=A&case=core-setup&zoom=35');
 await page.waitForSelector('html[data-prototype-ready="ready"]');
 await page.screenshot({ path: path.join(output, 'comparison-browser.png'), fullPage: true });
 writeFileSync(path.join(output, 'browser-review.json'), JSON.stringify({ records, errors }, null, 2) + '\n');

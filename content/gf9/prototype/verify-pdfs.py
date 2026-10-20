@@ -2,6 +2,7 @@
 """Measure and render the actual prototype PDFs for visual review."""
 import json
 import subprocess
+import sys
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -13,6 +14,7 @@ OUTPUT = ROOT / "output"
 RENDERS = OUTPUT / "pdf-renders"
 RENDERS.mkdir(parents=True, exist_ok=True)
 records = []
+focused = '--focused' in sys.argv
 
 
 def verify(spec):
@@ -25,11 +27,13 @@ def verify(spec):
         width, height = float(page.mediabox.width), float(page.mediabox.height)
         if key == "comparison":
             expected = (760 * 72 / 25.4, 335 * 72 / 25.4)
+        elif key == 'focused':
+            expected = (374.4 if index >= 4 else 720, 720)
         else:
             expected = (374.4 if index in (1, 2, 3) or index >= expected_count - 3 else 720, 720)
         assert abs(width - expected[0]) < 0.05 and abs(height - expected[1]) < 0.05, (filename, index, width, height, expected)
         text = " ".join(page.extract_text().split())
-        if key != "comparison" and index >= 4:
+        if key == 'focused' or key != "comparison" and index >= 4:
             assert "BASIC GAME" in text or "OPTIONAL MODULE" in text, (filename, index, text[:200])
             assert "Sources" not in text and "FAQ" not in text
         pages.append({"page": index + 1, "points": [width, height], "mm": [round(width * 25.4 / 72, 3), round(height * 25.4 / 72, 3)], "textCharacters": len(text)})
@@ -49,9 +53,11 @@ def verify(spec):
     return {"key": key, "file": filename, "pages": pages, "status": "Measured and rendered. Contact sheets require human visual inspection."}
 
 
-specs = [(key, f"gf9-composition-{key.lower()}-prototype.pdf", count) for key, count in [("A", 11), ("B", 12), ("C", 11)]]
+specs = [(key, f"gf9-composition-{key.lower()}-prototype.pdf", count) for key, count in [("A", 11), ("B", 12), ("C", 14)]]
 specs.append(("comparison", "gf9-original-current-proposed-comparison.pdf", 11))
+if focused:
+    specs = [('focused', 'gf9-c-focused-revision.pdf', 6)]
 with ThreadPoolExecutor(max_workers=4) as executor:
     records = list(executor.map(verify, specs))
-(OUTPUT / "pdf-review.json").write_text(json.dumps(records, indent=2) + "\n")
+(OUTPUT / ('pdf-focused-review.json' if focused else "pdf-review.json")).write_text(json.dumps(records, indent=2) + "\n")
 print(json.dumps([{ "key": record["key"], "pages": len(record["pages"]), "sizesMm": sorted({tuple(page["mm"]) for page in record["pages"]})} for record in records], indent=2))

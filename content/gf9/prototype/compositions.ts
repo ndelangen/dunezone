@@ -3,6 +3,7 @@ import pkg from '../package.json';
 import { prototypePages, battleExample } from './pageContent';
 import type { PrototypeBlock, PrototypePage, PrototypeSection } from './pageContent';
 import { shipmentIllustration } from './shipmentIllustration';
+import { shipmentWalkthrough } from './shipmentWalkthrough';
 import { rulebookRenderPageV1Schema } from '../../../src/shared/rulebooks/renderDocument';
 import type { RulebookRenderPageV1, RulebookRenderBlockV1 } from '../../../src/shared/rulebooks/renderDocument';
 import { rulebookLayoutCatalogue } from '../../../src/shared/rulebooks/contents';
@@ -11,7 +12,7 @@ import { TroopArtwork } from '../../../src/shared/factions/schema';
 export const variants = [
   { key: 'A', name: 'Original book structure', description: 'Two rule columns and component illustrations beside the explanation.' },
   { key: 'B', name: 'Teach through the example', description: 'A diagram leads each core page; the reading sequence follows beneath it.' },
-  { key: 'C', name: 'Reference and reminders', description: 'Rules in compact sections, with a separate reminder region and illustrated closing strip.' },
+  { key: 'C', name: 'Reference and reminders', description: 'Compact rules and reminders, with component images beside the explanations that use them.' },
 ] as const;
 export type Variant = 'A' | 'B' | 'C';
 export const covers = [
@@ -89,6 +90,14 @@ export function renderPage(caseId: string, variant: Variant): RulebookRenderPage
   const page = prototypePages.find(item => item.id === caseId)!;
   const sections = page.sections.map((section, i) => blocks(section, page.id + '-' + i));
   const art = illustration(caseId);
+  if (caseId === 'ixian-tech' && variant === 'C' && art.kind === 'illustrated-inventory') {
+    const income = page.sections[1].blocks[0];
+    if (income.kind !== 'list') throw new Error('Tech Token income needs one explanation per token');
+    const startingHolders = ['Tleilaxu', 'Ixians', 'Fremen'];
+    const paired = { ...art, id: 'tech-token-rules', items: art.items.map((item, index) => ({ ...item, text: `Starts with ${startingHolders[index]}. ` + income.items[index].replace(/^(Axlotl Tanks|Heighliners|Spice Production) triggers/, 'Triggers') })) };
+    const setup = { id: 'tech-token-setup', kind: 'text', text: "Keep tokens visible by shields. After the first storm movement, assign absent factions' tokens at random to the next factions in turn order without one." } as RulebookRenderBlockV1;
+    return pageFixture(caseId, page.title, 'single-column', { content: [sections[0][0], setup, sections[1][0], paired, ...sections[1].slice(2), ...sections[2]] });
+  }
   if (caseId === 'core-battle') {
     if (variant === 'C') return pageFixture(caseId, page.title, 'two-columns', { column1: sections.slice(0, 2).flat(), column2: [art, ...sections[2]] });
     return pageFixture(caseId, page.title, 'two-columns', { column1: [art, ...sections[0]], column2: sections.slice(1).flat() });
@@ -113,6 +122,7 @@ export function renderPage(caseId: string, variant: Variant): RulebookRenderPage
 }
 
 export function renderPages(caseId: string, variant: Variant): RulebookRenderPageV1[] {
+  if (caseId === 'core-shipment' && variant === 'C') return shipmentWalkthrough();
   const page = prototypePages.find(item => item.id === caseId);
   if (caseId === 'ecaz-discovery' && page) {
     const sections = page.sections.map((section, i) => blocks(section, page.id + '-' + i));
@@ -121,7 +131,9 @@ export function renderPages(caseId: string, variant: Variant): RulebookRenderPag
       { id: 'revealed', source: source('gf9-discovery-cistern-front-cardback', 'Cistern revealed', 'token-disc'), text: '' },
     ] } as RulebookRenderBlockV1;
     return [
-      pageFixture(caseId, page.title, 'single-column', { content: variant === 'A' ? [illustration(caseId), ...sections[0]] : [...sections[0], illustration(caseId)] }),
+      pageFixture(caseId, page.title, 'single-column', { content: variant === 'C' ? [
+        { ...illustration(caseId), id: 'discovery-illustrated-rule', name: page.sections[0].title, text: page.sections[0].blocks.flatMap(block => block.kind === 'text' ? [block.text] : block.kind === 'callout' ? [`${block.title}. ${block.text}`] : []).join('\n\n') } as RulebookRenderBlockV1,
+      ] : variant === 'A' ? [illustration(caseId), ...sections[0]] : [...sections[0], illustration(caseId)] }),
       pageFixture(caseId + '-continued', 'Enter the revealed location', 'single-column', { content: [...sections.slice(1).flat(), token] }),
     ];
   }

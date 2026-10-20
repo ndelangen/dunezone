@@ -1,0 +1,42 @@
+/* Review-only figure sizing. Text keeps the renderer's existing physical font size. */
+.proof-paper[data-case^="core-shipment"] .rulebookRegionBlocks {
+  gap: calc(3 * var(--rulebook-mm));
+}
+
+.proof-paper[data-case^="core-shipment"] .rulebookBoardPlain .rulebookTerritoryScene {
+  max-height: calc(79 * var(--rulebook-mm));
+}
+
+.proof-paper[data-case="core-shipment-range"] .rulebookBoardPlain .rulebookTerritoryScene {
+  max-height: calc(112 * var(--rulebook-mm));
+}
+
+.proof-paper[data-case="core-shipment"] .rulebookMovementTroops {
+  max-width: calc(35 * var(--rulebook-mm));
+}
+
+.proof-paper[data-case="core-shipment"] .rulebookMovementTroops > span {
+  width: calc(8 * var(--rulebook-mm));
+  height: calc(8 * var(--rulebook-mm));
+}
+
+.proof-paper[data-case="core-shipment"] .rulebookMovementPieces figcaption {
+  font-size: calc(3.1 * var(--rulebook-mm));
+}
+
+.proof-paper[data-case="core-shipment-route"] .rulebookBoardPlain .rulebookTerritoryScene {
+  max-height: calc(49 * var(--rulebook-mm));
+}
+
+.proof-paper[data-case="core-shipment-position"] .rulebookBoardPlain .rulebookTerritoryScene {
+  max-height: calc(40 * var(--rulebook-mm));
+}
+
+.proof-paper[data-case^="core-shipment"] .rulebookBoardPlain figcaption {
+  margin-block-start: calc(1 * var(--rulebook-mm));
+}
+
+.proof-paper[data-case^="core-shipment"] .rulebookRouteLegend {
+  margin-block-start: calc(1 * var(--rulebook-mm));
+  font-size: calc(3.3 * var(--rulebook-mm));
+}

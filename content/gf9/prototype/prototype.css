@@ -16,3 +16,13 @@
 .comparison-print-pack{color:#18212a;background:white}.comparison-spread{padding:8mm;width:760mm;height:335mm}.comparison-spread h1{font:16pt Arial;margin:0 0 5mm}.comparison-spread h2{font:12pt Arial;margin:0 0 3mm}.comparison-spread-columns{display:flex;gap:12mm;align-items:flex-start}.comparison-spread .proof-paper,.comparison-spread .reference-paper{box-shadow:none}
 @page gf9ComparisonPrototype{size:760mm 335mm;margin:0}
 @media print{.comparison-spread{page:gf9ComparisonPrototype;break-after:page}.comparison-spread:last-child{break-after:auto}.comparison-spread .proof-paper{page:auto;break-after:auto}}
+/* C revision: illustrations belong with their rules. This demonstrates future Block controls only. */
+.proof-paper[data-variant=C][data-case=ixian-tech] .rulebookInventory>ul{grid-template-columns:minmax(0,1fr);gap:calc(3 * var(--rulebook-mm))}
+.proof-paper[data-variant=C][data-case=ixian-tech] .rulebookInventoryItem{display:grid;grid-template-columns:calc(22 * var(--rulebook-mm)) minmax(0,1fr);gap:calc(4 * var(--rulebook-mm));align-items:start;text-align:left}
+.proof-paper[data-variant=C][data-case=ixian-tech] .rulebookInventoryDescription{font-size:inherit;padding:0}
+.proof-paper[data-variant=C][data-case=ixian-tech] .rulebookInventoryItem .rulebookSourceVisual img{max-height:calc(22 * var(--rulebook-mm))}
+.proof-paper[data-variant=C] [data-rulebook-block-id=discovery-illustrated-rule] .rulebookCardGuide{display:flow-root}
+.proof-paper[data-variant=C] [data-rulebook-block-id=discovery-illustrated-rule] .rulebookSourceVisual{float:right;width:44%;margin:0 0 calc(3 * var(--rulebook-mm)) calc(4 * var(--rulebook-mm));aspect-ratio:auto}
+.proof-paper[data-variant=C] [data-rulebook-block-id=discovery-illustrated-rule] .rulebookSourceVisual img{height:auto;max-height:none}
+.proof-paper[data-variant=C] [data-rulebook-block-id=discovery-illustrated-rule] .rulebookCardGuidance{display:contents}
+.proof-paper[data-variant=C] [data-rulebook-block-id=discovery-illustrated-rule] h3{font-family:inherit;font-size:inherit;line-height:1.27;margin-bottom:calc(2 * var(--rulebook-mm))}

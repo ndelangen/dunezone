@@ -6,11 +6,18 @@ import { AssetRenderModeProvider } from '../../../src/game/assets/assetRenderMod
 import { allCases, variants, renderPages, settingsFor, referenceImage } from './compositions';
 import type { Variant } from './compositions';
 import './prototype.css';
+import './shipmentWalkthrough.css';
 
-function PrototypePaper({ caseId, variant, leafIndex }: { caseId: string; variant: Variant; leafIndex?: number }) {
+const revisionCaseIds = ['core-shipment', 'ixian-tech', 'ecaz-discovery'];
+function samplePages(caseId: string, variant: Variant, focused = false) {
+  const pages = renderPages(caseId, variant);
+  return focused && caseId === 'ecaz-discovery' ? pages.slice(0, 1) : pages;
+}
+function PrototypePaper({ caseId, variant, leafIndex, focused = false }: { caseId: string; variant: Variant; leafIndex?: number; focused?: boolean }) {
   const item = allCases.find(item => item.id === caseId)!;
-  const precedingLeaves = allCases.slice(0, allCases.findIndex(item => item.id === caseId)).reduce((count, item) => count + renderPages(item.id, variant).length, 0);
-  return <>{renderPages(caseId, variant).map((page, index) => leafIndex !== undefined && index !== leafIndex ? null : <div className="proof-paper" data-format={item.format} data-case={page.id} data-variant={variant} key={page.id}>
+  const cases = focused ? allCases.filter(item => revisionCaseIds.includes(item.id)) : allCases;
+  const precedingLeaves = cases.slice(0, cases.findIndex(item => item.id === caseId)).reduce((count, item) => count + samplePages(item.id, variant, focused).length, 0);
+  return <>{samplePages(caseId, variant, focused).map((page, index) => leafIndex !== undefined && index !== leafIndex ? null : <div className="proof-paper" data-format={item.format} data-case={page.id} data-variant={variant} key={page.id}>
     <AssetRenderModeProvider mode="print"><RulebookPageRenderer page={page} settings={settingsFor(caseId)} pageNumber={precedingLeaves + 1 + index} /></AssetRenderModeProvider>
   </div>)}</>;
 }
@@ -19,10 +26,12 @@ function ImagePaper({ image, format }: { image: string; format: string }) {
 }
 function App() {
   const initial = new URLSearchParams(location.search);
-  const [variant, setVariant] = useState<Variant>((initial.get('variant') as Variant) || 'A');
-  const [caseId, setCase] = useState(initial.get('case') || 'core-setup');
+  const focused = initial.get('review') === 'revision-2';
+  const activeCases = focused ? allCases.filter(item => revisionCaseIds.includes(item.id)) : allCases;
+  const [variant, setVariant] = useState<Variant>(focused ? 'C' : (initial.get('variant') as Variant) || 'A');
+  const [caseId, setCase] = useState(activeCases.find(item => item.id === initial.get('case'))?.id || (focused ? 'core-shipment' : 'core-setup'));
   const [scale, setScale] = useState(Number(initial.get('zoom') || '50'));
-  const [comparison, setComparison] = useState(initial.get('view') !== 'proposed');
+  const [comparison, setComparison] = useState(focused ? initial.get('view') === 'comparison' : initial.get('view') !== 'proposed');
   const print = initial.get('print') === '1';
   const comparisonPrint = initial.get('print') === 'comparison';
   const item = allCases.find(item => item.id === caseId)!;
@@ -34,8 +43,8 @@ function App() {
     history.replaceState(null, '', '?' + params);
     const listener = (event: KeyboardEvent) => {
       if ((event.target as HTMLElement)?.closest('input,textarea,select,[contenteditable]')) return;
-      if (event.key === 'ArrowLeft') changeVariant(-1);
-      if (event.key === 'ArrowRight') changeVariant(1);
+      if (!focused && event.key === 'ArrowLeft') changeVariant(-1);
+      if (!focused && event.key === 'ArrowRight') changeVariant(1);
     };
     window.addEventListener('keydown', listener);
     return () => window.removeEventListener('keydown', listener);
@@ -58,19 +67,19 @@ function App() {
       <section><h2>Proposed composition</h2><PrototypePaper caseId={item.id} variant={variant} leafIndex={index} /></section>
     </div>
   </section>))}</div>;
-  if (print) return <div className="print-pack">{allCases.map(item => <PrototypePaper key={item.id} caseId={item.id} variant={variant} />)}</div>;
+  if (print) return <div className="print-pack">{activeCases.map(item => <PrototypePaper key={item.id} caseId={item.id} variant={variant} focused={focused} />)}</div>;
   return <>
     <header className="review-header">
-      <p className="eyebrow">Throwaway document prototype</p>
-      <h1>GF9 book composition review</h1>
-      <p>Compare the original, the first delivery and a proposed composition at the same millimetre scale.</p>
+      <p className="eyebrow">{focused ? 'Focused revision review' : 'Throwaway document prototype'}</p>
+      <h1>{focused ? 'C: revised visual explanations' : 'GF9 book composition review'}</h1>
+      <p>{focused ? 'Review the expanded Shipment and Movement walkthrough, paired Tech Token rules and text flowing beside a Discovery card.' : 'Compare the original, the first delivery and a proposed composition at the same millimetre scale.'}</p>
       <div className="review-controls">
-        <label>Sample <select value={caseId} onChange={event => setCase(event.target.value)}>{allCases.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</select></label>
+        <label>Sample <select value={caseId} onChange={event => setCase(event.target.value)}>{activeCases.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</select></label>
         <label>Scale <select value={scale} onChange={event => setScale(Number(event.target.value))}>{[35, 50, 65, 80, 100].map(value => <option key={value} value={value}>{value}%</option>)}</select></label>
         <label><input type="checkbox" checked={comparison} onChange={event => setComparison(event.target.checked)} /> Compare references</label>
-        <a href={`?print=1&variant=${variant}`} target="_blank">Print sample pack</a>
+        <a href={`?print=1&variant=${variant}${focused ? '&review=revision-2' : ''}`} target="_blank">Print sample pack</a>
       </div>
-      <p className="scope-note">A page-design discussion, not the working local database or a complete revised book. The first-delivery references are archived output. All variants use the same sample rules.</p>
+      <p className="scope-note">{focused ? 'C is the selected base. All four covers are accepted and omitted from this review. This pack contains only revised samples and remains a read-only prototype.' : 'A page-design discussion, not the working local database or a complete revised book. The first-delivery references are archived output. C now includes the revised visual teaching samples.'}</p>
     </header>
     <main className="review-stage">
       <div className="comparison" style={{ zoom: scale / 100 }}>
@@ -78,7 +87,7 @@ function App() {
           <section className="comparison-column"><h2>Original GF9</h2><p>{item.format === 'core-square' ? '254 × 254 mm' : '132.08 × 254 mm'}</p><ImagePaper image={'/reference/' + referenceImage(caseId) + '.png'} format={item.format} /></section>
           <section className="comparison-column"><h2>First delivery</h2><p>210 × 297 mm · Archived production PDF</p><ImagePaper image={'/current/' + caseId + '.png'} format="current-a4" /></section>
         </> : null}
-        <section className="comparison-column"><h2>{selected.key}. {selected.name}</h2><p>{selected.description}</p><PrototypePaper caseId={caseId} variant={variant} /></section>
+        <section className="comparison-column"><h2>{selected.key}. {selected.name}</h2><p>{selected.description}</p><PrototypePaper caseId={caseId} variant={variant} focused={focused} /></section>
       </div>
       <details className="review-evidence"><summary>Review evidence and scope</summary>
         <p>Page sizes are fixed to the measured originals. Covers retain their complete original image without an extra gradient, title or logo. Interior text uses ordered existing Blocks and named layout regions. No paragraph coordinates or FAQ entries.</p>
@@ -86,7 +95,7 @@ function App() {
         <p>Prototype-only changes: exact format catalogue entries and a scoped full-cover shading override. These are review code and must be rewritten and verified before production.</p>
       </details>
     </main>
-    {import.meta.env.DEV ? <nav className="prototype-switcher" aria-label="Prototype variation"><button onClick={() => changeVariant(-1)} aria-label="Previous variation">←</button><span>{selected.key} · {selected.name}</span><button onClick={() => changeVariant(1)} aria-label="Next variation">→</button></nav> : null}
+    {import.meta.env.DEV ? <nav className="prototype-switcher" aria-label="Prototype variation">{focused ? <span>C · Revised samples only</span> : <><button onClick={() => changeVariant(-1)} aria-label="Previous variation">←</button><span>{selected.key} · {selected.name}</span><button onClick={() => changeVariant(1)} aria-label="Next variation">→</button></>}</nav> : null}
   </>;
 }
 createRoot(document.getElementById('root')!).render(<App />);
