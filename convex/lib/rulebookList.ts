@@ -51,6 +51,10 @@ export async function listRulesetRulebooks(ctx: QueryCtx, rulesetId: Id<'ruleset
         : { html: unreservedArtifact, pdf: unreservedArtifact };
       return {
         ...rulebookMetadata(row),
+        /* Public previews and their dimensions belong to the current Edition, not its saved draft. */
+        settings: edition
+          ? (edition.settings ?? DEFAULT_RULEBOOK_SETTINGS)
+          : (row.settings ?? DEFAULT_RULEBOOK_SETTINGS),
         edition_published_at: edition?.created_at ?? null,
         html: artifacts.html,
         pdf: artifacts.pdf,

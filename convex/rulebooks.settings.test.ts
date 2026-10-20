@@ -118,6 +118,11 @@ describe('Rulebook settings', () => {
     expect(saved).toMatchObject({ kind: 'saved', draft: { revision: 2, settings, contents: created.draft.contents } });
     expect(saved.draft.contents_hash).toBe(created.draft.contents_hash);
     expect(saved.draft.authored_hash).not.toBe(created.draft.authored_hash);
+    const publicListing = () => owner.query(api.rulebooks.listByRulesetSlug, { ruleset_slug: 'rulebook-test-rules' });
+    expect((await publicListing()).find((row) => row._id === created.rulebook._id)?.settings).toEqual({
+      size: 'a4',
+      design: 'illustrated',
+    });
     const locator = { ruleset_slug: 'rulebook-test-rules', rulebook_slug: created.rulebook.slug };
     await expect(owner.query(api.rulebooks.editorPage, locator)).resolves.toMatchObject({
       hasUnpublishedChanges: true,
@@ -130,6 +135,7 @@ describe('Rulebook settings', () => {
       })
     ).resolves.toMatchObject({ kind: 'published', currentEdition: { edition_number: 2 } });
     await expect(owner.query(api.rulebooks.readerPage, locator)).resolves.toMatchObject({ edition: { settings } });
+    expect((await publicListing()).find((row) => row._id === created.rulebook._id)?.settings).toEqual(settings);
     await expect(owner.query(api.rulebooks.readerPage, { ...locator, edition_number: 1 })).resolves.toMatchObject({
       edition: { settings: { size: 'a4', design: 'illustrated' }, contents: created.edition.contents },
     });
