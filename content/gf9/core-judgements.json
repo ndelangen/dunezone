@@ -1,0 +1,585 @@
+[
+  {
+    "id": "GF9-CORE-001",
+    "topic": "A Karama cancels one use, not the whole phase",
+    "statements": [
+      {
+        "source": "gf9-base-2019",
+        "page": 22,
+        "text": "The original Q&A blocks all Atreides auction inspections."
+      },
+      {
+        "source": "gf9-faq-2020-11",
+        "page": 7,
+        "text": "A Karama stops one use of an ability, using one Voice in one battle as its example."
+      },
+      {
+        "source": "revised-v2.3",
+        "page": 16,
+        "text": "The revised text aligns to the updated CHOAM replacement card."
+      }
+    ],
+    "decision": "Cancel a single use. Apply one battle cancellation before plans are revealed.",
+    "reason": "The official November clarification and subsequent replacement-card wording address the old phase-wide text directly.",
+    "confidence": "high",
+    "affected": ["karama", "karama-factions", "all faction Karama annotations"],
+    "status": "implemented-in-local-draft",
+    "review": {
+      "status": "independently-reviewed",
+      "evidence": "content/gf9/faq-review.json#coreJudgementReview",
+      "assessment": "Supported, specific replacement-card single-use wording.",
+      "scope": "Independent core manuscript and base-faction review, with the two-reviewer 402-comment audit recorded separately."
+    }
+  },
+  {
+    "id": "GF9-CORE-002",
+    "topic": "Fremen Karama worm creates a Nexus",
+    "statements": [
+      {
+        "source": "gf9-base-2019",
+        "page": 22,
+        "text": "The base Q&A says the Karama worm does not signal a Nexus."
+      },
+      {
+        "source": "gf9-faq-2020-11",
+        "page": 3,
+        "text": "The Karama worm causes a Nexus at the end of Spice Blow and Nexus."
+      },
+      {
+        "source": "compilation",
+        "page": 37,
+        "text": "The compilation preserves both contradictory answers."
+      }
+    ],
+    "decision": "The special Fremen worm creates a phase-end Nexus.",
+    "reason": "The later official answer explicitly addresses this exact card effect and timing.",
+    "confidence": "high",
+    "affected": ["sandworms", "special-karama", "fremen-advanced", "GF9 Fremen fate"],
+    "status": "implemented-in-local-draft",
+    "review": {
+      "status": "independently-reviewed",
+      "evidence": "content/gf9/faq-review.json#coreJudgementReview",
+      "assessment": "Supported, exact special-worm later official correction; phase-end applies this special effect.",
+      "scope": "Independent core manuscript and base-faction review, with the two-reviewer 402-comment audit recorded separately."
+    }
+  },
+  {
+    "id": "GF9-CORE-003",
+    "topic": "Advanced Fremen cannot move through storm",
+    "statements": [
+      {
+        "source": "gf9-faq-2020-11",
+        "page": 5,
+        "text": "Reserve placement into permitted storm sectors is allowed at half loss; movement and riding into or out of storm are forbidden."
+      },
+      {
+        "source": "gf9-faq-issue-2284",
+        "page": "issuecomment-6225349896",
+        "text": "Earlier FAQ and emailed rulings permit movement into or through storm."
+      }
+    ],
+    "decision": "Permit legal reserve placement with half losses. Forbid ordinary movement and worm riding into or out of storm.",
+    "reason": "The November answer specifically distinguishes placement from movement. Earlier answers describe an older interpretation.",
+    "confidence": "high",
+    "affected": ["storm-effects", "fremen-advanced", "GF9 Fremen desert survival"],
+    "status": "implemented-in-local-draft",
+    "review": {
+      "status": "independently-reviewed",
+      "evidence": "content/gf9/faq-review.json#coreJudgementReview",
+      "assessment": "Supported, explicit placement/movement distinction.",
+      "scope": "Independent core manuscript and base-faction review, with the two-reviewer 402-comment audit recorded separately."
+    }
+  },
+  {
+    "id": "GF9-CORE-004",
+    "topic": "Storm deck is conditional on Advanced Fremen",
+    "statements": [
+      {
+        "source": "gf9-base-2019",
+        "page": 7,
+        "text": "The last two wheel users dial 1 to 3 on later turns."
+      },
+      {
+        "source": "gf9-base-2019",
+        "page": 16,
+        "text": "Advanced Fremen selects a Storm Card for later turns."
+      },
+      {
+        "source": "revised-v2.3",
+        "page": 6,
+        "text": "The revised book explicitly always uses the Storm Deck for convenience."
+      }
+    ],
+    "decision": "Without Advanced Fremen, retain the official dialed movement. With Advanced Fremen, use its Storm Cards after turn one.",
+    "reason": "The revised book identifies its change as an intentional convenience house rule.",
+    "confidence": "high",
+    "affected": ["storm-movement", "fremen-advanced"],
+    "status": "implemented-in-local-draft",
+    "review": {
+      "status": "independently-reviewed",
+      "evidence": "content/gf9/faq-review.json#coreJudgementReview",
+      "assessment": "Supported, original conditional Fremen card ability over convenience house change.",
+      "scope": "Independent core manuscript and base-faction review, with the two-reviewer 402-comment audit recorded separately."
+    }
+  },
+  {
+    "id": "GF9-CORE-005",
+    "topic": "Allied advisors and evacuation timing",
+    "statements": [
+      {
+        "source": "gf9-base-2019",
+        "page": 12,
+        "text": "If newly allied forces share a territory, the later player must leave if the earlier one has not."
+      },
+      {
+        "source": "gf9-faq-2020-11",
+        "page": 4,
+        "text": "The same evacuation rule applies to Bene Gesserit advisors sharing with an ally."
+      },
+      {
+        "source": "revised-v2.3",
+        "page": 15,
+        "text": "The revised book instead enforces separation after each individual turn and exempts advisors, acknowledging both departures."
+      }
+    ],
+    "decision": "Use the official later-player evacuation rule, including Bene Gesserit advisors, except for Ecaz Occupy.",
+    "reason": "Advisors have many exemptions, but the official clarification expressly includes them in the alliance constraint.",
+    "confidence": "high",
+    "affected": ["nexus", "advisors", "GF9 Bene Gesserit accompanying"],
+    "status": "implemented-in-local-draft",
+    "review": {
+      "status": "independently-reviewed",
+      "evidence": "content/gf9/faq-review.json#coreJudgementReview",
+      "assessment": "Supported, explicit official ally advisor evacuation rule; Ecaz exception remains.",
+      "scope": "Independent core manuscript and base-faction review, with the two-reviewer 402-comment audit recorded separately."
+    }
+  },
+  {
+    "id": "GF9-CORE-006",
+    "topic": "Emperor pays an ally then receives its normal card payment",
+    "statements": [
+      {
+        "source": "gf9-faq-2020-11",
+        "page": 2,
+        "text": "The Emperor contribution goes to the ally and is paid back to the Emperor."
+      },
+      {
+        "source": "revised-v2.3",
+        "page": 15,
+        "text": "The unofficial text sends an Emperor purchase contribution directly to the Bank unless given first through its separate gift ability."
+      }
+    ],
+    "decision": "Keep the official payment loop and immediate spice gifting ability.",
+    "reason": "Do not silently adopt the revised economic change. The official answer is explicit, even if it makes the Emperor-funded purchase effectively free.",
+    "confidence": "high",
+    "affected": ["allied-payments", "emperor", "bidding"],
+    "status": "implemented-in-local-draft",
+    "review": {
+      "status": "independently-reviewed",
+      "evidence": "content/gf9/faq-review.json#coreJudgementReview",
+      "assessment": "Supported, explicit official Emperor payment loop despite unofficial economic alternative.",
+      "scope": "Independent core manuscript and base-faction review, with the two-reviewer 402-comment audit recorded separately."
+    }
+  },
+  {
+    "id": "GF9-CORE-007",
+    "topic": "Priority between Fremen and Guild special victory",
+    "statements": [
+      {
+        "source": "gf9-base-2019",
+        "page": 16,
+        "text": "Fremen wins if no faction has won by the end of the last turn and its condition is met."
+      },
+      {
+        "source": "gf9-base-2019",
+        "page": 19,
+        "text": "Guild wins if no faction has won by the end of play."
+      },
+      {
+        "source": "gf9-faq-issue-2284",
+        "page": "issuecomment-6225360585",
+        "text": "Collected answers disagree about Guild-first, Fremen-first and unconditional Fremen defaults."
+      }
+    ],
+    "decision": "After normal victory checks, resolve a satisfied Fremen Special Victory Condition, then the Guild stall victory.",
+    "reason": "The specific Fremen territorial test should do work rather than being made unreachable whenever the Guild plays. This is an interpretation of conflicting general special-victory language, not an uncontested explicit priority rule.",
+    "confidence": "medium",
+    "affected": ["mentat", "spacing-guild", "fremen", "GF9 Spacing Guild special victory"],
+    "status": "implemented-in-local-draft",
+    "review": {
+      "status": "independently-reviewed",
+      "evidence": "content/gf9/faq-review.json#coreJudgementReview",
+      "assessment": "Supported medium, specific conditional Fremen victory must remain meaningful before general Guild stall win.",
+      "scope": "Independent core manuscript and base-faction review, with the two-reviewer 402-comment audit recorded separately."
+    }
+  },
+  {
+    "id": "GF9-CORE-008",
+    "topic": "No-Guild printed fallback differs from named Fremen special victory",
+    "statements": [
+      {
+        "source": "gf9-base-2019",
+        "page": 23,
+        "text": "If no winner at game end and Guild absent, Fremen wins; if also absent, most strongholds wins with ties shared."
+      },
+      {
+        "source": "gf9-base-2019",
+        "page": 16,
+        "text": "The named Fremen condition requires specific territories."
+      }
+    ],
+    "decision": "Retain the printed no-Guild Fremen fallback as a separate end-game rule, without claiming its territorial test was met.",
+    "reason": "Both official statements can be shown without erasing the explicit no-Guild fallback. Correct Bene Gesserit prediction does not target this fallback.",
+    "confidence": "medium",
+    "affected": ["mentat"],
+    "status": "implemented-in-local-draft",
+    "review": {
+      "status": "independently-reviewed",
+      "evidence": "content/gf9/faq-review.json#coreJudgementReview",
+      "assessment": "Supported medium, explicit printed fallback is distinct from named special territorial test.",
+      "scope": "Independent core manuscript and base-faction review, with the two-reviewer 402-comment audit recorded separately."
+    }
+  },
+  {
+    "id": "GF9-CORE-009",
+    "topic": "Simultaneous qualifying winners share victory",
+    "statements": [
+      {
+        "source": "gf9-faq-2020-11",
+        "page": 1,
+        "text": "When several factions meet the winning count, they tie unless the group chooses another whole turn."
+      },
+      {
+        "source": "revised-v2.3",
+        "page": 3,
+        "text": "The unofficial text awards the win to an unallied player with more strongholds before its shared-win clause."
+      }
+    ],
+    "decision": "Share simultaneous qualifying victory; do not rank qualifying players by extra strongholds.",
+    "reason": "The official question directly handles added strongholds from expansions and says tie.",
+    "confidence": "high",
+    "affected": ["begin", "mentat"],
+    "status": "implemented-in-local-draft",
+    "review": {
+      "status": "independently-reviewed",
+      "evidence": "content/gf9/faq-review.json#coreJudgementReview",
+      "assessment": "Supported, direct shared-win official answer.",
+      "scope": "Independent core manuscript and base-faction review, with the two-reviewer 402-comment audit recorded separately."
+    }
+  },
+  {
+    "id": "GF9-CORE-010",
+    "topic": "Fremen ally revival is three free within its limit",
+    "statements": [
+      {
+        "source": "gf9-base-2019",
+        "page": 9,
+        "text": "A faction normally cannot revive more than three forces per turn."
+      },
+      {
+        "source": "gf9-base-2019",
+        "page": 16,
+        "text": "Fremen may allow its allies to revive three forces for free."
+      },
+      {
+        "source": "revised-v2.3",
+        "page": 32,
+        "text": "The revised text increases the ally free revival to three."
+      },
+      {
+        "source": "gf9-faq-issue-2284",
+        "page": "issuecomment-6225676797",
+        "text": "Collected material contains a reading that adds three to the ally normal revivals."
+      }
+    ],
+    "decision": "Treat the benefit as three free revivals within the applicable total limit, not three additional forces.",
+    "reason": "Unlike Emperor, Fremen does not state extra revivals or a new total limit. Tleilaxu or another explicit effect can raise the limit.",
+    "confidence": "medium",
+    "affected": ["revive-forces", "fremen", "GF9 Fremen alliance"],
+    "status": "implemented-in-local-draft",
+    "review": {
+      "status": "independently-reviewed",
+      "evidence": "content/gf9/faq-review.json#coreJudgementReview",
+      "assessment": "Supported medium, three free is a rate, not additional allowance; other explicit limits remain.",
+      "scope": "Independent core manuscript and base-faction review, with the two-reviewer 402-comment audit recorded separately."
+    }
+  },
+  {
+    "id": "GF9-CORE-011",
+    "topic": "Revival eligibility of a dead Kwisatz Haderach",
+    "statements": [
+      {
+        "source": "gf9-base-2019",
+        "page": 17,
+        "text": "If killed it must be revived like any other leader; its status does not affect other Atreides revival."
+      },
+      {
+        "source": "revised-v2.3",
+        "page": 9,
+        "text": "The revised summary allows its revival before all leaders die."
+      },
+      {
+        "source": "gf9-faq-issue-2284",
+        "page": "issuecomment-6225359377",
+        "text": "Designer reading requires normal leader eligibility; a community reading permits any Revival Phase."
+      }
+    ],
+    "decision": "Pay two spice when normal Atreides leader revival is allowed, or use an explicit Ghola/Tleilaxu exception.",
+    "reason": "The ordinary-leader wording supplies eligibility. The separate token does not prevent the five actual leaders from becoming eligible.",
+    "confidence": "medium",
+    "affected": ["revive-leaders", "kwisatz-haderach", "GF9 Atreides advanced advantage"],
+    "status": "implemented-in-local-draft",
+    "review": {
+      "status": "independently-reviewed",
+      "evidence": "content/gf9/faq-review.json#coreJudgementReview",
+      "assessment": "Supported medium, direct designer normal leader eligibility plus explicit exception sources.",
+      "scope": "Independent core manuscript and base-faction review, with the two-reviewer 402-comment audit recorded separately."
+    }
+  },
+  {
+    "id": "GF9-CORE-012",
+    "topic": "Earlier surviving leaders and a later lasgun-shield explosion",
+    "statements": [
+      {
+        "source": "gf9-base-2019",
+        "page": 11,
+        "text": "Surviving leaders remain in the battle territory until other battles finish."
+      },
+      {
+        "source": "gf9-base-2019",
+        "page": 22,
+        "text": "An explosion destroys spice and all forces, including uninvolved forces."
+      },
+      {
+        "source": "revised-v2.3",
+        "page": 11,
+        "text": "The revised book explicitly includes previously used leaders in subsequent territory-wide effects."
+      },
+      {
+        "source": "gf9-faq-issue-2284",
+        "page": "issuecomment-6225364696",
+        "text": "Collected designer, relayed and community interpretations disagree whether earlier leaders die."
+      },
+      {
+        "source": "gf9-faq-issue-2284",
+        "page": "issuecomment-6225364696",
+        "text": "Direct Jack Reda answer after designer discussion says previously used leaders are not killed; this corrects the earlier informal Bill Eberle answer."
+      }
+    ],
+    "decision": "A later lasgun-shield explosion does not kill leaders that survived an earlier battle in that territory.",
+    "reason": "The collected direct Jack Reda ruling after designer discussion explicitly corrects the earlier informal interpretation. Leader discs left on the board mark their one-territory commitment; they do not become participants in a later battle.",
+    "confidence": "high",
+    "affected": ["weapons"],
+    "status": "corrected-after-independent-review",
+    "review": {
+      "status": "independently-reviewed",
+      "evidence": "content/gf9/faq-review.json#coreJudgementReview",
+      "assessment": "Corrected, final direct designer consensus excludes earlier surviving leaders from later explosion.",
+      "scope": "Independent core manuscript and base-faction review, with the two-reviewer 402-comment audit recorded separately."
+    }
+  },
+  {
+    "id": "GF9-CORE-013",
+    "topic": "Harkonnen special Karama exchanges at most four cards",
+    "statements": [
+      {
+        "source": "gf9-base-2019",
+        "page": 14,
+        "text": "The original special power takes any number up to an entire hand."
+      },
+      {
+        "source": "gf9-faq-2020-11",
+        "page": 6,
+        "text": "The direct explanation says up to four; a following hand-limit answer loosely says all cards."
+      },
+      {
+        "source": "revised-v2.3",
+        "page": 33,
+        "text": "The revised faction entry sets a four-card maximum."
+      }
+    ],
+    "decision": "Use up to four random cards during Bidding; temporary hand size may exceed eight, followed by an equal return.",
+    "reason": "Use the specific quantitative rule over the loose all-cards phrase in the hand-limit answer. This matters against an expanded hand limit.",
+    "confidence": "medium",
+    "affected": ["special-karama", "harkonnen", "GF9 Harkonnen fate"],
+    "status": "implemented-in-local-draft",
+    "review": {
+      "status": "independently-reviewed",
+      "evidence": "content/gf9/faq-review.json#coreJudgementReview",
+      "assessment": "Supported medium, specific up-to-four quantitative answer controls loose all-card shorthand.",
+      "scope": "Independent core manuscript and base-faction review, with the two-reviewer 402-comment audit recorded separately."
+    }
+  },
+  {
+    "id": "GF9-CORE-014",
+    "topic": "Bribery belongs to Advanced play",
+    "statements": [
+      {
+        "source": "gf9-base-2019",
+        "page": 12,
+        "text": "The base book includes Bribery after Basic alliances."
+      },
+      {
+        "source": "gf9-faq-2020-11",
+        "page": 1,
+        "text": "The designers state bribery should be Advanced and future rules will reflect this."
+      }
+    ],
+    "decision": "Place binding paid deals and spice bribery in the Advanced chapter. Retain voluntary information sharing in either game.",
+    "reason": "This adopts the explicit published design-intent correction. The FAQ expresses intended placement rather than pretending the older printed chapter was elsewhere.",
+    "confidence": "medium",
+    "affected": ["deals", "information", "charity"],
+    "status": "implemented-in-local-draft",
+    "review": {
+      "status": "independently-reviewed",
+      "evidence": "content/gf9/faq-review.json#coreJudgementReview",
+      "assessment": "Supported medium, explicit published design-intent note identifies bribery as Advanced.",
+      "scope": "Independent core manuscript and base-faction review, with the two-reviewer 402-comment audit recorded separately."
+    }
+  },
+  {
+    "id": "GF9-CORE-015",
+    "topic": "Notes about cards remain an Atreides privilege",
+    "statements": [
+      {
+        "source": "gf9-base-2019",
+        "page": 17,
+        "text": "Only Atreides may keep written records about cards."
+      },
+      {
+        "source": "gf9-faq-2020-11",
+        "page": 9,
+        "text": "General notes may be kept and mentions public card knowledge before a tournament caveat."
+      }
+    ],
+    "decision": "Allow general notes, while reserving written Treachery Card tracking to Atreides.",
+    "reason": "Keep the explicit faction privilege meaningful rather than extending a general note answer into its specific protected subject.",
+    "confidence": "medium",
+    "affected": ["information", "atreides", "GF9 Atreides bidding"],
+    "status": "implemented-in-local-draft",
+    "review": {
+      "status": "independently-reviewed",
+      "evidence": "content/gf9/faq-review.json#coreJudgementReview",
+      "assessment": "Supported medium, specific Atreides card-note privilege retained alongside general notes.",
+      "scope": "Independent core manuscript and base-faction review, with the two-reviewer 402-comment audit recorded separately."
+    }
+  },
+  {
+    "id": "GF9-CORE-016",
+    "topic": "Double Spice Blow Nexus timing",
+    "statements": [
+      {
+        "source": "gf9-base-2019",
+        "page": 8,
+        "text": "A revealed worm creates a Nexus at the end of the phase."
+      },
+      {
+        "source": "gf9-base-2019",
+        "page": 13,
+        "text": "The Advanced sequence says resolve a Nexus after pile A then repeat for B."
+      },
+      {
+        "source": "gf9-faq-2020-11",
+        "page": 3,
+        "text": "The Fremen special worm causes a Nexus at phase end."
+      },
+      {
+        "source": "revised-v2.3",
+        "page": 7,
+        "text": "The revised Advanced sequence resolves a Nexus after each pile."
+      }
+    ],
+    "decision": "Resolve pile A completely, including its Nexus and Fremen rides, then do the same for pile B. Two Nexus opportunities can occur. Fremen special Karama keeps its separately stated phase-end timing.",
+    "reason": "The specific Advanced procedure expressly instructs a Nexus before the second card is revealed. It outweighs the general Basic phase-end summary. Independent review corrected the draft single-window normalization; no collected designer override supports that normalization.",
+    "confidence": "high",
+    "affected": ["sandworms", "advanced-spice", "nexus"],
+    "status": "corrected-after-independent-review",
+    "review": {
+      "status": "independently-reviewed",
+      "evidence": "content/gf9/faq-review.json#coreJudgementReview",
+      "assessment": "Corrected after review: specific Advanced per-pile Nexus sequence prevails; original single-phase synthesis unsupported.",
+      "scope": "Independent core manuscript and base-faction review, with the two-reviewer 402-comment audit recorded separately."
+    }
+  },
+  {
+    "id": "GF9-CORE-017",
+    "topic": "Replacement cards replace, not add copies",
+    "statements": [
+      {
+        "source": "gf9-choam-richese",
+        "page": 4,
+        "text": "Two updated Karama replace core copies; Poison Tooth and Artillery Strike replace Ixian copies, or can be added if that expansion is absent."
+      },
+      {
+        "source": "gf9-faq-2020-11",
+        "page": 1,
+        "text": "Discard errata changes use of Poison Tooth and Artillery Strike."
+      }
+    ],
+    "decision": "Use corrected card designs with the official copy count, never duplicate old and replacement editions in the same deck.",
+    "reason": "This is an explicit replacement instruction rather than a balance choice.",
+    "confidence": "high",
+    "affected": ["card-reference", "karama", "expansion-map"],
+    "status": "implemented-in-local-draft",
+    "review": {
+      "status": "independently-reviewed",
+      "evidence": "content/gf9/faq-review.json#coreJudgementReview",
+      "assessment": "Supported, explicit replacement inventory instruction.",
+      "scope": "Independent core manuscript and base-faction review, with the two-reviewer 402-comment audit recorded separately."
+    }
+  },
+  {
+    "id": "GF9-CORE-018",
+    "topic": "Negotiation about the storm dials",
+    "statements": [
+      {
+        "source": "gf9-base-2019",
+        "page": 7,
+        "text": "Players independently and secretly dial, then reveal together."
+      },
+      {
+        "source": "gf9-faq-issue-2284",
+        "page": "issuecomment-6225671375",
+        "text": "Community disagrees whether independent dials forbid coordinating through deals."
+      }
+    ],
+    "decision": "Keep the simultaneous secret choice procedure without inventing an additional ban on legal Advanced deals about the number.",
+    "reason": "The general public binding-deal permission has no storm exception. Independent selection and simultaneous reveal still determine the actual numbers.",
+    "confidence": "medium",
+    "affected": ["storm-movement", "deals"],
+    "status": "adopted-in-local-draft",
+    "review": {
+      "status": "independently-reviewed",
+      "evidence": "Base rulebook PDF pp7,12; collected FAQ comment index320, https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225671375; content/gf9/faq-review.json#coreJudgementReview",
+      "assessment": "Supported at medium confidence. Independent simultaneous dials prescribe how each player chooses and reveals a number. The broad Advanced verbal-deal permission has no supplied storm-specific exception; preserve public legal deals without adding a coordination ban. Community disagreement leaves this an interpretation.",
+      "scope": "Independent re-read of both official passages and the full collected disputed comment; no online re-verification or mechanics edit."
+    }
+  },
+  {
+    "id": "GF9-CORE-019",
+    "topic": "Karama against Guild turn timing",
+    "statements": [
+      {
+        "source": "gf9-ixian-tleilaxu",
+        "page": 12,
+        "text": "Advanced Karama table says Guild must go in turn order when attempting to change its turn."
+      },
+      {
+        "source": "gf9-faq-issue-2284",
+        "page": "issuecomment-6225368442",
+        "text": "Community disagrees between normal-order restriction and stopping only one retryable attempt."
+      }
+    ],
+    "decision": "Guild takes its normal storm-order turn after cancellation; it cannot retry out-of-order timing later that turn.",
+    "reason": "The official table explicitly describes the resulting normal-order action. A retry would avoid the cancellation without giving up any resource.",
+    "confidence": "high",
+    "affected": ["karama-factions", "spacing-guild", "GF9 Spacing Guild karama annotation"],
+    "status": "adopted-in-local-draft",
+    "review": {
+      "status": "independently-reviewed",
+      "evidence": "Independent reviewer finding against Ixians & Tleilaxu PDF page 12, Advanced Karama table; collected FAQ comment 6225368442.",
+      "assessment": "Normal storm-order turn is the explicit official result; a retryable out-of-order attempt would evade the cancellation.",
+      "scope": "This interaction reviewed directly; not a certification of every source citation."
+    }
+  }
+]

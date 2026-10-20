@@ -1,0 +1,1459 @@
+{
+  "scope": "GF9 core Basic and Advanced game, six original factions, complete base Treachery reference; three expansion companion books owned by another author.",
+  "status": "local-manuscript-complete-awaiting-independent-content-review",
+  "reading": [
+    {
+      "source": "gf9-base-2019",
+      "localPdf": "/tmp/gf9-source-pdfs/base.pdf",
+      "sha256": "6c55d28e93b6948a34d20b0f50e1087494e06f237f8c43e7e4c0cac3810b752d",
+      "pdfPages": 24,
+      "readPdfPages": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24],
+      "method": "Read extracted text page by page, re-read previously truncated outputs. Selected visual inspection used to distinguish outlined unofficial rulings and printed page numbers.",
+      "notes": "All pages read including introductory lore and credits; rules paraphrased rather than copying a FAQ chapter."
+    },
+    {
+      "source": "gf9-faq-2020-11",
+      "localPdf": "/tmp/gf9-source-pdfs/faq-nov2020.pdf",
+      "sha256": "b6dc77d7778fb0fee800e3995e6fbf620531f7a6b1fd32af2303266f60bf2039",
+      "pdfPages": 9,
+      "readPdfPages": [1, 2, 3, 4, 5, 6, 7, 8, 9],
+      "method": "Read extracted text page by page, re-read previously truncated outputs. Selected visual inspection used to distinguish outlined unofficial rulings and printed page numbers.",
+      "notes": "Read as rulings/errata source. No Q&A entries imported into manuscript or application."
+    },
+    {
+      "source": "revised-v2.3",
+      "localPdf": "/tmp/gf9-source-pdfs/revised-v2.3.pdf",
+      "sha256": "7077aa87a973221d86d4bd2da945b40c4dec3d371caa6a68cb209758ddf1e516",
+      "pdfPages": 44,
+      "readPdfPages": [
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
+        31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44
+      ],
+      "method": "Read extracted text page by page, re-read previously truncated outputs. Selected visual inspection used to distinguish outlined unofficial rulings and printed page numbers.",
+      "notes": "Filename says v2.3; PDF page 3 heading says Version 2.2. Printed page is PDF page minus 2. Outline formatting identifies unofficial changes."
+    },
+    {
+      "source": "compilation",
+      "localPdf": "/tmp/gf9-source-pdfs/compilation.pdf",
+      "sha256": "990ed406120dd5d90c256a2afb3917247452d5c2025393c063ed8ba8e7b393f3",
+      "pdfPages": 46,
+      "readPdfPages": [
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
+        31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46
+      ],
+      "method": "Read extracted text page by page, re-read previously truncated outputs. Selected visual inspection used to distinguish outlined unofficial rulings and printed page numbers.",
+      "notes": "Compilation is Johannes Cassebaum community reference, not a separately authoritative official printing. Contains contradictory old and new answers."
+    }
+  ],
+  "faqIssue": {
+    "url": "https://github.com/ndelangen/dunezone/issues/2284",
+    "downloadedComments": 402,
+    "readByThisAuthor": "Indices 200 through 401, all202entries, fully read. Body and selected earlier conflicts also read.",
+    "wholeCommentAudit": "202 second-half entries complete in faq-review-200-401.json; expansion author owns0-199.",
+    "onlineCitationReverification": false,
+    "reason": "User says the collected sources were already checked. Read supplied entries and reconcile contradictions without rechecking every remote citation.",
+    "coverageFile": "content/gf9/faq-review-200-401.json"
+  },
+  "sourceSectionCoverage": [
+    {
+      "section": "begin",
+      "title": "The struggle for Arrakis",
+      "applicability": "all",
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 6
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 11
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 13
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 18
+        }
+      ],
+      "status": "authored"
+    },
+    {
+      "section": "board",
+      "title": "Read the board",
+      "applicability": "all",
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 4
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 7
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 10
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 2
+        }
+      ],
+      "status": "authored"
+    },
+    {
+      "section": "components",
+      "title": "Prepare the components",
+      "applicability": "all",
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 4
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 5
+        }
+      ],
+      "status": "authored"
+    },
+    {
+      "section": "choose-game",
+      "title": "Choose the game before setup",
+      "applicability": "all",
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 6
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 24
+        },
+        {
+          "source": "gf9-ecaz-moritani",
+          "page": 9
+        }
+      ],
+      "status": "authored"
+    },
+    {
+      "section": "setup",
+      "title": "Set up the game",
+      "applicability": "all",
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 6
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 17
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 18
+        },
+        {
+          "source": "gf9-choam-richese",
+          "page": 8
+        },
+        {
+          "source": "gf9-ixian-tleilaxu",
+          "page": 6
+        },
+        {
+          "source": "gf9-ixian-tleilaxu",
+          "page": 8
+        }
+      ],
+      "status": "authored"
+    },
+    {
+      "section": "starting-forces",
+      "title": "Starting positions and resources",
+      "applicability": "all",
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 16
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 17
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 18
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 19
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 3
+        }
+      ],
+      "status": "authored"
+    },
+    {
+      "section": "information",
+      "title": "Information, hands and discards",
+      "applicability": "all",
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 6
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 8
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 12
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 2
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 7
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 9
+        },
+        {
+          "source": "gf9-choam-richese",
+          "page": 4
+        }
+      ],
+      "status": "authored"
+    },
+    {
+      "section": "turn",
+      "title": "The nine phases of a turn",
+      "applicability": "all",
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 7
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 10
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 12
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 3
+        }
+      ],
+      "status": "authored"
+    },
+    {
+      "section": "first-storm",
+      "title": "Turn one: place the storm",
+      "applicability": "all",
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 7
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 16
+        }
+      ],
+      "status": "authored"
+    },
+    {
+      "section": "storm-movement",
+      "title": "Later storm movement",
+      "applicability": "all",
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 7
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 16
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 1
+        }
+      ],
+      "status": "authored"
+    },
+    {
+      "section": "storm-effects",
+      "title": "Storm losses and obstruction",
+      "applicability": "all",
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 7
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 10
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 16
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 1
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 5
+        }
+      ],
+      "status": "authored"
+    },
+    {
+      "section": "spice-blow",
+      "title": "Reveal a spice blow",
+      "applicability": "all",
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 8
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 13
+        }
+      ],
+      "status": "authored"
+    },
+    {
+      "section": "sandworms",
+      "title": "Sandworms and riding",
+      "applicability": "all",
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 8
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 13
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 16
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 3
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 5
+        }
+      ],
+      "status": "authored"
+    },
+    {
+      "section": "advanced-spice",
+      "title": "Two spice blows",
+      "applicability": "advanced",
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 13
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 3
+        }
+      ],
+      "status": "authored"
+    },
+    {
+      "section": "nexus",
+      "title": "Make or break alliances",
+      "applicability": "all",
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 12
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 23
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 2
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 4
+        },
+        {
+          "source": "gf9-ecaz-moritani",
+          "page": 8
+        }
+      ],
+      "status": "authored"
+    },
+    {
+      "section": "allied-payments",
+      "title": "Helping an ally",
+      "applicability": "all",
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 12
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 19
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 2
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 5
+        }
+      ],
+      "status": "authored"
+    },
+    {
+      "section": "charity",
+      "title": "Take CHOAM Charity",
+      "applicability": "all",
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 8
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 18
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 9
+        },
+        {
+          "source": "gf9-choam-richese",
+          "page": 7
+        },
+        {
+          "source": "gf9-choam-richese",
+          "page": 8
+        }
+      ],
+      "status": "authored"
+    },
+    {
+      "section": "bidding",
+      "title": "Auction Treachery Cards",
+      "applicability": "all",
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 8
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 17
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 19
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 2
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 7
+        }
+      ],
+      "status": "authored"
+    },
+    {
+      "section": "revive-forces",
+      "title": "Revive forces",
+      "applicability": "all",
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 9
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 16
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 19
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 2
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 5
+        }
+      ],
+      "status": "authored"
+    },
+    {
+      "section": "revive-leaders",
+      "title": "Revive leaders",
+      "applicability": "all",
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 9
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 17
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 22
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 6
+        }
+      ],
+      "status": "authored"
+    },
+    {
+      "section": "shipment",
+      "title": "Ship reserves to Arrakis",
+      "applicability": "all",
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 9
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 16
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 19
+        }
+      ],
+      "status": "authored"
+    },
+    {
+      "section": "movement",
+      "title": "Move one group",
+      "applicability": "all",
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 9
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 10
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 16
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 22
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 23
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 2
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 8
+        }
+      ],
+      "status": "authored"
+    },
+    {
+      "section": "battle-order",
+      "title": "Determine the battles",
+      "applicability": "all",
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 10
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 18
+        }
+      ],
+      "status": "authored"
+    },
+    {
+      "section": "battle-plan",
+      "title": "Make a battle plan",
+      "applicability": "all",
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 10
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 11
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 8
+        },
+        {
+          "source": "revised-v2.3",
+          "page": 12
+        }
+      ],
+      "status": "authored"
+    },
+    {
+      "section": "battle-information",
+      "title": "Voice and battle information",
+      "applicability": "all",
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 17
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 18
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 23
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 3
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 4
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 5
+        }
+      ],
+      "status": "authored"
+    },
+    {
+      "section": "battle-resolution",
+      "title": "Resolve an ordinary battle",
+      "applicability": "all",
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 10
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 11
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 13
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 2
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 8
+        }
+      ],
+      "status": "authored"
+    },
+    {
+      "section": "traitors",
+      "title": "Reveal a traitor",
+      "applicability": "all",
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 11
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 17
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 2
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 3
+        }
+      ],
+      "status": "authored"
+    },
+    {
+      "section": "weapons",
+      "title": "Weapons and defenses",
+      "applicability": "all",
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 10
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 11
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 22
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 4
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 5
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 8
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 9
+        },
+        {
+          "source": "revised-v2.3",
+          "page": 11
+        }
+      ],
+      "status": "authored"
+    },
+    {
+      "section": "advanced-battle",
+      "title": "Support forces with spice",
+      "applicability": "advanced",
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 13
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 16
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 19
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 3
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 7
+        },
+        {
+          "source": "gf9-ixian-tleilaxu",
+          "page": 9
+        }
+      ],
+      "status": "authored"
+    },
+    {
+      "section": "collection",
+      "title": "Collect spice",
+      "applicability": "all",
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 11
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 13
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 18
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 2
+        }
+      ],
+      "status": "authored"
+    },
+    {
+      "section": "mentat",
+      "title": "Mentat Pause and victory",
+      "applicability": "all",
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 11
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 16
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 18
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 19
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 23
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 1
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 9
+        }
+      ],
+      "status": "authored"
+    },
+    {
+      "section": "deals",
+      "title": "Deals and bribes",
+      "applicability": "advanced",
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 12
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 1
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 3
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 9
+        }
+      ],
+      "status": "authored"
+    },
+    {
+      "section": "karama",
+      "title": "Use a Karama Card",
+      "applicability": "all",
+      "sources": [
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 7
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 8
+        },
+        {
+          "source": "gf9-choam-richese",
+          "page": 4
+        },
+        {
+          "source": "revised-v2.3",
+          "page": 39
+        }
+      ],
+      "status": "authored"
+    },
+    {
+      "section": "karama-factions",
+      "title": "Karama against the base factions",
+      "applicability": "all",
+      "sources": [
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 7
+        },
+        {
+          "source": "revised-v2.3",
+          "page": 17
+        },
+        {
+          "source": "revised-v2.3",
+          "page": 18
+        },
+        {
+          "source": "revised-v2.3",
+          "page": 19
+        }
+      ],
+      "status": "authored"
+    },
+    {
+      "section": "special-karama",
+      "title": "Special Karama powers",
+      "applicability": "advanced",
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 14
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 2
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 3
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 6
+        },
+        {
+          "source": "revised-v2.3",
+          "page": 20
+        }
+      ],
+      "status": "authored"
+    },
+    {
+      "section": "atreides",
+      "title": "Atreides",
+      "applicability": "all",
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 17
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 23
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 3
+        },
+        {
+          "source": "gf9-choam-richese",
+          "page": 6
+        }
+      ],
+      "status": "authored"
+    },
+    {
+      "section": "kwisatz-haderach",
+      "title": "Activate the Kwisatz Haderach",
+      "applicability": "advanced",
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 17
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 14
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 3
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 6
+        },
+        {
+          "source": "revised-v2.3",
+          "page": 27
+        }
+      ],
+      "status": "authored"
+    },
+    {
+      "section": "bene-gesserit",
+      "title": "Bene Gesserit",
+      "applicability": "all",
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 18
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 23
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 4
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 5
+        }
+      ],
+      "status": "authored"
+    },
+    {
+      "section": "advisors",
+      "title": "Bene Gesserit advisors and fighters",
+      "applicability": "advanced",
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 18
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 3
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 4
+        },
+        {
+          "source": "gf9-ecaz-moritani",
+          "page": 10
+        }
+      ],
+      "status": "authored"
+    },
+    {
+      "section": "emperor",
+      "title": "Emperor",
+      "applicability": "all",
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 19
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 14
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 2
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 5
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 6
+        }
+      ],
+      "status": "authored"
+    },
+    {
+      "section": "fremen",
+      "title": "Fremen",
+      "applicability": "all",
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 16
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 5
+        },
+        {
+          "source": "gf9-choam-richese",
+          "page": 5
+        },
+        {
+          "source": "gf9-ecaz-moritani",
+          "page": 15
+        }
+      ],
+      "status": "authored"
+    },
+    {
+      "section": "fremen-advanced",
+      "title": "Advanced Fremen",
+      "applicability": "advanced",
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 16
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 3
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 5
+        }
+      ],
+      "status": "authored"
+    },
+    {
+      "section": "harkonnen",
+      "title": "Harkonnen",
+      "applicability": "all",
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 17
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 14
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 5
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 6
+        }
+      ],
+      "status": "authored"
+    },
+    {
+      "section": "spacing-guild",
+      "title": "Spacing Guild",
+      "applicability": "all",
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 19
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 23
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 5
+        }
+      ],
+      "status": "authored"
+    },
+    {
+      "section": "card-reference",
+      "title": "Base Treachery Cards",
+      "applicability": "all",
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 5
+        },
+        {
+          "source": "treachery-online",
+          "page": "skin.json: TreacheryCardName_STR 0-32"
+        },
+        {
+          "source": "gf9-choam-richese",
+          "page": 4
+        }
+      ],
+      "status": "authored"
+    },
+    {
+      "section": "worthless-cheap-hero",
+      "title": "Worthless Cards and Cheap Heroes",
+      "applicability": "all",
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 10
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 23
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 18
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 8
+        },
+        {
+          "source": "revised-v2.3",
+          "page": 12
+        }
+      ],
+      "status": "authored"
+    },
+    {
+      "section": "truthtrance",
+      "title": "Truthtrance",
+      "applicability": "all",
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 23
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 8
+        },
+        {
+          "source": "revised-v2.3",
+          "page": 39
+        }
+      ],
+      "status": "authored"
+    },
+    {
+      "section": "family-atomics",
+      "title": "Family Atomics",
+      "applicability": "all",
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 22
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 1
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 8
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 18
+        },
+        {
+          "source": "revised-v2.3",
+          "page": 39
+        }
+      ],
+      "status": "authored"
+    },
+    {
+      "section": "hajr-ghola-weather",
+      "title": "Movement, revival and weather cards",
+      "applicability": "all",
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 22
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 1
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 2
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 8
+        },
+        {
+          "source": "revised-v2.3",
+          "page": 39
+        },
+        {
+          "source": "treachery-online",
+          "page": "skin.json: TreacheryCardDescription_STR 20,22,27"
+        }
+      ],
+      "status": "authored"
+    },
+    {
+      "section": "expansion-map",
+      "title": "Adding expansions",
+      "applicability": "all",
+      "sources": [
+        {
+          "source": "gf9-ixian-tleilaxu",
+          "page": 4
+        },
+        {
+          "source": "gf9-choam-richese",
+          "page": 4
+        },
+        {
+          "source": "gf9-ecaz-moritani",
+          "page": 4
+        },
+        {
+          "source": "gf9-ecaz-moritani",
+          "page": 9
+        }
+      ],
+      "status": "authored"
+    },
+    {
+      "section": "alliance-variants",
+      "title": "Optional alliance arrangements",
+      "applicability": "all",
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 24
+        }
+      ],
+      "status": "authored"
+    }
+  ],
+  "baseFactions": [
+    {
+      "name": "GF9 Atreides",
+      "schema": "FactionInputSchema",
+      "validated": true,
+      "rulesSourcePages": [17],
+      "artworkSource": "Checked-in product story fixture used only for existing illustration IDs; all mechanics authored from GF9.",
+      "newComponentIds": true
+    },
+    {
+      "name": "GF9 Harkonnen",
+      "schema": "FactionInputSchema",
+      "validated": true,
+      "rulesSourcePages": [17],
+      "artworkSource": "Checked-in product story fixture used only for existing illustration IDs; all mechanics authored from GF9.",
+      "newComponentIds": true
+    },
+    {
+      "name": "GF9 Emperor",
+      "schema": "FactionInputSchema",
+      "validated": true,
+      "rulesSourcePages": [19],
+      "artworkSource": "Checked-in product story fixture used only for existing illustration IDs; all mechanics authored from GF9.",
+      "newComponentIds": true
+    },
+    {
+      "name": "GF9 Spacing Guild",
+      "schema": "FactionInputSchema",
+      "validated": true,
+      "rulesSourcePages": [19],
+      "artworkSource": "Checked-in product story fixture used only for existing illustration IDs; all mechanics authored from GF9.",
+      "newComponentIds": true
+    },
+    {
+      "name": "GF9 Fremen",
+      "schema": "FactionInputSchema",
+      "validated": true,
+      "rulesSourcePages": [16],
+      "artworkSource": "Checked-in product story fixture used only for existing illustration IDs; all mechanics authored from GF9.",
+      "newComponentIds": true
+    },
+    {
+      "name": "GF9 Bene Gesserit",
+      "schema": "FactionInputSchema",
+      "validated": true,
+      "rulesSourcePages": [18],
+      "artworkSource": "Checked-in product story fixture used only for existing illustration IDs; all mechanics authored from GF9.",
+      "newComponentIds": true
+    }
+  ],
+  "baseCardCoverage": {
+    "physicalCardCount": 33,
+    "coveredKinds": [
+      "projectile weapon",
+      "poison weapon",
+      "Shield",
+      "Snooper",
+      "Lasgun",
+      "Cheap Hero",
+      "Worthless",
+      "Karama",
+      "Truthtrance",
+      "Family Atomics",
+      "Hajr",
+      "Tleilaxu Ghola",
+      "Weather Control"
+    ],
+    "replacementPolicy": "CHOAM replacement Karama copies replace the old copies; do not add duplicates. Expansion card definitions are in companion manuscripts."
+  },
+  "judgementIds": [
+    "GF9-CORE-001",
+    "GF9-CORE-002",
+    "GF9-CORE-003",
+    "GF9-CORE-004",
+    "GF9-CORE-005",
+    "GF9-CORE-006",
+    "GF9-CORE-007",
+    "GF9-CORE-008",
+    "GF9-CORE-009",
+    "GF9-CORE-010",
+    "GF9-CORE-011",
+    "GF9-CORE-012",
+    "GF9-CORE-013",
+    "GF9-CORE-014",
+    "GF9-CORE-015",
+    "GF9-CORE-016",
+    "GF9-CORE-017",
+    "GF9-CORE-018",
+    "GF9-CORE-019"
+  ],
+  "excluded": [
+    {
+      "material": "FAQ questions and answers",
+      "reason": "Explicit user exclusion. Their settled corrections inform ordinary rule wording; no FAQ chapter or FAQ app records."
+    },
+    {
+      "material": "House rules from compilation page 34",
+      "reason": "Harkonnen mulligan, added strongholds, no-Guild stallout and Fremen support refunds are outside official GF9 default."
+    },
+    {
+      "material": "KISS, WBC, Landsraad, Dreamrules and KH mechanics",
+      "reason": "Separate rulesets. Dreamrules can inspire presentation only."
+    },
+    {
+      "material": "Repeated source Q&A and duplicated official paragraphs",
+      "reason": "One coherent rule explanation rather than repeated source appendices."
+    }
+  ],
+  "presentationReview": {
+    "dreamrules": "Public route retrieval attempted but HTTP403. Root has browser access for presentation comparison; no Dreamrules mechanics copied.",
+    "layout": "Intermediate semantic manuscript, root compiles current Rulebook schema and paginates/render verifies.",
+    "wordCount": 11513,
+    "sections": 51
+  },
+  "remainingChecks": [
+    "Independent 402-comment audit and content comparison.",
+    "Resolve medium/low confidence judgements with all collected entries in view.",
+    "Inspect compiled HTML and PDF for clipping, missing text, headers and readable page breaks.",
+    "Verify canonical card counts/replacements and ruleset/faction association after authenticated import."
+  ]
+}

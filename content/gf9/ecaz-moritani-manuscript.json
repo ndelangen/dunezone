@@ -1,0 +1,843 @@
+{
+  "title": "GF9: Ecaz & Moritani",
+  "introduction": "Faction rules and the Homeworld, Nexus and Discovery modules for the third GF9 expansion. Read with the GF9 core rulebook.",
+  "sections": [
+    {
+      "id": "using-this-expansion",
+      "title": "Using this expansion",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "Add Ecaz and Moritani to the available factions. With all three expansions there are 12 choices of faction, but the recommended game remains at most 6 players. Select Homeworlds, Nexus Cards, the new Treachery Cards and Discovery Tokens independently before setup."
+        },
+        {
+          "kind": "table",
+          "columns": ["Component", "Quantity and setup"],
+          "rows": [
+            [
+              "Faction sets",
+              "2 sets, each with a shield, sheet, marker, 5 standard leader discs, 20 troops and 2 Alliance cards."
+            ],
+            ["Ecaz", "11 Ambassador tokens."],
+            ["Moritani", "6 Terror tokens and 1 Atomics Aftermath token."],
+            ["Duke Prad Vidal", "1 additional strength-6 leader disc, with no Traitor Card."],
+            ["Traitors and Predictions", "10 Traitor Cards and 2 Prediction Cards; remove absent factions as usual."],
+            ["Nexus module", "12 Nexus Cards."],
+            [
+              "Homeworld module",
+              "13 Homeworld Cards and 13 corresponding reserve discs. Advanced Emperor uses 2; other factions use 1 each."
+            ],
+            ["New Treachery Cards", "Reinforcements, Harass & Withdraw and Recruits, 1 each."],
+            ["Discovery module", "7 Spice Cards and 8 Discovery tokens."]
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "source": "ecaz-moritani",
+          "page": "4"
+        },
+        {
+          "source": "ecaz-moritani",
+          "page": "14"
+        }
+      ]
+    },
+    {
+      "id": "ecaz-setup",
+      "title": "Ecaz setup and Ambassadors",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "Start with 12 spice, 6 troops in the Imperial Basin and 14 in reserves. Free revival is 2 troops. Take the Ecaz Ambassador and 5 random Ambassadors from the other 10 to form your supply. Keep Ambassador identities public."
+        },
+        {
+          "kind": "text",
+          "text": "At the end of Revival, place Ambassadors from your supply in strongholds not in storm and without an Ambassador already present. Pay 1 spice for the first token placed that turn, 2 for the second, 3 for the third, and so on. Placement is not troop shipment."
+        },
+        {
+          "kind": "text",
+          "text": "When another faction enters a stronghold with an Ambassador, you may trigger its effect immediately, interrupting that faction's action. Your ally, Bene Gesserit advisors and the faction matching that Ambassador do not trigger it. Set the triggered token aside after resolving it."
+        },
+        {
+          "kind": "text",
+          "text": "After all 5 random tokens from your supply have triggered, return them to the unused pool and draw a new random supply of 5. A used Bene Gesserit Ambassador is removed from the game instead. Storms and explosions return affected Ambassadors to your supply. The Ecaz token returns to your supply after use."
+        }
+      ],
+      "sources": [
+        {
+          "source": "ecaz-moritani",
+          "page": "7"
+        },
+        {
+          "source": "ecaz-moritani",
+          "page": "8"
+        },
+        {
+          "source": "ecaz-moritani",
+          "page": "15"
+        }
+      ]
+    },
+    {
+      "id": "ambassador-effects",
+      "title": "Ambassador effects",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "table",
+          "columns": ["Ambassador", "Effect"],
+          "rows": [
+            [
+              "Ecaz",
+              "Gain Duke Vidal if he is not in the Tanks, captured or a ghola; or form an alliance with the triggering faction if neither is allied and it agrees. If it allies, you may give it Vidal for this turn. Return this token to your supply."
+            ],
+            ["Atreides", "See the triggering faction's hand."],
+            [
+              "Bene Gesserit",
+              "Use any Ambassador effect that was not in your supply, then remove the Bene Gesserit token from the game."
+            ],
+            ["CHOAM", "Discard any number of your Treachery Cards and gain 3 spice per card from the Bank."],
+            ["Emperor", "Gain 5 spice from the Bank."],
+            ["Fremen", "Move one group of your troops on Arrakis to any territory, obeying storm and occupancy."],
+            ["Harkonnen", "Look at one random Traitor Card held by the triggering faction."],
+            ["Ixian", "Discard a Treachery Card and draw a replacement from the deck."],
+            ["Richese", "If your hand has room, pay the Bank 3 spice and draw the top Treachery Card."],
+            ["Spacing Guild", "Place up to 4 reserve troops in any territory not in storm for free."],
+            ["Tleilaxu", "Revive one of your leaders or up to 4 of your troops for free."]
+          ]
+        },
+        {
+          "kind": "text",
+          "text": "Your alliance advantage lets you choose to have your ally receive the triggered Ambassador's benefit. The Bene Gesserit copied effect can affect a faction that would be immune to the matching token itself."
+        }
+      ],
+      "sources": [
+        {
+          "source": "ecaz-moritani",
+          "page": "7"
+        },
+        {
+          "source": "ecaz-moritani",
+          "page": "8"
+        },
+        {
+          "source": "ecaz-moritani",
+          "page": "15"
+        }
+      ]
+    },
+    {
+      "id": "ecaz-co-occupation",
+      "title": "Ecaz co-occupation and victory",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "While allied, your troops and your ally's troops count as one faction for territory occupancy and may enter and remain together. This allows co-occupation alongside an enemy without breaking the normal two-faction stronghold occupancy limit."
+        },
+        {
+          "kind": "text",
+          "text": "If you collect desert spice together, divide it by agreement. If you cannot agree, split as evenly as possible and give the odd spice to Ecaz's ally. Co-occupation of Arrakeen or Carthag gives both allies ornithopters and the corresponding collection rate."
+        },
+        {
+          "kind": "text",
+          "text": "A stronghold occupied by both allies counts only once toward the alliance's total. If both Ecaz and its ally co-occupy each of 3 strongholds, the alliance wins with those 3 rather than needing 4. Ecaz controls a co-occupied stronghold. All 3 Tech Tokens still have to be held by one player to count as a stronghold."
+        },
+        {
+          "kind": "text",
+          "text": "Ecaz co-occupying Sietch Tabr with its Fremen ally does not prevent the Fremen special victory. Homeworlds are not territories, so Occupy does not extend to them."
+        }
+      ],
+      "sources": [
+        {
+          "source": "ecaz-moritani",
+          "page": "8"
+        },
+        {
+          "source": "ecaz-moritani",
+          "page": "10"
+        },
+        {
+          "source": "ecaz-moritani",
+          "page": "15"
+        }
+      ]
+    },
+    {
+      "id": "ecaz-battle",
+      "title": "Ecaz co-occupied battles",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "After battle order is established, choose whether Ecaz or its ally is the battling faction. That faction chooses the leader and Treachery Cards and uses its own battle abilities. Battle order and tie priority still depend on the actual battling faction."
+        },
+        {
+          "kind": "text",
+          "text": "Dial the allied faction's troops normally, then add half the Ecaz troops in the territory, rounded up. The Ecaz contribution needs no spice support. In Advanced play the battling faction pays the applicable support cost for the allied troops; Fremen troops need none. Fedaykin still have their applicable strength."
+        },
+        {
+          "kind": "text",
+          "text": "If the allied side wins, half the Ecaz troops rounded down remain, and the remainder go to the Tanks. Resolve the ally's troop losses normally. If the allied side loses, its troops are lost under normal losing rules."
+        },
+        {
+          "kind": "callout",
+          "title": "Example",
+          "text": "With 5 Ecaz troops and 5 Atreides troops, the Atreides dial may receive a bonus of 3 from Ecaz. If the alliance wins, 3 Ecaz troops go to the Tanks and 2 remain. This uses the stated Occupy rule rather than the contradictory worked example in the printed expansion."
+        },
+        {
+          "kind": "text",
+          "text": "Bene Gesserit advisors remain advisors when applicable; they are not fighting troops for Occupy. Karama played before plans can prevent the battle cooperation: the faction fighting then dials its own troops and the other faction contributes zero. It does not remove the three co-occupied stronghold victory condition."
+        }
+      ],
+      "sources": [
+        {
+          "source": "ecaz-moritani",
+          "page": "8"
+        },
+        {
+          "source": "ecaz-moritani",
+          "page": "15"
+        },
+        {
+          "source": "ecaz-moritani",
+          "page": "16"
+        }
+      ]
+    },
+    {
+      "id": "ecaz-advanced",
+      "title": "Advanced Ecaz rules",
+      "applicability": "advanced",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "Loyalty: before Traitor Cards are dealt, set aside one random Ecaz Traitor Card face up. Never shuffle it into the deck. This is a setup rule and Karama cannot stop it."
+        },
+        {
+          "kind": "text",
+          "text": "Collection: if you and your ally co-occupy Arrakeen, Carthag or Tuek's Sietch during Spice Collection, each faction receives that stronghold's full collection amount. Karama may stop Ecaz's collection while the ally still collects normally."
+        },
+        {
+          "kind": "text",
+          "text": "Special Karama: once per game, if you played neither a weapon nor a defense, spend a Karama Card to add the difference between your leader disc's value and your opponent's leader disc's value to your dial. Treat the difference as the absolute gap between the printed values; skill and Kwisatz Haderach additions are separate."
+        }
+      ],
+      "sources": [
+        {
+          "source": "ecaz-moritani",
+          "page": "4"
+        },
+        {
+          "source": "ecaz-moritani",
+          "page": "8"
+        },
+        {
+          "source": "ecaz-moritani",
+          "page": "16"
+        }
+      ]
+    },
+    {
+      "id": "moritani-setup-and-terror",
+      "title": "Moritani setup and Terror",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "Start with 12 spice. After other factions place their starting troops, put 6 troops in any unoccupied territory and keep 14 in reserves. Free revival is 2 troops. Keep all 6 Terror tokens hidden."
+        },
+        {
+          "kind": "text",
+          "text": "During Mentat Pause, place one Terror token face down in a stronghold without one, or move one of your existing Terror tokens to a stronghold without one. The stronghold may be in storm. The Hidden Mobile Stronghold and Homeworlds are not legal destinations."
+        },
+        {
+          "kind": "text",
+          "text": "When another faction other than your ally ships or moves into that stronghold, you may reveal the token and apply its effect to that faction. Advisors and unrevealed No-Field tokens can trigger Terror, even No-Field 0. Adding troops by a Face Dancer reveal or revealing a No-Field already there does not trigger Terror. Terror tokens survive storms and explosions."
+        },
+        {
+          "kind": "text",
+          "text": "A revealed token is removed from the game after its effect, except when Extortion explicitly returns it. Your own troops cannot trigger your Terror."
+        },
+        {
+          "kind": "text",
+          "text": "A faction can trigger a token when additional troops enter by shipment or movement even if it already had troops in that stronghold. The trigger is the entering group, not first occupation. Troops placed by another effect, such as the Fremen Homeworld advantage, do not trigger Terror."
+        }
+      ],
+      "sources": [
+        {
+          "source": "ecaz-moritani",
+          "page": "5"
+        },
+        {
+          "source": "ecaz-moritani",
+          "page": "6"
+        },
+        {
+          "source": "ecaz-moritani",
+          "page": "14"
+        },
+        {
+          "source": "ecaz-moritani",
+          "page": "16"
+        }
+      ]
+    },
+    {
+      "id": "terror-effects",
+      "title": "Terror effects",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "table",
+          "columns": ["Token", "Effect"],
+          "rows": [
+            [
+              "Assassination",
+              "Choose a random leader belonging to the entering faction, send it to the Tanks and collect its value in spice. Zoal pays 3."
+            ],
+            [
+              "Atomics",
+              "Send all troops in the territory to the Tanks and place Atomics Aftermath there. No faction may ever ship into that territory again, including Fremen. Reduce Moritani's and its ally's hand limits by 1 from this turn onward; discard a random card if over the new limit."
+            ],
+            [
+              "Extortion",
+              "Take 5 spice from the Bank in front of your shield, usable in Mentat Pause. In Mentat Pause regain this token unless any one player, asked in storm order, pays you 3 spice."
+            ],
+            [
+              "Robbery",
+              "Steal half the entering faction's spice, rounded up, or draw the top Treachery Card, then discard a card of your choice if over your hand limit."
+            ],
+            [
+              "Sabotage",
+              "Draw a random card from that faction and discard it if possible. You may then give it a card of your choice from your hand."
+            ],
+            [
+              "Sneak Attack",
+              "Put up to 5 of your reserve troops in the triggering territory for free, obeying storm and occupancy rules. This is allowed even with Atomics Aftermath present."
+            ]
+          ]
+        },
+        {
+          "kind": "text",
+          "text": "Atomics Aftermath bans shipment, including cross-shipment. It does not ban normal on-planet movement or the explicitly allowed Sneak Attack. It is different from the Family Atomics card that destroys the Shield Wall."
+        }
+      ],
+      "sources": [
+        {
+          "source": "ecaz-moritani",
+          "page": "5"
+        },
+        {
+          "source": "ecaz-moritani",
+          "page": "6"
+        },
+        {
+          "source": "ecaz-moritani",
+          "page": "14"
+        }
+      ]
+    },
+    {
+      "id": "moritani-alliance",
+      "title": "Enemy of My Enemy and alliance",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "Before revealing a Terror token triggered by a faction other than Ecaz, you may offer that faction an alliance. If it accepts, break either faction's existing alliance, form the new alliance, and return the unrevealed token to your supply. If it declines, reveal the token and resolve it. This is an exception to forming alliances only during a Nexus."
+        },
+        {
+          "kind": "text",
+          "text": "Your ally may keep one Treachery Card played in a battle it loses, provided the battle had a winner and it could have kept that card by winning. A card that must be discarded even by a winner cannot be retained through this benefit."
+        },
+        {
+          "kind": "text",
+          "text": "Karama can prevent placing or moving one Terror token, gaining Duke Vidal, or forming an Enemy of My Enemy alliance. It cannot cancel a Terror token's reveal merely because it could prevent placement. If the alliance offer is stopped, you may still reveal the token."
+        }
+      ],
+      "sources": [
+        {
+          "source": "ecaz-moritani",
+          "page": "6"
+        },
+        {
+          "source": "ecaz-moritani",
+          "page": "16"
+        }
+      ]
+    },
+    {
+      "id": "moritani-advanced",
+      "title": "Advanced Moritani rules",
+      "applicability": "advanced",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "Assassinate Leaders: after losing a battle in which no traitor was called and the opposing leader disc survived, you may reveal a Traitor Card for another leader of that opponent's faction. If that leader is not already in the Tanks, kill it and collect its value in spice, or 3 for Zoal."
+        },
+        {
+          "kind": "text",
+          "text": "During Mentat Pause place the revealed card face up as a marker and draw a replacement Traitor Card. Use this advantage at most once against each faction. If you ever reveal a Traitor Card normally, you lose Assassinate Leaders for the rest of the game. It cannot assassinate your own leader captured by Harkonnen, though you may expose that leader as a traitor normally."
+        },
+        {
+          "kind": "text",
+          "text": "Karama cannot prevent Assassinate Leaders. Your special Karama, usable once per game, lets you choose which of the opponent's played Treachery Cards they must keep or discard after you lose a battle."
+        }
+      ],
+      "sources": [
+        {
+          "source": "ecaz-moritani",
+          "page": "4"
+        },
+        {
+          "source": "ecaz-moritani",
+          "page": "6"
+        },
+        {
+          "source": "ecaz-moritani",
+          "page": "14"
+        },
+        {
+          "source": "ecaz-moritani",
+          "page": "16"
+        }
+      ]
+    },
+    {
+      "id": "duke-vidal",
+      "title": "Duke Prad Vidal",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "Duke Vidal is a strength-6 Ecaz leader with no Traitor Card. Begin with him set aside. Ecaz gains him through its Ambassador; Moritani gains him at the end of Shipment and Movement if Moritani faces battles in at least 2 strongholds, excluding battles against Ecaz, and Vidal is not in the Tanks or otherwise unavailable."
+        },
+        {
+          "kind": "text",
+          "text": "Ecaz keeps him until it uses him in a battle or Moritani takes him. Moritani keeps him for one battle, and sets him aside by the end of the turn if he is neither in the Tanks nor captured. Gaining Vidal does not grant a second use after he has fought that turn."
+        },
+        {
+          "kind": "text",
+          "text": "Only Ecaz may revive Vidal, including with a Ghola Treachery Card. Ecaz may pay 5 spice to revive him regardless of its other leaders. Revival returns him to the set-aside supply; it does not by itself give control. Ecaz may revive its other leaders normally when at least 5 of its leaders, counting Vidal, are in the Tanks, even if one remains alive."
+        }
+      ],
+      "sources": [
+        {
+          "source": "ecaz-moritani",
+          "page": "3"
+        },
+        {
+          "source": "ecaz-moritani",
+          "page": "6"
+        },
+        {
+          "source": "ecaz-moritani",
+          "page": "8"
+        },
+        {
+          "source": "ecaz-moritani",
+          "page": "9"
+        }
+      ]
+    },
+    {
+      "id": "homeworld-setup",
+      "title": "Optional Homeworlds",
+      "applicability": "optional",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "Give each faction its Homeworld Card and reserve disc. Keep reserve troops on that disc. Homeworld cards show a reserve threshold, battle strength for each reserve state, and the effects of High, Low and Occupied. Apply the state that matches the current reserve count as it changes."
+        },
+        {
+          "kind": "text",
+          "text": "At or above its printed threshold, use the High effect. Below the threshold, use Low. Low normally increases free revival by 1 and adds 1 spice when the faction actually collects Charity; the extra Charity comes directly from the Bank, not CHOAM. Low does not raise Charity eligibility: a faction with 2 spice still does not qualify merely because the bonus exists."
+        },
+        {
+          "kind": "text",
+          "text": "Tupile reverses the usual benefit: CHOAM has a High penalty and a Low advantage. Salusa Secundus gives neither bonus revival nor bonus Charity. Use the exact effects on the Homeworld Cards; they are part of this module's rules."
+        },
+        {
+          "kind": "text",
+          "text": "Karama does not cancel Homeworld advantages or penalties. Homeworlds are not Arrakis territories, and Ecaz Occupy, Moritani Terror and other territory-only effects do not extend to them."
+        }
+      ],
+      "sources": [
+        {
+          "source": "ecaz-moritani",
+          "page": "9"
+        },
+        {
+          "source": "ecaz-moritani",
+          "page": "10"
+        },
+        {
+          "source": "ecaz-moritani",
+          "page": "15"
+        },
+        {
+          "source": "ecaz-moritani",
+          "page": "16"
+        }
+      ]
+    },
+    {
+      "id": "homeworld-shipment",
+      "title": "Homeworld shipment and occupation",
+      "applicability": "optional",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "A faction may use its shipment to send reserve troops to another faction's homeworld for 1 spice per troop, or Guild half price. This is the normal shipment for the turn, not an extra shipment. Homeworld shipment triggers Heighliners."
+        },
+        {
+          "kind": "text",
+          "text": "Only the Spacing Guild may ship troops from Arrakis to a homeworld, as a cross-shipment, unless its Homeworld advantage explicitly grants that service to another faction. Other factions cannot add troops to their own homeworld except through revival. Troops may ship between homeworlds under the module's restrictions."
+        },
+        {
+          "kind": "text",
+          "text": "An invading faction becomes Occupier after defeating the native faction and retaining troops there, or immediately when alone there. It keeps that status until none of its troops remain. Apply the card's Occupied effect and any Spice Collection income, even in the Basic game. That income comes from the Bank and may immediately be shared with its ally. The native Low penalty remains in effect while occupied."
+        },
+        {
+          "kind": "text",
+          "text": "No faction may ally with a faction whose troops occupy its homeworld. Allies may neither ship to nor occupy one another's homeworlds. Bene Gesserit cannot send advisors to a homeworld or flip fighters to advisors on another faction's homeworld."
+        }
+      ],
+      "sources": [
+        {
+          "source": "ecaz-moritani",
+          "page": "9"
+        },
+        {
+          "source": "ecaz-moritani",
+          "page": "10"
+        },
+        {
+          "source": "ecaz-moritani",
+          "page": "15"
+        },
+        {
+          "source": "ecaz-moritani",
+          "page": "16"
+        }
+      ]
+    },
+    {
+      "id": "homeworld-battles-and-emperor",
+      "title": "Homeworld battles and Emperor reserves",
+      "applicability": "optional",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "On a homeworld, add its printed battle strength for the native faction's current reserve state to the native dial total. Invaders cannot reveal traitors or Face Dancers there. Native factions retain their applicable traitor rights."
+        },
+        {
+          "kind": "text",
+          "text": "In a Lasgun-Shield explosion, both factions lose and leaders die normally. The invader loses its troops normally. The native faction loses only as many troops as its current printed Homeworld Battle strength, regardless of its dial, and any native troops left remain. For example, High Caladan loses only 2 Atreides troops, matching the Homeworld Card."
+        },
+        {
+          "kind": "text",
+          "text": "In Basic play the Emperor uses only Kaitain and treats Sardaukar as ordinary troops. In Advanced play add Salusa Secundus. Start Sardaukar there, and revive Sardaukar there; normal troops start and revive on Kaitain. A shipment may draw from both worlds. The Emperor may use its normal movement to move troops between the two worlds."
+        },
+        {
+          "kind": "text",
+          "text": "Salusa Secundus uses the printed overlapping reserve bands: from High flip Low below 2 Sardaukar; from Low flip High above 2. At exactly 2 keep its current state. This exception needs the card's two thresholds to be understood together."
+        },
+        {
+          "kind": "text",
+          "text": "If Kaitain is Low and occupied, apply both divisions of its income. For a 5-spice Treachery payment, the Emperor receives 3 and the Occupier 2. Harkonnen's Homeworld collection benefit pays a total of 2 spice for the phase when a listed trigger occurs, rather than 2 for every individual trigger."
+        }
+      ],
+      "sources": [
+        {
+          "source": "ecaz-moritani",
+          "page": "10"
+        },
+        {
+          "source": "ecaz-moritani",
+          "page": "15"
+        }
+      ]
+    },
+    {
+      "id": "nexus-cards",
+      "title": "Optional Nexus Cards",
+      "applicability": "optional",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "After the Spice Blow and Nexus phase, if a Nexus occurred and at least one alliance exists, every unallied player may draw a Nexus Card. A player already holding one may discard it and draw a replacement. Keep it secret until played. Discard it to enter any alliance."
+        },
+        {
+          "kind": "text",
+          "text": "Each card offers one effect according to its named faction. Betrayal applies when another player controls that faction; it cancels the specified advantage when attempted. Cunning applies to your own faction. Secret Ally applies when the named faction is absent. A Secret Ally is the card's effect, not a normal on-board alliance."
+        },
+        {
+          "kind": "text",
+          "text": "Discard after use. At the end of a later qualifying Nexus you may draw again if still unallied. Shuffle discards when the deck runs out. Whenever you draw your own faction's card, you may immediately discard it and redraw in either Basic or Advanced play; some Cunning effects require Advanced rules."
+        },
+        {
+          "kind": "text",
+          "text": "Use Bene Gesserit Secret Ally before Atreides Prescience. A Traitor Card gained by Tleilaxu through Harkonnen Secret Ally is a Face Dancer. Moritani Betrayal removes one Terror token anywhere on the board; it does not permanently prevent future Terror placement."
+        }
+      ],
+      "sources": [
+        {
+          "source": "ecaz-moritani",
+          "page": "11"
+        },
+        {
+          "source": "ecaz-moritani",
+          "page": "16"
+        }
+      ]
+    },
+    {
+      "id": "new-treachery",
+      "title": "Optional new Treachery Cards",
+      "applicability": "optional",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "Add Reinforcements, Harass & Withdraw and Recruits to the Treachery Deck, one copy each. Discard each after use."
+        },
+        {
+          "kind": "table",
+          "columns": ["Card", "Rule"],
+          "rows": [
+            [
+              "Recruits",
+              "Play during Revival. All factions double their Free Revival rates. The revival limits is increased to 7. Discard after use."
+            ],
+            [
+              "Reinforcements",
+              "Play as part of your battle plan in place of a weapon or defense if you have at least 3 forces in reserves. Add 2 to your dialed number, then send 3 forces from reserves to the Tanks. Discard after use."
+            ],
+            [
+              "Harass and Withdraw",
+              "Play as part of your battle plan in place of a weapon or defense when not on your own Home World. Your undialed forces return to your reserves. Your leader may be killed as normal. If your opponent calls traitor, this effect is cancelled. Discard after use."
+            ]
+          ]
+        },
+        {
+          "kind": "text",
+          "text": "Reinforcements and Harass & Withdraw are placed in a Battle Plan in place of a weapon or a defense, but are neither. If Atreides asks to see that element, answer that no weapon or defense of that type is being played. Resolve the card's printed troop effect. In a co-occupied Ecaz battle, Harass & Withdraw returns only the player's own undialed troops; treat the other ally's troops normally."
+        },
+        {
+          "kind": "text",
+          "text": "Recruits is played during Revival. Double each faction's current free revival, including its Low Homeworld increase, and use a revival limit of 7 for the turn. A Low Fremen free rate of 4 becomes 8 before the limit, so it may revive 7 free. Recruits does not turn CHOAM's base rate of zero into a free troop unless another effect already increased that rate."
+        }
+      ],
+      "sources": [
+        {
+          "source": "ecaz-moritani",
+          "page": "11"
+        },
+        {
+          "source": "ecaz-moritani",
+          "page": "16"
+        }
+      ]
+    },
+    {
+      "id": "discovery-setup-and-cards",
+      "title": "Optional Discovery setup",
+      "applicability": "optional",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "Shuffle the 7 Discovery module Spice Cards into the Spice Deck and mix the 8 Discovery tokens face down, keeping Hiereg and Smuggler types available separately. The 7 cards comprise Great Maker and 6 Discovery blows."
+        },
+        {
+          "kind": "text",
+          "text": "Great Maker resolves like Shai-Hulud against the preceding spice territory, with ordinary protection and first-turn worm rules. Then every player votes in storm order on whether to hold a Nexus. A strict majority of yes votes is required; a tie means no Nexus. Fremen may then ride with any number of reserve troops to any legal territory, instead of riding from the board or placing the worm token. Karama killing Fremen in the devoured territory does not stop the reserve ride."
+        },
+        {
+          "kind": "text",
+          "text": "A Discovery blow destroys the existing spice and troops in its indicated spice territory, then places 6 spice there subject to the normal storm restriction. Place one random token of the indicated Hiereg or Smuggler type face down at the separate token location and sector shown on the card. Do not assume its token marker is placed at the spice blow itself."
+        }
+      ],
+      "sources": [
+        {
+          "source": "ecaz-moritani",
+          "page": "12"
+        }
+      ]
+    },
+    {
+      "id": "discovering-and-entering",
+      "title": "Revealing and entering Discoveries",
+      "applicability": "optional",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "During Spice Collection, a faction with non-advisor troops in a token's territory may inspect it and choose whether to reveal it. If left hidden, the opportunity returns in the next Spice Collection. Fremen may inspect hidden Hiereg tokens at any time; Guild may inspect hidden Smuggler tokens at any time."
+        },
+        {
+          "kind": "text",
+          "text": "Five tokens are locations. Once revealed, leave them in place. Revealing a location does not occupy it. At the beginning of the next turn, before the storm and before Ixian stronghold movement, factions in its parent territory may move any of their non-advisor troops there into the newly revealed location."
+        },
+        {
+          "kind": "text",
+          "text": "Thereafter a location is a territory within its parent. Normal movement must enter the parent and then spend another movement to enter the location. Shipping into a revealed location costs the stronghold rate. Troops inside are immune to storm and sandworms. Jacurutu alone explicitly counts as a stronghold for victory."
+        }
+      ],
+      "sources": [
+        {
+          "source": "ecaz-moritani",
+          "page": "12"
+        },
+        {
+          "source": "ecaz-moritani",
+          "page": "13"
+        }
+      ]
+    },
+    {
+      "id": "discovery-effects",
+      "title": "Discovery token effects",
+      "applicability": "optional",
+      "blocks": [
+        {
+          "kind": "table",
+          "columns": ["Token", "Effect"],
+          "rows": [
+            [
+              "Jacurutu Sietch, Hiereg",
+              "A normal stronghold. After winning a battle here, gain 1 spice per opposing undialed troop sent to the Tanks."
+            ],
+            ["Cistern, Hiereg", "While occupying it during Spice Collection, take 2 spice from the Bank."],
+            [
+              "Ecological Testing Station, Hiereg",
+              "While occupying it during Storm, add or subtract 1 from storm movement. It does not change Weather Control."
+            ],
+            ["Shrine, Hiereg", "While occupying it, use Truthtrance as Karama and Karama as Truthtrance."],
+            [
+              "Orgiz Processing Station, Smuggler",
+              "While occupying it during Spice Collection, steal 1 spice from each spice blow collected."
+            ],
+            [
+              "Treachery Card Stash, Smuggler",
+              "Draw one Treachery Card. If your hand was full, draw and then discard any card. Remove the token."
+            ],
+            ["Spice Stash, Smuggler", "Take 7 spice from the Bank and remove the token."],
+            [
+              "Ornithopter, Smuggler",
+              "Take the token. In a subsequent turn, spend it to use movement 3 instead of normal movement for one movement action, then remove it."
+            ]
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "source": "ecaz-moritani",
+          "page": "13"
+        }
+      ]
+    },
+    {
+      "id": "expansion-reference",
+      "title": "Expansion timing and choices",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "table",
+          "columns": ["When", "Additional events"],
+          "rows": [
+            [
+              "Before Traitors",
+              "Ecaz Loyalty in Advanced play; assign optional Leader Skills after starting Treachery."
+            ],
+            ["After first storm", "Place the Ixian stronghold and finish optional Tech Token assignment."],
+            [
+              "Before later storm",
+              "Enter newly revealed Discovery locations, then optional Ixian stronghold movement."
+            ],
+            ["End of Revival", "Ecaz may buy and place Ambassadors."],
+            [
+              "During Shipment and Movement",
+              "Ambassadors and Terror interrupt entering factions; check Moritani's Vidal condition at the end."
+            ],
+            [
+              "End of Spice Blow and Nexus",
+              "Qualifying unallied players draw or replace Nexus Cards after alliances are formed."
+            ],
+            ["Spice Collection", "Inspect and optionally reveal Discoveries; apply Homeworld and location collection."],
+            [
+              "Mentat Pause",
+              "Resolve faction pause effects and check victory with current strongholds, Homeworld victory effects and optional Tech Tokens."
+            ]
+          ]
+        },
+        {
+          "kind": "text",
+          "text": "Use each optional card's exact text with the procedures above. A module does not automatically activate another module. In particular, Discovery locations are not Homeworlds, Terror is not Family Atomics, and a Secret Ally card is not an ordinary faction alliance."
+        }
+      ],
+      "sources": [
+        {
+          "source": "ecaz-moritani",
+          "page": "4"
+        },
+        {
+          "source": "ecaz-moritani",
+          "page": "9"
+        },
+        {
+          "source": "ecaz-moritani",
+          "page": "11"
+        },
+        {
+          "source": "ecaz-moritani",
+          "page": "12"
+        },
+        {
+          "source": "ecaz-moritani",
+          "page": "13"
+        },
+        {
+          "source": "ecaz-moritani",
+          "page": "14"
+        }
+      ]
+    },
+    {
+      "id": "sources-and-judgements",
+      "title": "Sources and judgements",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "Source notes throughout this book use the short labels below. Numeric page references count PDF pages from the front cover as page 1. In the unofficial revised book, the printed rule-page number is two less than the PDF page number. Named references, such as a faction sheet or skin.json entry, identify a section or file location."
+        },
+        {
+          "kind": "list",
+          "title": "Source labels",
+          "items": [
+            "gf9-base-2019 means Dune Rulebook, Gale Force Nine, 2019 base edition, 24 PDF pages. The read copy is preserved in the treachery.online document mirror.",
+            "gf9-faq-2020-11 and faq-nov2020 mean Dune Questions and Answers, Gale Force Nine, November 2020, 9 PDF pages. Its clarifications inform the rules; its questions and answers are not reproduced here.",
+            "gf9-ixian-tleilaxu and ixian-tleilaxu mean Dune: Ixians & Tleilaxu Rulebook, Gale Force Nine, 2020 expansion, 12 PDF pages.",
+            "gf9-choam-richese and choam-richese mean Dune: CHOAM & Richese Rulebook, Gale Force Nine, supplied 2021 expansion copy, 12 PDF pages.",
+            "gf9-ecaz-moritani and ecaz-moritani mean Dune: Ecaz & Moritani Rulebook, Gale Force Nine, supplied copy with 2022 copyright, 16 PDF pages.",
+            "revised-v2.3 means Unofficial Revised Dune Rulebook by Van Willis, the supplied file named v2.3. Its internal heading says Version 2.2. It has 44 PDF pages and marks unofficial changes with outlined text. It is a comparison reference, not a new official edition.",
+            "compilation means Dune Boardgame Rules Compilation, assembled by Johannes Cassebaum for the Dune Tabletop Discord server, supplied undated copy, 46 PDF pages. It combines the base game, first two expansions and published questions and answers.",
+            "treachery-online means the treachery.online community implementation and card reference files by Ronald Ossendrijver and contributors. File locations identify the referenced data, rather than a printed page."
+          ]
+        },
+        {
+          "kind": "text",
+          "text": "The source copies and community references are linked from the GF9 source ticket: https://github.com/ndelangen/dunezone/issues/2216. The supplied copies identify what was read; a mirror or filename alone does not establish the latest official printing."
+        },
+        {
+          "kind": "text",
+          "text": "Conflicting statements and the interpretation adopted for Dune Zone are recorded in GF9 judgements: https://github.com/ndelangen/dunezone/issues/2352. Specific expansion rules apply within their scope. Explicit corrections replace the text they correct. Where the sources disagree, consult that record for the decision, reasons and affected content."
+        }
+      ],
+      "sources": []
+    }
+  ]
+}

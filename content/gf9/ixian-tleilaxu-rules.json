@@ -1,0 +1,1140 @@
+{
+  "key": "ixian-tleilaxu-rules",
+  "kind": "rulebook",
+  "data": {
+    "name": "GF9: Ixians & Tleilaxu",
+    "settings": {
+      "size": "a4",
+      "design": "restrained"
+    },
+    "contents": {
+      "schemaVersion": 1,
+      "pageOrder": [
+        "UGY8",
+        "YS7Y",
+        "WCPB",
+        "9X5U",
+        "U75A",
+        "8W68",
+        "3QF6",
+        "MX5B",
+        "NHHR",
+        "LAD8",
+        "T8CA",
+        "ZUDV",
+        "53NQ",
+        "Z9CF"
+      ],
+      "pagesById": {
+        "UGY8": {
+          "id": "UGY8",
+          "anchor": "cover",
+          "title": "GF9: Ixians & Tleilaxu",
+          "layoutId": "cover",
+          "controlValues": {
+            "cover": {
+              "backgroundSource": {
+                "kind": "preset",
+                "presetId": "shielded-city"
+              },
+              "showDuneLogo": true,
+              "showSubtitle": true,
+              "subtitle": "Faction rules, cards and optional Tech Tokens for the first GF9 expansion. Read with the GF9 core rulebook.",
+              "supportingText": "Gale Force Nine rules, with source references and recorded Dune Zone judgements."
+            }
+          },
+          "blockOrderByRegion": {},
+          "blocksById": {},
+          "showHeading": true
+        },
+        "YS7Y": {
+          "id": "YS7Y",
+          "anchor": "using-this-expansion",
+          "title": "Using this expansion",
+          "layoutId": "single-column",
+          "controlValues": {},
+          "blockOrderByRegion": {
+            "content": ["P5GU", "6YFJ", "BNKV", "S2WP", "UGSG"]
+          },
+          "blocksById": {
+            "P5GU": {
+              "id": "P5GU",
+              "kind": "text",
+              "text": "Add Ixians and Tleilaxu to the available factions. Choose which factions will play before building the Traitor and Prediction decks. This expansion adds choices of faction, not a requirement to play with more players. Use its faction rules in either the Basic or Advanced game; abilities marked Advanced apply only in the Advanced game."
+            },
+            "6YFJ": {
+              "id": "6YFJ",
+              "kind": "text",
+              "text": "Tech Tokens are a separate optional module. Decide whether to use them before setup. Retain the core turn sequence and all core rules except where an expansion rule gives an exception."
+            },
+            "BNKV": {
+              "id": "BNKV",
+              "kind": "reference-table",
+              "columnOrder": ["column-1", "column-2"],
+              "columnsById": {
+                "column-1": {
+                  "id": "column-1",
+                  "label": "Component"
+                },
+                "column-2": {
+                  "id": "column-2",
+                  "label": "Quantity and setup"
+                }
+              },
+              "rowOrder": ["row-1", "row-2", "row-3", "row-4"],
+              "rowsById": {
+                "row-1": {
+                  "id": "row-1",
+                  "cellsByColumnId": {
+                    "column-1": "Faction sets",
+                    "column-2": "2 sets, each with a shield, sheet, player marker, 5 leader discs and 20 troops."
+                  }
+                },
+                "row-2": {
+                  "id": "row-2",
+                  "cellsByColumnId": {
+                    "column-1": "Ixian special troops",
+                    "column-2": "7 Cyborgs and 13 Suboids, plus the Hidden Mobile Stronghold."
+                  }
+                },
+                "row-3": {
+                  "id": "row-3",
+                  "cellsByColumnId": {
+                    "column-1": "Treachery Cards",
+                    "column-2": "14 additions. If using the CHOAM & Richese replacement Poison Tooth and Artillery Strike, replace the earlier copies."
+                  }
+                },
+                "row-4": {
+                  "id": "row-4",
+                  "cellsByColumnId": {
+                    "column-1": "Spice Cards",
+                    "column-2": "1 Sandtrout, shuffled into the Spice Deck."
+                  }
+                }
+              },
+              "note": ""
+            },
+            "S2WP": {
+              "id": "S2WP",
+              "kind": "reference-table",
+              "columnOrder": ["column-1", "column-2"],
+              "columnsById": {
+                "column-1": {
+                  "id": "column-1",
+                  "label": "Component"
+                },
+                "column-2": {
+                  "id": "column-2",
+                  "label": "Quantity and setup"
+                }
+              },
+              "rowOrder": ["row-5", "row-6", "row-7"],
+              "rowsById": {
+                "row-5": {
+                  "id": "row-5",
+                  "cellsByColumnId": {
+                    "column-1": "Traitor Cards",
+                    "column-2": "11 additions: 5 per new faction and a Cheap Hero traitor. Exclude absent factions as usual."
+                  }
+                },
+                "row-6": {
+                  "id": "row-6",
+                  "cellsByColumnId": {
+                    "column-1": "Prediction Cards",
+                    "column-2": "2 faction additions."
+                  }
+                },
+                "row-7": {
+                  "id": "row-7",
+                  "cellsByColumnId": {
+                    "column-1": "Tech Tokens",
+                    "column-2": "3 optional tokens: Axlotl Tanks, Heighliners and Spice Production."
+                  }
+                }
+              },
+              "note": ""
+            },
+            "UGSG": {
+              "id": "UGSG",
+              "kind": "text",
+              "text": "Sources: ixian-tleilaxu, p. 4."
+            }
+          },
+          "showHeading": true
+        },
+        "WCPB": {
+          "id": "WCPB",
+          "anchor": "ixian-setup",
+          "title": "Ixian setup",
+          "layoutId": "single-column",
+          "controlValues": {},
+          "blockOrderByRegion": {
+            "content": ["C4DA", "F65U", "2H6E", "PRKC", "T6RG", "3VC6", "WCTU", "8Q9F", "QTYV"]
+          },
+          "blocksById": {
+            "C4DA": {
+              "id": "C4DA",
+              "kind": "text",
+              "text": "Start with 10 spice. Of your 7 Cyborgs and 13 Suboids, place 3 of each in the Hidden Mobile Stronghold. Your other 4 Cyborgs and 10 Suboids start in reserves. After the first storm movement, place the stronghold pointing at a sector of any non-stronghold territory, including the Polar Sink."
+            },
+            "F65U": {
+              "id": "F65U",
+              "kind": "text",
+              "text": "Before starting Treachery Cards are dealt, draw one card per faction in the game. Keep one, shuffle the remainder and deal one to every other faction. Harkonnen then receive their additional starting card from the deck. This replaces the normal one-card starting deal."
+            },
+            "2H6E": {
+              "id": "2H6E",
+              "kind": "text",
+              "text": "Your free revival is 1 troop, either a Cyborg or a Suboid. Both types pay normal shipment costs. A paid Cyborg revival costs 3 spice; paid Suboid revival uses the normal troop cost."
+            },
+            "PRKC": {
+              "id": "PRKC",
+              "kind": "text",
+              "text": "Sources: ixian-tleilaxu, p. 8; ixian-tleilaxu, p. 9; ixian-tleilaxu, p. 11."
+            },
+            "T6RG": {
+              "id": "T6RG",
+              "kind": "section-heading",
+              "title": "Ixian bidding and alliance",
+              "anchor": "ixian-bidding"
+            },
+            "3VC6": {
+              "id": "3VC6",
+              "kind": "text",
+              "text": "Before the Bidding round, draw one more Treachery Card than the number of normal cards to be auctioned and inspect them. Return one card of your choice face down to either the top or bottom of the deck. Shuffle the remaining drawn cards to form the auction supply. You know which cards are in the auction, but their shuffled order is secret."
+            },
+            "WCTU": {
+              "id": "WCTU",
+              "kind": "text",
+              "text": "After an ally buys a card in normal bidding, they may inspect it, immediately discard it and draw the top card of the Treachery Deck. Make the decision separately for each purchase. This applies to a Richese Black Market purchase, even if that card is Richese technology, but not to a purchase from the separate Richese cache."
+            },
+            "8Q9F": {
+              "id": "8Q9F",
+              "kind": "callout",
+              "variant": "note",
+              "title": "With Richese",
+              "text": "Richese announces whether their cache card comes first or last before the Ixian Bidding advantage. Draw one fewer normal auction card for each cache or successfully sold Black Market card replacing a normal card. The Ixian extra draw still supplies one card to return to the deck."
+            },
+            "QTYV": {
+              "id": "QTYV",
+              "kind": "text",
+              "text": "Sources: ixian-tleilaxu, p. 8; ixian-tleilaxu, p. 9."
+            }
+          },
+          "showHeading": true
+        },
+        "9X5U": {
+          "id": "9X5U",
+          "anchor": "cyborgs-and-suboids",
+          "title": "Cyborgs and Suboids",
+          "layoutId": "single-column",
+          "controlValues": {},
+          "blockOrderByRegion": {
+            "content": ["EMQQ", "VKQC", "4QUT", "PJ6H", "7D4T"]
+          },
+          "blocksById": {
+            "EMQQ": {
+              "id": "EMQQ",
+              "kind": "reference-table",
+              "columnOrder": ["column-1", "column-2"],
+              "columnsById": {
+                "column-1": {
+                  "id": "column-1",
+                  "label": "Troop"
+                },
+                "column-2": {
+                  "id": "column-2",
+                  "label": "Battle and travel"
+                }
+              },
+              "rowOrder": ["row-1", "row-2"],
+              "rowsById": {
+                "row-1": {
+                  "id": "row-1",
+                  "cellsByColumnId": {
+                    "column-1": "Cyborg",
+                    "column-2": "7 troops. Each is worth 2 normal troops in Basic battle, moves up to 2 territories, and collects up to 3 spice."
+                  }
+                },
+                "row-2": {
+                  "id": "row-2",
+                  "cellsByColumnId": {
+                    "column-1": "Suboid",
+                    "column-2": "13 troops. Each is worth 1/2 in battle. Move up to 2 territories with at least one Cyborg, otherwise 1, subject to normal ornithopter movement. Collect spice normally."
+                  }
+                }
+              },
+              "note": ""
+            },
+            "VKQC": {
+              "id": "VKQC",
+              "kind": "text",
+              "text": "Pay battle losses in the battle strength of the troops removed. After calculating losses, exchange any surviving Suboids in the battle territory one for one for Cyborgs lost in that battle. Send the exchanged Suboids to the Tanks and retain those Cyborgs."
+            },
+            "4QUT": {
+              "id": "4QUT",
+              "kind": "callout",
+              "variant": "note",
+              "title": "Example",
+              "text": "With 2 Cyborgs and 6 Suboids, a dial of 6 can cost both Cyborgs and 4 Suboids. Exchange the 2 surviving Suboids for the 2 lost Cyborgs. The surviving force is 2 Cyborgs."
+            },
+            "PJ6H": {
+              "id": "PJ6H",
+              "kind": "text",
+              "text": "Suboids still occupy territories, control strongholds and collect spice despite their fractional battle strength."
+            },
+            "7D4T": {
+              "id": "7D4T",
+              "kind": "text",
+              "text": "Sources: ixian-tleilaxu, p. 9; ixian-tleilaxu, p. 10."
+            }
+          },
+          "showHeading": true
+        },
+        "U75A": {
+          "id": "U75A",
+          "anchor": "hidden-mobile-stronghold",
+          "title": "The Hidden Mobile Stronghold",
+          "layoutId": "single-column",
+          "controlValues": {},
+          "blockOrderByRegion": {
+            "content": ["LUHZ", "RU9A", "GVHL", "SVUF", "BTN4", "8P6J", "NBJ3", "MCAF", "NSWR", "A2BA", "WH3Q"]
+          },
+          "blocksById": {
+            "LUHZ": {
+              "id": "LUHZ",
+              "kind": "text",
+              "text": "The Hidden Mobile Stronghold is a separate stronghold inside the non-stronghold territory it points at. Its position and occupants are public. Occupying it counts as one stronghold toward victory, and troops inside are protected from sandworms and the storm."
+            },
+            "RU9A": {
+              "id": "RU9A",
+              "kind": "text",
+              "text": "On later turns, before storm movement is dialed or revealed, if Ixian troops occupy the stronghold, the Ixians may move it up to 3 territories, ending with its pointer in a sector of a non-stronghold territory. It may not move into, out of or through the storm. Troops outside do not board it merely because it passes them."
+            },
+            "GVHL": {
+              "id": "GVHL",
+              "kind": "text",
+              "text": "When it moves into, out of or through a spice-bearing sector, immediately collect up to 2 spice per troop inside, taking spice from that territory. The pointer must pass through the sector that actually holds the spice. This is the stronghold movement collection rule; Cyborg collection capacity of 3 applies to ordinary Spice Collection."
+            },
+            "SVUF": {
+              "id": "SVUF",
+              "kind": "text",
+              "text": "Ixians may ship directly into it at the stronghold shipment rate. Other factions must first ship or move to its parent territory and then spend one territory of movement to enter. Capturing the stronghold does not let another faction move it. Bene Gesserit Spiritual Advisors may accompany an Ixian shipment directly inside. Fremen worm riding may also end directly inside, subject to storm and occupancy rules."
+            },
+            "BTN4": {
+              "id": "BTN4",
+              "kind": "text",
+              "text": "Pointing at the Polar Sink does not make the stronghold part of the neutral Polar Sink. Battles can occur inside the stronghold. Moritani cannot place a Terror token inside it."
+            },
+            "8P6J": {
+              "id": "8P6J",
+              "kind": "text",
+              "text": "Sources: ixian-tleilaxu, p. 9; ixian-tleilaxu, p. 11."
+            },
+            "NBJ3": {
+              "id": "NBJ3",
+              "kind": "section-heading",
+              "title": "Advanced Ixian rules | Advanced game",
+              "anchor": "ixian-advanced"
+            },
+            "MCAF": {
+              "id": "MCAF",
+              "kind": "text",
+              "text": "Cyborgs need spice support to count at their full strength of 2. Without support they count as 1. Suboids always count as 1/2 and cannot be increased by paying spice. Their support cost is zero."
+            },
+            "NSWR": {
+              "id": "NSWR",
+              "kind": "text",
+              "text": "Technology: once per Bidding round, before bidding begins on a normal card and before Atreides inspects it, exchange that card for one from your hand. This is a swap, so a full hand does not prevent it. It does not replace the separate Bidding advantage."
+            },
+            "A2BA": {
+              "id": "A2BA",
+              "kind": "text",
+              "text": "Special Karama: once per game, spend a Karama Card to move the Hidden Mobile Stronghold up to 2 territories during your own Shipment and Movement turn, in addition to your normal movement. Normal stronghold movement restrictions still apply."
+            },
+            "WH3Q": {
+              "id": "WH3Q",
+              "kind": "text",
+              "text": "Sources: ixian-tleilaxu, p. 6; ixian-tleilaxu, p. 9."
+            }
+          },
+          "showHeading": true
+        },
+        "8W68": {
+          "id": "8W68",
+          "anchor": "tleilaxu-setup",
+          "title": "Tleilaxu setup and Face Dancers",
+          "layoutId": "single-column",
+          "controlValues": {},
+          "blockOrderByRegion": {
+            "content": ["BB8U", "5835", "7WFG", "BGNW", "CJPR", "EQXV", "YL7U", "MAP8"]
+          },
+          "blocksById": {
+            "5835": {
+              "id": "5835",
+              "kind": "list",
+              "style": "bulleted",
+              "itemOrder": ["item-1"],
+              "itemsById": {
+                "item-1": {
+                  "id": "item-1",
+                  "text": "Resolve traitors and determine the battle winner first. Whenever another faction wins a battle, you may reveal a Face Dancer matching its leader, including in a battle you did not fight."
+                }
+              }
+            },
+            "BB8U": {
+              "id": "BB8U",
+              "kind": "text",
+              "text": "Start with 5 spice and all 20 troops in reserves. Your free revival is 2 troops. You receive no Traitor Cards during ordinary Traitor selection. After other factions have selected traitors and returned unused cards, shuffle the remaining deck and draw 3 Face Dancers."
+            },
+            "7WFG": {
+              "id": "7WFG",
+              "kind": "list",
+              "style": "bulleted",
+              "itemOrder": ["item-2"],
+              "itemsById": {
+                "item-2": {
+                  "id": "item-2",
+                  "text": "The battle remains that faction's win. Resolve its card retention, spice for killed leaders and Tech Token claim normally."
+                }
+              }
+            },
+            "BGNW": {
+              "id": "BGNW",
+              "kind": "list",
+              "style": "bulleted",
+              "itemOrder": ["item-3"],
+              "itemsById": {
+                "item-3": {
+                  "id": "item-3",
+                  "text": "Send the revealed leader to the Tanks if not already killed. Collect no spice for killing it through the Face Dancer reveal."
+                }
+              }
+            },
+            "CJPR": {
+              "id": "CJPR",
+              "kind": "list",
+              "style": "bulleted",
+              "itemOrder": ["item-4"],
+              "itemsById": {
+                "item-4": {
+                  "id": "item-4",
+                  "text": "Return that winner's surviving troops in the battle territory to its reserves. Replace up to that number with Tleilaxu troops from your reserves and/or anywhere on Arrakis."
+                }
+              }
+            },
+            "EQXV": {
+              "id": "EQXV",
+              "kind": "text",
+              "text": "An Atreides leader accompanied by the Kwisatz Haderach can still be a Face Dancer. Face Dancer replacement is not shipment or movement and does not trigger Terror tokens."
+            },
+            "YL7U": {
+              "id": "YL7U",
+              "kind": "text",
+              "text": "Keep revealed Face Dancers face up. Do not replace or reuse them individually. After all 3 have been revealed, return all 3 to the Traitor Deck, shuffle and draw 3 new ones. During each Mentat Pause you may instead return one unrevealed Face Dancer to the deck, shuffle and draw a replacement."
+            },
+            "MAP8": {
+              "id": "MAP8",
+              "kind": "text",
+              "text": "Sources: ixian-tleilaxu, p. 6; ixian-tleilaxu, p. 7; ixian-tleilaxu, p. 10; ixian-tleilaxu, p. 11."
+            }
+          },
+          "showHeading": true
+        },
+        "3QF6": {
+          "id": "3QF6",
+          "anchor": "tleilaxu-revival",
+          "title": "Tleilaxu revival, Zoal and alliance",
+          "layoutId": "single-column",
+          "controlValues": {},
+          "blockOrderByRegion": {
+            "content": ["YDCL", "QGFL", "EWLR", "K8BD", "M4G2", "GPLJ", "4796", "XMZU", "M8UE", "D2UH", "2YRX", "M2XG"]
+          },
+          "blocksById": {
+            "4796": {
+              "id": "4796",
+              "kind": "section-heading",
+              "title": "Advanced Tleilaxu rules | Advanced game",
+              "anchor": "tleilaxu-advanced"
+            },
+            "YDCL": {
+              "id": "YDCL",
+              "kind": "text",
+              "text": "You have no troop revival limit. Pay the Spice Bank half the normal total revival price, rounded up. Other factions pay their revival costs to you. You may raise another faction's normal 3-troop revival limit to 5; this also lets Fremen buy additional troops up to that limit. Special limits on reviving elite troops still apply."
+            },
+            "QGFL": {
+              "id": "QGFL",
+              "kind": "text",
+              "text": "For every faction that takes free revival or uses a Ghola Card, take 1 spice from the Spice Bank, including when you take free revival yourself. If the Emperor pays for an ally's extra revivals, those payments also go to you."
+            },
+            "EWLR": {
+              "id": "EWLR",
+              "kind": "text",
+              "text": "When a faction cannot otherwise revive a leader, it may ask you to revive one specific dead leader, face up or face down. Set a price; if the faction agrees and pays, revive that leader. This allows early revival, not an extra leader revival: at most one leader per faction per Revival phase. When its leaders are all unavailable and normal leader revival is allowed, apply the normal rule instead."
+            },
+            "K8BD": {
+              "id": "K8BD",
+              "kind": "text",
+              "text": "You may offer your ally half-price troop and leader revival, rounding up the total price. The ally pays you; this alliance benefit does not let you pay the ally's revival bill. CHOAM allied with Tleilaxu may halve its total troop revival price rather than rounding each troop separately."
+            },
+            "M4G2": {
+              "id": "M4G2",
+              "kind": "text",
+              "text": "Zoal copies the opposing leader disc's value for battle and for spice collected if Zoal is killed. Against a Cheap Hero, Zoal is 0. Do not copy additions from the Kwisatz Haderach or a Leader Skill. Reviving Zoal costs 3 spice. This is the explicit Zoal revival price. Do not halve it again."
+            },
+            "GPLJ": {
+              "id": "GPLJ",
+              "kind": "text",
+              "text": "Sources: ixian-tleilaxu, p. 7; ixian-tleilaxu, p. 10."
+            },
+            "XMZU": {
+              "id": "XMZU",
+              "kind": "text",
+              "text": "Gholas: while you have fewer than 5 active leaders, you may revive dead leaders belonging to other factions at your discounted price and add them to your pool, up to 5 active leaders in total. Face-down leaders are eligible. You may revive more than one ghola in a Revival phase if there is room in your pool."
+            },
+            "M8UE": {
+              "id": "M8UE",
+              "kind": "text",
+              "text": "A ghola can be exposed as a traitor by whoever holds its Traitor Card; it does not automatically betray its original faction. A ghola does not earn you a Leader Skill draw. The Auditor and Duke Vidal are excluded from Tleilaxu ghola acquisition."
+            },
+            "D2UH": {
+              "id": "D2UH",
+              "kind": "text",
+              "text": "A ghola cannot be sold back while alive. After it dies and returns to the Tanks, its owning faction may request revival under the normal Tleilaxu revival arrangement."
+            },
+            "2YRX": {
+              "id": "2YRX",
+              "kind": "text",
+              "text": "Special Karama: once per game, spend a Karama Card to prevent one player from performing a revival of troops and/or a leader."
+            },
+            "M2XG": {
+              "id": "M2XG",
+              "kind": "text",
+              "text": "Sources: ixian-tleilaxu, p. 6; ixian-tleilaxu, p. 7; ixian-tleilaxu, p. 10."
+            }
+          },
+          "showHeading": true
+        },
+        "MX5B": {
+          "id": "MX5B",
+          "anchor": "tech-token-setup",
+          "title": "Optional Tech Tokens | Optional module",
+          "layoutId": "single-column",
+          "controlValues": {},
+          "blockOrderByRegion": {
+            "content": ["E3WU", "XAMZ", "WBPQ", "AMZE", "LNTG", "Z36U", "AWWZ"]
+          },
+          "blocksById": {
+            "E3WU": {
+              "id": "E3WU",
+              "kind": "text",
+              "text": "Keep Tech Tokens visible in front of shields. Initially give Axlotl Tanks to Tleilaxu, Heighliners to Ixians, and Spice Production to Fremen. After the first storm movement, assign any token whose faction is absent at random to the next factions in turn order that have no token. No starting faction receives a second token this way."
+            },
+            "XAMZ": {
+              "id": "XAMZ",
+              "kind": "text",
+              "text": "When you defeat a faction holding Tech Tokens, take one. If it holds several, choose which one to take. This transfer follows the battle winner even if a later Face Dancer reveal replaces its troops."
+            },
+            "WBPQ": {
+              "id": "WBPQ",
+              "kind": "text",
+              "text": "One player controlling all 3 tokens counts them as one stronghold for victory. Allied players may not combine their tokens to create this stronghold, including an Ecaz alliance."
+            },
+            "AMZE": {
+              "id": "AMZE",
+              "kind": "reference-table",
+              "columnOrder": ["column-1", "column-2"],
+              "columnsById": {
+                "column-1": {
+                  "id": "column-1",
+                  "label": "Token"
+                },
+                "column-2": {
+                  "id": "column-2",
+                  "label": "Income condition"
+                }
+              },
+              "rowOrder": ["row-1", "row-2", "row-3"],
+              "rowsById": {
+                "row-1": {
+                  "id": "row-1",
+                  "cellsByColumnId": {
+                    "column-1": "Axlotl Tanks",
+                    "column-2": "At least one faction takes free revival, except when only Tleilaxu does so."
+                  }
+                },
+                "row-2": {
+                  "id": "row-2",
+                  "cellsByColumnId": {
+                    "column-1": "Heighliners",
+                    "column-2": "At least one faction ships from off-planet, except when only the Spacing Guild does so."
+                  }
+                },
+                "row-3": {
+                  "id": "row-3",
+                  "cellsByColumnId": {
+                    "column-1": "Spice Production",
+                    "column-2": "At least one faction takes CHOAM Charity, except when only Bene Gesserit and/or CHOAM use their faction Charity advantages."
+                  }
+                }
+              },
+              "note": ""
+            },
+            "LNTG": {
+              "id": "LNTG",
+              "kind": "text",
+              "text": "Each qualifying token triggers only once in its phase, however many factions qualify. Its income is 1 spice from the Spice Bank for every Tech Token its holder controls. Place that income on the triggering token and collect it at the end of the phase. Inflation does not alter this amount."
+            },
+            "Z36U": {
+              "id": "Z36U",
+              "kind": "callout",
+              "variant": "note",
+              "title": "Example",
+              "text": "If you hold Axlotl Tanks and Heighliners and another faction takes free revival, Axlotl Tanks produces 2 spice. If a qualifying shipment later occurs, Heighliners produces 2 more. Multiple qualifying revivals do not multiply the first payment."
+            },
+            "AWWZ": {
+              "id": "AWWZ",
+              "kind": "text",
+              "text": "Sources: ixian-tleilaxu, p. 4; ixian-tleilaxu, p. 5."
+            }
+          },
+          "showHeading": true
+        },
+        "NHHR": {
+          "id": "NHHR",
+          "anchor": "new-cards",
+          "title": "Expansion card rules",
+          "layoutId": "single-column",
+          "controlValues": {},
+          "blockOrderByRegion": {
+            "content": ["X7DA", "YP5F", "8ZDM", "65U7", "FRBS", "2Q9L", "N9WP"]
+          },
+          "blocksById": {
+            "X7DA": {
+              "id": "X7DA",
+              "kind": "text",
+              "text": "Shuffle Sandtrout into the Spice Deck. When it is drawn, existing alliances end. The next Shai-Hulud produces no Nexus. Look at that worm's replacement: a second Shai-Hulud produces a normal Nexus; a Spice Blow is doubled. A Spice Blow immediately after Sandtrout is not doubled merely because it follows Sandtrout."
+            },
+            "YP5F": {
+              "id": "YP5F",
+              "kind": "text",
+              "text": "The Cheap Hero Traitor Card can betray any opposing Cheap Hero. After its first reveal, it remains usable against later Cheap Heroes, though everyone knows you hold it."
+            },
+            "8ZDM": {
+              "id": "8ZDM",
+              "kind": "text",
+              "text": "Poison Blade is both a projectile and poison weapon. A Shield alone does not protect against it; Shield Snooper provides the combined protection. Shield Snooper also counts as a Shield for a Lasgun explosion and protects against Artillery Strike. Weirding Way played as a projectile defense is not a Shield: it neither causes a Lasgun explosion nor protects from Artillery Strike."
+            },
+            "65U7": {
+              "id": "65U7",
+              "kind": "text",
+              "text": "Poison Tooth is not stopped by a Snooper, but Chemistry played as a poison defense stops it. After seeing battle results, its player may choose not to use it. A winner may keep an unused Poison Tooth; otherwise discard it. Artillery Strike is always discarded after use. Use the corrected CHOAM & Richese versions of those cards when available."
+            },
+            "FRBS": {
+              "id": "FRBS",
+              "kind": "text",
+              "text": "Bene Gesserit Voice names a special weapon specifically when required, such as Artillery Strike. Chemistry and Weirding Way only count as the type in which they are actually played for Prescience and Leader Skills."
+            },
+            "2Q9L": {
+              "id": "2Q9L",
+              "kind": "text",
+              "text": "Voice may name a generic projectile or poison weapon, Shield or Snooper, or the exact special card. Poison Blade, Poison Tooth, Shield Snooper, Weirding Way and Chemistry can be prohibited through the generic type stated on the card. Artillery Strike and Lasgun must be named specifically; a command simply banning all special cards is invalid. Voice can compel Weirding Way in its default projectile-weapon role, but cannot force its conversion into a defense. Chemistry defaults to poison defense and cannot be forced into its alternate weapon role. Voice may prohibit either alternate role when it applies."
+            },
+            "N9WP": {
+              "id": "N9WP",
+              "kind": "text",
+              "text": "Sources: ixian-tleilaxu, p. 10; ixian-tleilaxu, p. 11."
+            }
+          },
+          "showHeading": true
+        },
+        "LAD8": {
+          "id": "LAD8",
+          "anchor": "treachery-reference",
+          "title": "New Treachery Card reference",
+          "layoutId": "single-column",
+          "controlValues": {},
+          "blockOrderByRegion": {
+            "content": ["G866", "XRMZ", "49X4"]
+          },
+          "blocksById": {
+            "G866": {
+              "id": "G866",
+              "kind": "reference-table",
+              "columnOrder": ["column-1", "column-2"],
+              "columnsById": {
+                "column-1": {
+                  "id": "column-1",
+                  "label": "Card"
+                },
+                "column-2": {
+                  "id": "column-2",
+                  "label": "Rule"
+                }
+              },
+              "rowOrder": ["row-1", "row-2", "row-3", "row-4"],
+              "rowsById": {
+                "row-1": {
+                  "id": "row-1",
+                  "cellsByColumnId": {
+                    "column-1": "Poison Blade",
+                    "column-2": "Weapon - Special - Play as part of your Battle Plan. This weapon counts as both projectile and poison. You may keep this card if you win this battle."
+                  }
+                },
+                "row-2": {
+                  "id": "row-2",
+                  "cellsByColumnId": {
+                    "column-1": "Hunter-Seeker",
+                    "column-2": "Weapon - Projectile - Play as part of your Battle Plan. Kills opponent's leader before battle is resolved. Opponent may protect leader with a Shield. You may keep this card if you win the battle."
+                  }
+                },
+                "row-3": {
+                  "id": "row-3",
+                  "cellsByColumnId": {
+                    "column-1": "Basilia Weapon",
+                    "column-2": "Weapon - Poison - Play as part of your Battle Plan. Kills opponent's leader before battle is resolved. Opponent may protect leader with a Snooper. You may keep this card if you win the battle."
+                  }
+                },
+                "row-4": {
+                  "id": "row-4",
+                  "cellsByColumnId": {
+                    "column-1": "Weirding Way",
+                    "column-2": "Weapon - Special - Play as part of your Battle Plan. Counts as a projectile weapon but has the same effect as a projectile defense when played as a defense with another weapon. You may keep this card if you win this battle."
+                  }
+                }
+              },
+              "note": ""
+            },
+            "XRMZ": {
+              "id": "XRMZ",
+              "kind": "section-heading",
+              "title": "New Treachery Card reference, continued",
+              "anchor": "treachery-reference-2"
+            },
+            "49X4": {
+              "id": "49X4",
+              "kind": "reference-table",
+              "columnOrder": ["column-1", "column-2"],
+              "columnsById": {
+                "column-1": {
+                  "id": "column-1",
+                  "label": "Card"
+                },
+                "column-2": {
+                  "id": "column-2",
+                  "label": "Rule"
+                }
+              },
+              "rowOrder": ["row-5", "row-6", "row-7", "row-8"],
+              "rowsById": {
+                "row-5": {
+                  "id": "row-5",
+                  "cellsByColumnId": {
+                    "column-1": "Poison Tooth",
+                    "column-2": "Weapon - Special - Play as part of your Battle Plan. Kills both leaders, and is not stopped by a Snooper. After seeing the battle results, you may choose not to use this weapon in which case you don't need to discard it if you win the battle."
+                  }
+                },
+                "row-6": {
+                  "id": "row-6",
+                  "cellsByColumnId": {
+                    "column-1": "Shield Snooper",
+                    "column-2": "Defense - Special - Play as part of your Battle Plan. Counts as both a Shield (projectile defense) and Snooper (poison defense). You may keep this card if you win this battle."
+                  }
+                },
+                "row-7": {
+                  "id": "row-7",
+                  "cellsByColumnId": {
+                    "column-1": "Chemistry",
+                    "column-2": "Defense - Special - Play as part of your Battle Plan. Counts as a poison defense but has the same effect as a poison weapon when played as a weapon with another defense. You may keep this card if you win this battle."
+                  }
+                },
+                "row-8": {
+                  "id": "row-8",
+                  "cellsByColumnId": {
+                    "column-1": "Artillery Strike",
+                    "column-2": "Weapon - Special - Play as part of your Battle Plan. Kills both leaders (no spice is paid for them). Both players may use Shields to protect their leader against the Artillery Strike. Surviving (shielded) leaders do not count towards the battle total, the side that dialed higher wins the battle. Discard after use."
+                  }
+                }
+              },
+              "note": ""
+            }
+          },
+          "showHeading": true
+        },
+        "T8CA": {
+          "id": "T8CA",
+          "anchor": "treachery-reference-3",
+          "title": "New Treachery Card reference, continued",
+          "layoutId": "single-column",
+          "controlValues": {},
+          "blockOrderByRegion": {
+            "content": ["J3KY", "PZAA", "8ANH"]
+          },
+          "blocksById": {
+            "J3KY": {
+              "id": "J3KY",
+              "kind": "reference-table",
+              "columnOrder": ["column-1", "column-2"],
+              "columnsById": {
+                "column-1": {
+                  "id": "column-1",
+                  "label": "Card"
+                },
+                "column-2": {
+                  "id": "column-2",
+                  "label": "Rule"
+                }
+              },
+              "rowOrder": ["row-9", "row-10", "row-11", "row-12"],
+              "rowsById": {
+                "row-9": {
+                  "id": "row-9",
+                  "cellsByColumnId": {
+                    "column-1": "Harvester",
+                    "column-2": "Play just after a spice blow comes up. Doubles the Spice blow. Place double the amount of spice in the territory."
+                  }
+                },
+                "row-10": {
+                  "id": "row-10",
+                  "cellsByColumnId": {
+                    "column-1": "Thumper",
+                    "column-2": "Play at beginning of Spice Blow Phase instead of revealing the Spice Blow card. Causes a Shai-Hulud to appear. Play proceeds as though Shai-Hulud has been revealed."
+                  }
+                },
+                "row-11": {
+                  "id": "row-11",
+                  "cellsByColumnId": {
+                    "column-1": "Amal",
+                    "column-2": "At the beginning of any phase, cause all players to discard half of the spice behind their shields, rounded up, to the Spice Bank."
+                  }
+                },
+                "row-12": {
+                  "id": "row-12",
+                  "cellsByColumnId": {
+                    "column-1": "Kull Wahad",
+                    "column-2": "Worthless Card - Play as part of your Battle Plan, in place of a weapon, defense, or both. This card has no value in play, and you can discard it only by playing it in your Battle plan."
+                  }
+                }
+              },
+              "note": ""
+            },
+            "PZAA": {
+              "id": "PZAA",
+              "kind": "text",
+              "text": "The 14-card expansion has 12 named designs; deck membership supplies repeated copies. Poison Tooth and Artillery Strike use the corrected versions explained above. Harvester doubles a qualifying blow; it does not increase spice protected by a different rule. Thumper is played before the ordinary Spice Card draw and resolves as a Shai-Hulud draw, with first-turn worm restrictions. Amal is played at the beginning of a phase and removes half of each player's behind-shield spice, rounded up."
+            },
+            "8ANH": {
+              "id": "8ANH",
+              "kind": "text",
+              "text": "Sources: ixian-tleilaxu, p. 4; ixian-tleilaxu, p. 11."
+            }
+          },
+          "showHeading": true
+        },
+        "ZUDV": {
+          "id": "ZUDV",
+          "anchor": "ixian-tleilaxu-karama",
+          "title": "Karama against these factions",
+          "layoutId": "single-column",
+          "controlValues": {},
+          "blockOrderByRegion": {
+            "content": ["PL98", "QE6N", "8DAF", "X83C", "M97W", "6EML", "XULR"]
+          },
+          "blocksById": {
+            "PL98": {
+              "id": "PL98",
+              "kind": "reference-table",
+              "columnOrder": ["column-1", "column-2"],
+              "columnsById": {
+                "column-1": {
+                  "id": "column-1",
+                  "label": "Faction advantage"
+                },
+                "column-2": {
+                  "id": "column-2",
+                  "label": "Effect that can be prevented"
+                }
+              },
+              "rowOrder": ["row-1", "row-2", "row-3", "row-4"],
+              "rowsById": {
+                "row-1": {
+                  "id": "row-1",
+                  "cellsByColumnId": {
+                    "column-1": "Ixian Bidding",
+                    "column-2": "Inspecting the auction supply and choosing a card to return."
+                  }
+                },
+                "row-2": {
+                  "id": "row-2",
+                  "cellsByColumnId": {
+                    "column-1": "Ixian movement",
+                    "column-2": "The extra Cyborg/Suboid movement. Normal ornithopters still apply."
+                  }
+                },
+                "row-3": {
+                  "id": "row-3",
+                  "cellsByColumnId": {
+                    "column-1": "Ixian Cyborg battle strength",
+                    "column-2": "Reduce Cyborgs to normal troop strength, then reduce any unsupported dial to the legal maximum."
+                  }
+                },
+                "row-4": {
+                  "id": "row-4",
+                  "cellsByColumnId": {
+                    "column-1": "Ixian Suboid exchange",
+                    "column-2": "Replacing lost Cyborgs with surviving Suboids."
+                  }
+                }
+              },
+              "note": ""
+            },
+            "QE6N": {
+              "id": "QE6N",
+              "kind": "reference-table",
+              "columnOrder": ["column-1", "column-2"],
+              "columnsById": {
+                "column-1": {
+                  "id": "column-1",
+                  "label": "Faction advantage"
+                },
+                "column-2": {
+                  "id": "column-2",
+                  "label": "Effect that can be prevented"
+                }
+              },
+              "rowOrder": ["row-5", "row-6", "row-7", "row-8"],
+              "rowsById": {
+                "row-5": {
+                  "id": "row-5",
+                  "cellsByColumnId": {
+                    "column-1": "Hidden Mobile Stronghold",
+                    "column-2": "Moving the stronghold or collecting spice through that movement."
+                  }
+                },
+                "row-6": {
+                  "id": "row-6",
+                  "cellsByColumnId": {
+                    "column-1": "Ixian alliance",
+                    "column-2": "One immediate purchased-card replacement."
+                  }
+                },
+                "row-7": {
+                  "id": "row-7",
+                  "cellsByColumnId": {
+                    "column-1": "Ixian Technology, Advanced",
+                    "column-2": "The one card swap for that Bidding round."
+                  }
+                },
+                "row-8": {
+                  "id": "row-8",
+                  "cellsByColumnId": {
+                    "column-1": "Tleilaxu Face Dancers",
+                    "column-2": "Only replacing one unrevealed Face Dancer during Mentat Pause. Reveals and their effects cannot be stopped."
+                  }
+                }
+              },
+              "note": ""
+            },
+            "8DAF": {
+              "id": "8DAF",
+              "kind": "reference-table",
+              "columnOrder": ["column-1", "column-2"],
+              "columnsById": {
+                "column-1": {
+                  "id": "column-1",
+                  "label": "Faction advantage"
+                },
+                "column-2": {
+                  "id": "column-2",
+                  "label": "Effect that can be prevented"
+                }
+              },
+              "rowOrder": ["row-9", "row-10"],
+              "rowsById": {
+                "row-9": {
+                  "id": "row-9",
+                  "cellsByColumnId": {
+                    "column-1": "Tleilaxu revival",
+                    "column-2": "The relevant revival advantage, including discounted or unlimited revival, early leader revival, payment for one revival, or free-revival income."
+                  }
+                },
+                "row-10": {
+                  "id": "row-10",
+                  "cellsByColumnId": {
+                    "column-1": "Tleilaxu Gholas, Advanced",
+                    "column-2": "Acquiring another faction's dead leader through the ghola advantage."
+                  }
+                }
+              },
+              "note": ""
+            },
+            "X83C": {
+              "id": "X83C",
+              "kind": "section-heading",
+              "title": "Karama against these factions, continued",
+              "anchor": "ixian-tleilaxu-karama-2"
+            },
+            "M97W": {
+              "id": "M97W",
+              "kind": "text",
+              "text": "Karama stops one use of an advantage when attempted, after setup. It does not permanently remove that advantage. Suboids remain half strength, and a special Karama power cannot itself be canceled by another Karama."
+            },
+            "6EML": {
+              "id": "6EML",
+              "kind": "text",
+              "text": "Canceling Cyborg strength makes Cyborgs ordinary troops for that battle: strength 1 in Basic, or 1/2 without support and 1 with support in Advanced. The Cyborg strength advantage is inherited from the Basic faction rules; its cancellation still applies in Advanced. Suboids remain 1/2."
+            },
+            "XULR": {
+              "id": "XULR",
+              "kind": "text",
+              "text": "Sources: ixian-tleilaxu, p. 12."
+            }
+          },
+          "showHeading": true
+        },
+        "53NQ": {
+          "id": "53NQ",
+          "anchor": "sources-and-judgements",
+          "title": "Sources and judgements",
+          "layoutId": "single-column",
+          "controlValues": {},
+          "blockOrderByRegion": {
+            "content": ["JEZY", "3QYS", "9TPT", "4EM4", "JQVB", "6J3C", "B4KD", "SV5E", "4WSN"]
+          },
+          "blocksById": {
+            "JEZY": {
+              "id": "JEZY",
+              "kind": "text",
+              "text": "Source notes throughout this book use the short labels below. Numeric page references count PDF pages from the front cover as page 1. In the unofficial revised book, the printed rule-page number is two less than the PDF page number. Named references, such as a faction sheet or skin.json entry, identify a section or file location."
+            },
+            "3QYS": {
+              "id": "3QYS",
+              "kind": "section-heading",
+              "title": "Source labels"
+            },
+            "9TPT": {
+              "id": "9TPT",
+              "kind": "list",
+              "style": "bulleted",
+              "itemOrder": ["item-1"],
+              "itemsById": {
+                "item-1": {
+                  "id": "item-1",
+                  "text": "gf9-base-2019 means Dune Rulebook, Gale Force Nine, 2019 base edition, 24 PDF pages. The read copy is preserved in the treachery.online document mirror."
+                }
+              }
+            },
+            "4EM4": {
+              "id": "4EM4",
+              "kind": "list",
+              "style": "bulleted",
+              "itemOrder": ["item-2"],
+              "itemsById": {
+                "item-2": {
+                  "id": "item-2",
+                  "text": "gf9-faq-2020-11 and faq-nov2020 mean Dune Questions and Answers, Gale Force Nine, November 2020, 9 PDF pages. Its clarifications inform the rules; its questions and answers are not reproduced here."
+                }
+              }
+            },
+            "JQVB": {
+              "id": "JQVB",
+              "kind": "list",
+              "style": "bulleted",
+              "itemOrder": ["item-3"],
+              "itemsById": {
+                "item-3": {
+                  "id": "item-3",
+                  "text": "gf9-ixian-tleilaxu and ixian-tleilaxu mean Dune: Ixians & Tleilaxu Rulebook, Gale Force Nine, 2020 expansion, 12 PDF pages."
+                }
+              }
+            },
+            "6J3C": {
+              "id": "6J3C",
+              "kind": "list",
+              "style": "bulleted",
+              "itemOrder": ["item-4"],
+              "itemsById": {
+                "item-4": {
+                  "id": "item-4",
+                  "text": "gf9-choam-richese and choam-richese mean Dune: CHOAM & Richese Rulebook, Gale Force Nine, supplied 2021 expansion copy, 12 PDF pages."
+                }
+              }
+            },
+            "B4KD": {
+              "id": "B4KD",
+              "kind": "list",
+              "style": "bulleted",
+              "itemOrder": ["item-5"],
+              "itemsById": {
+                "item-5": {
+                  "id": "item-5",
+                  "text": "gf9-ecaz-moritani and ecaz-moritani mean Dune: Ecaz & Moritani Rulebook, Gale Force Nine, supplied copy with 2022 copyright, 16 PDF pages."
+                }
+              }
+            },
+            "SV5E": {
+              "id": "SV5E",
+              "kind": "list",
+              "style": "bulleted",
+              "itemOrder": ["item-6"],
+              "itemsById": {
+                "item-6": {
+                  "id": "item-6",
+                  "text": "revised-v2.3 means Unofficial Revised Dune Rulebook by Van Willis, the supplied file named v2.3. Its internal heading says Version 2.2. It has 44 PDF pages and marks unofficial changes with outlined text. It is a comparison reference, not a new official edition."
+                }
+              }
+            },
+            "4WSN": {
+              "id": "4WSN",
+              "kind": "list",
+              "style": "bulleted",
+              "itemOrder": ["item-7"],
+              "itemsById": {
+                "item-7": {
+                  "id": "item-7",
+                  "text": "compilation means Dune Boardgame Rules Compilation, assembled by Johannes Cassebaum for the Dune Tabletop Discord server, supplied undated copy, 46 PDF pages. It combines the base game, first two expansions and published questions and answers."
+                }
+              }
+            }
+          },
+          "showHeading": true
+        },
+        "Z9CF": {
+          "id": "Z9CF",
+          "anchor": "sources-and-judgements-2",
+          "title": "Sources and judgements, continued",
+          "layoutId": "single-column",
+          "controlValues": {},
+          "blockOrderByRegion": {
+            "content": ["7U4N", "BXH7", "FY9T"]
+          },
+          "blocksById": {
+            "7U4N": {
+              "id": "7U4N",
+              "kind": "list",
+              "style": "bulleted",
+              "itemOrder": ["item-8"],
+              "itemsById": {
+                "item-8": {
+                  "id": "item-8",
+                  "text": "treachery-online means the treachery.online community implementation and card reference files by Ronald Ossendrijver and contributors. File locations identify the referenced data, rather than a printed page."
+                }
+              }
+            },
+            "BXH7": {
+              "id": "BXH7",
+              "kind": "text",
+              "text": "The source copies and community references are linked from the GF9 source ticket: https://github.com/ndelangen/dunezone/issues/2216. The supplied copies identify what was read; a mirror or filename alone does not establish the latest official printing."
+            },
+            "FY9T": {
+              "id": "FY9T",
+              "kind": "text",
+              "text": "Conflicting statements and the interpretation adopted for Dune Zone are recorded in GF9 judgements: https://github.com/ndelangen/dunezone/issues/2352. Specific expansion rules apply within their scope. Explicit corrections replace the text they correct. Where the sources disagree, consult that record for the decision, reasons and affected content."
+            }
+          },
+          "showHeading": true
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,4663 @@
+{
+  "format": "gf9-asset-source-manifest",
+  "version": 1,
+  "scope": "GF9 base and all three expansions",
+  "items": [
+    {
+      "key": "gf9-nexus-deck-atreides",
+      "type": "card-nexus",
+      "sources": [
+        {
+          "source": "https://dune.zone/assets/card-nexus/atreides",
+          "sha256": "b576d5302eb9e3e86a9537a7536fa4af1bd21c75553db48d18c55d7eb156ad73"
+        }
+      ],
+      "dataSha256": "3ff40ff8e64f8936bf7619f73818bc45be20eadbdc77221f1009ff98d4a0843f"
+    },
+    {
+      "key": "gf9-nexus-deck-bene-gesserit",
+      "type": "card-nexus",
+      "sources": [
+        {
+          "source": "https://dune.zone/assets/card-nexus/bene-gesserit",
+          "sha256": "b576d5302eb9e3e86a9537a7536fa4af1bd21c75553db48d18c55d7eb156ad73"
+        }
+      ],
+      "dataSha256": "a566506382523b3941a23e0fc78bcf0f9a1dde54c0bbfbf6b3a7af6f8359cda2"
+    },
+    {
+      "key": "gf9-nexus-deck-choam",
+      "type": "card-nexus",
+      "sources": [
+        {
+          "source": "https://dune.zone/assets/card-nexus/choam",
+          "sha256": "b576d5302eb9e3e86a9537a7536fa4af1bd21c75553db48d18c55d7eb156ad73"
+        }
+      ],
+      "dataSha256": "dc114014e3617c46415c1cb8a6f698722b80ec65daa2212b7c23942d50b72170"
+    },
+    {
+      "key": "gf9-nexus-deck-ecaz",
+      "type": "card-nexus",
+      "sources": [
+        {
+          "source": "https://dune.zone/assets/card-nexus/ecaz",
+          "sha256": "b576d5302eb9e3e86a9537a7536fa4af1bd21c75553db48d18c55d7eb156ad73"
+        }
+      ],
+      "dataSha256": "a82cded43f68c49caca8cc2c40b4c2f8c16644c27044a1408c2f368351cd0981"
+    },
+    {
+      "key": "gf9-nexus-deck-emperor",
+      "type": "card-nexus",
+      "sources": [
+        {
+          "source": "https://dune.zone/assets/card-nexus/emperor",
+          "sha256": "b576d5302eb9e3e86a9537a7536fa4af1bd21c75553db48d18c55d7eb156ad73"
+        }
+      ],
+      "dataSha256": "2d3db62a8b1a9feff1e704676229524213141cd233cf6dc58eae8c4c448f3247"
+    },
+    {
+      "key": "gf9-nexus-deck-fremen",
+      "type": "card-nexus",
+      "sources": [
+        {
+          "source": "https://dune.zone/assets/card-nexus/fremen",
+          "sha256": "b576d5302eb9e3e86a9537a7536fa4af1bd21c75553db48d18c55d7eb156ad73"
+        }
+      ],
+      "dataSha256": "e9b347b8ee864f80adb71fb9c5ede4faf09be20f4945922446edfe81a19fe39b"
+    },
+    {
+      "key": "gf9-nexus-deck-harkonnen",
+      "type": "card-nexus",
+      "sources": [
+        {
+          "source": "https://dune.zone/assets/card-nexus/harkonnen",
+          "sha256": "b576d5302eb9e3e86a9537a7536fa4af1bd21c75553db48d18c55d7eb156ad73"
+        }
+      ],
+      "dataSha256": "c48427267b68ae36243c1d4615f72ebbe10a84bb2e1c345643bece7d79d043b9"
+    },
+    {
+      "key": "gf9-nexus-deck-ixians",
+      "type": "card-nexus",
+      "sources": [
+        {
+          "source": "https://dune.zone/assets/card-nexus/ixians",
+          "sha256": "b576d5302eb9e3e86a9537a7536fa4af1bd21c75553db48d18c55d7eb156ad73"
+        }
+      ],
+      "dataSha256": "de906999de646592746ea19e54689abdd837ee4d2f89fc5f3a7962fe3ff9c10c"
+    },
+    {
+      "key": "gf9-nexus-deck-moritani",
+      "type": "card-nexus",
+      "sources": [
+        {
+          "source": "https://dune.zone/assets/card-nexus/moritani",
+          "sha256": "b576d5302eb9e3e86a9537a7536fa4af1bd21c75553db48d18c55d7eb156ad73"
+        }
+      ],
+      "dataSha256": "c736ecb287ddc41a769a5efae8228dfe4cb2b6203bdf3867e3a74a79b5c04d07"
+    },
+    {
+      "key": "gf9-nexus-deck-richese",
+      "type": "card-nexus",
+      "sources": [
+        {
+          "source": "https://dune.zone/assets/card-nexus/richese",
+          "sha256": "b576d5302eb9e3e86a9537a7536fa4af1bd21c75553db48d18c55d7eb156ad73"
+        }
+      ],
+      "dataSha256": "16099de1db7bdfb566dd4cfe8b17863f1bd946cf2a5e726b13516cbe622ceea5"
+    },
+    {
+      "key": "gf9-nexus-deck-spacing-guild",
+      "type": "card-nexus",
+      "sources": [
+        {
+          "source": "https://dune.zone/assets/card-nexus/spacing-guild",
+          "sha256": "b576d5302eb9e3e86a9537a7536fa4af1bd21c75553db48d18c55d7eb156ad73"
+        }
+      ],
+      "dataSha256": "e099f61e4a4f7be1848f813fa16ba1b937d4451c0cc99ddfb595874c47f472d2"
+    },
+    {
+      "key": "gf9-nexus-deck-tleilaxu",
+      "type": "card-nexus",
+      "sources": [
+        {
+          "source": "https://dune.zone/assets/card-nexus/tleilaxu",
+          "sha256": "b576d5302eb9e3e86a9537a7536fa4af1bd21c75553db48d18c55d7eb156ad73"
+        }
+      ],
+      "dataSha256": "37fe4bf2a83115f14c64c8ff3f660be9336803ab01e78cff16bb0b0fd30e0bb6"
+    },
+    {
+      "key": "gf9-nexus-deck",
+      "type": "deck",
+      "sources": [
+        {
+          "source": "https://dune.zone/assets/deck/gf9-nexus-deck",
+          "sha256": "b576d5302eb9e3e86a9537a7536fa4af1bd21c75553db48d18c55d7eb156ad73"
+        }
+      ],
+      "dataSha256": "76230f1f8088897b71b3d4833add94c3e1d9cbe025dd470b0f01697bcba30c40",
+      "members": [
+        {
+          "key": "gf9-nexus-deck-atreides",
+          "count": 1
+        },
+        {
+          "key": "gf9-nexus-deck-bene-gesserit",
+          "count": 1
+        },
+        {
+          "key": "gf9-nexus-deck-choam",
+          "count": 1
+        },
+        {
+          "key": "gf9-nexus-deck-ecaz",
+          "count": 1
+        },
+        {
+          "key": "gf9-nexus-deck-emperor",
+          "count": 1
+        },
+        {
+          "key": "gf9-nexus-deck-fremen",
+          "count": 1
+        },
+        {
+          "key": "gf9-nexus-deck-harkonnen",
+          "count": 1
+        },
+        {
+          "key": "gf9-nexus-deck-ixians",
+          "count": 1
+        },
+        {
+          "key": "gf9-nexus-deck-moritani",
+          "count": 1
+        },
+        {
+          "key": "gf9-nexus-deck-richese",
+          "count": 1
+        },
+        {
+          "key": "gf9-nexus-deck-spacing-guild",
+          "count": 1
+        },
+        {
+          "key": "gf9-nexus-deck-tleilaxu",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "key": "gf9-stronghold-deck-arrakeen",
+      "type": "card-stronghold",
+      "sources": [
+        {
+          "source": "https://dune.zone/assets/card-stronghold/arrakeen",
+          "sha256": "904fd923aa21ebd5750c460de8bcb3363d7b1771bad157e764b6367487e057f6"
+        }
+      ],
+      "dataSha256": "8cdee8c5f07b4b28aa83acf198bc10556a1ed23cac0e3df3eada0799a99d9f89"
+    },
+    {
+      "key": "gf9-stronghold-deck-carthag",
+      "type": "card-stronghold",
+      "sources": [
+        {
+          "source": "https://dune.zone/assets/card-stronghold/carthag",
+          "sha256": "904fd923aa21ebd5750c460de8bcb3363d7b1771bad157e764b6367487e057f6"
+        }
+      ],
+      "dataSha256": "37daedc49c6c6f802eb9b377e2cded50af1360c10cf5d12782001bc0e08bcb89"
+    },
+    {
+      "key": "gf9-stronghold-deck-habbanya-sietch",
+      "type": "card-stronghold",
+      "sources": [
+        {
+          "source": "https://dune.zone/assets/card-stronghold/habbanya-sietch",
+          "sha256": "904fd923aa21ebd5750c460de8bcb3363d7b1771bad157e764b6367487e057f6"
+        }
+      ],
+      "dataSha256": "762be3914357cc46c86c799cb41622f521c460d8c7beaaad2dcdb93de9aa3c38"
+    },
+    {
+      "key": "gf9-stronghold-deck-hms-stronghold",
+      "type": "card-stronghold",
+      "sources": [
+        {
+          "source": "https://dune.zone/assets/card-stronghold/hms-stronghold",
+          "sha256": "904fd923aa21ebd5750c460de8bcb3363d7b1771bad157e764b6367487e057f6"
+        }
+      ],
+      "dataSha256": "05c1d9c307ef7e7ed17ec8e370f2a43047cb211969d052c31ce21d96260c729f"
+    },
+    {
+      "key": "gf9-stronghold-deck-sietch-tabr",
+      "type": "card-stronghold",
+      "sources": [
+        {
+          "source": "https://dune.zone/assets/card-stronghold/sietch-tabr",
+          "sha256": "904fd923aa21ebd5750c460de8bcb3363d7b1771bad157e764b6367487e057f6"
+        }
+      ],
+      "dataSha256": "86b207e78db65054535ce8584e5c24cc4721aed1c172b7aec3738282914b1613"
+    },
+    {
+      "key": "gf9-stronghold-deck-tuek-s-sietch",
+      "type": "card-stronghold",
+      "sources": [
+        {
+          "source": "https://dune.zone/assets/card-stronghold/tuek-s-sietch",
+          "sha256": "904fd923aa21ebd5750c460de8bcb3363d7b1771bad157e764b6367487e057f6"
+        }
+      ],
+      "dataSha256": "82b8da6184c03a62b07cab43d52dc42d9edce422637305cd6dda6e58b0696629"
+    },
+    {
+      "key": "gf9-stronghold-deck",
+      "type": "deck",
+      "sources": [
+        {
+          "source": "https://dune.zone/assets/deck/gf9-stronghold-deck",
+          "sha256": "904fd923aa21ebd5750c460de8bcb3363d7b1771bad157e764b6367487e057f6"
+        }
+      ],
+      "dataSha256": "0deea1b13de219e6b7cdda11ff5286b0793056fdb4cc2dcde7d9d34cb015e143",
+      "members": [
+        {
+          "key": "gf9-stronghold-deck-arrakeen",
+          "count": 1
+        },
+        {
+          "key": "gf9-stronghold-deck-carthag",
+          "count": 1
+        },
+        {
+          "key": "gf9-stronghold-deck-habbanya-sietch",
+          "count": 1
+        },
+        {
+          "key": "gf9-stronghold-deck-hms-stronghold",
+          "count": 1
+        },
+        {
+          "key": "gf9-stronghold-deck-sietch-tabr",
+          "count": 1
+        },
+        {
+          "key": "gf9-stronghold-deck-tuek-s-sietch",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "key": "gf9-leader-skill-deck-bureaucrat",
+      "type": "card-leaderability",
+      "sources": [
+        {
+          "source": "https://dune.zone/assets/card-leaderability/bureaucrat",
+          "sha256": "a8811f5f941bd0ab8a0a3e2d4cab68de405cc4c597268f039c11e13123eaa04f"
+        }
+      ],
+      "dataSha256": "794a4a4ac589f6291d8f31b481e425d81761a42e1122ae9088c54c61b3861b8d"
+    },
+    {
+      "key": "gf9-leader-skill-deck-diplomat",
+      "type": "card-leaderability",
+      "sources": [
+        {
+          "source": "https://dune.zone/assets/card-leaderability/diplomat",
+          "sha256": "a8811f5f941bd0ab8a0a3e2d4cab68de405cc4c597268f039c11e13123eaa04f"
+        }
+      ],
+      "dataSha256": "c7f970ca4032819a8bcbb57eb2499054ca9df38b548789c15f9046b05f5aa724"
+    },
+    {
+      "key": "gf9-leader-skill-deck-killer-medic",
+      "type": "card-leaderability",
+      "sources": [
+        {
+          "source": "https://dune.zone/assets/card-leaderability/killer-medic",
+          "sha256": "a8811f5f941bd0ab8a0a3e2d4cab68de405cc4c597268f039c11e13123eaa04f"
+        }
+      ],
+      "dataSha256": "01129cb94f5ff508f8636bfdddeb64f6664c539967e82e6d8cd268aca08e6d0d"
+    },
+    {
+      "key": "gf9-leader-skill-deck-master-of-assassins",
+      "type": "card-leaderability",
+      "sources": [
+        {
+          "source": "https://dune.zone/assets/card-leaderability/master-of-assassins",
+          "sha256": "a8811f5f941bd0ab8a0a3e2d4cab68de405cc4c597268f039c11e13123eaa04f"
+        }
+      ],
+      "dataSha256": "d67765df740a7d4b6b690677a501a5a5857e348766fcf5c0e9467982daf5ef86"
+    },
+    {
+      "key": "gf9-leader-skill-deck-mentat",
+      "type": "card-leaderability",
+      "sources": [
+        {
+          "source": "https://dune.zone/assets/card-leaderability/mentat",
+          "sha256": "a8811f5f941bd0ab8a0a3e2d4cab68de405cc4c597268f039c11e13123eaa04f"
+        }
+      ],
+      "dataSha256": "fdee32224440d75a95feed40ed5cf658ba18eb8710a077fc67d7d5c07b8638bf"
+    },
+    {
+      "key": "gf9-leader-skill-deck-planetologist",
+      "type": "card-leaderability",
+      "sources": [
+        {
+          "source": "https://dune.zone/assets/card-leaderability/planetologist",
+          "sha256": "a8811f5f941bd0ab8a0a3e2d4cab68de405cc4c597268f039c11e13123eaa04f"
+        }
+      ],
+      "dataSha256": "64dfa51dbc9f13027378b27b76f80b70f66445d05f476c9b56fe291992d4a36b"
+    },
+    {
+      "key": "gf9-leader-skill-deck-prana-bindu-adept",
+      "type": "card-leaderability",
+      "sources": [
+        {
+          "source": "https://dune.zone/assets/card-leaderability/prana-bindu-adept",
+          "sha256": "a8811f5f941bd0ab8a0a3e2d4cab68de405cc4c597268f039c11e13123eaa04f"
+        }
+      ],
+      "dataSha256": "464959d5fe6c45f42ffe7c931246e9250ca4ae0329382b5c9031c11be08095ae"
+    },
+    {
+      "key": "gf9-leader-skill-deck-rihani-decipherer",
+      "type": "card-leaderability",
+      "sources": [
+        {
+          "source": "https://dune.zone/assets/card-leaderability/rihani-decipherer",
+          "sha256": "a8811f5f941bd0ab8a0a3e2d4cab68de405cc4c597268f039c11e13123eaa04f"
+        }
+      ],
+      "dataSha256": "2361aff8b98acf74e11653d9eb8a35bf3018c38cb2cd06c735e97801c68cd033"
+    },
+    {
+      "key": "gf9-leader-skill-deck-sandmaster",
+      "type": "card-leaderability",
+      "sources": [
+        {
+          "source": "https://dune.zone/assets/card-leaderability/sandmaster",
+          "sha256": "a8811f5f941bd0ab8a0a3e2d4cab68de405cc4c597268f039c11e13123eaa04f"
+        }
+      ],
+      "dataSha256": "86ad32b1f91593e6e7c1177d63e362ef63919f8cc30597e88cd8007acd8e6a26"
+    },
+    {
+      "key": "gf9-leader-skill-deck-smuggler",
+      "type": "card-leaderability",
+      "sources": [
+        {
+          "source": "https://dune.zone/assets/card-leaderability/smuggler",
+          "sha256": "a8811f5f941bd0ab8a0a3e2d4cab68de405cc4c597268f039c11e13123eaa04f"
+        }
+      ],
+      "dataSha256": "35eebf742d1404dc97174647624351c1b3bd7b611e876cf02b45d51178b07c80"
+    },
+    {
+      "key": "gf9-leader-skill-deck-spice-banker",
+      "type": "card-leaderability",
+      "sources": [
+        {
+          "source": "https://dune.zone/assets/card-leaderability/spice-banker",
+          "sha256": "a8811f5f941bd0ab8a0a3e2d4cab68de405cc4c597268f039c11e13123eaa04f"
+        }
+      ],
+      "dataSha256": "e877ec280628028ebd4ba95989f21aadca1102b20eb74107ec697ad18157e653"
+    },
+    {
+      "key": "gf9-leader-skill-deck-suk-graduate",
+      "type": "card-leaderability",
+      "sources": [
+        {
+          "source": "https://dune.zone/assets/card-leaderability/suk-graduate",
+          "sha256": "a8811f5f941bd0ab8a0a3e2d4cab68de405cc4c597268f039c11e13123eaa04f"
+        }
+      ],
+      "dataSha256": "cc5bc3491d4ab0a7454517f5173d1671afde85afa0bdf46b3839791d038ac915"
+    },
+    {
+      "key": "gf9-leader-skill-deck-swordmaster-of-ginaz",
+      "type": "card-leaderability",
+      "sources": [
+        {
+          "source": "https://dune.zone/assets/card-leaderability/swordmaster-of-ginaz",
+          "sha256": "a8811f5f941bd0ab8a0a3e2d4cab68de405cc4c597268f039c11e13123eaa04f"
+        }
+      ],
+      "dataSha256": "ed31456e14a830c4d2389e59f9dbac3560778cd131b068cc4090a90bf220837b"
+    },
+    {
+      "key": "gf9-leader-skill-deck-warmaster",
+      "type": "card-leaderability",
+      "sources": [
+        {
+          "source": "https://dune.zone/assets/card-leaderability/warmaster",
+          "sha256": "a8811f5f941bd0ab8a0a3e2d4cab68de405cc4c597268f039c11e13123eaa04f"
+        }
+      ],
+      "dataSha256": "d6ba717baac10c002343a1b674daddd447469335e62fa0694bfda7de946b376d"
+    },
+    {
+      "key": "gf9-leader-skill-deck",
+      "type": "deck",
+      "sources": [
+        {
+          "source": "https://dune.zone/assets/deck/gf9-leader-skill-deck",
+          "sha256": "a8811f5f941bd0ab8a0a3e2d4cab68de405cc4c597268f039c11e13123eaa04f"
+        }
+      ],
+      "dataSha256": "1c89eb28b7ef70b335a2faa3fece0168f6a69fee9f165e7a48a148b0a11a8297",
+      "members": [
+        {
+          "key": "gf9-leader-skill-deck-bureaucrat",
+          "count": 1
+        },
+        {
+          "key": "gf9-leader-skill-deck-diplomat",
+          "count": 1
+        },
+        {
+          "key": "gf9-leader-skill-deck-killer-medic",
+          "count": 1
+        },
+        {
+          "key": "gf9-leader-skill-deck-master-of-assassins",
+          "count": 1
+        },
+        {
+          "key": "gf9-leader-skill-deck-mentat",
+          "count": 1
+        },
+        {
+          "key": "gf9-leader-skill-deck-planetologist",
+          "count": 1
+        },
+        {
+          "key": "gf9-leader-skill-deck-prana-bindu-adept",
+          "count": 1
+        },
+        {
+          "key": "gf9-leader-skill-deck-rihani-decipherer",
+          "count": 1
+        },
+        {
+          "key": "gf9-leader-skill-deck-sandmaster",
+          "count": 1
+        },
+        {
+          "key": "gf9-leader-skill-deck-smuggler",
+          "count": 1
+        },
+        {
+          "key": "gf9-leader-skill-deck-spice-banker",
+          "count": 1
+        },
+        {
+          "key": "gf9-leader-skill-deck-suk-graduate",
+          "count": 1
+        },
+        {
+          "key": "gf9-leader-skill-deck-swordmaster-of-ginaz",
+          "count": 1
+        },
+        {
+          "key": "gf9-leader-skill-deck-warmaster",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "key": "gf9-board",
+      "type": "board",
+      "sources": [
+        {
+          "source": "https://dune.zone/assets/board/arrakis-official",
+          "sha256": "c968b4e6a2e388a83a321ba7edbf561f8f30d504167e533d9aae8bc2905547ee"
+        }
+      ],
+      "dataSha256": "74c2904427778edbbbce4d0213a7567c212b16c3e14f5f6eb4b7f00b0071b228"
+    },
+    {
+      "key": "gf9-storm-1",
+      "type": "card-storm",
+      "sources": [
+        {
+          "source": "https://dune.zone/assets/card-storm/1-sector",
+          "sha256": "96feaac69818e49274a6b53d448372efd7554513fea3747fc412b4038cae0bbe"
+        }
+      ],
+      "dataSha256": "e6f967c45fdac6b6fb90e3e693bc938ffee6bab97d3996d34fb7105859277388"
+    },
+    {
+      "key": "gf9-storm-2",
+      "type": "card-storm",
+      "sources": [
+        {
+          "source": "https://dune.zone/assets/card-storm/2-sectors",
+          "sha256": "96feaac69818e49274a6b53d448372efd7554513fea3747fc412b4038cae0bbe"
+        }
+      ],
+      "dataSha256": "18440e6b5d6b5f22a510a8d561a1344baea08dbc5dff018cb0415b2cbc86986f"
+    },
+    {
+      "key": "gf9-storm-3",
+      "type": "card-storm",
+      "sources": [
+        {
+          "source": "https://dune.zone/assets/card-storm/3-sectors",
+          "sha256": "96feaac69818e49274a6b53d448372efd7554513fea3747fc412b4038cae0bbe"
+        }
+      ],
+      "dataSha256": "0e56e920afc96fb7035b20762d586e324466237b5d6e79b452fee1122dbdb963"
+    },
+    {
+      "key": "gf9-storm-4",
+      "type": "card-storm",
+      "sources": [
+        {
+          "source": "https://dune.zone/assets/card-storm/4-sectors",
+          "sha256": "96feaac69818e49274a6b53d448372efd7554513fea3747fc412b4038cae0bbe"
+        }
+      ],
+      "dataSha256": "320f46156882bdfacd4a0303649269e974ed3963b53b7dc7ea741ca464cfb3fc"
+    },
+    {
+      "key": "gf9-storm-5",
+      "type": "card-storm",
+      "sources": [
+        {
+          "source": "https://dune.zone/assets/card-storm/5-sectors",
+          "sha256": "96feaac69818e49274a6b53d448372efd7554513fea3747fc412b4038cae0bbe"
+        }
+      ],
+      "dataSha256": "83af21438aed3916e7b4771956ed867c080487e71e0cfda291438038a2ef227c"
+    },
+    {
+      "key": "gf9-storm-6",
+      "type": "card-storm",
+      "sources": [
+        {
+          "source": "https://dune.zone/assets/card-storm/6-sectors",
+          "sha256": "96feaac69818e49274a6b53d448372efd7554513fea3747fc412b4038cae0bbe"
+        }
+      ],
+      "dataSha256": "90d517025b2244b6b989884f878d737670497325a620aa56d6747207275bfcd4"
+    },
+    {
+      "key": "gf9-storm-deck",
+      "type": "deck",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/docs/Dune-Rulebook.pdf",
+          "sha256": "6c55d28e93b6948a34d20b0f50e1087494e06f237f8c43e7e4c0cac3810b752d"
+        }
+      ],
+      "dataSha256": "d42080fad693efa2b1d4eeb27d32cd50b829cdd0e85931a66b1fb043e888b837",
+      "members": [
+        {
+          "key": "gf9-storm-1",
+          "count": 1
+        },
+        {
+          "key": "gf9-storm-2",
+          "count": 1
+        },
+        {
+          "key": "gf9-storm-3",
+          "count": 1
+        },
+        {
+          "key": "gf9-storm-4",
+          "count": 1
+        },
+        {
+          "key": "gf9-storm-5",
+          "count": 1
+        },
+        {
+          "key": "gf9-storm-6",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "key": "gf9-lasgun",
+      "type": "card-treachery",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/TreacheryCardManager.cs",
+          "sha256": "412c4b5f19ba7f65907b04d8cb09954b8055b3151e37ea836561d7ac6e86204d"
+        }
+      ],
+      "dataSha256": "412504b5377b3e9659d320633f9d8f5e3a7987852f07be8f25123e589afc4a81"
+    },
+    {
+      "key": "gf9-crysknife",
+      "type": "card-treachery",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/TreacheryCardManager.cs",
+          "sha256": "412c4b5f19ba7f65907b04d8cb09954b8055b3151e37ea836561d7ac6e86204d"
+        }
+      ],
+      "dataSha256": "520fe7486ec722dc783b2443a5ae28c39f96cdb90a76667a2b52ddca1e4cc571"
+    },
+    {
+      "key": "gf9-maula-pistol",
+      "type": "card-treachery",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/TreacheryCardManager.cs",
+          "sha256": "412c4b5f19ba7f65907b04d8cb09954b8055b3151e37ea836561d7ac6e86204d"
+        }
+      ],
+      "dataSha256": "fa2e852b427e1f414392b7200df253234a907550cb0620ef3fa4e26e859fb24a"
+    },
+    {
+      "key": "gf9-slip-tip",
+      "type": "card-treachery",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/TreacheryCardManager.cs",
+          "sha256": "412c4b5f19ba7f65907b04d8cb09954b8055b3151e37ea836561d7ac6e86204d"
+        }
+      ],
+      "dataSha256": "a52092cc9f4ec50b69be8417ea5946a554bd13ac48ca5f38f1925f4d5c25e988"
+    },
+    {
+      "key": "gf9-stunner",
+      "type": "card-treachery",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/TreacheryCardManager.cs",
+          "sha256": "412c4b5f19ba7f65907b04d8cb09954b8055b3151e37ea836561d7ac6e86204d"
+        }
+      ],
+      "dataSha256": "79979ab54bff5228bd7d08069c80f71bfc87d0483dc1d1c3fa62ab2b2b476387"
+    },
+    {
+      "key": "gf9-chaumas",
+      "type": "card-treachery",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/TreacheryCardManager.cs",
+          "sha256": "412c4b5f19ba7f65907b04d8cb09954b8055b3151e37ea836561d7ac6e86204d"
+        }
+      ],
+      "dataSha256": "0d97dc290cdbe4b99642e25d57bbc23dc15f63bd302010e6eacd66104b5dffeb"
+    },
+    {
+      "key": "gf9-chaumurky",
+      "type": "card-treachery",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/TreacheryCardManager.cs",
+          "sha256": "412c4b5f19ba7f65907b04d8cb09954b8055b3151e37ea836561d7ac6e86204d"
+        }
+      ],
+      "dataSha256": "a29385144a3c40102cb0e857e7ac03ec0b7004e95ac1435d25a1713ffb0b1521"
+    },
+    {
+      "key": "gf9-ellaca-drug",
+      "type": "card-treachery",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/TreacheryCardManager.cs",
+          "sha256": "412c4b5f19ba7f65907b04d8cb09954b8055b3151e37ea836561d7ac6e86204d"
+        }
+      ],
+      "dataSha256": "4d51fbe7cadd99d0d921cfce245da0f88bedca138b6a5e53dbe2a8a41cbbf176"
+    },
+    {
+      "key": "gf9-gom-jabbar",
+      "type": "card-treachery",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/TreacheryCardManager.cs",
+          "sha256": "412c4b5f19ba7f65907b04d8cb09954b8055b3151e37ea836561d7ac6e86204d"
+        }
+      ],
+      "dataSha256": "9a4f7d540e040eafb25cb9828be4f0a435d3b42c8e5fee65957eab1aae5d9efb"
+    },
+    {
+      "key": "gf9-shield",
+      "type": "card-treachery",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/TreacheryCardManager.cs",
+          "sha256": "412c4b5f19ba7f65907b04d8cb09954b8055b3151e37ea836561d7ac6e86204d"
+        }
+      ],
+      "dataSha256": "889944c5190998766950f12715d5c8b2b6f6d089d0c11cc9e507fc54a18d4c82"
+    },
+    {
+      "key": "gf9-snooper",
+      "type": "card-treachery",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/TreacheryCardManager.cs",
+          "sha256": "412c4b5f19ba7f65907b04d8cb09954b8055b3151e37ea836561d7ac6e86204d"
+        }
+      ],
+      "dataSha256": "2eaab3765884435690998a5a7cc1c62df2fcd75e26ab4d5ca9bf499bfac9df6b"
+    },
+    {
+      "key": "gf9-cheap-hero",
+      "type": "card-treachery",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/TreacheryCardManager.cs",
+          "sha256": "412c4b5f19ba7f65907b04d8cb09954b8055b3151e37ea836561d7ac6e86204d"
+        }
+      ],
+      "dataSha256": "0c2f4a78b45cf418544693ac235f6b76d95d4d80398e08f2fc6b3a129b5a288f"
+    },
+    {
+      "key": "gf9-cheap-heroine",
+      "type": "card-treachery",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/TreacheryCardManager.cs",
+          "sha256": "412c4b5f19ba7f65907b04d8cb09954b8055b3151e37ea836561d7ac6e86204d"
+        }
+      ],
+      "dataSha256": "0e3de4002464649c3f75d80638eb7e0cf98c77957578cf39e1f548b11396d465"
+    },
+    {
+      "key": "gf9-tleilaxu-ghola",
+      "type": "card-treachery",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/TreacheryCardManager.cs",
+          "sha256": "412c4b5f19ba7f65907b04d8cb09954b8055b3151e37ea836561d7ac6e86204d"
+        }
+      ],
+      "dataSha256": "a4bb9913dd965d6b8018fc44f6c18d84fb9b20b295f93fac8c79f738226a0cde"
+    },
+    {
+      "key": "gf9-family-atomics",
+      "type": "card-treachery",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/TreacheryCardManager.cs",
+          "sha256": "412c4b5f19ba7f65907b04d8cb09954b8055b3151e37ea836561d7ac6e86204d"
+        }
+      ],
+      "dataSha256": "01b04e950d24cdbf9f2854089839995da0711d17893ca6a93851e84538fae425"
+    },
+    {
+      "key": "gf9-hajr",
+      "type": "card-treachery",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/TreacheryCardManager.cs",
+          "sha256": "412c4b5f19ba7f65907b04d8cb09954b8055b3151e37ea836561d7ac6e86204d"
+        }
+      ],
+      "dataSha256": "d0bb975aa62f3a6c53030317c2df3dc0640d740d442544819a67c72e85fe1e5f"
+    },
+    {
+      "key": "gf9-karama",
+      "type": "card-treachery",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/TreacheryCardManager.cs",
+          "sha256": "412c4b5f19ba7f65907b04d8cb09954b8055b3151e37ea836561d7ac6e86204d"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447703/9DD6A03F57C5F1B662DDEAD2D21B210DB2492F64_ChoamAndRichese.Rulebook.pdf",
+          "sha256": "ee08ac180ca9824728532212bbd54de3e258ed81ad30051063f5633928fb7407",
+          "page": "7-8"
+        }
+      ],
+      "dataSha256": "3d9590ff308fccfc9b9473d52c7dc14466a65d6f5dec4e0be7971a5ecf30d872"
+    },
+    {
+      "key": "gf9-truthtrance",
+      "type": "card-treachery",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/TreacheryCardManager.cs",
+          "sha256": "412c4b5f19ba7f65907b04d8cb09954b8055b3151e37ea836561d7ac6e86204d"
+        }
+      ],
+      "dataSha256": "182fc878bcf3aa3b90ab637bd6ce2246d9f96f4d0ee097e92b4feb6d748f2c05"
+    },
+    {
+      "key": "gf9-weather-control",
+      "type": "card-treachery",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/TreacheryCardManager.cs",
+          "sha256": "412c4b5f19ba7f65907b04d8cb09954b8055b3151e37ea836561d7ac6e86204d"
+        }
+      ],
+      "dataSha256": "241e2be7ca391ee98ed3fcb2d5e8c4f3b79be004569fd7ef1c498dc62c6172ad"
+    },
+    {
+      "key": "gf9-baliset",
+      "type": "card-treachery",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/TreacheryCardManager.cs",
+          "sha256": "412c4b5f19ba7f65907b04d8cb09954b8055b3151e37ea836561d7ac6e86204d"
+        }
+      ],
+      "dataSha256": "748d8c91d28418a0fbbc8897bb38af3dedc03a92391b758f5f3f520d65dac9f7"
+    },
+    {
+      "key": "gf9-jubba-cloak",
+      "type": "card-treachery",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/TreacheryCardManager.cs",
+          "sha256": "412c4b5f19ba7f65907b04d8cb09954b8055b3151e37ea836561d7ac6e86204d"
+        }
+      ],
+      "dataSha256": "ec407058884b0f4d9a876830706ef3000aaa972f0c31e68eef563366c27b57db"
+    },
+    {
+      "key": "gf9-kulon",
+      "type": "card-treachery",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/TreacheryCardManager.cs",
+          "sha256": "412c4b5f19ba7f65907b04d8cb09954b8055b3151e37ea836561d7ac6e86204d"
+        }
+      ],
+      "dataSha256": "a5b48b751a0559e96d01f9e0676615b7055e6d2035fc7343248b5dfa31be3d95"
+    },
+    {
+      "key": "gf9-la-la-la",
+      "type": "card-treachery",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/TreacheryCardManager.cs",
+          "sha256": "412c4b5f19ba7f65907b04d8cb09954b8055b3151e37ea836561d7ac6e86204d"
+        }
+      ],
+      "dataSha256": "2d378a2f9048f1bb51ee47f33c7b558df7a4ae86b20d35cbe6b36f18a8b41d47"
+    },
+    {
+      "key": "gf9-trip-to-gamont",
+      "type": "card-treachery",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/TreacheryCardManager.cs",
+          "sha256": "412c4b5f19ba7f65907b04d8cb09954b8055b3151e37ea836561d7ac6e86204d"
+        }
+      ],
+      "dataSha256": "2223d1dae865b9af972d0a4faef5860291efdd3e298203d2b520306b0525932e"
+    },
+    {
+      "key": "gf9-poison-blade",
+      "type": "card-treachery",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/TreacheryCardManager.cs",
+          "sha256": "412c4b5f19ba7f65907b04d8cb09954b8055b3151e37ea836561d7ac6e86204d"
+        }
+      ],
+      "dataSha256": "070ef3af1103a62fe0f6c842e88eabc6e9b6ce678311837844b306e118d140e4"
+    },
+    {
+      "key": "gf9-hunter-seeker",
+      "type": "card-treachery",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/TreacheryCardManager.cs",
+          "sha256": "412c4b5f19ba7f65907b04d8cb09954b8055b3151e37ea836561d7ac6e86204d"
+        }
+      ],
+      "dataSha256": "5c745c09764550ebe6fc5b321711d75103162e6e4ed51e8a40317b616b2ad50d"
+    },
+    {
+      "key": "gf9-basilia-weapon",
+      "type": "card-treachery",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/TreacheryCardManager.cs",
+          "sha256": "412c4b5f19ba7f65907b04d8cb09954b8055b3151e37ea836561d7ac6e86204d"
+        }
+      ],
+      "dataSha256": "0a8ffe895d465c01953c469a32063f482b040a290e41cba810481e39eb8e5334"
+    },
+    {
+      "key": "gf9-weirding-way",
+      "type": "card-treachery",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/TreacheryCardManager.cs",
+          "sha256": "412c4b5f19ba7f65907b04d8cb09954b8055b3151e37ea836561d7ac6e86204d"
+        }
+      ],
+      "dataSha256": "a4c415bb2a1c830501f36b8e3f146696fd733e5108cc6e8bdcb434d43edc849e"
+    },
+    {
+      "key": "gf9-poison-tooth",
+      "type": "card-treachery",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/TreacheryCardManager.cs",
+          "sha256": "412c4b5f19ba7f65907b04d8cb09954b8055b3151e37ea836561d7ac6e86204d"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447703/9DD6A03F57C5F1B662DDEAD2D21B210DB2492F64_ChoamAndRichese.Rulebook.pdf",
+          "sha256": "ee08ac180ca9824728532212bbd54de3e258ed81ad30051063f5633928fb7407",
+          "page": "7-8"
+        }
+      ],
+      "dataSha256": "7ca5d1094ca20721734c0dc5bb9f90e86acd7ed46336da82570b856e3bdf8b26"
+    },
+    {
+      "key": "gf9-shield-snooper",
+      "type": "card-treachery",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/TreacheryCardManager.cs",
+          "sha256": "412c4b5f19ba7f65907b04d8cb09954b8055b3151e37ea836561d7ac6e86204d"
+        }
+      ],
+      "dataSha256": "7b3f3c601162df7870894a70b2aabf3276f78064c36b7083ef878ec26fa3d74b"
+    },
+    {
+      "key": "gf9-chemistry",
+      "type": "card-treachery",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/TreacheryCardManager.cs",
+          "sha256": "412c4b5f19ba7f65907b04d8cb09954b8055b3151e37ea836561d7ac6e86204d"
+        }
+      ],
+      "dataSha256": "e73248df2bb16c7f407ae9322c61962126abdde104571b978fd9773c3ac719df"
+    },
+    {
+      "key": "gf9-artillery-strike",
+      "type": "card-treachery",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/TreacheryCardManager.cs",
+          "sha256": "412c4b5f19ba7f65907b04d8cb09954b8055b3151e37ea836561d7ac6e86204d"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447703/9DD6A03F57C5F1B662DDEAD2D21B210DB2492F64_ChoamAndRichese.Rulebook.pdf",
+          "sha256": "ee08ac180ca9824728532212bbd54de3e258ed81ad30051063f5633928fb7407",
+          "page": "7-8"
+        }
+      ],
+      "dataSha256": "cfcfab80f53d69444de882b68efb6fc482cd035b8f5ccf5b00febe0eb814ef19"
+    },
+    {
+      "key": "gf9-harvester",
+      "type": "card-treachery",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/TreacheryCardManager.cs",
+          "sha256": "412c4b5f19ba7f65907b04d8cb09954b8055b3151e37ea836561d7ac6e86204d"
+        }
+      ],
+      "dataSha256": "6bcb598df44a6f89eb336d728704ed59321ce448ac2a79ff88ce60cd9beac754"
+    },
+    {
+      "key": "gf9-thumper",
+      "type": "card-treachery",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/TreacheryCardManager.cs",
+          "sha256": "412c4b5f19ba7f65907b04d8cb09954b8055b3151e37ea836561d7ac6e86204d"
+        }
+      ],
+      "dataSha256": "56ccee1b870bd069c1ae57c91059aa2924e48920068c7bcf601b308bbcc2ca5b"
+    },
+    {
+      "key": "gf9-amal",
+      "type": "card-treachery",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/TreacheryCardManager.cs",
+          "sha256": "412c4b5f19ba7f65907b04d8cb09954b8055b3151e37ea836561d7ac6e86204d"
+        }
+      ],
+      "dataSha256": "679464a3e3d395d05146600d1e3f7678998954d33a3d554c2f8d1cecb945a22d"
+    },
+    {
+      "key": "gf9-kull-wahad",
+      "type": "card-treachery",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/TreacheryCardManager.cs",
+          "sha256": "412c4b5f19ba7f65907b04d8cb09954b8055b3151e37ea836561d7ac6e86204d"
+        }
+      ],
+      "dataSha256": "a0bd3c618029cf05f0d9e25e535c0c38b72dd67a940e2d9882365e9086a84565"
+    },
+    {
+      "key": "gf9-distrans",
+      "type": "card-treachery",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/TreacheryCardManager.cs",
+          "sha256": "412c4b5f19ba7f65907b04d8cb09954b8055b3151e37ea836561d7ac6e86204d"
+        }
+      ],
+      "dataSha256": "8405b3156ca61b410d81acc50d463842662bf4b23905659a26e72cb978e091d5"
+    },
+    {
+      "key": "gf9-juice-of-sapho",
+      "type": "card-treachery",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/TreacheryCardManager.cs",
+          "sha256": "412c4b5f19ba7f65907b04d8cb09954b8055b3151e37ea836561d7ac6e86204d"
+        }
+      ],
+      "dataSha256": "c125f69e7b2349a323c8d2137e6faa4c725628ada98e4e49a506f319a1af3222"
+    },
+    {
+      "key": "gf9-mirror-weapon",
+      "type": "card-treachery",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/TreacheryCardManager.cs",
+          "sha256": "412c4b5f19ba7f65907b04d8cb09954b8055b3151e37ea836561d7ac6e86204d"
+        }
+      ],
+      "dataSha256": "93c7f74dc92fcaeb3046e86c049c47ba37c2e0c51806592ad17eddecfc4883a7"
+    },
+    {
+      "key": "gf9-portable-snooper",
+      "type": "card-treachery",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/TreacheryCardManager.cs",
+          "sha256": "412c4b5f19ba7f65907b04d8cb09954b8055b3151e37ea836561d7ac6e86204d"
+        }
+      ],
+      "dataSha256": "e437f6fbcd09b87ef89f771ffb756c0e63ca10e76dec35be5edd53845c39ae0e"
+    },
+    {
+      "key": "gf9-ornithopter",
+      "type": "card-treachery",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/TreacheryCardManager.cs",
+          "sha256": "412c4b5f19ba7f65907b04d8cb09954b8055b3151e37ea836561d7ac6e86204d"
+        }
+      ],
+      "dataSha256": "3584a3265e21cae40f9d6e1059682eb4a1daefcca987e12b97737493ce67fa7d"
+    },
+    {
+      "key": "gf9-nullentropy-box",
+      "type": "card-treachery",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/TreacheryCardManager.cs",
+          "sha256": "412c4b5f19ba7f65907b04d8cb09954b8055b3151e37ea836561d7ac6e86204d"
+        }
+      ],
+      "dataSha256": "bde4f20ba89a63a4eb18234da0727062da582ec88be88e468615e5f4ae22fdd9"
+    },
+    {
+      "key": "gf9-semuta-drug",
+      "type": "card-treachery",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/TreacheryCardManager.cs",
+          "sha256": "412c4b5f19ba7f65907b04d8cb09954b8055b3151e37ea836561d7ac6e86204d"
+        }
+      ],
+      "dataSha256": "8a0fe58c9b9775bf5193812a2c539b2898ba53a495e6f2559ed37bba4f9f5a3a"
+    },
+    {
+      "key": "gf9-residual-poison",
+      "type": "card-treachery",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/TreacheryCardManager.cs",
+          "sha256": "412c4b5f19ba7f65907b04d8cb09954b8055b3151e37ea836561d7ac6e86204d"
+        }
+      ],
+      "dataSha256": "975280d46f0dff93e606be7e19941ddef3314d42c5836e4074cdd8d95b7bb7e5"
+    },
+    {
+      "key": "gf9-stone-burner",
+      "type": "card-treachery",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/TreacheryCardManager.cs",
+          "sha256": "412c4b5f19ba7f65907b04d8cb09954b8055b3151e37ea836561d7ac6e86204d"
+        }
+      ],
+      "dataSha256": "f87fac13b0f0566500e6fafa5e66b45fef681bf3059035413041631514c73450"
+    },
+    {
+      "key": "gf9-karama-richese-cache",
+      "type": "card-treachery",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/TreacheryCardManager.cs",
+          "sha256": "412c4b5f19ba7f65907b04d8cb09954b8055b3151e37ea836561d7ac6e86204d"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447703/9DD6A03F57C5F1B662DDEAD2D21B210DB2492F64_ChoamAndRichese.Rulebook.pdf",
+          "sha256": "ee08ac180ca9824728532212bbd54de3e258ed81ad30051063f5633928fb7407",
+          "page": "7-8"
+        }
+      ],
+      "dataSha256": "55019d1b21fa2f77a723bc098d0d8857970ed8167b47bbfdcdef132220a9a7b6"
+    },
+    {
+      "key": "gf9-recruits",
+      "type": "card-treachery",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/TreacheryCardManager.cs",
+          "sha256": "412c4b5f19ba7f65907b04d8cb09954b8055b3151e37ea836561d7ac6e86204d"
+        }
+      ],
+      "dataSha256": "da2bbeb10602c0b0dfbc0bfa2a546ef1c1c9cfbf7ac47109dc162491c6803812"
+    },
+    {
+      "key": "gf9-reinforcements",
+      "type": "card-treachery",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/TreacheryCardManager.cs",
+          "sha256": "412c4b5f19ba7f65907b04d8cb09954b8055b3151e37ea836561d7ac6e86204d"
+        }
+      ],
+      "dataSha256": "7e109d4061fb0a640751304c39e47b81166311c5fae645b2d72c68b2ccdac917"
+    },
+    {
+      "key": "gf9-harass-and-withdraw",
+      "type": "card-treachery",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/TreacheryCardManager.cs",
+          "sha256": "412c4b5f19ba7f65907b04d8cb09954b8055b3151e37ea836561d7ac6e86204d"
+        }
+      ],
+      "dataSha256": "8bf992264dad41c9e34a10daabd130c6216bd5cbcb49fb0c92365a275ddb8a26"
+    },
+    {
+      "key": "gf9-treachery-deck",
+      "type": "deck",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/docs/Dune-Rulebook.pdf",
+          "sha256": "6c55d28e93b6948a34d20b0f50e1087494e06f237f8c43e7e4c0cac3810b752d"
+        }
+      ],
+      "dataSha256": "d81407cde0306deaa6b726d651a67e675e842601c0b05610cb534850e4a63c1f",
+      "members": [
+        {
+          "key": "gf9-lasgun",
+          "count": 1
+        },
+        {
+          "key": "gf9-crysknife",
+          "count": 1
+        },
+        {
+          "key": "gf9-maula-pistol",
+          "count": 1
+        },
+        {
+          "key": "gf9-slip-tip",
+          "count": 1
+        },
+        {
+          "key": "gf9-stunner",
+          "count": 1
+        },
+        {
+          "key": "gf9-chaumas",
+          "count": 1
+        },
+        {
+          "key": "gf9-chaumurky",
+          "count": 1
+        },
+        {
+          "key": "gf9-ellaca-drug",
+          "count": 1
+        },
+        {
+          "key": "gf9-gom-jabbar",
+          "count": 1
+        },
+        {
+          "key": "gf9-shield",
+          "count": 5
+        },
+        {
+          "key": "gf9-snooper",
+          "count": 5
+        },
+        {
+          "key": "gf9-cheap-hero",
+          "count": 2
+        },
+        {
+          "key": "gf9-cheap-heroine",
+          "count": 1
+        },
+        {
+          "key": "gf9-tleilaxu-ghola",
+          "count": 1
+        },
+        {
+          "key": "gf9-family-atomics",
+          "count": 1
+        },
+        {
+          "key": "gf9-hajr",
+          "count": 1
+        },
+        {
+          "key": "gf9-karama",
+          "count": 2
+        },
+        {
+          "key": "gf9-truthtrance",
+          "count": 2
+        },
+        {
+          "key": "gf9-weather-control",
+          "count": 1
+        },
+        {
+          "key": "gf9-baliset",
+          "count": 1
+        },
+        {
+          "key": "gf9-jubba-cloak",
+          "count": 1
+        },
+        {
+          "key": "gf9-kulon",
+          "count": 1
+        },
+        {
+          "key": "gf9-la-la-la",
+          "count": 1
+        },
+        {
+          "key": "gf9-trip-to-gamont",
+          "count": 1
+        },
+        {
+          "key": "gf9-poison-blade",
+          "count": 1
+        },
+        {
+          "key": "gf9-hunter-seeker",
+          "count": 1
+        },
+        {
+          "key": "gf9-basilia-weapon",
+          "count": 1
+        },
+        {
+          "key": "gf9-weirding-way",
+          "count": 1
+        },
+        {
+          "key": "gf9-poison-tooth",
+          "count": 1
+        },
+        {
+          "key": "gf9-shield-snooper",
+          "count": 1
+        },
+        {
+          "key": "gf9-chemistry",
+          "count": 1
+        },
+        {
+          "key": "gf9-artillery-strike",
+          "count": 1
+        },
+        {
+          "key": "gf9-harvester",
+          "count": 1
+        },
+        {
+          "key": "gf9-thumper",
+          "count": 1
+        },
+        {
+          "key": "gf9-amal",
+          "count": 1
+        },
+        {
+          "key": "gf9-kull-wahad",
+          "count": 1
+        },
+        {
+          "key": "gf9-recruits",
+          "count": 1
+        },
+        {
+          "key": "gf9-reinforcements",
+          "count": 1
+        },
+        {
+          "key": "gf9-harass-and-withdraw",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "key": "gf9-base-treachery-deck",
+      "type": "deck",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/docs/Dune-Rulebook.pdf",
+          "sha256": "6c55d28e93b6948a34d20b0f50e1087494e06f237f8c43e7e4c0cac3810b752d"
+        }
+      ],
+      "dataSha256": "96e73128a27a2276b62fc6ecbffeb9cd9ecd3e8b87f31b987f99b82a15b41191",
+      "members": [
+        {
+          "key": "gf9-lasgun",
+          "count": 1
+        },
+        {
+          "key": "gf9-crysknife",
+          "count": 1
+        },
+        {
+          "key": "gf9-maula-pistol",
+          "count": 1
+        },
+        {
+          "key": "gf9-slip-tip",
+          "count": 1
+        },
+        {
+          "key": "gf9-stunner",
+          "count": 1
+        },
+        {
+          "key": "gf9-chaumas",
+          "count": 1
+        },
+        {
+          "key": "gf9-chaumurky",
+          "count": 1
+        },
+        {
+          "key": "gf9-ellaca-drug",
+          "count": 1
+        },
+        {
+          "key": "gf9-gom-jabbar",
+          "count": 1
+        },
+        {
+          "key": "gf9-shield",
+          "count": 4
+        },
+        {
+          "key": "gf9-snooper",
+          "count": 4
+        },
+        {
+          "key": "gf9-cheap-hero",
+          "count": 2
+        },
+        {
+          "key": "gf9-cheap-heroine",
+          "count": 1
+        },
+        {
+          "key": "gf9-tleilaxu-ghola",
+          "count": 1
+        },
+        {
+          "key": "gf9-family-atomics",
+          "count": 1
+        },
+        {
+          "key": "gf9-hajr",
+          "count": 1
+        },
+        {
+          "key": "gf9-karama",
+          "count": 2
+        },
+        {
+          "key": "gf9-truthtrance",
+          "count": 2
+        },
+        {
+          "key": "gf9-weather-control",
+          "count": 1
+        },
+        {
+          "key": "gf9-baliset",
+          "count": 1
+        },
+        {
+          "key": "gf9-jubba-cloak",
+          "count": 1
+        },
+        {
+          "key": "gf9-kulon",
+          "count": 1
+        },
+        {
+          "key": "gf9-la-la-la",
+          "count": 1
+        },
+        {
+          "key": "gf9-trip-to-gamont",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "key": "gf9-ixian-tleilaxu-treachery-additions",
+      "type": "deck",
+      "sources": [
+        {
+          "source": "https://github.com/user-attachments/files/33447701/BA7A5BD340F4B147740B6D25209C917D6DF2DFC0_IxianAndTleilaxuRulebook.pdf",
+          "sha256": "9dc631968839d6e8935acb30ac301301cfea7ed07a78a3aac266648f21cf357d"
+        }
+      ],
+      "dataSha256": "b4b3c3b799f9f569172398fb647ae4f1a35a484044f424caebd172fedbd63f60",
+      "members": [
+        {
+          "key": "gf9-poison-blade",
+          "count": 1
+        },
+        {
+          "key": "gf9-hunter-seeker",
+          "count": 1
+        },
+        {
+          "key": "gf9-basilia-weapon",
+          "count": 1
+        },
+        {
+          "key": "gf9-weirding-way",
+          "count": 1
+        },
+        {
+          "key": "gf9-poison-tooth",
+          "count": 1
+        },
+        {
+          "key": "gf9-shield-snooper",
+          "count": 1
+        },
+        {
+          "key": "gf9-shield",
+          "count": 1
+        },
+        {
+          "key": "gf9-snooper",
+          "count": 1
+        },
+        {
+          "key": "gf9-chemistry",
+          "count": 1
+        },
+        {
+          "key": "gf9-artillery-strike",
+          "count": 1
+        },
+        {
+          "key": "gf9-harvester",
+          "count": 1
+        },
+        {
+          "key": "gf9-thumper",
+          "count": 1
+        },
+        {
+          "key": "gf9-amal",
+          "count": 1
+        },
+        {
+          "key": "gf9-kull-wahad",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "key": "gf9-ecaz-moritani-treachery-additions",
+      "type": "deck",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/docs/Dune-Rulebook.pdf",
+          "sha256": "6c55d28e93b6948a34d20b0f50e1087494e06f237f8c43e7e4c0cac3810b752d"
+        }
+      ],
+      "dataSha256": "029fb00378b1f9c0131b561075b7d70edc42f56e264418e69b91381a42549664",
+      "members": [
+        {
+          "key": "gf9-recruits",
+          "count": 1
+        },
+        {
+          "key": "gf9-reinforcements",
+          "count": 1
+        },
+        {
+          "key": "gf9-harass-and-withdraw",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "key": "gf9-richese-cache",
+      "type": "deck",
+      "sources": [
+        {
+          "source": "https://github.com/user-attachments/files/33447703/9DD6A03F57C5F1B662DDEAD2D21B210DB2492F64_ChoamAndRichese.Rulebook.pdf",
+          "sha256": "ee08ac180ca9824728532212bbd54de3e258ed81ad30051063f5633928fb7407"
+        }
+      ],
+      "dataSha256": "57c75dff8b32906aac33322c4d5a43dbc54dc7ead399350ce17dfc310f239b8d",
+      "members": [
+        {
+          "key": "gf9-distrans",
+          "count": 1
+        },
+        {
+          "key": "gf9-juice-of-sapho",
+          "count": 1
+        },
+        {
+          "key": "gf9-mirror-weapon",
+          "count": 1
+        },
+        {
+          "key": "gf9-portable-snooper",
+          "count": 1
+        },
+        {
+          "key": "gf9-ornithopter",
+          "count": 1
+        },
+        {
+          "key": "gf9-nullentropy-box",
+          "count": 1
+        },
+        {
+          "key": "gf9-semuta-drug",
+          "count": 1
+        },
+        {
+          "key": "gf9-residual-poison",
+          "count": 1
+        },
+        {
+          "key": "gf9-stone-burner",
+          "count": 1
+        },
+        {
+          "key": "gf9-karama-richese-cache",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "key": "gf9-homeworld-caladan",
+      "type": "card-homeworld",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/CaladanCard.gif",
+          "sha256": "2d67627be8d5da65d8b29fb20f011fe9a9952e7fcd19bbc21c16bfe733254313"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9",
+          "page": "5-13"
+        }
+      ],
+      "dataSha256": "fceae0184e768c3c43281422a27de4e4c5762c9d673d206589bf1e33d0e4bff8"
+    },
+    {
+      "key": "gf9-reserves-caladan",
+      "type": "token-disc",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/CaladanCard.gif",
+          "sha256": "2d67627be8d5da65d8b29fb20f011fe9a9952e7fcd19bbc21c16bfe733254313"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9",
+          "page": "5-13"
+        }
+      ],
+      "dataSha256": "4a50a8afa0ea7b12e030bda69032f4dd5e0693188bbe179dd80c7eb0f9780bff"
+    },
+    {
+      "key": "gf9-homeworld-giedi-prime",
+      "type": "card-homeworld",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/GiediPrimeCard.gif",
+          "sha256": "7a72cf7d4684799581343bafb0caed2caa23bc5dcd0adc6fbeb935a5c7312bb1"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9",
+          "page": "5-13"
+        }
+      ],
+      "dataSha256": "7674668ef473ddab30a552eab223397e356a4199d57c5444e6dbc3c86c923867"
+    },
+    {
+      "key": "gf9-reserves-giedi-prime",
+      "type": "token-disc",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/GiediPrimeCard.gif",
+          "sha256": "7a72cf7d4684799581343bafb0caed2caa23bc5dcd0adc6fbeb935a5c7312bb1"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9",
+          "page": "5-13"
+        }
+      ],
+      "dataSha256": "619775717590a6129aad66930ae05ea23a8bbbbb04b56a37a42f667f41079f3c"
+    },
+    {
+      "key": "gf9-homeworld-arrakis",
+      "type": "card-homeworld",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/ArrakisCard.gif",
+          "sha256": "8b4b108cafe54bbf110633c75c9ece12155f83bd0043d3c718d8689b442a2e99"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9",
+          "page": "5-13"
+        }
+      ],
+      "dataSha256": "c4457e29b1ae70ef1495fa5a656ae6ab97aca31a438ab7338e8b4c9aa075fd63"
+    },
+    {
+      "key": "gf9-reserves-arrakis",
+      "type": "token-disc",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/ArrakisCard.gif",
+          "sha256": "8b4b108cafe54bbf110633c75c9ece12155f83bd0043d3c718d8689b442a2e99"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9",
+          "page": "5-13"
+        }
+      ],
+      "dataSha256": "49466cfab508dded2d796006e5600d6b2565b08024a58acdc517b89a5872904a"
+    },
+    {
+      "key": "gf9-homeworld-kaitain",
+      "type": "card-homeworld",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/KaitainCard.gif",
+          "sha256": "2bf31b1a5bb619fe0c6ca12b9bd5dfe439c1343c29364845721aca84a913915f"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9",
+          "page": "5-13"
+        }
+      ],
+      "dataSha256": "757e57bf0d592c61fa0f85d2c02821843d83e00adb473dd51c4d4ca44fda2616"
+    },
+    {
+      "key": "gf9-reserves-kaitain",
+      "type": "token-disc",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/KaitainCard.gif",
+          "sha256": "2bf31b1a5bb619fe0c6ca12b9bd5dfe439c1343c29364845721aca84a913915f"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9",
+          "page": "5-13"
+        }
+      ],
+      "dataSha256": "115b74f76db083a953c9a4e04aab91221dd34a1cf0031023d83126c17ca10f2a"
+    },
+    {
+      "key": "gf9-homeworld-salusa-secundus",
+      "type": "card-homeworld",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/SalusaSecundusCard.gif",
+          "sha256": "8ab1497a5cd4d43a4f4b4439548537a4d3a32deca63453e63f57f41f9c3a6a5c"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9",
+          "page": "5-13"
+        }
+      ],
+      "dataSha256": "ab19c280fb1953306adbd0a39417064bf1d31ca9ce3955e0b1355c82c542f2e4"
+    },
+    {
+      "key": "gf9-reserves-salusa-secundus",
+      "type": "token-disc",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/SalusaSecundusCard.gif",
+          "sha256": "8ab1497a5cd4d43a4f4b4439548537a4d3a32deca63453e63f57f41f9c3a6a5c"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9",
+          "page": "5-13"
+        }
+      ],
+      "dataSha256": "ca14a2cde325f4a24dad3c92c347597ed7765750e8b70471fa66600d22c00c06"
+    },
+    {
+      "key": "gf9-homeworld-junction",
+      "type": "card-homeworld",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/JunctionCard.gif",
+          "sha256": "b2b921cd3c0c80fc2bc7b5131597b6a2ef5e8a4309f7a5b9da15f4e8a154faef"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9",
+          "page": "5-13"
+        }
+      ],
+      "dataSha256": "4335493fccb0b9f611855138e674e772a4ac1857cec963928372e9c9ed581f80"
+    },
+    {
+      "key": "gf9-reserves-junction",
+      "type": "token-disc",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/JunctionCard.gif",
+          "sha256": "b2b921cd3c0c80fc2bc7b5131597b6a2ef5e8a4309f7a5b9da15f4e8a154faef"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9",
+          "page": "5-13"
+        }
+      ],
+      "dataSha256": "a1e359dc79c4d8696032f900311e381f14bf67c77182078e463b06c0bdeff57d"
+    },
+    {
+      "key": "gf9-homeworld-wallach-ix",
+      "type": "card-homeworld",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/WallachIXCard.gif",
+          "sha256": "a99124b55c10aae66b1ccf85bba93b89329686271dfc3618dd8feb0f1a59055d"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9",
+          "page": "5-13"
+        }
+      ],
+      "dataSha256": "605c9e8ea36f2ee2abcd5d5347a955d68b0394252bb182765ee1865851625116"
+    },
+    {
+      "key": "gf9-reserves-wallach-ix",
+      "type": "token-disc",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/WallachIXCard.gif",
+          "sha256": "a99124b55c10aae66b1ccf85bba93b89329686271dfc3618dd8feb0f1a59055d"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9",
+          "page": "5-13"
+        }
+      ],
+      "dataSha256": "40ec5299abb2129b6d47f2318b8ac8a3aa19959b1e9c6d41f3e07b09e6a389ba"
+    },
+    {
+      "key": "gf9-homeworld-ix",
+      "type": "card-homeworld",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/IxCard.gif",
+          "sha256": "2c2a9a0d4ecb995a25b7eb8524ab2c4a8d8e41e95930ade3182ee5bf7da0f97f"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9",
+          "page": "5-13"
+        }
+      ],
+      "dataSha256": "307eddb9fb1b22840dd41c00b7e7d9c75076290aa99897e28130bbef975f5025"
+    },
+    {
+      "key": "gf9-reserves-ix",
+      "type": "token-disc",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/IxCard.gif",
+          "sha256": "2c2a9a0d4ecb995a25b7eb8524ab2c4a8d8e41e95930ade3182ee5bf7da0f97f"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9",
+          "page": "5-13"
+        }
+      ],
+      "dataSha256": "1b39c173a21dcbbdbab781c8a0d98b2b600ac51ac229261bdcb6e2a40704aec3"
+    },
+    {
+      "key": "gf9-homeworld-tleilax",
+      "type": "card-homeworld",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/TleilaxCard.gif",
+          "sha256": "06aa94f41e2a2615fbb8b01d3501f1294f12ad59335268000496140bb02dca53"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9",
+          "page": "5-13"
+        }
+      ],
+      "dataSha256": "9be11d395337ca5cd226fb3b356f97410b430d6939bd196cc0b788859b3de18f"
+    },
+    {
+      "key": "gf9-reserves-tleilax",
+      "type": "token-disc",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/TleilaxCard.gif",
+          "sha256": "06aa94f41e2a2615fbb8b01d3501f1294f12ad59335268000496140bb02dca53"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9",
+          "page": "5-13"
+        }
+      ],
+      "dataSha256": "8b7834daa45213baafd1b7a669cc8640fcecd1e597b3be1df14539aaea9b9bed"
+    },
+    {
+      "key": "gf9-homeworld-tupile",
+      "type": "card-homeworld",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/TupileCard.gif",
+          "sha256": "b39068fe85fd06fc0d50e45afdeb719efa898b8ae6ee9af83fe103d79c19ddec"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9",
+          "page": "5-13"
+        }
+      ],
+      "dataSha256": "ebf12fcbc5281caa02d5a1ed2e0b49bda9748cefcaec188d9c7e74edad2bcf3a"
+    },
+    {
+      "key": "gf9-reserves-tupile",
+      "type": "token-disc",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/TupileCard.gif",
+          "sha256": "b39068fe85fd06fc0d50e45afdeb719efa898b8ae6ee9af83fe103d79c19ddec"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9",
+          "page": "5-13"
+        }
+      ],
+      "dataSha256": "34174ff4f35540eda3aa8578b7b915e916df1ddaed0a1e9f7fe6b152be5e441b"
+    },
+    {
+      "key": "gf9-homeworld-richese",
+      "type": "card-homeworld",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/RicheseCard.gif",
+          "sha256": "9da5d584bd7387652f9a26f593b2b59a38bf3facaa9d41dd552603ecac485e84"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9",
+          "page": "5-13"
+        }
+      ],
+      "dataSha256": "bf8244dcfa2123438ab4567bbf024e04ff4eed3b539579291981e4a1e3af8ade"
+    },
+    {
+      "key": "gf9-reserves-richese",
+      "type": "token-disc",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/RicheseCard.gif",
+          "sha256": "9da5d584bd7387652f9a26f593b2b59a38bf3facaa9d41dd552603ecac485e84"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9",
+          "page": "5-13"
+        }
+      ],
+      "dataSha256": "b19c73ae462d888e0d7d4e620aa44f3e850d05d2eeb2d89e1eec405247e5cf32"
+    },
+    {
+      "key": "gf9-homeworld-ecaz",
+      "type": "card-homeworld",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/EcazCard.gif",
+          "sha256": "fb77a567c6fd6af0a066a53a0a17688e0fb68d0b2906f1a99eae026f91179f26"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9",
+          "page": "5-13"
+        }
+      ],
+      "dataSha256": "e384cdfabf19adfb45438a09c1c96b6fca237eca55a06622003b80b1c29e5c34"
+    },
+    {
+      "key": "gf9-reserves-ecaz",
+      "type": "token-disc",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/EcazCard.gif",
+          "sha256": "fb77a567c6fd6af0a066a53a0a17688e0fb68d0b2906f1a99eae026f91179f26"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9",
+          "page": "5-13"
+        }
+      ],
+      "dataSha256": "5601964620750891e3684d4e3ad819a94a02212d8bcedf43161409fb080f5230"
+    },
+    {
+      "key": "gf9-homeworld-grumman",
+      "type": "card-homeworld",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/GrummanCard.gif",
+          "sha256": "ab4627c69fb3c1bb31bedcf3dbc77a2132689d3dfb178408118e4f49dae598a5"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9",
+          "page": "5-13"
+        }
+      ],
+      "dataSha256": "05b101c1bcbc249b8881858f63df041d55ed9dfb1d2e2fad30feb259d84613d2"
+    },
+    {
+      "key": "gf9-reserves-grumman",
+      "type": "token-disc",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/GrummanCard.gif",
+          "sha256": "ab4627c69fb3c1bb31bedcf3dbc77a2132689d3dfb178408118e4f49dae598a5"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9",
+          "page": "5-13"
+        }
+      ],
+      "dataSha256": "8b0c9d1a80b46c02e1ce78f105a060294f9566f7a2b75d0b1b2841091d96916b"
+    },
+    {
+      "key": "gf9-homeworld-deck",
+      "type": "deck",
+      "sources": [
+        {
+          "source": "membership enumerated in assets-source-manifest.json"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9",
+          "page": "5-13"
+        }
+      ],
+      "dataSha256": "401e673013a3c0c7fccaba0da709f0c99661df909a7215e13a075944ce68f27e",
+      "members": [
+        {
+          "key": "gf9-homeworld-caladan",
+          "count": 1
+        },
+        {
+          "key": "gf9-homeworld-giedi-prime",
+          "count": 1
+        },
+        {
+          "key": "gf9-homeworld-arrakis",
+          "count": 1
+        },
+        {
+          "key": "gf9-homeworld-kaitain",
+          "count": 1
+        },
+        {
+          "key": "gf9-homeworld-salusa-secundus",
+          "count": 1
+        },
+        {
+          "key": "gf9-homeworld-junction",
+          "count": 1
+        },
+        {
+          "key": "gf9-homeworld-wallach-ix",
+          "count": 1
+        },
+        {
+          "key": "gf9-homeworld-ix",
+          "count": 1
+        },
+        {
+          "key": "gf9-homeworld-tleilax",
+          "count": 1
+        },
+        {
+          "key": "gf9-homeworld-tupile",
+          "count": 1
+        },
+        {
+          "key": "gf9-homeworld-richese",
+          "count": 1
+        },
+        {
+          "key": "gf9-homeworld-ecaz",
+          "count": 1
+        },
+        {
+          "key": "gf9-homeworld-grumman",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "key": "gf9-homeworld-reserves",
+      "type": "bundle",
+      "sources": [
+        {
+          "source": "membership enumerated in assets-source-manifest.json"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9",
+          "page": "5-13"
+        }
+      ],
+      "dataSha256": "6809144bb023b8a5c5cfa915d7b34f54cdb9a1ac06ffcf8d1980335395634c74",
+      "members": [
+        {
+          "key": "gf9-reserves-caladan",
+          "count": 1
+        },
+        {
+          "key": "gf9-reserves-giedi-prime",
+          "count": 1
+        },
+        {
+          "key": "gf9-reserves-arrakis",
+          "count": 1
+        },
+        {
+          "key": "gf9-reserves-kaitain",
+          "count": 1
+        },
+        {
+          "key": "gf9-reserves-salusa-secundus",
+          "count": 1
+        },
+        {
+          "key": "gf9-reserves-junction",
+          "count": 1
+        },
+        {
+          "key": "gf9-reserves-wallach-ix",
+          "count": 1
+        },
+        {
+          "key": "gf9-reserves-ix",
+          "count": 1
+        },
+        {
+          "key": "gf9-reserves-tleilax",
+          "count": 1
+        },
+        {
+          "key": "gf9-reserves-tupile",
+          "count": 1
+        },
+        {
+          "key": "gf9-reserves-richese",
+          "count": 1
+        },
+        {
+          "key": "gf9-reserves-ecaz",
+          "count": 1
+        },
+        {
+          "key": "gf9-reserves-grumman",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "key": "gf9-tech-axlotl-tanks",
+      "type": "token-tech",
+      "sources": [
+        {
+          "source": "https://github.com/user-attachments/files/33447701/BA7A5BD340F4B147740B6D25209C917D6DF2DFC0_IxianAndTleilaxuRulebook.pdf",
+          "sha256": "9dc631968839d6e8935acb30ac301301cfea7ed07a78a3aac266648f21cf357d",
+          "page": "4-5"
+        }
+      ],
+      "dataSha256": "26c66c0380f7dafdb093b0de6559cdd170c3ab2c4b893082ecb56f006c04d64d"
+    },
+    {
+      "key": "gf9-tech-heighliners",
+      "type": "token-tech",
+      "sources": [
+        {
+          "source": "https://github.com/user-attachments/files/33447701/BA7A5BD340F4B147740B6D25209C917D6DF2DFC0_IxianAndTleilaxuRulebook.pdf",
+          "sha256": "9dc631968839d6e8935acb30ac301301cfea7ed07a78a3aac266648f21cf357d",
+          "page": "4-5"
+        }
+      ],
+      "dataSha256": "b07bfa48d0e4b363d5bf9f4fa75abc141c878cd60b97d629b2af973a9b39a4e6"
+    },
+    {
+      "key": "gf9-tech-spice-production",
+      "type": "token-tech",
+      "sources": [
+        {
+          "source": "https://github.com/user-attachments/files/33447701/BA7A5BD340F4B147740B6D25209C917D6DF2DFC0_IxianAndTleilaxuRulebook.pdf",
+          "sha256": "9dc631968839d6e8935acb30ac301301cfea7ed07a78a3aac266648f21cf357d",
+          "page": "4-5"
+        }
+      ],
+      "dataSha256": "915e6782a2a2f7e040e3be51f8e432f89268efbbf2ac093540a9c625b952fbb2"
+    },
+    {
+      "key": "gf9-tech-tokens",
+      "type": "bundle",
+      "sources": [
+        {
+          "source": "https://github.com/user-attachments/files/33447701/BA7A5BD340F4B147740B6D25209C917D6DF2DFC0_IxianAndTleilaxuRulebook.pdf",
+          "sha256": "9dc631968839d6e8935acb30ac301301cfea7ed07a78a3aac266648f21cf357d"
+        }
+      ],
+      "dataSha256": "f1ba8dab49000eaabf84dcdc8c60314c4311fe9e5f1072c34fce08b84433a7d7",
+      "members": [
+        {
+          "key": "gf9-tech-axlotl-tanks",
+          "count": 1
+        },
+        {
+          "key": "gf9-tech-heighliners",
+          "count": 1
+        },
+        {
+          "key": "gf9-tech-spice-production",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "key": "gf9-ambassador-atreides",
+      "type": "token-disc",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9",
+          "page": "5-13"
+        }
+      ],
+      "dataSha256": "afaec80256e35900152259b1da94626837163de3165c928c821f9394eabf90f3"
+    },
+    {
+      "key": "gf9-ambassador-harkonnen",
+      "type": "token-disc",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9",
+          "page": "5-13"
+        }
+      ],
+      "dataSha256": "f11e4594b161a5cd401f941e0acce29158bbc3ddd395e9f1a8ca61dbeca6346a"
+    },
+    {
+      "key": "gf9-ambassador-fremen",
+      "type": "token-disc",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9",
+          "page": "5-13"
+        }
+      ],
+      "dataSha256": "79418d621b98b5630a44ef70a2201aaaf04712d88a17c6b6f42cc5f39547871f"
+    },
+    {
+      "key": "gf9-ambassador-emperor",
+      "type": "token-disc",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9",
+          "page": "5-13"
+        }
+      ],
+      "dataSha256": "7ae212bcab2ae9a5134f46b3a36a18fa8bcbc81e32b7928273bb9ee152f09e40"
+    },
+    {
+      "key": "gf9-ambassador-guild",
+      "type": "token-disc",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9",
+          "page": "5-13"
+        }
+      ],
+      "dataSha256": "fb51fbff361d27f20f4a6d2da47521a593a559cafda156aa79662f2ae68598b7"
+    },
+    {
+      "key": "gf9-ambassador-bene-gesserit",
+      "type": "token-disc",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9",
+          "page": "5-13"
+        }
+      ],
+      "dataSha256": "6b6480da61be9c1e3d9af8c8fea0e788d5bfb2b323f59c63316a82609b5b15d0"
+    },
+    {
+      "key": "gf9-ambassador-ixian",
+      "type": "token-disc",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9",
+          "page": "5-13"
+        }
+      ],
+      "dataSha256": "e30a70be2ef922d9bc47ec13bcb1023573bb24df7ab6944e1cc180c43045a896"
+    },
+    {
+      "key": "gf9-ambassador-tleilaxu",
+      "type": "token-disc",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9",
+          "page": "5-13"
+        }
+      ],
+      "dataSha256": "f746b2dba081097f9de79e768c0d48d15b203f9e84babce61be9d6f339f6f5ff"
+    },
+    {
+      "key": "gf9-ambassador-choam",
+      "type": "token-disc",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9",
+          "page": "5-13"
+        }
+      ],
+      "dataSha256": "8bf5d1d263baeb20720e3ce34efd77540a081c959bb3248d3a7ff5b3c6ff86c3"
+    },
+    {
+      "key": "gf9-ambassador-richese",
+      "type": "token-disc",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9",
+          "page": "5-13"
+        }
+      ],
+      "dataSha256": "9722d988f0016d1c3786b5f4e9c012c1b1e77f99aed1f50daa1514fd5e544451"
+    },
+    {
+      "key": "gf9-ambassador-ecaz",
+      "type": "token-disc",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9",
+          "page": "5-13"
+        }
+      ],
+      "dataSha256": "52dd7d696d0b2bdff1cda1e8dca4b7c70c186b66aefde934e59799d38ed705bb"
+    },
+    {
+      "key": "gf9-ambassador-tokens",
+      "type": "bundle",
+      "sources": [
+        {
+          "source": "membership enumerated in assets-source-manifest.json"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9",
+          "page": "5-13"
+        }
+      ],
+      "dataSha256": "286fb53fb2ab76fbe284d34a1bae416581069302efc88a1ec896b22fb77b3f1c",
+      "members": [
+        {
+          "key": "gf9-ambassador-atreides",
+          "count": 1
+        },
+        {
+          "key": "gf9-ambassador-harkonnen",
+          "count": 1
+        },
+        {
+          "key": "gf9-ambassador-fremen",
+          "count": 1
+        },
+        {
+          "key": "gf9-ambassador-emperor",
+          "count": 1
+        },
+        {
+          "key": "gf9-ambassador-guild",
+          "count": 1
+        },
+        {
+          "key": "gf9-ambassador-bene-gesserit",
+          "count": 1
+        },
+        {
+          "key": "gf9-ambassador-ixian",
+          "count": 1
+        },
+        {
+          "key": "gf9-ambassador-tleilaxu",
+          "count": 1
+        },
+        {
+          "key": "gf9-ambassador-choam",
+          "count": 1
+        },
+        {
+          "key": "gf9-ambassador-richese",
+          "count": 1
+        },
+        {
+          "key": "gf9-ambassador-ecaz",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "key": "gf9-terror-assassination",
+      "type": "token-disc",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9",
+          "page": "5-13"
+        }
+      ],
+      "dataSha256": "381618c5b944cd88f7c39492219fa95a5cc95f74134740ab8bab5bdad01f745f"
+    },
+    {
+      "key": "gf9-terror-atomics",
+      "type": "token-disc",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9",
+          "page": "5-13"
+        }
+      ],
+      "dataSha256": "ede3e633ed991c3a54bfce9c0d64087b488e0081b7b2e76f7f187956602e0a1c"
+    },
+    {
+      "key": "gf9-terror-extortion",
+      "type": "token-disc",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9",
+          "page": "5-13"
+        }
+      ],
+      "dataSha256": "b1803092d4cd12fecf9eb87c3286efc09203bf7569e174d9324964016f4cec4a"
+    },
+    {
+      "key": "gf9-terror-robbery",
+      "type": "token-disc",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9",
+          "page": "5-13"
+        }
+      ],
+      "dataSha256": "b7da20e5ce207b74cc29abbf55dda244972aa92623264ad66adce6e180b92424"
+    },
+    {
+      "key": "gf9-terror-sabotage",
+      "type": "token-disc",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9",
+          "page": "5-13"
+        }
+      ],
+      "dataSha256": "c763b676a749b898dd0d03e493492b87453347958e1284042ae143bdfa004c80"
+    },
+    {
+      "key": "gf9-terror-sneak-attack",
+      "type": "token-disc",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9",
+          "page": "5-13"
+        }
+      ],
+      "dataSha256": "007957052742a7020e65cfd97e93ed540d2f5e32db446eacd740b7dd6258a3e7"
+    },
+    {
+      "key": "gf9-terror-tokens",
+      "type": "bundle",
+      "sources": [
+        {
+          "source": "membership enumerated in assets-source-manifest.json"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9",
+          "page": "5-13"
+        }
+      ],
+      "dataSha256": "7f50c5c0c665911bc5cc83a05cdd86d763ff39e21de97410b4d401b96ea0f43b",
+      "members": [
+        {
+          "key": "gf9-terror-assassination",
+          "count": 1
+        },
+        {
+          "key": "gf9-terror-atomics",
+          "count": 1
+        },
+        {
+          "key": "gf9-terror-extortion",
+          "count": 1
+        },
+        {
+          "key": "gf9-terror-robbery",
+          "count": 1
+        },
+        {
+          "key": "gf9-terror-sabotage",
+          "count": 1
+        },
+        {
+          "key": "gf9-terror-sneak-attack",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "key": "gf9-atomics-aftermath",
+      "type": "token-disc",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        }
+      ],
+      "dataSha256": "263a5bc8b00cf66a396f1c50c313c87dba5c04eeccb823126e227f0f3950f76e"
+    },
+    {
+      "key": "gf9-aftermath-markers",
+      "type": "bundle",
+      "sources": [
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9"
+        }
+      ],
+      "dataSha256": "43f06cc7bfeb4421964f74fbad844779a27a1548c550c97d5f14ad6b2e00ce1b",
+      "members": [
+        {
+          "key": "gf9-atomics-aftermath",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "key": "gf9-no-field-0",
+      "type": "token-disc",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        }
+      ],
+      "dataSha256": "75d6638c1526ef74b36893994adca2c6be744643f61acdef7a46ecd794beea9f"
+    },
+    {
+      "key": "gf9-no-field-3",
+      "type": "token-disc",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        }
+      ],
+      "dataSha256": "1d2c7e3d217648db117f1ef9c51ce77e95bc841dac5f5ec03f70824bc5f6678f"
+    },
+    {
+      "key": "gf9-no-field-5",
+      "type": "token-disc",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        }
+      ],
+      "dataSha256": "7a5ecce2af0a4d8a678cd7d9a6dd739a3b4788a4c15e157326549069c98a8f32"
+    },
+    {
+      "key": "gf9-no-field-tokens",
+      "type": "bundle",
+      "sources": [
+        {
+          "source": "https://github.com/user-attachments/files/33447703/9DD6A03F57C5F1B662DDEAD2D21B210DB2492F64_ChoamAndRichese.Rulebook.pdf",
+          "sha256": "ee08ac180ca9824728532212bbd54de3e258ed81ad30051063f5633928fb7407"
+        }
+      ],
+      "dataSha256": "83e2fe3f7e1f6e587c1b1ee5b3d38e68c9297b04b3cf93ea737ca8932f7415db",
+      "members": [
+        {
+          "key": "gf9-no-field-0",
+          "count": 1
+        },
+        {
+          "key": "gf9-no-field-3",
+          "count": 1
+        },
+        {
+          "key": "gf9-no-field-5",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "key": "gf9-inflation-token",
+      "type": "token-disc",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447703/9DD6A03F57C5F1B662DDEAD2D21B210DB2492F64_ChoamAndRichese.Rulebook.pdf",
+          "sha256": "ee08ac180ca9824728532212bbd54de3e258ed81ad30051063f5633928fb7407",
+          "page": "7-8"
+        }
+      ],
+      "dataSha256": "871a857c772ada6098a2e9536c44c2238661fd48f6f9a07ca2872a6c1caf3f88"
+    },
+    {
+      "key": "gf9-inflation-tokens",
+      "type": "bundle",
+      "sources": [
+        {
+          "source": "https://github.com/user-attachments/files/33447703/9DD6A03F57C5F1B662DDEAD2D21B210DB2492F64_ChoamAndRichese.Rulebook.pdf",
+          "sha256": "ee08ac180ca9824728532212bbd54de3e258ed81ad30051063f5633928fb7407"
+        }
+      ],
+      "dataSha256": "9dc87ffe5002a8781829a1fa65417e4357334f121472e90d03b9f32e3c0ada26",
+      "members": [
+        {
+          "key": "gf9-inflation-token",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "key": "gf9-discovery-jacurutu-sietch",
+      "type": "token-disc",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9",
+          "page": "5-13"
+        }
+      ],
+      "dataSha256": "6f770be04a29574d71cf0827b18c11094812f5eabd3657313107d78f773c6373"
+    },
+    {
+      "key": "gf9-discovery-shrine",
+      "type": "token-disc",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9",
+          "page": "5-13"
+        }
+      ],
+      "dataSha256": "cda06d5bfb11f4641edbd6e3270c9b3bfe7cde3bec1f6f239850683263b7f4c3"
+    },
+    {
+      "key": "gf9-discovery-ecological-testing-station",
+      "type": "token-disc",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9",
+          "page": "5-13"
+        }
+      ],
+      "dataSha256": "0d550c289f52eb789d4441eef4a26ccc4e527eed54a26e8652ad0147f533673a"
+    },
+    {
+      "key": "gf9-discovery-cistern",
+      "type": "token-disc",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9",
+          "page": "5-13"
+        }
+      ],
+      "dataSha256": "19705ee014fe4e15c30b2310abadc933da74dad429e4794317c740860f1dfd42"
+    },
+    {
+      "key": "gf9-discovery-orgiz-processing-station",
+      "type": "token-disc",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9",
+          "page": "5-13"
+        }
+      ],
+      "dataSha256": "e8e04cb68c3f02eabff5021101b09222072bbcfd0a0a5bc8c6bc3783537cab8e"
+    },
+    {
+      "key": "gf9-discovery-treachery-card-stash",
+      "type": "token-disc",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9",
+          "page": "5-13"
+        }
+      ],
+      "dataSha256": "eccb937f658527edc023020208a415889bb32006ffa55f0cc9a687ed13828f86"
+    },
+    {
+      "key": "gf9-discovery-spice-stash",
+      "type": "token-disc",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9",
+          "page": "5-13"
+        }
+      ],
+      "dataSha256": "78f280d65bb3dee9787d7f0016bcfec92519018eb9b101e3da75903ee2844c4d"
+    },
+    {
+      "key": "gf9-discovery-ornithopter",
+      "type": "token-disc",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9",
+          "page": "5-13"
+        }
+      ],
+      "dataSha256": "a4253362cf1145df7ad25a0dbffd8365f1ea11aa4c4e6e88a61dfd0897d2c6c6"
+    },
+    {
+      "key": "gf9-discovery-tokens",
+      "type": "bundle",
+      "sources": [
+        {
+          "source": "membership enumerated in assets-source-manifest.json"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9",
+          "page": "5-13"
+        }
+      ],
+      "dataSha256": "f0595a95b03b6f49f99423e0e7829f2adb71c0d55ab24888bc9e543fa9ee5733",
+      "members": [
+        {
+          "key": "gf9-discovery-jacurutu-sietch",
+          "count": 1
+        },
+        {
+          "key": "gf9-discovery-shrine",
+          "count": 1
+        },
+        {
+          "key": "gf9-discovery-ecological-testing-station",
+          "count": 1
+        },
+        {
+          "key": "gf9-discovery-cistern",
+          "count": 1
+        },
+        {
+          "key": "gf9-discovery-orgiz-processing-station",
+          "count": 1
+        },
+        {
+          "key": "gf9-discovery-treachery-card-stash",
+          "count": 1
+        },
+        {
+          "key": "gf9-discovery-spice-stash",
+          "count": 1
+        },
+        {
+          "key": "gf9-discovery-ornithopter",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "key": "gf9-hidden-mobile-stronghold",
+      "type": "token-disc",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447701/BA7A5BD340F4B147740B6D25209C917D6DF2DFC0_IxianAndTleilaxuRulebook.pdf",
+          "sha256": "9dc631968839d6e8935acb30ac301301cfea7ed07a78a3aac266648f21cf357d",
+          "page": "4-5, 8, 11"
+        }
+      ],
+      "dataSha256": "fca520c55d78260250e9e5ed5b8066a08397d651c8bd0320c14a5df8bb8a59d5"
+    },
+    {
+      "key": "gf9-mobile-stronghold-token",
+      "type": "bundle",
+      "sources": [
+        {
+          "source": "https://github.com/user-attachments/files/33447701/BA7A5BD340F4B147740B6D25209C917D6DF2DFC0_IxianAndTleilaxuRulebook.pdf",
+          "sha256": "9dc631968839d6e8935acb30ac301301cfea7ed07a78a3aac266648f21cf357d"
+        }
+      ],
+      "dataSha256": "b926f02fa97dbc3dbdc0eb89e0417206e96855e84755e9e29e51f03f255e3bf9",
+      "members": [
+        {
+          "key": "gf9-hidden-mobile-stronghold",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "key": "gf9-storm-marker",
+      "type": "token-disc",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        }
+      ],
+      "dataSha256": "f52d85aed46e2f18f6998764a4835a62631261bccada89aa62914e48c12c54eb"
+    },
+    {
+      "key": "gf9-destroyed-shield-wall",
+      "type": "token-disc",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        }
+      ],
+      "dataSha256": "ee861181e95c5d0d041a85308fd7b786113df05fc325b080c98dc5911a758279"
+    },
+    {
+      "key": "gf9-sandworm-marker",
+      "type": "token-disc",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        }
+      ],
+      "dataSha256": "87a9867382c32562bf4b4750801de541edcd3a37269be676b8e15ce61d4db603"
+    },
+    {
+      "key": "gf9-turn-marker",
+      "type": "token-disc",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        }
+      ],
+      "dataSha256": "313ad2d96f7f748e073350b811a39952af29e806819453b01f6f3e857730f761"
+    },
+    {
+      "key": "gf9-board-markers",
+      "type": "bundle",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/docs/Dune-Rulebook.pdf",
+          "sha256": "6c55d28e93b6948a34d20b0f50e1087494e06f237f8c43e7e4c0cac3810b752d"
+        }
+      ],
+      "dataSha256": "e146a3dababf778909498346b931eeeaa3fffe712e00e35a77de057d45c73cc0",
+      "members": [
+        {
+          "key": "gf9-storm-marker",
+          "count": 1
+        },
+        {
+          "key": "gf9-destroyed-shield-wall",
+          "count": 1
+        },
+        {
+          "key": "gf9-sandworm-marker",
+          "count": 1
+        },
+        {
+          "key": "gf9-turn-marker",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "key": "gf9-spice-cielago-north",
+      "type": "card-spice",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/Map.cs",
+          "sha256": "428fc19c7377ca0c1fd1efcd91841989ddaf42b1f143eb114103d8d3996f1016"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        }
+      ],
+      "dataSha256": "ddece269fc9f0ab19ba5f80367e46820a4363426767b6ec19dc2898e570c974c",
+      "presentationReview": {
+        "previousType": "card-spice",
+        "type": "card-spice",
+        "reason": "Removed GF9 title prefix and replaced the redundant instruction paragraph with a short sector caption. Complete placement instruction remains in About.",
+        "fullTerritoryName": "Cielago North",
+        "visibleName": "Cielago North",
+        "caption": "East sector."
+      }
+    },
+    {
+      "key": "gf9-spice-cielago-south",
+      "type": "card-spice",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/Map.cs",
+          "sha256": "428fc19c7377ca0c1fd1efcd91841989ddaf42b1f143eb114103d8d3996f1016"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        }
+      ],
+      "dataSha256": "e70d8853077bbc88b892d4729e0259fa8a3c13890cc43dbe39ab6bccb7229876",
+      "presentationReview": {
+        "previousType": "card-spice",
+        "type": "card-spice",
+        "reason": "Removed GF9 title prefix and replaced the redundant instruction paragraph with a short sector caption. Complete placement instruction remains in About.",
+        "fullTerritoryName": "Cielago South",
+        "visibleName": "Cielago South",
+        "caption": "West sector."
+      }
+    },
+    {
+      "key": "gf9-spice-the-minor-erg",
+      "type": "card-spice",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/Map.cs",
+          "sha256": "428fc19c7377ca0c1fd1efcd91841989ddaf42b1f143eb114103d8d3996f1016"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        }
+      ],
+      "dataSha256": "80e2e0b565885fc2979ab192384525b34f7b472e86710a1685d0cb9d5869870d",
+      "presentationReview": {
+        "previousType": "card-spice",
+        "type": "card-spice",
+        "reason": "Removed GF9 title prefix and replaced the redundant instruction paragraph with a short sector caption. Complete placement instruction remains in About.",
+        "fullTerritoryName": "The Minor Erg",
+        "visibleName": "The Minor Erg",
+        "caption": "Far North sector."
+      }
+    },
+    {
+      "key": "gf9-spice-red-chasm",
+      "type": "card-spice",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/Map.cs",
+          "sha256": "428fc19c7377ca0c1fd1efcd91841989ddaf42b1f143eb114103d8d3996f1016"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        }
+      ],
+      "dataSha256": "ab8f9a6a88581182d6f8b5dffe350d7af0d523917fc23a5b2e84839a41f914c6",
+      "presentationReview": {
+        "previousType": "card-spice",
+        "type": "card-spice",
+        "reason": "Removed GF9 title prefix and replaced the redundant instruction paragraph with a short sector caption. Complete placement instruction remains in About.",
+        "fullTerritoryName": "Red Chasm",
+        "visibleName": "Red Chasm",
+        "caption": "Spice blow."
+      }
+    },
+    {
+      "key": "gf9-spice-south-mesa",
+      "type": "card-spice",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/Map.cs",
+          "sha256": "428fc19c7377ca0c1fd1efcd91841989ddaf42b1f143eb114103d8d3996f1016"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        }
+      ],
+      "dataSha256": "9ad361d6f53633f4f88919742a5b204b235cb2bed36ef4c433d8911a2e0f641c",
+      "presentationReview": {
+        "previousType": "card-spice",
+        "type": "card-spice",
+        "reason": "Removed GF9 title prefix and replaced the redundant instruction paragraph with a short sector caption. Complete placement instruction remains in About.",
+        "fullTerritoryName": "South Mesa",
+        "visibleName": "South Mesa",
+        "caption": "Middle sector."
+      }
+    },
+    {
+      "key": "gf9-spice-sihaya-ridge",
+      "type": "card-spice",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/Map.cs",
+          "sha256": "428fc19c7377ca0c1fd1efcd91841989ddaf42b1f143eb114103d8d3996f1016"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        }
+      ],
+      "dataSha256": "a3d66fd26479cc397366178df1838d0f1b53486bbeeb9700b2974f7db1142538",
+      "presentationReview": {
+        "previousType": "card-spice",
+        "type": "card-spice",
+        "reason": "Removed GF9 title prefix and replaced the redundant instruction paragraph with a short sector caption. Complete placement instruction remains in About.",
+        "fullTerritoryName": "Sihaya Ridge",
+        "visibleName": "Sihaya Ridge",
+        "caption": "Spice blow."
+      }
+    },
+    {
+      "key": "gf9-spice-old-gap",
+      "type": "card-spice",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/Map.cs",
+          "sha256": "428fc19c7377ca0c1fd1efcd91841989ddaf42b1f143eb114103d8d3996f1016"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        }
+      ],
+      "dataSha256": "eb51a6668acff5706e4140ae9dee2cfb5361d6ec9848ebb7360ed494f696e03c",
+      "presentationReview": {
+        "previousType": "card-spice",
+        "type": "card-spice",
+        "reason": "Removed GF9 title prefix and replaced the redundant instruction paragraph with a short sector caption. Complete placement instruction remains in About.",
+        "fullTerritoryName": "Old Gap",
+        "visibleName": "Old Gap",
+        "caption": "Middle sector."
+      }
+    },
+    {
+      "key": "gf9-spice-broken-land",
+      "type": "card-spice",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/Map.cs",
+          "sha256": "428fc19c7377ca0c1fd1efcd91841989ddaf42b1f143eb114103d8d3996f1016"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        }
+      ],
+      "dataSha256": "8609dea071ed7f1c6ebce1150193c42d3bbd6b71e5c4b9c42b8800f7db72b1de",
+      "presentationReview": {
+        "previousType": "card-spice",
+        "type": "card-spice",
+        "reason": "Removed GF9 title prefix and replaced the redundant instruction paragraph with a short sector caption. Complete placement instruction remains in About.",
+        "fullTerritoryName": "Broken Land",
+        "visibleName": "Broken Land",
+        "caption": "West sector."
+      }
+    },
+    {
+      "key": "gf9-spice-rock-outcroppings",
+      "type": "card-spice",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/Map.cs",
+          "sha256": "428fc19c7377ca0c1fd1efcd91841989ddaf42b1f143eb114103d8d3996f1016"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        }
+      ],
+      "dataSha256": "991c24f276630f6b965d411dcd9829ccdbcbdaea81176919259ff93fce911ec7",
+      "presentationReview": {
+        "previousType": "card-spice",
+        "type": "card-spice",
+        "reason": "Removed GF9 title prefix and replaced the redundant instruction paragraph with a short sector caption. Complete placement instruction remains in About.",
+        "fullTerritoryName": "Rock Outcroppings",
+        "visibleName": "Rock Outcrops",
+        "caption": "South sector."
+      }
+    },
+    {
+      "key": "gf9-spice-hagga-basin",
+      "type": "card-spice",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/Map.cs",
+          "sha256": "428fc19c7377ca0c1fd1efcd91841989ddaf42b1f143eb114103d8d3996f1016"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        }
+      ],
+      "dataSha256": "8fc5317306dc3924c6b7919bb17ac0abe031a17e100f2fbe2f27fcb05e4d8d1a",
+      "presentationReview": {
+        "previousType": "card-spice",
+        "type": "card-spice",
+        "reason": "Removed GF9 title prefix and replaced the redundant instruction paragraph with a short sector caption. Complete placement instruction remains in About.",
+        "fullTerritoryName": "Hagga Basin",
+        "visibleName": "Hagga Basin",
+        "caption": "West sector."
+      }
+    },
+    {
+      "key": "gf9-spice-funeral-plain",
+      "type": "card-spice",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/Map.cs",
+          "sha256": "428fc19c7377ca0c1fd1efcd91841989ddaf42b1f143eb114103d8d3996f1016"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        }
+      ],
+      "dataSha256": "3624aabb1a0a62d021f1e2701e18ee683876dcdc477074c25e452edf91841270",
+      "presentationReview": {
+        "previousType": "card-spice",
+        "type": "card-spice",
+        "reason": "Removed GF9 title prefix and replaced the redundant instruction paragraph with a short sector caption. Complete placement instruction remains in About.",
+        "fullTerritoryName": "Funeral Plain",
+        "visibleName": "Funeral Plain",
+        "caption": "Spice blow."
+      }
+    },
+    {
+      "key": "gf9-spice-the-great-flat",
+      "type": "card-spice",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/Map.cs",
+          "sha256": "428fc19c7377ca0c1fd1efcd91841989ddaf42b1f143eb114103d8d3996f1016"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        }
+      ],
+      "dataSha256": "9c2ce9618612309fbd83dc7e6141f2a9cd8af6eb28a47f4aab512e2b76d5a51c",
+      "presentationReview": {
+        "previousType": "card-spice",
+        "type": "card-spice",
+        "reason": "Removed GF9 title prefix and replaced the redundant instruction paragraph with a short sector caption. Complete placement instruction remains in About.",
+        "fullTerritoryName": "The Great Flat",
+        "visibleName": "The Great Flat",
+        "caption": "Spice blow."
+      }
+    },
+    {
+      "key": "gf9-spice-habbanya-erg",
+      "type": "card-spice",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/Map.cs",
+          "sha256": "428fc19c7377ca0c1fd1efcd91841989ddaf42b1f143eb114103d8d3996f1016"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        }
+      ],
+      "dataSha256": "3eec860e3f9535fc69b7096d2b26c2e7c391f4b5d0070923ac706c98211e5170",
+      "presentationReview": {
+        "previousType": "card-spice",
+        "type": "card-spice",
+        "reason": "Removed GF9 title prefix and replaced the redundant instruction paragraph with a short sector caption. Complete placement instruction remains in About.",
+        "fullTerritoryName": "Habbanya Erg",
+        "visibleName": "Habbanya Erg",
+        "caption": "West sector."
+      }
+    },
+    {
+      "key": "gf9-spice-wind-pass-north",
+      "type": "card-spice",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/Map.cs",
+          "sha256": "428fc19c7377ca0c1fd1efcd91841989ddaf42b1f143eb114103d8d3996f1016"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        }
+      ],
+      "dataSha256": "290bb93262e4015f8b678bd72567e6021df8fac507754d0bc2dc5c7ffdae8329",
+      "presentationReview": {
+        "previousType": "card-spice",
+        "type": "card-spice",
+        "reason": "Removed GF9 title prefix and replaced the redundant instruction paragraph with a short sector caption. Complete placement instruction remains in About.",
+        "fullTerritoryName": "Wind Pass North",
+        "visibleName": "Wind Pass North",
+        "caption": "North sector."
+      }
+    },
+    {
+      "key": "gf9-spice-habbanya-ridge-flat",
+      "type": "card-spice",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/Map.cs",
+          "sha256": "428fc19c7377ca0c1fd1efcd91841989ddaf42b1f143eb114103d8d3996f1016"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        }
+      ],
+      "dataSha256": "d8d102c4ff626f56b70312a4c5c0a12d5d83908a9db1c5bca8e150fe1409af64",
+      "presentationReview": {
+        "previousType": "card-spice",
+        "type": "card-spice",
+        "reason": "Removed GF9 title prefix and replaced the redundant instruction paragraph with a short sector caption. Complete placement instruction remains in About.",
+        "fullTerritoryName": "Habbanya Ridge Flat",
+        "visibleName": "Habbanya R. Flat",
+        "caption": "East sector."
+      }
+    },
+    {
+      "key": "gf9-shai-hulud",
+      "type": "card-custom",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        }
+      ],
+      "dataSha256": "11d8642ff45223ae3871985e477ed0988d03dacbbb4facce2515ef06945eb173"
+    },
+    {
+      "key": "gf9-sandtrout",
+      "type": "card-custom",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447701/BA7A5BD340F4B147740B6D25209C917D6DF2DFC0_IxianAndTleilaxuRulebook.pdf",
+          "sha256": "9dc631968839d6e8935acb30ac301301cfea7ed07a78a3aac266648f21cf357d",
+          "page": "4-5, 8, 11"
+        }
+      ],
+      "dataSha256": "7bfa9a19acbabcb7483c54764304931d8ccf68a545663c2fb850bba0f13e3d29"
+    },
+    {
+      "key": "gf9-great-maker",
+      "type": "card-custom",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        }
+      ],
+      "dataSha256": "4f761a7bb6d86dd6485b6c8b34ea4e477667dd242360a2e63bbff8cab82c8303"
+    },
+    {
+      "key": "gf9-discovery-spice-sihaya-ridge",
+      "type": "card-custom",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/Map.cs",
+          "sha256": "428fc19c7377ca0c1fd1efcd91841989ddaf42b1f143eb114103d8d3996f1016"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9",
+          "page": "5-13"
+        }
+      ],
+      "dataSha256": "d4daf7218600d2b5939b4771b3ed8df111408936786ceca30d1ef1adb5617f1c",
+      "presentationReview": {
+        "previousType": "card-spice",
+        "type": "card-custom",
+        "reason": "Complete Discovery procedure moved into a free text composition because the Spice face cannot fit it. Quantity, blow territory and sector, token territory and sector, destruction and type-specific inspection remain on the face.",
+        "droppedFields": ["amount", "highlights", "text"],
+        "retainedInText": {
+          "amount": 6,
+          "blowTerritory": "Sihaya Ridge",
+          "blowSector": "only",
+          "tokenTerritory": "Cielago East",
+          "tokenSector": "West",
+          "tokenType": "Hiereg"
+        }
+      }
+    },
+    {
+      "key": "gf9-discovery-spice-rock-outcroppings",
+      "type": "card-custom",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/Map.cs",
+          "sha256": "428fc19c7377ca0c1fd1efcd91841989ddaf42b1f143eb114103d8d3996f1016"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9",
+          "page": "5-13"
+        }
+      ],
+      "dataSha256": "3444670bac108804e492e95fd9ef036e61463c81ee71ce77898a8757092c83a2",
+      "presentationReview": {
+        "previousType": "card-spice",
+        "type": "card-custom",
+        "reason": "Complete Discovery procedure moved into a free text composition because the Spice face cannot fit it. Quantity, blow territory and sector, token territory and sector, destruction and type-specific inspection remain on the face.",
+        "droppedFields": ["amount", "highlights", "text"],
+        "retainedInText": {
+          "amount": 6,
+          "blowTerritory": "Rock Outcroppings",
+          "blowSector": "South",
+          "tokenTerritory": "Meridian",
+          "tokenSector": "West",
+          "tokenType": "Hiereg"
+        }
+      }
+    },
+    {
+      "key": "gf9-discovery-spice-hagga-basin",
+      "type": "card-custom",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/Map.cs",
+          "sha256": "428fc19c7377ca0c1fd1efcd91841989ddaf42b1f143eb114103d8d3996f1016"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9",
+          "page": "5-13"
+        }
+      ],
+      "dataSha256": "821d5376025b759b89b92c742a40f9d243855482ac0a73dac928b1b87979bd85",
+      "presentationReview": {
+        "previousType": "card-spice",
+        "type": "card-custom",
+        "reason": "Complete Discovery procedure moved into a free text composition because the Spice face cannot fit it. Quantity, blow territory and sector, token territory and sector, destruction and type-specific inspection remain on the face.",
+        "droppedFields": ["amount", "highlights", "text"],
+        "retainedInText": {
+          "amount": 6,
+          "blowTerritory": "Hagga Basin",
+          "blowSector": "West",
+          "tokenTerritory": "Gara Kulon",
+          "tokenSector": "only",
+          "tokenType": "Hiereg"
+        }
+      }
+    },
+    {
+      "key": "gf9-discovery-spice-funeral-plain",
+      "type": "card-custom",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/Map.cs",
+          "sha256": "428fc19c7377ca0c1fd1efcd91841989ddaf42b1f143eb114103d8d3996f1016"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9",
+          "page": "5-13"
+        }
+      ],
+      "dataSha256": "d052c2d34806aeae306b5a1d3882dea2f7842cb1ae0bade5fb1fcb54138861cc",
+      "presentationReview": {
+        "previousType": "card-spice",
+        "type": "card-custom",
+        "reason": "Complete Discovery procedure moved into a free text composition because the Spice face cannot fit it. Quantity, blow territory and sector, token territory and sector, destruction and type-specific inspection remain on the face.",
+        "droppedFields": ["amount", "highlights", "text"],
+        "retainedInText": {
+          "amount": 6,
+          "blowTerritory": "Funeral Plain",
+          "blowSector": "only",
+          "tokenTerritory": "Pasty Mesa",
+          "tokenSector": "North",
+          "tokenType": "Smuggler"
+        }
+      }
+    },
+    {
+      "key": "gf9-discovery-spice-wind-pass-north",
+      "type": "card-custom",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/Map.cs",
+          "sha256": "428fc19c7377ca0c1fd1efcd91841989ddaf42b1f143eb114103d8d3996f1016"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9",
+          "page": "5-13"
+        }
+      ],
+      "dataSha256": "1af18637315be92e72bae2407ba4d4f1cafaa0ffe5016d9bd7cd5fbf79543c2b",
+      "presentationReview": {
+        "previousType": "card-spice",
+        "type": "card-custom",
+        "reason": "Complete Discovery procedure moved into a free text composition because the Spice face cannot fit it. Quantity, blow territory and sector, token territory and sector, destruction and type-specific inspection remain on the face.",
+        "droppedFields": ["amount", "highlights", "text"],
+        "retainedInText": {
+          "amount": 6,
+          "blowTerritory": "Wind Pass North",
+          "blowSector": "North",
+          "tokenTerritory": "Plastic Basin",
+          "tokenSector": "Middle",
+          "tokenType": "Smuggler"
+        }
+      }
+    },
+    {
+      "key": "gf9-discovery-spice-old-gap",
+      "type": "card-custom",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Shared/Map.cs",
+          "sha256": "428fc19c7377ca0c1fd1efcd91841989ddaf42b1f143eb114103d8d3996f1016"
+        },
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9",
+          "page": "5-13"
+        }
+      ],
+      "dataSha256": "ec70df3fc2451b2dc73b123c2347d665dca8f5221d2654425864610e8ff4383a",
+      "presentationReview": {
+        "previousType": "card-spice",
+        "type": "card-custom",
+        "reason": "Complete Discovery procedure moved into a free text composition because the Spice face cannot fit it. Quantity, blow territory and sector, token territory and sector, destruction and type-specific inspection remain on the face.",
+        "droppedFields": ["amount", "highlights", "text"],
+        "retainedInText": {
+          "amount": 6,
+          "blowTerritory": "Old Gap",
+          "blowSector": "Middle",
+          "tokenTerritory": "False Wall West",
+          "tokenSector": "Middle",
+          "tokenType": "Smuggler"
+        }
+      }
+    },
+    {
+      "key": "gf9-spice-deck",
+      "type": "deck",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/docs/Dune-Rulebook.pdf",
+          "sha256": "6c55d28e93b6948a34d20b0f50e1087494e06f237f8c43e7e4c0cac3810b752d"
+        }
+      ],
+      "dataSha256": "26e11abccd59fd0ca7ee867337d61d7d37ef54af80943059a3b1f25eaba89650",
+      "members": [
+        {
+          "key": "gf9-spice-cielago-north",
+          "count": 1
+        },
+        {
+          "key": "gf9-spice-cielago-south",
+          "count": 1
+        },
+        {
+          "key": "gf9-spice-the-minor-erg",
+          "count": 1
+        },
+        {
+          "key": "gf9-spice-red-chasm",
+          "count": 1
+        },
+        {
+          "key": "gf9-spice-south-mesa",
+          "count": 1
+        },
+        {
+          "key": "gf9-spice-sihaya-ridge",
+          "count": 1
+        },
+        {
+          "key": "gf9-spice-old-gap",
+          "count": 1
+        },
+        {
+          "key": "gf9-spice-broken-land",
+          "count": 1
+        },
+        {
+          "key": "gf9-spice-rock-outcroppings",
+          "count": 1
+        },
+        {
+          "key": "gf9-spice-hagga-basin",
+          "count": 1
+        },
+        {
+          "key": "gf9-spice-funeral-plain",
+          "count": 1
+        },
+        {
+          "key": "gf9-spice-the-great-flat",
+          "count": 1
+        },
+        {
+          "key": "gf9-spice-habbanya-erg",
+          "count": 1
+        },
+        {
+          "key": "gf9-spice-wind-pass-north",
+          "count": 1
+        },
+        {
+          "key": "gf9-spice-habbanya-ridge-flat",
+          "count": 1
+        },
+        {
+          "key": "gf9-shai-hulud",
+          "count": 6
+        },
+        {
+          "key": "gf9-sandtrout",
+          "count": 1
+        },
+        {
+          "key": "gf9-great-maker",
+          "count": 1
+        },
+        {
+          "key": "gf9-discovery-spice-sihaya-ridge",
+          "count": 1
+        },
+        {
+          "key": "gf9-discovery-spice-rock-outcroppings",
+          "count": 1
+        },
+        {
+          "key": "gf9-discovery-spice-hagga-basin",
+          "count": 1
+        },
+        {
+          "key": "gf9-discovery-spice-funeral-plain",
+          "count": 1
+        },
+        {
+          "key": "gf9-discovery-spice-wind-pass-north",
+          "count": 1
+        },
+        {
+          "key": "gf9-discovery-spice-old-gap",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "key": "gf9-prediction-turn-1",
+      "type": "card-custom",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        }
+      ],
+      "dataSha256": "5e6095025b3f64be9ef5c6958670b722e5f195f6b37ccb84411fcbec620ba225"
+    },
+    {
+      "key": "gf9-prediction-turn-2",
+      "type": "card-custom",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        }
+      ],
+      "dataSha256": "f2ae982626c3e728677359320bb37a81f436e626cbf8ea15ed1edce9e50fb537"
+    },
+    {
+      "key": "gf9-prediction-turn-3",
+      "type": "card-custom",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        }
+      ],
+      "dataSha256": "7d564a61fc7c3edec98923f0abc268121fb0e6ce9af0d9acda4bfc8df702c66a"
+    },
+    {
+      "key": "gf9-prediction-turn-4",
+      "type": "card-custom",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        }
+      ],
+      "dataSha256": "5bc77856c671292be12f1aab8f03db86fb0bfb46f68ead7a4b51e54a7158afe8"
+    },
+    {
+      "key": "gf9-prediction-turn-5",
+      "type": "card-custom",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        }
+      ],
+      "dataSha256": "0bc90e3833d8f7a52881eb822fc6caad889f109db3762775c75fd6a6fd820d48"
+    },
+    {
+      "key": "gf9-prediction-turn-6",
+      "type": "card-custom",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        }
+      ],
+      "dataSha256": "64a43e0c3ee62ef7a7cab62878aa8dceffede869e8394f3003c4b81b0534d6c9"
+    },
+    {
+      "key": "gf9-prediction-turn-7",
+      "type": "card-custom",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        }
+      ],
+      "dataSha256": "acffed07148e2d427b75018b46d5c821bfae9f562c7c9f2e598fd8d2909bf724"
+    },
+    {
+      "key": "gf9-prediction-turn-8",
+      "type": "card-custom",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        }
+      ],
+      "dataSha256": "003022dcf2c727db0ea9b6535d3267fa1aab7c94f8581c949f67745ee89260ed"
+    },
+    {
+      "key": "gf9-prediction-turn-9",
+      "type": "card-custom",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        }
+      ],
+      "dataSha256": "0d8d21a2f2a2f593a5037a63a8deeccc7a6d3d13ecedf325f202117a1667bfde"
+    },
+    {
+      "key": "gf9-prediction-turn-10",
+      "type": "card-custom",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        }
+      ],
+      "dataSha256": "d8a1bfa19e80caa318b8d791b8f95f8282782b08adbf4e755075dc17c15686b3"
+    },
+    {
+      "key": "gf9-prediction-turn-deck",
+      "type": "deck",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/docs/Dune-Rulebook.pdf",
+          "sha256": "6c55d28e93b6948a34d20b0f50e1087494e06f237f8c43e7e4c0cac3810b752d"
+        }
+      ],
+      "dataSha256": "3085fb152474d39cba6941f5d54aaa0ff32eba633928ea6cb2dcb639e4d2d3b8",
+      "members": [
+        {
+          "key": "gf9-prediction-turn-1",
+          "count": 1
+        },
+        {
+          "key": "gf9-prediction-turn-2",
+          "count": 1
+        },
+        {
+          "key": "gf9-prediction-turn-3",
+          "count": 1
+        },
+        {
+          "key": "gf9-prediction-turn-4",
+          "count": 1
+        },
+        {
+          "key": "gf9-prediction-turn-5",
+          "count": 1
+        },
+        {
+          "key": "gf9-prediction-turn-6",
+          "count": 1
+        },
+        {
+          "key": "gf9-prediction-turn-7",
+          "count": 1
+        },
+        {
+          "key": "gf9-prediction-turn-8",
+          "count": 1
+        },
+        {
+          "key": "gf9-prediction-turn-9",
+          "count": 1
+        },
+        {
+          "key": "gf9-prediction-turn-10",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "key": "gf9-duke-vidal",
+      "type": "token-disc",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        }
+      ],
+      "dataSha256": "b2e05ddeccf4e2b50301a7d3822f66a0273fdb316c25c0673baa2d00d2e0d4fc"
+    },
+    {
+      "key": "gf9-shared-leader-token",
+      "type": "bundle",
+      "sources": [
+        {
+          "source": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+          "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9"
+        }
+      ],
+      "dataSha256": "8d7f93a1284baff9ebd7b437db6d0f98f82bf6f7f1a5920bec05b0025da18d95",
+      "members": [
+        {
+          "key": "gf9-duke-vidal",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "key": "gf9-spice-token-1",
+      "type": "token-disc",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        }
+      ],
+      "dataSha256": "8e5603108126104ecc6730e3524ee49c0765c1598a9c078d8096c4abf54ab8f6"
+    },
+    {
+      "key": "gf9-spice-token-2",
+      "type": "token-disc",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        }
+      ],
+      "dataSha256": "51e1558d841f5bd570c2d0fafa61f08330e16984516153c821eb423728036b8d"
+    },
+    {
+      "key": "gf9-spice-token-5",
+      "type": "token-disc",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        }
+      ],
+      "dataSha256": "992e337d56dcaceb1357ee5c2f8957df168bc33f60f81c18bc358c9b480722f3"
+    },
+    {
+      "key": "gf9-spice-token-10",
+      "type": "token-disc",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        }
+      ],
+      "dataSha256": "9db97b74373f4ef597c5c32b5e04201006df76e746d00bd223cb9c14271e458b"
+    },
+    {
+      "key": "gf9-spice-tokens",
+      "type": "bundle",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/docs/Dune-Rulebook.pdf",
+          "sha256": "6c55d28e93b6948a34d20b0f50e1087494e06f237f8c43e7e4c0cac3810b752d"
+        }
+      ],
+      "dataSha256": "ae158ff6e49e1bad9b8683e67d87afbf562298b3a3d1f4850de76e96d43760a5",
+      "members": [
+        {
+          "key": "gf9-spice-token-1",
+          "count": 48
+        },
+        {
+          "key": "gf9-spice-token-2",
+          "count": 48
+        },
+        {
+          "key": "gf9-spice-token-5",
+          "count": 36
+        },
+        {
+          "key": "gf9-spice-token-10",
+          "count": 24
+        }
+      ]
+    },
+    {
+      "key": "gf9-prediction-atreides",
+      "type": "card-custom",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        }
+      ],
+      "dataSha256": "f011194cdf14dff95a5924e890fb145cd63643a475ec7e857a483cd9bb0f8958"
+    },
+    {
+      "key": "gf9-prediction-bene-gesserit",
+      "type": "card-custom",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        }
+      ],
+      "dataSha256": "e8482f176c334ff593264d2cab699a90a72bf2c009910afc660de44597ce5f59"
+    },
+    {
+      "key": "gf9-prediction-choam",
+      "type": "card-custom",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        }
+      ],
+      "dataSha256": "b3e5b7711eaccf9dcc6dd0ee6b5412976fd487d517977f1d67a98fda3ea1e127"
+    },
+    {
+      "key": "gf9-prediction-ecaz",
+      "type": "card-custom",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        }
+      ],
+      "dataSha256": "21d2d8d99d7105e97ed994e407ae8032cd9b845644ba66716b287ce42244119d"
+    },
+    {
+      "key": "gf9-prediction-emperor",
+      "type": "card-custom",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        }
+      ],
+      "dataSha256": "09540effe5c5b4a38ea2cf9d2d5f6de27a0edee43275226e2b1d92dd9099d5e1"
+    },
+    {
+      "key": "gf9-prediction-fremen",
+      "type": "card-custom",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        }
+      ],
+      "dataSha256": "0f926a5c28ee756b680012bc77adfdd66b3ad884e02563a630108f06815b88aa"
+    },
+    {
+      "key": "gf9-prediction-harkonnen",
+      "type": "card-custom",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        }
+      ],
+      "dataSha256": "6da476c70795873269820e177a4b11509ed2564b03ff4d2b685dfd28cf74fdc3"
+    },
+    {
+      "key": "gf9-prediction-ixians",
+      "type": "card-custom",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        }
+      ],
+      "dataSha256": "64a8a2ce52512b653d2d0ea3c7bcfcf9182f08809c1a4fb8bacb2247bb370fdb"
+    },
+    {
+      "key": "gf9-prediction-moritani",
+      "type": "card-custom",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        }
+      ],
+      "dataSha256": "27db4d796d8bc26bd2fa05b033085ece024053f089793100ba5397b600edbb57"
+    },
+    {
+      "key": "gf9-prediction-richese",
+      "type": "card-custom",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        }
+      ],
+      "dataSha256": "a628a113f332ae777abf2131701e4d1a8315350c566efaf4d3edc7af0e43e345"
+    },
+    {
+      "key": "gf9-prediction-spacing-guild",
+      "type": "card-custom",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        }
+      ],
+      "dataSha256": "b228d637f293c43e4a6a030af4c14b1eb942eef2819194a8b7f9a60861a0614c"
+    },
+    {
+      "key": "gf9-prediction-tleilaxu",
+      "type": "card-custom",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        }
+      ],
+      "dataSha256": "296f63535ff1d5fd65b87967c6d85a247d18d7baeb6850164eb6e02e3ea36df6"
+    },
+    {
+      "key": "gf9-prediction-faction-deck",
+      "type": "deck",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/docs/Dune-Rulebook.pdf",
+          "sha256": "6c55d28e93b6948a34d20b0f50e1087494e06f237f8c43e7e4c0cac3810b752d"
+        }
+      ],
+      "dataSha256": "7195bd1dbcbedc1d4778c81f6c59d1de64dba2bfb0eae3bcd6af1f0e8d4834fb",
+      "members": [
+        {
+          "key": "gf9-prediction-atreides",
+          "count": 1
+        },
+        {
+          "key": "gf9-prediction-bene-gesserit",
+          "count": 1
+        },
+        {
+          "key": "gf9-prediction-choam",
+          "count": 1
+        },
+        {
+          "key": "gf9-prediction-ecaz",
+          "count": 1
+        },
+        {
+          "key": "gf9-prediction-emperor",
+          "count": 1
+        },
+        {
+          "key": "gf9-prediction-fremen",
+          "count": 1
+        },
+        {
+          "key": "gf9-prediction-harkonnen",
+          "count": 1
+        },
+        {
+          "key": "gf9-prediction-ixians",
+          "count": 1
+        },
+        {
+          "key": "gf9-prediction-moritani",
+          "count": 1
+        },
+        {
+          "key": "gf9-prediction-richese",
+          "count": 1
+        },
+        {
+          "key": "gf9-prediction-spacing-guild",
+          "count": 1
+        },
+        {
+          "key": "gf9-prediction-tleilaxu",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "key": "gf9-cheap-hero-traitor",
+      "type": "card-custom",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        },
+        {
+          "source": "https://github.com/user-attachments/files/33447701/BA7A5BD340F4B147740B6D25209C917D6DF2DFC0_IxianAndTleilaxuRulebook.pdf",
+          "sha256": "9dc631968839d6e8935acb30ac301301cfea7ed07a78a3aac266648f21cf357d",
+          "page": "4-5, 8, 11"
+        }
+      ],
+      "dataSha256": "80de078a0e58f061e31314d6349a2b0c9b3618c4270af37912d4cf4c37fd1337"
+    },
+    {
+      "key": "gf9-cheap-hero-traitor-card",
+      "type": "deck",
+      "sources": [
+        {
+          "source": "https://github.com/user-attachments/files/33447701/BA7A5BD340F4B147740B6D25209C917D6DF2DFC0_IxianAndTleilaxuRulebook.pdf",
+          "sha256": "9dc631968839d6e8935acb30ac301301cfea7ed07a78a3aac266648f21cf357d"
+        }
+      ],
+      "dataSha256": "456d72977b3d76c33f0150f3aa05c2375d2fbafe5f6b9d52292a17024551e223",
+      "members": [
+        {
+          "key": "gf9-cheap-hero-traitor",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "key": "gf9-kwisatz-haderach-card",
+      "type": "card-custom",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        }
+      ],
+      "dataSha256": "893b4a193aa036afc6d533e5b0340bdc01c88bcb1eb932fc8468c6b71f2b47bb"
+    },
+    {
+      "key": "gf9-kwisatz-haderach-reference",
+      "type": "deck",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/docs/Dune-Rulebook.pdf",
+          "sha256": "6c55d28e93b6948a34d20b0f50e1087494e06f237f8c43e7e4c0cac3810b752d"
+        }
+      ],
+      "dataSha256": "6ecc121fb698712b6af022e853233298e743c868cc1d9acae463ca3f0b6f8b62",
+      "members": [
+        {
+          "key": "gf9-kwisatz-haderach-card",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "key": "gf9-kwisatz-haderach-token",
+      "type": "token-disc",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        }
+      ],
+      "dataSha256": "f376e1c5cabec46a5d4ff905f485ebd982af37b30aa2a06a68fa8b22beb8ee95"
+    },
+    {
+      "key": "gf9-atreides-loss-counter",
+      "type": "token-disc",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/art/skin.json",
+          "sha256": "6b8fd1ac3e04c0309cf60d7ad5b90fc579da0bfc7e2d9fc2dad3ec77814cf7d1"
+        }
+      ],
+      "dataSha256": "f149527d22bf015e239c02f217cd7ab9506aa01de488433d97a167d86a2426b4"
+    },
+    {
+      "key": "gf9-kwisatz-haderach-tokens",
+      "type": "bundle",
+      "sources": [
+        {
+          "source": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/docs/Dune-Rulebook.pdf",
+          "sha256": "6c55d28e93b6948a34d20b0f50e1087494e06f237f8c43e7e4c0cac3810b752d"
+        }
+      ],
+      "dataSha256": "13c0cb5af677d298ea3c524a8e8db68b63f08c22c944c10f7af42af637d3e751",
+      "members": [
+        {
+          "key": "gf9-kwisatz-haderach-token",
+          "count": 1
+        },
+        {
+          "key": "gf9-atreides-loss-counter",
+          "count": 1
+        }
+      ]
+    }
+  ],
+  "generatedComponents": {
+    "traitors": "Generated from the 12 factions and their leaders. Include Cheap Hero as the additional first-expansion Traitor, and Auditor only in Advanced play. Duke Vidal has no Traitor Card.",
+    "prediction": "The faction renderer has no Prediction Card output. Twelve explicit faction cards and ten explicit turn cards are included as Assets.",
+    "alliance": "Generated from each faction data and alliance text. No duplicate standalone Alliance Cards.",
+    "troops": "Twenty force tokens per faction, including special-force sides supplied by faction data.",
+    "leaders": "Generated from faction data. Auditor is Advanced CHOAM; Duke Vidal requires one separate shared leader token.",
+    "shields": "Generated from faction data."
+  },
+  "inventory": {
+    "mainTreachery": 50,
+    "baseTreachery": 33,
+    "ixianTleilaxuAdditions": 14,
+    "ecazMoritaniAdditions": 3,
+    "richeseCache": 10,
+    "completeSpice": 29,
+    "spiceTerritoryLocations": {
+      "7": {
+        "territory": "Cielago North",
+        "sector": 2,
+        "orientation": "East",
+        "amount": 8
+      },
+      "10": {
+        "territory": "Cielago South",
+        "sector": 1,
+        "orientation": "West",
+        "amount": 12
+      },
+      "15": {
+        "territory": "The Minor Erg",
+        "sector": 7,
+        "orientation": "Far North",
+        "amount": 8
+      },
+      "17": {
+        "territory": "Red Chasm",
+        "sector": 6,
+        "orientation": "",
+        "amount": 8
+      },
+      "18": {
+        "territory": "South Mesa",
+        "sector": 4,
+        "orientation": "Middle",
+        "amount": 10
+      },
+      "22": {
+        "territory": "Sihaya Ridge",
+        "sector": 8,
+        "orientation": "",
+        "amount": 6
+      },
+      "25": {
+        "territory": "Old Gap",
+        "sector": 9,
+        "orientation": "Middle",
+        "amount": 6
+      },
+      "26": {
+        "territory": "Broken Land",
+        "sector": 11,
+        "orientation": "West",
+        "amount": 8
+      },
+      "29": {
+        "territory": "Rock Outcroppings",
+        "sector": 13,
+        "orientation": "South",
+        "amount": 6
+      },
+      "31": {
+        "territory": "Hagga Basin",
+        "sector": 12,
+        "orientation": "West",
+        "amount": 6
+      },
+      "33": {
+        "territory": "Funeral Plain",
+        "sector": 14,
+        "orientation": "",
+        "amount": 6
+      },
+      "34": {
+        "territory": "The Great Flat",
+        "sector": 14,
+        "orientation": "",
+        "amount": 10
+      },
+      "37": {
+        "territory": "Habbanya Erg",
+        "sector": 15,
+        "orientation": "West",
+        "amount": 8
+      },
+      "39": {
+        "territory": "Wind Pass North",
+        "sector": 16,
+        "orientation": "North",
+        "amount": 6
+      },
+      "40": {
+        "territory": "Habbanya Ridge Flat",
+        "sector": 17,
+        "orientation": "East",
+        "amount": 10
+      }
+    },
+    "discoveryTokenLocations": {
+      "9": {
+        "territory": "Meridian",
+        "sector": 0,
+        "orientation": "West",
+        "type": "Hiereg"
+      },
+      "11": {
+        "territory": "Cielago East",
+        "sector": 2,
+        "orientation": "West",
+        "type": "Hiereg"
+      },
+      "16": {
+        "territory": "Pasty Mesa",
+        "sector": 6,
+        "orientation": "North",
+        "type": "Smuggler"
+      },
+      "24": {
+        "territory": "Gara Kulon",
+        "sector": 7,
+        "orientation": "",
+        "type": "Hiereg"
+      },
+      "30": {
+        "territory": "Plastic Basin",
+        "sector": 12,
+        "orientation": "Middle",
+        "type": "Smuggler"
+      },
+      "38": {
+        "territory": "False Wall West",
+        "sector": 16,
+        "orientation": "Middle",
+        "type": "Smuggler"
+      }
+    }
+  },
+  "judgements": [
+    {
+      "id": "treachery-count",
+      "decision": "Base33 + Ixian14 + Ecaz3 = main50, with Richese10 kept separately. Ignore optional extra3 Karama in source code.",
+      "evidence": "Base component inventory page3 and TreacheryCardManager basic IDs0–32. Ixian IDs39/40 are additional standard Shield/Snooper."
+    },
+    {
+      "id": "richese-threshold",
+      "decision": "Use printed High11–20/Low0–10, threshold11. Do not copy Map.cs threshold10.",
+      "evidence": "RicheseCard.gif card face read."
+    },
+    {
+      "id": "salusa-threshold",
+      "decision": "Use hysteresis: High goes Low below2, Low goes High above2; at exactly2 retain current side.",
+      "evidence": "Designer clarification supplied by root from the checked FAQ issue."
+    },
+    {
+      "id": "nexus-stock",
+      "decision": "Keep existing Fremen three-revival wording and Richese Secret Ally scan variant unchanged.",
+      "evidence": "User choice in #2071 supplied by root; no new balance interpretation."
+    },
+    {
+      "id": "board-adoption",
+      "decision": "Reuse the inspected Central-owned arrakis-official, which was ungrouped before import. Assign it to GF9 and preserve all Dreamrules/KISS/Test links.",
+      "evidence": "Public page audit supplied by root."
+    },
+    {
+      "id": "homeworld-card-values",
+      "decision": "Use printed card strengths. Caladan is +2 despite a +3 example in the official Homeworld FAQ. All 13 faces were read; reserve income follows Map.cs homeworld definitions.",
+      "evidence": "CaladanCard.gif and Ecaz & Moritani Homeworlds FAQ."
+    },
+    {
+      "id": "independent-asset-review",
+      "decision": "Apply demonstrated copy corrections listed in asset-review.json. Homeworld income is occupier income; Tupile interrogation applies to any shared Homeworld.",
+      "evidence": "Full235-item human-facing review, collected13Homeworld faces, source expansion rules and all402-comment team review."
+    }
+  ],
+  "dataHashEncoding": "SHA-256 of UTF-8 JSON.stringify(item.data); source hashes remain fingerprints of the collected source bytes.",
+  "presentationReview": {
+    "spiceFit": "15 normal Spice cards retain maps, quantities and short sector captions. Six Discovery cards use the existing custom-card renderer for complete procedures. All 235 keys and deck multiplicities remain unchanged.",
+    "nativeTitleWidthsAt60px": {
+      "Rock Outcroppings": 659.35546875,
+      "Habbanya Ridge Flat": 708.017578125,
+      "Habbanya R. Flat": 585.8203125
+    },
+    "titleWidthLimit": 640,
+    "font": "public/font/copperplategothic-bold.woff",
+    "measurement": "CoreText font descriptor, 60px, native glyph widths"
+  }
+}
