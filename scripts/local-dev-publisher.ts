@@ -89,36 +89,25 @@ export function localPublisherConfiguration(manifest: PersistentManifest, source
   };
 }
 
-async function buildAndCopyLocalPublisher(environment: NodeJS.ProcessEnv, stateDirectory: string) {
-  const result = spawnSync(process.execPath, ['--no-env-file', 'run', 'publisher:assets'], {
-    cwd: root,
-    env: localApplicationEnvironment(environment),
-    stdio: 'inherit',
-  });
-  if (result.status !== 0) {
-    throw new Error('Local publisher asset build failed. Restore required maintained media and retry.');
-  }
-  // Snapshot documents retain maintained vector URLs. Serve their actual local source bytes.
-  const output = path.join(stateDirectory, 'publisher-build');
-  rmSync(output, { recursive: true, force: true });
-  mkdirSync(output, { recursive: true });
-  cpSync(path.join(root, 'workers/publisher/dist'), path.join(output, 'assets'), { recursive: true });
-  cpSync(path.join(root, 'media/vector'), path.join(output, 'assets/vector'), { recursive: true });
-  cpSync(path.join(root, 'dist/server'), path.join(output, 'server'), { recursive: true });
-  // Copied SSR chunks sit outside the checkout. Resolve their bare imports through
-  // this checkout's frozen dependency graph rather than an ancestor's node_modules.
+function serverDependencySpecifiers(serverDirectory: string) {
   const serverAliases: Record<string, string> = {};
   const transpiler = new Bun.Transpiler({ loader: 'js' });
-  const files = readdirSync(path.join(root, 'dist/server'), { recursive: true }).filter(
+  const files = readdirSync(serverDirectory, { recursive: true }).filter(
     (file): file is string => typeof file === 'string' && file.endsWith('.js')
   );
   for (const file of files) {
-    for (const entry of transpiler.scan(readFileSync(path.join(root, 'dist/server', file), 'utf8')).imports) {
-      if (!entry.path.startsWith('.') && !entry.path.startsWith('/') && !entry.path.includes(':')) {
+    for (const entry of transpiler.scan(readFileSync(path.join(serverDirectory, file), 'utf8')).imports) {
+      if (!/^[./]|:/.test(entry.path)) {
         serverAliases[entry.path] = '';
       }
     }
   }
+  return serverAliases;
+}
+
+/** Resolve copied SSR imports against this checkout's frozen browser/workerd dependency graph. */
+export async function resolveLocalServerAliases(serverDirectory: string) {
+  const serverAliases = serverDependencySpecifiers(serverDirectory);
   await build({
     stdin: {
       contents: Object.keys(serverAliases)
@@ -154,6 +143,28 @@ async function buildAndCopyLocalPublisher(environment: NodeJS.ProcessEnv, stateD
       },
     ],
   });
+  return serverAliases;
+}
+
+async function buildAndCopyLocalPublisher(environment: NodeJS.ProcessEnv, stateDirectory: string) {
+  const result = spawnSync(process.execPath, ['--no-env-file', 'run', 'publisher:assets'], {
+    cwd: root,
+    env: localApplicationEnvironment(environment),
+    stdio: 'inherit',
+  });
+  if (result.status !== 0) {
+    throw new Error('Local publisher asset build failed. Restore required maintained media and retry.');
+  }
+  // Snapshot documents retain maintained vector URLs. Serve their actual local source bytes.
+  const output = path.join(stateDirectory, 'publisher-build');
+  rmSync(output, { recursive: true, force: true });
+  mkdirSync(output, { recursive: true });
+  cpSync(path.join(root, 'workers/publisher/dist'), path.join(output, 'assets'), { recursive: true });
+  cpSync(path.join(root, 'media/vector'), path.join(output, 'assets/vector'), { recursive: true });
+  cpSync(path.join(root, 'dist/server'), path.join(output, 'server'), { recursive: true });
+  // Copied SSR chunks sit outside the checkout. Resolve their bare imports through
+  // this checkout's frozen dependency graph rather than an ancestor's node_modules.
+  const serverAliases = await resolveLocalServerAliases(path.join(root, 'dist/server'));
   writePrivateJson(path.join(output, 'server-aliases.json'), serverAliases);
   cpSync(
     path.join(root, 'workers/publisher/runtime-generated/rulebook-html-renderer.mjs'),
@@ -164,17 +175,9 @@ async function buildAndCopyLocalPublisher(environment: NodeJS.ProcessEnv, stateD
 /** Serialize generation and copying, then serve only this environment's copied build. */
 export function buildLocalPublisher(environment: NodeJS.ProcessEnv, stateDirectory: string) {
   const result = spawnSync(
-    'python3',
-    [
-      path.join(root, 'scripts/local-dev-lock.py'),
-      path.join(root, 'node_modules/.cache/local-review-build'),
-      process.execPath,
-      '--no-env-file',
-      path.join(root, 'scripts/local-dev-publisher.ts'),
-      '--build',
-      stateDirectory,
-    ],
-    { cwd: root, env: environment, stdio: 'inherit' }
+    '/usr/bin/python3',
+    [path.join(root, 'scripts/local-dev-lock.py'), 'build', '--state-directory', stateDirectory],
+    { cwd: root, env: { ...environment, LOCAL_DEV_BUN_EXECUTABLE: process.execPath }, stdio: 'inherit' }
   );
   if (result.status !== 0) {
     throw new Error(

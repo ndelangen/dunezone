@@ -275,6 +275,11 @@ describe('snapshot authoring ownership', () => {
         is_deleted: false,
       };
       const cloned = await ctx.db.insert('assets', { ...base, owner_id: placeholder });
+      const secondCloned = await ctx.db.insert('assets', {
+        ...base,
+        slug: 'second-source-token',
+        owner_id: placeholder,
+      });
       const authored = await ctx.db.insert('assets', { ...base, slug: 'authored-token', owner_id: other });
       const ruleset = await ctx.db.insert('rulesets', {
         name: 'Snapshot ruleset',
@@ -306,14 +311,14 @@ describe('snapshot authoring ownership', () => {
         created_by: placeholder,
         created_at: base.created_at,
       });
-      return { cloned, authored, reviewer, other, placeholder, ruleset, book, edition };
+      return { cloned, secondCloned, authored, reviewer, other, placeholder, ruleset, book, edition };
     });
     const args = {
       ownerEmail: 'reviewer@example.com',
       table: 'assets' as const,
       paginationOpts: { numItems: 20, cursor: null },
     };
-    expect((await t.mutation(internal.provisioning.remapLocalAuthoringOwnershipBatch, args)).updated).toBe(1);
+    expect((await t.mutation(internal.provisioning.remapLocalAuthoringOwnershipBatch, args)).updated).toBe(2);
     expect((await t.mutation(internal.provisioning.remapLocalAuthoringOwnershipBatch, args)).updated).toBe(0);
     for (const table of ['rulesets', 'rulebooks'] as const) {
       expect(
@@ -325,6 +330,7 @@ describe('snapshot authoring ownership', () => {
     }
     await t.run(async (ctx) => {
       expect((await ctx.db.get(ids.cloned))?.owner_id).toBe(ids.reviewer);
+      expect((await ctx.db.get(ids.secondCloned))?.owner_id).toBe(ids.reviewer);
       expect((await ctx.db.get(ids.authored))?.owner_id).toBe(ids.other);
       expect((await ctx.db.get(ids.ruleset))?.owner_id).toBe(ids.reviewer);
       expect((await ctx.db.get(ids.book))?.created_by).toBe(ids.reviewer);

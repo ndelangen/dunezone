@@ -270,34 +270,15 @@ export const remapLocalAuthoringOwnershipBatch = internalMutation({
     }
     const placeholder = placeholders[0]!;
     const owner = await findUserByEmail(ctx, args.ownerEmail);
-    let updated = 0;
-    if (args.table === 'assets') {
-      const batch = await ctx.db.query('assets').paginate(args.paginationOpts);
-      for (const row of batch.page) {
-        if (row.owner_id === placeholder._id) {
-          await ctx.db.patch(row._id, { owner_id: owner._id });
-          updated += 1;
-        }
-      }
-      return { isDone: batch.isDone, continueCursor: batch.continueCursor, updated };
-    }
-    if (args.table === 'rulesets') {
-      const batch = await ctx.db.query('rulesets').paginate(args.paginationOpts);
-      for (const row of batch.page) {
-        if (row.owner_id === placeholder._id) {
-          await ctx.db.patch(row._id, { owner_id: owner._id });
-          updated += 1;
-        }
-      }
-      return { isDone: batch.isDone, continueCursor: batch.continueCursor, updated };
-    }
-    const batch = await ctx.db.query('rulebooks').paginate(args.paginationOpts);
-    for (const row of batch.page) {
-      if (row.created_by === placeholder._id) {
-        await ctx.db.patch(row._id, { created_by: owner._id });
-        updated += 1;
-      }
-    }
-    return { isDone: batch.isDone, continueCursor: batch.continueCursor, updated };
+    const batch = await ctx.db.query(args.table).paginate(args.paginationOpts);
+    const owned = batch.page.filter((row) => ('owner_id' in row ? row.owner_id : row.created_by) === placeholder._id);
+    await Promise.all(
+      owned.map((row) =>
+        'owner_id' in row
+          ? ctx.db.patch(row._id, { owner_id: owner._id })
+          : ctx.db.patch(row._id, { created_by: owner._id })
+      )
+    );
+    return { isDone: batch.isDone, continueCursor: batch.continueCursor, updated: owned.length };
   },
 });

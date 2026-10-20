@@ -26,7 +26,7 @@ function integer(name: string, value: string, minimum: number, maximum: number):
   return parsed;
 }
 
-export function absoluteHttpsUrl(name: string, value: string): string {
+function absoluteHttpsUrl(name: string, value: string): string {
   const url = new URL(value);
   if (url.protocol !== 'https:' || url.username || url.password || url.hash) {
     throw new Error(`${name} must be an absolute HTTPS URL without credentials or fragment`);

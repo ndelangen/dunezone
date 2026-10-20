@@ -7,6 +7,7 @@ import path from 'node:path';
 import { parseArgs } from 'node:util';
 
 import { ensureLocalAuthUser } from './local-dev-auth';
+import { provisionPersistentBackend } from './local-dev-bootstrap';
 import { recordLocalDevelopmentCleanup } from './local-dev-cleanup';
 import {
   createLocalDevelopmentInstance,
@@ -25,12 +26,12 @@ import {
   resolvePersistentDirectory,
   writePrivateJson,
 } from './local-dev-persistence';
+import type { PersistentManifest, PersistentSecrets } from './local-dev-persistence';
 import { buildLocalPublisher, startLocalPublisher } from './local-dev-publisher';
 import { discardDownloadedSnapshot, githubCli, resolveLocalSnapshot } from './local-snapshot';
 import type { LocalSnapshot } from './local-snapshot';
 import {
   backendUp,
-  assertLocalVolumeExists,
   composeDown,
   importSnapshotData,
   finishSnapshotData,
@@ -392,6 +393,178 @@ async function runLocalDevelopment(requested: LocalData) {
   }
 }
 
+function readLaunchManifest(stateDirectory: string, reset: boolean) {
+  if (!reset) {
+    assertPersistentDiskBudget(stateDirectory);
+  }
+  let manifest = readPersistentManifest(stateDirectory);
+  if (reset && manifest) {
+    console.log(
+      `Resetting only Docker project ${manifest.instance.composeProjectName}, its volume, and ${stateDirectory}.`
+    );
+    composeDown({ ...process.env, ...localDevelopmentEnvironmentOverrides(manifest.instance) });
+    rmSync(stateDirectory, { recursive: true });
+    manifest = null;
+  }
+  if (existsSync(stateDirectory) && !manifest) {
+    throw new Error(
+      'Persistent runtime state has no manifest. Restore it or inspect and remove only the incomplete runtime directory.'
+    );
+  }
+  if (manifest?.status === 'initializing') {
+    throw new Error(
+      'The first bootstrap was interrupted. Inspect its manifest, then use explicit --reset to rebuild. No snapshot was reimported.'
+    );
+  }
+  return manifest;
+}
+
+function launchCredentials(fresh: boolean, stateDirectory: string) {
+  if (!fresh) {
+    return { values: process.env, secrets: readPersistentSecrets(stateDirectory) };
+  }
+  const file = resolveLocalDevelopmentEnvFile(rootDirectory, process.env, resolveGitCommonDirectory(rootDirectory));
+  const values = { ...parseEnvFile(readFileSync(file, 'utf8')), ...process.env };
+  const secrets = newPersistentSecrets(
+    requireValue(values as Record<string, string>, 'PLAYWRIGHT_USER_A_EMAIL', file),
+    requireValue(values as Record<string, string>, 'PLAYWRIGHT_USER_B_EMAIL', file),
+    requireValue(values as Record<string, string>, 'PLAYWRIGHT_USER_PASSWORD', file)
+  );
+  return { values, secrets };
+}
+
+function persistentServiceEnvironment(
+  values: NodeJS.ProcessEnv,
+  instance: PersistentManifest['instance'],
+  publisherPort: number
+) {
+  const localEnv = commandEnvironment(values, {
+    ...localDevelopmentEnvironmentOverrides(instance),
+    E2E_LOCAL_AUTH: 'true',
+    VITE_E2E_LOCAL_AUTH: 'true',
+    IS_TEST: 'true',
+    LOCAL_REVIEW_PUBLISHER_URL: `http://127.0.0.1:${publisherPort}`,
+  });
+  // Avoid Docker's optional external database/S3 settings inherited from a developer shell.
+  for (const key of Object.keys(localEnv)) {
+    if (/^(AWS_|S3_|DATABASE_URL$|MYSQL_URL$|POSTGRES_URL$|INSTANCE_)/.test(key)) {
+      delete localEnv[key];
+    }
+  }
+  return localEnv;
+}
+
+function snapshotProvenance(snapshot: LocalSnapshot) {
+  return {
+    sha256: createHash('sha256').update(readFileSync(snapshot.file)).digest('hex'),
+    runId: snapshot.artifact?.runId ?? null,
+    artifactId: snapshot.artifact?.artifactId ?? null,
+    createdAt: snapshot.artifact ? new Date(snapshot.artifact.createdAt).toISOString() : null,
+  };
+}
+
+function preparePersistentLaunch(
+  requested: Extract<LocalData, { kind: 'snapshot' }>,
+  stateDirectory: string,
+  temporaryDirectory: string,
+  reset: boolean
+) {
+  let manifest = readLaunchManifest(stateDirectory, reset);
+  const fresh = manifest === null;
+  if (!fresh && requested.file !== null) {
+    throw new Error('--snapshot-file only applies to first use or explicit --reset. Resume keeps authored data.');
+  }
+  const sourceCommit = spawnSync('/usr/bin/git', ['rev-parse', 'HEAD'], {
+    cwd: rootDirectory,
+    encoding: 'utf8',
+  }).stdout.trim();
+  const { values, secrets } = launchCredentials(fresh, stateDirectory);
+  // Verify/download before creating any backend resources. Resume never resolves a snapshot.
+  const snapshot = fresh
+    ? resolveLocalSnapshot({ snapshotFile: requested.file, temporaryDirectory, github: githubCli })
+    : null;
+  manifest ??= createPersistentManifest(stateDirectory, sourceCommit);
+  mkdirSync(stateDirectory, { recursive: true, mode: 0o700 });
+  if (snapshot) {
+    manifest.snapshot = snapshotProvenance(snapshot);
+  }
+  writePrivateJson(path.join(stateDirectory, 'manifest.json'), manifest);
+  writePrivateJson(path.join(stateDirectory, 'secrets.json'), secrets);
+  const instance = manifest.instance;
+  const localEnv = persistentServiceEnvironment(values, instance, manifest.publisherPort);
+  return { manifest, secrets, localEnv, fresh, snapshot, sourceCommit };
+}
+
+async function waitForLocalPublisher(manifest: PersistentManifest, exited: Promise<number>) {
+  const health = `http://127.0.0.1:${manifest.publisherPort}/__asset-publisher/health`;
+  for (let attempt = 0; attempt < 60; attempt += 1) {
+    const ready = await fetch(health, { signal: AbortSignal.timeout(1000) }).catch(() => null);
+    if (ready?.ok) {
+      return;
+    }
+    await Promise.race([
+      new Promise((resolve) => setTimeout(resolve, 1000)),
+      exited.then((code) => unexpectedProcessExit('Local publisher', code)),
+    ]);
+  }
+  throw new Error('The local publisher did not become ready');
+}
+
+function startPersistentPublicationScheduler(manifest: PersistentManifest) {
+  const abort = new AbortController();
+  let timer: ReturnType<typeof setTimeout>;
+  let refuse!: (error: Error) => void;
+  const failure = new Promise<never>((_resolve, reject) => {
+    refuse = reject;
+  });
+  const schedule = async () => {
+    try {
+      assertPersistentDiskBudget(manifest.stateDirectory);
+    } catch (error) {
+      refuse(error instanceof Error ? error : new Error(String(error)));
+      return;
+    }
+    try {
+      await fetch(`http://127.0.0.1:${manifest.publisherPort}/__scheduled`, {
+        signal: AbortSignal.any([abort.signal, AbortSignal.timeout(260_000)]),
+      });
+    } catch (error) {
+      console.error('Local publisher cycle failed:', error instanceof Error ? error.message : error);
+    }
+    if (!abort.signal.aborted) {
+      timer = setTimeout(() => {
+        void schedule();
+      }, 5000);
+    }
+  };
+  timer = setTimeout(() => {
+    void schedule();
+  }, 5000);
+  return {
+    failure,
+    stop() {
+      abort.abort();
+      clearTimeout(timer);
+    },
+  };
+}
+
+async function provisionPersistentReviewers(
+  manifest: PersistentManifest,
+  secrets: PersistentSecrets,
+  deployment: SelfHostedDeployment,
+  environment: NodeJS.ProcessEnv
+) {
+  if (manifest.status === 'ready') {
+    return;
+  }
+  await ensureLocalAuthUser(manifest.instance.appUrl, secrets.ownerEmail, secrets.password);
+  await ensureLocalAuthUser(manifest.instance.appUrl, secrets.collaboratorEmail, secrets.password);
+  remapOwnershipToLocalUsers(deployment, environment, secrets.ownerEmail, secrets.collaboratorEmail);
+  remapLocalAuthoringOwnership(deployment, environment, secrets.ownerEmail);
+  manifest.ownershipProvisioning = 'snapshot-placeholder-to-reviewer-a';
+}
+
 async function runPersistentDevelopment(requested: LocalData, directory: string, reset: boolean) {
   if (requested.kind !== 'snapshot') {
     throw new Error('Persistent review requires --data=snapshot');
@@ -403,13 +576,9 @@ async function runPersistentDevelopment(requested: LocalData, directory: string,
   let vite: ChildProcess | null = null;
   let watcher: ChildProcess | null = null;
   let publisher: ChildProcess | null = null;
-  let scheduler: ReturnType<typeof setTimeout> | undefined;
-  let stopping = false;
-  const schedulerAbort = new AbortController();
+  let scheduler: ReturnType<typeof startPersistentPublicationScheduler> | undefined;
   const cleanup = () => {
-    stopping = true;
-    schedulerAbort.abort();
-    clearTimeout(scheduler);
+    scheduler?.stop();
     vite?.kill('SIGTERM');
     watcher?.kill('SIGTERM');
     publisher?.kill('SIGTERM');
@@ -423,124 +592,30 @@ async function runPersistentDevelopment(requested: LocalData, directory: string,
     process.exit(143);
   });
   try {
-    if (!reset) {
-      assertPersistentDiskBudget(lock.stateDirectory);
-    }
-    let manifest = readPersistentManifest(lock.stateDirectory);
-    if (reset && manifest) {
-      console.log(
-        `Resetting only Docker project ${manifest.instance.composeProjectName}, its volume, and ${lock.stateDirectory}.`
-      );
-      composeDown({ ...process.env, ...localDevelopmentEnvironmentOverrides(manifest.instance) });
-      rmSync(lock.stateDirectory, { recursive: true });
-      manifest = null;
-    }
-    if (existsSync(lock.stateDirectory) && !manifest) {
-      throw new Error(
-        'Persistent runtime state has no manifest. Restore it or inspect and remove only the incomplete runtime directory.'
-      );
-    }
-    const fresh = manifest === null;
-    if (!fresh && requested.file !== null) {
-      throw new Error('--snapshot-file only applies to first use or explicit --reset. Resume keeps authored data.');
-    }
-    if (manifest && manifest.status === 'initializing') {
-      throw new Error(
-        'The first bootstrap was interrupted. Inspect its manifest, then use explicit --reset to rebuild. No snapshot was reimported.'
-      );
-    }
-    const sourceCommit = spawnSync('git', ['rev-parse', 'HEAD'], {
-      cwd: rootDirectory,
-      encoding: 'utf8',
-    }).stdout.trim();
-    const localEnvFile = resolveLocalDevelopmentEnvFile(
-      rootDirectory,
-      process.env,
-      resolveGitCommonDirectory(rootDirectory)
-    );
-    const values = fresh ? { ...parseEnvFile(readFileSync(localEnvFile, 'utf8')), ...process.env } : process.env;
-    const secrets = fresh
-      ? newPersistentSecrets(
-          requireValue(values as Record<string, string>, 'PLAYWRIGHT_USER_A_EMAIL', localEnvFile),
-          requireValue(values as Record<string, string>, 'PLAYWRIGHT_USER_B_EMAIL', localEnvFile),
-          requireValue(values as Record<string, string>, 'PLAYWRIGHT_USER_PASSWORD', localEnvFile)
-        )
-      : readPersistentSecrets(lock.stateDirectory);
-    // Verify/download before creating any backend resources. Resume never resolves a snapshot.
-    const snapshot = fresh
-      ? resolveLocalSnapshot({ snapshotFile: requested.file, temporaryDirectory, github: githubCli })
-      : null;
-    manifest ??= createPersistentManifest(lock.stateDirectory, sourceCommit);
-    mkdirSync(lock.stateDirectory, { recursive: true, mode: 0o700 });
-    if (snapshot) {
-      manifest.snapshot = {
-        sha256: createHash('sha256').update(readFileSync(snapshot.file)).digest('hex'),
-        runId: snapshot.artifact?.runId ?? null,
-        artifactId: snapshot.artifact?.artifactId ?? null,
-        createdAt: snapshot.artifact ? new Date(snapshot.artifact.createdAt).toISOString() : null,
-      };
-    }
-    writePrivateJson(path.join(lock.stateDirectory, 'manifest.json'), manifest);
-    writePrivateJson(path.join(lock.stateDirectory, 'secrets.json'), secrets);
+    const {
+      manifest,
+      secrets,
+      fresh,
+      snapshot,
+      sourceCommit,
+      localEnv: initialEnvironment,
+    } = preparePersistentLaunch(requested, lock.stateDirectory, temporaryDirectory, reset);
+    let localEnv = initialEnvironment;
     const instance = manifest.instance;
-    let localEnv = commandEnvironment(values, {
-      ...localDevelopmentEnvironmentOverrides(instance),
-      E2E_LOCAL_AUTH: 'true',
-      VITE_E2E_LOCAL_AUTH: 'true',
-      IS_TEST: 'true',
-      LOCAL_REVIEW_PUBLISHER_URL: `http://127.0.0.1:${manifest.publisherPort}`,
-    });
-    // Avoid Docker's optional external database/S3 settings inherited from a developer shell.
-    for (const key of Object.keys(localEnv)) {
-      if (/^(AWS_|S3_|DATABASE_URL$|MYSQL_URL$|POSTGRES_URL$|INSTANCE_)/.test(key)) {
-        delete localEnv[key];
-      }
-    }
     recordLocalDevelopmentCleanup(temporaryDirectory, localEnv, lock);
     cleanupRecorded = true;
     console.log(
       `${fresh ? 'Initializing' : 'Resuming'} persistent local review at ${instance.appUrl}. Docker project ${instance.composeProjectName}.`
     );
     console.log(`State: ${lock.stateDirectory}. Ctrl+C stops owned services and retains authored data.`);
-    if (!fresh) {
-      assertLocalVolumeExists(localEnv);
-    }
-    const deployment = await backendUp(localEnv, {
-      url: instance.backendUrl,
-      ...(secrets.adminKey ? { adminKey: secrets.adminKey } : {}),
-      preserve: true,
+    const { deployment, environment } = await provisionPersistentBackend({
+      manifest,
+      secrets,
+      snapshot,
+      fresh,
+      environment: localEnv,
     });
-    localEnv = commandEnvironment(localEnv, {
-      CONVEX_SELF_HOSTED_URL: deployment.url,
-      CONVEX_SELF_HOSTED_ADMIN_KEY: deployment.adminKey,
-    });
-    secrets.adminKey = deployment.adminKey;
-    writePrivateJson(path.join(lock.stateDirectory, 'secrets.json'), secrets);
-    if (snapshot) {
-      try {
-        importSnapshotData(deployment, localEnv, snapshot.file);
-      } finally {
-        discardDownloadedSnapshot(snapshot);
-      }
-      manifest.status = 'imported';
-      writePrivateJson(path.join(lock.stateDirectory, 'manifest.json'), manifest);
-    }
-    if (manifest.status === 'imported') {
-      configureLocalAuth(deployment, localEnv, { siteUrl: instance.appUrl, artifactsDirectory: lock.stateDirectory });
-      manifest.status = 'configured';
-      writePrivateJson(path.join(lock.stateDirectory, 'manifest.json'), manifest);
-    }
-    pushCode(deployment, localEnv);
-    if (manifest.status === 'configured') {
-      finishSnapshotData(deployment, localEnv);
-      manifest.status = 'seeded';
-      writePrivateJson(path.join(lock.stateDirectory, 'manifest.json'), manifest);
-    }
-    runMigrationGuards(deployment, localEnv, 900_000);
-    if (manifest.status === 'seeded') {
-      manifest.status = 'provisioned';
-      writePrivateJson(path.join(lock.stateDirectory, 'manifest.json'), manifest);
-    }
+    localEnv = environment;
     prepareLocalPublisher(deployment, localEnv);
     setLocalBackendVariable(deployment, localEnv, 'ASSET_PUBLISHER_EXECUTOR_SECRET', secrets.executorSecret);
     setLocalBackendVariable(deployment, localEnv, 'USER_IMAGE_PUBLIC_BASE_URL', instance.appUrl);
@@ -553,66 +628,21 @@ async function runPersistentDevelopment(requested: LocalData, directory: string,
     buildLocalPublisher(localEnv, lock.stateDirectory);
     publisher = startLocalPublisher(manifest, secrets, localEnv, sourceCommit);
     const publisherExit = waitForExit(publisher);
-    const health = `http://127.0.0.1:${manifest.publisherPort}/__asset-publisher/health`;
-    for (let attempt = 0; ; attempt += 1) {
-      if (attempt >= 60) {
-        throw new Error('The local publisher did not become ready');
-      }
-      const ready = await fetch(health, { signal: AbortSignal.timeout(1000) }).catch(() => null);
-      if (ready?.ok) {
-        break;
-      }
-      await Promise.race([
-        new Promise((resolve) => setTimeout(resolve, 1000)),
-        publisherExit.then((code) => unexpectedProcessExit('Local publisher', code)),
-      ]);
-    }
+    await waitForLocalPublisher(manifest, publisherExit);
     const viteReadyFile = path.join(temporaryDirectory, 'vite-ready.json');
     vite = startOwnedVite(instance.appPort, viteReadyFile, localApplicationEnvironment(localEnv));
     await waitForOwnedViteUrl(instance.appUrl, viteReadyFile, instance.appPort, vite);
-    if (manifest.status !== 'ready') {
-      await ensureLocalAuthUser(instance.appUrl, secrets.ownerEmail, secrets.password);
-      await ensureLocalAuthUser(instance.appUrl, secrets.collaboratorEmail, secrets.password);
-      remapOwnershipToLocalUsers(deployment, localEnv, secrets.ownerEmail, secrets.collaboratorEmail);
-      remapLocalAuthoringOwnership(deployment, localEnv, secrets.ownerEmail);
-      manifest.ownershipProvisioning = 'snapshot-placeholder-to-reviewer-a';
-    }
+    await provisionPersistentReviewers(manifest, secrets, deployment, localEnv);
     watcher = startLocalConvexWatcher(deployment, localEnv);
     const watcherExit = waitForExit(watcher);
     await requireProcessToStayRunning(watcherExit, 'The local Convex watcher');
     manifest.status = 'ready';
     manifest.lastSourceCommit = sourceCommit;
     writePrivateJson(path.join(lock.stateDirectory, 'manifest.json'), manifest);
-    let refuseScheduler!: (error: Error) => void;
-    const schedulerFailure = new Promise<never>((_resolve, reject) => {
-      refuseScheduler = reject;
-    });
-    const schedule = async () => {
-      try {
-        assertPersistentDiskBudget(lock.stateDirectory);
-      } catch (error) {
-        refuseScheduler(error instanceof Error ? error : new Error(String(error)));
-        return;
-      }
-      try {
-        await fetch(`http://127.0.0.1:${manifest.publisherPort}/__scheduled`, {
-          signal: AbortSignal.any([schedulerAbort.signal, AbortSignal.timeout(260_000)]),
-        });
-      } catch (error) {
-        console.error('Local publisher cycle failed:', error instanceof Error ? error.message : error);
-      }
-      if (!stopping) {
-        scheduler = setTimeout(() => {
-          void schedule();
-        }, 5000);
-      }
-    };
-    scheduler = setTimeout(() => {
-      void schedule();
-    }, 5000);
+    scheduler = startPersistentPublicationScheduler(manifest);
     console.log(`Persistent local development is ready at ${instance.appUrl}. Dashboard: ${instance.dashboardUrl}.`);
     process.exitCode = await Promise.race([
-      schedulerFailure,
+      scheduler.failure,
       waitForExit(vite),
       watcherExit.then((code) => unexpectedProcessExit('Local Convex watcher', code)),
       publisherExit.then((code) => unexpectedProcessExit('Local publisher', code)),

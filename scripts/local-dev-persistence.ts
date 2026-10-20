@@ -60,14 +60,8 @@ export type PersistentSecrets = z.infer<typeof secretsSchema>;
 
 export function assertLoopbackUrl(value: string): string {
   const url = new URL(value);
-  if (
-    url.protocol !== 'http:' ||
-    url.hostname !== '127.0.0.1' ||
-    !url.port ||
-    url.username ||
-    url.password ||
-    url.hash
-  ) {
+  const hasForbiddenParts = [url.username, url.password, url.hash].some(Boolean);
+  if (!/^http:\/\/127\.0\.0\.1:[0-9]+$/.test(url.origin) || hasForbiddenParts) {
     throw new Error(`Persistent local services require an explicit http://127.0.0.1 port: ${value}`);
   }
   return url.href.replace(/\/$/, '');
@@ -79,17 +73,14 @@ export function writePrivateJson(file: string, value: unknown) {
   renameSync(temporary, file);
 }
 
-/** Resolve existing parents before creating state, including a not-yet-created child of a symlink. */
-export function resolvePersistentDirectory(directory: string, worktreeDirectory: string): string {
-  if (!path.isAbsolute(directory)) {
-    throw new Error('--persist-dir must be an absolute directory outside the worktree');
-  }
+/** Keep dangling links distinct from paths that have not been created yet. */
+function nearestExistingParent(directory: string) {
   let parent = directory;
   const missing: string[] = [];
   for (;;) {
     try {
       lstatSync(parent);
-      break;
+      return { parent, missing };
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
         throw error;
@@ -98,6 +89,14 @@ export function resolvePersistentDirectory(directory: string, worktreeDirectory:
       parent = path.dirname(parent);
     }
   }
+}
+
+/** Resolve existing parents before creating state, including a not-yet-created child of a symlink. */
+export function resolvePersistentDirectory(directory: string, worktreeDirectory: string): string {
+  if (!path.isAbsolute(directory)) {
+    throw new Error('--persist-dir must be an absolute directory outside the worktree');
+  }
+  const { parent, missing } = nearestExistingParent(directory);
   const canonicalDirectory = path.resolve(realpathSync(parent), ...missing);
   const canonicalWorktree = realpathSync(worktreeDirectory);
   if (canonicalDirectory === canonicalWorktree || canonicalDirectory.startsWith(`${canonicalWorktree}${path.sep}`)) {
@@ -136,6 +135,24 @@ export function releasePersistentLock(lockDirectory: string, nonce: string) {
   rmSync(lockDirectory, { recursive: true });
 }
 
+function assertManifestServices(manifest: PersistentManifest) {
+  const { instance } = manifest;
+  const services = [
+    { url: instance.appUrl, port: instance.appPort },
+    { url: instance.backendUrl, port: instance.backendPort },
+    { url: instance.siteUrl, port: instance.sitePort },
+    { url: instance.dashboardUrl, port: instance.dashboardPort },
+  ];
+  for (const service of services) {
+    if (assertLoopbackUrl(service.url) !== `http://127.0.0.1:${service.port}`) {
+      throw new Error('Persistent manifest origin does not match its port');
+    }
+  }
+  if (new Set([...services.map((service) => service.port), manifest.publisherPort]).size !== 5) {
+    throw new Error('Persistent service ports overlap');
+  }
+}
+
 export function readPersistentManifest(stateDirectory: string) {
   const file = path.join(stateDirectory, 'manifest.json');
   if (!existsSync(file)) {
@@ -145,23 +162,7 @@ export function readPersistentManifest(stateDirectory: string) {
   if (manifest.stateDirectory !== stateDirectory) {
     throw new Error('Persistent manifest was moved. Restore its original directory.');
   }
-  const instance = manifest.instance;
-  for (const [url, portValue] of [
-    [instance.appUrl, instance.appPort],
-    [instance.backendUrl, instance.backendPort],
-    [instance.siteUrl, instance.sitePort],
-    [instance.dashboardUrl, instance.dashboardPort],
-  ] as const) {
-    if (assertLoopbackUrl(url) !== `http://127.0.0.1:${portValue}`) {
-      throw new Error('Persistent manifest origin does not match its port');
-    }
-  }
-  if (
-    new Set([instance.appPort, instance.backendPort, instance.sitePort, instance.dashboardPort, manifest.publisherPort])
-      .size !== 5
-  ) {
-    throw new Error('Persistent service ports overlap');
-  }
+  assertManifestServices(manifest);
   return manifest;
 }
 

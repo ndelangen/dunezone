@@ -1,6 +1,7 @@
-import { spawn, spawnSync } from 'node:child_process';
+import { execFileSync, spawn, spawnSync } from 'node:child_process';
 import {
   existsSync,
+  copyFileSync,
   mkdtempSync,
   mkdirSync,
   readdirSync,
@@ -35,11 +36,21 @@ function withDirectory(action: (directory: string) => void) {
   }
 }
 
+function lockFixture(worktree: string, supervisor = `printf '%s\\n' "$LOCAL_DEV_OS_LOCK"`) {
+  const scripts = path.join(worktree, 'scripts');
+  mkdirSync(scripts, { recursive: true });
+  const program = path.join(scripts, 'local-dev-lock.py');
+  copyFileSync(path.join(import.meta.dirname, 'local-dev-lock.py'), program);
+  writeFileSync(path.join(scripts, 'app-dev.sh'), supervisor);
+  return program;
+}
+
 describe('persistent local review', () => {
   test('refuses an outside symlink into the worktree before creating or resetting any state', () => {
     withDirectory((directory) => {
       const worktree = path.join(directory, 'worktree');
       mkdirSync(worktree);
+      const program = lockFixture(worktree);
       const outsideLink = path.join(directory, 'outside-link');
       symlinkSync(worktree, outsideLink, 'dir');
       const saved = path.join(worktree, '.dunezone-runtime');
@@ -49,16 +60,8 @@ describe('persistent local review', () => {
       for (const candidate of [outsideLink, path.join(outsideLink, 'new-review')]) {
         expect(() => resolvePersistentDirectory(candidate, worktree)).toThrow('outside the disposable worktree');
         const result = spawnSync(
-          'python3',
-          [
-            path.join(import.meta.dirname, 'local-dev-lock.py'),
-            '--outside-worktree',
-            worktree,
-            candidate,
-            'python3',
-            '-c',
-            'raise RuntimeError("must not launch")',
-          ],
+          '/usr/bin/python3',
+          [program, 'supervise', '--local', '--data=snapshot', '--persist-dir', candidate],
           { encoding: 'utf8' }
         );
         expect(result.status).toBe(1);
@@ -75,6 +78,7 @@ describe('persistent local review', () => {
       const external = path.join(directory, 'external');
       mkdirSync(worktree);
       mkdirSync(external);
+      const program = lockFixture(worktree);
       const outsideLink = path.join(directory, 'outside-link');
       symlinkSync(external, outsideLink, 'dir');
       const candidate = path.join(outsideLink, 'new-review');
@@ -82,23 +86,67 @@ describe('persistent local review', () => {
       expect(resolvePersistentDirectory(candidate, worktree)).toBe(canonical);
       expect(existsSync(canonical)).toBe(false);
       const result = spawnSync(
-        'python3',
-        [
-          path.join(import.meta.dirname, 'local-dev-lock.py'),
-          '--outside-worktree',
-          worktree,
-          candidate,
-          'python3',
-          '-c',
-          'import os; print(os.environ["LOCAL_DEV_OS_LOCK"])',
-        ],
+        '/usr/bin/python3',
+        [program, 'supervise', '--local', '--data=snapshot', '--persist-dir', candidate],
         { encoding: 'utf8' }
       );
       expect(result.status).toBe(0);
       expect(result.stdout.trim()).toBe(path.join(canonical, '.dunezone-runtime.flock'));
-      expect(readdirSync(worktree)).toEqual([]);
+      expect(readdirSync(worktree)).toEqual(['scripts']);
     });
   });
+  test('the lock CLI refuses generic commands and extra supervisor arguments before creating state', () => {
+    withDirectory((directory) => {
+      const runtime = path.join(directory, 'must-not-exist');
+      const program = path.join(import.meta.dirname, 'local-dev-lock.py');
+      for (const args of [
+        [runtime, '/bin/sh', '-c', 'exit 0'],
+        ['supervise', '--local', '--data=snapshot', '--persist-dir', runtime, '/bin/sh'],
+        ['build', '--state-directory', runtime],
+      ]) {
+        const result = spawnSync('/usr/bin/python3', [program, ...args], { encoding: 'utf8' });
+        expect(result.status).not.toBe(0);
+        expect(existsSync(runtime)).toBe(false);
+      }
+    });
+  });
+
+  test('a directory with shell metacharacters remains a literal argument to the fixed supervisor', () => {
+    withDirectory((directory) => {
+      const worktree = path.join(directory, 'worktree');
+      const program = lockFixture(worktree);
+      const runtime = path.join(directory, 'review; touch injected');
+      const result = spawnSync(
+        '/usr/bin/python3',
+        [program, 'supervise', '--local', '--data=snapshot', '--persist-dir', runtime],
+        { encoding: 'utf8' }
+      );
+      expect(result.status, result.stderr).toBe(0);
+      expect(result.stdout.trim()).toBe(path.join(realpathSync(runtime), '.dunezone-runtime.flock'));
+      expect(existsSync(path.join(directory, 'injected'))).toBe(false);
+    });
+  });
+
+  test('the build operation executes only the fixed Bun entry with its scoped state argument', () => {
+    withDirectory((directory) => {
+      const worktree = path.join(directory, 'worktree');
+      const program = lockFixture(worktree);
+      const runtime = path.join(directory, 'review', '.dunezone-runtime');
+      mkdirSync(runtime, { recursive: true });
+      writeFileSync(
+        path.join(worktree, 'scripts/local-dev-publisher.ts'),
+        `import { writeFileSync } from 'node:fs'; import path from 'node:path'; if (process.argv[2] !== '--build') throw new Error('unexpected operation'); writeFileSync(path.join(process.argv[3], 'built'), 'fixed-entry');`
+      );
+      const bun = execFileSync('/usr/bin/which', ['bun'], { encoding: 'utf8' }).trim();
+      const result = spawnSync('/usr/bin/python3', [program, 'build', '--state-directory', runtime], {
+        env: { ...process.env, LOCAL_DEV_BUN_EXECUTABLE: bun },
+        encoding: 'utf8',
+      });
+      expect(result.status, result.stderr).toBe(0);
+      expect(readFileSync(path.join(runtime, 'built'), 'utf8')).toBe('fixed-entry');
+    });
+  });
+
   test('requires an explicit snapshot and absolute state directory, preserving disposable defaults', () => {
     expect(parseAppDevMode(['--local', '--data=snapshot', '--persist-dir=/tmp/gf9'])).toEqual({
       kind: 'local',
@@ -191,8 +239,14 @@ test('the OS lock rejects a second launcher, then releases after a crash', async
     fixture,
     `from pathlib import Path\nimport time\nPath(${JSON.stringify(ready)}).touch()\ntime.sleep(30)\n`
   );
-  const args = [path.join(import.meta.dirname, 'local-dev-lock.py'), directory, 'python3', fixture];
-  const first = spawn('python3', args, { stdio: ['ignore', 'pipe', 'pipe'] });
+  const worktree = path.join(directory, 'worktree');
+  const runtime = path.join(directory, 'runtime');
+  const program = lockFixture(worktree, 'exec /usr/bin/python3 "$TEST_LOCK_FIXTURE"');
+  const args = [program, 'supervise', '--local', '--data=snapshot', '--persist-dir', runtime];
+  const first = spawn('/usr/bin/python3', args, {
+    env: { ...process.env, TEST_LOCK_FIXTURE: fixture },
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
   const firstExit = new Promise((resolve) => first.once('exit', resolve));
   try {
     await expect
@@ -205,7 +259,7 @@ test('the OS lock rejects a second launcher, then releases after a crash', async
         }
       })
       .toBe(true);
-    const second = spawn('python3', args, { stdio: ['ignore', 'pipe', 'pipe'] });
+    const second = spawn('/usr/bin/python3', args, { stdio: ['ignore', 'pipe', 'pipe'] });
     let error = '';
     second.stderr.on('data', (value) => {
       error += value;
@@ -215,13 +269,8 @@ test('the OS lock rejects a second launcher, then releases after a crash', async
     expect(error).toContain('locked');
     first.kill('SIGTERM');
     await firstExit;
-    const third = spawn('python3', [
-      path.join(import.meta.dirname, 'local-dev-lock.py'),
-      directory,
-      'python3',
-      '-c',
-      'pass',
-    ]);
+    writeFileSync(path.join(worktree, 'scripts/app-dev.sh'), 'exit 0');
+    const third = spawn('/usr/bin/python3', args);
     expect(await new Promise((resolve) => third.once('exit', resolve))).toBe(0);
     mkdirSync(path.join(directory, 'authored')); // Runtime lock files never claim the authoring directory.
   } finally {
