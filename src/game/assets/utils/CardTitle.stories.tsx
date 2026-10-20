@@ -9,13 +9,93 @@ const meta = preview.meta({
   args: { path: 'custom', scale: 1 },
 });
 
+async function verifySvgTitle(title: SVGSVGElement, name: string) {
+  for (const glyph of title.querySelectorAll('text')) {
+    await expect(glyph.textContent).toBe(singleLineTitle(name));
+    if (!singleLineTitle(name)) {
+      continue;
+    }
+    const bounds = glyph.getBBox();
+    await expect(glyph.getComputedTextLength()).toBeLessThanOrEqual(680.01);
+    await expect(bounds.x).toBeGreaterThanOrEqual(109.99);
+    await expect(bounds.x + bounds.width).toBeLessThanOrEqual(790.01);
+    await expect(bounds.y).toBeGreaterThanOrEqual(962.99);
+    await expect(bounds.y + bounds.height).toBeLessThanOrEqual(1063.01);
+  }
+}
+
+async function verifyHtmlLabel(label: HTMLDivElement) {
+  const span = label.firstElementChild as HTMLSpanElement;
+  const bounds = label.getBoundingClientRect();
+  const scale = bounds.width / label.clientWidth;
+  const text = span.getBoundingClientRect();
+  await expect(text.width / scale).toBeLessThanOrEqual(label.clientWidth + 0.02);
+  await expect(span.style.whiteSpace).toBe('pre');
+  await expect(getComputedStyle(label).overflow).toBe('visible');
+  const range = document.createRange();
+  range.selectNodeContents(span);
+  await expect(range.getClientRects().length).toBeLessThanOrEqual(1);
+  const font = getComputedStyle(span);
+  const context = document.createElement('canvas').getContext('2d')!;
+  context.font = `${font.fontStyle} ${font.fontWeight} ${font.fontSize} ${font.fontFamily}`;
+  const ink = context.measureText(span.textContent!);
+  const baseline =
+    (text.top - bounds.top) / scale +
+    (Number.parseFloat(font.lineHeight) + ink.fontBoundingBoxAscent - ink.fontBoundingBoxDescent) / 2;
+  await expect(baseline - ink.actualBoundingBoxAscent).toBeGreaterThanOrEqual(-0.02);
+  await expect(baseline + ink.actualBoundingBoxDescent).toBeLessThanOrEqual(label.clientHeight + 0.02);
+}
+
+async function verifyIconClearance(canvasElement: HTMLElement, title: Element) {
+  const icon = Array.from(canvasElement.querySelectorAll<HTMLDivElement>('div')).find(
+    (element) => getComputedStyle(element).borderRadius === '50%' && element.clientWidth === 125
+  );
+  await expect(icon).toBeDefined();
+  const picture = canvasElement.querySelector<HTMLImageElement>('img[class*="picture"]');
+  const iconLeft = Math.min(icon!.getBoundingClientRect().left, picture?.getBoundingClientRect().left ?? Infinity);
+  await expect(
+    (iconLeft - title.getBoundingClientRect().right) /
+      (title.getBoundingClientRect().width / (title as HTMLElement).clientWidth)
+  ).toBeGreaterThanOrEqual(9.98);
+}
+
+async function verifyHtmlTitle(canvasElement: HTMLElement, title: Element, expected: string) {
+  const labels = Array.from(canvasElement.querySelectorAll<HTMLDivElement>('div[aria-label]')).filter(
+    (element) => element.firstElementChild instanceof HTMLSpanElement
+  );
+  await expect(labels).toHaveLength(2);
+  for (const label of labels) {
+    await verifyHtmlLabel(label);
+  }
+  await expect(title.firstElementChild!.textContent).toBe(singleLineTitle(expected));
+  await verifyIconClearance(canvasElement, title);
+}
+
+function expectedTitle(path: string, index: number, name: string) {
+  if (path !== 'storm') {
+    return name;
+  }
+  return index === 0 || index === titleCases.length - 1 ? '1 Sector' : '6 Sectors';
+}
+
+async function verifyTitleSize(title: Element, index: number, name: string, path: string) {
+  if (title instanceof SVGSVGElement) {
+    return;
+  }
+  if (index === 0 || index === titleCases.length - 1) {
+    await expect(getComputedStyle(title.firstElementChild!).fontSize).toBe('60px');
+  }
+  if (name.length === 1024 && path !== 'storm') {
+    await expect(Number.parseFloat(getComputedStyle(title.firstElementChild!).fontSize)).toBeLessThan(1);
+  }
+}
+
 /** Geometry is checked immediately after settlement, at the same point publication is allowed. */
 async function verifyTitles({ canvasElement, args }: { canvasElement: HTMLElement; args: { path: string } }) {
   let firstTitle: Element | null = null;
   for (const [index, name] of titleCases.entries()) {
     await settleCardTitles(canvasElement);
-    const expected =
-      args.path === 'storm' ? (index === 0 || index === titleCases.length - 1 ? '1 Sector' : '6 Sectors') : name;
+    const expected = expectedTitle(args.path, index, name);
     const title = Array.from(canvasElement.querySelectorAll('[aria-label]')).find(
       (element) => element.getAttribute('aria-label') === expected
     )!;
@@ -25,62 +105,11 @@ async function verifyTitles({ canvasElement, args }: { canvasElement: HTMLElemen
     }
     firstTitle = title;
     if (title instanceof SVGSVGElement) {
-      for (const glyph of title.querySelectorAll('text')) {
-        await expect(glyph.textContent).toBe(singleLineTitle(name));
-        if (!singleLineTitle(name)) {
-          continue;
-        }
-        const bounds = glyph.getBBox();
-        await expect(glyph.getComputedTextLength()).toBeLessThanOrEqual(680.01);
-        await expect(bounds.x).toBeGreaterThanOrEqual(109.99);
-        await expect(bounds.x + bounds.width).toBeLessThanOrEqual(790.01);
-        await expect(bounds.y).toBeGreaterThanOrEqual(962.99);
-        await expect(bounds.y + bounds.height).toBeLessThanOrEqual(1063.01);
-      }
+      await verifySvgTitle(title, name);
     } else {
-      const labels = Array.from(canvasElement.querySelectorAll<HTMLDivElement>('div[aria-label]')).filter(
-        (element) => element.firstElementChild instanceof HTMLSpanElement
-      );
-      await expect(labels).toHaveLength(2);
-      for (const label of labels) {
-        const span = label.firstElementChild as HTMLSpanElement;
-        const bounds = label.getBoundingClientRect();
-        const scale = bounds.width / label.clientWidth;
-        const text = span.getBoundingClientRect();
-        await expect(text.width / scale).toBeLessThanOrEqual(label.clientWidth + 0.02);
-        await expect(span.style.whiteSpace).toBe('pre');
-        await expect(getComputedStyle(label).overflow).toBe('visible');
-        const range = document.createRange();
-        range.selectNodeContents(span);
-        await expect(range.getClientRects().length).toBeLessThanOrEqual(1);
-        const font = getComputedStyle(span);
-        const context = document.createElement('canvas').getContext('2d')!;
-        context.font = `${font.fontStyle} ${font.fontWeight} ${font.fontSize} ${font.fontFamily}`;
-        const ink = context.measureText(span.textContent!);
-        const baseline =
-          (text.top - bounds.top) / scale +
-          (Number.parseFloat(font.lineHeight) + ink.fontBoundingBoxAscent - ink.fontBoundingBoxDescent) / 2;
-        await expect(baseline - ink.actualBoundingBoxAscent).toBeGreaterThanOrEqual(-0.02);
-        await expect(baseline + ink.actualBoundingBoxDescent).toBeLessThanOrEqual(label.clientHeight + 0.02);
-      }
-      await expect(title.firstElementChild!.textContent).toBe(singleLineTitle(expected));
-      const icon = Array.from(canvasElement.querySelectorAll<HTMLDivElement>('div')).find(
-        (element) => getComputedStyle(element).borderRadius === '50%' && element.clientWidth === 125
-      );
-      await expect(icon).toBeDefined();
-      const picture = canvasElement.querySelector<HTMLImageElement>('img[class*="picture"]');
-      const iconLeft = Math.min(icon!.getBoundingClientRect().left, picture?.getBoundingClientRect().left ?? Infinity);
-      await expect(
-        (iconLeft - title.getBoundingClientRect().right) /
-          (title.getBoundingClientRect().width / (title as HTMLElement).clientWidth)
-      ).toBeGreaterThanOrEqual(9.98);
-      if (index === 0 || index === titleCases.length - 1) {
-        await expect(getComputedStyle(title.firstElementChild!).fontSize).toBe('60px');
-      }
-      if (name.length === 1024 && args.path !== 'storm') {
-        await expect(Number.parseFloat(getComputedStyle(title.firstElementChild!).fontSize)).toBeLessThan(1);
-      }
+      await verifyHtmlTitle(canvasElement, title, expected);
     }
+    await verifyTitleSize(title, index, name, args.path);
     if (index < titleCases.length - 1) {
       await userEvent.click(within(canvasElement).getByRole('button', { name: 'Next title' }));
     }

@@ -8,6 +8,7 @@ import { GF9_STRONGHOLD_CARDS } from '@shared/assets/gf9StrongholdDeck';
 import { EXAMPLE_HOMEWORLD_CARD } from '@shared/assets/homeworldTemplate';
 import { standardStormCard } from '@shared/assets/standardStormDeck';
 import { useState } from 'react';
+import type { ReactNode } from 'react';
 
 import { CardBack } from '../card/Back';
 import { CustomCard } from '../card/Custom';
@@ -50,6 +51,44 @@ export type TitlePath =
   | 'alliance'
   | 'back';
 
+type TitleInput = { name: string; owner: string; index: number; iconScale: number };
+
+function isShortTitle(index: number) {
+  return index === 0 || index === titleCases.length - 1;
+}
+
+const renderTitleCard: Record<TitlePath, (value: TitleInput) => ReactNode> = {
+  treachery: ({ name }) => <TreacheryCard {...publishingTreacheryCard} name={name} />,
+  custom: ({ name }) => <CustomCard {...publishingCustomCard} name={name} />,
+  'leader-skill': ({ name }) => <LeaderSkillCard {...GF9_LEADER_SKILLS[0]!} name={name} />,
+  stronghold: ({ name }) => <StrongholdCard {...GF9_STRONGHOLD_CARDS[0]!} name={name} />,
+  storm: ({ index }) => <StormCard {...standardStormCard(isShortTitle(index) ? 1 : 6)} />,
+  nexus: ({ name }) => <NexusCard {...GF9_NEXUS_CARDS[0]!} name={name} />,
+  homeworld: ({ name, iconScale }) => <HomeworldCard {...EXAMPLE_HOMEWORLD_CARD} name={name} iconScale={iconScale} />,
+  spice: ({ name }) => <SpiceCard {...publishingSpiceCard} name={name} />,
+  traitor: ({ name, owner }) => (
+    <TraitorCard
+      name={name}
+      owner={owner}
+      image="/image/leader/official/tessia.png"
+      strength="1"
+      logo="/vector/logo/moritani.svg"
+      background={publishingTreacheryCard.head}
+    />
+  ),
+  alliance: ({ name }) => (
+    <AllianceCard
+      title={name}
+      background={publishingTreacheryCard.head}
+      logo="/vector/logo/atreides.svg"
+      troop="/vector/troop/atreides.svg"
+      decals={[]}
+      text="The ally retains its own faction name."
+    />
+  ),
+  back: ({ name }) => <CardBack {...publishingDeckCardback} name={name} />,
+};
+
 /** Changes names without remounting the renderer and exercises scaled editor/catalogue space. */
 export function ChangingCardTitle({
   path,
@@ -62,62 +101,8 @@ export function ChangingCardTitle({
 }) {
   const [index, setIndex] = useState(0);
   const name = titleCases[index]!;
-  const owner =
-    index === 0 || index === titleCases.length - 1 ? 'Moritani' : `${name} faction with an unusually long owner name`;
-  let card;
-  switch (path) {
-    case 'treachery':
-      card = <TreacheryCard {...publishingTreacheryCard} name={name} />;
-      break;
-    case 'custom':
-      card = <CustomCard {...publishingCustomCard} name={name} />;
-      break;
-    case 'leader-skill':
-      card = <LeaderSkillCard {...GF9_LEADER_SKILLS[0]!} name={name} />;
-      break;
-    case 'stronghold':
-      card = <StrongholdCard {...GF9_STRONGHOLD_CARDS[0]!} name={name} />;
-      break;
-    case 'storm':
-      card = <StormCard {...standardStormCard(index === 0 || index === titleCases.length - 1 ? 1 : 6)} />;
-      break;
-    case 'nexus':
-      card = <NexusCard {...GF9_NEXUS_CARDS[0]!} name={name} />;
-      break;
-    case 'homeworld':
-      card = <HomeworldCard {...EXAMPLE_HOMEWORLD_CARD} name={name} iconScale={iconScale} />;
-      break;
-    case 'spice':
-      card = <SpiceCard {...publishingSpiceCard} name={name} />;
-      break;
-    case 'traitor':
-      card = (
-        <TraitorCard
-          name={name}
-          owner={owner}
-          image="/image/leader/official/tessia.png"
-          strength="1"
-          logo="/vector/logo/moritani.svg"
-          background={publishingTreacheryCard.head}
-        />
-      );
-      break;
-    case 'alliance':
-      card = (
-        <AllianceCard
-          title={name}
-          background={publishingTreacheryCard.head}
-          logo="/vector/logo/atreides.svg"
-          troop="/vector/troop/atreides.svg"
-          decals={[]}
-          text="The ally retains its own faction name."
-        />
-      );
-      break;
-    case 'back':
-      card = <CardBack {...publishingDeckCardback} name={name} />;
-      break;
-  }
+  const owner = isShortTitle(index) ? 'Moritani' : `${name} faction with an unusually long owner name`;
+  const card = renderTitleCard[path]({ name, owner, index, iconScale });
   return (
     <div>
       <button type="button" onClick={() => setIndex((value) => value + 1)}>
