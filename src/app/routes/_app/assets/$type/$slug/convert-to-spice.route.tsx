@@ -12,6 +12,7 @@ import { ArrowLeft, RotateCcw } from 'lucide-react';
 import { useReducer, useState } from 'react';
 
 import { loadAssetPage, useConvertCustomToSpice } from '@app/db/assets';
+import { useAuthoringAccountKey } from '@app/db/authoring';
 import { mutationErrorMessage } from '@app/db/core/mutationError';
 import { assetLoad } from '@app/pickers/assetLoadSource';
 import { pageHead } from '@app/routes/pageTitle';
@@ -72,6 +73,7 @@ function ConversionSession({ asset, initialDraft, access }: CardEditSessionProps
   const [state, dispatch] = useReducer(reduce, { draft: initial, initial });
   const [chapter, setChapter] = useState<SpiceChapter>('identity');
   const conversion = useConvertCustomToSpice();
+  const accountKey = useAuthoringAccountKey();
   const targetSlug = state.draft.name === asset.name ? asset.slug : slugify(state.draft.name);
   const navigate = Route.useNavigate();
   const patch = (update: Partial<SpiceDraft>) => dispatch({ kind: 'patch', update });
@@ -117,7 +119,7 @@ function ConversionSession({ asset, initialDraft, access }: CardEditSessionProps
         </PageLayout.Header>
       )}
       <PageLayout.Toolbar>
-        <LoadExisting {...load}>
+        <LoadExisting {...load} scopeKey={`${accountKey}:${load.scopeKey ?? ''}`}>
           {(loadAction) => (
             <Toolbar>
               <Toolbar.Left label="Navigation">

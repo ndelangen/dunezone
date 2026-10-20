@@ -237,7 +237,17 @@ describe('authenticated Custom to Spice conversion', () => {
         board: { nodes: expect.any(Object) },
       });
       /* Finishing an already running old capture affects only its historic type's artifact. */
-      await t.mutation(internal.publicationJobs.completeJob, { jobId: capturing._id, cacheToken: 'finished-old' });
+      await expect(
+        t.mutation(internal.publicationJobs.completeJob, { jobId: capturing._id, cacheToken: 'finished-old' })
+      ).resolves.toMatchObject({ status: 'completed' });
+      expect(
+        await t.run((ctx) =>
+          ctx.db
+            .query('publication_assets')
+            .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', 'card-custom').eq('asset_id', card.id))
+            .unique()
+        )
+      ).toMatchObject({ cache_token: 'finished-old' });
       expect(await jobs(t, card.id, 'card-spice')).toMatchObject([{ _id: queued._id, status: 'pending' }]);
       await owner.mutation(api.assets.update, {
         id: token.id,
