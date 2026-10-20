@@ -5,6 +5,8 @@ export const rulebookSizeCatalogue = [
   { id: 'square', label: 'Square', widthMm: 255, heightMm: 254 },
   { id: 'a4', label: 'A4', widthMm: 210, heightMm: 297 },
   { id: 'tall', label: 'Tall', widthMm: 105, heightMm: 297 },
+  { id: 'gf9-core', label: 'GF9 core', widthMm: 254, heightMm: 254 },
+  { id: 'gf9-expansion', label: 'GF9 expansion', widthMm: 132.08, heightMm: 254 },
 ] as const;
 
 export const rulebookDesignCatalogue = [

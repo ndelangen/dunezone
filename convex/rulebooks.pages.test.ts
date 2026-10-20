@@ -60,7 +60,15 @@ describe('Rulebook lifecycle page queries', () => {
     const listing = await owner.query(api.rulesets.detailPage, { slug: 'rulebook-test-rules' });
     const creation = await owner.query(api.rulebooks.creationPage, { ruleset_slug: 'rulebook-test-rules' });
     expect(listing?.rulebooks.map((book) => book.name)).toEqual(['Second', 'First']);
-    expect(creation?.rulebooks).toEqual(listing?.rulebooks);
+    expect(
+      creation?.rulebooks.map(({ draft_settings, ...published }) => {
+        expect(draft_settings).toEqual({ size: 'a4', design: 'illustrated' });
+        return published;
+      })
+    ).toEqual(listing?.rulebooks);
+    for (const book of listing?.rulebooks ?? []) {
+      expect(book).not.toHaveProperty('draft_settings');
+    }
     expect(creation?.rulebooks[0]).not.toHaveProperty('contents');
     expect(creation).not.toHaveProperty('draft');
     expect(creation?.rulebooks[0]).not.toHaveProperty('name_key');
