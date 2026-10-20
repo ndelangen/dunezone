@@ -11,6 +11,7 @@ import { FactionReview } from './factions';
 import { HeaderReview } from './headers';
 import { LabelReview } from './labels';
 import { RemainingCardsReview } from './remaining-cards';
+import { TokenBackReview } from './token-back-review';
 import './prototype.css';
 const params = new URLSearchParams(location.search);
 const variant = (['A', 'B', 'C'].includes(params.get('variant') ?? '') ? params.get('variant') : 'A') as
@@ -22,6 +23,7 @@ const cases = [
   { key: 'headers', label: 'Full names and card headers' },
   { key: 'factions', label: 'Faction sheets and complete clauses' },
   { key: 'labels', label: 'Discovery Spice cards' },
+  { key: 'token-backs', label: 'Hiereg and Smuggler backgrounds' },
 ];
 const selected = cases.some((c) => c.key === params.get('case')) ? params.get('case')! : 'art';
 const factionCase = params.get('faction') ?? 'bene-gesserit';
@@ -57,11 +59,19 @@ function App() {
     <>
       <header className="review-heading">
         <p className="eyebrow">GF9 correction review</p>
-        <h1>{selected === 'labels' ? 'Discovery Spice cards' : 'Faction, logo and component treatments'}</h1>
+        <h1>
+          {selected === 'token-backs'
+            ? 'Hiereg and Smuggler backgrounds'
+            : selected === 'labels'
+              ? 'Discovery Spice cards'
+              : 'Faction, logo and component treatments'}
+        </h1>
         <p>
-          {selected === 'labels'
-            ? 'Focused review of the remaining card corrections. Previously accepted treatments stay settled.'
-            : 'Compare the proposed corrections with the existing data and original artwork. Rulebook covers and page compositions are already accepted.'}
+          {selected === 'token-backs'
+            ? 'Background comparison only. Spice cards and accepted token fronts remain settled.'
+            : selected === 'labels'
+              ? 'Focused review of the remaining card corrections. Previously accepted treatments stay settled.'
+              : 'Compare the proposed corrections with the existing data and original artwork. Rulebook covers and page compositions are already accepted.'}
         </p>
         <nav aria-label="Review cases">
           {cases.map((c) => (
@@ -76,7 +86,9 @@ function App() {
         </nav>
       </header>
       <main>
-        {selected === 'art' ? (
+        {selected === 'token-backs' ? (
+          <TokenBackReview />
+        ) : selected === 'art' ? (
           <ArtReview variant={variant} />
         ) : selected === 'headers' ? (
           <HeaderReview variant={variant} />

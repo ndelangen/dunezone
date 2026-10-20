@@ -10,6 +10,8 @@ bun content/gf9/component-prototype/serve.ts
 
 Open http://127.0.0.1:39612/?case=labels for the six remaining Discovery Spice cards. Add `&cardZoom=2` for an enlarged view. The earlier card/token inventory remains at `&review=archive` and is not a request to re-review accepted work. Other cases are `art`, `headers` and `factions`. Accepted covers and book compositions live in their separate prototype and do not need reapproval here.
 
+The user accepted the six Discovery Spice cards on 20 October 2026, including the darker orange tint, standard amount position, token above the amount and preserved bold content. Keep that composition settled. The active review now concerns only Hiereg and Smuggler token backgrounds, at `?case=token-backs`.
+
 ## Accepted decisions
 
 - Use both wider verified original faction-head crops. Preserve their native source resolution and provenance.
@@ -66,3 +68,11 @@ The badge offset was caused by the prototype's global border-box reset, not by t
 The spice-blow tint is now darker orange, #ad4e10d9, across all six cards. Hiereg and Smuggler destination colors remain green and blue.
 
 Spice territories are orange. Hiereg destinations and markers are green; Smuggler destinations and markers are blue. Both territory tints are present on every Discovery card. Only existing Fremen, Guild and spice vectors are used.
+
+## Hiereg and Smuggler backgrounds under review
+
+The user accepted the six Discovery Spice-card compositions and requested backgrounds closer to the GF9 originals for the two Discovery token types. The focused comparison is `?case=token-backs`. Native embedded back images from page 12 of the supplied Ecaz & Moritani book are references only; provenance is in token-back-source-manifest.json.
+
+The proposed background data in token-back-backgrounds.json uses existing Background schema fields, the existing 082 texture and radial gradients. Hiereg is mottled ochre-gold. Smuggler is muted dark slate. Horizontal stripes are removed. Symbols, rings, token shape, labels and accepted revealed faces are outside this revision. The two generic illustration markers consume these proposals; implementation should use the corresponding background on each type's hidden backs as well, without adding generic markers to the random outcome pool. No new renderer capability or vector is required for this background change.
+
+These backgrounds await user review. Their colours are independent of the accepted green Hiereg and blue Smuggler territory tints. Card typography, amount placement and map recipe remain settled.

@@ -1,0 +1,22 @@
+[
+  {
+    "kind": "hiereg",
+    "sourcePdf": "/Users/me/Projects/Dune/gf9-delivery/sources/ecaz-moritani.pdf",
+    "page": 12,
+    "resource": "Im3.jpg",
+    "sourceHash": "c78993c5b0494880e940155d38a8291f51cdd34092ef552c50754841a201aa82",
+    "file": "/card-references/original-hiereg-back.png",
+    "nativePixels": [145, 145],
+    "operation": "Native embedded image decoded to RGB PNG for reference only; display clipped to its original circular token shape."
+  },
+  {
+    "kind": "smuggler",
+    "sourcePdf": "/Users/me/Projects/Dune/gf9-delivery/sources/ecaz-moritani.pdf",
+    "page": 12,
+    "resource": "Im4.jp2",
+    "sourceHash": "760a209112b696e6d62e2735b8b1331d1e604ea51d699b5f6dd450b8cc593189",
+    "file": "/card-references/original-smuggler-back.png",
+    "nativePixels": [145, 145],
+    "operation": "Native embedded image decoded to RGB PNG for reference only; display clipped to its original circular token shape."
+  }
+]

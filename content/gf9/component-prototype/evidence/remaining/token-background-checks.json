@@ -1,0 +1,18 @@
+[
+  {
+    "kind": "hiereg",
+    "linearGradients": 0,
+    "radialGradients": 2,
+    "ring": 2,
+    "symbol": "/vector/logo/fremen.svg#root",
+    "texture": "/m/4e47f3e5fc4284ed21ac.5f553140bc.jpg"
+  },
+  {
+    "kind": "smuggler",
+    "linearGradients": 0,
+    "radialGradients": 2,
+    "ring": 2,
+    "symbol": "/vector/logo/guild.svg#root",
+    "texture": "/m/4e47f3e5fc4284ed21ac.5f553140bc.jpg"
+  }
+]
