@@ -46,6 +46,7 @@ import {
   History,
   Layers3,
   Pencil,
+  Replace,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 
@@ -675,6 +676,22 @@ function LoadedAssetDetail({ page, pending }: { page: AssetPage; pending: boolea
             </Toolbar.Cluster>
             <Toolbar.Cluster kind="access">{!pending && groupActions.accessActions}</Toolbar.Cluster>
             <Toolbar.Cluster kind="discard">
+              {asset.type === 'card-custom' && capabilities.edit ? (
+                <IconAction
+                  label="Prepare spice card conversion"
+                  emphasis="standard"
+                  intent="neutral"
+                  size="lg"
+                  renderRoot={(props) => (
+                    <Link
+                      {...props}
+                      to="/assets/$type/$slug/convert-to-spice"
+                      params={{ type: asset.type, slug: asset.slug }}
+                    />
+                  )}
+                  icon={<Replace size={17} aria-hidden />}
+                />
+              ) : null}
               {page.canConvertToCustom ? (
                 <ConfirmConvertAction
                   pending={conversion.isPending}

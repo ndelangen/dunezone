@@ -6,6 +6,7 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { useReducer, useState } from 'react';
 
+import { useAuthoringAccountKey } from '@db/authoring';
 import { useSessionViewer } from '@db/profiles';
 import { useCreateAsset } from '@app/db/assets';
 import { assetLoad, clonedMembersOf } from '@app/pickers/assetLoadSource';
@@ -64,6 +65,7 @@ function reduce(state: BundleState, event: BundleEvent): BundleState {
  * The Tokens chapter says so rather than offering steppers that cannot write.
  */
 export function BundleCreatePage() {
+  const authoringAccountKey = useAuthoringAccountKey();
   const navigate = useNavigate();
   const viewer = useSessionViewer();
   const createAsset = useCreateAsset();
@@ -133,6 +135,7 @@ export function BundleCreatePage() {
       {header.slot}
       <PageLayout.Toolbar>
         <AuthoringToolbar
+          scopeKey={authoringAccountKey}
           load={assetLoad({
             noun: 'bundle',
             type: 'bundle',

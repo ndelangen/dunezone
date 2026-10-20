@@ -1,4 +1,4 @@
-import { Slider } from '@mantine/core';
+import { Button, Group, Slider, Stack, Text } from '@mantine/core';
 import { SPICE_BOARD_LOOKS } from '@shared/assets/schema';
 import type { CustomCardTokens, SpiceBoardLink } from '@shared/assets/schema';
 import type { Board } from '@shared/boards/schema';
@@ -6,6 +6,7 @@ import { legacyHighlightTint } from '@shared/boards/spiceHighlights';
 import { RULEBOOK_BOARD_DEFINITIONS } from '@shared/rulebooks/boardDefinitions';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { PreviewChoice } from '@ui/control/PreviewChoice';
+import { useState } from 'react';
 import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
@@ -41,7 +42,12 @@ export type SpiceMapFocus = BoardMarkupFocus;
 /** The classic map's place among the boards; choosing it unlinks the card's board. */
 const CLASSIC_MAP = 'classic';
 
-const LOOK_LABELS: Record<Look['style'], string> = { burnt: 'Burnt in', sepia: 'Sepia', plain: 'Plain' };
+const LOOK_LABELS: Record<Look['style'], string> = {
+  burnt: 'Burnt in',
+  sepia: 'Sepia',
+  plain: 'Plain',
+  'textured-burn': 'Textured burn',
+};
 const DEFAULT_LOOK: Look = { style: 'burnt', strength: 1 };
 
 /** How the board sits in the card's parchment, each look drawn on the card itself, and how strongly it applies. */
@@ -223,18 +229,50 @@ export function SpiceTokenFields({
   focus: SpiceMapFocus;
   tokenPicker: AssetPick;
 }>) {
+  const [pickingType, setPickingType] = useState(false);
+  const typeToken = link.typeToken ? read?.tokens[link.typeToken.asset_id] : undefined;
   return (
-    <BoardTokenFields
-      tokens={link.tokens}
-      onTokens={(tokens) => onLink({ ...link, tokens })}
-      viewOf={(assetId) => {
-        const asset = read?.tokens[assetId];
-        return asset ? { name: asset.name, type: asset.type, thumb: <CardToken token={asset} /> } : asset;
-      }}
-      error={read?.error}
-      focus={focus}
-      tokenPicker={tokenPicker}
-      description="Token assets on the card's map. Drag one on the card, or open it here for its sliders. They stay where they are when the board changes."
-    />
+    <>
+      <ControlBlock
+        title="Type token"
+        description="One token front above the spice amount."
+        input={
+          <Stack gap="xs">
+            {link.typeToken ? <Text>{typeToken?.name ?? 'Unavailable token'}</Text> : null}
+            <Group>
+              <Button variant="default" onClick={() => setPickingType(true)}>
+                {link.typeToken ? 'Change type token' : 'Choose type token'}
+              </Button>
+              {link.typeToken ? (
+                <Button variant="subtle" onClick={() => onLink({ ...link, typeToken: undefined })}>
+                  Remove type token
+                </Button>
+              ) : null}
+            </Group>
+            {pickingType
+              ? tokenPicker(
+                  (asset_id) => {
+                    onLink({ ...link, typeToken: { asset_id } });
+                    setPickingType(false);
+                  },
+                  () => setPickingType(false)
+                )
+              : null}
+          </Stack>
+        }
+      />
+      <BoardTokenFields
+        tokens={link.tokens}
+        onTokens={(tokens) => onLink({ ...link, tokens })}
+        viewOf={(assetId) => {
+          const asset = read?.tokens[assetId];
+          return asset ? { name: asset.name, type: asset.type, thumb: <CardToken token={asset} /> } : asset;
+        }}
+        error={read?.error}
+        focus={focus}
+        tokenPicker={tokenPicker}
+        description="Token assets on the card's map. Drag one on the card, or open it here for its sliders. They stay where they are when the board changes."
+      />
+    </>
   );
 }

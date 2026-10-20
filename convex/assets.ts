@@ -695,6 +695,49 @@ export const update = mutation({
   },
 });
 
+/** Conversion never silently chooses a suffix in the destination type's address space. */
+async function customToSpiceTarget(ctx: QueryCtx, row: Doc<'assets'>, name: string) {
+  const slug = name === nameOf(row) ? row.slug : slugify(name);
+  const holder = slug ? await assetSlugHolder(ctx, 'card-spice', slug) : null;
+  const problem =
+    !slug || slug === 'create'
+      ? 'Choose a name that gives this spice card an available address.'
+      : holder
+        ? 'A spice card already reserves this address. Choose a different name before converting.'
+        : null;
+  return { slug, problem };
+}
+
+/** Changes one editable Custom Card into a fully authored Spice Card without replacing its identity. */
+export const convertCustomToSpice = mutation({
+  args: { id: v.id('assets'), data: v.any() },
+  returns: v.object({ id: v.id('assets'), slug: v.string() }),
+  handler: async (ctx, { id, data }) => {
+    const row = await ctx.db.get('assets', id);
+    if (!row || row.is_deleted || row.type !== 'card-custom') {
+      throw new ConvexError('Only a live custom card can be converted to a spice card.');
+    }
+    const parsed = parseAssetDataForWrite('card-spice', data);
+    await requireAssetUpdate(ctx, id, parsed.name);
+    /* A drifted source needs repair before an operation that discards its layer representation. */
+    parseAssetDataForWrite('card-custom', row.data);
+    await validateSpiceCardBoard(ctx, parsed.data);
+    const target = await customToSpiceTarget(ctx, row, parsed.name);
+    if (target.problem) {
+      throw new ConvexError(target.problem);
+    }
+    await recordFormerSlug(ctx, { kind: 'asset', scope: row.type, slug: row.slug, record_id: id });
+    await ctx.db.patch(id, { type: 'card-spice', data: parsed.data, slug: target.slug, updated_at: nowIso() });
+    /* The Spice shape contains no Custom layers, so this removes only the retired reverse rows. */
+    await syncCustomCardTokenRelations(ctx, id, parsed.data);
+    await syncSpiceCardRelations(ctx, id, parsed.data);
+    await supersedePendingPublication(ctx, row.type, id);
+    await enqueueAssetPublication(ctx, { _id: id, type: 'card-spice', slug: target.slug, data: parsed.data });
+    /* Decks and Rulebook references resolve this unchanged ID against its current type on every read. */
+    return { id, slug: target.slug };
+  },
+});
+
 /** Converts one card in place; ownership, deck references and completed publications retain their identity. */
 export const convertTreacheryToCustom = mutation({
   args: { id: v.id('assets') },

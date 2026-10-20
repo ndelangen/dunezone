@@ -1,11 +1,13 @@
 import { Button, Group, Stack } from '@mantine/core';
 import { ASSET_TYPES } from '@shared/assets/types';
 import type { AssetType } from '@shared/assets/types';
+import { parseRawAsset, readRawAuthoringJson } from '@shared/authoring/raw';
 import { useRef } from 'react';
 import type { z } from 'zod';
 
 import { loadAssetPage } from '@db/assets';
 import type { AssetPublicPage } from '@db/assets';
+import { loadRawAuthoringBack, validateRawAuthoring } from '@db/authoring';
 import type { LoadChoice, LoadExistingProps, LoadSource } from '@app/widgets/authoring/LoadExisting';
 
 import { AssetPicker } from './AssetPicker';
@@ -15,7 +17,12 @@ import { AssetPicker } from './AssetPicker';
  * The page is there for what the data only points at, such as the token or deck a back references and a container's members, so an editor can show those without fetching them again.
  * A preset has no page.
  */
-export type LoadedAsset<Data> = { data: Data; source: NonNullable<AssetPublicPage> | null };
+export type LoadedAsset<Data> = {
+  data: Data;
+  source: NonNullable<AssetPublicPage> | null;
+  referencedBack?: Awaited<ReturnType<typeof loadRawAuthoringBack>>;
+  raw?: true;
+};
 
 /** A starting point that is not a saved Asset, such as a blank or stock board, offered as a button above the list. */
 export type LoadPreset<Data> = { label: string; name: string; data: Data };
@@ -52,6 +59,7 @@ export function assetLoad<Data extends { name: string }>({
   schema,
   editing,
   disabled,
+  canRename = false,
   onLoaded,
 }: {
   noun: string;
@@ -59,14 +67,49 @@ export function assetLoad<Data extends { name: string }>({
   schema: z.ZodType<Data>;
   editing?: { id: string; name: string };
   disabled: boolean;
+  canRename?: boolean;
   onLoaded: (loaded: LoadedAsset<NoInfer<Data>>) => void;
 }): Omit<LoadExistingProps<LoadedAsset<Data>>, 'children'> {
   return {
     noun,
+    scopeKey: editing?.id ?? `create:${type}`,
     mode: editing ? 'replace' : 'create',
     disabled,
     source: assetLoadSource({ type, schema, excludeId: editing?.id }),
-    onLoaded: (loaded) => onLoaded(editing ? { ...loaded, data: { ...loaded.data, name: editing.name } } : loaded),
+    raw: {
+      validate: async (text) => {
+        const parsed = parseRawAsset(type, readRawAuthoringJson(text));
+        const data = schema.parse(parsed.data);
+        await validateRawAuthoring({ kind: 'asset', type, ...(editing ? { targetId: editing.id } : {}), text });
+        const stored = parsed.data as Record<string, unknown>;
+        const back = (type === 'deck' ? stored.cardback : type.startsWith('token-') ? stored.back : undefined) as
+          | { mode?: string; asset_id?: string }
+          | undefined;
+        const referencedBack =
+          back?.mode === 'reference' && back.asset_id
+            ? await loadRawAuthoringBack({
+                type,
+                referenceId: back.asset_id,
+                ...(editing ? { targetId: editing.id } : {}),
+              })
+            : undefined;
+        return {
+          name: parsed.name,
+          draft: { data, source: null, raw: true, ...(referencedBack ? { referencedBack } : {}) },
+        };
+      },
+      ...(editing
+        ? {
+            rename: {
+              currentName: editing.name,
+              allowed: canRename,
+              apply: (draft: LoadedAsset<Data>, name: string) => ({ ...draft, data: { ...draft.data, name } }),
+            },
+          }
+        : {}),
+    },
+    onLoaded: (loaded) =>
+      onLoaded(editing && !loaded.raw ? { ...loaded, data: { ...loaded.data, name: editing.name } } : loaded),
   };
 }
 

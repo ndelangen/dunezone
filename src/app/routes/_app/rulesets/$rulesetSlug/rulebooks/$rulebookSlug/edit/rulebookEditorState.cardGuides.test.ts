@@ -102,6 +102,31 @@ describe('Card guide reconciliation', () => {
     });
   });
 
+  it('retains image side and flow through reconciliation and Save', () => {
+    const initial = input();
+    const manager = createRulebookEditorStateManager(initial);
+    manager.dispatch(
+      replaceDraft(manager.result, (draft) => {
+        const card = draftBlock(draft, 'RULE', 'CARD', 'card-entry');
+        card.imageSide = 'right';
+        card.textFlow = 'wrap';
+      })
+    );
+    const latest = structuredClone(initial);
+    latest.revision = 'revision-2';
+    const remote = draftBlock(latest.contents, 'RULE', 'CARD', 'card-entry');
+    remote.quantity = 3;
+    const result = ready(manager.dispatch({ kind: 'receive-latest', latest }));
+    expect(result.saveRequest?.contents.pagesById.RULE!.blocksById.CARD).toMatchObject({
+      imageSide: 'right',
+      textFlow: 'wrap',
+      quantity: 3,
+    });
+    expect(result.rebasedPatch.sets.map(({ field }) => field)).toEqual(
+      expect.arrayContaining(['image-side', 'text-flow'])
+    );
+  });
+
   it('keeps featured identity and member fields through concurrent reorder and guidance edits', () => {
     const initial = input();
     const manager = createRulebookEditorStateManager(initial);

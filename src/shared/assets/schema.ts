@@ -38,9 +38,16 @@ export { PHYSICAL_SIZE_MAX, PHYSICAL_SIZE_MIN, PhysicalSize } from './physicalSi
 export const SPICE_BOARD_SIZE = BOARD_FRAME_SIZE;
 /** The Spice renderer revision that draws a linked board; until the publisher runs it, linked cards wait rather than capture the legacy map. */
 export const SPICE_BOARD_REVISION = 2;
+/** Native Discovery composition adds the textured board recipe and fixed type-token slot. */
+export const SPICE_DISCOVERY_REVISION = 4;
+/** Renderer support for the optional native component treatments. */
+export const TREACHERY_TEXT_ONLY_REVISION = 8;
+export const ROUND_TOKEN_SYMBOL_STYLE_REVISION = 3;
+export const CUSTOM_CARD_STYLED_TOKEN_REVISION = 4;
+export const STORM_CARD_STYLED_TOKEN_REVISION = 6;
 
-/** How a linked board's artwork sits in the card's parchment: burnt in like the classic map, toned sepia, or drawn as it is. */
-export const SPICE_BOARD_LOOKS = ['burnt', 'sepia', 'plain'] as const;
+/** Named board treatments keep tints and placed tokens in their own colours. */
+export const SPICE_BOARD_LOOKS = ['burnt', 'sepia', 'plain', 'textured-burn'] as const;
 
 /** A board's look and how strongly it applies, 0 to 1; a card without one is burnt in fully, as the classic map is. */
 export const SpiceBoardLook = z.strictObject({
@@ -54,6 +61,8 @@ export const SpiceBoardLink = z.strictObject({
   tints: boardTints,
   tokens: boardTokens,
   look: SpiceBoardLook.optional(),
+  /** One token front above the amount, independent of map placement. */
+  typeToken: z.strictObject({ asset_id: z.string().min(1) }).optional(),
 });
 
 /**
@@ -155,6 +164,7 @@ export const CardHead = z.strictObject({
 });
 
 export const Treachery = CardHead.extend({
+  bodyLayout: z.enum(['illustrated', 'text-only']).optional(),
   decals: z.array(Decal),
   text: z.string(),
 });
@@ -191,6 +201,17 @@ export const FactionSide = z.strictObject({
 export const TokenFace = FactionSide.extend({
   /** Multiplies the renderer's reference symbol size. */
   symbolScale: z.number().min(0.5).max(2),
+  symbolFill: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/)
+    .optional(),
+  symbolStroke: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/)
+    .optional(),
+  symbolStrokeWidth: z.number().min(0).max(20).optional(),
+  /** Missing keeps the established two-pass symbol shadow. */
+  symbolShadow: z.boolean().optional(),
   /** The curved label along the top edge. */
   top: z.string(),
   /**

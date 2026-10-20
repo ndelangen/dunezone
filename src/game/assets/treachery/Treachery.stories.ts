@@ -1,4 +1,6 @@
 import preview from '@sb/preview';
+import karama from '@shared/assets/fixtures/karamaReplacement.json';
+import { TREACHERY_BACKGROUNDS } from '@shared/assets/treacheryStyles';
 import { expect } from 'storybook/test';
 
 import { treacheryCardFixtures } from '../../fixtures/treacheryCards';
@@ -38,3 +40,24 @@ export const Voice = meta.story({ args: treacheryCardFixtures.noSnooper });
 export const LayeredDecals = meta.story({ args: treacheryCardFixtures.layeredDecals });
 
 export const FullWidthTitle = meta.story({ args: { ...treacheryCardFixtures.lasgun, name: '沙漠'.repeat(20) } });
+
+/** The accepted replacement body uses the ordinary Treachery identity and badge. */
+export const TextOnly = meta.story({
+  args: {
+    ...treacheryCardFixtures.lasgun,
+    ...karama,
+    bodyLayout: 'text-only',
+    decals: [],
+    head: TREACHERY_BACKGROUNDS.special,
+    icon: [TREACHERY_BACKGROUNDS.stripedSpecial, '/vector/icon/hand.svg'],
+  },
+  play: async ({ canvasElement }) => {
+    await document.fonts.load('38.75px "C_Candara"');
+    await document.fonts.ready;
+    const body = canvasElement.querySelector<HTMLElement>('[data-component-part="body"]')!;
+    await expect(body.textContent).toContain('Cannot be used to stop a Special Victory Condition');
+    await expect(body.scrollHeight).toBeLessThanOrEqual(body.clientHeight);
+    await expect(getComputedStyle(body).fontSize).toBe('38.75px');
+    await expect(canvasElement.querySelector('[data-component-part="decals"]')).toBeNull();
+  },
+});

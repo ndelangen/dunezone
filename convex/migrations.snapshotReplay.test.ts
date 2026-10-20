@@ -101,105 +101,128 @@ describe('a snapshot load', () => {
     expect(await t.query(api.factions.catalogue, {})).toMatchObject({ catalogueTotal: 1, total: 1 });
   });
 
-  test('seeds each live Rulebook a draft of its current Edition as the public reader shows it, so the editor opens', async () => {
-    const t = factionTest();
-    /* The stored cover keeps a signed source, as production's Edition does, so the draft shows the seed applies the reader's projection itself. */
-    const signedSource = 'https://images.example/cover.png?signature=private-cover-secret';
-    const current = createRulebookStarterContents();
-    current.pagesById.CVER = {
-      id: 'CVER',
-      anchor: 'cover',
-      title: 'Cover',
-      layoutId: 'cover',
-      showHeading: true,
-      controlValues: {
-        cover: {
-          subtitle: '',
-          supportingText: '',
-          backgroundImageUrl: signedSource,
-          backgroundImage: {
-            url: `https://dune.zone/user-images/${'a'.repeat(64)}.jpg`,
-            sourceUrl: signedSource,
-            width: 1100,
-            height: 1600,
+  test.each([undefined, { size: 'gf9-expansion', design: 'restrained' } as const])(
+    'seeds the current Edition settings and public Contents coherently (%j)',
+    async (settings) => {
+      const t = factionTest();
+      /* The stored cover keeps a signed source, as production's Edition does, so the draft shows the seed applies the reader's projection itself. */
+      const signedSource = 'https://images.example/cover.png?signature=private-cover-secret';
+      const current = createRulebookStarterContents();
+      current.pagesById.CVER = {
+        id: 'CVER',
+        anchor: 'cover',
+        title: 'Cover',
+        layoutId: 'cover',
+        showHeading: true,
+        controlValues: {
+          cover: {
+            subtitle: '',
+            supportingText: '',
+            backgroundImageUrl: signedSource,
+            backgroundImage: {
+              url: `https://dune.zone/user-images/${'a'.repeat(64)}.jpg`,
+              sourceUrl: signedSource,
+              width: 1100,
+              height: 1600,
+            },
           },
         },
-      },
-      blockOrderByRegion: {},
-      blocksById: {},
-    };
-    current.pageOrder.unshift('CVER');
+        blockOrderByRegion: {},
+        blocksById: {},
+      };
+      current.pageOrder.unshift('CVER');
 
-    const ownerId = await t.run(async (ctx) => {
-      const ownerId = await ctx.db.insert('users', placeholderOwner.user());
-      await ctx.db.insert('profiles', placeholderOwner.profile(ownerId));
-      const owned = { owner_id: ownerId, group_id: null, is_deleted: false, created_at: STAMP, updated_at: STAMP };
-      await ctx.db.insert('factions', { ...owned, slug: 'published', data: assetPublishingFaction });
-      const rulesetId = await ctx.db.insert('rulesets', {
-        ...owned,
-        name: 'Published rules',
-        slug: 'published-rules',
-        about: '',
-        image_cover: null,
-      });
-      const rulebookId = await ctx.db.insert('rulebooks', {
-        ruleset_id: rulesetId,
-        name: 'Manual',
-        name_key: rulebookNameKey('Manual'),
-        slug: 'manual',
-        sort_order: 0,
-        current_edition_number: 2,
-        created_by: ownerId,
-        created_at: STAMP,
-        updated_at: STAMP,
-        is_deleted: false,
-        deleted_at: null,
-      });
-      for (const [index, contents] of [createRulebookStarterContents(), current].entries()) {
-        const editionId = await ctx.db.insert('rulebook_editions', {
-          rulebook_id: rulebookId,
-          edition_number: index + 1,
+      const ownerId = await t.run(async (ctx) => {
+        const ownerId = await ctx.db.insert('users', placeholderOwner.user());
+        await ctx.db.insert('profiles', placeholderOwner.profile(ownerId));
+        const owned = { owner_id: ownerId, group_id: null, is_deleted: false, created_at: STAMP, updated_at: STAMP };
+        await ctx.db.insert('factions', { ...owned, slug: 'published', data: assetPublishingFaction });
+        const rulesetId = await ctx.db.insert('rulesets', {
+          ...owned,
+          name: 'Published rules',
+          slug: 'published-rules',
+          about: '',
+          image_cover: null,
+        });
+        const rulebookId = await ctx.db.insert('rulebooks', {
+          ruleset_id: rulesetId,
+          name: 'Manual',
+          settings: { size: 'gf9-core', design: 'illustrated' },
+          name_key: rulebookNameKey('Manual'),
+          slug: 'manual',
+          sort_order: 0,
+          current_edition_number: 2,
           created_by: ownerId,
           created_at: STAMP,
+          updated_at: STAMP,
+          is_deleted: false,
+          deleted_at: null,
         });
-        await ctx.db.insert('rulebook_edition_contents', { edition_id: editionId, contents });
-      }
-      return ownerId;
-    });
-    const seed = () =>
-      t.mutation(internal.provisioning.seedSnapshotRulebookDraftsBatch, {
-        paginationOpts: { numItems: 10, cursor: null },
+        for (const [index, contents] of [createRulebookStarterContents(), current].entries()) {
+          const editionId = await ctx.db.insert('rulebook_editions', {
+            rulebook_id: rulebookId,
+            edition_number: index + 1,
+            settings: index === 1 ? settings : undefined,
+            created_by: ownerId,
+            created_at: STAMP,
+          });
+          await ctx.db.insert('rulebook_edition_contents', { edition_id: editionId, contents });
+        }
+        return ownerId;
       });
+      const seed = () =>
+        t.mutation(internal.provisioning.seedSnapshotRulebookDraftsBatch, {
+          paginationOpts: { numItems: 10, cursor: null },
+        });
 
-    expect(await seed()).toMatchObject({ isDone: true, seeded: 1 });
-    expect(await seed()).toMatchObject({ isDone: true, seeded: 0 });
-    await expect(t.query(internal.provisioningChecks.assertRebuildContract, {})).resolves.toEqual({ ok: true });
+      expect(await seed()).toMatchObject({ isDone: true, seeded: 1 });
+      const storedPair = () =>
+        t.run(async (ctx) => ({
+          rulebooks: await ctx.db.query('rulebooks').collect(),
+          drafts: await ctx.db.query('rulebook_drafts').collect(),
+        }));
+      const seededPair = await storedPair();
+      expect(await seed()).toMatchObject({ isDone: true, seeded: 0 });
+      expect(await storedPair()).toEqual(seededPair);
+      await expect(t.query(internal.provisioningChecks.assertRebuildContract, {})).resolves.toEqual({ ok: true });
 
-    const locator = { ruleset_slug: 'published-rules', rulebook_slug: 'manual' };
-    const reader = await t.query(api.rulebooks.readerPage, locator);
-    const editor = await t.withIdentity({ subject: ownerId }).query(api.rulebooks.editorPage, locator);
-    if (editor?.kind !== 'editable') {
-      throw new Error('The editor did not open the seeded Rulebook');
+      const locator = { ruleset_slug: 'published-rules', rulebook_slug: 'manual' };
+      const reader = await t.query(api.rulebooks.readerPage, locator);
+      const editor = await t.withIdentity({ subject: ownerId }).query(api.rulebooks.editorPage, locator);
+      if (editor?.kind !== 'editable') {
+        throw new Error('The editor did not open the seeded Rulebook');
+      }
+      expect(editor.currentEdition.edition_number).toBe(2);
+      expect(editor.draft).toMatchObject({ revision: 1, updated_by: ownerId });
+      expect(editor.draft.contents).toEqual(reader?.edition.contents);
+      expect(editor.draft.settings).toEqual(settings ?? { size: 'a4', design: 'illustrated' });
+      expect(editor.rulebook.settings).toEqual(editor.draft.settings);
+      expect(JSON.stringify(editor.draft)).not.toContain('private-cover-secret');
+
+      /*
+       * The load then replays every widen migration, which writes the Edition hashes the snapshot leaves out.
+       * The editor's answer must not move once it reads hashes instead of comparing Contents.
+       * This Edition still holds the signed source, so the reader-projected draft differs from it either way.
+       */
+      vi.useFakeTimers();
+      await t.mutation(internal.migrations.runRequired, { ids: required });
+      await t.finishAllScheduledFunctions(vi.runAllTimers);
+      const hashes = await t.run(async (ctx) => ({
+        drafts: (await ctx.db.query('rulebook_drafts').collect()).map((row) => row.contents_hash),
+        editions: (await ctx.db.query('rulebook_editions').collect()).map((row) => row.contents_hash),
+      }));
+      expect([...hashes.drafts, ...hashes.editions]).toEqual(Array(3).fill(expect.stringMatching(/^v1:/)));
+      const replayed = await t.withIdentity({ subject: ownerId }).query(api.rulebooks.editorPage, locator);
+      expect(replayed).toMatchObject({ kind: 'editable', hasUnpublishedChanges: editor.hasUnpublishedChanges });
+      await t.run(async (ctx) => {
+        const [book] = await ctx.db.query('rulebooks').collect();
+        await ctx.db.patch(book._id, { settings: { size: 'square', design: 'restrained' } });
+        const [draft] = await ctx.db.query('rulebook_drafts').collect();
+        await ctx.db.patch(draft._id, { revision: 7 });
+      });
+      const editedPair = await storedPair();
+      expect(await seed()).toMatchObject({ isDone: true, seeded: 0 });
+      expect(await storedPair()).toEqual(editedPair);
     }
-    expect(editor.currentEdition.edition_number).toBe(2);
-    expect(editor.draft).toMatchObject({ revision: 1, updated_by: ownerId });
-    expect(editor.draft.contents).toEqual(reader?.edition.contents);
-    expect(JSON.stringify(editor.draft)).not.toContain('private-cover-secret');
-
-    /*
-     * The load then replays every widen migration, which writes the Edition hashes the snapshot leaves out.
-     * The editor's answer must not move once it reads hashes instead of comparing Contents.
-     * This Edition still holds the signed source, so the reader-projected draft differs from it either way.
-     */
-    vi.useFakeTimers();
-    await t.mutation(internal.migrations.runRequired, { ids: required });
-    await t.finishAllScheduledFunctions(vi.runAllTimers);
-    const hashes = await t.run(async (ctx) => ({
-      drafts: (await ctx.db.query('rulebook_drafts').collect()).map((row) => row.contents_hash),
-      editions: (await ctx.db.query('rulebook_editions').collect()).map((row) => row.contents_hash),
-    }));
-    expect([...hashes.drafts, ...hashes.editions]).toEqual(Array(3).fill(expect.stringMatching(/^v1:/)));
-    const replayed = await t.withIdentity({ subject: ownerId }).query(api.rulebooks.editorPage, locator);
-    expect(replayed).toMatchObject({ kind: 'editable', hasUnpublishedChanges: editor.hasUnpublishedChanges });
-  });
+  );
 });

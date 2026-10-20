@@ -1,9 +1,12 @@
 /* Editing a Rulebook's Pages, Blocks and cover, and saving the result (#1590). */
 import preview from '@sb/preview';
 import { waitForFrame } from '@sb/storyWaits';
+import { RULEBOOK_BOARD_DEFINITIONS } from '@shared/rulebooks/boardDefinitions';
 import { install } from '@sinonjs/fake-timers';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
+import { loadAssetPage } from '@db/assets';
+import { loadFaction } from '@db/factions';
 import { loadRulebookEditor } from '@db/rulebooks';
 import { db, ref } from '@db/storybook';
 import type { StorybookDatabase } from '@db/storybook';
@@ -426,5 +429,169 @@ export const FlipFactionIntroduction = meta.story({
     await expect(page.findByRole('button', { name: 'Saved' }, { timeout: 30_000 })).resolves.toBeDisabled();
     await expect(toggle).toBeChecked();
     await expect(block).toHaveAttribute('data-flipped', 'true');
+  },
+});
+
+export const AuthoredBookSettings = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#RULE/details' },
+  parameters: { database: db(withFinalRulebooks) },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const size = await page.findByRole('combobox', { name: 'Book size' }, { timeout: 30_000 });
+    await userEvent.click(size);
+    await userEvent.click(page.getByRole('option', { name: 'GF9 core (254 × 254 mm)' }));
+    const preview = page.getByRole('article', { name: 'Rulebook page: Introduction' });
+    await expect(preview).toHaveAttribute('data-rulebook-size', 'gf9-core');
+    await expect(page.getByRole('button', { name: 'Save' })).toBeEnabled();
+    await userEvent.click(page.getByRole('button', { name: 'Save' }));
+    await expect(page.findByRole('button', { name: 'Saved' }, { timeout: 30_000 })).resolves.toBeDisabled();
+    const saved = await loadRulebookEditor({ rulesetSlug: 'classicrules', rulebookSlug: 'book-0' });
+    if (saved?.kind !== 'editable') {
+      throw new Error('Expected editable saved book');
+    }
+    await expect(saved.draft.settings).toEqual({ size: 'gf9-core', design: 'illustrated' });
+    await expect(saved.draft.revision).toBe(2);
+    await expect(saved.rulebook.settings.size).toBe('gf9-core');
+  },
+});
+
+export const RawJsonSettingsAndContents = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#RULE/details' },
+  parameters: { database: db(withFinalRulebooks) },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    /* Account changes discard pending Load sessions; settle the signed-in identity before pasting. */
+    await page.findByRole('button', { name: 'storybook-viewer' });
+    await page.findByRole('button', { name: 'Load existing Rulebook' });
+    const before = await loadRulebookEditor({ rulesetSlug: 'classicrules', rulebookSlug: 'book-0' });
+    if (before?.kind !== 'editable') {
+      throw new Error('Expected an editable Rulebook.');
+    }
+    const value = { settings: { size: 'gf9-core', design: 'illustrated' }, contents: before.draft.contents };
+    const open = async () => {
+      await userEvent.click(await page.findByRole('button', { name: 'Load existing Rulebook' }));
+      await userEvent.click(page.getByRole('textbox', { name: 'Writable JSON' }));
+      await userEvent.paste(JSON.stringify(value));
+      await expect(page.getByRole('textbox', { name: 'Writable JSON' })).toHaveValue(JSON.stringify(value));
+      await userEvent.click(page.getByRole('button', { name: 'Validate JSON' }));
+      const load = page.getByRole('button', { name: 'Load Rulebook' });
+      await waitFor(() => expect(load).toBeEnabled());
+      await userEvent.click(load);
+    };
+    await open();
+    const untouched = await loadRulebookEditor({ rulesetSlug: 'classicrules', rulebookSlug: 'book-0' });
+    await expect(untouched?.kind === 'editable' && untouched.draft.revision).toBe(before.draft.revision);
+    await userEvent.click(page.getByRole('button', { name: 'Reset unsaved edits' }));
+    await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
+    await open();
+    await userEvent.click(page.getByRole('button', { name: 'Save' }));
+    await expect(page.findByRole('button', { name: 'Saved' })).resolves.toBeDisabled();
+    const saved = await loadRulebookEditor({ rulesetSlug: 'classicrules', rulebookSlug: 'book-0' });
+    if (saved?.kind !== 'editable') {
+      throw new Error('Expected a saved Rulebook.');
+    }
+    await expect(saved.draft.settings).toEqual(value.settings);
+    await expect(saved.draft.contents).toEqual(before.draft.contents);
+    await expect(saved.rulebook._id).toBe(before.rulebook._id);
+    await expect(saved.currentEdition.edition_number).toBe(before.currentEdition.edition_number);
+  },
+});
+
+export const RawJsonReferencePreflight = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#RULE/details' },
+  parameters: { database: db(withFinalRulebooks) },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await page.findByRole('button', { name: 'storybook-viewer' });
+    await page.findByRole('button', { name: 'Load existing Rulebook' });
+    const before = await loadRulebookEditor({ rulesetSlug: 'classicrules', rulebookSlug: 'book-0' });
+    if (before?.kind !== 'editable') {
+      throw new Error('Expected an editable Rulebook.');
+    }
+    const deck = (await loadAssetPage('deck', 'house-treachery'))!;
+    const faction = (await loadFaction('house-atreides')).faction;
+    const value = { settings: before.draft.settings, contents: structuredClone(before.draft.contents) };
+    value.contents.pagesById.RULE.blocksById = {
+      TEST: {
+        id: 'TEST',
+        kind: 'board-scene',
+        boardId: RULEBOOK_BOARD_DEFINITIONS[0].id,
+        caption: 'Validated scene',
+        players: [],
+        troops: [],
+        highlights: [],
+        annotations: [],
+        tokens: [{ layerId: 'one', asset_id: deck.asset.id, x: 10, y: 10, size: 20, rotation: 0 }],
+      },
+    };
+    value.contents.pagesById.RULE.blockOrderByRegion = { content: ['TEST'] };
+    await userEvent.click(page.getByRole('button', { name: 'Load existing Rulebook' }));
+    const validate = async () => {
+      const input = page.getByRole('textbox', { name: 'Writable JSON' });
+      await userEvent.clear(input);
+      await userEvent.click(input);
+      await userEvent.paste(JSON.stringify(value));
+      await userEvent.click(page.getByRole('button', { name: 'Validate JSON' }));
+    };
+    await validate();
+    await expect(page.findByText(/TEST.tokens.0.asset_id: Choose an available token-disc/)).resolves.toBeVisible();
+    await expect(page.getByRole('button', { name: 'Load Rulebook' })).toBeDisabled();
+    value.contents.pagesById.RULE.blocksById = {
+      TEST: {
+        id: 'TEST',
+        kind: 'referenced-illustration',
+        caption: 'Validated troop',
+        source: {
+          kind: 'faction-troop',
+          factionId: faction._id,
+          troopId: faction.data.troops[0].troopId!,
+          face: 'back',
+        },
+      },
+    };
+    await validate();
+    await expect(page.findByText(/TEST.source.face: This troop has no back face/)).resolves.toBeVisible();
+    await expect(page.getByRole('button', { name: 'Load Rulebook' })).toBeDisabled();
+    const block = value.contents.pagesById.RULE.blocksById.TEST;
+    if (block.kind !== 'referenced-illustration' || block.source?.kind !== 'faction-troop') {
+      throw new Error('Expected selected troop.');
+    }
+    block.source.face = 'front';
+    await validate();
+    await waitFor(() => expect(page.getByRole('button', { name: 'Load Rulebook' })).toBeEnabled());
+    await userEvent.click(page.getByRole('button', { name: 'Load Rulebook' }));
+    await expect(page.getByRole('button', { name: 'Save' })).toBeEnabled();
+    const unchanged = await loadRulebookEditor({ rulesetSlug: 'classicrules', rulebookSlug: 'book-0' });
+    await expect(unchanged?.kind === 'editable' && unchanged.draft).toEqual(before.draft);
+    await userEvent.click(page.getByRole('button', { name: 'Reset unsaved edits' }));
+    await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
+  },
+});
+
+export const BookSizeRespectsPageLayouts = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#RULE/details' },
+  parameters: {
+    database: db((baseline) => {
+      withFinalRulebooks(baseline);
+      const page = baseline.rulebook_drafts[0]!.contents.pagesById.RULE!;
+      page.layoutId = 'two-columns';
+      page.blockOrderByRegion = { column1: page.blockOrderByRegion.content ?? [], column2: [] };
+      return baseline;
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const size = await page.findByRole('combobox', { name: 'Book size' }, { timeout: 30_000 });
+    await userEvent.click(size);
+    const tall = page.getByRole('option', { name: /Tall .*Page layouts do not fit/ });
+    const expansion = page.getByRole('option', { name: /GF9 expansion .*Page layouts do not fit/ });
+    await expect(tall).toHaveAttribute('aria-disabled', 'true');
+    await expect(expansion).toHaveAttribute('aria-disabled', 'true');
+    await userEvent.click(expansion);
+    await expect(size).toHaveValue('A4 (210 × 297 mm)');
+    await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
+    await userEvent.click(page.getByRole('option', { name: 'GF9 core (254 × 254 mm)' }));
+    await expect(size).toHaveValue('GF9 core (254 × 254 mm)');
+    await expect(page.getByRole('button', { name: 'Save' })).toBeEnabled();
   },
 });

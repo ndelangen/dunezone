@@ -10,6 +10,7 @@ import { Fragment } from 'react';
 import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
+import { useAuthoringAccountKey } from '@db/authoring';
 import { useAssetPage, useUpdateAsset } from '@app/db/assets';
 import type { AssetPageData, AssetPublicPage } from '@app/db/assets';
 import { assetLoad } from '@app/pickers/assetLoadSource';
@@ -204,6 +205,7 @@ export function CardEditFrame<Draft extends { name: string }>({
   saveError: Error | null;
   children: ReactNode;
 }) {
+  const authoringAccountKey = useAuthoringAccountKey();
   const navigate = useNavigate();
   const deletion = useAssetDeletion(asset);
   const groupActions = useAssetGroupActions({ asset, access });
@@ -212,11 +214,13 @@ export function CardEditFrame<Draft extends { name: string }>({
       {headerSlot}
       <PageLayout.Toolbar>
         <AuthoringToolbar
+          scopeKey={authoringAccountKey}
           load={assetLoad({
             noun: type === 'board' ? 'board' : 'card',
             type,
             schema: load.schema,
             editing: asset,
+            canRename: access.viewerAccess.capabilities.rename,
             disabled: status.saveState === 'saving',
             onLoaded: load.header.releasing((loaded) => {
               load.dispatch({ kind: 'replace', data: loaded.data });

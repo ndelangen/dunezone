@@ -1,8 +1,11 @@
 import preview from '@sb/preview';
 import { waitForFrame } from '@sb/storyWaits';
+import { publishingRectangleTokenFace } from '@shared/assets/fixtures/publishingRectangleTokenFace';
+import { publishingTokenFace } from '@shared/assets/fixtures/publishingTokenFace';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { loadAssetPage } from '@db/assets';
+import { db } from '@db/storybook';
 
 import { findSave } from '../../../../authoringToolbarPlay';
 import { pageStoryMeta } from '../../../../storybookConfig';
@@ -129,5 +132,174 @@ export const DeckEditLoad = meta.story({
     const saved = await loadAssetPage('deck', 'house-treachery');
     await expect(saved?.asset.data).toMatchObject({ cardback: { mode: 'preset', key: 'storm' } });
     await expect(saved?.members.map((entry) => entry.count)).toEqual([3]);
+  },
+});
+
+/** Raw data replacement never replaces a container's relation rows or quantities. */
+export const RawDeckKeepsMembers = meta.story({
+  args: { path: '/assets/deck/standard-storm-deck/edit' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await page.findByRole('textbox', { name: 'Name' });
+    const before = (await loadAssetPage('deck', 'standard-storm-deck'))!;
+    await userEvent.click(page.getByRole('button', { name: 'Load existing deck' }));
+    await userEvent.click(await page.findByRole('button', { name: 'Paste JSON' }));
+    await userEvent.click(page.getByRole('textbox', { name: 'Writable JSON' }));
+    await userEvent.paste(
+      JSON.stringify({ ...(before.asset.data as Record<string, unknown>), about: 'Reviewed deck description.' })
+    );
+    await userEvent.click(page.getByRole('button', { name: 'Validate JSON' }));
+    await waitFor(() => expect(page.getByRole('button', { name: 'Load deck' })).toBeEnabled());
+    await userEvent.click(page.getByRole('button', { name: 'Load deck' }));
+    await userEvent.click(page.getByRole('button', { name: 'Save deck' }));
+    await waitFor(() => expect(page.getByRole('button', { name: 'Save deck' })).toHaveAccessibleDescription(/^Saved/));
+    const after = (await loadAssetPage('deck', 'standard-storm-deck'))!;
+    await expect(after.asset.id).toBe(before.asset.id);
+    await expect(after.members.map((entry) => [entry.member.id, entry.count])).toEqual(
+      before.members.map((entry) => [entry.member.id, entry.count])
+    );
+  },
+});
+
+function rawLinkedToken(type: 'token-disc' | 'token-enhance', slug: string) {
+  return {
+    args: { path: `/assets/${type}/${slug}/edit` },
+    parameters: {
+      database: db((baseline) => {
+        const target = baseline.assets.find((asset) => asset.type === type)!;
+        const face = type === 'token-enhance' ? publishingRectangleTokenFace : publishingTokenFace;
+        baseline.assets.push({
+          ...target,
+          $key: 'raw-authored-back',
+          slug: 'raw-authored-back',
+          data: { name: 'Authored token back', about: '', front: face, back: { mode: 'custom', face } },
+        });
+        baseline.assets.push({
+          ...target,
+          $key: 'raw-original-back',
+          slug: 'raw-original-back',
+          data: { name: 'Original token back', about: '', front: face, back: { mode: 'custom', face } },
+        });
+      }),
+    },
+    play: async ({ canvasElement }: { canvasElement: HTMLElement }) => {
+      const page = within(canvasElement.ownerDocument.body);
+      await page.findByRole('button', { name: 'storybook-viewer' });
+      await page.findByRole('textbox', { name: 'Name' });
+      await userEvent.click(page.getByRole('radio', { name: /Another token's back/ }));
+      await userEvent.click(page.getByRole('button', { name: 'Choose' }));
+      await userEvent.click(await page.findByRole('option', { name: /Original token back/ }));
+      await userEvent.click(page.getByRole('button', { name: 'Save token' }));
+      await waitFor(() =>
+        expect(page.getByRole('button', { name: 'Save token' })).toHaveAccessibleDescription(/^Saved/)
+      );
+      const before = (await loadAssetPage(type, slug))!;
+      const source = (await loadAssetPage(type, 'raw-authored-back'))!;
+      const value = { ...(before.asset.data as object), back: { mode: 'reference', asset_id: source.asset.id } };
+      await userEvent.click(page.getByRole('button', { name: 'Load existing token' }));
+      await userEvent.click(await page.findByRole('button', { name: 'Paste JSON' }));
+      await userEvent.click(page.getByRole('textbox', { name: 'Writable JSON' }));
+      await userEvent.paste(JSON.stringify(value));
+      await userEvent.click(page.getByRole('button', { name: 'Validate JSON' }));
+      await waitFor(() => expect(page.getByRole('button', { name: 'Load token' })).toBeEnabled());
+      await userEvent.click(page.getByRole('button', { name: 'Load token' }));
+      const proof = page.getAllByText('Back, from Authored token back')[0];
+      await expect(proof).toBeVisible();
+      await expect(proof.parentElement!.querySelector('svg')).not.toBeNull();
+      await expect(page.getByText('Authored token back', { exact: true })).toBeVisible();
+      await expect(page.queryByText('No token chosen')).not.toBeInTheDocument();
+      await expect((await loadAssetPage(type, slug))!.asset.data).toEqual(before.asset.data);
+      await userEvent.click(page.getByRole('button', { name: 'Reset unsaved edits' }));
+      await expect(page.queryByText('Back, from Authored token back')).not.toBeInTheDocument();
+      const original = page.getAllByText('Back, from Original token back')[0];
+      await expect(original).toBeVisible();
+      await expect(original.parentElement!.querySelector('svg')).not.toBeNull();
+      await expect(page.getByRole('radio', { name: /Another token's back/ })).toBeChecked();
+    },
+  };
+}
+
+export const RawDiscLinkedBack = meta.story({ ...rawLinkedToken('token-disc', 'karama') });
+export const RawRectangleLinkedBack = meta.story({ ...rawLinkedToken('token-enhance', 'kwisatz-haderach') });
+
+export const RawDeckLinkedBack = meta.story({
+  args: { path: '/assets/deck/standard-storm-deck/edit' },
+  parameters: {
+    database: db((baseline) => {
+      const source = baseline.assets.find((asset) => asset.type === 'deck' && asset.slug === 'house-treachery')!;
+      baseline.assets.push({
+        ...source,
+        $key: 'raw-authored-deck-back',
+        slug: 'raw-authored-deck-back',
+        data: { ...(source.data as object), name: 'Authored deck back' },
+      });
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await page.findByRole('button', { name: 'storybook-viewer' });
+    await page.findByRole('textbox', { name: 'Name' });
+    await userEvent.click(page.getByRole('tab', { name: 'Back' }));
+    await userEvent.click(page.getByRole('radio', { name: /Another deck's back/ }));
+    await userEvent.click(page.getByRole('button', { name: 'Choose' }));
+    await userEvent.click(await page.findByRole('option', { name: /House Treachery/ }));
+    await userEvent.click(page.getByRole('button', { name: 'Save deck' }));
+    await waitFor(() => expect(page.getByRole('button', { name: 'Save deck' })).toHaveAccessibleDescription(/^Saved/));
+    const before = (await loadAssetPage('deck', 'standard-storm-deck'))!;
+    const source = (await loadAssetPage('deck', 'raw-authored-deck-back'))!;
+    const value = { ...(before.asset.data as object), cardback: { mode: 'reference', asset_id: source.asset.id } };
+    await userEvent.click(page.getByRole('button', { name: 'Load existing deck' }));
+    await userEvent.click(await page.findByRole('button', { name: 'Paste JSON' }));
+    await userEvent.click(page.getByRole('textbox', { name: 'Writable JSON' }));
+    await userEvent.paste(JSON.stringify(value));
+    await userEvent.click(page.getByRole('button', { name: 'Validate JSON' }));
+    await waitFor(() => expect(page.getByRole('button', { name: 'Load deck' })).toBeEnabled());
+    await userEvent.click(page.getByRole('button', { name: 'Load deck' }));
+    await userEvent.click(page.getByRole('tab', { name: 'Back' }));
+    await expect(page.getAllByText('Cardback, from Authored deck back')[0]).toBeVisible();
+    await expect(page.getAllByRole('img', { name: 'Authored deck back: preview unavailable' })[0]).toBeVisible();
+    await expect(page.getAllByText('Authored deck back', { exact: true })[0]).toBeVisible();
+    await expect(page.queryByText('No deck chosen')).not.toBeInTheDocument();
+    await expect((await loadAssetPage('deck', 'standard-storm-deck'))!.asset.data).toEqual(before.asset.data);
+    await userEvent.click(page.getByRole('button', { name: 'Reset unsaved edits' }));
+    await expect(page.queryByText('Cardback, from Authored deck back')).not.toBeInTheDocument();
+    await expect(page.getAllByText('Cardback, from House Treachery')[0]).toBeVisible();
+    await expect(page.getByRole('radio', { name: /Another deck's back/ })).toBeChecked();
+    await expect((await loadAssetPage('deck', 'standard-storm-deck'))!.members).toEqual(before.members);
+  },
+});
+
+export const RawStyledTokenSave = meta.story({
+  args: { path: '/assets/token-disc/karama/edit' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await page.findByRole('button', { name: 'storybook-viewer' });
+    await page.findByRole('textbox', { name: 'Name' });
+    const before = (await loadAssetPage('token-disc', 'karama'))!;
+    const data = before.asset.data as { name: string; front: object };
+    const replacement = {
+      ...data,
+      front: {
+        ...data.front,
+        symbolFill: '#07120f',
+        symbolStroke: '#f3edbf',
+        symbolStrokeWidth: 5.5,
+        symbolShadow: false,
+      },
+    };
+    await userEvent.click(page.getByRole('button', { name: 'Load existing token' }));
+    await userEvent.click(await page.findByRole('button', { name: 'Paste JSON' }));
+    await userEvent.click(page.getByRole('textbox', { name: 'Writable JSON' }));
+    await userEvent.paste(JSON.stringify(replacement));
+    await userEvent.click(page.getByRole('button', { name: 'Validate JSON' }));
+    await waitFor(() => expect(page.getByRole('button', { name: 'Load token' })).toBeEnabled());
+    await userEvent.click(page.getByRole('button', { name: 'Load token' }));
+    await expect((await loadAssetPage('token-disc', 'karama'))!.asset.data).toEqual(before.asset.data);
+    await userEvent.click(page.getByRole('button', { name: 'Save token' }));
+    await waitFor(async () => expect((await loadAssetPage('token-disc', 'karama'))?.asset.data).toEqual(replacement));
+    const saved = (await loadAssetPage('token-disc', 'karama'))!;
+    await expect(saved.asset.id).toBe(before.asset.id);
+    await expect(saved.assignedGroup).toEqual(before.assignedGroup);
+    await expect(saved.inDecks).toEqual(before.inDecks);
   },
 });

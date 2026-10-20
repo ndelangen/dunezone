@@ -12,6 +12,7 @@ import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { FilePlus2 } from 'lucide-react';
 import { useReducer, useState } from 'react';
 
+import { useAuthoringAccountKey } from '@db/authoring';
 import type { AssetPageData, AssetPublicPage } from '@app/db/assets';
 import { useAssetPage, useSetMemberCount, useUpdateAsset } from '@app/db/assets';
 import { mutationErrorMessage } from '@app/db/core/mutationError';
@@ -182,6 +183,7 @@ function DeckEditSession({
   danglingBack: boolean;
   initialDraft: DeckDraft;
 }) {
+  const authoringAccountKey = useAuthoringAccountKey();
   const navigate = useNavigate();
   const groupActions = useAssetGroupActions({ asset, access });
   const updateAsset = useUpdateAsset();
@@ -257,14 +259,20 @@ function DeckEditSession({
       {header.slot}
       <PageLayout.Toolbar>
         <AuthoringToolbar
+          scopeKey={authoringAccountKey}
           load={assetLoad({
             noun: 'deck',
             type: 'deck',
             schema: LoadedDeckDraft,
             editing: asset,
+            canRename: access.viewerAccess.capabilities.rename,
             disabled: saveState === 'saving',
             onLoaded: header.releasing((loaded) =>
-              dispatch({ kind: 'replace', data: loaded.data, pick: loaded.source?.backDeck ?? null })
+              dispatch({
+                kind: 'replace',
+                data: loaded.data,
+                pick: loaded.referencedBack ?? loaded.source?.backDeck ?? null,
+              })
             ),
           })}
           status={{ isDirty, isNameBlank, saveState }}

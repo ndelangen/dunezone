@@ -55,3 +55,13 @@ export const ExistingLogoSymbol = meta.story({
     });
   },
 });
+
+export const TextOnlyBody = meta.story({
+  args: { chapter: 'body' },
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole('combobox', { name: 'Body layout' }));
+    await userEvent.click(within(canvasElement.ownerDocument.body).getByRole('option', { name: 'Text only' }));
+    await expect(args.patch).toHaveBeenCalledWith({ bodyLayout: 'text-only' });
+  },
+});

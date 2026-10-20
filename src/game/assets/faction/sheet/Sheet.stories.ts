@@ -158,4 +158,16 @@ supplyAndSpiceFaction.troops = [
 
 export const SupplyAndSpice = meta.story({
   args: FactionRender.sheet.parse(supplyAndSpiceFaction),
+  play: async ({ canvasElement }) => {
+    const connector = within(canvasElement).getByText('to:');
+    await expect(getComputedStyle(connector).overflow).toBe('visible');
+    await expect(getComputedStyle(connector).borderRadius).toBe('0px');
+    await expect(connector.getBoundingClientRect().width).toBeGreaterThan(connector.scrollWidth - 1);
+    for (const sibling of [connector.previousElementSibling?.previousElementSibling, connector.nextElementSibling]) {
+      if (sibling?.querySelector('svg')) {
+        await expect(getComputedStyle(sibling).borderRadius).toBe('50%');
+        await expect(getComputedStyle(sibling).overflow).toBe('hidden');
+      }
+    }
+  },
 });

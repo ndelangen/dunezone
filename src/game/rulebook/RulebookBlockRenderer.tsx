@@ -181,6 +181,8 @@ function CardGuide({
   text,
   quantity,
   grouped = false,
+  imageSide,
+  textFlow,
   name,
   size,
 }: Readonly<{
@@ -188,12 +190,19 @@ function CardGuide({
   text: string;
   quantity?: number;
   grouped?: boolean;
+  imageSide?: 'left' | 'right';
+  textFlow?: 'beside' | 'wrap';
   name?: string;
   size?: RulebookIllustrationSize;
 }>) {
   const Heading = grouped ? 'h4' : 'h3';
   return (
-    <div className={styles.cardGuide} data-illustration-size={size}>
+    <div
+      className={styles.cardGuide}
+      data-illustration-size={size}
+      data-image-side={imageSide}
+      data-text-flow={textFlow}
+    >
       <SourceVisual source={source} />
       <div className={styles.cardGuidance}>
         {name || (source.status === 'ready' && source.name) ? (
@@ -394,6 +403,8 @@ export function RulebookBlockRenderer({ block }: Readonly<{ block: RulebookRende
           text={block.text}
           quantity={block.quantity}
           name={block.name}
+          imageSide={block.imageSide}
+          textFlow={block.textFlow}
           size={block.size}
         />
       </section>

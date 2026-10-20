@@ -14,6 +14,9 @@ import {
 } from '../../src/shared/asset-publishing/componentGeometry';
 import { resolvePublicationCapture } from '../../src/shared/asset-publishing/publicationTargets';
 import { INITIAL_CARDBACK_PRESETS } from '../../src/shared/assets/cardbackPresets';
+import discoverySpiceCards from '../../src/shared/assets/fixtures/discoverySpiceCards.json';
+import { discoveryTokenFronts, discoveryOutcomeFronts } from '../../src/shared/assets/fixtures/discoveryTokens';
+import karamaReplacement from '../../src/shared/assets/fixtures/karamaReplacement.json';
 import { publishingCustomCard } from '../../src/shared/assets/fixtures/publishingCustomCard';
 import {
   publishingCustomCardTokens,
@@ -28,7 +31,9 @@ import { GF9_LEADER_SKILLS } from '../../src/shared/assets/gf9LeaderSkills';
 import { GF9_NEXUS_CARDS } from '../../src/shared/assets/gf9Nexus';
 import { GF9_STRONGHOLD_CARDS } from '../../src/shared/assets/gf9StrongholdDeck';
 import { EXAMPLE_HOMEWORLD_CARD } from '../../src/shared/assets/homeworldTemplate';
+import { TreacheryAsset, TokenFace } from '../../src/shared/assets/schema';
 import { STANDARD_STORM_CARDS, STANDARD_STORM_CARDBACK } from '../../src/shared/assets/standardStormDeck';
+import { TREACHERY_BACKGROUNDS } from '../../src/shared/assets/treacheryStyles';
 import { arrakisBoard } from '../../src/shared/boards/geometry';
 import { assetPublishingFaction } from '../../src/shared/factions/fixtures/assetPublishingFaction';
 import { resolveAsset } from '../../src/shared/media/resolveAsset';
@@ -638,12 +643,28 @@ async function checkPublisherImageCapture(
         geometry.width === capture.widthPx && geometry.height === capture.heightPx,
         `${label} geometry differs from its image`
       );
-      const expectedParts =
-        assetType === 'card-treachery'
-          ? ['decals', 'head', 'icon', 'name', 'type', 'body']
-          : assetType === 'token-enhance'
-            ? ['decals', 'body', 'ring']
-            : ['symbol', 'ring', 'top-text', 'bottom-text'];
+      let expectedParts: string[];
+      if (assetType === 'card-treachery') {
+        const card = TreacheryAsset.parse((snapshot.payload as { card: unknown }).card);
+        expectedParts = [
+          ...(card.bodyLayout !== 'text-only' && card.decals.length ? ['decals'] : []),
+          'head',
+          'icon',
+          'name',
+          'type',
+          ...(card.text.trim() ? ['body'] : []),
+        ];
+      } else if (assetType === 'token-enhance') {
+        expectedParts = ['decals', 'body', 'ring'];
+      } else {
+        const face = TokenFace.parse((snapshot.payload as { face: unknown }).face);
+        expectedParts = [
+          'symbol',
+          ...(face.ring ? ['ring'] : []),
+          ...(face.top.trim() ? ['top-text'] : []),
+          ...(face.bottomFirst.trim() || face.bottomSecond.trim() ? ['bottom-text'] : []),
+        ];
+      }
       invariant(
         JSON.stringify(geometry.parts.map(({ key }) => key)) === JSON.stringify(expectedParts),
         `${label} named geometry is incomplete`
@@ -838,6 +859,106 @@ try {
     await mkdir(process.env.SPICE_PROOF_DIRECTORY, { recursive: true });
     await Bun.write(path.join(process.env.SPICE_PROOF_DIRECTORY, 'classic.png'), classicSpice);
     await Bun.write(path.join(process.env.SPICE_PROOF_DIRECTORY, 'linked.png'), linkedSpice);
+  }
+  const componentProof = process.env.GF9_COMPONENT_PROOF_DIRECTORY;
+  if (componentProof) {
+    await mkdir(componentProof, { recursive: true });
+  }
+  for (const card of discoverySpiceCards) {
+    const proof = await checkPublisherImageCapture(
+      browser,
+      'card-spice',
+      envelope('card-spice', {
+        assetId: 'native-discovery-' + card.name,
+        slug: 'native-discovery',
+        card,
+        board: arrakisBoard(),
+        tokens: discoveryTokenFronts,
+      }),
+      'native Discovery ' + card.name,
+      undefined,
+      async (page) => {
+        invariant(
+          (await page.locator('[data-spice-type-token]').count()) === 1,
+          'Discovery must draw its fixed type token'
+        );
+        invariant((await page.locator('[data-token-instance]').count()) === 2, 'Discovery must draw both map markers');
+        invariant((await page.locator('strong').count()) === 2, 'Discovery instructions must retain both bold spans');
+        const boxes = await page.evaluate(() => {
+          const map = document.querySelector('svg[data-look="textured-burn"]')!;
+          const tint = document.querySelector('svg:has([data-tint])')!;
+          const markers = document.querySelector('[data-token-instance]')!.parentElement!;
+          return [map, tint, markers].map((e) => e.getBoundingClientRect().top);
+        });
+        invariant(
+          boxes.every((top) => top === boxes[0]),
+          'Board, tints and markers must share one aligned map box'
+        );
+      }
+    );
+    if (componentProof) {
+      await Bun.write(path.join(componentProof, card.name.toLowerCase().replaceAll(' ', '-') + '.png'), proof);
+    }
+  }
+  for (const [kind, icon] of [
+    ['main', '/vector/icon/hand.svg'],
+    ['cache', '/vector/logo/richese.svg'],
+  ]) {
+    const proof = await checkPublisherImageCapture(
+      browser,
+      'card-treachery',
+      envelope('card-treachery', {
+        assetId: 'karama-' + kind,
+        slug: 'karama-' + kind,
+        card: {
+          ...publishingTreacheryCard,
+          ...karamaReplacement,
+          decals: [],
+          head: TREACHERY_BACKGROUNDS.special,
+          icon: [TREACHERY_BACKGROUNDS.stripedSpecial, icon],
+        },
+      }),
+      'text-only Karama ' + kind,
+      undefined,
+      async (page) => {
+        const body = page.locator('[data-component-part="body"]');
+        invariant(
+          await body.evaluate((e) => e.scrollHeight <= e.clientHeight),
+          'Karama must preserve its complete body'
+        );
+        invariant(
+          (await body.textContent())?.includes('Cannot be used to stop a Special Victory Condition'),
+          'Karama must retain its final clause'
+        );
+      }
+    );
+    if (componentProof) {
+      await Bun.write(path.join(componentProof, 'karama-' + kind + '.png'), proof);
+    }
+  }
+  for (const token of [...Object.values(discoveryTokenFronts).slice(0, 2), ...discoveryOutcomeFronts]) {
+    const proof = await checkPublisherImageCapture(
+      browser,
+      'token-disc',
+      envelope('token-disc', {
+        assetId: 'discovery-token',
+        slug: 'discovery-token',
+        face: token.face,
+      }),
+      'styled Discovery ' + token.name,
+      undefined,
+      async (page) => {
+        if (token.face.symbolShadow === false) {
+          invariant(
+            (await page.locator('[data-component-part="symbol"][filter]').count()) === 0,
+            'A shadowless symbol must not receive a glow pass'
+          );
+        }
+      }
+    );
+    if (componentProof) {
+      await Bun.write(path.join(componentProof, token.name.toLowerCase().replaceAll(' ', '-') + '.png'), proof);
+    }
   }
   await checkPublisherImageCapture(browser, 'deck', deckSnapshot, 'deck cardback');
   await checkPublisherImageCapture(

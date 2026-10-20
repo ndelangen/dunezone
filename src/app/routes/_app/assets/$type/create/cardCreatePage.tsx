@@ -6,6 +6,7 @@ import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
+import { useAuthoringAccountKey } from '@db/authoring';
 import { useSessionViewer } from '@db/profiles';
 import { useCreateAsset } from '@app/db/assets';
 import { assetLoad } from '@app/pickers/assetLoadSource';
@@ -85,6 +86,7 @@ export function CardCreateFrame<Draft extends { name: string }>({
   saveError: Error | null;
   children: ReactNode;
 }) {
+  const authoringAccountKey = useAuthoringAccountKey();
   const navigate = useNavigate();
   const viewer = useSessionViewer();
 
@@ -110,6 +112,7 @@ export function CardCreateFrame<Draft extends { name: string }>({
       {headerSlot}
       <PageLayout.Toolbar>
         <AuthoringToolbar
+          scopeKey={authoringAccountKey}
           load={assetLoad({
             noun: 'card',
             type,

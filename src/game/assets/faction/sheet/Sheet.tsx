@@ -133,7 +133,7 @@ export function FactionSheetPage2(props: SheetProps) {
                 <div className={styles.troops}>
                   {props.troops.map((troop) => (
                     <div key={`${troop.image}-${troop.name}`} className={styles.troop}>
-                      <div>
+                      <div className={styles.troopArtwork}>
                         <TroopToken
                           background={props.background}
                           image={troop.image}
@@ -158,7 +158,7 @@ export function FactionSheetPage2(props: SheetProps) {
                         <>
                           <img className={styles.icon} src="/vector/icon/flip.svg" alt="Flip" />
                           <div>to:</div>
-                          <div>
+                          <div className={styles.troopArtwork}>
                             <TroopToken
                               background={props.background}
                               image={troop.back.image}
