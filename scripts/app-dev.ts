@@ -28,6 +28,7 @@ import {
 } from './local-dev-persistence';
 import type { PersistentManifest, PersistentSecrets } from './local-dev-persistence';
 import { buildLocalPublisher, startLocalPublisher } from './local-dev-publisher';
+import { startPersistentPublicationScheduler } from './local-dev-scheduler';
 import { discardDownloadedSnapshot, githubCli, resolveLocalSnapshot } from './local-snapshot';
 import type { LocalSnapshot } from './local-snapshot';
 import {
@@ -508,45 +509,6 @@ async function waitForLocalPublisher(manifest: PersistentManifest, exited: Promi
     ]);
   }
   throw new Error('The local publisher did not become ready');
-}
-
-function startPersistentPublicationScheduler(manifest: PersistentManifest) {
-  const abort = new AbortController();
-  let timer: ReturnType<typeof setTimeout>;
-  let refuse!: (error: Error) => void;
-  const failure = new Promise<never>((_resolve, reject) => {
-    refuse = reject;
-  });
-  const schedule = async () => {
-    try {
-      assertPersistentDiskBudget(manifest.stateDirectory);
-    } catch (error) {
-      refuse(error instanceof Error ? error : new Error(String(error)));
-      return;
-    }
-    try {
-      await fetch(`http://127.0.0.1:${manifest.publisherPort}/__scheduled`, {
-        signal: AbortSignal.any([abort.signal, AbortSignal.timeout(260_000)]),
-      });
-    } catch (error) {
-      console.error('Local publisher cycle failed:', error instanceof Error ? error.message : error);
-    }
-    if (!abort.signal.aborted) {
-      timer = setTimeout(() => {
-        void schedule();
-      }, 5000);
-    }
-  };
-  timer = setTimeout(() => {
-    void schedule();
-  }, 5000);
-  return {
-    failure,
-    stop() {
-      abort.abort();
-      clearTimeout(timer);
-    },
-  };
 }
 
 async function provisionPersistentReviewers(
