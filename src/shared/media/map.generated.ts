@@ -599,6 +599,8 @@ export const MEDIA_MAP: Readonly<Record<string, MediaMapEntry>> = {
   '/image/leader/custom/wym.png': ['65b81e15b7b6b6eb588c', '#c8b878'],
   '/image/leader/custom/ylim.png': ['b86de2a7f1694c0f3ad6', '#c8b878'],
   '/image/leader/custom/yvonne.png': ['c5ef332d6262ab3e8e3e', '#c8b878'],
+  '/image/leader/gf9/count-ilban-richese.png': ['ec49d29ea1fc3b1cb768', '#d8c898'],
+  '/image/leader/gf9/ur-director-malina-aru.png': ['83e3b0e3a9a20fe23df1', '#d8c898'],
   '/image/leader/hivers/hiver-amber-pendant.png': ['22a36c5ae022ede61b1b', '#c8b878'],
   '/image/leader/hivers/hiver-black-ruff.png': ['fba2bb050bde8ffa60cc', '#c8b878'],
   '/image/leader/hivers/hiver-fur-mantle.png': ['0434bc09b4acc261eb93', '#c8b878'],
@@ -943,6 +945,7 @@ export const MEDIA_MAP: Readonly<Record<string, MediaMapEntry>> = {
   '/image/texture/080.jpg': ['3e191cb33b94605cb8bd', '#f8f8f8'],
   '/image/texture/081.jpg': ['a2ce280b7acc39f54d70', '#080808'],
   '/image/texture/082.jpg': ['4e47f3e5fc4284ed21ac', '#080808'],
+  '/image/texture/hiereg-discovery.png': ['17418d80b07639ef6c52', '#c8c8c8'],
   '/web/blog/drawing-dune-tokens-and-cards/atreides-leaders.jpg': ['ebb942756691887e5cc0', '#181808'],
   '/web/blog/drawing-dune-tokens-and-cards/exploded-layers.jpg': ['847bcdfd830a4aaa41f6', '#d8c8a8'],
   '/web/blog/drawing-dune-tokens-and-cards/thufir-token-photo.jpg': ['f8cb0f3093fa2b95b324', '#e8c888'],
@@ -984,5 +987,6 @@ export const MEDIA_MAP: Readonly<Record<string, MediaMapEntry>> = {
   '/web/homepage/map.jpg': ['cb40fdb7c100e6e472ee', '#f8f8e8'],
   '/web/page-dark.jpg': ['61f252d1947657aea7f3', '#081828'],
   '/web/page.jpg': ['31673a60687fac505f7a', '#f8e8d8'],
+  '/web/rulesets/gf9-logo.png': ['ca0d8a68fbf167ab4385', '#183848'],
   '/web/tablet1.jpg': ['8636b17960e8ad9fc297', '#e8d8b8'],
 };
