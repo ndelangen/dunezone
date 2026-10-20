@@ -31,7 +31,7 @@ const instanceSchema = z.object({
 const manifestSchema = z.object({
   version: z.literal(1),
   stateDirectory: z.string(),
-  status: z.enum(['initializing', 'provisioned', 'ready']),
+  status: z.enum(['initializing', 'imported', 'configured', 'seeded', 'provisioned', 'ready']),
   mapUrl: z.literal('https://github.com/ndelangen/dunezone/issues/2357'),
   createdAt: z.string(),
   sourceCommit: z.string(),

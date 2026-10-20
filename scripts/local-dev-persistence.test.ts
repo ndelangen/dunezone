@@ -38,6 +38,7 @@ describe('persistent local review', () => {
     });
     for (const args of [
       ['--local', '--persist-dir=/tmp/gf9'],
+      ['--local', '--data=snapshot', '--persist-dir='],
       ['--local', '--data=snapshot', '--persist-dir=relative'],
       ['--local', '--reset'],
       ['--persist-dir=/tmp/gf9'],

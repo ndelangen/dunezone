@@ -87,7 +87,7 @@ function parseLocalData(args: string[]): LocalData {
   }
   const { data, 'snapshot-file': file } = values;
   if (
-    (values['persist-dir'] && (data !== 'snapshot' || !path.isAbsolute(values['persist-dir']))) ||
+    (values['persist-dir'] !== undefined && (data !== 'snapshot' || !path.isAbsolute(values['persist-dir']))) ||
     (values.reset && !values['persist-dir'])
   ) {
     throw unknownArguments(['--local', ...args]);
@@ -439,6 +439,9 @@ async function runPersistentDevelopment(requested: LocalData, directory: string,
       );
     }
     const fresh = manifest === null;
+    if (!fresh && requested.file !== null) {
+      throw new Error('--snapshot-file only applies to first use or explicit --reset. Resume keeps authored data.');
+    }
     if (manifest && manifest.status === 'initializing') {
       throw new Error(
         'The first bootstrap was interrupted. Inspect its manifest, then use explicit --reset to rebuild. No snapshot was reimported.'
@@ -517,14 +520,22 @@ async function runPersistentDevelopment(requested: LocalData, directory: string,
       } finally {
         discardDownloadedSnapshot(snapshot);
       }
+      manifest.status = 'imported';
+      writePrivateJson(path.join(lock.stateDirectory, 'manifest.json'), manifest);
+    }
+    if (manifest.status === 'imported') {
       configureLocalAuth(deployment, localEnv, { siteUrl: instance.appUrl, artifactsDirectory: lock.stateDirectory });
+      manifest.status = 'configured';
+      writePrivateJson(path.join(lock.stateDirectory, 'manifest.json'), manifest);
     }
     pushCode(deployment, localEnv);
-    if (fresh) {
+    if (manifest.status === 'configured') {
       finishSnapshotData(deployment, localEnv);
+      manifest.status = 'seeded';
+      writePrivateJson(path.join(lock.stateDirectory, 'manifest.json'), manifest);
     }
-    runMigrationGuards(deployment, localEnv);
-    if (fresh) {
+    runMigrationGuards(deployment, localEnv, 900_000);
+    if (manifest.status === 'seeded') {
       manifest.status = 'provisioned';
       writePrivateJson(path.join(lock.stateDirectory, 'manifest.json'), manifest);
     }

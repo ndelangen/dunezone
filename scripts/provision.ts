@@ -351,14 +351,18 @@ export function configureLocalAuth(
   writeFileSync(privateKeyPath, privateKeyValue, { mode: 0o600 });
   writeFileSync(jwksPath, jwksValue, { mode: 0o600 });
 
+  const privateKeyBase64Path = path.join(options.artifactsDirectory, 'jwt-private-key.b64');
+  const jwksBase64Path = path.join(options.artifactsDirectory, 'jwks.b64');
+  writeFileSync(privateKeyBase64Path, Buffer.from(privateKeyValue).toString('base64'), { mode: 0o600 });
+  writeFileSync(jwksBase64Path, Buffer.from(jwksValue).toString('base64'), { mode: 0o600 });
   const settings: Array<[string, ...string[]]> = [
     ['SITE_URL', options.siteUrl],
     ['E2E_LOCAL_AUTH', 'true'],
     ['IS_TEST', 'true'],
     ['JWT_PRIVATE_KEY', '--from-file', privateKeyPath],
     ['JWKS', '--from-file', jwksPath],
-    ['JWT_PRIVATE_KEY_B64', Buffer.from(privateKeyValue).toString('base64')],
-    ['JWKS_B64', Buffer.from(jwksValue).toString('base64')],
+    ['JWT_PRIVATE_KEY_B64', '--from-file', privateKeyBase64Path],
+    ['JWKS_B64', '--from-file', jwksBase64Path],
   ];
   for (const [key, ...value] of settings) {
     targetConvex(deployment, ['env', 'set', key, ...value], env);
@@ -435,10 +439,10 @@ export function rebuildFromSnapshot(
  * Starts the required migrations on the target and waits for them.
  * A deployment loaded from fixtures or the snapshot has no migration state, so every required migration runs.
  */
-export function runMigrationGuards(deployment: TargetDeployment, env: NodeJS.ProcessEnv) {
+export function runMigrationGuards(deployment: TargetDeployment, env: NodeJS.ProcessEnv, localTimeoutMs = 300_000) {
   const [guardEnv, timeoutMs] =
     deployment.kind === 'self-hosted'
-      ? [selfHostedEnvironment(env, deployment), 300_000]
+      ? [selfHostedEnvironment(env, deployment), localTimeoutMs]
       : [cloudDevEnvironment(env, deployment), 600_000];
   const result = spawnSync(
     process.execPath,
