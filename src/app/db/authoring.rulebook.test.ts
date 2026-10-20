@@ -1,12 +1,13 @@
 // @vitest-environment edge-runtime
-import { describe, expect, test } from 'vite-plus/test';
+import { describe, expect, test, vi } from 'vite-plus/test';
 
-import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
-import { RULEBOOK_BOARD_DEFINITIONS } from '../src/shared/rulebooks/boardDefinitions';
-import { RULEBOOK_CATALOGUE_VERSION, rulebookContentsV1Schema } from '../src/shared/rulebooks/contents';
-import type { RulebookContentsV1 } from '../src/shared/rulebooks/contents';
-import { api } from './_generated/api';
-import { rulebookFixture } from './rulebooks.test.fixture';
+import { api } from '../../../convex/_generated/api';
+import { rulebookFixture } from '../../../convex/rulebooks.test.fixture';
+import { assetPublishingFaction } from '../../shared/factions/fixtures/assetPublishingFaction';
+import { RULEBOOK_BOARD_DEFINITIONS } from '../../shared/rulebooks/boardDefinitions';
+import { RULEBOOK_CATALOGUE_VERSION, rulebookContentsV1Schema } from '../../shared/rulebooks/contents';
+import type { RulebookContentsV1 } from '../../shared/rulebooks/contents';
+import { prepareRawRulebook } from './authoring';
 
 const absentTroop = '99999999-9999-4999-8999-999999999999';
 const troopId = assetPublishingFaction.troops[0].troopId!;
@@ -75,12 +76,22 @@ async function fixture() {
     const bundleId = await ctx.db.insert('assets', { ...common, type: 'bundle', slug: 'bundle', data: {} });
     return { factionId, otherFactionId, deckId, tokenId, bundleId };
   });
-  const check = (contents: RulebookContentsV1, size = 'a4') =>
-    f.owner.query(api.authoringValidation.raw, {
-      kind: 'rulebook',
-      targetId: created.rulebook._id,
-      text: JSON.stringify({ settings: { size, design: 'illustrated' }, contents }),
+  reads.query.mockImplementation((fn, args) => f.owner.query(fn, args));
+  const locator = { rulesetSlug: 'rulebook-test-rules', rulebookSlug: created.rulebook.slug };
+  const check = async (contents: RulebookContentsV1, size = 'a4') => {
+    const page = await f.owner.query(api.rulebooks.editorPage, {
+      ruleset_slug: locator.rulesetSlug,
+      rulebook_slug: locator.rulebookSlug,
     });
+    if (page?.kind !== 'editable') {
+      throw new Error('Expected editable fixture');
+    }
+    await prepareRawRulebook(JSON.stringify({ settings: { size, design: 'illustrated' }, contents }), {
+      ...locator,
+      current: page.draft,
+    });
+    return null;
+  };
   const withBlock = (value: unknown) => {
     const contents = structuredClone(created.draft.contents);
     contents.pagesById.RULE.blocksById = { TEST: value as never };
@@ -94,10 +105,15 @@ describe('raw Rulebook destination compatibility', () => {
   test('requires the real editable destination and leaves its saved pair unchanged', async () => {
     const f = await fixture();
     const text = JSON.stringify({ settings: f.created.draft.settings, contents: f.created.draft.contents });
-    await expect(f.owner.query(api.authoringValidation.raw, { kind: 'rulebook', text })).rejects.toThrow('destination');
+    const current = f.created.draft;
     await expect(
-      f.outsider.query(api.authoringValidation.raw, { kind: 'rulebook', targetId: f.created.rulebook._id, text })
+      prepareRawRulebook(text, { rulesetSlug: 'rulebook-test-rules', rulebookSlug: 'missing', current })
+    ).rejects.toThrow('destination');
+    reads.query.mockImplementation((fn, args) => f.outsider.query(fn, args));
+    await expect(
+      prepareRawRulebook(text, { rulesetSlug: 'rulebook-test-rules', rulebookSlug: f.created.rulebook.slug, current })
     ).rejects.toThrow('Not authorized');
+    reads.query.mockImplementation((fn, args) => f.owner.query(fn, args));
     await expect(f.check(f.created.draft.contents)).resolves.toBeNull();
     await f.t.run(async (ctx) => {
       expect(await ctx.db.get('rulebook_drafts', f.created.draft._id)).toEqual(
@@ -314,6 +330,9 @@ describe('raw Rulebook typed reference slots', () => {
       },
     };
     await expect(f.check(f.withBlock(block))).resolves.toBeNull();
+    await expect(
+      f.check(f.withBlock({ ...block, source: { kind: 'faction', factionId: '__proto__' } }))
+    ).rejects.toThrow(/TEST.source/);
     block.source.factionId = f.rows.otherFactionId;
     await expect(f.check(f.withBlock(block))).rejects.toThrow(/TEST.source.memberId/);
     block.source.factionId = f.rows.factionId;
@@ -327,3 +346,7 @@ describe('raw Rulebook typed reference slots', () => {
     await expect(f.check(f.withBlock(block))).rejects.toThrow(/source.factionId/);
   });
 });
+
+const reads = vi.hoisted(() => ({ query: vi.fn() }));
+vi.mock('@db/core', () => ({ db: reads }));
+vi.mock('@db/profiles', () => ({ useSessionViewer: vi.fn() }));

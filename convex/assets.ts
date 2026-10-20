@@ -35,7 +35,7 @@ import { HistoricalBoardDefinition } from '../src/shared/boards/schema';
 import { internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
 import { publicationStatusFor } from './assetPublishingStatus';
-import { internalMutation, mutation, publicQuery } from './functions';
+import { internalMutation, mutation, publicQuery, viewerQuery } from './functions';
 import {
   assertReferenceableDeckCardback,
   assertReferenceableTokenBack,
@@ -1412,7 +1412,8 @@ export const spiceCardBoard = publicQuery({
 
 /** The create page's live token resolution, held only while its draft embeds tokens. */
 export const customCardTokens = publicQuery({
-  args: { ids: v.array(v.id('assets')) },
+  /* Like Spice drafts, pasted layers may carry foreign IDs; the resolver reports them as missing. */
+  args: { ids: v.array(v.string()) },
   returns: zodToConvex(CustomCardTokenResolution),
   handler: async (ctx, args) => await resolveCustomCardTokens(ctx, args.ids),
 });
@@ -2046,5 +2047,37 @@ export const seedGF9LeaderSkills = internalMutation({
       card_ids: cardIds,
     });
     return { deckId, cardIds, created: cardIds.length + 1 };
+  },
+});
+
+async function linkedBackRow(ctx: QueryCtx, args: { type: string; targetId?: string; referenceId: string }) {
+  const ownId = args.targetId ? ctx.db.normalizeId('assets', args.targetId) : null;
+  const referenceId = ctx.db.normalizeId('assets', args.referenceId);
+  if ((args.targetId && !ownId) || !referenceId) {
+    throw new ConvexError('Choose an available back reference.');
+  }
+  const target = { _id: ownId, type: args.type };
+  if (TOKEN_ASSET_TYPES.has(args.type)) {
+    return await assertReferenceableTokenBack(ctx, target, referenceId);
+  }
+  if (args.type === 'deck') {
+    return await assertReferenceableDeckCardback(ctx, target, referenceId);
+  }
+  throw new ConvexError('This Asset type has no linked back.');
+}
+
+/** Display data for a validated linked back, read lazily before explicit Load. */
+export const linkedBack = viewerQuery({
+  args: { type: v.string(), targetId: v.optional(v.string()), referenceId: v.string() },
+  returns: v.object({
+    id: v.id('assets'),
+    name: v.string(),
+    data: v.any(),
+    previewHref: v.union(v.string(), v.null()),
+  }),
+  handler: async (ctx, args) => {
+    await requireAuthUserId(ctx);
+    const row = await linkedBackRow(ctx, args);
+    return { id: row._id, name: assetDisplayName(row), data: row.data, previewHref: ownPublishedFace(row) };
   },
 });

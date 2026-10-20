@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { isPublicationAssetType, resolvePublicationCapture } from '../asset-publishing/publicationTargets';
 import { compareCodeUnits } from '../compareText';
 import { CanonicalFactionStoredObject, TroopArtwork } from '../factions/schema';
 import type { RulebookBattleSideValue } from './battleStep';
@@ -7,8 +8,8 @@ import { resolveRulebookBoardDefinition } from './boardDefinitions';
 import { getRulebookCoverFooter } from './contents';
 import type { RulebookContentsDraftV1 } from './contents';
 import type { RulebookBoardSceneValue } from './illustratedScenes';
-import { rulebookResolvedSourceSchema } from './sources';
-import type { RulebookSourceReference } from './sources';
+import { rulebookResolvedSourceSchema, resolveRulebookArtworkSource } from './sources';
+import type { RulebookResolvedAssetsById, RulebookSourceReference } from './sources';
 
 export const rulebookResolvedFactionSchema = z.strictObject({
   factionId: z.string(),
@@ -39,7 +40,7 @@ type RulebookReferenceUse =
   | { kind: 'troop'; path: string; factionPath: string; selection: TroopSelection };
 
 /** Typed reference slots, shared by resolution and strict raw authoring checks. */
-export function rulebookReferenceUses(contents: RulebookContentsDraftV1): RulebookReferenceUse[] {
+function rulebookReferenceUses(contents: RulebookContentsDraftV1): RulebookReferenceUse[] {
   const uses: RulebookReferenceUse[] = [];
   const source = (value: RulebookSourceReference | undefined, path: string, assetTypes?: readonly string[]) => {
     if (value) {
@@ -189,4 +190,88 @@ export function collectRulebookReferenceIds(
     ...(troopSources.size ? { troopSources: [...troopSources.values()] } : {}),
     ...(markupBoardIds.size ? { markupBoardIds: [...markupBoardIds].sort(compareCodeUnits) } : {}),
   };
+}
+
+/** Checks selected identities and faces against the editor's existing reference read. */
+export function assertRulebookReferences(
+  contents: RulebookContentsDraftV1,
+  assetsById: RulebookResolvedAssetsById,
+  factionsById: RulebookResolvedFactionsById
+) {
+  const faction = (id: string, path: string) => {
+    const value = Object.hasOwn(factionsById, id) ? factionsById[id] : undefined;
+    if (!value) {
+      throw new Error(`${path}: Choose an available faction.`);
+    }
+    return value;
+  };
+  const troop = (selection: TroopSelection, path: string, factionPath: string) => {
+    if (!selection.factionId) {
+      if (selection.troopId) {
+        throw new Error(`${factionPath}: Choose the faction this troop belongs to.`);
+      }
+      return;
+    }
+    const data = faction(selection.factionId, factionPath);
+    if (!selection.troopId) {
+      return;
+    }
+    const selected = data.troops?.find(({ troopId }) => troopId === selection.troopId);
+    if (!selected) {
+      throw new Error(`${path}.troopId: This faction troop is unavailable.`);
+    }
+    if (selection.face === 'back' && !selected.back) {
+      throw new Error(`${path}.face: This troop has no back face.`);
+    }
+  };
+  const asset = (id: string, path: string, types?: readonly string[]) => {
+    const value = Object.hasOwn(assetsById, id) ? assetsById[id] : undefined;
+    const image =
+      value && isPublicationAssetType(value.type) && resolvePublicationCapture(value.type).output === 'image';
+    if (!value || (types ? !types.includes(value.type) : !image)) {
+      throw new Error(`${path}: Choose an available ${types?.join(' or ') ?? 'image asset'}.`);
+    }
+  };
+  for (const use of rulebookReferenceUses(contents)) {
+    if (use.kind === 'troop') {
+      troop(use.selection, use.path, use.factionPath);
+      continue;
+    }
+    const { source, path } = use;
+    switch (source.kind) {
+      case 'asset':
+        asset(source.assetId, path, use.assetTypes);
+        break;
+      case 'board':
+        if (!resolveRulebookBoardDefinition(source.boardId)) {
+          asset(source.boardId, path, ['board']);
+        }
+        break;
+      case 'stock':
+        if (resolveRulebookArtworkSource(source)?.status !== 'ready') {
+          throw new Error(`${path}.artworkId: Maintained artwork is unavailable.`);
+        }
+        break;
+      case 'faction-troop':
+        troop(source, path, `${path}.factionId`);
+        break;
+      case 'faction-member': {
+        const data = faction(source.factionId, `${path}.factionId`);
+        if (
+          ![data.ruler, ...(data.leaders ?? [])].some(
+            (member) =>
+              member &&
+              member.status !== 'unselected' &&
+              member.reference.kind === 'faction-member' &&
+              member.reference.memberId === source.memberId
+          )
+        ) {
+          throw new Error(`${path}.memberId: This faction member is unavailable.`);
+        }
+        break;
+      }
+      case 'faction':
+        faction(source.factionId, path);
+    }
+  }
 }

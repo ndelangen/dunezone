@@ -1,15 +1,16 @@
 /// <reference types="vite/client" />
 /* @vitest-environment edge-runtime */
-import { expect, test } from 'vite-plus/test';
+import { expect, test, vi } from 'vite-plus/test';
 
-import { publishingSpiceCard } from '../src/shared/assets/fixtures/publishingSpiceCard';
-import { publishingTokenFace } from '../src/shared/assets/fixtures/publishingTokenFace';
-import { publishingTreacheryCard } from '../src/shared/assets/fixtures/publishingTreacheryCard';
-import { parseRawAsset, readRawAuthoringJson } from '../src/shared/authoring/raw';
-import { arrakisBoard } from '../src/shared/boards/geometry';
-import { contentImportPackageSchema } from '../src/shared/contentImports/package';
-import { api } from './_generated/api';
-import { rulebookFixture } from './rulebooks.test.fixture';
+import { api } from '../../../convex/_generated/api';
+import { rulebookFixture } from '../../../convex/rulebooks.test.fixture';
+import { publishingSpiceCard } from '../../shared/assets/fixtures/publishingSpiceCard';
+import { publishingTokenFace } from '../../shared/assets/fixtures/publishingTokenFace';
+import { publishingTreacheryCard } from '../../shared/assets/fixtures/publishingTreacheryCard';
+import { parseRawAsset, readRawAuthoringJson } from '../../shared/authoring/raw';
+import { arrakisBoard } from '../../shared/boards/geometry';
+import { contentImportPackageSchema } from '../../shared/contentImports/package';
+import { prepareRawAsset } from './authoring';
 
 const target = { rulesetSlug: 'rulebook-test-rules', groupSlug: 'rulebook-authors' };
 const styledFace = {
@@ -20,8 +21,9 @@ const styledFace = {
   symbolShadow: false,
 };
 
-test('native component fields survive read-only raw preflight, normal Save and authenticated export', async () => {
+test('native component fields survive local preparation, normal Save and authenticated export', async () => {
   const { t, owner, outsider, ids } = await rulebookFixture();
+  reads.query.mockImplementation((fn, args) => owner.query(fn, args));
   const token = await owner.mutation(api.assets.create, {
     type: 'token-disc',
     group_id: ids.groupId,
@@ -71,14 +73,18 @@ test('native component fields survive read-only raw preflight, normal Save and a
     }));
     const text = JSON.stringify(entry.data);
     expect(parseRawAsset(entry.type, readRawAuthoringJson(text)).data).toEqual(entry.data);
-    await expect(
-      owner.query(api.authoringValidation.raw, {
-        kind: 'asset',
-        type: entry.type,
-        targetId: created.id,
-        text,
-      })
-    ).resolves.toBeNull();
+    reads.query.mockClear();
+    const loaded = await prepareRawAsset({ type: entry.type, targetId: created.id, text });
+    expect(loaded.data).toEqual(entry.data);
+    if (entry.type === 'card-spice') {
+      expect(reads.query).toHaveBeenCalledExactlyOnceWith(
+        api.assets.spiceCardBoard,
+        { boardId: board.id, tokenIds: [token.id] },
+        { hold: false }
+      );
+    } else {
+      expect(reads.query).not.toHaveBeenCalled();
+    }
     expect(
       await t.run(async (ctx) => ({
         row: await ctx.db.get(created.id),
@@ -90,7 +96,7 @@ test('native component fields survive read-only raw preflight, normal Save and a
     await expect(outsider.mutation(api.assets.update, { id: created.id, data: entry.data })).rejects.toThrow(
       'Not authorized'
     );
-    await owner.mutation(api.assets.update, { id: created.id, data: entry.data });
+    await owner.mutation(api.assets.update, { id: created.id, data: loaded.data });
     const exported = await owner.mutation(api.contentImports.exportRecord, {
       target,
       kind: 'asset',
@@ -119,24 +125,37 @@ test('native component fields survive read-only raw preflight, normal Save and a
 
 test('raw native Spice rejects a wrong-type fixed token or board before Load without changing its target', async () => {
   const { t, owner } = await rulebookFixture();
+  reads.query.mockImplementation((fn, args) => owner.query(fn, args));
   const card = await owner.mutation(api.assets.create, { type: 'card-spice', data: publishingSpiceCard });
   const board = await owner.mutation(api.assets.create, {
     type: 'board',
     data: { name: 'Native board', about: '', board: arrakisBoard() },
   });
-  const before = await t.run((ctx) => ctx.db.get(card.id));
-  for (const link of [
-    { asset_id: board.id, typeToken: { asset_id: card.id }, tokens: [], tints: [] },
-    { asset_id: card.id, tokens: [], tints: [] },
-  ]) {
+  const state = () =>
+    t.run(async (ctx) => ({
+      row: await ctx.db.get(card.id),
+      jobs: await ctx.db.query('publication_jobs').collect(),
+      ingest: await ctx.db.query('user_image_ingest_tokens').collect(),
+      relations: await ctx.db.query('asset_relations').collect(),
+    }));
+  const before = await state();
+  for (const [link, path] of [
+    [{ asset_id: board.id, typeToken: { asset_id: card.id }, tokens: [], tints: [] }, '$.board.tokens'],
+    [{ asset_id: board.id, typeToken: { asset_id: 'foreign-token-id' }, tokens: [], tints: [] }, '$.board.tokens'],
+    [{ asset_id: board.id, typeToken: { asset_id: '__proto__' }, tokens: [], tints: [] }, '$.board.tokens'],
+    [{ asset_id: card.id, tokens: [], tints: [] }, '$.board.asset_id'],
+  ] as const) {
     await expect(
-      owner.query(api.authoringValidation.raw, {
-        kind: 'asset',
+      prepareRawAsset({
         type: 'card-spice',
         targetId: card.id,
         text: JSON.stringify({ ...publishingSpiceCard, board: link }),
       })
-    ).rejects.toThrow();
-    expect(await t.run((ctx) => ctx.db.get(card.id))).toEqual(before);
+    ).rejects.toThrow(path);
+    expect(await state()).toEqual(before);
   }
 });
+
+const reads = vi.hoisted(() => ({ query: vi.fn() }));
+vi.mock('@db/core', () => ({ db: reads }));
+vi.mock('@db/profiles', () => ({ useSessionViewer: vi.fn() }));

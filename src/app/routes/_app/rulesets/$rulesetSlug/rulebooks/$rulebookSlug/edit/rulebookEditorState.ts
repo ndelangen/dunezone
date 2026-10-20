@@ -616,6 +616,7 @@ type RulebookEditorAction =
 
 export type RulebookEditorStateManager = {
   readonly result: RulebookEditorResult;
+  replacementIssue(contents: RulebookContentsDraftV1): string | undefined;
   dispatch(action: RulebookEditorAction): RulebookEditorResult;
 };
 
@@ -3708,6 +3709,9 @@ function unsupportedManager(unsupported: { received: unknown; message: string })
     get result() {
       return result();
     },
+    replacementIssue() {
+      return unsupported.message;
+    },
     dispatch() {
       return result();
     },
@@ -3805,6 +3809,9 @@ export function createRulebookEditorStateManager(saved: SavedRulebookRevision): 
   return {
     get result() {
       return unsupported ? unsupportedManager(unsupported).result : cachedResult;
+    },
+    replacementIssue(contents) {
+      return unsupported?.message ?? immutableLayoutError(core.knownPageLayouts, contents);
     },
     dispatch(action) {
       if (unsupported) {

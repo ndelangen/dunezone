@@ -27,7 +27,6 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { Alert, Badge, Box, Button, Group, Menu, Select, Stack, Text, TextInput } from '@mantine/core';
-import { rawRulebookSchema, readRawAuthoringJson } from '@shared/authoring/raw';
 import {
   canonicalRulebookCoverControlValues,
   createRulebookLocalId,
@@ -122,7 +121,7 @@ import {
 } from 'react';
 import type { ComponentPropsWithoutRef, CSSProperties, KeyboardEvent, ReactNode } from 'react';
 
-import { useAuthoringAccountKey, validateRawAuthoring } from '@db/authoring';
+import { useAuthoringAccountKey, prepareRawRulebook } from '@db/authoring';
 import { mutationErrorMessage } from '@db/core/mutationError';
 import {
   loadRulebookEditor,
@@ -3002,8 +3001,15 @@ function RulebookEditorSession({
           scopeKey={`${data.rulebook._id}:${authoringAccountKey}`}
           raw={{
             validate: async (text) => {
-              const draft = rawRulebookSchema.parse(readRawAuthoringJson(text));
-              await validateRawAuthoring({ kind: 'rulebook', targetId: data.rulebook._id, text });
+              const draft = await prepareRawRulebook(text, {
+                rulesetSlug,
+                rulebookSlug: data.rulebook.slug,
+                current: { contents: result.draft, settings: result.settings },
+              });
+              const issue = manager.replacementIssue(draft.contents);
+              if (issue) {
+                throw new Error(issue);
+              }
               return { name: data.rulebook.name, draft };
             },
           }}
