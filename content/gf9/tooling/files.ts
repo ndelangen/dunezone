@@ -28,6 +28,18 @@ export async function readJson<T>(file: string, schema: z.ZodType<T>): Promise<T
 export async function fileHash(file: string) {
   return sha256(await readFile(file));
 }
+export const RASTER_LOCK_INPUT = '../../media/raster.lock.json';
+/** The raster lock is the only project input outside the GF9 content directory. */
+export async function projectInputFile(root: string, relative: string) {
+  if (relative !== RASTER_LOCK_INPUT) {
+    return inside(root, relative);
+  }
+  const repository = path.resolve(root, '../..');
+  if (path.relative(repository, root) !== path.join('content', 'gf9')) {
+    throw new Error('Use the repository content/gf9 directory to read its raster lock.');
+  }
+  return inside(repository, 'media/raster.lock.json');
+}
 export async function atomicJson(file: string, value: unknown) {
   await mkdir(path.dirname(file), { recursive: true });
   const temporary = `${file}.${crypto.randomUUID()}.tmp`;

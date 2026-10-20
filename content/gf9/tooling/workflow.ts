@@ -12,7 +12,19 @@ import type { RulebookResolvedFactionsById } from '../../../src/shared/rulebooks
 import type { RulebookResolvedAssetsById } from '../../../src/shared/rulebooks/sources';
 import { checkpointSchema, readbackSchema, reviewSchema, syncSchema } from './contracts';
 import type { BoundRecord, Checkpoint, Environment, Readback, RecordSpec, Sync } from './contracts';
-import { atomicJson, at, canonical, differences, fileHash, inside, pretty, readJson, sha256, valueHash } from './files';
+import {
+  atomicJson,
+  at,
+  canonical,
+  differences,
+  fileHash,
+  inside,
+  pretty,
+  projectInputFile,
+  readJson,
+  sha256,
+  valueHash,
+} from './files';
 import {
   loadEnvironment,
   loadProject,
@@ -567,11 +579,15 @@ export async function prepare(options: Options) {
     }
     const prefix = execFileSync('git', ['rev-parse', '--show-prefix'], { cwd: project.root, encoding: 'utf8' }).trim();
     for (const [file, hash] of Object.entries(project.fileHashes)) {
-      const committed = execFileSync('git', ['show', `${review.authoringCommit}:${prefix}${file}`], {
-        cwd: project.root,
-        maxBuffer: 32 * 1024 * 1024,
-        stdio: ['ignore', 'pipe', 'pipe'],
-      });
+      const committed = execFileSync(
+        'git',
+        ['show', `${review.authoringCommit}:${path.posix.normalize(prefix + file)}`],
+        {
+          cwd: project.root,
+          maxBuffer: 32 * 1024 * 1024,
+          stdio: ['ignore', 'pipe', 'pipe'],
+        }
+      );
       if (sha256(committed) !== hash) {
         throw new Error(`The reviewed authoring commit does not contain the current ${file}.`);
       }
@@ -927,7 +943,7 @@ export async function applyCollection(options: { root: string; plan: string; rev
     throw new Error('The collection plan changed after review.');
   }
   for (const [relative, hash] of Object.entries(plan.inputFiles)) {
-    if ((await fileHash(await inside(project.root, relative))) !== hash) {
+    if ((await fileHash(await projectInputFile(project.root, relative))) !== hash) {
       throw new Error(`Input changed after collection review: ${relative}. Generate and review a new plan.`);
     }
   }

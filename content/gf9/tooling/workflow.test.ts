@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, realpath, rm, symlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
@@ -11,13 +11,25 @@ import { assetPublishingFaction } from '../../../src/shared/factions/fixtures/as
 import { createRulebookEditorialStarterContents } from '../../../src/shared/rulebooks/fixtures';
 import { environmentSchema } from './contracts';
 import type { Binding, Environment, Readback, RecordSpec } from './contracts';
-import { atomicJson, fileHash, inside, valueHash } from './files';
+import { atomicJson, fileHash, inside, projectInputFile, RASTER_LOCK_INPUT, valueHash } from './files';
 import { assertBook, assertIdentities, loadProject, normalize, ownedIdentities } from './project';
 import { bindValue, collectValue } from './references';
 import { applyCollection, collect, inspectCheckpoint, prepare, protectedValue, unwrapExport } from './workflow';
 
 const roots: string[] = [];
 const now = new Date('2026-10-20T12:00:00.000Z');
+const provenanceFile = path.resolve(import.meta.dirname, '../artwork/provenance.json');
+const currentProvenance = JSON.parse(await readFile(provenanceFile, 'utf8'));
+const currentRasterLock = JSON.parse(
+  await readFile(path.resolve(import.meta.dirname, '../../../media/raster.lock.json'), 'utf8')
+);
+async function projectRoot(prefix: string) {
+  const repository = await realpath(await mkdtemp(path.join(os.tmpdir(), prefix)));
+  roots.push(repository);
+  await atomicJson(path.join(repository, 'media/raster.lock.json'), currentRasterLock);
+  return path.join(repository, 'content/gf9');
+}
+
 const token = (name: string) => ({
   name,
   about: 'A fixture token.',
@@ -95,8 +107,7 @@ function normalExport(saved: Readback) {
   };
 }
 async function fixture(capturedAt = now) {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'gf9-authoring-test-'));
-  roots.push(root);
+  const root = await projectRoot('gf9-authoring-test-');
   const records = ['gf9-a', 'gf9-b', 'gf9-c'].map(spec);
   const saved = new Map(
     records.map((record) => [
@@ -122,7 +133,7 @@ async function fixture(capturedAt = now) {
     maintainedCatalogue: '../artwork/provenance.json',
     records: [],
   });
-  await atomicJson(path.join(root, 'artwork/provenance.json'), { records: [] });
+  await atomicJson(path.join(root, 'artwork/provenance.json'), { ...currentProvenance, records: [] });
   const environment = environmentSchema.parse({
     version: 1,
     name: 'local',
@@ -735,8 +746,7 @@ describe('file-only GF9 authoring', () => {
     { book: 'ixian-tleilaxu', file: 'books/ixian-tleilaxu.json', accepted: false },
     { book: 'ixian-tleilaxu', file: 'books/arbitrary.json', accepted: false },
   ] as const)('loadProject enforces the canonical $book filename: $file', async ({ book, file, accepted }) => {
-    const root = await mkdtemp(path.join(os.tmpdir(), 'gf9-book-path-test-'));
-    roots.push(root);
+    const root = await projectRoot('gf9-book-path-test-');
     const record: RecordSpec = {
       key: `${book}-rules`,
       kind: 'rulebook',
@@ -797,7 +807,7 @@ describe('file-only GF9 authoring', () => {
       maintainedCatalogue: '../artwork/provenance.json',
       records: [],
     });
-    await atomicJson(path.join(root, 'artwork/provenance.json'), { records: [] });
+    await atomicJson(path.join(root, 'artwork/provenance.json'), { ...currentProvenance, records: [] });
     if (accepted) {
       const project = await loadProject(root);
       expect(project.manifest.records).toEqual([record]);
@@ -893,8 +903,8 @@ describe('production preparation gates', () => {
       records: captured,
     });
     const { execFileSync } = await import('node:child_process');
-    execFileSync('git', ['init', '-q'], { cwd: f.root });
-    execFileSync('git', ['add', 'authoring', 'artwork'], { cwd: f.root });
+    execFileSync('git', ['init', '-q'], { cwd: path.resolve(f.root, '../..') });
+    execFileSync('git', ['add', 'authoring', 'artwork', '../../media/raster.lock.json'], { cwd: f.root });
     execFileSync(
       'git',
       [
@@ -939,6 +949,41 @@ describe('production preparation gates', () => {
     const payload = JSON.parse(await readFile(path.join(f.root, 'generated/production/production/gf9-a.json'), 'utf8'));
     expect(payload.back.asset_id).toBe('production-gf9-b');
     expect(payload.about).toBe('Reviewed fixture text.');
+    const lockFile = path.resolve(f.root, RASTER_LOCK_INPUT);
+    const originalLock = await readFile(lockFile, 'utf8');
+    const originalReview = await readFile(path.join(f.root, review), 'utf8');
+    const changedLock = JSON.parse(originalLock);
+    changedLock[Object.keys(changedLock)[0]].color = '#ffffff';
+    await atomicJson(lockFile, changedLock);
+    execFileSync('git', ['add', RASTER_LOCK_INPUT], { cwd: f.root });
+    execFileSync(
+      'git',
+      ['-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid', 'commit', '-qm', 'Fixture lock change'],
+      { cwd: f.root }
+    );
+    await atomicJson(path.join(f.root, review), {
+      ...JSON.parse(originalReview),
+      authoringHash: (await loadProject(f.root)).authoringHash,
+    });
+    await expect(
+      prepare({
+        root: f.root,
+        environment: 'production',
+        checkpoint,
+        localCheckpoint,
+        review,
+        run: 'unreviewed-lock',
+        now,
+      })
+    ).rejects.toThrow('reviewed authoring commit does not contain the current ../../media/raster.lock.json');
+    await writeFile(lockFile, originalLock);
+    execFileSync('git', ['add', RASTER_LOCK_INPUT], { cwd: f.root });
+    execFileSync(
+      'git',
+      ['-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid', 'commit', '-qm', 'Restore fixture lock'],
+      { cwd: f.root }
+    );
+    await writeFile(path.join(f.root, review), originalReview);
     await atomicJson(path.join(f.root, 'authoring/assets/gf9-c.json'), {
       ...token('gf9-c'),
       about: 'Unreviewed changes.',
@@ -1515,4 +1560,160 @@ describe('captured reference compatibility before ready payloads', () => {
       }
     }
   );
+});
+
+describe('maintained media fact owners', () => {
+  async function artworkFixture() {
+    const f = await fixture();
+    const assetKey = '/image/leader/gf9/ur-director-malina-aru.png';
+    const locked = currentRasterLock[assetKey];
+    const record = {
+      key: 'ur-director-malina-aru',
+      assetKey,
+      path: `media${assetKey}`,
+      sha256: locked.sha256,
+      width: locked.width,
+      height: locked.height,
+      source:
+        'https://github.com/ndelangen/dunezone/blob/740d068f1e8db1dcd9fd4bd1e33057fbbf73ff6e/content/gf9/artwork/provenance.json',
+      sourceSha256: await fileHash(provenanceFile),
+      operation: 'Approved portrait restoration',
+      limitation: 'Saved verification is separate.',
+    };
+    await atomicJson(path.join(f.root, 'authoring/artwork.json'), {
+      version: 1,
+      maintainedCatalogue: '../artwork/provenance.json',
+      records: [record],
+    });
+    await atomicJson(path.join(f.root, 'artwork/provenance.json'), {
+      ...currentProvenance,
+      records: [currentProvenance.records.find((row: { assetKey: string }) => row.assetKey === assetKey)],
+    });
+    return { f, record };
+  }
+  test('accepts current asset-key provenance without duplicating raster facts', async () => {
+    const { f, record } = await artworkFixture();
+    const project = await loadProject(f.root);
+    expect(project.artwork.records).toEqual([record]);
+    expect(project.fileHashes['artwork/provenance.json']).toBe(
+      await fileHash(path.join(f.root, 'artwork/provenance.json'))
+    );
+    expect(project.fileHashes[RASTER_LOCK_INPUT]).toBe(await fileHash(path.resolve(f.root, RASTER_LOCK_INPUT)));
+  });
+  test.each([
+    'asset key',
+    'hash',
+    'path',
+    'width',
+    'height',
+    'missing provenance',
+    'missing lock',
+    'source reference',
+    'initial approval',
+    'portrait approval',
+    'duplicate provenance',
+  ] as const)('refuses mismatched or missing maintained %s before generating a payload', async (mismatch) => {
+    const { f, record } = await artworkFixture();
+    const provenance = JSON.parse(await readFile(path.join(f.root, 'artwork/provenance.json'), 'utf8'));
+    const lock = structuredClone(currentRasterLock);
+    if (mismatch === 'asset key') {
+      record.assetKey = '/image/leader/gf9/unknown.png';
+    }
+    if (mismatch === 'hash') {
+      record.sha256 = '0'.repeat(64);
+    }
+    if (mismatch === 'path') {
+      record.path = 'media/image/leader/gf9/wrong.png';
+    }
+    if (mismatch === 'width') {
+      record.width += 1;
+    }
+    if (mismatch === 'height') {
+      record.height += 1;
+    }
+    if (mismatch === 'missing provenance') {
+      provenance.records = [];
+    }
+    if (mismatch === 'missing lock') {
+      delete lock[record.assetKey];
+    }
+    if (mismatch === 'source reference') {
+      delete provenance.records[0].referenceCommit;
+    }
+    if (mismatch === 'initial approval') {
+      delete provenance.initialApproval;
+    }
+    if (mismatch === 'portrait approval') {
+      delete provenance.portraitRestorationApproval;
+    }
+    if (mismatch === 'duplicate provenance') {
+      provenance.records.push(provenance.records[0]);
+    }
+    await atomicJson(path.join(f.root, 'authoring/artwork.json'), {
+      version: 1,
+      maintainedCatalogue: '../artwork/provenance.json',
+      records: [record],
+    });
+    await atomicJson(path.join(f.root, 'artwork/provenance.json'), provenance);
+    await atomicJson(path.resolve(f.root, RASTER_LOCK_INPUT), lock);
+    const before = await readFile(path.join(f.root, 'authoring/assets/gf9-a.json'), 'utf8');
+    await expect(loadProject(f.root)).rejects.toThrow();
+    await expect(
+      prepare({
+        root: f.root,
+        environment: 'local',
+        checkpoint: await f.checkpoint(),
+        run: 'invalid-artwork',
+        initialBaseline: true,
+        now,
+      })
+    ).rejects.toThrow();
+    expect(await readFile(path.join(f.root, 'authoring/assets/gf9-a.json'), 'utf8')).toBe(before);
+    await expect(readFile(path.join(f.root, 'generated/local/invalid-artwork/report.json'))).rejects.toMatchObject({
+      code: 'ENOENT',
+    });
+  });
+  test.each(['provenance', 'raster lock'] as const)(
+    'a %s change updates authoring identity and invalidates reviewed collection before writes',
+    async (owner) => {
+      const { f } = await artworkFixture();
+      const before = await loadProject(f.root);
+      const checkpoint = await f.checkpoint();
+      await prepare({ root: f.root, environment: 'local', checkpoint, run: 'baseline', initialBaseline: true, now });
+      const plan = await collect({ root: f.root, environment: 'local', checkpoint, run: 'collect', now });
+      const originalSource = await readFile(path.join(f.root, 'authoring/assets/gf9-a.json'), 'utf8');
+      const originalSync = await readFile(path.join(f.root, 'environments/local-sync.json'), 'utf8');
+      const file =
+        owner === 'provenance' ? path.join(f.root, 'artwork/provenance.json') : path.resolve(f.root, RASTER_LOCK_INPUT);
+      const input = JSON.parse(await readFile(file, 'utf8'));
+      if (owner === 'provenance') {
+        input.records[0].operation += ' Updated source note.';
+      } else {
+        input[Object.keys(input)[0]].color = '#ffffff';
+      }
+      await atomicJson(file, input);
+      expect((await loadProject(f.root)).authoringHash).not.toBe(before.authoringHash);
+      await expect(applyCollection({ root: f.root, plan: plan.output, reviewedHash: plan.planHash })).rejects.toThrow(
+        'Input changed after collection review'
+      );
+      expect(await readFile(path.join(f.root, 'authoring/assets/gf9-a.json'), 'utf8')).toBe(originalSource);
+      expect(await readFile(path.join(f.root, 'environments/local-sync.json'), 'utf8')).toBe(originalSync);
+    }
+  );
+  test('the sole external metadata path keeps arbitrary paths and repository symlink escapes refused', async () => {
+    const { f } = await artworkFixture();
+    expect(await fileHash(await projectInputFile(f.root, RASTER_LOCK_INPUT))).toBe(
+      await fileHash(path.resolve(f.root, RASTER_LOCK_INPUT))
+    );
+    await expect(projectInputFile(f.root, '../../artwork.json')).rejects.toThrow('leaves');
+    await expect(projectInputFile(path.join(f.root, 'different'), RASTER_LOCK_INPUT)).rejects.toThrow(
+      'repository content/gf9'
+    );
+    const outside = await mkdtemp(path.join(os.tmpdir(), 'gf9-media-outside-'));
+    roots.push(outside);
+    await atomicJson(path.join(outside, 'raster.lock.json'), currentRasterLock);
+    await rm(path.resolve(f.root, '../../media'), { recursive: true });
+    await symlink(outside, path.resolve(f.root, '../../media'));
+    await expect(loadProject(f.root)).rejects.toThrow('Symlink leaves');
+  });
 });

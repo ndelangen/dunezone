@@ -20,7 +20,7 @@ import {
   manifestSchema,
 } from './contracts';
 import type { DataPath, Environment, RecordSpec } from './contracts';
-import { at, fileHash, inside, readJson, valueHash } from './files';
+import { at, fileHash, inside, projectInputFile, RASTER_LOCK_INPUT, readJson, valueHash } from './files';
 
 export function normalize(spec: RecordSpec, data: unknown) {
   readRawAuthoringJson(JSON.stringify(data));
@@ -155,29 +155,68 @@ export async function loadProject(directory: string, options: { inspectIdentitie
 
   const catalogue = 'artwork/provenance.json';
   fileHashes[catalogue] = await fileHash(await inside(root, catalogue));
+  const rasterLock = await projectInputFile(root, RASTER_LOCK_INPUT);
+  fileHashes[RASTER_LOCK_INPUT] = await fileHash(rasterLock);
+  const locked = await readJson(
+    rasterLock,
+    z.record(
+      z.string(),
+      z.object({
+        sha256: z.string().regex(/^[a-f0-9]{64}$/),
+        width: z.number().int().positive(),
+        height: z.number().int().positive(),
+      })
+    )
+  );
   const maintained = z
     .object({
+      initialApproval: z.string().min(1),
+      portraitRestorationApproval: z.string().min(1),
       records: z.array(
-        z.object({
-          key: z.string(),
-          path: z.string(),
-          sha256: z.string(),
-          assetKey: z.string(),
-          presetId: z.string().optional(),
-        })
+        z
+          .object({
+            assetKey: z.string().min(1),
+            operation: z.string().min(1),
+            referenceCommit: z
+              .string()
+              .regex(/^[a-f0-9]{40}$/)
+              .optional(),
+            provenanceCommit: z
+              .string()
+              .regex(/^[a-f0-9]{40}$/)
+              .optional(),
+            reviewSourceUrl: z.url().optional(),
+          })
+          .refine(
+            (record) => Boolean(record.referenceCommit || record.provenanceCommit || record.reviewSourceUrl),
+            'Each provenance record needs its original source reference.'
+          )
       ),
     })
     .parse(JSON.parse(await readFile(await inside(root, catalogue), 'utf8')));
-
+  const provenanceKeys = new Set<string>();
+  for (const record of maintained.records) {
+    if (provenanceKeys.has(record.assetKey)) {
+      throw new Error(`Duplicate provenance asset key ${record.assetKey}.`);
+    }
+    provenanceKeys.add(record.assetKey);
+  }
   for (const artworkRecord of artwork.records) {
-    const source = maintained.records.find((record) => record.key === artworkRecord.key);
+    const source = maintained.records.find((record) => record.assetKey === artworkRecord.assetKey);
+    const expectedPath = `media${artworkRecord.assetKey}`;
+    const raster = Object.hasOwn(locked, artworkRecord.assetKey) ? locked[artworkRecord.assetKey] : undefined;
     if (
       !source ||
-      source.sha256 !== artworkRecord.sha256 ||
-      source.path !== artworkRecord.path ||
-      source.assetKey !== artworkRecord.assetKey
+      !raster ||
+      !expectedPath.startsWith('media/') ||
+      expectedPath.includes('\\') ||
+      path.posix.normalize(expectedPath) !== expectedPath ||
+      artworkRecord.path !== expectedPath ||
+      raster.sha256 !== artworkRecord.sha256 ||
+      raster.width !== artworkRecord.width ||
+      raster.height !== artworkRecord.height
     ) {
-      throw new Error(`Artwork ${artworkRecord.key} does not match the maintained provenance catalogue.`);
+      throw new Error(`Artwork ${artworkRecord.key} does not match its provenance and raster lock.`);
     }
   }
   for (const historical of links.historical) {
