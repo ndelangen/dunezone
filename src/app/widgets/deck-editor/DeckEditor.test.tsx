@@ -30,7 +30,14 @@ globalThis.ResizeObserver = class ResizeObserver {
 
 /* These editor state checks do not measure artwork; the browser stories cover label fitting. */
 Object.defineProperty(SVGElement.prototype, 'getComputedTextLength', { configurable: true, value: () => 0 });
-Object.defineProperty(document, 'fonts', { configurable: true, value: { load: vi.fn().mockResolvedValue([]) } });
+Object.defineProperty(SVGElement.prototype, 'getBBox', {
+  configurable: true,
+  value: () => ({ x: 450, y: 1013, width: 0, height: 0 }),
+});
+Object.defineProperty(document, 'fonts', {
+  configurable: true,
+  value: Object.assign(new EventTarget(), { load: vi.fn().mockResolvedValue([]) }),
+});
 
 afterEach(cleanup);
 

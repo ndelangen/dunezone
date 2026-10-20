@@ -208,7 +208,7 @@ export const PUBLICATION_TARGETS: Record<PublicationAssetType, PublicationTarget
   ...TOKEN_TARGETS,
 };
 
-/** Resolves an Edition's first-page geometry at four pixels per millimetre. */
+/** Resolves an Edition's first-page raster to whole pixels at four pixels per millimetre. */
 export function resolvePublicationCapture(
   assetType: PublicationAssetType,
   size: RulebookSize = DEFAULT_RULEBOOK_SETTINGS.size
@@ -218,7 +218,7 @@ export function resolvePublicationCapture(
     return capture;
   }
   const { widthMm, heightMm } = getRulebookSize(size);
-  return { ...capture, widthPx: widthMm * 4, heightPx: heightMm * 4 };
+  return { ...capture, widthPx: Math.round(widthMm * 4), heightPx: Math.round(heightMm * 4) };
 }
 
 /**
