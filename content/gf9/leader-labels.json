@@ -7,9 +7,9 @@
     {
       "faction": "gf9-harkonnen",
       "sourceName": "Captain Iakin Nefud",
-      "displayName": "Capt. Iakin Nefud",
+      "displayName": "Cpt. Iakin Nefud",
       "sourceWidth": 671.66,
-      "displayWidth": 590.039
+      "displayWidth": 548.408
     },
     {
       "faction": "gf9-bene-gesserit",
@@ -21,9 +21,9 @@
     {
       "faction": "gf9-richese",
       "sourceName": "Premier Ein Calimar",
-      "displayName": "Prem. Ein Calimar",
+      "displayName": "Ein Calimar",
       "sourceWidth": 685.225,
-      "displayWidth": 606.562
+      "displayWidth": 398.32
     }
   ]
 }
