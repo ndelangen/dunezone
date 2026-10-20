@@ -8,8 +8,8 @@ import { RULEBOOK_PDF_MAX_PAGES } from '../rulebooks/pdfOptimization';
 import { rulebookSettingsSchema } from '../rulebooks/settings';
 
 export const RAW_AUTHORING_MAX_BYTES = 512 * 1024;
-export const RAW_AUTHORING_MAX_DEPTH = 64;
-export const RAW_AUTHORING_MAX_NODES = 50_000;
+const RAW_AUTHORING_MAX_DEPTH = 64;
+const RAW_AUTHORING_MAX_NODES = 50_000;
 
 /** Bounds untrusted text before schema or reference validation. */
 export function readRawAuthoringJson(text: string): unknown {
