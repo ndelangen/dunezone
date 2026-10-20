@@ -44,6 +44,7 @@ type Projection = { project: (value: unknown) => unknown };
  * - `owner` replaces a user reference with the placeholder owner, because no `users` row leaves production.
  * - `parent` keeps the row only when the row it points at is kept too, and drops a row that has no such reference.
  * - `orNull` sets a nullable reference to null when the row it points at is not kept.
+ * - `current-edition-settings` replaces saved draft settings with the current published Edition's settings.
  * - `project` writes the value as a public read shows it, for an untyped field whose public read hides part of it.
  *
  * The reference rules name the table the field's validator points at, so a rule aimed at the wrong table does not compile.
@@ -51,7 +52,11 @@ type Projection = { project: (value: unknown) => unknown };
 type FieldRule<Row, Field extends keyof Row> =
   IsAny<Row[Field]> extends true
     ? 'keep' | Projection
-    : 'keep' | (IsOptional<Row, Field> extends true ? 'drop' : never) | ReferenceRule<Row[Field]>;
+    :
+        | 'keep'
+        | (IsOptional<Row, Field> extends true ? 'drop' : never)
+        | ReferenceRule<Row[Field]>
+        | (Row extends Doc<'rulebooks'> ? (Field extends 'settings' ? 'current-edition-settings' : never) : never);
 
 /** A stored row as the export has it: the schema's field names, with values not yet checked. */
 type StoredRow<Table extends TableNames> = { readonly [Field in keyof Doc<Table>]?: unknown };
@@ -240,7 +245,7 @@ export const snapshotPolicy = {
   rulebooks: {
     fields: {
       ruleset_id: { parent: 'rulesets' },
-      settings: 'keep',
+      settings: 'current-edition-settings',
       name: 'keep',
       name_key: 'keep',
       slug: 'keep',

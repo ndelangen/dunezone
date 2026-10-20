@@ -115,6 +115,46 @@ describe('Rulebook Page creation and fixed layout settings', () => {
     expect(final).toMatchObject({ kind: 'editable', draft: { revision: 3, contents: edited } });
   });
 
+  test('a Size change checks surviving Pages without changing their identities or fixed layout', async () => {
+    const { ids, owner } = await rulebookFixture();
+    const created = await owner.mutation(api.rulebooks.create, {
+      catalogue_version: RULEBOOK_CATALOGUE_VERSION,
+      ruleset_id: ids.rulesetId,
+      name: 'Resized layouts',
+      source: { kind: 'starter' },
+    });
+    const contents = addPage(created.draft.contents, widePage);
+    await owner.mutation(api.rulebooks.save, {
+      rulebook_id: created.rulebook._id,
+      expected_revision: 1,
+      contents,
+    });
+    for (const size of ['tall', 'gf9-expansion'] as const) {
+      await expect(
+        owner.mutation(api.rulebooks.save, {
+          rulebook_id: created.rulebook._id,
+          expected_revision: 2,
+          contents,
+          settings: { size, design: 'illustrated' },
+        })
+      ).rejects.toThrow('layout supported by this Rulebook size');
+      await expect(
+        owner.query(api.rulebooks.editorPage, {
+          ruleset_slug: 'rulebook-test-rules',
+          rulebook_slug: created.rulebook.slug,
+        })
+      ).resolves.toMatchObject({ draft: { revision: 2, contents, settings: created.draft.settings } });
+    }
+    await expect(
+      owner.mutation(api.rulebooks.save, {
+        rulebook_id: created.rulebook._id,
+        expected_revision: 2,
+        contents,
+        settings: { size: 'gf9-core', design: 'restrained' },
+      })
+    ).resolves.toMatchObject({ kind: 'saved', draft: { revision: 3, contents } });
+  });
+
   test('a Block crossing Page ownership needs a new ID, while a replacement Page may retain its anchor', async () => {
     const { ids, owner } = await rulebookFixture();
     const created = await owner.mutation(api.rulebooks.create, {

@@ -96,7 +96,14 @@ export const CloneSavedSettings = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(await page.findByRole('radio', { name: 'Saved Rulebook' }, { timeout: 30_000 }));
     await userEvent.click(page.getByRole('combobox', { name: 'Rulebook to copy' }));
-    await userEvent.click(await page.findByRole('option', { name: 'Quick reference' }));
+    const choice = await page.findByRole('option', { name: 'Quick reference' });
+    const tile = within(choice).getByRole('img', {
+      name: 'First page of Quick reference: preview unavailable',
+      hidden: true,
+    });
+    const bounds = tile.getBoundingClientRect();
+    await expect(bounds.height / bounds.width).toBeCloseTo(297 / 105, 1);
+    await userEvent.click(choice);
     await expect(page.getByText('This copy keeps the GF9 core size, 254 × 254 mm.')).toBeVisible();
     await expect(page.getByRole('radio', { name: 'Illustrated classic' })).toBeChecked();
     await userEvent.type(page.getByRole('textbox', { name: 'Rulebook name' }), 'Saved settings copy');

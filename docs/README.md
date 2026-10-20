@@ -163,6 +163,8 @@ one placeholder user, "Snapshot owner", the snapshot's only user and profile. It
 no sign-in account, so nobody can sign in as it. `scripts/lib/snapshot-policy.ts` says what each
 table keeps. Without a draft a Rulebook's editor cannot open, so the load gives every Rulebook a draft
 that holds its current Edition as the public reader shows it, saved by the placeholder owner.
+Both the snapshot and the seeded draft use that Edition's settings and Contents together. An
+Edition without stored settings uses the A4 illustrated defaults, never private draft settings.
 
 Without `--snapshot-file <zip>`, the launch downloads the newest snapshot that the `Anonymised
 snapshot` workflow uploaded from `main`, using the GitHub CLI (`gh auth login` first). It ignores an

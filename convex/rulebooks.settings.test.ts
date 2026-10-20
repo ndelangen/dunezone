@@ -100,6 +100,75 @@ describe('Rulebook settings', () => {
     ).resolves.toMatchObject({ edition: { settings } });
   });
 
+  test('public responses expose selected Edition settings while clone choices retain private saved defaults', async () => {
+    const { t, owner, outsider, ids } = await rulebookFixture();
+    const published = { size: 'a4', design: 'illustrated' } as const;
+    const draft = { size: 'gf9-core', design: 'restrained' } as const;
+    const created = await owner.mutation(api.rulebooks.create, {
+      catalogue_version: RULEBOOK_CATALOGUE_VERSION,
+      ruleset_id: ids.rulesetId,
+      name: 'Private resize',
+      source: { kind: 'starter' },
+    });
+    await owner.mutation(api.rulebooks.save, {
+      rulebook_id: created.rulebook._id,
+      expected_revision: 1,
+      contents: created.draft.contents,
+      settings: draft,
+    });
+    const locator = { ruleset_slug: 'rulebook-test-rules', rulebook_slug: created.rulebook.slug };
+    const rows = await t.query(api.rulebooks.listByRulesetSlug, { ruleset_slug: locator.ruleset_slug });
+    expect(rows[0]).not.toHaveProperty('draft_settings');
+    expect(rows[0].settings).toEqual(published);
+    for (const response of [
+      await t.query(api.rulebooks.readerPage, locator),
+      await t.query(api.rulebooks.readerDelivery, locator),
+      await t.query(api.rulebooks.editionHistory, locator),
+      await t.query(api.rulebooks.editorPage, locator),
+      await outsider.query(api.rulebooks.editorPage, locator),
+    ]) {
+      expect(response).toMatchObject({ rulebook: { settings: published } });
+    }
+    expect((await t.query(api.rulebooks.creationPage, { ruleset_slug: locator.ruleset_slug }))?.rulebooks).toEqual([]);
+    expect(
+      (await outsider.query(api.rulebooks.creationPage, { ruleset_slug: locator.ruleset_slug }))?.rulebooks
+    ).toEqual([]);
+    expect(
+      (await owner.query(api.rulebooks.creationPage, { ruleset_slug: locator.ruleset_slug }))?.rulebooks[0]
+    ).toMatchObject({ settings: published, draft_settings: draft });
+    const clone = await owner.mutation(api.rulebooks.create, {
+      catalogue_version: RULEBOOK_CATALOGUE_VERSION,
+      ruleset_id: ids.rulesetId,
+      name: 'Saved defaults clone',
+      source: { kind: 'clone', rulebook_id: created.rulebook._id },
+    });
+    expect(clone.draft.settings).toEqual(draft);
+    await owner.mutation(api.rulebooks.publish, {
+      rulebook_id: created.rulebook._id,
+      expected_revision: 2,
+      confirmed: true,
+    });
+    for (const query of [api.rulebooks.readerPage, api.rulebooks.readerDelivery]) {
+      await expect(t.query(query, { ...locator, edition_number: 1 })).resolves.toMatchObject({
+        rulebook: { settings: published },
+      });
+      await expect(t.query(query, locator)).resolves.toMatchObject({ rulebook: { settings: draft } });
+    }
+    await t.run(async (ctx) => {
+      const first = await ctx.db
+        .query('rulebook_editions')
+        .withIndex('by_rulebook_and_edition_number', (q) =>
+          q.eq('rulebook_id', created.rulebook._id).eq('edition_number', 1)
+        )
+        .unique();
+      await ctx.db.patch(first!._id, { settings: undefined });
+    });
+    await expect(t.query(api.rulebooks.readerPage, { ...locator, edition_number: 1 })).resolves.toMatchObject({
+      rulebook: { settings: published },
+      edition: { settings: published },
+    });
+  });
+
   test('settings-only Save advances the revision and Publish captures a new authored pair', async () => {
     const { t, owner, ids } = await rulebookFixture();
     const created = await owner.mutation(api.rulebooks.create, {

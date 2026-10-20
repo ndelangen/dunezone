@@ -48,6 +48,8 @@ import {
 } from './lib/rulebookEditionContents';
 import {
   listRulesetRulebooks,
+  listRulesetRulebookCloneChoices,
+  rulebookCloneChoiceValidator,
   rulebookMetadata as metadataFrom,
   rulebookMetadataValidator,
   rulebookListEntryValidator,
@@ -444,10 +446,11 @@ export async function seedRulebookDraftFromCurrentEdition(
   await insertRulebookDraft(ctx, {
     rulebookId: rulebook._id,
     contents: parseContents(readerContents(edition.contents)),
-    settings: rulebook.settings ?? DEFAULT_RULEBOOK_SETTINGS,
+    settings: edition.settings,
     updatedBy,
     now: nowIso(),
   });
+  await ctx.db.patch('rulebooks', rulebook._id, { settings: edition.settings });
   return true;
 }
 
@@ -515,7 +518,7 @@ async function insertRulebookBundle(
   ]);
   const createdEdition = createdDocument(edition);
   return {
-    rulebook: metadataFrom(createdDocument(rulebook)),
+    rulebook: metadataFrom(createdDocument(rulebook), input.settings),
     draft: { ...createdDocument(draft), settings: input.settings },
     edition: { ...createdEdition, settings: input.settings, contents: input.contents },
   };
@@ -548,7 +551,7 @@ export const creationPage = viewerQuery({
         slug: v.string(),
       }),
       viewerAccess: rulesetViewerAccessValidator,
-      rulebooks: v.array(rulebookListEntryValidator),
+      rulebooks: v.array(rulebookCloneChoiceValidator),
     })
   ),
   handler: async (ctx, args) => {
@@ -560,7 +563,7 @@ export const creationPage = viewerQuery({
     return {
       ruleset: { _id: ruleset._id, name: ruleset.name, slug: ruleset.slug },
       viewerAccess,
-      rulebooks: viewerAccess.capabilities.edit ? await listRulesetRulebooks(ctx, ruleset._id) : [],
+      rulebooks: viewerAccess.capabilities.edit ? await listRulesetRulebookCloneChoices(ctx, ruleset._id) : [],
     };
   },
 });
@@ -594,7 +597,7 @@ export const editorBySlugs = viewerQuery({
       throw new Error('Not authorized');
     }
     return {
-      rulebook: metadataFrom(rulebook),
+      rulebook: metadataFrom(rulebook, rulebook.settings ?? DEFAULT_RULEBOOK_SETTINGS),
       draft: await draftFor(ctx, rulebook),
       edition: await editionFor(ctx, rulebook._id, rulebook.current_edition_number),
     };
@@ -640,7 +643,11 @@ export const editionHistory = publicQuery({
       .collect();
     return {
       ruleset: { name: ruleset.name, slug: ruleset.slug },
-      rulebook: metadataFrom(rulebook),
+      rulebook: metadataFrom(
+        rulebook,
+        editions.find((edition) => edition.edition_number === rulebook.current_edition_number)?.settings ??
+          DEFAULT_RULEBOOK_SETTINGS
+      ),
       editions: await Promise.all(editions.map((edition) => rulebookEditionSummary(ctx, edition))),
     };
   },
@@ -719,7 +726,7 @@ export const readerPage = publicQuery({
     const firstPage = await rulebookFirstPagePublicationStatus(ctx, selected._id);
     return {
       ruleset: { name: ruleset.name, slug: ruleset.slug },
-      rulebook: metadataFrom(rulebook),
+      rulebook: metadataFrom(rulebook, selected.settings ?? DEFAULT_RULEBOOK_SETTINGS),
       access: await readerAccess(ctx, ruleset),
       edition: {
         first_page_image_url: firstPage.imageUrl,
@@ -780,7 +787,7 @@ async function loadReaderDelivery(ctx: QueryCtx, args: ObjectType<typeof readerD
   const image = await rulebookFirstPageImage(ctx, selected._id);
   const metadata = {
     ruleset: { name: ruleset.name, slug: ruleset.slug },
-    rulebook: metadataFrom(rulebook),
+    rulebook: metadataFrom(rulebook, selected.settings ?? DEFAULT_RULEBOOK_SETTINGS),
     edition: { ...summary, first_page_image_url: image },
     editions: editions.map(({ edition_number, created_at }) => ({ edition_number, created_at })),
   };
@@ -848,15 +855,14 @@ export const editorPage = viewerQuery({
     }
     const { ruleset, rulebook } = found;
     const { viewerAccess } = await loadRulesetAccessForLoadedSubject(ctx, ruleset);
-    const metadata = metadataFrom(rulebook);
+    const edition = await editionMetadataFor(ctx, rulebook._id, rulebook.current_edition_number);
     if (!viewerAccess.capabilities.edit) {
       return {
         kind: viewerAccess.viewer.kind === 'anonymous' ? ('sign-in-required' as const) : ('denied' as const),
-        rulebook: metadata,
+        rulebook: metadataFrom(rulebook, edition.settings ?? DEFAULT_RULEBOOK_SETTINGS),
       };
     }
     const draft = await draftFor(ctx, rulebook);
-    const edition = await editionMetadataFor(ctx, rulebook._id, rulebook.current_edition_number);
     const contentsHashesMatch = rulebookContentsHashesMatch(draft.contents_hash, edition.contents_hash);
     const pairMatch =
       contentsHashesMatch === undefined
@@ -873,7 +879,7 @@ export const editorPage = viewerQuery({
     return {
       kind: 'editable' as const,
       canRename: viewerAccess.capabilities.rename,
-      rulebook: metadata,
+      rulebook: metadataFrom(rulebook, draft.settings),
       draft,
       currentEdition: await rulebookEditionSummary(ctx, edition),
       hasUnpublishedChanges,
@@ -925,13 +931,21 @@ export const create = mutation({
 });
 
 /** Surviving Page identities retain their layout and creation-only arrangement. */
-function assertFixedPageLayouts(previous: RulebookContentsV1, next: RulebookContentsV1, settings: RulebookSettings) {
+function assertFixedPageLayouts(
+  previous: RulebookContentsV1,
+  next: RulebookContentsV1,
+  settings: RulebookSettings,
+  previousSettings?: RulebookSettings
+) {
   for (const page of Object.values(next.pagesById)) {
     const before = previous.pagesById[page.id];
+    if (
+      (!before || previousSettings?.size !== settings.size) &&
+      !isRulebookLayoutSupported(page.layoutId, settings.size)
+    ) {
+      throw new ConvexError('Choose a Page layout supported by this Rulebook size.');
+    }
     if (!before) {
-      if (!isRulebookLayoutSupported(page.layoutId, settings.size)) {
-        throw new ConvexError('Choose a Page layout supported by this Rulebook size.');
-      }
       continue;
     }
     if (before.layoutId !== page.layoutId) {
@@ -1014,7 +1028,7 @@ export const save = mutation({
       return { kind: 'stale' as const, draft: current };
     }
     const settings = rulebookSettingsSchema.parse(args.settings ?? current.settings);
-    assertFixedPageLayouts(current.contents, contents, settings);
+    assertFixedPageLayouts(current.contents, contents, settings, current.settings);
     assertFixedBlockOwnership(current.contents, contents);
     assertStoredRulebookCoverImages(contents);
     const now = nowIso();
@@ -1184,13 +1198,16 @@ export const rename = mutation({
       slug,
       updated_at: updatedAt,
     });
-    return metadataFrom({
-      ...rulebook,
-      name,
-      name_key: nameKey,
-      slug,
-      updated_at: updatedAt,
-    });
+    return metadataFrom(
+      {
+        ...rulebook,
+        name,
+        name_key: nameKey,
+        slug,
+        updated_at: updatedAt,
+      },
+      rulebook.settings ?? DEFAULT_RULEBOOK_SETTINGS
+    );
   },
 });
 
