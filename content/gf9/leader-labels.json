@@ -1,0 +1,29 @@
+{
+  "reason": "The existing Traitor renderer wraps titles inside a fixed single-line box. Shorten ranks and titles while retaining each personal name. Source names remain in the faction inputs, and component IDs still use those source names.",
+  "font": "/font/copperplategothic-bold.woff",
+  "fontSize": 60,
+  "availableWidth": 640,
+  "leaders": [
+    {
+      "faction": "gf9-harkonnen",
+      "sourceName": "Captain Iakin Nefud",
+      "displayName": "Capt. Iakin Nefud",
+      "sourceWidth": 671.66,
+      "displayWidth": 590.039
+    },
+    {
+      "faction": "gf9-bene-gesserit",
+      "sourceName": "Margot Lady Fenring",
+      "displayName": "Margot Fenring",
+      "sourceWidth": 725.566,
+      "displayWidth": 548.35
+    },
+    {
+      "faction": "gf9-richese",
+      "sourceName": "Premier Ein Calimar",
+      "displayName": "Prem. Ein Calimar",
+      "sourceWidth": 685.225,
+      "displayWidth": 606.562
+    }
+  ]
+}

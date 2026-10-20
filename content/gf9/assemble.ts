@@ -24,6 +24,22 @@ type Draft = {
   extras: string[];
 };
 const expansion = (await Bun.file(path.join(directory, 'expansion-factions.json')).json()).factions as Draft[];
+const leaderLabels = (await Bun.file(path.join(directory, 'leader-labels.json')).json()).leaders as {
+  faction: string;
+  sourceName: string;
+  displayName: string;
+}[];
+const usedLeaderLabels = new Set<string>();
+
+function leaderNameForPrint(faction: string, sourceName: string) {
+  const label = leaderLabels.find((entry) => entry.faction === faction && entry.sourceName === sourceName);
+  if (!label) {
+    return sourceName;
+  }
+  usedLeaderLabels.add(`${faction}:${sourceName}`);
+  return label.displayName;
+}
+
 const assetByKey = new Map(assets.items.map((item) => [item.key, item]));
 const extrasAliases: Record<string, string> = {
   'hidden-mobile-stronghold': 'gf9-mobile-stronghold-token',
@@ -61,7 +77,11 @@ const factions: ContentImportItem[] = base.map((faction) => {
       : key === 'gf9-bene-gesserit'
         ? ['gf9-prediction-faction-deck', 'gf9-prediction-turn-deck']
         : [];
-  const data = FactionWriteSchema.parse({ ...faction, extras: extrasFor(extraKeys, bindings) });
+  const data = FactionWriteSchema.parse({
+    ...faction,
+    leaders: faction.leaders.map((leader) => ({ ...leader, name: leaderNameForPrint(key, leader.name) })),
+    extras: extrasFor(extraKeys, bindings),
+  });
   return { key, kind: 'faction', data, bindings, link: true };
 });
 const portraitNotes = [];
@@ -101,6 +121,7 @@ for (const draft of expansion) {
     factionLeader: { name: draft.factionLeader.name, image: portrait, memberId: componentId(`${draft.key}:ruler`) },
     leaders: draft.leaders.map(({ applicability: _applicability, ...leader }) => ({
       ...leader,
+      name: leaderNameForPrint(draft.key, leader.name),
       memberId: componentId(`${draft.key}:leader:${leader.name}`),
     })),
     troops: draft.troops.map((troop) => ({ ...troop, troopId: componentId(`${draft.key}:troop:${troop.name}`) })),
@@ -111,6 +132,11 @@ for (const draft of expansion) {
   };
   const data = FactionWriteSchema.parse(recalculateFactionComplexity(input));
   factions.push({ key: draft.key, kind: 'faction', data, bindings, link: true });
+}
+for (const label of leaderLabels) {
+  if (!usedLeaderLabels.has(`${label.faction}:${label.sourceName}`)) {
+    throw new Error(`Unused leader label for ${label.faction}: ${label.sourceName}`);
+  }
 }
 
 const factionSupplies = new Set(factions.flatMap((item) => item.bindings?.map((binding) => binding.key) ?? []));
