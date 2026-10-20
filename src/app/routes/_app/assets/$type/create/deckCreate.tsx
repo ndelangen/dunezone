@@ -174,7 +174,7 @@ export function DeckCreatePage() {
               dispatch({
                 kind: 'replace',
                 data: loaded.data,
-                pick: loaded.source?.backDeck ?? null,
+                pick: loaded.referencedBack ?? loaded.source?.backDeck ?? null,
                 clonedFrom: clonedMembersOf(loaded),
               })
             ),

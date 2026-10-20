@@ -62,7 +62,7 @@ export function tokenLoad<Data extends { name: string }>({
     canRename,
     disabled: saveState === 'saving',
     onLoaded: header.releasing((loaded) =>
-      dispatch({ kind: 'replace', data: loaded.data, pick: loaded.source?.backToken ?? null })
+      dispatch({ kind: 'replace', data: loaded.data, pick: loaded.referencedBack ?? loaded.source?.backToken ?? null })
     ),
   });
 }

@@ -3003,7 +3003,7 @@ function RulebookEditorSession({
           raw={{
             validate: async (text) => {
               const draft = rawRulebookSchema.parse(readRawAuthoringJson(text));
-              await validateRawAuthoring({ kind: 'rulebook', text });
+              await validateRawAuthoring({ kind: 'rulebook', targetId: data.rulebook._id, text });
               return { name: data.rulebook.name, draft };
             },
           }}
@@ -3034,13 +3034,7 @@ function RulebookEditorSession({
                     size="lg"
                     disabled={!hasLocalChanges || result.isSaving || needsReview}
                     icon={<Undo2 size={17} aria-hidden />}
-                    onClick={() =>
-                      dispatch({
-                        kind: 'replace-draft',
-                        draft: result.latest.contents,
-                        settings: result.latest.settings,
-                      })
-                    }
+                    onClick={() => dispatch({ kind: 'discard-draft' })}
                   />
                   {data.canRename ? (
                     <IconAction
