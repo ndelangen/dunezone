@@ -272,16 +272,13 @@ export function assertBook(spec: RecordSpec, data: unknown) {
   if (!spec.book) {
     throw new Error(`Choose the canonical book key for ${spec.key}`);
   }
-  const value = data as { settings: { size: string; design: string }; contents: RulebookContentsV1 };
+  const value = data as { settings: { size: string }; contents: RulebookContentsV1 };
   if (value.settings.size !== (spec.book === 'core' ? 'gf9-core' : 'gf9-expansion')) {
     throw new Error(`${spec.key} needs its original GF9 dimensions.`);
   }
   const covers = Object.values(value.contents.pagesById).filter((page) => page.layoutId === 'cover');
   if (covers.length !== 1 || covers[0].id !== value.contents.pageOrder[0]) {
     throw new Error(`${spec.key} needs one first cover Page.`);
-  }
-  if (value.settings.design !== 'illustrated') {
-    throw new Error(`${spec.key} needs the accepted Illustrated design.`);
   }
   const cover = covers[0].controlValues.cover;
   if (cover.backgroundSource?.kind !== 'preset') {

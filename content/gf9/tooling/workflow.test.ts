@@ -452,6 +452,13 @@ describe('file-only GF9 authoring', () => {
     };
     const data = normalize(bookSpec, { settings: { size: 'gf9-core', design: 'illustrated' }, contents });
     assertBook(bookSpec, data);
+    for (const design of ['illustrated', 'restrained']) {
+      const book = { settings: { size: 'gf9-core', design }, contents };
+      const normalized = normalize(bookSpec, book);
+      expect(normalized).toEqual(book);
+      expect(() => assertBook(bookSpec, normalized)).not.toThrow();
+    }
+    expect(() => normalize(bookSpec, { settings: { size: 'gf9-core', design: 'unsupported' }, contents })).toThrow();
     const entries = ownedIdentities(bookSpec, data).map((item, index, all) => ({
       ...item,
       key: `identity-${index}`,

@@ -32,7 +32,6 @@
     "check:prose": "node scripts/assert-no-ai-tells.ts",
     "check:react-compiler": "bun run scripts/assert-react-compiler.ts",
     "cloudflare:drift-check": "bun run ./scripts/cloudflare-live-drift.ts",
-    "content:gf9:build": "bun content/gf9/build.ts && bun content/gf9/assemble.ts && vp fmt content/gf9",
     "convex:deploy": "convex deploy",
     "convex:dev": "bun run migrations:dev-strict && convex dev",
     "dependencies:audit": "bun run ./scripts/dependency-audit.ts",

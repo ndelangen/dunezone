@@ -10,7 +10,7 @@ The requested Discord creation ticket could not be located. The private browser 
 
 The approved correction uses full composed files under [`authoring/`](authoring/README.md), file-only preparation/collection and normal authenticated Load/Save/Publish. Its inventory and environment bindings begin as explicit unbound scaffolds until the content staging pass records actual targets. See the authoring workflow before editing or preparing content.
 
-The `*-manuscript.json`, `*-rules.json`, historical Faction drafts, importer packages, `build.ts` and `assemble.ts` below describe the earlier delivery. They are superseded as publication sources for this correction. Keep them as research/history; do not edit or regenerate them to replace composed books. In particular, `content:gf9:build` must be retired from the correction workflow because its old pagination and presentation would discard accepted changes.
+The `*-manuscript.json`, `*-rules.json`, historical Faction drafts, importer packages, `build.ts` and `assemble.ts` below describe the earlier delivery. They are superseded as publication sources for this correction. Keep them as research/history; do not edit or regenerate them to replace composed books. The `content:gf9:build` package command has been removed because its old pagination and presentation would discard accepted changes. Use the file-only preparation and collection commands in the [authoring guide](authoring/README.md).
 
 Existing reading, coverage, judgement and asset-review records remain historical evidence. Carry a result forward only after checking its exact source/authored/artifact identity against the acceptance contract. They do not certify the new local content or production update.
 
