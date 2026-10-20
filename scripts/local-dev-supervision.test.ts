@@ -9,25 +9,34 @@ import { expect, test } from 'vite-plus/test';
 const fixtures = path.join(import.meta.dirname, 'local-dev-supervision-fixtures');
 const realBun = execFileSync('which', ['bun'], { encoding: 'utf8' }).trim();
 
-function startLauncher(mode: 'blocking' | 'failure') {
+function startLauncher(mode: 'blocking' | 'failure' | 'persistent') {
   const directory = mkdtempSync(path.join(tmpdir(), 'local-dev-supervision-'));
   for (const name of ['bun', 'docker']) {
     copyFileSync(path.join(fixtures, name), path.join(directory, name));
     chmodSync(path.join(directory, name), 0o700);
   }
-  const launcher = spawn('/bin/bash', [path.join(import.meta.dirname, 'app-dev.sh'), '--local'], {
-    cwd: path.resolve(import.meta.dirname, '..'),
-    env: {
-      ...process.env,
-      PATH: `${directory}:${process.env.PATH}`,
-      LOCAL_DEV_DOCKER_PATH: path.join(directory, 'docker'),
-      TEST_DIRECTORY: directory,
-      TEST_REAL_BUN: realBun,
-      TEST_WORKER_FIXTURE: fileURLToPath(new URL('./local-dev-supervision-fixtures/worker.ts', import.meta.url)),
-      TEST_MODE: mode,
-    },
-    stdio: ['ignore', 'pipe', 'pipe'],
-  });
+  const launcher = spawn(
+    '/bin/bash',
+    [
+      path.join(import.meta.dirname, 'app-dev.sh'),
+      '--local',
+      ...(mode === 'persistent' ? ['--data=snapshot', `--persist-dir=${directory}`] : []),
+    ],
+    {
+      cwd: path.resolve(import.meta.dirname, '..'),
+      env: {
+        ...process.env,
+        PATH: `${directory}:${process.env.PATH}`,
+        LOCAL_DEV_DOCKER_PATH: path.join(directory, 'docker'),
+        TEST_DIRECTORY: directory,
+        TEST_REAL_BUN: realBun,
+        TEST_WORKER_FIXTURE: fileURLToPath(new URL('./local-dev-supervision-fixtures/worker.ts', import.meta.url)),
+        TEST_MODE: mode,
+        ...(mode === 'persistent' ? { TEST_PERSIST_DIRECTORY: directory } : {}),
+      },
+      stdio: ['ignore', 'pipe', 'pipe'],
+    }
+  );
   let output = '';
   launcher.stdout.on('data', (data) => {
     output += data;
@@ -114,3 +123,20 @@ test('a provisioning failure keeps its exit code after project cleanup', async (
     await launch.dispose();
   }
 }, 10_000);
+
+test('persistent TERM stops only its project and retains authored files after the OS lock drains', async () => {
+  const launch = startLauncher('persistent');
+  try {
+    await expect.poll(() => existsSync(path.join(launch.directory, 'child-pid')), { timeout: 5000 }).toBe(true);
+    launch.launcher.kill('SIGTERM');
+    expect(await launch.exited, launch.output()).toBe(143);
+    const [project, command] = readFileSync(path.join(launch.directory, 'docker.log'), 'utf8').trim().split('\n');
+    expect(project).toBe(launch.metadata().project);
+    expect(command).toMatch(/stop$/);
+    expect(command).not.toContain('-v');
+    expect(readFileSync(path.join(launch.directory, 'authored.json'), 'utf8')).toBe('saved draft');
+    expect(existsSync(path.join(launch.directory, '.dunezone-runtime.lock'))).toBe(false);
+  } finally {
+    await launch.dispose();
+  }
+}, 15_000);
