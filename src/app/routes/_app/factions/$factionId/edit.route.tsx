@@ -177,7 +177,7 @@ function FactionEditPage() {
             mode: 'replace',
             disabled: updateFaction.isPending,
             raw: rawFactionLoad(faction.data.name, viewerAccess.capabilities.rename),
-            source: factionLoadSource(faction.slug, faction.data.name),
+            source: factionLoadSource(faction.slug),
             onLoaded: validationHeader.releasing(authoring.actions.loadDraft),
           }}
           status={{
