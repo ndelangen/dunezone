@@ -8,12 +8,11 @@ export async function decodeStoryImage(image: Locator) {
       return null;
     } catch (error) {
       const currentSource = element.currentSrc || element.src;
-      const resource = performance
-        .getEntriesByName(requestedSource, 'resource')
-        .filter((entry): entry is PerformanceResourceTiming => entry instanceof PerformanceResourceTiming)
-        .at(-1);
+      const resource = performance.getEntriesByName(requestedSource, 'resource').at(-1) as
+        | PerformanceResourceTiming
+        | undefined;
       return {
-        reason: error instanceof Error ? `${error.name}: ${error.message}` : String(error),
+        reason: String(error),
         requestedSource,
         currentSource,
         sourceChanged: currentSource !== requestedSource,
