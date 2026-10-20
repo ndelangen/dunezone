@@ -12,9 +12,17 @@ import sys
 
 
 def main():
-    directory = Path(sys.argv[1])
+    arguments = sys.argv[1:]
+    worktree = None
+    if arguments[0] == '--outside-worktree':
+        worktree = Path(arguments[1]).resolve(strict=True)
+        arguments = arguments[2:]
+    directory = Path(arguments[0])
     if not directory.is_absolute():
         raise SystemExit('--persist-dir must be absolute')
+    directory = directory.resolve()
+    if worktree is not None and (directory == worktree or worktree in directory.parents):
+        raise SystemExit('Keep --persist-dir outside the disposable worktree')
     directory.mkdir(parents=True, exist_ok=True, mode=0o700)
     lock_path = directory.resolve() / '.dunezone-runtime.flock'
     descriptor = os.open(lock_path, os.O_CREAT | os.O_RDWR, 0o600)
@@ -25,7 +33,7 @@ def main():
     environment = dict(os.environ, LOCAL_DEV_OS_LOCK=str(lock_path))
     # The shell also retains the descriptor, so killing this wrapper cannot
     # release the lock while the supervisor still owns running services.
-    child = subprocess.Popen(sys.argv[2:], env=environment, pass_fds=(descriptor,))
+    child = subprocess.Popen(arguments[1:], env=environment, pass_fds=(descriptor,))
     def forward(signum, _frame):
         child.send_signal(signum)
     signal.signal(signal.SIGINT, forward)

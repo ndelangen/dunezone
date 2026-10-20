@@ -22,7 +22,7 @@ for argument in "$@"; do
   fi
 done
 if [[ -n "$PERSIST_DIRECTORY" && -z "${LOCAL_DEV_OS_LOCK:-}" ]]; then
-  exec python3 "$ROOT_DIR/scripts/local-dev-lock.py" "$PERSIST_DIRECTORY" /bin/bash "$ROOT_DIR/scripts/app-dev.sh" "$@"
+  exec python3 "$ROOT_DIR/scripts/local-dev-lock.py" --outside-worktree "$ROOT_DIR" "$PERSIST_DIRECTORY" /bin/bash "$ROOT_DIR/scripts/app-dev.sh" "$@"
 fi
 
 LOCAL_DEV_TEMPORARY_DIRECTORY="$(mktemp -d "${TMPDIR:-/tmp}/dunezone-app-dev.XXXXXXXX")"

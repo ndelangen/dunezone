@@ -22,6 +22,7 @@ import {
   readPersistentManifest,
   readPersistentSecrets,
   releasePersistentLock,
+  resolvePersistentDirectory,
   writePrivateJson,
 } from './local-dev-persistence';
 import { buildLocalPublisher, startLocalPublisher } from './local-dev-publisher';
@@ -395,12 +396,9 @@ async function runPersistentDevelopment(requested: LocalData, directory: string,
   if (requested.kind !== 'snapshot') {
     throw new Error('Persistent review requires --data=snapshot');
   }
-  const canonicalDirectory = path.resolve(directory);
-  if (canonicalDirectory === rootDirectory || canonicalDirectory.startsWith(`${rootDirectory}${path.sep}`)) {
-    throw new Error('Keep --persist-dir outside the disposable worktree');
-  }
+  const canonicalDirectory = resolvePersistentDirectory(directory, rootDirectory);
   const temporaryDirectory = localTemporaryDirectory();
-  const lock = lockPersistentDirectory(directory);
+  const lock = lockPersistentDirectory(canonicalDirectory);
   let cleanupRecorded = false;
   let vite: ChildProcess | null = null;
   let watcher: ChildProcess | null = null;

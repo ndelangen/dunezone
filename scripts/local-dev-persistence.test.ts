@@ -1,5 +1,15 @@
-import { spawn } from 'node:child_process';
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { spawn, spawnSync } from 'node:child_process';
+import {
+  existsSync,
+  mkdtempSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -11,6 +21,7 @@ import {
   assertLoopbackUrl,
   createPersistentManifest,
   readPersistentManifest,
+  resolvePersistentDirectory,
   writePrivateJson,
 } from './local-dev-persistence';
 import { localPublisherConfiguration } from './local-dev-publisher';
@@ -25,6 +36,69 @@ function withDirectory(action: (directory: string) => void) {
 }
 
 describe('persistent local review', () => {
+  test('refuses an outside symlink into the worktree before creating or resetting any state', () => {
+    withDirectory((directory) => {
+      const worktree = path.join(directory, 'worktree');
+      mkdirSync(worktree);
+      const outsideLink = path.join(directory, 'outside-link');
+      symlinkSync(worktree, outsideLink, 'dir');
+      const saved = path.join(worktree, '.dunezone-runtime');
+      mkdirSync(saved);
+      writeFileSync(path.join(saved, 'saved.json'), 'authored');
+      const before = readdirSync(worktree, { recursive: true });
+      for (const candidate of [outsideLink, path.join(outsideLink, 'new-review')]) {
+        expect(() => resolvePersistentDirectory(candidate, worktree)).toThrow('outside the disposable worktree');
+        const result = spawnSync(
+          'python3',
+          [
+            path.join(import.meta.dirname, 'local-dev-lock.py'),
+            '--outside-worktree',
+            worktree,
+            candidate,
+            'python3',
+            '-c',
+            'raise RuntimeError("must not launch")',
+          ],
+          { encoding: 'utf8' }
+        );
+        expect(result.status).toBe(1);
+        expect(result.stderr).toContain('outside the disposable worktree');
+      }
+      expect(readdirSync(worktree, { recursive: true })).toEqual(before);
+      expect(readFileSync(path.join(saved, 'saved.json'), 'utf8')).toBe('authored');
+      expect(existsSync(path.join(worktree, '.dunezone-runtime.flock'))).toBe(false);
+    });
+  });
+  test('resolves a legitimate external directory before initializing the locked runtime', () => {
+    withDirectory((directory) => {
+      const worktree = path.join(directory, 'worktree');
+      const external = path.join(directory, 'external');
+      mkdirSync(worktree);
+      mkdirSync(external);
+      const outsideLink = path.join(directory, 'outside-link');
+      symlinkSync(external, outsideLink, 'dir');
+      const candidate = path.join(outsideLink, 'new-review');
+      const canonical = path.join(realpathSync(external), 'new-review');
+      expect(resolvePersistentDirectory(candidate, worktree)).toBe(canonical);
+      expect(existsSync(canonical)).toBe(false);
+      const result = spawnSync(
+        'python3',
+        [
+          path.join(import.meta.dirname, 'local-dev-lock.py'),
+          '--outside-worktree',
+          worktree,
+          candidate,
+          'python3',
+          '-c',
+          'import os; print(os.environ["LOCAL_DEV_OS_LOCK"])',
+        ],
+        { encoding: 'utf8' }
+      );
+      expect(result.status).toBe(0);
+      expect(result.stdout.trim()).toBe(path.join(canonical, '.dunezone-runtime.flock'));
+      expect(readdirSync(worktree)).toEqual([]);
+    });
+  });
   test('requires an explicit snapshot and absolute state directory, preserving disposable defaults', () => {
     expect(parseAppDevMode(['--local', '--data=snapshot', '--persist-dir=/tmp/gf9'])).toEqual({
       kind: 'local',

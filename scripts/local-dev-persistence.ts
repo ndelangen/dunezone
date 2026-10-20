@@ -79,6 +79,33 @@ export function writePrivateJson(file: string, value: unknown) {
   renameSync(temporary, file);
 }
 
+/** Resolve existing parents before creating state, including a not-yet-created child of a symlink. */
+export function resolvePersistentDirectory(directory: string, worktreeDirectory: string): string {
+  if (!path.isAbsolute(directory)) {
+    throw new Error('--persist-dir must be an absolute directory outside the worktree');
+  }
+  let parent = directory;
+  const missing: string[] = [];
+  for (;;) {
+    try {
+      lstatSync(parent);
+      break;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+        throw error;
+      }
+      missing.unshift(path.basename(parent));
+      parent = path.dirname(parent);
+    }
+  }
+  const canonicalDirectory = path.resolve(realpathSync(parent), ...missing);
+  const canonicalWorktree = realpathSync(worktreeDirectory);
+  if (canonicalDirectory === canonicalWorktree || canonicalDirectory.startsWith(`${canonicalWorktree}${path.sep}`)) {
+    throw new Error('Keep --persist-dir outside the disposable worktree');
+  }
+  return canonicalDirectory;
+}
+
 /** The lock lives outside resettable state. Cleanup releases it only after stopping owned services. */
 export function lockPersistentDirectory(directory: string) {
   if (!path.isAbsolute(directory)) {
