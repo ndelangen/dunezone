@@ -14,7 +14,9 @@ const marker = (
   name: string,
   image: string,
   colors: [string, string],
-  background?: typeof tokenBackBackgrounds.hiereg
+  background?: typeof tokenBackBackgrounds.hiereg | typeof tokenBackBackgrounds.smuggler,
+  symbolScale = 1.15,
+  ring = true
 ) => {
   const checked = CustomCardTokens.parse({
     marker: {
@@ -22,17 +24,33 @@ const marker = (
       name,
       face: {
         image: '/vector/icon/spice.svg',
-        background: Background.parse(background ?? { ...TREACHERY_BACKGROUNDS.stripedSpecial, colors }),
-        symbolScale: 1.15,
+        background: Background.parse(
+          background
+            ? { ...background, image: '/image/texture/082.jpg' }
+            : { ...TREACHERY_BACKGROUNDS.stripedSpecial, colors }
+        ),
+        symbolScale,
         top: '',
         bottomFirst: '',
         bottomSecond: '',
-        ring: true,
+        ring,
       },
     },
   }).marker!;
   if (checked.type === 'token-enhance') throw new Error('Expected a round marker.');
-  return { ...checked, face: { ...checked.face, image: image as typeof checked.face.image } };
+  // Draft artwork keys are not in the generated catalogue until normal media ingestion.
+  // Validate the current Background shape, then carry only the explicit staged image key into this proof.
+  return {
+    ...checked,
+    face: {
+      ...checked.face,
+      image: image as typeof checked.face.image,
+      background: {
+        ...checked.face.background,
+        image: (background?.image ?? checked.face.background.image) as typeof checked.face.background.image,
+      },
+    },
+  };
 };
 
 /** Generic type markers, whose fronts depict the face-down type rather than any revealed Discovery result. */
@@ -42,12 +60,16 @@ export const linkedBoardTokens = {
     'Hiereg Discovery token',
     '/vector/logo/fremen.svg',
     ['#315c51', '#92b6a0'],
-    tokenBackBackgrounds.hiereg
+    tokenBackBackgrounds.hiereg,
+    2,
+    false
   ),
   'gf9-smuggler-discovery-marker': marker(
     'Smuggler Discovery token',
     '/vector/logo/guild.svg',
     ['#253861', '#819fca'],
-    tokenBackBackgrounds.smuggler
+    tokenBackBackgrounds.smuggler,
+    2,
+    false
   ),
 };

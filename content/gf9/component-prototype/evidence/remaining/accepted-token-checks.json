@@ -1,0 +1,20 @@
+[
+  {
+    "extraWhiteRing": 0,
+    "kind": "hiereg",
+    "symbol": "/vector/logo/fremen.svg#root",
+    "symbolHeight": "200",
+    "symbolShadow": ["none", "none"],
+    "symbolWidth": "200",
+    "texture": "/image/texture/hiereg-discovery-print.jpg"
+  },
+  {
+    "extraWhiteRing": 0,
+    "kind": "smuggler",
+    "symbol": "/vector/logo/guild.svg#root",
+    "symbolHeight": "200",
+    "symbolShadow": ["none", "none"],
+    "symbolWidth": "200",
+    "texture": "/image/texture/hiereg-discovery-print.jpg"
+  }
+]

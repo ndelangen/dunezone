@@ -6,6 +6,8 @@ import { fileURLToPath } from 'node:url';
 import react from '@vitejs/plugin-react';
 /** Throwaway component-treatment review across several asset types. Public reads only; no database. */
 import { createServer } from 'vite-plus';
+
+import { unsyncedMediaPreview } from '../../../scripts/lib/unsyncedMediaPreview';
 const root = fileURLToPath(new URL('./', import.meta.url));
 const repo = path.resolve(root, '../../..');
 const cache = path.join(root, 'public/cache');
@@ -23,6 +25,7 @@ const server = await createServer({
   root,
   publicDir: path.join(root, 'public'),
   plugins: [
+    unsyncedMediaPreview(repo),
     react(),
     {
       name: 'prototype-maintained-assets',

@@ -1,0 +1,22 @@
+{
+  "kind": "ai-assisted-background-restoration",
+  "status": "Approved visual treatment; staged for normal media ingestion during implementation",
+  "intendedAssetKey": "/image/texture/hiereg-discovery.png",
+  "source": "/Users/me/Projects/Dune/dune-assets/tokens/discovery/hiereg.jpg",
+  "sourceSha256": "fd4af9aa6bf01c559676939f028466e3ce28e5baceee0d4d3d888aa7d68e5f39",
+  "generation": "Built-in image_gen, initial extraction plus targeted grayscale and outer-edge correction",
+  "promptFile": "content/gf9/component-prototype/hiereg-texture-prompt.txt",
+  "revisionPromptFile": "content/gf9/component-prototype/hiereg-texture-revision-prompt.txt",
+  "dimensions": [1254, 1254],
+  "grayscale": true,
+  "textureOnly": true,
+  "previewCopy": "content/gf9/component-prototype/public/token-art/hiereg-background-grayscale.png",
+  "notes": "Central fruit and three circles removed; decorative rim and inner circle preserved; unwanted outer circular seam removed. Opaque grayscale texture; Background renderer supplies gold and brown colors. No application data writes or R2 upload.",
+  "generatedSha256BeforeGrayscaleNormalization": "866c9fbe34f8c156cd6e583b45aad1715dc3d19ad08f91ec5485aff3ab60e8a5",
+  "sha256": "17418d80b07639ef6c52abfc087ff4777e2a0145eec81413672e9a71614f95c6",
+  "normalization": "Encoded as a single-channel grayscale PNG with the existing Sharp texture pipeline. The AI output had small neutral-channel deviations, so final source pixels are explicitly grayscale.",
+  "sharedUse": [
+    "Hiereg hidden Discovery backs and illustration marker",
+    "Smuggler hidden Discovery backs and illustration marker"
+  ]
+}

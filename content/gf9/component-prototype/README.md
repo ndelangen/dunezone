@@ -12,6 +12,8 @@ Open http://127.0.0.1:39612/?case=labels for the six remaining Discovery Spice c
 
 The user accepted the six Discovery Spice cards on 20 October 2026, including the darker orange tint, standard amount position, token above the amount and preserved bold content. Keep that composition settled. The active review now concerns only Hiereg and Smuggler token backgrounds, at `?case=token-backs`.
 
+The final accepted contract is [accepted-component-spec.md](accepted-component-spec.md). It supersedes earlier exploratory notes and archived samples. The token treatment was accepted after the Spice-card composition; later implementation reviews show changes only.
+
 ## Accepted decisions
 
 - Use both wider verified original faction-head crops. Preserve their native source resolution and provenance.
@@ -67,12 +69,12 @@ The badge offset was caused by the prototype's global border-box reset, not by t
 
 The spice-blow tint is now darker orange, #ad4e10d9, across all six cards. Hiereg and Smuggler destination colors remain green and blue.
 
-Spice territories are orange. Hiereg destinations and markers are green; Smuggler destinations and markers are blue. Both territory tints are present on every Discovery card. Only existing Fremen, Guild and spice vectors are used.
+Spice territories are orange. Hiereg destination tints are green; Smuggler destination tints are blue. The later accepted marker backgrounds are gold and slate respectively, using the shared restored grayscale texture. Both territory tints are present on every Discovery card. Only existing Fremen, Guild and spice vectors are used.
 
-## Hiereg and Smuggler backgrounds under review
+## Accepted Hiereg and Smuggler treatment
 
-The user accepted the six Discovery Spice-card compositions and requested backgrounds closer to the GF9 originals for the two Discovery token types. The focused comparison is `?case=token-backs`. Native embedded back images from page 12 of the supplied Ecaz & Moritani book are references only; provenance is in token-back-source-manifest.json.
+The user approved the shared restored grayscale texture on both token types, with gold Hiereg and slate Smuggler colours and enlarged existing Fremen and Guild vectors. Exact Background values are in token-back-backgrounds.json. Both symbols use symbolScale 2. The generic white edge ring is disabled; the texture carries its own decorative ring. The accepted proof also omits the fixed symbol shadow. That setting needs an optional persisted renderer control, with existing content keeping the current default.
 
-The proposed background data in token-back-backgrounds.json uses existing Background schema fields, the existing 082 texture and radial gradients. Hiereg is mottled ochre-gold. Smuggler is muted dark slate. Horizontal stripes are removed. Symbols, rings, token shape, labels and accepted revealed faces are outside this revision. The two generic illustration markers consume these proposals; implementation should use the corresponding background on each type's hidden backs as well, without adding generic markers to the random outcome pool. No new renderer capability or vector is required for this background change.
+No new vectors are used. The attempted traces were rejected and removed. The AI-assisted texture is a new staged raster under media/image/texture/hiereg-discovery.png, with provenance beside it and a durable identical copy under public/token-art/ for this review branch. It is grayscale, has no central symbol and has no unwanted outer seam. The existing unsynced-media preview serves the texture without uploading or rewriting the raster lock. Normal media ingestion and catalogue generation belong to implementation.
 
-These backgrounds await user review. Their colours are independent of the accepted green Hiereg and blue Smuggler territory tints. Card typography, amount placement and map recipe remain settled.
+The approved settings apply to the two illustration markers and the corresponding four hidden Hiereg and four hidden Smuggler backs. Preserve the eight outcome identities, pool membership and quantities. The new marker assets never join the random outcome pool. Keep the accepted revealed-face samples and their styling. Other revealed faces still require source-backed artwork mapping and local output verification; their unseen output is not approved by this back comparison. Card typography, amount placement, map recipe and green/blue territory tints remain settled.

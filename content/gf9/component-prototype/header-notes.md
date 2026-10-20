@@ -1,5 +1,7 @@
 # Full-name card header comparison
 
+Historical investigation. The final choices are in [accepted-component-spec.md](accepted-component-spec.md). Do not implement rejected alternatives from this note.
+
 This prototype keeps the existing TraitorCard and AllianceCard bodies, portraits, strength values and symbols. It replaces only the two text layers in each proposed header. All CSS changes are scoped to `gf9-header-*` classes.
 
 The current Traitor and Alliance renderers use a 640-unit title box at 60 units. The icon begins at approximately x = 674, while the title begins at x = 95. The title box therefore extends into the icon area. The shared CardHead renderer has a different sizing helper and is not used by these two card types.

@@ -1,62 +1,16 @@
 {
   "hiereg": {
-    "image": "/image/texture/082.jpg",
-    "colors": [
-      {
-        "type": "radial",
-        "x": 47,
-        "y": 43,
-        "r": 66,
-        "stops": [
-          ["#dfb64d", 0],
-          ["#c99b34", 0.68],
-          ["#a97928", 1]
-        ]
-      },
-      {
-        "type": "radial",
-        "x": 47,
-        "y": 43,
-        "r": 66,
-        "stops": [
-          ["#9c752b", 0],
-          ["#816027", 0.72],
-          ["#6b4c25", 1]
-        ]
-      }
-    ],
-    "definition": 0.48,
-    "influence": 0.68,
-    "invert": false
+    "image": "/image/texture/hiereg-discovery.png",
+    "colors": ["#d9b14d", "#61451e"],
+    "definition": 0.55,
+    "influence": 0.95,
+    "invert": true
   },
   "smuggler": {
-    "image": "/image/texture/082.jpg",
-    "colors": [
-      {
-        "type": "radial",
-        "x": 47,
-        "y": 43,
-        "r": 66,
-        "stops": [
-          ["#677775", 0],
-          ["#4e5e5f", 0.66],
-          ["#394b50", 1]
-        ]
-      },
-      {
-        "type": "radial",
-        "x": 47,
-        "y": 43,
-        "r": 66,
-        "stops": [
-          ["#3d4c4c", 0],
-          ["#2d3e43", 0.7],
-          ["#23343b", 1]
-        ]
-      }
-    ],
-    "definition": 0.34,
-    "influence": 0.62,
-    "invert": false
+    "image": "/image/texture/hiereg-discovery.png",
+    "colors": ["#6d7978", "#26373b"],
+    "definition": 0.55,
+    "influence": 0.95,
+    "invert": true
   }
 }

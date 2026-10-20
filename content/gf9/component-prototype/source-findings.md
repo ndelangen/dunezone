@@ -1,5 +1,7 @@
 # GF9 component source findings
 
+Historical investigation. The final choices are in [accepted-component-spec.md](accepted-component-spec.md). Do not implement rejected alternatives from this note.
+
 Read-only source investigation, 20 October 2026. No existing prototype files or production content changed. Temporary decoded image references are in `/tmp/gf9-authentic-source-inventory/`, with `inventory.json` and `contact.jpg`.
 
 The official PDFs contain usable original artwork for the Tech tokens, all eight Discovery fronts and both backs, Hidden Mobile Stronghold, Destroyed Shield Wall and Kwisatz Haderach card and counter. Exact full GF9 Karama, Rock Outcrops and Discovery Sihaya Ridge faces were not found in the inspected source images. Do not substitute the old card GIFs as GF9 originals.

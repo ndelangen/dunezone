@@ -1,5 +1,7 @@
 # Existing GF9 card and token capabilities
 
+Historical investigation. The final choices are in [accepted-component-spec.md](accepted-component-spec.md). Do not implement rejected alternatives from this note.
+
 Read-only source inspection, 20 October 2026. No renderer, data or production changes made for this investigation.
 
 ## What the current preview actually shows
