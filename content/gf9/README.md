@@ -19,12 +19,10 @@ The requested Discord creation ticket could not be located. The private browser 
 From the repository root, with the repository dependencies installed:
 
 ```sh
-bun content/gf9/build.ts
-bun content/gf9/assemble.ts
-bunx vp fmt content/gf9
+bun run content:gf9:build
 ```
 
-The first command compiles and paginates the four manuscripts. The second validates the shared import contracts, assembles assets, twelve factions and four rulebooks, recalculates faction complexity, checks twenty forces per faction, binds dependent records, and writes `package.json`. The final command applies the repository's formatting. None writes to production. The asset package is a curated input; there is no checked-in command that recreates it from remote sources.
+The script compiles and paginates the four manuscripts, then validates the shared import contracts, assembles assets, twelve factions and four rulebooks, recalculates faction complexity, checks twenty forces per faction, binds dependent records, and writes `package.json`. It finishes with the repository's formatter. It does not write to production. The asset package is a curated input; there is no checked-in command that recreates it from remote sources.
 
 Import through the authenticated application flow into the existing GF9 Ruleset and assign every associated record to the existing GF9 Group. Preview and review creates, updates, record reuse and bindings before applying. Existing stock reuse must preserve other Ruleset associations. A successful local build proves data shape and references; inspect the resulting HTML, cards, faction sheets and every PDF page before publication. Production import and publication evidence is tracked by the delivery task.
 
