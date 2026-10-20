@@ -1,0 +1,514 @@
+{
+  "schemaVersion": 1,
+  "status": "local editorial decisions for root GF9 judgements issue",
+  "sourcePolicy": "Use collected PDF and FAQ evidence. No online re-verification performed. Official explicit rules and later official errata take precedence; designer explanations fill gaps; WBC/KISS/Landsraad stay separate.",
+  "judgements": [
+    {
+      "id": "EXP-001",
+      "topic": "Ecaz Occupy rounding",
+      "status": "adopted-in-local-draft",
+      "conflictingSources": [
+        {
+          "source": "ecaz-moritani",
+          "page": "8",
+          "claim": "Add half Ecaz troops rounded up; retain half rounded down on a win."
+        },
+        {
+          "source": "ecaz-moritani",
+          "page": "15",
+          "claim": "Worked example uses 5 Ecaz troops, adds 2, loses 2 and leaves 3."
+        },
+        {
+          "source": "revised-v2.3",
+          "page": "Ecaz faction sheet",
+          "claim": "Uses rule-text rounding up for bonus and down for survivors."
+        }
+      ],
+      "judgement": "Use ceil(Ecaz troops / 2) as bonus and losses; floor as survivors. With 5 troops, add3, lose3, retain2.",
+      "reason": "The normative rule is explicit and internally consistent; the example reverses both rounding directions.",
+      "confidence": "high",
+      "affected": ["ecaz-moritani-manuscript.json#ecaz-battle", "expansion-factions.json#gf9-ecaz"],
+      "faqIssueComment": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225690213"
+    },
+    {
+      "id": "EXP-002",
+      "topic": "Ixian initial deal and Harkonnen extra card",
+      "status": "adopted-in-local-draft",
+      "conflictingSources": [
+        {
+          "source": "ixian-tleilaxu",
+          "page": "8",
+          "claim": "Draw one card per faction, keep one, shuffle and deal remainder to other players."
+        },
+        {
+          "source": "ixian-tleilaxu",
+          "page": "11",
+          "claim": "Harkonnen still draw an extra card from the top after setup."
+        },
+        {
+          "source": "revised-v2.3",
+          "page": "Ixian faction sheet",
+          "claim": "Include an extra card in the Ixian initial inspection when Harkonnen play."
+        }
+      ],
+      "judgement": "Ixians inspect one per faction only; Harkonnen additional card is drawn afterward from the deck.",
+      "reason": "Use explicit official procedure over the unofficial expanded inspection and relayed conflicting account.",
+      "confidence": "high",
+      "affected": ["ixian-tleilaxu-manuscript.json#ixian-setup", "expansion-factions.json#gf9-ixians"],
+      "faqIssueComment": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225393800"
+    },
+    {
+      "id": "EXP-003",
+      "topic": "Living ghola buyback",
+      "status": "adopted-in-local-draft",
+      "conflictingSources": [
+        {
+          "source": "ixian-tleilaxu",
+          "page": "10",
+          "claim": "Owner may always ask to buy a ghola back; Tleilaxu may refuse."
+        },
+        {
+          "source": "faq-nov2020",
+          "page": "Tleilaxu",
+          "claim": "Buyback only once the ghola is dead and back in the Tanks."
+        }
+      ],
+      "judgement": "Tleilaxu cannot transfer a living ghola back; allow revival by its owner after it dies and returns to the Tanks.",
+      "reason": "The later official FAQ narrows the earlier broad wording.",
+      "confidence": "high",
+      "affected": ["ixian-tleilaxu-manuscript.json#tleilaxu-advanced", "expansion-factions.json#gf9-tleilaxu"],
+      "faqIssueComment": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225371223"
+    },
+    {
+      "id": "EXP-004",
+      "topic": "Treachery discard privacy",
+      "status": "adopted-in-local-draft",
+      "conflictingSources": [
+        {
+          "source": "choam-richese",
+          "page": "4",
+          "claim": "Discard pile is not public and may not be searched without permission from an effect."
+        },
+        {
+          "source": "GF9 FAQ issue collected WBC reference",
+          "claim": "Tournament house rule makes discard piles public."
+        }
+      ],
+      "judgement": "Keep Treachery discards private except for an explicit effect.",
+      "reason": "WBC is a separate ruleset; its house rule does not replace explicit GF9 text.",
+      "confidence": "high",
+      "affected": ["choam-richese-manuscript.json#using-this-expansion"],
+      "faqIssueComment": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225374146"
+    },
+    {
+      "id": "EXP-005",
+      "topic": "Tleilaxu ally revival payer",
+      "status": "adopted-in-local-draft",
+      "conflictingSources": [
+        {
+          "source": "ixian-tleilaxu",
+          "page": "7",
+          "claim": "You may revive allies forces and leaders at half price, ambiguous payer."
+        },
+        {
+          "source": "faq-nov2020",
+          "page": "Tleilaxu",
+          "claim": "Tleilaxu cannot pay for ally revival; ally pays the half-price cost."
+        }
+      ],
+      "judgement": "Ally pays Tleilaxu the half-price rounded-up total. Do not permit Tleilaxu to fund the ally revival as an extra power.",
+      "reason": "Clarifies who performs payment without adding an unstated resource-transfer permission.",
+      "confidence": "high",
+      "affected": ["ixian-tleilaxu-manuscript.json#tleilaxu-revival", "expansion-factions.json#gf9-tleilaxu"],
+      "faqIssueComment": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225366608"
+    },
+    {
+      "id": "EXP-006",
+      "topic": "Fremen extra revival with Tleilaxu",
+      "status": "adopted-in-local-draft",
+      "conflictingSources": [
+        {
+          "source": "base",
+          "page": "Fremen",
+          "claim": "Fremen cannot normally buy extra revival."
+        },
+        {
+          "source": "faq-nov2020",
+          "page": "Fremen",
+          "claim": "Expanded game allows Fremen to pay up to the Tleilaxu-raised limit5."
+        }
+      ],
+      "judgement": "Allow Fremen to pay for extra troops when Tleilaxu raises their limit to5; retain elite revival limits.",
+      "reason": "Explicit expanded-game exception controls the base restriction.",
+      "confidence": "high",
+      "affected": ["ixian-tleilaxu-manuscript.json#tleilaxu-revival"],
+      "faqIssueComment": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225355998"
+    },
+    {
+      "id": "EXP-007",
+      "topic": "HMS collection capacity",
+      "status": "adopted-in-local-draft",
+      "conflictingSources": [
+        {
+          "source": "ixian-tleilaxu",
+          "page": "9",
+          "claim": "Cyborgs collect/carry3 spice."
+        },
+        {
+          "source": "ixian-tleilaxu",
+          "page": "9",
+          "claim": "Moving HMS collects2 per troop inside."
+        }
+      ],
+      "judgement": "Use2 per troop during HMS movement, regardless of Cyborg type; Cyborg3 applies to ordinary collection.",
+      "reason": "The stronghold has a separate specific collection instruction.",
+      "confidence": "high",
+      "affected": ["ixian-tleilaxu-manuscript.json#hidden-mobile-stronghold", "expansion-factions.json#gf9-ixians"]
+    },
+    {
+      "id": "EXP-008",
+      "topic": "CHOAM Worthless timing",
+      "status": "adopted-in-local-draft",
+      "conflictingSources": [
+        {
+          "source": "choam-richese",
+          "page": "7",
+          "claim": "Treachery paragraph begins with end-of-phase discards."
+        },
+        {
+          "source": "choam-richese",
+          "page": "7",
+          "claim": "Jubba protects against a moving storm and Kull Wahad prevents Karama as attempted."
+        }
+      ],
+      "judgement": "Use monetary discards at phase end. Resolve reactive named effects when their triggering event occurs.",
+      "reason": "Waiting until phase end would make the explicitly reactive effects impossible to apply.",
+      "confidence": "medium",
+      "affected": ["choam-richese-manuscript.json#choam-treachery", "expansion-factions.json#gf9-choam"],
+      "faqIssueComment": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225658794"
+    },
+    {
+      "id": "EXP-009",
+      "topic": "Salusa Secundus overlapping thresholds",
+      "status": "adopted-in-local-draft",
+      "conflictingSources": [
+        {
+          "source": "Salusa Secundus printed Homeworld card",
+          "claim": "High and Low printed bands overlap at2."
+        },
+        {
+          "source": "Collected GF9 FAQ issue designer answer",
+          "claim": "From High flip Low below2; from Low flip High above2."
+        }
+      ],
+      "judgement": "At exactly2 Sardaukar keep the current state. Express this exception in card prose and the Homeworld rulebook even if the renderer has one numeric threshold.",
+      "reason": "The two bands create hysteresis rather than a stateless count comparison.",
+      "confidence": "high",
+      "affected": ["ecaz-moritani-manuscript.json#homeworld-battles-and-emperor", "gf9-homeworld-deck/Salusa Secundus"],
+      "faqIssueComment": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225388613"
+    },
+    {
+      "id": "EXP-010",
+      "topic": "Duke Vidal revival versus control",
+      "status": "adopted-in-local-draft",
+      "conflictingSources": [
+        {
+          "source": "ecaz-moritani",
+          "page": "8-9",
+          "claim": "Ecaz may always revive Vidal; only Ambassador or Moritani condition grants control."
+        },
+        {
+          "source": "Collected GF9 FAQ issue designer answer",
+          "claim": "Revived Vidal is set aside, not handed directly to Ecaz."
+        }
+      ],
+      "judgement": "Only Ecaz can revive him, for5. Put him in the neutral set-aside supply after revival. Gain control only through the prescribed abilities.",
+      "reason": "Prevents revival becoming an unlisted third way to gain control.",
+      "confidence": "high",
+      "affected": ["ecaz-moritani-manuscript.json#duke-vidal", "expansion-factions.json#dukeVidal"],
+      "faqIssueComment": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225380152"
+    },
+    {
+      "id": "EXP-011",
+      "topic": "Homeworld Occupier timing",
+      "status": "adopted-in-local-draft",
+      "conflictingSources": [
+        {
+          "source": "ecaz-moritani",
+          "page": "9",
+          "claim": "Starting or ending a turn with troops there describes an Occupier; being alone qualifies immediately."
+        },
+        {
+          "source": "Collected GF9 FAQ issue designer answer",
+          "claim": "Need to defeat native faction or be alone; status persists until no invader troops remain."
+        }
+      ],
+      "judgement": "Use victory over natives with surviving troops, or sole presence, to establish occupation; retain it while troops remain. Mere arrival into a defended Homeworld does not immediately suppress native abilities.",
+      "reason": "The collected designer clarification resolves the ambiguous turn-boundary wording without awarding an occupation effect before battle.",
+      "confidence": "medium",
+      "affected": ["ecaz-moritani-manuscript.json#homeworld-shipment"],
+      "faqIssueComment": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225388613"
+    },
+    {
+      "id": "EXP-012",
+      "topic": "Ecaz special Karama difference",
+      "status": "adopted-in-local-draft",
+      "conflictingSources": [
+        {
+          "source": "ecaz-moritani",
+          "page": "4",
+          "claim": "Add the difference between leader discs; direction not specified."
+        }
+      ],
+      "judgement": "Use absolute printed leader-value difference, excluding bonuses, when neither weapon nor defense was played.",
+      "reason": "Difference between values normally means their nonnegative gap. This remains an interpretation and must be reviewed alongside the final combined battle examples.",
+      "confidence": "medium",
+      "affected": ["ecaz-moritani-manuscript.json#ecaz-advanced", "expansion-factions.json#gf9-ecaz"]
+    },
+    {
+      "id": "EXP-013",
+      "topic": "Nexus Fremen and Richese print variants",
+      "status": "adopted-in-local-draft",
+      "conflictingSources": [
+        {
+          "source": "src/shared/assets/gf9Nexus.ts:6-8",
+          "claim": "Supplied2022 scans give Fremen3 free revivals and Richese the Ixian Secret Ally text."
+        },
+        {
+          "source": "GF9 collected FAQ and card reference set",
+          "claim": "Variants may differ; existing #2071 explicitly preserved those scans."
+        }
+      ],
+      "judgement": "Retain current published scan-based cards until the root review records any selected correction. Do not silently replace the Richese effect because it looks duplicated.",
+      "reason": "Existing deliberate version choice must remain visible and traceable.",
+      "confidence": "high",
+      "affected": ["gf9-nexus-deck", "expansion-coverage.json"]
+    },
+    {
+      "id": "EXP-014",
+      "topic": "Ambassadors versus Terror triggers",
+      "status": "adopted-in-local-draft",
+      "conflictingSources": [
+        {
+          "source": "ecaz-moritani",
+          "page": "5",
+          "claim": "Terror explicitly includes advisors."
+        },
+        {
+          "source": "ecaz-moritani",
+          "page": "7",
+          "claim": "Ambassadors explicitly exclude advisors."
+        }
+      ],
+      "judgement": "Keep the asymmetric trigger rules. No-Field entering can trigger Terror even0; revealing an already-present No-Field or Face Dancer troops cannot.",
+      "reason": "Similar-looking tokens have deliberately different rules.",
+      "confidence": "high",
+      "affected": [
+        "ecaz-moritani-manuscript.json#ecaz-setup",
+        "ecaz-moritani-manuscript.json#moritani-setup-and-terror"
+      ],
+      "faqIssueComment": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225687633"
+    },
+    {
+      "id": "EXP-015",
+      "topic": "Replacement cards and Richese cache Karama",
+      "status": "adopted-in-local-draft",
+      "conflictingSources": [
+        {
+          "source": "choam-richese",
+          "page": "4",
+          "claim": "Updated Poison Tooth/Artillery replace first-expansion cards;2 Karama replace base copies."
+        },
+        {
+          "source": "Collected card manifest45-54",
+          "claim": "10-card Richese cache includes an additional Karama design."
+        }
+      ],
+      "judgement": "Replace editions rather than adding duplicate Poison Tooth/Artillery/core Karama entries. Keep the cache Karama as its own1-count cache member.",
+      "reason": "Prevents expansion inventory counts from creating extra main-deck copies.",
+      "confidence": "high",
+      "affected": ["expansion-coverage.json", "choam-richese-manuscript.json#replacement-card-text"]
+    },
+    {
+      "id": "EXP-016",
+      "topic": "Zoal final revival price",
+      "status": "adopted-in-local-draft",
+      "conflictingSources": [
+        {
+          "source": "ixian-tleilaxu",
+          "page": "7",
+          "claim": "General Tleilaxu half-price revival may tempt a nominal-price interpretation."
+        },
+        {
+          "source": "faq-nov2020",
+          "page": "6",
+          "claim": "Direct question how much Zoal costs to revive is answered3spice."
+        }
+      ],
+      "judgement": "Zoal costs3spice paid. Do not apply another half-price discount to produce2.",
+      "reason": "The specific final revival answer controls the general discount; no source says before-discount3.",
+      "confidence": "high",
+      "affected": ["ixian-tleilaxu-manuscript.json#tleilaxu-revival", "expansion-factions.json#gf9-tleilaxu"],
+      "faqIssueComment": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225368048"
+    },
+    {
+      "id": "EXP-017",
+      "topic": "CHOAM Kull Wahad prevention window",
+      "status": "adopted-in-local-draft",
+      "conflictingSources": [
+        {
+          "source": "choam-richese",
+          "page": "7",
+          "claim": "Prevent a player playing a Karama this phase as attempted."
+        },
+        {
+          "source": "revised-v2.3",
+          "claim": "Treats cancellation as one specific effect."
+        },
+        {
+          "source": "collected GF9 FAQ issue direct Jack Reda",
+          "claim": "Prevention lasts whole phase and prevented card is retained."
+        }
+      ],
+      "judgement": "Kull Wahad stops that player playing any Karama for the rest of this phase. Keep the prevented Karama in hand.",
+      "reason": "Direct designer explanation matches explicit this-phase wording, while the general single-use Karama cancellation rule concerns a different mechanism.",
+      "confidence": "high",
+      "affected": ["choam-richese-manuscript.json#choam-treachery", "expansion-factions.json#gf9-choam"],
+      "faqIssueComment": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225662149"
+    },
+    {
+      "id": "EXP-018",
+      "topic": "Voice on special cards and alternate modes",
+      "status": "adopted-in-local-draft",
+      "conflictingSources": [
+        {
+          "source": "ixian-tleilaxu",
+          "page": "11",
+          "claim": "Special weapons must be named, gives Artillery Strike example."
+        },
+        {
+          "source": "faq-nov2020 and collected direct Jack Reda",
+          "claim": "Generic types apply to listed special cards; only non-generic cards like Artillery and Lasgun require names. Compulsion uses default mode; prohibition can ban alternate role."
+        }
+      ],
+      "judgement": "Use generic categories for cards explicitly declaring that type. Compel only default Weirding Way projectile weapon and Chemistry poison defense; prohibit alternate mode where applicable.",
+      "reason": "Specific explanation identifies why Artillery example needs naming and avoids overgeneralizing every special-tag card.",
+      "confidence": "high",
+      "affected": ["ixian-tleilaxu-manuscript.json#new-cards", "core-manuscript.json#battle-information"],
+      "faqIssueComment": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225382815"
+    },
+    {
+      "id": "EXP-019",
+      "topic": "Terror on reinforcement entry",
+      "status": "adopted-in-local-draft",
+      "conflictingSources": [
+        {
+          "source": "ecaz-moritani",
+          "page": "5",
+          "claim": "Triggers when another faction enters by moving or shipping."
+        },
+        {
+          "source": "collected community answers",
+          "claim": "Disagree whether faction already present can trigger when more troops enter."
+        }
+      ],
+      "judgement": "A new shipment or movement group entering may trigger Terror even when the faction already has troops there. Placement without shipment or movement does not.",
+      "reason": "The operative event is entering troops through the named action, consistent with the designer explanation of reinforcement Intrusion and the ban on triggering by mere flips or placement.",
+      "confidence": "medium",
+      "affected": ["ecaz-moritani-manuscript.json#moritani-setup-and-terror"],
+      "faqIssueComment": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225386364"
+    },
+    {
+      "id": "EXP-020",
+      "topic": "Richese contributing to ally purchase",
+      "status": "adopted-in-local-draft",
+      "conflictingSources": [
+        {
+          "source": "choam-richese",
+          "page": "5",
+          "claim": "Other factions pay Richese, but Richese own purchases pay Emperor/Bank."
+        },
+        {
+          "source": "collected direct Jack Reda",
+          "claim": "Richese contribution to ally own auction goes Emperor/Bank while ally own share goes Richese."
+        }
+      ],
+      "judgement": "Separate the payment sources: Richese contribution goes Emperor or Bank, ally own share goes Richese. Do not cycle incoming money to fund contribution.",
+      "reason": "Specific designer explanation preserves both recipient rules without making ally purchases free or denying normal allied aid.",
+      "confidence": "high",
+      "affected": ["choam-richese-manuscript.json#richese-auctions"],
+      "faqIssueComment": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225373916"
+    },
+    {
+      "id": "EXP-021",
+      "topic": "Cyborg Karama in Advanced battle",
+      "status": "adopted-in-local-draft",
+      "conflictingSources": [
+        {
+          "source": "ixian-tleilaxu",
+          "page": "12",
+          "claim": "Basic Karama table reduces Cyborgs to one normal troop; Advanced table only lists Technology and Suboid Strength additions."
+        },
+        {
+          "source": "faq-nov2020",
+          "page": "Karama: Ixians",
+          "claim": "Describes canceling Cyborg double strength in Basic."
+        },
+        {
+          "source": "ixian-tleilaxu",
+          "page": "9-10",
+          "claim": "Cyborg double strength is inherited into Advanced, with support requirement, and Karama example reduces maximum strength."
+        }
+      ],
+      "judgement": "Cancel the Cyborg strength advantage for one battle in either game. Use ordinary troop values after cancellation: Basic1, Advanced1/2 unsupported or1 supported. Preserve distinct Suboid half strength.",
+      "reason": "The Basic table names the inherited faction advantage; the Advanced table lists additional advantages rather than repealing existing cancellation. Treating the same strength advantage as immune only in Advanced has no explicit supporting rule. This is an interpretation and remains medium confidence.",
+      "confidence": "medium",
+      "affected": ["ixian-tleilaxu-manuscript.json#ixian-tleilaxu-karama", "expansion-factions.json#gf9-ixians"],
+      "faqIssueComment": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225348476"
+    },
+    {
+      "id": "EXP-022",
+      "topic": "Richese and Fremen victory applicability",
+      "status": "corrected-after-independent-review",
+      "conflictingSources": [
+        {
+          "source": "choam-richese",
+          "page": "6",
+          "claim": "Printed under advanced advantages but adds Richese to factions barred from Tuek for Fremen special victory."
+        },
+        {
+          "source": "base",
+          "page": "16",
+          "claim": "Prohibited original factions are Atreides, Harkonnen and Emperor, not Guild."
+        }
+      ],
+      "judgement": "Richese also blocks Fremen special victory at Tuek in either game. Guild occupation does not itself block it.",
+      "reason": "The rule modifies the same faction-specific victory condition, not an Advanced battle ability. The earlier manuscript comparison to Guild was an authoring error and has been removed.",
+      "confidence": "high",
+      "affected": ["choam-richese-manuscript.json#richese-alliance-and-advanced", "expansion-factions.json#gf9-richese"]
+    },
+    {
+      "id": "EXP-023",
+      "topic": "Caladan Homeworld Battle strength",
+      "status": "adopted-in-local-draft",
+      "conflictingSources": [
+        {
+          "source": "ecaz-moritani",
+          "page": "10",
+          "claim": "Lasgun-Shield example uses 3 Atreides losses on High Caladan."
+        },
+        {
+          "source": "collected CaladanCard.png face",
+          "claim": "High and Low Homeworld Battle strength are both 2."
+        }
+      ],
+      "judgement": "Use the explicit Caladan card value of 2 for battles and explosion losses; correct the book example to 2.",
+      "reason": "The rule defines explosion losses by the current printed Homeworld Battle strength. The example does not introduce a different battle strength and appears to retain an earlier card value.",
+      "confidence": "high",
+      "affected": [
+        "ecaz-moritani-manuscript.json#homeworld-battles-and-emperor",
+        "assets-package.json#gf9-homeworld-caladan"
+      ]
+    }
+  ]
+}

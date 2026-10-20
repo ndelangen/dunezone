@@ -1,0 +1,766 @@
+{
+  "schemaVersion": 1,
+  "format": "semantic-faction-drafts-v1",
+  "ruleset": "gf9",
+  "group": "gf9",
+  "notes": [
+    "Root compiler must supply resolved background, colors, decals and calculated complexity.",
+    "Faction names deliberately use GF9 prefix for distinct permanent addresses.",
+    "Leader applicability must keep Auditor out of Basic play without silently losing the Advanced component.",
+    "All troop combat numbers express Advanced unsupported and supported strengths; Basic strength uses the supported value except Suboids remain half.",
+    "Duke Vidal is a separate extra, not a sixth regular Ecaz starting leader.",
+    "No arbitrary artwork is substituted for missing faction head art."
+  ],
+  "factions": [
+    {
+      "key": "gf9-ixians",
+      "name": "GF9 Ixians",
+      "format": "semantic-faction-draft-v1",
+      "factionLeader": {
+        "name": "Prince Rhombur Vernius",
+        "image": "/image/leader/official/rhombor.jpg"
+      },
+      "logo": "/vector/logo/ixian.svg",
+      "themeColor": "#A8A172",
+      "leaders": [
+        {
+          "name": "Dominic Vernius",
+          "strength": 4,
+          "image": "/image/leader/official/dominic.png"
+        },
+        {
+          "name": "C'Tair Pilru",
+          "strength": 5,
+          "image": "/image/leader/official/ctair.png"
+        },
+        {
+          "name": "Tessia Vernius",
+          "strength": 5,
+          "image": "/image/leader/official/tessia.png"
+        },
+        {
+          "name": "Kailea Vernius",
+          "strength": 2,
+          "image": "/image/leader/official/kailea.png"
+        },
+        {
+          "name": "Cammar Pilru",
+          "strength": 1,
+          "image": "/image/leader/official/cammar.png"
+        }
+      ],
+      "troops": [
+        {
+          "name": "Cyborg",
+          "count": 7,
+          "image": "/vector/troop/ixian.svg",
+          "description": "Basic strength 2. Advanced strength 1 unsupported or 2 with 1 spice. Move 2 territories; collect 3 spice.",
+          "combat": {
+            "strength": 1,
+            "supportedStrength": 2,
+            "supportCost": 1
+          }
+        },
+        {
+          "name": "Suboid",
+          "count": 13,
+          "image": "/vector/troop/ixian-engineer.svg",
+          "description": "Always strength 1/2. Move 2 territories with a Cyborg, otherwise 1; normal ornithopters and collection apply. Cannot be supported with spice.",
+          "combat": {
+            "strength": 0.5,
+            "supportedStrength": 0.5,
+            "supportCost": 0
+          }
+        }
+      ],
+      "rules": {
+        "startText": "3 Cyborgs and 3 Suboids in the Hidden Mobile Stronghold; 4 Cyborgs and 10 Suboids in reserves. Place the stronghold after first storm movement in any non-stronghold territory. Start with 10 spice.",
+        "spiceCount": 10,
+        "revivalText": "1 troop free, either type. Paid Cyborg revival costs 3 spice; Suboids cost the normal 2.",
+        "advantages": [
+          {
+            "title": "Starting Treachery",
+            "text": "Before starting Treachery is dealt, draw one card per faction. Keep one, shuffle the rest and deal one to each other faction. Harkonnen then draw their extra starting card."
+          },
+          {
+            "title": "Bidding",
+            "text": "Before normal auctions, inspect one more card than the normal auction supply. Put one face down on the top or bottom of the deck and shuffle the rest as the auction supply.",
+            "karama": "Prevent one use of the inspection and selection."
+          },
+          {
+            "title": "Hidden Mobile Stronghold",
+            "text": "Before later storm movement is dialed or revealed, while you occupy it, move it up to 3 territories, pointing at a sector of a non-stronghold territory. It cannot enter, leave or cross storm. When moving through a spice-bearing sector, collect up to 2 spice per troop inside. It is protected from storm and worms and counts as a stronghold. Only you ship directly inside; other factions enter from its parent territory. BG advisors may accompany your shipments and Fremen may worm-ride inside.",
+            "karama": "Prevent its movement or spice collection for that attempted use."
+          },
+          {
+            "title": "Cyborgs and Suboids",
+            "text": "Cyborgs count 2 in Basic battle. After battle losses, exchange surviving Suboids in that territory for Cyborgs lost in that battle, one for one.",
+            "karama": "Prevent extra movement, Cyborg strength advantage, or one Suboid replacement, as appropriate. Reduce an unsupported dial to its legal maximum."
+          },
+          {
+            "title": "Advanced: Technology",
+            "text": "Once per Bidding round, before a normal card is bid on or Atreides inspects it, exchange it with a card in your hand. This is permitted with a full hand.",
+            "karama": "Prevent the card swap."
+          },
+          {
+            "title": "Advanced: Suboid strength",
+            "text": "Suboids always count 1/2, without spice; paying spice cannot strengthen them. Cyborgs need support for full strength."
+          }
+        ],
+        "alliance": {
+          "text": "After buying a normal auction or Black Market card, your ally may inspect it, immediately discard it and draw the top Treachery Card. This does not apply to a separate Richese cache auction."
+        },
+        "fate": {
+          "label": "Faction Special Karama",
+          "text": "Advanced game, once per game. Spend a Karama Card on your Shipment and Movement turn to move the Hidden Mobile Stronghold up to 2 territories in addition to normal movement."
+        }
+      },
+      "extras": ["hidden-mobile-stronghold"],
+      "sources": [
+        {
+          "source": "ixian-tleilaxu",
+          "page": "3"
+        },
+        {
+          "source": "ixian-tleilaxu",
+          "page": "8"
+        },
+        {
+          "source": "ixian-tleilaxu",
+          "page": "9"
+        },
+        {
+          "source": "ixian-tleilaxu",
+          "page": "10"
+        },
+        {
+          "source": "ixian-tleilaxu",
+          "page": "11"
+        },
+        {
+          "source": "ixian-tleilaxu",
+          "page": "12"
+        }
+      ]
+    },
+    {
+      "key": "gf9-tleilaxu",
+      "name": "GF9 Tleilaxu",
+      "format": "semantic-faction-draft-v1",
+      "factionLeader": {
+        "name": "Masters Council",
+        "image": "/image/leader/official/masters.jpg"
+      },
+      "logo": "/vector/logo/bene-tleilaxu.svg",
+      "themeColor": "#6A1B8E",
+      "leaders": [
+        {
+          "name": "Zoal",
+          "strength": "X",
+          "image": "/image/leader/official/zoal.png"
+        },
+        {
+          "name": "Hidar Fen Ajidica",
+          "strength": 4,
+          "image": "/image/leader/official/hidar.png"
+        },
+        {
+          "name": "Master Zaaf",
+          "strength": 3,
+          "image": "/image/leader/official/zaaf.png"
+        },
+        {
+          "name": "Wykk",
+          "strength": 2,
+          "image": "/image/leader/official/wykk.png"
+        },
+        {
+          "name": "Blin",
+          "strength": 1,
+          "image": "/image/leader/official/blin.png"
+        }
+      ],
+      "troops": [
+        {
+          "name": "Tleilaxu troop",
+          "count": 20,
+          "image": "/vector/troop/bene-tleilaxu.svg",
+          "description": "Normal battle strength and spice support.",
+          "combat": {
+            "strength": 0.5,
+            "supportedStrength": 1,
+            "supportCost": 1
+          }
+        }
+      ],
+      "rules": {
+        "startText": "20 troops in reserves. Start with 5 spice. No normal Traitor selection. After other factions select traitors and return unused cards, shuffle and draw 3 Face Dancers.",
+        "spiceCount": 5,
+        "revivalText": "2 troops free. No troop revival limit; pay the Bank half the normal total revival cost, rounded up.",
+        "advantages": [
+          {
+            "title": "Face Dancers",
+            "text": "After another faction wins any battle, reveal a Face Dancer matching its leader. Resolve the win normally, then send that leader to the Tanks without spice for the reveal. Return the winner's surviving troops to reserves and replace up to that number with your troops from reserves and/or Arrakis. KH does not protect against this. Revealed cards stay face up until all 3 are revealed; then return all, shuffle and draw 3. Each Mentat Pause you may instead replace one unrevealed Face Dancer.",
+            "karama": "Only the Mentat Pause replacement can be stopped; the reveal and replacement of troops cannot."
+          },
+          {
+            "title": "Revival income",
+            "text": "Other factions pay you their revival costs. For each faction using free revival or a Ghola Card, including yourself, take 1 spice from the Bank.",
+            "karama": "Prevent the payment or income for the relevant revival."
+          },
+          {
+            "title": "Revival limits",
+            "text": "You may let another faction revive up to 5 troops instead of 3, including paid extra Fremen revival. Special elite limits still apply.",
+            "karama": "Prevent the increased limit for the relevant revival."
+          },
+          {
+            "title": "Early leader revival",
+            "text": "A faction not otherwise eligible to revive a leader may ask you for one particular dead leader, face up or down. Set a price and revive it if paid. This remains one leader per faction per Revival phase.",
+            "karama": "Prevent that early revival."
+          },
+          {
+            "title": "Zoal",
+            "text": "For battle and spice from his death, Zoal copies the opposing leader disc value, 0 against a Cheap Hero. Do not copy KH or skill bonuses. Reviving Zoal costs 3 spice; do not halve this explicit price again."
+          },
+          {
+            "title": "Advanced: Gholas",
+            "text": "With fewer than 5 active leaders, revive other factions' dead leaders at your discount up to 5 active leaders. Face-down leaders qualify. A ghola can still turn traitor. Do not draw a Leader Skill. Only sell a ghola back after it dies and returns to the Tanks. Auditor and Duke Vidal cannot be your gholas.",
+            "karama": "Prevent using the ghola acquisition advantage that turn."
+          }
+        ],
+        "alliance": {
+          "text": "You may offer your ally half-price troop and leader revival, rounding the total up. Your ally pays you; you cannot pay its revival bill. CHOAM may halve its total troop cost."
+        },
+        "fate": {
+          "label": "Faction Special Karama",
+          "text": "Advanced game, once per game. Spend a Karama Card during Revival to prevent one player from reviving troops and/or a leader."
+        }
+      },
+      "extras": [],
+      "sources": [
+        {
+          "source": "ixian-tleilaxu",
+          "page": "3"
+        },
+        {
+          "source": "ixian-tleilaxu",
+          "page": "6"
+        },
+        {
+          "source": "ixian-tleilaxu",
+          "page": "7"
+        },
+        {
+          "source": "ixian-tleilaxu",
+          "page": "10"
+        },
+        {
+          "source": "ixian-tleilaxu",
+          "page": "11"
+        },
+        {
+          "source": "ixian-tleilaxu",
+          "page": "12"
+        }
+      ]
+    },
+    {
+      "key": "gf9-richese",
+      "name": "GF9 Richese",
+      "format": "semantic-faction-draft-v1",
+      "factionLeader": {
+        "name": "Count Ilban Richese",
+        "artworkStatus": "needs-existing-catalogue-match"
+      },
+      "logo": "/vector/logo/richese.svg",
+      "themeColor": "#B7B6A9",
+      "leaders": [
+        {
+          "name": "Premier Ein Calimar",
+          "strength": 5,
+          "image": "/image/leader/official/ein-calimar.png"
+        },
+        {
+          "name": "Lady Helena",
+          "strength": 4,
+          "image": "/image/leader/official/lady-helena.png"
+        },
+        {
+          "name": "Flinto Kinnis",
+          "strength": 3,
+          "image": "/image/leader/official/flinto-kinnis.png"
+        },
+        {
+          "name": "Haloa Rund",
+          "strength": 2,
+          "image": "/image/leader/official/haloa-rund.png"
+        },
+        {
+          "name": "Talis Balt",
+          "strength": 2,
+          "image": "/image/leader/official/talis-balt.png"
+        }
+      ],
+      "troops": [
+        {
+          "name": "Richese troop",
+          "count": 20,
+          "image": "/vector/troop/richese.svg",
+          "description": "Normal battle strength and spice support.",
+          "combat": {
+            "strength": 0.5,
+            "supportedStrength": 1,
+            "supportCost": 1
+          }
+        }
+      ],
+      "rules": {
+        "startText": "20 troops in reserves. Start with 5 spice. Keep a separate 10-card Richese cache, outside your hand, and No-Field tokens 0, 3 and 5.",
+        "spiceCount": 5,
+        "revivalText": "2 troops free.",
+        "advantages": [
+          {
+            "title": "Cache auction",
+            "text": "Each Bidding round replace one normal card with a revealed cache card. Before Ixians act, declare it first or last. Use Once Around or Silent Auction. Other buyers pay you; your own purchase pays Emperor or Bank. No Karama acquisition. If nobody pays, take it free or remove it. Used cache cards enter normal discards.",
+            "karama": "Prevent the cache auction at the start of the round."
+          },
+          {
+            "title": "Once Around",
+            "text": "Choose a direction. Starting with your neighbor on that side, each eligible player may pass or bid higher once. You bid last or let the high bidder buy."
+          },
+          {
+            "title": "Silent Auction",
+            "text": "Eligible factions secretly hold spice and reveal together. Highest wins; ties use storm order. If all offer zero, take the card free or remove it."
+          },
+          {
+            "title": "No-Field",
+            "text": "Pay for one shipped troop and place a token face down instead. It counts as one troop until revealed, even 0. Move it normally. Reveal before Battle if desired, or with Battle Plans, placing that many reserve troops, limited by availability. Storm/worm reveals and kills them. You cannot dial more than available reserves, and Atreides cannot ask your dial. Only one token on Arrakis; never use the same number consecutively for yourself or your ally.",
+            "karama": "Prevent one No-Field shipment."
+          },
+          {
+            "title": "Advanced: Black Market",
+            "text": "Before Bidding Declaration offer one hand card without revealing it; you may lie, Atreides may inspect. Use normal, Once Around or Silent bidding. If sold, collect payment and replace one normal auction card. If no bid, keep it. No Karama acquisition.",
+            "karama": "Prevent the Black Market sale."
+          },
+          {
+            "title": "Fremen victory",
+            "text": "Your occupation of Tuek's Sietch prevents the Fremen special victory in Basic and Advanced play, alongside Atreides, Harkonnen and Emperor occupation."
+          }
+        ],
+        "alliance": {
+          "text": "Ship an ally with an available No-Field, paying for one troop and immediately revealing up to its number from the ally's reserves. Reveal any token already on Arrakis first. Either ally may pay. You may give your ally a Richese card from your hand if it has room."
+        },
+        "fate": {
+          "label": "Faction Special Karama",
+          "text": "Advanced game, once per game. Spend a Karama Card and 3 spice at any time to secretly buy one card remaining in your cache."
+        }
+      },
+      "extras": ["gf9-richese-cache", "gf9-no-field-tokens"],
+      "sources": [
+        {
+          "source": "choam-richese",
+          "page": "3"
+        },
+        {
+          "source": "choam-richese",
+          "page": "5"
+        },
+        {
+          "source": "choam-richese",
+          "page": "6"
+        },
+        {
+          "source": "choam-richese",
+          "page": "10"
+        },
+        {
+          "source": "choam-richese",
+          "page": "11"
+        },
+        {
+          "source": "choam-richese",
+          "page": "12"
+        }
+      ]
+    },
+    {
+      "key": "gf9-choam",
+      "name": "GF9 CHOAM",
+      "format": "semantic-faction-draft-v1",
+      "factionLeader": {
+        "name": "Ur-Director Malina Aru",
+        "artworkStatus": "needs-existing-catalogue-match"
+      },
+      "logo": "/vector/logo/choam.svg",
+      "themeColor": "#B11B20",
+      "leaders": [
+        {
+          "name": "Frankos Aru",
+          "strength": 4,
+          "image": "/image/leader/official/frankos-aru.png"
+        },
+        {
+          "name": "Lady Jalma",
+          "strength": 4,
+          "image": "/image/leader/official/lady-yalma.png"
+        },
+        {
+          "name": "Rajiv Londine",
+          "strength": 3,
+          "image": "/image/leader/official/rajiv-londine.png"
+        },
+        {
+          "name": "Duke Verdun",
+          "strength": 3,
+          "image": "/image/leader/official/duke-verdun.png"
+        },
+        {
+          "name": "Viscount Tull",
+          "strength": 2,
+          "image": "/image/leader/official/viscount-tull.png"
+        },
+        {
+          "name": "Auditor",
+          "strength": 2,
+          "image": "/image/leader/official/auditor.png",
+          "applicability": "advanced"
+        }
+      ],
+      "troops": [
+        {
+          "name": "CHOAM troop",
+          "count": 20,
+          "image": "/vector/troop/choam.svg",
+          "description": "Normal battle strength and spice support.",
+          "combat": {
+            "strength": 0.5,
+            "supportedStrength": 1,
+            "supportCost": 1
+          }
+        }
+      ],
+      "rules": {
+        "startText": "20 troops in reserves. Start with 2 spice. In Advanced play include the Auditor and its Traitor Card; the Auditor is unavailable in Basic play.",
+        "spiceCount": 2,
+        "revivalText": "0 troops free. Unlimited paid troop revival at 1 spice each.",
+        "advantages": [
+          {
+            "title": "Charity",
+            "text": "Before anyone collects Charity, take 2 spice per faction from the Bank. Pay other factions' normal Charity from your spice. Your faction income alone does not trigger Spice Production.",
+            "karama": "Prevent special income for that use. Ordinary qualifying Charity is paid by the Bank."
+          },
+          {
+            "title": "Treachery",
+            "text": "Hand limit 5. At any phase end, reveal exact duplicates and discard surplus for 3 spice each, or discard a Worthless Card for 2 spice. Different Snooper types are not duplicates.",
+            "karama": "Prevent a discard for spice or the relevant Worthless effect."
+          },
+          {
+            "title": "Worthless effects",
+            "text": "Instead of spice, discard: Baliset to prevent one player's movement into your territory, not shipment; Jubba Cloak to protect your troops in one territory from storm; Kull Wahad when attempted to stop that player playing Karama for the phase; Kulon for one extra movement territory; La La La to prevent one free revival; Trip to Gamont in Mentat Pause to return one enemy troop to reserves. Use reactive effects when their event occurs."
+          },
+          {
+            "title": "Inflation",
+            "text": "In Mentat Pause place Double or Cancel to affect next turn's Charity, including your own income and BG. Flip next pause; remove after the following turn. No bribes while Double is face up.",
+            "karama": "Prevent initial placement, not later flipping."
+          },
+          {
+            "title": "Advanced: Auditor",
+            "text": "After using the Auditor in battle, inspect 2 random unused opponent hand cards if it lives, 1 if killed. The opponent may pay 1 spice per card actually available to cancel the whole audit. Revive Auditor as your one leader for the turn regardless of other leaders. It returns to the Tanks face up and cannot be captured, a ghola or skilled.",
+            "karama": "Prevent the audit."
+          },
+          {
+            "title": "Advanced: Support income",
+            "text": "Receive half, rounded down, of each other faction's spice support payment in battle, including Arrakeen-card support. Your own support goes to the Bank. Receive none if a traitor is called.",
+            "karama": "Prevent income for that battle."
+          }
+        ],
+        "alliance": {
+          "text": "Once per turn at any phase end, exchange one Treachery Card each with your ally. The trade must be two-way. You may also pay some or all of your ally's spice support in battle, to the Bank."
+        },
+        "fate": {
+          "label": "Faction Special Karama",
+          "text": "Advanced game, once per game. Spend a Karama Card at any time to discard any number of other Treachery Cards from your hand for 3 spice each, including Worthless Cards."
+        }
+      },
+      "extras": ["gf9-inflation-token"],
+      "sources": [
+        {
+          "source": "choam-richese",
+          "page": "3"
+        },
+        {
+          "source": "choam-richese",
+          "page": "4"
+        },
+        {
+          "source": "choam-richese",
+          "page": "7"
+        },
+        {
+          "source": "choam-richese",
+          "page": "8"
+        },
+        {
+          "source": "choam-richese",
+          "page": "10"
+        },
+        {
+          "source": "choam-richese",
+          "page": "12"
+        }
+      ]
+    },
+    {
+      "key": "gf9-ecaz",
+      "name": "GF9 Ecaz",
+      "format": "semantic-faction-draft-v1",
+      "factionLeader": {
+        "name": "Archduke Armand Ecaz",
+        "image": "/image/leader/ilya/ecaz.jpg"
+      },
+      "logo": "/vector/logo/ecaz.svg",
+      "themeColor": "#8B3C8C",
+      "leaders": [
+        {
+          "name": "Sanya Ecaz",
+          "strength": 4,
+          "image": "/image/leader/official/sanya-ecaz.png"
+        },
+        {
+          "name": "Whitmore Bludd",
+          "strength": 4,
+          "image": "/image/leader/official/whitemore-bludd.png"
+        },
+        {
+          "name": "Ilesa Ecaz",
+          "strength": 3,
+          "image": "/image/leader/official/ilesa-ecaz.png"
+        },
+        {
+          "name": "Rivvy Dinari",
+          "strength": 3,
+          "image": "/image/leader/brainfood/rivvy-dinari.png"
+        },
+        {
+          "name": "Bindikk Narvi",
+          "strength": 2,
+          "image": "/image/leader/official/bindikk-narvi.png"
+        }
+      ],
+      "troops": [
+        {
+          "name": "Ecaz troop",
+          "count": 20,
+          "image": "/vector/troop/ecaz.svg",
+          "description": "Normal battle strength and spice support.",
+          "combat": {
+            "strength": 0.5,
+            "supportedStrength": 1,
+            "supportCost": 1
+          }
+        }
+      ],
+      "rules": {
+        "startText": "6 troops in Imperial Basin, 14 in reserves. Start with 12 spice. Take your Ecaz Ambassador and 5 random Ambassadors from the remaining 10. Set Duke Vidal aside.",
+        "spiceCount": 12,
+        "revivalText": "2 troops free. Only you may revive Duke Vidal, for 5 spice, returning him to the set-aside supply.",
+        "advantages": [
+          {
+            "title": "Ambassadors",
+            "text": "At end of Revival buy placements in strongholds not in storm and without another Ambassador: costs 1, then 2, then 3 spice that turn. An entering faction may trigger the effect, except your ally, advisors or the matching faction. Resolve immediately and set aside. After all 5 random tokens trigger, redraw 5 from the unused pool. Ecaz returns after use; BG leaves the game. Storm/explosion returns tokens to your supply.",
+            "karama": "Prevent Ambassador placement for that turn."
+          },
+          {
+            "title": "Occupy",
+            "text": "You and your ally may co-occupy territories as one faction. Split desert spice by agreement, or evenly with the odd spice to your ally. Both get ornithopters when applicable. Co-occupied strongholds count once and you control them. Win with 3 if both of you occupy all 3.",
+            "karama": "Before Battle Plans, prevent battle cooperation: the battling faction dials its own troops and the other contributes zero. Does not change the 3-stronghold win."
+          },
+          {
+            "title": "Co-occupied battles",
+            "text": "Choose the battling faction's leader, cards and abilities after battle order is fixed. Dial the ally's troops normally and add half your Ecaz troops rounded up, without spice for your contribution. On a win, half your Ecaz troops rounded down remain; send the rest to the Tanks. Use the printed rule over its contradictory example."
+          },
+          {
+            "title": "Duke Vidal revival",
+            "text": "Revive Vidal regardless of your other leaders. With 5 leaders in the Tanks, including Vidal, you may revive your other leaders normally."
+          },
+          {
+            "title": "Advanced: Loyalty",
+            "text": "Before Traitor selection, set aside one random Ecaz Traitor Card face up. Never add it to the deck."
+          },
+          {
+            "title": "Advanced: Collection",
+            "text": "Both you and your ally collect full stronghold income from co-occupied Arrakeen, Carthag or Tuek's Sietch.",
+            "karama": "Prevent Ecaz's income; the ally still collects."
+          }
+        ],
+        "alliance": {
+          "text": "You may choose to give your ally a triggered Ambassador's benefit."
+        },
+        "fate": {
+          "label": "Faction Special Karama",
+          "text": "Advanced game, once per game. If you played neither a weapon nor defense, spend a Karama Card before revealing plans to add the absolute difference between the two printed leader values to your dial."
+        }
+      },
+      "extras": ["gf9-ambassador-tokens", "gf9-duke-vidal"],
+      "sources": [
+        {
+          "source": "ecaz-moritani",
+          "page": "3"
+        },
+        {
+          "source": "ecaz-moritani",
+          "page": "4"
+        },
+        {
+          "source": "ecaz-moritani",
+          "page": "7"
+        },
+        {
+          "source": "ecaz-moritani",
+          "page": "8"
+        },
+        {
+          "source": "ecaz-moritani",
+          "page": "9"
+        },
+        {
+          "source": "ecaz-moritani",
+          "page": "15"
+        },
+        {
+          "source": "ecaz-moritani",
+          "page": "16"
+        }
+      ]
+    },
+    {
+      "key": "gf9-moritani",
+      "name": "GF9 Moritani",
+      "format": "semantic-faction-draft-v1",
+      "factionLeader": {
+        "name": "Viscount Hundro Moritani",
+        "image": "/image/leader/ilya/hundro.jpg"
+      },
+      "logo": "/vector/logo/moritani.svg",
+      "themeColor": "#3C8798",
+      "leaders": [
+        {
+          "name": "Lupino Ord",
+          "strength": 5,
+          "image": "/image/leader/official/lupino-ord.png"
+        },
+        {
+          "name": "Grieu Kronos",
+          "strength": 4,
+          "image": "/image/leader/official/grieu-kronos.png"
+        },
+        {
+          "name": "Hiih Resser",
+          "strength": 4,
+          "image": "/image/leader/official/hiih-resser.png"
+        },
+        {
+          "name": "Trin Kronos",
+          "strength": 2,
+          "image": "/image/leader/official/trin-kronos.png"
+        },
+        {
+          "name": "Vando Terboli",
+          "strength": 1,
+          "image": "/image/leader/official/vando-terboli.png"
+        }
+      ],
+      "troops": [
+        {
+          "name": "Moritani troop",
+          "count": 20,
+          "image": "/vector/troop/moritani.svg",
+          "description": "Normal battle strength and spice support.",
+          "combat": {
+            "strength": 0.5,
+            "supportedStrength": 1,
+            "supportCost": 1
+          }
+        }
+      ],
+      "rules": {
+        "startText": "After all other factions set up, place 6 troops in any unoccupied territory, with 14 in reserves. Start with 12 spice. Keep 6 Terror tokens hidden.",
+        "spiceCount": 12,
+        "revivalText": "2 troops free.",
+        "advantages": [
+          {
+            "title": "Terrorize",
+            "text": "In Mentat Pause place one hidden Terror in a stronghold without one, or move one there, even under storm. Never use HMS or Homeworlds. Reveal when another non-ally moves or ships in, including advisors and No-Field 0. Terror survives storm/explosion. A Face Dancer or No-Field reveal does not trigger it.",
+            "karama": "Prevent placing or moving a token."
+          },
+          {
+            "title": "Terror effects",
+            "text": "Assassination: kill a random enemy leader for its value, 3 for Zoal. Atomics: kill all troops, prohibit future shipments and reduce your and your ally's hand limits by 1. Extortion: gain 5 delayed spice and recover token in Mentat Pause unless one player pays 3. Robbery: steal half their spice rounded up or draw a card then discard if over limit. Sabotage: discard a random enemy card, then optionally give one of yours. Sneak Attack: place up to 5 reserves here free, even in Aftermath, obeying storm and occupancy. Revealed tokens otherwise leave the game."
+          },
+          {
+            "title": "Enemy of My Enemy",
+            "text": "Before revealing Terror triggered by a non-Ecaz faction, offer it an alliance. Acceptance breaks existing alliances and returns the token to you. Refusal requires the reveal.",
+            "karama": "Prevent forming the alliance; you may still reveal Terror."
+          },
+          {
+            "title": "Duke Vidal",
+            "text": "At end of Shipment and Movement, gain Vidal if you face battles in at least 2 strongholds, excluding Ecaz battles, and he is available. Use him once, then set aside by turn end if not in Tanks or captured.",
+            "karama": "Prevent gaining him; does not remove him if already held."
+          },
+          {
+            "title": "Advanced: Assassinate Leaders",
+            "text": "After losing with no traitor called and the enemy leader surviving, reveal a Traitor Card for another leader of that enemy faction. If alive, kill it for its value, 3 for Zoal. In Mentat Pause set the card face up as a marker and draw another. Once per enemy faction. Revealing a traitor normally forfeits this advantage permanently. Karama cannot stop it."
+          }
+        ],
+        "alliance": {
+          "text": "When your ally loses a battle that had a winner, it may keep one played card it could have kept had it won."
+        },
+        "fate": {
+          "label": "Faction Special Karama",
+          "text": "Advanced game, once per game. After you lose a battle, spend a Karama Card to choose which of your opponent's played Treachery Cards they keep or discard."
+        }
+      },
+      "extras": ["gf9-terror-tokens", "gf9-atomics-aftermath", "gf9-duke-vidal"],
+      "sources": [
+        {
+          "source": "ecaz-moritani",
+          "page": "3"
+        },
+        {
+          "source": "ecaz-moritani",
+          "page": "4"
+        },
+        {
+          "source": "ecaz-moritani",
+          "page": "5"
+        },
+        {
+          "source": "ecaz-moritani",
+          "page": "6"
+        },
+        {
+          "source": "ecaz-moritani",
+          "page": "9"
+        },
+        {
+          "source": "ecaz-moritani",
+          "page": "14"
+        },
+        {
+          "source": "ecaz-moritani",
+          "page": "16"
+        }
+      ]
+    }
+  ],
+  "dukeVidal": {
+    "name": "Duke Prad Vidal",
+    "strength": 6,
+    "imageStatus": "needs-existing-catalogue-match",
+    "ownerFaction": "gf9-ecaz",
+    "startsControlled": false,
+    "traitorCard": false,
+    "revivalCost": 5,
+    "rules": "Set aside after revival; acquired only through Ecaz Ambassador or Moritani condition. Only Ecaz can revive him."
+  }
+}
