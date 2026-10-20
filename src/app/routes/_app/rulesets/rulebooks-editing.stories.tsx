@@ -493,3 +493,31 @@ export const RawJsonSettingsAndContents = meta.story({
     await expect(saved.currentEdition.edition_number).toBe(before.currentEdition.edition_number);
   },
 });
+
+export const BookSizeRespectsPageLayouts = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#RULE/details' },
+  parameters: {
+    database: db((baseline) => {
+      withFinalRulebooks(baseline);
+      const page = baseline.rulebook_drafts[0]!.contents.pagesById.RULE!;
+      page.layoutId = 'two-columns';
+      page.blockOrderByRegion = { column1: page.blockOrderByRegion.content ?? [], column2: [] };
+      return baseline;
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const size = await page.findByRole('combobox', { name: 'Book size' }, { timeout: 30_000 });
+    await userEvent.click(size);
+    const tall = page.getByRole('option', { name: /Tall .*Page layouts do not fit/ });
+    const expansion = page.getByRole('option', { name: /GF9 expansion .*Page layouts do not fit/ });
+    await expect(tall).toHaveAttribute('aria-disabled', 'true');
+    await expect(expansion).toHaveAttribute('aria-disabled', 'true');
+    await userEvent.click(expansion);
+    await expect(size).toHaveValue('A4 (210 × 297 mm)');
+    await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
+    await userEvent.click(page.getByRole('option', { name: 'GF9 core (254 × 254 mm)' }));
+    await expect(size).toHaveValue('GF9 core (254 × 254 mm)');
+    await expect(page.getByRole('button', { name: 'Save' })).toBeEnabled();
+  },
+});

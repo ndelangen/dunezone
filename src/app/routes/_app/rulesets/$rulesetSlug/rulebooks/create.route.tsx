@@ -185,7 +185,7 @@ function RulebookSettingsChoices({
         {onSizeChange ? (
           <ControlBlock
             title="Size"
-            description="The Size is fixed once the Rulebook is created. Tall is A4 folded lengthwise."
+            description="Size can be changed later when every Page layout supports it. Tall is A4 folded lengthwise."
             input={
               <PreviewChoice
                 label="Rulebook Size"
@@ -209,7 +209,7 @@ function RulebookSettingsChoices({
         )}
         <ControlBlock
           title="Design"
-          description="The Design is fixed once the Rulebook is created. These examples show two facing pages."
+          description="Design can be changed later. These examples show two facing pages."
           input={
             <PreviewChoice
               label="Rulebook Design"

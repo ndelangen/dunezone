@@ -36,6 +36,7 @@ import {
   getRulebookLayoutsForSize,
   getRulebookRegionOrder,
   isRulebookCollectionBlock,
+  isRulebookLayoutSupported,
   rulebookBlockKindLabels,
   rulebookBlockKinds,
   rulebookDraftEntitySchemas,
@@ -2685,13 +2686,51 @@ function saveResponseEvent(kind: 'saved' | 'stale', saved: Parameters<typeof cre
 
 type DraftReferences = ReturnType<typeof collectRulebookReferenceIds>;
 
+function rulebookClippingWarnings(draft: RulebookContentsDraftV1, clippingReport: RulebookClippingReport) {
+  return clippingReport.flatMap(({ pageId, blocks, footerFields }) => {
+    const page = draft.pagesById[pageId];
+    if (!page) {
+      return [];
+    }
+    const pageNumber = draft.pageOrder.indexOf(page.id) + 1;
+    const blockWarnings = blocks.flatMap(({ blockId, regionKey }) => {
+      const block = page.blocksById[blockId];
+      const region = getRulebookLayout(page.layoutId).regions.find((candidate) => candidate.key === regionKey);
+      return block && region?.kind === 'block'
+        ? [
+            {
+              source: `Page ${pageNumber} / ${blockWarningLabel(page, block)}`,
+              complaint: 'is clipped',
+              help: 'Part of this Block will not be visible in the published Rulebook.',
+              pageId: page.id,
+              leaf: block.id,
+            },
+          ]
+        : [];
+    });
+    const footerWarnings =
+      page.layoutId === 'cover' && getRulebookCoverFooter(page.controlValues).enabled
+        ? footerFields.map((field) => ({
+            source: `Page ${pageNumber} / Cover footer ${field}`,
+            complaint: 'is clipped',
+            help: `Part of this footer ${field} will not be visible in the published Rulebook.`,
+            pageId,
+            leaf: 'footer',
+          }))
+        : [];
+    return [...blockWarnings, ...footerWarnings];
+  });
+}
+
 function RulebookSettingsEditor({
   settings,
+  layoutIds,
   conflict,
   onChange,
   onResolve,
 }: {
   settings: RulebookSettings;
+  layoutIds: readonly RulebookPageLayoutId[];
   conflict: boolean;
   onChange: (settings: RulebookSettings) => void;
   onResolve: (choice: 'local' | 'saved') => void;
@@ -2705,10 +2744,14 @@ function RulebookSettingsEditor({
             <Select
               aria-label="Book size"
               value={settings.size}
-              data={rulebookSizeCatalogue.map(({ id, label, widthMm, heightMm }) => ({
-                value: id,
-                label: `${label} (${widthMm} × ${heightMm} mm)`,
-              }))}
+              data={rulebookSizeCatalogue.map(({ id, label, widthMm, heightMm }) => {
+                const supported = layoutIds.every((layoutId) => isRulebookLayoutSupported(layoutId, id));
+                return {
+                  value: id,
+                  label: `${label} (${widthMm} × ${heightMm} mm)${supported ? '' : ' (Page layouts do not fit)'}`,
+                  disabled: !supported,
+                };
+              })}
               onChange={(size) => {
                 const parsed = rulebookSettingsSchema.safeParse({ ...settings, size });
                 if (parsed.success) {
@@ -2785,42 +2828,7 @@ function RulebookEditorSession({
   const receiveClippingReport = useCallback((next: RulebookClippingReport) => {
     setClippingReport((current) => (sameClippingReport(current, next) ? current : next));
   }, []);
-  const clippingWarnings =
-    result.status === 'ready'
-      ? clippingReport.flatMap(({ pageId, blocks, footerFields }) => {
-          const page = result.draft.pagesById[pageId];
-          if (!page) {
-            return [];
-          }
-          const pageNumber = result.draft.pageOrder.indexOf(page.id) + 1;
-          const blockWarnings = blocks.flatMap(({ blockId, regionKey }) => {
-            const block = page.blocksById[blockId];
-            const region = getRulebookLayout(page.layoutId).regions.find((candidate) => candidate.key === regionKey);
-            return block && region?.kind === 'block'
-              ? [
-                  {
-                    source: `Page ${pageNumber} / ${blockWarningLabel(page, block)}`,
-                    complaint: 'is clipped',
-                    help: 'Part of this Block will not be visible in the published Rulebook.',
-                    pageId: page.id,
-                    leaf: block.id,
-                  },
-                ]
-              : [];
-          });
-          const footerWarnings =
-            page.layoutId === 'cover' && getRulebookCoverFooter(page.controlValues).enabled
-              ? footerFields.map((field) => ({
-                  source: `Page ${pageNumber} / Cover footer ${field}`,
-                  complaint: 'is clipped',
-                  help: `Part of this footer ${field} will not be visible in the published Rulebook.`,
-                  pageId,
-                  leaf: 'footer',
-                }))
-              : [];
-          return [...blockWarnings, ...footerWarnings];
-        })
-      : [];
+  const clippingWarnings = result.status === 'ready' ? rulebookClippingWarnings(result.draft, clippingReport) : [];
   const header = useEditPageHeader({
     warnings: clippingWarnings,
     onFocusWarning: (warning) => {
@@ -3109,6 +3117,7 @@ function RulebookEditorSession({
           ) : null}
           <RulebookSettingsEditor
             settings={result.settings}
+            layoutIds={result.draft.pageOrder.map((id) => result.draft.pagesById[id]!.layoutId)}
             conflict={result.settingsConflict}
             onChange={(settings) => dispatch({ kind: 'replace-settings', settings })}
             onResolve={(choice) => dispatch({ kind: 'resolve-settings', choice })}
