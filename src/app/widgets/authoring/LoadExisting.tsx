@@ -327,26 +327,41 @@ function RawLoadInput<Draft>({
     input.current?.focus();
   }, []);
   const generation = useRef(0);
+  const validate = raw.validate;
   useEffect(
     () => () => {
       generation.current += 1;
     },
     []
   );
-  const validate = async () => {
+  useEffect(() => {
+    if (!state.text.trim()) {
+      return;
+    }
     const ticket = ++generation.current;
     patch({ busy: true, error: null, choice: null });
-    try {
-      const choice = await raw.validate(state.text);
-      if (ticket === generation.current) {
-        patch({ choice, busy: false });
-      }
-    } catch (error) {
-      if (ticket === generation.current) {
-        patch({ error: rawAuthoringError(error), busy: false });
-      }
-    }
-  };
+    /* Wait for a pause in editing; invalid JSON reaches no reference read. */
+    const timer = setTimeout(() => {
+      void Promise.resolve()
+        .then(() => validate(state.text))
+        .then(
+          (choice) => {
+            if (ticket === generation.current) {
+              patch({ choice, busy: false });
+            }
+          },
+          (error: unknown) => {
+            if (ticket === generation.current) {
+              patch({ error: rawAuthoringError(error), busy: false });
+            }
+          }
+        );
+    }, 400);
+    return () => {
+      clearTimeout(timer);
+      generation.current += 1;
+    };
+  }, [state.text, validate]);
   const rename = raw.rename && state.choice && raw.rename.currentName !== state.choice.name ? raw.rename : null;
   return (
     <Stack gap="sm">
@@ -360,7 +375,13 @@ function RawLoadInput<Draft>({
         value={state.text}
         onChange={(event) => {
           generation.current += 1;
-          patch({ text: event.currentTarget.value, choice: null, busy: false, error: null, rename: false });
+          patch({
+            text: event.currentTarget.value,
+            choice: null,
+            busy: Boolean(event.currentTarget.value.trim()),
+            error: null,
+            rename: false,
+          });
         }}
       />
       {state.error ? (
@@ -386,9 +407,6 @@ function RawLoadInput<Draft>({
       <Group justify="flex-end">
         <Button variant="default" onClick={onClose}>
           Cancel
-        </Button>
-        <Button variant="default" loading={state.busy} disabled={!state.text.trim()} onClick={() => void validate()}>
-          Validate JSON
         </Button>
         <Button
           disabled={!state.choice || state.busy}

@@ -148,7 +148,6 @@ export const RawDeckKeepsMembers = meta.story({
     await userEvent.paste(
       JSON.stringify({ ...(before.asset.data as Record<string, unknown>), about: 'Reviewed deck description.' })
     );
-    await userEvent.click(page.getByRole('button', { name: 'Validate JSON' }));
     await waitFor(() => expect(page.getByRole('button', { name: 'Load deck' })).toBeEnabled());
     await userEvent.click(page.getByRole('button', { name: 'Load deck' }));
     await userEvent.click(page.getByRole('button', { name: 'Save deck' }));
@@ -200,7 +199,6 @@ function rawLinkedToken(type: 'token-disc' | 'token-enhance', slug: string) {
       await userEvent.click(await page.findByRole('button', { name: 'Paste JSON' }));
       await userEvent.click(page.getByRole('textbox', { name: 'Writable JSON' }));
       await userEvent.paste(JSON.stringify(value));
-      await userEvent.click(page.getByRole('button', { name: 'Validate JSON' }));
       await waitFor(() => expect(page.getByRole('button', { name: 'Load token' })).toBeEnabled());
       await userEvent.click(page.getByRole('button', { name: 'Load token' }));
       const proof = page.getAllByText('Back, from Authored token back')[0];
@@ -252,7 +250,6 @@ export const RawDeckLinkedBack = meta.story({
     await userEvent.click(await page.findByRole('button', { name: 'Paste JSON' }));
     await userEvent.click(page.getByRole('textbox', { name: 'Writable JSON' }));
     await userEvent.paste(JSON.stringify(value));
-    await userEvent.click(page.getByRole('button', { name: 'Validate JSON' }));
     await waitFor(() => expect(page.getByRole('button', { name: 'Load deck' })).toBeEnabled());
     await userEvent.click(page.getByRole('button', { name: 'Load deck' }));
     await userEvent.click(page.getByRole('tab', { name: 'Back' }));
@@ -291,7 +288,6 @@ export const RawStyledTokenSave = meta.story({
     await userEvent.click(await page.findByRole('button', { name: 'Paste JSON' }));
     await userEvent.click(page.getByRole('textbox', { name: 'Writable JSON' }));
     await userEvent.paste(JSON.stringify(replacement));
-    await userEvent.click(page.getByRole('button', { name: 'Validate JSON' }));
     await waitFor(() => expect(page.getByRole('button', { name: 'Load token' })).toBeEnabled());
     await userEvent.click(page.getByRole('button', { name: 'Load token' }));
     await expect((await loadAssetPage('token-disc', 'karama'))!.asset.data).toEqual(before.asset.data);

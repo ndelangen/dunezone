@@ -42,17 +42,19 @@ function view(validate: () => Promise<typeof choice>, onLoaded: (draft: { name: 
     </MantineProvider>
   );
 }
-function start() {
+async function start() {
   fireEvent.click(screen.getByRole('button', { name: 'Load existing card' }));
   fireEvent.change(screen.getByRole('textbox', { name: 'Writable JSON' }), { target: { value: '{}' } });
-  fireEvent.click(screen.getByRole('button', { name: 'Validate JSON' }));
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 430));
+  });
 }
 
 test.each(['edit', 'cancel', 'save', 'account', 'route'])('late validation cannot load after %s', async (action) => {
   const pending = deferred<typeof choice>();
   const onLoaded = vi.fn();
   const rendered = render(view(() => pending.promise, onLoaded));
-  start();
+  await start();
   if (action === 'edit') {
     fireEvent.change(screen.getByRole('textbox', { name: 'Writable JSON' }), { target: { value: '{"new":true}' } });
   }
@@ -79,9 +81,39 @@ test.each(['edit', 'cancel', 'save', 'account', 'route'])('late validation canno
 test('only explicit Load commits the validated value', async () => {
   const onLoaded = vi.fn();
   render(view(async () => choice, onLoaded));
-  start();
+  await start();
   await act(async () => {});
   expect(onLoaded).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole('button', { name: 'Load card' }));
   expect(onLoaded).toHaveBeenCalledWith(choice.draft);
+});
+
+test('rapid edits prepare only the latest text after a quiet period and wait for references before Load', async () => {
+  vi.useFakeTimers();
+  try {
+    const pending = deferred<typeof choice>();
+    const validate = vi.fn(() => pending.promise);
+    const onLoaded = vi.fn();
+    render(view(validate, onLoaded));
+    fireEvent.click(screen.getByRole('button', { name: 'Load existing card' }));
+    const input = screen.getByRole('textbox', { name: 'Writable JSON' });
+    fireEvent.change(input, { target: { value: '{"old":true}' } });
+    await act(() => vi.advanceTimersByTimeAsync(300));
+    fireEvent.change(input, { target: { value: '{"latest":true}' } });
+    await act(() => vi.advanceTimersByTimeAsync(399));
+    expect(validate).not.toHaveBeenCalled();
+    await act(() => vi.advanceTimersByTimeAsync(1));
+    expect(validate).toHaveBeenCalledExactlyOnceWith('{"latest":true}');
+    expect((screen.getByRole('button', { name: 'Load card' }) as HTMLButtonElement).disabled).toBe(true);
+    expect((input as HTMLTextAreaElement).value).toBe('{"latest":true}');
+    expect(onLoaded).not.toHaveBeenCalled();
+    await act(async () => {
+      pending.resolve(choice);
+      await pending.promise;
+    });
+    expect((screen.getByRole('button', { name: 'Load card' }) as HTMLButtonElement).disabled).toBe(false);
+    expect(onLoaded).not.toHaveBeenCalled();
+  } finally {
+    vi.useRealTimers();
+  }
 });

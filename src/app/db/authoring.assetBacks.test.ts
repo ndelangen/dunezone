@@ -1,11 +1,12 @@
 // @vitest-environment edge-runtime
-import { describe, expect, test } from 'vite-plus/test';
+import { describe, expect, test, vi } from 'vite-plus/test';
 
-import { publishingDeckCardback } from '../src/shared/assets/fixtures/publishingDeckCardback';
-import { publishingRectangleTokenFace } from '../src/shared/assets/fixtures/publishingRectangleTokenFace';
-import { publishingTokenFace } from '../src/shared/assets/fixtures/publishingTokenFace';
-import { api } from './_generated/api';
-import { applicationTest } from './application.test.fixture';
+import { api } from '../../../convex/_generated/api';
+import { applicationTest } from '../../../convex/application.test.fixture';
+import { publishingDeckCardback } from '../../shared/assets/fixtures/publishingDeckCardback';
+import { publishingRectangleTokenFace } from '../../shared/assets/fixtures/publishingRectangleTokenFace';
+import { publishingTokenFace } from '../../shared/assets/fixtures/publishingTokenFace';
+import { prepareRawAsset } from './authoring';
 
 describe('raw linked-back display reads', () => {
   test.each(['token-disc', 'token-enhance', 'deck'])(
@@ -36,24 +37,20 @@ describe('raw linked-back display reads', () => {
         return { ownerId, source, destination };
       });
       const args = { type, targetId: ids.destination, referenceId: ids.source };
-      await expect(t.query(api.authoringValidation.linkedBack, args)).rejects.toThrow();
+      await expect(t.query(api.assets.linkedBack, args)).rejects.toThrow();
       const viewer = t.withIdentity({ subject: ids.ownerId });
       const raw = { ...data, [type === 'deck' ? 'cardback' : 'back']: { mode: 'reference', asset_id: ids.source } };
+      reads.query.mockImplementation((fn, args) => viewer.query(fn, args));
       await expect(
-        viewer.query(api.authoringValidation.raw, {
-          kind: 'asset',
-          type,
-          targetId: ids.destination,
-          text: JSON.stringify(raw),
-        })
-      ).resolves.toBeNull();
-      await expect(viewer.query(api.authoringValidation.linkedBack, args)).resolves.toEqual({
+        prepareRawAsset({ type, targetId: ids.destination, text: JSON.stringify(raw) })
+      ).resolves.toMatchObject({ data: raw });
+      await expect(viewer.query(api.assets.linkedBack, args)).resolves.toEqual({
         id: ids.source,
         name: 'Source',
         data,
         previewHref: expect.stringContaining('/published/'),
       });
-      await expect(viewer.query(api.authoringValidation.linkedBack, { ...args, targetId: ids.source })).rejects.toThrow(
+      await expect(viewer.query(api.assets.linkedBack, { ...args, targetId: ids.source })).rejects.toThrow(
         /itself|own cardback/
       );
       await t.run(async (ctx) => {
@@ -65,11 +62,15 @@ describe('raw linked-back display reads', () => {
           data: { ...data, [type === 'deck' ? 'cardback' : 'back']: { mode: 'reference', asset_id: ids.destination } },
         });
       });
-      await expect(viewer.query(api.authoringValidation.linkedBack, args)).rejects.toThrow(/authored/);
+      await expect(viewer.query(api.assets.linkedBack, args)).rejects.toThrow(/authored/);
       await t.run((ctx) => ctx.db.patch('assets', ids.source, { data, type: 'bundle' }));
-      await expect(viewer.query(api.authoringValidation.linkedBack, args)).rejects.toThrow(/must also|must name/);
+      await expect(viewer.query(api.assets.linkedBack, args)).rejects.toThrow(/must also|must name/);
       await t.run((ctx) => ctx.db.patch('assets', ids.source, { type, is_deleted: true }));
-      await expect(viewer.query(api.authoringValidation.linkedBack, args)).rejects.toThrow(/no longer exists/);
+      await expect(viewer.query(api.assets.linkedBack, args)).rejects.toThrow(/no longer exists/);
     }
   );
 });
+
+const reads = vi.hoisted(() => ({ query: vi.fn() }));
+vi.mock('@db/core', () => ({ db: reads }));
+vi.mock('@db/profiles', () => ({ useSessionViewer: vi.fn() }));

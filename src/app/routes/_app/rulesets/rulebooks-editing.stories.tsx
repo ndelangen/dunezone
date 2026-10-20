@@ -473,7 +473,6 @@ export const RawJsonSettingsAndContents = meta.story({
       await userEvent.click(page.getByRole('textbox', { name: 'Writable JSON' }));
       await userEvent.paste(JSON.stringify(value));
       await expect(page.getByRole('textbox', { name: 'Writable JSON' })).toHaveValue(JSON.stringify(value));
-      await userEvent.click(page.getByRole('button', { name: 'Validate JSON' }));
       const load = page.getByRole('button', { name: 'Load Rulebook' });
       await waitFor(() => expect(load).toBeEnabled());
       await userEvent.click(load);
@@ -531,7 +530,6 @@ export const RawJsonReferencePreflight = meta.story({
       await userEvent.clear(input);
       await userEvent.click(input);
       await userEvent.paste(JSON.stringify(value));
-      await userEvent.click(page.getByRole('button', { name: 'Validate JSON' }));
     };
     await validate();
     await expect(page.findByText(/TEST.tokens.0.asset_id: Choose an available token-disc/)).resolves.toBeVisible();

@@ -122,6 +122,7 @@ export type LocalSnapshot = {
   file: string;
   /** The directory this launch downloaded the file into, which it deletes after the import, or null for a file the caller named. */
   downloadDirectory: string | null;
+  artifact?: SnapshotArtifact;
 };
 
 /** The newest artifact, or a stop that points at fixtures when it cannot be looked up or none is left. */
@@ -163,7 +164,7 @@ function downloadSnapshot(github: GitHubCli, artifact: SnapshotArtifact, tempora
     }
     const file = path.join(directory, SNAPSHOT_FILE);
     verifySnapshotFile(file);
-    return { file, downloadDirectory: directory };
+    return { file, downloadDirectory: directory, artifact };
   } catch (error) {
     rmSync(directory, { recursive: true, force: true });
     throw error;
