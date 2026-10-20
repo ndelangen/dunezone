@@ -7,6 +7,7 @@ import styles from '../../card/Card.module.css';
 import { CardText } from '../../card/CardText';
 import { Token } from '../../faction/token/Token';
 import { BackgroundRenderer } from '../../utils/BackgroundRenderer';
+import { CardTitle } from '../../utils/CardTitle';
 import unique from './Traitor.module.css';
 
 export const TraitorCard: FC<z.infer<typeof FactionRender.traitors>[0]> = ({
@@ -27,8 +28,8 @@ export const TraitorCard: FC<z.infer<typeof FactionRender.traitors>[0]> = ({
         <img src="/vector/icon/traitor.svg" alt="" className={styles.typeOverlay} />
         <img src="/vector/icon/traitor.svg" alt="" className={styles.typeShade} />
       </BackgroundRenderer>
-      <div className={styles.title}>{name}</div>
-      <div className={styles.subtitle}>Traitor - {owner}</div>
+      <CardTitle className={styles.title} text={name} />
+      <CardTitle className={styles.subtitle} text={`Traitor - ${owner}`} baseSize={40} />
       <div className={unique.face} style={{ backgroundImage: `url('${image}')` }} />
       <div className={unique.strength}>{strength}</div>
       <div className={unique.logo}>
