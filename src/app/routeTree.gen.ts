@@ -68,6 +68,7 @@ import { Route as AppProfilesProfileSlugEditRouteRouteImport } from './routes/_a
 import { Route as AppRulesetsRulesetSlugIndexRouteImport } from './routes/_app/rulesets/$rulesetSlug/index'
 import { Route as AppRulesetsRulesetSlugEditRouteRouteImport } from './routes/_app/rulesets/$rulesetSlug/edit.route'
 import { Route as AppAssetsTypeSlugIndexRouteImport } from './routes/_app/assets/$type/$slug/index'
+import { Route as AppAssetsTypeSlugConvertToSpiceRouteRouteImport } from './routes/_app/assets/$type/$slug/convert-to-spice.route'
 import { Route as AppAssetsTypeCreateIndexRouteImport } from './routes/_app/assets/$type/create/index'
 import { Route as AppRulesetsRulesetSlugFaqIndexRouteImport } from './routes/_app/rulesets/$rulesetSlug/faq/index'
 import { Route as AppRulesetsRulesetSlugFaqQuestionSlugRouteRouteImport } from './routes/_app/rulesets/$rulesetSlug/faq/$questionSlug.route'
@@ -391,6 +392,12 @@ const AppAssetsTypeSlugIndexRoute = AppAssetsTypeSlugIndexRouteImport.update({
   path: '/assets/$type/$slug/',
   getParentRoute: () => AppRouteRoute,
 } as any)
+const AppAssetsTypeSlugConvertToSpiceRouteRoute =
+  AppAssetsTypeSlugConvertToSpiceRouteRouteImport.update({
+    id: '/assets/$type/$slug/convert-to-spice',
+    path: '/assets/$type/$slug/convert-to-spice',
+    getParentRoute: () => AppRouteRoute,
+  } as any)
 const AppAssetsTypeCreateIndexRoute =
   AppAssetsTypeCreateIndexRouteImport.update({
     id: '/assets/$type/create/',
@@ -504,6 +511,7 @@ export interface FileRoutesByFullPath {
   '/groups/$groupSlug/': typeof AppGroupsGroupSlugIndexRoute
   '/profiles/$profileSlug/': typeof AppProfilesProfileSlugIndexRoute
   '/rulesets/$rulesetSlug/': typeof AppRulesetsRulesetSlugIndexRoute
+  '/assets/$type/$slug/convert-to-spice': typeof AppAssetsTypeSlugConvertToSpiceRouteRoute
   '/rulesets/$rulesetSlug/faq/$questionSlug': typeof AppRulesetsRulesetSlugFaqQuestionSlugRouteRoute
   '/rulesets/$rulesetSlug/faq/create': typeof AppRulesetsRulesetSlugFaqCreateRouteRoute
   '/rulesets/$rulesetSlug/rulebooks/create': typeof AppRulesetsRulesetSlugRulebooksCreateRouteRoute
@@ -572,6 +580,7 @@ export interface FileRoutesByTo {
   '/groups/$groupSlug': typeof AppGroupsGroupSlugIndexRoute
   '/profiles/$profileSlug': typeof AppProfilesProfileSlugIndexRoute
   '/rulesets/$rulesetSlug': typeof AppRulesetsRulesetSlugIndexRoute
+  '/assets/$type/$slug/convert-to-spice': typeof AppAssetsTypeSlugConvertToSpiceRouteRoute
   '/rulesets/$rulesetSlug/faq/$questionSlug': typeof AppRulesetsRulesetSlugFaqQuestionSlugRouteRoute
   '/rulesets/$rulesetSlug/faq/create': typeof AppRulesetsRulesetSlugFaqCreateRouteRoute
   '/rulesets/$rulesetSlug/rulebooks/create': typeof AppRulesetsRulesetSlugRulebooksCreateRouteRoute
@@ -643,6 +652,7 @@ export interface FileRoutesById {
   '/_app/groups/$groupSlug/': typeof AppGroupsGroupSlugIndexRoute
   '/_app/profiles/$profileSlug/': typeof AppProfilesProfileSlugIndexRoute
   '/_app/rulesets/$rulesetSlug/': typeof AppRulesetsRulesetSlugIndexRoute
+  '/_app/assets/$type/$slug/convert-to-spice': typeof AppAssetsTypeSlugConvertToSpiceRouteRoute
   '/_app/rulesets/$rulesetSlug/faq/$questionSlug': typeof AppRulesetsRulesetSlugFaqQuestionSlugRouteRoute
   '/_app/rulesets/$rulesetSlug/faq/create': typeof AppRulesetsRulesetSlugFaqCreateRouteRoute
   '/_app/rulesets/$rulesetSlug/rulebooks/create': typeof AppRulesetsRulesetSlugRulebooksCreateRouteRoute
@@ -714,6 +724,7 @@ export interface FileRouteTypes {
     | '/groups/$groupSlug/'
     | '/profiles/$profileSlug/'
     | '/rulesets/$rulesetSlug/'
+    | '/assets/$type/$slug/convert-to-spice'
     | '/rulesets/$rulesetSlug/faq/$questionSlug'
     | '/rulesets/$rulesetSlug/faq/create'
     | '/rulesets/$rulesetSlug/rulebooks/create'
@@ -782,6 +793,7 @@ export interface FileRouteTypes {
     | '/groups/$groupSlug'
     | '/profiles/$profileSlug'
     | '/rulesets/$rulesetSlug'
+    | '/assets/$type/$slug/convert-to-spice'
     | '/rulesets/$rulesetSlug/faq/$questionSlug'
     | '/rulesets/$rulesetSlug/faq/create'
     | '/rulesets/$rulesetSlug/rulebooks/create'
@@ -852,6 +864,7 @@ export interface FileRouteTypes {
     | '/_app/groups/$groupSlug/'
     | '/_app/profiles/$profileSlug/'
     | '/_app/rulesets/$rulesetSlug/'
+    | '/_app/assets/$type/$slug/convert-to-spice'
     | '/_app/rulesets/$rulesetSlug/faq/$questionSlug'
     | '/_app/rulesets/$rulesetSlug/faq/create'
     | '/_app/rulesets/$rulesetSlug/rulebooks/create'
@@ -1285,6 +1298,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAssetsTypeSlugIndexRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/_app/assets/$type/$slug/convert-to-spice': {
+      id: '/_app/assets/$type/$slug/convert-to-spice'
+      path: '/assets/$type/$slug/convert-to-spice'
+      fullPath: '/assets/$type/$slug/convert-to-spice'
+      preLoaderRoute: typeof AppAssetsTypeSlugConvertToSpiceRouteRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
     '/_app/assets/$type/create/': {
       id: '/_app/assets/$type/create/'
       path: '/assets/$type/create'
@@ -1441,6 +1461,7 @@ interface AppRouteRouteChildren {
   AppGroupsGroupSlugIndexRoute: typeof AppGroupsGroupSlugIndexRoute
   AppProfilesProfileSlugIndexRoute: typeof AppProfilesProfileSlugIndexRoute
   AppRulesetsRulesetSlugIndexRoute: typeof AppRulesetsRulesetSlugIndexRoute
+  AppAssetsTypeSlugConvertToSpiceRouteRoute: typeof AppAssetsTypeSlugConvertToSpiceRouteRoute
   AppRulesetsRulesetSlugFaqQuestionSlugRouteRoute: typeof AppRulesetsRulesetSlugFaqQuestionSlugRouteRoute
   AppRulesetsRulesetSlugFaqCreateRouteRoute: typeof AppRulesetsRulesetSlugFaqCreateRouteRoute
   AppRulesetsRulesetSlugRulebooksCreateRouteRoute: typeof AppRulesetsRulesetSlugRulebooksCreateRouteRoute
@@ -1510,6 +1531,8 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppGroupsGroupSlugIndexRoute: AppGroupsGroupSlugIndexRoute,
   AppProfilesProfileSlugIndexRoute: AppProfilesProfileSlugIndexRoute,
   AppRulesetsRulesetSlugIndexRoute: AppRulesetsRulesetSlugIndexRoute,
+  AppAssetsTypeSlugConvertToSpiceRouteRoute:
+    AppAssetsTypeSlugConvertToSpiceRouteRoute,
   AppRulesetsRulesetSlugFaqQuestionSlugRouteRoute:
     AppRulesetsRulesetSlugFaqQuestionSlugRouteRoute,
   AppRulesetsRulesetSlugFaqCreateRouteRoute:
