@@ -13,6 +13,7 @@ import type { DatabaseDefinition, WorkerIdentity } from '../src/app/db/storybook
 import { setMotionOverride } from '../src/app/styles/motion';
 import { appContentTheme } from '../src/app/ui/theme';
 import * as sizes from '../src/game/data/sizes';
+import { settleStoryViewport } from './storyViewport';
 import { resetFrameLag } from './storyWaits';
 
 /* Storybook has no backend or auth context. Connected components must opt into
@@ -56,7 +57,8 @@ export default definePreview({
      scheme global mirrors the app's attribute so tokens.css flips with the provider; a story can
      force a scheme by setting `globals: { colorScheme: 'dark' }`. Visual tests stay on the light
      default for determinism. */
-  beforeEach: ({ globals }) => {
+  beforeEach: async ({ globals }) => {
+    await settleStoryViewport();
     resetFrameLag();
     setMotionOverride(globals.motion === 'on' ? 'on' : globals.motion === 'reduce' ? 'off' : null);
     document.documentElement.setAttribute(
