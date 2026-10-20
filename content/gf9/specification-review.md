@@ -1,6 +1,6 @@
 # GF9 implementation specification review
 
-This is review of the final planning handoff, not completed implementation, content acceptance or production delivery. The final Wayfinder decision remains open until the user's live review.
+This is review of the final planning handoff, not completed implementation, content acceptance or production delivery. The user approved the specification through live review on 20 October 2026.
 
 The coordinator checked current source at freshly fetched main commit `9dbab957db90dca784da754635f7643b9d7fdd4f`, read the final decision's native blockers and claimed it before work. All preceding decision blockers are closed. The existing planning checkout includes that main commit and remains separate from future implementation worktrees.
 
@@ -18,4 +18,6 @@ Reviewed implementation-spec.md SHA-256: `f4ce805d2d5d9dff8f7b7ccbe6889a64b8dbc0
 
 Reviewed missing-features-dispositions.md SHA-256: `2e178fd8fe38a5ef79177df5f10c9022f340cc7505f84166da58cdde0a97f150`.
 
-The specification is ready for the user's final plan review. Required implementation proofs remain explicit, including the persistent app, authenticated artwork path, final input budgets, complete saved content, full-book approval and actual public output. A reviewed plan is not evidence those gates already passed.
+The user selected "Approve the implementation specification" for the handoff at commit `b27d6dc01052d8ac2297f0475edca1288627777d`. The hashes above identify the documents reviewed before the approval-status update. The contract is unchanged by recording approval.
+
+Required implementation proofs remain explicit, including the persistent app, authenticated artwork path, final input budgets, complete saved content, full-book approval and actual public output. An approved plan is not evidence those gates already passed.

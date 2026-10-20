@@ -1,6 +1,6 @@
 # GF9 correction implementation specification
 
-Review draft for [Approve the agent-ready GF9 implementation specification](https://github.com/ndelangen/dunezone/issues/2366), the final decision in [GF9 correction: local review and two production content batches](https://github.com/ndelangen/dunezone/issues/2357). The contracts are selected; implementation and final content acceptance have not happened. This planning map performs no production correction.
+Approved through live user review on 20 October 2026 for [Approve the agent-ready GF9 implementation specification](https://github.com/ndelangen/dunezone/issues/2366), the final decision in [GF9 correction: local review and two production content batches](https://github.com/ndelangen/dunezone/issues/2357). The user selected "Approve the implementation specification" against the reviewed handoff at commit `b27d6dc01052d8ac2297f0475edca1288627777d`. This status update preserves that contract. Implementation and final content acceptance remain to be completed; the planning map performs no production correction.
 
 ## What the user will get
 
@@ -177,4 +177,4 @@ The dedicated authenticated cover profile, final largest-payload bound, integrat
 
 Excluded work remains excluded: FAQ import, paragraph positioning, duplicate illustrated-rule Blocks, new vectors, general token layers, sector-only tints, extra board labels/tracks, a general filter editor, whole-Ruleset dependency export, unrelated stock rewrites, candidate activation and all-at-once catalogue release. General overflow preflight and broader terminal-artifact recovery are separate follow-ups unless a concrete failure makes a supported repair necessary within delivery.
 
-Final specification approval is a live user decision on this handoff. It closes the planning map when no product fog remains; it does not claim the implementation or complete books already pass. All code reviews, full-book user review and scoped authenticated production gates above remain in force.
+The user's live approval completes the specification decision and planning destination. It does not claim the implementation or complete books already pass. All code reviews, full-book user review and scoped authenticated production gates above remain in force.
