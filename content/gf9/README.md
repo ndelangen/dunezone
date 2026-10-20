@@ -4,7 +4,7 @@ This directory holds the locally authored content for the existing [GF9 Ruleset]
 
 The public source ticket used for this delivery is [Create GF9 ruleset, #2216](https://github.com/ndelangen/dunezone/issues/2216). Contradictions and adopted interpretations belong in [GF9 judgements, #2352](https://github.com/ndelangen/dunezone/issues/2352). Application limitations belong in [DuneZone GF9 missing features, #2353](https://github.com/ndelangen/dunezone/issues/2353).
 
-The requested Discord creation ticket could not be located. The private browser session was signed out; a separate authenticated session's focused searches did not find the ticket. The GitHub ticket and all its supplied PDFs were read, but the two tickets have not been established as the same record.
+The requested Discord creation ticket could not be located. The private browser session was signed out; the other browser session used a different Discord account. The native app had the intended Central account. Its Dreamrules posts confirmed the FAQ dataset and its link to #2284. The creation-week GF9 and ruleset search results were read in full in Dreamrules and Dune Tabletop, but did not identify a creation ticket. The GitHub ticket and all its supplied PDFs were read; the Discord and GitHub tickets have not been established as the same record.
 
 ## Authoring and build
 
