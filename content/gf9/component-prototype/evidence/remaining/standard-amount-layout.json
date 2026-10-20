@@ -1,0 +1,146 @@
+[
+  {
+    "amountBottom": "130px",
+    "amountRight": "100px",
+    "badgeBoxSizing": "content-box",
+    "bodyFits": true,
+    "bold": [
+      {
+        "text": "6 spice",
+        "weight": "700"
+      },
+      {
+        "text": "Hiereg token",
+        "weight": "700"
+      }
+    ],
+    "key": "gf9-discovery-spice-sihaya-ridge",
+    "mapToTextGap": 61.715330777879,
+    "spiceTint": {
+      "fill": "#ad4e10",
+      "key": "gf9-discovery-spice-sihaya-ridge",
+      "opacity": "0.8509803921568627"
+    },
+    "textToNumberGap": 44.953075952566365
+  },
+  {
+    "amountBottom": "130px",
+    "amountRight": "100px",
+    "badgeBoxSizing": "content-box",
+    "bodyFits": true,
+    "bold": [
+      {
+        "text": "6 spice",
+        "weight": "700"
+      },
+      {
+        "text": "Hiereg token",
+        "weight": "700"
+      }
+    ],
+    "key": "gf9-discovery-spice-rock-outcroppings",
+    "mapToTextGap": 61.71538845247024,
+    "spiceTint": {
+      "fill": "#ad4e10",
+      "key": "gf9-discovery-spice-rock-outcroppings",
+      "opacity": "0.8509803921568627"
+    },
+    "textToNumberGap": 44.953075952566365
+  },
+  {
+    "amountBottom": "130px",
+    "amountRight": "100px",
+    "badgeBoxSizing": "content-box",
+    "bodyFits": true,
+    "bold": [
+      {
+        "text": "6 spice",
+        "weight": "700"
+      },
+      {
+        "text": "Hiereg token",
+        "weight": "700"
+      }
+    ],
+    "key": "gf9-discovery-spice-hagga-basin",
+    "mapToTextGap": 61.71527310328776,
+    "spiceTint": {
+      "fill": "#ad4e10",
+      "key": "gf9-discovery-spice-hagga-basin",
+      "opacity": "0.8509803921568627"
+    },
+    "textToNumberGap": 44.953075952566365
+  },
+  {
+    "amountBottom": "130px",
+    "amountRight": "100px",
+    "badgeBoxSizing": "content-box",
+    "bodyFits": true,
+    "bold": [
+      {
+        "text": "6 spice",
+        "weight": "700"
+      },
+      {
+        "text": "Smuggler token",
+        "weight": "700"
+      }
+    ],
+    "key": "gf9-discovery-spice-funeral-plain",
+    "mapToTextGap": 61.71504240492279,
+    "spiceTint": {
+      "fill": "#ad4e10",
+      "key": "gf9-discovery-spice-funeral-plain",
+      "opacity": "0.8509803921568627"
+    },
+    "textToNumberGap": 44.953075952566365
+  },
+  {
+    "amountBottom": "130px",
+    "amountRight": "100px",
+    "badgeBoxSizing": "content-box",
+    "bodyFits": true,
+    "bold": [
+      {
+        "text": "6 spice",
+        "weight": "700"
+      },
+      {
+        "text": "Smuggler token",
+        "weight": "700"
+      }
+    ],
+    "key": "gf9-discovery-spice-wind-pass-north",
+    "mapToTextGap": 61.71504240492279,
+    "spiceTint": {
+      "fill": "#ad4e10",
+      "key": "gf9-discovery-spice-wind-pass-north",
+      "opacity": "0.8509803921568627"
+    },
+    "textToNumberGap": 44.953075952566365
+  },
+  {
+    "amountBottom": "130px",
+    "amountRight": "100px",
+    "badgeBoxSizing": "content-box",
+    "bodyFits": true,
+    "bold": [
+      {
+        "text": "6 spice",
+        "weight": "700"
+      },
+      {
+        "text": "Smuggler token",
+        "weight": "700"
+      }
+    ],
+    "key": "gf9-discovery-spice-old-gap",
+    "mapToTextGap": 15.92649232364007,
+    "spiceTint": {
+      "fill": "#ad4e10",
+      "key": "gf9-discovery-spice-old-gap",
+      "opacity": "0.8509803921568627"
+    },
+    "textToNumberGap": 44.953075952566365
+  }
+]

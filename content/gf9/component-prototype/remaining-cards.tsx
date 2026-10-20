@@ -3,6 +3,7 @@ import { useEffect, useReducer, useRef, useState } from 'react';
 
 import cardStyles from '../../../src/game/assets/card/Card.module.css';
 import headStyles from '../../../src/game/assets/card/CardHead.module.css';
+import { CardToken } from '../../../src/game/assets/card/CardToken';
 import { CustomCard } from '../../../src/game/assets/card/Custom';
 import customStyles from '../../../src/game/assets/card/Custom.module.css';
 import { SpiceCard } from '../../../src/game/assets/card/Spice';
@@ -98,7 +99,22 @@ function CardProof({ record, zoom }: { record: Record; zoom: number }) {
           data-body-fits={karama ? fit?.fits : undefined}
         >
           {face}
-          {!karama ? <div className="gf9-map-paper" aria-hidden="true" /> : null}
+          {!karama ? (
+            <>
+              <div className="gf9-map-paper" aria-hidden="true" />
+              <div className="gf9-discovery-amount-token" aria-hidden="true">
+                <CardToken
+                  token={
+                    linkedBoardTokens[
+                      record.discoveryType === 'Hiereg'
+                        ? 'gf9-hiereg-discovery-marker'
+                        : 'gf9-smuggler-discovery-marker'
+                    ]
+                  }
+                />
+              </div>
+            </>
+          ) : null}
           <PrototypeCardTitle name={name} />
         </div>
       </div>
@@ -177,11 +193,12 @@ export function RemainingCardsReview() {
           '{visibility:hidden}'}
       </style>
       <style>{`
+        :where(.gf9-native-spice,.gf9-native-spice *){box-sizing:content-box}
         .gf9-native-spice .${spiceStyles.map},
         .gf9-native-spice .${spiceStyles.map_overlay},
         .gf9-native-spice .${spiceStyles.mapTokens}{top:${235 + controls.shift}px}
-        .gf9-native-spice .${spiceStyles.count}{bottom:250px}
-        .gf9-native-spice .${spiceStyles.typeShade}{left:50%!important;top:50%!important;transform:translate(-50%,-50%)}
+        .gf9-native-spice .${spiceStyles.body}{width:580px;font-size:40px;line-height:1.15em}
+        .gf9-discovery-amount-token{position:absolute;right:102px;bottom:240px;width:95px;height:95px}
         .gf9-native-spice .${spiceStyles.map}{z-index:2}
         .gf9-native-spice .${spiceStyles.map_overlay}{z-index:3}
         .gf9-native-spice .${spiceStyles.mapTokens}{z-index:4}

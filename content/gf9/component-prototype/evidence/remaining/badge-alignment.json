@@ -1,0 +1,44 @@
+[
+  {
+    "boxSizing": "content-box",
+    "centerNative": [734.499992053723, 158.49999893913036],
+    "imageCenterOffset": [0, 0.0000019073486328125],
+    "key": "gf9-discovery-spice-sihaya-ridge",
+    "sizeNative": [129.00006613353128, 128.99999831407743]
+  },
+  {
+    "boxSizing": "content-box",
+    "centerNative": [734.499992053723, 158.50000623906098],
+    "imageCenterOffset": [0, 0],
+    "key": "gf9-discovery-spice-rock-outcroppings",
+    "sizeNative": [129.00006613353128, 129.00008257580734]
+  },
+  {
+    "boxSizing": "content-box",
+    "centerNative": [734.499992053723, 158.50000623906098],
+    "imageCenterOffset": [0, 0],
+    "key": "gf9-discovery-spice-hagga-basin",
+    "sizeNative": [129.00006613353128, 129.00008257580734]
+  },
+  {
+    "boxSizing": "content-box",
+    "centerNative": [734.499992053723, 158.50000623906098],
+    "imageCenterOffset": [0, 0],
+    "key": "gf9-discovery-spice-funeral-plain",
+    "sizeNative": [129.00006613353128, 128.99961905027544]
+  },
+  {
+    "boxSizing": "content-box",
+    "centerNative": [734.499992053723, 158.49994806901134],
+    "imageCenterOffset": [0, 0],
+    "key": "gf9-discovery-spice-wind-pass-north",
+    "sizeNative": [129.00006613353128, 128.99957170696976]
+  },
+  {
+    "boxSizing": "content-box",
+    "centerNative": [734.499992053723, 158.50017983169224],
+    "imageCenterOffset": [0, 0],
+    "key": "gf9-discovery-spice-old-gap",
+    "sizeNative": [129.00006613353128, 129.00003523233156]
+  }
+]

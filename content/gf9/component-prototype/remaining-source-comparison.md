@@ -50,3 +50,13 @@ Karama, covers, faction treatments, logo, full-title fitting and the accepted ce
 The user accepted this combination on 20 October 2026: brightness 55%, contrast 260%, map color 0%, paper color 65%, opacity 100%, downward shift 28 and color-burn blending. Preserve those values as the named GF9 treatment and the reset state. The corresponding native map top is 263. The board, tints, neutral paper texture and token placements move together; the filter never changes tint or token colors.
 
 The paper control uses an aligned copy of the existing card-paper image beneath the native board, rather than applying a backdrop filter to the SVG. No new map artwork or vectors are introduced. Verify the accepted layered treatment through the publication renderer before production recapture. This acceptance settles map appearance, not future production implementation or unseen content.
+
+## Latest Discovery layout revision
+
+The user requested a darker orange blow tint. All six now use #ad4e10 at 85.1% opacity. Green Hiereg and blue Smuggler tints remain unchanged. The accepted board filter recipe remains unchanged.
+
+The six retains the native Spice renderer placement, bottom 130 and right 100. The prototype reserves a separate instruction column at one consistent size, retains both bold spans in every card, and puts the existing generic Discovery token above the amount. The fixed token slot is a proposed shared layout addition, not an existing saved Spice field. No new vectors are used.
+
+Browser measurements confirm all six instruction bodies fit, retain strong elements at weight 700, and clear the number. Old Gap has the smallest gap below the map, about 16 native units. TypeScript compilation passes.
+
+The header badge offset came from the prototype's global border-box reset. Restoring the actual renderer's content-box sizing fixes the complete badge placement. The earlier diagnosis of a shared shade-offset bug is withdrawn.

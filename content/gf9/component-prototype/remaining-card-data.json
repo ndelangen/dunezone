@@ -31,7 +31,7 @@
             {
               "id": "spice-blow",
               "name": "Spice blow",
-              "color": "#e67920c0",
+              "color": "#ad4e10d9",
               "territories": ["sihaya_ridge"]
             },
             {
@@ -93,7 +93,7 @@
             {
               "id": "spice-blow",
               "name": "Spice blow",
-              "color": "#e67920c0",
+              "color": "#ad4e10d9",
               "territories": ["rock_outcroppings"]
             },
             {
@@ -155,7 +155,7 @@
             {
               "id": "spice-blow",
               "name": "Spice blow",
-              "color": "#e67920c0",
+              "color": "#ad4e10d9",
               "territories": ["hagga_basin"]
             },
             {
@@ -217,7 +217,7 @@
             {
               "id": "spice-blow",
               "name": "Spice blow",
-              "color": "#e67920c0",
+              "color": "#ad4e10d9",
               "territories": ["funeral_plain"]
             },
             {
@@ -279,7 +279,7 @@
             {
               "id": "spice-blow",
               "name": "Spice blow",
-              "color": "#e67920c0",
+              "color": "#ad4e10d9",
               "territories": ["wind_pass_north"]
             },
             {
@@ -341,7 +341,7 @@
             {
               "id": "spice-blow",
               "name": "Spice blow",
-              "color": "#e67920c0",
+              "color": "#ad4e10d9",
               "territories": ["old_gap"]
             },
             {
