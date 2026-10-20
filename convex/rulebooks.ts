@@ -968,27 +968,33 @@ function assertFixedPageLayouts(
   }
 }
 
+function pageBlockIdentities(contents: RulebookContentsV1) {
+  return Object.values(contents.pagesById).flatMap((page) =>
+    Object.keys(page.blocksById).map((blockId) => ({ pageId: page.id, blockId }))
+  );
+}
+
+function removedBlockOwners(previous: RulebookContentsV1, next: RulebookContentsV1) {
+  const removedOwners = new Map<string, Set<string>>();
+  for (const { pageId, blockId } of pageBlockIdentities(previous)) {
+    if (next.pagesById[pageId]?.blocksById[blockId]) {
+      continue;
+    }
+    const owners = removedOwners.get(blockId) ?? new Set<string>();
+    owners.add(pageId);
+    removedOwners.set(blockId, owners);
+  }
+  return removedOwners;
+}
+
 /** Block IDs belong to their Page, even when the old Page is replaced. */
 function assertFixedBlockOwnership(previous: RulebookContentsV1, next: RulebookContentsV1) {
-  const removedOwners = new Map<string, Set<string>>();
-  for (const page of Object.values(previous.pagesById)) {
-    for (const id of Object.keys(page.blocksById)) {
-      if (!next.pagesById[page.id]?.blocksById[id]) {
-        const owners = removedOwners.get(id) ?? new Set<string>();
-        owners.add(page.id);
-        removedOwners.set(id, owners);
-      }
-    }
-  }
-  for (const page of Object.values(next.pagesById)) {
-    for (const id of Object.keys(page.blocksById)) {
-      if (previous.pagesById[page.id]?.blocksById[id]) {
-        continue;
-      }
-      if ([...(removedOwners.get(id) ?? [])].some((owner) => owner !== page.id)) {
-        throw new ConvexError('A Block moved to another Page needs a new ID.');
-      }
-    }
+  const removedOwners = removedBlockOwners(previous, next);
+  const moved = pageBlockIdentities(next)
+    .filter(({ pageId, blockId }) => !previous.pagesById[pageId]?.blocksById[blockId])
+    .some(({ pageId, blockId }) => [...(removedOwners.get(blockId) ?? [])].some((owner) => owner !== pageId));
+  if (moved) {
+    throw new ConvexError('A Block moved to another Page needs a new ID.');
   }
 }
 

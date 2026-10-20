@@ -2681,6 +2681,71 @@ function saveResponseEvent(kind: 'saved' | 'stale', saved: Parameters<typeof cre
 
 type DraftReferences = ReturnType<typeof collectRulebookReferenceIds>;
 
+function RulebookSettingsEditor({
+  settings,
+  conflict,
+  onChange,
+  onResolve,
+}: {
+  settings: RulebookSettings;
+  conflict: boolean;
+  onChange: (settings: RulebookSettings) => void;
+  onResolve: (choice: 'local' | 'saved') => void;
+}) {
+  return (
+    <>
+      <Group align="start" grow>
+        <ControlBlock
+          title="Book size"
+          input={
+            <Select
+              aria-label="Book size"
+              value={settings.size}
+              data={rulebookSizeCatalogue.map(({ id, label, widthMm, heightMm }) => ({
+                value: id,
+                label: `${label} (${widthMm} × ${heightMm} mm)`,
+              }))}
+              onChange={(size) => {
+                const parsed = rulebookSettingsSchema.safeParse({ ...settings, size });
+                if (parsed.success) {
+                  onChange(parsed.data);
+                }
+              }}
+            />
+          }
+        />
+        <ControlBlock
+          title="Book design"
+          input={
+            <Select
+              aria-label="Book design"
+              value={settings.design}
+              data={rulebookDesignCatalogue.map(({ id, label }) => ({ value: id, label }))}
+              onChange={(design) => {
+                const parsed = rulebookSettingsSchema.safeParse({ ...settings, design });
+                if (parsed.success) {
+                  onChange(parsed.data);
+                }
+              }}
+            />
+          }
+        />
+      </Group>
+      {conflict ? (
+        <Alert color="red" title="Book settings changed in another editor">
+          <Stack gap="sm">
+            <Text>Choose which size and design to save. Your Contents changes stay in the draft.</Text>
+            <Group>
+              <Button onClick={() => onResolve('local')}>Keep my settings</Button>
+              <Button onClick={() => onResolve('saved')}>Use saved settings</Button>
+            </Group>
+          </Stack>
+        </Alert>
+      ) : null}
+    </>
+  );
+}
+
 function RulebookEditorSession({
   data,
   onReferencesChange,
@@ -3000,58 +3065,12 @@ function RulebookEditorSession({
               />
             </Surface>
           ) : null}
-          <Group align="start" grow>
-            <ControlBlock
-              title="Book size"
-              input={
-                <Select
-                  aria-label="Book size"
-                  value={result.settings.size}
-                  data={rulebookSizeCatalogue.map(({ id, label, widthMm, heightMm }) => ({
-                    value: id,
-                    label: `${label} (${widthMm} × ${heightMm} mm)`,
-                  }))}
-                  onChange={(size) => {
-                    const settings = rulebookSettingsSchema.safeParse({ ...result.settings, size });
-                    if (settings.success) {
-                      dispatch({ kind: 'replace-settings', settings: settings.data });
-                    }
-                  }}
-                />
-              }
-            />
-            <ControlBlock
-              title="Book design"
-              input={
-                <Select
-                  aria-label="Book design"
-                  value={result.settings.design}
-                  data={rulebookDesignCatalogue.map(({ id, label }) => ({ value: id, label }))}
-                  onChange={(design) => {
-                    const settings = rulebookSettingsSchema.safeParse({ ...result.settings, design });
-                    if (settings.success) {
-                      dispatch({ kind: 'replace-settings', settings: settings.data });
-                    }
-                  }}
-                />
-              }
-            />
-          </Group>
-          {result.settingsConflict ? (
-            <Alert color="red" title="Book settings changed in another editor">
-              <Stack gap="sm">
-                <Text>Choose which size and design to save. Your Contents changes stay in the draft.</Text>
-                <Group>
-                  <Button onClick={() => dispatch({ kind: 'resolve-settings', choice: 'local' })}>
-                    Keep my settings
-                  </Button>
-                  <Button onClick={() => dispatch({ kind: 'resolve-settings', choice: 'saved' })}>
-                    Use saved settings
-                  </Button>
-                </Group>
-              </Stack>
-            </Alert>
-          ) : null}
+          <RulebookSettingsEditor
+            settings={result.settings}
+            conflict={result.settingsConflict}
+            onChange={(settings) => dispatch({ kind: 'replace-settings', settings })}
+            onResolve={(choice) => dispatch({ kind: 'resolve-settings', choice })}
+          />
           {result.operationError ? <Alert color="red">{result.operationError}</Alert> : null}
           {publishMutation.error ? (
             <Alert color="red" role="alert" title="Edition could not be published">

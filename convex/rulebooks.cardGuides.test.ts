@@ -186,28 +186,28 @@ describe('Rulebook Card guide persistence and publication', () => {
     async (size) => {
       const fixture = await cardGuideFixture();
       const { owner, t, created, contents, locator, assetIds } = fixture;
-      const entries: RulebookBlockDraft[] = [];
-      for (const imageSide of ['left', 'right'] as const) {
-        for (const textFlow of ['beside', 'wrap'] as const) {
-          for (const kind of ['card', 'stock'] as const) {
-            const id = `ENT${'23456789ABCDEFGHJKLMNPQRSTUVWXYZ'[entries.length]}`;
-            entries.push({
-              id,
-              kind: 'card-entry',
-              imageSide,
-              textFlow,
-              source:
-                kind === 'card'
-                  ? { kind: 'asset', assetId: assetIds[0]! }
-                  : { kind: 'stock', artworkId: '/vector/decal/shield.svg' },
-              name: 'Illustrated explanation',
-              size: 'small',
-              quantity: 1,
-              text: 'Keep the complete explanation with its illustration.',
-            });
-          }
-        }
-      }
+      const placements = [
+        { imageSide: 'left', textFlow: 'beside' },
+        { imageSide: 'left', textFlow: 'wrap' },
+        { imageSide: 'right', textFlow: 'beside' },
+        { imageSide: 'right', textFlow: 'wrap' },
+      ] as const;
+      const sources = [
+        { kind: 'asset', assetId: assetIds[0]! },
+        { kind: 'stock', artworkId: '/vector/decal/shield.svg' },
+      ] as const;
+      const entries: RulebookBlockDraft[] = placements.flatMap((placement, placementIndex) =>
+        sources.map((source, sourceIndex) => ({
+          id: `ENT${'23456789ABCDEFGHJKLMNPQRSTUVWXYZ'[placementIndex * sources.length + sourceIndex]}`,
+          kind: 'card-entry',
+          ...placement,
+          source,
+          name: 'Illustrated explanation',
+          size: 'small',
+          quantity: 1,
+          text: 'Keep the complete explanation with its illustration.',
+        }))
+      );
       const page = contents.pagesById.PAGE!;
       if (page.layoutId !== 'single-column') {
         throw new Error('Expected single column fixture');
