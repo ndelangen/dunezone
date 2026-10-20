@@ -3,6 +3,9 @@ import path from 'node:path';
 
 import { createServer } from 'vite-plus';
 
+import { assertLoopbackUrl } from './local-dev-persistence';
+import { localPublisherPaths } from './local-dev-publisher';
+
 const rootDirectory = path.resolve(import.meta.dirname, '..');
 
 async function main() {
@@ -13,7 +16,21 @@ async function main() {
   }
   const server = await createServer({
     root: rootDirectory,
-    server: { host: '127.0.0.1', port, strictPort: true },
+    server: {
+      host: '127.0.0.1',
+      port,
+      strictPort: true,
+      ...(process.env.LOCAL_REVIEW_PUBLISHER_URL
+        ? {
+            proxy: Object.fromEntries(
+              localPublisherPaths.map((prefix) => [
+                prefix,
+                { target: assertLoopbackUrl(process.env.LOCAL_REVIEW_PUBLISHER_URL!), changeOrigin: false },
+              ])
+            ),
+          }
+        : {}),
+    },
   });
 
   try {

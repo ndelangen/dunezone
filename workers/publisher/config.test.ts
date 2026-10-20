@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vite-plus/test';
 
-import { parsePublisherConfig } from './config';
+import { parsePublisherConfig, publisherTransportUrl } from './config';
 
 function env(overrides: Record<string, string> = {}): Env {
   return {
@@ -54,4 +54,14 @@ describe('publisher lifecycle configuration', () => {
       'PDF_MAX_BYTES must be between 8000000 and 8000000'
     );
   });
+});
+
+test('isolated local transport is explicit and never permits a mixed hosted endpoint', () => {
+  expect(publisherTransportUrl('local', 'http://127.0.0.1:4300/render', { LOCAL_REVIEW: 'isolated-local-v1' })).toBe(
+    'http://127.0.0.1:4300/render'
+  );
+  expect(() => publisherTransportUrl('production', 'http://127.0.0.1:4300/render', {})).toThrow('HTTPS');
+  expect(() =>
+    publisherTransportUrl('sentinel', 'https://dune.zone/render', { LOCAL_REVIEW: 'isolated-local-v1' })
+  ).toThrow('loopback');
 });

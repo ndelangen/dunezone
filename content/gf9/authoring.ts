@@ -63,7 +63,7 @@ bun content/gf9/authoring.ts prepare --environment production --checkpoint revie
 
 Use --root to select a GF9 content directory. Inputs must be saved normal exports and observed readbacks. Read authoring/README.md before initializing or applying a checkpoint.`;
 
-export async function main(args: string[]) {
+async function main(args: string[]) {
   const operation = args[0],
     values = flags(args.slice(1)),
     root =

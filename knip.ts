@@ -20,6 +20,8 @@ const config: KnipConfig = {
         'src/**/*.typecheck.{ts,tsx}',
         // Worker entry, referenced from workers/publisher/wrangler.jsonc.
         'workers/publisher/index.ts',
+        /* The persistent launcher writes a private Wrangler config that names this entry. */
+        'workers/publisher/local-review.ts',
         'workers/game/index.ts',
         /* The isolated stack's load runs start the game Worker from this entry by filename. */
         'workers/game/load-entry.ts',

@@ -2,12 +2,15 @@ import { paginationOptsValidator } from 'convex/server';
 import type { WithoutSystemFields } from 'convex/server';
 import { v } from 'convex/values';
 
+import { CHECKED_IN_RENDERER_REVISIONS } from '../src/shared/asset-publishing/renderer-revisions';
 import { resolveSeedValue } from '../src/shared/seedReferences';
 import type { Doc, Id, TableNames } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
 import { internalMutation } from './functions';
+import { isIsolatedLoopbackBackend } from './lib/isolatedBackend';
 import { ensureProfileForUser } from './lib/profileBootstrap';
 import { identifiesSomeone } from './lib/provisioningContract';
+import { publicationSettings } from './lib/publication';
 import { nowIso } from './lib/utils';
 import { seedRulebookDraftFromCurrentEdition } from './rulebooks';
 
@@ -217,5 +220,65 @@ export const insertSeedDocuments = internalMutation({
       }
     }
     return { inserted: documents.length };
+  },
+});
+
+/** Configure this isolated ledger without enqueuing baseline catalogue work or granting an account admin rights. */
+export const prepareLocalPublisher = internalMutation({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx) => {
+    if (!isIsolatedLoopbackBackend()) {
+      throw new Error('Local publisher provisioning requires an isolated loopback backend');
+    }
+    const existing = await publicationSettings(ctx);
+    if (existing) {
+      const revisions = Object.entries(CHECKED_IN_RENDERER_REVISIONS);
+      const unchanged =
+        Object.keys(existing.renderer_revisions).length === revisions.length &&
+        revisions.every(([kind, revision]) => existing.renderer_revisions[kind] === revision);
+      if (!unchanged) {
+        await ctx.db.patch(existing._id, { renderer_revisions: CHECKED_IN_RENDERER_REVISIONS, updated_at: Date.now() });
+      }
+    } else {
+      await ctx.db.insert('admin_settings', {
+        key: 'publication',
+        publication_pickup_enabled: true,
+        renderer_revisions: CHECKED_IN_RENDERER_REVISIONS,
+        updated_at: Date.now(),
+      });
+    }
+    return null;
+  },
+});
+
+/** Snapshot-only local ownership. Existing local authors and immutable Edition history keep their identities. */
+export const remapLocalAuthoringOwnershipBatch = internalMutation({
+  args: {
+    ownerEmail: v.string(),
+    table: v.union(v.literal('assets'), v.literal('rulesets'), v.literal('rulebooks')),
+    paginationOpts: paginationOptsValidator,
+  },
+  returns: batchResultValidator.extend({ updated: v.number() }),
+  handler: async (ctx, args) => {
+    if (!isIsolatedLoopbackBackend()) {
+      throw new Error('Local authoring ownership requires an isolated loopback backend');
+    }
+    const placeholders = (await ctx.db.query('users').take(500)).filter((user) => !identifiesSomeone(user));
+    if (placeholders.length !== 1) {
+      throw new Error('Local authoring ownership requires the anonymised snapshot placeholder');
+    }
+    const placeholder = placeholders[0]!;
+    const owner = await findUserByEmail(ctx, args.ownerEmail);
+    const batch = await ctx.db.query(args.table).paginate(args.paginationOpts);
+    const owned = batch.page.filter((row) => ('owner_id' in row ? row.owner_id : row.created_by) === placeholder._id);
+    await Promise.all(
+      owned.map((row) =>
+        'owner_id' in row
+          ? ctx.db.patch(row._id, { owner_id: owner._id })
+          : ctx.db.patch(row._id, { created_by: owner._id })
+      )
+    );
+    return { isDone: batch.isDone, continueCursor: batch.continueCursor, updated: owned.length };
   },
 });
