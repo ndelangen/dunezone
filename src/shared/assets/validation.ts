@@ -4,6 +4,7 @@ import {
   BundleAssetInput,
   CustomCardAssetInput,
   LeaderSkillAssetInput,
+  LeaderTokenAssetInput,
   NexusCardAssetInput,
   HomeworldCardAssetInput,
   DeckAssetInput,
@@ -41,6 +42,10 @@ export function parseBoardData(data: unknown) {
  */
 export function parseAssetDataForWrite(type: string, data: unknown): { data: unknown; name: string } {
   switch (type) {
+    case 'token-leader': {
+      const parsed = LeaderTokenAssetInput.parse(data);
+      return { data: parsed, name: parsed.name };
+    }
     case 'board': {
       const parsed = parseBoardData(data);
       return { data: parsed, name: parsed.name };

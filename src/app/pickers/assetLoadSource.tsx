@@ -59,6 +59,7 @@ export function assetLoad<Data extends { name: string }>({
   editing,
   disabled,
   canRename = false,
+  presets,
   onLoaded,
 }: {
   noun: string;
@@ -67,6 +68,7 @@ export function assetLoad<Data extends { name: string }>({
   editing?: { id: string; name: string };
   disabled: boolean;
   canRename?: boolean;
+  presets?: LoadPreset<Data>[];
   onLoaded: (loaded: LoadedAsset<NoInfer<Data>>) => void;
 }): Omit<LoadExistingProps<LoadedAsset<Data>>, 'children'> {
   return {
@@ -74,7 +76,7 @@ export function assetLoad<Data extends { name: string }>({
     scopeKey: editing?.id ?? `create:${type}`,
     mode: editing ? 'replace' : 'create',
     disabled,
-    source: assetLoadSource({ type, schema, excludeId: editing?.id }),
+    source: assetLoadSource({ type, schema, excludeId: editing?.id, presets }),
     raw: {
       validate: async (text) => {
         const parsed = await prepareRawAsset({ type, text, ...(editing ? { targetId: editing.id } : {}) });

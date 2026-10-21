@@ -21,6 +21,7 @@ const artworkTypes = new Set([
   'deck',
   'cardback-preset',
   'token-disc',
+  'token-leader',
   'token-tech',
   'token-plate',
   'token-pointer',

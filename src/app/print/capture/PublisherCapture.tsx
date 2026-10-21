@@ -178,6 +178,8 @@ function captureSubject(snapshot: PublisherCaptureSnapshot): CaptureSubject {
           logo={snapshot.payload.logo}
         />
       );
+    case 'token-leader':
+      return printedImage(snapshot.assetType, <LeaderToken {...snapshot.payload.leader} />);
     /*
      * A token face, already resolved by the producer, so this never asks which face it is drawing.
      * No `TokenFrame`: that is catalogue chrome and carries a drop shadow, and a JPEG cannot hold a mask anyway, so the published artifact is the renderer's own square face and a consumer masks it themselves.

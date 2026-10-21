@@ -14,6 +14,13 @@ import {
 const factionId = 'k1'.repeat(12);
 
 describe('publication targets', () => {
+  test('standalone leaders publish one 600px square without a back address', () => {
+    expect(resolvePublicationCapture('token-leader')).toMatchObject({ output: 'image', widthPx: 600, heightPx: 600 });
+    const path = publishedPath('token-leader', factionId);
+    expect(path).toBe(`/published/leader-tokens/${factionId}/token.jpg`);
+    expect(matchPublishedPath(`/published/leader-tokens/${factionId}.back/token.jpg`)).toBeNull();
+  });
+
   test('first-page raster captures use integer pixels while physical formats retain their precision', () => {
     expect(getRulebookSize('gf9-expansion')).toMatchObject({ widthMm: 132.08, heightMm: 254 });
     expect(resolvePublicationCapture('rulebook-first-page', 'gf9-expansion')).toMatchObject({

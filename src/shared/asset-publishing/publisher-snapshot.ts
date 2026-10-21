@@ -25,6 +25,7 @@ import {
   factionTokenAssetDataSchema,
   RECTANGLE_TOKEN_ASSET_TYPE,
   rectangleTokenFaceAssetDataSchema,
+  leaderTokenAssetDataSchema,
   ROUND_TOKEN_ASSET_TYPES,
   RULEBOOK_FIRST_PAGE_ASSET_TYPE,
   rulebookFirstPageAssetDataSchema,
@@ -90,6 +91,7 @@ export const publisherCaptureSnapshotSchema = z.discriminatedUnion('assetType', 
     })
   ),
   captureSnapshot(RECTANGLE_TOKEN_ASSET_TYPE, rectangleTokenFaceAssetDataSchema),
+  captureSnapshot('token-leader', leaderTokenAssetDataSchema),
   captureSnapshot(RULEBOOK_FIRST_PAGE_ASSET_TYPE, rulebookFirstPageAssetDataSchema),
   rulebookPdfCaptureSnapshotSchema,
 ]);

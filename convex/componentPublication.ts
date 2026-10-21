@@ -46,7 +46,7 @@ export const resolveDelivery = internalQuery({
     const normalizedId = ctx.db.normalizeId('assets', assetId.replace(/\.back$/, ''));
     const asset = normalizedId ? await ctx.db.get('assets', normalizedId) : null;
     const token =
-      asset && assetType.startsWith('token-')
+      asset && assetType.startsWith('token-') && assetType !== 'token-leader'
         ? (assetType === 'token-enhance' ? RectangleTokenAsset : TokenAsset).safeParse(asset.data)
         : null;
     const removedBack = assetId.endsWith('.back') && (!token?.success || token.data.back.mode !== 'custom');

@@ -29,7 +29,7 @@ import {
 import { CustomCardTokens, CustomCardTokenResolution } from '../src/shared/assets/schema';
 import { STANDARD_STORM_CARDS, STANDARD_STORM_CARDBACK } from '../src/shared/assets/standardStormDeck';
 import { treacheryToCustomCard } from '../src/shared/assets/treacheryToCustomCard';
-import { ASSET_TYPE_KEYS } from '../src/shared/assets/types';
+import { ASSET_TYPE_KEYS, holdsBundleMembership } from '../src/shared/assets/types';
 import { parseAssetDataForWrite, parseNexusCardInput } from '../src/shared/assets/validation';
 import { HistoricalBoardDefinition } from '../src/shared/boards/schema';
 import { internal } from './_generated/api';
@@ -385,7 +385,7 @@ async function loadAssetPageFor(ctx: QueryCtx, row: Doc<'assets'>, args: { embed
         }))
       : { members: [], membersTruncated: false }),
     inDecks: row.type === 'deck' ? [] : await containersHolding(ctx, row._id, DECK_CARD),
-    inBundles: TOKEN_TYPES.has(row.type) ? await containersHolding(ctx, row._id, BUNDLE_TOKEN) : [],
+    inBundles: holdsBundleMembership(row.type) ? await containersHolding(ctx, row._id, BUNDLE_TOKEN) : [],
     linkingRulesets: await rulesetsSlotting(ctx, row._id),
     assetPublishing,
     backPublishing: await backFacePublication(ctx, row),
@@ -834,7 +834,7 @@ const BUNDLE_TOKEN = 'bundle-token';
 /** Which kind a container's membership rows carry, and therefore what it is allowed to hold. */
 export const CONTAINER_KINDS: Record<string, { kind: string; holds: (type: string) => boolean; noun: string }> = {
   deck: { kind: DECK_CARD, holds: (type) => type.startsWith('card-'), noun: 'cards' },
-  bundle: { kind: BUNDLE_TOKEN, holds: (type) => TOKEN_TYPES.has(type), noun: 'tokens' },
+  bundle: { kind: BUNDLE_TOKEN, holds: holdsBundleMembership, noun: 'tokens' },
 };
 
 /** Token Asset types, from the module every back rule shares. */

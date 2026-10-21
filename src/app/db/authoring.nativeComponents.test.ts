@@ -7,6 +7,7 @@ import { rulebookFixture } from '../../../convex/rulebooks.test.fixture';
 import { publishingSpiceCard } from '../../shared/assets/fixtures/publishingSpiceCard';
 import { publishingTokenFace } from '../../shared/assets/fixtures/publishingTokenFace';
 import { publishingTreacheryCard } from '../../shared/assets/fixtures/publishingTreacheryCard';
+import { DUKE_PRAD_VIDAL_TOKEN } from '../../shared/assets/leaderToken';
 import { parseRawAsset, readRawAuthoringJson } from '../../shared/authoring/raw';
 import { arrakisBoard } from '../../shared/boards/geometry';
 import { contentImportPackageSchema } from '../../shared/contentImports/package';
@@ -33,7 +34,17 @@ test('native component fields survive local preparation, normal Save and authent
     type: 'board',
     data: { name: 'Native board', about: '', board: arrakisBoard() },
   });
+  const leader = await owner.mutation(api.assets.create, {
+    type: 'token-leader',
+    group_id: ids.groupId,
+    data: DUKE_PRAD_VIDAL_TOKEN,
+  });
   const cases = [
+    {
+      type: 'token-leader',
+      created: leader,
+      data: { ...DUKE_PRAD_VIDAL_TOKEN, strength: 'X', about: 'Standalone leader.' },
+    },
     {
       type: 'token-disc',
       created: token,

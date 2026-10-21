@@ -10738,5 +10738,11 @@
     "tags": ["Gale Force Nine", "GF9", "publisher", "wordmark", "logo"],
     "subjects": ["symbols", "culture"],
     "sourceHash": "ca0d8a68fbf167ab4385422fd97663c281a574e21d3fccf995d0e15bba5662ae"
+  },
+  "/image/leader/gf9/duke-prad-vidal.png": {
+    "description": "A painted portrait of a dark-haired man wearing a high black collar with gold trim and a purple shoulder drape, against a gold background.",
+    "tags": ["Duke Prad Vidal", "Ecaz", "Moritani", "dark hair", "gold trim", "purple drape"],
+    "subjects": ["people"],
+    "sourceHash": "6c66b6c4d55638b03d902ee7d76cd4b0ce970a3545cc0880d9073acc544f2a0f"
   }
 }

@@ -1,4 +1,5 @@
 import preview from '@sb/preview';
+import { DUKE_PRAD_VIDAL_TOKEN } from '@shared/assets/leaderToken';
 import type { ComponentProps } from 'react';
 
 import { LeaderToken } from './Leader';
@@ -69,3 +70,5 @@ export const HiverCourt = meta.story({
     </div>
   ),
 });
+
+export const DukePradVidal = meta.story({ args: DUKE_PRAD_VIDAL_TOKEN });

@@ -40,6 +40,7 @@ import {
   authoredCardback,
   DeckAsset,
   RectangleTokenAsset,
+  LeaderTokenAsset,
   SPICE_BOARD_REVISION,
   SPICE_DISCOVERY_REVISION,
   TREACHERY_TEXT_ONLY_REVISION,
@@ -354,6 +355,18 @@ export async function enqueueAssetPublication(
       return await enqueueTokenFaces(ctx, asset, asset.type, TokenAsset.parse(asset.data), now, (face) =>
         hasSymbolStyle(face) ? ROUND_TOKEN_SYMBOL_STYLE_REVISION : 0
       );
+    case 'token-leader': {
+      if (await holdsForRenderer(ctx, asset.type, asset._id, 1)) {
+        return null;
+      }
+      const { about: _about, ...leader } = LeaderTokenAsset.parse(asset.data);
+      return await enqueuePublicationJob(ctx, {
+        assetType: asset.type,
+        assetId: asset._id,
+        assetData: { assetId: asset._id, slug: asset.slug, leader },
+        now,
+      });
+    }
     case RECTANGLE_TOKEN_ASSET_TYPE:
       return await enqueueTokenFaces(ctx, asset, asset.type, RectangleTokenAsset.parse(asset.data), now);
     default:

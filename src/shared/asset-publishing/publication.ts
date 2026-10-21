@@ -4,6 +4,7 @@ import { cardFrontSnapshotSchema } from '../assets/cardFrontPresets';
 import {
   CustomCardAsset,
   LeaderSkillAsset,
+  LeaderTokenAsset,
   NexusCardAsset,
   HomeworldCardAsset,
   CustomCardTokens,
@@ -180,6 +181,12 @@ export const rectangleTokenFaceAssetDataSchema = z.strictObject({
   face: RectangleTokenFace,
 });
 
+export const leaderTokenAssetDataSchema = z.strictObject({
+  assetId: z.string().min(1),
+  slug: z.string().min(1),
+  leader: LeaderTokenAsset.omit({ about: true }),
+});
+
 /** One immutable Edition's first Page, projected through the publishable Rulebook render contract. */
 export const rulebookFirstPageAssetDataSchema = z.strictObject({
   rulebookId: z.string().min(1),
@@ -218,6 +225,7 @@ const PUBLICATION_ASSET_DATA_SCHEMAS = {
   [DECK_ASSET_TYPE]: deckCardbackAssetDataSchema,
   'cardback-preset': deckCardbackAssetDataSchema,
   'token-disc': tokenFaceAssetDataSchema,
+  'token-leader': leaderTokenAssetDataSchema,
   'token-tech': tokenFaceAssetDataSchema,
   'token-plate': tokenFaceAssetDataSchema,
   'token-pointer': tokenFaceAssetDataSchema,

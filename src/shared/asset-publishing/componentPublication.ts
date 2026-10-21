@@ -65,7 +65,7 @@ export function factionLeaderAssetData(
 function isComponentPublicationIdentity(assetId: string, assetType: ComponentAssetType): boolean {
   return assetType === 'faction-leader'
     ? parseFactionMemberPublicationId(assetId) !== null
-    : assetType === 'card-treachery'
+    : assetType === 'card-treachery' || assetType === 'token-leader'
       ? /^[0-9a-z]{16,64}$/.test(assetId)
       : /^[0-9a-z]{16,64}(\.back)?$/.test(assetId);
 }

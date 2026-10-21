@@ -51,6 +51,7 @@ export function tokenShapeAspect(shape: TokenShape): number {
 /** A token's shape from its asset, publication or table artwork type; null for anything that is not a token, such as a card. */
 const SHAPE_OF_TYPE: Readonly<Record<string, TokenShape>> = {
   'token-disc': 'round',
+  'token-leader': 'round',
   troop: 'round',
   'faction-token': 'round',
   'faction-leader': 'round',

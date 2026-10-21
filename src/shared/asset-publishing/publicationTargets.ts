@@ -37,6 +37,7 @@ export const PUBLICATION_ASSET_TYPES = [
   'deck',
   'cardback-preset',
   'token-disc',
+  'token-leader',
   'token-tech',
   'token-plate',
   'token-pointer',
@@ -132,6 +133,13 @@ function cardTarget(collection: string, file: string, downloadFilename: string):
 const defaultRulebookSize = getRulebookSize(DEFAULT_RULEBOOK_SETTINGS.size);
 
 export const PUBLICATION_TARGETS: Record<PublicationAssetType, PublicationTarget> = {
+  'token-leader': {
+    collection: 'leader-tokens',
+    file: 'token.jpg',
+    contentType: 'image/jpeg',
+    downloadFilename: 'leader-token.jpg',
+    capture: { output: 'image', widthPx: 600, heightPx: 600, jpegQuality: 88, maxBytes: 2_000_000 },
+  },
   'faction-token': {
     collection: 'faction-tokens',
     file: 'token.jpg',

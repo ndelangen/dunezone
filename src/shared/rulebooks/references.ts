@@ -79,6 +79,7 @@ function rulebookReferenceUses(contents: RulebookContentsDraftV1): RulebookRefer
         'token-plate',
         'token-pointer',
         'token-enhance',
+        'token-leader',
       ])
     );
     value.players.forEach((player, index) => faction(player.factionId, `${path}.players.${index}.factionId`));
