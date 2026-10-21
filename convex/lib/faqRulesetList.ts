@@ -62,10 +62,11 @@ export async function projectFaqListItems(ctx: QueryCtx | MutationCtx, items: Do
   const summaryOf = profileSummaryReader(ctx);
   return await Promise.all(
     items.map(async (item) => {
-      const answers = await ctx.db
+      const answerRows = await ctx.db
         .query('faq_answers')
         .withIndex('by_faq_item_created', (q) => q.eq('faq_item_id', item._id))
-        .take(LIST_ANSWER_LIMIT);
+        .take(LIST_ANSWER_LIMIT + 1);
+      const answers = answerRows.slice(0, LIST_ANSWER_LIMIT);
       /* The accepted reply can fall outside the bounded answer window. */
       const candidate = item.accepted_answer_id
         ? (answers.find((answer) => answer._id === item.accepted_answer_id) ??
@@ -85,6 +86,7 @@ export async function projectFaqListItems(ctx: QueryCtx | MutationCtx, items: Do
         list_details: {
           accepted_answer: accepted ? { excerpt: answerExcerpt(accepted.answer) } : null,
           answerers,
+          has_more_answers: answerRows.length > LIST_ANSWER_LIMIT,
           ...references,
         },
       };

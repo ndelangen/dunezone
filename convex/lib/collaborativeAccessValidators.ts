@@ -170,6 +170,7 @@ export const faqListDetailsValidator = v.object({
     )
   ),
   has_more_references: v.boolean(),
+  has_more_answers: v.boolean(),
 });
 
 export type FaqListDetails = Infer<typeof faqListDetailsValidator>;

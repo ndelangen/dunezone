@@ -60,7 +60,7 @@ export function FaqList(props: FaqListProps) {
           const count = item.faq_answers.length;
           const accepted = item.list_details?.accepted_answer;
           const answered = item.list_details ? accepted != null : item.accepted_answer_id != null;
-          const answerLabel = `${count} ${count === 1 ? 'answer' : 'answers'}`;
+          const answerLabel = `${count}${item.list_details?.has_more_answers ? '+' : ''} ${count === 1 ? 'answer' : 'answers'}`;
           const questionLink = (rootProps: Record<string, unknown>) => (
             <Link
               {...rootProps}
@@ -110,6 +110,11 @@ export function FaqList(props: FaqListProps) {
                         {item.list_details.answerers.map((profile, index) => (
                           <Contributor key={profile?.id ?? `former-${index}`} profile={profile} />
                         ))}
+                        {!accepted && item.list_details.has_more_answers ? (
+                          <Anchor size="xs" underline="never" renderRoot={questionLink}>
+                            View all answers
+                          </Anchor>
+                        ) : null}
                       </div>
                     ) : null}
                   </div>
@@ -127,11 +132,7 @@ export function FaqList(props: FaqListProps) {
                           className={styles.reference}
                           renderRoot={(rootProps) =>
                             reference.kind === 'faction' ? (
-                              <Link
-                                {...rootProps}
-                                to="/factions/$factionSlug"
-                                params={{ factionSlug: reference.slug }}
-                              />
+                              <Link {...rootProps} to="/factions/$factionId" params={{ factionId: reference.slug }} />
                             ) : (
                               <Link
                                 {...rootProps}

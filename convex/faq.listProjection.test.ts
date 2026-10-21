@@ -3,7 +3,6 @@ import { expect, test } from 'vite-plus/test';
 
 import { api } from './_generated/api';
 import { applicationTest } from './application.test.fixture';
-import { projectFaqListItems } from './lib/faqRulesetList';
 
 const at = '2026-10-21T00:00:00.000Z';
 
@@ -76,10 +75,9 @@ test('list rows cite accepted authors beyond the answer window and keep referenc
     }
     return { question, accepted, ruleset };
   });
-  const row = await t.run(
-    async (ctx) => (await projectFaqListItems(ctx, [(await ctx.db.get('faq_items', ids.question))!]))[0]!
-  );
+  const row = (await t.query(api.rulesets.detailPage, { slug: 'classic' }))!.faqPreview[0]!;
   expect(row.faq_answers).toHaveLength(50);
+  expect(row.list_details.has_more_answers).toBe(true);
   expect(row.list_details.accepted_answer?.excerpt).toMatch(/^Accepted answer\. First point A longer explanation\./);
   expect(Array.from(row.list_details.accepted_answer!.excerpt)).toHaveLength(181);
   expect(row.list_details.accepted_answer?.excerpt.endsWith('…')).toBe(true);
@@ -87,15 +85,12 @@ test('list rows cite accepted authors beyond the answer window and keep referenc
   expect(row.list_details.references.length).toBeLessThanOrEqual(6);
   expect(row.list_details.references.some((reference) => reference.slug === 'asset-0')).toBe(false);
   expect(row.list_details.has_more_references).toBe(true);
-  const page = await t.query(api.rulesets.detailPage, { slug: 'classic' });
-  expect(page.faqPreview[0]?.list_details).toEqual(row.list_details);
 
   await t.run((ctx) => ctx.db.patch('faq_items', ids.question, { accepted_answer_id: null }));
-  const discussion = await t.run(
-    async (ctx) => (await projectFaqListItems(ctx, [(await ctx.db.get('faq_items', ids.question))!]))[0]!
-  );
+  const discussion = (await t.query(api.rulesets.detailPage, { slug: 'classic' }))!.faqPreview[0]!;
   expect(discussion.list_details.accepted_answer).toBeNull();
   expect(discussion.list_details.answerers).toEqual([null]);
+  expect(discussion.list_details.has_more_answers).toBe(true);
 });
 
 test('a stale accepted-answer pointer never previews another question', async () => {
@@ -138,12 +133,13 @@ test('a stale accepted-answer pointer never previews another question', async ()
       created_at: at,
     });
     await ctx.db.patch('faq_items', question, { accepted_answer_id: answer });
-    const [row] = await projectFaqListItems(ctx, [(await ctx.db.get('faq_items', question))!]);
-    expect(row!.list_details).toEqual({
-      accepted_answer: null,
-      answerers: [],
-      references: [],
-      has_more_references: false,
-    });
+  });
+  const page = await t.query(api.rulesets.detailPage, { slug: 'classic' });
+  expect(page!.faqPreview.find((row) => row.slug === 'one')!.list_details).toEqual({
+    accepted_answer: null,
+    answerers: [],
+    references: [],
+    has_more_references: false,
+    has_more_answers: false,
   });
 });

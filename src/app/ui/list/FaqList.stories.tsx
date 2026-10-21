@@ -35,6 +35,7 @@ const faqItems = [
         { kind: 'faction', name: 'Atreides', slug: 'atreides' },
       ],
       has_more_references: false,
+      has_more_answers: false,
     },
     asker_profile: {
       id: 'profile-1',
@@ -56,7 +57,13 @@ const faqItems = [
     accepted_answer_id: null,
     faq_answers: [],
     asker_profile: null,
-    list_details: { accepted_answer: null, answerers: [], references: [], has_more_references: false },
+    list_details: {
+      accepted_answer: null,
+      answerers: [],
+      references: [],
+      has_more_references: false,
+      has_more_answers: false,
+    },
   },
 ] as unknown as FaqItemWithDetails[];
 
@@ -215,5 +222,27 @@ export const RowActivation = meta.story({
     await expect(canvas.getByRole('link', { name: 'Chani' }).querySelector('span:last-child')).not.toHaveStyle({
       textDecoration: 'underline',
     });
+  },
+});
+
+export const LongDiscussion = meta.story({
+  args: {
+    items: [
+      {
+        ...faqItems[0]!,
+        accepted_answer_id: null,
+        list_details: {
+          ...faqItems[0]!.list_details!,
+          accepted_answer: null,
+          has_more_answers: true,
+        },
+      },
+    ],
+  },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByRole('link', { name: 'View all answers' })).toHaveAttribute(
+      'href',
+      '/rulesets/dreamrules/faq/storm-movement'
+    );
   },
 });
