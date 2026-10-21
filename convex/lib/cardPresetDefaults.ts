@@ -2,11 +2,15 @@ import { ConvexError } from 'convex/values';
 
 import type { CardbackPresetKey } from '../../src/shared/assets/cardbackPresetKeys';
 import { INITIAL_CARDBACK_PRESETS } from '../../src/shared/assets/cardbackPresets';
+import type { CardbackPreset } from '../../src/shared/assets/cardbackPresets';
 import { INITIAL_CARD_FRONT_PRESETS } from '../../src/shared/assets/cardFrontPresets';
 import type { CardFrontPresetKey, AuthoredCardFrontStyle } from '../../src/shared/assets/cardFrontPresets';
-import { CardBack, TokenAsset, TreacheryAsset } from '../../src/shared/assets/schema';
+import { authoredCardback, CardBack, DeckAsset, TokenAsset, TreacheryAsset } from '../../src/shared/assets/schema';
 import type { DISCOVERY_FAMILIES, DiscoveryPreset } from '../../src/shared/backgrounds/families';
+import type { Doc } from '../_generated/dataModel';
 import type { QueryCtx } from '../types';
+import { assertReferenceableDeckCardback, authoredDeckCardback, deckCardbackOf } from './assetBacks';
+import { presetFromKey } from './cardbackPresets';
 
 type Reader = Pick<QueryCtx, 'db'>;
 async function sourceAsset(ctx: Reader, type: string, slug: string) {
@@ -72,7 +76,11 @@ export async function rawDiscoveryPreset(
 }
 
 /** Existing deck designs are copied into presets by the import; normal reads never follow a mutable deck. */
-export async function rawCardbackPreset(ctx: Pick<QueryCtx, 'db'>, key: CardbackPresetKey, importSource = false) {
+export async function rawCardbackPreset(
+  ctx: Pick<QueryCtx, 'db'>,
+  key: CardbackPresetKey,
+  importSource = false
+): Promise<{ cardback: CardbackPreset['cardback']; revision: number }> {
   const row = await ctx.db
     .query('cardback_presets')
     .withIndex('by_key', (q) => q.eq('key', key))
@@ -83,9 +91,26 @@ export async function rawCardbackPreset(ctx: Pick<QueryCtx, 'db'>, key: Cardback
   const initial = INITIAL_CARDBACK_PRESETS.find((entry) => entry.key === key)!;
   if (importSource && ['stronghold', 'homeworld', 'nexus', 'leader-skill'].includes(key)) {
     const deck = await sourceAsset(ctx, 'deck', `${key}-deck`);
-    const back = (deck.data as { cardback: Record<string, unknown> }).cardback;
-    const cardback = CardBack.parse(Object.fromEntries(Object.entries(back).filter(([field]) => field !== 'mode')));
+    const cardback = await importedDeckBack(ctx, deck);
     return { cardback, revision: 0 };
   }
   return { cardback: initial.cardback, revision: 0 };
+}
+
+async function importedDeckBack(ctx: Reader, deck: Doc<'assets'>): Promise<CardbackPreset['cardback']> {
+  const back = DeckAsset.shape.cardback.parse(deckCardbackOf(deck.data));
+  if (!('mode' in back) || back.mode === 'custom') {
+    return authoredCardback(back)!;
+  }
+  if (back.mode === 'preset') {
+    return (await presetFromKey(ctx, back.key, new Map()))!.cardback;
+  }
+  const targetId = ctx.db.normalizeId('assets', back.asset_id);
+  if (!targetId) {
+    throw new ConvexError(
+      'The source deck references an invalid cardback. Choose another back before importing presets.'
+    );
+  }
+  const target = await assertReferenceableDeckCardback(ctx, deck, targetId);
+  return CardBack.parse(authoredDeckCardback(target));
 }
