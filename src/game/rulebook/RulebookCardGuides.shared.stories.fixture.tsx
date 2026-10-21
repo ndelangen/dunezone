@@ -18,7 +18,8 @@ type GroupVariant = Extract<RulebookBlockDraft, { kind: 'card-group' }>['variant
 function CardGuideStory({
   treatment = 'entry',
   size = 'a4',
-}: Readonly<{ treatment?: 'entry' | GroupVariant | 'incomplete'; size?: RulebookSize }>) {
+  fanCount = 6,
+}: Readonly<{ treatment?: 'entry' | GroupVariant | 'incomplete'; size?: RulebookSize; fanCount?: 4 | 6 }>) {
   let blocks: Parameters<typeof cardGuidePage>[0];
   if (treatment === 'entry') {
     blocks = [cardEntryFixture()];
@@ -50,7 +51,17 @@ function CardGuideStory({
       },
     ];
   } else {
-    blocks = [cardGroupFixture(treatment)];
+    const group = cardGroupFixture(treatment);
+    if (treatment === 'fan') {
+      const items = group.itemOrder.map((id) => group.itemsById[id]!);
+      group.title = 'Related cards';
+      group.text = '';
+      group.itemOrder = Array.from({ length: fanCount }, (_, index) => `CARD${index}`);
+      group.itemsById = Object.fromEntries(
+        group.itemOrder.map((id, index) => [id, { ...items[index % items.length]!, id, text: '', quantity: undefined }])
+      );
+    }
+    blocks = [group];
   }
   return (
     <div style={{ width: size === 'tall' ? 'min(24rem, 92vw)' : 'min(44rem, 92vw)' }}>
@@ -79,11 +90,13 @@ export function ComponentEntryStory({ size = 'a4' }: { size?: RulebookSize }) {
 export function CardGroupStory({
   treatment = 'compact',
   size = 'a4',
+  fanCount = 6,
 }: {
   treatment?: GroupVariant | 'incomplete';
   size?: RulebookSize;
+  fanCount?: 4 | 6;
 }) {
-  return <CardGuideStory treatment={treatment} size={size} />;
+  return <CardGuideStory treatment={treatment} size={size} fanCount={fanCount} />;
 }
 
 export function CardEntryLayoutMatrix() {

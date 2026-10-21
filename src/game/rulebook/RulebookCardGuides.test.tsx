@@ -94,3 +94,13 @@ describe('Rulebook Card guides', () => {
     expect(container.textContent).toContain(block.text);
   });
 });
+
+it('fan rendering keeps one image per card and every authored caption and quantity', () => {
+  const block = projectRulebookDraftRenderBlock(cardGroupFixture('fan'), cardGuideAssets);
+  const { container } = render(<RulebookBlockCanvas block={block} />);
+  expect(container.querySelectorAll('img')).toHaveLength(3);
+  expect(container.querySelectorAll('.rulebookCardFan > div')).toHaveLength(3);
+  expect(container.querySelectorAll('[data-rulebook-item-id]')).toHaveLength(3);
+  expect(container.textContent).toContain('A poison weapon.');
+  expect(container.textContent).toContain('Quantity: 1');
+});

@@ -423,7 +423,7 @@ const setIntentSchema = z.union([
     kind: z.literal('set'),
     target: blockRefSchema,
     field: z.literal('variant'),
-    value: z.enum(['note', 'example', 'quotation', 'compact', 'gallery', 'featured-member']),
+    value: z.enum(['note', 'example', 'quotation', 'compact', 'gallery', 'featured-member', 'fan']),
   }),
   z.strictObject({
     kind: z.literal('set'),
@@ -1463,7 +1463,7 @@ function setBlockField(block: RulebookBlockDraft, field: RulebookFieldName, valu
   if (
     field === 'variant' &&
     block.kind === 'card-group' &&
-    (value === 'compact' || value === 'gallery' || value === 'featured-member')
+    (value === 'compact' || value === 'gallery' || value === 'featured-member' || value === 'fan')
   ) {
     block.variant = value;
     return;

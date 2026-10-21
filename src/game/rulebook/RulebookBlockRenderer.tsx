@@ -42,6 +42,7 @@ const styles = {
   factionRuler: 'rulebookFactionRuler',
   cardEntry: 'rulebookCardEntry',
   cardGroup: 'rulebookCardGroup',
+  cardFan: 'rulebookCardFan',
   cardGuide: 'rulebookCardGuide',
   cardGuidance: 'rulebookCardGuidance',
   cardQuantity: 'rulebookCardQuantity',
@@ -181,6 +182,7 @@ function CardGuide({
   text,
   quantity,
   grouped = false,
+  showImage = true,
   imageSide,
   textFlow,
   name,
@@ -190,6 +192,7 @@ function CardGuide({
   text: string;
   quantity?: number;
   grouped?: boolean;
+  showImage?: boolean;
   imageSide?: 'left' | 'right';
   textFlow?: 'beside' | 'wrap';
   name?: string;
@@ -203,7 +206,7 @@ function CardGuide({
       data-image-side={imageSide}
       data-text-flow={textFlow}
     >
-      <SourceVisual source={source} />
+      {showImage ? <SourceVisual source={source} /> : null}
       <div className={styles.cardGuidance}>
         {name || (source.status === 'ready' && source.name) ? (
           <Heading>{name || (source.status === 'ready' ? source.name : '')}</Heading>
@@ -411,6 +414,10 @@ export function RulebookBlockRenderer({ block }: Readonly<{ block: RulebookRende
     );
   }
   if (block.kind === 'card-group') {
+    const guidance =
+      block.variant === 'fan'
+        ? block.items.filter((item) => item.text.trim() || item.quantity !== undefined)
+        : block.items;
     return (
       <section
         {...blockAnchor(block)}
@@ -420,12 +427,27 @@ export function RulebookBlockRenderer({ block }: Readonly<{ block: RulebookRende
       >
         {block.title ? <h3>{block.title}</h3> : null}
         <FormattedText value={block.text} />
-        {block.items.length ? (
-          <ul>
-            {block.items.map((item) => (
-              <li
+        {block.variant === 'fan' && block.items.length ? (
+          <div className={styles.cardFan}>
+            {block.items.map((item, index) => (
+              <div
                 key={item.id}
                 data-rulebook-item-id={item.id}
+                style={{
+                  transform: `rotate(${(index - (block.items.length - 1) / 2) * Math.min(6, 30 / Math.max(1, block.items.length - 1))}deg)`,
+                }}
+              >
+                <SourceVisual source={item.source} />
+              </div>
+            ))}
+          </div>
+        ) : null}
+        {guidance.length ? (
+          <ul>
+            {guidance.map((item) => (
+              <li
+                key={item.id}
+                data-rulebook-item-id={block.variant === 'fan' ? undefined : item.id}
                 data-card-featured={
                   block.variant === 'featured-member' && block.featuredItemId === item.id ? '' : undefined
                 }
@@ -435,6 +457,7 @@ export function RulebookBlockRenderer({ block }: Readonly<{ block: RulebookRende
                   text={item.text}
                   quantity={item.quantity}
                   grouped={Boolean(block.title)}
+                  showImage={block.variant !== 'fan'}
                 />
               </li>
             ))}
