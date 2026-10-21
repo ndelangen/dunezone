@@ -1,11 +1,12 @@
 import { GRADIENT } from '@shared/factions/schema';
-import type { Background as BackGroundType } from '@shared/factions/schema';
+import type { AuthoredBackground as BackGroundType } from '@shared/factions/schema';
 import { useId } from 'react';
 import type { FC } from 'react';
 import type { z } from 'zod';
 
 import { useAsset } from '../assetRenderMode';
 import styles from './Background.module.css';
+import { useResolvedBackground } from './BackgroundLibrary';
 
 /** Maps authored studio values to the real pattern-mask treatment. */
 export function backgroundTreatment({
@@ -52,7 +53,8 @@ export const GradientDef: FC<{ id: string; gradient: z.infer<typeof GRADIENT> }>
   );
 };
 
-export const Background: FC<z.infer<typeof BackGroundType>> = ({ colors, image, invert, definition, influence }) => {
+export const Background: FC<z.infer<typeof BackGroundType>> = (value) => {
+  const { colors, image, invert, definition, influence } = useResolvedBackground(value);
   // Fragment refs like url(#gradient-0) are resolved in the whole HTML document, not per-<svg>.
   const base = useId().replace(/:/g, '');
   const textureId = `bg-${base}-texture`;

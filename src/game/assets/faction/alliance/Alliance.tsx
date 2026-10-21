@@ -1,7 +1,10 @@
+import type { CardFrontStyle } from '@shared/assets/cardFrontPresets';
 import type { FactionRender } from '@shared/factions/schema';
 import { useId, useMemo } from 'react';
 import type { FC } from 'react';
 import type { z } from 'zod';
+
+import { useResolvedCardFront } from '@game/assets/utils/BackgroundLibrary';
 
 import { backgroundPresets } from '../../../data/backgrounds';
 import { card } from '../../../data/sizes';
@@ -15,14 +18,16 @@ import unique from './Alliance.module.css';
 
 const foreGroundColor = '#e3dbb3';
 
-export const AllianceCard: FC<z.infer<typeof FactionRender.alliance>> = ({
+export const AllianceCard: FC<z.infer<typeof FactionRender.alliance> & { frontStyle?: CardFrontStyle }> = ({
   background,
+  frontStyle: suppliedFrontStyle,
   logo,
   title,
   decals,
   text,
   troop,
 }) => {
+  const frontStyle = useResolvedCardFront('faction-alliance', {}, suppliedFrontStyle);
   const cid = useId();
   const prefix = useMemo(() => `${cid}_`, [cid]);
   const discMask = `${prefix}mask-disc`;
@@ -65,10 +70,16 @@ export const AllianceCard: FC<z.infer<typeof FactionRender.alliance>> = ({
         </foreignObject>
       </svg>
 
-      <BackgroundRenderer className={`${styles.head} ${unique.head}`} background={backgroundPresets.special} />
+      <BackgroundRenderer
+        className={`${styles.head} ${unique.head}`}
+        background={frontStyle?.head ?? backgroundPresets.special}
+      />
       <div className={styles.head_shade} />
       <div className={styles.shape} />
-      <BackgroundRenderer className={`${styles.type} ${unique.type}`} background={backgroundPresets.stripedAlliance}>
+      <BackgroundRenderer
+        className={`${styles.type} ${unique.type}`}
+        background={frontStyle?.iconBackground ?? backgroundPresets.stripedAlliance}
+      >
         <img src="/vector/icon/alliance.svg" alt="" className={unique.typeOverlay} />
         <img src="/vector/icon/alliance.svg" alt="" className={unique.typeShade} />
       </BackgroundRenderer>

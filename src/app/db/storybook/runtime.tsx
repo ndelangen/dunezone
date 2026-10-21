@@ -285,7 +285,7 @@ export function useConvexStorybookQueries(queries: StorybookQueries): Record<str
 
 export function useConvexStorybookQuery<Query extends FunctionReference<'query'> | FunctionReference_future<'query'>>(
   query: Query,
-  args: FunctionArgs<Query>
+  args: FunctionArgs<Query> | 'skip'
 ): FunctionReturnType<Query> | undefined {
   const { client, identity } = useConvexStorybookWorkerSession();
   const revision = useSyncExternalStore(client.subscribe, client.getRevision, client.getRevision);
@@ -304,6 +304,9 @@ export function useConvexStorybookQuery<Query extends FunctionReference<'query'>
   }>();
 
   useEffect(() => {
+    if (stableArgs === 'skip') {
+      return;
+    }
     let active = true;
     void client
       .query(stableQuery, stableArgs, identity)
@@ -327,7 +330,7 @@ export function useConvexStorybookQuery<Query extends FunctionReference<'query'>
   }, [client, identity, input, revision, stableArgs, stableQuery]);
 
   /* A changed argument clears immediately; a revision keeps the last value until its replacement arrives. */
-  if (result?.input !== input) {
+  if (stableArgs === 'skip' || result?.input !== input) {
     return undefined;
   }
   if (result.error && result.revision === revision) {

@@ -1,6 +1,9 @@
+import type { CardFrontStyle } from '@shared/assets/cardFrontPresets';
 import type { FactionRender } from '@shared/factions/schema';
 import type { FC } from 'react';
 import type { z } from 'zod';
+
+import { useResolvedCardFront } from '@game/assets/utils/BackgroundLibrary';
 
 import { backgroundPresets } from '../../../data/backgrounds';
 import styles from '../../card/Card.module.css';
@@ -10,21 +13,29 @@ import { BackgroundRenderer } from '../../utils/BackgroundRenderer';
 import { CardTitle } from '../../utils/CardTitle';
 import unique from './Traitor.module.css';
 
-export const TraitorCard: FC<z.infer<typeof FactionRender.traitors>[0]> = ({
+export const TraitorCard: FC<z.infer<typeof FactionRender.traitors>[0] & { frontStyle?: CardFrontStyle }> = ({
   image,
   logo,
   name,
   strength,
   background,
+  frontStyle: suppliedFrontStyle,
   owner,
 }) => {
+  const frontStyle = useResolvedCardFront('faction-traitor', {}, suppliedFrontStyle);
   return (
     <div className={styles.card}>
       <div className={styles.decal_bg_1} />
-      <BackgroundRenderer className={`${styles.head} ${unique.head}`} background={backgroundPresets.traitor} />
+      <BackgroundRenderer
+        className={`${styles.head} ${unique.head}`}
+        background={frontStyle?.head ?? backgroundPresets.traitor}
+      />
       <div className={styles.head_shade} />
       <div className={styles.shape} />
-      <BackgroundRenderer className={`${styles.type} ${unique.type}`} background={backgroundPresets.stripedSpecial}>
+      <BackgroundRenderer
+        className={`${styles.type} ${unique.type}`}
+        background={frontStyle?.iconBackground ?? backgroundPresets.stripedSpecial}
+      >
         <img src="/vector/icon/traitor.svg" alt="" className={styles.typeOverlay} />
         <img src="/vector/icon/traitor.svg" alt="" className={styles.typeShade} />
       </BackgroundRenderer>

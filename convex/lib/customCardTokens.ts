@@ -1,4 +1,5 @@
 import { customCardTokenIds, customCardPublicationError } from '../../src/shared/assets/cardReferences';
+import { resolveBackgrounds } from './backgroundPresets';
 export { customCardTokenIds, customCardPublicationError } from '../../src/shared/assets/cardReferences';
 import { ConvexError } from 'convex/values';
 import type { z } from 'zod';
@@ -49,7 +50,7 @@ export async function resolveCustomCardTokens(
   for (const raw of new Set(ids)) {
     const id = ctx.db.normalizeId('assets', raw);
     const row = id ? await ctx.db.get('assets', id) : null;
-    tokens[raw] = tokenFront(row);
+    tokens[raw] = await resolveBackgrounds(ctx, tokenFront(row));
     readBytes += new TextEncoder().encode(JSON.stringify(row?.data ?? null)).length;
     if (readBytes > MAX_TOKEN_READ_BYTES) {
       return { tokens: {}, error: TOKEN_SIZE_ERROR };

@@ -43,6 +43,7 @@ import { useAsset } from '@game/assets/assetRenderMode';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
 import { Token as FactionToken } from '@game/assets/faction/token/Token';
 import { TroopToken } from '@game/assets/faction/troop/Troop';
+import { BackgroundLibrary } from '@game/assets/utils/BackgroundLibrary';
 import { TTS_COLOR_SWATCHES } from '@game/data/ttsColors';
 
 import styles from './index.module.css';
@@ -397,13 +398,15 @@ function FactionDetailPage() {
   }
 
   return (
-    <FactionDetailContent
-      faq={factionQuery}
-      factionId={factionId}
-      page={page}
-      isPending={factionQuery.isPending}
-      membershipWorkflow={membershipWorkflow}
-    />
+    <BackgroundLibrary presets={page.backgrounds} fronts={page.cardFrontPresets}>
+      <FactionDetailContent
+        faq={factionQuery}
+        factionId={factionId}
+        page={page}
+        isPending={factionQuery.isPending}
+        membershipWorkflow={membershipWorkflow}
+      />
+    </BackgroundLibrary>
   );
 }
 

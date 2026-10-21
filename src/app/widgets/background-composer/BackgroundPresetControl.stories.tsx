@@ -1,107 +1,161 @@
+import { Button } from '@mantine/core';
 import preview from '@sb/preview';
-import { expect, fn, within } from 'storybook/test';
+import { INITIAL_BACKGROUND_PRESETS } from '@shared/backgrounds/defaults';
+import { useReducer, useState } from 'react';
+import { expect, fn, userEvent, within } from 'storybook/test';
 
+import { db } from '@db/storybook';
+import { BackgroundLibrary } from '@game/assets/utils/BackgroundLibrary';
 import { backgroundPresets } from '@game/data/backgrounds';
+import type { BackgroundData } from '@game/data/backgrounds';
 
 import { emptyBackgroundModeMemory } from './BackgroundComposer';
+import type { BackgroundModeMemory } from './BackgroundComposer';
 import { BackgroundPresetControl } from './BackgroundPresetControl';
 
-/** The four a treachery card offers, the real set rather than a sample. */
-const CARD_PRESETS = [
-  { key: 'weapon', label: 'Weapon', background: backgroundPresets.weapon },
-  { key: 'defense', label: 'Defense', background: backgroundPresets.defense },
-  { key: 'special', label: 'Special', background: backgroundPresets.special },
-  { key: 'worthless', label: 'Worthless', background: backgroundPresets.worthless },
-];
-
-/* Exactly one tile is chosen: the named one is checked and every other radio is not. */
-async function expectOnlyChecked(canvasElement: HTMLElement, name: string) {
-  const canvas = within(canvasElement);
-  const chosen = canvas.getByRole('radio', { name });
-  await expect(chosen).toBeChecked();
-  const others = canvas.getAllByRole('radio').filter((choice) => choice !== chosen);
-  await expect(others.length).toBeGreaterThan(0);
-  for (const other of others) {
-    await expect(other).not.toBeChecked();
-  }
-}
-
 const meta = preview.meta({
-  title: 'Background Preset Control',
+  parameters: { database: db(() => {}) },
   component: BackgroundPresetControl,
+  title: 'Background Preset Control',
   args: {
     title: 'Head background',
     description: 'The band behind the card name.',
     usedOn: 'card head',
-    presets: CARD_PRESETS,
+    presets: [],
     value: backgroundPresets.weapon,
     onChange: fn(),
-    /* Controlled now: the declared intent belongs to the page's reducer, so the stories state it as an arg like any other value. */
     declaredCustom: false,
     onDeclaredCustomChange: fn(),
     modeMemory: emptyBackgroundModeMemory(),
     onModeMemoryChange: fn(),
   },
 });
-
-/**
- * A stored value matching a preset selects that preset's tile.
- * Five tiles is the count that made the row wrap before it became a shared `1fr` grid, so the equal-size check guards it.
- */
 export const OnAPreset = meta.story({
-  args: {
-    presets: [...CARD_PRESETS, { key: 'fate', label: 'Fate', background: backgroundPresets.fate }],
-  },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const choices = canvas.getAllByRole('radio');
-    await expect(choices.length).toBeGreaterThanOrEqual(5);
-    const bounds = choices.map((choice) => choice.parentElement!.getBoundingClientRect());
-    for (const box of bounds) {
-      await expect(Math.abs(box.width - bounds[0].width)).toBeLessThan(1);
-      await expect(Math.abs(box.height - bounds[0].height)).toBeLessThan(1);
-    }
-    const selected = canvas.getByRole('radio', { name: 'Weapon' });
-    const tile = selected.parentElement!;
-    const frame = tile.querySelector('div')!;
-    const picture = frame.querySelector('svg')!;
-    const edge = frame.getBoundingClientRect();
-    const art = picture.getBoundingClientRect();
-    const border = Number.parseFloat(getComputedStyle(frame).borderLeftWidth);
-    await expect(art.left).toBeGreaterThanOrEqual(edge.left + border - 0.1);
-    await expect(art.right).toBeLessThanOrEqual(edge.right - border + 0.1);
+    await expect(canvas.getByRole('combobox', { name: 'Head background preset' })).toHaveValue('Weapon');
+    await expect(canvas.queryByRole('region', { name: 'Background builder' })).not.toBeInTheDocument();
   },
 });
-
-/** A value matching no preset selects Custom, which paints the value rather than the dashed spot. */
 export const Custom = meta.story({
-  args: {
-    value: backgroundPresets.harkonnen,
+  args: { value: { ...backgroundPresets.weapon, source: { kind: 'custom' } } },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByRole('region', { name: 'Background builder' })).toBeVisible();
   },
-  play: async ({ canvasElement }) => expectOnlyChecked(canvasElement, 'Custom'),
+});
+export const LegacyInline = meta.story({
+  args: { value: { ...backgroundPresets.weapon, source: undefined } },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByRole('combobox', { name: 'Head background preset' })).toHaveValue('Custom');
+  },
 });
 
-/**
- * A value that does match a preset, shown as Custom because the author said so.
- *
- * This is the half of the choice no value can express, and the story exists because it is the only way to see the two halves disagree: the derived match says Weapon, the declared intent says Custom, and Custom wins.
- */
-export const DeclaredCustomOverAMatchingValue = meta.story({
-  args: {
-    value: backgroundPresets.weapon,
-    declaredCustom: true,
+function ChoiceSession({ onChange }: Readonly<{ onChange?: (value: BackgroundData) => void }>) {
+  const [state, dispatch] = useReducer(
+    (
+      current: { value: BackgroundData; memory: BackgroundModeMemory },
+      event: { kind: 'pick'; value: BackgroundData } | { kind: 'memory'; value: BackgroundModeMemory }
+    ) => (event.kind === 'pick' ? { ...current, value: event.value } : { ...current, memory: event.value }),
+    { value: backgroundPresets.weapon, memory: emptyBackgroundModeMemory() }
+  );
+  return (
+    <BackgroundPresetControl
+      title="Head background"
+      description="The band behind the card name."
+      usedOn="card head"
+      presets={[]}
+      value={state.value}
+      onChange={(value) => {
+        dispatch({ kind: 'pick', value });
+        onChange?.(value);
+      }}
+      declaredCustom={false}
+      onDeclaredCustomChange={() => undefined}
+      modeMemory={state.memory}
+      onModeMemoryChange={(value) => dispatch({ kind: 'memory', value })}
+    />
+  );
+}
+export const PresetOrCustom = meta.story({
+  parameters: {
+    database: db((baseline) => {
+      const { source: _source, ...value } = backgroundPresets.weapon;
+      baseline.background_presets = [
+        { key: 'custom/sunset', name: 'Sunset standard', value, revision: 1, updated_at: 0 },
+        ...['front/treachery-weapon/header', 'front/treachery-weapon/icon', 'back/treachery'].map((key) => ({
+          key,
+          name: key,
+          value,
+          revision: 1,
+          updated_at: 0,
+        })),
+      ];
+    }),
   },
-  play: async ({ canvasElement }) => expectOnlyChecked(canvasElement, 'Custom'),
+  render: () => <ChoiceSession />,
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(page.getByRole('combobox', { name: 'Head background preset' }));
+    await Promise.all(
+      ['Header backgrounds', 'Icon backgrounds', 'Card-back backgrounds'].map(async (name) => {
+        const group = await page.findByRole('group', { name }, { timeout: 30_000 });
+        await expect(group.querySelector('svg')).not.toBeNull();
+      })
+    );
+    await userEvent.click(await page.findByRole('option', { name: /^Custom$/ }));
+    await expect(page.getByRole('region', { name: 'Background builder' })).toBeVisible();
+    await userEvent.click(page.getByRole('combobox', { name: 'Head background preset' }));
+    await userEvent.click(await page.findByRole('option', { name: /^Sunset standard$/ }, { timeout: 30_000 }));
+    await expect(page.queryByRole('region', { name: 'Background builder' })).not.toBeInTheDocument();
+    await expect(page.getByRole('combobox', { name: 'Head background preset' })).toHaveValue('Sunset standard');
+  },
 });
 
-/** A gradient preset, the case reference equality used to miss and value equality now catches. */
-export const GradientPreset = meta.story({
-  args: {
-    presets: [
-      { key: 'weapon', label: 'Weapon', background: backgroundPresets.weapon },
-      { key: 'stripedWeapon', label: 'Striped', background: backgroundPresets.stripedWeapon },
-    ],
-    value: backgroundPresets.stripedWeapon,
+function ChangedStandardSession({ onChange }: Readonly<{ onChange: (value: BackgroundData) => void }>) {
+  const [changed, setChanged] = useState(false);
+  return (
+    <BackgroundLibrary
+      presets={[
+        {
+          key: 'stock/weapon',
+          name: 'Weapon',
+          revision: changed ? 2 : 1,
+          value: {
+            ...backgroundPresets.weapon,
+            colors: changed ? ['#112233', '#445566'] : backgroundPresets.weapon.colors,
+          },
+        },
+      ]}
+    >
+      <Button onClick={() => setChanged(true)}>Update shared standard</Button>
+      <ChoiceSession onChange={onChange} />
+    </BackgroundLibrary>
+  );
+}
+export const CustomKeepsTheCurrentAppearance = meta.story({
+  parameters: {
+    database: db((baseline) => {
+      baseline.background_presets = INITIAL_BACKGROUND_PRESETS.filter((preset) => preset.key === 'stock/weapon').map(
+        (preset) => ({ ...preset, updated_at: 0 })
+      );
+    }),
   },
-  play: async ({ canvasElement }) => expectOnlyChecked(canvasElement, 'Striped'),
+  render: (args) => <ChangedStandardSession onChange={(value) => args.onChange(value, null)} />,
+  play: async ({ canvasElement, args }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(page.getByRole('combobox', { name: 'Head background preset' }));
+    await userEvent.click(await page.findByRole('option', { name: /^Weapon$/ }, { timeout: 30_000 }));
+    await userEvent.click(page.getByRole('button', { name: 'Update shared standard' }));
+    await expect(canvasElement.querySelector('svg rect[fill="#112233"]')).not.toBeNull();
+    await userEvent.click(page.getByRole('combobox', { name: 'Head background preset' }));
+    await userEvent.click(page.getByRole('option', { name: /^Custom$/ }));
+    await expect(args.onChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        colors: ['#112233', '#445566'],
+        source: { kind: 'custom' },
+      }),
+      null
+    );
+    await expect(page.getByRole('region', { name: 'Background builder' })).toBeVisible();
+  },
 });

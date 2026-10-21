@@ -1,8 +1,11 @@
+import type { CardFrontStyle } from '@shared/assets/cardFrontPresets';
 import type { CustomCardTokens } from '@shared/assets/schema';
 import type { Board } from '@shared/boards/schema';
 import { useId } from 'react';
 import type { FC } from 'react';
 import type { z } from 'zod';
+
+import { useResolvedCardFront } from '@game/assets/utils/BackgroundLibrary';
 
 import { backgroundPresets } from '../../data/backgrounds';
 import type { Spice } from '../../data/objects';
@@ -32,6 +35,7 @@ export const SpiceCard: FC<
     boardTokens?: z.infer<typeof CustomCardTokens>;
     /** The editor's brush and token dragging on the linked board's map. */
     mapEditing?: SpiceMapEditing;
+    frontStyle?: CardFrontStyle;
   }
 > = ({
   name,
@@ -47,7 +51,9 @@ export const SpiceCard: FC<
   boardDefinition,
   boardTokens,
   mapEditing,
+  frontStyle: suppliedFrontStyle,
 }) => {
+  const frontStyle = useResolvedCardFront('card-spice', {}, suppliedFrontStyle);
   const resolveOverlay = useAssetResolver();
   const prefix = useId();
   const decalsFilter = `${prefix}decals-filter`;
@@ -55,10 +61,16 @@ export const SpiceCard: FC<
 
   return (
     <div className={styles.card} data-spice-look={board?.look?.style}>
-      <BackgroundRenderer className={`${styles.head} ${unique.head}`} background={backgroundPresets.spice} />
+      <BackgroundRenderer
+        className={`${styles.head} ${unique.head}`}
+        background={frontStyle?.head ?? backgroundPresets.spice}
+      />
       <div className={styles.head_shade} />
       <div className={`${styles.shape} ${unique.shape}`} />
-      <BackgroundRenderer className={`${styles.type} ${unique.type}`} background={backgroundPresets.stripedSpice}>
+      <BackgroundRenderer
+        className={`${styles.type} ${unique.type}`}
+        background={frontStyle?.iconBackground ?? backgroundPresets.stripedSpice}
+      >
         <img
           src={spiceIconSrc(icon)}
           alt=""

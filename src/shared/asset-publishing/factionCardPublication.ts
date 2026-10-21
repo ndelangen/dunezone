@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { cardFrontStyleSchema } from '../assets/cardFrontPresets';
 import { HistoricalFactionPublicationObject, HistoricalFactionPublicationSchema } from '../factions/schema';
 import type { FactionRender } from '../factions/schema';
 import { factionMemberPublicationId } from './componentPublication';
@@ -21,6 +22,7 @@ export const factionTraitorAssetDataSchema = z.strictObject({
   logo: faction.logo,
   background: faction.background,
   owner: faction.name,
+  frontStyle: cardFrontStyleSchema.optional(),
 });
 export type FactionTraitorAssetData = z.infer<typeof factionTraitorAssetDataSchema>;
 
@@ -32,6 +34,7 @@ export const factionAllianceAssetDataSchema = z.strictObject({
   background: faction.background,
   troop: faction.troops.element.shape.image,
   decals: faction.decals,
+  frontStyle: cardFrontStyleSchema.optional(),
 });
 export type FactionAllianceAssetData = z.infer<typeof factionAllianceAssetDataSchema>;
 
@@ -81,5 +84,8 @@ export function factionAllianceAssetData(data: unknown): FactionAllianceAssetDat
  * These fail to compile when either key set drifts from its renderer's projection.
  */
 type SameKeys<A, B> = [Exclude<keyof A, keyof B>, Exclude<keyof B, keyof A>] extends [never, never] ? true : false;
-true satisfies SameKeys<Omit<z.output<typeof FactionRender.traitors>[number], 'memberId'>, FactionTraitorAssetData>;
-true satisfies SameKeys<z.output<typeof FactionRender.alliance>, FactionAllianceAssetData>;
+true satisfies SameKeys<
+  Omit<z.output<typeof FactionRender.traitors>[number], 'memberId'>,
+  Omit<FactionTraitorAssetData, 'frontStyle'>
+>;
+true satisfies SameKeys<z.output<typeof FactionRender.alliance>, Omit<FactionAllianceAssetData, 'frontStyle'>>;

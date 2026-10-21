@@ -6,6 +6,7 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { useRef } from 'react';
 
 import { useAuthoringAccountKey } from '@db/authoring';
+import { useAuthoringPresets } from '@db/backgroundPresets';
 import { useCreateFaction } from '@db/factions';
 import { useCurrentProfile } from '@db/profiles';
 import { pageHead } from '@app/routes/pageTitle';
@@ -20,6 +21,7 @@ import { factionPublicationStatus } from '@app/widgets/faction-editor/factionPub
 import { useFactionAuthoring } from '@app/widgets/faction-editor/useFactionAuthoring';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
+import { BackgroundLibrary } from '@game/assets/utils/BackgroundLibrary';
 
 import { factionNameField } from './factionNameField';
 import { rawFactionLoad } from './rawFactionLoad';
@@ -30,6 +32,7 @@ export const Route = createFileRoute('/_app/factions/create')({
 });
 
 function CreateFactionPage() {
+  const standards = useAuthoringPresets();
   const authoringAccountKey = useAuthoringAccountKey();
   const profile = useCurrentProfile();
   const ownerUserId = profile.data?.user_id;
@@ -82,61 +85,63 @@ function CreateFactionPage() {
   }
 
   return (
-    <PageLayout>
-      {validationHeader.slot}
-      <PageLayout.Toolbar>
-        <AuthoringToolbar
-          scopeKey={authoringAccountKey}
-          load={{
-            noun: 'faction',
-            mode: 'create',
-            disabled: createFaction.isPending,
-            raw: rawFactionLoad(),
-            source: factionLoadSource(),
-            onLoaded: validationHeader.releasing(authoring.actions.loadDraft),
-          }}
-          status={{
-            isDirty: authoring.editing.isDirty,
-            isNameBlank: authoring.editing.isNameBlank,
-            invalid: authoring.editing.invalid,
-            saveState: authoring.persistence.saveState,
-          }}
-          copy={{
-            saveLabel: 'Save faction',
-            nameBlankMessage: 'Add a faction name before saving; it determines the faction URL.',
-          }}
-          actions={{
-            onSave: authoring.actions.submit,
-            onReset: validationHeader.releasing(authoring.actions.reset),
-            onBack: () => navigate({ to: '/factions' }),
-          }}
-          review={{ label: 'Review faction sheet', onOpen: (trigger) => viewRef.current?.openReview(trigger) }}
-          centerIndicator={<FactionComplexityIndicator form={authoring.form} />}
-          statuses={[
-            factionPublicationStatus(),
-            {
-              icon: <TopicIcon topic="groups" size={16} />,
-              label: 'Group assignment becomes available after the first save.',
-            },
-          ]}
-        />
-      </PageLayout.Toolbar>
-      <PageLayout.Content>
-        <FactionEditor
-          nameField={nameField}
-          key="create"
-          ref={viewRef}
-          form={authoring.form}
-          errors={authoring.persistence.errors}
-          isNameBlank={authoring.editing.isNameBlank}
-          warnings={authoring.editing.warnings}
-          onSettle={validationHeader.settle}
-          backgroundModeMemory={authoring.backgroundModeMemory}
-          onBackgroundModeMemoryChange={authoring.setBackgroundModeMemory}
-          retainedManualComplexity={authoring.retainedManualComplexity}
-          onRetainedManualComplexityChange={authoring.setRetainedManualComplexity}
-        />
-      </PageLayout.Content>
-    </PageLayout>
+    <BackgroundLibrary presets={standards?.backgrounds ?? []} fronts={standards?.fronts}>
+      <PageLayout>
+        {validationHeader.slot}
+        <PageLayout.Toolbar>
+          <AuthoringToolbar
+            scopeKey={authoringAccountKey}
+            load={{
+              noun: 'faction',
+              mode: 'create',
+              disabled: createFaction.isPending,
+              raw: rawFactionLoad(),
+              source: factionLoadSource(),
+              onLoaded: validationHeader.releasing(authoring.actions.loadDraft),
+            }}
+            status={{
+              isDirty: authoring.editing.isDirty,
+              isNameBlank: authoring.editing.isNameBlank,
+              invalid: authoring.editing.invalid,
+              saveState: authoring.persistence.saveState,
+            }}
+            copy={{
+              saveLabel: 'Save faction',
+              nameBlankMessage: 'Add a faction name before saving; it determines the faction URL.',
+            }}
+            actions={{
+              onSave: authoring.actions.submit,
+              onReset: validationHeader.releasing(authoring.actions.reset),
+              onBack: () => navigate({ to: '/factions' }),
+            }}
+            review={{ label: 'Review faction sheet', onOpen: (trigger) => viewRef.current?.openReview(trigger) }}
+            centerIndicator={<FactionComplexityIndicator form={authoring.form} />}
+            statuses={[
+              factionPublicationStatus(),
+              {
+                icon: <TopicIcon topic="groups" size={16} />,
+                label: 'Group assignment becomes available after the first save.',
+              },
+            ]}
+          />
+        </PageLayout.Toolbar>
+        <PageLayout.Content>
+          <FactionEditor
+            nameField={nameField}
+            key="create"
+            ref={viewRef}
+            form={authoring.form}
+            errors={authoring.persistence.errors}
+            isNameBlank={authoring.editing.isNameBlank}
+            warnings={authoring.editing.warnings}
+            onSettle={validationHeader.settle}
+            backgroundModeMemory={authoring.backgroundModeMemory}
+            onBackgroundModeMemoryChange={authoring.setBackgroundModeMemory}
+            retainedManualComplexity={authoring.retainedManualComplexity}
+            onRetainedManualComplexityChange={authoring.setRetainedManualComplexity}
+          />
+        </PageLayout.Content>
+      </PageLayout>
+    </BackgroundLibrary>
   );
 }

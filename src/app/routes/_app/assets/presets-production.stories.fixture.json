@@ -1,0 +1,693 @@
+{
+  "capturedAt": "2026-10-21T18:32:43.434Z",
+  "source": "Production read-only: cardFrontPresets:page and assets:listByTypes",
+  "fronts": [
+    {
+      "key": "stronghold",
+      "label": "Stronghold",
+      "revision": 1,
+      "style": {
+        "head": {
+          "colors": ["#8D3A38", "#602726"],
+          "definition": 1,
+          "image": "/image/texture/082.jpg",
+          "influence": 0.5,
+          "invert": false
+        },
+        "iconBackground": {
+          "colors": [
+            "#B83A30",
+            {
+              "angle": 90,
+              "stops": [
+                ["#3a2014", 0],
+                ["#b83930", 1]
+              ],
+              "type": "linear"
+            }
+          ],
+          "definition": 0.31,
+          "image": "/image/texture/076.jpg",
+          "influence": 0.5578,
+          "invert": false
+        }
+      }
+    },
+    {
+      "key": "storm",
+      "label": "Storm",
+      "revision": 1,
+      "style": {
+        "head": {
+          "colors": ["#7A3A07", "#3F1D03"],
+          "definition": 1,
+          "image": "/image/texture/082.jpg",
+          "influence": 0.6,
+          "invert": false
+        },
+        "iconBackground": {
+          "colors": [
+            "#E9C55B",
+            {
+              "stops": [
+                ["#e9c55b", 0],
+                ["#e9c55b", 0.22],
+                ["#000000", 1]
+              ],
+              "type": "radial"
+            }
+          ],
+          "definition": 0.22,
+          "image": "/image/texture/079.jpg",
+          "influence": 0.9516,
+          "invert": false
+        }
+      }
+    },
+    {
+      "key": "homeworld",
+      "label": "Homeworld",
+      "revision": 0,
+      "style": {
+        "head": {
+          "colors": ["#07585C", "#249397"],
+          "definition": 1,
+          "image": "/image/texture/082.jpg",
+          "influence": 0.65,
+          "invert": false
+        },
+        "iconBackground": {
+          "colors": ["#0A1126", "#B7CAE2"],
+          "definition": 1,
+          "image": "/vector/background/starfield.svg",
+          "influence": 1,
+          "invert": false
+        }
+      }
+    },
+    {
+      "key": "nexus",
+      "label": "Nexus",
+      "revision": 0,
+      "style": {
+        "head": {
+          "colors": ["#073A16", "#246B32"],
+          "definition": 1,
+          "image": "/image/texture/082.jpg",
+          "influence": 0.65,
+          "invert": false
+        },
+        "iconBackground": null
+      }
+    },
+    {
+      "key": "leader-skill",
+      "label": "Leader skill",
+      "revision": 1,
+      "style": {
+        "head": {
+          "colors": ["#6B328E", "#421760"],
+          "definition": 1,
+          "image": "/image/texture/082.jpg",
+          "influence": 0.5,
+          "invert": false
+        },
+        "iconBackground": {
+          "colors": [
+            "#D5AE3A",
+            {
+              "stops": [
+                ["#0f0e0c", 0],
+                ["#F3E086", 0.8],
+                ["#F3E086", 1]
+              ],
+              "type": "radial"
+            }
+          ],
+          "definition": 1,
+          "image": "/image/texture/076.jpg",
+          "influence": 0.4,
+          "invert": false
+        }
+      }
+    },
+    {
+      "key": "treachery-weapon",
+      "label": "Treachery \u00b7 Weapon",
+      "revision": 0,
+      "style": {
+        "head": {
+          "colors": ["#8F2C1C", "#621D1A"],
+          "definition": 1,
+          "image": "/image/texture/082.jpg",
+          "influence": 0.5,
+          "invert": false
+        },
+        "iconBackground": {
+          "colors": [
+            {
+              "angle": 90,
+              "stops": [
+                ["#CB8E4A", 0],
+                ["#F3E086", 1]
+              ],
+              "type": "linear"
+            },
+            {
+              "angle": 120,
+              "stops": [
+                ["#CD7B38", 0.3],
+                ["#E9CA70", 1]
+              ],
+              "type": "linear"
+            }
+          ],
+          "definition": 0,
+          "image": "/image/texture/076.jpg",
+          "influence": 1,
+          "invert": true
+        }
+      }
+    },
+    {
+      "key": "treachery-defense",
+      "label": "Treachery \u00b7 Defense",
+      "revision": 0,
+      "style": {
+        "head": {
+          "colors": ["#29335E", "#0A153C"],
+          "definition": 1,
+          "image": "/image/texture/082.jpg",
+          "influence": 0.6,
+          "invert": false
+        },
+        "iconBackground": {
+          "colors": [
+            {
+              "angle": 90,
+              "stops": [
+                ["#757DAC", 0],
+                ["#CEDDF0", 1]
+              ],
+              "type": "linear"
+            },
+            {
+              "angle": 120,
+              "stops": [
+                ["#58608F", 0.3],
+                ["#B8BFDB", 1]
+              ],
+              "type": "linear"
+            }
+          ],
+          "definition": 0,
+          "image": "/image/texture/076.jpg",
+          "influence": 1,
+          "invert": true
+        }
+      }
+    },
+    {
+      "key": "treachery-special",
+      "label": "Treachery \u00b7 Special",
+      "revision": 0,
+      "style": {
+        "head": {
+          "colors": ["#474620", "#27260C"],
+          "definition": 1,
+          "image": "/image/texture/082.jpg",
+          "influence": 0.6,
+          "invert": false
+        },
+        "iconBackground": {
+          "colors": [
+            {
+              "angle": 90,
+              "stops": [
+                ["#9A9256", 0],
+                ["#EEECA6", 1]
+              ],
+              "type": "linear"
+            },
+            {
+              "angle": 120,
+              "stops": [
+                ["#827E43", 0.3],
+                ["#DEDB91", 1]
+              ],
+              "type": "linear"
+            }
+          ],
+          "definition": 0,
+          "image": "/image/texture/076.jpg",
+          "influence": 1,
+          "invert": true
+        }
+      }
+    },
+    {
+      "key": "treachery-worthless",
+      "label": "Treachery \u00b7 Worthless",
+      "revision": 0,
+      "style": {
+        "head": {
+          "colors": ["#887849", "#6F6034"],
+          "definition": 1,
+          "image": "/image/texture/082.jpg",
+          "influence": 0.8,
+          "invert": false
+        },
+        "iconBackground": {
+          "colors": [
+            {
+              "angle": 90,
+              "stops": [
+                ["#A9945D", 0],
+                ["#F5EFB4", 1]
+              ],
+              "type": "linear"
+            },
+            {
+              "angle": 120,
+              "stops": [
+                ["#997E45", 0.3],
+                ["#D9CC91", 1]
+              ],
+              "type": "linear"
+            }
+          ],
+          "definition": 0,
+          "image": "/image/texture/076.jpg",
+          "influence": 1,
+          "invert": true
+        }
+      }
+    },
+    {
+      "key": "prediction",
+      "label": "Prediction",
+      "revision": 1,
+      "style": {
+        "head": {
+          "colors": ["#576291", "#0A153C"],
+          "definition": 1,
+          "image": "/image/texture/082.jpg",
+          "influence": 0.6,
+          "invert": false
+        },
+        "iconBackground": {
+          "colors": [
+            {
+              "angle": 90,
+              "stops": [
+                ["#757DAC", 0],
+                ["#CEDDF0", 1]
+              ],
+              "type": "linear"
+            },
+            {
+              "angle": 120,
+              "stops": [
+                ["#58608F", 0.3],
+                ["#B8BFDB", 1]
+              ],
+              "type": "linear"
+            }
+          ],
+          "definition": 0,
+          "image": "/image/texture/076.jpg",
+          "influence": 1,
+          "invert": true
+        }
+      }
+    }
+  ],
+  "backs": [
+    {
+      "captureStatus": null,
+      "cardback": {
+        "background": {
+          "colors": ["#44290a", "#6c4e2c"],
+          "definition": 0.75,
+          "image": "/image/texture/082.jpg",
+          "influence": 0.9728,
+          "invert": true
+        },
+        "image": "/vector/icon/treachery.svg",
+        "imageOffset": [0, 10],
+        "imageScale": 0.95,
+        "name": "Treachery"
+      },
+      "href": "/published/cardback-presets/treachery/cardback.jpg?v=4114a624-556b-48bf-bec3-57f40a5057eb",
+      "key": "treachery",
+      "label": "Treachery",
+      "revision": 2
+    },
+    {
+      "captureStatus": null,
+      "cardback": {
+        "background": {
+          "colors": ["#1e3045", "#2f415c"],
+          "definition": 0.92,
+          "image": "/image/texture/082.jpg",
+          "influence": 1,
+          "invert": false
+        },
+        "image": "/vector/icon/spice.svg",
+        "imageOffset": [0, 10],
+        "imageScale": 0.91,
+        "name": "Spice"
+      },
+      "href": "/published/cardback-presets/spice/cardback.jpg?v=efec5969-478d-455b-98b7-1abb75cc8f85",
+      "key": "spice",
+      "label": "Spice",
+      "revision": 2
+    },
+    {
+      "captureStatus": null,
+      "cardback": {
+        "background": {
+          "colors": ["#3d3842", "#000000"],
+          "definition": 0.51,
+          "image": "/image/texture/082.jpg",
+          "influence": 1,
+          "invert": false
+        },
+        "image": "/vector/icon/traitor.svg",
+        "imageOffset": [0, 10],
+        "imageScale": 1,
+        "name": "Traitor"
+      },
+      "href": "/published/cardback-presets/traitor/cardback.jpg?v=c8d4691a-b8ac-4c09-9d13-16a4b2bf6932",
+      "key": "traitor",
+      "label": "Traitor",
+      "revision": 3
+    },
+    {
+      "captureStatus": null,
+      "cardback": {
+        "background": {
+          "colors": ["#4D4724", "#302B16"],
+          "definition": 0.36,
+          "image": "/image/texture/019.jpg",
+          "influence": 0.9008,
+          "invert": true
+        },
+        "image": "/vector/icon/alliance.svg",
+        "imageOffset": [0, 10],
+        "imageScale": 1,
+        "name": "Alliance"
+      },
+      "href": "/published/cardback-presets/alliance/cardback.jpg?v=eeb17450-a378-41e3-a3cf-b582861ec006",
+      "key": "alliance",
+      "label": "Alliance",
+      "revision": 2
+    },
+    {
+      "captureStatus": null,
+      "cardback": {
+        "background": {
+          "colors": ["#4B2A5E", "#2A153C"],
+          "definition": 1,
+          "image": "/image/texture/082.jpg",
+          "influence": 0.5,
+          "invert": false
+        },
+        "image": "/vector/icon/fate.svg",
+        "imageOffset": [0, 10],
+        "imageScale": 0.55,
+        "name": "Prediction"
+      },
+      "href": "/published/cardback-presets/prediction/cardback.jpg?v=05c0d8e4-0df4-43af-ada1-89546b505d2e",
+      "key": "prediction",
+      "label": "Prediction",
+      "revision": 1
+    },
+    {
+      "captureStatus": null,
+      "cardback": {
+        "background": {
+          "colors": ["#807042", "#f5eccd"],
+          "definition": 0.26,
+          "image": "/image/texture/036.jpg",
+          "influence": 1,
+          "invert": false
+        },
+        "emblemBackground": {
+          "color": "#d9c879",
+          "intensity": 0
+        },
+        "image": "/vector/icon/storrm_standalone.svg",
+        "imageOffset": [0, 5],
+        "imageScale": 0.72,
+        "name": "Storm",
+        "nameFont": "C_Busorama",
+        "nameScale": 1
+      },
+      "href": "/published/cardback-presets/storm/cardback.jpg?v=54261f75-8785-43e7-bab3-9cf13ff22aad",
+      "key": "storm",
+      "label": "Storm",
+      "revision": 4
+    },
+    {
+      "key": "stronghold",
+      "label": "Stronghold",
+      "cardback": {
+        "background": {
+          "colors": ["#8D3A38", "#602726"],
+          "definition": 1,
+          "image": "/image/texture/082.jpg",
+          "influence": 0.5,
+          "invert": false
+        },
+        "image": "/vector/icon/stronghold-multicolor.svg",
+        "imageOffset": [0, 0],
+        "imageScale": 1.3,
+        "name": "Stronghold"
+      },
+      "revision": 0,
+      "href": null,
+      "captureStatus": null
+    },
+    {
+      "key": "homeworld",
+      "label": "Homeworld",
+      "cardback": {
+        "background": {
+          "colors": [
+            {
+              "stops": [
+                ["#2f0033", 0],
+                ["#5d1d82", 1]
+              ],
+              "type": "radial",
+              "y": 28
+            },
+            {
+              "stops": [
+                ["#ffffff", 0],
+                ["#ab19ff", 0.49],
+                ["#ffebe8", 1]
+              ],
+              "type": "radial",
+              "y": 31
+            }
+          ],
+          "definition": 1,
+          "image": "/image/texture/049.jpg",
+          "influence": 0.6578,
+          "invert": false
+        },
+        "image": "/vector/generic/stormworld.svg",
+        "imageOffset": [0, 10],
+        "imageScale": 1.28,
+        "name": "Homeworld"
+      },
+      "revision": 0,
+      "href": null,
+      "captureStatus": null
+    },
+    {
+      "key": "nexus",
+      "label": "Nexus",
+      "cardback": {
+        "background": {
+          "colors": ["#073A16", "#246B32"],
+          "definition": 0.18,
+          "image": "/image/texture/023.jpg",
+          "influence": 1,
+          "invert": false
+        },
+        "emblemBackground": {
+          "color": "#063b16",
+          "intensity": 0.03
+        },
+        "image": "/vector/icon/alliance.svg",
+        "imageOffset": [0, 2],
+        "imageScale": 1.25,
+        "name": "Nexus"
+      },
+      "revision": 0,
+      "href": null,
+      "captureStatus": null
+    },
+    {
+      "key": "leader-skill",
+      "label": "Leader skill",
+      "cardback": {
+        "background": {
+          "colors": ["#6B328E", "#421760"],
+          "definition": 0.48,
+          "image": "/image/texture/031.jpg",
+          "influence": 0.989,
+          "invert": true
+        },
+        "image": "/vector/generic/leader-skills.svg",
+        "imageOffset": [0, 9],
+        "imageScale": 1.04,
+        "name": "Leader skills"
+      },
+      "revision": 0,
+      "href": null,
+      "captureStatus": null
+    }
+  ],
+  "discovery": [
+    {
+      "key": "discovery-hiereg",
+      "label": "Hiereg Discovery",
+      "front": {
+        "background": {
+          "colors": [
+            {
+              "r": 50,
+              "stops": [
+                ["#51491b", 0],
+                ["#51491b", 0.64],
+                ["#c2a541", 0.65],
+                ["#c2a541", 1]
+              ],
+              "type": "radial",
+              "x": 50,
+              "y": 50
+            },
+            {
+              "r": 50,
+              "stops": [
+                ["#252a12", 0],
+                ["#252a12", 0.61],
+                ["#7e7025", 0.65],
+                ["#7e7025", 1]
+              ],
+              "type": "radial",
+              "x": 50,
+              "y": 50
+            }
+          ],
+          "definition": 0.55,
+          "image": "/image/texture/082.jpg",
+          "influence": 0.7,
+          "invert": false
+        },
+        "bottomFirst": "",
+        "bottomSecond": "",
+        "image": "/vector/decal/cistern.svg",
+        "ring": false,
+        "symbolFill": "#07120f",
+        "symbolScale": 1.7,
+        "symbolShadow": true,
+        "symbolStroke": "#f3edbf",
+        "symbolStrokeWidth": 5.5,
+        "top": ""
+      },
+      "back": {
+        "background": {
+          "colors": ["#d9b14d", "#61451e"],
+          "definition": 0.55,
+          "image": "/image/texture/hiereg-discovery.png",
+          "influence": 0.95,
+          "invert": true
+        },
+        "bottomFirst": "",
+        "bottomSecond": "",
+        "image": "/vector/logo/fremen.svg",
+        "ring": false,
+        "symbolFill": "#ffffffc4",
+        "symbolScale": 1.85,
+        "symbolShadow": false,
+        "symbolStroke": "#000000ff",
+        "symbolStrokeWidth": 10,
+        "top": ""
+      },
+      "revision": 0
+    },
+    {
+      "key": "discovery-smuggler",
+      "label": "Smuggler Discovery",
+      "front": {
+        "background": {
+          "colors": [
+            {
+              "r": 50,
+              "stops": [
+                ["#d3bd59", 0],
+                ["#d3bd59", 0.64],
+                ["#453e1c", 0.65],
+                ["#453e1c", 1]
+              ],
+              "type": "radial",
+              "x": 50,
+              "y": 50
+            },
+            {
+              "r": 50,
+              "stops": [
+                ["#827026", 0],
+                ["#827026", 0.61],
+                ["#1d1e0f", 0.65],
+                ["#1d1e0f", 1]
+              ],
+              "type": "radial",
+              "x": 50,
+              "y": 50
+            }
+          ],
+          "definition": 0.55,
+          "image": "/image/texture/082.jpg",
+          "influence": 0.7,
+          "invert": false
+        },
+        "bottomFirst": "",
+        "bottomSecond": "",
+        "image": "/vector/decal/ornithopter.svg",
+        "ring": false,
+        "symbolFill": "#07120f",
+        "symbolScale": 1.85,
+        "symbolShadow": true,
+        "symbolStroke": "#f3edbf",
+        "symbolStrokeWidth": 5.5,
+        "top": ""
+      },
+      "back": {
+        "background": {
+          "colors": ["#6d7978", "#26373b"],
+          "definition": 0.55,
+          "image": "/image/texture/hiereg-discovery.png",
+          "influence": 0.95,
+          "invert": true
+        },
+        "bottomFirst": "",
+        "bottomSecond": "",
+        "image": "/vector/logo/guild.svg",
+        "ring": false,
+        "symbolFill": "#ffffffff",
+        "symbolScale": 2,
+        "symbolShadow": true,
+        "symbolStroke": "#000000ff",
+        "symbolStrokeWidth": 10,
+        "top": ""
+      },
+      "revision": 0
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { ALL, BACKGROUND, GENERIC, LEADERS, LOGO, PLANET, TEXTURE, TROOP, TROOP_MODIFIER } from '../assetIds';
+import { backgroundSourceSchema } from '../backgrounds/source';
 import { marksOnlyFormattedTextSchema, proseFormattedTextSchema } from '../formattedText';
 import { slugify } from '../slugify';
 import { extraPhasesSchema } from './extraPhases';
@@ -194,6 +195,9 @@ export const Background = z.strictObject({
   influence: SCALE,
 });
 
+/** Authoring keeps an explicit link or Custom choice; render snapshots strip this metadata. */
+export const AuthoredBackground = Background.extend({ source: backgroundSourceSchema.optional() });
+
 export const TTSColor = z.enum([
   'White',
   'Brown',
@@ -224,7 +228,7 @@ export const FactionNameSchema = NonblankFactionNameSchema.refine(
 const factionBaseShape = {
   name: NonblankFactionNameSchema,
   logo: LOGO.or(GENERIC),
-  background: Background,
+  background: AuthoredBackground,
   themeColor: HEXCOLOR,
 
   /** Closest matching TTS colors */

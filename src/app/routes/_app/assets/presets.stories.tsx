@@ -1,130 +1,109 @@
 import preview from '@sb/preview';
-import { waitForFrame } from '@sb/storyWaits';
-import { INITIAL_CARDBACK_PRESETS } from '@shared/assets/cardbackPresets';
-import { CARD_FRONT_PUBLICATION_REVISIONS } from '@shared/assets/cardFrontPresets';
+import { cardbackPresetSchema, INITIAL_CARDBACK_PRESETS } from '@shared/assets/cardbackPresets';
+import {
+  CARD_FRONT_PUBLICATION_REVISIONS,
+  cardFrontPresetSchema,
+  INITIAL_CARD_FRONT_PRESETS,
+} from '@shared/assets/cardFrontPresets';
+import { INITIAL_BACKGROUND_PRESETS } from '@shared/backgrounds/defaults';
+import { discoveryPresetSchema } from '@shared/backgrounds/families';
 import { expect, userEvent, within } from 'storybook/test';
 
 import { db, storybookViewer } from '@db/storybook';
+import type { StorybookDatabase } from '@db/storybook';
 
-import { expectToolbarOnOneLine } from '../../authoringToolbarPlay';
 import { pageStoryMeta } from '../../storybookConfig';
+import snapshot from './presets-production.stories.fixture.json';
 
-const meta = preview.meta({
-  ...pageStoryMeta,
-  title: 'Assets/Card presets',
-  args: { path: '/assets/__presets' },
-});
-
-/* The administrator who may edit presets, with the stock presets published once. */
-const administratorDatabase = db((baseline) => {
+const meta = preview.meta({ ...pageStoryMeta, title: 'Assets/Card presets', args: { path: '/assets/__presets' } });
+function seedPresets(baseline: StorybookDatabase) {
   baseline.users.find((user) => user.$key === storybookViewer.subjectKey)!.isAdmin = true;
-  baseline.cardback_presets = INITIAL_CARDBACK_PRESETS.map(({ key, cardback }) => ({
-    key,
-    cardback,
-    revision: 1,
+  baseline.card_front_presets = INITIAL_CARD_FRONT_PRESETS.map((initial) => {
+    const value = snapshot.fronts.find((p) => p.key === initial.key) ?? initial;
+    const { key, style, revision } = cardFrontPresetSchema.parse(value);
+    return { key, style, revision, updated_at: 0 };
+  });
+  baseline.cardback_presets = INITIAL_CARDBACK_PRESETS.map((initial) => {
+    const value = snapshot.backs.find((p) => p.key === initial.key) ?? {
+      ...initial,
+      revision: 0,
+      href: null,
+      captureStatus: null,
+    };
+    const { key, cardback, revision } = cardbackPresetSchema.parse(value);
+    return { key, cardback, revision, updated_at: 0 };
+  });
+  baseline.discovery_presets = snapshot.discovery.map((value) => ({
+    ...discoveryPresetSchema.parse(value),
     updated_at: 0,
   }));
-  const settings = baseline.admin_settings[0];
-  if (settings) {
-    Object.assign(settings.renderer_revisions, CARD_FRONT_PUBLICATION_REVISIONS, { 'cardback-preset': 1 });
-  } else {
-    baseline.admin_settings.push({
-      key: 'publication',
-      publication_pickup_enabled: false,
-      renderer_revisions: { ...CARD_FRONT_PUBLICATION_REVISIONS, 'cardback-preset': 1 },
-      updated_at: 0,
-    });
+  baseline.background_presets = INITIAL_BACKGROUND_PRESETS.map((value) => ({ ...value, updated_at: 0 }));
+  for (const settings of baseline.admin_settings) {
+    if (settings.key === 'publication') {
+      Object.assign(settings.renderer_revisions, CARD_FRONT_PUBLICATION_REVISIONS, { 'cardback-preset': 7 });
+    }
   }
-});
-
-export const Administrator = meta.story({
+}
+const administratorDatabase = db(seedPresets);
+export const Setup = meta.story({
   parameters: {
-    database: administratorDatabase,
+    database: db((baseline) => {
+      seedPresets(baseline);
+      baseline.background_presets = [];
+    }),
   },
+  globals: { backgrounds: { value: 'app', grid: false } },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    const label = await page.findByRole('textbox', { name: 'Label' }, { timeout: 30_000 });
-    await userEvent.click(page.getByRole('radio', { name: 'Custom' }));
-    await expect(page.getByRole('region', { name: 'Background builder' })).toBeVisible();
-    await userEvent.click(page.getByRole('radio', { name: 'Defense' }));
-    await expect(page.getByRole('radio', { name: 'Defense' })).toBeChecked();
-    await expect(page.queryByRole('region', { name: 'Background builder' })).not.toBeInTheDocument();
-    await userEvent.click(page.getByRole('radio', { name: 'Custom' }));
-    await userEvent.click(page.getByRole('button', { name: 'Edit base color layer' }));
-    await userEvent.click(await waitForFrame(() => page.getByRole('radio', { name: 'Linear' })));
-    const angle = page.getByRole('textbox', { name: 'Gradient angle' });
-    await userEvent.clear(angle);
-    await userEvent.type(angle, '37');
-    await userEvent.click(page.getByRole('radio', { name: 'Solid' }));
-    await userEvent.click(await page.findByRole('radio', { name: 'Linear' }));
-    await expect(page.getByRole('textbox', { name: 'Gradient angle' })).toHaveValue('37°');
-    await userEvent.clear(label);
-    await userEvent.type(label, 'Shared Treachery');
-    await userEvent.click(page.getByRole('button', { name: 'Save and publish' }));
-    await expect(
-      page.findByText('Preset saved. Linked decks update when publication finishes.')
-    ).resolves.toBeVisible();
+    const action = await page.findByRole('button', { name: 'Import DB designs and recapture' }, { timeout: 30_000 });
+    await userEvent.click(action);
+    await expect(page.findByRole('heading', { name: 'Leader skill' }, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Hiereg Discovery' })).toBeVisible();
   },
 });
-/* The shared front keeps its draft when changing face, then saves through the real mutation. */
-export const FrontAdministrator = meta.story({
+export const Families = meta.story({
   parameters: { database: administratorDatabase },
+  globals: { backgrounds: { value: 'app', grid: false } },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await userEvent.click(await page.findByRole('tab', { name: 'Front' }, { timeout: 30_000 }));
-    await userEvent.click(await page.findByRole('combobox', { name: 'Front section' }));
-    await userEvent.click(await page.findByRole('option', { name: 'Icon background' }));
-    const influence = await waitForFrame(() =>
-      within(page.getByLabelText('Pattern influence with perceptual response from whisper to dominant')).getByRole(
-        'slider'
-      )
+    await expect(page.findByRole('heading', { name: 'Leader skill' }, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Stronghold' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Homeworld' })).toBeVisible();
+    await userEvent.click(page.getByRole('button', { name: 'Edit Stronghold' }));
+    const group = within(page.getByRole('region', { name: 'Stronghold' }));
+    await userEvent.click(group.getAllByRole('button', { name: 'Edit shared background' })[0]!);
+    const name = group.getByRole('textbox', { name: 'Shared background name' });
+    await userEvent.clear(name);
+    await userEvent.type(name, 'Stronghold standard header');
+    await userEvent.click(group.getByRole('button', { name: 'Save and recapture' }));
+    await expect(page.findByRole('status')).resolves.toHaveTextContent(
+      'Preset saved. Linked artwork updates as captures finish.'
     );
-    await userEvent.click(influence);
-    await userEvent.keyboard('{Home}');
-    await expect(influence).toHaveAttribute('aria-valuenow', '0');
-    await userEvent.click(page.getByRole('tab', { name: 'Back' }));
-    await expect(page.getByRole('textbox', { name: 'Label' })).toBeVisible();
-    await userEvent.click(page.getByRole('tab', { name: 'Front' }));
-    await expect(
-      within(page.getByLabelText('Pattern influence with perceptual response from whisper to dominant')).getByRole(
-        'slider'
-      )
-    ).toHaveAttribute('aria-valuenow', '0');
-    await userEvent.click(page.getByRole('button', { name: 'Save and publish' }));
-    await expect(page.findByText('Preset saved. Cards update when publication finishes.')).resolves.toBeVisible();
+    await userEvent.click(page.getByRole('button', { name: 'Edit Nexus' }));
+    const nexus = within(page.getByRole('region', { name: 'Nexus' }));
+    const icon = nexus.getByRole('combobox', { name: 'Nexus icon background' });
+    await expect(icon).toHaveValue("Each card's faction");
+    await userEvent.click(icon);
+    await userEvent.click(page.getByRole('option', { name: /^Custom$/ }));
+    await expect(nexus.getByRole('region', { name: 'Background builder' })).toBeVisible();
+    await userEvent.click(icon);
+    await userEvent.click(page.getByRole('option', { name: "Each card's faction" }));
+    await expect(nexus.queryByRole('region', { name: 'Background builder' })).not.toBeInTheDocument();
   },
 });
-
-export const HomeworldAdministrator = meta.story({
+export const Library = meta.story({
   parameters: { database: administratorDatabase },
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await userEvent.click(await page.findByRole('tab', { name: 'Front' }, { timeout: 30_000 }));
-    await userEvent.click(page.getByRole('combobox', { name: 'Preset' }));
-    await userEvent.click(page.getByRole('option', { name: 'Homeworld' }));
-    await userEvent.click(page.getByRole('button', { name: 'Browse' }));
-    await userEvent.click(page.getByRole('button', { name: 'Use Starfield background pattern' }));
-    await userEvent.click(page.getByRole('button', { name: 'Edit base color layer' }));
-    const color = await page.findByRole('textbox', { name: 'Base color' });
-    await userEvent.clear(color);
-    await userEvent.type(color, '#07585C');
-    await userEvent.click(page.getByRole('button', { name: 'Save and publish' }));
-    await expect(page.findByText('Preset saved. Cards update when publication finishes.')).resolves.toBeVisible();
-    await userEvent.click(page.getByRole('combobox', { name: 'Preset' }));
-    await userEvent.click(page.getByRole('option', { name: 'Storm' }));
-    await userEvent.click(page.getByRole('combobox', { name: 'Preset' }));
-    await userEvent.click(page.getByRole('option', { name: 'Homeworld' }));
-    await expect(page.getByText('Starfield', { exact: true })).toBeVisible();
-    await expect(page.findByRole('textbox', { name: 'Base color' })).resolves.toHaveValue('#07585C');
-  },
+  globals: { backgrounds: { value: 'app', grid: false } },
 });
-
+export const Mobile = meta.story({
+  parameters: { database: administratorDatabase },
+  globals: { viewport: { value: 'appMobileNarrow' }, backgrounds: { value: 'app', grid: false } },
+});
 export const SignedOut = meta.story({
   parameters: { identity: null },
   play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
     await expect(
-      page.findByText('to edit card presets.', { exact: false }, { timeout: 30_000 })
+      within(canvasElement.ownerDocument.body).findByText('to edit presets.', { exact: false }, { timeout: 30_000 })
     ).resolves.toBeVisible();
   },
 });
@@ -135,49 +114,12 @@ export const NotAdministrator = meta.story({
     }),
   },
   play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
     await expect(
-      page.findByRole('heading', { name: 'Administrator access required' }, { timeout: 30_000 })
+      within(canvasElement.ownerDocument.body).findByRole(
+        'heading',
+        { name: 'Administrator access required' },
+        { timeout: 30_000 }
+      )
     ).resolves.toBeVisible();
-  },
-});
-
-/** The preset editor's toolbar on one line at a phone, tablet, laptop and desktop width (#1423), stating only its save state at rest. */
-export const ToolbarAt360 = meta.story({
-  parameters: { database: administratorDatabase },
-  globals: { viewport: { value: 'appMobileNarrow' } },
-  play: async ({ canvasElement }) =>
-    await expectToolbarOnOneLine(canvasElement, { statusDescribes: ['No unsaved changes'] }),
-});
-export const ToolbarAt768 = meta.story({
-  parameters: { database: administratorDatabase },
-  globals: { viewport: { value: 'appTablet' } },
-  play: async ({ canvasElement }) =>
-    await expectToolbarOnOneLine(canvasElement, { statusDescribes: ['No unsaved changes'] }),
-});
-export const ToolbarAt1100 = meta.story({
-  parameters: { database: administratorDatabase },
-  globals: { viewport: { value: 'appLaptop' } },
-  play: async ({ canvasElement }) =>
-    await expectToolbarOnOneLine(canvasElement, { statusDescribes: ['No unsaved changes'] }),
-});
-
-/* The phone editor keeps face navigation and the remembered front section beside its card proof. */
-export const FrontAt360 = meta.story({
-  parameters: { database: administratorDatabase },
-  globals: { viewport: { value: 'appMobileNarrow' } },
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await userEvent.click(await page.findByRole('button', { name: 'Next section' }, { timeout: 30_000 }));
-    await userEvent.click(await page.findByRole('combobox', { name: 'Front section' }));
-    await userEvent.click(await page.findByRole('option', { name: 'Icon background' }));
-    await userEvent.click(page.getByRole('button', { name: 'Previous section' }));
-    await expect(page.getByRole('textbox', { name: 'Label' })).toBeVisible();
-    await userEvent.click(page.getByRole('button', { name: 'Next section' }));
-    await expect(page.getByRole('combobox', { name: 'Front section' })).toHaveValue('Icon background');
-    const builder = page.getByRole('region', { name: 'Background builder' });
-    await expect(builder).toBeVisible();
-    const document = canvasElement.ownerDocument;
-    await expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(document.defaultView!.innerWidth);
   },
 });

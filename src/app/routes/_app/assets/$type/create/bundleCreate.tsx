@@ -7,6 +7,7 @@ import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { useReducer, useState } from 'react';
 
 import { useAuthoringAccountKey } from '@db/authoring';
+import { useAuthoringPresets } from '@db/backgroundPresets';
 import { useSessionViewer } from '@db/profiles';
 import { useCreateAsset } from '@app/db/assets';
 import { assetLoad, clonedMembersOf } from '@app/pickers/assetLoadSource';
@@ -22,6 +23,7 @@ import {
 } from '@app/widgets/bundle-editor/BundleEditor';
 import type { BundleChapter, BundleDraft, BundleMemory } from '@app/widgets/bundle-editor/BundleEditor';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
+import { BackgroundLibrary } from '@game/assets/utils/BackgroundLibrary';
 import { BundleAsset } from '@game/data/objects';
 
 import { AssetEditorMessage, SaveErrorAlert, assetNameField } from '../../assetEditorStates';
@@ -65,6 +67,7 @@ function reduce(state: BundleState, event: BundleEvent): BundleState {
  * The Tokens chapter says so rather than offering steppers that cannot write.
  */
 export function BundleCreatePage() {
+  const standards = useAuthoringPresets();
   const authoringAccountKey = useAuthoringAccountKey();
   const navigate = useNavigate();
   const viewer = useSessionViewer();
@@ -131,57 +134,59 @@ export function BundleCreatePage() {
   };
 
   return (
-    <PageLayout>
-      {header.slot}
-      <PageLayout.Toolbar>
-        <AuthoringToolbar
-          scopeKey={authoringAccountKey}
-          load={assetLoad({
-            noun: 'bundle',
-            type: 'bundle',
-            schema: BundleAsset,
-            disabled: saveState === 'saving',
-            onLoaded: header.releasing((loaded) =>
-              dispatch({ kind: 'replace', data: loaded.data, clonedFrom: clonedMembersOf(loaded) })
-            ),
-          })}
-          status={{ isDirty, isNameBlank, saveState }}
-          copy={{
-            saveLabel: 'Save bundle',
-            nameBlankMessage: 'Add a bundle name before saving; it determines the bundle URL.',
-            /* No publication copy anywhere on this page: a bundle publishes nothing, and its members publish themselves. */
-          }}
-          actions={{
-            onSave: save,
-            onReset: header.releasing(() => dispatch({ kind: 'replace', data: state.baseline, clonedFrom: null })),
-            onBack: () => void navigate({ to: '/assets/$type', params: { type: 'bundle' } }),
-          }}
-        />
-      </PageLayout.Toolbar>
-      <PageLayout.Content>
-        <WorkbenchLayout gap="sm">
-          <SaveErrorAlert error={createAsset.error} />
-          <BundleEditor
-            nameField={nameField}
-            draft={state.data}
-            patch={patch}
-            memory={state.memory}
-            remember={(update) => dispatch({ kind: 'remember', update })}
-            chapter={chapter}
-            onChapterChange={setChapter}
-            onSettle={header.settle}
-            members={(state.clonedFrom?.members ?? []).map((entry) => ({ token: entry.member, count: entry.count }))}
-            onCountChange={null}
-            tokenPicker={
-              <Text size="xs" c="dimmed">
-                {state.clonedFrom
-                  ? `These tokens are copied from ${state.clonedFrom.name} when you save. Change them after saving.`
-                  : 'Tokens can be added once the bundle has been saved.'}
-              </Text>
-            }
+    <BackgroundLibrary presets={standards?.backgrounds ?? []} fronts={standards?.fronts}>
+      <PageLayout>
+        {header.slot}
+        <PageLayout.Toolbar>
+          <AuthoringToolbar
+            scopeKey={authoringAccountKey}
+            load={assetLoad({
+              noun: 'bundle',
+              type: 'bundle',
+              schema: BundleAsset,
+              disabled: saveState === 'saving',
+              onLoaded: header.releasing((loaded) =>
+                dispatch({ kind: 'replace', data: loaded.data, clonedFrom: clonedMembersOf(loaded) })
+              ),
+            })}
+            status={{ isDirty, isNameBlank, saveState }}
+            copy={{
+              saveLabel: 'Save bundle',
+              nameBlankMessage: 'Add a bundle name before saving; it determines the bundle URL.',
+              /* No publication copy anywhere on this page: a bundle publishes nothing, and its members publish themselves. */
+            }}
+            actions={{
+              onSave: save,
+              onReset: header.releasing(() => dispatch({ kind: 'replace', data: state.baseline, clonedFrom: null })),
+              onBack: () => void navigate({ to: '/assets/$type', params: { type: 'bundle' } }),
+            }}
           />
-        </WorkbenchLayout>
-      </PageLayout.Content>
-    </PageLayout>
+        </PageLayout.Toolbar>
+        <PageLayout.Content>
+          <WorkbenchLayout gap="sm">
+            <SaveErrorAlert error={createAsset.error} />
+            <BundleEditor
+              nameField={nameField}
+              draft={state.data}
+              patch={patch}
+              memory={state.memory}
+              remember={(update) => dispatch({ kind: 'remember', update })}
+              chapter={chapter}
+              onChapterChange={setChapter}
+              onSettle={header.settle}
+              members={(state.clonedFrom?.members ?? []).map((entry) => ({ token: entry.member, count: entry.count }))}
+              onCountChange={null}
+              tokenPicker={
+                <Text size="xs" c="dimmed">
+                  {state.clonedFrom
+                    ? `These tokens are copied from ${state.clonedFrom.name} when you save. Change them after saving.`
+                    : 'Tokens can be added once the bundle has been saved.'}
+                </Text>
+              }
+            />
+          </WorkbenchLayout>
+        </PageLayout.Content>
+      </PageLayout>
+    </BackgroundLibrary>
   );
 }

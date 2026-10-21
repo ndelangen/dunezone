@@ -6,6 +6,13 @@ import type { CardbackPreset } from '../../src/shared/assets/cardbackPresets';
 import { INITIAL_CARDBACK_PRESETS } from '../../src/shared/assets/cardbackPresets';
 import { publicationStatusFor } from '../assetPublishingStatus';
 import type { MutationCtx, QueryCtx } from '../types';
+import {
+  legacyBackground,
+  preserveVirtualBackgrounds,
+  resolveBackgrounds,
+  validateBackgroundLinks,
+} from './backgroundPresets';
+import { rawCardbackPreset } from './cardPresetDefaults';
 import { enqueuePublicationJob } from './publication';
 
 /**
@@ -20,15 +27,19 @@ async function presetFor(ctx: Pick<QueryCtx, 'db'>, key: CardbackPresetKey, memo
     return known;
   }
   const initial = INITIAL_CARDBACK_PRESETS.find((preset) => preset.key === key)!;
-  const row = await ctx.db
-    .query('cardback_presets')
-    .withIndex('by_key', (q) => q.eq('key', key))
-    .unique();
+  const row = await rawCardbackPreset(ctx, key);
+  const authored = row.cardback;
+  const cardback = await resolveBackgrounds(ctx, {
+    ...authored,
+    background: authored.background.source
+      ? authored.background
+      : { ...authored.background, source: { kind: 'preset' as const, key: `back/${key}` } },
+  });
   const status = await publicationStatusFor(ctx, 'cardback-preset', key);
   const preset: CardbackPreset = {
     key,
     label: initial.label,
-    cardback: row?.cardback ?? initial.cardback,
+    cardback,
     revision: row?.revision ?? 0,
     href: status.publicationHref,
     captureStatus: status.captureStatus,
@@ -41,27 +52,21 @@ export async function listCardbackPresets(ctx: Pick<QueryCtx, 'db'>, memo: Cardb
   return Promise.all(INITIAL_CARDBACK_PRESETS.map(({ key }) => presetFor(ctx, key, memo)));
 }
 
-/** Activation creates missing definitions and republishes saved designs without overwriting an Administrator's edits. */
+/** Activation republishes virtual defaults and saved designs without overwriting an Administrator's edits. */
 export async function publishCardbackPresets(ctx: MutationCtx) {
-  for (const initial of INITIAL_CARDBACK_PRESETS) {
-    const row = await ctx.db
-      .query('cardback_presets')
-      .withIndex('by_key', (q) => q.eq('key', initial.key))
-      .unique();
-    if (!row) {
-      await ctx.db.insert('cardback_presets', {
-        key: initial.key,
-        cardback: initial.cardback,
-        revision: 1,
-        updated_at: Date.now(),
+  await Promise.all(
+    INITIAL_CARDBACK_PRESETS.map(async (initial) => {
+      await enqueuePublicationJob(ctx, {
+        assetType: 'cardback-preset',
+        assetId: initial.key,
+        assetData: {
+          assetId: initial.key,
+          slug: initial.key,
+          cardback: (await presetFor(ctx, initial.key, new Map())).cardback,
+        },
       });
-    }
-    await enqueuePublicationJob(ctx, {
-      assetType: 'cardback-preset',
-      assetId: initial.key,
-      assetData: { assetId: initial.key, slug: initial.key, cardback: row?.cardback ?? initial.cardback },
-    });
-  }
+    })
+  );
 }
 
 /** Store an explicitly chosen preset revision and queue its shared replacement in the same transaction. */
@@ -78,6 +83,19 @@ export async function storeCardbackPreset(
   if ((row?.revision ?? 0) !== expectedRevision) {
     throw new ConvexError('This preset changed elsewhere. Reset to load the saved version.');
   }
+  const previous = await rawCardbackPreset(ctx, key);
+  const effective = await presetFor(ctx, key, new Map());
+  cardback = {
+    ...cardback,
+    background: legacyBackground(
+      cardback.background,
+      previous.cardback.background,
+      effective.cardback.background,
+      `back/${key}`
+    ),
+  };
+  await preserveVirtualBackgrounds(ctx, [`back/${key}`]);
+  await validateBackgroundLinks(ctx, cardback);
   const revision = expectedRevision + 1;
   const data = { key, cardback, revision, updated_at: Date.now() };
   if (row) {
@@ -88,7 +106,7 @@ export async function storeCardbackPreset(
   await enqueuePublicationJob(ctx, {
     assetType: 'cardback-preset',
     assetId: key,
-    assetData: { assetId: key, slug: key, cardback },
+    assetData: { assetId: key, slug: key, cardback: (await presetFor(ctx, key, new Map())).cardback },
   });
   return revision;
 }

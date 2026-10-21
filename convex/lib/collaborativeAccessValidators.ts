@@ -3,6 +3,8 @@ import { v } from 'convex/values';
 import type { Infer } from 'convex/values';
 
 import { assetCaptureStatusSchema } from '../../src/shared/asset-publishing/captureStatus';
+import { cardFrontPresetSchema } from '../../src/shared/assets/cardFrontPresets';
+import { backgroundPresetSchema } from '../../src/shared/backgrounds/schema';
 import schema from '../schema';
 import { catalogueFactionDataValidator, factionDataValidator } from './factionData';
 import { rulebookListEntryValidator } from './rulebookList';
@@ -129,6 +131,8 @@ export const assetPublishingValidator = v.object({
  * the browser combines it and `faction.owner_id` with the viewer to decide what they may do.
  */
 export const factionDetailPageValidator = v.object({
+  cardFrontPresets: v.optional(v.array(zodToConvex(cardFrontPresetSchema))),
+  backgrounds: v.optional(v.array(zodToConvex(backgroundPresetSchema))),
   faction: factionValidator,
   owner: v.union(profileValidator, v.null()),
   assetPublishing: assetPublishingValidator,

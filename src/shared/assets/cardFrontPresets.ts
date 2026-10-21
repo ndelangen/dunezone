@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
-import { Background } from '../factions/schema';
+import { stockBackgroundValues } from '../backgrounds/defaults';
+import { AuthoredBackground, Background } from '../factions/schema';
 import { LEADER_SKILL_HEAD, LEADER_SKILL_SYMBOL } from './gf9LeaderSkills';
 import { HOMEWORLD_HEAD, HOMEWORLD_ICON_BACKGROUND } from './homeworldTemplate';
 import { NEXUS_HEAD } from './nexusTemplate';
@@ -10,6 +11,11 @@ import { STRONGHOLD_BACKGROUND, STRONGHOLD_ICON_BACKGROUND } from './strongholdC
 import { TREACHERY_STYLES, treacheryStyle } from './treacheryStyles';
 
 export const cardFrontPresetKeySchema = z.enum([
+  'spice',
+  'custom',
+  'traitor',
+  'alliance',
+  'prediction',
   'stronghold',
   'storm',
   'nexus',
@@ -24,6 +30,11 @@ export type CardFrontPresetKey = z.infer<typeof cardFrontPresetKeySchema>;
 
 /* Null preserves a Nexus card's faction background. Every other family has a shared icon background. */
 export const cardFrontStyleSchema = z.strictObject({ head: Background, iconBackground: Background.nullable() });
+export const authoredCardFrontStyleSchema = z.strictObject({
+  head: AuthoredBackground,
+  iconBackground: AuthoredBackground.nullable(),
+});
+export type AuthoredCardFrontStyle = z.infer<typeof authoredCardFrontStyleSchema>;
 export type CardFrontStyle = z.infer<typeof cardFrontStyleSchema>;
 export const cardFrontPresetSchema = z.object({
   key: cardFrontPresetKeySchema,
@@ -61,9 +72,43 @@ export const INITIAL_CARD_FRONT_PRESETS: CardFrontPreset[] = [
     style: { head, iconBackground: striped },
     revision: 0,
   })),
+  {
+    key: 'spice',
+    label: 'Spice',
+    style: { head: stockBackgroundValues.spice, iconBackground: stockBackgroundValues.stripedSpice },
+    revision: 0,
+  },
+  {
+    key: 'custom',
+    label: 'Custom card',
+    style: { head: stockBackgroundValues.special, iconBackground: stockBackgroundValues.stripedSpecial },
+    revision: 0,
+  },
+  {
+    key: 'traitor',
+    label: 'Traitor',
+    style: { head: stockBackgroundValues.traitor, iconBackground: stockBackgroundValues.stripedSpecial },
+    revision: 0,
+  },
+  {
+    key: 'alliance',
+    label: 'Alliance',
+    style: { head: stockBackgroundValues.special, iconBackground: stockBackgroundValues.stripedAlliance },
+    revision: 0,
+  },
+  {
+    key: 'prediction',
+    label: 'Prediction',
+    style: { head: stockBackgroundValues.special, iconBackground: stockBackgroundValues.stripedSpecial },
+    revision: 0,
+  },
 ];
 
 export const CARD_FRONT_PUBLICATION_REVISIONS = {
+  'card-spice': 5,
+  'card-custom': 5,
+  'faction-traitor': 3,
+  'faction-alliance': 3,
   'card-stronghold': 4,
   'card-storm': 4,
   'card-nexus': 4,
@@ -72,6 +117,10 @@ export const CARD_FRONT_PUBLICATION_REVISIONS = {
   'card-treachery': 6,
 } as const;
 export const cardFrontAssetTypeSchema = z.enum([
+  'card-spice',
+  'card-custom',
+  'faction-traitor',
+  'faction-alliance',
   'card-stronghold',
   'card-storm',
   'card-nexus',
@@ -83,6 +132,14 @@ export type CardFrontAssetType = z.infer<typeof cardFrontAssetTypeSchema>;
 
 export function cardFrontPresetKey(type: string, data: unknown): CardFrontPresetKey | null {
   switch (type) {
+    case 'card-spice':
+      return 'spice';
+    case 'card-custom':
+      return 'custom';
+    case 'faction-traitor':
+      return 'traitor';
+    case 'faction-alliance':
+      return 'alliance';
     case 'card-stronghold':
       return 'stronghold';
     case 'card-storm':
@@ -95,7 +152,12 @@ export function cardFrontPresetKey(type: string, data: unknown): CardFrontPreset
       return 'leader-skill';
     case 'card-treachery': {
       const parsed = TreacheryAsset.safeParse(data);
-      return parsed.success ? `treachery-${treacheryStyle(parsed.data).key}` : null;
+      if (!parsed.success) {
+        return null;
+      }
+      return /^prediction(?:\s|$)/i.test(parsed.data.subName)
+        ? 'prediction'
+        : `treachery-${treacheryStyle(parsed.data).key}`;
     }
     default:
       return null;
@@ -103,6 +165,12 @@ export function cardFrontPresetKey(type: string, data: unknown): CardFrontPreset
 }
 
 export function cardFrontPresetType(key: CardFrontPresetKey): CardFrontAssetType {
+  if (key === 'traitor' || key === 'alliance') {
+    return `faction-${key}`;
+  }
+  if (key === 'prediction') {
+    return 'card-treachery';
+  }
   if (key.startsWith('treachery-')) {
     return 'card-treachery';
   }
@@ -118,5 +186,52 @@ export function cardFrontStyleFor(
   presets: readonly CardFrontPreset[]
 ): CardFrontStyle | undefined {
   const key = cardFrontPresetKey(type, data);
-  return presets.find((preset) => preset.key === key)?.style;
+  const style = presets.find((preset) => preset.key === key)?.style;
+  if (!style || !data || typeof data !== 'object') {
+    return style;
+  }
+  const card = data as {
+    head?: z.infer<typeof AuthoredBackground>;
+    icon?: [z.infer<typeof AuthoredBackground>, unknown];
+  };
+  const ownHeader = card.head?.source;
+  const ownIcon = card.icon?.[0]?.source;
+  return {
+    head:
+      card.head && (ownHeader?.kind === 'custom' || ownHeader?.kind === 'preset' || (key === 'custom' && !ownHeader))
+        ? card.head
+        : style.head,
+    iconBackground:
+      card.icon?.[0] && (ownIcon?.kind === 'custom' || ownIcon?.kind === 'preset' || (key === 'custom' && !ownIcon))
+        ? card.icon[0]
+        : style.iconBackground,
+  };
+}
+
+/** A new card opts into its family's standards; loading an existing card preserves its authored choices. */
+export function newCardWithStandards<T>(type: string, card: T): T {
+  const parsed = z
+    .object({ head: AuthoredBackground, icon: z.tuple([AuthoredBackground, z.unknown()]) })
+    .safeParse(card);
+  const key = cardFrontPresetKey(type, card);
+  if (!key || !parsed.success) {
+    return card;
+  }
+  const { head, icon } = parsed.data;
+  return {
+    ...card,
+    head: { ...head, source: { kind: 'family' } },
+    icon: [key === 'nexus' ? icon[0] : { ...icon[0], source: { kind: 'family' } }, icon[1]],
+  };
+}
+
+export function inheritsCardFrontRegion(type: string, data: unknown, region: 'header' | 'icon'): boolean {
+  const parsed = z
+    .object({ head: AuthoredBackground.optional(), icon: z.tuple([AuthoredBackground, z.unknown()]).optional() })
+    .safeParse(data);
+  if (!parsed.success) {
+    return false;
+  }
+  const background = region === 'header' ? parsed.data.head : parsed.data.icon?.[0];
+  return background?.source?.kind === 'family' || (!background?.source && type !== 'card-custom');
 }

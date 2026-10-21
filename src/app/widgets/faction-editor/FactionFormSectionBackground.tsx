@@ -1,3 +1,7 @@
+import { Stack } from '@mantine/core';
+import { customBackground } from '@shared/backgrounds/schema';
+
+import { BackgroundPicker } from '@app/pickers/BackgroundPicker';
 import { BackgroundComposer } from '@app/widgets/background-composer/BackgroundComposer';
 import type { BackgroundModeMemory } from '@app/widgets/background-composer/BackgroundComposer';
 
@@ -21,13 +25,18 @@ export function FactionFormSectionBackground({
   return (
     <form.Field name="background">
       {(field) => (
-        <BackgroundComposer
-          value={field.state.value}
-          onChange={field.handleChange}
-          usedOn="faction sheet · faction token · leader tokens · troops · alliance card"
-          modeMemory={modeMemory}
-          onModeMemoryChange={onModeMemoryChange}
-        />
+        <Stack gap="sm">
+          <BackgroundPicker label="Background preset" value={field.state.value} onPick={field.handleChange} />
+          {field.state.value.source?.kind !== 'preset' ? (
+            <BackgroundComposer
+              value={field.state.value}
+              onChange={(value) => field.handleChange(customBackground(value))}
+              usedOn="faction sheet · faction token · leader tokens · troops · alliance card"
+              modeMemory={modeMemory}
+              onModeMemoryChange={onModeMemoryChange}
+            />
+          ) : null}
+        </Stack>
       )}
     </form.Field>
   );

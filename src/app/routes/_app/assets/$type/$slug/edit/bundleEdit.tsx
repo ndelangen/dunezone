@@ -22,6 +22,7 @@ import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { bundleDraftWarnings, BundleEditor, INITIAL_BUNDLE_MEMORY } from '@app/widgets/bundle-editor/BundleEditor';
 import type { BundleChapter, BundleDraft, BundleMemory } from '@app/widgets/bundle-editor/BundleEditor';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
+import { BackgroundLibrary } from '@game/assets/utils/BackgroundLibrary';
 import { BundleAsset as BundleAssetSchema } from '@game/data/objects';
 
 import {
@@ -83,13 +84,15 @@ export function BundleEditPage({ slug, loaderData }: { slug: string; loaderData:
   }
 
   return (
-    <BundleEditSession
-      key={data.asset.id}
-      access={{ viewerAccess: data.viewerAccess, assignableGroups: data.assignableGroups }}
-      asset={data.asset}
-      members={data.members}
-      initialDraft={parsed.data}
-    />
+    <BackgroundLibrary presets={data.backgrounds ?? []} fronts={data.cardFrontPresets}>
+      <BundleEditSession
+        key={data.asset.id}
+        access={{ viewerAccess: data.viewerAccess, assignableGroups: data.assignableGroups }}
+        asset={data.asset}
+        members={data.members}
+        initialDraft={parsed.data}
+      />
+    </BackgroundLibrary>
   );
 }
 

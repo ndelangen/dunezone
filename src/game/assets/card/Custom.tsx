@@ -1,6 +1,9 @@
+import type { CardFrontStyle } from '@shared/assets/cardFrontPresets';
 import type { CustomCardLayer, CustomCardTokens } from '@shared/assets/schema';
 import { useId } from 'react';
 import type { z } from 'zod';
+
+import { useResolvedCardFront } from '@game/assets/utils/BackgroundLibrary';
 
 import type { CustomCard as CustomCardSchema } from '../../data/objects';
 import { card } from '../../data/sizes';
@@ -25,10 +28,13 @@ export function CustomCard({
   layers,
   tokens = {},
   iconPresentation,
+  frontStyle: suppliedFrontStyle,
 }: z.infer<typeof CustomCardSchema> & {
   tokens?: z.infer<typeof CustomCardTokens>;
+  frontStyle?: CardFrontStyle;
   iconPresentation?: 'symbol' | 'image';
 }) {
+  const frontStyle = useResolvedCardFront('card-custom', { head, icon }, suppliedFrontStyle);
   const prefix = useId();
   const shiftedWindow = format === 'decal-window' && windowOffsetY !== 0;
   return (
@@ -42,7 +48,7 @@ export function CustomCard({
         .map((layer) => (
           <CardLayer key={layer.layerId} layer={layer} tokens={tokens} />
         ))}
-      <CardHeadBackground head={head} />
+      <CardHeadBackground head={frontStyle?.head ?? head} />
       {shiftedWindow ? (
         <svg className={styles.frame} viewBox="0 0 900 1263" aria-hidden>
           <defs>
@@ -88,7 +94,7 @@ export function CustomCard({
         iconPresentation={iconPresentation}
         name={name}
         subName={subName}
-        icon={icon}
+        icon={frontStyle?.iconBackground ? [frontStyle.iconBackground, icon[1]] : icon}
         iconOffset={iconOffset}
         iconScale={iconScale}
         iconInvert={iconInvert}
