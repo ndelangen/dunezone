@@ -213,9 +213,9 @@ export const FaqSearched = meta.story({
     await waitFor(() => expect(questionRows(main, /^Question \d\d\?$/)).toHaveLength(FAQ_CATALOGUE_PAGE_SIZE + 1), {
       timeout: 60_000,
     });
-    await expect(
-      main.getAllByRole('link', { name: /^Open question: Question/ })[FAQ_CATALOGUE_PAGE_SIZE]
-    ).toHaveFocus();
+    await waitFor(() =>
+      expect(main.getAllByRole('link', { name: /^Open question: Question/ })[FAQ_CATALOGUE_PAGE_SIZE]).toHaveFocus()
+    );
     await expect(main.getByRole('status')).toHaveTextContent('More questions loaded');
     await expect(main.queryByRole('button', { name: 'Load more' })).toBeNull();
   },
