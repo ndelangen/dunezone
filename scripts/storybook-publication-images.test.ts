@@ -88,11 +88,18 @@ test('a source replacement during decode identifies the interrupted image and it
     await page.goto(origin);
     await page.locator('#proof').evaluate((image: HTMLImageElement) => {
       image.src = '/held.jpg';
+      const decode = image.decode.bind(image);
+      image.decode = () => {
+        const result = decode();
+        image.dataset.decodeStarted = 'true';
+        return result;
+      };
     });
     const failure = decodeStoryImage(page.locator('#proof')).then(
       () => null,
       (error: unknown) => error
     );
+    await page.locator('#proof[data-decode-started="true"]').waitFor({ state: 'attached' });
     await page.locator('#proof').evaluate((image: HTMLImageElement) => {
       image.src = '/valid.svg';
     });
