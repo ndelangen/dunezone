@@ -173,6 +173,15 @@ export const snapshotPolicy = {
   catalogue_entries: {
     drop: 'catalogue read models, which the replayed catalogue backfill rebuilds from the kept rows',
   },
+  discovery_presets: {
+    fields: { key: 'keep', label: 'keep', front: 'keep', back: 'keep', revision: 'keep', updated_at: 'keep' },
+    rows: 'all',
+  },
+  background_presets: {
+    fields: { key: 'keep', name: 'keep', value: 'keep', revision: 'keep', updated_at: 'keep' },
+    rows: 'all',
+  },
+  background_uses: { fields: { key: 'keep', subject: { parent: ['assets', 'factions'] }, kind: 'keep' }, rows: 'all' },
   card_front_presets: {
     fields: { key: 'keep', style: 'keep', revision: 'keep', updated_at: 'keep' },
     rows: 'all',

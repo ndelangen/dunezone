@@ -71,12 +71,12 @@ export const CancelAndReset = meta.story({
     const name = await page.findByRole('textbox', { name: 'Name' });
     await userEvent.type(name, 'Keep this draft');
     await userEvent.click(page.getByRole('button', { name: 'Load existing card' }));
-    await userEvent.click(await waitForFrame(() => page.getByRole('option', { name: /Battle reference/ })));
+    await userEvent.click(await page.findByRole('option', { name: /Battle reference/ }, { timeout: 30_000 }));
     await userEvent.click(page.getByRole('button', { name: 'Cancel' }));
     await expect(name).toHaveValue('Keep this draft');
     await userEvent.click(page.getByRole('button', { name: 'Load existing card' }));
     await waitForFrame(() => expect(page.getByRole('button', { name: /^Load card$/ })).toBeDisabled());
-    await userEvent.click(page.getByRole('option', { name: /Battle reference/ }));
+    await userEvent.click(await page.findByRole('option', { name: /Battle reference/ }, { timeout: 30_000 }));
     await userEvent.click(await enabledLoadButton(page));
     await userEvent.click(page.getByRole('button', { name: 'Reset unsaved edits' }));
     await expect(name).toHaveValue('');

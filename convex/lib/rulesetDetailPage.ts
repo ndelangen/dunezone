@@ -2,6 +2,7 @@ import { FAQ_PREVIEW_SIZE } from '../../src/shared/faq/catalogueSearch';
 import type { Id } from '../_generated/dataModel';
 import type { QueryCtx } from '../types';
 import { ownPublishedFace } from './assetBacks';
+import { resolveBackgrounds } from './backgroundPresets';
 import { countCataloguePartitions } from './catalogueOrder';
 import { assignedGroupSummary } from './collaborativeAccess';
 import { catalogueFactionFromCard, toCatalogueFaction } from './factionCatalogue';
@@ -57,7 +58,7 @@ async function linkedCatalogueFaction(ctx: QueryCtx, factionId: Id<'factions'>) 
     return card.is_deleted ? null : await catalogueFactionFromCard(ctx, card, []);
   }
   const faction = await ctx.db.get('factions', factionId);
-  return faction && !faction.is_deleted ? toCatalogueFaction(faction, []) : null;
+  return faction && !faction.is_deleted ? await resolveBackgrounds(ctx, toCatalogueFaction(faction, [])) : null;
 }
 
 /**

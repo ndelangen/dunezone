@@ -150,26 +150,20 @@ test('failed replacements keep the previous shared publication until a retry suc
   expect((await page('second-deck')).resolvedBack?.href).toContain('?v=second');
 });
 
-test('a preset added after activation is seeded by the next scan, beside saved designs', async () => {
+test('activation publishes virtual defaults and preserves saved designs without creating definitions', async () => {
   const { t, admin } = await fixture();
   const scan = { assetType: 'cardback-preset', cursor: null, scanned: 0, enqueued: 0 };
   await t.mutation(internal.publicationRegeneration.scan, scan);
   expect(await t.query(api.cardbackPresets.list, {})).toHaveLength(INITIAL_CARDBACK_PRESETS.length);
-  await t.run(async (ctx) => {
-    const row = await ctx.db
-      .query('cardback_presets')
-      .withIndex('by_key', (q) => q.eq('key', 'prediction'))
-      .unique();
-    await ctx.db.delete(row!._id);
-  });
+  expect(await t.run((ctx) => ctx.db.query('cardback_presets').take(30))).toEqual([]);
   await admin.mutation(api.cardbackPresets.save, {
     key: 'traitor',
     cardback: { ...cardback, name: 'Saved design' },
-    revision: 1,
+    revision: 0,
   });
   await t.mutation(internal.publicationRegeneration.scan, scan);
-  const keys = await t.run(async (ctx) => (await ctx.db.query('cardback_presets').collect()).map((row) => row.key));
-  expect(new Set(keys)).toEqual(new Set(INITIAL_CARDBACK_PRESETS.map((preset) => preset.key)));
+  const rows = await t.run((ctx) => ctx.db.query('cardback_presets').take(30));
+  expect(rows.map((row) => row.key)).toEqual(['traitor']);
   expect((await t.query(api.cardbackPresets.list, {})).find((entry) => entry.key === 'traitor')?.cardback.name).toBe(
     'Saved design'
   );

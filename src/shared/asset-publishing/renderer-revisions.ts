@@ -1,8 +1,6 @@
 import { CARD_FRONT_PUBLICATION_REVISIONS } from '../assets/cardFrontPresets';
 import {
-  CUSTOM_CARD_STYLED_TOKEN_REVISION,
   ROUND_TOKEN_SYMBOL_STYLE_REVISION,
-  SPICE_DISCOVERY_REVISION,
   STORM_CARD_STYLED_TOKEN_REVISION,
   TREACHERY_TEXT_ONLY_REVISION,
 } from '../assets/schema';
@@ -34,8 +32,8 @@ export const CHECKED_IN_RENDERER_REVISIONS = {
   /* The first activation publishes every identified troop's front, and its back where one is authored (#1228). */
   'faction-troop': 1,
   /* Revision 2 fits complete Traitor titles, owner subtitles and Alliance titles. */
-  'faction-traitor': 2,
-  'faction-alliance': 2,
+  'faction-traitor': 3,
+  'faction-alliance': 3,
   // 9: formatted text replaces Markdown while setup and revival stay inline (wayfinder #669).
   // 10: the PDF is titled after its faction rather than the capture page, since search engines show that title.
   /* Revision 11 uses the faction's section name, defaulting to Faction Special Karama (#2271). */
@@ -45,9 +43,9 @@ export const CHECKED_IN_RENDERER_REVISIONS = {
   [TREACHERY_CARD_ASSET_TYPE]: TREACHERY_TEXT_ONLY_REVISION,
   // 1: spice cards join the pipeline with their editor (#1229).
   /* Revision 4 adds Discovery map treatment and the fixed type-token slot. */
-  [SPICE_CARD_ASSET_TYPE]: SPICE_DISCOVERY_REVISION,
+  [SPICE_CARD_ASSET_TYPE]: CARD_FRONT_PUBLICATION_REVISIONS[SPICE_CARD_ASSET_TYPE],
   /* Revision 4 retains styled token faces in Custom Cards. */
-  [CUSTOM_CARD_ASSET_TYPE]: CUSTOM_CARD_STYLED_TOKEN_REVISION,
+  [CUSTOM_CARD_ASSET_TYPE]: CARD_FRONT_PUBLICATION_REVISIONS[CUSTOM_CARD_ASSET_TYPE],
   /* Revision 4 captures the shared Leader Skill front preset. */
   [LEADER_SKILL_ASSET_TYPE]: CARD_FRONT_PUBLICATION_REVISIONS[LEADER_SKILL_ASSET_TYPE] + 1,
   /* Revision 3 aligns Homeworld effects and gives the removed type line's space to the rules. */
@@ -61,7 +59,7 @@ export const CHECKED_IN_RENDERER_REVISIONS = {
   /* Revision 5 retains clipped back emblems and fits complete back labels. */
   [DECK_ASSET_TYPE]: 5,
   /* Revision 7 fits complete back labels while keeping saved designs. */
-  'cardback-preset': 7,
+  'cardback-preset': 8,
   /*
    * 1: token faces join the pipeline (wayfinder #547). Activating these is also the backfill for tokens that predate them.
    * One entry per shape rather than one per face, because both faces of a shape are drawn by one renderer, so bumping a front without its back is not a thing that can be meant.

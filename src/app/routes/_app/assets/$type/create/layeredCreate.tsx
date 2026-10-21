@@ -1,12 +1,11 @@
+import { cardFrontStyleFor, newCardWithStandards } from '@shared/assets/cardFrontPresets';
 import type { CardFrontStyle } from '@shared/assets/cardFrontPresets';
 import type { CustomCardTokenResolution } from '@shared/assets/schema';
 import { compareCodeUnits } from '@shared/compareText';
 import { useReducer, useState } from 'react';
-import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
-import { useStormCardAuthoring } from '@db/cardFrontPresets';
-import { useCustomCardTokens } from '@app/db/assets';
+import { useAuthoringPresets } from '@db/backgroundPresets';
 import { postedPayload } from '@app/widgets/authoring/authoringEnvelope';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { INITIAL_CUSTOM_CARD_MEMORY } from '@app/widgets/card-editor/CustomCardEditor';
@@ -42,33 +41,13 @@ function reduce<Draft extends LayeredCardDraft>(state: CardState<Draft>, event: 
   }
 }
 
-function DraftTokenRead({
-  ids,
-  render,
-}: {
-  ids: string[];
-  render: (tokens: z.infer<typeof CustomCardTokenResolution>) => ReactNode;
-}) {
-  const tokens = useCustomCardTokens(ids);
-  return render(tokens ?? { tokens: {}, error: null });
-}
-
-function StormDraftRead({
-  ids,
-  render,
-}: {
-  ids: string[];
-  render: (tokens: z.infer<typeof CustomCardTokenResolution> & { style?: CardFrontStyle }) => ReactNode;
-}) {
-  const data = useStormCardAuthoring(ids);
-  return render(data ?? { tokens: {}, error: null });
-}
-
 export function LayeredCreatePage<Draft extends LayeredCardDraft>({ config }: { config: LayeredCardEditing<Draft> }) {
   const Editor = config.Editor;
   const saving = useCardCreate(config.type);
   const [chapter, setChapter] = useState<CustomCardChapter>('head');
-  const [state, dispatch] = useReducer(reduce<Draft>, undefined, () => openingState(config.initial, config.initial));
+  const [state, dispatch] = useReducer(reduce<Draft>, undefined, () =>
+    openingState(newCardWithStandards(config.type, config.initial), newCardWithStandards(config.type, config.initial))
+  );
   const patch = (update: Partial<Draft>) => dispatch({ kind: 'patch', update });
   const nameField = assetNameField({
     canRename: true,
@@ -94,6 +73,7 @@ export function LayeredCreatePage<Draft extends LayeredCardDraft>({ config }: { 
   const tokenIds = [
     ...new Set(state.data.layers.flatMap((layer) => (layer.kind === 'token' ? [layer.asset_id] : []))),
   ].sort(compareCodeUnits);
+  const standards = useAuthoringPresets(tokenIds);
   const editor = ({ tokens, error, style }: z.infer<typeof CustomCardTokenResolution> & { style?: CardFrontStyle }) => (
     <Editor
       frontStyle={style}
@@ -112,6 +92,9 @@ export function LayeredCreatePage<Draft extends LayeredCardDraft>({ config }: { 
   );
   return (
     <CardCreateFrame
+      loadingPresets={!standards}
+      backgrounds={standards?.backgrounds ?? []}
+      fronts={standards?.fronts ?? []}
       type={config.type}
       title={`New ${config.schemaName}`}
       headerSlot={header.slot}
@@ -127,13 +110,11 @@ export function LayeredCreatePage<Draft extends LayeredCardDraft>({ config }: { 
       }}
       saveError={saving.error}
     >
-      {config.type === 'card-storm' ? (
-        <StormDraftRead ids={tokenIds} render={editor} />
-      ) : tokenIds.length ? (
-        <DraftTokenRead ids={tokenIds} render={editor} />
-      ) : (
-        editor({ tokens: {}, error: null })
-      )}
+      {editor({
+        tokens: standards?.tokens ?? {},
+        error: standards?.error ?? null,
+        style: cardFrontStyleFor(config.type, state.data, standards?.fronts ?? []),
+      })}
     </CardCreateFrame>
   );
 }

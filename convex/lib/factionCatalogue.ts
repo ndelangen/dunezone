@@ -11,6 +11,7 @@ import type { FactionCatalogueSearch, FactionCatalogueSort } from '../../src/sha
 import { complexityOutOfTen, effectiveComplexity } from '../../src/shared/factions/complexity';
 import type { Doc, Id } from '../_generated/dataModel';
 import type { QueryCtx } from '../types';
+import { resolveBackgrounds } from './backgroundPresets';
 import { catalogueEditedAt, catalogueNameKey, catalogueSearchText, catalogueTimestamp } from './catalogueEntryShape';
 import type { CatalogueKind } from './catalogueEntryShape';
 import {
@@ -75,7 +76,10 @@ export async function catalogueFactionFromCard(
       slug: card.slug,
       created_at: card.created_at,
       updated_at: card.updated_at,
-      data: card.data as CatalogueFaction['data'],
+      data: {
+        ...(card.data as CatalogueFaction['data']),
+        background: await resolveBackgrounds(ctx, (card.data as CatalogueFaction['data']).background),
+      },
       rulesets,
     };
   }
@@ -83,7 +87,11 @@ export async function catalogueFactionFromCard(
   if (!faction) {
     throw new Error(`Faction ${card.faction_id} missing for its card ${card._id}`);
   }
-  return toCatalogueFaction(faction, rulesets);
+  const projected = toCatalogueFaction(faction, rulesets);
+  return {
+    ...projected,
+    data: { ...projected.data, background: await resolveBackgrounds(ctx, projected.data.background) },
+  };
 }
 
 const FACTION_LIMIT = 500;

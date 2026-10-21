@@ -132,7 +132,11 @@ function captureSubject(snapshot: PublisherCaptureSnapshot): CaptureSubject {
     case 'card-custom':
       return printedImage(
         snapshot.assetType,
-        <CustomCard {...snapshot.payload.card} tokens={snapshot.payload.tokens} />
+        <CustomCard
+          {...snapshot.payload.card}
+          frontStyle={snapshot.payload.frontPreset?.style}
+          tokens={snapshot.payload.tokens}
+        />
       );
     case 'card-storm':
       return printedImage(
@@ -148,6 +152,7 @@ function captureSubject(snapshot: PublisherCaptureSnapshot): CaptureSubject {
         snapshot.assetType,
         <SpiceCard
           {...snapshot.payload.card}
+          frontStyle={snapshot.payload.frontPreset?.style}
           boardDefinition={snapshot.payload.board}
           boardTokens={snapshot.payload.tokens}
         />

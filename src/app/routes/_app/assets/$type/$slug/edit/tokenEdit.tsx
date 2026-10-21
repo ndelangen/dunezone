@@ -20,6 +20,7 @@ import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { initialTokenMemory, TokenEditor, TokenProof, tokenDraftWarnings } from '@app/widgets/token-editor/TokenEditor';
 import type { TokenWarning, TokenChapter, TokenDraft, TokenMemory } from '@app/widgets/token-editor/TokenEditor';
+import { BackgroundLibrary } from '@game/assets/utils/BackgroundLibrary';
 
 import {
   AssetEditorMessage,
@@ -95,15 +96,17 @@ export function TokenEditPage({
       : parsed.data.back;
 
   return (
-    <TokenEditSession
-      key={data.asset.id}
-      access={{ viewerAccess: data.viewerAccess, assignableGroups: data.assignableGroups }}
-      type={type}
-      asset={data.asset}
-      backToken={data.backToken}
-      danglingBack={data.resolvedBack?.mode === 'dangling'}
-      initialDraft={{ ...parsed.data, back: initialBack }}
-    />
+    <BackgroundLibrary presets={data.backgrounds ?? []} fronts={data.cardFrontPresets}>
+      <TokenEditSession
+        key={data.asset.id}
+        access={{ viewerAccess: data.viewerAccess, assignableGroups: data.assignableGroups }}
+        type={type}
+        asset={data.asset}
+        backToken={data.backToken}
+        danglingBack={data.resolvedBack?.mode === 'dangling'}
+        initialDraft={{ ...parsed.data, back: initialBack }}
+      />
+    </BackgroundLibrary>
   );
 }
 

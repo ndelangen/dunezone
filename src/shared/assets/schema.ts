@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 import { ALL, BACKGROUND, PLANET, TEXTURE } from '../assetIds';
 import { BOARD_FRAME_SIZE, boardTints, boardTokens } from '../boards/markup';
-import { Background, Decal, FactionInputObject } from '../factions/schema';
+import { AuthoredBackground as Background, Decal, FactionInputObject } from '../factions/schema';
 import { proseFormattedTextSchema } from '../formattedText';
 import { cardbackPresetKeySchema } from './cardbackPresetKeys';
 import { PhysicalSize } from './physicalSize';

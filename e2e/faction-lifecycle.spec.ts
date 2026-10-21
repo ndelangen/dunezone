@@ -276,6 +276,7 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
       await save().click();
       await expect(page).toHaveURL(new RegExp(`/factions/${address}/edit$`));
       await expect(field()).toHaveValue(name);
+      await expect(page.getByRole('button', { name: 'Delete faction' })).toBeVisible();
     }
 
     await page.getByRole('tab', { name: /^Faction leader/ }).click();

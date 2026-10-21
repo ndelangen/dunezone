@@ -172,6 +172,8 @@ function toFactionDetailPageData(raw: FactionDetailPageRaw): FactionDetailPageDa
       ...raw.faction,
       data: parseClientBoundary(CanonicalFactionClientSchema, raw.faction.data, 'Faction data'),
     },
+    backgrounds: raw.backgrounds,
+    cardFrontPresets: raw.cardFrontPresets,
     owner: raw.owner,
     assetPublishing: raw.assetPublishing,
     assignedGroup: raw.assignedGroup,
