@@ -5,8 +5,10 @@
  */
 export const browserLaunchTests = [
   'scripts/application-security.browser.test.ts',
+  'scripts/storybook-publication-images.test.ts',
   '.storybook/storyImagesWorker.test.ts',
   '.storybook/storyViewport.browser.test.ts',
+  'workers/storybook/media-transfer.browser.test.ts',
   'scripts/lib/synthetic-accounts.test.ts',
   'scripts/play-load/browsers.test.ts',
   'scripts/verify-hosted-cursor.test.ts',
