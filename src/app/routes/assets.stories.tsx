@@ -1,11 +1,14 @@
 import preview from '@sb/preview';
 import { publishingTreacheryCard } from '@shared/assets/fixtures/publishingTreacheryCard';
 import { GF9_LEADER_SKILLS } from '@shared/assets/gf9LeaderSkills';
+import { INITIAL_BACKGROUND_PRESETS } from '@shared/backgrounds/defaults';
+import { backgroundPresetSchema } from '@shared/backgrounds/schema';
 import { install } from '@sinonjs/fake-timers';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { asset, db, ref } from '@db/storybook';
 
+import presetSnapshot from './_app/assets/presets-production.stories.fixture.json';
 import { expectToolbarOnOneLine, findSave } from './authoringToolbarPlay';
 import {
   craftLinearAngle,
@@ -535,6 +538,37 @@ export const CreateCustomCard = meta.story({
 
 export const EditCustomCard = meta.story({
   args: { path: '/assets/card-custom/battle-reference/edit' },
+  parameters: {
+    database: db((baseline) => {
+      const backgrounds = [
+        ...presetSnapshot.fronts.flatMap(({ key, label, style }) =>
+          Object.entries(style).flatMap(([region, value]) =>
+            value
+              ? [
+                  {
+                    key: `front/${key}/${region === 'head' ? 'header' : 'icon'}`,
+                    name: `${label} ${region === 'head' ? 'header' : 'icon'}`,
+                    value,
+                    revision: 1,
+                  },
+                ]
+              : []
+          )
+        ),
+        ...presetSnapshot.backs.map(({ key, label, cardback }) => ({
+          key: `back/${key}`,
+          name: `${label} back`,
+          value: cardback.background,
+          revision: 1,
+        })),
+        ...INITIAL_BACKGROUND_PRESETS,
+      ];
+      baseline.background_presets = backgrounds.map((preset) => ({
+        ...backgroundPresetSchema.parse(preset),
+        updated_at: 0,
+      }));
+    }),
+  },
   play: ({ canvasElement }) => expectFieldValue(canvasElement, 'Name', 'Battle reference'),
 });
 

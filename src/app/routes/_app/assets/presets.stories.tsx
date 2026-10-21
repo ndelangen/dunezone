@@ -79,6 +79,16 @@ export const Families = meta.story({
     await expect(page.findByRole('status')).resolves.toHaveTextContent(
       'Preset saved. Linked artwork updates as captures finish.'
     );
+    await userEvent.click(page.getByRole('button', { name: 'Edit Nexus' }));
+    const nexus = within(page.getByRole('region', { name: 'Nexus' }));
+    const icon = nexus.getByRole('combobox', { name: 'Nexus icon background' });
+    await expect(icon).toHaveValue("Each card's faction");
+    await userEvent.click(icon);
+    await userEvent.click(page.getByRole('option', { name: /^Custom$/ }));
+    await expect(nexus.getByRole('region', { name: 'Background builder' })).toBeVisible();
+    await userEvent.click(icon);
+    await userEvent.click(page.getByRole('option', { name: "Each card's faction" }));
+    await expect(nexus.queryByRole('region', { name: 'Background builder' })).not.toBeInTheDocument();
   },
 });
 export const Library = meta.story({

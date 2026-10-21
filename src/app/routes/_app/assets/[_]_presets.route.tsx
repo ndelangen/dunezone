@@ -1,4 +1,4 @@
-import { Badge, Button, Divider, Group, NumberInput, Select, Stack, Text, TextInput } from '@mantine/core';
+import { Badge, Button, Divider, Group, NumberInput, Stack, Text, TextInput } from '@mantine/core';
 import type { CardFrontStyle } from '@shared/assets/cardFrontPresets';
 import { publishingSpiceCard } from '@shared/assets/fixtures/publishingSpiceCard';
 import { GF9_LEADER_SKILLS } from '@shared/assets/gf9LeaderSkills';
@@ -27,6 +27,7 @@ import {
   useInitializePresetLibrary,
 } from '@db/backgroundPresets';
 import { useSessionViewer } from '@db/profiles';
+import { BackgroundPickerView } from '@app/pickers/BackgroundPicker.parts';
 import { pageHead } from '@app/routes/pageTitle';
 import { CardFrame } from '@app/widgets/asset-face/AssetFace';
 import { BackgroundComposer, emptyBackgroundModeMemory } from '@app/widgets/background-composer/BackgroundComposer';
@@ -181,13 +182,6 @@ function backgroundChoiceKey(value: BackgroundData | null) {
   }
   return value.source?.kind === 'preset' ? value.source.key : 'custom';
 }
-function backgroundChoiceValue(next: string, backgrounds: SharedBackgroundPreset[], resolved: BackgroundData) {
-  if (next === 'faction') {
-    return null;
-  }
-  const selected = backgrounds.find((entry) => entry.key === next);
-  return selected ? linkedBackground(selected) : customBackground(resolved);
-}
 function backgroundEditorLabel(active: boolean, shared: boolean) {
   if (active) {
     return 'Close background editor';
@@ -231,34 +225,31 @@ function PresetEditor({ library }: Readonly<{ library: NonNullable<ReturnType<ty
     const active = state.open === preset.key && state.active === region;
     const editing = state.open === preset.key;
     const resolved = value ? resolve(value) : backgroundPresets.atreides;
-    const choose = (next: string | null) => {
-      if (!next) {
-        return;
-      }
+    const choose = (next: BackgroundData | null) => {
       dispatch({
         kind: 'draft',
-        value: replaceRegion(preset, region, backgroundChoiceValue(next, backgrounds, resolved)),
+        value: replaceRegion(preset, region, next),
       });
+      dispatch({ kind: 'active', region: next?.source?.kind === 'custom' ? region : null });
     };
     return (
       <Stack key={region} gap="sm">
         <Group gap="sm" wrap="nowrap">
           <BackgroundSwatch value={resolved} />
           {editing ? (
-            <Select
-              label={`${preset.label} ${region.toLowerCase()} background`}
-              value={key}
-              searchable
-              allowDeselect={false}
-              data={[
-                ...backgrounds.map((entry) => ({ value: entry.key, label: entry.name })),
-                ...(preset.key === 'nexus' && region === 'Icon'
-                  ? [{ value: 'faction', label: "Each card's faction" }]
-                  : []),
-                { value: 'custom', label: 'Custom' },
-              ]}
-              onChange={choose}
-            />
+            <Stack gap={0}>
+              <Text size="xs" c="dimmed">
+                {region} background
+              </Text>
+              <BackgroundPickerView
+                label={`${preset.label} ${region.toLowerCase()} background`}
+                value={value}
+                resolvedValue={resolved}
+                presets={backgrounds}
+                factionValue={preset.key === 'nexus' && region === 'Icon' ? backgroundPresets.atreides : undefined}
+                onPick={choose}
+              />
+            </Stack>
           ) : (
             <Stack gap={0}>
               <Text size="xs" c="dimmed">
