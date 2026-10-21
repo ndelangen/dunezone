@@ -685,10 +685,7 @@ function FactionDetailContent({
             status={faq.faqStatus}
             onLoadMore={faq.loadMoreFaq}
             onOpenQuestion={(questionSlug, rulesetSlug) => {
-              void navigate({
-                to: '/rulesets/$rulesetSlug/faq/$questionSlug',
-                params: { questionSlug, rulesetSlug },
-              });
+              void navigate({ to: '/rulesets/$rulesetSlug/faq/$questionSlug', params: { questionSlug, rulesetSlug } });
             }}
           />
         </Stack>

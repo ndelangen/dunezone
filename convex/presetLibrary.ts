@@ -127,6 +127,9 @@ async function assertFamilyReady(ctx: MutationCtx, args: SaveFamily) {
   if (((await publicationSettings(ctx))?.renderer_revisions[type] ?? 0) < CARD_FRONT_PUBLICATION_REVISIONS[type]) {
     throw new ConvexError('Preset publication is not ready yet. Try again after the release finishes.');
   }
+  assertFamilyFields(args);
+}
+function assertFamilyFields(args: SaveFamily) {
   if (familyBackKey(args.key) !== args.backKey) {
     throw new ConvexError('Check the family preset fields.');
   }
@@ -156,10 +159,12 @@ async function saveFamilyFront(
   ctx: MutationCtx,
   row: Doc<'card_front_presets'> | null,
   args: SaveFamily,
-  previous: AuthoredCardFrontStyle,
   changing: string[]
 ) {
-  if (canonicalJson(args.style) === canonicalJson(linkedStyle(previous, args.key))) {
+  const regions = changing
+    .filter((key) => key.startsWith('front/'))
+    .map((key) => (key.endsWith('/header') ? ('header' as const) : ('icon' as const)));
+  if (!regions.length) {
     return;
   }
   const fields = { key: args.key, style: args.style, revision: args.frontRevision + 1, updated_at: Date.now() };
@@ -169,9 +174,6 @@ async function saveFamilyFront(
     await ctx.db.insert('card_front_presets', fields);
   }
   await resolveBackgrounds(ctx, args.style);
-  const regions = changing
-    .filter((key) => key.startsWith('front/'))
-    .map((key) => (key.endsWith('/header') ? ('header' as const) : ('icon' as const)));
   await ctx.scheduler.runAfter(0, internal.backgroundPresets.recaptureFamily, { key: args.key, regions, cursor: null });
 }
 async function saveFamilyBack(ctx: MutationCtx, args: SaveFamily, back: Awaited<ReturnType<typeof rawCardbackPreset>>) {
@@ -202,7 +204,7 @@ export const saveFamily = mutation({
     await saveEditedBackgrounds(ctx, args.backgrounds);
     await validateBackgroundLinks(ctx, args.style);
     await validateBackgroundLinks(ctx, args.cardback);
-    await saveFamilyFront(ctx, row, args, previous, changing);
+    await saveFamilyFront(ctx, row, args, changing);
     await saveFamilyBack(ctx, args, back);
     return null;
   },

@@ -84,6 +84,11 @@ export async function initializePresetLibrary(ctx: MutationCtx) {
       }
     }),
   ]);
+  const backgrounds = await materializeBackgrounds(ctx, updated_at);
+  await queueBackgroundRecaptures(ctx, [...imported, ...backgrounds]);
+}
+
+async function materializeBackgrounds(ctx: MutationCtx, updated_at: number) {
   const library = await listBackgroundPresets(ctx);
   const missing = (
     await Promise.all(
@@ -107,5 +112,5 @@ export async function initializePresetLibrary(ctx: MutationCtx) {
       })
     )
   );
-  await queueBackgroundRecaptures(ctx, [...imported, ...missing.map((preset) => preset.key)]);
+  return missing.map((preset) => preset.key);
 }
