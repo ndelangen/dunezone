@@ -159,9 +159,9 @@
     "@playwright/test": "1.64.0",
     "@rolldown/plugin-babel": "0.2.4",
     "@sinonjs/fake-timers": "15.4.0",
-    "@storybook/addon-docs": "10.6.1",
-    "@storybook/addon-vitest": "10.6.1",
-    "@storybook/tanstack-react": "10.6.1",
+    "@storybook/addon-docs": "10.6.2",
+    "@storybook/addon-vitest": "10.6.2",
+    "@storybook/tanstack-react": "10.6.2",
     "@stryker-mutator/core": "10.0.0",
     "@stryker-mutator/vitest-runner": "10.0.0",
     "@tanstack/devtools-vite": "0.8.5",
@@ -193,7 +193,7 @@
     "playwright": "1.64.0",
     "recursive-readdir-files": "^2.3.2",
     "sharp": "0.35.5",
-    "storybook": "10.6.1",
+    "storybook": "10.6.2",
     "svgo": "4.1.0",
     "svgpath": "2.6.0",
     "three-mesh-bvh": "0.9.15",
@@ -246,12 +246,12 @@
   "patchedDependencies": {
     "@convex-dev/auth@0.0.96": "patches/@convex-dev%2Fauth@0.0.96.patch",
     "harfbuzzjs@0.10.0": "patches/harfbuzzjs@0.10.0.patch",
-    "@storybook/tanstack-react@10.6.1": "patches/@storybook%2Ftanstack-react@10.6.1.patch",
+    "@storybook/tanstack-react@10.6.2": "patches/@storybook%2Ftanstack-react@10.6.2.patch",
     "three@0.186.1": "patches/three@0.186.1.patch",
     "@react-three/fiber@10.0.0-alpha.5": "patches/@react-three%2Ffiber@10.0.0-alpha.5.patch",
     "convex@1.46.0": "patches/convex@1.46.0.patch",
     "@floating-ui/dom@1.8.0": "patches/@floating-ui%2Fdom@1.8.0.patch",
-    "@storybook/react@10.6.1": "patches/@storybook%2Freact@10.6.1.patch",
+    "@storybook/react@10.6.2": "patches/@storybook%2Freact@10.6.2.patch",
     "miniflare@5.20261006.1-alpha": "patches/miniflare@5.20261006.1-alpha.patch"
   }
 }
