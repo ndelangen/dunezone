@@ -360,8 +360,14 @@ async function loadAssetPageFor(ctx: QueryCtx, row: Doc<'assets'>, args: { embed
     row.type === 'card-custom' || row.type === 'card-storm'
       ? await resolveCustomCardTokens(ctx, args.embeddedTokenIds ?? customCardTokenIds(row.data))
       : null;
+  const assetPublishing = isPublicationAssetType(row.type) ? await publicationStatusFor(ctx, row.type, row._id) : null;
+  const asset = await toListEntry(ctx, row, { presets });
+  /* A renderer recapture changes the publication token without changing the asset's edit date. */
+  if (ownPublishedFace(row) !== null && assetPublishing?.publicationHref) {
+    asset.previewHref = assetPublishing.publicationHref;
+  }
   return {
-    asset: await toListEntry(ctx, row, { presets }),
+    asset,
     convertibleToCustom: row.type === 'card-treachery',
     ...(resolvedTokens ? { cardTokens: resolvedTokens.tokens, cardTokensError: resolvedTokens.error } : {}),
     cardFrontPresets: cardFrontAssetTypeSchema.safeParse(row.type).success ? await listCardFrontPresets(ctx) : [],
@@ -381,7 +387,7 @@ async function loadAssetPageFor(ctx: QueryCtx, row: Doc<'assets'>, args: { embed
     inDecks: row.type === 'deck' ? [] : await containersHolding(ctx, row._id, DECK_CARD),
     inBundles: TOKEN_TYPES.has(row.type) ? await containersHolding(ctx, row._id, BUNDLE_TOKEN) : [],
     linkingRulesets: await rulesetsSlotting(ctx, row._id),
-    assetPublishing: isPublicationAssetType(row.type) ? await publicationStatusFor(ctx, row.type, row._id) : null,
+    assetPublishing,
     backPublishing: await backFacePublication(ctx, row),
     resolvedBack: await resolveBackHref(ctx, row, presets),
   };
