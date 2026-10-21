@@ -13,39 +13,71 @@
   gap: var(--space-xl);
 }
 
+/* The prototype removes link underlines throughout a row, including the ProfileLink name. */
+.stage a,
+.stage a:hover,
+.stage a:focus-visible,
+.stage a span {
+  text-decoration: none !important;
+}
+
 .question {
   display: block;
+  min-width: 0;
   color: var(--color-text);
   font-weight: 650;
   font-size: var(--mantine-font-size-md);
-  line-height: 1.45;
+  line-height: 1.4;
   overflow-wrap: anywhere;
 }
 
-.context {
+.excerpt {
+  display: flex;
+  gap: var(--space-sm);
+  color: var(--color-text);
+  align-items: baseline;
+}
+.excerpt > svg {
+  flex-shrink: 0;
+  color: var(--color-muted);
+}
+.metadata {
   color: var(--color-muted);
 }
 
-.readingRow {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-areas: "question status" "meta meta";
-  align-items: start;
-  gap: var(--space-sm);
-}
-
-.readingQuestion {
-  grid-area: question;
-}
-.readingStatus {
-  grid-area: status;
-}
-.readingMeta {
-  grid-area: meta;
+.people {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-sm);
+  gap: var(--space-sm) var(--space-lg);
+}
+.byline {
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+.person {
+  flex-shrink: 0;
+}
+.person > span:last-child {
+  font-size: var(--mantine-font-size-xs);
+}
+.relations {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs) var(--space-sm);
+}
+.asset {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  color: var(--color-link);
+  font-weight: 600;
+}
+.asset > svg {
+  flex-shrink: 0;
 }
 
 .railRow {
@@ -54,140 +86,87 @@
   gap: var(--space-md);
   align-items: start;
 }
-
-.railCount {
-  text-align: center;
+.rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
   color: var(--color-muted);
-  line-height: 1;
 }
-.railCount[data-accepted="true"] {
+.rail:has([aria-label="Accepted answer"]) {
   color: var(--mantine-color-green-8);
 }
-.railCount svg {
-  vertical-align: middle;
-}
 
-.previewRow {
+.readingRow {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 9rem;
-  gap: var(--space-lg);
-  align-items: start;
+  grid-template-columns: minmax(0, 1fr) 17rem;
+  grid-template-areas: "heading heading" "answer context";
+  gap: var(--space-md) var(--space-xl);
 }
-
-.previewAside {
-  align-items: flex-end;
-}
-.answerPreview {
-  display: flex;
-  gap: var(--space-sm);
-  align-items: baseline;
-  color: var(--color-muted);
-}
-.answerPreview > svg {
-  flex-shrink: 0;
-}
-
-.indexHeader,
-.indexRow {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 9rem 7rem 8rem;
-  gap: var(--space-md);
-  align-items: start;
-}
-
-.indexHeader {
-  color: var(--color-muted);
-  margin-bottom: var(--space-md);
-}
-.indexList {
-  display: grid;
-  gap: var(--space-lg);
-}
-.indexQuestion {
-  grid-area: auto;
-}
-.indexRuleset {
-  grid-area: auto;
-  overflow-wrap: anywhere;
-}
-.indexCount {
-  grid-area: auto;
-}
-.indexAuthor {
-  grid-area: auto;
-}
-.indexAuthor .context {
-  flex-direction: column;
-  align-items: flex-start;
-}
-
-.accordion {
-  width: 100%;
-}
-.accordionQuestion {
+.readingHeading {
+  grid-area: heading;
   display: flex;
   align-items: start;
   justify-content: space-between;
   gap: var(--space-md);
 }
-.accordionQuestion > p {
-  min-width: 0;
-}
-
-.accordionQuestion > :last-child {
+.readingHeading > :last-child,
+.compactHeading > :last-child {
   flex-shrink: 0;
 }
-.openLink {
-  display: inline-flex;
-  align-items: center;
+.readingAnswer {
+  grid-area: answer;
+  display: grid;
+  gap: var(--space-md);
+  align-content: start;
+}
+.readingContext {
+  grid-area: context;
+  display: grid;
+  gap: var(--space-md);
+  align-content: start;
+}
+.readingContext .people {
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+.compactRow {
+  display: grid;
   gap: var(--space-xs);
-  font-size: var(--mantine-font-size-sm);
+}
+.compactHeading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+.compactContext {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm) var(--space-lg);
 }
 
 @container faq-prototype (width < 48rem) {
-  .previewRow {
+  .readingRow {
     grid-template-columns: minmax(0, 1fr);
-    gap: var(--space-sm);
+    grid-template-areas: "heading" "answer" "context";
   }
-  .previewAside {
-    flex-direction: row;
-    align-items: center;
-    flex-wrap: wrap;
-  }
-  .indexHeader {
-    display: none;
-  }
-  .indexRow {
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-areas: "question question" "ruleset count" "author author";
-    gap: var(--space-sm);
-  }
-  .indexQuestion {
-    grid-area: question;
-  }
-  .indexRuleset {
-    grid-area: ruleset;
-  }
-  .indexCount {
-    grid-area: count;
-  }
-  .indexAuthor {
-    grid-area: author;
-  }
-  .indexAuthor .context {
+  .readingContext .people {
     flex-direction: row;
   }
 }
-
 @container faq-prototype (width < 30rem) {
-  .readingRow {
-    grid-template-areas: "question question" "meta meta" "status status";
-  }
   .railRow {
     grid-template-columns: 2rem minmax(0, 1fr);
     gap: var(--space-sm);
   }
-  .accordionQuestion {
+  .people {
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+  .readingHeading,
+  .compactHeading {
     flex-direction: column;
     gap: var(--space-xs);
   }
