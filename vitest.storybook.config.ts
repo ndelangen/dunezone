@@ -124,6 +124,8 @@ export default defineConfig({
     testTimeout: 120_000,
     browser: {
       enabled: true,
+      /* Match the addon's default so file boundaries do not resize desktop stories to Vitest's 414x896. */
+      viewport: { width: 1200, height: 900 },
       provider: playwright(),
       headless: true,
       screenshotFailures: true,
