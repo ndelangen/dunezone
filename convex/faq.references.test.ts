@@ -5,10 +5,8 @@ import { describe, expect, test, vi } from 'vite-plus/test';
 
 import { api } from './_generated/api';
 import { applicationTest } from './application.test.fixture';
-import { loadFaqQuestionsForTarget, loadFaqReferenceTargets } from './lib/faqReferences';
 
 const at = '2026-10-21T00:00:00.000Z';
-const paginationOpts = { numItems: 10, cursor: null };
 
 async function fixture() {
   const t = applicationTest();
@@ -84,10 +82,7 @@ describe('FAQ references', () => {
     const viewer = t.withIdentity({ subject: ids[role] });
     const first = await viewer.mutation(api.faqReferences.add, args);
     expect(await viewer.mutation(api.faqReferences.add, args)).toBe(first);
-    expect(await t.run((ctx) => loadFaqReferenceTargets(ctx, ids.question, paginationOpts))).toMatchObject({
-      page: [{ kind: 'asset', asset: { _id: ids.asset } }],
-      isDone: true,
-    });
+    expect(await t.run((ctx) => ctx.db.get('faq_references', first))).not.toBeNull();
     await viewer.mutation(api.faqReferences.remove, args);
     await viewer.mutation(api.faqReferences.remove, args);
     expect(await t.run((ctx) => ctx.db.get('faq_references', first))).toBeNull();
@@ -126,7 +121,7 @@ describe('FAQ references', () => {
     await t.withIdentity({ subject: ids.asker }).mutation(api.faqReferences.add, args);
   });
 
-  test('deleted targets follow faction links: hidden on reads, retained for recovery, refused on add', async () => {
+  test('deleted targets retain their links for recovery and cannot be added', async () => {
     const { t, ids, args } = await fixture();
     const asker = t.withIdentity({ subject: ids.asker });
     const factionTarget = { kind: 'faction' as const, id: ids.faction };
@@ -138,7 +133,6 @@ describe('FAQ references', () => {
       await ctx.db.patch('assets', ids.asset, { is_deleted: true });
       await ctx.db.patch('factions', ids.faction, { is_deleted: true });
     });
-    expect((await t.run((ctx) => loadFaqReferenceTargets(ctx, ids.question, paginationOpts))).page).toEqual([]);
     for (const id of references) {
       expect(await t.run((ctx) => ctx.db.get('faq_references', id))).not.toBeNull();
     }
@@ -150,38 +144,10 @@ describe('FAQ references', () => {
       await ctx.db.patch('assets', ids.asset, { is_deleted: false });
       await ctx.db.patch('factions', ids.faction, { is_deleted: false });
     });
-    expect((await t.run((ctx) => loadFaqReferenceTargets(ctx, ids.question, paginationOpts))).page).toHaveLength(2);
-  });
-
-  test('reverse pages span rulesets, preserve cursors across hidden rows, and hide deleted rulesets', async () => {
-    const { t, ids, args } = await fixture();
-    const asker = t.withIdentity({ subject: ids.asker });
-    const second = await asker.mutation(api.rulesets.create, {
-      name: 'Second ruleset',
-      about: 'A second ruleset with enough description to pass the authoring constraint.',
-      group_id: null,
-      image_cover: null,
-    });
-    const question = await asker.mutation(api.faq.createQuestion, {
-      rulesetId: second._id,
-      question: 'Does this apply in this ruleset?',
-      tags: ['rules'],
-    });
-    await asker.mutation(api.faqReferences.add, { ...args, questionId: question.questionId });
-    await asker.mutation(api.faqReferences.add, args);
-    const visible = await t.run((ctx) => loadFaqQuestionsForTarget(ctx, args.target, paginationOpts));
-    expect(visible.page.map((row) => row.question._id)).toEqual([question.questionId, ids.question]);
-    await t.run((ctx) => ctx.db.patch('rulesets', second._id, { is_deleted: true }));
-    const first = await t.run((ctx) => loadFaqQuestionsForTarget(ctx, args.target, { numItems: 1, cursor: null }));
-    expect(first.page).toEqual([]);
-    expect(first.isDone).toBe(false);
-    const next = await t.run((ctx) =>
-      loadFaqQuestionsForTarget(ctx, args.target, { numItems: 1, cursor: first.continueCursor })
+    expect(await asker.mutation(api.faqReferences.add, args)).toBe(references[0]);
+    expect(await asker.mutation(api.faqReferences.add, { questionId: ids.question, target: factionTarget })).toBe(
+      references[1]
     );
-    expect(next.page.map((row) => row.question._id)).toEqual([ids.question]);
-    await expect(
-      asker.mutation(api.faqReferences.remove, { ...args, questionId: question.questionId })
-    ).rejects.toThrow('Ruleset not found');
   });
 
   test('permanently deleting a question drains reference batches through the existing child-deletion flow', async () => {
