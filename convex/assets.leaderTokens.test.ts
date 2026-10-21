@@ -4,6 +4,8 @@ import { expect, test } from 'vite-plus/test';
 
 import { DUKE_PRAD_VIDAL_TOKEN } from '../src/shared/assets/leaderToken';
 import { parseRawAsset } from '../src/shared/authoring/raw';
+import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
+import { FactionWriteSchema } from '../src/shared/factions/schema';
 import { api, internal } from './_generated/api';
 import { applicationTest } from './application.test.fixture';
 
@@ -61,6 +63,10 @@ test('standalone leaders save, join bundles and publish one face without faction
       assetType: 'token-leader',
     })
   ).toMatchObject({ status: 'missing' });
+  const supply = await t.query(api.playCatalogue.assetSupply, { type: 'token-leader', slug: created.slug });
+  expect(supply).toMatchObject({ asset: { id: created.id, type: 'token-leader' }, backMode: 'same', backToken: null });
+  expect(supply?.front).toBeTruthy();
+  expect(supply?.back).toBe(supply?.front);
   const bundle = await owner.mutation(api.assets.create, {
     type: 'bundle',
     data: { name: 'Leaders', about: '', band: { label: 'Leaders', background: DUKE_PRAD_VIDAL_TOKEN.background } },
@@ -114,4 +120,27 @@ test('the new renderer waits for activation without inventing a fallback or back
   const jobs = await t.run((ctx) => ctx.db.query('publication_jobs').collect());
   expect(jobs).toHaveLength(1);
   expect(jobs[0].asset_id).toBe(created.id);
+});
+
+test.each(['Ecaz', 'Moritani'])('a standalone Duke is a direct %s Extra without leader membership', async (name) => {
+  const { t, owner } = await setup();
+  const duke = await owner.mutation(api.assets.create, { type: 'token-leader', data: DUKE_PRAD_VIDAL_TOKEN });
+  const original = structuredClone(assetPublishingFaction);
+  const data = FactionWriteSchema.parse({ ...original, name, extras: [{ type: 'token-leader', slug: duke.slug }] });
+  const faction = await owner.mutation(api.factions.create, { data, group_id: null });
+  expect(faction.data.extras).toEqual([{ type: 'token-leader', slug: duke.slug }]);
+  expect(faction.data.leaders).toEqual(original.leaders);
+  const updated = await owner.mutation(api.factions.update, {
+    id: faction._id,
+    data: { ...faction.data, name: `${name} with Duke` },
+  });
+  expect(updated.data.extras).toEqual(data.extras);
+  const captured = await t.query(api.playCatalogue.factionDefinition, { factionId: faction._id });
+  expect(captured?.data?.extras).toEqual(data.extras);
+  await expect(
+    owner.mutation(api.factions.update, {
+      id: faction._id,
+      data: { ...updated.data, extras: [{ type: 'token-leader', slug: 'missing-leader' }] },
+    })
+  ).rejects.toThrow(/not in the catalogue/u);
 });

@@ -1,14 +1,12 @@
 import { DUKE_PRAD_VIDAL_TOKEN } from '@shared/assets/leaderToken';
 import { LeaderTokenAssetInput } from '@shared/assets/schema';
-import { useReducer, useState } from 'react';
 
 import type { AssetPublicPage } from '@db/assets';
-import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
-import { LeaderTokenEditor, leaderTokenDraftWarnings } from '@app/widgets/token-editor/LeaderTokenEditor';
-import type { LeaderTokenChapter, LeaderTokenDraft } from '@app/widgets/token-editor/LeaderTokenEditor';
+import { LeaderTokenEditor } from '@app/widgets/token-editor/LeaderTokenEditor';
+import type { LeaderTokenDraft } from '@app/widgets/token-editor/LeaderTokenEditor';
 
 import { assetNameField } from '../../../assetEditorStates';
-import { openingLeaderTokenState, reduceLeaderTokenDraft, leaderTokenDraftStatus } from '../../leaderTokenAuthoring';
+import { useLeaderTokenAuthoring } from '../../leaderTokenAuthoring';
 import { CardEditFrame, CardEditGate, useCardSave } from './cardEditPage';
 import type { CardEditSessionProps } from './cardEditPage';
 
@@ -29,21 +27,10 @@ function renderSession(props: Readonly<CardEditSessionProps<LeaderTokenDraft>>) 
 }
 function LeaderTokenEditSession({ asset, initialDraft, access }: Readonly<CardEditSessionProps<LeaderTokenDraft>>) {
   const saving = useCardSave('token-leader', asset);
-  const [chapter, setChapter] = useState<LeaderTokenChapter>('identity');
-  const [state, dispatch] = useReducer(reduceLeaderTokenDraft, undefined, () =>
-    openingLeaderTokenState(initialDraft, initialDraft)
+  const { state, dispatch, patch, header, chapter, setChapter, isDirty, invalid, save } = useLeaderTokenAuthoring(
+    initialDraft,
+    saving.save
   );
-  const patch = (update: Partial<LeaderTokenDraft>) => dispatch({ kind: 'patch', update });
-  const header = useEditPageHeader({
-    warnings: leaderTokenDraftWarnings(state.data),
-    onFocusWarning: (warning) => setChapter(warning.chapter),
-  });
-  const { isDirty, invalid, payload } = leaderTokenDraftStatus(state);
-  const save = () => {
-    if (payload) {
-      saving.save(payload, () => dispatch({ kind: 'saved', data: payload }));
-    }
-  };
   return (
     <CardEditFrame
       type="token-leader"

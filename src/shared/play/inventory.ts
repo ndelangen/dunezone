@@ -8,6 +8,7 @@ export const SPAWN_TYPES = [
   'deck',
   'bundle',
   'token-disc',
+  'token-leader',
   'token-tech',
   'token-plate',
   'token-pointer',

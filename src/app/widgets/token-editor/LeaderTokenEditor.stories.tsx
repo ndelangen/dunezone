@@ -13,8 +13,17 @@ function Editor() {
   const [state, dispatch] = useReducer(
     (
       current: { draft: LeaderTokenDraft; memory: LeaderTokenMemory },
-      event: { draft?: Partial<LeaderTokenDraft>; memory?: Partial<LeaderTokenMemory> }
-    ) => ({ draft: { ...current.draft, ...event.draft }, memory: { ...current.memory, ...event.memory } }),
+      event:
+        | { kind: 'patch'; update: Partial<LeaderTokenDraft> }
+        | { kind: 'remember'; update: Partial<LeaderTokenMemory> }
+    ) => {
+      switch (event.kind) {
+        case 'patch':
+          return { ...current, draft: { ...current.draft, ...event.update } };
+        case 'remember':
+          return { ...current, memory: { ...current.memory, ...event.update } };
+      }
+    },
     { draft: DUKE_PRAD_VIDAL_TOKEN, memory: { declaredCustom: false, backgroundMode: emptyBackgroundModeMemory() } }
   );
   const [chapter, setChapter] = useState<LeaderTokenChapter>('identity');
@@ -25,13 +34,13 @@ function Editor() {
           <TextInput
             aria-label="Name"
             value={state.draft.name}
-            onChange={(event) => dispatch({ draft: { name: event.currentTarget.value } })}
+            onChange={(event) => dispatch({ kind: 'patch', update: { name: event.currentTarget.value } })}
           />
         }
         draft={state.draft}
-        patch={(draft) => dispatch({ draft })}
+        patch={(draft) => dispatch({ kind: 'patch', update: draft })}
         memory={state.memory}
-        remember={(memory) => dispatch({ memory })}
+        remember={(memory) => dispatch({ kind: 'remember', update: memory })}
         chapter={chapter}
         onChapterChange={setChapter}
         onSettle={() => {}}

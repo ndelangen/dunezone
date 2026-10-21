@@ -1,9 +1,10 @@
 import preview from '@sb/preview';
 import { finishTransitions, waitForFrame } from '@sb/storyWaits';
+import { DUKE_PRAD_VIDAL_TOKEN } from '@shared/assets/leaderToken';
 import { expect, fn, userEvent, waitFor, within } from 'storybook/test';
 
 import type { Faction } from '@db/factions';
-import { db } from '@db/storybook';
+import { asset, db } from '@db/storybook';
 
 import { representativeFaction } from './FactionAuthoringStoryFixtures';
 import { FactionEditorHarness } from './FactionEditorHarness.stories.fixture';
@@ -63,6 +64,11 @@ export const Empty = meta.story({
 /** Adding from the picker appends the reference and offers each asset once; the save carries only type and slug. */
 export const AddFromCatalogue = meta.story({
   args: { faction: factionWith([{ type: 'deck', slug: 'house-treachery' }]) },
+  parameters: {
+    database: db((baseline) => {
+      baseline.assets.push(asset({ type: 'token-leader', data: DUKE_PRAD_VIDAL_TOKEN }));
+    }),
+  },
   play: async ({ canvasElement }) => {
     const canvas = await openExtras(canvasElement);
     await userEvent.click(canvas.getByRole('button', { name: 'Add Extra' }));
@@ -75,11 +81,17 @@ export const AddFromCatalogue = meta.story({
     await expect(body.queryByRole('option', { name: /House Treachery/ })).toBeNull();
     await userEvent.click(body.getByRole('option', { name: /Atreides Tokens/ }));
     await waitFor(() => expect(listedSlugs(canvasElement)).toEqual(['house-treachery', 'atreides-tokens']));
+    await userEvent.click(canvas.getByRole('button', { name: 'Add Extra' }));
+    await userEvent.click(await body.findByRole('option', { name: /Duke Prad Vidal/ }));
+    await waitFor(() =>
+      expect(listedSlugs(canvasElement)).toEqual(['house-treachery', 'atreides-tokens', 'duke-prad-vidal'])
+    );
     await userEvent.click(canvas.getByRole('button', { name: 'Save faction' }));
     await waitFor(() => expect(saved).toHaveBeenCalledTimes(1));
     await expect((saved.mock.calls[0]![0] as Faction).extras).toEqual([
       { type: 'deck', slug: 'house-treachery' },
       { type: 'bundle', slug: 'atreides-tokens' },
+      { type: 'token-leader', slug: 'duke-prad-vidal' },
     ]);
   },
 });
