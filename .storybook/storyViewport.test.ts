@@ -1,5 +1,5 @@
 /* @vitest-environment jsdom */
-import { afterEach, expect, test } from 'vite-plus/test';
+import { afterEach, expect, test, vi } from 'vite-plus/test';
 
 import { settleStoryViewport } from './storyViewport';
 
@@ -7,6 +7,7 @@ const originalWidth = window.innerWidth;
 const originalHeight = window.innerHeight;
 
 afterEach(() => {
+  vi.unstubAllGlobals();
   Object.defineProperty(window, 'innerWidth', { configurable: true, value: originalWidth });
   Object.defineProperty(window, 'innerHeight', { configurable: true, value: originalHeight });
   window.dispatchEvent(new Event('resize'));
@@ -26,10 +27,19 @@ test.each(['innerWidth', 'innerHeight'] as const)('a changed %s waits for its re
 });
 
 test('an unchanged viewport needs no resize event or animation frame', async () => {
+  const frame = vi.fn();
+  vi.stubGlobal('requestAnimationFrame', frame);
   await expect(settleStoryViewport()).resolves.toBeUndefined();
+  expect(frame).not.toHaveBeenCalled();
 });
 
-test('a missing resize reports the observed events and current viewport state', async () => {
+test('a missing resize still fails after a frame and reports both observations', async () => {
+  vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+    queueMicrotask(() => callback(performance.now()));
+    return 1;
+  });
+  const cancel = vi.fn();
+  vi.stubGlobal('cancelAnimationFrame', cancel);
   Object.defineProperty(window, 'innerWidth', { configurable: true, value: 414 });
   Object.defineProperty(window, 'innerHeight', { configurable: true, value: 896 });
   window.dispatchEvent(new Event('resize'));
@@ -43,4 +53,6 @@ test('a missing resize reports the observed events and current viewport state', 
   expect(message).toContain('layout viewport is');
   expect(message).toContain('visual viewport is');
   expect(message).toMatch(/window resize 414x896 \d+ms ago/);
+  expect(message).toMatch(/animation frame 1200x900 \d+ms ago/);
+  expect(cancel).toHaveBeenCalledWith(1);
 });
