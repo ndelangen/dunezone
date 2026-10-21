@@ -5,6 +5,7 @@ import { build } from 'esbuild';
 import { chromium } from 'playwright';
 import type { Browser } from 'playwright';
 import { expect, test } from 'vite-plus/test';
+import { createVitest } from 'vite-plus/test/node';
 
 import type * as StoryViewport from './storyViewport';
 
@@ -21,6 +22,9 @@ async function viewportFixture() {
     if (request.url === '/viewport.js') {
       response.setHeader('Content-Type', 'text/javascript');
       response.end(compiled.outputFiles[0]!.text);
+    } else if (request.url === '/parent') {
+      response.setHeader('Content-Type', 'text/html');
+      response.end('<!doctype html><iframe src="/" style="width:1200px;height:900px;border:0"></iframe>');
     } else {
       response.setHeader('Content-Type', 'text/html');
       response.end('<!doctype html><body><script src="/viewport.js"></script>');
@@ -77,6 +81,51 @@ test.skipIf(process.platform !== 'linux')(
         expect(await page.locator('body').getAttribute('data-viewport')).toBe('pending');
         await draw();
         await expect.poll(() => page.locator('body').getAttribute('data-viewport')).toBe('ready');
+      } finally {
+        await browser.close();
+      }
+    } finally {
+      await fixture.close();
+    }
+  },
+  15_000
+);
+
+test.skipIf(process.platform !== 'linux')(
+  'a file boundary does not resize a desktop story while native frames are stalled',
+  async () => {
+    const vitest = await createVitest({ config: 'vitest.storybook.config.ts', watch: false });
+    const viewport = vitest.projects[0]!.config.browser.viewport;
+    await vitest.close();
+    const fixture = await viewportFixture();
+    try {
+      const browser = await chromium.launch({
+        args: ['--enable-begin-frame-control', '--run-all-compositor-stages-before-draw'],
+      });
+      try {
+        const { page, draw } = await controlledViewport(browser);
+        await page.goto(`${fixture.origin}/parent`);
+        const story = page.frames()[1]!;
+        await story.waitForFunction(() => 'viewportProof' in window);
+        await draw();
+        /* Vitest resets this viewport between files; the addon then selects its 1200x900 default. */
+        const resize = async (size: { width: number; height: number }) => {
+          await page.evaluate(({ width, height }) => {
+            const iframe = document.querySelector('iframe')!;
+            iframe.style.width = `${width}px`;
+            iframe.style.height = `${height}px`;
+          }, size);
+          await page.setViewportSize(size);
+        };
+        await resize(viewport);
+        await draw();
+        await resize({ width: 1200, height: 900 });
+        /* No further native frame is available. A needless mobile reset leaves readiness blocked. */
+        await story.evaluate(async () => {
+          const proof = (window as unknown as { viewportProof: typeof StoryViewport }).viewportProof;
+          await proof.settleStoryViewport();
+        });
+        expect(page.viewportSize()).toEqual({ width: 1200, height: 900 });
       } finally {
         await browser.close();
       }
