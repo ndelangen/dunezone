@@ -16,9 +16,21 @@ type Env = { ASSETS: { fetch: (request: Request) => Promise<Response> } };
 
 async function fetchMedia(target: string, method: string): Promise<Response> {
   let attempts = 0;
-  const fetchNextResponse = () => {
+  const fetchNextResponse = async () => {
     attempts += 1;
-    return fetch(target, { method });
+    try {
+      return await fetch(target, { method });
+    } catch (error) {
+      console.warn({
+        event: 'storybook-media-fetch-error',
+        path: new URL(target).pathname,
+        method,
+        attempt: attempts,
+        maxAttempts: 2,
+        willRetry: attempts < 2,
+      });
+      throw error;
+    }
   };
   let response: Response;
   try {

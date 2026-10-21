@@ -9,19 +9,22 @@ import { afterAll, afterEach, beforeAll, expect, test, vi } from 'vite-plus/test
 import worker from './index';
 
 const imagePath = '/image/rulebook-cover/stone-circle-small.jpg';
+const logoPath = '/web/logo.svg';
 const server = createServer((request, response) => {
-  if (request.url === '/') {
+  if (request.url === '/' || request.url === '/logo') {
     response.writeHead(200, { 'Content-Type': 'text/html' });
-    response.end(`<!doctype html><img alt="Cover" src="${imagePath}">`);
+    response.end(
+      `<!doctype html><img alt="${request.url === '/logo' ? 'Logo' : 'Cover'}" src="${request.url === '/logo' ? logoPath : imagePath}">`
+    );
     return;
   }
-  if (request.url !== imagePath) {
+  if (request.url !== imagePath && request.url !== logoPath) {
     response.writeHead(404);
     response.end();
     return;
   }
   void (async () => {
-    const result = await worker.fetch(new Request(`https://storybook.dune.zone${imagePath}`), {
+    const result = await worker.fetch(new Request(`https://storybook.dune.zone${request.url}`), {
       ASSETS: { fetch: async () => new Response('Not found', { status: 404 }) },
     });
     response.writeHead(result.status, Object.fromEntries(result.headers));
@@ -34,7 +37,14 @@ const server = createServer((request, response) => {
       }
       response.write(value);
     }
-  })().catch(() => response.destroy());
+  })().catch(() => {
+    if (response.headersSent) {
+      response.destroy();
+    } else {
+      response.writeHead(500);
+      response.end();
+    }
+  });
 });
 let browser: Browser;
 let origin: string;
@@ -121,6 +131,44 @@ test('a complete response containing corrupt image bytes still fails decoding wi
       page.getByRole('img', { name: 'Cover' }).evaluate((element: HTMLImageElement) => element.decode())
     ).rejects.toThrow('EncodingError');
     expect(upstream).toHaveBeenCalledTimes(1);
+  } finally {
+    await page.close();
+  }
+});
+
+test('the logo loads without a browser error after one upstream connection loss', async () => {
+  const upstream = vi
+    .spyOn(globalThis, 'fetch')
+    .mockRejectedValueOnce(new Error('Network connection lost.'))
+    .mockResolvedValueOnce(
+      new Response('<svg xmlns="http://www.w3.org/2000/svg" width="24" height="16"><path d="M0 0h24v16H0z"/></svg>', {
+        headers: { 'Content-Type': 'image/svg+xml' },
+      })
+    );
+  const page = await browser.newPage();
+  const errors: string[] = [];
+  const requests: string[] = [];
+  page.on('console', (message) => {
+    if (message.type() === 'error') {
+      errors.push(message.text());
+    }
+  });
+  page.on('request', (request) => {
+    if (new URL(request.url()).pathname === logoPath) {
+      requests.push(request.url());
+    }
+  });
+  try {
+    await page.goto(`${origin}/logo`);
+    expect(errors).toEqual([]);
+    const image = page.getByRole('img', { name: 'Logo' });
+    await image.evaluate((element: HTMLImageElement) => element.decode());
+    expect(await image.evaluate((element: HTMLImageElement) => [element.naturalWidth, element.naturalHeight])).toEqual([
+      24, 16,
+    ]);
+    expect(upstream).toHaveBeenCalledTimes(2);
+    expect(upstream).toHaveBeenNthCalledWith(2, `https://dune.zone${logoPath}`, { method: 'GET' });
+    expect(requests).toEqual([`${origin}${logoPath}`]);
   } finally {
     await page.close();
   }
