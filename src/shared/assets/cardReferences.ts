@@ -4,6 +4,7 @@ import type { Board } from '../boards/schema';
 import { compareCodeUnits } from '../compareText';
 import { CustomCardAsset, StormCardAsset, SpiceAsset } from './schema';
 import type { CustomCardTokens, CustomCardTokenResolution, SpiceBoardLink } from './schema';
+import { spiceBoardTokenIds } from './spiceCardReferences';
 
 type SpiceCardBoardResolution = { board: Board | null; tokens: z.infer<typeof CustomCardTokens>; error: string | null };
 
@@ -38,8 +39,7 @@ export function spiceCardBoardLink(data: unknown): z.infer<typeof SpiceBoardLink
 
 /** Repeated instances of one token share one read and one reverse row. */
 export function spiceCardTokenIds(data: unknown): string[] {
-  const link = spiceCardBoardLink(data);
-  return link ? [...new Set(link.tokens.map((token) => token.asset_id))].sort(compareCodeUnits) : [];
+  return spiceBoardTokenIds(spiceCardBoardLink(data));
 }
 
 export function spiceCardPublicationError(data: unknown, resolved: SpiceCardBoardResolution) {

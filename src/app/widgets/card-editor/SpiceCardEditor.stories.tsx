@@ -236,13 +236,18 @@ export const BoardLook = meta.story({
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
     const looks = canvas.getByRole('radiogroup', { name: 'Board look' });
-    await expect(within(looks).getAllByRole('radio')).toHaveLength(3);
+    await expect(within(looks).getAllByRole('radio')).toHaveLength(4);
     await expect(canvas.getByRole('slider', { name: 'Look strength' })).toBeVisible();
     await userEvent.click(within(looks).getByRole('radio', { name: 'Sepia' }));
     await expect(args.patch).toHaveBeenLastCalledWith({
       board: { ...onBoard.board, look: { style: 'sepia', strength: 1 } },
     });
     await waitFor(() => expect(canvasElement.querySelectorAll('svg[data-look="sepia"]').length).toBeGreaterThan(0));
+    await userEvent.click(within(looks).getByRole('radio', { name: 'Textured burn' }));
+    await expect(args.patch).toHaveBeenLastCalledWith({
+      board: { ...onBoard.board, look: { style: 'textured-burn', strength: 1 } },
+    });
+    await waitFor(() => expect(proofOf(canvasElement).querySelector('svg[data-look="textured-burn"]')).not.toBeNull());
     await userEvent.click(within(looks).getByRole('radio', { name: 'Plain' }));
     await expect(canvas.queryByRole('slider', { name: 'Look strength' })).toBeNull();
   },
@@ -298,5 +303,21 @@ export const LinkBoard = meta.story({
       },
     });
     await expect(canvas.getByRole('button', { name: 'Paint Spice blow' })).toBeVisible();
+  },
+});
+
+export const FixedTypeToken = meta.story({
+  args: { chapter: 'tokens' as const, draft: onBoard },
+  render: (args) => <LiveEditor {...args} initial={onBoard} />,
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole('button', { name: 'Choose type token' }));
+    await userEvent.click(canvas.getByRole('button', { name: 'Pick the spice token' }));
+    await expect(args.patch).toHaveBeenLastCalledWith({
+      board: { ...onBoard.board, typeToken: { asset_id: 'spice-token' } },
+    });
+    await expect(proofOf(canvasElement).querySelector('[data-spice-type-token]')).not.toBeNull();
+    await userEvent.click(canvas.getByRole('button', { name: 'Remove type token' }));
+    await expect(proofOf(canvasElement).querySelector('[data-spice-type-token]')).toBeNull();
   },
 });

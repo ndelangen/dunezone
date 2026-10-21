@@ -279,3 +279,37 @@ export const RawDeckLinkedBack = meta.story({
     await expect((await loadAssetPage('deck', 'standard-storm-deck'))!.members).toEqual(before.members);
   },
 });
+
+export const RawStyledTokenSave = meta.story({
+  args: { path: '/assets/token-disc/karama/edit' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await page.findByRole('button', { name: 'storybook-viewer' });
+    await page.findByRole('textbox', { name: 'Name' });
+    const before = (await loadAssetPage('token-disc', 'karama'))!;
+    const data = before.asset.data as { name: string; front: object };
+    const replacement = {
+      ...data,
+      front: {
+        ...data.front,
+        symbolFill: '#07120f',
+        symbolStroke: '#f3edbf',
+        symbolStrokeWidth: 5.5,
+        symbolShadow: false,
+      },
+    };
+    await userEvent.click(page.getByRole('button', { name: 'Load existing token' }));
+    await userEvent.click(await page.findByRole('button', { name: 'Paste JSON' }));
+    await userEvent.click(page.getByRole('textbox', { name: 'Writable JSON' }));
+    await userEvent.paste(JSON.stringify(replacement));
+    await waitFor(() => expect(page.getByRole('button', { name: 'Load token' })).toBeEnabled());
+    await userEvent.click(page.getByRole('button', { name: 'Load token' }));
+    await expect((await loadAssetPage('token-disc', 'karama'))!.asset.data).toEqual(before.asset.data);
+    await userEvent.click(page.getByRole('button', { name: 'Save token' }));
+    await waitFor(async () => expect((await loadAssetPage('token-disc', 'karama'))?.asset.data).toEqual(replacement));
+    const saved = (await loadAssetPage('token-disc', 'karama'))!;
+    await expect(saved.asset.id).toBe(before.asset.id);
+    await expect(saved.assignedGroup).toEqual(before.assignedGroup);
+    await expect(saved.inDecks).toEqual(before.inDecks);
+  },
+});

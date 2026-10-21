@@ -88,6 +88,7 @@ export const CustomToken: FC<
     circle: boolean;
     /** The author-chosen elevation under the ring; the two built-in glow passes stay either way. */
     circleShadow?: boolean;
+    symbolShadow?: boolean;
     top?: string;
     bottom?: string;
     size?: { width: number; height: number };
@@ -102,6 +103,7 @@ export const CustomToken: FC<
   image,
   circle,
   circleShadow,
+  symbolShadow = true,
   top: topLabel,
   bottom: bottomLabel,
   size,
@@ -131,7 +133,7 @@ export const CustomToken: FC<
 
         <g
           {...{ [COMPONENT_GEOMETRY_PROTOCOL.partAttribute]: 'symbol' }}
-          filter="drop-shadow( 0 0 9px rgba(0, 0, 0, 0.6))"
+          filter={symbolShadow ? 'drop-shadow( 0 0 9px rgba(0, 0, 0, 0.6))' : undefined}
         >
           <StrokedUse
             xlinkHref={`${image}#root`}
@@ -142,16 +144,18 @@ export const CustomToken: FC<
             strokeWidth={strokeWidth}
           />
         </g>
-        <g filter="drop-shadow( 0 0 24px rgba(0, 0, 0, 0.6))">
-          <StrokedUse
-            xlinkHref={`${image}#root`}
-            {...iconLocation}
-            {...iconSize}
-            fill={fill || foreGroundColor}
-            stroke={stroke}
-            strokeWidth={strokeWidth}
-          />
-        </g>
+        {symbolShadow && (
+          <g filter="drop-shadow( 0 0 24px rgba(0, 0, 0, 0.6))">
+            <StrokedUse
+              xlinkHref={`${image}#root`}
+              {...iconLocation}
+              {...iconSize}
+              fill={fill || foreGroundColor}
+              stroke={stroke}
+              strokeWidth={strokeWidth}
+            />
+          </g>
+        )}
         {circle && (
           <g
             {...{ [COMPONENT_GEOMETRY_PROTOCOL.partAttribute]: 'ring' }}

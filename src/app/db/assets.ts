@@ -162,6 +162,13 @@ export function useConvertTreacheryToCustom() {
   );
 }
 
+/** Converts one existing Custom Card using a complete Spice draft, after the page's explicit confirmation. */
+export function useConvertCustomToSpice() {
+  return useLiveMutation<{ id: AssetListEntry['id']; data: unknown }, { id: string; slug: string }>(
+    api.assets.convertCustomToSpice
+  );
+}
+
 /** A Spice card editor holds this read while its draft links a board: the board, its name and the placed tokens' fronts. */
 export function useSpiceCardBoard(boardId: string, tokenIds: string[]) {
   return useQuery(api.assets.spiceCardBoard, {

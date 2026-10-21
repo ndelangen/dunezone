@@ -5,6 +5,7 @@ import { useNavigate } from '@tanstack/react-router';
 import { expect, mocked, userEvent, waitFor, within } from 'storybook/test';
 
 import { loadAssetPage } from '@db/assets';
+import { loadCurrentAddress } from '@db/formerAddresses';
 import { db } from '@db/storybook';
 
 import { expectToolbarOnOneLine } from '../../../../authoringToolbarPlay';
@@ -234,6 +235,7 @@ export const RawJsonReplacement = meta.story({
       ...(original.asset.data as Record<string, unknown>),
       name: 'Reviewed Lasgun',
       about: 'Reviewed card description.',
+      bodyLayout: 'text-only',
     };
     const open = async () => {
       await userEvent.click(await page.findByRole('button', { name: 'Load existing card' }));
@@ -279,5 +281,107 @@ export const RawJsonErrorAndCancel = meta.story({
     await userEvent.click(page.getByRole('button', { name: 'Cancel' }));
     await expect(page.getByRole('textbox', { name: 'Name' })).toHaveValue('Lasgun');
     await expect(page.getByRole('button', { name: 'Reset unsaved edits' })).toBeDisabled();
+  },
+});
+
+export const RawNativeSpiceSave = meta.story({
+  args: { path: '/assets/card-spice/arsunt/edit' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await page.findByRole('button', { name: 'storybook-viewer' });
+    await page.findByRole('textbox', { name: 'Name' });
+    const before = (await loadAssetPage('card-spice', 'arsunt'))!;
+    const board = (await loadAssetPage('board', 'arrakis-official'))!;
+    const token = (await loadAssetPage('token-disc', 'karama'))!;
+    const replacement = {
+      ...(before.asset.data as object),
+      text: '*Spice blow:* Take 6 spice.\n\n*Discovery:* Place a marker.',
+      board: {
+        asset_id: board.asset.id,
+        typeToken: { asset_id: token.asset.id },
+        look: { style: 'textured-burn', strength: 0.8 },
+        tokens: [],
+        tints: [],
+      },
+    };
+    await userEvent.click(page.getByRole('button', { name: 'Load existing card' }));
+    await userEvent.click(await page.findByRole('button', { name: 'Paste JSON' }));
+    const input = page.getByRole('textbox', { name: 'Writable JSON' });
+    const unresolved = JSON.stringify({
+      ...replacement,
+      board: { ...replacement.board, typeToken: { asset_id: before.asset.id } },
+    });
+    await userEvent.click(input);
+    await userEvent.paste(unresolved);
+    await expect(page.findByRole('alert')).resolves.toHaveTextContent('$.board.tokens');
+    await expect(page.getByRole('button', { name: 'Load card' })).toBeDisabled();
+    await expect(input).toHaveValue(unresolved);
+    await expect((await loadAssetPage('card-spice', 'arsunt'))!.asset.data).toEqual(before.asset.data);
+    await expect(page.getByRole('button', { name: 'Reset unsaved edits' })).toBeDisabled();
+    await userEvent.clear(input);
+    await userEvent.paste(JSON.stringify(replacement));
+    await waitFor(() => expect(page.getByRole('button', { name: 'Load card' })).toBeEnabled());
+    await userEvent.click(page.getByRole('button', { name: 'Load card' }));
+    await expect((await loadAssetPage('card-spice', 'arsunt'))!.asset.data).toEqual(before.asset.data);
+    await userEvent.click(page.getByRole('button', { name: 'Save card' }));
+    await waitFor(async () => expect((await loadAssetPage('card-spice', 'arsunt'))?.asset.data).toEqual(replacement));
+    const saved = (await loadAssetPage('card-spice', 'arsunt'))!;
+    await expect(saved.asset.id).toBe(before.asset.id);
+    await expect(saved.assignedGroup).toEqual(before.assignedGroup);
+    await expect(saved.inDecks).toEqual(before.inDecks);
+  },
+});
+
+export const RawConversionKeepsIdentity = meta.story({
+  args: { path: '/assets/card-custom/battle-reference/convert-to-spice' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await page.findByRole('button', { name: 'storybook-viewer' });
+    const name = await page.findByRole('textbox', { name: 'Name' });
+    const before = (await loadAssetPage('card-custom', 'battle-reference'))!;
+    const replacement = {
+      ...publishingSpiceCard,
+      name: 'Reviewed native conversion',
+      subName: 'Discovery proof',
+      amount: 9,
+    };
+    await userEvent.click(page.getByRole('button', { name: 'Load existing card' }));
+    await userEvent.click(await page.findByRole('button', { name: 'Paste JSON' }));
+    await userEvent.click(page.getByRole('textbox', { name: 'Writable JSON' }));
+    await userEvent.paste(JSON.stringify(replacement));
+    await waitFor(() => expect(page.getByRole('button', { name: 'Load card' })).toBeEnabled());
+    await expect(page.getByRole('checkbox', { name: 'Also rename' })).not.toBeChecked();
+    await userEvent.click(page.getByRole('button', { name: 'Load card' }));
+    await expect(name).toHaveValue(before.asset.name);
+    await expect(page.getByRole('textbox', { name: 'Type' })).toHaveValue('Discovery proof');
+    await expect((await loadAssetPage('card-custom', 'battle-reference'))!.asset.data).toEqual(before.asset.data);
+    await userEvent.click(page.getByRole('button', { name: 'Reset spice draft' }));
+    await expect(name).toHaveValue(before.asset.name);
+    await expect(page.getByRole('textbox', { name: 'Type' })).toHaveValue('Spice blow');
+    await userEvent.click(page.getByRole('button', { name: 'Load existing card' }));
+    await userEvent.click(await page.findByRole('button', { name: 'Paste JSON' }));
+    await userEvent.click(page.getByRole('textbox', { name: 'Writable JSON' }));
+    await userEvent.paste(JSON.stringify(replacement));
+    await waitFor(() => expect(page.getByRole('button', { name: 'Load card' })).toBeEnabled());
+    await userEvent.click(page.getByRole('checkbox', { name: 'Also rename' }));
+    await userEvent.click(page.getByRole('button', { name: 'Load card' }));
+    await expect(name).toHaveValue(replacement.name);
+    await expect((await loadAssetPage('card-custom', 'battle-reference'))!.asset.data).toEqual(before.asset.data);
+    const convert = page.getByRole('button', { name: 'Convert to spice card' });
+    await userEvent.pointer([{ keys: '[MouseLeft>]', target: convert }]);
+    await waitFor(
+      async () =>
+        expect((await loadAssetPage('card-spice', 'reviewed-native-conversion'))?.asset.id).toBe(before.asset.id),
+      { timeout: 10_000 }
+    );
+    await userEvent.pointer([{ keys: '[/MouseLeft]' }]);
+    const after = (await loadAssetPage('card-spice', 'reviewed-native-conversion'))!;
+    await expect(after.assignedGroup).toEqual(before.assignedGroup);
+    await expect(after.inDecks).toEqual(before.inDecks);
+    await expect(after.asset.data).toEqual(replacement);
+    await expect(await loadCurrentAddress({ kind: 'asset', type: 'card-custom', slug: 'battle-reference' })).toBe(
+      '/assets/card-spice/reviewed-native-conversion'
+    );
+    await expect(await loadAssetPage('card-custom', 'battle-reference')).toBeNull();
   },
 });

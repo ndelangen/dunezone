@@ -57,7 +57,7 @@ export async function resolveSpiceCardBoard(
   boardId: string | undefined,
   tokenIds: readonly string[]
 ): Promise<SpiceCardBoardResolution> {
-  if (tokenIds.length > BOARD_MAX_TOKENS) {
+  if (tokenIds.length > BOARD_MAX_TOKENS + 1) {
     throw new ConvexError('Too many linked tokens');
   }
   const board = boardId ? await readLinkedBoard(ctx, boardId) : null;
@@ -104,7 +104,7 @@ async function syncRelation(ctx: MutationCtx, cardId: Id<'assets'>, kind: SpiceC
   const current = await ctx.db
     .query('asset_relations')
     .withIndex('by_from_kind', (q) => q.eq('from_asset_id', cardId).eq('kind', kind))
-    .take(BOARD_MAX_TOKENS + 1);
+    .take(BOARD_MAX_TOKENS + 2);
   const kept = new Set<string>(current.map((relation) => relation.to_asset_id));
   const stale = current.filter((relation) => !wanted.has(relation.to_asset_id));
   const added = [...wanted]

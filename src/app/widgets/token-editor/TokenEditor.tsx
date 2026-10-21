@@ -1,4 +1,4 @@
-import { Group, Slider, Stack, Switch, Text, TextInput } from '@mantine/core';
+import { ColorInput, Group, NumberInput, Slider, Stack, Switch, Text, TextInput } from '@mantine/core';
 import type { TokenAsset } from '@shared/assets/schema';
 import { tokenShapeOfType } from '@shared/assets/tokenOutline';
 import { stockAssetOptions } from '@ui/content/stockAssetOptions';
@@ -19,6 +19,7 @@ import type { BackgroundModeMemory } from '@app/widgets/background-composer/Back
 import { BackgroundPresetControl } from '@app/widgets/background-composer/BackgroundPresetControl';
 import { assetOptionToPreviewSrc, vectorDecalAssetOptions } from '@app/widgets/faction-editor/factionFormAssetUtils';
 import { CustomToken } from '@game/assets/token/Custom';
+import { tokenFaceProps } from '@game/assets/token/tokenFace';
 import { backgroundPresets } from '@game/data/backgrounds';
 
 /**
@@ -100,30 +101,12 @@ export function initialTokenDraft(type: string): TokenDraft {
   return { name: '', about: '', front: face, back: { mode: 'custom', face } };
 }
 
-/**
- * The renderer takes one `bottom` string and splits it on a newline;
- * the editor keeps the two lines apart so no field has to defend against a newline typed into it.
- */
-function bottomFor(face: TokenFaceDraft): string {
-  return `${face.bottomFirst}\n${face.bottomSecond}`;
-}
-
 /** One face filling the box it is put in, clipped to its shape by the same frame the catalogue surfaces use. */
 export function TokenProof({ face, type }: { face: TokenFaceDraft; type: string }) {
   const shape = tokenShapeOfType(type) ?? 'round';
   return (
     <TokenFrame shape={shape}>
-      <CustomToken
-        shape={shape}
-        background={face.background}
-        image={face.image}
-        circle={face.ring}
-        circleShadow={face.ringShadow ?? false}
-        top={face.top || undefined}
-        bottom={face.bottomFirst || face.bottomSecond ? bottomFor(face) : undefined}
-        /* The renderer centres the symbol in a 300-unit box, so scale is expressed against its reference size. */
-        size={{ width: 100 * face.symbolScale, height: 100 * face.symbolScale }}
-      />
+      <CustomToken shape={shape} {...tokenFaceProps(face)} />
     </TokenFrame>
   );
 }
@@ -180,6 +163,53 @@ function FaceFields({
                 patch({ image: next as TokenFaceDraft['image'] });
               }
             }}
+          />
+        }
+      />
+      <ControlBlock
+        title="Symbol colours"
+        description="Leave a colour empty to use the renderer's default."
+        input={
+          <Group grow>
+            <ColorInput
+              label="Symbol fill"
+              format="hexa"
+              value={face.symbolFill ?? ''}
+              onChange={(value) => patch({ symbolFill: value || undefined })}
+            />
+            <ColorInput
+              label="Symbol outline"
+              format="hexa"
+              value={face.symbolStroke ?? ''}
+              onChange={(value) => patch({ symbolStroke: value || undefined })}
+            />
+          </Group>
+        }
+      />
+      <ControlBlock
+        title="Symbol outline width"
+        input={
+          <NumberInput
+            aria-label="Symbol outline width"
+            min={0}
+            max={20}
+            step={0.5}
+            value={face.symbolStrokeWidth ?? ''}
+            onChange={(value) => {
+              if (typeof value === 'number' || value === '') {
+                patch({ symbolStrokeWidth: value === '' ? undefined : value });
+              }
+            }}
+          />
+        }
+      />
+      <ControlBlock
+        title="Symbol shadow"
+        input={
+          <Switch
+            aria-label="Symbol shadow"
+            checked={face.symbolShadow ?? true}
+            onChange={(event) => patch({ symbolShadow: event.currentTarget.checked })}
           />
         }
       />

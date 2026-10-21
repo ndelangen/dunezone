@@ -1,3 +1,5 @@
+import type { z } from 'zod';
+
 import {
   factionLeaderAssetData,
   factionMemberPublicationId,
@@ -39,8 +41,15 @@ import {
   DeckAsset,
   RectangleTokenAsset,
   SPICE_BOARD_REVISION,
+  SPICE_DISCOVERY_REVISION,
+  TREACHERY_TEXT_ONLY_REVISION,
+  ROUND_TOKEN_SYMBOL_STYLE_REVISION,
+  CUSTOM_CARD_STYLED_TOKEN_REVISION,
+  STORM_CARD_STYLED_TOKEN_REVISION,
+  TreacheryAsset,
   TokenAsset,
 } from '../../src/shared/assets/schema';
+import type { TokenFace, CustomCardTokens } from '../../src/shared/assets/schema';
 import { BoardAsset } from '../../src/shared/boards/schema';
 import { HistoricalFactionPublicationSchema } from '../../src/shared/factions/schema';
 import type { Id } from '../_generated/dataModel';
@@ -92,6 +101,34 @@ export async function supersedePendingPublication(ctx: MutationCtx, assetType: s
       await ctx.db.delete(job._id);
     }
   }
+}
+
+/** Only payloads that need a new treatment wait for its supporting renderer. */
+async function holdsForRenderer(ctx: MutationCtx, assetType: PublicationAssetType, assetId: string, minimum: number) {
+  if (((await publicationSettings(ctx))?.renderer_revisions[assetType] ?? 0) >= minimum) {
+    return false;
+  }
+  for (const job of await publicationJobsForAsset(ctx, assetType, assetId)) {
+    if (job.status !== 'in_progress') {
+      await ctx.db.delete(job._id);
+    }
+  }
+  return true;
+}
+
+function hasSymbolStyle(face: z.infer<typeof TokenFace>) {
+  return (
+    face.symbolFill !== undefined ||
+    face.symbolStroke !== undefined ||
+    face.symbolStrokeWidth !== undefined ||
+    face.symbolShadow !== undefined
+  );
+}
+
+function hasStyledTokens(tokens: z.infer<typeof CustomCardTokens> | undefined) {
+  return Object.values(tokens ?? {}).some(
+    (token) => token && token.type !== 'token-enhance' && hasSymbolStyle(token.face)
+  );
 }
 
 /**
@@ -222,6 +259,13 @@ export async function enqueueAssetPublication(
   },
   now?: number
 ) {
+  if (
+    asset.type === TREACHERY_CARD_ASSET_TYPE &&
+    TreacheryAsset.parse(asset.data).bodyLayout === 'text-only' &&
+    (await holdsForRenderer(ctx, TREACHERY_CARD_ASSET_TYPE, asset._id, TREACHERY_TEXT_ONLY_REVISION))
+  ) {
+    return null;
+  }
   const frontType = cardFrontAssetTypeSchema.safeParse(asset.type);
   const frontPreset =
     frontType.success &&
@@ -259,6 +303,11 @@ export async function enqueueAssetPublication(
         return await recordCardPublicationError(ctx, asset, error, now);
       }
       const tokens = resolved?.tokens;
+      const minimum =
+        asset.type === CUSTOM_CARD_ASSET_TYPE ? CUSTOM_CARD_STYLED_TOKEN_REVISION : STORM_CARD_STYLED_TOKEN_REVISION;
+      if (hasStyledTokens(tokens) && (await holdsForRenderer(ctx, asset.type, asset._id, minimum))) {
+        return null;
+      }
       return await enqueuePublicationJob(ctx, {
         assetType: asset.type,
         assetId: asset._id,
@@ -302,7 +351,9 @@ export async function enqueueAssetPublication(
     case 'token-tech':
     case 'token-pointer':
     case 'token-plate':
-      return await enqueueTokenFaces(ctx, asset, asset.type, TokenAsset.parse(asset.data), now);
+      return await enqueueTokenFaces(ctx, asset, asset.type, TokenAsset.parse(asset.data), now, (face) =>
+        hasSymbolStyle(face) ? ROUND_TOKEN_SYMBOL_STYLE_REVISION : 0
+      );
     case RECTANGLE_TOKEN_ASSET_TYPE:
       return await enqueueTokenFaces(ctx, asset, asset.type, RectangleTokenAsset.parse(asset.data), now);
     default:
@@ -329,16 +380,18 @@ async function enqueueSpiceCardPublication(
       now,
     });
   }
-  if (((await publicationSettings(ctx))?.renderer_revisions[SPICE_CARD_ASSET_TYPE] ?? 0) < SPICE_BOARD_REVISION) {
-    /* The renderer cannot draw boards yet; an earlier queued draft or error would otherwise stand for this save until the revision scan re-enqueues it. */
-    for (const job of await publicationJobsForAsset(ctx, asset.type, asset._id)) {
-      if (job.status !== 'in_progress') {
-        await ctx.db.delete(job._id);
-      }
-    }
+  const minimumRevision =
+    link.typeToken || link.look?.style === 'textured-burn' ? SPICE_DISCOVERY_REVISION : SPICE_BOARD_REVISION;
+  if (await holdsForRenderer(ctx, SPICE_CARD_ASSET_TYPE, asset._id, minimumRevision)) {
     return null;
   }
   const resolved = await resolveSpiceCardBoard(ctx, link.asset_id, spiceCardTokenIds(asset.data));
+  if (
+    hasStyledTokens(resolved.tokens) &&
+    (await holdsForRenderer(ctx, SPICE_CARD_ASSET_TYPE, asset._id, SPICE_DISCOVERY_REVISION))
+  ) {
+    return null;
+  }
   const error = spiceCardPublicationError(asset.data, resolved);
   if (error) {
     return await recordCardPublicationError(ctx, asset, error, now);
@@ -404,22 +457,25 @@ async function enqueueTokenFaces<TFace>(
   asset: { _id: Id<'assets'>; slug: string },
   assetType: PublicationAssetType,
   token: TokenFaces<TFace>,
-  now?: number
+  now?: number,
+  minimumForFace: (face: TFace) => number = () => 0
 ) {
-  const front = await enqueuePublicationJob(ctx, {
-    assetType,
-    assetId: asset._id,
-    assetData: { assetId: asset._id, slug: asset.slug, face: token.front },
-    now,
-  });
-  const backId = publicationFaceId(asset._id, 'back');
-  if (token.back.mode === 'custom') {
-    await enqueuePublicationJob(ctx, {
+  const enqueueFace = async (face: TFace, assetId: string) => {
+    const minimum = minimumForFace(face);
+    if (minimum && (await holdsForRenderer(ctx, assetType, assetId, minimum))) {
+      return null;
+    }
+    return await enqueuePublicationJob(ctx, {
       assetType,
-      assetId: backId,
-      assetData: { assetId: backId, slug: asset.slug, face: token.back.face },
+      assetId,
+      assetData: { assetId, slug: asset.slug, face },
       now,
     });
+  };
+  const front = await enqueueFace(token.front, asset._id);
+  const backId = publicationFaceId(asset._id, 'back');
+  if (token.back.mode === 'custom') {
+    await enqueueFace(token.back.face, backId);
   } else {
     await supersedePendingPublication(ctx, assetType, backId);
   }
