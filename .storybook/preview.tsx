@@ -335,7 +335,7 @@ export default definePreview({
 
       return story;
     },
-    (Story, { parameters, args, loaded }) => {
+    (Story, { parameters, loaded }) => {
       const database = parameters.database as DatabaseDefinition | undefined;
       if (!database) {
         return <Story />;
@@ -350,7 +350,7 @@ export default definePreview({
       }
       return (
         <StorybookDatabaseProvider key={prepared.key} identity={identity ?? undefined} prepared={prepared}>
-          <Story args={prepared.path === undefined ? args : { ...args, path: prepared.path }} />
+          <Story />
         </StorybookDatabaseProvider>
       );
     },

@@ -70,17 +70,15 @@ export async function loadStorybookDatabase({
   abortSignal.addEventListener('abort', abandoned, { once: true });
   try {
     const path: unknown = args.path;
-    const resolvedPath =
-      typeof path === 'object' && path !== null && '$seedRef' in path
-        ? await client.resolve(path as SeedReference)
-        : undefined;
+    if (typeof path === 'object' && path !== null && '$seedRef' in path) {
+      await client.resolve(path as SeedReference);
+    }
     abortSignal.throwIfAborted();
     return {
       storybookDatabase: {
         key: crypto.randomUUID(),
         database,
         client,
-        path: resolvedPath,
         claim: () => abortSignal.removeEventListener('abort', abandoned),
       },
     };

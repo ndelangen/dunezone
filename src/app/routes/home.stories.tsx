@@ -23,6 +23,7 @@ export const Default = meta.story({
 });
 
 export const SneakPeekLink = meta.story({
+  parameters: { identity: null },
   beforeEach: () => {
     window.location.hash = '#play-preview';
     return () => {
@@ -31,6 +32,7 @@ export const SneakPeekLink = meta.story({
   },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('link', { name: 'Sign in to join in.' })).resolves.toBeInTheDocument();
     await expect(page.findByText('Try moving one of the pieces!')).resolves.toBeInTheDocument();
     /* With room for it, the preview mounts the live table's scene in place of the still. */
     const preview = canvasElement.ownerDocument.getElementById('play-preview');

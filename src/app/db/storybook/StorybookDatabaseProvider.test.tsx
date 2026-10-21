@@ -64,7 +64,8 @@ function setup(path: unknown = '/') {
 }
 
 test('a seeded page cannot render until its database and generated address are ready', async () => {
-  const { pending, worker } = setup({ $seedRef: 'game', $seedText: '/play/__seed_ref__' });
+  const reference = { $seedRef: 'game', $seedText: '/play/__seed_ref__' };
+  const { pending, worker } = setup(reference);
   let ready = false;
   void pending.then(() => {
     ready = true;
@@ -75,8 +76,8 @@ test('a seeded page cannot render until its database and generated address are r
   expect(ready).toBe(false);
   worker.reply('resolve', '/play/seeded-game');
   const { storybookDatabase: prepared } = await pending;
-  expect(prepared?.path).toBe('/play/seeded-game');
   expect(prepared).toBeDefined();
+  expect(await prepared!.client.resolve(reference)).toBe('/play/seeded-game');
   clients.push(prepared!.client);
   render(
     <StorybookDatabaseProvider prepared={prepared!}>
