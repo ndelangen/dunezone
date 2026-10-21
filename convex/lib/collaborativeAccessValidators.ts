@@ -160,8 +160,23 @@ const faqAnswerValidator = docValidator('faq_answers');
 
 const faqItemValidator = docValidator('faq_items');
 
+export const faqListDetailsValidator = v.object({
+  accepted_answer: v.union(v.object({ excerpt: v.string() }), v.null()),
+  answerers: v.array(v.union(profileSummaryValidator, v.null())),
+  references: v.array(
+    v.union(
+      v.object({ kind: v.literal('faction'), name: v.string(), slug: v.string() }),
+      v.object({ kind: v.literal('asset'), name: v.string(), slug: v.string(), type: v.string() })
+    )
+  ),
+  has_more_references: v.boolean(),
+});
+
+export type FaqListDetails = Infer<typeof faqListDetailsValidator>;
+
 export const faqListItemValidator = faqItemValidator.extend({
   faq_answers: v.array(faqAnswerValidator),
+  list_details: faqListDetailsValidator,
   asker_profile: v.union(profileSummaryValidator, v.null()),
 });
 

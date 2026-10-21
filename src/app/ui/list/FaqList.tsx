@@ -1,12 +1,12 @@
-import { Anchor, Badge, Group, Stack, Text, Tooltip } from '@mantine/core';
+import { Anchor, Badge, Group, Text } from '@mantine/core';
 import { Link } from '@tanstack/react-router';
 import { formatStableDate } from '@ui/content/dates';
 import { FAQ_TAG_LABELS } from '@ui/content/faqTagLabels';
 import { InlineFormattedTextSource } from '@ui/content/FormattedText';
 import { ProfileLink } from '@ui/content/ProfileLink';
-import { TopicIcon } from '@ui/content/TopicIcon';
+import { StatusBadge } from '@ui/content/StatusBadge';
 import { SectionedSurface } from '@ui/surface/SectionedSurface';
-import { CircleCheck, CircleDashed } from 'lucide-react';
+import { Box, Check, MessageCircle, Quote } from 'lucide-react';
 
 import type { FaqItemWithDetails } from '@db/faq';
 
@@ -40,13 +40,12 @@ type FaqListProps = FaqListBaseProps &
 
 export function FaqList(props: FaqListProps) {
   const { onOpenQuestion, emptyLabel } = props;
-  /* Narrowed once, so a row knows its ruleset without a fallback it could never need. */
   const rows =
     props.rulesetSlug === undefined
       ? props.items.map((item) => ({ item, rulesetSlug: item.ruleset.slug, ruleset: item.ruleset }))
       : props.items.map((item) => ({ item, rulesetSlug: props.rulesetSlug, ruleset: undefined }));
 
-  if (rows.length === 0) {
+  if (!rows.length) {
     return (
       <Text size="sm" c="dimmed">
         {emptyLabel}
@@ -55,92 +54,147 @@ export function FaqList(props: FaqListProps) {
   }
 
   return (
-    <SectionedSurface>
-      {rows.map(({ item, rulesetSlug, ruleset }) => {
-        const answerCount = item.faq_answers?.length ?? 0;
-        const hasAcceptedAnswer = item.accepted_answer_id != null;
-        const answerLabel = `${answerCount} ${answerCount === 1 ? 'answer' : 'answers'}`;
-        const statusLabel = hasAcceptedAnswer ? 'Answered' : 'Unanswered';
-
-        return (
-          <SectionedSurface.Row
-            key={item._id}
-            ariaLabel={`Open question: ${item.question}`}
-            onActivate={() => onOpenQuestion(item.slug, rulesetSlug)}
-          >
-            <Stack gap="sm">
-              <div className={styles.questionLine}>
-                <Anchor
-                  fw={700}
-                  fz="md"
-                  className={styles.question}
-                  renderRoot={(rootProps) => (
-                    <Link
-                      {...rootProps}
-                      to="/rulesets/$rulesetSlug/faq/$questionSlug"
-                      params={{ rulesetSlug, questionSlug: item.slug }}
-                    />
-                  )}
-                >
-                  <InlineFormattedTextSource source={item.question} />
-                </Anchor>
-                {(item.tags ?? []).map((tag) => (
-                  <Badge key={`${item._id}:${tag}`} size="xs" variant="outline" color="dune">
-                    {FAQ_TAG_LABELS[tag]}
-                  </Badge>
-                ))}
-              </div>
-              <Group justify={ruleset ? 'space-between' : 'flex-end'} gap="xs">
-                {ruleset ? (
-                  <Anchor
-                    size="xs"
-                    c="dimmed"
-                    className={styles.rulesetCaption}
-                    renderRoot={(rootProps) => (
-                      <Link {...rootProps} to="/rulesets/$rulesetSlug/faq" params={{ rulesetSlug: ruleset.slug }} />
-                    )}
-                  >
-                    <TopicIcon topic="rulesets" size={14} />
-                    {ruleset.name}
+    <div className={styles.container}>
+      <SectionedSurface>
+        {rows.map(({ item, rulesetSlug, ruleset }) => {
+          const count = item.faq_answers.length;
+          const accepted = item.list_details?.accepted_answer;
+          const answered = item.list_details ? accepted != null : item.accepted_answer_id != null;
+          const answerLabel = `${count} ${count === 1 ? 'answer' : 'answers'}`;
+          const questionLink = (rootProps: Record<string, unknown>) => (
+            <Link
+              {...rootProps}
+              to="/rulesets/$rulesetSlug/faq/$questionSlug"
+              params={{ rulesetSlug, questionSlug: item.slug }}
+            />
+          );
+          return (
+            <SectionedSurface.Row
+              key={item._id}
+              ariaLabel={`Open question: ${item.question}`}
+              onActivate={() => onOpenQuestion(item.slug, rulesetSlug)}
+            >
+              <div className={styles.row}>
+                <div className={styles.heading}>
+                  <Anchor fw={700} fz="md" underline="never" className={styles.question} renderRoot={questionLink}>
+                    <InlineFormattedTextSource source={item.question} />
                   </Anchor>
-                ) : null}
-                <Group gap="xs" wrap="nowrap" justify="flex-end" className={styles.meta}>
-                  <Tooltip label={`${statusLabel} · ${answerLabel}`} withArrow>
-                    <Badge
-                      size="md"
-                      variant={hasAcceptedAnswer ? 'filled' : 'outline'}
-                      color={hasAcceptedAnswer ? 'green' : 'dark'}
-                      leftSection={
-                        hasAcceptedAnswer ? (
-                          <CircleCheck size={14} aria-hidden />
-                        ) : (
-                          <CircleDashed size={14} aria-hidden />
-                        )
-                      }
-                      aria-label={`${statusLabel}, ${answerLabel}`}
+                  <span aria-label={`${answered ? 'Answered' : 'Unanswered'}, ${answerLabel}`}>
+                    <StatusBadge
+                      tone={answered ? 'positive' : 'neutral'}
+                      icon={answered ? <Check size={12} aria-hidden /> : <MessageCircle size={12} aria-hidden />}
                     >
-                      {answerCount}
-                    </Badge>
-                  </Tooltip>
-                  {item.asker_profile ? (
-                    <ProfileLink
-                      slug={item.asker_profile.slug}
-                      name={item.asker_profile.username}
-                      image={item.asker_profile.avatar_url}
-                      className={styles.askerLink}
-                      showName={false}
-                      title={item.asker_profile.username ?? 'View asker profile'}
-                    />
+                      {answerLabel}
+                    </StatusBadge>
+                  </span>
+                </div>
+                {accepted ? (
+                  <div className={styles.excerpt}>
+                    <Quote size={15} aria-hidden />
+                    <Text size="sm">{accepted.excerpt}</Text>
+                  </div>
+                ) : null}
+                <div className={styles.context}>
+                  <div className={styles.people}>
+                    <div className={styles.byline}>
+                      <Text component="span" size="xs" c="dimmed">
+                        Asked by:
+                      </Text>
+                      <Contributor profile={item.asker_profile} />
+                    </div>
+                    {item.list_details?.answerers.length ? (
+                      <div className={styles.byline}>
+                        <Text component="span" size="xs" c="dimmed">
+                          Answered by:
+                        </Text>
+                        {item.list_details.answerers.map((profile, index) => (
+                          <Contributor key={profile?.id ?? `former-${index}`} profile={profile} />
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                  {item.list_details &&
+                  (item.list_details.references.length > 0 || item.list_details.has_more_references) ? (
+                    <div className={styles.relations}>
+                      <Text component="span" size="xs" c="dimmed">
+                        Relates to:
+                      </Text>
+                      {item.list_details.references.map((reference) => (
+                        <Anchor
+                          key={`${reference.kind}:${reference.kind === 'asset' ? reference.type : ''}:${reference.slug}`}
+                          size="xs"
+                          underline="never"
+                          className={styles.reference}
+                          renderRoot={(rootProps) =>
+                            reference.kind === 'faction' ? (
+                              <Link
+                                {...rootProps}
+                                to="/factions/$factionSlug"
+                                params={{ factionSlug: reference.slug }}
+                              />
+                            ) : (
+                              <Link
+                                {...rootProps}
+                                to="/assets/$type/$slug"
+                                params={{ type: reference.type, slug: reference.slug }}
+                              />
+                            )
+                          }
+                        >
+                          <Box size={13} aria-hidden />
+                          {reference.name}
+                        </Anchor>
+                      ))}
+                      {item.list_details.has_more_references ? (
+                        <Anchor size="xs" underline="never" renderRoot={questionLink}>
+                          View all references
+                        </Anchor>
+                      ) : null}
+                    </div>
                   ) : null}
+                </div>
+                <Group gap="xs" className={styles.metadata}>
+                  {ruleset ? (
+                    <Anchor
+                      size="xs"
+                      fw={600}
+                      underline="never"
+                      renderRoot={(rootProps) => (
+                        <Link {...rootProps} to="/rulesets/$rulesetSlug/faq" params={{ rulesetSlug: ruleset.slug }} />
+                      )}
+                    >
+                      {ruleset.name}
+                    </Anchor>
+                  ) : null}
+                  {(item.tags ?? []).map((tag) => (
+                    <Badge key={tag} size="xs" variant="outline" color="dune">
+                      {FAQ_TAG_LABELS[tag]}
+                    </Badge>
+                  ))}
                   <Text component="time" dateTime={item.created_at} size="xs" c="dimmed">
                     {formatStableDate(item.created_at)}
                   </Text>
                 </Group>
-              </Group>
-            </Stack>
-          </SectionedSurface.Row>
-        );
-      })}
-    </SectionedSurface>
+              </div>
+            </SectionedSurface.Row>
+          );
+        })}
+      </SectionedSurface>
+    </div>
+  );
+}
+
+function Contributor({ profile }: { profile: FaqItemWithDetails['asker_profile'] }) {
+  return profile ? (
+    <ProfileLink
+      slug={profile.slug}
+      name={profile.username ?? 'Contributor'}
+      image={profile.avatar_url}
+      underline="never"
+      density="compact"
+      className={styles.person}
+    />
+  ) : (
+    <Text size="xs">Former contributor</Text>
   );
 }
