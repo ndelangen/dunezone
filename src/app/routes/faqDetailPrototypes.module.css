@@ -1,0 +1,127 @@
+.container {
+  container: faq-detail-prototype / inline-size;
+  min-width: 0;
+}
+
+.layout {
+  display: grid;
+  grid-template-areas: "question" "aside" "answers" "related";
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space-xl);
+}
+
+.layout > *,
+.post > * {
+  min-width: 0;
+}
+
+.question {
+  grid-area: question;
+}
+.aside {
+  grid-area: aside;
+}
+.answers {
+  grid-area: answers;
+}
+.related {
+  grid-area: related;
+}
+
+.asideContent {
+  display: none;
+  gap: var(--space-xl);
+}
+
+.asideContent[data-open="true"] {
+  display: grid;
+  margin-top: var(--space-md);
+}
+
+.previews {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-md);
+  max-width: 22rem;
+}
+
+.prose {
+  white-space: pre-line;
+  line-height: 1.75;
+}
+
+.post {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-md);
+  align-items: start;
+}
+
+.postAuthor {
+  font-size: var(--mantine-font-size-xs);
+}
+
+.readingPost {
+  min-width: 0;
+}
+
+@container faq-detail-prototype (width >= 48rem) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr) minmax(14rem, 18rem);
+    grid-template-areas: "question aside" "answers aside" "related related";
+    column-gap: var(--space-xl);
+  }
+
+  .contextToggle {
+    display: none;
+  }
+
+  .asideContent,
+  .asideContent[data-open="true"] {
+    display: grid;
+    margin-top: 0;
+  }
+
+  .layout[data-variant="C"] {
+    grid-template-columns: minmax(13rem, 16rem) minmax(0, 1fr);
+    grid-template-areas: "aside question" "aside answers" "related related";
+  }
+
+  .layout[data-variant="B"] .post {
+    grid-template-columns: 8rem minmax(0, 1fr);
+  }
+
+  .layout[data-variant="C"] .post {
+    grid-template-columns: 7rem minmax(0, 1fr);
+  }
+
+  .layout[data-variant="B"] .postAuthor {
+    padding-block: var(--space-md);
+  }
+}
+
+@container faq-detail-prototype (width >= 62rem) {
+  .layout[data-variant="B"] {
+    grid-template-columns: minmax(0, 1fr) 15rem;
+  }
+
+  .layout[data-variant="B"] .post,
+  .layout[data-variant="C"] .post {
+    grid-template-columns: 10rem minmax(0, 1fr);
+  }
+}
+
+.contributor {
+  min-width: 0;
+}
+.memberships {
+  align-items: start;
+}
+
+@container faq-detail-prototype (width >= 48rem) {
+  .postAuthor .memberships {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
