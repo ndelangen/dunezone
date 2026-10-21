@@ -176,9 +176,9 @@ export const getById = publicQuery({
 
 /** A profile page, one cached answer for every viewer. */
 export const pageBySlug = publicQuery({
-  args: { slug: v.string() },
+  args: { slug: v.string(), askedPage: v.optional(v.number()), answeredPage: v.optional(v.number()) },
   returns: profilePageValidator,
-  handler: async (ctx, args) => await loadProfilePageBySlug(ctx, args.slug),
+  handler: async (ctx, args) => await loadProfilePageBySlug(ctx, args.slug, args),
 });
 
 /**

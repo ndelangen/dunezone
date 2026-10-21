@@ -5,6 +5,7 @@ import type { convexTest } from 'convex-test';
 import { describe, expect, test } from 'vite-plus/test';
 
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
+import { PROFILE_FAQ_PAGE_SIZE } from '../src/shared/profiles/faqActivity';
 import { api } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { applicationTest } from './application.test.fixture';
@@ -373,6 +374,90 @@ describe('profile detail projection (api.profiles.pageBySlug)', () => {
     expect(accepted?.ruleset).toMatchObject({ slug: 'advanced', name: 'Advanced' });
   });
 
+  test('both lists use the accepted reply and live references, even when another person answered', async () => {
+    const t = applicationTest();
+    const seed = await seedProfileDetail(t);
+    const acceptedId = await t.run(async (ctx) => {
+      const asker = await ctx.db.get(seed.askerProfileId);
+      const ownAnswer = await ctx.db.get(seed.acceptedAnswerId);
+      const id = await ctx.db.insert('faq_answers', {
+        faq_item_id: ownAnswer!.faq_item_id,
+        answer: '**Accepted** explanation from another contributor.',
+        answered_by: asker!.user_id,
+        created_at: at(10),
+      });
+      await ctx.db.patch(ownAnswer!.faq_item_id, { accepted_answer_id: id });
+      await ctx.db.insert('faq_answers', {
+        faq_item_id: ownAnswer!.faq_item_id,
+        answer: 'A second contribution to the same question.',
+        answered_by: seed.userId,
+        created_at: at(11),
+      });
+      await ctx.db.insert('faq_references', {
+        faq_item_id: ownAnswer!.faq_item_id,
+        kind: 'faction',
+        target_id: seed.activeFactionId,
+        question_created_at: at(6),
+      });
+      await ctx.db.insert('faq_answers', {
+        faq_item_id: seed.lateQuestionId,
+        answer: 'An answer to the profile owner’s question.',
+        answered_by: asker!.user_id,
+        created_at: at(10),
+      });
+      return id;
+    });
+    const page = await t.query(api.profiles.pageBySlug, { slug: 'central' });
+    expect(page.faqLists.asked.items.map((item) => item._id)).toEqual([seed.lateQuestionId, seed.earlyQuestionId]);
+    expect(page.faqLists.asked.items[0]?.list_details.answerers).toEqual([expect.objectContaining({ slug: 'asker' })]);
+    expect(page.faqLists.answered.items.map((item) => item.slug)).toEqual(['4', '3']);
+    const answered = page.faqLists.answered.items[1]!;
+    expect(answered.accepted_answer_id).toBe(acceptedId);
+    expect(answered.list_details).toMatchObject({
+      accepted_answer: { excerpt: 'Accepted explanation from another contributor.' },
+      answerers: [{ slug: 'asker' }],
+      references: [{ kind: 'faction', slug: 'atreides', name: 'Atreides' }],
+    });
+    expect(answered.faq_answers).toHaveLength(3);
+    expect(answered.ruleset).toEqual({ id: seed.advancedRulesetId, slug: 'advanced', name: 'Advanced' });
+    expect(page.faqAnswers).toHaveLength(3);
+  });
+
+  test('pages the shared lists independently and clamps invalid pages', async () => {
+    const t = applicationTest();
+    const seed = await seedProfileDetail(t);
+    await t.run(async (ctx) => {
+      for (let index = 0; index < PROFILE_FAQ_PAGE_SIZE; index++) {
+        const id = await ctx.db.insert('faq_items', {
+          ruleset_id: seed.advancedRulesetId,
+          slug: `extra-${index}`,
+          question: `Question ${index}?`,
+          asked_by: seed.userId,
+          created_at: at(12),
+          updated_at: at(12),
+          accepted_answer_id: null,
+        });
+        await ctx.db.insert('faq_answers', {
+          faq_item_id: id,
+          answer: 'Contribution.',
+          answered_by: seed.userId,
+          created_at: at(12),
+        });
+      }
+    });
+    const first = await t.query(api.profiles.pageBySlug, { slug: 'central' });
+    expect(first.faqLists.asked.items).toHaveLength(PROFILE_FAQ_PAGE_SIZE);
+    expect(first.faqLists.answered.items).toHaveLength(PROFILE_FAQ_PAGE_SIZE);
+    const next = await t.query(api.profiles.pageBySlug, { slug: 'central', askedPage: 2 });
+    expect(next.faqLists.asked).toMatchObject({ page: 2, pageCount: 2 });
+    expect(next.faqLists.asked.items.map((item) => item._id)).toEqual([seed.lateQuestionId, seed.earlyQuestionId]);
+    expect(next.faqLists.answered).toEqual(first.faqLists.answered);
+    const last = await t.query(api.profiles.pageBySlug, { slug: 'central', askedPage: 999, answeredPage: -2 });
+    expect(last.faqLists).toEqual(next.faqLists);
+    expect(last.faqAsked).toHaveLength(PROFILE_FAQ_PAGE_SIZE + 2);
+    expect(last.faqAnswers).toHaveLength(PROFILE_FAQ_PAGE_SIZE + 2);
+  });
+
   test('questions and answers under a soft-deleted ruleset leave the profile with it', async () => {
     const t = applicationTest();
     const seed = await seedProfileDetail(t);
@@ -382,6 +467,8 @@ describe('profile detail projection (api.profiles.pageBySlug)', () => {
 
     expect(page.faqAsked).toEqual([]);
     expect(page.faqAnswers).toEqual([]);
+    expect(page.faqLists.asked.items).toEqual([]);
+    expect(page.faqLists.answered.items).toEqual([]);
   });
 
   test('a missing asker profile yields a null summary without corrupting other activity', async () => {
