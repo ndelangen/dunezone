@@ -39,3 +39,6 @@ export const AvatarOnly = meta.story({
     await expect(within(canvasElement).getByRole('link', { name: 'Central' })).toHaveAttribute('title', 'Central');
   },
 });
+
+/** Whole-row hover can carry the interaction without underlining the contributor. */
+export const WithoutUnderline = meta.story({ args: { underline: 'never', density: 'compact' } });

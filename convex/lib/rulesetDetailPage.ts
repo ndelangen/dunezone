@@ -10,7 +10,7 @@ import { loadNewestFaqItems } from './faqRulesetList';
 
 /* What `faqItems` carried before the FAQ had its own page, kept for browsers still on that bundle; the next release drops it. */
 const LEGACY_FAQ_LIST_LIMIT = 200;
-import { profileSummary } from './profileSummary';
+import { profileSummary, profileSummaryReader } from './profileSummary';
 import { listRulesetRulebooks } from './rulebookList';
 import { readRulesetAssetSlots } from './rulesetSlots';
 
@@ -146,6 +146,26 @@ async function rulesetFaqCounts(ctx: QueryCtx, rulesetId: Id<'rulesets'>) {
   return { questions, answered };
 }
 
+/* The old browser contract needs answer counts and askers, without the new list enrichment. */
+async function legacyFaqItems(ctx: QueryCtx, rulesetId: Id<'rulesets'>) {
+  const items = await ctx.db
+    .query('faq_items')
+    .withIndex('by_ruleset_created', (q) => q.eq('ruleset_id', rulesetId))
+    .order('desc')
+    .take(LEGACY_FAQ_LIST_LIMIT);
+  const summaryOf = profileSummaryReader(ctx);
+  return await Promise.all(
+    items.map(async (item) => ({
+      ...item,
+      faq_answers: await ctx.db
+        .query('faq_answers')
+        .withIndex('by_faq_item_created', (q) => q.eq('faq_item_id', item._id))
+        .take(50),
+      asker_profile: await summaryOf(item.asked_by),
+    }))
+  );
+}
+
 /** The ruleset detail page, the same for every viewer: behind `api.rulesets.detailPage`. Null for an unknown slug. */
 export async function loadRulesetPublicDetailPageBySlug(ctx: QueryCtx, slug: string) {
   const row = await loadPublicRulesetBySlug(ctx, slug);
@@ -159,7 +179,7 @@ export async function loadRulesetPublicDetailPageBySlug(ctx: QueryCtx, slug: str
     factions: await listPublicRulesetFactions(ctx, row._id),
     ...(await rulesetFactionPreview(ctx, row._id)),
     assignedGroup: await assignedGroupSummary(ctx, row.group_id),
-    faqItems: await loadNewestFaqItems(ctx, row._id, LEGACY_FAQ_LIST_LIMIT),
+    faqItems: await legacyFaqItems(ctx, row._id),
     faqPreview: await loadNewestFaqItems(ctx, row._id, FAQ_PREVIEW_SIZE),
     faqCounts: await rulesetFaqCounts(ctx, row._id),
     owner: await profileSummary(ctx, row.owner_id),

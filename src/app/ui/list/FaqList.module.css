@@ -1,29 +1,72 @@
+.container {
+  container: faq-list / inline-size;
+}
+.row {
+  display: grid;
+  gap: var(--space-xs);
+  overflow-wrap: anywhere;
+}
+.heading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+.heading > :last-child {
+  flex-shrink: 0;
+}
 .question {
   color: var(--color-text);
   line-height: 1.35;
-}
-
-.questionLine {
-  display: flex;
   min-width: 0;
-  flex-wrap: wrap;
+}
+.excerpt {
+  display: flex;
   align-items: baseline;
   gap: var(--space-xs);
 }
-
-.meta {
-  color: var(--mantine-color-dimmed);
-  font-size: var(--mantine-font-size-xs);
+.excerpt > svg {
+  flex-shrink: 0;
+  color: var(--color-muted);
 }
-
-.askerLink {
-  flex: 0 0 auto;
+.context,
+.people,
+.byline,
+.relations {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
 }
-
-/* Which ruleset a question belongs to, where the list draws from several: a quiet caption, since the question is the point. */
-.rulesetCaption {
+.context {
+  gap: var(--space-sm) var(--space-lg);
+}
+.people {
+  gap: var(--space-sm) var(--space-md);
+}
+.byline,
+.relations {
+  gap: var(--space-xs) var(--space-sm);
+}
+.person {
+  min-width: 0;
+}
+.reference {
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
-  min-width: 0;
+  gap: var(--space-xs);
+  font-weight: 600;
+}
+.reference > svg {
+  flex-shrink: 0;
+}
+.metadata {
+  color: var(--color-muted);
+}
+@container faq-list (width < 30rem) {
+  .heading,
+  .people {
+    flex-direction: column;
+    align-items: start;
+    gap: var(--space-xs);
+  }
 }

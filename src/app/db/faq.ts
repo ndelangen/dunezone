@@ -15,7 +15,7 @@ import { useAssetAccess, useViewerUserId, UNAVAILABLE_SUBJECT } from '@app/db/vi
 
 import { api } from '../../../convex/_generated/api';
 import type { Doc } from '../../../convex/_generated/dataModel';
-import type { ProfileSummary } from '../../../convex/lib/collaborativeAccessValidators';
+import type { FaqListDetails, ProfileSummary } from '../../../convex/lib/collaborativeAccessValidators';
 
 type FaqItemRow = Doc<'faq_items'>;
 type FaqAnswerRow = Doc<'faq_answers'>;
@@ -26,6 +26,7 @@ export type FaqAnswerEntry = FaqAnswerRow;
 export type FaqItemWithDetails = FaqItemEntry & {
   faq_answers: FaqAnswerEntry[];
   asker_profile: ProfileSummary | null;
+  list_details?: FaqListDetails;
 };
 
 export type FaqQuestionLocator = {

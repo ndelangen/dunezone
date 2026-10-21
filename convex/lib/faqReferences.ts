@@ -3,7 +3,9 @@ import type { PaginationOptions } from 'convex/server';
 import type { Id } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../types';
 import { loadRulesetAccessForLoadedSubject } from './collaborativeAccess';
+import { liveFaqReferenceTarget } from './faqReferenceTarget';
 import type { FaqReferenceTarget } from './faqReferenceTarget';
+export { liveFaqReferenceTarget } from './faqReferenceTarget';
 import { projectFaqListItems } from './faqRulesetList';
 import { requireAuthUserId } from './policy';
 
@@ -28,16 +30,6 @@ export async function requireFaqReferenceEdit(ctx: MutationCtx, questionId: Id<'
     }
   }
   return question;
-}
-
-/** The same live-target projection used by faction relationships: retain links and skip unavailable targets. */
-export async function liveFaqReferenceTarget(ctx: QueryCtx, target: FaqReferenceTarget) {
-  if (target.kind === 'faction') {
-    const faction = await ctx.db.get('factions', target.id);
-    return faction && !faction.is_deleted ? { kind: 'faction' as const, faction } : null;
-  }
-  const asset = await ctx.db.get('assets', target.id);
-  return asset && !asset.is_deleted ? { kind: 'asset' as const, asset } : null;
 }
 
 export function faqReferencePair(ctx: QueryCtx, questionId: Id<'faq_items'>, target: FaqReferenceTarget) {

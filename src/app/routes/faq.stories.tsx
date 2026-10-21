@@ -155,7 +155,7 @@ export const LoadMore = meta.story({
 
     await userEvent.click(loadMore);
     await waitFor(() => expect(questionRows(main)).toHaveLength(28), { timeout: 30_000 });
-    await expect(questionRows(main)[24]).toHaveFocus();
+    await waitFor(() => expect(questionRows(main)[24]).toHaveFocus());
     await expect(main.getByRole('status')).toHaveTextContent('More questions loaded');
     await expect(main.getByRole('link', { name: 'Storm question 03?' })).toHaveAttribute(
       'href',
@@ -244,5 +244,37 @@ export const NothingMatchesCapped = meta.story({
     await expect(main.findByRole('heading', { name: 'Nothing matches' }, { timeout: 30_000 })).resolves.toBeVisible();
     await expect(main.getByText(/some were not\. A word or two more might help\./)).toBeVisible();
     await expect(main.queryByRole('button', { name: 'Load more' })).toBeNull();
+  },
+});
+
+/** A single selected ruleset supplies the context for every result. */
+export const SingleRuleset = meta.story({
+  args: { path: '/faq?q=storm&rulesets=classicrules' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const main = within(await page.findByRole('main', {}, { timeout: 30_000 }));
+    await expect(
+      main.findByRole('link', { name: 'When does the storm move?' }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+    await expect(main.queryByRole('link', { name: /^ClassicRules$/ })).toBeNull();
+  },
+});
+
+/** Unknown filters fall back to global search, so rows keep their real ruleset and destination. */
+export const MissingRuleset = meta.story({
+  args: { path: '/faq?q=storm&rulesets=missing' },
+  parameters: { database: db((baseline) => seedRulesets(baseline, 0)) },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const main = within(await page.findByRole('main', {}, { timeout: 30_000 }));
+    await expect(
+      main.findByRole('link', { name: 'When does the storm move?' }, { timeout: 30_000 })
+    ).resolves.toHaveAttribute('href', '/rulesets/classicrules/faq/when-does-the-storm-move');
+    await expect(main.getByRole('link', { name: 'Can I ship troops into the storm?' })).toHaveAttribute(
+      'href',
+      '/rulesets/dreamrules/faq/storm-and-shipment'
+    );
+    await expect(main.getByRole('link', { name: 'ClassicRules' })).toBeVisible();
+    await expect(main.getAllByRole('link', { name: 'Dreamrules' })[0]).toBeVisible();
   },
 });

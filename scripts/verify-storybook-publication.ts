@@ -258,11 +258,38 @@ async function verifyPublishedFactionImages(page: Page) {
   }
 }
 
+/* Cross-origin images may have no Resource Timing entry, so preserve Chromium's own failure evidence. */
+function logPublishedImageNetworkFailures(page: Page) {
+  page.on('requestfailed', (request) => {
+    if (!isPublishedFactionImage(new URL(request.url()))) {
+      return;
+    }
+    console.error(
+      '[storybook-publication] Request failed:',
+      JSON.stringify({
+        url: request.url(),
+        method: request.method(),
+        resourceType: request.resourceType(),
+        failure: request.failure(),
+      })
+    );
+  });
+  page.on('response', (response) => {
+    if (response.status() >= 400 && isPublishedFactionImage(new URL(response.url()))) {
+      console.error(
+        '[storybook-publication] HTTP failure:',
+        JSON.stringify({ url: response.url(), status: response.status() })
+      );
+    }
+  });
+}
+
 async function verifyBrowser(browser: Browser, workerPath: string) {
   const context = await browser.newContext();
   const page = await context.newPage();
   const externalRequests: string[] = [];
   const consoleErrors: string[] = [];
+  logPublishedImageNetworkFailures(page);
   page.on('request', (request) => {
     const url = new URL(request.url());
     const publishedImage =

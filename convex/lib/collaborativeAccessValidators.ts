@@ -160,9 +160,28 @@ const faqAnswerValidator = docValidator('faq_answers');
 
 const faqItemValidator = docValidator('faq_items');
 
-export const faqListItemValidator = faqItemValidator.extend({
+export const faqListDetailsValidator = v.object({
+  accepted_answer: v.union(v.object({ excerpt: v.string() }), v.null()),
+  answerers: v.array(v.union(profileSummaryValidator, v.null())),
+  references: v.array(
+    v.union(
+      v.object({ kind: v.literal('faction'), name: v.string(), slug: v.string() }),
+      v.object({ kind: v.literal('asset'), name: v.string(), slug: v.string(), type: v.string() })
+    )
+  ),
+  has_more_references: v.boolean(),
+  has_more_answers: v.boolean(),
+});
+
+export type FaqListDetails = Infer<typeof faqListDetailsValidator>;
+
+const faqQuestionWithAnswersValidator = faqItemValidator.extend({
   faq_answers: v.array(faqAnswerValidator),
   asker_profile: v.union(profileSummaryValidator, v.null()),
+});
+
+export const faqListItemValidator = faqQuestionWithAnswersValidator.extend({
+  list_details: faqListDetailsValidator,
 });
 
 export const relatedFaqItemValidator = faqListItemValidator.extend({
@@ -219,7 +238,7 @@ export const rulesetPublicDetailPageValidator = v.union(
     /** Live factions in this ruleset, from the catalogue's list for it. */
     factionCount: v.number(),
     /** The newest 200 questions, for browsers from before the FAQ had its own page. Unread by this bundle; the next release drops it. */
-    faqItems: v.array(faqListItemValidator),
+    faqItems: v.array(faqQuestionWithAnswersValidator),
     /** The newest few questions; the rest are on the ruleset's FAQ page. */
     faqPreview: v.array(faqListItemValidator),
     faqCounts: v.object({ questions: v.number(), answered: v.number() }),

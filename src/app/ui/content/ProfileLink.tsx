@@ -16,6 +16,10 @@ type ProfileLinkBase = {
   style?: CSSProperties;
   /** `inverse` sets the name in pure white with a drop shadow, for a link laid over header artwork. */
   tone?: 'default' | 'inverse';
+  /** A row with its own hover treatment can keep contributor text undecorated. */
+  underline?: 'hover' | 'never';
+  /** Smaller contributor names for list bylines. */
+  density?: 'default' | 'compact';
 };
 
 /*
@@ -43,6 +47,8 @@ export const ProfileLink = ({
   title,
   showName = true,
   tone = 'default',
+  underline = 'hover',
+  density = 'default',
 }: ProfileLinkProps) => {
   const afterAvatar = showName ? (
     <span className={clsx(styles.username, tone === 'inverse' && styles.inverse)}>{name}</span>
@@ -52,7 +58,12 @@ export const ProfileLink = ({
     <Link
       to="/profiles/$profileSlug"
       params={{ profileSlug: slug }}
-      className={clsx(styles.link, className)}
+      className={clsx(
+        styles.link,
+        underline === 'hover' && styles.underlined,
+        density === 'compact' && styles.compact,
+        className
+      )}
       style={style}
       title={title}
       /* Without the name beside it, `title` is the link's only text; naming it explicitly keeps it announced everywhere. */
