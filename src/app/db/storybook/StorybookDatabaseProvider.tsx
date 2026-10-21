@@ -1,3 +1,4 @@
+import type { StoryContext } from '@storybook/tanstack-react';
 import { getFunctionName } from 'convex/server';
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import type { ComponentType, ReactNode } from 'react';
@@ -6,7 +7,7 @@ import { mocked } from 'storybook/test';
 import { api } from '../../../../convex/_generated/api';
 import { db as applicationDb } from '../core';
 import type { DatabaseDefinition } from './database';
-import type { WorkerIdentity } from './protocol';
+import type { SeedReference, WorkerIdentity } from './protocol';
 import type { ConvexStorybookWorker } from './runtime';
 import {
   ConvexStorybookWorkerClient,
@@ -20,11 +21,6 @@ import {
   useConvexStorybookQuery,
   useConvexStorybookQueries,
 } from './runtime';
-
-type WorkerState =
-  | { status: 'loading' }
-  | { status: 'success'; client: ConvexStorybookWorkerClient; database: DatabaseDefinition }
-  | { status: 'error'; message: string; database: DatabaseDefinition };
 
 type StorybookDatabaseSession = {
   client: ConvexStorybookWorkerClient;
@@ -42,12 +38,54 @@ const StorybookDatabaseContext = createContext<StorybookDatabaseSession | null>(
 const idleWorkers: ConvexStorybookWorker[] = [];
 const IDLE_WORKER_LIMIT = 2;
 
-async function startWorker(database: DatabaseDefinition) {
+async function startWorker(database: DatabaseDefinition, signal?: AbortSignal) {
   const client = new ConvexStorybookWorkerClient(idleWorkers.shift());
+  const abandoned = () => client.terminate();
+  signal?.addEventListener('abort', abandoned, { once: true });
   try {
+    signal?.throwIfAborted();
     await client.reset(database.create());
+    signal?.throwIfAborted();
     return client;
   } catch (error) {
+    client.terminate();
+    throw error;
+  } finally {
+    signal?.removeEventListener('abort', abandoned);
+  }
+}
+
+/* Database startup and generated route addresses belong to setup, before an interaction's first assertion. */
+export async function loadStorybookDatabase({
+  parameters,
+  args,
+  abortSignal,
+}: Pick<StoryContext, 'parameters' | 'args' | 'abortSignal'>) {
+  const database = parameters.database as DatabaseDefinition | undefined;
+  if (!database) {
+    return {};
+  }
+  const client = await startWorker(database, abortSignal);
+  const abandoned = () => client.terminate();
+  abortSignal.addEventListener('abort', abandoned, { once: true });
+  try {
+    const path: unknown = args.path;
+    const resolvedPath =
+      typeof path === 'object' && path !== null && '$seedRef' in path
+        ? await client.resolve(path as SeedReference)
+        : undefined;
+    abortSignal.throwIfAborted();
+    return {
+      storybookDatabase: {
+        key: crypto.randomUUID(),
+        database,
+        client,
+        path: resolvedPath,
+        claim: () => abortSignal.removeEventListener('abort', abandoned),
+      },
+    };
+  } catch (error) {
+    abortSignal.removeEventListener('abort', abandoned);
     client.terminate();
     throw error;
   }
@@ -76,16 +114,17 @@ function retireWorker(client: ConvexStorybookWorkerClient | null) {
 
 export function StorybookDatabaseProvider({
   children,
-  database,
   identity,
+  prepared,
 }: Readonly<{
   children: ReactNode;
-  database: DatabaseDefinition;
   identity?: WorkerIdentity;
+  prepared: NonNullable<Awaited<ReturnType<typeof loadStorybookDatabase>>['storybookDatabase']>;
 }>) {
+  const { database } = prepared;
   /* Bumped by every start and every unmount, so a startup that a newer one overtook retires its worker instead of replacing the newer database. */
   const generation = useRef(0);
-  const [state, setState] = useState<WorkerState>({ status: 'loading' });
+  const [client, setClient] = useState(prepared.client);
 
   const reset = useCallback(async () => {
     generation.current += 1;
@@ -95,46 +134,28 @@ export function StorybookDatabaseProvider({
       retireWorker(nextClient);
       throw new Error('The story stopped or restarted before this database started.');
     }
-    setState({ status: 'success', client: nextClient, database });
+    setClient(nextClient);
     return nextClient;
   }, [database]);
 
   useEffect(() => {
-    const started = generation.current + 1;
-    void (async () => {
-      try {
-        await reset();
-      } catch (error: unknown) {
-        if (started === generation.current) {
-          setState({ status: 'error', message: error instanceof Error ? error.message : String(error), database });
-        }
-      }
-    })();
+    prepared.claim();
     return () => {
       generation.current += 1;
     };
-  }, [database, reset]);
+  }, [prepared]);
 
   /* The previous client is retired only once the tree has moved off it, so no rendered query is left asking a worker that another story may already be reseeding. */
-  const client = state.status === 'success' ? state.client : null;
   useEffect(() => {
     return () => retireWorker(client);
   }, [client]);
 
-  /* A story switched in place keeps this provider, so until its own database is ready the previous story's client must not answer it. */
-  if (state.status === 'loading' || state.database !== database) {
-    return <div role="status">Starting the browser-local Convex database…</div>;
-  }
-  if (state.status === 'error') {
-    return <div role="alert">{state.message}</div>;
-  }
-
   mocked(applicationDb.action).mockImplementation(((fn, args) =>
-    state.client.action(fn, args, identity)) as typeof applicationDb.action);
+    client.action(fn, args, identity)) as typeof applicationDb.action);
   mocked(applicationDb.query).mockImplementation(((fn, args) =>
-    state.client.query(fn, args, identity)) as typeof applicationDb.query);
+    client.query(fn, args, identity)) as typeof applicationDb.query);
   mocked(applicationDb.mutation).mockImplementation(((fn, args) =>
-    state.client.mutation(fn, args, identity)) as typeof applicationDb.mutation);
+    client.mutation(fn, args, identity)) as typeof applicationDb.mutation);
   mocked(convexUseQuery).mockImplementation(useConvexStorybookQuery as typeof convexUseQuery);
   mocked(convexUseQueries).mockImplementation(useConvexStorybookQueries as typeof convexUseQueries);
   mocked(convexUseMutation).mockImplementation(useConvexStorybookMutation as typeof convexUseMutation);
@@ -143,8 +164,8 @@ export function StorybookDatabaseProvider({
   );
 
   return (
-    <StorybookDatabaseContext.Provider value={{ client: state.client, reset }}>
-      <ConvexStorybookWorkerContext.Provider value={{ client: state.client, identity }}>
+    <StorybookDatabaseContext.Provider value={{ client, reset }}>
+      <ConvexStorybookWorkerContext.Provider value={{ client, identity }}>
         {children}
       </ConvexStorybookWorkerContext.Provider>
     </StorybookDatabaseContext.Provider>
