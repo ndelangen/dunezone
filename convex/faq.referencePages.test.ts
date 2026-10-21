@@ -5,8 +5,10 @@ import { describe, expect, test } from 'vite-plus/test';
 
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api } from './_generated/api';
+import type { Id } from './_generated/dataModel';
 import { applicationTest } from './application.test.fixture';
 import { applicationTriggers } from './lib/applicationTriggers';
+import type { MutationCtx } from './types';
 
 const at = '2026-10-21T00:00:00.000Z';
 const paginationOpts = { numItems: 2, cursor: null };
@@ -47,31 +49,7 @@ async function fixture() {
       created_at: at,
       updated_at: at,
     });
-    const faction = await ctx.db.insert('factions', {
-      owner_id: user,
-      group_id: null,
-      slug: 'atreides',
-      data: assetPublishingFaction,
-      is_deleted: false,
-      created_at: at,
-      updated_at: at,
-    });
-    await ctx.db.insert('ruleset_factions', { ruleset_id: otherRuleset, faction_id: faction });
-    const assets = [];
-    for (const type of ['card-treachery', 'token-disc', 'board', 'bundle']) {
-      assets.push(
-        await ctx.db.insert('assets', {
-          owner_id: user,
-          group_id: null,
-          slug: type,
-          type,
-          data: { name: type },
-          is_deleted: false,
-          created_at: at,
-          updated_at: at,
-        })
-      );
-    }
+    const { faction, assets } = await seedTargets(ctx, user, otherRuleset);
     const questions = [];
     for (let day = 1; day <= 5; day++) {
       const created = `2026-10-0${day}T00:00:00.000Z`;
@@ -217,3 +195,33 @@ describe('FAQ reference public pages', () => {
     expect(deleted.page).toEqual([]);
   });
 });
+
+async function seedTargets(ctx: MutationCtx, user: Id<'users'>, otherRuleset: Id<'rulesets'>) {
+  const faction = await ctx.db.insert('factions', {
+    owner_id: user,
+    group_id: null,
+    slug: 'atreides',
+    data: assetPublishingFaction,
+    is_deleted: false,
+    created_at: at,
+    updated_at: at,
+  });
+  await ctx.db.insert('ruleset_factions', { ruleset_id: otherRuleset, faction_id: faction });
+  const assets = [];
+  for (const type of ['card-treachery', 'token-disc', 'board', 'bundle']) {
+    assets.push(
+      await ctx.db.insert('assets', {
+        owner_id: user,
+        group_id: null,
+        slug: type,
+        type,
+        data: { name: type },
+        is_deleted: false,
+        created_at: at,
+        updated_at: at,
+      })
+    );
+  }
+
+  return { faction, assets };
+}

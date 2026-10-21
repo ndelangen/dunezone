@@ -177,7 +177,6 @@ function createPageEditingSession(initial: ReturnType<typeof useFaqQuestionPage>
 }
 
 function FaqDetailPage() {
-  const [addingReferences, setAddingReferences] = useState(false);
   const { rulesetSlug, questionSlug } = Route.useParams();
   const loaderData = Route.useLoaderData();
   const navigate = useNavigate();
@@ -503,65 +502,7 @@ function FaqDetailPage() {
               )}
             </Stack>
           </Surface>
-          <Section
-            title="Referenced factions and assets"
-            action={
-              faq.canManageReferences && !addingReferences ? (
-                <Button variant="default" onClick={() => setAddingReferences(true)}>
-                  Add references
-                </Button>
-              ) : undefined
-            }
-          >
-            <Stack gap="md">
-              {addingReferences && faq.canManageReferences ? (
-                <FaqReferencePicker
-                  selectedIds={faq.references.map((reference) => reference.id)}
-                  pending={faq.addReference.isPending}
-                  onPick={(target) => {
-                    void faq.addReference.run(target).catch(() => undefined);
-                  }}
-                  onCancel={() => setAddingReferences(false)}
-                />
-              ) : null}
-              {faq.addReference.error || faq.removeReference.error ? (
-                <FormError title="Could not update references">
-                  {errorMessage(faq.addReference.error ?? faq.removeReference.error)}
-                </FormError>
-              ) : null}
-              {faq.references.length > 0 ? (
-                <TileGrid>
-                  {faq.references.map((reference) => (
-                    <FaqReferenceTile
-                      key={reference.id}
-                      reference={reference}
-                      action={
-                        faq.canManageReferences ? (
-                          <Button
-                            variant="subtle"
-                            disabled={faq.removeReference.isPending}
-                            aria-label={`Remove reference to ${reference.kind === 'faction' ? reference.faction.data.name : reference.asset.name}`}
-                            onClick={() => {
-                              void faq.removeReference.run(reference).catch(() => undefined);
-                            }}
-                          >
-                            Remove reference
-                          </Button>
-                        ) : undefined
-                      }
-                    />
-                  ))}
-                </TileGrid>
-              ) : (
-                <Text size="sm" c="dimmed">
-                  No references yet.
-                </Text>
-              )}
-              {faq.referencesStatus === 'CanLoadMore' || faq.referencesStatus === 'LoadingMore' ? (
-                <LoadMoreButton loading={faq.referencesStatus === 'LoadingMore'} onLoadMore={faq.loadMoreReferences} />
-              ) : null}
-            </Stack>
-          </Section>
+          <FaqReferencesSection faq={faq} />
         </Stack>
       </PageLayout.Content>
     </PageLayout>
@@ -579,4 +520,77 @@ function FaqReferenceTile({ reference, action }: { reference: FaqReferencePrevie
       {action ? <Group justify="center">{action}</Group> : null}
     </Stack>
   );
+}
+
+function FaqReferencesSection({ faq }: { faq: FaqQuestionCommands }) {
+  const [addingReferences, setAddingReferences] = useState(false);
+  return (
+    <Section
+      title="Referenced factions and assets"
+      action={
+        faq.canManageReferences && !addingReferences ? (
+          <Button variant="default" onClick={() => setAddingReferences(true)}>
+            Add references
+          </Button>
+        ) : undefined
+      }
+    >
+      <Stack gap="md">
+        {addingReferences && faq.canManageReferences ? (
+          <FaqReferencePicker
+            selectedIds={faq.references.map((reference) => reference.id)}
+            pending={faq.addReference.isPending}
+            onPick={(target) => {
+              void faq.addReference.run(target).catch(() => undefined);
+            }}
+            onCancel={() => setAddingReferences(false)}
+          />
+        ) : null}
+        <FaqReferenceError faq={faq} />
+        <FaqReferenceList faq={faq} />
+        {faq.referencesStatus === 'CanLoadMore' || faq.referencesStatus === 'LoadingMore' ? (
+          <LoadMoreButton loading={faq.referencesStatus === 'LoadingMore'} onLoadMore={faq.loadMoreReferences} />
+        ) : null}
+      </Stack>
+    </Section>
+  );
+}
+
+function FaqReferenceList({ faq }: { faq: FaqQuestionCommands }) {
+  return faq.references.length > 0 ? (
+    <TileGrid>
+      {faq.references.map((reference) => (
+        <FaqReferenceTile
+          key={reference.id}
+          reference={reference}
+          action={
+            faq.canManageReferences ? (
+              <Button
+                variant="subtle"
+                disabled={faq.removeReference.isPending}
+                aria-label={`Remove reference to ${reference.kind === 'faction' ? reference.faction.data.name : reference.asset.name}`}
+                onClick={() => {
+                  void faq.removeReference.run(reference).catch(() => undefined);
+                }}
+              >
+                Remove reference
+              </Button>
+            ) : undefined
+          }
+        />
+      ))}
+    </TileGrid>
+  ) : (
+    <Text size="sm" c="dimmed">
+      No references yet.
+    </Text>
+  );
+}
+
+function FaqReferenceError({ faq }: { faq: FaqQuestionCommands }) {
+  return faq.addReference.error || faq.removeReference.error ? (
+    <FormError title="Could not update references">
+      {errorMessage(faq.addReference.error ?? faq.removeReference.error)}
+    </FormError>
+  ) : null;
 }

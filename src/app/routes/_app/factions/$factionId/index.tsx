@@ -422,7 +422,7 @@ function FactionDetailContent({
 }) {
   const navigate = Route.useNavigate();
   const { resolved, viewerAccess } = useFactionAccess(page);
-  const { faction, owner, assetPublishing, rulesets } = page;
+  const { faction, owner, assetPublishing } = page;
 
   /* The shared page usually settles before the viewer does; controls wait for both. */
   const settled = !isPending && resolved;
@@ -434,7 +434,6 @@ function FactionDetailContent({
   const data = faction.data;
   const planets = data.planet ?? [];
   const troopCount = data.troops.reduce((total, troop) => total + troop.count, 0);
-  const files = filesBadge(assetPublishing);
   const complexity = effectiveComplexity(data.complexity);
   /**
    * Standing beside the maintaining group, and only when the viewer has a standing worth naming.
@@ -675,35 +674,7 @@ function FactionDetailContent({
                 </Surface>
               </Section>
 
-              <Card
-                icon={<FileText size={20} aria-hidden />}
-                title="Files"
-                action={
-                  <StatusBadge live tone={files.tone}>
-                    {files.label}
-                  </StatusBadge>
-                }
-              >
-                <Text size="sm" c="dimmed">
-                  {factionAssetPublishingCopy(assetPublishing.status, assetPublishing.captureStatus)}
-                </Text>
-              </Card>
-
-              <Card icon={<TopicIcon topic="rulesets" size={20} />} title="Rulesets">
-                {rulesets.length === 0 ? (
-                  <Text size="sm" c="dimmed">
-                    Not in a ruleset yet.
-                  </Text>
-                ) : (
-                  <Links>
-                    {rulesets.map((ruleset) => (
-                      <Links.Item key={ruleset.id} to="/rulesets/$rulesetSlug" params={{ rulesetSlug: ruleset.slug }}>
-                        {ruleset.name}
-                      </Links.Item>
-                    ))}
-                  </Links>
-                )}
-              </Card>
+              <FactionFilesAndRulesets page={page} />
             </Stack>
           </Flex>
           <RelatedFaq
@@ -717,5 +688,43 @@ function FactionDetailContent({
         </Stack>
       </PageLayout.Content>
     </PageLayout>
+  );
+}
+
+function FactionFilesAndRulesets({ page }: { page: FactionDetailPageData }) {
+  const { assetPublishing, rulesets } = page;
+  const files = filesBadge(assetPublishing);
+  return (
+    <>
+      <Card
+        icon={<FileText size={20} aria-hidden />}
+        title="Files"
+        action={
+          <StatusBadge live tone={files.tone}>
+            {files.label}
+          </StatusBadge>
+        }
+      >
+        <Text size="sm" c="dimmed">
+          {factionAssetPublishingCopy(assetPublishing.status, assetPublishing.captureStatus)}
+        </Text>
+      </Card>
+
+      <Card icon={<TopicIcon topic="rulesets" size={20} />} title="Rulesets">
+        {rulesets.length === 0 ? (
+          <Text size="sm" c="dimmed">
+            Not in a ruleset yet.
+          </Text>
+        ) : (
+          <Links>
+            {rulesets.map((ruleset) => (
+              <Links.Item key={ruleset.id} to="/rulesets/$rulesetSlug" params={{ rulesetSlug: ruleset.slug }}>
+                {ruleset.name}
+              </Links.Item>
+            ))}
+          </Links>
+        )}
+      </Card>
+    </>
   );
 }
