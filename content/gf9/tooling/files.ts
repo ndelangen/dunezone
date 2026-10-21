@@ -4,6 +4,7 @@ import path from 'node:path';
 
 import type { z } from 'zod';
 
+import { compareCodeUnits } from '../../../src/shared/compareText';
 import type { DataPath } from './contracts';
 
 export function canonical(value: unknown): string {
@@ -106,7 +107,7 @@ export function differences(before: unknown, after: unknown, prefix = '$'): stri
     !Array.isArray(after)
   ) {
     return [...new Set([...Object.keys(before), ...Object.keys(after)])]
-      .sort()
+      .sort(compareCodeUnits)
       .flatMap((key) =>
         differences(
           (before as Record<string, unknown>)[key],

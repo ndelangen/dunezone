@@ -6,6 +6,7 @@ import { z } from 'zod';
 
 import { authoredCardback, DeckAsset } from '../../../src/shared/assets/schema';
 import { parseRawFaction, rawRulebookSchema, readRawAuthoringJson } from '../../../src/shared/authoring/raw';
+import { compareCodeUnits } from '../../../src/shared/compareText';
 import { contentImportPackageSchema } from '../../../src/shared/contentImports/package';
 import { assertRulebookReferences } from '../../../src/shared/rulebooks/references';
 import type { RulebookResolvedFactionsById } from '../../../src/shared/rulebooks/references';
@@ -73,8 +74,8 @@ export function protectedValue(readback: Readback, spec?: RecordSpec) {
     relationships: {
       ...readback.relationships,
       members: [...readback.relationships.members].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)),
-      rulesetSlots: [...readback.relationships.rulesetSlots].sort(),
-      rulesetIds: [...readback.relationships.rulesetIds].sort(),
+      rulesetSlots: [...readback.relationships.rulesetSlots].sort(compareCodeUnits),
+      rulesetIds: [...readback.relationships.rulesetIds].sort(compareCodeUnits),
     },
   };
 }
@@ -104,7 +105,7 @@ function exportSubject(readback: Readback) {
   }
   return {
     ...common,
-    slots: [...readback.relationships.rulesetSlots].sort(),
+    slots: [...readback.relationships.rulesetSlots].sort(compareCodeUnits),
     members: [...readback.relationships.members].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)),
   };
 }
