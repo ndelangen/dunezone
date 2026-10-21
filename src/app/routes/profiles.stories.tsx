@@ -135,7 +135,9 @@ export const DetailNarrow = meta.story({
       await expect(list.getByRole('link', { name: 'When does the storm move?' })).toBeVisible();
       await expect(list.getByText('Asked by:')).not.toBeVisible();
       await expect(list.getByText('Answered by:')).not.toBeVisible();
-      await expect(list.getByText('1 answer', { exact: true })).toBeVisible();
+      await expect(
+        list.getAllByText('1 answer', { exact: true }).find((element) => element.getClientRects().length > 0)
+      ).toBeVisible();
       const rulesetLinks = list.getAllByRole('link', { name: 'ClassicRules' });
       await expect(rulesetLinks.some((link) => link.getClientRects().length > 0)).toBe(true);
     }
