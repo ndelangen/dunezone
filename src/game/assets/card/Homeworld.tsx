@@ -19,6 +19,7 @@ export function HomeworldCard({
     <div style={{ position: 'relative', width: 900, height: 1263, overflow: 'hidden' }}>
       <CustomCard
         {...card}
+        subName=""
         icon={[frontStyle?.iconBackground ?? card.icon[0], card.icon[1]]}
         head={frontStyle?.head ?? HOMEWORLD_HEAD}
         format="plain"
@@ -26,6 +27,7 @@ export function HomeworldCard({
         iconPresentation="image"
       />
       <CardEffects
+        layout="homeworld"
         effects={[
           {
             title: 'High reserves',
