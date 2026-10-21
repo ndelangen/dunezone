@@ -367,6 +367,7 @@ export const RawConversionKeepsIdentity = meta.story({
     await userEvent.click(page.getByRole('button', { name: 'Load card' }));
     await expect(name).toHaveValue(replacement.name);
     await expect((await loadAssetPage('card-custom', 'battle-reference'))!.asset.data).toEqual(before.asset.data);
+    await waitForFrame(() => expect(page.getByRole('button', { name: 'Load existing card' })).toHaveFocus());
     const convert = page.getByRole('button', { name: 'Convert to spice card' });
     await userEvent.pointer([{ keys: '[MouseLeft>]', target: convert }]);
     await waitFor(
