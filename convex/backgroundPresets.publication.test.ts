@@ -584,3 +584,62 @@ test('importing a missing native back recaptures it even when its shared backgro
   );
   expect(job?.asset_data.cardback.image).toBe(publishingDeckCardback.image);
 });
+
+test('importing a referenced deck back copies its authored target and survives target deletion', async () => {
+  const { t, admin, author } = await fixture();
+  await t.run(async (ctx) => {
+    const row = await ctx.db
+      .query('cardback_presets')
+      .withIndex('by_key', (q) => q.eq('key', 'homeworld'))
+      .unique();
+    await ctx.db.delete(row!._id);
+  });
+  const target = await author.mutation(api.assets.create, {
+    type: 'deck',
+    data: { name: 'All Homeworlds Deck', about: '', cardback: publishingDeckCardback },
+  });
+  await author.mutation(api.assets.create, {
+    type: 'deck',
+    data: { name: 'Homeworld Deck', about: '', cardback: { mode: 'reference', asset_id: target.id } },
+  });
+  await t.run((ctx) => ctx.db.patch(target.id, { is_deleted: true }));
+  await expect(admin.mutation(api.presetLibrary.initialize, {})).rejects.toThrow('referenced deck no longer exists');
+  expect((await t.query(api.presetLibrary.page, {})).ready).toBe(false);
+  await t.run((ctx) => ctx.db.patch(target.id, { is_deleted: false }));
+  await admin.mutation(api.presetLibrary.initialize, {});
+  await t.run((ctx) => ctx.db.patch(target.id, { is_deleted: true }));
+  const saved = await t.run((ctx) =>
+    ctx.db
+      .query('cardback_presets')
+      .withIndex('by_key', (q) => q.eq('key', 'homeworld'))
+      .unique()
+  );
+  expect(saved?.cardback).toEqual(publishingDeckCardback);
+  await t.finishAllScheduledFunctions(vi.runAllTimers);
+});
+
+test('importing a deck preset copies its current shared background', async () => {
+  const { t, admin, author } = await fixture();
+  const value: typeof background.value = { ...background.value, colors: ['#123456', '#654321'] };
+  await admin.mutation(api.backgroundPresets.save, { ...background, key: 'back/stronghold', revision: 1, value });
+  await t.run(async (ctx) => {
+    const row = await ctx.db
+      .query('cardback_presets')
+      .withIndex('by_key', (q) => q.eq('key', 'homeworld'))
+      .unique();
+    await ctx.db.delete(row!._id);
+  });
+  await author.mutation(api.assets.create, {
+    type: 'deck',
+    data: { name: 'Homeworld Deck', about: '', cardback: { mode: 'preset', key: 'stronghold' } },
+  });
+  await admin.mutation(api.presetLibrary.initialize, {});
+  const saved = await t.run((ctx) =>
+    ctx.db
+      .query('cardback_presets')
+      .withIndex('by_key', (q) => q.eq('key', 'homeworld'))
+      .unique()
+  );
+  expect(saved?.cardback.background.colors).toEqual(value.colors);
+  await t.finishAllScheduledFunctions(vi.runAllTimers);
+});
