@@ -16,6 +16,7 @@ import { internalMutation, mutation, publicQuery } from './functions';
 import { listBackgroundPresets, listSavedBackgroundPresets, assertBackgroundCapacity } from './lib/backgroundPresets';
 import { queueBackgroundRecaptures } from './lib/backgroundRegeneration';
 import { canonicalJson } from './lib/canonicalJson';
+import { presetFromKey } from './lib/cardbackPresets';
 import { requireAdminUserId } from './lib/policy';
 import {
   enqueueAssetPublication,
@@ -24,6 +25,7 @@ import {
   enqueueFactionLeaderPublications,
   enqueueFactionFaces,
   enqueueFactionFacePublications,
+  enqueuePublicationJob,
 } from './lib/publication';
 import type { MutationCtx } from './types';
 
@@ -180,8 +182,6 @@ export const recaptureBack = internalMutation({
   args: { key: v.string() },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const { presetFromKey } = await import('./lib/cardbackPresets');
-    const { enqueuePublicationJob } = await import('./lib/publication');
     const preset = await presetFromKey(ctx, args.key, new Map());
     if (preset) {
       await enqueuePublicationJob(ctx, {
