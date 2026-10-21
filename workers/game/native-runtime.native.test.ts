@@ -1,3 +1,4 @@
+import type * as Esbuild from 'esbuild';
 import { expect, test, vi } from 'vite-plus/test';
 
 import { createPeer, createRuntime, provision } from './native-runtime.fixture';
@@ -5,7 +6,7 @@ import type { NativeRuntime } from './native-runtime.fixture';
 
 const compiler = vi.hoisted(() => ({ allowed: true }));
 vi.mock('esbuild', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('esbuild')>();
+  const actual = await importOriginal<typeof Esbuild>();
   return {
     ...actual,
     build: (...args: Parameters<typeof actual.build>) => {
