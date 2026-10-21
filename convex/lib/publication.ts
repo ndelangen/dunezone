@@ -545,21 +545,23 @@ async function enqueueChangedFaces(
   const changed = [...current].filter(
     ([assetId, assetData]) => JSON.stringify(previous.get(assetId)) !== JSON.stringify(assetData)
   );
-  for (const [assetId, assetData] of changed) {
-    const frontPreset =
-      (assetType === 'faction-traitor' || assetType === 'faction-alliance') &&
-      ((await publicationSettings(ctx))?.renderer_revisions[assetType] ?? 0) >= 3
-        ? await resolveCardFrontPreset(ctx, assetType, assetData)
-        : undefined;
-    await enqueuePublicationJob(ctx, {
-      assetType,
-      assetId,
-      assetData:
-        frontPreset && assetData && typeof assetData === 'object'
-          ? { ...assetData, frontStyle: frontPreset.style }
-          : assetData,
-    });
-  }
+  const frontPreset =
+    (assetType === 'faction-traitor' || assetType === 'faction-alliance') &&
+    ((await publicationSettings(ctx))?.renderer_revisions[assetType] ?? 0) >= 3
+      ? await resolveCardFrontPreset(ctx, assetType, {})
+      : undefined;
+  await Promise.all(
+    changed.map(([assetId, assetData]) =>
+      enqueuePublicationJob(ctx, {
+        assetType,
+        assetId,
+        assetData:
+          frontPreset && assetData && typeof assetData === 'object'
+            ? { ...assetData, frontStyle: frontPreset.style }
+            : assetData,
+      })
+    )
+  );
   for (const assetId of [...previous.keys()].filter((assetId) => !current.has(assetId))) {
     await supersedePendingPublication(ctx, assetType, assetId);
   }

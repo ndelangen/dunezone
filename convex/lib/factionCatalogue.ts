@@ -76,7 +76,10 @@ export async function catalogueFactionFromCard(
       slug: card.slug,
       created_at: card.created_at,
       updated_at: card.updated_at,
-      data: await resolveBackgrounds(ctx, card.data as CatalogueFaction['data']),
+      data: {
+        ...(card.data as CatalogueFaction['data']),
+        background: await resolveBackgrounds(ctx, (card.data as CatalogueFaction['data']).background),
+      },
       rulesets,
     };
   }
@@ -84,7 +87,11 @@ export async function catalogueFactionFromCard(
   if (!faction) {
     throw new Error(`Faction ${card.faction_id} missing for its card ${card._id}`);
   }
-  return await resolveBackgrounds(ctx, toCatalogueFaction(faction, rulesets));
+  const projected = toCatalogueFaction(faction, rulesets);
+  return {
+    ...projected,
+    data: { ...projected.data, background: await resolveBackgrounds(ctx, projected.data.background) },
+  };
 }
 
 const FACTION_LIMIT = 500;

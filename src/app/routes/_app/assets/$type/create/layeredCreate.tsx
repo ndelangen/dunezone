@@ -73,7 +73,7 @@ export function LayeredCreatePage<Draft extends LayeredCardDraft>({ config }: { 
   const tokenIds = [
     ...new Set(state.data.layers.flatMap((layer) => (layer.kind === 'token' ? [layer.asset_id] : []))),
   ].sort(compareCodeUnits);
-  const standards = useAuthoringPresets(true, tokenIds);
+  const standards = useAuthoringPresets(tokenIds);
   const editor = ({ tokens, error, style }: z.infer<typeof CustomCardTokenResolution> & { style?: CardFrontStyle }) => (
     <Editor
       frontStyle={style}

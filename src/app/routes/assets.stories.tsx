@@ -354,8 +354,9 @@ export const EditCustomCardDeclaringCustomIsNotAChange = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(findSave(canvasElement)).resolves.toHaveAccessibleDescription(/^No unsaved changes/);
-    const row = within(await page.findByRole('radiogroup', { name: 'Head background' }, { timeout: 30_000 }));
-    await userEvent.click(row.getByRole('radio', { name: 'Custom' }));
+    const picker = await page.findByRole('combobox', { name: 'Head background preset' }, { timeout: 30_000 });
+    await userEvent.click(picker);
+    await userEvent.click(await page.findByRole('option', { name: /^Custom$/ }));
     await expect(findSave(canvasElement)).resolves.toHaveAccessibleDescription(/^No unsaved changes/);
   },
 });

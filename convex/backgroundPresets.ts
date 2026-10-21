@@ -13,7 +13,7 @@ import { Background } from '../src/shared/factions/schema';
 import { internal } from './_generated/api';
 import type { Doc } from './_generated/dataModel';
 import { internalMutation, mutation, publicQuery } from './functions';
-import { listBackgroundPresets, MAX_BACKGROUND_PRESETS } from './lib/backgroundPresets';
+import { listBackgroundPresets, assertBackgroundCapacity } from './lib/backgroundPresets';
 import { queueBackgroundRecaptures } from './lib/backgroundRegeneration';
 import { canonicalJson } from './lib/canonicalJson';
 import { requireAdminUserId } from './lib/policy';
@@ -52,11 +52,8 @@ export async function storeBackgroundPreset(ctx: MutationCtx, args: SharedBackgr
     .query('background_presets')
     .withIndex('by_key', (q) => q.eq('key', args.key))
     .unique();
-  if (
-    !row &&
-    (await ctx.db.query('background_presets').take(MAX_BACKGROUND_PRESETS)).length >= MAX_BACKGROUND_PRESETS
-  ) {
-    throw new ConvexError('The background library is full. Edit an existing preset.');
+  if (!row) {
+    await assertBackgroundCapacity(ctx, 1);
   }
   const revision = parsed.revision + 1;
   const saved = { ...parsed, revision, updated_at: Date.now() };
@@ -88,6 +85,23 @@ async function recaptureFaction(ctx: MutationCtx, faction: Doc<'factions'>) {
   await enqueueFactionLeaderPublications(ctx, faction);
   await enqueueFactionFaces(ctx, faction);
 }
+async function recaptureUse(ctx: MutationCtx, use: Doc<'background_uses'>) {
+  const id = ctx.db.normalizeId(use.kind === 'asset' ? 'assets' : 'factions', use.subject);
+  if (!id) {
+    return;
+  }
+  if (use.kind === 'asset') {
+    const asset = await ctx.db.get('assets', id as Doc<'assets'>['_id']);
+    if (asset && !asset.is_deleted) {
+      await recaptureAsset(ctx, asset);
+    }
+    return;
+  }
+  const faction = await ctx.db.get('factions', id as Doc<'factions'>['_id']);
+  if (faction && !faction.is_deleted) {
+    await recaptureFaction(ctx, faction);
+  }
+}
 export const recapture = internalMutation({
   args: { key: v.string(), cursor: v.union(v.string(), v.null()) },
   returns: v.null(),
@@ -96,27 +110,60 @@ export const recapture = internalMutation({
       .query('background_uses')
       .withIndex('by_key', (q) => q.eq('key', args.key))
       .paginate({ cursor: args.cursor, numItems: 1 });
-    for (const use of page.page) {
-      if (use.kind === 'asset') {
-        const id = ctx.db.normalizeId('assets', use.subject);
-        const row = id ? await ctx.db.get('assets', id) : null;
-        if (row && !row.is_deleted) {
-          await recaptureAsset(ctx, row);
-        }
-      } else {
-        const id = ctx.db.normalizeId('factions', use.subject);
-        const row = id ? await ctx.db.get('factions', id) : null;
-        if (row && !row.is_deleted) {
-          await recaptureFaction(ctx, row);
-        }
-      }
-    }
+    await Promise.all(page.page.map((use) => recaptureUse(ctx, use)));
     if (!page.isDone) {
       await ctx.scheduler.runAfter(0, internal.backgroundPresets.recapture, { ...args, cursor: page.continueCursor });
     }
     return null;
   },
 });
+
+type FamilyScan = { key: string; regions?: ('header' | 'icon')[]; cursor: string | null };
+async function recaptureFactionFamily(
+  ctx: MutationCtx,
+  type: 'faction-traitor' | 'faction-alliance',
+  args: FamilyScan
+) {
+  const page = await ctx.db
+    .query('factions')
+    .withIndex('by_deleted', (q) => q.eq('is_deleted', false))
+    .paginate({ cursor: args.cursor, numItems: 2 });
+  await Promise.all(page.page.map((faction) => enqueueFactionFacePublications(ctx, type, faction)));
+  return page;
+}
+function followsFamily(asset: Doc<'assets'>, type: string, args: FamilyScan) {
+  return (
+    cardFrontPresetKey(type, asset.data) === args.key &&
+    (args.regions ?? (['header', 'icon'] as const)).some((region) => inheritsCardFrontRegion(type, asset.data, region))
+  );
+}
+async function recaptureAssetFamily(ctx: MutationCtx, type: string, args: FamilyScan) {
+  const page = await ctx.db
+    .query('assets')
+    .withIndex('by_type_deleted', (q) => q.eq('type', type).eq('is_deleted', false))
+    .paginate({ cursor: args.cursor, numItems: 20 });
+  await Promise.all(
+    page.page.filter((asset) => followsFamily(asset, type, args)).map((asset) => recaptureAsset(ctx, asset))
+  );
+  return page;
+}
+async function recaptureFamilyPage(ctx: MutationCtx, args: FamilyScan) {
+  const preset = INITIAL_CARD_FRONT_PRESETS.find((entry) => entry.key === args.key);
+  if (!preset) {
+    return;
+  }
+  const type = cardFrontPresetType(preset.key);
+  const page =
+    type === 'faction-traitor' || type === 'faction-alliance'
+      ? await recaptureFactionFamily(ctx, type, args)
+      : await recaptureAssetFamily(ctx, type, args);
+  if (!page.isDone) {
+    await ctx.scheduler.runAfter(0, internal.backgroundPresets.recaptureFamily, {
+      ...args,
+      cursor: page.continueCursor,
+    });
+  }
+}
 export const recaptureFamily = internalMutation({
   args: {
     key: v.string(),
@@ -125,49 +172,7 @@ export const recaptureFamily = internalMutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const preset = INITIAL_CARD_FRONT_PRESETS.find((entry) => entry.key === args.key);
-    if (!preset) {
-      return null;
-    }
-    const type = cardFrontPresetType(preset.key);
-    if (type.startsWith('faction-')) {
-      const page = await ctx.db
-        .query('factions')
-        .withIndex('by_deleted', (q) => q.eq('is_deleted', false))
-        .paginate({ cursor: args.cursor, numItems: 2 });
-      for (const faction of page.page) {
-        if (type === 'faction-traitor' || type === 'faction-alliance') {
-          await enqueueFactionFacePublications(ctx, type, faction);
-        }
-      }
-      if (!page.isDone) {
-        await ctx.scheduler.runAfter(0, internal.backgroundPresets.recaptureFamily, {
-          ...args,
-          cursor: page.continueCursor,
-        });
-      }
-    } else {
-      const page = await ctx.db
-        .query('assets')
-        .withIndex('by_type_deleted', (q) => q.eq('type', type).eq('is_deleted', false))
-        .paginate({ cursor: args.cursor, numItems: 20 });
-      for (const asset of page.page) {
-        if (
-          cardFrontPresetKey(type, asset.data) === preset.key &&
-          (args.regions ?? (['header', 'icon'] as const)).some((region) =>
-            inheritsCardFrontRegion(type, asset.data, region)
-          )
-        ) {
-          await recaptureAsset(ctx, asset);
-        }
-      }
-      if (!page.isDone) {
-        await ctx.scheduler.runAfter(0, internal.backgroundPresets.recaptureFamily, {
-          ...args,
-          cursor: page.continueCursor,
-        });
-      }
-    }
+    await recaptureFamilyPage(ctx, args);
     return null;
   },
 });

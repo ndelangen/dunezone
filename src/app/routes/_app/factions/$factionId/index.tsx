@@ -398,13 +398,15 @@ function FactionDetailPage() {
   }
 
   return (
-    <FactionDetailContent
-      faq={factionQuery}
-      factionId={factionId}
-      page={page}
-      isPending={factionQuery.isPending}
-      membershipWorkflow={membershipWorkflow}
-    />
+    <BackgroundLibrary presets={page.backgrounds} fronts={page.cardFrontPresets}>
+      <FactionDetailContent
+        faq={factionQuery}
+        factionId={factionId}
+        page={page}
+        isPending={factionQuery.isPending}
+        membershipWorkflow={membershipWorkflow}
+      />
+    </BackgroundLibrary>
   );
 }
 
@@ -474,226 +476,224 @@ function FactionDetailContent({
     },
   ];
   return (
-    <BackgroundLibrary presets={page.backgrounds ?? []} fronts={page.cardFrontPresets}>
-      <PageLayout>
-        <PageLayout.Header size="compact">
-          <PageIdentity
-            title={data.name}
-            media={
-              <div className={styles.factionSymbol} role="img" aria-label={`${data.name} symbol`}>
-                <FactionToken logo={data.logo} background={data.background} />
-              </div>
-            }
-            breadcrumb={<PageIdentity.Breadcrumb to="/factions">Factions</PageIdentity.Breadcrumb>}
-            maintainers={{
-              owner: owner ? { slug: owner.slug, name: owner.username, image: profileAvatarUrl(owner) } : null,
-              group: assignedGroup ? { slug: assignedGroup.slug, name: assignedGroup.name } : null,
-            }}
-            standing={membershipBadge}
-            stats={headerStats}
-          />
-        </PageLayout.Header>
-        <PageLayout.Toolbar>
-          <Toolbar>
-            <Toolbar.Left label="Navigation">
+    <PageLayout>
+      <PageLayout.Header size="compact">
+        <PageIdentity
+          title={data.name}
+          media={
+            <div className={styles.factionSymbol} role="img" aria-label={`${data.name} symbol`}>
+              <FactionToken logo={data.logo} background={data.background} />
+            </div>
+          }
+          breadcrumb={<PageIdentity.Breadcrumb to="/factions">Factions</PageIdentity.Breadcrumb>}
+          maintainers={{
+            owner: owner ? { slug: owner.slug, name: owner.username, image: profileAvatarUrl(owner) } : null,
+            group: assignedGroup ? { slug: assignedGroup.slug, name: assignedGroup.name } : null,
+          }}
+          standing={membershipBadge}
+          stats={headerStats}
+        />
+      </PageLayout.Header>
+      <PageLayout.Toolbar>
+        <Toolbar>
+          <Toolbar.Left label="Navigation">
+            <IconAction
+              label="Back to factions"
+              emphasis="standard"
+              intent="neutral"
+              size="lg"
+              renderRoot={(rootProps) => <Link {...rootProps} to="/factions" />}
+              icon={<ArrowLeft size={17} aria-hidden />}
+            />
+            {canEdit ? (
               <IconAction
-                label="Back to factions"
+                label="Edit faction"
                 emphasis="standard"
                 intent="neutral"
                 size="lg"
-                renderRoot={(rootProps) => <Link {...rootProps} to="/factions" />}
-                icon={<ArrowLeft size={17} aria-hidden />}
+                renderRoot={(rootProps) => (
+                  <Link {...rootProps} to="/factions/$factionId/edit" params={{ factionId }} />
+                )}
+                icon={<Pencil size={17} aria-hidden />}
               />
-              {canEdit ? (
+            ) : null}
+          </Toolbar.Left>
+
+          <Toolbar.Right label="Faction actions">
+            <Toolbar.Cluster kind="content">
+              <IconAction
+                label="Preview faction sheet"
+                emphasis="standard"
+                intent="neutral"
+                size="lg"
+                renderRoot={(rootProps) => (
+                  <Link
+                    {...rootProps}
+                    to="/preview/sheet/$factionSlug"
+                    params={{ factionSlug: factionId }}
+                    search={{ mode: 'db' }}
+                    target="_blank"
+                  />
+                )}
+                icon={<Eye size={17} aria-hidden />}
+              />
+              {assetPublishing.publicationHref ? (
                 <IconAction
-                  label="Edit faction"
+                  label="Open published PDF"
                   emphasis="standard"
-                  intent="neutral"
+                  intent="export"
                   size="lg"
-                  renderRoot={(rootProps) => (
-                    <Link {...rootProps} to="/factions/$factionId/edit" params={{ factionId }} />
-                  )}
-                  icon={<Pencil size={17} aria-hidden />}
+                  href={assetPublishing.publicationHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  icon={<Download size={17} aria-hidden />}
                 />
               ) : null}
-            </Toolbar.Left>
-
-            <Toolbar.Right label="Faction actions">
-              <Toolbar.Cluster kind="content">
+            </Toolbar.Cluster>
+            <Toolbar.Cluster kind="access">
+              {canRequestMembership && assignedGroup ? (
                 <IconAction
-                  label="Preview faction sheet"
+                  label="Request membership"
                   emphasis="standard"
                   intent="neutral"
                   size="lg"
-                  renderRoot={(rootProps) => (
-                    <Link
-                      {...rootProps}
-                      to="/preview/sheet/$factionSlug"
-                      params={{ factionSlug: factionId }}
-                      search={{ mode: 'db' }}
-                      target="_blank"
-                    />
-                  )}
-                  icon={<Eye size={17} aria-hidden />}
+                  loading={membershipWorkflow.request.isPending}
+                  disabled={membershipWorkflow.request.isPending}
+                  onClick={() => void membershipWorkflow.request.run(assignedGroup.id).catch(() => undefined)}
+                  icon={<UserPlus size={17} aria-hidden />}
                 />
-                {assetPublishing.publicationHref ? (
-                  <IconAction
-                    label="Open published PDF"
-                    emphasis="standard"
-                    intent="export"
-                    size="lg"
-                    href={assetPublishing.publicationHref}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    icon={<Download size={17} aria-hidden />}
-                  />
-                ) : null}
-              </Toolbar.Cluster>
-              <Toolbar.Cluster kind="access">
-                {canRequestMembership && assignedGroup ? (
-                  <IconAction
-                    label="Request membership"
-                    emphasis="standard"
-                    intent="neutral"
-                    size="lg"
-                    loading={membershipWorkflow.request.isPending}
-                    disabled={membershipWorkflow.request.isPending}
-                    onClick={() => void membershipWorkflow.request.run(assignedGroup.id).catch(() => undefined)}
-                    icon={<UserPlus size={17} aria-hidden />}
-                  />
-                ) : null}
-              </Toolbar.Cluster>
-            </Toolbar.Right>
-          </Toolbar>
-        </PageLayout.Toolbar>
-        <PageLayout.Content>
-          <Stack gap="xl">
-            {membershipWorkflow.request.isError ? (
-              <Alert color="red" title="Membership request failed" role="alert" mb="xl">
-                {membershipWorkflow.request.error?.message}
-              </Alert>
-            ) : null}
-            <Flex
-              direction={{ base: 'column-reverse', md: 'row' }}
-              gap="xl"
-              align={{ base: 'stretch', md: 'flex-start' }}
-            >
-              <Box miw={0} style={{ flex: '1 1 auto' }}>
-                <Stack gap="xl">
-                  <Section icon={<TopicIcon topic="leaders" size={20} />} title="Leaders">
-                    <div className={styles.horizontalLane}>
-                      {/* Position disambiguates: an author may field two identical leaders, and a
+              ) : null}
+            </Toolbar.Cluster>
+          </Toolbar.Right>
+        </Toolbar>
+      </PageLayout.Toolbar>
+      <PageLayout.Content>
+        <Stack gap="xl">
+          {membershipWorkflow.request.isError ? (
+            <Alert color="red" title="Membership request failed" role="alert" mb="xl">
+              {membershipWorkflow.request.error?.message}
+            </Alert>
+          ) : null}
+          <Flex
+            direction={{ base: 'column-reverse', md: 'row' }}
+            gap="xl"
+            align={{ base: 'stretch', md: 'flex-start' }}
+          >
+            <Box miw={0} style={{ flex: '1 1 auto' }}>
+              <Stack gap="xl">
+                <Section icon={<TopicIcon topic="leaders" size={20} />} title="Leaders">
+                  <div className={styles.horizontalLane}>
+                    {/* Position disambiguates: an author may field two identical leaders, and a
                     faction's lists carry no ids of their own. */}
-                      {data.leaders.map((leader, index) => (
-                        <article
-                          className={styles.leaderTile}
-                          key={`${leader.name}-${leader.image}-${index}`}
-                          title={`${leader.name}, strength ${leader.strength ?? 'not specified'}`}
-                        >
-                          <LeaderToken {...leader} background={data.background} logo={data.logo} />
-                        </article>
-                      ))}
-                    </div>
-                  </Section>
-
-                  <FactionTroops troops={data.troops} background={data.background} />
-
-                  <FactionAdvantages advantages={data.rules.advantages} />
-
-                  <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
-                    <Card icon={<TopicIcon topic="alliance" size={20} />} title="Alliance">
-                      <FormattedTextSource source={data.rules.alliance.text} size="sm" />
-                    </Card>
-                    <FactionSpecialRule rule={data.rules.fate} />
-                  </SimpleGrid>
-                </Stack>
-              </Box>
-
-              <Stack
-                gap="md"
-                component="aside"
-                aria-label="Faction details"
-                w={{ base: '100%', md: '15rem' }}
-                miw={0}
-                style={{ flex: '0 0 auto' }}
-              >
-                <FactionSidebarOverview data={data} />
-
-                {planets.length > 0 ? (
-                  <Section icon={<TopicIcon topic="planets" size={20} />} title="Planets">
-                    <Stack component="ul" gap="sm" m={0} p={0} style={{ listStyle: 'none' }}>
-                      {planets.map((planet, index) => (
-                        <FactionPlanet key={`${planet.name}-${planet.image}-${index}`} planet={planet} />
-                      ))}
-                    </Stack>
-                  </Section>
-                ) : null}
-
-                <Section icon={<TopicIcon topic="setup" size={20} />} title="Setup">
-                  <Surface padding="lg">
-                    <Stack gap="lg">
-                      <Stack gap="xs">
-                        <Title order={3} size="h4">
-                          Preferred TTS color
-                        </Title>
-                        {data.colors.length > 0 ? (
-                          <Group gap="sm">
-                            {data.colors.map((color) => (
-                              <Tooltip key={color} label={`${color} TTS color`}>
-                                <ColorSwatch
-                                  color={TTS_COLOR_SWATCHES[color]}
-                                  size={18}
-                                  aria-label={`${color} TTS color`}
-                                />
-                              </Tooltip>
-                            ))}
-                          </Group>
-                        ) : (
-                          <Text size="sm" c="dimmed">
-                            None specified.
-                          </Text>
-                        )}
-                      </Stack>
-                      <Divider />
-                      <Box>
-                        <Title order={3} size="h4">
-                          At start
-                        </Title>
-                        <Text size="sm" mt="xs">
-                          <InlineFormattedTextSource source={data.rules.startText} />
-                        </Text>
-                      </Box>
-                      <Divider />
-                      <Box>
-                        <Title order={3} size="h4">
-                          Revival
-                        </Title>
-                        <Text size="sm" mt="xs">
-                          <InlineFormattedTextSource source={data.rules.revivalText} />
-                        </Text>
-                      </Box>
-                    </Stack>
-                  </Surface>
+                    {data.leaders.map((leader, index) => (
+                      <article
+                        className={styles.leaderTile}
+                        key={`${leader.name}-${leader.image}-${index}`}
+                        title={`${leader.name}, strength ${leader.strength ?? 'not specified'}`}
+                      >
+                        <LeaderToken {...leader} background={data.background} logo={data.logo} />
+                      </article>
+                    ))}
+                  </div>
                 </Section>
 
-                <FactionFilesAndRulesets page={page} />
+                <FactionTroops troops={data.troops} background={data.background} />
+
+                <FactionAdvantages advantages={data.rules.advantages} />
+
+                <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+                  <Card icon={<TopicIcon topic="alliance" size={20} />} title="Alliance">
+                    <FormattedTextSource source={data.rules.alliance.text} size="sm" />
+                  </Card>
+                  <FactionSpecialRule rule={data.rules.fate} />
+                </SimpleGrid>
               </Stack>
-            </Flex>
-            <RelatedFaq
-              items={faq.relatedFaq}
-              status={faq.faqStatus}
-              onLoadMore={faq.loadMoreFaq}
-              onOpenQuestion={(questionSlug, rulesetSlug) => {
-                void navigate({
-                  to: '/rulesets/$rulesetSlug/faq/$questionSlug',
-                  params: { questionSlug, rulesetSlug },
-                });
-              }}
-            />
-          </Stack>
-        </PageLayout.Content>
-      </PageLayout>
-    </BackgroundLibrary>
+            </Box>
+
+            <Stack
+              gap="md"
+              component="aside"
+              aria-label="Faction details"
+              w={{ base: '100%', md: '15rem' }}
+              miw={0}
+              style={{ flex: '0 0 auto' }}
+            >
+              <FactionSidebarOverview data={data} />
+
+              {planets.length > 0 ? (
+                <Section icon={<TopicIcon topic="planets" size={20} />} title="Planets">
+                  <Stack component="ul" gap="sm" m={0} p={0} style={{ listStyle: 'none' }}>
+                    {planets.map((planet, index) => (
+                      <FactionPlanet key={`${planet.name}-${planet.image}-${index}`} planet={planet} />
+                    ))}
+                  </Stack>
+                </Section>
+              ) : null}
+
+              <Section icon={<TopicIcon topic="setup" size={20} />} title="Setup">
+                <Surface padding="lg">
+                  <Stack gap="lg">
+                    <Stack gap="xs">
+                      <Title order={3} size="h4">
+                        Preferred TTS color
+                      </Title>
+                      {data.colors.length > 0 ? (
+                        <Group gap="sm">
+                          {data.colors.map((color) => (
+                            <Tooltip key={color} label={`${color} TTS color`}>
+                              <ColorSwatch
+                                color={TTS_COLOR_SWATCHES[color]}
+                                size={18}
+                                aria-label={`${color} TTS color`}
+                              />
+                            </Tooltip>
+                          ))}
+                        </Group>
+                      ) : (
+                        <Text size="sm" c="dimmed">
+                          None specified.
+                        </Text>
+                      )}
+                    </Stack>
+                    <Divider />
+                    <Box>
+                      <Title order={3} size="h4">
+                        At start
+                      </Title>
+                      <Text size="sm" mt="xs">
+                        <InlineFormattedTextSource source={data.rules.startText} />
+                      </Text>
+                    </Box>
+                    <Divider />
+                    <Box>
+                      <Title order={3} size="h4">
+                        Revival
+                      </Title>
+                      <Text size="sm" mt="xs">
+                        <InlineFormattedTextSource source={data.rules.revivalText} />
+                      </Text>
+                    </Box>
+                  </Stack>
+                </Surface>
+              </Section>
+
+              <FactionFilesAndRulesets page={page} />
+            </Stack>
+          </Flex>
+          <RelatedFaq
+            items={faq.relatedFaq}
+            status={faq.faqStatus}
+            onLoadMore={faq.loadMoreFaq}
+            onOpenQuestion={(questionSlug, rulesetSlug) => {
+              void navigate({
+                to: '/rulesets/$rulesetSlug/faq/$questionSlug',
+                params: { questionSlug, rulesetSlug },
+              });
+            }}
+          />
+        </Stack>
+      </PageLayout.Content>
+    </PageLayout>
   );
 }
 

@@ -146,7 +146,26 @@ function PresetsPage() {
   }
   return <PresetEditor library={library} />;
 }
-function PresetEditor({ library }: { library: NonNullable<ReturnType<typeof usePresetLibrary>> }) {
+function backgroundChoiceKey(value: BackgroundData | null) {
+  if (!value) {
+    return 'faction';
+  }
+  return value.source?.kind === 'preset' ? value.source.key : 'custom';
+}
+function backgroundChoiceValue(next: string, backgrounds: SharedBackgroundPreset[], resolved: BackgroundData) {
+  if (next === 'faction') {
+    return null;
+  }
+  const selected = backgrounds.find((entry) => entry.key === next);
+  return selected ? linkedBackground(selected) : customBackground(resolved);
+}
+function backgroundEditorLabel(active: boolean, shared: boolean) {
+  if (active) {
+    return 'Close background editor';
+  }
+  return shared ? 'Edit shared background' : 'Edit background';
+}
+function PresetEditor({ library }: Readonly<{ library: NonNullable<ReturnType<typeof usePresetLibrary>> }>) {
   const [state, dispatch] = useReducer(reduce, {
     open: null,
     active: null,
@@ -178,7 +197,7 @@ function PresetEditor({ library }: { library: NonNullable<ReturnType<typeof useP
   const reset = (preset: Preset) =>
     dispatch({ kind: 'reset', key: preset.key, backgrounds: linkedEdits(preset).map((entry) => entry.key) });
   function backgroundControl(preset: Preset, region: string, value: BackgroundData | null) {
-    const key = value?.source?.kind === 'preset' ? value.source.key : value ? 'custom' : 'faction';
+    const key = backgroundChoiceKey(value);
     const definition = backgrounds.find((entry) => entry.key === key);
     const active = state.open === preset.key && state.active === region;
     const editing = state.open === preset.key;
@@ -187,14 +206,9 @@ function PresetEditor({ library }: { library: NonNullable<ReturnType<typeof useP
       if (!next) {
         return;
       }
-      const selected = backgrounds.find((entry) => entry.key === next);
       dispatch({
         kind: 'draft',
-        value: replaceRegion(
-          preset,
-          region,
-          next === 'faction' ? null : selected ? linkedBackground(selected) : customBackground(resolved)
-        ),
+        value: replaceRegion(preset, region, backgroundChoiceValue(next, backgrounds, resolved)),
       });
     };
     return (
@@ -234,7 +248,7 @@ function PresetEditor({ library }: { library: NonNullable<ReturnType<typeof useP
               size="compact-xs"
               onClick={() => dispatch({ kind: 'active', region: active ? null : region })}
             >
-              {active ? 'Close background editor' : definition ? 'Edit shared background' : 'Edit background'}
+              {backgroundEditorLabel(active, Boolean(definition))}
             </Button>
             <Button
               variant="subtle"
@@ -478,14 +492,14 @@ function PresetEditor({ library }: { library: NonNullable<ReturnType<typeof useP
     </PageLayout>
   );
 }
-function BackgroundSwatch({ value }: { value: BackgroundData }) {
+function BackgroundSwatch({ value }: Readonly<{ value: BackgroundData }>) {
   return (
     <div style={{ width: 48, height: 48, flexShrink: 0, overflow: 'hidden', borderRadius: 'var(--mantine-radius-sm)' }}>
       <Background {...value} />
     </div>
   );
 }
-function FrontPreview({ preset }: { preset: FamilyPreset }): ReactNode {
+function FrontPreview({ preset }: Readonly<{ preset: FamilyPreset }>): ReactNode {
   const style: CardFrontStyle = preset.style;
   switch (preset.key) {
     case 'stronghold':

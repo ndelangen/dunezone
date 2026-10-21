@@ -1,5 +1,4 @@
-import { newCardWithStandards } from '@shared/assets/cardFrontPresets';
-import { cardFrontStyleFor } from '@shared/assets/cardFrontPresets';
+import { cardFrontStyleFor, newCardWithStandards } from '@shared/assets/cardFrontPresets';
 import { useReducer, useState } from 'react';
 
 import { useCardFrontPresets } from '@db/cardFrontPresets';

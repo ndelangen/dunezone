@@ -64,21 +64,7 @@ export function useCardCreate(type: CardType) {
   return { saveState, save, error: createAsset.error };
 }
 
-/** The page around a new card's workbench, shown once the viewer is known to be signed in. */
-export function CardCreateFrame<Draft extends { name: string }>({
-  type,
-  title,
-  headerSlot,
-  status,
-  onSave,
-  onReset,
-  load,
-  saveError,
-  children,
-  backgrounds,
-  fronts,
-  loadingPresets = false,
-}: {
+type CardCreateFrameProps<Draft extends { name: string }> = {
   type: CardType;
   /** The page title before the card has a name, e.g. "New spice card". */
   title: string;
@@ -97,11 +83,44 @@ export function CardCreateFrame<Draft extends { name: string }>({
   backgrounds?: SharedBackgroundPreset[];
   fronts?: CardFrontPreset[];
   loadingPresets?: boolean;
-}) {
+};
+
+/** The page around a new card's workbench, shown once the viewer is known to be signed in. */
+export function CardCreateFrame<Draft extends { name: string }>(props: CardCreateFrameProps<Draft>) {
+  return props.backgrounds === undefined ? (
+    <StandardCardCreateFrame {...props} />
+  ) : (
+    <CardCreateFrameContent {...props} />
+  );
+}
+function StandardCardCreateFrame<Draft extends { name: string }>(props: CardCreateFrameProps<Draft>) {
+  const standards = useAuthoringPresets();
+  return (
+    <CardCreateFrameContent
+      {...props}
+      backgrounds={standards?.backgrounds ?? []}
+      fronts={props.fronts ?? standards?.fronts}
+      loadingPresets={!standards || props.loadingPresets}
+    />
+  );
+}
+function CardCreateFrameContent<Draft extends { name: string }>({
+  type,
+  title,
+  headerSlot,
+  status,
+  onSave,
+  onReset,
+  load,
+  saveError,
+  children,
+  backgrounds,
+  fronts,
+  loadingPresets = false,
+}: CardCreateFrameProps<Draft>) {
   const authoringAccountKey = useAuthoringAccountKey();
   const navigate = useNavigate();
   const viewer = useSessionViewer();
-  const standards = useAuthoringPresets(backgrounds === undefined);
   const noun = type === 'token-leader' ? 'token' : 'card';
 
   switch (viewer.kind) {
@@ -121,7 +140,7 @@ export function CardCreateFrame<Draft extends { name: string }>({
       break;
   }
 
-  if (loadingPresets || (backgrounds === undefined && !standards)) {
+  if (loadingPresets) {
     return (
       <AssetEditorMessage title={title} type={type}>
         <LoadPending title="Loading presets">Loading the current design standards.</LoadPending>
@@ -130,7 +149,7 @@ export function CardCreateFrame<Draft extends { name: string }>({
   }
 
   return (
-    <BackgroundLibrary presets={backgrounds ?? standards?.backgrounds ?? []} fronts={fronts ?? standards?.fronts}>
+    <BackgroundLibrary presets={backgrounds ?? []} fronts={fronts}>
       <PageLayout>
         {headerSlot}
         <PageLayout.Toolbar>

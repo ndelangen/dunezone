@@ -43,6 +43,7 @@ import type * as lib_assetBacks from "../lib/assetBacks.js";
 import type * as lib_assetCatalogue from "../lib/assetCatalogue.js";
 import type * as lib_assetInput from "../lib/assetInput.js";
 import type * as lib_authSessionLifecycle from "../lib/authSessionLifecycle.js";
+import type * as lib_backgroundPresetSlots from "../lib/backgroundPresetSlots.js";
 import type * as lib_backgroundPresets from "../lib/backgroundPresets.js";
 import type * as lib_backgroundRegeneration from "../lib/backgroundRegeneration.js";
 import type * as lib_backgroundUses from "../lib/backgroundUses.js";
@@ -203,6 +204,7 @@ const fullApi: ApiFromModules<{
   "lib/assetCatalogue": typeof lib_assetCatalogue;
   "lib/assetInput": typeof lib_assetInput;
   "lib/authSessionLifecycle": typeof lib_authSessionLifecycle;
+  "lib/backgroundPresetSlots": typeof lib_backgroundPresetSlots;
   "lib/backgroundPresets": typeof lib_backgroundPresets;
   "lib/backgroundRegeneration": typeof lib_backgroundRegeneration;
   "lib/backgroundUses": typeof lib_backgroundUses;

@@ -1,5 +1,4 @@
-import { newCardWithStandards } from '@shared/assets/cardFrontPresets';
-import { cardFrontStyleFor } from '@shared/assets/cardFrontPresets';
+import { cardFrontStyleFor, newCardWithStandards } from '@shared/assets/cardFrontPresets';
 import { EMPTY_HOMEWORLD_CARD } from '@shared/assets/homeworldTemplate';
 import { useReducer, useState } from 'react';
 

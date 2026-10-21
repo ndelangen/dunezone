@@ -153,11 +153,12 @@ export function cardFrontPresetKey(type: string, data: unknown): CardFrontPreset
       return 'leader-skill';
     case 'card-treachery': {
       const parsed = TreacheryAsset.safeParse(data);
-      return parsed.success
-        ? /^prediction(?:\s|$)/i.test(parsed.data.subName)
-          ? 'prediction'
-          : `treachery-${treacheryStyle(parsed.data).key}`
-        : null;
+      if (!parsed.success) {
+        return null;
+      }
+      return /^prediction(?:\s|$)/i.test(parsed.data.subName)
+        ? 'prediction'
+        : `treachery-${treacheryStyle(parsed.data).key}`;
     }
     default:
       return null;

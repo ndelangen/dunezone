@@ -78,10 +78,7 @@ function FactionEditPage() {
   const deleteFaction = useDeleteFaction();
   const setFactionGroup = useSetFactionGroup();
 
-  const factionQuery = useFaction(factionId, {
-    initialData: loaderData,
-  });
-  const page = factionQuery.data ?? loaderData;
+  const page = useFaction(factionId, { initialData: loaderData }).data ?? loaderData;
   const { resolved: viewerResolved, viewerAccess } = useFactionAccess(page);
   const assignableGroups = useViewerAssignableGroups();
   const { faction, assetPublishing } = page;

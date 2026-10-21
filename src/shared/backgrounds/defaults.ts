@@ -477,7 +477,8 @@ export const stockBackgroundValues = {
 } satisfies Record<string, BackgroundData>;
 
 function stockKey(key: string) {
-  return `stock/${key.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)}`;
+  const slug = key.replace(/[A-Z]/g, (letter) => '-' + letter.toLowerCase());
+  return `stock/${slug}`;
 }
 
 export const INITIAL_BACKGROUND_PRESETS = Object.entries(stockBackgroundValues).map(([key, value]) => ({

@@ -81,7 +81,7 @@ export const Background = meta.story({
   args: { chapter: 'background' as const, draft: draftWith({ mode: 'custom', ...GF9_LEADER_SKILL_DECK_BACK }) },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByRole('radiogroup', { name: 'Background' })).toBeVisible();
+    await expect(canvas.getByRole('combobox', { name: 'Background preset' })).toBeVisible();
     await expect(canvas.queryByRole('textbox', { name: 'Label' })).toBeNull();
   },
 });

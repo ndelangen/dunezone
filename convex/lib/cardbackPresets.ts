@@ -54,17 +54,19 @@ export async function listCardbackPresets(ctx: Pick<QueryCtx, 'db'>, memo: Cardb
 
 /** Activation republishes virtual defaults and saved designs without overwriting an Administrator's edits. */
 export async function publishCardbackPresets(ctx: MutationCtx) {
-  for (const initial of INITIAL_CARDBACK_PRESETS) {
-    await enqueuePublicationJob(ctx, {
-      assetType: 'cardback-preset',
-      assetId: initial.key,
-      assetData: {
+  await Promise.all(
+    INITIAL_CARDBACK_PRESETS.map(async (initial) => {
+      await enqueuePublicationJob(ctx, {
+        assetType: 'cardback-preset',
         assetId: initial.key,
-        slug: initial.key,
-        cardback: (await presetFor(ctx, initial.key, new Map())).cardback,
-      },
-    });
-  }
+        assetData: {
+          assetId: initial.key,
+          slug: initial.key,
+          cardback: (await presetFor(ctx, initial.key, new Map())).cardback,
+        },
+      });
+    })
+  );
 }
 
 /** Store an explicitly chosen preset revision and queue its shared replacement in the same transaction. */

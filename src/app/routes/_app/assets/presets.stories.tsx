@@ -1,7 +1,6 @@
 import preview from '@sb/preview';
 import { cardbackPresetSchema } from '@shared/assets/cardbackPresets';
-import { CARD_FRONT_PUBLICATION_REVISIONS } from '@shared/assets/cardFrontPresets';
-import { cardFrontPresetSchema } from '@shared/assets/cardFrontPresets';
+import { CARD_FRONT_PUBLICATION_REVISIONS, cardFrontPresetSchema } from '@shared/assets/cardFrontPresets';
 import { expect, userEvent, within } from 'storybook/test';
 
 import { db, storybookViewer } from '@db/storybook';

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { compareCodeUnits } from '../compareText';
 import { AuthoredBackground, Background } from '../factions/schema';
 import { backgroundPresetKeySchema } from './source';
 
@@ -23,50 +24,51 @@ export function backgroundValue(value: BackgroundData): z.infer<typeof Backgroun
   return pure;
 }
 
-/** Raw editor values retain their links; only the returned render projection follows the library. */
-export function resolveBackgroundValues<T>(data: T, presets: readonly SharedBackgroundPreset[], keepSource = false): T {
-  const values = new Map(presets.map((entry) => [entry.key, entry.value]));
-  const visit = (value: unknown): unknown => {
+/** Apply a projection only at complete authored backgrounds, preserving every other data field. */
+export function mapBackgrounds<T>(data: T, project: (background: BackgroundData, path: string[]) => unknown): T {
+  function visit(value: unknown, path: string[]): unknown {
     if (Array.isArray(value)) {
-      return value.map(visit);
+      return value.map((entry, index) => visit(entry, [...path, String(index)]));
     }
     if (!value || typeof value !== 'object') {
       return value;
     }
-    if ('colors' in value && 'image' in value) {
-      const parsed = AuthoredBackground.safeParse(value);
-      if (parsed.success) {
-        const source = parsed.data.source;
-        const resolved =
-          source?.kind === 'preset'
-            ? (values.get(source.key) ?? backgroundValue(parsed.data))
-            : backgroundValue(parsed.data);
-        return keepSource && source ? { ...resolved, source } : resolved;
-      }
+    const parsed = 'colors' in value && 'image' in value ? AuthoredBackground.safeParse(value) : null;
+    if (parsed?.success) {
+      return project(parsed.data, path);
     }
-    return Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, visit(entry)]));
-  };
-  return visit(data) as T;
+    return Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, visit(entry, [...path, key])]));
+  }
+  return visit(data, []) as T;
+}
+
+function projectedBackground(
+  value: BackgroundData,
+  values: Map<string, SharedBackgroundPreset['value']>,
+  keepSource: boolean
+) {
+  const source = value.source;
+  let resolved = backgroundValue(value);
+  if (source?.kind === 'preset') {
+    resolved = values.get(source.key) ?? resolved;
+  }
+  return keepSource && source ? { ...resolved, source } : resolved;
+}
+
+/** Raw editor values retain their links; only the returned render projection follows the library. */
+export function resolveBackgroundValues<T>(data: T, presets: readonly SharedBackgroundPreset[], keepSource = false): T {
+  const values = new Map(presets.map((entry) => [entry.key, entry.value]));
+  return mapBackgrounds(data, (value) => projectedBackground(value, values, keepSource));
 }
 
 /** One edge per subject and preset, even when several regions share the same definition. */
 export function backgroundPresetKeys(data: unknown): string[] {
   const keys = new Set<string>();
-  const visit = (value: unknown) => {
-    if (Array.isArray(value)) {
-      value.forEach(visit);
-      return;
+  mapBackgrounds(data, (value) => {
+    if (value.source?.kind === 'preset') {
+      keys.add(value.source.key);
     }
-    if (!value || typeof value !== 'object') {
-      return;
-    }
-    const background = 'colors' in value && 'image' in value ? AuthoredBackground.safeParse(value) : null;
-    if (background?.success && background.data.source?.kind === 'preset') {
-      keys.add(background.data.source.key);
-      return;
-    }
-    Object.values(value).forEach(visit);
-  };
-  visit(data);
-  return [...keys].sort();
+    return value;
+  });
+  return [...keys].sort(compareCodeUnits);
 }

@@ -183,6 +183,16 @@ test('family followers change with their family while direct preset links and le
   const jobs = await t.run((ctx) => ctx.db.query('publication_jobs').take(100));
   expect(jobs.map((job) => job.asset_id)).toEqual([follower.id]);
   expect(jobs[0]?.asset_data.frontPreset.style.head).toEqual(background.value);
+  await admin.mutation(api.backgroundPresets.save, {
+    ...background,
+    revision: 1,
+    value: { ...background.value, colors: ['#abc123', '#def456'] },
+  });
+  await t.finishAllScheduledFunctions(vi.runAllTimers);
+  const propagated = await t.run((ctx) => ctx.db.query('publication_jobs').collect());
+  expect(propagated.map((job) => job.asset_id)).toEqual([follower.id]);
+  expect(propagated[0]?.asset_data.frontPreset.style.head.colors).toEqual(['#abc123', '#def456']);
+
   expect((await t.query(api.backgroundPresets.list, {})).find((preset) => preset.key === old.key)?.value).toEqual(
     old.value
   );
@@ -445,4 +455,17 @@ test('faction catalogue cards, spotlights and sheet preview projections follow t
     }),
   ]);
   await t.finishAllScheduledFunctions(vi.runAllTimers);
+});
+
+test('family and Discovery saves reject duplicate background definitions atomically', async () => {
+  const { t, admin } = await fixture();
+  const library = await t.query(api.presetLibrary.page, {});
+  const backgrounds = [background, background];
+  await expect(admin.mutation(api.presetLibrary.saveFamily, { ...library.families[0]!, backgrounds })).rejects.toThrow(
+    'Choose each background only once'
+  );
+  await expect(
+    admin.mutation(api.presetLibrary.saveDiscovery, { ...library.discovery[0]!, backgrounds })
+  ).rejects.toThrow('Choose each background only once');
+  expect(await t.run((ctx) => ctx.db.query('background_presets').collect())).toEqual([]);
 });

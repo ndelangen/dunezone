@@ -1,79 +1,63 @@
 import { ConvexError } from 'convex/values';
 
-import { cardbackPresetKeySchema } from '../../src/shared/assets/cardbackPresetKeys';
-import { INITIAL_CARDBACK_PRESETS } from '../../src/shared/assets/cardbackPresets';
-import { cardFrontPresetKeySchema } from '../../src/shared/assets/cardFrontPresets';
-import { INITIAL_CARD_FRONT_PRESETS } from '../../src/shared/assets/cardFrontPresets';
 import { INITIAL_BACKGROUND_PRESETS } from '../../src/shared/backgrounds/defaults';
-import { discoveryKeySchema } from '../../src/shared/backgrounds/families';
-import { INITIAL_DISCOVERY_PRESETS } from '../../src/shared/backgrounds/families';
 import {
   backgroundPresetKeys,
   resolveBackgroundValues,
   backgroundValue,
   customBackground,
+  mapBackgrounds,
 } from '../../src/shared/backgrounds/schema';
 import type { SharedBackgroundPreset, BackgroundData } from '../../src/shared/backgrounds/schema';
 import type { MutationCtx, QueryCtx } from '../types';
+import { backgroundSlotFor, backgroundSlots } from './backgroundPresetSlots';
 import { canonicalJson } from './canonicalJson';
-import { rawCardbackPreset } from './cardPresetDefaults';
 
 export const MAX_BACKGROUND_PRESETS = 200;
+type Reader = Pick<QueryCtx, 'db'>;
 
 /** Saved card standards remain the fallback until an administrator explicitly saves a named background. */
-export async function listBackgroundPresets(ctx: Pick<QueryCtx, 'db'>): Promise<SharedBackgroundPreset[]> {
-  const presets = new Map<string, SharedBackgroundPreset>(
-    INITIAL_BACKGROUND_PRESETS.map((preset) => [preset.key, preset])
+export async function listBackgroundPresets(ctx: Reader): Promise<SharedBackgroundPreset[]> {
+  const [slots, stored] = await Promise.all([
+    backgroundSlots(ctx),
+    ctx.db.query('background_presets').take(MAX_BACKGROUND_PRESETS + 1),
+  ]);
+  const projected = await Promise.all(
+    slots.map(async (slot) => ({
+      key: slot.key,
+      name: slot.name,
+      value: await resolveBackgrounds(ctx, slot.value),
+      revision: slot.revision,
+    }))
   );
-  for (const initial of INITIAL_CARD_FRONT_PRESETS) {
-    const row = await ctx.db
-      .query('card_front_presets')
-      .withIndex('by_key', (q) => q.eq('key', initial.key))
-      .unique();
-    const style = row?.style ?? initial.style;
-    for (const [region, value] of Object.entries(style)) {
-      if (value) {
-        presets.set(`front/${initial.key}/${region === 'head' ? 'header' : 'icon'}`, {
-          key: `front/${initial.key}/${region === 'head' ? 'header' : 'icon'}`,
-          name: `${initial.label} ${region === 'head' ? 'header' : 'icon'}`,
-          value: await resolveBackgrounds(ctx, value),
-          revision: row?.revision ?? 0,
-        });
-      }
-    }
+  const overrides = stored.map(({ key, name, value, revision }) => ({ key, name, value, revision }));
+  return [
+    ...new Map(
+      [...INITIAL_BACKGROUND_PRESETS, ...projected, ...overrides].map((preset) => [preset.key, preset])
+    ).values(),
+  ];
+}
+
+async function followSlot(
+  ctx: Reader,
+  key: string,
+  value: BackgroundData,
+  ancestors: Set<string>
+): Promise<BackgroundData> {
+  const source = value.source;
+  if (source?.kind !== 'preset' || source.key === key) {
+    return backgroundValue(value);
   }
-  for (const initial of INITIAL_CARDBACK_PRESETS) {
-    const row = await rawCardbackPreset(ctx, initial.key);
-    presets.set(`back/${initial.key}`, {
-      key: `back/${initial.key}`,
-      name: `${initial.label} back`,
-      value: await resolveBackgrounds(ctx, row.cardback.background),
-      revision: row?.revision ?? 0,
-    });
+  if (ancestors.has(key)) {
+    throw new ConvexError('These preset choices form a loop. Choose a background with its own settings.');
   }
-  for (const initial of INITIAL_DISCOVERY_PRESETS) {
-    const row = await ctx.db
-      .query('discovery_presets')
-      .withIndex('by_key', (q) => q.eq('key', initial.key))
-      .unique();
-    for (const face of ['front', 'back'] as const) {
-      presets.set(`${initial.key}/${face}`, {
-        key: `${initial.key}/${face}`,
-        name: `${initial.label} ${face}`,
-        value: await resolveBackgrounds(ctx, (row ?? initial)[face].background),
-        revision: row?.revision ?? 0,
-      });
-    }
-  }
-  for (const row of await ctx.db.query('background_presets').take(MAX_BACKGROUND_PRESETS + 1)) {
-    presets.set(row.key, { key: row.key, name: row.name, value: row.value, revision: row.revision });
-  }
-  return [...presets.values()];
+  const target = await referencedPreset(ctx, source.key, new Set([...ancestors, key]));
+  return target?.value ?? backgroundValue(value);
 }
 
 /** Capture reads follow only the keys they use, rather than loading the entire admin library for each face. */
 async function referencedPreset(
-  ctx: Pick<QueryCtx, 'db'>,
+  ctx: Reader,
   key: string,
   ancestors = new Set<string>()
 ): Promise<SharedBackgroundPreset | null> {
@@ -88,124 +72,71 @@ async function referencedPreset(
   if (stock) {
     return stock;
   }
-  const [kind, family, region] = key.split('/');
-  let value: BackgroundData | undefined;
-  let revision = 0;
-  if (kind === 'front') {
-    const parsed = cardFrontPresetKeySchema.safeParse(family);
-    if (parsed.success && (region === 'header' || region === 'icon')) {
-      const row = await ctx.db
-        .query('card_front_presets')
-        .withIndex('by_key', (q) => q.eq('key', parsed.data))
-        .unique();
-      const style = row?.style ?? INITIAL_CARD_FRONT_PRESETS.find((preset) => preset.key === parsed.data)!.style;
-      value = (region === 'header' ? style.head : style.iconBackground) ?? undefined;
-      revision = row?.revision ?? 0;
-    }
-  } else if (kind === 'back') {
-    const parsed = cardbackPresetKeySchema.safeParse(family);
-    if (parsed.success) {
-      const row = await rawCardbackPreset(ctx, parsed.data);
-      value = row.cardback.background;
-      revision = row.revision;
-    }
-  } else {
-    const parsed = discoveryKeySchema.safeParse(kind);
-    if (parsed.success && (family === 'front' || family === 'back')) {
-      const row = await ctx.db
-        .query('discovery_presets')
-        .withIndex('by_key', (q) => q.eq('key', parsed.data))
-        .unique();
-      const preset = row ?? INITIAL_DISCOVERY_PRESETS.find((preset) => preset.key === parsed.data)!;
-      value = preset[family].background;
-      revision = preset.revision;
-    }
-  }
-  if (!value) {
+  const slot = await backgroundSlotFor(ctx, key);
+  if (!slot) {
     return null;
   }
-  if (value.source?.kind === 'preset' && value.source.key !== key) {
-    if (ancestors.has(key)) {
-      throw new ConvexError('These preset choices form a loop. Choose a background with its own settings.');
-    }
-    const target = await referencedPreset(ctx, value.source.key, new Set([...ancestors, key]));
-    if (target) {
-      value = target.value;
-    }
-  }
-  return { key, name: key, value: resolveBackgroundValues(value, []), revision };
-}
-export async function resolveBackgrounds<T>(ctx: Pick<QueryCtx, 'db'>, value: T, keepSource = false): Promise<T> {
-  const presets: SharedBackgroundPreset[] = [];
-  for (const key of backgroundPresetKeys(value)) {
-    const preset = await referencedPreset(ctx, key);
-    if (preset) {
-      presets.push(preset);
-    }
-  }
-  return resolveBackgroundValues(value, presets, keepSource);
-}
-
-export async function validateBackgroundLinks(ctx: Pick<QueryCtx, 'db'>, value: unknown, allowCardFamily = false) {
-  const visit = (entry: unknown, path: string[]) => {
-    if (!entry || typeof entry !== 'object') {
-      return;
-    }
-    if (
-      'source' in entry &&
-      entry.source &&
-      typeof entry.source === 'object' &&
-      'kind' in entry.source &&
-      entry.source.kind === 'family'
-    ) {
-      if (!allowCardFamily || (path.join('.') !== 'head' && path.join('.') !== 'icon.0')) {
-        throw new ConvexError('Family standard is available only for a card header or icon background.');
-      }
-    }
-    Object.entries(entry).forEach(([key, child]) => visit(child, [...path, key]));
-  };
-  visit(value, []);
-  const keys = backgroundPresetKeys(value);
-  if (!keys.length) {
-    return;
-  }
-  const available = new Set((await listBackgroundPresets(ctx)).map((preset) => preset.key));
-  if (keys.some((key) => !available.has(key))) {
-    throw new ConvexError('A linked background no longer exists. Choose another preset or Custom.');
-  }
-}
-
-/** Preserve a virtual definition before its old backing slot is rewired to another design. */
-export async function preserveVirtualBackgrounds(ctx: MutationCtx, keys: readonly string[]) {
-  const library = await listBackgroundPresets(ctx);
-  for (const key of keys) {
-    const row = await ctx.db
-      .query('background_presets')
-      .withIndex('by_key', (q) => q.eq('key', key))
-      .unique();
-    const preset = library.find((entry) => entry.key === key);
-    if (!row && preset) {
-      if ((await ctx.db.query('background_presets').take(MAX_BACKGROUND_PRESETS)).length >= MAX_BACKGROUND_PRESETS) {
-        throw new ConvexError('The background library is full. Edit an existing preset.');
-      }
-      await ctx.db.insert('background_presets', { ...preset, updated_at: Date.now() });
-    }
-  }
+  return { key, name: slot.name, value: await followSlot(ctx, key, slot.value, ancestors), revision: slot.revision };
 }
 
 /** Only the values a render projection references cross the page query. The Picker loads its options separately. */
-export async function backgroundProjection(
-  ctx: Pick<QueryCtx, 'db'>,
-  data: unknown
-): Promise<SharedBackgroundPreset[]> {
-  const presets = [];
-  for (const key of backgroundPresetKeys(data)) {
-    const preset = await referencedPreset(ctx, key);
-    if (preset) {
-      presets.push(preset);
-    }
+export async function backgroundProjection(ctx: Reader, data: unknown): Promise<SharedBackgroundPreset[]> {
+  const presets = await Promise.all(backgroundPresetKeys(data).map((key) => referencedPreset(ctx, key)));
+  return presets.filter((preset) => preset !== null);
+}
+
+export async function resolveBackgrounds<T>(ctx: Reader, value: T, keepSource = false): Promise<T> {
+  return resolveBackgroundValues(value, await backgroundProjection(ctx, value), keepSource);
+}
+
+function assertFamilySource(value: BackgroundData, path: string[], allowCardFamily: boolean) {
+  if (value.source?.kind !== 'family') {
+    return;
   }
-  return presets;
+  const region = path.join('.');
+  if (!allowCardFamily || !['head', 'icon.0'].includes(region)) {
+    throw new ConvexError('Family standard is available only for a card header or icon background.');
+  }
+}
+export async function validateBackgroundLinks(ctx: Reader, value: unknown, allowCardFamily = false) {
+  mapBackgrounds(value, (background, path) => {
+    assertFamilySource(background, path, allowCardFamily);
+    return background;
+  });
+  const keys = backgroundPresetKeys(value);
+  const found = await backgroundProjection(ctx, value);
+  if (found.length !== keys.length) {
+    throw new ConvexError('A selected background no longer exists. Choose another preset.');
+  }
+}
+
+export async function assertBackgroundCapacity(ctx: Reader, additional = 0) {
+  const rows = await ctx.db.query('background_presets').take(MAX_BACKGROUND_PRESETS + 1);
+  if (rows.length + additional > MAX_BACKGROUND_PRESETS) {
+    throw new ConvexError('The background library is full. Edit an existing preset.');
+  }
+}
+
+async function unmaterializedPreset(ctx: Reader, library: SharedBackgroundPreset[], key: string) {
+  const row = await ctx.db
+    .query('background_presets')
+    .withIndex('by_key', (q) => q.eq('key', key))
+    .unique();
+  return row ? undefined : library.find((preset) => preset.key === key);
+}
+
+/** Keep named definitions stable before a family slot stops supplying their virtual fallback. */
+export async function preserveVirtualBackgrounds(ctx: MutationCtx, keys: string[]) {
+  if (keys.length === 0) {
+    return;
+  }
+  const library = await listBackgroundPresets(ctx);
+  const candidates = await Promise.all([...new Set(keys)].map((key) => unmaterializedPreset(ctx, library, key)));
+  const missing = candidates.filter((preset) => preset !== undefined);
+  await assertBackgroundCapacity(ctx, missing.length);
+  await Promise.all(
+    missing.map((preset) => ctx.db.insert('background_presets', { ...preset, updated_at: Date.now() }))
+  );
 }
 
 export function legacyBackground(
@@ -217,9 +148,8 @@ export function legacyBackground(
   if (value.source) {
     return value;
   }
-  return canonicalJson(backgroundValue(value)) === canonicalJson(backgroundValue(resolved))
-    ? current.source
-      ? current
-      : { ...current, source: { kind: 'preset', key } }
-    : customBackground(value);
+  if (canonicalJson(backgroundValue(value)) !== canonicalJson(backgroundValue(resolved))) {
+    return customBackground(value);
+  }
+  return current.source ? current : { ...current, source: { kind: 'preset', key } };
 }

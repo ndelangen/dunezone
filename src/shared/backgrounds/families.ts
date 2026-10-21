@@ -26,7 +26,13 @@ export const familyPresetSchema = z.strictObject({
   backRevision: z.number().int().nonnegative(),
 });
 export type FamilyPreset = z.infer<typeof familyPresetSchema>;
-export const familySaveSchema = familyPresetSchema.extend({ backgrounds: z.array(backgroundPresetSchema).max(3) });
+const editedBackgrounds = z
+  .array(backgroundPresetSchema)
+  .refine(
+    (presets) => new Set(presets.map((preset) => preset.key)).size === presets.length,
+    'Choose each background only once.'
+  );
+export const familySaveSchema = familyPresetSchema.extend({ backgrounds: editedBackgrounds.max(3) });
 export const discoverySaveSchema = discoveryPresetSchema.extend({
-  backgrounds: z.array(backgroundPresetSchema).max(2),
+  backgrounds: editedBackgrounds.max(2),
 });

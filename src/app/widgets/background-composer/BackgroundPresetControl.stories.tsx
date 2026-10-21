@@ -71,6 +71,14 @@ function ChoiceSession() {
   );
 }
 export const PresetOrCustom = meta.story({
+  parameters: {
+    database: db((baseline) => {
+      const { source: _source, ...value } = backgroundPresets.weapon;
+      baseline.background_presets = [
+        { key: 'custom/sunset', name: 'Sunset standard', value, revision: 1, updated_at: 0 },
+      ];
+    }),
+  },
   render: () => <ChoiceSession />,
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -78,7 +86,8 @@ export const PresetOrCustom = meta.story({
     await userEvent.click(await page.findByRole('option', { name: /^Custom$/ }));
     await expect(page.getByRole('region', { name: 'Background builder' })).toBeVisible();
     await userEvent.click(page.getByRole('combobox', { name: 'Head background preset' }));
-    await userEvent.click(await page.findByRole('option', { name: /^Weapon$/ }, { timeout: 30_000 }));
+    await userEvent.click(await page.findByRole('option', { name: /^Sunset standard$/ }, { timeout: 30_000 }));
     await expect(page.queryByRole('region', { name: 'Background builder' })).not.toBeInTheDocument();
+    await expect(page.getByRole('combobox', { name: 'Head background preset' })).toHaveValue('Sunset standard');
   },
 });

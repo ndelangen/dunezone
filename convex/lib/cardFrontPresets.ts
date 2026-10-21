@@ -11,6 +11,7 @@ import {
   cardFrontPresetKey,
   cardFrontStyleFor,
 } from '../../src/shared/assets/cardFrontPresets';
+import type { BackgroundData } from '../../src/shared/backgrounds/schema';
 import { internal } from '../_generated/api';
 import type { MutationCtx, QueryCtx } from '../types';
 import {
@@ -20,6 +21,9 @@ import {
   validateBackgroundLinks,
 } from './backgroundPresets';
 
+function authoredSlot(value: BackgroundData, key: string): BackgroundData {
+  return value.source ? value : { ...value, source: { kind: 'preset', key } };
+}
 export async function cardFrontPresetFor(ctx: Pick<QueryCtx, 'db'>, key: CardFrontPresetKey): Promise<CardFrontPreset> {
   const initial = INITIAL_CARD_FRONT_PRESETS.find((preset) => preset.key === key)!;
   const row = await ctx.db
@@ -28,15 +32,8 @@ export async function cardFrontPresetFor(ctx: Pick<QueryCtx, 'db'>, key: CardFro
     .unique();
   const authored: AuthoredCardFrontStyle = row?.style ?? initial.style;
   const style = await resolveBackgrounds(ctx, {
-    head: authored.head.source
-      ? authored.head
-      : { ...authored.head, source: { kind: 'preset', key: `front/${key}/header` } },
-    iconBackground:
-      authored.iconBackground === null
-        ? null
-        : authored.iconBackground.source
-          ? authored.iconBackground
-          : { ...authored.iconBackground, source: { kind: 'preset', key: `front/${key}/icon` } },
+    head: authoredSlot(authored.head, `front/${key}/header`),
+    iconBackground: authored.iconBackground ? authoredSlot(authored.iconBackground, `front/${key}/icon`) : null,
   });
   return { ...initial, style, revision: row?.revision ?? 0 };
 }
