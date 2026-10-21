@@ -64,7 +64,7 @@ export function useCardCreate(type: CardType) {
   return { saveState, save, error: createAsset.error };
 }
 
-type CardCreateFrameProps<Draft extends { name: string }> = {
+type CardCreateFrameProps<Draft extends { name: string }> = Readonly<{
   type: CardType;
   /** The page title before the card has a name, e.g. "New spice card". */
   title: string;
@@ -83,7 +83,7 @@ type CardCreateFrameProps<Draft extends { name: string }> = {
   backgrounds?: SharedBackgroundPreset[];
   fronts?: CardFrontPreset[];
   loadingPresets?: boolean;
-};
+}>;
 
 /** The page around a new card's workbench, shown once the viewer is known to be signed in. */
 export function CardCreateFrame<Draft extends { name: string }>(props: CardCreateFrameProps<Draft>) {

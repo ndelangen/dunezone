@@ -50,7 +50,7 @@ export const LegacyInline = meta.story({
   },
 });
 
-function ChoiceSession({ onChange }: { onChange?: (value: BackgroundData) => void }) {
+function ChoiceSession({ onChange }: Readonly<{ onChange?: (value: BackgroundData) => void }>) {
   const [state, dispatch] = useReducer(
     (
       current: { value: BackgroundData; memory: BackgroundModeMemory },
@@ -96,10 +96,12 @@ export const PresetOrCustom = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(page.getByRole('combobox', { name: 'Head background preset' }));
-    for (const name of ['Header backgrounds', 'Icon backgrounds', 'Card-back backgrounds']) {
-      const group = await page.findByRole('group', { name }, { timeout: 30_000 });
-      await expect(group.querySelector('svg')).not.toBeNull();
-    }
+    await Promise.all(
+      ['Header backgrounds', 'Icon backgrounds', 'Card-back backgrounds'].map(async (name) => {
+        const group = await page.findByRole('group', { name }, { timeout: 30_000 });
+        await expect(group.querySelector('svg')).not.toBeNull();
+      })
+    );
     await userEvent.click(await page.findByRole('option', { name: /^Custom$/ }));
     await expect(page.getByRole('region', { name: 'Background builder' })).toBeVisible();
     await userEvent.click(page.getByRole('combobox', { name: 'Head background preset' }));
@@ -109,7 +111,7 @@ export const PresetOrCustom = meta.story({
   },
 });
 
-function ChangedStandardSession({ onChange }: { onChange: (value: BackgroundData) => void }) {
+function ChangedStandardSession({ onChange }: Readonly<{ onChange: (value: BackgroundData) => void }>) {
   const [changed, setChanged] = useState(false);
   return (
     <BackgroundLibrary

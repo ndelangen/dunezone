@@ -7,10 +7,8 @@ import { Background } from '@game/assets/utils/Background';
 
 type Option = { value: string; label: string; collection: string };
 function choiceKey(value: BackgroundData) {
-  if (value.source?.kind === 'preset') {
-    return value.source.key;
-  }
-  return value.source?.kind === 'family' ? 'family' : 'custom';
+  const source = value.source ?? { kind: 'custom' as const };
+  return source.kind === 'preset' ? source.key : source.kind;
 }
 function fallbackLabel(key: string) {
   const stock = INITIAL_BACKGROUND_PRESETS.find((preset) => preset.key === key);
@@ -34,8 +32,8 @@ function pickerOptions(presets: SharedBackgroundPreset[], key: string, family: b
   if (faction) {
     options.push({ value: 'faction', label: "Each card's faction", collection: 'Use' });
   }
-  options.push({ value: 'custom', label: 'Custom', collection: 'Use' });
   options.push(
+    { value: 'custom', label: 'Custom', collection: 'Use' },
     ...presets.map((preset) => ({
       value: preset.key,
       label: preset.name,
@@ -48,13 +46,15 @@ function pickerOptions(presets: SharedBackgroundPreset[], key: string, family: b
   return options;
 }
 function backgroundGroup(key: string) {
-  if (key.startsWith('front/')) {
-    return key.endsWith('/header') ? 'Header backgrounds' : 'Icon backgrounds';
-  }
-  if (key.startsWith('back/')) {
-    return 'Card-back backgrounds';
-  }
-  return key.startsWith('discovery-') ? 'Token backgrounds' : 'Shared backgrounds';
+  const [kind, , region] = key.split('/');
+  const group = kind === 'front' ? region : kind.split('-')[0];
+  const labels: Record<string, string> = {
+    header: 'Header backgrounds',
+    icon: 'Icon backgrounds',
+    back: 'Card-back backgrounds',
+    discovery: 'Token backgrounds',
+  };
+  return labels[group] ?? 'Shared backgrounds';
 }
 function pickedValue(
   next: string | null,
@@ -80,6 +80,24 @@ function familyValueFor(value: BackgroundData, familyValue?: BackgroundData) {
   }
   return value;
 }
+function currentBackground(
+  value: BackgroundData | null,
+  resolved: BackgroundData | undefined,
+  saved: BackgroundData | undefined,
+  faction: BackgroundData | undefined
+) {
+  if (!value) {
+    return faction;
+  }
+  return { ...(resolved ?? saved ?? value), ...(value.source ? { source: value.source } : {}) };
+}
+function backgroundPreview(value: BackgroundData | null | undefined, size: number) {
+  return value ? (
+    <svg width={size} height={size} viewBox="0 0 600 600" aria-hidden>
+      <Background {...customBackground(value)} />
+    </svg>
+  ) : null;
+}
 
 export function BackgroundPickerView({
   label,
@@ -102,9 +120,7 @@ export function BackgroundPickerView({
 }>) {
   const key = value ? choiceKey(value) : 'faction';
   const selected = presets.find((preset) => preset.key === key);
-  const current = value
-    ? { ...(resolvedValue ?? selected?.value ?? value), ...(value.source ? { source: value.source } : {}) }
-    : factionValue;
+  const current = currentBackground(value, resolvedValue, selected?.value, factionValue);
   const currentPreview = current && familyValueFor(current, familyValue);
   const previews = new Map<string, BackgroundData | undefined>(presets.map((preset) => [preset.key, preset.value]));
   previews.set(key, currentPreview);
@@ -117,14 +133,7 @@ export function BackgroundPickerView({
       value={key}
       data={pickerOptions(presets, key, Boolean(familyValue) || key === 'family', Boolean(factionValue))}
       getPreviewSrc={() => null}
-      renderPreview={(id, size) => {
-        const preview = previews.get(id) ?? (id === key ? current : null);
-        return preview ? (
-          <svg width={size} height={size} viewBox="0 0 600 600" aria-hidden>
-            <Background {...customBackground(preview)} />
-          </svg>
-        ) : null;
-      }}
+      renderPreview={(id, size) => backgroundPreview(previews.get(id) ?? (id === key ? current : null), size)}
       allowDeselect={false}
       onDropdownChange={onDropdownChange}
       onChange={(next) => {
