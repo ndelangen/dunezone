@@ -302,6 +302,7 @@ function FaqResults({ deps, initial }: { deps: FaqDeps; initial: GlobalFaqPageDa
       <FaqList
         emptyLabel="No questions match."
         items={data.items}
+        rulesetSlug={data.selected.length === 1 ? data.selected[0] : undefined}
         onOpenQuestion={(questionSlug, rulesetSlug) =>
           openQuestion({
             to: '/rulesets/$rulesetSlug/faq/$questionSlug',

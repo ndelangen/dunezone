@@ -28,18 +28,30 @@ document.addEventListener('visibilitychange', () => recordViewportEvent(`visibil
  */
 export async function settleStoryViewport() {
   const startedAt = performance.now();
-  await waitFor(() => {
-    if (resizedWidth !== window.innerWidth || resizedHeight !== window.innerHeight) {
-      const now = performance.now();
-      const history = viewportEvents
-        .map((event) => `${event.kind} ${event.width}x${event.height} ${Math.round(now - event.at)}ms ago`)
-        .join('; ');
-      const visual = window.visualViewport;
-      throw new Error(
-        `The story viewport is ${window.innerWidth}x${window.innerHeight}, but its last resize event acknowledged ${resizedWidth}x${resizedHeight}.\n` +
-          `Readiness waited ${Math.round(now - startedAt)}ms; document is ${document.visibilityState}; layout viewport is ${document.documentElement.clientWidth}x${document.documentElement.clientHeight}; visual viewport is ${visual ? `${visual.width}x${visual.height}` : 'unavailable'}.\n` +
-          `Viewport events, oldest first: ${history}.`
-      );
+  /* A single frame observation distinguishes a stalled render from a missing resize acknowledgement. */
+  const frame =
+    (resizedWidth !== window.innerWidth || resizedHeight !== window.innerHeight) &&
+    typeof window.requestAnimationFrame === 'function'
+      ? window.requestAnimationFrame(() => recordViewportEvent('animation frame'))
+      : undefined;
+  try {
+    await waitFor(() => {
+      if (resizedWidth !== window.innerWidth || resizedHeight !== window.innerHeight) {
+        const now = performance.now();
+        const history = viewportEvents
+          .map((event) => `${event.kind} ${event.width}x${event.height} ${Math.round(now - event.at)}ms ago`)
+          .join('; ');
+        const visual = window.visualViewport;
+        throw new Error(
+          `The story viewport is ${window.innerWidth}x${window.innerHeight}, but its last resize event acknowledged ${resizedWidth}x${resizedHeight}.\n` +
+            `Readiness waited ${Math.round(now - startedAt)}ms; document is ${document.visibilityState}; layout viewport is ${document.documentElement.clientWidth}x${document.documentElement.clientHeight}; visual viewport is ${visual ? `${visual.width}x${visual.height}` : 'unavailable'}.\n` +
+            `Viewport events, oldest first: ${history}.`
+        );
+      }
+    });
+  } finally {
+    if (frame !== undefined) {
+      window.cancelAnimationFrame(frame);
     }
-  });
+  }
 }

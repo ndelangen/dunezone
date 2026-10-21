@@ -213,9 +213,9 @@ export const FaqSearched = meta.story({
     await waitFor(() => expect(questionRows(main, /^Question \d\d\?$/)).toHaveLength(FAQ_CATALOGUE_PAGE_SIZE + 1), {
       timeout: 60_000,
     });
-    await expect(
-      main.getAllByRole('link', { name: /^Open question: Question/ })[FAQ_CATALOGUE_PAGE_SIZE]
-    ).toHaveFocus();
+    await waitFor(() =>
+      expect(main.getAllByRole('link', { name: /^Open question: Question/ })[FAQ_CATALOGUE_PAGE_SIZE]).toHaveFocus()
+    );
     await expect(main.getByRole('status')).toHaveTextContent('More questions loaded');
     await expect(main.queryByRole('button', { name: 'Load more' })).toBeNull();
   },
@@ -479,7 +479,7 @@ export const AssetRelatedFaqLoadMore = meta.story({
     const list = within(await page.findByRole('region', { name: 'Related FAQ' }, { timeout: 30_000 }));
     await waitFor(() => expect(list.getAllByRole('link', { name: /^Open question:/ })).toHaveLength(12));
     await expect(list.getAllByRole('link', { name: /^Open question:/ })[0]).toHaveAccessibleName(
-      'Open question: Storm reference 14?'
+      'Open question: Storm reference 14?. Unanswered, 0 answers'
     );
     await expect(list.getAllByRole('link', { name: 'ClassicRules' })).toHaveLength(6);
     await expect(list.getAllByRole('link', { name: 'Dreamrules' })).toHaveLength(6);
