@@ -1,0 +1,194 @@
+.workbench {
+  width: 100%;
+  max-width: 70rem;
+  margin-inline: auto;
+  color: var(--color-text);
+}
+
+.stage {
+  --prototype-width: 960px;
+  container: faq-prototype / inline-size;
+  width: min(100%, var(--prototype-width));
+  display: grid;
+  gap: var(--space-xl);
+}
+
+.question {
+  display: block;
+  color: var(--color-text);
+  font-weight: 650;
+  font-size: var(--mantine-font-size-md);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.context {
+  color: var(--color-muted);
+}
+
+.readingRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "question status" "meta meta";
+  align-items: start;
+  gap: var(--space-sm);
+}
+
+.readingQuestion {
+  grid-area: question;
+}
+.readingStatus {
+  grid-area: status;
+}
+.readingMeta {
+  grid-area: meta;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  align-items: center;
+}
+
+.railRow {
+  display: grid;
+  grid-template-columns: 3rem minmax(0, 1fr);
+  gap: var(--space-md);
+  align-items: start;
+}
+
+.railCount {
+  text-align: center;
+  color: var(--color-muted);
+  line-height: 1;
+}
+.railCount[data-accepted="true"] {
+  color: var(--mantine-color-green-8);
+}
+.railCount svg {
+  vertical-align: middle;
+}
+
+.previewRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 9rem;
+  gap: var(--space-lg);
+  align-items: start;
+}
+
+.previewAside {
+  align-items: flex-end;
+}
+.answerPreview {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: baseline;
+  color: var(--color-muted);
+}
+.answerPreview > svg {
+  flex-shrink: 0;
+}
+
+.indexHeader,
+.indexRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 9rem 7rem 8rem;
+  gap: var(--space-md);
+  align-items: start;
+}
+
+.indexHeader {
+  color: var(--color-muted);
+  margin-bottom: var(--space-md);
+}
+.indexList {
+  display: grid;
+  gap: var(--space-lg);
+}
+.indexQuestion {
+  grid-area: auto;
+}
+.indexRuleset {
+  grid-area: auto;
+  overflow-wrap: anywhere;
+}
+.indexCount {
+  grid-area: auto;
+}
+.indexAuthor {
+  grid-area: auto;
+}
+.indexAuthor .context {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.accordion {
+  width: 100%;
+}
+.accordionQuestion {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+.accordionQuestion > p {
+  min-width: 0;
+}
+
+.accordionQuestion > :last-child {
+  flex-shrink: 0;
+}
+.openLink {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--mantine-font-size-sm);
+}
+
+@container faq-prototype (width < 48rem) {
+  .previewRow {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-sm);
+  }
+  .previewAside {
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .indexHeader {
+    display: none;
+  }
+  .indexRow {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "question question" "ruleset count" "author author";
+    gap: var(--space-sm);
+  }
+  .indexQuestion {
+    grid-area: question;
+  }
+  .indexRuleset {
+    grid-area: ruleset;
+  }
+  .indexCount {
+    grid-area: count;
+  }
+  .indexAuthor {
+    grid-area: author;
+  }
+  .indexAuthor .context {
+    flex-direction: row;
+  }
+}
+
+@container faq-prototype (width < 30rem) {
+  .readingRow {
+    grid-template-areas: "question question" "meta meta" "status status";
+  }
+  .railRow {
+    grid-template-columns: 2rem minmax(0, 1fr);
+    gap: var(--space-sm);
+  }
+  .accordionQuestion {
+    flex-direction: column;
+    gap: var(--space-xs);
+  }
+}
