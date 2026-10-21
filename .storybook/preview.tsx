@@ -8,7 +8,7 @@ import '../src/app/styles/fonts.css';
 import '@fontsource/caladea/latin-700.css';
 import '../src/app/styles/tokens.css';
 import '../src/app/styles/mantine-shell-compatibility.css';
-import { StorybookDatabaseProvider, storybookViewer } from '../src/app/db/storybook';
+import { loadStorybookDatabase, StorybookDatabaseProvider, storybookViewer } from '../src/app/db/storybook';
 import type { DatabaseDefinition, WorkerIdentity } from '../src/app/db/storybook';
 import { setMotionOverride } from '../src/app/styles/motion';
 import { appContentTheme } from '../src/app/ui/theme';
@@ -25,6 +25,7 @@ sb.mock(import('../src/app/db/core/index.ts'));
 
 export default definePreview({
   addons: [addonDocs()],
+  loaders: [loadStorybookDatabase],
   globalTypes: {
     colorScheme: {
       description: 'Color scheme: the shell tokens and Mantine theme',
@@ -334,15 +335,21 @@ export default definePreview({
 
       return story;
     },
-    (Story, { parameters }) => {
+    (Story, { parameters, loaded }) => {
       const database = parameters.database as DatabaseDefinition | undefined;
       if (!database) {
         return <Story />;
       }
       const identity =
         parameters.identity === undefined ? storybookViewer : (parameters.identity as WorkerIdentity | null);
+      const prepared = loaded.storybookDatabase as Awaited<
+        ReturnType<typeof loadStorybookDatabase>
+      >['storybookDatabase'];
+      if (!prepared) {
+        throw new Error('Storybook database setup did not finish before rendering.');
+      }
       return (
-        <StorybookDatabaseProvider database={database} identity={identity ?? undefined}>
+        <StorybookDatabaseProvider key={prepared.key} identity={identity ?? undefined} prepared={prepared}>
           <Story />
         </StorybookDatabaseProvider>
       );
