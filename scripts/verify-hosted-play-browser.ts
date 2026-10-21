@@ -359,6 +359,36 @@ async function recordRenderer(who: HostedPeer, selector = '.dune-play-shell canv
 }
 const otherBrowsers: Browser[] = [];
 const peers: HostedPeer[] = [];
+let heldSignOutDirectoryTransitions = 0;
+
+/* A local sign-out must fence the table even when its directory cannot deliver the changed access answer. */
+async function holdSignedOutDirectory(context: BrowserContext) {
+  await context.routeWebSocket(
+    (url) => url.origin === backendSocketOrigin,
+    (socket) => {
+      const server = socket.connectToServer();
+      let authenticated = false;
+      let signedOut = false;
+      socket.onMessage((message) => {
+        const frame = JSON.parse(String(message)) as { type: string; tokenType?: string };
+        if (frame.type === 'Authenticate') {
+          signedOut ||= authenticated && frame.tokenType === 'None';
+          authenticated ||= frame.tokenType === 'User';
+        }
+        server.send(message);
+      });
+      server.onMessage((message) => {
+        const frame = JSON.parse(String(message)) as { type: string };
+        if (signedOut && frame.type === 'Transition') {
+          heldSignOutDirectoryTransitions += 1;
+          return;
+        }
+        socket.send(message);
+      });
+    }
+  );
+}
+
 async function peer(label: string, context?: BrowserContext): Promise<HostedPeer> {
   if (!context) {
     let owner = browser;
@@ -378,6 +408,9 @@ async function peer(label: string, context?: BrowserContext): Promise<HostedPeer
       await context.addInitScript(observeAnimationFrameProgress);
     }
     await context.addInitScript(observeConnectionStatus);
+    if (values.flow === 'regular' && label === 'player-a') {
+      await holdSignedOutDirectory(context);
+    }
     await context.route(
       (url: { origin: string }) => !allowedOrigins.has(url.origin),
       async (route) => {
@@ -2066,11 +2099,13 @@ async function verifyRegular() {
     );
     throw new Error(`${error.message} Still open: ${open.join(', ')}.`);
   });
+  await until(() => heldSignOutDirectoryTransitions > 0, 'The sign-out check did not hold a directory transition.');
   await until(
     async () => (await a.page.locator('canvas').count()) === 0 && (await aTab.page.locator('canvas').count()) === 0,
     'Signed-out game data remained visible.'
   );
   const lastCounts = [a.messages.length, aTab.messages.length];
+  await capture(a, 'regular-signed-out-game');
   const beforeSignOutFanout = requireView(b).snapshot.revision;
   await until(
     () => b.page.getByRole('button', { name: 'Next phase', exact: true }).isEnabled(),
@@ -2088,6 +2123,7 @@ async function verifyRegular() {
     assert.equal(await tables[index].evaluate((canvas) => canvas.isConnected), true, `${who.label}'s table remounted.`);
   }
   passed('Actual UI sign-out removes both tabs and fences later game fanout; the other players keep their tables', {
+    heldDirectoryTransitions: heldSignOutDirectoryTransitions,
     logoutAndFanoutCheckMs: Date.now() - revokedAt,
     workerRefusedSignOut: [a, aTab].some((who, index) =>
       who.rawMessages
