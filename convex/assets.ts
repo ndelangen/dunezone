@@ -32,6 +32,7 @@ import { STANDARD_STORM_CARDS, STANDARD_STORM_CARDBACK } from '../src/shared/ass
 import { treacheryToCustomCard } from '../src/shared/assets/treacheryToCustomCard';
 import { ASSET_TYPE_KEYS, holdsBundleMembership } from '../src/shared/assets/types';
 import { parseAssetDataForWrite, parseNexusCardInput } from '../src/shared/assets/validation';
+import { backgroundPresetSchema } from '../src/shared/backgrounds/schema';
 import { HistoricalBoardDefinition } from '../src/shared/boards/schema';
 import { internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
@@ -50,6 +51,7 @@ import {
 } from './lib/assetBacks';
 import { assetCatalogueOrderOf } from './lib/assetCatalogue';
 import { assertKnownAssetType, assetDisplayName } from './lib/assetInput';
+import { listBackgroundPresets } from './lib/backgroundPresets';
 import { listCardbackPresets, presetFromKey, storeCardbackPreset } from './lib/cardbackPresets';
 import type { CardbackPresetMemo } from './lib/cardbackPresets';
 import { listCardFrontPresets } from './lib/cardFrontPresets';
@@ -303,6 +305,7 @@ const assetPageValidator = v.object({
   cardTokensError: v.optional(v.union(v.string(), v.null())),
   /** Whether this type converts to a custom card; whether the viewer may is `session.isAdmin`. */
   convertibleToCustom: v.boolean(),
+  backgrounds: v.optional(v.array(zodToConvex(backgroundPresetSchema))),
   cardFrontPresets: v.array(zodToConvex(cardFrontPresetSchema)),
   cardbackPresets: v.array(zodToConvex(cardbackPresetSchema)),
   /** The owner's user id and the asset's live Group, or null: the facts the browser combines with the viewer. */
@@ -373,6 +376,7 @@ async function loadAssetPageFor(ctx: QueryCtx, row: Doc<'assets'>, args: { embed
     asset,
     convertibleToCustom: row.type === 'card-treachery',
     ...(resolvedTokens ? { cardTokens: resolvedTokens.tokens, cardTokensError: resolvedTokens.error } : {}),
+    backgrounds: await listBackgroundPresets(ctx),
     cardFrontPresets: cardFrontAssetTypeSchema.safeParse(row.type).success ? await listCardFrontPresets(ctx) : [],
     cardbackPresets: row.type === 'deck' ? await listCardbackPresets(ctx, presets) : [],
     ownerId: row.owner_id,

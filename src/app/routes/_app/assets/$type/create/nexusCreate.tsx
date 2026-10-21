@@ -1,3 +1,4 @@
+import { newCardWithStandards } from '@shared/assets/cardFrontPresets';
 import { cardFrontStyleFor } from '@shared/assets/cardFrontPresets';
 import { useReducer, useState } from 'react';
 
@@ -17,7 +18,10 @@ export function NexusCreatePage() {
   const saving = useCardCreate('card-nexus');
   const [chapter, setChapter] = useState<NexusChapter>('head');
   const [state, dispatch] = useReducer(reduceNexusDraft, undefined, () =>
-    openingNexusState(INITIAL_NEXUS_DRAFT, INITIAL_NEXUS_DRAFT)
+    openingNexusState(
+      newCardWithStandards('card-nexus', INITIAL_NEXUS_DRAFT),
+      newCardWithStandards('card-nexus', INITIAL_NEXUS_DRAFT)
+    )
   );
   const patch = (update: Partial<NexusDraft>) => dispatch({ kind: 'patch', update });
   const nameField = assetNameField({

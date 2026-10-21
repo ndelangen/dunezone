@@ -1,3 +1,4 @@
+import { newCardWithStandards } from '@shared/assets/cardFrontPresets';
 import { cardFrontStyleFor } from '@shared/assets/cardFrontPresets';
 import { useReducer, useState } from 'react';
 
@@ -54,7 +55,10 @@ export function TreacheryCreatePage() {
   const saving = useCardCreate('card-treachery');
   const [chapter, setChapter] = useState<TreacheryChapter>('head');
   const [state, dispatch] = useReducer(reduce, undefined, () =>
-    openingState(INITIAL_TREACHERY_DRAFT, INITIAL_TREACHERY_DRAFT)
+    openingState(
+      newCardWithStandards('card-treachery', INITIAL_TREACHERY_DRAFT),
+      newCardWithStandards('card-treachery', INITIAL_TREACHERY_DRAFT)
+    )
   );
   const patch = (update: Partial<TreacheryDraft>) => dispatch({ kind: 'patch', update });
   const nameField = assetNameField({

@@ -1,0 +1,138 @@
+[
+  {
+    "key": "discovery-hiereg",
+    "label": "Hiereg Discovery",
+    "front": {
+      "background": {
+        "colors": [
+          {
+            "r": 50,
+            "stops": [
+              ["#51491b", 0],
+              ["#51491b", 0.64],
+              ["#c2a541", 0.65],
+              ["#c2a541", 1]
+            ],
+            "type": "radial",
+            "x": 50,
+            "y": 50
+          },
+          {
+            "r": 50,
+            "stops": [
+              ["#252a12", 0],
+              ["#252a12", 0.61],
+              ["#7e7025", 0.65],
+              ["#7e7025", 1]
+            ],
+            "type": "radial",
+            "x": 50,
+            "y": 50
+          }
+        ],
+        "definition": 0.55,
+        "image": "/image/texture/082.jpg",
+        "influence": 0.7,
+        "invert": false
+      },
+      "bottomFirst": "",
+      "bottomSecond": "",
+      "image": "/vector/decal/cistern.svg",
+      "ring": false,
+      "symbolFill": "#07120f",
+      "symbolScale": 1.7,
+      "symbolShadow": true,
+      "symbolStroke": "#f3edbf",
+      "symbolStrokeWidth": 5.5,
+      "top": ""
+    },
+    "back": {
+      "background": {
+        "colors": ["#d9b14d", "#61451e"],
+        "definition": 0.55,
+        "image": "/image/texture/hiereg-discovery.png",
+        "influence": 0.95,
+        "invert": true
+      },
+      "bottomFirst": "",
+      "bottomSecond": "",
+      "image": "/vector/logo/fremen.svg",
+      "ring": false,
+      "symbolFill": "#ffffffc4",
+      "symbolScale": 1.85,
+      "symbolShadow": false,
+      "symbolStroke": "#000000ff",
+      "symbolStrokeWidth": 10,
+      "top": ""
+    },
+    "revision": 0
+  },
+  {
+    "key": "discovery-smuggler",
+    "label": "Smuggler Discovery",
+    "front": {
+      "background": {
+        "colors": [
+          {
+            "r": 50,
+            "stops": [
+              ["#d3bd59", 0],
+              ["#d3bd59", 0.64],
+              ["#453e1c", 0.65],
+              ["#453e1c", 1]
+            ],
+            "type": "radial",
+            "x": 50,
+            "y": 50
+          },
+          {
+            "r": 50,
+            "stops": [
+              ["#827026", 0],
+              ["#827026", 0.61],
+              ["#1d1e0f", 0.65],
+              ["#1d1e0f", 1]
+            ],
+            "type": "radial",
+            "x": 50,
+            "y": 50
+          }
+        ],
+        "definition": 0.55,
+        "image": "/image/texture/082.jpg",
+        "influence": 0.7,
+        "invert": false
+      },
+      "bottomFirst": "",
+      "bottomSecond": "",
+      "image": "/vector/decal/ornithopter.svg",
+      "ring": false,
+      "symbolFill": "#07120f",
+      "symbolScale": 1.85,
+      "symbolShadow": true,
+      "symbolStroke": "#f3edbf",
+      "symbolStrokeWidth": 5.5,
+      "top": ""
+    },
+    "back": {
+      "background": {
+        "colors": ["#6d7978", "#26373b"],
+        "definition": 0.55,
+        "image": "/image/texture/hiereg-discovery.png",
+        "influence": 0.95,
+        "invert": true
+      },
+      "bottomFirst": "",
+      "bottomSecond": "",
+      "image": "/vector/logo/guild.svg",
+      "ring": false,
+      "symbolFill": "#ffffffff",
+      "symbolScale": 2,
+      "symbolShadow": true,
+      "symbolStroke": "#000000ff",
+      "symbolStrokeWidth": 10,
+      "top": ""
+    },
+    "revision": 0
+  }
+]

@@ -113,7 +113,7 @@ test.each(families)('$key captures its shared style without changing authored da
   }
 });
 
-test('Custom cards retain their authored style without a shared front snapshot', async () => {
+test('Custom cards retain their authored style when shared standards are available', async () => {
   const { t, author } = await fixture();
   const customData = {
     name: 'Custom retains style',
@@ -131,7 +131,10 @@ test('Custom cards retain their authored style without a shared front snapshot',
       .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', 'card-custom').eq('asset_id', custom.id))
       .unique()
   );
-  expect(customJob?.asset_data).not.toHaveProperty('frontPreset');
+  expect(customJob?.asset_data.frontPreset.style).toEqual({
+    head: customData.head,
+    iconBackground: customData.icon[0],
+  });
 });
 
 test('rapid saves serialize captures and keep the older snapshot immutable until its replacement starts', async () => {

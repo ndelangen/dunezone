@@ -1,9 +1,10 @@
 import type { FunctionArgs, FunctionReturnType } from 'convex/server';
 
 import { api } from '../../../convex/_generated/api';
-import { useLiveMutation, useLiveQuery } from './core/live';
+import { useAuthoringPresets } from './backgroundPresets';
+import { useLiveMutation } from './core/live';
 export function useCardbackPresets() {
-  return useLiveQuery(api.cardbackPresets.list, {});
+  return useAuthoringPresets()?.backs;
 }
 export function useSaveCardbackPreset() {
   return useLiveMutation<

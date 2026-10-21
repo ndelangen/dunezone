@@ -1,0 +1,92 @@
+[
+  {
+    "key": "stronghold",
+    "label": "Stronghold",
+    "cardback": {
+      "background": {
+        "colors": ["#8D3A38", "#602726"],
+        "definition": 1,
+        "image": "/image/texture/082.jpg",
+        "influence": 0.5,
+        "invert": false
+      },
+      "image": "/vector/icon/stronghold-multicolor.svg",
+      "imageOffset": [0, 0],
+      "imageScale": 1.3,
+      "name": "Stronghold"
+    }
+  },
+  {
+    "key": "homeworld",
+    "label": "Homeworld",
+    "cardback": {
+      "background": {
+        "colors": [
+          {
+            "stops": [
+              ["#2f0033", 0],
+              ["#5d1d82", 1]
+            ],
+            "type": "radial",
+            "y": 28
+          },
+          {
+            "stops": [
+              ["#ffffff", 0],
+              ["#ab19ff", 0.49],
+              ["#ffebe8", 1]
+            ],
+            "type": "radial",
+            "y": 31
+          }
+        ],
+        "definition": 1,
+        "image": "/image/texture/049.jpg",
+        "influence": 0.6578,
+        "invert": false
+      },
+      "image": "/vector/generic/stormworld.svg",
+      "imageOffset": [0, 10],
+      "imageScale": 1.28,
+      "name": "Homeworld"
+    }
+  },
+  {
+    "key": "nexus",
+    "label": "Nexus",
+    "cardback": {
+      "background": {
+        "colors": ["#073A16", "#246B32"],
+        "definition": 0.18,
+        "image": "/image/texture/023.jpg",
+        "influence": 1,
+        "invert": false
+      },
+      "emblemBackground": {
+        "color": "#063b16",
+        "intensity": 0.03
+      },
+      "image": "/vector/icon/alliance.svg",
+      "imageOffset": [0, 2],
+      "imageScale": 1.25,
+      "name": "Nexus"
+    }
+  },
+  {
+    "key": "leader-skill",
+    "label": "Leader skill",
+    "cardback": {
+      "background": {
+        "colors": ["#6B328E", "#421760"],
+        "definition": 0.48,
+        "image": "/image/texture/031.jpg",
+        "influence": 0.989,
+        "invert": true
+      },
+      "image": "/vector/generic/leader-skills.svg",
+      "imageOffset": [0, 9],
+      "imageScale": 1.04,
+      "name": "Leader skills"
+    }
+  }
+]

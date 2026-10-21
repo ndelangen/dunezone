@@ -6,7 +6,6 @@ import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
-import { Fragment } from 'react';
 import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
@@ -18,6 +17,7 @@ import type { LoadPreset } from '@app/pickers/assetLoadSource';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import type { EditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
+import { BackgroundLibrary } from '@game/assets/utils/BackgroundLibrary';
 
 import {
   AssetEditorMessage,
@@ -141,7 +141,7 @@ export function CardEditChecks<Draft>({
 
   /* Keyed on the card, so moving to another card opens a fresh session rather than carrying this draft over. */
   return (
-    <Fragment key={data.asset.id}>
+    <BackgroundLibrary key={data.asset.id} presets={data.backgrounds ?? []} fronts={data.cardFrontPresets}>
       {session({
         frontPresets: data.cardFrontPresets,
         asset: data.asset,
@@ -150,7 +150,7 @@ export function CardEditChecks<Draft>({
         tokensError: data.cardTokensError,
         access: { viewerAccess: data.viewerAccess, assignableGroups: data.assignableGroups },
       })}
-    </Fragment>
+    </BackgroundLibrary>
   );
 }
 

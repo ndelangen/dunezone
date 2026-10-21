@@ -6,6 +6,8 @@ import type { CardbackPreset } from '../../src/shared/assets/cardbackPresets';
 import { INITIAL_CARDBACK_PRESETS } from '../../src/shared/assets/cardbackPresets';
 import { publicationStatusFor } from '../assetPublishingStatus';
 import type { MutationCtx, QueryCtx } from '../types';
+import { resolveBackgrounds } from './backgroundPresets';
+import { rawCardbackPreset } from './cardPresetDefaults';
 import { enqueuePublicationJob } from './publication';
 
 /**
@@ -20,15 +22,19 @@ async function presetFor(ctx: Pick<QueryCtx, 'db'>, key: CardbackPresetKey, memo
     return known;
   }
   const initial = INITIAL_CARDBACK_PRESETS.find((preset) => preset.key === key)!;
-  const row = await ctx.db
-    .query('cardback_presets')
-    .withIndex('by_key', (q) => q.eq('key', key))
-    .unique();
+  const row = await rawCardbackPreset(ctx, key);
+  const authored = row.cardback;
+  const cardback = await resolveBackgrounds(ctx, {
+    ...authored,
+    background: authored.background.source
+      ? authored.background
+      : { ...authored.background, source: { kind: 'preset' as const, key: `back/${key}` } },
+  });
   const status = await publicationStatusFor(ctx, 'cardback-preset', key);
   const preset: CardbackPreset = {
     key,
     label: initial.label,
-    cardback: row?.cardback ?? initial.cardback,
+    cardback,
     revision: row?.revision ?? 0,
     href: status.publicationHref,
     captureStatus: status.captureStatus,
@@ -44,22 +50,14 @@ export async function listCardbackPresets(ctx: Pick<QueryCtx, 'db'>, memo: Cardb
 /** Activation creates missing definitions and republishes saved designs without overwriting an Administrator's edits. */
 export async function publishCardbackPresets(ctx: MutationCtx) {
   for (const initial of INITIAL_CARDBACK_PRESETS) {
-    const row = await ctx.db
-      .query('cardback_presets')
-      .withIndex('by_key', (q) => q.eq('key', initial.key))
-      .unique();
-    if (!row) {
-      await ctx.db.insert('cardback_presets', {
-        key: initial.key,
-        cardback: initial.cardback,
-        revision: 1,
-        updated_at: Date.now(),
-      });
-    }
     await enqueuePublicationJob(ctx, {
       assetType: 'cardback-preset',
       assetId: initial.key,
-      assetData: { assetId: initial.key, slug: initial.key, cardback: row?.cardback ?? initial.cardback },
+      assetData: {
+        assetId: initial.key,
+        slug: initial.key,
+        cardback: (await rawCardbackPreset(ctx, initial.key)).cardback,
+      },
     });
   }
 }

@@ -1,3 +1,4 @@
+import { newCardWithStandards } from '@shared/assets/cardFrontPresets';
 import { cardFrontStyleFor } from '@shared/assets/cardFrontPresets';
 import { EMPTY_HOMEWORLD_CARD } from '@shared/assets/homeworldTemplate';
 import { useReducer, useState } from 'react';
@@ -18,7 +19,10 @@ export function HomeworldCreatePage() {
   const saving = useCardCreate('card-homeworld');
   const [chapter, setChapter] = useState<HomeworldChapter>('head');
   const [state, dispatch] = useReducer(reduceHomeworldDraft, undefined, () =>
-    openingHomeworldState(EMPTY_HOMEWORLD_CARD, EMPTY_HOMEWORLD_CARD)
+    openingHomeworldState(
+      newCardWithStandards('card-homeworld', EMPTY_HOMEWORLD_CARD),
+      newCardWithStandards('card-homeworld', EMPTY_HOMEWORLD_CARD)
+    )
   );
   const patch = (update: Partial<HomeworldDraft>) => dispatch({ kind: 'patch', update });
   const nameField = assetNameField({

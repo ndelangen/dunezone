@@ -9,6 +9,8 @@ import { publicationStatusFor } from './assetPublishingStatus';
 import { liveAsset } from './assets';
 import { mutation, publicQuery, viewerQuery } from './functions';
 import { isActiveProfile } from './lib/accountLifecycle';
+import { listBackgroundPresets } from './lib/backgroundPresets';
+import { listCardFrontPresets } from './lib/cardFrontPresets';
 import {
   assignedGroupSummary,
   liveGroupOrNull,
@@ -123,6 +125,8 @@ async function loadFactionDetailPage(ctx: QueryCtx, row: Doc<'factions'>) {
   }
 
   return {
+    backgrounds: await listBackgroundPresets(ctx),
+    cardFrontPresets: await listCardFrontPresets(ctx),
     faction: {
       ...row,
       data: factionDataForClient(row.data),

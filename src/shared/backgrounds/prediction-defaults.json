@@ -1,0 +1,33 @@
+{
+  "head": {
+    "colors": ["#576291", "#0A153C"],
+    "definition": 1,
+    "image": "/image/texture/082.jpg",
+    "influence": 0.6,
+    "invert": false
+  },
+  "iconBackground": {
+    "colors": [
+      {
+        "angle": 90,
+        "stops": [
+          ["#757DAC", 0],
+          ["#CEDDF0", 1]
+        ],
+        "type": "linear"
+      },
+      {
+        "angle": 120,
+        "stops": [
+          ["#58608F", 0.3],
+          ["#B8BFDB", 1]
+        ],
+        "type": "linear"
+      }
+    ],
+    "definition": 0,
+    "image": "/image/texture/076.jpg",
+    "influence": 1,
+    "invert": true
+  }
+}

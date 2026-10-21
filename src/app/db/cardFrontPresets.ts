@@ -3,13 +3,14 @@ import type { FunctionArgs, FunctionReturnType } from 'convex/server';
 
 import { api } from '../../../convex/_generated/api';
 import type { AssetListEntry } from './assets';
+import { useAuthoringPresets } from './backgroundPresets';
 import { useLiveMutation } from './core/live';
 
 export function useCardPresetsPage() {
   return useQuery(api.cardFrontPresets.page, {});
 }
 export function useCardFrontPresets() {
-  return useQuery(api.cardFrontPresets.list, {});
+  return useAuthoringPresets()?.fronts;
 }
 export function useSaveCardFrontPreset() {
   return useLiveMutation<

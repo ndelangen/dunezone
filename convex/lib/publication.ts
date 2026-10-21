@@ -35,6 +35,7 @@ import {
 import type { FactionSheetAssetData } from '../../src/shared/asset-publishing/publication';
 import { publicationFaceId } from '../../src/shared/asset-publishing/publicationTargets';
 import type { PublicationAssetType } from '../../src/shared/asset-publishing/publicationTargets';
+import type { CardFrontStyle } from '../../src/shared/assets/cardFrontPresets';
 import { CARD_FRONT_PUBLICATION_REVISIONS, cardFrontAssetTypeSchema } from '../../src/shared/assets/cardFrontPresets';
 import {
   authoredCardback,
@@ -55,6 +56,7 @@ import { BoardAsset } from '../../src/shared/boards/schema';
 import { HistoricalFactionPublicationSchema } from '../../src/shared/factions/schema';
 import type { Id } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../_generated/server';
+import { resolveBackgrounds } from './backgroundPresets';
 import { resolveCardFrontPreset } from './cardFrontPresets';
 import { customCardTokenIds, customCardPublicationError, resolveCustomCardTokens } from './customCardTokens';
 import {
@@ -146,7 +148,7 @@ export async function enqueuePublicationJob(
     componentVersion?: number;
   }
 ) {
-  const assetData = parsePublicationAssetData(input.assetType, input.assetData);
+  const assetData = parsePublicationAssetData(input.assetType, await resolveBackgrounds(ctx, input.assetData));
   const now = input.now ?? Date.now();
   const jobs = await publicationJobsForAsset(ctx, input.assetType, input.assetId);
   const pending = jobs.find((job) => job.status === 'pending');
@@ -283,7 +285,7 @@ export async function enqueueAssetPublication(
         now,
       });
     case SPICE_CARD_ASSET_TYPE:
-      return await enqueueSpiceCardPublication(ctx, asset, now);
+      return await enqueueSpiceCardPublication(ctx, asset, now, frontPreset);
     case LEADER_SKILL_ASSET_TYPE:
     case NEXUS_CARD_ASSET_TYPE:
     case HOMEWORLD_CARD_ASSET_TYPE:
@@ -382,14 +384,15 @@ export async function enqueueAssetPublication(
 async function enqueueSpiceCardPublication(
   ctx: MutationCtx,
   asset: { _id: Id<'assets'>; type: string; slug: string; data: unknown },
-  now?: number
+  now?: number,
+  frontPreset?: { style: CardFrontStyle; revision: number }
 ) {
   const link = spiceCardBoardLink(asset.data);
   if (!link) {
     return await enqueuePublicationJob(ctx, {
       assetType: SPICE_CARD_ASSET_TYPE,
       assetId: asset._id,
-      assetData: { assetId: asset._id, slug: asset.slug, card: asset.data },
+      assetData: { assetId: asset._id, slug: asset.slug, card: asset.data, ...(frontPreset ? { frontPreset } : {}) },
       now,
     });
   }
@@ -416,6 +419,7 @@ async function enqueueSpiceCardPublication(
       assetId: asset._id,
       slug: asset.slug,
       card: asset.data,
+      ...(frontPreset ? { frontPreset } : {}),
       board: resolved.board,
       tokens: resolved.tokens,
     },
@@ -542,7 +546,19 @@ async function enqueueChangedFaces(
     ([assetId, assetData]) => JSON.stringify(previous.get(assetId)) !== JSON.stringify(assetData)
   );
   for (const [assetId, assetData] of changed) {
-    await enqueuePublicationJob(ctx, { assetType, assetId, assetData });
+    const frontPreset =
+      (assetType === 'faction-traitor' || assetType === 'faction-alliance') &&
+      ((await publicationSettings(ctx))?.renderer_revisions[assetType] ?? 0) >= 3
+        ? await resolveCardFrontPreset(ctx, assetType, assetData)
+        : undefined;
+    await enqueuePublicationJob(ctx, {
+      assetType,
+      assetId,
+      assetData:
+        frontPreset && assetData && typeof assetData === 'object'
+          ? { ...assetData, frontStyle: frontPreset.style }
+          : assetData,
+    });
   }
   for (const assetId of [...previous.keys()].filter((assetId) => !current.has(assetId))) {
     await supersedePendingPublication(ctx, assetType, assetId);
@@ -636,7 +652,7 @@ export async function currentFactionLeaderData(ctx: PublicationReadCtx, assetId:
   if (!faction || faction.is_deleted) {
     return null;
   }
-  return factionLeaderAssetData(faction._id, faction.data, identity.memberId);
+  return await resolveBackgrounds(ctx, factionLeaderAssetData(faction._id, faction.data, identity.memberId));
 }
 
 /** A plain faction face is readable while its faction is live and still draws that face. */
@@ -646,7 +662,17 @@ async function currentFactionFaceData(ctx: PublicationReadCtx, assetType: Factio
   if (!faction || faction.is_deleted) {
     return null;
   }
-  return FACTION_FACE_PUBLICATIONS[assetType](faction._id, faction.data).get(assetId) ?? null;
+  const data = FACTION_FACE_PUBLICATIONS[assetType](faction._id, faction.data).get(assetId) ?? null;
+  const frontPreset =
+    data &&
+    (assetType === 'faction-traitor' || assetType === 'faction-alliance') &&
+    ((await publicationSettings(ctx))?.renderer_revisions[assetType] ?? 0) >= 3
+      ? await resolveCardFrontPreset(ctx, assetType, data)
+      : undefined;
+  return await resolveBackgrounds(
+    ctx,
+    frontPreset && data && typeof data === 'object' ? { ...data, frontStyle: frontPreset.style } : data
+  );
 }
 
 /** The current payload for a face that follows a faction's roster, or `undefined` for types whose publication does not. */

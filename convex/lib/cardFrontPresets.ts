@@ -1,13 +1,20 @@
 import { ConvexError } from 'convex/values';
 
-import type { CardFrontPreset, CardFrontPresetKey, CardFrontStyle } from '../../src/shared/assets/cardFrontPresets';
+import type {
+  CardFrontPreset,
+  CardFrontPresetKey,
+  CardFrontStyle,
+  AuthoredCardFrontStyle,
+} from '../../src/shared/assets/cardFrontPresets';
 import {
   INITIAL_CARD_FRONT_PRESETS,
   cardFrontPresetKey,
   cardFrontPresetType,
+  cardFrontStyleFor,
 } from '../../src/shared/assets/cardFrontPresets';
 import { internal } from '../_generated/api';
 import type { MutationCtx, QueryCtx } from '../types';
+import { resolveBackgrounds } from './backgroundPresets';
 
 export async function cardFrontPresetFor(ctx: Pick<QueryCtx, 'db'>, key: CardFrontPresetKey): Promise<CardFrontPreset> {
   const initial = INITIAL_CARD_FRONT_PRESETS.find((preset) => preset.key === key)!;
@@ -15,7 +22,19 @@ export async function cardFrontPresetFor(ctx: Pick<QueryCtx, 'db'>, key: CardFro
     .query('card_front_presets')
     .withIndex('by_key', (q) => q.eq('key', key))
     .unique();
-  return { ...initial, style: row?.style ?? initial.style, revision: row?.revision ?? 0 };
+  const authored: AuthoredCardFrontStyle = row?.style ?? initial.style;
+  const style = await resolveBackgrounds(ctx, {
+    head: authored.head.source
+      ? authored.head
+      : { ...authored.head, source: { kind: 'preset', key: `front/${key}/header` } },
+    iconBackground:
+      authored.iconBackground === null
+        ? null
+        : authored.iconBackground.source
+          ? authored.iconBackground
+          : { ...authored.iconBackground, source: { kind: 'preset', key: `front/${key}/icon` } },
+  });
+  return { ...initial, style, revision: row?.revision ?? 0 };
 }
 
 export async function listCardFrontPresets(ctx: Pick<QueryCtx, 'db'>) {
@@ -27,8 +46,8 @@ export async function resolveCardFrontPreset(ctx: Pick<QueryCtx, 'db'>, type: st
   if (!key) {
     return undefined;
   }
-  const { style, revision } = await cardFrontPresetFor(ctx, key);
-  return { style, revision };
+  const preset = await cardFrontPresetFor(ctx, key);
+  return { style: await resolveBackgrounds(ctx, cardFrontStyleFor(type, data, [preset])!), revision: preset.revision };
 }
 
 /* A saved style and the scan replacing its cards commit together. The previous publications stay available. */
