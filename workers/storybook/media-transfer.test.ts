@@ -28,6 +28,80 @@ function interruptedResponse() {
 
 afterEach(() => vi.restoreAllMocks());
 
+test.each(['GET', 'HEAD'])(
+  'a %s connection loss records the failed attempt before recovering the logo',
+  async (method) => {
+    const warning = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const upstream = vi
+      .spyOn(globalThis, 'fetch')
+      .mockRejectedValueOnce(new Error('Network connection lost.'))
+      .mockResolvedValueOnce(
+        new Response(method === 'HEAD' ? null : '<svg/>', { headers: { 'Content-Type': 'image/svg+xml' } })
+      );
+
+    const response = await worker.fetch(
+      new Request('https://storybook.dune.zone/web/logo.svg?revision=public', { method }),
+      {
+        ASSETS: assets,
+      }
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe(method === 'HEAD' ? '' : '<svg/>');
+    expect(upstream).toHaveBeenCalledTimes(2);
+    expect(warning).toHaveBeenCalledExactlyOnceWith({
+      event: 'storybook-media-fetch-error',
+      path: '/web/logo.svg',
+      method,
+      attempt: 1,
+      maxAttempts: 2,
+      willRetry: true,
+    });
+  }
+);
+
+test('two connection losses retain both attempts and still refuse the logo request', async () => {
+  const warning = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+  const failure = new Error('Network connection lost.');
+  const upstream = vi.spyOn(globalThis, 'fetch').mockRejectedValue(failure);
+
+  await expect(worker.fetch(new Request('https://storybook.dune.zone/web/logo.svg'), { ASSETS: assets })).rejects.toBe(
+    failure
+  );
+
+  expect(upstream).toHaveBeenCalledTimes(2);
+  expect(warning.mock.calls.map(([entry]) => entry)).toEqual([
+    {
+      event: 'storybook-media-fetch-error',
+      path: '/web/logo.svg',
+      method: 'GET',
+      attempt: 1,
+      maxAttempts: 2,
+      willRetry: true,
+    },
+    {
+      event: 'storybook-media-fetch-error',
+      path: '/web/logo.svg',
+      method: 'GET',
+      attempt: 2,
+      maxAttempts: 2,
+      willRetry: false,
+    },
+  ]);
+});
+
+test.each([404, 500])('an upstream HTTP %s remains a response rather than a connection failure', async (status) => {
+  const warning = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+  const upstream = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('Unavailable', { status }));
+
+  const response = await worker.fetch(new Request('https://storybook.dune.zone/web/logo.svg'), { ASSETS: assets });
+
+  expect(response.status).toBe(status);
+  expect(await response.text()).toBe('Unavailable');
+  expect(upstream).toHaveBeenCalledTimes(1);
+  expect(warning).not.toHaveBeenCalled();
+});
+
 test('an interrupted raster resumes without duplicating the prefix already sent', async () => {
   const upstream = vi
     .spyOn(globalThis, 'fetch')
