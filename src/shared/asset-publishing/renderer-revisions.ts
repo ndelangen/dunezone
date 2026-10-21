@@ -68,6 +68,7 @@ export const CHECKED_IN_RENDERER_REVISIONS = {
    */
   /* Revision 3 retains optional symbol colours, outlines and shadow on both faces. */
   'token-disc': ROUND_TOKEN_SYMBOL_STYLE_REVISION,
+  'token-leader': 1,
   'token-tech': ROUND_TOKEN_SYMBOL_STYLE_REVISION,
   'token-plate': ROUND_TOKEN_SYMBOL_STYLE_REVISION,
   'token-pointer': ROUND_TOKEN_SYMBOL_STYLE_REVISION,

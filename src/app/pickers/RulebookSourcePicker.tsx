@@ -231,6 +231,7 @@ export function RulebookSourcePicker({
             'card-storm',
             'deck',
             'token-disc',
+            'token-leader',
             'token-tech',
             'token-plate',
             'token-pointer',

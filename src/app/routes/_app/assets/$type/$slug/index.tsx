@@ -95,7 +95,7 @@ export const Route = createFileRoute('/_app/assets/$type/$slug/')({
       image: loaderData?.asset.previewHref,
       social: {
         shape:
-          params.type === 'token-disc' || params.type === 'board'
+          params.type === 'token-disc' || params.type === 'token-leader' || params.type === 'board'
             ? 'round'
             : params.type === 'token-enhance'
               ? 'landscape'

@@ -4562,6 +4562,15 @@
     "isOpaque": true,
     "color": "#c8b868"
   },
+  "/image/leader/gf9/duke-prad-vidal.png": {
+    "sha256": "6c66b6c4d55638b03d902ee7d76cd4b0ce970a3545cc0880d9073acc544f2a0f",
+    "bytes": 1426410,
+    "width": 1254,
+    "height": 1254,
+    "format": "png",
+    "isOpaque": true,
+    "color": "#d8b868"
+  },
   "/image/leader/gf9/ur-director-malina-aru.png": {
     "sha256": "8837fa06740d9ee0bb6a37e1651bf99dd661acc40c76f316460211a44e55ce98",
     "bytes": 1716215,

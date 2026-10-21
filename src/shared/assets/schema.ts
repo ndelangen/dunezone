@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 import { ALL, BACKGROUND, PLANET, TEXTURE } from '../assetIds';
 import { BOARD_FRAME_SIZE, boardTints, boardTokens } from '../boards/markup';
-import { Background, Decal } from '../factions/schema';
+import { Background, Decal, FactionInputObject } from '../factions/schema';
 import { proseFormattedTextSchema } from '../formattedText';
 import { cardbackPresetKeySchema } from './cardbackPresetKeys';
 import { PhysicalSize } from './physicalSize';
@@ -30,6 +30,14 @@ const ICON_PLACEMENT = {
  */
 const About = z.string().trim();
 const FormattedAbout = z.string().trim().pipe(proseFormattedTextSchema);
+
+/** A standalone leader face has its own Asset identity and no faction membership. */
+export const LeaderTokenAsset = FactionInputObject.shape.leaders.element.omit({ memberId: true }).extend({
+  about: About,
+  background: Background,
+  logo: FactionInputObject.shape.logo,
+});
+export const LeaderTokenAssetInput = LeaderTokenAsset.extend({ about: FormattedAbout });
 
 export { Decal };
 export { PHYSICAL_SIZE_MAX, PHYSICAL_SIZE_MIN, PhysicalSize } from './physicalSize';

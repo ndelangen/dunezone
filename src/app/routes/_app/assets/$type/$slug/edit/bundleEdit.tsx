@@ -1,5 +1,6 @@
 import { Alert, Popover } from '@mantine/core';
 import { BundleAsset } from '@shared/assets/schema';
+import { ASSET_TYPE_KEYS, holdsBundleMembership } from '@shared/assets/types';
 import { useNavigate } from '@tanstack/react-router';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
@@ -34,7 +35,7 @@ import {
 } from '../../../assetEditorStates';
 
 /** Every token type a bundle may hold. A bundle mixes shapes freely, which is the point of it. */
-const TOKEN_TYPES = ['token-disc', 'token-tech', 'token-plate', 'token-pointer', 'token-enhance'];
+const TOKEN_TYPES = ASSET_TYPE_KEYS.filter(holdsBundleMembership);
 
 export function BundleEditPage({ slug, loaderData }: { slug: string; loaderData: AssetPublicPage }) {
   const query = useAssetPage('bundle', slug, { initialData: loaderData });

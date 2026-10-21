@@ -129,7 +129,8 @@ export function rulebookSourceClipPath(source: RulebookResolvedSource): string |
     (source.reference.kind === 'faction-member' && source.reference.presentation !== 'traitor') ||
     (source.reference.kind === 'faction' && source.reference.presentation === 'token') ||
     source.reference.kind === 'faction-troop' ||
-    source.assetType === 'token-disc'
+    source.assetType === 'token-disc' ||
+    source.assetType === 'token-leader'
   ) {
     return 'circle(50%)';
   }

@@ -26,6 +26,17 @@
       "provenanceCommit": "2981ba53216abca5913098c4fa0e99ae28153858",
       "generation": "Built-in image_gen, initial extraction plus targeted grayscale and outer-edge correction",
       "sharedBy": ["Hiereg", "Smuggler"]
+    },
+    {
+      "assetKey": "/image/leader/gf9/duke-prad-vidal.png",
+      "operation": "AI-assisted portrait matching the approved Duke Prad Vidal reference and the existing Ecaz portrait family.",
+      "generation": "Built-in image_gen, second draft without glasses.",
+      "approvedAt": "2026-10-21",
+      "approval": "User approved the displayed second draft: \"sure, let's go with that image\".",
+      "sourceHash": "6c66b6c4d55638b03d902ee7d76cd4b0ce970a3545cc0880d9073acc544f2a0f",
+      "reference": "https://www.gf9games.com/dune/wp-content/uploads/EcazMoritani-Rulebook-LOWRES.pdf",
+      "referencePage": 3,
+      "promptFile": "duke-prad-vidal-prompt.txt"
     }
   ]
 }

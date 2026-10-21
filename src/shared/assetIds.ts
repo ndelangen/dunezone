@@ -1356,6 +1356,7 @@ export const LEADERS = z.enum([
   '/image/leader/custom/ylim.png',
   '/image/leader/custom/yvonne.png',
   '/image/leader/gf9/count-ilban-richese.png',
+  '/image/leader/gf9/duke-prad-vidal.png',
   '/image/leader/gf9/ur-director-malina-aru.png',
   '/image/leader/hivers/hiver-amber-pendant.png',
   '/image/leader/hivers/hiver-black-ruff.png',
