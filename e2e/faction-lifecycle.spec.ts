@@ -1,6 +1,7 @@
 import type { Locator, Page } from '@playwright/test';
 
 import { expect, factionLifecycleTimeoutMs, test } from './coverage';
+import { expectFactionEditReady } from './faction-lifecycle.fixture';
 
 function factionCard(catalogue: Locator, factionName: string) {
   return catalogue.getByRole('link').filter({ hasText: factionName });
@@ -21,8 +22,8 @@ async function createFaction(page: Page, name: string, factionLeaderName: string
   await page.getByRole('textbox', { name: 'Faction leader name' }).fill(factionLeaderName);
   await page.getByRole('button', { name: 'Save faction' }).click();
   await expect(page).toHaveURL(new RegExp(`/factions/${name.toLowerCase()}/edit$`));
-  /* The edit page has no masthead heading anymore (wayfinder #485); the loaded draft is the landmark. */
-  await expect(page.getByRole('textbox', { name: 'Faction name' })).toHaveValue(name);
+  /* Wait for the destination's controls before interacting with the newly saved draft. */
+  await expectFactionEditReady(page, name);
   return page.url();
 }
 
@@ -57,7 +58,7 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
     await page.getByRole('textbox', { name: 'Faction leader name' }).fill(factionALeaderName);
     await page.getByRole('button', { name: 'Save faction' }).click();
     await expect(page).toHaveURL(new RegExp(`/factions/${factionAName.toLowerCase()}/edit$`));
-    await expect(page.getByRole('textbox', { name: 'Faction name' })).toHaveValue(factionAName);
+    await expectFactionEditReady(page, factionAName);
     factionAEditUrl = page.url();
     await page.goto(`${factionAEditUrl}?notice=default-group-unavailable`);
     await expect(page.getByRole('alert')).toContainText('Saved without its default Group');
@@ -275,7 +276,7 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
       await expect(page.getByText(/its name is already taken/)).toHaveCount(0);
       await save().click();
       await expect(page).toHaveURL(new RegExp(`/factions/${address}/edit$`));
-      await expect(field()).toHaveValue(name);
+      await expectFactionEditReady(page, name);
     }
 
     await page.getByRole('tab', { name: /^Faction leader/ }).click();
