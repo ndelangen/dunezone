@@ -259,3 +259,22 @@ export const SingleRuleset = meta.story({
     await expect(main.queryByRole('link', { name: /^ClassicRules$/ })).toBeNull();
   },
 });
+
+/** Unknown filters fall back to global search, so rows keep their real ruleset and destination. */
+export const MissingRuleset = meta.story({
+  args: { path: '/faq?q=storm&rulesets=missing' },
+  parameters: { database: db((baseline) => seedRulesets(baseline, 0)) },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const main = within(await page.findByRole('main', {}, { timeout: 30_000 }));
+    await expect(
+      main.findByRole('link', { name: 'When does the storm move?' }, { timeout: 30_000 })
+    ).resolves.toHaveAttribute('href', '/rulesets/classicrules/faq/when-does-the-storm-move');
+    await expect(main.getByRole('link', { name: 'Can I ship troops into the storm?' })).toHaveAttribute(
+      'href',
+      '/rulesets/dreamrules/faq/storm-and-shipment'
+    );
+    await expect(main.getByRole('link', { name: 'ClassicRules' })).toBeVisible();
+    await expect(main.getAllByRole('link', { name: 'Dreamrules' })[0]).toBeVisible();
+  },
+});
