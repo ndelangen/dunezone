@@ -1,5 +1,5 @@
 /* @vitest-environment edge-runtime */
-import { expect, test } from 'vite-plus/test';
+import { assert, expect, test } from 'vite-plus/test';
 
 import { EXAMPLE_HOMEWORLD_CARD } from '../src/shared/assets/homeworldTemplate';
 import { api } from './_generated/api';
@@ -14,7 +14,8 @@ test('the asset page refreshes its preview when a renderer republishes an unchan
   });
   const address = { type: 'card-homeworld', slug: created.slug };
   const original = await t.query(api.assets.page, address);
-  expect(original?.asset.previewHref).toContain(`/homeworld-cards/${created.id}/card.jpg`);
+  assert(original);
+  expect(original.asset.previewHref).toContain(`/homeworld-cards/${created.id}/card.jpg`);
   const publicationId = await t.run((ctx) =>
     ctx.db.insert('publication_assets', {
       asset_type: 'card-homeworld',
@@ -24,14 +25,16 @@ test('the asset page refreshes its preview when a renderer republishes an unchan
     })
   );
   const published = await t.query(api.assets.page, address);
-  expect(published?.asset.previewHref).toBe(published?.assetPublishing?.publicationHref);
-  expect(published?.asset.previewHref).toContain('v=first-capture');
+  assert(published?.assetPublishing);
+  expect(published.asset.previewHref).toBe(published.assetPublishing.publicationHref);
+  expect(published.asset.previewHref).toContain('v=first-capture');
 
   await t.run((ctx) =>
     ctx.db.patch('publication_assets', publicationId, { cache_token: 'new-renderer', published_at: 2 })
   );
   const recaptured = await t.query(api.assets.page, address);
-  expect(recaptured?.asset.updated_at).toBe(original?.asset.updated_at);
-  expect(recaptured?.asset.previewHref).toBe(recaptured?.assetPublishing?.publicationHref);
-  expect(recaptured?.asset.previewHref).toContain('v=new-renderer');
+  assert(recaptured?.assetPublishing);
+  expect(recaptured.asset.updated_at).toBe(original.asset.updated_at);
+  expect(recaptured.asset.previewHref).toBe(recaptured.assetPublishing.publicationHref);
+  expect(recaptured.asset.previewHref).toContain('v=new-renderer');
 });
