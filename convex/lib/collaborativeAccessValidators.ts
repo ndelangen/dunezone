@@ -175,10 +175,13 @@ export const faqListDetailsValidator = v.object({
 
 export type FaqListDetails = Infer<typeof faqListDetailsValidator>;
 
-export const faqListItemValidator = faqItemValidator.extend({
+const faqQuestionWithAnswersValidator = faqItemValidator.extend({
   faq_answers: v.array(faqAnswerValidator),
-  list_details: faqListDetailsValidator,
   asker_profile: v.union(profileSummaryValidator, v.null()),
+});
+
+export const faqListItemValidator = faqQuestionWithAnswersValidator.extend({
+  list_details: faqListDetailsValidator,
 });
 
 export const relatedFaqItemValidator = faqListItemValidator.extend({
@@ -235,7 +238,7 @@ export const rulesetPublicDetailPageValidator = v.union(
     /** Live factions in this ruleset, from the catalogue's list for it. */
     factionCount: v.number(),
     /** The newest 200 questions, for browsers from before the FAQ had its own page. Unread by this bundle; the next release drops it. */
-    faqItems: v.array(faqListItemValidator),
+    faqItems: v.array(faqQuestionWithAnswersValidator),
     /** The newest few questions; the rest are on the ruleset's FAQ page. */
     faqPreview: v.array(faqListItemValidator),
     faqCounts: v.object({ questions: v.number(), answered: v.number() }),

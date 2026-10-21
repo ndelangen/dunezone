@@ -61,6 +61,7 @@ export function FaqList(props: FaqListProps) {
           const accepted = item.list_details?.accepted_answer;
           const answered = item.list_details ? accepted != null : item.accepted_answer_id != null;
           const answerLabel = `${count}${item.list_details?.has_more_answers ? '+' : ''} ${count === 1 ? 'answer' : 'answers'}`;
+          const statusLabel = `${answered ? 'Answered' : 'Unanswered'}, ${answerLabel}`;
           const questionLink = (rootProps: Record<string, unknown>) => (
             <Link
               {...rootProps}
@@ -71,7 +72,7 @@ export function FaqList(props: FaqListProps) {
           return (
             <SectionedSurface.Row
               key={item._id}
-              ariaLabel={`Open question: ${item.question}`}
+              ariaLabel={`Open question: ${item.question}. ${statusLabel}`}
               onActivate={() => onOpenQuestion(item.slug, rulesetSlug)}
             >
               <div className={styles.row}>
@@ -79,7 +80,7 @@ export function FaqList(props: FaqListProps) {
                   <Anchor fw={700} fz="md" underline="never" className={styles.question} renderRoot={questionLink}>
                     <InlineFormattedTextSource source={item.question} />
                   </Anchor>
-                  <span aria-label={`${answered ? 'Answered' : 'Unanswered'}, ${answerLabel}`}>
+                  <span>
                     <StatusBadge
                       tone={answered ? 'positive' : 'neutral'}
                       icon={answered ? <Check size={12} aria-hidden /> : <MessageCircle size={12} aria-hidden />}

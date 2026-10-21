@@ -87,9 +87,9 @@ export const Populated = meta.story({
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByRole('link', { name: 'Can leaders move through the storm?' })).toBeVisible();
-    await expect(canvas.getByLabelText('Answered, 1 answer')).toBeVisible();
+    await expect(canvas.getByRole('link', { name: /Answered, 1 answer/ })).toBeVisible();
     await expect(canvas.getByRole('link', { name: 'When do reserve forces enter play?' })).toBeVisible();
-    await expect(canvas.getByLabelText('Unanswered, 0 answers')).toBeVisible();
+    await expect(canvas.getByRole('link', { name: /Unanswered, 0 answers/ })).toBeVisible();
     await expect(canvas.getByText('Only when the ruleset explicitly allows it.')).toBeVisible();
     await expect(canvas.getAllByText('Answered by:')).toHaveLength(1);
     await expect(canvas.queryByText('No answers yet.')).not.toBeInTheDocument();
@@ -209,7 +209,7 @@ export const RowActivation = meta.story({
   ],
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
-    const row = canvas.getByRole('link', { name: 'Open question: Can leaders move through the storm?' });
+    const row = canvas.getByRole('link', { name: /^Open question: Can leaders move through the storm\?/ });
     await userEvent.click(row);
     await expect(args.onOpenQuestion).toHaveBeenCalledWith('storm-movement', 'dreamrules');
     const calls = (args.onOpenQuestion as ReturnType<typeof fn>).mock.calls.length;
