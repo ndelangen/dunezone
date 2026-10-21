@@ -20,7 +20,6 @@ const meta = preview.meta({
 
 export const Comparison = meta.story({
   args: { switcher: true },
-  globals: { viewport: { value: undefined } },
 });
 export const AReadingRail = meta.story({ args: { variant: 'A' }, globals: { viewport: { value: 'appLarge' } } });
 export const BForum = meta.story({ args: { variant: 'B' }, globals: { viewport: { value: 'appLarge' } } });
