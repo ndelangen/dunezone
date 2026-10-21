@@ -1,0 +1,67 @@
+.comparison {
+  display: flex;
+  align-items: start;
+  gap: var(--space-xl);
+  overflow-x: auto;
+  padding-bottom: var(--space-lg);
+}
+.comparison > div {
+  flex-shrink: 0;
+}
+.row {
+  display: grid;
+  gap: var(--space-xs);
+  overflow-wrap: anywhere;
+}
+.question {
+  color: var(--color-text);
+  line-height: 1.35;
+}
+.excerpt {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+.excerpt > svg {
+  flex-shrink: 0;
+  color: var(--color-muted);
+}
+.summary,
+.count,
+.references {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+.summary {
+  flex-wrap: wrap;
+}
+.count {
+  gap: var(--space-xs);
+  color: var(--color-muted);
+  white-space: nowrap;
+}
+.ruleset {
+  margin-left: auto;
+  max-width: 40%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.references {
+  flex-wrap: nowrap;
+}
+.relationLabel {
+  flex-shrink: 0;
+}
+.reference {
+  min-width: 0;
+}
+.referenceName {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
