@@ -62,11 +62,48 @@
 .metadata {
   color: var(--color-muted);
 }
+.leanSummary {
+  display: none;
+}
+.leanFact {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  white-space: nowrap;
+  color: var(--color-muted);
+}
+.leanRuleset {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
 @container faq-list (width < 30rem) {
   .heading,
   .people {
     flex-direction: column;
     align-items: start;
     gap: var(--space-xs);
+  }
+}
+/* Norbert selected Lean at 400 px or narrower after comparing the rendered Storybook prototypes. */
+@container faq-list (width <= 400px) {
+  .fullStatus,
+  .context,
+  .metadata {
+    display: none;
+  }
+  .excerptText {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+    overflow: hidden;
+    min-width: 0;
+  }
+  .leanSummary {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
   }
 }
