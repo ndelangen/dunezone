@@ -22,7 +22,7 @@ function openingLeaderTokenState(data: LeaderTokenDraft, baseline: LeaderTokenDr
   return { data, baseline, memory: { declaredCustom: false, backgroundMode: emptyBackgroundModeMemory() } };
 }
 
-function reduceLeaderTokenDraft(state: State, event: Event): State {
+export function reduceLeaderTokenDraft(state: State, event: Event): State {
   switch (event.kind) {
     case 'patch':
       return { ...state, data: { ...state.data, ...event.update } };
@@ -31,7 +31,7 @@ function reduceLeaderTokenDraft(state: State, event: Event): State {
     case 'replace':
       return openingLeaderTokenState(event.data, state.baseline);
     case 'saved':
-      return { ...state, data: event.data, baseline: event.data };
+      return { ...state, baseline: event.data };
   }
 }
 
