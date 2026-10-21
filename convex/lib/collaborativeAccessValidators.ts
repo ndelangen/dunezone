@@ -165,6 +165,10 @@ export const faqListItemValidator = faqItemValidator.extend({
   asker_profile: v.union(profileSummaryValidator, v.null()),
 });
 
+export const relatedFaqItemValidator = faqListItemValidator.extend({
+  ruleset: v.object({ id: v.id('rulesets'), name: v.string(), slug: v.string() }),
+});
+
 const profileFaqQuestionValidator = faqItemValidator.extend({
   ruleset: rulesetCitationValidator,
 });

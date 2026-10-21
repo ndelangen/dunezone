@@ -79,23 +79,7 @@ export async function loadViewerAnswered(ctx: QueryCtx, questionId: Id<'faq_item
  * The wire contract is `faqQuestionPublicPageValidator`.
  */
 export async function loadFaqQuestionPublicPage(ctx: QueryCtx, args: { rulesetSlug: string; questionSlug: string }) {
-  const ruleset = await ctx.db
-    .query('rulesets')
-    .withIndex('by_slug', (q) => q.eq('slug', args.rulesetSlug))
-    .unique();
-  if (!ruleset || ruleset.is_deleted) {
-    throw new ConvexError({ code: 'NOT_FOUND', message: `Ruleset with slug ${args.rulesetSlug} not found` });
-  }
-  const item = await ctx.db
-    .query('faq_items')
-    .withIndex('by_ruleset_slug', (q) => q.eq('ruleset_id', ruleset._id).eq('slug', args.questionSlug))
-    .unique();
-  if (!item) {
-    throw new ConvexError({
-      code: 'NOT_FOUND',
-      message: `FAQ item with slug ${args.questionSlug} not found in ruleset ${args.rulesetSlug}`,
-    });
-  }
+  const { ruleset, item } = await loadFaqQuestionAtLocator(ctx, args);
   /* The newest answers, shown oldest first, so a new answer always appears even on a long thread. */
   const answers = (
     await ctx.db
@@ -138,4 +122,26 @@ export async function loadFaqQuestionPublicPage(ctx: QueryCtx, args: { rulesetSl
     },
     answers: projectedAnswers,
   };
+}
+
+/** Resolve a live question without subscribing to its answers. */
+export async function loadFaqQuestionAtLocator(ctx: QueryCtx, args: { rulesetSlug: string; questionSlug: string }) {
+  const ruleset = await ctx.db
+    .query('rulesets')
+    .withIndex('by_slug', (q) => q.eq('slug', args.rulesetSlug))
+    .unique();
+  if (!ruleset || ruleset.is_deleted) {
+    throw new ConvexError({ code: 'NOT_FOUND', message: `Ruleset with slug ${args.rulesetSlug} not found` });
+  }
+  const item = await ctx.db
+    .query('faq_items')
+    .withIndex('by_ruleset_slug', (q) => q.eq('ruleset_id', ruleset._id).eq('slug', args.questionSlug))
+    .unique();
+  if (!item) {
+    throw new ConvexError({
+      code: 'NOT_FOUND',
+      message: `FAQ item with slug ${args.questionSlug} not found in ruleset ${args.rulesetSlug}`,
+    });
+  }
+  return { ruleset, item };
 }

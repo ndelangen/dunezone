@@ -1,3 +1,4 @@
+import { paginationOptsValidator, paginationResultValidator } from 'convex/server';
 import { ConvexError, v } from 'convex/values';
 
 import { FACTION_CATALOGUE_QUERY_LIMIT, FACTION_CATALOGUE_SORTS } from '../src/shared/factions/catalogueSearch';
@@ -15,6 +16,7 @@ import {
   requireFactionUpdate,
   requireGroupReassignment,
 } from './lib/collaborativeAccess';
+import { relatedFaqItemValidator } from './lib/collaborativeAccessValidators';
 import {
   factionDetailPageValidator,
   factionValidator,
@@ -22,6 +24,7 @@ import {
   rulesetSummaryValidator,
 } from './lib/collaborativeAccessValidators';
 import { resolveGroupAssignmentForCreation } from './lib/defaultGroupPreference';
+import { listFactionRulesets } from './lib/factionCatalogue';
 import {
   loadFactionCatalogue,
   loadFactionCataloguePage,
@@ -35,6 +38,7 @@ import {
   parseFactionInput,
   parseStoredFactionForRead,
 } from './lib/factionInput';
+import { loadRelatedFaqPage } from './lib/faqReferences';
 import { recordFormerSlug } from './lib/formerSlugs';
 import {
   buildOwnedForGroupAssignRows,
@@ -96,17 +100,6 @@ function factionDataForClient(data: unknown) {
   return parseStoredFactionForRead(data);
 }
 
-async function listFactionRulesets(ctx: QueryCtx, factionId: Id<'factions'>) {
-  const links = await ctx.db
-    .query('ruleset_factions')
-    .withIndex('by_faction', (q) => q.eq('faction_id', factionId))
-    .take(500);
-  const rulesets = await Promise.all(links.map((link) => ctx.db.get('rulesets', link.ruleset_id)));
-  return rulesets.flatMap((ruleset) =>
-    ruleset && !ruleset.is_deleted ? [{ id: ruleset._id, name: ruleset.name, slug: ruleset.slug }] : []
-  );
-}
-
 /** The faction row a page is for: live, or NOT_FOUND. */
 async function liveFactionBySlug(ctx: QueryCtx, slug: string) {
   const row = await ctx.db
@@ -149,6 +142,19 @@ export const pageBySlug = publicQuery({
   args: { slug: v.string() },
   returns: factionDetailPageValidator,
   handler: async (ctx, args) => loadFactionDetailPage(ctx, await liveFactionBySlug(ctx, args.slug)),
+});
+
+export const detailPage = publicQuery({
+  args: { slug: v.string(), paginationOpts: paginationOptsValidator },
+  returns: paginationResultValidator(
+    v.object({ detail: v.union(factionDetailPageValidator, v.null()), items: v.array(relatedFaqItemValidator) })
+  ),
+  handler: async (ctx, args) => {
+    const row = await liveFactionBySlug(ctx, args.slug);
+    const related = await loadRelatedFaqPage(ctx, { kind: 'faction', id: row._id }, args.paginationOpts);
+    const detail = args.paginationOpts.cursor === null ? await loadFactionDetailPage(ctx, row) : null;
+    return { ...related, page: [{ detail, items: related.page }] };
+  },
 });
 
 /**

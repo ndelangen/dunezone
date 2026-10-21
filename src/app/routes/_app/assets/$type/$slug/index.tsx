@@ -50,13 +50,14 @@ import {
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 
-import { loadAssetPage, useAssetPage, useConvertTreacheryToCustom } from '@app/db/assets';
+import { loadAssetDetailPage, useAssetDetailPage, useConvertTreacheryToCustom } from '@app/db/assets';
 import type { AssetPageData } from '@app/db/assets';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { redirectFromFormerAddress } from '@app/routes/formerAddress';
 import { profileLink, publicDescription, publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
 import { AssetFace } from '@app/widgets/asset-face/AssetFace';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
+import { RelatedFaq } from '@app/widgets/related-faq/RelatedFaq';
 
 import { useAssetDeletion, useAssetGroupActions } from '../../assetEditorStates';
 import { compositionTiles, DUPLICATED_TILE_CAP, omissionNote } from './composition';
@@ -76,7 +77,7 @@ export const Route = createFileRoute('/_app/assets/$type/$slug/')({
     if (!isAssetType(params.type)) {
       throw notFound();
     }
-    const page = await loadAssetPage(params.type, params.slug);
+    const page = await loadAssetDetailPage(params.type, params.slug);
     if (!page) {
       await redirectFromFormerAddress({ kind: 'asset', type: params.type, slug: params.slug }, location);
       throw notFound();
@@ -495,7 +496,7 @@ function AssetDetailBody({ page, duplicated }: { page: AssetPage; duplicated: bo
 function AssetDetailPage() {
   const { type, slug } = Route.useParams();
   const loaderData = Route.useLoaderData();
-  const live = useAssetPage(type, slug, { initialData: loaderData });
+  const live = useAssetDetailPage(type, slug, { initialData: loaderData });
   const page = live.data;
   useLivePageTitle(
     page?.asset.name ?? (page === null ? 'Asset not found' : undefined),
@@ -512,7 +513,7 @@ function AssetDetailPage() {
     );
   }
 
-  return <LoadedAssetDetail page={page} pending={live.isPending || !page.viewerResolved} />;
+  return <LoadedAssetDetail page={page} pending={live.isPending || !page.viewerResolved} faq={live} />;
 }
 
 /**
@@ -520,7 +521,15 @@ function AssetDetailPage() {
  * Its own component so the management hooks can take a definite asset, which the route component cannot promise before the guard runs.
  * Group assign/remove and delete install from the shared hooks in `-assetEditorStates` rather than repeating here as a fifth copy of the same fifty lines.
  */
-function LoadedAssetDetail({ page, pending }: { page: AssetPage; pending: boolean }) {
+function LoadedAssetDetail({
+  page,
+  pending,
+  faq,
+}: {
+  page: AssetPage;
+  pending: boolean;
+  faq: ReturnType<typeof useAssetDetailPage>;
+}) {
   const { asset, viewerAccess, assignableGroups, inDecks, assetPublishing, backPublishing } = page;
   const groupActions = useAssetGroupActions({ asset, access: { viewerAccess, assignableGroups } });
   const deletion = useAssetDeletion(asset);
@@ -723,31 +732,41 @@ function LoadedAssetDetail({ page, pending }: { page: AssetPage; pending: boolea
       </PageLayout.Toolbar>
 
       <PageLayout.Content>
-        {groupActions.error}
-        {conversion.error ? (
-          <Alert color="red" role="alert" title="Could not convert card">
-            {conversion.error.message}
-          </Alert>
-        ) : null}
-        {deletion.error ? (
-          <Alert color="red" variant="light" role="alert" title="Could not delete">
-            {deletion.error.message}
-          </Alert>
-        ) : null}
-        {/* The reading matter leads and the render stands in a rail beside it, the edit pages' arrangement (Norbert, 2026-08-21).
+        <Stack gap="xl">
+          {groupActions.error}
+          {conversion.error ? (
+            <Alert color="red" role="alert" title="Could not convert card">
+              {conversion.error.message}
+            </Alert>
+          ) : null}
+          {deletion.error ? (
+            <Alert color="red" variant="light" role="alert" title="Could not delete">
+              {deletion.error.message}
+            </Alert>
+          ) : null}
+          {/* The reading matter leads and the render stands in a rail beside it, the edit pages' arrangement (Norbert, 2026-08-21).
             A container's rail slims to a band: its matter is the member grid, and the preview keeps the rail company with Shipped by (Norbert, 2026-08-22). */}
-        <AsymmetricSplitLayout rail={container ? 'slim' : 'reading'}>
-          <AsymmetricSplitLayout.Wide>
-            <AssetDetailBody page={page} duplicated={duplicated} />
-          </AsymmetricSplitLayout.Wide>
+          <AsymmetricSplitLayout rail={container ? 'slim' : 'reading'}>
+            <AsymmetricSplitLayout.Wide>
+              <AssetDetailBody page={page} duplicated={duplicated} />
+            </AsymmetricSplitLayout.Wide>
 
-          <AsymmetricSplitLayout.Narrow>
-            <Stack gap="lg">
-              <AssetFaces page={page} />
-              {container ? <ShippedByCard rulesets={page.linkingRulesets} /> : null}
-            </Stack>
-          </AsymmetricSplitLayout.Narrow>
-        </AsymmetricSplitLayout>
+            <AsymmetricSplitLayout.Narrow>
+              <Stack gap="lg">
+                <AssetFaces page={page} />
+                {container ? <ShippedByCard rulesets={page.linkingRulesets} /> : null}
+              </Stack>
+            </AsymmetricSplitLayout.Narrow>
+          </AsymmetricSplitLayout>
+          <RelatedFaq
+            items={faq.relatedFaq}
+            status={faq.faqStatus}
+            onLoadMore={faq.loadMoreFaq}
+            onOpenQuestion={(questionSlug, rulesetSlug) => {
+              void navigate({ to: '/rulesets/$rulesetSlug/faq/$questionSlug', params: { questionSlug, rulesetSlug } });
+            }}
+          />
+        </Stack>
       </PageLayout.Content>
     </PageLayout>
   );

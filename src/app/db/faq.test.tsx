@@ -10,6 +10,9 @@ const mocks = vi.hoisted(() => ({
   dbQuery: vi.fn(),
   useQuery: vi.fn(),
   useMutation: vi.fn(),
+  usePaginatedQuery: vi.fn(),
+  addReference: vi.fn(),
+  removeReference: vi.fn(),
   editQuestion: vi.fn(),
   deleteQuestion: vi.fn(),
   createAnswer: vi.fn(),
@@ -24,11 +27,13 @@ vi.mock('convex/react', () => ({
   useConvex: () => undefined,
   useQuery: mocks.useQuery,
   useMutation: mocks.useMutation,
+  usePaginatedQuery: mocks.usePaginatedQuery,
 }));
 
 import { useAskFaqQuestion, useFaqQuestionPage } from './faq';
 
 const serverPage = {
+  referenceRuleset: { owner_id: 'owner', assignedGroup: null },
   ruleset: { id: 'ruleset-1', slug: 'test-ruleset', name: 'TestRuleset' },
   question: {
     id: 'question-1',
@@ -54,10 +59,17 @@ const serverPage = {
 
 /** Answers the page, the session and the viewer's answered flag by function name, as Convex would for each subscription. */
 function serveQueries(viewer: { userId: string | null; answered: boolean | undefined }) {
+  mocks.usePaginatedQuery.mockReturnValue({
+    results: [{ detail: serverPage, items: [] }],
+    status: 'Exhausted',
+    loadMore: vi.fn(),
+  });
   mocks.useQuery.mockImplementation((reference) => {
     switch (getFunctionName(reference)) {
       case getFunctionName(api.profiles.session):
         return { userId: viewer.userId, profile: null, isAdmin: false };
+      case getFunctionName(api.groups.viewerMembership):
+        return 'none';
       case getFunctionName(api.faq.viewerAnswered):
         return viewer.answered;
       default:
@@ -79,6 +91,8 @@ function deferred<T>() {
 beforeEach(() => {
   vi.clearAllMocks();
   for (const mutation of [
+    mocks.addReference,
+    mocks.removeReference,
     mocks.editQuestion,
     mocks.deleteQuestion,
     mocks.createAnswer,
@@ -89,6 +103,8 @@ beforeEach(() => {
     mutation.mockResolvedValue(null);
   }
   const mutationsByReference = new Map([
+    [getFunctionName(api.faqReferences.add), mocks.addReference],
+    [getFunctionName(api.faqReferences.remove), mocks.removeReference],
     [getFunctionName(api.faq.editQuestion), mocks.editQuestion],
     [getFunctionName(api.faq.deleteQuestion), mocks.deleteQuestion],
     [getFunctionName(api.faq.createAnswer), mocks.createAnswer],
@@ -189,6 +205,26 @@ describe('FAQ question page interface', () => {
       faq_item_id: 'question-1',
       accepted_answer_id: 'answer-2',
     });
+  });
+
+  test('reference commands send only the target identity and keep question edits independent', async () => {
+    serveQueries({ userId: 'asker', answered: false });
+    const hook = renderHook(() => useFaqQuestionPage({ rulesetSlug: 'test-ruleset', questionSlug: '1' }));
+    const preview = { kind: 'asset' as const, id: 'asset-1', asset: { name: 'Lasgun' } };
+    await act(() => hook.result.current.removeReference.run(preview as never));
+    expect(mocks.removeReference).toHaveBeenCalledWith({
+      questionId: 'question-1',
+      target: { kind: 'asset', id: 'asset-1' },
+    });
+    expect(mocks.editQuestion).not.toHaveBeenCalled();
+    expect(hook.result.current.canManageReferences).toBe(true);
+    serveQueries({ userId: 'owner', answered: false });
+    hook.rerender();
+    expect(hook.result.current.canManageReferences).toBe(true);
+    expect(hook.result.current.page?.question.capabilities.editQuestion).toBe(false);
+    serveQueries({ userId: 'unrelated', answered: false });
+    hook.rerender();
+    expect(hook.result.current.canManageReferences).toBe(false);
   });
 
   test('keeps pending and error state isolated between commands', async () => {

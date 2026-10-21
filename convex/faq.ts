@@ -1,3 +1,4 @@
+import { paginationOptsValidator, paginationResultValidator } from 'convex/server';
 import { v } from 'convex/values';
 
 import type { FAQ_TAG_VALUES } from '../src/shared/faq/tags';
@@ -5,7 +6,8 @@ import { faqAnswerSchema, faqQuestionSchema, faqTagsSchema } from '../src/shared
 import { internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { internalMutation, mutation, publicQuery, viewerQuery } from './functions';
-import { faqListItemValidator } from './lib/collaborativeAccessValidators';
+import { assignedGroupSummary } from './lib/collaborativeAccess';
+import { faqListItemValidator, assignedGroupSummaryValidator } from './lib/collaborativeAccessValidators';
 import { loadRulesetFaqPage, loadRulesetFaqSearch, rulesetFaqSearchText } from './lib/faqCatalogue';
 import {
   globalFaqPageValidator,
@@ -13,7 +15,14 @@ import {
   loadGlobalFaqPage,
   loadGlobalFaqRulesetOptions,
 } from './lib/faqGlobalSearch';
-import { faqQuestionPublicPageValidator, loadFaqQuestionPublicPage, loadViewerAnswered } from './lib/faqQuestionPage';
+import {
+  faqQuestionPublicPageValidator,
+  loadFaqQuestionPublicPage,
+  loadFaqQuestionAtLocator,
+  loadViewerAnswered,
+} from './lib/faqQuestionPage';
+import { faqReferencePreview, faqReferencePreviewValidator } from './lib/faqReferencePreviews';
+import { loadFaqReferenceTargets } from './lib/faqReferences';
 import { faqTagValidator } from './lib/faqTags';
 import { requireAuthUserId } from './lib/policy';
 import { loadPublicRulesetBySlug } from './lib/rulesetDetailPage';
@@ -196,6 +205,37 @@ export const question = publicQuery({
   args: { rulesetSlug: v.string(), questionSlug: v.string() },
   returns: faqQuestionPublicPageValidator,
   handler: async (ctx, args) => await loadFaqQuestionPublicPage(ctx, args),
+});
+
+const referencedQuestionValidator = faqQuestionPublicPageValidator.extend({
+  referenceRuleset: v.object({
+    owner_id: v.id('users'),
+    assignedGroup: v.union(assignedGroupSummaryValidator, v.null()),
+  }),
+});
+
+/** One page-data query, whose cursor ranges keep every loaded reference reactive. */
+export const questionPage = publicQuery({
+  args: { rulesetSlug: v.string(), questionSlug: v.string(), paginationOpts: paginationOptsValidator },
+  returns: paginationResultValidator(
+    v.object({ detail: v.union(referencedQuestionValidator, v.null()), items: v.array(faqReferencePreviewValidator) })
+  ),
+  handler: async (ctx, args) => {
+    const { item, ruleset } = await loadFaqQuestionAtLocator(ctx, args);
+    const references = await loadFaqReferenceTargets(ctx, item._id, args.paginationOpts);
+    const detail =
+      args.paginationOpts.cursor === null
+        ? {
+            ...(await loadFaqQuestionPublicPage(ctx, args)),
+            referenceRuleset: {
+              owner_id: ruleset.owner_id,
+              assignedGroup: await assignedGroupSummary(ctx, ruleset.group_id),
+            },
+          }
+        : null;
+    const items = await Promise.all(references.page.map((target) => faqReferencePreview(ctx, target)));
+    return { ...references, page: [{ detail, items }] };
+  },
 });
 
 /** Whether the viewer has answered one FAQ question: the viewer half of the question page's answer form. Null asks about no question. */

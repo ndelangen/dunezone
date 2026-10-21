@@ -415,3 +415,78 @@ export const EditShowsOnlyTheLatestSaveFailure = meta.story({
     await expect(save()).not.toHaveAccessibleDescription(/Ruleset name already exists/);
   },
 });
+
+/** References save without submitting the question draft, and the saved tile opens its own page. */
+export const QuestionReferences = meta.story({
+  args: { path: '/rulesets/classicrules/faq/when-does-the-storm-move' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('button', { name: 'Edit question' }, { timeout: 30_000 }));
+    const question = await page.findByRole('textbox', { name: 'Edit question' });
+    await userEvent.clear(question);
+    await userEvent.type(question, 'An unsaved question draft?');
+    await userEvent.click(await page.findByRole('button', { name: 'Add references' }));
+    await userEvent.type(page.getByRole('textbox', { name: 'Search the catalogue' }), 'Atreides');
+    await userEvent.click(
+      await page.findByRole('button', { name: 'Add reference to House Atreides' }, { timeout: 30_000 })
+    );
+    await userEvent.click(page.getByRole('button', { name: 'Done' }));
+    const remove = await page.findByRole('button', { name: 'Remove reference to House Atreides' }, { timeout: 30_000 });
+    await expect(question).toHaveValue('An unsaved question draft?');
+    await expect(page.getByRole('link', { name: /House Atreides ClassicRules/ })).toHaveAttribute(
+      'href',
+      '/factions/house-atreides'
+    );
+    await userEvent.click(remove);
+    await waitFor(() => expect(page.queryByRole('button', { name: 'Remove reference to House Atreides' })).toBeNull());
+    await expect(question).toHaveValue('An unsaved question draft?');
+  },
+});
+
+/** One native cursor list spans rulesets and appends the final range without duplicating rows. */
+export const AssetRelatedFaqLoadMore = meta.story({
+  args: { path: '/assets/card-treachery/lasgun' },
+  parameters: {
+    database: db((baseline) => {
+      baseline.rulesets.push(ruleset({ name: 'Dreamrules' }));
+      const target = baseline.assets.find((row) => row.type === 'card-treachery' && row.data.name === 'Lasgun')!;
+      for (let index = 1; index <= 14; index++) {
+        const key = `related-faq-${index}`;
+        const created = `2030-01-${String(index).padStart(2, '0')}T00:00:00.000Z`;
+        baseline.faq_items.push({
+          $key: key,
+          ruleset_id: ref(index % 2 === 0 ? 'ruleset:classicrules' : 'ruleset:dreamrules'),
+          slug: `reference-${index}`,
+          question: `Storm reference ${index}?`,
+          tags: ['rules'],
+          asked_by: ref('storybook-viewer'),
+          created_at: created,
+          updated_at: created,
+          accepted_answer_id: null,
+        });
+        baseline.faq_references.push({
+          faq_item_id: ref(key),
+          question_created_at: created,
+          kind: 'asset',
+          target_id: ref(target.$key!),
+        });
+      }
+      return baseline;
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const list = within(await page.findByRole('region', { name: 'Related FAQ' }, { timeout: 30_000 }));
+    await waitFor(() => expect(list.getAllByRole('link', { name: /^Open question:/ })).toHaveLength(12));
+    await expect(list.getAllByRole('link', { name: /^Open question:/ })[0]).toHaveAccessibleName(
+      'Open question: Storm reference 14?'
+    );
+    await expect(list.getAllByRole('link', { name: 'ClassicRules' })).toHaveLength(6);
+    await expect(list.getAllByRole('link', { name: 'Dreamrules' })).toHaveLength(6);
+    const loadMore = await list.findByRole('button', { name: 'Load more' }, { timeout: 30_000 });
+    await expect(list.getAllByRole('button', { name: 'Load more' })).toHaveLength(1);
+    await userEvent.click(loadMore);
+    await waitFor(() => expect(list.getAllByRole('link', { name: /^Open question:/ })).toHaveLength(14));
+    await expect(list.queryByRole('button', { name: 'Load more' })).toBeNull();
+  },
+});
