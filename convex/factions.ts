@@ -9,7 +9,7 @@ import { publicationStatusFor } from './assetPublishingStatus';
 import { liveAsset } from './assets';
 import { mutation, publicQuery, viewerQuery } from './functions';
 import { isActiveProfile } from './lib/accountLifecycle';
-import { listBackgroundPresets } from './lib/backgroundPresets';
+import { backgroundProjection } from './lib/backgroundPresets';
 import { listCardFrontPresets } from './lib/cardFrontPresets';
 import {
   assignedGroupSummary,
@@ -125,7 +125,7 @@ async function loadFactionDetailPage(ctx: QueryCtx, row: Doc<'factions'>) {
   }
 
   return {
-    backgrounds: await listBackgroundPresets(ctx),
+    backgrounds: await backgroundProjection(ctx, row.data),
     cardFrontPresets: await listCardFrontPresets(ctx),
     faction: {
       ...row,

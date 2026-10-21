@@ -9,12 +9,16 @@ import type {
 import {
   INITIAL_CARD_FRONT_PRESETS,
   cardFrontPresetKey,
-  cardFrontPresetType,
   cardFrontStyleFor,
 } from '../../src/shared/assets/cardFrontPresets';
 import { internal } from '../_generated/api';
 import type { MutationCtx, QueryCtx } from '../types';
-import { resolveBackgrounds } from './backgroundPresets';
+import {
+  legacyBackground,
+  preserveVirtualBackgrounds,
+  resolveBackgrounds,
+  validateBackgroundLinks,
+} from './backgroundPresets';
 
 export async function cardFrontPresetFor(ctx: Pick<QueryCtx, 'db'>, key: CardFrontPresetKey): Promise<CardFrontPreset> {
   const initial = INITIAL_CARD_FRONT_PRESETS.find((preset) => preset.key === key)!;
@@ -67,18 +71,33 @@ export async function storeCardFrontPreset(
   if (style.iconBackground === null && key !== 'nexus') {
     throw new ConvexError('Choose an icon background for this preset.');
   }
+  const initial = INITIAL_CARD_FRONT_PRESETS.find((preset) => preset.key === key)!;
+  const previous = row?.style ?? initial.style;
+  const effective = await cardFrontPresetFor(ctx, key);
+  const authored = {
+    head: legacyBackground(style.head, previous.head, effective.style.head, `front/${key}/header`),
+    iconBackground: style.iconBackground
+      ? legacyBackground(
+          style.iconBackground,
+          previous.iconBackground ?? style.iconBackground,
+          effective.style.iconBackground ?? style.iconBackground,
+          `front/${key}/icon`
+        )
+      : null,
+  };
+  await preserveVirtualBackgrounds(ctx, [`front/${key}/header`, `front/${key}/icon`]);
+  await validateBackgroundLinks(ctx, authored);
   const revision = expectedRevision + 1;
-  const data = { key, style, revision, updated_at: Date.now() };
+  const data = { key, style: authored, revision, updated_at: Date.now() };
   if (row) {
     await ctx.db.patch(row._id, data);
   } else {
     await ctx.db.insert('card_front_presets', data);
   }
-  await ctx.scheduler.runAfter(0, internal.publicationRegeneration.scan, {
-    assetType: cardFrontPresetType(key),
+  await ctx.scheduler.runAfter(0, internal.backgroundPresets.recaptureFamily, {
+    key,
+    regions: ['header', 'icon'],
     cursor: null,
-    scanned: 0,
-    enqueued: 0,
   });
   return revision;
 }

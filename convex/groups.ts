@@ -4,6 +4,7 @@ import { groupInputSchema } from '../src/shared/groups/validation';
 import type { Doc } from './_generated/dataModel';
 import type { MutationCtx, QueryCtx } from './_generated/server';
 import { mutation, publicQuery, viewerQuery } from './functions';
+import { resolveBackgrounds } from './lib/backgroundPresets';
 import {
   liveGroupOrNull,
   loadGroupRoster,
@@ -91,7 +92,7 @@ async function loadGroupPageBySlug(ctx: QueryCtx, slug: string) {
       .take(500),
   ]);
 
-  return { group, factions: factions.map(factionRowForClient), rulesets, owner, roster };
+  return { group, factions: await resolveBackgrounds(ctx, factions.map(factionRowForClient)), rulesets, owner, roster };
 }
 
 /**

@@ -12,6 +12,7 @@ import {
 } from '../src/shared/assets/cardFrontPresets';
 import type { AuthoredCardFrontStyle } from '../src/shared/assets/cardFrontPresets';
 import { CustomCardTokens } from '../src/shared/assets/schema';
+import { backgroundPresets } from '../src/shared/backgrounds/defaults';
 import {
   familyPresetSchema,
   familySaveSchema,
@@ -25,7 +26,7 @@ import type { BackgroundData } from '../src/shared/backgrounds/schema';
 import { internal } from './_generated/api';
 import { storeBackgroundPreset } from './backgroundPresets';
 import { mutation, publicQuery } from './functions';
-import { preserveVirtualBackgrounds } from './lib/backgroundPresets';
+import { backgroundProjection, preserveVirtualBackgrounds } from './lib/backgroundPresets';
 import { resolveBackgrounds } from './lib/backgroundPresets';
 import { listBackgroundPresets, validateBackgroundLinks } from './lib/backgroundPresets';
 import { canonicalJson } from './lib/canonicalJson';
@@ -225,11 +226,8 @@ export const authoring = publicQuery({
       error: z.string().nullable(),
     })
   ),
-  handler: async (ctx, args) => ({
-    backs: await listCardbackPresets(ctx),
-    fronts: await listCardFrontPresets(ctx),
-    backgrounds: await listBackgroundPresets(ctx),
-    discovery: await Promise.all(
+  handler: async (ctx, args) => {
+    const discovery = await Promise.all(
       INITIAL_DISCOVERY_PRESETS.map(async (initial) => {
         const row = await ctx.db
           .query('discovery_presets')
@@ -244,7 +242,18 @@ export const authoring = publicQuery({
           back: { ...saved.back, background: backgroundLink(saved.back.background, `${initial.key}/back`) },
         };
       })
-    ),
-    ...(await resolveCustomCardTokens(ctx, args.ids ?? [])),
-  }),
+    );
+    return {
+      backs: await listCardbackPresets(ctx),
+      fronts: await listCardFrontPresets(ctx),
+      backgrounds: await backgroundProjection(ctx, [
+        discovery,
+        backgroundPresets.special,
+        backgroundPresets.ecaz,
+        backgroundPresets.atreides,
+      ]),
+      discovery,
+      ...(await resolveCustomCardTokens(ctx, args.ids ?? [])),
+    };
+  },
 });

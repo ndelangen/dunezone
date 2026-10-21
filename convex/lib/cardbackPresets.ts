@@ -6,7 +6,12 @@ import type { CardbackPreset } from '../../src/shared/assets/cardbackPresets';
 import { INITIAL_CARDBACK_PRESETS } from '../../src/shared/assets/cardbackPresets';
 import { publicationStatusFor } from '../assetPublishingStatus';
 import type { MutationCtx, QueryCtx } from '../types';
-import { resolveBackgrounds } from './backgroundPresets';
+import {
+  legacyBackground,
+  preserveVirtualBackgrounds,
+  resolveBackgrounds,
+  validateBackgroundLinks,
+} from './backgroundPresets';
 import { rawCardbackPreset } from './cardPresetDefaults';
 import { enqueuePublicationJob } from './publication';
 
@@ -47,7 +52,7 @@ export async function listCardbackPresets(ctx: Pick<QueryCtx, 'db'>, memo: Cardb
   return Promise.all(INITIAL_CARDBACK_PRESETS.map(({ key }) => presetFor(ctx, key, memo)));
 }
 
-/** Activation creates missing definitions and republishes saved designs without overwriting an Administrator's edits. */
+/** Activation republishes virtual defaults and saved designs without overwriting an Administrator's edits. */
 export async function publishCardbackPresets(ctx: MutationCtx) {
   for (const initial of INITIAL_CARDBACK_PRESETS) {
     await enqueuePublicationJob(ctx, {
@@ -56,7 +61,7 @@ export async function publishCardbackPresets(ctx: MutationCtx) {
       assetData: {
         assetId: initial.key,
         slug: initial.key,
-        cardback: (await rawCardbackPreset(ctx, initial.key)).cardback,
+        cardback: (await presetFor(ctx, initial.key, new Map())).cardback,
       },
     });
   }
@@ -76,6 +81,19 @@ export async function storeCardbackPreset(
   if ((row?.revision ?? 0) !== expectedRevision) {
     throw new ConvexError('This preset changed elsewhere. Reset to load the saved version.');
   }
+  const previous = await rawCardbackPreset(ctx, key);
+  const effective = await presetFor(ctx, key, new Map());
+  cardback = {
+    ...cardback,
+    background: legacyBackground(
+      cardback.background,
+      previous.cardback.background,
+      effective.cardback.background,
+      `back/${key}`
+    ),
+  };
+  await preserveVirtualBackgrounds(ctx, [`back/${key}`]);
+  await validateBackgroundLinks(ctx, cardback);
   const revision = expectedRevision + 1;
   const data = { key, cardback, revision, updated_at: Date.now() };
   if (row) {
@@ -86,7 +104,7 @@ export async function storeCardbackPreset(
   await enqueuePublicationJob(ctx, {
     assetType: 'cardback-preset',
     assetId: key,
-    assetData: { assetId: key, slug: key, cardback },
+    assetData: { assetId: key, slug: key, cardback: (await presetFor(ctx, key, new Map())).cardback },
   });
   return revision;
 }

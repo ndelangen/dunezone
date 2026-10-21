@@ -7,9 +7,15 @@ import { INITIAL_CARD_FRONT_PRESETS } from '../../src/shared/assets/cardFrontPre
 import { INITIAL_BACKGROUND_PRESETS } from '../../src/shared/backgrounds/defaults';
 import { discoveryKeySchema } from '../../src/shared/backgrounds/families';
 import { INITIAL_DISCOVERY_PRESETS } from '../../src/shared/backgrounds/families';
-import { backgroundPresetKeys, resolveBackgroundValues } from '../../src/shared/backgrounds/schema';
+import {
+  backgroundPresetKeys,
+  resolveBackgroundValues,
+  backgroundValue,
+  customBackground,
+} from '../../src/shared/backgrounds/schema';
 import type { SharedBackgroundPreset, BackgroundData } from '../../src/shared/backgrounds/schema';
 import type { MutationCtx, QueryCtx } from '../types';
+import { canonicalJson } from './canonicalJson';
 import { rawCardbackPreset } from './cardPresetDefaults';
 
 export const MAX_BACKGROUND_PRESETS = 200;
@@ -185,4 +191,35 @@ export async function preserveVirtualBackgrounds(ctx: MutationCtx, keys: readonl
       await ctx.db.insert('background_presets', { ...preset, updated_at: Date.now() });
     }
   }
+}
+
+/** Only the values a render projection references cross the page query. The Picker loads its options separately. */
+export async function backgroundProjection(
+  ctx: Pick<QueryCtx, 'db'>,
+  data: unknown
+): Promise<SharedBackgroundPreset[]> {
+  const presets = [];
+  for (const key of backgroundPresetKeys(data)) {
+    const preset = await referencedPreset(ctx, key);
+    if (preset) {
+      presets.push(preset);
+    }
+  }
+  return presets;
+}
+
+export function legacyBackground(
+  value: BackgroundData,
+  current: BackgroundData,
+  resolved: BackgroundData,
+  key: string
+): BackgroundData {
+  if (value.source) {
+    return value;
+  }
+  return canonicalJson(backgroundValue(value)) === canonicalJson(backgroundValue(resolved))
+    ? current.source
+      ? current
+      : { ...current, source: { kind: 'preset', key } }
+    : customBackground(value);
 }

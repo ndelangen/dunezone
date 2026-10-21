@@ -5,7 +5,6 @@ import { customBackground, linkedBackground } from '@shared/backgrounds/schema';
 import { useState } from 'react';
 
 import { useBackgroundPresets } from '@db/backgroundPresets';
-import { useBackgroundLibrary } from '@game/assets/utils/BackgroundLibrary';
 
 /** Inline choices subscribe only while their dropdown is open. */
 export function BackgroundPicker({
@@ -20,9 +19,7 @@ export function BackgroundPicker({
   familyValue?: BackgroundData;
 }) {
   const [opened, setOpened] = useState(false);
-  const known = useBackgroundLibrary();
-  const queried = useBackgroundPresets(opened && known.length === 0);
-  const presets = queried ?? known;
+  const presets = useBackgroundPresets(opened);
   const key =
     value.source?.kind === 'preset' ? value.source.key : value.source?.kind === 'family' ? 'family' : 'custom';
   const options = presets?.map((preset) => ({ value: preset.key, label: preset.name })) ?? [];

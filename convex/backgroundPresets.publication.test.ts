@@ -4,7 +4,11 @@ import { afterEach, expect, test, vi } from 'vite-plus/test';
 
 import { CHECKED_IN_RENDERER_REVISIONS } from '../src/shared/asset-publishing/renderer-revisions';
 import { publishingCustomCard } from '../src/shared/assets/fixtures/publishingCustomCard';
+import { publishingSpiceCard } from '../src/shared/assets/fixtures/publishingSpiceCard';
 import { publishingTokenFace } from '../src/shared/assets/fixtures/publishingTokenFace';
+import { standardStormCard } from '../src/shared/assets/standardStormDeck';
+import { arrakisBoard } from '../src/shared/boards/geometry';
+import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api, internal } from './_generated/api';
 import { applicationTest } from './application.test.fixture';
 
@@ -15,6 +19,17 @@ async function fixture() {
     admin: await ctx.db.insert('users', { isAdmin: true }),
     author: await ctx.db.insert('users', {}),
   }));
+  await t.run((ctx) =>
+    ctx.db.insert('profiles', {
+      user_id: ids.author,
+      username: 'Author',
+      avatar_url: null,
+      account_state: 'active',
+      slug: 'author',
+      created_at: '2026-10-21T00:00:00Z',
+      updated_at: '2026-10-21T00:00:00Z',
+    })
+  );
   await t.mutation(internal.publicationAdmin.initialize, { rendererRevisions: CHECKED_IN_RENDERER_REVISIONS });
   return { t, admin: t.withIdentity({ subject: ids.admin }), author: t.withIdentity({ subject: ids.author }) };
 }
@@ -24,7 +39,7 @@ const background = {
   value: publishingTokenFace.background,
   revision: 0,
 };
-const linked = { ...background.value, source: { kind: 'preset', key: background.key } };
+const linked = { ...background.value, source: { kind: 'preset' as const, key: background.key } };
 const token = (name: string, value: unknown) => ({
   name,
   about: '',
@@ -115,10 +130,9 @@ test('renaming a definition creates no captures and changing a link to Custom re
       await ctx.db.delete(job._id);
     }
   });
-  const before = [];
   await admin.mutation(api.backgroundPresets.save, { ...background, revision: 1, name: 'Renamed standard' });
   await t.finishAllScheduledFunctions(vi.runAllTimers);
-  expect(await t.run((ctx) => ctx.db.query('publication_jobs').take(100))).toEqual(before);
+  expect(await t.run((ctx) => ctx.db.query('publication_jobs').take(100))).toEqual([]);
   await author.mutation(api.assets.update, {
     id: asset.id,
     data: token('Custom choice', { ...background.value, source: { kind: 'custom' } }),
@@ -222,4 +236,213 @@ test('a running capture retains its frozen values while a preset change queues i
   );
   expect(jobs.find((job) => job.status === 'in_progress')?.asset_data).toEqual(original.asset_data);
   expect(jobs.find((job) => job.status === 'pending')?.asset_data.face.background.influence).toBe(0.91);
+});
+
+test('renderer activation keeps current named back values, and old admin saves retain unchanged links', async () => {
+  vi.useFakeTimers();
+  const { t, admin } = await fixture();
+  const key = 'back/treachery';
+  const preset = (await t.query(api.backgroundPresets.list, {})).find((p) => p.key === key)!;
+  const colors: [string, string] = ['#135791', '#246802'];
+  await admin.mutation(api.backgroundPresets.save, { ...preset, value: { ...preset.value, colors } });
+  await t.finishAllScheduledFunctions(vi.runAllTimers);
+  await t.mutation(internal.publicationRegeneration.scan, {
+    assetType: 'cardback-preset',
+    cursor: null,
+    scanned: 0,
+    enqueued: 0,
+  });
+  const job = (await t.run((ctx) => ctx.db.query('publication_jobs').collect())).find(
+    (j) => j.asset_type === 'cardback-preset' && j.asset_id === 'treachery'
+  )!;
+  expect(job.asset_data.cardback.background.colors).toEqual(colors);
+  const effective = (await t.query(api.cardbackPresets.list, {})).find((p) => p.key === 'treachery')!;
+  await admin.mutation(api.cardbackPresets.save, {
+    key: effective.key,
+    revision: effective.revision,
+    cardback: { ...effective.cardback, name: 'Changed label' },
+  });
+  const unchanged = (await t.query(api.presetLibrary.page, {})).families.find((p) => p.backKey === 'treachery')!;
+  expect(unchanged.cardback.background.source).toEqual({ kind: 'preset', key });
+  await admin.mutation(api.cardbackPresets.save, {
+    key: 'treachery',
+    revision: unchanged.backRevision,
+    cardback: {
+      ...effective.cardback,
+      background: { ...effective.cardback.background, colors: ['#abcdef', '#fedcba'] },
+    },
+  });
+  const changed = (await t.query(api.cardbackPresets.list, {})).find((p) => p.key === 'treachery')!;
+  expect(changed.cardback.background.colors).toEqual(['#abcdef', '#fedcba']);
+  expect((await t.query(api.backgroundPresets.list, {})).find((p) => p.key === key)?.value.colors).toEqual(colors);
+  await t.finishAllScheduledFunctions(vi.runAllTimers);
+});
+
+test('old front editor changes become Custom without changing previously linked backgrounds', async () => {
+  vi.useFakeTimers();
+  const { t, admin } = await fixture();
+  const key = 'front/storm/header';
+  const preset = (await t.query(api.backgroundPresets.list, {})).find((p) => p.key === key)!;
+  await admin.mutation(api.backgroundPresets.save, {
+    ...preset,
+    value: { ...preset.value, colors: ['#111222', '#333444'] },
+  });
+  const front = (await t.query(api.cardFrontPresets.list, {})).find((p) => p.key === 'storm')!;
+  await admin.mutation(api.cardFrontPresets.save, {
+    key: 'storm',
+    revision: front.revision,
+    style: { ...front.style, head: { ...front.style.head, colors: ['#123456', '#654321'] } },
+  });
+  expect((await t.query(api.cardFrontPresets.list, {})).find((p) => p.key === 'storm')?.style.head.colors).toEqual([
+    '#123456',
+    '#654321',
+  ]);
+  const raw = (await t.query(api.presetLibrary.page, {})).families.find((p) => p.key === 'storm')!;
+  expect(raw.style.head.source).toEqual({ kind: 'custom' });
+  expect(raw.style.iconBackground?.source).toEqual({ kind: 'preset', key: 'front/storm/icon' });
+  expect((await t.query(api.backgroundPresets.list, {})).find((p) => p.key === key)?.value.colors).toEqual([
+    '#111222',
+    '#333444',
+  ]);
+  await t.finishAllScheduledFunctions(vi.runAllTimers);
+});
+
+test('public bundle previews resolve current values while authoring keeps raw links and only referenced definitions', async () => {
+  vi.useFakeTimers();
+  const { t, admin, author } = await fixture();
+  await admin.mutation(api.backgroundPresets.save, background);
+  const asset = await author.mutation(api.assets.create, {
+    type: 'bundle',
+    data: { name: 'Linked bundle', about: '', band: { label: 'Tokens', background: linked } },
+  });
+  await admin.mutation(api.backgroundPresets.save, {
+    ...background,
+    revision: 1,
+    value: { ...background.value, colors: ['#123456', '#654321'] },
+  });
+  const catalogue = await t.query(api.assets.catalogue, { type: 'bundle' });
+  expect(catalogue.entries[0]?.data.band.background.colors).toEqual(['#123456', '#654321']);
+  const page = await t.query(api.assets.page, { type: 'bundle', slug: asset.slug });
+  expect(page?.asset.data.band.background).toEqual(linked);
+  expect(page?.backgrounds.map((p) => p.key)).toEqual([background.key]);
+  expect(page?.backgrounds[0]?.value.colors).toEqual(['#123456', '#654321']);
+  await t.finishAllScheduledFunctions(vi.runAllTimers);
+});
+
+test('changing the Traitor family recaptures only Traitor faces', async () => {
+  vi.useFakeTimers();
+  const { t, admin } = await fixture();
+  await t.run(async (ctx) => {
+    const owner = await ctx.db.insert('users', {});
+    await ctx.db.insert('factions', {
+      data: assetPublishingFaction,
+      slug: 'traitor-proof',
+      owner_id: owner,
+      group_id: null,
+      is_deleted: false,
+      created_at: '2026-10-21T00:00:00Z',
+      updated_at: '2026-10-21T00:00:00Z',
+    });
+  });
+  const family = (await t.query(api.presetLibrary.page, {})).families.find((p) => p.key === 'traitor')!;
+  await admin.mutation(api.presetLibrary.saveFamily, {
+    ...family,
+    style: {
+      ...family.style,
+      head: { ...family.style.head, colors: ['#123456', '#654321'], source: { kind: 'custom' } },
+    },
+    backgrounds: [],
+  });
+  await t.finishAllScheduledFunctions(vi.runAllTimers);
+  const jobs = await t.run((ctx) => ctx.db.query('publication_jobs').collect());
+  expect(jobs.length).toBeGreaterThan(0);
+  expect(new Set(jobs.map((j) => j.asset_type))).toEqual(new Set(['faction-traitor']));
+});
+
+test('a shared edit paginates every use and recaptures Storm and Spice cards embedding those tokens', async () => {
+  vi.useFakeTimers();
+  const { t, admin, author } = await fixture();
+  await admin.mutation(api.backgroundPresets.save, background);
+  const first = await author.mutation(api.assets.create, { type: 'token-disc', data: token('First use', linked) });
+  const second = await author.mutation(api.assets.create, { type: 'token-disc', data: token('Second use', linked) });
+  const board = await author.mutation(api.assets.create, {
+    type: 'board',
+    data: { name: 'Arrakis', about: '', board: arrakisBoard() },
+  });
+  const storm = await author.mutation(api.assets.create, {
+    type: 'card-storm',
+    data: {
+      ...standardStormCard(3),
+      layers: [
+        {
+          kind: 'token',
+          layerId: crypto.randomUUID(),
+          asset_id: first.id,
+          offset: [0, 0],
+          scale: 1,
+          opacity: 1,
+          rotation: 0,
+        },
+      ],
+    },
+  });
+  const spice = await author.mutation(api.assets.create, {
+    type: 'card-spice',
+    data: {
+      ...publishingSpiceCard,
+      board: {
+        asset_id: board.id,
+        tints: [],
+        tokens: [{ layerId: 'placed', asset_id: second.id, x: 100, y: 100, size: 30, rotation: 0 }],
+      },
+    },
+  });
+  await admin.mutation(api.backgroundPresets.save, {
+    ...background,
+    revision: 1,
+    value: { ...background.value, colors: ['#123456', '#654321'] },
+  });
+  await t.finishAllScheduledFunctions(vi.runAllTimers);
+  const jobs = await t.run((ctx) => ctx.db.query('publication_jobs').collect());
+  for (const asset of [first, second]) {
+    expect(jobs.find((j) => j.asset_id === asset.id)?.asset_data.face.background.colors).toEqual([
+      '#123456',
+      '#654321',
+    ]);
+  }
+  expect(jobs.find((j) => j.asset_id === storm.id)?.asset_data.tokens[first.id].face.background.colors).toEqual([
+    '#123456',
+    '#654321',
+  ]);
+  const spiceData = jobs.find((j) => j.asset_id === spice.id)?.asset_data;
+  expect(JSON.stringify(spiceData)).toContain('#123456');
+  expect(JSON.stringify(spiceData)).not.toContain('"source"');
+}, 30_000);
+
+test('faction catalogue cards, spotlights and sheet preview projections follow the current background', async () => {
+  vi.useFakeTimers();
+  const { t, admin, author } = await fixture();
+  await admin.mutation(api.backgroundPresets.save, background);
+  const faction = await author.mutation(api.factions.create, {
+    data: { ...assetPublishingFaction, background: linked },
+  });
+  await admin.mutation(api.backgroundPresets.save, {
+    ...background,
+    revision: 1,
+    value: { ...background.value, colors: ['#123456', '#654321'] },
+  });
+  const catalogue = await t.query(api.factions.cataloguePage, {});
+  expect(catalogue.factions[0]?.data.background.colors).toEqual(['#123456', '#654321']);
+  expect(catalogue.spotlights.newArrival?.data.background.colors).toEqual(['#123456', '#654321']);
+  const homepage = await t.query(api.homepage.get, {});
+  expect(homepage.spotlights.newArrival?.data.background.colors).toEqual(['#123456', '#654321']);
+  const page = await t.query(api.factions.pageBySlug, { slug: faction.slug });
+  expect(page?.faction.data.background).toEqual(linked);
+  expect(page?.backgrounds).toEqual([
+    expect.objectContaining({
+      key: background.key,
+      value: expect.objectContaining({ colors: ['#123456', '#654321'] }),
+    }),
+  ]);
+  await t.finishAllScheduledFunctions(vi.runAllTimers);
 });

@@ -58,6 +58,7 @@ import { profileLink, publicDescription, publicPageHead, useLivePageTitle } from
 import { AssetFace } from '@app/widgets/asset-face/AssetFace';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { RelatedFaq } from '@app/widgets/related-faq/RelatedFaq';
+import { BackgroundLibrary } from '@game/assets/utils/BackgroundLibrary';
 
 import { useAssetDeletion, useAssetGroupActions } from '../../assetEditorStates';
 import { compositionTiles, DUPLICATED_TILE_CAP, omissionNote } from './composition';
@@ -551,223 +552,232 @@ function LoadedAssetDetail({
   const definition = isAssetType(asset.type) ? ASSET_TYPES[asset.type] : undefined;
   const collectionLabel = definition?.label ?? 'Assets';
   return (
-    <PageLayout>
-      <PageLayout.Header size="compact">
-        {/* The identity pattern the faction and ruleset detail pages use: the media sits in its own column, so the breadcrumb, the title and the meta line share one left edge. */}
-        <PageIdentity
-          title={asset.name}
-          media={
-            <div role="img" aria-label={`${asset.name} face`} className={styles.pageHeadFace}>
-              <AssetFace href={asset.previewHref} type={asset.type} data={asset.data} name={asset.name} />
-            </div>
-          }
-          breadcrumb={
-            <PageIdentity.Breadcrumb to="/assets/$type" params={{ type: asset.type }}>
-              {collectionLabel}
-            </PageIdentity.Breadcrumb>
-          }
-          maintainers={{
-            owner: asset.owner
-              ? { slug: asset.owner.slug, name: asset.owner.username, image: asset.owner.avatar_url }
-              : null,
-            group: assignedGroup ? { slug: assignedGroup.slug, name: assignedGroup.name } : null,
-          }}
-          stats={[
-            {
-              key: 'created',
-              icon: <CalendarPlus size={17} aria-hidden />,
-              value: formatStableDate(asset.created_at),
-              label: `Created ${formatStableDate(asset.created_at)}`,
-            },
-            {
-              key: 'updated',
-              icon: <History size={17} aria-hidden />,
-              value: formatStableDate(asset.updated_at),
-              label: `Updated ${formatStableDate(asset.updated_at)}`,
-            },
-            /* A container's size, counting every copy, so the Composition heading need not say it. */
-            ...(container
-              ? [
-                  {
-                    key: 'members',
-                    icon: <TopicIcon topic="contents" size={17} />,
-                    value: memberTotal,
-                    label: `${memberTotal} ${memberNoun}${memberTotal === 1 ? '' : 's'}${page.membersTruncated ? ' or more' : ''}`,
-                  },
-                ]
-              : []),
-            /* Only for types a deck can hold; the payload already carries the list for the In-decks section. */
-            ...(holdsDeckMembership(asset.type)
-              ? [
-                  {
-                    key: 'decks',
-                    icon: <Layers3 size={17} aria-hidden />,
-                    value: inDecks.length,
-                    label: `In ${inDecks.length} ${inDecks.length === 1 ? 'deck' : 'decks'}`,
-                  },
-                ]
-              : []),
-          ]}
-        />
-      </PageLayout.Header>
+    <BackgroundLibrary presets={page.backgrounds ?? []} fronts={page.cardFrontPresets}>
+      <PageLayout>
+        <PageLayout.Header size="compact">
+          {/* The identity pattern the faction and ruleset detail pages use: the media sits in its own column, so the breadcrumb, the title and the meta line share one left edge. */}
+          <PageIdentity
+            title={asset.name}
+            media={
+              <div role="img" aria-label={`${asset.name} face`} className={styles.pageHeadFace}>
+                <AssetFace href={asset.previewHref} type={asset.type} data={asset.data} name={asset.name} />
+              </div>
+            }
+            breadcrumb={
+              <PageIdentity.Breadcrumb to="/assets/$type" params={{ type: asset.type }}>
+                {collectionLabel}
+              </PageIdentity.Breadcrumb>
+            }
+            maintainers={{
+              owner: asset.owner
+                ? { slug: asset.owner.slug, name: asset.owner.username, image: asset.owner.avatar_url }
+                : null,
+              group: assignedGroup ? { slug: assignedGroup.slug, name: assignedGroup.name } : null,
+            }}
+            stats={[
+              {
+                key: 'created',
+                icon: <CalendarPlus size={17} aria-hidden />,
+                value: formatStableDate(asset.created_at),
+                label: `Created ${formatStableDate(asset.created_at)}`,
+              },
+              {
+                key: 'updated',
+                icon: <History size={17} aria-hidden />,
+                value: formatStableDate(asset.updated_at),
+                label: `Updated ${formatStableDate(asset.updated_at)}`,
+              },
+              /* A container's size, counting every copy, so the Composition heading need not say it. */
+              ...(container
+                ? [
+                    {
+                      key: 'members',
+                      icon: <TopicIcon topic="contents" size={17} />,
+                      value: memberTotal,
+                      label: `${memberTotal} ${memberNoun}${memberTotal === 1 ? '' : 's'}${page.membersTruncated ? ' or more' : ''}`,
+                    },
+                  ]
+                : []),
+              /* Only for types a deck can hold; the payload already carries the list for the In-decks section. */
+              ...(holdsDeckMembership(asset.type)
+                ? [
+                    {
+                      key: 'decks',
+                      icon: <Layers3 size={17} aria-hidden />,
+                      value: inDecks.length,
+                      label: `In ${inDecks.length} ${inDecks.length === 1 ? 'deck' : 'decks'}`,
+                    },
+                  ]
+                : []),
+            ]}
+          />
+        </PageLayout.Header>
 
-      <PageLayout.Toolbar>
-        <Toolbar>
-          <Toolbar.Left label="Navigation">
-            <IconAction
-              label={`Back to ${collectionLabel.toLowerCase()}`}
-              emphasis="standard"
-              intent="neutral"
-              size="lg"
-              icon={<ArrowLeft size={17} aria-hidden />}
-              renderRoot={(rootProps) => <Link {...rootProps} to="/assets/$type" params={{ type: asset.type }} />}
-            />
-            {capabilities.edit ? (
+        <PageLayout.Toolbar>
+          <Toolbar>
+            <Toolbar.Left label="Navigation">
               <IconAction
-                label={`Edit ${asset.name}`}
+                label={`Back to ${collectionLabel.toLowerCase()}`}
                 emphasis="standard"
                 intent="neutral"
                 size="lg"
-                icon={<Pencil size={17} aria-hidden />}
-                renderRoot={(rootProps) => (
-                  <Link {...rootProps} to="/assets/$type/$slug/edit" params={{ type: asset.type, slug: asset.slug }} />
-                )}
+                icon={<ArrowLeft size={17} aria-hidden />}
+                renderRoot={(rootProps) => <Link {...rootProps} to="/assets/$type" params={{ type: asset.type }} />}
               />
-            ) : null}
-          </Toolbar.Left>
-          {/* The management actions the map's standing rule puts on the detail page as well as the edit page, each gated on the viewer's real capabilities. */}
-          <Toolbar.Right label={`${collectionLabel} actions`}>
-            <Toolbar.Cluster kind="content">
-              {/* Every copy or each once: the grid's one view choice, for decks stacking multiples (Norbert, 2026-08-22). A toggle: pressed and filled while every copy shows. */}
-              {hasCopies ? (
+              {capabilities.edit ? (
                 <IconAction
-                  label="Show every copy"
-                  emphasis="standard"
-                  pressed={duplicated}
-                  intent="neutral"
-                  size="lg"
-                  icon={<Copy size={17} aria-hidden />}
-                  onClick={() =>
-                    void navigate({
-                      /* Functional, the browse controls' shape: a future search param must survive the toggle, and an undefined value is how absence-is-default is spelled. */
-                      search: (previous) => ({ ...previous, copies: duplicated ? ('once' as const) : undefined }),
-                      replace: true,
-                    })
-                  }
-                />
-              ) : null}
-              {assetPublishing?.publicationHref ? (
-                <IconAction
-                  /* Named by face only when there are two of them, so a card keeps the plain label it already had. */
-                  label={backPublishing?.publicationHref ? 'Open published front' : 'Open published image'}
-                  emphasis="standard"
-                  intent="export"
-                  size="lg"
-                  href={assetPublishing.publicationHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  icon={<Download size={17} aria-hidden />}
-                />
-              ) : null}
-              {/* A second published artifact rather than a second link to the first. A referenced back reaches here as null, so it offers nothing. */}
-              {backPublishing?.publicationHref ? (
-                <IconAction
-                  label="Open published back"
-                  emphasis="standard"
-                  intent="export"
-                  size="lg"
-                  href={backPublishing.publicationHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  icon={<FlipHorizontal2 size={17} aria-hidden />}
-                />
-              ) : null}
-            </Toolbar.Cluster>
-            <Toolbar.Cluster kind="access">{!pending && groupActions.accessActions}</Toolbar.Cluster>
-            <Toolbar.Cluster kind="discard">
-              {asset.type === 'card-custom' && capabilities.edit ? (
-                <IconAction
-                  label="Prepare spice card conversion"
+                  label={`Edit ${asset.name}`}
                   emphasis="standard"
                   intent="neutral"
                   size="lg"
-                  renderRoot={(props) => (
+                  icon={<Pencil size={17} aria-hidden />}
+                  renderRoot={(rootProps) => (
                     <Link
-                      {...props}
-                      to="/assets/$type/$slug/convert-to-spice"
+                      {...rootProps}
+                      to="/assets/$type/$slug/edit"
                       params={{ type: asset.type, slug: asset.slug }}
                     />
                   )}
-                  icon={<Replace size={17} aria-hidden />}
                 />
               ) : null}
-              {page.canConvertToCustom ? (
-                <ConfirmConvertAction
-                  pending={conversion.isPending}
-                  disabled={pending}
-                  onConfirm={() =>
-                    conversion.mutate(
-                      { id: asset.id },
-                      {
-                        onSuccess: ({ slug }) =>
-                          void navigate({
-                            to: viewerAccess.capabilities.edit ? '/assets/$type/$slug/edit' : '/assets/$type/$slug',
-                            params: { type: 'card-custom', slug },
-                          }),
-                      }
-                    )
-                  }
-                />
-              ) : null}
-              {capabilities.delete ? (
-                <ConfirmDeleteAction
-                  label={`Delete ${asset.name}`}
-                  pending={deletion.pending}
-                  onConfirm={deletion.confirm}
-                />
-              ) : null}
-            </Toolbar.Cluster>
-          </Toolbar.Right>
-        </Toolbar>
-      </PageLayout.Toolbar>
+            </Toolbar.Left>
+            {/* The management actions the map's standing rule puts on the detail page as well as the edit page, each gated on the viewer's real capabilities. */}
+            <Toolbar.Right label={`${collectionLabel} actions`}>
+              <Toolbar.Cluster kind="content">
+                {/* Every copy or each once: the grid's one view choice, for decks stacking multiples (Norbert, 2026-08-22). A toggle: pressed and filled while every copy shows. */}
+                {hasCopies ? (
+                  <IconAction
+                    label="Show every copy"
+                    emphasis="standard"
+                    pressed={duplicated}
+                    intent="neutral"
+                    size="lg"
+                    icon={<Copy size={17} aria-hidden />}
+                    onClick={() =>
+                      void navigate({
+                        /* Functional, the browse controls' shape: a future search param must survive the toggle, and an undefined value is how absence-is-default is spelled. */
+                        search: (previous) => ({ ...previous, copies: duplicated ? ('once' as const) : undefined }),
+                        replace: true,
+                      })
+                    }
+                  />
+                ) : null}
+                {assetPublishing?.publicationHref ? (
+                  <IconAction
+                    /* Named by face only when there are two of them, so a card keeps the plain label it already had. */
+                    label={backPublishing?.publicationHref ? 'Open published front' : 'Open published image'}
+                    emphasis="standard"
+                    intent="export"
+                    size="lg"
+                    href={assetPublishing.publicationHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    icon={<Download size={17} aria-hidden />}
+                  />
+                ) : null}
+                {/* A second published artifact rather than a second link to the first. A referenced back reaches here as null, so it offers nothing. */}
+                {backPublishing?.publicationHref ? (
+                  <IconAction
+                    label="Open published back"
+                    emphasis="standard"
+                    intent="export"
+                    size="lg"
+                    href={backPublishing.publicationHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    icon={<FlipHorizontal2 size={17} aria-hidden />}
+                  />
+                ) : null}
+              </Toolbar.Cluster>
+              <Toolbar.Cluster kind="access">{!pending && groupActions.accessActions}</Toolbar.Cluster>
+              <Toolbar.Cluster kind="discard">
+                {asset.type === 'card-custom' && capabilities.edit ? (
+                  <IconAction
+                    label="Prepare spice card conversion"
+                    emphasis="standard"
+                    intent="neutral"
+                    size="lg"
+                    renderRoot={(props) => (
+                      <Link
+                        {...props}
+                        to="/assets/$type/$slug/convert-to-spice"
+                        params={{ type: asset.type, slug: asset.slug }}
+                      />
+                    )}
+                    icon={<Replace size={17} aria-hidden />}
+                  />
+                ) : null}
+                {page.canConvertToCustom ? (
+                  <ConfirmConvertAction
+                    pending={conversion.isPending}
+                    disabled={pending}
+                    onConfirm={() =>
+                      conversion.mutate(
+                        { id: asset.id },
+                        {
+                          onSuccess: ({ slug }) =>
+                            void navigate({
+                              to: viewerAccess.capabilities.edit ? '/assets/$type/$slug/edit' : '/assets/$type/$slug',
+                              params: { type: 'card-custom', slug },
+                            }),
+                        }
+                      )
+                    }
+                  />
+                ) : null}
+                {capabilities.delete ? (
+                  <ConfirmDeleteAction
+                    label={`Delete ${asset.name}`}
+                    pending={deletion.pending}
+                    onConfirm={deletion.confirm}
+                  />
+                ) : null}
+              </Toolbar.Cluster>
+            </Toolbar.Right>
+          </Toolbar>
+        </PageLayout.Toolbar>
 
-      <PageLayout.Content>
-        <Stack gap="xl">
-          {groupActions.error}
-          {conversion.error ? (
-            <Alert color="red" role="alert" title="Could not convert card">
-              {conversion.error.message}
-            </Alert>
-          ) : null}
-          {deletion.error ? (
-            <Alert color="red" variant="light" role="alert" title="Could not delete">
-              {deletion.error.message}
-            </Alert>
-          ) : null}
-          {/* The reading matter leads and the render stands in a rail beside it, the edit pages' arrangement (Norbert, 2026-08-21).
+        <PageLayout.Content>
+          <Stack gap="xl">
+            {groupActions.error}
+            {conversion.error ? (
+              <Alert color="red" role="alert" title="Could not convert card">
+                {conversion.error.message}
+              </Alert>
+            ) : null}
+            {deletion.error ? (
+              <Alert color="red" variant="light" role="alert" title="Could not delete">
+                {deletion.error.message}
+              </Alert>
+            ) : null}
+            {/* The reading matter leads and the render stands in a rail beside it, the edit pages' arrangement (Norbert, 2026-08-21).
             A container's rail slims to a band: its matter is the member grid, and the preview keeps the rail company with Shipped by (Norbert, 2026-08-22). */}
-          <AsymmetricSplitLayout rail={container ? 'slim' : 'reading'}>
-            <AsymmetricSplitLayout.Wide>
-              <AssetDetailBody page={page} duplicated={duplicated} />
-            </AsymmetricSplitLayout.Wide>
+            <AsymmetricSplitLayout rail={container ? 'slim' : 'reading'}>
+              <AsymmetricSplitLayout.Wide>
+                <AssetDetailBody page={page} duplicated={duplicated} />
+              </AsymmetricSplitLayout.Wide>
 
-            <AsymmetricSplitLayout.Narrow>
-              <Stack gap="lg">
-                <AssetFaces page={page} />
-                {container ? <ShippedByCard rulesets={page.linkingRulesets} /> : null}
-              </Stack>
-            </AsymmetricSplitLayout.Narrow>
-          </AsymmetricSplitLayout>
-          <RelatedFaq
-            items={faq.relatedFaq}
-            status={faq.faqStatus}
-            onLoadMore={faq.loadMoreFaq}
-            onOpenQuestion={(questionSlug, rulesetSlug) => {
-              void navigate({ to: '/rulesets/$rulesetSlug/faq/$questionSlug', params: { questionSlug, rulesetSlug } });
-            }}
-          />
-        </Stack>
-      </PageLayout.Content>
-    </PageLayout>
+              <AsymmetricSplitLayout.Narrow>
+                <Stack gap="lg">
+                  <AssetFaces page={page} />
+                  {container ? <ShippedByCard rulesets={page.linkingRulesets} /> : null}
+                </Stack>
+              </AsymmetricSplitLayout.Narrow>
+            </AsymmetricSplitLayout>
+            <RelatedFaq
+              items={faq.relatedFaq}
+              status={faq.faqStatus}
+              onLoadMore={faq.loadMoreFaq}
+              onOpenQuestion={(questionSlug, rulesetSlug) => {
+                void navigate({
+                  to: '/rulesets/$rulesetSlug/faq/$questionSlug',
+                  params: { questionSlug, rulesetSlug },
+                });
+              }}
+            />
+          </Stack>
+        </PageLayout.Content>
+      </PageLayout>
+    </BackgroundLibrary>
   );
 }

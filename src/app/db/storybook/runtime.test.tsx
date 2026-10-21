@@ -172,3 +172,27 @@ test('query batches return failures as values, clear changed arguments, and reco
   await waitFor(() => expect(hook.result.current.changing).toBe('recovered'));
   await waitFor(() => expect(query).toHaveBeenCalledTimes(6));
 });
+
+test('a lazy query reads nothing while skipped and drops the last value when closed', async () => {
+  const query = vi.fn().mockResolvedValue(['ready']);
+  const client = {
+    getRevision: () => 0,
+    query,
+    subscribe: () => () => undefined,
+  } as unknown as ConvexStorybookWorkerClient;
+  const wrapper = ({ children }: PropsWithChildren) => (
+    <ConvexStorybookWorkerContext.Provider value={{ client }}>{children}</ConvexStorybookWorkerContext.Provider>
+  );
+  const reference = makeFunctionReference<'query', Record<string, never>, string[]>('test:lazy');
+  const hook = renderHook(({ open }) => useConvexStorybookQuery(reference, open ? {} : 'skip'), {
+    wrapper,
+    initialProps: { open: false },
+  });
+  expect(query).not.toHaveBeenCalled();
+  expect(hook.result.current).toBeUndefined();
+  hook.rerender({ open: true });
+  await waitFor(() => expect(hook.result.current).toEqual(['ready']));
+  hook.rerender({ open: false });
+  expect(hook.result.current).toBeUndefined();
+  expect(query).toHaveBeenCalledTimes(1);
+});

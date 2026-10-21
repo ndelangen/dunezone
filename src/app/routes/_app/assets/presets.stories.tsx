@@ -54,7 +54,7 @@ export const Library = meta.story({
 });
 export const Mobile = meta.story({
   parameters: { database: administratorDatabase },
-  globals: { viewport: { value: 'appMobileNarrow' } },
+  globals: { viewport: { value: 'appMobileNarrow' }, backgrounds: { value: 'app', grid: false } },
 });
 export const SignedOut = meta.story({
   parameters: { identity: null },

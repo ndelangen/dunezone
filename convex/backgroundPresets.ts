@@ -23,6 +23,7 @@ import {
   enqueueFactionSheetPublication,
   enqueueFactionLeaderPublications,
   enqueueFactionFaces,
+  enqueueFactionFacePublications,
 } from './lib/publication';
 import type { MutationCtx } from './types';
 
@@ -135,7 +136,9 @@ export const recaptureFamily = internalMutation({
         .withIndex('by_deleted', (q) => q.eq('is_deleted', false))
         .paginate({ cursor: args.cursor, numItems: 2 });
       for (const faction of page.page) {
-        await enqueueFactionFaces(ctx, faction);
+        if (type === 'faction-traitor' || type === 'faction-alliance') {
+          await enqueueFactionFacePublications(ctx, type, faction);
+        }
       }
       if (!page.isDone) {
         await ctx.scheduler.runAfter(0, internal.backgroundPresets.recaptureFamily, {

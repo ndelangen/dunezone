@@ -1,5 +1,6 @@
 import { useQuery } from 'convex/react';
 import type { FunctionArgs, FunctionReturnType } from 'convex/server';
+import { useState } from 'react';
 
 import { api } from '../../../convex/_generated/api';
 import { useLiveMutation } from './core/live';
@@ -24,8 +25,14 @@ export function useSaveDiscoveryPreset() {
 }
 
 export function useAuthoringPresets(enabled = true, ids?: string[]) {
-  return useQuery(
+  const result = useQuery(
     api.presetLibrary.authoring,
     enabled ? (ids?.length ? { ids: ids as FunctionArgs<typeof api.presetLibrary.authoring>['ids'] } : {}) : 'skip'
   );
+  // Standards stay visible while a changed token selection loads its faces.
+  const [loaded, setLoaded] = useState<typeof result>();
+  if (result !== undefined && result !== loaded) {
+    setLoaded(result);
+  }
+  return enabled ? (result ?? (loaded ? { ...loaded, tokens: {}, error: null } : undefined)) : undefined;
 }

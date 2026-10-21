@@ -51,7 +51,7 @@ import {
 } from './lib/assetBacks';
 import { assetCatalogueOrderOf } from './lib/assetCatalogue';
 import { assertKnownAssetType, assetDisplayName } from './lib/assetInput';
-import { listBackgroundPresets } from './lib/backgroundPresets';
+import { backgroundProjection, resolveBackgrounds } from './lib/backgroundPresets';
 import { listCardbackPresets, presetFromKey, storeCardbackPreset } from './lib/cardbackPresets';
 import type { CardbackPresetMemo } from './lib/cardbackPresets';
 import { listCardFrontPresets } from './lib/cardFrontPresets';
@@ -182,6 +182,9 @@ async function presentedAppearance(
   presets: CardbackPresetMemo
 ) {
   const href = ownPublishedFace(row);
+  if (row.type === 'bundle') {
+    return { data: await resolveBackgrounds(ctx, row.data), href };
+  }
   if (row.type !== 'deck') {
     return { data: row.data, href };
   }
@@ -376,7 +379,7 @@ async function loadAssetPageFor(ctx: QueryCtx, row: Doc<'assets'>, args: { embed
     asset,
     convertibleToCustom: row.type === 'card-treachery',
     ...(resolvedTokens ? { cardTokens: resolvedTokens.tokens, cardTokensError: resolvedTokens.error } : {}),
-    backgrounds: await listBackgroundPresets(ctx),
+    backgrounds: await backgroundProjection(ctx, [row.data, back?.data, backDeckRow?.data]),
     cardFrontPresets: cardFrontAssetTypeSchema.safeParse(row.type).success ? await listCardFrontPresets(ctx) : [],
     cardbackPresets: row.type === 'deck' ? await listCardbackPresets(ctx, presets) : [],
     ownerId: row.owner_id,

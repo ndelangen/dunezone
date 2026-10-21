@@ -31,7 +31,3 @@ export function useResolvedCardFront(
   const fronts = useContext(FrontPresetContext);
   return supplied ?? cardFrontStyleFor(type, data, fronts);
 }
-
-export function useBackgroundLibrary() {
-  return useContext(BackgroundLibraryContext);
-}
