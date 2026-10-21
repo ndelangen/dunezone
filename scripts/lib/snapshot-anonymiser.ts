@@ -197,7 +197,7 @@ type FieldRule =
   | 'drop'
   | 'owner'
   | 'current-edition-settings'
-  | { parent: TableNames }
+  | { parent: TableNames | readonly TableNames[] }
   | { orNull: TableNames }
   | { project: (value: unknown) => unknown };
 
@@ -238,14 +238,14 @@ function fieldRule(kept: KeptPolicy, field: string): FieldRule | null {
   return Object.hasOwn(kept.fields, field) ? kept.fields[field]! : null;
 }
 
-function referencedTable(rule: FieldRule): TableNames | null {
+function referencedTables(rule: FieldRule): readonly TableNames[] {
   if (typeof rule === 'string') {
-    return null;
+    return [];
   }
   if ('parent' in rule) {
-    return rule.parent;
+    return typeof rule.parent === 'string' ? [rule.parent] : rule.parent;
   }
-  return 'orNull' in rule ? rule.orNull : null;
+  return 'orNull' in rule ? [rule.orNull] : [];
 }
 
 /** Kept tables in an order where every table comes after the tables its references point at. */
@@ -261,9 +261,10 @@ function keptTableOrder(): string[] {
     }
     visiting.add(table);
     for (const rule of Object.values(keptPolicy(table)?.fields ?? {})) {
-      const target = referencedTable(rule);
-      if (target && keptPolicy(target)) {
-        visit(target);
+      for (const target of referencedTables(rule)) {
+        if (target && keptPolicy(target)) {
+          visit(target);
+        }
       }
     }
     visiting.delete(table);
@@ -426,7 +427,11 @@ function isPublished(kept: KeptPolicy, row: Row, isKept: IsKept): boolean {
   }
   return Object.entries(kept.fields).every(([field, rule]) => {
     const parent = typeof rule === 'object' && 'parent' in rule ? rule.parent : null;
-    return parent === null || (Object.hasOwn(row, field) && isKept(parent, row[field]));
+    if (parent === null) {
+      return true;
+    }
+    const tables = typeof parent === 'string' ? [parent] : parent;
+    return Object.hasOwn(row, field) && tables.some((table) => isKept(table, row[field]));
   });
 }
 

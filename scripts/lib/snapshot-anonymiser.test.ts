@@ -278,6 +278,41 @@ function refusal(run: () => unknown): SnapshotRefused {
 }
 
 describe('anonymiseExport', () => {
+  test('keeps FAQ references only when their question and faction or asset are published', () => {
+    const { world, author, published, deleted, question } = authorWorld();
+    const asset = world.add('assets', {
+      owner_id: author,
+      group_id: null,
+      type: 'deck',
+      slug: 'treachery',
+      data: { name: 'Treachery' },
+      is_deleted: false,
+      ...timestamps,
+    });
+    const deletedAsset = world.add('assets', {
+      owner_id: author,
+      group_id: null,
+      type: 'deck',
+      slug: 'gone',
+      data: { name: 'Gone' },
+      is_deleted: true,
+      ...timestamps,
+    });
+    const factionReference = world.add('faq_references', {
+      faq_item_id: question,
+      kind: 'faction',
+      target_id: published,
+    });
+    const assetReference = world.add('faq_references', { faq_item_id: question, kind: 'asset', target_id: asset });
+    world.add('faq_references', { faq_item_id: question, kind: 'faction', target_id: deleted });
+    world.add('faq_references', { faq_item_id: question, kind: 'asset', target_id: deletedAsset });
+    world.add('faq_references', { kind: 'asset', target_id: asset });
+
+    const { entries } = anonymiseExport(world.entries());
+    expect(rowsOf(entries, 'faq_references').map((row) => row._id)).toEqual([factionReference, assetReference]);
+    expect(verifySnapshot(entries)).toEqual(manifestOf(entries));
+  });
+
   test('drops unpublished rows, private tables and rows whose parent was dropped', () => {
     const { world, published, question } = authorWorld();
     const { entries } = anonymiseExport(world.entries());

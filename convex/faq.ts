@@ -36,22 +36,26 @@ async function getFaqAnswer(ctx: QueryCtx | MutationCtx, id: Id<'faq_answers'>) 
   return await ctx.db.get(id);
 }
 
-async function deleteFaqAnswerBatch(ctx: MutationCtx, faqItemId: Id<'faq_items'>) {
+async function deleteFaqItemChildrenBatch(ctx: MutationCtx, faqItemId: Id<'faq_items'>) {
   let deleted = 0;
-  for await (const answer of ctx.db
-    .query('faq_answers')
-    .withIndex('by_faq_item_created', (q) => q.eq('faq_item_id', faqItemId))) {
-    await ctx.db.delete(answer._id);
-    deleted += 1;
-    const metrics = await ctx.meta.getTransactionMetrics();
-    if (
-      deleted >= FAQ_ITEM_DELETE_BATCH_MAX_DOCUMENTS ||
-      metrics.bytesRead.remaining < FAQ_ITEM_DELETE_TRANSACTION_RESERVE_BYTES ||
-      metrics.bytesWritten.remaining < FAQ_ITEM_DELETE_TRANSACTION_RESERVE_BYTES ||
-      metrics.databaseQueries.remaining < FAQ_ITEM_DELETE_TRANSACTION_RESERVE_OPERATIONS ||
-      metrics.documentsWritten.remaining < FAQ_ITEM_DELETE_TRANSACTION_RESERVE_OPERATIONS
-    ) {
-      return { deleted, shouldContinue: true };
+  const children = [
+    ctx.db.query('faq_answers').withIndex('by_faq_item_created', (q) => q.eq('faq_item_id', faqItemId)),
+    ctx.db.query('faq_references').withIndex('by_faq_item_id_and_target_id', (q) => q.eq('faq_item_id', faqItemId)),
+  ];
+  for (const query of children) {
+    for await (const child of query) {
+      await ctx.db.delete(child._id);
+      deleted += 1;
+      const metrics = await ctx.meta.getTransactionMetrics();
+      if (
+        deleted >= FAQ_ITEM_DELETE_BATCH_MAX_DOCUMENTS ||
+        metrics.bytesRead.remaining < FAQ_ITEM_DELETE_TRANSACTION_RESERVE_BYTES ||
+        metrics.bytesWritten.remaining < FAQ_ITEM_DELETE_TRANSACTION_RESERVE_BYTES ||
+        metrics.databaseQueries.remaining < FAQ_ITEM_DELETE_TRANSACTION_RESERVE_OPERATIONS ||
+        metrics.documentsWritten.remaining < FAQ_ITEM_DELETE_TRANSACTION_RESERVE_OPERATIONS
+      ) {
+        return { deleted, shouldContinue: true };
+      }
     }
   }
   return { deleted, shouldContinue: false };
@@ -390,7 +394,7 @@ async function deleteQuestionHandler(ctx: MutationCtx, args: { questionId: Id<'f
     throw new Error('Not authorized');
   }
 
-  const { shouldContinue } = await deleteFaqAnswerBatch(ctx, item._id);
+  const { shouldContinue } = await deleteFaqItemChildrenBatch(ctx, item._id);
   const done = !shouldContinue;
   if (done) {
     await ctx.db.delete(item._id);
@@ -414,7 +418,7 @@ export const deleteItemAnswerBatch = internalMutation({
   },
   handler: async (ctx, args): Promise<{ deleted: number; done: boolean }> => {
     const item = await ctx.db.get(args.faq_item_id);
-    const { deleted: deletedAnswerCount, shouldContinue } = await deleteFaqAnswerBatch(ctx, args.faq_item_id);
+    const { deleted, shouldContinue } = await deleteFaqItemChildrenBatch(ctx, args.faq_item_id);
     const done = !shouldContinue;
     if (done && item) {
       await ctx.db.delete(item._id);
@@ -422,7 +426,7 @@ export const deleteItemAnswerBatch = internalMutation({
     if (!done) {
       await ctx.scheduler.runAfter(0, internal.faq.deleteItemAnswerBatch, args);
     }
-    return { deleted: deletedAnswerCount, done };
+    return { deleted, done };
   },
 });
 

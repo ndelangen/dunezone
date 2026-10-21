@@ -13,10 +13,7 @@ import { rulebookListEntryValidator } from './rulebookList';
  * Do not restate table shapes by hand here.
  */
 export function docValidator<Table extends keyof typeof schema.tables>(table: Table) {
-  return schema.tables[table].validator.extend({
-    _id: v.id(table),
-    _creationTime: v.number(),
-  });
+  return schema.doc(table);
 }
 
 const groupValidator = docValidator('groups');
