@@ -35,66 +35,74 @@ async function fetchMedia(target: string, method: string): Promise<Response> {
   let bytesSent = 0;
   let bytesToSkip = 0;
   let cancelled = false;
+  async function readRemainingChunk(): Promise<ReadableStreamReadResult<Uint8Array>> {
+    while (true) {
+      let result: ReadableStreamReadResult<Uint8Array>;
+      try {
+        result = await reader.read();
+      } catch (error) {
+        if (cancelled || attempts >= 2) {
+          throw error;
+        }
+        await resumeTransfer();
+        continue;
+      }
+      if (result.done || cancelled) {
+        return result;
+      }
+      const chunk = result.value.subarray(Math.min(bytesToSkip, result.value.byteLength));
+      bytesToSkip = Math.max(0, bytesToSkip - result.value.byteLength);
+      if (chunk.byteLength > 0) {
+        return { done: false, value: chunk };
+      }
+    }
+  }
+  async function resumeTransfer() {
+    console.warn({
+      event: 'storybook-media-transfer-retry',
+      attempt: 2,
+      maxAttempts: 2,
+      bytesSent,
+      path: new URL(target).pathname,
+    });
+    const replacement = await fetchNextResponse();
+    if (cancelled) {
+      await replacement.body?.cancel();
+      return;
+    }
+    if (
+      replacement.status !== response.status ||
+      replacement.headers.get('X-Media-SHA256') !== digest ||
+      replacement.headers.get('Content-Type') !== response.headers.get('Content-Type') ||
+      replacement.headers.has('Content-Encoding') ||
+      !replacement.body
+    ) {
+      await replacement.body?.cancel().catch(() => undefined);
+      throw new Error('Storybook raster changed during transfer');
+    }
+    reader.releaseLock();
+    reader = replacement.body.getReader();
+    bytesToSkip = bytesSent;
+  }
   const body = new ReadableStream<Uint8Array>({
     async pull(controller) {
-      while (!cancelled) {
-        try {
-          const { done, value } = await reader.read();
-          if (cancelled) {
-            return;
+      try {
+        const { done, value } = await readRemainingChunk();
+        if (cancelled) {
+          return;
+        }
+        if (done) {
+          if (bytesToSkip > 0) {
+            throw new Error('Storybook raster ended before the resumed byte offset');
           }
-          if (done) {
-            if (bytesToSkip > 0) {
-              throw new Error('Storybook raster ended before the resumed byte offset');
-            }
-            controller.close();
-            return;
-          }
-          const chunk = value.subarray(Math.min(bytesToSkip, value.byteLength));
-          bytesToSkip = Math.max(0, bytesToSkip - value.byteLength);
-          if (chunk.byteLength > 0) {
-            bytesSent += chunk.byteLength;
-            controller.enqueue(chunk);
-            return;
-          }
-        } catch (error) {
-          if (cancelled) {
-            return;
-          }
-          if (attempts >= 2) {
-            controller.error(error);
-            return;
-          }
-          console.warn({
-            event: 'storybook-media-transfer-retry',
-            attempt: 2,
-            maxAttempts: 2,
-            bytesSent,
-            path: new URL(target).pathname,
-          });
-          try {
-            const replacement = await fetchNextResponse();
-            if (cancelled) {
-              await replacement.body?.cancel();
-              return;
-            }
-            if (
-              replacement.status !== response.status ||
-              replacement.headers.get('X-Media-SHA256') !== digest ||
-              replacement.headers.get('Content-Type') !== response.headers.get('Content-Type') ||
-              replacement.headers.has('Content-Encoding') ||
-              !replacement.body
-            ) {
-              await replacement.body?.cancel().catch(() => undefined);
-              throw new Error('Storybook raster changed during transfer');
-            }
-            reader.releaseLock();
-            reader = replacement.body.getReader();
-            bytesToSkip = bytesSent;
-          } catch (replacementError) {
-            controller.error(replacementError);
-            return;
-          }
+          controller.close();
+          return;
+        }
+        bytesSent += value.byteLength;
+        controller.enqueue(value);
+      } catch (error) {
+        if (!cancelled) {
+          controller.error(error);
         }
       }
     },

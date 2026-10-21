@@ -15,8 +15,13 @@ const server = createServer((request, response) => {
     response.end(`<!doctype html><img alt="Cover" src="${imagePath}">`);
     return;
   }
+  if (request.url !== imagePath) {
+    response.writeHead(404);
+    response.end();
+    return;
+  }
   void (async () => {
-    const result = await worker.fetch(new Request(`https://storybook.dune.zone${request.url}`), {
+    const result = await worker.fetch(new Request(`https://storybook.dune.zone${imagePath}`), {
       ASSETS: { fetch: async () => new Response('Not found', { status: 404 }) },
     });
     response.writeHead(result.status, Object.fromEntries(result.headers));
