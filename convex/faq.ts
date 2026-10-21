@@ -1,3 +1,4 @@
+import { paginationOptsValidator, paginationResultValidator } from 'convex/server';
 import { v } from 'convex/values';
 
 import type { FAQ_TAG_VALUES } from '../src/shared/faq/tags';
@@ -5,7 +6,8 @@ import { faqAnswerSchema, faqQuestionSchema, faqTagsSchema } from '../src/shared
 import { internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { internalMutation, mutation, publicQuery, viewerQuery } from './functions';
-import { faqListItemValidator } from './lib/collaborativeAccessValidators';
+import { assignedGroupSummary } from './lib/collaborativeAccess';
+import { faqListItemValidator, assignedGroupSummaryValidator } from './lib/collaborativeAccessValidators';
 import { loadRulesetFaqPage, loadRulesetFaqSearch, rulesetFaqSearchText } from './lib/faqCatalogue';
 import {
   globalFaqPageValidator,
@@ -13,7 +15,14 @@ import {
   loadGlobalFaqPage,
   loadGlobalFaqRulesetOptions,
 } from './lib/faqGlobalSearch';
-import { faqQuestionPublicPageValidator, loadFaqQuestionPublicPage, loadViewerAnswered } from './lib/faqQuestionPage';
+import {
+  faqQuestionPublicPageValidator,
+  loadFaqQuestionPublicPage,
+  loadFaqQuestionAtLocator,
+  loadViewerAnswered,
+} from './lib/faqQuestionPage';
+import { faqReferencePreview, faqReferencePreviewValidator } from './lib/faqReferencePreviews';
+import { loadFaqReferenceTargets } from './lib/faqReferences';
 import { faqTagValidator } from './lib/faqTags';
 import { requireAuthUserId } from './lib/policy';
 import { loadPublicRulesetBySlug } from './lib/rulesetDetailPage';
@@ -36,22 +45,26 @@ async function getFaqAnswer(ctx: QueryCtx | MutationCtx, id: Id<'faq_answers'>) 
   return await ctx.db.get(id);
 }
 
-async function deleteFaqAnswerBatch(ctx: MutationCtx, faqItemId: Id<'faq_items'>) {
+async function deleteFaqItemChildrenBatch(ctx: MutationCtx, faqItemId: Id<'faq_items'>) {
   let deleted = 0;
-  for await (const answer of ctx.db
-    .query('faq_answers')
-    .withIndex('by_faq_item_created', (q) => q.eq('faq_item_id', faqItemId))) {
-    await ctx.db.delete(answer._id);
-    deleted += 1;
-    const metrics = await ctx.meta.getTransactionMetrics();
-    if (
-      deleted >= FAQ_ITEM_DELETE_BATCH_MAX_DOCUMENTS ||
-      metrics.bytesRead.remaining < FAQ_ITEM_DELETE_TRANSACTION_RESERVE_BYTES ||
-      metrics.bytesWritten.remaining < FAQ_ITEM_DELETE_TRANSACTION_RESERVE_BYTES ||
-      metrics.databaseQueries.remaining < FAQ_ITEM_DELETE_TRANSACTION_RESERVE_OPERATIONS ||
-      metrics.documentsWritten.remaining < FAQ_ITEM_DELETE_TRANSACTION_RESERVE_OPERATIONS
-    ) {
-      return { deleted, shouldContinue: true };
+  const children = [
+    ctx.db.query('faq_answers').withIndex('by_faq_item_created', (q) => q.eq('faq_item_id', faqItemId)),
+    ctx.db.query('faq_references').withIndex('by_faq_item_id_and_target_id', (q) => q.eq('faq_item_id', faqItemId)),
+  ];
+  for (const query of children) {
+    for await (const child of query) {
+      await ctx.db.delete(child._id);
+      deleted += 1;
+      const metrics = await ctx.meta.getTransactionMetrics();
+      if (
+        deleted >= FAQ_ITEM_DELETE_BATCH_MAX_DOCUMENTS ||
+        metrics.bytesRead.remaining < FAQ_ITEM_DELETE_TRANSACTION_RESERVE_BYTES ||
+        metrics.bytesWritten.remaining < FAQ_ITEM_DELETE_TRANSACTION_RESERVE_BYTES ||
+        metrics.databaseQueries.remaining < FAQ_ITEM_DELETE_TRANSACTION_RESERVE_OPERATIONS ||
+        metrics.documentsWritten.remaining < FAQ_ITEM_DELETE_TRANSACTION_RESERVE_OPERATIONS
+      ) {
+        return { deleted, shouldContinue: true };
+      }
     }
   }
   return { deleted, shouldContinue: false };
@@ -192,6 +205,37 @@ export const question = publicQuery({
   args: { rulesetSlug: v.string(), questionSlug: v.string() },
   returns: faqQuestionPublicPageValidator,
   handler: async (ctx, args) => await loadFaqQuestionPublicPage(ctx, args),
+});
+
+const referencedQuestionValidator = faqQuestionPublicPageValidator.extend({
+  referenceRuleset: v.object({
+    owner_id: v.id('users'),
+    assignedGroup: v.union(assignedGroupSummaryValidator, v.null()),
+  }),
+});
+
+/** One page-data query, whose cursor ranges keep every loaded reference reactive. */
+export const questionPage = publicQuery({
+  args: { rulesetSlug: v.string(), questionSlug: v.string(), paginationOpts: paginationOptsValidator },
+  returns: paginationResultValidator(
+    v.object({ detail: v.union(referencedQuestionValidator, v.null()), items: v.array(faqReferencePreviewValidator) })
+  ),
+  handler: async (ctx, args) => {
+    const { item, ruleset } = await loadFaqQuestionAtLocator(ctx, args);
+    const references = await loadFaqReferenceTargets(ctx, item._id, args.paginationOpts);
+    const detail =
+      args.paginationOpts.cursor === null
+        ? {
+            ...(await loadFaqQuestionPublicPage(ctx, args)),
+            referenceRuleset: {
+              owner_id: ruleset.owner_id,
+              assignedGroup: await assignedGroupSummary(ctx, ruleset.group_id),
+            },
+          }
+        : null;
+    const items = await Promise.all(references.page.map((target) => faqReferencePreview(ctx, target)));
+    return { ...references, page: [{ detail, items }] };
+  },
 });
 
 /** Whether the viewer has answered one FAQ question: the viewer half of the question page's answer form. Null asks about no question. */
@@ -390,7 +434,7 @@ async function deleteQuestionHandler(ctx: MutationCtx, args: { questionId: Id<'f
     throw new Error('Not authorized');
   }
 
-  const { shouldContinue } = await deleteFaqAnswerBatch(ctx, item._id);
+  const { shouldContinue } = await deleteFaqItemChildrenBatch(ctx, item._id);
   const done = !shouldContinue;
   if (done) {
     await ctx.db.delete(item._id);
@@ -414,7 +458,7 @@ export const deleteItemAnswerBatch = internalMutation({
   },
   handler: async (ctx, args): Promise<{ deleted: number; done: boolean }> => {
     const item = await ctx.db.get(args.faq_item_id);
-    const { deleted: deletedAnswerCount, shouldContinue } = await deleteFaqAnswerBatch(ctx, args.faq_item_id);
+    const { deleted, shouldContinue } = await deleteFaqItemChildrenBatch(ctx, args.faq_item_id);
     const done = !shouldContinue;
     if (done && item) {
       await ctx.db.delete(item._id);
@@ -422,7 +466,7 @@ export const deleteItemAnswerBatch = internalMutation({
     if (!done) {
       await ctx.scheduler.runAfter(0, internal.faq.deleteItemAnswerBatch, args);
     }
-    return { deleted: deletedAnswerCount, done };
+    return { deleted, done };
   },
 });
 

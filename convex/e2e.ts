@@ -46,6 +46,7 @@ async function clearAllAppData(ctx: MutationCtx) {
     'admin_settings',
     'ruleset_factions',
     'faq_answers',
+    'faq_references',
     'faq_items',
     'group_members',
     'rulebook_edition_artifacts',

@@ -98,6 +98,7 @@ export default defineMain({
       directory: '../src/app/widgets/card-editor',
       titlePrefix: 'Widgets/Card Editor',
     },
+    { directory: '../src/app/widgets/related-faq', titlePrefix: 'Widgets/Related FAQ' },
     {
       directory: '../src/app/widgets/asset-face',
       titlePrefix: 'Widgets/Asset Face',

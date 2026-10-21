@@ -172,3 +172,14 @@ Factions, rulesets, groups, and community Assets use `is_deleted` flags instead 
 Avoid Convex React `"skip"` and `enabled ? args : 'skip'` in domain data modules. When a subscription should not run, **unmount** the component that calls `useQuery` (for example, render a child only when `open && userId`, or split route shells so live-only paths do not mount DB-mode hooks). Route loaders continue to prefetch with `db.query`; route leaves use matching `useQuery` with the same arguments and `initialData` from the loader where applicable.
 
 **Guard**: `bun run check:convex-skip` fails if `skip` appears as a quoted string in any style, single or double or backtick, anywhere under `src/app/db/**/*.ts`, `core/` included.
+
+### Detail pages with cursor lists
+
+FAQ, faction and asset detail routes use one paginated page query. Each native cursor range returns
+one envelope containing its list items. Reference reads cap each range at 24 rows so server split
+signals bound a range that grows after inserts. The first range also carries the page detail; later ranges
+carry `detail: null`. The doorway hooks flatten the items and keep the first detail. This lets
+Convex keep every loaded range reactive without adding a separate page subscription. Cursor and
+split metadata pass through unchanged, including when unavailable relationships leave an empty
+range. Loaders read the first range without a warm hold, because the native pagination hook owns
+its subscriptions and adds its own pagination identifier.

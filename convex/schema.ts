@@ -14,6 +14,7 @@ import { tableSeatCountSchema } from '../src/shared/play/schema';
 import { rulebookCoverImageSchema } from '../src/shared/rulebooks/coverImage';
 import { authProviderValidator } from './lib/accountMethods';
 import { directOwnershipKindValidator } from './lib/directOwnership';
+import { faqReferenceTargets } from './lib/faqReferenceTarget';
 import { faqTagValidator } from './lib/faqTags';
 import { formerSlugValidator } from './lib/formerSlugs';
 import { ingestTokenCapabilityValidator } from './lib/ingestTokens';
@@ -641,6 +642,24 @@ export default defineSchema({
     .index('by_ruleset_position', ['ruleset_id', 'position'])
     .index('by_faction', ['faction_id'])
     .index('by_ruleset_faction', ['ruleset_id', 'faction_id']),
+  faq_references: defineTable(
+    v.union(
+      v.object({
+        faq_item_id: v.id('faq_items'),
+        question_created_at: v.string(),
+        kind: faqReferenceTargets.faction.fields.kind,
+        target_id: faqReferenceTargets.faction.fields.id,
+      }),
+      v.object({
+        faq_item_id: v.id('faq_items'),
+        question_created_at: v.string(),
+        kind: faqReferenceTargets.asset.fields.kind,
+        target_id: faqReferenceTargets.asset.fields.id,
+      })
+    )
+  )
+    .index('by_faq_item_id_and_target_id', ['faq_item_id', 'target_id'])
+    .index('by_target_id_and_question_created_at', ['target_id', 'question_created_at']),
   faq_items: defineTable({
     ruleset_id: v.id('rulesets'),
     slug: v.string(),

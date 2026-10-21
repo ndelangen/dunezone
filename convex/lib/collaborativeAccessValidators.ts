@@ -13,10 +13,7 @@ import { rulebookListEntryValidator } from './rulebookList';
  * Do not restate table shapes by hand here.
  */
 export function docValidator<Table extends keyof typeof schema.tables>(table: Table) {
-  return schema.tables[table].validator.extend({
-    _id: v.id(table),
-    _creationTime: v.number(),
-  });
+  return schema.doc(table);
 }
 
 const groupValidator = docValidator('groups');
@@ -166,6 +163,10 @@ const faqItemValidator = docValidator('faq_items');
 export const faqListItemValidator = faqItemValidator.extend({
   faq_answers: v.array(faqAnswerValidator),
   asker_profile: v.union(profileSummaryValidator, v.null()),
+});
+
+export const relatedFaqItemValidator = faqListItemValidator.extend({
+  ruleset: v.object({ id: v.id('rulesets'), name: v.string(), slug: v.string() }),
 });
 
 const profileFaqQuestionValidator = faqItemValidator.extend({

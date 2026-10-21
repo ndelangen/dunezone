@@ -30,7 +30,7 @@ import { ArrowLeft, Download, Eye, FileText, Pencil, UserPlus } from 'lucide-rea
 import { Fragment, useId } from 'react';
 import type { ReactNode } from 'react';
 
-import { isFactionNotFound, loadPublicFaction, useFaction, useFactionAccess } from '@db/factions';
+import { isFactionNotFound, loadPublicFactionDetail, useFactionDetail, useFactionAccess } from '@db/factions';
 import type { FactionData, FactionDetailPageData, PublicAssetPublishingStatusProjection } from '@db/factions';
 import { useGroupMembershipWorkflow } from '@db/members';
 import { profileAvatarUrl } from '@db/profiles';
@@ -38,6 +38,7 @@ import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { redirectFromFormerAddress } from '@app/routes/formerAddress';
 import { profileLink, publicDescription, publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
+import { RelatedFaq } from '@app/widgets/related-faq/RelatedFaq';
 import { useAsset } from '@game/assets/assetRenderMode';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
 import { Token as FactionToken } from '@game/assets/faction/token/Token';
@@ -52,7 +53,7 @@ export const Route = createFileRoute('/_app/factions/$factionId/')({
   ssr: true,
   codeSplitGroupings: [['component', 'pendingComponent', 'errorComponent']],
   loader: async ({ params, location }) => {
-    const page = await loadPublicFaction(params.factionId);
+    const page = await loadPublicFactionDetail(params.factionId);
     if (!page) {
       await redirectFromFormerAddress({ kind: 'faction', slug: params.factionId }, location);
       throw notFound();
@@ -384,7 +385,7 @@ function FactionDetailPage() {
   const loaderData = Route.useLoaderData();
   const factionSeed = loaderData;
 
-  const factionQuery = useFaction(factionId, {
+  const factionQuery = useFactionDetail(factionId, {
     initialData: factionSeed,
   });
   const membershipWorkflow = useGroupMembershipWorkflow();
@@ -397,6 +398,7 @@ function FactionDetailPage() {
 
   return (
     <FactionDetailContent
+      faq={factionQuery}
       factionId={factionId}
       page={page}
       isPending={factionQuery.isPending}
@@ -406,18 +408,21 @@ function FactionDetailPage() {
 }
 
 function FactionDetailContent({
+  faq,
   factionId,
   page,
   isPending,
   membershipWorkflow,
 }: {
+  faq: ReturnType<typeof useFactionDetail>;
   factionId: string;
   page: FactionDetailPageData;
   isPending: boolean;
   membershipWorkflow: ReturnType<typeof useGroupMembershipWorkflow>;
 }) {
+  const navigate = Route.useNavigate();
   const { resolved, viewerAccess } = useFactionAccess(page);
-  const { faction, owner, assetPublishing, rulesets } = page;
+  const { faction, owner, assetPublishing } = page;
 
   /* The shared page usually settles before the viewer does; controls wait for both. */
   const settled = !isPending && resolved;
@@ -429,7 +434,6 @@ function FactionDetailContent({
   const data = faction.data;
   const planets = data.planet ?? [];
   const troopCount = data.troops.reduce((total, troop) => total + troop.count, 0);
-  const files = filesBadge(assetPublishing);
   const complexity = effectiveComplexity(data.complexity);
   /**
    * Standing beside the maintaining group, and only when the viewer has a standing worth naming.
@@ -561,142 +565,166 @@ function FactionDetailContent({
         </Toolbar>
       </PageLayout.Toolbar>
       <PageLayout.Content>
-        {membershipWorkflow.request.isError ? (
-          <Alert color="red" title="Membership request failed" role="alert" mb="xl">
-            {membershipWorkflow.request.error?.message}
-          </Alert>
-        ) : null}
-        <Flex direction={{ base: 'column-reverse', md: 'row' }} gap="xl" align={{ base: 'stretch', md: 'flex-start' }}>
-          <Box miw={0} style={{ flex: '1 1 auto' }}>
-            <Stack gap="xl">
-              <Section icon={<TopicIcon topic="leaders" size={20} />} title="Leaders">
-                <div className={styles.horizontalLane}>
-                  {/* Position disambiguates: an author may field two identical leaders, and a
-                    faction's lists carry no ids of their own. */}
-                  {data.leaders.map((leader, index) => (
-                    <article
-                      className={styles.leaderTile}
-                      key={`${leader.name}-${leader.image}-${index}`}
-                      title={`${leader.name}, strength ${leader.strength ?? 'not specified'}`}
-                    >
-                      <LeaderToken {...leader} background={data.background} logo={data.logo} />
-                    </article>
-                  ))}
-                </div>
-              </Section>
-
-              <FactionTroops troops={data.troops} background={data.background} />
-
-              <FactionAdvantages advantages={data.rules.advantages} />
-
-              <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
-                <Card icon={<TopicIcon topic="alliance" size={20} />} title="Alliance">
-                  <FormattedTextSource source={data.rules.alliance.text} size="sm" />
-                </Card>
-                <FactionSpecialRule rule={data.rules.fate} />
-              </SimpleGrid>
-            </Stack>
-          </Box>
-
-          <Stack
-            gap="md"
-            component="aside"
-            aria-label="Faction details"
-            w={{ base: '100%', md: '15rem' }}
-            miw={0}
-            style={{ flex: '0 0 auto' }}
+        <Stack gap="xl">
+          {membershipWorkflow.request.isError ? (
+            <Alert color="red" title="Membership request failed" role="alert" mb="xl">
+              {membershipWorkflow.request.error?.message}
+            </Alert>
+          ) : null}
+          <Flex
+            direction={{ base: 'column-reverse', md: 'row' }}
+            gap="xl"
+            align={{ base: 'stretch', md: 'flex-start' }}
           >
-            <FactionSidebarOverview data={data} />
+            <Box miw={0} style={{ flex: '1 1 auto' }}>
+              <Stack gap="xl">
+                <Section icon={<TopicIcon topic="leaders" size={20} />} title="Leaders">
+                  <div className={styles.horizontalLane}>
+                    {/* Position disambiguates: an author may field two identical leaders, and a
+                    faction's lists carry no ids of their own. */}
+                    {data.leaders.map((leader, index) => (
+                      <article
+                        className={styles.leaderTile}
+                        key={`${leader.name}-${leader.image}-${index}`}
+                        title={`${leader.name}, strength ${leader.strength ?? 'not specified'}`}
+                      >
+                        <LeaderToken {...leader} background={data.background} logo={data.logo} />
+                      </article>
+                    ))}
+                  </div>
+                </Section>
 
-            {planets.length > 0 ? (
-              <Section icon={<TopicIcon topic="planets" size={20} />} title="Planets">
-                <Stack component="ul" gap="sm" m={0} p={0} style={{ listStyle: 'none' }}>
-                  {planets.map((planet, index) => (
-                    <FactionPlanet key={`${planet.name}-${planet.image}-${index}`} planet={planet} />
-                  ))}
-                </Stack>
-              </Section>
-            ) : null}
+                <FactionTroops troops={data.troops} background={data.background} />
 
-            <Section icon={<TopicIcon topic="setup" size={20} />} title="Setup">
-              <Surface padding="lg">
-                <Stack gap="lg">
-                  <Stack gap="xs">
-                    <Title order={3} size="h4">
-                      Preferred TTS color
-                    </Title>
-                    {data.colors.length > 0 ? (
-                      <Group gap="sm">
-                        {data.colors.map((color) => (
-                          <Tooltip key={color} label={`${color} TTS color`}>
-                            <ColorSwatch
-                              color={TTS_COLOR_SWATCHES[color]}
-                              size={18}
-                              aria-label={`${color} TTS color`}
-                            />
-                          </Tooltip>
-                        ))}
-                      </Group>
-                    ) : (
-                      <Text size="sm" c="dimmed">
-                        None specified.
-                      </Text>
-                    )}
-                  </Stack>
-                  <Divider />
-                  <Box>
-                    <Title order={3} size="h4">
-                      At start
-                    </Title>
-                    <Text size="sm" mt="xs">
-                      <InlineFormattedTextSource source={data.rules.startText} />
-                    </Text>
-                  </Box>
-                  <Divider />
-                  <Box>
-                    <Title order={3} size="h4">
-                      Revival
-                    </Title>
-                    <Text size="sm" mt="xs">
-                      <InlineFormattedTextSource source={data.rules.revivalText} />
-                    </Text>
-                  </Box>
-                </Stack>
-              </Surface>
-            </Section>
+                <FactionAdvantages advantages={data.rules.advantages} />
 
-            <Card
-              icon={<FileText size={20} aria-hidden />}
-              title="Files"
-              action={
-                <StatusBadge live tone={files.tone}>
-                  {files.label}
-                </StatusBadge>
-              }
+                <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+                  <Card icon={<TopicIcon topic="alliance" size={20} />} title="Alliance">
+                    <FormattedTextSource source={data.rules.alliance.text} size="sm" />
+                  </Card>
+                  <FactionSpecialRule rule={data.rules.fate} />
+                </SimpleGrid>
+              </Stack>
+            </Box>
+
+            <Stack
+              gap="md"
+              component="aside"
+              aria-label="Faction details"
+              w={{ base: '100%', md: '15rem' }}
+              miw={0}
+              style={{ flex: '0 0 auto' }}
             >
-              <Text size="sm" c="dimmed">
-                {factionAssetPublishingCopy(assetPublishing.status, assetPublishing.captureStatus)}
-              </Text>
-            </Card>
+              <FactionSidebarOverview data={data} />
 
-            <Card icon={<TopicIcon topic="rulesets" size={20} />} title="Rulesets">
-              {rulesets.length === 0 ? (
-                <Text size="sm" c="dimmed">
-                  Not in a ruleset yet.
-                </Text>
-              ) : (
-                <Links>
-                  {rulesets.map((ruleset) => (
-                    <Links.Item key={ruleset.id} to="/rulesets/$rulesetSlug" params={{ rulesetSlug: ruleset.slug }}>
-                      {ruleset.name}
-                    </Links.Item>
-                  ))}
-                </Links>
-              )}
-            </Card>
-          </Stack>
-        </Flex>
+              {planets.length > 0 ? (
+                <Section icon={<TopicIcon topic="planets" size={20} />} title="Planets">
+                  <Stack component="ul" gap="sm" m={0} p={0} style={{ listStyle: 'none' }}>
+                    {planets.map((planet, index) => (
+                      <FactionPlanet key={`${planet.name}-${planet.image}-${index}`} planet={planet} />
+                    ))}
+                  </Stack>
+                </Section>
+              ) : null}
+
+              <Section icon={<TopicIcon topic="setup" size={20} />} title="Setup">
+                <Surface padding="lg">
+                  <Stack gap="lg">
+                    <Stack gap="xs">
+                      <Title order={3} size="h4">
+                        Preferred TTS color
+                      </Title>
+                      {data.colors.length > 0 ? (
+                        <Group gap="sm">
+                          {data.colors.map((color) => (
+                            <Tooltip key={color} label={`${color} TTS color`}>
+                              <ColorSwatch
+                                color={TTS_COLOR_SWATCHES[color]}
+                                size={18}
+                                aria-label={`${color} TTS color`}
+                              />
+                            </Tooltip>
+                          ))}
+                        </Group>
+                      ) : (
+                        <Text size="sm" c="dimmed">
+                          None specified.
+                        </Text>
+                      )}
+                    </Stack>
+                    <Divider />
+                    <Box>
+                      <Title order={3} size="h4">
+                        At start
+                      </Title>
+                      <Text size="sm" mt="xs">
+                        <InlineFormattedTextSource source={data.rules.startText} />
+                      </Text>
+                    </Box>
+                    <Divider />
+                    <Box>
+                      <Title order={3} size="h4">
+                        Revival
+                      </Title>
+                      <Text size="sm" mt="xs">
+                        <InlineFormattedTextSource source={data.rules.revivalText} />
+                      </Text>
+                    </Box>
+                  </Stack>
+                </Surface>
+              </Section>
+
+              <FactionFilesAndRulesets page={page} />
+            </Stack>
+          </Flex>
+          <RelatedFaq
+            items={faq.relatedFaq}
+            status={faq.faqStatus}
+            onLoadMore={faq.loadMoreFaq}
+            onOpenQuestion={(questionSlug, rulesetSlug) => {
+              void navigate({ to: '/rulesets/$rulesetSlug/faq/$questionSlug', params: { questionSlug, rulesetSlug } });
+            }}
+          />
+        </Stack>
       </PageLayout.Content>
     </PageLayout>
+  );
+}
+
+function FactionFilesAndRulesets({ page }: { page: FactionDetailPageData }) {
+  const { assetPublishing, rulesets } = page;
+  const files = filesBadge(assetPublishing);
+  return (
+    <>
+      <Card
+        icon={<FileText size={20} aria-hidden />}
+        title="Files"
+        action={
+          <StatusBadge live tone={files.tone}>
+            {files.label}
+          </StatusBadge>
+        }
+      >
+        <Text size="sm" c="dimmed">
+          {factionAssetPublishingCopy(assetPublishing.status, assetPublishing.captureStatus)}
+        </Text>
+      </Card>
+
+      <Card icon={<TopicIcon topic="rulesets" size={20} />} title="Rulesets">
+        {rulesets.length === 0 ? (
+          <Text size="sm" c="dimmed">
+            Not in a ruleset yet.
+          </Text>
+        ) : (
+          <Links>
+            {rulesets.map((ruleset) => (
+              <Links.Item key={ruleset.id} to="/rulesets/$rulesetSlug" params={{ rulesetSlug: ruleset.slug }}>
+                {ruleset.name}
+              </Links.Item>
+            ))}
+          </Links>
+        )}
+      </Card>
+    </>
   );
 }

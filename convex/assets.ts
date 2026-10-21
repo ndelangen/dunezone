@@ -1,4 +1,5 @@
 import { zodToConvex } from 'convex-helpers/server/zod4';
+import { paginationOptsValidator, paginationResultValidator } from 'convex/server';
 import type { Infer } from 'convex/values';
 import { ConvexError, v } from 'convex/values';
 
@@ -66,6 +67,7 @@ import {
   requireAssignableGroup,
   requireGroupReassignment,
 } from './lib/collaborativeAccess';
+import { relatedFaqItemValidator } from './lib/collaborativeAccessValidators';
 import { assetPublishingValidator, assignedGroupSummaryValidator } from './lib/collaborativeAccessValidators';
 import {
   CUSTOM_CARD_TOKEN_RELATION,
@@ -75,6 +77,7 @@ import {
   validateCustomCardTokens,
 } from './lib/customCardTokens';
 import { parseStoredFactionForRead } from './lib/factionInput';
+import { loadRelatedFaqPage } from './lib/faqReferences';
 import { recordFormerSlug } from './lib/formerSlugs';
 import { requireAdminUserId, requireAuthUserId } from './lib/policy';
 import { profileSummary } from './lib/profileSummary';
@@ -403,6 +406,28 @@ export const page = publicQuery({
   handler: async (ctx, args) => {
     const row = await liveAsset(ctx, args.type, args.slug);
     return row ? await loadAssetPageFor(ctx, row, args) : null;
+  },
+});
+
+/** Each cursor range carries its related questions; only the first also carries the page's detail. */
+export const detailPage = publicQuery({
+  args: {
+    type: v.string(),
+    slug: v.string(),
+    embeddedTokenIds: v.optional(v.array(v.id('assets'))),
+    paginationOpts: paginationOptsValidator,
+  },
+  returns: paginationResultValidator(
+    v.object({ detail: v.union(assetPageValidator, v.null()), items: v.array(relatedFaqItemValidator) })
+  ),
+  handler: async (ctx, args) => {
+    const row = await liveAsset(ctx, args.type, args.slug);
+    if (!row) {
+      return { page: [{ detail: null, items: [] }], isDone: true, continueCursor: '' };
+    }
+    const related = await loadRelatedFaqPage(ctx, { kind: 'asset', id: row._id }, args.paginationOpts);
+    const detail = args.paginationOpts.cursor === null ? await loadAssetPageFor(ctx, row, args) : null;
+    return { ...related, page: [{ detail, items: related.page }] };
   },
 });
 
@@ -1126,7 +1151,7 @@ async function memberPreviews(ctx: QueryCtx, containerId: Id<'assets'>, kind: st
  * One tile on the browse grid: a listing entry plus the member previews a bundle's band draws.
  * Derived here rather than added to `assetListEntryValidator`, because the landing page draws piles of every type and would pay a relation pass per row for a fact it never shows.
  */
-const assetBrowseEntryValidator = assetListEntryValidator.extend({
+export const assetBrowseEntryValidator = assetListEntryValidator.extend({
   members: v.array(memberPreviewValidator),
 });
 
@@ -1189,6 +1214,15 @@ export const browsePage = publicQuery({
     return { entries, truncated };
   },
 });
+
+/** The same catalogue tile on browse pages and FAQ references, including a bundle's member previews. */
+export async function toAssetCatalogueEntry(ctx: QueryCtx, row: Doc<'assets'>) {
+  const previewKind = memberPreviewKind(row.type);
+  return {
+    ...(await toListEntry(ctx, row, {}, { deckBacks: new Map() })),
+    members: previewKind ? await memberPreviews(ctx, row._id, previewKind) : [],
+  };
+}
 
 /** The tiles of the selected entries: each asset read once, and one deck or owner read once however many tiles share it. */
 async function catalogueEntries(ctx: QueryCtx, type: string, selected: { source_id: string }[]) {

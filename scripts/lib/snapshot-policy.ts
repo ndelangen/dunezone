@@ -26,7 +26,7 @@ type IsOptional<Row, Field extends keyof Row> = object extends Pick<Row, Field> 
 type ReferenceRule<Value> = [ReferencedTable<Value>] extends [never]
   ? never
   :
-      | { parent: ReferencedTable<Value> }
+      | { parent: ReferencedTable<Value> | readonly ReferencedTable<Value>[] }
       | (null extends Value ? { orNull: ReferencedTable<Value> } : never)
       | ('users' extends ReferencedTable<Value> ? 'owner' : never);
 
@@ -290,6 +290,15 @@ export const snapshotPolicy = {
       updated_at: 'keep',
     },
     rows: (row) => row.status === 'ready',
+  },
+  faq_references: {
+    fields: {
+      faq_item_id: { parent: 'faq_items' },
+      question_created_at: 'keep',
+      kind: 'keep',
+      target_id: { parent: ['factions', 'assets'] },
+    },
+    rows: 'all',
   },
   /** Questions are public on their ruleset's FAQ, and their answers are dropped, so no answer is ever accepted. */
   faq_items: {

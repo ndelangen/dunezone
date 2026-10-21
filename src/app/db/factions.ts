@@ -8,7 +8,7 @@ import {
 } from '@shared/factions/schema';
 import type { CatalogueFactionData } from '@shared/factions/schema';
 import type { FactionInput } from '@shared/factions/schema';
-import { useQuery } from 'convex/react';
+import { usePaginatedQuery, useQuery } from 'convex/react';
 import type { FunctionArgs, FunctionReturnType } from 'convex/server';
 import { useMemo } from 'react';
 
@@ -394,4 +394,35 @@ export function useFactionsOwnedForGroupAssign() {
 /** Missing public factions are absent; transport, permission and data failures still throw. */
 export function loadPublicFaction(slug: string): Promise<FactionDetailPageData | null> {
   return loadPublicPage(loadFaction(slug));
+}
+
+type FactionDetailChunk = FunctionReturnType<typeof api.factions.detailPage>['page'][number];
+export type FactionDetailInitialPage = FactionDetailPageData & { relatedFaq: FactionDetailChunk['items'] };
+
+export function loadPublicFactionDetail(slug: string): Promise<FactionDetailInitialPage | null> {
+  return loadPublicPage(loadFactionDetail(slug));
+}
+
+async function loadFactionDetail(slug: string): Promise<FactionDetailInitialPage | null> {
+  const result = await db.query(
+    api.factions.detailPage,
+    { slug, paginationOpts: { numItems: 12, cursor: null } },
+    { hold: false }
+  );
+  const first = result.page[0];
+  return first.detail ? { ...toFactionDetailPageData(first.detail), relatedFaq: first.items } : null;
+}
+
+export function useFactionDetail(slug: string, options: { initialData: FactionDetailInitialPage }) {
+  const query = usePaginatedQuery(api.factions.detailPage, { slug }, { initialNumItems: 12 });
+  const first = query.results[0];
+  const page = first === undefined ? options.initialData : first.detail ? toFactionDetailPageData(first.detail) : null;
+  return {
+    ...toLiveQueryResult(page),
+    isPending: first === undefined,
+    isLoading: first === undefined,
+    relatedFaq: first ? query.results.flatMap((chunk) => chunk.items) : options.initialData.relatedFaq,
+    faqStatus: query.status,
+    loadMoreFaq: () => query.loadMore(12),
+  };
 }

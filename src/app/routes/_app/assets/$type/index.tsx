@@ -5,7 +5,6 @@ import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
 import type { AssetTypeDefinition } from '@shared/assets/types';
 import { createFileRoute, Link, notFound } from '@tanstack/react-router';
 import type { NotFoundRouteProps } from '@tanstack/react-router';
-import { OpenableTile } from '@ui/block/OpenableTile';
 import { PageTitle } from '@ui/block/PageTitle';
 import { CallToAction } from '@ui/control/CallToAction';
 import { CataloguePager } from '@ui/control/CataloguePager';
@@ -21,11 +20,11 @@ import { useCallback, useRef } from 'react';
 import type { Ref } from 'react';
 
 import { loadAssetBrowsePage, useAssetBrowsePage } from '@app/db/assets';
-import type { AssetBrowseArgs, AssetBrowseEntry, AssetBrowsePageData } from '@app/db/assets';
+import type { AssetBrowseArgs, AssetBrowsePageData } from '@app/db/assets';
 import { useFocusFirstNewRow, useGrowingLimit, useGrowingSearch } from '@app/routes/growingSearch';
 import { publicPageHead } from '@app/routes/publicPage';
 import { useSearchDraft } from '@app/routes/searchDraft';
-import { AssetFace } from '@app/widgets/asset-face/AssetFace';
+import { AssetCatalogueTile } from '@app/widgets/asset-face/AssetCatalogueTile';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import styles from './index.module.css';
@@ -337,7 +336,7 @@ function BrowsedTiles({
     <Stack gap="lg">
       <TileGrid>
         {data.entries.map((entry) => (
-          <BrowseTile key={entry.id} entry={entry} />
+          <AssetCatalogueTile key={entry.id} entry={entry} />
         ))}
       </TileGrid>
       <CataloguePager
@@ -386,7 +385,7 @@ function SearchedTiles({
     <Stack gap="lg" aria-busy={loading} ref={ref}>
       <TileGrid>
         {data.entries.map((entry) => (
-          <BrowseTile key={entry.id} entry={entry} />
+          <AssetCatalogueTile key={entry.id} entry={entry} />
         ))}
       </TileGrid>
       {/* The tiles say how many arrived; this says only that they did, so a reader hears the grid grow without a count the page never shows. */}
@@ -438,21 +437,3 @@ function AssetTypePastTheEnd({ data }: NotFoundRouteProps) {
  * «Type browse page design» had put one on the tile as well as the page, and Norbert reversed it on 2026-08-20: an overview never jumps straight into editing, and edit is reached from the toolbar on a detail page.
  * Losing it makes the whole tile one anchor again, since the sibling structure only existed because an anchor may not contain a control.
  */
-function BrowseTile({ entry }: { entry: AssetBrowseEntry }) {
-  return (
-    <OpenableTile
-      caption={entry.name}
-      renderRoot={(rootProps) => (
-        <Link {...rootProps} to="/assets/$type/$slug" params={{ type: entry.type, slug: entry.slug }} />
-      )}
-    >
-      <AssetFace
-        href={entry.previewHref}
-        type={entry.type}
-        data={entry.data}
-        name={entry.name}
-        members={entry.members}
-      />
-    </OpenableTile>
-  );
-}
