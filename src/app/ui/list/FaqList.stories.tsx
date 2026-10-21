@@ -145,6 +145,111 @@ export const Narrow = meta.story({
       <FaqList {...args} />
     </div>
   ),
+  play: async ({ canvasElement }) => {
+    await expectLean(within(canvasElement));
+  },
+});
+
+export const WidthBoundary = meta.story({
+  render: (args) => (
+    <div style={{ display: 'flex', gap: 'var(--space-xl)', alignItems: 'start' }}>
+      <div style={{ width: 400, flexShrink: 0 }} data-testid="faq-at-400">
+        <FaqList {...args} />
+      </div>
+      <div style={{ width: 401, flexShrink: 0 }} data-testid="faq-at-401">
+        <FaqList {...args} />
+      </div>
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const lean = within(canvas.getByTestId('faq-at-400'));
+    const full = within(canvas.getByTestId('faq-at-401'));
+    await expectLean(lean);
+    await expect(full.getByRole('link', { name: 'Chani' })).toBeVisible();
+    await expect(full.getByRole('link', { name: 'Lasgun' })).toBeVisible();
+    await expect(full.queryByRole('link', { name: '2 related' })).not.toBeInTheDocument();
+    await expect(getComputedStyle(lean.getByText('Only when the ruleset explicitly allows it.')).webkitLineClamp).toBe(
+      '1'
+    );
+    await expect(getComputedStyle(full.getByText('Only when the ruleset explicitly allows it.')).webkitLineClamp).toBe(
+      'none'
+    );
+  },
+});
+
+async function expectLean(canvas: ReturnType<typeof within>) {
+  await expect(canvas.getByRole('link', { name: 'Can leaders move through the storm?' })).toBeVisible();
+  await expect(canvas.queryByRole('link', { name: 'Chani' })).not.toBeInTheDocument();
+  await expect(canvas.queryByRole('link', { name: 'Stilgar' })).not.toBeInTheDocument();
+  await expect(canvas.queryByRole('link', { name: 'Lasgun' })).not.toBeInTheDocument();
+  await expect(canvas.getByRole('link', { name: '2 related' })).toHaveAttribute(
+    'href',
+    '/rulesets/dreamrules/faq/storm-movement'
+  );
+  for (const label of canvas.getAllByText('Asked by:')) {
+    await expect(label).not.toBeVisible();
+  }
+  await expect(canvas.getByText('Answered by:')).not.toBeVisible();
+  await expect(canvas.getByText('Rules', { exact: true })).not.toBeVisible();
+}
+
+export const NarrowMixedRulesets = meta.story({
+  args: {
+    rulesetSlug: undefined,
+    items: faqItems.map((item) => ({ ...item, ruleset: { name: 'Dreamrules', slug: 'dreamrules' } })),
+  },
+  render: (args) => (
+    <div style={{ width: 400 }}>
+      <FaqList {...args} />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expectLean(canvas);
+    await expect(canvas.getAllByRole('link', { name: 'Dreamrules' })).toHaveLength(2);
+    await expect(canvas.getByRole('link', { name: /Open question:.*Unanswered, 0 answers/ })).toBeVisible();
+  },
+});
+
+export const LeanOverflow = meta.story({
+  args: {
+    items: [
+      {
+        ...faqItems[0]!,
+        list_details: {
+          ...faqItems[0]!.list_details!,
+          accepted_answer: {
+            excerpt:
+              'The accepted answer stays available in full on the question page. A long excerpt occupies one line in the Lean list so it cannot push the next question further down the page.',
+          },
+          has_more_answers: true,
+          has_more_references: true,
+        },
+      },
+    ],
+  },
+  render: (args) => (
+    <div style={{ width: 400 }}>
+      <FaqList {...args} />
+    </div>
+  ),
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement);
+    const row = canvas.getByRole('link', { name: /Open question:.*Answered, 1\+ answer/ });
+    await expect(row).toBeVisible();
+    const excerpt = canvas.getByText(/^The accepted answer stays available/);
+    await expect(excerpt.clientHeight).toBeLessThanOrEqual(
+      Math.ceil(Number.parseFloat(getComputedStyle(excerpt).lineHeight))
+    );
+    await expect(canvas.getByRole('link', { name: '2+ related' })).toHaveAttribute(
+      'href',
+      '/rulesets/dreamrules/faq/storm-movement'
+    );
+    row.focus();
+    await userEvent.keyboard('{Enter}');
+    await expect(args.onOpenQuestion).toHaveBeenCalledWith('storm-movement', 'dreamrules');
+  },
 });
 
 export const Medium = meta.story({
