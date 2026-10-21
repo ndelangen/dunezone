@@ -1,4 +1,4 @@
-import { cardFrontStyleFor } from '@shared/assets/cardFrontPresets';
+import { cardFrontStyleFor, newCardWithStandards } from '@shared/assets/cardFrontPresets';
 import { useReducer, useState } from 'react';
 
 import { useCardFrontPresets } from '@db/cardFrontPresets';
@@ -37,8 +37,8 @@ export function StrongholdCreatePage() {
   const saving = useCardCreate('card-stronghold');
   const [chapter, setChapter] = useState<StrongholdChapter>('head');
   const [state, dispatch] = useReducer(reduce, undefined, () => ({
-    data: INITIAL_STRONGHOLD_DRAFT,
-    baseline: INITIAL_STRONGHOLD_DRAFT,
+    data: newCardWithStandards('card-stronghold', INITIAL_STRONGHOLD_DRAFT),
+    baseline: newCardWithStandards('card-stronghold', INITIAL_STRONGHOLD_DRAFT),
   }));
   const patch = (update: Partial<StrongholdDraft>) => dispatch({ kind: 'patch', update });
   const nameField = assetNameField({

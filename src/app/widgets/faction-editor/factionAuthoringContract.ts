@@ -177,6 +177,8 @@ export const factionAuthoringCoverage: Readonly<Record<string, CoverageEntry>> =
   }),
   ...coverage(
     [
+      'background.source.kind',
+      'background.source.key',
       'background.image',
       'background.invert',
       'background.definition',

@@ -127,6 +127,7 @@ export const customCardAssetDataSchema = z.strictObject({
   assetId: z.string().min(1),
   slug: z.string().min(1),
   card: CustomCardAsset,
+  frontPreset: cardFrontSnapshotSchema.optional(),
   tokens: CustomCardTokens.optional(),
 });
 
@@ -144,6 +145,7 @@ export const spiceCardAssetDataSchema = z.strictObject({
   assetId: z.string().min(1),
   slug: z.string().min(1),
   card: SpiceAsset,
+  frontPreset: cardFrontSnapshotSchema.optional(),
   board: HistoricalBoardDefinition.nullable().optional(),
   tokens: CustomCardTokens.optional(),
 });

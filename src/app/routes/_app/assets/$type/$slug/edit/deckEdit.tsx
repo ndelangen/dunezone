@@ -32,6 +32,7 @@ import type {
 } from '@app/widgets/deck-editor/DeckEditor';
 import { deckDraftWarnings, DeckEditor, initialDeckMemory } from '@app/widgets/deck-editor/DeckEditor';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
+import { BackgroundLibrary } from '@game/assets/utils/BackgroundLibrary';
 import { DeckAsset as DeckAssetSchema } from '@game/data/objects';
 
 import {
@@ -110,16 +111,18 @@ export function DeckEditPage({ slug, loaderData }: { slug: string; loaderData: A
     'mode' in cardback && cardback.mode !== 'custom' ? cardback : { ...cardback, mode: 'custom' };
 
   return (
-    <DeckEditSession
-      key={data.asset.id}
-      access={{ viewerAccess: data.viewerAccess, assignableGroups: data.assignableGroups }}
-      asset={data.asset}
-      members={data.members}
-      presets={data.cardbackPresets}
-      backDeck={data.backDeck}
-      danglingBack={data.resolvedBack?.mode === 'dangling'}
-      initialDraft={{ ...parsed.data, cardback: initialCardback }}
-    />
+    <BackgroundLibrary presets={data.backgrounds ?? []} fronts={data.cardFrontPresets}>
+      <DeckEditSession
+        key={data.asset.id}
+        access={{ viewerAccess: data.viewerAccess, assignableGroups: data.assignableGroups }}
+        asset={data.asset}
+        members={data.members}
+        presets={data.cardbackPresets}
+        backDeck={data.backDeck}
+        danglingBack={data.resolvedBack?.mode === 'dangling'}
+        initialDraft={{ ...parsed.data, cardback: initialCardback }}
+      />
+    </BackgroundLibrary>
   );
 }
 

@@ -1,7 +1,7 @@
 import preview from '@sb/preview';
+import { stockBackgroundValues as backgroundPresets } from '@shared/backgrounds/defaults';
 import { expect, fn, userEvent, within } from 'storybook/test';
 
-import { backgroundPresets } from '@game/data/backgrounds';
 import { treacheryCardFixtures } from '@game/fixtures/treacheryCards';
 
 import { INITIAL_TREACHERY_DRAFT, INITIAL_TREACHERY_MEMORY, TreacheryCardEditor } from './TreacheryCardEditor';

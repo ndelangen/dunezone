@@ -58,6 +58,7 @@ import { profileLink, publicDescription, publicPageHead, useLivePageTitle } from
 import { AssetFace } from '@app/widgets/asset-face/AssetFace';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { RelatedFaq } from '@app/widgets/related-faq/RelatedFaq';
+import { BackgroundLibrary } from '@game/assets/utils/BackgroundLibrary';
 
 import { useAssetDeletion, useAssetGroupActions } from '../../assetEditorStates';
 import { compositionTiles, DUPLICATED_TILE_CAP, omissionNote } from './composition';
@@ -513,7 +514,11 @@ function AssetDetailPage() {
     );
   }
 
-  return <LoadedAssetDetail page={page} pending={live.isPending || !page.viewerResolved} faq={live} />;
+  return (
+    <BackgroundLibrary presets={page.backgrounds ?? []} fronts={page.cardFrontPresets}>
+      <LoadedAssetDetail page={page} pending={live.isPending || !page.viewerResolved} faq={live} />
+    </BackgroundLibrary>
+  );
 }
 
 /**
@@ -745,7 +750,7 @@ function LoadedAssetDetail({
             </Alert>
           ) : null}
           {/* The reading matter leads and the render stands in a rail beside it, the edit pages' arrangement (Norbert, 2026-08-21).
-            A container's rail slims to a band: its matter is the member grid, and the preview keeps the rail company with Shipped by (Norbert, 2026-08-22). */}
+          A container's rail slims to a band: its matter is the member grid, and the preview keeps the rail company with Shipped by (Norbert, 2026-08-22). */}
           <AsymmetricSplitLayout rail={container ? 'slim' : 'reading'}>
             <AsymmetricSplitLayout.Wide>
               <AssetDetailBody page={page} duplicated={duplicated} />
@@ -763,7 +768,10 @@ function LoadedAssetDetail({
             status={faq.faqStatus}
             onLoadMore={faq.loadMoreFaq}
             onOpenQuestion={(questionSlug, rulesetSlug) => {
-              void navigate({ to: '/rulesets/$rulesetSlug/faq/$questionSlug', params: { questionSlug, rulesetSlug } });
+              void navigate({
+                to: '/rulesets/$rulesetSlug/faq/$questionSlug',
+                params: { questionSlug, rulesetSlug },
+              });
             }}
           />
         </Stack>

@@ -28,6 +28,7 @@ import type {
   RectangleDraft,
   RectangleMemory,
 } from '@app/widgets/token-editor/RectangleTokenEditor';
+import { BackgroundLibrary } from '@game/assets/utils/BackgroundLibrary';
 
 import {
   AssetEditorMessage,
@@ -103,15 +104,17 @@ export function RectangleEditPage({
       : parsed.data.back;
 
   return (
-    <RectangleEditSession
-      key={data.asset.id}
-      access={{ viewerAccess: data.viewerAccess, assignableGroups: data.assignableGroups }}
-      type={type}
-      asset={data.asset}
-      backToken={data.backToken}
-      danglingBack={data.resolvedBack?.mode === 'dangling'}
-      initialDraft={{ ...parsed.data, back: initialBack }}
-    />
+    <BackgroundLibrary presets={data.backgrounds ?? []} fronts={data.cardFrontPresets}>
+      <RectangleEditSession
+        key={data.asset.id}
+        access={{ viewerAccess: data.viewerAccess, assignableGroups: data.assignableGroups }}
+        type={type}
+        asset={data.asset}
+        backToken={data.backToken}
+        danglingBack={data.resolvedBack?.mode === 'dangling'}
+        initialDraft={{ ...parsed.data, back: initialBack }}
+      />
+    </BackgroundLibrary>
   );
 }
 

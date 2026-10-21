@@ -1,0 +1,43 @@
+.root {
+  container: paired-proof / inline-size;
+  min-width: 0;
+}
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-lg);
+  align-items: start;
+}
+.first {
+  grid-column: 1;
+  grid-row: 1;
+  width: 100%;
+  max-width: 14rem;
+  justify-self: center;
+}
+.second {
+  grid-column: 2;
+  grid-row: 1;
+  width: 100%;
+  max-width: 14rem;
+  justify-self: center;
+}
+.settings {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+@container paired-proof (width >= 48rem) {
+  .layout {
+    grid-template-columns: minmax(8rem, 12rem) minmax(0, 1fr) minmax(8rem, 12rem);
+  }
+  .first {
+    grid-column: 1;
+  }
+  .settings {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .second {
+    grid-column: 3;
+  }
+}

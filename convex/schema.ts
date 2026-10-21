@@ -5,8 +5,10 @@ import { v } from 'convex/values';
 
 import { componentGeometrySchema } from '../src/shared/asset-publishing/componentGeometry';
 import { cardbackPresetKeySchema } from '../src/shared/assets/cardbackPresetKeys';
-import { cardFrontPresetKeySchema, cardFrontStyleSchema } from '../src/shared/assets/cardFrontPresets';
+import { cardFrontPresetKeySchema, authoredCardFrontStyleSchema } from '../src/shared/assets/cardFrontPresets';
 import { CardBack } from '../src/shared/assets/schema';
+import { discoveryPresetSchema } from '../src/shared/backgrounds/families';
+import { backgroundPresetSchema } from '../src/shared/backgrounds/schema';
 import { playProvisionFailureReasonSchema, playStageSchema } from '../src/shared/play/admission';
 import { playDirectorySummarySchema } from '../src/shared/play/directory';
 import { lastTurnSchema } from '../src/shared/play/lastTurn';
@@ -35,9 +37,24 @@ export default defineSchema({
     ...authTables.authSessions.validator.fields,
     expiry_job_id: v.optional(v.id('_scheduled_functions')),
   }).index('userId', ['userId']),
+  discovery_presets: defineTable({ ...zodToConvex(discoveryPresetSchema).fields, updated_at: v.number() }).index(
+    'by_key',
+    ['key']
+  ),
+  background_presets: defineTable({
+    ...zodToConvex(backgroundPresetSchema).fields,
+    updated_at: v.number(),
+  }).index('by_key', ['key']),
+  background_uses: defineTable({
+    key: v.string(),
+    subject: v.union(v.id('assets'), v.id('factions')),
+    kind: v.union(v.literal('asset'), v.literal('faction')),
+  })
+    .index('by_key', ['key'])
+    .index('by_subject', ['subject']),
   card_front_presets: defineTable({
     key: zodToConvex(cardFrontPresetKeySchema),
-    style: zodToConvex(cardFrontStyleSchema),
+    style: zodToConvex(authoredCardFrontStyleSchema),
     revision: v.number(),
     updated_at: v.number(),
   }).index('by_key', ['key']),

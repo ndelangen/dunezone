@@ -1,12 +1,12 @@
 import { Stack } from '@mantine/core';
+import { customBackground } from '@shared/backgrounds/schema';
 import { ControlBlock } from '@ui/control/ControlBlock';
 
+import { BackgroundPicker } from '@app/pickers/BackgroundPicker';
 import type { BackgroundData } from '@game/data/backgrounds';
 
 import { BackgroundComposer } from './BackgroundComposer';
 import type { BackgroundModeMemory } from './BackgroundComposer';
-import { BackgroundPresetPicker } from './BackgroundPresetPicker';
-import { CUSTOM_PRESET, presetKeyFor, presetSelection } from './presetChoice';
 
 /* A background chosen from named presets, with the composer behind a Custom option.
    "Custom" stays selected while the value still equals a preset; the choice itself opens the composer. */
@@ -16,8 +16,9 @@ export function BackgroundPresetControl({
   usedOn,
   presets,
   value,
+  familyValue,
   onChange,
-  declaredCustom,
+  declaredCustom: _declaredCustom,
   onDeclaredCustomChange,
   modeMemory,
   onModeMemoryChange,
@@ -27,6 +28,7 @@ export function BackgroundPresetControl({
   usedOn: string;
   presets: readonly { key: string; label: string; background: BackgroundData }[];
   value: BackgroundData;
+  familyValue?: BackgroundData;
   onChange: (background: BackgroundData, presetKey: string | null) => void;
   /**
    * The author's declared Custom intent, which the value cannot express once it happens to equal a preset.
@@ -41,35 +43,32 @@ export function BackgroundPresetControl({
   modeMemory: BackgroundModeMemory;
   onModeMemoryChange: (memory: BackgroundModeMemory) => void;
 }) {
-  const presetKey = presetKeyFor(presets, value);
-  const selected = presetSelection(presetKey, declaredCustom);
+  const custom = value.source?.kind !== 'preset' && value.source?.kind !== 'family';
   return (
     <ControlBlock
       title={title}
       description={description}
       input={
         <Stack gap="sm">
-          <BackgroundPresetPicker
-            label={title}
-            presets={presets}
-            selected={selected}
-            customBackground={value}
-            onSelect={(next) => {
-              if (next === CUSTOM_PRESET) {
-                onDeclaredCustomChange(true);
-                return;
-              }
-              const preset = presets.find((candidate) => candidate.key === next);
-              if (preset) {
-                onDeclaredCustomChange(false);
-                onChange(preset.background, preset.key);
-              }
+          <BackgroundPicker
+            label={`${title} preset`}
+            value={value}
+            familyValue={familyValue}
+            onPick={(background) => {
+              onDeclaredCustomChange(background.source?.kind !== 'preset' && background.source?.kind !== 'family');
+              const local = presets.find(
+                (preset) =>
+                  preset.background.source?.kind === 'preset' &&
+                  background.source?.kind === 'preset' &&
+                  preset.background.source.key === background.source.key
+              );
+              onChange(background, local?.key ?? null);
             }}
           />
-          {selected === CUSTOM_PRESET ? (
+          {custom ? (
             <BackgroundComposer
               value={value}
-              onChange={(background) => onChange(background, null)}
+              onChange={(background) => onChange(customBackground(background), null)}
               usedOn={usedOn}
               modeMemory={modeMemory}
               onModeMemoryChange={onModeMemoryChange}
