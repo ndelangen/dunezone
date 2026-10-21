@@ -13,7 +13,7 @@ import { Background } from '../src/shared/factions/schema';
 import { internal } from './_generated/api';
 import type { Doc } from './_generated/dataModel';
 import { internalMutation, mutation, publicQuery } from './functions';
-import { listBackgroundPresets, assertBackgroundCapacity } from './lib/backgroundPresets';
+import { listBackgroundPresets, listSavedBackgroundPresets, assertBackgroundCapacity } from './lib/backgroundPresets';
 import { queueBackgroundRecaptures } from './lib/backgroundRegeneration';
 import { canonicalJson } from './lib/canonicalJson';
 import { requireAdminUserId } from './lib/policy';
@@ -30,7 +30,7 @@ import type { MutationCtx } from './types';
 export const list = publicQuery({
   args: {},
   returns: v.array(zodToConvex(backgroundPresetSchema)),
-  handler: listBackgroundPresets,
+  handler: listSavedBackgroundPresets,
 });
 
 export const save = mutation({

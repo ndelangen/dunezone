@@ -16,12 +16,14 @@ import { canonicalJson } from './canonicalJson';
 export const MAX_BACKGROUND_PRESETS = 200;
 type Reader = Pick<QueryCtx, 'db'>;
 
+export async function listSavedBackgroundPresets(ctx: Reader): Promise<SharedBackgroundPreset[]> {
+  const rows = await ctx.db.query('background_presets').take(MAX_BACKGROUND_PRESETS + 1);
+  return rows.map(({ key, name, value, revision }) => ({ key, name, value, revision }));
+}
+
 /** Saved card standards remain the fallback until an administrator explicitly saves a named background. */
 export async function listBackgroundPresets(ctx: Reader): Promise<SharedBackgroundPreset[]> {
-  const [slots, stored] = await Promise.all([
-    backgroundSlots(ctx),
-    ctx.db.query('background_presets').take(MAX_BACKGROUND_PRESETS + 1),
-  ]);
+  const [slots, stored] = await Promise.all([backgroundSlots(ctx), listSavedBackgroundPresets(ctx)]);
   const projected = await Promise.all(
     slots.map(async (slot) => ({
       key: slot.key,
@@ -30,11 +32,8 @@ export async function listBackgroundPresets(ctx: Reader): Promise<SharedBackgrou
       revision: slot.revision,
     }))
   );
-  const overrides = stored.map(({ key, name, value, revision }) => ({ key, name, value, revision }));
   return [
-    ...new Map(
-      [...INITIAL_BACKGROUND_PRESETS, ...projected, ...overrides].map((preset) => [preset.key, preset])
-    ).values(),
+    ...new Map([...INITIAL_BACKGROUND_PRESETS, ...projected, ...stored].map((preset) => [preset.key, preset])).values(),
   ];
 }
 

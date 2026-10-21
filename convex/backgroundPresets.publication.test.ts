@@ -554,6 +554,7 @@ test('an explicit import saves DB artwork once and source edits cannot change sh
 
 test('an incomplete DB import rolls back every new preset', async () => {
   const { t, admin } = await fixture(false);
+  expect(await t.query(api.backgroundPresets.list, {})).toEqual([]);
   await expect(admin.mutation(api.presetLibrary.initialize, {})).rejects.toThrow('source');
   expect(await t.run((ctx) => ctx.db.query('card_front_presets').collect())).toEqual([]);
   expect(await t.run((ctx) => ctx.db.query('cardback_presets').collect())).toEqual([]);
