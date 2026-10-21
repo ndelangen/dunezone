@@ -73,7 +73,7 @@ export function HomeworldCardEditor({
             }}
             ariaLabel="Homeworld card chapters"
             items={[
-              fixedCardHeadChapter(nameField, 'Homeworld'),
+              fixedCardHeadChapter(nameField),
               {
                 value: 'planet',
                 label: 'Planet',

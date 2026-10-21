@@ -13,6 +13,7 @@ export const CreateSaves = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.type(await page.findByRole('textbox', { name: 'Name' }, { timeout: 30_000 }), 'My Homeworld');
+    await expect(page.queryByRole('textbox', { name: 'Type' })).toBeNull();
     await expect(page.queryByRole('tab', { name: 'Faction' })).toBeNull();
     await userEvent.click(page.getByRole('tab', { name: 'Planet' }));
     const size = page.getByRole('slider', { name: 'Planet size slider' });

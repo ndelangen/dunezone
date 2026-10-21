@@ -64,6 +64,16 @@
   text-shadow: 1px 2px 2px rgb(0 0 0 / 0.5);
 }
 
+.reference[data-layout="homeworld"] .effects {
+  top: 170px;
+  left: calc(95px / 1.1952191235);
+  height: 818px;
+}
+
+.reference[data-layout="homeworld"] .final {
+  padding-left: 12px;
+}
+
 .row {
   display: flex;
   gap: 18px;
