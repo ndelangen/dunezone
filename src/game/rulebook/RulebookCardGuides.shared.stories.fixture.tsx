@@ -1,5 +1,6 @@
 import type { RulebookBlockDraft } from '@shared/rulebooks/contents';
 import { projectRulebookDraftRenderBlock } from '@shared/rulebooks/projectRenderDocument';
+import type { RulebookRenderPageV1 } from '@shared/rulebooks/renderDocument';
 import { getRulebookSize } from '@shared/rulebooks/settings';
 import type { RulebookSize } from '@shared/rulebooks/settings';
 import { expect } from 'storybook/test';
@@ -19,7 +20,13 @@ function CardGuideStory({
   treatment = 'entry',
   size = 'a4',
   fanCount = 6,
-}: Readonly<{ treatment?: 'entry' | GroupVariant | 'incomplete'; size?: RulebookSize; fanCount?: 4 | 6 }>) {
+  columns = false,
+}: Readonly<{
+  treatment?: 'entry' | GroupVariant | 'incomplete';
+  size?: RulebookSize;
+  fanCount?: 4 | 6;
+  columns?: boolean;
+}>) {
   let blocks: Parameters<typeof cardGuidePage>[0];
   if (treatment === 'entry') {
     blocks = [cardEntryFixture()];
@@ -63,9 +70,19 @@ function CardGuideStory({
     }
     blocks = [group];
   }
+  const page = cardGuidePage(blocks);
+  const columnPage: RulebookRenderPageV1 = {
+    ...page,
+    layoutId: 'two-columns',
+    controlValues: {},
+    regions: [
+      { key: 'column1', blocks: [] },
+      { key: 'column2', blocks: page.regions[0]!.blocks },
+    ],
+  };
   return (
     <div style={{ width: size === 'tall' ? 'min(24rem, 92vw)' : 'min(44rem, 92vw)' }}>
-      <RulebookPageRenderer page={cardGuidePage(blocks)} settings={{ size, design: 'illustrated' }} />
+      <RulebookPageRenderer page={columns ? columnPage : page} settings={{ size, design: 'illustrated' }} />
     </div>
   );
 }
@@ -75,8 +92,8 @@ export async function expectContained({ canvasElement }: { canvasElement: HTMLEl
   await Promise.all(
     [...canvasElement.querySelectorAll<HTMLImageElement>('[data-rulebook-block-id] img')].map((image) => image.decode())
   );
-  const region = canvasElement.querySelector('[data-rulebook-region]')!.getBoundingClientRect();
   for (const block of canvasElement.querySelectorAll('[data-rulebook-block-id]')) {
+    const region = block.closest('[data-rulebook-region]')!.getBoundingClientRect();
     const bounds = block.getBoundingClientRect();
     await expect(bounds.left).toBeGreaterThanOrEqual(region.left - 1);
     await expect(bounds.right).toBeLessThanOrEqual(region.right + 1);
@@ -91,12 +108,14 @@ export function CardGroupStory({
   treatment = 'compact',
   size = 'a4',
   fanCount = 6,
+  columns = false,
 }: {
   treatment?: GroupVariant | 'incomplete';
   size?: RulebookSize;
   fanCount?: 4 | 6;
+  columns?: boolean;
 }) {
-  return <CardGuideStory treatment={treatment} size={size} fanCount={fanCount} />;
+  return <CardGuideStory treatment={treatment} size={size} fanCount={fanCount} columns={columns} />;
 }
 
 export function CardEntryLayoutMatrix() {

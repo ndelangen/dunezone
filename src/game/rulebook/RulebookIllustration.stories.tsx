@@ -69,3 +69,42 @@ export const SmallToken = meta.story({
     await expect(getComputedStyle(image).clipPath).toMatch(/^polygon\(/);
   },
 });
+
+export const FactionToken = meta.story({
+  decorators: [
+    (Story) => (
+      <div style={{ width: '32rem', height: '16rem' }}>
+        <Story />
+      </div>
+    ),
+  ],
+  render: () => (
+    <RulebookBlockCanvas
+      block={projectRulebookDraftRenderBlock(
+        {
+          id: 'FACT',
+          kind: 'referenced-illustration',
+          source: { kind: 'faction', factionId: 'faction', presentation: 'token' },
+          size: 'small',
+          caption: 'The faction token uses the same shadow as other physical pieces.',
+        },
+        {},
+        {
+          faction: {
+            factionId: 'faction',
+            name: 'Faction token',
+            color: '#6f4d85',
+            tokenImageUrl: techTokenAssets.tech.imageUrl,
+          },
+        }
+      )}
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    const image = canvasElement.querySelector('img')!;
+    await image.decode();
+    await expect(image.getBoundingClientRect().width).toBeGreaterThan(0);
+    await expect(getComputedStyle(image).clipPath).toBe('circle(50%)');
+    await expect(getComputedStyle(image.parentElement!).filter).toContain('drop-shadow(');
+  },
+});
