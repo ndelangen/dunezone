@@ -1270,6 +1270,7 @@
 }
 
 .rulebookSourceVisual[data-source-status="ready"][data-rulebook-source-kind="asset"],
+.rulebookSourceVisual[data-source-status="ready"][data-rulebook-source-kind="faction"][data-source-clipped],
 .rulebookSourceVisual[data-source-status="ready"][data-rulebook-source-kind="faction-member"],
 .rulebookSourceVisual[data-source-status="ready"][data-rulebook-source-kind="faction-troop"] {
   filter: drop-shadow(0 calc(0.8 * var(--rulebook-mm)) calc(0.8 * var(--rulebook-mm)) rgb(0 0 0 / 45%));
@@ -1780,7 +1781,8 @@
 .rulebookCardFan {
   display: flex;
   justify-content: center;
-  padding: calc(8 * var(--rulebook-mm)) calc(4 * var(--rulebook-mm));
+  /* Reserve the rotated corners of a 42mm card at 15deg, plus its source shadow. */
+  padding: calc(10 * var(--rulebook-mm)) calc(17 * var(--rulebook-mm));
 }
 .rulebookCardFan > div {
   flex: 0 1 calc(42 * var(--rulebook-mm));
