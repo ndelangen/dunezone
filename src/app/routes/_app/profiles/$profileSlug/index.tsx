@@ -1,5 +1,6 @@
 import { useAuthActions } from '@convex-dev/auth/react';
-import { Anchor, Group, Stack, Text } from '@mantine/core';
+import { Anchor, Group, Pagination, Stack, Text } from '@mantine/core';
+import { parseProfileFaqPages } from '@shared/profiles/faqActivity';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, notFound, redirect, Link, useNavigate } from '@tanstack/react-router';
 import { LoadError } from '@ui/block/LoadError';
@@ -7,20 +8,16 @@ import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageIdentity } from '@ui/block/PageIdentity';
 import { ProposedContent } from '@ui/block/ProposedContent';
 import { Section } from '@ui/block/Section';
-import { formatStableDate } from '@ui/content/dates';
 import { errorMessage } from '@ui/content/errorMessage';
-import { FormattedTextSource, InlineFormattedTextSource } from '@ui/content/FormattedText';
 import { GroupLink } from '@ui/content/GroupLink';
-import { ProfileLink } from '@ui/content/ProfileLink';
-import { RulesetLink } from '@ui/content/RulesetLink';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { FactionList } from '@ui/list/FactionList';
+import { FaqList } from '@ui/list/FaqList';
 import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
-import { SectionedSurface } from '@ui/surface/SectionedSurface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import {
   ArrowLeft,
@@ -37,7 +34,6 @@ import {
 
 import { isPublicPageNotFound, loadPublicPage } from '@db/core/publicPage';
 import { forgetStoredPlayTables } from '@db/playTables';
-import type { ProfilePageData } from '@db/profiles';
 import { loadProfileBySlug, profileAvatarUrl, useCurrentProfile, useProfileBySlug } from '@db/profiles';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
@@ -48,8 +44,10 @@ import { profileDescription } from './profileDescription';
 
 export const Route = createFileRoute('/_app/profiles/$profileSlug/')({
   ssr: true,
-  loader: async ({ params }) => {
-    const profilePage = await loadPublicPage(loadProfileBySlug(params.profileSlug));
+  validateSearch: parseProfileFaqPages,
+  loaderDeps: ({ search }) => parseProfileFaqPages(search),
+  loader: async ({ params, deps }) => {
+    const profilePage = await loadPublicPage(loadProfileBySlug(params.profileSlug, deps));
     if (!profilePage) {
       throw notFound();
     }
@@ -57,6 +55,7 @@ export const Route = createFileRoute('/_app/profiles/$profileSlug/')({
       throw redirect({
         to: '/profiles/$profileSlug',
         params: { profileSlug: profilePage.profile.slug },
+        search: deps,
         replace: true,
         statusCode: 301,
       });
@@ -109,124 +108,11 @@ function ProfileDetailError({ error }: ErrorComponentProps) {
   );
 }
 
-type FaqQuestionAsked = ProfilePageData['faqAsked'][number];
-type FaqAnswerGiven = ProfilePageData['faqAnswers'][number];
-
-function AskerChip({
-  profile,
-  viewedProfileId,
-}: {
-  profile: NonNullable<FaqAnswerGiven['asker_profile']>;
-  viewedProfileId: string;
-}) {
-  if (profile.id === viewedProfileId) {
-    return <span className={styles.selfNote}>Your question</span>;
-  }
-
-  /* The sentence is the page's and stays unlinked; only the chip navigates. */
-  return (
-    <span className={styles.askerCitation}>
-      Question by{' '}
-      <ProfileLink
-        slug={profile.slug}
-        name={profile.username}
-        image={profile.avatar_url}
-        className={styles.askerLink}
-      />
-    </span>
-  );
-}
-
-/**
- * Lists the questions a person has asked, each under the ruleset it belongs to.
- *
- * The page owns the collection and what to say when it is empty.
- * This owns the rhythm: one row per question, the ruleset-and-date context strip above it, and the link to the question itself.
- */
-function FaqQuestionsAsked({ items }: { items: FaqQuestionAsked[] }) {
-  return (
-    <SectionedSurface>
-      {items.map((item) => (
-        <SectionedSurface.Row key={item._id}>
-          <div className={styles.contextStrip}>
-            <RulesetLink slug={item.ruleset.slug} name={item.ruleset.name} image={item.ruleset.coverThumbUrl} />
-            <span aria-hidden>·</span>
-            <time dateTime={item.created_at}>{formatStableDate(item.created_at)}</time>
-          </div>
-          <Link
-            to="/rulesets/$rulesetSlug/faq/$questionSlug"
-            params={{
-              rulesetSlug: item.ruleset.slug,
-              questionSlug: item.slug,
-            }}
-          >
-            <span className={styles.question}>
-              <InlineFormattedTextSource source={item.question} />
-            </span>
-          </Link>
-        </SectionedSurface.Row>
-      ))}
-    </SectionedSurface>
-  );
-}
-
-/**
- * Lists the answers a person has given, each under the question it answers.
- *
- * The page owns the collection, the empty case, and which profile is being viewed.
- * That last one decides whether an asker reads as a name or as "Your question".
- * This owns the rhythm and the picked-answer marker.
- */
-function FaqAnswersGiven({ items, viewedProfileId }: { items: FaqAnswerGiven[]; viewedProfileId: string }) {
-  return (
-    <SectionedSurface>
-      {items.map((row) => {
-        const isPicked = row.faq_item.accepted_answer_id === row._id;
-
-        return (
-          <SectionedSurface.Row key={row._id}>
-            <div className={styles.contextStrip}>
-              <RulesetLink slug={row.ruleset.slug} name={row.ruleset.name} image={row.ruleset.coverThumbUrl} />
-              <span aria-hidden>·</span>
-              {row.asker_profile ? (
-                <AskerChip profile={row.asker_profile} viewedProfileId={viewedProfileId} />
-              ) : (
-                <span>Unknown asker</span>
-              )}
-              <span aria-hidden>·</span>
-              <time dateTime={row.created_at}>{formatStableDate(row.created_at)}</time>
-            </div>
-
-            <p className={styles.parentQuestion}>
-              <InlineFormattedTextSource source={row.faq_item.question} />
-            </p>
-
-            <Link
-              to="/rulesets/$rulesetSlug/faq/$questionSlug"
-              params={{
-                rulesetSlug: row.ruleset.slug,
-                questionSlug: row.faq_item.slug,
-              }}
-            >
-              <FormattedTextSource source={row.answer} className={styles.answerPreview} />
-            </Link>
-
-            {isPicked ? (
-              <div className={styles.answerFooter}>
-                <StatusBadge tone="positive">Picked answer</StatusBadge>
-              </div>
-            ) : null}
-          </SectionedSurface.Row>
-        );
-      })}
-    </SectionedSurface>
-  );
-}
-
 function ProfileDetailPage() {
   const { profileSlug } = Route.useParams();
   const loaderData = Route.useLoaderData();
-  const profileQuery = useProfileBySlug(profileSlug, { initialData: loaderData.profilePage });
+  const search = Route.useSearch();
+  const profileQuery = useProfileBySlug(profileSlug, { initialData: loaderData.profilePage, pages: search });
   const page = profileQuery.data;
   useLivePageTitle(page?.profile.username ?? undefined, 'Profile');
   const currentProfile = useCurrentProfile();
@@ -396,28 +282,70 @@ function ProfileDetailPage() {
               </Surface>
             </Section>
 
-            <Section icon={<MessageCircleReply size={20} aria-hidden />} title="Answers contributed">
-              {page.faqAnswers.length > 0 ? (
-                <FaqAnswersGiven items={page.faqAnswers} viewedProfileId={page.profile._id} />
-              ) : (
-                <Surface padding="lg">
-                  <Text size="sm" c="dimmed">
-                    No FAQ answers yet.
-                  </Text>
-                </Surface>
-              )}
+            <Section icon={<MessageCircleReply size={20} aria-hidden />} title="Questions answered">
+              <FaqList
+                items={page.faqLists.answered.items}
+                emptyLabel="No FAQ answers yet."
+                onOpenQuestion={(questionSlug, rulesetSlug) =>
+                  void navigate({
+                    to: '/rulesets/$rulesetSlug/faq/$questionSlug',
+                    params: { questionSlug, rulesetSlug },
+                  })
+                }
+              />
+              {page.faqLists.answered.pageCount > 1 ? (
+                <Pagination
+                  value={page.faqLists.answered.page}
+                  total={page.faqLists.answered.pageCount}
+                  aria-label="Questions answered pages"
+                  onChange={(page) =>
+                    void navigate({
+                      to: '/profiles/$profileSlug',
+                      params: { profileSlug },
+                      search: { ...search, answeredPage: page > 1 ? page : undefined },
+                    })
+                  }
+                  getItemProps={(page) => ({
+                    component: Link,
+                    to: '/profiles/$profileSlug',
+                    params: { profileSlug },
+                    search: { ...search, answeredPage: page > 1 ? page : undefined },
+                  })}
+                />
+              ) : null}
             </Section>
 
             <Section icon={<CircleHelp size={20} aria-hidden />} title="Questions asked">
-              {page.faqAsked.length > 0 ? (
-                <FaqQuestionsAsked items={page.faqAsked} />
-              ) : (
-                <Surface padding="lg">
-                  <Text size="sm" c="dimmed">
-                    No questions asked yet.
-                  </Text>
-                </Surface>
-              )}
+              <FaqList
+                items={page.faqLists.asked.items}
+                emptyLabel="No questions asked yet."
+                onOpenQuestion={(questionSlug, rulesetSlug) =>
+                  void navigate({
+                    to: '/rulesets/$rulesetSlug/faq/$questionSlug',
+                    params: { questionSlug, rulesetSlug },
+                  })
+                }
+              />
+              {page.faqLists.asked.pageCount > 1 ? (
+                <Pagination
+                  value={page.faqLists.asked.page}
+                  total={page.faqLists.asked.pageCount}
+                  aria-label="Questions asked pages"
+                  onChange={(page) =>
+                    void navigate({
+                      to: '/profiles/$profileSlug',
+                      params: { profileSlug },
+                      search: { ...search, askedPage: page > 1 ? page : undefined },
+                    })
+                  }
+                  getItemProps={(page) => ({
+                    component: Link,
+                    to: '/profiles/$profileSlug',
+                    params: { profileSlug },
+                    search: { ...search, askedPage: page > 1 ? page : undefined },
+                  })}
+                />
+              ) : null}
             </Section>
           </Stack>
 

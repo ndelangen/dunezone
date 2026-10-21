@@ -1,10 +1,11 @@
 import { ConvexError } from 'convex/values';
 
+import type { ProfileFaqPages } from '../../src/shared/profiles/faqActivity';
 import type { QueryCtx } from '../types';
 import { isPublicProfile } from './accountLifecycle';
 import { liveGroupOrNull } from './collaborativeAccess';
 import { loadFactionCatalogue } from './factionCatalogue';
-import { loadFaqAnswersGivenBy, loadFaqQuestionsAskedBy } from './faqProfileActivity';
+import { loadFaqAnswersGivenBy, loadFaqQuestionsAskedBy, loadProfileFaqLists } from './faqProfileActivity';
 
 const PROFILE_DETAIL_LIMIT = 500;
 
@@ -38,7 +39,7 @@ async function formerProfile(ctx: QueryCtx, slug: string) {
  * The runtime wire contract is `profilePageValidator`;
  * the precise TS projection (parsed faction data included) is inferred from this loader.
  */
-export async function loadProfilePageBySlug(ctx: QueryCtx, slug: string) {
+export async function loadProfilePageBySlug(ctx: QueryCtx, slug: string, pages: ProfileFaqPages = {}) {
   /* An address no profile holds may be one a rename left, and the page's own redirect then moves the visitor on. */
   let profile =
     (await ctx.db
@@ -78,7 +79,9 @@ export async function loadProfilePageBySlug(ctx: QueryCtx, slug: string) {
     ownerId: profile.user_id,
   });
 
-  return { profile, faqAsked, faqAnswers, factions, groupSummaries };
+  const faqLists = await loadProfileFaqLists(ctx, faqAsked, faqAnswers, pages);
+
+  return { profile, faqAsked, faqAnswers, faqLists, factions, groupSummaries };
 }
 
 export type ProfileDetailProjection = Awaited<ReturnType<typeof loadProfilePageBySlug>>;

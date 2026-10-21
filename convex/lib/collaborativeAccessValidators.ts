@@ -205,11 +205,18 @@ const profileFaqAnswerValidator = faqAnswerValidator.extend({
   ruleset: rulesetCitationValidator,
 });
 
+const profileFaqListPageValidator = v.object({
+  items: v.array(relatedFaqItemValidator),
+  page: v.number(),
+  pageCount: v.number(),
+});
+
 /** A profile page, the same for every viewer. */
 export const profilePageValidator = v.object({
   profile: profileValidator,
   faqAsked: v.array(profileFaqQuestionValidator),
   faqAnswers: v.array(profileFaqAnswerValidator),
+  faqLists: v.object({ asked: profileFaqListPageValidator, answered: profileFaqListPageValidator }),
   factions: v.array(catalogueFactionValidator),
   groupSummaries: v.array(assignedGroupSummaryValidator),
 });

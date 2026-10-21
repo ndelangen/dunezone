@@ -1,3 +1,4 @@
+import type { ProfileFaqPages } from '@shared/profiles/faqActivity';
 import type { ProfileUserEditInput } from '@shared/profiles/validation';
 import { profileUserEditFormSchema } from '@shared/profiles/validation';
 import { useMutation } from 'convex/react';
@@ -42,14 +43,15 @@ function normalizeProfilePage(result: ProfileDetailResult) {
     groupSummaries: result.groupSummaries,
     faqAsked: result.faqAsked,
     faqAnswers: result.faqAnswers,
+    faqLists: result.faqLists,
     factions: factionCatalogueRowsToEntries(result.factions),
     acceptedAnswerCount: result.faqAnswers.filter((answer) => answer.faq_item.accepted_answer_id === answer._id).length,
   };
 }
 
 /** The profile page's loader, paired with `useProfileBySlug`. */
-export async function loadProfileBySlug(slug: string): Promise<ProfilePageData> {
-  const result = await db.query(api.profiles.pageBySlug, { slug });
+export async function loadProfileBySlug(slug: string, pages: ProfileFaqPages = {}): Promise<ProfilePageData> {
+  const result = await db.query(api.profiles.pageBySlug, { slug, ...pages });
   return normalizeProfilePage(result);
 }
 
@@ -74,9 +76,10 @@ export function useProfileBySlug(
   slug: string,
   options?: {
     initialData?: ProfilePageData;
+    pages?: ProfileFaqPages;
   }
 ) {
-  const liveData = useLiveQuery(api.profiles.pageBySlug, { slug });
+  const liveData = useLiveQuery(api.profiles.pageBySlug, { slug, ...options?.pages });
   const normalized = liveData ? normalizeProfilePage(liveData) : undefined;
   const result = toLiveQueryResult(normalized, () => options?.initialData);
   return result;
