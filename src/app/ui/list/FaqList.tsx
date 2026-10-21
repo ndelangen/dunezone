@@ -80,7 +80,7 @@ export function FaqList(props: FaqListProps) {
                   <Anchor fw={700} fz="md" underline="never" className={styles.question} renderRoot={questionLink}>
                     <InlineFormattedTextSource source={item.question} />
                   </Anchor>
-                  <span>
+                  <span className={styles.fullStatus}>
                     <StatusBadge
                       tone={answered ? 'positive' : 'neutral'}
                       icon={answered ? <Check size={12} aria-hidden /> : <MessageCircle size={12} aria-hidden />}
@@ -92,7 +92,9 @@ export function FaqList(props: FaqListProps) {
                 {accepted ? (
                   <div className={styles.excerpt}>
                     <Quote size={15} aria-hidden />
-                    <Text size="sm">{accepted.excerpt}</Text>
+                    <Text size="sm" className={styles.excerptText}>
+                      {accepted.excerpt}
+                    </Text>
                   </div>
                 ) : null}
                 <div className={styles.context}>
@@ -177,6 +179,33 @@ export function FaqList(props: FaqListProps) {
                     {formatStableDate(item.created_at)}
                   </Text>
                 </Group>
+                <div className={styles.leanSummary}>
+                  <Text component="span" size="xs" className={styles.leanFact}>
+                    {answered ? <Check size={13} aria-hidden /> : <MessageCircle size={13} aria-hidden />}
+                    {answerLabel}
+                  </Text>
+                  {ruleset ? (
+                    <Anchor
+                      size="xs"
+                      underline="never"
+                      className={styles.leanRuleset}
+                      renderRoot={(rootProps) => (
+                        <Link {...rootProps} to="/rulesets/$rulesetSlug/faq" params={{ rulesetSlug: ruleset.slug }} />
+                      )}
+                    >
+                      {ruleset.name}
+                    </Anchor>
+                  ) : null}
+                  {item.list_details &&
+                  (item.list_details.references.length > 0 || item.list_details.has_more_references) ? (
+                    <Anchor size="xs" underline="never" className={styles.leanFact} renderRoot={questionLink}>
+                      <Box size={13} aria-hidden />
+                      {item.list_details.references.length
+                        ? `${item.list_details.references.length}${item.list_details.has_more_references ? '+' : ''} related`
+                        : 'More related'}
+                    </Anchor>
+                  ) : null}
+                </div>
               </div>
             </SectionedSurface.Row>
           );
