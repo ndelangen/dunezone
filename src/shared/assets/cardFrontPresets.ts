@@ -1,7 +1,6 @@
 import { z } from 'zod';
 
 import { stockBackgroundValues } from '../backgrounds/defaults';
-import predictionDefaults from '../backgrounds/prediction-defaults.json';
 import { AuthoredBackground, Background } from '../factions/schema';
 import { LEADER_SKILL_HEAD, LEADER_SKILL_SYMBOL } from './gf9LeaderSkills';
 import { HOMEWORLD_HEAD, HOMEWORLD_ICON_BACKGROUND } from './homeworldTemplate';
@@ -100,7 +99,7 @@ export const INITIAL_CARD_FRONT_PRESETS: CardFrontPreset[] = [
   {
     key: 'prediction',
     label: 'Prediction',
-    style: cardFrontStyleSchema.parse(predictionDefaults),
+    style: { head: stockBackgroundValues.special, iconBackground: stockBackgroundValues.stripedSpecial },
     revision: 0,
   },
 ];

@@ -20,17 +20,15 @@ import {
   resolveBackgrounds,
   validateBackgroundLinks,
 } from './backgroundPresets';
+import { rawCardFrontPreset } from './cardPresetDefaults';
 
 function authoredSlot(value: BackgroundData, key: string): BackgroundData {
   return value.source ? value : { ...value, source: { kind: 'preset', key } };
 }
 export async function cardFrontPresetFor(ctx: Pick<QueryCtx, 'db'>, key: CardFrontPresetKey): Promise<CardFrontPreset> {
   const initial = INITIAL_CARD_FRONT_PRESETS.find((preset) => preset.key === key)!;
-  const row = await ctx.db
-    .query('card_front_presets')
-    .withIndex('by_key', (q) => q.eq('key', key))
-    .unique();
-  const authored: AuthoredCardFrontStyle = row?.style ?? initial.style;
+  const row = await rawCardFrontPreset(ctx, key);
+  const authored: AuthoredCardFrontStyle = row.style;
   const style = await resolveBackgrounds(ctx, {
     head: authoredSlot(authored.head, `front/${key}/header`),
     iconBackground: authored.iconBackground ? authoredSlot(authored.iconBackground, `front/${key}/icon`) : null,
@@ -68,8 +66,7 @@ export async function storeCardFrontPreset(
   if (style.iconBackground === null && key !== 'nexus') {
     throw new ConvexError('Choose an icon background for this preset.');
   }
-  const initial = INITIAL_CARD_FRONT_PRESETS.find((preset) => preset.key === key)!;
-  const previous = row?.style ?? initial.style;
+  const previous = (await rawCardFrontPreset(ctx, key)).style;
   const effective = await cardFrontPresetFor(ctx, key);
   const authored = {
     head: legacyBackground(style.head, previous.head, effective.style.head, `front/${key}/header`),

@@ -95,6 +95,7 @@ import type * as lib_playSessionCutoffQueue from "../lib/playSessionCutoffQueue.
 import type * as lib_playSynthetic from "../lib/playSynthetic.js";
 import type * as lib_playerSummary from "../lib/playerSummary.js";
 import type * as lib_policy from "../lib/policy.js";
+import type * as lib_presetLibraryInitialization from "../lib/presetLibraryInitialization.js";
 import type * as lib_profileActivity from "../lib/profileActivity.js";
 import type * as lib_profileAvatar from "../lib/profileAvatar.js";
 import type * as lib_profileBootstrap from "../lib/profileBootstrap.js";
@@ -256,6 +257,7 @@ const fullApi: ApiFromModules<{
   "lib/playSynthetic": typeof lib_playSynthetic;
   "lib/playerSummary": typeof lib_playerSummary;
   "lib/policy": typeof lib_policy;
+  "lib/presetLibraryInitialization": typeof lib_presetLibraryInitialization;
   "lib/profileActivity": typeof lib_profileActivity;
   "lib/profileAvatar": typeof lib_profileAvatar;
   "lib/profileBootstrap": typeof lib_profileBootstrap;

@@ -3,17 +3,23 @@
 import { afterEach, expect, test, vi } from 'vite-plus/test';
 
 import { CHECKED_IN_RENDERER_REVISIONS } from '../src/shared/asset-publishing/renderer-revisions';
+import { INITIAL_CARDBACK_PRESETS } from '../src/shared/assets/cardbackPresets';
+import { INITIAL_CARD_FRONT_PRESETS } from '../src/shared/assets/cardFrontPresets';
 import { publishingCustomCard } from '../src/shared/assets/fixtures/publishingCustomCard';
+import { publishingDeckCardback } from '../src/shared/assets/fixtures/publishingDeckCardback';
 import { publishingSpiceCard } from '../src/shared/assets/fixtures/publishingSpiceCard';
 import { publishingTokenFace } from '../src/shared/assets/fixtures/publishingTokenFace';
+import { publishingTreacheryCard } from '../src/shared/assets/fixtures/publishingTreacheryCard';
 import { standardStormCard } from '../src/shared/assets/standardStormDeck';
+import { DISCOVERY_FAMILIES } from '../src/shared/backgrounds/families';
 import { arrakisBoard } from '../src/shared/boards/geometry';
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api, internal } from './_generated/api';
 import { applicationTest } from './application.test.fixture';
 
 afterEach(() => vi.useRealTimers());
-async function fixture() {
+async function fixture(initialize = true) {
+  vi.useFakeTimers();
   const t = applicationTest();
   const ids = await t.run(async (ctx) => ({
     admin: await ctx.db.insert('users', { isAdmin: true }),
@@ -31,7 +37,40 @@ async function fixture() {
     })
   );
   await t.mutation(internal.publicationAdmin.initialize, { rendererRevisions: CHECKED_IN_RENDERER_REVISIONS });
-  return { t, admin: t.withIdentity({ subject: ids.admin }), author: t.withIdentity({ subject: ids.author }) };
+  const admin = t.withIdentity({ subject: ids.admin });
+  if (initialize) {
+    await t.run(async (ctx) => {
+      for (const preset of INITIAL_CARD_FRONT_PRESETS) {
+        await ctx.db.insert('card_front_presets', { key: preset.key, style: preset.style, revision: 1, updated_at: 0 });
+      }
+      for (const preset of INITIAL_CARDBACK_PRESETS) {
+        await ctx.db.insert('cardback_presets', {
+          key: preset.key,
+          cardback: preset.cardback,
+          revision: 1,
+          updated_at: 0,
+        });
+      }
+      for (const family of DISCOVERY_FAMILIES) {
+        await ctx.db.insert('discovery_presets', {
+          key: family.key,
+          label: family.label,
+          front: publishingTokenFace,
+          back: publishingTokenFace,
+          revision: 1,
+          updated_at: 0,
+        });
+      }
+    });
+    await admin.mutation(api.presetLibrary.initialize, {});
+  }
+  await t.finishAllScheduledFunctions(vi.runAllTimers);
+  await t.run(async (ctx) => {
+    for (const job of await ctx.db.query('publication_jobs').collect()) {
+      await ctx.db.delete(job._id);
+    }
+  });
+  return { t, admin, author: t.withIdentity({ subject: ids.author }) };
 }
 const background = {
   key: 'custom/test-standard',
@@ -461,11 +500,86 @@ test('family and Discovery saves reject duplicate background definitions atomica
   const { t, admin } = await fixture();
   const library = await t.query(api.presetLibrary.page, {});
   const backgrounds = [background, background];
+  const before = await t.run((ctx) => ctx.db.query('background_presets').collect());
   await expect(admin.mutation(api.presetLibrary.saveFamily, { ...library.families[0]!, backgrounds })).rejects.toThrow(
     'Choose each background only once'
   );
   await expect(
-    admin.mutation(api.presetLibrary.saveDiscovery, { ...library.discovery[0]!, backgrounds })
+    admin.mutation(api.presetLibrary.saveDiscovery, {
+      key: 'discovery-hiereg',
+      label: 'Hiereg Discovery',
+      front: publishingTokenFace,
+      back: publishingTokenFace,
+      revision: 0,
+      backgrounds,
+    })
   ).rejects.toThrow('Choose each background only once');
+  expect(await t.run((ctx) => ctx.db.query('background_presets').collect())).toEqual(before);
+});
+
+test('an explicit import saves DB artwork once and source edits cannot change shared standards', async () => {
+  vi.useFakeTimers();
+  const { t, admin, author } = await fixture(false);
+  const value = { ...background.value, colors: ['#123456', '#654321'] };
+  const source = await author.mutation(api.assets.create, { type: 'token-disc', data: token('Cistern', value) });
+  await author.mutation(api.assets.create, { type: 'token-disc', data: token('Ornithopter', value) });
+  await author.mutation(api.assets.create, {
+    type: 'card-treachery',
+    data: { ...publishingTreacheryCard, name: 'Prediction', subName: 'Prediction - Reveal', head: value },
+  });
+  for (const name of ['Homeworld', 'Stronghold', 'Nexus', 'Leader Skill']) {
+    await author.mutation(api.assets.create, {
+      type: 'deck',
+      data: { name: `${name} Deck`, about: '', cardback: { ...publishingDeckCardback, background: value } },
+    });
+  }
+  await expect(author.mutation(api.presetLibrary.initialize, {})).rejects.toThrow('Not authorized');
+  expect((await t.query(api.presetLibrary.page, {})).ready).toBe(false);
+  await admin.mutation(api.presetLibrary.initialize, {});
+  const library = await t.query(api.presetLibrary.page, {});
+  expect(library.ready).toBe(true);
+  expect(library.discovery).toHaveLength(2);
+  expect(library.discovery[0]?.front.background.colors).toEqual(value.colors);
+  expect(library.families.find((p) => p.key === 'prediction')?.style.head.colors).toEqual(value.colors);
+  expect(library.families.find((p) => p.key === 'homeworld')?.cardback.background.colors).toEqual(value.colors);
+  const updated = { ...value, colors: ['#abcdef', '#fedcba'] };
+  await t.run((ctx) =>
+    ctx.db.patch(source.id, { data: token('Cistern', updated), slug: 'renamed-cistern', is_deleted: true })
+  );
+  expect((await t.query(api.presetLibrary.page, {})).discovery[0]?.front.background.colors).toEqual(value.colors);
+  await admin.mutation(api.presetLibrary.initialize, {});
+  expect((await t.query(api.presetLibrary.page, {})).discovery[0]?.revision).toBe(library.discovery[0]?.revision);
+  await t.finishAllScheduledFunctions(vi.runAllTimers);
+});
+
+test('an incomplete DB import rolls back every new preset', async () => {
+  const { t, admin } = await fixture(false);
+  await expect(admin.mutation(api.presetLibrary.initialize, {})).rejects.toThrow('source');
+  expect(await t.run((ctx) => ctx.db.query('card_front_presets').collect())).toEqual([]);
+  expect(await t.run((ctx) => ctx.db.query('cardback_presets').collect())).toEqual([]);
   expect(await t.run((ctx) => ctx.db.query('background_presets').collect())).toEqual([]);
+});
+
+test('importing a missing native back recaptures it even when its shared background already exists', async () => {
+  const { t, admin, author } = await fixture();
+  await t.run(async (ctx) => {
+    const row = await ctx.db
+      .query('cardback_presets')
+      .withIndex('by_key', (q) => q.eq('key', 'homeworld'))
+      .unique();
+    await ctx.db.delete(row!._id);
+  });
+  await author.mutation(api.assets.create, {
+    type: 'deck',
+    data: { name: 'Homeworld Deck', about: '', cardback: publishingDeckCardback },
+  });
+  await admin.mutation(api.presetLibrary.initialize, {});
+  await t.finishAllScheduledFunctions(vi.runAllTimers);
+  const job = await t.run((ctx) =>
+    ctx.db
+      .query('publication_jobs')
+      .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', 'cardback-preset').eq('asset_id', 'homeworld'))
+      .first()
+  );
+  expect(job?.asset_data.cardback.image).toBe(publishingDeckCardback.image);
 });

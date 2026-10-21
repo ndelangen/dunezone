@@ -133,7 +133,7 @@
     },
     {
       "key": "treachery-weapon",
-      "label": "Treachery · Weapon",
+      "label": "Treachery \u00b7 Weapon",
       "revision": 0,
       "style": {
         "head": {
@@ -171,7 +171,7 @@
     },
     {
       "key": "treachery-defense",
-      "label": "Treachery · Defense",
+      "label": "Treachery \u00b7 Defense",
       "revision": 0,
       "style": {
         "head": {
@@ -209,7 +209,7 @@
     },
     {
       "key": "treachery-special",
-      "label": "Treachery · Special",
+      "label": "Treachery \u00b7 Special",
       "revision": 0,
       "style": {
         "head": {
@@ -247,7 +247,7 @@
     },
     {
       "key": "treachery-worthless",
-      "label": "Treachery · Worthless",
+      "label": "Treachery \u00b7 Worthless",
       "revision": 0,
       "style": {
         "head": {
@@ -272,6 +272,44 @@
               "stops": [
                 ["#997E45", 0.3],
                 ["#D9CC91", 1]
+              ],
+              "type": "linear"
+            }
+          ],
+          "definition": 0,
+          "image": "/image/texture/076.jpg",
+          "influence": 1,
+          "invert": true
+        }
+      }
+    },
+    {
+      "key": "prediction",
+      "label": "Prediction",
+      "revision": 1,
+      "style": {
+        "head": {
+          "colors": ["#576291", "#0A153C"],
+          "definition": 1,
+          "image": "/image/texture/082.jpg",
+          "influence": 0.6,
+          "invert": false
+        },
+        "iconBackground": {
+          "colors": [
+            {
+              "angle": 90,
+              "stops": [
+                ["#757DAC", 0],
+                ["#CEDDF0", 1]
+              ],
+              "type": "linear"
+            },
+            {
+              "angle": 120,
+              "stops": [
+                ["#58608F", 0.3],
+                ["#B8BFDB", 1]
               ],
               "type": "linear"
             }
@@ -410,11 +448,30 @@
       "key": "storm",
       "label": "Storm",
       "revision": 4
-    }
-  ],
-  "deckBacks": {
-    "homeworld-deck": {
-      "name": "Homeworld Deck",
+    },
+    {
+      "key": "stronghold",
+      "label": "Stronghold",
+      "cardback": {
+        "background": {
+          "colors": ["#8D3A38", "#602726"],
+          "definition": 1,
+          "image": "/image/texture/082.jpg",
+          "influence": 0.5,
+          "invert": false
+        },
+        "image": "/vector/icon/stronghold-multicolor.svg",
+        "imageOffset": [0, 0],
+        "imageScale": 1.3,
+        "name": "Stronghold"
+      },
+      "revision": 0,
+      "href": null,
+      "captureStatus": null
+    },
+    {
+      "key": "homeworld",
+      "label": "Homeworld",
       "cardback": {
         "background": {
           "colors": [
@@ -445,27 +502,14 @@
         "imageOffset": [0, 10],
         "imageScale": 1.28,
         "name": "Homeworld"
-      }
+      },
+      "revision": 0,
+      "href": null,
+      "captureStatus": null
     },
-    "leader-skill-deck": {
-      "name": "Leader Skill Deck",
-      "cardback": {
-        "background": {
-          "colors": ["#6B328E", "#421760"],
-          "definition": 0.48,
-          "image": "/image/texture/031.jpg",
-          "influence": 0.989,
-          "invert": true
-        },
-        "image": "/vector/generic/leader-skills.svg",
-        "imageOffset": [0, 9],
-        "imageScale": 1.04,
-        "mode": "custom",
-        "name": "Leader skills"
-      }
-    },
-    "nexus-deck": {
-      "name": "Nexus Deck",
+    {
+      "key": "nexus",
+      "label": "Nexus",
       "cardback": {
         "background": {
           "colors": ["#073A16", "#246B32"],
@@ -481,75 +525,37 @@
         "image": "/vector/icon/alliance.svg",
         "imageOffset": [0, 2],
         "imageScale": 1.25,
-        "mode": "custom",
         "name": "Nexus"
-      }
+      },
+      "revision": 0,
+      "href": null,
+      "captureStatus": null
     },
-    "stronghold-deck": {
-      "name": "Stronghold Deck",
+    {
+      "key": "leader-skill",
+      "label": "Leader skill",
       "cardback": {
         "background": {
-          "colors": ["#8D3A38", "#602726"],
-          "definition": 1,
-          "image": "/image/texture/082.jpg",
-          "influence": 0.5,
-          "invert": false
+          "colors": ["#6B328E", "#421760"],
+          "definition": 0.48,
+          "image": "/image/texture/031.jpg",
+          "influence": 0.989,
+          "invert": true
         },
-        "image": "/vector/icon/stronghold-multicolor.svg",
-        "imageOffset": [0, 0],
-        "imageScale": 1.3,
-        "mode": "custom",
-        "name": "Stronghold"
-      }
-    }
-  },
-  "prediction": {
-    "about": "",
-    "decals": [],
-    "head": {
-      "colors": ["#576291", "#0A153C"],
-      "definition": 1,
-      "image": "/image/texture/082.jpg",
-      "influence": 0.6,
-      "invert": false
-    },
-    "icon": [
-      {
-        "colors": [
-          {
-            "angle": 90,
-            "stops": [
-              ["#757DAC", 0],
-              ["#CEDDF0", 1]
-            ],
-            "type": "linear"
-          },
-          {
-            "angle": 120,
-            "stops": [
-              ["#58608F", 0.3],
-              ["#B8BFDB", 1]
-            ],
-            "type": "linear"
-          }
-        ],
-        "definition": 0,
-        "image": "/image/texture/076.jpg",
-        "influence": 1,
-        "invert": true
+        "image": "/vector/generic/leader-skills.svg",
+        "imageOffset": [0, 9],
+        "imageScale": 1.04,
+        "name": "Leader skills"
       },
-      "/vector/logo/bene-gesserit.svg"
-    ],
-    "iconInvert": false,
-    "iconOpacity": 0.5,
-    "name": "Prediction",
-    "subName": "Prediction - Reveal",
-    "text": "During the start of the game, write down a turn number and faction name.\n\nAt mentat phase after a winner has been declared you must reveal this card.\n\nIf you have predicted the winner, you win instead."
-  },
+      "revision": 0,
+      "href": null,
+      "captureStatus": null
+    }
+  ],
   "discovery": [
     {
-      "name": "Hiereg Discovery",
-      "sourceSlug": "cistern",
+      "key": "discovery-hiereg",
+      "label": "Hiereg Discovery",
       "front": {
         "background": {
           "colors": [
@@ -613,200 +619,11 @@
         "symbolStrokeWidth": 10,
         "top": ""
       },
-      "examples": [
-        {
-          "name": "Cistern",
-          "face": {
-            "background": {
-              "colors": [
-                {
-                  "r": 50,
-                  "stops": [
-                    ["#51491b", 0],
-                    ["#51491b", 0.64],
-                    ["#c2a541", 0.65],
-                    ["#c2a541", 1]
-                  ],
-                  "type": "radial",
-                  "x": 50,
-                  "y": 50
-                },
-                {
-                  "r": 50,
-                  "stops": [
-                    ["#252a12", 0],
-                    ["#252a12", 0.61],
-                    ["#7e7025", 0.65],
-                    ["#7e7025", 1]
-                  ],
-                  "type": "radial",
-                  "x": 50,
-                  "y": 50
-                }
-              ],
-              "definition": 0.55,
-              "image": "/image/texture/082.jpg",
-              "influence": 0.7,
-              "invert": false
-            },
-            "bottomFirst": "",
-            "bottomSecond": "",
-            "image": "/vector/decal/cistern.svg",
-            "ring": false,
-            "symbolFill": "#07120f",
-            "symbolScale": 1.7,
-            "symbolShadow": true,
-            "symbolStroke": "#f3edbf",
-            "symbolStrokeWidth": 5.5,
-            "top": ""
-          }
-        },
-        {
-          "name": "Ecological Testing Station",
-          "face": {
-            "background": {
-              "colors": [
-                {
-                  "r": 50,
-                  "stops": [
-                    ["#51491b", 0],
-                    ["#51491b", 0.64],
-                    ["#c2a541", 0.65],
-                    ["#c2a541", 1]
-                  ],
-                  "type": "radial",
-                  "x": 50,
-                  "y": 50
-                },
-                {
-                  "r": 50,
-                  "stops": [
-                    ["#252a12", 0],
-                    ["#252a12", 0.61],
-                    ["#7e7025", 0.65],
-                    ["#7e7025", 1]
-                  ],
-                  "type": "radial",
-                  "x": 50,
-                  "y": 50
-                }
-              ],
-              "definition": 0.55,
-              "image": "/image/texture/082.jpg",
-              "influence": 0.7,
-              "invert": false
-            },
-            "bottomFirst": "",
-            "bottomSecond": "",
-            "image": "/vector/decal/ecological-testing-station.svg",
-            "ring": false,
-            "symbolFill": "#07120f",
-            "symbolScale": 1.75,
-            "symbolShadow": true,
-            "symbolStroke": "#f3edbf",
-            "symbolStrokeWidth": 5.5,
-            "top": ""
-          }
-        },
-        {
-          "name": "Shrine",
-          "face": {
-            "background": {
-              "colors": [
-                {
-                  "r": 50,
-                  "stops": [
-                    ["#51491b", 0],
-                    ["#51491b", 0.64],
-                    ["#c2a541", 0.65],
-                    ["#c2a541", 1]
-                  ],
-                  "type": "radial",
-                  "x": 50,
-                  "y": 50
-                },
-                {
-                  "r": 50,
-                  "stops": [
-                    ["#252a12", 0],
-                    ["#252a12", 0.61],
-                    ["#7e7025", 0.65],
-                    ["#7e7025", 1]
-                  ],
-                  "type": "radial",
-                  "x": 50,
-                  "y": 50
-                }
-              ],
-              "definition": 0.55,
-              "image": "/image/texture/082.jpg",
-              "influence": 0.7,
-              "invert": false
-            },
-            "bottomFirst": "",
-            "bottomSecond": "",
-            "image": "/vector/decal/shrine.svg",
-            "ring": false,
-            "symbolFill": "#07120f",
-            "symbolScale": 1.85,
-            "symbolShadow": true,
-            "symbolStroke": "#f3edbf",
-            "symbolStrokeWidth": 5.5,
-            "top": ""
-          }
-        },
-        {
-          "name": "Jacurutu Sietch",
-          "face": {
-            "background": {
-              "colors": [
-                {
-                  "r": 50,
-                  "stops": [
-                    ["#51491b", 0],
-                    ["#51491b", 0.64],
-                    ["#c2a541", 0.65],
-                    ["#c2a541", 1]
-                  ],
-                  "type": "radial",
-                  "x": 50,
-                  "y": 50
-                },
-                {
-                  "r": 50,
-                  "stops": [
-                    ["#252a12", 0],
-                    ["#252a12", 0.61],
-                    ["#7e7025", 0.65],
-                    ["#7e7025", 1]
-                  ],
-                  "type": "radial",
-                  "x": 50,
-                  "y": 50
-                }
-              ],
-              "definition": 0.55,
-              "image": "/image/texture/082.jpg",
-              "influence": 0.7,
-              "invert": false
-            },
-            "bottomFirst": "",
-            "bottomSecond": "",
-            "image": "/vector/icon/seitch.svg",
-            "ring": false,
-            "symbolFill": "#07120f",
-            "symbolScale": 1.7,
-            "symbolShadow": true,
-            "symbolStroke": "#f3edbf",
-            "symbolStrokeWidth": 5.5,
-            "top": ""
-          }
-        }
-      ]
+      "revision": 0
     },
     {
-      "name": "Smuggler Discovery",
-      "sourceSlug": "ornithopter",
+      "key": "discovery-smuggler",
+      "label": "Smuggler Discovery",
       "front": {
         "background": {
           "colors": [
@@ -870,196 +687,7 @@
         "symbolStrokeWidth": 10,
         "top": ""
       },
-      "examples": [
-        {
-          "name": "Ornithopter",
-          "face": {
-            "background": {
-              "colors": [
-                {
-                  "r": 50,
-                  "stops": [
-                    ["#d3bd59", 0],
-                    ["#d3bd59", 0.64],
-                    ["#453e1c", 0.65],
-                    ["#453e1c", 1]
-                  ],
-                  "type": "radial",
-                  "x": 50,
-                  "y": 50
-                },
-                {
-                  "r": 50,
-                  "stops": [
-                    ["#827026", 0],
-                    ["#827026", 0.61],
-                    ["#1d1e0f", 0.65],
-                    ["#1d1e0f", 1]
-                  ],
-                  "type": "radial",
-                  "x": 50,
-                  "y": 50
-                }
-              ],
-              "definition": 0.55,
-              "image": "/image/texture/082.jpg",
-              "influence": 0.7,
-              "invert": false
-            },
-            "bottomFirst": "",
-            "bottomSecond": "",
-            "image": "/vector/decal/ornithopter.svg",
-            "ring": false,
-            "symbolFill": "#07120f",
-            "symbolScale": 1.85,
-            "symbolShadow": true,
-            "symbolStroke": "#f3edbf",
-            "symbolStrokeWidth": 5.5,
-            "top": ""
-          }
-        },
-        {
-          "name": "Spice Stash",
-          "face": {
-            "background": {
-              "colors": [
-                {
-                  "r": 50,
-                  "stops": [
-                    ["#d3bd59", 0],
-                    ["#d3bd59", 0.64],
-                    ["#453e1c", 0.65],
-                    ["#453e1c", 1]
-                  ],
-                  "type": "radial",
-                  "x": 50,
-                  "y": 50
-                },
-                {
-                  "r": 50,
-                  "stops": [
-                    ["#827026", 0],
-                    ["#827026", 0.61],
-                    ["#1d1e0f", 0.65],
-                    ["#1d1e0f", 1]
-                  ],
-                  "type": "radial",
-                  "x": 50,
-                  "y": 50
-                }
-              ],
-              "definition": 0.55,
-              "image": "/image/texture/082.jpg",
-              "influence": 0.7,
-              "invert": false
-            },
-            "bottomFirst": "",
-            "bottomSecond": "",
-            "image": "/vector/decal/box.svg",
-            "ring": false,
-            "symbolFill": "#07120f",
-            "symbolScale": 1.5,
-            "symbolShadow": true,
-            "symbolStroke": "#f3edbf",
-            "symbolStrokeWidth": 5.5,
-            "top": ""
-          }
-        },
-        {
-          "name": "Treachery Card Stash",
-          "face": {
-            "background": {
-              "colors": [
-                {
-                  "r": 50,
-                  "stops": [
-                    ["#d3bd59", 0],
-                    ["#d3bd59", 0.64],
-                    ["#453e1c", 0.65],
-                    ["#453e1c", 1]
-                  ],
-                  "type": "radial",
-                  "x": 50,
-                  "y": 50
-                },
-                {
-                  "r": 50,
-                  "stops": [
-                    ["#827026", 0],
-                    ["#827026", 0.61],
-                    ["#1d1e0f", 0.65],
-                    ["#1d1e0f", 1]
-                  ],
-                  "type": "radial",
-                  "x": 50,
-                  "y": 50
-                }
-              ],
-              "definition": 0.55,
-              "image": "/image/texture/082.jpg",
-              "influence": 0.7,
-              "invert": false
-            },
-            "bottomFirst": "",
-            "bottomSecond": "",
-            "image": "/vector/icon/treachery.svg",
-            "ring": false,
-            "symbolFill": "#07120f",
-            "symbolScale": 1.35,
-            "symbolShadow": true,
-            "symbolStroke": "#f3edbf",
-            "symbolStrokeWidth": 5.5,
-            "top": ""
-          }
-        },
-        {
-          "name": "Orgiz Processing Station",
-          "face": {
-            "background": {
-              "colors": [
-                {
-                  "r": 50,
-                  "stops": [
-                    ["#d3bd59", 0],
-                    ["#d3bd59", 0.64],
-                    ["#453e1c", 0.65],
-                    ["#453e1c", 1]
-                  ],
-                  "type": "radial",
-                  "x": 50,
-                  "y": 50
-                },
-                {
-                  "r": 50,
-                  "stops": [
-                    ["#827026", 0],
-                    ["#827026", 0.61],
-                    ["#1d1e0f", 0.65],
-                    ["#1d1e0f", 1]
-                  ],
-                  "type": "radial",
-                  "x": 50,
-                  "y": 50
-                }
-              ],
-              "definition": 0.55,
-              "image": "/image/texture/082.jpg",
-              "influence": 0.7,
-              "invert": false
-            },
-            "bottomFirst": "",
-            "bottomSecond": "",
-            "image": "/vector/decal/orgiz-processing-station.svg",
-            "ring": false,
-            "symbolFill": "#07120f",
-            "symbolScale": 1.55,
-            "symbolShadow": true,
-            "symbolStroke": "#f3edbf",
-            "symbolStrokeWidth": 5.5,
-            "top": ""
-          }
-        }
-      ]
+      "revision": 0
     }
   ]
 }

@@ -1,7 +1,6 @@
 import { z } from 'zod';
 
 import { assetCaptureStatusSchema } from '../asset-publishing/captureStatus';
-import newBacks from '../backgrounds/card-back-defaults.json';
 import { cardbackPresetKeySchema } from './cardbackPresetKeys';
 import type { CardbackPresetKey } from './cardbackPresetKeys';
 import { CardBack } from './schema';
@@ -46,24 +45,34 @@ const INITIAL_DESIGNS = [
   influence: number;
 }[];
 
+const legacyDesigns = INITIAL_DESIGNS.map(
+  ({ key, label, colors, image, influence }): Pick<CardbackPreset, 'key' | 'label' | 'cardback'> => ({
+    key,
+    label,
+    cardback: {
+      name: label,
+      background: { image: '/image/texture/082.jpg', colors, influence, invert: false, definition: 1 },
+      image,
+      imageScale: 0.55,
+      imageOffset: [0, 10],
+    },
+  })
+);
+
 export const INITIAL_CARDBACK_PRESETS = [
-  ...INITIAL_DESIGNS.map(
-    ({ key, label, colors, image, influence }): Pick<CardbackPreset, 'key' | 'label' | 'cardback'> => ({
-      key,
-      label,
-      cardback: {
-        name: label,
-        background: { image: '/image/texture/082.jpg', colors, influence, invert: false, definition: 1 },
-        image,
-        imageScale: 0.55,
-        imageOffset: [0, 10],
-      },
-    })
-  ),
-  ...newBacks.map((preset) => ({
-    key: cardbackPresetKeySchema.parse(preset.key),
-    label: preset.label,
-    cardback: CardBack.parse(preset.cardback),
+  ...legacyDesigns,
+  /* Existing decks supply these designs from the DB; empty databases use the existing generic form default. */
+  ...(
+    [
+      ['stronghold', 'Stronghold'],
+      ['homeworld', 'Homeworld'],
+      ['nexus', 'Nexus'],
+      ['leader-skill', 'Leader skill'],
+    ] as const
+  ).map(([key, label]) => ({
+    key,
+    label,
+    cardback: { ...legacyDesigns[0]!.cardback, name: label },
   })),
   {
     key: 'custom' as const,

@@ -18,7 +18,7 @@ import {
   familySaveSchema,
   discoveryPresetSchema,
   discoverySaveSchema,
-  INITIAL_DISCOVERY_PRESETS,
+  DISCOVERY_FAMILIES,
 } from '../src/shared/backgrounds/families';
 import type { FamilyPreset } from '../src/shared/backgrounds/families';
 import { backgroundPresetSchema } from '../src/shared/backgrounds/schema';
@@ -38,9 +38,10 @@ import {
 import { canonicalJson } from './lib/canonicalJson';
 import { listCardbackPresets, storeCardbackPreset } from './lib/cardbackPresets';
 import { listCardFrontPresets } from './lib/cardFrontPresets';
-import { rawCardbackPreset } from './lib/cardPresetDefaults';
+import { rawCardbackPreset, rawCardFrontPreset, rawDiscoveryPreset } from './lib/cardPresetDefaults';
 import { resolveCustomCardTokens } from './lib/customCardTokens';
 import { requireAdminUserId } from './lib/policy';
+import { initializePresetLibrary, presetLibraryReady } from './lib/presetLibraryInitialization';
 import { publicationSettings } from './lib/publication';
 import type { QueryCtx, MutationCtx } from './types';
 type SaveFamily = z.infer<typeof familySaveSchema>;
@@ -60,29 +61,22 @@ function familyBackKey(key: string) {
 }
 async function familyFor(ctx: QueryCtx, initial: (typeof INITIAL_CARD_FRONT_PRESETS)[number]): Promise<FamilyPreset> {
   const backKey = familyBackKey(initial.key);
-  const [row, back] = await Promise.all([
-    ctx.db
-      .query('card_front_presets')
-      .withIndex('by_key', (q) => q.eq('key', initial.key))
-      .unique(),
-    rawCardbackPreset(ctx, backKey),
-  ]);
+  const [row, back] = await Promise.all([rawCardFrontPreset(ctx, initial.key), rawCardbackPreset(ctx, backKey)]);
   return {
     key: initial.key,
     label: initial.label,
-    style: linkedStyle(row?.style ?? initial.style, initial.key),
-    frontRevision: row?.revision ?? 0,
+    style: linkedStyle(row.style, initial.key),
+    frontRevision: row.revision,
     backKey,
     cardback: { ...back.cardback, background: backgroundLink(back.cardback.background, `back/${backKey}`) },
     backRevision: back.revision,
   };
 }
-async function discoveryFor(ctx: QueryCtx, initial: (typeof INITIAL_DISCOVERY_PRESETS)[number]): Promise<Discovery> {
-  const row = await ctx.db
-    .query('discovery_presets')
-    .withIndex('by_key', (q) => q.eq('key', initial.key))
-    .unique();
-  const saved = row ?? initial;
+async function discoveryFor(ctx: QueryCtx, initial: (typeof DISCOVERY_FAMILIES)[number]): Promise<Discovery | null> {
+  const saved = await rawDiscoveryPreset(ctx, initial);
+  if (!saved) {
+    return null;
+  }
   return {
     key: initial.key,
     label: initial.label,
@@ -91,8 +85,10 @@ async function discoveryFor(ctx: QueryCtx, initial: (typeof INITIAL_DISCOVERY_PR
     back: { ...saved.back, background: backgroundLink(saved.back.background, `${initial.key}/back`) },
   };
 }
-const discoveries = (ctx: QueryCtx) =>
-  Promise.all(INITIAL_DISCOVERY_PRESETS.map((initial) => discoveryFor(ctx, initial)));
+async function discoveries(ctx: QueryCtx) {
+  const values = await Promise.all(DISCOVERY_FAMILIES.map((initial) => discoveryFor(ctx, initial)));
+  return values.filter((value) => value !== null);
+}
 
 export const page = publicQuery({
   args: {},
@@ -101,15 +97,27 @@ export const page = publicQuery({
       families: z.array(familyPresetSchema),
       discovery: z.array(discoveryPresetSchema),
       backgrounds: z.array(backgroundPresetSchema),
+      ready: z.boolean(),
     })
   ),
   handler: async (ctx) => {
-    const [families, discovery, backgrounds] = await Promise.all([
+    const [families, discovery, backgrounds, ready] = await Promise.all([
       Promise.all(INITIAL_CARD_FRONT_PRESETS.map((initial) => familyFor(ctx, initial))),
       discoveries(ctx),
       listBackgroundPresets(ctx),
+      presetLibraryReady(ctx),
     ]);
-    return { families, discovery, backgrounds };
+    return { families, discovery, backgrounds, ready };
+  },
+});
+
+export const initialize = mutation({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx) => {
+    await requireAdminUserId(ctx);
+    await initializePresetLibrary(ctx);
+    return null;
   },
 });
 
@@ -188,7 +196,7 @@ export const saveFamily = mutation({
     if ((row?.revision ?? 0) !== args.frontRevision || back.revision !== args.backRevision) {
       throw new ConvexError('This family changed elsewhere. Reset to load the saved version.');
     }
-    const previous = row?.style ?? INITIAL_CARD_FRONT_PRESETS.find((preset) => preset.key === args.key)!.style;
+    const previous = (await rawCardFrontPreset(ctx, args.key)).style;
     const changing = changedFamilySlots(args, previous, back.cardback.background);
     await preserveVirtualBackgrounds(ctx, changing);
     await saveEditedBackgrounds(ctx, args.backgrounds);

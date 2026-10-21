@@ -11,6 +11,12 @@ export function useBackgroundPresets() {
 export function usePresetLibrary() {
   return useQuery(api.presetLibrary.page, {});
 }
+export function useInitializePresetLibrary() {
+  return useLiveMutation<
+    FunctionArgs<typeof api.presetLibrary.initialize>,
+    FunctionReturnType<typeof api.presetLibrary.initialize>
+  >(api.presetLibrary.initialize);
+}
 export function useSaveFamilyPreset() {
   return useLiveMutation<
     FunctionArgs<typeof api.presetLibrary.saveFamily>,

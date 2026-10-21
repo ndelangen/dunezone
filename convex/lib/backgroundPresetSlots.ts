@@ -1,10 +1,10 @@
 import { cardbackPresetKeySchema } from '../../src/shared/assets/cardbackPresetKeys';
 import { INITIAL_CARDBACK_PRESETS } from '../../src/shared/assets/cardbackPresets';
 import { INITIAL_CARD_FRONT_PRESETS, cardFrontPresetKeySchema } from '../../src/shared/assets/cardFrontPresets';
-import { INITIAL_DISCOVERY_PRESETS, discoveryKeySchema } from '../../src/shared/backgrounds/families';
+import { DISCOVERY_FAMILIES, discoveryKeySchema } from '../../src/shared/backgrounds/families';
 import type { BackgroundData } from '../../src/shared/backgrounds/schema';
 import type { QueryCtx } from '../types';
-import { rawCardbackPreset } from './cardPresetDefaults';
+import { rawCardbackPreset, rawCardFrontPreset, rawDiscoveryPreset } from './cardPresetDefaults';
 
 type Reader = Pick<QueryCtx, 'db'>;
 export type BackgroundSlot = {
@@ -20,11 +20,8 @@ async function frontSlots(
   ctx: Reader,
   initial: (typeof INITIAL_CARD_FRONT_PRESETS)[number]
 ): Promise<BackgroundSlot[]> {
-  const row = await ctx.db
-    .query('card_front_presets')
-    .withIndex('by_key', (q) => q.eq('key', initial.key))
-    .unique();
-  const style = row?.style ?? initial.style;
+  const row = await rawCardFrontPreset(ctx, initial.key);
+  const style = row.style;
   return Object.entries(style).flatMap(([region, value]) =>
     value
       ? [
@@ -49,15 +46,11 @@ async function backSlot(ctx: Reader, initial: (typeof INITIAL_CARDBACK_PRESETS)[
     back: initial.key,
   };
 }
-async function discoverySlots(
-  ctx: Reader,
-  initial: (typeof INITIAL_DISCOVERY_PRESETS)[number]
-): Promise<BackgroundSlot[]> {
-  const row = await ctx.db
-    .query('discovery_presets')
-    .withIndex('by_key', (q) => q.eq('key', initial.key))
-    .unique();
-  const preset = row ?? initial;
+async function discoverySlots(ctx: Reader, initial: (typeof DISCOVERY_FAMILIES)[number]): Promise<BackgroundSlot[]> {
+  const preset = await rawDiscoveryPreset(ctx, initial);
+  if (!preset) {
+    return [];
+  }
   return (['front', 'back'] as const).map((face) => ({
     key: `${initial.key}/${face}`,
     name: `${initial.label} ${face}`,
@@ -71,7 +64,7 @@ export async function backgroundSlots(ctx: Reader): Promise<BackgroundSlot[]> {
   const [fronts, backs, discovery] = await Promise.all([
     Promise.all(INITIAL_CARD_FRONT_PRESETS.map((initial) => frontSlots(ctx, initial))),
     Promise.all(INITIAL_CARDBACK_PRESETS.map((initial) => backSlot(ctx, initial))),
-    Promise.all(INITIAL_DISCOVERY_PRESETS.map((initial) => discoverySlots(ctx, initial))),
+    Promise.all(DISCOVERY_FAMILIES.map((initial) => discoverySlots(ctx, initial))),
   ]);
   return [...fronts.flat(), ...backs, ...discovery.flat()];
 }
@@ -104,7 +97,7 @@ async function discoverySlotFor(ctx: Reader, family: string, region: string) {
   }
   const slots = await discoverySlots(
     ctx,
-    INITIAL_DISCOVERY_PRESETS.find((p) => p.key === key.data)!
+    DISCOVERY_FAMILIES.find((p) => p.key === key.data)!
   );
   return slots.find((slot) => slot.key === `${family}/${region}`) ?? null;
 }

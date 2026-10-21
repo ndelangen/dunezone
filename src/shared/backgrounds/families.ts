@@ -3,7 +3,6 @@ import { z } from 'zod';
 import { cardbackPresetKeySchema } from '../assets/cardbackPresetKeys';
 import { authoredCardFrontStyleSchema, cardFrontPresetKeySchema } from '../assets/cardFrontPresets';
 import { CardBack, TokenFace } from '../assets/schema';
-import discoveryDefaults from './discovery-defaults.json';
 import { backgroundPresetSchema } from './schema';
 
 export const discoveryKeySchema = z.enum(['discovery-hiereg', 'discovery-smuggler']);
@@ -14,7 +13,10 @@ export const discoveryPresetSchema = z.strictObject({
   back: TokenFace,
   revision: z.number().int().nonnegative(),
 });
-export const INITIAL_DISCOVERY_PRESETS = discoveryDefaults.map((value) => discoveryPresetSchema.parse(value));
+export const DISCOVERY_FAMILIES = [
+  { key: 'discovery-hiereg', label: 'Hiereg Discovery', sourceSlug: 'cistern' },
+  { key: 'discovery-smuggler', label: 'Smuggler Discovery', sourceSlug: 'ornithopter' },
+] as const;
 export type DiscoveryPreset = z.infer<typeof discoveryPresetSchema>;
 export const familyPresetSchema = z.strictObject({
   key: cardFrontPresetKeySchema,

@@ -20,7 +20,12 @@ import { Surface } from '@ui/surface/Surface';
 import { useReducer } from 'react';
 import type { ReactNode } from 'react';
 
-import { usePresetLibrary, useSaveFamilyPreset, useSaveDiscoveryPreset } from '@db/backgroundPresets';
+import {
+  usePresetLibrary,
+  useSaveFamilyPreset,
+  useSaveDiscoveryPreset,
+  useInitializePresetLibrary,
+} from '@db/backgroundPresets';
 import { useSessionViewer } from '@db/profiles';
 import { pageHead } from '@app/routes/pageTitle';
 import { CardFrame } from '@app/widgets/asset-face/AssetFace';
@@ -144,7 +149,31 @@ function PresetsPage() {
       </PageMessage>
     );
   }
+  if (!library.ready) {
+    return <InitializePresets />;
+  }
   return <PresetEditor library={library} />;
+}
+function InitializePresets() {
+  const initialize = useInitializePresetLibrary();
+  return (
+    <PageMessage title="Presets">
+      <Stack>
+        <Text>
+          Import the current DB designs into shared presets. Existing saved presets keep their settings. Linked artwork
+          will be recaptured.
+        </Text>
+        <Text size="sm">
+          This copies the standard decks, Prediction card and Cistern and Ornithopter Discovery tokens. Later edits to
+          those originals will not change the presets.
+        </Text>
+        <Button loading={initialize.isPending} onClick={() => initialize.mutate({})}>
+          Import DB designs and recapture
+        </Button>
+        <SaveErrorAlert error={initialize.error} />
+      </Stack>
+    </PageMessage>
+  );
 }
 function backgroundChoiceKey(value: BackgroundData | null) {
   if (!value) {
