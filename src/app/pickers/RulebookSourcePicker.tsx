@@ -18,11 +18,13 @@ type PickerAction =
   | { type: 'faction'; factionId?: string }
   | { type: 'presentation'; alternate: boolean };
 function reducePicker(state: PickerState, action: PickerAction): PickerState {
-  return action.type === 'kind'
-    ? { kind: action.kind }
-    : action.type === 'presentation'
-      ? { ...state, alternate: action.alternate }
-      : { ...state, factionId: action.factionId };
+  if (action.type === 'kind') {
+    return { kind: action.kind };
+  }
+  if (action.type === 'presentation') {
+    return { ...state, alternate: action.alternate };
+  }
+  return { ...state, factionId: action.factionId };
 }
 
 function FactionMemberChoices({
