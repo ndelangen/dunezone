@@ -1,3 +1,4 @@
+import { Text } from '@mantine/core';
 import preview from '@sb/preview';
 import { expect, fn, userEvent, within } from 'storybook/test';
 
@@ -153,10 +154,12 @@ export const Narrow = meta.story({
 export const WidthBoundary = meta.story({
   render: (args) => (
     <div style={{ display: 'flex', gap: 'var(--space-xl)', alignItems: 'start' }}>
-      <div style={{ width: 400, flexShrink: 0 }} data-testid="faq-at-400">
+      <div style={{ width: 400, flexShrink: 0, display: 'grid', gap: 'var(--space-sm)' }} data-testid="faq-at-400">
+        <Text size="sm">400 px</Text>
         <FaqList {...args} />
       </div>
-      <div style={{ width: 401, flexShrink: 0 }} data-testid="faq-at-401">
+      <div style={{ width: 401, flexShrink: 0, display: 'grid', gap: 'var(--space-sm)' }} data-testid="faq-at-401">
+        <Text size="sm">401 px</Text>
         <FaqList {...args} />
       </div>
     </div>
