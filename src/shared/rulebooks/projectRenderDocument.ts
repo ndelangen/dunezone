@@ -109,8 +109,15 @@ export function projectRulebookSource(
   }
   if (reference.kind === 'faction') {
     const faction = factionsById[reference.factionId];
-    return faction?.emblemUrl
-      ? { status: 'ready', reference, name: faction.name, imageUrl: faction.emblemUrl }
+    const imageUrl = reference.presentation === 'token' ? faction?.tokenImageUrl : faction?.emblemUrl;
+    return faction && imageUrl
+      ? {
+          status: 'ready',
+          reference,
+          name: faction.name,
+          imageUrl,
+          ...(reference.presentation === 'token' ? { width: 600, height: 600 } : {}),
+        }
       : { status: 'unavailable', reference };
   }
   if (reference.kind === 'faction-troop') {
@@ -125,24 +132,28 @@ export function projectRulebookSource(
   }
   if (reference.kind === 'faction-member') {
     const faction = factionsById[reference.factionId];
-    const member = [faction?.ruler, ...(faction?.leaders ?? [])].find(
+    const candidates =
+      reference.presentation === 'traitor' ? (faction?.traitors ?? []) : [faction?.ruler, ...(faction?.leaders ?? [])];
+    const member = candidates.find(
       (source) =>
         source &&
         source.status !== 'unselected' &&
         source.reference.kind === 'faction-member' &&
         source.reference.memberId === reference.memberId
     );
-    return member ?? { status: 'unavailable', reference };
+    return member && member.status !== 'unselected' ? { ...member, reference } : { status: 'unavailable', reference };
   }
   return { status: 'unavailable', reference };
 }
 
-/** Card guides retain their selected identity when its Asset is no longer a treachery Card. */
+/** Card sources retain their identity when the selected Asset has an unsupported type. */
 function projectRulebookCardSource(
   reference: RulebookCardSourceReference | undefined,
-  assetsById: RulebookResolvedAssetsById
+  assetsById: RulebookResolvedAssetsById,
+  includeStorm = false
 ): RulebookResolvedSource {
-  if (reference && assetsById[reference.assetId]?.type !== 'card-treachery') {
+  const type = reference ? assetsById[reference.assetId]?.type : undefined;
+  if (reference && type !== 'card-treachery' && !(includeStorm && type === 'card-storm')) {
     return { status: 'unavailable', reference };
   }
   return projectRulebookSource(reference, assetsById);
@@ -446,7 +457,7 @@ export function projectRulebookDraftRenderBlock(
       featuredItemId: block.featuredItemId,
       items: block.itemOrder.flatMap((id) => {
         const item = block.itemsById[id];
-        return item ? [{ ...item, source: projectRulebookCardSource(item.source, assetsById) }] : [];
+        return item ? [{ ...item, source: projectRulebookCardSource(item.source, assetsById, true) }] : [];
       }),
     };
   }

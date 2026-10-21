@@ -248,7 +248,7 @@ const renderBlockSchemas = {
     kind: z.literal('card-group'),
     title: z.string(),
     text: renderFormattedTextSchema,
-    variant: z.enum(['compact', 'gallery', 'featured-member']),
+    variant: z.enum(['compact', 'gallery', 'featured-member', 'fan']),
     featuredItemId: renderLocalIdSchema.optional(),
     items: z.array(z.strictObject({ id: renderLocalIdSchema, ...renderCardGuideFields })),
   }),

@@ -78,6 +78,8 @@ export async function resolveRulebookReferences(
     assetIds,
     factionIds,
     troopSources = [],
+    traitorFactionIds = [],
+    tokenFactionIds = [],
     markupBoardIds = [],
   } = collectRulebookReferenceIds(contents, requested);
   const tinted = new Set(markupBoardIds);
@@ -168,6 +170,36 @@ export async function resolveRulebookReferences(
               : { status: 'unavailable', reference };
           })
         );
+        const traitors = await Promise.all(
+          (traitorFactionIds.includes(factionId) || requested.factionIds?.includes(factionId)
+            ? parsed.data.leaders
+            : []
+          ).map(async (member): Promise<RulebookResolvedSource> => {
+            const reference = {
+              kind: 'faction-member' as const,
+              factionId,
+              memberId: member.memberId,
+              presentation: 'traitor' as const,
+            };
+            const publicationId = factionMemberPublicationId(factionId, member.memberId);
+            const publication = await ctx.db
+              .query('publication_assets')
+              .withIndex('by_asset_type_and_asset_id', (q) =>
+                q.eq('asset_type', 'faction-traitor').eq('asset_id', publicationId)
+              )
+              .unique();
+            return publication
+              ? {
+                  status: 'ready',
+                  reference,
+                  name: member.name,
+                  imageUrl: publishedHref('faction-traitor', publicationId, publication.cache_token),
+                  width: 900,
+                  height: 1263,
+                }
+              : { status: 'unavailable', reference };
+          })
+        );
         return [
           factionId,
           {
@@ -175,7 +207,7 @@ export async function resolveRulebookReferences(
             name: parsed.data.name,
             color,
             emblemUrl: parsed.data.logo,
-            ...(tokenPublication && requested.factionTokenImages !== false
+            ...(tokenPublication && (requested.factionTokenImages !== false || tokenFactionIds.includes(factionId))
               ? { tokenImageUrl: publishedHref('faction-token', factionId, tokenPublication.cache_token) }
               : {}),
             token: { logo: parsed.data.logo, background: parsed.data.background },
@@ -195,6 +227,7 @@ export async function resolveRulebookReferences(
             ),
             ruler: members[0]!,
             leaders: members.slice(1),
+            ...(traitors.length ? { traitors } : {}),
           },
         ];
       })

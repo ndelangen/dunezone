@@ -90,6 +90,9 @@ export const IllustratedLayoutMatrix = meta.story({
       }
       await expect(image.naturalWidth / image.naturalHeight).toBeGreaterThan(0);
       await expect(getComputedStyle(image).objectFit).toBe('contain');
+      await expect(getComputedStyle(image).objectPosition).toBe(
+        guide.dataset.imageSide === 'right' ? '100% 0%' : '0% 0%'
+      );
     }
   },
 });

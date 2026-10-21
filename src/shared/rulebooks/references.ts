@@ -22,6 +22,7 @@ export const rulebookResolvedFactionSchema = z.strictObject({
   troopSources: z.array(rulebookResolvedSourceSchema).optional(),
   ruler: rulebookResolvedSourceSchema.optional(),
   leaders: z.array(rulebookResolvedSourceSchema).optional(),
+  traitors: z.array(rulebookResolvedSourceSchema).optional(),
 });
 export const rulebookResolvedFactionsByIdSchema = z.record(z.string(), rulebookResolvedFactionSchema);
 export type RulebookResolvedFactionsById = Readonly<
@@ -140,7 +141,7 @@ function rulebookReferenceUses(contents: RulebookContentsDraftV1): RulebookRefer
           source(
             item.source,
             `${at}.itemsById.${itemId}.source`,
-            block.kind === 'card-group' ? ['card-treachery'] : undefined
+            block.kind === 'card-group' ? ['card-treachery', 'card-storm'] : undefined
           );
         }
       }
@@ -157,6 +158,8 @@ export function collectRulebookReferenceIds(
   const assetIds = new Set(requested.assetIds);
   const factionIds = new Set(requested.factionIds);
   const troopSources = new Map<string, Extract<RulebookSourceReference, { kind: 'faction-troop' }>>();
+  const traitorFactionIds = new Set<string>();
+  const tokenFactionIds = new Set<string>();
   const markupBoardIds = new Set<string>();
   for (const use of rulebookReferenceUses(contents)) {
     if (use.kind === 'troop') {
@@ -177,6 +180,12 @@ export function collectRulebookReferenceIds(
         markupBoardIds.add(source.boardId);
       }
     }
+    if (source.kind === 'faction' && source.presentation === 'token') {
+      tokenFactionIds.add(source.factionId);
+    }
+    if (source.kind === 'faction-member' && source.presentation === 'traitor') {
+      traitorFactionIds.add(source.factionId);
+    }
     if (source.kind === 'faction-troop') {
       troopSources.set(`${source.factionId}.${source.troopId}.${source.face}`, source);
     }
@@ -187,6 +196,8 @@ export function collectRulebookReferenceIds(
   return {
     assetIds: [...assetIds].sort(compareCodeUnits),
     factionIds: [...factionIds].sort(compareCodeUnits),
+    ...(tokenFactionIds.size ? { tokenFactionIds: [...tokenFactionIds] } : {}),
+    ...(traitorFactionIds.size ? { traitorFactionIds: [...traitorFactionIds] } : {}),
     ...(troopSources.size ? { troopSources: [...troopSources.values()] } : {}),
     ...(markupBoardIds.size ? { markupBoardIds: [...markupBoardIds].sort(compareCodeUnits) } : {}),
   };
@@ -257,8 +268,10 @@ export function assertRulebookReferences(
         break;
       case 'faction-member': {
         const data = faction(source.factionId, `${path}.factionId`);
+        const members =
+          source.presentation === 'traitor' ? (data.leaders ?? []) : [data.ruler, ...(data.leaders ?? [])];
         if (
-          ![data.ruler, ...(data.leaders ?? [])].some(
+          !members.some(
             (member) =>
               member &&
               member.status !== 'unselected' &&

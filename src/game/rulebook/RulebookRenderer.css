@@ -1776,3 +1776,34 @@
 .rulebookCardEntry .rulebookCardGuide[data-text-flow="wrap"] > .rulebookCardGuidance > * + * {
   margin-top: calc(2 * var(--rulebook-mm));
 }
+
+.rulebookCardFan {
+  display: flex;
+  justify-content: center;
+  padding: calc(8 * var(--rulebook-mm)) calc(4 * var(--rulebook-mm));
+}
+.rulebookCardFan > div {
+  flex: 0 1 calc(42 * var(--rulebook-mm));
+  min-width: 0;
+  transform-origin: center 85%;
+}
+.rulebookCardFan > div + div {
+  margin-left: calc(-16 * var(--rulebook-mm));
+}
+.rulebookCardFan .rulebookSourceVisual {
+  aspect-ratio: 900 / 1263;
+}
+.rulebookCardFan .rulebookSourceVisual img {
+  width: 100%;
+  max-height: none;
+}
+.rulebookCardGroup[data-card-group-variant="fan"] .rulebookCardGuide {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.rulebookCardEntry .rulebookCardGuide[data-image-side="left"] > .rulebookSourceVisual img {
+  object-position: left top;
+}
+.rulebookCardEntry .rulebookCardGuide[data-image-side="right"] > .rulebookSourceVisual img {
+  object-position: right top;
+}

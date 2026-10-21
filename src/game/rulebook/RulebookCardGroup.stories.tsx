@@ -56,3 +56,25 @@ export const IncompleteGroups = meta.story({
     await expect(context.canvasElement.textContent).toContain('Quantity: 0');
   },
 });
+
+export const SixCardFan = meta.story({
+  args: { treatment: 'fan', size: 'gf9-core', fanCount: 6 },
+  play: async (context) => {
+    await expectContained(context);
+    const cards = [...context.canvasElement.querySelectorAll('.rulebookCardFan > div')];
+    await expect(cards).toHaveLength(6);
+    const bounds = cards.map((card) => card.getBoundingClientRect());
+    await expect(bounds[1]!.left).toBeLessThan(bounds[0]!.right);
+    await expect(bounds[5]!.left).toBeGreaterThan(bounds[0]!.left);
+    await expect(cards[0]!.getAttribute('style')).toContain('rotate(-15deg)');
+    await expect(cards[5]!.getAttribute('style')).toContain('rotate(15deg)');
+  },
+});
+
+export const FourCardFan = meta.story({
+  args: { treatment: 'fan', size: 'gf9-expansion', fanCount: 4 },
+  play: async (context) => {
+    await expectContained(context);
+    await expect(context.canvasElement.querySelectorAll('.rulebookCardFan img')).toHaveLength(4);
+  },
+});

@@ -593,3 +593,46 @@ export const BookSizeRespectsPageLayouts = meta.story({
     await expect(page.getByRole('button', { name: 'Save' })).toBeEnabled();
   },
 });
+
+export const TraitorSourceEditor = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#RULE/ARTW' },
+  parameters: { database: db(withLiveReferenceRulebook) },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('button', { name: 'Choose source' }, { timeout: 30_000 }));
+    await userEvent.click(page.getByRole('combobox', { name: 'Source type' }));
+    await userEvent.click(page.getByRole('option', { name: 'Leader' }));
+    await userEvent.click(page.getByRole('combobox', { name: 'Presentation' }));
+    await userEvent.click(page.getByRole('option', { name: 'Traitor card' }));
+    await userEvent.click(await page.findByRole('option', { name: /House Atreides/ }, { timeout: 30_000 }));
+    await userEvent.click(page.getByRole('button', { name: 'Choose Leader' }));
+    await userEvent.click(await page.findByRole('button', { name: 'Gurney Halleck · Leader' }, { timeout: 30_000 }));
+    await userEvent.click(page.getByRole('button', { name: 'Save' }));
+    await expect(page.findByRole('button', { name: 'Saved' }, { timeout: 30_000 })).resolves.toBeDisabled();
+    const saved = await loadRulebookEditor({ rulesetSlug: 'classicrules', rulebookSlug: 'book-0' });
+    await expect(saved?.kind === 'editable' && saved.draft.contents.pagesById.RULE?.blocksById.ARTW).toMatchObject({
+      source: { kind: 'faction-member', presentation: 'traitor' },
+    });
+  },
+});
+
+export const FactionTokenSourceEditor = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#RULE/ARTW' },
+  parameters: { database: db(withLiveReferenceRulebook) },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('button', { name: 'Choose source' }, { timeout: 30_000 }));
+    await userEvent.click(page.getByRole('combobox', { name: 'Source type' }));
+    await userEvent.click(page.getByRole('option', { name: 'Faction emblem' }));
+    await userEvent.click(page.getByRole('combobox', { name: 'Presentation' }));
+    await userEvent.click(page.getByRole('option', { name: 'Faction token' }));
+    await userEvent.click(await page.findByRole('option', { name: /House Atreides/ }, { timeout: 30_000 }));
+    await userEvent.click(page.getByRole('button', { name: 'Use faction' }));
+    await userEvent.click(page.getByRole('button', { name: 'Save' }));
+    await expect(page.findByRole('button', { name: 'Saved' }, { timeout: 30_000 })).resolves.toBeDisabled();
+    const saved = await loadRulebookEditor({ rulesetSlug: 'classicrules', rulebookSlug: 'book-0' });
+    await expect(saved?.kind === 'editable' && saved.draft.contents.pagesById.RULE?.blocksById.ARTW).toMatchObject({
+      source: { kind: 'faction', presentation: 'token' },
+    });
+  },
+});

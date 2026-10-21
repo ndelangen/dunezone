@@ -30,7 +30,9 @@ function cardLabel(source: RulebookCardSourceReference | undefined, references: 
     return 'Choose Card';
   }
   const asset = references.assetsById[source.assetId];
-  return asset?.type === 'card-treachery' ? asset.name || 'Unnamed Card' : 'Unavailable Card';
+  return asset && ['card-treachery', 'card-storm'].includes(asset.type)
+    ? asset.name || 'Unnamed Card'
+    : 'Unavailable Card';
 }
 
 function CardSourceControl({
@@ -62,7 +64,7 @@ function CardSourceControl({
           {opened ? (
             <Suspense fallback={<Loader size="sm" aria-label="Loading Cards" />}>
               <RulebookSourcePicker
-                purpose="card"
+                purpose="card-group"
                 onPick={(next) => {
                   if (next.kind === 'asset') {
                     onChange(next);
@@ -231,7 +233,7 @@ export function CardGroupEdit({
       />
       <ControlBlock
         title="Treatment"
-        description="Use compact rows, a gallery, or a larger featured Card. All members keep their guidance."
+        description="Use compact rows, a gallery, a featured Card, or a fan. All members keep their guidance."
         input={
           <Select
             aria-label="Treatment"
@@ -240,9 +242,15 @@ export function CardGroupEdit({
               { value: 'compact', label: 'Compact' },
               { value: 'gallery', label: 'Gallery' },
               { value: 'featured-member', label: 'Featured Card' },
+              { value: 'fan', label: 'Fan' },
             ]}
             onChange={(variant) => {
-              if (variant === 'compact' || variant === 'gallery' || variant === 'featured-member') {
+              if (
+                variant === 'compact' ||
+                variant === 'gallery' ||
+                variant === 'featured-member' ||
+                variant === 'fan'
+              ) {
                 onChange({ ...value, variant });
               }
             }}
