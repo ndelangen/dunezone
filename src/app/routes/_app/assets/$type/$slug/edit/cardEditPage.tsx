@@ -14,6 +14,7 @@ import { useAuthoringAccountKey } from '@db/authoring';
 import { useAssetPage, useUpdateAsset } from '@app/db/assets';
 import type { AssetPageData, AssetPublicPage } from '@app/db/assets';
 import { assetLoad } from '@app/pickers/assetLoadSource';
+import type { LoadPreset } from '@app/pickers/assetLoadSource';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import type { EditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
@@ -41,7 +42,8 @@ type CardType =
   | 'card-stronghold'
   | 'card-storm'
   | 'card-leaderability'
-  | 'board';
+  | 'board'
+  | 'token-leader';
 
 type CardAsset = NonNullable<AssetPageData>['asset'];
 
@@ -88,12 +90,17 @@ export function CardEditChecks<Draft>({
   data,
   session,
 }: Omit<CardEditGateProps<Draft>, 'slug' | 'loaderData' | 'embeddedTokenIds'> & { data: AssetPageData }) {
-  const noun = type === 'board' ? 'board' : 'card';
+  let noun = 'card';
+  if (type === 'board') {
+    noun = 'board';
+  } else if (type === 'token-leader') {
+    noun = 'token';
+  }
   if (data === null) {
     return (
       <AssetEditorMessage type={type} title={`Edit ${noun}`}>
         <NotAvailable
-          title={type === 'board' ? 'Board not found' : 'Card not found'}
+          title={`${noun[0].toUpperCase()}${noun.slice(1)} not found`}
         >{`No ${schemaName} lives at this address.`}</NotAvailable>
       </AssetEditorMessage>
     );
@@ -197,6 +204,7 @@ export function CardEditFrame<Draft extends { name: string }>({
   /** Loading another card of this type into the draft; the card being edited is left out of the choices and keeps its name. */
   load: {
     schema: z.ZodType<Draft>;
+    presets?: LoadPreset<Draft>[];
     header: Pick<EditPageHeader, 'releasing'>;
     dispatch: (action: { kind: 'replace'; data: Draft }) => void;
     /** What the page does once the loaded draft is in, such as opening its first chapter. */
@@ -207,6 +215,7 @@ export function CardEditFrame<Draft extends { name: string }>({
 }) {
   const authoringAccountKey = useAuthoringAccountKey();
   const navigate = useNavigate();
+  const noun = type === 'token-leader' ? 'token' : 'card';
   const deletion = useAssetDeletion(asset);
   const groupActions = useAssetGroupActions({ asset, access });
   return (
@@ -216,9 +225,10 @@ export function CardEditFrame<Draft extends { name: string }>({
         <AuthoringToolbar
           scopeKey={authoringAccountKey}
           load={assetLoad({
-            noun: type === 'board' ? 'board' : 'card',
+            noun: type === 'board' ? 'board' : noun,
             type,
             schema: load.schema,
+            presets: load.presets,
             editing: asset,
             canRename: access.viewerAccess.capabilities.rename,
             disabled: status.saveState === 'saving',
@@ -229,8 +239,8 @@ export function CardEditFrame<Draft extends { name: string }>({
           })}
           status={status}
           copy={{
-            saveLabel: 'Save card',
-            nameBlankMessage: 'Add a card name before saving; it determines the card URL.',
+            saveLabel: `Save ${noun}`,
+            nameBlankMessage: `Add a ${noun} name before saving; it determines the ${noun} URL.`,
           }}
           actions={{
             onSave,
@@ -241,7 +251,7 @@ export function CardEditFrame<Draft extends { name: string }>({
           statuses={[groupActions.status]}
           destructiveActions={
             access.viewerAccess.capabilities.delete ? (
-              <ConfirmDeleteAction label="Delete card" pending={deletion.pending} onConfirm={deletion.confirm} />
+              <ConfirmDeleteAction label={`Delete ${noun}`} pending={deletion.pending} onConfirm={deletion.confirm} />
             ) : null
           }
         />

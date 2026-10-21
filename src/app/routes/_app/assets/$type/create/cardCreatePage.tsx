@@ -10,6 +10,7 @@ import { useAuthoringAccountKey } from '@db/authoring';
 import { useSessionViewer } from '@db/profiles';
 import { useCreateAsset } from '@app/db/assets';
 import { assetLoad } from '@app/pickers/assetLoadSource';
+import type { LoadPreset } from '@app/pickers/assetLoadSource';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
 
@@ -28,7 +29,8 @@ type CardType =
   | 'card-homeworld'
   | 'card-stronghold'
   | 'card-storm'
-  | 'card-leaderability';
+  | 'card-leaderability'
+  | 'token-leader';
 
 /** Posts a new card and opens its edit page once it has an address. */
 export function useCardCreate(type: CardType) {
@@ -82,13 +84,14 @@ export function CardCreateFrame<Draft extends { name: string }>({
   };
   onSave: () => void;
   onReset: () => void;
-  load: { schema: z.ZodType<Draft>; onLoaded: (draft: Draft) => void };
+  load: { schema: z.ZodType<Draft>; presets?: LoadPreset<Draft>[]; onLoaded: (draft: Draft) => void };
   saveError: Error | null;
   children: ReactNode;
 }) {
   const authoringAccountKey = useAuthoringAccountKey();
   const navigate = useNavigate();
   const viewer = useSessionViewer();
+  const noun = type === 'token-leader' ? 'token' : 'card';
 
   switch (viewer.kind) {
     case 'pending':
@@ -100,7 +103,7 @@ export function CardCreateFrame<Draft extends { name: string }>({
     case 'signed-out':
       return (
         <AssetEditorMessage title={title} type={type}>
-          <LoginGate action="create cards" />
+          <LoginGate action={`create ${noun}s`} />
         </AssetEditorMessage>
       );
     default:
@@ -114,16 +117,17 @@ export function CardCreateFrame<Draft extends { name: string }>({
         <AuthoringToolbar
           scopeKey={authoringAccountKey}
           load={assetLoad({
-            noun: 'card',
+            noun,
             type,
             schema: load.schema,
+            presets: load.presets,
             disabled: status.saveState === 'saving',
             onLoaded: (loaded) => load.onLoaded(loaded.data),
           })}
           status={status}
           copy={{
-            saveLabel: 'Save card',
-            nameBlankMessage: 'Add a card name before saving; it determines the card URL.',
+            saveLabel: `Save ${noun}`,
+            nameBlankMessage: `Add a ${noun} name before saving; it determines the ${noun} URL.`,
           }}
           actions={{
             onSave,

@@ -72,6 +72,11 @@ test('standalone leaders save, join bundles and publish one face without faction
     ])
   );
   expect((await t.query(api.assets.page, { type: 'token-leader', slug: created.slug }))?.inBundles).toHaveLength(1);
+});
+
+test('standalone leader writes require ownership and reject faction, back and invalid face fields', async () => {
+  const { t, owner } = await setup();
+  const created = await owner.mutation(api.assets.create, { type: 'token-leader', data: DUKE_PRAD_VIDAL_TOKEN });
   const strangerId = await t.run((ctx) => ctx.db.insert('users', { name: 'Other' }));
   await expect(
     t.withIdentity({ subject: strangerId }).mutation(api.assets.update, { id: created.id, data: DUKE_PRAD_VIDAL_TOKEN })

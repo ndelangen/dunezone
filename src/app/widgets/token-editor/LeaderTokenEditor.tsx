@@ -42,7 +42,7 @@ export function LeaderTokenEditor({
   chapter,
   onChapterChange,
   onSettle,
-}: {
+}: Readonly<{
   nameField: ReactNode;
   draft: LeaderTokenDraft;
   patch: (update: Partial<LeaderTokenDraft>) => void;
@@ -51,7 +51,7 @@ export function LeaderTokenEditor({
   chapter: LeaderTokenChapter;
   onChapterChange: (chapter: LeaderTokenChapter) => void;
   onSettle: () => void;
-}) {
+}>) {
   return (
     <WorkbenchLayout.Workbench>
       <WorkbenchLayout.Chapters>
@@ -98,46 +98,7 @@ export function LeaderTokenEditor({
                 value: 'artwork',
                 label: 'Artwork',
                 icon: <TopicIcon topic="face" size={21} />,
-                panel: (
-                  <Stack gap="md">
-                    <ControlBlock
-                      title="Leader portrait"
-                      input={
-                        <AssetSelect
-                          aria-label="Leader portrait"
-                          allowDeselect={false}
-                          data={portraits}
-                          getPreviewSrc={(image) => resolveAsset(image, 'small')}
-                          value={draft.image}
-                          onChange={(image) => {
-                            const value = LEADERS.safeParse(image);
-                            if (value.success) {
-                              patch({ image: value.data });
-                            }
-                          }}
-                        />
-                      }
-                    />
-                    <ControlBlock
-                      title="Emblem"
-                      input={
-                        <AssetSelect
-                          aria-label="Emblem"
-                          allowDeselect={false}
-                          data={emblems}
-                          getPreviewSrc={(image) => image}
-                          value={draft.logo}
-                          onChange={(logo) => {
-                            const value = LOGO.safeParse(logo);
-                            if (value.success) {
-                              patch({ logo: value.data });
-                            }
-                          }}
-                        />
-                      }
-                    />
-                  </Stack>
-                ),
+                panel: <ArtworkFields draft={draft} patch={patch} />,
               },
               {
                 value: 'background',
@@ -169,5 +130,54 @@ export function LeaderTokenEditor({
         </TokenFrame>
       </WorkbenchLayout.Rail>
     </WorkbenchLayout.Workbench>
+  );
+}
+
+function ArtworkFields({
+  draft,
+  patch,
+}: Readonly<{
+  draft: LeaderTokenDraft;
+  patch: (update: Partial<LeaderTokenDraft>) => void;
+}>) {
+  return (
+    <Stack gap="md">
+      <ControlBlock
+        title="Leader portrait"
+        input={
+          <AssetSelect
+            aria-label="Leader portrait"
+            allowDeselect={false}
+            data={portraits}
+            getPreviewSrc={(image) => resolveAsset(image, 'small')}
+            value={draft.image}
+            onChange={(image) => {
+              const value = LEADERS.safeParse(image);
+              if (value.success) {
+                patch({ image: value.data });
+              }
+            }}
+          />
+        }
+      />
+      <ControlBlock
+        title="Emblem"
+        input={
+          <AssetSelect
+            aria-label="Emblem"
+            allowDeselect={false}
+            data={emblems}
+            getPreviewSrc={(image) => image}
+            value={draft.logo}
+            onChange={(logo) => {
+              const value = LOGO.safeParse(logo);
+              if (value.success) {
+                patch({ logo: value.data });
+              }
+            }}
+          />
+        }
+      />
+    </Stack>
   );
 }

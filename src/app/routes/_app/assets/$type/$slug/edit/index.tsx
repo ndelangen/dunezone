@@ -65,7 +65,7 @@ function EditAssetPage() {
       return <TokenEditPage type={type} slug={slug} loaderData={loaderData} />;
     /* The rectangle is a token by category and its own editor by face: a free composition rather than a symbol in a slot. */
     case 'token-leader':
-      return <LeaderTokenEditPage type={type} slug={slug} loaderData={loaderData} />;
+      return <LeaderTokenEditPage slug={slug} loaderData={loaderData} />;
     case 'token-enhance':
       return <RectangleEditPage type={type} slug={slug} loaderData={loaderData} />;
     case 'deck':
