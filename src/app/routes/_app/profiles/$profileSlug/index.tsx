@@ -1,6 +1,7 @@
 import { useAuthActions } from '@convex-dev/auth/react';
 import { Anchor, Group, Pagination, Stack, Text } from '@mantine/core';
 import { parseProfileFaqPages } from '@shared/profiles/faqActivity';
+import type { ProfileFaqPages } from '@shared/profiles/faqActivity';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, notFound, redirect, Link, useNavigate } from '@tanstack/react-router';
 import { LoadError } from '@ui/block/LoadError';
@@ -34,6 +35,7 @@ import {
 
 import { isPublicPageNotFound, loadPublicPage } from '@db/core/publicPage';
 import { forgetStoredPlayTables } from '@db/playTables';
+import type { ProfilePageData } from '@db/profiles';
 import { loadProfileBySlug, profileAvatarUrl, useCurrentProfile, useProfileBySlug } from '@db/profiles';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
@@ -106,6 +108,60 @@ function ProfileDetailError({ error }: ErrorComponentProps) {
       </LoadError>
     </PageMessage>
   );
+}
+
+/** Both activity sections compose the standard question list and independent page controls. */
+function ProfileFaqActivity({
+  lists,
+  profileSlug,
+  search,
+  onOpenQuestion,
+  onPageChange,
+}: {
+  lists: ProfilePageData['faqLists'];
+  profileSlug: string;
+  search: ProfileFaqPages;
+  onOpenQuestion: (questionSlug: string, rulesetSlug: string) => void;
+  onPageChange: (key: keyof ProfileFaqPages, page: number) => void;
+}) {
+  const sections = [
+    {
+      key: 'answered' as const,
+      searchKey: 'answeredPage' as const,
+      title: 'Questions answered',
+      icon: <MessageCircleReply size={20} aria-hidden />,
+      emptyLabel: 'No FAQ answers yet.',
+    },
+    {
+      key: 'asked' as const,
+      searchKey: 'askedPage' as const,
+      title: 'Questions asked',
+      icon: <CircleHelp size={20} aria-hidden />,
+      emptyLabel: 'No questions asked yet.',
+    },
+  ];
+  return sections.map(({ key, searchKey, title, icon, emptyLabel }) => {
+    const activity = lists[key];
+    return (
+      <Section key={key} icon={icon} title={title}>
+        <FaqList items={activity.items} emptyLabel={emptyLabel} onOpenQuestion={onOpenQuestion} />
+        {activity.pageCount > 1 ? (
+          <Pagination
+            value={activity.page}
+            total={activity.pageCount}
+            aria-label={`${title} pages`}
+            onChange={(page) => onPageChange(searchKey, page)}
+            getItemProps={(page) => ({
+              component: Link,
+              to: '/profiles/$profileSlug',
+              params: { profileSlug },
+              search: parseProfileFaqPages({ ...search, [searchKey]: page }),
+            })}
+          />
+        ) : null}
+      </Section>
+    );
+  });
 }
 
 function ProfileDetailPage() {
@@ -282,71 +338,24 @@ function ProfileDetailPage() {
               </Surface>
             </Section>
 
-            <Section icon={<MessageCircleReply size={20} aria-hidden />} title="Questions answered">
-              <FaqList
-                items={page.faqLists.answered.items}
-                emptyLabel="No FAQ answers yet."
-                onOpenQuestion={(questionSlug, rulesetSlug) =>
-                  void navigate({
-                    to: '/rulesets/$rulesetSlug/faq/$questionSlug',
-                    params: { questionSlug, rulesetSlug },
-                  })
-                }
-              />
-              {page.faqLists.answered.pageCount > 1 ? (
-                <Pagination
-                  value={page.faqLists.answered.page}
-                  total={page.faqLists.answered.pageCount}
-                  aria-label="Questions answered pages"
-                  onChange={(page) =>
-                    void navigate({
-                      to: '/profiles/$profileSlug',
-                      params: { profileSlug },
-                      search: { ...search, answeredPage: page > 1 ? page : undefined },
-                    })
-                  }
-                  getItemProps={(page) => ({
-                    component: Link,
-                    to: '/profiles/$profileSlug',
-                    params: { profileSlug },
-                    search: { ...search, answeredPage: page > 1 ? page : undefined },
-                  })}
-                />
-              ) : null}
-            </Section>
-
-            <Section icon={<CircleHelp size={20} aria-hidden />} title="Questions asked">
-              <FaqList
-                items={page.faqLists.asked.items}
-                emptyLabel="No questions asked yet."
-                onOpenQuestion={(questionSlug, rulesetSlug) =>
-                  void navigate({
-                    to: '/rulesets/$rulesetSlug/faq/$questionSlug',
-                    params: { questionSlug, rulesetSlug },
-                  })
-                }
-              />
-              {page.faqLists.asked.pageCount > 1 ? (
-                <Pagination
-                  value={page.faqLists.asked.page}
-                  total={page.faqLists.asked.pageCount}
-                  aria-label="Questions asked pages"
-                  onChange={(page) =>
-                    void navigate({
-                      to: '/profiles/$profileSlug',
-                      params: { profileSlug },
-                      search: { ...search, askedPage: page > 1 ? page : undefined },
-                    })
-                  }
-                  getItemProps={(page) => ({
-                    component: Link,
-                    to: '/profiles/$profileSlug',
-                    params: { profileSlug },
-                    search: { ...search, askedPage: page > 1 ? page : undefined },
-                  })}
-                />
-              ) : null}
-            </Section>
+            <ProfileFaqActivity
+              lists={page.faqLists}
+              profileSlug={profileSlug}
+              search={search}
+              onOpenQuestion={(questionSlug, rulesetSlug) =>
+                void navigate({
+                  to: '/rulesets/$rulesetSlug/faq/$questionSlug',
+                  params: { questionSlug, rulesetSlug },
+                })
+              }
+              onPageChange={(key, page) =>
+                void navigate({
+                  to: '/profiles/$profileSlug',
+                  params: { profileSlug },
+                  search: parseProfileFaqPages({ ...search, [key]: page }),
+                })
+              }
+            />
           </Stack>
 
           <aside className={styles.sidebar} aria-label="Profile details">
