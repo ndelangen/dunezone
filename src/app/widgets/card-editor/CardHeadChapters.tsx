@@ -192,7 +192,7 @@ export function cardHeadAndSymbolChapters({
 }
 
 /** Dedicated card types edit their identity while the renderer owns their styling. */
-export function fixedCardHeadChapter(nameField: ReactNode, type: string) {
+export function fixedCardHeadChapter(nameField: ReactNode, type?: string) {
   return {
     value: 'head' as const,
     label: 'Head',
@@ -204,11 +204,13 @@ export function fixedCardHeadChapter(nameField: ReactNode, type: string) {
           description="Names the card and determines its URL. Long titles resize to fit."
           input={nameField}
         />
-        <ControlBlock
-          title="Type"
-          description="This card type is fixed."
-          input={<TextInput aria-label="Type" value={type} readOnly />}
-        />
+        {type ? (
+          <ControlBlock
+            title="Type"
+            description="This card type is fixed."
+            input={<TextInput aria-label="Type" value={type} readOnly />}
+          />
+        ) : null}
       </Stack>
     ),
   };
