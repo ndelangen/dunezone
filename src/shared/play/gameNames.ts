@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 import { inspectPlayGameName } from './gameNamePolicy';
-export { normalizePlayGameSlug, PLAY_RESERVED_GAME_ADDRESSES } from './gameNamePolicy';
+export { normalizePlayGameSlug } from './gameNamePolicy';
 export const playGameNameSchema = z.string().transform((value, ctx) => {
   const result = inspectPlayGameName(value);
   for (const message of result.issues) {
