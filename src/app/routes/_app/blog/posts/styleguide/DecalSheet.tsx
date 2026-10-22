@@ -17,6 +17,8 @@ type DecalData = z.infer<typeof Decal>;
 /* The decal slot: a 439 unit square centred at 450,470 of the card, inside the 762 by 440 picture window at 70,249. */
 const SLOT = { size: 439, cx: 450, cy: 470 };
 const WINDOW = { x: 70, y: 249, width: 762, height: 440 };
+/* The tiles stop this far inside the window, so the light bevel of the panel's frame stays out of them. */
+const BEVEL = 10;
 
 const decal = (file: string, treatment: Partial<DecalData> = {}): DecalData =>
   Decal.parse({
@@ -58,7 +60,11 @@ const TREATMENTS: readonly { name: string; spec: string; decal: DecalData }[] = 
 function Treatment({ decal: data }: { decal: DecalData }) {
   const prefix = useId();
   return (
-    <svg className={styles.tile} viewBox={`${WINDOW.x} ${WINDOW.y} ${WINDOW.width} ${WINDOW.height}`} aria-hidden>
+    <svg
+      className={styles.tile}
+      viewBox={`${WINDOW.x + BEVEL} ${WINDOW.y + BEVEL} ${WINDOW.width - 2 * BEVEL} ${WINDOW.height - 2 * BEVEL}`}
+      aria-hidden
+    >
       <image href={resolveAsset('/image/card/front-decal-bg.jpg', 'large')} width={card.width} height={card.height} />
       <svg width={card.width} height={card.height} overflow="hidden">
         <FrontDecals prefix={`${prefix}_`} decals={[data]} />

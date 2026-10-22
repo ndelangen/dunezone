@@ -28,14 +28,15 @@
   gap: 4px;
 }
 
-/* The tile is the card's picture window, 762 by 440 units, with the panel and decal placed as the card places them. */
+/* The tile is the card's picture window less its bevel, 742 by 420 units, with the panel and decal placed as the card places them. */
 .tile {
   display: block;
   width: 100%;
   height: auto;
-  aspect-ratio: 762 / 440;
-  border-radius: var(--mantine-radius-sm);
-  clip-path: inset(0 round var(--mantine-radius-sm));
+  aspect-ratio: 742 / 420;
+  /* Rounded a little past the panel's own rounded frame, so its white corners fall outside the tile. */
+  border-radius: 4% / 7%;
+  clip-path: inset(0 round 4% / 7%);
   box-shadow: 0 2px 8px rgb(0 0 0 / 40%);
 }
 
