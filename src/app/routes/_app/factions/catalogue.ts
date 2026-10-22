@@ -26,7 +26,7 @@ export function factionCatalogueArgs(search: FactionCatalogueSearch): FactionCat
 }
 
 /** What the live answer knows that the parser cannot: the rulesets the catalogue has, and the member it narrowed to. */
-export type CatalogueFurniture = { rulesets: FactionCatalogueRuleset[]; owner: FactionCatalogueOwner };
+type CatalogueFurniture = { rulesets: FactionCatalogueRuleset[]; owner: FactionCatalogueOwner };
 
 function normalizeFactionCatalogueSearch(
   search: FactionCatalogueSearch,

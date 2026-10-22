@@ -3,7 +3,7 @@ import { waitForFrame } from '@sb/storyWaits';
 import { expectFactionColumns } from '@ui/list/factionListPlay';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
-import { db, ref } from '@db/storybook';
+import { db, faction, ref } from '@db/storybook';
 import type { StorybookDatabase } from '@db/storybook';
 
 import { expectFieldValue } from './pagePlay';
@@ -158,6 +158,39 @@ export const DetailTablet = meta.story({
     await expectFactionColumns(factions, 2);
   },
 });
+/** Eight more factions by the viewer beside House Atreides, each a day newer than the last, so the profile has more than its first few. */
+function seedMoreFactions(baseline: StorybookDatabase) {
+  for (let index = 1; index <= 8; index += 1) {
+    const number = String(index).padStart(2, '0');
+    baseline.factions.push({
+      ...faction({ name: `Sietch ${number}` }),
+      created_at: `2026-03-${number}T00:00:00Z`,
+      updated_at: `2026-03-${number}T00:00:00Z`,
+    });
+  }
+}
+
+/**
+ * A member with more factions than the profile shows: the newest few, and a link to all of them in the catalogue narrowed to the member, in the same order.
+ * The header counts the whole list rather than the slice.
+ */
+export const DetailFactionsPreview = meta.story({
+  args: { path: '/profiles/storybook-viewer' },
+  parameters: { database: db(seedMoreFactions) },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('link', { name: 'All 9 factions' }, { timeout: 30_000 })).resolves.toHaveAttribute(
+      'href',
+      '/factions?owner=storybook-viewer&sort=created'
+    );
+    const factions = within(page.getByRole('region', { name: 'Factions created' }));
+    const cards = factions.getAllByRole('link', { name: /Sietch|House Atreides/ });
+    await expect(cards.length).toBeLessThan(9);
+    await expect(cards[0]).toHaveAccessibleName(/Sietch 08/);
+    await expect(page.getByText('9 factions')).toBeVisible();
+  },
+});
+
 export const Settings = meta.story({
   args: { path: '/profiles/storybook-viewer/edit' },
   play: ({ canvasElement }) => expectFieldValue(canvasElement, 'Display name', 'storybook-viewer'),

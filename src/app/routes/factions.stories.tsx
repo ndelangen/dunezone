@@ -4,7 +4,7 @@ import { FACTION_CATALOGUE_PAGE_SIZE } from '@shared/factions/catalogueSearch';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { loadFaction } from '@db/factions';
-import { db, faction, refText, SEED_REF_TOKEN } from '@db/storybook';
+import { db, faction, ref, refText, SEED_REF_TOKEN } from '@db/storybook';
 
 import { expectToolbarOnOneLine } from './authoringToolbarPlay';
 import {
@@ -49,6 +49,40 @@ export const CataloguePaged = meta.story({
     await expect(page.findByText(/^49–61 of 61 factions$/, {}, { timeout: 30_000 })).resolves.toBeVisible();
     const pages = await page.findByLabelText('Faction catalogue pages');
     await expect(within(pages).getByRole('link', { name: '1' })).toHaveAttribute('href', '/factions');
+  },
+});
+
+/**
+ * The catalogue narrowed to one member, as a profile's "All N factions" opens it: their factions alone, the member named among the refinements, and a way back to everyone's.
+ */
+export const CatalogueByOwner = meta.story({
+  args: { path: '/factions?owner=storybook-viewer' },
+  parameters: {
+    database: db((baseline) => {
+      baseline.users.push({ $key: 'other-member', name: 'Other member' });
+      baseline.profiles.push({
+        user_id: ref('other-member'),
+        username: 'Other member',
+        slug: 'other-member',
+        avatar_url: null,
+        account_state: 'active',
+        created_at: '2026-01-01T00:00:00Z',
+        updated_at: '2026-01-01T00:00:00Z',
+      });
+      baseline.factions.push({ ...faction({ name: 'Sietch Tabr' }), owner_id: ref('other-member') });
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const main = within(await page.findByRole('main', {}, { timeout: 30_000 }));
+    await expect(main.findAllByRole('link', { name: /House Atreides/ }, { timeout: 30_000 })).resolves.toHaveLength(1);
+    await expect(main.queryByRole('link', { name: /Sietch Tabr/ })).toBeNull();
+    await userEvent.click(page.getByRole('button', { name: 'Refine factions by ruleset and complexity' }));
+    /* The popover fades in, so its words are in the document a moment before they are visible. */
+    await waitFor(() => expect(page.getByText('By storybook-viewer')).toBeVisible());
+    await expect(page.getByText('1 of 2 factions')).toBeVisible();
+    await userEvent.click(page.getByRole('button', { name: 'Show every member' }));
+    await waitFor(() => expect(main.getByRole('link', { name: /Sietch Tabr/ })).toBeVisible(), { timeout: 30_000 });
   },
 });
 
