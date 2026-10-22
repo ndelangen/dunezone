@@ -3,6 +3,10 @@
   min-width: 0;
 }
 
+.referencePicker {
+  --catalogue-picker-height: 55dvh;
+}
+
 .discussion {
   display: grid;
   grid-template-areas: "question" "aside" "answers" "related";

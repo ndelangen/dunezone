@@ -6,6 +6,8 @@ import type { ComponentAssetType } from '../../src/shared/asset-publishing/compo
 import type { ComponentDeliveryResolution } from '../../src/shared/asset-publishing/componentPublication';
 import { readComponentEnvelope } from './component-r2';
 import type { PublicAssetBucket } from './delivery';
+import { deliveryReporter } from './delivery-diagnostics';
+import { PublisherHttpError } from './http';
 
 export type ComponentDeliveryClient = {
   resolveComponentDelivery(assetId: string, assetType?: ComponentAssetType): Promise<ComponentDeliveryResolution>;
@@ -33,17 +35,24 @@ export async function handleComponentRequest(
   if (!parsedRevision.success) {
     return unavailable(400, 'Invalid Component Revision');
   }
+  const report = deliveryReporter(request, assetType, assetId);
+  let operation: 'resolve_component' | 'read_component_envelope' = 'resolve_component';
+  let startedAt = Date.now();
   try {
     const resolution = await dependencies.client.resolveComponentDelivery(assetId, assetType);
     if (resolution.status === 'missing') {
       return unavailable(404, 'Not Found');
     }
     if (resolution.status === 'pending') {
+      report({ operation, startedAt, result: 'unavailable', reason: 'pending_publication' });
       return unavailable(503, 'Component Temporarily Unavailable');
     }
     const revision = parsedRevision.data ?? resolution.revision;
+    operation = 'read_component_envelope';
+    startedAt = Date.now();
     const envelope = await readComponentEnvelope(dependencies.bucket, assetId, revision, assetType);
     if (!envelope) {
+      report({ operation, startedAt, result: 'unavailable', reason: 'missing_envelope' });
       return unavailable(503, 'Component Temporarily Unavailable');
     }
     const etag = `"${envelope.revision}"`;
@@ -63,7 +72,15 @@ export async function handleComponentRequest(
     const bytes = Buffer.from(envelope.image.base64, 'base64');
     headers.set('Content-Length', String(bytes.byteLength));
     return new Response(request.method === 'HEAD' ? null : bytes, { status: 200, headers });
-  } catch {
+  } catch (error) {
+    report({
+      operation,
+      startedAt,
+      result: 'unavailable',
+      reason: 'exception',
+      httpStatus: error instanceof PublisherHttpError ? error.status : undefined,
+      error,
+    });
     return unavailable(503, 'Component Temporarily Unavailable');
   }
 }

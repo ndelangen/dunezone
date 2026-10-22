@@ -1,0 +1,7 @@
+.empty {
+  display: none;
+}
+
+.options:not(:has([role="option"], [role="status"])) .empty {
+  display: block;
+}
