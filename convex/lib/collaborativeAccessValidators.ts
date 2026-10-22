@@ -227,6 +227,8 @@ export const profilePageValidator = v.object({
   factionPreview: v.array(catalogueFactionValidator),
   /** How many live factions the member has, counted from the catalogue's list for them. */
   factionCount: v.number(),
+  /** How many of them the catalogue already lists for the member; below `factionCount` only until its backfill has run. */
+  listedFactionCount: v.number(),
   groupSummaries: v.array(assignedGroupSummaryValidator),
 });
 

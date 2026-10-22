@@ -113,7 +113,8 @@ function ProfileDetailError({ error }: ErrorComponentProps) {
 
 /**
  * The member's newest factions and, when they have more, the way to the rest: the catalogue narrowed to them, in the same newest-first order.
- * The server counts the whole list and never fewer than the cards it sends, so the link appears only when there is more to see.
+ * The server counts the whole list and never fewer than the cards it sends.
+ * The link appears only when the catalogue lists more than the cards shown, so it never opens an empty list.
  */
 function ProfileFactions({ page }: { page: ProfilePageData }) {
   const { factionCount } = page;
@@ -129,7 +130,7 @@ function ProfileFactions({ page }: { page: ProfilePageData }) {
   return (
     <Stack gap="md">
       <FactionList factions={page.factions} />
-      {factionCount > page.factions.length ? (
+      {page.listedFactionCount > page.factions.length ? (
         <Box>
           <Button
             variant="default"

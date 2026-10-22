@@ -43,6 +43,7 @@ const serverPage = {
   factions: [],
   factionPreview: [],
   factionCount: 0,
+  listedFactionCount: 0,
 };
 
 beforeEach(() => {

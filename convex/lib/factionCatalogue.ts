@@ -536,7 +536,7 @@ export async function loadOwnerFactionPreview(ctx: QueryCtx, ownerId: Id<'users'
       return await catalogueFactionFromCard(ctx, card, live);
     })
   );
-  return { factions, factionCount: Math.max(listed, factions.length) };
+  return { factions, factionCount: Math.max(listed, factions.length), listedFactionCount: listed };
 }
 
 export async function listFactionRulesets(ctx: QueryCtx, factionId: Id<'factions'>) {
