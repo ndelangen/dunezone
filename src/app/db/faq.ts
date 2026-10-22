@@ -58,12 +58,6 @@ function referencePreviews(rows: ReferencePreview[]): FaqReferencePreview[] {
   );
 }
 
-/** Options are subscribed only while the FAQ's picker is mounted. */
-export function useFaqReferenceOptions(kind: FaqReferenceTarget['kind'], q: string) {
-  const query = usePaginatedQuery(api.faqReferences.options, { kind, q }, { initialNumItems: 12 });
-  return { ...query, results: referencePreviews(query.results) };
-}
-
 type CommandState = {
   isPending: boolean;
   isError: boolean;

@@ -19,6 +19,7 @@ import type * as cardFrontPresets from "../cardFrontPresets.js";
 import type * as cardbackPresets from "../cardbackPresets.js";
 import type * as catalogueMaintenance from "../catalogueMaintenance.js";
 import type * as catalogueMigrations from "../catalogueMigrations.js";
+import type * as cataloguePicker from "../cataloguePicker.js";
 import type * as componentPublication from "../componentPublication.js";
 import type * as contentImports from "../contentImports.js";
 import type * as crons from "../crons.js";
@@ -185,6 +186,7 @@ const fullApi: ApiFromModules<{
   cardbackPresets: typeof cardbackPresets;
   catalogueMaintenance: typeof catalogueMaintenance;
   catalogueMigrations: typeof catalogueMigrations;
+  cataloguePicker: typeof cataloguePicker;
   componentPublication: typeof componentPublication;
   contentImports: typeof contentImports;
   crons: typeof crons;

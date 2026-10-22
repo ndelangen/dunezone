@@ -148,6 +148,60 @@ async function acceptedThread({ canvasElement }: { canvasElement: HTMLElement })
 export const Forum = meta.story({ play: acceptedThread });
 export const Phone = meta.story({ globals: { viewport: { value: 'appMobileNarrow' } }, play: acceptedThread });
 export const Constrained = meta.story({ globals: { viewport: { value: 'appAuthoringTablet' } }, play: acceptedThread });
+
+async function openReferencePicker({ canvasElement }: { canvasElement: HTMLElement }) {
+  const page = within(canvasElement.ownerDocument.body);
+  await page.findByRole('heading', { name: 'When should we declare a Karama card?' }, { timeout: 30_000 });
+  const toggle = page.queryByRole('button', { name: 'Ruleset and references' });
+  if (toggle) {
+    await userEvent.click(toggle);
+  }
+  await userEvent.click(await page.findByRole('button', { name: 'Add references' }, { timeout: 30_000 }));
+  const picker = await page.findByRole('dialog', { name: 'Add references' });
+  await waitFor(
+    () => expect(within(picker).getByRole('option', { name: 'House Atreides, already selected' })).toBeVisible(),
+    { timeout: 30_000 }
+  );
+  await waitFor(() => expect(within(picker).getByRole('option', { name: 'Lasgun' })).toBeVisible(), {
+    timeout: 30_000,
+  });
+  await waitFor(() => expectWithinWidth(canvasElement, [picker]));
+  await waitFor(async () => {
+    const box = picker.getBoundingClientRect();
+    await expect(box.top).toBeGreaterThanOrEqual(0);
+    await expect(box.bottom).toBeLessThanOrEqual(canvasElement.ownerDocument.documentElement.clientHeight);
+  });
+}
+
+export const ReferencePicker = meta.story({ play: openReferencePicker });
+export const ReferencePickerPhone = meta.story({
+  globals: { viewport: { value: 'appMobileNarrow' } },
+  play: openReferencePicker,
+});
+
+export const PickReferences = meta.story({
+  play: async (context) => {
+    await openReferencePicker(context);
+    const page = within(context.canvasElement.ownerDocument.body);
+    const picker = within(page.getByRole('dialog', { name: 'Add references' }));
+    const search = picker.getByRole('searchbox', { name: 'Search the catalogue' });
+    await expect(search).toHaveFocus();
+    await userEvent.type(search, 'Lasgun');
+    await waitFor(() => expect(picker.getByRole('option', { name: 'Lasgun' })).toBeVisible());
+    await userEvent.keyboard('{ArrowDown}{Enter}');
+    await expect(picker.findByRole('option', { name: 'Lasgun, already selected' })).resolves.toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    await userEvent.clear(search);
+    await userEvent.type(search, 'unfindablexyz');
+    await waitFor(() => expect(picker.getByText('No matching factions or assets.')).toBeVisible());
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(page.queryByRole('dialog', { name: 'Add references' })).toBeNull());
+    await waitFor(() => expect(page.getByRole('button', { name: 'Add references' })).toHaveFocus());
+    await expect(page.getByRole('button', { name: 'Remove reference to Lasgun' })).toBeVisible();
+  },
+});
 export const SignedOut = meta.story({
   parameters: { identity: null },
   play: async ({ canvasElement }) => {
