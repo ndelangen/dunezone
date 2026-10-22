@@ -242,7 +242,10 @@ describe('component metadata transport recovery', () => {
 
   test('a recovery request receives only the time left in the first budget', async () => {
     let now = 0;
-    const started = Promise.withResolvers<AbortSignal>();
+    let signalStarted: (signal: AbortSignal) => void = () => {};
+    const started = new Promise<AbortSignal>((resolve) => {
+      signalStarted = resolve;
+    });
     const fetcher = vi
       .fn<typeof fetch>()
       .mockImplementationOnce(async () => {
@@ -250,13 +253,13 @@ describe('component metadata transport recovery', () => {
         return Response.json({}, { status: 503 });
       })
       .mockImplementationOnce(async (_input, init) => {
-        started.resolve(init!.signal!);
+        signalStarted(init!.signal!);
         return await new Promise<Response>(() => {});
       });
     const failure = new ConvexPublisherClient({ ...options, fetcher, now: () => now })
       .resolveComponentDelivery(componentId)
       .catch((error: unknown) => error);
-    const signal = await started.promise;
+    const signal = await started;
     await new Promise<void>((resolve) => {
       if (signal.aborted) {
         resolve();
