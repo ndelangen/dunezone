@@ -332,7 +332,7 @@ async function loadDirectorySearch(ctx: QueryCtx, args: CatalogueArgs, text: str
   const limit = catalogueSearchLimit(args.limit, PROFILE_CATALOGUE_PAGE_SIZE);
   const [selection, [directoryTotal = 0]] = await Promise.all([
     selectCatalogueSearch(ctx, { kind: 'profile', partition: ALL_PARTITION, text, limit }),
-    countCataloguePartitions(ctx, 'profile', [ALL_PARTITION], 'name'),
+    countCataloguePartitions(ctx, 'profile', [ALL_PARTITION]),
   ]);
   return {
     mode: 'search' as const,

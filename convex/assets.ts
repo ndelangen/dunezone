@@ -1307,7 +1307,7 @@ async function loadCatalogueSearch(ctx: QueryCtx, args: CatalogueArgs, text: str
   const limit = catalogueSearchLimit(args.limit, ASSET_CATALOGUE_PAGE_SIZE);
   const [selection, [typeTotal = 0]] = await Promise.all([
     selectCatalogueSearch(ctx, { kind: 'asset', partition: args.type, text, limit }),
-    countCataloguePartitions(ctx, 'asset', [args.type], 'name'),
+    countCataloguePartitions(ctx, 'asset', [args.type]),
   ]);
   return {
     mode: 'search' as const,

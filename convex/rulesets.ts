@@ -178,7 +178,7 @@ async function loadCatalogueSearch(ctx: QueryCtx, args: CatalogueArgs, text: str
   const limit = catalogueSearchLimit(args.limit, RULESET_CATALOGUE_PAGE_SIZE);
   const [selection, [rulesetTotal = 0]] = await Promise.all([
     selectCatalogueSearch(ctx, { kind: 'ruleset', partition: ALL_PARTITION, text, limit }),
-    countCataloguePartitions(ctx, 'ruleset', [ALL_PARTITION], 'name'),
+    countCataloguePartitions(ctx, 'ruleset', [ALL_PARTITION]),
   ]);
   return {
     mode: 'search' as const,

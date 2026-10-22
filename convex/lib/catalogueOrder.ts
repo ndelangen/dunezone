@@ -146,11 +146,10 @@ export async function missingOrderItems(ctx: QueryCtx, entry: Entry, sorts: read
   return missing;
 }
 
-/** How many entries each list holds, read from one of the kind's sorts: every sort of a kind holds every entry, so any the kind declares counts it. */
-export async function countCataloguePartitions(ctx: QueryCtx, kind: string, partitions: string[], sort: CatalogueSort) {
+export async function countCataloguePartitions(ctx: QueryCtx, kind: string, partitions: string[]) {
   return await catalogueOrder.countBatch(
     ctx,
-    partitions.map((partition) => ({ namespace: [kind, sort, partition] as OrderNamespace }))
+    partitions.map((partition) => ({ namespace: [kind, 'name', partition] as OrderNamespace }))
   );
 }
 

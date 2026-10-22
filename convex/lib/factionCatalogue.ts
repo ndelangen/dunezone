@@ -381,7 +381,7 @@ async function loadCatalogueFurniture(ctx: QueryCtx, query: FactionCatalogueQuer
   const [rulesets, owner] = await Promise.all([listActiveRulesetSummaries(ctx), catalogueOwner(ctx, query.owner)]);
   const partition = owner?.partition ?? rulesets.find((ruleset) => ruleset.slug === query.ruleset)?.id ?? ALL_PARTITION;
   const [counts, spotlightEntries] = await Promise.all([
-    countCataloguePartitions(ctx, 'faction', [ALL_PARTITION, ...rulesets.map((ruleset) => ruleset.id)], 'name'),
+    countCataloguePartitions(ctx, 'faction', [ALL_PARTITION, ...rulesets.map((ruleset) => ruleset.id)]),
     selectSpotlightEntries(ctx),
   ]);
   const [catalogueTotal = 0, ...rulesetCounts] = counts;
