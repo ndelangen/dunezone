@@ -340,17 +340,9 @@ export const Question = meta.story({
     const navigation = within(page.getByRole('group', { name: 'Navigation' }));
     await expect(navigation.getByRole('link', { name: 'Back to FAQ' })).toBeVisible();
     /* The shared page renders first; editing follows the viewer, which the browser resolves after it. */
-    await expect(
-      within(page.getByRole('group', { name: 'Question actions' })).findByRole(
-        'button',
-        { name: 'Edit question' },
-        { timeout: 30_000 }
-      )
-    ).resolves.toBeVisible();
-    await expect(
-      within(page.getByRole('group', { name: 'Question actions' })).getByRole('button', { name: 'Delete question' })
-    ).toBeVisible();
-    await userEvent.click(page.getByRole('button', { name: 'Edit question' }));
+    await userEvent.click(await page.findByRole('button', { name: 'Actions for question' }, { timeout: 30_000 }));
+    await waitFor(() => expect(page.getByRole('menuitem', { name: 'Hold to delete question' })).toBeVisible());
+    await userEvent.click(page.getByRole('menuitem', { name: 'Edit question' }));
     const question = await page.findByRole('textbox', { name: 'Edit question' });
     await userEvent.clear(question);
     await userEvent.type(question, 'When does the storm move in round two?');
@@ -425,7 +417,8 @@ export const QuestionReferences = meta.story({
   args: { path: '/rulesets/classicrules/faq/when-does-the-storm-move' },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await userEvent.click(await page.findByRole('button', { name: 'Edit question' }, { timeout: 30_000 }));
+    await userEvent.click(await page.findByRole('button', { name: 'Actions for question' }, { timeout: 30_000 }));
+    await userEvent.click(await page.findByRole('menuitem', { name: 'Edit question' }));
     const question = await page.findByRole('textbox', { name: 'Edit question' });
     await userEvent.clear(question);
     await userEvent.type(question, 'An unsaved question draft?');
