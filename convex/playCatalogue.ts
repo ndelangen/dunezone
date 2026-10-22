@@ -12,6 +12,8 @@ import {
 import { CanonicalFactionStoredSchema, toStoredHeroKey } from '../src/shared/factions/schema';
 import { assetSupplySchema, factionDefinitionWireSchema, rulesetSupplySchema } from '../src/shared/play/capture';
 import { playDraftableFactionsSchema } from '../src/shared/play/drafting';
+import { isSpawnType, SPAWN_PICKER_STEP, SPAWN_TYPES, spawnableAssetsSchema } from '../src/shared/play/inventory';
+import type { SpawnableAsset } from '../src/shared/play/inventory';
 import type { Doc, Id } from './_generated/dataModel';
 import type { QueryCtx } from './_generated/server';
 import { publicationHrefFor } from './assetPublishingStatus';
@@ -20,6 +22,8 @@ import { publicQuery } from './functions';
 import { resolveBackHref, TOKEN_ASSET_TYPES } from './lib/assetBacks';
 import { assetDisplayName } from './lib/assetInput';
 import type { CardbackPresetMemo } from './lib/cardbackPresets';
+import { catalogueSearchLimit, catalogueSearchReach, selectCatalogueSearch } from './lib/catalogueOrder';
+import { profileSummaryReader } from './lib/profileSummary';
 import { rulesetBoard } from './lib/rulesetBoard';
 import { listRulesetAssetSlots } from './lib/rulesetSlots';
 
@@ -237,5 +241,100 @@ export const assetSupply = publicQuery({
       entries.map(async ({ row: member, count }) => ({ ...(await suppliedAsset(ctx, member, presets)), count }))
     );
     return { ...(await suppliedAsset(ctx, row, presets)), members, membersTruncated: truncated };
+  },
+});
+
+/** The spawnable rows one picker read selected, newest or best first, and whether a larger limit would select more. */
+type SpawnableSelection = { rows: Doc<'assets'>[]; hasMore: boolean; capped: boolean };
+
+async function nextRow(rows: AsyncIterator<Doc<'assets'>>) {
+  const next = await rows.next();
+  return next.done ? undefined : next.value;
+}
+
+/**
+ * The newest live assets of the spawnable types, newest first across the types.
+ * Each type's index is walked from its newest row only as far as the merge needs, so the read is the limit plus one row per type, however many assets there are.
+ */
+async function newestSpawnables(ctx: QueryCtx, limit: number): Promise<SpawnableSelection> {
+  const lists = SPAWN_TYPES.map((type) => ({
+    rows: ctx.db
+      .query('assets')
+      .withIndex('by_type_deleted', (q) => q.eq('type', type).eq('is_deleted', false))
+      .order('desc')
+      [Symbol.asyncIterator](),
+    head: undefined as Doc<'assets'> | undefined,
+  }));
+  await Promise.all(lists.map(async (list) => (list.head = await nextRow(list.rows))));
+  const rows: Doc<'assets'>[] = [];
+  /* One more than the limit says whether there are more. */
+  while (rows.length <= limit) {
+    const newest = lists.reduce<(typeof lists)[number] | undefined>(
+      (best, list) => (list.head && (!best?.head || list.head._creationTime > best.head._creationTime) ? list : best),
+      undefined
+    );
+    if (!newest?.head) {
+      break;
+    }
+    rows.push(newest.head);
+    newest.head = await nextRow(newest.rows);
+  }
+  return { rows: rows.slice(0, limit), hasMore: rows.length > limit, capped: false };
+}
+
+/** The best matches of the asset catalogue's search among the spawnable types, each type's list taken in turn, read back to their live rows. */
+async function searchedSpawnables(ctx: QueryCtx, text: string, limit: number): Promise<SpawnableSelection> {
+  const selection = await selectCatalogueSearch(ctx, {
+    kind: 'asset',
+    partition: SPAWN_TYPES[0],
+    partitions: [...SPAWN_TYPES],
+    text,
+    limit,
+  });
+  const read = await Promise.all(
+    selection.entries.map(async (entry) => {
+      const assetId = ctx.db.normalizeId('assets', entry.source_id);
+      return assetId ? await ctx.db.get('assets', assetId) : null;
+    })
+  );
+  /* Drift leaves the list one row short until the backfill or the asset's next save, as the asset catalogue does. */
+  const rows = read.filter((row): row is Doc<'assets'> => row !== null && !row.is_deleted);
+  return { rows, hasMore: selection.hasMore, capped: selection.capped };
+}
+
+/** The rows as the picker lists them; one owner's profile is read once however many of the rows are theirs. */
+async function spawnableEntries(ctx: QueryCtx, rows: Doc<'assets'>[]) {
+  const ownerOf = profileSummaryReader(ctx);
+  const entries: SpawnableAsset[] = [];
+  for (const row of rows) {
+    if (isSpawnType(row.type)) {
+      const owner = await ownerOf(row.owner_id);
+      entries.push({ type: row.type, slug: row.slug, name: assetDisplayName(row), owner: owner?.username ?? null });
+    }
+  }
+  return entries;
+}
+
+/**
+ * The decks, bundles and tokens a seated player may ask the table to spawn, as the in-play picker lists them: the newest first with no search, else the best matches of the asset catalogue's search over the asset's and its owner's names.
+ * `limit` grows with Load more up to the catalogue search's ceiling, past which `capped` says to search instead.
+ * Readiness is not judged here: the game captures the chosen asset and refuses one that is incomplete, as it did when the picker listed every asset.
+ */
+export const spawnableAssets = publicQuery({
+  args: {
+    /** Words of the asset's or its owner's name; empty or absent lists the newest. */
+    q: v.optional(v.string()),
+    /** How many rows to return; Load more asks again with a larger one. */
+    limit: v.optional(v.number()),
+  },
+  returns: zodToConvex(spawnableAssetsSchema),
+  handler: async (ctx, args) => {
+    const limit = catalogueSearchLimit(args.limit, SPAWN_PICKER_STEP);
+    const text = args.q?.trim() ?? '';
+    const selection = text ? await searchedSpawnables(ctx, text, limit) : await newestSpawnables(ctx, limit);
+    return {
+      entries: await spawnableEntries(ctx, selection.rows),
+      ...catalogueSearchReach(selection, limit, SPAWN_PICKER_STEP),
+    };
   },
 });

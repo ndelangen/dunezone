@@ -2,7 +2,7 @@ import type { playCreateGameRequestSchema } from '@shared/play/admission';
 import type { playGeneratedGameRequestSchema } from '@shared/play/gameCreation';
 import { peekSeatPass, PLAY_SEAT_PASS_RENEW_MS } from '@shared/play/seatPass';
 import { useQuery } from 'convex/react';
-import type { FunctionReturnType } from 'convex/server';
+import type { FunctionArgs, FunctionReturnType } from 'convex/server';
 import { useCallback, useState } from 'react';
 import type { z } from 'zod';
 
@@ -28,6 +28,17 @@ export function useGameAccess(address: string) {
 /** The lobby's ongoing and past games, as the directory may show them to this viewer. */
 export function useLobbyGames() {
   return toLiveQueryResult(useLiveQuery(api.playDirectory.listGames, {}));
+}
+
+/** What the in-play spawn picker asks the catalogue for: a search's words, if any, and how many rows. */
+export type SpawnableAssetsArgs = FunctionArgs<typeof api.playCatalogue.spawnableAssets>;
+
+/**
+ * The decks, bundles and tokens the catalogue offers a game, the newest or a search's best matches, up to `limit`.
+ * Plain `useQuery`, not held warm: the arguments change as the player types, and each would otherwise stay subscribed.
+ */
+export function useSpawnableAssets(args: SpawnableAssetsArgs) {
+  return toLiveQueryResult(useQuery(api.playCatalogue.spawnableAssets, args));
 }
 
 /** What a chosen ruleset puts on the table, as the create page's manifest lists it. */
