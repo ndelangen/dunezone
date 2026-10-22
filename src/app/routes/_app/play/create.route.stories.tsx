@@ -99,13 +99,13 @@ const creatable = {
     const classic = { ...ruleset({ name: 'Classic Dune' }), group_id: chosen!.group_id };
     baseline.rulesets.push(classic);
     const [atreides] = baseline.factions;
-    baseline.ruleset_factions.push({ ruleset_id: ref(classic.$key!), faction_id: ref(atreides!.$key!) });
+    baseline.ruleset_factions.push({ ruleset_id: ref(classic.$key!), faction_id: ref(atreides!.$key!), position: baseline.ruleset_factions.length });
     for (const entry of factions.slice(1)) {
       const key = `faction:${entry.slug}`;
       baseline.factions.push({ ...atreides!, $key: key, slug: entry.slug, data: entry.data });
-      baseline.ruleset_factions.push({ ruleset_id: ref(chosen!.$key!), faction_id: ref(key) });
+      baseline.ruleset_factions.push({ ruleset_id: ref(chosen!.$key!), faction_id: ref(key), position: baseline.ruleset_factions.length });
       if (!['spacing-guild', 'bene-gesserit'].includes(entry.slug)) {
-        baseline.ruleset_factions.push({ ruleset_id: ref(classic.$key!), faction_id: ref(key) });
+        baseline.ruleset_factions.push({ ruleset_id: ref(classic.$key!), faction_id: ref(key), position: baseline.ruleset_factions.length });
       }
     }
   }),

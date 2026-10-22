@@ -73,7 +73,7 @@ describe('isolated Play test controls', () => {
         .collect();
       const factions = await ctx.db
         .query('ruleset_factions')
-        .withIndex('by_ruleset', (q) => q.eq('ruleset_id', first.rulesetId))
+        .withIndex('by_ruleset_position', (q) => q.eq('ruleset_id', first.rulesetId))
         .collect();
       const rulesets = await Promise.all([ctx.db.get(first.rulesetId), ctx.db.get(second.rulesetId)]);
       return {
@@ -115,7 +115,7 @@ describe('isolated Play test controls', () => {
       (
         await ctx.db
           .query('ruleset_factions')
-          .withIndex('by_ruleset', (q) => q.eq('ruleset_id', rulesetId))
+          .withIndex('by_ruleset_position', (q) => q.eq('ruleset_id', rulesetId))
           .collect()
       ).map((link) => link.faction_id)
     );

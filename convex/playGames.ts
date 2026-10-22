@@ -154,7 +154,7 @@ async function packedFor(ctx: QueryCtx, rulesetId: Id<'rulesets'>) {
 async function factionsFor(ctx: QueryCtx, rulesetId: Id<'rulesets'>) {
   const links = await ctx.db
     .query('ruleset_factions')
-    .withIndex('by_ruleset', (q) => q.eq('ruleset_id', rulesetId))
+    .withIndex('by_ruleset_position', (q) => q.eq('ruleset_id', rulesetId))
     .take(PREVIEW_FACTION_LIMIT);
   const factions = [];
   for (const link of links) {

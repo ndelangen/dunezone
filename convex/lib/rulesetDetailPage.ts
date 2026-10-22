@@ -39,7 +39,7 @@ export async function loadPublicRulesetBySlug(ctx: QueryCtx, slug: string) {
 async function listPublicRulesetFactions(ctx: QueryCtx, rulesetId: Id<'rulesets'>) {
   const links = await ctx.db
     .query('ruleset_factions')
-    .withIndex('by_ruleset', (q) => q.eq('ruleset_id', rulesetId))
+    .withIndex('by_ruleset_position', (q) => q.eq('ruleset_id', rulesetId))
     .take(RULESET_FACTION_LIMIT);
   const factions = await Promise.all(links.map((link) => linkedCatalogueFaction(ctx, link.faction_id)));
   return factions.filter((faction) => faction !== null);
