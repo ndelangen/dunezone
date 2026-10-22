@@ -32,7 +32,7 @@ export type BlogPostMeta = {
 export const BLOG_POST_META: Record<BlogPostSlug, BlogPostMeta> = {
   'dune-board-game-style-guide': {
     slug: 'dune-board-game-style-guide',
-    title: 'The Dune board game style guide: every font, colour and texture in the GF9 edition',
+    title: 'The unofficial Dune board game style guide: every font, colour and texture in the GF9 edition',
     date: '2026-10-23',
     author: 'Central419',
     summary:
