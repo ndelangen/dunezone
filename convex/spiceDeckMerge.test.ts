@@ -2,9 +2,11 @@
 /* @vitest-environment edge-runtime */
 import { expect, test } from 'vite-plus/test';
 
+import { contentImportPackageSchema } from '../src/shared/contentImports/package';
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { applicationTest } from './application.test.fixture';
+import { rulebookFixture } from './rulebooks.test.fixture';
 
 /* Thirty cards and two decks go through the full create path. */
 const BUDGET_MS = 30_000;
@@ -94,7 +96,7 @@ test(
   'folds each GF9 copy into its original: the original takes the caption and About, both decks share it, and the copy is retired',
   async () => {
     const { t, originals, copies, dreamrules, gf9 } = await setup();
-    const planned = await t.mutation(internal.spiceDeckMerge.mergeDuplicateSpiceCards, { dryRun: true });
+    const { cards: planned } = await t.mutation(internal.spiceDeckMerge.mergeDuplicateSpiceCards, { dryRun: true });
     expect(planned.map(({ original, copy, decks }) => [original, copy, decks])).toEqual(
       originals.map((original, index) => [original, copies[index], [{ deck: gf9, before: 0, after: 1 }]])
     );
@@ -151,7 +153,7 @@ test(
   async () => {
     const { t, originals, copies, dreamrules } = await setup();
     await membership(t, dreamrules, copies[0], 2);
-    const planned = await t.mutation(internal.spiceDeckMerge.mergeDuplicateSpiceCards, { dryRun: true });
+    const { cards: planned } = await t.mutation(internal.spiceDeckMerge.mergeDuplicateSpiceCards, { dryRun: true });
     expect(planned[0].decks).toContainEqual({ deck: dreamrules, before: 1, after: 3 });
     await t.mutation(internal.spiceDeckMerge.mergeDuplicateSpiceCards, { dryRun: false });
     const held = await members(t, dreamrules);
@@ -163,6 +165,66 @@ test(
     await expect(full.t.mutation(internal.spiceDeckMerge.mergeDuplicateSpiceCards, { dryRun: true })).rejects.toThrow(
       'past the limit of 99'
     );
+  },
+  BUDGET_MS * 2
+);
+
+test(
+  'keeps the GF9 import receipts on the merged cards, so the next preview reads every entry as unchanged',
+  async () => {
+    const { t, owner } = await rulebookFixture();
+    const target = { rulesetSlug: 'rulebook-test-rules', groupSlug: 'rulebook-authors' };
+    const originals: Id<'assets'>[] = [];
+    for (const [name, highlight, amount] of TERRITORIES) {
+      originals.push(
+        (await owner.mutation(api.assets.create, { type: 'card-spice', data: spice(name, highlight, amount) })).id
+      );
+    }
+    const bundle = contentImportPackageSchema.parse({
+      format: 'dunezone-package',
+      version: 1,
+      packageKey: 'gf9-test',
+      items: [
+        ...TERRITORIES.map(([name, highlight, amount]) => ({
+          key: highlight,
+          kind: 'asset',
+          type: 'card-spice',
+          data: spice(SHORT_NAMES[name] ?? name, highlight, amount, { text: 'West sector.', about: 'GF9.' }),
+        })),
+        {
+          key: 'gf9-spice-deck',
+          kind: 'asset',
+          type: 'deck',
+          data: deck('GF9 Spice Deck'),
+          members: TERRITORIES.map(([, highlight]) => ({ key: highlight, count: 1 })),
+        },
+      ],
+    });
+    const importAll = async () => {
+      const plan = await owner.mutation(api.contentImports.preview, { package: bundle, target });
+      for (const [index, item] of bundle.items.entries()) {
+        await owner.mutation(api.contentImports.applyItem, {
+          packageKey: bundle.packageKey,
+          item,
+          target,
+          expectedHash: plan.entries[index]!.expectedHash,
+        });
+      }
+    };
+    await importAll();
+
+    const merged = await t.mutation(internal.spiceDeckMerge.mergeDuplicateSpiceCards, { dryRun: false });
+    expect(merged.receipts).toHaveLength(16);
+    expect(merged.cards[0]!.group).not.toBeNull();
+    const plan = await owner.mutation(api.contentImports.preview, { package: bundle, target });
+    expect(plan.entries.map(({ key, status }) => [key, status])).toEqual(
+      bundle.items.map(({ key }) => [key, 'unchanged'])
+    );
+    /* Applying the package again changes nothing the merge decided. */
+    await importAll();
+    const cards = await t.run((ctx) => Promise.all(originals.map((id) => ctx.db.get(id))));
+    expect(cards.every((card) => card && !card.is_deleted)).toBe(true);
+    expect(cards[5]!.data.name).toBe('Habbanya Ridge Flat');
   },
   BUDGET_MS * 2
 );

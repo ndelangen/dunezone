@@ -1,6 +1,7 @@
 import { ConvexError, v } from 'convex/values';
 
 import type { Doc } from './_generated/dataModel';
+import { retargetAssetReceipts } from './contentImports';
 import { internalMutation } from './functions';
 import { enqueueAssetPublication } from './lib/publication';
 import { nowIso } from './lib/utils';
@@ -82,21 +83,34 @@ function sameCard(original: Doc<'assets'>, copy: Doc<'assets'>) {
 
 /**
  * Folds each GF9 copy into its original: the original takes the copy's caption and About text, every deck that held the copy holds the original, and the copy is retired the way `softDelete` retires an Asset, so its address stays reserved and a repeated import cannot recreate it.
+ * An ungrouped original joins the copy's Group, as the GF9 import did with the shared Arrakis board, so the package's maintainers keep editing it.
+ * Import receipts that named a copy follow it to the original and record the merged state, so the next GF9 import reads the cards and the decks that hold them as unchanged.
  * Every pair is checked before anything is written;
  * a dry run reports the plan and writes nothing.
  */
 export const mergeDuplicateSpiceCards = internalMutation({
   args: { dryRun: v.boolean() },
-  returns: v.array(
-    v.object({
-      original: v.id('assets'),
-      copy: v.id('assets'),
-      name: v.string(),
-      text: v.string(),
-      about: v.string(),
-      decks: v.array(v.object({ deck: v.id('assets'), before: v.number(), after: v.number() })),
-    })
-  ),
+  returns: v.object({
+    cards: v.array(
+      v.object({
+        original: v.id('assets'),
+        copy: v.id('assets'),
+        name: v.string(),
+        text: v.string(),
+        about: v.string(),
+        group: v.union(v.id('groups'), v.null()),
+        decks: v.array(v.object({ deck: v.id('assets'), before: v.number(), after: v.number() })),
+      })
+    ),
+    receipts: v.array(
+      v.object({
+        receipt: v.id('content_import_receipts'),
+        packageKey: v.string(),
+        itemKey: v.string(),
+        subjectId: v.string(),
+      })
+    ),
+  }),
   handler: async (ctx, { dryRun }) => {
     const pairs = await Promise.all(
       SPICE_PAIRS.map(async ([originalSlug, copySlug]) => {
@@ -110,8 +124,9 @@ export const mergeDuplicateSpiceCards = internalMutation({
     const report = [];
     for (const { original, copy, memberships } of pairs) {
       const data = { ...original.data, text: copy.data.text ?? '', about: copy.data.about ?? '' };
+      const group = original.group_id ?? copy.group_id;
       if (!dryRun) {
-        await ctx.db.patch(original._id, { data, updated_at: nowIso() });
+        await ctx.db.patch(original._id, { data, group_id: group, updated_at: nowIso() });
         await enqueueAssetPublication(ctx, { ...original, data });
         for (const { membership, existing, after } of memberships) {
           if (existing) {
@@ -129,9 +144,16 @@ export const mergeDuplicateSpiceCards = internalMutation({
         name: String(original.data.name),
         text: String(data.text),
         about: String(data.about),
+        group,
         decks: memberships.map(({ membership, before, after }) => ({ deck: membership.from_asset_id, before, after })),
       });
     }
-    return report;
+    const receipts = await retargetAssetReceipts(
+      ctx,
+      new Map(pairs.map(({ original, copy }) => [copy._id as string, original._id as string])),
+      report.flatMap(({ decks }) => decks.map(({ deck }) => deck)),
+      dryRun
+    );
+    return { cards: report, receipts };
   },
 });
