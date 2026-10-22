@@ -118,9 +118,10 @@ async function acceptedThread({ canvasElement }: { canvasElement: HTMLElement })
   const text = await page.findByText(/^Declare the card before resolving/, {}, { timeout: 30_000 });
   const answer = within(text.closest('li')!);
   if (!answer.queryByText('Accepted answer')) {
-    await userEvent.click(await answer.findByRole('button', { name: 'Mark as accepted answer' }, { timeout: 30_000 }));
+    await userEvent.click(await answer.findByRole('button', { name: 'Accept answer' }, { timeout: 30_000 }));
   }
   await expect(answer.findByText('Accepted answer')).resolves.toBeVisible();
+  await expect(page.queryByRole('button', { name: 'Accept answer' })).toBeNull();
   await expect(answer.getByText(/Accepted by Leonard van der Meer/)).toBeVisible();
   const thread = page.getByRole('region', { name: '3 answers' });
   await expect(thread.querySelector('li')?.textContent).toContain('IdrisTheKeeperOfDuneTraditions');
@@ -148,7 +149,8 @@ export const SignedOut = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByRole('link', { name: 'Sign in to answer' }, { timeout: 30_000 })).resolves.toBeVisible();
-    await expect(page.queryByRole('button', { name: 'Edit question' })).toBeNull();
+    await expect(page.queryByRole('button', { name: /^Actions for / })).toBeNull();
+    await expect(page.queryByRole('button', { name: 'Accept answer' })).toBeNull();
     await expect(page.queryByRole('button', { name: 'Add references' })).toBeNull();
     await expect(page.getAllByRole('link', { name: 'Arrakeen Rules Council' }).length).toBeGreaterThanOrEqual(3);
   },
@@ -174,7 +176,9 @@ export const EditAnswer = meta.story({
     await acceptedThread({ canvasElement });
     const page = within(canvasElement.ownerDocument.body);
     const thread = page.getByRole('region', { name: '3 answers' });
-    await userEvent.click(await page.findByRole('button', { name: 'Edit your answer' }, { timeout: 30_000 }));
+    const own = within(page.getByRole('article', { name: "Leonard van der Meer's answer" }));
+    await userEvent.click(own.getByRole('button', { name: 'Actions for answer' }));
+    await userEvent.click(await page.findByRole('menuitem', { name: 'Edit answer' }));
     const answer = page.getByRole('textbox', { name: 'Edit your answer' });
     await userEvent.clear(answer);
     await userEvent.type(answer, 'My existing answer has been updated.');
@@ -182,5 +186,95 @@ export const EditAnswer = meta.story({
     await expect(page.findByText('My existing answer has been updated.')).resolves.toBeVisible();
     await expect(thread.querySelectorAll('li')).toHaveLength(3);
     await waitFor(() => expect(page.queryByRole('textbox', { name: 'Edit your answer' })).toBeNull());
+  },
+});
+
+export const ChangeAcceptedAnswer = meta.story({
+  play: async ({ canvasElement }) => {
+    await acceptedThread({ canvasElement });
+    const page = within(canvasElement.ownerDocument.body);
+    const thread = page.getByRole('region', { name: '3 answers' });
+    const accepted = within(page.getByRole('article', { name: "IdrisTheKeeperOfDuneTraditions's answer" }));
+    await userEvent.click(accepted.getByRole('button', { name: 'Actions for answer' }));
+    await userEvent.click(await page.findByRole('menuitem', { name: 'Unmark accepted answer' }));
+    await waitFor(() => expect(page.getAllByRole('button', { name: 'Accept answer' })).toHaveLength(3));
+    await expect(page.queryByText('Accepted answer', { exact: true })).toBeNull();
+    await expect(thread.querySelector('li')?.textContent).toContain('Mara N.');
+    const replacement = within(page.getByRole('article', { name: "Mara N.'s answer" }));
+    await userEvent.click(replacement.getByRole('button', { name: 'Accept answer' }));
+    await expect(replacement.findByText('Accepted answer', { exact: true })).resolves.toBeVisible();
+    await expect(page.queryByRole('button', { name: 'Accept answer' })).toBeNull();
+    await expect(thread.querySelector('li')?.textContent).toContain('Mara N.');
+    await userEvent.click(replacement.getByRole('button', { name: 'Actions for answer' }));
+    await waitFor(() => expect(page.getByRole('menuitem', { name: 'Unmark accepted answer' })).toBeVisible());
+    await expect(page.queryByRole('menuitem', { name: 'Edit answer' })).toBeNull();
+    await userEvent.keyboard('{Escape}');
+  },
+});
+
+export const EditQuestion = meta.story({
+  play: async ({ canvasElement }) => {
+    await acceptedThread({ canvasElement });
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(page.getByRole('button', { name: 'Actions for question' }));
+    await userEvent.click(await page.findByRole('menuitem', { name: 'Edit question' }));
+    const question = page.getByRole('textbox', { name: 'Edit question' });
+    await expect(page.getByRole('button', { name: 'Save question' })).toBeDisabled();
+    await userEvent.clear(question);
+    await userEvent.type(question, 'Discard this question draft.');
+    await userEvent.click(page.getByRole('button', { name: 'Cancel editing question' }));
+    await expect(page.getByRole('heading', { name: 'When should we declare a Karama card?' })).toBeVisible();
+    await userEvent.click(page.getByRole('button', { name: 'Actions for question' }));
+    await userEvent.click(await page.findByRole('menuitem', { name: 'Edit question' }));
+    await userEvent.clear(page.getByRole('textbox', { name: 'Edit question' }));
+    await userEvent.type(page.getByRole('textbox', { name: 'Edit question' }), 'When can we play Karama?');
+    await userEvent.click(page.getByRole('button', { name: 'Save question' }));
+    await expect(page.findByRole('heading', { name: 'When can we play Karama?' })).resolves.toBeVisible();
+  },
+});
+
+export const AnswerAuthor = meta.story({
+  parameters: {
+    database: db((baseline) => {
+      forumDatabase(baseline);
+      baseline.faq_items[0]!.asked_by = ref('forum-mara');
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const own = within(
+      await page.findByRole('article', { name: "Leonard van der Meer's answer" }, { timeout: 30_000 })
+    );
+    await expect(page.queryByRole('button', { name: 'Accept answer' })).toBeNull();
+    await expect(own.findByRole('button', { name: 'Actions for answer' }, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(page.getAllByRole('button', { name: 'Actions for answer' })).toHaveLength(1);
+    await expect(page.queryByRole('button', { name: 'Actions for question' })).toBeNull();
+    await userEvent.click(own.getByRole('button', { name: 'Actions for answer' }));
+    await waitFor(() => expect(page.getByRole('menuitem', { name: 'Edit answer' })).toBeVisible());
+    await expect(page.getByRole('menuitem', { name: 'Hold to delete answer' })).toBeVisible();
+    await expect(page.queryByRole('menuitem', { name: 'Unmark accepted answer' })).toBeNull();
+    await userEvent.keyboard('{Escape}');
+  },
+});
+
+export const DeleteAnswer = meta.story({
+  play: async ({ canvasElement }) => {
+    await acceptedThread({ canvasElement });
+    const page = within(canvasElement.ownerDocument.body);
+    const answer = within(page.getByRole('article', { name: "Mara N.'s answer" }));
+    await userEvent.click(answer.getByRole('button', { name: 'Actions for answer' }));
+    const deletion = await page.findByRole('menuitem', { name: 'Hold to delete answer' });
+    await waitFor(() => expect(deletion).toBeVisible());
+    await userEvent.pointer([{ keys: '[MouseLeft>]', target: deletion }]);
+    try {
+      await waitFor(() => expect(page.getByText('Deleting in 5..')).toBeVisible());
+      await waitFor(() => expect(page.queryByRole('article', { name: "Mara N.'s answer" })).toBeNull(), {
+        timeout: 10_000,
+      });
+    } finally {
+      await userEvent.pointer([{ keys: '[/MouseLeft]', target: canvasElement.ownerDocument.body }]);
+    }
+    await expect(page.getByRole('region', { name: '2 answers' })).toBeVisible();
+    await expect(page.queryByRole('button', { name: 'Accept answer' })).toBeNull();
   },
 });

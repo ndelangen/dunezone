@@ -1,4 +1,4 @@
-import { Anchor, Badge, Button, Group, Stack, Text } from '@mantine/core';
+import { Anchor, Badge, Button, Group, Menu, Stack, Text } from '@mantine/core';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, notFound, Link, useNavigate } from '@tanstack/react-router';
 import { FactionCard } from '@ui/block/FactionCard';
@@ -17,17 +17,18 @@ import { GroupLink } from '@ui/content/GroupLink';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import { RulesetLink } from '@ui/content/RulesetLink';
 import { StatusBadge } from '@ui/content/StatusBadge';
-import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
+import { ConfirmDeleteMenuItem } from '@ui/control/ConfirmDeleteMenuItem';
 import { FaqTagFieldset } from '@ui/control/FaqTagFieldset';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 import { IconAction } from '@ui/control/IconAction';
 import { LoadMoreButton } from '@ui/control/LoadMoreButton';
+import { SaveAction } from '@ui/control/SaveAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { FaqList } from '@ui/list/FaqList';
 import { TileGrid } from '@ui/list/TileGrid';
 import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
-import { Check, ChevronDown, MessageSquarePlus, Pencil, X } from 'lucide-react';
+import { BadgeCheck, BadgeMinus, ChevronDown, EllipsisVertical, MessageSquarePlus, Pencil, X } from 'lucide-react';
 import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 
@@ -42,7 +43,7 @@ import { AssetCatalogueTile } from '@app/widgets/asset-face/AssetCatalogueTile';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import styles from './$questionSlug.module.css';
-import { INITIAL_FAQ_EDITING_STATE, createFaqEditingSession } from './faqEditingSession';
+import { INITIAL_FAQ_EDITING_STATE, createFaqEditingSession, faqQuestionHasChanges } from './faqEditingSession';
 import type { FaqEditingPorts, FaqEditingState } from './faqEditingSession';
 import { questionTitle } from './questionTitle';
 
@@ -121,6 +122,12 @@ function FaqDetailError({ error }: ErrorComponentProps) {
 }
 
 type FaqQuestionCommands = ReturnType<typeof useFaqQuestionPage>;
+type FaqAnswer = NonNullable<FaqQuestionCommands['page']>['answers'][number];
+type FaqPostEditing = {
+  faq: FaqQuestionCommands;
+  editing: FaqEditingState;
+  editingSession: ReturnType<typeof createFaqEditingSession>;
+};
 
 function AddAnswerForm({ createAnswer }: { createAnswer: FaqQuestionCommands['createAnswer'] }) {
   const [answer, setAnswer] = useState('');
@@ -249,13 +256,6 @@ function FaqDetailPage() {
       .catch(() => undefined);
   };
 
-  const startEditAnswer = (a: (typeof answers)[0]) => editingSession.startEditAnswer(a);
-  const saveAnswer = (answerId: string) => void editingSession.saveAnswer(answers.find((x) => x.id === answerId));
-
-  const handleDeleteAnswer = (answerId: string) => {
-    void faq.deleteAnswer.run({ answerId }).catch(() => undefined);
-  };
-
   const hasAcceptedAnswer = answers.some((answer) => answer.accepted);
 
   return (
@@ -310,122 +310,13 @@ function FaqDetailPage() {
                         className={styles.post}
                         data-accepted={answer.accepted}
                       >
-                        <div className={styles.author}>
-                          <FaqContributor
-                            author={answer.author}
-                            label={answer.capabilities.editAnswer ? 'You' : undefined}
-                          />
-                        </div>
-                        <Surface
-                          as="article"
-                          aria-label={`${answer.author?.username ?? 'Former contributor'}'s answer`}
-                          padding="lg"
-                        >
-                          <Stack gap="md">
-                            <Group gap="xs">
-                              {answer.accepted ? (
-                                <StatusBadge tone="positive">Accepted answer</StatusBadge>
-                              ) : (
-                                <Text size="xs" fw={700}>
-                                  Answer
-                                </Text>
-                              )}
-                              <Text size="xs" c="dimmed">
-                                <time dateTime={answer.createdAt} title={answer.createdAt}>
-                                  {formatStableDate(answer.createdAt)}
-                                </time>
-                              </Text>
-                            </Group>
-                            {answer.acceptedAt ? (
-                              <Text size="xs" c="dimmed" className={styles.metadata}>
-                                Accepted by {item.author?.username ?? 'the asker'} on{' '}
-                                <time dateTime={answer.acceptedAt} title={answer.acceptedAt}>
-                                  {formatStableDate(answer.acceptedAt)}
-                                </time>
-                              </Text>
-                            ) : null}
-                            {editing.editingAnswerId === answer.id ? (
-                              <Stack gap="sm">
-                                <FormattedTextInput
-                                  label="Edit your answer"
-                                  value={editing.answerValue}
-                                  onChange={(value) => editingSession.setAnswerValue(value)}
-                                  rows={3}
-                                />
-                                {faq.editAnswer.error ? (
-                                  <FormError title="Answer could not be saved">
-                                    {faq.editAnswer.error.message}
-                                  </FormError>
-                                ) : null}
-                                <Group gap="xs">
-                                  <IconAction
-                                    label="Save answer"
-                                    emphasis="strong"
-                                    intent="positive"
-                                    onClick={() => saveAnswer(answer.id)}
-                                    disabled={faq.editAnswer.isPending}
-                                    icon={<Check size={16} aria-hidden />}
-                                  />
-                                  <IconAction
-                                    label="Cancel editing answer"
-                                    emphasis="standard"
-                                    intent="neutral"
-                                    onClick={() => editingSession.cancelAnswer()}
-                                    icon={<X size={16} aria-hidden />}
-                                  />
-                                </Group>
-                              </Stack>
-                            ) : (
-                              <>
-                                <div className={styles.prose}>
-                                  <FormattedTextSource source={answer.text} />
-                                </div>
-                                <Group gap="xs">
-                                  {answer.capabilities.acceptAnswer ? (
-                                    <IconAction
-                                      label="Mark as accepted answer"
-                                      emphasis="strong"
-                                      intent="positive"
-                                      disabled={faq.setAcceptedAnswer.isPending}
-                                      onClick={() =>
-                                        void faq.setAcceptedAnswer.run({ answerId: answer.id }).catch(() => undefined)
-                                      }
-                                      icon={<Check size={16} aria-hidden />}
-                                    />
-                                  ) : null}
-                                  {answer.capabilities.unacceptAnswer ? (
-                                    <IconAction
-                                      label="Unmark accepted answer"
-                                      emphasis="standard"
-                                      intent="neutral"
-                                      disabled={faq.setAcceptedAnswer.isPending}
-                                      onClick={() =>
-                                        void faq.setAcceptedAnswer.run({ answerId: null }).catch(() => undefined)
-                                      }
-                                      icon={<X size={16} aria-hidden />}
-                                    />
-                                  ) : null}
-                                  {answer.capabilities.editAnswer ? (
-                                    <IconAction
-                                      label="Edit your answer"
-                                      emphasis="standard"
-                                      intent="neutral"
-                                      onClick={() => startEditAnswer(answer)}
-                                      icon={<Pencil size={16} aria-hidden />}
-                                    />
-                                  ) : null}
-                                  {answer.capabilities.deleteAnswer ? (
-                                    <ConfirmDeleteAction
-                                      label="Delete answer"
-                                      pending={faq.deleteAnswer.isPending}
-                                      onConfirm={() => handleDeleteAnswer(answer.id)}
-                                    />
-                                  ) : null}
-                                </Group>
-                              </>
-                            )}
-                          </Stack>
-                        </Surface>
+                        <FaqAnswerPost
+                          faq={faq}
+                          answer={answer}
+                          editing={editing}
+                          editingSession={editingSession}
+                          hasAcceptedAnswer={hasAcceptedAnswer}
+                        />
                       </li>
                     ))}
                   </ul>
@@ -479,33 +370,214 @@ function FaqDetailPage() {
   );
 }
 
-function FaqQuestionActions({
+function FaqAnswerPost({
   faq,
+  answer,
   editing,
+  editingSession,
+  hasAcceptedAnswer,
+}: FaqPostEditing & { answer: FaqAnswer; hasAcceptedAnswer: boolean }) {
+  return (
+    <>
+      <div className={styles.author}>
+        <FaqContributor author={answer.author} label={answer.capabilities.editAnswer ? 'You' : undefined} />
+      </div>
+      <Surface as="article" aria-label={`${answer.author?.username ?? 'Former contributor'}'s answer`} padding="lg">
+        <Stack gap="md">
+          <FaqAnswerHeading faq={faq} answer={answer} editing={editing} editingSession={editingSession} />
+          {editing.editingAnswerId === answer.id ? (
+            <Stack gap="sm">
+              <FormattedTextInput
+                label="Edit your answer"
+                value={editing.answerValue}
+                onChange={(value) => editingSession.setAnswerValue(value)}
+                rows={3}
+              />
+              {faq.editAnswer.error ? (
+                <FormError title="Answer could not be saved">{faq.editAnswer.error.message}</FormError>
+              ) : null}
+              <FaqEditorActions
+                name="answer"
+                dirty={editing.answerValue.trim() !== answer.text}
+                pending={faq.editAnswer.isPending}
+                failed={faq.editAnswer.isError}
+                disabledReason={!editing.answerValue.trim() ? 'Enter an answer to save.' : undefined}
+                onSave={() => void editingSession.saveAnswer(answer)}
+                onCancel={() => editingSession.cancelAnswer()}
+              />
+            </Stack>
+          ) : (
+            <>
+              <div className={styles.prose}>
+                <FormattedTextSource source={answer.text} />
+              </div>
+              {!hasAcceptedAnswer && answer.capabilities.acceptAnswer ? (
+                <Group justify="flex-end">
+                  <Button
+                    color="confirm"
+                    variant="filled"
+                    size="sm"
+                    leftSection={<BadgeCheck size={17} aria-hidden />}
+                    loading={faq.setAcceptedAnswer.isPending}
+                    onClick={() => void faq.setAcceptedAnswer.run({ answerId: answer.id }).catch(() => undefined)}
+                  >
+                    Accept answer
+                  </Button>
+                </Group>
+              ) : null}
+            </>
+          )}
+        </Stack>
+      </Surface>
+    </>
+  );
+}
+
+function FaqAnswerHeading({ faq, answer, editing, editingSession }: FaqPostEditing & { answer: FaqAnswer }) {
+  return (
+    <>
+      <Group justify="space-between" align="start" wrap="nowrap">
+        <Group gap="xs">
+          {answer.accepted ? (
+            <StatusBadge tone="positive">Accepted answer</StatusBadge>
+          ) : (
+            <Text size="xs" fw={700}>
+              Answer
+            </Text>
+          )}
+          <Text size="xs" c="dimmed">
+            <time dateTime={answer.createdAt} title={answer.createdAt}>
+              {formatStableDate(answer.createdAt)}
+            </time>
+          </Text>
+        </Group>
+        {editing.editingAnswerId !== answer.id ? (
+          <FaqPostActions
+            name="answer"
+            onEdit={answer.capabilities.editAnswer ? () => editingSession.startEditAnswer(answer) : undefined}
+            onDelete={
+              answer.capabilities.deleteAnswer
+                ? () => void faq.deleteAnswer.run({ answerId: answer.id }).catch(() => undefined)
+                : undefined
+            }
+            onUnmark={
+              answer.capabilities.unacceptAnswer
+                ? () => void faq.setAcceptedAnswer.run({ answerId: null }).catch(() => undefined)
+                : undefined
+            }
+            deletePending={faq.deleteAnswer.isPending}
+            acceptPending={faq.setAcceptedAnswer.isPending}
+          />
+        ) : null}
+      </Group>
+      {answer.acceptedAt ? (
+        <Text size="xs" c="dimmed" className={styles.metadata}>
+          Accepted by {faq.page!.question.author?.username ?? 'the asker'} on{' '}
+          <time dateTime={answer.acceptedAt} title={answer.acceptedAt}>
+            {formatStableDate(answer.acceptedAt)}
+          </time>
+        </Text>
+      ) : null}
+    </>
+  );
+}
+
+function FaqPostActions({
+  name,
   onEdit,
   onDelete,
+  onUnmark,
+  deletePending = false,
+  acceptPending = false,
 }: {
-  faq: FaqQuestionCommands;
-  editing: boolean;
-  onEdit: () => void;
-  onDelete: () => void;
+  name: 'question' | 'answer';
+  onEdit?: () => void;
+  onDelete?: () => void;
+  onUnmark?: () => void;
+  deletePending?: boolean;
+  acceptPending?: boolean;
 }) {
-  const item = faq.page!.question;
+  if (![onEdit, onDelete, onUnmark].some(Boolean)) {
+    return null;
+  }
   return (
-    <Group role="group" aria-label="Question actions" gap="xs">
-      {item.capabilities.editQuestion ? (
+    <Menu position="bottom-end" withinPortal shadow="md">
+      <Menu.Target>
         <IconAction
-          label="Edit question"
-          emphasis="standard"
+          label={`Actions for ${name}`}
+          icon={<EllipsisVertical size={17} aria-hidden />}
           intent="neutral"
-          disabled={editing}
-          onClick={onEdit}
-          icon={<Pencil size={16} aria-hidden />}
+          emphasis="standard"
+          size="lg"
         />
-      ) : null}
-      {item.capabilities.deleteQuestion ? (
-        <ConfirmDeleteAction label="Delete question" pending={faq.deleteQuestion.isPending} onConfirm={onDelete} />
-      ) : null}
+      </Menu.Target>
+      <Menu.Dropdown>
+        {onEdit ? (
+          <Menu.Item leftSection={<Pencil size={17} aria-hidden />} onClick={onEdit}>
+            Edit {name}
+          </Menu.Item>
+        ) : null}
+        {onUnmark ? (
+          <Menu.Item leftSection={<BadgeMinus size={17} aria-hidden />} disabled={acceptPending} onClick={onUnmark}>
+            Unmark accepted answer
+          </Menu.Item>
+        ) : null}
+        {onDelete ? (
+          <>
+            {onEdit || onUnmark ? <Menu.Divider /> : null}
+            <ConfirmDeleteMenuItem label={`Hold to delete ${name}`} pending={deletePending} onConfirm={onDelete} />
+          </>
+        ) : null}
+      </Menu.Dropdown>
+    </Menu>
+  );
+}
+
+function FaqEditorActions({
+  name,
+  dirty,
+  pending,
+  failed,
+  disabledReason,
+  onSave,
+  onCancel,
+}: {
+  name: 'question' | 'answer';
+  dirty: boolean;
+  pending: boolean;
+  failed: boolean;
+  disabledReason?: string;
+  onSave: () => void;
+  onCancel: () => void;
+}) {
+  const state = pending ? 'saving' : failed ? 'failed' : dirty ? 'dirty' : 'clean';
+  const description = pending
+    ? 'Saving changes'
+    : failed
+      ? 'Could not save. Try again.'
+      : dirty
+        ? 'Unsaved changes'
+        : 'No changes to save';
+  return (
+    <Group justify="flex-end" gap="xs" wrap="nowrap">
+      <IconAction
+        label={`Cancel editing ${name}`}
+        tooltip={dirty ? 'Discard unsaved changes' : 'Close editor'}
+        intent={dirty ? 'negative' : 'neutral'}
+        emphasis="standard"
+        size="lg"
+        icon={<X size={17} aria-hidden />}
+        disabled={pending}
+        onClick={onCancel}
+      />
+      <SaveAction
+        label={`Save ${name}`}
+        state={state}
+        lines={[description]}
+        disabledReason={disabledReason}
+        disabled={!dirty}
+        onSave={onSave}
+      />
     </Group>
   );
 }
@@ -525,7 +597,6 @@ function FaqQuestionPost({
   const hasAcceptedAnswer = answers.some((answer) => answer.accepted);
   const questionHeading = questionTitle(item.text);
   const startEditQuestion = () => editingSession.startEditQuestion(item);
-  const saveQuestion = () => void editingSession.saveQuestion(item);
   return (
     <div className={styles.question}>
       <div className={styles.post}>
@@ -535,12 +606,14 @@ function FaqQuestionPost({
         <Card
           title={questionHeading}
           action={
-            <FaqQuestionActions
-              faq={faq}
-              editing={editing.editingQuestion}
-              onEdit={startEditQuestion}
-              onDelete={onDelete}
-            />
+            editing.editingQuestion ? null : (
+              <FaqPostActions
+                name="question"
+                onEdit={item.capabilities.editQuestion ? startEditQuestion : undefined}
+                onDelete={item.capabilities.deleteQuestion ? onDelete : undefined}
+                deletePending={faq.deleteQuestion.isPending}
+              />
+            )
           }
         >
           <Stack gap="md">
@@ -559,39 +632,7 @@ function FaqQuestionPost({
               <FormError title="Question could not be deleted">{faq.deleteQuestion.error.message}</FormError>
             ) : null}
             {editing.editingQuestion ? (
-              <Stack gap="sm">
-                <FormattedTextInput
-                  label="Edit question"
-                  value={editing.questionValue}
-                  onChange={(value) => editingSession.setQuestionValue(value)}
-                  profile="marks-only"
-                  rows={2}
-                />
-                <FaqTagFieldset
-                  value={editing.tagValues}
-                  onToggle={(tag, checked) => editingSession.toggleTag(tag, checked)}
-                />
-                {faq.editQuestion.error ? (
-                  <FormError title="Question could not be saved">{faq.editQuestion.error.message}</FormError>
-                ) : null}
-                <Group gap="xs">
-                  <IconAction
-                    label="Save question"
-                    emphasis="strong"
-                    intent="positive"
-                    onClick={saveQuestion}
-                    disabled={faq.editQuestion.isPending}
-                    icon={<Check size={16} aria-hidden />}
-                  />
-                  <IconAction
-                    label="Cancel editing question"
-                    emphasis="standard"
-                    intent="neutral"
-                    onClick={() => editingSession.cancelQuestion()}
-                    icon={<X size={16} aria-hidden />}
-                  />
-                </Group>
-              </Stack>
+              <FaqQuestionEditor faq={faq} editing={editing} editingSession={editingSession} />
             ) : item.text.trim() !== questionHeading ? (
               <div className={styles.prose}>
                 <FormattedTextSource source={item.text} />
@@ -611,6 +652,40 @@ function FaqQuestionPost({
         </Card>
       </div>
     </div>
+  );
+}
+
+function FaqQuestionEditor({ faq, editing, editingSession }: FaqPostEditing) {
+  const item = faq.page!.question;
+  return (
+    <Stack gap="sm">
+      <FormattedTextInput
+        label="Edit question"
+        value={editing.questionValue}
+        onChange={(value) => editingSession.setQuestionValue(value)}
+        profile="marks-only"
+        rows={2}
+      />
+      <FaqTagFieldset value={editing.tagValues} onToggle={(tag, checked) => editingSession.toggleTag(tag, checked)} />
+      {faq.editQuestion.error ? (
+        <FormError title="Question could not be saved">{faq.editQuestion.error.message}</FormError>
+      ) : null}
+      <FaqEditorActions
+        name="question"
+        dirty={faqQuestionHasChanges(item, editing)}
+        pending={faq.editQuestion.isPending}
+        failed={faq.editQuestion.isError}
+        disabledReason={
+          !editing.questionValue.trim()
+            ? 'Enter a question to save.'
+            : editing.tagValues.length === 0
+              ? 'Choose at least one tag.'
+              : undefined
+        }
+        onSave={() => void editingSession.saveQuestion(item)}
+        onCancel={() => editingSession.cancelQuestion()}
+      />
+    </Stack>
   );
 }
 
