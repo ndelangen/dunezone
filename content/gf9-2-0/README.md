@@ -2,7 +2,7 @@
 
 Working branch `norbert/gf9-2-0-ruleset` prepares [GF9 2.0 ruleset, #2431](https://github.com/ndelangen/dunezone/issues/2431). The intended result is a Dune Zone rulebook that follows the supplied book page for page, with the same wording, examples and page breaks. A separate rulebook will explain the differences from the earlier rules.
 
-Start with the [working transcript](transcript.md), then read the [transcription review](transcription-review.md) and [block audit](block-audit.md). The [differences plan](differences-plan.md) records how to prepare the second book without changing the first.
+Start with the [reworked reading transcript](transcript-reworked.md). The [original working transcript](transcript.md) retains the OCR-oriented version. Then read the [transcription review](transcription-review.md) and [block audit](block-audit.md). The [differences plan](differences-plan.md) records how to prepare the second book without changing the first.
 
 ## Source
 
@@ -23,6 +23,7 @@ The source includes photographs with page curl, perspective, glare and a few cli
 | File | Purpose |
 | --- | --- |
 | [source.pdf](source.pdf) | Original supplied source, unchanged. |
+| [transcript-reworked.md](transcript-reworked.md) | Second visual pass, page by page. Restored sentences, paragraph order, captions and labels. Contextual reconstructions are marked where uncertain. |
 | [transcript.md](transcript.md) | All 36 pages, divided into reading regions. Source text is inside fenced regions; headings outside them are working labels. |
 | [page-map.json](page-map.json) | Source fingerprint, extraction settings, native image dimensions and fingerprints, page titles, candidate blocks, reading regions and stable OCR line IDs. |
 | [ocr/raw](ocr/raw) | First OCR pass, language correction disabled. Coordinates and confidence retained. |
