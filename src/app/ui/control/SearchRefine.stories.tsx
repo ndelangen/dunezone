@@ -1,4 +1,4 @@
-import { Select } from '@mantine/core';
+import { NativeSelect, Select } from '@mantine/core';
 import preview from '@sb/preview';
 import { waitForFrame } from '@sb/storyWaits';
 import { useState } from 'react';
@@ -16,10 +16,12 @@ const SORTS = [
 function Harness({
   segmented = false,
   active = 0,
+  inline = false,
   onCommit,
 }: {
   segmented?: boolean;
   active?: number;
+  inline?: boolean;
   onCommit?: () => void;
 }) {
   const [query, setQuery] = useState('');
@@ -41,13 +43,17 @@ function Harness({
       search={{
         value: query,
         onChange: setQuery,
-        onCommit: onCommit ?? (() => {}),
+        onCommit: inline ? undefined : (onCommit ?? (() => {})),
         label: 'Search cards',
         placeholder: 'Search by name or owner…',
       }}
-      refine={{ label: 'Refine cards', content: sortSelect('Sort by'), active }}
+      refine={inline ? undefined : { label: 'Refine cards', content: sortSelect('Sort by'), active }}
     >
-      {segmented ? sortSelect() : null}
+      {inline ? (
+        <NativeSelect variant="unstyled" aria-label="Card type" data={['Treachery cards', 'Spice cards']} />
+      ) : segmented ? (
+        sortSelect()
+      ) : null}
     </SearchRefine>
   );
 }
@@ -95,4 +101,18 @@ export const Narrowed = meta.story({
 /** A wide page shows the sort joined to the box instead of the button; below 48rem of page the button takes its place. */
 export const WithSegments = meta.story({
   render: () => <Harness segmented />,
+});
+
+/** A picker keeps its type selector joined to a live search at every width. */
+export const JoinedSelector = meta.story({
+  render: () => <Harness inline />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const input = canvas.getByRole('textbox', { name: 'Search cards' });
+    await userEvent.type(input, 'shield{Enter}');
+    await expect(input).toHaveFocus();
+    await expect(input).toHaveValue('shield');
+    await userEvent.selectOptions(canvas.getByRole('combobox', { name: 'Card type' }), 'Spice cards');
+    await expect(input).toHaveValue('shield');
+  },
 });

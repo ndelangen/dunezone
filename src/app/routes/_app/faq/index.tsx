@@ -2,6 +2,7 @@ import { Button, MultiSelect, Pill, Stack, Text, Title, VisuallyHidden } from '@
 import { FAQ_CATALOGUE_PAGE_SIZE } from '@shared/faq/catalogueSearch';
 import { globalFaqRulesetSlugs, parseGlobalFaqSearch } from '@shared/faq/globalSearch';
 import type { GlobalFaqSearch } from '@shared/faq/globalSearch';
+import { resolveAsset } from '@shared/media/resolveAsset';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { FaqWalkthrough } from '@ui/block/FaqWalkthrough';
 import { PageTitle } from '@ui/block/PageTitle';
@@ -150,24 +151,29 @@ function GlobalFaqPage() {
               title="How the FAQ works"
               description="Ask about a ruleset, let the table weigh in, and mark the reply that settled it."
             >
-              <Surface padding="lg">
-                <FaqWalkthrough
-                  asker="Chani"
-                  question="Can I ship troops into the storm?"
-                  answers={[
-                    { author: 'Stilgar', text: 'No. Shipment into a territory under the storm is never allowed.' },
-                    {
-                      author: 'Liet',
-                      text: 'The storm blocks shipment and movement into it, and troops already there are lost when it moves over them.',
-                    },
-                    {
-                      author: 'Jessica',
-                      text: 'Unless your faction has an advantage that says otherwise. Check your sheet.',
-                    },
-                  ]}
-                  accepted={1}
-                />
-              </Surface>
+              <FaqWalkthrough
+                asker="Chani"
+                askerImage={resolveAsset('/image/leader/official/chani.png', 'small')}
+                question="Can I ship troops into the storm?"
+                answers={[
+                  {
+                    author: 'Stilgar',
+                    image: resolveAsset('/image/leader/official/stilgar.png', 'small'),
+                    text: 'No. Shipment into a territory under the storm is never allowed.',
+                  },
+                  {
+                    author: 'Liet',
+                    image: resolveAsset('/image/leader/official/liet.jpg', 'small'),
+                    text: 'The storm blocks shipment and movement into it, and troops already there are lost when it moves over them.',
+                  },
+                  {
+                    author: 'Jessica',
+                    image: resolveAsset('/image/leader/official/jessica.png', 'small'),
+                    text: 'Unless your faction has an advantage that says otherwise. Check your sheet.',
+                  },
+                ]}
+                accepted={1}
+              />
             </Section>
           )}
           <AskOnRuleset />

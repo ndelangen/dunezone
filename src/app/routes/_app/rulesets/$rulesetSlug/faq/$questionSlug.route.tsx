@@ -840,7 +840,7 @@ function FaqReferenceAdd({ faq }: { readonly faq: FaqQuestionCommands }) {
       </Popover.Target>
       <Popover.Dropdown className={styles.referencePicker} role="dialog" aria-label="Add references">
         {opened ? (
-          <Stack gap="sm">
+          <Stack gap="sm" mih={0} flex={1}>
             <Group justify="space-between" wrap="nowrap">
               <Text fw={700}>Add references</Text>
               <IconAction

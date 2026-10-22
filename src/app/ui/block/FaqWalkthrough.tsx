@@ -1,58 +1,74 @@
-import { Badge, Text } from '@mantine/core';
-import { Check, CircleCheck, MousePointer2, Pause, Play } from 'lucide-react';
-import { useState } from 'react';
+import { Avatar, Button, Group, Stack, Text } from '@mantine/core';
+import { BadgeCheck, EllipsisVertical, MousePointer2, Pause, Play } from 'lucide-react';
+import { useLayoutEffect, useId, useRef, useState } from 'react';
 
 import { useMotionAllowed } from '@app/styles/motion';
 
+import { Eyebrow } from '../content/Eyebrow';
+import { StatusBadge } from '../content/StatusBadge';
 import { IconAction } from '../control/IconAction';
+import { Surface } from '../surface/Surface';
+import { BlockHeading } from './BlockHeading';
 import styles from './FaqWalkthrough.module.css';
 
 interface FaqWalkthroughAnswer {
-  /** Who replied. */
   author: string;
+  image?: string;
   text: string;
 }
 
 export interface FaqWalkthroughProps {
-  /** Who asks. */
   asker: string;
-  /** One line: it types out across the width it has, and a longer one is cut at the edge until the loop is off. */
+  askerImage?: string;
   question: string;
-  /** The replies, in the order they arrive; the first three arrive one after another, and any past the third arrive with the third. */
+  /** Replies in arrival order. */
   answers: readonly FaqWalkthroughAnswer[];
-  /** Which reply, by position, the asker takes as the answer. */
+  /** Position of the reply the asker accepts. */
   accepted: number;
 }
 
-/** The disc beside a name: the first letter, so a reader can tell the voices apart. */
-function Initial({ name, tone }: { name: string; tone: 'asker' | 'answerer' }) {
-  return (
-    <span className={styles.initial} data-tone={tone} aria-hidden>
-      {name.charAt(0).toUpperCase()}
-    </span>
-  );
-}
-
-/**
- * How a question becomes an answer: one person types a question, others reply, and the asker marks the reply that settled it, on a loop.
- *
- * Callers hand it the words of one exchange;
- * this block owns the staging: the typing, the replies arriving one after another, the pointer that picks the accepted answer, and the badge that follows.
- * It teaches the FAQ's shape to a reader who has not searched yet, so it says nothing about any real ruleset.
- *
- * A reader who keeps the site's motion off, through their device or the motion setting on their profile, sees the end of the story at once and still: the question asked, every reply in, one accepted.
- * The server renders that same end state, so the picture is complete before any script runs.
- * Everyone else can hold the loop with the pause control, since a story that plays for longer than a moment needs a way to stop it;
- * whether it is paused is the block's own state, and the control says so as a pressed state under one name.
- * The control stands beside the stage rather than on it, so the stage's fade between loops leaves it alone.
- */
-export function FaqWalkthrough({ asker, question, answers, accepted }: FaqWalkthroughProps) {
+/** The original continuous animation, dressed in the FAQ discussion's cards and controls. */
+export function FaqWalkthrough({ asker, askerImage, question, answers, accepted }: FaqWalkthroughProps) {
   const motion = useMotionAllowed();
   const [paused, setPaused] = useState(false);
+  const questionId = useId();
+  const listRef = useRef<HTMLOListElement>(null);
+  /*
+   * Replies arrive in DOM order with no measured positioning.
+   * Only the later acceptance move needs offsets, recalculated when rows resize.
+   * Reduced motion puts the accepted reply first through grid order.
+   */
+  useLayoutEffect(() => {
+    const list = listRef.current;
+    if (!list || !motion) {
+      return;
+    }
+    const rows = Array.from(list.children) as HTMLLIElement[];
+    const measure = () => {
+      const gap = Number.parseFloat(getComputedStyle(list).rowGap) || 0;
+      let top = 0;
+      for (const row of [...rows].sort(
+        (a, b) => Number(b.hasAttribute('data-accepted')) - Number(a.hasAttribute('data-accepted'))
+      )) {
+        row.style.setProperty('--faq-after-y', `${top - row.offsetTop}px`);
+        top += row.offsetHeight + gap;
+      }
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(list);
+    for (const row of rows) {
+      observer.observe(row);
+    }
+    return () => observer.disconnect();
+  }, [answers, accepted, motion]);
+  const ordered = answers.map((answer, index) => ({ ...answer, index }));
+
   return (
-    <div className={styles.walkthrough} data-playback={motion || undefined}>
-      {motion ? (
-        <span className={styles.playback}>
+    <div className={styles.walkthrough}>
+      <Group justify="space-between" wrap="nowrap">
+        <Eyebrow>Example discussion</Eyebrow>
+        {motion ? (
           <IconAction
             label="Pause animation"
             emphasis="quiet"
@@ -62,63 +78,116 @@ export function FaqWalkthrough({ asker, question, answers, accepted }: FaqWalkth
             onClick={() => setPaused((current) => !current)}
             icon={paused ? <Play size={14} aria-hidden /> : <Pause size={14} aria-hidden />}
           />
-        </span>
-      ) : null}
+        ) : null}
+      </Group>
       <div className={styles.stage} data-motion={motion ? undefined : 'reduce'} data-paused={paused || undefined}>
         <div className={styles.question}>
-          <div className={styles.voice}>
-            <Initial name={asker} tone="asker" />
-            <Text component="span" size="sm" fw={600}>
-              {asker}
-            </Text>
-            <Text component="span" size="sm" c="dimmed">
-              asks
-            </Text>
-          </div>
-          <p className={styles.asked}>
-            <span className={styles.typed}>{question}</span>
-          </p>
-        </div>
-        <ol className={styles.answers}>
-          {answers.map((answer, index) => {
-            const isAccepted = index === accepted;
-            return (
-              <li key={index} className={styles.answer} data-accepted={isAccepted || undefined}>
-                <div className={styles.voice}>
-                  <Initial name={answer.author} tone="answerer" />
-                  <Text component="span" size="sm" fw={600}>
-                    {answer.author}
-                  </Text>
-                  <Text component="span" size="sm" c="dimmed">
-                    replies
-                  </Text>
-                  {isAccepted ? (
-                    <Badge
-                      className={styles.badge}
-                      variant="light"
-                      color="green"
-                      leftSection={<CircleCheck size={12} aria-hidden />}
-                    >
-                      Accepted answer
-                    </Badge>
-                  ) : null}
+          <ExampleAuthor name={asker} image={askerImage} label="Asked by" />
+          <Surface as="section" aria-labelledby={questionId} padding="lg">
+            <Stack gap="md">
+              <div className={styles.title}>
+                <div className={styles.typed}>
+                  <BlockHeading id={questionId} title={question} />
                 </div>
-                <Text size="sm" className={styles.reply}>
-                  {answer.text}
-                </Text>
-                {isAccepted ? (
-                  <span className={styles.accept} aria-hidden>
-                    <span className={styles.acceptMark}>
-                      <Check size={14} />
-                    </span>
-                    <MousePointer2 className={styles.pointer} size={22} />
+                <span className={styles.caret} aria-hidden />
+              </div>
+              <Group gap="xs">
+                <div className={styles.status}>
+                  <span className={styles.open}>
+                    <StatusBadge tone="neutral">Open question</StatusBadge>
                   </span>
-                ) : null}
+                  <span className={styles.badge}>
+                    <StatusBadge tone="positive">Answered</StatusBadge>
+                  </span>
+                </div>
+                <Text size="xs" c="dimmed">
+                  Asked just now
+                </Text>
+              </Group>
+            </Stack>
+          </Surface>
+        </div>
+        <ol ref={listRef} className={styles.answers} aria-label="Example answers">
+          {ordered.map((answer) => {
+            const isAccepted = answer.index === accepted;
+            return (
+              <li
+                key={answer.index}
+                className={styles.answer}
+                data-order={answer.index}
+                data-accepted={isAccepted || undefined}
+                data-arrival={answer.index === 0 ? 'first' : answer.index === 1 ? 'second' : 'third'}
+              >
+                <ExampleAuthor name={answer.author} image={answer.image} />
+                <Surface as="article" aria-label={`${answer.author}'s example answer`} padding="lg">
+                  <Stack gap="md">
+                    <Group justify="space-between" wrap="nowrap" align="start">
+                      <Group gap="xs">
+                        <div className={styles.status}>
+                          <Text size="xs" fw={700} className={isAccepted ? styles.open : undefined}>
+                            Answer
+                          </Text>
+                          {isAccepted ? (
+                            <span className={styles.badge}>
+                              <StatusBadge tone="positive">Accepted answer</StatusBadge>
+                            </span>
+                          ) : null}
+                        </div>
+                        <Text size="xs" c="dimmed">
+                          Just now
+                        </Text>
+                      </Group>
+                      <IconAction
+                        label="Example answer actions"
+                        intent="neutral"
+                        emphasis="standard"
+                        size="lg"
+                        icon={<EllipsisVertical size={17} aria-hidden />}
+                        renderRoot={(props) => <span {...props} aria-hidden />}
+                      />
+                    </Group>
+                    {isAccepted ? (
+                      <Text size="xs" c="dimmed" className={styles.acceptedAt}>
+                        Accepted by {asker} just now
+                      </Text>
+                    ) : null}
+                    <Text className={styles.prose}>{answer.text}</Text>
+                    <Group justify="flex-end" className={styles.acceptRow} aria-hidden>
+                      <div className={styles.accept}>
+                        <Button
+                          component="span"
+                          color="confirm"
+                          variant="filled"
+                          size="sm"
+                          className={styles.acceptButton}
+                          leftSection={<BadgeCheck size={17} aria-hidden />}
+                        >
+                          Accept answer
+                        </Button>
+                        {isAccepted ? <MousePointer2 className={styles.pointer} size={24} aria-hidden /> : null}
+                      </div>
+                    </Group>
+                  </Stack>
+                </Surface>
               </li>
             );
           })}
         </ol>
       </div>
     </div>
+  );
+}
+
+function ExampleAuthor({ name, image, label }: { name: string; image?: string; label?: string }) {
+  return (
+    <Stack gap="xs" className={styles.author}>
+      {label ? <Eyebrow>{label}</Eyebrow> : null}
+      <div className={styles.identity}>
+        <Avatar src={image} alt="" size={56} radius="50%">
+          {name.slice(0, 2).toUpperCase()}
+        </Avatar>
+        <Text fw={600}>{name}</Text>
+      </div>
+    </Stack>
   );
 }
