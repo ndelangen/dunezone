@@ -137,7 +137,11 @@ async function acceptedThread({ canvasElement }: { canvasElement: HTMLElement })
     'Related Karama question 5?',
   ]);
   await expect(page.getAllByRole('link', { name: 'Arrakeen Rules Council' }).length).toBeGreaterThanOrEqual(3);
-  await expectWithinWidth(canvasElement, [thread, ...thread.querySelectorAll('a')]);
+  await expectWithinWidth(canvasElement, [
+    page.getByRole('group', { name: 'Navigation' }),
+    thread,
+    ...thread.querySelectorAll('a'),
+  ]);
   canvasElement.ownerDocument.defaultView?.scrollTo(0, 0);
 }
 
