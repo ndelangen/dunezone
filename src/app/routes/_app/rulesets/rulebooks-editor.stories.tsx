@@ -116,47 +116,40 @@ function renderedPageCount(canvasElement: HTMLElement) {
 }
 
 type EditorArrival = {
-  slug: string | null;
+  canvasElement: HTMLElement;
+  pathname: string | null;
   waitingFor: string | null;
   oldQueryHeld: boolean;
   earlyRename: boolean;
   oldWorkspaceRetired: boolean;
   releaseOldQuery: () => void;
+  observe: (pathname: string) => void;
 };
 
-let editorArrival: EditorArrival;
+const renamedEditorPath = '/rulesets/classicrules/rulebooks/battle-reference/edit';
 
-function observeEditorArrival() {
+function loadEditorArrival({ canvasElement }: { canvasElement: HTMLElement }) {
   const arrival: EditorArrival = {
-    slug: null,
+    canvasElement,
+    pathname: null,
     waitingFor: null,
     oldQueryHeld: false,
     earlyRename: false,
     oldWorkspaceRetired: false,
     releaseOldQuery: () => {},
+    observe: (pathname) => {
+      arrival.pathname = pathname;
+    },
   };
-  editorArrival = arrival;
-  const { onEnter, onStay } = RulebookEditorRoute.options;
-  RulebookEditorRoute.options.onEnter = (match) => {
-    arrival.slug = match.params.rulebookSlug;
-    onEnter?.(match);
-  };
-  RulebookEditorRoute.options.onStay = (match) => {
-    arrival.slug = match.params.rulebookSlug;
-    onStay?.(match);
-  };
-  return () => {
-    RulebookEditorRoute.options.onEnter = onEnter;
-    RulebookEditorRoute.options.onStay = onStay;
-  };
+  return { editorArrival: arrival };
 }
 
-async function waitForEditorArrival(slug: string) {
-  editorArrival.waitingFor = slug;
-  await waitFor(() => expect(editorArrival.slug).toBe(slug));
+async function waitForEditorArrival(arrival: EditorArrival) {
+  arrival.waitingFor = renamedEditorPath;
+  await waitFor(() => expect(arrival.pathname).toBe(renamedEditorPath));
 }
 
-async function renameRulebook({ canvasElement }: { canvasElement: HTMLElement }) {
+async function renameRulebook(canvasElement: HTMLElement, arrival: EditorArrival) {
   const page = within(canvasElement.ownerDocument.body);
   await userEvent.click(await page.findByRole('button', { name: 'Rename Rulebook' }, { timeout: 30_000 }));
   const form = page.getByRole('form', { name: 'Rename Rulebook' });
@@ -168,7 +161,7 @@ async function renameRulebook({ canvasElement }: { canvasElement: HTMLElement })
   /* The old toolbar still answers this name until its slug's subscription refuses it.
    * Wait for the new address before reopening the form, then read back the saved name.
    */
-  await waitForEditorArrival('battle-reference');
+  await waitForEditorArrival(arrival);
   const rename = await page.findByRole('button', { name: 'Rename Rulebook' }, { timeout: 30_000 });
   await waitFor(() => expect(rename).not.toHaveAttribute('aria-disabled'), { timeout: 30_000 });
   await userEvent.click(rename);
@@ -184,78 +177,75 @@ async function renameRulebook({ canvasElement }: { canvasElement: HTMLElement })
 
 export const Rename = meta.story({
   args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#RULE/details' },
-  beforeEach: observeEditorArrival,
-  play: renameRulebook,
+  loaders: [loadEditorArrival],
+  render: (args, { loaded }) => (
+    <StorybookPage {...args} onResolved={(loaded.editorArrival as EditorArrival).observe} />
+  ),
+  play: ({ canvasElement, loaded }) => renameRulebook(canvasElement, loaded.editorArrival as EditorArrival),
 });
 
 /* Deliver the real old-address refusal after the caller reaches its next action, before the new editor can arrive. */
-function LateOldAddressRenameStory({ path }: { path: string }) {
+function holdOldAddressQuery(client: ReturnType<typeof useStorybookDatabaseClient>, arrival: EditorArrival) {
+  const query = client.query;
+  const delivery = new Promise<void>((resolve) => {
+    arrival.releaseOldQuery = resolve;
+  });
+  let retirement: Promise<void> | undefined;
+  const retireOldWorkspace = async () => {
+    await waitFor(() => expect(arrival.oldQueryHeld).toBe(true));
+    await waitFor(() => expect(arrival.waitingFor === renamedEditorPath || arrival.earlyRename).toBe(true));
+    arrival.releaseOldQuery();
+    await waitFor(() =>
+      expect(arrival.canvasElement.querySelector('[aria-label="Rulebook editing workspace"]')).toBeNull()
+    );
+    arrival.oldWorkspaceRetired = true;
+  };
+  const heldQuery = spyOn(client, 'query').mockImplementation(async (fn, args, identity) => {
+    if (args.rulebook_slug === 'battle-reference') {
+      retirement ??= retireOldWorkspace();
+      await retirement;
+    }
+    const result = await query(fn, args, identity);
+    if (args.rulebook_slug === 'book-0' && result === null) {
+      arrival.oldQueryHeld = true;
+      await delivery;
+    }
+    return result;
+  });
+  const capture = (event: MouseEvent) => {
+    if (
+      arrival.oldQueryHeld &&
+      arrival.pathname !== renamedEditorPath &&
+      event.target instanceof Element &&
+      event.target.closest('button[aria-label="Rename Rulebook"]')
+    ) {
+      arrival.earlyRename = true;
+    }
+  };
+  arrival.canvasElement.addEventListener('click', capture, true);
+  return () => {
+    heldQuery.mockRestore();
+    arrival.releaseOldQuery();
+    arrival.canvasElement.removeEventListener('click', capture, true);
+  };
+}
+
+function LateOldAddressRenameStory({ path, arrival }: { path: string; arrival: EditorArrival }) {
   const client = useStorybookDatabaseClient();
-  useEffect(() => {
-    const arrival = editorArrival;
-    const query = client.query;
-    const delivery = new Promise<void>((resolve) => {
-      arrival.releaseOldQuery = resolve;
-    });
-    const heldQuery = spyOn(client, 'query').mockImplementation(async (fn, args, identity) => {
-      const result = await query(fn, args, identity);
-      if (args.rulebook_slug === 'book-0' && result === null) {
-        arrival.oldQueryHeld = true;
-        await delivery;
-      }
-      return result;
-    });
-    const capture = (event: MouseEvent) => {
-      if (
-        arrival.oldQueryHeld &&
-        arrival.slug === 'book-0' &&
-        event.target instanceof Element &&
-        event.target.closest('button[aria-label="Rename Rulebook"]')
-      ) {
-        arrival.earlyRename = true;
-      }
-    };
-    document.addEventListener('click', capture, true);
-    return () => {
-      heldQuery.mockRestore();
-      arrival.releaseOldQuery();
-      document.removeEventListener('click', capture, true);
-    };
-  }, [client]);
-  return <StorybookPage path={path} />;
+  useEffect(() => holdOldAddressQuery(client, arrival), [client, arrival]);
+  return <StorybookPage path={path} onResolved={arrival.observe} />;
 }
 
 export const RenameAfterOldAddressExpires = meta.story({
   args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#RULE/details' },
-  render: (args) => <LateOldAddressRenameStory {...args} />,
-  beforeEach: () => {
-    const restoreArrival = observeEditorArrival();
-    const arrival = editorArrival;
-    const loader = RulebookEditorRoute.options.loader;
-    if (typeof loader !== 'function') {
-      throw new Error('The rename navigation regression needs the editor loader function.');
-    }
-    RulebookEditorRoute.options.loader = async (context) => {
-      if (context.params.rulebookSlug === 'battle-reference') {
-        await waitFor(() => expect(arrival.oldQueryHeld).toBe(true));
-        await waitFor(() => expect(arrival.waitingFor === 'battle-reference' || arrival.earlyRename).toBe(true));
-        arrival.releaseOldQuery();
-        await waitFor(() => expect(document.querySelector('[aria-label="Rulebook editing workspace"]')).toBeNull());
-        arrival.oldWorkspaceRetired = true;
-      }
-      return loader(context);
-    };
-    return () => {
-      arrival.releaseOldQuery();
-      RulebookEditorRoute.options.loader = loader;
-      restoreArrival();
-    };
-  },
-  play: async (context) => {
-    await renameRulebook(context);
-    await expect(editorArrival.oldQueryHeld).toBe(true);
-    await expect(editorArrival.oldWorkspaceRetired).toBe(true);
-    await expect(editorArrival.earlyRename).toBe(false);
+  loaders: [loadEditorArrival],
+  render: (args, { loaded }) => <LateOldAddressRenameStory {...args} arrival={loaded.editorArrival as EditorArrival} />,
+  play: async ({ canvasElement, loaded }) => {
+    const arrival = loaded.editorArrival as EditorArrival;
+    await renameRulebook(canvasElement, arrival);
+    await expect(arrival.oldQueryHeld).toBe(true);
+    await expect(arrival.oldWorkspaceRetired).toBe(true);
+    await expect(arrival.earlyRename).toBe(false);
   },
 });
 
