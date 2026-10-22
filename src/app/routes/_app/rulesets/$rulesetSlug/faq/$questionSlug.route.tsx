@@ -525,7 +525,7 @@ function FaqPostActions({
         {onDelete ? (
           <>
             {onEdit || onUnmark ? <Menu.Divider /> : null}
-            <ConfirmDeleteMenuItem label={`Hold to delete ${name}`} disabled={deletePending} onConfirm={onDelete} />
+            <ConfirmDeleteMenuItem label={`Hold to delete ${name}`} pending={deletePending} onConfirm={onDelete} />
           </>
         ) : null}
       </Menu.Dropdown>

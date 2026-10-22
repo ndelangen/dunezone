@@ -10,6 +10,8 @@ export interface ConfirmDeleteMenuItemProps {
   onConfirm: () => void;
   /** Disables the item, and drops a countdown already running. */
   disabled?: boolean;
+  /** True while the request runs, so a failed request can be retried in the same menu. */
+  pending?: boolean;
   /** The countdown's verb, "Deleting" unless the item does something else for good, such as "Leaving". */
   holdingVerb?: string;
 }
@@ -26,13 +28,14 @@ export function ConfirmDeleteMenuItem({
   label,
   onConfirm,
   disabled = false,
+  pending = false,
   holdingVerb = 'Deleting',
 }: ConfirmDeleteMenuItemProps) {
-  const { holding, remaining, handlers } = useHoldToConfirm({ pending: false, blocked: disabled, onConfirm });
+  const { holding, remaining, handlers } = useHoldToConfirm({ pending, blocked: disabled, onConfirm });
   return (
     <Menu.Item
       color="red"
-      disabled={disabled}
+      disabled={disabled || pending}
       {...handlers}
       onPointerDown={(event: PointerEvent<HTMLButtonElement>) => {
         /* Mantine keeps a pressed item from taking focus, so the hold focuses it: focus moving elsewhere then blurs it and cancels. */
