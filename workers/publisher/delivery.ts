@@ -6,15 +6,15 @@ import {
   publishedR2Key,
 } from '../../src/shared/asset-publishing/publicationTargets';
 import type { PublicationAssetType } from '../../src/shared/asset-publishing/publicationTargets';
-import { publisherFailureFields } from '../../src/shared/asset-publishing/publisher-diagnostics';
 import { matchRulebookAnnotatedIllustrationPath } from '../../src/shared/rulebooks/annotatedIllustration';
 import { matchRulebookHtmlPath, matchRulebookPdfPath } from '../../src/shared/rulebooks/editionArtifacts';
 import { handleComponentRequest } from './component-delivery';
 import type { ConvexPublisherClient } from './convex';
+import { deliveryReporter } from './delivery-diagnostics';
+import type { ReportDeliveryFailure } from './delivery-diagnostics';
 import { handleRulebookHtmlRequest } from './rulebook-html-delivery';
 import { handleRulebookIllustrationRequest } from './rulebook-illustration-delivery';
 import { handleRulebookPdfRequest } from './rulebook-pdf-delivery';
-import { boundedPublisherTelemetryEvent } from './telemetry';
 
 // HTTP precondition/range evaluation (private): decisions are applied, not re-exported.
 type AssetRepresentation = {
@@ -359,54 +359,6 @@ type DeliveryDependencies = {
   rulebookHtmlClient?: Pick<ConvexPublisherClient, 'resolveRulebookArtifactDelivery'>;
   rulebookPdfClient?: Pick<ConvexPublisherClient, 'resolveRulebookArtifactDelivery'>;
 };
-
-type DeliveryFailure = {
-  operation: 'r2_head' | 'r2_get' | 'cache_match' | 'cache_range_match' | 'cache_put';
-  result: 'unavailable' | 'fallback' | 'cache_not_stored';
-  reason: 'exception' | 'missing_object' | 'missing_body' | 'etag_mismatch';
-  startedAt: number;
-  error?: unknown;
-  expectedEtag?: string;
-  actualEtag?: string | null;
-};
-
-type ReportDeliveryFailure = (failure: DeliveryFailure) => void;
-
-function deliveryReporter(request: Request, assetType: PublicationAssetType, assetId: string): ReportDeliveryFailure {
-  const ray = request.headers.get('CF-Ray');
-  const rayId = ray && /^[a-f\d]{16}(?:-[A-Z]{3})?$/iu.test(ray) ? ray : undefined;
-  return ({ error, startedAt, ...failure }) => {
-    const details = error === undefined ? undefined : publisherFailureFields(error);
-    const provider = details?.errors.find((detail) => detail.code !== undefined);
-    const context = {
-      event: 'asset_delivery_failure',
-      assetType,
-      assetId,
-      method: request.method,
-      rayId,
-      ...failure,
-      elapsedMs: Math.max(0, Date.now() - startedAt),
-      providerCode: provider?.code,
-      providerAction: provider?.action,
-    };
-    let event = boundedPublisherTelemetryEvent({ ...context, ...details });
-    if (event.result === 'telemetry_truncated') {
-      /* Keep the failed operation and request when a large error graph exceeds the log budget. */
-      event = boundedPublisherTelemetryEvent({
-        ...context,
-        error: details?.error.slice(0, 128),
-        errors: details?.errors.map(({ name, message, code, action }) => ({
-          name: name.slice(0, 64),
-          message: message.slice(0, 128),
-          code,
-          action,
-        })),
-        errorsTruncated: true,
-      });
-    }
-    console.error(JSON.stringify(event));
-  };
-}
 
 function noStoreResponse(body: BodyInit | null, status: number, headers?: HeadersInit): Response {
   const resultHeaders = new Headers(headers);
