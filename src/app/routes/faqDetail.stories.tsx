@@ -178,6 +178,10 @@ export const ReferencePickerPhone = meta.story({
   globals: { viewport: { value: 'appMobileNarrow' } },
   play: openReferencePicker,
 });
+export const ReferencePickerShortCanvas = meta.story({
+  globals: { viewport: { value: 'appShortCanvas' } },
+  play: openReferencePicker,
+});
 
 export const PickReferences = meta.story({
   play: async (context) => {

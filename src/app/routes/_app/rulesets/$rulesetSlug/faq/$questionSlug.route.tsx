@@ -826,6 +826,7 @@ function FaqReferenceAdd({ faq }: { readonly faq: FaqQuestionCommands }) {
       returnFocus
       preventPositionChangeWhenVisible={false}
       middlewares={{
+        shift: { crossAxis: true },
         size: {
           apply: ({ availableHeight, elements }) => {
             elements.floating.style.setProperty('--catalogue-picker-height', `${Math.max(160, availableHeight)}px`);

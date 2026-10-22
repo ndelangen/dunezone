@@ -55,7 +55,7 @@ export function CataloguePicker(props: CataloguePickerProps) {
           />
         </Combobox.EventsTarget>
         <ScrollArea.Autosize
-          mah="min(26rem, calc(var(--catalogue-picker-height, 55dvh) - 7rem))"
+          mah="min(26rem, calc(var(--catalogue-picker-height, 55dvh) - 8rem))"
           type="auto"
           overscrollBehavior="contain"
         >
