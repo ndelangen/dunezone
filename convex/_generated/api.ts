@@ -164,6 +164,7 @@ import type * as rulesetBoards from "../rulesetBoards.js";
 import type * as rulesetCovers from "../rulesetCovers.js";
 import type * as rulesets from "../rulesets.js";
 import type * as slugAllocationTesting from "../slugAllocationTesting.js";
+import type * as spiceDeckMerge from "../spiceDeckMerge.js";
 import type * as statistics from "../statistics.js";
 import type * as types from "../types.js";
 
@@ -331,6 +332,7 @@ const fullApi: ApiFromModules<{
   rulesetCovers: typeof rulesetCovers;
   rulesets: typeof rulesets;
   slugAllocationTesting: typeof slugAllocationTesting;
+  spiceDeckMerge: typeof spiceDeckMerge;
   statistics: typeof statistics;
   types: typeof types;
 }> = anyApi as unknown as typeof fullApi;
