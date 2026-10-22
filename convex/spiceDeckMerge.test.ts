@@ -28,10 +28,6 @@ const TERRITORIES = [
   ['The Minor Erg', 'the-minor-erg', 8],
   ['Wind Pass North', 'wind-pass-north', 6],
 ] as const;
-const SHORT_NAMES: Record<string, string> = {
-  'Habbanya Ridge Flat': 'Habbanya R. Flat',
-  'Rock Outcroppings': 'Rock Outcrops',
-};
 
 const spice = (name: string, highlight: string, amount: number, extra: object = {}) => ({
   name,
@@ -56,7 +52,7 @@ async function setup(copyAmount = (amount: number) => amount) {
     );
   }
   for (const [name, highlight, amount] of TERRITORIES) {
-    const data = spice(SHORT_NAMES[name] ?? name, highlight, copyAmount(amount), {
+    const data = spice(name, highlight, copyAmount(amount), {
       text: 'West sector.',
       about: `GF9 base Spice Card. Place ${amount} spice in ${name}.`,
     });
@@ -120,7 +116,7 @@ test(
       about: 'GF9 base Spice Card. Place 10 spice in Habbanya Ridge Flat.',
     });
     expect(rows.slice(15).every((row) => row!.is_deleted)).toBe(true);
-    expect(rows[20]!.slug).toBe('habbanya-r-flat');
+    expect(rows[20]!.slug).toBe('habbanya-ridge-flat-1');
     /* A second run finds the copies retired and stops before writing. */
     await expect(t.mutation(internal.spiceDeckMerge.mergeDuplicateSpiceCards, { dryRun: true })).rejects.toThrow(
       'No live Spice card at card-spice/broken-land-1'
@@ -189,7 +185,7 @@ test(
           key: highlight,
           kind: 'asset',
           type: 'card-spice',
-          data: spice(SHORT_NAMES[name] ?? name, highlight, amount, { text: 'West sector.', about: 'GF9.' }),
+          data: spice(name, highlight, amount, { text: 'West sector.', about: 'GF9.' }),
         })),
         {
           key: 'gf9-spice-deck',

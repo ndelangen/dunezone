@@ -651,11 +651,9 @@ export default defineSchema({
      * Where the faction sits in the ruleset's own order, lowest first;
      * its maintainers set it by dragging on the edit page, and the ruleset page shows the first few.
      * Only the order matters, not the numbers: a new link is appended with the time it was made, and a reorder renumbers every link from 0.
-     * Optional until `ruleset_factions_position_v1` has given every existing link its creation time.
      */
-    position: v.optional(v.number()),
+    position: v.number(),
   })
-    .index('by_ruleset', ['ruleset_id'])
     .index('by_ruleset_position', ['ruleset_id', 'position'])
     .index('by_faction', ['faction_id'])
     .index('by_ruleset_faction', ['ruleset_id', 'faction_id']),

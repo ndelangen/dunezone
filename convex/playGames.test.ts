@@ -214,11 +214,11 @@ describe('real games are created and entered by any signed-in player, Administra
         });
       const shared = await faction('atreides', 'House Atreides');
       const own = await faction('ixians', 'Ixians');
-      await ctx.db.insert('ruleset_factions', { ruleset_id: rulesets.ready, faction_id: shared });
-      await ctx.db.insert('ruleset_factions', { ruleset_id: rulesets.ready, faction_id: own });
-      await ctx.db.insert('ruleset_factions', { ruleset_id: rulesets.emptySpice, faction_id: shared });
+      await ctx.db.insert('ruleset_factions', { ruleset_id: rulesets.ready, faction_id: shared, position: 0 });
+      await ctx.db.insert('ruleset_factions', { ruleset_id: rulesets.ready, faction_id: own, position: 1 });
+      await ctx.db.insert('ruleset_factions', { ruleset_id: rulesets.emptySpice, faction_id: shared, position: 0 });
       /* A deleted ruleset's leftover link does not make a faction shared. */
-      await ctx.db.insert('ruleset_factions', { ruleset_id: rulesets.deleted, faction_id: own });
+      await ctx.db.insert('ruleset_factions', { ruleset_id: rulesets.deleted, faction_id: own, position: 0 });
     });
     const listing = await member.query(api.playGames.creatable, { rulesetId: rulesets.ready });
     if (listing.access !== 'allowed') {

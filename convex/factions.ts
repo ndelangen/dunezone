@@ -222,10 +222,20 @@ const catalogueSpotlightsValidator = v.object({
 
 const catalogueRulesetsValidator = v.array(rulesetSummaryValidator.extend({ factionCount: v.number() }));
 
+/**
+ * The member filter as the address asked it: the slug named, and the member whose list that is, or null when no public profile answers to it.
+ * Null when no slug was asked.
+ * The slug is echoed so the route can tell this answer judged the address it holds, and not the previous page's.
+ */
+const catalogueOwnerValidator = v.union(
+  v.object({ asked: v.string(), member: v.union(v.object({ slug: v.string(), name: v.string() }), v.null()) }),
+  v.null()
+);
+
 /** A browsed page: aggregate counts, numbered pages, a chosen order. */
 const catalogueBrowseValidator = v.object({
   cards: v.array(catalogueFactionValidator),
-  /** Factions matching the search and filters, across every page. */
+  /** Factions matching the filters, across every page. */
   total: v.number(),
   /** Live factions in the catalogue, before any search or filter. */
   catalogueTotal: v.number(),
@@ -236,6 +246,7 @@ const catalogueBrowseValidator = v.object({
   pageCount: v.number(),
   pageSize: v.number(),
   rulesets: catalogueRulesetsValidator,
+  owner: catalogueOwnerValidator,
   spotlights: catalogueSpotlightsValidator,
 });
 
@@ -252,20 +263,22 @@ const catalogueSearchValidator = v.object({
   /** Live factions in the catalogue, before any search or filter. */
   catalogueTotal: v.number(),
   rulesets: catalogueRulesetsValidator,
+  owner: catalogueOwnerValidator,
   spotlights: catalogueSpotlightsValidator,
 });
 
 /**
  * The Faction catalogue, the same for every viewer: the route's search parameters in, the visible cards and the counts out.
- * A search with a `limit` is the load-more search;
- * without one it is browsed, in pages.
- * A searched `q` without `limit` is an old bundle's paged search, kept one release for the bundle deployed before this and dropped in the contract release.
+ * A search is the load-more search, best matches first up to `limit`;
+ * without one the catalogue is browsed, in pages.
  * Replaces `cataloguePage`, which stays for one release so a bundle still asking for it keeps working while this one deploys.
  */
 export const catalogue = publicQuery({
   args: {
     q: v.optional(v.string()),
     ruleset: v.optional(v.string()),
+    /** A profile slug: only that member's factions, in place of a ruleset's. */
+    owner: v.optional(v.string()),
     complexity: v.optional(v.string()),
     sort: v.optional(catalogueSortValidator),
     page: v.optional(v.number()),
@@ -275,7 +288,7 @@ export const catalogue = publicQuery({
   returns: v.union(catalogueBrowseValidator, catalogueSearchValidator),
   handler: async (ctx, args) =>
     /* Gated on the text the search runs, so a query that is blank once cut to length browses instead. */
-    args.q?.slice(0, FACTION_CATALOGUE_QUERY_LIMIT).trim() && args.limit !== undefined
+    args.q?.slice(0, FACTION_CATALOGUE_QUERY_LIMIT).trim()
       ? await loadFactionCatalogueSearch(ctx, args)
       : await loadFactionCataloguePage(ctx, args),
 });

@@ -22,6 +22,7 @@ import { normalizeFormattedText } from '../src/shared/formattedText';
 import { components, internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
 import { internalQuery } from './_generated/server';
+import { CATALOGUE_MIGRATION_IDS } from './catalogueMigrations';
 import { adminQuery, internalMutation, mutation } from './functions';
 import { accountStateOf } from './lib/accountLifecycle';
 import { hasAuthoredBack, TOKEN_ASSET_TYPES, tokenBackOf } from './lib/assetBacks';
@@ -77,8 +78,7 @@ const MIGRATION_IDS: Record<string, MigrationRef> = {
   catalogue_entries_profiles_verify_v1: internal.migrations.catalogue_entries_profiles_verify_v1,
   catalogue_entries_faq_v1: internal.migrations.catalogue_entries_faq_v1,
   catalogue_entries_faq_verify_v1: internal.migrations.catalogue_entries_faq_verify_v1,
-  catalogue_entries_rulesets_v1: internal.catalogueMigrations.catalogue_entries_rulesets_v1,
-  catalogue_entries_rulesets_verify_v1: internal.catalogueMigrations.catalogue_entries_rulesets_verify_v1,
+  ...CATALOGUE_MIGRATION_IDS,
   ruleset_factions_position_v1: internal.migrations.ruleset_factions_position_v1,
   catalogue_entries_prune_v1: internal.migrations.catalogue_entries_prune_v1,
   catalogue_entries_verify_v1: internal.migrations.catalogue_entries_verify_v1,
@@ -1429,7 +1429,8 @@ export const catalogue_entries_faq_verify_v1 = migrations.define({
 export const ruleset_factions_position_v1 = migrations.define({
   table: 'ruleset_factions',
   migrateOne: async (ctx, link) => {
-    if (link.position === undefined) {
+    /* Every link carries a position once the schema requires it, so this only matters to a manifest replay; the cast reads past the narrowed type. */
+    if ((link as Partial<typeof link>).position === undefined) {
       await ctx.db.patch('ruleset_factions', link._id, { position: link._creationTime });
     }
   },

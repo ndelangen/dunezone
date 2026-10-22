@@ -1,5 +1,5 @@
 import { useAuthActions } from '@convex-dev/auth/react';
-import { Anchor, Group, Pagination, Stack, Text } from '@mantine/core';
+import { Anchor, Box, Button, Group, Pagination, Stack, Text } from '@mantine/core';
 import { parseProfileFaqPages } from '@shared/profiles/faqActivity';
 import type { ProfileFaqPages } from '@shared/profiles/faqActivity';
 import type { ErrorComponentProps } from '@tanstack/react-router';
@@ -22,6 +22,7 @@ import { Card } from '@ui/surface/Card';
 import { Toolbar } from '@ui/surface/Toolbar';
 import {
   ArrowLeft,
+  ArrowRight,
   CheckCircle2,
   CircleHelp,
   Link2,
@@ -73,7 +74,7 @@ export const Route = createFileRoute('/_app/profiles/$profileSlug/')({
       description: loaderData
         ? profileDescription({
             username: loaderData.profilePage.profile.username,
-            factions: loaderData.profilePage.factions.length,
+            factions: loaderData.profilePage.factionCount,
             groups: loaderData.profilePage.groupSummaries.length,
             faqContributions: loaderData.profilePage.faqAsked.length + loaderData.profilePage.faqAnswers.length,
           })
@@ -107,6 +108,41 @@ function ProfileDetailError({ error }: ErrorComponentProps) {
         {errorMessage(error)}
       </LoadError>
     </PageMessage>
+  );
+}
+
+/**
+ * The member's newest factions and, when they have more, the way to the rest: the catalogue narrowed to them, in the same newest-first order.
+ * The server counts the whole list and never fewer than the cards it sends, so the link appears only when there is more to see.
+ */
+function ProfileFactions({ page }: { page: ProfilePageData }) {
+  const { factionCount } = page;
+  if (factionCount === 0) {
+    return (
+      <Surface padding="lg">
+        <Text size="sm" c="dimmed">
+          No factions created yet.
+        </Text>
+      </Surface>
+    );
+  }
+  return (
+    <Stack gap="md">
+      <FactionList factions={page.factions} />
+      {factionCount > page.factions.length ? (
+        <Box>
+          <Button
+            variant="default"
+            rightSection={<ArrowRight size={16} aria-hidden />}
+            renderRoot={(props) => (
+              <Link {...props} to="/factions" search={{ owner: page.profile.slug, sort: 'created' }} />
+            )}
+          >
+            All {factionCount} factions
+          </Button>
+        </Box>
+      ) : null}
+    </Stack>
   );
 }
 
@@ -199,13 +235,14 @@ function ProfileDetailPage() {
 
   const acceptedAnswerCount = page.acceptedAnswerCount;
   const count = (value: number, one: string, many: string) => `${value} ${value === 1 ? one : many}`;
-  /** The five counts the header carries, in place of the old "At a glance" card. */
+  const { factionCount } = page;
+  /** The five counts the header carries, in place of the old "At a glance" card; each is its list's whole count, not the slice shown. */
   const headerStats = [
     {
       key: 'factions',
       icon: <Shield size={17} aria-hidden />,
-      value: page.factions.length,
-      label: count(page.factions.length, 'faction', 'factions'),
+      value: factionCount,
+      label: count(factionCount, 'faction', 'factions'),
     },
     {
       key: 'groups',
@@ -317,15 +354,7 @@ function ProfileDetailPage() {
         <div className={styles.contentColumns}>
           <Stack gap="md" className={styles.mainColumn}>
             <Section icon={<Shield size={20} aria-hidden />} title="Factions created">
-              {page.factions.length > 0 ? (
-                <FactionList factions={page.factions} />
-              ) : (
-                <Surface padding="lg">
-                  <Text size="sm" c="dimmed">
-                    No factions created yet.
-                  </Text>
-                </Surface>
-              )}
+              <ProfileFactions page={page} />
             </Section>
 
             <Section icon={<TopicIcon topic="rulesets" size={20} />} title="Rulesets maintained">

@@ -172,7 +172,7 @@ export const draftableFactions = publicQuery({
     const links = rulesetId
       ? await ctx.db
           .query('ruleset_factions')
-          .withIndex('by_ruleset', (q) => q.eq('ruleset_id', rulesetId))
+          .withIndex('by_ruleset_position', (q) => q.eq('ruleset_id', rulesetId))
           .take(500)
       : [];
     const linked = new Set(links.map((link) => link.faction_id));

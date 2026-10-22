@@ -329,7 +329,7 @@ export const seedRealGameCatalogue = internalMutation({
             : {}),
         }),
       });
-      await ctx.db.insert('ruleset_factions', { ruleset_id: rulesetId, faction_id: factionId });
+      await ctx.db.insert('ruleset_factions', { ruleset_id: rulesetId, faction_id: factionId, position: Date.now() });
       publications.push(await publish(ctx, 'faction-token', factionId, 'front'));
       publications.push(await publish(ctx, 'faction-token', publicationFaceId(factionId, 'back'), 'back'));
     }

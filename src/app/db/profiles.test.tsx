@@ -41,6 +41,8 @@ const serverPage = {
   faqAnswers: [],
   faqLists: { asked: { items: [], page: 1, pageCount: 1 }, answered: { items: [], page: 1, pageCount: 1 } },
   factions: [],
+  factionPreview: [],
+  factionCount: 0,
 };
 
 beforeEach(() => {

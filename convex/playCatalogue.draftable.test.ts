@@ -39,8 +39,8 @@ async function seed(ctx: MutationCtx) {
   const other = await faction('Fremen', 'fremen');
   const broken = await faction('Broken', 'broken', { broken: true });
   await faction('Retired', 'retired', { deleted: true });
-  await ctx.db.insert('ruleset_factions', { ruleset_id: ruleset, faction_id: linked });
-  await ctx.db.insert('ruleset_factions', { ruleset_id: ruleset, faction_id: broken });
+  await ctx.db.insert('ruleset_factions', { ruleset_id: ruleset, faction_id: linked, position: 0 });
+  await ctx.db.insert('ruleset_factions', { ruleset_id: ruleset, faction_id: broken, position: 1 });
   /* Fremen has only the front, and a game needs both faces of the reversible token. */
   for (const assetId of [linked, `${linked}.back`, other]) {
     await ctx.db.insert('publication_assets', {
@@ -156,7 +156,7 @@ describe('the draft reads the catalogue', () => {
         is_deleted: false,
         ...stamp,
       });
-      await ctx.db.insert('ruleset_factions', { ruleset_id: ruleset, faction_id: id });
+      await ctx.db.insert('ruleset_factions', { ruleset_id: ruleset, faction_id: id, position: 2 });
       return id;
     });
     const { factions } = await t.query(api.playCatalogue.draftableFactions, { rulesetId: ruleset });
