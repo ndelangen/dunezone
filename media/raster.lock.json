@@ -8036,24 +8036,6 @@
     "isOpaque": true,
     "color": "#f8f8e8"
   },
-  "/web/page-dark.jpg": {
-    "sha256": "61f252d1947657aea7f34c2c888745c2e5b6dd27e2e739cd3c1e1ba299303e1c",
-    "bytes": 216664,
-    "width": 1332,
-    "height": 2000,
-    "format": "jpeg",
-    "isOpaque": true,
-    "color": "#081828"
-  },
-  "/web/page.jpg": {
-    "sha256": "31673a60687fac505f7a71247b2a80a03168d1707a389578d2e613d821e6dbdf",
-    "bytes": 2445344,
-    "width": 1684,
-    "height": 2528,
-    "format": "jpeg",
-    "isOpaque": true,
-    "color": "#f8e8d8"
-  },
   "/web/rulesets/gf9-logo.png": {
     "sha256": "ca0d8a68fbf167ab4385422fd97663c281a574e21d3fccf995d0e15bba5662ae",
     "bytes": 19151,
