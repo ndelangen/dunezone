@@ -7,7 +7,6 @@ import { CardGroupStory } from './rulebookCardBlockEditors.shared.stories.fixtur
 
 const meta = preview.meta({
   title: 'Blocks/Card group/Editing',
-  globals: { colorScheme: 'dark' },
   parameters: { layout: 'fullscreen' },
 });
 

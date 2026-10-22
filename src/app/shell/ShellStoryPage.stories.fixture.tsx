@@ -6,11 +6,11 @@ import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 
 /* The real document stylesheet, as a string, so a story can carry it for its own lifetime instead
-   of importing it and leaving the desert backdrop behind every other story in the preview. */
+   of importing it and changing the document styling behind every other story in the preview. */
 import pageStylesheet from '../styles/page.css?inline';
 
 /**
- * Applies `page.css`, the document background whose position tracks `--scroll-pct`, for as long as this is mounted, and removes it on unmount so it cannot follow the viewer to the next story.
+ * Applies the shell document stylesheet for this story and removes it on unmount.
  */
 export function ShellPageBackdrop({ children }: { children: ReactNode }) {
   useEffect(() => {

@@ -4,6 +4,7 @@ import type { Doc } from './_generated/dataModel';
 import { retargetAssetReceipts } from './contentImports';
 import { internalMutation } from './functions';
 import { enqueueAssetPublication } from './lib/publication';
+import { syncSpiceCardRelations } from './lib/spiceCardBoard';
 import { nowIso } from './lib/utils';
 import type { MutationCtx } from './types';
 
@@ -32,18 +33,12 @@ const SPICE_PAIRS: readonly (readonly [original: string, copy: string])[] = [
   ['wind-pass-north', 'wind-pass-north-1'],
 ];
 
-/* What makes two Spice cards the same card; the copy's caption and About text are carried over, its name is not. */
-const SAME_CARD = ['subName', 'amount', 'icon', 'highlights', 'board', 'overlays'] as const;
-
-async function liveSpiceCard(ctx: MutationCtx, slug: string) {
-  const row = await ctx.db
+/* The card at an address, retired or not; a rename leaves the old address to a redirect, which this does not follow. */
+async function spiceCardAt(ctx: MutationCtx, slug: string) {
+  return await ctx.db
     .query('assets')
     .withIndex('by_type_and_slug', (q) => q.eq('type', 'card-spice').eq('slug', slug))
     .first();
-  if (!row || row.is_deleted) {
-    throw new ConvexError(`No live Spice card at card-spice/${slug}`);
-  }
-  return row;
 }
 
 /* The deck editor and imports refuse a member count above this. */
@@ -78,14 +73,27 @@ async function plannedMemberships(ctx: MutationCtx, original: Doc<'assets'>, cop
   );
 }
 
+/*
+ * Two Spice cards are the same card when they share a name and a spice amount.
+ * The copy is the newer of the two: GF9 maintains it, and some copies already moved onto a saved board.
+ * So the original takes the copy's whole face and About, keeping only its own name.
+ */
 function sameCard(original: Doc<'assets'>, copy: Doc<'assets'>) {
-  return SAME_CARD.every((field) => JSON.stringify(original.data[field]) === JSON.stringify(copy.data[field]));
+  return original.data.name === copy.data.name && original.data.amount === copy.data.amount;
+}
+
+/* An original already on a saved board keeps it unless the copy links the same board; anything else needs a person. */
+function boardConflict(original: Doc<'assets'>, copy: Doc<'assets'>) {
+  const mine = original.data.board?.asset_id;
+  return mine !== undefined && mine !== copy.data.board?.asset_id;
 }
 
 /**
- * Folds each GF9 copy into its original: the original takes the copy's caption and About text, every deck that held the copy holds the original, and the copy is retired the way `softDelete` retires an Asset, so its address stays reserved and a repeated import cannot recreate it.
+ * Folds each GF9 copy into its original: the original takes the copy's face and About, keeping its own name, every deck that held the copy holds the original, and the copy is retired the way `softDelete` retires an Asset, so its address stays reserved and a repeated import cannot recreate it.
  * An ungrouped original joins the copy's Group, as the GF9 import did with the shared Arrakis board, so the package's maintainers keep editing it.
  * Import receipts that named a copy follow it to the original and record the merged state, so the next GF9 import reads the cards and the decks that hold them as unchanged.
+ * A pair whose copy is gone or retired, whose original never existed, or whose cards differ is skipped and reported instead.
+ * A retired original is revived, since decks that listed it still point at it.
  * Every pair is checked before anything is written;
  * a dry run reports the plan and writes nothing.
  */
@@ -95,14 +103,18 @@ export const mergeDuplicateSpiceCards = internalMutation({
     cards: v.array(
       v.object({
         original: v.id('assets'),
+        revived: v.boolean(),
+        heldBy: v.array(v.object({ deck: v.id('assets'), count: v.number() })),
         copy: v.id('assets'),
         name: v.string(),
         text: v.string(),
         about: v.string(),
+        board: v.union(v.string(), v.null()),
         group: v.union(v.id('groups'), v.null()),
         decks: v.array(v.object({ deck: v.id('assets'), before: v.number(), after: v.number() })),
       })
     ),
+    skipped: v.array(v.object({ original: v.string(), copy: v.string(), reason: v.string() })),
     receipts: v.array(
       v.object({
         receipt: v.id('content_import_receipts'),
@@ -113,21 +125,44 @@ export const mergeDuplicateSpiceCards = internalMutation({
     ),
   }),
   handler: async (ctx, { dryRun }) => {
-    const pairs = await Promise.all(
+    const skipped: { original: string; copy: string; reason: string }[] = [];
+    const planned = await Promise.all(
       SPICE_PAIRS.map(async ([originalSlug, copySlug]) => {
-        const [original, copy] = await Promise.all([liveSpiceCard(ctx, originalSlug), liveSpiceCard(ctx, copySlug)]);
+        const [original, copy] = await Promise.all([spiceCardAt(ctx, originalSlug), spiceCardAt(ctx, copySlug)]);
+        const skip = (reason: string) => {
+          skipped.push({ original: originalSlug, copy: copySlug, reason });
+          return null;
+        };
+        if (!copy || copy.is_deleted) {
+          return skip('no live copy');
+        }
+        if (!original) {
+          return skip('no original');
+        }
         if (!sameCard(original, copy)) {
-          throw new ConvexError(`card-spice/${copySlug} is not a copy of card-spice/${originalSlug}`);
+          return skip('name or amount differs');
+        }
+        if (boardConflict(original, copy)) {
+          return skip('on different saved boards');
         }
         return { original, copy, memberships: await plannedMemberships(ctx, original, copy) };
       })
     );
+    const pairs = planned.filter((pair) => pair !== null);
     const report = [];
     for (const { original, copy, memberships } of pairs) {
-      const data = { ...original.data, text: copy.data.text ?? '', about: copy.data.about ?? '' };
+      const data = { ...copy.data, name: original.data.name };
       const group = original.group_id ?? copy.group_id;
+      /* The decks that hold the original before the merge; `decks` lists what the merge adds to them. */
+      const heldBy = await ctx.db
+        .query('asset_relations')
+        .withIndex('by_to_kind', (q) => q.eq('to_asset_id', original._id).eq('kind', DECK_CARD))
+        .collect();
       if (!dryRun) {
-        await ctx.db.patch(original._id, { data, group_id: group, updated_at: nowIso() });
+        /* A retired original comes back: the Dreamrules deck still lists it, so the deck shows the card again. */
+        await ctx.db.patch(original._id, { data, group_id: group, is_deleted: false, updated_at: nowIso() });
+        /* The reverse rows are what redraw the card when its board or a token on it is saved. */
+        await syncSpiceCardRelations(ctx, original._id, data);
         await enqueueAssetPublication(ctx, { ...original, data });
         for (const { membership, existing, after } of memberships) {
           if (existing) {
@@ -141,10 +176,13 @@ export const mergeDuplicateSpiceCards = internalMutation({
       }
       report.push({
         original: original._id,
+        revived: original.is_deleted,
+        heldBy: heldBy.map(({ from_asset_id, count }) => ({ deck: from_asset_id, count })),
         copy: copy._id,
         name: String(original.data.name),
-        text: String(data.text),
-        about: String(data.about),
+        text: String(data.text ?? ''),
+        about: String(data.about ?? ''),
+        board: data.board?.asset_id ?? null,
         group,
         decks: memberships.map(({ membership, before, after }) => ({ deck: membership.from_asset_id, before, after })),
       });
@@ -155,6 +193,6 @@ export const mergeDuplicateSpiceCards = internalMutation({
       report.flatMap(({ decks }) => decks.map(({ deck }) => deck)),
       dryRun
     );
-    return { cards: report, receipts };
+    return { cards: report, skipped, receipts };
   },
 });

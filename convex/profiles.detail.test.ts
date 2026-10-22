@@ -349,6 +349,8 @@ describe('profile detail projection (api.profiles.pageBySlug)', () => {
 
     expect(page.factionPreview.map((faction) => faction.data.name)).toEqual(['Sietch 1', 'Atreides']);
     expect(page.factionCount).toBe(2);
+    /* Nothing to link to yet: the catalogue would open an empty list. */
+    expect(page.listedFactionCount).toBe(0);
   });
 
   test('faction ruleset enrichment keeps only active rulesets in deterministic name order', async () => {

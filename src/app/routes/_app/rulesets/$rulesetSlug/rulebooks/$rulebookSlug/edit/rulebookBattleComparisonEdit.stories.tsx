@@ -5,7 +5,6 @@ import { SceneEditorStory } from './rulebookScenes.stories.fixture';
 
 const meta = preview.meta({
   title: 'Blocks/Battle comparison/Editing',
-  globals: { colorScheme: 'dark' },
   parameters: { layout: 'fullscreen' },
 });
 export const IndependentExamples = meta.story({

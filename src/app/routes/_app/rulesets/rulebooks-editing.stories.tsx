@@ -261,7 +261,6 @@ function withLiveReferenceRulebook(baseline: StorybookDatabase) {
 export const LiveReferenceEditor = meta.story({
   args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#RULE/ARTW' },
   parameters: { database: db(withLiveReferenceRulebook) },
-  globals: { colorScheme: 'dark' },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.queryByRole('textbox', { name: 'Search factions' })).not.toBeInTheDocument();
@@ -288,7 +287,6 @@ export const LiveReferenceEditor = meta.story({
 export const FactionIntroductionEditor = meta.story({
   args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#RULE/FACT' },
   parameters: { database: db(withLiveReferenceRulebook) },
-  globals: { colorScheme: 'dark' },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(await page.findByRole('button', { name: 'Choose faction' }, { timeout: 30_000 }));
@@ -324,7 +322,6 @@ async function holdToDelete(trigger: HTMLElement) {
 export const DeletePagesAndBlocks = meta.story({
   args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#RULE/HEAD' },
   parameters: { database: db(withFinalRulebooks) },
-  globals: { colorScheme: 'dark' },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const removeBlock = await page.findByRole('button', { name: 'Delete Block' }, { timeout: 30_000 });
@@ -364,7 +361,6 @@ export const DeletePagesAndBlocks = meta.story({
 export const RemoveLastRegionBlock = meta.story({
   args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#RULE/details' },
   parameters: { database: db(withFinalRulebooks) },
-  globals: { colorScheme: 'dark' },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const region = await page.findByRole('region', { name: 'Content' }, { timeout: 30_000 });
@@ -385,7 +381,6 @@ export const RemoveLastRegionBlock = meta.story({
 export const FormatBlockText = meta.story({
   args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#RULE/TEXT' },
   parameters: { database: db(withFinalRulebooks) },
-  globals: { colorScheme: 'dark' },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const field = (await page.findByRole('textbox', { name: 'Content' }, { timeout: 30_000 })) as HTMLTextAreaElement;
@@ -417,7 +412,6 @@ export const FlipFactionIntroduction = meta.story({
       page.blockOrderByRegion = { content: ['FACT'] };
     }),
   },
-  globals: { colorScheme: 'dark' },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const toggle = await page.findByRole('switch', { name: 'Flip layout' }, { timeout: 30_000 });

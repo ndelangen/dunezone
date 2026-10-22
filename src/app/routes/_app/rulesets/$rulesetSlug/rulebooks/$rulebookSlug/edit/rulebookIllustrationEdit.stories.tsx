@@ -6,7 +6,6 @@ import { IllustrationSizeStory } from './rulebookIllustratedBook.stories.fixture
 
 const meta = preview.meta({
   title: 'Blocks/Illustration/Editing',
-  globals: { colorScheme: 'dark' },
   parameters: { layout: 'fullscreen' },
 });
 

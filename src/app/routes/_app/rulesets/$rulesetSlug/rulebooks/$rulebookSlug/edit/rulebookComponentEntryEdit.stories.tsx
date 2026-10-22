@@ -6,7 +6,6 @@ import { StockComponentStory } from './rulebookIllustratedBook.stories.fixture';
 
 const meta = preview.meta({
   title: 'Blocks/Component entry/Editing',
-  globals: { colorScheme: 'dark' },
   parameters: { layout: 'fullscreen' },
 });
 

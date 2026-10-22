@@ -92,6 +92,9 @@ test(
   'folds each GF9 copy into its original: the original takes the caption and About, both decks share it, and the copy is retired',
   async () => {
     const { t, originals, copies, dreamrules, gf9 } = await setup();
+    /* Any Asset id stands in for the saved board; the merge only carries the link. */
+    const board = dreamrules;
+    await onBoard(t, copies[0], board);
     const { cards: planned } = await t.mutation(internal.spiceDeckMerge.mergeDuplicateSpiceCards, { dryRun: true });
     expect(planned.map(({ original, copy, decks }) => [original, copy, decks])).toEqual(
       originals.map((original, index) => [original, copies[index], [{ deck: gf9, before: 0, after: 1 }]])
@@ -101,6 +104,8 @@ test(
       text: 'West sector.',
       about: 'GF9 base Spice Card. Place 10 spice in Habbanya Ridge Flat.',
     });
+    expect(planned[0]!.board).toBe(board);
+    expect(planned[1]!.board).toBeNull();
     await expect(members(t, gf9)).resolves.toEqual(copies.map((copy) => [copy, 1]));
 
     await t.mutation(internal.spiceDeckMerge.mergeDuplicateSpiceCards, { dryRun: false });
@@ -115,26 +120,81 @@ test(
       text: 'West sector.',
       about: 'GF9 base Spice Card. Place 10 spice in Habbanya Ridge Flat.',
     });
+    /* The copy's move onto a saved board is the newer work, so the original carries it on. */
+    expect(rows[0]!.data.board).toEqual(BOARD(board));
+    const boardRows = await t.run((ctx) =>
+      ctx.db
+        .query('asset_relations')
+        .withIndex('by_from_kind', (q) => q.eq('from_asset_id', originals[0]).eq('kind', 'spice-card-board'))
+        .collect()
+    );
+    expect(boardRows.map(({ to_asset_id }) => to_asset_id)).toEqual([board]);
     expect(rows.slice(15).every((row) => row!.is_deleted)).toBe(true);
     expect(rows[20]!.slug).toBe('habbanya-ridge-flat-1');
-    /* A second run finds the copies retired and stops before writing. */
-    await expect(t.mutation(internal.spiceDeckMerge.mergeDuplicateSpiceCards, { dryRun: true })).rejects.toThrow(
-      'No live Spice card at card-spice/broken-land-1'
-    );
+    /* A second run finds every copy retired and merges nothing. */
+    const again = await t.mutation(internal.spiceDeckMerge.mergeDuplicateSpiceCards, { dryRun: true });
+    expect(again.cards).toEqual([]);
+    expect(again.skipped).toHaveLength(15);
+    expect(again.skipped.every(({ reason }) => reason === 'no live copy')).toBe(true);
   },
   BUDGET_MS
 );
 
 test(
-  'refuses before any write when a copy is not the same card',
+  'skips a pair whose copy is not the same card and merges the rest',
   async () => {
     const { t, originals, gf9, copies } = await setup((amount) => (amount === 12 ? 11 : amount));
-    await expect(t.mutation(internal.spiceDeckMerge.mergeDuplicateSpiceCards, { dryRun: false })).rejects.toThrow(
-      'card-spice/cielago-south-1 is not a copy of card-spice/cielago-south'
-    );
-    await expect(members(t, gf9)).resolves.toEqual(copies.map((copy) => [copy, 1]));
-    const first = await t.run((ctx) => ctx.db.get(originals[0]));
-    expect(first!.data.about).toBe('');
+    const { cards, skipped } = await t.mutation(internal.spiceDeckMerge.mergeDuplicateSpiceCards, { dryRun: false });
+    expect(skipped).toEqual([{ original: 'cielago-south', copy: 'cielago-south-1', reason: 'name or amount differs' }]);
+    expect(cards).toHaveLength(14);
+    const held = await members(t, gf9);
+    expect(held).toContainEqual([copies[2], 1]);
+    expect(held).toContainEqual([originals[0], 1]);
+  },
+  BUDGET_MS
+);
+
+test(
+  'revives a retired original that a deck still lists, and skips a pair without an original',
+  async () => {
+    const { t, originals, copies, dreamrules } = await setup();
+    await t.run(async (ctx) => {
+      await ctx.db.patch(originals[14], { is_deleted: true });
+      await ctx.db.patch(originals[13], { slug: 'gone-elsewhere' });
+    });
+    const { cards, skipped } = await t.mutation(internal.spiceDeckMerge.mergeDuplicateSpiceCards, { dryRun: false });
+    expect(skipped).toEqual([{ original: 'the-minor-erg', copy: 'the-minor-erg-1', reason: 'no original' }]);
+    expect(cards.find(({ original }) => original === originals[14])).toMatchObject({
+      revived: true,
+      heldBy: expect.arrayContaining([{ deck: dreamrules, count: 1 }]),
+    });
+    const [windPass, copy] = await t.run((ctx) => Promise.all([ctx.db.get(originals[14]), ctx.db.get(copies[14])]));
+    expect(windPass!.is_deleted).toBe(false);
+    expect(copy!.is_deleted).toBe(true);
+  },
+  BUDGET_MS
+);
+
+const BOARD = (asset_id: string) => ({ asset_id, tints: [], tokens: [] });
+const onBoard = (t: ReturnType<typeof applicationTest>, cardId: Id<'assets'>, board: string) =>
+  t.run(async (ctx) => {
+    const card = (await ctx.db.get(cardId))!;
+    await ctx.db.patch(cardId, { data: { ...card.data, board: BOARD(board) } });
+  });
+
+test(
+  'skips a pair whose original already sits on another saved board',
+  async () => {
+    const { t, originals, copies } = await setup();
+    await onBoard(t, originals[1], 'own-board');
+    await onBoard(t, copies[1], 'arrakis-board');
+    const { skipped } = await t.mutation(internal.spiceDeckMerge.mergeDuplicateSpiceCards, { dryRun: false });
+    expect(skipped).toEqual([
+      { original: 'cielago-north', copy: 'cielago-north-1', reason: 'on different saved boards' },
+    ]);
+    const [kept, copy] = await t.run((ctx) => Promise.all([ctx.db.get(originals[1]), ctx.db.get(copies[1])]));
+    expect(kept!.data.board).toEqual(BOARD('own-board'));
+    expect(copy!.is_deleted).toBe(false);
   },
   BUDGET_MS
 );

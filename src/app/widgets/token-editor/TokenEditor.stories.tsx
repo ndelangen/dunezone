@@ -70,7 +70,6 @@ const meta = preview.meta({
   title: 'Token Editor',
   component: InteractiveEditor,
   parameters: { layout: 'padded' },
-  globals: { colorScheme: 'dark' },
   args: {
     type: DISC,
     draft: discDraftWith(initialTokenDraft(DISC).back),

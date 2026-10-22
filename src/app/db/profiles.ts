@@ -46,6 +46,7 @@ function normalizeProfilePage(result: ProfileDetailResult) {
     faqLists: result.faqLists,
     factions: factionCatalogueRowsToEntries(result.factionPreview),
     factionCount: result.factionCount,
+    listedFactionCount: result.listedFactionCount,
     acceptedAnswerCount: result.faqAnswers.filter((answer) => answer.faq_item.accepted_answer_id === answer._id).length,
   };
 }

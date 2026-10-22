@@ -26,7 +26,7 @@ export function factionCatalogueArgs(search: FactionCatalogueSearch): FactionCat
 }
 
 /** What the live answer knows that the parser cannot: the rulesets the catalogue has, and the member filter as it answered it. */
-export type CatalogueFurniture = { rulesets: FactionCatalogueRuleset[]; owner: FactionCatalogueOwner };
+type CatalogueFurniture = { rulesets: FactionCatalogueRuleset[]; owner: FactionCatalogueOwner };
 
 /**
  * The address the live answer says this one should be.
@@ -35,7 +35,7 @@ export type CatalogueFurniture = { rulesets: FactionCatalogueRuleset[]; owner: F
  * The member is judged only by an answer for that very slug: the router moves the location before the loader commits, so after Back the answer in hand can be the previous page's, which asked for nobody or for someone else, and a member it never asked about stays until its own answer arrives.
  * An answer that led the slug to a member writes the member's current slug, so an old link's address moves on as the profile page's does.
  */
-export function normalizeFactionCatalogueSearch(
+function normalizeFactionCatalogueSearch(
   search: FactionCatalogueSearch,
   furniture: CatalogueFurniture
 ): FactionCatalogueSearch {
@@ -61,10 +61,7 @@ function orderIndependentSearchString(params: URLSearchParams) {
  * A list is one partition, so choosing a ruleset leaves the member's list;
  * the parser would drop the ruleset otherwise.
  */
-export function nextSearch(
-  previous: Record<string, unknown>,
-  patch: Partial<Record<keyof FactionCatalogueSearch, unknown>>
-) {
+function nextSearch(previous: Record<string, unknown>, patch: Partial<Record<keyof FactionCatalogueSearch, unknown>>) {
   return parseFactionCatalogueSearch({
     ...previous,
     page: undefined,

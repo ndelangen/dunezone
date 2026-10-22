@@ -32,7 +32,7 @@ describe('resolveAsset', () => {
 
   test('resolves web shell imagery to progressive JPEG', () => {
     expect(resolveAsset('/web/head.png', 'large')).toBe(variant('/web/head.png', 'web', 'large', 'jpg'));
-    expect(resolveAsset('/web/page.jpg', 'small')).toBe(variant('/web/page.jpg', 'web', 'small', 'jpg'));
+    expect(resolveAsset('/web/head.png', 'small')).toBe(variant('/web/head.png', 'web', 'small', 'jpg'));
   });
 
   test('every resolved variant is a content-addressed /m name', () => {

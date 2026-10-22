@@ -8,7 +8,6 @@ import { LeaderSkillCardEditor, INITIAL_LEADER_SKILL_MEMORY } from './LeaderSkil
 const meta = preview.meta({
   component: LeaderSkillCardEditor,
   parameters: { layout: 'padded' },
-  globals: { colorScheme: 'dark' },
   render: (args) => (
     <WorkbenchLayout>
       <LeaderSkillCardEditor {...args} />

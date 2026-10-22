@@ -43,7 +43,6 @@ const meta = preview.meta({
   title: 'Spice Card Editor',
   component: SpiceCardEditor,
   parameters: { layout: 'padded' },
-  globals: { colorScheme: 'dark' },
   /* The page's workbench frame gives the editor its reading column; without it the proof and the chapters collapse to their content. */
   render: (args) => (
     <WorkbenchLayout>

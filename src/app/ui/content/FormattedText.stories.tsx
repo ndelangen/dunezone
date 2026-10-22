@@ -34,7 +34,6 @@ export const MixedBlocks = meta.story({
 export const Dark = meta.story({
   globals: {
     backgrounds: { value: 'dark', grid: false },
-    colorScheme: 'dark',
   },
   args: {
     blocks: mixedBlocks,
