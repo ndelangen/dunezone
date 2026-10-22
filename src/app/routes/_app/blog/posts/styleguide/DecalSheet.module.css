@@ -17,40 +17,21 @@
   gap: var(--space-md);
 }
 
-@container (width >= 48rem) {
-  .treatments {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-}
-
 .treatment {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
-/* The tile shows the square of the card around the decal slot, so the panel image is placed as the card places it. */
+/* The tile is the card's picture window, 762 by 440 units, with the panel and decal placed as the card places them. */
 .tile {
-  position: relative;
-  aspect-ratio: 1;
-  overflow: hidden;
-  border-radius: var(--mantine-radius-sm);
-  box-shadow: 0 2px 8px rgb(0 0 0 / 40%);
-}
-
-.panel {
-  position: absolute;
-  top: -50%;
-  left: -45.75%;
-  width: 191.5%;
-  max-width: none;
-}
-
-.slot {
-  position: absolute;
-  inset: 0;
+  display: block;
   width: 100%;
-  height: 100%;
+  height: auto;
+  aspect-ratio: 762 / 440;
+  border-radius: var(--mantine-radius-sm);
+  clip-path: inset(0 round var(--mantine-radius-sm));
+  box-shadow: 0 2px 8px rgb(0 0 0 / 40%);
 }
 
 .treatmentName {

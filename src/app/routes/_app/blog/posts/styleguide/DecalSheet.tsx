@@ -17,8 +17,6 @@ type DecalData = z.infer<typeof Decal>;
 /* The decal slot: a 439 unit square centred at 450,470 of the card, inside the 762 by 440 picture window at 70,249. */
 const SLOT = { size: 439, cx: 450, cy: 470 };
 const WINDOW = { x: 70, y: 249, width: 762, height: 440 };
-/* The square of the card each treatment tile shows, a little wider than the slot. */
-const TILE = { x: 215, y: 235, size: 470 };
 
 const decal = (file: string, treatment: Partial<DecalData> = {}): DecalData =>
   Decal.parse({
@@ -49,33 +47,23 @@ const TREATMENTS: readonly { name: string; spec: string; decal: DecalData }[] = 
   {
     name: 'Multicolour',
     spec: 'A second colour, tan #DED4A3, drawn into the file as part of the picture, so the renderer adds no outline',
-    decal: decal('weirding-way-multicolor', { scale: 1.1 }),
+    decal: decal('weirding-way-multicolor', { scale: 1.7922 }),
   },
 ];
 
-/** One decal drawn by the card renderer's own `FrontDecals`, on the gold picture panel the card shows behind it. */
+/**
+ * One decal drawn by the card renderer's own `FrontDecals`, in the card's whole picture window, over the gold panel the card shows behind it.
+ * The inner svg is card-sized, so the muted decal's mask region (a share of the viewport) covers the whole slot.
+ */
 function Treatment({ decal: data }: { decal: DecalData }) {
   const prefix = useId();
   return (
-    <div className={styles.tile}>
-      <img
-        src={resolveAsset('/image/card/front-decal-bg.jpg', 'small')}
-        alt=""
-        loading="lazy"
-        className={styles.panel}
-      />
-      <svg className={styles.slot} viewBox={`${TILE.x} ${TILE.y} ${TILE.size} ${TILE.size}`} aria-hidden>
-        {/* A card-sized viewport, so the muted decal's mask region (a share of the viewport) covers the whole slot. */}
-        <defs>
-          <clipPath id={`${prefix}_window`}>
-            <rect {...WINDOW} />
-          </clipPath>
-        </defs>
-        <svg width={card.width} height={card.height} overflow="visible" clipPath={`url(#${prefix}_window)`}>
-          <FrontDecals prefix={`${prefix}_`} decals={[data]} />
-        </svg>
+    <svg className={styles.tile} viewBox={`${WINDOW.x} ${WINDOW.y} ${WINDOW.width} ${WINDOW.height}`} aria-hidden>
+      <image href={resolveAsset('/image/card/front-decal-bg.jpg', 'large')} width={card.width} height={card.height} />
+      <svg width={card.width} height={card.height} overflow="hidden">
+        <FrontDecals prefix={`${prefix}_`} decals={[data]} />
       </svg>
-    </div>
+    </svg>
   );
 }
 
