@@ -9,6 +9,7 @@ import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { STORYBOOK_NOW } from '@db/storybook';
 
+import { openBiddingSettings } from './bidding.stories.fixture';
 import { gameMeta, install, lastCommand } from './game.stories.fixture';
 import { productTransport, playingSnapshot } from './product.stories.fixture';
 
@@ -234,8 +235,7 @@ export const Untimed = meta.story({
       const button = await page.findByRole('button', { name: 'Bid 1. Right click to pass.' }, { timeout: 30_000 });
       await userEvent.click(button);
       await expect(page.queryByRole('timer')).not.toBeInTheDocument();
-      await userEvent.click(page.getByRole('button', { name: 'Game menu' }));
-      const toggle = await page.findByRole('menuitemcheckbox', { name: /Timed bidding/ });
+      const toggle = await openBiddingSettings(canvasElement);
       await expect(toggle).toHaveAttribute('aria-checked', 'false');
       await userEvent.click(toggle);
       await waitFor(() => expect(page.getByRole('timer')).toHaveTextContent('20s'));
