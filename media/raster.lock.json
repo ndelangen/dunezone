@@ -7685,15 +7685,6 @@
     "isOpaque": true,
     "color": "#c8c8c8"
   },
-  "/web/blog/dune-board-game-style-guide/faction-palette.jpg": {
-    "sha256": "8e6aeae2ee34b48485b31cb20d2fcd9cb431c02849badc95f1e8116b826ed7c5",
-    "bytes": 287666,
-    "width": 1792,
-    "height": 1330,
-    "format": "jpeg",
-    "isOpaque": true,
-    "color": "#081828"
-  },
   "/web/blog/drawing-dune-tokens-and-cards/atreides-leaders.jpg": {
     "sha256": "ebb942756691887e5cc052071f1378942bd59c51d37bf777e206be33ea884afc",
     "bytes": 246873,
@@ -7729,6 +7720,15 @@
     "format": "jpeg",
     "isOpaque": true,
     "color": "#182838"
+  },
+  "/web/blog/dune-board-game-style-guide/faction-palette.jpg": {
+    "sha256": "8e6aeae2ee34b48485b31cb20d2fcd9cb431c02849badc95f1e8116b826ed7c5",
+    "bytes": 287666,
+    "width": 1792,
+    "height": 1330,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#081828"
   },
   "/web/blog/running-from-databases/dune-app-creator.jpg": {
     "sha256": "647e14f574719d3e29fcc293ecd4b889ab00028f7aac5c06b817c7614b0bd030",
