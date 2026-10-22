@@ -50,7 +50,9 @@ function RuntimeProof() {
           ).toEqual({ synced: 0 });
           for (let count = 0; count < 20; count += 1) {
             const nextClient = await reset();
-            await expect(await nextClient.query(convexStorybookReferences.rulesetsList, {})).toHaveLength(1);
+            await expect(await nextClient.query(convexStorybookReferences.rulesetsCatalogue, {})).toMatchObject({
+              rulesetTotal: 1,
+            });
           }
           setStatus('Context, components, scheduling, rollback, network isolation, and 20 resets passed');
         }}
