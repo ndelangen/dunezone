@@ -22,7 +22,7 @@ function referencePagination(options: PaginationOptions): PaginationOptions {
 /** Reference maintenance is independent of the asker's exclusive right to edit question text. */
 export async function requireFaqReferenceEdit(ctx: MutationCtx, questionId: Id<'faq_items'>) {
   const userId = await requireAuthUserId(ctx);
-  const { question, ruleset } = await liveQuestion(ctx, questionId);
+  const { question, ruleset } = await loadLiveFaqQuestion(ctx, questionId);
   if (question.asked_by !== userId) {
     const access = await loadRulesetAccessForLoadedSubject(ctx, ruleset);
     if (!access.viewerAccess.capabilities.edit) {
@@ -45,7 +45,7 @@ export async function loadFaqReferenceTargets(
   questionId: Id<'faq_items'>,
   paginationOpts: PaginationOptions
 ) {
-  await liveQuestion(ctx, questionId);
+  await loadLiveFaqQuestion(ctx, questionId);
   const result = await ctx.db
     .query('faq_references')
     .withIndex('by_faq_item_id_and_target_id', (q) => q.eq('faq_item_id', questionId))
@@ -89,7 +89,7 @@ export async function loadFaqQuestionsForTarget(
   return { ...result, page: questions.filter((question) => question !== null) };
 }
 
-async function liveQuestion(ctx: QueryCtx, questionId: Id<'faq_items'>) {
+export async function loadLiveFaqQuestion(ctx: QueryCtx, questionId: Id<'faq_items'>) {
   const question = await ctx.db.get('faq_items', questionId);
   if (!question) {
     throw new Error('FAQ question not found');

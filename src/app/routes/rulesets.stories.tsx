@@ -427,11 +427,9 @@ export const QuestionReferences = meta.story({
     await userEvent.clear(question);
     await userEvent.type(question, 'An unsaved question draft?');
     await userEvent.click(await page.findByRole('button', { name: 'Add references' }));
-    await userEvent.type(page.getByRole('textbox', { name: 'Search the catalogue' }), 'Atreides');
-    await userEvent.click(
-      await page.findByRole('button', { name: 'Add reference to House Atreides' }, { timeout: 30_000 })
-    );
-    await userEvent.click(page.getByRole('button', { name: 'Done' }));
+    await userEvent.type(await page.findByRole('searchbox', { name: 'Search the catalogue' }), 'Atreides');
+    await userEvent.click(await page.findByRole('option', { name: 'House Atreides' }, { timeout: 30_000 }));
+    await userEvent.click(page.getByRole('button', { name: 'Close reference picker' }));
     const remove = await page.findByRole('button', { name: 'Remove reference to House Atreides' }, { timeout: 30_000 });
     await expect(question).toHaveValue('An unsaved question draft?');
     await expect(page.getByRole('link', { name: /House Atreides ClassicRules/ })).toHaveAttribute(

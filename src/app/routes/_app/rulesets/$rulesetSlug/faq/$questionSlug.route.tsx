@@ -1,4 +1,4 @@
-import { Anchor, Badge, Button, Group, Menu, Stack, Text } from '@mantine/core';
+import { Anchor, Badge, Button, Group, Menu, Popover, Stack, Text } from '@mantine/core';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, notFound, Link, useNavigate } from '@tanstack/react-router';
 import { FactionCard } from '@ui/block/FactionCard';
@@ -47,7 +47,7 @@ import { isPublicPageNotFound, loadPublicPage } from '@db/core/publicPage';
 import { loadFaqQuestionPage, useFaqQuestionPage } from '@db/faq';
 import type { FaqReferencePreview } from '@db/faq';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
-import { FaqReferencePicker } from '@app/pickers/FaqReferencePicker';
+import { CataloguePicker } from '@app/pickers/CataloguePicker';
 import { redirectFromFormerAddress } from '@app/routes/formerAddress';
 import { publicPageHead, publicDescription, useLivePageTitle } from '@app/routes/publicPage';
 import { AssetCatalogueTile } from '@app/widgets/asset-face/AssetCatalogueTile';
@@ -798,27 +798,9 @@ function FaqReferenceTile({ reference, action }: { reference: FaqReferencePrevie
 }
 
 function FaqReferencesSection({ faq }: { faq: FaqQuestionCommands }) {
-  const [addingReferences, setAddingReferences] = useState(false);
   return (
-    <Section
-      title="Relates to"
-      action={
-        faq.canManageReferences && !addingReferences ? (
-          <AddAction label="Add references" onClick={() => setAddingReferences(true)} />
-        ) : undefined
-      }
-    >
+    <Section title="Relates to" action={faq.canManageReferences ? <FaqReferenceAdd faq={faq} /> : undefined}>
       <Stack gap="md">
-        {addingReferences && faq.canManageReferences ? (
-          <FaqReferencePicker
-            selectedIds={faq.references.map((reference) => reference.id)}
-            pending={faq.addReference.isPending}
-            onPick={(target) => {
-              void faq.addReference.run(target).catch(() => undefined);
-            }}
-            onCancel={() => setAddingReferences(false)}
-          />
-        ) : null}
         <FaqReferenceError faq={faq} />
         <FaqReferenceList faq={faq} />
         {faq.referencesStatus === 'CanLoadMore' || faq.referencesStatus === 'LoadingMore' ? (
@@ -826,6 +808,63 @@ function FaqReferencesSection({ faq }: { faq: FaqQuestionCommands }) {
         ) : null}
       </Stack>
     </Section>
+  );
+}
+
+function FaqReferenceAdd({ faq }: { readonly faq: FaqQuestionCommands }) {
+  const [opened, setOpened] = useState(false);
+  return (
+    <Popover
+      opened={opened}
+      onChange={setOpened}
+      position="bottom-end"
+      width={400}
+      shadow="md"
+      withArrow
+      arrowPosition="center"
+      trapFocus
+      returnFocus
+      preventPositionChangeWhenVisible={false}
+      middlewares={{
+        size: {
+          apply: ({ availableHeight, elements }) => {
+            elements.floating.style.setProperty('--catalogue-picker-height', `${Math.max(160, availableHeight)}px`);
+          },
+        },
+      }}
+      styles={{ dropdown: { maxWidth: 'calc(100vw - var(--space-md) * 2)' } }}
+    >
+      <Popover.Target>
+        <AddAction label="Add references" onClick={() => setOpened((value) => !value)} />
+      </Popover.Target>
+      <Popover.Dropdown className={styles.referencePicker} role="dialog" aria-label="Add references">
+        {opened ? (
+          <Stack gap="sm">
+            <Group justify="space-between" wrap="nowrap">
+              <Text fw={700}>Add references</Text>
+              <IconAction
+                label="Close reference picker"
+                emphasis="quiet"
+                intent="neutral"
+                size="sm"
+                icon={<X size={15} aria-hidden />}
+                onClick={() => setOpened(false)}
+              />
+            </Group>
+            <CataloguePicker
+              selection={{ faqQuestionId: faq.page!.question.id }}
+              pending={faq.addReference.isPending}
+              onPick={(target) => {
+                void faq.addReference.run(target).catch(() => undefined);
+              }}
+            />
+            {faq.addReference.error ? (
+              <FormError title="Could not add reference">{errorMessage(faq.addReference.error)}</FormError>
+            ) : null}
+          </Stack>
+        ) : null}
+      </Popover.Dropdown>
+    </Popover>
   );
 }
 
