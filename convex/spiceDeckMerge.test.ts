@@ -131,24 +131,48 @@ test(
     expect(boardRows.map(({ to_asset_id }) => to_asset_id)).toEqual([board]);
     expect(rows.slice(15).every((row) => row!.is_deleted)).toBe(true);
     expect(rows[20]!.slug).toBe('habbanya-ridge-flat-1');
-    /* A second run finds the copies retired and stops before writing. */
-    await expect(t.mutation(internal.spiceDeckMerge.mergeDuplicateSpiceCards, { dryRun: true })).rejects.toThrow(
-      'No live Spice card at card-spice/broken-land-1'
-    );
+    /* A second run finds every copy retired and merges nothing. */
+    const again = await t.mutation(internal.spiceDeckMerge.mergeDuplicateSpiceCards, { dryRun: true });
+    expect(again.cards).toEqual([]);
+    expect(again.skipped).toHaveLength(15);
+    expect(again.skipped.every(({ reason }) => reason === 'no live copy')).toBe(true);
   },
   BUDGET_MS
 );
 
 test(
-  'refuses before any write when a copy is not the same card',
+  'skips a pair whose copy is not the same card and merges the rest',
   async () => {
     const { t, originals, gf9, copies } = await setup((amount) => (amount === 12 ? 11 : amount));
-    await expect(t.mutation(internal.spiceDeckMerge.mergeDuplicateSpiceCards, { dryRun: false })).rejects.toThrow(
-      'card-spice/cielago-south-1 is not a copy of card-spice/cielago-south'
-    );
-    await expect(members(t, gf9)).resolves.toEqual(copies.map((copy) => [copy, 1]));
-    const first = await t.run((ctx) => ctx.db.get(originals[0]));
-    expect(first!.data.about).toBe('');
+    const { cards, skipped } = await t.mutation(internal.spiceDeckMerge.mergeDuplicateSpiceCards, { dryRun: false });
+    expect(skipped).toEqual([
+      { original: 'cielago-south', copy: 'cielago-south-1', reason: 'name or amount differs' },
+    ]);
+    expect(cards).toHaveLength(14);
+    const held = await members(t, gf9);
+    expect(held).toContainEqual([copies[2], 1]);
+    expect(held).toContainEqual([originals[0], 1]);
+  },
+  BUDGET_MS
+);
+
+test(
+  'revives a retired original that a deck still lists, and skips a pair without an original',
+  async () => {
+    const { t, originals, copies, dreamrules } = await setup();
+    await t.run(async (ctx) => {
+      await ctx.db.patch(originals[14], { is_deleted: true });
+      await ctx.db.patch(originals[13], { slug: 'gone-elsewhere' });
+    });
+    const { cards, skipped } = await t.mutation(internal.spiceDeckMerge.mergeDuplicateSpiceCards, { dryRun: false });
+    expect(skipped).toEqual([{ original: 'the-minor-erg', copy: 'the-minor-erg-1', reason: 'no original' }]);
+    expect(cards.find(({ original }) => original === originals[14])).toMatchObject({
+      revived: true,
+      heldBy: expect.arrayContaining([{ deck: dreamrules, count: 1 }]),
+    });
+    const [windPass, copy] = await t.run((ctx) => Promise.all([ctx.db.get(originals[14]), ctx.db.get(copies[14])]));
+    expect(windPass!.is_deleted).toBe(false);
+    expect(copy!.is_deleted).toBe(true);
   },
   BUDGET_MS
 );
@@ -161,16 +185,18 @@ const onBoard = (t: ReturnType<typeof applicationTest>, cardId: Id<'assets'>, bo
   });
 
 test(
-  'refuses before any write when the original already sits on another saved board',
+  'skips a pair whose original already sits on another saved board',
   async () => {
     const { t, originals, copies } = await setup();
     await onBoard(t, originals[1], 'own-board');
     await onBoard(t, copies[1], 'arrakis-board');
-    await expect(t.mutation(internal.spiceDeckMerge.mergeDuplicateSpiceCards, { dryRun: false })).rejects.toThrow(
-      'card-spice/cielago-north and card-spice/cielago-north-1 sit on different saved boards'
-    );
-    const first = await t.run((ctx) => ctx.db.get(originals[0]));
-    expect(first!.data.about).toBe('');
+    const { skipped } = await t.mutation(internal.spiceDeckMerge.mergeDuplicateSpiceCards, { dryRun: false });
+    expect(skipped).toEqual([
+      { original: 'cielago-north', copy: 'cielago-north-1', reason: 'on different saved boards' },
+    ]);
+    const [kept, copy] = await t.run((ctx) => Promise.all([ctx.db.get(originals[1]), ctx.db.get(copies[1])]));
+    expect(kept!.data.board).toEqual(BOARD('own-board'));
+    expect(copy!.is_deleted).toBe(false);
   },
   BUDGET_MS
 );
