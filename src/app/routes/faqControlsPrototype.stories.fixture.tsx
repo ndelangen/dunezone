@@ -1,4 +1,4 @@
-import { Anchor, Button, Divider, Group, Menu, Stack, Tabs, Text, Tooltip } from '@mantine/core';
+import { Anchor, Button, Group, Menu, Stack, Text, Tooltip } from '@mantine/core';
 import { Link } from '@tanstack/react-router';
 import { OpenableTile } from '@ui/block/OpenableTile';
 import { PageTitle } from '@ui/block/PageTitle';
@@ -9,7 +9,6 @@ import { GroupLink } from '@ui/content/GroupLink';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import { RulesetLink } from '@ui/content/RulesetLink';
 import { StatusBadge } from '@ui/content/StatusBadge';
-import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { ConfirmDeleteMenuItem } from '@ui/control/ConfirmDeleteMenuItem';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 import { IconAction } from '@ui/control/IconAction';
@@ -19,8 +18,8 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { TileGrid } from '@ui/list/TileGrid';
 import { Card } from '@ui/surface/Card';
 import { Surface } from '@ui/surface/Surface';
-import { ArrowLeft, ArrowRight, BadgeCheck, EllipsisVertical, Pencil, RotateCcw, Settings2, X } from 'lucide-react';
-import { useEffect, useReducer } from 'react';
+import { BadgeCheck, BadgeMinus, EllipsisVertical, Pencil, RotateCcw, X } from 'lucide-react';
+import { useReducer } from 'react';
 
 import { ApplicationChrome } from '@app/shell/ApplicationChrome';
 import { ShellPageBackdrop } from '@app/shell/ShellStoryPage.stories.fixture';
@@ -28,28 +27,9 @@ import { TreacheryCard } from '@game/assets/treachery/Treachery';
 import { card } from '@game/data/sizes';
 import { treacheryCardFixtures } from '@game/fixtures/treacheryCards';
 
-import styles from './faqControlsPrototypes.module.css';
+import styles from './faqControlsPrototype.module.css';
 
 /* Throwaway controls on the approved forum layout. All actions change memory only. */
-export type FaqControlVariant = 'A' | 'B' | 'C';
-export const choices = [
-  {
-    value: 'A',
-    label: 'A · Post header',
-    description: 'Every post keeps its actions together in the top-right corner.',
-  },
-  {
-    value: 'B',
-    label: 'B · Accept + menu',
-    description: 'Acceptance stays visible below the answer. Edit and delete live in a small menu.',
-  },
-  {
-    value: 'C',
-    label: 'C · Inline tools',
-    description: 'Open tools beneath a post. Its actions expand inline, without a floating menu.',
-  },
-] as const;
-
 const people = {
   leonard: { name: 'Leonard van der Meer', slug: 'leonard', questions: 14, answers: 32 },
   idris: { name: 'IdrisTheKeeperOfDuneTraditions', slug: 'idris', questions: 6, answers: 108 },
@@ -85,7 +65,6 @@ type DemoState = {
   accepted: string | null;
   editing: string | null;
   draft: string;
-  tools: string | null;
   questionDeleted: boolean;
   event: string;
 };
@@ -95,9 +74,8 @@ const initialState: DemoState = {
   accepted: 'leonard',
   editing: null,
   draft: '',
-  tools: null,
   questionDeleted: false,
-  event: 'Try edit, accept, or hold a delete control.',
+  event: "Open the accepted answer's menu to unmark it.",
 };
 type DemoEvent =
   | { type: 'reset' }
@@ -106,8 +84,8 @@ type DemoEvent =
   | { type: 'cancel' }
   | { type: 'save' }
   | { type: 'accept'; id: string }
-  | { type: 'delete'; id: string }
-  | { type: 'tools'; id: string };
+  | { type: 'unmark' }
+  | { type: 'delete'; id: string };
 function reducer(state: DemoState, event: DemoEvent): DemoState {
   switch (event.type) {
     case 'reset':
@@ -116,7 +94,6 @@ function reducer(state: DemoState, event: DemoEvent): DemoState {
       return {
         ...state,
         editing: event.id,
-        tools: null,
         draft: event.id === 'question' ? state.question : state.posts.find((post) => post.id === event.id)!.text,
         event: 'Editing inline. Save keeps the change; Cancel discards the draft.',
       };
@@ -134,10 +111,13 @@ function reducer(state: DemoState, event: DemoEvent): DemoState {
         event: 'Saved in this preview.',
       };
     case 'accept':
+      if (state.accepted !== null) {
+        return state;
+      }
       return {
         ...state,
-        accepted: state.accepted === event.id ? null : event.id,
-        event: state.accepted === event.id ? 'Acceptance removed.' : 'Answer accepted and moved to the top.',
+        accepted: event.id,
+        event: 'Answer accepted and moved to the top. Unmark it through its menu to choose another.',
       };
     case 'delete':
       return {
@@ -145,11 +125,10 @@ function reducer(state: DemoState, event: DemoEvent): DemoState {
         questionDeleted: event.id === 'question',
         posts: state.posts.filter((post) => post.id !== event.id),
         accepted: state.accepted === event.id ? null : state.accepted,
-        tools: null,
         event: event.id === 'question' ? 'Question deleted in this preview.' : 'Answer deleted in this preview.',
       };
-    case 'tools':
-      return { ...state, tools: state.tools === event.id ? null : event.id };
+    case 'unmark':
+      return { ...state, accepted: null, event: 'Acceptance removed. You can now accept any answer.' };
   }
 }
 
@@ -167,74 +146,47 @@ function Contributor({ person, label }: { person: (typeof people)[keyof typeof p
 }
 
 function Controls({
-  variant,
   id,
   own,
   accepted,
   onEdit,
-  onAccept,
+  onUnmark,
   onDelete,
 }: {
-  variant: FaqControlVariant;
   id: string;
   own: boolean;
   accepted: boolean;
   onEdit: () => void;
-  onAccept: () => void;
+  onUnmark: () => void;
   onDelete: () => void;
 }) {
-  const question = id === 'question';
-  const name = question ? 'question' : 'answer';
-  if (variant === 'B') {
-    return (
-      <Menu position="bottom-end" withinPortal shadow="md">
-        <Menu.Target>
-          <IconAction
-            label={`Actions for ${name}`}
-            icon={<EllipsisVertical size={17} />}
-            intent="neutral"
-            emphasis="standard"
-            size="lg"
-          />
-        </Menu.Target>
-        <Menu.Dropdown>
-          {own ? (
-            <Menu.Item leftSection={<Pencil size={17} />} onClick={onEdit}>
-              Edit {name}
-            </Menu.Item>
-          ) : null}
-          {own ? <Menu.Divider /> : null}
-          <ConfirmDeleteMenuItem label={`Hold to delete ${name}`} onConfirm={onDelete} />
-        </Menu.Dropdown>
-      </Menu>
-    );
-  }
+  const name = id === 'question' ? 'question' : 'answer';
   return (
-    <Group gap="xs" wrap="nowrap" role="group" aria-label={`${name} actions`}>
-      {own ? (
+    <Menu position="bottom-end" withinPortal shadow="md">
+      <Menu.Target>
         <IconAction
-          label={`Edit ${name}`}
-          icon={<Pencil size={17} />}
+          label={`Actions for ${name}`}
+          icon={<EllipsisVertical size={17} />}
           intent="neutral"
           emphasis="standard"
           size="lg"
-          onClick={onEdit}
         />
-      ) : null}
-      <ConfirmDeleteAction label={`Delete ${name}`} pending={false} size="lg" onConfirm={onDelete} />
-      {!question ? (
-        <IconAction
-          label={accepted ? 'Unmark accepted answer' : 'Accept answer'}
-          tooltip={accepted ? 'Accepted answer. Click to unmark.' : 'Mark as accepted answer'}
-          icon={<BadgeCheck size={17} />}
-          intent="positive"
-          emphasis="strong"
-          pressed={accepted}
-          size="lg"
-          onClick={onAccept}
-        />
-      ) : null}
-    </Group>
+      </Menu.Target>
+      <Menu.Dropdown>
+        {own ? (
+          <Menu.Item leftSection={<Pencil size={17} />} onClick={onEdit}>
+            Edit {name}
+          </Menu.Item>
+        ) : null}
+        {accepted ? (
+          <Menu.Item leftSection={<BadgeMinus size={17} />} onClick={onUnmark}>
+            Unmark accepted answer
+          </Menu.Item>
+        ) : null}
+        {own || accepted ? <Menu.Divider /> : null}
+        <ConfirmDeleteMenuItem label={`Hold to delete ${name}`} onConfirm={onDelete} />
+      </Menu.Dropdown>
+    </Menu>
   );
 }
 
@@ -320,61 +272,15 @@ function Context() {
   );
 }
 
-export function FaqControlsPrototype({
-  variant,
-  switcher = false,
-  onVariantChange = () => {},
-}: {
-  variant: FaqControlVariant;
-  switcher?: boolean;
-  onVariantChange?: (value: FaqControlVariant) => void;
-}) {
+export function FaqControlsPrototype() {
   const [state, dispatch] = useReducer(reducer, initialState);
-  const choice = choices.find((item) => item.value === variant)!;
-  const changeVariant = (value: FaqControlVariant) => {
-    dispatch({ type: 'reset' });
-    onVariantChange(value);
-  };
-  const cycle = (direction: number) =>
-    changeVariant(
-      choices[(choices.findIndex((item) => item.value === variant) + direction + choices.length) % choices.length]!
-        .value
-    );
-  useEffect(() => {
-    if (!switcher) {
-      return;
-    }
-    const onKey = (event: KeyboardEvent) => {
-      if (
-        event.altKey ||
-        event.metaKey ||
-        event.ctrlKey ||
-        (event.target instanceof Element &&
-          event.target.closest('input,textarea,[contenteditable="true"],[role="menu"],[role="combobox"]'))
-      ) {
-        return;
-      }
-      if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
-        event.preventDefault();
-        const direction = event.key === 'ArrowLeft' ? -1 : 1;
-        dispatch({ type: 'reset' });
-        onVariantChange(
-          choices[(choices.findIndex((item) => item.value === variant) + direction + choices.length) % choices.length]!
-            .value
-        );
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [switcher, variant, onVariantChange]);
   const actions = (id: string, own: boolean) => (
     <Controls
-      variant={variant}
       id={id}
       own={own}
       accepted={state.accepted === id}
       onEdit={() => dispatch({ type: 'edit', id })}
-      onAccept={() => dispatch({ type: 'accept', id })}
+      onUnmark={() => dispatch({ type: 'unmark' })}
       onDelete={() => dispatch({ type: 'delete', id })}
     />
   );
@@ -387,27 +293,6 @@ export function FaqControlsPrototype({
       onCancel={() => dispatch({ type: 'cancel' })}
       onSave={() => dispatch({ type: 'save' })}
     />
-  );
-  const inlineTools = (id: string, own: boolean) => (
-    <Stack gap="sm">
-      <Group justify="flex-end">
-        <Button
-          variant="light"
-          color={state.tools === id ? 'selected' : 'dune'}
-          leftSection={<Settings2 size={17} />}
-          aria-expanded={state.tools === id}
-          onClick={() => dispatch({ type: 'tools', id })}
-        >
-          {id === 'question' ? 'Question tools' : 'Answer tools'}
-        </Button>
-      </Group>
-      {state.tools === id ? (
-        <>
-          <Divider />
-          <Group justify="flex-end">{actions(id, own)}</Group>
-        </>
-      ) : null}
-    </Stack>
   );
   const visible = [...state.posts].sort(
     (left, right) =>
@@ -431,28 +316,10 @@ export function FaqControlsPrototype({
                       You are Leonard, the asker. Preview changes only.
                     </Text>
                   </Group>
-                  {switcher ? (
-                    <Tabs
-                      value={variant}
-                      onChange={(value) => {
-                        if (value === 'A' || value === 'B' || value === 'C') {
-                          changeVariant(value);
-                        }
-                      }}
-                    >
-                      <Tabs.List grow>
-                        {choices.map((item) => (
-                          <Tabs.Tab key={item.value} value={item.value}>
-                            {item.label}
-                          </Tabs.Tab>
-                        ))}
-                      </Tabs.List>
-                    </Tabs>
-                  ) : (
-                    <Text fw={700}>{choice.label}</Text>
-                  )}
+                  <Text fw={700}>Accept + menu</Text>
                   <Text size="sm" c="dimmed">
-                    {choice.description} Delete uses the app's five-second hold.
+                    Accept an answer while the question is open. To change it, unmark the accepted answer through its
+                    menu first. Edit and delete stay in each post's menu. Delete uses the app's five-second hold.
                   </Text>
                 </Stack>
               </Surface>
@@ -479,7 +346,7 @@ export function FaqControlsPrototype({
                       </div>
                       <Card
                         title={state.question}
-                        action={state.editing === 'question' || variant === 'C' ? undefined : actions('question', true)}
+                        action={state.editing === 'question' ? undefined : actions('question', true)}
                       >
                         <Stack gap="md">
                           <Group gap="xs">
@@ -497,7 +364,6 @@ export function FaqControlsPrototype({
                               One answer per member. You can update your own.
                             </Text>
                           )}
-                          {variant === 'C' && state.editing !== 'question' ? inlineTools('question', true) : null}
                         </Stack>
                       </Card>
                     </div>
@@ -537,7 +403,7 @@ export function FaqControlsPrototype({
                                         {post.date}
                                       </Text>
                                     </Group>
-                                    {!editing && variant !== 'C' ? actions(post.id, post.own) : null}
+                                    {!editing ? actions(post.id, post.own) : null}
                                   </Group>
                                   {accepted ? (
                                     <Text size="xs" c="dimmed">
@@ -551,26 +417,22 @@ export function FaqControlsPrototype({
                                       <div className={styles.prose}>
                                         <FormattedTextSource source={post.text} />
                                       </div>
-                                      {variant === 'B' ? (
+                                      {state.accepted === null ? (
                                         <Group justify="flex-end">
-                                          <Tooltip
-                                            label={accepted ? 'Unmark accepted answer' : 'Mark as accepted answer'}
-                                          >
+                                          <Tooltip label="Mark as accepted answer">
                                             <Button
-                                              color={accepted ? 'selected' : 'confirm'}
-                                              variant={accepted ? 'light' : 'filled'}
+                                              color="confirm"
+                                              variant="filled"
                                               size="sm"
                                               leftSection={<BadgeCheck size={17} />}
-                                              aria-label={accepted ? 'Unmark accepted answer' : 'Accept answer'}
-                                              aria-pressed={accepted}
+                                              aria-label="Accept answer"
                                               onClick={() => dispatch({ type: 'accept', id: post.id })}
                                             >
-                                              {accepted ? 'Accepted answer' : 'Accept answer'}
+                                              Accept answer
                                             </Button>
                                           </Tooltip>
                                         </Group>
                                       ) : null}
-                                      {variant === 'C' ? inlineTools(post.id, post.own) : null}
                                     </>
                                   )}
                                 </Stack>
@@ -592,33 +454,13 @@ export function FaqControlsPrototype({
           </PageLayout.Content>
         </PageLayout>
       </ApplicationChrome>
-      <div className={styles.switcher}>
+      <div className={styles.previewStatus}>
         <Surface padding="sm">
           <Stack gap="xs">
             <Group gap="xs" wrap="nowrap">
-              {switcher ? (
-                <IconAction
-                  label="Previous prototype"
-                  icon={<ArrowLeft size={17} />}
-                  intent="neutral"
-                  emphasis="standard"
-                  size="lg"
-                  onClick={() => cycle(-1)}
-                />
-              ) : null}
-              <Text size="sm" fw={700} className={styles.switcherLabel}>
-                {choice.label}
+              <Text size="sm" fw={700} className={styles.previewLabel}>
+                Accept + menu
               </Text>
-              {switcher ? (
-                <IconAction
-                  label="Next prototype"
-                  icon={<ArrowRight size={17} />}
-                  intent="neutral"
-                  emphasis="standard"
-                  size="lg"
-                  onClick={() => cycle(1)}
-                />
-              ) : null}
               <IconAction
                 label="Reset prototype"
                 icon={<RotateCcw size={17} />}

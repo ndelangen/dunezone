@@ -43,7 +43,7 @@
   overflow-wrap: anywhere;
   line-height: 1.75;
 }
-.switcher {
+.previewStatus {
   position: fixed;
   bottom: var(--space-md);
   left: 50%;
@@ -51,7 +51,7 @@
   width: min(34rem, calc(100% - var(--space-md) * 2));
   z-index: 100;
 }
-.switcherLabel {
+.previewLabel {
   flex: 1;
   min-width: 0;
 }
