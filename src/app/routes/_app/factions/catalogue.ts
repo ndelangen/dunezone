@@ -25,22 +25,27 @@ export function factionCatalogueArgs(search: FactionCatalogueSearch): FactionCat
   };
 }
 
-/** What the live answer knows that the parser cannot: the rulesets the catalogue has, and the member it narrowed to. */
-type CatalogueFurniture = { rulesets: FactionCatalogueRuleset[]; owner: FactionCatalogueOwner };
+/** What the live answer knows that the parser cannot: the rulesets the catalogue has, and the member filter as it answered it. */
+export type CatalogueFurniture = { rulesets: FactionCatalogueRuleset[]; owner: FactionCatalogueOwner };
 
-function normalizeFactionCatalogueSearch(
+/**
+ * The address the live answer says this one should be.
+ * The parser already drops the default order, and the order and page of a search;
+ * the ruleset and the member need the answer to judge.
+ * The member is judged only by an answer for that very slug: the router moves the location before the loader commits, so after Back the answer in hand can be the previous page's, which asked for nobody or for someone else, and a member it never asked about stays until its own answer arrives.
+ * An answer that led the slug to a member writes the member's current slug, so an old link's address moves on as the profile page's does.
+ */
+export function normalizeFactionCatalogueSearch(
   search: FactionCatalogueSearch,
   furniture: CatalogueFurniture
 ): FactionCatalogueSearch {
-  /* The parser already drops the default order, and the order and page of a search; the ruleset and the member need the live answer to judge. */
   const { ruleset, owner, ...parsed } = parseFactionCatalogueSearch(search);
   const validRuleset = furniture.rulesets.some((candidate) => candidate.slug === ruleset);
-  /* The server names the member it narrowed to; a slug it did not know narrowed nothing and leaves the address. */
-  const validOwner = furniture.owner != null && furniture.owner.slug === owner;
+  const answered = owner != null && furniture.owner?.asked === owner ? furniture.owner.member?.slug : owner;
   return {
     ...parsed,
     ...(validRuleset && ruleset ? { ruleset } : {}),
-    ...(validOwner && owner ? { owner } : {}),
+    ...(answered ? { owner: answered } : {}),
   };
 }
 
@@ -56,7 +61,10 @@ function orderIndependentSearchString(params: URLSearchParams) {
  * A list is one partition, so choosing a ruleset leaves the member's list;
  * the parser would drop the ruleset otherwise.
  */
-function nextSearch(previous: Record<string, unknown>, patch: Partial<Record<keyof FactionCatalogueSearch, unknown>>) {
+export function nextSearch(
+  previous: Record<string, unknown>,
+  patch: Partial<Record<keyof FactionCatalogueSearch, unknown>>
+) {
   return parseFactionCatalogueSearch({
     ...previous,
     page: undefined,

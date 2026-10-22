@@ -84,8 +84,11 @@ export type FactionCatalogueArgs = FunctionArgs<typeof api.factions.catalogue>;
 /** A ruleset the catalogue can narrow to, with how many live factions it holds. */
 export type FactionCatalogueRuleset = FactionCatalogueRaw['rulesets'][number];
 
-/** The member a page is narrowed to, as the server names them; null when the page is not, or the address named nobody it knows. */
+/** The member filter as the server answered it: the slug the address asked and the member whose list that is; null when no slug was asked. */
 export type FactionCatalogueOwner = FactionCatalogueRaw['owner'];
+
+/** The member a page is narrowed to, as the server names them; null when the address named nobody with a public page. */
+export type FactionCatalogueMember = NonNullable<FactionCatalogueOwner>['member'];
 
 /** A catalogue answer with its cards parsed at the client boundary; distributive, so each shape keeps its own fields. */
 type ParsedCatalogue<Raw> = Raw extends unknown

@@ -77,11 +77,12 @@ export const CatalogueByOwner = meta.story({
     const main = within(await page.findByRole('main', {}, { timeout: 30_000 }));
     await expect(main.findAllByRole('link', { name: /House Atreides/ }, { timeout: 30_000 })).resolves.toHaveLength(1);
     await expect(main.queryByRole('link', { name: /Sietch Tabr/ })).toBeNull();
-    await userEvent.click(page.getByRole('button', { name: 'Refine factions by ruleset and complexity' }));
+    await userEvent.click(page.getByRole('button', { name: 'Refine factions by member, ruleset and complexity' }));
     /* The popover fades in, so its words are in the document a moment before they are visible. */
-    await waitFor(() => expect(page.getByText('By storybook-viewer')).toBeVisible());
+    await waitFor(() => expect(page.getByRole('group', { name: 'Member' })).toBeVisible());
+    await expect(page.getByText('By storybook-viewer')).toBeVisible();
     await expect(page.getByText('1 of 2 factions')).toBeVisible();
-    await userEvent.click(page.getByRole('button', { name: 'Show every member' }));
+    await userEvent.click(page.getByRole('button', { name: "Show every member's factions" }));
     await waitFor(() => expect(main.getByRole('link', { name: /Sietch Tabr/ })).toBeVisible(), { timeout: 30_000 });
   },
 });

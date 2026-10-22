@@ -11,7 +11,6 @@ import type { FactionCatalogueSearch, FactionCatalogueSort } from '../../src/sha
 import { complexityOutOfTen, effectiveComplexity } from '../../src/shared/factions/complexity';
 import type { Doc, Id } from '../_generated/dataModel';
 import type { QueryCtx } from '../types';
-import { isPublicProfile } from './accountLifecycle';
 import { resolveBackgrounds } from './backgroundPresets';
 import { catalogueEditedAt, catalogueNameKey, catalogueSearchText, catalogueTimestamp } from './catalogueEntryShape';
 import type { CatalogueKind } from './catalogueEntryShape';
@@ -26,6 +25,7 @@ import {
 import type { CatalogueDirection, CatalogueSort } from './catalogueOrder';
 import type { catalogueFactionValidator } from './collaborativeAccessValidators';
 import { parseStoredFactionForRead } from './factionInput';
+import { loadPublicProfileBySlug } from './profileAddress';
 import { profileListName } from './profileCatalogue';
 
 export type FactionRulesetSummary = {
@@ -357,18 +357,23 @@ async function selectSpotlightEntries(ctx: QueryCtx) {
   return { newArrival: newArrival ?? null, freshlyUpdated: freshlyUpdated ?? null };
 }
 
-/** The member the catalogue is narrowed to, as the page names them, with their list; null for no slug or one no public profile holds. */
+/**
+ * The member filter as the address asked it: the slug named, trimmed as the address parser trims it, and the member whose list that is.
+ * Null when no slug was asked;
+ * `member` null when the slug leads to no public profile, so the route drops it from the address.
+ * The address resolves as a profile page's does, through renames and merges, so an old "All N factions" link keeps naming the member.
+ */
 async function catalogueOwner(ctx: QueryCtx, slug: string | undefined) {
-  const profile = slug
-    ? await ctx.db
-        .query('profiles')
-        .withIndex('by_slug', (q) => q.eq('slug', slug))
-        .unique()
-    : null;
-  if (!profile || !isPublicProfile(profile)) {
+  const asked = slug?.trim();
+  if (!asked) {
     return null;
   }
-  return { slug: profile.slug, name: profileListName(profile), partition: factionOwnerPartition(profile.user_id) };
+  const profile = await loadPublicProfileBySlug(ctx, asked);
+  return {
+    asked,
+    member: profile ? { slug: profile.slug, name: profileListName(profile) } : null,
+    partition: profile ? factionOwnerPartition(profile.user_id) : null,
+  };
 }
 
 /**
@@ -391,7 +396,7 @@ async function loadCatalogueFurniture(ctx: QueryCtx, query: FactionCatalogueQuer
     text: query.q?.slice(0, FACTION_CATALOGUE_QUERY_LIMIT).trim() ?? '',
     catalogueTotal,
     rulesets: rulesets.map((ruleset, index) => ({ ...ruleset, factionCount: rulesetCounts[index] ?? 0 })),
-    owner: owner ? { slug: owner.slug, name: owner.name } : null,
+    owner: owner ? { asked: owner.asked, member: owner.member } : null,
     spotlightEntries,
   };
 }

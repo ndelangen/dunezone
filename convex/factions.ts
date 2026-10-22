@@ -222,8 +222,15 @@ const catalogueSpotlightsValidator = v.object({
 
 const catalogueRulesetsValidator = v.array(rulesetSummaryValidator.extend({ factionCount: v.number() }));
 
-/** The member the catalogue is narrowed to, as the page names them; null when no public profile's slug was asked for. */
-const catalogueOwnerValidator = v.union(v.object({ slug: v.string(), name: v.string() }), v.null());
+/**
+ * The member filter as the address asked it: the slug named, and the member whose list that is, or null when no public profile answers to it.
+ * Null when no slug was asked.
+ * The slug is echoed so the route can tell this answer judged the address it holds, and not the previous page's.
+ */
+const catalogueOwnerValidator = v.union(
+  v.object({ asked: v.string(), member: v.union(v.object({ slug: v.string(), name: v.string() }), v.null()) }),
+  v.null()
+);
 
 /** A browsed page: aggregate counts, numbered pages, a chosen order. */
 const catalogueBrowseValidator = v.object({
