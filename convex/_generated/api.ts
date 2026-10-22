@@ -101,6 +101,7 @@ import type * as lib_playerSummary from "../lib/playerSummary.js";
 import type * as lib_policy from "../lib/policy.js";
 import type * as lib_presetLibraryInitialization from "../lib/presetLibraryInitialization.js";
 import type * as lib_profileActivity from "../lib/profileActivity.js";
+import type * as lib_profileAddress from "../lib/profileAddress.js";
 import type * as lib_profileAvatar from "../lib/profileAvatar.js";
 import type * as lib_profileBootstrap from "../lib/profileBootstrap.js";
 import type * as lib_profileCatalogue from "../lib/profileCatalogue.js";
@@ -272,6 +273,7 @@ const fullApi: ApiFromModules<{
   "lib/policy": typeof lib_policy;
   "lib/presetLibraryInitialization": typeof lib_presetLibraryInitialization;
   "lib/profileActivity": typeof lib_profileActivity;
+  "lib/profileAddress": typeof lib_profileAddress;
   "lib/profileAvatar": typeof lib_profileAvatar;
   "lib/profileBootstrap": typeof lib_profileBootstrap;
   "lib/profileCatalogue": typeof lib_profileCatalogue;

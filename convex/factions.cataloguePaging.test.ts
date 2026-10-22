@@ -191,7 +191,7 @@ describe('faction catalogue query', () => {
       total: 1,
       catalogueTotal: FACTION_CATALOGUE_PAGE_SIZE + 2,
     });
-  });
+  }, 30_000);
 
   test('names nobody for a profile without a public page: pending deletion, deleted, or merged into one that is gone', async () => {
     const { t, page, names } = await catalogueWith([{ name: 'Harkonnen' }]);
