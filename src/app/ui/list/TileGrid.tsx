@@ -7,7 +7,8 @@ import styles from './TileGrid.module.css';
  *
  * A List.
  * Callers hand it the tiles;
- * this owns their track size, gap and distribution. Compact density fits catalogue previews into context rails.
+ * this owns their track size, gap and distribution.
+ * Compact density fits catalogue previews into context rails.
  * The browse page and the container composition grid both wear it, which is what keeps their tiles the same size without a restated number.
  * Callers own the empty case.
  */

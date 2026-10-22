@@ -9,8 +9,7 @@ const QUESTIONS_PER_TARGET = 32;
 const CANDIDATE_LIMIT = 64;
 const RELATED_LIMIT = 5;
 
-/** Shared live targets determine overlap; question creation breaks ties, not reference creation. */
-export async function loadRelatedFaqForQuestion(ctx: QueryCtx, questionId: Id<'faq_items'>) {
+async function loadLiveTargets(ctx: QueryCtx, questionId: Id<'faq_items'>) {
   const source = await ctx.db
     .query('faq_references')
     .withIndex('by_faq_item_id_and_target_id', (q) => q.eq('faq_item_id', questionId))
@@ -24,7 +23,12 @@ export async function loadRelatedFaqForQuestion(ctx: QueryCtx, questionId: Id<'f
       return (await liveFaqReferenceTarget(ctx, target)) ? reference.target_id : null;
     })
   );
-  const targets = live.filter((target) => target !== null);
+  return live.filter((target) => target !== null);
+}
+
+type TargetId = Id<'factions'> | Id<'assets'>;
+
+async function loadCandidateShortlist(ctx: QueryCtx, questionId: Id<'faq_items'>, targets: TargetId[]) {
   const ranges = await Promise.all(
     targets.map((targetId) =>
       ctx.db
@@ -47,7 +51,7 @@ export async function loadRelatedFaqForQuestion(ctx: QueryCtx, questionId: Id<'f
     candidate.targets.add(reference.target_id);
     candidates.set(candidate.id, candidate);
   }
-  const shortlist = [...candidates.values()]
+  return [...candidates.values()]
     .sort(
       (left, right) =>
         right.targets.size - left.targets.size ||
@@ -55,27 +59,34 @@ export async function loadRelatedFaqForQuestion(ctx: QueryCtx, questionId: Id<'f
         left.id.localeCompare(right.id)
     )
     .slice(0, CANDIDATE_LIMIT);
-  const ranked = await Promise.all(
-    shortlist.map(async (candidate) => {
-      const question = await ctx.db.get('faq_items', candidate.id);
-      const ruleset = question ? await ctx.db.get('rulesets', question.ruleset_id) : null;
-      if (!question || !ruleset || ruleset.is_deleted) {
-        return null;
-      }
-      /* A candidate can fall outside one target's newest range. Check its actual overlap before ranking. */
-      const matches = await Promise.all(
-        targets.map((targetId) =>
-          ctx.db
-            .query('faq_references')
-            .withIndex('by_faq_item_id_and_target_id', (q) =>
-              q.eq('faq_item_id', candidate.id).eq('target_id', targetId)
-            )
-            .unique()
-        )
-      );
-      return { question, ruleset, overlap: matches.filter((match) => match !== null).length };
-    })
+}
+
+async function rankCandidate(ctx: QueryCtx, questionId: Id<'faq_items'>, targets: TargetId[]) {
+  const question = await ctx.db.get('faq_items', questionId);
+  if (!question) {
+    return null;
+  }
+  const ruleset = await ctx.db.get('rulesets', question.ruleset_id);
+  if (!ruleset || ruleset.is_deleted) {
+    return null;
+  }
+  /* A candidate can fall outside one target's newest range. Check its actual overlap before ranking. */
+  const matches = await Promise.all(
+    targets.map((targetId) =>
+      ctx.db
+        .query('faq_references')
+        .withIndex('by_faq_item_id_and_target_id', (q) => q.eq('faq_item_id', questionId).eq('target_id', targetId))
+        .unique()
+    )
   );
+  return { question, ruleset, overlap: matches.filter((match) => match !== null).length };
+}
+
+/** Shared live targets determine overlap; question creation breaks ties, not reference creation. */
+export async function loadRelatedFaqForQuestion(ctx: QueryCtx, questionId: Id<'faq_items'>) {
+  const targets = await loadLiveTargets(ctx, questionId);
+  const shortlist = await loadCandidateShortlist(ctx, questionId, targets);
+  const ranked = await Promise.all(shortlist.map((candidate) => rankCandidate(ctx, candidate.id, targets)));
   const selected = ranked
     .filter((candidate) => candidate !== null)
     .sort(

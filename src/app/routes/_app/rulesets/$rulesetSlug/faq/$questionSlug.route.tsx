@@ -43,7 +43,7 @@ import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import styles from './$questionSlug.module.css';
 import { INITIAL_FAQ_EDITING_STATE, createFaqEditingSession } from './faqEditingSession';
-import type { FaqEditingPorts } from './faqEditingSession';
+import type { FaqEditingPorts, FaqEditingState } from './faqEditingSession';
 import { questionTitle } from './questionTitle';
 
 export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/faq/$questionSlug')({
@@ -249,8 +249,6 @@ function FaqDetailPage() {
       .catch(() => undefined);
   };
 
-  const startEditQuestion = () => editingSession.startEditQuestion(item);
-  const saveQuestion = () => void editingSession.saveQuestion(item);
   const startEditAnswer = (a: (typeof answers)[0]) => editingSession.startEditAnswer(a);
   const saveAnswer = (answerId: string) => void editingSession.saveAnswer(answers.find((x) => x.id === answerId));
 
@@ -259,7 +257,6 @@ function FaqDetailPage() {
   };
 
   const hasAcceptedAnswer = answers.some((answer) => answer.accepted);
-  const questionHeading = questionTitle(item.text);
 
   return (
     <PageLayout>
@@ -282,103 +279,12 @@ function FaqDetailPage() {
       <PageLayout.Content>
         <div className={styles.container}>
           <div className={styles.discussion}>
-            <div className={styles.question}>
-              <div className={styles.post}>
-                <div className={styles.author}>
-                  <FaqContributor author={item.author} label="Asked by" />
-                </div>
-                <Card
-                  title={questionHeading}
-                  action={
-                    <Group role="group" aria-label="Question actions" gap="xs">
-                      {item.capabilities.editQuestion ? (
-                        <IconAction
-                          label="Edit question"
-                          emphasis="standard"
-                          intent="neutral"
-                          disabled={editing.editingQuestion}
-                          onClick={startEditQuestion}
-                          icon={<Pencil size={16} aria-hidden />}
-                        />
-                      ) : null}
-                      {item.capabilities.deleteQuestion ? (
-                        <ConfirmDeleteAction
-                          label="Delete question"
-                          pending={faq.deleteQuestion.isPending}
-                          onConfirm={handleDeleteQuestion}
-                        />
-                      ) : null}
-                    </Group>
-                  }
-                >
-                  <Stack gap="md">
-                    <Group gap="xs">
-                      <StatusBadge tone={hasAcceptedAnswer ? 'positive' : 'neutral'}>
-                        {hasAcceptedAnswer ? 'Answered' : 'Open question'}
-                      </StatusBadge>
-                      <Text size="xs" c="dimmed">
-                        <time dateTime={item.createdAt} title={item.createdAt}>
-                          Asked {formatStableDate(item.createdAt)}
-                        </time>{' '}
-                        · {answers.length} {answers.length === 1 ? 'answer' : 'answers'}
-                      </Text>
-                    </Group>
-                    {faq.deleteQuestion.error ? (
-                      <FormError title="Question could not be deleted">{faq.deleteQuestion.error.message}</FormError>
-                    ) : null}
-                    {editing.editingQuestion ? (
-                      <Stack gap="sm">
-                        <FormattedTextInput
-                          label="Edit question"
-                          value={editing.questionValue}
-                          onChange={(value) => editingSession.setQuestionValue(value)}
-                          profile="marks-only"
-                          rows={2}
-                        />
-                        <FaqTagFieldset
-                          value={editing.tagValues}
-                          onToggle={(tag, checked) => editingSession.toggleTag(tag, checked)}
-                        />
-                        {faq.editQuestion.error ? (
-                          <FormError title="Question could not be saved">{faq.editQuestion.error.message}</FormError>
-                        ) : null}
-                        <Group gap="xs">
-                          <IconAction
-                            label="Save question"
-                            emphasis="strong"
-                            intent="positive"
-                            onClick={saveQuestion}
-                            disabled={faq.editQuestion.isPending}
-                            icon={<Check size={16} aria-hidden />}
-                          />
-                          <IconAction
-                            label="Cancel editing question"
-                            emphasis="standard"
-                            intent="neutral"
-                            onClick={() => editingSession.cancelQuestion()}
-                            icon={<X size={16} aria-hidden />}
-                          />
-                        </Group>
-                      </Stack>
-                    ) : item.text.trim() !== questionHeading ? (
-                      <div className={styles.prose}>
-                        <FormattedTextSource source={item.text} />
-                      </div>
-                    ) : null}
-                    <Group gap="xs">
-                      <Anchor href="#discussion" size="sm" underline="never">
-                        Read the answers
-                      </Anchor>
-                      {(item.tags ?? []).map((tag) => (
-                        <Badge key={tag} size="xs" variant="outline" color="dune">
-                          {FAQ_TAG_LABELS[tag]}
-                        </Badge>
-                      ))}
-                    </Group>
-                  </Stack>
-                </Card>
-              </div>
-            </div>
+            <FaqQuestionPost
+              faq={faq}
+              editing={editing}
+              editingSession={editingSession}
+              onDelete={handleDeleteQuestion}
+            />
             <FaqContext faq={faq} />
             <div className={styles.answers}>
               <Section
@@ -570,6 +476,123 @@ function FaqDetailPage() {
         </div>
       </PageLayout.Content>
     </PageLayout>
+  );
+}
+
+function FaqQuestionPost({
+  faq,
+  editing,
+  editingSession,
+  onDelete,
+}: {
+  faq: FaqQuestionCommands;
+  editing: FaqEditingState;
+  editingSession: ReturnType<typeof createFaqEditingSession>;
+  onDelete: () => void;
+}) {
+  const { question: item, answers } = faq.page!;
+  const hasAcceptedAnswer = answers.some((answer) => answer.accepted);
+  const questionHeading = questionTitle(item.text);
+  const startEditQuestion = () => editingSession.startEditQuestion(item);
+  const saveQuestion = () => void editingSession.saveQuestion(item);
+  return (
+    <div className={styles.question}>
+      <div className={styles.post}>
+        <div className={styles.author}>
+          <FaqContributor author={item.author} label="Asked by" />
+        </div>
+        <Card
+          title={questionHeading}
+          action={
+            <Group role="group" aria-label="Question actions" gap="xs">
+              {item.capabilities.editQuestion ? (
+                <IconAction
+                  label="Edit question"
+                  emphasis="standard"
+                  intent="neutral"
+                  disabled={editing.editingQuestion}
+                  onClick={startEditQuestion}
+                  icon={<Pencil size={16} aria-hidden />}
+                />
+              ) : null}
+              {item.capabilities.deleteQuestion ? (
+                <ConfirmDeleteAction
+                  label="Delete question"
+                  pending={faq.deleteQuestion.isPending}
+                  onConfirm={onDelete}
+                />
+              ) : null}
+            </Group>
+          }
+        >
+          <Stack gap="md">
+            <Group gap="xs">
+              <StatusBadge tone={hasAcceptedAnswer ? 'positive' : 'neutral'}>
+                {hasAcceptedAnswer ? 'Answered' : 'Open question'}
+              </StatusBadge>
+              <Text size="xs" c="dimmed">
+                <time dateTime={item.createdAt} title={item.createdAt}>
+                  Asked {formatStableDate(item.createdAt)}
+                </time>{' '}
+                · {answers.length} {answers.length === 1 ? 'answer' : 'answers'}
+              </Text>
+            </Group>
+            {faq.deleteQuestion.error ? (
+              <FormError title="Question could not be deleted">{faq.deleteQuestion.error.message}</FormError>
+            ) : null}
+            {editing.editingQuestion ? (
+              <Stack gap="sm">
+                <FormattedTextInput
+                  label="Edit question"
+                  value={editing.questionValue}
+                  onChange={(value) => editingSession.setQuestionValue(value)}
+                  profile="marks-only"
+                  rows={2}
+                />
+                <FaqTagFieldset
+                  value={editing.tagValues}
+                  onToggle={(tag, checked) => editingSession.toggleTag(tag, checked)}
+                />
+                {faq.editQuestion.error ? (
+                  <FormError title="Question could not be saved">{faq.editQuestion.error.message}</FormError>
+                ) : null}
+                <Group gap="xs">
+                  <IconAction
+                    label="Save question"
+                    emphasis="strong"
+                    intent="positive"
+                    onClick={saveQuestion}
+                    disabled={faq.editQuestion.isPending}
+                    icon={<Check size={16} aria-hidden />}
+                  />
+                  <IconAction
+                    label="Cancel editing question"
+                    emphasis="standard"
+                    intent="neutral"
+                    onClick={() => editingSession.cancelQuestion()}
+                    icon={<X size={16} aria-hidden />}
+                  />
+                </Group>
+              </Stack>
+            ) : item.text.trim() !== questionHeading ? (
+              <div className={styles.prose}>
+                <FormattedTextSource source={item.text} />
+              </div>
+            ) : null}
+            <Group gap="xs">
+              <Anchor href="#discussion" size="sm" underline="never">
+                Read the answers
+              </Anchor>
+              {(item.tags ?? []).map((tag) => (
+                <Badge key={tag} size="xs" variant="outline" color="dune">
+                  {FAQ_TAG_LABELS[tag]}
+                </Badge>
+              ))}
+            </Group>
+          </Stack>
+        </Card>
+      </div>
+    </div>
   );
 }
 
