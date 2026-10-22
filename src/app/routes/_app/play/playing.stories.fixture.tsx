@@ -28,7 +28,7 @@ export function phaseControls(canvasElement: HTMLElement) {
   /* Previous phase waits in the Next phase split button's menu, so reading or pressing it opens that menu first. */
   const openPrevious = async () => {
     await userEvent.click(controls().getByRole('button', { name: 'More phase actions' }));
-    return page.findByRole('menuitem', { name: 'Previous phase' });
+    return waitForFrame(() => page.getByRole('menuitem', { name: 'Previous phase' }));
   };
   const expectPrevious = async (enabled: boolean) => {
     const item = await openPrevious();
