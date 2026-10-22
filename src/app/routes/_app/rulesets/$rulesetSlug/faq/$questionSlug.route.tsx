@@ -627,7 +627,7 @@ function FaqContributor({ author, label }: { author: FaqAuthor | null; label?: s
             name={author.username ?? 'Contributor'}
             image={author.avatarUrl}
             underline="never"
-            className={styles.identity}
+            presentation="contributor"
           />
           <Text size="xs" c="dimmed" className={styles.counts}>
             <span>

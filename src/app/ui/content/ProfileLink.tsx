@@ -20,6 +20,8 @@ type ProfileLinkBase = {
   underline?: 'hover' | 'never';
   /** Smaller contributor names for list bylines. */
   density?: 'default' | 'compact';
+  /** Larger forum identity; the full name sits below the avatar in a wide discussion container. */
+  presentation?: 'citation' | 'contributor';
 };
 
 /*
@@ -49,6 +51,7 @@ export const ProfileLink = ({
   tone = 'default',
   underline = 'hover',
   density = 'default',
+  presentation = 'citation',
 }: ProfileLinkProps) => {
   const afterAvatar = showName ? (
     <span className={clsx(styles.username, tone === 'inverse' && styles.inverse)}>{name}</span>
@@ -62,6 +65,7 @@ export const ProfileLink = ({
         styles.link,
         underline === 'hover' && styles.underlined,
         density === 'compact' && styles.compact,
+        presentation === 'contributor' && styles.contributor,
         className
       )}
       style={style}
