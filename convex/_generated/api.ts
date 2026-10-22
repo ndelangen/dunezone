@@ -138,6 +138,7 @@ import type * as playAdmission from "../playAdmission.js";
 import type * as playCatalogue from "../playCatalogue.js";
 import type * as playDeletion from "../playDeletion.js";
 import type * as playDirectory from "../playDirectory.js";
+import type * as playGameDirectory from "../playGameDirectory.js";
 import type * as playGameNameAvailability from "../playGameNameAvailability.js";
 import type * as playGameNamesTesting from "../playGameNamesTesting.js";
 import type * as playGames from "../playGames.js";
@@ -305,6 +306,7 @@ const fullApi: ApiFromModules<{
   playCatalogue: typeof playCatalogue;
   playDeletion: typeof playDeletion;
   playDirectory: typeof playDirectory;
+  playGameDirectory: typeof playGameDirectory;
   playGameNameAvailability: typeof playGameNameAvailability;
   playGameNamesTesting: typeof playGameNamesTesting;
   playGames: typeof playGames;
