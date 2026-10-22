@@ -31,3 +31,12 @@ export const Tablet = meta.story({
   args: { variant: 'B', switcher: true },
   globals: { viewport: { value: 'appTablet' } },
 });
+
+export const BPhoneNarrow = meta.story({
+  args: { variant: 'B' },
+  globals: { viewport: { value: 'appMobileNarrow' } },
+});
+export const BForumConstrained = meta.story({
+  args: { variant: 'B' },
+  globals: { viewport: { value: 'appAuthoringTablet' } },
+});

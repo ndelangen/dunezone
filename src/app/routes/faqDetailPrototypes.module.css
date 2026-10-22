@@ -130,3 +130,31 @@
   --profile-link-avatar-size: 56px;
   --profile-link-initials-size: 1.1rem;
 }
+
+.profile {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.layout[data-variant="B"] .postAuthor .profile {
+  display: grid;
+  grid-template-columns: var(--profile-link-avatar-size) minmax(0, 1fr);
+}
+
+@container faq-detail-prototype (width >= 48rem) {
+  .layout[data-variant="B"] .postAuthor .profile {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: start;
+  }
+}
+
+.contributorCounts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+.contributorCounts > span {
+  white-space: nowrap;
+}

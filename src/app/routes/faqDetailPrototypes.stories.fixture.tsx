@@ -40,10 +40,22 @@ const descriptions: Record<FaqDetailVariant, string> = {
 };
 const title = 'When should we declare a Karama card?';
 const people = {
-  len: { name: 'Len', slug: 'len', questions: 14, answers: 32, groups: ['Amsterdam Dune', 'Sunday table'] },
-  mara: { name: 'Mara', slug: 'mara', questions: 8, answers: 57, groups: ['Sunday table'] },
-  sana: { name: 'Sana', slug: 'sana', questions: 21, answers: 46, groups: ['Amsterdam Dune'] },
-  idris: { name: 'Idris', slug: 'idris', questions: 6, answers: 108, groups: ['Amsterdam Dune', 'Rules workshop'] },
+  len: {
+    name: 'Leonard van der Meer',
+    slug: 'len',
+    questions: 14,
+    answers: 32,
+    groups: ['Amsterdam Dune', 'Sunday table'],
+  },
+  mara: { name: 'Mara N.', slug: 'mara', questions: 8, answers: 57, groups: ['Sunday table'] },
+  sana: { name: 'Sana of the Southern Sietches', slug: 'sana', questions: 21, answers: 46, groups: ['Amsterdam Dune'] },
+  idris: {
+    name: 'IdrisTheKeeperOfDuneTraditions',
+    slug: 'idris',
+    questions: 6,
+    answers: 108,
+    groups: ['Amsterdam Dune', 'Rules workshop'],
+  },
 };
 type Person = (typeof people)[keyof typeof people];
 const initialReply =
@@ -126,10 +138,10 @@ const related = [...relatedSource]
     updated_at: `${item.date}T12:00:00Z`,
     accepted_answer_id: item.excerpt ? `accepted-${index}` : null,
     faq_answers: [{ _id: `accepted-${index}` }],
-    asker_profile: { id: 'len', slug: 'len', username: 'Len', avatar_url: null },
+    asker_profile: { id: 'len', slug: 'len', username: people.len.name, avatar_url: null },
     list_details: {
       accepted_answer: item.excerpt ? { excerpt: item.excerpt } : null,
-      answerers: [{ id: 'idris', slug: 'idris', username: 'Idris', avatar_url: null }],
+      answerers: [{ id: 'idris', slug: 'idris', username: people.idris.name, avatar_url: null }],
       references: item.refs.map((ref) => ({
         kind: 'asset',
         name: ref.data.name,
@@ -147,8 +159,9 @@ function Contributor({ person, label }: { person: Person; label?: string }) {
     <Stack gap="xs" className={styles.contributor}>
       {label ? <Eyebrow>{label}</Eyebrow> : null}
       <ProfileLink name={person.name} slug={person.slug} underline="never" className={styles.profile} />
-      <Text size="xs" c="dimmed">
-        {person.questions} questions · {person.answers} answers
+      <Text size="xs" c="dimmed" className={styles.contributorCounts}>
+        <span>{person.questions} questions</span>
+        <span>{person.answers} answers</span>
       </Text>
       <Group gap="xs" className={styles.memberships}>
         {person.groups.map((name) => (
@@ -281,7 +294,7 @@ function ReplyBody({ answer }: { answer: (typeof answers)[number] }) {
       </Group>
       {answer.accepted ? (
         <Text size="xs" c="dimmed">
-          Accepted by Len on <time dateTime="2026-10-17T11:24:00Z">17 Oct 2026, 11:24</time>
+          Accepted by {people.len.name} on <time dateTime="2026-10-17T11:24:00Z">17 Oct 2026, 11:24</time>
         </Text>
       ) : null}
       {state.editing ? (
