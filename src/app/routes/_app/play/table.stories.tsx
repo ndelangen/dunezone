@@ -17,6 +17,7 @@ import {
   productTransport,
   playingSnapshot as initialSnapshot,
 } from './product.stories.fixture';
+import { openTableSettings } from './table.stories.fixture';
 
 const meta = preview.meta({
   ...gameMeta,
@@ -193,8 +194,7 @@ export const SettingsKeepLabelsOn = meta.story({
   beforeEach: install(() => productTransport()),
   play: async ({ canvasElement }) => {
     const { page, shell } = await tablePage(canvasElement);
-    await userEvent.click(page.getByRole('button', { name: 'Game menu' }));
-    const counts = await page.findByRole('menuitemcheckbox', { name: /^Stack counts/ });
+    const counts = await openTableSettings(canvasElement);
     const names = page.getByRole('menuitemcheckbox', { name: /^Piece names/ });
     await expect(shell).toHaveAttribute('data-show-counts', 'false');
     await expect(shell).toHaveAttribute('data-show-names', 'false');
