@@ -502,21 +502,36 @@ export async function loadFactionCatalogueSearch(ctx: QueryCtx, query: FactionCa
 }
 
 /**
- * The newest few of one member's live factions and how many they have, from the catalogue's list for them, so a profile reads a few cards whatever the member has made.
- * The catalogue narrowed to the member continues the list in the same order.
+ * The newest few of one member's live factions and how many they have, so a profile reads a few cards whatever the member has made.
+ * The cards come from the member's own card index, which every faction write keeps, and the count from the catalogue's list for the member.
+ * That list is empty until its backfill has run, so the count is never less than the cards shown;
+ * the catalogue narrowed to the member continues from these cards in the same newest-first order.
  */
 export async function loadOwnerFactionPreview(ctx: QueryCtx, ownerId: Id<'users'>, size: number) {
-  const selection = await selectCataloguePage(ctx, {
-    kind: 'faction',
-    partition: factionOwnerPartition(ownerId),
-    sort: 'created',
-    direction: 'desc',
-    page: 1,
-    pageSize: size,
-  });
-  const card = factionCardReader(ctx, await listActiveRulesetSummaries(ctx));
-  const cards = await Promise.all(selection.entries.map((entry) => card(entry)));
-  return { factions: cards.filter((faction) => faction != null), factionCount: selection.total };
+  const [cards, [listed = 0], rulesets] = await Promise.all([
+    ctx.db
+      .query('faction_cards')
+      .withIndex('by_owner_deleted_created', (q) => q.eq('owner_id', ownerId).eq('is_deleted', false))
+      .order('desc')
+      .take(size),
+    countCataloguePartitions(ctx, 'faction', [factionOwnerPartition(ownerId)]),
+    listActiveRulesetSummaries(ctx),
+  ]);
+  const activeRulesetById = new Map(rulesets.map((ruleset) => [ruleset.id, ruleset]));
+  const factions = await Promise.all(
+    cards.map(async (card) => {
+      const links = await ctx.db
+        .query('ruleset_factions')
+        .withIndex('by_faction', (q) => q.eq('faction_id', card.faction_id))
+        .take(FACTION_LINK_LIMIT);
+      const live = [...new Set(links.map((link) => link.ruleset_id))]
+        .map((rulesetId) => activeRulesetById.get(rulesetId))
+        .filter((ruleset): ruleset is FactionRulesetSummary => ruleset != null)
+        .sort(compareRulesets);
+      return await catalogueFactionFromCard(ctx, card, live);
+    })
+  );
+  return { factions, factionCount: Math.max(listed, factions.length) };
 }
 
 export async function listFactionRulesets(ctx: QueryCtx, factionId: Id<'factions'>) {

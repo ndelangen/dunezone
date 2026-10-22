@@ -113,11 +113,10 @@ function ProfileDetailError({ error }: ErrorComponentProps) {
 
 /**
  * The member's newest factions and, when they have more, the way to the rest: the catalogue narrowed to them, in the same newest-first order.
- * The count comes from the catalogue's list for the member, which is empty while its backfill runs;
- * the preview is never more than there are.
+ * The server counts the whole list and never fewer than the cards it sends, so the link appears only when there is more to see.
  */
 function ProfileFactions({ page }: { page: ProfilePageData }) {
-  const factionCount = Math.max(page.factionCount, page.factions.length);
+  const { factionCount } = page;
   if (factionCount === 0) {
     return (
       <Surface padding="lg">
@@ -236,7 +235,7 @@ function ProfileDetailPage() {
 
   const acceptedAnswerCount = page.acceptedAnswerCount;
   const count = (value: number, one: string, many: string) => `${value} ${value === 1 ? one : many}`;
-  const factionCount = Math.max(page.factionCount, page.factions.length);
+  const { factionCount } = page;
   /** The five counts the header carries, in place of the old "At a glance" card; each is its list's whole count, not the slice shown. */
   const headerStats = [
     {

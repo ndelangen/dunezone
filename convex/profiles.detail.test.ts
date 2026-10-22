@@ -32,10 +32,15 @@ const at = (day: number) => `2026-07-${String(day).padStart(2, '0')}T00:00:00.00
 /**
  * Seeds through the application's triggers, as every deployed writer does, so the catalogue lists the factions the way the page reads them.
  * `extraFactions` more live factions beside the one, newest last, so a page can show its first few and count the rest.
+ * `listed: false` writes around the triggers, as production stands between a functions deploy and the backfill that lists factions under their member.
  */
-async function seedProfileDetail(t: ReturnType<typeof convexTest>, extraFactions = 0): Promise<SeedResult> {
+async function seedProfileDetail(
+  t: ReturnType<typeof convexTest>,
+  extraFactions = 0,
+  { listed = true } = {}
+): Promise<SeedResult> {
   const seeded = await t.run(async (rawCtx) => {
-    const ctx = applicationTriggers.wrapDB(rawCtx);
+    const ctx = listed ? applicationTriggers.wrapDB(rawCtx) : rawCtx;
     const userId = await ctx.db.insert('users', { name: 'Central' });
     const askerId = await ctx.db.insert('users', { name: 'Asker' });
     const profilelessAskerId = await ctx.db.insert('users', { name: 'No profile' });
@@ -332,6 +337,17 @@ describe('profile detail projection (api.profiles.pageBySlug)', () => {
         (_, index) => `Sietch ${PROFILE_FACTION_PREVIEW_SIZE + 2 - index}`
       )
     );
+  });
+
+  test('shows the newest factions before the catalogue lists them for the member, counting at least the ones shown', async () => {
+    const t = applicationTest();
+    /* The cards exist, as their backfill ran long ago; the member's list in the catalogue does not yet. */
+    await seedProfileDetail(t, 1, { listed: false });
+
+    const page = await t.query(api.profiles.pageBySlug, { slug: 'central' });
+
+    expect(page.factions.map((faction) => faction.data.name)).toEqual(['Sietch 1', 'Atreides']);
+    expect(page.factionCount).toBe(2);
   });
 
   test('faction ruleset enrichment keeps only active rulesets in deterministic name order', async () => {
