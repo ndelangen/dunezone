@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import { once } from 'node:events';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:http';
+import type { ServerResponse } from 'node:http';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -58,11 +59,16 @@ async function retain(failures: Failure[], failManifest = false) {
   })) {
     writeFileSync(path.join(output, file), content);
   }
-  const abortBody = failures.includes('timeout');
   let manifestRequests = 0;
   let assetRequests = 0;
+  let interrupted: ServerResponse | undefined;
   const server = createServer((request, response) => {
     const url = new URL(request.url!, 'http://local');
+    if (url.pathname === '/interrupt-body') {
+      interrupted?.destroy();
+      response.end('closed');
+      return;
+    }
     const metadata = url.pathname === '/application-assets.json';
     if (metadata) {
       manifestRequests++;
@@ -76,14 +82,17 @@ async function retain(failures: Failure[], failManifest = false) {
       response.writeHead(failure === 'status' ? 502 : 404).end('unavailable');
       return;
     }
+    if (failure === 'body' || failure === 'timeout') {
+      response.setHeader('X-Retention-Fixture-Fault', failure);
+    }
     response.writeHead(200, {
       'Content-Type': metadata ? 'application/json' : 'text/javascript',
       'Content-Length': String(bytes.length),
     });
     if (failure === 'body' || failure === 'timeout') {
-      /* Headers arrive successfully; the real socket fails while Bun reads the remaining body. */
+      /* The preload acknowledges headers before the fixture interrupts this body. */
+      interrupted = response;
       response.write(bytes.subarray(0, 5));
-      setTimeout(() => response.destroy(), 20);
       return;
     }
     response.end(failure === 'corrupt' || failure === 'json' ? Buffer.alloc(bytes.length, 'x') : bytes);
@@ -100,7 +109,6 @@ async function retain(failures: Failure[], failManifest = false) {
     writeFileSync(
       preload,
       `const nativeFetch = globalThis.fetch;
-       let aborted = false;
        globalThis.fetch = async (input, init) => {
          const url = new URL(input);
          if (url.origin !== 'https://dune.zone') throw new Error('Unexpected retention origin');
@@ -108,9 +116,11 @@ async function retain(failures: Failure[], failManifest = false) {
          const response = await nativeFetch(new URL(url.pathname + url.search, ${JSON.stringify(origin)}), {
            ...init, signal: AbortSignal.any([init.signal, controller.signal]),
          });
-         if (${abortBody} && !aborted && url.pathname === '/${assetPath}') {
-           aborted = true;
-           queueMicrotask(() => controller.abort(new DOMException('The operation timed out.', 'TimeoutError')));
+         const fault = response.headers.get('X-Retention-Fixture-Fault');
+         if (fault === 'body') {
+           await nativeFetch(new URL('/interrupt-body', ${JSON.stringify(origin)}));
+         } else if (fault === 'timeout') {
+           controller.abort(new DOMException('The operation timed out.', 'TimeoutError'));
          }
          return response;
        };
