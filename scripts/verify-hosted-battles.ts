@@ -11,8 +11,20 @@ import type { HostedPeer, Until, TablePiece } from './verify-hosted-types.ts';
 
 /** Two signed-in players exercise the real battle controls on a disposable Worker. */
 export async function verifyBattles(toolkit: HostedToolkit) {
-  const { seated, treacheryDeck, button, converged, focus, openTab, point, carrySteps, capture, until, passed } =
-    toolkit;
+  const {
+    seated,
+    treacheryDeck,
+    pickCatalogueAsset,
+    button,
+    converged,
+    focus,
+    openTab,
+    point,
+    carrySteps,
+    capture,
+    until,
+    passed,
+  } = toolkit;
   const { a, b, observer } = await seated();
   assert.notEqual(requireView(a).viewer.userId, requireView(b).viewer.userId);
   assert.notEqual(a.context.browser(), b.context.browser());
@@ -20,10 +32,7 @@ export async function verifyBattles(toolkit: HostedToolkit) {
     await toolkit.act(who, name);
     await converged([a, b, observer]);
   }
-  await openTab(a, 'Shared inventory');
-  await button(a, 'Add from catalogue').click();
-  await a.page.getByRole('combobox', { name: 'Catalogue asset' }).click();
-  await a.page.getByRole('option', { name: 'Recovery token', exact: true }).click();
+  await pickCatalogueAsset(a, 'Recovery token');
   await act(a, 'Request');
   await openTab(b, 'Shared inventory');
   await act(b, 'Approve');

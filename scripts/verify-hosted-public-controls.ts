@@ -49,6 +49,7 @@ export async function verifyPublicControls({
   act,
   focus,
   openTab,
+  pickCatalogueAsset,
   point,
   carrySteps,
   capture,
@@ -94,14 +95,7 @@ export async function verifyPublicControls({
     }
     return pixels > 3;
   }
-  async function choose(who: HostedPeer) {
-    await openTab(who, 'Shared inventory');
-    if (await button(who, 'Add from catalogue').count()) {
-      await button(who, 'Add from catalogue').click();
-    }
-    await who.page.getByRole('combobox', { name: 'Catalogue asset' }).click();
-    await who.page.getByRole('option', { name: 'Recovery token', exact: true }).click();
-  }
+  const choose = (who: HostedPeer) => pickCatalogueAsset(who, 'Recovery token');
   await verifySolePlayer();
   const { observer } = await verifyRequests();
   await verifyInventoryDrag();

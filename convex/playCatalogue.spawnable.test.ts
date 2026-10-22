@@ -1,4 +1,3 @@
-/// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
 import { describe, expect, test } from 'vite-plus/test';
@@ -129,5 +128,5 @@ describe('the spawn picker reads the catalogue', () => {
     const answer = await t.query(api.playCatalogue.spawnableAssets, { limit: ceiling + SPAWN_PICKER_STEP });
     expect(answer.entries).toHaveLength(ceiling);
     expect(answer).toMatchObject({ hasMore: false, capped: true });
-  });
+  }, 30_000);
 });

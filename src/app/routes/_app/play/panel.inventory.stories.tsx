@@ -211,21 +211,37 @@ export const Catalogue = meta.story({
     await openTab(page, 'Shared inventory');
     await userEvent.click(await page.findByRole('button', { name: 'Add from catalogue' }, { timeout: 30_000 }));
     const options = () => within(page.getByRole('listbox', { name: 'Catalogue assets' })).getAllByRole('option');
+    /* The row Enter would pick: Mantine marks it on the row itself, since the rows are inline rather than in a dropdown of their own. */
+    const highlighted = () => options().findIndex((option) => option.hasAttribute('data-combobox-selected'));
+    const picks = () => session.transport.messages.filter((message) => message.type === 'catalogue');
+    const search = page.getByRole('searchbox', { name: 'Search the catalogue' });
     await waitFor(() => expect(options()).toHaveLength(SPAWN_PICKER_STEP), { timeout: 30_000 });
+    await waitFor(() => expect(highlighted()).toBe(0));
+    /* Load more grows the list under the reader's highlight, so a keyboard reader keeps their place in it. */
+    await userEvent.click(search);
+    await userEvent.keyboard('{ArrowDown}');
+    await expect(highlighted()).toBe(1);
     await userEvent.click(page.getByRole('button', { name: 'Load more' }));
     await waitFor(() => expect(options()).toHaveLength(SPAWNABLE_ASSETS), { timeout: 30_000 });
     await expect(page.queryByRole('button', { name: 'Load more' })).toBeNull();
+    await expect(highlighted()).toBe(1);
+    /*
+     * Escape has no dropdown to close here, so the rows stay pickable afterwards.
+     * Enter before the typed word settles picks nothing, since the rows still answer the search before it.
+     */
+    await userEvent.click(search);
+    await userEvent.keyboard('{Escape}t{Enter}');
+    await expect(picks()).toHaveLength(0);
     /* The search matches the deck and not the treachery card of the same name, which no game spawns on its own. */
-    await userEvent.type(page.getByRole('searchbox', { name: 'Search the catalogue' }), 'treachery');
+    await userEvent.keyboard('reachery');
     await waitFor(() => expect(options()).toHaveLength(1), { timeout: 30_000 });
     await expect(options()[0]).toHaveTextContent('House Treachery');
     /* The best match is highlighted as soon as it lists, so Enter from the search box picks it without an arrow key first. */
     await userEvent.keyboard('{Enter}');
     await waitFor(() =>
-      expect(session.transport.messages.at(-1)).toMatchObject({
-        type: 'catalogue',
-        selection: { type: 'deck', slug: 'house-treachery' },
-      })
+      expect(picks()).toEqual([
+        expect.objectContaining({ type: 'catalogue', selection: { type: 'deck', slug: 'house-treachery' } }),
+      ])
     );
     await expect(page.getByText('Checking published definitions and images...')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Request' })).toBeDisabled();

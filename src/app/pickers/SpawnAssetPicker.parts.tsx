@@ -28,7 +28,7 @@ export type SpawnAssetOptionsProps = {
   searched: boolean;
   /** The first answer for this search is still on its way. */
   pending: boolean;
-  /** A longer list is on its way; the rows shown stay in place. */
+  /** A longer list, or the typed word's own list, is on its way; the rows shown stay in place. */
   loading: boolean;
   disabled: boolean;
 };

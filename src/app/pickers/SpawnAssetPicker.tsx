@@ -39,10 +39,15 @@ function useSpawnableRows(q: string, limit: number) {
  * checking the asset's definitions and requesting the spawn stay with the table.
  */
 export function SpawnAssetPicker({ value, disabled = false, onPick }: SpawnAssetPickerProps) {
-  /* Open from the start: Mantine submits Enter only while the store is open, so the highlighted first row is pickable as soon as it lists. */
-  const combobox = useCombobox({ defaultOpened: true });
+  /*
+   * Held open: the rows are inline, so there is no dropdown for Escape to close, and Mantine submits Enter only while the store is open.
+   * A store that merely started open would close on Escape and leave the listed rows unpickable until an arrow key reopened it.
+   */
+  const combobox = useCombobox({ opened: true });
   const [search, setSearch] = useState('');
   const [settled] = useDebouncedValue(search.trim(), SEARCH_SETTLE_MS);
+  /* Until the typed word settles the rows on screen answer the search before it, so a pick among them would take an asset the reader did not ask for. */
+  const unsettled = search.trim() !== settled;
   const growing = useGrowingLimit({ q: settled }, SPAWN_PICKER_STEP);
   const live = useSpawnableRows(settled, growing.limit);
   const { data, loading, loadMore } = useGrowingSearch({
@@ -52,17 +57,26 @@ export function SpawnAssetPicker({ value, disabled = false, onPick }: SpawnAsset
     rows: (page) => page.entries.length,
   });
   const pending = live === undefined && growing.limit === growing.step;
-  /* The first row is highlighted once the rows settle, so Enter after typing picks the best match. */
+  /*
+   * The search whose first rows are on screen, or null while they are on their way.
+   * Its first row is highlighted as it lists, so Enter after typing picks the best match without an arrow key first;
+   * Load more grows the same search and leaves the highlight where the reader moved it.
+   * The method is taken off the store because the store is a fresh object every render, and an effect keyed on it would re-highlight the first row on every render.
+   */
+  const listed = pending ? null : growing.key;
+  const { selectFirstOption } = combobox;
   useEffect(() => {
-    combobox.selectFirstOption();
-  }, [combobox, data.entries]);
+    if (listed !== null) {
+      selectFirstOption();
+    }
+  }, [selectFirstOption, listed]);
   return (
     <Stack gap="sm">
       <Combobox
         store={combobox}
         onOptionSubmit={(key) => {
           const entry = data.entries.find((candidate) => spawnableKey(candidate) === key);
-          if (entry && !disabled) {
+          if (entry && !disabled && !unsettled) {
             onPick(entry);
           }
         }}
@@ -92,7 +106,7 @@ export function SpawnAssetPicker({ value, disabled = false, onPick }: SpawnAsset
           value={value}
           searched={settled !== ''}
           pending={pending}
-          loading={loading}
+          loading={loading || unsettled}
           disabled={disabled}
         />
       </Combobox>
