@@ -51,6 +51,15 @@ test.each([
       return () => openBiddingSettings(document.body);
     },
   },
+  {
+    name: 'table settings',
+    trigger: 'Game menu',
+    item: 'Stack counts',
+    load: async () => {
+      const { openTableSettings } = await import('./table.stories.fixture');
+      return () => openTableSettings(document.body);
+    },
+  },
 ])('the $name story opens its menu while native frames stay withheld', async ({ name, trigger, item, load }) => {
   const open = await load();
   render(
@@ -61,7 +70,7 @@ test.each([
             <button aria-label={trigger}>{trigger}</button>
           </Menu.Target>
           <Menu.Dropdown>
-            {name === 'bidding' ? (
+            {name !== 'phase' ? (
               <Menu.CheckboxItem checked={false} onChange={() => {}}>
                 {item}
               </Menu.CheckboxItem>
