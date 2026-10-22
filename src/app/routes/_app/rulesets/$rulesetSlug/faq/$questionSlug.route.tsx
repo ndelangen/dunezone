@@ -275,20 +275,7 @@ function FaqDetailPage() {
         <PageTitle title="FAQ discussion" />
       </PageLayout.Header>
       <PageLayout.Toolbar>
-        <Toolbar>
-          <Toolbar.Left label="Navigation">
-            <IconAction
-              label="Back to FAQ"
-              emphasis="standard"
-              intent="neutral"
-              size="lg"
-              icon={<ArrowLeft size={17} aria-hidden />}
-              renderRoot={(rootProps) => (
-                <Link {...rootProps} to="/rulesets/$rulesetSlug/faq" params={{ rulesetSlug: page.ruleset.slug }} />
-              )}
-            />
-          </Toolbar.Left>
-        </Toolbar>
+        <FaqNavigation rulesetSlug={page.ruleset.slug} />
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <div className={styles.container}>
@@ -381,6 +368,23 @@ function FaqDetailPage() {
         </div>
       </PageLayout.Content>
     </PageLayout>
+  );
+}
+
+function FaqNavigation({ rulesetSlug }: { rulesetSlug: string }) {
+  return (
+    <Toolbar>
+      <Toolbar.Left label="Navigation">
+        <IconAction
+          label="Back to FAQ"
+          emphasis="standard"
+          intent="neutral"
+          size="lg"
+          icon={<ArrowLeft size={17} aria-hidden />}
+          renderRoot={(rootProps) => <Link {...rootProps} to="/rulesets/$rulesetSlug/faq" params={{ rulesetSlug }} />}
+        />
+      </Toolbar.Left>
+    </Toolbar>
   );
 }
 
