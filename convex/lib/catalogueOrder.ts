@@ -347,7 +347,11 @@ export function catalogueSearchLimit(limit: number | undefined, step: number) {
  * A selection as the page reports it once the ceiling is reached: nothing more to load, and matches past it may exist that no limit reaches.
  * `limit` is the clamped one the selection was read with.
  */
-export function catalogueSearchReach(selection: CatalogueSearchSelection, limit: number, step: number) {
+export function catalogueSearchReach(
+  selection: Pick<CatalogueSearchSelection, 'hasMore' | 'capped'>,
+  limit: number,
+  step: number
+) {
   const atCeiling = selection.hasMore && limit >= step * CATALOGUE_SEARCH_STEPS;
   return { hasMore: selection.hasMore && !atCeiling, capped: selection.capped || atCeiling };
 }
