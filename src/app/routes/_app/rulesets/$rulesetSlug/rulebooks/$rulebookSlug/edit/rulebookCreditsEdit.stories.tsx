@@ -5,7 +5,6 @@ import { CreditsStory } from './rulebookReferenceBlockEditors.shared.stories.fix
 
 const meta = preview.meta({
   title: 'Blocks/Credits/Editing',
-  globals: { colorScheme: 'dark' },
   parameters: { layout: 'fullscreen' },
 });
 

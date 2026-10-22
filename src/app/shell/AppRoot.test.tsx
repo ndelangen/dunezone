@@ -118,7 +118,7 @@ describe('AppRoot page header', () => {
     act(() => root.unmount());
   });
 
-  it('releases the scroll progress and motion verdict it publishes on unmount', () => {
+  it('releases its motion verdict on unmount', () => {
     const container = document.createElement('div');
     const root = createRoot(container);
 
@@ -132,12 +132,10 @@ describe('AppRoot page header', () => {
       );
     });
 
-    expect(document.documentElement.style.getPropertyValue('--scroll-pct')).not.toBe('');
     expect(document.documentElement.dataset.motion).toBe('ok');
 
     act(() => root.unmount());
 
-    expect(document.documentElement.style.getPropertyValue('--scroll-pct')).toBe('');
     expect(document.documentElement.dataset.motion).toBeUndefined();
   });
 

@@ -17,6 +17,7 @@ import { useContext, useEffect, useMemo, useReducer, useState, useSyncExternalSt
 import type { ReactNode } from 'react';
 
 import { requestPlayAdmission, watchSeatPass } from '@db/play';
+import { SpawnAssetPicker } from '@app/pickers/SpawnAssetPicker';
 import { GameSubscription } from '@app/routes/_app/play/multiplayer/GameSubscription';
 
 import { TableSession } from '../../../../db/tabletop/TableSession';
@@ -389,13 +390,7 @@ type PickerState = {
   selection: SpawnSelection | null;
   requestId: string | null;
 };
-type PickerEvent =
-  | { type: 'open' | 'close' }
-  | {
-      type: 'select';
-      selection: SpawnSelection | null;
-      requestId: string | null;
-    };
+type PickerEvent = { type: 'open' | 'close' } | { type: 'select'; selection: SpawnSelection; requestId: string };
 function pickerReducer(_state: PickerState, event: PickerEvent): PickerState {
   if (event.type === 'select') {
     return {
@@ -415,7 +410,6 @@ function SharedInventory({ client, table }: TableControlProps) {
     requestId: null,
   });
   const view = useSyncExternalStore(client.subscribe, client.getSnapshot);
-  const entries = view.catalogue?.entries ?? [];
   const controls = publicControlsOf(table);
   const contents = view.catalogue?.requestId === picker.requestId ? view.catalogue.contents : null;
   const pieces = table.snapshot.table.pieces.filter((piece) => piece.inventory === 'shared');
@@ -429,12 +423,7 @@ function SharedInventory({ client, table }: TableControlProps) {
           <Button
             variant="default"
             disabled={!table.canHandleTable}
-            onClick={() => {
-              if (!picker.open) {
-                client.catalogue();
-              }
-              dispatch({ type: picker.open ? 'close' : 'open' });
-            }}
+            onClick={() => dispatch({ type: picker.open ? 'close' : 'open' })}
           >
             {picker.open ? 'Close catalogue' : 'Add from catalogue'}
           </Button>
@@ -452,42 +441,33 @@ function SharedInventory({ client, table }: TableControlProps) {
           </Button>
         )}
         {picker.open && (
-          <Group align="end">
-            <Select
-              label="Catalogue asset"
-              searchable
+          <Stack gap="sm">
+            {/* The picker lists the catalogue; the table checks the choice, so a pick asks it before the request button opens. */}
+            <SpawnAssetPicker
+              value={picker.selection}
               disabled={table.reconnecting}
-              placeholder="Choose a deck, bundle or token"
-              data={entries.map((entry) => ({
-                value: `${entry.type}/${entry.slug}`,
-                label: entry.name,
-              }))}
-              value={picker.selection ? `${picker.selection.type}/${picker.selection.slug}` : null}
-              onChange={(value) => {
-                const selection = entries.find((entry) => `${entry.type}/${entry.slug}` === value) ?? null;
-                dispatch({
-                  type: 'select',
-                  selection,
-                  requestId: selection ? client.catalogue(selection) : null,
-                });
-              }}
+              onPick={({ type, slug }) =>
+                dispatch({ type: 'select', selection: { type, slug }, requestId: client.catalogue({ type, slug }) })
+              }
             />
-            <Button
-              disabled={!table.canHandleTable || !contents || !picker.selection}
-              onClick={() => {
-                if (picker.selection) {
-                  client.command({
-                    kind: 'spawn-request',
-                    type: picker.selection.type,
-                    slug: picker.selection.slug,
-                  });
-                }
-              }}
-            >
-              {controls.seats.length === 1 ? 'Spawn' : 'Request'}
-            </Button>
-            {picker.selection && <Text size="sm">{catalogueStatus(view.catalogue, picker.requestId)}</Text>}
-          </Group>
+            <Group align="center">
+              <Button
+                disabled={!table.canHandleTable || !contents || !picker.selection}
+                onClick={() => {
+                  if (picker.selection) {
+                    client.command({
+                      kind: 'spawn-request',
+                      type: picker.selection.type,
+                      slug: picker.selection.slug,
+                    });
+                  }
+                }}
+              >
+                {controls.seats.length === 1 ? 'Spawn' : 'Request'}
+              </Button>
+              {picker.selection && <Text size="sm">{catalogueStatus(view.catalogue, picker.requestId)}</Text>}
+            </Group>
+          </Stack>
         )}
         <Group align="start">
           {!pieces.length && <Text c="dimmed">The shared inventory is empty.</Text>}

@@ -44,7 +44,9 @@ function normalizeProfilePage(result: ProfileDetailResult) {
     faqAsked: result.faqAsked,
     faqAnswers: result.faqAnswers,
     faqLists: result.faqLists,
-    factions: factionCatalogueRowsToEntries(result.factions),
+    factions: factionCatalogueRowsToEntries(result.factionPreview),
+    factionCount: result.factionCount,
+    listedFactionCount: result.listedFactionCount,
     acceptedAnswerCount: result.faqAnswers.filter((answer) => answer.faq_item.accepted_answer_id === answer._id).length,
   };
 }

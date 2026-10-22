@@ -5,7 +5,6 @@ import { BattleStepStory } from './rulebookBattleStepEdit.stories.fixture';
 
 const meta = preview.meta({
   title: 'Blocks/Battle step/Editing',
-  globals: { colorScheme: 'dark' },
   parameters: { layout: 'fullscreen' },
 });
 

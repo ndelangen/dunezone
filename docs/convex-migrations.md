@@ -170,8 +170,9 @@ bun run migrations:static-check
 
 - Migrations live in [`convex/migrations.ts`](../convex/migrations.ts) and, for newer catalogue backfills,
   [`convex/catalogueMigrations.ts`](../convex/catalogueMigrations.ts). Both share the one migrations component
-  and `MIGRATION_IDS`, so the guard script runs them alike. The `migrations:run` runner only prefixes
-  `migrations:`, so name a catalogue migration in full by hand, e.g.
+  and `MIGRATION_IDS`, which spreads the catalogue module's own `CATALOGUE_MIGRATION_IDS`, so the guard script
+  runs them alike and `migrations.ts` does not grow with each catalogue backfill. The `migrations:run` runner
+  only prefixes `migrations:`, so name a catalogue migration in full by hand, e.g.
   `{"fn":"catalogueMigrations:catalogue_entries_rulesets_v1"}`.
 - Convex template scaffold: [`convex/migrationsTemplate.ts`](../convex/migrationsTemplate.ts)
 - Team migration skill:

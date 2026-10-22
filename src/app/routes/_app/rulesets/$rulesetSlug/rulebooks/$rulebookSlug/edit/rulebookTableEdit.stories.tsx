@@ -10,7 +10,6 @@ import {
 
 const meta = preview.meta({
   title: 'Blocks/Table/Editing',
-  globals: { colorScheme: 'dark' },
   parameters: { layout: 'fullscreen' },
 });
 

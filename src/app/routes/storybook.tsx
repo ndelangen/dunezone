@@ -5,7 +5,7 @@ import {
   createRouter,
   RouterProvider,
 } from '@tanstack/react-router';
-import type { AnyRoute } from '@tanstack/react-router';
+import type { AnyRoute, RouterHistory } from '@tanstack/react-router';
 import { Suspense, use, useEffect, useMemo } from 'react';
 
 import { useStorybookDatabaseClient } from '@db/storybook';
@@ -69,36 +69,45 @@ function seedReference(path: string): SeedReference | null {
     : null;
 }
 
-type StorybookPageProps = Readonly<{ path: string; onResolved?: (pathname: string) => void }>;
+/**
+ * `history` is the router's history when a story walks it or reads the address it holds, as a reader's browser would.
+ * It must hold `path`, and a story makes one per run in a loader, since a story's module runs once and its history must not carry over.
+ * Without it the page runs from a fresh memory history at `path`.
+ */
+type StorybookPageProps = Readonly<{
+  path: string;
+  history?: RouterHistory;
+  onResolved?: (pathname: string) => void;
+}>;
 
 function SeededPage({
   reference,
-  onResolved,
-}: Readonly<{ reference: SeedReference }> & Pick<StorybookPageProps, 'onResolved'>) {
+  ...props
+}: Readonly<{ reference: SeedReference }> & Omit<StorybookPageProps, 'path'>) {
   const client = useStorybookDatabaseClient();
-  return <RoutedPage path={use(client.resolve(reference))} onResolved={onResolved} />;
+  return <RoutedPage path={use(client.resolve(reference))} {...props} />;
 }
 
-export function StorybookPage({ path, onResolved }: StorybookPageProps) {
+export function StorybookPage({ path, ...props }: StorybookPageProps) {
   const reference = seedReference(path);
   return reference ? (
     <Suspense fallback={<div role="status">Resolving the page address…</div>}>
-      <SeededPage reference={reference} onResolved={onResolved} />
+      <SeededPage reference={reference} {...props} />
     </Suspense>
   ) : (
-    <RoutedPage path={path} onResolved={onResolved} />
+    <RoutedPage path={path} {...props} />
   );
 }
 
-function RoutedPage({ path, onResolved }: StorybookPageProps) {
+function RoutedPage({ path, history, onResolved }: StorybookPageProps) {
   const router = useMemo(
     () =>
       createRouter({
         defaultErrorComponent: AppErrorComponent,
-        history: createMemoryHistory({ initialEntries: [path] }),
+        history: history ?? createMemoryHistory({ initialEntries: [path] }),
         routeTree: cloneApplicationRouteTree(),
       }),
-    [path]
+    [path, history]
   );
 
   useEffect(() => {

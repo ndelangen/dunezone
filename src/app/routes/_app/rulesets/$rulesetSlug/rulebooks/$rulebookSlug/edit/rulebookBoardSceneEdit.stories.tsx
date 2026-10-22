@@ -6,7 +6,6 @@ import { SceneEditorStory } from './rulebookScenes.stories.fixture';
 
 const meta = preview.meta({
   title: 'Blocks/Board scene/Editing',
-  globals: { colorScheme: 'dark' },
   parameters: { layout: 'fullscreen' },
 });
 export const MarkersAndAnnotations = meta.story({
