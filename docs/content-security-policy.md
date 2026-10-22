@@ -12,7 +12,7 @@ Storybook has its own deployment and policy.
 | --- | --- |
 | JavaScript | Same-origin content-hashed bundles plus the Cloudflare Web Analytics beacon from `https://static.cloudflareinsights.com`. The beacon was observed in the live browser, injected at the edge rather than by application code. |
 | Analytics connection | `https://cloudflareinsights.com`, as required by Cloudflare Web Analytics. |
-| Inline startup | TanStack hydration and stream cleanup, plus the layout's color-scheme and motion scripts. JSON-LD is emitted as script content too. |
+| Inline startup | TanStack hydration and stream cleanup, plus the layout's motion script. The server HTML declares the app's dark scheme. JSON-LD is emitted as script content too. |
 | Convex HTTP and WebSocket | The exact deployment origin from `VITE_CONVEX_URL` for the static build and `CONVEX_CLOUD_BASE_URL` for SSR, including the regional hostname. Production uses `https://exuberant-finch-263.eu-west-1.convex.cloud` and its `wss:` counterpart. |
 | Play and homepage sockets | Same-origin `/__play/` routes. The policy also names the document's WebSocket origin explicitly because browser support for WebSockets under `'self'` varies. The static shell names `wss://dune.zone`. |
 | Artwork, published sheets, imported images | Same-origin `/m/`, `/image/`, `/web/`, `/published/` and `/user-images/`. Editors also use `data:` and `blob:` images for previews and textures. |
