@@ -168,11 +168,13 @@ export const faqListItemValidator = faqItemValidator.extend({
   asker_profile: v.union(profileSummaryValidator, v.null()),
 });
 
-const profileFaqQuestionValidator = faqItemValidator.extend({
+/** A question as a profile lists it: the question with the ruleset it was asked in. */
+export const profileFaqQuestionValidator = faqItemValidator.extend({
   ruleset: rulesetCitationValidator,
 });
 
-const profileFaqAnswerValidator = faqAnswerValidator.extend({
+/** An answer as a profile lists it: the answer with its question, the asker and the ruleset. */
+export const profileFaqAnswerValidator = faqAnswerValidator.extend({
   faq_item: v.object({
     id: v.id('faq_items'),
     slug: v.string(),

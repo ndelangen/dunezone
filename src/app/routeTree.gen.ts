@@ -51,9 +51,11 @@ import { Route as AppGroupsGroupSlugIndexRouteImport } from './routes/_app/group
 import { Route as AppGroupsGroupSlugEditRouteRouteImport } from './routes/_app/groups/$groupSlug/edit.route'
 import { Route as AppMediaSourceKindRouteRouteImport } from './routes/_app/media/$source/$kind.route'
 import { Route as AppProfilesProfileSlugIndexRouteImport } from './routes/_app/profiles/$profileSlug/index'
+import { Route as AppProfilesProfileSlugAnswersRouteRouteImport } from './routes/_app/profiles/$profileSlug/answers.route'
 import { Route as AppProfilesProfileSlugConnectRouteRouteImport } from './routes/_app/profiles/$profileSlug/connect.route'
 import { Route as AppProfilesProfileSlugDeleteRouteRouteImport } from './routes/_app/profiles/$profileSlug/delete.route'
 import { Route as AppProfilesProfileSlugEditRouteRouteImport } from './routes/_app/profiles/$profileSlug/edit.route'
+import { Route as AppProfilesProfileSlugQuestionsRouteRouteImport } from './routes/_app/profiles/$profileSlug/questions.route'
 import { Route as AppRulesetsRulesetSlugIndexRouteImport } from './routes/_app/rulesets/$rulesetSlug/index'
 import { Route as AppRulesetsRulesetSlugEditRouteRouteImport } from './routes/_app/rulesets/$rulesetSlug/edit.route'
 import { Route as AppAssetsTypeSlugIndexRouteImport } from './routes/_app/assets/$type/$slug/index'
@@ -281,6 +283,12 @@ const AppProfilesProfileSlugIndexRoute =
     path: '/profiles/$profileSlug/',
     getParentRoute: () => AppRouteRoute,
   } as any)
+const AppProfilesProfileSlugAnswersRouteRoute =
+  AppProfilesProfileSlugAnswersRouteRouteImport.update({
+    id: '/profiles/$profileSlug/answers',
+    path: '/profiles/$profileSlug/answers',
+    getParentRoute: () => AppRouteRoute,
+  } as any)
 const AppProfilesProfileSlugConnectRouteRoute =
   AppProfilesProfileSlugConnectRouteRouteImport.update({
     id: '/profiles/$profileSlug/connect',
@@ -297,6 +305,12 @@ const AppProfilesProfileSlugEditRouteRoute =
   AppProfilesProfileSlugEditRouteRouteImport.update({
     id: '/profiles/$profileSlug/edit',
     path: '/profiles/$profileSlug/edit',
+    getParentRoute: () => AppRouteRoute,
+  } as any)
+const AppProfilesProfileSlugQuestionsRouteRoute =
+  AppProfilesProfileSlugQuestionsRouteRouteImport.update({
+    id: '/profiles/$profileSlug/questions',
+    path: '/profiles/$profileSlug/questions',
     getParentRoute: () => AppRouteRoute,
   } as any)
 const AppRulesetsRulesetSlugIndexRoute =
@@ -408,9 +422,11 @@ export interface FileRoutesByFullPath {
   '/factions/$factionId/edit': typeof AppFactionsFactionIdEditRouteRoute
   '/groups/$groupSlug/edit': typeof AppGroupsGroupSlugEditRouteRoute
   '/media/$source/$kind': typeof AppMediaSourceKindRouteRoute
+  '/profiles/$profileSlug/answers': typeof AppProfilesProfileSlugAnswersRouteRoute
   '/profiles/$profileSlug/connect': typeof AppProfilesProfileSlugConnectRouteRoute
   '/profiles/$profileSlug/delete': typeof AppProfilesProfileSlugDeleteRouteRoute
   '/profiles/$profileSlug/edit': typeof AppProfilesProfileSlugEditRouteRoute
+  '/profiles/$profileSlug/questions': typeof AppProfilesProfileSlugQuestionsRouteRoute
   '/rulesets/$rulesetSlug/edit': typeof AppRulesetsRulesetSlugEditRouteRoute
   '/assets/$type/': typeof AppAssetsTypeIndexRoute
   '/blog/$postSlug/': typeof AppBlogPostSlugIndexRoute
@@ -465,9 +481,11 @@ export interface FileRoutesByTo {
   '/factions/$factionId/edit': typeof AppFactionsFactionIdEditRouteRoute
   '/groups/$groupSlug/edit': typeof AppGroupsGroupSlugEditRouteRoute
   '/media/$source/$kind': typeof AppMediaSourceKindRouteRoute
+  '/profiles/$profileSlug/answers': typeof AppProfilesProfileSlugAnswersRouteRoute
   '/profiles/$profileSlug/connect': typeof AppProfilesProfileSlugConnectRouteRoute
   '/profiles/$profileSlug/delete': typeof AppProfilesProfileSlugDeleteRouteRoute
   '/profiles/$profileSlug/edit': typeof AppProfilesProfileSlugEditRouteRoute
+  '/profiles/$profileSlug/questions': typeof AppProfilesProfileSlugQuestionsRouteRoute
   '/rulesets/$rulesetSlug/edit': typeof AppRulesetsRulesetSlugEditRouteRoute
   '/assets/$type': typeof AppAssetsTypeIndexRoute
   '/blog/$postSlug': typeof AppBlogPostSlugIndexRoute
@@ -525,9 +543,11 @@ export interface FileRoutesById {
   '/_app/factions/$factionId/edit': typeof AppFactionsFactionIdEditRouteRoute
   '/_app/groups/$groupSlug/edit': typeof AppGroupsGroupSlugEditRouteRoute
   '/_app/media/$source/$kind': typeof AppMediaSourceKindRouteRoute
+  '/_app/profiles/$profileSlug/answers': typeof AppProfilesProfileSlugAnswersRouteRoute
   '/_app/profiles/$profileSlug/connect': typeof AppProfilesProfileSlugConnectRouteRoute
   '/_app/profiles/$profileSlug/delete': typeof AppProfilesProfileSlugDeleteRouteRoute
   '/_app/profiles/$profileSlug/edit': typeof AppProfilesProfileSlugEditRouteRoute
+  '/_app/profiles/$profileSlug/questions': typeof AppProfilesProfileSlugQuestionsRouteRoute
   '/_app/rulesets/$rulesetSlug/edit': typeof AppRulesetsRulesetSlugEditRouteRoute
   '/_app/assets/$type/': typeof AppAssetsTypeIndexRoute
   '/_app/blog/$postSlug/': typeof AppBlogPostSlugIndexRoute
@@ -585,9 +605,11 @@ export interface FileRouteTypes {
     | '/factions/$factionId/edit'
     | '/groups/$groupSlug/edit'
     | '/media/$source/$kind'
+    | '/profiles/$profileSlug/answers'
     | '/profiles/$profileSlug/connect'
     | '/profiles/$profileSlug/delete'
     | '/profiles/$profileSlug/edit'
+    | '/profiles/$profileSlug/questions'
     | '/rulesets/$rulesetSlug/edit'
     | '/assets/$type/'
     | '/blog/$postSlug/'
@@ -642,9 +664,11 @@ export interface FileRouteTypes {
     | '/factions/$factionId/edit'
     | '/groups/$groupSlug/edit'
     | '/media/$source/$kind'
+    | '/profiles/$profileSlug/answers'
     | '/profiles/$profileSlug/connect'
     | '/profiles/$profileSlug/delete'
     | '/profiles/$profileSlug/edit'
+    | '/profiles/$profileSlug/questions'
     | '/rulesets/$rulesetSlug/edit'
     | '/assets/$type'
     | '/blog/$postSlug'
@@ -701,9 +725,11 @@ export interface FileRouteTypes {
     | '/_app/factions/$factionId/edit'
     | '/_app/groups/$groupSlug/edit'
     | '/_app/media/$source/$kind'
+    | '/_app/profiles/$profileSlug/answers'
     | '/_app/profiles/$profileSlug/connect'
     | '/_app/profiles/$profileSlug/delete'
     | '/_app/profiles/$profileSlug/edit'
+    | '/_app/profiles/$profileSlug/questions'
     | '/_app/rulesets/$rulesetSlug/edit'
     | '/_app/assets/$type/'
     | '/_app/blog/$postSlug/'
@@ -1025,6 +1051,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppProfilesProfileSlugIndexRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/_app/profiles/$profileSlug/answers': {
+      id: '/_app/profiles/$profileSlug/answers'
+      path: '/profiles/$profileSlug/answers'
+      fullPath: '/profiles/$profileSlug/answers'
+      preLoaderRoute: typeof AppProfilesProfileSlugAnswersRouteRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
     '/_app/profiles/$profileSlug/connect': {
       id: '/_app/profiles/$profileSlug/connect'
       path: '/profiles/$profileSlug/connect'
@@ -1044,6 +1077,13 @@ declare module '@tanstack/react-router' {
       path: '/profiles/$profileSlug/edit'
       fullPath: '/profiles/$profileSlug/edit'
       preLoaderRoute: typeof AppProfilesProfileSlugEditRouteRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/profiles/$profileSlug/questions': {
+      id: '/_app/profiles/$profileSlug/questions'
+      path: '/profiles/$profileSlug/questions'
+      fullPath: '/profiles/$profileSlug/questions'
+      preLoaderRoute: typeof AppProfilesProfileSlugQuestionsRouteRouteImport
       parentRoute: typeof AppRouteRoute
     }
     '/_app/rulesets/$rulesetSlug/': {
@@ -1202,9 +1242,11 @@ interface AppRouteRouteChildren {
   AppRulesetsIndexRoute: typeof AppRulesetsIndexRoute
   AppFactionsFactionIdEditRouteRoute: typeof AppFactionsFactionIdEditRouteRoute
   AppGroupsGroupSlugEditRouteRoute: typeof AppGroupsGroupSlugEditRouteRoute
+  AppProfilesProfileSlugAnswersRouteRoute: typeof AppProfilesProfileSlugAnswersRouteRoute
   AppProfilesProfileSlugConnectRouteRoute: typeof AppProfilesProfileSlugConnectRouteRoute
   AppProfilesProfileSlugDeleteRouteRoute: typeof AppProfilesProfileSlugDeleteRouteRoute
   AppProfilesProfileSlugEditRouteRoute: typeof AppProfilesProfileSlugEditRouteRoute
+  AppProfilesProfileSlugQuestionsRouteRoute: typeof AppProfilesProfileSlugQuestionsRouteRoute
   AppRulesetsRulesetSlugEditRouteRoute: typeof AppRulesetsRulesetSlugEditRouteRoute
   AppAssetsTypeIndexRoute: typeof AppAssetsTypeIndexRoute
   AppBlogPostSlugIndexRoute: typeof AppBlogPostSlugIndexRoute
@@ -1254,11 +1296,15 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppRulesetsIndexRoute: AppRulesetsIndexRoute,
   AppFactionsFactionIdEditRouteRoute: AppFactionsFactionIdEditRouteRoute,
   AppGroupsGroupSlugEditRouteRoute: AppGroupsGroupSlugEditRouteRoute,
+  AppProfilesProfileSlugAnswersRouteRoute:
+    AppProfilesProfileSlugAnswersRouteRoute,
   AppProfilesProfileSlugConnectRouteRoute:
     AppProfilesProfileSlugConnectRouteRoute,
   AppProfilesProfileSlugDeleteRouteRoute:
     AppProfilesProfileSlugDeleteRouteRoute,
   AppProfilesProfileSlugEditRouteRoute: AppProfilesProfileSlugEditRouteRoute,
+  AppProfilesProfileSlugQuestionsRouteRoute:
+    AppProfilesProfileSlugQuestionsRouteRoute,
   AppRulesetsRulesetSlugEditRouteRoute: AppRulesetsRulesetSlugEditRouteRoute,
   AppAssetsTypeIndexRoute: AppAssetsTypeIndexRoute,
   AppBlogPostSlugIndexRoute: AppBlogPostSlugIndexRoute,

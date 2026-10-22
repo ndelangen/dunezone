@@ -17,12 +17,22 @@ function rulesetCitation(ruleset: Doc<'rulesets'>) {
   };
 }
 
+/** Every question a member asked, newest first, as the profile page before its sections listed them. */
 export async function loadFaqQuestionsAskedBy(ctx: QueryCtx, profileId: Id<'users'>) {
   const rows = await ctx.db
     .query('faq_items')
     .withIndex('by_asked_by_created', (q) => q.eq('asked_by', profileId))
     .order('desc')
     .take(200);
+  return await projectQuestionsAsked(ctx, rows);
+}
+
+/**
+ * Questions as a profile lists them, in the order given, each with the ruleset it was asked in.
+ * A soft-deleted ruleset's questions are gone everywhere else, and their links would 404, so they are dropped;
+ * a page that reads them from a counted list comes up that many short.
+ */
+export async function projectQuestionsAsked(ctx: QueryCtx, rows: Doc<'faq_items'>[]) {
   /* One profile's activity mostly sits in a few rulesets and threads, so each document is read once per request. */
   const rulesetOf = memoised((id: Id<'rulesets'>) => ctx.db.get('rulesets', id));
   const listed = await Promise.all(
@@ -31,10 +41,6 @@ export async function loadFaqQuestionsAskedBy(ctx: QueryCtx, profileId: Id<'user
       if (!ruleset) {
         throw new Error(`Ruleset ${item.ruleset_id} missing for FAQ item ${item._id}`);
       }
-      /*
-       * A soft-deleted ruleset's questions are gone everywhere else, and their links would 404.
-       * Dropped after the window, so a profile whose newest activity sat in deleted rulesets shows fewer rows; the profile list's counts still include them.
-       */
       if (ruleset.is_deleted) {
         return null;
       }
@@ -47,12 +53,18 @@ export async function loadFaqQuestionsAskedBy(ctx: QueryCtx, profileId: Id<'user
   return listed.filter((item) => item !== null);
 }
 
+/** Every answer a member gave, newest first, as the profile page before its sections listed them. */
 export async function loadFaqAnswersGivenBy(ctx: QueryCtx, profileId: Id<'users'>) {
   const answers = await ctx.db
     .query('faq_answers')
     .withIndex('by_answered_by_created', (q) => q.eq('answered_by', profileId))
     .order('desc')
     .take(200);
+  return await projectAnswersGiven(ctx, answers);
+}
+
+/** Answers as a profile lists them, in the order given, each with its question, the asker and the ruleset; a soft-deleted ruleset's are dropped, as its questions are. */
+export async function projectAnswersGiven(ctx: QueryCtx, answers: Doc<'faq_answers'>[]) {
   const itemOf = memoised((id: Id<'faq_items'>) => ctx.db.get('faq_items', id));
   const rulesetOf = memoised((id: Id<'rulesets'>) => ctx.db.get('rulesets', id));
   const summaryOf = profileSummaryReader(ctx);

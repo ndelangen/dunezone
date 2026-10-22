@@ -11,6 +11,7 @@ import type { FactionCatalogueSearch, FactionCatalogueSort } from '../../src/sha
 import { complexityOutOfTen, effectiveComplexity } from '../../src/shared/factions/complexity';
 import type { Doc, Id } from '../_generated/dataModel';
 import type { QueryCtx } from '../types';
+import { isPublicProfile } from './accountLifecycle';
 import { catalogueEditedAt, catalogueNameKey, catalogueSearchText, catalogueTimestamp } from './catalogueEntryShape';
 import type { CatalogueKind } from './catalogueEntryShape';
 import {
@@ -24,6 +25,7 @@ import {
 import type { CatalogueDirection, CatalogueSort } from './catalogueOrder';
 import type { catalogueFactionValidator } from './collaborativeAccessValidators';
 import { parseStoredFactionForRead } from './factionInput';
+import { profileListName } from './profileCatalogue';
 
 export type FactionRulesetSummary = {
   id: Id<'rulesets'>;
@@ -261,6 +263,11 @@ function parseTimestamp(value: string) {
 /* A faction's links are curated by hand; this bound is a ceiling on nonsense, the same one the detail page reads with. */
 const FACTION_LINK_LIMIT = 500;
 
+/** The list of one member's factions, for their profile and the catalogue's `owner` filter. */
+export function factionOwnerPartition(ownerId: Id<'users'>) {
+  return `owner:${ownerId}`;
+}
+
 /**
  * What the catalogue searches and sorts on, read from the authored blob.
  * A blob the full read refuses still lists under its raw name, so a legacy row never fails the save that touched it.
@@ -282,7 +289,7 @@ function factionSearchFields(data: unknown) {
 }
 
 /**
- * The faction kind of `catalogue_entries`: one entry per live faction, faceted by every ruleset it is linked to.
+ * The faction kind of `catalogue_entries`: one entry per live faction, faceted by every ruleset it is linked to and by its owner.
  * Which of those rulesets are live is resolved when the catalogue is read, so deleting a ruleset rewrites no entry.
  */
 export const factionCatalogueKind: CatalogueKind = {
@@ -314,7 +321,10 @@ export const factionCatalogueKind: CatalogueKind = {
       edited_at: catalogueEditedAt(faction.created_at, faction.updated_at),
       complexity,
       complexity_score: complexityOutOfTen(complexity),
-      facets: [...new Set(links.map((link) => link.ruleset_id))].sort(compareCodeUnits),
+      facets: [
+        ...[...new Set(links.map((link) => link.ruleset_id))].sort(compareCodeUnits),
+        factionOwnerPartition(faction.owner_id),
+      ],
     };
   },
   listedSourceIds: async (ctx, limit) => {
@@ -364,16 +374,31 @@ async function selectSpotlightEntries(ctx: QueryCtx) {
   return { newArrival: newArrival ?? null, freshlyUpdated: freshlyUpdated ?? null };
 }
 
+/** The member whose factions the catalogue is narrowed to, as the page names them, with their list; null for an unknown slug or no slug. */
+async function catalogueOwner(ctx: QueryCtx, slug: string | undefined) {
+  const profile = slug
+    ? await ctx.db
+        .query('profiles')
+        .withIndex('by_slug', (q) => q.eq('slug', slug))
+        .unique()
+    : null;
+  if (!profile || !isPublicProfile(profile)) {
+    return null;
+  }
+  return { slug: profile.slug, name: profileListName(profile), partition: factionOwnerPartition(profile.user_id) };
+}
+
 /**
- * What every catalogue answer carries beside its rows: the live rulesets with their faction counts, the whole catalogue's count, and the two spotlight entries.
- * An unknown or deleted ruleset narrows nothing;
+ * What every catalogue answer carries beside its rows: the live rulesets with their faction counts, the whole catalogue's count, the member it is narrowed to, and the two spotlight entries.
+ * An unknown or deleted ruleset or member narrows nothing;
  * the route drops it from the address.
+ * A member's list is read before a ruleset's, as the address parser keeps only the member.
  */
 async function loadCatalogueFurniture(ctx: QueryCtx, query: FactionCatalogueQuery) {
-  const rulesets = await listActiveRulesetSummaries(ctx);
-  const partition = rulesets.find((ruleset) => ruleset.slug === query.ruleset)?.id ?? ALL_PARTITION;
+  const [rulesets, owner] = await Promise.all([listActiveRulesetSummaries(ctx), catalogueOwner(ctx, query.owner)]);
+  const partition = owner?.partition ?? rulesets.find((ruleset) => ruleset.slug === query.ruleset)?.id ?? ALL_PARTITION;
   const [counts, spotlightEntries] = await Promise.all([
-    countCataloguePartitions(ctx, 'faction', [ALL_PARTITION, ...rulesets.map((ruleset) => ruleset.id)]),
+    countCataloguePartitions(ctx, 'faction', [ALL_PARTITION, ...rulesets.map((ruleset) => ruleset.id)], 'name'),
     selectSpotlightEntries(ctx),
   ]);
   const [catalogueTotal = 0, ...rulesetCounts] = counts;
@@ -383,6 +408,7 @@ async function loadCatalogueFurniture(ctx: QueryCtx, query: FactionCatalogueQuer
     text: query.q?.slice(0, FACTION_CATALOGUE_QUERY_LIMIT).trim() ?? '',
     catalogueTotal,
     rulesets: rulesets.map((ruleset, index) => ({ ...ruleset, factionCount: rulesetCounts[index] ?? 0 })),
+    owner: owner ? { slug: owner.slug, name: owner.name } : null,
     spotlightEntries,
   };
 }
@@ -419,6 +445,13 @@ function factionCardReader(ctx: QueryCtx, rulesets: FactionRulesetSummary[]) {
   };
 }
 
+/** The cards of selected entries, for a page that shows a few of one list without the catalogue's furniture; each names its live rulesets. */
+export async function loadFactionCardsOfEntries(ctx: QueryCtx, entries: { source_id: string; facets: string[] }[]) {
+  const card = factionCardReader(ctx, await listActiveRulesetSummaries(ctx));
+  const cards = await Promise.all(entries.map((entry) => card(entry)));
+  return cards.filter((faction) => faction != null);
+}
+
 /** The cards of the selected entries and of the two spotlights, read together. */
 async function loadCards(
   ctx: QueryCtx,
@@ -443,7 +476,7 @@ async function loadCards(
  */
 export async function loadFactionCataloguePage(ctx: QueryCtx, query: FactionCatalogueQuery) {
   const furniture = await loadCatalogueFurniture(ctx, query);
-  const { partition, complexity, text, catalogueTotal, rulesets } = furniture;
+  const { partition, complexity, text, catalogueTotal, rulesets, owner } = furniture;
   const page = parseCataloguePage(query.page) ?? 1;
   const selection = await selectCataloguePage(ctx, {
     kind: 'faction',
@@ -465,6 +498,7 @@ export async function loadFactionCataloguePage(ctx: QueryCtx, query: FactionCata
     pageCount: Math.max(1, Math.ceil(selection.total / FACTION_CATALOGUE_PAGE_SIZE)),
     pageSize: FACTION_CATALOGUE_PAGE_SIZE,
     rulesets,
+    owner,
     spotlights,
   };
 }
@@ -475,7 +509,7 @@ export async function loadFactionCataloguePage(ctx: QueryCtx, query: FactionCata
  */
 export async function loadFactionCatalogueSearch(ctx: QueryCtx, query: FactionCatalogueQuery & { limit?: number }) {
   const furniture = await loadCatalogueFurniture(ctx, query);
-  const { partition, complexity, text, catalogueTotal, rulesets } = furniture;
+  const { partition, complexity, text, catalogueTotal, rulesets, owner } = furniture;
   const limit = catalogueSearchLimit(query.limit, FACTION_CATALOGUE_PAGE_SIZE);
   const selection = await selectCatalogueSearch(ctx, { kind: 'faction', partition, text, limit, complexity });
   const { cards, spotlights } = await loadCards(ctx, furniture, selection.entries);
@@ -487,6 +521,7 @@ export async function loadFactionCatalogueSearch(ctx: QueryCtx, query: FactionCa
     limit,
     catalogueTotal,
     rulesets,
+    owner,
     spotlights,
   };
 }

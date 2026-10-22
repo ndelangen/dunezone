@@ -40,8 +40,13 @@ export function faqAnsweredPartition(rulesetId: Id<'rulesets'>) {
   return `${rulesetId}:answered`;
 }
 
+/** The list of one member's questions, across every ruleset, for their profile. */
+export function faqAskerPartition(userId: Id<'users'>) {
+  return `asker:${userId}`;
+}
+
 /**
- * The FAQ kind of `catalogue_entries`: one entry per question in its ruleset's list, in one list per tag, and in the answered list once accepted.
+ * The FAQ kind of `catalogue_entries`: one entry per question in its ruleset's list, in one list per tag, in the answered list once accepted, and in its asker's list.
  * A question is found by its own words.
  */
 export const faqCatalogueKind: CatalogueKind = {
@@ -68,6 +73,7 @@ export const faqCatalogueKind: CatalogueKind = {
         faqRulesetPartition(item.ruleset_id),
         ...tags.map((tag) => faqTagPartition(item.ruleset_id, tag)),
         ...(item.accepted_answer_id ? [faqAnsweredPartition(item.ruleset_id)] : []),
+        faqAskerPartition(item.asked_by),
       ],
     };
   },

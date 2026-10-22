@@ -1,0 +1,62 @@
+/* Shared by the two profile activity lists: an answer and a question wear the same context strip and the same type. */
+
+.contextStrip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.75rem;
+  font-size: 0.82em;
+  color: var(--color-muted, #666);
+}
+
+.selfNote {
+  font-style: italic;
+  color: var(--color-muted, #735c47);
+}
+
+.answerFooter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Holds the list's words and the chip on one baseline, so the chip reads as part of the sentence. */
+.askerCitation {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.askerLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: inherit;
+  text-decoration: none;
+}
+
+.askerLink:hover {
+  text-decoration: underline;
+}
+
+.question {
+  font-weight: 500;
+}
+
+.parentQuestion {
+  margin: 0;
+  font-size: 0.88em;
+  font-weight: 500;
+  color: var(--color-muted, #666);
+  line-height: 1.35;
+}
+
+.answerPreview {
+  margin: 0;
+  font-size: 0.92em;
+  line-height: 1.4;
+  color: inherit;
+}

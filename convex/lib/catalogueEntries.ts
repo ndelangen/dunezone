@@ -4,6 +4,7 @@ import { internal } from '../_generated/api';
 import type { DataModel, Doc, Id } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../_generated/server';
 import { isActiveProfile } from './accountLifecycle';
+import { answerCatalogueKind } from './answerCatalogue';
 import { assetCatalogueKind } from './assetCatalogue';
 import { canonicalJson } from './canonicalJson';
 import type { CatalogueEntryFields, CatalogueKind } from './catalogueEntryShape';
@@ -30,6 +31,7 @@ export const CATALOGUE_KINDS = {
   asset: assetCatalogueKind,
   profile: profileCatalogueKind,
   faq: faqCatalogueKind,
+  answer: answerCatalogueKind,
   ruleset: rulesetCatalogueKind,
 } as const satisfies Record<string, CatalogueKind>;
 
@@ -170,6 +172,7 @@ function ownerSearchName(profile: Doc<'profiles'> | null) {
  * An asset's entries read the asset and its owner's name;
  * one owner can hold more assets than a transaction should rewrite, so a rename is carried to them in scheduled pages.
  * A profile's entry reads the profile alone, a question's the question alone, and a ruleset's the ruleset alone.
+ * An answer's entries read the answer and whether its question picked it, so a question choosing another answer carries to the answer it leaves and the one it takes.
  */
 export function registerCatalogueTriggers(triggers: Triggers<DataModel, MutationCtx>) {
   triggers.register('factions', async (ctx, change) => {
@@ -210,6 +213,18 @@ export function registerCatalogueTriggers(triggers: Triggers<DataModel, Mutation
   });
   triggers.register('faq_items', async (ctx, change) => {
     await reconcileCatalogueEntry(ctx, 'faq', change.id);
+    const before = change.oldDoc?.accepted_answer_id ?? null;
+    const after = change.newDoc?.accepted_answer_id ?? null;
+    if (before !== after) {
+      for (const answerId of [before, after]) {
+        if (answerId) {
+          await reconcileCatalogueEntry(ctx, 'answer', answerId);
+        }
+      }
+    }
+  });
+  triggers.register('faq_answers', async (ctx, change) => {
+    await reconcileCatalogueEntry(ctx, 'answer', change.id);
   });
   triggers.register('rulesets', async (ctx, change) => {
     await reconcileCatalogueEntry(ctx, 'ruleset', change.id);

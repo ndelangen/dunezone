@@ -1,5 +1,6 @@
 import { ConvexError } from 'convex/values';
 
+import type { Id } from '../_generated/dataModel';
 import type { QueryCtx } from '../types';
 import { isPublicProfile } from './accountLifecycle';
 import { liveGroupOrNull } from './collaborativeAccess';
@@ -32,14 +33,11 @@ async function formerProfile(ctx: QueryCtx, slug: string) {
 }
 
 /**
- * Profile-detail read model.
- * Owns the joins, visibility rules (active memberships only, soft-deleted factions excluded, faction rulesets limited to active ones), and ordering (FAQ activity newest first, faction rulesets by name, Groups in membership order) behind `api.profiles.pageBySlug`.
- * The same for every viewer: the viewer's own sign-in methods are `api.profiles.settings`, never part of a profile page.
- * The runtime wire contract is `profilePageValidator`;
- * the precise TS projection (parsed faction data included) is inferred from this loader.
+ * The public profile an address names: the holder of the slug, or the newest public profile a rename moved away from it, followed through any merge.
+ * Null when none;
+ * a page redirects when the profile's own slug differs from the address.
  */
-export async function loadProfilePageBySlug(ctx: QueryCtx, slug: string) {
-  /* An address no profile holds may be one a rename left, and the page's own redirect then moves the visitor on. */
+export async function publicProfileBySlug(ctx: QueryCtx, slug: string) {
   let profile =
     (await ctx.db
       .query('profiles')
@@ -48,26 +46,39 @@ export async function loadProfilePageBySlug(ctx: QueryCtx, slug: string) {
   for (let depth = 0; profile?.merged_into_profile_id && depth < 16; depth += 1) {
     profile = await ctx.db.get(profile.merged_into_profile_id);
   }
-  if (!profile || !isPublicProfile(profile)) {
+  return profile && isPublicProfile(profile) ? profile : null;
+}
+
+/** The live Groups a member is in, in membership order, as the profile page lists them. */
+export async function loadProfileGroupSummaries(ctx: QueryCtx, userId: Id<'users'>) {
+  const memberships = await ctx.db
+    .query('group_members')
+    .withIndex('by_user_status', (q) => q.eq('user_id', userId).eq('status', 'active'))
+    .take(PROFILE_DETAIL_LIMIT);
+  const groupsWithNulls = await Promise.all(memberships.map((membership) => ctx.db.get('groups', membership.group_id)));
+  /* Public profile callers count and render only live active Groups. A dangling or
+   * soft-deleted membership cannot become a safe identity summary (ADR-0003). */
+  return groupsWithNulls.flatMap((group) => {
+    const live = liveGroupOrNull(group);
+    return live ? [{ id: live._id, name: live.name, slug: live.slug }] : [];
+  });
+}
+
+/**
+ * Profile-detail read model.
+ * Owns the joins, visibility rules (active memberships only, soft-deleted factions excluded, faction rulesets limited to active ones), and ordering (FAQ activity newest first, faction rulesets by name, Groups in membership order) behind `api.profiles.pageBySlug`.
+ * The same for every viewer: the viewer's own sign-in methods are `api.profiles.settings`, never part of a profile page.
+ * The runtime wire contract is `profilePageValidator`;
+ * the precise TS projection (parsed faction data included) is inferred from this loader.
+ */
+export async function loadProfilePageBySlug(ctx: QueryCtx, slug: string) {
+  /* An address no profile holds may be one a rename left, and the page's own redirect then moves the visitor on. */
+  const profile = await publicProfileBySlug(ctx, slug);
+  if (!profile) {
     throw new ConvexError({ code: 'NOT_FOUND', message: `Profile with slug ${slug} not found` });
   }
 
-  const memberships = await ctx.db
-    .query('group_members')
-    .withIndex('by_user_status', (q) => q.eq('user_id', profile.user_id).eq('status', 'active'))
-    .take(PROFILE_DETAIL_LIMIT);
-  const groupsWithNulls = await Promise.all(memberships.map((membership) => ctx.db.get('groups', membership.group_id)));
-  const groups = groupsWithNulls.flatMap((group) => {
-    const live = liveGroupOrNull(group);
-    return live ? [live] : [];
-  });
-  /* Public profile callers count and render only live active Groups. A dangling or
-   * soft-deleted membership cannot become a safe identity summary (ADR-0003). */
-  const groupSummaries = groups.map((group) => ({
-    id: group._id,
-    name: group.name,
-    slug: group.slug,
-  }));
+  const groupSummaries = await loadProfileGroupSummaries(ctx, profile.user_id);
 
   const [faqAsked, faqAnswers] = await Promise.all([
     loadFaqQuestionsAskedBy(ctx, profile.user_id),

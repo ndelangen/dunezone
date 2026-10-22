@@ -3,7 +3,7 @@ import { waitForFrame } from '@sb/storyWaits';
 import { expectFactionColumns } from '@ui/list/factionListPlay';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
-import { db, ref } from '@db/storybook';
+import { db, faction, ref } from '@db/storybook';
 import type { StorybookDatabase } from '@db/storybook';
 
 import { expectFieldValue } from './pagePlay';
@@ -139,6 +139,145 @@ export const DetailTablet = meta.story({
     await expectFactionColumns(factions, 2);
   },
 });
+/**
+ * The viewer's contributions beyond what the profile shows: more factions, answers and questions than its slices hold.
+ * The baseline already has one question and one answer by the viewer and one faction; these add to them.
+ */
+function seedContributions(baseline: StorybookDatabase, { factions, questions, answers }: Record<string, number>) {
+  const rulesetId = ref('ruleset:classicrules');
+  baseline.users.push({ $key: 'other-member', name: 'Other member' });
+  baseline.profiles.push({
+    user_id: ref('other-member'),
+    username: 'Other member',
+    slug: 'other-member',
+    avatar_url: null,
+    account_state: 'active',
+    created_at: '2026-01-01T00:00:00Z',
+    updated_at: '2026-01-01T00:00:00Z',
+  });
+  for (let index = 1; index <= factions; index++) {
+    baseline.factions.push(faction({ name: `Sietch ${String(index).padStart(2, '0')}` }));
+  }
+  const at = (day: number, hour: number) =>
+    `2026-03-${String(day).padStart(2, '0')}T${String(hour).padStart(2, '0')}:00:00Z`;
+  for (let index = 1; index <= questions; index++) {
+    const number = String(index).padStart(2, '0');
+    baseline.faq_items.push({
+      $key: `faq:asked-${number}`,
+      ruleset_id: rulesetId,
+      slug: `asked-${number}`,
+      question: `Asked question ${number}?`,
+      tags: ['rules'],
+      asked_by: ref('storybook-viewer'),
+      created_at: at(1 + Math.floor(index / 24), index % 24),
+      updated_at: at(1 + Math.floor(index / 24), index % 24),
+      accepted_answer_id: null,
+    });
+  }
+  for (let index = 1; index <= answers; index++) {
+    const number = String(index).padStart(2, '0');
+    baseline.faq_items.push({
+      $key: `faq:other-${number}`,
+      ruleset_id: rulesetId,
+      slug: `other-${number}`,
+      question: `Other member's question ${number}?`,
+      tags: ['rules'],
+      asked_by: ref('other-member'),
+      created_at: at(10, 0),
+      updated_at: at(10, 0),
+      accepted_answer_id: index === 1 ? ref(`faq-answer:other-${number}`) : null,
+    });
+    baseline.faq_answers.push({
+      $key: `faq-answer:other-${number}`,
+      faq_item_id: ref(`faq:other-${number}`),
+      answer: `Answer ${number} to the other member.`,
+      answered_by: ref('storybook-viewer'),
+      created_at: at(11 + Math.floor(index / 24), index % 24),
+    });
+  }
+}
+
+/**
+ * A profile with more than its sections show: each section holds the newest few and ends in the link to the whole list,
+ * and the header counts the whole list rather than the slice.
+ */
+export const DetailSections = meta.story({
+  args: { path: '/profiles/storybook-viewer' },
+  parameters: { database: db((baseline) => seedContributions(baseline, { factions: 4, questions: 6, answers: 6 })) },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('link', { name: 'All 5 factions' }, { timeout: 30_000 })).resolves.toHaveAttribute(
+      'href',
+      '/factions?owner=storybook-viewer'
+    );
+    await expect(page.getByRole('link', { name: 'All 7 answers' })).toHaveAttribute(
+      'href',
+      '/profiles/storybook-viewer/answers'
+    );
+    await expect(page.getByRole('link', { name: 'All 7 questions' })).toHaveAttribute(
+      'href',
+      '/profiles/storybook-viewer/questions'
+    );
+    const factions = within(page.getByRole('region', { name: 'Factions created' }));
+    await expect(factions.getAllByRole('link', { name: /Sietch|House Atreides/ })).toHaveLength(3);
+    const answers = within(page.getByRole('region', { name: 'Answers contributed' }));
+    await expect(answers.getAllByRole('link', { name: /Answer \d+ to the other member/ })).toHaveLength(5);
+    await expect(answers.getByText('Picked answer')).toBeVisible();
+    await expect(page.getByText('1 picked answer')).toBeVisible();
+  },
+});
+
+/** The second page of a member's answers: the one row past the first page, and the pager's links to the first. */
+export const AnswersPaged = meta.story({
+  args: { path: '/profiles/storybook-viewer/answers?page=2' },
+  parameters: { database: db((baseline) => seedContributions(baseline, { factions: 0, questions: 0, answers: 24 })) },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByText(/^25–25 of 25 answers$/, {}, { timeout: 30_000 })).resolves.toBeVisible();
+    const main = within(page.getByRole('main'));
+    await expect(
+      main.getAllByRole('link', { name: /Answer \d+ to the other member|Move the storm marker/ })
+    ).toHaveLength(1);
+    const pages = page.getByLabelText('Answers pages');
+    await expect(within(pages).getByRole('link', { name: '1' })).toHaveAttribute(
+      'href',
+      '/profiles/storybook-viewer/answers'
+    );
+    await expect(page.getByRole('link', { name: 'storybook-viewer' })).toHaveAttribute(
+      'href',
+      '/profiles/storybook-viewer'
+    );
+  },
+});
+
+/** The second page of a member's questions, reached by its own address. */
+export const QuestionsPaged = meta.story({
+  args: { path: '/profiles/storybook-viewer/questions?page=2' },
+  parameters: { database: db((baseline) => seedContributions(baseline, { factions: 0, questions: 24, answers: 0 })) },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByText(/^25–25 of 25 questions$/, {}, { timeout: 30_000 })).resolves.toBeVisible();
+    const main = within(page.getByRole('main'));
+    await expect(main.getAllByRole('link', { name: /Asked question|When does the storm move/ })).toHaveLength(1);
+    await expect(page.getByLabelText('Questions pages')).toBeVisible();
+  },
+});
+
+/** A page past the last, from an old link or a list that shrank: where the questions end, and the way there. */
+export const QuestionsPastTheEnd = meta.story({
+  args: { path: '/profiles/storybook-viewer/questions?page=4' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(
+      page.findByRole('heading', { name: 'No questions on this page' }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+    await expect(page.getByRole('link', { name: 'Go to the questions' })).toHaveAttribute(
+      'href',
+      '/profiles/storybook-viewer/questions'
+    );
+  },
+});
+
 export const Settings = meta.story({
   args: { path: '/profiles/storybook-viewer/edit' },
   play: ({ canvasElement }) => expectFieldValue(canvasElement, 'Display name', 'storybook-viewer'),

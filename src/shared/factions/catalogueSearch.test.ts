@@ -39,6 +39,16 @@ describe('faction catalogue search parameters', () => {
     });
   });
 
+  test('keeps a member beside a search and a complexity range, and drops the ruleset beside a member, as a list is one facet', () => {
+    expect(parseFactionCatalogueSearch({ owner: ' chani ', q: 'leto', complexity: '2-5' })).toEqual({
+      q: 'leto',
+      owner: 'chani',
+      complexity: '2-5',
+    });
+    expect(parseFactionCatalogueSearch({ owner: 'chani', ruleset: 'classic' })).toEqual({ owner: 'chani' });
+    expect(parseFactionCatalogueSearch({ owner: '  ', ruleset: 'classic' })).toEqual({ ruleset: 'classic' });
+  });
+
   test('cuts a search at the query limit', () => {
     const long = `${'a'.repeat(FACTION_CATALOGUE_QUERY_LIMIT)}tail`;
     expect(parseFactionCatalogueSearch({ q: long })).toEqual({ q: 'a'.repeat(FACTION_CATALOGUE_QUERY_LIMIT) });

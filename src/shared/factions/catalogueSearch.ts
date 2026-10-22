@@ -26,6 +26,8 @@ const FULL_COMPLEXITY_RANGE: FactionComplexityRange = [0, 10];
 export type FactionCatalogueSearch = {
   q?: string;
   ruleset?: string;
+  /** A profile slug: the factions one member created. Never alongside `ruleset`, as a list is one facet's; a member's list wins. */
+  owner?: string;
   /** Never alongside `q`: a search is always best match. */
   sort?: FactionCatalogueSort;
   /** Present only when narrower than the full range. */
@@ -61,10 +63,12 @@ export function parseCataloguePage(value: unknown): number | undefined {
 /**
  * Every field is spread conditionally, so an absent key is absent rather than present and undefined, and a default never reaches the address.
  * A search drops the order and the page: its matches come best first and load more in place, so an old link carrying them opens the search's first matches.
+ * An owner drops the ruleset: the catalogue reads one list at a time, and a member's factions are the narrower one.
  */
 export function parseFactionCatalogueSearch(params: Record<string, unknown>): FactionCatalogueSearch {
   const q = cleanSearchValue(params.q)?.slice(0, FACTION_CATALOGUE_QUERY_LIMIT).trim();
-  const ruleset = cleanSearchValue(params.ruleset);
+  const owner = cleanSearchValue(params.owner);
+  const ruleset = owner ? undefined : cleanSearchValue(params.ruleset);
   const parsedSort = isFactionCatalogueSort(params.sort) ? params.sort : undefined;
   const sort = parsedSort === 'name' || q ? undefined : parsedSort;
   const complexity = complexityRangeSearchValue(parseComplexityRange(cleanSearchValue(params.complexity)));
@@ -73,6 +77,7 @@ export function parseFactionCatalogueSearch(params: Record<string, unknown>): Fa
   return {
     ...(q ? { q } : {}),
     ...(ruleset ? { ruleset } : {}),
+    ...(owner ? { owner } : {}),
     ...(sort ? { sort } : {}),
     ...(complexity ? { complexity } : {}),
     ...(page ? { page } : {}),

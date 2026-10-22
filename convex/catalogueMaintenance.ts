@@ -71,6 +71,7 @@ export const catalogueDrift = internalQuery({
       v.literal('asset'),
       v.literal('profile'),
       v.literal('faq'),
+      v.literal('answer'),
       v.literal('ruleset')
     ),
     limit: v.optional(v.number()),

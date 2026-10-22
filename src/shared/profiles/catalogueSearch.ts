@@ -43,3 +43,17 @@ export function parseProfileCatalogueSearch(params: Record<string, unknown>): Pr
   const page = q ? undefined : parseCataloguePage(params.page);
   return { ...(q ? { q } : {}), ...(sort ? { sort } : {}), ...(page ? { page } : {}) };
 }
+
+/** How many answers or questions one page of a profile's activity holds. */
+export const PROFILE_ACTIVITY_PAGE_SIZE = 24;
+
+export type ProfileActivitySearch = {
+  /** Present only past the first page, so the first page has one address. */
+  page?: number;
+};
+
+/** A profile's answers or questions page takes one parameter, the page; spread conditionally so the first page has one address. */
+export function parseProfileActivitySearch(params: Record<string, unknown>): ProfileActivitySearch {
+  const page = parseCataloguePage(params.page);
+  return page ? { page } : {};
+}

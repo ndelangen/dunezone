@@ -212,6 +212,9 @@ const catalogueSpotlightsValidator = v.object({
 
 const catalogueRulesetsValidator = v.array(rulesetSummaryValidator.extend({ factionCount: v.number() }));
 
+/** The member the catalogue is narrowed to, as the page names them; null when no live member's slug was asked for. */
+const catalogueOwnerValidator = v.union(v.object({ slug: v.string(), name: v.string() }), v.null());
+
 /** A browsed page: aggregate counts, numbered pages, a chosen order. */
 const catalogueBrowseValidator = v.object({
   cards: v.array(catalogueFactionValidator),
@@ -226,6 +229,7 @@ const catalogueBrowseValidator = v.object({
   pageCount: v.number(),
   pageSize: v.number(),
   rulesets: catalogueRulesetsValidator,
+  owner: catalogueOwnerValidator,
   spotlights: catalogueSpotlightsValidator,
 });
 
@@ -242,6 +246,7 @@ const catalogueSearchValidator = v.object({
   /** Live factions in the catalogue, before any search or filter. */
   catalogueTotal: v.number(),
   rulesets: catalogueRulesetsValidator,
+  owner: catalogueOwnerValidator,
   spotlights: catalogueSpotlightsValidator,
 });
 
@@ -256,6 +261,8 @@ export const catalogue = publicQuery({
   args: {
     q: v.optional(v.string()),
     ruleset: v.optional(v.string()),
+    /** A profile slug: only that member's factions. */
+    owner: v.optional(v.string()),
     complexity: v.optional(v.string()),
     sort: v.optional(catalogueSortValidator),
     page: v.optional(v.number()),

@@ -320,7 +320,7 @@ async function loadDirectoryPage(ctx: QueryCtx, args: CatalogueArgs, text: strin
       search: text ? { text, relevance: !args.sort } : undefined,
     }),
     /* Without a search the page's own count is the directory's, so only a search counts again. */
-    text ? countCataloguePartitions(ctx, 'profile', [ALL_PARTITION]) : Promise.resolve([]),
+    text ? countCataloguePartitions(ctx, 'profile', [ALL_PARTITION], 'name') : Promise.resolve([]),
   ]);
   return {
     entries: await directoryEntries(ctx, selection.entries),
@@ -337,7 +337,7 @@ async function loadDirectorySearch(ctx: QueryCtx, args: CatalogueArgs, text: str
   const limit = catalogueSearchLimit(args.limit, PROFILE_CATALOGUE_PAGE_SIZE);
   const [selection, [directoryTotal = 0]] = await Promise.all([
     selectCatalogueSearch(ctx, { kind: 'profile', partition: ALL_PARTITION, text, limit }),
-    countCataloguePartitions(ctx, 'profile', [ALL_PARTITION]),
+    countCataloguePartitions(ctx, 'profile', [ALL_PARTITION], 'name'),
   ]);
   return {
     mode: 'search' as const,

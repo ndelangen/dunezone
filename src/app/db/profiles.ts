@@ -2,6 +2,7 @@ import type { ProfileUserEditInput } from '@shared/profiles/validation';
 import { profileUserEditFormSchema } from '@shared/profiles/validation';
 import { useMutation } from 'convex/react';
 import type { FunctionArgs, FunctionReturnType } from 'convex/server';
+import { ConvexError } from 'convex/values';
 import { useEffect, useRef } from 'react';
 
 import { db } from '@db/core';
@@ -29,28 +30,65 @@ export type ProfileDirectoryEntry = ProfileDirectoryPageData['entries'][number];
 /** What one `/profiles` page asks for: the route's search parameters, as `profiles.catalogue` takes them. */
 export type ProfileDirectoryArgs = FunctionArgs<typeof api.profiles.catalogue>;
 
-/** Server-owned profile page contract, the same for every viewer; the read model lives in `convex/lib/profileDetail.ts`. */
-export type ProfileDetailResult = FunctionReturnType<typeof api.profiles.pageBySlug>;
+/** Server-owned profile page contract, the same for every viewer; the read model lives in `convex/lib/profileSections.ts`. */
+export type ProfileDetailResult = NonNullable<FunctionReturnType<typeof api.profileSections.page>>;
 
-/** The profile page's model: the server's detail result with its FAQ activity, factions and Groups normalized for rendering. */
+/** The profile page's model: the server's sections with the faction cards parsed for rendering. */
 export type ProfilePageData = ReturnType<typeof normalizeProfilePage>;
+
+/** An answer as a profile lists it: the answer with its question, the asker and the ruleset. */
+export type ProfileFaqAnswer = ProfileDetailResult['answerPreview'][number];
+
+/** A question as a profile lists it: the question with the ruleset it was asked in. */
+export type ProfileFaqQuestion = ProfileDetailResult['questionPreview'][number];
 
 /** Canonical browser page model, shared by the route loader and the live subscription. */
 function normalizeProfilePage(result: ProfileDetailResult) {
-  return {
-    profile: result.profile,
-    groupSummaries: result.groupSummaries,
-    faqAsked: result.faqAsked,
-    faqAnswers: result.faqAnswers,
-    factions: factionCatalogueRowsToEntries(result.factions),
-    acceptedAnswerCount: result.faqAnswers.filter((answer) => answer.faq_item.accepted_answer_id === answer._id).length,
-  };
+  return { ...result, factionPreview: factionCatalogueRowsToEntries(result.factionPreview) };
 }
 
-/** The profile page's loader, paired with `useProfileBySlug`. */
+/**
+ * The profile page's loader, paired with `useProfileBySlug`.
+ * A missing profile is the server's null, raised here as the not-found the public page loaders translate.
+ */
 export async function loadProfileBySlug(slug: string): Promise<ProfilePageData> {
-  const result = await db.query(api.profiles.pageBySlug, { slug });
+  const result = await db.query(api.profileSections.page, { slug });
+  if (!result) {
+    throw new ConvexError({ code: 'NOT_FOUND', message: `Profile with slug ${slug} not found` });
+  }
   return normalizeProfilePage(result);
+}
+
+/** What `api.profileSections.answers` gives a profile's answers page: one page of answers, counted; null for an unknown profile. */
+export type ProfileAnswersPageData = FunctionReturnType<typeof api.profileSections.answers>;
+/** What `api.profileSections.questions` gives a profile's questions page: one page of questions, counted; null for an unknown profile. */
+export type ProfileQuestionsPageData = FunctionReturnType<typeof api.profileSections.questions>;
+/** What one paged profile list asks for: the profile and the page, as both paged queries take them. */
+export type ProfileActivityArgs = FunctionArgs<typeof api.profileSections.answers>;
+
+/** The profile's answers route's loader, paired with `useProfileAnswersPage`. */
+export async function loadProfileAnswersPage(args: ProfileActivityArgs): Promise<ProfileAnswersPageData> {
+  return await db.query(api.profileSections.answers, args);
+}
+
+/** One live page of a profile's answers, taking `loadProfileAnswersPage`'s result for the same arguments as `initialData`. */
+export function useProfileAnswersPage(args: ProfileActivityArgs, options?: { initialData?: ProfileAnswersPageData }) {
+  const liveData = useLiveQuery(api.profileSections.answers, args);
+  return toLiveQueryResult(liveData, () => options?.initialData);
+}
+
+/** The profile's questions route's loader, paired with `useProfileQuestionsPage`. */
+export async function loadProfileQuestionsPage(args: ProfileActivityArgs): Promise<ProfileQuestionsPageData> {
+  return await db.query(api.profileSections.questions, args);
+}
+
+/** One live page of a profile's questions, taking `loadProfileQuestionsPage`'s result for the same arguments as `initialData`. */
+export function useProfileQuestionsPage(
+  args: ProfileActivityArgs,
+  options?: { initialData?: ProfileQuestionsPageData }
+) {
+  const liveData = useLiveQuery(api.profileSections.questions, args);
+  return toLiveQueryResult(liveData, () => options?.initialData);
 }
 
 /** A profile as `ProfileLink` cites it, or null when no public profile holds the slug. */
@@ -76,7 +114,7 @@ export function useProfileBySlug(
     initialData?: ProfilePageData;
   }
 ) {
-  const liveData = useLiveQuery(api.profiles.pageBySlug, { slug });
+  const liveData = useLiveQuery(api.profileSections.page, { slug });
   const normalized = liveData ? normalizeProfilePage(liveData) : undefined;
   const result = toLiveQueryResult(normalized, () => options?.initialData);
   return result;
