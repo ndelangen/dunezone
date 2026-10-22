@@ -39,6 +39,27 @@ beforeAll(async () => {
 });
 
 type Failure = 'status' | 'body' | 'timeout' | 'corrupt' | 'missing' | 'json';
+const failureStatus: Partial<Record<Failure, number>> = { status: 502, missing: 404 };
+
+function writeFixtureResponse(response: ServerResponse, bytes: Buffer, contentType: string, failure?: Failure) {
+  const status = failure && failureStatus[failure];
+  if (status) {
+    response.writeHead(status).end('unavailable');
+    return;
+  }
+  const interrupted = failure === 'body' || failure === 'timeout';
+  if (interrupted) {
+    response.setHeader('X-Retention-Fixture-Fault', failure);
+  }
+  response.writeHead(200, { 'Content-Type': contentType, 'Content-Length': String(bytes.length) });
+  if (interrupted) {
+    /* The preload acknowledges headers before the fixture interrupts this body. */
+    response.write(bytes.subarray(0, 5));
+    return response;
+  }
+  response.end(failure === 'corrupt' || failure === 'json' ? Buffer.alloc(bytes.length, 'x') : bytes);
+}
+
 async function retain(failures: Failure[], failManifest = false) {
   const directory = mkdtempSync(path.join(tmpdir(), 'retention-transfer-'));
   const output = path.join(directory, 'workers/publisher/dist');
@@ -78,24 +99,7 @@ async function retain(failures: Failure[], failManifest = false) {
     const failing = failManifest === metadata;
     const failure = failing ? failures.shift() : undefined;
     const bytes = metadata ? Buffer.from(manifest) : asset;
-    if (failure === 'status' || failure === 'missing') {
-      response.writeHead(failure === 'status' ? 502 : 404).end('unavailable');
-      return;
-    }
-    if (failure === 'body' || failure === 'timeout') {
-      response.setHeader('X-Retention-Fixture-Fault', failure);
-    }
-    response.writeHead(200, {
-      'Content-Type': metadata ? 'application/json' : 'text/javascript',
-      'Content-Length': String(bytes.length),
-    });
-    if (failure === 'body' || failure === 'timeout') {
-      /* The preload acknowledges headers before the fixture interrupts this body. */
-      interrupted = response;
-      response.write(bytes.subarray(0, 5));
-      return;
-    }
-    response.end(failure === 'corrupt' || failure === 'json' ? Buffer.alloc(bytes.length, 'x') : bytes);
+    interrupted = writeFixtureResponse(response, bytes, metadata ? 'application/json' : 'text/javascript', failure);
   });
   try {
     await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
