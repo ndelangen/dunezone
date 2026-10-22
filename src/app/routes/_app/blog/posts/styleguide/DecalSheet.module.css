@@ -11,10 +11,15 @@
   gap: var(--space-md);
 }
 
+/* A dark backing, so the captions stay readable over the bright parts of the page background. */
 .treatments {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-md);
+  padding: var(--space-md);
+  border-radius: var(--mantine-radius-md);
+  background: rgb(22 19 16 / 92%);
+  color: #e3dbb3;
 }
 
 .treatment {
@@ -44,7 +49,7 @@
 .treatmentSpec {
   font-size: var(--mantine-font-size-xs);
   line-height: 1.4;
-  color: var(--mantine-color-dimmed);
+  color: #b8ad88;
 }
 
 /* The library is a sheet of parchment, the card's own, with the silhouettes in ink. */
