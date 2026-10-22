@@ -173,10 +173,9 @@ export const rulesetFaq = publicQuery({
     }
     const citation = { id: ruleset._id, name: ruleset.name, slug: ruleset.slug };
     /* Gated on the text the search runs, so a query that is blank once cut to length browses instead. */
-    const list =
-      rulesetFaqSearchText(args.q)
-        ? await loadRulesetFaqSearch(ctx, ruleset._id, args)
-        : await loadRulesetFaqPage(ctx, ruleset._id, args);
+    const list = rulesetFaqSearchText(args.q)
+      ? await loadRulesetFaqSearch(ctx, ruleset._id, args)
+      : await loadRulesetFaqPage(ctx, ruleset._id, args);
     return { ruleset: citation, ...list };
   },
 });
