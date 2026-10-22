@@ -458,10 +458,75 @@ const withPlanets = (description = true) =>
     ];
   });
 
+/** The fade stays in the scroll padding, leaving both end leaders fully opaque. */
+async function expectLeaderLane(canvasElement: HTMLElement) {
+  const page = within(canvasElement.ownerDocument.body);
+  const leaders = await page.findByRole('region', { name: 'Leaders' });
+  const tiles = within(leaders).getAllByRole('article');
+  const lane = tiles[0]!.parentElement!;
+  const style = getComputedStyle(lane);
+  await expect(style.maskImage).not.toBe('none');
+  const fadeWidths = [...style.maskImage.matchAll(/(?:black|rgb\(0, 0, 0\)) (?:calc\(100% - )?(\d+(?:\.\d+)?)px/g)].map(
+    (match) => Number(match[1])
+  );
+  await expect(fadeWidths).toHaveLength(2);
+  await expect(fadeWidths[0]).toBeLessThanOrEqual(Number.parseFloat(style.paddingLeft));
+  await expect(fadeWidths[1]).toBeLessThanOrEqual(Number.parseFloat(style.paddingRight));
+  await expectWithinWidth(canvasElement, [lane]);
+
+  lane.scrollLeft = 0;
+  await waitForFrame(async () => {
+    await expect(tiles[0]!.getBoundingClientRect().left).toBeGreaterThanOrEqual(
+      lane.getBoundingClientRect().left + fadeWidths[0]!
+    );
+  });
+  lane.scrollLeft = lane.scrollWidth;
+  await waitForFrame(async () => {
+    await expect(tiles.at(-1)!.getBoundingClientRect().right).toBeLessThanOrEqual(
+      lane.getBoundingClientRect().right - fadeWidths[1]! + 1
+    );
+  });
+  lane.scrollLeft = 0;
+}
+
+/** The sidebar is beside an overflowing leader row just above the desktop breakpoint. */
+export const DetailWithOverflowingLeaders = meta.story({
+  args: { path: '/factions/space-orks' },
+  parameters: {
+    database: withPlanets(),
+    identity: null,
+    viewport: {
+      options: {
+        factionOverflow: { name: 'Faction overflow', styles: { width: '1024px', height: '900px' } },
+      },
+    },
+  },
+  globals: { viewport: { value: 'factionOverflow' } },
+  play: async ({ canvasElement }) => {
+    await expectLeaderLane(canvasElement);
+    const page = within(canvasElement.ownerDocument.body);
+    const leaders = page.getByRole('region', { name: 'Leaders' });
+    const lane = within(leaders).getAllByRole('article')[0]!.parentElement!;
+    const sidebar = page.getByRole('complementary', { name: 'Faction details' });
+    await expect(lane.scrollWidth).toBeGreaterThan(lane.clientWidth);
+    await expect(lane.getBoundingClientRect().right).toBeLessThanOrEqual(sidebar.getBoundingClientRect().left);
+  },
+});
+
+export const DetailWithOverflowingLeadersMobile = meta.story({
+  args: { path: '/factions/space-orks' },
+  parameters: { database: withPlanets(), identity: null },
+  globals: { viewport: { value: 'appMobileNarrow' } },
+  play: async ({ canvasElement }) => {
+    await expectLeaderLane(canvasElement);
+  },
+});
+
 export const DetailWithPlanets = meta.story({
   args: { path: '/factions/space-orks' },
   parameters: { database: withPlanets(), identity: null },
   play: async ({ canvasElement }) => {
+    await expectLeaderLane(canvasElement);
     const page = within(canvasElement.ownerDocument.body);
     const sidebar = await page.findByRole('complementary', { name: 'Faction details' });
     const planets = within(sidebar).getByRole('region', { name: 'Planets' });
