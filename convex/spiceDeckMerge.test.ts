@@ -96,8 +96,13 @@ test(
     const { t, originals, copies, dreamrules, gf9 } = await setup();
     const planned = await t.mutation(internal.spiceDeckMerge.mergeDuplicateSpiceCards, { dryRun: true });
     expect(planned.map(({ original, copy, decks }) => [original, copy, decks])).toEqual(
-      originals.map((original, index) => [original, copies[index], [gf9]])
+      originals.map((original, index) => [original, copies[index], [{ deck: gf9, before: 0, after: 1 }]])
     );
+    expect(planned[5]).toMatchObject({
+      name: 'Habbanya Ridge Flat',
+      text: 'West sector.',
+      about: 'GF9 base Spice Card. Place 10 spice in Habbanya Ridge Flat.',
+    });
     await expect(members(t, gf9)).resolves.toEqual(copies.map((copy) => [copy, 1]));
 
     await t.mutation(internal.spiceDeckMerge.mergeDuplicateSpiceCards, { dryRun: false });
@@ -134,4 +139,30 @@ test(
     expect(first!.data.about).toBe('');
   },
   BUDGET_MS
+);
+
+const membership = (t: ReturnType<typeof applicationTest>, deckId: Id<'assets'>, cardId: Id<'assets'>, count: number) =>
+  t.run(async (ctx) => {
+    await ctx.db.insert('asset_relations', { from_asset_id: deckId, to_asset_id: cardId, kind: 'deck-card', count });
+  });
+
+test(
+  'adds the counts in a deck that holds both cards, and refuses a total past the member limit',
+  async () => {
+    const { t, originals, copies, dreamrules } = await setup();
+    await membership(t, dreamrules, copies[0], 2);
+    const planned = await t.mutation(internal.spiceDeckMerge.mergeDuplicateSpiceCards, { dryRun: true });
+    expect(planned[0].decks).toContainEqual({ deck: dreamrules, before: 1, after: 3 });
+    await t.mutation(internal.spiceDeckMerge.mergeDuplicateSpiceCards, { dryRun: false });
+    const held = await members(t, dreamrules);
+    expect(held.filter(([id]) => id === originals[0])).toEqual([[originals[0], 3]]);
+    expect(held.some(([id]) => id === copies[0])).toBe(false);
+
+    const full = await setup();
+    await membership(full.t, full.dreamrules, full.copies[1], 99);
+    await expect(full.t.mutation(internal.spiceDeckMerge.mergeDuplicateSpiceCards, { dryRun: true })).rejects.toThrow(
+      'past the limit of 99'
+    );
+  },
+  BUDGET_MS * 2
 );

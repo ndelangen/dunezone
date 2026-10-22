@@ -1,6 +1,6 @@
 import { ConvexError, v } from 'convex/values';
 
-import type { Doc, Id } from './_generated/dataModel';
+import type { Doc } from './_generated/dataModel';
 import { internalMutation } from './functions';
 import { enqueueAssetPublication } from './lib/publication';
 import { nowIso } from './lib/utils';
@@ -44,32 +44,36 @@ async function liveSpiceCard(ctx: MutationCtx, slug: string) {
   return row;
 }
 
-/** Moves every deck membership from `from` onto `to`, adding counts where a deck already holds both. */
-async function moveDeckMemberships(ctx: MutationCtx, from: Id<'assets'>, to: Id<'assets'>, dryRun: boolean) {
+/* The deck editor and imports refuse a member count above this. */
+const MAX_MEMBER_COUNT = 99;
+
+/**
+ * Where each deck that holds `copy` will hold `original` instead, with the original's count in that deck before and after.
+ * A deck that already holds both adds the counts, and a total past the editor's limit stops the merge.
+ */
+async function plannedMemberships(ctx: MutationCtx, original: Doc<'assets'>, copy: Doc<'assets'>) {
   const memberships = await ctx.db
     .query('asset_relations')
-    .withIndex('by_to_kind', (q) => q.eq('to_asset_id', from).eq('kind', DECK_CARD))
+    .withIndex('by_to_kind', (q) => q.eq('to_asset_id', copy._id).eq('kind', DECK_CARD))
     .collect();
-  const decks: Id<'assets'>[] = [];
-  for (const membership of memberships) {
-    decks.push(membership.from_asset_id);
-    if (dryRun) {
-      continue;
-    }
-    const existing = await ctx.db
-      .query('asset_relations')
-      .withIndex('by_from_to_kind', (q) =>
-        q.eq('from_asset_id', membership.from_asset_id).eq('to_asset_id', to).eq('kind', DECK_CARD)
-      )
-      .unique();
-    if (existing) {
-      await ctx.db.patch(existing._id, { count: existing.count + membership.count });
-      await ctx.db.delete(membership._id);
-    } else {
-      await ctx.db.patch(membership._id, { to_asset_id: to });
-    }
-  }
-  return decks;
+  return await Promise.all(
+    memberships.map(async (membership) => {
+      const existing = await ctx.db
+        .query('asset_relations')
+        .withIndex('by_from_to_kind', (q) =>
+          q.eq('from_asset_id', membership.from_asset_id).eq('to_asset_id', original._id).eq('kind', DECK_CARD)
+        )
+        .unique();
+      const before = existing?.count ?? 0;
+      const after = before + membership.count;
+      if (after > MAX_MEMBER_COUNT) {
+        throw new ConvexError(
+          `Deck ${membership.from_asset_id} would hold card-spice/${original.slug} ${after} times, past the limit of ${MAX_MEMBER_COUNT}`
+        );
+      }
+      return { membership, existing, before, after };
+    })
+  );
 }
 
 function sameCard(original: Doc<'assets'>, copy: Doc<'assets'>) {
@@ -89,7 +93,8 @@ export const mergeDuplicateSpiceCards = internalMutation({
       copy: v.id('assets'),
       name: v.string(),
       text: v.string(),
-      decks: v.array(v.id('assets')),
+      about: v.string(),
+      decks: v.array(v.object({ deck: v.id('assets'), before: v.number(), after: v.number() })),
     })
   ),
   handler: async (ctx, { dryRun }) => {
@@ -99,18 +104,23 @@ export const mergeDuplicateSpiceCards = internalMutation({
         if (!sameCard(original, copy)) {
           throw new ConvexError(`card-spice/${copySlug} is not a copy of card-spice/${originalSlug}`);
         }
-        return { original, copy };
+        return { original, copy, memberships: await plannedMemberships(ctx, original, copy) };
       })
     );
     const report = [];
-    for (const { original, copy } of pairs) {
+    for (const { original, copy, memberships } of pairs) {
       const data = { ...original.data, text: copy.data.text ?? '', about: copy.data.about ?? '' };
       if (!dryRun) {
         await ctx.db.patch(original._id, { data, updated_at: nowIso() });
         await enqueueAssetPublication(ctx, { ...original, data });
-      }
-      const decks = await moveDeckMemberships(ctx, copy._id, original._id, dryRun);
-      if (!dryRun) {
+        for (const { membership, existing, after } of memberships) {
+          if (existing) {
+            await ctx.db.patch(existing._id, { count: after });
+            await ctx.db.delete(membership._id);
+          } else {
+            await ctx.db.patch(membership._id, { to_asset_id: original._id });
+          }
+        }
         await ctx.db.patch(copy._id, { is_deleted: true, updated_at: nowIso() });
       }
       report.push({
@@ -118,7 +128,8 @@ export const mergeDuplicateSpiceCards = internalMutation({
         copy: copy._id,
         name: String(original.data.name),
         text: String(data.text),
-        decks,
+        about: String(data.about),
+        decks: memberships.map(({ membership, before, after }) => ({ deck: membership.from_asset_id, before, after })),
       });
     }
     return report;
