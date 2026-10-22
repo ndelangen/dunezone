@@ -15,6 +15,7 @@ const workflow = parse(readFileSync('.github/workflows/ci-pr.yml', 'utf8')) as {
   jobs: { verify: { with: { draft: string } }; ci_ok: { name: string; steps: { run?: string }[] } };
 };
 
+/** Event snapshots for PR admission and merge groups, which carry no PR payload. */
 function context(draft: boolean | null, number = 2428, sha = '19cb3ac87918dab6f12dd94cd730062412cc4dd7') {
   return {
     github: {
@@ -29,6 +30,7 @@ function context(draft: boolean | null, number = 2428, sha = '19cb3ac87918dab6f1
   };
 }
 
+/** Evaluates workflow templates against the supplied contexts using GitHub's expression language. */
 function render(template: string, values: Record<string, unknown>) {
   return template.replace(/\$\{\{([\s\S]*?)\}\}/gu, (_, expression: string) => {
     const tokens = new Lexer(expression).lex().tokens;
@@ -38,6 +40,7 @@ function render(template: string, values: Record<string, unknown>) {
   });
 }
 
+/** Resolves one event's cancellation group, verification profile and check name from the workflow. */
 function run(draft: boolean | null, number = 2428, sha = '19cb3ac87918dab6f12dd94cd730062412cc4dd7') {
   const values = context(draft, number, sha);
   return {
@@ -48,6 +51,7 @@ function run(draft: boolean | null, number = 2428, sha = '19cb3ac87918dab6f12dd9
   };
 }
 
+/** Applies GitHub's single-pending replacement and running-cancellation rules to arrivals in order. */
 function admit(runs: ReturnType<typeof run>[], runnerAvailable: boolean) {
   const groups = new Map<string, { running?: ReturnType<typeof run>; pending?: ReturnType<typeof run> }>();
   for (const incoming of runs) {
