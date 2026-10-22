@@ -21,6 +21,7 @@ import { ConfirmDeleteMenuItem } from '@ui/control/ConfirmDeleteMenuItem';
 import { FaqTagFieldset } from '@ui/control/FaqTagFieldset';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 import { IconAction } from '@ui/control/IconAction';
+import { AddAction } from '@ui/control/ListLengthActions';
 import { LoadMoreButton } from '@ui/control/LoadMoreButton';
 import { SaveAction } from '@ui/control/SaveAction';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -28,7 +29,17 @@ import { FaqList } from '@ui/list/FaqList';
 import { TileGrid } from '@ui/list/TileGrid';
 import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
-import { BadgeCheck, BadgeMinus, ChevronDown, EllipsisVertical, MessageSquarePlus, Pencil, X } from 'lucide-react';
+import { Toolbar } from '@ui/surface/Toolbar';
+import {
+  ArrowLeft,
+  BadgeCheck,
+  BadgeMinus,
+  ChevronDown,
+  EllipsisVertical,
+  MessageSquarePlus,
+  Pencil,
+  X,
+} from 'lucide-react';
 import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 
@@ -264,17 +275,7 @@ function FaqDetailPage() {
         <PageTitle title="FAQ discussion" />
       </PageLayout.Header>
       <PageLayout.Toolbar>
-        <Group role="group" aria-label="Navigation">
-          <Anchor
-            underline="never"
-            size="sm"
-            renderRoot={(rootProps) => (
-              <Link {...rootProps} to="/rulesets/$rulesetSlug/faq" params={{ rulesetSlug: page.ruleset.slug }} />
-            )}
-          >
-            Back to FAQ
-          </Anchor>
-        </Group>
+        <FaqNavigation rulesetSlug={page.ruleset.slug} />
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <div className={styles.container}>
@@ -367,6 +368,23 @@ function FaqDetailPage() {
         </div>
       </PageLayout.Content>
     </PageLayout>
+  );
+}
+
+function FaqNavigation({ rulesetSlug }: { rulesetSlug: string }) {
+  return (
+    <Toolbar>
+      <Toolbar.Left label="Navigation">
+        <IconAction
+          label="Back to FAQ"
+          emphasis="standard"
+          intent="neutral"
+          size="lg"
+          icon={<ArrowLeft size={17} aria-hidden />}
+          renderRoot={(rootProps) => <Link {...rootProps} to="/rulesets/$rulesetSlug/faq" params={{ rulesetSlug }} />}
+        />
+      </Toolbar.Left>
+    </Toolbar>
   );
 }
 
@@ -786,9 +804,7 @@ function FaqReferencesSection({ faq }: { faq: FaqQuestionCommands }) {
       title="Relates to"
       action={
         faq.canManageReferences && !addingReferences ? (
-          <Button size="compact-xs" variant="default" onClick={() => setAddingReferences(true)}>
-            Add references
-          </Button>
+          <AddAction label="Add references" onClick={() => setAddingReferences(true)} />
         ) : undefined
       }
     >
