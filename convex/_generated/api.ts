@@ -124,6 +124,7 @@ import type * as lib_rulesetBoard from "../lib/rulesetBoard.js";
 import type * as lib_rulesetCatalogue from "../lib/rulesetCatalogue.js";
 import type * as lib_rulesetCover from "../lib/rulesetCover.js";
 import type * as lib_rulesetDetailPage from "../lib/rulesetDetailPage.js";
+import type * as lib_rulesetFactionLinks from "../lib/rulesetFactionLinks.js";
 import type * as lib_rulesetSlots from "../lib/rulesetSlots.js";
 import type * as lib_slugAllocation from "../lib/slugAllocation.js";
 import type * as lib_slugCounters from "../lib/slugCounters.js";
@@ -294,6 +295,7 @@ const fullApi: ApiFromModules<{
   "lib/rulesetCatalogue": typeof lib_rulesetCatalogue;
   "lib/rulesetCover": typeof lib_rulesetCover;
   "lib/rulesetDetailPage": typeof lib_rulesetDetailPage;
+  "lib/rulesetFactionLinks": typeof lib_rulesetFactionLinks;
   "lib/rulesetSlots": typeof lib_rulesetSlots;
   "lib/slugAllocation": typeof lib_slugAllocation;
   "lib/slugCounters": typeof lib_slugCounters;

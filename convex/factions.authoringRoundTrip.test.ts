@@ -323,6 +323,7 @@ describe('faction authoring full-field round trip', () => {
       await ctx.db.insert('ruleset_factions', {
         ruleset_id: id,
         faction_id: createdRow._id,
+        position: 0,
       });
       return id;
     });

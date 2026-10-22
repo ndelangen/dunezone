@@ -454,7 +454,7 @@ export const convexStorybookReferences = {
   migrationsAdminDashboard: api.migrations.adminDashboard,
   migrationsSyncRuns: api.migrations.syncMigrationRuns,
   profileSession: api.profiles.session,
-  rulesetsList: api.rulesets.list,
+  rulesetsCatalogue: api.rulesets.catalogue,
 };
 
 export {

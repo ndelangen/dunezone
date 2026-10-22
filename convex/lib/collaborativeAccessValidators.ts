@@ -242,14 +242,13 @@ export const rulesetAssetSlotValidator = v.object({
  * the browser combines it and `ruleset.owner_id` with the viewer.
  */
 export const rulesetPublicDetailPageValidator = v.union(
-  rulesetPageValidator.extend({
+  v.object({
+    ruleset: rulesetValidator,
     assignedGroup: v.union(assignedGroupSummaryValidator, v.null()),
     /** The first few factions in the ruleset's own order; the rest are in the catalogue under this ruleset's filter. */
     factionPreview: v.array(catalogueFactionValidator),
     /** Live factions in this ruleset, from the catalogue's list for it. */
     factionCount: v.number(),
-    /** The newest 200 questions, for browsers from before the FAQ had its own page. Unread by this bundle; the next release drops it. */
-    faqItems: v.array(faqQuestionWithAnswersValidator),
     /** The newest few questions; the rest are on the ruleset's FAQ page. */
     faqPreview: v.array(faqListItemValidator),
     faqCounts: v.object({ questions: v.number(), answered: v.number() }),

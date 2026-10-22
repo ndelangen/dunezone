@@ -188,25 +188,4 @@ describe('a ruleset’s faction order', () => {
     const drift = await fixture.t.query(internal.catalogueMaintenance.catalogueDrift, { kind: 'faction', limit: 100 });
     expect(drift).toMatchObject({ missing: [], stale: [], duplicated: [], unordered: [], orphaned: [] });
   });
-
-  test('the backfill places links made before the order existed in the order they were made', async () => {
-    const fixture = await orderFixture(['Atreides', 'Bene Gesserit', 'Choam']);
-    await fixture.t.run(async (ctx) => {
-      for (const link of await ctx.db.query('ruleset_factions').collect()) {
-        await ctx.db.patch('ruleset_factions', link._id, { position: undefined });
-      }
-    });
-    /* Before the backfill runs, unset positions read in the order they were made, and a new link goes after them. */
-    expect(await editOrder(fixture)).toEqual(['Atreides', 'Bene Gesserit', 'Choam']);
-    const { owner, ruleset, factionIds } = fixture;
-    await owner.mutation(api.rulesets.removeFaction, { ruleset_id: ruleset._id, faction_id: factionIds[0] });
-    await owner.mutation(api.rulesets.addFaction, { ruleset_id: ruleset._id, faction_id: factionIds[0] });
-    expect(await editOrder(fixture)).toEqual(['Bene Gesserit', 'Choam', 'Atreides']);
-
-    await fixture.t.mutation(internal.migrations.ruleset_factions_position_v1, {});
-    const links = await fixture.t.run(async (ctx) => await ctx.db.query('ruleset_factions').collect());
-    const backfilled = links.filter((link) => link.faction_id !== factionIds[0]);
-    expect(backfilled.every((link) => link.position === link._creationTime)).toBe(true);
-    expect(await editOrder(fixture)).toEqual(['Bene Gesserit', 'Choam', 'Atreides']);
-  });
 });

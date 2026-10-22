@@ -76,8 +76,8 @@ async function linkFixture({ cards = true }: { cards?: boolean } = {}) {
 }
 
 const linkedSlugs = async (t: Awaited<ReturnType<typeof linkFixture>>['t'], slug: string) => {
-  const page = await t.query(api.rulesets.detailPage, { slug });
-  return (page?.factions ?? []).map((faction) => faction.slug);
+  const page = await t.query(api.rulesets.page, { slug });
+  return page.factions.map((faction) => faction.slug);
 };
 
 describe('ruleset faction links', () => {
@@ -140,9 +140,9 @@ describe('ruleset faction links', () => {
       await ctx.db.patch('faction_cards', card!._id, { data: { ...card!.data, name: 'From the card' } });
     });
 
-    const page = await t.query(api.rulesets.detailPage, { slug: ruleset.slug });
+    const page = await t.query(api.rulesets.page, { slug: ruleset.slug });
 
-    expect(page?.factions.map((faction) => faction.data.name)).toEqual(['From the card']);
+    expect(page.factions.map((faction) => faction.data.name)).toEqual(['From the card']);
   });
 
   test('a soft-deleted card drops its faction from the page', async () => {

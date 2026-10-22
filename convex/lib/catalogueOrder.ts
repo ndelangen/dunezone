@@ -18,7 +18,7 @@ export type CatalogueDirection = 'asc' | 'desc';
 /** Every list a kind is in; `'all'` is the unfiltered one, any other is a facet's (a ruleset's, for factions). */
 export const ALL_PARTITION = 'all';
 
-/** Convex search reads at most this many hits; a search or a filter the aggregate cannot narrow pages over at most this many. */
+/** Convex search reads at most this many hits; a filter the aggregate cannot narrow pages over at most this many. */
 export const CATALOGUE_BOUNDED_READ = 1024;
 
 type Entry = Doc<'catalogue_entries'>;
@@ -161,8 +161,6 @@ export type CataloguePageRequest = {
   /** From 1. */
   page: number;
   pageSize: number;
-  /** Text search; the hits keep Convex's relevance order unless `relevance` is false. */
-  search?: { text: string; relevance: boolean };
   /** An inclusive range of `complexity_score`, 0 to 10. */
   complexity?: [number, number];
 };
@@ -255,57 +253,40 @@ function searchIndexText(text: string) {
   return words.length > SEARCH_TERM_LIMIT ? words.slice(0, SEARCH_TERM_LIMIT).join(' ') : text;
 }
 
-/** At most `CATALOGUE_BOUNDED_READ` candidates, from the search index or else the complexity index. */
+/** At most `CATALOGUE_BOUNDED_READ` candidates in the complexity range, from the complexity index. */
 async function readBounded(ctx: QueryCtx, request: CataloguePageRequest) {
-  const { kind, partition, search } = request;
+  const { kind, partition } = request;
   const [low, high] = request.complexity ?? [0, 10];
-  const query = ctx.db.query('catalogue_entries');
-  return search
-    ? await query
-        .withSearchIndex('search_text', (q) =>
-          q.search('search_text', searchIndexText(search.text)).eq('kind', kind).eq('partition', partition)
-        )
-        .take(CATALOGUE_BOUNDED_READ)
-    : await query
-        .withIndex('by_kind_partition_complexity', (q) =>
-          q.eq('kind', kind).eq('partition', partition).gte('complexity_score', low).lte('complexity_score', high)
-        )
-        .take(CATALOGUE_BOUNDED_READ);
-}
-
-/** The candidates in the complexity range, if one is asked for, that match every word of the search, if there is one. */
-function boundedMatches(read: Entry[], request: CataloguePageRequest) {
-  const range = request.complexity;
-  const inRange = range
-    ? read.filter((entry) => entry.complexity_score >= range[0] && entry.complexity_score <= range[1])
-    : read;
-  return request.search ? inRange.filter(matchesEveryWord(request.search.text)) : inRange;
+  return await ctx.db
+    .query('catalogue_entries')
+    .withIndex('by_kind_partition_complexity', (q) =>
+      q.eq('kind', kind).eq('partition', partition).gte('complexity_score', low).lte('complexity_score', high)
+    )
+    .take(CATALOGUE_BOUNDED_READ);
 }
 
 /** At most `CATALOGUE_BOUNDED_READ` matches, ordered and paged in memory. */
 async function boundedPage(ctx: QueryCtx, request: CataloguePageRequest, offset: number) {
-  const read = await readBounded(ctx, request);
-  const matches = boundedMatches(read, request);
-  if (!request.search?.relevance) {
-    matches.sort(compareBy(request.sort, request.direction));
-  }
+  const matches = await readBounded(ctx, request);
+  matches.sort(compareBy(request.sort, request.direction));
   return {
     entries: matches.slice(offset, offset + request.pageSize),
     total: matches.length,
-    exact: read.length < CATALOGUE_BOUNDED_READ,
+    exact: matches.length < CATALOGUE_BOUNDED_READ,
   };
 }
 
 /**
- * One page of one list, exact at any size whenever the aggregate can count it: no search and no complexity range, or a complexity range on the complexity sort.
- * A search, or a complexity range on another sort, reads at most `CATALOGUE_BOUNDED_READ` matches and pages over them in memory.
+ * One page of one list, exact at any size whenever the aggregate can count it: no complexity range, or a complexity range on the complexity sort.
+ * A complexity range on another sort reads at most `CATALOGUE_BOUNDED_READ` matches and pages over them in memory.
+ * A text search is `selectCatalogueSearch`'s, never a page's.
  */
 export async function selectCataloguePage(
   ctx: QueryCtx,
   request: CataloguePageRequest
 ): Promise<CataloguePageSelection> {
   const offset = (Math.max(1, Math.floor(request.page)) - 1) * request.pageSize;
-  const countable = !request.search && (!request.complexity || request.sort === 'complexity');
+  const countable = !request.complexity || request.sort === 'complexity';
   return countable ? await aggregatePage(ctx, request, offset) : await boundedPage(ctx, request, offset);
 }
 
@@ -426,7 +407,6 @@ function settledMatches(lists: SearchList[]) {
 
 /**
  * The first `limit` matches of a text search in relevance order, and whether there are more: no count, no pages and no other sort, so it reads only as much of the search index as the limit needs.
- * A sorted search stays on `selectCataloguePage`, which must read its whole bound.
  * Several lists split the limit between them and read on only while too few rows are settled;
  * each reads at most its share of `CATALOGUE_BOUNDED_READ`, and `capped` says when that share cut a list short.
  */

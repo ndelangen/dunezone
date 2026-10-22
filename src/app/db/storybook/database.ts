@@ -104,7 +104,7 @@ function baselineDatabase(): StorybookDatabase {
   });
   baseline.rulesets.push({ ...ruleset({ name: 'ClassicRules' }), $key: RULESET_KEY, group_id: ref(GROUP_KEY) });
   baseline.factions.push({ ...faction({ name: 'House Atreides' }), $key: FACTION_KEY, group_id: ref(GROUP_KEY) });
-  baseline.ruleset_factions.push({ ruleset_id: ref(RULESET_KEY), faction_id: ref(FACTION_KEY) });
+  baseline.ruleset_factions.push({ ruleset_id: ref(RULESET_KEY), faction_id: ref(FACTION_KEY), position: 0 });
 
   const treachery = asset({ type: 'card-treachery', data: publishingTreacheryCard });
   const custom = asset({ type: 'card-custom', data: publishingCustomCard });
