@@ -487,9 +487,11 @@ produce them. The prefix tells you whether a failure means "the code is wrong" o
 stale".
 
 **Push a branch once the change is finished, and batch every follow-up into one push.** One PR run
-takes 17 of the account's 20 runner slots and about 80 runner minutes. A newer push cancels the run
-in flight, but by then the run has usually spent most of those minutes, so every push costs about a
-full run. In early October 2026 a merged PR took 3.1 runs on average, and 60% of follow-up pushes
+takes 17 of the account's 20 runner slots and about 80 runner minutes. A newer push cancels older
+runs in its own draft or full profile, but by then the run has usually spent most of those minutes,
+so every push costs about a full run. The profiles have separate concurrency groups so a late draft
+event cannot cancel full verification (#2429). In early October 2026 a merged PR took 3.1 runs on
+average, and 60% of follow-up pushes
 landed while the previous run was still going, one per review bot as each one reported
 ([#1921](https://github.com/ndelangen/dunezone/issues/1921)). So:
 
