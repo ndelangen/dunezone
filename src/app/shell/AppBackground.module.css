@@ -36,6 +36,7 @@
   --planet-diameter: max(140vw, 140vh);
 
   top: calc(100vh - var(--planet-diameter) * 0.2);
+  top: calc(100dvh - var(--planet-diameter) * 0.2);
   left: 50%;
   width: var(--planet-diameter);
   aspect-ratio: 1;
