@@ -31,15 +31,7 @@ export const options = publicQuery({
     const page = await Promise.all(
       rows.page.map(async (choice) => ({
         choice,
-        selected: args.selection
-          ? Boolean(
-              await faqReferencePair(
-                ctx,
-                args.selection.faqQuestionId,
-                choice.kind === 'faction' ? { kind: choice.kind, id: choice.id } : { kind: choice.kind, id: choice.id }
-              )
-            )
-          : null,
+        selected: args.selection ? Boolean(await faqReferencePair(ctx, args.selection.faqQuestionId, choice)) : null,
       }))
     );
     return { ...rows, page };

@@ -811,7 +811,7 @@ function FaqReferencesSection({ faq }: { faq: FaqQuestionCommands }) {
   );
 }
 
-function FaqReferenceAdd({ faq }: { faq: FaqQuestionCommands }) {
+function FaqReferenceAdd({ faq }: { readonly faq: FaqQuestionCommands }) {
   const [opened, setOpened] = useState(false);
   return (
     <Popover

@@ -59,7 +59,7 @@ test('catalogue choices page within a type, search every page, and omit deleted 
   );
 });
 
-test('selection checks links beyond the rendered page and reacts to additions and removals', async () => {
+async function selectionFixture() {
   const t = applicationTest();
   const ids = await t.run(async (rawCtx) => {
     const ctx = applicationTriggers.wrapDB(rawCtx);
@@ -110,6 +110,11 @@ test('selection checks links beyond the rendered page and reacts to additions an
     }
     return { owner, ruleset, question, linked: assets[14]!, candidate: assets[15]! };
   });
+  return { t, ids };
+}
+
+test('selection checks links beyond the rendered page and reacts to additions and removals', async () => {
+  const { t, ids } = await selectionFixture();
   const rendered = await t.run((ctx) => loadFaqReferenceTargets(ctx, ids.question, { numItems: 12, cursor: null }));
   expect(rendered.page).toHaveLength(12);
   expect(rendered.page.map((entry) => entry.reference.target_id)).not.toContain(ids.linked);

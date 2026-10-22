@@ -11,10 +11,10 @@ import styles from './CataloguePicker.module.css';
 import { CataloguePickerOption } from './CataloguePicker.parts';
 
 export interface CataloguePickerProps {
-  selectedIds?: readonly string[];
-  selection?: CatalogueSelection;
-  pending?: boolean;
-  onPick: (target: CatalogueTarget) => void;
+  readonly selectedIds?: readonly string[];
+  readonly selection?: CatalogueSelection;
+  readonly pending?: boolean;
+  readonly onPick: (target: CatalogueTarget) => void;
 }
 
 const GROUPS = [
@@ -33,7 +33,7 @@ export function CataloguePicker(props: CataloguePickerProps) {
       store={combobox}
       onOptionSubmit={(value) => {
         const target = JSON.parse(value) as CatalogueTarget;
-        if (props.pending || (!props.selection && props.selectedIds?.includes(target.id))) {
+        if (props.pending) {
           return;
         }
         props.onPick(target);

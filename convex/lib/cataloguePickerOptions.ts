@@ -3,6 +3,16 @@ import type { PaginationOptions } from 'convex/server';
 import type { QueryCtx } from '../types';
 import { faqReferencePreview } from './faqReferencePreviews';
 import { liveFaqReferenceTarget } from './faqReferenceTarget';
+import type { FaqReferenceTarget } from './faqReferenceTarget';
+
+function catalogueEntryTarget(ctx: QueryCtx, kind: 'faction' | 'asset', sourceId: string): FaqReferenceTarget | null {
+  if (kind === 'faction') {
+    const id = ctx.db.normalizeId('factions', sourceId);
+    return id ? { kind, id } : null;
+  }
+  const id = ctx.db.normalizeId('assets', sourceId);
+  return id ? { kind, id } : null;
+}
 
 /** The legacy FAQ picker and grouped picker share indexed search, paging and live target projection. */
 export async function loadCataloguePickerOptions(
@@ -29,17 +39,11 @@ export async function loadCataloguePickerOptions(
         .paginate(args.paginationOpts);
   const page = await Promise.all(
     rows.page.map(async (entry) => {
-      const target =
-        args.kind === 'faction'
-          ? { kind: 'faction' as const, id: ctx.db.normalizeId('factions', entry.source_id) }
-          : { kind: 'asset' as const, id: ctx.db.normalizeId('assets', entry.source_id) };
-      if (!target.id) {
+      const target = catalogueEntryTarget(ctx, args.kind, entry.source_id);
+      if (!target) {
         return null;
       }
-      const live =
-        target.kind === 'faction'
-          ? await liveFaqReferenceTarget(ctx, { kind: target.kind, id: target.id })
-          : await liveFaqReferenceTarget(ctx, { kind: target.kind, id: target.id });
+      const live = await liveFaqReferenceTarget(ctx, target);
       return live ? await faqReferencePreview(ctx, live) : null;
     })
   );
