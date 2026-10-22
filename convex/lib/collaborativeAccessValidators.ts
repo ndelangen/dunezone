@@ -221,7 +221,10 @@ export const profilePageValidator = v.object({
   faqAsked: v.array(profileFaqQuestionValidator),
   faqAnswers: v.array(profileFaqAnswerValidator),
   faqLists: v.object({ asked: profileFaqListPageValidator, answered: profileFaqListPageValidator }),
+  /** The newest few of the member's factions; the catalogue narrowed to the member holds the rest. */
   factions: v.array(catalogueFactionValidator),
+  /** How many live factions the member has, counted from the catalogue's list for them. */
+  factionCount: v.number(),
   groupSummaries: v.array(assignedGroupSummaryValidator),
 });
 

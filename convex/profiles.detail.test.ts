@@ -10,6 +10,8 @@ import { api } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { applicationTest } from './application.test.fixture';
 import { syncSeededFactionCards } from './factions.test.fixture';
+import { applicationTriggers } from './lib/applicationTriggers';
+import { PROFILE_FACTION_PREVIEW_SIZE } from './lib/profileDetail';
 
 type SeedResult = {
   userId: Id<'users'>;
@@ -27,8 +29,13 @@ type SeedResult = {
 
 const at = (day: number) => `2026-07-${String(day).padStart(2, '0')}T00:00:00.000Z`;
 
-async function seedProfileDetail(t: ReturnType<typeof convexTest>): Promise<SeedResult> {
-  const seeded = await t.run(async (ctx) => {
+/**
+ * Seeds through the application's triggers, as every deployed writer does, so the catalogue lists the factions the way the page reads them.
+ * `extraFactions` more live factions beside the one, newest last, so a page can show its first few and count the rest.
+ */
+async function seedProfileDetail(t: ReturnType<typeof convexTest>, extraFactions = 0): Promise<SeedResult> {
+  const seeded = await t.run(async (rawCtx) => {
+    const ctx = applicationTriggers.wrapDB(rawCtx);
     const userId = await ctx.db.insert('users', { name: 'Central' });
     const askerId = await ctx.db.insert('users', { name: 'Asker' });
     const profilelessAskerId = await ctx.db.insert('users', { name: 'No profile' });
@@ -194,6 +201,17 @@ async function seedProfileDetail(t: ReturnType<typeof convexTest>): Promise<Seed
       ruleset_id: deletedRulesetId,
       faction_id: activeFactionId,
     });
+    for (let index = 1; index <= extraFactions; index += 1) {
+      await ctx.db.insert('factions', {
+        owner_id: userId,
+        data: { ...assetPublishingFaction, name: `Sietch ${index}` },
+        slug: `sietch-${index}`,
+        created_at: at(10 + index),
+        updated_at: at(10 + index),
+        is_deleted: false,
+        group_id: null,
+      });
+    }
 
     const earlyQuestionId = await ctx.db.insert('faq_items', {
       ruleset_id: advancedRulesetId,
@@ -295,6 +313,22 @@ describe('profile detail projection (api.profiles.pageBySlug)', () => {
 
     expect(page.factions.map((faction) => faction._id)).toEqual([seed.activeFactionId]);
     expect(page.factions[0]?.data.name).toBe('Atreides');
+    expect(page.factionCount).toBe(1);
+  });
+
+  test('shows the newest few factions and counts them all, so the page costs the same however many a member has', async () => {
+    const t = applicationTest();
+    await seedProfileDetail(t, PROFILE_FACTION_PREVIEW_SIZE + 2);
+
+    const page = await t.query(api.profiles.pageBySlug, { slug: 'central' });
+
+    expect(page.factionCount).toBe(PROFILE_FACTION_PREVIEW_SIZE + 3);
+    expect(page.factions.map((faction) => faction.data.name)).toEqual(
+      Array.from(
+        { length: PROFILE_FACTION_PREVIEW_SIZE },
+        (_, index) => `Sietch ${PROFILE_FACTION_PREVIEW_SIZE + 2 - index}`
+      )
+    );
   });
 
   test('faction ruleset enrichment keeps only active rulesets in deterministic name order', async () => {
@@ -312,7 +346,8 @@ describe('profile detail projection (api.profiles.pageBySlug)', () => {
 
   test('throws on malformed faction data at the query boundary', async () => {
     const t = applicationTest();
-    await t.run(async (ctx) => {
+    await t.run(async (rawCtx) => {
+      const ctx = applicationTriggers.wrapDB(rawCtx);
       const userId = await ctx.db.insert('users', { name: 'Malformed owner' });
       await ctx.db.insert('profiles', {
         user_id: userId,

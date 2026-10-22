@@ -7,9 +7,9 @@ import { describe, expect, test } from 'vitest';
 import { compareCodeUnits } from '../src/shared/compareText';
 import { FACTION_CATALOGUE_PAGE_SIZE, FACTION_CATALOGUE_SORTS } from '../src/shared/factions/catalogueSearch';
 import { api } from './_generated/api';
-import { seedCatalogue } from './factions.catalogue.test.fixture';
+import { catalogueFactionData, seedCatalogue } from './factions.catalogue.test.fixture';
 import type { SeededFaction } from './factions.catalogue.test.fixture';
-import { factionTest } from './factions.test.fixture';
+import { factionAuthor, factionTest } from './factions.test.fixture';
 import { applicationTriggers } from './lib/applicationTriggers';
 
 type CatalogueArgs = FunctionArgs<typeof api.factions.catalogue>;
@@ -87,6 +87,35 @@ describe('faction catalogue query', () => {
       'advanced',
       'classic',
     ]);
+  });
+
+  test('narrows to one member by their profile slug, in place of a ruleset, browsed or searched', async () => {
+    const { t, page, search, names } = await catalogueWith(
+      [{ name: 'Harkonnen', rulesets: ['classic'] }],
+      [{ slug: 'classic', name: 'Classic' }]
+    );
+    const chani = await factionAuthor(t, 'Chani');
+    for (const name of ['Sietch Tabr', 'Fremen']) {
+      await chani.mutation(api.factions.create, { data: catalogueFactionData({ name }) });
+    }
+
+    expect(await names()).toEqual(['Fremen', 'Harkonnen', 'Sietch Tabr']);
+    expect(await names({ owner: 'chani' })).toEqual(['Fremen', 'Sietch Tabr']);
+    expect(await names({ owner: 'chani', sort: 'created' })).toEqual(['Fremen', 'Sietch Tabr']);
+    /* The member's list wins over a ruleset's, as the address parser keeps only the member. */
+    expect(await names({ owner: 'chani', ruleset: 'classic' })).toEqual(['Fremen', 'Sietch Tabr']);
+    /* A slug no public profile holds narrows nothing, and the answer names nobody, so the route drops it. */
+    expect(await names({ owner: 'nobody' })).toEqual(['Fremen', 'Harkonnen', 'Sietch Tabr']);
+    expect((await page({ owner: 'nobody' })).owner).toBeNull();
+
+    const narrowed = await page({ owner: 'chani' });
+    expect(narrowed).toMatchObject({ total: 2, catalogueTotal: 3, owner: { slug: 'chani', name: 'Chani' } });
+    /* The rulesets keep the whole catalogue's counts: choosing one leaves the member's list. */
+    expect(narrowed.rulesets.map(({ slug, factionCount }) => [slug, factionCount])).toEqual([['classic', 1]]);
+
+    const found = await search({ q: 'sietch', owner: 'chani', limit: FACTION_CATALOGUE_PAGE_SIZE });
+    expect(found.cards.map((card) => card.data.name)).toEqual(['Sietch Tabr']);
+    expect(found.owner).toEqual({ slug: 'chani', name: 'Chani' });
   });
 
   test('searches faction, Faction leader and leader names by every word, the last word as a prefix', async () => {

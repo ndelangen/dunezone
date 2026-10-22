@@ -1295,7 +1295,7 @@ async function loadCataloguePage(ctx: QueryCtx, args: CatalogueArgs, text: strin
       search: text ? { text, relevance: !args.sort } : undefined,
     }),
     /* Without a search the page's own count is the type's, so only a search counts again. */
-    text ? countCataloguePartitions(ctx, 'asset', [args.type]) : Promise.resolve([]),
+    text ? countCataloguePartitions(ctx, 'asset', [args.type], 'name') : Promise.resolve([]),
   ]);
   return {
     entries: await catalogueEntries(ctx, args.type, selection.entries),
@@ -1312,7 +1312,7 @@ async function loadCatalogueSearch(ctx: QueryCtx, args: CatalogueArgs, text: str
   const limit = catalogueSearchLimit(args.limit, ASSET_CATALOGUE_PAGE_SIZE);
   const [selection, [typeTotal = 0]] = await Promise.all([
     selectCatalogueSearch(ctx, { kind: 'asset', partition: args.type, text, limit }),
-    countCataloguePartitions(ctx, 'asset', [args.type]),
+    countCataloguePartitions(ctx, 'asset', [args.type], 'name'),
   ]);
   return {
     mode: 'search' as const,

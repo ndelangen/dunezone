@@ -55,7 +55,8 @@ export async function loadGlobalFaqRulesetOptions(ctx: QueryCtx) {
   const counts = await countCataloguePartitions(
     ctx,
     'faq',
-    rulesets.map((ruleset) => faqRulesetPartition(ruleset._id))
+    rulesets.map((ruleset) => faqRulesetPartition(ruleset._id)),
+    'name'
   );
   return rulesets
     .map((ruleset, index) => ({ id: ruleset._id, name: ruleset.name, slug: ruleset.slug, questions: counts[index]! }))

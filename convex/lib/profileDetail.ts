@@ -4,10 +4,13 @@ import type { ProfileFaqPages } from '../../src/shared/profiles/faqActivity';
 import type { QueryCtx } from '../types';
 import { isPublicProfile } from './accountLifecycle';
 import { liveGroupOrNull } from './collaborativeAccess';
-import { loadFactionCatalogue } from './factionCatalogue';
+import { loadOwnerFactionPreview } from './factionCatalogue';
 import { loadFaqAnswersGivenBy, loadFaqQuestionsAskedBy, loadProfileFaqLists } from './faqProfileActivity';
 
 const PROFILE_DETAIL_LIMIT = 500;
+
+/** Factions the profile shows; "All N factions" opens the catalogue narrowed to the member for the rest. */
+export const PROFILE_FACTION_PREVIEW_SIZE = 6;
 
 /* Renames away from one address that a lookup follows, newest first, as `formerAddresses` does for the other kinds. */
 const FORMER_HOLDERS_READ = 8;
@@ -34,7 +37,9 @@ async function formerProfile(ctx: QueryCtx, slug: string) {
 
 /**
  * Profile-detail read model.
- * Owns the joins, visibility rules (active memberships only, soft-deleted factions excluded, faction rulesets limited to active ones), and ordering (FAQ activity newest first, faction rulesets by name, Groups in membership order) behind `api.profiles.pageBySlug`.
+ * Owns the joins, visibility rules (active memberships only, soft-deleted factions excluded, faction rulesets limited to active ones), and ordering (FAQ activity newest first, factions newest first, faction rulesets by name, Groups in membership order) behind `api.profiles.pageBySlug`.
+ * The factions are the first few of the catalogue's list for the member, with that list's count;
+ * the catalogue narrowed to the member holds the rest.
  * The same for every viewer: the viewer's own sign-in methods are `api.profiles.settings`, never part of a profile page.
  * The runtime wire contract is `profilePageValidator`;
  * the precise TS projection (parsed faction data included) is inferred from this loader.
@@ -75,13 +80,11 @@ export async function loadProfilePageBySlug(ctx: QueryCtx, slug: string, pages: 
     loadFaqAnswersGivenBy(ctx, profile.user_id),
   ]);
 
-  const { factions } = await loadFactionCatalogue(ctx, {
-    ownerId: profile.user_id,
-  });
+  const { factions, factionCount } = await loadOwnerFactionPreview(ctx, profile.user_id, PROFILE_FACTION_PREVIEW_SIZE);
 
   const faqLists = await loadProfileFaqLists(ctx, faqAsked, faqAnswers, pages);
 
-  return { profile, faqAsked, faqAnswers, faqLists, factions, groupSummaries };
+  return { profile, faqAsked, faqAnswers, faqLists, factions, factionCount, groupSummaries };
 }
 
 export type ProfileDetailProjection = Awaited<ReturnType<typeof loadProfilePageBySlug>>;
