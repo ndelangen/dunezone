@@ -69,6 +69,7 @@ import type * as lib_faqCatalogue from "../lib/faqCatalogue.js";
 import type * as lib_faqGlobalSearch from "../lib/faqGlobalSearch.js";
 import type * as lib_faqProfileActivity from "../lib/faqProfileActivity.js";
 import type * as lib_faqQuestionPage from "../lib/faqQuestionPage.js";
+import type * as lib_faqQuestionRelated from "../lib/faqQuestionRelated.js";
 import type * as lib_faqReferencePreviews from "../lib/faqReferencePreviews.js";
 import type * as lib_faqReferenceTarget from "../lib/faqReferenceTarget.js";
 import type * as lib_faqReferences from "../lib/faqReferences.js";
@@ -231,6 +232,7 @@ const fullApi: ApiFromModules<{
   "lib/faqGlobalSearch": typeof lib_faqGlobalSearch;
   "lib/faqProfileActivity": typeof lib_faqProfileActivity;
   "lib/faqQuestionPage": typeof lib_faqQuestionPage;
+  "lib/faqQuestionRelated": typeof lib_faqQuestionRelated;
   "lib/faqReferencePreviews": typeof lib_faqReferencePreviews;
   "lib/faqReferenceTarget": typeof lib_faqReferenceTarget;
   "lib/faqReferences": typeof lib_faqReferences;

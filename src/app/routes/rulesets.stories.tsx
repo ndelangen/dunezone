@@ -329,7 +329,7 @@ export const AskQuestionMissingRuleset = meta.story({
     await expect(back.closest('main')).toBeNull();
   },
 });
-/** The question names itself in the header band, and the asker, who is the viewer here, gets Edit and Delete in the toolbar. */
+/** The question has its own pane under the collapsed header; its asker can edit and delete it. */
 export const Question = meta.story({
   args: { path: '/rulesets/classicrules/faq/when-does-the-storm-move' },
   play: async ({ canvasElement }) => {
@@ -338,15 +338,19 @@ export const Question = meta.story({
       page.findByRole('heading', { name: 'When does the storm move?' }, { timeout: 30_000 })
     ).resolves.toBeVisible();
     const navigation = within(page.getByRole('group', { name: 'Navigation' }));
-    await expect(navigation.getByRole('link', { name: 'Back to ruleset' })).toBeVisible();
+    await expect(navigation.getByRole('link', { name: 'Back to FAQ' })).toBeVisible();
     /* The shared page renders first; editing follows the viewer, which the browser resolves after it. */
     await expect(
-      navigation.findByRole('button', { name: 'Edit question' }, { timeout: 30_000 })
+      within(page.getByRole('group', { name: 'Question actions' })).findByRole(
+        'button',
+        { name: 'Edit question' },
+        { timeout: 30_000 }
+      )
     ).resolves.toBeVisible();
     await expect(
       within(page.getByRole('group', { name: 'Question actions' })).getByRole('button', { name: 'Delete question' })
     ).toBeVisible();
-    await userEvent.click(navigation.getByRole('button', { name: 'Edit question' }));
+    await userEvent.click(page.getByRole('button', { name: 'Edit question' }));
     const question = await page.findByRole('textbox', { name: 'Edit question' });
     await userEvent.clear(question);
     await userEvent.type(question, 'When does the storm move in round two?');

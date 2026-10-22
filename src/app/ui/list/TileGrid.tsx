@@ -7,10 +7,15 @@ import styles from './TileGrid.module.css';
  *
  * A List.
  * Callers hand it the tiles;
- * this owns only the rhythm between them: one track size, one gap, one distribution, shared by every surface that answers "which of these do you want to open" with pictures.
+ * this owns their track size, gap and distribution.
+ * Compact density fits catalogue previews into context rails.
  * The browse page and the container composition grid both wear it, which is what keeps their tiles the same size without a restated number.
  * Callers own the empty case.
  */
-export function TileGrid({ children }: PropsWithChildren) {
-  return <div className={styles.grid}>{children}</div>;
+export function TileGrid({ children, density = 'default' }: PropsWithChildren<{ density?: 'default' | 'compact' }>) {
+  return (
+    <div className={styles.grid} data-density={density}>
+      {children}
+    </div>
+  );
 }

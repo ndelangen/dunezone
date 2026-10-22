@@ -257,6 +257,7 @@ export function useFaqQuestionPage(locator: FaqQuestionLocator, options?: { init
     references,
     referencesStatus: referencesQuery.status,
     loadMoreReferences: () => referencesQuery.loadMore(12),
+    hasAnswered: viewerResolved && viewerId !== null && answered,
     canManageReferences:
       viewerResolved &&
       (resolvedViewerId === publicPage?.question.askedBy ||

@@ -686,6 +686,7 @@ export default defineSchema({
     created_at: v.string(),
     updated_at: v.string(),
     accepted_answer_id: v.union(v.id('faq_answers'), v.null()),
+    accepted_at: v.optional(v.union(v.string(), v.null())),
   })
     .index('by_ruleset_created', ['ruleset_id', 'created_at'])
     .index('by_ruleset_slug', ['ruleset_id', 'slug'])
