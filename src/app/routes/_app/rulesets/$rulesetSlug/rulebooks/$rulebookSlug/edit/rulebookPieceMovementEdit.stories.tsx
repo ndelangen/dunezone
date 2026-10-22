@@ -5,7 +5,6 @@ import { SceneEditorStory } from './rulebookScenes.stories.fixture';
 
 const meta = preview.meta({
   title: 'Blocks/Piece movement/Editing',
-  globals: { colorScheme: 'dark' },
   parameters: { layout: 'fullscreen' },
 });
 export const GroupsAndNotes = meta.story({

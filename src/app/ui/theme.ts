@@ -1,5 +1,5 @@
 import { Checkbox, Radio, Switch, Tabs, createTheme, defaultVariantColorsResolver } from '@mantine/core';
-import type { MantineColorsTuple } from '@mantine/core';
+import type { MantineColorsTuple, MantineColorSchemeManager } from '@mantine/core';
 
 import styles from './theme.module.css';
 
@@ -16,17 +16,26 @@ import styles from './theme.module.css';
  * Mantine's luminance check reads every var() string as dark.
  */
 
+/** The app is dark-only, including when an older Mantine preference remains in storage. */
+export const appColorSchemeManager: MantineColorSchemeManager = {
+  get: () => 'dark',
+  set: () => {},
+  subscribe: () => {},
+  unsubscribe: () => {},
+  clear: () => {},
+};
+
 const slate: MantineColorsTuple = [
-  '#f4f5f8',
-  '#e2e5eb',
-  '#c6c9d4',
-  '#b2bac9',
-  '#9aa2b4',
-  '#8190a7',
-  '#6b7690',
-  '#526582',
-  '#43536e',
-  '#344156',
+  '#f8f4eb',
+  '#e7dfd0',
+  '#d5c8b4',
+  '#c5b399',
+  '#b3a084',
+  '#a08a6c',
+  '#8c7659',
+  '#786247',
+  '#66513a',
+  '#53412e',
 ];
 
 const confirm: MantineColorsTuple = [
@@ -57,19 +66,19 @@ const danger: MantineColorsTuple = [
 
 /*
  * In dark mode Mantine derives text, body, borders, dimmed, and disabled from the `dark` tuple,
- * not from our tokens, so the stock cool-gray ramp is replaced with the Twilight warm-navy ramp.
+ * not from our tokens, so the stock cool-gray ramp is replaced with warm mineral neutrals.
  */
-const twilightNavy: MantineColorsTuple = [
-  '#ece7dc',
-  '#c6c9d4',
-  '#9aa2b4',
-  '#6b7690',
-  '#43536e',
-  '#2b3648',
-  '#1d2635',
-  '#141c2b',
-  '#0f1622',
-  '#0a0f1a',
+const warmDark: MantineColorsTuple = [
+  '#f0e8da',
+  '#d3c8b6',
+  '#b6a38a',
+  '#94816b',
+  '#887252',
+  '#4c4236',
+  '#352e25',
+  '#28231d',
+  '#211d18',
+  '#1c1915',
 ];
 
 const contentFontFamily = '"C_Candara", Candara, sans-serif';
@@ -100,9 +109,9 @@ export const appContentTheme = createTheme({
     slate,
     /* Existing dune-named UI colours resolve to slate too. Game artwork owns its own palette. */
     dune: slate,
-    selected: twilightNavy,
+    selected: warmDark,
     gray: slate,
-    dark: twilightNavy,
+    dark: warmDark,
     confirm,
     red: danger,
   },

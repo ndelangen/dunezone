@@ -47,7 +47,6 @@ export const CardbackComposedHere = meta.story({
 
 export const TintedCardbackComposedHere = meta.story({
   parameters: { layout: 'fullscreen' },
-  globals: { colorScheme: 'dark' },
   args: {
     chapter: 'emblem' as const,
     draft: draftWith({

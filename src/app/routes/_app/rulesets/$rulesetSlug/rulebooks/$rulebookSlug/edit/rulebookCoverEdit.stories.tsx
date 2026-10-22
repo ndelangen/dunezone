@@ -11,7 +11,6 @@ import {
 
 const meta = preview.meta({
   title: 'Page/Cover/Editing',
-  globals: { colorScheme: 'dark' },
   parameters: { layout: 'centered' },
 });
 
