@@ -8,6 +8,7 @@ import { api } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { applicationTest } from './application.test.fixture';
 import { applicationTriggers } from './lib/applicationTriggers';
+import { loadRelatedFaqForQuestion } from './lib/faqQuestionRelated';
 import type { MutationCtx } from './types';
 
 const at = '2026-10-21T00:00:00.000Z';
@@ -279,6 +280,64 @@ describe('FAQ reference public pages', () => {
       ids.questions[1],
       ...newer.slice(-4).reverse(),
     ]);
+  });
+
+  test('many shared targets stay within one recommendation read budget', async () => {
+    const { t, ids } = await fixture();
+    await t.run(async (ctx) => {
+      const asset = (await ctx.db.get('assets', ids.assets[0]!))!;
+      const { _id, _creationTime, ...input } = asset;
+      const targets = [asset._id];
+      for (let index = 1; index < 24; index++) {
+        targets.push(await ctx.db.insert('assets', { ...input, slug: `budget-${index}` }));
+      }
+      const questions = [...ids.questions];
+      for (let index = 0; index < 60; index++) {
+        questions.push(
+          await ctx.db.insert('faq_items', {
+            ruleset_id: ids.ruleset,
+            slug: `budget-${index}`,
+            question: `Budget question ${index}?`,
+            asked_by: ids.user,
+            created_at: at,
+            updated_at: at,
+            accepted_answer_id: null,
+          })
+        );
+      }
+      for (const questionId of questions) {
+        for (const targetId of targets) {
+          await ctx.db.insert('faq_references', {
+            faq_item_id: questionId,
+            kind: 'asset',
+            target_id: targetId,
+            question_created_at: at,
+          });
+        }
+      }
+    });
+    const result = await t.run(async (ctx) => {
+      let indexedReads = 0;
+      const counted = {
+        ...ctx,
+        db: new Proxy(ctx.db, {
+          get(database, property, receiver) {
+            if (property === 'query') {
+              return (...args: Parameters<typeof database.query>) => {
+                indexedReads++;
+                return database.query(...args);
+              };
+            }
+            return Reflect.get(database, property, receiver);
+          },
+        }),
+      };
+      const related = await loadRelatedFaqForQuestion(counted, ids.questions[0]!);
+      return { related, indexedReads };
+    });
+    expect(result.related).toHaveLength(5);
+    /* Includes target discovery and the final FAQ-list projection, beyond the overlap checks themselves. */
+    expect(result.indexedReads).toBeLessThan(320);
   });
 
   test('a question with no references has no recommendations', async () => {

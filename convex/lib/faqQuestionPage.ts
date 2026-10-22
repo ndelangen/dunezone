@@ -11,6 +11,7 @@ import { profileSummary } from './profileSummary';
 
 const QUESTION_PAGE_ANSWER_LIMIT = 200;
 const AUTHOR_GROUP_LIMIT = 8;
+const AUTHOR_MEMBERSHIP_READ_LIMIT = 32;
 
 const authorChipValidator = v.object({
   id: v.id('profiles'),
@@ -72,13 +73,14 @@ async function loadAuthors(ctx: QueryCtx, userIds: Id<'users'>[]) {
       const memberships = await ctx.db
         .query('group_members')
         .withIndex('by_user_status', (q) => q.eq('user_id', userId).eq('status', 'active'))
-        .take(AUTHOR_GROUP_LIMIT + 1);
+        .take(AUTHOR_MEMBERSHIP_READ_LIMIT);
       const groups = await Promise.all(
-        memberships.slice(0, AUTHOR_GROUP_LIMIT).map(async (membership) => {
+        memberships.map(async (membership) => {
           const group = liveGroupOrNull(await ctx.db.get('groups', membership.group_id));
           return group ? { id: group._id, name: group.name, slug: group.slug } : null;
         })
       );
+      const liveGroups = groups.filter((group) => group !== null);
       return [
         userId,
         {
@@ -86,8 +88,8 @@ async function loadAuthors(ctx: QueryCtx, userIds: Id<'users'>[]) {
           slug: profile.slug,
           username: profile.username,
           avatarUrl: profile.avatar_url,
-          groups: groups.filter((group) => group !== null),
-          hasMoreGroups: memberships.length > AUTHOR_GROUP_LIMIT,
+          groups: liveGroups.slice(0, AUTHOR_GROUP_LIMIT),
+          hasMoreGroups: liveGroups.length > AUTHOR_GROUP_LIMIT,
           questionCount: counts[index]!.questionCount,
           answerCount: counts[index]!.answerCount,
         },

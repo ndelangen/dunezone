@@ -479,6 +479,37 @@ function FaqDetailPage() {
   );
 }
 
+function FaqQuestionActions({
+  faq,
+  editing,
+  onEdit,
+  onDelete,
+}: {
+  faq: FaqQuestionCommands;
+  editing: boolean;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const item = faq.page!.question;
+  return (
+    <Group role="group" aria-label="Question actions" gap="xs">
+      {item.capabilities.editQuestion ? (
+        <IconAction
+          label="Edit question"
+          emphasis="standard"
+          intent="neutral"
+          disabled={editing}
+          onClick={onEdit}
+          icon={<Pencil size={16} aria-hidden />}
+        />
+      ) : null}
+      {item.capabilities.deleteQuestion ? (
+        <ConfirmDeleteAction label="Delete question" pending={faq.deleteQuestion.isPending} onConfirm={onDelete} />
+      ) : null}
+    </Group>
+  );
+}
+
 function FaqQuestionPost({
   faq,
   editing,
@@ -504,25 +535,12 @@ function FaqQuestionPost({
         <Card
           title={questionHeading}
           action={
-            <Group role="group" aria-label="Question actions" gap="xs">
-              {item.capabilities.editQuestion ? (
-                <IconAction
-                  label="Edit question"
-                  emphasis="standard"
-                  intent="neutral"
-                  disabled={editing.editingQuestion}
-                  onClick={startEditQuestion}
-                  icon={<Pencil size={16} aria-hidden />}
-                />
-              ) : null}
-              {item.capabilities.deleteQuestion ? (
-                <ConfirmDeleteAction
-                  label="Delete question"
-                  pending={faq.deleteQuestion.isPending}
-                  onConfirm={onDelete}
-                />
-              ) : null}
-            </Group>
+            <FaqQuestionActions
+              faq={faq}
+              editing={editing.editingQuestion}
+              onEdit={startEditQuestion}
+              onDelete={onDelete}
+            />
           }
         >
           <Stack gap="md">

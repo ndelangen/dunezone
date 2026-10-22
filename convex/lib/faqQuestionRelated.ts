@@ -7,6 +7,8 @@ import { projectFaqListItems } from './faqRulesetList';
 const SOURCE_REFERENCE_LIMIT = 24;
 const QUESTIONS_PER_TARGET = 32;
 const CANDIDATE_LIMIT = 64;
+/* Discovery and exact overlap each share a fixed read budget as the source gains references. */
+const REFERENCE_READ_BUDGET = 256;
 const RELATED_LIMIT = 5;
 
 async function loadLiveTargets(ctx: QueryCtx, questionId: Id<'faq_items'>) {
@@ -29,13 +31,17 @@ async function loadLiveTargets(ctx: QueryCtx, questionId: Id<'faq_items'>) {
 type TargetId = Id<'factions'> | Id<'assets'>;
 
 async function loadCandidateShortlist(ctx: QueryCtx, questionId: Id<'faq_items'>, targets: TargetId[]) {
+  const questionsPerTarget = Math.min(
+    QUESTIONS_PER_TARGET,
+    Math.floor(REFERENCE_READ_BUDGET / Math.max(1, targets.length))
+  );
   const ranges = await Promise.all(
     targets.map((targetId) =>
       ctx.db
         .query('faq_references')
         .withIndex('by_target_id_and_question_created_at', (q) => q.eq('target_id', targetId))
         .order('desc')
-        .take(QUESTIONS_PER_TARGET)
+        .take(questionsPerTarget)
     )
   );
   const candidates = new Map<Id<'faq_items'>, { id: Id<'faq_items'>; createdAt: string; targets: Set<string> }>();
@@ -58,7 +64,7 @@ async function loadCandidateShortlist(ctx: QueryCtx, questionId: Id<'faq_items'>
         right.createdAt.localeCompare(left.createdAt) ||
         left.id.localeCompare(right.id)
     )
-    .slice(0, CANDIDATE_LIMIT);
+    .slice(0, Math.min(CANDIDATE_LIMIT, Math.floor(REFERENCE_READ_BUDGET / Math.max(1, targets.length))));
 }
 
 async function rankCandidate(ctx: QueryCtx, questionId: Id<'faq_items'>, targets: TargetId[]) {

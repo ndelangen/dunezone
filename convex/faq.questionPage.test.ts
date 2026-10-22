@@ -295,6 +295,57 @@ describe('FAQ question page projection (api.faq.question)', () => {
     ).toBeNull();
   });
 
+  test('deleted memberships do not displace live groups or claim a live overflow', async () => {
+    const t = applicationTest();
+    const seed = await seedQuestionPage(t);
+    await t.run(async (ctx) => {
+      for (let index = 0; index < 10; index++) {
+        const groupId = await ctx.db.insert('groups', {
+          name: `Deleted ${index}`,
+          slug: `deleted-${index}`,
+          created_by: seed.askerId,
+          created_at: at(1),
+          is_deleted: true,
+        });
+        await ctx.db.insert('group_members', {
+          group_id: groupId,
+          user_id: seed.askerId,
+          status: 'active',
+          requested_at: at(1),
+          approved_at: at(1),
+          approved_by: seed.askerId,
+        });
+      }
+    });
+    const deletedOnly = (await t.query(api.faq.question, locator)).question.author!;
+    expect(deletedOnly.groups).toEqual([]);
+    expect(deletedOnly.hasMoreGroups).toBe(false);
+    await t.run(async (ctx) => {
+      for (let index = 0; index < 9; index++) {
+        const groupId = await ctx.db.insert('groups', {
+          name: `Live ${index}`,
+          slug: `live-${index}`,
+          created_by: seed.askerId,
+          created_at: at(1),
+          is_deleted: false,
+        });
+        await ctx.db.insert('group_members', {
+          group_id: groupId,
+          user_id: seed.askerId,
+          status: 'active',
+          requested_at: at(1),
+          approved_at: at(1),
+          approved_by: seed.askerId,
+        });
+      }
+    });
+    const withLive = (await t.query(api.faq.question, locator)).question.author!;
+    expect(withLive.groups.map((group) => group.slug)).toEqual(
+      Array.from({ length: 8 }, (_, index) => `live-${index}`)
+    );
+    expect(withLive.hasMoreGroups).toBe(true);
+  });
+
   test('unknown locators throw', async () => {
     const t = applicationTest();
     await seedQuestionPage(t);
