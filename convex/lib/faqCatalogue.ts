@@ -98,12 +98,10 @@ function rulesetFaqListPartition(rulesetId: Id<'rulesets'>, tag: FaqTag | undefi
 
 /**
  * One page of a ruleset's FAQ, newest first, with the counts the pager draws.
- * A searched `q` without a limit is an old bundle's paged search, best match first;
- * it is kept one release for the bundle deployed before this and dropped in the contract release.
+ * A search is `loadRulesetFaqSearch`'s, so a page ignores `q`.
  * A page past the end answers with no rows and the real page count, so the reader can be told where the questions end.
  */
 export async function loadRulesetFaqPage(ctx: QueryCtx, rulesetId: Id<'rulesets'>, query: RulesetFaqQuery) {
-  const text = rulesetFaqSearchText(query.q);
   const page = Number.isSafeInteger(query.page) && query.page! > 1 ? query.page! : 1;
   const selection = await selectCataloguePage(ctx, {
     kind: 'faq',
@@ -112,7 +110,6 @@ export async function loadRulesetFaqPage(ctx: QueryCtx, rulesetId: Id<'rulesets'
     direction: 'desc',
     page,
     pageSize: FAQ_CATALOGUE_PAGE_SIZE,
-    search: text ? { text, relevance: true } : undefined,
   });
   return {
     items: await projectFaqListItems(ctx, await faqItemsOfEntries(ctx, selection.entries)),

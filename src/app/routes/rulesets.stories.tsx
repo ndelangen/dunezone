@@ -237,7 +237,11 @@ function seedLinkedFactions(baseline: StorybookDatabase, names: string[]) {
   for (const name of names) {
     const key = `faction:${name.toLowerCase().replace(/\s+/g, '-')}`;
     baseline.factions.push({ ...faction({ name }), $key: key });
-    baseline.ruleset_factions.push({ ruleset_id: ref('ruleset:classicrules'), faction_id: ref(key) });
+    baseline.ruleset_factions.push({
+      ruleset_id: ref('ruleset:classicrules'),
+      faction_id: ref(key),
+      position: baseline.ruleset_factions.length,
+    });
   }
 }
 /** The ruleset's page shows its first three factions in its own order and links to the rest in the catalogue. */

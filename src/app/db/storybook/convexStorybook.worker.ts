@@ -321,7 +321,7 @@ async function runExplicitFrameBaseline() {
 }
 
 async function runConvexHelperGate() {
-  const reference = makeFunctionReference<'query'>('rulesets:list');
+  const reference = makeFunctionReference<'query'>('rulesets:catalogue');
   try {
     const helperWorld = await createWorld([]);
     const handle = await helperWorld.test.run(async () => {

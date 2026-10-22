@@ -1429,7 +1429,8 @@ export const catalogue_entries_faq_verify_v1 = migrations.define({
 export const ruleset_factions_position_v1 = migrations.define({
   table: 'ruleset_factions',
   migrateOne: async (ctx, link) => {
-    if (link.position === undefined) {
+    /* Every link carries a position once the schema requires it, so this only matters to a manifest replay; the cast reads past the narrowed type. */
+    if ((link as Partial<typeof link>).position === undefined) {
       await ctx.db.patch('ruleset_factions', link._id, { position: link._creationTime });
     }
   },

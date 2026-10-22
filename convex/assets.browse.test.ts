@@ -60,7 +60,7 @@ async function createTokens(t: ReturnType<typeof applicationTest>, ownerId: stri
 
 const names = (page: { entries: { name: string }[] }) => page.entries.map((entry) => entry.name);
 
-/** The searched shape, which a search with a limit answers with. */
+/** The searched shape, which every search answers with. */
 function searched(answer: FunctionReturnType<typeof api.assets.catalogue>) {
   if (!('mode' in answer)) {
     throw new Error('Expected a search, got a browsed page.');
@@ -127,10 +127,11 @@ describe('the asset type catalogue', () => {
     await createTokens(t, chani, ['Shield Snooper', 'Shield']);
     await createTokens(t, stilgar, ['Lasgun']);
 
-    const search = (q: string) => t.query(api.assets.catalogue, { type: 'token-disc', q, sort: 'name' });
+    const search = async (q: string) =>
+      searched(await t.query(api.assets.catalogue, { type: 'token-disc', q, limit: ASSET_CATALOGUE_PAGE_SIZE }));
     expect(names(await search('shield snoop'))).toEqual(['Shield Snooper']);
     expect(names(await search('stil'))).toEqual(['Lasgun']);
-    expect(await search('fremen')).toMatchObject({ entries: [], total: 0, typeTotal: 3 });
+    expect(await search('fremen')).toMatchObject({ entries: [], hasMore: false, typeTotal: 3 });
 
     await t.withIdentity({ subject: stilgar }).mutation(api.profiles.updateCurrent, {
       username: 'NaibOfTabr',
@@ -147,11 +148,11 @@ describe('the asset type catalogue', () => {
     const words = Array.from({ length: 18 }, (_, index) => `w${index}`);
     await createTokens(t, ownerId, [words.join(' '), 'Shield']);
 
-    const found = await t.query(api.assets.catalogue, { type: 'token-disc', q: words.join(' ') });
+    const found = await t.query(api.assets.catalogue, { type: 'token-disc', q: words.join(' '), limit: 24 });
     expect(names(found)).toEqual([words.join(' ')]);
-    expect(await t.query(api.assets.catalogue, { type: 'token-disc', q: `${words.join(' ')} missing` })).toMatchObject({
-      total: 0,
-    });
+    expect(
+      await t.query(api.assets.catalogue, { type: 'token-disc', q: `${words.join(' ')} missing`, limit: 24 })
+    ).toMatchObject({ entries: [], hasMore: false });
   });
 
   test('a search with a limit loads more by asking for a larger one, best matches first and only ever appending', async () => {
@@ -191,12 +192,6 @@ describe('the asset type catalogue', () => {
     expect(names(searched(await t.query(api.assets.catalogue, { type: 'token-disc', q: 'stil', limit: 24 })))).toEqual([
       'Lasgun',
     ]);
-
-    /* An old bundle's search, with a page and no limit, still gets the paged shape it reads. */
-    const old = await t.query(api.assets.catalogue, { type: 'token-disc', q: 'shield', page: 2, sort: 'name' });
-    expect(old).toMatchObject({ page: 2, pageCount: 2, total: count, typeTotal: count + 1, complete: true });
-    expect(old).not.toHaveProperty('mode');
-    expect(names(old)).toEqual(['Shield 8', 'Shield 9']);
   });
 
   test('drops a deleted asset from its list and its count', async () => {
