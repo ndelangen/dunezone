@@ -145,9 +145,7 @@ test(
   async () => {
     const { t, originals, gf9, copies } = await setup((amount) => (amount === 12 ? 11 : amount));
     const { cards, skipped } = await t.mutation(internal.spiceDeckMerge.mergeDuplicateSpiceCards, { dryRun: false });
-    expect(skipped).toEqual([
-      { original: 'cielago-south', copy: 'cielago-south-1', reason: 'name or amount differs' },
-    ]);
+    expect(skipped).toEqual([{ original: 'cielago-south', copy: 'cielago-south-1', reason: 'name or amount differs' }]);
     expect(cards).toHaveLength(14);
     const held = await members(t, gf9);
     expect(held).toContainEqual([copies[2], 1]);
