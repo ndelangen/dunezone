@@ -31,6 +31,21 @@ function useSpawnableRows(q: string, limit: number) {
 }
 
 /**
+ * Highlights the first row of each search as it lists, so Enter after typing picks the best match without an arrow key first;
+ * Load more grows the same search and leaves the highlight where the reader moved it.
+ * `listed` is the search whose first rows are on screen, or null while they are on their way.
+ * The method is taken off the store because the store is a fresh object every render, and an effect keyed on it would re-highlight the first row on every render.
+ */
+function useHighlightFirstRow(combobox: ReturnType<typeof useCombobox>, listed: string | null) {
+  const { selectFirstOption } = combobox;
+  useEffect(() => {
+    if (listed !== null) {
+      selectFirstOption();
+    }
+  }, [selectFirstOption, listed]);
+}
+
+/**
  * A Picker: the decks, bundles and tokens a seated player may ask the table to spawn, searched on the server and grown with Load more.
  * It is mounted only while the Shared inventory's catalogue is open, so it subscribes the moment it mounts, and the subscription ends with the pane (see the Pickers section in AGENTS.md).
  * With nothing typed it lists the newest assets, which is the order the asset catalogue opens in and the one most likely to hold what was just published for this game;
@@ -58,19 +73,7 @@ export function SpawnAssetPicker({ value, disabled = false, onPick }: SpawnAsset
     rows: (page) => page.entries.length,
   });
   const pending = live === undefined && growing.limit === growing.step;
-  /*
-   * The search whose first rows are on screen, or null while they are on their way.
-   * Its first row is highlighted as it lists, so Enter after typing picks the best match without an arrow key first;
-   * Load more grows the same search and leaves the highlight where the reader moved it.
-   * The method is taken off the store because the store is a fresh object every render, and an effect keyed on it would re-highlight the first row on every render.
-   */
-  const listed = pending ? null : growing.key;
-  const { selectFirstOption } = combobox;
-  useEffect(() => {
-    if (listed !== null) {
-      selectFirstOption();
-    }
-  }, [selectFirstOption, listed]);
+  useHighlightFirstRow(combobox, pending ? null : growing.key);
   return (
     <Stack gap="sm">
       <Combobox
