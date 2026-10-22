@@ -153,6 +153,11 @@ export const mergeDuplicateSpiceCards = internalMutation({
     for (const { original, copy, memberships } of pairs) {
       const data = { ...copy.data, name: original.data.name };
       const group = original.group_id ?? copy.group_id;
+      /* The decks that hold the original before the merge; `decks` lists what the merge adds to them. */
+      const heldBy = await ctx.db
+        .query('asset_relations')
+        .withIndex('by_to_kind', (q) => q.eq('to_asset_id', original._id).eq('kind', DECK_CARD))
+        .collect();
       if (!dryRun) {
         /* A retired original comes back: the Dreamrules deck still lists it, so the deck shows the card again. */
         await ctx.db.patch(original._id, { data, group_id: group, is_deleted: false, updated_at: nowIso() });
@@ -169,10 +174,6 @@ export const mergeDuplicateSpiceCards = internalMutation({
         }
         await ctx.db.patch(copy._id, { is_deleted: true, updated_at: nowIso() });
       }
-      const heldBy = await ctx.db
-        .query('asset_relations')
-        .withIndex('by_to_kind', (q) => q.eq('to_asset_id', original._id).eq('kind', DECK_CARD))
-        .collect();
       report.push({
         original: original._id,
         revived: original.is_deleted,
