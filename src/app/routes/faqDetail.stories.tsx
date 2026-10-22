@@ -158,13 +158,14 @@ async function openReferencePicker({ canvasElement }: { canvasElement: HTMLEleme
   }
   await userEvent.click(await page.findByRole('button', { name: 'Add references' }, { timeout: 30_000 }));
   const picker = await page.findByRole('dialog', { name: 'Add references' });
-  await waitFor(
-    () => expect(within(picker).getByRole('option', { name: 'House Atreides, already selected' })).toBeVisible(),
-    { timeout: 30_000 }
-  );
-  await waitFor(() => expect(within(picker).getByRole('option', { name: 'Lasgun' })).toBeVisible(), {
-    timeout: 30_000,
-  });
+  await waitFor(() => expect(picker).toBeVisible());
+  await expect(within(picker).getByRole('combobox', { name: 'Reference type' })).toHaveValue('card-treachery');
+  await expect(within(picker).getByRole('searchbox', { name: 'Search treachery cards' })).toBeVisible();
+  await expect(within(picker).findByRole('option', { name: 'Lasgun' }, { timeout: 30_000 })).resolves.toBeVisible();
+  await expectPickerBounds(canvasElement, picker);
+}
+
+async function expectPickerBounds(canvasElement: HTMLElement, picker: HTMLElement) {
   await waitFor(() => expectWithinWidth(canvasElement, [picker]));
   await waitFor(async () => {
     const box = picker.getBoundingClientRect();
@@ -173,10 +174,26 @@ async function openReferencePicker({ canvasElement }: { canvasElement: HTMLEleme
   });
 }
 
+async function openTreacheryPicker(context: { canvasElement: HTMLElement }) {
+  await openReferencePicker(context);
+  const picker = within(context.canvasElement.ownerDocument.body).getByRole('dialog', { name: 'Add references' });
+  await expect(within(picker).findByRole('option', { name: 'Lasgun' }, { timeout: 30_000 })).resolves.toBeVisible();
+  await expectPickerBounds(context.canvasElement, picker);
+}
+
 export const ReferencePicker = meta.story({ play: openReferencePicker });
 export const ReferencePickerPhone = meta.story({
   globals: { viewport: { value: 'appMobileNarrow' } },
   play: openReferencePicker,
+});
+export const ReferencePickerShortCanvas = meta.story({
+  globals: { viewport: { value: 'appShortCanvas' } },
+  play: openTreacheryPicker,
+});
+export const ReferencePickerResults = meta.story({ play: openTreacheryPicker });
+export const ReferencePickerResultsPhone = meta.story({
+  globals: { viewport: { value: 'appMobileNarrow' } },
+  play: openTreacheryPicker,
 });
 
 export const PickReferences = meta.story({
@@ -184,7 +201,7 @@ export const PickReferences = meta.story({
     await openReferencePicker(context);
     const page = within(context.canvasElement.ownerDocument.body);
     const picker = within(page.getByRole('dialog', { name: 'Add references' }));
-    const search = picker.getByRole('searchbox', { name: 'Search the catalogue' });
+    const search = await picker.findByRole('searchbox', { name: 'Search treachery cards' });
     await expect(search).toHaveFocus();
     await userEvent.type(search, 'Lasgun');
     await waitFor(() => expect(picker.getByRole('option', { name: 'Lasgun' })).toBeVisible());
@@ -195,7 +212,22 @@ export const PickReferences = meta.story({
     );
     await userEvent.clear(search);
     await userEvent.type(search, 'unfindablexyz');
-    await waitFor(() => expect(picker.getByText('No matching factions or assets.')).toBeVisible());
+    await waitFor(() => expect(picker.getByText('No matching treachery cards.')).toBeVisible());
+    await userEvent.clear(search);
+    await userEvent.selectOptions(picker.getByRole('combobox', { name: 'Reference type' }), 'faction');
+    await expect(picker.findByRole('option', { name: 'House Atreides, already selected' })).resolves.toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    await expect(picker.queryByRole('option', { name: 'Lasgun, already selected' })).toBeNull();
+    await expect(picker.getByRole('searchbox', { name: 'Search factions' })).toHaveValue('');
+    await userEvent.selectOptions(picker.getByRole('combobox', { name: 'Reference type' }), 'card-treachery');
+    await userEvent.clear(picker.getByRole('searchbox', { name: 'Search treachery cards' }));
+    await expect(picker.findByRole('option', { name: 'Lasgun, already selected' })).resolves.toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    await expect(picker.getByRole('searchbox', { name: 'Search treachery cards' })).toHaveValue('');
     await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(page.queryByRole('dialog', { name: 'Add references' })).toBeNull());
     await waitFor(() => expect(page.getByRole('button', { name: 'Add references' })).toHaveFocus());
@@ -223,14 +255,16 @@ export const ReferenceSelectionBeyondPage = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(await page.findByRole('button', { name: 'Add references' }, { timeout: 30_000 }));
     const picker = within(await page.findByRole('dialog', { name: 'Add references' }));
-    const search = await picker.findByRole('searchbox', { name: 'Search the catalogue' });
+    await userEvent.selectOptions(picker.getByRole('combobox', { name: 'Reference type' }), 'board');
+    const search = await picker.findByRole('searchbox', { name: 'Search boards' });
     await expect(page.queryByRole('button', { name: 'Remove reference to Arrakis Official' })).toBeNull();
     await userEvent.type(search, 'Arrakis');
     await expect(
       picker.findByRole('option', { name: 'Arrakis Official, already selected' }, { timeout: 30_000 })
     ).resolves.toHaveAttribute('aria-disabled', 'true');
-    await userEvent.clear(search);
-    await userEvent.type(search, 'Lasgun');
+    await userEvent.selectOptions(picker.getByRole('combobox', { name: 'Reference type' }), 'card-treachery');
+    await userEvent.clear(picker.getByRole('searchbox', { name: 'Search treachery cards' }));
+    await userEvent.type(await picker.findByRole('searchbox', { name: 'Search treachery cards' }), 'Lasgun');
     await userEvent.click(await picker.findByRole('option', { name: 'Lasgun' }));
     await expect(picker.findByRole('option', { name: 'Lasgun, already selected' })).resolves.toHaveAttribute(
       'aria-disabled',

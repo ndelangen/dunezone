@@ -427,7 +427,8 @@ export const QuestionReferences = meta.story({
     await userEvent.clear(question);
     await userEvent.type(question, 'An unsaved question draft?');
     await userEvent.click(await page.findByRole('button', { name: 'Add references' }));
-    await userEvent.type(await page.findByRole('searchbox', { name: 'Search the catalogue' }), 'Atreides');
+    await userEvent.selectOptions(await page.findByRole('combobox', { name: 'Reference type' }), 'faction');
+    await userEvent.type(await page.findByRole('searchbox', { name: 'Search factions' }), 'Atreides');
     await userEvent.click(await page.findByRole('option', { name: 'House Atreides' }, { timeout: 30_000 }));
     await userEvent.click(page.getByRole('button', { name: 'Close reference picker' }));
     const remove = await page.findByRole('button', { name: 'Remove reference to House Atreides' }, { timeout: 30_000 });

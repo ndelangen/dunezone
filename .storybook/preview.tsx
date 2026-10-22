@@ -253,6 +253,13 @@ export default definePreview({
             height: '800px',
           },
         },
+        appShortCanvas: {
+          name: 'App short canvas',
+          styles: {
+            width: '360px',
+            height: '298px',
+          },
+        },
         appTablet: {
           name: 'App tablet',
           styles: {
