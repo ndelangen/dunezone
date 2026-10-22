@@ -1425,14 +1425,15 @@ export const catalogue_entries_faq_verify_v1 = migrations.define({
   },
 });
 
-/**
- * Gave every ruleset link made before the order existed its creation time as its place.
- * Production has run it, and the schema now requires a position, so its body is a no-op.
- * Its id stays so the narrow guard can require it and every snapshot load can replay it.
- */
+/** Gives every existing ruleset link a place in its ruleset's order: its creation time, which keeps the order links were made in and sorts before any later append. Rerunning it writes nothing. */
 export const ruleset_factions_position_v1 = migrations.define({
   table: 'ruleset_factions',
-  migrateOne: async () => undefined,
+  migrateOne: async (ctx, link) => {
+    /* The schema now requires a position, but a deployment that has not run this backfill can still hold a link without one. */
+    if ((link as Partial<typeof link>).position === undefined) {
+      await ctx.db.patch('ruleset_factions', link._id, { position: link._creationTime });
+    }
+  },
 });
 
 /** Existing boards gain the listing fields new asset writes already carry; rerunning it writes nothing. */
