@@ -1,0 +1,77 @@
+.container {
+  container: faq-controls / inline-size;
+  min-width: 0;
+  padding-bottom: calc(var(--space-xl) * 4);
+}
+.discussion {
+  display: grid;
+  grid-template-areas: "question" "aside" "answers";
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-xl);
+  align-items: start;
+}
+.discussion > *,
+.post > * {
+  min-width: 0;
+}
+.question {
+  grid-area: question;
+}
+.aside {
+  grid-area: aside;
+}
+.answers {
+  grid-area: answers;
+}
+.post {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-md);
+  align-items: start;
+}
+.answerList {
+  display: grid;
+  gap: var(--space-md);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.author {
+  min-width: 0;
+}
+.prose {
+  overflow-wrap: anywhere;
+  line-height: 1.75;
+}
+.switcher {
+  position: fixed;
+  bottom: var(--space-md);
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(34rem, calc(100% - var(--space-md) * 2));
+  z-index: 100;
+}
+.switcherLabel {
+  flex: 1;
+  min-width: 0;
+}
+@container faq-controls (width >= 48rem) {
+  .discussion {
+    grid-template-columns: minmax(0, 1fr) minmax(14rem, 18rem);
+    grid-template-areas: "question aside" "answers aside";
+  }
+  .post {
+    grid-template-columns: 8rem minmax(0, 1fr);
+  }
+  .author {
+    padding-block: var(--space-md);
+  }
+}
+@container faq-controls (width >= 62rem) {
+  .discussion {
+    grid-template-columns: minmax(0, 1fr) 15rem;
+  }
+  .post {
+    grid-template-columns: 10rem minmax(0, 1fr);
+  }
+}
