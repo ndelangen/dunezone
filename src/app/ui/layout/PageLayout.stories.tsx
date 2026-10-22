@@ -2,6 +2,7 @@ import preview from '@sb/preview';
 import type { CSSProperties, ReactNode } from 'react';
 import { expect, waitFor, within } from 'storybook/test';
 
+import { PageTitle } from '../block/PageTitle';
 import { LayoutSlotPlaceholder } from './LayoutSlotPlaceholder.stories.fixture';
 import { PageLayout } from './PageLayout';
 
@@ -159,4 +160,21 @@ export const Mobile = meta.story({
     </PageLayout>
   ),
   globals: { viewport: { value: 'appMobile' } },
+});
+
+export const CollapsedHeader = meta.story({
+  render: () => (
+    <PageLayout>
+      <PageLayout.Header size="collapsed">
+        <PageTitle title="Discussion" />
+      </PageLayout.Header>
+      <PageLayout.Content>{contentSlot}</PageLayout.Content>
+    </PageLayout>
+  ),
+  play: async ({ canvasElement }) => {
+    const title = within(canvasElement).getByRole('heading', { name: 'Discussion', level: 1 });
+    const header = title.closest('header')!;
+    await expect(header.getBoundingClientRect().height).toBe(1);
+    await expect(canvasElement.querySelector('[data-page-layout-compact="true"]')).not.toBeNull();
+  },
 });
