@@ -129,9 +129,9 @@ const rulesetCitationValidator = v.object({ id: v.id('rulesets'), name: v.string
 const rulesetFaqBrowseValidator = v.object({
   ruleset: rulesetCitationValidator,
   items: v.array(faqListItemValidator),
-  /** Questions matching the search and tag, across every page. */
+  /** Questions carrying the tag, or all of them, across every page. */
   total: v.number(),
-  /** False when a search matched more questions than one query reads, so `total` is a floor. */
+  /** Always true now that a search is never paged; kept so the browse shape stays the one the page reads. */
   complete: v.boolean(),
   /** The page these rows are, which may lie past `pageCount`, with no rows. */
   page: v.number(),
@@ -153,8 +153,7 @@ const rulesetFaqSearchValidator = v.object({
 });
 
 /**
- * A ruleset's FAQ, one cached answer for every viewer: newest first in pages while browsing, and the best matches of a search with a `limit`, which loads more.
- * A searched `q` without `limit` is an old bundle's paged search, kept one release for the bundle deployed before this and dropped in the contract release.
+ * A ruleset's FAQ, one cached answer for every viewer: newest first in pages while browsing, and the best matches of a search up to `limit`, which loads more.
  * Null for an unknown ruleset.
  */
 export const rulesetFaq = publicQuery({
@@ -175,7 +174,7 @@ export const rulesetFaq = publicQuery({
     const citation = { id: ruleset._id, name: ruleset.name, slug: ruleset.slug };
     /* Gated on the text the search runs, so a query that is blank once cut to length browses instead. */
     const list =
-      rulesetFaqSearchText(args.q) && args.limit !== undefined
+      rulesetFaqSearchText(args.q)
         ? await loadRulesetFaqSearch(ctx, ruleset._id, args)
         : await loadRulesetFaqPage(ctx, ruleset._id, args);
     return { ruleset: citation, ...list };
