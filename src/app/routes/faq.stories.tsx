@@ -278,3 +278,24 @@ export const MissingRuleset = meta.story({
     await expect(main.getAllByRole('link', { name: 'Dreamrules' })[0]).toBeVisible();
   },
 });
+
+/** Wrapped replies keep the normal list gap before acceptance. */
+export const ExplainerSpacing = meta.story({
+  args: { path: '/faq' },
+  globals: { motion: 'on', viewport: { value: 'appAuthoringTablet' } },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('button', { name: 'Pause animation' }, { timeout: 30_000 }));
+    const list = page.getByRole('list', { name: 'Example answers' });
+    for (const animation of list.parentElement!.getAnimations({ subtree: true })) {
+      const timing = animation.effect!.getTiming();
+      animation.currentTime = (timing.delay ?? 0) + Number(timing.duration) * 1.7;
+    }
+    const first = page.getByRole('article', { name: "Stilgar's example answer" }).getBoundingClientRect();
+    const second = page.getByRole('article', { name: "Liet's example answer" }).getBoundingClientRect();
+    const third = page.getByRole('article', { name: "Jessica's example answer" }).getBoundingClientRect();
+    const gap = Number.parseFloat(getComputedStyle(list).rowGap);
+    await expect(second.top - first.bottom).toBeCloseTo(gap, 0);
+    await expect(third.top - second.bottom).toBeCloseTo(gap, 0);
+  },
+});

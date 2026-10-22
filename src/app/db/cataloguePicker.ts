@@ -18,7 +18,7 @@ export type CatalogueTarget =
   | Pick<Extract<CatalogueChoice, { kind: 'faction' }>, 'kind' | 'id'>
   | Pick<Extract<CatalogueChoice, { kind: 'asset' }>, 'kind' | 'id'>;
 
-/** Mounted only inside the open picker; closing tears down every options subscription. */
+/** Only the chosen type mounts this read; leaving its results tears down the subscription. */
 export function useCataloguePickerGroup(group: string, q: string, selection: CatalogueSelection) {
   const query = usePaginatedQuery(api.cataloguePicker.options, { group, q, selection }, { initialNumItems: 3 });
   const results: CatalogueChoice[] = query.results.map(({ choice, selected }) => ({

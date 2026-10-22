@@ -1,229 +1,166 @@
-/*
- * One loop tells the whole story, so every keyframe below is a share of the same cycle:
- * the question types from 6% to 32%, the replies arrive at 38%, 48% and 58%, the pointer travels from 66% and clicks at 79%, and the badge settles by 86%.
- * The resting styles are the end of the story, so dropping the animations leaves the complete picture.
- * Every cycle-long animation starts at 86%, where the story has just settled: the server renders the end of the story, and hydration then holds that picture a moment before the loop comes round, instead of cutting to a blank question.
- */
 .walkthrough {
-  position: relative;
-  max-width: 38rem;
-  margin-inline: auto;
+  container: faq-example / inline-size;
+  display: grid;
+  gap: var(--space-md);
+  min-width: 0;
 }
 
+/* One clock keeps typing, entrances, the click, and reordering in step, including when paused. */
 .stage {
   --faq-cycle: 14s;
-  --faq-start: calc(var(--faq-cycle) * -0.86);
-  container-type: inline-size;
-  display: flex;
-  flex-direction: column;
+  --faq-start: 0s;
+  overflow: clip;
+  display: grid;
   gap: var(--space-md);
+  min-width: 0;
   animation: loop var(--faq-cycle) linear infinite;
   animation-delay: var(--faq-start);
 }
 
-/* With the pause control in the corner, the question's line stops short of it rather than running under it. */
-.walkthrough[data-playback] .question {
-  padding-inline-end: 2.5rem;
+.answers {
+  position: relative;
+  display: grid;
+  gap: var(--space-md);
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
 
-.voice {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-xs);
+.question,
+.answer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-md);
+  align-items: start;
   min-width: 0;
 }
 
-.initial {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.6rem;
-  height: 1.6rem;
-  border-radius: 50%;
-  font-size: var(--mantine-font-size-xs);
-  font-weight: 700;
-  flex-shrink: 0;
-}
-
-.initial[data-tone="asker"] {
-  background: var(--color-brand);
-  color: var(--color-paper);
-}
-
-.initial[data-tone="answerer"] {
-  background: var(--action-neutral-bg);
-  color: var(--action-neutral-fg);
+.question > *,
+.answer > * {
+  min-width: 0;
 }
 
 .question {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-}
-
-.question .voice {
   animation: reveal var(--faq-cycle) linear infinite;
   animation-delay: var(--faq-start);
 }
 
-.asked {
-  margin: 0;
-  font-size: 1.1rem;
-  font-weight: 700;
-  line-height: 1.35;
-  color: var(--color-text);
+.answer {
+  --faq-after-y: 0px;
+  position: relative;
+  animation: arrive-first var(--faq-cycle) cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  animation-delay: var(--faq-start);
 }
 
-/* Typed one step at a time: the box widens over the words, and the caret blinks beside the last one while it does. A question too long for the line is cut at the edge while it types, and set free to wrap once the loop is off. */
-.typed {
-  display: inline-block;
+.answer[data-accepted] {
+  z-index: 1;
+}
+
+.answer[data-arrival="second"] {
+  animation-name: arrive-second;
+}
+
+.answer[data-arrival="third"] {
+  animation-name: arrive-third;
+}
+
+.identity {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  overflow-wrap: anywhere;
+}
+
+.title {
+  position: relative;
+  width: fit-content;
   max-width: 100%;
-  overflow: hidden;
-  white-space: nowrap;
-  vertical-align: bottom;
+}
+
+.typed {
   animation: typing var(--faq-cycle) steps(36, end) infinite;
   animation-delay: var(--faq-start);
 }
 
-.typed::after {
-  content: "";
-  display: inline-block;
+.caret {
+  position: absolute;
+  top: 0;
+  left: 100%;
   width: 2px;
-  height: 1em;
-  margin-left: 2px;
+  height: 1.2em;
   background: currentcolor;
-  vertical-align: text-bottom;
   visibility: hidden;
   animation:
-    caret var(--faq-cycle) steps(1, end) infinite,
+    caret var(--faq-cycle) steps(36, end) infinite,
     blink 0.7s steps(1, end) infinite;
   animation-delay: var(--faq-start), 0s;
 }
 
-.answers {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-  margin: 0;
-  padding: 0;
-  list-style: none;
+.status {
+  display: grid;
+  align-items: center;
 }
 
-/* A reply sits a step in from the question, with room at its end for the mark the asker clicks. */
-.answer {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-  margin-inline-start: var(--space-lg);
-  padding: var(--space-sm) var(--space-sm);
-  padding-inline-end: calc(var(--space-sm) + 2.4rem);
-  border: 1px solid var(--input-border);
-  border-inline-start-width: 3px;
-  border-radius: var(--radius-md);
-  background: var(--input-bg);
+.status > * {
+  grid-area: 1 / 1;
 }
 
-.answer:where(:nth-child(1)) {
-  animation: arrive-first var(--faq-cycle) linear infinite;
+.open {
+  visibility: hidden;
+  animation: open var(--faq-cycle) steps(1, end) infinite;
   animation-delay: var(--faq-start);
-}
-
-.answer:where(:nth-child(2)) {
-  animation: arrive-second var(--faq-cycle) linear infinite;
-  animation-delay: var(--faq-start);
-}
-
-.answer:where(:nth-child(n + 3)) {
-  animation: arrive-third var(--faq-cycle) linear infinite;
-  animation-delay: var(--faq-start);
-}
-
-/* Two animations on the accepted reply: its arrival, and the tint that marks it once it is chosen. The positions sit in `:where()` so the still rule at the end of this file outranks them. */
-.answer[data-accepted] {
-  border-inline-start-color: var(--action-positive-fg);
-  background: color-mix(in srgb, var(--action-positive-bg) 55%, var(--input-bg));
-}
-
-.answer[data-accepted]:where(:nth-child(1)) {
-  animation:
-    arrive-first var(--faq-cycle) linear infinite,
-    settle-row var(--faq-cycle) steps(1, end) infinite;
-  animation-delay: var(--faq-start), var(--faq-start);
-}
-
-.answer[data-accepted]:where(:nth-child(2)) {
-  animation:
-    arrive-second var(--faq-cycle) linear infinite,
-    settle-row var(--faq-cycle) steps(1, end) infinite;
-  animation-delay: var(--faq-start), var(--faq-start);
-}
-
-.answer[data-accepted]:where(:nth-child(n + 3)) {
-  animation:
-    arrive-third var(--faq-cycle) linear infinite,
-    settle-row var(--faq-cycle) steps(1, end) infinite;
-  animation-delay: var(--faq-start), var(--faq-start);
-}
-
-.reply {
-  color: var(--color-text);
 }
 
 .badge {
-  animation: badge var(--faq-cycle) ease-out infinite;
+  animation: settle var(--faq-cycle) ease-out infinite;
+  animation-delay: var(--faq-start);
+}
+
+.acceptedAt {
+  animation: accepted-time var(--faq-cycle) ease-out infinite;
+  animation-delay: var(--faq-start);
+}
+
+.prose {
+  line-height: 1.75;
+  overflow-wrap: anywhere;
+}
+
+/* Controls reserve their space while fading, so the page never jumps between loops. */
+.acceptRow {
+  animation: controls var(--faq-cycle) ease-out infinite;
   animation-delay: var(--faq-start);
 }
 
 .accept {
-  position: absolute;
-  inset-inline-end: var(--space-sm);
-  top: var(--space-sm);
-  width: 1.6rem;
-  height: 1.6rem;
+  position: relative;
 }
 
-/* The mark the asker clicks: quiet until the click, then filled, the way the real control shows an accepted answer. */
-.acceptMark {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-  border: 1px solid var(--action-positive-fg);
-  border-radius: 50%;
-  background: var(--action-positive-fg);
-  color: var(--action-positive-bg);
-  animation: settle-mark var(--faq-cycle) steps(1, end) infinite;
+.acceptButton {
+  animation: press var(--faq-cycle) ease-in-out infinite;
   animation-delay: var(--faq-start);
 }
 
-/* The pointer rests with its tip on the mark; the keyframes bring it in from below and to the right, and take it away after the click. */
 .pointer {
   position: absolute;
-  left: 0.35rem;
-  top: 0.35rem;
+  inset-inline-end: var(--space-md);
+  top: 50%;
   opacity: 0;
   color: var(--color-text);
   filter: drop-shadow(0 1px 2px rgb(0 0 0 / 45%));
+  pointer-events: none;
   animation: point var(--faq-cycle) cubic-bezier(0.4, 0, 0.2, 1) infinite;
   animation-delay: var(--faq-start);
 }
 
-/* Between loops the finished story dims and the next one brightens over it, rather than cutting to nothing. */
 @keyframes loop {
-  0% {
-    opacity: 0.35;
+  0%,
+  100% {
+    opacity: 0;
   }
-
   4%,
   94% {
     opacity: 1;
-  }
-
-  100% {
-    opacity: 0.35;
   }
 }
 
@@ -233,7 +170,6 @@
     opacity: 0;
     transform: translateY(6px);
   }
-
   5%,
   100% {
     opacity: 1;
@@ -244,12 +180,11 @@
 @keyframes typing {
   0%,
   6% {
-    width: 0;
+    clip-path: inset(0 100% 0 0);
   }
-
   32%,
   100% {
-    width: 100%;
+    clip-path: inset(0 0 0 0);
   }
 }
 
@@ -257,16 +192,21 @@
   0%,
   5% {
     visibility: hidden;
+    left: 0;
   }
-
-  6%,
+  6% {
+    visibility: visible;
+    left: 0;
+  }
+  32%,
   35% {
     visibility: visible;
+    left: 100%;
   }
-
   36%,
   100% {
     visibility: hidden;
+    left: 100%;
   }
 }
 
@@ -275,7 +215,6 @@
   50% {
     opacity: 1;
   }
-
   51%,
   100% {
     opacity: 0;
@@ -286,13 +225,17 @@
   0%,
   38% {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(14px);
   }
-
-  42%,
+  43%,
+  81% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  88%,
   100% {
     opacity: 1;
-    transform: none;
+    transform: translateY(var(--faq-after-y));
   }
 }
 
@@ -300,13 +243,17 @@
   0%,
   48% {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(14px);
   }
-
-  52%,
+  53%,
+  81% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  88%,
   100% {
     opacity: 1;
-    transform: none;
+    transform: translateY(var(--faq-after-y));
   }
 }
 
@@ -314,13 +261,17 @@
   0%,
   58% {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(14px);
   }
-
-  62%,
+  63%,
+  81% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  88%,
   100% {
     opacity: 1;
-    transform: none;
+    transform: translateY(var(--faq-after-y));
   }
 }
 
@@ -328,122 +279,142 @@
   0%,
   66% {
     opacity: 0;
-    transform: translate(9rem, 6rem);
+    transform: translate(7rem, 4rem);
   }
-
   68% {
     opacity: 1;
-    transform: translate(9rem, 6rem);
+    transform: translate(7rem, 4rem);
   }
-
   77% {
     opacity: 1;
     transform: translate(0, 0) scale(1);
   }
-
   79% {
+    opacity: 1;
     transform: translate(0, 0) scale(0.8);
   }
+  81% {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+  85%,
+  100% {
+    opacity: 0;
+    transform: none;
+  }
+}
 
+@keyframes press {
+  0%,
+  77%,
   81%,
-  86% {
-    opacity: 1;
-    transform: translate(0, 0) scale(1);
-  }
-
-  90%,
   100% {
-    opacity: 0;
-    transform: translate(0, 0) scale(1);
-  }
-}
-
-@keyframes settle-mark {
-  0%,
-  79% {
-    border-color: var(--color-muted);
-    background: transparent;
-    color: var(--color-muted);
-  }
-
-  80%,
-  100% {
-    border-color: var(--action-positive-fg);
-    background: var(--action-positive-fg);
-    color: var(--action-positive-bg);
-  }
-}
-
-@keyframes settle-row {
-  0%,
-  79% {
-    border-inline-start-color: var(--input-border);
-    background: var(--input-bg);
-  }
-
-  80%,
-  100% {
-    border-inline-start-color: var(--action-positive-fg);
-    background: color-mix(in srgb, var(--action-positive-bg) 55%, var(--input-bg));
-  }
-}
-
-@keyframes badge {
-  0%,
-  80% {
-    opacity: 0;
-    transform: scale(0.6);
-  }
-
-  84% {
-    opacity: 1;
-    transform: scale(1.08);
-  }
-
-  86%,
-  100% {
-    opacity: 1;
     transform: scale(1);
   }
+  79% {
+    transform: scale(0.96);
+  }
 }
 
-@container (width < 30rem) {
-  .asked {
-    font-size: 1rem;
+@keyframes open {
+  0%,
+  79% {
+    visibility: visible;
   }
+  80%,
+  100% {
+    visibility: hidden;
+  }
+}
 
+@keyframes settle {
+  0%,
+  79% {
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(4px) scale(0.96);
+  }
+  80% {
+    opacity: 0;
+    visibility: visible;
+    transform: translateY(4px) scale(0.96);
+  }
+  84% {
+    opacity: 1;
+    visibility: visible;
+    transform: scale(1.04);
+  }
+  87%,
+  100% {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+  }
+}
+
+@keyframes accepted-time {
+  0%,
+  79% {
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(4px);
+  }
+  80% {
+    opacity: 0;
+    visibility: visible;
+    transform: translateY(4px);
+  }
+  87%,
+  100% {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+  }
+}
+
+@keyframes controls {
+  0%,
+  79% {
+    opacity: 1;
+    visibility: visible;
+  }
+  83%,
+  100% {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+@container faq-example (width >= 48rem) {
+  .question,
   .answer {
-    margin-inline-start: var(--space-sm);
+    grid-template-columns: 8rem minmax(0, 1fr);
+  }
+  .author {
+    padding-block: var(--space-md);
+  }
+  .identity {
+    flex-direction: column;
+    align-items: start;
   }
 }
 
-/*
- * The site's motion setting and the device's hint, read through one attribute: the end state, held still.
- * Last in the file on purpose: it ties the most specific animating rule above, so source order decides.
- */
 .stage[data-motion="reduce"],
 .stage[data-motion="reduce"] *,
 .stage[data-motion="reduce"] *::after {
   animation: none;
 }
 
-/* The pause control sits in the corner beside the stage, not on it, so the fade between loops never dims it. */
-.playback {
-  position: absolute;
-  inset-inline-end: 0;
-  top: 0;
-  z-index: 1;
+.stage[data-motion="reduce"] .acceptRow {
+  display: none;
 }
 
-/* Paused by the reader: every animation holds its frame, the caret's blink included. */
 .stage[data-paused],
 .stage[data-paused] *,
 .stage[data-paused] *::after {
   animation-play-state: paused;
 }
 
-/* Held still, the question is text again: it wraps like any other line rather than being cut at the box. */
-.stage[data-motion="reduce"] .typed {
-  white-space: normal;
-  overflow: visible;
+.stage[data-motion="reduce"] .answer[data-accepted] {
+  order: -1;
 }
