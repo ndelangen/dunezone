@@ -49,21 +49,28 @@ export function deliveryReporter(
       providerCode: provider?.code,
       providerAction: provider?.action,
     };
-    let event = boundedPublisherTelemetryEvent({ ...context, ...details });
-    if (event.result === 'telemetry_truncated') {
-      /* Keep the failed operation and request when a large error graph exceeds the log budget. */
-      event = boundedPublisherTelemetryEvent({
-        ...context,
-        error: details?.error.slice(0, 128),
-        errors: details?.errors.map(({ name, message, code, action }) => ({
-          name: name.slice(0, 64),
-          message: message.slice(0, 128),
-          code,
-          action,
-        })),
-        errorsTruncated: true,
-      });
-    }
-    console.error(JSON.stringify(event));
+    emitDeliveryFailure(context, details);
   };
+}
+
+function emitDeliveryFailure(
+  context: Record<string, unknown>,
+  details: ReturnType<typeof publisherFailureFields> | undefined
+): void {
+  let event = boundedPublisherTelemetryEvent({ ...context, ...details });
+  if (event.result === 'telemetry_truncated') {
+    /* Keep the failed operation and request when a large error graph exceeds the log budget. */
+    event = boundedPublisherTelemetryEvent({
+      ...context,
+      error: details?.error.slice(0, 128),
+      errors: details?.errors.map(({ name, message, code, action }) => ({
+        name: name.slice(0, 64),
+        message: message.slice(0, 128),
+        code,
+        action,
+      })),
+      errorsTruncated: true,
+    });
+  }
+  console.error(JSON.stringify(event));
 }
