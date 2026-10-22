@@ -3,7 +3,7 @@ import { useDebouncedValue } from '@mantine/hooks';
 import { SPAWN_PICKER_STEP } from '@shared/play/inventory';
 import type { SpawnableAsset, SpawnableAssets, SpawnSelection } from '@shared/play/inventory';
 import { LoadMoreButton } from '@ui/control/LoadMoreButton';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { useSpawnableAssets } from '@db/play';
 import { useGrowingLimit, useGrowingSearch } from '@app/routes/growingSearch';
@@ -39,7 +39,8 @@ function useSpawnableRows(q: string, limit: number) {
  * checking the asset's definitions and requesting the spawn stay with the table.
  */
 export function SpawnAssetPicker({ value, disabled = false, onPick }: SpawnAssetPickerProps) {
-  const combobox = useCombobox();
+  /* Open from the start: Mantine submits Enter only while the store is open, so the highlighted first row is pickable as soon as it lists. */
+  const combobox = useCombobox({ defaultOpened: true });
   const [search, setSearch] = useState('');
   const [settled] = useDebouncedValue(search.trim(), SEARCH_SETTLE_MS);
   const growing = useGrowingLimit({ q: settled }, SPAWN_PICKER_STEP);
@@ -51,6 +52,10 @@ export function SpawnAssetPicker({ value, disabled = false, onPick }: SpawnAsset
     rows: (page) => page.entries.length,
   });
   const pending = live === undefined && growing.limit === growing.step;
+  /* The first row is highlighted once the rows settle, so Enter after typing picks the best match. */
+  useEffect(() => {
+    combobox.selectFirstOption();
+  }, [combobox, data.entries]);
   return (
     <Stack gap="sm">
       <Combobox
@@ -79,10 +84,7 @@ export function SpawnAssetPicker({ value, disabled = false, onPick }: SpawnAsset
             data-lpignore="true"
             data-bwignore
             data-form-type="other"
-            onChange={(event) => {
-              setSearch(event.currentTarget.value);
-              combobox.selectFirstOption();
-            }}
+            onChange={(event) => setSearch(event.currentTarget.value)}
           />
         </Combobox.EventsTarget>
         <SpawnAssetOptions
@@ -99,7 +101,7 @@ export function SpawnAssetPicker({ value, disabled = false, onPick }: SpawnAsset
         <Text size="xs" c="dimmed" ta="center">
           {settled
             ? "That's as far as this search goes. Add a word to narrow it."
-            : 'That is as far as the newest go. Search for an older one by name.'}
+            : "That's as far as the newest go. Search for an older one by name."}
         </Text>
       ) : null}
     </Stack>

@@ -1,4 +1,4 @@
-import { Center, Combobox, Loader, ScrollArea, Stack, Text } from '@mantine/core';
+import { Combobox, ScrollArea, Stack, Text } from '@mantine/core';
 import { ASSET_TYPES } from '@shared/assets/types';
 import type { SpawnableAsset, SpawnSelection } from '@shared/play/inventory';
 
@@ -37,21 +37,21 @@ export type SpawnAssetOptionsProps = {
 export function SpawnAssetOptions({ entries, value, searched, pending, loading, disabled }: SpawnAssetOptionsProps) {
   if (pending) {
     return (
-      <Center py="md">
-        <Loader size="sm" aria-label="Loading the catalogue" />
-      </Center>
+      <Text role="status" size="sm" c="dimmed">
+        Loading the catalogue...
+      </Text>
     );
   }
   if (entries.length === 0) {
     return (
-      <Text size="sm" c="dimmed">
+      <Text role="status" size="sm" c="dimmed">
         {searched ? 'No deck, bundle or token matches.' : 'The catalogue has no decks, bundles or tokens yet.'}
       </Text>
     );
   }
   const chosen = value ? spawnableKey(value) : null;
   return (
-    <ScrollArea.Autosize mah={260} type="auto">
+    <ScrollArea.Autosize mah={260} type="auto" overscrollBehavior="contain">
       <Combobox.Options aria-label="Catalogue assets" aria-busy={loading}>
         {entries.map((entry) => {
           const key = spawnableKey(entry);

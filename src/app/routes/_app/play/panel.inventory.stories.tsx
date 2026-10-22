@@ -200,7 +200,7 @@ const catalogueDatabase = db((baseline) => {
 const SPAWNABLE_ASSETS = 6 + EXTRA_TOKENS;
 
 /**
- * The catalogue picker: the newest spawnable assets a page at a time, a server search over the asset's and its owner's name, and a pick that asks the table to check the asset before it can be requested.
+ * The catalogue picker: the newest spawnable assets a page at a time, a server search over the asset's and its owner's name, and a keyboard pick that asks the table to check the asset before it can be requested.
  * The story's transport answers no catalogue read, so the check stays pending, as it does while the Worker reads the definitions.
  */
 export const Catalogue = meta.story({
@@ -219,7 +219,8 @@ export const Catalogue = meta.story({
     await userEvent.type(page.getByRole('searchbox', { name: 'Search the catalogue' }), 'treachery');
     await waitFor(() => expect(options()).toHaveLength(1), { timeout: 30_000 });
     await expect(options()[0]).toHaveTextContent('House Treachery');
-    await userEvent.click(options()[0]!);
+    /* The best match is highlighted as soon as it lists, so Enter from the search box picks it without an arrow key first. */
+    await userEvent.keyboard('{Enter}');
     await waitFor(() =>
       expect(session.transport.messages.at(-1)).toMatchObject({
         type: 'catalogue',

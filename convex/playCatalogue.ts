@@ -23,7 +23,7 @@ import { resolveBackHref, TOKEN_ASSET_TYPES } from './lib/assetBacks';
 import { assetDisplayName } from './lib/assetInput';
 import type { CardbackPresetMemo } from './lib/cardbackPresets';
 import { catalogueSearchLimit, catalogueSearchReach, selectCatalogueSearch } from './lib/catalogueOrder';
-import { profileSummary } from './lib/profileSummary';
+import { profileSummaryReader } from './lib/profileSummary';
 import { rulesetBoard } from './lib/rulesetBoard';
 import { listRulesetAssetSlots } from './lib/rulesetSlots';
 
@@ -291,30 +291,26 @@ async function searchedSpawnables(ctx: QueryCtx, text: string, limit: number): P
     text,
     limit,
   });
-  const rows: Doc<'assets'>[] = [];
-  for (const entry of selection.entries) {
-    const assetId = ctx.db.normalizeId('assets', entry.source_id);
-    const row = assetId ? await ctx.db.get('assets', assetId) : null;
-    /* Drift leaves the list one row short until the backfill or the asset's next save, as the asset catalogue does. */
-    if (row && !row.is_deleted) {
-      rows.push(row);
-    }
-  }
+  const read = await Promise.all(
+    selection.entries.map(async (entry) => {
+      const assetId = ctx.db.normalizeId('assets', entry.source_id);
+      return assetId ? await ctx.db.get('assets', assetId) : null;
+    })
+  );
+  /* Drift leaves the list one row short until the backfill or the asset's next save, as the asset catalogue does. */
+  const rows = read.filter((row): row is Doc<'assets'> => row !== null && !row.is_deleted);
   return { rows, hasMore: selection.hasMore, capped: selection.capped };
 }
 
-/** The rows as the picker lists them; one owner's name is read once however many of the rows are theirs. */
+/** The rows as the picker lists them; one owner's profile is read once however many of the rows are theirs. */
 async function spawnableEntries(ctx: QueryCtx, rows: Doc<'assets'>[]) {
-  const owners = new Map<Id<'users'>, string | null>();
+  const ownerOf = profileSummaryReader(ctx);
   const entries: SpawnableAsset[] = [];
   for (const row of rows) {
-    if (!isSpawnType(row.type)) {
-      continue;
+    if (isSpawnType(row.type)) {
+      const owner = await ownerOf(row.owner_id);
+      entries.push({ type: row.type, slug: row.slug, name: assetDisplayName(row), owner: owner?.username ?? null });
     }
-    if (!owners.has(row.owner_id)) {
-      owners.set(row.owner_id, (await profileSummary(ctx, row.owner_id))?.username ?? null);
-    }
-    entries.push({ type: row.type, slug: row.slug, name: assetDisplayName(row), owner: owners.get(row.owner_id)! });
   }
   return entries;
 }

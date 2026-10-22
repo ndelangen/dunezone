@@ -9,7 +9,8 @@ import type { Id } from './_generated/dataModel';
 import { applicationTest } from './application.test.fixture';
 import { applicationTriggers } from './lib/applicationTriggers';
 
-type Seeded = { type: string; name: string; owner?: 'stilgar' | 'chani'; deleted?: boolean };
+type Owner = 'stilgar' | 'chani' | 'departed';
+type Seeded = { type: string; name: string; owner?: Owner; deleted?: boolean };
 
 const STAMP = '2026-10-01T00:00:00.000Z';
 
@@ -17,16 +18,18 @@ const STAMP = '2026-10-01T00:00:00.000Z';
 async function seedAssets(t: ReturnType<typeof applicationTest>, assets: Seeded[]) {
   await t.run(async (rawCtx) => {
     const ctx = applicationTriggers.wrapDB(rawCtx);
-    const owners: Record<'stilgar' | 'chani', Id<'users'>> = {
+    const owners: Record<Owner, Id<'users'>> = {
       stilgar: await ctx.db.insert('users', { name: 'Stilgar' }),
       chani: await ctx.db.insert('users', { name: 'Chani' }),
+      departed: await ctx.db.insert('users', { name: 'Departed' }),
     };
     for (const [username, user_id] of Object.entries(owners)) {
       await ctx.db.insert('profiles', {
         user_id,
         username,
         avatar_url: null,
-        account_state: 'active',
+        /* A departed owner's profile is no longer active, so the picker names nobody. */
+        account_state: username === 'departed' ? 'deleted' : 'active',
         slug: username,
         created_at: STAMP,
         updated_at: STAMP,
@@ -90,6 +93,30 @@ describe('the spawn picker reads the catalogue', () => {
 
     const nothing = await t.query(api.playCatalogue.spawnableAssets, { q: 'sardaukar' });
     expect(nothing).toEqual({ entries: [], hasMore: false, capped: false });
+  });
+
+  test('an inactive owner names nobody, and an entry whose asset is gone is dropped', async () => {
+    const t = applicationTest();
+    await seedAssets(t, [
+      { type: 'token-plate', name: 'Orphaned Plate' },
+      { type: 'token-disc', name: 'Abandoned Disc', owner: 'departed' },
+    ]);
+    /* The asset goes without its triggers, as a drifted catalogue would have it: the entry stays, its source does not. */
+    await t.run(async (ctx) => {
+      const plate = await ctx.db
+        .query('assets')
+        .filter((q) => q.eq(q.field('slug'), 'orphaned-plate'))
+        .unique();
+      await ctx.db.delete('assets', plate!._id);
+    });
+    const searched = await t.query(api.playCatalogue.spawnableAssets, { q: 'orphaned' });
+    expect(searched.entries).toEqual([]);
+    const abandoned = await t.query(api.playCatalogue.spawnableAssets, { q: 'abandoned' });
+    expect(abandoned.entries).toEqual([
+      { type: 'token-disc', slug: 'abandoned-disc', name: 'Abandoned Disc', owner: null },
+    ]);
+    const browsed = await t.query(api.playCatalogue.spawnableAssets, {});
+    expect(names(browsed)).toEqual(['Abandoned Disc']);
   });
 
   test('the newest list stops at the search ceiling and says so', async () => {
