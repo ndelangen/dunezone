@@ -1,4 +1,4 @@
-import { Combobox, Stack, Text, TextInput, useCombobox } from '@mantine/core';
+import { Combobox, Stack, TextInput, useCombobox } from '@mantine/core';
 import { useDebouncedValue } from '@mantine/hooks';
 import { SPAWN_PICKER_STEP } from '@shared/play/inventory';
 import type { SpawnableAsset, SpawnableAssets, SpawnSelection } from '@shared/play/inventory';
@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react';
 import { useSpawnableAssets } from '@db/play';
 import { useGrowingLimit, useGrowingSearch } from '@app/routes/growingSearch';
 
-import { SpawnAssetOptions, spawnableKey } from './SpawnAssetPicker.parts';
+import { SpawnAssetCeiling, SpawnAssetOptions, spawnableKey } from './SpawnAssetPicker.parts';
 
 /** How long typing settles before the catalogue is asked, so a word costs one read rather than one per keystroke. */
 const SEARCH_SETTLE_MS = 250;
@@ -48,6 +48,7 @@ export function SpawnAssetPicker({ value, disabled = false, onPick }: SpawnAsset
   const [settled] = useDebouncedValue(search.trim(), SEARCH_SETTLE_MS);
   /* Until the typed word settles the rows on screen answer the search before it, so a pick among them would take an asset the reader did not ask for. */
   const unsettled = search.trim() !== settled;
+  const pickable = !disabled && !unsettled;
   const growing = useGrowingLimit({ q: settled }, SPAWN_PICKER_STEP);
   const live = useSpawnableRows(settled, growing.limit);
   const { data, loading, loadMore } = useGrowingSearch({
@@ -75,8 +76,8 @@ export function SpawnAssetPicker({ value, disabled = false, onPick }: SpawnAsset
       <Combobox
         store={combobox}
         onOptionSubmit={(key) => {
-          const entry = data.entries.find((candidate) => spawnableKey(candidate) === key);
-          if (entry && !disabled && !unsettled) {
+          const entry = pickable ? data.entries.find((candidate) => spawnableKey(candidate) === key) : undefined;
+          if (entry) {
             onPick(entry);
           }
         }}
@@ -111,13 +112,7 @@ export function SpawnAssetPicker({ value, disabled = false, onPick }: SpawnAsset
         />
       </Combobox>
       {data.hasMore ? <LoadMoreButton loading={loading} onLoadMore={loadMore} /> : null}
-      {data.capped ? (
-        <Text size="xs" c="dimmed" ta="center">
-          {settled
-            ? "That's as far as this search goes. Add a word to narrow it."
-            : "That's as far as the newest go. Search for an older one by name."}
-        </Text>
-      ) : null}
+      {data.capped ? <SpawnAssetCeiling searched={settled !== ''} /> : null}
     </Stack>
   );
 }

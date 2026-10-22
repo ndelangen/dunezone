@@ -65,3 +65,14 @@ export function SpawnAssetOptions({ entries, value, searched, pending, loading, 
     </ScrollArea.Autosize>
   );
 }
+
+/** The note under the rows once the shared ceiling stops Load more, pointing a search at a narrower word and the newest list at search. */
+export function SpawnAssetCeiling({ searched }: { searched: boolean }) {
+  return (
+    <Text size="xs" c="dimmed" ta="center">
+      {searched
+        ? "That's as far as this search goes. Add a word to narrow it."
+        : "That's as far as the newest go. Search for an older one by name."}
+    </Text>
+  );
+}
