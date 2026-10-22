@@ -40,6 +40,8 @@ beforeEach(() => {
   vi.stubGlobal('innerHeight', 600);
   vi.stubGlobal('scrollY', 0);
   vi.spyOn(document.documentElement, 'scrollHeight', 'get').mockReturnValue(1600);
+  vi.spyOn(document.documentElement, 'clientHeight', 'get').mockReturnValue(600);
+  document.documentElement.scrollTop = 0;
   vi.spyOn(document.body, 'scrollHeight', 'get').mockReturnValue(1600);
 });
 
@@ -64,6 +66,16 @@ function orbitTime(container: HTMLElement, layer: 'planet' | 'stars') {
 }
 
 describe('orbital background', () => {
+  it('reaches the end of parallax using the document scroller even when body content extends farther', () => {
+    vi.spyOn(document.body, 'scrollHeight', 'get').mockReturnValue(1800);
+    document.documentElement.scrollTop = 1000;
+    vi.stubGlobal('scrollY', 1000);
+    const { container } = render(<AppBackground motion />);
+    expect(
+      container.querySelector<HTMLElement>('[data-background-stars]')?.style.getPropertyValue('--scroll-progress')
+    ).toBe('1');
+  });
+
   it('aligns both periods to the local clock, including after tab suspension', async () => {
     const { container } = render(<AppBackground motion />);
     expect(orbitTime(container, 'planet')).toBe(930_000);
@@ -82,7 +94,7 @@ describe('orbital background', () => {
     const { container, unmount } = render(<AppBackground motion />);
     const stars = container.querySelector<HTMLElement>('[data-background-stars]');
     const planet = container.querySelector<HTMLElement>('[data-background-planet]');
-    vi.stubGlobal('scrollY', 500);
+    document.documentElement.scrollTop = 500;
     act(() => {
       window.dispatchEvent(new Event('scroll'));
     });

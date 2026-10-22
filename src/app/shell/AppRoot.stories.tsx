@@ -331,7 +331,7 @@ async function playBackgroundPan({ canvasElement }: { canvasElement: HTMLElement
   const planetTop = planet.getBoundingClientRect().top;
   const starTop = stars.getBoundingClientRect().top;
   await expect((view.innerHeight - planetTop) / planet.getBoundingClientRect().height).toBeCloseTo(0.2, 3);
-  view.scrollTo({ top: root.scrollHeight, behavior: 'smooth' });
+  view.scrollTo({ top: root.scrollHeight, behavior: 'instant' });
   await waitFor(async () => {
     await expect(view.scrollY).toBeGreaterThan(0);
     await expect(readProgress()).toBeGreaterThanOrEqual(0.995);

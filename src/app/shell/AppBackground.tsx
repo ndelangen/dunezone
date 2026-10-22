@@ -72,9 +72,9 @@ export function AppBackground({ motion }: { motion: boolean }) {
     let pending: number | null = null;
     const update = () => {
       pending = null;
-      const height = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
-      const available = height - window.innerHeight;
-      const progress = available > 0 ? Math.min(1, Math.max(0, window.scrollY / available)) : 0;
+      const documentScroll = document.scrollingElement ?? document.documentElement;
+      const available = documentScroll.scrollHeight - documentScroll.clientHeight;
+      const progress = available > 0 ? Math.min(1, Math.max(0, documentScroll.scrollTop / available)) : 0;
       frame.style.setProperty('--scroll-progress', String(progress));
     };
     const schedule = () => {
