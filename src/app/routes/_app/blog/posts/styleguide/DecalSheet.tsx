@@ -73,7 +73,7 @@ function Treatment({ decal: data }: { decal: DecalData }) {
   );
 }
 
-/* The silhouettes of the printed treachery cards, by file name. */
+/* 24 silhouettes of the printed treachery cards, by file name; the count fills every row of the grid. */
 const LIBRARY = [
   'baliset',
   'chaumas',
@@ -81,7 +81,6 @@ const LIBRARY = [
   'cheap-heroine',
   'crysknife',
   'ellaca',
-  'family-atomics',
   'flagella',
   'gom-jabbar',
   'hunter-seeker',

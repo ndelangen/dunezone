@@ -54,9 +54,10 @@
 }
 
 /* The library is a sheet of parchment, the card's own, with the silhouettes in ink. */
+/* 24 silhouettes in 3, 4, 6 or 8 columns, so every row is full at every width. */
 .library {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(5.5rem, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-sm);
   padding: var(--space-md);
   border-radius: var(--mantine-radius-md);
@@ -176,4 +177,22 @@
 
 .slotKey {
   border: 1.5px solid #ff4d2e;
+}
+
+@container (width >= 28rem) {
+  .library {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@container (width >= 40rem) {
+  .library {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+
+@container (width >= 54rem) {
+  .library {
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+  }
 }
