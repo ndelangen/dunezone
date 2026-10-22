@@ -1,0 +1,842 @@
+[
+  {
+    "confidence": 1,
+    "h": 0.022593831346607973,
+    "text": "Wormriders:",
+    "w": 0.081094362888352034,
+    "x": 0.04271377343469597,
+    "y": 0.95163193560664472
+  },
+  {
+    "confidence": 1,
+    "h": 0.020392045415599469,
+    "text": "If Shai-Hulud appears in any territories where you have",
+    "w": 0.3406432699582424,
+    "x": 0.042397659008451986,
+    "y": 0.93600330280038346
+  },
+  {
+    "confidence": 1,
+    "h": 0.021942753716995611,
+    "text": "forces, they are not devoured. Upon conclusion of the",
+    "w": 0.32748537388624793,
+    "x": 0.042397668027636178,
+    "y": 0.91701073480117412
+  },
+  {
+    "confidence": 1,
+    "h": 0.023139009389081977,
+    "text": "Nexus, you may \"Ride the Worm\", moving some or all of",
+    "w": 0.33958687469152643,
+    "x": 0.043625003491066704,
+    "y": 0.90051490686947777
+  },
+  {
+    "confidence": 1,
+    "h": 0.022214697373986292,
+    "text": "the forces in those territories to any territory subject to",
+    "w": 0.33946475364323569,
+    "x": 0.043687905096062365,
+    "y": 0.88219633799216712
+  },
+  {
+    "confidence": 1,
+    "h": 0.018895348470925666,
+    "text": "storm loss and occupancy rules (any spice or forces in",
+    "w": 0.33040935360979068,
+    "x": 0.043859647376391309,
+    "y": 0.86482558141860699
+  },
+  {
+    "confidence": 1,
+    "h": 0.019803592924437785,
+    "text": "the destination territory are not destroyed).",
+    "w": 0.2707377978393859,
+    "x": 0.043687797704245683,
+    "y": 0.84730271150117786
+  },
+  {
+    "confidence": 1,
+    "h": 0.019216017719145939,
+    "text": "Call Sandworms:",
+    "w": 0.10491560938352359,
+    "x": 0.044687548882245347,
+    "y": 0.82201510378327924
+  },
+  {
+    "confidence": 1,
+    "h": 0.019094588439588556,
+    "text": "During the Spice Blow and Nexus phase, all subsequent",
+    "w": 0.33771929023469971,
+    "x": 0.045321638161159,
+    "y": 0.80377906971439184
+  },
+  {
+    "confidence": 1,
+    "h": 0.021225052761893792,
+    "text": "Shai-Hulud that appear after the first one drawn that",
+    "w": 0.32488866538081884,
+    "x": 0.045112458942811809,
+    "y": 0.78636673095333842
+  },
+  {
+    "confidence": 0.5,
+    "h": 0.019098188934200122,
+    "text": "phase may be placed by you in any sand territory you",
+    "w": 0.32602339670842423,
+    "x": 0.045321638239355082,
+    "y": 0.76744186072093257
+  },
+  {
+    "confidence": 1,
+    "h": 0.01598837117731422,
+    "text": "wish at the end of the Nexus, devouring any spice or",
+    "w": 0.31871343471561986,
+    "x": 0.04532164202815505,
+    "y": 0.75290697707122667
+  },
+  {
+    "confidence": 1,
+    "h": 0.019000970067119538,
+    "text": "opposing forces there. If placed in a territory where you",
+    "w": 0.34210524713606605,
+    "x": 0.045321648858867497,
+    "y": 0.73245251819450607
+  },
+  {
+    "confidence": 1,
+    "h": 0.017534278819228311,
+    "text": "or your ally have forces, they may Ride the Worm.",
+    "w": 0.30555553864362528,
+    "x": 0.045321649702310077,
+    "y": 0.71656976740494094
+  },
+  {
+    "confidence": 1,
+    "h": 0.014972970271090791,
+    "text": "Indigenous:",
+    "w": 0.07610717418286965,
+    "x": 0.045279746094642304,
+    "y": 0.69018793328826566
+  },
+  {
+    "confidence": 1,
+    "h": 0.014534883318018221,
+    "text": "Your reserves are already on-planet; you do not",
+    "w": 0.29093566539380716,
+    "x": 0.04678363139300868,
+    "y": 0.67587209304302576
+  },
+  {
+    "confidence": 1,
+    "h": 0.017474267425663159,
+    "text": "ship using off-planet shipment rules. For your Force",
+    "w": 0.3187134347156198,
+    "x": 0.045321641852716484,
+    "y": 0.65552325552267354
+  },
+  {
+    "confidence": 1,
+    "h": 0.019074184061770194,
+    "text": "Shipment, deploy any or all of your reserves for free into",
+    "w": 0.3450292268596088,
+    "x": 0.046783629231014368,
+    "y": 0.63790255975218102
+  },
+  {
+    "confidence": 0.5,
+    "h": 0.015988371177314331,
+    "text": "The Great Flat or directly into any one territory within a",
+    "w": 0.3421052471360661,
+    "x": 0.046783630891031346,
+    "y": 0.62209302365310637
+  },
+  {
+    "confidence": 1,
+    "h": 0.014534883318018221,
+    "text": "distance of two territories of The Great Flat (subject to",
+    "w": 0.33187133078761433,
+    "x": 0.048245623802099243,
+    "y": 0.60610465121889789
+  },
+  {
+    "confidence": 1,
+    "h": 0.014557688025577664,
+    "text": "storm loss and occupancy rules).",
+    "w": 0.20029239543556476,
+    "x": 0.048245613144790755,
+    "y": 0.58866279081192108
+  },
+  {
+    "confidence": 1,
+    "h": 0.014283190474443264,
+    "text": "Sandwalk:",
+    "w": 0.067478240180392127,
+    "x": 0.046670237308145471,
+    "y": 0.56335259084084843
+  },
+  {
+    "confidence": 1,
+    "h": 0.017495871180842393,
+    "text": "During your Force Movement you may move your forces",
+    "w": 0.3421052471360661,
+    "x": 0.048245624706820707,
+    "y": 0.54500412906683304
+  },
+  {
+    "confidence": 1,
+    "h": 0.013242226607734553,
+    "text": "two territories instead of one.",
+    "w": 0.1812865399164848,
+    "x": 0.049707609500821856,
+    "y": 0.53052325613459717
+  },
+  {
+    "confidence": 1,
+    "h": 0.016518918076002587,
+    "text": "Fedaykin:",
+    "w": 0.063300889824592171,
+    "x": 0.048027917738523905,
+    "y": 0.50191495942369047
+  },
+  {
+    "confidence": 1,
+    "h": 0.016186410981106736,
+    "text": "Your three starred forces, Fedaykin, are worth two",
+    "w": 0.30701754118934438,
+    "x": 0.048245617928719585,
+    "y": 0.48546511684593585
+  },
+  {
+    "confidence": 1,
+    "h": 0.014618900371523247,
+    "text": "normal forces in battle and in taking losses. They are",
+    "w": 0.32017543726133885,
+    "x": 0.049707604523570328,
+    "y": 0.47093023257790945
+  },
+  {
+    "confidence": 1,
+    "h": 0.014534883318018332,
+    "text": "each treated as one force in revival; however, only one",
+    "w": 0.32894735106407158,
+    "x": 0.049707606905829815,
+    "y": 0.45494186055756058
+  },
+  {
+    "confidence": 1,
+    "h": 0.019171989623620211,
+    "text": "Fedaykin force can be revived normally per round",
+    "w": 0.30283455281879934,
+    "x": 0.049611701369899758,
+    "y": 0.43436575167894975
+  },
+  {
+    "confidence": 1,
+    "h": 0.019649168561058139,
+    "text": "(except by use of the Tleilaxu Ghola Treachery card).",
+    "w": 0.32332864128740652,
+    "x": 0.04813303645000578,
+    "y": 0.41656463431373314
+  },
+  {
+    "confidence": 0.5,
+    "h": 0.019351974978710773,
+    "text": "Karama Power - Bless The Maker:",
+    "w": 0.21851686904158873,
+    "x": 0.41047817712477375,
+    "y": 0.95179916242885387
+  },
+  {
+    "confidence": 1,
+    "h": 0.019638006397754482,
+    "text": "The following one-time ability is triggered by playing a Karama card:",
+    "w": 0.30457902687941601,
+    "x": 0.41053115870214879,
+    "y": 0.93329973763242913
+  },
+  {
+    "confidence": 1,
+    "h": 0.023285228688297521,
+    "text": "Call a Shai-Hulud during the Spice Blow and Nexus",
+    "w": 0.30324399065000263,
+    "x": 0.40902274102126024,
+    "y": 0.91007957526694505
+  },
+  {
+    "confidence": 1,
+    "h": 0.021725937318053723,
+    "text": "phase. This is counted as if Shai-Hulud was drawn, but",
+    "w": 0.32643029775009091,
+    "x": 0.40914383249379327,
+    "y": 0.89337940546808048
+  },
+  {
+    "confidence": 1,
+    "h": 0.020740200329378178,
+    "text": "you immediately decide if sandworms appear in the",
+    "w": 0.31037536265943216,
+    "x": 0.40912052973862406,
+    "y": 0.87662579276599306
+  },
+  {
+    "confidence": 1,
+    "h": 0.01598837117731422,
+    "text": "territories of the last Spice Blows card, or if a sandworm",
+    "w": 0.33333333333333337,
+    "x": 0.41081871559454186,
+    "y": 0.86191860484254446
+  },
+  {
+    "confidence": 1,
+    "h": 0.017441860611629778,
+    "text": "will be placed in any sand territory by you at the end of",
+    "w": 0.33040935360979068,
+    "x": 0.40935672339978307,
+    "y": 0.8430232557406967
+  },
+  {
+    "confidence": 1,
+    "h": 0.014616500041782166,
+    "text": "the Nexus (as if using Call Sandworms).",
+    "w": 0.23684210392800553,
+    "x": 0.41081871707839479,
+    "y": 0.82848837225814198
+  },
+  {
+    "confidence": 1,
+    "h": 0.016343988533555454,
+    "text": "Spirit World Variant: Harj.",
+    "w": 0.16401106659214593,
+    "x": 0.40923806368221116,
+    "y": 0.80220694146479077
+  },
+  {
+    "confidence": 1,
+    "h": 0.017517475723531239,
+    "text": "SPECIAL VICTORY CONDITION",
+    "w": 0.27923977186753163,
+    "x": 0.44005847838458217,
+    "y": 0.76300578023635346
+  },
+  {
+    "confidence": 1,
+    "h": 0.014543285259621674,
+    "text": "If no faction has won by the end of round 10, and if you",
+    "w": 0.32602337134052894,
+    "x": 0.41081871825273764,
+    "y": 0.73401162810843279
+  },
+  {
+    "confidence": 1,
+    "h": 0.01464410540882366,
+    "text": "(or your ally, or no faction) occupy Sietch Tabr and Cave",
+    "w": 0.33040935360979062,
+    "x": 0.41081870950114774,
+    "y": 0.71656976764331648
+  },
+  {
+    "confidence": 1,
+    "h": 0.013081394671212609,
+    "text": "of Birds, and neither House Atreides, House Harkonnen,",
+    "w": 0.33187133078761433,
+    "x": 0.41228071302359037,
+    "y": 0.70058139570581812
+  },
+  {
+    "confidence": 1,
+    "h": 0.014630902807738155,
+    "text": "House Richese, nor Emperor occupies Tuek's Sietch",
+    "w": 0.30409356146580169,
+    "x": 0.41228070718132925,
+    "y": 0.68313953518207615
+  },
+  {
+    "confidence": 1,
+    "h": 0.019267957137696134,
+    "text": "(unless allied with you), then you (and your ally) win the",
+    "w": 0.33793461293056426,
+    "x": 0.41071118501903336,
+    "y": 0.6625910598126451
+  },
+  {
+    "confidence": 1,
+    "h": 0.013081395458722223,
+    "text": "game.",
+    "w": 0.039473681874009625,
+    "x": 0.41081871439925244,
+    "y": 0.64680232539563887
+  },
+  {
+    "confidence": 1,
+    "h": 0.01598837117731422,
+    "text": "Fremen Force Fedaykin Force",
+    "w": 0.21198830164578786,
+    "x": 0.11695906731794424,
+    "y": 0.32848837265988939
+  },
+  {
+    "confidence": 1,
+    "h": 0.01825207821304986,
+    "text": "Battle Edge: Vulnerable to Karama",
+    "w": 0.19477599438090973,
+    "x": 0.052415151828836597,
+    "y": 0.30162942404089421
+  },
+  {
+    "confidence": 1,
+    "h": 0.020505674411008257,
+    "text": "You do not spend spice for spice strength, but",
+    "w": 0.27809192533802207,
+    "x": 0.051035620514227983,
+    "y": 0.28497583115210545
+  },
+  {
+    "confidence": 1,
+    "h": 0.024613126066477253,
+    "text": "automatically gain the spice strength simply by dialing",
+    "w": 0.33243459953631549,
+    "x": 0.050924259698474535,
+    "y": 0.26670843190292215
+  },
+  {
+    "confidence": 1,
+    "h": 0.014560088355318745,
+    "text": "the required number of forces.",
+    "w": 0.18713449936357024,
+    "x": 0.052631583066752828,
+    "y": 0.25433526031677167
+  },
+  {
+    "confidence": 1,
+    "h": 0.018992568125516085,
+    "text": "Vulnerable to Karama: Karama may be played while",
+    "w": 0.32163741443916249,
+    "x": 0.051169598160535706,
+    "y": 0.22956234507189899
+  },
+  {
+    "confidence": 1,
+    "h": 0.019004569774221269,
+    "text": "Battle Plans are being formed. If this advantage is",
+    "w": 0.29678362484089255,
+    "x": 0.052631582097097541,
+    "y": 0.21220930269767668
+  },
+  {
+    "confidence": 1,
+    "h": 0.025741566123300919,
+    "text": "canceled by Karama, you may still spend spice normally",
+    "w": 0.33096219615349642,
+    "x": 0.050964872520331855,
+    "y": 0.19119997112830112
+  },
+  {
+    "confidence": 0.5,
+    "h": 0.01618761114597711,
+    "text": "for spice strength.",
+    "w": 0.10818713561555096,
+    "x": 0.049707602543101699,
+    "y": 0.1771263417246568
+  },
+  {
+    "confidence": 1,
+    "h": 0.014534883318018332,
+    "text": "ALLIANCE",
+    "w": 0.097953212925125377,
+    "x": 0.53070175513100459,
+    "y": 0.61046511639331635
+  },
+  {
+    "confidence": 1,
+    "h": 0.017515074606280434,
+    "text": "You may protect your allies from being devoured by",
+    "w": 0.30555553864362534,
+    "x": 0.41228071402979544,
+    "y": 0.57703488375668521
+  },
+  {
+    "confidence": 1,
+    "h": 0.016539542169043298,
+    "text": "sandworms and allow them to Ride the Worm after the",
+    "w": 0.32335497316279616,
+    "x": 0.41359466613001272,
+    "y": 0.5630888936395323
+  },
+  {
+    "confidence": 1,
+    "h": 0.019514514630142088,
+    "text": "Nexus. You may also allow your ally to increase their free",
+    "w": 0.33509586933545038,
+    "x": 0.41358647584520519,
+    "y": 0.54368331397515912
+  },
+  {
+    "confidence": 1,
+    "h": 0.016156404496814325,
+    "text": "revival to 3 forces. In addition, your ally wins with you if",
+    "w": 0.33333333333333331,
+    "x": 0.41228069842105269,
+    "y": 0.52890173444940092
+  },
+  {
+    "confidence": 1,
+    "h": 0.021643864626140319,
+    "text": "you win with the Fremen Special Victory Condition.",
+    "w": 0.3059852454232258,
+    "x": 0.4120155257101813,
+    "y": 0.50869544616150875
+  },
+  {
+    "confidence": 1,
+    "h": 0.018992568125516085,
+    "text": "ADDITIONAL INSIGHTS",
+    "w": 0.21198830164578791,
+    "x": 0.47514619793441598,
+    "y": 0.47233691143164069
+  },
+  {
+    "confidence": 1,
+    "h": 0.019022537596849909,
+    "text": "Can the Fremen Ride the Worm from The Great Flat to",
+    "w": 0.3176428080596036,
+    "x": 0.41498679608536854,
+    "y": 0.44291173390607308
+  },
+  {
+    "confidence": 1,
+    "h": 0.017078360282715255,
+    "text": "Arrakeen if the storm is over the sector with Carthag?",
+    "w": 0.31461520048349184,
+    "x": 0.4150595194654883,
+    "y": 0.42689906469695615
+  },
+  {
+    "confidence": 1,
+    "h": 0.01814069519546968,
+    "text": "Answer: Yes. You are not required to trace your path",
+    "w": 0.30729415272041249,
+    "x": 0.41505155996136123,
+    "y": 0.40200648725366017
+  },
+  {
+    "confidence": 1,
+    "h": 0.019234507660743749,
+    "text": "when riding the worm. Those forces can simply go to",
+    "w": 0.31175999312428565,
+    "x": 0.4150184035087095,
+    "y": 0.38406221865963741
+  },
+  {
+    "confidence": 1,
+    "h": 0.020381673912092335,
+    "text": "any territory not in storm, or to one in storm at half",
+    "w": 0.30608501735569937,
+    "x": 0.41494342453381561,
+    "y": 0.36684767631909221
+  },
+  {
+    "confidence": 1,
+    "h": 0.0116279068119165,
+    "text": "losses.",
+    "w": 0.042397658426565454,
+    "x": 0.41374269059665886,
+    "y": 0.35174418632272386
+  },
+  {
+    "confidence": 1,
+    "h": 0.015988371177314331,
+    "text": "Can Fremen ship into a territory in storm, then move",
+    "w": 0.31140349809071066,
+    "x": 0.41520468058914761,
+    "y": 0.32848837242006379
+  },
+  {
+    "confidence": 1,
+    "h": 0.022880729813894773,
+    "text": "another territory also in storm?",
+    "w": 0.18953336365304185,
+    "x": 0.41478038629904923,
+    "y": 0.30739672078610647
+  },
+  {
+    "confidence": 1,
+    "h": 0.02069978217858115,
+    "text": "Answer: No. They are limited to either shipping into a",
+    "w": 0.31764346762488316,
+    "x": 0.41498551679821383,
+    "y": 0.28477396702279922
+  },
+  {
+    "confidence": 1,
+    "h": 0.019308647766869358,
+    "text": "sector of a territory in storm, or moving into one. When",
+    "w": 0.32932008155068054,
+    "x": 0.41501087567116141,
+    "y": 0.26910384905697193
+  },
+  {
+    "confidence": 1,
+    "h": 0.017530678324616633,
+    "text": "Riding a Worm into storm, they can go directly to any",
+    "w": 0.31286550063642971,
+    "x": 0.41666666254728224,
+    "y": 0.25290697649651073
+  },
+  {
+    "confidence": 1,
+    "h": 0.016178009039503172,
+    "text": "one sector of a territory in storm.",
+    "w": 0.19883040557379339,
+    "x": 0.41666667187197259,
+    "y": 0.23691860518169172
+  },
+  {
+    "confidence": 1,
+    "h": 0.020348836330221665,
+    "text": "29",
+    "w": 0.023391812420446301,
+    "x": 0.39766081890673594,
+    "y": 0.013081395584889188
+  },
+  {
+    "confidence": 1,
+    "h": 0.014863748967795187,
+    "text": "Fremen Strategy:",
+    "w": 0.11111111533909368,
+    "x": 0.76461988000101855,
+    "y": 0.74401321187391756
+  },
+  {
+    "confidence": 1,
+    "h": 0.014576891451015817,
+    "text": "Your major handicap is poverty.",
+    "w": 0.18713449936357018,
+    "x": 0.76461988638059297,
+    "y": 0.728197674692735
+  },
+  {
+    "confidence": 1,
+    "h": 0.017441860611629778,
+    "text": "Usually you can't purchase",
+    "w": 0.1578947274960385,
+    "x": 0.76461988873736098,
+    "y": 0.70930232568255724
+  },
+  {
+    "confidence": 1,
+    "h": 0.017527077830005178,
+    "text": "Treachery cards for several",
+    "w": 0.16228069708135262,
+    "x": 0.7646198872232125,
+    "y": 0.69322873641476312
+  },
+  {
+    "confidence": 1,
+    "h": 0.017345278052433244,
+    "text": "rounds, since the others will",
+    "w": 0.16438495131799402,
+    "x": 0.76578466094997888,
+    "y": 0.67735155631817068
+  },
+  {
+    "confidence": 1,
+    "h": 0.016102394715111434,
+    "text": "outbid you. You must be",
+    "w": 0.14035087452267769,
+    "x": 0.76461988403495751,
+    "y": 0.65978530143538971
+  },
+  {
+    "confidence": 1,
+    "h": 0.018837318451910612,
+    "text": "patient and move your forces",
+    "w": 0.17446616562029171,
+    "x": 0.76436105090209916,
+    "y": 0.6417438621949878
+  },
+  {
+    "confidence": 1,
+    "h": 0.014537283647759303,
+    "text": "to spice blows or any vacant",
+    "w": 0.16666666666666674,
+    "x": 0.76608187046783627,
+    "y": 0.62790697712732801
+  },
+  {
+    "confidence": 1,
+    "h": 0.018893573423932164,
+    "text": "strongholds, keeping your force",
+    "w": 0.18752354140689942,
+    "x": 0.76442322671809726,
+    "y": 0.60842200251398926
+  },
+  {
+    "confidence": 1,
+    "h": 0.018736793618867598,
+    "text": "strength high. When you do",
+    "w": 0.16411332457836525,
+    "x": 0.7644298994853016,
+    "y": 0.59195085195615249
+  },
+  {
+    "confidence": 0.5,
+    "h": 0.018477420192627214,
+    "text": "battle, you can afford to dial",
+    "w": 0.1729200431335397,
+    "x": 0.76446331374003695,
+    "y": 0.57612859526036808
+  },
+  {
+    "confidence": 1,
+    "h": 0.018058981608005675,
+    "text": "high and sacrifice your forces,",
+    "w": 0.17711653990836707,
+    "x": 0.76449536362661141,
+    "y": 0.55937706347266269
+  },
+  {
+    "confidence": 0.5,
+    "h": 0.018908737711823775,
+    "text": "since they have a high revival",
+    "w": 0.17598536008611287,
+    "x": 0.76437583324174396,
+    "y": 0.54230027142952375
+  },
+  {
+    "confidence": 1,
+    "h": 0.014863748967795298,
+    "text": "rate and you can bring them",
+    "w": 0.16812864384449033,
+    "x": 0.76608187756605894,
+    "y": 0.52890173377855465
+  },
+  {
+    "confidence": 1,
+    "h": 0.014581692898007592,
+    "text": "back into play at no cost. You",
+    "w": 0.16959063370626171,
+    "x": 0.76754386604160596,
+    "y": 0.51308139573197931
+  },
+  {
+    "confidence": 1,
+    "h": 0.014863748967795187,
+    "text": "have the advantage of better",
+    "w": 0.16959063370626171,
+    "x": 0.76754386498166438,
+    "y": 0.49545829898290539
+  },
+  {
+    "confidence": 1,
+    "h": 0.014615299876911569,
+    "text": "mobility than factions without",
+    "w": 0.18128653991648491,
+    "x": 0.7660818780534534,
+    "y": 0.47811725814837669
+  },
+  {
+    "confidence": 1,
+    "h": 0.016122798305420072,
+    "text": "a city stronghold, and you have",
+    "w": 0.18567250950179892,
+    "x": 0.76608187576079645,
+    "y": 0.46075581451308711
+  },
+  {
+    "confidence": 0.5,
+    "h": 0.016102394715111545,
+    "text": "the strongest pool of fighting",
+    "w": 0.17105262356803297,
+    "x": 0.76608187657229088,
+    "y": 0.44467382321025106
+  },
+  {
+    "confidence": 1,
+    "h": 0.014656107845038568,
+    "text": "leaders, but limited range in",
+    "w": 0.16666666666666663,
+    "x": 0.76608187273391803,
+    "y": 0.42877907004157234
+  },
+  {
+    "confidence": 1,
+    "h": 0.016102394715111545,
+    "text": "shipping (and only directly into",
+    "w": 0.18567250950179892,
+    "x": 0.76608187545134221,
+    "y": 0.41123038808390255
+  },
+  {
+    "confidence": 1,
+    "h": 0.014557688025577664,
+    "text": "one stronghold). Your game",
+    "w": 0.16228069708135262,
+    "x": 0.76900585011916778,
+    "y": 0.39677952131753991
+  },
+  {
+    "confidence": 1,
+    "h": 0.014534883318018221,
+    "text": "plan will be to bide your time",
+    "w": 0.17105262356803297,
+    "x": 0.76900585000326427,
+    "y": 0.37936046513604904
+  },
+  {
+    "confidence": 1,
+    "h": 0.01598837117731422,
+    "text": "and wait for accessible spice",
+    "w": 0.16666666666666663,
+    "x": 0.76754385826023397,
+    "y": 0.36191860502423046
+  },
+  {
+    "confidence": 1,
+    "h": 0.014534883318018332,
+    "text": "blows in order to build up",
+    "w": 0.15204678073290079,
+    "x": 0.76754386258676599,
+    "y": 0.34593023261424671
+  },
+  {
+    "confidence": 1,
+    "h": 0.014584093227748673,
+    "text": "your resources for Treachery",
+    "w": 0.16959063370626171,
+    "x": 0.76900585556402312,
+    "y": 0.32989265085374098
+  },
+  {
+    "confidence": 1,
+    "h": 0.013244626937475634,
+    "text": "cards. Having forces at spice",
+    "w": 0.16666666666666674,
+    "x": 0.76900584517543857,
+    "y": 0.31379025637196778
+  },
+  {
+    "confidence": 1,
+    "h": 0.015171966111728885,
+    "text": "blow locations increases your",
+    "w": 0.17272432982079311,
+    "x": 0.77036336669884453,
+    "y": 0.29768364961060567
+  },
+  {
+    "confidence": 1,
+    "h": 0.016140802353497463,
+    "text": "chances of riding the worm",
+    "w": 0.16081870721958136,
+    "x": 0.76900585140970268,
+    "y": 0.27906976776647852
+  },
+  {
+    "confidence": 1,
+    "h": 0.014939384554950474,
+    "text": "anywhere.",
+    "w": 0.062959165248093973,
+    "x": 0.76895901388085364,
+    "y": 0.26287914507726706
+  }
+]

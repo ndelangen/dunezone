@@ -1,0 +1,586 @@
+[
+  {
+    "confidence": 1,
+    "h": 0.013203576289879559,
+    "text": "PHASE 3:",
+    "w": 0.071646341773294431,
+    "x": 0.5762195127566454,
+    "y": 0.9491279069438906
+  },
+  {
+    "confidence": 1,
+    "h": 0.027066650511630375,
+    "text": "CHOAM CHARITY",
+    "w": 0.22512713201238554,
+    "x": 0.50102691328192872,
+    "y": 0.92830611296186416
+  },
+  {
+    "confidence": 1,
+    "h": 0.017724130949645089,
+    "text": "This phase provides factions with little or no spice to",
+    "w": 0.32341362971449572,
+    "x": 0.2559856352482438,
+    "y": 0.89882380800930228
+  },
+  {
+    "confidence": 1,
+    "h": 0.017553667526789662,
+    "text": "Note: The Bene Gesserit always collect 2 spice from",
+    "w": 0.31249999999999989,
+    "x": 0.62195121953124999,
+    "y": 0.90552325589127269
+  },
+  {
+    "confidence": 1,
+    "h": 0.014534882947058181,
+    "text": "proceed with the round having at least 2 spice.",
+    "w": 0.2865853670931775,
+    "x": 0.25609756322170385,
+    "y": 0.88372093067763369
+  },
+  {
+    "confidence": 1,
+    "h": 0.017549056462311308,
+    "text": "CHOAM Charity, regardless of how much spice they ha:.",
+    "w": 0.3384146329068225,
+    "x": 0.62195122351610088,
+    "y": 0.88808139520813323
+  },
+  {
+    "confidence": 1,
+    "h": 0.017133314206806305,
+    "text": "Beginning with the First Player and proceeding in storm",
+    "w": 0.34316892091876561,
+    "x": 0.25753715170753422,
+    "y": 0.85851926836998294
+  },
+  {
+    "confidence": 1,
+    "h": 0.019345604929065674,
+    "text": "order, each player with 0 or 1 spice may reveal the spice",
+    "w": 0.34328893300992658,
+    "x": 0.25595878992291832,
+    "y": 0.84036742276331322
+  },
+  {
+    "confidence": 1,
+    "h": 0.014712391156794902,
+    "text": "behind their Faction Screen to collect spice from the",
+    "w": 0.31859754424210296,
+    "x": 0.25762196311776953,
+    "y": 0.8283108645124706
+  },
+  {
+    "confidence": 1,
+    "h": 0.015988371846791249,
+    "text": "Spice Bank to bring their total to 2 by publicly declaring",
+    "w": 0.34451217714892535,
+    "x": 0.25609757426852497,
+    "y": 0.80959302346977302
+  },
+  {
+    "confidence": 1,
+    "h": 0.013135569706311134,
+    "text": "that they are collecting charity, and the amount.",
+    "w": 0.29420731645341125,
+    "x": 0.25762195520698328,
+    "y": 0.79500396533744366
+  },
+  {
+    "confidence": 1,
+    "h": 0.014670896114195031,
+    "text": "In the Bidding phase, factions will bid spice to acquire",
+    "w": 0.33231706325457949,
+    "x": 0.25762195894689716,
+    "y": 0.71649484509932715
+  },
+  {
+    "confidence": 1,
+    "h": 0.014723917683564403,
+    "text": "Treachery cards, which can be weapons, defenses,",
+    "w": 0.30945121517387852,
+    "x": 0.25914634750071308,
+    "y": 0.70058139573577327
+  },
+  {
+    "confidence": 1,
+    "h": 0.013265819231921272,
+    "text": "actions, or worthless cards.",
+    "w": 0.17073169616140194,
+    "x": 0.25914634419572191,
+    "y": 0.68459302312606107
+  },
+  {
+    "confidence": 1,
+    "h": 0.014986995663744951,
+    "text": "Declaration",
+    "w": 0.086972550289716233,
+    "x": 0.25910518889005463,
+    "y": 0.65965766502434753
+  },
+  {
+    "confidence": 1,
+    "h": 0.014534882947057959,
+    "text": "Before bidding starts, all players declare how many",
+    "w": 0.31554878482612136,
+    "x": 0.26067072559379911,
+    "y": 0.64098837251629659
+  },
+  {
+    "confidence": 1,
+    "h": 0.014670896114195142,
+    "text": "Treachery cards they hold. The hand limit is normally 4.",
+    "w": 0.34451217714892535,
+    "x": 0.26219512524667576,
+    "y": 0.62490087219645274
+  },
+  {
+    "confidence": 1,
+    "h": 0.014800485403740127,
+    "text": "Auction",
+    "w": 0.057999838798071912,
+    "x": 0.26063422752154236,
+    "y": 0.60015789686474075
+  },
+  {
+    "confidence": 1,
+    "h": 0.014534882947058181,
+    "text": "Deal cards from the Treachery deck face down in a row,",
+    "w": 0.34298779744093466,
+    "x": 0.26219512995712402,
+    "y": 0.57994186085205235
+  },
+  {
+    "confidence": 1,
+    "h": 0.014670896114195142,
+    "text": "1 card for each player whose hand is not full, up to a",
+    "w": 0.32164632906822443,
+    "x": 0.26219512278804247,
+    "y": 0.56383822349133406
+  },
+  {
+    "confidence": 1,
+    "h": 0.01323008707456419,
+    "text": "maximum of 6 cards to be auctioned. If the deck is ever",
+    "w": 0.33993901261481319,
+    "x": 0.26219512466312189,
+    "y": 0.549418604763658
+  },
+  {
+    "confidence": 1,
+    "h": 0.014678964153534868,
+    "text": "exhausted, shuffle the discard pile to form a new deck.",
+    "w": 0.33536584808070097,
+    "x": 0.26219512560395847,
+    "y": 0.53052325595864147
+  },
+  {
+    "confidence": 1,
+    "h": 0.015988371846791249,
+    "text": "Bidding",
+    "w": 0.059451215173878524,
+    "x": 0.2621951248254083,
+    "y": 0.50436046503954035
+  },
+  {
+    "confidence": 1,
+    "h": 0.013213950239600591,
+    "text": "Hold an auction for the first card in the row:",
+    "w": 0.27286584808070097,
+    "x": 0.26371951271015764,
+    "y": 0.4883720928813905
+  },
+  {
+    "confidence": 1,
+    "h": 0.013223170855988786,
+    "text": "• The First Player starts the bidding; if the First",
+    "w": 0.30487805063976631,
+    "x": 0.26371950821670226,
+    "y": 0.46352101525244627
+  },
+  {
+    "confidence": 1,
+    "h": 0.014681269307631917,
+    "text": "Player's hand is full, the next player in storm order",
+    "w": 0.31402437970799074,
+    "x": 0.28506098401795582,
+    "y": 0.44607454431705995
+  },
+  {
+    "confidence": 1,
+    "h": 0.015988371846791249,
+    "text": "whose hand is not full opens the bidding",
+    "w": 0.25457316453411222,
+    "x": 0.28353658634320816,
+    "y": 0.42732558148212751
+  },
+  {
+    "confidence": 1,
+    "h": 0.01453488294705807,
+    "text": "• Players must bid 1 or more spice or pass for the",
+    "w": 0.3185975442421029,
+    "x": 0.26371951601411131,
+    "y": 0.40552325644313769
+  },
+  {
+    "confidence": 1,
+    "h": 0.01453488294705807,
+    "text": "moment. If a player's hand is full, they cannot bid",
+    "w": 0.3064024303477571,
+    "x": 0.28506097688404836,
+    "y": 0.38808139567763367
+  },
+  {
+    "confidence": 1,
+    "h": 0.016022951427099641,
+    "text": "and are automatically passed. After a bid, bidding",
+    "w": 0.31097559488186932,
+    "x": 0.28353659591272384,
+    "y": 0.36915146709804014
+  },
+  {
+    "confidence": 1,
+    "h": 0.014705475694503645,
+    "text": "proceeds in storm order.",
+    "w": 0.15548779744093466,
+    "x": 0.28506097826123999,
+    "y": 0.35448057067243632
+  },
+  {
+    "confidence": 1,
+    "h": 0.020945271454946512,
+    "text": "The next bidder must either raise the bid or pass, and",
+    "w": 0.3372714561189244,
+    "x": 0.28336054051184434,
+    "y": 0.33484642377613472
+  },
+  {
+    "confidence": 1,
+    "h": 0.016256938937351251,
+    "text": "so on around the table until all players but one have",
+    "w": 0.32774389872046727,
+    "x": 0.28353658995633135,
+    "y": 0.31958762868030943
+  },
+  {
+    "confidence": 1,
+    "h": 0.014670896114195142,
+    "text": "consecutively passed. Players may bid on a card they",
+    "w": 0.33079268354658881,
+    "x": 0.28506097939667502,
+    "y": 0.30372720098037109
+  },
+  {
+    "confidence": 1,
+    "h": 0.016044851903590174,
+    "text": "previously passed on as long as it is still up for bid",
+    "w": 0.31554875941598148,
+    "x": 0.28506098601863528,
+    "y": 0.28628072963511542
+  },
+  {
+    "confidence": 1,
+    "h": 0.01168784482624674,
+    "text": "when their turn comes.",
+    "w": 0.14634145566764023,
+    "x": 0.28658536921902544,
+    "y": 0.27319587613949214
+  },
+  {
+    "confidence": 1,
+    "h": 0.017640116099418846,
+    "text": "The top-bidding player pays the number of spice they",
+    "w": 0.33993901261481319,
+    "x": 0.28353659462247138,
+    "y": 0.24980174433198288
+  },
+  {
+    "confidence": 1,
+    "h": 0.013081395559893294,
+    "text": "bid to the Spice Bank and takes the card",
+    "w": 0.25304875941598143,
+    "x": 0.2865853806070498,
+    "y": 0.23691860461830927
+  },
+  {
+    "confidence": 1,
+    "h": 0.015988371846791138,
+    "text": "If a player with a full hand plays a card during the",
+    "w": 0.32469511389434585,
+    "x": 0.27591463411608935,
+    "y": 0.20930232565000562
+  },
+  {
+    "confidence": 1,
+    "h": 0.015988371846791249,
+    "text": "Bidding phase (e.g., Truthtrance), they are allowed to",
+    "w": 0.33841463290682239,
+    "x": 0.28506097961366195,
+    "y": 0.19186046528299983
+  },
+  {
+    "confidence": 1,
+    "h": 0.015988371846791138,
+    "text": "participate in bidding normally, but another card is",
+    "w": 0.32621951901247659,
+    "x": 0.28506097491957461,
+    "y": 0.17441860483484084
+  },
+  {
+    "confidence": 1,
+    "h": 0.013127500910687151,
+    "text": "not added to the auction.",
+    "w": 0.16006097468011682,
+    "x": 0.28658536507355947,
+    "y": 0.16133720941482077
+  },
+  {
+    "confidence": 1,
+    "h": 0.014363324424749746,
+    "text": "Bid Limit",
+    "w": 0.073411990760466561,
+    "x": 0.26359888175231433,
+    "y": 0.13307996561982627
+  },
+  {
+    "confidence": 1,
+    "h": 0.014670896114195142,
+    "text": "Players cannot bid more spice than they have (unless",
+    "w": 0.33993901261481324,
+    "x": 0.26524390407750204,
+    "y": 0.1118160188378845
+  },
+  {
+    "confidence": 1,
+    "h": 0.016017187785572928,
+    "text": "their ally is guaranteeing their bid), even if they hold the",
+    "w": 0.36280486069551415,
+    "x": 0.26371952449980379,
+    "y": 0.09302325598067418
+  },
+  {
+    "confidence": 1,
+    "h": 0.01601257747737872,
+    "text": "Solaris Treachery card.",
+    "w": 0.15243902531988318,
+    "x": 0.26371951249249742,
+    "y": 0.075581395312069644
+  },
+  {
+    "confidence": 1,
+    "h": 0.0087831733153037606,
+    "text": "PHASE 4",
+    "w": 0.056402436700291991,
+    "x": 0.58841463523217097,
+    "y": 0.76447264072032162
+  },
+  {
+    "confidence": 1,
+    "h": 0.020348837033422384,
+    "text": "BIDDING",
+    "w": 0.10060975315370324,
+    "x": 0.56707317266095314,
+    "y": 0.7485465119193353
+  },
+  {
+    "confidence": 1,
+    "h": 0.017516782792384111,
+    "text": "Next Starting Bidder",
+    "w": 0.15243902531988318,
+    "x": 0.62804878041932677,
+    "y": 0.71649484508087813
+  },
+  {
+    "confidence": 1,
+    "h": 0.017630894726746504,
+    "text": "In subsequent bidding during this phase, the first player",
+    "w": 0.35213415191929909,
+    "x": 0.62652439038943575,
+    "y": 0.69767441851239664
+  },
+  {
+    "confidence": 1,
+    "h": 0.016256938937351362,
+    "text": "who can bid, to the right of the player who opened the",
+    "w": 0.33993901261481319,
+    "x": 0.62804878920834539,
+    "y": 0.68160190327677372
+  },
+  {
+    "confidence": 1,
+    "h": 0.015988371846791138,
+    "text": "bid for the previous card, begins the bidding for the next",
+    "w": 0.35365853162728966,
+    "x": 0.62804877943025761,
+    "y": 0.66569767446904637
+  },
+  {
+    "confidence": 1,
+    "h": 0.015988371846791249,
+    "text": "card. In this way, every player who can bid typically gets",
+    "w": 0.35213415191929898,
+    "x": 0.62804877417754568,
+    "y": 0.64825581400392995
+  },
+  {
+    "confidence": 1,
+    "h": 0.014534882947058181,
+    "text": "a chance to open the bidding for a Treachery card.",
+    "w": 0.31859754424210296,
+    "x": 0.62957318228443615,
+    "y": 0.63226744227647091
+  },
+  {
+    "confidence": 1,
+    "h": 0.016020646273002592,
+    "text": "End of Bidding",
+    "w": 0.10975610127953261,
+    "x": 0.63109756018340446,
+    "y": 0.60610465112602308
+  },
+  {
+    "confidence": 1,
+    "h": 0.014534882947058181,
+    "text": "Continue bidding for Treachery cards until all cards",
+    "w": 0.3246951138943458,
+    "x": 0.63262195552742051,
+    "y": 0.5886627913268585
+  },
+  {
+    "confidence": 1,
+    "h": 0.011627906660160114,
+    "text": "available for bid have been auctioned off or a card",
+    "w": 0.31554878482612136,
+    "x": 0.63262195299471358,
+    "y": 0.57412790720771079
+  },
+  {
+    "confidence": 1,
+    "h": 0.014670896114195031,
+    "text": "receives no bids by anyone. If everyone passes on a card",
+    "w": 0.3521341265091591,
+    "x": 0.63262195826472933,
+    "y": 0.55511498834692685
+  },
+  {
+    "confidence": 1,
+    "h": 0.014670896114195031,
+    "text": "return all remaining cards to the top of the Treachery",
+    "w": 0.33841463290682239,
+    "x": 0.63262195387179199,
+    "y": 0.53766851708912045
+  },
+  {
+    "confidence": 1,
+    "h": 0.016256938937351251,
+    "text": "deck in their original order, ending the Bidding phase.",
+    "w": 0.34451217714892535,
+    "x": 0.63109757340724459,
+    "y": 0.52022204630877278
+  },
+  {
+    "confidence": 1,
+    "h": 0.014670896114195031,
+    "text": "Treachery Deck Runs Out",
+    "w": 0.19512194936023375,
+    "x": 0.63109756027923281,
+    "y": 0.49563838191309939
+  },
+  {
+    "confidence": 1,
+    "h": 0.018043778984438874,
+    "text": "If there are not enough cards in the Treachery deck to",
+    "w": 0.34321191487562452,
+    "x": 0.63250069385123286,
+    "y": 0.47481611411357738
+  },
+  {
+    "confidence": 1,
+    "h": 0.014670896114195142,
+    "text": "fill out the auction, deal out however many remain as",
+    "w": 0.34146339232280398,
+    "x": 0.63262195668412669,
+    "y": 0.46074544039070342
+  },
+  {
+    "confidence": 1,
+    "h": 0.018288163889220277,
+    "text": "described above. Then shuffle the discard pile to form",
+    "w": 0.34479476331572645,
+    "x": 0.63248360505271983,
+    "y": 0.44236589237062496
+  },
+  {
+    "confidence": 1,
+    "h": 0.017802117458891042,
+    "text": "a new deck and continue drawing until that round's",
+    "w": 0.33406805059097888,
+    "x": 0.63251289259637777,
+    "y": 0.42460381117872426
+  },
+  {
+    "confidence": 1,
+    "h": 0.013193202340158527,
+    "text": "auction quota has been reached.",
+    "w": 0.21036584808070091,
+    "x": 0.63567073800233231,
+    "y": 0.40988372080047986
+  },
+  {
+    "confidence": 1,
+    "h": 0.01647216530662976,
+    "text": "Transparency",
+    "w": 0.10578994687451215,
+    "x": 0.63825885184518272,
+    "y": 0.38163594944268575
+  },
+  {
+    "confidence": 1,
+    "h": 0.019028410280062746,
+    "text": "The number (not the type) of Treachery cards each",
+    "w": 0.32653874660113968,
+    "x": 0.63854146817705326,
+    "y": 0.36105035073142622
+  },
+  {
+    "confidence": 1,
+    "h": 0.019823016863224741,
+    "text": "player holds must always be open to everyone during",
+    "w": 0.34175067936550274,
+    "x": 0.6385882493545938,
+    "y": 0.34368556122572302
+  },
+  {
+    "confidence": 1,
+    "h": 0.016033325376820673,
+    "text": "the Bidding phase.",
+    "w": 0.12195121517387852,
+    "x": 0.63871951538054039,
+    "y": 0.32989690707031527
+  },
+  {
+    "confidence": 1,
+    "h": 0.015988371846791249,
+    "text": "Time Limit",
+    "w": 0.085365854433235966,
+    "x": 0.64024390304252832,
+    "y": 0.30523255806279626
+  },
+  {
+    "confidence": 1,
+    "h": 0.020701260154536549,
+    "text": "Each player must bid within 10 seconds of the previous",
+    "w": 0.35250585144703628,
+    "x": 0.64154735803643537,
+    "y": 0.28077961585508915
+  },
+  {
+    "confidence": 1,
+    "h": 0.019215008269029332,
+    "text": "player or they are assumed to have passed",
+    "w": 0.27168661430416052,
+    "x": 0.643110608383761,
+    "y": 0.26523507987964323
+  }
+]

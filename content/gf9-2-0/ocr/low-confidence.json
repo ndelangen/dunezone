@@ -1,0 +1,1269 @@
+[
+  {
+    "page": 1,
+    "sourceIndex": 4,
+    "lineId": "p01-l004",
+    "confidence": 0.5,
+    "text": "RULEBOOK"
+  },
+  {
+    "page": 2,
+    "sourceIndex": 75,
+    "lineId": "p02-l075",
+    "confidence": 0.5,
+    "text": "sandworm, Shai-Hulud."
+  },
+  {
+    "page": 2,
+    "sourceIndex": 86,
+    "lineId": "p02-l086",
+    "confidence": 0.5,
+    "text": "4"
+  },
+  {
+    "page": 2,
+    "sourceIndex": 87,
+    "lineId": "p02-l087",
+    "confidence": 0.5,
+    "text": "4"
+  },
+  {
+    "page": 2,
+    "sourceIndex": 88,
+    "lineId": "p02-l088",
+    "confidence": 0.5,
+    "text": ". 6"
+  },
+  {
+    "page": 2,
+    "sourceIndex": 89,
+    "lineId": "p02-l089",
+    "confidence": 0.5,
+    "text": "8"
+  },
+  {
+    "page": 2,
+    "sourceIndex": 90,
+    "lineId": "p02-l090",
+    "confidence": 0.5,
+    "text": "' . .."
+  },
+  {
+    "page": 2,
+    "sourceIndex": 91,
+    "lineId": "p02-l091",
+    "confidence": 0.5,
+    "text": ".. 9"
+  },
+  {
+    "page": 2,
+    "sourceIndex": 92,
+    "lineId": "p02-l092",
+    "confidence": 0.5,
+    "text": "......... 10"
+  },
+  {
+    "page": 2,
+    "sourceIndex": 94,
+    "lineId": "p02-l094",
+    "confidence": 0.5,
+    "text": ".. 12"
+  },
+  {
+    "page": 2,
+    "sourceIndex": 97,
+    "lineId": "p02-l097",
+    "confidence": 0.5,
+    "text": "•..14"
+  },
+  {
+    "page": 2,
+    "sourceIndex": 98,
+    "lineId": "p02-l098",
+    "confidence": 0.5,
+    "text": "• 16"
+  },
+  {
+    "page": 2,
+    "sourceIndex": 99,
+    "lineId": "p02-l099",
+    "confidence": 0.5,
+    "text": ".20"
+  },
+  {
+    "page": 2,
+    "sourceIndex": 100,
+    "lineId": "p02-l100",
+    "confidence": 0.5,
+    "text": "..20"
+  },
+  {
+    "page": 2,
+    "sourceIndex": 114,
+    "lineId": "p02-l114",
+    "confidence": 0.5,
+    "text": "DUNE Synopsis.........."
+  },
+  {
+    "page": 2,
+    "sourceIndex": 118,
+    "lineId": "p02-l118",
+    "confidence": 0.5,
+    "text": ". 22"
+  },
+  {
+    "page": 2,
+    "sourceIndex": 125,
+    "lineId": "p02-l125",
+    "confidence": 0.5,
+    "text": ".23"
+  },
+  {
+    "page": 2,
+    "sourceIndex": 127,
+    "lineId": "p02-l127",
+    "confidence": 0.5,
+    "text": "...26"
+  },
+  {
+    "page": 2,
+    "sourceIndex": 129,
+    "lineId": "p02-l129",
+    "confidence": 0.5,
+    "text": "..34"
+  },
+  {
+    "page": 3,
+    "sourceIndex": 48,
+    "lineId": "p03-l048",
+    "confidence": 0.5,
+    "text": "Peter Olotka, Jack Kittredge, Bill Eberle"
+  },
+  {
+    "page": 3,
+    "sourceIndex": 50,
+    "lineId": "p03-l050",
+    "confidence": 0.5,
+    "text": "Greg Olotka, Jack Reda"
+  },
+  {
+    "page": 3,
+    "sourceIndex": 52,
+    "lineId": "p03-l052",
+    "confidence": 0.5,
+    "text": "Peter Simunovich, John-Paul Brisigotti"
+  },
+  {
+    "page": 3,
+    "sourceIndex": 56,
+    "lineId": "p03-l056",
+    "confidence": 0.5,
+    "text": "Klusener, Steven Koblinsky, Art Lailey, Nathanial McConnell,"
+  },
+  {
+    "page": 3,
+    "sourceIndex": 58,
+    "lineId": "p03-l058",
+    "confidence": 0.5,
+    "text": "O'Toole, Viktor Sandner, Zevon Scocco, Ben Stapleton, George"
+  },
+  {
+    "page": 3,
+    "sourceIndex": 63,
+    "lineId": "p03-l063",
+    "confidence": 0.5,
+    "text": "Joe LeFavi"
+  },
+  {
+    "page": 3,
+    "sourceIndex": 68,
+    "lineId": "p03-l068",
+    "confidence": 0.5,
+    "text": "ARTWORK:"
+  },
+  {
+    "page": 3,
+    "sourceIndex": 69,
+    "lineId": "p03-l069",
+    "confidence": 0.5,
+    "text": "Ilya Baranovsk, Solveig Reda, Lochen Reda"
+  },
+  {
+    "page": 3,
+    "sourceIndex": 71,
+    "lineId": "p03-l071",
+    "confidence": 0.5,
+    "text": "Vicki Tunkel"
+  },
+  {
+    "page": 3,
+    "sourceIndex": 80,
+    "lineId": "p03-l080",
+    "confidence": 0.5,
+    "text": "Elie Dekel, Lisa Lilly, Eric Morreel"
+  },
+  {
+    "page": 3,
+    "sourceIndex": 100,
+    "lineId": "p03-l100",
+    "confidence": 0.5,
+    "text": "museumofsciencefiction.org"
+  },
+  {
+    "page": 4,
+    "sourceIndex": 0,
+    "lineId": "p04-l000",
+    "confidence": 0.5,
+    "text": "ATREIDES"
+  },
+  {
+    "page": 4,
+    "sourceIndex": 5,
+    "lineId": "p04-l005",
+    "confidence": 0.5,
+    "text": "ATREIDES"
+  },
+  {
+    "page": 4,
+    "sourceIndex": 15,
+    "lineId": "p04-l015",
+    "confidence": 0.5,
+    "text": "BENE GESSERIT"
+  },
+  {
+    "page": 4,
+    "sourceIndex": 42,
+    "lineId": "p04-l042",
+    "confidence": 0.5,
+    "text": "4"
+  },
+  {
+    "page": 4,
+    "sourceIndex": 44,
+    "lineId": "p04-l044",
+    "confidence": 0.5,
+    "text": "5"
+  },
+  {
+    "page": 4,
+    "sourceIndex": 46,
+    "lineId": "p04-l046",
+    "confidence": 0.5,
+    "text": "3"
+  },
+  {
+    "page": 4,
+    "sourceIndex": 49,
+    "lineId": "p04-l049",
+    "confidence": 0.5,
+    "text": "5"
+  },
+  {
+    "page": 4,
+    "sourceIndex": 54,
+    "lineId": "p04-l054",
+    "confidence": 0.5,
+    "text": "EMP"
+  },
+  {
+    "page": 4,
+    "sourceIndex": 57,
+    "lineId": "p04-l057",
+    "confidence": 0.5,
+    "text": "BASHAR"
+  },
+  {
+    "page": 4,
+    "sourceIndex": 58,
+    "lineId": "p04-l058",
+    "confidence": 0.5,
+    "text": "GARON"
+  },
+  {
+    "page": 4,
+    "sourceIndex": 62,
+    "lineId": "p04-l062",
+    "confidence": 0.5,
+    "text": "STILGAR"
+  },
+  {
+    "page": 4,
+    "sourceIndex": 65,
+    "lineId": "p04-l065",
+    "confidence": 0.30000001192092896,
+    "text": "KYNES"
+  },
+  {
+    "page": 4,
+    "sourceIndex": 67,
+    "lineId": "p04-l067",
+    "confidence": 0.5,
+    "text": "JAMIS"
+  },
+  {
+    "page": 5,
+    "sourceIndex": 10,
+    "lineId": "p05-l010",
+    "confidence": 0.30000001192092896,
+    "text": "5"
+  },
+  {
+    "page": 5,
+    "sourceIndex": 13,
+    "lineId": "p05-l013",
+    "confidence": 0.5,
+    "text": "ERTUN"
+  },
+  {
+    "page": 5,
+    "sourceIndex": 14,
+    "lineId": "p05-l014",
+    "confidence": 0.5,
+    "text": "3"
+  },
+  {
+    "page": 5,
+    "sourceIndex": 15,
+    "lineId": "p05-l015",
+    "confidence": 0.5,
+    "text": "2"
+  },
+  {
+    "page": 5,
+    "sourceIndex": 16,
+    "lineId": "p05-l016",
+    "confidence": 0.5,
+    "text": "EDRIC"
+  },
+  {
+    "page": 5,
+    "sourceIndex": 17,
+    "lineId": "p05-l017",
+    "confidence": 0.5,
+    "text": "OLAR"
+  },
+  {
+    "page": 5,
+    "sourceIndex": 20,
+    "lineId": "p05-l020",
+    "confidence": 0.5,
+    "text": "HARKONNEN"
+  },
+  {
+    "page": 5,
+    "sourceIndex": 29,
+    "lineId": "p05-l029",
+    "confidence": 0.5,
+    "text": "3"
+  },
+  {
+    "page": 5,
+    "sourceIndex": 38,
+    "lineId": "p05-l038",
+    "confidence": 0.5,
+    "text": "Arrakis."
+  },
+  {
+    "page": 5,
+    "sourceIndex": 57,
+    "lineId": "p05-l057",
+    "confidence": 0.5,
+    "text": "5"
+  },
+  {
+    "page": 6,
+    "sourceIndex": 6,
+    "lineId": "p06-l006",
+    "confidence": 0.5,
+    "text": "SINK"
+  },
+  {
+    "page": 6,
+    "sourceIndex": 7,
+    "lineId": "p06-l007",
+    "confidence": 0.5,
+    "text": "DUNE"
+  },
+  {
+    "page": 6,
+    "sourceIndex": 10,
+    "lineId": "p06-l010",
+    "confidence": 0.5,
+    "text": "THAYA"
+  },
+  {
+    "page": 6,
+    "sourceIndex": 44,
+    "lineId": "p06-l044",
+    "confidence": 0.5,
+    "text": "GARA KULON"
+  },
+  {
+    "page": 6,
+    "sourceIndex": 50,
+    "lineId": "p06-l050",
+    "confidence": 0.5,
+    "text": "PASS"
+  },
+  {
+    "page": 6,
+    "sourceIndex": 54,
+    "lineId": "p06-l054",
+    "confidence": 0.5,
+    "text": "TLEILAXU TANKS"
+  },
+  {
+    "page": 6,
+    "sourceIndex": 55,
+    "lineId": "p06-l055",
+    "confidence": 0.5,
+    "text": "TLEILAXU"
+  },
+  {
+    "page": 6,
+    "sourceIndex": 70,
+    "lineId": "p06-l070",
+    "confidence": 0.5,
+    "text": "6"
+  },
+  {
+    "page": 7,
+    "sourceIndex": 4,
+    "lineId": "p07-l004",
+    "confidence": 0.30000001192092896,
+    "text": "2"
+  },
+  {
+    "page": 7,
+    "sourceIndex": 8,
+    "lineId": "p07-l008",
+    "confidence": 0.5,
+    "text": "Atreides (green), Bene Gesserit (Blue),"
+  },
+  {
+    "page": 7,
+    "sourceIndex": 10,
+    "lineId": "p07-l010",
+    "confidence": 0.5,
+    "text": "(Orange), Harkonnen (Black),"
+  },
+  {
+    "page": 7,
+    "sourceIndex": 16,
+    "lineId": "p07-l016",
+    "confidence": 0.5,
+    "text": "2"
+  },
+  {
+    "page": 7,
+    "sourceIndex": 17,
+    "lineId": "p07-l017",
+    "confidence": 0.5,
+    "text": "TOKENS"
+  },
+  {
+    "page": 7,
+    "sourceIndex": 18,
+    "lineId": "p07-l018",
+    "confidence": 0.5,
+    "text": "1"
+  },
+  {
+    "page": 7,
+    "sourceIndex": 19,
+    "lineId": "p07-l019",
+    "confidence": 0.5,
+    "text": "5"
+  },
+  {
+    "page": 7,
+    "sourceIndex": 20,
+    "lineId": "p07-l020",
+    "confidence": 0.5,
+    "text": "2"
+  },
+  {
+    "page": 7,
+    "sourceIndex": 25,
+    "lineId": "p07-l025",
+    "confidence": 0.5,
+    "text": "ACHIN"
+  },
+  {
+    "page": 7,
+    "sourceIndex": 26,
+    "lineId": "p07-l026",
+    "confidence": 0.5,
+    "text": "AITOR"
+  },
+  {
+    "page": 7,
+    "sourceIndex": 27,
+    "lineId": "p07-l027",
+    "confidence": 0.5,
+    "text": "LIANCE"
+  },
+  {
+    "page": 7,
+    "sourceIndex": 28,
+    "lineId": "p07-l028",
+    "confidence": 0.5,
+    "text": "TORM"
+  },
+  {
+    "page": 7,
+    "sourceIndex": 40,
+    "lineId": "p07-l040",
+    "confidence": 0.5,
+    "text": "Bene Gesserit"
+  },
+  {
+    "page": 7,
+    "sourceIndex": 44,
+    "lineId": "p07-l044",
+    "confidence": 0.5,
+    "text": "(6 cards)"
+  },
+  {
+    "page": 7,
+    "sourceIndex": 46,
+    "lineId": "p07-l046",
+    "confidence": 0.5,
+    "text": "(9 cards)"
+  },
+  {
+    "page": 7,
+    "sourceIndex": 67,
+    "lineId": "p07-l067",
+    "confidence": 0.5,
+    "text": "7"
+  },
+  {
+    "page": 7,
+    "sourceIndex": 76,
+    "lineId": "p07-l076",
+    "confidence": 0.5,
+    "text": "KWISATZ HADERACH"
+  },
+  {
+    "page": 7,
+    "sourceIndex": 87,
+    "lineId": "p07-l087",
+    "confidence": 0.5,
+    "text": "+2"
+  },
+  {
+    "page": 7,
+    "sourceIndex": 89,
+    "lineId": "p07-l089",
+    "confidence": 0.5,
+    "text": "Kwisatz Haderach Card"
+  },
+  {
+    "page": 8,
+    "sourceIndex": 46,
+    "lineId": "p08-l046",
+    "confidence": 0.5,
+    "text": "Gesserit."
+  },
+  {
+    "page": 8,
+    "sourceIndex": 93,
+    "lineId": "p08-l093",
+    "confidence": 0.5,
+    "text": "2"
+  },
+  {
+    "page": 8,
+    "sourceIndex": 94,
+    "lineId": "p08-l094",
+    "confidence": 0.5,
+    "text": "8"
+  },
+  {
+    "page": 10,
+    "sourceIndex": 54,
+    "lineId": "p10-l054",
+    "confidence": 0.5,
+    "text": "fed"
+  },
+  {
+    "page": 10,
+    "sourceIndex": 55,
+    "lineId": "p10-l055",
+    "confidence": 0.5,
+    "text": "410"
+  },
+  {
+    "page": 10,
+    "sourceIndex": 71,
+    "lineId": "p10-l071",
+    "confidence": 0.5,
+    "text": "RED"
+  },
+  {
+    "page": 10,
+    "sourceIndex": 83,
+    "lineId": "p10-l083",
+    "confidence": 0.30000001192092896,
+    "text": "BASIN"
+  },
+  {
+    "page": 11,
+    "sourceIndex": 22,
+    "lineId": "p11-l022",
+    "confidence": 0.5,
+    "text": "6 - Hagga Basin"
+  },
+  {
+    "page": 11,
+    "sourceIndex": 25,
+    "lineId": "p11-l025",
+    "confidence": 0.5,
+    "text": "Shai-Hulud Card"
+  },
+  {
+    "page": 11,
+    "sourceIndex": 46,
+    "lineId": "p11-l046",
+    "confidence": 0.5,
+    "text": "\"Shai-Hulud\"."
+  },
+  {
+    "page": 11,
+    "sourceIndex": 47,
+    "lineId": "p11-l047",
+    "confidence": 0.5,
+    "text": "Nexus"
+  },
+  {
+    "page": 11,
+    "sourceIndex": 63,
+    "lineId": "p11-l063",
+    "confidence": 0.5,
+    "text": "CIELAGO SOUTH"
+  },
+  {
+    "page": 11,
+    "sourceIndex": 65,
+    "lineId": "p11-l065",
+    "confidence": 0.5,
+    "text": "12 4 Cielago South"
+  },
+  {
+    "page": 11,
+    "sourceIndex": 67,
+    "lineId": "p11-l067",
+    "confidence": 0.5,
+    "text": "SHAI-HULUD"
+  },
+  {
+    "page": 13,
+    "sourceIndex": 5,
+    "lineId": "p13-l005",
+    "confidence": 0.5,
+    "text": "Tleilaxu Tanks:"
+  },
+  {
+    "page": 13,
+    "sourceIndex": 39,
+    "lineId": "p13-l039",
+    "confidence": 0.5,
+    "text": "KWISATZ HADERACH: The Kwisatz Haderach token starts out"
+  },
+  {
+    "page": 14,
+    "sourceIndex": 41,
+    "lineId": "p14-l041",
+    "confidence": 0.5,
+    "text": "Ornithopters"
+  },
+  {
+    "page": 14,
+    "sourceIndex": 44,
+    "lineId": "p14-l044",
+    "confidence": 0.5,
+    "text": "Ornithopters."
+  },
+  {
+    "page": 14,
+    "sourceIndex": 46,
+    "lineId": "p14-l046",
+    "confidence": 0.5,
+    "text": "100"
+  },
+  {
+    "page": 14,
+    "sourceIndex": 47,
+    "lineId": "p14-l047",
+    "confidence": 0.5,
+    "text": "CARTHAG"
+  },
+  {
+    "page": 14,
+    "sourceIndex": 48,
+    "lineId": "p14-l048",
+    "confidence": 0.5,
+    "text": "ARRAKEEN"
+  },
+  {
+    "page": 14,
+    "sourceIndex": 49,
+    "lineId": "p14-l049",
+    "confidence": 0.5,
+    "text": "COO"
+  },
+  {
+    "page": 14,
+    "sourceIndex": 52,
+    "lineId": "p14-l052",
+    "confidence": 0.5,
+    "text": "Ornithopter"
+  },
+  {
+    "page": 14,
+    "sourceIndex": 53,
+    "lineId": "p14-l053",
+    "confidence": 0.5,
+    "text": "Icons"
+  },
+  {
+    "page": 15,
+    "sourceIndex": 15,
+    "lineId": "p15-l015",
+    "confidence": 0.5,
+    "text": "ARRAKEEN"
+  },
+  {
+    "page": 15,
+    "sourceIndex": 16,
+    "lineId": "p15-l016",
+    "confidence": 0.30000001192092896,
+    "text": "WHT®"
+  },
+  {
+    "page": 15,
+    "sourceIndex": 17,
+    "lineId": "p15-l017",
+    "confidence": 0.5,
+    "text": "CARTHAG"
+  },
+  {
+    "page": 15,
+    "sourceIndex": 20,
+    "lineId": "p15-l020",
+    "confidence": 0.5,
+    "text": "RIM"
+  },
+  {
+    "page": 15,
+    "sourceIndex": 25,
+    "lineId": "p15-l025",
+    "confidence": 0.5,
+    "text": "ARRAKEEN"
+  },
+  {
+    "page": 15,
+    "sourceIndex": 26,
+    "lineId": "p15-l026",
+    "confidence": 0.5,
+    "text": "CARTHAG"
+  },
+  {
+    "page": 15,
+    "sourceIndex": 27,
+    "lineId": "p15-l027",
+    "confidence": 0.30000001192092896,
+    "text": "CCO"
+  },
+  {
+    "page": 15,
+    "sourceIndex": 36,
+    "lineId": "p15-l036",
+    "confidence": 0.30000001192092896,
+    "text": "MPO"
+  },
+  {
+    "page": 15,
+    "sourceIndex": 37,
+    "lineId": "p15-l037",
+    "confidence": 0.5,
+    "text": "CARTHAG"
+  },
+  {
+    "page": 15,
+    "sourceIndex": 43,
+    "lineId": "p15-l043",
+    "confidence": 0.5,
+    "text": "ARRAKEE"
+  },
+  {
+    "page": 15,
+    "sourceIndex": 47,
+    "lineId": "p15-l047",
+    "confidence": 0.5,
+    "text": "SIHAYA"
+  },
+  {
+    "page": 15,
+    "sourceIndex": 49,
+    "lineId": "p15-l049",
+    "confidence": 0.5,
+    "text": "GARA KULO"
+  },
+  {
+    "page": 15,
+    "sourceIndex": 54,
+    "lineId": "p15-l054",
+    "confidence": 0.5,
+    "text": "Ornithopters."
+  },
+  {
+    "page": 15,
+    "sourceIndex": 71,
+    "lineId": "p15-l071",
+    "confidence": 0.5,
+    "text": "ERG"
+  },
+  {
+    "page": 15,
+    "sourceIndex": 74,
+    "lineId": "p15-l074",
+    "confidence": 0.5,
+    "text": "CIELAGO NORTH"
+  },
+  {
+    "page": 15,
+    "sourceIndex": 76,
+    "lineId": "p15-l076",
+    "confidence": 0.5,
+    "text": "CIELAGO SOUTH"
+  },
+  {
+    "page": 15,
+    "sourceIndex": 79,
+    "lineId": "p15-l079",
+    "confidence": 0.5,
+    "text": "TUEK'S"
+  },
+  {
+    "page": 15,
+    "sourceIndex": 80,
+    "lineId": "p15-l080",
+    "confidence": 0.5,
+    "text": "SEITCH"
+  },
+  {
+    "page": 15,
+    "sourceIndex": 82,
+    "lineId": "p15-l082",
+    "confidence": 0.5,
+    "text": "CIELAGO EAST"
+  },
+  {
+    "page": 15,
+    "sourceIndex": 83,
+    "lineId": "p15-l083",
+    "confidence": 0.5,
+    "text": "7"
+  },
+  {
+    "page": 17,
+    "sourceIndex": 29,
+    "lineId": "p17-l029",
+    "confidence": 0.5,
+    "text": "6"
+  },
+  {
+    "page": 17,
+    "sourceIndex": 31,
+    "lineId": "p17-l031",
+    "confidence": 0.5,
+    "text": "+2"
+  },
+  {
+    "page": 17,
+    "sourceIndex": 86,
+    "lineId": "p17-l086",
+    "confidence": 0.5,
+    "text": "WHEEL"
+  },
+  {
+    "page": 17,
+    "sourceIndex": 94,
+    "lineId": "p17-l094",
+    "confidence": 0.5,
+    "text": "LASGUN"
+  },
+  {
+    "page": 17,
+    "sourceIndex": 105,
+    "lineId": "p17-l105",
+    "confidence": 0.5,
+    "text": "A Lasgun"
+  },
+  {
+    "page": 18,
+    "sourceIndex": 61,
+    "lineId": "p18-l061",
+    "confidence": 0.5,
+    "text": "BALISET"
+  },
+  {
+    "page": 19,
+    "sourceIndex": 69,
+    "lineId": "p19-l069",
+    "confidence": 0.30000001192092896,
+    "text": "we pore"
+  },
+  {
+    "page": 19,
+    "sourceIndex": 70,
+    "lineId": "p19-l070",
+    "confidence": 0.30000001192092896,
+    "text": "peace carton, corpora"
+  },
+  {
+    "page": 19,
+    "sourceIndex": 71,
+    "lineId": "p19-l071",
+    "confidence": 0.30000001192092896,
+    "text": "wr sasse."
+  },
+  {
+    "page": 20,
+    "sourceIndex": 25,
+    "lineId": "p20-l025",
+    "confidence": 0.5,
+    "text": "CARTHAG"
+  },
+  {
+    "page": 20,
+    "sourceIndex": 35,
+    "lineId": "p20-l035",
+    "confidence": 0.5,
+    "text": "ARRAKEEN"
+  },
+  {
+    "page": 20,
+    "sourceIndex": 36,
+    "lineId": "p20-l036",
+    "confidence": 0.5,
+    "text": "G"
+  },
+  {
+    "page": 20,
+    "sourceIndex": 37,
+    "lineId": "p20-l037",
+    "confidence": 0.30000001192092896,
+    "text": "OCO"
+  },
+  {
+    "page": 20,
+    "sourceIndex": 38,
+    "lineId": "p20-l038",
+    "confidence": 0.5,
+    "text": "CCO"
+  },
+  {
+    "page": 20,
+    "sourceIndex": 39,
+    "lineId": "p20-l039",
+    "confidence": 0.5,
+    "text": "WEST"
+  },
+  {
+    "page": 20,
+    "sourceIndex": 41,
+    "lineId": "p20-l041",
+    "confidence": 0.5,
+    "text": "TUEK'S"
+  },
+  {
+    "page": 20,
+    "sourceIndex": 42,
+    "lineId": "p20-l042",
+    "confidence": 0.5,
+    "text": "SEITCH"
+  },
+  {
+    "page": 20,
+    "sourceIndex": 43,
+    "lineId": "p20-l043",
+    "confidence": 0.5,
+    "text": "TH MESA"
+  },
+  {
+    "page": 20,
+    "sourceIndex": 44,
+    "lineId": "p20-l044",
+    "confidence": 0.5,
+    "text": "Carryalls"
+  },
+  {
+    "page": 21,
+    "sourceIndex": 0,
+    "lineId": "p21-l000",
+    "confidence": 0.5,
+    "text": "•"
+  },
+  {
+    "page": 21,
+    "sourceIndex": 1,
+    "lineId": "p21-l001",
+    "confidence": 0.5,
+    "text": "ALLIANCES (NEXUS)"
+  },
+  {
+    "page": 22,
+    "sourceIndex": 58,
+    "lineId": "p22-l058",
+    "confidence": 0.5,
+    "text": "audit)."
+  },
+  {
+    "page": 23,
+    "sourceIndex": 18,
+    "lineId": "p23-l018",
+    "confidence": 0.5,
+    "text": "TLEILAXU GHOLA"
+  },
+  {
+    "page": 23,
+    "sourceIndex": 40,
+    "lineId": "p23-l040",
+    "confidence": 0.5,
+    "text": "CRYSKNIFE"
+  },
+  {
+    "page": 23,
+    "sourceIndex": 60,
+    "lineId": "p23-l060",
+    "confidence": 0.5,
+    "text": "KULON"
+  },
+  {
+    "page": 24,
+    "sourceIndex": 6,
+    "lineId": "p24-l006",
+    "confidence": 0.5,
+    "text": "SIMPO"
+  },
+  {
+    "page": 24,
+    "sourceIndex": 7,
+    "lineId": "p24-l007",
+    "confidence": 0.5,
+    "text": "Meo"
+  },
+  {
+    "page": 24,
+    "sourceIndex": 8,
+    "lineId": "p24-l008",
+    "confidence": 0.5,
+    "text": "ARRAKEEN"
+  },
+  {
+    "page": 24,
+    "sourceIndex": 10,
+    "lineId": "p24-l010",
+    "confidence": 0.30000001192092896,
+    "text": "Moo"
+  },
+  {
+    "page": 24,
+    "sourceIndex": 11,
+    "lineId": "p24-l011",
+    "confidence": 0.5,
+    "text": "CARTHAG"
+  },
+  {
+    "page": 24,
+    "sourceIndex": 12,
+    "lineId": "p24-l012",
+    "confidence": 0.5,
+    "text": "0CO"
+  },
+  {
+    "page": 24,
+    "sourceIndex": 17,
+    "lineId": "p24-l017",
+    "confidence": 0.5,
+    "text": "SIHAYA"
+  },
+  {
+    "page": 24,
+    "sourceIndex": 20,
+    "lineId": "p24-l020",
+    "confidence": 0.30000001192092896,
+    "text": "SABLE WAD."
+  },
+  {
+    "page": 24,
+    "sourceIndex": 21,
+    "lineId": "p24-l021",
+    "confidence": 0.5,
+    "text": "GARA"
+  },
+  {
+    "page": 24,
+    "sourceIndex": 22,
+    "lineId": "p24-l022",
+    "confidence": 0.5,
+    "text": "ARSUNT"
+  },
+  {
+    "page": 25,
+    "sourceIndex": 23,
+    "lineId": "p25-l023",
+    "confidence": 0.5,
+    "text": "Solaris (see below)."
+  },
+  {
+    "page": 26,
+    "sourceIndex": 5,
+    "lineId": "p26-l005",
+    "confidence": 0.5,
+    "text": "4½"
+  },
+  {
+    "page": 26,
+    "sourceIndex": 6,
+    "lineId": "p26-l006",
+    "confidence": 0.5,
+    "text": "3"
+  },
+  {
+    "page": 26,
+    "sourceIndex": 8,
+    "lineId": "p26-l008",
+    "confidence": 0.5,
+    "text": "8½"
+  },
+  {
+    "page": 26,
+    "sourceIndex": 32,
+    "lineId": "p26-l032",
+    "confidence": 0.5,
+    "text": "1"
+  },
+  {
+    "page": 26,
+    "sourceIndex": 33,
+    "lineId": "p26-l033",
+    "confidence": 0.5,
+    "text": "2"
+  },
+  {
+    "page": 26,
+    "sourceIndex": 48,
+    "lineId": "p26-l048",
+    "confidence": 0.5,
+    "text": "ntage"
+  },
+  {
+    "page": 27,
+    "sourceIndex": 2,
+    "lineId": "p27-l002",
+    "confidence": 0.5,
+    "text": "BENE GESSERIT"
+  },
+  {
+    "page": 28,
+    "sourceIndex": 33,
+    "lineId": "p28-l033",
+    "confidence": 0.5,
+    "text": "ay"
+  },
+  {
+    "page": 29,
+    "sourceIndex": 0,
+    "lineId": "p29-l000",
+    "confidence": 0.5,
+    "text": "Wormriders:"
+  },
+  {
+    "page": 29,
+    "sourceIndex": 24,
+    "lineId": "p29-l024",
+    "confidence": 0.5,
+    "text": "Fedaykin:"
+  },
+  {
+    "page": 31,
+    "sourceIndex": 11,
+    "lineId": "p31-l011",
+    "confidence": 0.5,
+    "text": "Kwisatz Haderach:"
+  },
+  {
+    "page": 31,
+    "sourceIndex": 94,
+    "lineId": "p31-l094",
+    "confidence": 0.5,
+    "text": "Arrakeen."
+  },
+  {
+    "page": 32,
+    "sourceIndex": 41,
+    "lineId": "p32-l041",
+    "confidence": 0.5,
+    "text": "Meders can be retired by their factiona (scoes to t"
+  },
+  {
+    "page": 32,
+    "sourceIndex": 42,
+    "lineId": "p32-l042",
+    "confidence": 0.5,
+    "text": "normal revivel rules). Captured Maden met in tec"
+  },
+  {
+    "page": 32,
+    "sourceIndex": 43,
+    "lineId": "p32-l043",
+    "confidence": 0.5,
+    "text": "may still be claimen as a Traitor (subig is the sonna."
+  },
+  {
+    "page": 32,
+    "sourceIndex": 44,
+    "lineId": "p32-l044",
+    "confidence": 0.5,
+    "text": "Tranor rules): If you use a leader agin ins ven bet."
+  },
+  {
+    "page": 32,
+    "sourceIndex": 45,
+    "lineId": "p32-l045",
+    "confidence": 0.5,
+    "text": "and they are bulding that leader's Irator cord are se"
+  },
+  {
+    "page": 34,
+    "sourceIndex": 0,
+    "lineId": "p34-l000",
+    "confidence": 0.5,
+    "text": "DUNE SYNOPSIS"
+  },
+  {
+    "page": 35,
+    "sourceIndex": 63,
+    "lineId": "p35-l063",
+    "confidence": 0.5,
+    "text": "Harkonnens."
+  },
+  {
+    "page": 36,
+    "sourceIndex": 32,
+    "lineId": "p36-l032",
+    "confidence": 0.5,
+    "text": "it."
+  },
+  {
+    "page": 36,
+    "sourceIndex": 97,
+    "lineId": "p36-l097",
+    "confidence": 0.5,
+    "text": "36"
+  }
+]

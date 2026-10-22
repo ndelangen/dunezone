@@ -1,0 +1,834 @@
+[
+  {
+    "confidence": 1,
+    "h": 0.047517430241305725,
+    "text": "FACTIONS",
+    "w": 0.20560269873008219,
+    "x": 0.28972116144089238,
+    "y": 0.9350428302288859
+  },
+  {
+    "confidence": 1,
+    "h": 0.036251502417622539,
+    "text": "The next four pages contain a copy of the Faction Sheets for you to reference during your games.",
+    "w": 0.59482804613271978,
+    "x": 0.093868916503412614,
+    "y": 0.90346730665440445
+  },
+  {
+    "confidence": 1,
+    "h": 0.048498025335989459,
+    "text": "BENE GESSERIT",
+    "w": 0.3229648955549782,
+    "x": 0.23098174092428506,
+    "y": 0.84613580570545543
+  },
+  {
+    "confidence": 1,
+    "h": 0.030544573525681074,
+    "text": "The Bene Gesserit Sisterhood, represented by Reverend Mother Gaius Helen Mohiam — ancient and inscrutable, carefully",
+    "w": 0.66946558525707633,
+    "x": 0.041041101038152145,
+    "y": 0.81216571780140678
+  },
+  {
+    "confidence": 1,
+    "h": 0.023474178403755874,
+    "text": "trained in psychological control and a genius at achieving her ends through the efforts of others.",
+    "w": 0.53529412276388066,
+    "x": 0.041176474721000639,
+    "y": 0.79929577458930867
+  },
+  {
+    "confidence": 0.5,
+    "h": 0.013381572956210563,
+    "text": "At Start:",
+    "w": 0.04861139703721918,
+    "x": 0.041135478436802674,
+    "y": 0.77019874848129299
+  },
+  {
+    "confidence": 1,
+    "h": 0.018895347726550327,
+    "text": "After Fremen placement (if in the game), start with one",
+    "w": 0.33676468825774442,
+    "x": 0.041176475374804324,
+    "y": 0.75145348869123063
+  },
+  {
+    "confidence": 1,
+    "h": 0.018895347726550216,
+    "text": "force token in any territory of your choice. If alone, place",
+    "w": 0.34705882551928691,
+    "x": 0.039705881284474186,
+    "y": 0.73546511707059115
+  },
+  {
+    "confidence": 1,
+    "h": 0.019379723986176378,
+    "text": "it as a fighter; if sharing a territory with another faction,",
+    "w": 0.34571899993968974,
+    "x": 0.039654314535608103,
+    "y": 0.71653151845839713
+  },
+  {
+    "confidence": 0.5,
+    "h": 0.019170579029734069,
+    "text": "place it as an advisor.",
+    "w": 0.12352940551081257,
+    "x": 0.041176475259299579,
+    "y": 0.69757433490072218
+  },
+  {
+    "confidence": 1,
+    "h": 0.017605633802816878,
+    "text": "19 forces in reserves (off-planet),",
+    "w": 0.20294116964815914,
+    "x": 0.041176476536214479,
+    "y": 0.68309859128898509
+  },
+  {
+    "confidence": 1,
+    "h": 0.017441860013911015,
+    "text": "5 spice, and",
+    "w": 0.066176468100891353,
+    "x": 0.041176472317201368,
+    "y": 0.66424418644653294
+  },
+  {
+    "confidence": 1,
+    "h": 0.016174891744980768,
+    "text": "1 random Treachery card.",
+    "w": 0.15294117448071309,
+    "x": 0.042647061436114027,
+    "y": 0.64970930242131175
+  },
+  {
+    "confidence": 1,
+    "h": 0.013302034428795073,
+    "text": "Free Revival: 1 force\/round.",
+    "w": 0.17205881827045599,
+    "x": 0.044117652555948371,
+    "y": 0.62636932694520331
+  },
+  {
+    "confidence": 1,
+    "h": 0.015988372301271925,
+    "text": "ADVANTAGES",
+    "w": 0.13676470758796022,
+    "x": 0.1441176469658238,
+    "y": 0.58284883717785241
+  },
+  {
+    "confidence": 1,
+    "h": 0.014866979655712043,
+    "text": "You are adept in the ways of mind control.",
+    "w": 0.25441175930479265,
+    "x": 0.045588241174809474,
+    "y": 0.55359937410867954
+  },
+  {
+    "confidence": 1,
+    "h": 0.014311035287585483,
+    "text": "Prediction:",
+    "w": 0.069345161637331135,
+    "x": 0.045474478210019931,
+    "y": 0.52845494763237366
+  },
+  {
+    "confidence": 1,
+    "h": 0.0161021035601836,
+    "text": "After step 1 of Game Setup (Positions), you secretly",
+    "w": 0.3117647027554063,
+    "x": 0.045588239084481744,
+    "y": 0.50860719894219653
+  },
+  {
+    "confidence": 1,
+    "h": 0.013302034428794962,
+    "text": "predict when one other specific faction will win, placing",
+    "w": 0.33970587723611934,
+    "x": 0.047058828514293265,
+    "y": 0.49413145505523837
+  },
+  {
+    "confidence": 1,
+    "h": 0.013302034428794962,
+    "text": "a Round Number card and a Faction card from your",
+    "w": 0.31323527308182403,
+    "x": 0.04705883716006827,
+    "y": 0.47809076683293583
+  },
+  {
+    "confidence": 1,
+    "h": 0.014534883096184559,
+    "text": "Prediction cards face down behind your Faction Screen.",
+    "w": 0.33823528274693188,
+    "x": 0.047058830783396767,
+    "y": 0.45930232565152007
+  },
+  {
+    "confidence": 1,
+    "h": 0.011805328031847306,
+    "text": "Place the unused Prediction cards face down back in the",
+    "w": 0.34117647172530685,
+    "x": 0.047058819549111362,
+    "y": 0.4447674418283567
+  },
+  {
+    "confidence": 1,
+    "h": 0.016672503034087294,
+    "text": "box. If the faction you predicted wins (alone or as an ally,",
+    "w": 0.34714032654146876,
+    "x": 0.047019240965551011,
+    "y": 0.423819087657614
+  },
+  {
+    "confidence": 1,
+    "h": 0.014534883096184559,
+    "text": "even your ally) in the round you predicted, reveal your",
+    "w": 0.33235292895295176,
+    "x": 0.047058824101955651,
+    "y": 0.40843023282206281
+  },
+  {
+    "confidence": 1,
+    "h": 0.01456672820686733,
+    "text": "Prediction and win alone. You also can win normally. You",
+    "w": 0.34411763654091204,
+    "x": 0.048529419891308621,
+    "y": 0.39241001573948064
+  },
+  {
+    "confidence": 1,
+    "h": 0.017183026983890959,
+    "text": "cannot predict a win achieved via an advantage titled",
+    "w": 0.32371790410975848,
+    "x": 0.046990208887014419,
+    "y": 0.37241964453170362
+  },
+  {
+    "confidence": 1,
+    "h": 0.01606798395864284,
+    "text": "\"Special Victory Condition\".",
+    "w": 0.16470588206867329,
+    "x": 0.045588233377428122,
+    "y": 0.35602503945580122
+  },
+  {
+    "confidence": 1,
+    "h": 0.01800566809091575,
+    "text": "Voice: Vulnerable to Karama",
+    "w": 0.1536475730527514,
+    "x": 0.048058004569740007,
+    "y": 0.32960719420465368
+  },
+  {
+    "confidence": 1,
+    "h": 0.018895347726550216,
+    "text": "You may force your opponent to play or not play any",
+    "w": 0.31911765103857381,
+    "x": 0.047058825528507091,
+    "y": 0.31250000071884698
+  },
+  {
+    "confidence": 1,
+    "h": 0.02059246191582953,
+    "text": "Treachery card matching a general type you name",
+    "w": 0.30760095011876482,
+    "x": 0.04689791056865366,
+    "y": 0.29343283248108898
+  },
+  {
+    "confidence": 0.5,
+    "h": 0.017605633802816878,
+    "text": "of weapon or defense (kinetic, poison, or special) in",
+    "w": 0.31617646206019895,
+    "x": 0.047058830955194593,
+    "y": 0.27895148676782089
+  },
+  {
+    "confidence": 0.5,
+    "h": 0.014594023589610261,
+    "text": "a Weapon or Defense slot in their Battle Plan. Other",
+    "w": 0.31470586757101149,
+    "x": 0.048529423089494171,
+    "y": 0.26447574364888893
+  },
+  {
+    "confidence": 0.5,
+    "h": 0.014534883096184559,
+    "text": "cards that could be played in a Battle Plan are not",
+    "w": 0.30294115998305127,
+    "x": 0.048529423795238974,
+    "y": 0.24563953534144256
+  },
+  {
+    "confidence": 1,
+    "h": 0.018952213729118039,
+    "text": "affected by Voice (e.g., Cheap Hero, Worthless cards, or",
+    "w": 0.33529411793132669,
+    "x": 0.047058820034336687,
+    "y": 0.22674418658730622
+  },
+  {
+    "confidence": 1,
+    "h": 0.017605633802816878,
+    "text": "Reinforcements). A card that is labeled as both special",
+    "w": 0.32941176413734663,
+    "x": 0.049999998127405208,
+    "y": 0.21205007819952038
+  },
+  {
+    "confidence": 1,
+    "h": 0.017441860013911015,
+    "text": "and kinetic\/poison is affected by either command (e.g..",
+    "w": 0.33529411793132674,
+    "x": 0.050000004049042444,
+    "y": 0.1947674421587422
+  },
+  {
+    "confidence": 1,
+    "h": 0.020528532902772789,
+    "text": "Shield-Snooper). If your opponent cannot comply with",
+    "w": 0.33235292895295176,
+    "x": 0.048529420994112261,
+    "y": 0.17587209336557663
+  },
+  {
+    "confidence": 1,
+    "h": 0.024760350748220361,
+    "text": "your command, they do not have to admit their inability",
+    "w": 0.34163222988729713,
+    "x": 0.048303156375565773,
+    "y": 0.15759414032279584
+  },
+  {
+    "confidence": 0.5,
+    "h": 0.017605633802816878,
+    "text": "to comply and instead may do as they wish.",
+    "w": 0.26470587240356541,
+    "x": 0.050000009386452431,
+    "y": 0.14241001562848588
+  },
+  {
+    "confidence": 0.5,
+    "h": 0.018920369364659351,
+    "text": "Vulnerable to Karama: Karama can be played to cancel",
+    "w": 0.33676468825774447,
+    "x": 0.051470596091716017,
+    "y": 0.11918604675203504
+  },
+  {
+    "confidence": 1,
+    "h": 0.019170579029733958,
+    "text": "this effect immediately after you have declared how you",
+    "w": 0.33235292895295176,
+    "x": 0.048529413722053577,
+    "y": 0.10015649436894902
+  },
+  {
+    "confidence": 0.5,
+    "h": 0.020040130018255109,
+    "text": "intend to use Voice.",
+    "w": 0.11173906122420577,
+    "x": 0.049264514632021049,
+    "y": 0.084990482782872245
+  },
+  {
+    "confidence": 1,
+    "h": 0.013081395383545247,
+    "text": "Transmutation:",
+    "w": 0.10441176172106958,
+    "x": 0.40735294092868091,
+    "y": 0.77034883716772351
+  },
+  {
+    "confidence": 1,
+    "h": 0.019396899078560237,
+    "text": "You may use a Worthless Treachery card as a Karama",
+    "w": 0.31950657497958734,
+    "x": 0.40714475384649351,
+    "y": 0.74673247481837268
+  },
+  {
+    "confidence": 1,
+    "h": 0.020728535122341629,
+    "text": "card, canceling another faction's vulnerable advantage.",
+    "w": 0.33125308800196707,
+    "x": 0.40717279150125374,
+    "y": 0.72830098230874118
+  },
+  {
+    "confidence": 0.5,
+    "h": 0.015988372301271925,
+    "text": "Alternatively, you may use a Worthless card as a Solaris",
+    "w": 0.33235292895295176,
+    "x": 0.40735294451862214,
+    "y": 0.7063953486967478
+  },
+  {
+    "confidence": 1,
+    "h": 0.019381315682042599,
+    "text": "card to buy a Treachery card for free when it is your",
+    "w": 0.31209119009952735,
+    "x": 0.40863889413438148,
+    "y": 0.68745279892159705
+  },
+  {
+    "confidence": 1,
+    "h": 0.017605633802816767,
+    "text": "turn to bid, allow any faction to ship at Spacing Guild",
+    "w": 0.31764705654938641,
+    "x": 0.40735293955618923,
+    "y": 0.67136150225306834
+  },
+  {
+    "confidence": 1,
+    "h": 0.017441860013911015,
+    "text": "shipping rates when they make a Shipping action, paid",
+    "w": 0.32794116964815917,
+    "x": 0.4073529478670968,
+    "y": 0.6540697677546724
+  },
+  {
+    "confidence": 0.5,
+    "h": 0.016177166235838758,
+    "text": "to the Spice Bank, or pay the cost of your spice strength",
+    "w": 0.33235292895295182,
+    "x": 0.40882353967793578,
+    "y": 0.63953488367131173
+  },
+  {
+    "confidence": 1,
+    "h": 0.016040688575899908,
+    "text": "in a battle from the Spice Bank.",
+    "w": 0.18823528516320887,
+    "x": 0.4088235329576112,
+    "y": 0.6220657280354196
+  },
+  {
+    "confidence": 1,
+    "h": 0.013609745879315183,
+    "text": "Charity:",
+    "w": 0.056006593923198733,
+    "x": 0.40876140947912892,
+    "y": 0.59857303408597873
+  },
+  {
+    "confidence": 1,
+    "h": 0.016118026488637027,
+    "text": "You always receive CHOAM Charity of 2 spice regardless",
+    "w": 0.33529411793132674,
+    "x": 0.40882353166458879,
+    "y": 0.57981220624630114
+  },
+  {
+    "confidence": 1,
+    "h": 0.013302034428794851,
+    "text": "of how much spice you already have. This amount",
+    "w": 0.29852940067825862,
+    "x": 0.41029412816577249,
+    "y": 0.56533646310556707
+  },
+  {
+    "confidence": 1,
+    "h": 0.014632692172866779,
+    "text": "increases or decreases if any effect modifies CHOAM",
+    "w": 0.31470586757101154,
+    "x": 0.40882353155763168,
+    "y": 0.54796511654299307
+  },
+  {
+    "confidence": 1,
+    "h": 0.013081395383545247,
+    "text": "Charity.",
+    "w": 0.048529409739297258,
+    "x": 0.4102941191450572,
+    "y": 0.53052325584020421
+  },
+  {
+    "confidence": 1,
+    "h": 0.010288150097842563,
+    "text": "Dual Forces:",
+    "w": 0.080882352585841644,
+    "x": 0.41176470686884392,
+    "y": 0.5086071987135552
+  },
+  {
+    "confidence": 1,
+    "h": 0.014589474607894393,
+    "text": "Your forces have two sides, the striped advisor side and",
+    "w": 0.32941176413734657,
+    "x": 0.41176471013720889,
+    "y": 0.49127907026150075
+  },
+  {
+    "confidence": 1,
+    "h": 0.017840261563821902,
+    "text": "the fighter side without stripes. Fighters are considered",
+    "w": 0.33397246275454023,
+    "x": 0.41022366803608762,
+    "y": 0.47071933124882404
+  },
+  {
+    "confidence": 1,
+    "h": 0.014637241900806619,
+    "text": "standard forces. You can never have both types of tokens",
+    "w": 0.33823528274693188,
+    "x": 0.41176471495006334,
+    "y": 0.45774647880426234
+  },
+  {
+    "confidence": 1,
+    "h": 0.01460084780840798,
+    "text": "in the same territory, nor flip from one type to the",
+    "w": 0.29999999516744613,
+    "x": 0.4102941163133359,
+    "y": 0.44040697694754738
+  },
+  {
+    "confidence": 1,
+    "h": 0.01801824047345324,
+    "text": "other in order to ship or move to a territory containing",
+    "w": 0.32819913137742485,
+    "x": 0.41164358938421652,
+    "y": 0.42134466141253613
+  },
+  {
+    "confidence": 1,
+    "h": 0.016079357905380398,
+    "text": "tokens of the other type (i.e., flip fighters to advisors",
+    "w": 0.3132352972445937,
+    "x": 0.41176470713137953,
+    "y": 0.4068857586776683
+  },
+  {
+    "confidence": 1,
+    "h": 0.019536300444267241,
+    "text": "to join advisors already present, or vice versa) except",
+    "w": 0.32091792235748218,
+    "x": 0.41158855766245384,
+    "y": 0.38777535887548231
+  },
+  {
+    "confidence": 1,
+    "h": 0.017605633802816878,
+    "text": "by deploying an advisor using Spiritual Advisors - see",
+    "w": 0.3205882213649916,
+    "x": 0.41176471551848454,
+    "y": 0.37050078233342676
+  },
+  {
+    "confidence": 1,
+    "h": 0.013160098140041931,
+    "text": "below.",
+    "w": 0.042671717072137239,
+    "x": 0.41175237729117059,
+    "y": 0.35461181141227982
+  },
+  {
+    "confidence": 1,
+    "h": 0.017441860013911126,
+    "text": "Spiritual Advisors:",
+    "w": 0.12352940551081254,
+    "x": 0.41176470956077021,
+    "y": 0.32848837253664909
+  },
+  {
+    "confidence": 1,
+    "h": 0.017623830475904212,
+    "text": "Whenever any other faction ships forces",
+    "w": 0.24264705171683248,
+    "x": 0.4117647110974661,
+    "y": 0.31377151831012107
+  },
+  {
+    "confidence": 0.5,
+    "h": 0.016111202269839198,
+    "text": "onto Dune from off-planet, you may deploy",
+    "w": 0.2573529241203979,
+    "x": 0.41323530534788921,
+    "y": 0.29929577477832581
+  },
+  {
+    "confidence": 1,
+    "h": 0.016455332438151005,
+    "text": "1 advisor for free from your reserves into",
+    "w": 0.24730328992540085,
+    "x": 0.41456616628783582,
+    "y": 0.28179318590080504
+  },
+  {
+    "confidence": 1,
+    "h": 0.014534883096184559,
+    "text": "that same territory or into Polar Sink as",
+    "w": 0.23823529241203983,
+    "x": 0.41323529199250958,
+    "y": 0.26598837226004723
+  },
+  {
+    "confidence": 1,
+    "h": 0.021539126949877363,
+    "text": "a fighter. If the faction is shipping to a",
+    "w": 0.22710563073720802,
+    "x": 0.41141251366692655,
+    "y": 0.2449388181557568
+  },
+  {
+    "confidence": 1,
+    "h": 0.012532944597175577,
+    "text": "Advisors",
+    "w": 0.058999883873728898,
+    "x": 0.69255888110355723,
+    "y": 0.25972189971421611
+  },
+  {
+    "confidence": 1,
+    "h": 0.019797959424706857,
+    "text": "territory where you have one or more fighters, you",
+    "w": 0.30482269069644452,
+    "x": 0.41301230919791043,
+    "y": 0.2301182447900324
+  },
+  {
+    "confidence": 1,
+    "h": 0.023375182830858265,
+    "text": "may flip those fighters to advisors in order to deploy",
+    "w": 0.31523723103937795,
+    "x": 0.4129655049660258,
+    "y": 0.21158220889168478
+  },
+  {
+    "confidence": 1,
+    "h": 0.020071326660251798,
+    "text": "an advisor there. Your forces can only go to Dune as",
+    "w": 0.30925539912256278,
+    "x": 0.41442610845021927,
+    "y": 0.19718674863389374
+  },
+  {
+    "confidence": 1,
+    "h": 0.021202382907061446,
+    "text": "advisors when accompanying another faction's shipment",
+    "w": 0.34168072456607529,
+    "x": 0.41441927980030441,
+    "y": 0.1800901143508028
+  },
+  {
+    "confidence": 1,
+    "h": 0.011812151877533039,
+    "text": "in this manner.",
+    "w": 0.092647054133109363,
+    "x": 0.41323529800697456,
+    "y": 0.16424418612099234
+  },
+  {
+    "confidence": 1,
+    "h": 0.021802324644276783,
+    "text": "27",
+    "w": 0.024999999093896108,
+    "x": 0.39264705928708549,
+    "y": 0.014534884033758688
+  },
+  {
+    "confidence": 1,
+    "h": 0.01463724190080673,
+    "text": "Bene Gesserit Strategy:",
+    "w": 0.14999999758372307,
+    "x": 0.76617647054637383,
+    "y": 0.70774647864437856
+  },
+  {
+    "confidence": 1,
+    "h": 0.013302034428795073,
+    "text": "Your major handicaps are your",
+    "w": 0.18382352585841621,
+    "x": 0.76764705928717847,
+    "y": 0.69170578996776455
+  },
+  {
+    "confidence": 1,
+    "h": 0.013095043074916823,
+    "text": "low revival rate and having",
+    "w": 0.16470588206867331,
+    "x": 0.76617647278919265,
+    "y": 0.67587209306040763
+  },
+  {
+    "confidence": 1,
+    "h": 0.018404036806969226,
+    "text": "very little income. You should",
+    "w": 0.17554641204133259,
+    "x": 0.76591026786812821,
+    "y": 0.65616685432385158
+  },
+  {
+    "confidence": 1,
+    "h": 0.016131674180008382,
+    "text": "not allow large numbers of",
+    "w": 0.16470588206867331,
+    "x": 0.76617647195585947,
+    "y": 0.64084507024339876
+  },
+  {
+    "confidence": 1,
+    "h": 0.014671360756123408,
+    "text": "your forces to be sent to the",
+    "w": 0.16470588206867331,
+    "x": 0.76764706061272203,
+    "y": 0.62500000039958215
+  },
+  {
+    "confidence": 1,
+    "h": 0.014534883096184448,
+    "text": "Tleilaxu Tanks or you may",
+    "w": 0.15735293378550574,
+    "x": 0.76764706383028636,
+    "y": 0.60755813991993102
+  },
+  {
+    "confidence": 1,
+    "h": 0.016120300979494906,
+    "text": "find yourself without sufficient",
+    "w": 0.18676470275540635,
+    "x": 0.76470588578406151,
+    "y": 0.5899843503891643
+  },
+  {
+    "confidence": 1,
+    "h": 0.013302034428794851,
+    "text": "reserves to bring onto the",
+    "w": 0.15294117448071309,
+    "x": 0.76764706036993735,
+    "y": 0.57550860698316852
+  },
+  {
+    "confidence": 1,
+    "h": 0.01633261291074084,
+    "text": "planet. Your strengths are that",
+    "w": 0.18410136146575617,
+    "x": 0.76750710818799117,
+    "y": 0.55804916052933851
+  },
+  {
+    "confidence": 1,
+    "h": 0.016040688575899797,
+    "text": "you have the ability to deploy",
+    "w": 0.17794117206443616,
+    "x": 0.76617647501557606,
+    "y": 0.54068857573200502
+  },
+  {
+    "confidence": 1,
+    "h": 0.01459629808046814,
+    "text": "forces for free each round as",
+    "w": 0.17058822378126859,
+    "x": 0.766176473697601,
+    "y": 0.52464788741142265
+  },
+  {
+    "confidence": 0.5,
+    "h": 0.013083669874403236,
+    "text": "advisors, and you can win",
+    "w": 0.15294117448071298,
+    "x": 0.76911764996552578,
+    "y": 0.51017214415094503
+  },
+  {
+    "confidence": 1,
+    "h": 0.014589474607894504,
+    "text": "by correctly predicting the",
+    "w": 0.15882352827469326,
+    "x": 0.76764706098030044,
+    "y": 0.49127907016702399
+  },
+  {
+    "confidence": 1,
+    "h": 0.013083669874403236,
+    "text": "round another player will win",
+    "w": 0.17794117206443616,
+    "x": 0.76911765104131125,
+    "y": 0.476744186101832
+  },
+  {
+    "confidence": 1,
+    "h": 0.013081395383545358,
+    "text": "the game and then secretly",
+    "w": 0.16176470517168329,
+    "x": 0.76911764943621708,
+    "y": 0.45930232565488427
+  },
+  {
+    "confidence": 1,
+    "h": 0.014866979655712043,
+    "text": "working for a favorable",
+    "w": 0.14117646689275287,
+    "x": 0.76911764773009417,
+    "y": 0.44170579027672718
+  },
+  {
+    "confidence": 1,
+    "h": 0.013302034428795073,
+    "text": "outcome. In addition, you can",
+    "w": 0.17352941275964351,
+    "x": 0.77058823597311932,
+    "y": 0.42723004662865283
+  },
+  {
+    "confidence": 1,
+    "h": 0.014534883096184559,
+    "text": "be quite efjective in battles",
+    "w": 0.16176470517168329,
+    "x": 0.76911764903180535,
+    "y": 0.40843023295772163
+  },
+  {
+    "confidence": 1,
+    "h": 0.013081395383545358,
+    "text": "by votcing your opponent and",
+    "w": 0.17647058965663354,
+    "x": 0.77058823678933019,
+    "y": 0.39389534894703537
+  },
+  {
+    "confidence": 1,
+    "h": 0.014619044481495425,
+    "text": "leaving them weaponless or",
+    "w": 0.16764705896566334,
+    "x": 0.7691176490833449,
+    "y": 0.37636932740816664
+  },
+  {
+    "confidence": 1,
+    "h": 0.014619044481495425,
+    "text": "defenseless. You can afjord to",
+    "w": 0.17352941275964351,
+    "x": 0.76911764511527636,
+    "y": 0.35901162817089993
+  },
+  {
+    "confidence": 1,
+    "h": 0.01456672820686733,
+    "text": "bide your time while casting",
+    "w": 0.16764705896566334,
+    "x": 0.77058823627084472,
+    "y": 0.34302325618083218
+  },
+  {
+    "confidence": 1,
+    "h": 0.01175756073893508,
+    "text": "subtle innuendos about who",
+    "w": 0.16764705896566334,
+    "x": 0.77058823689952127,
+    "y": 0.32981220670596401
+  },
+  {
+    "confidence": 1,
+    "h": 0.013095043074916823,
+    "text": "you have picked to win.",
+    "w": 0.13970587240356536,
+    "x": 0.77058824259723679,
+    "y": 0.31103286389495655
+  }
+]

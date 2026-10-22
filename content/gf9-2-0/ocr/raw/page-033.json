@@ -1,0 +1,794 @@
+[
+  {
+    "confidence": 1,
+    "h": 0.036678539825320766,
+    "text": "DUNE SYNOPSIS",
+    "w": 0.31326047289768222,
+    "x": 0.35893073432570843,
+    "y": 0.92899388187789156
+  },
+  {
+    "confidence": 1,
+    "h": 0.017787449461940663,
+    "text": "The Atreides family had governed the planet, Caladan, for twenty",
+    "w": 0.40247024560314726,
+    "x": 0.050230516704694646,
+    "y": 0.8950352350169255
+  },
+  {
+    "confidence": 1,
+    "h": 0.014534882719878572,
+    "text": "generations. In that time, their continued impartial and efficient",
+    "w": 0.39644969813230485,
+    "x": 0.051775153004853393,
+    "y": 0.88081395380721184
+  },
+  {
+    "confidence": 1,
+    "h": 0.014551849958961527,
+    "text": "leadership had earned for them the respect of their noble peers",
+    "w": 0.39349111324255892,
+    "x": 0.05029585956215258,
+    "y": 0.86482558186680492
+  },
+  {
+    "confidence": 1,
+    "h": 0.017509727626459193,
+    "text": "throughout the Imperium and, gradually, they began to acquire more and",
+    "w": 0.45118343395589844,
+    "x": 0.050295861320867372,
+    "y": 0.84591439669912838
+  },
+  {
+    "confidence": 1,
+    "h": 0.016075467506735275,
+    "text": "more influence in the noble assembly, the Landsraad. The present head",
+    "w": 0.4378697898610836,
+    "x": 0.051775171341647303,
+    "y": 0.83139534943161286
+  },
+  {
+    "confidence": 1,
+    "h": 0.016007600776880238,
+    "text": "of the Atreides family, Duke Leto, had just been selected as the unofficial",
+    "w": 0.44674556871223753,
+    "x": 0.050295850229680153,
+    "y": 0.81395348862734929
+  },
+  {
+    "confidence": 1,
+    "h": 0.014534882719878572,
+    "text": "spokesman for the Landsraad, its highest position.",
+    "w": 0.31508874666483011,
+    "x": 0.051775157233413249,
+    "y": 0.79796511677959558
+  },
+  {
+    "confidence": 1,
+    "h": 0.013229571984435751,
+    "text": "This growing influence of the Atreides was viewed with great concern",
+    "w": 0.4304733639095929,
+    "x": 0.05325444661029223,
+    "y": 0.77470817127890013
+  },
+  {
+    "confidence": 1,
+    "h": 0.014785992217898891,
+    "text": "by a powerful personage of no less rank than the Padishah Emperor,",
+    "w": 0.42307688959426998,
+    "x": 0.051775157619038822,
+    "y": 0.7571984438386592
+  },
+  {
+    "confidence": 1,
+    "h": 0.016102614940836202,
+    "text": "Shaddam IV, himself. Shaddam had grown politically war-wise in a",
+    "w": 0.41124259839911848,
+    "x": 0.051775153931604437,
+    "y": 0.73837209343597343
+  },
+  {
+    "confidence": 1,
+    "h": 0.018240085557277075,
+    "text": "regime long hoary with intrigue and corruption. The emergence of the",
+    "w": 0.43653809174115982,
+    "x": 0.05170849089844378,
+    "y": 0.72179604135781372
+  },
+  {
+    "confidence": 1,
+    "h": 0.01634241245136181,
+    "text": "upright and charismatic Duke Leto as a powerful leader of the nobility, he",
+    "w": 0.45562129919955929,
+    "x": 0.051775153013632544,
+    "y": 0.70622568056989166
+  },
+  {
+    "confidence": 1,
+    "h": 0.013229571984435751,
+    "text": "realized, could be a very real threat to his own position.",
+    "w": 0.34763313208820323,
+    "x": 0.051775145586815605,
+    "y": 0.69027237346909076
+  },
+  {
+    "confidence": 1,
+    "h": 0.016030223267551436,
+    "text": "His simplest solution would be to send his fanatical police army, the",
+    "w": 0.42307688959427009,
+    "x": 0.050295869441030837,
+    "y": 0.66420233448954691
+  },
+  {
+    "confidence": 1,
+    "h": 0.01599515848122679,
+    "text": "Sardaukar, to arrest Duke Leto. Unfortunately, the Duke's character was",
+    "w": 0.44378695964057546,
+    "x": 0.051775163670836385,
+    "y": 0.64824902733909839
+  },
+  {
+    "confidence": 1,
+    "h": 0.017794893316721572,
+    "text": "so exemplary that no believable pretext for his arrest could be devised. A",
+    "w": 0.44990943388780208,
+    "x": 0.053163709032443315,
+    "y": 0.63062305288772369
+  },
+  {
+    "confidence": 1,
+    "h": 0.019142719372701178,
+    "text": "more subtle and serviceable plan began to creep into his devious mind.",
+    "w": 0.44246793284469094,
+    "x": 0.053161655553229194,
+    "y": 0.6133251174648584
+  },
+  {
+    "confidence": 1,
+    "h": 0.019313861238353547,
+    "text": "Why not reward Leto for his services to the Empire with a promotion",
+    "w": 0.42920134675861721,
+    "x": 0.053159477257985796,
+    "y": 0.59710460204573101
+  },
+  {
+    "confidence": 1,
+    "h": 0.016060763110446463,
+    "text": "to the governorship of a new and more important planet, Arrakis. He",
+    "w": 0.42899405937376189,
+    "x": 0.051775152512330301,
+    "y": 0.58132295741918094
+  },
+  {
+    "confidence": 1,
+    "h": 0.016025698324121818,
+    "text": "knew that the present governor of Arrakis, Baron Harkonnen, would",
+    "w": 0.42455619413010109,
+    "x": 0.053254444281103368,
+    "y": 0.56536965009171825
+  },
+  {
+    "confidence": 1,
+    "h": 0.016093565796135967,
+    "text": "not give up this planet without a struggle and would prepare a trap to",
+    "w": 0.43343192461742275,
+    "x": 0.053254456226791487,
+    "y": 0.54785992237884029
+  },
+  {
+    "confidence": 1,
+    "h": 0.021627684418793258,
+    "text": "surprise the Duke and his family when most vulnerable - just after arrival",
+    "w": 0.45892682203966917,
+    "x": 0.051608057856485701,
+    "y": 0.52868446546776404
+  },
+  {
+    "confidence": 1,
+    "h": 0.020084721012338158,
+    "text": "on their new planet. In fact, he would secretly aid the Baron by loaning",
+    "w": 0.44107181410026247,
+    "x": 0.05313317054601583,
+    "y": 0.51245169054036499
+  },
+  {
+    "confidence": 1,
+    "h": 0.023085417543403874,
+    "text": "him Sardaukar disguised in Harkonnen livery. If Duke Leto refused the",
+    "w": 0.43973131376287633,
+    "x": 0.051592171821548218,
+    "y": 0.49375507149239595
+  },
+  {
+    "confidence": 1,
+    "h": 0.022808137292527952,
+    "text": "governorship, he would be ostracized by his fellow nobles and forced to",
+    "w": 0.44864805677991287,
+    "x": 0.051541813773758383,
+    "y": 0.47687040754266374
+  },
+  {
+    "confidence": 1,
+    "h": 0.021776781193477146,
+    "text": "become a renegade. Either way Shaddam IV would be rid of him.",
+    "w": 0.40563604533200026,
+    "x": 0.051599079423372912,
+    "y": 0.46062064763650123
+  },
+  {
+    "confidence": 1,
+    "h": 0.022900447029084003,
+    "text": "For thousands of years, the religious and semi-mystical sisterhood of",
+    "w": 0.43386918202444036,
+    "x": 0.051580967166484672,
+    "y": 0.43530991258539875
+  },
+  {
+    "confidence": 1,
+    "h": 0.015996289531544527,
+    "text": "the Bene Gesserit had groomed the peoples of the Empire to prepare",
+    "w": 0.43047336390959284,
+    "x": 0.053254447686475567,
+    "y": 0.42295719867613524
+  },
+  {
+    "confidence": 1,
+    "h": 0.025147361606939311,
+    "text": "for a messiah, a Kwisatz Haderach. To achieve this end, they had trained",
+    "w": 0.45168912618549423,
+    "x": 0.050060729047726661,
+    "y": 0.4007958665273047
+  },
+  {
+    "confidence": 1,
+    "h": 0.023867055692561423,
+    "text": "themselves to influence and impress the people by a combination of",
+    "w": 0.42806015377377182,
+    "x": 0.053002196275567744,
+    "y": 0.38469159514047624
+  },
+  {
+    "confidence": 1,
+    "h": 0.027894708061960483,
+    "text": "religious mysticism and the power of their Voice - the ability to control",
+    "w": 0.44593944035694838,
+    "x": 0.051435232370314901,
+    "y": 0.36554236312602684
+  },
+  {
+    "confidence": 1,
+    "h": 0.026936674303581709,
+    "text": "others merely by selected tone shadings of their voice. They also had",
+    "w": 0.43260509654194734,
+    "x": 0.051437343742003046,
+    "y": 0.34894013316634465
+  },
+  {
+    "confidence": 1,
+    "h": 0.02464452068165579,
+    "text": "secretly conducted a rigorous and careful genetic program to match",
+    "w": 0.42805425338624203,
+    "x": 0.050061160540308999,
+    "y": 0.33163779535333537
+  },
+  {
+    "confidence": 0.5,
+    "h": 0.026820774301016814,
+    "text": "mates with the ultimate object of producing a Kwisatz Haderach -",
+    "w": 0.41485479629927702,
+    "x": 0.051393437121205719,
+    "y": 0.31478574589920227
+  },
+  {
+    "confidence": 1,
+    "h": 0.027651021638269158,
+    "text": "one who through his genetically developed ability to contact higher",
+    "w": 0.42673551677335086,
+    "x": 0.051401771321298174,
+    "y": 0.29659455497040421
+  },
+  {
+    "confidence": 1,
+    "h": 0.024240042541741391,
+    "text": "dimensions could utilize the insights gained to bring a new order to the",
+    "w": 0.45167442358050219,
+    "x": 0.05005204154175099,
+    "y": 0.28211661020948819
+  },
+  {
+    "confidence": 1,
+    "h": 0.012226372655727458,
+    "text": "universe.",
+    "w": 0.059290624458325093,
+    "x": 0.053194924122881133,
+    "y": 0.26568913939550287
+  },
+  {
+    "confidence": 1,
+    "h": 0.02712556119095022,
+    "text": "The Bene Gesserit were upset with one of their sisters, the formal",
+    "w": 0.41638159411833897,
+    "x": 0.051477518902189101,
+    "y": 0.23762801331919192
+  },
+  {
+    "confidence": 1,
+    "h": 0.029023822828953438,
+    "text": "concubine to Duke Leto Atreides, Lady Jessica. As one of the final agents",
+    "w": 0.45635555890018331,
+    "x": 0.049909902953349641,
+    "y": 0.21943864093599164
+  },
+  {
+    "confidence": 1,
+    "h": 0.032126804455708924,
+    "text": "in their breeding program, she had been instructed to bear a female child",
+    "w": 0.46670716009124902,
+    "x": 0.048442431889047975,
+    "y": 0.20075252851851799
+  },
+  {
+    "confidence": 1,
+    "h": 0.031499846343400417,
+    "text": "who was then to marry Feyd-Rautha Harkonnen, the Baron's nephew.",
+    "w": 0.44303785224346276,
+    "x": 0.049873494979829465,
+    "y": 0.1829049426022763
+  },
+  {
+    "confidence": 1,
+    "h": 0.033637433478804435,
+    "text": "There was a high probability that a male offspring of that union would",
+    "w": 0.4476535512981627,
+    "x": 0.049845404308172192,
+    "y": 0.16477612353870419
+  },
+  {
+    "confidence": 1,
+    "h": 0.027079645297870547,
+    "text": "be a Kwisatz Haderach. For some reason never quite understood, even by",
+    "w": 0.46508614952704036,
+    "x": 0.051401011050518912,
+    "y": 0.15173053300460615
+  },
+  {
+    "confidence": 1,
+    "h": 0.034198839655182223,
+    "text": "herself, Lady Jessica upset the program by bearing a son. This boy, named",
+    "w": 0.46837885595161449,
+    "x": 0.048455454924402341,
+    "y": 0.12931538144364785
+  },
+  {
+    "confidence": 1,
+    "h": 0.03026432081883057,
+    "text": "Paul, became the direct heir to the Atreides line and, along with his",
+    "w": 0.42837669505559128,
+    "x": 0.049836797621688501,
+    "y": 0.11357578894360454
+  },
+  {
+    "confidence": 1,
+    "h": 0.034802738887326767,
+    "text": "mother, was now accompanying his father to the new planet. The sisters",
+    "w": 0.46087849612470283,
+    "x": 0.049840062966240918,
+    "y": 0.09490100515901545
+  },
+  {
+    "confidence": 1,
+    "h": 0.030454610386711156,
+    "text": "would have to watch the events as they unfolded on Arrakis very carefully",
+    "w": 0.47125205449559238,
+    "x": 0.049814229217607454,
+    "y": 0.079108570822640112
+  },
+  {
+    "confidence": 1,
+    "h": 0.032125133113638404,
+    "text": "or they might just lose their genetic investments.",
+    "w": 0.31891983926957457,
+    "x": 0.048306995256124016,
+    "y": 0.057352894602967663
+  },
+  {
+    "confidence": 1,
+    "h": 0.021722953885445873,
+    "text": "Duke Leto was aware of the true significance behind the Emperor's",
+    "w": 0.40419843041953496,
+    "x": 0.52641013162636419,
+    "y": 0.9023956037470815
+  },
+  {
+    "confidence": 1,
+    "h": 0.025020323282086032,
+    "text": "magnanimous gesture. He and his human computer mentat, Thufir",
+    "w": 0.40434016062982869,
+    "x": 0.52634037577427284,
+    "y": 0.88318539795848094
+  },
+  {
+    "confidence": 1,
+    "h": 0.01889534887172839,
+    "text": "Hawat, had analyzed the situation and devised a plan • one that might",
+    "w": 0.42011832888644018,
+    "x": 0.52662723029050773,
+    "y": 0.86918604659611254
+  },
+  {
+    "confidence": 1,
+    "h": 0.023174927114048782,
+    "text": "bring them out of the danger alive. Very little concern had been given",
+    "w": 0.41751722526248025,
+    "x": 0.52640966259712063,
+    "y": 0.85119483063346568
+  },
+  {
+    "confidence": 1,
+    "h": 0.022414562952657535,
+    "text": "to the Fremen, the natives of Arrakis, by either the Emperor or Baron",
+    "w": 0.41754160063391443,
+    "x": 0.52638056849131298,
+    "y": 0.83554418039954914
+  },
+  {
+    "confidence": 1,
+    "h": 0.023740606641954987,
+    "text": "Harkonnen. In fact, they considered them little more than small bands of",
+    "w": 0.43823720989438897,
+    "x": 0.5264525687817958,
+    "y": 0.81759628276945406
+  },
+  {
+    "confidence": 1,
+    "h": 0.021561213690019287,
+    "text": "raiders not worth any serious consideration. Yet Thufir Hawat discovered",
+    "w": 0.43970616457012679,
+    "x": 0.52788567823251531,
+    "y": 0.80297733302730656
+  },
+  {
+    "confidence": 1,
+    "h": 0.020531617992119111,
+    "text": "that these natives were much more numerous than ever supposed by the",
+    "w": 0.43813791894686016,
+    "x": 0.52794810153321725,
+    "y": 0.78627441979557755
+  },
+  {
+    "confidence": 1,
+    "h": 0.025915070173805232,
+    "text": "Imperium and it was well known that they hated the despotic rule of th.",
+    "w": 0.43683756059020895,
+    "x": 0.52784531486558917,
+    "y": 0.76686149108237778
+  },
+  {
+    "confidence": 1,
+    "h": 0.020278051947805298,
+    "text": "Harkonnens. A secret alliance with these natives might be just enough",
+    "w": 0.4233329760858261,
+    "x": 0.52942723432526795,
+    "y": 0.75274627254848969
+  },
+  {
+    "confidence": 1,
+    "h": 0.017556102915960548,
+    "text": "to stave off the impending blow. The only real worry was gauging their",
+    "w": 0.42899405937376189,
+    "x": 0.52810652597140295,
+    "y": 0.73691860495184724
+  },
+  {
+    "confidence": 1,
+    "h": 0.025704359358850626,
+    "text": "fighting ability. Nothing was really known about the Fremen. They wer",
+    "w": 0.42802823364451281,
+    "x": 0.52782893082078264,
+    "y": 0.71560245652272991
+  },
+  {
+    "confidence": 1,
+    "h": 0.027382799438001593,
+    "text": "as mysterious as the planet they inhabited",
+    "w": 0.26127677711934183,
+    "x": 0.52915337127159323,
+    "y": 0.69720417241894839
+  },
+  {
+    "confidence": 1,
+    "h": 0.021905968810797649,
+    "text": "Arrakis (or Dune as it is referred to by all of its inhabitants) had one o:",
+    "w": 0.42939301262566876,
+    "x": 0.52935946254780286,
+    "y": 0.67692830690549421
+  },
+  {
+    "confidence": 1,
+    "h": 0.026728212230400339,
+    "text": "the most inhospitable surfaces on any planet in the Imperium. There",
+    "w": 0.42064326992125589,
+    "x": 0.52782351493209845,
+    "y": 0.65752599693201952
+  },
+  {
+    "confidence": 1,
+    "h": 0.024441770264146845,
+    "text": "was practically no water to be found anywhere. Except in a few civilize",
+    "w": 0.43237174105153031,
+    "x": 0.52643589814574521,
+    "y": 0.64168490320796423
+  },
+  {
+    "confidence": 1,
+    "h": 0.019801847109071069,
+    "text": "areas into which tremendous amounts of water had to be continually",
+    "w": 0.42045692407574775,
+    "x": 0.53086234904395735,
+    "y": 0.62887051508939606
+  },
+  {
+    "confidence": 1,
+    "h": 0.021649418545140353,
+    "text": "imported at an exorbitant price, the only way a human could survive th:",
+    "w": 0.43378411004358153,
+    "x": 0.52941806676275416,
+    "y": 0.61006556892578101
+  },
+  {
+    "confidence": 1,
+    "h": 0.021229741731042528,
+    "text": "aridity was by wearing a stillsuit. This unit would continually recycle t!",
+    "w": 0.43230775570151547,
+    "x": 0.53090075234613254,
+    "y": 0.59318738715837305
+  },
+  {
+    "confidence": 1,
+    "h": 0.021975535084765352,
+    "text": "body's water thereby preventing any from escaping into the atmospher:",
+    "w": 0.43972894393509809,
+    "x": 0.53234852266094423,
+    "y": 0.57655974650584707
+  },
+  {
+    "confidence": 1,
+    "h": 0.019308081304052926,
+    "text": "Without a stillsuit or an imported water supply, a body would be",
+    "w": 0.39815111356756383,
+    "x": 0.53094643270723807,
+    "y": 0.56092675333453834
+  },
+  {
+    "confidence": 1,
+    "h": 0.020747768090392693,
+    "text": "unable to replace even the water lost through perspiration. In this dry",
+    "w": 0.42637728586816559,
+    "x": 0.53237270531805536,
+    "y": 0.54345783783629487
+  },
+  {
+    "confidence": 1,
+    "h": 0.022039327361704331,
+    "text": "environment, tremendous Coriolis sand storms often reached speeds of",
+    "w": 0.43828934610551207,
+    "x": 0.53236286846143166,
+    "y": 0.52603561689850631
+  },
+  {
+    "confidence": 1,
+    "h": 0.023189045946885645,
+    "text": "up to 700 kilometers per hour. They could eat flesh off bones and etch",
+    "w": 0.42794567658292881,
+    "x": 0.53233717684628412,
+    "y": 0.50983153508052836
+  },
+  {
+    "confidence": 1,
+    "h": 0.019600369494248815,
+    "text": "the bones to slivers. No being could survive these storms if caught in the",
+    "w": 0.44257883111195029,
+    "x": 0.53240807849763183,
+    "y": 0.49461073955880885
+  },
+  {
+    "confidence": 1,
+    "h": 0.018425863540590059,
+    "text": "open. There were also strange giant creatures often a quarter mile in",
+    "w": 0.4218452078793582,
+    "x": 0.53389388680854877,
+    "y": 0.47752587727161599
+  },
+  {
+    "confidence": 1,
+    "h": 0.019718547182788204,
+    "text": "length called Shai-Hulud by the Fremen or sandworms by everyone else.",
+    "w": 0.44254787825933539,
+    "x": 0.53242653124987105,
+    "y": 0.46016329790107136
+  },
+  {
+    "confidence": 1,
+    "h": 0.0178655898988479,
+    "text": "These sandworms lived in the deserts which covered most of the planet.",
+    "w": 0.43960077977973955,
+    "x": 0.53537878575696352,
+    "y": 0.44514571347745024
+  },
+  {
+    "confidence": 1,
+    "h": 0.019041551226307907,
+    "text": "The slightest noise or vibration would be sufficient to arouse and attract",
+    "w": 0.4425960002723851,
+    "x": 0.53534995061960577,
+    "y": 0.42785270745376802
+  },
+  {
+    "confidence": 1,
+    "h": 0.020272530284837109,
+    "text": "sandworms for miles around, any one of which could swallow a house",
+    "w": 0.42927756815818141,
+    "x": 0.53536452385899524,
+    "y": 0.40892300184136354
+  },
+  {
+    "confidence": 1,
+    "h": 0.019453614231213501,
+    "text": "without a moment's pause. Only in the towns and few rocky ridges that",
+    "w": 0.43664932855524474,
+    "x": 0.53538651500758783,
+    "y": 0.39245835657278161
+  },
+  {
+    "confidence": 1,
+    "h": 0.014785992217898891,
+    "text": "crisscrossed through the deserts was one safe from these monsters.",
+    "w": 0.41863902435060929,
+    "x": 0.53550298000911334,
+    "y": 0.37782101158019621
+  },
+  {
+    "confidence": 1,
+    "h": 0.017516513928365063,
+    "text": "It would seem that such a forbidding place would hardly be the likely",
+    "w": 0.42751480320176316,
+    "x": 0.53402366705049908,
+    "y": 0.35174418632297133
+  },
+  {
+    "confidence": 1,
+    "h": 0.017509727626459082,
+    "text": "setting for the events that were about to transpire. Yet how often",
+    "w": 0.40236684372988063,
+    "x": 0.5355029736971898,
+    "y": 0.33424124541779354
+  },
+  {
+    "confidence": 1,
+    "h": 0.017509727626459082,
+    "text": "underneath a harsh surface is found a cache of great value. There was",
+    "w": 0.4304733639095929,
+    "x": 0.53550296702819156,
+    "y": 0.3182879374779477
+  },
+  {
+    "confidence": 1,
+    "h": 0.014534882719878572,
+    "text": "one item valued above all others in the universe and there was just ont",
+    "w": 0.43786978986108349,
+    "x": 0.53698227030614454,
+    "y": 0.30377907041331653
+  },
+  {
+    "confidence": 1,
+    "h": 0.016047189764475611,
+    "text": "place where it could be found. The item was melange and the place was",
+    "w": 0.43934909439691472,
+    "x": 0.53846155296796261,
+    "y": 0.28482490309436692
+  },
+  {
+    "confidence": 0.5,
+    "h": 0.020392950777877616,
+    "text": "Dune. Melange was a spice found only in the deserts - a by-product of t!",
+    "w": 0.44970412942006743,
+    "x": 0.53698225856412796,
+    "y": 0.26598837202429271
+  },
+  {
+    "confidence": 1,
+    "h": 0.02245120111606469,
+    "text": "sandworm metamorphic life cycle. It awarded to its consumer prolong:",
+    "w": 0.44117144359461669,
+    "x": 0.53683020288754801,
+    "y": 0.24604209322820225
+  },
+  {
+    "confidence": 1,
+    "h": 0.017533481167448128,
+    "text": "life and prescient abilities. It was so highly prized that the entire",
+    "w": 0.40236686791179677,
+    "x": 0.53698225054114301,
+    "y": 0.23110465143440539
+  },
+  {
+    "confidence": 1,
+    "h": 0.024378536832935671,
+    "text": "economic structure of the Imperium was based upon it. Space navigat:",
+    "w": 0.4382812693455328,
+    "x": 0.5382808296030136,
+    "y": 0.21012451828060574
+  },
+  {
+    "confidence": 1,
+    "h": 0.020616005923497549,
+    "text": "was not possible without the prescient abilities it conferred. Laws mu",
+    "w": 0.43218728139547835,
+    "x": 0.5383642054641814,
+    "y": 0.19457665495859211
+  },
+  {
+    "confidence": 1,
+    "h": 0.023253297620246416,
+    "text": "be obeyed, properties must be observed but let no man restrict the fls",
+    "w": 0.43376694088314682,
+    "x": 0.53830907714983312,
+    "y": 0.1777759274338292
+  },
+  {
+    "confidence": 1,
+    "h": 0.01613315478373134,
+    "text": "of melange spice from Dune for whatever reason.",
+    "w": 0.31065088142116926,
+    "x": 0.53846153843142719,
+    "y": 0.16264591455403565
+  },
+  {
+    "confidence": 1,
+    "h": 0.023166144404429878,
+    "text": "Like the planet they lived on, the features of the Fremen were harsh,",
+    "w": 0.42635257194990583,
+    "x": 0.53975544216741955,
+    "y": 0.13480667625785969
+  },
+  {
+    "confidence": 1,
+    "h": 0.02262674175811652,
+    "text": "desiccated and uninviting. Yet, also like the planet, there was hidden",
+    "w": 0.42634401155160462,
+    "x": 0.5398026952905034,
+    "y": 0.1159631922591895
+  },
+  {
+    "confidence": 1,
+    "h": 0.02165493946594943,
+    "text": "a spirit inured to hardship and dedicated to the ideals necessary for",
+    "w": 0.42488555182745635,
+    "x": 0.53979398835663983,
+    "y": 0.099697287760345366
+  },
+  {
+    "confidence": 1,
+    "h": 0.022839374764883957,
+    "text": "survival. It was the stuff of which great fighters were made and it was",
+    "w": 0.43379929628689584,
+    "x": 0.53979468154926957,
+    "y": 0.080943370920180113
+  },
+  {
+    "confidence": 1,
+    "h": 0.017575332255678866,
+    "text": "hidden asset that Duke Leto hoped to exploit to his advantage.",
+    "w": 0.39201183288864405,
+    "x": 0.54142012176573706,
+    "y": 0.066860465446033412
+  },
+  {
+    "confidence": 1,
+    "h": 0.02180232482197686,
+    "text": "34",
+    "w": 0.028106508088754145,
+    "x": 0.62721893544526786,
+    "y": 0.014534884166046425
+  }
+]

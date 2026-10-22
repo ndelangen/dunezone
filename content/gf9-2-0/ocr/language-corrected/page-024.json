@@ -1,0 +1,658 @@
+[
+  {
+    "confidence": 1,
+    "h": 0.027520661264095692,
+    "text": "TREACHERY CARDS",
+    "w": 0.19939396657100344,
+    "x": 0.30206777975510751,
+    "y": 0.94375354452254878
+  },
+  {
+    "confidence": 1,
+    "h": 0.046694606565079622,
+    "text": "ADDITIONAL INSIGHTS",
+    "w": 0.44271479208002651,
+    "x": 0.1753863385217013,
+    "y": 0.91099196317664988
+  },
+  {
+    "confidence": 1,
+    "h": 0.023396226415094312,
+    "text": "Listed below are some additional insights into Treachery",
+    "w": 0.3566229972349183,
+    "x": 0.042212518176572893,
+    "y": 0.87924528317565787
+  },
+  {
+    "confidence": 1,
+    "h": 0.02837592646760756,
+    "text": "Tleilaxu Ghola: This card does not permit a player",
+    "w": 0.30791915697485595,
+    "x": 0.41304064108952721,
+    "y": 0.87128501166054251
+  },
+  {
+    "confidence": 1,
+    "h": 0.014534883319206937,
+    "text": "cards.",
+    "w": 0.032023287864679291,
+    "x": 0.042212518775083939,
+    "y": 0.86191860473574533
+  },
+  {
+    "confidence": 1,
+    "h": 0.021980034450315156,
+    "text": "Cheap Hero: You cannot play a Leader disc and a Cheap",
+    "w": 0.34497815375064955,
+    "x": 0.043668130828979634,
+    "y": 0.83575581428592693
+  },
+  {
+    "confidence": 1,
+    "h": 0.023898001616855735,
+    "text": "Hero in the same Battle Plan.",
+    "w": 0.17562396798454621,
+    "x": 0.043035321741267743,
+    "y": 0.81793498124708819
+  },
+  {
+    "confidence": 1,
+    "h": 0.020424528301886791,
+    "text": "Family Atomics: This can be played before or after",
+    "w": 0.31586606810693024,
+    "x": 0.043668133062012719,
+    "y": 0.7920754719214339
+  },
+  {
+    "confidence": 1,
+    "h": 0.022615834362102016,
+    "text": "revealing a Storm card. It may be played after Weather",
+    "w": 0.33658616577056166,
+    "x": 0.043445050003271014,
+    "y": 0.77451230006495131
+  },
+  {
+    "confidence": 1,
+    "h": 0.021764974054300557,
+    "text": "Control, if the player with Family Atomics is later in",
+    "w": 0.31765101195643186,
+    "x": 0.043464767019366572,
+    "y": 0.75705845216753831
+  },
+  {
+    "confidence": 1,
+    "h": 0.017532908601580965,
+    "text": "storm order than the player with Weather Control.",
+    "w": 0.31149926333380579,
+    "x": 0.045123734672252801,
+    "y": 0.7398255818166708
+  },
+  {
+    "confidence": 1,
+    "h": 0.019029178979261818,
+    "text": "Harj: This must be played during the playing faction's",
+    "w": 0.33187771636432351,
+    "x": 0.04512372999833323,
+    "y": 0.71207547187740605
+  },
+  {
+    "confidence": 1,
+    "h": 0.017441859695146666,
+    "text": "turn in Shipment and Movement, giving them an",
+    "w": 0.29839882594747968,
+    "x": 0.045123734861048995,
+    "y": 0.69622093065388024
+  },
+  {
+    "confidence": 1,
+    "h": 0.018778585757849409,
+    "text": "immediate second Movement action. This second",
+    "w": 0.30597292899364609,
+    "x": 0.044948563147468416,
+    "y": 0.68015582037047284
+  },
+  {
+    "confidence": 1,
+    "h": 0.01753071479077617,
+    "text": "movement can be used for the same group of forces",
+    "w": 0.31877727897799746,
+    "x": 0.045123735802122047,
+    "y": 0.66133720975998478
+  },
+  {
+    "confidence": 1,
+    "h": 0.016226415094339641,
+    "text": "as the first Movement, or a different one. If a player",
+    "w": 0.31732168507594011,
+    "x": 0.045123730703174998,
+    "y": 0.64528301856024028
+  },
+  {
+    "confidence": 1,
+    "h": 0.017016527427817341,
+    "text": "ends their first movement with one or more forces in",
+    "w": 0.32624965676374718,
+    "x": 0.046464756840017003,
+    "y": 0.62784073453888078
+  },
+  {
+    "confidence": 1,
+    "h": 0.015988372226930947,
+    "text": "Arrakeen or Carthag, the second movement has access",
+    "w": 0.33770013810645783,
+    "x": 0.045123734294660357,
+    "y": 0.60901162793086594
+  },
+  {
+    "confidence": 1,
+    "h": 0.017441859695146666,
+    "text": "to ornithopters. If they do not have forces in Arrakeen",
+    "w": 0.33333333333333331,
+    "x": 0.045123724323144078,
+    "y": 0.59011627928033361
+  },
+  {
+    "confidence": 1,
+    "h": 0.017514260489985722,
+    "text": "or Carthag at the start of their second Movement action,",
+    "w": 0.34788936462171671,
+    "x": 0.045123726732082071,
+    "y": 0.57267441888062431
+  },
+  {
+    "confidence": 1,
+    "h": 0.01622641509433953,
+    "text": "they do not have access to ornithopters.",
+    "w": 0.24745269337118531,
+    "x": 0.045123723001452572,
+    "y": 0.55509433930032026
+  },
+  {
+    "confidence": 1,
+    "h": 0.017441859695146666,
+    "text": "Karama: See above. In previous editions of Dune, these",
+    "w": 0.34206694287958234,
+    "x": 0.046579340685390713,
+    "y": 0.53052325637335684
+  },
+  {
+    "confidence": 1,
+    "h": 0.016031153696887901,
+    "text": "cards also had the effects that are currently assigned to",
+    "w": 0.3406113489775251,
+    "x": 0.046579336464658075,
+    "y": 0.51453488385383095
+  },
+  {
+    "confidence": 0.5,
+    "h": 0.014716981132075424,
+    "text": "Solaris (see below).",
+    "w": 0.11790392494345829,
+    "x": 0.046579333998430963,
+    "y": 0.49547169778592448
+  },
+  {
+    "confidence": 1,
+    "h": 0.021561803277933334,
+    "text": "Kinetic Weapons\/Defenses: In previous editions of",
+    "w": 0.32786325929026122,
+    "x": 0.046440020644907314,
+    "y": 0.46690955244115395
+  },
+  {
+    "confidence": 1,
+    "h": 0.022076467118173349,
+    "text": "Dune, these were called Projectile Weapons\/Defenses",
+    "w": 0.33225654492482753,
+    "x": 0.047860276023218552,
+    "y": 0.44946344042167985
+  },
+  {
+    "confidence": 1,
+    "h": 0.018991882036316965,
+    "text": "This terminology change was due to the fact that shields",
+    "w": 0.34643377071965931,
+    "x": 0.048034936310475979,
+    "y": 0.43459302347291073
+  },
+  {
+    "confidence": 1,
+    "h": 0.022251025505785726,
+    "text": "respond to the dynamics of an attack from a projectile",
+    "w": 0.33515772167156788,
+    "x": 0.046428621553738419,
+    "y": 0.41407009147342677
+  },
+  {
+    "confidence": 1,
+    "h": 0.027387190045050858,
+    "text": "like a Maula Pistol, but also to a knife that is not thrown.",
+    "w": 0.34832228518577574,
+    "x": 0.046327184561201565,
+    "y": 0.39689792925245648
+  },
+  {
+    "confidence": 1,
+    "h": 0.022422488230579241,
+    "text": "Lasgun: A leader is not protected from the Lasgun with",
+    "w": 0.34385137925612952,
+    "x": 0.046446097806060897,
+    "y": 0.37158658953063373
+  },
+  {
+    "confidence": 1,
+    "h": 0.022584857580796647,
+    "text": "any defense, not even Weirding Way. Weirding Way does",
+    "w": 0.34683303660005671,
+    "x": 0.047867128990403178,
+    "y": 0.35429994401574305
+  },
+  {
+    "confidence": 1,
+    "h": 0.023668555493624677,
+    "text": "nottrigger a Lasgun\/Shield explosion, but a Shield-",
+    "w": 0.31924775254068644,
+    "x": 0.047840088614699974,
+    "y": 0.33561964712671422
+  },
+  {
+    "confidence": 1,
+    "h": 0.020437691886470044,
+    "text": "Snooper does (both Weirding Way and Shield-Snooper",
+    "w": 0.33915575507546769,
+    "x": 0.048034934200673278,
+    "y": 0.32113207583062142
+  },
+  {
+    "confidence": 1,
+    "h": 0.014716981132075424,
+    "text": "are expansion cards).",
+    "w": 0.12954875689425077,
+    "x": 0.048034936938609718,
+    "y": 0.30377358457618842
+  },
+  {
+    "confidence": 1,
+    "h": 0.018987494414707373,
+    "text": "Poison: A category of weapon and defense.",
+    "w": 0.26783114640170302,
+    "x": 0.048034938152860231,
+    "y": 0.27761627937589028
+  },
+  {
+    "confidence": 1,
+    "h": 0.022664278138358585,
+    "text": "Shield: This is a defense that protects a leader from a",
+    "w": 0.33068792295564059,
+    "x": 0.047931631965853198,
+    "y": 0.25101912284472627
+  },
+  {
+    "confidence": 1,
+    "h": 0.021657290908525639,
+    "text": "kinetic weapon. Note that Weirding Way is a card that",
+    "w": 0.33212831573601664,
+    "x": 0.04794859376043703,
+    "y": 0.23451626028560513
+  },
+  {
+    "confidence": 1,
+    "h": 0.024278440655402411,
+    "text": "can be a kinetic defense, but is not considered a Shield.",
+    "w": 0.34095001797376934,
+    "x": 0.04789013807558333,
+    "y": 0.21584506673886406
+  },
+  {
+    "confidence": 1,
+    "h": 0.023261583436210209,
+    "text": "Some effects will specify a Shield, and do not necessarily",
+    "w": 0.34671548741024183,
+    "x": 0.049374079427303798,
+    "y": 0.19928996797878928
+  },
+  {
+    "confidence": 1,
+    "h": 0.017848506423662314,
+    "text": "indude non-Shield defenses.",
+    "w": 0.17942743164431574,
+    "x": 0.0478519997688239,
+    "y": 0.1844961410097492
+  },
+  {
+    "confidence": 1,
+    "h": 0.024917576627911275,
+    "text": "Solaris: This has three possible effects: gaining a free",
+    "w": 0.33069897202587634,
+    "x": 0.049378690969030921,
+    "y": 0.1555661201221431
+  },
+  {
+    "confidence": 1,
+    "h": 0.021974549923303055,
+    "text": "Treachery card, Spacing Guild rates for any shipping",
+    "w": 0.32023289594700727,
+    "x": 0.050946141000295521,
+    "y": 0.13953488399496972
+  },
+  {
+    "confidence": 1,
+    "h": 0.024993212717883906,
+    "text": "action, and payment for spice strength. Spice strength is",
+    "w": 0.34526598318363805,
+    "x": 0.049394612828895026,
+    "y": 0.12057801522740574
+  },
+  {
+    "confidence": 1,
+    "h": 0.018906318376649023,
+    "text": "paid after Batte Plans are revealed. In previous editions",
+    "w": 0.34497815375064961,
+    "x": 0.050946152193088526,
+    "y": 0.10754717003815839
+  },
+  {
+    "confidence": 1,
+    "h": 0.020449757845896643,
+    "text": "of Dune, the first two of these effects were assigned to",
+    "w": 0.33333333333333331,
+    "x": 0.049490534406841424,
+    "y": 0.090116279602538207
+  },
+  {
+    "confidence": 1,
+    "h": 0.015848035992316434,
+    "text": "Karams.",
+    "w": 0.051207365813078713,
+    "x": 0.051608584714157323,
+    "y": 0.076433439730684949
+  },
+  {
+    "confidence": 1,
+    "h": 0.02262036881356877,
+    "text": "to revive another player's forces or leaders, but it",
+    "w": 0.29753473790774987,
+    "x": 0.41307454633994645,
+    "y": 0.85483239857699489
+  },
+  {
+    "confidence": 1,
+    "h": 0.023712080469671326,
+    "text": "does allow a revived leader to fight another battle in a",
+    "w": 0.32372917700066134,
+    "x": 0.41450009483073164,
+    "y": 0.83692932107826945
+  },
+  {
+    "confidence": 1,
+    "h": 0.017441859695146666,
+    "text": "different territory that round.",
+    "w": 0.18195050643955496,
+    "x": 0.41339156128167803,
+    "y": 0.82412790728905461
+  },
+  {
+    "confidence": 1,
+    "h": 0.021737875308630583,
+    "text": "Truthtrance: This is not intended to force a player",
+    "w": 0.30765815440759642,
+    "x": 0.41310959776020467,
+    "y": 0.79564742671845301
+  },
+  {
+    "confidence": 1,
+    "h": 0.018913464816111447,
+    "text": "into committing a future action. The question asked",
+    "w": 0.3103579335922737,
+    "x": 0.41321641802448883,
+    "y": 0.77914700775806511
+  },
+  {
+    "confidence": 1,
+    "h": 0.025987997954746489,
+    "text": "should be the kind that could theoretically be verified",
+    "w": 0.32222980202280566,
+    "x": 0.41314398402133318,
+    "y": 0.75971847275137105
+  },
+  {
+    "confidence": 1,
+    "h": 0.020186255113133877,
+    "text": "independently (as it would in Tournament play, by",
+    "w": 0.30453982537025226,
+    "x": 0.41177777218317224,
+    "y": 0.74363030121152596
+  },
+  {
+    "confidence": 1,
+    "h": 0.016009214869085353,
+    "text": "an arbiter). When a question is asked that cannot be",
+    "w": 0.31295485723586314,
+    "x": 0.41484717630686208,
+    "y": 0.72965116274796848
+  },
+  {
+    "confidence": 1,
+    "h": 0.014716981132075535,
+    "text": "properly answered, it is not discarded, however a",
+    "w": 0.29403202117435517,
+    "x": 0.41630276964571894,
+    "y": 0.71207547148843719
+  },
+  {
+    "confidence": 1,
+    "h": 0.014722465659087525,
+    "text": "question meant to solicit an \"I don't know\" response",
+    "w": 0.31149926333380568,
+    "x": 0.41630277051650327,
+    "y": 0.69622093067566782
+  },
+  {
+    "confidence": 1,
+    "h": 0.014534883319206937,
+    "text": "is not permitted (e.g., \"Does anyone have Stilgar as a",
+    "w": 0.31149926333380573,
+    "x": 0.41484716911912323,
+    "y": 0.67877907002644311
+  },
+  {
+    "confidence": 1,
+    "h": 0.015988372226930947,
+    "text": "traitor?\", as a way to systematically ask about each of",
+    "w": 0.31877727897799746,
+    "x": 0.41339156110779895,
+    "y": 0.65988372081967417
+  },
+  {
+    "confidence": 1,
+    "h": 0.01672484631808302,
+    "text": "your leaders).",
+    "w": 0.090375414420868161,
+    "x": 0.41332757568461276,
+    "y": 0.64207362316046512
+  },
+  {
+    "confidence": 1,
+    "h": 0.017441859695146666,
+    "text": "Weather Control: This can be played before or after",
+    "w": 0.3129548803028156,
+    "x": 0.41630276624112006,
+    "y": 0.617732558597194
+  },
+  {
+    "confidence": 1,
+    "h": 0.017445151131108005,
+    "text": "revealing a Storm card. If played before, the Storm card",
+    "w": 0.3289665054932564,
+    "x": 0.41484717330868476,
+    "y": 0.60029069827742676
+  },
+  {
+    "confidence": 1,
+    "h": 0.01622641509433953,
+    "text": "is not drawn. It can be played after Family Atomics, if the",
+    "w": 0.33915575507546775,
+    "x": 0.41484716167866581,
+    "y": 0.5841509432968901
+  },
+  {
+    "confidence": 1,
+    "h": 0.017509872868375909,
+    "text": "player wishing to play it is later in storm order than the",
+    "w": 0.33187771636432351,
+    "x": 0.41484717176689201,
+    "y": 0.56679245254605781
+  },
+  {
+    "confidence": 1,
+    "h": 0.015988372226931058,
+    "text": "one playing Family Atomics.",
+    "w": 0.17176127992429613,
+    "x": 0.41484716422271362,
+    "y": 0.54941860460237757
+  },
+  {
+    "confidence": 1,
+    "h": 0.016226415094339641,
+    "text": "Worthless Cards: These cards take up space in a",
+    "w": 0.29257640420534531,
+    "x": 0.41630277561202894,
+    "y": 0.52603773565743239
+  },
+  {
+    "confidence": 1,
+    "h": 0.020633095795253409,
+    "text": "player's hand, because they can only be discarded",
+    "w": 0.29592561037001608,
+    "x": 0.41609338253987171,
+    "y": 0.50571261488673414
+  },
+  {
+    "confidence": 1,
+    "h": 0.021208796231251825,
+    "text": "through use in a Battle Plan, in place of a weapon,",
+    "w": 0.29872148647870611,
+    "x": 0.41467552676860953,
+    "y": 0.48860056519487394
+  },
+  {
+    "confidence": 1,
+    "h": 0.021832288346200657,
+    "text": "defense, or both. Note that Bene Gesserit and CHOAM",
+    "w": 0.31920438667003259,
+    "x": 0.41611518837603179,
+    "y": 0.47152262972291792
+  },
+  {
+    "confidence": 1,
+    "h": 0.014716981132075424,
+    "text": "factions can use these cards in unique ways.",
+    "w": 0.26346434162857851,
+    "x": 0.4163027669768315,
+    "y": 0.45924528313889756
+  },
+  {
+    "confidence": 1,
+    "h": 0.013081394411482816,
+    "text": "SOLARIS",
+    "w": 0.066957786600425784,
+    "x": 0.44104803470560955,
+    "y": 0.36046511667507253
+  },
+  {
+    "confidence": 0.5,
+    "h": 0.010174418755297343,
+    "text": "Artion",
+    "w": 0.034934495852377456,
+    "x": 0.44104803626595096,
+    "y": 0.34011627906711872
+  },
+  {
+    "confidence": 1,
+    "h": 0.010207327356878348,
+    "text": "Choose one.",
+    "w": 0.056768554318428754,
+    "x": 0.43959243222943201,
+    "y": 0.32264150944674597
+  },
+  {
+    "confidence": 1,
+    "h": 0.016569503208376246,
+    "text": "• Purchase a Treachery card for",
+    "w": 0.1389719529847529,
+    "x": 0.44071360656353026,
+    "y": 0.30541381291400882
+  },
+  {
+    "confidence": 0.5,
+    "h": 0.016559973662754301,
+    "text": "yourself when it is your turn to birg",
+    "w": 0.14911280810067085,
+    "x": 0.45234833100031935,
+    "y": 0.29344100612892687
+  },
+  {
+    "confidence": 0.5,
+    "h": 0.01453221734964627,
+    "text": "on arard in a normal auction, tast",
+    "w": 0.14463370186941971,
+    "x": 0.45241372826440529,
+    "y": 0.28246212879511712
+  },
+  {
+    "confidence": 0.5,
+    "h": 0.017568723570625777,
+    "text": "pay no spice for the estel,",
+    "w": 0.11146092144540104,
+    "x": 0.4521446841650269,
+    "y": 0.26635446281671837
+  },
+  {
+    "confidence": 0.5,
+    "h": 0.019515475866929477,
+    "text": "• Merrive poring Guild rate, for",
+    "w": 0.14639262619652899,
+    "x": 0.44058125033466095,
+    "y": 0.25141184116186954
+  },
+  {
+    "confidence": 1,
+    "h": 0.016812084845776898,
+    "text": "a force Stigment for any fartin",
+    "w": 0.14195694350331284,
+    "x": 0.45227027849682805,
+    "y": 0.24036712352435219
+  },
+  {
+    "confidence": 0.5,
+    "h": 0.01620764966280952,
+    "text": "tron regerves (even fremen), paid",
+    "w": 0.15050073509764145,
+    "x": 0.45241884435460616,
+    "y": 0.22840148589034714
+  },
+  {
+    "confidence": 1,
+    "h": 0.011732119074407632,
+    "text": "tr, the Spice Bank, o",
+    "w": 0.090247450502010718,
+    "x": 0.45269286976355066,
+    "y": 0.2165697675676107
+  },
+  {
+    "confidence": 1,
+    "h": 0.019139285537431827,
+    "text": "• Pay for spice strength in battle",
+    "w": 0.14637067799124864,
+    "x": 0.44061831143292335,
+    "y": 0.19732488017776584
+  },
+  {
+    "confidence": 1,
+    "h": 0.011801228433285127,
+    "text": "from the Spice Bank.",
+    "w": 0.090247450502010662,
+    "x": 0.45269286953793197,
+    "y": 0.18895348847604077
+  }
+]

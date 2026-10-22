@@ -1,0 +1,162 @@
+[
+  {
+    "page": 4,
+    "region": "Visually transcribed portrait names and leader values",
+    "reason": "Source-image lettering omitted or fragmented by OCR, checked in native-resolution crops. This structured list may overlap recognized lettering above.",
+    "lines": [
+      "Duke Leto Atreides",
+      "Thufir Hawat 5",
+      "Lady Jessica 5",
+      "Gurney Halleck 4",
+      "Duncan Idaho 3",
+      "Dr. Wellington Yueh 1",
+      "Mother Mohiam",
+      "Lady Anirul Corrino 5",
+      "Margot Lady Fenring 5",
+      "Mother Ramallo 5",
+      "Princess Irulan 5",
+      "Wanna Yueh 5",
+      "Emperor Shaddam IV",
+      "Hasimir Fenring 6",
+      "Captain Aramsham 5",
+      "Bashar Garon 3",
+      "Colonel Kolona 3",
+      "Wensicia Corrino 2",
+      "Liet Kynes",
+      "Stilgar 7",
+      "Chani 6",
+      "Otheym 5",
+      "Shadout Mapes 3",
+      "Jamis 2"
+    ]
+  },
+  {
+    "page": 5,
+    "region": "Visually transcribed portrait names and Harkonnen leader values",
+    "reason": "Source-image lettering omitted or fragmented by OCR. Guild curved leader names remain unresolved; do not substitute older names.",
+    "lines": [
+      "Edric",
+      "Baron Harkonnen",
+      "Feyd-Rautha 6",
+      "Beast Rabban 4",
+      "Piter de Vries 3",
+      "Iakin Nefud 2",
+      "Umman Kudu 1"
+    ]
+  },
+  {
+    "page": 8,
+    "region": "Visually transcribed setup-example numbers",
+    "reason": "Source illustrated sheet labels, top to bottom. The first number was missed by OCR.",
+    "lines": ["1", "10", "2"]
+  },
+  {
+    "page": 13,
+    "region": "Visually transcribed faction-sheet numbers",
+    "reason": "Source illustrated sheet labels, top to bottom.",
+    "lines": ["1", "10", "2"]
+  },
+  {
+    "page": 15,
+    "region": "Visually transcribed tall-map lettering",
+    "reason": "Visible labels only, including printed SEITCH. Cut labels remain partial; no completion from a board catalogue.",
+    "lines": [
+      "FALSE WALL EAST",
+      "THE MINOR ERG",
+      "CIELAGO NORTH",
+      "CIELAGO DEPRESSION",
+      "CIELAGO EAST",
+      "CIELAGO SOUTH",
+      "FALSE WALL SOUTH",
+      "TUEK'S SEITCH",
+      "SOUTH MESA",
+      "RIM WALL WEST",
+      "HARG PASS",
+      "POLAR SINK",
+      "PASTY MESA",
+      "SHIELD WALL",
+      "SIHAYA RIDGE",
+      "HOLE IN THE ROCK",
+      "IMPERIAL BASIN",
+      "OLD GAP",
+      "ARRAKEEN",
+      "CARTHAG",
+      "GARA KULO",
+      "ARSUNT",
+      "STORM"
+    ]
+  },
+  {
+    "page": 17,
+    "region": "Visually transcribed battle-wheel lettering",
+    "reason": "Labels follow curved arcs. A spice glyph follows spending values. The listed force/spice/leader values belong to this page. Page 17 leader name is cut off.",
+    "lines": [
+      "Dial at least",
+      "2 Strength",
+      "SPEND 2",
+      "Dial at least",
+      "4 Strength",
+      "SPEND 4",
+      "Dial at least",
+      "8 Strength",
+      "SPEND 8",
+      "SPEND 0",
+      "LEADER OR CHEAP HERO",
+      "MUST PLAY IF POSSIBLE",
+      "SPICE",
+      "STRENGTH",
+      "6",
+      "+2"
+    ]
+  },
+  {
+    "page": 18,
+    "region": "Visually transcribed battle-wheel lettering",
+    "reason": "Labels follow curved arcs. A spice glyph follows spending values. The listed force/spice/leader values belong to this page. Page 17 leader name is cut off.",
+    "lines": [
+      "Dial at least",
+      "2 Strength",
+      "SPEND 2",
+      "Dial at least",
+      "4 Strength",
+      "SPEND 4",
+      "Dial at least",
+      "8 Strength",
+      "SPEND 8",
+      "SPEND 0",
+      "LEADER OR CHEAP HERO",
+      "MUST PLAY IF POSSIBLE",
+      "SPICE",
+      "STRENGTH",
+      "6",
+      "+2",
+      "HASIMIR FENRING",
+      "6"
+    ]
+  },
+  {
+    "page": 19,
+    "region": "Visually transcribed battle-wheel lettering",
+    "reason": "Labels follow curved arcs. A spice glyph follows spending values. The listed force/spice/leader values belong to this page. Page 17 leader name is cut off.",
+    "lines": [
+      "Dial at least",
+      "2 Strength",
+      "SPEND 2",
+      "Dial at least",
+      "4 Strength",
+      "SPEND 4",
+      "Dial at least",
+      "8 Strength",
+      "SPEND 8",
+      "SPEND 0",
+      "LEADER OR CHEAP HERO",
+      "MUST PLAY IF POSSIBLE",
+      "SPICE",
+      "STRENGTH",
+      "4",
+      "0",
+      "LADY JESSICA",
+      "5"
+    ]
+  }
+]

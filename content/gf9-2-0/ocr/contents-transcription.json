@@ -1,0 +1,40 @@
+{
+  "page": 2,
+  "reason": "Manually transcribed from supplied page 2, preserving its apparent printed reference errors and repeated entries. Dot counts approximate the visual leaders; they are layout, not wording. No page references corrected. Replaces the interleaved OCR table only in the reading transcript; original observations remain in page-map.json.",
+  "regions": {
+    "Contents, left column": [
+      "Object of the Game........................3",
+      "Faction Overview..........................4",
+      "Object Of the Game........................4",
+      "Game Components...........................6",
+      "Set-up for play...........................8",
+      "Sequence of Play..........................9",
+      "Phase 1: Storm...........................10",
+      "Phase 2: Spice Blow and Nexus.............11",
+      "Phase 3: CHOAM Charity....................12",
+      "Phase 4: Bidding..........................12",
+      "Phase 5: Revival..........................13",
+      "Phase 6: Shipment and Movement............14",
+      "Phase 7: Battle...........................16",
+      "Phase 8: Spice Collection.................20",
+      "Phase 9: Mentat Pause....................20"
+    ],
+    "Contents, right column": [
+      "Alliances................................21",
+      "Other Rules..............................22",
+      "  Secrecy................................22",
+      "  Bribery and Deals......................22",
+      "  Faction Advantages.....................22",
+      "  Negotiated Surrender...................22",
+      "  Sharing information....................22",
+      "  Social Interaction.....................22",
+      "  Taking Notes (and Discard Piles)........22",
+      "Treachery Cards..........................23",
+      "Game Variants............................25",
+      "Terminology..............................26",
+      "Factions.................................22",
+      "DUNE Synopsis............................34",
+      "Terminology..............................36"
+    ]
+  }
+}

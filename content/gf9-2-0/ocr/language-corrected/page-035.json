@@ -1,0 +1,786 @@
+[
+  {
+    "confidence": 1,
+    "h": 0.013081395140262186,
+    "text": "Nore:",
+    "w": 0.035294118003239706,
+    "x": 0.047058823571909554,
+    "y": 0.88662790714462181
+  },
+  {
+    "confidence": 1,
+    "h": 0.014598673040216559,
+    "text": "Some of the terminology here",
+    "w": 0.1764705839611235,
+    "x": 0.047058827431202925,
+    "y": 0.86912225688547484
+  },
+  {
+    "confidence": 1,
+    "h": 0.014635124176647252,
+    "text": "referencer expansion factions.",
+    "w": 0.1794117639935206,
+    "x": 0.045588237145396546,
+    "y": 0.85174418648419226
+  },
+  {
+    "confidence": 1,
+    "h": 0.021204920024333718,
+    "text": "Available: Your leaders (typically behind your Screen)",
+    "w": 0.32831653413318451,
+    "x": 0.2556989768106378,
+    "y": 0.88298483511941772
+  },
+  {
+    "confidence": 1,
+    "h": 0.017633228840125303,
+    "text": "that are not dead or captured, nor have battled in a",
+    "w": 0.30588233584449409,
+    "x": 0.25441177307775287,
+    "y": 0.86912225717435421
+  },
+  {
+    "confidence": 1,
+    "h": 0.015988372336360746,
+    "text": "different territory that round.",
+    "w": 0.18088234795464408,
+    "x": 0.25441176877267796,
+    "y": 0.85174418608472657
+  },
+  {
+    "confidence": 1,
+    "h": 0.02129870896055408,
+    "text": "Being Formed: Battle Plans are not finalized until they",
+    "w": 0.33125947013733881,
+    "x": 0.25423627834721352,
+    "y": 0.83079887047041345
+  },
+  {
+    "confidence": 1,
+    "h": 0.020253001335646337,
+    "text": "are ready to be revealed. Effects can cause a player to",
+    "w": 0.32089976961650551,
+    "x": 0.25426629336136058,
+    "y": 0.81321816531079461
+  },
+  {
+    "confidence": 1,
+    "h": 0.019782147063730604,
+    "text": "change their Battle Plans before revealing (e.g, Battle",
+    "w": 0.32236531575520833,
+    "x": 0.25427623787536668,
+    "y": 0.79751322323356377
+  },
+  {
+    "confidence": 0.5,
+    "h": 0.018921161520070062,
+    "text": "Presclence, Voice, Truthtrance, Karama).",
+    "w": 0.24439290364583338,
+    "x": 0.2557340280875568,
+    "y": 0.78062448376226357
+  },
+  {
+    "confidence": 1,
+    "h": 0.020915134573431304,
+    "text": "Bribe: Spice paid to a non-ally as part of a deal. This",
+    "w": 0.31361466665116566,
+    "x": 0.25570311986253702,
+    "y": 0.75993938490990565
+  },
+  {
+    "confidence": 1,
+    "h": 0.021639770101230416,
+    "text": "spice is not available immediately, but is collected in the",
+    "w": 0.33574996221633191,
+    "x": 0.25566157766424757,
+    "y": 0.7431721272328633
+  },
+  {
+    "confidence": 1,
+    "h": 0.014562221903786088,
+    "text": "Mentat Pause phase.",
+    "w": 0.125,
+    "x": 0.2558823536948529,
+    "y": 0.72962382442452167
+  },
+  {
+    "confidence": 1,
+    "h": 0.02008212995379699,
+    "text": "Captured: Any Leader disc of a faction that Is held",
+    "w": 0.30180874779110861,
+    "x": 0.25719884345514882,
+    "y": 0.70676817672107184
+  },
+  {
+    "confidence": 1,
+    "h": 0.021108432249589359,
+    "text": "by another faction (e.g., Harkonnen Capture Leaders",
+    "w": 0.31504078214130699,
+    "x": 0.25571496221028461,
+    "y": 0.69002223725013079
+  },
+  {
+    "confidence": 1,
+    "h": 0.020230146784767422,
+    "text": "advantage, or Tleilaxu Ghola advantage). Does not",
+    "w": 0.29883841862754218,
+    "x": 0.25573743670831278,
+    "y": 0.67371521197522366
+  },
+  {
+    "confidence": 1,
+    "h": 0.018904461008627971,
+    "text": "apply to Duke Vidal while held by Moritant or Ecaz's ally",
+    "w": 0.32941175188337052,
+    "x": 0.25735294994066765,
+    "y": 0.6598746084524838
+  },
+  {
+    "confidence": 1,
+    "h": 0.015988372336360746,
+    "text": "through the Ecaz ambassador.",
+    "w": 0.1794117639935206,
+    "x": 0.25588235554000438,
+    "y": 0.64244186039795337
+  },
+  {
+    "confidence": 1,
+    "h": 0.018116396422670156,
+    "text": "Card Knowledge: Having information about specifie",
+    "w": 0.31496901739211314,
+    "x": 0.25870329437437345,
+    "y": 0.6230566317055507
+  },
+  {
+    "confidence": 1,
+    "h": 0.016179740242076246,
+    "text": "cards or types of cards, of any kind: Treachery, Traitos;",
+    "w": 0.32352939181857637,
+    "x": 0.25882353692159427,
+    "y": 0.60736677130764494
+  },
+  {
+    "confidence": 1,
+    "h": 0.018079606716909336,
+    "text": "Prediction, Nexus, etc. For example, cards in hand, cards",
+    "w": 0.33409869481646826,
+    "x": 0.25869281592456195,
+    "y": 0.59071865214906016
+  },
+  {
+    "confidence": 1,
+    "h": 0.014657905482946876,
+    "text": "sold in auction, Ixians Market Manipulation advantage,",
+    "w": 0.32647058396112355,
+    "x": 0.25882353562973232,
+    "y": 0.57703488412227366
+  },
+  {
+    "confidence": 1,
+    "h": 0.013081395140262186,
+    "text": "cards seen and shuffled into a deck.",
+    "w": 0.21323527987041169,
+    "x": 0.25882353842876471,
+    "y": 0.56104651189571197
+  },
+  {
+    "confidence": 1,
+    "h": 0.020487608954450565,
+    "text": "Carryalls: A faction with forces in Arrakeen and\/or",
+    "w": 0.30920809791201631,
+    "x": 0.2586298147604088,
+    "y": 0.53705842637047452
+  },
+  {
+    "confidence": 1,
+    "h": 0.019381727170794671,
+    "text": "Carthag has a spice collection rate of 3 spice per force",
+    "w": 0.32093522813585074,
+    "x": 0.25866093693782621,
+    "y": 0.52019132877361218
+  },
+  {
+    "confidence": 1,
+    "h": 0.017633228840125303,
+    "text": "In the Spice Collection phase while collecting spice from",
+    "w": 0.3367646959092882,
+    "x": 0.25735295037256173,
+    "y": 0.50431034514517292
+  },
+  {
+    "confidence": 1,
+    "h": 0.014648793259384396,
+    "text": "spice blows.",
+    "w": 0.075000000000000011,
+    "x": 0.25735294211397058,
+    "y": 0.48691860508884344
+  },
+  {
+    "confidence": 1,
+    "h": 0.014571334127348456,
+    "text": "Control: A faction controls a stronghold if they alone",
+    "w": 0.31617647201295879,
+    "x": 0.25882353195307933,
+    "y": 0.47093023310483173
+  },
+  {
+    "confidence": 1,
+    "h": 0.019100609244223965,
+    "text": "occupy it at the end of the round. This is the only time",
+    "w": 0.3224094451419891,
+    "x": 0.25864681057146988,
+    "y": 0.45128335056229263
+  },
+  {
+    "confidence": 1,
+    "h": 0.014694356619377458,
+    "text": "control is determined, and it does not carry over into",
+    "w": 0.31764705597408233,
+    "x": 0.25882353529727237,
+    "y": 0.43750000060725436
+  },
+  {
+    "confidence": 1,
+    "h": 0.015695383556210474,
+    "text": "the next round. Bene Gesserit advisors cannot control a",
+    "w": 0.33111729697575648,
+    "x": 0.25869304102862539,
+    "y": 0.42056570308975083
+  },
+  {
+    "confidence": 1,
+    "h": 0.019846896766495203,
+    "text": "stronghold, nor affect whether another faction controls",
+    "w": 0.33128618512834818,
+    "x": 0.2585983703257847,
+    "y": 0.40182438391034436
+  },
+  {
+    "confidence": 0.5,
+    "h": 0.013081395140262186,
+    "text": "it.",
+    "w": 0.016176470499190077,
+    "x": 0.25735294138275794,
+    "y": 0.38517441872347358
+  },
+  {
+    "confidence": 1,
+    "h": 0.019128220208386226,
+    "text": "Deploy: An effect that allows you to place forces into",
+    "w": 0.31792476593501984,
+    "x": 0.2586991506470534,
+    "y": 0.36446354516292578
+  },
+  {
+    "confidence": 1,
+    "h": 0.016088612027302718,
+    "text": "a territory. This does not count as a shipment, and no",
+    "w": 0.31911763993520592,
+    "x": 0.25882353745886744,
+    "y": 0.35029069856661643
+  },
+  {
+    "confidence": 1,
+    "h": 0.016143082824994104,
+    "text": "Bene Gesserit advisor may accompany it.",
+    "w": 0.24720497736855168,
+    "x": 0.25873553887076611,
+    "y": 0.3313469657920014
+  },
+  {
+    "confidence": 1,
+    "h": 0.017441860187016323,
+    "text": "Forces: A player's tokens as military units. They can",
+    "w": 0.31470588805183536,
+    "x": 0.25735294147408222,
+    "y": 0.31104651185416621
+  },
+  {
+    "confidence": 1,
+    "h": 0.017633228840125414,
+    "text": "have differing values (e.g, Fedaykin valued at 2 each,",
+    "w": 0.32058822389632935,
+    "x": 0.25735295088271748,
+    "y": 0.29349529792888607
+  },
+  {
+    "confidence": 1,
+    "h": 0.017903389228175026,
+    "text": "Suboids at 1\/2 each) or different states (e.g., Bene",
+    "w": 0.29869350857204863,
+    "x": 0.25726575318702755,
+    "y": 0.27752228339928109
+  },
+  {
+    "confidence": 1,
+    "h": 0.015988372336360746,
+    "text": "Gessert advisors and fighters).",
+    "w": 0.19117645990280885,
+    "x": 0.25735294861477204,
+    "y": 0.26162790705493011
+  },
+  {
+    "confidence": 1,
+    "h": 0.01616607115933888,
+    "text": "Full-Dial: When a player dials their maximum number",
+    "w": 0.330882335844494,
+    "x": 0.25735295259245883,
+    "y": 0.24127906980565683
+  },
+  {
+    "confidence": 1,
+    "h": 0.017441860187016323,
+    "text": "(or strength) of forces in a battle.",
+    "w": 0.20294116792224703,
+    "x": 0.25735294665652353,
+    "y": 0.22238372124370109
+  },
+  {
+    "confidence": 1,
+    "h": 0.01453943985009265,
+    "text": "In Storm: When the storm covers a sector, the portions",
+    "w": 0.33382352798704118,
+    "x": 0.25882353249544998,
+    "y": 0.20493730415263356
+  },
+  {
+    "confidence": 1,
+    "h": 0.016717994474692022,
+    "text": "of all territories (and any forces in them) in that sector",
+    "w": 0.33108261350601442,
+    "x": 0.2587078116698317,
+    "y": 0.1872915173224492
+  },
+  {
+    "confidence": 1,
+    "h": 0.013081395140262297,
+    "text": "are considered \"in storm\".",
+    "w": 0.15588234795464412,
+    "x": 0.25882353193923063,
+    "y": 0.17151162802647524
+  },
+  {
+    "confidence": 1,
+    "h": 0.016125063911127113,
+    "text": "Initiative: The active player earliest in storm order. This",
+    "w": 0.34264705597408235,
+    "x": 0.25735294545658621,
+    "y": 0.1481191223418401
+  },
+  {
+    "confidence": 1,
+    "h": 0.017633228840125303,
+    "text": "player will choose the order of their battles, and win any",
+    "w": 0.3426470559740824,
+    "x": 0.25735294504867312,
+    "y": 0.12931034511921757
+  },
+  {
+    "confidence": 1,
+    "h": 0.014598673040216559,
+    "text": "ties. Initiative moves to the next player in storm order",
+    "w": 0.32647058396112349,
+    "x": 0.25882353426943816,
+    "y": 0.11627907020512263
+  },
+  {
+    "confidence": 1,
+    "h": 0.014626011205691181,
+    "text": "when the current one has no battles left.",
+    "w": 0.24558822389632934,
+    "x": 0.25882353131163932,
+    "y": 0.098746081210310255
+  },
+  {
+    "confidence": 1,
+    "h": 0.046536027077223485,
+    "text": "TERMINOLOGY",
+    "w": 0.31428103976779515,
+    "x": 0.44204566616562196,
+    "y": 0.91337094134051899
+  },
+  {
+    "confidence": 1,
+    "h": 0.017633228840125414,
+    "text": "Occupancy Rule: When two factions occupy a",
+    "w": 0.27941175188337053,
+    "x": 0.61617648049213825,
+    "y": 0.89380877776600964
+  },
+  {
+    "confidence": 1,
+    "h": 0.022247287546953043,
+    "text": "stronghold, no other factions may enter that territory",
+    "w": 0.32252596900576636,
+    "x": 0.61445418642106253,
+    "y": 0.87563325585653429
+  },
+  {
+    "confidence": 1,
+    "h": 0.018856120333776261,
+    "text": "unless an effect allows them to do so.",
+    "w": 0.22841128394717258,
+    "x": 0.61440804230950119,
+    "y": 0.86115661612638195
+  },
+  {
+    "confidence": 1,
+    "h": 0.022000837475528612,
+    "text": "Occupy: When a faction has forces in a stronghold,",
+    "w": 0.30774267287481394,
+    "x": 0.61592024314321403,
+    "y": 0.83906718942435399
+  },
+  {
+    "confidence": 1,
+    "h": 0.021445432800484276,
+    "text": "they occupy it. Advisors do not count as occupying a",
+    "w": 0.31657082693917404,
+    "x": 0.61449322536925566,
+    "y": 0.82212579851699763
+  },
+  {
+    "confidence": 1,
+    "h": 0.016204908723741474,
+    "text": "stronghold.",
+    "w": 0.073577475169348316,
+    "x": 0.61321126315048524,
+    "y": 0.80512428986994633
+  },
+  {
+    "confidence": 1,
+    "h": 0.018904461008627971,
+    "text": "Opponent: A player with whom you are battling",
+    "w": 0.29558822389632944,
+    "x": 0.6147058859404908,
+    "y": 0.78487460826560662
+  },
+  {
+    "confidence": 1,
+    "h": 0.02332617272403914,
+    "text": "Ornithopters: If a faction starts their Force Movement",
+    "w": 0.33135606069413437,
+    "x": 0.61590206264388492,
+    "y": 0.76441180313888824
+  },
+  {
+    "confidence": 1,
+    "h": 0.019295852386091994,
+    "text": "action with one or more forces in Arrakeen and\/or",
+    "w": 0.30779731387183784,
+    "x": 0.61593749384012908,
+    "y": 0.7498813997946292
+  },
+  {
+    "confidence": 1,
+    "h": 0.023218509171823665,
+    "text": "Carthag, they may move any single group of their forces",
+    "w": 0.33724946521577392,
+    "x": 0.61444027588316674,
+    "y": 0.7299761532352893
+  },
+  {
+    "confidence": 1,
+    "h": 0.019832696286862239,
+    "text": "up to three territories.",
+    "w": 0.13752359057229668,
+    "x": 0.61570161427947234,
+    "y": 0.71442416181496204
+  },
+  {
+    "confidence": 1,
+    "h": 0.022431241307512728,
+    "text": "Payment: Spice given to a player due to a faction",
+    "w": 0.29755985320560518,
+    "x": 0.61592322563192459,
+    "y": 0.69382027343072727
+  },
+  {
+    "confidence": 1,
+    "h": 0.021624461984185883,
+    "text": "advantage (e.g., paying Emperor for purchasing",
+    "w": 0.29016479007781515,
+    "x": 0.61447032103793731,
+    "y": 0.67627828657555722
+  },
+  {
+    "confidence": 1,
+    "h": 0.02234147334920944,
+    "text": "Treachery cards), which would then go behind their",
+    "w": 0.31802726624503985,
+    "x": 0.61455214869021413,
+    "y": 0.66006911130675228
+  },
+  {
+    "confidence": 1,
+    "h": 0.01934417736567684,
+    "text": "Faction Screen and is available for immediate use. Bribe",
+    "w": 0.34003450908358135,
+    "x": 0.61451880477074472,
+    "y": 0.6458002839908914
+  },
+  {
+    "confidence": 1,
+    "h": 0.011627906542213018,
+    "text": "are not considered payments.",
+    "w": 0.18235293191576762,
+    "x": 0.61764706573329253,
+    "y": 0.63226744215040509
+  },
+  {
+    "confidence": 1,
+    "h": 0.016102281857433676,
+    "text": "Pocket Card: The Treachery card(s) dealt to a player",
+    "w": 0.32205880785745278,
+    "x": 0.61617648110803835,
+    "y": 0.61046511624218791
+  },
+  {
+    "confidence": 1,
+    "h": 0.014621455093909885,
+    "text": "during Setup.",
+    "w": 0.086764701964363145,
+    "x": 0.61617647363178896,
+    "y": 0.59156976784320392
+  },
+  {
+    "confidence": 1,
+    "h": 0.018537113285363782,
+    "text": "Rival: Any player with whom you are not allied.",
+    "w": 0.2929032340882316,
+    "x": 0.61604190361272182,
+    "y": 0.57050711763714079
+  },
+  {
+    "confidence": 1,
+    "h": 0.015988372336360746,
+    "text": "Secret Information: Any knowledge pertaining to",
+    "w": 0.30882352798704116,
+    "x": 0.61617647225647942,
+    "y": 0.55232558147353483
+  },
+  {
+    "confidence": 1,
+    "h": 0.016170627271120175,
+    "text": "hidden information: card knowledge, identity of face",
+    "w": 0.32058822389632946,
+    "x": 0.61617647948565879,
+    "y": 0.53633720938051144
+  },
+  {
+    "confidence": 1,
+    "h": 0.011782824058891417,
+    "text": "down tokens, etc.",
+    "w": 0.11029411194816463,
+    "x": 0.61764706305165284,
+    "y": 0.52034883746290517
+  },
+  {
+    "confidence": 1,
+    "h": 0.01855921072645994,
+    "text": "Secretly: Without revealing to other players. If you",
+    "w": 0.31342596629309261,
+    "x": 0.61608017334837295,
+    "y": 0.49664614643933858
+  },
+  {
+    "confidence": 1,
+    "h": 0.016152402076601513,
+    "text": "secretly select a card, you are choosing it without others",
+    "w": 0.34117647201295875,
+    "x": 0.61617646646410895,
+    "y": 0.48110465093937782
+  },
+  {
+    "confidence": 1,
+    "h": 0.019384828107110397,
+    "text": "seeing what you choose. If you are secretly showing or",
+    "w": 0.33264903719463046,
+    "x": 0.61603078151061141,
+    "y": 0.46251201076477166
+  },
+  {
+    "confidence": 1,
+    "h": 0.016170628018513655,
+    "text": "revealing something to another player, they get to see",
+    "w": 0.32647058396112349,
+    "x": 0.61764706504149691,
+    "y": 0.44749216292800964
+  },
+  {
+    "confidence": 1,
+    "h": 0.015988372336360746,
+    "text": "it but others do not (though all players get to know this",
+    "w": 0.33676469590928815,
+    "x": 0.61617647806251286,
+    "y": 0.43168604652319564
+  },
+  {
+    "confidence": 1,
+    "h": 0.014594116181041783,
+    "text": "transaction is taking place).",
+    "w": 0.17205881996760297,
+    "x": 0.61764706232502209,
+    "y": 0.41418495327953342
+  },
+  {
+    "confidence": 1,
+    "h": 0.016074943691959165,
+    "text": "Sector: One of the 18 wedge-like divisions around the",
+    "w": 0.32941175188337046,
+    "x": 0.61764706532302061,
+    "y": 0.39380877720005836
+  },
+  {
+    "confidence": 1,
+    "h": 0.013322884012539227,
+    "text": "board used for determining the location of the storm's",
+    "w": 0.32941175188337057,
+    "x": 0.61911765676419694,
+    "y": 0.37931034510314288
+  },
+  {
+    "confidence": 1,
+    "h": 0.013081395140262297,
+    "text": "effect. Polar Sink is not considered in any sector.",
+    "w": 0.29852941603887639,
+    "x": 0.61764706041806172,
+    "y": 0.36191860480995608
+  },
+  {
+    "confidence": 1,
+    "h": 0.019383775776830259,
+    "text": "Set Aside: Placed near the play area for public view, but",
+    "w": 0.34142179943266371,
+    "x": 0.6175384774238456,
+    "y": 0.33690828302734332
+  },
+  {
+    "confidence": 1,
+    "h": 0.017441860187016323,
+    "text": "not considered \"in play\" or controlled by any player.",
+    "w": 0.31764705597408227,
+    "x": 0.61911765166001764,
+    "y": 0.3212209304588175
+  },
+  {
+    "confidence": 1,
+    "h": 0.018204804124503315,
+    "text": "Slot: Virtual space on Battle Wheel for weapon\/defense.",
+    "w": 0.34276999821738596,
+    "x": 0.61905275958804928,
+    "y": 0.30036880159254198
+  },
+  {
+    "confidence": 1,
+    "h": 0.014653349371165691,
+    "text": "Storm Order: Proceeding counter-clockwise, starting",
+    "w": 0.32794116792224703,
+    "x": 0.62058824230113119,
+    "y": 0.28197674462372713
+  },
+  {
+    "confidence": 1,
+    "h": 0.016138732993864258,
+    "text": "with the First Player when applicable.",
+    "w": 0.23529411194816474,
+    "x": 0.61911765226121163,
+    "y": 0.26293103458419975
+  },
+  {
+    "confidence": 1,
+    "h": 0.020887600590816513,
+    "text": "Stronghold Blocking: Moving into a stronghold when",
+    "w": 0.33257858034164189,
+    "x": 0.61901929779818532,
+    "y": 0.23950788624882835
+  },
+  {
+    "confidence": 1,
+    "h": 0.017441860187016323,
+    "text": "another faction is there, thereby blocking other factio",
+    "w": 0.34117647201295875,
+    "x": 0.61911764943469705,
+    "y": 0.22529069803149182
+  },
+  {
+    "confidence": 1,
+    "h": 0.017633228840125303,
+    "text": "(particularly one poised to win) from entering. This i",
+    "w": 0.32500000000000007,
+    "x": 0.61911764610294107,
+    "y": 0.207680250574518
+  },
+  {
+    "confidence": 1,
+    "h": 0.014667018453903058,
+    "text": "often done as part of a deal, but doesn't need to be.",
+    "w": 0.31176469590928835,
+    "x": 0.62205883371202242,
+    "y": 0.19318181843884275
+  },
+  {
+    "confidence": 1,
+    "h": 0.016070386832784278,
+    "text": "Supply: A pool of available tokens, cards, or resourc",
+    "w": 0.32352941603887653,
+    "x": 0.62058823585311063,
+    "y": 0.17005813952222659
+  },
+  {
+    "confidence": 1,
+    "h": 0.017633228840125414,
+    "text": "not considered part of a player's hand, but neverthel",
+    "w": 0.32499999999999996,
+    "x": 0.62058823516544115,
+    "y": 0.15242946719686001
+  },
+  {
+    "confidence": 1,
+    "h": 0.013453546362610758,
+    "text": "under their control.",
+    "w": 0.12232571556454619,
+    "x": 0.62194567759824571,
+    "y": 0.13946035763209175
+  },
+  {
+    "confidence": 1,
+    "h": 0.014598673040216559,
+    "text": "Territory: A space on the map (board) of Dune.",
+    "w": 0.29558822389632944,
+    "x": 0.62058824468786455,
+    "y": 0.1162790701324482
+  },
+  {
+    "confidence": 1,
+    "h": 0.014534882990917763,
+    "text": "Territories can span several sectors. There are four",
+    "w": 0.31323527987041178,
+    "x": 0.6220588254324414,
+    "y": 0.1002906980394247
+  },
+  {
+    "confidence": 1,
+    "h": 0.018918130091365226,
+    "text": "different types of territories: desert, rock, stronghold",
+    "w": 0.32794116792224692,
+    "x": 0.62058824212956276,
+    "y": 0.081395349394439154
+  },
+  {
+    "confidence": 1,
+    "h": 0.01176004200519809,
+    "text": "and Polar Sink.",
+    "w": 0.092647055974082293,
+    "x": 0.6220588258806059,
+    "y": 0.068181818271722427
+  },
+  {
+    "confidence": 0.5,
+    "h": 0.0188953480376719,
+    "text": "36",
+    "w": 0.026470586988661005,
+    "x": 0.60000000047625768,
+    "y": 0.017441860792210551
+  }
+]

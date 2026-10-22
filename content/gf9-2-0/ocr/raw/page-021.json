@@ -1,0 +1,746 @@
+[
+  {
+    "confidence": 1,
+    "h": 0.014298927832228969,
+    "text": "secrecy",
+    "w": 0.057076452586276472,
+    "x": 0.25326555856497923,
+    "y": 0.89910655977246812
+  },
+  {
+    "confidence": 1,
+    "h": 0.014616090566040518,
+    "text": "Players are never required to keep their cards, spice",
+    "w": 0.31157269438436203,
+    "x": 0.25667656341612749,
+    "y": 0.88218623478900504
+  },
+  {
+    "confidence": 1,
+    "h": 0.0191662467925654,
+    "text": "holdings, available leaders, or the traitors they selected",
+    "w": 0.33407938303041068,
+    "x": 0.25508184892822577,
+    "y": 0.86426335039618685
+  },
+  {
+    "confidence": 1,
+    "h": 0.014725543033738853,
+    "text": "secret. They also are not obligated to reveal this",
+    "w": 0.28783382699509302,
+    "x": 0.25667656109444154,
+    "y": 0.84883720980726063
+  },
+  {
+    "confidence": 0.5,
+    "h": 0.014590198501401641,
+    "text": "information either (except as part of a deal - see below).",
+    "w": 0.34124627231566373,
+    "x": 0.2551928932684786,
+    "y": 0.832793522105582
+  },
+  {
+    "confidence": 1,
+    "h": 0.01619433198380571,
+    "text": "All spice holdings should be kept behind the Faction",
+    "w": 0.31454006226594788,
+    "x": 0.25519287373349497,
+    "y": 0.81376518194508907
+  },
+  {
+    "confidence": 1,
+    "h": 0.014534883074432181,
+    "text": "Screen. The number of Treachery cards held must be",
+    "w": 0.31750740492639457,
+    "x": 0.25667655935678307,
+    "y": 0.79941860521665986
+  },
+  {
+    "confidence": 1,
+    "h": 0.017452452346863545,
+    "text": "kept open during the Bidding phase, but can be kept",
+    "w": 0.31602372098560177,
+    "x": 0.25519288336847518,
+    "y": 0.78052325626543428
+  },
+  {
+    "confidence": 1,
+    "h": 0.010243856375999227,
+    "text": "secret at all other times.",
+    "w": 0.14688426876856275,
+    "x": 0.25667656242580755,
+    "y": 0.76882591096980324
+  },
+  {
+    "confidence": 1,
+    "h": 0.01619433198380571,
+    "text": "Other player elements are public knowledge, including",
+    "w": 0.33086053517239156,
+    "x": 0.25667655940749856,
+    "y": 0.73967611315432946
+  },
+  {
+    "confidence": 1,
+    "h": 0.022807986147490578,
+    "text": "number of available forces in reserves, and how many",
+    "w": 0.32528830283929494,
+    "x": 0.25652419164160162,
+    "y": 0.72164361862804471
+  },
+  {
+    "confidence": 1,
+    "h": 0.014691413076300286,
+    "text": "special forces are in a territory. Any time a player wishes",
+    "w": 0.34272995625645664,
+    "x": 0.2566765606143534,
+    "y": 0.70769230749434597
+  },
+  {
+    "confidence": 1,
+    "h": 0.016194331983805599,
+    "text": "to secretly share information, it must be made public",
+    "w": 0.32047477280798031,
+    "x": 0.2566765633882947,
+    "y": 0.69028340059505866
+  },
+  {
+    "confidence": 1,
+    "h": 0.017532482224437373,
+    "text": "that this information exchange is taking place.",
+    "w": 0.28189909123192153,
+    "x": 0.25519288409472179,
+    "y": 0.67287449428629098
+  },
+  {
+    "confidence": 1,
+    "h": 0.017519536192117879,
+    "text": "Bribery And Deals",
+    "w": 0.13056379586211908,
+    "x": 0.25667655880484552,
+    "y": 0.64817813781861056
+  },
+  {
+    "confidence": 1,
+    "h": 0.014579606152739011,
+    "text": "Players can make any kind of verbal deals or bribes",
+    "w": 0.31008901044356918,
+    "x": 0.25816024642880875,
+    "y": 0.63076923076965152
+  },
+  {
+    "confidence": 1,
+    "h": 0.021613574317592366,
+    "text": "between one another unless allied. Once negotiated, the",
+    "w": 0.33875762687241734,
+    "x": 0.25792188716969305,
+    "y": 0.61133260386719535
+  },
+  {
+    "confidence": 1,
+    "h": 0.018524674944549568,
+    "text": "terms of these deals and bribes must be stated aloud,",
+    "w": 0.32531102708548565,
+    "x": 0.256516328206713,
+    "y": 0.59580708904579649
+  },
+  {
+    "confidence": 1,
+    "h": 0.018907460510006802,
+    "text": "and must be honored. A player cannot renege on a deal",
+    "w": 0.33411640766238376,
+    "x": 0.25799917142735224,
+    "y": 0.57878854993011886
+  },
+  {
+    "confidence": 1,
+    "h": 0.019792172204145086,
+    "text": "or bribe, and deals are not required to include a spice",
+    "w": 0.32378101191244835,
+    "x": 0.25799045993986702,
+    "y": 0.56130265799559986
+  },
+  {
+    "confidence": 1,
+    "h": 0.019897018463505445,
+    "text": "bribe. If part of a deal becomes impossible to honor, then",
+    "w": 0.34462403857018337,
+    "x": 0.25793563954100368,
+    "y": 0.54482576707987618
+  },
+  {
+    "confidence": 1,
+    "h": 0.018071561496750155,
+    "text": "that part of the deal is void. All parties of a deal may",
+    "w": 0.31478606925522984,
+    "x": 0.25803321778929539,
+    "y": 0.52900931033672371
+  },
+  {
+    "confidence": 0.5,
+    "h": 0.016194331983805599,
+    "text": "agree to nullify the deal at any time. While players in an",
+    "w": 0.33679524571442404,
+    "x": 0.25816024401222409,
+    "y": 0.51295546545791315
+  },
+  {
+    "confidence": 1,
+    "h": 0.018871227063630647,
+    "text": "alliance can make deals, they are not binding and cannot",
+    "w": 0.34455515963972105,
+    "x": 0.25799256005388793,
+    "y": 0.49584459029280703
+  },
+  {
+    "confidence": 1,
+    "h": 0.020026955237755439,
+    "text": "involve the transfer of spice between them, but they can",
+    "w": 0.3416637326075026,
+    "x": 0.25648057386560008,
+    "y": 0.47903845903474662
+  },
+  {
+    "confidence": 1,
+    "h": 0.02265174031740258,
+    "text": "include normal legal payments (e.g., paying for an ally's",
+    "w": 0.34031187955998199,
+    "x": 0.25491657592840067,
+    "y": 0.45952364625069353
+  },
+  {
+    "confidence": 1,
+    "h": 0.020993875974585685,
+    "text": "Treachery card in the Bidding phase).",
+    "w": 0.23357652396209966,
+    "x": 0.25634939007396218,
+    "y": 0.44485663515027718
+  },
+  {
+    "confidence": 1,
+    "h": 0.021041924171602111,
+    "text": "A deal or bribe cannot involve the transfer or gift of",
+    "w": 0.31500897368123704,
+    "x": 0.25793132991521595,
+    "y": 0.42067346143779272
+  },
+  {
+    "confidence": 1,
+    "h": 0.020027418561309962,
+    "text": "Treachery cards, leaders, forces, tokens, or faction",
+    "w": 0.30608540684723662,
+    "x": 0.25791351717469568,
+    "y": 0.40362729131339981
+  },
+  {
+    "confidence": 1,
+    "h": 0.022766539538920161,
+    "text": "advantages (unless specifically indicated). This leaves",
+    "w": 0.33134679873127582,
+    "x": 0.25498562900300215,
+    "y": 0.38482072911436926
+  },
+  {
+    "confidence": 1,
+    "h": 0.02547363095920574,
+    "text": "secret information, stronghold blocking, future actions,",
+    "w": 0.34046754442955834,
+    "x": 0.2564464024840894,
+    "y": 0.36755104607204758
+  },
+  {
+    "confidence": 1,
+    "h": 0.014603144533721024,
+    "text": "and, of course, spice.",
+    "w": 0.12908011192132618,
+    "x": 0.25667656254082055,
+    "y": 0.35748987839884394
+  },
+  {
+    "confidence": 1,
+    "h": 0.021214493662722211,
+    "text": "Spice transferred as part of a deal or bribe is placed in",
+    "w": 0.33423335808367771,
+    "x": 0.2549858562750611,
+    "y": 0.32628446171311076
+  },
+  {
+    "confidence": 1,
+    "h": 0.027561410139446796,
+    "text": "front of the recipient's Faction Screen, by their Faction",
+    "w": 0.33614060583193439,
+    "x": 0.25477238622263088,
+    "y": 0.3065290971241218
+  },
+  {
+    "confidence": 1,
+    "h": 0.019130886711089645,
+    "text": "marker. Players may collect spice from in front of their",
+    "w": 0.3356514418420713,
+    "x": 0.25651785028734198,
+    "y": 0.29422961389057656
+  },
+  {
+    "confidence": 1,
+    "h": 0.02342084815145018,
+    "text": "Faction Screens and add it to their normal spice only",
+    "w": 0.32402051184788228,
+    "x": 0.25638267877165555,
+    "y": 0.27591852278623608
+  },
+  {
+    "confidence": 1,
+    "h": 0.024692121498015251,
+    "text": "at the start of each round's Mentat Pause phase. Bribes",
+    "w": 0.3388710463342588,
+    "x": 0.25641776596305776,
+    "y": 0.2577977103688287
+  },
+  {
+    "confidence": 1,
+    "h": 0.01619433198380571,
+    "text": "may never be made during the Mentat Pause.",
+    "w": 0.27893174857147468,
+    "x": 0.25667656243533082,
+    "y": 0.24412955485278054
+  },
+  {
+    "confidence": 1,
+    "h": 0.019236976221988056,
+    "text": "A player cannot make a deal or bribe that would",
+    "w": 0.29853588766302946,
+    "x": 0.25503574573746252,
+    "y": 0.21794570337776209
+  },
+  {
+    "confidence": 1,
+    "h": 0.026334211218212333,
+    "text": "contravene the rules or the player's faction advantages.",
+    "w": 0.34484444610343495,
+    "x": 0.25496092531661213,
+    "y": 0.19727712468337988
+  },
+  {
+    "confidence": 1,
+    "h": 0.016947884501715804,
+    "text": "These are the only limitations.",
+    "w": 0.18892730208467845,
+    "x": 0.25643421700648594,
+    "y": 0.18596426643467712
+  },
+  {
+    "confidence": 1,
+    "h": 0.017572497935430254,
+    "text": "Faction Advantages",
+    "w": 0.14243322955675364,
+    "x": 0.25519288219491693,
+    "y": 0.15829959491250756
+  },
+  {
+    "confidence": 1,
+    "h": 0.023691865403642542,
+    "text": "Each player's Faction Sheet outlines the unique",
+    "w": 0.29442698581159604,
+    "x": 0.2548311793881885,
+    "y": 0.13358815024387172
+  },
+  {
+    "confidence": 1,
+    "h": 0.024738690148480957,
+    "text": "advantages they may leverage throughout the game. If",
+    "w": 0.34033599096881451,
+    "x": 0.25341458021307706,
+    "y": 0.11521876192395608
+  },
+  {
+    "confidence": 1,
+    "h": 0.025641392696241549,
+    "text": "an advantage uses the word \"may\", it is optional. Refer to",
+    "w": 0.35521217535349953,
+    "x": 0.25342711024917736,
+    "y": 0.097901721219767812
+  },
+  {
+    "confidence": 1,
+    "h": 0.021826925547982046,
+    "text": "the Faction section (page 27) for specific details about",
+    "w": 0.34028259781766534,
+    "x": 0.25346221663433421,
+    "y": 0.082109570034006318
+  },
+  {
+    "confidence": 1,
+    "h": 0.013862106385018613,
+    "text": "each faction.",
+    "w": 0.080247655190712142,
+    "x": 0.25512839892518119,
+    "y": 0.07228406305862578
+  },
+  {
+    "confidence": 1,
+    "h": 0.041585139224403767,
+    "text": "OTHER RULES",
+    "w": 0.28209435328964355,
+    "x": 0.46744453188494733,
+    "y": 0.9260231198124913
+  },
+  {
+    "confidence": 1,
+    "h": 0.024167751976353014,
+    "text": "Negotiated Surrender",
+    "w": 0.16270531268159216,
+    "x": 0.61520343743963102,
+    "y": 0.90139989754106264
+  },
+  {
+    "confidence": 1,
+    "h": 0.015988372308522569,
+    "text": "Factions may agree on a thrown battle. When both",
+    "w": 0.31602372098560183,
+    "x": 0.6172106929938459,
+    "y": 0.88662790713546735
+  },
+  {
+    "confidence": 1,
+    "h": 0.017526598015294881,
+    "text": "parties agree, the following is typically true for both",
+    "w": 0.32492579940921995,
+    "x": 0.61721068769895093,
+    "y": 0.86627906982648084
+  },
+  {
+    "confidence": 1,
+    "h": 0.016134294517609726,
+    "text": "players:",
+    "w": 0.051975404723616725,
+    "x": 0.61718737142204438,
+    "y": 0.84876424825104158
+  },
+  {
+    "confidence": 1,
+    "h": 0.014665521011661298,
+    "text": "• Each player may play a Leader disc face up.",
+    "w": 0.29376853753712562,
+    "x": 0.61721068182490924,
+    "y": 0.82703488394728009
+  },
+  {
+    "confidence": 1,
+    "h": 0.013360323886639658,
+    "text": "• No forces are dialed (unless a faction must dial to",
+    "w": 0.32789316729080586,
+    "x": 0.61869436918842502,
+    "y": 0.80364372445947529
+  },
+  {
+    "confidence": 1,
+    "h": 0.01619433198380571,
+    "text": "exceed their opponent's leader strength).",
+    "w": 0.26261127566503095,
+    "x": 0.63798219862149042,
+    "y": 0.78340080987480021
+  },
+  {
+    "confidence": 1,
+    "h": 0.016194331983805599,
+    "text": "• No player will call Traitor or use faction advantag",
+    "w": 0.32937685123159866,
+    "x": 0.61869436525957167,
+    "y": 0.75870445376685813
+  },
+  {
+    "confidence": 1,
+    "h": 0.014534883074432292,
+    "text": "such as Capture Leader (or expansion effects like",
+    "w": 0.30712166778312244,
+    "x": 0.63946587541110944,
+    "y": 0.7427325584918536
+  },
+  {
+    "confidence": 1,
+    "h": 0.013104933765735738,
+    "text": "reveal a Face Dancer, Execute a leader, conduct ar",
+    "w": 0.30860532650277639,
+    "x": 0.63946588660024373,
+    "y": 0.72672064766573996
+  },
+  {
+    "confidence": 1,
+    "h": 0.013278361949843442,
+    "text": "audit).",
+    "w": 0.044570289170446475,
+    "x": 0.63943592410906713,
+    "y": 0.70920384229739797
+  },
+  {
+    "confidence": 1,
+    "h": 0.013081395384753725,
+    "text": "• No weapons or defenses are included in Battle Pla: :",
+    "w": 0.34718100807883523,
+    "x": 0.62017803761488521,
+    "y": 0.68459302318334991
+  },
+  {
+    "confidence": 1,
+    "h": 0.014665521011661409,
+    "text": "• Worthless cards may be played and discarded.",
+    "w": 0.31305637832515498,
+    "x": 0.62017804750903449,
+    "y": 0.65829959489570977
+  },
+  {
+    "confidence": 1,
+    "h": 0.014652574979341915,
+    "text": "• Tech token transfer is optional (if using this variant).",
+    "w": 0.34718100807883523,
+    "x": 0.62017803616829781,
+    "y": 0.63360323860244783
+  },
+  {
+    "confidence": 1,
+    "h": 0.017754631196921666,
+    "text": "However, players can agree to suspend any or all",
+    "w": 0.30585874447152639,
+    "x": 0.62153664540090958,
+    "y": 0.60666090193690869
+  },
+  {
+    "confidence": 0.5,
+    "h": 0.017441859998201026,
+    "text": "elements of a \"thrown battle\" over which they have",
+    "w": 0.32195845674877333,
+    "x": 0.62017804422205258,
+    "y": 0.58866279075671346
+  },
+  {
+    "confidence": 1,
+    "h": 0.017443036840029569,
+    "text": "control (e.g., killing a leader, playing a Worthless card,",
+    "w": 0.33976261359600979,
+    "x": 0.62017804378063013,
+    "y": 0.571220930436946
+  },
+  {
+    "confidence": 1,
+    "h": 0.014734958540572718,
+    "text": "etc.), or add other terms.",
+    "w": 0.15727001852240452,
+    "x": 0.62166172926500929,
+    "y": 0.55813953515852033
+  },
+  {
+    "confidence": 1,
+    "h": 0.017600743683726217,
+    "text": "Sharing Information",
+    "w": 0.14985162403957908,
+    "x": 0.62166172470127878,
+    "y": 0.53036437218746735
+  },
+  {
+    "confidence": 1,
+    "h": 0.023233254621868538,
+    "text": "Information in Dune is a valuable resource, and it can be",
+    "w": 0.35363446700671486,
+    "x": 0.62142365799351984,
+    "y": 0.50814505759123474
+  },
+  {
+    "confidence": 1,
+    "h": 0.017461867853697521,
+    "text": "offered in deals (including as bribes).",
+    "w": 0.23738872433496905,
+    "x": 0.62166172329245606,
+    "y": 0.49271255048842622
+  },
+  {
+    "confidence": 1,
+    "h": 0.022113677268086218,
+    "text": "For example, Atreides gains Treachery card knowledge",
+    "w": 0.32986281213681556,
+    "x": 0.62141123616330307,
+    "y": 0.46455167026297661
+  },
+  {
+    "confidence": 1,
+    "h": 0.019054231373404673,
+    "text": "during the Bidding phase, and they can solicit bribes to",
+    "w": 0.33086053517239145,
+    "x": 0.6216617172357628,
+    "y": 0.45058139590896717
+  },
+  {
+    "confidence": 1,
+    "h": 0.020112295575470118,
+    "text": "share that information to some or all of the other players. It",
+    "w": 0.35796627328415553,
+    "x": 0.62295181808772981,
+    "y": 0.43215012928593077
+  },
+  {
+    "confidence": 1,
+    "h": 0.023226848401521338,
+    "text": "is allowable for Atreides to simply show the actual card up",
+    "w": 0.35219275104112857,
+    "x": 0.62136393593870287,
+    "y": 0.41262724540911577
+  },
+  {
+    "confidence": 0.5,
+    "h": 0.024998775281404151,
+    "text": "for bid to any player, whether as part of a deal or for any",
+    "w": 0.34341246549748194,
+    "x": 0.62130152600770994,
+    "y": 0.39443678005638727
+  },
+  {
+    "confidence": 1,
+    "h": 0.01017441846098488,
+    "text": "reason.",
+    "w": 0.04302670502465622,
+    "x": 0.62462908115236027,
+    "y": 0.388081395464275
+  },
+  {
+    "confidence": 1,
+    "h": 0.023722462518977694,
+    "text": "Another example: House Harkonnen keeps all the Traitor",
+    "w": 0.35068682205578516,
+    "x": 0.6243380839217707,
+    "y": 0.35356444657917019
+  },
+  {
+    "confidence": 1,
+    "h": 0.025550823752214069,
+    "text": "Cards they draw. The Harkonnen player may sell some",
+    "w": 0.33456998462519372,
+    "x": 0.62418709810416395,
+    "y": 0.33425882510153404
+  },
+  {
+    "confidence": 1,
+    "h": 0.026057498947328894,
+    "text": "or all of that information to another player, providing",
+    "w": 0.33302410535575921,
+    "x": 0.62426772419084442,
+    "y": 0.31688933725169854
+  },
+  {
+    "confidence": 1,
+    "h": 0.019058940285130554,
+    "text": "possible safe leaders to play.",
+    "w": 0.17359050403941767,
+    "x": 0.62462908177109233,
+    "y": 0.3052325579541062
+  },
+  {
+    "confidence": 1,
+    "h": 0.019935552311329707,
+    "text": "Social Interaction",
+    "w": 0.13309031084549328,
+    "x": 0.62411240608289165,
+    "y": 0.28011924666879262
+  },
+  {
+    "confidence": 1,
+    "h": 0.026227557224783427,
+    "text": "Dune at its best is highly social. Players are encouraged",
+    "w": 0.34924273530313799,
+    "x": 0.62427898040419627,
+    "y": 0.25306480054726732
+  },
+  {
+    "confidence": 1,
+    "h": 0.02497646161901812,
+    "text": "to threaten, intimidate, bargain, and bluff about every",
+    "w": 0.33899864007618807,
+    "x": 0.62423051784715478,
+    "y": 0.23592863598988967
+  },
+  {
+    "confidence": 1,
+    "h": 0.024704799574879033,
+    "text": "aspect of gameplay. Reason with the other players to do",
+    "w": 0.35216346929881193,
+    "x": 0.62434348416417129,
+    "y": 0.21928050696634205
+  },
+  {
+    "confidence": 1,
+    "h": 0.028784317140154503,
+    "text": "or not do particular actions, whether it's self-serving or",
+    "w": 0.35093928565663735,
+    "x": 0.62567684560725989,
+    "y": 0.19946384925113492
+  },
+  {
+    "confidence": 1,
+    "h": 0.015988372308522569,
+    "text": "mutually beneficial.",
+    "w": 0.12759644059110276,
+    "x": 0.62611276052789067,
+    "y": 0.19186046495402365
+  },
+  {
+    "confidence": 0.5,
+    "h": 0.0275647815905119,
+    "text": "For example, \"I won't attack you in Hagga Basin if you",
+    "w": 0.3360822693375517,
+    "x": 0.62567035427085904,
+    "y": 0.157282009997744
+  },
+  {
+    "confidence": 0.5,
+    "h": 0.026893501436179523,
+    "text": "bribe half of that spice when you harvest it\"",
+    "w": 0.27258353745641795,
+    "x": 0.62698756881567685,
+    "y": 0.14072141554849349
+  },
+  {
+    "confidence": 1,
+    "h": 0.026531151528300545,
+    "text": "Taking Notes (And Discard Piles)",
+    "w": 0.24590668481243549,
+    "x": 0.62705173981394124,
+    "y": 0.11477579861474208
+  },
+  {
+    "confidence": 1,
+    "h": 0.023627180802194614,
+    "text": "Players are not permitted to keep notes, other than",
+    "w": 0.3240515086276472,
+    "x": 0.62872270260531704,
+    "y": 0.095889734219804956
+  },
+  {
+    "confidence": 1,
+    "h": 0.021987100361812395,
+    "text": "Atreides' advantage for Bidding. The contents of discard",
+    "w": 0.35311571862086777,
+    "x": 0.62908012336018937,
+    "y": 0.079757084981802451
+  },
+  {
+    "confidence": 1,
+    "h": 0.026015024532673237,
+    "text": "piles are not public information, and no discard pile may",
+    "w": 0.35818683214424063,
+    "x": 0.62728153738844661,
+    "y": 0.058745298939044677
+  },
+  {
+    "confidence": 1,
+    "h": 0.033087445463728771,
+    "text": "be searched unless an effect allows a player to do so.",
+    "w": 0.33635016827543907,
+    "x": 0.62708133712452163,
+    "y": 0.039510193875431532
+  },
+  {
+    "confidence": 1,
+    "h": 0.023255813845738715,
+    "text": "22",
+    "w": 0.026706232118212547,
+    "x": 0.60682492533555243,
+    "y": 0.0043604653362668833
+  }
+]

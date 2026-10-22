@@ -1,0 +1,77 @@
+{
+  "meaning": "These source observations have erased, clipped, covered or unreadable characters. Retain OCR only as an uncertain candidate, not verified wording. See transcription-review.md. Missing whole lines and unrecognized illustration labels are described separately there.",
+  "pages": [
+    {
+      "pdfPage": 2,
+      "sourceIndices": [61, 62, 67, 69, 70, 71, 80, 81, 82, 83, 84]
+    },
+    {
+      "pdfPage": 10,
+      "sourceIndices": [50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 75]
+    },
+    {
+      "pdfPage": 12,
+      "sourceIndices": [5]
+    },
+    {
+      "pdfPage": 13,
+      "sourceIndices": [77, 78, 81, 82]
+    },
+    {
+      "pdfPage": 14,
+      "sourceIndices": [54, 55, 56, 57, 73, 74, 78, 79]
+    },
+    {
+      "pdfPage": 16,
+      "sourceIndices": [67, 68, 69, 70, 73, 74, 76, 77, 93, 94, 95, 96]
+    },
+    {
+      "pdfPage": 18,
+      "sourceIndices": [33, 34, 35, 38, 39, 41, 42]
+    },
+    {
+      "pdfPage": 19,
+      "sourceIndices": [69, 70, 71]
+    },
+    {
+      "pdfPage": 20,
+      "sourceIndices": [30, 31, 50, 54, 56, 58, 60, 63, 66, 73]
+    },
+    {
+      "pdfPage": 22,
+      "sourceIndices": [55, 57, 59]
+    },
+    {
+      "pdfPage": 23,
+      "sourceIndices": [50, 51, 52, 53]
+    },
+    {
+      "pdfPage": 24,
+      "sourceIndices": [20, 37, 38, 40, 41, 43, 45, 46]
+    },
+    {
+      "pdfPage": 26,
+      "sourceIndices": [47, 48, 49, 51, 63, 74, 75, 76]
+    },
+    {
+      "pdfPage": 28,
+      "sourceIndices": [32, 33, 35, 36, 37, 38, 41]
+    },
+    {
+      "pdfPage": 30,
+      "sourceIndices": [32, 33, 66, 67, 68, 69]
+    },
+    {
+      "pdfPage": 32,
+      "sourceIndices": [30, 41, 42, 43, 44, 45]
+    },
+    {
+      "pdfPage": 34,
+      "sourceIndices": [57, 60, 62, 64, 66, 67, 68, 86, 87, 89, 90, 91, 96]
+    },
+    {
+      "pdfPage": 36,
+      "sourceIndices": [64, 87, 88, 90, 91]
+    }
+  ]
+}

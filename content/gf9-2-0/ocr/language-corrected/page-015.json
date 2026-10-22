@@ -1,0 +1,778 @@
+[
+  {
+    "confidence": 1,
+    "h": 0.016423765218482766,
+    "text": "\"In viield fighting, one moves fast",
+    "w": 0.18092090323502319,
+    "x": 0.047074028328634492,
+    "y": 0.70073962622437558
+  },
+  {
+    "confidence": 1,
+    "h": 0.011640372039114388,
+    "text": "on detense. slow on attack",
+    "w": 0.14349112031761735,
+    "x": 0.045857992528567967,
+    "y": 0.69039451133854091
+  },
+  {
+    "confidence": 1,
+    "h": 0.013293310463121766,
+    "text": "Arack has the sole purpose",
+    "w": 0.14940827881925492,
+    "x": 0.045857991926664399,
+    "y": 0.66852487117507875
+  },
+  {
+    "confidence": 1,
+    "h": 0.011715165951239781,
+    "text": "of tricking the opponent into o",
+    "w": 0.16568046469875819,
+    "x": 0.045857990431686028,
+    "y": 0.6555232560361044
+  },
+  {
+    "confidence": 1,
+    "h": 0.010383840286097845,
+    "text": "misstep, setting him up for the",
+    "w": 0.16568046469875819,
+    "x": 0.04585799457369779,
+    "y": 0.64098837225214456
+  },
+  {
+    "confidence": 0.5,
+    "h": 0.011627906387093656,
+    "text": "astock sinister.",
+    "w": 0.082840232349379095,
+    "x": 0.044378700048190167,
+    "y": 0.62645348886071672
+  },
+  {
+    "confidence": 1,
+    "h": 0.012006861063464824,
+    "text": "The shield turns the jost blow:",
+    "w": 0.16272188544793942,
+    "x": 0.047337284840132769,
+    "y": 0.60591766703780447
+  },
+  {
+    "confidence": 1,
+    "h": 0.011775000835569149,
+    "text": "admits the slow kindial!\"",
+    "w": 0.13757396181597981,
+    "x": 0.045857987786536762,
+    "y": 0.59156976766401137
+  },
+  {
+    "confidence": 1,
+    "h": 0.011665303343156186,
+    "text": "Paul Atreides.",
+    "w": 0.078402363473150966,
+    "x": 0.16124260622570263,
+    "y": 0.5711835335713209
+  },
+  {
+    "confidence": 0.5,
+    "h": 0.011710179608641069,
+    "text": "to Gurney Haliock",
+    "w": 0.10059171451751844,
+    "x": 0.13757396396905147,
+    "y": 0.55660377351223123
+  },
+  {
+    "confidence": 1,
+    "h": 0.023999603493953803,
+    "text": "Players in the same territory must battle until no",
+    "w": 0.29365604850402571,
+    "x": 0.25260937021337837,
+    "y": 0.89703565400936736
+  },
+  {
+    "confidence": 1,
+    "h": 0.013293310463121766,
+    "text": "territories are co-occupied.",
+    "w": 0.16568046469875819,
+    "x": 0.25147929634884569,
+    "y": 0.88507718685851156
+  },
+  {
+    "confidence": 1,
+    "h": 0.014654552957001465,
+    "text": "Battle Determination",
+    "w": 0.15088756844466428,
+    "x": 0.25147929395814117,
+    "y": 0.85755813987385199
+  },
+  {
+    "confidence": 1,
+    "h": 0.017581475128644941,
+    "text": "Wherever two or more players' forces occupy the same",
+    "w": 0.33284021902292582,
+    "x": 0.25295858455288633,
+    "y": 0.84005145834420414
+  },
+  {
+    "confidence": 1,
+    "h": 0.020833376954800031,
+    "text": "territory, battles must occur between those players",
+    "w": 0.31109837694459608,
+    "x": 0.25273827713468011,
+    "y": 0.82154120931730823
+  },
+  {
+    "confidence": 1,
+    "h": 0.016045714324375404,
+    "text": "Even forces in a different sector of the same territory are",
+    "w": 0.34319527305369818,
+    "x": 0.25443786674757912,
+    "y": 0.80813953454392806
+  },
+  {
+    "confidence": 1,
+    "h": 0.023952520118569409,
+    "text": "considered part of that battle (unless separated by the",
+    "w": 0.33191189828397927,
+    "x": 0.25270419767252106,
+    "y": 0.78508716796218547
+  },
+  {
+    "confidence": 1,
+    "h": 0.02159512227027327,
+    "text": "storm). Battles continue until only one player's forces",
+    "w": 0.32590619882641925,
+    "x": 0.25421110524883639,
+    "y": 0.77025481781699501
+  },
+  {
+    "confidence": 1,
+    "h": 0.018444376989662281,
+    "text": "(or no forces) remain in each territory on the map with",
+    "w": 0.33606767279612443,
+    "x": 0.25430662276514299,
+    "y": 0.75645371528546312
+  },
+  {
+    "confidence": 1,
+    "h": 0.013081395196669288,
+    "text": "two exceptions:",
+    "w": 0.096153845641290259,
+    "x": 0.25591716029695838,
+    "y": 0.73837209293582229
+  },
+  {
+    "confidence": 1,
+    "h": 0.01973146108166024,
+    "text": "• Players cannot battle one another in a territory if",
+    "w": 0.3199346417422898,
+    "x": 0.255756271425024,
+    "y": 0.71437868120434977
+  },
+  {
+    "confidence": 1,
+    "h": 0.023720266888521913,
+    "text": "only one player's forces are in storm or if forces are",
+    "w": 0.31264920297147925,
+    "x": 0.2763412503617253,
+    "y": 0.69545192731165617
+  },
+  {
+    "confidence": 1,
+    "h": 0.018865040604082672,
+    "text": "on opposite sides of the storm. Their forces remain",
+    "w": 0.31098715436510643,
+    "x": 0.27644617919816189,
+    "y": 0.68092425523715594
+  },
+  {
+    "confidence": 1,
+    "h": 0.017581475128644941,
+    "text": "in the same territory at the end of the phase. Forces",
+    "w": 0.3180473227688318,
+    "x": 0.27366864924798046,
+    "y": 0.66423670637497234
+  },
+  {
+    "confidence": 1,
+    "h": 0.015988371180015837,
+    "text": "in storm in the same sector of a rock or stronghold",
+    "w": 0.31065087464178498,
+    "x": 0.27514793351860456,
+    "y": 0.64825581432823343
+  },
+  {
+    "confidence": 1,
+    "h": 0.014579759862778707,
+    "text": "territory still battle.",
+    "w": 0.12426035518729528,
+    "x": 0.27662722009866003,
+    "y": 0.63078902245062418
+  },
+  {
+    "confidence": 1,
+    "h": 0.021146828273557294,
+    "text": "Players cannot battle in Polar Sink. It is a free haven",
+    "w": 0.31836411921738539,
+    "x": 0.27646883860531724,
+    "y": 0.60425216719240371
+  },
+  {
+    "confidence": 1,
+    "h": 0.014599704415270587,
+    "text": "for everyone, and any number of factions may have",
+    "w": 0.31213016426719437,
+    "x": 0.27810651862084063,
+    "y": 0.59005145819634253
+  },
+  {
+    "confidence": 1,
+    "h": 0.013081395196669288,
+    "text": "forces there. Note that if a token is in Polar Sink,",
+    "w": 0.29585797838769101,
+    "x": 0.27662722752213076,
+    "y": 0.5741279070709967
+  },
+  {
+    "confidence": 1,
+    "h": 0.017441860807493992,
+    "text": "creating a \"territory within a territory\" (e.g., the",
+    "w": 0.29437868876228157,
+    "x": 0.27810651573350409,
+    "y": 0.5552325581863693
+  },
+  {
+    "confidence": 1,
+    "h": 0.016043220539649239,
+    "text": "Ixians' Hidden Mobile Stronghold), forces must battle",
+    "w": 0.32988163977210699,
+    "x": 0.27810652014106679,
+    "y": 0.53773584885607573
+  },
+  {
+    "confidence": 1,
+    "h": 0.01464707405653054,
+    "text": "in that territory within Polar Sink.",
+    "w": 0.2100591667874932,
+    "x": 0.27810651303130268,
+    "y": 0.52180232592036369
+  },
+  {
+    "confidence": 1,
+    "h": 0.015988371180015837,
+    "text": "First Player (and Initiative)",
+    "w": 0.19674556015880873,
+    "x": 0.25887573922532936,
+    "y": 0.49563953528831439
+  },
+  {
+    "confidence": 1,
+    "h": 0.017603913465862986,
+    "text": "When resolving battles, the First Player has \"Initiative\"",
+    "w": 0.34023666714997269,
+    "x": 0.2588757535182088,
+    "y": 0.47512864502654673
+  },
+  {
+    "confidence": 1,
+    "h": 0.016028261920804643,
+    "text": "until all of their battles, if any, have been fought. The",
+    "w": 0.3239644812704694,
+    "x": 0.25887575077009062,
+    "y": 0.45926243534071487
+  },
+  {
+    "confidence": 1,
+    "h": 0.016295025728988,
+    "text": "player with Initiative chooses the order in which they",
+    "w": 0.33136092939751638,
+    "x": 0.2588757516030169,
+    "y": 0.44168096035095938
+  },
+  {
+    "confidence": 1,
+    "h": 0.014592225514799662,
+    "text": "wish to fight their battles. They may even choose",
+    "w": 0.30325442651473794,
+    "x": 0.25887574228996829,
+    "y": 0.42581475090495302
+  },
+  {
+    "confidence": 1,
+    "h": 0.017595099748510035,
+    "text": "a battle in a non-stronghold territory where they",
+    "w": 0.30340117741880451,
+    "x": 0.25881075078605337,
+    "y": 0.40692834105279319
+  },
+  {
+    "confidence": 1,
+    "h": 0.015988371180015837,
+    "text": "must fight two or more rivals, then choose a different",
+    "w": 0.33136092939751638,
+    "x": 0.26035503867402288,
+    "y": 0.39098837238964324
+  },
+  {
+    "confidence": 1,
+    "h": 0.016035740821275679,
+    "text": "territory before returning to the original territory to",
+    "w": 0.32692306052128822,
+    "x": 0.25887574375932637,
+    "y": 0.37349914238864501
+  },
+  {
+    "confidence": 1,
+    "h": 0.013081395196669399,
+    "text": "battle other rivals there.",
+    "w": 0.15236685807007366,
+    "x": 0.2618343199541151,
+    "y": 0.36046511657317692
+  },
+  {
+    "confidence": 1,
+    "h": 0.017623858018354865,
+    "text": "Then the player to their immediate right gains Initiative",
+    "w": 0.34911240490242906,
+    "x": 0.26035504233428836,
+    "y": 0.32975986286504322
+  },
+  {
+    "confidence": 1,
+    "h": 0.017581475128644941,
+    "text": "and so on, following storm order, until all battles are",
+    "w": 0.32692306052128817,
+    "x": 0.26035504051105207,
+    "y": 0.31389365374975076
+  },
+  {
+    "confidence": 1,
+    "h": 0.0134176349149151,
+    "text": "resolved.",
+    "w": 0.060725256241044634,
+    "x": 0.26031784585884155,
+    "y": 0.29925048487929395
+  },
+  {
+    "confidence": 1,
+    "h": 0.019067890239211738,
+    "text": "If three or more players are in the same territory,",
+    "w": 0.30954475236251361,
+    "x": 0.26165844339061378,
+    "y": 0.27024071561375684
+  },
+  {
+    "confidence": 1,
+    "h": 0.018197836638723763,
+    "text": "the player with Initiative picks who they will battle",
+    "w": 0.32119199261394654,
+    "x": 0.26026613907721524,
+    "y": 0.25240620116064072
+  },
+  {
+    "confidence": 1,
+    "h": 0.017581475128644941,
+    "text": "first, second, etc. for as long as they have forces in the",
+    "w": 0.33579879827374454,
+    "x": 0.26183433147210206,
+    "y": 0.23542024027557196
+  },
+  {
+    "confidence": 1,
+    "h": 0.0151474987049659,
+    "text": "territory.",
+    "w": 0.05932473928126708,
+    "x": 0.26175774858266432,
+    "y": 0.22062392521023566
+  },
+  {
+    "confidence": 1,
+    "h": 0.016000836832036791,
+    "text": "BATTLE PLAN",
+    "w": 0.13017751368893288,
+    "x": 0.26331360922062236,
+    "y": 0.19039451138878516
+  },
+  {
+    "confidence": 1,
+    "h": 0.017581475128644941,
+    "text": "To resolve a battle, each player secretly formulates a",
+    "w": 0.32988163977210694,
+    "x": 0.26183432965536657,
+    "y": 0.16423670680043301
+  },
+  {
+    "confidence": 1,
+    "h": 0.01758895484701839,
+    "text": "Battle Plan. A Battle Plan always includes the amount of",
+    "w": 0.35355030043156388,
+    "x": 0.26331360970602702,
+    "y": 0.14665523141221026
+  },
+  {
+    "confidence": 1,
+    "h": 0.02305597792767744,
+    "text": "force strength dialed on the Battle Wheel. If possible, it",
+    "w": 0.34961267996042572,
+    "x": 0.26157689835948944,
+    "y": 0.12613234637206139
+  },
+  {
+    "confidence": 1,
+    "h": 0.026153496567217327,
+    "text": "must include a Leader disc or a Cheap Hero Treachery",
+    "w": 0.34525013219841705,
+    "x": 0.2616377196091525,
+    "y": 0.10728908005629889
+  },
+  {
+    "confidence": 1,
+    "h": 0.017611393184236546,
+    "text": "card. Additionally, it may include Treachery cards at the",
+    "w": 0.35502959005697321,
+    "x": 0.26183431443896898,
+    "y": 0.093023255594315124
+  },
+  {
+    "confidence": 1,
+    "h": 0.016018289235607441,
+    "text": "player's discretion.",
+    "w": 0.12278106556188595,
+    "x": 0.263313610458702,
+    "y": 0.0770348841919688
+  },
+  {
+    "confidence": 1,
+    "h": 0.013222504643592425,
+    "text": "PHASE 7:",
+    "w": 0.069911920139362649,
+    "x": 0.56787972609963144,
+    "y": 0.95806227284791923
+  },
+  {
+    "confidence": 1,
+    "h": 0.025491948397654451,
+    "text": "BATTLE",
+    "w": 0.1023967692945722,
+    "x": 0.55384485292580277,
+    "y": 0.93759391918920054
+  },
+  {
+    "confidence": 1,
+    "h": 0.016025768136078367,
+    "text": "Force Strength",
+    "w": 0.10946745226997467,
+    "x": 0.61390532773229911,
+    "y": 0.91279069824512504
+  },
+  {
+    "confidence": 1,
+    "h": 0.018970142711292604,
+    "text": "Each player in the battle takes a Battle Wheel and",
+    "w": 0.31065087464178498,
+    "x": 0.61390533412881165,
+    "y": 0.89236706662392229
+  },
+  {
+    "confidence": 1,
+    "h": 0.017628843952002371,
+    "text": "secretly dials a number from zero to the amount of",
+    "w": 0.31804732276883185,
+    "x": 0.61538462247283254,
+    "y": 0.87645348841892734
+  },
+  {
+    "confidence": 1,
+    "h": 0.018942718440427164,
+    "text": "force strength they have in the disputed territory. This",
+    "w": 0.33875737752456336,
+    "x": 0.61390533772933575,
+    "y": 0.85755813956601712
+  },
+  {
+    "confidence": 1,
+    "h": 0.020348836790840541,
+    "text": "is typically the number of forces a player has there (but",
+    "w": 0.34467453602620091,
+    "x": 0.61538462892476931,
+    "y": 0.83866279090690532
+  },
+  {
+    "confidence": 1,
+    "h": 0.019296740994854233,
+    "text": "with double-strength special forces, it is their value- see",
+    "w": 0.34615382565161046,
+    "x": 0.61686391986650235,
+    "y": 0.82246998283940131
+  },
+  {
+    "confidence": 1,
+    "h": 0.018952690307721953,
+    "text": "below). Regardless of the battle's outcome, they will",
+    "w": 0.32692306052128817,
+    "x": 0.61686391679556885,
+    "y": 0.80523255820216044
+  },
+  {
+    "confidence": 1,
+    "h": 0.015988371180015837,
+    "text": "lose at least the amount of force strength dialed on the",
+    "w": 0.33875737752456336,
+    "x": 0.61834320811641652,
+    "y": 0.79069767488964326
+  },
+  {
+    "confidence": 1,
+    "h": 0.017648789322396774,
+    "text": "Battle Wheel. A faction will lose all of their forces in the",
+    "w": 0.34467453602620091,
+    "x": 0.61834320963113032,
+    "y": 0.77180232519218317
+  },
+  {
+    "confidence": 1,
+    "h": 0.017581475128644941,
+    "text": "territory if they lose the battle.",
+    "w": 0.1997041394096275,
+    "x": 0.618343198564417,
+    "y": 0.75428816487583061
+  },
+  {
+    "confidence": 1,
+    "h": 0.018962662992919044,
+    "text": "Example: Atreides have 4 forces in a battle. They can 'ial",
+    "w": 0.3446745360262008,
+    "x": 0.61982249268216594,
+    "y": 0.72813036005492049
+  },
+  {
+    "confidence": 1,
+    "h": 0.019296740994854233,
+    "text": "any number from 0-4. If they win the battle, they wil",
+    "w": 0.32100590201965062,
+    "x": 0.61982249004047063,
+    "y": 0.71054888526865323
+  },
+  {
+    "confidence": 1,
+    "h": 0.017581475128644941,
+    "text": "lose the strength they dialed (in their case, the numb",
+    "w": 0.32248519164506007,
+    "x": 0.619822491514748,
+    "y": 0.69468267573543763
+  },
+  {
+    "confidence": 1,
+    "h": 0.017441860807493992,
+    "text": "of forces lost will be the number they dialed). If they.",
+    "w": 0.34615385230451701,
+    "x": 0.62130177553413191,
+    "y": 0.67732558119509023
+  },
+  {
+    "confidence": 1,
+    "h": 0.017646296355573021,
+    "text": "they will lose all of their forces.",
+    "w": 0.19526627053339929,
+    "x": 0.62130177792856656,
+    "y": 0.65988372081718316
+  },
+  {
+    "confidence": 1,
+    "h": 0.013374010449208273,
+    "text": "Leaders",
+    "w": 0.062193458257283729,
+    "x": 0.62274942523496191,
+    "y": 0.63502811111746671
+  },
+  {
+    "confidence": 1,
+    "h": 0.014604691166820505,
+    "text": "One Leader disc is secretly chosen and placed face :",
+    "w": 0.34911240490242912,
+    "x": 0.62573966135549142,
+    "y": 0.61620926205525772
+  },
+  {
+    "confidence": 1,
+    "h": 0.014579759862778707,
+    "text": "the slot on the Battle Wheel. Players may play a Che.",
+    "w": 0.33136092939751638,
+    "x": 0.62426036701721821,
+    "y": 0.59734133751798368
+  },
+  {
+    "confidence": 1,
+    "h": 0.016295025728988,
+    "text": "Hero Treachery card in lieu of a Leader disc.",
+    "w": 0.28254437175900649,
+    "x": 0.62573965126546716,
+    "y": 0.57975986290739145
+  },
+  {
+    "confidence": 1,
+    "h": 0.014664525642198667,
+    "text": "• Leaders that survive battles may be played in furt!.. i",
+    "w": 0.35355030043156388,
+    "x": 0.62573964562987872,
+    "y": 0.55523255845427832
+  },
+  {
+    "confidence": 1,
+    "h": 0.014589731730073385,
+    "text": "battles in the same territory, but no leader may figi::",
+    "w": 0.32988163977210694,
+    "x": 0.64644970935950863,
+    "y": 0.53773584934084218
+  },
+  {
+    "confidence": 1,
+    "h": 0.018625337100151684,
+    "text": "in more than one territory during the same phase",
+    "w": 0.3153571382880731,
+    "x": 0.6477825399550976,
+    "y": 0.51890682423841394
+  },
+  {
+    "confidence": 1,
+    "h": 0.014674498327395979,
+    "text": "(except when a traitor is called - see below).",
+    "w": 0.2825443717590066,
+    "x": 0.649408284996976,
+    "y": 0.50290697682879382
+  },
+  {
+    "confidence": 1,
+    "h": 0.014602198199996863,
+    "text": "• If possible, a player must always play a Leader disc",
+    "w": 0.34319524640079146,
+    "x": 0.62869823286469317,
+    "y": 0.47813035991549224
+  },
+  {
+    "confidence": 1,
+    "h": 0.016028261920804643,
+    "text": "as part of their Battle Plan if they have one available",
+    "w": 0.32988163977210705,
+    "x": 0.64940828985876908,
+    "y": 0.45926243549696488
+  },
+  {
+    "confidence": 1,
+    "h": 0.016295025728988,
+    "text": "unless playing a Cheap Hero.",
+    "w": 0.18934911203176175,
+    "x": 0.65088757652849771,
+    "y": 0.44168096049267447
+  },
+  {
+    "confidence": 1,
+    "h": 0.016295025728988,
+    "text": "• If a player cannot play a leader (including a Cheap",
+    "w": 0.34023666714997269,
+    "x": 0.63017752781554615,
+    "y": 0.41552315579042076
+  },
+  {
+    "confidence": 1,
+    "h": 0.014587238763249744,
+    "text": "Hero) they do not need to announce so prior to",
+    "w": 0.30029584726391922,
+    "x": 0.65384616221123559,
+    "y": 0.39965694707510757
+  },
+  {
+    "confidence": 1,
+    "h": 0.016013303301960047,
+    "text": "revealing Battle Plans.",
+    "w": 0.14792898919384545,
+    "x": 0.65236686616491157,
+    "y": 0.38078902202278619
+  },
+  {
+    "confidence": 1,
+    "h": 0.02114509759186467,
+    "text": "No Leader - No Treachery",
+    "w": 0.19450109223611489,
+    "x": 0.6327823262186224,
+    "y": 0.35146142944058101
+  },
+  {
+    "confidence": 1,
+    "h": 0.017581475128644941,
+    "text": "A player who is unable to include a leader or unwilling",
+    "w": 0.34911243155533578,
+    "x": 0.63313608842351565,
+    "y": 0.33276157826279995
+  },
+  {
+    "confidence": 1,
+    "h": 0.020006839038986368,
+    "text": "to include a Cheap Hero must still battle, but they cannot",
+    "w": 0.36559680122475435,
+    "x": 0.63301400201156999,
+    "y": 0.31304398735022887
+  },
+  {
+    "confidence": 1,
+    "h": 0.020475145474101897,
+    "text": "play any Treachery cards as part of their Battle Plan.",
+    "w": 0.33606748622577787,
+    "x": 0.63595379640672245,
+    "y": 0.295058549286213
+  },
+  {
+    "confidence": 1,
+    "h": 0.016851773597363895,
+    "text": "This situation can occur when all their leaders are in",
+    "w": 0.33601279446131282,
+    "x": 0.63745717806029567,
+    "y": 0.28125032268110262
+  },
+  {
+    "confidence": 1,
+    "h": 0.018985101330137089,
+    "text": "the Tleilaxu Tanks, captured, or have fought in other",
+    "w": 0.33579879827374448,
+    "x": 0.63609468090504107,
+    "y": 0.26017441861155977
+  },
+  {
+    "confidence": 1,
+    "h": 0.016295025728988,
+    "text": "territories during that phase.",
+    "w": 0.19378698090798996,
+    "x": 0.6360946771643482,
+    "y": 0.24399656920645985
+  },
+  {
+    "confidence": 1,
+    "h": 0.02086927796718796,
+    "text": "• A Cheap Hero contributes 0 fighting strength a",
+    "w": 0.33757444156829974,
+    "x": 0.63888386605930514,
+    "y": 0.21511696503423661
+  },
+  {
+    "confidence": 1,
+    "h": 0.021981484689598041,
+    "text": "battle; however, it allows a player to retain th",
+    "w": 0.29624857673478433,
+    "x": 0.65951096799530562,
+    "y": 0.19617764833337781
+  },
+  {
+    "confidence": 1,
+    "h": 0.015988371180015837,
+    "text": "option",
+    "w": 0.036982247298461335,
+    "x": 0.9615384621052071,
+    "y": 0.20058139596522462
+  },
+  {
+    "confidence": 1,
+    "h": 0.019000059948981796,
+    "text": "of playing Treachery cards in their Battle Pla",
+    "w": 0.29142010951146291,
+    "x": 0.65976331531823307,
+    "y": 0.18168604671960231
+  }
+]
