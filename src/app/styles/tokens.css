@@ -1,5 +1,5 @@
 /*
- * The single source of truth for shell colors. Light values live on bare `:root`, dark overrides
+ * The single source of truth for shell colors. Paper values live on bare `:root`, dark overrides
  * under `:root[data-mantine-color-scheme='dark']`, the attribute Mantine maintains, so contexts
  * without the app chrome (print capture, the publisher entry, bare renderer routes) degrade to
  * light. A subtree marked `data-scheme-dark` takes the dark overrides in both schemes. `theme.ts` consumes these via var(); it holds no color values of its own besides the
@@ -140,7 +140,7 @@
   }
 }
 
-/* Dark: the Twilight palette. Actions and focus use slate alongside the cool navy surfaces.
+/* The app uses warm mineral neutrals, sand accents and a restrained blue focus ring.
  * Structural tokens (spacing, radii, transitions) never flip.
  * A subtree marked data-scheme-dark sits on its own dark ground in both schemes (the play shell,
  * whose table and panel are dark by design), so it takes the same block rather than a copy of it. */
@@ -148,23 +148,23 @@
 [data-scheme-dark] {
   color-scheme: dark;
 
-  --color-text: #ece7dc;
-  --color-muted: #a9b0bd;
-  --color-link: #c6c9d4;
+  --color-text: #f0e8da;
+  --color-muted: #bfb09a;
+  --color-link: #c7ad7d;
   --color-error: #ffa8a8;
-  --color-brand: #9aa2b4;
-  --color-brand-strong: #c6c9d4;
-  --color-focus-ring: #c6c9d4;
+  --color-brand: #c7ad7d;
+  --color-brand-strong: #d7c299;
+  --color-focus-ring: #9fb4cb;
 
-  --button-neutral-bg: #2b3648;
-  --button-neutral-hover-bg: #344156;
+  --button-neutral-bg: #352e25;
+  --button-neutral-hover-bg: #484036;
   --button-neutral-fg: #ece7dc;
 
-  --button-toggle-active-bg: #475877;
+  --button-toggle-active-bg: #5b4d3c;
 
-  --action-positive-bg: rgba(111, 142, 87, 0.3);
-  --action-positive-hover-bg: rgba(111, 142, 87, 0.42);
-  --action-positive-fg: #c8d6bc;
+  --action-positive-bg: rgba(135, 145, 96, 0.3);
+  --action-positive-hover-bg: rgba(135, 145, 96, 0.42);
+  --action-positive-fg: #aeb780;
   --action-negative-bg: rgba(250, 82, 82, 0.3);
   --action-negative-hover-bg: rgba(250, 82, 82, 0.42);
   --action-negative-fg: #ffc9c9;
@@ -175,16 +175,16 @@
   --action-export-hover-bg: rgba(21, 170, 191, 0.42);
   --action-export-fg: #99e9f2;
 
-  --glass-surface-0: rgba(12, 20, 34, 0.42);
-  --glass-surface-1: rgba(12, 20, 34, 0.55);
-  --glass-surface-2: rgba(17, 28, 46, 0.65);
-  --glass-input: rgba(15, 25, 42, 0.88);
-  --glass-overlay: rgba(13, 22, 37, 0.96);
+  --glass-surface-0: rgba(28, 25, 21, 0.42);
+  --glass-surface-1: rgba(40, 35, 29, 0.55);
+  --glass-surface-2: rgba(53, 46, 37, 0.65);
+  --glass-input: rgba(33, 29, 24, 0.94);
+  --glass-overlay: rgba(33, 29, 24, 0.96);
 
-  --panel-border: #43536e;
-  --surface-hover-tint: #43536e;
-  --input-border: rgba(150, 165, 195, 0.35);
-  --input-border-strong: rgba(150, 165, 195, 0.5);
+  --panel-border: #887252;
+  --surface-hover-tint: #887252;
+  --input-border: rgba(188, 165, 133, 0.6);
+  --input-border-strong: rgba(188, 165, 133, 0.7);
 }
 
 /*

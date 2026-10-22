@@ -5,7 +5,6 @@ import { IllustratedInventoryStory } from './rulebookBlockEditors.shared.stories
 
 const meta = preview.meta({
   title: 'Blocks/Inventory/Editing',
-  globals: { colorScheme: 'dark' },
   parameters: { layout: 'fullscreen' },
 });
 

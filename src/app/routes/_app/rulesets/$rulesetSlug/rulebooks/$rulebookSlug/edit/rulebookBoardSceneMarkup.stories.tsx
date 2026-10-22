@@ -74,7 +74,6 @@ const scene = {
 
 const meta = preview.meta({
   title: 'Blocks/Board scene/Tints and tokens',
-  globals: { colorScheme: 'dark' },
   parameters: { layout: 'fullscreen' },
 });
 

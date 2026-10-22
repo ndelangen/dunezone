@@ -287,7 +287,7 @@
   box-shadow: var(--panel-shadow);
 }
 
-/* The turn obeys the site's Ambient motion verdict, like the dice: `data-motion` is stamped
+/* The turn obeys the site's Ambient motion verdict, like the orbital background: `data-motion` is stamped
    before first paint from the profile's Appearance toggle with the OS hint as its System
    default, so an explicit "On" animates even for reduced-motion visitors. The media block
    covers documents that never stamp, where the OS hint decides alone. */
