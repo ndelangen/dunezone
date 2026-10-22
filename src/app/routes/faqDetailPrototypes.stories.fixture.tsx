@@ -146,7 +146,7 @@ function Contributor({ person, label }: { person: Person; label?: string }) {
   return (
     <Stack gap="xs" className={styles.contributor}>
       {label ? <Eyebrow>{label}</Eyebrow> : null}
-      <ProfileLink name={person.name} slug={person.slug} underline="never" />
+      <ProfileLink name={person.name} slug={person.slug} underline="never" className={styles.profile} />
       <Text size="xs" c="dimmed">
         {person.questions} questions · {person.answers} answers
       </Text>

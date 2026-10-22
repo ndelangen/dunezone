@@ -125,3 +125,8 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+.layout[data-variant="B"] .postAuthor .profile {
+  --profile-link-avatar-size: 56px;
+  --profile-link-initials-size: 1.1rem;
+}
