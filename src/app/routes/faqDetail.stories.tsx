@@ -202,6 +202,43 @@ export const PickReferences = meta.story({
     await expect(page.getByRole('button', { name: 'Remove reference to Lasgun' })).toBeVisible();
   },
 });
+
+export const ReferenceSelectionBeyondPage = meta.story({
+  parameters: {
+    database: db((baseline) => {
+      forumDatabase(baseline);
+      const question = baseline.faq_items[0]!;
+      baseline.faq_references = baseline.faq_references.filter((row) => row.faq_item_id !== ref(question.$key!));
+      for (const asset of baseline.assets.filter((row) => row.data.name !== 'Lasgun')) {
+        baseline.faq_references.push({
+          faq_item_id: ref(question.$key!),
+          kind: 'asset',
+          target_id: ref(asset.$key!),
+          question_created_at: question.created_at,
+        });
+      }
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('button', { name: 'Add references' }, { timeout: 30_000 }));
+    const picker = within(await page.findByRole('dialog', { name: 'Add references' }));
+    const search = await picker.findByRole('searchbox', { name: 'Search the catalogue' });
+    await expect(page.queryByRole('button', { name: 'Remove reference to Arrakis Official' })).toBeNull();
+    await userEvent.type(search, 'Arrakis');
+    await expect(
+      picker.findByRole('option', { name: 'Arrakis Official, already selected' }, { timeout: 30_000 })
+    ).resolves.toHaveAttribute('aria-disabled', 'true');
+    await userEvent.clear(search);
+    await userEvent.type(search, 'Lasgun');
+    await userEvent.click(await picker.findByRole('option', { name: 'Lasgun' }));
+    await expect(picker.findByRole('option', { name: 'Lasgun, already selected' })).resolves.toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    await expect(page.queryByRole('button', { name: 'Remove reference to Lasgun' })).toBeNull();
+  },
+});
 export const SignedOut = meta.story({
   parameters: { identity: null },
   play: async ({ canvasElement }) => {

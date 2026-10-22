@@ -5,13 +5,14 @@ import { LoadMoreButton } from '@ui/control/LoadMoreButton';
 import { useEffect, useState } from 'react';
 
 import { useCataloguePickerGroup } from '@db/cataloguePicker';
-import type { CatalogueTarget } from '@db/cataloguePicker';
+import type { CatalogueSelection, CatalogueTarget } from '@db/cataloguePicker';
 
 import styles from './CataloguePicker.module.css';
 import { CataloguePickerOption } from './CataloguePicker.parts';
 
 export interface CataloguePickerProps {
-  selectedIds: readonly string[];
+  selectedIds?: readonly string[];
+  selection?: CatalogueSelection;
   pending?: boolean;
   onPick: (target: CatalogueTarget) => void;
 }
@@ -32,7 +33,7 @@ export function CataloguePicker(props: CataloguePickerProps) {
       store={combobox}
       onOptionSubmit={(value) => {
         const target = JSON.parse(value) as CatalogueTarget;
-        if (props.pending || props.selectedIds.includes(target.id)) {
+        if (props.pending || (!props.selection && props.selectedIds?.includes(target.id))) {
           return;
         }
         props.onPick(target);
@@ -82,7 +83,7 @@ function CataloguePickerGroup({
   const queryText = searchTerms(search)
     .filter((term) => !typeWords.some((word) => word.startsWith(term)))
     .join(' ');
-  const query = useCataloguePickerGroup(group.value, queryText);
+  const query = useCataloguePickerGroup(group.value, queryText, props.selection);
   if (query.results.length === 0 && query.status === 'Exhausted') {
     return null;
   }

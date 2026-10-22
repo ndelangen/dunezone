@@ -57,6 +57,7 @@ import type * as lib_cardbackPresets from "../lib/cardbackPresets.js";
 import type * as lib_catalogueEntries from "../lib/catalogueEntries.js";
 import type * as lib_catalogueEntryShape from "../lib/catalogueEntryShape.js";
 import type * as lib_catalogueOrder from "../lib/catalogueOrder.js";
+import type * as lib_cataloguePickerOptions from "../lib/cataloguePickerOptions.js";
 import type * as lib_collaborativeAccess from "../lib/collaborativeAccess.js";
 import type * as lib_collaborativeAccessValidators from "../lib/collaborativeAccessValidators.js";
 import type * as lib_customCardTokens from "../lib/customCardTokens.js";
@@ -225,6 +226,7 @@ const fullApi: ApiFromModules<{
   "lib/catalogueEntries": typeof lib_catalogueEntries;
   "lib/catalogueEntryShape": typeof lib_catalogueEntryShape;
   "lib/catalogueOrder": typeof lib_catalogueOrder;
+  "lib/cataloguePickerOptions": typeof lib_cataloguePickerOptions;
   "lib/collaborativeAccess": typeof lib_collaborativeAccess;
   "lib/collaborativeAccessValidators": typeof lib_collaborativeAccessValidators;
   "lib/customCardTokens": typeof lib_customCardTokens;

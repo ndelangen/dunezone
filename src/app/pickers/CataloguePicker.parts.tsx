@@ -12,7 +12,7 @@ export function CataloguePickerOption({
   selectedIds,
   pending,
 }: CataloguePickerProps & { choice: CatalogueChoice }) {
-  const selected = selectedIds.includes(choice.id);
+  const selected = choice.selected ?? (selectedIds?.includes(choice.id) || false);
   const name = choice.kind === 'faction' ? choice.faction.data.name : choice.asset.name;
   const context = choice.kind === 'faction' ? choice.faction.slug : choice.asset.owner?.username || choice.asset.slug;
   return (

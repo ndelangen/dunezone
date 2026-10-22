@@ -852,7 +852,7 @@ function FaqReferenceAdd({ faq }: { faq: FaqQuestionCommands }) {
               />
             </Group>
             <CataloguePicker
-              selectedIds={faq.references.map((reference) => reference.id)}
+              selection={{ faqQuestionId: faq.page!.question.id }}
               pending={faq.addReference.isPending}
               onPick={(target) => {
                 void faq.addReference.run(target).catch(() => undefined);
