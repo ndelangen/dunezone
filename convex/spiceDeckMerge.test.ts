@@ -92,7 +92,9 @@ test(
   'folds each GF9 copy into its original: the original takes the caption and About, both decks share it, and the copy is retired',
   async () => {
     const { t, originals, copies, dreamrules, gf9 } = await setup();
-    await onBoard(t, copies[0], 'arrakis-board');
+    /* Any Asset id stands in for the saved board; the merge only carries the link. */
+    const board = dreamrules;
+    await onBoard(t, copies[0], board);
     const { cards: planned } = await t.mutation(internal.spiceDeckMerge.mergeDuplicateSpiceCards, { dryRun: true });
     expect(planned.map(({ original, copy, decks }) => [original, copy, decks])).toEqual(
       originals.map((original, index) => [original, copies[index], [{ deck: gf9, before: 0, after: 1 }]])
@@ -102,7 +104,7 @@ test(
       text: 'West sector.',
       about: 'GF9 base Spice Card. Place 10 spice in Habbanya Ridge Flat.',
     });
-    expect(planned[0]!.board).toBe('arrakis-board');
+    expect(planned[0]!.board).toBe(board);
     expect(planned[1]!.board).toBeNull();
     await expect(members(t, gf9)).resolves.toEqual(copies.map((copy) => [copy, 1]));
 
@@ -119,7 +121,14 @@ test(
       about: 'GF9 base Spice Card. Place 10 spice in Habbanya Ridge Flat.',
     });
     /* The copy's move onto a saved board is the newer work, so the original carries it on. */
-    expect(rows[0]!.data.board).toEqual(BOARD('arrakis-board'));
+    expect(rows[0]!.data.board).toEqual(BOARD(board));
+    const boardRows = await t.run((ctx) =>
+      ctx.db
+        .query('asset_relations')
+        .withIndex('by_from_kind', (q) => q.eq('from_asset_id', originals[0]).eq('kind', 'spice-card-board'))
+        .collect()
+    );
+    expect(boardRows.map(({ to_asset_id }) => to_asset_id)).toEqual([board]);
     expect(rows.slice(15).every((row) => row!.is_deleted)).toBe(true);
     expect(rows[20]!.slug).toBe('habbanya-ridge-flat-1');
     /* A second run finds the copies retired and stops before writing. */

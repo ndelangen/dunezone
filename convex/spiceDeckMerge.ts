@@ -4,6 +4,7 @@ import type { Doc } from './_generated/dataModel';
 import { retargetAssetReceipts } from './contentImports';
 import { internalMutation } from './functions';
 import { enqueueAssetPublication } from './lib/publication';
+import { syncSpiceCardRelations } from './lib/spiceCardBoard';
 import { nowIso } from './lib/utils';
 import type { MutationCtx } from './types';
 
@@ -140,6 +141,8 @@ export const mergeDuplicateSpiceCards = internalMutation({
       const group = original.group_id ?? copy.group_id;
       if (!dryRun) {
         await ctx.db.patch(original._id, { data, group_id: group, updated_at: nowIso() });
+        /* The reverse rows are what redraw the card when its board or a token on it is saved. */
+        await syncSpiceCardRelations(ctx, original._id, data);
         await enqueueAssetPublication(ctx, { ...original, data });
         for (const { membership, existing, after } of memberships) {
           if (existing) {
