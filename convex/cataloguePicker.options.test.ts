@@ -7,7 +7,6 @@ import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPub
 import { api } from './_generated/api';
 import { applicationTest } from './application.test.fixture';
 import { applicationTriggers } from './lib/applicationTriggers';
-import { loadFaqReferenceTargets } from './lib/faqReferences';
 
 test('catalogue choices page within a type, search every page, and omit deleted targets', async () => {
   const t = applicationTest();
@@ -115,9 +114,14 @@ async function selectionFixture() {
 
 test('selection checks links beyond the rendered page and reacts to additions and removals', async () => {
   const { t, ids } = await selectionFixture();
-  const rendered = await t.run((ctx) => loadFaqReferenceTargets(ctx, ids.question, { numItems: 12, cursor: null }));
-  expect(rendered.page).toHaveLength(12);
-  expect(rendered.page.map((entry) => entry.reference.target_id)).not.toContain(ids.linked);
+  const rendered = await t.query(api.faq.questionPage, {
+    rulesetSlug: 'classic',
+    questionSlug: '1',
+    paginationOpts: { numItems: 12, cursor: null },
+  });
+  const references = rendered.page[0]!.items;
+  expect(references).toHaveLength(12);
+  expect(references.map((entry) => entry.id)).not.toContain(ids.linked);
   const args = {
     group: 'token-disc',
     q: '',
