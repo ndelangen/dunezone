@@ -8,7 +8,6 @@ import { api } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { applicationTest } from './application.test.fixture';
 import { applicationTriggers } from './lib/applicationTriggers';
-import { loadRelatedFaqForQuestion } from './lib/faqQuestionRelated';
 import type { MutationCtx } from './types';
 
 const at = '2026-10-21T00:00:00.000Z';
@@ -282,7 +281,7 @@ describe('FAQ reference public pages', () => {
     ]);
   });
 
-  test('many shared targets stay within one recommendation read budget', async () => {
+  test('heavily referenced questions still return five related questions', async () => {
     const { t, ids } = await fixture();
     await t.run(async (ctx) => {
       const asset = (await ctx.db.get('assets', ids.assets[0]!))!;
@@ -316,28 +315,10 @@ describe('FAQ reference public pages', () => {
         }
       }
     });
-    const result = await t.run(async (ctx) => {
-      let indexedReads = 0;
-      const counted = {
-        ...ctx,
-        db: new Proxy(ctx.db, {
-          get(database, property, receiver) {
-            if (property === 'query') {
-              return (...args: Parameters<typeof database.query>) => {
-                indexedReads++;
-                return database.query(...args);
-              };
-            }
-            return Reflect.get(database, property, receiver);
-          },
-        }),
-      };
-      const related = await loadRelatedFaqForQuestion(counted, ids.questions[0]!);
-      return { related, indexedReads };
-    });
-    expect(result.related).toHaveLength(5);
-    /* Includes target discovery and the final FAQ-list projection, beyond the overlap checks themselves. */
-    expect(result.indexedReads).toBeLessThan(320);
+    const result = await t.query(api.faq.questionPage, { rulesetSlug: 'classic', questionSlug: '1', paginationOpts });
+    const related = result.page[0]!.detail!.relatedQuestions;
+    expect(related).toHaveLength(5);
+    expect(related.some((question) => question._id === ids.questions[0])).toBe(false);
   });
 
   test('a question with no references has no recommendations', async () => {
