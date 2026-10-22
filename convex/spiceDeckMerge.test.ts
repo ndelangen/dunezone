@@ -92,6 +92,7 @@ test(
   'folds each GF9 copy into its original: the original takes the caption and About, both decks share it, and the copy is retired',
   async () => {
     const { t, originals, copies, dreamrules, gf9 } = await setup();
+    await onBoard(t, copies[0], 'arrakis-board');
     const { cards: planned } = await t.mutation(internal.spiceDeckMerge.mergeDuplicateSpiceCards, { dryRun: true });
     expect(planned.map(({ original, copy, decks }) => [original, copy, decks])).toEqual(
       originals.map((original, index) => [original, copies[index], [{ deck: gf9, before: 0, after: 1 }]])
@@ -101,6 +102,8 @@ test(
       text: 'West sector.',
       about: 'GF9 base Spice Card. Place 10 spice in Habbanya Ridge Flat.',
     });
+    expect(planned[0]!.board).toBe('arrakis-board');
+    expect(planned[1]!.board).toBeNull();
     await expect(members(t, gf9)).resolves.toEqual(copies.map((copy) => [copy, 1]));
 
     await t.mutation(internal.spiceDeckMerge.mergeDuplicateSpiceCards, { dryRun: false });
@@ -115,6 +118,8 @@ test(
       text: 'West sector.',
       about: 'GF9 base Spice Card. Place 10 spice in Habbanya Ridge Flat.',
     });
+    /* The copy's move onto a saved board is the newer work, so the original carries it on. */
+    expect(rows[0]!.data.board).toEqual(BOARD('arrakis-board'));
     expect(rows.slice(15).every((row) => row!.is_deleted)).toBe(true);
     expect(rows[20]!.slug).toBe('habbanya-ridge-flat-1');
     /* A second run finds the copies retired and stops before writing. */
@@ -133,6 +138,28 @@ test(
       'card-spice/cielago-south-1 is not a copy of card-spice/cielago-south'
     );
     await expect(members(t, gf9)).resolves.toEqual(copies.map((copy) => [copy, 1]));
+    const first = await t.run((ctx) => ctx.db.get(originals[0]));
+    expect(first!.data.about).toBe('');
+  },
+  BUDGET_MS
+);
+
+const BOARD = (asset_id: string) => ({ asset_id, tints: [], tokens: [] });
+const onBoard = (t: ReturnType<typeof applicationTest>, cardId: Id<'assets'>, board: string) =>
+  t.run(async (ctx) => {
+    const card = (await ctx.db.get(cardId))!;
+    await ctx.db.patch(cardId, { data: { ...card.data, board: BOARD(board) } });
+  });
+
+test(
+  'refuses before any write when the original already sits on another saved board',
+  async () => {
+    const { t, originals, copies } = await setup();
+    await onBoard(t, originals[1], 'own-board');
+    await onBoard(t, copies[1], 'arrakis-board');
+    await expect(t.mutation(internal.spiceDeckMerge.mergeDuplicateSpiceCards, { dryRun: false })).rejects.toThrow(
+      'card-spice/cielago-north and card-spice/cielago-north-1 sit on different saved boards'
+    );
     const first = await t.run((ctx) => ctx.db.get(originals[0]));
     expect(first!.data.about).toBe('');
   },

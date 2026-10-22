@@ -32,9 +32,6 @@ const SPICE_PAIRS: readonly (readonly [original: string, copy: string])[] = [
   ['wind-pass-north', 'wind-pass-north-1'],
 ];
 
-/* What makes two Spice cards the same card; the copy's caption and About text are carried over, its name is not. */
-const SAME_CARD = ['subName', 'amount', 'icon', 'highlights', 'board', 'overlays'] as const;
-
 async function liveSpiceCard(ctx: MutationCtx, slug: string) {
   const row = await ctx.db
     .query('assets')
@@ -78,12 +75,23 @@ async function plannedMemberships(ctx: MutationCtx, original: Doc<'assets'>, cop
   );
 }
 
+/*
+ * Two Spice cards are the same card when they share a name and a spice amount.
+ * The copy is the newer of the two: GF9 maintains it, and some copies already moved onto a saved board.
+ * So the original takes the copy's whole face and About, keeping only its own name.
+ */
 function sameCard(original: Doc<'assets'>, copy: Doc<'assets'>) {
-  return SAME_CARD.every((field) => JSON.stringify(original.data[field]) === JSON.stringify(copy.data[field]));
+  return original.data.name === copy.data.name && original.data.amount === copy.data.amount;
+}
+
+/* An original already on a saved board keeps it unless the copy links the same board; anything else needs a person. */
+function boardConflict(original: Doc<'assets'>, copy: Doc<'assets'>) {
+  const mine = original.data.board?.asset_id;
+  return mine !== undefined && mine !== copy.data.board?.asset_id;
 }
 
 /**
- * Folds each GF9 copy into its original: the original takes the copy's caption and About text, every deck that held the copy holds the original, and the copy is retired the way `softDelete` retires an Asset, so its address stays reserved and a repeated import cannot recreate it.
+ * Folds each GF9 copy into its original: the original takes the copy's face and About, keeping its own name, every deck that held the copy holds the original, and the copy is retired the way `softDelete` retires an Asset, so its address stays reserved and a repeated import cannot recreate it.
  * An ungrouped original joins the copy's Group, as the GF9 import did with the shared Arrakis board, so the package's maintainers keep editing it.
  * Import receipts that named a copy follow it to the original and record the merged state, so the next GF9 import reads the cards and the decks that hold them as unchanged.
  * Every pair is checked before anything is written;
@@ -99,6 +107,7 @@ export const mergeDuplicateSpiceCards = internalMutation({
         name: v.string(),
         text: v.string(),
         about: v.string(),
+        board: v.union(v.string(), v.null()),
         group: v.union(v.id('groups'), v.null()),
         decks: v.array(v.object({ deck: v.id('assets'), before: v.number(), after: v.number() })),
       })
@@ -119,12 +128,15 @@ export const mergeDuplicateSpiceCards = internalMutation({
         if (!sameCard(original, copy)) {
           throw new ConvexError(`card-spice/${copySlug} is not a copy of card-spice/${originalSlug}`);
         }
+        if (boardConflict(original, copy)) {
+          throw new ConvexError(`card-spice/${originalSlug} and card-spice/${copySlug} sit on different saved boards`);
+        }
         return { original, copy, memberships: await plannedMemberships(ctx, original, copy) };
       })
     );
     const report = [];
     for (const { original, copy, memberships } of pairs) {
-      const data = { ...original.data, text: copy.data.text ?? '', about: copy.data.about ?? '' };
+      const data = { ...copy.data, name: original.data.name };
       const group = original.group_id ?? copy.group_id;
       if (!dryRun) {
         await ctx.db.patch(original._id, { data, group_id: group, updated_at: nowIso() });
@@ -143,8 +155,9 @@ export const mergeDuplicateSpiceCards = internalMutation({
         original: original._id,
         copy: copy._id,
         name: String(original.data.name),
-        text: String(data.text),
-        about: String(data.about),
+        text: String(data.text ?? ''),
+        about: String(data.about ?? ''),
+        board: data.board?.asset_id ?? null,
         group,
         decks: memberships.map(({ membership, before, after }) => ({ deck: membership.from_asset_id, before, after })),
       });
