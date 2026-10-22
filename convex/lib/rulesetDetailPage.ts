@@ -10,9 +10,10 @@ import { faqAnsweredPartition, faqRulesetPartition } from './faqCatalogue';
 import { loadNewestFaqItems } from './faqRulesetList';
 import { profileSummary } from './profileSummary';
 import { listRulesetRulebooks } from './rulebookList';
+import { RULESET_FACTION_LIMIT, rulesetFactionLinksByCreation } from './rulesetFactionLinks';
 import { readRulesetAssetSlots } from './rulesetSlots';
 
-export const RULESET_FACTION_LIMIT = 500;
+export { RULESET_FACTION_LIMIT };
 /** Factions the ruleset page shows; "All N factions" opens the catalogue filtered to the ruleset for the rest. */
 export const RULESET_FACTION_PREVIEW_SIZE = 3;
 
@@ -37,10 +38,7 @@ export async function loadPublicRulesetBySlug(ctx: QueryCtx, slug: string) {
  * Callers that need the full list have the catalogue for it.
  */
 async function listPublicRulesetFactions(ctx: QueryCtx, rulesetId: Id<'rulesets'>) {
-  const links = await ctx.db
-    .query('ruleset_factions')
-    .withIndex('by_ruleset_position', (q) => q.eq('ruleset_id', rulesetId))
-    .take(RULESET_FACTION_LIMIT);
+  const links = await rulesetFactionLinksByCreation(ctx, rulesetId);
   const factions = await Promise.all(links.map((link) => linkedCatalogueFaction(ctx, link.faction_id)));
   return factions.filter((faction) => faction !== null);
 }

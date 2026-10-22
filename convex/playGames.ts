@@ -30,6 +30,7 @@ import { playCreateQuota, playNameCheckCapacity, playRateLimiter } from './lib/p
 import { atPlaySeatLimit } from './lib/playSeats';
 import type { BoardReadCache } from './lib/rulesetBoard';
 import { rulesetBoard, rulesetHasBoard } from './lib/rulesetBoard';
+import { rulesetFactionLinksByCreation } from './lib/rulesetFactionLinks';
 
 /*
  * Real games: any active signed-in player may create and enter one. The lobby is unlisted rather
@@ -152,10 +153,7 @@ async function packedFor(ctx: QueryCtx, rulesetId: Id<'rulesets'>) {
 
 /* The linked factions, the ones no other ruleset links first. */
 async function factionsFor(ctx: QueryCtx, rulesetId: Id<'rulesets'>) {
-  const links = await ctx.db
-    .query('ruleset_factions')
-    .withIndex('by_ruleset_position', (q) => q.eq('ruleset_id', rulesetId))
-    .take(PREVIEW_FACTION_LIMIT);
+  const links = (await rulesetFactionLinksByCreation(ctx, rulesetId)).slice(0, PREVIEW_FACTION_LIMIT);
   const factions = [];
   for (const link of links) {
     const faction = await ctx.db.get(link.faction_id);
