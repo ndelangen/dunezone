@@ -324,14 +324,15 @@ describe('profile detail projection (api.profiles.pageBySlug)', () => {
     expect(page.factionCount).toBe(1);
   });
 
-  test('shows the newest few factions and counts them all, so the page costs the same however many a member has', async () => {
+  test('shows the newest few factions and counts them all, keeping the full list for bundles from before the preview', async () => {
     const t = applicationTest();
     await seedProfileDetail(t, PROFILE_FACTION_PREVIEW_SIZE + 2);
 
     const page = await t.query(api.profiles.pageBySlug, { slug: 'central' });
 
     expect(page.factionCount).toBe(PROFILE_FACTION_PREVIEW_SIZE + 3);
-    expect(page.factions.map((faction) => faction.data.name)).toEqual(
+    expect(page.factions).toHaveLength(PROFILE_FACTION_PREVIEW_SIZE + 3);
+    expect(page.factionPreview.map((faction) => faction.data.name)).toEqual(
       Array.from(
         { length: PROFILE_FACTION_PREVIEW_SIZE },
         (_, index) => `Sietch ${PROFILE_FACTION_PREVIEW_SIZE + 2 - index}`
@@ -346,7 +347,7 @@ describe('profile detail projection (api.profiles.pageBySlug)', () => {
 
     const page = await t.query(api.profiles.pageBySlug, { slug: 'central' });
 
-    expect(page.factions.map((faction) => faction.data.name)).toEqual(['Sietch 1', 'Atreides']);
+    expect(page.factionPreview.map((faction) => faction.data.name)).toEqual(['Sietch 1', 'Atreides']);
     expect(page.factionCount).toBe(2);
   });
 
