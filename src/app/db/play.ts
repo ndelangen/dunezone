@@ -22,7 +22,7 @@ export type CreatableRuleset = Extract<
  * Every directory summary the game Worker publishes re-runs it, so one failed re-run keeps the last answer instead of throwing the open table, and its socket, off the page.
  */
 export function useGameAccess(address: string) {
-  return toLiveQueryResult(useHeldLiveQuery(api.playGames.getGameByAddress, { address }));
+  return toLiveQueryResult(useHeldLiveQuery(api.playGameDirectory.getGameByAddress, { address }));
 }
 
 /** The lobby's ongoing and past games, as the directory may show them to this viewer. */

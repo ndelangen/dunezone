@@ -492,6 +492,13 @@ try {
     logPath: path.join(evidence, 'functions.log'),
   });
   if (flows.includes('regular')) {
+    const { verifyColdDirectoryRead } = await import('./verify-cold-directory-read');
+    const coldDirectory = {
+      ...(await verifyColdDirectoryRead(backendUrl, backend.pid)),
+      nativeUdfLimitSeconds: LOCAL_FUNCTION_LIMIT_SECONDS,
+    };
+    writeFileSync(path.join(evidence, 'cold-directory-read.json'), JSON.stringify(coldDirectory, null, 2));
+    console.log(`Cold directory-read initialization passed: ${JSON.stringify(coldDirectory)}`);
     const { verifyColdNameRead } = await import('./verify-cold-name-read');
     const coldRead = {
       ...(await verifyColdNameRead(backendUrl, backend.pid)),

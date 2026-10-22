@@ -33,6 +33,8 @@ const HOSTED_PLAY_CLOSURE: readonly string[] = [
   'scripts/lib/hosted-play-closure.ts',
   'scripts/verify-hosted-*',
   'scripts/verify-cold-name-read.ts',
+  'scripts/verify-cold-directory-read.ts',
+  'scripts/lib/cold-play-read.ts',
   'scripts/play-local.ts',
   'scripts/play-load/**',
   'scripts/lib/isolated-stack.ts',
