@@ -11,7 +11,8 @@ const DECK_CARD = 'deck-card';
 
 /*
  * The GF9 import (#2384) copied the fifteen Spice territory cards the Dreamrules deck already held.
- * Each pair names the original's address and the copy's; two copies shortened their name to fit the printed title.
+ * Each pair names the original's address and the copy's.
+ * Two copies first shortened their name to fit the printed title, then took the full name back, which moved them to `-1` addresses.
  */
 const SPICE_PAIRS: readonly (readonly [original: string, copy: string])[] = [
   ['broken-land', 'broken-land-1'],
@@ -19,11 +20,11 @@ const SPICE_PAIRS: readonly (readonly [original: string, copy: string])[] = [
   ['cielago-south', 'cielago-south-1'],
   ['funeral-plain', 'funeral-plain-1'],
   ['habbanya-erg', 'habbanya-erg-1'],
-  ['habbanya-ridge-flat', 'habbanya-r-flat'],
+  ['habbanya-ridge-flat', 'habbanya-ridge-flat-1'],
   ['hagga-basin', 'hagga-basin-1'],
   ['old-gap', 'old-gap-1'],
   ['red-chasm', 'red-chasm-1'],
-  ['rock-outcroppings', 'rock-outcrops'],
+  ['rock-outcroppings', 'rock-outcroppings-1'],
   ['sihaya-ridge', 'sihaya-ridge-1'],
   ['south-mesa', 'south-mesa-1'],
   ['the-great-flat', 'the-great-flat-1'],
