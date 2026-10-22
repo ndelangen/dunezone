@@ -12,19 +12,19 @@ import { BlockHeading } from './BlockHeading';
 import styles from './FaqWalkthrough.module.css';
 
 interface FaqWalkthroughAnswer {
-  author: string;
-  image?: string;
-  text: string;
+  readonly author: string;
+  readonly image?: string;
+  readonly text: string;
 }
 
 export interface FaqWalkthroughProps {
-  asker: string;
-  askerImage?: string;
-  question: string;
+  readonly asker: string;
+  readonly askerImage?: string;
+  readonly question: string;
   /** Replies in arrival order. */
-  answers: readonly FaqWalkthroughAnswer[];
+  readonly answers: readonly FaqWalkthroughAnswer[];
   /** Position of the reply the asker accepts. */
-  accepted: number;
+  readonly accepted: number;
 }
 
 /** The original continuous animation, dressed in the FAQ discussion's cards and controls. */
@@ -48,7 +48,7 @@ export function FaqWalkthrough({ asker, askerImage, question, answers, accepted 
       const gap = Number.parseFloat(getComputedStyle(list).rowGap) || 0;
       let top = 0;
       for (const row of [...rows].sort(
-        (a, b) => Number(b.hasAttribute('data-accepted')) - Number(a.hasAttribute('data-accepted'))
+        (a, b) => Number(b.dataset.accepted !== undefined) - Number(a.dataset.accepted !== undefined)
       )) {
         row.style.setProperty('--faq-after-y', `${top - row.offsetTop}px`);
         top += row.offsetHeight + gap;
@@ -110,13 +110,14 @@ export function FaqWalkthrough({ asker, askerImage, question, answers, accepted 
         <ol ref={listRef} className={styles.answers} aria-label="Example answers">
           {ordered.map((answer) => {
             const isAccepted = answer.index === accepted;
+            const arrival = ['first', 'second', 'third'][answer.index] ?? 'third';
             return (
               <li
                 key={answer.index}
                 className={styles.answer}
                 data-order={answer.index}
                 data-accepted={isAccepted || undefined}
-                data-arrival={answer.index === 0 ? 'first' : answer.index === 1 ? 'second' : 'third'}
+                data-arrival={arrival}
               >
                 <ExampleAuthor name={answer.author} image={answer.image} />
                 <Surface as="article" aria-label={`${answer.author}'s example answer`} padding="lg">
@@ -178,7 +179,7 @@ export function FaqWalkthrough({ asker, askerImage, question, answers, accepted 
   );
 }
 
-function ExampleAuthor({ name, image, label }: { name: string; image?: string; label?: string }) {
+function ExampleAuthor({ name, image, label }: Readonly<{ name: string; image?: string; label?: string }>) {
   return (
     <Stack gap="xs" className={styles.author}>
       {label ? <Eyebrow>{label}</Eyebrow> : null}

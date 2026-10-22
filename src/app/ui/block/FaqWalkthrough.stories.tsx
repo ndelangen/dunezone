@@ -174,12 +174,15 @@ export const ViewportResize = meta.story({
       for (const width of [900, 700, 1200, 820, 400, 1200]) {
         await page.viewport(width, 1000);
         await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
-        for (const progress of [0.7, 0.92]) {
-          seek(progress);
+        for (const phase of [
+          { progress: 0.7, first: 'Stilgar' },
+          { progress: 0.92, first: 'Liet' },
+        ]) {
+          seek(phase.progress);
           const rows = Array.from(list.children).sort(
             (a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top
           );
-          await expect(rows[0]).toHaveTextContent(progress === 0.7 ? 'Stilgar' : 'Liet');
+          await expect(rows[0]).toHaveTextContent(phase.first);
           const gap = Number.parseFloat(getComputedStyle(list).rowGap);
           for (let i = 1; i < rows.length; i++) {
             await expect(

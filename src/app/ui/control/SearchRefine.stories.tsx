@@ -37,6 +37,10 @@ function Harness({
       onChange={(value) => setSort(value ?? 'newest')}
     />
   );
+  const segment = segmented ? sortSelect() : null;
+  const inlineType = (
+    <NativeSelect variant="unstyled" aria-label="Card type" data={['Treachery cards', 'Spice cards']} />
+  );
   return (
     <SearchRefine
       label="Card filters"
@@ -49,11 +53,7 @@ function Harness({
       }}
       refine={inline ? undefined : { label: 'Refine cards', content: sortSelect('Sort by'), active }}
     >
-      {inline ? (
-        <NativeSelect variant="unstyled" aria-label="Card type" data={['Treachery cards', 'Spice cards']} />
-      ) : segmented ? (
-        sortSelect()
-      ) : null}
+      {inline ? inlineType : segment}
     </SearchRefine>
   );
 }
