@@ -194,6 +194,138 @@ describe('FAQ reference public pages', () => {
     const deleted = await t.query(api.faqReferences.options, { kind: 'asset', q: 'card-treachery', paginationOpts });
     expect(deleted.page).toEqual([]);
   });
+  test('related questions rank exact shared targets ahead of newer partial matches, across rulesets', async () => {
+    const { t, ids, viewer } = await fixture();
+    const faction = { kind: 'faction' as const, id: ids.faction };
+    const asset = { kind: 'asset' as const, id: ids.assets[0]! };
+    for (const index of [0, 1, 2, 4]) {
+      await viewer.mutation(api.faqReferences.add, { questionId: ids.questions[index]!, target: faction });
+    }
+    for (const index of [3, 2, 1, 0]) {
+      await viewer.mutation(api.faqReferences.add, { questionId: ids.questions[index]!, target: asset });
+    }
+    const result = await t.query(api.faq.questionPage, { rulesetSlug: 'classic', questionSlug: '1', paginationOpts });
+    const related = result.page[0]!.detail!.relatedQuestions;
+    expect(related.map((item) => item._id)).toEqual([
+      ids.questions[2],
+      ids.questions[1],
+      ids.questions[4],
+      ids.questions[3],
+    ]);
+    expect(related[1]!.ruleset.slug).toBe('advanced');
+    expect(related[0]!.list_details.references).toHaveLength(2);
+    await t.run((ctx) => ctx.db.patch('assets', ids.assets[0]!, { is_deleted: true }));
+    const withoutAsset = await t.query(api.faq.questionPage, {
+      rulesetSlug: 'classic',
+      questionSlug: '1',
+      paginationOpts,
+    });
+    expect(withoutAsset.page[0]!.detail!.relatedQuestions.map((item) => item._id)).toEqual([
+      ids.questions[4],
+      ids.questions[2],
+      ids.questions[1],
+    ]);
+    await t.run(async (ctx) => {
+      await ctx.db.patch('rulesets', ids.otherRuleset, { is_deleted: true });
+      await ctx.db.delete('faq_items', ids.questions[2]!);
+    });
+    const remaining = await t.query(api.faq.questionPage, {
+      rulesetSlug: 'classic',
+      questionSlug: '1',
+      paginationOpts,
+    });
+    expect(remaining.page[0]!.detail!.relatedQuestions.map((item) => item._id)).toEqual([ids.questions[4]]);
+    await t.run((ctx) => ctx.db.patch('factions', ids.faction, { is_deleted: true }));
+    const noLiveTargets = await t.query(api.faq.questionPage, {
+      rulesetSlug: 'classic',
+      questionSlug: '1',
+      paginationOpts,
+    });
+    expect(noLiveTargets.page[0]!.detail!.relatedQuestions).toEqual([]);
+  });
+
+  test('rechecks overlap outside a reverse range and returns at most five unique questions', async () => {
+    const { t, ids, viewer } = await fixture();
+    for (const questionId of [ids.questions[0]!, ids.questions[1]!]) {
+      await viewer.mutation(api.faqReferences.add, { questionId, target: { kind: 'faction', id: ids.faction } });
+      await viewer.mutation(api.faqReferences.add, { questionId, target: { kind: 'asset', id: ids.assets[0]! } });
+    }
+    const newer = await t.run(async (raw) => {
+      const ctx = applicationTriggers.wrapDB(raw);
+      const questions = [];
+      for (let index = 0; index < 36; index++) {
+        const created = new Date(Date.UTC(2026, 10, index + 1)).toISOString();
+        const questionId = await ctx.db.insert('faq_items', {
+          ruleset_id: ids.ruleset,
+          slug: `newer-${index}`,
+          question: `Newer related question ${index}`,
+          asked_by: ids.user,
+          created_at: created,
+          updated_at: created,
+          accepted_answer_id: null,
+        });
+        await ctx.db.insert('faq_references', {
+          faq_item_id: questionId,
+          kind: 'asset',
+          target_id: ids.assets[0]!,
+          question_created_at: created,
+        });
+        questions.push(questionId);
+      }
+      return questions;
+    });
+    const result = await t.query(api.faq.questionPage, { rulesetSlug: 'classic', questionSlug: '1', paginationOpts });
+    expect(result.page[0]!.detail!.relatedQuestions.map((item) => item._id)).toEqual([
+      ids.questions[1],
+      ...newer.slice(-4).reverse(),
+    ]);
+  });
+
+  test('heavily referenced questions still return five related questions', async () => {
+    const { t, ids } = await fixture();
+    await t.run(async (ctx) => {
+      const asset = (await ctx.db.get('assets', ids.assets[0]!))!;
+      const { _id, _creationTime, ...input } = asset;
+      const targets = [asset._id];
+      for (let index = 1; index < 24; index++) {
+        targets.push(await ctx.db.insert('assets', { ...input, slug: `budget-${index}` }));
+      }
+      const questions = [...ids.questions];
+      for (let index = 0; index < 60; index++) {
+        questions.push(
+          await ctx.db.insert('faq_items', {
+            ruleset_id: ids.ruleset,
+            slug: `budget-${index}`,
+            question: `Budget question ${index}?`,
+            asked_by: ids.user,
+            created_at: at,
+            updated_at: at,
+            accepted_answer_id: null,
+          })
+        );
+      }
+      for (const questionId of questions) {
+        for (const targetId of targets) {
+          await ctx.db.insert('faq_references', {
+            faq_item_id: questionId,
+            kind: 'asset',
+            target_id: targetId,
+            question_created_at: at,
+          });
+        }
+      }
+    });
+    const result = await t.query(api.faq.questionPage, { rulesetSlug: 'classic', questionSlug: '1', paginationOpts });
+    const related = result.page[0]!.detail!.relatedQuestions;
+    expect(related).toHaveLength(5);
+    expect(related.some((question) => question._id === ids.questions[0])).toBe(false);
+  });
+
+  test('a question with no references has no recommendations', async () => {
+    const { t } = await fixture();
+    const result = await t.query(api.faq.questionPage, { rulesetSlug: 'classic', questionSlug: '1', paginationOpts });
+    expect(result.page[0]!.detail!.relatedQuestions).toEqual([]);
+  });
 });
 
 async function seedTargets(ctx: MutationCtx, user: Id<'users'>, otherRuleset: Id<'rulesets'>) {

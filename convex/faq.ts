@@ -7,7 +7,12 @@ import { internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { internalMutation, mutation, publicQuery, viewerQuery } from './functions';
 import { assignedGroupSummary } from './lib/collaborativeAccess';
-import { faqListItemValidator, assignedGroupSummaryValidator } from './lib/collaborativeAccessValidators';
+import {
+  faqListItemValidator,
+  assignedGroupSummaryValidator,
+  relatedFaqItemValidator,
+  docValidator,
+} from './lib/collaborativeAccessValidators';
 import { loadRulesetFaqPage, loadRulesetFaqSearch, rulesetFaqSearchText } from './lib/faqCatalogue';
 import {
   globalFaqPageValidator,
@@ -21,6 +26,7 @@ import {
   loadFaqQuestionAtLocator,
   loadViewerAnswered,
 } from './lib/faqQuestionPage';
+import { loadRelatedFaqForQuestion } from './lib/faqQuestionRelated';
 import { faqReferencePreview, faqReferencePreviewValidator } from './lib/faqReferencePreviews';
 import { loadFaqReferenceTargets } from './lib/faqReferences';
 import { faqTagValidator } from './lib/faqTags';
@@ -208,6 +214,7 @@ export const question = publicQuery({
 });
 
 const referencedQuestionValidator = faqQuestionPublicPageValidator.extend({
+  relatedQuestions: v.array(relatedFaqItemValidator),
   referenceRuleset: v.object({
     owner_id: v.id('users'),
     assignedGroup: v.union(assignedGroupSummaryValidator, v.null()),
@@ -227,6 +234,7 @@ export const questionPage = publicQuery({
       args.paginationOpts.cursor === null
         ? {
             ...(await loadFaqQuestionPublicPage(ctx, args)),
+            relatedQuestions: await loadRelatedFaqForQuestion(ctx, item._id),
             referenceRuleset: {
               owner_id: ruleset.owner_id,
               assignedGroup: await assignedGroupSummary(ctx, ruleset.group_id),
@@ -391,6 +399,7 @@ export const setAcceptedAnswer = mutation({
     faq_item_id: v.id('faq_items'),
     accepted_answer_id: v.union(v.id('faq_answers'), v.null()),
   },
+  returns: docValidator('faq_items'),
   handler: async (ctx, args) => {
     const item = await getFaqItem(ctx, args.faq_item_id);
     if (!item) {
@@ -407,9 +416,14 @@ export const setAcceptedAnswer = mutation({
 
     await assertAcceptedAnswerBelongsToItem(ctx, item._id, args.accepted_answer_id);
 
+    if (item.accepted_answer_id === args.accepted_answer_id) {
+      return item;
+    }
+    const acceptedAt = nowIso();
     await ctx.db.patch(item._id, {
       accepted_answer_id: args.accepted_answer_id,
-      updated_at: nowIso(),
+      accepted_at: args.accepted_answer_id ? acceptedAt : null,
+      updated_at: acceptedAt,
     });
     const updated = await ctx.db.get(item._id);
     if (!updated) {
@@ -569,6 +583,7 @@ export const deleteAnswer = mutation({
     if (item.accepted_answer_id === answer._id) {
       await ctx.db.patch(item._id, {
         accepted_answer_id: null,
+        accepted_at: null,
         updated_at: nowIso(),
       });
     }

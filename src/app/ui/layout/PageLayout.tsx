@@ -8,10 +8,11 @@ import { warnDroppedChild } from './warnDroppedChild';
 /**
  * What kind of header a page declares.
  * `compact` shrinks the band;
+ * `collapsed` keeps the accessible page title and reduces the band to navigation;
  * `hero` marks a page whose name is set in the display face;
  * `immersive` grows the band to fill the whole window, with the header content laid over its darker left side.
  */
-export type PageHeaderSize = 'default' | 'compact' | 'hero' | 'immersive';
+export type PageHeaderSize = 'default' | 'compact' | 'collapsed' | 'hero' | 'immersive';
 
 /** How much horizontal room the page content may claim. */
 type PageContentWidth = 'default' | 'viewport';
@@ -119,7 +120,7 @@ function PageLayoutBase({ children, height = 'document' }: PageLayoutProps) {
     <div
       ref={layoutRef}
       className={styles.layout}
-      data-page-layout-compact={hasHeader ? undefined : 'true'}
+      data-page-layout-compact={!hasHeader || (headerSize as PageHeaderSize) === 'collapsed' ? 'true' : undefined}
       data-page-layout-header-size={hasHeader ? headerSize : undefined}
       data-page-layout-height={height === 'document' ? undefined : height}
     >

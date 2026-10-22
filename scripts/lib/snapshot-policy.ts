@@ -320,6 +320,7 @@ export const snapshotPolicy = {
       created_at: 'keep',
       updated_at: 'keep',
       accepted_answer_id: { orNull: 'faq_answers' },
+      accepted_at: 'drop',
     },
     rows: 'all',
   },

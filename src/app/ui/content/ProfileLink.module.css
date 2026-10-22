@@ -56,3 +56,21 @@
 .compact .username {
   font-size: var(--mantine-font-size-xs);
 }
+
+.contributor {
+  --profile-link-avatar-size: 56px;
+  --profile-link-initials-size: 1.1rem;
+
+  display: grid;
+  grid-template-columns: var(--profile-link-avatar-size) minmax(0, 1fr);
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+@container (width >= 48rem) {
+  .contributor {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: start;
+  }
+}
