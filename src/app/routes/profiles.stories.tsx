@@ -171,7 +171,7 @@ function seedMoreFactions(baseline: StorybookDatabase) {
 }
 
 /**
- * A member with more factions than the profile shows: the newest few, and a link to all of them in the catalogue narrowed to the member, in the same order.
+ * A member with more factions than the profile shows: the newest three, and a link to all of them in the catalogue narrowed to the member, in the same order.
  * The header counts the whole list rather than the slice.
  */
 export const DetailFactionsPreview = meta.story({
@@ -185,7 +185,7 @@ export const DetailFactionsPreview = meta.story({
     );
     const factions = within(page.getByRole('region', { name: 'Factions created' }));
     const cards = factions.getAllByRole('link', { name: /Sietch|House Atreides/ });
-    await expect(cards.length).toBeLessThan(9);
+    await expect(cards).toHaveLength(3);
     await expect(cards[0]).toHaveAccessibleName(/Sietch 08/);
     await expect(page.getByText('9 factions')).toBeVisible();
   },

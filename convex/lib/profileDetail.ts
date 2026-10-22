@@ -9,8 +9,8 @@ import { loadFaqAnswersGivenBy, loadFaqQuestionsAskedBy, loadProfileFaqLists } f
 
 const PROFILE_DETAIL_LIMIT = 500;
 
-/** Factions the profile shows; "All N factions" opens the catalogue narrowed to the member for the rest. */
-export const PROFILE_FACTION_PREVIEW_SIZE = 6;
+/** Factions the profile shows, as many as a ruleset's rail; "All N factions" opens the catalogue narrowed to the member for the rest. */
+export const PROFILE_FACTION_PREVIEW_SIZE = 3;
 
 /* Renames away from one address that a lookup follows, newest first, as `formerAddresses` does for the other kinds. */
 const FORMER_HOLDERS_READ = 8;

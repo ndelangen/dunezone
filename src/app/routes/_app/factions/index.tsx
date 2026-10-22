@@ -513,16 +513,31 @@ function countRefinements(search: FactionCatalogueSearch) {
  * The member the grid is narrowed to, reached from their profile's "All N factions", or nothing when it is not.
  * That link is the one way to set it, so here the member is only named and cleared;
  * choosing a ruleset clears it too, since a list is one partition.
+ * `plainLabel` matches the drawer's field labels rather than the popover's headings.
  */
-function OwnerFilter({ owner, onClear }: { owner: FactionCatalogueOwner; onClear: () => void }) {
+function OwnerFilter({
+  owner,
+  onClear,
+  plainLabel = false,
+}: {
+  owner: FactionCatalogueOwner;
+  onClear: () => void;
+  plainLabel?: boolean;
+}) {
   if (!owner) {
     return null;
   }
   return (
     <Stack gap="xs">
-      <Text size="xs" fw={700} tt="uppercase" c="dimmed">
-        Member
-      </Text>
+      {plainLabel ? (
+        <Text size="sm" fw={500}>
+          Member
+        </Text>
+      ) : (
+        <Text size="xs" fw={700} tt="uppercase" c="dimmed">
+          Member
+        </Text>
+      )}
       <Group gap="xs">
         <Badge variant="filled" color="selected">
           By {owner.name}
@@ -631,7 +646,7 @@ function CatalogueToolbar({
             active: refinements,
             content: (
               <>
-                <OwnerFilter owner={owner} onClear={() => onSearchChange({ owner: undefined })} />
+                <OwnerFilter owner={owner} onClear={() => onSearchChange({ owner: undefined })} plainLabel />
                 {rulesetSelect('Ruleset')}
                 {complexitySlider}
                 {sortSelect('Sort by')}
