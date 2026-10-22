@@ -25,7 +25,6 @@ import { internalMutation, mutation, viewerQuery } from './functions';
 import { assetDisplayName } from './lib/assetInput';
 import { newestUnusedRefresh } from './lib/authSessionLifecycle';
 import { admitsPlayers, currentPlaySession, isRealGame, livePlaySession } from './lib/playAuthorization';
-import { playGameAddressAvailable } from './lib/playGameAddresses';
 import { hasLocalPlayGameProfanity } from './lib/playGameNameChecks';
 import { checkPlayGameName, PLAY_NAME_CHECK_MODEL, playNameCheckSchema } from './lib/playGameNameProvider';
 import { createPendingGame } from './lib/playProvisioningSchedule';
@@ -241,22 +240,8 @@ export const creatable = viewerQuery({
   },
 });
 
-/** A read-only hint; creation still allocates its address in its own transaction. */
-export const nameAvailability = viewerQuery({
-  args: { name: v.string() },
-  returns: v.union(v.null(), v.object({ base: v.string(), duplicate: v.boolean() })),
-  handler: async (ctx, { name }) => {
-    if (!(await currentPlaySession(ctx))) {
-      return null;
-    }
-    const parsed = playGameNameSchema.safeParse(name);
-    if (!parsed.success) {
-      return null;
-    }
-    const base = normalizePlayGameSlug(parsed.data);
-    return { base, duplicate: !(await playGameAddressAvailable(ctx, base)) };
-  },
-});
+/* Retained for previously deployed clients; new clients use the read-only module (#2437). */
+export { nameAvailability } from './playGameNameAvailability';
 
 /**
  * Creates a real game: a pending directory record with its fixed ruleset, minimum count and creator, and the provisioning requests that ask the game Worker to initialize it.

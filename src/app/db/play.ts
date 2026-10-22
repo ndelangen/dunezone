@@ -49,7 +49,7 @@ export function useCreatableRulesets(rulesetId: string) {
 }
 
 export function useGameNameAvailability(name: string) {
-  return useQuery(api.playGames.nameAvailability, { name });
+  return useQuery(api.playGameNameAvailability.nameAvailability, { name });
 }
 
 export function useCreateGame() {
