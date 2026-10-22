@@ -246,6 +246,7 @@ export const AnswerAuthor = meta.story({
       await page.findByRole('article', { name: "Leonard van der Meer's answer" }, { timeout: 30_000 })
     );
     await expect(page.queryByRole('button', { name: 'Accept answer' })).toBeNull();
+    await expect(own.findByRole('button', { name: 'Actions for answer' }, { timeout: 30_000 })).resolves.toBeVisible();
     await expect(page.getAllByRole('button', { name: 'Actions for answer' })).toHaveLength(1);
     await expect(page.queryByRole('button', { name: 'Actions for question' })).toBeNull();
     await userEvent.click(own.getByRole('button', { name: 'Actions for answer' }));
