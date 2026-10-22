@@ -986,8 +986,6 @@ export const MEDIA_MAP: Readonly<Record<string, MediaMapEntry>> = {
   '/web/homepage/cover.jpg': ['8b30c75089a1093b54a6', '#182838'],
   '/web/homepage/factions.jpg': ['5b73b4701741d8f7d50e', '#f8f8e8'],
   '/web/homepage/map.jpg': ['cb40fdb7c100e6e472ee', '#f8f8e8'],
-  '/web/page-dark.jpg': ['61f252d1947657aea7f3', '#081828'],
-  '/web/page.jpg': ['31673a60687fac505f7a', '#f8e8d8'],
   '/web/rulesets/gf9-logo.png': ['ca0d8a68fbf167ab4385', '#183848'],
   '/web/tablet1.jpg': ['8636b17960e8ad9fc297', '#e8d8b8'],
 };

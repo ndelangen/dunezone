@@ -5,7 +5,6 @@ import { listChange, ListStory } from './rulebookBlockEditors.shared.stories.fix
 
 const meta = preview.meta({
   title: 'Blocks/List/Editing',
-  globals: { colorScheme: 'dark' },
   parameters: { layout: 'fullscreen' },
 });
 

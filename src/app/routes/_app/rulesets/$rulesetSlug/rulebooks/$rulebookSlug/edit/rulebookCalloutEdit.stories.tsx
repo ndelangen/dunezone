@@ -5,7 +5,6 @@ import { calloutChange, CalloutStory } from './rulebookBlockEditors.shared.stori
 
 const meta = preview.meta({
   title: 'Blocks/Callout/Editing',
-  globals: { colorScheme: 'dark' },
   parameters: { layout: 'fullscreen' },
 });
 
