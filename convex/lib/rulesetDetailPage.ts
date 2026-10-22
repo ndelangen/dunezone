@@ -153,8 +153,6 @@ export async function loadRulesetPublicDetailPageBySlug(ctx: QueryCtx, slug: str
   const slots = await readRulesetAssetSlots(ctx, row._id);
   return {
     ruleset: row,
-    /* Every linked faction, for browsers from before the rail showed a few; this bundle reads `factionPreview`, and the next release drops it. */
-    factions: await listPublicRulesetFactions(ctx, row._id),
     ...(await rulesetFactionPreview(ctx, row._id)),
     assignedGroup: await assignedGroupSummary(ctx, row.group_id),
     faqPreview: await loadNewestFaqItems(ctx, row._id, FAQ_PREVIEW_SIZE),
