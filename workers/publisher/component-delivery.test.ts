@@ -11,6 +11,8 @@ import type { ComponentDeliveryResolution } from '../../src/shared/asset-publish
 import { publishedHref } from '../../src/shared/asset-publishing/publicationTargets';
 import { handleComponentRequest } from './component-delivery';
 import { putComponentEnvelope, readComponentEnvelope } from './component-r2';
+import { ConvexPublisherClient } from './convex';
+import { PublisherHttpError } from './http';
 import { fakeR2Object } from './test-helpers';
 
 const factionId = 'j57d9kz4ktbkpa12nb7j7s7w8h7ygb8p';
@@ -191,5 +193,65 @@ describe('complete component delivery', () => {
       putComponentEnvelope(bucket, job, 'b'.repeat(64), revisionA, new Uint8Array([2]), geometry)
     ).rejects.toThrow('not written');
     expect(bucket.put.mock.calls[0][0]).toBe(componentEnvelopeKey(assetId, revisionA));
+  });
+});
+
+describe('component delivery after transport refusal', () => {
+  test.each(['found', 'missing', 'pending'] as const)(
+    'uses the recovered %s answer before serving retained bytes',
+    async (status) => {
+      const bucket = storage();
+      await putComponentEnvelope(bucket, job, 'a'.repeat(64), revisionA, new Uint8Array([1, 2, 3]), geometry);
+      const resolution =
+        status === 'found' ? { ok: true, status, revision: revisionA, publishedAt: 1000 } : { ok: true, status };
+      const fetcher = vi
+        .fn<typeof fetch>()
+        .mockImplementationOnce(async () => Response.json({}, { status: 503 }))
+        .mockImplementation(async () => Response.json(resolution));
+      const response = await handleComponentRequest(request(), assetId, {
+        bucket,
+        client: new ConvexPublisherClient({
+          executorBaseUrl: 'https://convex.example.com',
+          executorToken: 'local-fixture-only',
+          fetcher,
+        }),
+      });
+      expect(fetcher).toHaveBeenCalledTimes(2);
+      expect(response.status).toBe(status === 'found' ? 200 : status === 'missing' ? 404 : 503);
+      if (status === 'found') {
+        expect([...new Uint8Array(await response.arrayBuffer())]).toEqual([1, 2, 3]);
+        expect(response.headers.get('ETag')).toBe(`"${revisionA}"`);
+      } else {
+        expect(bucket.get).not.toHaveBeenCalled();
+        expect(response.headers.get('Cache-Control')).toBe('no-store');
+      }
+    }
+  );
+
+  test.each(['metadata', 'envelope'] as const)('names the %s stage of a terminal failure', async (stage) => {
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      const bucket = storage();
+      const deliveryClient = client({ ok: true, status: 'found', revision: revisionA, publishedAt: 1000 });
+      const failure = new PublisherHttpError('Temporary upstream refusal', true, 503);
+      if (stage === 'metadata') {
+        deliveryClient.resolveComponentDelivery.mockRejectedValue(failure);
+      } else {
+        bucket.get.mockRejectedValue(failure);
+      }
+      const response = await handleComponentRequest(request(), assetId, { bucket, client: deliveryClient });
+      expect(response.status).toBe(503);
+      expect(JSON.parse(errors.mock.calls.at(-1)![0] as string)).toMatchObject({
+        event: 'asset_delivery_failure',
+        assetId,
+        assetType: 'faction-leader',
+        operation: stage === 'metadata' ? 'resolve_component' : 'read_component_envelope',
+        result: 'unavailable',
+        reason: 'exception',
+        httpStatus: 503,
+      });
+    } finally {
+      errors.mockRestore();
+    }
   });
 });

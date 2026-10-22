@@ -19,6 +19,7 @@ import type * as cardFrontPresets from "../cardFrontPresets.js";
 import type * as cardbackPresets from "../cardbackPresets.js";
 import type * as catalogueMaintenance from "../catalogueMaintenance.js";
 import type * as catalogueMigrations from "../catalogueMigrations.js";
+import type * as cataloguePicker from "../cataloguePicker.js";
 import type * as componentPublication from "../componentPublication.js";
 import type * as contentImports from "../contentImports.js";
 import type * as crons from "../crons.js";
@@ -56,6 +57,7 @@ import type * as lib_cardbackPresets from "../lib/cardbackPresets.js";
 import type * as lib_catalogueEntries from "../lib/catalogueEntries.js";
 import type * as lib_catalogueEntryShape from "../lib/catalogueEntryShape.js";
 import type * as lib_catalogueOrder from "../lib/catalogueOrder.js";
+import type * as lib_cataloguePickerOptions from "../lib/cataloguePickerOptions.js";
 import type * as lib_collaborativeAccess from "../lib/collaborativeAccess.js";
 import type * as lib_collaborativeAccessValidators from "../lib/collaborativeAccessValidators.js";
 import type * as lib_customCardTokens from "../lib/customCardTokens.js";
@@ -164,6 +166,7 @@ import type * as rulesetBoards from "../rulesetBoards.js";
 import type * as rulesetCovers from "../rulesetCovers.js";
 import type * as rulesets from "../rulesets.js";
 import type * as slugAllocationTesting from "../slugAllocationTesting.js";
+import type * as spiceDeckMerge from "../spiceDeckMerge.js";
 import type * as statistics from "../statistics.js";
 import type * as types from "../types.js";
 
@@ -186,6 +189,7 @@ const fullApi: ApiFromModules<{
   cardbackPresets: typeof cardbackPresets;
   catalogueMaintenance: typeof catalogueMaintenance;
   catalogueMigrations: typeof catalogueMigrations;
+  cataloguePicker: typeof cataloguePicker;
   componentPublication: typeof componentPublication;
   contentImports: typeof contentImports;
   crons: typeof crons;
@@ -223,6 +227,7 @@ const fullApi: ApiFromModules<{
   "lib/catalogueEntries": typeof lib_catalogueEntries;
   "lib/catalogueEntryShape": typeof lib_catalogueEntryShape;
   "lib/catalogueOrder": typeof lib_catalogueOrder;
+  "lib/cataloguePickerOptions": typeof lib_cataloguePickerOptions;
   "lib/collaborativeAccess": typeof lib_collaborativeAccess;
   "lib/collaborativeAccessValidators": typeof lib_collaborativeAccessValidators;
   "lib/customCardTokens": typeof lib_customCardTokens;
@@ -331,6 +336,7 @@ const fullApi: ApiFromModules<{
   rulesetCovers: typeof rulesetCovers;
   rulesets: typeof rulesets;
   slugAllocationTesting: typeof slugAllocationTesting;
+  spiceDeckMerge: typeof spiceDeckMerge;
   statistics: typeof statistics;
   types: typeof types;
 }> = anyApi as unknown as typeof fullApi;

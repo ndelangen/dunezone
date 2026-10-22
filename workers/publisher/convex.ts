@@ -3,7 +3,7 @@ import { resolveComponentDeliveryResponseSchema } from '../../src/shared/asset-p
 import type { ComponentDeliveryResolution } from '../../src/shared/asset-publishing/componentPublication';
 import { parseTakeWorkResponse } from '../../src/shared/asset-publishing/publication';
 import type { TakeWorkResult } from '../../src/shared/asset-publishing/publication';
-import { publisherErrorMessage } from '../../src/shared/asset-publishing/publisher-diagnostics';
+import { publisherErrorMessage, publisherFailureFields } from '../../src/shared/asset-publishing/publisher-diagnostics';
 import { resolveRulebookAnnotatedIllustrationResponseSchema } from '../../src/shared/rulebooks/annotatedIllustration';
 import type {
   RulebookAnnotatedIllustrationIdentity,
@@ -31,7 +31,8 @@ function okRecord(value: unknown): RecordValue {
   }
   return value as RecordValue;
 }
-import { postJson } from './http';
+import { DEFAULT_REQUEST_TIMEOUT_MS, PublisherHttpError, postJson } from './http';
+import { boundedPublisherTelemetryEvent } from './telemetry';
 
 function truncatedError(error: unknown): string {
   return publisherErrorMessage(error).slice(0, 2000);
@@ -99,9 +100,34 @@ export class ConvexPublisherClient {
     assetId: string,
     assetType: ComponentAssetType = 'faction-leader'
   ): Promise<ComponentDeliveryResolution> {
-    return resolveComponentDeliveryResponseSchema.parse(
-      await this.postExecutor('component/resolve-delivery', { schemaVersion: 1, assetId, assetType })
-    );
+    const now = this.options.now ?? Date.now;
+    const deadlineAt = now() + DEFAULT_REQUEST_TIMEOUT_MS;
+    const body = { schemaVersion: 1, assetId, assetType };
+    let response: unknown;
+    /* The metadata read shares one deadline across both transport attempts. */
+    try {
+      response = await this.postExecutor('component/resolve-delivery', body, deadlineAt);
+    } catch (error) {
+      if (!(error instanceof PublisherHttpError) || !error.transient || now() >= deadlineAt) {
+        throw error;
+      }
+      console.warn(
+        JSON.stringify(
+          boundedPublisherTelemetryEvent({
+            event: 'component_delivery_recovery',
+            assetId,
+            assetType,
+            operation: 'resolve_delivery',
+            attempt: 1,
+            maxAttempts: 2,
+            httpStatus: error.status,
+            ...publisherFailureFields(error),
+          })
+        )
+      );
+      response = await this.postExecutor('component/resolve-delivery', body, deadlineAt);
+    }
+    return resolveComponentDeliveryResponseSchema.parse(response);
   }
 
   async takeRulebookArtifactWork<K extends RulebookEditionArtifactKind>(

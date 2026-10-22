@@ -156,3 +156,118 @@ describe('Convex Publication client', () => {
     await expect(client.fail('job-1', 'broken')).rejects.toThrow();
   });
 });
+
+describe('component metadata transport recovery', () => {
+  const componentId = 'j57d9kz4ktbkpa12nb7j7s7w8h7ygb8p.10000000-1000-4000-8000-100000000001';
+  const found = {
+    ok: true,
+    status: 'found',
+    revision: '10000000-1000-4000-8000-100000000002',
+    publishedAt: 1000,
+  };
+  const options = {
+    executorBaseUrl: 'https://convex.example.com/asset-publishing/executor',
+    executorToken: 'local-fixture-only',
+  };
+
+  test.each(['status', 'connection', 'body'] as const)('recovers one transient %s failure', async (failure) => {
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockImplementationOnce(async () => {
+        if (failure === 'connection') {
+          throw new Error('Network connection lost');
+        }
+        if (failure === 'body') {
+          return new Response(
+            new ReadableStream({
+              start(controller) {
+                controller.error(new Error('Body lost'));
+              },
+            })
+          );
+        }
+        return Response.json({ error: 'temporary refusal' }, { status: 503 });
+      })
+      .mockImplementation(async () => Response.json(found));
+    const client = new ConvexPublisherClient({ ...options, fetcher });
+    await expect(client.resolveComponentDelivery(componentId)).resolves.toEqual(found);
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+
+  test('persistent failures stop after two reads', async () => {
+    const fetcher = vi.fn<typeof fetch>(async () => Response.json({}, { status: 503 }));
+    await expect(
+      new ConvexPublisherClient({ ...options, fetcher }).resolveComponentDelivery(componentId)
+    ).rejects.toMatchObject({ transient: true, status: 503 });
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+
+  test.each([
+    () => Response.json({}, { status: 403 }),
+    () => new Response('invalid JSON'),
+    () => Response.json({ ...found, revision: 'invalid' }),
+  ])('permanent refusals and invalid responses are not retried', async (response) => {
+    const fetcher = vi.fn<typeof fetch>(async () => response());
+    await expect(
+      new ConvexPublisherClient({ ...options, fetcher }).resolveComponentDelivery(componentId)
+    ).rejects.toThrow();
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
+  test('pending publication remains pending after one read', async () => {
+    const fetcher = vi.fn<typeof fetch>(async () => Response.json({ ok: true, status: 'pending' }));
+    await expect(
+      new ConvexPublisherClient({ ...options, fetcher }).resolveComponentDelivery(componentId)
+    ).resolves.toEqual({ ok: true, status: 'pending' });
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
+  test('recovery shares the original deadline', async () => {
+    let now = 0;
+    const fetcher = vi.fn<typeof fetch>(async () => {
+      now = 30_001;
+      throw new Error('Network connection lost');
+    });
+    await expect(
+      new ConvexPublisherClient({ ...options, fetcher, now: () => now }).resolveComponentDelivery(componentId)
+    ).rejects.toMatchObject({ transient: true });
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
+  test('work-taking mutations retain one attempt', async () => {
+    const fetcher = vi.fn<typeof fetch>(async () => Response.json({}, { status: 503 }));
+    await expect(new ConvexPublisherClient({ ...options, fetcher }).takeWork()).rejects.toMatchObject({ status: 503 });
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
+  test('a recovery request receives only the time left in the first budget', async () => {
+    let now = 0;
+    let signalStarted: (signal: AbortSignal) => void = () => {};
+    const started = new Promise<AbortSignal>((resolve) => {
+      signalStarted = resolve;
+    });
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockImplementationOnce(async () => {
+        now = 29_995;
+        return Response.json({}, { status: 503 });
+      })
+      .mockImplementationOnce(async (_input, init) => {
+        signalStarted(init!.signal!);
+        return await new Promise<Response>(() => {});
+      });
+    const failure = new ConvexPublisherClient({ ...options, fetcher, now: () => now })
+      .resolveComponentDelivery(componentId)
+      .catch((error: unknown) => error);
+    const signal = await started;
+    await new Promise<void>((resolve) => {
+      if (signal.aborted) {
+        resolve();
+      } else {
+        signal.addEventListener('abort', () => resolve(), { once: true });
+      }
+    });
+    expect(await failure).toMatchObject({ transient: true });
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+});
