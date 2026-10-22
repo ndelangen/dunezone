@@ -491,6 +491,15 @@ try {
     env: localEnv,
     logPath: path.join(evidence, 'functions.log'),
   });
+  if (flows.includes('regular')) {
+    const { verifyColdNameRead } = await import('./verify-cold-name-read');
+    const coldRead = {
+      ...(await verifyColdNameRead(backendUrl, backend.pid)),
+      nativeUdfLimitSeconds: LOCAL_FUNCTION_LIMIT_SECONDS,
+    };
+    writeFileSync(path.join(evidence, 'cold-name-read.json'), JSON.stringify(coldRead, null, 2));
+    console.log(`Cold name-read initialization passed: ${JSON.stringify(coldRead)}`);
+  }
   console.log(`Synthetic Auth backend ready at ${backendUrl}; same-origin publisher ${origin}.`);
   /* Wrangler's own debug log goes to its global log directory by default, outside the evidence the artifact keeps. */
   const wranglerLog = path.join(evidence, 'wrangler.log');
