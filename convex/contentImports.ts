@@ -193,6 +193,45 @@ async function findSubject(
 function subjectHash(subject: Subject) {
   return rulebookContentsHash(subject);
 }
+
+/* Receipts are few, one per imported package item; a store past this bound stops the caller rather than reading without limit. */
+const RECEIPT_SCAN_LIMIT = 5000;
+
+/**
+ * Keeps package receipts true after Assets were merged outside an import.
+ * A receipt naming a key of `moves` follows the Asset to its value, and every receipt naming a moved-to or `touched` Asset records that Asset's current state, so the next preview reads those Assets as unchanged rather than as conflicts.
+ * Returns the receipts that would change;
+ * `dryRun` writes nothing.
+ */
+export async function retargetAssetReceipts(
+  ctx: MutationCtx,
+  moves: ReadonlyMap<string, string>,
+  touched: readonly string[],
+  dryRun: boolean
+) {
+  const receipts = await ctx.db.query('content_import_receipts').take(RECEIPT_SCAN_LIMIT + 1);
+  if (receipts.length > RECEIPT_SCAN_LIMIT) {
+    throw new ConvexError('There are too many import receipts to reconcile in one transaction.');
+  }
+  const refreshed = new Set([...moves.values(), ...touched]);
+  const changed = [];
+  for (const receipt of receipts) {
+    const subjectId = moves.get(receipt.subject_id) ?? receipt.subject_id;
+    if (receipt.kind !== 'asset' || !refreshed.has(subjectId)) {
+      continue;
+    }
+    changed.push({ receipt: receipt._id, packageKey: receipt.package_key, itemKey: receipt.item_key, subjectId });
+    if (dryRun) {
+      continue;
+    }
+    const row = await ctx.db.get('assets', subjectId as Id<'assets'>);
+    const subject = await subjectById(ctx, { kind: 'asset', type: row?.type ?? '' } as ContentImportItem, subjectId, {
+      ruleset: { _id: receipt.ruleset_id },
+    } as Target);
+    await ctx.db.patch(receipt._id, { subject_id: subjectId, state_hash: subjectHash(subject) });
+  }
+  return changed;
+}
 async function destinationFor(
   ctx: MutationCtx,
   target: Target,
