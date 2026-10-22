@@ -32,17 +32,42 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-test('the phase story opens Previous phase while native frames stay withheld', async () => {
-  const { phaseControls } = await import('./playing.stories.fixture');
+test.each([
+  {
+    name: 'phase',
+    trigger: 'More phase actions',
+    item: 'Previous phase',
+    load: async () => {
+      const { phaseControls } = await import('./playing.stories.fixture');
+      return () => phaseControls(document.body).openPrevious();
+    },
+  },
+  {
+    name: 'bidding',
+    trigger: 'Game menu',
+    item: 'Timed bidding',
+    load: async () => {
+      const { openBiddingSettings } = await import('./bidding.stories.fixture');
+      return () => openBiddingSettings(document.body);
+    },
+  },
+])('the $name story opens its menu while native frames stay withheld', async ({ name, trigger, item, load }) => {
+  const open = await load();
   render(
     <MantineProvider>
       <div role="group" aria-label="Phase navigation">
         <Menu withinPortal hideDetached={false}>
           <Menu.Target>
-            <button aria-label="More phase actions">More</button>
+            <button aria-label={trigger}>{trigger}</button>
           </Menu.Target>
           <Menu.Dropdown>
-            <Menu.Item>Previous phase</Menu.Item>
+            {name === 'bidding' ? (
+              <Menu.CheckboxItem checked={false} onChange={() => {}}>
+                {item}
+              </Menu.CheckboxItem>
+            ) : (
+              <Menu.Item>{item}</Menu.Item>
+            )}
           </Menu.Dropdown>
         </Menu>
       </div>
@@ -50,10 +75,9 @@ test('the phase story opens Previous phase while native frames stay withheld', a
   );
   vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval'] });
   let finished = false;
-  const outcome = phaseControls(document.body)
-    .openPrevious()
+  const outcome = open()
     .then(
-      (item) => item.textContent,
+      (control) => control.textContent,
       (error: unknown) => error
     )
     .finally(() => {
@@ -62,5 +86,5 @@ test('the phase story opens Previous phase while native frames stay withheld', a
   for (let elapsed = 0; !finished && elapsed < 10_100; elapsed += 50) {
     await vi.advanceTimersByTimeAsync(50);
   }
-  expect(await outcome).toBe('Previous phase');
+  expect(await outcome).toBe(item);
 });
