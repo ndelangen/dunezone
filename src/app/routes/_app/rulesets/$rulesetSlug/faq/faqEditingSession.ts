@@ -22,6 +22,13 @@ function tagsOf(item: QuestionSource): FaqTag[] {
   return Array.isArray(item.tags) && item.tags.length > 0 ? [...item.tags] : [DEFAULT_FAQ_TAG];
 }
 
+export function faqQuestionHasChanges(item: QuestionSource, state: FaqEditingState): boolean {
+  return (
+    state.questionValue.trim() !== item.text ||
+    [...state.tagValues].sort(compareCodeUnits).join('|') !== [...tagsOf(item)].sort(compareCodeUnits).join('|')
+  );
+}
+
 const INITIAL: FaqEditingState = {
   editingQuestion: false,
   questionValue: '',
@@ -74,11 +81,7 @@ export function createFaqEditingSession(ports: FaqEditingPorts) {
       if (!question || state.tagValues.length === 0) {
         return;
       }
-      const currentTags = tagsOf(item);
-      const unchanged =
-        question === item.text &&
-        [...state.tagValues].sort(compareCodeUnits).join('|') === [...currentTags].sort(compareCodeUnits).join('|');
-      if (unchanged) {
+      if (!faqQuestionHasChanges(item, state)) {
         set({ editingQuestion: false });
         return;
       }
