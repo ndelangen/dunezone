@@ -445,13 +445,13 @@ async function loadCards(
 /**
  * One page of the Faction catalogue, the same for every viewer.
  * The aggregate counts the list and finds the page's first entry;
- * a search uses Convex's search index over the same entries.
+ * a search is `loadFactionCatalogueSearch`'s, so a page ignores `q`.
  * Only the visible cards and the two spotlights read card rows.
  * A page past the end answers with no cards and the real page count, so the reader can be told where the catalogue ends.
  */
 export async function loadFactionCataloguePage(ctx: QueryCtx, query: FactionCatalogueQuery) {
   const furniture = await loadCatalogueFurniture(ctx, query);
-  const { partition, complexity, text, catalogueTotal, rulesets } = furniture;
+  const { partition, complexity, catalogueTotal, rulesets } = furniture;
   const page = parseCataloguePage(query.page) ?? 1;
   const selection = await selectCataloguePage(ctx, {
     kind: 'faction',
@@ -459,7 +459,6 @@ export async function loadFactionCataloguePage(ctx: QueryCtx, query: FactionCata
     ...catalogueOrderOf(query.sort),
     page,
     pageSize: FACTION_CATALOGUE_PAGE_SIZE,
-    search: text ? { text, relevance: !query.sort } : undefined,
     complexity,
   });
   const { cards, spotlights } = await loadCards(ctx, furniture, selection.entries);

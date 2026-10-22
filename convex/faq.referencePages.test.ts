@@ -338,7 +338,7 @@ async function seedTargets(ctx: MutationCtx, user: Id<'users'>, otherRuleset: Id
     created_at: at,
     updated_at: at,
   });
-  await ctx.db.insert('ruleset_factions', { ruleset_id: otherRuleset, faction_id: faction });
+  await ctx.db.insert('ruleset_factions', { ruleset_id: otherRuleset, faction_id: faction, position: 0 });
   const assets = [];
   for (const type of ['card-treachery', 'token-disc', 'board', 'bundle']) {
     assets.push(

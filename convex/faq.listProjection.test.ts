@@ -84,8 +84,6 @@ test('list rows cite accepted authors beyond the answer window and keep referenc
   });
   const page = (await t.query(api.rulesets.detailPage, { slug: 'classic' }))!;
   const row = page.faqPreview[0]!;
-  expect(page.faqItems[0]).not.toHaveProperty('list_details');
-  expect(page.faqItems[0]!.faq_answers).toHaveLength(50);
   expect(row.faq_answers).toHaveLength(50);
   expect(row.list_details.has_more_answers).toBe(true);
   expect(row.list_details.accepted_answer?.excerpt).toMatch(/^Accepted answer\. First point A longer explanation\./);

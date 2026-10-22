@@ -77,7 +77,11 @@ export async function seedCatalogue(
       });
       factionIds.push(factionId);
       for (const slug of faction.rulesets ?? []) {
-        await ctx.db.insert('ruleset_factions', { ruleset_id: rulesetIds.get(slug)!, faction_id: factionId });
+        await ctx.db.insert('ruleset_factions', {
+          ruleset_id: rulesetIds.get(slug)!,
+          faction_id: factionId,
+          position: factionIds.length,
+        });
       }
     }
     return { ownerId, factionIds, rulesetIds: Object.fromEntries(rulesetIds) };

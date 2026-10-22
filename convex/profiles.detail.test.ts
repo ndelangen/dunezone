@@ -185,14 +185,17 @@ async function seedProfileDetail(t: ReturnType<typeof convexTest>): Promise<Seed
     await ctx.db.insert('ruleset_factions', {
       ruleset_id: basicRulesetId,
       faction_id: activeFactionId,
+      position: 0,
     });
     await ctx.db.insert('ruleset_factions', {
       ruleset_id: advancedRulesetId,
       faction_id: activeFactionId,
+      position: 0,
     });
     await ctx.db.insert('ruleset_factions', {
       ruleset_id: deletedRulesetId,
       faction_id: activeFactionId,
+      position: 0,
     });
 
     const earlyQuestionId = await ctx.db.insert('faq_items', {

@@ -280,11 +280,11 @@ async function directoryEntries(ctx: QueryCtx, selected: { source_id: string }[]
 /** A browsed page: aggregate counts, numbered pages, a chosen order. */
 const catalogueBrowseValidator = v.object({
   entries: v.array(profileDirectoryEntryValidator),
-  /** Profiles matching the search, across every page. */
+  /** Listed profiles, across every page. */
   total: v.number(),
   /** Listed profiles, before any search. */
   directoryTotal: v.number(),
-  /** False when a search matched more entries than one query reads, so `total` is a floor. */
+  /** Always true now that a search is never paged; kept so the browse shape stays the one the page reads. */
   complete: v.boolean(),
   /** The page these rows are, which may lie past `pageCount`, with no rows. */
   page: v.number(),
@@ -308,24 +308,19 @@ const catalogueSearchValidator = v.object({
 
 type CatalogueArgs = { q?: string; sort?: ProfileCatalogueSort; page?: number; limit?: number };
 
-async function loadDirectoryPage(ctx: QueryCtx, args: CatalogueArgs, text: string) {
+async function loadDirectoryPage(ctx: QueryCtx, args: CatalogueArgs) {
   const page = Number.isSafeInteger(args.page) && args.page! > 1 ? args.page! : 1;
-  const [selection, [directoryCount = 0]] = await Promise.all([
-    selectCataloguePage(ctx, {
-      kind: 'profile',
-      partition: ALL_PARTITION,
-      ...profileCatalogueOrderOf(args.sort),
-      page,
-      pageSize: PROFILE_CATALOGUE_PAGE_SIZE,
-      search: text ? { text, relevance: !args.sort } : undefined,
-    }),
-    /* Without a search the page's own count is the directory's, so only a search counts again. */
-    text ? countCataloguePartitions(ctx, 'profile', [ALL_PARTITION]) : Promise.resolve([]),
-  ]);
+  const selection = await selectCataloguePage(ctx, {
+    kind: 'profile',
+    partition: ALL_PARTITION,
+    ...profileCatalogueOrderOf(args.sort),
+    page,
+    pageSize: PROFILE_CATALOGUE_PAGE_SIZE,
+  });
   return {
     entries: await directoryEntries(ctx, selection.entries),
     total: selection.total,
-    directoryTotal: text ? directoryCount : selection.total,
+    directoryTotal: selection.total,
     complete: selection.exact,
     page,
     pageCount: Math.max(1, Math.ceil(selection.total / PROFILE_CATALOGUE_PAGE_SIZE)),
@@ -352,9 +347,8 @@ async function loadDirectorySearch(ctx: QueryCtx, args: CatalogueArgs, text: str
  * The profile directory: the aggregate counts it and finds a page's first profile;
  * a search uses Convex's search index over username and slug.
  * Only the page's own profiles and their activity counts are read, so a page costs the same however many profiles there are.
- * A search with a `limit` is the load-more search;
+ * A search is the load-more search, best matches first up to `limit`;
  * without one the directory is browsed, in pages.
- * A searched `q` without `limit` is an old bundle's paged search, kept one release for the bundle deployed before this and dropped in the contract release.
  * Replaces `list`, which stays for one release so a bundle still asking for it keeps working while this one deploys.
  */
 export const catalogue = publicQuery({
@@ -368,9 +362,7 @@ export const catalogue = publicQuery({
   returns: v.union(catalogueBrowseValidator, catalogueSearchValidator),
   handler: async (ctx, args) => {
     const text = args.q?.slice(0, PROFILE_CATALOGUE_QUERY_LIMIT).trim() ?? '';
-    return text && args.limit !== undefined
-      ? await loadDirectorySearch(ctx, args, text)
-      : await loadDirectoryPage(ctx, args, text);
+    return text ? await loadDirectorySearch(ctx, args, text) : await loadDirectoryPage(ctx, args);
   },
 });
 
