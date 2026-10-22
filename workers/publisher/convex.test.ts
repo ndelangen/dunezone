@@ -239,4 +239,32 @@ describe('component metadata transport recovery', () => {
     await expect(new ConvexPublisherClient({ ...options, fetcher }).takeWork()).rejects.toMatchObject({ status: 503 });
     expect(fetcher).toHaveBeenCalledTimes(1);
   });
+
+  test('a recovery request receives only the time left in the first budget', async () => {
+    let now = 0;
+    const started = Promise.withResolvers<AbortSignal>();
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockImplementationOnce(async () => {
+        now = 29_995;
+        return Response.json({}, { status: 503 });
+      })
+      .mockImplementationOnce(async (_input, init) => {
+        started.resolve(init!.signal!);
+        return await new Promise<Response>(() => {});
+      });
+    const failure = new ConvexPublisherClient({ ...options, fetcher, now: () => now })
+      .resolveComponentDelivery(componentId)
+      .catch((error: unknown) => error);
+    const signal = await started.promise;
+    await new Promise<void>((resolve) => {
+      if (signal.aborted) {
+        resolve();
+      } else {
+        signal.addEventListener('abort', () => resolve(), { once: true });
+      }
+    });
+    expect(await failure).toMatchObject({ transient: true });
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
 });
