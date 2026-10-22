@@ -5,7 +5,7 @@ import { compareCodeUnits } from '@shared/compareText';
 import { rulebookContentsV1Schema, rulebookLocalIdAlphabet } from '@shared/rulebooks/contents';
 import { createRulebookStarterContents } from '@shared/rulebooks/fixtures';
 import { useEffect } from 'react';
-import { expect, userEvent, waitFor, within } from 'storybook/test';
+import { expect, spyOn, userEvent, waitFor, within } from 'storybook/test';
 
 import { db, useStorybookDatabaseClient } from '@db/storybook';
 import type { StorybookDatabase } from '@db/storybook';
@@ -197,14 +197,14 @@ function LateOldAddressRenameStory({ path }: { path: string }) {
     const delivery = new Promise<void>((resolve) => {
       arrival.releaseOldQuery = resolve;
     });
-    client.query = async (fn, args, identity) => {
+    const heldQuery = spyOn(client, 'query').mockImplementation(async (fn, args, identity) => {
       const result = await query(fn, args, identity);
       if (args.rulebook_slug === 'book-0' && result === null) {
         arrival.oldQueryHeld = true;
         await delivery;
       }
       return result;
-    };
+    });
     const capture = (event: MouseEvent) => {
       if (
         arrival.oldQueryHeld &&
@@ -217,7 +217,7 @@ function LateOldAddressRenameStory({ path }: { path: string }) {
     };
     document.addEventListener('click', capture, true);
     return () => {
-      client.query = query;
+      heldQuery.mockRestore();
       arrival.releaseOldQuery();
       document.removeEventListener('click', capture, true);
     };
