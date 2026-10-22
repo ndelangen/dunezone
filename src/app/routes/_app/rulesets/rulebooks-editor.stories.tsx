@@ -4,7 +4,8 @@ import { waitForFrame } from '@sb/storyWaits';
 import { compareCodeUnits } from '@shared/compareText';
 import { rulebookContentsV1Schema, rulebookLocalIdAlphabet } from '@shared/rulebooks/contents';
 import { createRulebookStarterContents } from '@shared/rulebooks/fixtures';
-import { expect, userEvent, waitFor, within } from 'storybook/test';
+import { useEffect } from 'react';
+import { expect, spyOn, userEvent, waitFor, within } from 'storybook/test';
 
 import { db, useStorybookDatabaseClient } from '@db/storybook';
 import type { StorybookDatabase } from '@db/storybook';
@@ -114,51 +115,137 @@ function renderedPageCount(canvasElement: HTMLElement) {
   return canvasElement.ownerDocument.querySelectorAll('[data-rulebook-page-id]').length;
 }
 
+type EditorArrival = {
+  canvasElement: HTMLElement;
+  pathname: string | null;
+  waitingFor: string | null;
+  oldQueryHeld: boolean;
+  earlyRename: boolean;
+  oldWorkspaceRetired: boolean;
+  releaseOldQuery: () => void;
+  observe: (pathname: string) => void;
+};
+
+const renamedEditorPath = '/rulesets/classicrules/rulebooks/battle-reference/edit';
+
+function loadEditorArrival({ canvasElement }: { canvasElement: HTMLElement }) {
+  const arrival: EditorArrival = {
+    canvasElement,
+    pathname: null,
+    waitingFor: null,
+    oldQueryHeld: false,
+    earlyRename: false,
+    oldWorkspaceRetired: false,
+    releaseOldQuery: () => {},
+    observe: (pathname) => {
+      arrival.pathname = pathname;
+    },
+  };
+  return { editorArrival: arrival };
+}
+
+async function waitForEditorArrival(arrival: EditorArrival) {
+  arrival.waitingFor = renamedEditorPath;
+  await waitFor(() => expect(arrival.pathname).toBe(renamedEditorPath));
+}
+
+async function renameRulebook(canvasElement: HTMLElement, arrival: EditorArrival) {
+  const page = within(canvasElement.ownerDocument.body);
+  await userEvent.click(await page.findByRole('button', { name: 'Rename Rulebook' }, { timeout: 30_000 }));
+  const form = page.getByRole('form', { name: 'Rename Rulebook' });
+  await userEvent.clear(within(form).getByRole('textbox', { name: 'Rulebook name' }));
+  await userEvent.type(within(form).getByRole('textbox', { name: 'Rulebook name' }), 'Battle reference');
+  await expect(page.getByText(/bookmarks or shared links to the old one stop/)).toBeVisible();
+  await userEvent.click(within(form).getByRole('button', { name: 'Rename Rulebook' }));
+  await waitFor(() => expect(page.queryByRole('textbox', { name: 'Rulebook name' })).toBeNull());
+  /* The old toolbar still answers this name until its slug's subscription refuses it.
+   * Wait for the new address before reopening the form, then read back the saved name.
+   */
+  await waitForEditorArrival(arrival);
+  const rename = await page.findByRole('button', { name: 'Rename Rulebook' }, { timeout: 30_000 });
+  await waitFor(() => expect(rename).not.toHaveAttribute('aria-disabled'), { timeout: 30_000 });
+  await userEvent.click(rename);
+  await expect(page.findByRole('textbox', { name: 'Rulebook name' })).resolves.toHaveValue('Battle reference');
+  /* The form's submit shares the name, and the toolbar's toggle comes first. */
+  await userEvent.click(page.getAllByRole('button', { name: 'Rename Rulebook' })[0]!);
+  await waitFor(() => expect(page.queryByRole('textbox', { name: 'Rulebook name' })).toBeNull());
+  await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
+  const title = page.getByRole('textbox', { name: 'Title' });
+  await userEvent.type(title, ' revised');
+  await expect(page.getByRole('button', { name: 'Rename Rulebook' })).toHaveAttribute('aria-disabled', 'true');
+}
+
 export const Rename = meta.story({
   args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#RULE/details' },
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await page.findByRole('button', { name: 'Rename Rulebook' }, { timeout: 30_000 });
-    /* On a cold start the editor can still settle after the form opens, which closes it, so the form is reopened and refilled until the name holds. */
-    await waitFor(
-      async () => {
-        if (!page.queryByRole('form', { name: 'Rename Rulebook' })) {
-          await userEvent.click(page.getByRole('button', { name: 'Rename Rulebook' }));
-        }
-        const name = within(page.getByRole('form', { name: 'Rename Rulebook' })).getByRole('textbox', {
-          name: 'Rulebook name',
-        });
-        await userEvent.clear(name);
-        await userEvent.type(name, 'Battle reference');
-        await expect(page.getByRole('textbox', { name: 'Rulebook name' })).toHaveValue('Battle reference');
-      },
-      { timeout: 30_000 }
+  loaders: [loadEditorArrival],
+  render: (args, { loaded }) => (
+    <StorybookPage {...args} onResolved={(loaded.editorArrival as EditorArrival).observe} />
+  ),
+  play: ({ canvasElement, loaded }) => renameRulebook(canvasElement, loaded.editorArrival as EditorArrival),
+});
+
+/* Deliver the real old-address refusal after the caller reaches its next action, before the new editor can arrive. */
+function holdOldAddressQuery(client: ReturnType<typeof useStorybookDatabaseClient>, arrival: EditorArrival) {
+  const query = client.query;
+  const delivery = new Promise<void>((resolve) => {
+    arrival.releaseOldQuery = resolve;
+  });
+  let retirement: Promise<void> | undefined;
+  const retireOldWorkspace = async () => {
+    await waitFor(() => expect(arrival.oldQueryHeld).toBe(true));
+    await waitFor(() => expect(arrival.waitingFor === renamedEditorPath || arrival.earlyRename).toBe(true));
+    arrival.releaseOldQuery();
+    await waitFor(() =>
+      expect(arrival.canvasElement.querySelector('[aria-label="Rulebook editing workspace"]')).toBeNull()
     );
-    const form = page.getByRole('form', { name: 'Rename Rulebook' });
-    await expect(page.getByText(/bookmarks or shared links to the old one stop/)).toBeVisible();
-    await userEvent.click(within(form).getByRole('button', { name: 'Rename Rulebook' }));
-    await waitFor(() => expect(page.queryByRole('textbox', { name: 'Rulebook name' })).toBeNull());
-    /* The toolbar carries no name any more, so the new one is read back from the form it was set in. */
-    /* A rename re-slugs, so the editor remounts at its new address before the action is back, and it stays unavailable until the draft settles. */
-    const rename = await page.findByRole('button', { name: 'Rename Rulebook' }, { timeout: 30_000 });
-    await waitFor(() => expect(rename).not.toHaveAttribute('aria-disabled'), { timeout: 30_000 });
-    /* The remounted editor can settle after the form reopens, which closes it again, so it is reopened until the name shows. */
-    await waitFor(
-      async () => {
-        if (!page.queryByRole('form', { name: 'Rename Rulebook' })) {
-          await userEvent.click(page.getByRole('button', { name: 'Rename Rulebook' }));
-        }
-        await expect(page.getByRole('textbox', { name: 'Rulebook name' })).toHaveValue('Battle reference');
-      },
-      { timeout: 30_000 }
-    );
-    /* The form's submit shares the name, and the toolbar's toggle comes first. */
-    await userEvent.click(page.getAllByRole('button', { name: 'Rename Rulebook' })[0]!);
-    await waitFor(() => expect(page.queryByRole('textbox', { name: 'Rulebook name' })).toBeNull());
-    await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
-    const title = page.getByRole('textbox', { name: 'Title' });
-    await userEvent.type(title, ' revised');
-    await expect(page.getByRole('button', { name: 'Rename Rulebook' })).toHaveAttribute('aria-disabled', 'true');
+    arrival.oldWorkspaceRetired = true;
+  };
+  const heldQuery = spyOn(client, 'query').mockImplementation(async (fn, args, identity) => {
+    if (args.rulebook_slug === 'battle-reference') {
+      retirement ??= retireOldWorkspace();
+      await retirement;
+    }
+    const result = await query(fn, args, identity);
+    if (args.rulebook_slug === 'book-0' && result === null) {
+      arrival.oldQueryHeld = true;
+      await delivery;
+    }
+    return result;
+  });
+  const capture = (event: MouseEvent) => {
+    if (
+      arrival.oldQueryHeld &&
+      arrival.pathname !== renamedEditorPath &&
+      event.target instanceof Element &&
+      event.target.closest('button[aria-label="Rename Rulebook"]')
+    ) {
+      arrival.earlyRename = true;
+    }
+  };
+  arrival.canvasElement.addEventListener('click', capture, true);
+  return () => {
+    heldQuery.mockRestore();
+    arrival.releaseOldQuery();
+    arrival.canvasElement.removeEventListener('click', capture, true);
+  };
+}
+
+function LateOldAddressRenameStory({ path, arrival }: { path: string; arrival: EditorArrival }) {
+  const client = useStorybookDatabaseClient();
+  useEffect(() => holdOldAddressQuery(client, arrival), [client, arrival]);
+  return <StorybookPage path={path} onResolved={arrival.observe} />;
+}
+
+export const RenameAfterOldAddressExpires = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#RULE/details' },
+  loaders: [loadEditorArrival],
+  render: (args, { loaded }) => <LateOldAddressRenameStory {...args} arrival={loaded.editorArrival as EditorArrival} />,
+  play: async ({ canvasElement, loaded }) => {
+    const arrival = loaded.editorArrival as EditorArrival;
+    await renameRulebook(canvasElement, arrival);
+    await expect(arrival.oldQueryHeld).toBe(true);
+    await expect(arrival.oldWorkspaceRetired).toBe(true);
+    await expect(arrival.earlyRename).toBe(false);
   },
 });
 
