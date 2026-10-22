@@ -14,7 +14,9 @@ permissions:
   contents: read
 
 concurrency:
-  group: pr-ci-${{ github.event.pull_request.number || github.ref }}
+  # Draft and full runs cancel only their own profile.
+  # A late draft event must not displace full verification, even while it is pending (#2429).
+  group: pr-ci-${{ github.event.pull_request.number || github.ref }}-${{ github.event.pull_request.draft == true && 'draft' || 'full' }}
   cancel-in-progress: true
 
 jobs:
@@ -36,11 +38,11 @@ jobs:
   ci_ok:
     # A draft's run reports as ci_draft, so it never satisfies the required ci_ok check: marking the pull
     # request ready starts the full run, and a merge waits for that run's ci_ok.
-    # Marking the draft ready cancels its run; ci_draft then skips rather than leaving a red check on the head.
+    # A superseded draft run skips ci_draft rather than leaving a red draft check on the head.
     name: ${{ github.event.pull_request.draft == true && 'ci_draft' || 'ci_ok' }}
     if: ${{ always() && !(cancelled() && github.event.pull_request.draft == true) }}
     needs: verify
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - name: Require full verify success

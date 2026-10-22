@@ -101,6 +101,7 @@ describe('the hosted play closure', () => {
     ['src/game/rulebook/RulebookRenderer.tsx', true],
     ['src/game/rulebook/RulebookRenderer.stories.tsx', false],
     ['scripts/lib/reactCompiler.ts', true],
+    ['scripts/lib/browserBundleBudgets.ts', true],
     ['scripts/lib/storybook-shards.ts', false],
     ['coverage-denominator.ts', true],
     ['src/shared/recordlessPublicPages.ts', true],

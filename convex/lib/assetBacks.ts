@@ -162,6 +162,10 @@ export async function resolveBackHref(
   row: Doc<'assets'>,
   presets: CardbackPresetMemo
 ): Promise<ResolvedBack | null> {
+  if (row.type === 'token-leader') {
+    // A standalone leader has one published face; table setup uses that same image on either side.
+    return { mode: 'same', href: await publicationHrefFor(ctx, row.type, row._id) };
+  }
   if (TOKEN_ASSET_TYPES.has(row.type)) {
     if (!isPublicationAssetType(row.type)) {
       return null;

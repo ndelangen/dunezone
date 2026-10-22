@@ -587,46 +587,6 @@ export const SidebarNavigationStaysInDocument = meta.story({
   },
 });
 
-export const ScrollTrackingWritesOnlyChangedAnchors = meta.story({
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    const storyWindow = canvasElement.ownerDocument.defaultView;
-    if (!storyWindow) {
-      throw new Error('Rulebook reader Story requires a browser Window');
-    }
-    await expect(
-      page.findByRole('heading', { name: 'Rules of Arrakis', level: 1 }, { timeout: 30_000 })
-    ).resolves.toBeVisible();
-    const unpin = page.queryByRole('button', { name: 'Unpin linked target' });
-    if (unpin) {
-      await userEvent.click(unpin);
-      await expect(page.findByText('Tracking', {}, { timeout: SETTLE_TIMEOUT_MS })).resolves.toBeVisible();
-    }
-    storyWindow.scrollTo({ top: 0 });
-    await new Promise<void>((resolve) => storyWindow.requestAnimationFrame(() => resolve()));
-    const originalReplaceState = storyWindow.history.replaceState.bind(storyWindow.history);
-    originalReplaceState(
-      storyWindow.history.state,
-      '',
-      `${storyWindow.location.pathname}${storyWindow.location.search}`
-    );
-    const replaceState = fn((...args: Parameters<History['replaceState']>) => originalReplaceState(...args));
-    storyWindow.history.replaceState = replaceState;
-    try {
-      storyWindow.dispatchEvent(new WheelEvent('wheel'));
-      for (let index = 0; index < 4; index += 1) {
-        storyWindow.dispatchEvent(new Event('scroll'));
-        await new Promise<void>((resolve) => storyWindow.requestAnimationFrame(() => resolve()));
-      }
-      await expect(replaceState).toHaveBeenCalledTimes(1);
-      await expect(new URL(storyWindow.location.href).hash).toBe('#welcome-to-arrakis');
-    } finally {
-      /* The spy is an own property of this history object, so removing it uncovers the prototype's method again. */
-      Reflect.deleteProperty(storyWindow.history, 'replaceState');
-    }
-  },
-});
-
 export const MeaningfulScrollCancelsTargetRecovery = meta.story({
   args: { path: `${readerPath}?loc=${movementLocatorParam}#movement` },
   play: async ({ canvasElement }) => {

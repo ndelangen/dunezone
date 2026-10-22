@@ -17,6 +17,7 @@ import { AssetRenderModeProvider } from '@game/assets/assetRenderMode';
 import { BoardMap } from '@game/assets/board/Board';
 import { CardBack } from '@game/assets/card/Back';
 import { CustomCard } from '@game/assets/card/Custom';
+import { HomeworldCard } from '@game/assets/card/Homeworld';
 import { LeaderSkillCard } from '@game/assets/card/LeaderSkill';
 import { NexusCard } from '@game/assets/card/Nexus';
 import { SpiceCard } from '@game/assets/card/Spice';
@@ -29,7 +30,9 @@ import { TraitorCard } from '@game/assets/faction/traitor/Traitor';
 import { TroopToken } from '@game/assets/faction/troop/Troop';
 import { CustomToken } from '@game/assets/token/Custom';
 import { RectangleToken } from '@game/assets/token/Rectangle';
+import { tokenFaceProps } from '@game/assets/token/tokenFace';
 import { TreacheryCard } from '@game/assets/treachery/Treachery';
+import { settleCardTitles } from '@game/assets/utils/cardTitleFit';
 import { RulebookDocumentRenderer, RulebookPageRenderer } from '@game/rulebook/RulebookRenderer';
 
 import { afterPaint, ASSET_SETTLE_TIMEOUT_MS, settleHtmlImages, settleSvgResources } from './captureSettle';
@@ -111,6 +114,11 @@ function captureSubject(snapshot: PublisherCaptureSnapshot): CaptureSubject {
         snapshot.assetType,
         <TreacheryCard {...snapshot.payload.card} frontStyle={snapshot.payload.frontPreset?.style} />
       );
+    case 'card-homeworld':
+      return printedImage(
+        snapshot.assetType,
+        <HomeworldCard {...snapshot.payload.card} frontStyle={snapshot.payload.frontPreset?.style} />
+      );
     case 'card-nexus':
       return printedImage(
         snapshot.assetType,
@@ -124,7 +132,11 @@ function captureSubject(snapshot: PublisherCaptureSnapshot): CaptureSubject {
     case 'card-custom':
       return printedImage(
         snapshot.assetType,
-        <CustomCard {...snapshot.payload.card} tokens={snapshot.payload.tokens} />
+        <CustomCard
+          {...snapshot.payload.card}
+          frontStyle={snapshot.payload.frontPreset?.style}
+          tokens={snapshot.payload.tokens}
+        />
       );
     case 'card-storm':
       return printedImage(
@@ -140,6 +152,7 @@ function captureSubject(snapshot: PublisherCaptureSnapshot): CaptureSubject {
         snapshot.assetType,
         <SpiceCard
           {...snapshot.payload.card}
+          frontStyle={snapshot.payload.frontPreset?.style}
           boardDefinition={snapshot.payload.board}
           boardTokens={snapshot.payload.tokens}
         />
@@ -170,6 +183,8 @@ function captureSubject(snapshot: PublisherCaptureSnapshot): CaptureSubject {
           logo={snapshot.payload.logo}
         />
       );
+    case 'token-leader':
+      return printedImage(snapshot.assetType, <LeaderToken {...snapshot.payload.leader} />);
     /*
      * A token face, already resolved by the producer, so this never asks which face it is drawing.
      * No `TokenFrame`: that is catalogue chrome and carries a drop shadow, and a JPEG cannot hold a mask anyway, so the published artifact is the renderer's own square face and a consumer masks it themselves.
@@ -182,21 +197,7 @@ function captureSubject(snapshot: PublisherCaptureSnapshot): CaptureSubject {
         snapshot.assetType,
         <CustomToken
           shape={tokenShapeOfType(snapshot.assetType) ?? 'round'}
-          background={snapshot.payload.face.background}
-          image={snapshot.payload.face.image}
-          circle={snapshot.payload.face.ring}
-          circleShadow={snapshot.payload.face.ringShadow ?? false}
-          top={snapshot.payload.face.top || undefined}
-          bottom={
-            snapshot.payload.face.bottomFirst || snapshot.payload.face.bottomSecond
-              ? `${snapshot.payload.face.bottomFirst}\n${snapshot.payload.face.bottomSecond}`
-              : undefined
-          }
-          /* The renderer centres the symbol in a 300 unit box, so scale is expressed against its reference size, the same arithmetic the editor's proof uses. */
-          size={{
-            width: 100 * snapshot.payload.face.symbolScale,
-            height: 100 * snapshot.payload.face.symbolScale,
-          }}
+          {...tokenFaceProps(snapshot.payload.face)}
         />
       );
     case 'token-enhance':
@@ -318,6 +319,7 @@ export function PublisherCapture() {
         await assertRequiredPublisherFonts(document.fonts);
         await settleHtmlImages(controller.signal);
         await settleSvgResources(controller.signal);
+        await settleCardTitles(document, controller.signal);
         if (!disposed && !controller.signal.aborted) {
           if (isComponentAssetType(snapshot.assetType)) {
             const frame = document.querySelector<HTMLElement>(CAPTURE_PROTOCOL.frameMarker.selector);

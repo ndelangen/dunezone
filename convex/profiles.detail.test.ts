@@ -5,10 +5,13 @@ import type { convexTest } from 'convex-test';
 import { describe, expect, test } from 'vite-plus/test';
 
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
+import { PROFILE_FAQ_PAGE_SIZE } from '../src/shared/profiles/faqActivity';
 import { api } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { applicationTest } from './application.test.fixture';
 import { syncSeededFactionCards } from './factions.test.fixture';
+import { applicationTriggers } from './lib/applicationTriggers';
+import { PROFILE_FACTION_PREVIEW_SIZE } from './lib/profileDetail';
 
 type SeedResult = {
   userId: Id<'users'>;
@@ -26,8 +29,18 @@ type SeedResult = {
 
 const at = (day: number) => `2026-07-${String(day).padStart(2, '0')}T00:00:00.000Z`;
 
-async function seedProfileDetail(t: ReturnType<typeof convexTest>): Promise<SeedResult> {
-  const seeded = await t.run(async (ctx) => {
+/**
+ * Seeds through the application's triggers, as every deployed writer does, so the catalogue lists the factions the way the page reads them.
+ * `extraFactions` more live factions beside the one, newest last, so a page can show its first few and count the rest.
+ * `listed: false` writes around the triggers, as production stands between a functions deploy and the backfill that lists factions under their member.
+ */
+async function seedProfileDetail(
+  t: ReturnType<typeof convexTest>,
+  extraFactions = 0,
+  { listed = true } = {}
+): Promise<SeedResult> {
+  const seeded = await t.run(async (rawCtx) => {
+    const ctx = listed ? applicationTriggers.wrapDB(rawCtx) : rawCtx;
     const userId = await ctx.db.insert('users', { name: 'Central' });
     const askerId = await ctx.db.insert('users', { name: 'Asker' });
     const profilelessAskerId = await ctx.db.insert('users', { name: 'No profile' });
@@ -184,15 +197,29 @@ async function seedProfileDetail(t: ReturnType<typeof convexTest>): Promise<Seed
     await ctx.db.insert('ruleset_factions', {
       ruleset_id: basicRulesetId,
       faction_id: activeFactionId,
+      position: 0,
     });
     await ctx.db.insert('ruleset_factions', {
       ruleset_id: advancedRulesetId,
       faction_id: activeFactionId,
+      position: 0,
     });
     await ctx.db.insert('ruleset_factions', {
       ruleset_id: deletedRulesetId,
       faction_id: activeFactionId,
+      position: 0,
     });
+    for (let index = 1; index <= extraFactions; index += 1) {
+      await ctx.db.insert('factions', {
+        owner_id: userId,
+        data: { ...assetPublishingFaction, name: `Sietch ${index}` },
+        slug: `sietch-${index}`,
+        created_at: at(10 + index),
+        updated_at: at(10 + index),
+        is_deleted: false,
+        group_id: null,
+      });
+    }
 
     const earlyQuestionId = await ctx.db.insert('faq_items', {
       ruleset_id: advancedRulesetId,
@@ -294,6 +321,36 @@ describe('profile detail projection (api.profiles.pageBySlug)', () => {
 
     expect(page.factions.map((faction) => faction._id)).toEqual([seed.activeFactionId]);
     expect(page.factions[0]?.data.name).toBe('Atreides');
+    expect(page.factionCount).toBe(1);
+  });
+
+  test('shows the newest few factions and counts them all, keeping the full list for bundles from before the preview', async () => {
+    const t = applicationTest();
+    await seedProfileDetail(t, PROFILE_FACTION_PREVIEW_SIZE + 2);
+
+    const page = await t.query(api.profiles.pageBySlug, { slug: 'central' });
+
+    expect(page.factionCount).toBe(PROFILE_FACTION_PREVIEW_SIZE + 3);
+    expect(page.factions).toHaveLength(PROFILE_FACTION_PREVIEW_SIZE + 3);
+    expect(page.factionPreview.map((faction) => faction.data.name)).toEqual(
+      Array.from(
+        { length: PROFILE_FACTION_PREVIEW_SIZE },
+        (_, index) => `Sietch ${PROFILE_FACTION_PREVIEW_SIZE + 2 - index}`
+      )
+    );
+  });
+
+  test('shows the newest factions before the catalogue lists them for the member, counting at least the ones shown', async () => {
+    const t = applicationTest();
+    /* The cards exist, as their backfill ran long ago; the member's list in the catalogue does not yet. */
+    await seedProfileDetail(t, 1, { listed: false });
+
+    const page = await t.query(api.profiles.pageBySlug, { slug: 'central' });
+
+    expect(page.factionPreview.map((faction) => faction.data.name)).toEqual(['Sietch 1', 'Atreides']);
+    expect(page.factionCount).toBe(2);
+    /* Nothing to link to yet: the catalogue would open an empty list. */
+    expect(page.listedFactionCount).toBe(0);
   });
 
   test('faction ruleset enrichment keeps only active rulesets in deterministic name order', async () => {
@@ -311,7 +368,8 @@ describe('profile detail projection (api.profiles.pageBySlug)', () => {
 
   test('throws on malformed faction data at the query boundary', async () => {
     const t = applicationTest();
-    await t.run(async (ctx) => {
+    await t.run(async (rawCtx) => {
+      const ctx = applicationTriggers.wrapDB(rawCtx);
       const userId = await ctx.db.insert('users', { name: 'Malformed owner' });
       await ctx.db.insert('profiles', {
         user_id: userId,
@@ -373,6 +431,90 @@ describe('profile detail projection (api.profiles.pageBySlug)', () => {
     expect(accepted?.ruleset).toMatchObject({ slug: 'advanced', name: 'Advanced' });
   });
 
+  test('both lists use the accepted reply and live references, even when another person answered', async () => {
+    const t = applicationTest();
+    const seed = await seedProfileDetail(t);
+    const acceptedId = await t.run(async (ctx) => {
+      const asker = await ctx.db.get(seed.askerProfileId);
+      const ownAnswer = await ctx.db.get(seed.acceptedAnswerId);
+      const id = await ctx.db.insert('faq_answers', {
+        faq_item_id: ownAnswer!.faq_item_id,
+        answer: '**Accepted** explanation from another contributor.',
+        answered_by: asker!.user_id,
+        created_at: at(10),
+      });
+      await ctx.db.patch(ownAnswer!.faq_item_id, { accepted_answer_id: id });
+      await ctx.db.insert('faq_answers', {
+        faq_item_id: ownAnswer!.faq_item_id,
+        answer: 'A second contribution to the same question.',
+        answered_by: seed.userId,
+        created_at: at(11),
+      });
+      await ctx.db.insert('faq_references', {
+        faq_item_id: ownAnswer!.faq_item_id,
+        kind: 'faction',
+        target_id: seed.activeFactionId,
+        question_created_at: at(6),
+      });
+      await ctx.db.insert('faq_answers', {
+        faq_item_id: seed.lateQuestionId,
+        answer: 'An answer to the profile owner’s question.',
+        answered_by: asker!.user_id,
+        created_at: at(10),
+      });
+      return id;
+    });
+    const page = await t.query(api.profiles.pageBySlug, { slug: 'central' });
+    expect(page.faqLists.asked.items.map((item) => item._id)).toEqual([seed.lateQuestionId, seed.earlyQuestionId]);
+    expect(page.faqLists.asked.items[0]?.list_details.answerers).toEqual([expect.objectContaining({ slug: 'asker' })]);
+    expect(page.faqLists.answered.items.map((item) => item.slug)).toEqual(['4', '3']);
+    const answered = page.faqLists.answered.items[1]!;
+    expect(answered.accepted_answer_id).toBe(acceptedId);
+    expect(answered.list_details).toMatchObject({
+      accepted_answer: { excerpt: 'Accepted explanation from another contributor.' },
+      answerers: [{ slug: 'asker' }],
+      references: [{ kind: 'faction', slug: 'atreides', name: 'Atreides' }],
+    });
+    expect(answered.faq_answers).toHaveLength(3);
+    expect(answered.ruleset).toEqual({ id: seed.advancedRulesetId, slug: 'advanced', name: 'Advanced' });
+    expect(page.faqAnswers).toHaveLength(3);
+  });
+
+  test('pages the shared lists independently and clamps invalid pages', async () => {
+    const t = applicationTest();
+    const seed = await seedProfileDetail(t);
+    await t.run(async (ctx) => {
+      for (let index = 0; index < PROFILE_FAQ_PAGE_SIZE; index++) {
+        const id = await ctx.db.insert('faq_items', {
+          ruleset_id: seed.advancedRulesetId,
+          slug: `extra-${index}`,
+          question: `Question ${index}?`,
+          asked_by: seed.userId,
+          created_at: at(12),
+          updated_at: at(12),
+          accepted_answer_id: null,
+        });
+        await ctx.db.insert('faq_answers', {
+          faq_item_id: id,
+          answer: 'Contribution.',
+          answered_by: seed.userId,
+          created_at: at(12),
+        });
+      }
+    });
+    const first = await t.query(api.profiles.pageBySlug, { slug: 'central' });
+    expect(first.faqLists.asked.items).toHaveLength(PROFILE_FAQ_PAGE_SIZE);
+    expect(first.faqLists.answered.items).toHaveLength(PROFILE_FAQ_PAGE_SIZE);
+    const next = await t.query(api.profiles.pageBySlug, { slug: 'central', askedPage: 2 });
+    expect(next.faqLists.asked).toMatchObject({ page: 2, pageCount: 2 });
+    expect(next.faqLists.asked.items.map((item) => item._id)).toEqual([seed.lateQuestionId, seed.earlyQuestionId]);
+    expect(next.faqLists.answered).toEqual(first.faqLists.answered);
+    const last = await t.query(api.profiles.pageBySlug, { slug: 'central', askedPage: 999, answeredPage: -2 });
+    expect(last.faqLists).toEqual(next.faqLists);
+    expect(last.faqAsked).toHaveLength(PROFILE_FAQ_PAGE_SIZE + 2);
+    expect(last.faqAnswers).toHaveLength(PROFILE_FAQ_PAGE_SIZE + 2);
+  });
+
   test('questions and answers under a soft-deleted ruleset leave the profile with it', async () => {
     const t = applicationTest();
     const seed = await seedProfileDetail(t);
@@ -382,6 +524,8 @@ describe('profile detail projection (api.profiles.pageBySlug)', () => {
 
     expect(page.faqAsked).toEqual([]);
     expect(page.faqAnswers).toEqual([]);
+    expect(page.faqLists.asked.items).toEqual([]);
+    expect(page.faqLists.answered.items).toEqual([]);
   });
 
   test('a missing asker profile yields a null summary without corrupting other activity', async () => {

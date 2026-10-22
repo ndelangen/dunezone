@@ -4553,6 +4553,33 @@
     "isOpaque": true,
     "color": "#c8b878"
   },
+  "/image/leader/gf9/count-ilban-richese.png": {
+    "sha256": "61b2044852c51c0715761f55170d37d26e8ca7ffd4369997f2eb936c089c597f",
+    "bytes": 1799540,
+    "width": 1254,
+    "height": 1254,
+    "format": "png",
+    "isOpaque": true,
+    "color": "#c8b868"
+  },
+  "/image/leader/gf9/duke-prad-vidal.png": {
+    "sha256": "6c66b6c4d55638b03d902ee7d76cd4b0ce970a3545cc0880d9073acc544f2a0f",
+    "bytes": 1426410,
+    "width": 1254,
+    "height": 1254,
+    "format": "png",
+    "isOpaque": true,
+    "color": "#d8b868"
+  },
+  "/image/leader/gf9/ur-director-malina-aru.png": {
+    "sha256": "8837fa06740d9ee0bb6a37e1651bf99dd661acc40c76f316460211a44e55ce98",
+    "bytes": 1716215,
+    "width": 1254,
+    "height": 1254,
+    "format": "png",
+    "isOpaque": true,
+    "color": "#c8b868"
+  },
   "/image/leader/hivers/hiver-amber-pendant.png": {
     "sha256": "22a36c5ae022ede61b1b8935f69e03a00ae66b4e95cf95a23cf7c4ad38145732",
     "bytes": 1650616,
@@ -7649,6 +7676,15 @@
     "isOpaque": true,
     "color": "#080808"
   },
+  "/image/texture/hiereg-discovery.png": {
+    "sha256": "17418d80b07639ef6c52abfc087ff4777e2a0145eec81413672e9a71614f95c6",
+    "bytes": 1311372,
+    "width": 1254,
+    "height": 1254,
+    "format": "png",
+    "isOpaque": true,
+    "color": "#c8c8c8"
+  },
   "/web/blog/dune-board-game-style-guide/faction-palette.jpg": {
     "sha256": "8e6aeae2ee34b48485b31cb20d2fcd9cb431c02849badc95f1e8116b826ed7c5",
     "bytes": 287666,
@@ -8009,23 +8045,14 @@
     "isOpaque": true,
     "color": "#f8f8e8"
   },
-  "/web/page-dark.jpg": {
-    "sha256": "61f252d1947657aea7f34c2c888745c2e5b6dd27e2e739cd3c1e1ba299303e1c",
-    "bytes": 216664,
-    "width": 1332,
-    "height": 2000,
-    "format": "jpeg",
+  "/web/rulesets/gf9-logo.png": {
+    "sha256": "ca0d8a68fbf167ab4385422fd97663c281a574e21d3fccf995d0e15bba5662ae",
+    "bytes": 19151,
+    "width": 384,
+    "height": 384,
+    "format": "png",
     "isOpaque": true,
-    "color": "#081828"
-  },
-  "/web/page.jpg": {
-    "sha256": "31673a60687fac505f7a71247b2a80a03168d1707a389578d2e613d821e6dbdf",
-    "bytes": 2445344,
-    "width": 1684,
-    "height": 2528,
-    "format": "jpeg",
-    "isOpaque": true,
-    "color": "#f8e8d8"
+    "color": "#183848"
   },
   "/web/tablet1.jpg": {
     "sha256": "8636b17960e8ad9fc297f9979c955b74e95a7e25bde4d84550226ca9a98072ae",

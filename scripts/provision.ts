@@ -34,7 +34,7 @@ import { verifySnapshotFile } from './snapshot-anonymise';
  */
 
 export type ProvisionTarget = 'e2e' | 'local' | 'dev';
-export type ProvisionStage = 'backend' | 'configure' | 'code' | 'data';
+export type ProvisionStage = 'backend' | 'configure' | 'code' | 'data' | 'migrate';
 
 const CONVEX_ADMIN_CREDENTIAL_KEYS = [
   'CONVEX_DEPLOY_KEY',
@@ -268,11 +268,15 @@ export type BackendOptions = {
   adminKeyPersistPath?: string;
   /** Capture compose's output instead of inheriting it, for a launch the caller expects to be refused. */
   quiet?: boolean;
+  /** Keep the existing named volume and backend configuration. */
+  preserve?: boolean;
 };
 
 /** Backend stage: reset and start the disposable docker backend. */
 export async function backendUp(env: NodeJS.ProcessEnv, options: BackendOptions): Promise<SelfHostedDeployment> {
-  compose(['down', '-v'], env, { quiet: true });
+  if (!options.preserve) {
+    compose(['down', '-v'], env, { quiet: true });
+  }
   compose(['up', '-d'], env, { quiet: options.quiet === true });
   await waitForBackendHealth(options.url);
 
@@ -290,6 +294,38 @@ export async function backendUp(env: NodeJS.ProcessEnv, options: BackendOptions)
     writeFileSync(options.adminKeyPersistPath, adminKey);
   }
   return { kind: 'self-hosted', url: options.url, adminKey };
+}
+
+export function composeStop(env: NodeJS.ProcessEnv) {
+  compose(['stop'], env, { quiet: true, timeout: 30_000 });
+}
+
+export function assertLocalVolumeExists(env: NodeJS.ProcessEnv) {
+  run(resolveDockerExecutable(env), ['volume', 'inspect', `${env.COMPOSE_PROJECT_NAME}_convex_local_e2e_data`], {
+    env: localApplicationEnvironment(env),
+    quiet: true,
+  });
+}
+
+/** Local-only setup, guarded again by the deployed function's isolated-backend check. */
+export function prepareLocalPublisher(deployment: SelfHostedDeployment, env: NodeJS.ProcessEnv) {
+  targetConvex(deployment, ['run', 'provisioning:prepareLocalPublisher', '{}'], env);
+}
+
+export function setLocalBackendVariable(
+  deployment: SelfHostedDeployment,
+  env: NodeJS.ProcessEnv,
+  name: string,
+  value: string
+) {
+  const directory = mkdtempSync(path.join(process.env.LOCAL_DEV_TEMPORARY_DIRECTORY ?? '/tmp', 'local-setting-'));
+  const file = path.join(directory, 'value');
+  try {
+    writeFileSync(file, value, { mode: 0o600 });
+    targetConvex(deployment, ['env', 'set', name, '--from-file', file], env);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
 }
 
 export function composeDown(env: NodeJS.ProcessEnv, quiet = true) {
@@ -317,17 +353,21 @@ export function configureLocalAuth(
   mkdirSync(options.artifactsDirectory, { recursive: true });
   const privateKeyPath = path.join(options.artifactsDirectory, 'jwt-private-key.pem');
   const jwksPath = path.join(options.artifactsDirectory, 'jwks.json');
-  writeFileSync(privateKeyPath, privateKeyValue);
-  writeFileSync(jwksPath, jwksValue);
+  writeFileSync(privateKeyPath, privateKeyValue, { mode: 0o600 });
+  writeFileSync(jwksPath, jwksValue, { mode: 0o600 });
 
+  const privateKeyBase64Path = path.join(options.artifactsDirectory, 'jwt-private-key.b64');
+  const jwksBase64Path = path.join(options.artifactsDirectory, 'jwks.b64');
+  writeFileSync(privateKeyBase64Path, Buffer.from(privateKeyValue).toString('base64'), { mode: 0o600 });
+  writeFileSync(jwksBase64Path, Buffer.from(jwksValue).toString('base64'), { mode: 0o600 });
   const settings: Array<[string, ...string[]]> = [
     ['SITE_URL', options.siteUrl],
     ['E2E_LOCAL_AUTH', 'true'],
     ['IS_TEST', 'true'],
     ['JWT_PRIVATE_KEY', '--from-file', privateKeyPath],
     ['JWKS', '--from-file', jwksPath],
-    ['JWT_PRIVATE_KEY_B64', Buffer.from(privateKeyValue).toString('base64')],
-    ['JWKS_B64', Buffer.from(jwksValue).toString('base64')],
+    ['JWT_PRIVATE_KEY_B64', '--from-file', privateKeyBase64Path],
+    ['JWKS_B64', '--from-file', jwksBase64Path],
   ];
   for (const [key, ...value] of settings) {
     targetConvex(deployment, ['env', 'set', key, ...value], env);
@@ -362,6 +402,17 @@ export function loadSnapshotData(deployment: TargetDeployment, env: NodeJS.Proce
   verifySnapshotFile(snapshotFile);
   console.log('Importing the anonymised snapshot into the target deployment...');
   targetConvex(deployment, ['import', '--replace-all', '-y', snapshotFile], env);
+  finishSnapshotData(deployment, env);
+}
+
+/** Import into an empty backend before the schema allocates table numbers. */
+export function importSnapshotData(deployment: SelfHostedDeployment, env: NodeJS.ProcessEnv, snapshotFile: string) {
+  verifySnapshotFile(snapshotFile);
+  targetConvex(deployment, ['import', '--replace-all', '-y', snapshotFile], env);
+}
+
+/** These checks need deployed functions and therefore follow the first schema push. */
+export function finishSnapshotData(deployment: TargetDeployment, env: NodeJS.ProcessEnv) {
   seedSnapshotRulebookDrafts(deployment, env);
   assertRebuildContract(deployment, env);
 }
@@ -393,10 +444,10 @@ export function rebuildFromSnapshot(
  * Starts the required migrations on the target and waits for them.
  * A deployment loaded from fixtures or the snapshot has no migration state, so every required migration runs.
  */
-export function runMigrationGuards(deployment: TargetDeployment, env: NodeJS.ProcessEnv) {
+export function runMigrationGuards(deployment: TargetDeployment, env: NodeJS.ProcessEnv, localTimeoutMs = 300_000) {
   const [guardEnv, timeoutMs] =
     deployment.kind === 'self-hosted'
-      ? [selfHostedEnvironment(env, deployment), 300_000]
+      ? [selfHostedEnvironment(env, deployment), localTimeoutMs]
       : [cloudDevEnvironment(env, deployment), 600_000];
   const result = spawnSync(
     process.execPath,
@@ -461,7 +512,9 @@ function clearTables(
 type BatchResult = { isDone: boolean; continueCursor: string };
 
 const REMAP_BATCH_SIZE = 50;
-const DRAFT_SEED_BATCH_SIZE = 10;
+// A complete book can approach the document limit. One per mutation also fits
+// the local backend's one-second UDF budget during a loaded workstation bootstrap.
+const DRAFT_SEED_BATCH_SIZE = 1;
 
 /**
  * Parses a `convex run` result: non-TTY output is pretty-printed JSON spanning multiple lines, so the whole output is one JSON value.
@@ -635,12 +688,41 @@ export function remapOwnershipToLocalUsers(
   );
 }
 
+/** Extend the snapshot's first reviewer setup to owner-only authoring operations. */
+export function remapLocalAuthoringOwnership(
+  deployment: SelfHostedDeployment,
+  env: NodeJS.ProcessEnv,
+  ownerEmail: string
+) {
+  for (const table of ['assets', 'rulesets', 'rulebooks'] as const) {
+    let updated = 0;
+    drainBatches((cursor) => {
+      const batch = runProvisioningMutation<BatchResult & { updated: number }>(
+        deployment,
+        env,
+        'provisioning:remapLocalAuthoringOwnershipBatch',
+        { ownerEmail, table, paginationOpts: { numItems: 5, cursor } }
+      );
+      updated += batch.updated;
+      return batch;
+    });
+    console.log(
+      `Local ownership: assigned ${updated} snapshot ${table} to reviewer A. Immutable Editions are unchanged.`
+    );
+  }
+}
+
 export function stagesForTarget(target: ProvisionTarget): ProvisionStage[] {
   if (target === 'dev') {
     // The cloud deployment always exists and keeps its env vars.
     return ['code', 'data'];
   }
   return ['backend', 'configure', 'code', 'data'];
+}
+
+/** The stages a target accepts by name: dev also takes `migrate`, which runs the migrations a merge added on the data dev already holds. */
+function allowedStagesForTarget(target: ProvisionTarget): ProvisionStage[] {
+  return target === 'dev' ? ['code', 'data', 'migrate'] : stagesForTarget(target);
 }
 
 export type ProvisionArgs = {
@@ -655,7 +737,7 @@ export type ProvisionArgs = {
 const PROVISION_TARGETS: readonly ProvisionTarget[] = ['e2e', 'local', 'dev'];
 
 const USAGE =
-  'Usage: provision <e2e|local|dev> [--stage <backend|configure|code|data>]... [--snapshot-file <zip>, dev data stage only]';
+  'Usage: provision <e2e|local|dev> [--stage <backend|configure|code|data|migrate>]... [--snapshot-file <zip>, dev data stage only; migrate is dev only]';
 
 const SNAPSHOT_FILE_REQUIRED =
   'The dev data stage loads the anonymised snapshot, never production: pass --snapshot-file <zip>';
@@ -665,7 +747,7 @@ function isProvisionTarget(value: string | undefined): value is ProvisionTarget 
 }
 
 function parseFlags(rest: string[], target: ProvisionTarget) {
-  const allowed = stagesForTarget(target);
+  const allowed = allowedStagesForTarget(target);
   const stages: ProvisionStage[] = [];
   let snapshotFile: string | null = null;
   for (let index = 0; index < rest.length; index += 2) {
@@ -730,8 +812,18 @@ function provisionCloudDev(
     console.log('Cloud dev deployment rebuilt from the anonymised snapshot.');
     return;
   }
-  console.log('Pushing code to the cloud dev deployment...');
-  pushCode(deployment, env);
+  if (stages.includes('code')) {
+    console.log('Pushing code to the cloud dev deployment...');
+    pushCode(deployment, env);
+  }
+  /*
+   * A migration-only merge migrates the data dev already holds instead of exporting production again.
+   * Migrations dev has finished are recorded as done there, so only the ones the merge added run.
+   */
+  if (stages.includes('migrate')) {
+    console.log('Running the required migrations on the cloud dev deployment...');
+    runMigrationGuards(deployment, env);
+  }
 }
 
 async function resolveSelfHostedDeployment(

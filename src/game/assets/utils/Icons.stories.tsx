@@ -1,8 +1,9 @@
 import preview from '@sb/preview';
 import { DECAL, GENERIC, ICON, LOGO, TROOP } from '@shared/assetIds';
+import { canonicalVectorArtwork } from '@shared/vectorRules';
 
 const types = {
-  icon: Object.keys(ICON.enum),
+  icon: ICON.options.filter((path) => canonicalVectorArtwork(path) === path),
   troop: Object.keys(TROOP.enum),
   generic: Object.keys(GENERIC.enum),
   logo: Object.keys(LOGO.enum),

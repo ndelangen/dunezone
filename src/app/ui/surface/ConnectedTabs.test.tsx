@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 
+import { waitFor } from '@testing-library/react';
 import { act, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
@@ -229,10 +230,10 @@ describe('ConnectedTabs', () => {
     const first = getTab('1First');
     const middle = getTab('2Middle');
 
-    first.focus();
+    act(() => first.focus());
     await act(async () => first.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true })));
 
-    expect(document.activeElement).toBe(middle);
+    await waitFor(() => expect(document.activeElement).toBe(middle));
     expect(middle.getAttribute('data-state')).toBe('active');
     expect(container?.textContent).toContain('Middle panel');
   });

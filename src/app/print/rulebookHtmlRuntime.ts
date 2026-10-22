@@ -37,7 +37,7 @@ export function renderRulebookHtmlDocument(input: StaticRulebookDocument) {
           createElement('meta', { name: 'viewport', content: 'width=device-width, initial-scale=1' }),
           createElement('title', null, input.title),
           createElement('link', { rel: 'canonical', href: input.canonicalHref }),
-          createElement('style', { dangerouslySetInnerHTML: { __html: input.style } })
+          createElement('style', null, input.style)
         ),
         createElement(
           'body',

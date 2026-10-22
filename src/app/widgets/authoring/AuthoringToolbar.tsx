@@ -108,6 +108,7 @@ export function AuthoringToolbar<Draft>({
   centerIndicator,
   navigationActions,
   load,
+  scopeKey,
 }: {
   status: AuthoringStatus;
   copy: AuthoringCopy;
@@ -126,6 +127,7 @@ export function AuthoringToolbar<Draft>({
   navigationActions?: ReactNode;
   /** Loading an existing thing of the same kind into the draft; its action leads the editor's own actions. */
   load?: Omit<LoadExistingProps<Draft>, 'children'>;
+  scopeKey?: string;
 }) {
   const { isDirty, isNameBlank, saveState, invalid } = status;
   const { onSave, onReset, onBack } = actions;
@@ -220,5 +222,11 @@ export function AuthoringToolbar<Draft>({
       </Toolbar>
     </div>
   );
-  return load ? <LoadExisting {...load}>{bar}</LoadExisting> : bar(null);
+  return load ? (
+    <LoadExisting {...load} scopeKey={`${scopeKey ?? ''}:${load.scopeKey ?? ''}`}>
+      {bar}
+    </LoadExisting>
+  ) : (
+    bar(null)
+  );
 }

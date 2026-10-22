@@ -8,7 +8,7 @@ import {
 } from '@shared/factions/schema';
 import type { CatalogueFactionData } from '@shared/factions/schema';
 import type { FactionInput } from '@shared/factions/schema';
-import { useQuery } from 'convex/react';
+import { usePaginatedQuery, useQuery } from 'convex/react';
 import type { FunctionArgs, FunctionReturnType } from 'convex/server';
 import { useMemo } from 'react';
 
@@ -84,13 +84,31 @@ export type FactionCatalogueArgs = FunctionArgs<typeof api.factions.catalogue>;
 /** A ruleset the catalogue can narrow to, with how many live factions it holds. */
 export type FactionCatalogueRuleset = FactionCatalogueRaw['rulesets'][number];
 
-export type FactionCataloguePageData = Omit<FactionCatalogueRaw, 'cards' | 'spotlights'> & {
-  cards: FactionCatalogueEntry[];
-  spotlights: {
-    newArrival: FactionCatalogueEntry | null;
-    freshlyUpdated: FactionCatalogueEntry | null;
-  };
-};
+/** The member filter as the server answered it: the slug the address asked and the member whose list that is; null when no slug was asked. */
+export type FactionCatalogueOwner = FactionCatalogueRaw['owner'];
+
+/** The member a page is narrowed to, as the server names them; null when the address named nobody with a public page. */
+export type FactionCatalogueMember = NonNullable<FactionCatalogueOwner>['member'];
+
+/** A catalogue answer with its cards parsed at the client boundary; distributive, so each shape keeps its own fields. */
+type ParsedCatalogue<Raw> = Raw extends unknown
+  ? Omit<Raw, 'cards' | 'spotlights'> & {
+      cards: FactionCatalogueEntry[];
+      spotlights: {
+        newArrival: FactionCatalogueEntry | null;
+        freshlyUpdated: FactionCatalogueEntry | null;
+      };
+    }
+  : never;
+
+/** A browsed page of the catalogue: counts, numbered pages, a chosen order. */
+export type FactionCatalogueBrowseData = ParsedCatalogue<Exclude<FactionCatalogueRaw, { mode: 'search' }>>;
+
+/** A searched catalogue: the best matches first, and more by asking for a larger limit. */
+export type FactionCatalogueSearchData = ParsedCatalogue<Extract<FactionCatalogueRaw, { mode: 'search' }>>;
+
+/** What `factions.catalogue` answers, parsed: a browsed page, or a search, told apart by `mode`. */
+export type FactionCataloguePageData = FactionCatalogueBrowseData | FactionCatalogueSearchData;
 
 function toFactionEntry(entry: FactionRow): FactionEntry {
   return {
@@ -160,6 +178,8 @@ function toFactionDetailPageData(raw: FactionDetailPageRaw): FactionDetailPageDa
       ...raw.faction,
       data: parseClientBoundary(CanonicalFactionClientSchema, raw.faction.data, 'Faction data'),
     },
+    backgrounds: raw.backgrounds,
+    cardFrontPresets: raw.cardFrontPresets,
     owner: raw.owner,
     assetPublishing: raw.assetPublishing,
     assignedGroup: raw.assignedGroup,
@@ -382,4 +402,35 @@ export function useFactionsOwnedForGroupAssign() {
 /** Missing public factions are absent; transport, permission and data failures still throw. */
 export function loadPublicFaction(slug: string): Promise<FactionDetailPageData | null> {
   return loadPublicPage(loadFaction(slug));
+}
+
+type FactionDetailChunk = FunctionReturnType<typeof api.factions.detailPage>['page'][number];
+export type FactionDetailInitialPage = FactionDetailPageData & { relatedFaq: FactionDetailChunk['items'] };
+
+export function loadPublicFactionDetail(slug: string): Promise<FactionDetailInitialPage | null> {
+  return loadPublicPage(loadFactionDetail(slug));
+}
+
+async function loadFactionDetail(slug: string): Promise<FactionDetailInitialPage | null> {
+  const result = await db.query(
+    api.factions.detailPage,
+    { slug, paginationOpts: { numItems: 12, cursor: null } },
+    { hold: false }
+  );
+  const first = result.page[0];
+  return first.detail ? { ...toFactionDetailPageData(first.detail), relatedFaq: first.items } : null;
+}
+
+export function useFactionDetail(slug: string, options: { initialData: FactionDetailInitialPage }) {
+  const query = usePaginatedQuery(api.factions.detailPage, { slug }, { initialNumItems: 12 });
+  const first = query.results[0];
+  const page = first === undefined ? options.initialData : first.detail ? toFactionDetailPageData(first.detail) : null;
+  return {
+    ...toLiveQueryResult(page),
+    isPending: first === undefined,
+    isLoading: first === undefined,
+    relatedFaq: first ? query.results.flatMap((chunk) => chunk.items) : options.initialData.relatedFaq,
+    faqStatus: query.status,
+    loadMoreFaq: () => query.loadMore(12),
+  };
 }

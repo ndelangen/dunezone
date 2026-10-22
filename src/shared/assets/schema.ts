@@ -1,14 +1,18 @@
 import { z } from 'zod';
 
-import { ALL, BACKGROUND, TEXTURE } from '../assetIds';
-import { tintColorSchema, tintStampsSchema, tintTerritorySchema } from '../boards/tints';
-import { Background, Decal } from '../factions/schema';
+import { ALL, BACKGROUND, PLANET, TEXTURE } from '../assetIds';
+import { BOARD_FRAME_SIZE, boardTints, boardTokens } from '../boards/markup';
+import { AuthoredBackground as Background, Decal, FactionInputObject } from '../factions/schema';
 import { proseFormattedTextSchema } from '../formattedText';
 import { cardbackPresetKeySchema } from './cardbackPresetKeys';
 import { PhysicalSize } from './physicalSize';
 
 const OFFSET = z.tuple([z.number(), z.number()]);
 const SCALE = z.number().min(0).max(1);
+const ICON_PLACEMENT = {
+  iconOffset: OFFSET.optional(),
+  iconScale: z.number().min(0).max(2).optional(),
+};
 
 /**
  * Off-face prose explaining rule details the face cannot or should not carry.
@@ -27,43 +31,31 @@ const SCALE = z.number().min(0).max(1);
 const About = z.string().trim();
 const FormattedAbout = z.string().trim().pipe(proseFormattedTextSchema);
 
+/** A standalone leader face has its own Asset identity and no faction membership. */
+export const LeaderTokenAsset = FactionInputObject.shape.leaders.element.omit({ memberId: true }).extend({
+  about: About,
+  background: Background,
+  logo: FactionInputObject.shape.logo,
+});
+export const LeaderTokenAssetInput = LeaderTokenAsset.extend({ about: FormattedAbout });
+
 export { Decal };
 export { PHYSICAL_SIZE_MAX, PHYSICAL_SIZE_MIN, PhysicalSize } from './physicalSize';
 
 /** The board's coordinate frame, which placed tokens share so a board switch leaves them where the author put them. */
-export const SPICE_BOARD_SIZE = 487.06;
+export const SPICE_BOARD_SIZE = BOARD_FRAME_SIZE;
 /** The Spice renderer revision that draws a linked board; until the publisher runs it, linked cards wait rather than capture the legacy map. */
 export const SPICE_BOARD_REVISION = 2;
-export const SPICE_TERRITORY_TYPES = ['sand', 'rock', 'stronghold', 'polar'] as const;
-export const SPICE_MAX_TINTS = 12;
-export const SPICE_MAX_TOKENS = 64;
+/** Native Discovery composition adds the textured board recipe and fixed type-token slot. */
+export const SPICE_DISCOVERY_REVISION = 4;
+/** Renderer support for the optional native component treatments. */
+export const TREACHERY_TEXT_ONLY_REVISION = 8;
+export const ROUND_TOKEN_SYMBOL_STYLE_REVISION = 3;
+export const CUSTOM_CARD_STYLED_TOKEN_REVISION = 4;
+export const STORM_CARD_STYLED_TOKEN_REVISION = 6;
 
-/**
- * A Play territory tint, as a Spice card keeps it: the same colour, stickers, outline-only look and territory IDs.
- * `types` is what only cards need, every current territory of a type on the linked board, resolved when drawn rather than expanded on save.
- */
-export const SpiceTint = z.strictObject({
-  id: z.string().min(1).max(64),
-  name: z.string().trim().min(1).max(48),
-  color: tintColorSchema,
-  stamps: tintStampsSchema.optional(),
-  outline: z.literal(true).optional(),
-  territories: z.array(tintTerritorySchema).max(128),
-  types: z.array(z.enum(SPICE_TERRITORY_TYPES)).max(SPICE_TERRITORY_TYPES.length).optional(),
-});
-
-/** A token Asset placed on the card's map, in board coordinates; nothing ties it to a territory. */
-export const SpiceTokenPlacement = z.strictObject({
-  layerId: z.string().min(1).max(64),
-  asset_id: z.string().min(1),
-  x: z.number().min(0).max(SPICE_BOARD_SIZE),
-  y: z.number().min(0).max(SPICE_BOARD_SIZE),
-  size: z.number().min(5).max(250),
-  rotation: z.number().min(-360).max(360),
-});
-
-/** How a linked board's artwork sits in the card's parchment: burnt in like the classic map, toned sepia, or drawn as it is. */
-export const SPICE_BOARD_LOOKS = ['burnt', 'sepia', 'plain'] as const;
+/** Named board treatments keep tints and placed tokens in their own colours. */
+export const SPICE_BOARD_LOOKS = ['burnt', 'sepia', 'plain', 'textured-burn'] as const;
 
 /** A board's look and how strongly it applies, 0 to 1; a card without one is burnt in fully, as the classic map is. */
 export const SpiceBoardLook = z.strictObject({
@@ -74,9 +66,11 @@ export const SpiceBoardLook = z.strictObject({
 /** A linked board Asset with the card's tints and tokens; a card without one still draws the legacy Arrakis map. */
 export const SpiceBoardLink = z.strictObject({
   asset_id: z.string().min(1),
-  tints: z.array(SpiceTint).max(SPICE_MAX_TINTS),
-  tokens: z.array(SpiceTokenPlacement).max(SPICE_MAX_TOKENS),
+  tints: boardTints,
+  tokens: boardTokens,
   look: SpiceBoardLook.optional(),
+  /** One token front above the amount, independent of map placement. */
+  typeToken: z.strictObject({ asset_id: z.string().min(1) }).optional(),
 });
 
 /**
@@ -84,6 +78,7 @@ export const SpiceBoardLink = z.strictObject({
  * No `about`, and deliberately so: `SpiceCard` draws exactly these fields, and the stored superset is `SpiceAsset` below, the same split `Treachery` and `TreacheryAsset` make.
  */
 export const Spice = z.strictObject({
+  ...ICON_PLACEMENT,
   name: z.string(),
   subName: z.string(),
   /** A classic card's icon key, or any vector a newer card picked. */
@@ -168,9 +163,8 @@ export const CardHead = z.strictObject({
   name: z.string(),
   subName: z.string(),
   head: Background,
-  icon: z.tuple([Background, ALL]),
-  iconOffset: z.tuple([z.number(), z.number()]).optional(),
-  iconScale: z.number().min(0).max(2).optional(),
+  icon: z.tuple([Background, z.union([ALL, PLANET])]),
+  ...ICON_PLACEMENT,
   /** Flips the icon vector from dark to light artwork. */
   iconInvert: z.boolean().optional(),
   /** Fades the icon vector; 1 (the default) is fully opaque. */
@@ -178,6 +172,7 @@ export const CardHead = z.strictObject({
 });
 
 export const Treachery = CardHead.extend({
+  bodyLayout: z.enum(['illustrated', 'text-only']).optional(),
   decals: z.array(Decal),
   text: z.string(),
 });
@@ -214,6 +209,17 @@ export const FactionSide = z.strictObject({
 export const TokenFace = FactionSide.extend({
   /** Multiplies the renderer's reference symbol size. */
   symbolScale: z.number().min(0.5).max(2),
+  symbolFill: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/)
+    .optional(),
+  symbolStroke: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/)
+    .optional(),
+  symbolStrokeWidth: z.number().min(0).max(20).optional(),
+  /** Missing keeps the established two-pass symbol shadow. */
+  symbolShadow: z.boolean().optional(),
   /** The curved label along the top edge. */
   top: z.string(),
   /**
@@ -534,7 +540,7 @@ export const LeaderSkillAssetInput = LeaderSkillAsset.extend({
 });
 
 /** A Nexus card keeps three rules regions and a faction identity inside the standard custom-card frame. */
-const NexusEffect = proseFormattedTextSchema
+const CardEffect = proseFormattedTextSchema
   .refine((text) => text.length <= 400, {
     message: 'An effect can hold at most 400 characters',
   })
@@ -546,12 +552,28 @@ export const NexusCard = CardHead.extend({
   faction: z.string().trim(),
   factionLink: z.strictObject({ id: z.string().min(1), slug: z.string().min(1) }).optional(),
   factionSymbol: FactionSide,
-  betrayal: NexusEffect,
-  cunning: NexusEffect,
-  secretAlly: NexusEffect,
+  betrayal: CardEffect,
+  cunning: CardEffect,
+  secretAlly: CardEffect,
 });
 export const NexusCardAsset = NexusCard.extend({ about: About });
 export const NexusCardAssetInput = NexusCardAsset.extend({ about: FormattedAbout });
+
+/** A single-face homeworld has no faction link; each reserve state carries its own rules and strength. */
+const HomeworldReserve = z.strictObject({
+  text: CardEffect,
+  strength: z.number().int().min(0).max(99),
+});
+export const HomeworldCard = CardHead.extend({
+  subName: z.literal('Homeworld'),
+  icon: z.tuple([Background, PLANET]),
+  threshold: z.number().int().min(1).max(999),
+  high: HomeworldReserve,
+  low: HomeworldReserve,
+  occupied: CardEffect,
+});
+export const HomeworldCardAsset = HomeworldCard.extend({ about: About });
+export const HomeworldCardAssetInput = HomeworldCardAsset.extend({ about: FormattedAbout });
 /** A stronghold authors its name, Decals and Body inside one fixed card template. */
 export const StrongholdCard = Treachery.pick({ name: true, decals: true, text: true }).extend({
   decals: z.array(Decal).max(16),

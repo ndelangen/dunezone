@@ -1,6 +1,6 @@
 import { assetSubjectFacts } from '@shared/access/collaborativeAccess';
 import type { AssetViewerAccess } from '@shared/access/collaborativeAccess';
-import { useQuery } from 'convex/react';
+import { usePaginatedQuery, useQuery } from 'convex/react';
 import type { FunctionArgs, FunctionReturnType } from 'convex/server';
 
 import { db } from '@db/core';
@@ -105,6 +105,10 @@ export function useAssetPage(
     ...(options.embeddedTokenIds ? { embeddedTokenIds: options.embeddedTokenIds as AssetListEntry['id'][] } : {}),
   });
   const page = liveData === undefined ? options.initialData : liveData;
+  return { ...useAssetViewerPage(page), isPending: liveData === undefined };
+}
+
+function useAssetViewerPage(page: AssetPublicPage) {
   const { resolved, viewerAccess } = useAssetAccess(
     assetSubjectFacts(
       'asset',
@@ -115,7 +119,6 @@ export function useAssetPage(
   const assignableGroups = useViewerAssignableGroups();
   const isAdmin = useViewerIsAdmin();
   return {
-    isPending: liveData === undefined,
     data: page
       ? {
           ...page,
@@ -150,15 +153,17 @@ export function useSetMemberCount() {
   );
 }
 
-/** The create page holds this read while its current draft embeds tokens. */
-export function useCustomCardTokens(ids: string[]) {
-  return useQuery(api.assets.customCardTokens, { ids: ids as AssetListEntry['id'][] });
-}
-
 /** Changes a treachery card into editable custom-card layers without creating another asset. */
 export function useConvertTreacheryToCustom() {
   return useLiveMutation<{ id: AssetListEntry['id'] }, { id: string; slug: string }>(
     api.assets.convertTreacheryToCustom
+  );
+}
+
+/** Converts one existing Custom Card using a complete Spice draft, after the page's explicit confirmation. */
+export function useConvertCustomToSpice() {
+  return useLiveMutation<{ id: AssetListEntry['id']; data: unknown }, { id: string; slug: string }>(
+    api.assets.convertCustomToSpice
   );
 }
 
@@ -168,4 +173,31 @@ export function useSpiceCardBoard(boardId: string, tokenIds: string[]) {
     boardId: boardId as AssetListEntry['id'],
     tokenIds: tokenIds as AssetListEntry['id'][],
   });
+}
+
+type AssetDetailChunk = FunctionReturnType<typeof api.assets.detailPage>['page'][number];
+export type AssetDetailInitialPage = NonNullable<AssetPublicPage> & { relatedFaq: AssetDetailChunk['items'] };
+
+/** The public detail and its first range of related questions travel together. */
+export async function loadAssetDetailPage(type: string, slug: string): Promise<AssetDetailInitialPage | null> {
+  const result = await db.query(
+    api.assets.detailPage,
+    { type, slug, paginationOpts: { numItems: 12, cursor: null } },
+    { hold: false }
+  );
+  const first = result.page[0];
+  return first.detail ? { ...first.detail, relatedFaq: first.items } : null;
+}
+
+export function useAssetDetailPage(type: string, slug: string, options: { initialData: AssetDetailInitialPage }) {
+  const query = usePaginatedQuery(api.assets.detailPage, { type, slug }, { initialNumItems: 12 });
+  const first = query.results[0];
+  const page = first === undefined ? options.initialData : first.detail;
+  return {
+    ...useAssetViewerPage(page),
+    isPending: first === undefined,
+    relatedFaq: first ? query.results.flatMap((chunk) => chunk.items) : options.initialData.relatedFaq,
+    faqStatus: query.status,
+    loadMoreFaq: () => query.loadMore(12),
+  };
 }

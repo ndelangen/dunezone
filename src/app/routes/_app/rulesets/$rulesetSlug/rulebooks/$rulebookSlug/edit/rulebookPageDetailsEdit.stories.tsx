@@ -327,7 +327,6 @@ const populatedRulesRegions: readonly RulebookPageDetailsBlockRegion[] = [
 
 const meta = preview.meta({
   title: 'Page/Details/Editing',
-  globals: { colorScheme: 'dark' },
   parameters: { layout: 'centered' },
 });
 

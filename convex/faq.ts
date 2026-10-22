@@ -1,16 +1,34 @@
+import { paginationOptsValidator, paginationResultValidator } from 'convex/server';
 import { v } from 'convex/values';
 
-import { FAQ_CATALOGUE_PAGE_SIZE, FAQ_CATALOGUE_QUERY_LIMIT } from '../src/shared/faq/catalogueSearch';
 import type { FAQ_TAG_VALUES } from '../src/shared/faq/tags';
 import { faqAnswerSchema, faqQuestionSchema, faqTagsSchema } from '../src/shared/faq/validation';
 import { internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { internalMutation, mutation, publicQuery, viewerQuery } from './functions';
-import { selectCataloguePage } from './lib/catalogueOrder';
-import { faqListItemValidator } from './lib/collaborativeAccessValidators';
-import { faqRulesetPartition, faqTagPartition } from './lib/faqCatalogue';
-import { faqQuestionPublicPageValidator, loadFaqQuestionPublicPage, loadViewerAnswered } from './lib/faqQuestionPage';
-import { projectFaqListItems } from './lib/faqRulesetList';
+import { assignedGroupSummary } from './lib/collaborativeAccess';
+import {
+  faqListItemValidator,
+  assignedGroupSummaryValidator,
+  relatedFaqItemValidator,
+  docValidator,
+} from './lib/collaborativeAccessValidators';
+import { loadRulesetFaqPage, loadRulesetFaqSearch, rulesetFaqSearchText } from './lib/faqCatalogue';
+import {
+  globalFaqPageValidator,
+  globalFaqRulesetOptionsValidator,
+  loadGlobalFaqPage,
+  loadGlobalFaqRulesetOptions,
+} from './lib/faqGlobalSearch';
+import {
+  faqQuestionPublicPageValidator,
+  loadFaqQuestionPublicPage,
+  loadFaqQuestionAtLocator,
+  loadViewerAnswered,
+} from './lib/faqQuestionPage';
+import { loadRelatedFaqForQuestion } from './lib/faqQuestionRelated';
+import { faqReferencePreview, faqReferencePreviewValidator } from './lib/faqReferencePreviews';
+import { loadFaqReferenceTargets } from './lib/faqReferences';
 import { faqTagValidator } from './lib/faqTags';
 import { requireAuthUserId } from './lib/policy';
 import { loadPublicRulesetBySlug } from './lib/rulesetDetailPage';
@@ -33,22 +51,26 @@ async function getFaqAnswer(ctx: QueryCtx | MutationCtx, id: Id<'faq_answers'>) 
   return await ctx.db.get(id);
 }
 
-async function deleteFaqAnswerBatch(ctx: MutationCtx, faqItemId: Id<'faq_items'>) {
+async function deleteFaqItemChildrenBatch(ctx: MutationCtx, faqItemId: Id<'faq_items'>) {
   let deleted = 0;
-  for await (const answer of ctx.db
-    .query('faq_answers')
-    .withIndex('by_faq_item_created', (q) => q.eq('faq_item_id', faqItemId))) {
-    await ctx.db.delete(answer._id);
-    deleted += 1;
-    const metrics = await ctx.meta.getTransactionMetrics();
-    if (
-      deleted >= FAQ_ITEM_DELETE_BATCH_MAX_DOCUMENTS ||
-      metrics.bytesRead.remaining < FAQ_ITEM_DELETE_TRANSACTION_RESERVE_BYTES ||
-      metrics.bytesWritten.remaining < FAQ_ITEM_DELETE_TRANSACTION_RESERVE_BYTES ||
-      metrics.databaseQueries.remaining < FAQ_ITEM_DELETE_TRANSACTION_RESERVE_OPERATIONS ||
-      metrics.documentsWritten.remaining < FAQ_ITEM_DELETE_TRANSACTION_RESERVE_OPERATIONS
-    ) {
-      return { deleted, shouldContinue: true };
+  const children = [
+    ctx.db.query('faq_answers').withIndex('by_faq_item_created', (q) => q.eq('faq_item_id', faqItemId)),
+    ctx.db.query('faq_references').withIndex('by_faq_item_id_and_target_id', (q) => q.eq('faq_item_id', faqItemId)),
+  ];
+  for (const query of children) {
+    for await (const child of query) {
+      await ctx.db.delete(child._id);
+      deleted += 1;
+      const metrics = await ctx.meta.getTransactionMetrics();
+      if (
+        deleted >= FAQ_ITEM_DELETE_BATCH_MAX_DOCUMENTS ||
+        metrics.bytesRead.remaining < FAQ_ITEM_DELETE_TRANSACTION_RESERVE_BYTES ||
+        metrics.bytesWritten.remaining < FAQ_ITEM_DELETE_TRANSACTION_RESERVE_BYTES ||
+        metrics.databaseQueries.remaining < FAQ_ITEM_DELETE_TRANSACTION_RESERVE_OPERATIONS ||
+        metrics.documentsWritten.remaining < FAQ_ITEM_DELETE_TRANSACTION_RESERVE_OPERATIONS
+      ) {
+        return { deleted, shouldContinue: true };
+      }
     }
   }
   return { deleted, shouldContinue: false };
@@ -101,8 +123,37 @@ async function allocateNextFaqItemSlug(ctx: MutationCtx, rulesetId: Id<'rulesets
   }
 }
 
+const rulesetCitationValidator = v.object({ id: v.id('rulesets'), name: v.string(), slug: v.string() });
+
+/** A browsed page of a ruleset's FAQ: newest first, counted, in numbered pages. */
+const rulesetFaqBrowseValidator = v.object({
+  ruleset: rulesetCitationValidator,
+  items: v.array(faqListItemValidator),
+  /** Questions carrying the tag, or all of them, across every page. */
+  total: v.number(),
+  /** Always true now that a search is never paged; kept so the browse shape stays the one the page reads. */
+  complete: v.boolean(),
+  /** The page these rows are, which may lie past `pageCount`, with no rows. */
+  page: v.number(),
+  pageCount: v.number(),
+  pageSize: v.number(),
+});
+
+/** A searched FAQ: the best matches first, no count and no pages, and more by asking for a larger limit. */
+const rulesetFaqSearchValidator = v.object({
+  mode: v.literal('search'),
+  ruleset: rulesetCitationValidator,
+  items: v.array(faqListItemValidator),
+  /** Whether a larger limit would show more questions. */
+  hasMore: v.boolean(),
+  /** Whether more questions may match than one search shows, so the reader should add a word rather than load more. */
+  capped: v.boolean(),
+  /** The limit these rows answer, after clamping. */
+  limit: v.number(),
+});
+
 /**
- * One page of a ruleset's FAQ, newest first or by best match while searching, one cached answer for every viewer.
+ * A ruleset's FAQ, one cached answer for every viewer: newest first in pages while browsing, and the best matches of a search up to `limit`, which loads more.
  * Null for an unknown ruleset.
  */
 export const rulesetFaq = publicQuery({
@@ -111,62 +162,46 @@ export const rulesetFaq = publicQuery({
     q: v.optional(v.string()),
     tag: v.optional(faqTagValidator),
     page: v.optional(v.number()),
+    /** How many of the best matches to return; Load more asks again with a larger one. */
+    limit: v.optional(v.number()),
   },
-  returns: v.union(
-    v.object({
-      ruleset: v.object({ id: v.id('rulesets'), name: v.string(), slug: v.string() }),
-      items: v.array(faqListItemValidator),
-      /** Questions matching the search and tag, across every page. */
-      total: v.number(),
-      /** False when a search matched more questions than one query reads, so `total` is a floor. */
-      complete: v.boolean(),
-      /** The page these rows are, which may lie past `pageCount`, with no rows. */
-      page: v.number(),
-      pageCount: v.number(),
-      pageSize: v.number(),
-    }),
-    v.null()
-  ),
+  returns: v.union(rulesetFaqBrowseValidator, rulesetFaqSearchValidator, v.null()),
   handler: async (ctx, args) => {
     const ruleset = await loadPublicRulesetBySlug(ctx, args.rulesetSlug);
     if (!ruleset) {
       return null;
     }
-    const text = args.q?.slice(0, FAQ_CATALOGUE_QUERY_LIMIT).trim() ?? '';
-    const page = Number.isSafeInteger(args.page) && args.page! > 1 ? args.page! : 1;
-    const partition = args.tag ? faqTagPartition(ruleset._id, args.tag) : faqRulesetPartition(ruleset._id);
-    const selection = await selectCataloguePage(ctx, {
-      kind: 'faq',
-      partition,
-      sort: 'created',
-      direction: 'desc',
-      page,
-      pageSize: FAQ_CATALOGUE_PAGE_SIZE,
-      search: text ? { text, relevance: true } : undefined,
-    });
-
-    const items = [];
-    for (const entry of selection.entries) {
-      const itemId = ctx.db.normalizeId('faq_items', entry.source_id);
-      const item = itemId ? await ctx.db.get('faq_items', itemId) : null;
-      if (!item) {
-        /* Drift: the page comes up one row short until the backfill or the question's next save. */
-        console.warn(`Catalogue entry for FAQ item ${entry.source_id} has no question.`);
-        continue;
-      }
-      items.push(item);
-    }
-
-    return {
-      ruleset: { id: ruleset._id, name: ruleset.name, slug: ruleset.slug },
-      items: await projectFaqListItems(ctx, items),
-      total: selection.total,
-      complete: selection.exact,
-      page,
-      pageCount: Math.max(1, Math.ceil(selection.total / FAQ_CATALOGUE_PAGE_SIZE)),
-      pageSize: FAQ_CATALOGUE_PAGE_SIZE,
-    };
+    const citation = { id: ruleset._id, name: ruleset.name, slug: ruleset.slug };
+    /* Gated on the text the search runs, so a query that is blank once cut to length browses instead. */
+    const list = rulesetFaqSearchText(args.q)
+      ? await loadRulesetFaqSearch(ctx, ruleset._id, args)
+      : await loadRulesetFaqPage(ctx, ruleset._id, args);
+    return { ruleset: citation, ...list };
   },
+});
+
+/** The rulesets the global FAQ can be narrowed to: every live one holding questions, by name, with its count. One cached answer for every viewer and every search. */
+export const rulesetOptions = publicQuery({
+  args: {},
+  returns: globalFaqRulesetOptionsValidator,
+  handler: async (ctx) => await loadGlobalFaqRulesetOptions(ctx),
+});
+
+/**
+ * One page of the global FAQ: questions matching a search across every ruleset, or the rulesets picked, best match first.
+ * Before any search it returns no questions;
+ * one cached answer for every viewer.
+ */
+export const search = publicQuery({
+  args: {
+    q: v.optional(v.string()),
+    /** Ruleset slugs; none searches every ruleset. */
+    rulesets: v.optional(v.array(v.string())),
+    /** How many of the best matches to return; Load more asks again with a larger one. */
+    limit: v.optional(v.number()),
+  },
+  returns: globalFaqPageValidator,
+  handler: async (ctx, args) => await loadGlobalFaqPage(ctx, args),
 });
 
 /** The FAQ question page, one cached answer for every viewer. The browser combines its authorship facts with the viewer. */
@@ -174,6 +209,39 @@ export const question = publicQuery({
   args: { rulesetSlug: v.string(), questionSlug: v.string() },
   returns: faqQuestionPublicPageValidator,
   handler: async (ctx, args) => await loadFaqQuestionPublicPage(ctx, args),
+});
+
+const referencedQuestionValidator = faqQuestionPublicPageValidator.extend({
+  relatedQuestions: v.array(relatedFaqItemValidator),
+  referenceRuleset: v.object({
+    owner_id: v.id('users'),
+    assignedGroup: v.union(assignedGroupSummaryValidator, v.null()),
+  }),
+});
+
+/** One page-data query, whose cursor ranges keep every loaded reference reactive. */
+export const questionPage = publicQuery({
+  args: { rulesetSlug: v.string(), questionSlug: v.string(), paginationOpts: paginationOptsValidator },
+  returns: paginationResultValidator(
+    v.object({ detail: v.union(referencedQuestionValidator, v.null()), items: v.array(faqReferencePreviewValidator) })
+  ),
+  handler: async (ctx, args) => {
+    const { item, ruleset } = await loadFaqQuestionAtLocator(ctx, args);
+    const references = await loadFaqReferenceTargets(ctx, item._id, args.paginationOpts);
+    const detail =
+      args.paginationOpts.cursor === null
+        ? {
+            ...(await loadFaqQuestionPublicPage(ctx, args)),
+            relatedQuestions: await loadRelatedFaqForQuestion(ctx, item._id),
+            referenceRuleset: {
+              owner_id: ruleset.owner_id,
+              assignedGroup: await assignedGroupSummary(ctx, ruleset.group_id),
+            },
+          }
+        : null;
+    const items = await Promise.all(references.page.map((target) => faqReferencePreview(ctx, target)));
+    return { ...references, page: [{ detail, items }] };
+  },
 });
 
 /** Whether the viewer has answered one FAQ question: the viewer half of the question page's answer form. Null asks about no question. */
@@ -329,6 +397,7 @@ export const setAcceptedAnswer = mutation({
     faq_item_id: v.id('faq_items'),
     accepted_answer_id: v.union(v.id('faq_answers'), v.null()),
   },
+  returns: docValidator('faq_items'),
   handler: async (ctx, args) => {
     const item = await getFaqItem(ctx, args.faq_item_id);
     if (!item) {
@@ -345,9 +414,14 @@ export const setAcceptedAnswer = mutation({
 
     await assertAcceptedAnswerBelongsToItem(ctx, item._id, args.accepted_answer_id);
 
+    if (item.accepted_answer_id === args.accepted_answer_id) {
+      return item;
+    }
+    const acceptedAt = nowIso();
     await ctx.db.patch(item._id, {
       accepted_answer_id: args.accepted_answer_id,
-      updated_at: nowIso(),
+      accepted_at: args.accepted_answer_id ? acceptedAt : null,
+      updated_at: acceptedAt,
     });
     const updated = await ctx.db.get(item._id);
     if (!updated) {
@@ -372,7 +446,7 @@ async function deleteQuestionHandler(ctx: MutationCtx, args: { questionId: Id<'f
     throw new Error('Not authorized');
   }
 
-  const { shouldContinue } = await deleteFaqAnswerBatch(ctx, item._id);
+  const { shouldContinue } = await deleteFaqItemChildrenBatch(ctx, item._id);
   const done = !shouldContinue;
   if (done) {
     await ctx.db.delete(item._id);
@@ -396,7 +470,7 @@ export const deleteItemAnswerBatch = internalMutation({
   },
   handler: async (ctx, args): Promise<{ deleted: number; done: boolean }> => {
     const item = await ctx.db.get(args.faq_item_id);
-    const { deleted: deletedAnswerCount, shouldContinue } = await deleteFaqAnswerBatch(ctx, args.faq_item_id);
+    const { deleted, shouldContinue } = await deleteFaqItemChildrenBatch(ctx, args.faq_item_id);
     const done = !shouldContinue;
     if (done && item) {
       await ctx.db.delete(item._id);
@@ -404,7 +478,7 @@ export const deleteItemAnswerBatch = internalMutation({
     if (!done) {
       await ctx.scheduler.runAfter(0, internal.faq.deleteItemAnswerBatch, args);
     }
-    return { deleted: deletedAnswerCount, done };
+    return { deleted, done };
   },
 });
 
@@ -507,6 +581,7 @@ export const deleteAnswer = mutation({
     if (item.accepted_answer_id === answer._id) {
       await ctx.db.patch(item._id, {
         accepted_answer_id: null,
+        accepted_at: null,
         updated_at: nowIso(),
       });
     }

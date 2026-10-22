@@ -8,8 +8,8 @@ type Context = { userId: string; factionId: string; factionName: string; peers: 
 type Delivery = { state: 'unsent' } | { state: 'sent'; at: number } | { state: 'failed'; error: string };
 type Load =
   | { state: 'idle' }
-  | { state: 'loading'; requestId: string; at: number }
-  | { state: 'failed'; error: string };
+  | { state: 'loading'; requestId: string; at: number; before: number }
+  | { state: 'failed'; error: string; before: number };
 type Pending = { request: Extract<Request, { type: 'conversation-send' }>; delivery: Delivery };
 type Page = { entries: ConversationMessage[]; more: boolean; load: Load };
 /* Each `at` is a monotonic reading, so it stays off the view where a component could compare it with a wall clock. */
@@ -168,8 +168,14 @@ export class ConversationSession {
         ? { ...entry, delivery: { state: 'failed', error: message.message } }
         : entry
     );
-    if (page) {
-      this.pages = { ...this.pages, [page[0]]: { ...page[1], load: { state: 'failed', error: message.message } } };
+    if (page && page[1].load.state === 'loading') {
+      this.pages = {
+        ...this.pages,
+        [page[0]]: {
+          ...page[1],
+          load: { state: 'failed', error: message.message, before: page[1].load.before },
+        },
+      };
     }
     this.changed();
     return true;
@@ -208,26 +214,34 @@ export class ConversationSession {
     }
   }
 
-  load = ({ peerId, before = Number.MAX_SAFE_INTEGER }: { peerId: string; before?: number }) => {
+  load = ({ peerId, before }: { peerId: string; before?: number }) => {
     if (!this.context || !this.online) {
       return;
     }
-    if (this.pages[peerId]?.load.state === 'loading') {
+    const previous = this.pages[peerId]?.load;
+    if (previous?.state === 'loading') {
       return;
     }
+    /* Retry the page that failed, including an earlier page; a new conversation still starts at its newest messages. */
+    const cursor = before ?? (previous?.state === 'failed' ? previous.before : Number.MAX_SAFE_INTEGER);
     const requestId = crypto.randomUUID();
     this.pages = {
       ...this.pages,
       [peerId]: {
         entries: this.pages[peerId]?.entries ?? [],
         more: false,
-        load: { state: 'loading', requestId, at: this.monotonicNow() },
+        load: { state: 'loading', requestId, at: this.monotonicNow(), before: cursor },
       },
     };
-    if (!this.send({ type: 'conversation-history', requestId, factionId: this.context.factionId, peerId, before })) {
+    if (
+      !this.send({ type: 'conversation-history', requestId, factionId: this.context.factionId, peerId, before: cursor })
+    ) {
       this.pages = {
         ...this.pages,
-        [peerId]: { ...this.pages[peerId]!, load: { state: 'failed', error: 'History could not load. Try again.' } },
+        [peerId]: {
+          ...this.pages[peerId]!,
+          load: { state: 'failed', error: 'History could not load. Try again.', before: cursor },
+        },
       };
     }
     this.changed();
@@ -305,7 +319,10 @@ export class ConversationSession {
       if (page.load.state === 'loading' && this.expired(page.load.at)) {
         this.pages = {
           ...this.pages,
-          [peerId]: { ...page, load: { state: 'failed', error: 'History could not load. Try again.' } },
+          [peerId]: {
+            ...page,
+            load: { state: 'failed', error: 'History could not load. Try again.', before: page.load.before },
+          },
         };
         this.changed();
       }

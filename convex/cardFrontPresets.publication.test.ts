@@ -6,6 +6,7 @@ import { CARD_FRONT_PUBLICATION_REVISIONS, INITIAL_CARD_FRONT_PRESETS } from '..
 import { GF9_LEADER_SKILLS } from '../src/shared/assets/gf9LeaderSkills';
 import { GF9_NEXUS_CARDS } from '../src/shared/assets/gf9Nexus';
 import { GF9_STRONGHOLD_CARDS } from '../src/shared/assets/gf9StrongholdDeck';
+import { EXAMPLE_HOMEWORLD_CARD } from '../src/shared/assets/homeworldTemplate';
 import { standardStormCard } from '../src/shared/assets/standardStormDeck';
 import { TREACHERY_STYLES } from '../src/shared/assets/treacheryStyles';
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
@@ -46,6 +47,7 @@ test('front presets require Administrator access, an activated renderer and the 
 });
 
 const families = [
+  { type: 'card-homeworld', card: EXAMPLE_HOMEWORLD_CARD, key: 'homeworld' },
   { type: 'card-stronghold', card: GF9_STRONGHOLD_CARDS[0]!, key: 'stronghold' },
   { type: 'card-storm', card: standardStormCard(3), key: 'storm' },
   { type: 'card-nexus', card: GF9_NEXUS_CARDS[0]!, key: 'nexus' },
@@ -111,7 +113,7 @@ test.each(families)('$key captures its shared style without changing authored da
   }
 });
 
-test('Custom cards retain their authored style without a shared front snapshot', async () => {
+test('Custom cards retain their authored style when shared standards are available', async () => {
   const { t, author } = await fixture();
   const customData = {
     name: 'Custom retains style',
@@ -129,7 +131,10 @@ test('Custom cards retain their authored style without a shared front snapshot',
       .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', 'card-custom').eq('asset_id', custom.id))
       .unique()
   );
-  expect(customJob?.asset_data).not.toHaveProperty('frontPreset');
+  expect(customJob?.asset_data.frontPreset.style).toEqual({
+    head: customData.head,
+    iconBackground: customData.icon[0],
+  });
 });
 
 test('rapid saves serialize captures and keep the older snapshot immutable until its replacement starts', async () => {

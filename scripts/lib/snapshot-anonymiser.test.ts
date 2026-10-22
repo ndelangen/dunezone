@@ -278,6 +278,41 @@ function refusal(run: () => unknown): SnapshotRefused {
 }
 
 describe('anonymiseExport', () => {
+  test('keeps FAQ references only when their question and faction or asset are published', () => {
+    const { world, author, published, deleted, question } = authorWorld();
+    const asset = world.add('assets', {
+      owner_id: author,
+      group_id: null,
+      type: 'deck',
+      slug: 'treachery',
+      data: { name: 'Treachery' },
+      is_deleted: false,
+      ...timestamps,
+    });
+    const deletedAsset = world.add('assets', {
+      owner_id: author,
+      group_id: null,
+      type: 'deck',
+      slug: 'gone',
+      data: { name: 'Gone' },
+      is_deleted: true,
+      ...timestamps,
+    });
+    const factionReference = world.add('faq_references', {
+      faq_item_id: question,
+      kind: 'faction',
+      target_id: published,
+    });
+    const assetReference = world.add('faq_references', { faq_item_id: question, kind: 'asset', target_id: asset });
+    world.add('faq_references', { faq_item_id: question, kind: 'faction', target_id: deleted });
+    world.add('faq_references', { faq_item_id: question, kind: 'asset', target_id: deletedAsset });
+    world.add('faq_references', { kind: 'asset', target_id: asset });
+
+    const { entries } = anonymiseExport(world.entries());
+    expect(rowsOf(entries, 'faq_references').map((row) => row._id)).toEqual([factionReference, assetReference]);
+    expect(verifySnapshot(entries)).toEqual(manifestOf(entries));
+  });
+
   test('drops unpublished rows, private tables and rows whose parent was dropped', () => {
     const { world, published, question } = authorWorld();
     const { entries } = anonymiseExport(world.entries());
@@ -358,6 +393,42 @@ describe('anonymiseExport', () => {
 });
 
 describe('anonymiseExport on Rulebook Editions', () => {
+  test.each([undefined, { size: 'gf9-expansion', design: 'restrained' }])(
+    'projects current published settings instead of the private saved draft (%j)',
+    (settings) => {
+      const { world, rulebook, current } = rulebookWorld();
+      world.patch('rulebooks', rulebook, { settings: { size: 'gf9-core', design: 'illustrated' } });
+      if (settings) {
+        world.patch('rulebook_editions', current, { settings });
+      }
+      const { entries } = anonymiseExport(world.entries());
+      expect(rowsOf(entries, 'rulebooks')[0].settings).toEqual(settings ?? { size: 'a4', design: 'illustrated' });
+    }
+  );
+
+  test('refuses a missing current Edition rather than copying private draft settings', () => {
+    const { world, rulebook } = rulebookWorld();
+    world.patch('rulebooks', rulebook, {
+      current_edition_number: 3,
+      settings: { size: 'gf9-core', design: 'restrained' },
+    });
+    expect(refusal(() => anonymiseExport(world.entries())).problems).toEqual([
+      'rulebooks: 1 rows whose settings do not match a readable current Edition',
+    ]);
+  });
+
+  test('the loader refuses private draft settings planted in an otherwise trusted snapshot', () => {
+    const { world } = rulebookWorld();
+    const { entries } = anonymiseExport(world.entries());
+    expect(verifySnapshot(entries)).toEqual(manifestOf(entries));
+    const rows = rowsOf(entries, 'rulebooks');
+    rows[0].settings = { size: 'gf9-core', design: 'restrained' };
+    const tampered = withRows(entries, 'rulebooks', rows);
+    expect(refusal(() => verifySnapshot(tampered)).problems).toEqual([
+      'rulebooks: 1 rows whose settings do not match a readable current Edition',
+    ]);
+  });
+
   test('shows Edition Contents the way the public reader does, so a signed cover source stays in production', () => {
     const { world, first, current } = rulebookWorld();
     const { entries } = anonymiseExport(world.entries());

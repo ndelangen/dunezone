@@ -1,10 +1,12 @@
 import { describe, expect, test, vi } from 'vite-plus/test';
 
+import { CONTRIBUTING_SUBPAGES } from '../../src/shared/recordlessPublicPages';
 import { handleApplicationRequest } from './application';
 
-const env: Pick<Env, 'CF_VERSION_METADATA' | 'GIT_SHA'> = {
+const env: Pick<Env, 'CF_VERSION_METADATA' | 'GIT_SHA' | 'CONVEX_CLOUD_BASE_URL'> = {
   CF_VERSION_METADATA: { id: 'release-a', tag: 'a', timestamp: 'today' },
   GIT_SHA: 'development',
+  CONVEX_CLOUD_BASE_URL: 'https://exuberant-finch-263.eu-west-1.convex.cloud',
 };
 
 describe('anonymous application dispatch', () => {
@@ -26,6 +28,9 @@ describe('anonymous application dispatch', () => {
     '/assets/unknown-type/missing/extra',
     '/factions/missing/extra',
     '/glossary',
+    '/contributing',
+    ...CONTRIBUTING_SUBPAGES,
+    '/faq',
     '/blog',
     '/blog/why-dune',
     '/media',
@@ -33,13 +38,20 @@ describe('anonymous application dispatch', () => {
     '/media/missing',
   ])('renders %s without visitor credentials', async (pathname) => {
     const render = vi.fn(async (request: Request) => {
-      expect([...request.headers]).toEqual([['accept', 'text/html']]);
+      expect(request.headers.get('Accept')).toBe('text/html');
+      expect(request.headers.get('X-Application-Nonce')).toMatch(/^[a-f0-9]{32}$/);
+      expect([...request.headers]).toHaveLength(2);
       expect(request.url).toBe(`https://dune.zone${pathname}?search=hello`);
       return new Response('public page', { headers: { 'Set-Cookie': 'unexpected=value' } });
     });
     const response = await handleApplicationRequest(
       new Request(`https://dune.zone${pathname}?search=hello`, {
-        headers: { Cookie: 'auth=private', Authorization: 'Bearer private', 'X-Forwarded-Host': 'other.invalid' },
+        headers: {
+          Cookie: 'auth=private',
+          Authorization: 'Bearer private',
+          'X-Forwarded-Host': 'other.invalid',
+          'X-Application-Nonce': 'attacker-chosen',
+        },
       }),
       env,
       render
@@ -47,9 +59,8 @@ describe('anonymous application dispatch', () => {
     expect(await response?.text()).toBe('public page');
     expect(response?.headers.get('Set-Cookie')).toBeNull();
     expect(response?.headers.get('Cache-Control')).toBe('no-store');
-    expect(response?.headers.get('Content-Security-Policy')).toBe(
-      "frame-ancestors 'self'; base-uri 'self'; object-src 'none'"
-    );
+    expect(response?.headers.get('Content-Security-Policy')).toMatch(/script-src 'self'[^;]*'nonce-/);
+    expect(response?.headers.get('X-Application-Render-Nonce')).toBeNull();
     expect(response?.headers.get('X-Frame-Options')).toBe('SAMEORIGIN');
     expect(response?.headers.get('X-Content-Type-Options')).toBe('nosniff');
     expect(response?.headers.get('X-Application-Release')).toBe('release-a');

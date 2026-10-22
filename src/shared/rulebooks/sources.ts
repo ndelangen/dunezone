@@ -18,8 +18,17 @@ export const rulebookSourceReferenceSchema = z.discriminatedUnion('kind', [
   rulebookCardSourceReferenceSchema,
   z.strictObject({ kind: z.literal('stock'), artworkId: z.string().min(1) }),
   z.strictObject({ kind: z.literal('board'), boardId: z.string().min(1) }),
-  z.strictObject({ kind: z.literal('faction'), factionId: z.string().min(1) }),
-  z.strictObject({ kind: z.literal('faction-member'), factionId: z.string().min(1), memberId: FactionMemberIdSchema }),
+  z.strictObject({
+    kind: z.literal('faction'),
+    factionId: z.string().min(1),
+    presentation: z.enum(['emblem', 'token']).optional(),
+  }),
+  z.strictObject({
+    kind: z.literal('faction-member'),
+    factionId: z.string().min(1),
+    memberId: FactionMemberIdSchema,
+    presentation: z.enum(['leader', 'traitor']).optional(),
+  }),
   z.strictObject({
     kind: z.literal('faction-troop'),
     factionId: z.string().min(1),
@@ -54,6 +63,8 @@ export const rulebookResolvedAssetsByIdSchema = z.record(
     assetId: z.string(),
     type: z.string(),
     imageUrl: z.string().nullable(),
+    /** A saved board's own data, read only for boards a scene draws markup on: tints are worked out from it when a scene is projected. */
+    board: z.unknown().optional(),
   })
 );
 export type RulebookResolvedAssetsById = Readonly<z.infer<typeof rulebookResolvedAssetsByIdSchema>>;
@@ -115,9 +126,11 @@ export function rulebookSourceClipPath(source: RulebookResolvedSource): string |
     return undefined;
   }
   if (
-    source.reference.kind === 'faction-member' ||
+    (source.reference.kind === 'faction-member' && source.reference.presentation !== 'traitor') ||
+    (source.reference.kind === 'faction' && source.reference.presentation === 'token') ||
     source.reference.kind === 'faction-troop' ||
-    source.assetType === 'token-disc'
+    source.assetType === 'token-disc' ||
+    source.assetType === 'token-leader'
   ) {
     return 'circle(50%)';
   }

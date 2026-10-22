@@ -1,0 +1,600 @@
+{
+  "title": "GF9: CHOAM & Richese",
+  "introduction": "Faction rules, corrected cards, Leader Skills and Advanced Stronghold Cards for the second GF9 expansion. Read with the GF9 core rulebook.",
+  "sections": [
+    {
+      "id": "using-this-expansion",
+      "title": "Using this expansion",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "Add CHOAM and Richese to the available factions. Leader Skills and Advanced Stronghold Cards are independent optional modules; choose either, both or neither, regardless of the factions selected. Stronghold Cards are Advanced game only."
+        },
+        {
+          "kind": "table",
+          "columns": ["Component", "Quantity and setup"],
+          "rows": [
+            [
+              "Faction sets",
+              "2 sets, each with a shield, sheet, player marker, 5 standard leaders, 20 troops and 2 Alliance cards."
+            ],
+            [
+              "Richese cache",
+              "10 unique Treachery Cards kept outside the normal deck and hand, plus No-Field tokens numbered 0, 3 and 5."
+            ],
+            ["CHOAM components", "A two-sided Inflation token and the additional Auditor leader for Advanced play."],
+            [
+              "Traitor Cards",
+              "11 cards including the Auditor. Only include the Auditor in Advanced games and remove all absent-faction cards."
+            ],
+            ["Prediction Cards", "2 additions."],
+            ["Leader Skill Cards", "14 optional cards."],
+            ["Stronghold Cards", "6 optional Advanced cards, including the Ixian Hidden Mobile Stronghold."],
+            [
+              "Replacement cards",
+              "1 corrected Poison Tooth and 1 corrected Artillery Strike replace their Ixians & Tleilaxu copies; if that expansion is absent, add these 2 cards. Replace the 2 core Karama cards with the updated cards."
+            ]
+          ]
+        },
+        {
+          "kind": "text",
+          "text": "The Treachery discard pile is private. Do not search or inspect it unless a card or ability explicitly permits it. Discarded Richese cards enter the ordinary discard pile and may later be reshuffled into the main Treachery Deck."
+        }
+      ],
+      "sources": [
+        {
+          "source": "choam-richese",
+          "page": "4"
+        },
+        {
+          "source": "choam-richese",
+          "page": "8"
+        }
+      ]
+    },
+    {
+      "id": "richese-setup-and-cache",
+      "title": "Richese setup and cache",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "Start with 5 spice and all 20 troops in reserves. Free revival is 2 troops. Keep the 10 Richese Treachery Cards in a separate cache; they do not count as cards in your hand. Keep No-Field tokens 0, 3 and 5."
+        },
+        {
+          "kind": "text",
+          "text": "Each Bidding round, replace one normal auction card with a revealed card chosen from your cache. Before Ixians use Bidding, announce whether your cache card will be the first or last auction of the round. Sell it by Once Around or Silent Auction, ignoring normal bidding order."
+        },
+        {
+          "kind": "text",
+          "text": "Other factions pay you for cache cards. If you buy your own card, pay the Emperor, or the Spice Bank if the Emperor is absent. Karama cannot buy or acquire a cache-auction card. If everyone else declines to pay, you may take the card free or remove it from the game."
+        },
+        {
+          "kind": "text",
+          "text": "The cache is used only when Richese is playing. Do not shuffle all cache cards into the starting Treachery Deck as a substitute for Richese auctions."
+        }
+      ],
+      "sources": [
+        {
+          "source": "choam-richese",
+          "page": "5"
+        }
+      ]
+    },
+    {
+      "id": "richese-auctions",
+      "title": "Richese auction procedures",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "table",
+          "columns": ["Method", "Procedure"],
+          "rows": [
+            [
+              "Once Around",
+              "Choose clockwise or counter-clockwise. Begin with the adjacent faction on that side. Each eligible faction may pass or place a higher bid exactly once. When the opportunity reaches Richese, Richese either outbids the current high bid and buys, or the high bidder buys. Juice of Sappho can change who bids last."
+            ],
+            [
+              "Silent",
+              "Every eligible faction secretly holds any amount of spice, including zero, in one hand. Reveal simultaneously. The largest amount wins; break ties in storm order. If all amounts are zero, Richese may take the card free or remove it."
+            ]
+          ]
+        },
+        {
+          "kind": "text",
+          "text": "Harkonnen receive their usual free extra card after buying either a cache card or Black Market card. The Ixian alliance replacement applies to Black Market purchases, but not to the separate cache auction."
+        },
+        {
+          "kind": "text",
+          "text": "Reduce the normal auction supply for each Richese card replacing a normal card. If Ixians are playing, they still draw one more than the reduced number of normal cards, inspect the draw, return one to the deck and shuffle the rest. If the cache card is first, auction it before the Ixian Bidding advantage; if last, reveal and auction it after normal bidding."
+        },
+        {
+          "kind": "text",
+          "text": "Richese may contribute to an ally's bid, including a Silent bid. That contribution goes to the Emperor, or the Bank if absent; the ally's own share goes to Richese. Richese must already hold its contribution and cannot count the incoming payment to fund it. A full hand cannot enter the auction. A Black Market card purchased before Declaration counts in that player's declared hand."
+        }
+      ],
+      "sources": [
+        {
+          "source": "choam-richese",
+          "page": "5"
+        },
+        {
+          "source": "choam-richese",
+          "page": "10"
+        },
+        {
+          "source": "choam-richese",
+          "page": "11"
+        }
+      ]
+    },
+    {
+      "id": "richese-no-field",
+      "title": "Richese No-Field shipment",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "Instead of a normal shipment, pay the cost of shipping one troop and place an available No-Field token face down in the destination. Use the normal rate of 1 spice to a stronghold or 2 elsewhere, paid to the Guild or the Spice Bank. Until revealed the token counts as one troop for all effects, even when its hidden number is 0."
+        },
+        {
+          "kind": "text",
+          "text": "Move the token as a troop. Before the Battle phase, you may reveal it voluntarily. Replace it with its number of troops from reserves, or all remaining reserves if fewer are available. A storm or worm reveals it and destroys that number of troops, limited by available reserves."
+        },
+        {
+          "kind": "text",
+          "text": "In a battle involving the token, reveal it with your Battle Plan and bring in that many available reserve troops. You cannot dial more than the troops available to reveal. Atreides cannot ask to see your number dialed in this battle. A 0 token still permits normal leader and Treachery Card choices."
+        },
+        {
+          "kind": "text",
+          "text": "Only one No-Field token may be on Arrakis at once. Do not use the same numbered token twice consecutively for yourself or an ally. Keep the last used token face up in front of your shield until another is placed."
+        },
+        {
+          "kind": "text",
+          "text": "An unrevealed token collects spice as one troop. Entering a stronghold with a Terror token can trigger that token, including with No-Field 0. Revealing an already-present No-Field does not trigger Terror again. If Trip to Gamont targets a No-Field, reveal it and return one revealed troop to reserves, if present; Trip to Gamont is used even if none is revealed."
+        }
+      ],
+      "sources": [
+        {
+          "source": "choam-richese",
+          "page": "6"
+        },
+        {
+          "source": "choam-richese",
+          "page": "10"
+        },
+        {
+          "source": "choam-richese",
+          "page": "11"
+        }
+      ]
+    },
+    {
+      "id": "richese-alliance-and-advanced",
+      "title": "Richese alliance and Advanced rules",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "You may offer to ship an ally's reserve troops using an available No-Field token. Reveal any token already on Arrakis first. Pay for shipping one troop, then immediately reveal the new token and place up to its number of the ally's available reserve troops. Either ally may pay the shipment cost. Keep the used token face up to prevent consecutive reuse. This triggers Heighliners unless the shipped faction is the Guild."
+        },
+        {
+          "kind": "text",
+          "text": "You may give your ally a Richese Treachery Card from your hand at any time while the ally has room. This transfers a card already in your hand, not one directly out of the cache."
+        },
+        {
+          "kind": "text",
+          "text": "Advanced Black Market: before Bidding Declaration, you may offer one card from your hand. You may describe it truthfully or lie, but do not show it; Atreides may still inspect it. Choose normal bidding, Once Around or Silent Auction. Karama cannot acquire it. If nobody bids spice, keep the card and end the intervention. If it sells, receive the payment and remove one normal card from that round's auction supply. After normal-method bidding, resume where normal bidding left off; after an alternative auction, resume in storm order."
+        },
+        {
+          "kind": "text",
+          "text": "Richese occupation of Tuek's Sietch also prevents the Fremen special victory, alongside Atreides, Harkonnen and Emperor occupation. This applies in both Basic and Advanced play."
+        },
+        {
+          "kind": "text",
+          "text": "Advanced special Karama: once per game, spend a Karama Card and 3 spice to secretly choose and buy one card remaining in your Richese cache at any time."
+        }
+      ],
+      "sources": [
+        {
+          "source": "choam-richese",
+          "page": "6"
+        },
+        {
+          "source": "choam-richese",
+          "page": "11"
+        }
+      ]
+    },
+    {
+      "id": "choam-setup-and-charity",
+      "title": "CHOAM setup, Charity and Inflation",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "Start with 2 spice and all 20 troops in reserves. You have no free revival, but you may pay to revive any number of your troops for 1 spice each."
+        },
+        {
+          "kind": "text",
+          "text": "At the start of CHOAM Charity, before anyone else collects, take 2 spice from the Spice Bank for each faction in the game. Pay other factions' normal Charity from your own spice. This income alone does not trigger the Spice Production Tech Token."
+        },
+        {
+          "kind": "text",
+          "text": "During a Mentat Pause you may place Inflation on the Charity phase, either Double or Cancel side up. In the next turn, double or cancel Charity for that turn, including your own faction income and Advanced Bene Gesserit Charity. In the next Mentat Pause flip it. After the second affected turn, remove it from the game instead of flipping again."
+        },
+        {
+          "kind": "text",
+          "text": "No spice bribes can be made while Double is face up in play. Tech Token income stays unchanged and is paid by the Spice Bank. Homeworld extra Charity is paid by the Spice Bank when its faction actually qualifies for Charity."
+        }
+      ],
+      "sources": [
+        {
+          "source": "choam-richese",
+          "page": "7"
+        },
+        {
+          "source": "choam-richese",
+          "page": "8"
+        },
+        {
+          "source": "choam-richese",
+          "page": "10"
+        }
+      ]
+    },
+    {
+      "id": "choam-treachery",
+      "title": "CHOAM Treachery and Worthless cards",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "Your hand limit is 5 Treachery Cards. At the end of any phase, reveal exact duplicate cards in your hand and discard surplus copies for 3 spice each. A Snooper, Portable Snooper and Shield Snooper are three different cards. You may also discard any Worthless Card for 2 spice without needing a duplicate."
+        },
+        {
+          "kind": "text",
+          "text": "Instead of spice, discard a Worthless Card for its named effect at the moment that effect applies. An effect reacting to movement, revival, storm or Karama is used when that event is attempted."
+        },
+        {
+          "kind": "table",
+          "columns": ["Card", "Effect"],
+          "rows": [
+            [
+              "Baliset",
+              "Prevent one player from moving troops into a territory you occupy during Shipment and Movement. Shipment is still allowed."
+            ],
+            ["Jubba Cloak", "Prevent your troop losses in one territory from one storm movement."],
+            [
+              "Kull Wahad",
+              "When one player attempts a Karama, prevent that player from playing Karama for the rest of the phase. The prevented card stays in their hand."
+            ],
+            ["Kulon", "Move your troops one additional territory during your movement."],
+            ["La La La", "Prevent one player from taking free revival during Revival."],
+            [
+              "Trip to Gamont",
+              "During Mentat Pause, return one troop belonging to another player to that player's reserves, before checking victory."
+            ]
+          ]
+        },
+        {
+          "kind": "text",
+          "text": "Advanced special Karama: once per game, spend a Karama Card at any time to discard any number of other Treachery Cards from your hand for 3 spice each, including Worthless Cards. This is one use, not an ongoing power."
+        }
+      ],
+      "sources": [
+        {
+          "source": "choam-richese",
+          "page": "4"
+        },
+        {
+          "source": "choam-richese",
+          "page": "7"
+        },
+        {
+          "source": "choam-richese",
+          "page": "10"
+        }
+      ]
+    },
+    {
+      "id": "choam-alliance-and-advanced",
+      "title": "CHOAM alliance and Advanced rules",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "Once per turn, at the end of any phase, you and your ally may exchange one Treachery Card each. It must be a two-way exchange. You may also pay some or all of your ally's spice support in battle; that payment goes to the Spice Bank."
+        },
+        {
+          "kind": "text",
+          "text": "Advanced Auditor: add the strength-2 Auditor to your leaders and its Traitor Card to the deck. After a battle in which you used it, audit your opponent's unused hand cards at random: 2 if the Auditor survived or 1 if it died. The opponent may pay you 1 spice for each card you could actually inspect to cancel the whole audit. Partial payment cannot reduce the audit."
+        },
+        {
+          "kind": "text",
+          "text": "The Auditor cannot be captured, taken as a Tleilaxu ghola or assigned a Leader Skill. You may revive it as your one leader revival for the turn regardless of your other leaders' availability. It always returns face up to the Tanks when killed."
+        },
+        {
+          "kind": "text",
+          "text": "Advanced troop support income: when another faction pays spice to support troops in a battle, receive half its total payment rounded down; the remainder goes to the Spice Bank. Count spice supplied by the Arrakeen Stronghold Card. Your own support payments go to the Bank. If any traitor is revealed in that battle, receive no support income."
+        }
+      ],
+      "sources": [
+        {
+          "source": "choam-richese",
+          "page": "8"
+        },
+        {
+          "source": "choam-richese",
+          "page": "10"
+        }
+      ]
+    },
+    {
+      "id": "leader-skill-setup",
+      "title": "Optional Leader Skill setup",
+      "applicability": "optional",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "Use the 14-card Leader Skill Deck. After faction positions and the Bene Gesserit prediction, deal starting Treachery Cards, including the Ixian starting selection and Harkonnen extra card. Deal 2 Leader Skill Cards to each faction. Keep one and shuffle the other back into the Skill Deck."
+        },
+        {
+          "kind": "text",
+          "text": "Place the chosen skill face up in front of your shield and assign one of your eligible leader discs beside it. Then complete Traitor selection and the remaining setup. CHOAM's Auditor cannot receive a skill."
+        },
+        {
+          "kind": "text",
+          "text": "A skill remains assigned for that leader's life. Its general effect works while both card and leader are face up in front of your shield. Use a Leader Skill before the corresponding faction ability, for example Mentat before Atreides Prescience."
+        }
+      ],
+      "sources": [
+        {
+          "source": "choam-richese",
+          "page": "8"
+        },
+        {
+          "source": "choam-richese",
+          "page": "9"
+        }
+      ]
+    },
+    {
+      "id": "leader-skills-in-battle",
+      "title": "Leader Skills in battle and revival",
+      "applicability": "optional",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "When selecting a battle leader, leave the skilled leader and card face up, or take both behind your shield. Leaving them face up keeps the general effect available where applicable. If you take them behind the shield but use a different leader, neither part of that skill applies in that battle."
+        },
+        {
+          "kind": "text",
+          "text": "When fighting with the skilled leader, include the Leader Skill Card in your Battle Plan. Its general effect and battle effect apply as written, unless the leader is killed in the battle. Return a surviving leader and its skill in front of the shield after battle. A Mentat may use its pre-plan effect and then enter the battle."
+        },
+        {
+          "kind": "text",
+          "text": "A skill naming a card type requires the card actually to be played as that type. Chemistry must be used as a poison weapon for a poison-weapon bonus. Zoal copies only the opposing leader's printed value, never skill bonuses."
+        },
+        {
+          "kind": "text",
+          "text": "If the skilled leader dies, shuffle its skill into the Skill Deck. When you later revive one of your own leaders while you have no skill, you may draw 2, choose one for that revived leader, and return the other to the deck. Tleilaxu acquiring another faction's ghola do not get this draw."
+        },
+        {
+          "kind": "text",
+          "text": "A captured leader takes the skill with it, but Harkonnen may use only that leader's battle skill while it fights, not passive general effects. Rihani Decipherer gives Tleilaxu a Face Dancer and can replace only an unrevealed Face Dancer. Smuggler can add its free troop to a No-Field shipment into an empty territory. Spice Banker can trigger on a qualifying revival payment to the Spice Bank."
+        }
+      ],
+      "sources": [
+        {
+          "source": "choam-richese",
+          "page": "9"
+        },
+        {
+          "source": "choam-richese",
+          "page": "11"
+        },
+        {
+          "source": "choam-richese",
+          "page": "12"
+        }
+      ]
+    },
+    {
+      "id": "advanced-stronghold-cards",
+      "title": "Optional Advanced Stronghold Cards",
+      "applicability": "advanced",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "Use the 6-card Stronghold Deck only in the Advanced game. No one begins with a Stronghold Card, even when starting troops occupy its location. During the first Mentat Pause and each later Mentat Pause, give each card to the sole occupant of its stronghold, ignoring Bene Gesserit advisors. If nobody controls the stronghold, set its card aside."
+        },
+        {
+          "kind": "text",
+          "text": "Keep the card until the next Mentat Pause; moving away, losing the stronghold or flipping to advisors does not transfer it immediately. A card can therefore remain with a faction that no longer occupies its location until that check."
+        },
+        {
+          "kind": "table",
+          "columns": ["Stronghold", "Ability"],
+          "rows": [
+            ["Arrakeen", "The Spice Bank pays 2 spice toward your troop support in a battle here."],
+            [
+              "Carthag",
+              "If you play no poison weapon in a battle here, any non-poison defense you play also functions as a Snooper."
+            ],
+            ["Habbanya Sietch", "Win tied battles here, overriding storm order and Juice of Sappho."],
+            [
+              "Hidden Mobile Stronghold",
+              "Before Battle Plans, choose another Stronghold Card you control and copy its ability for this battle."
+            ],
+            ["Sietch Tabr", "After winning here, take spice from the Bank equal to the opponent's dial, rounded down."],
+            ["Tuek's Sietch", "Gain 2 spice from the Bank per Worthless Card you play in a battle here."]
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "source": "choam-richese",
+          "page": "9"
+        },
+        {
+          "source": "choam-richese",
+          "page": "12"
+        }
+      ]
+    },
+    {
+      "id": "richese-cache-reference",
+      "title": "Richese technology reference",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "table",
+          "columns": ["Card", "Rule"],
+          "rows": [
+            [
+              "Distrans",
+              "Distrans - Give another player a treachery card from your hand at any time except during a bid and if their hand size permits. Discard after use."
+            ],
+            [
+              "Juice Of Sapho",
+              "Choose one: (1) be considered aggressor in a battle or (2) play at the beginning of a phase or action that requires turn order to go first or (3) go last in a phase or action that requires turn order. Discard after use. The battle-aggressor option may be played after Battle Plans are revealed; other choices apply at their stated turn-order window."
+            ],
+            [
+              "Mirror Weapon",
+              "Weapon - Special - Play as part of your Battle Plan. Becomes a copy of your opponent's weapon. Discard after use."
+            ],
+            [
+              "Portable Snooper",
+              "Defense - Poison - You may play this after revealing your battle plan if you did not play a defense and if Voice permits. Discard after use."
+            ],
+            [
+              "Ornithopter",
+              "Ornithopter - As part of your movement you may move one group of forces up to 3 territories or two groups of forces up to your normal move distance. Discard after use."
+            ],
+            [
+              "Nullentropy Box",
+              "Nullentropy Box - At any time, pay 2 spice to secretly search and take one card from the treachery discard pile. Then shuffle the discard pile, discarding this card on top."
+            ],
+            [
+              "Semuta Drug",
+              "Semuta Drug - Add a treachery card to your hand immediately after another player discards it. You choose if multiple cards are discarded at the same time. Discard after use."
+            ],
+            [
+              "Residual Poison",
+              "Residual Poison - Play against your opponent in battle before making battle plans. Kills one of their available leaders at random. No spice is collected for it. Discard after use."
+            ],
+            [
+              "Stone Burner",
+              "Weapon - Special - Play as part of your Battle Plan. You choose after plans are revealed to either kill both leaders or reduce the strength of both leaders to 0. The player with the highest number of undialed forces wins the battle. Dialed forces are lost normally. Discard after use."
+            ],
+            [
+              "Richese Karama",
+              "Uses the updated Karama rules. It begins in the 10-card Richese cache rather than the main deck."
+            ]
+          ]
+        },
+        {
+          "kind": "text",
+          "text": "Nullentropy Box cannot retrieve itself. Its selection stays secret. A Richese card discarded after purchase joins ordinary Treachery discards rather than returning to the cache. The cache card named Karama is in addition to the two updated cards replacing the core copies."
+        }
+      ],
+      "sources": [
+        {
+          "source": "choam-richese",
+          "page": "5"
+        },
+        {
+          "source": "choam-richese",
+          "page": "10"
+        },
+        {
+          "source": "choam-richese",
+          "page": "11"
+        }
+      ]
+    },
+    {
+      "id": "replacement-card-text",
+      "title": "Replacement cards and Karama",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "Poison Tooth replaces the earlier version. It kills both leaders and is not stopped by a Snooper. After seeing battle results, you may choose not to activate it. A winner may retain it only if it was not used. Otherwise discard it. Chemistry played as a poison defense can protect against it."
+        },
+        {
+          "kind": "text",
+          "text": "Artillery Strike replaces the earlier version. It kills both leaders unless their Shields protect them. A surviving shielded leader contributes no leader strength; the higher dial wins. Collect no spice for any leader killed in that battle, however it died. Discard Artillery Strike after use."
+        },
+        {
+          "kind": "text",
+          "text": "The updated Karama replaces one use of a faction advantage, including an alliance ability, after setup. For battle advantages it must be played before Battle Plans are revealed. Other uses are a Guild-rate shipment paid to the Bank, an eligible normal Treachery auction acquisition, or your once-per-game special power. It cannot acquire Richese auctions, cancel a special victory or cancel a special Karama power."
+        },
+        {
+          "kind": "table",
+          "columns": ["Advantage", "Karama prevention"],
+          "rows": [
+            ["CHOAM Charity", "Stop the special collection; ordinary qualifying Charity remains, paid by the Bank."],
+            ["CHOAM Treachery", "Prevent a discard for spice, or the relevant Worthless effect."],
+            [
+              "CHOAM Revival",
+              "Limit the relevant revival to the normal rate and limit, with an allowed Tleilaxu increase if applicable."
+            ],
+            ["CHOAM Inflation", "Prevent placing the token. Do not stop a required later flip."],
+            ["CHOAM Forces, Advanced", "Prevent support income for one battle."],
+            ["CHOAM Auditor, Advanced", "Prevent one audit."],
+            ["Richese Bidding", "Prevent the cache auction at the start of the round."],
+            ["Richese No-Field", "Prevent the No-Field shipment."],
+            ["Richese Black Market, Advanced", "Prevent the sale from hand."]
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "source": "choam-richese",
+          "page": "4"
+        },
+        {
+          "source": "choam-richese",
+          "page": "12"
+        }
+      ]
+    },
+    {
+      "id": "sources-and-judgements",
+      "title": "Sources and judgements",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "Source notes throughout this book use the short labels below. Numeric page references count PDF pages from the front cover as page 1. In the unofficial revised book, the printed rule-page number is two less than the PDF page number. Named references, such as a faction sheet or skin.json entry, identify a section or file location."
+        },
+        {
+          "kind": "list",
+          "title": "Source labels",
+          "items": [
+            "gf9-base-2019 means Dune Rulebook, Gale Force Nine, 2019 base edition, 24 PDF pages. The read copy is preserved in the treachery.online document mirror.",
+            "gf9-faq-2020-11 and faq-nov2020 mean Dune Questions and Answers, Gale Force Nine, November 2020, 9 PDF pages. Its clarifications inform the rules; its questions and answers are not reproduced here.",
+            "gf9-ixian-tleilaxu and ixian-tleilaxu mean Dune: Ixians & Tleilaxu Rulebook, Gale Force Nine, 2020 expansion, 12 PDF pages.",
+            "gf9-choam-richese and choam-richese mean Dune: CHOAM & Richese Rulebook, Gale Force Nine, supplied 2021 expansion copy, 12 PDF pages.",
+            "gf9-ecaz-moritani and ecaz-moritani mean Dune: Ecaz & Moritani Rulebook, Gale Force Nine, supplied copy with 2022 copyright, 16 PDF pages.",
+            "revised-v2.3 means Unofficial Revised Dune Rulebook by Van Willis, the supplied file named v2.3. Its internal heading says Version 2.2. It has 44 PDF pages and marks unofficial changes with outlined text. It is a comparison reference, not a new official edition.",
+            "compilation means Dune Boardgame Rules Compilation, assembled by Johannes Cassebaum for the Dune Tabletop Discord server, supplied undated copy, 46 PDF pages. It combines the base game, first two expansions and published questions and answers.",
+            "treachery-online means the treachery.online community implementation and card reference files by Ronald Ossendrijver and contributors. File locations identify the referenced data, rather than a printed page."
+          ]
+        },
+        {
+          "kind": "text",
+          "text": "The source copies and community references are linked from the GF9 source ticket: https://github.com/ndelangen/dunezone/issues/2216. The supplied copies identify what was read; a mirror or filename alone does not establish the latest official printing."
+        },
+        {
+          "kind": "text",
+          "text": "Conflicting statements and the interpretation adopted for Dune Zone are recorded in GF9 judgements: https://github.com/ndelangen/dunezone/issues/2352. Specific expansion rules apply within their scope. Explicit corrections replace the text they correct. Where the sources disagree, consult that record for the decision, reasons and affected content."
+        }
+      ],
+      "sources": []
+    }
+  ]
+}

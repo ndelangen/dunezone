@@ -1,6 +1,10 @@
 import { z } from 'zod';
 
-export const BACKGROUND = z.enum(['/vector/background/map.svg', '/vector/background/moon.svg']);
+export const BACKGROUND = z.enum([
+  '/vector/background/map.svg',
+  '/vector/background/moon.svg',
+  '/vector/background/starfield.svg',
+]);
 
 export const GENERIC = z.enum([
   '/vector/generic/6star.svg',
@@ -1351,6 +1355,9 @@ export const LEADERS = z.enum([
   '/image/leader/custom/wym.png',
   '/image/leader/custom/ylim.png',
   '/image/leader/custom/yvonne.png',
+  '/image/leader/gf9/count-ilban-richese.png',
+  '/image/leader/gf9/duke-prad-vidal.png',
+  '/image/leader/gf9/ur-director-malina-aru.png',
   '/image/leader/hivers/hiver-amber-pendant.png',
   '/image/leader/hivers/hiver-black-ruff.png',
   '/image/leader/hivers/hiver-fur-mantle.png',
@@ -1684,6 +1691,7 @@ export const TEXTURE = z.enum([
   '/image/texture/080.jpg',
   '/image/texture/081.jpg',
   '/image/texture/082.jpg',
+  '/image/texture/hiereg-discovery.png',
 ]);
 
 export const TROOP = z.enum([

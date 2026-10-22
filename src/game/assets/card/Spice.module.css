@@ -153,14 +153,7 @@ div.shape {
 
 .mapToken {
   position: absolute;
-  filter: drop-shadow(0 4px 6px #000a);
-}
-
-/* An editor's own outline on the token it has open. */
-.mapToken[data-selected] {
-  outline: 6px solid #ffd43b;
-  outline-offset: 4px;
-  border-radius: 50%;
+  filter: drop-shadow(0 1px 0.5px #000c);
 }
 
 /* The editor's input surface, over the map and its tokens; a scaled proof turns pointer input off for everything else. */
@@ -177,4 +170,39 @@ div.shape {
 
 .mapEdit[data-brush] {
   cursor: crosshair;
+}
+
+.map[data-look="textured-burn"] {
+  mix-blend-mode: color-burn;
+  filter: saturate(0) contrast(2.6) brightness(0.55);
+}
+
+.shiftedMap {
+  top: 263px;
+}
+
+.mapPaper {
+  position: absolute;
+  left: 95px;
+  top: 263px;
+  width: 700px;
+  height: 700px;
+  border-radius: 50%;
+  pointer-events: none;
+  background: url("/image/card/base-full-large.webp") -95px -263px / 900px 1263px no-repeat;
+  filter: saturate(0.65);
+}
+
+.discoveryBody {
+  width: 580px;
+  font-size: 40px;
+  line-height: 1.15em;
+}
+
+.typeToken {
+  position: absolute;
+  right: 102px;
+  bottom: 240px;
+  width: 95px;
+  height: 95px;
 }

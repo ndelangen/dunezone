@@ -1,0 +1,89 @@
+{
+  "source": "Dune · How to play, Luis Civolani",
+  "url": "https://luiscivolani.com/dune#tokens",
+  "readDate": "2026-10-20",
+  "version": "Page identifies Gale Force Nine 2019 rules rewritten for study. No page revision date or version was displayed.",
+  "access": "Research browser/direct retrieval returned HTTP 403. The normal in-app browser loaded successfully; reading used CUA UI controls and accessibility state only.",
+  "authority": "Unofficial teaching reference; advisory only.",
+  "coverage": {
+    "fullPageModes": ["GF9 basic", "GF9 advanced"],
+    "phasePanelsEachMode": [
+      "Storm",
+      "Spice blow",
+      "CHOAM charity",
+      "Bidding",
+      "Revival",
+      "Ship & move",
+      "Battle",
+      "Spice harvest",
+      "Mentat pause"
+    ],
+    "factionSheetsEachMode": ["Atreides", "Harkonnen", "Emperor", "Spacing Guild", "Fremen", "Bene Gesserit"],
+    "expansionAccordionsEachMode": ["Ixians", "Tleilaxu", "CHOAM", "Richese", "Ecaz", "Moritani", "Variants"],
+    "otherSections": [
+      "Goal and endgame",
+      "Board and terrain",
+      "Discovery token procedures and all eight token descriptions",
+      "Battle explanation",
+      "All base Treachery Card descriptions exposed by accessibility state",
+      "Traitors",
+      "Spice flow",
+      "Alliances and deals",
+      "Basic and Advanced setup",
+      "Advanced overview",
+      "Glossary"
+    ],
+    "excluded": [
+      "KISS mode: separate ruleset",
+      "Interactive quiz and simulator outcomes: not required for reading, not used as validation oracles"
+    ]
+  },
+  "observations": [
+    {
+      "topic": "Teaching presentation",
+      "text": "Mode controls replace ordinary section text, phase tabs teach one step at a time, and faction sheets separate abilities, ally gifts and special Karama. Useful examples of accessible progressive teaching."
+    },
+    {
+      "topic": "Harkonnen special Karama",
+      "guide": "Any number of cards up to the whole hand.",
+      "decision": "Retain up-to-four decision GF9-CORE-013; the teaching summary does not override collected quantitative evidence."
+    },
+    {
+      "topic": "Bene Gesserit Karama",
+      "guide": "Faction summary says Karama cards can only block.",
+      "decision": "Do not adopt this shorthand. Ordinary Karama bidding and shipment uses remain available; absence of a faction special power is a separate rule."
+    },
+    {
+      "topic": "Ecaz and Moritani conditions",
+      "guide": "Short summaries describe ambassadors triggering when another faction walks in, and Moritani gaining Vidal after two stronghold battles, without every qualification.",
+      "decision": "Retain complete expansion conditions. Summaries do not establish new timing or trigger exceptions."
+    },
+    {
+      "topic": "Richese alliance wording",
+      "guide": "Ally gift says to ship the ally with a No-Field token.",
+      "decision": "Retain the exact printed ally-shipment procedure in the authored expansion rules; do not import ambiguous paraphrase."
+    },
+    {
+      "topic": "Alliance co-location",
+      "guide": "Basic explanation says one new ally must move out and describes a fallback for the second mover.",
+      "decision": "Retain the official clarified later-player evacuation procedure and explicit Ecaz exception recorded in GF9-CORE-005."
+    },
+    {
+      "topic": "Advanced sandworms",
+      "guide": "Advanced spice panel says every worm after the first may be moved, without specifying consecutiveness in that short line.",
+      "decision": "Retain the source-backed consecutive-worm condition; no new freedom is inferred from a summary."
+    },
+    {
+      "topic": "Advanced pile Nexus sequence",
+      "guide": "Pile A can cause a Nexus before pile B, and pile B can cause another.",
+      "decision": "Consistent with the corrected specific Advanced sequence in GF9-CORE-016; no further change."
+    },
+    {
+      "topic": "Cards and timing",
+      "guide": "Hajr and Family Atomics are described briefly, without every precise play restriction.",
+      "decision": "Keep the detailed ordinary rules and card timing already authored from the source corpus."
+    }
+  ],
+  "changesToNormativeContent": false,
+  "followup": "No new official-source contradiction found. Existing judgements cover the overlapping disagreements; further omissions are teaching shorthand, not rules to adopt."
+}

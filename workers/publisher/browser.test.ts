@@ -126,3 +126,14 @@ describe('production capture output validation', () => {
     expect(contextClose).not.toHaveBeenCalled();
   });
 });
+
+test('HTTP capture cookies use a local name only on explicit loopback transport', () => {
+  const cookies = publisherCaptureCookies('http://127.0.0.1:4300', 'job', Date.now() + 30_000);
+  expect(cookies[0]).toMatchObject({
+    name: 'local-publication_job',
+    secure: false,
+    httpOnly: true,
+    sameSite: 'Strict',
+  });
+  expect(() => publisherCaptureCookies('http://production.example:4300', 'job', Date.now() + 30_000)).toThrow('HTTPS');
+});

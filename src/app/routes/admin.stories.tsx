@@ -19,13 +19,21 @@ export const Migrations = meta.story({
     const headers = (table: typeof live) => table!.getAllByRole('columnheader').map((header) => header.textContent);
     await expect(headers(live)).toEqual(['Migration', 'State', 'Done', 'Processed', 'Started', 'Ended', 'Error']);
     await expect(headers(recorded)).toEqual(['Migration ID', 'State', 'Done', 'Processed', 'Updated', 'Error']);
-    /*
-     * The button holds disabled while the mutation is in flight, so seeing it disabled and then enabled again proves the sync ran and settled.
-     * The Storybook backend runs no migrations, so both tables stay empty and no row can show the result.
-     */
-    await userEvent.click(sync);
-    await waitFor(() => expect(sync).toBeDisabled());
-    await waitFor(() => expect(sync).toBeEnabled());
+    /* The real worker can settle before userEvent.click returns. Record both attribute changes
+     * before clicking, so even a completed sync must prove it disabled the button while pending.
+     * oldValue identifies each transition even when both arrive in one observer callback. */
+    const disabledStates: boolean[] = [];
+    const observer = new MutationObserver((records) => {
+      disabledStates.push(...records.map((record) => record.oldValue === null));
+    });
+    observer.observe(sync, { attributes: true, attributeFilter: ['disabled'], attributeOldValue: true });
+    try {
+      await userEvent.click(sync);
+      await waitFor(() => expect(sync).toBeEnabled());
+      await waitFor(() => expect(disabledStates).toEqual([true, false]));
+    } finally {
+      observer.disconnect();
+    }
     await expect(page.getAllByRole('table')).toHaveLength(2);
   },
 });

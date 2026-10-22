@@ -13,7 +13,7 @@
  * 3.
  * No orphan files in the generated tree (removals propagate)
  * 4.
- * Every /image/, /web/, /font/ and /dice.svg URL referenced from src CSS, TS or TSX resolves to a file.
+ * Every /image/, /web/ and /font/ URL referenced from src CSS, TS or TSX resolves to a file.
  * The Storybook build silences Vite's warning about these, so this is what keeps them honest.
  *
  * The sources and their widths come from the raster lock, so a job without the originals still checks every one.
@@ -152,9 +152,9 @@ for (const generated of ['m', 'image', 'web'].flatMap((directory) => walk(path.j
 const REFERENCE_PREFIXES = ['image', 'web', 'font'] as const;
 const prefixGroup = REFERENCE_PREFIXES.join('|');
 /* `url("/font/x.woff2")` in a stylesheet. */
-const cssUrlPattern = new RegExp(`url\\(["']?(/(?:${prefixGroup})/[^"')]+|/dice\\.svg)["']?\\)`, 'g');
+const cssUrlPattern = new RegExp(`url\\(["']?(/(?:${prefixGroup})/[^"')]+)["']?\\)`, 'g');
 /* `href: '/font/x.woff2'` in a preload list, and any other quoted literal naming a file. */
-const literalPattern = new RegExp(`['"](/(?:${prefixGroup})/[A-Za-z0-9._/-]+\\.[a-z0-9]+|/dice\\.svg)['"]`, 'g');
+const literalPattern = new RegExp(`['"](/(?:${prefixGroup})/[A-Za-z0-9._/-]+\\.[a-z0-9]+)['"]`, 'g');
 
 const referencingFiles = walk(path.join(repoRoot, 'src')).filter(
   (file) => file.endsWith('.css') || file.endsWith('.ts') || file.endsWith('.tsx')

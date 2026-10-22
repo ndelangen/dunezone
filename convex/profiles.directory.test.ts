@@ -1,6 +1,7 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
+import type { FunctionReturnType } from 'convex/server';
 import { describe, expect, test } from 'vite-plus/test';
 
 import { PROFILE_CATALOGUE_PAGE_SIZE } from '../src/shared/profiles/catalogueSearch';
@@ -58,6 +59,24 @@ async function seedUntracked(t: ReturnType<typeof applicationTest>, username: st
 }
 
 const names = (page: { entries: { name: string }[] }) => page.entries.map((entry) => entry.name);
+
+type CatalogueAnswer = FunctionReturnType<typeof api.profiles.catalogue>;
+
+/** The browsed shape, which every call without a search answers with. */
+function browsed(answer: CatalogueAnswer) {
+  if ('mode' in answer) {
+    throw new Error('Expected a browsed page, got a search.');
+  }
+  return answer;
+}
+
+/** The searched shape, which every search answers with. */
+function searched(answer: CatalogueAnswer) {
+  if (!('mode' in answer)) {
+    throw new Error('Expected a search, got a browsed page.');
+  }
+  return answer;
+}
 
 describe('the profile directory', () => {
   test('pages every public profile A to Z, counts them, and leaves deleted and merged ones out', async () => {
@@ -117,14 +136,48 @@ describe('the profile directory', () => {
       { username: 'Stilgar', slug: 'stilgar' },
     ]);
 
-    const byName = await t.query(api.profiles.catalogue, { q: 'kynes' });
+    const byName = searched(await t.query(api.profiles.catalogue, { q: 'kynes', limit: 24 }));
     expect(names(byName)).toEqual(['Liet Kynes']);
-    expect(byName).toMatchObject({ total: 1, directoryTotal: 2 });
-    expect(names(await t.query(api.profiles.catalogue, { q: 'planetologist' }))).toEqual(['Liet Kynes']);
-    expect((await t.query(api.profiles.catalogue, { q: 'harkonnen' })).total).toBe(0);
+    expect(byName).toMatchObject({ hasMore: false, directoryTotal: 2 });
+    expect(names(await t.query(api.profiles.catalogue, { q: 'planetologist', limit: 24 }))).toEqual(['Liet Kynes']);
+    expect(searched(await t.query(api.profiles.catalogue, { q: 'harkonnen', limit: 24 })).entries).toEqual([]);
   });
 
-  test('says a search is incomplete when it read its whole budget of candidates and none matched every word', async () => {
+  test('a search with a limit loads more by asking for a larger one, best matches first and only ever appending', async () => {
+    const t = applicationTest();
+    const count = PROFILE_CATALOGUE_PAGE_SIZE + 2;
+    await seedProfiles(t, [
+      ...Array.from({ length: count }, (_, index) => ({
+        username: `Fremen ${String(index + 1).padStart(2, '0')}`,
+        slug: `fremen-${index + 1}`,
+      })),
+      { username: 'Stilgar', slug: 'stilgar' },
+    ]);
+
+    const first = searched(await t.query(api.profiles.catalogue, { q: 'fremen', limit: PROFILE_CATALOGUE_PAGE_SIZE }));
+    expect(first).toMatchObject({
+      mode: 'search',
+      hasMore: true,
+      capped: false,
+      limit: PROFILE_CATALOGUE_PAGE_SIZE,
+      directoryTotal: count + 1,
+    });
+    expect(first.entries).toHaveLength(PROFILE_CATALOGUE_PAGE_SIZE);
+    expect(first).not.toHaveProperty('total');
+    expect(first).not.toHaveProperty('page');
+
+    const more = searched(
+      await t.query(api.profiles.catalogue, { q: 'fremen', limit: PROFILE_CATALOGUE_PAGE_SIZE * 2 })
+    );
+    expect(more).toMatchObject({ hasMore: false, limit: PROFILE_CATALOGUE_PAGE_SIZE * 2 });
+    expect(more.entries).toHaveLength(count);
+    expect(more.entries.slice(0, PROFILE_CATALOGUE_PAGE_SIZE).map((entry) => entry.id)).toEqual(
+      first.entries.map((entry) => entry.id)
+    );
+    expect(names(searched(await t.query(api.profiles.catalogue, { q: 'stil', limit: 24 })))).toEqual(['Stilgar']);
+  });
+
+  test('says a search is capped when it read its whole budget of candidates and none matched every word', async () => {
     const t = applicationTest();
     await seedProfiles(
       t,
@@ -134,10 +187,11 @@ describe('the profile directory', () => {
       }))
     );
 
-    await expect(t.query(api.profiles.catalogue, { q: 'fremen harkonnen' })).resolves.toMatchObject({
+    await expect(t.query(api.profiles.catalogue, { q: 'fremen harkonnen', limit: 24 })).resolves.toMatchObject({
+      mode: 'search',
       entries: [],
-      total: 0,
-      complete: false,
+      hasMore: false,
+      capped: true,
     });
   }, 120_000);
 
@@ -151,7 +205,7 @@ describe('the profile directory', () => {
     await t.run(async (rawCtx) => {
       await applicationTriggers.wrapDB(rawCtx).db.patch(stilgar, { username: 'Naib of Tabr' });
     });
-    expect(names(await t.query(api.profiles.catalogue, { q: 'naib' }))).toEqual(['Naib of Tabr']);
+    expect(names(await t.query(api.profiles.catalogue, { q: 'naib', limit: 24 }))).toEqual(['Naib of Tabr']);
     expect(names(await t.query(api.profiles.catalogue, {}))).toEqual(['Chani', 'Naib of Tabr']);
 
     await t.run(async (rawCtx) => {
@@ -166,7 +220,7 @@ describe('the profile directory', () => {
   test('backfills profiles written before the directory existed, and verification refuses a gap', async () => {
     const t = applicationTest();
     const profileId = await seedUntracked(t, 'Old Timer', 'old-timer');
-    expect((await t.query(api.profiles.catalogue, {})).total).toBe(0);
+    expect(browsed(await t.query(api.profiles.catalogue, {})).total).toBe(0);
 
     await t.mutation(internal.migrations.catalogue_entries_profiles_v1, {});
     await t.mutation(internal.migrations.catalogue_entries_profiles_verify_v1, {});

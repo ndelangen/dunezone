@@ -9,16 +9,19 @@ export const SOCIAL_CARD_HEIGHT = 630;
 const SOCIAL_CARD_URL_LIMIT = 4096;
 
 const artworkTypes = new Set([
+  'board',
   'faction-token',
   'card-treachery',
   'card-spice',
   'card-custom',
   'card-nexus',
+  'card-homeworld',
   'card-stronghold',
   'card-storm',
   'deck',
   'cardback-preset',
   'token-disc',
+  'token-leader',
   'token-tech',
   'token-plate',
   'token-pointer',

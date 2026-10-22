@@ -22,12 +22,14 @@ function useTurnNumbers(layout: ReturnType<typeof turnTrackerLayout>) {
       mounted = false;
     };
   }, []);
-  const { firstTurn, sectors } = layout;
+  const { firstTurn, sectorCount } = layout;
+  const sectors = useMemo(
+    () => turnTrackerLayout({ radius: 1, turn: firstTurn, lastTurn: sectorCount }).sectors,
+    [firstTurn, sectorCount]
+  );
   const texture = useMemo(
     () => (fontReady ? createTurnNumbersTexture(sectors, NUMBER_RADIUS, PHASE_INK_COLOR) : null),
-    // The sectors are rebuilt with every turn; their printed numbers change only with the block.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [fontReady, firstTurn, sectors.length]
+    [fontReady, sectors]
   );
   useEffect(() => () => texture?.dispose(), [texture]);
   return texture;

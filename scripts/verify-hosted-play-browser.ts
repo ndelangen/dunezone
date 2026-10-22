@@ -359,6 +359,36 @@ async function recordRenderer(who: HostedPeer, selector = '.dune-play-shell canv
 }
 const otherBrowsers: Browser[] = [];
 const peers: HostedPeer[] = [];
+let heldSignOutDirectoryTransitions = 0;
+
+/* A local sign-out must fence the table even when its directory cannot deliver the changed access answer. */
+async function holdSignedOutDirectory(context: BrowserContext) {
+  await context.routeWebSocket(
+    (url) => url.origin === backendSocketOrigin,
+    (socket) => {
+      const server = socket.connectToServer();
+      let authenticated = false;
+      let signedOut = false;
+      socket.onMessage((message) => {
+        const frame = JSON.parse(String(message)) as { type: string; tokenType?: string };
+        if (frame.type === 'Authenticate') {
+          signedOut ||= authenticated && frame.tokenType === 'None';
+          authenticated ||= frame.tokenType === 'User';
+        }
+        server.send(message);
+      });
+      server.onMessage((message) => {
+        const frame = JSON.parse(String(message)) as { type: string };
+        if (signedOut && frame.type === 'Transition') {
+          heldSignOutDirectoryTransitions += 1;
+          return;
+        }
+        socket.send(message);
+      });
+    }
+  );
+}
+
 async function peer(label: string, context?: BrowserContext): Promise<HostedPeer> {
   if (!context) {
     let owner = browser;
@@ -378,6 +408,9 @@ async function peer(label: string, context?: BrowserContext): Promise<HostedPeer
       await context.addInitScript(observeAnimationFrameProgress);
     }
     await context.addInitScript(observeConnectionStatus);
+    if (values.flow === 'regular' && label === 'player-a') {
+      await holdSignedOutDirectory(context);
+    }
     await context.route(
       (url: { origin: string }) => !allowedOrigins.has(url.origin),
       async (route) => {
@@ -1155,6 +1188,23 @@ function treacheryDeck(who: HostedPeer) {
   );
   assert.ok(deck, 'Setup supplied no treachery deck.');
   return deck.id;
+}
+/**
+ * Picks one asset in the Shared inventory's catalogue the way a player does: opens the catalogue, searches the asset's name and clicks its row.
+ * The rows are busy until the typed word's own matches list, and a click before that lands on the rows of the search before it, which the picker ignores.
+ * A row names its type and owner beside the asset, so the row is found by the name it shows rather than by its whole label.
+ */
+async function pickCatalogueAsset(who: HostedPeer, name: string) {
+  await openTab(who, 'Shared inventory');
+  if (await button(who, 'Add from catalogue').count()) {
+    await button(who, 'Add from catalogue').click();
+  }
+  await who.page.getByRole('searchbox', { name: 'Search the catalogue' }).fill(name);
+  await who.page
+    .locator('[role="listbox"][aria-label="Catalogue assets"][aria-busy="false"]')
+    .getByRole('option')
+    .filter({ has: who.page.getByText(name, { exact: true }) })
+    .click();
 }
 /**
  * The seeded Harkonnen troop reserve: the carry checks look for its red token on screen.
@@ -2066,11 +2116,13 @@ async function verifyRegular() {
     );
     throw new Error(`${error.message} Still open: ${open.join(', ')}.`);
   });
+  await until(() => heldSignOutDirectoryTransitions > 0, 'The sign-out check did not hold a directory transition.');
   await until(
     async () => (await a.page.locator('canvas').count()) === 0 && (await aTab.page.locator('canvas').count()) === 0,
     'Signed-out game data remained visible.'
   );
   const lastCounts = [a.messages.length, aTab.messages.length];
+  await capture(a, 'regular-signed-out-game');
   const beforeSignOutFanout = requireView(b).snapshot.revision;
   await until(
     () => b.page.getByRole('button', { name: 'Next phase', exact: true }).isEnabled(),
@@ -2088,6 +2140,7 @@ async function verifyRegular() {
     assert.equal(await tables[index].evaluate((canvas) => canvas.isConnected), true, `${who.label}'s table remounted.`);
   }
   passed('Actual UI sign-out removes both tabs and fences later game fanout; the other players keep their tables', {
+    heldDirectoryTransitions: heldSignOutDirectoryTransitions,
     logoutAndFanoutCheckMs: Date.now() - revokedAt,
     workerRefusedSignOut: [a, aTab].some((who, index) =>
       who.rawMessages
@@ -2164,6 +2217,7 @@ try {
     currentGameId: () => gameId,
     factionOf,
     treacheryDeck,
+    pickCatalogueAsset,
     button,
     previousPhaseDisabled,
     act,
@@ -2317,6 +2371,7 @@ export type HostedToolkit = {
   depart: typeof depart;
   factionOf: typeof factionOf;
   treacheryDeck: typeof treacheryDeck;
+  pickCatalogueAsset: typeof pickCatalogueAsset;
   button: typeof button;
   previousPhaseDisabled: typeof previousPhaseDisabled;
   act: typeof act;

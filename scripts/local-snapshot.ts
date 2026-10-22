@@ -12,7 +12,7 @@ import { verifySnapshotFile } from './snapshot-anonymise';
  *
  * A file the caller names is used where it is, and stays there.
  * Otherwise the newest artifact the snapshot job uploaded from main is downloaded with the GitHub CLI into the launch's private temporary directory.
- * The launch deletes that download as soon as the import has finished or failed, so no copy outlives the one-day artifact, and nothing is cached between launches.
+ * The launch deletes that download as soon as the import has finished or failed, so no copy outlives the artifact, and nothing is cached between launches.
  */
 
 const REPOSITORY = 'ndelangen/dunezone';
@@ -122,6 +122,7 @@ export type LocalSnapshot = {
   file: string;
   /** The directory this launch downloaded the file into, which it deletes after the import, or null for a file the caller named. */
   downloadDirectory: string | null;
+  artifact?: SnapshotArtifact;
 };
 
 /** The newest artifact, or a stop that points at fixtures when it cannot be looked up or none is left. */
@@ -135,7 +136,7 @@ function newestArtifact(github: GitHubCli): SnapshotArtifact {
   }
   if (!artifact) {
     throw new Error(
-      `No anonymised snapshot is available. The snapshot job keeps each upload for one day, and uploads only while its SNAPSHOT_UPLOAD switch is on. ${FIXTURE_HINT}`
+      `No anonymised snapshot is available. The weekly snapshot job keeps each upload for eight days, and uploads only while its SNAPSHOT_UPLOAD switch is on. ${FIXTURE_HINT}`
     );
   }
   return artifact;
@@ -163,7 +164,7 @@ function downloadSnapshot(github: GitHubCli, artifact: SnapshotArtifact, tempora
     }
     const file = path.join(directory, SNAPSHOT_FILE);
     verifySnapshotFile(file);
-    return { file, downloadDirectory: directory };
+    return { file, downloadDirectory: directory, artifact };
   } catch (error) {
     rmSync(directory, { recursive: true, force: true });
     throw error;

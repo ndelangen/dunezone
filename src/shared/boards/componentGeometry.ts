@@ -1,7 +1,7 @@
 import type { ComponentGeometry } from '../asset-publishing/componentGeometry';
 import { derive } from './geometry';
 import type { Board, Face } from './geometry';
-import { territoryId } from './schema';
+import { propertyId } from './schema';
 
 /* A saved board draws in a square frame this wide, the same one its published image fills. */
 const FRAME = 487.06;
@@ -15,7 +15,7 @@ const MAX_LABEL_LENGTH = 120;
 const TYPE_GROUPS = { stronghold: 'strongholds', rock: 'rock', sand: 'sand', polar: 'polar' } as const;
 
 /** The maintained Arrakis part key for a territory: Play's territory ID spelled with hyphens. */
-const boardPartKey = (name: string) => territoryId(name).replaceAll('_', '-');
+const boardPartKey = (property: Parameters<typeof propertyId>[0]) => propertyId(property).replaceAll('_', '-');
 
 const round = (value: number) => Math.round(value * 100) / 100;
 const roundPath = (d: string) => d.replace(/-?\d+\.\d+(?:e-?\d+)?/g, (value) => String(round(Number(value))));
@@ -53,23 +53,25 @@ function part(key: string, label: string, faces: readonly Face[]) {
 /**
  * A saved board's territories as a Rulebook illustration's component geometry, in the frame of the board's published image.
  * Each territory is a part under its Arrakis-style key, and each territory type a group part, as the maintained Arrakis geometry has them;
- * a name no key can spell is left out.
+ * a territory whose ID no key can spell is left out.
  */
 export function boardComponentGeometry(board: Board, widthPx: number, heightPx: number): ComponentGeometry {
   const faces = derive(board).faces;
   const territories = faces
-    .map((face) => ({ face, name: board.properties[face.key].name, type: board.properties[face.key].type }))
-    .filter(({ name }) => /^[a-z][a-z0-9-]*$/.test(boardPartKey(name)) && boardPartKey(name).length <= 80);
+    .map((face) => {
+      const property = board.properties[face.key];
+      return { face, key: boardPartKey(property), name: property.name, type: property.type };
+    })
+    .filter(({ key }) => /^[a-z][a-z0-9-]*$/.test(key) && key.length <= 80);
   const parts = new Map<string, ReturnType<typeof part>>();
-  for (const { name } of territories) {
-    const key = boardPartKey(name);
+  for (const { key, name } of territories) {
     if (!parts.has(key)) {
       parts.set(
         key,
         part(
           key,
           name,
-          territories.filter((other) => boardPartKey(other.name) === key).map((t) => t.face)
+          territories.filter((other) => other.key === key).map((t) => t.face)
         )
       );
     }

@@ -25,6 +25,15 @@ export function tintPaint(color: string) {
   return { color: color.slice(0, 7), opacity: alpha ? Number.parseInt(alpha, 16) / 255 : DEFAULT_FILL_OPACITY };
 }
 
+/**
+ * How opaque an outline-only tint's double line is: the colour's own see-through amount when it carries one, else solid.
+ * A colour without one, as the presets have, keeps the solid line the table always drew.
+ */
+export function tintOutlineOpacity(color: string) {
+  const alpha = color.slice(7, 9);
+  return alpha ? Number.parseInt(alpha, 16) / 255 : 1;
+}
+
 /** A tint colour written with its fill opacity, as the colour picker shows it. */
 export function withFillOpacity(color: string) {
   return color.length === 7 ? `${color}80` : color;

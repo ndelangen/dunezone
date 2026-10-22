@@ -1,10 +1,14 @@
 import preview from '@sb/preview';
+import { publishingTreacheryCard } from '@shared/assets/fixtures/publishingTreacheryCard';
 import { GF9_LEADER_SKILLS } from '@shared/assets/gf9LeaderSkills';
+import { INITIAL_BACKGROUND_PRESETS } from '@shared/backgrounds/defaults';
+import { backgroundPresetSchema } from '@shared/backgrounds/schema';
 import { install } from '@sinonjs/fake-timers';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
-import { db, ref } from '@db/storybook';
+import { asset, db, ref } from '@db/storybook';
 
+import presetSnapshot from './_app/assets/presets-production.stories.fixture.json';
 import { expectToolbarOnOneLine, findSave } from './authoringToolbarPlay';
 import {
   craftLinearAngle,
@@ -47,6 +51,42 @@ export const TreacheryCards = meta.story({
     await expect(
       storyPage(canvasElement).findByRole('link', { name: /Lasgun/ }, { timeout: 30_000 })
     ).resolves.toBeVisible();
+  },
+});
+
+/**
+ * A search shows its best matches and loads more in place: no pages, no count, and the sort is best match alone.
+ * An old link's page and order are dropped, so it opens the search's first matches.
+ * "Load more" lengthens the grid until every match is shown, and hands focus to the first new tile.
+ */
+export const TreacheryCardsSearched = meta.story({
+  args: { path: '/assets/card-treachery?q=lasgun&page=2&sort=name' },
+  parameters: {
+    database: db((baseline) => {
+      for (let index = 1; index <= 25; index += 1) {
+        const name = `Lasgun ${String(index).padStart(2, '0')}`;
+        baseline.assets.push(asset({ type: 'card-treachery', data: { ...publishingTreacheryCard, name } }));
+      }
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const page = storyPage(canvasElement);
+    const main = within(await page.findByRole('main', {}, { timeout: 30_000 }));
+    const loadMore = await main.findByRole('button', { name: 'Load more' }, { timeout: 30_000 });
+    await expect(main.getAllByRole('link', { name: /Lasgun/ })).toHaveLength(24);
+    await expect(page.queryByLabelText('Treachery cards pages')).toBeNull();
+    await expect(page.queryByText(/of \d+ treachery cards/)).toBeNull();
+    await expect(page.getByRole('textbox', { name: 'Search treachery cards' })).toHaveValue('lasgun');
+    const sort = page.getByRole('combobox', { name: 'Sort' });
+    await expect(sort).toHaveValue('Best match');
+    await expect(sort).toBeDisabled();
+
+    await userEvent.click(loadMore);
+    /* The baseline's own Lasgun matches too, so the whole grid is one more than the seeded cards. */
+    await waitFor(() => expect(main.getAllByRole('link', { name: /Lasgun/ })).toHaveLength(26), { timeout: 30_000 });
+    await expect(main.getAllByRole('link', { name: /Lasgun/ })[24]).toHaveFocus();
+    await expect(main.getByRole('status')).toHaveTextContent('More treachery cards loaded');
+    await expect(main.queryByRole('button', { name: 'Load more' })).toBeNull();
   },
 });
 
@@ -317,8 +357,9 @@ export const EditCustomCardDeclaringCustomIsNotAChange = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(findSave(canvasElement)).resolves.toHaveAccessibleDescription(/^No unsaved changes/);
-    const row = within(await page.findByRole('radiogroup', { name: 'Head background' }, { timeout: 30_000 }));
-    await userEvent.click(row.getByRole('radio', { name: 'Custom' }));
+    const picker = await page.findByRole('combobox', { name: 'Head background preset' }, { timeout: 30_000 });
+    await userEvent.click(picker);
+    await userEvent.click(await page.findByRole('option', { name: /^Custom$/ }));
     await expect(findSave(canvasElement)).resolves.toHaveAccessibleDescription(/^No unsaved changes/);
   },
 });
@@ -497,6 +538,37 @@ export const CreateCustomCard = meta.story({
 
 export const EditCustomCard = meta.story({
   args: { path: '/assets/card-custom/battle-reference/edit' },
+  parameters: {
+    database: db((baseline) => {
+      const backgrounds = [
+        ...presetSnapshot.fronts.flatMap(({ key, label, style }) =>
+          Object.entries(style).flatMap(([region, value]) =>
+            value
+              ? [
+                  {
+                    key: `front/${key}/${region === 'head' ? 'header' : 'icon'}`,
+                    name: `${label} ${region === 'head' ? 'header' : 'icon'}`,
+                    value,
+                    revision: 1,
+                  },
+                ]
+              : []
+          )
+        ),
+        ...presetSnapshot.backs.map(({ key, label, cardback }) => ({
+          key: `back/${key}`,
+          name: `${label} back`,
+          value: cardback.background,
+          revision: 1,
+        })),
+        ...INITIAL_BACKGROUND_PRESETS,
+      ];
+      baseline.background_presets = backgrounds.map((preset) => ({
+        ...backgroundPresetSchema.parse(preset),
+        updated_at: 0,
+      }));
+    }),
+  },
   play: ({ canvasElement }) => expectFieldValue(canvasElement, 'Name', 'Battle reference'),
 });
 

@@ -3,6 +3,7 @@ import type { Board, Decal, Face } from '@shared/boards/geometry';
 import { useId } from 'react';
 
 import { BOARD_ARTWORK } from './artwork';
+import { BOARD_GLYPH_INK, GlyphOutlineFilter } from './glyphOutline';
 const baseColors = { sand: '#F6D979', rock: '#A67A3E', stronghold: '#F7BA7A', polar: '#fff' };
 const decorationColors = { sand: '#A67A3E', rock: '#67371C', stronghold: '#67371C', polar: '#888' };
 export function DecalArtwork({ decal, svg }: { decal: Decal; svg?: string }) {
@@ -12,28 +13,18 @@ export function DecalArtwork({ decal, svg }: { decal: Decal; svg?: string }) {
     .replace(/\bid="([^"]+)"/g, (_, id: string) => `id="${outlineId}-${id}"`)
     .replace(/url\(#([^)]+)\)/g, (_, id: string) => `url(#${outlineId}-${id})`)
     .replace(/(href=")#([^"]+)/g, (_, attr: string, id: string) => `${attr}#${outlineId}-${id}`);
-  const inner = source
-    .replace(/^[\s\S]*?<svg[^>]*>/, '')
-    .replace(/<\/svg>[\s\S]*$/, '')
-    .replace(/<path[^>]*data-decal-outline[^>]*\/>/g, '');
+  const inner = source.replace(/^[\s\S]*?<svg[^>]*>/, '').replace(/<\/svg>[\s\S]*$/, '');
   return (
-    <g transform={`translate(${decal.x} ${decal.y}) rotate(${decal.rotation})`}>
+    <g transform={`translate(${decal.x} ${decal.y}) rotate(${decal.rotation})`} fill={BOARD_GLYPH_INK}>
       {decal.outline && (
         <defs>
-          <filter id={outlineId} x="-50%" y="-50%" width="200%" height="200%" colorInterpolationFilters="sRGB">
-            <feMorphology in="SourceAlpha" operator="dilate" radius="0.5" result="expanded" />
-            <feFlood floodColor="#fff" result="white" />
-            <feComposite in="white" in2="expanded" operator="in" result="outline" />
-            <feMerge>
-              <feMergeNode in="outline" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
+          <GlyphOutlineFilter id={outlineId} />
         </defs>
       )}
       <g filter={decal.outline ? `url(#${outlineId})` : undefined}>
         {svg ? (
           <svg
+            aria-hidden="true"
             x={-decal.scale / 2}
             y={-decal.scale / 2}
             width={decal.scale}
@@ -42,13 +33,16 @@ export function DecalArtwork({ decal, svg }: { decal: Decal; svg?: string }) {
             dangerouslySetInnerHTML={{ __html: inner }}
           />
         ) : (
-          <image
-            href={decal.artwork}
+          <svg
+            aria-hidden="true"
             x={-decal.scale / 2}
             y={-decal.scale / 2}
             width={decal.scale}
             height={decal.scale}
-          />
+            viewBox="0 0 100 100"
+          >
+            <use href={`${decal.artwork}#root`} width="100" height="100" />
+          </svg>
         )}
       </g>
     </g>

@@ -1,8 +1,13 @@
 import preview from '@sb/preview';
 import { waitForFrame } from '@sb/storyWaits';
+import { FACTION_CATALOGUE_PAGE_SIZE } from '@shared/factions/catalogueSearch';
+import { createMemoryHistory } from '@tanstack/react-router';
+import type { RouterHistory } from '@tanstack/react-router';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
-import { db, faction, refText, SEED_REF_TOKEN } from '@db/storybook';
+import { loadFaction } from '@db/factions';
+import { db, faction, ref, refText, SEED_REF_TOKEN } from '@db/storybook';
+import type { StorybookDatabase } from '@db/storybook';
 
 import { expectToolbarOnOneLine } from './authoringToolbarPlay';
 import {
@@ -16,6 +21,7 @@ import {
 } from './backgroundMemoryPlay';
 import { spaceOrks, spaceOrksOwner, spaceOrksPublication } from './factionPlanets.stories.fixture';
 import { expectFieldValue, expectWithinWidth } from './pagePlay';
+import { StorybookPage } from './storybook';
 import { pageStoryMeta } from './storybookConfig';
 
 const meta = preview.meta({
@@ -47,6 +53,214 @@ export const CataloguePaged = meta.story({
     await expect(page.findByText(/^49–61 of 61 factions$/, {}, { timeout: 30_000 })).resolves.toBeVisible();
     const pages = await page.findByLabelText('Faction catalogue pages');
     await expect(within(pages).getByRole('link', { name: '1' })).toHaveAttribute('href', '/factions');
+  },
+});
+
+/** Another member beside the viewer, with one faction in the viewer's ruleset, so the member's list and the ruleset's list differ. */
+function seedAnotherMember(baseline: StorybookDatabase) {
+  baseline.users.push({ $key: 'other-member', name: 'Other member' });
+  baseline.profiles.push({
+    user_id: ref('other-member'),
+    username: 'Other member',
+    slug: 'other-member',
+    avatar_url: null,
+    account_state: 'active',
+    created_at: '2026-01-01T00:00:00Z',
+    updated_at: '2026-01-01T00:00:00Z',
+  });
+  baseline.factions.push({ ...faction({ name: 'Sietch Tabr' }), owner_id: ref('other-member') });
+  baseline.ruleset_factions.push({
+    ruleset_id: ref('ruleset:classicrules'),
+    faction_id: ref('faction:sietch-tabr'),
+    position: baseline.ruleset_factions.length,
+  });
+}
+
+/**
+ * The catalogue narrowed to one member, as a profile's "All N factions" opens it: their factions alone, the member named among the refinements, and a way back to everyone's.
+ */
+export const CatalogueByOwner = meta.story({
+  args: { path: '/factions?owner=storybook-viewer' },
+  parameters: { database: db(seedAnotherMember) },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const main = within(await page.findByRole('main', {}, { timeout: 30_000 }));
+    await expect(main.findAllByRole('link', { name: /House Atreides/ }, { timeout: 30_000 })).resolves.toHaveLength(1);
+    await expect(main.queryByRole('link', { name: /Sietch Tabr/ })).toBeNull();
+    await userEvent.click(page.getByRole('button', { name: 'Refine factions by member, ruleset and complexity' }));
+    /* The popover fades in, so its words are in the document a moment before they are visible. */
+    await waitFor(() => expect(page.getByRole('group', { name: 'Member' })).toBeVisible());
+    await expect(page.getByText('By storybook-viewer')).toBeVisible();
+    await expect(page.getByText('1 of 2 factions')).toBeVisible();
+    await userEvent.click(page.getByRole('button', { name: "Show every member's factions" }));
+    await waitFor(() => expect(main.getByRole('link', { name: /Sietch Tabr/ })).toBeVisible(), { timeout: 30_000 });
+  },
+});
+
+/**
+ * A story loader making the page's history, holding `entries` and open at the last, so the play function can walk it and read the address through `pageHistory`.
+ * Made per run rather than at module level, since a story's module loads once and a history that carried over would start the next run mid-walk.
+ */
+function memoryHistory(...entries: string[]) {
+  return () => ({ history: createMemoryHistory({ initialEntries: entries }) });
+}
+
+/** The history `memoryHistory` loaded, as the render and the play function reach it. */
+function pageHistory(loaded: Record<string, unknown>) {
+  return loaded.history as RouterHistory;
+}
+
+/** The grid's cards named `name`, read afresh on each call because a transition can replace the page's `main`. */
+function gridCards(page: ReturnType<typeof within>, name: RegExp) {
+  return within(page.getByRole('main')).queryAllByRole('link', { name });
+}
+
+/**
+ * Back to a member's list from a ruleset's keeps the member in the address and narrows the grid to their factions again;
+ * Forward widens both.
+ * The router moves the address before the loader answers, so the catalogue first judges the member on the ruleset's answer, which asked for nobody, and a member that answer never asked about must stay until their own answer arrives.
+ * The catalogue's filters replace their history entry (CatalogueRulesetLeavesTheMembersList), so the two lists sit in history as a reader's browser holds them after a link to the ruleset's list;
+ * the story seeds that pair.
+ */
+export const CatalogueBackToAMembersList = meta.story({
+  args: { path: '/factions?ruleset=classicrules' },
+  parameters: { database: db(seedAnotherMember) },
+  loaders: [memoryHistory('/factions?owner=storybook-viewer', '/factions?ruleset=classicrules')],
+  render: (args, { loaded }) => <StorybookPage {...args} history={pageHistory(loaded)} />,
+  play: async ({ canvasElement, loaded }) => {
+    const history = pageHistory(loaded);
+    const page = within(canvasElement.ownerDocument.body);
+    await waitFor(() => expect(gridCards(page, /Sietch Tabr/)).toHaveLength(1), { timeout: 30_000 });
+    await expect(gridCards(page, /House Atreides/)).toHaveLength(1);
+
+    history.back();
+    await waitFor(() => expect(gridCards(page, /Sietch Tabr/)).toHaveLength(0), { timeout: 30_000 });
+    await expect(gridCards(page, /House Atreides/)).toHaveLength(1);
+    await expect(history.location.search).toBe('?owner=storybook-viewer');
+    await expect(page.getByRole('button', { name: 'Refine factions by member, ruleset and complexity' })).toBeVisible();
+
+    history.forward();
+    await waitFor(() => expect(gridCards(page, /Sietch Tabr/)).toHaveLength(1), { timeout: 30_000 });
+    await expect(gridCards(page, /House Atreides/)).toHaveLength(1);
+    await expect(history.location.search).toBe('?ruleset=classicrules');
+    await expect(page.getByRole('button', { name: 'Refine factions by ruleset and complexity' })).toBeVisible();
+  },
+});
+
+/**
+ * Choosing a ruleset while a member is set leaves the member's list: the member goes from the address and the grid widens to the ruleset's factions.
+ * The change replaces the history entry, as every filter does, so Back from here would leave the catalogue.
+ */
+export const CatalogueRulesetLeavesTheMembersList = meta.story({
+  args: { path: '/factions?owner=storybook-viewer' },
+  parameters: { database: db(seedAnotherMember) },
+  loaders: [memoryHistory('/factions?owner=storybook-viewer')],
+  render: (args, { loaded }) => <StorybookPage {...args} history={pageHistory(loaded)} />,
+  play: async ({ canvasElement, loaded }) => {
+    const history = pageHistory(loaded);
+    const page = within(canvasElement.ownerDocument.body);
+    await waitFor(() => expect(gridCards(page, /House Atreides/)).toHaveLength(1), { timeout: 30_000 });
+    await expect(gridCards(page, /Sietch Tabr/)).toHaveLength(0);
+    await expect(history.location.search).toBe('?owner=storybook-viewer');
+
+    await userEvent.click(page.getByRole('button', { name: 'Refine factions by member, ruleset and complexity' }));
+    const rulesets = await page.findByRole('group', { name: 'Filter factions by ruleset' });
+    await userEvent.click(within(rulesets).getByRole('button', { name: /ClassicRules/ }));
+    await waitFor(() => expect(gridCards(page, /Sietch Tabr/)).toHaveLength(1), { timeout: 30_000 });
+    await expect(gridCards(page, /House Atreides/)).toHaveLength(1);
+    await expect(history.location.search).toBe('?ruleset=classicrules');
+    await expect(history.length).toBe(1);
+    await waitFor(() => expect(page.queryByRole('group', { name: 'Member' })).toBeNull());
+  },
+});
+
+/** A member nobody answers to leaves the address, and the grid is everyone's. */
+export const CatalogueByUnknownOwner = meta.story({
+  args: { path: '/factions?owner=nobody' },
+  parameters: { database: db(seedAnotherMember) },
+  loaders: [memoryHistory('/factions?owner=nobody')],
+  render: (args, { loaded }) => <StorybookPage {...args} history={pageHistory(loaded)} />,
+  play: async ({ canvasElement, loaded }) => {
+    const history = pageHistory(loaded);
+    const page = within(canvasElement.ownerDocument.body);
+    await waitFor(() => expect(gridCards(page, /Sietch Tabr/)).toHaveLength(1), { timeout: 30_000 });
+    await expect(gridCards(page, /House Atreides/)).toHaveLength(1);
+    await waitFor(() => expect(history.location.search).toBe(''), { timeout: 30_000 });
+    await expect(history.location.pathname).toBe('/factions');
+    await expect(page.getByRole('button', { name: 'Refine factions by ruleset and complexity' })).toBeVisible();
+  },
+});
+
+/**
+ * An old "All N factions" link from before the member's rename: the address moves on to their current slug, as the profile page's does, and the grid is theirs.
+ */
+export const CatalogueByFormerOwnerSlug = meta.story({
+  args: { path: '/factions?owner=storybook-reader' },
+  parameters: {
+    database: db((baseline) => {
+      seedAnotherMember(baseline);
+      baseline.former_slugs.push({
+        kind: 'profile',
+        scope: '',
+        slug: 'storybook-reader',
+        record_id: ref('storybook-viewer-profile'),
+      });
+    }),
+  },
+  loaders: [memoryHistory('/factions?owner=storybook-reader')],
+  render: (args, { loaded }) => <StorybookPage {...args} history={pageHistory(loaded)} />,
+  play: async ({ canvasElement, loaded }) => {
+    const history = pageHistory(loaded);
+    const page = within(canvasElement.ownerDocument.body);
+    await waitFor(() => expect(gridCards(page, /House Atreides/)).toHaveLength(1), { timeout: 30_000 });
+    await expect(gridCards(page, /Sietch Tabr/)).toHaveLength(0);
+    await waitFor(() => expect(history.location.search).toBe('?owner=storybook-viewer'), { timeout: 30_000 });
+    await userEvent.click(page.getByRole('button', { name: 'Refine factions by member, ruleset and complexity' }));
+    await waitFor(() => expect(page.getByText('By storybook-viewer')).toBeVisible());
+  },
+});
+
+/** The catalogue's cards, each named by the faction it opens. */
+function factionCards(main: ReturnType<typeof within>, name: RegExp) {
+  return main.getAllByRole('link', { name });
+}
+
+/**
+ * A search shows its best matches and loads more in place: no pages, no count, and the sort is best match alone.
+ * An old link's page and order are dropped, so it opens the search's first matches.
+ * "Load more" lengthens the grid until every match is shown, and hands focus to the first new card.
+ */
+export const CatalogueSearched = meta.story({
+  args: { path: '/factions?q=sietch&page=2&sort=created' },
+  parameters: {
+    database: db((baseline) => {
+      /* One past the first step: the smallest search that has more to load. */
+      for (let index = 1; index <= FACTION_CATALOGUE_PAGE_SIZE + 1; index += 1) {
+        baseline.factions.push(faction({ name: `Sietch ${String(index).padStart(2, '0')}` }));
+      }
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    /* Found on the body, not within a `main` found earlier: the pending frame has a `main` of its own, which the loaded page replaces. */
+    const loadMore = await page.findByRole('button', { name: 'Load more' }, { timeout: 60_000 });
+    const main = within(page.getByRole('main'));
+    await expect(factionCards(main, /Sietch/)).toHaveLength(FACTION_CATALOGUE_PAGE_SIZE);
+    await expect(main.queryByRole('link', { name: /House Atreides/ })).toBeNull();
+    await expect(page.queryByLabelText('Faction catalogue pages')).toBeNull();
+    await expect(page.queryByText(/of \d+ factions/)).toBeNull();
+    await expect(page.getByRole('textbox', { name: 'Search factions' })).toHaveValue('sietch');
+    const sort = page.getByRole('combobox', { name: 'Sort factions' });
+    await expect(sort).toHaveValue('Best match');
+    await expect(sort).toBeDisabled();
+
+    await userEvent.click(loadMore);
+    await waitFor(() => expect(factionCards(main, /Sietch/)).toHaveLength(FACTION_CATALOGUE_PAGE_SIZE + 1), {
+      timeout: 60_000,
+    });
+    await expect(factionCards(main, /Sietch/)[FACTION_CATALOGUE_PAGE_SIZE]).toHaveFocus();
+    await expect(main.getByRole('status')).toHaveTextContent('More factions loaded');
+    await expect(main.queryByRole('button', { name: 'Load more' })).toBeNull();
   },
 });
 
@@ -244,10 +458,75 @@ const withPlanets = (description = true) =>
     ];
   });
 
+/** The fade stays in the scroll padding, leaving both end leaders fully opaque. */
+async function expectLeaderLane(canvasElement: HTMLElement) {
+  const page = within(canvasElement.ownerDocument.body);
+  const leaders = await page.findByRole('region', { name: 'Leaders' });
+  const tiles = within(leaders).getAllByRole('article');
+  const lane = tiles[0]!.parentElement!;
+  const style = getComputedStyle(lane);
+  await expect(style.maskImage).not.toBe('none');
+  const fadeWidths = [...style.maskImage.matchAll(/(?:black|rgb\(0, 0, 0\)) (?:calc\(100% - )?(\d+(?:\.\d+)?)px/g)].map(
+    (match) => Number(match[1])
+  );
+  await expect(fadeWidths).toHaveLength(2);
+  await expect(fadeWidths[0]).toBeLessThanOrEqual(Number.parseFloat(style.paddingLeft));
+  await expect(fadeWidths[1]).toBeLessThanOrEqual(Number.parseFloat(style.paddingRight));
+  await expectWithinWidth(canvasElement, [lane]);
+
+  lane.scrollLeft = 0;
+  await waitForFrame(async () => {
+    await expect(tiles[0]!.getBoundingClientRect().left).toBeGreaterThanOrEqual(
+      lane.getBoundingClientRect().left + fadeWidths[0]!
+    );
+  });
+  lane.scrollLeft = lane.scrollWidth;
+  await waitForFrame(async () => {
+    await expect(tiles.at(-1)!.getBoundingClientRect().right).toBeLessThanOrEqual(
+      lane.getBoundingClientRect().right - fadeWidths[1]! + 1
+    );
+  });
+  lane.scrollLeft = 0;
+}
+
+/** The sidebar is beside an overflowing leader row just above the desktop breakpoint. */
+export const DetailWithOverflowingLeaders = meta.story({
+  args: { path: '/factions/space-orks' },
+  parameters: {
+    database: withPlanets(),
+    identity: null,
+    viewport: {
+      options: {
+        factionOverflow: { name: 'Faction overflow', styles: { width: '1024px', height: '900px' } },
+      },
+    },
+  },
+  globals: { viewport: { value: 'factionOverflow' } },
+  play: async ({ canvasElement }) => {
+    await expectLeaderLane(canvasElement);
+    const page = within(canvasElement.ownerDocument.body);
+    const leaders = page.getByRole('region', { name: 'Leaders' });
+    const lane = within(leaders).getAllByRole('article')[0]!.parentElement!;
+    const sidebar = page.getByRole('complementary', { name: 'Faction details' });
+    await expect(lane.scrollWidth).toBeGreaterThan(lane.clientWidth);
+    await expect(lane.getBoundingClientRect().right).toBeLessThanOrEqual(sidebar.getBoundingClientRect().left);
+  },
+});
+
+export const DetailWithOverflowingLeadersMobile = meta.story({
+  args: { path: '/factions/space-orks' },
+  parameters: { database: withPlanets(), identity: null },
+  globals: { viewport: { value: 'appMobileNarrow' } },
+  play: async ({ canvasElement }) => {
+    await expectLeaderLane(canvasElement);
+  },
+});
+
 export const DetailWithPlanets = meta.story({
   args: { path: '/factions/space-orks' },
   parameters: { database: withPlanets(), identity: null },
   play: async ({ canvasElement }) => {
+    await expectLeaderLane(canvasElement);
     const page = within(canvasElement.ownerDocument.body);
     const sidebar = await page.findByRole('complementary', { name: 'Faction details' });
     const planets = within(sidebar).getByRole('region', { name: 'Planets' });
@@ -683,5 +962,35 @@ export const EditToolbarWithBlankNameAt552 = meta.story({
         'The public asset will be available soon.',
       ],
     });
+  },
+});
+
+export const RawJsonKeepsComponentIdentities = meta.story({
+  args: { path: '/factions/house-atreides/edit' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await page.findByRole('textbox', { name: 'Faction name' });
+    const before = await loadFaction('house-atreides');
+    const value = { ...before.faction.data, name: 'Reviewed Atreides' };
+    await userEvent.click(await page.findByRole('button', { name: 'Load existing faction' }));
+    await userEvent.click(await page.findByRole('button', { name: 'Paste JSON' }));
+    await userEvent.click(page.getByRole('textbox', { name: 'Writable JSON' }));
+    await userEvent.paste(JSON.stringify(value));
+    await waitFor(() => expect(page.getByRole('button', { name: 'Load faction' })).toBeEnabled());
+    await expect(page.getByRole('checkbox', { name: 'Also rename' })).not.toBeChecked();
+    await userEvent.click(page.getByRole('checkbox', { name: 'Also rename' }));
+    await userEvent.click(page.getByRole('button', { name: 'Load faction' }));
+    await expect((await loadFaction('house-atreides')).faction.data.name).toBe(before.faction.data.name);
+    await userEvent.click(page.getByRole('button', { name: 'Save faction' }));
+    await waitFor(async () => expect((await loadFaction('reviewed-atreides')).faction._id).toBe(before.faction._id));
+    const saved = (await loadFaction('reviewed-atreides')).faction;
+    await expect(saved.data.factionLeader.memberId).toBe(before.faction.data.factionLeader.memberId);
+    await expect(saved.data.leaders.map((member) => member.memberId)).toEqual(
+      before.faction.data.leaders.map((member) => member.memberId)
+    );
+    await expect(saved.data.troops.map((troop) => troop.troopId)).toEqual(
+      before.faction.data.troops.map((troop) => troop.troopId)
+    );
+    await expect(saved.group_id).toBe(before.faction.group_id);
   },
 });

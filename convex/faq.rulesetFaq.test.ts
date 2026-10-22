@@ -1,9 +1,14 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
+import type { FunctionReturnType } from 'convex/server';
 import { describe, expect, test } from 'vite-plus/test';
 
-import { FAQ_CATALOGUE_PAGE_SIZE, FAQ_PREVIEW_SIZE } from '../src/shared/faq/catalogueSearch';
+import {
+  FAQ_CATALOGUE_PAGE_SIZE,
+  FAQ_CATALOGUE_QUERY_LIMIT,
+  FAQ_PREVIEW_SIZE,
+} from '../src/shared/faq/catalogueSearch';
 import type { FaqTag } from '../src/shared/faq/tags';
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
@@ -71,6 +76,24 @@ const numbered = (count: number): Question[] =>
 
 const questions = (page: { items: { question: string }[] } | null) => page?.items.map((item) => item.question);
 
+type RulesetFaqAnswer = FunctionReturnType<typeof api.faq.rulesetFaq>;
+
+/** The browsed shape, which every call without a search answers with. */
+function browsed(answer: RulesetFaqAnswer) {
+  if (answer === null || 'mode' in answer) {
+    throw new Error('Expected a browsed page.');
+  }
+  return answer;
+}
+
+/** The searched shape, which every search answers with. */
+function searched(answer: RulesetFaqAnswer) {
+  if (answer === null || !('mode' in answer)) {
+    throw new Error('Expected a search.');
+  }
+  return answer;
+}
+
 describe("a ruleset's FAQ", () => {
   test('the ruleset page shows the newest few with their answers, and counts every question and every answered one', async () => {
     const t = applicationTest();
@@ -125,11 +148,11 @@ describe("a ruleset's FAQ", () => {
     expect(questions(balance)).toEqual(['Is Harkonnen too strong?']);
     expect(balance).toMatchObject({ total: 1 });
 
-    const storm = await t.query(api.faq.rulesetFaq, { rulesetSlug: 'advanced', q: 'storm' });
+    const storm = searched(await t.query(api.faq.rulesetFaq, { rulesetSlug: 'advanced', q: 'storm', limit: 24 }));
     expect(questions(storm)?.toSorted()).toEqual(['Does the storm move first?', 'When does the storm stop?']);
-    expect(storm).toMatchObject({ total: 2 });
+    expect(storm).toMatchObject({ hasMore: false });
     expect(
-      questions(await t.query(api.faq.rulesetFaq, { rulesetSlug: 'advanced', q: 'storm', tag: 'errata' }))
+      questions(await t.query(api.faq.rulesetFaq, { rulesetSlug: 'advanced', q: 'storm', tag: 'errata', limit: 24 }))
     ).toEqual(['When does the storm stop?']);
   });
 
@@ -162,7 +185,9 @@ describe("a ruleset's FAQ", () => {
       expect(entry.search_text.length).toBeLessThanOrEqual(2000);
       expect(entry.name_key.length).toBeLessThanOrEqual(200);
     }
-    expect((await t.query(api.faq.rulesetFaq, { rulesetSlug: 'advanced', q: 'guild ship' }))?.total).toBe(1);
+    expect(
+      searched(await t.query(api.faq.rulesetFaq, { rulesetSlug: 'advanced', q: 'guild ship', limit: 24 })).items
+    ).toHaveLength(1);
   });
 
   test('follows an accepted answer, a retag and a deletion, and leaves no drift', async () => {
@@ -200,6 +225,85 @@ describe("a ruleset's FAQ", () => {
     const drift = await t.query(internal.catalogueMaintenance.catalogueDrift, { kind: 'faq' });
     expect(drift).toMatchObject({ missing: [], stale: [], duplicated: [], unordered: [], orphaned: [] });
   });
+
+  test('a search with a limit loads more by asking for a larger one, best matches first and only ever appending', async () => {
+    const t = applicationTest();
+    const count = FAQ_CATALOGUE_PAGE_SIZE + 3;
+    await seedFaq(t, [
+      ...Array.from({ length: count }, (_, index) => ({
+        question: `Storm question ${String(index + 1).padStart(2, '0')}?`,
+        tags: (index % 2 === 0 ? ['rules'] : ['errata']) as FaqTag[],
+      })),
+      { question: 'Is Harkonnen too strong?', tags: ['balance'] },
+    ]);
+    const search = async (args: Omit<Parameters<typeof t.query<typeof api.faq.rulesetFaq>>[1], 'rulesetSlug'>) =>
+      searched(await t.query(api.faq.rulesetFaq, { rulesetSlug: 'advanced', ...args }));
+
+    const first = await search({ q: 'storm', limit: FAQ_CATALOGUE_PAGE_SIZE });
+    expect(first).toMatchObject({
+      mode: 'search',
+      ruleset: { slug: 'advanced', name: 'Advanced' },
+      hasMore: true,
+      capped: false,
+      limit: FAQ_CATALOGUE_PAGE_SIZE,
+    });
+    expect(first.items).toHaveLength(FAQ_CATALOGUE_PAGE_SIZE);
+    expect(first).not.toHaveProperty('total');
+    expect(first).not.toHaveProperty('page');
+    expect(first).not.toHaveProperty('pageCount');
+
+    const more = await search({ q: 'storm', limit: FAQ_CATALOGUE_PAGE_SIZE * 2 });
+    expect(more).toMatchObject({ hasMore: false, capped: false, limit: FAQ_CATALOGUE_PAGE_SIZE * 2 });
+    expect(more.items).toHaveLength(count);
+    expect(more.items.slice(0, FAQ_CATALOGUE_PAGE_SIZE).map((item) => item._id)).toEqual(
+      first.items.map((item) => item._id)
+    );
+    expect(questions(more)).not.toContain('Is Harkonnen too strong?');
+    /* An odd limit is one step; past the ceiling it is the ceiling. */
+    expect((await search({ q: 'storm', limit: 0 })).limit).toBe(FAQ_CATALOGUE_PAGE_SIZE);
+    expect((await search({ q: 'storm', limit: 1e9 })).limit).toBe(FAQ_CATALOGUE_PAGE_SIZE * 10);
+    expect(await search({ q: 'storm nowhere', limit: FAQ_CATALOGUE_PAGE_SIZE })).toMatchObject({
+      items: [],
+      hasMore: false,
+      capped: false,
+    });
+
+    /* A tag is the list searched: the matches come from its questions alone. */
+    const errata = await search({ q: 'storm', tag: 'errata', limit: FAQ_CATALOGUE_PAGE_SIZE });
+    expect(errata.items).toHaveLength(Math.floor(count / 2));
+    expect(errata.hasMore).toBe(false);
+    for (const item of errata.items) {
+      expect(item.tags).toEqual(['errata']);
+    }
+    expect(await search({ q: 'harkonnen', tag: 'errata', limit: FAQ_CATALOGUE_PAGE_SIZE })).toMatchObject({
+      items: [],
+      hasMore: false,
+    });
+
+    /* A limit sent with an unknown ruleset answers like any other call. */
+    expect(await t.query(api.faq.rulesetFaq, { rulesetSlug: 'nowhere', q: 'storm', limit: 1 })).toBeNull();
+  }, 60_000);
+
+  test('a search that is blank once cut to length browses, and a search without a limit shows one step', async () => {
+    const t = applicationTest();
+    await seedFaq(t, numbered(FAQ_CATALOGUE_PAGE_SIZE + 2));
+
+    /* Spaces past the cut are all that is left once the query is cut and trimmed, so it is no search. */
+    const blankAfterCut = `${' '.repeat(FAQ_CATALOGUE_QUERY_LIMIT)}Question`;
+    const browsedAnyway = browsed(
+      await t.query(api.faq.rulesetFaq, { rulesetSlug: 'advanced', q: blankAfterCut, limit: FAQ_CATALOGUE_PAGE_SIZE })
+    );
+    expect(browsedAnyway).toMatchObject({ total: FAQ_CATALOGUE_PAGE_SIZE + 2, page: 1, pageCount: 2 });
+    expect(browsedAnyway).not.toHaveProperty('mode');
+    /* A browsed page ignores a limit. */
+    expect(browsed(await t.query(api.faq.rulesetFaq, { rulesetSlug: 'advanced', limit: 5 })).items).toHaveLength(
+      FAQ_CATALOGUE_PAGE_SIZE
+    );
+
+    const unlimited = searched(await t.query(api.faq.rulesetFaq, { rulesetSlug: 'advanced', q: 'question', page: 2 }));
+    expect(unlimited).toMatchObject({ limit: FAQ_CATALOGUE_PAGE_SIZE, hasMore: true });
+    expect(unlimited.items).toHaveLength(FAQ_CATALOGUE_PAGE_SIZE);
+  }, 60_000);
 
   test('backfills questions asked before the FAQ lists existed, and verification refuses a gap', async () => {
     const t = applicationTest();

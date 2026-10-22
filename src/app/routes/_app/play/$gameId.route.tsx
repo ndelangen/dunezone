@@ -1,3 +1,4 @@
+import { useConvexAuth } from '@convex-dev/auth/react';
 import { Button } from '@mantine/core';
 import { ClientOnly, createFileRoute, Link, redirect } from '@tanstack/react-router';
 import { NotAvailable } from '@ui/block/NotAvailable';
@@ -69,6 +70,20 @@ function storedGameReader(tables: GameRuntime['tables'], address: string) {
 }
 
 function GamePage() {
+  const { isAuthenticated, isLoading } = useConvexAuth();
+  /* Local sign-out fences the table before a delayed directory query can replace its last access answer. */
+  return !isLoading && !isAuthenticated ? <GameLoginGate /> : <GameAccessPage />;
+}
+
+function GameLoginGate() {
+  return (
+    <PageMessage size="compact" title="Game">
+      <LoginGate action="open a game" />
+    </PageMessage>
+  );
+}
+
+function GameAccessPage() {
   const { gameId: address } = Route.useParams();
   const navigate = Route.useNavigate();
   const runtime = useContext(GameRuntimeContext);
@@ -134,11 +149,7 @@ function GamePage() {
         </TableFrame>
       );
     case 'sign_in_required':
-      return (
-        <PageMessage size="compact" title="Game">
-          <LoginGate action="open a game" />
-        </PageMessage>
-      );
+      return <GameLoginGate />;
     case 'not_found':
       return (
         <PageMessage size="compact" title="Game" back={exit}>

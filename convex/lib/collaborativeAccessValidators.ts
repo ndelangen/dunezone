@@ -3,6 +3,8 @@ import { v } from 'convex/values';
 import type { Infer } from 'convex/values';
 
 import { assetCaptureStatusSchema } from '../../src/shared/asset-publishing/captureStatus';
+import { cardFrontPresetSchema } from '../../src/shared/assets/cardFrontPresets';
+import { backgroundPresetSchema } from '../../src/shared/backgrounds/schema';
 import schema from '../schema';
 import { catalogueFactionDataValidator, factionDataValidator } from './factionData';
 import { rulebookListEntryValidator } from './rulebookList';
@@ -13,10 +15,7 @@ import { rulebookListEntryValidator } from './rulebookList';
  * Do not restate table shapes by hand here.
  */
 export function docValidator<Table extends keyof typeof schema.tables>(table: Table) {
-  return schema.tables[table].validator.extend({
-    _id: v.id(table),
-    _creationTime: v.number(),
-  });
+  return schema.doc(table);
 }
 
 const groupValidator = docValidator('groups');
@@ -132,6 +131,8 @@ export const assetPublishingValidator = v.object({
  * the browser combines it and `faction.owner_id` with the viewer to decide what they may do.
  */
 export const factionDetailPageValidator = v.object({
+  cardFrontPresets: v.optional(v.array(zodToConvex(cardFrontPresetSchema))),
+  backgrounds: v.optional(v.array(zodToConvex(backgroundPresetSchema))),
   faction: factionValidator,
   owner: v.union(profileValidator, v.null()),
   assetPublishing: assetPublishingValidator,
@@ -163,9 +164,32 @@ const faqAnswerValidator = docValidator('faq_answers');
 
 const faqItemValidator = docValidator('faq_items');
 
-export const faqListItemValidator = faqItemValidator.extend({
+export const faqListDetailsValidator = v.object({
+  accepted_answer: v.union(v.object({ excerpt: v.string() }), v.null()),
+  answerers: v.array(v.union(profileSummaryValidator, v.null())),
+  references: v.array(
+    v.union(
+      v.object({ kind: v.literal('faction'), name: v.string(), slug: v.string() }),
+      v.object({ kind: v.literal('asset'), name: v.string(), slug: v.string(), type: v.string() })
+    )
+  ),
+  has_more_references: v.boolean(),
+  has_more_answers: v.boolean(),
+});
+
+export type FaqListDetails = Infer<typeof faqListDetailsValidator>;
+
+const faqQuestionWithAnswersValidator = faqItemValidator.extend({
   faq_answers: v.array(faqAnswerValidator),
   asker_profile: v.union(profileSummaryValidator, v.null()),
+});
+
+export const faqListItemValidator = faqQuestionWithAnswersValidator.extend({
+  list_details: faqListDetailsValidator,
+});
+
+export const relatedFaqItemValidator = faqListItemValidator.extend({
+  ruleset: v.object({ id: v.id('rulesets'), name: v.string(), slug: v.string() }),
 });
 
 const profileFaqQuestionValidator = faqItemValidator.extend({
@@ -185,12 +209,26 @@ const profileFaqAnswerValidator = faqAnswerValidator.extend({
   ruleset: rulesetCitationValidator,
 });
 
+const profileFaqListPageValidator = v.object({
+  items: v.array(relatedFaqItemValidator),
+  page: v.number(),
+  pageCount: v.number(),
+});
+
 /** A profile page, the same for every viewer. */
 export const profilePageValidator = v.object({
   profile: profileValidator,
   faqAsked: v.array(profileFaqQuestionValidator),
   faqAnswers: v.array(profileFaqAnswerValidator),
+  faqLists: v.object({ asked: profileFaqListPageValidator, answered: profileFaqListPageValidator }),
+  /** Legacy: every faction the member made, newest first, for bundles from before `factionPreview`. Drop with the next contract release. */
   factions: v.array(catalogueFactionValidator),
+  /** The newest few of the member's factions; the catalogue narrowed to the member holds the rest. */
+  factionPreview: v.array(catalogueFactionValidator),
+  /** How many live factions the member has, counted from the catalogue's list for them. */
+  factionCount: v.number(),
+  /** How many of them the catalogue already lists for the member; below `factionCount` only until its backfill has run. */
+  listedFactionCount: v.number(),
   groupSummaries: v.array(assignedGroupSummaryValidator),
 });
 
@@ -211,10 +249,13 @@ export const rulesetAssetSlotValidator = v.object({
  * the browser combines it and `ruleset.owner_id` with the viewer.
  */
 export const rulesetPublicDetailPageValidator = v.union(
-  rulesetPageValidator.extend({
+  v.object({
+    ruleset: rulesetValidator,
     assignedGroup: v.union(assignedGroupSummaryValidator, v.null()),
-    /** The newest 200 questions, for browsers from before the FAQ had its own page. Unread by this bundle; the next release drops it. */
-    faqItems: v.array(faqListItemValidator),
+    /** The first few factions in the ruleset's own order; the rest are in the catalogue under this ruleset's filter. */
+    factionPreview: v.array(catalogueFactionValidator),
+    /** Live factions in this ruleset, from the catalogue's list for it. */
+    factionCount: v.number(),
     /** The newest few questions; the rest are on the ruleset's FAQ page. */
     faqPreview: v.array(faqListItemValidator),
     faqCounts: v.object({ questions: v.number(), answered: v.number() }),

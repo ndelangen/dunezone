@@ -6,8 +6,9 @@ name: Anonymised snapshot
 # before anonymising, and the last step deletes the job's directory whatever happened before.
 on:
   schedule:
-    # Once a day. GitHub runs scheduled workflows from the default branch only.
-    - cron: "17 5 * * *"
+    # Once a week, on Mondays: the export reads all of production, and local snapshot launches tolerate week-old data
+    # (Norbert, 18 October 2026). GitHub runs scheduled workflows from the default branch only.
+    - cron: "17 5 * * 1"
   workflow_dispatch:
 
 permissions:
@@ -26,7 +27,7 @@ jobs:
     # The production environment holds the deploy key and admits only main; this condition says so here too.
     if: github.ref == 'refs/heads/main'
     environment: production
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -43,11 +44,12 @@ jobs:
       # Runs while SNAPSHOT_UPLOAD is "true" (Norbert, 30 September 2026, #1559). It uploads the anonymised file alone, never the directory.
       - name: Upload the anonymised snapshot
         if: success() && env.SNAPSHOT_UPLOAD == 'true'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: anonymised-snapshot
           path: ${{ runner.temp }}/anonymised-snapshot/snapshot.zip
-          retention-days: 1
+          # Kept until the next weekly run has uploaded its own, with a day of slack for GitHub's schedule drift.
+          retention-days: 8
           if-no-files-found: error
 
       - name: Delete the export and the snapshot from the runner

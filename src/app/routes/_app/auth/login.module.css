@@ -19,7 +19,8 @@
   padding-block: var(--space-md);
   border: 0;
   border-radius: var(--radius-md);
-  background-color: var(--color-paper);
+  --provider-bg: var(--color-paper);
+  background-color: var(--provider-bg);
   color: var(--color-ink);
   box-shadow: 0 10px 30px rgb(0 0 0 / 35%);
   transition:
@@ -28,7 +29,7 @@
 }
 
 .provider:hover:not(:disabled) {
-  background-color: var(--color-paper);
+  background-color: var(--provider-bg);
   transform: translateY(-1px);
   box-shadow: 0 14px 34px rgb(0 0 0 / 45%);
 }
@@ -36,7 +37,8 @@
 /* Discord's own blurple, as Google keeps its four colours in its mark. */
 .provider[data-provider="discord"],
 .provider[data-provider="discord"]:hover:not(:disabled) {
-  background-color: #5865f2;
+  --provider-bg: #5865f2;
+  background-color: var(--provider-bg);
   color: white;
 }
 
@@ -47,4 +49,21 @@
 .fine {
   color: var(--color-paper);
   opacity: 0.75;
+}
+
+.providerMark {
+  position: relative;
+  display: inline-flex;
+}
+
+/* Anchor the badge to the logo without changing the button or label geometry. */
+.lastUsed {
+  position: absolute;
+  top: -4px;
+  inset-inline-end: -4px;
+  display: inline-flex;
+  padding: 1px;
+  border-radius: 50%;
+  background-color: var(--provider-bg);
+  opacity: 0.85;
 }

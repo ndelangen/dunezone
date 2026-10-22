@@ -124,6 +124,7 @@ try {
     '/assets',
     '/assets/token-disc',
     '/rulesets',
+    '/faq',
     '/profiles',
     ...RECORDLESS_PUBLIC_PAGES,
     ...BLOG_POST_PAGES,
@@ -175,7 +176,23 @@ try {
     const hit = await worker.fetch(pathname);
     assert.equal(hit.headers.get('X-Public-Cache'), 'hit', pathname);
     assert.equal(hit.headers.get('X-Public-Metadata-Queries'), '0', pathname);
-    assert.equal(await hit.text(), html, pathname);
+    const hitHtml = await hit.text();
+    const nonce = /'nonce-([a-f0-9]+)'/.exec(response.headers.get('Content-Security-Policy') ?? '')?.[1];
+    const hitNonce = /'nonce-([a-f0-9]+)'/.exec(hit.headers.get('Content-Security-Policy') ?? '')?.[1];
+    assert.ok(nonce && hitNonce, `${pathname} needs a CSP nonce on both deliveries`);
+    assert.notEqual(nonce, hitNonce, `${pathname} must not reuse a cached CSP nonce`);
+    assert.equal(response.headers.get('X-Application-Render-Nonce'), null);
+    assert.equal(hit.headers.get('X-Application-Render-Nonce'), null);
+    assert.equal(hitHtml.replaceAll(hitNonce, 'NONCE'), html.replaceAll(nonce, 'NONCE'), pathname);
+    for (const script of html.matchAll(/<script\b([^>]*)>/gi)) {
+      if (/\btype="application\/ld\+json"/.test(script[1])) {
+        continue;
+      }
+      assert.ok(
+        script[1].includes(`nonce="${nonce}"`),
+        `${pathname} has a script without its delivery nonce: ${script[0]}`
+      );
+    }
     if (pathname === '/factions' || pathname === '/assets/token-disc' || pathname === '/rulesets') {
       const links = [...html.matchAll(/<a[^>]+href="([^"]+)"/g)].map((match) => match[1]!);
       if (pathname === '/rulesets') {
@@ -290,7 +307,11 @@ try {
       assert.equal(png.headers.get('Content-Type'), 'image/png');
       assert.deepEqual(pngDimensions(new Uint8Array(await png.arrayBuffer())), { widthPx: 1200, heightPx: 630 });
       const imageHit = await worker.fetch(imageUrl.pathname + imageUrl.search);
-      assert.equal(imageHit.headers.get('X-Public-Cache'), 'hit');
+      assert.equal(
+        imageHit.headers.get('X-Public-Cache'),
+        'hit',
+        `${pathname}: ${JSON.stringify(Object.fromEntries(imageHit.headers))}`
+      );
       assert.equal(imageHit.headers.get('X-Public-Renders'), '0');
       assert.equal(imageHit.headers.get('X-Public-Artwork-Reads'), '0');
       await imageHit.arrayBuffer();
@@ -302,7 +323,10 @@ try {
       const asset = await worker.fetch(script);
       assert.equal(asset.status, 200, script);
       assert.match(asset.headers.get('Content-Type') ?? '', /javascript/, script);
-      await asset.body?.cancel();
+      /* Cancelling a compressed asset logs a broken pipe from workerd on Linux.
+       * Read the complete delivery so a truncated hydration entry also fails verification.
+       */
+      await asset.arrayBuffer();
     }
   }
   assert.ok(rulebookPage, 'No Ruleset has a published Rulebook link');

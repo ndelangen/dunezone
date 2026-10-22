@@ -1,5 +1,8 @@
 import preview from '@sb/preview';
+import discoverySpiceCards from '@shared/assets/fixtures/discoverySpiceCards.json';
+import { discoveryTokenFronts } from '@shared/assets/fixtures/discoveryTokens';
 import { spiceBoardLink, spiceBoardTokens } from '@shared/assets/fixtures/spiceBoardCard';
+import { SpiceAsset } from '@shared/assets/schema';
 import { arrakisBoard } from '@shared/boards/geometry';
 import { resolveAsset } from '@shared/media/resolveAsset';
 import type { ComponentProps } from 'react';
@@ -164,8 +167,63 @@ export const OnSavedBoard = meta.story({
   },
 });
 
+/** Opening a placed token in the editor keeps its shadow without adding a border. */
+export const SelectedTokenOnSavedBoard = meta.story({
+  args: {
+    ...discoveryOnBoard,
+    boardDefinition: arrakisBoard(),
+    boardTokens: spiceBoardTokens,
+    mapEditing: { selectedToken: 't1' },
+  },
+  play: async ({ canvasElement }) => {
+    const token = canvasElement.querySelector<HTMLElement>('[data-token-instance="t1"][data-selected]')!;
+    await expect(token).not.toBeNull();
+    const style = getComputedStyle(token);
+    await expect(style.outlineStyle).toBe('none');
+    await expect(style.borderTopWidth).toBe('0px');
+    await expect(style.filter).toMatch(/drop-shadow\(.+ 0px 1px 0\.5px\)/);
+  },
+});
+
+/** A custom palace decal receives the same card treatment as the preset stronghold glyphs. */
+export const PalaceOnSavedBoard = meta.story({
+  args: {
+    name: '',
+    subName: 'Spice blow',
+    icon: 'spice',
+    highlights: [],
+    amount: 6,
+    board: { asset_id: 'palace-board', tints: [], tokens: [] },
+    boardDefinition: (() => {
+      const board = arrakisBoard();
+      const territory = Object.values(board.properties).find(({ name }) => name === 'Tueks')!;
+      territory.decals[0] = { ...territory.decals[0], artwork: '/vector/decal/palace.svg' };
+      return board;
+    })(),
+  },
+});
+
 /** A board the card names but no longer has a territory of: the rest still draws. */
 export const MissingTerritory = meta.story({
+  args: {
+    ...discoveryOnBoard,
+    boardDefinition: (() => {
+      const board = arrakisBoard();
+      const key = Object.keys(board.properties).find((k) => board.properties[k].name === 'Funeral plain')!;
+      /* A territory that is no longer on the board: another one stands where it was. A rename alone keeps its ID and its tint. */
+      board.properties[key] = { ...board.properties[key], name: 'Funeral flats', id: 'funeral_flats' };
+      return board;
+    })(),
+    boardTokens: spiceBoardTokens,
+  },
+  play: async ({ canvasElement }) => {
+    await expect(canvasElement.querySelectorAll('[data-tint="blow"] > g')).toHaveLength(0);
+    await expect(canvasElement.querySelectorAll('[data-tint="strongholds"] > g')).toHaveLength(5);
+  },
+});
+
+/** Renaming a territory keeps its ID, so the card's tint on it still draws. */
+export const RenamedTerritory = meta.story({
   args: {
     ...discoveryOnBoard,
     boardDefinition: (() => {
@@ -177,8 +235,7 @@ export const MissingTerritory = meta.story({
     boardTokens: spiceBoardTokens,
   },
   play: async ({ canvasElement }) => {
-    await expect(canvasElement.querySelectorAll('[data-tint="blow"] > g')).toHaveLength(0);
-    await expect(canvasElement.querySelectorAll('[data-tint="strongholds"] > g')).toHaveLength(5);
+    await expect(canvasElement.querySelectorAll('[data-tint="blow"] > g').length).toBeGreaterThan(0);
   },
 });
 
@@ -188,5 +245,44 @@ export const MissingBoard = meta.story({
   play: async ({ canvasElement }) => {
     await expect(canvasElement.querySelector('[data-missing-board]')).not.toBeNull();
     await expect(canvasElement.querySelector('[data-tint]')).toBeNull();
+  },
+});
+
+/** The six accepted Discovery faces, using native board geometry and linked token fronts. */
+export const DiscoveryCards = meta.story({
+  globals: { viewport: { value: undefined } },
+  parameters: { layout: 'fullscreen' },
+  render: () => (
+    <CardGallery>
+      {discoverySpiceCards.map((data) => {
+        const card = SpiceAsset.parse(data);
+        return (
+          <GalleryCard key={card.name} label={card.name}>
+            <SpiceCard {...card} boardDefinition={arrakisBoard()} boardTokens={discoveryTokenFronts} />
+          </GalleryCard>
+        );
+      })}
+    </CardGallery>
+  ),
+  play: async ({ canvasElement }) => {
+    await document.fonts.ready;
+    const cards = canvasElement.querySelectorAll<HTMLElement>('[data-spice-look="textured-burn"]');
+    await expect(cards).toHaveLength(6);
+    for (const card of cards) {
+      const map = card.querySelector<SVGElement>('svg[data-look="textured-burn"]')!;
+      const tint = card.querySelector<SVGElement>('svg:has([data-tint])')!;
+      const marker = card.querySelector<HTMLElement>('[data-token-instance]')!.parentElement!;
+      await expect(map.getBoundingClientRect().top).toBe(tint.getBoundingClientRect().top);
+      await expect(map.getBoundingClientRect().top).toBe(marker.getBoundingClientRect().top);
+      await expect(card.querySelectorAll('[data-tint]')).toHaveLength(2);
+      await expect(card.querySelectorAll('[data-token-instance]')).toHaveLength(2);
+      await expect(card.querySelectorAll('[data-spice-type-token]')).toHaveLength(1);
+      await expect([...card.querySelectorAll('strong')].map((e) => e.textContent)).toHaveLength(2);
+      const body = card.querySelector('strong')!.closest('div')!;
+      await expect(body.scrollHeight).toBeLessThanOrEqual(body.clientHeight);
+      await expect(getComputedStyle(map).filter).toBe('saturate(0) contrast(2.6) brightness(0.55)');
+      await expect(getComputedStyle(tint).filter).toBe('none');
+      await expect(getComputedStyle(marker).filter).toBe('none');
+    }
   },
 });

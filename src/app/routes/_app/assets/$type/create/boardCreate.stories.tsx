@@ -53,7 +53,7 @@ export const SaveAndReopen = meta.story({
     await userEvent.keyboard('[Space]');
     await waitFor(() => expect(page.getByText('Decal 1 · Seitch')).toBeVisible());
     await userEvent.click(page.getByRole('button', { name: /^Undo$/ }));
-    await expect(page.getByText('Decal 1 · Arrakis City')).toBeVisible();
+    await expect(page.getByText('Decal 1 · City')).toBeVisible();
     await userEvent.click(page.getByRole('button', { name: /^Redo$/ }));
     await expect(page.getByText('Decal 1 · Seitch')).toBeVisible();
     await userEvent.click(page.getByRole('button', { name: 'Show decal before cropping' }));
@@ -71,7 +71,7 @@ export const SaveAndReopen = meta.story({
       Object.values(properties)
         .find((territory) => territory.id === 'arrakeen')
         ?.decals.map((decal) => decal.artwork)
-    ).toEqual(['/vector/icon/seitch.svg', '/vector/icon/arrakis-city.svg']);
+    ).toEqual(['/vector/icon/seitch.svg', '/vector/icon/city.svg']);
   },
 });
 
@@ -117,21 +117,20 @@ export const TerritoryNames = meta.story({
     await userEvent.click(await page.findByRole('button', { name: 'Load board' }));
     await userEvent.click(page.getByRole('tab', { name: 'Rock outcroppings' }));
     await expect(page.getByRole('textbox', { name: 'Territory name' })).toHaveValue('Rock outcroppings');
-    await expect(page.getByRole('textbox', { name: 'Territory ID' })).toHaveValue('rock_outcroppings');
+    await expect(page.queryByRole('textbox', { name: 'Territory ID' })).not.toBeInTheDocument();
     await userEvent.click(page.getByRole('tab', { name: 'Arrakeen' }));
     const name = page.getByRole('textbox', { name: 'Territory name' });
     await userEvent.clear(name);
     await expect(page.getByText('Enter a territory name')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Save board' })).toHaveAttribute('aria-disabled', 'true');
     await userEvent.type(name, 'ROCK-OUTCROPPINGS');
-    await expect(page.getByText('Territory ID "rock_outcroppings" is already in use')).toBeVisible();
+    await expect(page.getByText('Another territory already has this name')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Save board' })).toHaveAttribute('aria-disabled', 'true');
     await userEvent.click(page.getByRole('tab', { name: 'Rock outcroppings' }));
-    await expect(page.getByText('Territory ID "rock_outcroppings" is already in use')).toBeVisible();
+    await expect(page.getByText('Another territory already has this name')).toBeVisible();
     await userEvent.click(page.getByRole('tab', { name: 'ROCK-OUTCROPPINGS' }));
     await userEvent.clear(page.getByRole('textbox', { name: 'Territory name' }));
     await userEvent.type(page.getByRole('textbox', { name: 'Territory name' }), 'Arrakeen city');
-    await expect(page.getByRole('textbox', { name: 'Territory ID' })).toHaveValue('arrakeen_city');
     await expect(page.getByRole('button', { name: 'Save board' })).not.toHaveAttribute('aria-disabled', 'true');
     await userEvent.click(page.getByRole('button', { name: /^Undo$/ }));
     await expect(page.getByRole('button', { name: 'Save board' })).toHaveAttribute('aria-disabled', 'true');
@@ -140,11 +139,10 @@ export const TerritoryNames = meta.story({
     await userEvent.click(page.getByRole('button', { name: 'Save board' }));
     await expect(page.findByRole('button', { name: 'Delete board' })).resolves.toBeVisible();
     await expect(page.getByRole('textbox', { name: 'Territory name' })).toHaveValue('Arrakeen city');
-    await expect(page.getByRole('textbox', { name: 'Territory ID' })).toHaveValue('arrakeen_city');
     const saved = await loadAssetPage('board', 'arrakis');
     await expect(
       Object.values((saved!.asset.data as BoardAssetData).board.properties).find((p) => p.name === 'Arrakeen city')?.id
-    ).toBe('arrakeen_city');
+    ).toBe('arrakeen');
   },
 });
 

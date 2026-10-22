@@ -39,7 +39,11 @@ const serverPage = {
   groupSummaries,
   faqAsked: [],
   faqAnswers: [],
+  faqLists: { asked: { items: [], page: 1, pageCount: 1 }, answered: { items: [], page: 1, pageCount: 1 } },
   factions: [],
+  factionPreview: [],
+  factionCount: 0,
+  listedFactionCount: 0,
 };
 
 beforeEach(() => {

@@ -44,6 +44,14 @@
   min-width: 0;
 }
 
+.root[data-sticky-rail] > .tabList {
+  position: sticky;
+  top: calc(var(--app-shell-header-offset) + var(--space-md));
+  align-self: start;
+  max-height: calc(100dvh - var(--app-shell-header-offset) - 2 * var(--space-md));
+  overflow-y: auto;
+}
+
 .tab {
   box-sizing: border-box;
   display: grid;

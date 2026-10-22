@@ -212,26 +212,31 @@ export class GameSubscription {
     if (!this.listener) {
       return;
     }
-    let retryAfterMs: number | undefined;
+    const generation = this.generation;
+    const pass = this.renewing;
+    let result: TicketResult | undefined;
     try {
-      const result = await this.requestTicket(this.gameId, { renew: true });
-      if (result.ok) {
-        return;
-      }
-      if (result.reason === 'not_authorized') {
-        this.changeStatus('denied', 'Sign in again to access the table.');
-        this.socket?.close();
-        return;
-      }
-      retryAfterMs = result.retryAfterMs;
+      result = await this.requestTicket(this.gameId, { renew: true });
     } catch {
       /* Convex did not answer; the retry below asks again. */
+    }
+    /* A replacement connection or pass owns its own renewal, so an earlier answer cannot deny it or change its timer. */
+    if (!this.listener || generation !== this.generation || pass !== this.renewing) {
+      return;
+    }
+    if (result?.ok) {
+      return;
+    }
+    if (result?.reason === 'not_authorized') {
+      this.changeStatus('denied', 'Sign in again to access the table.');
+      this.socket?.close();
+      return;
     }
     clearTimeout(this.passTimer);
     if (attempt < PASS_RENEWAL_ATTEMPTS) {
       this.passTimer = setTimeout(
         () => void this.renewPass(attempt + 1),
-        Math.max(retryAfterMs ?? 0, 1000 * 2 ** attempt)
+        Math.max(result?.retryAfterMs ?? 0, 1000 * 2 ** attempt)
       );
       return;
     }

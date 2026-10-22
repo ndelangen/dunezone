@@ -4,6 +4,7 @@ import { isDeepStrictEqual } from 'node:util';
 import type { Id, TableNames } from '../../convex/_generated/dataModel';
 import { SNAPSHOT_REBUILD_CONTRACT } from '../../convex/lib/provisioningContract';
 import { compareCodeUnits } from '../../src/shared/compareText';
+import { DEFAULT_RULEBOOK_SETTINGS, rulebookSettingsSchema } from '../../src/shared/rulebooks/settings';
 import {
   installedComponents,
   placeholderOwner,
@@ -195,7 +196,8 @@ type FieldRule =
   | 'keep'
   | 'drop'
   | 'owner'
-  | { parent: TableNames }
+  | 'current-edition-settings'
+  | { parent: TableNames | readonly TableNames[] }
   | { orNull: TableNames }
   | { project: (value: unknown) => unknown };
 
@@ -236,14 +238,14 @@ function fieldRule(kept: KeptPolicy, field: string): FieldRule | null {
   return Object.hasOwn(kept.fields, field) ? kept.fields[field]! : null;
 }
 
-function referencedTable(rule: FieldRule): TableNames | null {
+function referencedTables(rule: FieldRule): readonly TableNames[] {
   if (typeof rule === 'string') {
-    return null;
+    return [];
   }
   if ('parent' in rule) {
-    return rule.parent;
+    return typeof rule.parent === 'string' ? [rule.parent] : rule.parent;
   }
-  return 'orNull' in rule ? rule.orNull : null;
+  return 'orNull' in rule ? [rule.orNull] : [];
 }
 
 /** Kept tables in an order where every table comes after the tables its references point at. */
@@ -259,9 +261,10 @@ function keptTableOrder(): string[] {
     }
     visiting.add(table);
     for (const rule of Object.values(keptPolicy(table)?.fields ?? {})) {
-      const target = referencedTable(rule);
-      if (target && keptPolicy(target)) {
-        visit(target);
+      for (const target of referencedTables(rule)) {
+        if (target && keptPolicy(target)) {
+          visit(target);
+        }
       }
     }
     visiting.delete(table);
@@ -424,7 +427,11 @@ function isPublished(kept: KeptPolicy, row: Row, isKept: IsKept): boolean {
   }
   return Object.entries(kept.fields).every(([field, rule]) => {
     const parent = typeof rule === 'object' && 'parent' in rule ? rule.parent : null;
-    return parent === null || (Object.hasOwn(row, field) && isKept(parent, row[field]));
+    if (parent === null) {
+      return true;
+    }
+    const tables = typeof parent === 'string' ? [parent] : parent;
+    return Object.hasOwn(row, field) && tables.some((table) => isKept(table, row[field]));
   });
 }
 
@@ -438,6 +445,7 @@ function anonymiseRow(kept: KeptPolicy, row: Row, isKept: IsKept, placeholder: P
     const value = row[field];
     switch (rule) {
       case 'drop':
+      case 'current-edition-settings':
         break;
       case 'keep':
         anonymised[field] = value;
@@ -536,6 +544,31 @@ function placeholderRows(placeholder: Placeholder): Record<PlaceholderTable, Row
   };
 }
 
+/** A published snapshot keeps the current Edition's authored pair, never the saved draft's settings. */
+function currentEditionSettings(outputs: ReadonlyMap<string, Row[]>, problems: string[], project: boolean) {
+  const editions = new Map<unknown, Map<unknown, Row | null>>();
+  for (const edition of outputs.get('rulebook_editions') ?? []) {
+    const byNumber = editions.get(edition.rulebook_id) ?? new Map<unknown, Row | null>();
+    byNumber.set(edition.edition_number, byNumber.has(edition.edition_number) ? null : edition);
+    editions.set(edition.rulebook_id, byNumber);
+  }
+  let failed = 0;
+  for (const rulebook of outputs.get('rulebooks') ?? []) {
+    const edition = editions.get(rulebook._id)?.get(rulebook.current_edition_number);
+    const settings = edition && rulebookSettingsSchema.safeParse(edition.settings ?? DEFAULT_RULEBOOK_SETTINGS);
+    if (!settings || !settings.success) {
+      failed++;
+    } else if (project) {
+      rulebook.settings = settings.data;
+    } else if (!isDeepStrictEqual(rulebook.settings ?? DEFAULT_RULEBOOK_SETTINGS, settings.data)) {
+      failed++;
+    }
+  }
+  if (failed > 0) {
+    problems.push(`rulebooks: ${failed} rows whose settings do not match a readable current Edition`);
+  }
+}
+
 /** Every table the snapshot writes, with its rows: the kept tables, plus the placeholder owner's user and profile. */
 function anonymiseTables(layout: Layout, placeholder: Placeholder, problems: string[]): Map<string, Row[]> {
   const outputs = new Map<string, Row[]>();
@@ -550,6 +583,7 @@ function anonymiseTables(layout: Layout, placeholder: Placeholder, problems: str
     keptIds.set(table, new Set(kept.map((row) => row._id)));
     outputs.set(table, kept);
   }
+  currentEditionSettings(outputs, problems, true);
   for (const [table, rows] of Object.entries(placeholderRows(placeholder))) {
     outputs.set(table, rows);
   }
@@ -724,11 +758,23 @@ export function verifySnapshot(entries: ExportEntries): SnapshotManifest {
   const rows = snapshotRows(entries);
   const manifest = parseJsonObject(entries.get(SNAPSHOT_MANIFEST) ?? '');
   const fromAnonymiser = manifest?.format === SNAPSHOT_FORMAT && manifest.version === 1;
+  const editionProblems: string[] = [];
+  currentEditionSettings(
+    new Map(
+      ['rulebooks', 'rulebook_editions'].map((table) => [
+        table,
+        (rows.get(table) ?? []).map(parseJsonObject).filter((row): row is Row => row !== null),
+      ])
+    ),
+    editionProblems,
+    false
+  );
   const problems = [
     ...(fromAnonymiser
       ? rowCountProblems(manifest.rows, rows)
       : [`the file has no ${SNAPSHOT_MANIFEST} from the anonymiser, so it is not an anonymised snapshot`]),
     ...policyProblems(entries),
+    ...editionProblems,
     ...requiredRowProblems(rows),
     ...(fromAnonymiser ? placeholderProblems(entries, rows) : []),
     ...scanSnapshot(entries).map(({ table, field, kind }) => `leak scan: ${kind} in ${table}.${field}`),

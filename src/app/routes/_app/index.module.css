@@ -170,38 +170,38 @@
 }
 
 .homepage[data-homepage-motion="on"] {
-  .newBookFan:hover .fanPiece {
+  & .newBookFan:hover .fanPiece {
     translate: 0 -0.6rem;
   }
-  .cloudPiece:hover {
+  & .cloudPiece:hover {
     scale: 1.16;
     translate: 0 -0.6rem;
   }
-  .showcaseCard:hover {
+  & .showcaseCard:hover {
     translate: 0 -1rem;
   }
-  .allianceCard:hover {
+  & .allianceCard:hover {
     transform: rotate(-2deg) translateY(-0.7rem);
   }
-  [data-entered] .cloudPiece {
+  & [data-entered] .cloudPiece {
     animation: cloud-arrival 1100ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
     animation-delay: var(--arrival-delay);
   }
-  [data-entered] .fanPiece,
-  [data-entered] .showcaseCard,
-  [data-entered] .orkDisc {
+  & [data-entered] .fanPiece,
+  & [data-entered] .showcaseCard,
+  & [data-entered] .orkDisc {
     animation: marketing-fan 1100ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
     animation-delay: var(--arrival-delay);
   }
-  .liveBoard[data-live-ready="true"] {
+  & .liveBoard[data-live-ready="true"] {
     animation: board-arrival 1400ms cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 }
 .homepage[data-homepage-motion="off"] {
-  .fanPiece,
-  .cloudPiece,
-  .showcaseCard,
-  .allianceCard {
+  & .fanPiece,
+  & .cloudPiece,
+  & .showcaseCard,
+  & .allianceCard {
     transition: none;
   }
 }

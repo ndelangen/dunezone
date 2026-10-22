@@ -1,166 +1,27 @@
 /* oxlint-disable jsx-a11y/alt-text -- Static decorative game-card layers, not content images. */
-import type { CustomCardTokens, SpiceBoardLook, SpiceTint, SpiceTokenPlacement } from '@shared/assets/schema';
+import type { CustomCardTokens, SpiceBoardLook } from '@shared/assets/schema';
 import { SPICE_BOARD_SIZE } from '@shared/assets/schema';
-import { POINTER_TIP_RATIO, tokenShapeOfType } from '@shared/assets/tokenOutline';
-import type { TokenShape } from '@shared/assets/tokenOutline';
-import { CENTER, RADIUS, derive } from '@shared/boards/geometry';
-import type { Board, Face, Point } from '@shared/boards/geometry';
-import { territoryId } from '@shared/boards/schema';
-import { placeStickers } from '@shared/boards/stickerPlacement';
-import { boardTerritoryAt } from '@shared/boards/territories';
-import { offRim, offsetPath, outerSegments, outlinePaths } from '@shared/boards/tintOutline';
-import { TINT_STICKER_ARTWORK, tintPaint } from '@shared/boards/tints';
-import { useId, useMemo, useRef } from 'react';
+import type { Board } from '@shared/boards/geometry';
+import type { BoardTint, BoardTokenPlacement } from '@shared/boards/markup';
+import { boardTerritoryList, tintDrawing } from '@shared/boards/tintDrawing';
+import { useId, useMemo } from 'react';
 import type { PointerEvent } from 'react';
 import type { z } from 'zod';
 
 import { BOARD_ARTWORK } from '../board/artwork';
 import { BoardArtwork } from '../board/Board';
+import { placedTokenHeight, TintDrawingLayers, useBoardMarkupPointer } from '../board/BoardMarkup';
+import type { BoardMarkupEditing } from '../board/BoardMarkup';
 import { CardToken } from './CardToken';
 import unique from './Spice.module.css';
 
-type Tint = z.infer<typeof SpiceTint>;
-type Placement = z.infer<typeof SpiceTokenPlacement>;
+type Placement = BoardTokenPlacement;
 type Look = z.infer<typeof SpiceBoardLook>;
 
 /* A card without a look burns its board into the parchment as fully as the classic map is. */
 const DEFAULT_LOOK: Look = { style: 'burnt', strength: 1 };
-type Territory = { id: string; face: Face };
-type ReadonlyPoint = readonly [number, number];
-
-/* The table draws tints in table units over a board 3.98 wide; these are its sizes in board units, so a tint's fill and stickers look the same on a card as on the table. A card is read small, so its outline is drawn much heavier than the table's. */
-const TABLE_UNIT = RADIUS / 3.98;
-const EDGE_WIDTH = 0.012 * TABLE_UNIT;
-const DOUBLE_LINE_WIDTH = 0.1 * TABLE_UNIT;
-const DOUBLE_LINE_GAP = 0.05 * TABLE_UNIT;
-const STICKER_LARGEST = 0.3 * TABLE_UNIT;
-const STICKER_SMALLEST = 0.14 * TABLE_UNIT;
-const STICKER_INK = '#1a0b00';
-const STICKER_OUTLINE = '#fffed8';
-
-/* Deriving a board's faces takes tens of milliseconds and the editor redraws on every token drag step, so faces are kept per board object. */
-const territoryCache = new WeakMap<Board, Territory[]>();
-
-export function boardTerritoryList(board: Board): Territory[] {
-  let territories = territoryCache.get(board);
-  if (!territories) {
-    territories = derive(board).faces.map((face) => ({ id: territoryId(board.properties[face.key].name), face }));
-    territoryCache.set(board, territories);
-  }
-  return territories;
-}
-
-/** The board's territories a tint covers: those it names, and every current one of a type it names. */
-function tintTerritories(board: Board, territories: readonly Territory[], tint: Tint) {
-  const named = new Set(tint.territories);
-  const types = new Set<string>(tint.types ?? []);
-  return territories.filter(({ id, face }) => named.has(id) || types.has(board.properties[face.key].type));
-}
-
-/** Territory IDs the card keeps that the linked board does not have; they stay stored and only drop out of the drawing. */
-export function missingTintTerritories(board: Board, tints: readonly Tint[]) {
-  const known = new Set(Object.values(board.properties).map((property) => territoryId(property.name)));
-  return [...new Set(tints.flatMap((tint) => tint.territories))].filter((id) => !known.has(id));
-}
-
-const segmentPath = (segments: readonly (readonly [ReadonlyPoint, ReadonlyPoint])[]) =>
-  segments.map(([a, b]) => `M${a[0]} ${a[1]}L${b[0]} ${b[1]}`).join('');
-
-const polygon = (points: readonly ReadonlyPoint[]) => `M${points.map(([x, y]) => `${x} ${y}`).join('L')}Z`;
-
-/** One double line round the tint's territories taken together, the borders between them and the rim left out. */
-function TintOutline({ territories, color }: { territories: Territory[]; color: string }) {
-  const half = DOUBLE_LINE_GAP / 2;
-  const segments = offRim(outerSegments(territories.map(({ face }) => face.rings)), CENTER, RADIUS);
-  const d = outlinePaths(segments)
-    .flatMap((path) =>
-      [
-        [half, half + DOUBLE_LINE_WIDTH],
-        [-half, -half - DOUBLE_LINE_WIDTH],
-      ].flatMap(([near, far]) => {
-        const inner = offsetPath(path, near);
-        const outer = offsetPath(path, far);
-        const corners = path.closed ? inner.length : inner.length - 1;
-        return Array.from({ length: corners }, (_, i) => {
-          const j = (i + 1) % inner.length;
-          return polygon([inner[i], outer[i], outer[j], inner[j]]);
-        });
-      })
-    )
-    .join('');
-  return <path d={d} fill={color} fillRule="nonzero" />;
-}
-
-function Stickers({ tint, territory, filter }: { tint: Tint; territory: Territory; filter: string }) {
-  const stamps = tint.stamps ?? [];
-  if (!stamps.length) {
-    return null;
-  }
-  const { at, size: fitted } = placeStickers(territory.face.rings, stamps.length, STICKER_LARGEST);
-  const size = Math.max(STICKER_SMALLEST, fitted);
-  return stamps.map((stamp, index) => {
-    const [x, y] = at[index] ?? territory.face.center;
-    return (
-      <image
-        key={stamp}
-        data-tint-sticker={stamp}
-        href={TINT_STICKER_ARTWORK[stamp]}
-        x={x - size / 2}
-        y={y - size / 2}
-        width={size}
-        height={size}
-        filter={`url(#${filter})`}
-      />
-    );
-  });
-}
-
-/** A territory's own line, without the stretch along the board's rim. */
-function edgePath(face: Face) {
-  return segmentPath(
-    offRim(
-      face.rings.flatMap((ring) => ring.slice(1).map((to, i): [Point, Point] => [ring[i], to])),
-      CENTER,
-      RADIUS
-    )
-  );
-}
-
-/** A tint as the table draws it: a see-through fill with a line of its colour, or one double line round its territories, with stickers either way. */
-function TintLayer({
-  tint,
-  territories,
-  stickerFilter,
-}: {
-  tint: Tint;
-  territories: Territory[];
-  stickerFilter: string;
-}) {
-  const paint = tintPaint(tint.color);
-  return (
-    <g data-tint={tint.id}>
-      {tint.outline ? (
-        <TintOutline territories={territories} color={paint.color} />
-      ) : (
-        territories.map(({ id, face }) => (
-          <g key={id}>
-            <path d={face.path} fill={paint.color} fillOpacity={paint.opacity} fillRule="evenodd" />
-            <path d={edgePath(face)} fill="none" stroke={paint.color} strokeOpacity={0.95} strokeWidth={EDGE_WIDTH} />
-          </g>
-        ))
-      )}
-      {territories.map((territory) => (
-        <Stickers key={territory.id} tint={tint} territory={territory} filter={stickerFilter} />
-      ))}
-    </g>
-  );
-}
 
 type TokenAssets = z.infer<typeof CustomCardTokens>;
-
-/* An enhance token is drawn 186 high for every 300 wide; every other token is square. */
-const tokenHeight = (token: Placement, asset: NonNullable<TokenAssets[string]>) =>
-  (token.size * (asset.type === 'token-enhance' ? 186 : 300)) / 300;
 
 function PlacedToken({
   token,
@@ -181,7 +42,7 @@ function PlacedToken({
         left: percent(token.x),
         top: percent(token.y),
         width: percent(token.size),
-        height: percent(tokenHeight(token, asset)),
+        height: percent(placedTokenHeight(token, asset.type)),
         transform: `translate(-50%, -50%) rotate(${token.rotation}deg)`,
       }}
     >
@@ -190,21 +51,8 @@ function PlacedToken({
   );
 }
 
-/**
- * What an editor does with the card's map: a brush that adds or removes the territory clicked, and tokens dragged into place.
- * Only the editor's live proof passes it;
- * a published card draws nothing interactive.
- */
-export type SpiceMapEditing = {
-  /** Set while a tint's brush is on: called with the territory ID under the click. */
-  onTerritory?: (territory: string) => void;
-  onTokenMove?: (layerId: string, x: number, y: number) => void;
-  /** The placed token the editor has open, drawn with a ring. */
-  selectedToken?: string | null;
-  onSelectToken?: (layerId: string) => void;
-};
-
-const clampBoard = (value: number) => Math.min(SPICE_BOARD_SIZE, Math.max(0, Math.round(value * 10) / 10));
+/** What an editor does with the card's map; only the editor's live proof passes it. */
+export type SpiceMapEditing = BoardMarkupEditing;
 
 /** A pointer's place on the map, in board coordinates. */
 function toBoard(event: PointerEvent<HTMLDivElement>): [number, number] {
@@ -215,113 +63,32 @@ function toBoard(event: PointerEvent<HTMLDivElement>): [number, number] {
   ];
 }
 
-/* A pointer's round end, as a fraction of its square face: the point at the top centre, the round end filling the bottom. */
-const POINTER_RADIUS = 1 / (1 + POINTER_TIP_RATIO);
-const POINTER_CENTRE = 1 - POINTER_RADIUS;
-
-/** Whether a point in a pointer's square face, from 0 to 1, falls in its teardrop. */
-function insidePointer(u: number, v: number) {
-  if (Math.hypot(u - 0.5, v - POINTER_CENTRE) <= POINTER_RADIUS) {
-    return true;
-  }
-  /* Above the round end the teardrop narrows straight to its point along the tangent lines. */
-  const tangent = Math.acos(1 / POINTER_TIP_RATIO);
-  const edgeY = POINTER_CENTRE - POINTER_RADIUS * Math.cos(tangent);
-  return v <= edgeY && Math.abs(u - 0.5) <= (v / edgeY) * POINTER_RADIUS * Math.sin(tangent);
-}
-
-const SHAPE_HITS: Record<TokenShape, (u: number, v: number) => boolean> = {
-  round: (u, v) => Math.hypot(u - 0.5, v - 0.5) <= 0.5,
-  gear: (u, v) => Math.hypot(u - 0.5, v - 0.5) <= 0.5,
-  pointer: insidePointer,
-  square: () => true,
-  rectangle: () => true,
-};
-
-const withinFace = (value: number) => value >= 0 && value <= 1;
-
-/** Whether a point in a token's face, from 0 to 1 across and down, falls inside the shape the card cuts it to. */
-const insideTokenShape = (shape: TokenShape, u: number, v: number) =>
-  withinFace(u) && withinFace(v) && SHAPE_HITS[shape](u, v);
-
-/** The topmost drawn token under the point, the last drawn first, hit on its own rotated and cut shape. */
-function topTokenAt(tokens: readonly Placement[], assets: TokenAssets, [x, y]: [number, number]) {
-  return tokens.findLast((token) => {
-    const asset = assets[token.asset_id];
-    if (!asset) {
-      return false;
-    }
-    const turn = (-token.rotation * Math.PI) / 180;
-    const dx = x - token.x;
-    const dy = y - token.y;
-    const along = dx * Math.cos(turn) - dy * Math.sin(turn);
-    const across = dx * Math.sin(turn) + dy * Math.cos(turn);
-    return insideTokenShape(
-      tokenShapeOfType(asset.type) ?? 'square',
-      along / token.size + 0.5,
-      across / tokenHeight(token, asset) + 0.5
-    );
-  });
-}
-
-function paintTerritoryAt(board: Board, editing: SpiceMapEditing, point: [number, number]) {
-  const property = editing.onTerritory ? boardTerritoryAt(board, point) : undefined;
-  if (property) {
-    editing.onTerritory?.(territoryId(property.name));
-  }
-}
-
 /** A surface over the whole map that turns pointer input into board coordinates: a drag on a token moves it, a click elsewhere paints. */
 function EditSurface({
   board,
   tokens,
   tokenAssets,
   editing,
+  shifted,
 }: {
+  shifted: boolean;
   board: Board;
   tokens: readonly Placement[];
   tokenAssets: TokenAssets;
   editing: SpiceMapEditing;
 }) {
-  const drag = useRef<{ layerId: string; dx: number; dy: number; pointerId: number } | null>(null);
-  const tokenAt = (point: [number, number]) =>
-    editing.onTokenMove ? topTokenAt(tokens, tokenAssets, point) : undefined;
-  const grab = (event: PointerEvent<HTMLDivElement>, token: Placement, [x, y]: [number, number]) => {
-    /* Capture keeps the drag when the pointer outruns the map; a synthetic pointer has nothing to capture. */
-    try {
-      event.currentTarget.setPointerCapture(event.pointerId);
-    } catch {
-      /* The drag still follows moves over the map. */
-    }
-    drag.current = { layerId: token.layerId, dx: token.x - x, dy: token.y - y, pointerId: event.pointerId };
-    editing.onSelectToken?.(token.layerId);
-  };
-  const paint = (point: [number, number]) => paintTerritoryAt(board, editing, point);
-  const release = () => {
-    drag.current = null;
-  };
+  const handlers = useBoardMarkupPointer<HTMLDivElement>({
+    board,
+    tokens,
+    typeOf: (assetId) => tokenAssets[assetId]?.type,
+    editing,
+    toBoard,
+  });
   return (
     <div
-      className={unique.mapEdit}
+      className={`${unique.mapEdit} ${shifted ? unique.shiftedMap : ''}`}
       data-brush={editing.onTerritory ? '' : undefined}
-      onPointerDown={(event) => {
-        const point = toBoard(event);
-        const token = tokenAt(point);
-        if (token) {
-          grab(event, token, point);
-        } else {
-          paint(point);
-        }
-      }}
-      onPointerMove={(event) => {
-        const held = drag.current;
-        if (held?.pointerId === event.pointerId) {
-          const [x, y] = toBoard(event);
-          editing.onTokenMove?.(held.layerId, clampBoard(x + held.dx), clampBoard(y + held.dy));
-        }
-      }}
-      onPointerUp={release}
-      onPointerCancel={release}
+      {...handlers}
     />
   );
 }
@@ -336,12 +103,14 @@ export function SpiceBoardMap({
   editing,
 }: {
   board: Board;
-  tints: readonly Tint[];
+  tints: readonly BoardTint[];
   look?: Look;
   tokens?: readonly Placement[];
   tokenAssets?: TokenAssets;
   editing?: SpiceMapEditing;
 }) {
+  const shifted = look.style === 'textured-burn';
+  const mapClass = `${unique.map} ${shifted ? unique.shiftedMap : ''}`;
   const stickerFilter = `${useId().replaceAll(':', '')}-sticker`;
   const territories = boardTerritoryList(board);
   const viewBox = `0 0 ${SPICE_BOARD_SIZE} ${SPICE_BOARD_SIZE}`;
@@ -351,27 +120,20 @@ export function SpiceBoardMap({
     [board, territories]
   );
   const tintLayers = useMemo(
-    () =>
-      tints.map((tint) => (
-        <TintLayer
-          key={tint.id}
-          tint={tint}
-          territories={tintTerritories(board, territories, tint)}
-          stickerFilter={stickerFilter}
-        />
-      )),
-    [board, territories, tints, stickerFilter]
+    () => <TintDrawingLayers drawings={tints.map((tint) => tintDrawing(board, tint))} filterId={stickerFilter} />,
+    [board, tints, stickerFilter]
   );
 
   return (
     <>
-      <svg className={unique.map} data-look={look.style} viewBox={viewBox} fillRule="evenodd" clipRule="evenodd">
+      {look.style === 'textured-burn' ? <div className={unique.mapPaper} aria-hidden /> : null}
+      <svg className={mapClass} data-look={look.style} viewBox={viewBox} fillRule="evenodd" clipRule="evenodd">
         {artwork}
       </svg>
       {/* The board as it is, faded over the look: full strength shows only the look, none only the board. */}
       {look.style === 'plain' || look.strength >= 1 ? null : (
         <svg
-          className={unique.map}
+          className={mapClass}
           data-look="plain"
           style={{ opacity: 1 - look.strength }}
           viewBox={viewBox}
@@ -381,24 +143,15 @@ export function SpiceBoardMap({
           {artwork}
         </svg>
       )}
-      <svg className={unique.map_overlay} viewBox={viewBox} fillRule="evenodd" clipRule="evenodd">
-        <defs>
-          {/* The board's glyph colours: near-black ink inside a pale outline. */}
-          <filter id={stickerFilter} x="-20%" y="-20%" width="140%" height="140%" colorInterpolationFilters="sRGB">
-            <feMorphology in="SourceAlpha" operator="dilate" radius={1} result="WIDE" />
-            <feFlood floodColor={STICKER_OUTLINE} result="PALE" />
-            <feComposite in="PALE" in2="WIDE" operator="in" result="OUTLINE" />
-            <feFlood floodColor={STICKER_INK} result="DARK" />
-            <feComposite in="DARK" in2="SourceAlpha" operator="in" result="INK" />
-            <feMerge>
-              <feMergeNode in="OUTLINE" />
-              <feMergeNode in="INK" />
-            </feMerge>
-          </filter>
-        </defs>
+      <svg
+        className={`${unique.map_overlay} ${shifted ? unique.shiftedMap : ''}`}
+        viewBox={viewBox}
+        fillRule="evenodd"
+        clipRule="evenodd"
+      >
         {tintLayers}
       </svg>
-      <div className={unique.mapTokens}>
+      <div className={`${unique.mapTokens} ${shifted ? unique.shiftedMap : ''}`}>
         {tokens.map((token) => {
           const asset = tokenAssets[token.asset_id];
           return asset ? (
@@ -411,7 +164,9 @@ export function SpiceBoardMap({
           ) : null;
         })}
       </div>
-      {editing ? <EditSurface board={board} tokens={tokens} tokenAssets={tokenAssets} editing={editing} /> : null}
+      {editing ? (
+        <EditSurface shifted={shifted} board={board} tokens={tokens} tokenAssets={tokenAssets} editing={editing} />
+      ) : null}
     </>
   );
 }

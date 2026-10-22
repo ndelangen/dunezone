@@ -60,6 +60,7 @@ export default defineConfig({
       /* Hold helpers must be bundled before the first story starts. */
       '@sinonjs/fake-timers',
       '@mantine/hooks',
+      '@testing-library/react/pure',
       /* Prebundle imports discovered by full page stories before Chromium starts testing. */
       '@convex-dev/auth/react',
       '@radix-ui/react-select',
@@ -69,6 +70,7 @@ export default defineConfig({
       'linkedom/worker',
       'react-icons/fa6',
       'react-icons/si',
+      'react-icons/vsc',
       'storybook/internal/core-events',
       'three/examples/jsm/loaders/SVGLoader.js',
       'crypto-js/sha256',
@@ -122,6 +124,8 @@ export default defineConfig({
     testTimeout: 120_000,
     browser: {
       enabled: true,
+      /* Match the addon's default so file boundaries do not resize desktop stories to Vitest's 414x896. */
+      viewport: { width: 1200, height: 900 },
       provider: playwright(),
       headless: true,
       screenshotFailures: true,

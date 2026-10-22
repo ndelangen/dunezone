@@ -151,17 +151,42 @@ describe('published Rulebook reading', () => {
     }
   });
 
-  test.each(['<script>alert(1)</script>', '<img src="x" onerror="alert(1)">', '<a href="javascript:alert(1)">bad</a>'])(
-    'rejects executable content instead of inserting it in the app',
-    (injected) => {
-      expect(() =>
-        parsePublishedRulebook(
-          html().replace('</body>', `${injected}</body>`).replace('</main>', `${injected}</main>`),
-          href
-        )
-      ).toThrow();
-    }
-  );
+  test.each([
+    '<script>alert(1)</script>',
+    '<img src="x" onerror="alert(1)">',
+    '<a href="javascript:alert(1)">bad</a>',
+    '<a href="jav&#x09;ascript:alert(1)">bad</a>',
+    '<a href="java&#10;script:alert(1)">bad</a>',
+    '<a href="java&#13;script:alert(1)">bad</a>',
+    '<a href="\u0001javascript:alert(1)">bad</a>',
+    '<a href="data:image/svg+xml,<svg onload=alert(1)>">bad</a>',
+    '<use href="data:image/svg+xml;base64,PHN2Zy8+"/>',
+    '<svg><a id="target">bad</a><set href="#target" attributeName="href" to="javascript:alert(1)"/></svg>',
+    '<svg><foreignObject><div>unexpected HTML</div></foreignObject></svg>',
+  ])('rejects executable content instead of inserting it in the app', (injected) => {
+    expect(() =>
+      parsePublishedRulebook(
+        html().replace('</body>', `${injected}</body>`).replace('</main>', `${injected}</main>`),
+        href
+      )
+    ).toThrow();
+  });
+
+  test('preserves publication links, SVG fragments and inert data images', () => {
+    const injected =
+      '<a href="#movement">Local</a><a href="/rulesets">Site</a>' +
+      '<a href="https://example.com/rules">External</a><a href="//dune.zone/rulesets">Same origin</a>' +
+      '<svg><use href="#token-root"/><image href="data:image/svg+xml;base64,PHN2Zy8+"/></svg>' +
+      '<img src="data:image/png;base64,AAAA"/>';
+    const book = parsePublishedRulebook(html().replace('</main>', `${injected}</main>`), href);
+    expect(book.markup).toContain('href="#movement"');
+    expect(book.markup).toContain('href="/rulesets"');
+    expect(book.markup).toContain('href="https://example.com/rules"');
+    expect(book.markup).toContain('href="//dune.zone/rulesets"');
+    expect(book.markup).toContain('href="#token-root"');
+    expect(book.markup).toContain('href="data:image/svg+xml;base64,PHN2Zy8+"');
+    expect(book.markup).toContain('src="data:image/png;base64,AAAA"');
+  });
 
   test('rejects an app fallback document without the standalone artifact contract', () => {
     expect(() => parsePublishedRulebook('<html><head></head><body><p>App</p></body></html>', href)).toThrow();

@@ -28,7 +28,7 @@ jobs:
   # start first.
   hosted_play:
     name: hosted_play (${{ matrix.shard }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # Above the launcher's own budgets, so a slow flow ends with its name and its evidence, not a
     # cancelled job. The protocol shard's budgets add up to 27 minutes: 180 s for the protocol
     # verifier, then 480 s for each of private-spice-reserves, decks and results.
@@ -107,12 +107,13 @@ jobs:
           protocol-verifier: ${{ matrix.protocol-verifier }}
       - name: Retain hosted game integration evidence
         if: always() && steps.closure.outputs.run == 'true'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: hosted-play-evidence-${{ github.run_id }}-shard-${{ matrix.shard }}
           # The verification, Worker and Wrangler logs, each flow's log, and each flow's report, captures and frames.
           path: |
             test-results/hosted-play/*.log
+            test-results/hosted-play/cold-*.json
             test-results/hosted-play/browser/
           if-no-files-found: warn
           retention-days: 14
@@ -174,11 +175,12 @@ jobs:
           shard: regular
       - name: Retain hosted game integration evidence
         if: always() && steps.closure.outputs.run == 'true'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: hosted-play-evidence-${{ github.run_id }}-webgpu-regular
           path: |
             test-results/hosted-play/*.log
+            test-results/hosted-play/cold-*.json
             test-results/hosted-play/browser/
           if-no-files-found: warn
           retention-days: 14
@@ -187,7 +189,7 @@ jobs:
   # above hosted_play on a job's place in this file.
   storybook:
     name: storybook (${{ matrix.shard }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     if: ${{ !inputs.hosted_only && !inputs.draft }}
     strategy:
@@ -236,7 +238,7 @@ jobs:
         run: bun run storybook:test:shard ${{ matrix.shard }} --coverage.enabled=true --reporter=default --reporter=junit --outputFile.junit=test-results/vitest-storybook.junit.xml
       - name: Retain Storybook failure evidence
         if: ${{ failure() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: storybook-failure-evidence-${{ matrix.shard }}
           path: |
@@ -254,7 +256,8 @@ jobs:
           disable_search: true
           fail_ci_if_error: false
       - name: Upload storybook test results to Codecov
-        if: ${{ !cancelled() }}
+        # Reused passes restore coverage only, so upload test results only when this run wrote them.
+        if: ${{ !cancelled() && hashFiles('test-results/vitest-storybook.junit.xml') != '' }}
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           report_type: test_results
@@ -274,7 +277,7 @@ jobs:
   # dependency audit jobs joined it for the same reason (#1590): each spent about 40 s on checkout,
   # install and caches for less work than that, and none of them was on the run's critical path.
   lint:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     if: ${{ !inputs.hosted_only }}
     steps:
@@ -303,6 +306,8 @@ jobs:
         run: bun run check:e2e-shards
       - name: Check the src/app top-level layout
         run: bun run check:app-layout
+      - name: Check the React Compiler rollout
+        run: bun run check:react-compiler
       - name: Check developer-facing prose
         run: bun run check:prose
       # The gates below ran as jobs of their own and reported whatever the lint steps found, so they keep running after an earlier step fails.
@@ -378,7 +383,7 @@ jobs:
         run: bun run dependencies:audit
 
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     if: ${{ !inputs.hosted_only }}
     steps:
@@ -403,8 +408,8 @@ jobs:
           disable_search: true
           fail_ci_if_error: false
       - name: Upload test results to Codecov
-        # Failure results are the point of Test Analytics, so upload unless cancelled.
-        if: ${{ !cancelled() }}
+        # Failure reports still upload; setup failures may produce no report.
+        if: ${{ !cancelled() && hashFiles('test-results/vitest-unit.junit.xml') != '' }}
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           report_type: test_results
@@ -415,7 +420,7 @@ jobs:
           fail_ci_if_error: false
 
   generate_and_build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     if: ${{ !inputs.hosted_only && !inputs.draft }}
     env:
@@ -489,7 +494,7 @@ jobs:
         run: bun run test:local-convex-isolation
 
   publisher_release:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     if: ${{ !inputs.hosted_only && !inputs.draft }}
     permissions:
@@ -538,7 +543,7 @@ jobs:
           disable_search: true
           fail_ci_if_error: false
       - name: Upload publisher test results to Codecov
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && hashFiles('test-results/vitest-publisher.junit.xml') != '' }}
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           report_type: test_results
@@ -570,7 +575,7 @@ jobs:
           files: coverage/lcov.info
 
   game_release:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     if: ${{ !inputs.hosted_only }}
     permissions:
@@ -614,7 +619,7 @@ jobs:
           disable_search: true
           fail_ci_if_error: false
       - name: Upload game test results to Codecov
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && hashFiles('test-results/vitest-game.junit.xml') != '' }}
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           report_type: test_results
@@ -631,7 +636,7 @@ jobs:
         run: bun run game:startup
       - name: Retain game test evidence
         if: ${{ !cancelled() && steps.prior.outputs.reuse != 'true' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: game-test-evidence-${{ github.run_id }}
           path: test-results/vitest-game.junit.xml
@@ -649,7 +654,7 @@ jobs:
   # deploy-main.yml runs the Storybook check again before it deploys the artifact. Each check runs
   # unless the job was cancelled, so one failure does not hide the others' results.
   browser_checks:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     if: ${{ !inputs.hosted_only && !inputs.draft }}
     steps:
@@ -672,8 +677,8 @@ jobs:
         if: ${{ !cancelled() }}
         run: bun run test:browser-launch --reporter=default --reporter=junit --outputFile.junit=test-results/vitest-browser-launch.junit.xml
       - name: Upload test results to Codecov
-        # Failure results are the point of Test Analytics, so upload unless cancelled.
-        if: ${{ !cancelled() }}
+        # Failure reports still upload; setup failures may produce no report.
+        if: ${{ !cancelled() && hashFiles('test-results/vitest-browser-launch.junit.xml') != '' }}
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           report_type: test_results
@@ -689,7 +694,7 @@ jobs:
         run: bun run verify:storybook-publication
 
   e2e_docker:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
     if: ${{ !inputs.hosted_only && !inputs.draft }}
     strategy:
@@ -826,7 +831,7 @@ jobs:
         env:
           E2E_ENV_FILE: ${{ runner.temp }}/.env.e2e.local
       - name: Upload e2e test results to Codecov
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && hashFiles('test-results/playwright.junit.xml') != '' }}
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           report_type: test_results
@@ -845,7 +850,7 @@ jobs:
           fail_ci_if_error: false
       - name: Upload E2E artifacts
         if: ${{ always() && steps.prior.outputs.reuse != 'true' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: e2e-artifacts-${{ github.run_id }}-shard-${{ matrix.shard }}
           if-no-files-found: ignore

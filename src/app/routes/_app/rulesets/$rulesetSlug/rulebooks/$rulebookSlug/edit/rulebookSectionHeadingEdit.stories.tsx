@@ -5,7 +5,6 @@ import { sectionHeadingChange, SectionHeadingStory } from './rulebookBlockEditor
 
 const meta = preview.meta({
   title: 'Blocks/Section heading/Editing',
-  globals: { colorScheme: 'dark' },
   parameters: { layout: 'fullscreen' },
 });
 

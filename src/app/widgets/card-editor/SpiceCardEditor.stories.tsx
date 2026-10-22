@@ -2,13 +2,15 @@ import { TextInput } from '@mantine/core';
 import preview from '@sb/preview';
 import { publishingSpiceCard } from '@shared/assets/fixtures/publishingSpiceCard';
 import { spiceBoardLink, spiceBoardTokens } from '@shared/assets/fixtures/spiceBoardCard';
+import { SpiceAsset } from '@shared/assets/schema';
 import { arrakisBoard } from '@shared/boards/geometry';
+import { boardTerritoryList } from '@shared/boards/tintDrawing';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { useState } from 'react';
 import type { ComponentProps } from 'react';
 import { expect, fn, userEvent, waitFor, within } from 'storybook/test';
 
-import { boardTerritoryList } from '@game/assets/card/SpiceBoardMap';
+import type { BoardSelect } from '@app/pickers/BoardPicker';
 
 import type { AssetPick } from './SpiceBoardFields';
 import { INITIAL_SPICE_DRAFT, SpiceCardEditor, spiceDraftWarnings } from './SpiceCardEditor';
@@ -23,6 +25,17 @@ const pickOne =
     </button>
   );
 
+/* Stand-in for the page's board field: the offered boards plus one saved fixture board, as a plain select. */
+const boardSelect: BoardSelect = ({ label, value, fixed, onPick }) => (
+  <select aria-label={label} value={value} onChange={(event) => onPick(event.currentTarget.value)}>
+    {[...fixed, { id: 'arrakis-board', name: 'Arrakis' }].map((board) => (
+      <option key={board.id} value={board.id}>
+        {board.name}
+      </option>
+    ))}
+  </select>
+);
+
 const BOARD = arrakisBoard();
 const boardRead = { board: BOARD, boardName: 'Arrakis', tokens: spiceBoardTokens, error: null };
 
@@ -30,7 +43,6 @@ const meta = preview.meta({
   title: 'Spice Card Editor',
   component: SpiceCardEditor,
   parameters: { layout: 'padded' },
-  globals: { colorScheme: 'dark' },
   /* The page's workbench frame gives the editor its reading column; without it the proof and the chapters collapse to their content. */
   render: (args) => (
     <WorkbenchLayout>
@@ -44,7 +56,7 @@ const meta = preview.meta({
     chapter: 'identity' as const,
     onChapterChange: fn(),
     onSettle: fn(),
-    boardPicker: pickOne('Pick Arrakis', 'arrakis-board'),
+    boardSelect,
     tokenPicker: pickOne('Pick the spice token', 'spice-token'),
   },
 });
@@ -94,6 +106,29 @@ export const Identity = meta.story({
     const shields = await page.findAllByRole('option', { name: /^Shield$/ });
     await userEvent.click(shields.find((option) => option.getAttribute('value') === '/vector/icon/shield.svg')!);
     await expect(args.patch).toHaveBeenLastCalledWith({ icon: '/vector/icon/shield.svg' });
+  },
+});
+
+/** Icon placement controls update the saved draft and the live card together. */
+export const IconPlacement = meta.story({
+  render: (args) => (
+    <LiveEditor {...args} initial={SpiceAsset.parse({ ...publishingSpiceCard, iconScale: 1, iconOffset: [7, 0] })} />
+  ),
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement);
+    const scale = canvas.getByRole('slider', { name: 'Icon scale slider' });
+    scale.focus();
+    await userEvent.keyboard('{End}');
+    await expect(args.patch).toHaveBeenLastCalledWith({ iconScale: 2 });
+    const vertical = canvas.getByRole('slider', { name: 'Vertical icon offset slider' });
+    vertical.focus();
+    await userEvent.keyboard('{End}');
+    await expect(args.patch).toHaveBeenLastCalledWith({ iconOffset: [7, 60] });
+    const icon = canvasElement.querySelector<HTMLImageElement>(
+      '[class*="proofFrame"] img[src="/vector/icon/spice.svg"]'
+    )!;
+    await expect(getComputedStyle(icon).width).toBe('170px');
+    await expect(icon.style.marginTop).toBe('120px');
   },
 });
 
@@ -200,13 +235,18 @@ export const BoardLook = meta.story({
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
     const looks = canvas.getByRole('radiogroup', { name: 'Board look' });
-    await expect(within(looks).getAllByRole('radio')).toHaveLength(3);
+    await expect(within(looks).getAllByRole('radio')).toHaveLength(4);
     await expect(canvas.getByRole('slider', { name: 'Look strength' })).toBeVisible();
     await userEvent.click(within(looks).getByRole('radio', { name: 'Sepia' }));
     await expect(args.patch).toHaveBeenLastCalledWith({
       board: { ...onBoard.board, look: { style: 'sepia', strength: 1 } },
     });
     await waitFor(() => expect(canvasElement.querySelectorAll('svg[data-look="sepia"]').length).toBeGreaterThan(0));
+    await userEvent.click(within(looks).getByRole('radio', { name: 'Textured burn' }));
+    await expect(args.patch).toHaveBeenLastCalledWith({
+      board: { ...onBoard.board, look: { style: 'textured-burn', strength: 1 } },
+    });
+    await waitFor(() => expect(proofOf(canvasElement).querySelector('svg[data-look="textured-burn"]')).not.toBeNull());
     await userEvent.click(within(looks).getByRole('radio', { name: 'Plain' }));
     await expect(canvas.queryByRole('slider', { name: 'Look strength' })).toBeNull();
   },
@@ -252,9 +292,8 @@ export const LinkBoard = meta.story({
   render: (args) => <LiveEditor {...args} initial={publishingSpiceCard} />,
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByText('The classic Arrakis map')).toBeVisible();
-    await userEvent.click(canvas.getByRole('button', { name: 'Use a saved board' }));
-    await userEvent.click(canvas.getByRole('button', { name: 'Pick Arrakis' }));
+    await expect(canvas.getByRole('combobox', { name: 'Board' })).toHaveValue('classic');
+    await userEvent.selectOptions(canvas.getByRole('combobox', { name: 'Board' }), 'arrakis-board');
     await expect(args.patch).toHaveBeenLastCalledWith({
       board: {
         asset_id: 'arrakis-board',
@@ -263,5 +302,21 @@ export const LinkBoard = meta.story({
       },
     });
     await expect(canvas.getByRole('button', { name: 'Paint Spice blow' })).toBeVisible();
+  },
+});
+
+export const FixedTypeToken = meta.story({
+  args: { chapter: 'tokens' as const, draft: onBoard },
+  render: (args) => <LiveEditor {...args} initial={onBoard} />,
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole('button', { name: 'Choose type token' }));
+    await userEvent.click(canvas.getByRole('button', { name: 'Pick the spice token' }));
+    await expect(args.patch).toHaveBeenLastCalledWith({
+      board: { ...onBoard.board, typeToken: { asset_id: 'spice-token' } },
+    });
+    await expect(proofOf(canvasElement).querySelector('[data-spice-type-token]')).not.toBeNull();
+    await userEvent.click(canvas.getByRole('button', { name: 'Remove type token' }));
+    await expect(proofOf(canvasElement).querySelector('[data-spice-type-token]')).toBeNull();
   },
 });

@@ -1,4 +1,4 @@
-import { Stack } from '@mantine/core';
+import { Select, Stack } from '@mantine/core';
 import type { CardFrontStyle } from '@shared/assets/cardFrontPresets';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
@@ -158,7 +158,28 @@ export function TreacheryCardEditor({
                 value: 'body',
                 label: 'Body',
                 icon: <ScrollText size={21} aria-hidden />,
-                panel: panel(<BodyField draft={draft} patch={patch} />),
+                panel: panel(
+                  <>
+                    <ControlBlock
+                      title="Body layout"
+                      input={
+                        <Select
+                          aria-label="Body layout"
+                          allowDeselect={false}
+                          data={[
+                            { value: 'illustrated', label: 'Illustrated' },
+                            { value: 'text-only', label: 'Text only' },
+                          ]}
+                          value={draft.bodyLayout ?? 'illustrated'}
+                          onChange={(value) =>
+                            patch({ bodyLayout: value === 'text-only' ? 'text-only' : 'illustrated' })
+                          }
+                        />
+                      }
+                    />
+                    <BodyField draft={draft} patch={patch} />
+                  </>
+                ),
               },
               aboutChapter(draft.about, (about) => patch({ about })),
             ]}

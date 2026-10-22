@@ -690,8 +690,6 @@ export const VECTOR_CROPS = {
   '/vector/generic/zap.svg': [48.88, 50, 78.08, 100],
   '/vector/icon/alliance.svg': [50.004999999999995, 50.035000000000004, 99.97, 88.17],
   '/vector/icon/ambassador.svg': [50, 50, 99.4, 91.44],
-  '/vector/icon/arrakis-city.svg': [50, 50, 100, 74.78],
-  '/vector/icon/arrakis-sietch.svg': [50, 49.99, 100, 78.04],
   '/vector/icon/balance.svg': [49.980000000000004, 50, 59.38, 100],
   '/vector/icon/bidding_disc.svg': [50, 50, 100, 100],
   '/vector/icon/bidding_standalone.svg': [50, 49.995, 100, 92.33],
@@ -889,4 +887,6 @@ export const VECTOR_CROPS = {
   '/vector/troop/void-walker.svg': [49.985, 50.005, 91.91, 99.99],
   '/vector/troop/water-keeper.svg': [50.004999999999995, 50, 80.53, 100],
   '/vector/troop/wire-hunter.svg': [50.005, 50, 91.01, 100],
+  '/vector/icon/arrakis-city.svg': [50, 50, 100, 72.76],
+  '/vector/icon/arrakis-sietch.svg': [49.98, 50.015, 99.32, 76.11],
 } as const;

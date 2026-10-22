@@ -601,7 +601,7 @@ Auth, command, projection and browser tests remain separate delivery evidence.
 
 ## Anonymised snapshot
 
-`.github/workflows/anonymised-snapshot.yml` runs once a day and on manual dispatch, from `main`
+`.github/workflows/anonymised-snapshot.yml` runs once a week (Mondays) and on manual dispatch, from `main`
 only, in the `production` environment (#1559). Its one step runs `scripts/anonymised-snapshot.ts`,
 which exports production the way `dev-rebuild.yml` does, anonymises the export through
 `scripts/snapshot-anonymise.ts`, and scans the written snapshot.
@@ -614,7 +614,7 @@ repository are public.
 
 The upload step runs when `SNAPSHOT_UPLOAD` in the workflow is `"true"`, which it has been since
 Norbert approved it after a dry-run report on 30 September 2026 (#1559). It uploads the snapshot
-file alone as the `anonymised-snapshot` artifact, kept for one day, which any signed-in GitHub
+file alone as the `anonymised-snapshot` artifact, kept for eight days (Norbert, 18 October 2026: weekly runs, so local data can be up to a week old), which any signed-in GitHub
 account can download. Setting the value back to `"false"` makes every run a dry run again.
 
 Two consumers load the snapshot, and both check the file before they clear or import anything.
@@ -712,3 +712,41 @@ v2) hashes those same ingredients plus the capture code and PDF contract, with
 per-component digests so a deploy log can attribute an identity change to
 sources, toolchain, code, or contract. A toolchain change (e.g. a sharp bump)
 intentionally triggers a visually-identical recapture wave.
+
+### Browser JavaScript budgets
+
+The minified app and publisher capture builds enforce a 500,000-byte limit per emitted JavaScript
+file. `scripts/lib/browserBundleBudgets.ts` checks final minified bytes, including JavaScript emitted
+as static assets. Unknown oversized files fail the build. The plugin uses each environment's resolved
+`build.minify` setting. E2E coverage builds deliberately use `--sourcemap --minify false` for accurate
+V8 coverage mapping, so those unminified files are outside the delivery budget, even in production
+mode. Production release builds retain minification and the same enforced limits.
+
+Two Three vendor payloads have separate limits:
+
+| Payload | Measured bytes | Limit | Identity check |
+| --- | ---: | ---: | --- |
+| Three WebGPU, core and TSL | 1,096,885 | 1,120,000 | Exactly the three prebuilt vendor modules, with no application modules |
+| Draco decoder | 719,410 | 740,000 | Bytes match an installed Three decoder |
+
+The WebGPU runtime is already distributed as prebuilt modules. The Draco decoder is copied vendor
+JavaScript. Their larger budgets preserve the renderer's module resolution. The build reports each
+verified payload and its budget; Vite's default 500 kB advisory remains visible for the WebGPU chunk.
+A dependency upgrade that changes these identities or exceeds a budget needs another measured review.
+
+Lucide's full media catalogue and the Rulebook capture validation graph use bounded, entry-aware
+chunk groups. Shared icons stay shared, and the complete catalogue remains on the media route.
+Capture builds resolve static URLs against `public/` with `copyPublicDir: false`; the existing
+publisher assembly supplies those files once. Generate vectors as well as images before comparing
+asset counts or unresolved-URL warnings.
+
+The build's plugin timing report remains useful evidence. React Compiler and TanStack transforms
+account for most callback time; no filter hides those reports. Vite's development advice about the
+header's relative `public/video` imports also remains. Those imports deliberately produce matching
+hashed URLs in browser and SSR builds; changing them to `/video/` would lose immutable delivery.
+
+Wrangler also reports one ignored bare `lucide-react` import in the generated SSR router. Route
+splitting leaves that import after removing unused UI bindings. Lucide declares `sideEffects: false`,
+and Wrangler drops it while preserving the named icon imports used by server-rendered routes.
+The advisory remains visible; bundling all Lucide icons into the SSR output only to remove it
+would add unnecessary intermediate code.

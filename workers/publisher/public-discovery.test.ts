@@ -44,12 +44,14 @@ test('the index and landing sitemap enumerate supported canonical paths without 
   const landing = await pages!.text();
   expect(landing).toContain('<loc>https://dune.zone/</loc>');
   expect(landing).toContain('<loc>https://dune.zone/rulesets</loc>');
+  expect(landing).toContain('<loc>https://dune.zone/faq</loc>');
   expect(landing).toContain('<loc>https://dune.zone/profiles</loc>');
   expect(landing).toContain('<loc>https://dune.zone/assets/token-disc</loc>');
   for (const page of [...RECORDLESS_PUBLIC_PAGES, ...BLOG_POST_PAGES, ...MEDIA_PUBLIC_PAGES]) {
     expect(landing).toContain(`<loc>https://dune.zone${page}</loc>`);
   }
   expect(landing).not.toContain('/assets/rulesets');
+  expect(landing).not.toContain('/contributing/glossary');
   expect(load).not.toHaveBeenCalled();
 });
 

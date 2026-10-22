@@ -46,10 +46,3 @@
   outline: 2px solid var(--color-brand);
   outline-offset: 3px;
 }
-
-/* The band's warm-black glass belongs to the light scheme; dark trades it for Twilight navy. */
-[data-mantine-color-scheme="dark"] .waypoints {
-  border-color: rgba(150, 165, 195, 0.25);
-  background: radial-gradient(circle at 50% 0%, rgba(67, 83, 110, 0.3), transparent 52%), rgba(12, 20, 34, 0.82);
-  box-shadow: 0 -14px 38px rgba(4, 8, 16, 0.3);
-}

@@ -70,7 +70,6 @@ const meta = preview.meta({
   title: 'Token Editor',
   component: InteractiveEditor,
   parameters: { layout: 'padded' },
-  globals: { colorScheme: 'dark' },
   args: {
     type: DISC,
     draft: discDraftWith(initialTokenDraft(DISC).back),
@@ -121,5 +120,25 @@ export const PointerTokenRim = meta.story({
     const canvas = within(canvasElement);
     await expect(canvas.getByRole('switch', { name: 'Edge ring' })).toBeInTheDocument();
     await expect(canvas.queryByRole('textbox', { name: 'Top label' })).toBeNull();
+  },
+});
+
+export const SymbolStyling = meta.story({
+  args: { chapter: 'front' },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const fill = canvas.getByLabelText('Symbol fill');
+    await userEvent.type(fill, '#07120f');
+    const stroke = canvas.getByLabelText('Symbol outline');
+    await userEvent.type(stroke, '#f3edbf');
+    await userEvent.type(canvas.getByRole('textbox', { name: 'Symbol outline width' }), '5.5');
+    const shadow = canvas.getByRole('switch', { name: 'Symbol shadow' });
+    await expect(shadow).toBeChecked();
+    await userEvent.click(shadow);
+    await expect(
+      canvasElement.querySelector('use[fill="#07120f"][stroke="#f3edbf"][stroke-width="5.5"]')
+    ).not.toBeNull();
+    const symbol = canvasElement.querySelector('use[fill="#07120f"]')!.closest('[data-component-part="symbol"]');
+    await expect(symbol).not.toHaveAttribute('filter');
   },
 });

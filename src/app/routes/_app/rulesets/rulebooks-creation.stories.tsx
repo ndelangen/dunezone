@@ -82,6 +82,39 @@ export const CloneKeepsSize = meta.story({
   },
 });
 
+export const CloneSavedSettings = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/create' },
+  parameters: {
+    database: db((baseline) => {
+      withSizedRulebooks(baseline);
+      const source = baseline.rulebooks.find((book) => book.$key === 'rulebook:1')!;
+      source.settings = { size: 'gf9-core', design: 'illustrated' };
+      return baseline;
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('radio', { name: 'Saved Rulebook' }, { timeout: 30_000 }));
+    await userEvent.click(page.getByRole('combobox', { name: 'Rulebook to copy' }));
+    const choice = await page.findByRole('option', { name: 'Quick reference' });
+    const tile = within(choice).getByRole('img', {
+      name: 'First page of Quick reference: preview unavailable',
+      hidden: true,
+    });
+    const bounds = tile.getBoundingClientRect();
+    await expect(bounds.height / bounds.width).toBeCloseTo(297 / 105, 1);
+    await userEvent.click(choice);
+    await expect(page.getByText('This copy keeps the GF9 core size, 254 × 254 mm.')).toBeVisible();
+    await expect(page.getByRole('radio', { name: 'Illustrated classic' })).toBeChecked();
+    await userEvent.type(page.getByRole('textbox', { name: 'Rulebook name' }), 'Saved settings copy');
+    await userEvent.click(page.getByRole('button', { name: 'Create Rulebook' }));
+    await expect(page.findByRole('button', { name: 'Save' }, { timeout: 30_000 })).resolves.toBeDisabled();
+    const preview = page.getByRole('article', { name: 'Rulebook page: Introduction' });
+    await expect(preview).toHaveAttribute('data-rulebook-size', 'gf9-core');
+    await expect(preview).toHaveAttribute('data-rulebook-design', 'illustrated');
+  },
+});
+
 export const Clone = meta.story({
   parameters: { database: db(withFinalRulebooks) },
   args: { path: '/rulesets/classicrules/rulebooks/create' },

@@ -101,15 +101,15 @@ the kit's `NestedTabs`, in the accepted shape of the play prototype. When every 
 as on the dock, each level is a vertical tablist and the panel is their tabpanel; a rail of links,
 such as the rulebook editor's, stays navigation. Its tabs
 hold `Section`, `Eyebrow`, Mantine controls and the rest of the kit, on the dark-scheme island the
-shell declares with `data-scheme-dark` (`tokens.css` gives that subtree the dark block in both page
-schemes, and a nested provider re-emits Mantine's root-scoped scheme variables under it; a
+shell declares with `data-scheme-dark` (`tokens.css` gives that subtree the dark block even outside the app
+chrome, and a nested provider re-emits Mantine's root-scoped scheme variables under it; a
 stylesheet keyed on `html[data-mantine-color-scheme]` does not follow the island). A Select, Menu or
 Combobox dropdown portals out of the shell, so the provider gives every Popover dropdown it renders
 the island's attributes. A tooltip's colours key on an ancestor, so the provider portals its
 tooltips into a child of `body` that carries those attributes. The dock paints the ground; the tabs
 bring the kit's pane, and nothing inside a tab brings a pane of its own. The island resolves the
 glass, input and overlay tokens the kit's panes read to neutral values, as the paper island resolves
-its own in `tokens.css`: the app's twilight glass casts blue over the table's warm ground.
+its own in `tokens.css`. The table keeps its leather palette while the app uses warm mineral glass.
 
 The same drift has a second source: a prototype is accepted from a picture, in prototype-local CSS
 that can never merge, and nothing says which kit component each accepted part becomes, so the

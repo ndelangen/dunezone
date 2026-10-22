@@ -31,3 +31,7 @@
   font-size: 0.75rem;
   text-align: center;
 }
+
+.sortSegment :is(input, button) {
+  padding-inline: var(--space-sm);
+}

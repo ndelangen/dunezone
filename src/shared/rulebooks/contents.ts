@@ -28,7 +28,7 @@ export const rulebookTextReferencesSchema = z.array(
 );
 
 /** Creation callers declare the catalogue they can read before receiving starter or cloned Contents. */
-export const RULEBOOK_CATALOGUE_VERSION = 14;
+export const RULEBOOK_CATALOGUE_VERSION = 15;
 
 export const rulebookLocalIdAlphabet = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ' as const;
 const rulebookLocalIdPattern = new RegExp(`^[${rulebookLocalIdAlphabet}]{4}$`);
@@ -280,6 +280,8 @@ function rulebookBlockSchemas<Text extends z.ZodType, Anchor extends z.ZodType, 
   const cardEntryBlock = z.strictObject({
     id: rulebookLocalIdSchema,
     kind: z.literal('card-entry'),
+    imageSide: z.enum(['left', 'right']).optional(),
+    textFlow: z.enum(['beside', 'wrap']).optional(),
     anchor: anchor.optional(),
     ...cardGuideFields,
     source: rulebookSourceReferenceSchema.optional(),
@@ -293,7 +295,7 @@ function rulebookBlockSchemas<Text extends z.ZodType, Anchor extends z.ZodType, 
     anchor: anchor.optional(),
     title: z.string(),
     text,
-    variant: z.enum(['compact', 'gallery', 'featured-member']),
+    variant: z.enum(['compact', 'gallery', 'featured-member', 'fan']),
     featuredItemId: rulebookItemIdSchema.optional(),
     itemOrder: z.array(rulebookItemIdSchema),
     itemsById: z.record(rulebookItemIdSchema, cardGroupItem),
@@ -455,25 +457,25 @@ export const rulebookLayoutCatalogue = [
   {
     id: 'single-column',
     label: 'Single column',
-    supportedSizes: ['square', 'a4', 'tall'],
+    supportedSizes: ['square', 'a4', 'tall', 'gf9-core', 'gf9-expansion'],
     regions: [blockRegion('content', 'Content')],
   },
   {
     id: 'content-strip',
     label: 'Content with bottom strip',
-    supportedSizes: ['square', 'a4', 'tall'],
+    supportedSizes: ['square', 'a4', 'tall', 'gf9-core', 'gf9-expansion'],
     regions: [blockRegion('content', 'Content'), blockRegion('strip', 'Bottom strip')],
   },
   {
     id: 'sequence',
     label: 'Step-by-step',
-    supportedSizes: ['square', 'a4'],
+    supportedSizes: ['square', 'a4', 'gf9-core'],
     regions: [blockRegion('content', 'Content')],
   },
   {
     id: 'paired-rows',
     label: 'Paired rows with opening and closing bands',
-    supportedSizes: ['square', 'a4'],
+    supportedSizes: ['square', 'a4', 'gf9-core'],
     regions: [
       blockRegion('opening', 'Opening'),
       blockRegion('upperLeft', 'Upper left'),
@@ -486,19 +488,19 @@ export const rulebookLayoutCatalogue = [
   {
     id: 'two-columns',
     label: 'Two equal columns',
-    supportedSizes: ['square', 'a4'],
+    supportedSizes: ['square', 'a4', 'gf9-core'],
     regions: [blockRegion('column1', 'Column 1'), blockRegion('column2', 'Column 2')],
   },
   {
     id: 'wide-narrow',
     label: 'Wide and narrow columns',
-    supportedSizes: ['square', 'a4'],
+    supportedSizes: ['square', 'a4', 'gf9-core'],
     regions: [blockRegion('wide', 'Wide'), blockRegion('narrow', 'Narrow')],
   },
   {
     id: 'outer-rail',
     label: 'Outer rail with two columns',
-    supportedSizes: ['square', 'a4'],
+    supportedSizes: ['square', 'a4', 'gf9-core'],
     regions: [
       blockRegion('rail', 'Outer rail'),
       blockRegion('column1', 'Column 1'),
@@ -508,13 +510,13 @@ export const rulebookLayoutCatalogue = [
   {
     id: 'band-columns',
     label: 'Band with two columns',
-    supportedSizes: ['square', 'a4'],
+    supportedSizes: ['square', 'a4', 'gf9-core'],
     regions: [blockRegion('band', 'Band'), blockRegion('column1', 'Column 1'), blockRegion('column2', 'Column 2')],
   },
   {
     id: 'cover',
     label: 'Cover',
-    supportedSizes: ['square', 'a4', 'tall'],
+    supportedSizes: ['square', 'a4', 'tall', 'gf9-core', 'gf9-expansion'],
     regions: [
       controlRegion('cover', 'Cover details', coverControlSchema, {
         backgroundImageUrl: '',

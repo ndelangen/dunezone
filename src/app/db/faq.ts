@@ -1,17 +1,21 @@
+import { assetSubjectFacts } from '@shared/access/collaborativeAccess';
 import { faqQuestionPageForViewer } from '@shared/faq/questionPageAccess';
 import type { FaqTag } from '@shared/faq/tags';
 import { faqAnswerSchema, faqQuestionSchema, faqTagsSchema } from '@shared/faq/validation';
+import { usePaginatedQuery } from 'convex/react';
 import type { FunctionArgs, FunctionReturnType } from 'convex/server';
 import { useMemo } from 'react';
 
 import { db } from '@db/core';
+import { factionCatalogueRowsToEntries } from '@db/factions';
+import type { FactionCatalogueEntry } from '@db/factions';
 import { toLiveQueryResult, useLiveMutation, useLiveQuery } from '@app/db/core/live';
 import type { LiveMutationResult } from '@app/db/core/live';
-import { useViewerUserId } from '@app/db/viewerAccess';
+import { useAssetAccess, useViewerUserId, UNAVAILABLE_SUBJECT } from '@app/db/viewerAccess';
 
 import { api } from '../../../convex/_generated/api';
 import type { Doc } from '../../../convex/_generated/dataModel';
-import type { ProfileSummary } from '../../../convex/lib/collaborativeAccessValidators';
+import type { FaqListDetails, ProfileSummary } from '../../../convex/lib/collaborativeAccessValidators';
 
 type FaqItemRow = Doc<'faq_items'>;
 type FaqAnswerRow = Doc<'faq_answers'>;
@@ -22,6 +26,7 @@ export type FaqAnswerEntry = FaqAnswerRow;
 export type FaqItemWithDetails = FaqItemEntry & {
   faq_answers: FaqAnswerEntry[];
   asker_profile: ProfileSummary | null;
+  list_details?: FaqListDetails;
 };
 
 export type FaqQuestionLocator = {
@@ -29,8 +34,29 @@ export type FaqQuestionLocator = {
   questionSlug: string;
 };
 
-/** What `api.faq.question` gives the question page, the same for every viewer. */
-export type FaqQuestionPublicPage = FunctionReturnType<typeof api.faq.question>;
+/** The question detail and first reference range, the same for every viewer. */
+type ReferencePage = FunctionReturnType<typeof api.faq.questionPage>;
+type ReferencePreview = ReferencePage['page'][number]['items'][number];
+export type FaqReferenceTarget = FunctionArgs<typeof api.faqReferences.add>['target'];
+export type FaqReferencePreview =
+  | Exclude<ReferencePreview, { kind: 'faction' }>
+  | {
+      kind: 'faction';
+      id: FactionCatalogueEntry['_id'];
+      faction: FactionCatalogueEntry;
+    };
+export type RelatedFaqItem = FaqItemWithDetails & { ruleset: { name: string; slug: string } };
+export type FaqQuestionPublicPage =
+  | (NonNullable<ReferencePage['page'][number]['detail']> & {
+      references: FaqReferencePreview[];
+    })
+  | null;
+
+function referencePreviews(rows: ReferencePreview[]): FaqReferencePreview[] {
+  return rows.map((row) =>
+    row.kind === 'faction' ? { ...row, faction: factionCatalogueRowsToEntries([row.faction])[0] } : row
+  );
+}
 
 type CommandState = {
   isPending: boolean;
@@ -85,9 +111,13 @@ function voidCommand<TVariables, TResult>(
   };
 }
 
-/** What `api.faq.rulesetFaq` gives a ruleset's FAQ page, the same for every viewer; null for an unknown ruleset. */
+/** What `api.faq.rulesetFaq` gives a ruleset's FAQ page, the same for every viewer: a browsed page or a search, told apart by `mode`; null for an unknown ruleset. */
 export type RulesetFaqPageData = FunctionReturnType<typeof api.faq.rulesetFaq>;
-/** What one ruleset FAQ page asks for: the ruleset and the route's search parameters, as `faq.rulesetFaq` takes them. */
+/** A browsed page of a ruleset's FAQ: newest first, counted, in numbered pages. */
+export type RulesetFaqBrowseData = Exclude<NonNullable<RulesetFaqPageData>, { mode: 'search' }>;
+/** A searched FAQ: the best matches first, and more by asking for a larger limit. */
+export type RulesetFaqSearchData = Extract<NonNullable<RulesetFaqPageData>, { mode: 'search' }>;
+/** What one ruleset FAQ page asks for: the ruleset, the route's search parameters and how many of a search's best matches to show, as `faq.rulesetFaq` takes them. */
 export type RulesetFaqArgs = FunctionArgs<typeof api.faq.rulesetFaq>;
 
 /** The ruleset FAQ route's loader, paired with `useRulesetFaqPage`; a searched page is not held, as each search is its own subscription. */
@@ -101,9 +131,48 @@ export function useRulesetFaqPage(args: RulesetFaqArgs, options?: { initialData?
   return toLiveQueryResult(liveData, () => options?.initialData);
 }
 
+/** What `api.faq.search` gives the global FAQ page, the same for every viewer. */
+export type GlobalFaqPageData = FunctionReturnType<typeof api.faq.search>;
+/** What one global FAQ search asks for: the search, the ruleset slugs it narrows to, and how many of the best matches to show. */
+export type GlobalFaqArgs = FunctionArgs<typeof api.faq.search>;
+
+/** What `api.faq.rulesetOptions` gives the global FAQ's ruleset picker: every live ruleset holding questions, by name. */
+export type GlobalFaqRulesetOptions = FunctionReturnType<typeof api.faq.rulesetOptions>;
+
+/** The global FAQ route's loader for the ruleset picker, paired with `useGlobalFaqRulesetOptions`; one held answer for every search. */
+export async function loadGlobalFaqRulesetOptions(): Promise<GlobalFaqRulesetOptions> {
+  return await db.query(api.faq.rulesetOptions, {}, { hold: true });
+}
+
+/** The ruleset picker's options, live, taking `loadGlobalFaqRulesetOptions`'s result as `initialData`. */
+export function useGlobalFaqRulesetOptions(options?: { initialData?: GlobalFaqRulesetOptions }) {
+  const liveData = useLiveQuery(api.faq.rulesetOptions, {}, { hold: true });
+  return toLiveQueryResult(liveData, () => options?.initialData);
+}
+
+/** The global FAQ route's loader, paired with `useGlobalFaqPage`; a searched page is not held, as each search is its own subscription. */
+export async function loadGlobalFaqPage(args: GlobalFaqArgs): Promise<GlobalFaqPageData> {
+  return await db.query(api.faq.search, args, { hold: !args.q });
+}
+
+/** One live global FAQ page, taking `loadGlobalFaqPage`'s result for the same arguments as `initialData`. */
+export function useGlobalFaqPage(args: GlobalFaqArgs, options?: { initialData?: GlobalFaqPageData }) {
+  const liveData = useLiveQuery(api.faq.search, args, { hold: !args.q });
+  return toLiveQueryResult(liveData, () => options?.initialData);
+}
+
 /** The question route's loader, paired with `useFaqQuestionPage`. */
 export async function loadFaqQuestionPage(locator: FaqQuestionLocator): Promise<FaqQuestionPublicPage> {
-  return await db.query(api.faq.question, locator);
+  const result = await db.query(
+    api.faq.questionPage,
+    {
+      ...locator,
+      paginationOpts: { numItems: 12, cursor: null },
+    },
+    { hold: false }
+  );
+  const first = result.page[0];
+  return first.detail ? { ...first.detail, references: referencePreviews(first.items) } : null;
 }
 
 /**
@@ -111,11 +180,21 @@ export async function loadFaqQuestionPage(locator: FaqQuestionLocator): Promise<
  * The loader's result goes in as `initialPage`, not `initialData`: this hook returns commands beside the query, so its options do not match the plain read hooks elsewhere in this layer.
  */
 export function useFaqQuestionPage(locator: FaqQuestionLocator, options?: { initialPage?: FaqQuestionPublicPage }) {
-  const livePage = useLiveQuery(api.faq.question, locator);
-  const initialPage = options?.initialPage;
-  const query = toLiveQueryResult(livePage, () => initialPage);
-  /* The same page `query.data` holds, read from its sources so the memo below depends on the page alone, not on the result object around it. */
-  const publicPage = livePage === undefined ? initialPage : livePage;
+  const referencesQuery = usePaginatedQuery(api.faq.questionPage, locator, { initialNumItems: 12 });
+  const first = referencesQuery.results[0];
+  const livePage = first === undefined ? undefined : first.detail;
+  const publicPage = livePage === undefined ? options?.initialPage : livePage;
+  const query = toLiveQueryResult(livePage, () => options?.initialPage);
+  const references = first
+    ? referencePreviews(referencesQuery.results.flatMap((chunk) => chunk.items))
+    : (options?.initialPage?.references ?? []);
+  const rulesetAccess = useAssetAccess(
+    assetSubjectFacts(
+      'ruleset',
+      publicPage ? { owner_id: publicPage.referenceRuleset.owner_id, is_deleted: false } : UNAVAILABLE_SUBJECT,
+      publicPage?.referenceRuleset.assignedGroup ?? null
+    )
+  );
   const questionId = publicPage?.question.id;
   /*
    * The page is one cached answer for everyone; who may edit, delete, accept or answer is decided here from the viewer's user id
@@ -152,6 +231,13 @@ export function useFaqQuestionPage(locator: FaqQuestionLocator, options?: { init
     unknown
   >(api.faq.setAcceptedAnswer);
 
+  const addReferenceMutation = useLiveMutation<FunctionArgs<typeof api.faqReferences.add>, unknown>(
+    api.faqReferences.add
+  );
+  const removeReferenceMutation = useLiveMutation<FunctionArgs<typeof api.faqReferences.remove>, unknown>(
+    api.faqReferences.remove
+  );
+
   const requireQuestionId = () => {
     if (!questionId) {
       throw new Error('FAQ question is not loaded');
@@ -162,6 +248,22 @@ export function useFaqQuestionPage(locator: FaqQuestionLocator, options?: { init
   return {
     ...query,
     page,
+    references,
+    referencesStatus: referencesQuery.status,
+    loadMoreReferences: () => referencesQuery.loadMore(12),
+    hasAnswered: viewerResolved && viewerId !== null && answered,
+    canManageReferences:
+      viewerResolved &&
+      (resolvedViewerId === publicPage?.question.askedBy ||
+        (rulesetAccess.resolved && rulesetAccess.viewerAccess.capabilities.edit)),
+    addReference: command(addReferenceMutation, (target: FaqReferenceTarget) => ({
+      questionId: requireQuestionId(),
+      target: target.kind === 'faction' ? { kind: target.kind, id: target.id } : { kind: target.kind, id: target.id },
+    })),
+    removeReference: command(removeReferenceMutation, (target: FaqReferenceTarget) => ({
+      questionId: requireQuestionId(),
+      target: target.kind === 'faction' ? { kind: target.kind, id: target.id } : { kind: target.kind, id: target.id },
+    })),
     editQuestion: command(editQuestionMutation, (input: { question: string; tags: FaqTag[] }) => ({
       questionId: requireQuestionId(),
       input: {

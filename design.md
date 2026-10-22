@@ -13,8 +13,8 @@ decision log in [`docs/technical/ui-design-decisions.md`](docs/technical/ui-desi
 - Glass surfaces with subtle blur on interactive containers.
 - Strong `2px` borders as a primary visual motif.
 - Controls should stand out clearly over glass surfaces with strong contrast.
-- Warm sand palette aligned with `media/web/page.jpg` and `media/web/head.png`, which
-  `bun run generate:images` publishes under `public/web/`.
+- Warm dark mineral palette aligned with the masthead video. The app is dark-only.
+- An anchored, shaded desert planet and procedural SVG stars replace the old desert photograph and dice. The planet turns once per hour using the visitor's clock; only the stars follow scroll parallax. Ambient-motion preferences still apply.
 - Icon-only action controls as the default, with clear tooltip labels.
 
 ## Design tokens

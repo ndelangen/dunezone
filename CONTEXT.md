@@ -26,6 +26,9 @@ A ruleset question owned by its author, who may edit or remove it and moderate i
 **FAQ answer**:
 A response owned and editable only by its author. Its question owner may accept, unaccept, or remove it, but may not rewrite it.
 
+**FAQ reference**:
+A link from an FAQ question to a faction or an asset of any type, regardless of ruleset. The asker and anyone with write access to the question's ruleset may add or remove references, only through the FAQ. A question shows previews of its referenced content, and each faction or asset shows its related questions. References follow the existing faction relationship convention: deleted or missing content does not appear, and a soft-deleted record's link survives for recovery.
+
 **Faction catalogue**:
 The public collection of factions whose primary purpose is discovery. Ownership and creation are supporting workflows rather than the catalogue's organizing purpose.
 _Avoid_: Faction overview, faction index
@@ -311,4 +314,4 @@ _Avoid_: Extra asset, add-on
 An authored circular map saved in the Assets catalogue. Its shared linework forms territories, and each territory owns a unique name, a type, an inset treatment and ordered decals. Saved linework and properties drive both editing and published artwork. Names identify territories for targeting and do not print on the map. Loading a preset or another Board Asset copies its editable geometry into the current draft.
 
 **Board decal**:
-A bundled vector placed within a territory, with position, scale, rotation and an optional white outline. The territory clips it. The decal list sets drawing order and supports drag reordering. Showing a decal before cropping is an editor setting and is never saved.
+A bundled vector placed within a territory, with position, scale, rotation and an optional pale outline shared with placed board stickers. The territory clips it. The decal list sets drawing order and supports drag reordering. Showing a decal before cropping is an editor setting and is never saved.

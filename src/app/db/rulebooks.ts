@@ -298,6 +298,7 @@ export function useSaveRulebook() {
     rulebookId: RulebookMetadata['_id'];
     expectedRevision: number;
     contents: RulebookContentsV1;
+    settings?: RulebookSettings;
   };
   const save = useMutation(api.rulebooks.save);
   const rehost = useRehostRulebookCoverImage();
@@ -333,6 +334,7 @@ export function useSaveRulebook() {
         rulebook_id: variables.rulebookId,
         expected_revision: expectedRevision,
         contents,
+        ...(variables.settings ? { settings: rulebookSettingsSchema.parse(variables.settings) } : {}),
       });
       return {
         ...result,

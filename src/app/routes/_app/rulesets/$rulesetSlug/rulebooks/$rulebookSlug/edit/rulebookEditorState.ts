@@ -38,6 +38,8 @@ import {
   rulebookPieceMovementSchema,
   rulebookBattleExampleSchema,
 } from '@shared/rulebooks/illustratedScenes';
+import { DEFAULT_RULEBOOK_SETTINGS, rulebookSettingsSchema } from '@shared/rulebooks/settings';
+import type { RulebookSettings } from '@shared/rulebooks/settings';
 import { rulebookCardSourceReferenceSchema, rulebookSourceReferenceSchema } from '@shared/rulebooks/sources';
 import { userImageSourceUrlSchema } from '@shared/user-images/contract';
 import { graphemeSegments } from 'unicode-segmenter/grapheme';
@@ -48,6 +50,7 @@ import { compareCanonicalText, planAtomicPlacementBatch } from './rulebookPlacem
 type SavedRulebookRevision = {
   readonly revision: string;
   readonly contents: RulebookContentsV1;
+  readonly settings?: RulebookSettings;
 };
 
 const entityIdSchema = z.string().min(1);
@@ -266,6 +269,18 @@ const setIntentSchema = z.union([
   z.strictObject({
     kind: z.literal('set'),
     target: blockRefSchema,
+    field: z.literal('image-side'),
+    value: z.enum(['left', 'right']).optional(),
+  }),
+  z.strictObject({
+    kind: z.literal('set'),
+    target: blockRefSchema,
+    field: z.literal('text-flow'),
+    value: z.enum(['beside', 'wrap']).optional(),
+  }),
+  z.strictObject({
+    kind: z.literal('set'),
+    target: blockRefSchema,
     field: z.literal('size'),
     value: rulebookIllustrationSizeSchema.optional(),
   }),
@@ -408,7 +423,7 @@ const setIntentSchema = z.union([
     kind: z.literal('set'),
     target: blockRefSchema,
     field: z.literal('variant'),
-    value: z.enum(['note', 'example', 'quotation', 'compact', 'gallery', 'featured-member']),
+    value: z.enum(['note', 'example', 'quotation', 'compact', 'gallery', 'featured-member', 'fan']),
   }),
   z.strictObject({
     kind: z.literal('set'),
@@ -553,6 +568,9 @@ type RulebookResolutionApproval = {
 
 type RulebookEditorReadyResult = {
   readonly status: 'ready';
+  readonly settings: RulebookSettings;
+  readonly settingsConflict: boolean;
+  readonly hasLocalChanges: boolean;
   readonly draft: RulebookContentsDraftV1;
   readonly comparisonDraft: RulebookContentsDraftV1;
   readonly latest: SavedRulebookRevision;
@@ -565,6 +583,7 @@ type RulebookEditorReadyResult = {
   readonly isSaving: boolean;
   readonly saveRequest?: {
     readonly expectedRevision: string;
+    readonly settings: RulebookSettings;
     readonly contents: RulebookContentsV1;
   };
   readonly operationError?: string;
@@ -584,7 +603,10 @@ type RulebookEditorAction =
   | RulebookCreateIntent
   | Omit<RulebookDeleteIntent, 'deletedRefs'>
   | Omit<RulebookPlaceIntent, 'original'>
-  | { readonly kind: 'replace-draft'; readonly draft: RulebookContentsDraftV1 }
+  | { readonly kind: 'replace-draft'; readonly draft: RulebookContentsDraftV1; readonly settings?: RulebookSettings }
+  | { readonly kind: 'discard-draft' }
+  | { readonly kind: 'replace-settings'; readonly settings: RulebookSettings }
+  | { readonly kind: 'resolve-settings'; readonly choice: 'local' | 'saved' }
   | { readonly kind: 'receive-latest'; readonly latest: SavedRulebookRevision }
   | { readonly kind: 'resolve'; readonly approval: RulebookResolutionApproval }
   | { readonly kind: 'begin-save' }
@@ -594,10 +616,13 @@ type RulebookEditorAction =
 
 export type RulebookEditorStateManager = {
   readonly result: RulebookEditorResult;
+  replacementIssue(contents: RulebookContentsDraftV1): string | undefined;
   dispatch(action: RulebookEditorAction): RulebookEditorResult;
 };
 
 type ReadyState = {
+  settings: RulebookSettings;
+  settingsBaseline: RulebookSettings;
   baseline: SavedRulebookRevision;
   latest: SavedRulebookRevision;
   draft: RulebookContentsDraftV1;
@@ -610,6 +635,7 @@ type ReadyState = {
   isSaving: boolean;
   saveInFlight?: {
     revision: string;
+    settings: RulebookSettings;
     contents: RulebookContentsV1;
   };
   operationError?: string;
@@ -1400,6 +1426,14 @@ function setBlockField(block: RulebookBlockDraft, field: RulebookFieldName, valu
     block.references = rulebookTextReferencesSchema.optional().parse(value);
     return;
   }
+  if (field === 'image-side' && block.kind === 'card-entry') {
+    block.imageSide = z.enum(['left', 'right']).optional().parse(value);
+    return;
+  }
+  if (field === 'text-flow' && block.kind === 'card-entry') {
+    block.textFlow = z.enum(['beside', 'wrap']).optional().parse(value);
+    return;
+  }
   if (field === 'name' && block.kind === 'card-entry') {
     block.name = optionalText;
     return;
@@ -1429,7 +1463,7 @@ function setBlockField(block: RulebookBlockDraft, field: RulebookFieldName, valu
   if (
     field === 'variant' &&
     block.kind === 'card-group' &&
-    (value === 'compact' || value === 'gallery' || value === 'featured-member')
+    (value === 'compact' || value === 'gallery' || value === 'featured-member' || value === 'fan')
   ) {
     block.variant = value;
     return;
@@ -1903,6 +1937,8 @@ function fieldRecords(contents: RulebookContentsDraftV1): FieldRecord[] {
       add('size', block.size);
     }
     if (block.kind === 'card-entry') {
+      add('image-side', block.imageSide);
+      add('text-flow', block.textFlow);
       add('name', block.name);
       add('source', block.source);
       add('quantity', block.quantity);
@@ -3379,10 +3415,17 @@ function readyResult(state: ReadyState, reconciliation: Reconciliation = reconci
   const validation = draftValidation(state.draft);
   const hasUnresolved = reconciliation.incompatibilities.length > 0;
   const saveCandidate = hasUnresolved ? undefined : validation.candidate;
-  const hasChanges = patchHasChanges(state.patch);
-  const canSave = Boolean(saveCandidate && hasChanges && !state.isSaving);
+  const hasChanges = patchHasChanges(state.patch) || !sameSettings(state.settings, state.latest.settings);
+  const settingsConflict =
+    !sameSettings(state.settings, state.settingsBaseline) &&
+    !sameSettings(state.latest.settings, state.settingsBaseline) &&
+    !sameSettings(state.settings, state.latest.settings);
+  const canSave = Boolean(saveCandidate && hasChanges && !settingsConflict && !state.isSaving);
   return {
     status: 'ready',
+    settings: clone(state.settings),
+    settingsConflict,
+    hasLocalChanges: hasChanges,
     draft: clone(state.draft),
     comparisonDraft: clone(reconciliation.comparisonDraft),
     latest: clone(state.latest),
@@ -3394,9 +3437,13 @@ function readyResult(state: ReadyState, reconciliation: Reconciliation = reconci
     canSave,
     isSaving: state.isSaving,
     saveRequest: state.saveInFlight
-      ? { expectedRevision: state.saveInFlight.revision, contents: clone(state.saveInFlight.contents) }
+      ? {
+          expectedRevision: state.saveInFlight.revision,
+          contents: clone(state.saveInFlight.contents),
+          settings: clone(state.saveInFlight.settings),
+        }
       : canSave && saveCandidate
-        ? { expectedRevision: state.latest.revision, contents: clone(saveCandidate) }
+        ? { expectedRevision: state.latest.revision, contents: clone(saveCandidate), settings: clone(state.settings) }
         : undefined,
     operationError: state.operationError,
   };
@@ -3479,6 +3526,23 @@ function acknowledgeSavedCoverImages(
   return { acknowledged, local };
 }
 
+function sameSettings(left: RulebookSettings | undefined, right: RulebookSettings | undefined) {
+  return stableFingerprint(left ?? DEFAULT_RULEBOOK_SETTINGS) === stableFingerprint(right ?? DEFAULT_RULEBOOK_SETTINGS);
+}
+
+function receiveSettings(state: ReadyState, saved: SavedRulebookRevision, acknowledged = false) {
+  const incoming = saved.settings ?? DEFAULT_RULEBOOK_SETTINGS;
+  if (acknowledged) {
+    if (sameSettings(state.settings, state.saveInFlight?.settings)) {
+      state.settings = clone(incoming);
+    }
+    state.settingsBaseline = clone(incoming);
+  } else if (sameSettings(state.settings, state.settingsBaseline) || sameSettings(state.settings, incoming)) {
+    state.settings = clone(incoming);
+    state.settingsBaseline = clone(incoming);
+  }
+}
+
 function dispatchReady(
   state: ReadyState,
   action: RulebookEditorAction,
@@ -3508,6 +3572,11 @@ function dispatchReady(
         state.draft = local;
       }
     }
+    receiveSettings(
+      state,
+      authoritativeRevision,
+      Boolean(state.saveInFlight && sameSettings(state.saveInFlight.settings, authoritativeRevision.settings))
+    );
     state.latest = clone(authoritativeRevision);
     if (action.kind === 'save-stale') {
       state.isSaving = false;
@@ -3522,6 +3591,7 @@ function dispatchReady(
     }
     const saved = clone(authoritativeRevision);
     const saveInFlight = state.saveInFlight;
+    receiveSettings(state, saved, Boolean(saveInFlight));
     if (saveInFlight) {
       const { acknowledged, local } = acknowledgeSavedCoverImages(saveInFlight.contents, state.draft, saved.contents);
       state.patch = diffContents(acknowledged, local, saveInFlight.revision);
@@ -3547,6 +3617,7 @@ function dispatchReady(
     }
     state.saveInFlight = {
       revision: result.saveRequest.expectedRevision,
+      settings: clone(result.saveRequest.settings),
       contents: clone(result.saveRequest.contents),
     };
     state.isSaving = true;
@@ -3560,7 +3631,33 @@ function dispatchReady(
     return stabilize(state);
   }
 
+  if (action.kind === 'replace-settings') {
+    state.settings = rulebookSettingsSchema.parse(action.settings);
+    return undefined;
+  }
+  if (action.kind === 'discard-draft') {
+    if (state.isSaving) {
+      throw new Error('Wait for Save before discarding this draft.');
+    }
+    state.baseline = clone(state.latest);
+    state.draft = clone(state.latest.contents);
+    state.settings = clone(state.latest.settings ?? DEFAULT_RULEBOOK_SETTINGS);
+    state.settingsBaseline = clone(state.settings);
+    state.patch = emptyPatch(state.latest.revision);
+    state.ledger = [];
+    return stabilize(state);
+  }
+  if (action.kind === 'resolve-settings') {
+    if (action.choice === 'saved') {
+      state.settings = clone(state.latest.settings ?? DEFAULT_RULEBOOK_SETTINGS);
+    }
+    state.settingsBaseline = clone(state.latest.settings ?? DEFAULT_RULEBOOK_SETTINGS);
+    return undefined;
+  }
   if (action.kind === 'replace-draft') {
+    if (action.settings) {
+      state.settings = rulebookSettingsSchema.parse(action.settings);
+    }
     const layoutIssue = immutableLayoutError(state.knownPageLayouts, action.draft);
     if (layoutIssue) {
       throw new Error(layoutIssue);
@@ -3612,6 +3709,9 @@ function unsupportedManager(unsupported: { received: unknown; message: string })
     get result() {
       return result();
     },
+    replacementIssue() {
+      return unsupported.message;
+    },
     dispatch() {
       return result();
     },
@@ -3619,6 +3719,8 @@ function unsupportedManager(unsupported: { received: unknown; message: string })
 }
 
 function restoreReadyState(target: ReadyState, source: ReadyState): void {
+  target.settings = clone(source.settings);
+  target.settingsBaseline = clone(source.settingsBaseline);
   target.baseline = clone(source.baseline);
   target.latest = clone(source.latest);
   target.draft = clone(source.draft);
@@ -3637,6 +3739,9 @@ function operationErrorMessage(error: unknown): string {
 function failedReadyResult(state: ReadyState): RulebookEditorReadyResult {
   return {
     status: 'ready',
+    settings: clone(state.settings),
+    settingsConflict: false,
+    hasLocalChanges: true,
     draft: clone(state.draft),
     comparisonDraft: clone(state.draft),
     latest: clone(state.latest),
@@ -3685,8 +3790,11 @@ export function createRulebookEditorStateManager(saved: SavedRulebookRevision): 
     });
   }
 
-  const baseline = { revision: saved.revision, contents: contents.data };
+  const settings = rulebookSettingsSchema.parse(saved.settings ?? DEFAULT_RULEBOOK_SETTINGS);
+  const baseline = { revision: saved.revision, contents: contents.data, settings };
   const core: ReadyState = {
+    settings: clone(settings),
+    settingsBaseline: clone(settings),
     baseline,
     latest: clone(baseline),
     draft: clone(contents.data),
@@ -3701,6 +3809,9 @@ export function createRulebookEditorStateManager(saved: SavedRulebookRevision): 
   return {
     get result() {
       return unsupported ? unsupportedManager(unsupported).result : cachedResult;
+    },
+    replacementIssue(contents) {
+      return unsupported?.message ?? immutableLayoutError(core.knownPageLayouts, contents);
     },
     dispatch(action) {
       if (unsupported) {
@@ -3725,7 +3836,13 @@ export function createRulebookEditorStateManager(saved: SavedRulebookRevision): 
           };
           return unsupportedManager(unsupported).result;
         }
-        authoritativeRevision = { revision: receivedRevision.revision, contents: incoming.data };
+        authoritativeRevision = {
+          revision: receivedRevision.revision,
+          contents: incoming.data,
+          settings: rulebookSettingsSchema.parse(
+            receivedRevision.settings ?? core.latest.settings ?? DEFAULT_RULEBOOK_SETTINGS
+          ),
+        };
       }
       const before = clone(core);
       try {

@@ -28,12 +28,16 @@ export function phaseControls(canvasElement: HTMLElement) {
   /* Previous phase waits in the Next phase split button's menu, so reading or pressing it opens that menu first. */
   const openPrevious = async () => {
     await userEvent.click(controls().getByRole('button', { name: 'More phase actions' }));
-    return page.findByRole('menuitem', { name: 'Previous phase' });
+    return waitForFrame(() => page.getByRole('menuitem', { name: 'Previous phase' }));
   };
   const expectPrevious = async (enabled: boolean) => {
     const item = await openPrevious();
     /* A phase change's cooldown may still hold the item, so its state is awaited while the menu stays open. */
     await waitFor(() => expect((item as HTMLButtonElement).disabled).toBe(!enabled));
+    /* Escape belongs to the dropdown, so its focus trap must receive focus first. */
+    await waitForFrame(() =>
+      expect(page.getByRole('menu').contains(canvasElement.ownerDocument.activeElement)).toBe(true)
+    );
     await userEvent.keyboard('{Escape}');
     await waitForFrame(() => expect(page.queryByRole('menuitem', { name: 'Previous phase' })).toBeNull());
   };

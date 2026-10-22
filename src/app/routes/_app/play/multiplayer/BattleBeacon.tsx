@@ -121,7 +121,9 @@ function useBeaconFrame({
     }
     const carried = mode === 'carry';
     const target = beaconTarget(mode, home, { anchor, pending, carry: carried ? carryAt() : null });
-    moving.current ??= initialMotion(home, mode, target);
+    if (moving.current === null) {
+      moving.current = initialMotion(home, mode, target);
+    }
     const frame = stepBeacon(moving.current, { mode, target, delta, motion });
     reportRisen(moving.current);
     applyFrame(moving.current, frame, {

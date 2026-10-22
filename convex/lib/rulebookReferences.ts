@@ -6,6 +6,7 @@ import {
   resolvePublicationCapture,
 } from '../../src/shared/asset-publishing/publicationTargets';
 import { parseBoardData } from '../../src/shared/assets/validation';
+import { BoardAsset } from '../../src/shared/boards/schema';
 import { CanonicalFactionStoredSchema, TroopArtwork } from '../../src/shared/factions/schema';
 import type { RulebookEditionContentsV1 } from '../../src/shared/rulebooks/contents';
 import type {
@@ -44,13 +45,44 @@ async function savedBoardGeometry(ctx: ReadCtx, assetId: string, data: unknown, 
   }
 }
 
+/**
+ * A saved board's data for drawing markup on it, checked for shape only: deriving its territories here would cost every evaluation of a reactive query.
+ * The scene works its territories out where it draws them, and leaves its tints out if the board does not draw.
+ * While a newer capture of the board is pending or has failed, its image still shows the board as it was, so the data is held back rather than drawing tints that no longer line up with it.
+ */
+async function capturedBoardData(ctx: ReadCtx, assetId: string, data: unknown) {
+  const newerCapture = await ctx.db
+    .query('publication_jobs')
+    .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', 'board').eq('asset_id', assetId))
+    .first();
+  if (newerCapture) {
+    return {};
+  }
+  const parsed = BoardAsset.safeParse(data);
+  return parsed.success ? { board: parsed.data.board } : {};
+}
+
 /** Resolves only the live sources this Contents references, for both the reader and publication. */
 export async function resolveRulebookReferences(
   ctx: ReadCtx,
   contents: RulebookEditionContentsV1,
-  requested: { assetIds?: readonly string[]; factionIds?: readonly string[]; factionTokenImages?: boolean } = {}
+  requested: {
+    assetIds?: readonly string[];
+    factionIds?: readonly string[];
+    factionTokenImages?: boolean;
+    /** Every saved board's data, for an editor that paints tints; readers get it only for boards a scene tints. */
+    boardData?: boolean;
+  } = {}
 ) {
-  const { assetIds, factionIds, troopSources = [] } = collectRulebookReferenceIds(contents, requested);
+  const {
+    assetIds,
+    factionIds,
+    troopSources = [],
+    traitorFactionIds = [],
+    tokenFactionIds = [],
+    markupBoardIds = [],
+  } = collectRulebookReferenceIds(contents, requested);
+  const tinted = new Set(markupBoardIds);
   const [assets, factions] = await Promise.all([
     Promise.all(
       assetIds.map(async (assetId): Promise<readonly [string, RulebookResolvedAssetsById[string]] | null> => {
@@ -83,6 +115,9 @@ export async function resolveRulebookReferences(
               publication && isPublicationAssetType(asset.type)
                 ? publishedHref(asset.type, assetId, publication.cache_token)
                 : null,
+            ...(asset.type === 'board' && (requested.boardData || tinted.has(assetId))
+              ? await capturedBoardData(ctx, assetId, asset.data)
+              : {}),
           },
         ];
       })
@@ -135,6 +170,36 @@ export async function resolveRulebookReferences(
               : { status: 'unavailable', reference };
           })
         );
+        const traitors = await Promise.all(
+          (traitorFactionIds.includes(factionId) || requested.factionIds?.includes(factionId)
+            ? parsed.data.leaders
+            : []
+          ).map(async (member): Promise<RulebookResolvedSource> => {
+            const reference = {
+              kind: 'faction-member' as const,
+              factionId,
+              memberId: member.memberId,
+              presentation: 'traitor' as const,
+            };
+            const publicationId = factionMemberPublicationId(factionId, member.memberId);
+            const publication = await ctx.db
+              .query('publication_assets')
+              .withIndex('by_asset_type_and_asset_id', (q) =>
+                q.eq('asset_type', 'faction-traitor').eq('asset_id', publicationId)
+              )
+              .unique();
+            return publication
+              ? {
+                  status: 'ready',
+                  reference,
+                  name: member.name,
+                  imageUrl: publishedHref('faction-traitor', publicationId, publication.cache_token),
+                  width: 900,
+                  height: 1263,
+                }
+              : { status: 'unavailable', reference };
+          })
+        );
         return [
           factionId,
           {
@@ -142,7 +207,7 @@ export async function resolveRulebookReferences(
             name: parsed.data.name,
             color,
             emblemUrl: parsed.data.logo,
-            ...(tokenPublication && requested.factionTokenImages !== false
+            ...(tokenPublication && (requested.factionTokenImages !== false || tokenFactionIds.includes(factionId))
               ? { tokenImageUrl: publishedHref('faction-token', factionId, tokenPublication.cache_token) }
               : {}),
             token: { logo: parsed.data.logo, background: parsed.data.background },
@@ -162,6 +227,7 @@ export async function resolveRulebookReferences(
             ),
             ruler: members[0]!,
             leaders: members.slice(1),
+            ...(traitors.length ? { traitors } : {}),
           },
         ];
       })

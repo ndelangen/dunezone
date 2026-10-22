@@ -45,20 +45,52 @@ const INITIAL_DESIGNS = [
   influence: number;
 }[];
 
+const legacyDesigns = INITIAL_DESIGNS.map(
+  ({ key, label, colors, image, influence }): Pick<CardbackPreset, 'key' | 'label' | 'cardback'> => ({
+    key,
+    label,
+    cardback: {
+      name: label,
+      background: { image: '/image/texture/082.jpg', colors, influence, invert: false, definition: 1 },
+      image,
+      imageScale: 0.55,
+      imageOffset: [0, 10],
+    },
+  })
+);
+
 export const INITIAL_CARDBACK_PRESETS = [
-  ...INITIAL_DESIGNS.map(
-    ({ key, label, colors, image, influence }): Pick<CardbackPreset, 'key' | 'label' | 'cardback'> => ({
-      key,
-      label,
-      cardback: {
-        name: label,
-        background: { image: '/image/texture/082.jpg', colors, influence, invert: false, definition: 1 },
-        image,
-        imageScale: 0.55,
-        imageOffset: [0, 10],
+  ...legacyDesigns,
+  /* Existing decks supply these designs from the DB; empty databases use the existing generic form default. */
+  ...(
+    [
+      ['stronghold', 'Stronghold'],
+      ['homeworld', 'Homeworld'],
+      ['nexus', 'Nexus'],
+      ['leader-skill', 'Leader skill'],
+    ] as const
+  ).map(([key, label]) => ({
+    key,
+    label,
+    cardback: { ...legacyDesigns[0]!.cardback, name: label },
+  })),
+  {
+    key: 'custom' as const,
+    label: 'Custom',
+    cardback: {
+      name: 'Custom',
+      background: {
+        image: '/image/texture/082.jpg' as const,
+        colors: ['#474620', '#27260C'] as [string, string],
+        influence: 0.6,
+        invert: false,
+        definition: 1,
       },
-    })
-  ),
+      image: '/vector/icon/karama.svg' as const,
+      imageScale: 0.55,
+      imageOffset: [0, 10] as [number, number],
+    },
+  },
   { key: 'storm' as const, label: 'Storm', cardback: STANDARD_STORM_CARDBACK },
 ];
 

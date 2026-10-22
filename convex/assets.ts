@@ -1,4 +1,5 @@
 import { zodToConvex } from 'convex-helpers/server/zod4';
+import { paginationOptsValidator, paginationResultValidator } from 'convex/server';
 import type { Infer } from 'convex/values';
 import { ConvexError, v } from 'convex/values';
 
@@ -16,6 +17,7 @@ import {
   ASSET_CATALOGUE_QUERY_LIMIT,
   ASSET_CATALOGUE_SORTS,
 } from '../src/shared/assets/catalogueSearch';
+import type { AssetCatalogueSort } from '../src/shared/assets/catalogueSearch';
 import { GF9_LEADER_SKILLS, GF9_LEADER_SKILL_DECK } from '../src/shared/assets/gf9LeaderSkills';
 import { GF9_NEXUS_CARDS, GF9_NEXUS_DECK } from '../src/shared/assets/gf9Nexus';
 import { GF9_STRONGHOLD_CARDS, GF9_STRONGHOLD_DECK } from '../src/shared/assets/gf9StrongholdDeck';
@@ -28,13 +30,14 @@ import {
 import { CustomCardTokens, CustomCardTokenResolution } from '../src/shared/assets/schema';
 import { STANDARD_STORM_CARDS, STANDARD_STORM_CARDBACK } from '../src/shared/assets/standardStormDeck';
 import { treacheryToCustomCard } from '../src/shared/assets/treacheryToCustomCard';
-import { ASSET_TYPE_KEYS } from '../src/shared/assets/types';
+import { ASSET_TYPE_KEYS, holdsBundleMembership } from '../src/shared/assets/types';
 import { parseAssetDataForWrite, parseNexusCardInput } from '../src/shared/assets/validation';
+import { backgroundPresetSchema } from '../src/shared/backgrounds/schema';
 import { HistoricalBoardDefinition } from '../src/shared/boards/schema';
 import { internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
 import { publicationStatusFor } from './assetPublishingStatus';
-import { internalMutation, mutation, publicQuery } from './functions';
+import { internalMutation, mutation, publicQuery, viewerQuery } from './functions';
 import {
   assertReferenceableDeckCardback,
   assertReferenceableTokenBack,
@@ -48,16 +51,25 @@ import {
 } from './lib/assetBacks';
 import { assetCatalogueOrderOf } from './lib/assetCatalogue';
 import { assertKnownAssetType, assetDisplayName } from './lib/assetInput';
+import { backgroundProjection, resolveBackgrounds } from './lib/backgroundPresets';
 import { listCardbackPresets, presetFromKey, storeCardbackPreset } from './lib/cardbackPresets';
 import type { CardbackPresetMemo } from './lib/cardbackPresets';
 import { listCardFrontPresets } from './lib/cardFrontPresets';
-import { countCataloguePartitions, selectCataloguePage } from './lib/catalogueOrder';
+import {
+  catalogueSearchLimit,
+  catalogueSearchReach,
+  countCataloguePartitions,
+  selectCataloguePage,
+  selectCatalogueSearch,
+} from './lib/catalogueOrder';
 import {
   assignedGroupSummary,
   requireAssetSoftDelete,
   requireAssetUpdate,
+  requireAssignableGroup,
   requireGroupReassignment,
 } from './lib/collaborativeAccess';
+import { relatedFaqItemValidator } from './lib/collaborativeAccessValidators';
 import { assetPublishingValidator, assignedGroupSummaryValidator } from './lib/collaborativeAccessValidators';
 import {
   CUSTOM_CARD_TOKEN_RELATION,
@@ -67,6 +79,7 @@ import {
   validateCustomCardTokens,
 } from './lib/customCardTokens';
 import { parseStoredFactionForRead } from './lib/factionInput';
+import { loadRelatedFaqPage } from './lib/faqReferences';
 import { recordFormerSlug } from './lib/formerSlugs';
 import { requireAdminUserId, requireAuthUserId } from './lib/policy';
 import { profileSummary } from './lib/profileSummary';
@@ -169,6 +182,9 @@ async function presentedAppearance(
   presets: CardbackPresetMemo
 ) {
   const href = ownPublishedFace(row);
+  if (row.type === 'bundle') {
+    return { data: await resolveBackgrounds(ctx, row.data), href };
+  }
   if (row.type !== 'deck') {
     return { data: row.data, href };
   }
@@ -292,6 +308,7 @@ const assetPageValidator = v.object({
   cardTokensError: v.optional(v.union(v.string(), v.null())),
   /** Whether this type converts to a custom card; whether the viewer may is `session.isAdmin`. */
   convertibleToCustom: v.boolean(),
+  backgrounds: v.optional(v.array(zodToConvex(backgroundPresetSchema))),
   cardFrontPresets: v.array(zodToConvex(cardFrontPresetSchema)),
   cardbackPresets: v.array(zodToConvex(cardbackPresetSchema)),
   /** The owner's user id and the asset's live Group, or null: the facts the browser combines with the viewer. */
@@ -352,10 +369,17 @@ async function loadAssetPageFor(ctx: QueryCtx, row: Doc<'assets'>, args: { embed
     row.type === 'card-custom' || row.type === 'card-storm'
       ? await resolveCustomCardTokens(ctx, args.embeddedTokenIds ?? customCardTokenIds(row.data))
       : null;
+  const assetPublishing = isPublicationAssetType(row.type) ? await publicationStatusFor(ctx, row.type, row._id) : null;
+  const asset = await toListEntry(ctx, row, { presets });
+  /* A renderer recapture changes the publication token without changing the asset's edit date. */
+  if (ownPublishedFace(row) !== null && assetPublishing?.publicationHref) {
+    asset.previewHref = assetPublishing.publicationHref;
+  }
   return {
-    asset: await toListEntry(ctx, row, { presets }),
+    asset,
     convertibleToCustom: row.type === 'card-treachery',
     ...(resolvedTokens ? { cardTokens: resolvedTokens.tokens, cardTokensError: resolvedTokens.error } : {}),
+    backgrounds: await backgroundProjection(ctx, [row.data, back?.data, backDeckRow?.data]),
     cardFrontPresets: cardFrontAssetTypeSchema.safeParse(row.type).success ? await listCardFrontPresets(ctx) : [],
     cardbackPresets: row.type === 'deck' ? await listCardbackPresets(ctx, presets) : [],
     ownerId: row.owner_id,
@@ -371,9 +395,9 @@ async function loadAssetPageFor(ctx: QueryCtx, row: Doc<'assets'>, args: { embed
         }))
       : { members: [], membersTruncated: false }),
     inDecks: row.type === 'deck' ? [] : await containersHolding(ctx, row._id, DECK_CARD),
-    inBundles: TOKEN_TYPES.has(row.type) ? await containersHolding(ctx, row._id, BUNDLE_TOKEN) : [],
+    inBundles: holdsBundleMembership(row.type) ? await containersHolding(ctx, row._id, BUNDLE_TOKEN) : [],
     linkingRulesets: await rulesetsSlotting(ctx, row._id),
-    assetPublishing: isPublicationAssetType(row.type) ? await publicationStatusFor(ctx, row.type, row._id) : null,
+    assetPublishing,
     backPublishing: await backFacePublication(ctx, row),
     resolvedBack: await resolveBackHref(ctx, row, presets),
   };
@@ -389,6 +413,28 @@ export const page = publicQuery({
   handler: async (ctx, args) => {
     const row = await liveAsset(ctx, args.type, args.slug);
     return row ? await loadAssetPageFor(ctx, row, args) : null;
+  },
+});
+
+/** Each cursor range carries its related questions; only the first also carries the page's detail. */
+export const detailPage = publicQuery({
+  args: {
+    type: v.string(),
+    slug: v.string(),
+    embeddedTokenIds: v.optional(v.array(v.id('assets'))),
+    paginationOpts: paginationOptsValidator,
+  },
+  returns: paginationResultValidator(
+    v.object({ detail: v.union(assetPageValidator, v.null()), items: v.array(relatedFaqItemValidator) })
+  ),
+  handler: async (ctx, args) => {
+    const row = await liveAsset(ctx, args.type, args.slug);
+    if (!row) {
+      return { page: [{ detail: null, items: [] }], isDone: true, continueCursor: '' };
+    }
+    const related = await loadRelatedFaqPage(ctx, { kind: 'asset', id: row._id }, args.paginationOpts);
+    const detail = args.paginationOpts.cursor === null ? await loadAssetPageFor(ctx, row, args) : null;
+    return { ...related, page: [{ detail, items: related.page }] };
   },
 });
 
@@ -604,6 +650,7 @@ export const create = mutation({
     data: v.any(),
     /** A deck or bundle loaded as this one's starting point: its members are copied onto the new container. */
     members_from: v.optional(v.id('assets')),
+    group_id: v.optional(v.union(v.id('groups'), v.null())),
   },
   returns: v.object({ id: v.id('assets'), slug: v.string() }),
   handler: async (ctx, args) => {
@@ -611,7 +658,13 @@ export const create = mutation({
     if (args.type === 'card-nexus' && !parseNexusCardInput(args.data).factionLink) {
       throw new ConvexError('Choose a faction before creating this Nexus card');
     }
+    if (args.group_id) {
+      await requireAssignableGroup(ctx, args.group_id);
+    }
     const created = await createOwnedAsset(ctx, userId, args.type, args.data);
+    if (args.group_id) {
+      await ctx.db.patch('assets', created.id, { group_id: args.group_id });
+    }
     if (args.members_from) {
       await copyMembers(ctx, args.members_from, created.id, args.type);
     }
@@ -677,6 +730,49 @@ export const update = mutation({
     await enqueueAssetPublication(ctx, { _id: args.id, type: row.type, slug, data: parsed.data });
     await refreshDependentCards(ctx, row.type, args.id);
     return { id: args.id, slug };
+  },
+});
+
+/** Conversion never silently chooses a suffix in the destination type's address space. */
+async function customToSpiceTarget(ctx: QueryCtx, row: Doc<'assets'>, name: string) {
+  const slug = name === nameOf(row) ? row.slug : slugify(name);
+  const holder = slug ? await assetSlugHolder(ctx, 'card-spice', slug) : null;
+  const problem =
+    !slug || slug === 'create'
+      ? 'Choose a name that gives this spice card an available address.'
+      : holder
+        ? 'A spice card already reserves this address. Choose a different name before converting.'
+        : null;
+  return { slug, problem };
+}
+
+/** Changes one editable Custom Card into a fully authored Spice Card without replacing its identity. */
+export const convertCustomToSpice = mutation({
+  args: { id: v.id('assets'), data: v.any() },
+  returns: v.object({ id: v.id('assets'), slug: v.string() }),
+  handler: async (ctx, { id, data }) => {
+    const row = await ctx.db.get('assets', id);
+    if (!row || row.is_deleted || row.type !== 'card-custom') {
+      throw new ConvexError('Only a live custom card can be converted to a spice card.');
+    }
+    const parsed = parseAssetDataForWrite('card-spice', data);
+    await requireAssetUpdate(ctx, id, parsed.name);
+    /* A drifted source needs repair before an operation that discards its layer representation. */
+    parseAssetDataForWrite('card-custom', row.data);
+    await validateSpiceCardBoard(ctx, parsed.data);
+    const target = await customToSpiceTarget(ctx, row, parsed.name);
+    if (target.problem) {
+      throw new ConvexError(target.problem);
+    }
+    await recordFormerSlug(ctx, { kind: 'asset', scope: row.type, slug: row.slug, record_id: id });
+    await ctx.db.patch(id, { type: 'card-spice', data: parsed.data, slug: target.slug, updated_at: nowIso() });
+    /* The Spice shape contains no Custom layers, so this removes only the retired reverse rows. */
+    await syncCustomCardTokenRelations(ctx, id, parsed.data);
+    await syncSpiceCardRelations(ctx, id, parsed.data);
+    await supersedePendingPublication(ctx, row.type, id);
+    await enqueueAssetPublication(ctx, { _id: id, type: 'card-spice', slug: target.slug, data: parsed.data });
+    /* Decks and Rulebook references resolve this unchanged ID against its current type on every read. */
+    return { id, slug: target.slug };
   },
 });
 
@@ -770,7 +866,7 @@ const BUNDLE_TOKEN = 'bundle-token';
 /** Which kind a container's membership rows carry, and therefore what it is allowed to hold. */
 export const CONTAINER_KINDS: Record<string, { kind: string; holds: (type: string) => boolean; noun: string }> = {
   deck: { kind: DECK_CARD, holds: (type) => type.startsWith('card-'), noun: 'cards' },
-  bundle: { kind: BUNDLE_TOKEN, holds: (type) => TOKEN_TYPES.has(type), noun: 'tokens' },
+  bundle: { kind: BUNDLE_TOKEN, holds: holdsBundleMembership, noun: 'tokens' },
 };
 
 /** Token Asset types, from the module every back rule shares. */
@@ -815,6 +911,40 @@ export async function referencedCardbackDeck(ctx: QueryCtx, row: Doc<'assets'>) 
   return target && authoredDeckCardback(target) ? target : null;
 }
 
+function assertMemberCount(count: number) {
+  if (!Number.isInteger(count) || count < 0 || count > 99) {
+    throw new ConvexError('A member count must be a whole number between 0 and 99');
+  }
+}
+
+async function editableContainer(ctx: MutationCtx, id: Id<'assets'>) {
+  const container = await ctx.db.get('assets', id);
+  if (!container || container.is_deleted) {
+    throw new Error(`Asset with id ${id} not found`);
+  }
+  const rules = CONTAINER_KINDS[container.type];
+  if (!rules) {
+    throw new Error(`Asset type ${container.type} holds nothing`);
+  }
+  await requireAssetUpdate(ctx, id);
+  return { container, rules };
+}
+
+async function requireLiveContainerMember(
+  ctx: MutationCtx,
+  container: Doc<'assets'>,
+  rules: NonNullable<(typeof CONTAINER_KINDS)[string]>,
+  id: Id<'assets'>
+) {
+  const member = await ctx.db.get('assets', id);
+  if (!member || member.is_deleted) {
+    throw new Error(`Asset with id ${id} not found`);
+  }
+  if (!rules.holds(member.type)) {
+    throw new Error(`A ${container.type} holds ${rules.noun}, not ${member.type}`);
+  }
+}
+
 /**
  * How many of one member a container holds.
  * Zero removes it.
@@ -828,34 +958,17 @@ export async function referencedCardbackDeck(ctx: QueryCtx, row: Doc<'assets'>) 
 export const setMemberCount = mutation({
   args: { container_id: v.id('assets'), member_id: v.id('assets'), count: v.number() },
   handler: async (ctx, args) => {
-    if (!Number.isInteger(args.count) || args.count < 0 || args.count > 99) {
-      throw new ConvexError('A member count must be a whole number between 0 and 99');
-    }
-    const container = await ctx.db.get('assets', args.container_id);
-    if (!container || container.is_deleted) {
-      throw new Error(`Asset with id ${args.container_id} not found`);
-    }
-    const rules = CONTAINER_KINDS[container.type];
-    if (!rules) {
-      throw new Error(`Asset type ${container.type} holds nothing`);
-    }
-    /* Membership changes touch no name, so the rename gate has nothing to compare. */
-    await requireAssetUpdate(ctx, args.container_id);
-
-    const member = await ctx.db.get('assets', args.member_id);
-    if (!member || member.is_deleted) {
-      throw new Error(`Asset with id ${args.member_id} not found`);
-    }
-    if (!rules.holds(member.type)) {
-      throw new Error(`A ${container.type} holds ${rules.noun}, not ${member.type}`);
-    }
-
+    assertMemberCount(args.count);
+    const { container, rules } = await editableContainer(ctx, args.container_id);
     const existing = await ctx.db
       .query('asset_relations')
       .withIndex('by_from_to_kind', (q) =>
         q.eq('from_asset_id', args.container_id).eq('to_asset_id', args.member_id).eq('kind', rules.kind)
       )
       .unique();
+    if (args.count > 0) {
+      await requireLiveContainerMember(ctx, container, rules, args.member_id);
+    }
     if (args.count === 0) {
       if (existing) {
         await ctx.db.delete(existing._id);
@@ -873,6 +986,49 @@ export const setMemberCount = mutation({
     await ctx.db.patch(args.container_id, { updated_at: nowIso() });
   },
 });
+
+/** Replaces reviewed membership with the editor's permissions and member checks, authorizing its container once. */
+export async function replaceAssetMembers(
+  ctx: MutationCtx,
+  containerId: Id<'assets'>,
+  members: { id: Id<'assets'>; count: number }[]
+) {
+  if (members.length > 500 || new Set(members.map((member) => member.id)).size !== members.length) {
+    throw new ConvexError('A membership import holds at most 500 distinct members.');
+  }
+  const { container, rules } = await editableContainer(ctx, containerId);
+  const relations = await ctx.db
+    .query('asset_relations')
+    .withIndex('by_from_kind', (q) => q.eq('from_asset_id', containerId).eq('kind', rules.kind))
+    .take(501);
+  if (relations.length > 500) {
+    throw new ConvexError('This container has too many members to import.');
+  }
+  const remaining = new Map(relations.map((relation) => [relation.to_asset_id, relation]));
+  for (const member of members) {
+    assertMemberCount(member.count);
+    if (member.count === 0) {
+      throw new ConvexError('Omit a member from the replacement list to remove it.');
+    }
+    await requireLiveContainerMember(ctx, container, rules, member.id);
+    const existing = remaining.get(member.id);
+    if (!existing) {
+      await ctx.db.insert('asset_relations', {
+        from_asset_id: containerId,
+        to_asset_id: member.id,
+        kind: rules.kind,
+        count: member.count,
+      });
+    } else if (existing.count !== member.count) {
+      await ctx.db.patch('asset_relations', existing._id, { count: member.count });
+    }
+    remaining.delete(member.id);
+  }
+  for (const relation of remaining.values()) {
+    await ctx.db.delete('asset_relations', relation._id);
+  }
+  await ctx.db.patch('assets', containerId, { updated_at: nowIso() });
+}
 
 /** Bounds a deck's composition read; a deck far below this is the ordinary case. */
 const DECK_CARD_LIMIT = 500;
@@ -1002,7 +1158,7 @@ async function memberPreviews(ctx: QueryCtx, containerId: Id<'assets'>, kind: st
  * One tile on the browse grid: a listing entry plus the member previews a bundle's band draws.
  * Derived here rather than added to `assetListEntryValidator`, because the landing page draws piles of every type and would pay a relation pass per row for a fact it never shows.
  */
-const assetBrowseEntryValidator = assetListEntryValidator.extend({
+export const assetBrowseEntryValidator = assetListEntryValidator.extend({
   members: v.array(memberPreviewValidator),
 });
 
@@ -1066,11 +1222,109 @@ export const browsePage = publicQuery({
   },
 });
 
+/** The same catalogue tile on browse pages and FAQ references, including a bundle's member previews. */
+export async function toAssetCatalogueEntry(ctx: QueryCtx, row: Doc<'assets'>) {
+  const previewKind = memberPreviewKind(row.type);
+  return {
+    ...(await toListEntry(ctx, row, {}, { deckBacks: new Map() })),
+    members: previewKind ? await memberPreviews(ctx, row._id, previewKind) : [],
+  };
+}
+
+/** The tiles of the selected entries: each asset read once, and one deck or owner read once however many tiles share it. */
+async function catalogueEntries(ctx: QueryCtx, type: string, selected: { source_id: string }[]) {
+  const previewKind = memberPreviewKind(type);
+  const decks = new Map<Id<'assets'>, Doc<'assets'> | null>();
+  const owners = new Map<Id<'users'>, Awaited<ReturnType<typeof profileSummary>>>();
+  const presets: CardbackPresetMemo = new Map();
+  const entries: Infer<typeof assetBrowseEntryValidator>[] = [];
+  for (const entry of selected) {
+    const assetId = ctx.db.normalizeId('assets', entry.source_id);
+    const row = assetId ? await ctx.db.get('assets', assetId) : null;
+    if (!row || row.is_deleted) {
+      /* Drift: the page comes up one tile short until the backfill or the asset's next save. */
+      console.warn(`Catalogue entry for asset ${entry.source_id} has no live asset.`);
+      continue;
+    }
+    const members = previewKind ? await memberPreviews(ctx, row._id, previewKind) : [];
+    entries.push({ ...(await toListEntry(ctx, row, { owners, presets }, { deckBacks: decks })), members });
+  }
+  return entries;
+}
+
+/** A browsed page: aggregate counts, numbered pages, a chosen order. */
+const catalogueBrowseValidator = v.object({
+  entries: v.array(assetBrowseEntryValidator),
+  /** Assets of the type, across every page. */
+  total: v.number(),
+  /** Live assets of this type, before any search. */
+  typeTotal: v.number(),
+  /** Always true now that a search is never paged; kept so the browse shape stays the one the page reads. */
+  complete: v.boolean(),
+  /** The page these tiles are, which may lie past `pageCount`, with no tiles. */
+  page: v.number(),
+  pageCount: v.number(),
+  pageSize: v.number(),
+});
+
+/** A searched type: the best matches first, no count and no pages, and more by asking for a larger limit. */
+const catalogueSearchValidator = v.object({
+  mode: v.literal('search'),
+  entries: v.array(assetBrowseEntryValidator),
+  /** Whether a larger limit would show more assets. */
+  hasMore: v.boolean(),
+  /** Whether more assets may match than one search shows, so the reader should add a word rather than load more. */
+  capped: v.boolean(),
+  /** The limit these tiles answer, after clamping. */
+  limit: v.number(),
+  /** Live assets of this type, before any search. */
+  typeTotal: v.number(),
+});
+
+type CatalogueArgs = { type: string; q?: string; sort?: AssetCatalogueSort; page?: number; limit?: number };
+
+async function loadCataloguePage(ctx: QueryCtx, args: CatalogueArgs) {
+  const page = Number.isSafeInteger(args.page) && args.page! > 1 ? args.page! : 1;
+  const selection = await selectCataloguePage(ctx, {
+    kind: 'asset',
+    partition: args.type,
+    ...assetCatalogueOrderOf(args.sort),
+    page,
+    pageSize: ASSET_CATALOGUE_PAGE_SIZE,
+  });
+  return {
+    entries: await catalogueEntries(ctx, args.type, selection.entries),
+    total: selection.total,
+    typeTotal: selection.total,
+    complete: selection.exact,
+    page,
+    pageCount: Math.max(1, Math.ceil(selection.total / ASSET_CATALOGUE_PAGE_SIZE)),
+    pageSize: ASSET_CATALOGUE_PAGE_SIZE,
+  };
+}
+
+async function loadCatalogueSearch(ctx: QueryCtx, args: CatalogueArgs, text: string) {
+  const limit = catalogueSearchLimit(args.limit, ASSET_CATALOGUE_PAGE_SIZE);
+  const [selection, [typeTotal = 0]] = await Promise.all([
+    selectCatalogueSearch(ctx, { kind: 'asset', partition: args.type, text, limit }),
+    countCataloguePartitions(ctx, 'asset', [args.type]),
+  ]);
+  return {
+    mode: 'search' as const,
+    entries: await catalogueEntries(ctx, args.type, selection.entries),
+    ...catalogueSearchReach(selection, limit, ASSET_CATALOGUE_PAGE_SIZE),
+    limit,
+    typeTotal,
+  };
+}
+
 /**
- * One page of one asset type, the same for every viewer: the route's search parameters in, the visible tiles and the counts out.
- * The aggregate counts the type's list and finds the page's first entry;
+ * One asset type's catalogue, the same for every viewer: the route's search parameters in, the visible tiles and the counts out.
+ * The aggregate counts the type's list and finds a page's first entry;
  * a search uses Convex's search index over the asset's name and its owner's.
  * Only the page's own assets are read, so a page costs the same however many assets the type holds.
+ * A search is the load-more search, best matches first up to `limit`;
+ * without one the type is browsed, in pages.
  * Replaces `browsePage`, which stays for one release so a bundle still asking for it keeps working while this one deploys.
  */
 export const catalogue = publicQuery({
@@ -1079,63 +1333,13 @@ export const catalogue = publicQuery({
     q: v.optional(v.string()),
     sort: v.optional(v.union(...ASSET_CATALOGUE_SORTS.map((sort) => v.literal(sort)))),
     page: v.optional(v.number()),
+    /** How many of the best matches to return; Load more asks again with a larger one. */
+    limit: v.optional(v.number()),
   },
-  returns: v.object({
-    entries: v.array(assetBrowseEntryValidator),
-    /** Assets matching the search, across every page. */
-    total: v.number(),
-    /** Live assets of this type, before any search. */
-    typeTotal: v.number(),
-    /** False when a search matched more entries than one query reads, so `total` is a floor. */
-    complete: v.boolean(),
-    /** The page these tiles are, which may lie past `pageCount`, with no tiles. */
-    page: v.number(),
-    pageCount: v.number(),
-    pageSize: v.number(),
-  }),
+  returns: v.union(catalogueBrowseValidator, catalogueSearchValidator),
   handler: async (ctx, args) => {
     const text = args.q?.slice(0, ASSET_CATALOGUE_QUERY_LIMIT).trim() ?? '';
-    const page = Number.isSafeInteger(args.page) && args.page! > 1 ? args.page! : 1;
-    const [selection, [typeCount = 0]] = await Promise.all([
-      selectCataloguePage(ctx, {
-        kind: 'asset',
-        partition: args.type,
-        ...assetCatalogueOrderOf(args.sort),
-        page,
-        pageSize: ASSET_CATALOGUE_PAGE_SIZE,
-        search: text ? { text, relevance: !args.sort } : undefined,
-      }),
-      /* Without a search the page's own count is the type's, so only a search counts again. */
-      text ? countCataloguePartitions(ctx, 'asset', [args.type]) : Promise.resolve([]),
-    ]);
-    const typeTotal = text ? typeCount : selection.total;
-
-    const previewKind = memberPreviewKind(args.type);
-    const decks = new Map<Id<'assets'>, Doc<'assets'> | null>();
-    const owners = new Map<Id<'users'>, Awaited<ReturnType<typeof profileSummary>>>();
-    const presets: CardbackPresetMemo = new Map();
-    const entries: Infer<typeof assetBrowseEntryValidator>[] = [];
-    for (const entry of selection.entries) {
-      const assetId = ctx.db.normalizeId('assets', entry.source_id);
-      const row = assetId ? await ctx.db.get('assets', assetId) : null;
-      if (!row || row.is_deleted) {
-        /* Drift: the page comes up one tile short until the backfill or the asset's next save. */
-        console.warn(`Catalogue entry for asset ${entry.source_id} has no live asset.`);
-        continue;
-      }
-      const members = previewKind ? await memberPreviews(ctx, row._id, previewKind) : [];
-      entries.push({ ...(await toListEntry(ctx, row, { owners, presets }, { deckBacks: decks })), members });
-    }
-
-    return {
-      entries,
-      total: selection.total,
-      typeTotal,
-      complete: selection.exact,
-      page,
-      pageCount: Math.max(1, Math.ceil(selection.total / ASSET_CATALOGUE_PAGE_SIZE)),
-      pageSize: ASSET_CATALOGUE_PAGE_SIZE,
-    };
+    return text ? await loadCatalogueSearch(ctx, args, text) : await loadCataloguePage(ctx, args);
   },
 });
 
@@ -1247,7 +1451,8 @@ export const spiceCardBoard = publicQuery({
 
 /** The create page's live token resolution, held only while its draft embeds tokens. */
 export const customCardTokens = publicQuery({
-  args: { ids: v.array(v.id('assets')) },
+  /* Like Spice drafts, pasted layers may carry foreign IDs; the resolver reports them as missing. */
+  args: { ids: v.array(v.string()) },
   returns: zodToConvex(CustomCardTokenResolution),
   handler: async (ctx, args) => await resolveCustomCardTokens(ctx, args.ids),
 });
@@ -1881,5 +2086,37 @@ export const seedGF9LeaderSkills = internalMutation({
       card_ids: cardIds,
     });
     return { deckId, cardIds, created: cardIds.length + 1 };
+  },
+});
+
+async function linkedBackRow(ctx: QueryCtx, args: { type: string; targetId?: string; referenceId: string }) {
+  const ownId = args.targetId ? ctx.db.normalizeId('assets', args.targetId) : null;
+  const referenceId = ctx.db.normalizeId('assets', args.referenceId);
+  if ((args.targetId && !ownId) || !referenceId) {
+    throw new ConvexError('Choose an available back reference.');
+  }
+  const target = { _id: ownId, type: args.type };
+  if (TOKEN_ASSET_TYPES.has(args.type)) {
+    return await assertReferenceableTokenBack(ctx, target, referenceId);
+  }
+  if (args.type === 'deck') {
+    return await assertReferenceableDeckCardback(ctx, target, referenceId);
+  }
+  throw new ConvexError('This Asset type has no linked back.');
+}
+
+/** Display data for a validated linked back, read lazily before explicit Load. */
+export const linkedBack = viewerQuery({
+  args: { type: v.string(), targetId: v.optional(v.string()), referenceId: v.string() },
+  returns: v.object({
+    id: v.id('assets'),
+    name: v.string(),
+    data: v.any(),
+    previewHref: v.union(v.string(), v.null()),
+  }),
+  handler: async (ctx, args) => {
+    await requireAuthUserId(ctx);
+    const row = await linkedBackRow(ctx, args);
+    return { id: row._id, name: assetDisplayName(row), data: row.data, previewHref: ownPublishedFace(row) };
   },
 });

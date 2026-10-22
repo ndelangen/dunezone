@@ -83,9 +83,8 @@ function AccountManagement() {
       dispatch({ source: null, target: null, review: false });
     } catch (error) {
       dispatch({ error: error instanceof Error ? error.message : 'The merge could not start.' });
-    } finally {
-      dispatch({ busy: false });
     }
+    dispatch({ busy: false });
   };
   return (
     <PageLayout>

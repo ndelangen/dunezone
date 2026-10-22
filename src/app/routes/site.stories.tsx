@@ -173,6 +173,23 @@ export const Glossary = meta.story({
     await userEvent.type(page.getByRole('textbox', { name: 'Search the glossary' }), 'combat');
     await expect(page.findByRole('heading', { name: 'Battle', level: 3 })).resolves.toBeVisible();
     await expect(page.queryByRole('heading', { name: 'Troop' })).toBeNull();
+    for (const [query, term] of [
+      ['intrusions', 'Intrusion'],
+      ['reinforcements', 'Reinforcement'],
+      ['re-enforcements', 'Reinforcement'],
+      ['thrown fights', 'Thrown fight'],
+      ['occupies', 'Occupy'],
+      ['occupation', 'Occupy'],
+      ['occupations', 'Occupy'],
+      ['co-occupations', 'Occupy'],
+      ['co-occupied', 'Occupy'],
+      ['occupier', 'Occupy'],
+    ]) {
+      const search = page.getByRole('textbox', { name: 'Search the glossary' });
+      await userEvent.clear(search);
+      await userEvent.type(search, query);
+      await expect(page.findByRole('heading', { name: term, level: 3 })).resolves.toBeVisible();
+    }
   },
 });
 

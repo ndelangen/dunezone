@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vite-plus/test';
 
+import { getRulebookSize, rulebookSizeCatalogue } from '../rulebooks/settings';
 import {
   matchPublishedPath,
   PUBLICATION_ASSET_TYPES,
@@ -7,11 +8,38 @@ import {
   publishedHref,
   publishedPath,
   publishedR2Key,
+  resolvePublicationCapture,
 } from './publicationTargets';
 
 const factionId = 'k1'.repeat(12);
 
 describe('publication targets', () => {
+  test('standalone leaders publish one 600px square without a back address', () => {
+    expect(resolvePublicationCapture('token-leader')).toMatchObject({ output: 'image', widthPx: 600, heightPx: 600 });
+    const path = publishedPath('token-leader', factionId);
+    expect(path).toBe(`/published/leader-tokens/${factionId}/token.jpg`);
+    expect(matchPublishedPath(`/published/leader-tokens/${factionId}.back/token.jpg`)).toBeNull();
+  });
+
+  test('first-page raster captures use integer pixels while physical formats retain their precision', () => {
+    expect(getRulebookSize('gf9-expansion')).toMatchObject({ widthMm: 132.08, heightMm: 254 });
+    expect(resolvePublicationCapture('rulebook-first-page', 'gf9-expansion')).toMatchObject({
+      output: 'image',
+      widthPx: 528,
+      heightPx: 1016,
+    });
+    for (const size of rulebookSizeCatalogue) {
+      const capture = resolvePublicationCapture('rulebook-first-page', size.id);
+      expect(capture.output).toBe('image');
+      if (capture.output === 'image') {
+        expect(Number.isInteger(capture.widthPx)).toBe(true);
+        expect(Number.isInteger(capture.heightPx)).toBe(true);
+        expect(Math.abs(capture.widthPx - size.widthMm * 4)).toBeLessThanOrEqual(0.5);
+        expect(Math.abs(capture.heightPx - size.heightMm * 4)).toBeLessThanOrEqual(0.5);
+      }
+    }
+  });
+
   test('the public path and the R2 key stay two views of one location', () => {
     for (const assetType of PUBLICATION_ASSET_TYPES) {
       const assetId =

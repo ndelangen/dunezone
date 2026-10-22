@@ -27,7 +27,7 @@ import {
   movePoint,
 } from '@shared/boards/geometry';
 import type { Board, Point, Face, Properties, Decal } from '@shared/boards/geometry';
-import { territoryId, territoryNameError } from '@shared/boards/schema';
+import { territoryNameError } from '@shared/boards/schema';
 import { Section } from '@ui/block/Section';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { stockAssetOptions } from '@ui/content/stockAssetOptions';
@@ -88,6 +88,25 @@ const TOOL_SHORTCUTS: Record<string, BoardEditorState['tool']> = {
   h: 'pan',
 };
 
+function boardWithDrawingEdge(board: BoardEditorState['board'], edge: ReturnType<typeof drawingEdge>) {
+  return edge ? { ...board, edges: [...board.edges, edge] } : board;
+}
+
+function pendingDrawingPoints(tool: BoardEditorState['tool'], points: BoardEditorState['points']) {
+  return drawingComplete(tool, points) ? [] : points;
+}
+
+function previewBoardGeometry(
+  dragging: Point | null,
+  baselineFaces: Face[],
+  board: Parameters<typeof facePath>[0],
+  baseline: ReturnType<typeof derive>
+) {
+  return dragging
+    ? { faces: baselineFaces.map((face) => ({ ...face, path: facePath(board, face) })), unrecoveredSegments: 0 }
+    : baseline;
+}
+
 export function BoardEditor({
   state,
   dispatch,
@@ -111,11 +130,12 @@ export function BoardEditor({
     if (!state.dragNode || !state.dragPoint) {
       return state.board;
     }
-    return state.dragHandle
+    const dragHandle = state.dragHandle;
+    return dragHandle
       ? {
           ...state.board,
           edges: state.board.edges.map((edge) =>
-            edge.id === state.dragNode ? { ...edge, [state.dragHandle!]: boundPoint(state.dragPoint!) } : edge
+            edge.id === state.dragNode ? { ...edge, [dragHandle]: boundPoint(state.dragPoint!) } : edge
           ),
         }
       : movePoint(state.board, state.dragNode, state.dragPoint);
@@ -126,12 +146,7 @@ export function BoardEditor({
   const result = useMemo(() => {
     try {
       return {
-        ...(state.dragPoint
-          ? {
-              faces: baselineFaces.map((face) => ({ ...face, path: facePath(drawBoard, face) })),
-              unrecoveredSegments: 0,
-            }
-          : baseline),
+        ...previewBoardGeometry(state.dragPoint, baselineFaces, drawBoard, baseline),
         error: null,
       };
     } catch (error) {
@@ -170,7 +185,7 @@ export function BoardEditor({
         ...state.board,
         properties: {
           ...state.board.properties,
-          [selectedKey]: { ...property, ...patch, id: territoryId(patch.name ?? property.name) },
+          [selectedKey]: { ...property, ...patch },
         },
       },
       'Territory updated',
@@ -313,9 +328,9 @@ export function BoardEditor({
     const points = [...state.points, { node: connection.node, point: connection.point }];
     try {
       const edge = drawingEdge(state.tool, points);
-      const board = edge ? { ...connection.board, edges: [...connection.board.edges, edge] } : connection.board;
+      const board = boardWithDrawingEdge(connection.board, edge);
       commit(board, connection.feedback, true);
-      view({ points: drawingComplete(state.tool, points) ? [] : points });
+      view({ points: pendingDrawingPoints(state.tool, points) });
     } catch (error) {
       view({ message: `Geometry needs correction: ${String(error)}` });
     }
@@ -474,7 +489,6 @@ export function BoardEditor({
             onChange={(e) => patchProperty({ name: e.currentTarget.value }, 'territory-name')}
             onBlur={() => dispatch({ type: 'history.group-ended' })}
           />
-          <TextInput label="Territory ID" value={territoryId(property.name)} readOnly />
           <Select
             label="Territory type"
             value={property.type}
@@ -596,7 +610,7 @@ export function BoardEditor({
                         />
                       ))}
                       <Switch
-                        label={`Decal ${i + 1} white outline`}
+                        label={`Decal ${i + 1} outline`}
                         checked={decal.outline}
                         onChange={(e) => patchDecal(decal.id, { outline: e.currentTarget.checked })}
                       />

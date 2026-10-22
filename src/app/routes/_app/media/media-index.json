@@ -5603,6 +5603,12 @@
     "subjects": ["space"],
     "sourceHash": "cb91942b074559a821075d7a09ef77f7ae709606bbe7b16c228aadae752d6a9f"
   },
+  "/vector/background/starfield.svg": {
+    "description": "White stars of varied sizes scattered across a black sky.",
+    "tags": ["starfield", "stars", "space", "sky", "vector"],
+    "subjects": ["space"],
+    "sourceHash": "b83fcadd58095498b27d614e816d3102eb5e6b81b0c581730d98bbcb524d5c9d"
+  },
   "/image/leader/official/dryeuh.png": {
     "description": "Dr. Yueh. Illustrated head-and-shoulders character portrait. Forehead diamond, short beard and brown scarf.",
     "tags": ["portrait", "head", "diamond", "illustration"],
@@ -10301,18 +10307,6 @@
     "subjects": ["patterns", "creatures"],
     "sourceHash": "e1f3a4e2b506f47beceb67fe9979ebe600c525f91ffad835d5fb4c02bb3455a5"
   },
-  "/web/page-dark.jpg": {
-    "description": "Dark blue cloudy page background with pale dunes along the bottom.",
-    "tags": ["background", "illustration"],
-    "subjects": ["patterns"],
-    "sourceHash": "61f252d1947657aea7f34c2c888745c2e5b6dd27e2e739cd3c1e1ba299303e1c"
-  },
-  "/web/page.jpg": {
-    "description": "Pale parchment page background with tan dunes along the bottom.",
-    "tags": ["background", "parchment"],
-    "subjects": ["patterns"],
-    "sourceHash": "31673a60687fac505f7a71247b2a80a03168d1707a389578d2e613d821e6dbdf"
-  },
   "/web/tablet1.jpg": {
     "description": "Pale ornamental tablet panel with a circular medallion and flowing tan border.",
     "tags": ["background", "parchment"],
@@ -10559,20 +10553,6 @@
     "subjects": ["people", "symbols", "creatures"],
     "sourceHash": "5b73b4701741d8f7d50e64c9028587b489577336e157d30c9fd5ecf68e0b04f0"
   },
-  "/vector/icon/arrakis-city.svg": {
-    "description": "City silhouette with an optional white outline for the Arrakis board.",
-    "tags": ["city", "towers", "vector"],
-    "subjects": ["places"],
-    "sourceHash": "dc09537d3a733de26cf2ad54d293ab3aa3ef5f682517771aba7bfc2629b96c14",
-    "label": "Arrakis city"
-  },
-  "/vector/icon/arrakis-sietch.svg": {
-    "description": "Sietch silhouette with an optional white outline for the Arrakis board.",
-    "tags": ["arch", "cave", "vector"],
-    "subjects": ["places"],
-    "sourceHash": "5ab59d9fc91fdf8d41fa074ff83b7bab1995c37abe9fec31f603ac9b3e242d0c",
-    "label": "Arrakis sietch"
-  },
   "/vector/decal/sandmaster.svg": {
     "description": "A Sandmaster points across the dunes beside a sandtrout.",
     "tags": ["sandmaster", "leader skill", "sandtrout", "desert", "GF9", "CHOAM", "Richese"],
@@ -10728,5 +10708,35 @@
     "tags": ["desert", "storm", "multicolor"],
     "subjects": ["places"],
     "sourceHash": "ea97d5f0dc5d062a06f90f1a77e752796326dbeabe8eb1b465df3b6c0151b652"
+  },
+  "/image/leader/gf9/ur-director-malina-aru.png": {
+    "description": "A painted portrait of a dark-haired woman in a high gray collar and red shoulders, against a gold background.",
+    "tags": ["Ur-Director Malina Aru", "CHOAM", "dark hair", "gray collar"],
+    "subjects": ["people"],
+    "sourceHash": "8837fa06740d9ee0bb6a37e1651bf99dd661acc40c76f316460211a44e55ce98"
+  },
+  "/image/leader/gf9/count-ilban-richese.png": {
+    "description": "A painted portrait of a gray-haired man with a moustache and pointed white beard in a high gray collar, against a gold background.",
+    "tags": ["Count Ilban Richese", "Richese", "gray hair", "moustache", "pointed beard", "gray collar"],
+    "subjects": ["people"],
+    "sourceHash": "61b2044852c51c0715761f55170d37d26e8ca7ffd4369997f2eb936c089c597f"
+  },
+  "/image/texture/hiereg-discovery.png": {
+    "description": "A mottled grayscale surface with a dark circular line and alternating outlined trapezoids and small rectangles around it.",
+    "tags": ["Hiereg", "Discovery", "Smuggler", "mottled", "grayscale", "ring", "trapezoids"],
+    "subjects": ["patterns", "symbols"],
+    "sourceHash": "17418d80b07639ef6c52abfc087ff4777e2a0145eec81413672e9a71614f95c6"
+  },
+  "/web/rulesets/gf9-logo.png": {
+    "description": "The complete Gale Force Nine wordmark centered on a dark square.",
+    "tags": ["Gale Force Nine", "GF9", "publisher", "wordmark", "logo"],
+    "subjects": ["symbols", "culture"],
+    "sourceHash": "ca0d8a68fbf167ab4385422fd97663c281a574e21d3fccf995d0e15bba5662ae"
+  },
+  "/image/leader/gf9/duke-prad-vidal.png": {
+    "description": "A painted portrait of a dark-haired man wearing a high black collar with gold trim and a purple shoulder drape, against a gold background.",
+    "tags": ["Duke Prad Vidal", "Ecaz", "Moritani", "dark hair", "gold trim", "purple drape"],
+    "subjects": ["people"],
+    "sourceHash": "6c66b6c4d55638b03d902ee7d76cd4b0ce970a3545cc0880d9073acc544f2a0f"
   }
 }

@@ -1,7 +1,9 @@
 import preview from '@sb/preview';
+import { discoveryTokenFronts, discoveryOutcomeFronts } from '@shared/assets/fixtures/discoveryTokens';
 
 import { backgroundPresets } from '../../data/backgrounds';
 import { CustomToken } from './Custom';
+import { tokenFaceProps } from './tokenFace';
 
 const meta = preview.meta({
   component: CustomToken,
@@ -70,3 +72,12 @@ export const Pointer = meta.story({
     circle: true,
   },
 });
+
+export const HieregBack = meta.story({
+  args: tokenFaceProps(discoveryTokenFronts['gf9-hiereg-discovery-marker'].face),
+});
+export const SmugglerBack = meta.story({
+  args: tokenFaceProps(discoveryTokenFronts['gf9-smuggler-discovery-marker'].face),
+});
+export const Orgiz = meta.story({ args: tokenFaceProps(discoveryOutcomeFronts[0].face) });
+export const Ecological = meta.story({ args: tokenFaceProps(discoveryOutcomeFronts[1].face) });

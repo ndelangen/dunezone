@@ -9,7 +9,7 @@ import { SpiceAsset } from '@game/data/objects';
 
 import { assetNameField } from '../../../assetEditorStates';
 import { layeredCardTokenPicker } from '../../../layeredCardTokenPicker';
-import { SpiceBoardRead, spiceBoardPicker } from '../../../spiceCardBoard';
+import { SpiceBoardRead, spiceBoardSelect } from '../../../spiceCardBoard';
 import { CardEditFrame, CardEditGate, useCardSave } from './cardEditPage';
 import type { CardEditSessionProps } from './cardEditPage';
 
@@ -94,7 +94,7 @@ function CardEditSession({ asset, initialDraft, access }: CardEditSessionProps<S
             onChapterChange={setChapter}
             onSettle={header.settle}
             boardRead={boardRead}
-            boardPicker={spiceBoardPicker}
+            boardSelect={spiceBoardSelect}
             tokenPicker={layeredCardTokenPicker}
           />
         )}

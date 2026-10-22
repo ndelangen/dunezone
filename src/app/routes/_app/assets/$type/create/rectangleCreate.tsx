@@ -7,6 +7,8 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { useReducer, useState } from 'react';
 
+import { useAuthoringAccountKey } from '@db/authoring';
+import { useAuthoringPresets } from '@db/backgroundPresets';
 import { useSessionViewer } from '@db/profiles';
 import { useCreateAsset } from '@app/db/assets';
 import { postedPayload } from '@app/widgets/authoring/authoringEnvelope';
@@ -21,6 +23,7 @@ import {
   initialRectangleMemory,
 } from '@app/widgets/token-editor/RectangleTokenEditor';
 import type { RectangleChapter, RectangleDraft, RectangleMemory } from '@app/widgets/token-editor/RectangleTokenEditor';
+import { BackgroundLibrary } from '@game/assets/utils/BackgroundLibrary';
 
 import { referencedRectangleBackFace } from '../$slug/edit/referencedBackFace';
 import { CreateBackNote, referencedBackProof } from '../$slug/edit/ReferencedBackProof';
@@ -73,6 +76,8 @@ function reduce(state: PageState, event: PageEvent): PageState {
 }
 
 export function RectangleCreatePage() {
+  const standards = useAuthoringPresets();
+  const authoringAccountKey = useAuthoringAccountKey();
   const navigate = useNavigate();
   const viewer = useSessionViewer();
   const createAsset = useCreateAsset();
@@ -142,47 +147,50 @@ export function RectangleCreatePage() {
   };
 
   return (
-    <PageLayout>
-      {header.slot}
-      <PageLayout.Toolbar>
-        <AuthoringToolbar
-          load={tokenLoad({ type: TYPE, schema: LoadedRectangleDraft, saveState, header, dispatch })}
-          status={{ isDirty, isNameBlank, saveState }}
-          copy={{
-            saveLabel: 'Save token',
-            nameBlankMessage: 'Add a token name before saving; it determines the token URL.',
-          }}
-          actions={{
-            onSave: save,
-            onReset: header.releasing(() => dispatch({ kind: 'replace', data: state.baseline, pick: null })),
-            onBack: () => void navigate({ to: '/assets/$type', params: { type: TYPE } }),
-          }}
-        />
-      </PageLayout.Toolbar>
-      <PageLayout.Content>
-        <WorkbenchLayout gap="sm">
-          <SaveErrorAlert error={createAsset.error} />
-          {state.memory.pickBlocked && pickless ? (
-            <Alert color="yellow" variant="light" role="alert" title="No token picked">
-              Picking a token's back happens on the edit page; save with another back mode first.
-            </Alert>
-          ) : null}
-          <RectangleTokenEditor
-            nameField={nameField}
-            draft={state.data}
-            patch={patch}
-            memory={state.memory}
-            remember={(update) => dispatch({ kind: 'remember', update })}
-            chapter={chapter}
-            onChapterChange={setChapter}
-            onSettle={header.settle}
-            backPicker={() => <CreateBackNote picked={state.memory.pickedBack} />}
-            backProof={referencedBackProof(state.memory.pickedBack, referencedRectangleBackFace, (face) => (
-              <RectangleProof face={face} />
-            ))}
+    <BackgroundLibrary presets={standards?.backgrounds ?? []} fronts={standards?.fronts}>
+      <PageLayout>
+        {header.slot}
+        <PageLayout.Toolbar>
+          <AuthoringToolbar
+            scopeKey={authoringAccountKey}
+            load={tokenLoad({ type: TYPE, schema: LoadedRectangleDraft, saveState, header, dispatch })}
+            status={{ isDirty, isNameBlank, saveState }}
+            copy={{
+              saveLabel: 'Save token',
+              nameBlankMessage: 'Add a token name before saving; it determines the token URL.',
+            }}
+            actions={{
+              onSave: save,
+              onReset: header.releasing(() => dispatch({ kind: 'replace', data: state.baseline, pick: null })),
+              onBack: () => void navigate({ to: '/assets/$type', params: { type: TYPE } }),
+            }}
           />
-        </WorkbenchLayout>
-      </PageLayout.Content>
-    </PageLayout>
+        </PageLayout.Toolbar>
+        <PageLayout.Content>
+          <WorkbenchLayout gap="sm">
+            <SaveErrorAlert error={createAsset.error} />
+            {state.memory.pickBlocked && pickless ? (
+              <Alert color="yellow" variant="light" role="alert" title="No token picked">
+                Picking a token's back happens on the edit page; save with another back mode first.
+              </Alert>
+            ) : null}
+            <RectangleTokenEditor
+              nameField={nameField}
+              draft={state.data}
+              patch={patch}
+              memory={state.memory}
+              remember={(update) => dispatch({ kind: 'remember', update })}
+              chapter={chapter}
+              onChapterChange={setChapter}
+              onSettle={header.settle}
+              backPicker={() => <CreateBackNote picked={state.memory.pickedBack} />}
+              backProof={referencedBackProof(state.memory.pickedBack, referencedRectangleBackFace, (face) => (
+                <RectangleProof face={face} />
+              ))}
+            />
+          </WorkbenchLayout>
+        </PageLayout.Content>
+      </PageLayout>
+    </BackgroundLibrary>
   );
 }

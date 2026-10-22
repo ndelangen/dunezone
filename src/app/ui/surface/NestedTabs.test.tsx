@@ -363,7 +363,7 @@ describe('NestedTabs with button items', () => {
   });
 
   it('moves focus with Up, Down, Home and End, wrapping, without opening a tab', () => {
-    tab('Log').focus();
+    act(() => tab('Log').focus());
     press('ArrowDown');
     expect(document.activeElement).toBe(tab('Spice'));
     press('ArrowDown');
@@ -382,7 +382,7 @@ describe('NestedTabs with button items', () => {
   });
 
   it('moves within its own level, through groups', () => {
-    tab('Game').focus();
+    act(() => tab('Game').focus());
     press('ArrowDown');
     expect(document.activeElement).toBe(tab('Audit'));
     press('ArrowDown');
@@ -390,7 +390,7 @@ describe('NestedTabs with button items', () => {
   });
 
   it('opens the focused tab through the button itself', () => {
-    tab('Hand').focus();
+    act(() => tab('Hand').focus());
     act(() => tab('Hand').click());
     expect(selected).toEqual([['hand']]);
   });
