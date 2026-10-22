@@ -10,6 +10,8 @@ import { api } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { applicationTest } from './application.test.fixture';
 import { syncSeededFactionCards } from './factions.test.fixture';
+import { applicationTriggers } from './lib/applicationTriggers';
+import { PROFILE_FACTION_PREVIEW_SIZE } from './lib/profileDetail';
 
 type SeedResult = {
   userId: Id<'users'>;
@@ -27,8 +29,18 @@ type SeedResult = {
 
 const at = (day: number) => `2026-07-${String(day).padStart(2, '0')}T00:00:00.000Z`;
 
-async function seedProfileDetail(t: ReturnType<typeof convexTest>): Promise<SeedResult> {
-  const seeded = await t.run(async (ctx) => {
+/**
+ * Seeds through the application's triggers, as every deployed writer does, so the catalogue lists the factions the way the page reads them.
+ * `extraFactions` more live factions beside the one, newest last, so a page can show its first few and count the rest.
+ * `listed: false` writes around the triggers, as production stands between a functions deploy and the backfill that lists factions under their member.
+ */
+async function seedProfileDetail(
+  t: ReturnType<typeof convexTest>,
+  extraFactions = 0,
+  { listed = true } = {}
+): Promise<SeedResult> {
+  const seeded = await t.run(async (rawCtx) => {
+    const ctx = listed ? applicationTriggers.wrapDB(rawCtx) : rawCtx;
     const userId = await ctx.db.insert('users', { name: 'Central' });
     const askerId = await ctx.db.insert('users', { name: 'Asker' });
     const profilelessAskerId = await ctx.db.insert('users', { name: 'No profile' });
@@ -197,6 +209,17 @@ async function seedProfileDetail(t: ReturnType<typeof convexTest>): Promise<Seed
       faction_id: activeFactionId,
       position: 0,
     });
+    for (let index = 1; index <= extraFactions; index += 1) {
+      await ctx.db.insert('factions', {
+        owner_id: userId,
+        data: { ...assetPublishingFaction, name: `Sietch ${index}` },
+        slug: `sietch-${index}`,
+        created_at: at(10 + index),
+        updated_at: at(10 + index),
+        is_deleted: false,
+        group_id: null,
+      });
+    }
 
     const earlyQuestionId = await ctx.db.insert('faq_items', {
       ruleset_id: advancedRulesetId,
@@ -298,6 +321,36 @@ describe('profile detail projection (api.profiles.pageBySlug)', () => {
 
     expect(page.factions.map((faction) => faction._id)).toEqual([seed.activeFactionId]);
     expect(page.factions[0]?.data.name).toBe('Atreides');
+    expect(page.factionCount).toBe(1);
+  });
+
+  test('shows the newest few factions and counts them all, keeping the full list for bundles from before the preview', async () => {
+    const t = applicationTest();
+    await seedProfileDetail(t, PROFILE_FACTION_PREVIEW_SIZE + 2);
+
+    const page = await t.query(api.profiles.pageBySlug, { slug: 'central' });
+
+    expect(page.factionCount).toBe(PROFILE_FACTION_PREVIEW_SIZE + 3);
+    expect(page.factions).toHaveLength(PROFILE_FACTION_PREVIEW_SIZE + 3);
+    expect(page.factionPreview.map((faction) => faction.data.name)).toEqual(
+      Array.from(
+        { length: PROFILE_FACTION_PREVIEW_SIZE },
+        (_, index) => `Sietch ${PROFILE_FACTION_PREVIEW_SIZE + 2 - index}`
+      )
+    );
+  });
+
+  test('shows the newest factions before the catalogue lists them for the member, counting at least the ones shown', async () => {
+    const t = applicationTest();
+    /* The cards exist, as their backfill ran long ago; the member's list in the catalogue does not yet. */
+    await seedProfileDetail(t, 1, { listed: false });
+
+    const page = await t.query(api.profiles.pageBySlug, { slug: 'central' });
+
+    expect(page.factionPreview.map((faction) => faction.data.name)).toEqual(['Sietch 1', 'Atreides']);
+    expect(page.factionCount).toBe(2);
+    /* Nothing to link to yet: the catalogue would open an empty list. */
+    expect(page.listedFactionCount).toBe(0);
   });
 
   test('faction ruleset enrichment keeps only active rulesets in deterministic name order', async () => {
@@ -315,7 +368,8 @@ describe('profile detail projection (api.profiles.pageBySlug)', () => {
 
   test('throws on malformed faction data at the query boundary', async () => {
     const t = applicationTest();
-    await t.run(async (ctx) => {
+    await t.run(async (rawCtx) => {
+      const ctx = applicationTriggers.wrapDB(rawCtx);
       const userId = await ctx.db.insert('users', { name: 'Malformed owner' });
       await ctx.db.insert('profiles', {
         user_id: userId,

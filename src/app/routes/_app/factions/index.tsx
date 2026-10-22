@@ -37,13 +37,14 @@ import { FactionList } from '@ui/list/FactionList';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowDownAZ, ChevronsDown, Filter, Plus } from 'lucide-react';
-import { useMemo, useRef, useState } from 'react';
+import { useId, useMemo, useRef, useState } from 'react';
 import type { Ref } from 'react';
 
 import { loadFactionCataloguePage, useFactionCataloguePage } from '@db/factions';
 import type {
   FactionCatalogueArgs,
   FactionCatalogueBrowseData,
+  FactionCatalogueMember,
   FactionCataloguePageData,
   FactionCatalogueRuleset,
   FactionCatalogueSearchData,
@@ -91,7 +92,7 @@ export const Route = createFileRoute('/_app/factions/')({
   head: ({ match }) => {
     const search = parseFactionCatalogueSearch(match.search);
     /* Only the plain listing's pages are worth a search engine's time; a search, filter or order is the same factions again. */
-    const refined = search.q != null || search.ruleset != null || search.complexity != null || search.sort != null;
+    const refined = countRefinements(search) > 0 || search.q != null || search.sort != null;
     const head = publicPageHead({
       name:
         search.page && !refined
@@ -118,7 +119,7 @@ function FactionsPage() {
     live,
     rows: (page) => page.cards.length,
   });
-  const session = useFactionCatalogueSession(data.rulesets);
+  const session = useFactionCatalogueSession(data);
   const list = useRef<HTMLDivElement>(null);
   useFocusFirstNewRow(list, loaded, grown, CARD_LINK);
   const hasFactions = data.catalogueTotal > 0;
@@ -136,6 +137,7 @@ function FactionsPage() {
             onCommitQuery={session.query.commit}
             search={session.search}
             rulesets={data.rulesets}
+            member={data.owner?.member ?? null}
             matched={'mode' in data ? undefined : { count: data.total, complete: data.complete }}
             totalCount={data.catalogueTotal}
             onSearchChange={session.changeSearch}
@@ -393,6 +395,7 @@ function CatalogueRefine({
   search,
   rulesetOptions,
   rulesets,
+  member,
   matched,
   totalCount,
   onSearchChange,
@@ -400,13 +403,12 @@ function CatalogueRefine({
   search: FactionCatalogueSearch;
   rulesetOptions: { value: string; label: string }[];
   rulesets: FactionCatalogueRuleset[];
+  member: FactionCatalogueMember;
   matched: MatchedCount | undefined;
   totalCount: number;
   onSearchChange: (patch: Partial<Record<keyof FactionCatalogueSearch, unknown>>) => void;
 }) {
-  const rulesetActive = search.ruleset != null;
-  const rangeActive = search.complexity != null;
-  const activeCount = (rulesetActive ? 1 : 0) + (rangeActive ? 1 : 0);
+  const activeCount = countRefinements(search);
 
   const rulesetCount = (slug: string) =>
     slug === 'all' ? totalCount : (rulesets.find((ruleset) => ruleset.slug === slug)?.factionCount ?? 0);
@@ -421,7 +423,7 @@ function CatalogueRefine({
           variant="unstyled"
           leftSection={<Filter size={15} aria-hidden />}
           rightSection={<ChevronsDown size={15} aria-hidden opacity={0.6} />}
-          aria-label="Refine factions by ruleset and complexity"
+          aria-label={refineTriggerLabel(member)}
         >
           Refine{activeCount > 0 ? ` (${activeCount})` : ''}
         </InputBase>
@@ -429,6 +431,7 @@ function CatalogueRefine({
       <Popover.Dropdown style={{ padding: 0, border: 0, boxShadow: 'none' }}>
         <Surface padding="md">
           <Stack gap="md">
+            <OwnerFilter member={member} onClear={() => onSearchChange({ owner: undefined })} />
             <Stack gap="xs">
               <Text size="xs" fw={700} tt="uppercase" c="dimmed">
                 Ruleset
@@ -485,7 +488,7 @@ function CatalogueRefine({
                   size="compact-xs"
                   variant="subtle"
                   color="gray"
-                  onClick={() => onSearchChange({ ruleset: undefined, complexity: undefined })}
+                  onClick={() => onSearchChange({ ruleset: undefined, owner: undefined, complexity: undefined })}
                 >
                   Clear filters
                 </Button>
@@ -501,12 +504,66 @@ function CatalogueRefine({
 /** How many factions a browsed page's filters matched; `complete` is false when the count is a floor. */
 type MatchedCount = { count: number; complete: boolean };
 
+/** How many of the filters that narrow the grid are set: the ruleset or the member, which share one list, and the complexity range. */
+function countRefinements(search: FactionCatalogueSearch) {
+  return (search.ruleset == null && search.owner == null ? 0 : 1) + (search.complexity == null ? 0 : 1);
+}
+
+/** The popover trigger's name, naming each filter it offers; the member's is among them only while the address sets it. */
+function refineTriggerLabel(member: FactionCatalogueMember) {
+  return member ? 'Refine factions by member, ruleset and complexity' : 'Refine factions by ruleset and complexity';
+}
+
+/**
+ * The member the grid is narrowed to, reached from their profile's "All N factions", or nothing when it is not.
+ * That link is the one way to set it, so here the member is only named and cleared;
+ * choosing a ruleset clears it too, since a list is one partition.
+ * The badge and the clear button sit in a group the "Member" label names, so a screen reader hears what the badge is a value of.
+ * `plainLabel` matches the drawer's field labels rather than the popover's headings.
+ */
+function OwnerFilter({
+  member,
+  onClear,
+  plainLabel = false,
+}: {
+  member: FactionCatalogueMember;
+  onClear: () => void;
+  plainLabel?: boolean;
+}) {
+  const labelId = useId();
+  if (!member) {
+    return null;
+  }
+  return (
+    <Stack gap="xs" role="group" aria-labelledby={labelId}>
+      {plainLabel ? (
+        <Text id={labelId} size="sm" fw={500}>
+          Member
+        </Text>
+      ) : (
+        <Text id={labelId} size="xs" fw={700} tt="uppercase" c="dimmed">
+          Member
+        </Text>
+      )}
+      <Group gap="xs">
+        <Badge variant="filled" color="selected">
+          By {member.name}
+        </Badge>
+        <Button size="compact-xs" variant="subtle" color="gray" onClick={onClear}>
+          Show every member's factions
+        </Button>
+      </Group>
+    </Stack>
+  );
+}
+
 function CatalogueToolbar({
   draftQuery,
   onDraftQueryChange,
   onCommitQuery,
   search,
   rulesets,
+  member,
   matched,
   totalCount,
   onSearchChange,
@@ -516,6 +573,7 @@ function CatalogueToolbar({
   onCommitQuery: () => void;
   search: FactionCatalogueSearch;
   rulesets: FactionCatalogueRuleset[];
+  member: FactionCatalogueMember;
   /** Absent while searching, which shows no count. */
   matched: MatchedCount | undefined;
   totalCount: number;
@@ -575,7 +633,7 @@ function CatalogueToolbar({
     </Stack>
   );
 
-  const refinements = (search.ruleset == null ? 0 : 1) + (search.complexity == null ? 0 : 1);
+  const refinements = countRefinements(search);
 
   return (
     <Toolbar>
@@ -595,6 +653,7 @@ function CatalogueToolbar({
             active: refinements,
             content: (
               <>
+                <OwnerFilter member={member} onClear={() => onSearchChange({ owner: undefined })} plainLabel />
                 {rulesetSelect('Ruleset')}
                 {complexitySlider}
                 {sortSelect('Sort by')}
@@ -606,6 +665,7 @@ function CatalogueToolbar({
             search={search}
             rulesetOptions={rulesetOptions}
             rulesets={rulesets}
+            member={member}
             matched={matched}
             totalCount={totalCount}
             onSearchChange={onSearchChange}
