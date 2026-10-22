@@ -1,12 +1,17 @@
 import preview from '@sb/preview';
+import { publishingTokenFace } from '@shared/assets/fixtures/publishingTokenFace';
+import { SPAWN_PICKER_STEP } from '@shared/play/inventory';
 import { item, piece } from '@shared/play/setupSupply';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
+
+import { asset, db } from '@db/storybook';
 
 import { gameMeta, install, lastCommand, session } from './game.stories.fixture';
 import { openTab, pendingRequestTransport, phaseControls, settled } from './playing.stories.fixture';
 import {
   cardBack,
   factions,
+  productGameDatabase,
   productTransport,
   playingSnapshot as initialSnapshot,
   SIX,
@@ -171,5 +176,57 @@ export const HiddenDeckBacks = meta.story({
     );
     await expect(page.getByRole('img', { name: 'Treachery deck' })).toHaveAttribute('src', cardBack());
     await expect(page.getByRole('button', { name: 'Drag Treachery deck onto the table' })).toBeEnabled();
+  },
+});
+
+/* The baseline holds six spawnable assets; these take the catalogue past the picker's first page, so Load more has something to load. */
+const EXTRA_TOKENS = 10;
+const catalogueDatabase = db((baseline) => {
+  productGameDatabase(baseline, { state: 'ready' });
+  for (let index = 1; index <= EXTRA_TOKENS; index += 1) {
+    baseline.assets.push(
+      asset({
+        type: 'token-disc',
+        data: {
+          name: `Sietch Token ${String(index).padStart(2, '0')}`,
+          about: 'A disc token seeded for the spawn picker story.',
+          front: publishingTokenFace,
+          back: { mode: 'same' },
+        },
+      })
+    );
+  }
+});
+const SPAWNABLE_ASSETS = 6 + EXTRA_TOKENS;
+
+/**
+ * The catalogue picker: the newest spawnable assets a page at a time, a server search over the asset's and its owner's name, and a pick that asks the table to check the asset before it can be requested.
+ * The story's transport answers no catalogue read, so the check stays pending, as it does while the Worker reads the definitions.
+ */
+export const Catalogue = meta.story({
+  parameters: { database: catalogueDatabase },
+  beforeEach: install(() => productTransport('seat-2', initialSnapshot())),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await openTab(page, 'Shared inventory');
+    await userEvent.click(await page.findByRole('button', { name: 'Add from catalogue' }, { timeout: 30_000 }));
+    const options = () => within(page.getByRole('listbox', { name: 'Catalogue assets' })).getAllByRole('option');
+    await waitFor(() => expect(options()).toHaveLength(SPAWN_PICKER_STEP), { timeout: 30_000 });
+    await userEvent.click(page.getByRole('button', { name: 'Load more' }));
+    await waitFor(() => expect(options()).toHaveLength(SPAWNABLE_ASSETS), { timeout: 30_000 });
+    await expect(page.queryByRole('button', { name: 'Load more' })).toBeNull();
+    /* The search matches the deck and not the treachery card of the same name, which no game spawns on its own. */
+    await userEvent.type(page.getByRole('searchbox', { name: 'Search the catalogue' }), 'treachery');
+    await waitFor(() => expect(options()).toHaveLength(1), { timeout: 30_000 });
+    await expect(options()[0]).toHaveTextContent('House Treachery');
+    await userEvent.click(options()[0]!);
+    await waitFor(() =>
+      expect(session.transport.messages.at(-1)).toMatchObject({
+        type: 'catalogue',
+        selection: { type: 'deck', slug: 'house-treachery' },
+      })
+    );
+    await expect(page.getByText('Checking published definitions and images...')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Request' })).toBeDisabled();
   },
 });

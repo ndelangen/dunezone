@@ -26,7 +26,7 @@ export const spawnSelectionSchema = z.object({ type: z.enum(SPAWN_TYPES), slug: 
 export const SPAWN_PICKER_STEP = 12;
 
 /** One catalogue asset as the spawn picker lists it: enough to name it and to request it. */
-export const spawnableAssetSchema = spawnSelectionSchema.extend({
+const spawnableAssetSchema = spawnSelectionSchema.extend({
   name: z.string(),
   /* The owner's name, which a search matches as well as the asset's; null for an inactive account. */
   owner: z.string().nullable(),

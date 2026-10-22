@@ -120,6 +120,24 @@ export const ChoosingFactions = meta.story({
   },
 });
 
+/**
+ * The panel's search filters the draft's own list of factions, which every viewer already holds in the game's snapshot (at most 500, the ruleset's own first).
+ * A typed word reaches past the suitable ones to every faction, so "Show all" need not be on.
+ */
+export const SearchedFactions = meta.story({
+  beforeEach: install(() => productTransport('seat-2', draftingSnapshot(SIX, 6, MIDWAY))),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const search = await page.findByRole('textbox', { name: 'Search factions' }, { timeout: 30_000 });
+    await userEvent.type(search, 'ecaz');
+    const list = () => within(page.getByRole('list', { name: 'Factions' }));
+    await waitFor(() => expect(list().getAllByRole('listitem')).toHaveLength(2));
+    await expect(list().getByText('Ecaz (Ecaz/Moritani)')).toBeVisible();
+    await expect(list().getByText('Moritani (Ecaz/Moritani)')).toBeVisible();
+    await expect(page.getByRole('switch', { name: 'Show all factions' })).not.toBeChecked();
+  },
+});
+
 /** A spectator sees the same ledger with a (+) to ask for a seat, and none of the drafting tools. */
 export const Observer = meta.story({
   beforeEach: install(() => productTransport('neutral', draftingSnapshot(SIX, 6, MIDWAY))),
