@@ -237,7 +237,11 @@ function seedLinkedFactions(baseline: StorybookDatabase, names: string[]) {
   for (const name of names) {
     const key = `faction:${name.toLowerCase().replace(/\s+/g, '-')}`;
     baseline.factions.push({ ...faction({ name }), $key: key });
-    baseline.ruleset_factions.push({ ruleset_id: ref('ruleset:classicrules'), faction_id: ref(key) });
+    baseline.ruleset_factions.push({
+      ruleset_id: ref('ruleset:classicrules'),
+      faction_id: ref(key),
+      position: baseline.ruleset_factions.length,
+    });
   }
 }
 /** The ruleset's page shows its first three factions in its own order and links to the rest in the catalogue. */
@@ -423,11 +427,9 @@ export const QuestionReferences = meta.story({
     await userEvent.clear(question);
     await userEvent.type(question, 'An unsaved question draft?');
     await userEvent.click(await page.findByRole('button', { name: 'Add references' }));
-    await userEvent.type(page.getByRole('textbox', { name: 'Search the catalogue' }), 'Atreides');
-    await userEvent.click(
-      await page.findByRole('button', { name: 'Add reference to House Atreides' }, { timeout: 30_000 })
-    );
-    await userEvent.click(page.getByRole('button', { name: 'Done' }));
+    await userEvent.type(await page.findByRole('searchbox', { name: 'Search the catalogue' }), 'Atreides');
+    await userEvent.click(await page.findByRole('option', { name: 'House Atreides' }, { timeout: 30_000 }));
+    await userEvent.click(page.getByRole('button', { name: 'Close reference picker' }));
     const remove = await page.findByRole('button', { name: 'Remove reference to House Atreides' }, { timeout: 30_000 });
     await expect(question).toHaveValue('An unsaved question draft?');
     await expect(page.getByRole('link', { name: /House Atreides ClassicRules/ })).toHaveAttribute(

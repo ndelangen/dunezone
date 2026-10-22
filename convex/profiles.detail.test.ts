@@ -192,14 +192,17 @@ async function seedProfileDetail(t: ReturnType<typeof convexTest>, extraFactions
     await ctx.db.insert('ruleset_factions', {
       ruleset_id: basicRulesetId,
       faction_id: activeFactionId,
+      position: 0,
     });
     await ctx.db.insert('ruleset_factions', {
       ruleset_id: advancedRulesetId,
       faction_id: activeFactionId,
+      position: 0,
     });
     await ctx.db.insert('ruleset_factions', {
       ruleset_id: deletedRulesetId,
       faction_id: activeFactionId,
+      position: 0,
     });
     for (let index = 1; index <= extraFactions; index += 1) {
       await ctx.db.insert('factions', {

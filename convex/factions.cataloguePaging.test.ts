@@ -15,7 +15,7 @@ import { applicationTriggers } from './lib/applicationTriggers';
 type CatalogueArgs = FunctionArgs<typeof api.factions.catalogue>;
 type CatalogueAnswer = FunctionReturnType<typeof api.factions.catalogue>;
 
-/** The browsed shape, which every call without a limit answers with. */
+/** The browsed shape, which every call without a search answers with. */
 function browsed(answer: CatalogueAnswer) {
   if ('mode' in answer) {
     throw new Error('Expected a browsed page, got a search.');
@@ -23,7 +23,7 @@ function browsed(answer: CatalogueAnswer) {
   return answer;
 }
 
-/** The searched shape, which a search with a limit answers with. */
+/** The searched shape, which every search answers with. */
 function searched(answer: CatalogueAnswer) {
   if (!('mode' in answer)) {
     throw new Error('Expected a search, got a browsed page.');
@@ -37,7 +37,9 @@ async function catalogueWith(factions: SeededFaction[], rulesets: Parameters<typ
   const page = async (args: CatalogueArgs = {}) => browsed(await t.query(api.factions.catalogue, args));
   const search = async (args: CatalogueArgs) => searched(await t.query(api.factions.catalogue, args));
   const names = async (args: CatalogueArgs = {}) => (await page(args)).cards.map((card) => card.data.name);
-  return { t, seeded, page, search, names };
+  const found = async (args: CatalogueArgs) =>
+    (await search({ limit: 24, ...args })).cards.map((card) => card.data.name).sort(compareCodeUnits);
+  return { t, seeded, page, search, names, found };
 }
 
 /** Every page of one question, in order, as a reader paging through would see them. */
@@ -119,7 +121,7 @@ describe('faction catalogue query', () => {
   });
 
   test('searches faction, Faction leader and leader names by every word, the last word as a prefix', async () => {
-    const { names } = await catalogueWith(
+    const { names, found } = await catalogueWith(
       [
         { name: 'Atreides', factionLeader: 'Duke Leto', rulesets: ['classic'] },
         { name: 'Fremen', leaders: ['Chani', 'Stilgar'] },
@@ -129,17 +131,16 @@ describe('faction catalogue query', () => {
       [{ slug: 'classic', name: 'Classic' }]
     );
 
-    expect((await names({ q: 'Atreides' })).sort(compareCodeUnits)).toEqual(['Atreides', 'House Atreides Remnant']);
-    expect((await names({ q: 'atre' })).sort(compareCodeUnits)).toEqual(['Atreides', 'House Atreides Remnant']);
-    expect(await names({ q: 'Atredes' })).toEqual([]);
-    expect(await names({ q: 'Leto' })).toEqual(['Atreides']);
+    expect(await found({ q: 'Atreides' })).toEqual(['Atreides', 'House Atreides Remnant']);
+    expect(await found({ q: 'atre' })).toEqual(['Atreides', 'House Atreides Remnant']);
+    expect(await found({ q: 'Atredes' })).toEqual([]);
+    expect(await found({ q: 'Leto' })).toEqual(['Atreides']);
     /* Every word must match, not any: Convex search alone would also return every other House. */
-    expect(await names({ q: 'House Atreides' })).toEqual(['House Atreides Remnant']);
-    expect(await names({ q: 'Duke Le' })).toEqual(['Atreides']);
-    expect(await names({ q: 'Duke Stilgar' })).toEqual([]);
-    expect(await names({ q: 'Stilgar' })).toEqual(['Fremen']);
-    expect(await names({ q: 'Chani', ruleset: 'classic' })).toEqual([]);
-    expect(await names({ q: 'Atreides', sort: 'name' })).toEqual(['Atreides', 'House Atreides Remnant']);
+    expect(await found({ q: 'House Atreides' })).toEqual(['House Atreides Remnant']);
+    expect(await found({ q: 'Duke Le' })).toEqual(['Atreides']);
+    expect(await found({ q: 'Duke Stilgar' })).toEqual([]);
+    expect(await found({ q: 'Stilgar' })).toEqual(['Fremen']);
+    expect(await found({ q: 'Chani', ruleset: 'classic' })).toEqual([]);
     expect(await names({ q: '   ' })).toEqual(['Atreides', 'Fremen', 'Harkonnen', 'House Atreides Remnant']);
   });
 
@@ -194,9 +195,6 @@ describe('faction catalogue query', () => {
     for (const odd of [0, -1, 1.5]) {
       expect(await page({ page: odd })).toMatchObject({ page: 1 });
     }
-    const searched = await page({ q: 'Leader 1', page: 1 });
-    expect(searched.total).toBeGreaterThan(0);
-    expect(searched.pageCount).toBe(Math.max(1, Math.ceil(searched.total / FACTION_CATALOGUE_PAGE_SIZE)));
   }, 60_000);
 
   test('pages every filtered list exactly once, from the aggregate or from the bounded read', async () => {
@@ -220,8 +218,6 @@ describe('faction catalogue query', () => {
       [{ complexity: '2-9', sort: 'complexity-desc' }, idsWhere(range(2, 9))],
       [{ complexity: '0-6' }, idsWhere(range(0, 6))],
       [{ complexity: '1-8', sort: 'created' }, idsWhere(range(1, 8))],
-      [{ q: 'irulan' }, idsWhere((index) => index % 3 !== 0)],
-      [{ q: 'irulan', sort: 'name' }, idsWhere((index) => index % 3 !== 0)],
     ];
     for (const [args, expected] of cases) {
       expect(expected.size).toBeGreaterThan(FACTION_CATALOGUE_PAGE_SIZE);
@@ -309,7 +305,8 @@ describe('faction catalogue query', () => {
       });
     });
 
-    await expect(t.query(api.factions.catalogue, { q: 'Fine' })).resolves.toMatchObject({ total: 1 });
+    const fine = await t.query(api.factions.catalogue, { q: 'Fine', limit: 24 });
+    expect(fine.cards.map((card) => card.data.name)).toEqual(['Fine']);
     await expect(t.query(api.factions.catalogue, {})).rejects.toThrow();
   });
 
@@ -359,13 +356,8 @@ describe('faction catalogue query', () => {
       hasMore: false,
       capped: false,
     });
-
-    /* An old bundle's search, with a page and no limit, still gets the paged shape it reads. */
-    const old = await page({ q: 'sietch', page: 2, sort: 'name' });
-    expect(old).toMatchObject({ page: 2, pageCount: 2, total: count, complete: true });
-    expect(old.cards.map((card) => card.data.name)).toEqual(['Sietch 48', 'Sietch 49', 'Sietch 50']);
-    expect(old).not.toHaveProperty('mode');
-    /* A browsed page ignores a limit. */
+    /* A search without a limit shows one step; a browsed page ignores a limit. */
+    expect((await search({ q: 'sietch' })).limit).toBe(FACTION_CATALOGUE_PAGE_SIZE);
     expect(await page({ limit: 5 })).toMatchObject({ page: 1, total: count });
   }, 60_000);
 });

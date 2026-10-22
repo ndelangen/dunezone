@@ -1255,11 +1255,11 @@ async function catalogueEntries(ctx: QueryCtx, type: string, selected: { source_
 /** A browsed page: aggregate counts, numbered pages, a chosen order. */
 const catalogueBrowseValidator = v.object({
   entries: v.array(assetBrowseEntryValidator),
-  /** Assets matching the search, across every page. */
+  /** Assets of the type, across every page. */
   total: v.number(),
   /** Live assets of this type, before any search. */
   typeTotal: v.number(),
-  /** False when a search matched more entries than one query reads, so `total` is a floor. */
+  /** Always true now that a search is never paged; kept so the browse shape stays the one the page reads. */
   complete: v.boolean(),
   /** The page these tiles are, which may lie past `pageCount`, with no tiles. */
   page: v.number(),
@@ -1283,24 +1283,19 @@ const catalogueSearchValidator = v.object({
 
 type CatalogueArgs = { type: string; q?: string; sort?: AssetCatalogueSort; page?: number; limit?: number };
 
-async function loadCataloguePage(ctx: QueryCtx, args: CatalogueArgs, text: string) {
+async function loadCataloguePage(ctx: QueryCtx, args: CatalogueArgs) {
   const page = Number.isSafeInteger(args.page) && args.page! > 1 ? args.page! : 1;
-  const [selection, [typeCount = 0]] = await Promise.all([
-    selectCataloguePage(ctx, {
-      kind: 'asset',
-      partition: args.type,
-      ...assetCatalogueOrderOf(args.sort),
-      page,
-      pageSize: ASSET_CATALOGUE_PAGE_SIZE,
-      search: text ? { text, relevance: !args.sort } : undefined,
-    }),
-    /* Without a search the page's own count is the type's, so only a search counts again. */
-    text ? countCataloguePartitions(ctx, 'asset', [args.type], 'name') : Promise.resolve([]),
-  ]);
+  const selection = await selectCataloguePage(ctx, {
+    kind: 'asset',
+    partition: args.type,
+    ...assetCatalogueOrderOf(args.sort),
+    page,
+    pageSize: ASSET_CATALOGUE_PAGE_SIZE,
+  });
   return {
     entries: await catalogueEntries(ctx, args.type, selection.entries),
     total: selection.total,
-    typeTotal: text ? typeCount : selection.total,
+    typeTotal: selection.total,
     complete: selection.exact,
     page,
     pageCount: Math.max(1, Math.ceil(selection.total / ASSET_CATALOGUE_PAGE_SIZE)),
@@ -1328,9 +1323,8 @@ async function loadCatalogueSearch(ctx: QueryCtx, args: CatalogueArgs, text: str
  * The aggregate counts the type's list and finds a page's first entry;
  * a search uses Convex's search index over the asset's name and its owner's.
  * Only the page's own assets are read, so a page costs the same however many assets the type holds.
- * A search with a `limit` is the load-more search;
+ * A search is the load-more search, best matches first up to `limit`;
  * without one the type is browsed, in pages.
- * A searched `q` without `limit` is an old bundle's paged search, kept one release for the bundle deployed before this and dropped in the contract release.
  * Replaces `browsePage`, which stays for one release so a bundle still asking for it keeps working while this one deploys.
  */
 export const catalogue = publicQuery({
@@ -1345,9 +1339,7 @@ export const catalogue = publicQuery({
   returns: v.union(catalogueBrowseValidator, catalogueSearchValidator),
   handler: async (ctx, args) => {
     const text = args.q?.slice(0, ASSET_CATALOGUE_QUERY_LIMIT).trim() ?? '';
-    return text && args.limit !== undefined
-      ? await loadCatalogueSearch(ctx, args, text)
-      : await loadCataloguePage(ctx, args, text);
+    return text ? await loadCatalogueSearch(ctx, args, text) : await loadCataloguePage(ctx, args);
   },
 });
 

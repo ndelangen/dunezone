@@ -48,7 +48,7 @@ async function unmaintained() {
       is_deleted: true,
       data: catalogueFactionData({ name: 'Gone' }),
     });
-    await ctx.db.insert('ruleset_factions', { ruleset_id: rulesetId, faction_id: live });
+    await ctx.db.insert('ruleset_factions', { ruleset_id: rulesetId, faction_id: live, position: 0 });
     const entry = (sourceId: string, name: string, kind = 'faction') =>
       ctx.db.insert('catalogue_entries', {
         kind,

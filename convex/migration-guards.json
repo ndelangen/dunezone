@@ -462,6 +462,11 @@
       "requires": []
     },
     {
+      "id": "ruleset_factions_position_narrow",
+      "phase": "narrow",
+      "requires": ["ruleset_factions_position_v1"]
+    },
+    {
       "id": "faction_cards_v1",
       "phase": "widen",
       "requires": []

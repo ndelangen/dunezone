@@ -190,10 +190,4 @@ describe('the ruleset catalogue', () => {
       })
     ).resolves.toMatchObject({ ok: true });
   });
-
-  test('the index page before the catalogue still answers, for the bundle deployed before this one', async () => {
-    const t = applicationTest();
-    await seedRulesets(t, [{ name: 'Classic' }, { name: 'Gone', deleted: true }]);
-    expect((await t.query(api.rulesets.list, {})).map((row) => row.name)).toEqual(['Classic']);
-  });
 });

@@ -94,18 +94,6 @@ async function resolveUniqueRulesetSlug(ctx: MutationCtx, name: string, own?: Do
   });
 }
 
-/** The index page before `catalogue`; kept one release for bundles that still ask for it, and dropped in the contract release. */
-export const list = publicQuery({
-  args: {},
-  handler: async (ctx) => {
-    const rows = await ctx.db
-      .query('rulesets')
-      .withIndex('by_deleted_name', (q) => q.eq('is_deleted', false))
-      .take(500);
-    return rows;
-  },
-});
-
 const rulesetCatalogueEntryValidator = v.object({
   id: v.id('rulesets'),
   slug: v.string(),
@@ -205,7 +193,6 @@ async function loadCatalogueSearch(ctx: QueryCtx, args: CatalogueArgs, text: str
  * The ruleset catalogue, the same for every viewer: the aggregate counts it and finds a page's first ruleset;
  * a search uses Convex's search index over the names, best matches first, and loads more by asking again with a larger `limit`.
  * Only the page's own rulesets are read, so a page costs the same however many rulesets there are.
- * Replaces `list`, which stays for one release so a bundle still asking for it keeps working while this one deploys.
  */
 export const catalogue = publicQuery({
   args: {
