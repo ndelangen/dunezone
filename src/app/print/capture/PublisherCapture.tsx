@@ -35,7 +35,7 @@ import { TreacheryCard } from '@game/assets/treachery/Treachery';
 import { settleCardTitles } from '@game/assets/utils/cardTitleFit';
 import { RulebookDocumentRenderer, RulebookPageRenderer } from '@game/rulebook/RulebookRenderer';
 
-import { afterPaint, ASSET_SETTLE_TIMEOUT_MS, settleHtmlImages, settleSvgResources } from './captureSettle';
+import { afterPaint, ASSET_SETTLE_TIMEOUT_MS, settleCaptureAssets } from './captureSettle';
 import { measureComponentGeometry } from './componentGeometry';
 
 type CaptureState = 'loading' | 'ready' | 'error';
@@ -317,8 +317,7 @@ export function PublisherCapture() {
         await afterPaint();
         await document.fonts.ready;
         await assertRequiredPublisherFonts(document.fonts);
-        await settleHtmlImages(controller.signal);
-        await settleSvgResources(controller.signal);
+        await settleCaptureAssets(controller.signal);
         await settleCardTitles(document, controller.signal);
         if (!disposed && !controller.signal.aborted) {
           if (isComponentAssetType(snapshot.assetType)) {
@@ -329,7 +328,7 @@ export function PublisherCapture() {
             setComponentGeometry(measureComponentGeometry(frame));
           }
           setState('ready');
-          setDetail('Exact snapshot, fonts, HTML images, and SVG resources are ready');
+          setDetail('Exact snapshot, fonts, HTML images, SVG resources, and CSS artwork are ready');
         }
       } catch (error) {
         if (!disposed) {
