@@ -369,6 +369,25 @@ describe('the cursor over the table', () => {
     expect(controls.flipSelected).not.toHaveBeenCalled();
   });
 
+  test('leaves an open menu under the cursor its arrows', () => {
+    const { keyboard } = table();
+    keyboard.setPanAvailable(true);
+    keyboard.hoverTable(true);
+    document.body.innerHTML = '<div role="menu" tabindex="-1" data-menu></div>';
+    const menu = document.querySelector<HTMLElement>('[data-menu]')!;
+    const stepped = vi.fn();
+    menu.addEventListener('keydown', (event) => {
+      stepped();
+      event.preventDefault();
+    });
+    menu.focus();
+
+    key('keydown', { key: 'ArrowRight', code: 'ArrowRight' }, menu);
+
+    expect(stepped).toHaveBeenCalled();
+    expect(keyboard.panDirection()).toEqual([0, 0]);
+  });
+
   test('off the table, the focused tab list keeps its arrows again', () => {
     const { keyboard } = table();
     keyboard.setPanAvailable(true);
