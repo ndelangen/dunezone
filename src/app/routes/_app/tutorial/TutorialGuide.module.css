@@ -1,0 +1,110 @@
+/* The band takes the top of the window, and the table's page frame starts below it. */
+.band {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 300;
+  display: grid;
+  grid-template-columns: 12rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-lg);
+  height: 4.5rem;
+  padding-inline: var(--space-lg);
+  border-bottom: 1px solid var(--panel-border);
+  background: var(--color-ink);
+  color: var(--color-paper);
+}
+
+.chapter {
+  display: grid;
+  line-height: 1.2;
+}
+
+.task {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+
+.step {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  background: var(--color-caution);
+  color: #111;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.step[data-done] {
+  background: var(--mantine-color-green-7);
+  color: #fff;
+}
+
+.count {
+  white-space: nowrap;
+}
+
+/* The one arrow, from the band to the part to use, over the table but taking no clicks, so the part under it still plays. */
+.arrows {
+  position: fixed;
+  inset: 0;
+  z-index: 299;
+  width: 100vw;
+  height: 100vh;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.casing {
+  stroke: rgb(255 255 255 / 0.9);
+  stroke-width: 16;
+  stroke-linecap: round;
+}
+
+.shaft {
+  stroke: #1b1b1b;
+  stroke-width: 11;
+  stroke-linecap: round;
+}
+
+.head {
+  fill: #1b1b1b;
+  stroke: rgb(255 255 255 / 0.9);
+  stroke-width: 1;
+}
+
+.ring {
+  fill: none;
+  stroke: var(--color-caution);
+  stroke-width: 3;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ring 1.4s ease-out infinite;
+}
+
+@keyframes ring {
+  0% {
+    opacity: 1;
+    transform: scale(0.5);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.4);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ring {
+    animation: none;
+  }
+}
+
+/* The guide and the page it wraps share one box; only the custom property it sets reaches the page. */
+.frame {
+  display: contents;
+}

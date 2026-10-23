@@ -419,7 +419,7 @@ export function sandboxTransport(place: SandboxStart) {
 }
 
 /** Starts the table again from a step, on the connection the page already holds. */
-function restart(place: SandboxStart) {
+export function restart(place: SandboxStart) {
   const deliver = sandbox.table?.deliver;
   sandbox.table?.dispose();
   const table = new SandboxTable({ prepare: sandbox.table?.prepare, ...place });

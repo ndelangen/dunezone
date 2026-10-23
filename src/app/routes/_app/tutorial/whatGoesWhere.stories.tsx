@@ -1,122 +1,140 @@
 import preview from '@sb/preview';
 import type { Decorator } from '@storybook/tanstack-react';
-import { expect, userEvent, waitFor, within } from 'storybook/test';
+import { expect, waitFor, within } from 'storybook/test';
 import type { Vector3Tuple } from 'three';
 
 import { gameMeta, install } from '../play/game.stories.fixture';
 import { chapter, JourneyPage } from '../play/journey.stories.fixture';
-import { sandbox, sandboxTransport } from '../play/sandbox.stories.fixture';
-import { TableTour } from './TableTour';
-import type { TourStop } from './TableTour';
+import { restart, sandbox, sandboxTransport } from '../play/sandbox.stories.fixture';
+import { TutorialGuide } from './TutorialGuide';
+import type { GuideTask, GuideView } from './TutorialGuide';
 
 /*
- * Chapter 5, "What goes where", as a first rough cut: the live sandbox table at the start of turn 1, seen as seat 1,
- * with numbered marks on each part of the screen and a card that walks through them.
+ * Chapter 5, "What goes where", as a rough cut: the live sandbox table at the start of turn 1, seen as seat 1.
+ * The band above the table gives one task at a time and moves on when the table shows it done.
  */
 
-const pieces = () => sandbox.table?.frame().snapshot.table.pieces ?? [];
-const mine = () => sandbox.table?.frame().snapshot.bank?.factionId;
+const START = chapter('Turn 1: Storm') - 1;
+const SEAT = 'seat-1';
 
-/* The middle of the first table piece that matches, where the page draws it. */
-const pieceAt = (match: (piece: ReturnType<typeof pieces>[number]) => boolean) => (): Vector3Tuple | null => {
-  const found = pieces().find((piece) => !piece.inventory && match(piece));
-  return found ? (found.position as Vector3Tuple) : null;
-};
+const snapshot = () => sandbox.table!.frame().snapshot;
+const pieces = () => snapshot().table.pieces.filter((piece) => !piece.inventory);
+const mine = () => snapshot().bank?.factionId;
+const deck = (key: string) => pieces().find((piece) => piece.stackKey === key);
+const at = (piece: { position: readonly number[] } | undefined) => (piece ? (piece.position as Vector3Tuple) : null);
+const element = (selector: string) => () => document.querySelector(selector);
+const tabSelected = (selector: string) => document.querySelector(selector)?.getAttribute('aria-selected') === 'true';
 
-const page = (selector: string) => () => document.querySelector(selector);
+/* The board's own radius on the table; a piece inside it is on Arrakis. */
+const BOARD_RADIUS = 3.6;
+const onBoard = (piece: { position: readonly number[] }) =>
+  Math.hypot(piece.position[0]!, piece.position[2]!) < BOARD_RADIUS;
+const myTroopsOnBoard = () =>
+  pieces().filter((piece) => piece.stackKey?.startsWith(`troops:${mine()}:`) && onBoard(piece)).length;
+const cameraX = ({ camera }: GuideView) => camera?.position.x ?? 0;
+const cameraDistance = ({ camera }: GuideView) => camera?.position.length() ?? 0;
 
-const STOPS: TourStop[] = [
-  {
-    id: 'board',
-    title: 'The board',
-    body: 'Arrakis, in the middle of the table. Troops, spice and the storm all live here, and you move them by hand.',
+/* Each task keeps its own kind of baseline; the guide only hands it back. */
+const task = <Baseline,>(definition: GuideTask<Baseline>) => definition as unknown as GuideTask;
+
+const TASKS = [
+  task({
+    id: 'zoom',
+    task: 'Look closer at Arrakis',
+    detail: 'Scroll down over the board. The camera moves in toward the spot under your pointer.',
     anchor: { kind: 'table', point: () => [0, 0, 0] },
-  },
-  {
-    id: 'you',
-    title: 'Your seat',
-    body: 'Your faction token and your reserves sit on the rim nearest you. Drag a stack of troops onto a territory to ship it.',
+    begin: cameraDistance,
+    done: (start, view) => cameraDistance(view) < start * 0.8,
+  }),
+  task({
+    id: 'look-left',
+    task: 'Look at the left of the table',
+    detail: 'The camera dial, bottom right of the table, jumps the view. Press L.',
+    anchor: { kind: 'page', element: element('[aria-label="Focus on left"]') },
+    begin: cameraX,
+    done: (start, view) => cameraX(view) < start - 1,
+  }),
+  task({
+    id: 'look-back',
+    task: 'Go back to the map',
+    detail: 'M on the same dial brings the whole board back, with both decks in view.',
+    anchor: { kind: 'page', element: element('[aria-label^="Focus on map"]') },
+    begin: cameraX,
+    done: (start, view) => cameraX(view) > start + 1,
+  }),
+  task({
+    id: 'draw',
+    task: 'Draw a Treachery card',
+    detail: 'The Treachery deck sits on the left of the table. Right-click it and choose Draw a card.',
+    anchor: { kind: 'table', point: () => at(deck('deck:treachery-deck')) },
+    begin: () => snapshot().hand?.length ?? 0,
+    done: (start) => (snapshot().hand?.length ?? 0) > start,
+  }),
+  task({
+    id: 'ship',
+    task: 'Put troops on the board',
+    detail: 'Your reserves sit on the rim nearest you. Drag a troop from the stack onto any territory.',
     anchor: {
       kind: 'table',
-      point: pieceAt((piece) => piece.kind === 'force' && piece.stackKey === `faction-token:${mine()}`),
+      point: () => at(pieces().find((piece) => piece.stackKey?.startsWith(`troops:${mine()}:`) && !onBoard(piece))),
     },
-  },
-  {
-    id: 'others',
-    title: 'The other players',
-    body: 'Every other faction sits around the rim in storm order, with its token and reserves in front of it.',
-    anchor: {
-      kind: 'table',
-      point: pieceAt(
-        (piece) => !!piece.stackKey?.startsWith('faction-token:') && piece.stackKey !== `faction-token:${mine()}`
-      ),
-    },
-  },
-  {
-    id: 'treachery',
-    title: 'Treachery deck',
-    body: 'Drag the top card into your hand, or right-click the deck to shuffle or peek.',
-    anchor: { kind: 'table', point: pieceAt((piece) => piece.stackKey === 'deck:treachery-deck') },
-  },
-  {
-    id: 'spice-deck',
-    title: 'Spice deck',
-    body: 'Turn over the next Spice card in the Spice Blow, and play it onto its territory.',
-    anchor: { kind: 'table', point: pieceAt((piece) => piece.stackKey === 'deck:spice-deck') },
-  },
-  {
-    id: 'tracker',
-    title: 'Turn and phase tracker',
-    body: 'The discs along the top of the board count the turns, and the lit disc is the phase you are in.',
-    anchor: { kind: 'table', point: () => [-1.6, 0.1, -5.4] },
-  },
-  {
-    id: 'phase',
-    title: 'Where the game is',
-    body: 'The header says the turn and the phase. It reads the same for every player.',
-    anchor: { kind: 'page', element: page('header.seated-header > :first-child') },
-  },
-  {
-    id: 'next',
-    title: 'Next phase',
-    body: 'Anyone can move the game on when the table is ready. The arrow beside it holds the other phase actions.',
-    anchor: { kind: 'page', element: page('[aria-label="Phase navigation"]') },
-  },
-  {
-    id: 'camera',
-    title: 'Camera',
-    body: 'Jump to the map, or to the left, right or bottom of the table. Scroll over the table to look closer at the spot under your pointer, and pan with the arrow keys while you are close.',
-    anchor: { kind: 'page', element: page('[aria-label="Table view"]') },
-  },
-  {
-    id: 'yours',
-    title: 'Your controls',
-    body: 'Your hand, your hidden zone and your spice, then the game, the table and its history. Only you see the first tab.',
-    anchor: { kind: 'page', element: page('aside[aria-label="Table controls"] [role="tablist"]') },
-  },
-  {
-    id: 'players',
-    title: 'Players and messages',
-    body: 'Talk to the whole table, or open a player to message them alone and see what they hold.',
-    anchor: { kind: 'page', element: page('aside[aria-label="Players"] [role="tablist"]') },
-  },
+    begin: myTroopsOnBoard,
+    done: (start) => myTroopsOnBoard() > start,
+  }),
+  task({
+    id: 'spice',
+    task: 'Take the top Spice card',
+    detail: 'The Spice deck sits on the right of the table. Drag its top card onto the table.',
+    anchor: { kind: 'table', point: () => at(deck('deck:spice-deck')) },
+    /* A quick drag takes the top card and a held one the whole deck; either way the player has found it. */
+    begin: () => snapshot().versions[deck('deck:spice-deck')?.id ?? ''] ?? 0,
+    done: (start) => (snapshot().versions[deck('deck:spice-deck')?.id ?? ''] ?? 0) !== start,
+  }),
+  task({
+    id: 'your-spice',
+    task: 'Count your spice',
+    detail: 'Your own things are in the panel below the table. Open the Spice tab.',
+    anchor: { kind: 'page', element: element('[role="tab"][aria-label="Spice"]') },
+    begin: () => null,
+    done: () => tabSelected('[role="tab"][aria-label="Spice"]'),
+  }),
+  task({
+    id: 'player-info',
+    task: 'See what another player holds',
+    detail: 'The players sit on the right of the panel. Open the Info tab of the player shown.',
+    anchor: { kind: 'page', element: element('aside[aria-label="Players"] [role="tab"][aria-label="Info"]') },
+    begin: () => null,
+    done: () => tabSelected('aside[aria-label="Players"] [role="tab"][aria-label="Info"]'),
+  }),
+  task({
+    id: 'next-phase',
+    task: 'Move the game on',
+    detail: 'The header says the game is in the Storm. Press Next phase, top right.',
+    anchor: { kind: 'page', element: element('[aria-label="Phase navigation"]') },
+    begin: () => snapshot().phase,
+    done: (start) => snapshot().phase !== start,
+  }),
 ];
 
-const tourDecorator: Decorator = (Story) => (
-  <>
+const guideDecorator: Decorator = (Story) => (
+  <TutorialGuide
+    number={5}
+    title="What goes where"
+    tasks={TASKS}
+    onReset={() => restart({ start: START, seat: SEAT })}
+    chaptersLink={(props) => <a {...props} href="/tutorial" />}
+  >
     <Story />
-    <TableTour title="What goes where" stops={STOPS} />
-  </>
+  </TutorialGuide>
 );
 
 const meta = preview.meta({
   ...gameMeta,
   title: 'Tutorial/What goes where',
   component: JourneyPage,
-  args: { ...gameMeta.args, step: chapter('Turn 1: Storm'), seat: 'seat-1' },
-  beforeEach: ({ args }) =>
-    install(() => sandboxTransport({ start: Number(args.step ?? 1) - 1, seat: String(args.seat ?? 'seat-1') }))(),
-  decorators: [...gameMeta.decorators, tourDecorator],
+  args: { ...gameMeta.args },
+  beforeEach: () => install(() => sandboxTransport({ start: START, seat: SEAT }))(),
+  decorators: [...gameMeta.decorators, guideDecorator],
   loaders: [
     async () => {
       await import('../play/multiplayer/HostedTable');
@@ -124,30 +142,23 @@ const meta = preview.meta({
   ],
 });
 
-/** The live table with the tour over it: step through the parts with Next, and change the camera view or scroll in close to see the marks follow. */
-export const Tour = meta.story({
+/** The chapter as a player meets it: do what the band says, where the pointer shows, and it moves on by itself. */
+export const Chapter = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await expect(page.findByRole('complementary', { name: 'What goes where' })).resolves.toBeVisible();
-    /* Every mark finds its part once the table has drawn, and the card moves down clear of the header. */
+    const band = await page.findByRole('banner', { name: 'Chapter 5: What goes where' }, { timeout: 30_000 });
+    await expect(within(band).getByText('Look at the left of the table')).toBeVisible();
+    await expect(within(band).queryByRole('button', { name: 'Next' })).toBeNull();
+    /* The pointer finds the camera dial once the table has drawn. */
     await waitFor(
       async () => {
-        const marks = [...canvasElement.ownerDocument.querySelectorAll<HTMLElement>('[data-tour-mark]')];
-        const placed = marks.filter(
-          (mark) => mark.style.display === '' && /^translate3d\((?!0px, 0px)/.test(mark.style.transform)
-        );
-        const card = page.getByRole('complementary', { name: 'What goes where' }).getBoundingClientRect();
-        await expect({ marks: marks.length, placed: placed.length, cardClear: card.top > 200 }).toEqual({
-          marks: STOPS.length,
-          placed: STOPS.length,
-          cardClear: true,
+        const pointer = canvasElement.ownerDocument.querySelector<HTMLElement>('[data-tutorial-pointer]')!;
+        await expect({ shown: pointer.style.display === '', placed: pointer.style.transform !== '' }).toEqual({
+          shown: true,
+          placed: true,
         });
       },
       { timeout: 30_000 }
     );
-    await userEvent.click(page.getByRole('button', { name: 'Next' }));
-    await expect(
-      within(page.getByRole('complementary', { name: 'What goes where' })).getByText('Your seat')
-    ).toBeVisible();
   },
 });
