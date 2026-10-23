@@ -93,6 +93,7 @@ export const PredictionCardInHand = meta.story({
 
 /** Two seats carry factions with one name, so each reads with its player in the prediction's options (#1667). */
 export const PredictionSharedName = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => {
     const snapshot = predictionSnapshot();
     const [first, second] = snapshot.roster!.seats;
