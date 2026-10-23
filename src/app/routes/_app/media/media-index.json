@@ -5617,7 +5617,7 @@
   },
   "/image/leader/official/duncan.png": {
     "description": "Duncan. Illustrated head-and-shoulders character portrait. Short brown hair and green uniform.",
-    "tags": ["portrait", "head", "illustration"],
+    "tags": ["portrait", "head", "illustration", "Duncan Idaho"],
     "subjects": ["people"],
     "sourceHash": "14d2d75078b3abbd7fbc5218c6b5ed3dd70320575976f61ce5c7edd73935b6c5"
   },
@@ -5665,7 +5665,7 @@
   },
   "/image/leader/official/nafud.png": {
     "description": "Nefud. Illustrated head-and-shoulders character portrait. Red scarf and raised black collar.",
-    "tags": ["portrait", "head", "illustration"],
+    "tags": ["portrait", "head", "illustration", "Iakin Nefud"],
     "subjects": ["people"],
     "sourceHash": "bc7d4970cd440d8e4bccc5902a2bc8fd9e9deebd06fac2abb9968c953a6e345d"
   },
@@ -5713,7 +5713,7 @@
   },
   "/image/leader/official/wanna.png": {
     "description": "Wanna. Illustrated head-and-shoulders character portrait.",
-    "tags": ["portrait", "head", "illustration"],
+    "tags": ["portrait", "head", "illustration", "Wanna Marcus", "Wanna Yueh"],
     "subjects": ["people"],
     "sourceHash": "a163129c0c18d62e82702e35811d90549803ecf7e564faf3e822f6e7e15caa89"
   },
@@ -5731,7 +5731,7 @@
   },
   "/image/leader/official/burseg.png": {
     "description": "Burseg. Illustrated head-and-shoulders character portrait.",
-    "tags": ["portrait", "head", "illustration"],
+    "tags": ["portrait", "head", "illustration", "Col. Kolona", "Colonel Kolona"],
     "subjects": ["people"],
     "sourceHash": "285d998eacaa3b9ce829bda4dd44f77e2438de58bbdd715fcf65946ee5529b60"
   },
@@ -10025,6 +10025,22 @@
     "subjects": ["places", "space", "creatures", "people"],
     "sourceHash": "2e338d90d3955422622b3987ae9a7c1185c5f790386ef9802ad6547d767ea1d9"
   },
+  "/image/rulebook-cover/gf9-second-edition.png": {
+    "description": "Rust-colored sandworm and rider rising from golden dunes, with two cloaked onlookers in the lower-left foreground, two ornithopters near the moons and a circular motif at the foot of the right-hand rock spire.",
+    "tags": [
+      "landscape",
+      "illustration",
+      "gf9",
+      "second edition",
+      "sandworm",
+      "rider",
+      "moons",
+      "onlookers",
+      "ornithopters"
+    ],
+    "subjects": ["creatures", "places", "space", "people", "machines"],
+    "sourceHash": "67847aad3f3a3fec5b570851c5d8203a15dcf82dd436d3aa394149057a81f800"
+  },
   "/image/rulebook-cover/kiss-planet.png": {
     "description": "Curved golden desert planet seen from orbit beneath two overlapping moons and a dark blue star field.",
     "tags": ["landscape", "illustration", "kiss", "planet", "moons", "orbit"],
@@ -10785,5 +10801,59 @@
     "tags": ["Solaris", "coins", "cream", "multicolor"],
     "subjects": ["trade", "symbols"],
     "sourceHash": "c17cee2ce5ac915879979057169363c451c19611c486464681dfbc80b9b29952"
+  },
+  "/image/leader/gf9-second-edition/bashar-garon.png": {
+    "description": "Bashar Garon. Illustrated head-and-shoulders portrait. Older pale man, silver swept-back hair and pronounced sideburns, clean-shaven chin, lined face, red high-collared uniform and gold shoulder sash.",
+    "tags": ["portrait", "head", "illustration", "Bashar Garon", "Emperor", "gf9", "second edition"],
+    "subjects": ["people"],
+    "sourceHash": "6b801c6c629aa2a385740a01c88c668fde3b7fbcbaaffe985085dadd6a782fbf"
+  },
+  "/image/leader/gf9-second-edition/wensicia-corrino.png": {
+    "description": "Wensicia Corrino. Illustrated head-and-shoulders portrait. Young pale woman, short light-brown hair, red fan-shaped segmented headdress, white flared collar, pearl necklace, red high-collared dress with small diamond brooch.",
+    "tags": ["portrait", "head", "illustration", "Wensicia Corrino", "Emperor", "gf9", "second edition"],
+    "subjects": ["people"],
+    "sourceHash": "b81ed69eee1af44291d74b9cabbb0f7d98dcf46eee0b36a99fbad5d9b555f6e3"
+  },
+  "/image/leader/gf9-second-edition/loyxo.png": {
+    "description": "Loyxo. Illustrated head-and-shoulders portrait. Pale altered face, reddish long hair, grey metallic patches on forehead and cheek, patterned neck, grey circular collar with dark openings.",
+    "tags": ["portrait", "head", "illustration", "Loyxo", "Spacing Guild", "gf9", "second edition"],
+    "subjects": ["people"],
+    "sourceHash": "a6f1c873824ae0fca5b27aeff8125ad700ead7a48d2af9df807b44bfeb24b1b5"
+  },
+  "/image/leader/gf9-second-edition/crozeed.png": {
+    "description": "Crozeed. Illustrated head-and-shoulders portrait. Dark-skinned young man, short dark-brown tightly curled hair, very pale blue eyes, fine facial lines and ribbed light-grey padded collar.",
+    "tags": ["portrait", "head", "illustration", "Crozeed", "Spacing Guild", "gf9", "second edition"],
+    "subjects": ["people"],
+    "sourceHash": "9f679db13a22ad13702bb5573449151d6fb4e33f8b483834badd723e5ca24a32"
+  },
+  "/image/leader/gf9-second-edition/olar.png": {
+    "description": "Olar. Illustrated head-and-shoulders portrait. Very pale slim man with spiky light-brown hair, wide pale eyes, angular long face and broad grey high collar with black oval vents.",
+    "tags": ["portrait", "head", "illustration", "Olar", "Spacing Guild", "gf9", "second edition"],
+    "subjects": ["people"],
+    "sourceHash": "91bff6ab18172b1d52a7f885acff38d3efebdc22f52ee6cf75e2c17cb0c06143"
+  },
+  "/image/leader/gf9-second-edition/ertun.png": {
+    "description": "Ertun. Illustrated head-and-shoulders portrait. Very pale slim androgynous man with long straight black hair tucked back, pale eyes, narrow face, red neck band and broad grey high collar with black vents.",
+    "tags": ["portrait", "head", "illustration", "Ertun", "Spacing Guild", "gf9", "second edition"],
+    "subjects": ["people"],
+    "sourceHash": "e6a5bb6e1efd60287b72a45ef81919817415b1052f2397c62dd37c2623f244df"
+  },
+  "/image/leader/gf9-second-edition/starguide-serello.png": {
+    "description": "Starguide Serello. Illustrated head-and-shoulders portrait. Young medium-brown-skinned man with wavy shoulder-length black hair, dark eyes, solemn expression, grey ribbed round padded collar with orange central inset.",
+    "tags": ["portrait", "head", "illustration", "Starguide Serello", "Spacing Guild", "gf9", "second edition"],
+    "subjects": ["people"],
+    "sourceHash": "6c2da1e9d65a435678e6a402cdec878c65b30a1062ab89ed05f304b38ffe6441"
+  },
+  "/image/leader/gf9-second-edition/anirul-corrino.png": {
+    "description": "Anirul Corrino. Illustrated head-and-shoulders portrait. Pale blonde woman with short curls, broad rounded pale-blue headdress with red diamond jewels and white drops, hanging red-and-blue beaded strands, dark-blue collar and blue dress.",
+    "tags": ["portrait", "head", "illustration", "Anirul Corrino", "Bene Gesserit", "gf9", "second edition"],
+    "subjects": ["people"],
+    "sourceHash": "66fa79b3efdebcda6fb979e60c87fdcaaaeab31c5034937ab5be315bff492d27"
+  },
+  "/image/leader/custom/duke-leto.png": {
+    "description": "Duke Leto Atreides. Illustrated head-and-shoulders portrait. Man with swept-back dark hair with grey streaks, blue-grey eyes, strong eyebrows, moustache joined to a short pointed goatee, long nose and stern expression. Green Atreides uniform with gold edging and small gold collar emblems.",
+    "tags": ["portrait", "head", "illustration", "Duke Leto Atreides", "Atreides", "duke", "leto", "atreides"],
+    "subjects": ["people"],
+    "sourceHash": "97517427c6e5d76fe12988a7509c1d22174b9ff14b5563e22c2ea0187174289f"
   }
 }
