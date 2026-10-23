@@ -37,13 +37,7 @@ export function ChapterComplete({
   return (
     <>
       <div className={styles.veil}>
-        <div
-          ref={card}
-          className={styles.complete}
-          role="dialog"
-          aria-labelledby={heading}
-          data-tutorial-free
-        >
+        <div ref={card} className={styles.complete} role="dialog" aria-labelledby={heading} data-tutorial-free>
           <Stack align="center" gap="md">
             <Title id={heading} order={2} ta="center">
               Chapter complete, congratulations!
