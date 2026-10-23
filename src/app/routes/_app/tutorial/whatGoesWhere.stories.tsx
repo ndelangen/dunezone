@@ -19,6 +19,11 @@ const meta = preview.meta({
 
 /** The chapter as a player meets it: do what the band says, where the pointer shows, and it moves on by itself. */
 export const Chapter = meta.story({
+  /*
+   * Not captured: under Chromatic's software GL the table takes longer to settle than its 15 s capture limit,
+   * and a 3D table drawn that way is no stable picture. The story test runner still plays it through.
+   */
+  parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const band = await page.findByRole('banner', { name: 'Chapter 5: What goes where' }, { timeout: 60_000 });
