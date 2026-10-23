@@ -3,6 +3,8 @@ import { chromium } from 'playwright';
 import type { Browser, Page } from 'playwright';
 import { afterAll, beforeAll, expect, test } from 'vite-plus/test';
 
+import type * as captureAssets from './captureSettle';
+
 let browser: Browser;
 let bundle: string;
 
@@ -35,7 +37,7 @@ async function startCapture(page: Page, html: string) {
   await page.addScriptTag({ content: bundle });
   await page.evaluate(() => {
     const runtime = window as typeof window & {
-      captureAssets: typeof import('./captureSettle');
+      captureAssets: typeof captureAssets;
       captureAbort: AbortController;
     };
     runtime.captureAbort = new AbortController();

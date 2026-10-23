@@ -176,7 +176,7 @@ function captureResources() {
           const href = match[1].replace(
             /\\([0-9a-f]{1,6})\s?|\\(.)/giu,
             (_escape, hex: string | undefined, character: string) =>
-              hex ? String.fromCodePoint(Number.parseInt(hex, 16) || 0xfffd) : character
+              hex ? String.fromCodePoint(Number.parseInt(hex, 16) || 0xff_fd) : character
           );
           if (!href.startsWith('#')) {
             cssImages.add(href);
