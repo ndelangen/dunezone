@@ -1,0 +1,94 @@
+{
+  "version": 1,
+  "authorization": "User requested extraction into decals, identified the new Karama motif, and instructed: do not replace, add.",
+  "sourceType": "User-supplied raster images; these SVGs are traced paths, not vector objects extracted from the PDF.",
+  "tracing": {
+    "tool": "potrace 1.16",
+    "arguments": ["--svg", "--turdsize", "2", "--alphamax", "1", "--opttolerance", "0.15", "--flat"],
+    "normalization": "Existing normalizeSvg and generate:vectors pipeline; inherited paint and transparent cutouts."
+  },
+  "records": [
+    {
+      "assetKey": "/vector/decal/solaris.svg",
+      "source": {
+        "file": "PXL_20261021_201033591.MP.jpg",
+        "sha256": "e73551ce692428bc7c87a576796c3b6e4b2dae63269936e7627c2c92dba48263"
+      },
+      "crossCheck": {
+        "file": "treachery_deck.png",
+        "sha256": "04cb8629fa144724061a3877769ed0036563b5d7cd5d69c73a4331955921d28a"
+      },
+      "perspective": {
+        "sourceQuad": [
+          [2620, 184],
+          [2669, 790],
+          [1858, 849],
+          [1814, 230]
+        ],
+        "outputSize": [600, 840]
+      },
+      "crop": [90, 618, 490, 770],
+      "threshold": 105,
+      "operation": "Trace the four coin silhouettes and their cutout symbols from the perspective-corrected card photograph.",
+      "referenceCrop": "references/solaris.png"
+    },
+    {
+      "assetKey": "/vector/decal/little-maker.svg",
+      "source": {
+        "file": "spice_deck.png",
+        "sha256": "0e9c3a42461530886cdbab110bc48a304be3ae2ed87a44da53b299141b14f28c"
+      },
+      "crossCheck": {
+        "file": "PXL_20261021_201326305.MP.jpg",
+        "sha256": "65c498a9371d4c647ccceaa1a5093142f09f15a645a28caef23d507622d86410"
+      },
+      "crop": [2047, 139, 2455, 378],
+      "threshold": 115,
+      "operation": "Trace the worm, pool ripples and engraved basin from the clean deck sheet. The pale pool and engravings become transparent cutouts.",
+      "referenceCrop": "references/little-maker.png"
+    },
+    {
+      "assetKey": "/vector/decal/karama-2-0.svg",
+      "source": {
+        "file": "PXL_20261021_201033591.MP.jpg",
+        "sha256": "e73551ce692428bc7c87a576796c3b6e4b2dae63269936e7627c2c92dba48263"
+      },
+      "crossCheck": {
+        "file": "treachery_deck.png",
+        "sha256": "04cb8629fa144724061a3877769ed0036563b5d7cd5d69c73a4331955921d28a"
+      },
+      "perspective": {
+        "sourceQuad": [
+          [1704, 252],
+          [1724, 888],
+          [877, 895],
+          [846, 261]
+        ],
+        "outputSize": [600, 840]
+      },
+      "crop": [166, 168, 430, 450],
+      "threshold": 70,
+      "operation": "Trace the symbol cutouts from the photograph and isolate the eight-pointed star. Straight ray edges remove the shared card background circles, guides and threshold remnants. Existing artwork is preserved.",
+      "motifPolygonInCorrectedCard": [
+        [296, 175],
+        [316, 237],
+        [382, 217],
+        [359, 278],
+        [426, 307],
+        [359, 334],
+        [390, 404],
+        [320, 382],
+        [298, 442],
+        [275, 383],
+        [203, 406],
+        [233, 334],
+        [169, 308],
+        [234, 280],
+        [212, 220],
+        [274, 239]
+      ],
+      "cutoutIsolation": "Keep white threshold components enclosed inside the motif polygon, with at least two source pixels; fill the remaining polygon as the silhouette.",
+      "referenceCrop": "references/karama-2-0.png"
+    }
+  ]
+}

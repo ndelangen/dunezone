@@ -65,6 +65,19 @@ The source includes photographs with page curl, perspective, glare and a few cli
 | [transcription-review.md](transcription-review.md) | Actual review coverage, unreadable fragments and remaining work. |
 | [block-audit.md](block-audit.md) | Current contracts and rendering behavior, all 36 page compositions, missing capabilities and small adjustment proposals. |
 | [differences-plan.md](differences-plan.md) | Baseline selection, comparison record and candidates for later investigation. |
+| [artwork/provenance.json](artwork/provenance.json) | Sources, perspective correction, crops and tracing operations for the added 2.0 decals. Reference crops are retained beside it. |
+
+## Added decals
+
+The user supplied clearer card photographs and deck sheets for this artwork. These are SVG paths traced from those raster images. They are additions; existing artwork remains available.
+
+| Decal | Collection |
+| --- | --- |
+| [Solaris](../../media/vector/decal/solaris.svg) | Trade goods and supplies |
+| [Little Maker](../../media/vector/decal/little-maker.svg) | Animals and desert fauna |
+| [Karama 2.0](../../media/vector/decal/karama-2-0.svg) | Symbols and markings |
+
+Each decal inherits its chosen colour and has transparent cutouts. The Karama trace isolates the star and its symbols, removing the card's shared background guides. Sources and transformations are recorded in the [provenance file](artwork/provenance.json). These catalogue additions do not create card or Rulebook records.
 
 ## Extraction and review
 
@@ -82,7 +95,7 @@ The [audit](block-audit.md#page-by-page-composition-plan) maps every source page
 
 Record decisions in the separate block comments on [#2431](https://github.com/ndelangen/dunezone/issues/2431). Test the remaining compositions with existing tools, including page 26's force arithmetic. Page 7's component inventory is omitted online. Compare every rendered page with its source and the approved presentation changes, and check the exported PDF, text selection, reading order, images and overflow.
 
-This branch contains preparation documents and source evidence. It does not create an importable book, change the renderer or create or publish application records. Existing [GF9 content](../gf9/README.md) and its authoring files remain the earlier edition's work. Do not regenerate or replace them from this transcript.
+This branch contains preparation documents, source evidence and three added decals with catalogue registration. It does not create an importable book, change the renderer's behavior or create or publish application records. Existing [GF9 content](../gf9/README.md) and its authoring files remain the earlier edition's work. Do not regenerate or replace them from this transcript.
 
 ## Verification of this preparation
 
@@ -90,4 +103,6 @@ The retained PDF matches the supplied file's SHA-256. The page map contains exac
 
 Known scan damage has 128 explicit observation markers in the transcript, plus the unreadable line in the page-2 quotation. The 181 remaining low-confidence candidates are a separate review queue. These counts do not include every miniature illustration label or imply that unmarked text is certified.
 
-Focused checks passed with `vp fmt --check content/gf9-2-0`, `bun scripts/assert-no-ai-tells.ts` and `git diff --check`. Source-integrity and document-link checks passed in a file-only validation pass. Application tests were not run because this branch changes source evidence and preparation documents only.
+The source-preparation checks passed with `vp fmt --check content/gf9-2-0`, `bun scripts/assert-no-ai-tells.ts` and `git diff --check`. Source-integrity and document-link checks passed in a file-only validation pass.
+
+For the added decals, vector generation and validation passed. Media catalogue tests passed with 9 tests, and AssetSelect Storybook tests passed with 8 tests. The publisher build and HTML runtime verification passed. Visual checks covered recolouring, transparent cutouts and picker availability, including the existing and new Karama artwork together.

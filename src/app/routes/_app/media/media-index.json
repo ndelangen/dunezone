@@ -10738,5 +10738,23 @@
     "tags": ["Duke Prad Vidal", "Ecaz", "Moritani", "dark hair", "gold trim", "purple drape"],
     "subjects": ["people"],
     "sourceHash": "6c66b6c4d55638b03d902ee7d76cd4b0ce970a3545cc0880d9073acc544f2a0f"
+  },
+  "/vector/decal/solaris.svg": {
+    "description": "Four overlapping coins bear a ringed planet, a four-pointed star, an animal head and a human profile.",
+    "tags": ["Solaris", "coins", "currency", "money", "GF9 2.0", "second edition", "vector"],
+    "subjects": ["trade", "symbols"],
+    "sourceHash": "d8bd5fd7d40f5f4b24dedf08c3bccf50896ea9ff35325f1124aba85e5e7830f8"
+  },
+  "/vector/decal/little-maker.svg": {
+    "description": "A segmented worm curls in a shallow pool inside an engraved circular basin.",
+    "tags": ["Little Maker", "worm", "pool", "water", "basin", "GF9 2.0", "second edition", "vector"],
+    "subjects": ["creatures", "water"],
+    "sourceHash": "d77317dc8a0ea3134e0016d55f4ba91a4d0a32e2b976aaa8e6e70cc4166e43b4"
+  },
+  "/vector/decal/karama-2-0.svg": {
+    "description": "An eight-pointed star surrounds a central ring, with a different small symbol on each ray.",
+    "tags": ["Karama", "GF9 2.0", "second edition", "compass", "star", "eye", "glyphs", "vector"],
+    "subjects": ["symbols"],
+    "sourceHash": "19a1e70ecb092110ddc771bbe11297bb202fce7e0969f02e8a70fd2664753fa9"
   }
 }
