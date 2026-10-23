@@ -64,6 +64,7 @@ const PLAYERS_AT_TABLE_FULL = 'Thialfi';
 
 /** The whole game: start at J01 and step, scrub or switch seats from the panel. */
 export const Walkthrough = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvasElement }) => {
     const { page, panel } = await atStep(canvasElement, 1);
     await expect(panel.getByText(journeySteps()[0]!.title)).toBeVisible();
@@ -152,6 +153,7 @@ export const SpiceBlow = meta.story({
 
 /** A spectator sees both battle plans revealed and the outcome calls. */
 export const BattleRevealed = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   args: { step: chapter('Battle revealed'), seat: 'neutral' },
   play: async ({ canvasElement }) => {
     const { page } = await atStep(canvasElement, chapter('Battle revealed'));

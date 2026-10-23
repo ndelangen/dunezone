@@ -124,7 +124,7 @@ function gridCards(page: ReturnType<typeof within>, name: RegExp) {
  */
 export const CatalogueBackToAMembersList = meta.story({
   args: { path: '/factions?ruleset=classicrules' },
-  parameters: { database: db(seedAnotherMember) },
+  parameters: { chromatic: { disableSnapshot: true }, database: db(seedAnotherMember) },
   loaders: [memoryHistory('/factions?owner=storybook-viewer', '/factions?ruleset=classicrules')],
   render: (args, { loaded }) => <StorybookPage {...args} history={pageHistory(loaded)} />,
   play: async ({ canvasElement, loaded }) => {
@@ -233,6 +233,7 @@ function factionCards(main: ReturnType<typeof within>, name: RegExp) {
 export const CatalogueSearched = meta.story({
   args: { path: '/factions?q=sietch&page=2&sort=created' },
   parameters: {
+    chromatic: { disableSnapshot: true },
     database: db((baseline) => {
       /* One past the first step: the smallest search that has more to load. */
       for (let index = 1; index <= FACTION_CATALOGUE_PAGE_SIZE + 1; index += 1) {

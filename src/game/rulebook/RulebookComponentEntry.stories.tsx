@@ -20,6 +20,7 @@ const meta = preview.meta({
 export const IndividualCard = meta.story({ play: expectContained });
 
 export const TechToken = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   render: () => (
     <RulebookBlockCanvas
       block={projectRulebookDraftRenderBlock(

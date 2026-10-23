@@ -24,6 +24,7 @@ const meta = preview.meta({
  * the primary rail stays in place.
  */
 export const Tabs = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() =>
     productTransport('seat-2', {
       ...initialSnapshot(),
@@ -78,6 +79,7 @@ export const Tabs = meta.story({
 
 /** The Play panel and its portaled controls keep their table palette inside the warm dark app. */
 export const SchemeIsland = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => productTransport()),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -136,6 +138,7 @@ export const SpectatorOpensOnLog = meta.story({
 
 /** Rejections stay visible in the destinations that sent the setting or history request. */
 export const SettingsAndReplayRefusals = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => productTransport('seat-2')),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);

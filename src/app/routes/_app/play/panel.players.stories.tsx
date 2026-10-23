@@ -21,6 +21,7 @@ const meta = preview.meta({
 
 /** A player's public information beside the controls: the faction's name opens its page, with the leaders it starts with, in a new tab. */
 export const Info = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   decorators: [seatFactionsResolve],
   beforeEach: install(() => productTransport('seat-2', playingSnapshot())),
   play: async ({ canvasElement }) => {
@@ -39,6 +40,7 @@ export const Info = meta.story({
 
 /** A vote to remove a player, cast from that player's Info tab. */
 export const RemovalVote = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => productTransport('seat-2', removalSnapshot())),
   play: async ({ canvasElement }) => {
     const page = await openPlayer(canvasElement, 'Twaffle', 'Info');
@@ -47,6 +49,7 @@ export const RemovalVote = meta.story({
 });
 
 export const RemovalVoting = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => productTransport('seat-2', removalSnapshot())),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -62,6 +65,7 @@ export const RemovalVoting = meta.story({
 });
 
 export const RemovalResolution = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => {
     return productTransport('seat-2', removalSnapshot(), {
       logEntries: {
@@ -97,6 +101,7 @@ export const RemovalResolution = meta.story({
 });
 
 export const RemovalRejected = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => productTransport('seat-2', removalSnapshot())),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);

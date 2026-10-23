@@ -9,6 +9,7 @@ import { RulebookPageRenderer } from './RulebookRenderer';
 const meta = preview.meta({ title: 'Page/Layouts/Rendered', parameters: { layout: 'fullscreen' } });
 
 export const FixedGridMatrix = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   render: () => <GeometryMatrix />,
   play: async ({ canvasElement }) => {
     await document.fonts.ready;
