@@ -28,7 +28,6 @@ export function compose({ allPages, contents, pageMap, unitMap, editorial, id, f
           dial,
           spice,
           adjustment,
-          leader: { kind: 'stock', artworkId: f.emblem },
           cards: [],
           troops: [],
         });
@@ -394,7 +393,7 @@ export function compose({ allPages, contents, pageMap, unitMap, editorial, id, f
           from,
           to,
           block,
-          'Native Faction introduction row; second-edition roster and labelled portrait placeholders.'
+          'Native Faction introduction row with the second-edition production roster.'
         );
         return block;
       });
@@ -495,20 +494,20 @@ export function compose({ allPages, contents, pageMap, unitMap, editorial, id, f
       const intro = units
         .filter((u: any) => sourceIndex(u) > 0 && sourceIndex(u) < 4)
         .map((u: any) => {
-          const b = text(`sequence-intro-${u.key}`, '', u.text);
+          const b = text(`sequence-full-width-intro-${u.key}`, '', u.text);
           u.blockId = b.id;
           return b;
         });
       const icons = [
-        'storm_disc',
-        'spice-blow_disc',
-        'spice',
-        'bidding_disc',
-        'revival',
-        'shipment_disc',
-        'combat_disc',
-        'collection_disc',
-        'mentat',
+        '/vector/icon/storrm_standalone.svg',
+        '/vector/icon/spice-blow_standalone.svg',
+        '/vector/generic/chaom.svg',
+        '/vector/icon/bidding_standalone.svg',
+        '/vector/icon/revival_standalone.svg',
+        '/vector/icon/shipment_disc.svg',
+        '/vector/icon/combat.svg',
+        '/vector/icon/collection_standalone.svg',
+        '/vector/icon/mentat.svg',
       ];
       const starts = units.filter((u: any) => /^### \d+\./.test(u.text));
       const lists = starts.map((heading: any, j: number) => {
@@ -524,19 +523,32 @@ export function compose({ allPages, contents, pageMap, unitMap, editorial, id, f
           itemsById: {
             [key]: {
               id: key,
-              icon: `/vector/icon/${icons[j]}.svg`,
-              name: heading.text
-                .replace(/^### \d+\. /, '')
-                .toLowerCase()
-                .replace(/^./, (x: string) => x.toUpperCase()),
-              text: formatted(body.map((u: any) => u.text).join('\n\n')),
+              icon: icons[j],
+              name: sentenceCase(heading.text.replace(/^### \d+\. /, '')),
+              text: formatted(body.map((u: any) => (/^Page \d+$/.test(u.text) ? `**${u.text}**` : u.text)).join(' ')),
             },
           },
         });
         mapReplacement(n, begin, end - 1, b, 'Existing phase icon and the complete phase description.');
         return b;
       });
-      addPage(original, [...intro, ...lists]);
+      const list = newBlock('phase-sequence', {
+        kind: 'list',
+        style: 'numbered',
+        itemOrder: lists.flatMap((b: any) => b.itemOrder),
+        itemsById: Object.assign({}, ...lists.map((b: any) => b.itemsById)),
+      });
+      for (const u of units) {
+        if (lists.some((b: any) => b.id === u.blockId)) {
+          u.blockId = list.id;
+        }
+      }
+      const p = addPage(original, [...intro, list], 'single-column');
+      p.layoutId = 'sequence';
+      p.id = id('sequence-page-9');
+      for (const u of units) {
+        u.pageId = p.id;
+      }
       continue;
     }
     if (n === 10) {
@@ -914,36 +926,98 @@ export function compose({ allPages, contents, pageMap, unitMap, editorial, id, f
         const f = faction('Emperor');
         const troops = bindings.resolvedFactions[f.id]?.troops ?? [];
         const t = troops.find((t: any) => Boolean(t.star) === special) ?? troops[0];
-        return { id: name, kind: 'troops', factionId: f.id, troopId: t?.troopId, face: 'front', count, label };
+        return {
+          id: name,
+          kind: 'source',
+          source: { kind: 'faction-troop', factionId: f.id, troopId: t?.troopId, face: 'front' },
+          count,
+          label,
+        };
       };
       const coin = {
         id: 'spice',
         kind: 'source',
-        source: { kind: 'stock', artworkId: '/vector/generic/solaris.svg' },
+        source: { kind: 'asset', assetId: bindings.spiceToken.assetId },
         count: 1,
         label: '1 spice',
       };
-      const pieces = newBlock('classic-losses', {
+      const firstLoss = newBlock('classic-first-loss', {
         kind: 'piece-transfer',
         direction: 'none',
         left: {
-          label: '2 + ½ + ½',
-          pieces: [coin, tp('sardaukar', 1, 'Sardaukar: 2', true), tp('normal', 2, '½ each')],
+          label: '',
+          pieces: [coin, tp('sardaukar', 1, '2', true)],
         },
         right: {
-          label: '1 + ½ + ½ + ½ + ½',
-          pieces: [{ ...coin, id: 'spice-right' }, tp('supported', 1, '1'), tp('unsupported', 4, '½ each')],
+          label: '',
+          pieces: [tp('ordinary-left', 1, '½'), tp('ordinary-right', 1, '½')],
         },
       });
-      const split = blocks.findIndex((b: any) => b.name === 'Fremen battle edge:');
-      const left = [...blocks.slice(0, split), pieces];
+      const secondLoss = newBlock('classic-second-loss', {
+        kind: 'piece-transfer',
+        direction: 'none',
+        left: { label: '', pieces: [{ ...coin, id: 'spice-right' }, tp('supported', 1, '1')] },
+        right: {
+          label: '',
+          pieces: Array.from({ length: 4 }, (_, i) => tp(`unsupported-${i}`, 1, '½')),
+        },
+      });
+      const prose = (key: string, indices: number[], name = '') => {
+        const units = rawUnits(n).filter((u: any) => indices.includes(sourceIndex(u)));
+        const b = text(key, name, units.map((u: any) => u.text).join('\n\n'));
+        for (const u of units) {
+          u.blockId = b.id;
+        }
+        return b;
+      };
+      const introduction = prose('classic-introduction', [2], 'Classic spice dialing');
+      rawUnits(n).find((u: any) => sourceIndex(u) === 1).blockId = introduction.id;
+      const rules = blocks.find((b: any) => b.kind === 'list');
+      const left = [introduction, rules, prose('classic-half-increments', [6]), prose('classic-loss-rule', [7])];
       const right = [
-        illustration('half-2', stock('wheel-2-5'), '2½ and 4½'),
-        illustration('half-8', stock('wheel-8-5'), '8½ compared with 8'),
+        illustration('half-2', stock('wheel-2-5')),
+        newBlock('half-dial-caption', {
+          kind: 'callout',
+          variant: 'example',
+          title: 'Battle Wheel examples',
+          text: '2½; 4½; 8½.',
+        }),
       ];
       const p = addPage(original, [...left, ...right]);
       p.blockOrderByRegion = { column1: left.map((b) => b.id), column2: right.map((b) => b.id) };
-      addPage(original, blocks.slice(split), 'two-columns', 'Spirit World Karama', true);
+      mapReplacement(n, 9, 11, firstLoss, 'Existing production spice token and equal-sized published force tokens.');
+      mapReplacement(n, 13, 15, secondLoss, 'One supported ordinary force and four unsupported ordinary forces.');
+      mapReplacement(n, 17, 18, right[1], 'All three printed half-strength settings; no invented comparison.');
+      const exampleBlocks = [
+        prose('classic-example', [8]),
+        firstLoss,
+        prose('classic-first-explanation', [12]),
+        secondLoss,
+        prose('classic-second-explanation', [16]),
+        prose('classic-fremen-edge', [20], 'Fremen battle edge'),
+        prose('classic-note', [21]),
+      ];
+      rawUnits(n).find((u: any) => sourceIndex(u) === 19).blockId = exampleBlocks[5].id;
+      const lossPage = addPage(original, exampleBlocks, 'single-column', 'Classic spice dialing', false);
+      const existingSpiritPageId = lossPage.id;
+      lossPage.id = id('classic-loss-page-26');
+      for (const u of rawUnits(n)) {
+        if (exampleBlocks.some((b: any) => b.id === u.blockId)) {
+          u.pageId = lossPage.id;
+        }
+      }
+      const spirit = blocks.findIndex((b: any) => b.name?.toLowerCase() === 'spirit world karama');
+      const spiritPage = addPage(original, blocks.slice(spirit + 1), 'two-columns', 'Spirit World Karama', true);
+      spiritPage.id = existingSpiritPageId;
+      for (const u of rawUnits(n)) {
+        if (sourceIndex(u) > 22) {
+          u.pageId = spiritPage.id;
+        }
+      }
+      const spiritHeading = rawUnits(n).find((u: any) => sourceIndex(u) === 22);
+      delete spiritHeading.blockId;
+      spiritHeading.pageId = spiritPage.id;
+      spiritHeading.field = 'title';
       continue;
     }
     let rail: any[] = [];

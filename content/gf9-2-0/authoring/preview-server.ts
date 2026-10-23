@@ -15,6 +15,11 @@ const result = await Bun.build({
 if (!result.success) {
   throw new AggregateError(result.logs, 'Preview bundle failed');
 }
+// Bun's legacy :-webkit-any fallback changes specificity in WebKit. Keep the
+// same :is selectors as the production renderer so numbered lists stay numbered.
+for (const output of result.outputs.filter((file) => file.path.endsWith('.css'))) {
+  await Bun.write(output.path, (await output.text()).replaceAll(':-webkit-any(', ':is('));
+}
 const css = result.outputs
   .filter((file) => file.path.endsWith('.css'))
   .map((file) => `<link rel="stylesheet" href="/${file.path.split('/').at(-1)}">`)
@@ -27,9 +32,6 @@ const server = Bun.serve({
     const path = decodeURIComponent(new URL(request.url).pathname);
     if (path.includes('..')) {
       return new Response('Not found', { status: 404 });
-    }
-    if (path.startsWith('/gf9-preview/')) {
-      return new Response(Bun.file('/tmp/gf9-rebuild/parked-asset-work/preview-images/' + path.split('/').at(-1)));
     }
     if (path === '/render-document.json') {
       return new Response(Bun.file(`${here}/render-document.json`));

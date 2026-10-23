@@ -1,7 +1,10 @@
 {
   "checkedAt": "2026-10-23",
-  "pages": 66,
+  "pages": 62,
   "failures": [],
+  "capturedPages": 62,
+  "referencedImagesReady": true,
+  "wheelScrollBleedPx": 2,
   "measurements": [
     {
       "id": "SCMH",
@@ -285,400 +288,137 @@
       ]
     },
     {
-      "id": "KDSP",
-      "layout": "two-columns",
+      "id": "874R",
+      "layout": "sequence",
       "regions": [
         {
-          "available": 784.078125,
+          "available": 809.2775499999998,
           "blocks": [
             {
               "height": 20.0625,
-              "id": "X4T2",
+              "id": "9BLS",
               "overflowWidth": 0
             },
             {
-              "height": 105.8046875,
-              "id": "DGSA",
+              "height": 186.78125,
+              "id": "MWET",
               "overflowWidth": 0
             },
             {
-              "height": 170.1640625,
-              "id": "SHZN",
+              "height": 186.78125,
+              "id": "Z3YN",
+              "overflowWidth": 0
+            },
+            {
+              "height": 186.78125,
+              "id": "7RJG",
+              "overflowWidth": 0
+            },
+            {
+              "height": 186.78125,
+              "id": "855A",
               "overflowWidth": 0
             }
           ],
-          "bottom": 326.140625,
-          "gap": 15.0588,
-          "key": "column1"
-        },
-        {
-          "available": 784.078125,
-          "blocks": [
-            {
-              "height": 120.46875,
-              "id": "WHHR",
-              "overflowWidth": 0
-            },
-            {
-              "height": 120.46875,
-              "id": "PU5H",
-              "overflowWidth": 0
-            },
-            {
-              "height": 120.46875,
-              "id": "EBTG",
-              "overflowWidth": 0
-            },
-            {
-              "height": 120.46875,
-              "id": "G7NP",
-              "overflowWidth": 0
-            },
-            {
-              "height": 120.46875,
-              "id": "7NET",
-              "overflowWidth": 0
-            }
-          ],
-          "bottom": 662.5625,
-          "gap": 15.0588,
-          "key": "column2"
+          "bottom": 782.21875,
+          "gap": 3.76471,
+          "key": "content"
         }
       ]
     },
     {
-      "id": "QF57",
-      "layout": "two-columns",
+      "id": "LKXC",
+      "layout": "paired-rows",
       "regions": [
         {
-          "available": 784.078125,
+          "available": 779.2974999999997,
           "blocks": [
             {
-              "height": 80.25,
-              "id": "SM56",
+              "height": 186.78125,
+              "id": "SNAK",
               "overflowWidth": 0
             },
             {
-              "height": 170.1640625,
-              "id": "4E6R",
+              "height": 186.78125,
+              "id": "D4AJ",
+              "overflowWidth": 0
+            },
+            {
+              "height": 32.921875,
+              "id": "4DVA",
               "overflowWidth": 0
             }
           ],
-          "bottom": 265.46875,
+          "bottom": 436.59375,
           "gap": 15.0588,
-          "key": "column1"
+          "key": "opening"
         },
         {
-          "available": 784.078125,
+          "available": 327.6490624999997,
           "blocks": [
             {
-              "height": 120.46875,
-              "id": "FRRF",
-              "overflowWidth": 0
-            },
-            {
-              "height": 120.46875,
-              "id": "NFL7",
-              "overflowWidth": 0
-            },
-            {
-              "height": 120.46875,
-              "id": "D2DF",
-              "overflowWidth": 0
-            },
-            {
-              "height": 120.46875,
-              "id": "QYKS",
-              "overflowWidth": 0
-            },
-            {
-              "height": 120.46875,
-              "id": "C8SS",
-              "overflowWidth": 0
-            }
-          ],
-          "bottom": 662.5625,
-          "gap": 15.0588,
-          "key": "column2"
-        }
-      ]
-    },
-    {
-      "id": "HTZ6",
-      "layout": "two-columns",
-      "regions": [
-        {
-          "available": 784.078125,
-          "blocks": [
-            {
-              "height": 80.25,
-              "id": "KLG7",
-              "overflowWidth": 0
-            },
-            {
-              "height": 170.1640625,
-              "id": "AADE",
-              "overflowWidth": 0
-            }
-          ],
-          "bottom": 265.46875,
-          "gap": 15.0588,
-          "key": "column1"
-        },
-        {
-          "available": 784.078125,
-          "blocks": [
-            {
-              "height": 120.46875,
-              "id": "527P",
-              "overflowWidth": 0
-            },
-            {
-              "height": 120.46875,
-              "id": "W4XQ",
-              "overflowWidth": 0
-            },
-            {
-              "height": 120.46875,
-              "id": "H75B",
-              "overflowWidth": 0
-            },
-            {
-              "height": 120.46875,
-              "id": "9QCL",
-              "overflowWidth": 0
-            },
-            {
-              "height": 120.46875,
-              "id": "FY55",
-              "overflowWidth": 0
-            }
-          ],
-          "bottom": 662.5625,
-          "gap": 15.0588,
-          "key": "column2"
-        }
-      ]
-    },
-    {
-      "id": "UQWD",
-      "layout": "two-columns",
-      "regions": [
-        {
-          "available": 784.078125,
-          "blocks": [
-            {
-              "height": 80.25,
-              "id": "N7TE",
-              "overflowWidth": 0
-            },
-            {
-              "height": 170.1640625,
-              "id": "WBJV",
-              "overflowWidth": 0
-            }
-          ],
-          "bottom": 265.46875,
-          "gap": 15.0588,
-          "key": "column1"
-        },
-        {
-          "available": 784.078125,
-          "blocks": [
-            {
-              "height": 120.46875,
-              "id": "9NJW",
-              "overflowWidth": 0
-            },
-            {
-              "height": 120.46875,
-              "id": "FQS9",
-              "overflowWidth": 0
-            },
-            {
-              "height": 120.46875,
-              "id": "2ZYD",
-              "overflowWidth": 0
-            },
-            {
-              "height": 120.46875,
-              "id": "RM43",
-              "overflowWidth": 0
-            },
-            {
-              "height": 120.46875,
-              "id": "5JDN",
-              "overflowWidth": 0
-            }
-          ],
-          "bottom": 662.5625,
-          "gap": 15.0588,
-          "key": "column2"
-        }
-      ]
-    },
-    {
-      "id": "XGCC",
-      "layout": "two-columns",
-      "regions": [
-        {
-          "available": 784.078125,
-          "blocks": [
-            {
-              "height": 60.1875,
-              "id": "QR4V",
-              "overflowWidth": 0
-            },
-            {
-              "height": 170.1640625,
-              "id": "SPTK",
-              "overflowWidth": 0
-            }
-          ],
-          "bottom": 245.40625,
-          "gap": 15.0588,
-          "key": "column1"
-        },
-        {
-          "available": 784.078125,
-          "blocks": [
-            {
-              "height": 120.46875,
-              "id": "QGPB",
-              "overflowWidth": 0
-            },
-            {
-              "height": 120.46875,
-              "id": "XDTN",
-              "overflowWidth": 0
-            },
-            {
-              "height": 120.46875,
-              "id": "A5T4",
-              "overflowWidth": 0
-            },
-            {
-              "height": 120.46875,
-              "id": "3C5H",
-              "overflowWidth": 0
-            },
-            {
-              "height": 120.46875,
-              "id": "7LL5",
-              "overflowWidth": 0
-            }
-          ],
-          "bottom": 662.5625,
-          "gap": 15.0588,
-          "key": "column2"
-        }
-      ]
-    },
-    {
-      "id": "FB9Z",
-      "layout": "two-columns",
-      "regions": [
-        {
-          "available": 784.078125,
-          "blocks": [
-            {
-              "height": 80.25,
-              "id": "6WVR",
-              "overflowWidth": 0
-            },
-            {
-              "height": 170.1640625,
-              "id": "N9VH",
-              "overflowWidth": 0
-            }
-          ],
-          "bottom": 265.46875,
-          "gap": 15.0588,
-          "key": "column1"
-        },
-        {
-          "available": 784.078125,
-          "blocks": [
-            {
-              "height": 120.46875,
-              "id": "S9EE",
-              "overflowWidth": 0
-            },
-            {
-              "height": 120.46875,
-              "id": "KLBY",
-              "overflowWidth": 0
-            },
-            {
-              "height": 120.46875,
-              "id": "JTGZ",
-              "overflowWidth": 0
-            },
-            {
-              "height": 120.46875,
-              "id": "EWST",
-              "overflowWidth": 0
-            },
-            {
-              "height": 120.46875,
-              "id": "WG4X",
-              "overflowWidth": 0
-            }
-          ],
-          "bottom": 662.5625,
-          "gap": 15.0588,
-          "key": "column2"
-        }
-      ]
-    },
-    {
-      "id": "S48N",
-      "layout": "two-columns",
-      "regions": [
-        {
-          "available": 786.6875,
-          "blocks": [
-            {
-              "height": 60.1875,
-              "id": "DTM7",
+              "height": 40.125,
+              "id": "ZYLJ",
               "overflowWidth": 0
             },
             {
               "height": 60.1875,
-              "id": "HTDM",
+              "id": "W74E",
               "overflowWidth": 0
             },
             {
               "height": 60.1875,
-              "id": "TWE6",
+              "id": "RAJ4",
               "overflowWidth": 0
             },
             {
               "height": 60.1875,
-              "id": "DX6A",
-              "overflowWidth": 0
-            },
-            {
-              "height": 20.0625,
-              "id": "3R9J",
-              "overflowWidth": 0
-            },
-            {
-              "height": 160.5,
-              "id": "C5TA",
+              "id": "3DQ7",
               "overflowWidth": 0
             }
           ],
-          "bottom": 496.5859375,
+          "bottom": 265.8515625,
           "gap": 15.0588,
-          "key": "column1"
+          "key": "upperLeft"
         },
         {
-          "available": 786.6875,
+          "available": 297.5396874999997,
+          "blocks": [
+            {
+              "height": 40.125,
+              "id": "KBDZ",
+              "overflowWidth": 0
+            },
+            {
+              "height": 180.5625,
+              "id": "8CJH",
+              "overflowWidth": 0
+            }
+          ],
+          "bottom": 235.7421875,
+          "gap": 15.0588,
+          "key": "upperRight"
+        },
+        {
+          "available": 46.74281249999967,
           "blocks": [],
           "bottom": 0,
           "gap": 15.0588,
-          "key": "column2"
+          "key": "lowerLeft"
+        },
+        {
+          "available": 46.74281249999967,
+          "blocks": [],
+          "bottom": 0,
+          "gap": 15.0588,
+          "key": "lowerRight"
+        },
+        {
+          "available": 31.688124999999673,
+          "blocks": [],
+          "bottom": 0,
+          "gap": 15.0588,
+          "key": "closing"
         }
       ]
     },
@@ -792,7 +532,7 @@
               "overflowWidth": 0
             },
             {
-              "height": 131.6640625,
+              "height": 135.4296875,
               "id": "2EC8",
               "overflowWidth": 0
             },
@@ -827,7 +567,7 @@
               "overflowWidth": 0
             }
           ],
-          "bottom": 765.6171875,
+          "bottom": 769.3828125,
           "gap": 15.0588,
           "key": "column1"
         },
@@ -924,84 +664,36 @@
       ]
     },
     {
-      "id": "7XV4",
-      "layout": "two-columns",
+      "id": "XUD9",
+      "layout": "sequence",
       "regions": [
         {
-          "available": 786.6875,
+          "available": 809.2775500000007,
           "blocks": [
             {
-              "height": 60.1875,
-              "id": "XTLB",
+              "height": 40.125,
+              "id": "5WSL",
+              "overflowWidth": 0
+            },
+            {
+              "height": 20.0625,
+              "id": "5EFZ",
               "overflowWidth": 0
             },
             {
               "height": 40.125,
-              "id": "65NR",
+              "id": "6S9C",
               "overflowWidth": 0
             },
             {
-              "height": 60.1875,
-              "id": "QEGN",
-              "overflowWidth": 0
-            },
-            {
-              "height": 115.96875,
-              "id": "KDFD",
-              "overflowWidth": 0
-            },
-            {
-              "height": 176.15625,
-              "id": "SHZF",
-              "overflowWidth": 0
-            },
-            {
-              "height": 75.84375,
-              "id": "KBNC",
-              "overflowWidth": 0
-            },
-            {
-              "height": 75.84375,
-              "id": "VP6N",
+              "height": 643.1875,
+              "id": "S93Z",
               "overflowWidth": 0
             }
           ],
-          "bottom": 694.640625,
-          "gap": 15.0588,
-          "key": "column1"
-        },
-        {
-          "available": 786.6875,
-          "blocks": [
-            {
-              "height": 115.96875,
-              "id": "E6CX",
-              "overflowWidth": 0
-            },
-            {
-              "height": 136.03125,
-              "id": "U8M4",
-              "overflowWidth": 0
-            },
-            {
-              "height": 115.96875,
-              "id": "TDMN",
-              "overflowWidth": 0
-            },
-            {
-              "height": 95.90625,
-              "id": "5ERP",
-              "overflowWidth": 0
-            },
-            {
-              "height": 156.09375,
-              "id": "4HEJ",
-              "overflowWidth": 0
-            }
-          ],
-          "bottom": 680.1875,
-          "gap": 15.0588,
-          "key": "column2"
+          "bottom": 754.7734375,
+          "gap": 3.76471,
+          "key": "content"
         }
       ]
     },
@@ -1117,29 +809,6 @@
           "available": 786.6875,
           "blocks": [
             {
-              "height": 120.46875,
-              "id": "Y8WR",
-              "overflowWidth": 0
-            },
-            {
-              "height": 120.46875,
-              "id": "HLY6",
-              "overflowWidth": 0
-            },
-            {
-              "height": 120.46875,
-              "id": "NRA5",
-              "overflowWidth": 0
-            }
-          ],
-          "bottom": 391.515625,
-          "gap": 15.0588,
-          "key": "rail"
-        },
-        {
-          "available": 786.6875,
-          "blocks": [
-            {
               "height": 120.375,
               "id": "AZHK",
               "overflowWidth": 0
@@ -1206,6 +875,29 @@
           "bottom": 750.046875,
           "gap": 15.0588,
           "key": "column2"
+        },
+        {
+          "available": 786.6875,
+          "blocks": [
+            {
+              "height": 120.46875,
+              "id": "Y8WR",
+              "overflowWidth": 0
+            },
+            {
+              "height": 120.46875,
+              "id": "HLY6",
+              "overflowWidth": 0
+            },
+            {
+              "height": 120.46875,
+              "id": "NRA5",
+              "overflowWidth": 0
+            }
+          ],
+          "bottom": 391.515625,
+          "gap": 15.0588,
+          "key": "rail"
         }
       ]
     },
@@ -1441,7 +1133,7 @@
           "available": 847.0625,
           "blocks": [
             {
-              "height": 40.125,
+              "height": 20.0625,
               "id": "NUNJ",
               "overflowWidth": 0
             },
@@ -1451,7 +1143,7 @@
               "overflowWidth": 0
             }
           ],
-          "bottom": 115.3671875,
+          "bottom": 95.3046875,
           "gap": 15.0588,
           "key": "column2"
         }
@@ -2835,7 +2527,7 @@
           "blocks": [
             {
               "height": 65.6796875,
-              "id": "GKP8",
+              "id": "3F9H",
               "overflowWidth": 0
             },
             {
@@ -2845,31 +2537,16 @@
             },
             {
               "height": 60.1875,
-              "id": "YCY4",
+              "id": "EP6X",
               "overflowWidth": 0
             },
             {
               "height": 60.1875,
-              "id": "5DTQ",
-              "overflowWidth": 0
-            },
-            {
-              "height": 60.1875,
-              "id": "EZLY",
-              "overflowWidth": 0
-            },
-            {
-              "height": 60.1875,
-              "id": "6Q6F",
-              "overflowWidth": 0
-            },
-            {
-              "height": 100.3125,
-              "id": "4495",
+              "id": "CS5M",
               "overflowWidth": 0
             }
           ],
-          "bottom": 680.1484375,
+          "bottom": 414.296875,
           "gap": 15.0588,
           "key": "column1"
         },
@@ -2877,24 +2554,68 @@
           "available": 786.6875,
           "blocks": [
             {
-              "height": 140.0625,
-              "id": "XDLZ",
-              "overflowWidth": 0
-            },
-            {
               "height": 270.5390625,
               "id": "B466",
               "overflowWidth": 2
             },
             {
-              "height": 270.5390625,
-              "id": "NGAJ",
-              "overflowWidth": 2
+              "height": 70.078125,
+              "id": "C6NS",
+              "overflowWidth": 0
             }
           ],
-          "bottom": 711.25,
+          "bottom": 355.671875,
           "gap": 15.0588,
           "key": "column2"
+        }
+      ]
+    },
+    {
+      "id": "88DW",
+      "layout": "single-column",
+      "regions": [
+        {
+          "available": 847.0625,
+          "blocks": [
+            {
+              "height": 40.125,
+              "id": "M9N6",
+              "overflowWidth": 0
+            },
+            {
+              "height": 124.890625,
+              "id": "FNV4",
+              "overflowWidth": 0
+            },
+            {
+              "height": 40.125,
+              "id": "UCHN",
+              "overflowWidth": 0
+            },
+            {
+              "height": 124.890625,
+              "id": "EBNY",
+              "overflowWidth": 0
+            },
+            {
+              "height": 60.1875,
+              "id": "6ZSF",
+              "overflowWidth": 0
+            },
+            {
+              "height": 65.6796875,
+              "id": "UYAU",
+              "overflowWidth": 0
+            },
+            {
+              "height": 40.125,
+              "id": "3TJ9",
+              "overflowWidth": 0
+            }
+          ],
+          "bottom": 586.3515625,
+          "gap": 15.0588,
+          "key": "content"
         }
       ]
     },
@@ -2905,21 +2626,6 @@
         {
           "available": 786.6875,
           "blocks": [
-            {
-              "height": 85.7421875,
-              "id": "SQPV",
-              "overflowWidth": 0
-            },
-            {
-              "height": 60.1875,
-              "id": "ECM6",
-              "overflowWidth": 0
-            },
-            {
-              "height": 25.5546875,
-              "id": "WZ7Y",
-              "overflowWidth": 0
-            },
             {
               "height": 40.125,
               "id": "NZBC",
@@ -2939,20 +2645,20 @@
               "height": 80.25,
               "id": "P96D",
               "overflowWidth": 0
+            },
+            {
+              "height": 166.890625,
+              "id": "8U43",
+              "overflowWidth": 0
             }
           ],
-          "bottom": 522.625,
+          "bottom": 487.921875,
           "gap": 15.0588,
           "key": "column1"
         },
         {
           "available": 786.6875,
           "blocks": [
-            {
-              "height": 166.890625,
-              "id": "8U43",
-              "overflowWidth": 0
-            },
             {
               "height": 60.1875,
               "id": "8ACX",
@@ -2969,7 +2675,7 @@
               "overflowWidth": 0
             }
           ],
-          "bottom": 519.3828125,
+          "bottom": 337.4375,
           "gap": 15.0588,
           "key": "column2"
         }

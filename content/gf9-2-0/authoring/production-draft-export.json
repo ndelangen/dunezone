@@ -9,17 +9,12 @@
             "LLQL",
             "2VDK",
             "C7U2",
-            "KDSP",
-            "QF57",
-            "HTZ6",
-            "UQWD",
-            "XGCC",
-            "FB9Z",
-            "S48N",
+            "874R",
+            "LKXC",
             "TN3N",
             "MC57",
             "NFMC",
-            "7XV4",
+            "XUD9",
             "YEP8",
             "8LF7",
             "RXDU",
@@ -50,6 +45,7 @@
             "AYAN",
             "4UQ6",
             "7Y77",
+            "88DW",
             "SDE7",
             "W68K",
             "4WXN",
@@ -631,7 +627,7 @@
                   "id": "CC2W",
                   "kind": "text",
                   "name": "Limits",
-                  "text": "Several Alliances can be formed during a Nexus, but no player can be [uncertain: a] member of more than one Alliance. Once all players have had a chance to ally, no further Alliances can be made or broken until the next Nexus."
+                  "text": "Several Alliances can be formed during a Nexus, but no player can be a member of more than one Alliance. Once all players have had a chance to ally, no further Alliances can be made or broken until the next Nexus."
                 },
                 "DHFF": {
                   "id": "DHFF",
@@ -1336,7 +1332,7 @@
                 "SGNX": {
                   "id": "SGNX",
                   "kind": "text",
-                  "text": "Like the planet they lived on, the features of the Fremen were harsh, desiccated and uninviting. Yet, also like the planet, there was hidden a spirit inured to hardship and dedicated to the ideals necessary for survival. It was the stuff of which great fighters were made and it was [uncertain: this] hidden asset that Duke Leto hoped to exploit to his advantage."
+                  "text": "Like the planet they lived on, the features of the Fremen were harsh, desiccated and uninviting. Yet, also like the planet, there was hidden a spirit inured to hardship and dedicated to the ideals necessary for survival. It was the stuff of which great fighters were made and it was this hidden asset that Duke Leto hoped to exploit to his advantage."
                 },
                 "Z43B": {
                   "id": "Z43B",
@@ -1399,7 +1395,7 @@
                 "NUNJ": {
                   "id": "NUNJ",
                   "kind": "text",
-                  "text": "Free Force Revivals are [uncertain: shown] here on your faction sheet."
+                  "text": "Free Force Revivals are shown here on your faction sheet."
                 }
               },
               "controlValues": {},
@@ -1408,235 +1404,26 @@
               "showHeading": false,
               "title": "PHASE 5: REVIVAL"
             },
-            "7XV4": {
-              "anchor": "source-09",
-              "blockOrderByRegion": {
-                "column1": [
-                  "XTLB",
-                  "65NR",
-                  "QEGN",
-                  "KDFD",
-                  "SHZF",
-                  "KBNC",
-                  "VP6N"
-                ],
-                "column2": [
-                  "E6CX",
-                  "U8M4",
-                  "TDMN",
-                  "5ERP",
-                  "4HEJ"
-                ]
-              },
-              "blocksById": {
-                "4HEJ": {
-                  "id": "4HEJ",
-                  "itemOrder": [
-                    "phase-8"
-                  ],
-                  "itemsById": {
-                    "phase-8": {
-                      "icon": "/vector/icon/mentat.svg",
-                      "id": "phase-8",
-                      "name": "Mentat pause phase",
-                      "text": "Page 20\n\nCheck to see if any player or Alliance has won the game. If there are no winners, move the Game Round marker to the next position on the Round Track to begin the next round. Players who received bribes in this round may collect that spice at this time."
-                    }
-                  },
-                  "kind": "list",
-                  "start": 9,
-                  "style": "numbered"
-                },
-                "5ERP": {
-                  "id": "5ERP",
-                  "itemOrder": [
-                    "phase-7"
-                  ],
-                  "itemsById": {
-                    "phase-7": {
-                      "icon": "/vector/icon/collection_disc.svg",
-                      "id": "phase-7",
-                      "name": "Spice collection phase",
-                      "text": "Page 20\n\nForces in the sector of a territory containing spice may collect spice."
-                    }
-                  },
-                  "kind": "list",
-                  "start": 8,
-                  "style": "numbered"
-                },
-                "65NR": {
-                  "id": "65NR",
-                  "kind": "text",
-                  "text": "Player Turns in a phase are conducted in \"storm order\" (going counter\\-clockwise from the First Player)."
-                },
-                "E6CX": {
-                  "id": "E6CX",
-                  "itemOrder": [
-                    "phase-4"
-                  ],
-                  "itemsById": {
-                    "phase-4": {
-                      "icon": "/vector/icon/revival.svg",
-                      "id": "phase-4",
-                      "name": "Revival phase",
-                      "text": "Page 13\n\nAll players are allowed to reclaim forces (and eventually leaders) from the Tleilaxu Tanks in storm order."
-                    }
-                  },
-                  "kind": "list",
-                  "start": 5,
-                  "style": "numbered"
-                },
-                "KBNC": {
-                  "id": "KBNC",
-                  "itemOrder": [
-                    "phase-2"
-                  ],
-                  "itemsById": {
-                    "phase-2": {
-                      "icon": "/vector/icon/spice.svg",
-                      "id": "phase-2",
-                      "name": "Choam charity phase",
-                      "text": "Page 12\n\nPlayers with 0 or 1 spice may claim CHOAM Charity."
-                    }
-                  },
-                  "kind": "list",
-                  "start": 3,
-                  "style": "numbered"
-                },
-                "KDFD": {
-                  "id": "KDFD",
-                  "itemOrder": [
-                    "phase-0"
-                  ],
-                  "itemsById": {
-                    "phase-0": {
-                      "icon": "/vector/icon/storm_disc.svg",
-                      "id": "phase-0",
-                      "name": "Storm phase",
-                      "text": "Page 10\n\nThe Storm marker moves. The player whose Faction marker the storm next approaches will be the First Player for this round."
-                    }
-                  },
-                  "kind": "list",
-                  "start": 1,
-                  "style": "numbered"
-                },
-                "QEGN": {
-                  "id": "QEGN",
-                  "kind": "text",
-                  "text": "It is possible for Dune to end after only one round! Players must take care to note player order and which factions have the capability to win when deciding their own actions."
-                },
-                "SHZF": {
-                  "id": "SHZF",
-                  "itemOrder": [
-                    "phase-1"
-                  ],
-                  "itemsById": {
-                    "phase-1": {
-                      "icon": "/vector/icon/spice-blow_disc.svg",
-                      "id": "phase-1",
-                      "name": "Spice blow and nexus phase",
-                      "text": "Page 11\n\nTurn over the top card of the Spice deck and place the amount of spice shown on the card in the indicated sector of the highlighted territories (unless in a storm sector). If Shai\\-Hulud appears during the Spice Blow and Nexus phase, a Nexus occurs, giving players the opportunity to make and break Alliances."
-                    }
-                  },
-                  "kind": "list",
-                  "start": 2,
-                  "style": "numbered"
-                },
-                "TDMN": {
-                  "id": "TDMN",
-                  "itemOrder": [
-                    "phase-6"
-                  ],
-                  "itemsById": {
-                    "phase-6": {
-                      "icon": "/vector/icon/combat_disc.svg",
-                      "id": "phase-6",
-                      "name": "Battle phase",
-                      "text": "Page 16\n\nPlayers must resolve battles in every territory that is occupied by forces from two or more factions. Battles are conducted in storm order."
-                    }
-                  },
-                  "kind": "list",
-                  "start": 7,
-                  "style": "numbered"
-                },
-                "U8M4": {
-                  "id": "U8M4",
-                  "itemOrder": [
-                    "phase-5"
-                  ],
-                  "itemsById": {
-                    "phase-5": {
-                      "icon": "/vector/icon/shipment_disc.svg",
-                      "id": "phase-5",
-                      "name": "Shipment and movement phase",
-                      "text": "Page 14\n\nStarting with the First Player and proceeding in storm order, each player in turn may ship forces to the game board and then may move their forces on the game board."
-                    }
-                  },
-                  "kind": "list",
-                  "start": 6,
-                  "style": "numbered"
-                },
-                "VP6N": {
-                  "id": "VP6N",
-                  "itemOrder": [
-                    "phase-3"
-                  ],
-                  "itemsById": {
-                    "phase-3": {
-                      "icon": "/vector/icon/bidding_disc.svg",
-                      "id": "phase-3",
-                      "name": "Bidding phase",
-                      "text": "Page 12\n\nPlayers bid spice to acquire Treachery cards."
-                    }
-                  },
-                  "kind": "list",
-                  "start": 4,
-                  "style": "numbered"
-                },
-                "XTLB": {
-                  "id": "XTLB",
-                  "kind": "text",
-                  "text": "Dune is played over the course of up to 10 rounds, each comprising nine specific phases. Each round must be completed in the exact sequence presented below."
-                }
-              },
-              "controlValues": {},
-              "id": "7XV4",
-              "layoutId": "two-columns",
-              "showHeading": true,
-              "title": "SEQUENCE OF PLAY"
-            },
             "7Y77": {
               "anchor": "source-26",
               "blockOrderByRegion": {
                 "column1": [
-                  "GKP8",
+                  "3F9H",
                   "N6LA",
-                  "YCY4",
-                  "5DTQ",
-                  "EZLY",
-                  "6Q6F",
-                  "4495"
+                  "EP6X",
+                  "CS5M"
                 ],
                 "column2": [
-                  "XDLZ",
                   "B466",
-                  "NGAJ"
+                  "C6NS"
                 ]
               },
               "blocksById": {
-                "4495": {
-                  "id": "4495",
+                "3F9H": {
+                  "id": "3F9H",
                   "kind": "text",
-                  "text": "or, they may lose 1 ordinary force at full strength and 4 forces at half strength (½ + ½ + ½ + ½). In one case, the player loses 1 Sardaukar and 2 ordinary forces. In the other case, the player loses 5 ordinary forces. Either choice fulfills the Emperor player's spice/strength requirement."
-                },
-                "5DTQ": {
-                  "id": "5DTQ",
-                  "kind": "text",
-                  "text": "When the battle winner takes losses, the player may do so in any manner as long as it agrees with the strength dialed and the spice expended."
-                },
-                "6Q6F": {
-                  "id": "6Q6F",
-                  "kind": "text",
-                  "text": "The Emperor player wins the battle, and they may choose to lose 1 Sardaukar force at full strength (2) and 2 ordinary forces at half strength (½ + ½),"
+                  "name": "Classic spice dialing",
+                  "text": "Spice now plays a different role in the combat procedure. These rules replace the \"spice strength\" rules."
                 },
                 "B466": {
                   "id": "B466",
@@ -1646,10 +1433,6 @@
                     "cards": [],
                     "dial": 2.5,
                     "factionId": "k174q1wrg9y646pdvbdr9r1sxx8gmct2",
-                    "leader": {
-                      "artworkId": "/vector/logo/emperor.svg",
-                      "kind": "stock"
-                    },
                     "revealed": true,
                     "role": "",
                     "spice": 0,
@@ -1660,10 +1443,6 @@
                     "cards": [],
                     "dial": 4.5,
                     "factionId": "k174q1wrg9y646pdvbdr9r1sxx8gmct2",
-                    "leader": {
-                      "artworkId": "/vector/logo/emperor.svg",
-                      "kind": "stock"
-                    },
                     "revealed": true,
                     "role": "",
                     "spice": 0,
@@ -1671,16 +1450,22 @@
                   },
                   "showSideLabels": false
                 },
-                "EZLY": {
-                  "id": "EZLY",
-                  "kind": "text",
-                  "text": "For example, the Emperor player has 1 Sardaukar (worth 2 forces) and 5 ordinary forces in a territory in battle. The Emperor dialed a strength of 3 and expended 1 spice."
+                "C6NS": {
+                  "id": "C6NS",
+                  "kind": "callout",
+                  "text": "2½; 4½; 8½.",
+                  "title": "Battle Wheel examples",
+                  "variant": "example"
                 },
-                "GKP8": {
-                  "id": "GKP8",
+                "CS5M": {
+                  "id": "CS5M",
                   "kind": "text",
-                  "name": "Classic spice dialing",
-                  "text": "Spice now plays a different role in the combat procedure. These rules replace the \"spice strength\" rules."
+                  "text": "When the battle winner takes losses, the player may do so in any manner as long as it agrees with the strength dialed and the spice expended."
+                },
+                "EP6X": {
+                  "id": "EP6X",
+                  "kind": "text",
+                  "text": "When dialing a Battle Plan, one\\-half increments can be indicated by lining up the line between the numbers with the line under the window of the Battle Wheel. Some examples are shown to the right."
                 },
                 "N6LA": {
                   "id": "N6LA",
@@ -1705,115 +1490,6 @@
                   },
                   "kind": "list",
                   "style": "bulleted"
-                },
-                "NGAJ": {
-                  "id": "NGAJ",
-                  "kind": "battle-plans",
-                  "left": {
-                    "adjustment": 0,
-                    "cards": [],
-                    "dial": 8.5,
-                    "factionId": "k174q1wrg9y646pdvbdr9r1sxx8gmct2",
-                    "leader": {
-                      "artworkId": "/vector/logo/emperor.svg",
-                      "kind": "stock"
-                    },
-                    "revealed": true,
-                    "role": "",
-                    "spice": 0,
-                    "troops": []
-                  },
-                  "right": {
-                    "adjustment": 0,
-                    "cards": [],
-                    "dial": 8,
-                    "factionId": "k174q1wrg9y646pdvbdr9r1sxx8gmct2",
-                    "leader": {
-                      "artworkId": "/vector/logo/emperor.svg",
-                      "kind": "stock"
-                    },
-                    "revealed": true,
-                    "role": "",
-                    "spice": 0,
-                    "troops": []
-                  },
-                  "showSideLabels": false
-                },
-                "XDLZ": {
-                  "direction": "none",
-                  "id": "XDLZ",
-                  "kind": "piece-transfer",
-                  "left": {
-                    "label": "2 + ½ + ½",
-                    "pieces": [
-                      {
-                        "count": 1,
-                        "id": "spice",
-                        "kind": "source",
-                        "label": "1 spice",
-                        "source": {
-                          "artworkId": "/vector/generic/solaris.svg",
-                          "kind": "stock"
-                        }
-                      },
-                      {
-                        "count": 1,
-                        "face": "front",
-                        "factionId": "k174q1wrg9y646pdvbdr9r1sxx8gmct2",
-                        "id": "sardaukar",
-                        "kind": "troops",
-                        "label": "Sardaukar: 2",
-                        "troopId": "abbf72a5-4967-41f6-838e-5e99ac26f049"
-                      },
-                      {
-                        "count": 2,
-                        "face": "front",
-                        "factionId": "k174q1wrg9y646pdvbdr9r1sxx8gmct2",
-                        "id": "normal",
-                        "kind": "troops",
-                        "label": "½ each",
-                        "troopId": "20d19e36-b903-4069-a66a-cbed1d0d0b4f"
-                      }
-                    ]
-                  },
-                  "right": {
-                    "label": "1 + ½ + ½ + ½ + ½",
-                    "pieces": [
-                      {
-                        "count": 1,
-                        "id": "spice-right",
-                        "kind": "source",
-                        "label": "1 spice",
-                        "source": {
-                          "artworkId": "/vector/generic/solaris.svg",
-                          "kind": "stock"
-                        }
-                      },
-                      {
-                        "count": 1,
-                        "face": "front",
-                        "factionId": "k174q1wrg9y646pdvbdr9r1sxx8gmct2",
-                        "id": "supported",
-                        "kind": "troops",
-                        "label": "1",
-                        "troopId": "20d19e36-b903-4069-a66a-cbed1d0d0b4f"
-                      },
-                      {
-                        "count": 4,
-                        "face": "front",
-                        "factionId": "k174q1wrg9y646pdvbdr9r1sxx8gmct2",
-                        "id": "unsupported",
-                        "kind": "troops",
-                        "label": "½ each",
-                        "troopId": "20d19e36-b903-4069-a66a-cbed1d0d0b4f"
-                      }
-                    ]
-                  }
-                },
-                "YCY4": {
-                  "id": "YCY4",
-                  "kind": "text",
-                  "text": "When dialing a Battle Plan, one\\-half increments can be indicated by lining up the line between the numbers with the line under the window of the Battle Wheel. Some examples are shown to the right."
                 }
               },
               "controlValues": {},
@@ -1821,6 +1497,247 @@
               "layoutId": "two-columns",
               "showHeading": true,
               "title": "GAME VARIANTS"
+            },
+            "874R": {
+              "anchor": "source-04",
+              "blockOrderByRegion": {
+                "content": [
+                  "9BLS",
+                  "MWET",
+                  "Z3YN",
+                  "7RJG",
+                  "855A"
+                ]
+              },
+              "blocksById": {
+                "7RJG": {
+                  "factionId": "k17awq8h6dd3ge61y8peg14z2h8gvpzy",
+                  "id": "7RJG",
+                  "kind": "faction-introduction",
+                  "text": "His majesty the Padishah Emperor Shaddam IV — keen and efficient, yet easily lulled into complacency by his own trappings of power. By leveraging his legions of Sardaukar, the Emperor will secure his legacy."
+                },
+                "855A": {
+                  "factionId": "k170ex3wwnd6ygv289qw1ypvdd8gtfv7",
+                  "id": "855A",
+                  "kind": "faction-introduction",
+                  "text": "The Fremen, represented by the planetary ecologist Liet\\-Kynes — commanding fierce hordes of natives, adept at life and travel on the planet, and dedicated to preventing any outside control while bringing about Dune's own natural regeneration."
+                },
+                "9BLS": {
+                  "id": "9BLS",
+                  "kind": "text",
+                  "text": "You will be one of these factions:"
+                },
+                "MWET": {
+                  "factionId": "k178pt05y4abwvwxeg247snr758gv794",
+                  "id": "MWET",
+                  "kind": "faction-introduction",
+                  "text": "The Atreides, led by the compassionate, though cunning, Duke Leto and his son Paul Atreides — rightful heir to his family's ancient legacy, gifted with valiant lieutenants and a strange partial awareness of the future. Both are beset by treacherous opponents."
+                },
+                "Z3YN": {
+                  "factionId": "k1755fjba9y9b2hkfph4ztdy3s8gvwm8",
+                  "id": "Z3YN",
+                  "kind": "faction-introduction",
+                  "text": "The Bene Gesserit Sisterhood, represented by Reverend Mother Gaius Helen Mohiam — ancient and inscrutable, carefully trained in psychological control and a genius at achieving her ends through the efforts of others."
+                }
+              },
+              "controlValues": {},
+              "id": "874R",
+              "layoutId": "sequence",
+              "showHeading": true,
+              "title": "Faction overview"
+            },
+            "88DW": {
+              "anchor": "source-26-part-2",
+              "blockOrderByRegion": {
+                "content": [
+                  "M9N6",
+                  "FNV4",
+                  "UCHN",
+                  "EBNY",
+                  "6ZSF",
+                  "UYAU",
+                  "3TJ9"
+                ]
+              },
+              "blocksById": {
+                "3TJ9": {
+                  "id": "3TJ9",
+                  "kind": "text",
+                  "text": "Note: This variant was originally considered an optional rule in the 1979 edition of Dune, and part of the \"Advanced\" rules in the 2019 edition."
+                },
+                "6ZSF": {
+                  "id": "6ZSF",
+                  "kind": "text",
+                  "text": "or, they may lose 1 ordinary force at full strength and 4 forces at half strength (½ + ½ + ½ + ½). In one case, the player loses 1 Sardaukar and 2 ordinary forces. In the other case, the player loses 5 ordinary forces. Either choice fulfills the Emperor player's spice/strength requirement."
+                },
+                "EBNY": {
+                  "direction": "none",
+                  "id": "EBNY",
+                  "kind": "piece-transfer",
+                  "left": {
+                    "label": "",
+                    "pieces": [
+                      {
+                        "count": 1,
+                        "id": "spice-right",
+                        "kind": "source",
+                        "label": "1 spice",
+                        "source": {
+                          "assetId": "ns76wk6vyqcnb1wfn8jb5ggya98cx6k7",
+                          "kind": "asset"
+                        }
+                      },
+                      {
+                        "count": 1,
+                        "id": "supported",
+                        "kind": "source",
+                        "label": "1",
+                        "source": {
+                          "face": "front",
+                          "factionId": "k174q1wrg9y646pdvbdr9r1sxx8gmct2",
+                          "kind": "faction-troop",
+                          "troopId": "20d19e36-b903-4069-a66a-cbed1d0d0b4f"
+                        }
+                      }
+                    ]
+                  },
+                  "right": {
+                    "label": "",
+                    "pieces": [
+                      {
+                        "count": 1,
+                        "id": "unsupported-0",
+                        "kind": "source",
+                        "label": "½",
+                        "source": {
+                          "face": "front",
+                          "factionId": "k174q1wrg9y646pdvbdr9r1sxx8gmct2",
+                          "kind": "faction-troop",
+                          "troopId": "20d19e36-b903-4069-a66a-cbed1d0d0b4f"
+                        }
+                      },
+                      {
+                        "count": 1,
+                        "id": "unsupported-1",
+                        "kind": "source",
+                        "label": "½",
+                        "source": {
+                          "face": "front",
+                          "factionId": "k174q1wrg9y646pdvbdr9r1sxx8gmct2",
+                          "kind": "faction-troop",
+                          "troopId": "20d19e36-b903-4069-a66a-cbed1d0d0b4f"
+                        }
+                      },
+                      {
+                        "count": 1,
+                        "id": "unsupported-2",
+                        "kind": "source",
+                        "label": "½",
+                        "source": {
+                          "face": "front",
+                          "factionId": "k174q1wrg9y646pdvbdr9r1sxx8gmct2",
+                          "kind": "faction-troop",
+                          "troopId": "20d19e36-b903-4069-a66a-cbed1d0d0b4f"
+                        }
+                      },
+                      {
+                        "count": 1,
+                        "id": "unsupported-3",
+                        "kind": "source",
+                        "label": "½",
+                        "source": {
+                          "face": "front",
+                          "factionId": "k174q1wrg9y646pdvbdr9r1sxx8gmct2",
+                          "kind": "faction-troop",
+                          "troopId": "20d19e36-b903-4069-a66a-cbed1d0d0b4f"
+                        }
+                      }
+                    ]
+                  }
+                },
+                "FNV4": {
+                  "direction": "none",
+                  "id": "FNV4",
+                  "kind": "piece-transfer",
+                  "left": {
+                    "label": "",
+                    "pieces": [
+                      {
+                        "count": 1,
+                        "id": "spice",
+                        "kind": "source",
+                        "label": "1 spice",
+                        "source": {
+                          "assetId": "ns76wk6vyqcnb1wfn8jb5ggya98cx6k7",
+                          "kind": "asset"
+                        }
+                      },
+                      {
+                        "count": 1,
+                        "id": "sardaukar",
+                        "kind": "source",
+                        "label": "2",
+                        "source": {
+                          "face": "front",
+                          "factionId": "k174q1wrg9y646pdvbdr9r1sxx8gmct2",
+                          "kind": "faction-troop",
+                          "troopId": "abbf72a5-4967-41f6-838e-5e99ac26f049"
+                        }
+                      }
+                    ]
+                  },
+                  "right": {
+                    "label": "",
+                    "pieces": [
+                      {
+                        "count": 1,
+                        "id": "ordinary-left",
+                        "kind": "source",
+                        "label": "½",
+                        "source": {
+                          "face": "front",
+                          "factionId": "k174q1wrg9y646pdvbdr9r1sxx8gmct2",
+                          "kind": "faction-troop",
+                          "troopId": "20d19e36-b903-4069-a66a-cbed1d0d0b4f"
+                        }
+                      },
+                      {
+                        "count": 1,
+                        "id": "ordinary-right",
+                        "kind": "source",
+                        "label": "½",
+                        "source": {
+                          "face": "front",
+                          "factionId": "k174q1wrg9y646pdvbdr9r1sxx8gmct2",
+                          "kind": "faction-troop",
+                          "troopId": "20d19e36-b903-4069-a66a-cbed1d0d0b4f"
+                        }
+                      }
+                    ]
+                  }
+                },
+                "M9N6": {
+                  "id": "M9N6",
+                  "kind": "text",
+                  "text": "For example, the Emperor player has 1 Sardaukar (worth 2 forces) and 5 ordinary forces in a territory in battle. The Emperor dialed a strength of 3 and expended 1 spice."
+                },
+                "UCHN": {
+                  "id": "UCHN",
+                  "kind": "text",
+                  "text": "The Emperor player wins the battle, and they may choose to lose 1 Sardaukar force at full strength (2) and 2 ordinary forces at half strength (½ + ½),"
+                },
+                "UYAU": {
+                  "id": "UYAU",
+                  "kind": "text",
+                  "name": "Fremen battle edge",
+                  "text": "If using Spice Dialing, the Fremen Battle Edge advantage is changed to mean they are always considered full strength, without needing spice."
+                }
+              },
+              "controlValues": {},
+              "id": "88DW",
+              "layoutId": "single-column",
+              "showHeading": false,
+              "title": "Classic spice dialing"
             },
             "8LF7": {
               "anchor": "source-10-part-2",
@@ -1853,7 +1770,7 @@
                     }
                   ],
                   "boardId": "arrakis",
-                  "caption": "Example: The middle sector of Pasty Mesa is in storm. [uncertain: The] Atreides force in Pasty Mesa could move into The Minor Erg, but not through the Storm to the sector of The Minor Erg that contains spice.",
+                  "caption": "Example: The middle sector of Pasty Mesa is in storm. The Atreides force in Pasty Mesa could move into The Minor Erg, but not through the Storm to the sector of The Minor Erg that contains spice.",
                   "highlights": [
                     {
                       "color": "#668c42",
@@ -2712,10 +2629,6 @@
                     "cards": [],
                     "dial": 6,
                     "factionId": "k177h1yvxp36dxsxjfmgqx4jw58gm5jk",
-                    "leader": {
-                      "artworkId": "/vector/logo/atreides.svg",
-                      "kind": "stock"
-                    },
                     "revealed": true,
                     "role": "",
                     "spice": 4,
@@ -2726,10 +2639,6 @@
                     "cards": [],
                     "dial": 6,
                     "factionId": "k177h1yvxp36dxsxjfmgqx4jw58gm5jk",
-                    "leader": {
-                      "artworkId": "/vector/logo/atreides.svg",
-                      "kind": "stock"
-                    },
                     "revealed": true,
                     "role": "",
                     "spice": 0,
@@ -2769,107 +2678,6 @@
               "layoutId": "two-columns",
               "showHeading": false,
               "title": "PHASE 7: BATTLE"
-            },
-            "FB9Z": {
-              "anchor": "source-05-part-2",
-              "blockOrderByRegion": {
-                "column1": [
-                  "6WVR",
-                  "N9VH"
-                ],
-                "column2": [
-                  "S9EE",
-                  "KLBY",
-                  "JTGZ",
-                  "EWST",
-                  "WG4X"
-                ]
-              },
-              "blocksById": {
-                "6WVR": {
-                  "id": "6WVR",
-                  "kind": "text",
-                  "text": "The Harkonnens, led by the decadent and notoriously cruel Baron Vladimir Harkonnen — master of treachery and sinister deeds, value power over all. The path to power leads to Arrakis, and the control of spice."
-                },
-                "EWST": {
-                  "id": "EWST",
-                  "kind": "card-entry",
-                  "name": "Iakin Nefud 2",
-                  "size": "small",
-                  "source": {
-                    "artworkId": "/image/leader/official/nafud.png",
-                    "kind": "stock"
-                  },
-                  "text": "",
-                  "textFlow": "beside"
-                },
-                "JTGZ": {
-                  "id": "JTGZ",
-                  "kind": "card-entry",
-                  "name": "Piter de Vries 3",
-                  "size": "small",
-                  "source": {
-                    "artworkId": "/image/leader/official/piter.png",
-                    "kind": "stock"
-                  },
-                  "text": "",
-                  "textFlow": "beside"
-                },
-                "KLBY": {
-                  "id": "KLBY",
-                  "kind": "card-entry",
-                  "name": "Beast Rabban 4",
-                  "size": "small",
-                  "source": {
-                    "artworkId": "/image/leader/official/beast.png",
-                    "kind": "stock"
-                  },
-                  "text": "",
-                  "textFlow": "beside"
-                },
-                "N9VH": {
-                  "id": "N9VH",
-                  "kind": "card-entry",
-                  "name": "Baron Harkonnen",
-                  "size": "medium",
-                  "source": {
-                    "artworkId": "/image/leader/official/baron.jpg",
-                    "kind": "stock"
-                  },
-                  "text": "",
-                  "textFlow": "beside"
-                },
-                "S9EE": {
-                  "id": "S9EE",
-                  "kind": "card-entry",
-                  "name": "Feyd-Rautha 6",
-                  "size": "small",
-                  "source": {
-                    "artworkId": "/image/leader/official/feyd.png",
-                    "kind": "stock"
-                  },
-                  "text": "",
-                  "textFlow": "beside"
-                },
-                "WG4X": {
-                  "id": "WG4X",
-                  "kind": "card-entry",
-                  "name": "Umman Kudu 1",
-                  "size": "small",
-                  "source": {
-                    "artworkId": "/image/leader/official/uman.png",
-                    "kind": "stock"
-                  },
-                  "text": "",
-                  "textFlow": "beside"
-                }
-              },
-              "controlValues": {},
-              "headingIcon": "/vector/logo/harkonnen.svg",
-              "id": "FB9Z",
-              "layoutId": "two-columns",
-              "showHeading": true,
-              "title": "Harkonnen"
             },
             "FMKT": {
               "anchor": "source-12",
@@ -3507,214 +3315,81 @@
               "showHeading": true,
               "title": "Battle result"
             },
-            "HTZ6": {
-              "anchor": "source-04-part-3",
+            "LKXC": {
+              "anchor": "source-05",
               "blockOrderByRegion": {
-                "column1": [
-                  "KLG7",
-                  "AADE"
+                "closing": [],
+                "lowerLeft": [],
+                "lowerRight": [],
+                "opening": [
+                  "SNAK",
+                  "D4AJ",
+                  "4DVA"
                 ],
-                "column2": [
-                  "527P",
-                  "W4XQ",
-                  "H75B",
-                  "9QCL",
-                  "FY55"
+                "upperLeft": [
+                  "ZYLJ",
+                  "W74E",
+                  "RAJ4",
+                  "3DQ7"
+                ],
+                "upperRight": [
+                  "KBDZ",
+                  "8CJH"
                 ]
               },
               "blocksById": {
-                "527P": {
-                  "id": "527P",
-                  "kind": "card-entry",
-                  "name": "Hasimir Fenring 6",
-                  "size": "small",
-                  "source": {
-                    "artworkId": "/image/leader/official/hasimir.png",
-                    "kind": "stock"
-                  },
-                  "text": "",
-                  "textFlow": "beside"
-                },
-                "9QCL": {
-                  "id": "9QCL",
-                  "kind": "card-entry",
-                  "name": "Colonel Kolona 3",
-                  "size": "small",
-                  "source": {
-                    "artworkId": "/image/leader/official/bashar.png",
-                    "kind": "stock"
-                  },
-                  "text": "",
-                  "textFlow": "beside"
-                },
-                "AADE": {
-                  "id": "AADE",
-                  "kind": "card-entry",
-                  "name": "Emperor Shaddam IV",
-                  "size": "medium",
-                  "source": {
-                    "artworkId": "/image/leader/official/shadam.jpg",
-                    "kind": "stock"
-                  },
-                  "text": "",
-                  "textFlow": "beside"
-                },
-                "FY55": {
-                  "id": "FY55",
-                  "kind": "card-entry",
-                  "name": "Wensicia Corrino 2",
-                  "size": "small",
-                  "source": {
-                    "artworkId": "/vector/logo/emperor.svg",
-                    "kind": "stock"
-                  },
-                  "text": "",
-                  "textFlow": "beside"
-                },
-                "H75B": {
-                  "id": "H75B",
-                  "kind": "card-entry",
-                  "name": "Bashar Garon 3",
-                  "size": "small",
-                  "source": {
-                    "artworkId": "/image/leader/official/caid.png",
-                    "kind": "stock"
-                  },
-                  "text": "",
-                  "textFlow": "beside"
-                },
-                "KLG7": {
-                  "id": "KLG7",
+                "3DQ7": {
+                  "id": "3DQ7",
                   "kind": "text",
-                  "text": "His majesty the Padishah Emperor Shaddam IV — keen and efficient, yet easily lulled into complacency by his own trappings of power. By leveraging his legions of Sardaukar, the Emperor will secure his legacy."
+                  "text": "If a tie occurs (e.g., with the Ixians' Hidden Mobile Stronghold in play\\-from the Ixian and Tleilaxu expansion), players must agree to play another round or end the game in a tie."
                 },
-                "W4XQ": {
-                  "id": "W4XQ",
-                  "kind": "card-entry",
-                  "name": "Captain Aramsham 5",
-                  "size": "small",
-                  "source": {
-                    "artworkId": "/image/leader/official/aramsham.png",
-                    "kind": "stock"
-                  },
-                  "text": "",
-                  "textFlow": "beside"
+                "4DVA": {
+                  "id": "4DVA",
+                  "kind": "section-heading",
+                  "title": "Object of the game"
+                },
+                "8CJH": {
+                  "id": "8CJH",
+                  "kind": "text",
+                  "text": "If at the end of round 10, no faction or alliance controls the required number of strongholds, or wins through a unique Special Victory Condition, the winner is the alliance or unallied faction that controls the highest number of strongholds. Break ties first in favor of unaligned factions over alliances, and second in favor of which side has the highest number of forces in their controlled strongholds, finally by who has the most spice \\- see Hierarchy of Winning on page 20."
+                },
+                "D4AJ": {
+                  "factionId": "k17fvtpc5h6hfxvcwdgayvqfz58gtch1",
+                  "id": "D4AJ",
+                  "kind": "faction-introduction",
+                  "text": "The Harkonnens, led by the decadent and notoriously cruel Baron Vladimir Harkonnen — master of treachery and sinister deeds, value power over all. The path to power leads to Arrakis, and the control of spice."
+                },
+                "KBDZ": {
+                  "id": "KBDZ",
+                  "kind": "text",
+                  "text": "A player may win alone or in an alliance with another player."
+                },
+                "RAJ4": {
+                  "id": "RAJ4",
+                  "kind": "text",
+                  "text": "The winner is the first player to occupy at least 3 strongholds with at least one of their forces during the Mentat Pause phase (or 4 strongholds for an alliance\\- see Alliances page 21)."
+                },
+                "SNAK": {
+                  "factionId": "k1716zfezm7w1ppfzp8gwzk63d8gvmhy",
+                  "id": "SNAK",
+                  "kind": "faction-introduction",
+                  "text": "The Spacing Guild, represented by Navigator Edric, monopolist of transport, yet addicted to ever increasing spice flows, must ensure that trade continues unabated."
+                },
+                "W74E": {
+                  "id": "W74E",
+                  "kind": "text",
+                  "text": "Each faction has a set of unique economic, military, strategic, diplomatic, technological, or treacherous advantages. The object of the game is to use these advantages to gain control of Dune."
+                },
+                "ZYLJ": {
+                  "id": "ZYLJ",
+                  "kind": "text",
+                  "text": "In DUNE, A Game of Conquest, Diplomacy & Betrayal, you take control of one of the great houses or factions seeking to control Arrakis."
                 }
               },
               "controlValues": {},
-              "headingIcon": "/vector/logo/emperor.svg",
-              "id": "HTZ6",
-              "layoutId": "two-columns",
-              "showHeading": true,
-              "title": "Emperor"
-            },
-            "KDSP": {
-              "anchor": "source-04",
-              "blockOrderByRegion": {
-                "column1": [
-                  "X4T2",
-                  "DGSA",
-                  "SHZN"
-                ],
-                "column2": [
-                  "WHHR",
-                  "PU5H",
-                  "EBTG",
-                  "G7NP",
-                  "7NET"
-                ]
-              },
-              "blocksById": {
-                "7NET": {
-                  "id": "7NET",
-                  "kind": "card-entry",
-                  "name": "Dr. Wellington Yueh 1",
-                  "size": "small",
-                  "source": {
-                    "artworkId": "/image/leader/official/dryeuh.png",
-                    "kind": "stock"
-                  },
-                  "text": "",
-                  "textFlow": "beside"
-                },
-                "DGSA": {
-                  "id": "DGSA",
-                  "kind": "text",
-                  "name": "Atreides",
-                  "text": "The Atreides, led by the compassionate, though cunning, Duke Leto and his son Paul Atreides — rightful heir to his family's ancient legacy, gifted with valiant lieutenants and a strange partial awareness of the future. Both are beset by treacherous opponents."
-                },
-                "EBTG": {
-                  "id": "EBTG",
-                  "kind": "card-entry",
-                  "name": "Gurney Halleck 4",
-                  "size": "small",
-                  "source": {
-                    "artworkId": "/image/leader/official/gurney.png",
-                    "kind": "stock"
-                  },
-                  "text": "",
-                  "textFlow": "beside"
-                },
-                "G7NP": {
-                  "id": "G7NP",
-                  "kind": "card-entry",
-                  "name": "Duncan Idaho 3",
-                  "size": "small",
-                  "source": {
-                    "artworkId": "/image/leader/official/duncan.png",
-                    "kind": "stock"
-                  },
-                  "text": "",
-                  "textFlow": "beside"
-                },
-                "PU5H": {
-                  "id": "PU5H",
-                  "kind": "card-entry",
-                  "name": "Lady Jessica 5",
-                  "size": "small",
-                  "source": {
-                    "artworkId": "/image/leader/official/jessica.png",
-                    "kind": "stock"
-                  },
-                  "text": "",
-                  "textFlow": "beside"
-                },
-                "SHZN": {
-                  "id": "SHZN",
-                  "kind": "card-entry",
-                  "name": "Duke Leto Atreides",
-                  "size": "medium",
-                  "source": {
-                    "factionId": "k177h1yvxp36dxsxjfmgqx4jw58gm5jk",
-                    "kind": "faction",
-                    "presentation": "token"
-                  },
-                  "text": "",
-                  "textFlow": "beside"
-                },
-                "WHHR": {
-                  "id": "WHHR",
-                  "kind": "card-entry",
-                  "name": "Thufir Hawat 5",
-                  "size": "small",
-                  "source": {
-                    "artworkId": "/image/leader/official/thufir.png",
-                    "kind": "stock"
-                  },
-                  "text": "",
-                  "textFlow": "beside"
-                },
-                "X4T2": {
-                  "id": "X4T2",
-                  "kind": "text",
-                  "text": "You will be one of these factions:"
-                }
-              },
-              "controlValues": {},
-              "headingIcon": "/vector/logo/atreides.svg",
-              "id": "KDSP",
-              "layoutId": "two-columns",
-              "showHeading": true,
+              "id": "LKXC",
+              "layoutId": "paired-rows",
+              "showHeading": false,
               "title": "Faction overview"
             },
             "LLQL": {
@@ -3747,12 +3422,12 @@
                 "7FXD": {
                   "id": "7FXD",
                   "kind": "text",
-                  "text": "But others will take it violently in battle, or [uncertain: quietly] in taxes and fees."
+                  "text": "But others will take it violently in battle, or quietly in taxes and fees."
                 },
                 "8FKC": {
                   "id": "8FKC",
                   "kind": "text",
-                  "text": "But death on Dune need never be tragic. The dead are routinely rendered up for their body's water — so that life on the arid planet may continue. And even one surviving cell of an individual may be [uncertain: cultured] by the Tleilaxu technicians until the original person is regrown."
+                  "text": "But death on Dune need never be tragic. The dead are routinely rendered up for their body's water — so that life on the arid planet may continue. And even one surviving cell of an individual may be cultured by the Tleilaxu technicians until the original person is regrown."
                 },
                 "9EV6": {
                   "id": "9EV6",
@@ -3783,7 +3458,7 @@
                   "attribution": "— from Manual of Muad'Dib by the Princess Irulan",
                   "id": "QXDE",
                   "kind": "callout",
-                  "text": "\"A beginning is the time for taking the most delicate care that the balances are correct. This every sister of the Bene Gesserit knows. To begin your study of the life of Muad'Dib then, take care that you first place him in his time: born in the [uncertain: 57th] year of the Padishah Emperor, Shaddam IV. And take the most special care that you locate Muad'Dib in his place: the planet Arrakis. Do not be deceived by the fact that he was born on Caladan and lived his first fifteen years there. Arrakis, the planet known as Dune, is forever his place.\"",
+                  "text": "\"A beginning is the time for taking the most delicate care that the balances are correct. This every sister of the Bene Gesserit knows. To begin your study of the life of Muad'Dib then, take care that you first place him in his time: born in the 57th year of the Padishah Emperor, Shaddam IV. And take the most special care that you locate Muad'Dib in his place: the planet Arrakis. Do not be deceived by the fact that he was born on Caladan and lived his first fifteen years there. Arrakis, the planet known as Dune, is forever his place.\"",
                   "variant": "quotation"
                 },
                 "QYAD": {
@@ -4380,107 +4055,6 @@
               "showHeading": true,
               "title": "Shipment and movement examples"
             },
-            "QF57": {
-              "anchor": "source-04-part-2",
-              "blockOrderByRegion": {
-                "column1": [
-                  "SM56",
-                  "4E6R"
-                ],
-                "column2": [
-                  "FRRF",
-                  "NFL7",
-                  "D2DF",
-                  "QYKS",
-                  "C8SS"
-                ]
-              },
-              "blocksById": {
-                "4E6R": {
-                  "id": "4E6R",
-                  "kind": "card-entry",
-                  "name": "Mother Mohiam",
-                  "size": "medium",
-                  "source": {
-                    "artworkId": "/image/leader/official/mohiam.jpg",
-                    "kind": "stock"
-                  },
-                  "text": "",
-                  "textFlow": "beside"
-                },
-                "C8SS": {
-                  "id": "C8SS",
-                  "kind": "card-entry",
-                  "name": "Wanna Yueh 5",
-                  "size": "small",
-                  "source": {
-                    "artworkId": "/image/leader/official/wanna.png",
-                    "kind": "stock"
-                  },
-                  "text": "",
-                  "textFlow": "beside"
-                },
-                "D2DF": {
-                  "id": "D2DF",
-                  "kind": "card-entry",
-                  "name": "Mother Ramallo 5",
-                  "size": "small",
-                  "source": {
-                    "artworkId": "/image/leader/official/ramallo.png",
-                    "kind": "stock"
-                  },
-                  "text": "",
-                  "textFlow": "beside"
-                },
-                "FRRF": {
-                  "id": "FRRF",
-                  "kind": "card-entry",
-                  "name": "Lady Anirul Corrino 5",
-                  "size": "small",
-                  "source": {
-                    "artworkId": "/vector/logo/bene-gesserit.svg",
-                    "kind": "stock"
-                  },
-                  "text": "",
-                  "textFlow": "beside"
-                },
-                "NFL7": {
-                  "id": "NFL7",
-                  "kind": "card-entry",
-                  "name": "Margot Lady Fenring 5",
-                  "size": "small",
-                  "source": {
-                    "artworkId": "/image/leader/official/lady-fenring.png",
-                    "kind": "stock"
-                  },
-                  "text": "",
-                  "textFlow": "beside"
-                },
-                "QYKS": {
-                  "id": "QYKS",
-                  "kind": "card-entry",
-                  "name": "Princess Irulan 5",
-                  "size": "small",
-                  "source": {
-                    "artworkId": "/image/leader/official/irulan.png",
-                    "kind": "stock"
-                  },
-                  "text": "",
-                  "textFlow": "beside"
-                },
-                "SM56": {
-                  "id": "SM56",
-                  "kind": "text",
-                  "text": "The Bene Gesserit Sisterhood, represented by Reverend Mother Gaius Helen Mohiam — ancient and inscrutable, carefully trained in psychological control and a genius at achieving her ends through the efforts of others."
-                }
-              },
-              "controlValues": {},
-              "headingIcon": "/vector/logo/bene-gesserit.svg",
-              "id": "QF57",
-              "layoutId": "two-columns",
-              "showHeading": true,
-              "title": "Bene Gesserit"
-            },
             "QJWF": {
               "anchor": "source-31",
               "blockOrderByRegion": {
@@ -4764,57 +4338,6 @@
               "showHeading": true,
               "title": "PHASE 2: SPICE BLOW AND NEXUS"
             },
-            "S48N": {
-              "anchor": "source-05-part-3",
-              "blockOrderByRegion": {
-                "column1": [
-                  "DTM7",
-                  "HTDM",
-                  "TWE6",
-                  "DX6A",
-                  "3R9J",
-                  "C5TA"
-                ],
-                "column2": []
-              },
-              "blocksById": {
-                "3R9J": {
-                  "id": "3R9J",
-                  "kind": "text",
-                  "text": "A player may win alone or in an alliance with another player."
-                },
-                "C5TA": {
-                  "id": "C5TA",
-                  "kind": "text",
-                  "text": "If at the end of round 10, no faction or alliance controls the required number of strongholds, or wins through a unique Special Victory Condition, the winner is the alliance or unallied faction that controls the highest number of strongholds. Break ties first in favor of unaligned factions over alliances, and second in favor of which side has the highest number of forces in their controlled strongholds, finally by who has the most spice \\- see Hierarchy of Winning on page 20."
-                },
-                "DTM7": {
-                  "id": "DTM7",
-                  "kind": "text",
-                  "text": "In DUNE, A Game of Conquest, Diplomacy & Betrayal, you take control of one of the great houses or factions seeking to control Arrakis."
-                },
-                "DX6A": {
-                  "id": "DX6A",
-                  "kind": "text",
-                  "text": "If a tie occurs (e.g., with the Ixians' Hidden Mobile Stronghold in play\\-from the Ixian and Tleilaxu expansion), players must agree to play another round or end the game in a tie."
-                },
-                "HTDM": {
-                  "id": "HTDM",
-                  "kind": "text",
-                  "text": "Each faction has a set of unique economic, military, strategic, diplomatic, technological, or treacherous advantages. The object of the game is to use these advantages to gain control of Dune."
-                },
-                "TWE6": {
-                  "id": "TWE6",
-                  "kind": "text",
-                  "text": "The winner is the first player to occupy at least 3 strongholds with at least one of their forces during the Mentat Pause phase (or 4 strongholds for an alliance\\- see Alliances page 21)."
-                }
-              },
-              "controlValues": {},
-              "id": "S48N",
-              "layoutId": "two-columns",
-              "showHeading": true,
-              "title": "Object of the game"
-            },
             "SBYV": {
               "anchor": "source-36",
               "blockOrderByRegion": {
@@ -4963,19 +4486,16 @@
               "title": "RULEBOOK"
             },
             "SDE7": {
-              "anchor": "source-26-part-2",
+              "anchor": "source-26-part-3",
               "blockOrderByRegion": {
                 "column1": [
-                  "SQPV",
-                  "ECM6",
-                  "WZ7Y",
                   "NZBC",
                   "GTRQ",
                   "6FC2",
-                  "P96D"
+                  "P96D",
+                  "8U43"
                 ],
                 "column2": [
-                  "8U43",
                   "8ACX",
                   "Y2MQ",
                   "AAAX"
@@ -5006,11 +4526,6 @@
                   "title": "Karama power - War Machine:",
                   "variant": "note"
                 },
-                "ECM6": {
-                  "id": "ECM6",
-                  "kind": "text",
-                  "text": "Note: This variant was originally considered an optional rule in the 1979 edition of Dune, and part of the \"Advanced\" rules in the 2019 edition."
-                },
                 "GTRQ": {
                   "id": "GTRQ",
                   "kind": "text",
@@ -5025,18 +4540,6 @@
                   "id": "P96D",
                   "kind": "text",
                   "text": "A Karama effect is not triggered when the Spirit World card is otherwise discarded normally, and one faction cannot discard another faction's Spirit World card in order to trigger the effect for them."
-                },
-                "SQPV": {
-                  "id": "SQPV",
-                  "kind": "text",
-                  "name": "Fremen battle edge:",
-                  "text": "If using Spice Dialing, the Fremen Battle Edge advantage is changed to mean they are always considered full strength, without needing spice."
-                },
-                "WZ7Y": {
-                  "id": "WZ7Y",
-                  "kind": "text",
-                  "name": "Spirit world Karama",
-                  "text": ""
                 },
                 "Y2MQ": {
                   "id": "Y2MQ",
@@ -5310,7 +4813,7 @@
                 "44MJ": {
                   "id": "44MJ",
                   "kind": "text",
-                  "text": "When all of your own Leader discs are unavailable to you (killed, captured, or face up on the board from previous battles), you must immediately return all captured leaders to their factions. Killed captured leaders can be revived by their factions (subject to the normal revival rules). Captured leaders used in battle may still be claimed as a Traitor (subject to the normal Traitor rules): If you use a leader against its own faction and they are holding that leader's Traitor card as a [uncertain: \"safe leader\"], it may be revealed as a Traitor, winning them the battle in accordance with normal rules for revealing a Traitor."
+                  "text": "When all of your own Leader discs are unavailable to you (killed, captured, or face up on the board from previous battles), you must immediately return all captured leaders to their factions. Killed captured leaders can be revived by their factions (subject to the normal revival rules). Captured leaders used in battle may still be claimed as a Traitor (subject to the normal Traitor rules): If you use a leader against its own faction and they are holding that leader's Traitor card as a \"safe leader\", it may be revealed as a Traitor, winning them the battle in accordance with normal rules for revealing a Traitor."
                 },
                 "4QZ3": {
                   "id": "4QZ3",
@@ -5535,7 +5038,7 @@
                   "id": "8VSZ",
                   "kind": "text",
                   "name": "Leaders",
-                  "text": "One Leader disc is secretly chosen and placed face [uncertain: up in] the slot on the Battle Wheel. Players may play a Cheap Hero Treachery card in lieu of a Leader disc."
+                  "text": "One Leader disc is secretly chosen and placed face up in the slot on the Battle Wheel. Players may play a Cheap Hero Treachery card in lieu of a Leader disc."
                 },
                 "AFGL": {
                   "id": "AFGL",
@@ -5757,10 +5260,6 @@
                     "cards": [],
                     "dial": 0,
                     "factionId": "k174q1wrg9y646pdvbdr9r1sxx8gmct2",
-                    "leader": {
-                      "artworkId": "/vector/logo/emperor.svg",
-                      "kind": "stock"
-                    },
                     "revealed": true,
                     "role": "",
                     "spice": 0,
@@ -5771,10 +5270,6 @@
                     "cards": [],
                     "dial": 0,
                     "factionId": "k174q1wrg9y646pdvbdr9r1sxx8gmct2",
-                    "leader": {
-                      "artworkId": "/vector/logo/emperor.svg",
-                      "kind": "stock"
-                    },
                     "revealed": true,
                     "role": "",
                     "spice": 0,
@@ -5843,107 +5338,6 @@
               "layoutId": "two-columns",
               "showHeading": true,
               "title": "GAME COMPONENTS"
-            },
-            "UQWD": {
-              "anchor": "source-04-part-4",
-              "blockOrderByRegion": {
-                "column1": [
-                  "N7TE",
-                  "WBJV"
-                ],
-                "column2": [
-                  "9NJW",
-                  "FQS9",
-                  "2ZYD",
-                  "RM43",
-                  "5JDN"
-                ]
-              },
-              "blocksById": {
-                "2ZYD": {
-                  "id": "2ZYD",
-                  "kind": "card-entry",
-                  "name": "Otheym 5",
-                  "size": "small",
-                  "source": {
-                    "artworkId": "/image/leader/official/otheym.png",
-                    "kind": "stock"
-                  },
-                  "text": "",
-                  "textFlow": "beside"
-                },
-                "5JDN": {
-                  "id": "5JDN",
-                  "kind": "card-entry",
-                  "name": "Jamis 2",
-                  "size": "small",
-                  "source": {
-                    "artworkId": "/image/leader/official/jamis.png",
-                    "kind": "stock"
-                  },
-                  "text": "",
-                  "textFlow": "beside"
-                },
-                "9NJW": {
-                  "id": "9NJW",
-                  "kind": "card-entry",
-                  "name": "Stilgar 7",
-                  "size": "small",
-                  "source": {
-                    "artworkId": "/image/leader/official/stilgar.png",
-                    "kind": "stock"
-                  },
-                  "text": "",
-                  "textFlow": "beside"
-                },
-                "FQS9": {
-                  "id": "FQS9",
-                  "kind": "card-entry",
-                  "name": "Chani 6",
-                  "size": "small",
-                  "source": {
-                    "artworkId": "/image/leader/official/chani.png",
-                    "kind": "stock"
-                  },
-                  "text": "",
-                  "textFlow": "beside"
-                },
-                "N7TE": {
-                  "id": "N7TE",
-                  "kind": "text",
-                  "text": "The Fremen, represented by the planetary ecologist Liet\\-Kynes — commanding fierce hordes of natives, adept at life and travel on the planet, and dedicated to preventing any outside control while bringing about Dune's own natural regeneration."
-                },
-                "RM43": {
-                  "id": "RM43",
-                  "kind": "card-entry",
-                  "name": "Shadout Mapes 3",
-                  "size": "small",
-                  "source": {
-                    "artworkId": "/image/leader/official/mapes.png",
-                    "kind": "stock"
-                  },
-                  "text": "",
-                  "textFlow": "beside"
-                },
-                "WBJV": {
-                  "id": "WBJV",
-                  "kind": "card-entry",
-                  "name": "Liet Kynes",
-                  "size": "medium",
-                  "source": {
-                    "artworkId": "/image/leader/official/liet.jpg",
-                    "kind": "stock"
-                  },
-                  "text": "",
-                  "textFlow": "beside"
-                }
-              },
-              "controlValues": {},
-              "headingIcon": "/vector/logo/fremen.svg",
-              "id": "UQWD",
-              "layoutId": "two-columns",
-              "showHeading": true,
-              "title": "Fremen"
             },
             "V6CT": {
               "anchor": "source-21-continued-2",
@@ -6382,106 +5776,110 @@
               "showHeading": true,
               "title": "Spacing Guild movement example"
             },
-            "XGCC": {
-              "anchor": "source-05",
+            "XUD9": {
+              "anchor": "source-09",
               "blockOrderByRegion": {
-                "column1": [
-                  "QR4V",
-                  "SPTK"
-                ],
-                "column2": [
-                  "QGPB",
-                  "XDTN",
-                  "A5T4",
-                  "3C5H",
-                  "7LL5"
+                "content": [
+                  "5WSL",
+                  "5EFZ",
+                  "6S9C",
+                  "S93Z"
                 ]
               },
               "blocksById": {
-                "3C5H": {
-                  "id": "3C5H",
-                  "kind": "card-entry",
-                  "name": "Crozeed 2",
-                  "size": "small",
-                  "source": {
-                    "artworkId": "/vector/logo/guild.svg",
-                    "kind": "stock"
-                  },
-                  "text": "",
-                  "textFlow": "beside"
-                },
-                "7LL5": {
-                  "id": "7LL5",
-                  "kind": "card-entry",
-                  "name": "Loyxo 1",
-                  "size": "small",
-                  "source": {
-                    "artworkId": "/vector/logo/guild.svg",
-                    "kind": "stock"
-                  },
-                  "text": "",
-                  "textFlow": "beside"
-                },
-                "A5T4": {
-                  "id": "A5T4",
-                  "kind": "card-entry",
-                  "name": "Olar 3",
-                  "size": "small",
-                  "source": {
-                    "artworkId": "/vector/logo/guild.svg",
-                    "kind": "stock"
-                  },
-                  "text": "",
-                  "textFlow": "beside"
-                },
-                "QGPB": {
-                  "id": "QGPB",
-                  "kind": "card-entry",
-                  "name": "[uncertain: Staclude Sendallo] 5",
-                  "size": "small",
-                  "source": {
-                    "artworkId": "/vector/logo/guild.svg",
-                    "kind": "stock"
-                  },
-                  "text": "",
-                  "textFlow": "beside"
-                },
-                "QR4V": {
-                  "id": "QR4V",
+                "5EFZ": {
+                  "id": "5EFZ",
                   "kind": "text",
-                  "text": "The Spacing Guild, represented by Navigator Edric, monopolist of transport, yet addicted to ever increasing spice flows, must ensure that trade continues unabated."
+                  "text": "Player Turns in a phase are conducted in \"storm order\" (going counter\\-clockwise from the First Player)."
                 },
-                "SPTK": {
-                  "id": "SPTK",
-                  "kind": "card-entry",
-                  "name": "Edric",
-                  "size": "medium",
-                  "source": {
-                    "artworkId": "/image/leader/official/edric.jpg",
-                    "kind": "stock"
-                  },
-                  "text": "",
-                  "textFlow": "beside"
+                "5WSL": {
+                  "id": "5WSL",
+                  "kind": "text",
+                  "text": "Dune is played over the course of up to 10 rounds, each comprising nine specific phases. Each round must be completed in the exact sequence presented below."
                 },
-                "XDTN": {
-                  "id": "XDTN",
-                  "kind": "card-entry",
-                  "name": "Ertun 4",
-                  "size": "small",
-                  "source": {
-                    "artworkId": "/vector/logo/guild.svg",
-                    "kind": "stock"
+                "6S9C": {
+                  "id": "6S9C",
+                  "kind": "text",
+                  "text": "It is possible for Dune to end after only one round! Players must take care to note player order and which factions have the capability to win when deciding their own actions."
+                },
+                "S93Z": {
+                  "id": "S93Z",
+                  "itemOrder": [
+                    "phase-0",
+                    "phase-1",
+                    "phase-2",
+                    "phase-3",
+                    "phase-4",
+                    "phase-5",
+                    "phase-6",
+                    "phase-7",
+                    "phase-8"
+                  ],
+                  "itemsById": {
+                    "phase-0": {
+                      "icon": "/vector/icon/storrm_standalone.svg",
+                      "id": "phase-0",
+                      "name": "Storm phase",
+                      "text": "*Page 10* The Storm marker moves. The player whose Faction marker the storm next approaches will be the First Player for this round."
+                    },
+                    "phase-1": {
+                      "icon": "/vector/icon/spice-blow_standalone.svg",
+                      "id": "phase-1",
+                      "name": "Spice blow and nexus phase",
+                      "text": "*Page 11* Turn over the top card of the Spice deck and place the amount of spice shown on the card in the indicated sector of the highlighted territories (unless in a storm sector). If Shai\\-Hulud appears during the Spice Blow and Nexus phase, a Nexus occurs, giving players the opportunity to make and break Alliances."
+                    },
+                    "phase-2": {
+                      "icon": "/vector/generic/chaom.svg",
+                      "id": "phase-2",
+                      "name": "CHOAM charity phase",
+                      "text": "*Page 12* Players with 0 or 1 spice may claim CHOAM Charity."
+                    },
+                    "phase-3": {
+                      "icon": "/vector/icon/bidding_standalone.svg",
+                      "id": "phase-3",
+                      "name": "Bidding phase",
+                      "text": "*Page 12* Players bid spice to acquire Treachery cards."
+                    },
+                    "phase-4": {
+                      "icon": "/vector/icon/revival_standalone.svg",
+                      "id": "phase-4",
+                      "name": "Revival phase",
+                      "text": "*Page 13* All players are allowed to reclaim forces (and eventually leaders) from the Tleilaxu Tanks in storm order."
+                    },
+                    "phase-5": {
+                      "icon": "/vector/icon/shipment_disc.svg",
+                      "id": "phase-5",
+                      "name": "Shipment and movement phase",
+                      "text": "*Page 14* Starting with the First Player and proceeding in storm order, each player in turn may ship forces to the game board and then may move their forces on the game board."
+                    },
+                    "phase-6": {
+                      "icon": "/vector/icon/combat.svg",
+                      "id": "phase-6",
+                      "name": "Battle phase",
+                      "text": "*Page 16* Players must resolve battles in every territory that is occupied by forces from two or more factions. Battles are conducted in storm order."
+                    },
+                    "phase-7": {
+                      "icon": "/vector/icon/collection_standalone.svg",
+                      "id": "phase-7",
+                      "name": "Spice collection phase",
+                      "text": "*Page 20* Forces in the sector of a territory containing spice may collect spice."
+                    },
+                    "phase-8": {
+                      "icon": "/vector/icon/mentat.svg",
+                      "id": "phase-8",
+                      "name": "Mentat pause phase",
+                      "text": "*Page 20* Check to see if any player or Alliance has won the game. If there are no winners, move the Game Round marker to the next position on the Round Track to begin the next round. Players who received bribes in this round may collect that spice at this time."
+                    }
                   },
-                  "text": "",
-                  "textFlow": "beside"
+                  "kind": "list",
+                  "style": "numbered"
                 }
               },
               "controlValues": {},
-              "headingIcon": "/vector/logo/guild.svg",
-              "id": "XGCC",
-              "layoutId": "two-columns",
+              "id": "XUD9",
+              "layoutId": "sequence",
               "showHeading": true,
-              "title": "Spacing Guild"
+              "title": "SEQUENCE OF PLAY"
             },
             "YEP8": {
               "anchor": "source-10",
@@ -6748,7 +6146,7 @@
       "existing": {
         "slug": "gf9-2-0-rulebook"
       },
-      "expectedStateHash": "v1:97dea5f1109681329dfad1dd6e1ea7d4c07a0b137293b906153759c365aeadfb",
+      "expectedStateHash": "v1:720637d04be37599dfcfaa85bacfa3ed98a0d5263e7adfd2af53dd900ef637c2",
       "key": "gf9-2-0-rulebook",
       "kind": "rulebook"
     }

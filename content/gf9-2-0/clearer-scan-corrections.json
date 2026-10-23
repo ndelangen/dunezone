@@ -1,0 +1,56 @@
+{
+  "source": "source-clearer.pdf",
+  "sha256": "c681228eaa328fc146cf273c3634216c29140c72be41723730b4c8989f7827ff",
+  "readings": [
+    {
+      "page": 2,
+      "before": "[uncertain: quietly]",
+      "after": "quietly"
+    },
+    {
+      "page": 2,
+      "before": "[uncertain: cultured]",
+      "after": "cultured"
+    },
+    {
+      "page": 2,
+      "before": "[uncertain: 57th]",
+      "after": "57th"
+    },
+    {
+      "page": 5,
+      "before": "[uncertain: Staclude Sendallo]",
+      "after": "Starguide Serello"
+    },
+    {
+      "page": 10,
+      "before": "[uncertain: The]",
+      "after": "The"
+    },
+    {
+      "page": 13,
+      "before": "[uncertain: shown]",
+      "after": "shown"
+    },
+    {
+      "page": 16,
+      "before": "[uncertain: up in]",
+      "after": "up in"
+    },
+    {
+      "page": 21,
+      "before": "[uncertain: a]",
+      "after": "a"
+    },
+    {
+      "page": 32,
+      "before": "[uncertain: \"safe leader\"]",
+      "after": "\"safe leader\""
+    },
+    {
+      "page": 34,
+      "before": "[uncertain: this]",
+      "after": "this"
+    }
+  ]
+}

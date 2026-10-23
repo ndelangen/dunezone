@@ -4,43 +4,43 @@
       "sourcePage": 4,
       "from": 2,
       "to": 10,
-      "blockId": "DGSA",
-      "reason": "Existing production portraits or faction emblems; source names and strengths are the labels."
+      "blockId": "MWET",
+      "reason": "Native Faction introduction row with the second-edition production roster."
     },
     {
       "sourcePage": 4,
       "from": 11,
       "to": 19,
-      "blockId": "SM56",
-      "reason": "Existing production portraits or faction emblems; source names and strengths are the labels."
+      "blockId": "Z3YN",
+      "reason": "Native Faction introduction row with the second-edition production roster."
     },
     {
       "sourcePage": 4,
       "from": 20,
       "to": 28,
-      "blockId": "KLG7",
-      "reason": "Existing production portraits or faction emblems; source names and strengths are the labels."
+      "blockId": "7RJG",
+      "reason": "Native Faction introduction row with the second-edition production roster."
     },
     {
       "sourcePage": 4,
       "from": 29,
       "to": 37,
-      "blockId": "N7TE",
-      "reason": "Existing production portraits or faction emblems; source names and strengths are the labels."
+      "blockId": "855A",
+      "reason": "Native Faction introduction row with the second-edition production roster."
     },
     {
       "sourcePage": 5,
       "from": 0,
       "to": 8,
-      "blockId": "QR4V",
-      "reason": "Existing production portraits or faction emblems; source names and strengths are the labels."
+      "blockId": "SNAK",
+      "reason": "Native Faction introduction row with the second-edition production roster."
     },
     {
       "sourcePage": 5,
       "from": 9,
       "to": 17,
-      "blockId": "6WVR",
-      "reason": "Existing production portraits or faction emblems; source names and strengths are the labels."
+      "blockId": "D4AJ",
+      "reason": "Native Faction introduction row with the second-edition production roster."
     },
     {
       "sourcePage": 8,
@@ -265,6 +265,27 @@
       "to": 21,
       "blockId": "G3Y7",
       "reason": "Full Solaris card beside its printed explanation."
+    },
+    {
+      "sourcePage": 26,
+      "from": 9,
+      "to": 11,
+      "blockId": "FNV4",
+      "reason": "Existing production spice token and equal-sized published force tokens."
+    },
+    {
+      "sourcePage": 26,
+      "from": 13,
+      "to": 15,
+      "blockId": "EBNY",
+      "reason": "One supported ordinary force and four unsupported ordinary forces."
+    },
+    {
+      "sourcePage": 26,
+      "from": 17,
+      "to": 18,
+      "blockId": "C6NS",
+      "reason": "All three printed half-strength settings; no invented comparison."
     },
     {
       "sourcePage": 27,

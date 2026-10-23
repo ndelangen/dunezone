@@ -417,7 +417,7 @@
         "rules": {
           "startText": "10 forces distributed as you like in Sietch Tabr, False Wall South, and/or False Wall West; 10 forces in reserves (in the southern hemisphere of Dune), 4 spice, and 1 random Treachery card.",
           "revivalText": "3 forces/round.",
-          "spiceCount": 3,
+          "spiceCount": 4,
           "advantages": [
             {
               "text": "You are native to Dune and know its ways."

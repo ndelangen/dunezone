@@ -1,20 +1,22 @@
 {
-  "pages": 66,
+  "pages": 62,
   "blocks": {
-    "text": 458,
-    "callout": 8,
-    "card-entry": 40,
-    "list": 30,
+    "text": 451,
+    "callout": 9,
+    "faction-introduction": 6,
+    "section-heading": 1,
+    "list": 22,
     "asset-explainer": 1,
-    "battle-plans": 4,
+    "battle-plans": 3,
     "board-scene": 8,
     "referenced-illustration": 24,
     "battle-step": 2,
     "card-group": 1,
-    "piece-transfer": 1,
+    "card-entry": 4,
+    "piece-transfer": 2,
     "question-answer": 8
   },
-  "rawBytes": 275435,
+  "rawBytes": 259599,
   "sourceUnitsMapped": 971,
   "editorialUnits": 73,
   "approvedOmissions": 3,
@@ -26,6 +28,7 @@
       "ns72b2svfng2n4mjhm5jksvnqs8gtjw1",
       "ns74bj6r0gcdmwbrxps05b31v98gv9g5",
       "ns74m9r28feed5sx7ay2wpr9z58gt9x0",
+      "ns76wk6vyqcnb1wfn8jb5ggya98cx6k7",
       "ns78xjv6cf60q9j1qmkdwe06718gtwa5",
       "ns791yy132xqr9ygwxeh20nab58gthk8",
       "ns7ahzy4f068xee36kdvt3sjbh8gvf2b",
@@ -37,17 +40,32 @@
       "ns7fmbx80hnq2ejgj9c45a7mqd8gt64y"
     ],
     "factionIds": [
+      "k170ex3wwnd6ygv289qw1ypvdd8gtfv7",
       "k170rt7fn11fxdtbe3vx2bg0xx8gnrx1",
+      "k1716zfezm7w1ppfzp8gwzk63d8gvmhy",
       "k172tkm3r2r4sc96q7wnb3axvx8gn8g1",
       "k174q1wrg9y646pdvbdr9r1sxx8gmct2",
+      "k1755fjba9y9b2hkfph4ztdy3s8gvwm8",
       "k1758sk6c1qky3yknx56hstk8x8gmcxm",
       "k177h1yvxp36dxsxjfmgqx4jw58gm5jk",
-      "k1782pjyezpza51gk5fj8rr47s8gnp0w"
-    ],
-    "tokenFactionIds": [
-      "k177h1yvxp36dxsxjfmgqx4jw58gm5jk"
+      "k1782pjyezpza51gk5fj8rr47s8gnp0w",
+      "k178pt05y4abwvwxeg247snr758gv794",
+      "k17awq8h6dd3ge61y8peg14z2h8gvpzy",
+      "k17fvtpc5h6hfxvcwdgayvqfz58gtch1"
     ],
     "troopSources": [
+      {
+        "kind": "faction-troop",
+        "factionId": "k174q1wrg9y646pdvbdr9r1sxx8gmct2",
+        "troopId": "abbf72a5-4967-41f6-838e-5e99ac26f049",
+        "face": "front"
+      },
+      {
+        "kind": "faction-troop",
+        "factionId": "k174q1wrg9y646pdvbdr9r1sxx8gmct2",
+        "troopId": "20d19e36-b903-4069-a66a-cbed1d0d0b4f",
+        "face": "front"
+      },
       {
         "kind": "faction-troop",
         "factionId": "k172tkm3r2r4sc96q7wnb3axvx8gn8g1",
@@ -71,21 +89,9 @@
         "factionId": "k170rt7fn11fxdtbe3vx2bg0xx8gnrx1",
         "troopId": "3ac897c0-82d1-4c94-a796-2ce2788fab66",
         "face": "front"
-      },
-      {
-        "kind": "faction-troop",
-        "factionId": "k174q1wrg9y646pdvbdr9r1sxx8gmct2",
-        "troopId": "20d19e36-b903-4069-a66a-cbed1d0d0b4f",
-        "face": "front"
-      },
-      {
-        "kind": "faction-troop",
-        "factionId": "k174q1wrg9y646pdvbdr9r1sxx8gmct2",
-        "troopId": "abbf72a5-4967-41f6-838e-5e99ac26f049",
-        "face": "front"
       }
     ]
   },
-  "uncertaintyMarkers": 10,
+  "uncertaintyMarkers": 0,
   "unreadableMarkers": 0
 }

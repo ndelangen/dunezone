@@ -1,5 +1,7 @@
 {
   "sourceTranscriptSha256": "4ae8a51306598fae84b1e3d8093a1fc1577d3bcc4ca066ad6a577730ebd4aa12",
+  "sourceReadingSha256": "42f4bdc0d3ac6ebaf29b10ad50196be2215677558c264d6ffebf4856b9993b41",
+  "clearerSourceSha256": "c681228eaa328fc146cf273c3634216c29140c72be41723730b4c8989f7827ff",
   "pages": [
     {
       "sourcePage": 1,
@@ -31,436 +33,408 @@
     },
     {
       "sourcePage": 4,
-      "pageId": "KDSP",
+      "pageId": "874R",
       "title": "Faction overview",
       "outputPage": 5,
       "continuation": 0
     },
     {
-      "sourcePage": 4,
-      "pageId": "QF57",
-      "title": "Bene Gesserit",
+      "sourcePage": 5,
+      "pageId": "LKXC",
+      "title": "Faction overview",
       "outputPage": 6,
-      "continuation": 0
-    },
-    {
-      "sourcePage": 4,
-      "pageId": "HTZ6",
-      "title": "Emperor",
-      "outputPage": 7,
-      "continuation": 0
-    },
-    {
-      "sourcePage": 4,
-      "pageId": "UQWD",
-      "title": "Fremen",
-      "outputPage": 8,
-      "continuation": 0
-    },
-    {
-      "sourcePage": 5,
-      "pageId": "XGCC",
-      "title": "Spacing Guild",
-      "outputPage": 9,
-      "continuation": 0
-    },
-    {
-      "sourcePage": 5,
-      "pageId": "FB9Z",
-      "title": "Harkonnen",
-      "outputPage": 10,
-      "continuation": 0
-    },
-    {
-      "sourcePage": 5,
-      "pageId": "S48N",
-      "title": "Object of the game",
-      "outputPage": 11,
       "continuation": 0
     },
     {
       "sourcePage": 6,
       "pageId": "TN3N",
       "title": "GAME COMPONENTS",
-      "outputPage": 12,
+      "outputPage": 7,
       "continuation": 0
     },
     {
       "sourcePage": 8,
       "pageId": "MC57",
       "title": "SET-UP FOR PLAY",
-      "outputPage": 13,
+      "outputPage": 8,
       "continuation": 0
     },
     {
       "sourcePage": 8,
       "pageId": "NFMC",
       "title": "SET-UP FOR PLAY",
-      "outputPage": 14,
+      "outputPage": 9,
       "continuation": 1
     },
     {
       "sourcePage": 9,
-      "pageId": "7XV4",
+      "pageId": "XUD9",
       "title": "SEQUENCE OF PLAY",
-      "outputPage": 15,
+      "outputPage": 10,
       "continuation": 0
     },
     {
       "sourcePage": 10,
       "pageId": "YEP8",
       "title": "PHASE 1: STORM",
-      "outputPage": 16,
+      "outputPage": 11,
       "continuation": 0
     },
     {
       "sourcePage": 10,
       "pageId": "8LF7",
       "title": "Storm movement examples",
-      "outputPage": 17,
+      "outputPage": 12,
       "continuation": 0
     },
     {
       "sourcePage": 11,
       "pageId": "RXDU",
       "title": "PHASE 2: SPICE BLOW AND NEXUS",
-      "outputPage": 18,
+      "outputPage": 13,
       "continuation": 0
     },
     {
       "sourcePage": 12,
       "pageId": "FMKT",
       "title": "PHASE 3: CHOAM CHARITY",
-      "outputPage": 19,
+      "outputPage": 14,
       "continuation": 0
     },
     {
       "sourcePage": 12,
       "pageId": "P3L4",
       "title": "PHASE 3: CHOAM CHARITY",
-      "outputPage": 20,
+      "outputPage": 15,
       "continuation": 1
     },
     {
       "sourcePage": 13,
       "pageId": "G8TK",
       "title": "PHASE 5: REVIVAL",
-      "outputPage": 21,
+      "outputPage": 16,
       "continuation": 0
     },
     {
       "sourcePage": 13,
       "pageId": "7LKU",
       "title": "PHASE 5: REVIVAL",
-      "outputPage": 22,
+      "outputPage": 17,
       "continuation": 1
     },
     {
       "sourcePage": 14,
       "pageId": "CDJ6",
       "title": "PHASE 6: SHIPMENT AND MOVEMENT",
-      "outputPage": 23,
+      "outputPage": 18,
       "continuation": 0
     },
     {
       "sourcePage": 14,
       "pageId": "4Z2S",
       "title": "PHASE 6: SHIPMENT AND MOVEMENT",
-      "outputPage": 24,
+      "outputPage": 19,
       "continuation": 1
     },
     {
       "sourcePage": 15,
       "pageId": "RNZM",
       "title": "PHASE 6: SHIPMENT AND MOVEMENT",
-      "outputPage": 25,
+      "outputPage": 20,
       "continuation": 0
     },
     {
       "sourcePage": 15,
       "pageId": "Q4A6",
       "title": "Shipment and movement examples",
-      "outputPage": 26,
+      "outputPage": 21,
       "continuation": 0
     },
     {
       "sourcePage": 15,
       "pageId": "WLKG",
       "title": "Spacing Guild movement example",
-      "outputPage": 27,
+      "outputPage": 22,
       "continuation": 0
     },
     {
       "sourcePage": 16,
       "pageId": "T4NA",
       "title": "PHASE 7: BATTLE",
-      "outputPage": 28,
+      "outputPage": 23,
       "continuation": 0
     },
     {
       "sourcePage": 16,
       "pageId": "6LBR",
       "title": "PHASE 7: BATTLE",
-      "outputPage": 29,
+      "outputPage": 24,
       "continuation": 1
     },
     {
       "sourcePage": 17,
       "pageId": "PTKA",
       "title": "PHASE 7: BATTLE",
-      "outputPage": 30,
+      "outputPage": 25,
       "continuation": 0
     },
     {
       "sourcePage": 17,
       "pageId": "EVTQ",
       "title": "PHASE 7: BATTLE",
-      "outputPage": 31,
+      "outputPage": 26,
       "continuation": 1
     },
     {
       "sourcePage": 18,
       "pageId": "VKG8",
       "title": "PHASE 7: BATTLE",
-      "outputPage": 32,
+      "outputPage": 27,
       "continuation": 0
     },
     {
       "sourcePage": 18,
       "pageId": "ZSCH",
       "title": "Example of a battle",
-      "outputPage": 33,
+      "outputPage": 28,
       "continuation": 0
     },
     {
       "sourcePage": 19,
       "pageId": "GNAH",
       "title": "TRAITORS",
-      "outputPage": 34,
+      "outputPage": 29,
       "continuation": 0
     },
     {
       "sourcePage": 19,
       "pageId": "H8P2",
       "title": "Battle result",
-      "outputPage": 35,
+      "outputPage": 30,
       "continuation": 0
     },
     {
       "sourcePage": 20,
       "pageId": "2SM5",
       "title": "PHASE 8: SPICE COLLECTION",
-      "outputPage": 36,
+      "outputPage": 31,
       "continuation": 0
     },
     {
       "sourcePage": 20,
       "pageId": "56QM",
       "title": "PHASE 8: SPICE COLLECTION",
-      "outputPage": 37,
+      "outputPage": 32,
       "continuation": 1
     },
     {
       "sourcePage": 21,
       "pageId": "3TKC",
       "title": "ALLIANCES (NEXUS)",
-      "outputPage": 38,
+      "outputPage": 33,
       "continuation": 0
     },
     {
       "sourcePage": 21,
       "pageId": "V6CT",
       "title": "ALLIANCES (NEXUS)",
-      "outputPage": 39,
+      "outputPage": 34,
       "continuation": 1
     },
     {
       "sourcePage": 22,
       "pageId": "T3NC",
       "title": "OTHER RULES",
-      "outputPage": 40,
+      "outputPage": 35,
       "continuation": 0
     },
     {
       "sourcePage": 22,
       "pageId": "ZHTZ",
       "title": "OTHER RULES",
-      "outputPage": 41,
+      "outputPage": 36,
       "continuation": 1
     },
     {
       "sourcePage": 23,
       "pageId": "SRHY",
       "title": "TREACHERY CARDS",
-      "outputPage": 42,
+      "outputPage": 37,
       "continuation": 0
     },
     {
       "sourcePage": 24,
       "pageId": "AYAN",
       "title": "TREACHERY CARDS",
-      "outputPage": 43,
+      "outputPage": 38,
       "continuation": 0
     },
     {
       "sourcePage": 25,
       "pageId": "4UQ6",
       "title": "TREACHERY CARDS ADDITIONAL INSIGHTS",
-      "outputPage": 44,
+      "outputPage": 39,
       "continuation": 0
     },
     {
       "sourcePage": 26,
       "pageId": "7Y77",
       "title": "GAME VARIANTS",
-      "outputPage": 45,
+      "outputPage": 40,
+      "continuation": 0
+    },
+    {
+      "sourcePage": 26,
+      "pageId": "88DW",
+      "title": "Classic spice dialing",
+      "outputPage": 41,
       "continuation": 0
     },
     {
       "sourcePage": 26,
       "pageId": "SDE7",
       "title": "Spirit World Karama",
-      "outputPage": 46,
+      "outputPage": 42,
       "continuation": 0
     },
     {
       "sourcePage": 27,
       "pageId": "W68K",
       "title": "FACTIONS",
-      "outputPage": 47,
+      "outputPage": 43,
       "continuation": 0
     },
     {
       "sourcePage": 27,
       "pageId": "4WXN",
       "title": "FACTIONS",
-      "outputPage": 48,
+      "outputPage": 44,
       "continuation": 1
     },
     {
       "sourcePage": 28,
       "pageId": "27N9",
       "title": "BENE GESSERIT",
-      "outputPage": 49,
+      "outputPage": 45,
       "continuation": 0
     },
     {
       "sourcePage": 28,
       "pageId": "46PP",
       "title": "FREMEN",
-      "outputPage": 50,
+      "outputPage": 46,
       "continuation": 0
     },
     {
       "sourcePage": 29,
       "pageId": "SHV2",
       "title": "FREMEN",
-      "outputPage": 51,
+      "outputPage": 47,
       "continuation": 0
     },
     {
       "sourcePage": 29,
       "pageId": "4VYV",
       "title": "FREMEN",
-      "outputPage": 52,
+      "outputPage": 48,
       "continuation": 1
     },
     {
       "sourcePage": 30,
       "pageId": "GP27",
       "title": "EMPEROR",
-      "outputPage": 53,
+      "outputPage": 49,
       "continuation": 0
     },
     {
       "sourcePage": 30,
       "pageId": "CBT5",
       "title": "EMPEROR",
-      "outputPage": 54,
+      "outputPage": 50,
       "continuation": 1
     },
     {
       "sourcePage": 31,
       "pageId": "QJWF",
       "title": "HOUSE ATREIDES",
-      "outputPage": 55,
+      "outputPage": 51,
       "continuation": 0
     },
     {
       "sourcePage": 31,
       "pageId": "44R2",
       "title": "HOUSE ATREIDES",
-      "outputPage": 56,
+      "outputPage": 52,
       "continuation": 1
     },
     {
       "sourcePage": 32,
       "pageId": "SVS5",
       "title": "HOUSE HARKONNEN",
-      "outputPage": 57,
+      "outputPage": 53,
       "continuation": 0
     },
     {
       "sourcePage": 32,
       "pageId": "ECSZ",
       "title": "HOUSE HARKONNEN",
-      "outputPage": 58,
+      "outputPage": 54,
       "continuation": 1
     },
     {
       "sourcePage": 33,
       "pageId": "EPLF",
       "title": "SPACING GUILD",
-      "outputPage": 59,
+      "outputPage": 55,
       "continuation": 0
     },
     {
       "sourcePage": 33,
       "pageId": "3ESE",
       "title": "SPACING GUILD",
-      "outputPage": 60,
+      "outputPage": 56,
       "continuation": 1
     },
     {
       "sourcePage": 34,
       "pageId": "ZYM3",
       "title": "DUNE SYNOPSIS",
-      "outputPage": 61,
+      "outputPage": 57,
       "continuation": 0
     },
     {
       "sourcePage": 34,
       "pageId": "7KDH",
       "title": "DUNE SYNOPSIS",
-      "outputPage": 62,
+      "outputPage": 58,
       "continuation": 1
     },
     {
       "sourcePage": 35,
       "pageId": "VJCH",
       "title": "DUNE SYNOPSIS",
-      "outputPage": 63,
+      "outputPage": 59,
       "continuation": 0
     },
     {
       "sourcePage": 35,
       "pageId": "BY7A",
       "title": "DUNE SYNOPSIS",
-      "outputPage": 64,
+      "outputPage": 60,
       "continuation": 1
     },
     {
       "sourcePage": 36,
       "pageId": "SBYV",
       "title": "TERMINOLOGY",
-      "outputPage": 65,
+      "outputPage": 61,
       "continuation": 0
     },
     {
       "sourcePage": 36,
       "pageId": "37RM",
       "title": "TERMINOLOGY",
-      "outputPage": 66,
+      "outputPage": 62,
       "continuation": 1
     }
   ],
@@ -568,7 +542,7 @@
       "sourcePage": 2,
       "pageId": "LLQL",
       "blockId": "7FXD",
-      "text": "But others will take it violently in battle, or [uncertain: quietly] in taxes and fees."
+      "text": "But others will take it violently in battle, or quietly in taxes and fees."
     },
     {
       "key": "source-2-unit-9",
@@ -596,14 +570,14 @@
       "sourcePage": 2,
       "pageId": "LLQL",
       "blockId": "8FKC",
-      "text": "But death on Dune need never be tragic. The dead are routinely rendered up for their body's water — so that life on the arid planet may continue. And even one surviving cell of an individual may be [uncertain: cultured] by the Tleilaxu technicians until the original person is regrown."
+      "text": "But death on Dune need never be tragic. The dead are routinely rendered up for their body's water — so that life on the arid planet may continue. And even one surviving cell of an individual may be cultured by the Tleilaxu technicians until the original person is regrown."
     },
     {
       "key": "source-2-unit-14",
       "sourcePage": 2,
       "pageId": "LLQL",
       "blockId": "QXDE",
-      "text": "> \"A beginning is the time for taking the most delicate care that the balances are correct. This every sister of the Bene Gesserit knows. To begin your study of the life of Muad'Dib then, take care that you first place him in his time: born in the [uncertain: 57th] year of the Padishah Emperor, Shaddam IV. And take the most special care that you locate Muad'Dib in his place: the planet Arrakis. Do not be deceived by the fact that he was born on Caladan and lived his first fifteen years there. Arrakis, the planet known as Dune, is forever his place.\""
+      "text": "> \"A beginning is the time for taking the most delicate care that the balances are correct. This every sister of the Bene Gesserit knows. To begin your study of the life of Muad'Dib then, take care that you first place him in his time: born in the 57th year of the Padishah Emperor, Shaddam IV. And take the most special care that you locate Muad'Dib in his place: the planet Arrakis. Do not be deceived by the fact that he was born on Caladan and lived his first fifteen years there. Arrakis, the planet known as Dune, is forever his place.\""
     },
     {
       "key": "source-2-unit-15",
@@ -909,496 +883,497 @@
     {
       "key": "source-4-unit-0",
       "sourcePage": 4,
-      "pageId": "KDSP",
+      "pageId": "874R",
       "field": "title",
       "text": "### FACTION OVERVIEW"
     },
     {
       "key": "source-4-unit-1",
       "sourcePage": 4,
-      "pageId": "KDSP",
-      "blockId": "X4T2",
+      "pageId": "874R",
+      "blockId": "9BLS",
       "text": "You will be one of these factions:"
     },
     {
       "key": "source-4-unit-2",
       "sourcePage": 4,
-      "pageId": "KDSP",
-      "blockId": "DGSA",
+      "pageId": "874R",
+      "blockId": "MWET",
       "text": "### ATREIDES",
       "presentation": "illustration"
     },
     {
       "key": "source-4-unit-3",
       "sourcePage": 4,
-      "pageId": "KDSP",
-      "blockId": "DGSA",
+      "pageId": "874R",
+      "blockId": "MWET",
       "text": "The Atreides, led by the compassionate, though cunning, Duke Leto and his son Paul Atreides — rightful heir to his family's ancient legacy, gifted with valiant lieutenants and a strange partial awareness of the future. Both are beset by treacherous opponents.",
       "presentation": "illustration"
     },
     {
       "key": "source-4-unit-4",
       "sourcePage": 4,
-      "pageId": "KDSP",
-      "blockId": "DGSA",
+      "pageId": "874R",
+      "blockId": "MWET",
       "text": "Portrait: Duke Leto Atreides.",
       "presentation": "illustration"
     },
     {
       "key": "source-4-unit-5",
       "sourcePage": 4,
-      "pageId": "KDSP",
-      "blockId": "DGSA",
+      "pageId": "874R",
+      "blockId": "MWET",
       "text": "**Leaders**",
       "presentation": "illustration"
     },
     {
       "key": "source-4-unit-6",
       "sourcePage": 4,
-      "pageId": "KDSP",
-      "blockId": "DGSA",
+      "pageId": "874R",
+      "blockId": "MWET",
       "text": "- Thufir Hawat 5",
       "presentation": "illustration"
     },
     {
       "key": "source-4-unit-7",
       "sourcePage": 4,
-      "pageId": "KDSP",
-      "blockId": "DGSA",
+      "pageId": "874R",
+      "blockId": "MWET",
       "text": "- Lady Jessica 5",
       "presentation": "illustration"
     },
     {
       "key": "source-4-unit-8",
       "sourcePage": 4,
-      "pageId": "KDSP",
-      "blockId": "DGSA",
+      "pageId": "874R",
+      "blockId": "MWET",
       "text": "- Gurney Halleck 4",
       "presentation": "illustration"
     },
     {
       "key": "source-4-unit-9",
       "sourcePage": 4,
-      "pageId": "KDSP",
-      "blockId": "DGSA",
+      "pageId": "874R",
+      "blockId": "MWET",
       "text": "- Duncan Idaho 3",
       "presentation": "illustration"
     },
     {
       "key": "source-4-unit-10",
       "sourcePage": 4,
-      "pageId": "KDSP",
-      "blockId": "DGSA",
+      "pageId": "874R",
+      "blockId": "MWET",
       "text": "- Dr. Wellington Yueh 1",
       "presentation": "illustration"
     },
     {
       "key": "source-4-unit-11",
       "sourcePage": 4,
-      "pageId": "QF57",
-      "blockId": "SM56",
+      "pageId": "874R",
+      "blockId": "Z3YN",
       "text": "### BENE GESSERIT",
       "presentation": "illustration"
     },
     {
       "key": "source-4-unit-12",
       "sourcePage": 4,
-      "pageId": "QF57",
-      "blockId": "SM56",
+      "pageId": "874R",
+      "blockId": "Z3YN",
       "text": "The Bene Gesserit Sisterhood, represented by Reverend Mother Gaius Helen Mohiam — ancient and inscrutable, carefully trained in psychological control and a genius at achieving her ends through the efforts of others.",
       "presentation": "illustration"
     },
     {
       "key": "source-4-unit-13",
       "sourcePage": 4,
-      "pageId": "QF57",
-      "blockId": "SM56",
+      "pageId": "874R",
+      "blockId": "Z3YN",
       "text": "Portrait: Mother Mohiam.",
       "presentation": "illustration"
     },
     {
       "key": "source-4-unit-14",
       "sourcePage": 4,
-      "pageId": "QF57",
-      "blockId": "SM56",
+      "pageId": "874R",
+      "blockId": "Z3YN",
       "text": "**Leaders**",
       "presentation": "illustration"
     },
     {
       "key": "source-4-unit-15",
       "sourcePage": 4,
-      "pageId": "QF57",
-      "blockId": "SM56",
+      "pageId": "874R",
+      "blockId": "Z3YN",
       "text": "- Lady Anirul Corrino 5",
       "presentation": "illustration"
     },
     {
       "key": "source-4-unit-16",
       "sourcePage": 4,
-      "pageId": "QF57",
-      "blockId": "SM56",
+      "pageId": "874R",
+      "blockId": "Z3YN",
       "text": "- Margot Lady Fenring 5",
       "presentation": "illustration"
     },
     {
       "key": "source-4-unit-17",
       "sourcePage": 4,
-      "pageId": "QF57",
-      "blockId": "SM56",
+      "pageId": "874R",
+      "blockId": "Z3YN",
       "text": "- Mother Ramallo 5",
       "presentation": "illustration"
     },
     {
       "key": "source-4-unit-18",
       "sourcePage": 4,
-      "pageId": "QF57",
-      "blockId": "SM56",
+      "pageId": "874R",
+      "blockId": "Z3YN",
       "text": "- Princess Irulan 5",
       "presentation": "illustration"
     },
     {
       "key": "source-4-unit-19",
       "sourcePage": 4,
-      "pageId": "QF57",
-      "blockId": "SM56",
+      "pageId": "874R",
+      "blockId": "Z3YN",
       "text": "- Wanna Yueh 5",
       "presentation": "illustration"
     },
     {
       "key": "source-4-unit-20",
       "sourcePage": 4,
-      "pageId": "HTZ6",
-      "blockId": "KLG7",
+      "pageId": "874R",
+      "blockId": "7RJG",
       "text": "### EMPEROR",
       "presentation": "illustration"
     },
     {
       "key": "source-4-unit-21",
       "sourcePage": 4,
-      "pageId": "HTZ6",
-      "blockId": "KLG7",
+      "pageId": "874R",
+      "blockId": "7RJG",
       "text": "His majesty the Padishah Emperor Shaddam IV — keen and efficient, yet easily lulled into complacency by his own trappings of power. By leveraging his legions of Sardaukar, the Emperor will secure his legacy.",
       "presentation": "illustration"
     },
     {
       "key": "source-4-unit-22",
       "sourcePage": 4,
-      "pageId": "HTZ6",
-      "blockId": "KLG7",
+      "pageId": "874R",
+      "blockId": "7RJG",
       "text": "Portrait: Emperor Shaddam IV.",
       "presentation": "illustration"
     },
     {
       "key": "source-4-unit-23",
       "sourcePage": 4,
-      "pageId": "HTZ6",
-      "blockId": "KLG7",
+      "pageId": "874R",
+      "blockId": "7RJG",
       "text": "**Leaders**",
       "presentation": "illustration"
     },
     {
       "key": "source-4-unit-24",
       "sourcePage": 4,
-      "pageId": "HTZ6",
-      "blockId": "KLG7",
+      "pageId": "874R",
+      "blockId": "7RJG",
       "text": "- Hasimir Fenring 6",
       "presentation": "illustration"
     },
     {
       "key": "source-4-unit-25",
       "sourcePage": 4,
-      "pageId": "HTZ6",
-      "blockId": "KLG7",
+      "pageId": "874R",
+      "blockId": "7RJG",
       "text": "- Captain Aramsham 5",
       "presentation": "illustration"
     },
     {
       "key": "source-4-unit-26",
       "sourcePage": 4,
-      "pageId": "HTZ6",
-      "blockId": "KLG7",
+      "pageId": "874R",
+      "blockId": "7RJG",
       "text": "- Bashar Garon 3",
       "presentation": "illustration"
     },
     {
       "key": "source-4-unit-27",
       "sourcePage": 4,
-      "pageId": "HTZ6",
-      "blockId": "KLG7",
+      "pageId": "874R",
+      "blockId": "7RJG",
       "text": "- Colonel Kolona 3",
       "presentation": "illustration"
     },
     {
       "key": "source-4-unit-28",
       "sourcePage": 4,
-      "pageId": "HTZ6",
-      "blockId": "KLG7",
+      "pageId": "874R",
+      "blockId": "7RJG",
       "text": "- Wensicia Corrino 2",
       "presentation": "illustration"
     },
     {
       "key": "source-4-unit-29",
       "sourcePage": 4,
-      "pageId": "UQWD",
-      "blockId": "N7TE",
+      "pageId": "874R",
+      "blockId": "855A",
       "text": "### FREMEN",
       "presentation": "illustration"
     },
     {
       "key": "source-4-unit-30",
       "sourcePage": 4,
-      "pageId": "UQWD",
-      "blockId": "N7TE",
+      "pageId": "874R",
+      "blockId": "855A",
       "text": "The Fremen, represented by the planetary ecologist Liet-Kynes — commanding fierce hordes of natives, adept at life and travel on the planet, and dedicated to preventing any outside control while bringing about Dune's own natural regeneration.",
       "presentation": "illustration"
     },
     {
       "key": "source-4-unit-31",
       "sourcePage": 4,
-      "pageId": "UQWD",
-      "blockId": "N7TE",
+      "pageId": "874R",
+      "blockId": "855A",
       "text": "Portrait: Liet Kynes.",
       "presentation": "illustration"
     },
     {
       "key": "source-4-unit-32",
       "sourcePage": 4,
-      "pageId": "UQWD",
-      "blockId": "N7TE",
+      "pageId": "874R",
+      "blockId": "855A",
       "text": "**Leaders**",
       "presentation": "illustration"
     },
     {
       "key": "source-4-unit-33",
       "sourcePage": 4,
-      "pageId": "UQWD",
-      "blockId": "N7TE",
+      "pageId": "874R",
+      "blockId": "855A",
       "text": "- Stilgar 7",
       "presentation": "illustration"
     },
     {
       "key": "source-4-unit-34",
       "sourcePage": 4,
-      "pageId": "UQWD",
-      "blockId": "N7TE",
+      "pageId": "874R",
+      "blockId": "855A",
       "text": "- Chani 6",
       "presentation": "illustration"
     },
     {
       "key": "source-4-unit-35",
       "sourcePage": 4,
-      "pageId": "UQWD",
-      "blockId": "N7TE",
+      "pageId": "874R",
+      "blockId": "855A",
       "text": "- Otheym 5",
       "presentation": "illustration"
     },
     {
       "key": "source-4-unit-36",
       "sourcePage": 4,
-      "pageId": "UQWD",
-      "blockId": "N7TE",
+      "pageId": "874R",
+      "blockId": "855A",
       "text": "- Shadout Mapes 3",
       "presentation": "illustration"
     },
     {
       "key": "source-4-unit-37",
       "sourcePage": 4,
-      "pageId": "UQWD",
-      "blockId": "N7TE",
+      "pageId": "874R",
+      "blockId": "855A",
       "text": "- Jamis 2",
       "presentation": "illustration"
     },
     {
       "key": "source-5-unit-0",
       "sourcePage": 5,
-      "pageId": "XGCC",
-      "blockId": "QR4V",
+      "pageId": "LKXC",
+      "blockId": "SNAK",
       "text": "### SPACING GUILD",
       "presentation": "illustration"
     },
     {
       "key": "source-5-unit-1",
       "sourcePage": 5,
-      "pageId": "XGCC",
-      "blockId": "QR4V",
+      "pageId": "LKXC",
+      "blockId": "SNAK",
       "text": "The Spacing Guild, represented by Navigator Edric, monopolist of transport, yet addicted to ever increasing spice flows, must ensure that trade continues unabated.",
       "presentation": "illustration"
     },
     {
       "key": "source-5-unit-2",
       "sourcePage": 5,
-      "pageId": "XGCC",
-      "blockId": "QR4V",
+      "pageId": "LKXC",
+      "blockId": "SNAK",
       "text": "Portrait: Edric.",
       "presentation": "illustration"
     },
     {
       "key": "source-5-unit-3",
       "sourcePage": 5,
-      "pageId": "XGCC",
-      "blockId": "QR4V",
+      "pageId": "LKXC",
+      "blockId": "SNAK",
       "text": "**Leaders**",
       "presentation": "illustration"
     },
     {
       "key": "source-5-unit-4",
       "sourcePage": 5,
-      "pageId": "XGCC",
-      "blockId": "QR4V",
-      "text": "- [uncertain: Staclude Sendallo] 5",
+      "pageId": "LKXC",
+      "blockId": "SNAK",
+      "text": "- Starguide Serello 5",
       "presentation": "illustration"
     },
     {
       "key": "source-5-unit-5",
       "sourcePage": 5,
-      "pageId": "XGCC",
-      "blockId": "QR4V",
+      "pageId": "LKXC",
+      "blockId": "SNAK",
       "text": "- Ertun 4",
       "presentation": "illustration"
     },
     {
       "key": "source-5-unit-6",
       "sourcePage": 5,
-      "pageId": "XGCC",
-      "blockId": "QR4V",
+      "pageId": "LKXC",
+      "blockId": "SNAK",
       "text": "- Olar 3",
       "presentation": "illustration"
     },
     {
       "key": "source-5-unit-7",
       "sourcePage": 5,
-      "pageId": "XGCC",
-      "blockId": "QR4V",
+      "pageId": "LKXC",
+      "blockId": "SNAK",
       "text": "- Crozeed 2",
       "presentation": "illustration"
     },
     {
       "key": "source-5-unit-8",
       "sourcePage": 5,
-      "pageId": "XGCC",
-      "blockId": "QR4V",
+      "pageId": "LKXC",
+      "blockId": "SNAK",
       "text": "- Loyxo 1",
       "presentation": "illustration"
     },
     {
       "key": "source-5-unit-9",
       "sourcePage": 5,
-      "pageId": "FB9Z",
-      "blockId": "6WVR",
+      "pageId": "LKXC",
+      "blockId": "D4AJ",
       "text": "### HARKONNEN",
       "presentation": "illustration"
     },
     {
       "key": "source-5-unit-10",
       "sourcePage": 5,
-      "pageId": "FB9Z",
-      "blockId": "6WVR",
+      "pageId": "LKXC",
+      "blockId": "D4AJ",
       "text": "The Harkonnens, led by the decadent and notoriously cruel Baron Vladimir Harkonnen — master of treachery and sinister deeds, value power over all. The path to power leads to Arrakis, and the control of spice.",
       "presentation": "illustration"
     },
     {
       "key": "source-5-unit-11",
       "sourcePage": 5,
-      "pageId": "FB9Z",
-      "blockId": "6WVR",
+      "pageId": "LKXC",
+      "blockId": "D4AJ",
       "text": "Portrait: Baron Harkonnen.",
       "presentation": "illustration"
     },
     {
       "key": "source-5-unit-12",
       "sourcePage": 5,
-      "pageId": "FB9Z",
-      "blockId": "6WVR",
+      "pageId": "LKXC",
+      "blockId": "D4AJ",
       "text": "**Leaders**",
       "presentation": "illustration"
     },
     {
       "key": "source-5-unit-13",
       "sourcePage": 5,
-      "pageId": "FB9Z",
-      "blockId": "6WVR",
+      "pageId": "LKXC",
+      "blockId": "D4AJ",
       "text": "- Feyd-Rautha 6",
       "presentation": "illustration"
     },
     {
       "key": "source-5-unit-14",
       "sourcePage": 5,
-      "pageId": "FB9Z",
-      "blockId": "6WVR",
+      "pageId": "LKXC",
+      "blockId": "D4AJ",
       "text": "- Beast Rabban 4",
       "presentation": "illustration"
     },
     {
       "key": "source-5-unit-15",
       "sourcePage": 5,
-      "pageId": "FB9Z",
-      "blockId": "6WVR",
+      "pageId": "LKXC",
+      "blockId": "D4AJ",
       "text": "- Piter de Vries 3",
       "presentation": "illustration"
     },
     {
       "key": "source-5-unit-16",
       "sourcePage": 5,
-      "pageId": "FB9Z",
-      "blockId": "6WVR",
+      "pageId": "LKXC",
+      "blockId": "D4AJ",
       "text": "- Iakin Nefud 2",
       "presentation": "illustration"
     },
     {
       "key": "source-5-unit-17",
       "sourcePage": 5,
-      "pageId": "FB9Z",
-      "blockId": "6WVR",
+      "pageId": "LKXC",
+      "blockId": "D4AJ",
       "text": "- Umman Kudu 1",
       "presentation": "illustration"
     },
     {
       "key": "source-5-unit-18",
       "sourcePage": 5,
-      "pageId": "S48N",
+      "pageId": "LKXC",
+      "blockId": "4DVA",
       "text": "### OBJECT OF THE GAME",
-      "field": "title"
+      "field": "heading"
     },
     {
       "key": "source-5-unit-19",
       "sourcePage": 5,
-      "pageId": "S48N",
-      "blockId": "DTM7",
+      "pageId": "LKXC",
+      "blockId": "ZYLJ",
       "text": "In DUNE, A Game of Conquest, Diplomacy & Betrayal, you take control of one of the great houses or factions seeking to control Arrakis."
     },
     {
       "key": "source-5-unit-20",
       "sourcePage": 5,
-      "pageId": "S48N",
-      "blockId": "HTDM",
+      "pageId": "LKXC",
+      "blockId": "W74E",
       "text": "Each faction has a set of unique economic, military, strategic, diplomatic, technological, or treacherous advantages. The object of the game is to use these advantages to gain control of Dune."
     },
     {
       "key": "source-5-unit-21",
       "sourcePage": 5,
-      "pageId": "S48N",
-      "blockId": "TWE6",
+      "pageId": "LKXC",
+      "blockId": "RAJ4",
       "text": "The winner is the first player to occupy at least 3 strongholds with at least one of their forces during the Mentat Pause phase (or 4 strongholds for an alliance- see Alliances page 21)."
     },
     {
       "key": "source-5-unit-22",
       "sourcePage": 5,
-      "pageId": "S48N",
-      "blockId": "DX6A",
+      "pageId": "LKXC",
+      "blockId": "3DQ7",
       "text": "If a tie occurs (e.g., with the Ixians' Hidden Mobile Stronghold in play-from the Ixian and Tleilaxu expansion), players must agree to play another round or end the game in a tie."
     },
     {
       "key": "source-5-unit-23",
       "sourcePage": 5,
-      "pageId": "S48N",
-      "blockId": "3R9J",
+      "pageId": "LKXC",
+      "blockId": "KBDZ",
       "text": "A player may win alone or in an alliance with another player."
     },
     {
       "key": "source-5-unit-24",
       "sourcePage": 5,
-      "pageId": "S48N",
-      "blockId": "C5TA",
+      "pageId": "LKXC",
+      "blockId": "8CJH",
       "text": "If at the end of round 10, no faction or alliance controls the required number of strongholds, or wins through a unique Special Victory Condition, the winner is the alliance or unallied faction that controls the highest number of strongholds. Break ties first in favor of unaligned factions over alliances, and second in favor of which side has the highest number of forces in their controlled strongholds, finally by who has the most spice - see Hierarchy of Winning on page 20."
     },
     {
@@ -1902,244 +1877,244 @@
     {
       "key": "source-9-unit-0",
       "sourcePage": 9,
-      "pageId": "7XV4",
+      "pageId": "XUD9",
       "field": "title",
       "text": "### SEQUENCE OF PLAY"
     },
     {
       "key": "source-9-unit-1",
       "sourcePage": 9,
-      "pageId": "7XV4",
-      "blockId": "XTLB",
+      "pageId": "XUD9",
+      "blockId": "5WSL",
       "text": "Dune is played over the course of up to 10 rounds, each comprising nine specific phases. Each round must be completed in the exact sequence presented below."
     },
     {
       "key": "source-9-unit-2",
       "sourcePage": 9,
-      "pageId": "7XV4",
-      "blockId": "65NR",
+      "pageId": "XUD9",
+      "blockId": "5EFZ",
       "text": "Player Turns in a phase are conducted in \"storm order\" (going counter-clockwise from the First Player)."
     },
     {
       "key": "source-9-unit-3",
       "sourcePage": 9,
-      "pageId": "7XV4",
-      "blockId": "QEGN",
+      "pageId": "XUD9",
+      "blockId": "6S9C",
       "text": "It is possible for Dune to end after only one round! Players must take care to note player order and which factions have the capability to win when deciding their own actions."
     },
     {
       "key": "source-9-unit-4",
       "sourcePage": 9,
-      "pageId": "7XV4",
-      "blockId": "KDFD",
+      "pageId": "XUD9",
+      "blockId": "S93Z",
       "text": "### 1. STORM PHASE",
       "presentation": "illustration"
     },
     {
       "key": "source-9-unit-5",
       "sourcePage": 9,
-      "pageId": "7XV4",
-      "blockId": "KDFD",
+      "pageId": "XUD9",
+      "blockId": "S93Z",
       "text": "Page 10",
       "presentation": "illustration"
     },
     {
       "key": "source-9-unit-6",
       "sourcePage": 9,
-      "pageId": "7XV4",
-      "blockId": "KDFD",
+      "pageId": "XUD9",
+      "blockId": "S93Z",
       "text": "The Storm marker moves. The player whose Faction marker the storm next approaches will be the First Player for this round.",
       "presentation": "illustration"
     },
     {
       "key": "source-9-unit-7",
       "sourcePage": 9,
-      "pageId": "7XV4",
-      "blockId": "SHZF",
+      "pageId": "XUD9",
+      "blockId": "S93Z",
       "text": "### 2. SPICE BLOW AND NEXUS PHASE",
       "presentation": "illustration"
     },
     {
       "key": "source-9-unit-8",
       "sourcePage": 9,
-      "pageId": "7XV4",
-      "blockId": "SHZF",
+      "pageId": "XUD9",
+      "blockId": "S93Z",
       "text": "Page 11",
       "presentation": "illustration"
     },
     {
       "key": "source-9-unit-9",
       "sourcePage": 9,
-      "pageId": "7XV4",
-      "blockId": "SHZF",
+      "pageId": "XUD9",
+      "blockId": "S93Z",
       "text": "Turn over the top card of the Spice deck and place the amount of spice shown on the card in the indicated sector of the highlighted territories (unless in a storm sector). If Shai-Hulud appears during the Spice Blow and Nexus phase, a Nexus occurs, giving players the opportunity to make and break Alliances.",
       "presentation": "illustration"
     },
     {
       "key": "source-9-unit-10",
       "sourcePage": 9,
-      "pageId": "7XV4",
-      "blockId": "KBNC",
+      "pageId": "XUD9",
+      "blockId": "S93Z",
       "text": "### 3. CHOAM CHARITY PHASE",
       "presentation": "illustration"
     },
     {
       "key": "source-9-unit-11",
       "sourcePage": 9,
-      "pageId": "7XV4",
-      "blockId": "KBNC",
+      "pageId": "XUD9",
+      "blockId": "S93Z",
       "text": "Page 12",
       "presentation": "illustration"
     },
     {
       "key": "source-9-unit-12",
       "sourcePage": 9,
-      "pageId": "7XV4",
-      "blockId": "KBNC",
+      "pageId": "XUD9",
+      "blockId": "S93Z",
       "text": "Players with 0 or 1 spice may claim CHOAM Charity.",
       "presentation": "illustration"
     },
     {
       "key": "source-9-unit-13",
       "sourcePage": 9,
-      "pageId": "7XV4",
-      "blockId": "VP6N",
+      "pageId": "XUD9",
+      "blockId": "S93Z",
       "text": "### 4. BIDDING PHASE",
       "presentation": "illustration"
     },
     {
       "key": "source-9-unit-14",
       "sourcePage": 9,
-      "pageId": "7XV4",
-      "blockId": "VP6N",
+      "pageId": "XUD9",
+      "blockId": "S93Z",
       "text": "Page 12",
       "presentation": "illustration"
     },
     {
       "key": "source-9-unit-15",
       "sourcePage": 9,
-      "pageId": "7XV4",
-      "blockId": "VP6N",
+      "pageId": "XUD9",
+      "blockId": "S93Z",
       "text": "Players bid spice to acquire Treachery cards.",
       "presentation": "illustration"
     },
     {
       "key": "source-9-unit-16",
       "sourcePage": 9,
-      "pageId": "7XV4",
-      "blockId": "E6CX",
+      "pageId": "XUD9",
+      "blockId": "S93Z",
       "text": "### 5. REVIVAL PHASE",
       "presentation": "illustration"
     },
     {
       "key": "source-9-unit-17",
       "sourcePage": 9,
-      "pageId": "7XV4",
-      "blockId": "E6CX",
+      "pageId": "XUD9",
+      "blockId": "S93Z",
       "text": "Page 13",
       "presentation": "illustration"
     },
     {
       "key": "source-9-unit-18",
       "sourcePage": 9,
-      "pageId": "7XV4",
-      "blockId": "E6CX",
+      "pageId": "XUD9",
+      "blockId": "S93Z",
       "text": "All players are allowed to reclaim forces (and eventually leaders) from the Tleilaxu Tanks in storm order.",
       "presentation": "illustration"
     },
     {
       "key": "source-9-unit-19",
       "sourcePage": 9,
-      "pageId": "7XV4",
-      "blockId": "U8M4",
+      "pageId": "XUD9",
+      "blockId": "S93Z",
       "text": "### 6. SHIPMENT AND MOVEMENT PHASE",
       "presentation": "illustration"
     },
     {
       "key": "source-9-unit-20",
       "sourcePage": 9,
-      "pageId": "7XV4",
-      "blockId": "U8M4",
+      "pageId": "XUD9",
+      "blockId": "S93Z",
       "text": "Page 14",
       "presentation": "illustration"
     },
     {
       "key": "source-9-unit-21",
       "sourcePage": 9,
-      "pageId": "7XV4",
-      "blockId": "U8M4",
+      "pageId": "XUD9",
+      "blockId": "S93Z",
       "text": "Starting with the First Player and proceeding in storm order, each player in turn may ship forces to the game board and then may move their forces on the game board.",
       "presentation": "illustration"
     },
     {
       "key": "source-9-unit-22",
       "sourcePage": 9,
-      "pageId": "7XV4",
-      "blockId": "TDMN",
+      "pageId": "XUD9",
+      "blockId": "S93Z",
       "text": "### 7. BATTLE PHASE",
       "presentation": "illustration"
     },
     {
       "key": "source-9-unit-23",
       "sourcePage": 9,
-      "pageId": "7XV4",
-      "blockId": "TDMN",
+      "pageId": "XUD9",
+      "blockId": "S93Z",
       "text": "Page 16",
       "presentation": "illustration"
     },
     {
       "key": "source-9-unit-24",
       "sourcePage": 9,
-      "pageId": "7XV4",
-      "blockId": "TDMN",
+      "pageId": "XUD9",
+      "blockId": "S93Z",
       "text": "Players must resolve battles in every territory that is occupied by forces from two or more factions. Battles are conducted in storm order.",
       "presentation": "illustration"
     },
     {
       "key": "source-9-unit-25",
       "sourcePage": 9,
-      "pageId": "7XV4",
-      "blockId": "5ERP",
+      "pageId": "XUD9",
+      "blockId": "S93Z",
       "text": "### 8. SPICE COLLECTION PHASE",
       "presentation": "illustration"
     },
     {
       "key": "source-9-unit-26",
       "sourcePage": 9,
-      "pageId": "7XV4",
-      "blockId": "5ERP",
+      "pageId": "XUD9",
+      "blockId": "S93Z",
       "text": "Page 20",
       "presentation": "illustration"
     },
     {
       "key": "source-9-unit-27",
       "sourcePage": 9,
-      "pageId": "7XV4",
-      "blockId": "5ERP",
+      "pageId": "XUD9",
+      "blockId": "S93Z",
       "text": "Forces in the sector of a territory containing spice may collect spice.",
       "presentation": "illustration"
     },
     {
       "key": "source-9-unit-28",
       "sourcePage": 9,
-      "pageId": "7XV4",
-      "blockId": "4HEJ",
+      "pageId": "XUD9",
+      "blockId": "S93Z",
       "text": "### 9. MENTAT PAUSE PHASE",
       "presentation": "illustration"
     },
     {
       "key": "source-9-unit-29",
       "sourcePage": 9,
-      "pageId": "7XV4",
-      "blockId": "4HEJ",
+      "pageId": "XUD9",
+      "blockId": "S93Z",
       "text": "Page 20",
       "presentation": "illustration"
     },
     {
       "key": "source-9-unit-30",
       "sourcePage": 9,
-      "pageId": "7XV4",
-      "blockId": "4HEJ",
+      "pageId": "XUD9",
+      "blockId": "S93Z",
       "text": "Check to see if any player or Alliance has won the game. If there are no winners, move the Game Round marker to the next position on the Round Track to begin the next round. Players who received bribes in this round may collect that spice at this time.",
       "presentation": "illustration"
     },
@@ -2267,7 +2242,7 @@
       "sourcePage": 10,
       "pageId": "8LF7",
       "blockId": "PZCT",
-      "text": "Example: The middle sector of Pasty Mesa is in storm. [uncertain: The] Atreides force in Pasty Mesa could move into The Minor Erg, but not through the Storm to the sector of The Minor Erg that contains spice.",
+      "text": "Example: The middle sector of Pasty Mesa is in storm. The Atreides force in Pasty Mesa could move into The Minor Erg, but not through the Storm to the sector of The Minor Erg that contains spice.",
       "presentation": "illustration"
     },
     {
@@ -2977,7 +2952,7 @@
       "sourcePage": 13,
       "pageId": "7LKU",
       "blockId": "NUNJ",
-      "text": "Free Force Revivals are [uncertain: shown] here on your faction sheet."
+      "text": "Free Force Revivals are shown here on your faction sheet."
     },
     {
       "key": "source-13-unit-32",
@@ -3416,7 +3391,7 @@
       "sourcePage": 16,
       "pageId": "T4NA",
       "blockId": "8VSZ",
-      "text": "One Leader disc is secretly chosen and placed face [uncertain: up in] the slot on the Battle Wheel. Players may play a Cheap Hero Treachery card in lieu of a Leader disc."
+      "text": "One Leader disc is secretly chosen and placed face up in the slot on the Battle Wheel. Players may play a Cheap Hero Treachery card in lieu of a Leader disc."
     },
     {
       "key": "source-16-unit-17",
@@ -4549,7 +4524,7 @@
       "sourcePage": 21,
       "pageId": "3TKC",
       "blockId": "CC2W",
-      "text": "Several Alliances can be formed during a Nexus, but no player can be [uncertain: a] member of more than one Alliance. Once all players have had a chance to ally, no further Alliances can be made or broken until the next Nexus."
+      "text": "Several Alliances can be formed during a Nexus, but no player can be a member of more than one Alliance. Once all players have had a chance to ally, no further Alliances can be made or broken until the next Nexus."
     },
     {
       "key": "source-21-unit-11",
@@ -5458,14 +5433,14 @@
       "key": "source-26-unit-1",
       "sourcePage": 26,
       "pageId": "7Y77",
-      "blockId": "GKP8",
+      "blockId": "3F9H",
       "text": "**Classic Spice Dialing**"
     },
     {
       "key": "source-26-unit-2",
       "sourcePage": 26,
       "pageId": "7Y77",
-      "blockId": "GKP8",
+      "blockId": "3F9H",
       "text": "Spice now plays a different role in the combat procedure. These rules replace the \"spice strength\" rules."
     },
     {
@@ -5493,128 +5468,128 @@
       "key": "source-26-unit-6",
       "sourcePage": 26,
       "pageId": "7Y77",
-      "blockId": "YCY4",
+      "blockId": "EP6X",
       "text": "When dialing a Battle Plan, one-half increments can be indicated by lining up the line between the numbers with the line under the window of the Battle Wheel. Some examples are shown to the right."
     },
     {
       "key": "source-26-unit-7",
       "sourcePage": 26,
       "pageId": "7Y77",
-      "blockId": "5DTQ",
+      "blockId": "CS5M",
       "text": "When the battle winner takes losses, the player may do so in any manner as long as it agrees with the strength dialed and the spice expended."
     },
     {
       "key": "source-26-unit-8",
       "sourcePage": 26,
-      "pageId": "7Y77",
-      "blockId": "EZLY",
+      "pageId": "88DW",
+      "blockId": "M9N6",
       "text": "For example, the Emperor player has 1 Sardaukar (worth 2 forces) and 5 ordinary forces in a territory in battle. The Emperor dialed a strength of 3 and expended 1 spice."
     },
     {
       "key": "source-26-unit-9",
       "sourcePage": 26,
-      "pageId": "7Y77",
-      "blockId": "6Q6F",
+      "pageId": "88DW",
+      "blockId": "FNV4",
       "text": "**First illustrated loss option**",
-      "presentation": "editorial"
+      "presentation": "illustration"
     },
     {
       "key": "source-26-unit-10",
       "sourcePage": 26,
-      "pageId": "7Y77",
-      "blockId": "6Q6F",
+      "pageId": "88DW",
+      "blockId": "FNV4",
       "text": "2 + ½ + ½",
-      "presentation": "editorial"
+      "presentation": "illustration"
     },
     {
       "key": "source-26-unit-11",
       "sourcePage": 26,
-      "pageId": "7Y77",
-      "blockId": "6Q6F",
+      "pageId": "88DW",
+      "blockId": "FNV4",
       "text": "A 1-spice token is shown above the Sardaukar force.",
-      "presentation": "editorial"
+      "presentation": "illustration"
     },
     {
       "key": "source-26-unit-12",
       "sourcePage": 26,
-      "pageId": "7Y77",
-      "blockId": "6Q6F",
+      "pageId": "88DW",
+      "blockId": "UCHN",
       "text": "The Emperor player wins the battle, and they may choose to lose 1 Sardaukar force at full strength (2) and 2 ordinary forces at half strength (½ + ½),"
     },
     {
       "key": "source-26-unit-13",
       "sourcePage": 26,
-      "pageId": "7Y77",
-      "blockId": "4495",
+      "pageId": "88DW",
+      "blockId": "EBNY",
       "text": "**Second illustrated loss option**",
-      "presentation": "editorial"
+      "presentation": "illustration"
     },
     {
       "key": "source-26-unit-14",
       "sourcePage": 26,
-      "pageId": "7Y77",
-      "blockId": "4495",
+      "pageId": "88DW",
+      "blockId": "EBNY",
       "text": "1 + ½ + ½ + ½ + ½",
-      "presentation": "editorial"
+      "presentation": "illustration"
     },
     {
       "key": "source-26-unit-15",
       "sourcePage": 26,
-      "pageId": "7Y77",
-      "blockId": "4495",
+      "pageId": "88DW",
+      "blockId": "EBNY",
       "text": "A 1-spice token is shown above the first ordinary force.",
-      "presentation": "editorial"
+      "presentation": "illustration"
     },
     {
       "key": "source-26-unit-16",
       "sourcePage": 26,
-      "pageId": "7Y77",
-      "blockId": "4495",
+      "pageId": "88DW",
+      "blockId": "6ZSF",
       "text": "or, they may lose 1 ordinary force at full strength and 4 forces at half strength (½ + ½ + ½ + ½). In one case, the player loses 1 Sardaukar and 2 ordinary forces. In the other case, the player loses 5 ordinary forces. Either choice fulfills the Emperor player's spice/strength requirement."
     },
     {
       "key": "source-26-unit-17",
       "sourcePage": 26,
       "pageId": "7Y77",
-      "blockId": "2ZZT",
+      "blockId": "C6NS",
       "text": "**BATTLE WHEEL EXAMPLES**",
-      "presentation": "editorial"
+      "presentation": "illustration"
     },
     {
       "key": "source-26-unit-18",
       "sourcePage": 26,
       "pageId": "7Y77",
-      "blockId": "2ZZT",
+      "blockId": "C6NS",
       "text": "FORCE examples, top to bottom: 2½; 4½; 8½.",
-      "presentation": "editorial"
+      "presentation": "illustration"
     },
     {
       "key": "source-26-unit-19",
       "sourcePage": 26,
-      "pageId": "SDE7",
-      "blockId": "SQPV",
+      "pageId": "88DW",
+      "blockId": "UYAU",
       "text": "**Fremen Battle Edge:**"
     },
     {
       "key": "source-26-unit-20",
       "sourcePage": 26,
-      "pageId": "SDE7",
-      "blockId": "SQPV",
+      "pageId": "88DW",
+      "blockId": "UYAU",
       "text": "If using Spice Dialing, the Fremen Battle Edge advantage is changed to mean they are always considered full strength, without needing spice."
     },
     {
       "key": "source-26-unit-21",
       "sourcePage": 26,
-      "pageId": "SDE7",
-      "blockId": "ECM6",
+      "pageId": "88DW",
+      "blockId": "3TJ9",
       "text": "Note: This variant was originally considered an optional rule in the 1979 edition of Dune, and part of the \"Advanced\" rules in the 2019 edition."
     },
     {
       "key": "source-26-unit-22",
       "sourcePage": 26,
       "pageId": "SDE7",
-      "blockId": "WZ7Y",
-      "text": "### Spirit World Karama"
+      "text": "### Spirit World Karama",
+      "field": "title"
     },
     {
       "key": "source-26-unit-23",
@@ -6830,7 +6805,7 @@
       "sourcePage": 32,
       "pageId": "SVS5",
       "blockId": "44MJ",
-      "text": "When all of your own Leader discs are unavailable to you (killed, captured, or face up on the board from previous battles), you must immediately return all captured leaders to their factions. Killed captured leaders can be revived by their factions (subject to the normal revival rules). Captured leaders used in battle may still be claimed as a Traitor (subject to the normal Traitor rules): If you use a leader against its own faction and they are holding that leader's Traitor card as a [uncertain: \"safe leader\"], it may be revealed as a Traitor, winning them the battle in accordance with normal rules for revealing a Traitor."
+      "text": "When all of your own Leader discs are unavailable to you (killed, captured, or face up on the board from previous battles), you must immediately return all captured leaders to their factions. Killed captured leaders can be revived by their factions (subject to the normal revival rules). Captured leaders used in battle may still be claimed as a Traitor (subject to the normal Traitor rules): If you use a leader against its own faction and they are holding that leader's Traitor card as a \"safe leader\", it may be revealed as a Traitor, winning them the battle in accordance with normal rules for revealing a Traitor."
     },
     {
       "key": "source-32-unit-15",
@@ -7215,7 +7190,7 @@
       "sourcePage": 34,
       "pageId": "7KDH",
       "blockId": "SGNX",
-      "text": "Like the planet they lived on, the features of the Fremen were harsh, desiccated and uninviting. Yet, also like the planet, there was hidden a spirit inured to hardship and dedicated to the ideals necessary for survival. It was the stuff of which great fighters were made and it was [uncertain: this] hidden asset that Duke Leto hoped to exploit to his advantage."
+      "text": "Like the planet they lived on, the features of the Fremen were harsh, desiccated and uninviting. Yet, also like the planet, there was hidden a spirit inured to hardship and dedicated to the ideals necessary for survival. It was the stuff of which great fighters were made and it was this hidden asset that Duke Leto hoped to exploit to his advantage."
     },
     {
       "key": "source-35-unit-0",

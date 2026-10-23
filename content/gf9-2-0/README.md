@@ -2,6 +2,8 @@
 
 Working branch `norbert/gf9-2-0-ruleset` prepares [GF9 2.0 ruleset, #2431](https://github.com/ndelangen/dunezone/issues/2431). The intended result is a Dune Zone rulebook with the source wording and examples, using existing headings, icons and page-number placement. Start each faction's detailed rules on a new page, as approved in the layout review on 2026-10-23. This allows faction-section pagination and the output page count to differ from the source. Other source page boundaries remain the starting point. A separate rulebook will explain the differences from the earlier rules.
 
+The [clearer source scan](source-clearer.pdf), supplied on 23 October, now guides the visual corrections. [The scan review](clearer-scan-review.md) records ten confirmed readings and the three corrected illustrations. The original source and transcripts remain unchanged.
+
 Start with the [reworked reading transcript](transcript-reworked.md). The [original working transcript](transcript.md) retains the OCR-oriented version. Then read the [transcription review](transcription-review.md) and [block audit](block-audit.md). The [differences plan](differences-plan.md) records how to prepare the second book without changing the first.
 
 The [local Rulebook draft](authoring/README.md) now contains the transcribed content in the JSON Load format, using production artwork references. On 23 October 2026, the user selected Square and approved continuation pages wherever the existing text size needs them. Keep all wording and source order. The [authoring review](authoring/review.md) records the remaining work before production.
@@ -100,7 +102,7 @@ The [audit](block-audit.md#page-by-page-composition-plan) maps every source page
 
 Record decisions in the separate block comments on [#2431](https://github.com/ndelangen/dunezone/issues/2431). Test the remaining compositions with existing tools, including page 26's force arithmetic. Page 7's component inventory is omitted online. Compare every rendered page with its source and the approved presentation changes, and check the exported PDF, text selection, reading order, images and overflow.
 
-This branch contains preparation documents, source evidence and added decals with catalogue registration. It does not create an importable book, change the renderer's behavior or create or publish application records. Existing [GF9 content](../gf9/README.md) and its authoring files remain the earlier edition's work. Do not regenerate or replace them from this transcript.
+This branch contains preparation documents, source evidence, added decals and the importable 62-page book. The normal application flow has created the second-edition faction records and saved the book as draft revision 5. The current reconstruction has not been published as an Edition. Existing [GF9 content](../gf9/README.md) and its authoring files remain the earlier edition's work. Do not regenerate or replace them from this transcript.
 
 ## Verification of this preparation
 

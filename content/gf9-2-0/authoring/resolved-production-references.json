@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-10-23T13:00:50.027Z",
+  "capturedAt": "2026-10-23T21:29:33.024Z",
   "origin": "https://dune.zone",
   "backend": "https://exuberant-finch-263.eu-west-1.convex.cloud",
   "target": {
@@ -67,10 +67,7 @@
       "token": {
         "logo": "/vector/logo/atreides.svg",
         "background": {
-          "colors": [
-            "#393d05",
-            "#5c5d10"
-          ],
+          "colors": ["#393d05", "#5c5d10"],
           "definition": 0.5,
           "image": "/image/texture/082.jpg",
           "influence": 1,
@@ -185,10 +182,7 @@
       "token": {
         "logo": "/vector/logo/harkonnen.svg",
         "background": {
-          "colors": [
-            "#0a080b",
-            "#363636"
-          ],
+          "colors": ["#0a080b", "#363636"],
           "definition": 0.1,
           "image": "/image/texture/026.jpg",
           "influence": 1,
@@ -303,10 +297,7 @@
       "token": {
         "logo": "/vector/logo/emperor.svg",
         "background": {
-          "colors": [
-            "#8C0402",
-            "#db1918"
-          ],
+          "colors": ["#8C0402", "#db1918"],
           "definition": 0.31,
           "image": "/image/texture/055.jpg",
           "influence": 1,
@@ -443,10 +434,7 @@
       "token": {
         "logo": "/vector/logo/guild.svg",
         "background": {
-          "colors": [
-            "#bd3108",
-            "#e05719"
-          ],
+          "colors": ["#bd3108", "#e05719"],
           "definition": 0.2,
           "image": "/image/texture/006.jpg",
           "influence": 1,
@@ -562,10 +550,7 @@
       "token": {
         "logo": "/vector/logo/fremen.svg",
         "background": {
-          "colors": [
-            "#fcb843",
-            "#d2781d"
-          ],
+          "colors": ["#fcb843", "#d2781d"],
           "definition": 0.3,
           "image": "/image/texture/019.jpg",
           "influence": 0.634,
@@ -702,10 +687,7 @@
       "token": {
         "logo": "/vector/logo/bene-gesserit.svg",
         "background": {
-          "colors": [
-            "#132b74",
-            "#34478b"
-          ],
+          "colors": ["#132b74", "#34478b"],
           "definition": 0.09,
           "image": "/image/texture/019.jpg",
           "influence": 0.8878,
@@ -830,10 +812,828 @@
           "height": 600
         }
       ]
+    },
+    "k178pt05y4abwvwxeg247snr758gv794": {
+      "factionId": "k178pt05y4abwvwxeg247snr758gv794",
+      "name": "Atreides",
+      "color": "#393d05",
+      "emblemUrl": "/vector/logo/atreides.svg",
+      "token": {
+        "logo": "/vector/logo/atreides.svg",
+        "background": {
+          "colors": ["#393d05", "#5c5d10"],
+          "definition": 0.5,
+          "image": "/image/texture/082.jpg",
+          "influence": 1,
+          "invert": true
+        }
+      },
+      "tokenImageUrl": "https://dune.zone/published/faction-tokens/k178pt05y4abwvwxeg247snr758gv794/token.jpg?v=77697fdc-bfb5-4fa3-9368-cbe236f4d15f",
+      "ruler": {
+        "status": "ready",
+        "reference": {
+          "kind": "faction-member",
+          "factionId": "k178pt05y4abwvwxeg247snr758gv794",
+          "memberId": "b6b51658-3ab4-46c9-8dd0-10dda4014987"
+        },
+        "name": "Duke Leto Atreides",
+        "imageUrl": "https://dune.zone/published/leaders/k178pt05y4abwvwxeg247snr758gv794.b6b51658-3ab4-46c9-8dd0-10dda4014987/leader.jpg?v=77915a8c-e9fa-4757-8235-befaae36d2c7",
+        "width": 600,
+        "height": 600
+      },
+      "leaders": [
+        {
+          "status": "ready",
+          "reference": {
+            "kind": "faction-member",
+            "factionId": "k178pt05y4abwvwxeg247snr758gv794",
+            "memberId": "1cbb3205-43b5-46db-8265-2d5e407a14a0"
+          },
+          "name": "Thufir Hawat",
+          "imageUrl": "https://dune.zone/published/leaders/k178pt05y4abwvwxeg247snr758gv794.1cbb3205-43b5-46db-8265-2d5e407a14a0/leader.jpg?v=39cd4df4-c550-476f-ae0f-297453d53f91",
+          "width": 600,
+          "height": 600
+        },
+        {
+          "status": "ready",
+          "reference": {
+            "kind": "faction-member",
+            "factionId": "k178pt05y4abwvwxeg247snr758gv794",
+            "memberId": "92a82f05-9387-4358-b5eb-b25cc775cb5f"
+          },
+          "name": "Lady Jessica",
+          "imageUrl": "https://dune.zone/published/leaders/k178pt05y4abwvwxeg247snr758gv794.92a82f05-9387-4358-b5eb-b25cc775cb5f/leader.jpg?v=d25df180-8290-4a93-a45e-625c0f607496",
+          "width": 600,
+          "height": 600
+        },
+        {
+          "status": "ready",
+          "reference": {
+            "kind": "faction-member",
+            "factionId": "k178pt05y4abwvwxeg247snr758gv794",
+            "memberId": "f6de205e-0bfa-4720-83a7-788cdb5db378"
+          },
+          "name": "Gurney Halleck",
+          "imageUrl": "https://dune.zone/published/leaders/k178pt05y4abwvwxeg247snr758gv794.f6de205e-0bfa-4720-83a7-788cdb5db378/leader.jpg?v=4fd9fe64-ebb4-4939-9d34-111b106e7552",
+          "width": 600,
+          "height": 600
+        },
+        {
+          "status": "ready",
+          "reference": {
+            "kind": "faction-member",
+            "factionId": "k178pt05y4abwvwxeg247snr758gv794",
+            "memberId": "918acfed-e08e-46bc-8e11-ef6e789fa347"
+          },
+          "name": "Duncan Idaho",
+          "imageUrl": "https://dune.zone/published/leaders/k178pt05y4abwvwxeg247snr758gv794.918acfed-e08e-46bc-8e11-ef6e789fa347/leader.jpg?v=04cf0c98-e705-43c3-b028-e4c9a13137fa",
+          "width": 600,
+          "height": 600
+        },
+        {
+          "status": "ready",
+          "reference": {
+            "kind": "faction-member",
+            "factionId": "k178pt05y4abwvwxeg247snr758gv794",
+            "memberId": "066d6195-2255-4c9e-aec8-06fa9c636220"
+          },
+          "name": "Dr. Wellington Yueh",
+          "imageUrl": "https://dune.zone/published/leaders/k178pt05y4abwvwxeg247snr758gv794.066d6195-2255-4c9e-aec8-06fa9c636220/leader.jpg?v=36c23818-4fc2-44c9-b091-7b6c34af00e8",
+          "width": 600,
+          "height": 600
+        }
+      ],
+      "troops": [
+        {
+          "troopId": "448681e5-a635-48e9-8ec1-859dbee97975",
+          "image": "/vector/troop/atreides.svg",
+          "name": "Normal troop",
+          "description": "Standard forces.",
+          "count": 20
+        }
+      ],
+      "troopSources": [
+        {
+          "status": "ready",
+          "reference": {
+            "kind": "faction-troop",
+            "factionId": "k177h1yvxp36dxsxjfmgqx4jw58gm5jk",
+            "troopId": "448681e5-a635-48e9-8ec1-859dbee97975",
+            "face": "front"
+          },
+          "name": "Normal troop",
+          "imageUrl": "https://dune.zone/published/faction-troops/k177h1yvxp36dxsxjfmgqx4jw58gm5jk.448681e5-a635-48e9-8ec1-859dbee97975/troop.jpg",
+          "width": 600,
+          "height": 600
+        }
+      ]
+    },
+    "k1755fjba9y9b2hkfph4ztdy3s8gvwm8": {
+      "factionId": "k1755fjba9y9b2hkfph4ztdy3s8gvwm8",
+      "name": "Bene Gesserit",
+      "color": "#132b74",
+      "emblemUrl": "/vector/logo/bene-gesserit.svg",
+      "token": {
+        "logo": "/vector/logo/bene-gesserit.svg",
+        "background": {
+          "colors": ["#132b74", "#34478b"],
+          "definition": 0.09,
+          "image": "/image/texture/019.jpg",
+          "influence": 0.8878,
+          "invert": false
+        }
+      },
+      "tokenImageUrl": "https://dune.zone/published/faction-tokens/k1755fjba9y9b2hkfph4ztdy3s8gvwm8/token.jpg?v=49485255-f822-4ba0-bda4-584b397d3d86",
+      "ruler": {
+        "status": "ready",
+        "reference": {
+          "kind": "faction-member",
+          "factionId": "k1755fjba9y9b2hkfph4ztdy3s8gvwm8",
+          "memberId": "ba20d29d-6cd7-4d85-a603-3bc794fbb13d"
+        },
+        "name": "Mother Mohiam",
+        "imageUrl": "https://dune.zone/published/leaders/k1755fjba9y9b2hkfph4ztdy3s8gvwm8.ba20d29d-6cd7-4d85-a603-3bc794fbb13d/leader.jpg?v=6eb6d843-aa7d-4b20-9e4a-bcc15884290d",
+        "width": 600,
+        "height": 600
+      },
+      "leaders": [
+        {
+          "status": "ready",
+          "reference": {
+            "kind": "faction-member",
+            "factionId": "k1755fjba9y9b2hkfph4ztdy3s8gvwm8",
+            "memberId": "6875fec9-a8ff-478f-8b04-c6a1babdab5d"
+          },
+          "name": "Lady Anirul Corrino",
+          "imageUrl": "https://dune.zone/published/leaders/k1755fjba9y9b2hkfph4ztdy3s8gvwm8.6875fec9-a8ff-478f-8b04-c6a1babdab5d/leader.jpg?v=60519f8c-8d90-4d21-869c-80d9a0d4ac5a",
+          "width": 600,
+          "height": 600
+        },
+        {
+          "status": "ready",
+          "reference": {
+            "kind": "faction-member",
+            "factionId": "k1755fjba9y9b2hkfph4ztdy3s8gvwm8",
+            "memberId": "5a19b7d3-0256-4013-8478-8343a47f8a46"
+          },
+          "name": "Margot Lady Fenring",
+          "imageUrl": "https://dune.zone/published/leaders/k1755fjba9y9b2hkfph4ztdy3s8gvwm8.5a19b7d3-0256-4013-8478-8343a47f8a46/leader.jpg?v=368977eb-5ada-4ca5-899c-77ae30556efd",
+          "width": 600,
+          "height": 600
+        },
+        {
+          "status": "ready",
+          "reference": {
+            "kind": "faction-member",
+            "factionId": "k1755fjba9y9b2hkfph4ztdy3s8gvwm8",
+            "memberId": "09388176-6ad7-45a9-89a5-ac548b583e33"
+          },
+          "name": "Mother Ramallo",
+          "imageUrl": "https://dune.zone/published/leaders/k1755fjba9y9b2hkfph4ztdy3s8gvwm8.09388176-6ad7-45a9-89a5-ac548b583e33/leader.jpg?v=07041536-f083-43f6-9bd7-4182ba128ea3",
+          "width": 600,
+          "height": 600
+        },
+        {
+          "status": "ready",
+          "reference": {
+            "kind": "faction-member",
+            "factionId": "k1755fjba9y9b2hkfph4ztdy3s8gvwm8",
+            "memberId": "41101ead-6efa-4cd1-9aeb-462571fca76d"
+          },
+          "name": "Princess Irulan",
+          "imageUrl": "https://dune.zone/published/leaders/k1755fjba9y9b2hkfph4ztdy3s8gvwm8.41101ead-6efa-4cd1-9aeb-462571fca76d/leader.jpg?v=e2bee5fa-d24a-4e0c-95f4-b1e8dae7b788",
+          "width": 600,
+          "height": 600
+        },
+        {
+          "status": "ready",
+          "reference": {
+            "kind": "faction-member",
+            "factionId": "k1755fjba9y9b2hkfph4ztdy3s8gvwm8",
+            "memberId": "70b72294-b07a-47e0-a5bd-3ebf520d5b02"
+          },
+          "name": "Wanna Yueh",
+          "imageUrl": "https://dune.zone/published/leaders/k1755fjba9y9b2hkfph4ztdy3s8gvwm8.70b72294-b07a-47e0-a5bd-3ebf520d5b02/leader.jpg?v=f4d46acc-b795-4ea8-9784-04f7667b6213",
+          "width": 600,
+          "height": 600
+        }
+      ],
+      "troops": [
+        {
+          "troopId": "a89c1e4b-379f-46da-8781-04b02b04686a",
+          "image": "/vector/troop/bene-gesserit.svg",
+          "name": "Fighter",
+          "description": "Standard forces. The reverse face is an advisor.",
+          "back": {
+            "image": "/vector/troop/bene-gesserit.svg",
+            "name": "Advisor",
+            "description": "Advisors have no effect on other factions and cannot battle or collect spice.",
+            "striped": true
+          },
+          "count": 20
+        }
+      ],
+      "troopSources": [
+        {
+          "status": "ready",
+          "reference": {
+            "kind": "faction-troop",
+            "factionId": "k172tkm3r2r4sc96q7wnb3axvx8gn8g1",
+            "troopId": "a89c1e4b-379f-46da-8781-04b02b04686a",
+            "face": "front"
+          },
+          "name": "Fighter",
+          "imageUrl": "https://dune.zone/published/faction-troops/k172tkm3r2r4sc96q7wnb3axvx8gn8g1.a89c1e4b-379f-46da-8781-04b02b04686a/troop.jpg",
+          "width": 600,
+          "height": 600
+        },
+        {
+          "status": "ready",
+          "reference": {
+            "kind": "faction-troop",
+            "factionId": "k172tkm3r2r4sc96q7wnb3axvx8gn8g1",
+            "troopId": "a89c1e4b-379f-46da-8781-04b02b04686a",
+            "face": "back"
+          },
+          "name": "Advisor",
+          "imageUrl": "https://dune.zone/published/faction-troops/k172tkm3r2r4sc96q7wnb3axvx8gn8g1.a89c1e4b-379f-46da-8781-04b02b04686a.back/troop.jpg",
+          "width": 600,
+          "height": 600
+        }
+      ]
+    },
+    "k17awq8h6dd3ge61y8peg14z2h8gvpzy": {
+      "factionId": "k17awq8h6dd3ge61y8peg14z2h8gvpzy",
+      "name": "Emperor",
+      "color": "#8C0402",
+      "emblemUrl": "/vector/logo/emperor.svg",
+      "token": {
+        "logo": "/vector/logo/emperor.svg",
+        "background": {
+          "colors": ["#8C0402", "#db1918"],
+          "definition": 0.31,
+          "image": "/image/texture/055.jpg",
+          "influence": 1,
+          "invert": false
+        }
+      },
+      "tokenImageUrl": "https://dune.zone/published/faction-tokens/k17awq8h6dd3ge61y8peg14z2h8gvpzy/token.jpg?v=a343a389-979d-49c8-a9e5-3b9d4f269d74",
+      "ruler": {
+        "status": "ready",
+        "reference": {
+          "kind": "faction-member",
+          "factionId": "k17awq8h6dd3ge61y8peg14z2h8gvpzy",
+          "memberId": "2bdb6a44-9079-4ebb-b4f6-02acca2f445d"
+        },
+        "name": "Emperor Shaddam IV",
+        "imageUrl": "https://dune.zone/published/leaders/k17awq8h6dd3ge61y8peg14z2h8gvpzy.2bdb6a44-9079-4ebb-b4f6-02acca2f445d/leader.jpg?v=f78d0d5b-fe7d-4c89-b806-251202de6247",
+        "width": 600,
+        "height": 600
+      },
+      "leaders": [
+        {
+          "status": "ready",
+          "reference": {
+            "kind": "faction-member",
+            "factionId": "k17awq8h6dd3ge61y8peg14z2h8gvpzy",
+            "memberId": "4cf337f6-8487-4f98-bdc8-e6948cf6ecfe"
+          },
+          "name": "Hasimir Fenring",
+          "imageUrl": "https://dune.zone/published/leaders/k17awq8h6dd3ge61y8peg14z2h8gvpzy.4cf337f6-8487-4f98-bdc8-e6948cf6ecfe/leader.jpg?v=e03bcc0d-e96d-48a8-a041-0afe701fedf3",
+          "width": 600,
+          "height": 600
+        },
+        {
+          "status": "ready",
+          "reference": {
+            "kind": "faction-member",
+            "factionId": "k17awq8h6dd3ge61y8peg14z2h8gvpzy",
+            "memberId": "2d83065e-f4ca-4ff6-8d0a-d24cffaec647"
+          },
+          "name": "Captain Aramsham",
+          "imageUrl": "https://dune.zone/published/leaders/k17awq8h6dd3ge61y8peg14z2h8gvpzy.2d83065e-f4ca-4ff6-8d0a-d24cffaec647/leader.jpg?v=f396bef2-28db-43ef-8603-209b42c1ed19",
+          "width": 600,
+          "height": 600
+        },
+        {
+          "status": "ready",
+          "reference": {
+            "kind": "faction-member",
+            "factionId": "k17awq8h6dd3ge61y8peg14z2h8gvpzy",
+            "memberId": "37c58b9a-c36c-411f-9097-8876eda02ed1"
+          },
+          "name": "Bashar Garon",
+          "imageUrl": "https://dune.zone/published/leaders/k17awq8h6dd3ge61y8peg14z2h8gvpzy.37c58b9a-c36c-411f-9097-8876eda02ed1/leader.jpg?v=3f022646-faaf-4d3d-8b53-7281898ea695",
+          "width": 600,
+          "height": 600
+        },
+        {
+          "status": "ready",
+          "reference": {
+            "kind": "faction-member",
+            "factionId": "k17awq8h6dd3ge61y8peg14z2h8gvpzy",
+            "memberId": "822709e6-e300-4db0-90d4-cab409278cde"
+          },
+          "name": "Colonel Kolona",
+          "imageUrl": "https://dune.zone/published/leaders/k17awq8h6dd3ge61y8peg14z2h8gvpzy.822709e6-e300-4db0-90d4-cab409278cde/leader.jpg?v=5572c15e-83f1-4659-8ef6-16f789676e1c",
+          "width": 600,
+          "height": 600
+        },
+        {
+          "status": "ready",
+          "reference": {
+            "kind": "faction-member",
+            "factionId": "k17awq8h6dd3ge61y8peg14z2h8gvpzy",
+            "memberId": "94fd7927-9e00-421b-b32e-73322bc54d63"
+          },
+          "name": "Wensicia Corrino",
+          "imageUrl": "https://dune.zone/published/leaders/k17awq8h6dd3ge61y8peg14z2h8gvpzy.94fd7927-9e00-421b-b32e-73322bc54d63/leader.jpg?v=b516fe5a-3577-4775-9255-8c8e798269b1",
+          "width": 600,
+          "height": 600
+        }
+      ],
+      "troops": [
+        {
+          "troopId": "20d19e36-b903-4069-a66a-cbed1d0d0b4f",
+          "image": "/vector/troop/emperor.svg",
+          "name": "Normal troop",
+          "description": "Standard forces.",
+          "count": 15
+        },
+        {
+          "troopId": "abbf72a5-4967-41f6-838e-5e99ac26f049",
+          "image": "/vector/troop/emperor.svg",
+          "name": "Sardaukar",
+          "description": "Sardaukar forces are worth 2 forces in battle, except against Fremen.",
+          "star": "/vector/troop_modifier/star-right.svg",
+          "hue": "#e6de12",
+          "count": 5
+        }
+      ],
+      "troopSources": [
+        {
+          "status": "ready",
+          "reference": {
+            "kind": "faction-troop",
+            "factionId": "k174q1wrg9y646pdvbdr9r1sxx8gmct2",
+            "troopId": "20d19e36-b903-4069-a66a-cbed1d0d0b4f",
+            "face": "front"
+          },
+          "name": "Normal troop",
+          "imageUrl": "https://dune.zone/published/faction-troops/k174q1wrg9y646pdvbdr9r1sxx8gmct2.20d19e36-b903-4069-a66a-cbed1d0d0b4f/troop.jpg",
+          "width": 600,
+          "height": 600
+        },
+        {
+          "status": "ready",
+          "reference": {
+            "kind": "faction-troop",
+            "factionId": "k174q1wrg9y646pdvbdr9r1sxx8gmct2",
+            "troopId": "abbf72a5-4967-41f6-838e-5e99ac26f049",
+            "face": "front"
+          },
+          "name": "Sardaukar",
+          "imageUrl": "https://dune.zone/published/faction-troops/k174q1wrg9y646pdvbdr9r1sxx8gmct2.abbf72a5-4967-41f6-838e-5e99ac26f049/troop.jpg",
+          "width": 600,
+          "height": 600
+        }
+      ]
+    },
+    "k170ex3wwnd6ygv289qw1ypvdd8gtfv7": {
+      "factionId": "k170ex3wwnd6ygv289qw1ypvdd8gtfv7",
+      "name": "Fremen",
+      "color": "#fcb843",
+      "emblemUrl": "/vector/logo/fremen.svg",
+      "token": {
+        "logo": "/vector/logo/fremen.svg",
+        "background": {
+          "colors": ["#fcb843", "#d2781d"],
+          "definition": 0.3,
+          "image": "/image/texture/019.jpg",
+          "influence": 0.634,
+          "invert": false
+        }
+      },
+      "tokenImageUrl": "https://dune.zone/published/faction-tokens/k170ex3wwnd6ygv289qw1ypvdd8gtfv7/token.jpg?v=07fed049-d7d8-443b-9160-f4c67b5b7d0d",
+      "ruler": {
+        "status": "ready",
+        "reference": {
+          "kind": "faction-member",
+          "factionId": "k170ex3wwnd6ygv289qw1ypvdd8gtfv7",
+          "memberId": "fb36e676-7e9f-4a8d-b349-d3f4f624c765"
+        },
+        "name": "Liet Kynes",
+        "imageUrl": "https://dune.zone/published/leaders/k170ex3wwnd6ygv289qw1ypvdd8gtfv7.fb36e676-7e9f-4a8d-b349-d3f4f624c765/leader.jpg?v=26f59216-b0b2-41b3-9fc0-afa5e95615ac",
+        "width": 600,
+        "height": 600
+      },
+      "leaders": [
+        {
+          "status": "ready",
+          "reference": {
+            "kind": "faction-member",
+            "factionId": "k170ex3wwnd6ygv289qw1ypvdd8gtfv7",
+            "memberId": "4f1b9a93-0064-49aa-82ef-819cf168b1ac"
+          },
+          "name": "Stilgar",
+          "imageUrl": "https://dune.zone/published/leaders/k170ex3wwnd6ygv289qw1ypvdd8gtfv7.4f1b9a93-0064-49aa-82ef-819cf168b1ac/leader.jpg?v=97aef7bb-60a0-40ea-83ca-a44510000274",
+          "width": 600,
+          "height": 600
+        },
+        {
+          "status": "ready",
+          "reference": {
+            "kind": "faction-member",
+            "factionId": "k170ex3wwnd6ygv289qw1ypvdd8gtfv7",
+            "memberId": "8cce5f0e-2c66-4761-9464-991aea172c58"
+          },
+          "name": "Chani",
+          "imageUrl": "https://dune.zone/published/leaders/k170ex3wwnd6ygv289qw1ypvdd8gtfv7.8cce5f0e-2c66-4761-9464-991aea172c58/leader.jpg?v=20f7d7bc-05c7-4e37-823f-5fcd69232dd5",
+          "width": 600,
+          "height": 600
+        },
+        {
+          "status": "ready",
+          "reference": {
+            "kind": "faction-member",
+            "factionId": "k170ex3wwnd6ygv289qw1ypvdd8gtfv7",
+            "memberId": "588ef0f5-8098-4246-a16a-5f1834f72f94"
+          },
+          "name": "Otheym",
+          "imageUrl": "https://dune.zone/published/leaders/k170ex3wwnd6ygv289qw1ypvdd8gtfv7.588ef0f5-8098-4246-a16a-5f1834f72f94/leader.jpg?v=d3c62649-3ed6-450b-957b-6020854e1969",
+          "width": 600,
+          "height": 600
+        },
+        {
+          "status": "ready",
+          "reference": {
+            "kind": "faction-member",
+            "factionId": "k170ex3wwnd6ygv289qw1ypvdd8gtfv7",
+            "memberId": "8bd9ffeb-21fe-4196-9aeb-7584e1548f03"
+          },
+          "name": "Shadout Mapes",
+          "imageUrl": "https://dune.zone/published/leaders/k170ex3wwnd6ygv289qw1ypvdd8gtfv7.8bd9ffeb-21fe-4196-9aeb-7584e1548f03/leader.jpg?v=320836df-9ff0-4c01-8607-69f999839509",
+          "width": 600,
+          "height": 600
+        },
+        {
+          "status": "ready",
+          "reference": {
+            "kind": "faction-member",
+            "factionId": "k170ex3wwnd6ygv289qw1ypvdd8gtfv7",
+            "memberId": "1ab6dd8d-51fe-4ef3-93b9-97adb20e9381"
+          },
+          "name": "Jamis",
+          "imageUrl": "https://dune.zone/published/leaders/k170ex3wwnd6ygv289qw1ypvdd8gtfv7.1ab6dd8d-51fe-4ef3-93b9-97adb20e9381/leader.jpg?v=94f77064-6a78-4568-abd5-ae334d9e6aa9",
+          "width": 600,
+          "height": 600
+        }
+      ],
+      "troops": [
+        {
+          "troopId": "e212481b-8f96-4b46-8389-a5cfb7760e7c",
+          "image": "/vector/troop/fremen.svg",
+          "name": "Normal troop",
+          "description": "Standard forces.",
+          "count": 17
+        },
+        {
+          "troopId": "3ac897c0-82d1-4c94-a796-2ce2788fab66",
+          "image": "/vector/troop/fremen.svg",
+          "name": "Fedaykin",
+          "description": "Fedaykin are worth 2 normal forces in battle.",
+          "star": "/vector/troop_modifier/star-right.svg",
+          "hue": "#edecd5",
+          "count": 3
+        }
+      ],
+      "troopSources": [
+        {
+          "status": "ready",
+          "reference": {
+            "kind": "faction-troop",
+            "factionId": "k170rt7fn11fxdtbe3vx2bg0xx8gnrx1",
+            "troopId": "e212481b-8f96-4b46-8389-a5cfb7760e7c",
+            "face": "front"
+          },
+          "name": "Normal troop",
+          "imageUrl": "https://dune.zone/published/faction-troops/k170rt7fn11fxdtbe3vx2bg0xx8gnrx1.e212481b-8f96-4b46-8389-a5cfb7760e7c/troop.jpg",
+          "width": 600,
+          "height": 600
+        },
+        {
+          "status": "ready",
+          "reference": {
+            "kind": "faction-troop",
+            "factionId": "k170rt7fn11fxdtbe3vx2bg0xx8gnrx1",
+            "troopId": "3ac897c0-82d1-4c94-a796-2ce2788fab66",
+            "face": "front"
+          },
+          "name": "Fedaykin",
+          "imageUrl": "https://dune.zone/published/faction-troops/k170rt7fn11fxdtbe3vx2bg0xx8gnrx1.3ac897c0-82d1-4c94-a796-2ce2788fab66/troop.jpg",
+          "width": 600,
+          "height": 600
+        }
+      ]
+    },
+    "k17fvtpc5h6hfxvcwdgayvqfz58gtch1": {
+      "factionId": "k17fvtpc5h6hfxvcwdgayvqfz58gtch1",
+      "name": "Harkonnen",
+      "color": "#0a080b",
+      "emblemUrl": "/vector/logo/harkonnen.svg",
+      "token": {
+        "logo": "/vector/logo/harkonnen.svg",
+        "background": {
+          "colors": ["#0a080b", "#363636"],
+          "definition": 0.1,
+          "image": "/image/texture/026.jpg",
+          "influence": 1,
+          "invert": false
+        }
+      },
+      "tokenImageUrl": "https://dune.zone/published/faction-tokens/k17fvtpc5h6hfxvcwdgayvqfz58gtch1/token.jpg?v=d0080e01-641e-4f23-9e35-2b032be56e1f",
+      "ruler": {
+        "status": "ready",
+        "reference": {
+          "kind": "faction-member",
+          "factionId": "k17fvtpc5h6hfxvcwdgayvqfz58gtch1",
+          "memberId": "e6b3a54e-f351-4b55-8b8f-f2a0414b77e3"
+        },
+        "name": "Baron Harkonnen",
+        "imageUrl": "https://dune.zone/published/leaders/k17fvtpc5h6hfxvcwdgayvqfz58gtch1.e6b3a54e-f351-4b55-8b8f-f2a0414b77e3/leader.jpg?v=293f235a-fc6b-4c96-aa23-753861dc4367",
+        "width": 600,
+        "height": 600
+      },
+      "leaders": [
+        {
+          "status": "ready",
+          "reference": {
+            "kind": "faction-member",
+            "factionId": "k17fvtpc5h6hfxvcwdgayvqfz58gtch1",
+            "memberId": "39a71d18-1bc1-4628-b528-0a4f774fd47d"
+          },
+          "name": "Feyd-Rautha",
+          "imageUrl": "https://dune.zone/published/leaders/k17fvtpc5h6hfxvcwdgayvqfz58gtch1.39a71d18-1bc1-4628-b528-0a4f774fd47d/leader.jpg?v=b36f3bf5-f85c-495e-81a7-fb83ffda45c1",
+          "width": 600,
+          "height": 600
+        },
+        {
+          "status": "ready",
+          "reference": {
+            "kind": "faction-member",
+            "factionId": "k17fvtpc5h6hfxvcwdgayvqfz58gtch1",
+            "memberId": "61ae9c1f-bd2a-4cf8-b229-8714baabd730"
+          },
+          "name": "Beast Rabban",
+          "imageUrl": "https://dune.zone/published/leaders/k17fvtpc5h6hfxvcwdgayvqfz58gtch1.61ae9c1f-bd2a-4cf8-b229-8714baabd730/leader.jpg?v=e85bfa32-fec1-47d9-ae1c-dc079b321aa5",
+          "width": 600,
+          "height": 600
+        },
+        {
+          "status": "ready",
+          "reference": {
+            "kind": "faction-member",
+            "factionId": "k17fvtpc5h6hfxvcwdgayvqfz58gtch1",
+            "memberId": "9b22b658-ba56-4037-9776-f381c0c62230"
+          },
+          "name": "Piter de Vries",
+          "imageUrl": "https://dune.zone/published/leaders/k17fvtpc5h6hfxvcwdgayvqfz58gtch1.9b22b658-ba56-4037-9776-f381c0c62230/leader.jpg?v=5d1bba23-4b32-4843-a100-0af231e42f84",
+          "width": 600,
+          "height": 600
+        },
+        {
+          "status": "ready",
+          "reference": {
+            "kind": "faction-member",
+            "factionId": "k17fvtpc5h6hfxvcwdgayvqfz58gtch1",
+            "memberId": "c6c37ae9-932e-460f-826d-5b9553693b5d"
+          },
+          "name": "Iakin Nefud",
+          "imageUrl": "https://dune.zone/published/leaders/k17fvtpc5h6hfxvcwdgayvqfz58gtch1.c6c37ae9-932e-460f-826d-5b9553693b5d/leader.jpg?v=66c4ce19-fcb1-4a07-8f82-5448619c9abd",
+          "width": 600,
+          "height": 600
+        },
+        {
+          "status": "ready",
+          "reference": {
+            "kind": "faction-member",
+            "factionId": "k17fvtpc5h6hfxvcwdgayvqfz58gtch1",
+            "memberId": "cc089141-a48f-436e-b0c5-66c1ef4709a5"
+          },
+          "name": "Umman Kudu",
+          "imageUrl": "https://dune.zone/published/leaders/k17fvtpc5h6hfxvcwdgayvqfz58gtch1.cc089141-a48f-436e-b0c5-66c1ef4709a5/leader.jpg?v=6e3bb87a-5ee3-4c55-82ca-2fde0051427e",
+          "width": 600,
+          "height": 600
+        }
+      ],
+      "troops": [
+        {
+          "troopId": "31423b96-bc64-4e63-be15-5f58fdf681ad",
+          "image": "/vector/troop/harkonnen.svg",
+          "name": "Harkonnen Troop",
+          "description": "Standard forces.",
+          "count": 20
+        }
+      ],
+      "troopSources": [
+        {
+          "status": "ready",
+          "reference": {
+            "kind": "faction-troop",
+            "factionId": "k1758sk6c1qky3yknx56hstk8x8gmcxm",
+            "troopId": "31423b96-bc64-4e63-be15-5f58fdf681ad",
+            "face": "front"
+          },
+          "name": "Harkonnen Troop",
+          "imageUrl": "https://dune.zone/published/faction-troops/k1758sk6c1qky3yknx56hstk8x8gmcxm.31423b96-bc64-4e63-be15-5f58fdf681ad/troop.jpg",
+          "width": 600,
+          "height": 600
+        }
+      ]
+    },
+    "k1716zfezm7w1ppfzp8gwzk63d8gvmhy": {
+      "factionId": "k1716zfezm7w1ppfzp8gwzk63d8gvmhy",
+      "name": "Spacing Guild",
+      "color": "#bd3108",
+      "emblemUrl": "/vector/logo/guild.svg",
+      "token": {
+        "logo": "/vector/logo/guild.svg",
+        "background": {
+          "colors": ["#bd3108", "#e05719"],
+          "definition": 0.2,
+          "image": "/image/texture/006.jpg",
+          "influence": 1,
+          "invert": false
+        }
+      },
+      "tokenImageUrl": "https://dune.zone/published/faction-tokens/k1716zfezm7w1ppfzp8gwzk63d8gvmhy/token.jpg?v=bc924f84-9c8c-412c-bb39-fc0945c13541",
+      "ruler": {
+        "status": "ready",
+        "reference": {
+          "kind": "faction-member",
+          "factionId": "k1716zfezm7w1ppfzp8gwzk63d8gvmhy",
+          "memberId": "10f775db-8ae8-4d54-89ba-6dfcd37224c1"
+        },
+        "name": "Edric",
+        "imageUrl": "https://dune.zone/published/leaders/k1716zfezm7w1ppfzp8gwzk63d8gvmhy.10f775db-8ae8-4d54-89ba-6dfcd37224c1/leader.jpg?v=c611be7d-e6c5-4d93-af91-2b0948474451",
+        "width": 600,
+        "height": 600
+      },
+      "leaders": [
+        {
+          "status": "ready",
+          "reference": {
+            "kind": "faction-member",
+            "factionId": "k1716zfezm7w1ppfzp8gwzk63d8gvmhy",
+            "memberId": "695097f4-12fb-4004-b42c-bafe7a3ae58e"
+          },
+          "name": "Starguide Serello",
+          "imageUrl": "https://dune.zone/published/leaders/k1716zfezm7w1ppfzp8gwzk63d8gvmhy.695097f4-12fb-4004-b42c-bafe7a3ae58e/leader.jpg?v=c8a860e7-1bf6-4e5b-8446-70f189b008c7",
+          "width": 600,
+          "height": 600
+        },
+        {
+          "status": "ready",
+          "reference": {
+            "kind": "faction-member",
+            "factionId": "k1716zfezm7w1ppfzp8gwzk63d8gvmhy",
+            "memberId": "e245de2e-16d7-4e0b-a246-877edc6c09f5"
+          },
+          "name": "Ertun",
+          "imageUrl": "https://dune.zone/published/leaders/k1716zfezm7w1ppfzp8gwzk63d8gvmhy.e245de2e-16d7-4e0b-a246-877edc6c09f5/leader.jpg?v=7fea7f6d-0b73-4eb6-8460-0eb080c3cf1d",
+          "width": 600,
+          "height": 600
+        },
+        {
+          "status": "ready",
+          "reference": {
+            "kind": "faction-member",
+            "factionId": "k1716zfezm7w1ppfzp8gwzk63d8gvmhy",
+            "memberId": "6230265a-ca3d-472f-adb5-27391791751c"
+          },
+          "name": "Olar",
+          "imageUrl": "https://dune.zone/published/leaders/k1716zfezm7w1ppfzp8gwzk63d8gvmhy.6230265a-ca3d-472f-adb5-27391791751c/leader.jpg?v=dac3fc2c-9de9-4bc3-a1bb-0092139c702b",
+          "width": 600,
+          "height": 600
+        },
+        {
+          "status": "ready",
+          "reference": {
+            "kind": "faction-member",
+            "factionId": "k1716zfezm7w1ppfzp8gwzk63d8gvmhy",
+            "memberId": "d782ab19-7a01-41b2-a08b-c887f2a3fbc9"
+          },
+          "name": "Crozeed",
+          "imageUrl": "https://dune.zone/published/leaders/k1716zfezm7w1ppfzp8gwzk63d8gvmhy.d782ab19-7a01-41b2-a08b-c887f2a3fbc9/leader.jpg?v=5a4abe6d-e262-4824-9f02-947a11eff4bf",
+          "width": 600,
+          "height": 600
+        },
+        {
+          "status": "ready",
+          "reference": {
+            "kind": "faction-member",
+            "factionId": "k1716zfezm7w1ppfzp8gwzk63d8gvmhy",
+            "memberId": "4fae7b75-137a-4fcb-b922-76ef7f5eb53e"
+          },
+          "name": "Loyxo",
+          "imageUrl": "https://dune.zone/published/leaders/k1716zfezm7w1ppfzp8gwzk63d8gvmhy.4fae7b75-137a-4fcb-b922-76ef7f5eb53e/leader.jpg?v=d8d10dbe-e75f-4444-b898-54d33d488723",
+          "width": 600,
+          "height": 600
+        }
+      ],
+      "troops": [
+        {
+          "troopId": "b495d280-18c8-41d7-96de-578a5fe25f80",
+          "image": "/vector/troop/guild.svg",
+          "name": "Troop",
+          "description": "Standard forces.",
+          "hue": "#ffffff",
+          "count": 20
+        }
+      ],
+      "troopSources": [
+        {
+          "status": "ready",
+          "reference": {
+            "kind": "faction-troop",
+            "factionId": "k1782pjyezpza51gk5fj8rr47s8gnp0w",
+            "troopId": "b495d280-18c8-41d7-96de-578a5fe25f80",
+            "face": "front"
+          },
+          "name": "Troop",
+          "imageUrl": "https://dune.zone/published/faction-troops/k1782pjyezpza51gk5fj8rr47s8gnp0w.b495d280-18c8-41d7-96de-578a5fe25f80/troop.jpg",
+          "width": 600,
+          "height": 600
+        }
+      ]
     }
   },
   "board": {
     "kind": "board",
     "boardId": "arrakis"
+  },
+  "overviewFactions": {
+    "atreides": {
+      "id": "k178pt05y4abwvwxeg247snr758gv794",
+      "slug": "atreides-1",
+      "name": "Atreides",
+      "sourceHeading": "Atreides",
+      "emblem": "/vector/logo/atreides.svg",
+      "usage": "Emblem only. Source text controls second-edition names and values.",
+      "status": "production"
+    },
+    "bene-gesserit": {
+      "id": "k1755fjba9y9b2hkfph4ztdy3s8gvwm8",
+      "slug": "bene-gesserit-2",
+      "name": "Bene Gesserit",
+      "sourceHeading": "Bene Gesserit",
+      "emblem": "/vector/logo/bene-gesserit.svg",
+      "usage": "Emblem only. Source text controls second-edition names and values.",
+      "status": "production"
+    },
+    "emperor": {
+      "id": "k17awq8h6dd3ge61y8peg14z2h8gvpzy",
+      "slug": "emperor-3",
+      "name": "Emperor",
+      "sourceHeading": "Emperor",
+      "emblem": "/vector/logo/emperor.svg",
+      "usage": "Emblem only. Source text controls second-edition names and values.",
+      "status": "production"
+    },
+    "fremen": {
+      "id": "k170ex3wwnd6ygv289qw1ypvdd8gtfv7",
+      "slug": "fremen-3",
+      "name": "Fremen",
+      "sourceHeading": "Fremen",
+      "emblem": "/vector/logo/fremen.svg",
+      "usage": "Emblem only. Source text controls second-edition names and values.",
+      "status": "production"
+    },
+    "spacing-guild": {
+      "id": "k1716zfezm7w1ppfzp8gwzk63d8gvmhy",
+      "slug": "spacing-guild-3",
+      "name": "Spacing Guild",
+      "sourceHeading": "Spacing Guild",
+      "emblem": "/vector/logo/guild.svg",
+      "usage": "Emblem only. Source text controls second-edition names and values.",
+      "status": "production"
+    },
+    "harkonnen": {
+      "id": "k17fvtpc5h6hfxvcwdgayvqfz58gtch1",
+      "slug": "harkonnen-1",
+      "name": "Harkonnen",
+      "sourceHeading": "Harkonnen",
+      "emblem": "/vector/logo/harkonnen.svg",
+      "usage": "Emblem only. Source text controls second-edition names and values.",
+      "status": "production"
+    }
+  },
+  "spiceToken": {
+    "assetId": "ns76wk6vyqcnb1wfn8jb5ggya98cx6k7",
+    "name": "Spice",
+    "type": "token-disc",
+    "imageUrl": "https://dune.zone/published/round-tokens/ns76wk6vyqcnb1wfn8jb5ggya98cx6k7/token.jpg?v=2026-08-21T17%3A15%3A44.984Z",
+    "width": 600,
+    "height": 600
   }
 }

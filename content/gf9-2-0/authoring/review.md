@@ -1,33 +1,29 @@
 # Reconstructed draft
 
-The overview described below is the earlier production draft. It is being replaced by [the native faction-row correction](correction/README.md). Its previous portrait compatibility assessment missed Bashar Garon and Colonel Kolona. The correction uses placeholders until the production tokens are ready.
+The current Square book has 62 pages, using existing Blocks and the restrained design. It is saved as production draft revision 5 under Central and assigned through the GF9 2.0 ruleset to GF9. The exported record matches the local settings and contents. Edition 1 remains the starter; this reconstruction has not been published as an Edition.
 
-The working book uses Square and the existing restrained design. It has 66 pages, including the approved continuation pages. All 36 PDF pages are accounted for; the printed contents and the physical box inventory remain the approved omissions.
+The original transcripts remain unchanged. Ten readings confirmed from the clearer supplied scan are applied by the builder and recorded in [the scan review](../clearer-scan-review.md). All 971 source units are accounted for. The current reading copy has no remaining uncertainty markers. That count is not a claim that every word has been rechecked against the newer scan.
 
-The rulebook now contains portrait rosters, full card illustrations, phase icons, terrain explanations, storm and movement scenes, worked battle panels, force-loss diagrams, troop faces, faction strategy rails, callouts and Q&A. The source transcript has not been edited.
+## Production artwork
 
-## Visual substitutions
+The overview now uses six native Faction introduction Blocks and six second-edition faction records. Their thirty leader tokens, six ruler tokens and six faction emblems are published. Duke Leto, Lady Anirul, Bashar Garon, Colonel Kolona, Wensicia and the five Guild leaders have their intended artwork. The older GF9 records are unchanged.
 
-These are the choices made to follow the instruction to use existing production artwork and Blocks. They do not require new software or another asset release.
+The six records were created through the authenticated import flow under Central, assigned to GF9 and linked to GF9 2.0. Fremen's structured starting-spice value was corrected to 4 to agree with its source setup paragraph. [The package](../components/overview-factions-package.json) and [saved record snapshot](../components/production-overview-factions.json) retain their identities and source data.
 
-- Eight portraits use the faction emblem: Duke Leto, Lady Anirul, Wensicia and the five new Guild leaders. The second-edition names and strengths remain printed beside them. Existing compatible portraits supply the other 28 characters.
-- The maintained board replaces the photographed board. Its terrain examples use named territory geometry. Round track, tanks, Spice Bank and other labels outside that circular board remain text rather than being attached to false targets.
-- Setup and revival sheet extracts use existing text and callout Blocks with the printed values and rules. They are not photographs of the faction sheet.
-- Existing battle wheels show force strength, spice spent and the adjustment separately. The printed +2 calculation remains in the explanation. The 8½ illustration also shows 8 for comparison, using the existing pair-of-wheels Block.
-- Battle step panels keep the example's words and result beside its plans. Full card images below the panels make the card text readable.
-- The destroyed Shield Wall is a labelled board highlight. Currency in the force-loss diagrams uses the existing spice symbol and a 1-spice label.
-- The source's printed page references remain unchanged. The web navigator and source map locate their corresponding reconstructed pages.
+## Visual adaptations
 
-## Corrections checked
+- The native faction rows restore four factions on the first overview page and Guild/Harkonnen above the objective on the second.
+- The maintained board and existing marker legends replace the photographed board and its arrows. Labels outside that circular board remain in text.
+- The component wheels use the existing wheel pair with no faction emblem selected. Its casing and empty-leader presentation remain native. The source's exploded assembly is explained by its retained paragraph.
+- One numbered List Block shows all nine phases with existing phase icons. It occupies a full-width Step-by-step page. Printed page references remain bold at the start of each description.
+- Classic dialing uses separate loss diagrams with equal-sized published piece images and a real production spice token. Each diagram sits beside its matching explanation. The paired wheels show 2½ and 4½, and a callout retains all three printed settings, including 8½. There is no invented 8 comparison. The three variant pages separate the rules, losses and Spirit World Karama at the existing text size.
+- Setup and revival sheet extracts use existing text and callouts. Full cards retain readable card wording beside battle and Treachery explanations.
+- Source page references remain unchanged. The navigator and source map locate their reconstructed pages.
 
-The preface quotation shares its page with the prose. Credits begin on their own page. Small headings use sentence case, acknowledgements use regular weight, and continuation pages have no repeated banners. Each detailed faction begins on a fresh page.
+The approved printed contents and physical box-inventory omissions remain in effect. The preface quote shares its page with the prose. Credits start on their own page, acknowledgements use regular weight, smaller headings use sentence case, and continuation pages have no repeated banners. Each faction's detailed rules begin on a fresh page.
 
-The shipment examples retain the printed 4 + 5 Harkonnen shipment, the move of 3 leaving 6, their Fremen and Atreides neighbours, and the Guild's 1-force shipment. The Guild example shows its other forces, storm restriction and the 2- and 10-spice tokens together at Cielago South. The storm examples show the separated forces and the blocked path to the spice.
+## Verification
 
-The source map accounts for 971 source units as text, headings, illustrations or editorial descriptions. Ten uncertainty markers remain in the reading copy. Clearer supplied deck images resolve the covered or washed-out card wording; the transcript retains its original uncertainty notes.
+The raw JSON passes the application schema and reference checks and stays below the JSON Load limit. All 62 pages were measured with no overflowing regions. Every page was captured with its referenced images loaded. A review PDF was built from the correctly framed captures and its rendered pages were inspected. It is an image-based review copy, not the publisher's final searchable PDF.
 
-The raw document passes the application's schema and reference checks and stays below the JSON Load size limit. All rendered pages were measured for height and horizontal clipping. Every output page was captured for visual review. These checks do not make the artwork substitutions exact reproductions.
-
-## Publication
-
-The JSON is the editable source. A screenshot PDF is provided for visual review; it is not the publisher's final searchable PDF. The 66-page book is saved on production as draft revision 2 under Central. The stored cover was prepared by the normal Save flow. The reconstruction has not been published as an Edition; Edition 1 is the initial starter created by the application. `production-draft-export.json` is the saved-record backup. The differences rulebook remains a separate document.
+The final production record was saved, reloaded and exported through the normal application flow. Its settings and complete contents match the local document structurally. The previous saved revision is backed up in [correction/before-overview.json](correction/before-overview.json). The differences rulebook remains separate work.

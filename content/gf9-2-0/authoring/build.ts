@@ -12,19 +12,22 @@ import { compose } from './compose';
 
 // This is a document builder, not a database importer. Its only writes are local files.
 const here = fileURLToPath(new URL('.', import.meta.url));
-const source = readFileSync(`${here}../transcript-reworked.md`, 'utf8');
+const originalSource = readFileSync(`${here}../transcript-reworked.md`, 'utf8');
+const scanCorrections = JSON.parse(readFileSync(`${here}../clearer-scan-corrections.json`, 'utf8'));
+let source = originalSource;
+for (const correction of scanCorrections.readings) {
+  const start = source.indexOf(`## PDF page ${String(correction.page).padStart(2, '0')}\n`);
+  const next = source.indexOf('\n## PDF page ', start + 1);
+  const end = next < 0 ? source.length : next;
+  const page = source.slice(start, end);
+  if (!page.includes(correction.before)) {
+    throw new Error(`Scan correction no longer matches page ${correction.page}: ${correction.before}`);
+  }
+  source = source.slice(0, start) + page.replace(correction.before, correction.after) + source.slice(end);
+}
 const columnBreaks = JSON.parse(readFileSync(`${here}column-breaks.json`, 'utf8'));
-const previewBindings = `${here}correction/preview-references.json`;
-const bindings = JSON.parse(
-  readFileSync(
-    (await Bun.file(previewBindings).exists()) ? previewBindings : `${here}resolved-production-references.json`,
-    'utf8'
-  )
-);
-const pendingOverview = Object.values(bindings.overviewFactions ?? {}).some(
-  (f: any) => f.status === 'pending-production-roster'
-);
-const outputHere = pendingOverview ? `${here}correction/` : here;
+const bindings = JSON.parse(readFileSync(`${here}resolved-production-references.json`, 'utf8'));
+const outputHere = here;
 const stock = new Set<string>(RULEBOOK_STOCK_ARTWORK);
 const used = new Set<string>();
 function id(key: string) {
@@ -689,6 +692,7 @@ const assetsById = Object.fromEntries(
     },
   ])
 );
+assetsById[bindings.spiceToken.assetId] = bindings.spiceToken;
 const settings = { size: 'square', design: 'restrained' };
 const preserved = JSON.parse(readFileSync(`${here}correction/before-overview.json`, 'utf8')).items[0].data;
 contents.pagesById[contents.pageOrder[0]].controlValues =
@@ -726,7 +730,7 @@ for (const match of sourcePages) {
 writeFileSync(`${outputHere}rulebook.json`, json);
 writeFileSync(
   `${outputHere}source-map.json`,
-  `${JSON.stringify({ sourceTranscriptSha256: createHash('sha256').update(source).digest('hex'), pages: pageMap, units: unitMap, omissions, editorial }, null, 2)}\n`
+  `${JSON.stringify({ sourceTranscriptSha256: createHash('sha256').update(originalSource).digest('hex'), sourceReadingSha256: createHash('sha256').update(source).digest('hex'), clearerSourceSha256: scanCorrections.sha256, pages: pageMap, units: unitMap, omissions, editorial }, null, 2)}\n`
 );
 writeFileSync(`${here}render-document.json`, `${JSON.stringify(document, null, 2)}\n`);
 const counts: Record<string, number> = {};
