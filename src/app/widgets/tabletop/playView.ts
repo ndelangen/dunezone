@@ -126,7 +126,7 @@ function clampCameraTilt(tilt: number): number {
 }
 
 /* A wheel turn in pixels, whether the browser counts it in pixels, lines or pages; an unreadable turn is none. */
-function wheelPixels(deltaY: number, deltaMode: number): number {
+export function wheelPixels(deltaY: number, deltaMode: number): number {
   const pixels = deltaY * (deltaMode === 1 ? WHEEL_LINE_PX : deltaMode === 2 ? WHEEL_PAGE_PX : 1);
   return Number.isFinite(pixels) ? pixels : 0;
 }

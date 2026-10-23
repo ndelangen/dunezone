@@ -339,7 +339,10 @@ export function TutorialGuide({
           </Group>
         </header>
       </div>
-      {children}
+      {/* Under the end of a chapter the table holds still: nothing in it takes focus, clicks or keys. */}
+      <div className={styles.table} inert={!task}>
+        {children}
+      </div>
       {!task && <ChapterComplete key={run} chaptersLink={chaptersLink} nextLink={nextLink} />}
     </div>
   );

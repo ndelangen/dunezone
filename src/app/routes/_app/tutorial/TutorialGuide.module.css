@@ -136,3 +136,8 @@
   color: var(--color-paper);
   box-shadow: 0 12px 32px rgb(0 0 0 / 0.6);
 }
+
+/* The page the guide wraps, in a box of its own only so it can be made inert; it lays out as if the box were not there. */
+.table {
+  display: contents;
+}

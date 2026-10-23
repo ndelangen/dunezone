@@ -2,6 +2,8 @@ import type { GameSnapshot } from '@shared/play/protocol';
 import { BOARD_RADIUS } from '@shared/play/tableGeometry';
 import type { Vector3Tuple } from 'three';
 
+import { wheelPixels } from '@app/widgets/tabletop/playView';
+
 import type { GuideTask, GuideView } from '../TutorialGuide';
 import type { ChapterScript } from './chapterScript';
 
@@ -52,9 +54,11 @@ const scrolledIn = () => ({
   begin: (view: GuideView) => {
     const watch = { scrolled: 0, from: null as number | null, stop: new AbortController() };
     const scroll = (event: WheelEvent) => {
-      if (event.target instanceof HTMLCanvasElement && event.deltaY > 0) {
+      /* Counted in pixels as the camera counts it, whether the browser reports the turn in pixels, lines or pages. */
+      const pixels = wheelPixels(event.deltaY, event.deltaMode);
+      if (event.target instanceof HTMLCanvasElement && pixels > 0) {
         watch.from ??= cameraDistance(view);
-        watch.scrolled += event.deltaY;
+        watch.scrolled += pixels;
       }
     };
     document.addEventListener('wheel', scroll, { capture: true, passive: true, signal: watch.stop.signal });

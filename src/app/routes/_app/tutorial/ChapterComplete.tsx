@@ -21,9 +21,15 @@ export function ChapterComplete({
   const heading = useId();
   const card = useRef<HTMLDivElement>(null);
 
-  /* The table's keys answer on the window, so they are stopped on the way down, except in the band and this card. */
+  /*
+   * The table under the veil is inert, but its keys answer on the window, so they are stopped on the way down,
+   * except in the band and this card. Tab always passes, so focus can always move back to them.
+   */
   useEffect(() => {
     const freeze = (event: KeyboardEvent) => {
+      if (event.key === 'Tab') {
+        return;
+      }
       if (!(event.target instanceof Element && event.target.closest('[data-tutorial-free]'))) {
         event.stopImmediatePropagation();
         event.preventDefault();
