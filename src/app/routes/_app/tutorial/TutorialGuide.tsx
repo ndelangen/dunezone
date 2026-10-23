@@ -6,8 +6,7 @@ import type { CSSProperties, ReactNode } from 'react';
 import { Vector3 } from 'three';
 import type { Camera, Vector3Tuple } from 'three';
 
-import { guideArrowPath } from './guideArrow';
-import type { GuideArrow } from './guideArrow';
+import { guideShapePath } from './guideArrow';
 import styles from './TutorialGuide.module.css';
 
 /*
@@ -80,22 +79,18 @@ function place(anchor: GuideAnchor): { x: number; y: number } | null {
 type Spot = { x: number; y: number };
 
 /*
- * Points the band's arrow from its lower edge toward a spot, or hides it.
+ * Redraws the band's outline, with its arrow toward a spot when there is one.
  * The arrow leaves the band partway between the task's number and the spot, so it reads as coming from the instruction.
  */
-function aim(path: SVGPathElement | null, arrow: GuideArrow, badge: DOMRect, band: DOMRect, spot: Spot | null) {
-  if (!path) {
-    return;
-  }
+function aim(paths: readonly (SVGPathElement | null)[], badge: DOMRect, band: DOMRect, spot: Spot | null) {
   const margin = 60;
   const root = {
     x: Math.min(band.right - margin, Math.max(band.left + margin, (badge.left + badge.width / 2 + (spot?.x ?? 0)) / 2)),
     y: band.bottom,
   };
-  const outline = spot ? guideArrowPath(arrow, root, spot) : null;
-  path.style.display = outline ? '' : 'none';
-  if (outline) {
-    path.setAttribute('d', outline);
+  const outline = guideShapePath(band, root, spot);
+  for (const path of paths) {
+    path?.setAttribute('d', outline);
   }
 }
 
@@ -110,7 +105,6 @@ export function TutorialGuide({
   tasks,
   onReset,
   chaptersLink,
-  arrow = 'wedge',
   children,
 }: Readonly<{
   number: number;
@@ -119,14 +113,14 @@ export function TutorialGuide({
   onReset: () => void;
   /** Renders the way back to the chapter list, as a router link on the page and a plain one in a story. */
   chaptersLink: (props: object) => ReactNode;
-  arrow?: GuideArrow;
   children: ReactNode;
 }>) {
   const [current, setCurrent] = useState(0);
   const [run, setRun] = useState(0);
   /* Which task, in which run, the player has just done; its tick shows until the next task starts. */
   const [doneKey, setDoneKey] = useState<string | null>(null);
-  const outline = useRef<SVGPathElement>(null);
+  const fill = useRef<SVGPathElement>(null);
+  const edge = useRef<SVGPathElement>(null);
   const band = useRef<HTMLElement>(null);
   const step = useRef<HTMLSpanElement>(null);
   const task = tasks[current];
@@ -134,10 +128,20 @@ export function TutorialGuide({
 
   /* Every frame the pointer moves to its part, and the task is asked whether it is done. */
   useEffect(() => {
-    if (!task) {
-      return;
-    }
     let frame = 0;
+    /* Once the chapter is done the band stays, without its arrow. */
+    if (!task) {
+      const still = () => {
+        frame = requestAnimationFrame(still);
+        const badge = step.current?.getBoundingClientRect();
+        const box = band.current?.getBoundingClientRect();
+        if (badge && box) {
+          aim([fill.current, edge.current], badge, box, null);
+        }
+      };
+      frame = requestAnimationFrame(still);
+      return () => cancelAnimationFrame(frame);
+    }
     let baseline: unknown;
     let started = false;
     let doneAt: number | null = null;
@@ -148,9 +152,9 @@ export function TutorialGuide({
       frame = requestAnimationFrame(tick);
       const view = { camera: tableView()?.camera ?? null };
       const badge = step.current?.getBoundingClientRect();
-      const edge = band.current?.getBoundingClientRect();
-      if (badge && edge) {
-        aim(outline.current, arrow, badge, edge, doneAt === null ? place(task.anchor) : null);
+      const box = band.current?.getBoundingClientRect();
+      if (badge && box) {
+        aim([fill.current, edge.current], badge, box, doneAt === null ? place(task.anchor) : null);
       }
       if (!started) {
         if (!view.camera) {
@@ -180,7 +184,7 @@ export function TutorialGuide({
         task.finish?.(baseline as never);
       }
     };
-  }, [task, run, current, arrow]);
+  }, [task, run, current]);
 
   const reset = () => {
     onReset();
@@ -191,8 +195,26 @@ export function TutorialGuide({
   return (
     <div className={styles.frame} style={{ '--page-layout-fullscreen-top': BAND_HEIGHT } as CSSProperties}>
       <div className={styles.guide}>
-        <svg className={styles.arrows} aria-hidden>
-          <path ref={outline} className={styles.arrow} data-tutorial-pointer style={{ display: 'none' }} />
+        <svg className={styles.shape} aria-hidden>
+          <defs>
+            {/* A shadow cast inward from every edge of the outline, so the band's depth follows it into the arrow. */}
+            <filter id="tutorial-guide-inset" x="-5%" y="-5%" width="110%" height="110%">
+              <feComponentTransfer in="SourceAlpha" result="outside">
+                <feFuncA type="table" tableValues="1 0" />
+              </feComponentTransfer>
+              <feGaussianBlur in="outside" stdDeviation="7" />
+              <feOffset dy="2" result="spread" />
+              <feFlood floodColor="#000" floodOpacity="0.75" />
+              <feComposite in2="spread" operator="in" />
+              <feComposite in2="SourceAlpha" operator="in" result="inset" />
+              <feMerge>
+                <feMergeNode in="SourceGraphic" />
+                <feMergeNode in="inset" />
+              </feMerge>
+            </filter>
+          </defs>
+          <path ref={fill} className={styles.fill} data-tutorial-pointer filter="url(#tutorial-guide-inset)" />
+          <path ref={edge} className={styles.edge} />
         </svg>
         <header ref={band} className={styles.band} aria-label={`Chapter ${number}: ${title}`}>
           <div className={styles.chapter}>
@@ -216,7 +238,7 @@ export function TutorialGuide({
               </>
             ) : (
               <>
-                <span className={styles.step} data-done>
+                <span ref={step} className={styles.step} data-done>
                   <Check size={16} aria-hidden />
                 </span>
                 <div>

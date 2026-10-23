@@ -7,8 +7,6 @@ import type { Vector3Tuple } from 'three';
 import { gameMeta, install } from '../play/game.stories.fixture';
 import { chapter, JourneyPage } from '../play/journey.stories.fixture';
 import { restart, sandbox, sandboxTransport } from '../play/sandbox.stories.fixture';
-import { GUIDE_ARROWS } from './guideArrow';
-import type { GuideArrow } from './guideArrow';
 import { TutorialGuide } from './TutorialGuide';
 import type { GuideTask, GuideView } from './TutorialGuide';
 
@@ -138,14 +136,8 @@ const TASKS = [
   }),
 ];
 
-/** The game page, with the arrow on trial as an argument the decorator reads. */
-function ChapterPage({ path }: Readonly<{ path: string; arrow?: GuideArrow }>) {
-  return <JourneyPage path={path} />;
-}
-
-const guideDecorator: Decorator = (Story, context) => (
+const guideDecorator: Decorator = (Story) => (
   <TutorialGuide
-    arrow={(context.args as { arrow?: GuideArrow }).arrow}
     number={5}
     title="What goes where"
     tasks={TASKS}
@@ -163,10 +155,7 @@ const guideDecorator: Decorator = (Story, context) => (
 const meta = preview.meta({
   ...gameMeta,
   title: 'Tutorial/What goes where',
-  component: ChapterPage,
-  args: { ...gameMeta.args, arrow: 'wedge' as GuideArrow },
-  argTypes: { arrow: { control: 'inline-radio', options: GUIDE_ARROWS } },
-  parameters: { ...gameMeta.parameters, controls: { disable: false, include: ['arrow'] } },
+  component: JourneyPage,
   beforeEach: () => install(() => sandboxTransport({ start: START, seat: SEAT }))(),
   decorators: [...gameMeta.decorators, guideDecorator],
   loaders: [
@@ -183,28 +172,14 @@ export const Chapter = meta.story({
     const band = await page.findByRole('banner', { name: 'Chapter 5: What goes where' }, { timeout: 30_000 });
     await expect(within(band).getByText('Look closer at Arrakis')).toBeVisible();
     await expect(within(band).queryByRole('button', { name: 'Next' })).toBeNull();
-    /* The pointer finds the camera dial once the table has drawn. */
+    /* The band grows its arrow, a curve-cornered wedge in its outline, once the table has drawn. */
     await waitFor(
       async () => {
-        const pointer = canvasElement.ownerDocument.querySelector<HTMLElement>('[data-tutorial-pointer]')!;
-        await expect({ shown: pointer.style.display === '', placed: pointer.style.transform !== '' }).toEqual({
-          shown: true,
-          placed: true,
-        });
+        const outline = canvasElement.ownerDocument.querySelector('[data-tutorial-pointer]')!;
+        await expect(outline.getAttribute('d') ?? '').toContain('Q');
       },
       { timeout: 30_000 }
     );
   },
 });
 
-/** The band's arrow as a straight wedge that narrows into a head. */
-export const ArrowWedge = meta.story({ args: { arrow: 'wedge' } });
-
-/** The band's arrow as a speech bubble's curved tail. */
-export const ArrowTail = meta.story({ args: { arrow: 'tail' } });
-
-/** The band's arrow as an even ribbon that bows on its way down, with a broad head. */
-export const ArrowRibbon = meta.story({ args: { arrow: 'ribbon' } });
-
-/** The band's arrow as a tooltip's caret, stretched long. */
-export const ArrowCaret = meta.story({ args: { arrow: 'caret' } });

@@ -1,4 +1,7 @@
-/* The band takes the top of the window, and the table's page frame starts below it. */
+/*
+ * The band takes the top of the window, and the table's page frame starts below it.
+ * Its background is the outline drawn behind it, which it shares with its arrow.
+ */
 .band {
   position: absolute;
   inset: 0 0 auto;
@@ -9,7 +12,6 @@
   gap: var(--space-lg);
   height: 4.5rem;
   padding-inline: var(--space-lg);
-  background: var(--color-ink);
   color: var(--color-paper);
 }
 
@@ -59,7 +61,7 @@
   filter: drop-shadow(0 6px 14px rgb(0 0 0 / 0.55));
 }
 
-.arrows {
+.shape {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -67,8 +69,16 @@
   overflow: visible;
 }
 
-.arrow {
+.fill {
   fill: var(--color-ink);
+}
+
+/* A fine light edge around band and arrow alike, so the shape holds its line against the dark table. */
+.edge {
+  fill: none;
+  stroke: rgb(255 255 255 / 0.22);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
 }
 
 /* The guide and the page it wraps share one box; only the custom property it sets reaches the page. */
