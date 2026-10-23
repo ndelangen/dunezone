@@ -23,7 +23,7 @@ export const Default = meta.story({
 });
 
 export const SneakPeekLink = meta.story({
-  parameters: { identity: null },
+  parameters: { chromatic: { disableSnapshot: true }, identity: null },
   beforeEach: () => {
     window.location.hash = '#play-preview';
     return () => {

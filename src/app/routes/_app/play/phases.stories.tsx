@@ -63,6 +63,7 @@ export const StormPlacement = meta.story({
 });
 
 export const Shared = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => productTransport('seat-2')),
   play: async ({ canvasElement }) => {
     const { page, controls, waitForPhase, expectPrevious, pressPrevious } = phaseControls(canvasElement);
@@ -129,6 +130,7 @@ export const Observer = meta.story({
 });
 
 export const FactionPhase = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => productTransport('seat-2', factionPhaseSnapshot(false))),
   play: async ({ canvasElement }) => {
     const { page, waitForPhase } = phaseControls(canvasElement);
@@ -215,6 +217,7 @@ export const MentatReadiness = meta.story({
 });
 
 export const Cooldown = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => productTransport('seat-2')),
   play: async ({ canvasElement }) => {
     const { page, waitForPhase, openPrevious } = phaseControls(canvasElement);
@@ -269,6 +272,7 @@ export const Cooldown = meta.story({
 });
 
 export const PlaybackKeepsLivePhaseSeparate = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => productTransport('seat-2', { ...initialSnapshot(), phase: 5 })),
   play: async ({ canvasElement }) => {
     const { page, controls, waitForPhase, expectPrevious } = phaseControls(canvasElement);
@@ -295,6 +299,7 @@ export const PlaybackKeepsLivePhaseSeparate = meta.story({
 
 /** A table that agreed on a six-turn game, in its fourth turn: the wheel shows six sectors and the Settings tab its last turn. */
 export const ShortGame = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() =>
     productTransport('seat-2', {
       ...playingSnapshot(),

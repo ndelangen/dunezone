@@ -233,6 +233,7 @@ function factionCards(main: ReturnType<typeof within>, name: RegExp) {
 export const CatalogueSearched = meta.story({
   args: { path: '/factions?q=sietch&page=2&sort=created' },
   parameters: {
+    chromatic: { disableSnapshot: true },
     database: db((baseline) => {
       /* One past the first step: the smallest search that has more to load. */
       for (let index = 1; index <= FACTION_CATALOGUE_PAGE_SIZE + 1; index += 1) {

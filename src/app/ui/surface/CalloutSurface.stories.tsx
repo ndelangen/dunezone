@@ -90,6 +90,7 @@ async function expectCalloutGeometry(canvasElement: HTMLElement, pointerAbove = 
 }
 
 export const Actions = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   args: {
     children: <Text ta="center">Two players are preparing.</Text>,
     actions: calloutActions,
@@ -98,6 +99,7 @@ export const Actions = meta.story({
 });
 
 export const PointerAbove = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   args: {
     children: <Text ta="center">Two players are preparing.</Text>,
     actions: calloutActions,

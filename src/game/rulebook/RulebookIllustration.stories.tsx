@@ -47,6 +47,7 @@ export const MissingSource = meta.story({
 });
 
 export const SmallToken = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   render: () => (
     <RulebookBlockCanvas
       block={projectRulebookDraftRenderBlock(

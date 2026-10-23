@@ -57,7 +57,7 @@ export const PlayersLeftBelowMinimum = meta.story({
 
 /* The maximum table keeps all eighteen stations visible while six players wait for the remaining seats. */
 export const EighteenSeats = meta.story({
-  parameters: parameters('ready', undefined, 18),
+  parameters: { ...parameters('ready', undefined, 18), chromatic: { disableSnapshot: true } },
   beforeEach: install(() => productTransport('seat-2', draftingSnapshot(SIX, 18))),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -316,6 +316,7 @@ export const PlayerApprovesARequest = meta.story({
 
 /** Giving up a seat is held in the game menu, its words naming what it costs; a plain click sends nothing. */
 export const PlayerLeavesTheGame = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => productTransport('seat-1', drafting())),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);

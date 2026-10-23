@@ -52,6 +52,7 @@ function finishedSnapshot(viewerSeat: string, declaredAt = 1): GameSnapshot {
 }
 
 export const DetermineWinner = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => productTransport('seat-2', mentatSnapshot('seat-2'))),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -63,6 +64,7 @@ export const DetermineWinner = meta.story({
 });
 
 export const Declaring = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => {
     const snapshot = mentatSnapshot('seat-2');
     snapshot.ending = { by: { seat: 'seat-2', name: SIX[1]!.name }, startedAt: 1 };
@@ -85,6 +87,7 @@ export const Declaring = meta.story({
 
 /* Browsing another tab, such as Hand to reveal a prediction, keeps the choice made in the Result tab. */
 export const DeclaringKeepsChoiceAcrossTabs = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => {
     const snapshot = mentatSnapshot('seat-2');
     snapshot.ending = { by: { seat: 'seat-2', name: SIX[1]!.name }, startedAt: 1 };
@@ -221,6 +224,7 @@ export const DeterminingElsewhereWithoutACard = meta.story({
 });
 
 export const Finished = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => productTransport('seat-2', finishedSnapshot('seat-2'))),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);

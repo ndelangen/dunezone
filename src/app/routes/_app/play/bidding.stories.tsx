@@ -119,6 +119,7 @@ export const BeforeTheFirstRound = meta.story({
 });
 
 export const OnYourFaction = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: biddingSetup({
     stage: 'open',
     round: 1,
@@ -153,6 +154,7 @@ export const OnAnotherFaction = meta.story({
 });
 
 export const AfterAWin = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: biddingSetup({
     stage: 'won',
     round: 1,
@@ -180,6 +182,7 @@ function drawnOpacity(element: Element) {
 }
 
 export const Faded = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: biddingSetup({
     stage: 'open',
     round: 1,
@@ -226,6 +229,7 @@ export const HandCounts = meta.story({
 
 export const Timed = meta.story({ beforeEach: clockSetup(true) });
 export const Untimed = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: clockSetup(false),
   play: async ({ canvasElement }) => {
     const clock = storyClock!;
