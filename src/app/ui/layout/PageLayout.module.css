@@ -24,7 +24,7 @@
 }
 
 /* With the ink no longer a link colour, the weight and a permanent underline are what still say "link".
-   The band's only Mantine anchors are its way back and its breadcrumb. */
+   The band's only Mantine anchors are its way back, its breadcrumb and the lobby's link to the tutorial. */
 .headerContent :global(.mantine-Anchor-root) {
   font-weight: 700;
   text-decoration: underline;

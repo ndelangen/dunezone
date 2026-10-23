@@ -447,7 +447,7 @@ function PlayLobby() {
           <CallToAction direction="start" size="lg" renderRoot={createLink}>
             Create a game
           </CallToAction>
-          <Anchor component={Link} to="/tutorial" size="sm" fw={600} c="inherit">
+          <Anchor component={Link} to="/tutorial" size="sm">
             New to Play? Learn to play
           </Anchor>
         </Stack>

@@ -1,4 +1,4 @@
-import { Stack, Text } from '@mantine/core';
+import { Stack, Text, VisuallyHidden } from '@mantine/core';
 import { createFileRoute } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
@@ -6,6 +6,7 @@ import { StatusBadge } from '@ui/content/StatusBadge';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { Clock } from 'lucide-react';
+import { useId } from 'react';
 
 import { pageHead } from '@app/routes/pageTitle';
 
@@ -31,22 +32,24 @@ const chaptersIn = (part: TutorialPart) => TUTORIAL_CHAPTERS.filter((chapter) =>
  * A chapter's tile: its picture first, then its number beside its title and goal (the prototype Norbert picked, layout A).
  * A chapter not yet built keeps its picture in colour and says so in a chip where its minutes are, and opens nothing.
  */
-function ChapterTile({ chapter }: Readonly<{ chapter: TutorialChapter }>) {
+function ChapterTile({ chapter, eager }: Readonly<{ chapter: TutorialChapter; eager: boolean }>) {
+  const titleId = useId();
   return (
     <li className={styles.cell}>
-      <Surface as="article" padding="none" className={styles.tile} aria-label={chapter.title}>
+      <Surface as="article" padding="none" className={styles.tile} aria-labelledby={titleId}>
         <div className={styles.art}>
-          <img src={chapterArt(chapter)} alt="" loading="lazy" />
+          <img src={chapterArt(chapter)} alt="" loading={eager ? undefined : 'lazy'} />
           <span className={styles.chips}>
-            <StatusBadge>Coming soon</StatusBadge>
+            <StatusBadge tone="pending">Coming soon</StatusBadge>
             <StatusBadge icon={<Clock size={12} aria-hidden />}>{`${chapter.minutes} min`}</StatusBadge>
           </span>
         </div>
         <div className={styles.words}>
-          <span className={styles.number} aria-label={`Chapter ${chapter.number}`}>
+          <span className={styles.number} aria-hidden>
             {chapter.number}
           </span>
-          <Text fw={700} lh={1.3}>
+          <Text id={titleId} fw={700} lh={1.3}>
+            <VisuallyHidden component="span">{`Chapter ${chapter.number}: `}</VisuallyHidden>
             {chapter.title}
           </Text>
           <Text size="sm" c="dimmed" lh={1.35}>
@@ -73,13 +76,11 @@ function TutorialLanding() {
         <Stack gap="xl">
           {TUTORIAL_PARTS.map((part) => (
             <Section key={part} title={part}>
-              <div className={styles.part}>
-                <ol className={styles.row} aria-label={part} start={chaptersIn(part)[0]!.number}>
-                  {chaptersIn(part).map((chapter) => (
-                    <ChapterTile key={chapter.slug} chapter={chapter} />
-                  ))}
-                </ol>
-              </div>
+              <ol className={styles.row} aria-label={part} start={chaptersIn(part)[0]!.number}>
+                {chaptersIn(part).map((chapter) => (
+                  <ChapterTile key={chapter.slug} chapter={chapter} eager={part === TUTORIAL_PARTS[0]} />
+                ))}
+              </ol>
             </Section>
           ))}
         </Stack>

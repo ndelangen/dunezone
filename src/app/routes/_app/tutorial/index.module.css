@@ -1,11 +1,7 @@
 /*
  * The landing page's rows of chapter tiles.
- * Each row asks its own width, so it steps from one tile to two, three and five across; a part never holds more than five chapters.
+ * The rows are the page's rhythm, so they ask the page frame and step from one tile to two, three and five across; a part never holds more than five chapters.
  */
-.part {
-  container: tutorial-row / inline-size;
-}
-
 .row {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -15,19 +11,19 @@
   list-style: none;
 }
 
-@container tutorial-row (width >= 30rem) {
+@container page-frame (width >= 30rem) {
   .row {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-@container tutorial-row (width >= 48rem) {
+@container page-frame (width >= 48rem) {
   .row {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
-@container tutorial-row (width >= 62rem) {
+@container page-frame (width >= 62rem) {
   .row {
     grid-template-columns: repeat(5, minmax(0, 1fr));
   }
@@ -76,7 +72,6 @@
   grid-template-columns: auto minmax(0, 1fr);
   align-content: start;
   column-gap: var(--space-sm);
-  row-gap: 2px;
   padding: var(--space-sm) var(--space-md) var(--space-md) var(--space-sm);
 }
 
