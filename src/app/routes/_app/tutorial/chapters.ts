@@ -136,8 +136,6 @@ export const TUTORIAL_CHAPTERS: readonly TutorialChapter[] = CHAPTERS.map((chapt
   number: index + 1,
 }));
 
-export const tutorialChapter = (slug: string) => TUTORIAL_CHAPTERS.find((chapter) => chapter.slug === slug);
-
 /*
  * The picture on a chapter's tile: a still of the Play table standing in for the live preview each tile will animate.
  * The stills are display copies in public/tutorial, named by the chapter's slug.

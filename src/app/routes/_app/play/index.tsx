@@ -28,6 +28,7 @@ import { SERVER_UNREACHABLE, useServerUnreachable } from './useServerUnreachable
 
 /*
  * The lobby lists what the directory holds and nothing more; it never loads the 3D runtime.
+ * Its header leads to the tutorial (Norbert, 2026-10-23), the one place that links there.
  * Any signed-in player sees every listed game. Nothing in the app links here: the lobby stays unlisted
  * (and noindex) until the public-release decision.
  * Every game is a table with its seats drawn round it (direction C of #1739), so a glance tells who sits where, which seats are free and how far the game has come.
@@ -446,6 +447,9 @@ function PlayLobby() {
           <CallToAction direction="start" size="lg" renderRoot={createLink}>
             Create a game
           </CallToAction>
+          <Anchor component={Link} to="/tutorial" size="sm" fw={600} c="inherit">
+            New to Play? Learn to play
+          </Anchor>
         </Stack>
       </PageLayout.Header>
       <PageLayout.Toolbar>
