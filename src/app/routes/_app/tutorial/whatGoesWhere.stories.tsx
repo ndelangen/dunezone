@@ -1,5 +1,6 @@
 import preview from '@sb/preview';
 import type { Decorator } from '@storybook/tanstack-react';
+import type { ReactNode } from 'react';
 import { expect, waitFor, within } from 'storybook/test';
 import type { Vector3Tuple } from 'three';
 
@@ -122,7 +123,11 @@ const guideDecorator: Decorator = (Story) => (
     title="What goes where"
     tasks={TASKS}
     onReset={() => restart({ start: START, seat: SEAT })}
-    chaptersLink={(props) => <a {...props} href="/tutorial" />}
+    chaptersLink={({ children, ...props }: { children?: ReactNode }) => (
+      <a {...props} href="/tutorial">
+        {children}
+      </a>
+    )}
   >
     <Story />
   </TutorialGuide>
