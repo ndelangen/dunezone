@@ -30,6 +30,11 @@ Approximate the token arrangements with existing group labels and piece labels, 
 the strength arithmetic in adjacent text. No arithmetic Block or renderer extension is required.
 Keep source prose in order; the added explanation must preserve the example's mechanics.
 
+For page 6's board labels, the review approved the existing `asset-explainer` presentation
+as preferable to the source arrangement. Use its markers and legend, preserving all labels
+and explanations. No external label boxes, leader-line reproduction or connector extension
+is required.
+
 ## What exists today
 
 The [Contents contract](../../src/shared/rulebooks/contents.ts#L59) has 19 Block kinds and
@@ -49,7 +54,7 @@ styling and heading treatment under the approved simplification.
 | Faction overview bands | `faction-introduction` | Already composes a token, summary, ruler and leader roster. It also emits the faction name and `Leaders`; do not accidentally duplicate source labels or add labels absent from a particular source panel. |
 | Components | `illustrated-inventory` | The current renderer produces a vertical list of image/description rows and can insert source names and `Quantity:`. Page 7 is a collage with a separate token column and shaded component panel. |
 | Illustrated card explanations | `card-entry`; `card-group` | Entry supports image side, size and beside/wrapped text. Group supports compact, gallery, featured-member and fan variants. Exact GF9 card artwork remains a separate requirement. |
-| Labelled component diagrams | `asset-explainer` | Has custom labels, position targets, named geometry targets and colors. It uses markers with a separate legend. Page 6 instead uses rectangular labels outside a board with long leader lines. |
+| Labelled component diagrams | `asset-explainer` | Use existing markers and the separate legend. This presentation is approved for page 6 in place of its boxed external labels and long arrows. Preserve every label and explanation. |
 | Board examples | `board-scene` | Has crop viewport, storm, troops, players, highlights, routes and positioned annotations. It references a maintained board definition; an arbitrary scan extract is not a board definition. |
 | Battle examples | `battle-step`, `battle-plans`, `battle-comparison` | Store selected cards, leader, spice, forces, dial and authored explanation. Their composed diagrams must be compared with the specific GF9 wheel/card arrangements. |
 | Transfers and force examples | `piece-transfer`, `piece-movement`, `text` | Use existing piece groups and labels to approximate the source illustrations. Explain individual strengths and totals in text. Exact per-token arithmetic placement is not required. |
@@ -85,7 +90,7 @@ printed layout being reconstructed.
 | 3 | `outer-rail`, `text`, `credits`, illustrations | Notes and Credits share a page; credits use a second arrangement below the notes. Preserve the expansion note and right-hand legal/logo material. |
 | 4 | `single-column`, four `faction-introduction` blocks | Match Atreides, Bene Gesserit, Emperor and Fremen bands, token/ruler/leader sizes and colored backgrounds. Verify every displayed label and roster against this edition. |
 | 5 | Two faction introductions, `section-heading`, two text columns | Guild/Harkonnen occupy the upper part, then Object of the Game begins below. Need a full-width opening with two lower columns, without an added page heading above the faction bands. |
-| 6 | `asset-explainer`, `referenced-illustration`, `text` | Board dominates the upper/right area; explanatory text sits lower/left; exploded Battle Wheel art sits below. Existing marker/legend composition does not match the boxed external labels and leader lines. |
+| 6 | `asset-explainer`, `referenced-illustration`, `text` | Use the existing markers and legend for the board labels. Preserve labels and explanatory prose. Keep the Battle Wheel assembly illustration as a separate artwork item. No annotation capability change is required. |
 | 7 | `asset-explainer`, `card-group` fan, inventory and illustrations | Needs an upper faction-component illustration, lower deck list, narrow token column and shaded two-column faction-specific panel. Preserve the five numbered labels and printed component quantities. |
 | 8 | `two-columns`, `text`, numbered `list`, bottom illustration | Setup has source margin notes and an Atreides sheet extract along the bottom. Test a rail plus bottom band, and preserve the callout labels on the extract. |
 | 9 | Numbered `list` with icons, `text`, `wide-narrow` | Phase list has nine numbered icons and page references, with introductory text above. Match the first-player explanation and list indentation without inventing captions. |
@@ -175,14 +180,11 @@ contains one Arrakis definition. Its existence does not establish that it is the
 printed in this PDF. Replacing printed artwork with a cleaner recreation needs a separate
 decision because it changes the as-is result.
 
-For page 6, extend `asset-explainer` only if editable labels are needed. Its custom labels and
-position targets already exist, but
-[position markers have no independent connector endpoint](../../src/shared/rulebooks/assetExplainerAnnotations.ts#L171).
-The source needs boxed external labels, separate marker/target coordinates and arrows. The
-[board-scene annotation contract](../../src/shared/rulebooks/illustratedScenes.ts#L49)
-already models independent label and target coordinates, so examine that shared behavior
-before adding another annotation system. A faithful extracted diagram is also a viable first
-representation if its labels remain transcribed and its source limits are recorded.
+For page 6, use the existing `asset-explainer` markers, position targets and legend.
+The review approved this presentation as better than the source's external boxes and long
+arrows. Match each marker to the correct board feature and preserve every label and explanation.
+No annotation extension or second annotation system is required. The board image and Battle
+Wheel assembly artwork still need valid source references.
 
 For maps on pages 10, 14, 15, 20 and 24, `board-scene` already has a
 [viewport, routes and annotations](../../src/shared/rulebooks/illustratedScenes.ts#L96).
@@ -226,9 +228,9 @@ decisions and evidence can accumulate independently.
    capability. Demonstrate a content arrangement that existing layouts cannot express before
    proposing a layout addition.
 2. **Interior artwork sources and labelled diagrams.** Source pages 1, 4-7, 10-15, 17-19,
-   23-27 and 29-33. Track exact artwork/crop inventory and durable source references. Page 6
-   tests an `asset-explainer` label/connector adjustment; map pages test existing viewport and
-   annotation support.
+   23-27 and 29-33. Track artwork/crop inventory and durable source references. Page 6 uses
+   the approved existing `asset-explainer` markers and legend, with no connector changes.
+   Map pages test existing viewport and annotation support.
 3. **Contents omitted.** Closed by the review decision. Use the existing left navigator;
    retain the printed contents only in the source transcripts.
 4. **Force arithmetic with existing Blocks.** Page 26. Use existing piece groups and labels,

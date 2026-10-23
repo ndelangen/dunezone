@@ -10,6 +10,10 @@ Use the webapp's existing left navigator. The source transcripts retain the cont
 Build page 26's force-strength illustrations with existing piece Blocks and explain the
 arithmetic in text. Approximate their arrangement without adding a Block or renderer capability.
 
+Use the existing `asset-explainer` markers and legend for page 6's board labels. This
+presentation is approved as preferable to the source's boxes and long arrows. Preserve all
+labels and explanations; no connector changes are required.
+
 ## Source
 
 The user supplied `Dune 2026 Rulebook.pdf` on 22 October 2026 and reported that it came out the previous day. The retained [source.pdf](source.pdf) is byte-for-byte identical to that file. Its cover says `SECOND EDITION`. It has 36 image-only PDF pages, with no selectable text. Its embedded creation timestamp is 21 October 2026 at 22:02:17 CEST. That timestamp alone does not establish a publisher release date.
