@@ -13,6 +13,8 @@ const meta = preview.meta({
   ...pageStoryMeta,
   title: 'Tutorial/What goes where',
   args: { path: '/tutorial/what-goes-where' },
+  /* Shown with motion on whatever the viewing machine prefers (Norbert, 2026-10-23: demos play the motion), so the end's confetti flies. */
+  globals: { motion: 'on' },
 });
 
 /** The chapter as a player meets it: do what the band says, where the pointer shows, and it moves on by itself. */

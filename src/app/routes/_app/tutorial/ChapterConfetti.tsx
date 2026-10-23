@@ -1,12 +1,13 @@
 import { useEffect, useRef } from 'react';
 
+import { useMotionAllowed } from '../../../styles/motion';
 import { FOIL_COLORS } from '../play/confettiSimulation';
 import styles from './TutorialGuide.module.css';
 
 /*
  * A burst of foil over the whole page as a chapter is done: two streams from the window's lower corners that arc in and flutter down.
  * The same foil colours as a game's result, drawn flat on a canvas above the page, so it never touches the table.
- * It plays once and ignores the pointer; for anyone who asked for less motion the foil just lies still.
+ * It plays once and ignores the pointer; where the site's motion preference is off the foil just lies still.
  */
 
 const PIECES = 220;
@@ -99,6 +100,8 @@ function play(context: CanvasRenderingContext2D, width: number, height: number) 
 
 export function ChapterConfetti() {
   const canvas = useRef<HTMLCanvasElement>(null);
+  /* The site's own motion preference: the profile's switch wins over the system's reduced-motion hint. */
+  const motion = useMotionAllowed();
 
   useEffect(() => {
     const context = canvas.current?.getContext('2d');
@@ -112,12 +115,12 @@ export function ChapterConfetti() {
     context.canvas.height = height * scale;
     context.scale(scale, scale);
     /* Anyone who asked for less motion gets the foil lying still across the page instead of a burst. */
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    if (!motion) {
       scatter(context, width, height);
       return;
     }
     return play(context, width, height);
-  }, []);
+  }, [motion]);
 
   return <canvas ref={canvas} className={styles.confetti} aria-hidden data-chapter-confetti />;
 }
