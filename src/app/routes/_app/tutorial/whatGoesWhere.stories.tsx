@@ -5,8 +5,8 @@ import { pageStoryMeta } from '../../storybookConfig';
 
 /*
  * Chapter 5, "What goes where", as its page serves it: the table from the tutorial's recorded setup, running in the page,
- * with the band above it giving one task at a time. Its art is the site's `/published/...` images, which Storybook serves
- * from the copy `bun run tutorial:mirror` makes; without that copy the table shows blank cards and tokens.
+ * with the band above it giving one task at a time. Its art is the site's live `/published/...` images: the Storybook server
+ * and the story tests fetch them from the site and keep a copy (`.storybook/storyPublishedArt.ts`), as the deployed Storybook does.
  */
 
 const meta = preview.meta({

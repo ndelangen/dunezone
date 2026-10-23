@@ -8,6 +8,7 @@ import { convexPackageMocks } from './convexPackageMocks.ts';
 import { pageStylesheetStaysWithItsStory } from './pageStylesheet.ts';
 import { storyBoardFace } from './storyBoardFace.ts';
 import { storyImagesWorker } from './storyImagesWorker.ts';
+import { storyPublishedArt } from './storyPublishedArt.ts';
 import {
   convexWorkerAliases,
   convexWorkerBuildPlugins,
@@ -91,6 +92,7 @@ export default defineConfig({
   plugins: [
     storyImagesWorker(),
     storyBoardFace(),
+    storyPublishedArt(),
     ...convexWorkerServePlugins(),
     pageStylesheetStaysWithItsStory(),
     viteReact(),

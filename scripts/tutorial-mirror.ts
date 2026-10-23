@@ -5,6 +5,7 @@ import path from 'node:path';
  * Copies every published image the tutorial setup names into Storybook's static files, at the same path,
  * so the tutorial's stories show the real art without ever contacting the site.
  * The site keeps serving the live images; only Storybook reads this copy. Board faces are left out: Storybook answers those already.
+ * The Storybook server fills the same copy on demand (`.storybook/storyPublishedArt.ts`); this fills it ahead, for a static build or offline work.
  * Usage, after `bun run tutorial:pull`: bun run tutorial:mirror (TUTORIAL_SITE defaults to https://dune.zone)
  */
 
