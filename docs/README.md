@@ -287,7 +287,9 @@ unpushable.
 ### Reviewing visual changes
 
 [Chromatic](https://www.chromatic.com/builds?appId=6adb5f9c3d9925e3217df200) captures the Storybook
-stories on every branch push and supports manual runs from GitHub Actions. The workflow generates
+stories on pushes to `main` and on pull requests that are ready for review, once when a draft is
+marked ready and again on each later push. Drafts get no Chromatic build, because every build bills
+snapshots. Manual runs from GitHub Actions are supported. The workflow generates
 the media, builds and verifies the public Storybook, then uploads that artifact with the pinned
 Chromatic CLI. The `CHROMATIC_PROJECT_TOKEN` repository secret is available only to the token
 check and upload steps. Keep it out of source files and command-line arguments.
@@ -296,7 +298,7 @@ Review and accept intended visual changes in Chromatic. Visual differences leave
 green so an expected UI change does not fail the upload job; rendering and interaction failures
 still fail it. No branch automatically accepts changes. Chromatic runs separately from the
 required `ci_ok` check, and its visual review checks report through the GitHub integration.
-Fork pull requests do not receive this repository's token or run this push workflow here.
+Fork pull requests do not receive this repository's token and get no Chromatic build.
 
 The 131 stories that failed [the setup capture runs](https://www.chromatic.com/builds?appId=6adb5f9c3d9925e3217df200)
 have `parameters.chromatic.disableSnapshot: true` on their individual story definitions. They remain
