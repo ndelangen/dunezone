@@ -951,6 +951,7 @@ export const MEDIA_MAP: Readonly<Record<string, MediaMapEntry>> = {
   '/web/blog/drawing-dune-tokens-and-cards/exploded-layers.jpg': ['847bcdfd830a4aaa41f6', '#d8c8a8'],
   '/web/blog/drawing-dune-tokens-and-cards/thufir-token-photo.jpg': ['f8cb0f3093fa2b95b324', '#e8c888'],
   '/web/blog/drawing-dune-tokens-and-cards/token-details.jpg': ['b1ecde01f526df3acfac', '#182838'],
+  '/web/blog/dune-board-game-style-guide/faction-palette.jpg': ['8e6aeae2ee34b48485b3', '#081828'],
   '/web/blog/running-from-databases/dune-app-creator.jpg': ['647e14f574719d3e29fc', '#f8f8f8'],
   '/web/blog/running-from-databases/dune-app-leader-card.jpg': ['e9c600befebfa7c52e78', '#e8e8e8'],
   '/web/blog/running-from-databases/dune-assets.jpg': ['9087e9601c9160f238ae', '#f8e8e8'],

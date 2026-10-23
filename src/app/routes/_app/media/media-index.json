@@ -10097,6 +10097,12 @@
     "subjects": ["patterns"],
     "sourceHash": "98aca64baa2f0745820515169fdbf5acf844b27b50e07bd53264f07a2ab68060"
   },
+  "/web/blog/dune-board-game-style-guide/faction-palette.jpg": {
+    "description": "Twelve faction swatch cards on a dark blue page: each faction's token, its light and shade colours with hex codes, and its texture number.",
+    "tags": ["factions", "colours", "blog"],
+    "subjects": ["symbols"],
+    "sourceHash": "8e6aeae2ee34b48485b31cb20d2fcd9cb431c02849badc95f1e8116b826ed7c5"
+  },
   "/web/blog/drawing-dune-tokens-and-cards/atreides-leaders.jpg": {
     "description": "The House Atreides leader tokens on dune.zone in a row: Lady Jessica, Thufir Hawat, a larger Paul Atreides, Gurney Halleck, Duncan Idaho and Doctor Yueh.",
     "tags": ["leader tokens", "House Atreides", "blog"],

@@ -7721,6 +7721,15 @@
     "isOpaque": true,
     "color": "#182838"
   },
+  "/web/blog/dune-board-game-style-guide/faction-palette.jpg": {
+    "sha256": "8e6aeae2ee34b48485b31cb20d2fcd9cb431c02849badc95f1e8116b826ed7c5",
+    "bytes": 287666,
+    "width": 1792,
+    "height": 1330,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#081828"
+  },
   "/web/blog/running-from-databases/dune-app-creator.jpg": {
     "sha256": "647e14f574719d3e29fcc293ecd4b889ab00028f7aac5c06b817c7614b0bd030",
     "bytes": 531791,
