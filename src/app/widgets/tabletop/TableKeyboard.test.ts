@@ -285,6 +285,85 @@ describe('a peeked card moved with the arrow keys', () => {
   });
 });
 
+describe('the cursor over the table', () => {
+  /* A tab list moves its focus on an arrow and claims the key, as the controls panel's tabs do. */
+  function focusedTabList() {
+    document.body.innerHTML = '<div role="tablist"><button role="tab" data-tab>Hand</button></div>';
+    const tab = document.querySelector<HTMLElement>('[data-tab]')!;
+    const moved = vi.fn();
+    tab.addEventListener('keydown', (event) => {
+      if (event.key.startsWith('Arrow')) {
+        moved();
+        event.preventDefault();
+      }
+    });
+    tab.focus();
+    return { tab, moved };
+  }
+
+  test('pans with the arrow keys before a focused tab list moves its focus', () => {
+    const { keyboard } = table();
+    keyboard.setPanAvailable(true);
+    keyboard.hoverTable(true);
+    const { tab, moved } = focusedTabList();
+
+    key('keydown', { key: 'ArrowRight', code: 'ArrowRight' }, tab);
+
+    expect(moved).not.toHaveBeenCalled();
+    expect(keyboard.panDirection()).toEqual([1, 0]);
+    key('keyup', { key: 'ArrowRight', code: 'ArrowRight' }, tab);
+    expect(keyboard.panDirection()).toEqual([0, 0]);
+  });
+
+  test('keeps the arrows from a focused control even without a close look to slide', () => {
+    const { keyboard } = table();
+    keyboard.hoverTable(true);
+    const { tab, moved } = focusedTabList();
+
+    key('keydown', { key: 'ArrowDown', code: 'ArrowDown' }, tab);
+
+    expect(moved).not.toHaveBeenCalled();
+    expect(keyboard.panDirection()).toEqual([0, 0]);
+  });
+
+  test('answers the piece shortcuts over a focused button', () => {
+    const { keyboard, controls } = table();
+    keyboard.hoverTable(true);
+    const { tab } = focusedTabList();
+
+    key('keydown', { key: 'f' }, tab);
+
+    expect(controls.flipSelected.mock.calls).toEqual([['harkonnen-force-stack']]);
+  });
+
+  test('leaves a focused text field its arrows and letters', () => {
+    const { keyboard, controls } = table();
+    keyboard.setPanAvailable(true);
+    keyboard.hoverTable(true);
+    const field = document.body.appendChild(document.createElement('input'));
+    field.focus();
+
+    key('keydown', { key: 'ArrowLeft', code: 'ArrowLeft' }, field);
+    key('keydown', { key: 'f' }, field);
+
+    expect(keyboard.panDirection()).toEqual([0, 0]);
+    expect(controls.flipSelected).not.toHaveBeenCalled();
+  });
+
+  test('off the table, the focused tab list keeps its arrows again', () => {
+    const { keyboard } = table();
+    keyboard.setPanAvailable(true);
+    keyboard.hoverTable(true);
+    keyboard.hoverTable(false);
+    const { tab, moved } = focusedTabList();
+
+    key('keydown', { key: 'ArrowRight', code: 'ArrowRight' }, tab);
+
+    expect(moved).toHaveBeenCalled();
+    expect(keyboard.panDirection()).toEqual([0, 0]);
+  });
+});
+
 describe('a held pan key', () => {
   test('stops panning when its physical key comes up, whatever it types by then', () => {
     const { keyboard } = table();
