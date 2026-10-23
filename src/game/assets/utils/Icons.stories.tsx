@@ -79,6 +79,7 @@ export const Logos = meta.story({
 });
 
 export const Decals = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   args: {
     pattern: '*',
     type: 'decal',

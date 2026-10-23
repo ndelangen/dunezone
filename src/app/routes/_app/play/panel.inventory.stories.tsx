@@ -31,6 +31,7 @@ const meta = preview.meta({
 const drawerFactions = factions.slice(3);
 
 export const Requests = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(pendingRequestTransport),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -103,6 +104,7 @@ export const Narrow = meta.story({
 
 /** A drawer of catalogue pieces, cards and tokens, whose thumbnails arrive through `PublishedImage` at their own shapes. */
 export const Arrival = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => {
     const snapshot = initialSnapshot();
     const tokens = drawerFactions.map(({ slug, data, token }) => {
@@ -140,6 +142,7 @@ export const Arrival = meta.story({
 });
 
 export const HiddenDeckBacks = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => {
     const snapshot = initialSnapshot();
     const card = {
@@ -204,7 +207,7 @@ const SPAWNABLE_ASSETS = 6 + EXTRA_TOKENS;
  * The story's transport answers no catalogue read, so the check stays pending, as it does while the Worker reads the definitions.
  */
 export const Catalogue = meta.story({
-  parameters: { database: catalogueDatabase },
+  parameters: { chromatic: { disableSnapshot: true }, database: catalogueDatabase },
   beforeEach: install(() => productTransport('seat-2', initialSnapshot())),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);

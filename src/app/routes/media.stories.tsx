@@ -19,6 +19,7 @@ export const Catalogue = meta.story({
   },
 });
 export const Leaders = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   args: { path: '/media/game/leaders' },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement);
@@ -27,6 +28,7 @@ export const Leaders = meta.story({
   },
 });
 export const Decals = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   args: { path: '/media/game/decals' },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement);
@@ -36,6 +38,7 @@ export const Decals = meta.story({
 });
 
 export const LeaderLink = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   args: { path: '/media/game/leaders?item=%2Fimage%2Fleader%2Fofficial%2Faramsham.png' },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);

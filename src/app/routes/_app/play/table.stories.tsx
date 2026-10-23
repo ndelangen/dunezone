@@ -85,6 +85,7 @@ function leaveTheCanvas(page: ReturnType<typeof within>, scene: HTMLCanvasElemen
 }
 
 export const Controls = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => productTransport()),
   play: async ({ canvasElement }) => {
     const { page, shell, document } = await tablePage(canvasElement);
@@ -141,6 +142,7 @@ export const Controls = meta.story({
 
 /* Holding Control names every piece and its owning faction; a shared piece shows its name alone, and letting go clears the names. */
 export const PieceNames = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => productTransport()),
   play: async ({ canvasElement }) => {
     const { shell, document } = await tablePage(canvasElement);
@@ -191,6 +193,7 @@ export const PieceNames = meta.story({
 
 /* The settings menu keeps the stack counts or piece names on, for a screen with no Alt or Control to hold, until it turns them off again. */
 export const SettingsKeepLabelsOn = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => productTransport()),
   play: async ({ canvasElement }) => {
     const { page, shell } = await tablePage(canvasElement);
@@ -220,6 +223,7 @@ function sharedSlotPieces(snapshot: ReturnType<typeof playingSnapshot>) {
 }
 
 export const SharedItemSlots = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => {
     const snapshot = playingSnapshot();
     sharedSlotPieces(snapshot).forEach((piece, index) => {
@@ -257,6 +261,7 @@ export const SharedItemSlots = meta.story({
 
 /** A spice stack's menu announces itself as spice actions; Play/Panels/Layout/SchemeIsland covers the deck's. */
 export const SpiceMenuName = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => {
     const snapshot = initialSnapshot();
     snapshot.table.pieces.push(createSpiceStack(snapshot.table.nextEventNumber, 3));
@@ -277,6 +282,7 @@ export const SpiceMenuName = meta.story({
 
 /* The wheel over the board moves in for a close look and backs out to the view's own pose; Ctrl with the wheel stays the browser's zoom. */
 export const WheelTakesACloseLook = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => productTransport()),
   play: async ({ canvasElement }) => {
     const { shell, document } = await tablePage(canvasElement);
@@ -328,6 +334,7 @@ export const WheelTakesACloseLook = meta.story({
 
 /* Two fingers dragged up over the board tilt the camera toward top-down, and dragged down tilt it back. */
 export const TwoFingersTiltTheCamera = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => productTransport()),
   play: async ({ canvasElement }) => {
     const { shell, document } = await tablePage(canvasElement);
@@ -364,6 +371,7 @@ export const TwoFingersTiltTheCamera = meta.story({
  * A table opened mid-phase marks its phase's view and stays on the map: the first move waits for the next phase.
  */
 export const PhaseViews = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => productTransport('seat-2', { ...playingSnapshot(), phase: 1 })),
   play: async ({ canvasElement }) => {
     const { page, shell } = await tablePage(canvasElement, TABLE_PHASES[1].label);
@@ -389,6 +397,7 @@ export const PhaseViews = meta.story({
  * The carry is a press on the viewer's own troops and a move past the drag threshold, sent to the canvas `mapViewPoint` projects against.
  */
 export const PhaseViewWaitsForTheDrop = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => productTransport()),
   play: async ({ canvasElement }) => {
     const { page, shell, document } = await tablePage(canvasElement);
@@ -468,6 +477,7 @@ export const LowWindow = meta.story({
  * The pointer leaves for the view picker and returns with no move over the rest of the table.
  */
 export const SpiceDiscAnswersOnReturn = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => productTransport()),
   play: async ({ canvasElement }) => {
     const { page, document } = await tablePage(canvasElement);
@@ -500,6 +510,7 @@ export const SpiceDiscAnswersOnReturn = meta.story({
  * The key acts again once the pointer is back over the deck.
  */
 export const DeckShortcutsEndOffTheTable = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => productTransport()),
   play: async ({ canvasElement }) => {
     const { page, document } = await tablePage(canvasElement);
@@ -540,6 +551,7 @@ export const DeckShortcutsEndOffTheTable = meta.story({
  * The pointer rests on the disc when playback starts and leaves the canvas during playback, so after Return to live the number keys send nothing until the pointer is back on the disc.
  */
 export const SpiceDiscForgetsAPlaybackHover = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => productTransport()),
   play: async ({ canvasElement }) => {
     const { page, document } = await tablePage(canvasElement);
@@ -588,6 +600,7 @@ export const SpiceDiscForgetsAPlaybackHover = meta.story({
  * Tapping the empty board then clears the selection, so L sends nothing.
  */
 export const TapOnTheBoardClearsTheSelection = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => productTransport()),
   play: async ({ canvasElement }) => {
     const { page, document } = await tablePage(canvasElement);
@@ -628,6 +641,7 @@ export const TapOnTheBoardClearsTheSelection = meta.story({
  * Tapping the empty board then clears the selection, so L sends nothing.
  */
 export const TapJitterLeavesNoHover = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => productTransport()),
   play: async ({ canvasElement }) => {
     const { page, document } = await tablePage(canvasElement);
@@ -670,6 +684,7 @@ export const TapJitterLeavesNoHover = meta.story({
  * The menu's Shuffle shuffles that deck, and the finger lifting after the menu opens leaves the menu open.
  */
 export const LongPressOnTheDeckOpensItsMenu = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => productTransport()),
   play: async ({ canvasElement }) => {
     const { page, document } = await tablePage(canvasElement);

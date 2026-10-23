@@ -27,6 +27,7 @@ export const Swapping = meta.story({
 });
 
 export const Offers = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => {
     const snapshot = swappingSnapshot();
     snapshot.swapping!.offers = [

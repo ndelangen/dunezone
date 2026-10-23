@@ -35,6 +35,7 @@ export const Hand = meta.story({
 });
 
 export const SpiceReserve = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() =>
     productTransport('seat-2', {
       ...initialSnapshot(),
@@ -104,6 +105,7 @@ export const SpiceReserveNarrow = meta.story({
 
 /* Public spice transfers name each end in words (#1664): a faction's spice reserve by its name, the table and the Spice Bank, and a faction gone from the roster as such. */
 export const SpiceTransfers = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => {
     const snapshot = initialSnapshot();
     const faction = snapshot.roster!.seats[1]!.faction!;

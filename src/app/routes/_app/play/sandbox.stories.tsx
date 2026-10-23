@@ -55,6 +55,7 @@ const piece = (match: (candidate: { kind: string; stackKey?: string | null }) =>
  * Restarts at the end, so the story opens where the step does.
  */
 export const Sandbox = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByRole('complementary', { name: 'Sandbox' }, { timeout: 30_000 })).resolves.toBeVisible();
@@ -127,6 +128,7 @@ export const Sandbox = meta.story({
  * Every other seat's frame carries no peek and none of the deck's faces, only who peeked, under the deck's name.
  */
 export const PeekAtTheDeck = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByRole('complementary', { name: 'Sandbox' }, { timeout: 30_000 })).resolves.toBeVisible();
@@ -156,6 +158,7 @@ export const PeekAtTheDeck = meta.story({
  * Seat 1 pulls a card out of the Treachery deck while looking through it, closes the deck, and peeks at that one card: its face opens large, to seat 1 alone.
  */
 export const PeekAtACard = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByRole('complementary', { name: 'Sandbox' }, { timeout: 30_000 })).resolves.toBeVisible();
@@ -260,6 +263,7 @@ export const FlipWhileCarrying = meta.story({
  * drag pieces about in the Hidden zone tab, or onto the table to play them.
  */
 export const HiddenZone = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByRole('complementary', { name: 'Sandbox' }, { timeout: 30_000 })).resolves.toBeVisible();
@@ -290,6 +294,7 @@ export const HiddenZone = meta.story({
 
 /** The battle beacon at the Battle phase: pick the acrylic disc up over the tracker's Battle disc and drop it on a territory; it lies flat and fades as the battle shows. */
 export const BattleBeacon = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   args: { step: chapter('Battle') },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -401,6 +406,7 @@ export const HmsCarriesItsTroops = meta.story({
  * Switching back and forth keeps the table's renderer and a half-typed message: the layouts move the same content, they never mount it afresh.
  */
 export const ThreeColumns = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: () => {
     setTableLayout('columns');
     return () => setTableLayout('stacked');

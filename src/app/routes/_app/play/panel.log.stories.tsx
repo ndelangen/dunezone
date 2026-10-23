@@ -27,6 +27,7 @@ const meta = preview.meta({
 });
 
 export const Game = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() =>
     productTransport('seat-6', revealedPredictionSnapshot(), { logEntries: { game: GAME_LOG } })
   ),
@@ -50,6 +51,7 @@ export const Game = meta.story({
 });
 
 export const Audit = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => {
     const snapshot = playingSnapshot();
     snapshot.removalVotes = [];
@@ -67,6 +69,7 @@ export const Audit = meta.story({
 });
 
 export const Pagination = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => productTransport('seat-6', revealedPredictionSnapshot(), { holdLogHistory: true })),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);

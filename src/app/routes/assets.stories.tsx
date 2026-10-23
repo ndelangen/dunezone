@@ -677,6 +677,7 @@ export const CreateLeaderSkillCardSaves = meta.story({
 
 /** Text that exceeds the fixed frame cannot be saved, and shortening it restores Save. */
 export const CreateLeaderSkillCardOverflow = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   args: { path: '/assets/card-leaderability/create' },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);

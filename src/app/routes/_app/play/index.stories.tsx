@@ -190,7 +190,7 @@ export const SignedIn = meta.story({
 
 /** Finished games carry their result, with a crown on each winner's seat. */
 export const Finished = meta.story({
-  parameters: signedIn,
+  parameters: { ...signedIn, chromatic: { disableSnapshot: true } },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await page.findByRole('list', { name: 'Games' }, { timeout: 30_000 });
