@@ -160,7 +160,7 @@ export const BrowseEveryPortrait = meta.story({
     await userEvent.click(leaderCollection);
     await userEvent.type(supportingPortrait, 'Atreides');
     await userEvent.keyboard('{ArrowDown}{Enter}');
-    await expect(screen.getByRole('listbox').querySelectorAll('[role="option"]')).toHaveLength(6);
+    await expect(screen.getByRole('listbox').querySelectorAll('[role="option"]')).toHaveLength(7);
     await userEvent.type(supportingPortrait, 'Gurney');
     await userEvent.keyboard('{ArrowDown}{Enter}');
     await expect(supportingPortrait).toHaveValue('Gurney');
