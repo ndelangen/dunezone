@@ -1,4 +1,4 @@
-import { Anchor, Button, Select, Stack, Text, Title, Tooltip } from '@mantine/core';
+import { Anchor, Button, Group, Select, Stack, Text, Title, Tooltip } from '@mantine/core';
 import type { playLobbyEntrySchema } from '@shared/play/directory';
 import { phaseAt, STANDARD_PHASES, tableProgressFor } from '@shared/play/phases';
 import { createFileRoute, Link } from '@tanstack/react-router';
@@ -14,7 +14,7 @@ import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
 import { Toolbar } from '@ui/surface/Toolbar';
 import clsx from 'clsx';
-import { ArrowRight, Clock, Crown, ListFilter, Plus, Trophy } from 'lucide-react';
+import { ArrowRight, Clock, Crown, GraduationCap, ListFilter, Plus, Trophy } from 'lucide-react';
 import { useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import type { z } from 'zod';
@@ -368,6 +368,7 @@ function LobbyWait({ status }: Readonly<{ status: 'sign_in_required' | undefined
 }
 
 const createLink = (rootProps: object) => <Link {...rootProps} to="/play/create" />;
+const tutorialLink = (rootProps: object) => <Link {...rootProps} to="/tutorial" />;
 
 function LobbyToolbar({
   query,
@@ -444,12 +445,19 @@ function PlayLobby() {
           <Text size="lg" fw={500} maw="36rem">
             Take a seat, choose your faction, and fight for Arrakis.
           </Text>
-          <CallToAction direction="start" size="lg" renderRoot={createLink}>
-            Create a game
-          </CallToAction>
-          <Anchor component={Link} to="/tutorial" size="sm">
-            New to Play? Learn to play
-          </Anchor>
+          <Group gap="sm" justify="center">
+            <Button
+              variant="default"
+              size="lg"
+              leftSection={<GraduationCap size={17} aria-hidden />}
+              renderRoot={tutorialLink}
+            >
+              Learn to play
+            </Button>
+            <CallToAction direction="start" size="lg" renderRoot={createLink}>
+              Create a game
+            </CallToAction>
+          </Group>
         </Stack>
       </PageLayout.Header>
       <PageLayout.Toolbar>

@@ -28,7 +28,7 @@ export const SignedOut = meta.story({
       page.findByText('Ongoing and past games appear here once you sign in.', {}, { timeout: 30_000 })
     ).resolves.toBeVisible();
     await expect(page.getByRole('link', { name: 'Login' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'New to Play? Learn to play' })).toHaveAttribute('href', '/tutorial');
+    await expect(page.getByRole('link', { name: 'Learn to play' })).toHaveAttribute('href', '/tutorial');
     await expect(page.queryByRole('group', { name: 'Table view' })).toBeNull();
     await expect(page.queryByRole('link', { name: /demo/i })).toBeNull();
   },
