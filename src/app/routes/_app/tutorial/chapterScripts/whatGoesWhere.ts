@@ -119,9 +119,25 @@ function tableTasks(snapshot: () => GameSnapshot): GuideTask[] {
       task: 'Take the top Spice card',
       detail: 'The Spice deck sits on the right of the table. Drag its top card onto the table.',
       anchor: { kind: 'table', point: () => at(deck('right')) },
-      /* A quick drag takes the top card and a held one the whole deck; either way the player has found it. */
-      begin: () => snapshot().versions[deck('right')?.id ?? ''] ?? 0,
-      done: (start) => (snapshot().versions[deck('right')?.id ?? ''] ?? 0) !== start,
+      /*
+       * A quick drag takes the top card and a held one moves the whole deck; either way the player has found it.
+       * Peeking, shuffling or flipping the deck leaves its count and its place alone, so those do not count.
+       */
+      begin: () => {
+        const spice = deck('right');
+        return spice && { id: spice.id, cards: spice.items.length, position: [...spice.position] };
+      },
+      done: (start) => {
+        if (!start) {
+          return false;
+        }
+        const spice = pieces().find((piece) => piece.id === start.id);
+        return (
+          !spice ||
+          spice.items.length < start.cards ||
+          Math.hypot(spice.position[0]! - start.position[0]!, spice.position[2]! - start.position[2]!) > 0.01
+        );
+      },
     }),
   ];
 }
