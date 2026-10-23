@@ -8,7 +8,7 @@ notes, not replacement wording or an importable Rulebook.
 The target is one Dune Zone Page for each source page, in the same order, with the same words,
 examples, captions and printed references. Source mistakes and awkward continuations stay in
 the transcription. Proposed software adjustments below do not authorize editing the rules or
-changing their page breaks, except for the approved faction-section pagination below.
+changing their page breaks, except for the approved pagination and contents omission below.
 A separate differences book can explain rules changes later.
 
 The page-design review on 2026-10-23 approved using the existing heading, icon and
@@ -20,6 +20,10 @@ Bene Gesserit continuation before starting Fremen. This removes the mixed-factio
 on source page 28 from the layout requirements. Preserve the source text and its order, while
 allowing faction-section page breaks and the resulting output page count to change. The
 transcripts and source-page identifiers remain unchanged.
+
+The review also approved omitting the printed table of contents from the Dune Zone book.
+Use the webapp's existing left navigator. Keep the contents in the source transcripts for
+reference. No contents Block, table presentation or printed-contents page-number work is needed.
 
 ## What exists today
 
@@ -72,7 +76,7 @@ printed layout being reconstructed.
 | Page | Existing material to reuse | Fidelity work or missing capability |
 | --- | --- | --- |
 | 1 | `cover`, source background image | Use the original cover. Disable generated title/logo/subtitle. Check full-page fit, cropping and the source's publisher logos. |
-| 2 | `outer-rail`, `text`, headings | Preface has a narrow left note and two main columns; Contents begins below it across the main area. Need main-area band composition and dotted-leader contents entries. |
+| 2 | `outer-rail`, `text`, headings | Retain the preface and margin quotation. Omit the printed Contents section; navigation uses the existing left navigator. No contents band or entries are required. |
 | 3 | `outer-rail`, `text`, `credits`, illustrations | Notes and Credits share a page; credits use a second arrangement below the notes. Preserve the expansion note and right-hand legal/logo material. |
 | 4 | `single-column`, four `faction-introduction` blocks | Match Atreides, Bene Gesserit, Emperor and Fremen bands, token/ruler/leader sizes and colored backgrounds. Verify every displayed label and roster against this edition. |
 | 5 | Two faction introductions, `section-heading`, two text columns | Guild/Harkonnen occupy the upper part, then Object of the Game begins below. Need a full-width opening with two lower columns, without an added page heading above the faction bands. |
@@ -132,7 +136,8 @@ against these layouts before treating a visual difference as a missing capabilit
 
 Source page 28 no longer requires a compound layout. Start Fremen on a new page after the
 Bene Gesserit continuation, using existing column/rail layouts for each faction.
-Pages 2, 3, 5, 7, 12, 13 and 20 remain composition candidates. First test the existing named
+Omitting the contents also removes page 2's lower band; use `outer-rail` for its preface and quotation.
+Pages 3, 5, 7, 12, 13 and 20 remain composition candidates. First test the existing named
 layouts and review any proposed simplification. Add a layout only if a required content
 arrangement remains unsupported. Keep that decision separate from the approved heading and
 page-number simplification.
@@ -181,11 +186,11 @@ Test exact source crops and token positions rather than assuming a new map Block
 
 ## Candidate new Blocks
 
-Two candidates remain after reuse and presentation changes. Neither is implemented here.
+One candidate remains after reuse and the approved presentation changes. It is not implemented here.
+Contents entries were removed from the requirements in favor of the existing left navigator.
 
 | Candidate | Source evidence | Why an existing kind does not quite cover it | Acceptance proof |
 | --- | --- | --- | --- |
-| Contents entries | Page 2, two columns under Contents, dotted leaders and authored page references | `reference-table` can store the words and numbers but has a header row and fixed table presentation. `text` can preserve the text but cannot align dotted leaders reliably. A contents-specific presentation on the existing table is another option. | Reproduce both source columns, ordering, indentation, headings and printed page numbers. Links may point at stable Page/Block identities without changing visible words. |
 | Compact illustrated arithmetic row | Page 26, forces with spice above and `2 + 1/2 + 1/2` or longer sums below | `piece-transfer` is a pair of groups, while battle Blocks compose plans. Neither stores one source image and authored strength per term with separators. A narrow extension to an existing illustrated-piece composition may be enough. | Reproduce the two source rows with the right force faces, spice token, source fraction glyphs and placement. No computed rule result or replacement explanation. |
 
 The component collage on page 7 does not automatically justify a new inventory Block. First
@@ -199,7 +204,7 @@ Keep these findings as separate comments on
 [GF9 2.0 ruleset, #2431](https://github.com/ndelangen/dunezone/issues/2431), so implementation
 decisions and evidence can accumulate independently.
 
-1. **Compound layouts to review.** Source pages 2, 3, 5, 7, 12, 13 and 20.
+1. **Compound layouts to review.** Source pages 3, 5, 7, 12, 13 and 20.
    Starting each faction on a new page removes source page 28's mixed-faction arrangement
    from the requirements. Review the other arrangements against the existing nine layouts. The page-design
    review approved existing headings, icons and page-number placement; those require no new
@@ -209,8 +214,8 @@ decisions and evidence can accumulate independently.
    23-27 and 29-33. Track exact artwork/crop inventory and durable source references. Page 6
    tests an `asset-explainer` label/connector adjustment; map pages test existing viewport and
    annotation support.
-3. **Contents Block or table presentation.** Page 2. Track dotted leaders, nested labels,
-   exact printed page numbers and optional invisible link behavior.
+3. **Contents omitted.** Closed by the review decision. Use the existing left navigator;
+   retain the printed contents only in the source transcripts.
 4. **Compact force arithmetic illustration.** Page 26. Track whether an existing piece
    Block can gain a narrow presentation or a new kind is needed. Keep the three wheel-window
    extracts as artwork unless an exact live rendering is proved.
@@ -247,7 +252,7 @@ Compare the cover, dense prose, cards, map crops, page 26 diagrams and faction c
 at readable scale. Check text selection and reading order separately from appearance.
 
 Publishable proof must include the rendered HTML and final PDF, all content from the 36 source
-pages, the approved faction page breaks, the intended
+pages except the omitted printed contents, the approved faction page breaks, the intended
 physical dimensions, no clipped text, resolved images and correct printed references. The
 existing [PDF capture contract](../../docs/technical/rulebook-pdf-capture.md) handles complete
 documents up to 100 Pages, so the source page count itself needs no new publication feature.

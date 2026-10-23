@@ -4,6 +4,9 @@ Working branch `norbert/gf9-2-0-ruleset` prepares [GF9 2.0 ruleset, #2431](https
 
 Start with the [reworked reading transcript](transcript-reworked.md). The [original working transcript](transcript.md) retains the OCR-oriented version. Then read the [transcription review](transcription-review.md) and [block audit](block-audit.md). The [differences plan](differences-plan.md) records how to prepare the second book without changing the first.
 
+Omit the printed table of contents from the Dune Zone book, as approved in the same review.
+Use the webapp's existing left navigator. The source transcripts retain the contents for reference.
+
 ## Source
 
 The user supplied `Dune 2026 Rulebook.pdf` on 22 October 2026 and reported that it came out the previous day. The retained [source.pdf](source.pdf) is byte-for-byte identical to that file. Its cover says `SECOND EDITION`. It has 36 image-only PDF pages, with no selectable text. Its embedded creation timestamp is 21 October 2026 at 22:02:17 CEST. That timestamp alone does not establish a publisher release date.
@@ -49,9 +52,9 @@ Retain the line breaks for checking against the photograph. Paragraph joins, emp
 
 ## Reconstruction work
 
-The [audit](block-audit.md#page-by-page-composition-plan) maps every source page. Most content can use existing text, list, illustration, card, callout and heading blocks. The page-design review approved existing headings, icons and page-number placement, so a separate page design is not required. Compound page arrangements and exact artwork sources remain to review. Contents entries on page 2 and force arithmetic on page 26 are candidate new blocks, with small extensions to existing blocks still worth testing first.
+The [audit](block-audit.md#page-by-page-composition-plan) maps every source page. Most content can use existing text, list, illustration, card, callout and heading blocks. The page-design review approved existing headings, icons and page-number placement, so a separate page design is not required. Compound page arrangements and exact artwork sources remain to review. The printed contents are omitted. Force arithmetic on page 26 remains a candidate new block, with a small extension to an existing block still worth testing first.
 
-Record decisions in the separate block comments on [#2431](https://github.com/ndelangen/dunezone/issues/2431). Prove the layout on pages 2, 7, 26 and 28 before committing to a general solution. Then compare every rendered page with its source at readable scale and check the exported PDF, text selection, reading order, images and overflow.
+Record decisions in the separate block comments on [#2431](https://github.com/ndelangen/dunezone/issues/2431). Test the remaining compositions with existing tools, especially page 7's components and page 26's force arithmetic. Then compare every rendered page with its source and the approved presentation changes, and check the exported PDF, text selection, reading order, images and overflow.
 
 This branch contains preparation documents and source evidence. It does not create an importable book, change the renderer or create or publish application records. Existing [GF9 content](../gf9/README.md) and its authoring files remain the earlier edition's work. Do not regenerate or replace them from this transcript.
 
