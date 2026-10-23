@@ -7,6 +7,10 @@ Start with the [reworked reading transcript](transcript-reworked.md). The [origi
 Omit the printed table of contents from the Dune Zone book, as approved in the same review.
 Use the webapp's existing left navigator. The source transcripts retain the contents for reference.
 
+Omit source page 7's complete component-inventory page/section from the online rulebook.
+The source PDF and transcripts retain it. No component collage or inventory reconstruction
+is required for the online edition.
+
 Build page 26's force-strength illustrations with existing piece Blocks and explain the
 arithmetic in text. Approximate their arrangement without adding a Block or renderer capability.
 
@@ -67,7 +71,7 @@ Retain the line breaks for checking against the photograph. Paragraph joins, emp
 
 The [audit](block-audit.md#page-by-page-composition-plan) maps every source page. Most content can use existing text, list, illustration, card, callout and heading blocks. The page-design review approved existing headings, icons and page-number placement, so a separate page design is not required. Compound page arrangements and artwork sources remain to review. The printed contents are omitted. Page 26's force arithmetic uses existing piece Blocks and explanatory text. Neither originally proposed new Block is required.
 
-Record decisions in the separate block comments on [#2431](https://github.com/ndelangen/dunezone/issues/2431). Test the remaining compositions with existing tools, especially page 7's components and page 26's force arithmetic. Then compare every rendered page with its source and the approved presentation changes, and check the exported PDF, text selection, reading order, images and overflow.
+Record decisions in the separate block comments on [#2431](https://github.com/ndelangen/dunezone/issues/2431). Test the remaining compositions with existing tools, including page 26's force arithmetic. Page 7's component inventory is omitted online. Compare every rendered page with its source and the approved presentation changes, and check the exported PDF, text selection, reading order, images and overflow.
 
 This branch contains preparation documents and source evidence. It does not create an importable book, change the renderer or create or publish application records. Existing [GF9 content](../gf9/README.md) and its authoring files remain the earlier edition's work. Do not regenerate or replace them from this transcript.
 

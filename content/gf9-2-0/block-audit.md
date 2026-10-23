@@ -8,7 +8,7 @@ notes, not replacement wording or an importable Rulebook.
 The target is one Dune Zone Page for each source page, in the same order, with the same words,
 examples, captions and printed references. Source mistakes and awkward continuations stay in
 the transcription. Proposed software adjustments below do not authorize editing the rules or
-changing their page breaks, except for the approved pagination and contents omission below.
+changing their page breaks, except for the approved pagination and omissions below.
 A separate differences book can explain rules changes later.
 
 The page-design review on 2026-10-23 approved using the existing heading, icon and
@@ -42,6 +42,12 @@ supply `Answer:` once. No compact variant or Q&A presentation change is required
 Use the existing `callout` Block for page 26's bordered Karama extracts. Preserve each title
 and its formatted rules text. Use the existing border and spacing; surrounding explanation
 stays in ordinary text Blocks. No new callout variant or renderer change is required.
+
+Omit source page 7's complete component-inventory section from the online rulebook, as
+approved in the review. It inventories the physical box contents. This removes its collage,
+deck inventory, token inventory and faction-specific component panel from online authoring.
+Keep the page in the source PDF and transcripts. No inventory layout or Block work is needed
+for this omitted section.
 
 ## What exists today
 
@@ -99,7 +105,7 @@ printed layout being reconstructed.
 | 4 | `single-column`, four `faction-introduction` blocks | Match Atreides, Bene Gesserit, Emperor and Fremen bands, token/ruler/leader sizes and colored backgrounds. Verify every displayed label and roster against this edition. |
 | 5 | Two faction introductions, `section-heading`, two text columns | Guild/Harkonnen occupy the upper part, then Object of the Game begins below. Need a full-width opening with two lower columns, without an added page heading above the faction bands. |
 | 6 | `asset-explainer`, `referenced-illustration`, `text` | Use the existing markers and legend for the board labels. Preserve labels and explanatory prose. Keep the Battle Wheel assembly illustration as a separate artwork item. No annotation capability change is required. |
-| 7 | `asset-explainer`, `card-group` fan, inventory and illustrations | Needs an upper faction-component illustration, lower deck list, narrow token column and shaded two-column faction-specific panel. Preserve the five numbered labels and printed component quantities. |
+| 7 | Omitted from the online rulebook | Drop the complete component-inventory page/section as approved. Retain it in the source PDF and transcripts. No collage, deck/token inventory or faction-specific component panel is required online. |
 | 8 | `two-columns`, `text`, numbered `list`, bottom illustration | Setup has source margin notes and an Atreides sheet extract along the bottom. Test a rail plus bottom band, and preserve the callout labels on the extract. |
 | 9 | Numbered `list` with icons, `text`, `wide-narrow` | Phase list has nine numbered icons and page references, with introductory text above. Match the first-player explanation and list indentation without inventing captions. |
 | 10 | `two-columns`, `text`, `board-scene` or original map extracts | Storm examples include circular/cropped board images and exact italic captions in the right column. Use the existing heading and icon, retaining the phase number and title. Preserve the margin note. |
@@ -155,7 +161,8 @@ against these layouts before treating a visual difference as a missing capabilit
 Source page 28 no longer requires a compound layout. Start Fremen on a new page after the
 Bene Gesserit continuation, using existing column/rail layouts for each faction.
 Omitting the contents also removes page 2's lower band; use `outer-rail` for its preface and quotation.
-Pages 3, 5, 7, 12, 13 and 20 remain composition candidates. First test the existing named
+Page 7's complete inventory section is omitted from the online rulebook.
+Pages 3, 5, 12, 13 and 20 remain composition candidates. First test the existing named
 layouts and review any proposed simplification. Add a layout only if a required content
 arrangement remains unsupported. Keep that decision separate from the approved heading and
 page-number simplification.
@@ -221,9 +228,8 @@ it remains readable. Use text if its exact overlapping position cannot be reprod
 that both diagrams distinguish the force types, show the correct counts and explain the same
 strength-3 loss requirement as the source. Exact plus-sign placement is not an acceptance condition.
 
-The component collage on page 7 does not automatically justify a new inventory Block. First
-test a page arrangement that places existing inventory/card/illustration blocks in the needed
-regions. The printed faction sheets on pages 27-33 likewise need source-faithful composition,
+The component inventory on page 7 is omitted from the online rulebook and needs no Block
+or layout work. The printed faction sheets on pages 27-33 still need source-faithful composition,
 not the generated roster behavior of `faction-introduction`.
 
 ## Separate issue comment groups
@@ -232,13 +238,14 @@ Keep these findings as separate comments on
 [GF9 2.0 ruleset, #2431](https://github.com/ndelangen/dunezone/issues/2431), so implementation
 decisions and evidence can accumulate independently.
 
-1. **Compound layouts to review.** Source pages 3, 5, 7, 12, 13 and 20.
+1. **Compound layouts to review.** Source pages 3, 5, 12, 13 and 20.
+   Page 7's component inventory is omitted from the online rulebook.
    Starting each faction on a new page removes source page 28's mixed-faction arrangement
    from the requirements. Review the other arrangements against the existing nine layouts. The page-design
    review approved existing headings, icons and page-number placement; those require no new
    capability. Demonstrate a content arrangement that existing layouts cannot express before
    proposing a layout addition.
-2. **Interior artwork sources and labelled diagrams.** Source pages 1, 4-7, 10-15, 17-19,
+2. **Interior artwork sources and labelled diagrams.** Source pages 1, 4-6, 10-15, 17-19,
    23-27 and 29-33. Track artwork/crop inventory and durable source references. Page 6 uses
    the approved existing `asset-explainer` markers and legend, with no connector changes.
    Map pages test existing viewport and annotation support.
@@ -247,9 +254,10 @@ decisions and evidence can accumulate independently.
 4. **Force arithmetic with existing Blocks.** Page 26. Use existing piece groups and labels,
    get the illustrations as close as those tools allow, and explain strength values and totals
    in text. No new Block or extension. Keep the wheel-window artwork decision separate.
-5. **Source-exact labels and compact explanations.** Pages 4-7, 11, 17-19 and 23-33. Track
+5. **Source-exact labels and compact explanations.** Pages 4-6, 11, 17-19 and 23-33. Track
    suppression of automatic `Quantity:`, source names and repeated labels. Q&A and the Karama
    extracts are settled: use the existing Q&A and callout Blocks without presentation changes.
+   The complete page-7 inventory is omitted online; it needs no inventory controls or labels.
 
 ## Later differences book
 
@@ -280,7 +288,8 @@ Compare the cover, dense prose, cards, map crops, page 26 diagrams and faction c
 at readable scale. Check text selection and reading order separately from appearance.
 
 Publishable proof must include the rendered HTML and final PDF, all content from the 36 source
-pages except the omitted printed contents, the approved faction page breaks, the intended
+pages except the approved omissions, including the printed contents and online component
+inventory, the approved faction page breaks, the intended
 physical dimensions, no clipped text, resolved images and correct printed references. The
 existing [PDF capture contract](../../docs/technical/rulebook-pdf-capture.md) handles complete
 documents up to 100 Pages, so the source page count itself needs no new publication feature.
