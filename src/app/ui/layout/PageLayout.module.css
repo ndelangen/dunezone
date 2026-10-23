@@ -138,12 +138,16 @@
   white-space: nowrap;
 }
 
+/*
+ * A page that puts a band of its own above the table workspace, as a tutorial chapter does, sets `--page-layout-fullscreen-top` to the band's height,
+ * and the workspace starts below it instead of under it.
+ */
 .layout[data-page-layout-height="fullscreen"] .content {
   position: fixed;
-  inset: 0;
+  inset: var(--page-layout-fullscreen-top, 0px) 0 0;
   width: 100vw;
-  height: 100vh;
-  height: 100dvh;
+  height: calc(100vh - var(--page-layout-fullscreen-top, 0px));
+  height: calc(100dvh - var(--page-layout-fullscreen-top, 0px));
   min-height: 0;
   gap: 0;
   overflow: hidden;

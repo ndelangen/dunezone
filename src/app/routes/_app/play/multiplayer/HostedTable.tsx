@@ -1058,7 +1058,7 @@ function ConnectedTable({
                 {/* While drafting a spectator asks with the (+) in the roster on the table, so the popover waits for play. */}
                 {stage !== 'drafting' && <SeatPopover client={client} table={table} error={error} />}
                 <GameMenu
-                  sharing={<GameLink address={identity.address} />}
+                  sharing={<GameLink address={identity.address} page={identity.page} />}
                   client={client}
                   table={table}
                   onClearConfetti={celebration.hasConfetti ? celebration.clear : undefined}
@@ -1110,7 +1110,17 @@ export default function HostedTable({
   const runtime = useContext(GameRuntimeContext);
   const here = useLocation({ select: (location) => location.href });
   const [client] = useState(
-    () => new TableSession(gameId, new GameSubscription(gameId, requestPlayAdmission, runtime, watchSeatPass), runtime)
+    () =>
+      new TableSession(
+        gameId,
+        new GameSubscription(
+          gameId,
+          runtime.admission?.request ?? requestPlayAdmission,
+          runtime,
+          runtime.admission ? runtime.admission.watchPass : watchSeatPass
+        ),
+        runtime
+      )
   );
   const view = useSyncExternalStore(client.subscribe, client.getSnapshot);
   useEffect(() => client.connect(), [client]);

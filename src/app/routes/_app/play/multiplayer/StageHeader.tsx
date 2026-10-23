@@ -12,7 +12,12 @@ import { StagePlayback } from './SeatRequests';
 import { SwappingReady, SwappingStatus } from './Swapping';
 import { stageInPlay } from './tableFactions';
 
-export type GameIdentity = Readonly<{ rulesetName: string | null; address: string }>;
+export type GameIdentity = Readonly<{
+  rulesetName: string | null;
+  address: string;
+  /** The page a shared link opens, when the table is not a game at `/play/<address>`, such as a tutorial chapter's. */
+  page?: string;
+}>;
 
 /** The header's control for the stage: its Ready, the phase controls in play, playback, or Continue playing once finished. */
 export function stageToolbar({

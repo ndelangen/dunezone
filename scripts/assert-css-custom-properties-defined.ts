@@ -33,6 +33,7 @@ const PROVIDED_ELSEWHERE = [
   ['--document-editor-', 'DocumentEditorLayout, via setProperty'],
   ['--editor-plane-width', 'the faction editor plane, via setProperty'],
   ['--brush-cursor', 'TabletopScene while the territory paintbrush is on, via inline style'],
+  ['--page-layout-fullscreen-top', 'TutorialGuide, which puts its band above a fullscreen page, via inline style'],
 ];
 
 const definitionsRoot = process.env.CSS_VAR_DEFINITIONS_ROOT ?? 'src';
