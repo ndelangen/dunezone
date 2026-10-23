@@ -861,6 +861,7 @@ export const MEDIA_MAP: Readonly<Record<string, MediaMapEntry>> = {
   '/image/rulebook-cover/desert-citadel.png': ['b9823ab5f8acc3661b3a', '#182838'],
   '/image/rulebook-cover/desert-lookout.png': ['f526995d0b274b1d2f24', '#182838'],
   '/image/rulebook-cover/dreamrules-rainbow.png': ['2e338d90d3955422622b', '#98c868'],
+  '/image/rulebook-cover/gf9-second-edition.png': ['8da5a080a1b1c07983aa', '#082848'],
   '/image/rulebook-cover/kiss-planet.png': ['2881652c9105d5b366be', '#082838'],
   '/image/rulebook-cover/military-assembly.png': ['47035579ab2c56a8e894', '#182848'],
   '/image/rulebook-cover/rock-passages.png': ['b038a4bb878ef7e4eef3', '#182838'],
