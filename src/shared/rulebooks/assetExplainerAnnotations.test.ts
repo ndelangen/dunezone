@@ -50,6 +50,14 @@ function block(): Explainer {
 }
 
 describe('AssetExplainer annotation projection', () => {
+  it('does not carry an emblem marker over to a sheet from the same faction', () => {
+    const example = block();
+    const emblem = { kind: 'faction', factionId: 'atreides' } as const;
+    example.source = { status: 'ready', reference: { ...emblem, presentation: 'sheet' }, name: 'Atreides sheet', imageUrl: '/vector/logo/atreides.svg' };
+    example.items = [{ id: 'OLD', label: '1', text: 'Emblem label', target: { kind: 'position', x: 0.5, y: 0.5, source: emblem } }];
+    expect(projectRulebookAssetExplainerAnnotations(example).entries[0]?.status).toBe('source-replaced');
+  });
+
   it('resolves current geometry and preserves positioned coordinates while numbers follow order', () => {
     const original = block();
     const before = projectRulebookAssetExplainerAnnotations(original);

@@ -36,6 +36,10 @@ async function resolveSource(ctx: QueryCtx, reference: RulebookSourceReference |
       : { status: 'unavailable' };
   }
   if (reference.kind === 'faction') {
+    /* Sheet illustrations are frozen native markup in saved HTML, not image composites. */
+    if (reference.presentation === 'sheet') {
+      return { status: 'unavailable' };
+    }
     const id = ctx.db.normalizeId('factions', reference.factionId);
     const faction = id ? await ctx.db.get('factions', id) : null;
     const parsed = faction && !faction.is_deleted ? CanonicalFactionStoredSchema.safeParse(faction.data) : null;

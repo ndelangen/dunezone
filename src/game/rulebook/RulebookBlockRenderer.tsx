@@ -9,6 +9,7 @@ import { FormattedText } from '../assets/utils/FormattedText';
 import { RulebookAssetExplainer } from './RulebookAssetExplainer';
 import { RulebookBattleComparisonBlock, RulebookBattleStep, RulebookBattlePlans } from './RulebookBattlePlan';
 import { RulebookBoardSceneBlock } from './RulebookBoardScene';
+import { RulebookFactionSheet } from './RulebookFactionSheet';
 import { RulebookPieceMovementBlock } from './RulebookPieceMovementBlock';
 import { RulebookPieceTransferBlock } from './RulebookPieceTransferBlock';
 import './RulebookRenderer.css';
@@ -88,7 +89,11 @@ function SourceVisual({ source }: Readonly<{ source: RulebookRenderSourceV1 }>) 
       data-source-clipped={clipPath ? true : undefined}
     >
       {source.status === 'ready' ? (
-        <img src={imageUrl} alt={source.name} width={source.width} height={source.height} style={{ clipPath }} />
+        source.sheet ? (
+          <RulebookFactionSheet sheet={source.sheet} />
+        ) : (
+          <img src={imageUrl} alt={source.name} width={source.width} height={source.height} style={{ clipPath }} />
+        )
       ) : (
         <div
           className={styles.sourceUnavailable}

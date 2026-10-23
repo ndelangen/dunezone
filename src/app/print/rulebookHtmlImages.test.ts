@@ -13,6 +13,7 @@ import { createRulebookStarterContents } from '../../shared/rulebooks/fixtures';
 import { projectRulebookRenderDocument } from '../../shared/rulebooks/projectRenderDocument';
 import { rulebookRenderDocumentV1Schema } from '../../shared/rulebooks/renderDocument';
 import { createRulebookRenderDocumentFixture } from '../../shared/rulebooks/renderDocument.fixture';
+import { rulebookFactionSheetSchema } from '../../shared/rulebooks/sources';
 import { rulebookHtmlImages } from './rulebookHtmlImages';
 import { renderRulebookHtmlDocument, rulebookRendererCss } from './rulebookHtmlRuntime';
 
@@ -21,6 +22,62 @@ const memberId = '10000000-1000-4000-8000-100000000001';
 const memberHref = publishedHref('faction-leader', factionMemberPublicationId(factionId, memberId));
 
 describe('downloaded Rulebook images', () => {
+  test('keeps a sheet and its annotation in standalone HTML instead of replacing it with an image endpoint', () => {
+    const contents = createRulebookStarterContents();
+    const reference = { kind: 'faction', factionId, presentation: 'sheet' } as const;
+    contents.pagesById.CHAP!.blocksById.HERA = {
+      id: 'HERA',
+      kind: 'asset-explainer',
+      source: reference,
+      caption: '',
+      numbering: 'automatic',
+      colorMode: 'automatic',
+      itemOrder: ['FREE'],
+      itemsById: {
+        FREE: {
+          id: 'FREE',
+          label: '1',
+          text: '2 free forces.',
+          target: { kind: 'named', key: 'revival', source: reference },
+        },
+      },
+    };
+    const document = projectRulebookRenderDocument(
+      contents,
+      {},
+      { size: 'square', design: 'restrained' },
+      {
+        [factionId]: {
+          factionId,
+          name: 'Atreides',
+          color: '#4b4c0d',
+          emblemUrl: assetPublishingFaction.logo,
+          sheet: rulebookFactionSheetSchema.parse(assetPublishingFaction),
+        },
+      }
+    );
+    const before = structuredClone(document);
+    const html = renderRulebookHtmlDocument({
+      document,
+      canonicalHref: 'https://dune.zone/book',
+      edition: { rulebookId: factionId, editionNumber: 2 },
+      title: 'Revival',
+      label: 'Revival',
+      style: rulebookRendererCss,
+    });
+    const parsed = parseHTML(html).document;
+    const sheet = parsed.querySelector('.rulebookFactionSheet')!;
+    expect(sheet.querySelector('[data-faction-revival]')?.textContent).toContain('2 troops free.');
+    expect(sheet.querySelector('svg.rulebookFactionSheetMarks line')).not.toBeNull();
+    expect(html).not.toContain('/blocks/HERA/illustration.svg');
+    expect(html).toContain('container-type: inline-size');
+    expect(
+      parsed.querySelector('use')?.getAttribute('href') ?? parsed.querySelector('use')?.getAttribute('xlink:href')
+    ).toMatch(/^#rulebook-token/);
+    expect(html).not.toContain('xlink:href="/vector/');
+    expect(document).toEqual(before);
+  });
+
   test('page title icons load in downloaded HTML without changing headings that have no icon', () => {
     const contents = createRulebookStarterContents();
     contents.pagesById.RULE!.headingIcon = '/vector/icon/storrm_standalone.svg';

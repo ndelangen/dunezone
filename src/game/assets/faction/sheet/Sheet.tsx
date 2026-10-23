@@ -1,5 +1,6 @@
 import type { FactionRender } from '@shared/factions/schema';
 import { factionSpecialRuleLabel } from '@shared/factions/specialRule';
+import type { CSSProperties } from 'react';
 import type { z } from 'zod';
 
 import { CAPTURE_PROTOCOL } from '../../../../shared/asset-publishing/capture-protocol';
@@ -12,30 +13,20 @@ import styles from './Sheet.module.css';
 
 type SheetProps = z.infer<typeof FactionRender.sheet>;
 
-export const FactionSheet = (props: SheetProps) => {
+export const FactionSheet = (props: SheetProps & { page?: 1 | 2 }) => {
   return (
-    <>
-      <style
-        dangerouslySetInnerHTML={{
-          __html: `
-            @property --header-bg-color {
-              syntax: "<color>";
-              inherits: false;
-              initial-value: ${props.themeColor};
-            }
-            @property --header-text-color {
-              syntax: "<color>";
-              inherits: false;
-              initial-value: ${isLight(props.themeColor) ? 'black' : 'white'};
-            }
-          `,
-        }}
-      />
-      <div className={styles.container}>
-        <FactionSheetPage1 {...props} />
-        <FactionSheetPage2 {...props} />
-      </div>
-    </>
+    <div
+      className={styles.container}
+      style={
+        {
+          '--header-bg-color': props.themeColor,
+          '--header-text-color': isLight(props.themeColor) ? 'black' : 'white',
+        } as CSSProperties
+      }
+    >
+      {props.page !== 2 ? <FactionSheetPage1 {...props} /> : null}
+      {props.page !== 1 ? <FactionSheetPage2 {...props} /> : null}
+    </div>
   );
 };
 
