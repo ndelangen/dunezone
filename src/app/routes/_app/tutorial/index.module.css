@@ -1,0 +1,86 @@
+/*
+ * The landing page's rows of chapter tiles.
+ * The rows are the page's rhythm, so they ask the page frame and step from one tile to two, three and five across; a part never holds more than five chapters.
+ */
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-md);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@container page-frame (width >= 30rem) {
+  .row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@container page-frame (width >= 48rem) {
+  .row {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@container page-frame (width >= 62rem) {
+  .row {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+.cell {
+  display: flex;
+  min-width: 0;
+}
+
+/* The picture runs to the pane's edges, so the pane clips it to its own corners. */
+.tile {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  overflow: hidden;
+}
+
+.art {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  max-width: 100%;
+  background: var(--color-ink);
+}
+
+.art img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.chips {
+  position: absolute;
+  inset-block-start: var(--space-xs);
+  inset-inline-end: var(--space-xs);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-xs);
+}
+
+/* The number takes the first column and both lines; the title and goal read beside it. */
+.words {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-content: start;
+  column-gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md) var(--space-md) var(--space-sm);
+}
+
+.number {
+  grid-row: span 2;
+  min-width: 1.4ch;
+  color: var(--color-brand);
+  font-family: var(--mantine-font-family-headings);
+  font-size: 1.6rem;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}

@@ -19,6 +19,7 @@ import { Route as AppJobsRouteRouteImport } from './routes/_app/[_]jobs.route'
 import { Route as AppImportsRouteRouteImport } from './routes/_app/imports.route'
 import { Route as AppMediaRouteRouteImport } from './routes/_app/media/route'
 import { Route as AppPlayRouteRouteImport } from './routes/_app/play/route'
+import { Route as AppTutorialRouteRouteImport } from './routes/_app/tutorial/route'
 import { Route as AuthOauthRouteRouteImport } from './routes/auth/oauth.route'
 import { Route as AppAdminAccountsRouteRouteImport } from './routes/_app/[_]admin/accounts.route'
 import { Route as AppAdminJobsRouteRouteImport } from './routes/_app/[_]admin/jobs.route'
@@ -45,6 +46,7 @@ import { Route as AppPrivacyIndexRouteImport } from './routes/_app/privacy/index
 import { Route as AppProfilesIndexRouteImport } from './routes/_app/profiles/index'
 import { Route as AppRulesetsIndexRouteImport } from './routes/_app/rulesets/index'
 import { Route as AppRulesetsCreateRouteRouteImport } from './routes/_app/rulesets/create.route'
+import { Route as AppTutorialIndexRouteImport } from './routes/_app/tutorial/index'
 import { Route as PreviewSheetFactionSlugRouteRouteImport } from './routes/preview/sheet/$factionSlug.route'
 import { Route as AppAssetsTypeIndexRouteImport } from './routes/_app/assets/$type/index'
 import { Route as AppBlogPostSlugIndexRouteImport } from './routes/_app/blog/$postSlug/index'
@@ -126,6 +128,11 @@ const AppMediaRouteRoute = AppMediaRouteRouteImport.update({
 const AppPlayRouteRoute = AppPlayRouteRouteImport.update({
   id: '/play',
   path: '/play',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppTutorialRouteRoute = AppTutorialRouteRouteImport.update({
+  id: '/tutorial',
+  path: '/tutorial',
   getParentRoute: () => AppRouteRoute,
 } as any)
 const AuthOauthRouteRoute = AuthOauthRouteRouteImport.update({
@@ -258,6 +265,11 @@ const AppRulesetsCreateRouteRoute = AppRulesetsCreateRouteRouteImport.update({
   id: '/rulesets/create',
   path: '/rulesets/create',
   getParentRoute: () => AppRouteRoute,
+} as any)
+const AppTutorialIndexRoute = AppTutorialIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppTutorialRouteRoute,
 } as any)
 const PreviewSheetFactionSlugRouteRoute =
   PreviewSheetFactionSlugRouteRouteImport.update({
@@ -463,6 +475,7 @@ export interface FileRoutesByFullPath {
   '/imports': typeof AppImportsRouteRoute
   '/media': typeof AppMediaRouteRouteWithChildren
   '/play': typeof AppPlayRouteRouteWithChildren
+  '/tutorial': typeof AppTutorialRouteRouteWithChildren
   '/auth/oauth': typeof AuthOauthRouteRoute
   '/_admin/accounts': typeof AppAdminAccountsRouteRoute
   '/_admin/jobs': typeof AppAdminJobsRouteRoute
@@ -490,6 +503,7 @@ export interface FileRoutesByFullPath {
   '/privacy/': typeof AppPrivacyIndexRoute
   '/profiles/': typeof AppProfilesIndexRoute
   '/rulesets/': typeof AppRulesetsIndexRoute
+  '/tutorial/': typeof AppTutorialIndexRoute
   '/contributing/code/$lesson': typeof AppContributingCodeLessonRouteRoute
   '/contributing/deployment/$lesson': typeof AppContributingDeploymentLessonRouteRoute
   '/contributing/design-decisions/$group': typeof AppContributingDesignDecisionsGroupRouteRoute
@@ -559,6 +573,7 @@ export interface FileRoutesByTo {
   '/privacy': typeof AppPrivacyIndexRoute
   '/profiles': typeof AppProfilesIndexRoute
   '/rulesets': typeof AppRulesetsIndexRoute
+  '/tutorial': typeof AppTutorialIndexRoute
   '/contributing/code/$lesson': typeof AppContributingCodeLessonRouteRoute
   '/contributing/deployment/$lesson': typeof AppContributingDeploymentLessonRouteRoute
   '/contributing/design-decisions/$group': typeof AppContributingDesignDecisionsGroupRouteRoute
@@ -603,6 +618,7 @@ export interface FileRoutesById {
   '/_app/imports': typeof AppImportsRouteRoute
   '/_app/media': typeof AppMediaRouteRouteWithChildren
   '/_app/play': typeof AppPlayRouteRouteWithChildren
+  '/_app/tutorial': typeof AppTutorialRouteRouteWithChildren
   '/auth/oauth': typeof AuthOauthRouteRoute
   '/_app/': typeof AppIndexRoute
   '/_app/_admin/accounts': typeof AppAdminAccountsRouteRoute
@@ -631,6 +647,7 @@ export interface FileRoutesById {
   '/_app/privacy/': typeof AppPrivacyIndexRoute
   '/_app/profiles/': typeof AppProfilesIndexRoute
   '/_app/rulesets/': typeof AppRulesetsIndexRoute
+  '/_app/tutorial/': typeof AppTutorialIndexRoute
   '/_app/contributing/code/$lesson': typeof AppContributingCodeLessonRouteRoute
   '/_app/contributing/deployment/$lesson': typeof AppContributingDeploymentLessonRouteRoute
   '/_app/contributing/design-decisions/$group': typeof AppContributingDesignDecisionsGroupRouteRoute
@@ -676,6 +693,7 @@ export interface FileRouteTypes {
     | '/imports'
     | '/media'
     | '/play'
+    | '/tutorial'
     | '/auth/oauth'
     | '/_admin/accounts'
     | '/_admin/jobs'
@@ -703,6 +721,7 @@ export interface FileRouteTypes {
     | '/privacy/'
     | '/profiles/'
     | '/rulesets/'
+    | '/tutorial/'
     | '/contributing/code/$lesson'
     | '/contributing/deployment/$lesson'
     | '/contributing/design-decisions/$group'
@@ -772,6 +791,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/profiles'
     | '/rulesets'
+    | '/tutorial'
     | '/contributing/code/$lesson'
     | '/contributing/deployment/$lesson'
     | '/contributing/design-decisions/$group'
@@ -815,6 +835,7 @@ export interface FileRouteTypes {
     | '/_app/imports'
     | '/_app/media'
     | '/_app/play'
+    | '/_app/tutorial'
     | '/auth/oauth'
     | '/_app/'
     | '/_app/_admin/accounts'
@@ -843,6 +864,7 @@ export interface FileRouteTypes {
     | '/_app/privacy/'
     | '/_app/profiles/'
     | '/_app/rulesets/'
+    | '/_app/tutorial/'
     | '/_app/contributing/code/$lesson'
     | '/_app/contributing/deployment/$lesson'
     | '/_app/contributing/design-decisions/$group'
@@ -953,6 +975,13 @@ declare module '@tanstack/react-router' {
       path: '/play'
       fullPath: '/play'
       preLoaderRoute: typeof AppPlayRouteRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/tutorial': {
+      id: '/_app/tutorial'
+      path: '/tutorial'
+      fullPath: '/tutorial'
+      preLoaderRoute: typeof AppTutorialRouteRouteImport
       parentRoute: typeof AppRouteRoute
     }
     '/auth/oauth': {
@@ -1136,6 +1165,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/rulesets/create'
       preLoaderRoute: typeof AppRulesetsCreateRouteRouteImport
       parentRoute: typeof AppRouteRoute
+    }
+    '/_app/tutorial/': {
+      id: '/_app/tutorial/'
+      path: '/'
+      fullPath: '/tutorial/'
+      preLoaderRoute: typeof AppTutorialIndexRouteImport
+      parentRoute: typeof AppTutorialRouteRoute
     }
     '/preview/sheet/$factionSlug': {
       id: '/preview/sheet/$factionSlug'
@@ -1410,6 +1446,17 @@ const AppPlayRouteRouteWithChildren = AppPlayRouteRoute._addFileChildren(
   AppPlayRouteRouteChildren,
 )
 
+interface AppTutorialRouteRouteChildren {
+  AppTutorialIndexRoute: typeof AppTutorialIndexRoute
+}
+
+const AppTutorialRouteRouteChildren: AppTutorialRouteRouteChildren = {
+  AppTutorialIndexRoute: AppTutorialIndexRoute,
+}
+
+const AppTutorialRouteRouteWithChildren =
+  AppTutorialRouteRoute._addFileChildren(AppTutorialRouteRouteChildren)
+
 interface AppRouteRouteChildren {
   AppSplatRouteRoute: typeof AppSplatRouteRoute
   App_iconsRouteRoute: typeof App_iconsRouteRoute
@@ -1419,6 +1466,7 @@ interface AppRouteRouteChildren {
   AppImportsRouteRoute: typeof AppImportsRouteRoute
   AppMediaRouteRoute: typeof AppMediaRouteRouteWithChildren
   AppPlayRouteRoute: typeof AppPlayRouteRouteWithChildren
+  AppTutorialRouteRoute: typeof AppTutorialRouteRouteWithChildren
   AppIndexRoute: typeof AppIndexRoute
   AppAdminAccountsRouteRoute: typeof AppAdminAccountsRouteRoute
   AppAdminJobsRouteRoute: typeof AppAdminJobsRouteRoute
@@ -1483,6 +1531,7 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppImportsRouteRoute: AppImportsRouteRoute,
   AppMediaRouteRoute: AppMediaRouteRouteWithChildren,
   AppPlayRouteRoute: AppPlayRouteRouteWithChildren,
+  AppTutorialRouteRoute: AppTutorialRouteRouteWithChildren,
   AppIndexRoute: AppIndexRoute,
   AppAdminAccountsRouteRoute: AppAdminAccountsRouteRoute,
   AppAdminJobsRouteRoute: AppAdminJobsRouteRoute,
