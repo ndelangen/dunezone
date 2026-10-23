@@ -6,6 +6,8 @@ import type { CSSProperties, ReactNode } from 'react';
 import { Vector3 } from 'three';
 import type { Camera, Vector3Tuple } from 'three';
 
+import { guideArrowPath } from './guideArrow';
+import type { GuideArrow } from './guideArrow';
 import styles from './TutorialGuide.module.css';
 
 /*
@@ -75,35 +77,26 @@ function place(anchor: GuideAnchor): { x: number; y: number } | null {
   return { x: box.left + ((projected.x + 1) / 2) * box.width, y: box.top + ((1 - projected.y) / 2) * box.height };
 }
 
-/* The arrow stops short of its point by this much, so its tip, not its middle, lands on the part. */
-const ARROW_TIP_GAP = 16;
-
-/* Draws the arrow from the band to a spot on the page, or hides it. */
 type Spot = { x: number; y: number };
 
-function aim(group: SVGGElement | null, from: Spot, spot: Spot | null) {
-  if (!group) {
+/*
+ * Points the band's arrow from its lower edge toward a spot, or hides it.
+ * The arrow leaves the band partway between the task's number and the spot, so it reads as coming from the instruction.
+ */
+function aim(path: SVGPathElement | null, arrow: GuideArrow, badge: DOMRect, band: DOMRect, spot: Spot | null) {
+  if (!path) {
     return;
   }
-  group.style.display = spot ? '' : 'none';
-  if (!spot) {
-    return;
-  }
-  const length = Math.hypot(spot.x - from.x, spot.y - from.y);
-  const share = length > ARROW_TIP_GAP ? (length - ARROW_TIP_GAP) / length : 0;
-  const end = {
-    x: from.x + (spot.x - from.x) * share,
-    y: from.y + (spot.y - from.y) * share,
+  const margin = 60;
+  const root = {
+    x: Math.min(band.right - margin, Math.max(band.left + margin, (badge.left + badge.width / 2 + (spot?.x ?? 0)) / 2)),
+    y: band.bottom,
   };
-  for (const line of group.querySelectorAll('line')) {
-    line.setAttribute('x1', `${from.x}`);
-    line.setAttribute('y1', `${from.y}`);
-    line.setAttribute('x2', `${end.x}`);
-    line.setAttribute('y2', `${end.y}`);
+  const outline = spot ? guideArrowPath(arrow, root, spot) : null;
+  path.style.display = outline ? '' : 'none';
+  if (outline) {
+    path.setAttribute('d', outline);
   }
-  const ring = group.querySelector('circle')!;
-  ring.setAttribute('cx', `${spot.x}`);
-  ring.setAttribute('cy', `${spot.y}`);
 }
 
 /**
@@ -117,6 +110,7 @@ export function TutorialGuide({
   tasks,
   onReset,
   chaptersLink,
+  arrow = 'wedge',
   children,
 }: Readonly<{
   number: number;
@@ -125,13 +119,15 @@ export function TutorialGuide({
   onReset: () => void;
   /** Renders the way back to the chapter list, as a router link on the page and a plain one in a story. */
   chaptersLink: (props: object) => ReactNode;
+  arrow?: GuideArrow;
   children: ReactNode;
 }>) {
   const [current, setCurrent] = useState(0);
   const [run, setRun] = useState(0);
   /* Which task, in which run, the player has just done; its tick shows until the next task starts. */
   const [doneKey, setDoneKey] = useState<string | null>(null);
-  const arrow = useRef<SVGGElement>(null);
+  const outline = useRef<SVGPathElement>(null);
+  const band = useRef<HTMLElement>(null);
   const step = useRef<HTMLSpanElement>(null);
   const task = tasks[current];
   const finished = doneKey === `${run}:${current}`;
@@ -151,10 +147,11 @@ export function TutorialGuide({
     const tick = () => {
       frame = requestAnimationFrame(tick);
       const view = { camera: tableView()?.camera ?? null };
-      /* The arrow leaves the band under the task's number, so it reads as coming from the instruction. */
       const badge = step.current?.getBoundingClientRect();
-      const from = badge ? { x: badge.left + badge.width / 2, y: badge.bottom + 2 } : { x: 0, y: 0 };
-      aim(arrow.current, from, doneAt === null && badge ? place(task.anchor) : null);
+      const edge = band.current?.getBoundingClientRect();
+      if (badge && edge) {
+        aim(outline.current, arrow, badge, edge, doneAt === null ? place(task.anchor) : null);
+      }
       if (!started) {
         if (!view.camera) {
           return;
@@ -183,7 +180,7 @@ export function TutorialGuide({
         task.finish?.(baseline as never);
       }
     };
-  }, [task, run, current]);
+  }, [task, run, current, arrow]);
 
   const reset = () => {
     onReset();
@@ -193,72 +190,57 @@ export function TutorialGuide({
 
   return (
     <div className={styles.frame} style={{ '--page-layout-fullscreen-top': BAND_HEIGHT } as CSSProperties}>
-      <header className={styles.band} aria-label={`Chapter ${number}: ${title}`}>
-        <div className={styles.chapter}>
-          <Text size="xs" fw={700} tt="uppercase" c="dimmed">
-            Chapter {number}
-          </Text>
-          <Text fw={700}>{title}</Text>
-        </div>
-        <div className={styles.task} aria-live="polite">
-          {task ? (
-            <>
-              <span ref={step} className={styles.step} data-done={finished || undefined}>
-                {finished ? <Check size={16} aria-hidden /> : current + 1}
-              </span>
-              <div>
-                <Text fw={700}>{task.task}</Text>
-                <Text size="sm" c="dimmed">
-                  {task.detail}
-                </Text>
-              </div>
-            </>
-          ) : (
-            <>
-              <span className={styles.step} data-done>
-                <Check size={16} aria-hidden />
-              </span>
-              <div>
-                <Text fw={700}>Chapter done</Text>
-                <Text size="sm" c="dimmed">
-                  You know your way around the table. Pick the next chapter, or reset to try again.
-                </Text>
-              </div>
-            </>
-          )}
-        </div>
-        <Group gap="xs" wrap="nowrap">
-          <Text size="sm" c="dimmed" className={styles.count}>
-            {Math.min(current + 1, tasks.length)} of {tasks.length}
-          </Text>
-          <Button variant="default" size="xs" leftSection={<RotateCcw size={14} aria-hidden />} onClick={reset}>
-            Reset
-          </Button>
-          <Button variant="default" size="xs" renderRoot={chaptersLink}>
-            Back to chapters
-          </Button>
-        </Group>
-      </header>
-      <svg className={styles.arrows} aria-hidden>
-        <defs>
-          <marker
-            id="tutorial-arrowhead"
-            viewBox="0 0 10 10"
-            refX="7"
-            refY="5"
-            markerWidth="4"
-            markerHeight="4"
-            orient="auto"
-          >
-            <path d="M0 0 L10 5 L0 10 z" className={styles.head} />
-          </marker>
-        </defs>
-        <g ref={arrow} data-tutorial-pointer style={{ display: 'none' }}>
-          <line className={styles.casing} />
-          <line className={styles.shaft} markerEnd="url(#tutorial-arrowhead)" />
-          <circle className={styles.ring} r="18" />
-        </g>
-      </svg>
+      <div className={styles.guide}>
+        <svg className={styles.arrows} aria-hidden>
+          <path ref={outline} className={styles.arrow} data-tutorial-pointer style={{ display: 'none' }} />
+        </svg>
+        <header ref={band} className={styles.band} aria-label={`Chapter ${number}: ${title}`}>
+          <div className={styles.chapter}>
+            <Text size="xs" fw={700} tt="uppercase" c="dimmed">
+              Chapter {number}
+            </Text>
+            <Text fw={700}>{title}</Text>
+          </div>
+          <div className={styles.task} aria-live="polite">
+            {task ? (
+              <>
+                <span ref={step} className={styles.step} data-done={finished || undefined}>
+                  {finished ? <Check size={16} aria-hidden /> : current + 1}
+                </span>
+                <div>
+                  <Text fw={700}>{task.task}</Text>
+                  <Text size="sm" c="dimmed">
+                    {task.detail}
+                  </Text>
+                </div>
+              </>
+            ) : (
+              <>
+                <span className={styles.step} data-done>
+                  <Check size={16} aria-hidden />
+                </span>
+                <div>
+                  <Text fw={700}>Chapter done</Text>
+                  <Text size="sm" c="dimmed">
+                    You know your way around the table. Pick the next chapter, or reset to try again.
+                  </Text>
+                </div>
+              </>
+            )}
+          </div>
+          <Group gap="xs" wrap="nowrap">
+            <Text size="sm" c="dimmed" className={styles.count}>
+              {Math.min(current + 1, tasks.length)} of {tasks.length}
+            </Text>
+            <Button variant="default" size="xs" leftSection={<RotateCcw size={14} aria-hidden />} onClick={reset}>
+              Reset
+            </Button>
+            <Button variant="default" size="xs" renderRoot={chaptersLink}>
+              Back to chapters
+            </Button>
+          </Group>
+        </header>
+      </div>
       {children}
     </div>
   );
