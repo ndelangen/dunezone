@@ -65,7 +65,7 @@
         "operation": "Trace the four coin silhouettes and their cutout symbols from the perspective-corrected card photograph.",
         "referenceCrop": "references/solaris.png"
       },
-      "review": "User suggested upscaling before tracing. Revised draft prepared for comparison; user approval is pending.",
+      "review": "Current portrait, engraving and bitmap-matched palette accepted for release on 23 October 2026. Better images may justify a later revision.",
       "reconstruction": {
         "coins": [
           {
@@ -157,8 +157,10 @@
           "sourceCommit": "ca8b3dec2ed",
           "sha256": "3e089eedc0e86f95df22e5225ae49d4572683bbaf900819e088fdb924d397cde"
         },
-        "review": "Star accepted. Portrait uses less smoothing and fuller source features, with gently curved collar grooves. Portrait revision awaits visual approval."
-      }
+        "review": "Current portrait with fuller source details and gently curved collar grooves accepted for release."
+      },
+      "approvedSourceHash": "552e3fffa5c46114f4a4c9b55aa118077dc4d9c85ef4c16c31c8984f37e7fa94",
+      "approval": "User approved adding this vector on 23 October 2026."
     },
     {
       "assetKey": "/vector/decal/little-maker.svg",
@@ -180,7 +182,8 @@
         "gaussianBlurPixelsAfterUpscale": 1
       },
       "tracingArguments": ["--svg", "--turdsize", "6", "--alphamax", "1.2", "--opttolerance", "0.25", "--flat"],
-      "approval": "User said Little Maker is good on 23 October 2026; keep this artwork unchanged."
+      "approval": "User approved adding this vector on 23 October 2026.",
+      "approvedSourceHash": "19bc11a22a3fa827c651cf669b660c6dab2f846e3fa9a1b8775adfa845bcb2f2"
     },
     {
       "assetKey": "/vector/decal/karama-2-0.svg",
@@ -271,7 +274,9 @@
           "request": "User requested thicker dune lines.",
           "scope": "Increase the width around the same centreline curves in both Karama and the standalone decal. Preserve tapered ends and enclosed gaps."
         }
-      }
+      },
+      "approvedSourceHash": "da0cdd22a40647febca3049bf11016709f982f5e03a902eef2961e96b5b15631",
+      "approval": "User approved adding this vector on 23 October 2026."
     },
     {
       "assetKey": "/vector/decal/little-maker-multicolor.svg",
@@ -296,7 +301,8 @@
         "minimumDarkComponentNativePixels": 8,
         "preserveNativeRegion": [120, 60, 290, 160]
       },
-      "approval": "User said Little Maker is good on 23 October 2026; keep this artwork unchanged."
+      "approval": "User approved adding this vector on 23 October 2026.",
+      "approvedSourceHash": "a082f9eeb55e33ef4e5ca9b3f9a69192239fe6eb7ef147d25ef69ef55c54f1d0"
     },
     {
       "assetKey": "/vector/decal/dune-ridgelines.svg",
@@ -305,7 +311,8 @@
         "sha256": "da0cdd22a40647febca3049bf11016709f982f5e03a902eef2961e96b5b15631"
       },
       "operation": "Extract the approved glyph subpaths from ray-east, excluding the kite body. Preserve all contours and internal spaces; fit the viewBox to the glyph bounds.",
-      "approval": "User requested a separate new vector after approving the refined hills."
+      "approval": "User approved adding this vector on 23 October 2026.",
+      "approvedSourceHash": "1ce31687937ae035c888e09c700ae2061bb268cd3b539db1f8530d1792138aca"
     },
     {
       "assetKey": "/vector/decal/solaris-multicolor.svg",
@@ -316,14 +323,20 @@
         "engravingAndRimBands": "#f2edc2"
       },
       "limitation": "The sampled palette reflects the supplied bitmap; it does not measure the physical print inks.",
-      "approval": "Star accepted. Portrait refinement awaits visual approval; bitmap-matched palette retained.",
+      "approval": "User approved adding this vector on 23 October 2026.",
       "paletteSampling": {
         "source": "references/solaris-sheet.png",
         "region": [10, 4, 209, 66],
         "darkPixels": "Mean RGB below 55",
         "palePixels": "Mean RGB between 185 and 235",
         "method": "Median RGB in each selected pixel group"
-      }
+      },
+      "approvedSourceHash": "c17cee2ce5ac915879979057169363c451c19611c486464681dfbc80b9b29952"
     }
-  ]
+  ],
+  "approval": {
+    "date": "2026-10-23",
+    "scope": "All six new stock vectors, including both Solaris and Little Maker colour variants.",
+    "decision": "User accepted the current artwork and authorized adding the vectors. Retain references and working checkpoints for a future pass if better source images become available."
+  }
 }

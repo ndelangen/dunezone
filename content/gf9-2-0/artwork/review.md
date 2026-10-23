@@ -1,12 +1,12 @@
 # GF9 2.0 decal review
 
-Reviewed the artwork against the supplied card photographs and deck sheets on 23 October 2026. The [reference crops](references) and [provenance](provenance.json) identify the source material. Little Maker is approved. Karama 2.0 now starts from a clone of the [existing Karama vector](../../../media/vector/icon/karama.svg), preserving its native glyph contours. The older asset remains unchanged.
+Reviewed the artwork against the supplied card photographs and deck sheets on 23 October 2026. The [reference crops](references) and [provenance](provenance.json) identify the source material. The user approved all six new vectors for addition on 23 October 2026. Better source images may justify another pass later. Keep the reference crops and working checkpoints. Karama 2.0 now starts from a clone of the [existing Karama vector](../../../media/vector/icon/karama.svg), preserving its native glyph contours. The older asset remains unchanged.
 
 | Artwork | Findings | Changes |
 | --- | --- | --- |
 | Karama 2.0 | Tracing the scan distorted the glyphs and obscured the repeated construction. The existing vector already contains seven of the required ray symbols as clean paths. | Clone that vector, retain those contours, and change the geometric construction and two changed symbols as described below. |
 | Little Maker | The first threshold merged the olive engraved band with the dark frame, weakened the pale mouth contour and produced a notch in the left frame. | Refine the monochrome trace with subpixel smoothing and a threshold that preserves the narrow pale contours. Add a multicolour partner with separate dark ink, olive band and pale water. Remove isolated dark texture specks outside the worm, while retaining the small mouth marks. |
-| Solaris | All four coin faces, their rim strokes, the planet's small marks, the star, the animal head and the human profile are present. Some fine engraving follows the softness of the photograph. | Retain the existing trace. Further smoothing softened the engraving without revealing a missing motif. |
+| Solaris | All four coin faces, their rim strokes, the planet's small marks, the star, the animal head and the human profile are present. Some fine engraving follows the softness of the photograph. | Combine the native planet and lion paths with smooth coin rims, the accepted star and the fuller source-traced portrait described below. |
 
 ## Karama construction and changes
 
@@ -23,7 +23,7 @@ The existing vector separates eight kite-shaped rays, a central octagon and eigh
 
 Each ray is a rotated copy of the same kite geometry, with slightly shorter diagonal tips. The enlarged original octagon fills the centre. Both circular boundaries remain separate path components. Their exposed arcs stop at the kite edges, preserving the transparent glyphs. The middle symbol is a circular ring. There are no independent triangle cutouts.
 
-Both dark circles are part of Karama's motif. The faint circle beyond them and the long radial lines are shared card background guides and stay out of the decal. The vector remains a working reconstruction for visual review against the card, with the retained glyphs providing the starting geometry.
+Both dark circles are part of Karama's motif. The faint circle beyond them and the long radial lines are shared card background guides and stay out of the decal. The accepted vector reconstructs the card motif, with the retained glyphs providing the starting geometry.
 
 The user accepted this construction and requested [variant A](variants/karama-2-0-A.svg) as a recoverable checkpoint. That file is byte-for-byte identical to the decal at commit `aa500f5b587`. Subsequent changes affect only the hills inside the eastern point. The bitmap shows thin, irregular ridgelines, with unequal peaks and tapered ends. The current refinement uses curved contours in place of variant A's thick regular zigzag. Every other path component remains unchanged.
 
@@ -31,7 +31,7 @@ Little Maker's multicolour palette approximates the supplied deck sheet. Its pal
 
 Solaris now combines native vector artwork with source-traced details. The planet reuses [Stormworld](../../../media/vector/generic/stormworld.svg), and the lion reuses the [Emperor logo](../../../media/vector/logo/emperor.svg). Both are projected into smooth elliptical coin faces. The star is accepted and remains unchanged. The portrait now keeps more of the source contour and its fuller brow, eye, cheek and chin marks. Smoothing is reduced, and the collar grooves use gentler curves. The supplied [Emperor portrait](references/emperor-portrait.png) guides the facial character and collar without establishing the identity of the coin portrait. The coin rims are separate smooth arcs, with transparent gaps. The [upscaled trace](variants/solaris-upscaled-trace.svg) and [earlier trace](variants/solaris-before-upscale.svg) remain available for comparison.
 
-The separate [multicolour Solaris](../../../media/vector/decal/solaris-multicolor.svg) uses the same refined geometry with near-black faces and opaque pale cream engraving and rim bands, following the supplied deck-sheet bitmap. The previous gold interpretation was rejected by the user. The star is accepted; the revised portrait awaits visual approval.
+The separate [multicolour Solaris](../../../media/vector/decal/solaris-multicolor.svg) uses the same refined geometry with near-black faces and opaque pale cream engraving and rim bands, following the supplied deck-sheet bitmap. The previous gold interpretation was rejected by the user. The user accepted the current star, portrait and palette for release.
 
 The Karama rebuild passed all 20 media catalogue tests, vector generation and validation, and the publisher build with its HTML runtime check. Rendered comparisons covered the existing vector, the 2.0 card artwork and the rebuilt file, including dark backgrounds and widths of 64, 128 and 256 pixels. The original Karama asset and both Little Maker files remain unchanged.
 
