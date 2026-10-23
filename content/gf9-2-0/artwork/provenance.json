@@ -139,9 +139,15 @@
           ],
           "scale": [0.59, 0.49],
           "translation": [107.1, 74.3],
-          "strokeWidths": [0.54, 0.49]
+          "strokeWidths": [0.972, 0.882]
         },
-        "approval": "User approved the refined hills and requested their use in the new Karama card and as a separate vector."
+        "approval": "User approved the refined hills and requested their use in the new Karama card and as a separate vector.",
+        "widthAdjustment": {
+          "factor": 1.8,
+          "previousStrokeWidths": [0.54, 0.49],
+          "request": "User requested thicker dune lines.",
+          "scope": "Increase the width around the same centreline curves in both Karama and the standalone decal. Preserve tapered ends and enclosed gaps."
+        }
       }
     },
     {
@@ -173,7 +179,7 @@
       "assetKey": "/vector/decal/dune-ridgelines.svg",
       "source": {
         "assetKey": "/vector/decal/karama-2-0.svg",
-        "sha256": "c1029a741104d6a18e7b9abcf47fed6a54a6c46fd2728b1cf89b216cdd24c722"
+        "sha256": "da0cdd22a40647febca3049bf11016709f982f5e03a902eef2961e96b5b15631"
       },
       "operation": "Extract the approved glyph subpaths from ray-east, excluding the kite body. Preserve all contours and internal spaces; fit the viewBox to the glyph bounds.",
       "approval": "User requested a separate new vector after approving the refined hills."

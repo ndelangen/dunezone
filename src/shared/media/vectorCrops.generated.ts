@@ -130,7 +130,7 @@ export const VECTOR_CROPS = {
   '/vector/decal/dune-freight-sled.svg': [50.06, 47.480000000000004, 95.84, 44.54],
   '/vector/decal/dune-listener-multicolor.svg': [53.225, 50.33, 59.79, 55.04],
   '/vector/decal/dune-listener.svg': [53.225, 50.33, 59.79, 55.04],
-  '/vector/decal/dune-ridgelines.svg': [50, 50, 100, 17.78],
+  '/vector/decal/dune-ridgelines.svg': [50, 50, 100, 19.16],
   '/vector/decal/dune-skimmer-multicolor.svg': [50.455, 49.915, 91.37, 64.85],
   '/vector/decal/dune-skimmer-scene.svg': [50.129999999999995, 49.945, 90.72, 63.49],
   '/vector/decal/dune-skimmer.svg': [61.004999999999995, 49.905, 68.97, 63.41],

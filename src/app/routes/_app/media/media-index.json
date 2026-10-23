@@ -10755,7 +10755,7 @@
     "description": "Eight-ray star with triangular gaps, two circles and a central ring.",
     "tags": ["Karama", "GF9 2.0", "second edition", "star", "eye", "vector", "hills", "dunes", "ridgelines"],
     "subjects": ["symbols"],
-    "sourceHash": "c1029a741104d6a18e7b9abcf47fed6a54a6c46fd2728b1cf89b216cdd24c722"
+    "sourceHash": "da0cdd22a40647febca3049bf11016709f982f5e03a902eef2961e96b5b15631"
   },
   "/vector/decal/little-maker-multicolor.svg": {
     "description": "Dark worm in pale water, within an olive basin.",
@@ -10778,6 +10778,6 @@
     "description": "Thin, overlapping dune ridgelines.",
     "tags": ["hills", "dunes", "mountains", "ridgelines", "Karama", "vector"],
     "subjects": ["places"],
-    "sourceHash": "a4c78da9f3a9931bbf82fce5b0829c1a04c5238b1ee0f325e2df9e343ec72576"
+    "sourceHash": "1ce31687937ae035c888e09c700ae2061bb268cd3b539db1f8530d1792138aca"
   }
 }
