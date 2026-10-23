@@ -7,6 +7,7 @@ import { Vector3 } from 'three';
 import type { Camera, Vector3Tuple } from 'three';
 
 import { guideShapePath } from './guideArrow';
+import type { Target } from './guideArrow';
 import styles from './TutorialGuide.module.css';
 
 /*
@@ -58,10 +59,12 @@ function tableView(): { camera: Camera; canvas: HTMLCanvasElement } | null {
   return null;
 }
 
-function place(anchor: GuideAnchor): { x: number; y: number } | null {
+function place(anchor: GuideAnchor): Target | null {
   if (anchor.kind === 'page') {
     const box = anchor.element()?.getBoundingClientRect();
-    return box && box.width > 0 ? { x: box.left + box.width / 2, y: box.top + box.height / 2 } : null;
+    return box && box.width > 0
+      ? { x: box.left + box.width / 2, y: box.top + box.height / 2, halfWidth: box.width / 2, halfHeight: box.height / 2 }
+      : null;
   }
   const view = tableView();
   const point = anchor.point();
@@ -73,16 +76,19 @@ function place(anchor: GuideAnchor): { x: number; y: number } | null {
   if (projected.z > 1 || Math.abs(projected.x) > 1 || Math.abs(projected.y) > 1) {
     return null;
   }
-  return { x: box.left + ((projected.x + 1) / 2) * box.width, y: box.top + ((1 - projected.y) / 2) * box.height };
+  return {
+    x: box.left + ((projected.x + 1) / 2) * box.width,
+    y: box.top + ((1 - projected.y) / 2) * box.height,
+    halfWidth: 0,
+    halfHeight: 0,
+  };
 }
-
-type Spot = { x: number; y: number };
 
 /*
  * Redraws the band's outline, with its arrow toward a spot when there is one.
  * The arrow leaves the band partway between the task's number and the spot, so it reads as coming from the instruction.
  */
-function aim(paths: readonly (SVGPathElement | null)[], badge: DOMRect, band: DOMRect, spot: Spot | null) {
+function aim(paths: readonly (SVGPathElement | null)[], badge: DOMRect, band: DOMRect, spot: Target | null) {
   const margin = 60;
   const root = {
     x: Math.min(band.right - margin, Math.max(band.left + margin, (badge.left + badge.width / 2 + (spot?.x ?? 0)) / 2)),

@@ -7,6 +7,8 @@
 
 export type Point = Readonly<{ x: number; y: number }>;
 export type Edges = Readonly<{ left: number; right: number; bottom: number }>;
+/** Where the arrow points: a spot, and the half size of the thing there, so the gap is kept from its edge, not its middle. */
+export type Target = Readonly<{ x: number; y: number; halfWidth: number; halfHeight: number }>;
 
 /* Half the wedge's width where it leaves the band, measured along the band's edge. */
 const ROOT = 34;
@@ -19,8 +21,8 @@ const FILLET = 22;
 /* How far the outline reaches past the window's edges, so only its lower edge and the wedge show. */
 const BLEED = 4;
 
-/** How far short of its target the arrow's tip stops. */
-export const ARROW_GAP_PX = 50;
+/** How far short of its target's edge the arrow's tip stops. */
+export const ARROW_GAP_PX = 30;
 
 const point = (p: Point) => `${p.x.toFixed(1)} ${p.y.toFixed(1)}`;
 const toward = (from: Point, to: Point, distance: number): Point => {
@@ -32,11 +34,16 @@ const toward = (from: Point, to: Point, distance: number): Point => {
  * The wedge from `root` on the band's edge toward `target`, as path commands that run from its right corner to its left,
  * the way the outline travels along the band's lower edge, or nothing when the target is too close to the band for an arrow.
  */
-function wedge(root: Point, target: Point): string[] | null {
+function wedge(root: Point, target: Target): string[] | null {
   const dx = target.x - root.x;
   const dy = target.y - root.y;
   const distance = Math.hypot(dx, dy);
-  const length = distance - ARROW_GAP_PX;
+  /* How far the arrow's line runs inside the target's box before it reaches the middle. */
+  const inside = Math.min(
+    target.halfWidth / Math.max(Math.abs(dx / distance), 1e-6),
+    target.halfHeight / Math.max(Math.abs(dy / distance), 1e-6)
+  );
+  const length = distance - inside - ARROW_GAP_PX;
   if (length < HEAD.length + FILLET + 20 || dy <= 0) {
     return null;
   }
@@ -70,7 +77,7 @@ function wedge(root: Point, target: Point): string[] | null {
  * The outline of the band, with its arrow toward `target` when there is one, as an SVG path.
  * The arrow leaves the band at `root`, a point on its lower edge.
  */
-export function guideShapePath(band: Edges, root: Point, target: Point | null): string {
+export function guideShapePath(band: Edges, root: Point, target: Target | null): string {
   const left = band.left - BLEED;
   const right = band.right + BLEED;
   const top = -BLEED;
