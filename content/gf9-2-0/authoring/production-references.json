@@ -1,0 +1,181 @@
+{
+  "capturedAt": "2026-10-23T13:00:50.027Z",
+  "origin": "https://dune.zone",
+  "backend": "https://exuberant-finch-263.eu-west-1.convex.cloud",
+  "target": {
+    "rulesetId": "kx7bzp9hd9639y9ebqmgv8qrj18gv8hn",
+    "slug": "gf9-2-0",
+    "ownerId": "m173qphzmypfhhx627wcsg9wyh83gj56",
+    "groupId": "kh73774x91q1xsagtxnkmpkmj98gk5f0"
+  },
+  "factions": {
+    "atreides": {
+      "id": "k177h1yvxp36dxsxjfmgqx4jw58gm5jk",
+      "slug": "atreides",
+      "name": "Atreides",
+      "sourceHeading": "Atreides",
+      "emblem": "/vector/logo/atreides.svg",
+      "usage": "Emblem only. Source text controls second-edition names and values."
+    },
+    "harkonnen": {
+      "id": "k1758sk6c1qky3yknx56hstk8x8gmcxm",
+      "slug": "harkonnen",
+      "name": "Harkonnen",
+      "sourceHeading": "Harkonnen",
+      "emblem": "/vector/logo/harkonnen.svg",
+      "usage": "Emblem only. Source text controls second-edition names and values."
+    },
+    "emperor-2": {
+      "id": "k174q1wrg9y646pdvbdr9r1sxx8gmct2",
+      "slug": "emperor-2",
+      "name": "Emperor",
+      "sourceHeading": "Emperor",
+      "emblem": "/vector/logo/emperor.svg",
+      "usage": "Emblem only. Source text controls second-edition names and values."
+    },
+    "spacing-guild-2": {
+      "id": "k1782pjyezpza51gk5fj8rr47s8gnp0w",
+      "slug": "spacing-guild-2",
+      "name": "Spacing Guild",
+      "sourceHeading": "Spacing Guild",
+      "emblem": "/vector/logo/guild.svg",
+      "usage": "Emblem only. Source text controls second-edition names and values."
+    },
+    "fremen-2": {
+      "id": "k170rt7fn11fxdtbe3vx2bg0xx8gnrx1",
+      "slug": "fremen-2",
+      "name": "Fremen",
+      "sourceHeading": "Fremen",
+      "emblem": "/vector/logo/fremen.svg",
+      "usage": "Emblem only. Source text controls second-edition names and values."
+    },
+    "bene-gesserit-1": {
+      "id": "k172tkm3r2r4sc96q7wnb3axvx8gn8g1",
+      "slug": "bene-gesserit-1",
+      "name": "Bene Gesserit",
+      "sourceHeading": "Bene Gesserit",
+      "emblem": "/vector/logo/bene-gesserit.svg",
+      "usage": "Emblem only. Source text controls second-edition names and values."
+    }
+  },
+  "resolvedFactions": {
+    "k177h1yvxp36dxsxjfmgqx4jw58gm5jk": {
+      "factionId": "k177h1yvxp36dxsxjfmgqx4jw58gm5jk",
+      "name": "Atreides",
+      "color": "#393d05",
+      "emblemUrl": "/vector/logo/atreides.svg",
+      "token": {
+        "logo": "/vector/logo/atreides.svg",
+        "background": {
+          "colors": [
+            "#393d05",
+            "#5c5d10"
+          ],
+          "definition": 0.5,
+          "image": "/image/texture/082.jpg",
+          "influence": 1,
+          "invert": true
+        }
+      }
+    },
+    "k1758sk6c1qky3yknx56hstk8x8gmcxm": {
+      "factionId": "k1758sk6c1qky3yknx56hstk8x8gmcxm",
+      "name": "Harkonnen",
+      "color": "#0a080b",
+      "emblemUrl": "/vector/logo/harkonnen.svg",
+      "token": {
+        "logo": "/vector/logo/harkonnen.svg",
+        "background": {
+          "colors": [
+            "#0a080b",
+            "#363636"
+          ],
+          "definition": 0.1,
+          "image": "/image/texture/026.jpg",
+          "influence": 1,
+          "invert": false
+        }
+      }
+    },
+    "k174q1wrg9y646pdvbdr9r1sxx8gmct2": {
+      "factionId": "k174q1wrg9y646pdvbdr9r1sxx8gmct2",
+      "name": "Emperor",
+      "color": "#8C0402",
+      "emblemUrl": "/vector/logo/emperor.svg",
+      "token": {
+        "logo": "/vector/logo/emperor.svg",
+        "background": {
+          "colors": [
+            "#8C0402",
+            "#db1918"
+          ],
+          "definition": 0.31,
+          "image": "/image/texture/055.jpg",
+          "influence": 1,
+          "invert": false
+        }
+      }
+    },
+    "k1782pjyezpza51gk5fj8rr47s8gnp0w": {
+      "factionId": "k1782pjyezpza51gk5fj8rr47s8gnp0w",
+      "name": "Spacing Guild",
+      "color": "#bd3108",
+      "emblemUrl": "/vector/logo/guild.svg",
+      "token": {
+        "logo": "/vector/logo/guild.svg",
+        "background": {
+          "colors": [
+            "#bd3108",
+            "#e05719"
+          ],
+          "definition": 0.2,
+          "image": "/image/texture/006.jpg",
+          "influence": 1,
+          "invert": false
+        }
+      }
+    },
+    "k170rt7fn11fxdtbe3vx2bg0xx8gnrx1": {
+      "factionId": "k170rt7fn11fxdtbe3vx2bg0xx8gnrx1",
+      "name": "Fremen",
+      "color": "#fcb843",
+      "emblemUrl": "/vector/logo/fremen.svg",
+      "token": {
+        "logo": "/vector/logo/fremen.svg",
+        "background": {
+          "colors": [
+            "#fcb843",
+            "#d2781d"
+          ],
+          "definition": 0.3,
+          "image": "/image/texture/019.jpg",
+          "influence": 0.634,
+          "invert": false
+        }
+      }
+    },
+    "k172tkm3r2r4sc96q7wnb3axvx8gn8g1": {
+      "factionId": "k172tkm3r2r4sc96q7wnb3axvx8gn8g1",
+      "name": "Bene Gesserit",
+      "color": "#132b74",
+      "emblemUrl": "/vector/logo/bene-gesserit.svg",
+      "token": {
+        "logo": "/vector/logo/bene-gesserit.svg",
+        "background": {
+          "colors": [
+            "#132b74",
+            "#34478b"
+          ],
+          "definition": 0.09,
+          "image": "/image/texture/019.jpg",
+          "influence": 0.8878,
+          "invert": false
+        }
+      }
+    }
+  },
+  "board": {
+    "kind": "board",
+    "boardId": "arrakis"
+  }
+}

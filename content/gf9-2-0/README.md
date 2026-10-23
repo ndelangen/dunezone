@@ -4,6 +4,8 @@ Working branch `norbert/gf9-2-0-ruleset` prepares [GF9 2.0 ruleset, #2431](https
 
 Start with the [reworked reading transcript](transcript-reworked.md). The [original working transcript](transcript.md) retains the OCR-oriented version. Then read the [transcription review](transcription-review.md) and [block audit](block-audit.md). The [differences plan](differences-plan.md) records how to prepare the second book without changing the first.
 
+The [local Rulebook draft](authoring/README.md) now contains the transcribed content in the JSON Load format, using production artwork references. On 23 October 2026, the user selected Square and approved continuation pages wherever the existing text size needs them. Keep all wording and source order. The [authoring review](authoring/review.md) records the remaining work before production.
+
 Use existing Blocks, layouts and renderer presentations by default. Do not ask for approval
 for each reuse decision. Only bring forward a proposal that departs from that default, with
 a concrete example of what the existing tools cannot represent. No new Block or layout

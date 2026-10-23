@@ -1,0 +1,33 @@
+{
+  "pages": 71,
+  "blocks": {
+    "text": 259,
+    "callout": 6,
+    "section-heading": 59,
+    "credits": 10,
+    "list": 27,
+    "asset-explainer": 1,
+    "battle-plans": 5,
+    "card-entry": 15,
+    "board-scene": 3,
+    "piece-transfer": 1,
+    "question-answer": 8
+  },
+  "rawBytes": 237916,
+  "sourceUnitsMapped": 971,
+  "editorialUnits": 31,
+  "approvedOmissions": 3,
+  "references": {
+    "assetIds": [],
+    "factionIds": [
+      "k170rt7fn11fxdtbe3vx2bg0xx8gnrx1",
+      "k172tkm3r2r4sc96q7wnb3axvx8gn8g1",
+      "k174q1wrg9y646pdvbdr9r1sxx8gmct2",
+      "k1758sk6c1qky3yknx56hstk8x8gmcxm",
+      "k177h1yvxp36dxsxjfmgqx4jw58gm5jk",
+      "k1782pjyezpza51gk5fj8rr47s8gnp0w"
+    ]
+  },
+  "uncertaintyMarkers": 16,
+  "unreadableMarkers": 0
+}

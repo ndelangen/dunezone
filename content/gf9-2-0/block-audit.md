@@ -23,6 +23,8 @@ the transcription. Proposed software adjustments below do not authorize editing 
 changing their page breaks, except for the approved pagination and omissions below.
 A separate differences book can explain rules changes later.
 
+On 23 October 2026, the user also selected the existing Square preset and approved continuation pages where the current text size would otherwise overflow. Preserve every word and the source order, and retain source-page mappings. This extends the earlier faction-pagination approval. The [local authoring draft](authoring/README.md) applies that decision.
+
 The page-design review on 2026-10-23 approved using the existing heading, icon and
 page-number placement. Simplify the source phase bands to the normal heading presentation.
 Preserve the phase number and title as heading text. A separate page design is not required.
