@@ -1,4 +1,4 @@
-import preview from '@sb/preview';
+import { testingPreview } from '@sb/preview';
 import { useState } from 'react';
 import { expect, userEvent, within } from 'storybook/test';
 
@@ -63,7 +63,7 @@ function RuntimeProof() {
   );
 }
 
-const meta = preview.meta({
+const meta = testingPreview.meta({
   title: 'Browser-local Convex',
   component: RuntimeProof,
   parameters: {
