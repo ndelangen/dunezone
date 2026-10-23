@@ -4,6 +4,7 @@ import { BOTTOM_SHELF_POSITION, BOTTOM_SHELF_SIZE, FURNITURE_SURFACE_Y } from '@
 import { PerspectiveCamera, Vector3 } from 'three';
 
 import { mapViewFramingPoints } from './tablePlateGeometry';
+import { wheelPixels } from './wheelPixels';
 
 export const TABLE_VIEW_OPTIONS = [
   { id: 'map', label: 'Map' },
@@ -83,8 +84,6 @@ const CAMERA_APPROVED_POLAR_ANGLE = Math.atan2(CAMERA_OFFSET[2], CAMERA_OFFSET[1
 export const CAMERA_TOP_DOWN_POLAR_ANGLE = 0.2;
 /* Scroll distance, in pixels, that tilts the camera from the approved angle all the way to top-down. */
 const CAMERA_TILT_SCROLL_RANGE_PX = 600;
-const WHEEL_LINE_PX = 16;
-const WHEEL_PAGE_PX = 400;
 const CAMERA_TANGENT = Math.tan((TABLE_CAMERA_FIELD_OF_VIEW * Math.PI) / 360);
 const DEFAULT_MAP_VIEW_FRAMING_POINTS = mapViewFramingPoints([]);
 const CAMERA_FOG_REFERENCE_HEIGHT = CAMERA_OFFSET[1];
@@ -123,12 +122,6 @@ type CameraBasis = Readonly<{ offset: Vector3Tuple; forward: Vector3Tuple; up: V
 /** A tilt within its range, where 0 is the approved table angle and 1 is near top-down. */
 function clampCameraTilt(tilt: number): number {
   return Number.isFinite(tilt) ? Math.max(0, Math.min(1, tilt)) : 0;
-}
-
-/* A wheel turn in pixels, whether the browser counts it in pixels, lines or pages; an unreadable turn is none. */
-export function wheelPixels(deltaY: number, deltaMode: number): number {
-  const pixels = deltaY * (deltaMode === 1 ? WHEEL_LINE_PX : deltaMode === 2 ? WHEEL_PAGE_PX : 1);
-  return Number.isFinite(pixels) ? pixels : 0;
 }
 
 /** The tilt after a wheel turn: scrolling down raises the camera toward top-down, scrolling up lowers it back to the approved angle. */

@@ -2,7 +2,7 @@ import type { GameSnapshot } from '@shared/play/protocol';
 import { BOARD_RADIUS } from '@shared/play/tableGeometry';
 import type { Vector3Tuple } from 'three';
 
-import { wheelPixels } from '@app/widgets/tabletop/playView';
+import { wheelPixels } from '@app/widgets/tabletop/wheelPixels';
 
 import type { GuideTask, GuideView } from '../TutorialGuide';
 import type { ChapterScript } from './chapterScript';
