@@ -4,6 +4,11 @@ Working branch `norbert/gf9-2-0-ruleset` prepares [GF9 2.0 ruleset, #2431](https
 
 Start with the [reworked reading transcript](transcript-reworked.md). The [original working transcript](transcript.md) retains the OCR-oriented version. Then read the [transcription review](transcription-review.md) and [block audit](block-audit.md). The [differences plan](differences-plan.md) records how to prepare the second book without changing the first.
 
+Use existing Blocks, layouts and renderer presentations by default. Do not ask for approval
+for each reuse decision. Only bring forward a proposal that departs from that default, with
+a concrete example of what the existing tools cannot represent. No new Block or layout
+requirement is currently confirmed. Preserve the rules and check edition-specific card text.
+
 Omit the printed table of contents from the Dune Zone book, as approved in the same review.
 Use the webapp's existing left navigator. The source transcripts retain the contents for reference.
 

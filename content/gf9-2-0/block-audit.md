@@ -5,6 +5,18 @@ This audit prepares a faithful Dune Zone reconstruction of the supplied 36-page
 page 1. The [transcript](transcript.md) records an OCR draft with visual corrections and unresolved scan gaps. The PDF remains the authority. This file contains planning
 notes, not replacement wording or an importable Rulebook.
 
+## Review policy
+
+Using existing Blocks, layouts, artwork and renderer presentations is the default. Do not
+ask for approval item by item when the proposal is reuse. Only present an item when the
+proposal departs from that default, supported by a concrete example of what cannot be
+represented. Source appearance differences alone do not establish a missing capability.
+Preserve the rules, example values and source wording, subject to the recorded decisions
+below. Reuse does not authorize substituting an older card's different rules text.
+
+No new Block or layout requirement is confirmed by this review. Test remaining compositions
+with the existing tools before proposing an exception.
+
 The target is one Dune Zone Page for each source page, in the same order, with the same words,
 examples, captions and printed references. Source mistakes and awkward continuations stay in
 the transcription. Proposed software adjustments below do not authorize editing the rules or
@@ -117,7 +129,7 @@ printed layout being reconstructed.
 | 11 | `two-columns`, `text`, card entries and paired card images | Main text and example card pair coexist with a narrow illustrated right area. Source cards include printed names and rules; retain their text in the transcription and their original appearance in artwork. |
 | 12 | `text`, lists and two phase headings | CHOAM Charity is a short upper section; Bidding follows in two columns. Use existing headings and icons for both phases. Review their placement and the margin note using existing layouts before proposing a layout change. |
 | 13 | `text`, lists, illustrated sheet extract | Revival is two upper columns, with a large Atreides sheet and an adjacent margin explanation below. Existing paired rows are a starting point; row heights and the sheet/explanation widths need proof. |
-| 14 | `two-columns`, `text`, lists, board example | Shipment and Movement includes a map extract in the upper right with caption and smaller subheadings. Use the original crop unless an exact board reconstruction passes visual review. |
+| 14 | `two-columns`, `text`, lists, `board-scene` | Use the existing board and scene presentation. Preserve the locations, annotations and explanation; the source crop and artwork style do not need to be matched. |
 | 15 | `two-columns` or `wide-narrow`, text and board scenes | No new page heading. Two smaller board examples on the left and a tall map crop on the right have captions outside the map. Preserve their bounds and the source reading order. |
 | 16 | `two-columns`, `text`, lists | Battle begins with a full phase heading and a margin note. Dense subheadings and bullet spacing are the main fit risks. |
 | 17 | `text`, lists, card entries, wheel illustration | Main battle text shares space with a narrow card strip and a wheel/spice example. The source wraps several explanatory notes around artwork. |
@@ -172,11 +184,11 @@ layouts and review any proposed simplification. Add a layout only if a required 
 arrangement remains unsupported. Keep that decision separate from the approved heading and
 page-number simplification.
 
-### Suppress generated wording when the source does not contain it
+### Avoid duplicate labels through authoring
 
-Use `text` and plain illustrations where convenience blocks would add content. An optional
-presentation control for source names, quantities and repeated headings may make existing
-inventory/card/faction blocks reusable. Keep every actual source label in the authored data.
+Use existing Blocks and their labels. Avoid duplicating a generated label in authored fields.
+Use existing text and illustration Blocks when that composition better preserves the source
+wording. No label-suppression control is required without a demonstrated content problem.
 
 Use the existing [question/answer renderer](../../src/game/rulebook/RulebookBlockRenderer.tsx#L337)
 for questions on pages 28, 29, 30 and 33. Its separate question and answer presentation is
@@ -192,16 +204,15 @@ Use the current border and spacing; keep the surrounding explanation in text Blo
 Interior illustrations accept a
 [limited set of source references](../../src/shared/rulebooks/sources.ts#L20). A local JPEG
 crop is not a valid saved illustration source by itself. Catalogue it through the established
-maintained-media/source mechanism or provide a reviewed image-source capability. Record
+maintained-media/source mechanism. Record
 source page, crop bounds, original hash, output dimensions and any transformation. The whole
 scanned page is valuable evidence, but it does not replace editable paragraphs and rules.
 
-Exact source cards, portraits, tokens, board crops and the cover require
-their own artwork inventory. Existing Dune Zone artwork is a candidate only after comparison.
-The maintained [board catalogue](../../src/shared/rulebooks/boardDefinitions.ts#L17) currently
-contains one Arrakis definition. Its existence does not establish that it is the board image
-printed in this PDF. Replacing printed artwork with a cleaner recreation needs a separate
-decision because it changes the as-is result.
+Use existing Dune Zone artwork by default, checking that each asset represents the intended
+component and preserves the example's meaning. Edition-specific card text still needs to
+match the 2.0 source. Record genuinely missing content separately from renderer capabilities.
+Use the maintained [board catalogue](../../src/shared/rulebooks/boardDefinitions.ts#L17)
+for map examples; matching the source's printed board style is not required.
 
 For page 6, use the existing `asset-explainer` markers, position targets and legend.
 The review approved this presentation as better than the source's external boxes and long
@@ -215,10 +226,10 @@ selected cards, leaders, quantities and outcomes against the source, including c
 that may differ between editions. The source wheel artwork and exact card arrangement do
 not need to be reproduced.
 
-For maps on pages 10, 14, 15, 20 and 24, `board-scene` already has a
+For maps on pages 10, 14, 15, 20 and 24, use the existing `board-scene` and its
 [viewport, routes and annotations](../../src/shared/rulebooks/illustratedScenes.ts#L96).
-Test exact source crops and token positions rather than assuming a new map Block is needed.
-`referenced-illustration` can carry a maintained crop when the source diagram is retained.
+Preserve the source locations, routes, forces and explanations using existing board artwork
+and annotation styling. No source-scan match or new map capability is proposed.
 
 ## Candidate new Blocks
 
