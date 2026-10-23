@@ -10,6 +10,8 @@ import type { ChapterScript } from './chapterScript';
  * One task for each part of the screen, each done on the table itself, so the band moves on only once the player found it.
  */
 
+type Piece = GameSnapshot['table']['pieces'][number];
+
 const at = (piece: { position: readonly number[] } | undefined) => (piece ? (piece.position as Vector3Tuple) : null);
 const element = (selector: string) => () => document.querySelector(selector);
 const tabSelected = (selector: string) => document.querySelector(selector)?.getAttribute('aria-selected') === 'true';
@@ -73,6 +75,22 @@ const cameraTasks = (): GuideTask[] => [
   }),
 ];
 
+/* Where a deck stood and how many cards it held, so a later look can tell a card taken or the deck moved from a peek, shuffle or flip. */
+type DeckAt = { id: string; cards: number; position: readonly number[] } | undefined;
+const deckAt = (piece: Piece | undefined): DeckAt =>
+  piece && { id: piece.id, cards: piece.items.length, position: [...piece.position] };
+const deckTaken = (start: DeckAt, pieces: Piece[]) => {
+  if (!start) {
+    return false;
+  }
+  const now = pieces.find((piece) => piece.id === start.id);
+  return (
+    !now ||
+    now.items.length < start.cards ||
+    Math.hypot(now.position[0]! - start.position[0]!, now.position[2]! - start.position[2]!) > 0.01
+  );
+};
+
 /* The table's own pieces: a card from a deck, troops onto the board and a card from the other deck. */
 function tableTasks(snapshot: () => GameSnapshot): GuideTask[] {
   const pieces = () => snapshot().table.pieces.filter((piece) => !piece.inventory);
@@ -123,21 +141,8 @@ function tableTasks(snapshot: () => GameSnapshot): GuideTask[] {
        * A quick drag takes the top card and a held one moves the whole deck; either way the player has found it.
        * Peeking, shuffling or flipping the deck leaves its count and its place alone, so those do not count.
        */
-      begin: () => {
-        const spice = deck('right');
-        return spice && { id: spice.id, cards: spice.items.length, position: [...spice.position] };
-      },
-      done: (start) => {
-        if (!start) {
-          return false;
-        }
-        const spice = pieces().find((piece) => piece.id === start.id);
-        return (
-          !spice ||
-          spice.items.length < start.cards ||
-          Math.hypot(spice.position[0]! - start.position[0]!, spice.position[2]! - start.position[2]!) > 0.01
-        );
-      },
+      begin: () => deckAt(deck('right')),
+      done: (start) => deckTaken(start, pieces()),
     }),
   ];
 }
