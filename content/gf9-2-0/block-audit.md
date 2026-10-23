@@ -8,11 +8,18 @@ notes, not replacement wording or an importable Rulebook.
 The target is one Dune Zone Page for each source page, in the same order, with the same words,
 examples, captions and printed references. Source mistakes and awkward continuations stay in
 the transcription. Proposed software adjustments below do not authorize editing the rules or
-changing their page breaks. A separate differences book can explain changes later.
+changing their page breaks, except for the approved faction-section pagination below.
+A separate differences book can explain rules changes later.
 
 The page-design review on 2026-10-23 approved using the existing heading, icon and
 page-number placement. Simplify the source phase bands to the normal heading presentation.
 Preserve the phase number and title as heading text. A separate page design is not required.
+
+The same review approved starting each faction's detailed rules on a new page. Finish the
+Bene Gesserit continuation before starting Fremen. This removes the mixed-faction arrangement
+on source page 28 from the layout requirements. Preserve the source text and its order, while
+allowing faction-section page breaks and the resulting output page count to change. The
+transcripts and source-page identifiers remain unchanged.
 
 ## What exists today
 
@@ -91,7 +98,7 @@ printed layout being reconstructed.
 | 25 | `two-columns`, text, card entry | Treachery-card insights are mainly short named paragraphs, plus Solaris art. Text flow beside the art is already supported by `card-entry`, but its heading/quantity defaults need care. |
 | 26 | `outer-rail`, text, callouts, illustrations | The left rail has three cropped half-increment wheel windows. Main columns include arithmetic token rows and bordered Karama extracts. Current battle and transfer blocks do not exactly represent these compact diagrams. |
 | 27 | `outer-rail`, section headings, text, troop illustration | Bene Gesserit has two rules columns, a strategy rail, a faction emblem and an advisor token beside prose. Preserve the source's opening sentence about the following pages as printed. |
-| 28 | Text, headings, troop illustration, question/answer content | Bene Gesserit continues in the main columns with an empty left rail; a Fremen heading then spans only the main area above two lower columns. This combination is absent from the fixed layout catalogue. |
+| 28 | Existing column/rail layouts, text, headings, troop illustration, question/answer content | Complete Bene Gesserit first, then start Fremen on a new output page. The approved faction page break removes the need to reproduce the mixed-faction arrangement. |
 | 29 | `outer-rail`, text, headings, troop illustrations | Fremen continuation uses two rules columns and a right strategy rail. Preserve special victory, alliance, insights and token labels in their original positions. |
 | 30 | `outer-rail`, text, headings, troop illustrations | Emperor uses a left strategy rail and two main columns, with two force tokens at the bottom of the first main column. Use existing heading styling. |
 | 31 | `outer-rail`, text, headings | Atreides uses a right strategy rail; a small source illustration appears at the lower edge. Preserve the source's intentional open space. |
@@ -111,7 +118,7 @@ icons at both ends can be simplified to that presentation. Keep the implemented 
 placement and existing typography and page styling. The page-design review on 2026-10-23
 removed the proposed separate design and heading changes from the requirements.
 
-Keep all source wording and page boundaries, then compare a render of every page for fit.
+Keep all source wording and apply the approved faction page breaks, then compare every rendered page for fit.
 The current [Page canvas clips overflow](../../src/game/rulebook/RulebookRenderer.css#L15)
 and [print rules fix the physical page](../../src/game/rulebook/RulebookRenderer.css#L1134).
 A valid Contents object does not prove that the last paragraph, caption or image survived.
@@ -123,9 +130,9 @@ by page side, `band-columns` offers one full-width band above or below two colum
 `paired-rows` offers an opening, two paired rows and a closing. Review the source arrangements
 against these layouts before treating a visual difference as a missing capability.
 
-Page 28 is the clearest proving page. It needs a rail spanning the page height, an upper
-two-column continuation, a faction band across only the main area, and two lower columns.
-Pages 2, 3, 5, 7, 12, 13 and 20 exercise related combinations. First test the existing named
+Source page 28 no longer requires a compound layout. Start Fremen on a new page after the
+Bene Gesserit continuation, using existing column/rail layouts for each faction.
+Pages 2, 3, 5, 7, 12, 13 and 20 remain composition candidates. First test the existing named
 layouts and review any proposed simplification. Add a layout only if a required content
 arrangement remains unsupported. Keep that decision separate from the approved heading and
 page-number simplification.
@@ -192,8 +199,9 @@ Keep these findings as separate comments on
 [GF9 2.0 ruleset, #2431](https://github.com/ndelangen/dunezone/issues/2431), so implementation
 decisions and evidence can accumulate independently.
 
-1. **Compound layouts to review.** Source pages 2, 3, 5, 7, 12, 13, 20 and especially
-   28. Review the main-area/rail arrangements against the existing nine layouts. The page-design
+1. **Compound layouts to review.** Source pages 2, 3, 5, 7, 12, 13 and 20.
+   Starting each faction on a new page removes source page 28's mixed-faction arrangement
+   from the requirements. Review the other arrangements against the existing nine layouts. The page-design
    review approved existing headings, icons and page-number placement; those require no new
    capability. Demonstrate a content arrangement that existing layouts cannot express before
    proposing a layout addition.
@@ -238,7 +246,8 @@ illustration has a source record, and each rendered Page has been compared with 
 Compare the cover, dense prose, cards, map crops, page 26 diagrams and faction continuations
 at readable scale. Check text selection and reading order separately from appearance.
 
-Publishable proof must include the rendered HTML and final PDF, with 36 Pages, the intended
+Publishable proof must include the rendered HTML and final PDF, all content from the 36 source
+pages, the approved faction page breaks, the intended
 physical dimensions, no clipped text, resolved images and correct printed references. The
 existing [PDF capture contract](../../docs/technical/rulebook-pdf-capture.md) handles complete
 documents up to 100 Pages, so the source page count itself needs no new publication feature.

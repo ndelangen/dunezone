@@ -1,6 +1,6 @@
 # GF9 2.0 ruleset preparation
 
-Working branch `norbert/gf9-2-0-ruleset` prepares [GF9 2.0 ruleset, #2431](https://github.com/ndelangen/dunezone/issues/2431). The intended result is a Dune Zone rulebook that follows the supplied book page for page, with the same wording, examples and page breaks. A separate rulebook will explain the differences from the earlier rules.
+Working branch `norbert/gf9-2-0-ruleset` prepares [GF9 2.0 ruleset, #2431](https://github.com/ndelangen/dunezone/issues/2431). The intended result is a Dune Zone rulebook with the source wording and examples, using existing headings, icons and page-number placement. Start each faction's detailed rules on a new page, as approved in the layout review on 2026-10-23. This allows faction-section pagination and the output page count to differ from the source. Other source page boundaries remain the starting point. A separate rulebook will explain the differences from the earlier rules.
 
 Start with the [reworked reading transcript](transcript-reworked.md). The [original working transcript](transcript.md) retains the OCR-oriented version. Then read the [transcription review](transcription-review.md) and [block audit](block-audit.md). The [differences plan](differences-plan.md) records how to prepare the second book without changing the first.
 
@@ -16,7 +16,7 @@ SHA-256:
 
 PDF page positions are the source identifiers, starting at the cover as page 1. Keep apparent source mistakes, repeated contents entries and outdated printed references as printed. Record questions outside the transcript. Do not correct the original to agree with an earlier edition, an existing Dune Zone book or an interpretation of how the rule ought to work.
 
-The source includes photographs with page curl, perspective, glare and a few clipped edges. Those are scan defects to document. Rebuilding the printed page does not require reproducing a camera shadow or paper curl. It does require preserving the source content, artwork arrangement and page boundaries. Any proposed substitution of artwork or change to wording needs a recorded decision.
+The source includes photographs with page curl, perspective, glare and a few clipped edges. Those are scan defects to document. Rebuilding the printed page does not require reproducing a camera shadow or paper curl. Preserve the source content and apply the approved heading and pagination adjustments above. Any further change to artwork, wording or pagination needs a recorded decision. Keep source page boundaries intact in the transcripts for comparison.
 
 ## Files
 
