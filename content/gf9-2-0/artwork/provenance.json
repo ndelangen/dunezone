@@ -54,7 +54,7 @@
       "preparation": {
         "upscale": 4,
         "resampling": "Lanczos",
-        "gaussianBlurPixelsAfterUpscale": 1.0
+        "gaussianBlurPixelsAfterUpscale": 1
       },
       "tracingArguments": ["--svg", "--turdsize", "6", "--alphamax", "1.2", "--opttolerance", "0.25", "--flat"],
       "approval": "User said Little Maker is good on 23 October 2026; keep this artwork unchanged."
@@ -140,7 +140,8 @@
           "scale": [0.59, 0.49],
           "translation": [107.1, 74.3],
           "strokeWidths": [0.54, 0.49]
-        }
+        },
+        "approval": "User approved the refined hills and requested their use in the new Karama card and as a separate vector."
       }
     },
     {
@@ -153,7 +154,7 @@
       "preparation": {
         "upscale": 4,
         "resampling": "Lanczos",
-        "gaussianBlurPixelsAfterUpscale": 1.0
+        "gaussianBlurPixelsAfterUpscale": 1
       },
       "palette": {
         "ink": "#11120e",
@@ -167,6 +168,15 @@
         "preserveNativeRegion": [120, 60, 290, 160]
       },
       "approval": "User said Little Maker is good on 23 October 2026; keep this artwork unchanged."
+    },
+    {
+      "assetKey": "/vector/decal/dune-ridgelines.svg",
+      "source": {
+        "assetKey": "/vector/decal/karama-2-0.svg",
+        "sha256": "c1029a741104d6a18e7b9abcf47fed6a54a6c46fd2728b1cf89b216cdd24c722"
+      },
+      "operation": "Extract the approved glyph subpaths from ray-east, excluding the kite body. Preserve all contours and internal spaces; fit the viewBox to the glyph bounds.",
+      "approval": "User requested a separate new vector after approving the refined hills."
     }
   ]
 }

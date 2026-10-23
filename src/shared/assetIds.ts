@@ -482,6 +482,7 @@ export const DECAL = z.enum([
   '/vector/decal/dune-freight-sled.svg',
   '/vector/decal/dune-listener-multicolor.svg',
   '/vector/decal/dune-listener.svg',
+  '/vector/decal/dune-ridgelines.svg',
   '/vector/decal/dune-skimmer-multicolor.svg',
   '/vector/decal/dune-skimmer-scene.svg',
   '/vector/decal/dune-skimmer.svg',

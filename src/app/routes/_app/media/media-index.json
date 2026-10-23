@@ -10740,37 +10740,25 @@
     "sourceHash": "6c66b6c4d55638b03d902ee7d76cd4b0ce970a3545cc0880d9073acc544f2a0f"
   },
   "/vector/decal/solaris.svg": {
-    "description": "Four overlapping coins bear a ringed planet, a four-pointed star, an animal head and a human profile.",
+    "description": "Coins with planet, star, animal and profile cutouts.",
     "tags": ["Solaris", "coins", "currency", "money", "GF9 2.0", "second edition", "vector"],
     "subjects": ["trade", "symbols"],
     "sourceHash": "d8bd5fd7d40f5f4b24dedf08c3bccf50896ea9ff35325f1124aba85e5e7830f8"
   },
   "/vector/decal/little-maker.svg": {
-    "description": "A segmented worm curls in a shallow pool inside an engraved circular basin.",
+    "description": "Worm curled in a pool inside an engraved basin.",
     "tags": ["Little Maker", "worm", "pool", "water", "basin", "GF9 2.0", "second edition", "vector"],
     "subjects": ["creatures", "water"],
     "sourceHash": "19bc11a22a3fa827c651cf669b660c6dab2f846e3fa9a1b8775adfa845bcb2f2"
   },
   "/vector/decal/karama-2-0.svg": {
-    "description": "An eight-pointed star with triangular spaces and two concentric circles surrounds a central ring, with a different small symbol on each ray.",
-    "tags": [
-      "Karama",
-      "GF9 2.0",
-      "second edition",
-      "compass",
-      "star",
-      "eye",
-      "glyphs",
-      "vector",
-      "hills",
-      "dunes",
-      "ridgelines"
-    ],
+    "description": "Eight-ray star with triangular gaps, two circles and a central ring.",
+    "tags": ["Karama", "GF9 2.0", "second edition", "star", "eye", "vector", "hills", "dunes", "ridgelines"],
     "subjects": ["symbols"],
     "sourceHash": "c1029a741104d6a18e7b9abcf47fed6a54a6c46fd2728b1cf89b216cdd24c722"
   },
   "/vector/decal/little-maker-multicolor.svg": {
-    "description": "A dark segmented worm curls in pale water inside a basin with an olive band of engraved symbols.",
+    "description": "Dark worm in pale water, within an olive basin.",
     "tags": [
       "Little Maker",
       "worm",
@@ -10785,5 +10773,11 @@
     ],
     "subjects": ["creatures", "water"],
     "sourceHash": "a082f9eeb55e33ef4e5ca9b3f9a69192239fe6eb7ef147d25ef69ef55c54f1d0"
+  },
+  "/vector/decal/dune-ridgelines.svg": {
+    "description": "Thin, overlapping dune ridgelines.",
+    "tags": ["hills", "dunes", "mountains", "ridgelines", "Karama", "vector"],
+    "subjects": ["places"],
+    "sourceHash": "a4c78da9f3a9931bbf82fce5b0829c1a04c5238b1ee0f325e2df9e343ec72576"
   }
 }
