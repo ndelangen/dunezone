@@ -357,7 +357,7 @@ export const VECTOR_CROPS = {
   '/vector/decal/smuggler-multicolor.svg': [50, 50.02, 100, 50.14],
   '/vector/decal/smuggler.svg': [61.1, 50.485, 77.3, 49.13],
   '/vector/decal/snooper.svg': [50, 49.995, 100, 57.67],
-  '/vector/decal/solaris.svg': [50.08, 49.625, 94.94, 33.83],
+  '/vector/decal/solaris.svg': [50.945, 48.49, 87.29, 30.8],
   '/vector/decal/spice-banker-multicolor.svg': [50, 49.995000000000005, 100, 57.09],
   '/vector/decal/spice-banker.svg': [49.54, 49.985, 98.64, 57.07],
   '/vector/decal/spine-herd-multicolor.svg': [50.715, 49.825, 93.43, 49.87],

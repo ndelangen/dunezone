@@ -16,26 +16,56 @@
     {
       "assetKey": "/vector/decal/solaris.svg",
       "source": {
-        "file": "PXL_20261021_201033591.MP.jpg",
-        "sha256": "e73551ce692428bc7c87a576796c3b6e4b2dae63269936e7627c2c92dba48263"
-      },
-      "crossCheck": {
         "file": "treachery_deck.png",
         "sha256": "04cb8629fa144724061a3877769ed0036563b5d7cd5d69c73a4331955921d28a"
       },
-      "perspective": {
-        "sourceQuad": [
-          [2620, 184],
-          [2669, 790],
-          [1858, 849],
-          [1814, 230]
-        ],
-        "outputSize": [600, 840]
+      "crossCheck": {
+        "file": "PXL_20261021_201033591.MP.jpg",
+        "sha256": "e73551ce692428bc7c87a576796c3b6e4b2dae63269936e7627c2c92dba48263"
       },
-      "crop": [90, 618, 490, 770],
-      "threshold": 105,
-      "operation": "Trace the four coin silhouettes and their cutout symbols from the perspective-corrected card photograph.",
-      "referenceCrop": "references/solaris.png"
+      "crop": [2735, 726, 2953, 806],
+      "threshold": 65,
+      "operation": "Trace the cleaner deck-sheet crop after 8x Lanczos enlargement, sharpening and light smoothing. Preserve the circular engraving around the planet, the profile details, star and separated coin rims. No generated detail is added.",
+      "referenceCrop": "references/solaris-sheet.png",
+      "preparation": {
+        "upscale": 8,
+        "resampling": "Lanczos",
+        "grayscale": "Pillow L",
+        "unsharpMask": {
+          "radiusPixelsAfterUpscale": 5,
+          "percent": 240,
+          "threshold": 2
+        },
+        "gaussianBlurPixelsAfterUpscale": 0.55
+      },
+      "tracingArguments": ["--svg", "--turdsize", "18", "--alphamax", "1.3", "--opttolerance", "0.25", "--flat"],
+      "previousTrace": {
+        "file": "variants/solaris-before-upscale.svg",
+        "sourceCommit": "5febac24887",
+        "assetKey": "/vector/decal/solaris.svg",
+        "source": {
+          "file": "PXL_20261021_201033591.MP.jpg",
+          "sha256": "e73551ce692428bc7c87a576796c3b6e4b2dae63269936e7627c2c92dba48263"
+        },
+        "crossCheck": {
+          "file": "treachery_deck.png",
+          "sha256": "04cb8629fa144724061a3877769ed0036563b5d7cd5d69c73a4331955921d28a"
+        },
+        "perspective": {
+          "sourceQuad": [
+            [2620, 184],
+            [2669, 790],
+            [1858, 849],
+            [1814, 230]
+          ],
+          "outputSize": [600, 840]
+        },
+        "crop": [90, 618, 490, 770],
+        "threshold": 105,
+        "operation": "Trace the four coin silhouettes and their cutout symbols from the perspective-corrected card photograph.",
+        "referenceCrop": "references/solaris.png"
+      },
+      "review": "User suggested upscaling before tracing. Revised draft prepared for comparison; user approval is pending."
     },
     {
       "assetKey": "/vector/decal/little-maker.svg",

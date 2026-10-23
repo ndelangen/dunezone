@@ -29,7 +29,7 @@ The user accepted this construction and requested [variant A](variants/karama-2-
 
 Little Maker's multicolour palette approximates the supplied deck sheet. Its pale water is opaque artwork, while the outer corners remain transparent. The monochrome partner keeps pale areas transparent and inherits the caller's colour. Both retain the basin, engraved marks, worm segments, mouth spots and water ripples.
 
-Solaris's fine engraving still follows the source photograph's softness. No further missing motif is apparent in these references.
+Solaris now uses the cleaner deck-sheet crop, enlarged 8 times with Lanczos sampling before sharpening, light smoothing and tracing. The revised trace retains more of the circular engraving around the planet and the profile's fine lines. The source photograph remains a cross-check. The [previous trace](variants/solaris-before-upscale.svg) is preserved for comparison. This revised draft awaits user review.
 
 The Karama rebuild passed all 20 media catalogue tests, vector generation and validation, and the publisher build with its HTML runtime check. Rendered comparisons covered the existing vector, the 2.0 card artwork and the rebuilt file, including dark backgrounds and widths of 64, 128 and 256 pixels. The original Karama asset and both Little Maker files remain unchanged.
 
