@@ -1,4 +1,4 @@
-import preview from '@sb/preview';
+import { testingPreview } from '@sb/preview';
 import type { ClientMessage, GameSnapshot } from '@shared/play/protocol';
 import { applyTerritoryTint, isTerritoryTintAction } from '@shared/play/territoryTints';
 import type { TerritoryTintAction } from '@shared/play/territoryTints';
@@ -8,7 +8,7 @@ import { openPanel } from './controls.stories.fixture';
 import { gameMeta, install, lastCommand } from './game.stories.fixture';
 import { playingSnapshot, productTransport } from './product.stories.fixture';
 
-const meta = preview.meta({
+const meta = testingPreview.meta({
   ...gameMeta,
   title: 'Play/Territory tints',
   loaders: [
@@ -93,7 +93,6 @@ function liveTransport(start: GameSnapshot, { refuseCreate = false, refuseRemove
 
 /** Try it by hand: make a tint or lay a preset, turn on its paintbrush, and click territories on the board; Escape stops painting. */
 export const Live = meta.story({
-  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() =>
     liveTransport({ ...playingSnapshot(VIEWER), bank: { factionId: 'house-harkonnen', balance: 0 } })
   ),
@@ -104,7 +103,6 @@ export const Live = meta.story({
 
 /** The two presets laid, with the Fremen deployment tint's paintbrush on. */
 export const Painting = meta.story({
-  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => liveTransport(tintedSnapshot())),
   play: async ({ canvasElement }) => {
     const page = await openPanel(canvasElement, 'Territory tints');
@@ -120,7 +118,6 @@ export const Painting = meta.story({
 
 /** A preset is laid as one new tint, ready to paint. */
 export const Preset = meta.story({
-  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() =>
     liveTransport({ ...playingSnapshot(VIEWER), bank: { factionId: 'house-harkonnen', balance: 0 } })
   ),
@@ -141,7 +138,6 @@ export const Preset = meta.story({
 
 /** Hiding a tint, outlining one, switching stickers on and recolouring one change the table for everyone, and the row follows. */
 export const Settings = meta.story({
-  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => liveTransport(tintedSnapshot())),
   play: async ({ canvasElement }) => {
     const page = await openPanel(canvasElement, 'Territory tints');
@@ -176,7 +172,6 @@ export const Settings = meta.story({
 
 /** A new tint the table refuses puts its paintbrush down again, so clicks on the board send nothing. */
 export const Refused = meta.story({
-  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() =>
     liveTransport(
       { ...playingSnapshot(VIEWER), bank: { factionId: 'house-harkonnen', balance: 0 } },
@@ -193,7 +188,6 @@ export const Refused = meta.story({
 
 /** A removal the table refuses gives the remove button back, so the hold can be tried again. */
 export const RemoveRefused = meta.story({
-  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => liveTransport(tintedSnapshot(), { refuseRemove: true })),
   play: async ({ canvasElement }) => {
     const page = await openPanel(canvasElement, 'Territory tints');

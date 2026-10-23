@@ -23,7 +23,7 @@ const REGION = { width: 960, height: 600 };
 
 sb.mock(import('../src/app/db/core/index.ts'));
 
-export default definePreview({
+const preview = definePreview({
   addons: [addonDocs()],
   loaders: [loadStorybookDatabase],
   globalTypes: {
@@ -351,3 +351,18 @@ export default definePreview({
     },
   },
 });
+
+/* Stories that exist to drive behaviour rather than to show a state. Their plays still run in the
+   Vitest story shards on every pull request; Chromatic skips them, because a long play times out
+   its capture and the end state is not what the story is about. A story file opts in with
+   `testingPreview.meta(...)`; each CSF file renders with the preview its meta came from. It sets no
+   tags: Storybook reads project tags statically from this file, so a tag here would land on every story.
+   Each `definePreview` call also replaces Storybook's global project annotations, so the default
+   export is defined again last and stays the global one. */
+export const testingPreview = definePreview({
+  ...preview.input,
+  addons: [addonDocs()],
+  parameters: { ...preview.input.parameters, chromatic: { disableSnapshot: true } },
+});
+
+export default definePreview({ ...preview.input, addons: [addonDocs()] });

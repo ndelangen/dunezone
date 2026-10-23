@@ -1,4 +1,4 @@
-import preview from '@sb/preview';
+import { testingPreview } from '@sb/preview';
 import { waitForFrame } from '@sb/storyWaits';
 import { expect, fn, screen, userEvent, within } from 'storybook/test';
 
@@ -11,7 +11,7 @@ function SpecialRuleFixture({ onSave }: { onSave: (draft: Faction) => void }) {
   return <FactionEditorHarness faction={representativeFaction()} sessionKey="special-rule" onSave={onSave} />;
 }
 
-const meta = preview.meta({
+const meta = testingPreview.meta({
   title: 'Special rule',
   component: SpecialRuleFixture,
   args: { onSave: fn() },

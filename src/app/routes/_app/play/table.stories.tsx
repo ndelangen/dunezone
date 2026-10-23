@@ -111,6 +111,8 @@ export const Controls = meta.story({
     }
     await expect(header.contains(focused), `Tab reaches ${focused?.outerHTML.slice(0, 80)} first`).toBe(true);
 
+    /* With the real cursor over the board, the arrows would slide the camera instead (#2471), so the pointer is off the canvas first. */
+    leaveTheCanvas(page, document.querySelector('canvas')!, { pointerType: 'mouse' });
     divider.focus();
     await userEvent.keyboard('{Home}');
     await expect(divider.getAttribute('aria-valuenow')).toBe(divider.getAttribute('aria-valuemin'));

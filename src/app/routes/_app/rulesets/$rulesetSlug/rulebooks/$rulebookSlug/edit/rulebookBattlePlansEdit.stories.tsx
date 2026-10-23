@@ -1,9 +1,9 @@
-import preview from '@sb/preview';
+import { testingPreview } from '@sb/preview';
 import { expect, userEvent, within } from 'storybook/test';
 
 import { BattlePlansStory } from './rulebookBattleStepEdit.stories.fixture';
 
-const meta = preview.meta({ title: 'Blocks/Battle plans/Editing', parameters: { layout: 'fullscreen' } });
+const meta = testingPreview.meta({ title: 'Blocks/Battle plans/Editing', parameters: { layout: 'fullscreen' } });
 export const StandalonePlans = meta.story({
   render: () => <BattlePlansStory />,
   play: async ({ canvasElement }) => {
