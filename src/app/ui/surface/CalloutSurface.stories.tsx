@@ -1,10 +1,10 @@
 import { Button, Group, Text } from '@mantine/core';
-import preview from '@sb/preview';
+import { testingPreview } from '@sb/preview';
 import { expect, waitFor, within } from 'storybook/test';
 
 import { CalloutSurface } from './CalloutSurface';
 
-const meta = preview.meta({ component: CalloutSurface });
+const meta = testingPreview.meta({ component: CalloutSurface });
 const calloutActions = (
   <Group justify="space-between">
     <Button variant="default">Cancel</Button>
@@ -90,7 +90,6 @@ async function expectCalloutGeometry(canvasElement: HTMLElement, pointerAbove = 
 }
 
 export const Actions = meta.story({
-  parameters: { chromatic: { disableSnapshot: true } },
   args: {
     children: <Text ta="center">Two players are preparing.</Text>,
     actions: calloutActions,
@@ -99,7 +98,6 @@ export const Actions = meta.story({
 });
 
 export const PointerAbove = meta.story({
-  parameters: { chromatic: { disableSnapshot: true } },
   args: {
     children: <Text ta="center">Two players are preparing.</Text>,
     actions: calloutActions,

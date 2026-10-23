@@ -1,17 +1,16 @@
-import preview from '@sb/preview';
+import { testingPreview } from '@sb/preview';
 import { expect, waitFor, within } from 'storybook/test';
 
 import { setMotionOverride } from '@app/styles/motion';
 
 import { pageStoryMeta } from './storybookConfig';
 
-const meta = preview.meta({
+const meta = testingPreview.meta({
   title: 'Home',
   ...pageStoryMeta,
 });
 
 export const Default = meta.story({
-  parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByRole('heading', { level: 1, name: 'Dune Play is coming soon' })).resolves.toBeVisible();
@@ -24,7 +23,7 @@ export const Default = meta.story({
 });
 
 export const SneakPeekLink = meta.story({
-  parameters: { chromatic: { disableSnapshot: true }, identity: null },
+  parameters: { identity: null },
   beforeEach: () => {
     window.location.hash = '#play-preview';
     return () => {

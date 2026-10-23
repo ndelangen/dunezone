@@ -1,9 +1,9 @@
-import preview from '@sb/preview';
+import { testingPreview } from '@sb/preview';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { IllustratedInventoryStory } from './rulebookBlockEditors.shared.stories.fixture';
 
-const meta = preview.meta({
+const meta = testingPreview.meta({
   title: 'Blocks/Inventory/Editing',
   parameters: { layout: 'fullscreen' },
 });

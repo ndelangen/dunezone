@@ -1,4 +1,4 @@
-import preview from '@sb/preview';
+import { testingPreview } from '@sb/preview';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { STORYBOOK_NOW } from '@db/storybook';
@@ -14,7 +14,7 @@ import {
 } from './game.stories.fixture';
 import { productTransport, playingSnapshot } from './product.stories.fixture';
 
-const meta = preview.meta({
+const meta = testingPreview.meta({
   ...gameMeta,
   title: 'Play/Panels/Conversations',
   /* The stories load the table chunk before they render, so its cold first load falls outside their first wait (#1302). */
@@ -27,7 +27,6 @@ const meta = preview.meta({
 
 /** A private conversation with another player. */
 export const WithAPlayer = meta.story({
-  parameters: { chromatic: { disableSnapshot: true } },
   /* Reduced motion drops the entrance iris, as History below explains. */
   globals: { motion: 'reduce' },
   beforeEach: install(() =>
@@ -41,7 +40,6 @@ export const WithAPlayer = meta.story({
 
 /** The whole table talking together, beside the one-to-one conversations. */
 export const WithTheTable = meta.story({
-  parameters: { chromatic: { disableSnapshot: true } },
   globals: { motion: 'reduce' },
   beforeEach: install(() => productTransport('seat-2', playingSnapshot(), { conversationMessages: tableMessages() })),
   play: async ({ canvasElement }) => {
@@ -51,7 +49,6 @@ export const WithTheTable = meta.story({
 });
 
 export const History = meta.story({
-  parameters: { chromatic: { disableSnapshot: true } },
   /*
    * Reduced motion drops the shell's entrance iris, whose clip-path hides the history's end marker from the read observer until the iris has drawn open.
    * A runner that draws few frames can keep the iris closed past the read wait's bound (#1304).
@@ -154,7 +151,6 @@ export const History = meta.story({
 });
 
 export const Delivery = meta.story({
-  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => productTransport('seat-2', playingSnapshot())),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -194,7 +190,6 @@ export const Delivery = meta.story({
 });
 
 export const Offline = meta.story({
-  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => productTransport('seat-2', playingSnapshot())),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);

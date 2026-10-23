@@ -300,11 +300,17 @@ still fail it. No branch automatically accepts changes. Chromatic runs separatel
 required `ci_ok` check, and its visual review checks report through the GitHub integration.
 Fork pull requests do not receive this repository's token and get no Chromatic build.
 
-The 131 stories that failed [the setup capture runs](https://www.chromatic.com/builds?appId=6adb5f9c3d9925e3217df200)
-have `parameters.chromatic.disableSnapshot: true` on their individual story definitions. They remain
-in Storybook and the existing Vitest suites. Story cleanup is deferred; remove each exclusion when
-its story works in Chromatic. The other 1,148 stories remain eligible for captures. New failures
-still fail the workflow and need investigation or an explicit exclusion.
+Stories come in two kinds. A presentation story shows a state, and Chromatic captures it. A testing
+story drives behaviour: it clicks, types or delivers, or its play runs for seconds. Its file builds its
+meta from `testingPreview` (exported by `.storybook/preview.tsx`) instead of the default preview. That
+preview turns Chromatic snapshots off for the whole file. Its plays still run in
+the Vitest story shards on every pull request, and the stories stay in Storybook. Each CSF file renders
+with the preview its meta came from, so a file holds stories of one kind only.
+
+113 stories in mixed files still carry a per-story `parameters.chromatic.disableSnapshot: true` from
+[the setup capture runs](https://www.chromatic.com/builds?appId=6adb5f9c3d9925e3217df200). They move into
+testing files as those files are split. A new capture failure still fails the workflow. A play that
+outruns Chromatic belongs in a testing file.
 
 For a local upload, generate the media as described below, set `CHROMATIC_PROJECT_TOKEN` in your
 environment, and run `bun run chromatic`. To upload an existing verified build instead, run
