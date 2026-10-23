@@ -187,6 +187,7 @@ function earlyRevealSnapshot() {
 }
 
 export const CalloutBelowNorthernTerritory = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: battleSetup('preparing', 'neutral', (snapshot) => {
     snapshot.battle!.anchor = [3.6, 0.18, -3.05];
   }),
@@ -194,6 +195,7 @@ export const CalloutBelowNorthernTerritory = meta.story({
 });
 
 export const CalloutAboveSouthernTerritory = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: battleSetup('preparing', 'neutral', (snapshot) => {
     snapshot.battle!.anchor = [3.6, 0.18, 3.05];
   }),
@@ -202,6 +204,7 @@ export const CalloutAboveSouthernTerritory = meta.story({
 
 /** A battle marked mid-game draws its callout beside the territory on its first frame, since a table that draws on demand may not draw another. */
 export const CalloutArrivesInPlace = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: battleSetup('preparing', 'seat-2', (snapshot) => {
     snapshot.battle = null;
     snapshot.battlePlan = null;
@@ -243,6 +246,7 @@ export const CalloutArrivesInPlace = meta.story({
 
 /** The marker names the territory it lands on from the board's own outlines, so a battle dropped on Carthag is fought at Carthag. */
 export const MarkerNamesItsTerritory = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: battleSetup('preparing', 'seat-2', (snapshot) => {
     snapshot.battle = null;
     snapshot.battlePlan = null;
@@ -265,6 +269,7 @@ export const MarkerNamesItsTerritory = meta.story({
 });
 
 export const Unclaimed = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => {
     const snapshot = battleStory('preparing');
     snapshot.battle!.sides = [null, null];
@@ -288,6 +293,7 @@ export const Unclaimed = meta.story({
 });
 
 export const OneClaimed = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => {
     const snapshot = battleStory('preparing');
     snapshot.battle!.sides = [null, { factionId: 'house-atreides', ready: false, choice: null }];
@@ -313,6 +319,7 @@ export const OneClaimed = meta.story({
 });
 
 export const Readiness = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: readiness,
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -363,6 +370,7 @@ export const ReadinessInRealGame = meta.story({
 
 /** Battle, planning: the troops, leader, cards and spice the plan commits, before Ready. */
 export const Planning = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => productTransport('seat-2', withCardInHand(battleStory('preparing')))),
   play: async ({ canvasElement }) => {
     const page = await openPanel(canvasElement, 'Battle');
@@ -371,6 +379,7 @@ export const Planning = meta.story({
 });
 
 export const Planner = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => {
     const snapshot = battleStory('preparing');
     const card = snapshot.table.pieces.find((piece) => piece.kind === 'card' && piece.items.length === 1)!;
@@ -416,6 +425,7 @@ export const Planner = meta.story({
 
 /** The plan's artwork arrives through `PublishedImage`, and a publication that fails to load draws its missing state. */
 export const PlanArtwork = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: battleSetup('preparing', 'seat-2', (snapshot) => {
     const named = (name: string) => snapshot.hand!.find((piece) => piece.items[0]?.artwork?.name === name)!;
     named('Duncan Idaho').items[0]!.artwork!.front = new URL(
@@ -442,6 +452,7 @@ export const PlanArtwork = meta.story({
 
 /** A participant sees their planner once, then keeps their chosen group across battle updates. */
 export const FocusOnce = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: battleSetup('preparing'),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -457,6 +468,7 @@ export const FocusOnce = meta.story({
 });
 
 export const NumericDraft = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: battleSetup('preparing'),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -489,6 +501,7 @@ export const NumericDraft = meta.story({
 });
 
 export const SpiceBound = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: battleSetup('preparing', 'seat-2', (snapshot) => {
     snapshot.bank!.balance = 2;
   }),
@@ -499,6 +512,7 @@ export const SpiceBound = meta.story({
 });
 
 export const CustomSpiceBound = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: battleSetup('preparing', 'seat-2', (snapshot) => {
     snapshot.bank!.balance = 2;
     snapshot.battlePlan!.mode = 'custom';
@@ -511,6 +525,7 @@ export const CustomSpiceBound = meta.story({
 });
 
 export const EarlyReveal = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => productTransport('seat-2', earlyRevealSnapshot())),
   play: async ({ canvasElement }) => {
     const page = await openPanel(canvasElement, 'Battle');
@@ -527,6 +542,7 @@ export const EarlyReveal = meta.story({
 });
 
 export const Ready = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: battleSetup('preparing'),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -542,6 +558,7 @@ export const Ready = meta.story({
 });
 
 export const Countdown = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: battleSetup('countdown'),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -554,6 +571,7 @@ export const Countdown = meta.story({
 
 /** Battle, both plans revealed: the panel shows the viewer's plan locked, and the winner is called on the table's callout. */
 export const Revealed = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => productTransport('seat-2', battleStory('revealed'))),
   play: async ({ canvasElement }) => {
     const page = await openPanel(canvasElement, 'Battle');
@@ -597,6 +615,7 @@ export const RevealedPiecesStill = meta.story({
 });
 
 export const Observer = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => productTransport('neutral', battleStory('revealed', true))),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -627,6 +646,7 @@ export const WinnerCalled = meta.story({
 
 /** The other side's call is lit, so agreeing with it is one click. */
 export const WinnerCalledByOpponent = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: battleSetup('revealed', 'seat-2', (snapshot) => {
     snapshot.battle!.sides[0]!.choice = null;
     snapshot.battle!.sides[1]!.choice = 'left';
@@ -650,6 +670,7 @@ export const WinnerCallsDiffer = meta.story({
 
 /** After the reveal the battle ends as resolved, not cancelled, and it settles with whatever the sides called. */
 export const RevealedResolve = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: battleSetup('revealed', 'seat-2', (snapshot) => {
     for (const side of snapshot.battle!.sides) {
       side!.choice = null;
@@ -667,6 +688,7 @@ export const RevealedResolve = meta.story({
 });
 
 export const Resolved = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: resolvedBattle(),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -692,6 +714,7 @@ export const Resolved = meta.story({
 
 /** A real game's result names both factions from the roster, never by the Convex ids the result carries. */
 export const ResolvedInRealGame = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: resolvedBattle(withConvexIds),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);

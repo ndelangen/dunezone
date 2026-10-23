@@ -284,6 +284,44 @@ unpushable.
 
 ## Common workflows
 
+### Reviewing visual changes
+
+[Chromatic](https://www.chromatic.com/builds?appId=6adb5f9c3d9925e3217df200) captures the Storybook
+stories on pushes to `main` and on pull requests that are ready for review, once when a draft is
+marked ready and again on each later push. Drafts get no Chromatic build, because every build bills
+snapshots. Manual runs from GitHub Actions are supported. The workflow generates
+the media, builds and verifies the public Storybook, then uploads that artifact with the pinned
+Chromatic CLI. The `CHROMATIC_PROJECT_TOKEN` repository secret is available only to the token
+check and upload steps. Keep it out of source files and command-line arguments.
+
+Review and accept intended visual changes in Chromatic. Visual differences leave the workflow
+green so an expected UI change does not fail the upload job; rendering and interaction failures
+still fail it. No branch automatically accepts changes. Chromatic runs separately from the
+required `ci_ok` check, and its visual review checks report through the GitHub integration.
+Fork pull requests do not receive this repository's token and get no Chromatic build.
+
+The 131 stories that failed [the setup capture runs](https://www.chromatic.com/builds?appId=6adb5f9c3d9925e3217df200)
+have `parameters.chromatic.disableSnapshot: true` on their individual story definitions. They remain
+in Storybook and the existing Vitest suites. Story cleanup is deferred; remove each exclusion when
+its story works in Chromatic. The other 1,148 stories remain eligible for captures. New failures
+still fail the workflow and need investigation or an explicit exclusion.
+
+For a local upload, generate the media as described below, set `CHROMATIC_PROJECT_TOKEN` in your
+environment, and run `bun run chromatic`. To upload an existing verified build instead, run
+`bun run chromatic --storybook-build-dir=storybook-static --zip`.
+
+TurboSnap is configured with `onlyChanged: true`. Storybook builds emit `preview-stats.json`,
+and the upload workflow requires that dependency graph. Once Chromatic unlocks TurboSnap after
+ten completed CI builds, it captures affected stories and copies unchanged snapshots from their
+baselines. Before that, Chromatic falls back to full captures. The account's snapshot allowance
+still applies.
+
+Changes to static assets, media-generation inputs, build configuration and helpers, dependencies,
+and either Storybook worker force full captures. The Convex worker builds separately, so its
+backend and shared source inputs also force full captures. Keep the `externals` list in
+`chromatic.config.json` aligned with those inputs. No dependencies are excluded from tracing
+with `untraced`.
+
 ### Writing stories
 
 - Keep stories colocated with the component they render. Storybook navigation is owned by the

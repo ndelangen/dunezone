@@ -91,6 +91,7 @@ export const DirectorySearched = meta.story({
 });
 /** The slotted board shows below the Rulebooks, linking to its own page. */
 export const Detail = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   args: { path: '/rulesets/classicrules' },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -266,7 +267,10 @@ export const DetailFactionRail = meta.story({
 /** The edit page lists the ruleset's factions as links in its own order, and a drag saves the new order. */
 export const EditFactionOrder = meta.story({
   args: { path: '/rulesets/classicrules/edit' },
-  parameters: { database: db((baseline) => seedLinkedFactions(baseline, ['Choam', 'Duncan'])) },
+  parameters: {
+    chromatic: { disableSnapshot: true },
+    database: db((baseline) => seedLinkedFactions(baseline, ['Choam', 'Duncan'])),
+  },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const list = within(await page.findByRole('list', { name: 'Factions' }, { timeout: 30_000 }));

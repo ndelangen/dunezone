@@ -100,6 +100,7 @@ let objectUrls: MockInstance<typeof URL.createObjectURL> | undefined;
  * That URL is the one sign the chunk loaded and drew, since the board itself is pixels on the canvas.
  */
 export const AuthoredArrakis = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   args: { presentation: 'play', board: arrakisBoardCapture },
   beforeEach: () => {
     objectUrls = spyOn(URL, 'createObjectURL');

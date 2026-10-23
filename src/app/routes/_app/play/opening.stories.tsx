@@ -213,6 +213,7 @@ export const Unreachable = meta.story({
 
 /* The shell opens through an iris once the renderer is ready; until then it stays closed behind the stage's status line. */
 export const OpensThroughAnIris = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => productTransport()),
   play: async ({ canvasElement }) => {
     const { shell, document } = await tablePage(canvasElement);
@@ -229,6 +230,7 @@ export const OpensThroughAnIris = meta.story({
  * It also stills the shell's transitions and smooth scrolling, whatever the OS hint says.
  */
 export const OpensStill = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => productTransport()),
   globals: { motion: 'reduce' },
   play: async ({ canvasElement }) => {
@@ -321,6 +323,7 @@ export const ReloadedWhileUnreachable = meta.story({
 
 /* A dropped socket keeps the table's renderer, since the locked table stays on screen through the reconnect; a table that leaves the page, as it does on a refusal, frees its renderer instead of holding a WebGL context per remount until the browser runs out of them. */
 export const ReleasesItsRendererOnRemount = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: recordTableContexts,
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);

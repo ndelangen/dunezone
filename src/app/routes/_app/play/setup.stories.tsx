@@ -11,6 +11,7 @@ const meta = preview.meta({
 });
 
 export const TraitorSelection = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => productTransport('seat-2', setupSnapshot())),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -36,6 +37,7 @@ export const TraitorSelection = meta.story({
 });
 
 export const StartingTroops = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => productTransport('seat-2', preparedSnapshot())),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -78,6 +80,7 @@ export const PredictionLocked = meta.story({
 
 /** Setup, the locked prediction whose card is in hand: placing the card is the reveal, so the panel offers no button (#1753). */
 export const PredictionCardInHand = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => productTransport('seat-6', predictionSnapshot(true, true))),
   play: async ({ canvasElement }) => {
     const page = await openPanel(canvasElement, 'Setup');
@@ -90,6 +93,7 @@ export const PredictionCardInHand = meta.story({
 
 /** Two seats carry factions with one name, so each reads with its player in the prediction's options (#1667). */
 export const PredictionSharedName = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => {
     const snapshot = predictionSnapshot();
     const [first, second] = snapshot.roster!.seats;

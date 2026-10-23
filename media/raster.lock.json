@@ -1286,6 +1286,15 @@
     "isOpaque": true,
     "color": "#c8b878"
   },
+  "/image/leader/custom/duke-leto.png": {
+    "sha256": "97517427c6e5d76fe12988a7509c1d22174b9ff14b5563e22c2ea0187174289f",
+    "bytes": 682154,
+    "width": 640,
+    "height": 640,
+    "format": "png",
+    "isOpaque": true,
+    "color": "#c8b868"
+  },
   "/image/leader/custom/edwards.png": {
     "sha256": "0e366d9d70e5b82c8f6e72cc57ddb497502b04dc4463de0db0afceb2f2c40ef5",
     "bytes": 336990,
@@ -4553,6 +4562,78 @@
     "isOpaque": true,
     "color": "#c8b878"
   },
+  "/image/leader/gf9-second-edition/anirul-corrino.png": {
+    "sha256": "66fa79b3efdebcda6fb979e60c87fdcaaaeab31c5034937ab5be315bff492d27",
+    "bytes": 496341,
+    "width": 640,
+    "height": 640,
+    "format": "png",
+    "isOpaque": true,
+    "color": "#c8b878"
+  },
+  "/image/leader/gf9-second-edition/bashar-garon.png": {
+    "sha256": "6b801c6c629aa2a385740a01c88c668fde3b7fbcbaaffe985085dadd6a782fbf",
+    "bytes": 498757,
+    "width": 640,
+    "height": 640,
+    "format": "png",
+    "isOpaque": true,
+    "color": "#c8b878"
+  },
+  "/image/leader/gf9-second-edition/crozeed.png": {
+    "sha256": "9f679db13a22ad13702bb5573449151d6fb4e33f8b483834badd723e5ca24a32",
+    "bytes": 442999,
+    "width": 640,
+    "height": 640,
+    "format": "png",
+    "isOpaque": true,
+    "color": "#c8b878"
+  },
+  "/image/leader/gf9-second-edition/ertun.png": {
+    "sha256": "e6a5bb6e1efd60287b72a45ef81919817415b1052f2397c62dd37c2623f244df",
+    "bytes": 468359,
+    "width": 640,
+    "height": 640,
+    "format": "png",
+    "isOpaque": true,
+    "color": "#c8b878"
+  },
+  "/image/leader/gf9-second-edition/loyxo.png": {
+    "sha256": "a6f1c873824ae0fca5b27aeff8125ad700ead7a48d2af9df807b44bfeb24b1b5",
+    "bytes": 481338,
+    "width": 640,
+    "height": 640,
+    "format": "png",
+    "isOpaque": true,
+    "color": "#c8b878"
+  },
+  "/image/leader/gf9-second-edition/olar.png": {
+    "sha256": "91bff6ab18172b1d52a7f885acff38d3efebdc22f52ee6cf75e2c17cb0c06143",
+    "bytes": 440509,
+    "width": 640,
+    "height": 640,
+    "format": "png",
+    "isOpaque": true,
+    "color": "#c8b878"
+  },
+  "/image/leader/gf9-second-edition/starguide-serello.png": {
+    "sha256": "6c2da1e9d65a435678e6a402cdec878c65b30a1062ab89ed05f304b38ffe6441",
+    "bytes": 460288,
+    "width": 640,
+    "height": 640,
+    "format": "png",
+    "isOpaque": true,
+    "color": "#c8b878"
+  },
+  "/image/leader/gf9-second-edition/wensicia-corrino.png": {
+    "sha256": "b81ed69eee1af44291d74b9cabbb0f7d98dcf46eee0b36a99fbad5d9b555f6e3",
+    "bytes": 441126,
+    "width": 640,
+    "height": 640,
+    "format": "png",
+    "isOpaque": true,
+    "color": "#c8b878"
+  },
   "/image/leader/gf9/count-ilban-richese.png": {
     "sha256": "61b2044852c51c0715761f55170d37d26e8ca7ffd4369997f2eb936c089c597f",
     "bytes": 1799540,
@@ -6910,6 +6991,15 @@
     "format": "png",
     "isOpaque": true,
     "color": "#98c868"
+  },
+  "/image/rulebook-cover/gf9-second-edition.png": {
+    "sha256": "67847aad3f3a3fec5b570851c5d8203a15dcf82dd436d3aa394149057a81f800",
+    "bytes": 1790104,
+    "width": 1448,
+    "height": 1086,
+    "format": "png",
+    "isOpaque": true,
+    "color": "#082848"
   },
   "/image/rulebook-cover/kiss-planet.png": {
     "sha256": "2881652c9105d5b366bebb0efa930e5bc189fb8ad08e713df94235d49b89f2e7",

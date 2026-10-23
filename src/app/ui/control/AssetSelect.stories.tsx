@@ -171,6 +171,7 @@ export const AllSymbols = meta.story({
 });
 
 export const IconPicker = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   args: { value: null, trigger: { label: 'Add decal', icon: <Plus size={17} /> } },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
