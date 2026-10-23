@@ -1,0 +1,73 @@
+{
+  "reviewedAt": "2026-10-23T14:38:03.753594+00:00",
+  "sourcePdfSha256": "0d8a3a0bc504596199fe2fc8dcc600e6dba1c627649db057959245a42d89566a",
+  "draftSha256": "d2406c58e73e539c4a57633f7659df6ce97d1619067db6e231300d39bc3df964",
+  "sourcePagesInspected": [
+    1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31,
+    32, 33, 34, 35, 36
+  ],
+  "draftPagesCaptured": [
+    1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31,
+    32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60,
+    61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71
+  ],
+  "evidenceDirectory": "/Users/me/.codex/visualizations/2026/10/22/01a162af-eb84-7b63-a6a2-19af5a11b1f6/output/audit",
+  "method": "Visual composition comparison of source page renders and browser captures, plus authored data and renderer inspection. Not an OCR or exported-PDF certification.",
+  "layouts": {
+    "two-columns": 71
+  },
+  "blocks": {
+    "text": 259,
+    "callout": 6,
+    "section-heading": 59,
+    "credits": 10,
+    "list": 27,
+    "asset-explainer": 1,
+    "battle-plans": 5,
+    "card-entry": 15,
+    "board-scene": 3,
+    "piece-transfer": 1,
+    "question-answer": 8
+  },
+  "sourceToDraft": {
+    "1": [1],
+    "2": [2, 3],
+    "3": [4, 5],
+    "4": [6, 7],
+    "5": [8, 9],
+    "6": [10, 11],
+    "7": [],
+    "8": [12, 13],
+    "9": [14, 15],
+    "10": [16, 17],
+    "11": [18, 19],
+    "12": [20, 21],
+    "13": [22, 23],
+    "14": [24, 25],
+    "15": [26],
+    "16": [27, 28],
+    "17": [29, 30],
+    "18": [31, 32],
+    "19": [33, 34],
+    "20": [35, 36],
+    "21": [37, 38],
+    "22": [39, 40],
+    "23": [41, 42],
+    "24": [43, 44],
+    "25": [45, 46],
+    "26": [47, 48, 49],
+    "27": [50, 51],
+    "28": [52, 53],
+    "29": [54, 55],
+    "30": [56, 57],
+    "31": [58, 59],
+    "32": [60, 61],
+    "33": [62, 63],
+    "34": [64, 65, 66],
+    "35": [67, 68, 69],
+    "36": [70, 71]
+  },
+  "report": "visual-fidelity-audit.md",
+  "status": "substantial visual authoring incomplete",
+  "knownFalseNegative": "Earlier region-height audit missed horizontal clipping inside draft page 49."
+}

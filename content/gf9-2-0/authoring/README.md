@@ -4,6 +4,8 @@
 
 This is a first authoring pass, not the finished as-is edition. Read [review.md](review.md) before loading it into production.
 
+The [visual fidelity audit](visual-fidelity-audit.md) compares all 36 source pages with the 71-page browser draft. It records missing illustrations, incorrect grouping, clipped content and the user's typography and pagination corrections. [Its evidence index](visual-audit.json) identifies the captured draft and source fingerprints.
+
 ## Decisions
 
 - Preserve the reworked transcript's wording, order and uncertainty markers.

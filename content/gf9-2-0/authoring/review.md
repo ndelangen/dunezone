@@ -1,5 +1,7 @@
 # First authoring pass
 
+The [visual comparison and repair plan](visual-fidelity-audit.md) supersedes the broad checklist below. It compares all 36 source pages with the captured 71-page draft and records the user's six browser corrections. The current manuscript has substantial missing visual content and an internally clipped variant illustration; the earlier region-height check did not establish fidelity.
+
 The local manuscript is populated and schema-valid. It is ready for continued authoring and review. It is not ready to publish as the faithful edition.
 
 ## Checked
