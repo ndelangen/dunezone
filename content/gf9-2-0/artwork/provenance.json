@@ -43,9 +43,15 @@
         "sha256": "65c498a9371d4c647ccceaa1a5093142f09f15a645a28caef23d507622d86410"
       },
       "crop": [2047, 139, 2455, 378],
-      "threshold": 115,
-      "operation": "Trace the worm, pool ripples and engraved basin from the clean deck sheet. The pale pool and engravings become transparent cutouts.",
-      "referenceCrop": "references/little-maker.png"
+      "threshold": 164,
+      "operation": "Trace the worm, pool ripples and engraved basin with subpixel smoothing. Preserve narrow light contours around the mouth, and remove the false notch in the left frame. The pale pool and engravings remain transparent cutouts.",
+      "referenceCrop": "references/little-maker.png",
+      "preparation": {
+        "upscale": 4,
+        "resampling": "Lanczos",
+        "gaussianBlurPixelsAfterUpscale": 1.0
+      },
+      "tracingArguments": ["--svg", "--turdsize", "6", "--alphamax", "1.2", "--opttolerance", "0.25", "--flat"]
     },
     {
       "assetKey": "/vector/decal/karama-2-0.svg",
@@ -68,7 +74,7 @@
       },
       "crop": [166, 168, 430, 450],
       "threshold": 70,
-      "operation": "Trace the symbol cutouts from the photograph and isolate the eight-pointed star. Straight ray edges remove the shared card background circles, guides and threshold remnants. Existing artwork is preserved.",
+      "operation": "Reconstruct the measured star edges and eight large triangular cutouts as straight paths. Restore the bold circular rim and eight small ray openings. Use concentric circles for the central ring and upper-right ring glyph; retain the other traced glyphs. The faint outer circle and long radial guides belong to the card background and remain omitted.",
       "motifPolygonInCorrectedCard": [
         [296, 175],
         [316, 237],
@@ -87,8 +93,32 @@
         [212, 220],
         [274, 239]
       ],
-      "cutoutIsolation": "Keep white threshold components enclosed inside the motif polygon, with at least two source pixels; fill the remaining polygon as the silhouette.",
+      "cutoutIsolation": "Manually reconstruct eight large triangles and eight small openings from both references. Render only the exposed circular rim arcs, so the rim cannot fill a glyph cutout.",
       "referenceCrop": "references/karama-2-0.png"
+    },
+    {
+      "assetKey": "/vector/decal/little-maker-multicolor.svg",
+      "sourceRecord": "/vector/decal/little-maker.svg",
+      "thresholds": {
+        "ink": 82,
+        "olive": 176
+      },
+      "preparation": {
+        "upscale": 4,
+        "resampling": "Lanczos",
+        "gaussianBlurPixelsAfterUpscale": 1.0
+      },
+      "palette": {
+        "ink": "#11120e",
+        "engravedBand": "#8d9274",
+        "waterAndLightContours": "#cbd0ac"
+      },
+      "operation": "Trace separate ink and olive layers over pale infill, with transparent outer corners. Remove isolated dark texture specks smaller than eight native pixels outside the worm region; preserve the small mouth marks. Colours approximate the supplied deck sheet, rather than measured print inks.",
+      "tracingArguments": ["--svg", "--turdsize", "6", "--alphamax", "1.2", "--opttolerance", "0.25", "--flat"],
+      "textureCleanup": {
+        "minimumDarkComponentNativePixels": 8,
+        "preserveNativeRegion": [120, 60, 290, 160]
+      }
     }
   ]
 }
