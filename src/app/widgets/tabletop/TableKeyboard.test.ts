@@ -319,10 +319,17 @@ describe('the cursor over the table', () => {
     const { keyboard } = table();
     keyboard.hoverTable(true);
     const { tab, moved } = focusedTabList();
+    const arrow = new KeyboardEvent('keydown', {
+      bubbles: true,
+      cancelable: true,
+      key: 'ArrowDown',
+      code: 'ArrowDown',
+    });
 
-    key('keydown', { key: 'ArrowDown', code: 'ArrowDown' }, tab);
+    tab.dispatchEvent(arrow);
 
     expect(moved).not.toHaveBeenCalled();
+    expect(arrow.defaultPrevented).toBe(true);
     expect(keyboard.panDirection()).toEqual([0, 0]);
   });
 
@@ -341,11 +348,23 @@ describe('the cursor over the table', () => {
     keyboard.setPanAvailable(true);
     keyboard.hoverTable(true);
     const field = document.body.appendChild(document.createElement('input'));
+    const heard: string[] = [];
+    field.addEventListener('keydown', (event) => heard.push(event.key));
     field.focus();
+    const arrow = new KeyboardEvent('keydown', {
+      bubbles: true,
+      cancelable: true,
+      key: 'ArrowLeft',
+      code: 'ArrowLeft',
+    });
+    const letter = new KeyboardEvent('keydown', { bubbles: true, cancelable: true, key: 'f' });
 
-    key('keydown', { key: 'ArrowLeft', code: 'ArrowLeft' }, field);
-    key('keydown', { key: 'f' }, field);
+    field.dispatchEvent(arrow);
+    field.dispatchEvent(letter);
 
+    expect(heard).toEqual(['ArrowLeft', 'f']);
+    expect(arrow.defaultPrevented).toBe(false);
+    expect(letter.defaultPrevented).toBe(false);
     expect(keyboard.panDirection()).toEqual([0, 0]);
     expect(controls.flipSelected).not.toHaveBeenCalled();
   });
