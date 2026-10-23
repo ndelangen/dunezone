@@ -289,7 +289,8 @@ unpushable.
 [Chromatic](https://www.chromatic.com/builds?appId=6adb5f9c3d9925e3217df200) captures the Storybook
 stories on pushes to `main` and on pull requests that are ready for review, once when a draft is
 marked ready and again on each later push. Drafts get no Chromatic build, because every build bills
-snapshots. Manual runs from GitHub Actions are supported. The workflow generates
+snapshots. On a pull request the build starts only after every other PR CI job has passed, so a
+failing run is never captured. Manual runs from GitHub Actions are supported. The workflow generates
 the media, builds and verifies the public Storybook, then uploads that artifact with the pinned
 Chromatic CLI. The `CHROMATIC_PROJECT_TOKEN` repository secret is available only to the token
 check and upload steps. Keep it out of source files and command-line arguments.
