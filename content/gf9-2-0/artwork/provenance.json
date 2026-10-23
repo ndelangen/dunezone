@@ -1,7 +1,7 @@
 {
   "version": 1,
   "authorization": "User requested extraction into decals, identified the new Karama motif, and instructed: do not replace, add.",
-  "sourceType": "Solaris and Little Maker use traced paths from user-supplied raster images. Karama 2.0 adapts the existing Karama vector, with the supplied images as design references.",
+  "sourceType": "Solaris combines existing vector paths with source-traced engraving. Little Maker uses traced paths from supplied images. Karama 2.0 adapts the existing Karama vector.",
   "tracing": {
     "tool": "potrace 1.16",
     "arguments": ["--svg", "--turdsize", "2", "--alphamax", "1", "--opttolerance", "0.15", "--flat"],
@@ -25,7 +25,7 @@
       },
       "crop": [2735, 726, 2953, 806],
       "threshold": 65,
-      "operation": "Trace the cleaner deck-sheet crop after 8x Lanczos enlargement, sharpening and light smoothing. Preserve the circular engraving around the planet, the profile details, star and separated coin rims. No generated detail is added.",
+      "operation": "Reconstruct smooth coin faces and separated rims. Reuse the native Stormworld planet and Emperor lion as engraved cutouts, projected onto each coin face. Retain the source-traced star and portrait engravings. Preserve the prior upscaled trace as a working checkpoint.",
       "referenceCrop": "references/solaris-sheet.png",
       "preparation": {
         "upscale": 8,
@@ -65,7 +65,89 @@
         "operation": "Trace the four coin silhouettes and their cutout symbols from the perspective-corrected card photograph.",
         "referenceCrop": "references/solaris.png"
       },
-      "review": "User suggested upscaling before tracing. Revised draft prepared for comparison; user approval is pending."
+      "review": "User suggested upscaling before tracing. Revised draft prepared for comparison; user approval is pending.",
+      "reconstruction": {
+        "coins": [
+          {
+            "id": "portrait",
+            "cx": 181,
+            "cy": 25.2,
+            "rx": 28.7,
+            "ry": 17.8,
+            "angle": 29,
+            "gold": "#b69250"
+          },
+          {
+            "id": "planet",
+            "cx": 42.8,
+            "cy": 24.3,
+            "rx": 28.7,
+            "ry": 17,
+            "angle": -30,
+            "gold": "#d2b568"
+          },
+          {
+            "id": "lion",
+            "cx": 141.2,
+            "cy": 31.9,
+            "rx": 28.3,
+            "ry": 18.3,
+            "angle": 29,
+            "gold": "#c29a4b"
+          },
+          {
+            "id": "star",
+            "cx": 97.3,
+            "cy": 53.2,
+            "rx": 30.3,
+            "ry": 12.3,
+            "angle": 3.5,
+            "gold": "#d8b763"
+          }
+        ],
+        "planetGlyph": {
+          "source": "/vector/generic/stormworld.svg",
+          "unrotateDegrees": 32,
+          "localSize": [1.35, 0.77]
+        },
+        "lionGlyph": {
+          "source": "/vector/logo/emperor.svg",
+          "localSize": [1.14, 1.43]
+        },
+        "starGlyph": {
+          "source": "upscaled Solaris trace",
+          "component": "four-pointed star engraving"
+        },
+        "portrait": {
+          "source": "upscaled Solaris trace",
+          "interiorScale": 0.925
+        },
+        "rim": {
+          "verticalOffset": 4.2,
+          "gapOffset": 1.5
+        },
+        "palette": {
+          "ink": "#252015",
+          "engraving": "#332814"
+        },
+        "tool": "paper 0.12.18, used only during authoring",
+        "reusedVectors": [
+          {
+            "file": "media/vector/generic/stormworld.svg",
+            "sha256": "d5724ede6ddae571cb1ef9e813216cc60639d9042beba02455a193ad9451df98"
+          },
+          {
+            "file": "media/vector/logo/emperor.svg",
+            "sha256": "01a0ae082d0b5aedf14a35db08021f8c9e30642faf8d8b932a2aff649b00f30b"
+          }
+        ],
+        "retainedTrace": {
+          "file": "variants/solaris-upscaled-trace.svg",
+          "sourceCommit": "ca8b3dec2ed",
+          "sha256": "3e089eedc0e86f95df22e5225ae49d4572683bbaf900819e088fdb924d397cde"
+        },
+        "review": "User requested reuse of existing vectors and a multicolour variant. Both reconstructed versions await visual approval."
+      }
     },
     {
       "assetKey": "/vector/decal/little-maker.svg",
@@ -213,6 +295,21 @@
       },
       "operation": "Extract the approved glyph subpaths from ray-east, excluding the kite body. Preserve all contours and internal spaces; fit the viewBox to the glyph bounds.",
       "approval": "User requested a separate new vector after approving the refined hills."
+    },
+    {
+      "assetKey": "/vector/decal/solaris-multicolor.svg",
+      "sourceRecord": "/vector/decal/solaris.svg",
+      "operation": "Use the same reconstructed coin geometry with gold faces and dark engravings and rims. The exterior and spaces between rim arcs remain transparent.",
+      "palette": {
+        "planet": "#d2b568",
+        "lion": "#c29a4b",
+        "portrait": "#b69250",
+        "star": "#d8b763",
+        "ink": "#252015",
+        "engraving": "#332814"
+      },
+      "limitation": "The metal colours are an interpretation for the requested multicolour variant; the supplied card artwork is monochrome.",
+      "approval": "Prepared for user review."
     }
   ]
 }

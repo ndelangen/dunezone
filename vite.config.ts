@@ -96,7 +96,10 @@ const config = defineConfig({
         rollupOptions: {
           output: {
             codeSplitting: {
-              groups: [{ name: 'lucide', test: /\/lucide-react\//u, maxSize: 500_000, entriesAware: true }],
+              groups: [
+                { name: 'lucide', test: /\/lucide-react\//u, maxSize: 500_000, entriesAware: true },
+                { name: 'media-index', test: /\/src\/app\/routes\/_app\/media\/media-index\.json$/u },
+              ],
             },
             entryFileNames: ({ name }) => `public/${codecovSafeName(name)}-[hash].js`,
             chunkFileNames: ({ name }) => `public/${codecovSafeName(name)}-[hash].js`,

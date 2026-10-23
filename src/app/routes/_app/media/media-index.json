@@ -10743,7 +10743,7 @@
     "description": "Coins with planet, star, animal and profile cutouts.",
     "tags": ["Solaris", "coins", "currency", "money", "GF9 2.0", "second edition", "vector"],
     "subjects": ["trade", "symbols"],
-    "sourceHash": "3e089eedc0e86f95df22e5225ae49d4572683bbaf900819e088fdb924d397cde"
+    "sourceHash": "81122f93df8fcd21522de6750675b5831cc6897e5123bca077691cb8fcc48148"
   },
   "/vector/decal/little-maker.svg": {
     "description": "Worm curled in a pool inside an engraved basin.",
@@ -10779,5 +10779,11 @@
     "tags": ["hills", "dunes", "mountains", "ridgelines", "Karama", "vector"],
     "subjects": ["places"],
     "sourceHash": "1ce31687937ae035c888e09c700ae2061bb268cd3b539db1f8530d1792138aca"
+  },
+  "/vector/decal/solaris-multicolor.svg": {
+    "description": "Gold coins with dark engravings.",
+    "tags": ["Solaris", "coins", "gold", "multicolor"],
+    "subjects": ["trade", "symbols"],
+    "sourceHash": "18b83f34b6b87498bed4511659c63c0af4af0c7a59adb441750b41fb2fef3a76"
   }
 }

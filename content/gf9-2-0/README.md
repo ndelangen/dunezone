@@ -69,17 +69,18 @@ The source includes photographs with page curl, perspective, glare and a few cli
 
 ## Added decals
 
-The user supplied clearer card photographs and deck sheets for this artwork. Solaris and Little Maker use traced SVG paths. Karama 2.0 adapts the existing Karama vector, using the supplied images to identify the design changes. These are additions; existing artwork remains available.
+The user supplied clearer card photographs and deck sheets for this artwork. Solaris combines native Stormworld and Emperor paths with traced star and portrait details. Little Maker uses traced SVG paths. Karama 2.0 adapts the existing Karama vector, using the supplied images to identify the design changes. These are additions; existing artwork remains available.
 
 | Decal | Collection |
 | --- | --- |
 | [Solaris](../../media/vector/decal/solaris.svg) | Trade goods and supplies |
+| [Solaris, multicolour](../../media/vector/decal/solaris-multicolor.svg) | Trade goods and supplies |
 | [Little Maker](../../media/vector/decal/little-maker.svg) | Animals and desert fauna |
 | [Little Maker, multicolour](../../media/vector/decal/little-maker-multicolor.svg) | Animals and desert fauna |
 | [Karama 2.0](../../media/vector/decal/karama-2-0.svg) | Symbols and markings |
 | [Dune ridgelines](../../media/vector/decal/dune-ridgelines.svg) | Weather and natural hazards |
 
-The monochrome decals inherit their chosen colour and have transparent cutouts. Little Maker also has a fixed palette variant with pale water, an olive engraved band and dark ink. Karama uses the original vector's glyph contours and geometric construction, adapted to the 2.0 design, while omitting the card's faint background guides. Sources and transformations are recorded in the [provenance file](artwork/provenance.json). The [artwork review](artwork/review.md) records the inferred construction and design changes. The [Karama card draft](cards/README.md) uses the approved full decal. These files do not create application records.
+The monochrome decals inherit their chosen colour and have transparent cutouts. Solaris has a gold palette variant. Little Maker also has a fixed palette variant with pale water, an olive engraved band and dark ink. Karama uses the original vector's glyph contours and geometric construction, adapted to the 2.0 design, while omitting the card's faint background guides. Sources and transformations are recorded in the [provenance file](artwork/provenance.json). The [artwork review](artwork/review.md) records the inferred construction and design changes. The [Karama card draft](cards/README.md) uses the approved full decal. These files do not create application records.
 
 ## Extraction and review
 
