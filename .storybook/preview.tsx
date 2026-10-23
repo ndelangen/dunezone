@@ -11,7 +11,7 @@ import '../src/app/styles/mantine-shell-compatibility.css';
 import { loadStorybookDatabase, StorybookDatabaseProvider, storybookViewer } from '../src/app/db/storybook';
 import type { DatabaseDefinition, WorkerIdentity } from '../src/app/db/storybook';
 import { setMotionOverride } from '../src/app/styles/motion';
-import { appContentTheme } from '../src/app/ui/theme';
+import { appColorSchemeManager, appContentTheme } from '../src/app/ui/theme';
 import * as sizes from '../src/game/data/sizes';
 import { settleStoryViewport } from './storyViewport';
 import { resetFrameLag } from './storyWaits';
@@ -27,20 +27,8 @@ export default definePreview({
   addons: [addonDocs()],
   loaders: [loadStorybookDatabase],
   globalTypes: {
-    colorScheme: {
-      description: 'Color scheme: the shell tokens and Mantine theme',
-      toolbar: {
-        title: 'Scheme',
-        icon: 'circlehollow',
-        items: [
-          { value: 'light', title: 'Scheme: light' },
-          { value: 'dark', title: 'Scheme: dark' },
-        ],
-        dynamicTitle: true,
-      },
-    },
     motion: {
-      description: "Ambient motion: the chrome's band video and turning dice",
+      description: "Ambient motion: the chrome's band video and orbital background",
       toolbar: {
         title: 'Motion',
         icon: 'play',
@@ -53,19 +41,12 @@ export default definePreview({
       },
     },
   },
-  /* The toolbar drives the real `motion` cookie override rather than a module mock, so stories
-     exercise the same code path visitors do; `auto` clears it back to the browser's own hint. The
-     scheme global mirrors the app's attribute so tokens.css flips with the provider; a story can
-     force a scheme by setting `globals: { colorScheme: 'dark' }`. Visual tests stay on the light
-     default for determinism. */
+  /* Stories use the app's warm dark UI and the real ambient-motion preference. */
   beforeEach: async ({ globals }) => {
     await settleStoryViewport();
     resetFrameLag();
     setMotionOverride(globals.motion === 'on' ? 'on' : globals.motion === 'reduce' ? 'off' : null);
-    document.documentElement.setAttribute(
-      'data-mantine-color-scheme',
-      globals.colorScheme === 'dark' ? 'dark' : 'light'
-    );
+    document.documentElement.setAttribute('data-mantine-color-scheme', 'dark');
   },
   parameters: {
     options: {
@@ -272,6 +253,13 @@ export default definePreview({
             height: '800px',
           },
         },
+        appShortCanvas: {
+          name: 'App short canvas',
+          styles: {
+            width: '360px',
+            height: '298px',
+          },
+        },
         appTablet: {
           name: 'App tablet',
           styles: {
@@ -327,7 +315,7 @@ export default definePreview({
          renderers that carry their own colour and must not inherit the app's palette. */
       if (!title.startsWith('Game Assets/')) {
         return (
-          <MantineProvider theme={appContentTheme} forceColorScheme={globals.colorScheme === 'dark' ? 'dark' : 'light'}>
+          <MantineProvider theme={appContentTheme} forceColorScheme="dark" colorSchemeManager={appColorSchemeManager}>
             {story}
           </MantineProvider>
         );
@@ -356,7 +344,6 @@ export default definePreview({
     },
   ],
   initialGlobals: {
-    colorScheme: 'light',
     motion: 'auto',
     backgrounds: {
       value: '#333333',

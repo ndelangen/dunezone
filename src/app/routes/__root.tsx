@@ -1,7 +1,7 @@
 // import { TanStackDevtools } from '@tanstack/react-devtools';
 
 import { ConvexAuthProvider } from '@convex-dev/auth/react';
-import { createRootRoute, HeadContent, Scripts } from '@tanstack/react-router';
+import { createRootRoute, HeadContent, Scripts, useMatches } from '@tanstack/react-router';
 
 import { convex } from '@db/core';
 import { pageTitle } from '@app/routes/pageTitle';
@@ -42,8 +42,7 @@ export const Route = createRootRoute({
     ],
     links: [
       { rel: 'icon', type: 'image/svg+xml', href: '/dune-zone-favicon.svg' },
-      // Train 1b (#255): the two LCP images and the primary text faces.
-      { rel: 'preload', as: 'image', href: '/web/page-large.jpg', fetchPriority: 'high' },
+      /* The header artwork and primary text faces. */
       { rel: 'preload', as: 'image', href: bandPoster, fetchPriority: 'high' },
       {
         rel: 'preload',
@@ -72,6 +71,7 @@ export const Route = createRootRoute({
 });
 
 function RootDocument({ children }: { children: React.ReactNode }) {
+  const appDocument = useMatches({ select: (matches) => matches.some((match) => match.routeId === '/_app') });
   /* Storybook already owns the document and supplies the isolated database and auth providers.
      The generated route tree still passes through this production root in every page story. */
   if (import.meta.env.STORYBOOK) {
@@ -79,9 +79,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    /* The `_app` layout's pre-hydration script writes data-mantine-color-scheme onto <html>
-       before React attaches; the attribute is script-owned, not React-owned. */
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" data-mantine-color-scheme={appDocument ? 'dark' : undefined} suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>

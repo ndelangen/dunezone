@@ -78,7 +78,7 @@ const questions = (page: { items: { question: string }[] } | null) => page?.item
 
 type RulesetFaqAnswer = FunctionReturnType<typeof api.faq.rulesetFaq>;
 
-/** The browsed shape, which every call without a limit answers with. */
+/** The browsed shape, which every call without a search answers with. */
 function browsed(answer: RulesetFaqAnswer) {
   if (answer === null || 'mode' in answer) {
     throw new Error('Expected a browsed page.');
@@ -86,7 +86,7 @@ function browsed(answer: RulesetFaqAnswer) {
   return answer;
 }
 
-/** The searched shape, which a search with a limit answers with. */
+/** The searched shape, which every search answers with. */
 function searched(answer: RulesetFaqAnswer) {
   if (answer === null || !('mode' in answer)) {
     throw new Error('Expected a search.');
@@ -148,11 +148,11 @@ describe("a ruleset's FAQ", () => {
     expect(questions(balance)).toEqual(['Is Harkonnen too strong?']);
     expect(balance).toMatchObject({ total: 1 });
 
-    const storm = await t.query(api.faq.rulesetFaq, { rulesetSlug: 'advanced', q: 'storm' });
+    const storm = searched(await t.query(api.faq.rulesetFaq, { rulesetSlug: 'advanced', q: 'storm', limit: 24 }));
     expect(questions(storm)?.toSorted()).toEqual(['Does the storm move first?', 'When does the storm stop?']);
-    expect(storm).toMatchObject({ total: 2 });
+    expect(storm).toMatchObject({ hasMore: false });
     expect(
-      questions(await t.query(api.faq.rulesetFaq, { rulesetSlug: 'advanced', q: 'storm', tag: 'errata' }))
+      questions(await t.query(api.faq.rulesetFaq, { rulesetSlug: 'advanced', q: 'storm', tag: 'errata', limit: 24 }))
     ).toEqual(['When does the storm stop?']);
   });
 
@@ -185,7 +185,9 @@ describe("a ruleset's FAQ", () => {
       expect(entry.search_text.length).toBeLessThanOrEqual(2000);
       expect(entry.name_key.length).toBeLessThanOrEqual(200);
     }
-    expect(browsed(await t.query(api.faq.rulesetFaq, { rulesetSlug: 'advanced', q: 'guild ship' })).total).toBe(1);
+    expect(
+      searched(await t.query(api.faq.rulesetFaq, { rulesetSlug: 'advanced', q: 'guild ship', limit: 24 })).items
+    ).toHaveLength(1);
   });
 
   test('follows an accepted answer, a retag and a deletion, and leaves no drift', async () => {
@@ -282,7 +284,7 @@ describe("a ruleset's FAQ", () => {
     expect(await t.query(api.faq.rulesetFaq, { rulesetSlug: 'nowhere', q: 'storm', limit: 1 })).toBeNull();
   }, 60_000);
 
-  test('a search that is blank once cut to length browses, and an old bundle keeps its paged search', async () => {
+  test('a search that is blank once cut to length browses, and a search without a limit shows one step', async () => {
     const t = applicationTest();
     await seedFaq(t, numbered(FAQ_CATALOGUE_PAGE_SIZE + 2));
 
@@ -298,11 +300,9 @@ describe("a ruleset's FAQ", () => {
       FAQ_CATALOGUE_PAGE_SIZE
     );
 
-    /* An old bundle's search, with a page and no limit, still gets the paged shape it reads. */
-    const old = browsed(await t.query(api.faq.rulesetFaq, { rulesetSlug: 'advanced', q: 'question', page: 2 }));
-    expect(old).toMatchObject({ page: 2, pageCount: 2, total: FAQ_CATALOGUE_PAGE_SIZE + 2, complete: true });
-    expect(old.items).toHaveLength(2);
-    expect(old).not.toHaveProperty('mode');
+    const unlimited = searched(await t.query(api.faq.rulesetFaq, { rulesetSlug: 'advanced', q: 'question', page: 2 }));
+    expect(unlimited).toMatchObject({ limit: FAQ_CATALOGUE_PAGE_SIZE, hasMore: true });
+    expect(unlimited.items).toHaveLength(FAQ_CATALOGUE_PAGE_SIZE);
   }, 60_000);
 
   test('backfills questions asked before the FAQ lists existed, and verification refuses a gap', async () => {

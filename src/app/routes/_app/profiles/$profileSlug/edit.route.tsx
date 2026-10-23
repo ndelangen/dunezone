@@ -27,8 +27,6 @@ import type { AuthProvider } from '@db/accounts';
 import { useProfileSettings, useSessionViewer, useUpdateCurrentProfile } from '@db/profiles';
 import type { CurrentProfileEntry, ProfileSettingsData, ProfileUserEditInput } from '@db/profiles';
 import { pageHead } from '@app/routes/pageTitle';
-import { setSchemePreference, useSchemePreference } from '@app/styles/colorScheme';
-import type { SchemePreference } from '@app/styles/colorScheme';
 import { setMotionOverride, useMotionPreference } from '@app/styles/motion';
 import type { MotionPreference } from '@app/styles/motion';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
@@ -220,7 +218,6 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
       ? state.data.defaultGroupId
       : null;
   const motion = useMotionPreference();
-  const scheme = useSchemePreference();
 
   const mutationError = update.isError && update.error instanceof Error ? update.error.message : null;
   const isDirty =
@@ -438,7 +435,7 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
           {panelError}
           <PreferenceChoices<MotionPreference>
             label="Ambient motion"
-            note="The masthead video and the turning dice"
+            note="The masthead video, rotating planet and stars"
             options={[
               { value: 'system', label: 'System' },
               { value: 'on', label: 'On' },
@@ -446,17 +443,6 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
             ]}
             value={motion}
             onChange={(next) => setMotionOverride(next === 'system' ? null : next)}
-          />
-          <PreferenceChoices<SchemePreference>
-            label="Color scheme"
-            note="Follow the system, or pin light or dark"
-            options={[
-              { value: 'system', label: 'System' },
-              { value: 'light', label: 'Light' },
-              { value: 'dark', label: 'Dark' },
-            ]}
-            value={scheme}
-            onChange={setSchemePreference}
           />
         </Stack>
       ),

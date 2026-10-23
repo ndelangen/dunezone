@@ -1,12 +1,8 @@
 import { ConvexError } from 'convex/values';
 
-import {
-  normalizePlayGameSlug,
-  PLAY_RESERVED_GAME_ADDRESSES,
-  playGameNameSchema,
-} from '../../src/shared/play/gameNames';
+import { normalizePlayGameSlug, playGameNameSchema } from '../../src/shared/play/gameNames';
 import { generatePlayGameName } from '../../src/shared/play/generatedGameNames';
-import type { MutationCtx, QueryCtx } from '../_generated/server';
+import type { MutationCtx } from '../_generated/server';
 import { acceptsPlayGameAddress, hasLocalPlayGameProfanity } from './playGameNameChecks';
 import { selectSlug } from './slugAllocation';
 
@@ -20,24 +16,8 @@ function retryAllocation(): never {
   });
 }
 
-/** Exact indexed absence reads participate in the same transaction as reservation and game insertion. */
-export async function playGameAddressAvailable(ctx: Pick<QueryCtx, 'db'>, slug: string): Promise<boolean> {
-  if ((PLAY_RESERVED_GAME_ADDRESSES as readonly string[]).includes(slug) || ctx.db.normalizeId('play_games', slug)) {
-    return false;
-  }
-  const reservation = await ctx.db
-    .query('play_game_slug_reservations')
-    .withIndex('by_slug', (q) => q.eq('slug', slug))
-    .unique();
-  if (reservation) {
-    return false;
-  }
-  const game = await ctx.db
-    .query('play_games')
-    .withIndex('by_slug', (q) => q.eq('slug', slug))
-    .unique();
-  return game === null;
-}
+export { playGameAddressAvailable } from './playGameAddressAvailability';
+import { playGameAddressAvailable } from './playGameAddressAvailability';
 
 async function allocateSlug(ctx: MutationCtx, base: string, accept?: (slug: string) => boolean): Promise<string> {
   const cursor = await ctx.db

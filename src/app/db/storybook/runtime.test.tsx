@@ -41,7 +41,7 @@ test('a revision refresh preserves the current query value until its replacement
   const wrapper = ({ children }: PropsWithChildren) => (
     <ConvexStorybookWorkerContext.Provider value={{ client }}>{children}</ConvexStorybookWorkerContext.Provider>
   );
-  const hook = renderHook(() => useConvexStorybookQuery(api.rulesets.list, {}), { wrapper });
+  const hook = renderHook(() => useConvexStorybookQuery(api.rulesets.catalogue, {}), { wrapper });
 
   firstQuery.resolve(initial);
   await waitFor(() => expect(hook.result.current).toBe(initial));

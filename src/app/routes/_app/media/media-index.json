@@ -10301,18 +10301,6 @@
     "subjects": ["patterns", "creatures"],
     "sourceHash": "e1f3a4e2b506f47beceb67fe9979ebe600c525f91ffad835d5fb4c02bb3455a5"
   },
-  "/web/page-dark.jpg": {
-    "description": "Dark blue cloudy page background with pale dunes along the bottom.",
-    "tags": ["background", "illustration"],
-    "subjects": ["patterns"],
-    "sourceHash": "61f252d1947657aea7f34c2c888745c2e5b6dd27e2e739cd3c1e1ba299303e1c"
-  },
-  "/web/page.jpg": {
-    "description": "Pale parchment page background with tan dunes along the bottom.",
-    "tags": ["background", "parchment"],
-    "subjects": ["patterns"],
-    "sourceHash": "31673a60687fac505f7a71247b2a80a03168d1707a389578d2e613d821e6dbdf"
-  },
   "/web/tablet1.jpg": {
     "description": "Pale ornamental tablet panel with a circular medallion and flowing tan border.",
     "tags": ["background", "parchment"],

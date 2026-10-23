@@ -86,7 +86,11 @@ async function seedOwnedRows(t: ReturnType<typeof setup>, ownerId: Id<'users'>, 
       is_deleted: false,
       image_cover: null,
     });
-    const linkId = await ctx.db.insert('ruleset_factions', { ruleset_id: rulesetId, faction_id: factionId });
+    const linkId = await ctx.db.insert('ruleset_factions', {
+      ruleset_id: rulesetId,
+      faction_id: factionId,
+      position: 0,
+    });
     const questionId = await ctx.db.insert('faq_items', {
       ruleset_id: rulesetId,
       slug: '1',

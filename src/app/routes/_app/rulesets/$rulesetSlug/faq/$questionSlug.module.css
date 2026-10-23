@@ -3,6 +3,13 @@
   min-width: 0;
 }
 
+.referencePicker {
+  --catalogue-picker-height: 55dvh;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(var(--catalogue-picker-height) - var(--space-sm));
+}
+
 .discussion {
   display: grid;
   grid-template-areas: "question" "aside" "answers" "related";

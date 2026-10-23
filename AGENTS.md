@@ -411,6 +411,12 @@ three callers had already settled statically. The other module imported two stri
 and cost nothing but the second path. `no-restricted-imports` enforces this for all of `src/**`
 except `src/app/db/**`.
 
+Viewer-query registration lives in `convex/queryAudience.ts`, which carries no mutation-trigger
+registration. `convex/functions.ts` re-exports it for existing callers; read-only modules may import
+it directly to avoid initializing mutation and allocation code before their first database read
+(#2437). The audience mark is shared, and `queryAudience.architecture.test.ts` still checks every
+public query. Mutations continue to use the trigger-aware builders below.
+
 Inside `convex/`, mutations come from the trigger-aware builders in
 [`convex/functions.ts`](convex/functions.ts), never from `_generated/server`: the builders run the
 registered triggers, so a mutation that bypasses them writes without them. `no-restricted-imports`

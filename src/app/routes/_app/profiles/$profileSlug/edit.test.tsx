@@ -200,12 +200,9 @@ describe('profile settings page', () => {
 
     await chooseTab(view, 'Appearance');
     expect(view.getByRole('radiogroup', { name: 'Ambient motion' })).not.toBeNull();
-    expect(view.getByRole('radiogroup', { name: 'Color scheme' })).not.toBeNull();
+    expect(view.queryByRole('radiogroup', { name: 'Color scheme' })).toBeNull();
     expect(
       view.getByRole('group', { name: 'Ambient motion' }).querySelector('[role="img"][aria-label="Help"]')
-    ).not.toBeNull();
-    expect(
-      view.getByRole('group', { name: 'Color scheme' }).querySelector('[role="img"][aria-label="Help"]')
     ).not.toBeNull();
     await chooseTab(view, 'Sign-in methods');
     expect(view.getByRole('button', { name: 'Disconnect Google' })).toHaveProperty('disabled', true);
@@ -372,10 +369,6 @@ describe('profile settings page', () => {
     const view = await renderPage();
 
     await chooseTab(view, 'Appearance');
-    fireEvent.click(view.getByRole('radio', { name: 'Dark' }));
-    expect(localStorage.getItem('dunezone-color-scheme')).toBe('dark');
-    expect(document.documentElement.getAttribute('data-mantine-color-scheme')).toBe('dark');
-
     fireEvent.click(view.getByRole('radio', { name: 'Off' }));
     expect(document.cookie).toContain('motion=off');
 
@@ -387,10 +380,7 @@ describe('profile settings page', () => {
     })) as unknown as typeof window.matchMedia;
     const systemOptions = view.getAllByRole('radio', { name: 'System' });
     fireEvent.click(systemOptions[0] as HTMLElement);
-    fireEvent.click(systemOptions[1] as HTMLElement);
     expect(document.cookie).not.toContain('motion=');
-    expect(localStorage.getItem('dunezone-color-scheme')).toBeNull();
-    expect(document.documentElement.getAttribute('data-mantine-color-scheme')).toBe('dark');
 
     await chooseTab(view, 'Profile');
     fireEvent.change(view.getByRole('textbox', { name: /Display name/ }), { target: { value: 'ChangedOwner' } });

@@ -50,7 +50,6 @@ function ExplainerStory({ initial, unavailable = false }: { initial: Explainer; 
 }
 const meta = preview.meta({
   title: 'Blocks/Annotated component/Editing',
-  globals: { colorScheme: 'dark' },
   parameters: { layout: 'fullscreen' },
 });
 

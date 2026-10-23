@@ -99,6 +99,7 @@ async function groupAccessFixture() {
     await ctx.db.insert('ruleset_factions', {
       ruleset_id: rulesetId,
       faction_id: factionId,
+      position: 0,
     });
     return {
       ownerId,

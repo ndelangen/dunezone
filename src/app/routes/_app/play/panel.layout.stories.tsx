@@ -76,12 +76,7 @@ export const Tabs = meta.story({
   },
 });
 
-/**
- * The panel is a dark-scheme island: its title, eyebrow, prose and controls paint the same in both page schemes, and that paint is the dark tokens, the app's and Mantine's alike.
- * The page scheme is flipped on the document mid-story, which is what the app's own scheme bridge does, so one mount proves both schemes.
- * A floating pane opened on the island keeps the table's paint in the light page although it portals out of the shell: a piece's ring its leather, a tab's tooltip Play's raised tooltip surface.
- * (Page stories take their scheme from the app chrome, not from the Storybook global.)
- */
+/** The Play panel and its portaled controls keep their table palette inside the warm dark app. */
 export const SchemeIsland = meta.story({
   beforeEach: install(() => productTransport()),
   play: async ({ canvasElement }) => {
@@ -93,15 +88,15 @@ export const SchemeIsland = meta.story({
     const root = canvasElement.ownerDocument.documentElement;
     const view = canvasElement.ownerDocument.defaultView!;
     const paint = () => [view.getComputedStyle(balance).color, view.getComputedStyle(button).backgroundColor];
-    root.setAttribute('data-mantine-color-scheme', 'light');
-    const light = paint();
-    await expect(light[0]).toBe(
+    await expect(root).toHaveAttribute('data-mantine-color-scheme', 'dark');
+    const tablePaint = paint();
+    await expect(tablePaint[0]).toBe(
       paintedColor(island, view.getComputedStyle(island).getPropertyValue('--color-text').trim())
     );
     const deck = initialSnapshot().table.pieces.find((piece) => piece.id === 'treachery-deck')!;
     const glass = paintedColor(island, view.getComputedStyle(island).getPropertyValue('--glass-overlay').trim());
     const menu = await openPieceMenu(canvasElement.ownerDocument, deck, 'Deck actions');
-    /* The ring carries its own leather, the same in either page scheme. */
+    /* The ring carries the table's leather palette. */
     await expect(
       view.getComputedStyle(within(menu).getByRole('menuitem', { name: 'Draw a card' })).backgroundColor
     ).toBe('rgba(24, 16, 10, 0.95)');
@@ -122,8 +117,7 @@ export const SchemeIsland = meta.story({
     await expect(raised).not.toBe(glass);
     await userEvent.unhover(help);
     await waitForFrame(() => expect(spiceReserveTip()).toBeNull());
-    root.setAttribute('data-mantine-color-scheme', 'dark');
-    await expect(paint()).toEqual(light);
+    await expect(paint()).toEqual(tablePaint);
   },
 });
 

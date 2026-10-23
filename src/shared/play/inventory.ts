@@ -14,7 +14,34 @@ export const SPAWN_TYPES = [
   'token-pointer',
   'token-enhance',
 ] as const;
+export type SpawnType = (typeof SPAWN_TYPES)[number];
+
+export function isSpawnType(type: string): type is SpawnType {
+  return (SPAWN_TYPES as readonly string[]).includes(type);
+}
+
 export const spawnSelectionSchema = z.object({ type: z.enum(SPAWN_TYPES), slug: z.string().min(1).max(160) });
+
+/** How many assets the in-play spawn picker shows at first, and how many more each Load more asks for. */
+export const SPAWN_PICKER_STEP = 12;
+
+/** One catalogue asset as the spawn picker lists it: enough to name it and to request it. */
+const spawnableAssetSchema = spawnSelectionSchema.extend({
+  name: z.string(),
+  /* The owner's name, which a search matches as well as the asset's; null for an inactive account. */
+  owner: z.string().nullable(),
+});
+export type SpawnableAsset = z.infer<typeof spawnableAssetSchema>;
+
+/** The catalogue's answer to the spawn picker: the newest spawnable assets, or a search's best matches, up to the limit asked for. */
+export const spawnableAssetsSchema = z.object({
+  entries: z.array(spawnableAssetSchema),
+  /* Whether a larger limit would list more. */
+  hasMore: z.boolean(),
+  /* Whether the list stopped at its ceiling, so assets past it are reached by searching for them. */
+  capped: z.boolean(),
+});
+export type SpawnableAssets = z.infer<typeof spawnableAssetsSchema>;
 export const spawnContentsSchema = z.object({
   assetId: tableIdSchema,
   name: z.string(),

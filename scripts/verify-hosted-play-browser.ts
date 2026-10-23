@@ -1190,6 +1190,23 @@ function treacheryDeck(who: HostedPeer) {
   return deck.id;
 }
 /**
+ * Picks one asset in the Shared inventory's catalogue the way a player does: opens the catalogue, searches the asset's name and clicks its row.
+ * The rows are busy until the typed word's own matches list, and a click before that lands on the rows of the search before it, which the picker ignores.
+ * A row names its type and owner beside the asset, so the row is found by the name it shows rather than by its whole label.
+ */
+async function pickCatalogueAsset(who: HostedPeer, name: string) {
+  await openTab(who, 'Shared inventory');
+  if (await button(who, 'Add from catalogue').count()) {
+    await button(who, 'Add from catalogue').click();
+  }
+  await who.page.getByRole('searchbox', { name: 'Search the catalogue' }).fill(name);
+  await who.page
+    .locator('[role="listbox"][aria-label="Catalogue assets"][aria-busy="false"]')
+    .getByRole('option')
+    .filter({ has: who.page.getByText(name, { exact: true }) })
+    .click();
+}
+/**
  * The seeded Harkonnen troop reserve: the carry checks look for its red token on screen.
  * Stacks are keyed by persistent troop identity (#1227), and setup lays them out in troop order, so the first is the first troop.
  */
@@ -2200,6 +2217,7 @@ try {
     currentGameId: () => gameId,
     factionOf,
     treacheryDeck,
+    pickCatalogueAsset,
     button,
     previousPhaseDisabled,
     act,
@@ -2353,6 +2371,7 @@ export type HostedToolkit = {
   depart: typeof depart;
   factionOf: typeof factionOf;
   treacheryDeck: typeof treacheryDeck;
+  pickCatalogueAsset: typeof pickCatalogueAsset;
   button: typeof button;
   previousPhaseDisabled: typeof previousPhaseDisabled;
   act: typeof act;

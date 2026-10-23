@@ -122,7 +122,6 @@ export const LeaderPortraitSearch = meta.story({
 });
 
 export const MixedArtworkInDark = meta.story({
-  globals: { colorScheme: 'dark' },
   args: {
     w: 420,
     maw: 'calc(100vw - 2rem)',

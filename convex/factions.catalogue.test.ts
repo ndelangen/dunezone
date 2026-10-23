@@ -76,10 +76,12 @@ describe('faction catalogue page', () => {
       await ctx.db.insert('ruleset_factions', {
         ruleset_id: advancedId,
         faction_id: arrivalId,
+        position: 0,
       });
       await ctx.db.insert('ruleset_factions', {
         ruleset_id: advancedId,
         faction_id: updatedId,
+        position: 1,
       });
     });
 

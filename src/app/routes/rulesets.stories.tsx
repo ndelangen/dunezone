@@ -237,7 +237,11 @@ function seedLinkedFactions(baseline: StorybookDatabase, names: string[]) {
   for (const name of names) {
     const key = `faction:${name.toLowerCase().replace(/\s+/g, '-')}`;
     baseline.factions.push({ ...faction({ name }), $key: key });
-    baseline.ruleset_factions.push({ ruleset_id: ref('ruleset:classicrules'), faction_id: ref(key) });
+    baseline.ruleset_factions.push({
+      ruleset_id: ref('ruleset:classicrules'),
+      faction_id: ref(key),
+      position: baseline.ruleset_factions.length,
+    });
   }
 }
 /** The ruleset's page shows its first three factions in its own order and links to the rest in the catalogue. */
@@ -340,17 +344,9 @@ export const Question = meta.story({
     const navigation = within(page.getByRole('group', { name: 'Navigation' }));
     await expect(navigation.getByRole('link', { name: 'Back to FAQ' })).toBeVisible();
     /* The shared page renders first; editing follows the viewer, which the browser resolves after it. */
-    await expect(
-      within(page.getByRole('group', { name: 'Question actions' })).findByRole(
-        'button',
-        { name: 'Edit question' },
-        { timeout: 30_000 }
-      )
-    ).resolves.toBeVisible();
-    await expect(
-      within(page.getByRole('group', { name: 'Question actions' })).getByRole('button', { name: 'Delete question' })
-    ).toBeVisible();
-    await userEvent.click(page.getByRole('button', { name: 'Edit question' }));
+    await userEvent.click(await page.findByRole('button', { name: 'Actions for question' }, { timeout: 30_000 }));
+    await waitFor(() => expect(page.getByRole('menuitem', { name: 'Hold to delete question' })).toBeVisible());
+    await userEvent.click(page.getByRole('menuitem', { name: 'Edit question' }));
     const question = await page.findByRole('textbox', { name: 'Edit question' });
     await userEvent.clear(question);
     await userEvent.type(question, 'When does the storm move in round two?');
@@ -425,16 +421,16 @@ export const QuestionReferences = meta.story({
   args: { path: '/rulesets/classicrules/faq/when-does-the-storm-move' },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await userEvent.click(await page.findByRole('button', { name: 'Edit question' }, { timeout: 30_000 }));
+    await userEvent.click(await page.findByRole('button', { name: 'Actions for question' }, { timeout: 30_000 }));
+    await userEvent.click(await page.findByRole('menuitem', { name: 'Edit question' }));
     const question = await page.findByRole('textbox', { name: 'Edit question' });
     await userEvent.clear(question);
     await userEvent.type(question, 'An unsaved question draft?');
     await userEvent.click(await page.findByRole('button', { name: 'Add references' }));
-    await userEvent.type(page.getByRole('textbox', { name: 'Search the catalogue' }), 'Atreides');
-    await userEvent.click(
-      await page.findByRole('button', { name: 'Add reference to House Atreides' }, { timeout: 30_000 })
-    );
-    await userEvent.click(page.getByRole('button', { name: 'Done' }));
+    await userEvent.selectOptions(await page.findByRole('combobox', { name: 'Reference type' }), 'faction');
+    await userEvent.type(await page.findByRole('searchbox', { name: 'Search factions' }), 'Atreides');
+    await userEvent.click(await page.findByRole('option', { name: 'House Atreides' }, { timeout: 30_000 }));
+    await userEvent.click(page.getByRole('button', { name: 'Close reference picker' }));
     const remove = await page.findByRole('button', { name: 'Remove reference to House Atreides' }, { timeout: 30_000 });
     await expect(question).toHaveValue('An unsaved question draft?');
     await expect(page.getByRole('link', { name: /House Atreides ClassicRules/ })).toHaveAttribute(

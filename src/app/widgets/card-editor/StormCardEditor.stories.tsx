@@ -49,7 +49,6 @@ function InteractiveEditor({ sectors = 1 }: { sectors?: number }) {
 const meta = preview.meta({
   title: 'Storm Card Editor',
   component: InteractiveEditor,
-  globals: { colorScheme: 'dark' },
   parameters: { layout: 'padded' },
 });
 export const One = meta.story({});

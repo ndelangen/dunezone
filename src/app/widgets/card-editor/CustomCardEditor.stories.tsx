@@ -71,7 +71,6 @@ function InteractiveEditor({
 }
 const meta = preview.meta({
   parameters: { layout: 'padded' },
-  globals: { colorScheme: 'dark' },
   title: 'Custom Card Editor',
   component: InteractiveEditor,
   args: { preset: 'treachery' },

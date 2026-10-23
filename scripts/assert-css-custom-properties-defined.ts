@@ -27,7 +27,6 @@ const PROVIDED_ELSEWHERE = [
   ['--canvas-width', 'CanvasScale, via setProperty'],
   ['--contain-fit-width', 'the contain-fit observer, via setProperty'],
   ['--contain-fit-height', 'the contain-fit observer, via setProperty'],
-  ['--scroll-pct', 'the parallax scroll writer, via setProperty'],
   ['--app-frame-left', 'AppHeader, via setProperty'],
   ['--pile-slot', 'the pile layout, via inline style'],
   ['--rulebook-aspect', 'RulesetRulebooks in routes/_app/rulesets/$rulesetSlug/index.tsx, via inline style'],

@@ -113,6 +113,7 @@ jobs:
           # The verification, Worker and Wrangler logs, each flow's log, and each flow's report, captures and frames.
           path: |
             test-results/hosted-play/*.log
+            test-results/hosted-play/cold-*.json
             test-results/hosted-play/browser/
           if-no-files-found: warn
           retention-days: 14
@@ -179,6 +180,7 @@ jobs:
           name: hosted-play-evidence-${{ github.run_id }}-webgpu-regular
           path: |
             test-results/hosted-play/*.log
+            test-results/hosted-play/cold-*.json
             test-results/hosted-play/browser/
           if-no-files-found: warn
           retention-days: 14
