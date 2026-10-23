@@ -37,6 +37,6 @@ The Karama rebuild passed all 20 media catalogue tests, vector generation and va
 
 Little Maker's earlier verification passed 8 AssetSelect Storybook tests, and its colour variant was selected in the actual picker. Transparency checks confirmed the colour variant's opaque water and transparent corners, and the monochrome version's transparent water.
 
-The user approved the refined eastern hills and requested them in the new Karama card and as a separate vector. The [card draft](../cards/karama.json) references the full approved decal. [Dune ridgelines](../../../media/vector/decal/dune-ridgelines.svg) extracts the same filled glyph contours, excluding the surrounding kite. It preserves the thin curves, tapered ends and enclosed gaps.
+The user approved the refined eastern hills and requested them in the new Karama card and as a separate vector. The [Karama card draft](../cards/karama.json) references the full approved decal. [Dune ridgelines](../../../media/vector/decal/dune-ridgelines.svg) extracts the same filled glyph contours, excluding the surrounding kite. It preserves the thin curves, tapered ends and enclosed gaps.
 
 At the user's request, the dune lines are now 80% thicker in both the full Karama artwork and the standalone decal. The centreline curves, tapered ends and two enclosed gaps are preserved. Variant A remains unchanged. The card draft references the updated full decal through the same asset key.
