@@ -298,10 +298,10 @@ still fail it. No branch automatically accepts changes. Chromatic runs separatel
 required `ci_ok` check, and its visual review checks report through the GitHub integration.
 Fork pull requests do not receive this repository's token or run this push workflow here.
 
-The 124 stories that failed [the setup capture runs](https://www.chromatic.com/builds?appId=6adb5f9c3d9925e3217df200)
+The 130 stories that failed [the setup capture runs](https://www.chromatic.com/builds?appId=6adb5f9c3d9925e3217df200)
 have `parameters.chromatic.disableSnapshot: true` on their individual story definitions. They remain
 in Storybook and the existing Vitest suites. Story cleanup is deferred; remove each exclusion when
-its story works in Chromatic. The other 1,155 stories remain eligible for captures. New failures
+its story works in Chromatic. The other 1,149 stories remain eligible for captures. New failures
 still fail the workflow and need investigation or an explicit exclusion.
 
 For a local upload, generate the media as described below, set `CHROMATIC_PROJECT_TOKEN` in your

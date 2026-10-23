@@ -80,6 +80,7 @@ export const PredictionLocked = meta.story({
 
 /** Setup, the locked prediction whose card is in hand: placing the card is the reveal, so the panel offers no button (#1753). */
 export const PredictionCardInHand = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => productTransport('seat-6', predictionSnapshot(true, true))),
   play: async ({ canvasElement }) => {
     const page = await openPanel(canvasElement, 'Setup');

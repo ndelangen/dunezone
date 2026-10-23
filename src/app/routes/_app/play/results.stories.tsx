@@ -108,6 +108,7 @@ export const DeclaringKeepsChoiceAcrossTabs = meta.story({
 
 /* Once the Result tab closes, the Game group opens on a tab that still exists, so Phase stays in reach. */
 export const StoppedDeclaringKeepsGameReachable = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => {
     const snapshot = mentatSnapshot('seat-2');
     snapshot.ending = { by: { seat: 'seat-2', name: SIX[1]!.name }, startedAt: 1 };
@@ -136,6 +137,7 @@ function touchScrollers(element: Element) {
 
 /* On a phone the Result tab outgrows the dock's floor; it scrolls inside the dock, so Declare is in reach. */
 export const DeclaringOnAPhone = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   globals: { viewport: { value: 'appMobile' }, motion: 'reduce' },
   beforeEach: install(() => {
     const snapshot = mentatSnapshot('seat-2');

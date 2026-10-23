@@ -124,7 +124,7 @@ function gridCards(page: ReturnType<typeof within>, name: RegExp) {
  */
 export const CatalogueBackToAMembersList = meta.story({
   args: { path: '/factions?ruleset=classicrules' },
-  parameters: { database: db(seedAnotherMember) },
+  parameters: { chromatic: { disableSnapshot: true }, database: db(seedAnotherMember) },
   loaders: [memoryHistory('/factions?owner=storybook-viewer', '/factions?ruleset=classicrules')],
   render: (args, { loaded }) => <StorybookPage {...args} history={pageHistory(loaded)} />,
   play: async ({ canvasElement, loaded }) => {

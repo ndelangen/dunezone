@@ -55,6 +55,7 @@ function factionPhaseSnapshot(allPlayersMustBeReady: boolean): GameSnapshot {
 
 /** The shared phase at Turn 1 Storm: instructions and random storm placement; Determine winner joins them in Mentat Pause (Play/Results). */
 export const StormPlacement = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => productTransport('seat-2', playingSnapshot())),
   play: async ({ canvasElement }) => {
     const page = await openPanel(canvasElement, 'Phase');

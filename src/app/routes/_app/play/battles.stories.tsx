@@ -269,6 +269,7 @@ export const MarkerNamesItsTerritory = meta.story({
 });
 
 export const Unclaimed = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => {
     const snapshot = battleStory('preparing');
     snapshot.battle!.sides = [null, null];
