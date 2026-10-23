@@ -22,14 +22,14 @@ import { TutorialGuide } from './TutorialGuide';
  */
 
 /** What a chapter's guide reads and does on its table. */
-export type TutorialTableControl = Readonly<{
+type TutorialTableControl = Readonly<{
   /** The table as the learner sees it now. */
   snapshot: () => GameSnapshot;
   /** Puts the table back as the chapter started, on the connection the page already holds. */
   reset: () => void;
 }>;
 
-export function useTutorialTable(setup: TutorialSetup, chapter: ChapterScript) {
+function useTutorialTable(setup: TutorialSetup, chapter: ChapterScript) {
   const [table] = useState(() => {
     const origin = window.location.origin;
     const open = () => {

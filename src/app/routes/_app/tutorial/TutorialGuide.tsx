@@ -17,7 +17,7 @@ import styles from './TutorialGuide.module.css';
  */
 
 /** Where a task points: a point on the table, in the scene's coordinates, or an element of the page. */
-export type GuideAnchor =
+type GuideAnchor =
   | Readonly<{ kind: 'table'; point: () => Vector3Tuple | null }>
   | Readonly<{ kind: 'page'; element: () => Element | null }>;
 

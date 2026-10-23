@@ -45,7 +45,7 @@ const factionFixtureSchema = z.object({
   leaders: factionDefinitionSchema.shape.leaders,
 });
 type FactionFixture = z.infer<typeof factionFixtureSchema>;
-export const factionFixtures = z
+const factionFixtures = z
   .array(factionFixtureSchema)
   .parse(
     JSON.parse(
