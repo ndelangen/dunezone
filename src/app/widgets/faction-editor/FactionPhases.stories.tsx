@@ -1,44 +1,13 @@
 import preview from '@sb/preview';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
-import type { Faction } from '@db/factions';
-
-import { representativeFaction } from './FactionAuthoringStoryFixtures';
-import { FactionEditorHarness } from './FactionEditorHarness.stories.fixture';
-
-type Phase = NonNullable<Faction['extraPhases']>[number];
-
-const validPhase: Phase = {
-  id: 'story-phase-bidding',
-  type: 'instruction',
-  title: 'Guild negotiations',
-  symbol: '/vector/icon/bidding_standalone.svg',
-  before: 'bidding',
-  priority: 10,
-  allPlayersMustBeReady: false,
-  instructions: 'Agree any shipment deals before bidding opens.',
-};
-
-function factionWith(phases: unknown[] | undefined): Faction {
-  const faction = representativeFaction();
-  if (phases) {
-    faction.extraPhases = phases as Phase[];
-  }
-  return faction;
-}
-
-/* The toolbar sits above the editor so a story shows Save held by a refused row. */
-function FactionPhasesFixture({ faction }: { faction: Faction }) {
-  return <FactionEditorHarness faction={faction} sessionKey="storybook-faction-phases" />;
-}
-
-/* The read-only rundown beside the list, as a list of its row texts per section. */
-function sequenceRows(canvasElement: HTMLElement, section: 'Setup' | 'Each turn') {
-  const sequence = within(within(canvasElement).getByRole('region', { name: 'Phase sequence' }));
-  return within(sequence.getByRole('list', { name: section }))
-    .getAllByRole('listitem')
-    .map((item) => item.textContent);
-}
+import {
+  validPhase,
+  factionWith,
+  FactionPhasesFixture,
+  sequenceRows,
+  openPhases,
+} from './FactionPhases.stories.fixture';
 
 /* The storm-order notes a reader sees, as their texts: the sequence shows one note per placed group, or one note for the whole sequence when its column is narrow. */
 function visibleStormNotes(canvasElement: HTMLElement) {
@@ -47,12 +16,6 @@ function visibleStormNotes(canvasElement: HTMLElement) {
     .queryAllByText(/storm order/)
     .filter((note) => note.checkVisibility())
     .map((note) => note.textContent);
-}
-
-async function openPhases(canvasElement: HTMLElement) {
-  const canvas = within(canvasElement);
-  await userEvent.click(canvas.getByRole('tab', { name: /Phases/ }));
-  return canvas;
 }
 
 /* On a phone the section tabs fold into a picker, so the chapter is chosen there. */
@@ -166,21 +129,6 @@ export const SequenceFollowsPlacement = meta.story({
   },
 });
 
-/** Adding a row starts it blank: title, symbol and placement are the author's to choose, and Save waits for them. */
-export const NewRowNeedsTheRequiredThree = meta.story({
-  play: async ({ canvasElement }) => {
-    const canvas = await openPhases(canvasElement);
-    await userEvent.click(canvas.getByRole('button', { name: 'Add faction phase' }));
-    await expect(canvas.getByText('Give the phase a title.')).toBeVisible();
-    await expect(canvas.getByText('Choose a symbol.')).toBeVisible();
-    await expect(canvas.getByText('Choose where the phase goes.')).toBeVisible();
-    await expect(canvas.getByRole('button', { name: 'Save faction' })).toHaveAttribute('aria-disabled', 'true');
-
-    await userEvent.type(canvas.getByRole('textbox', { name: 'Title' }), 'Guild negotiations');
-    await expect(canvas.queryByText('Give the phase a title.')).toBeNull();
-  },
-});
-
 export const UnknownPlacement = meta.story({
   args: { faction: factionWith([{ ...validPhase, before: 'karama' }]) },
   play: async ({ canvasElement }) => {
@@ -205,30 +153,5 @@ export const FractionalPriority = meta.story({
     const canvas = await openPhases(canvasElement);
     await expect(canvas.getByText('Priority must be a whole number.')).toBeVisible();
     await expect(canvas.getByRole('button', { name: 'Save faction' })).toHaveAttribute('aria-disabled', 'true');
-  },
-});
-
-/** Two prediction rows before the same step at the same priority are allowed; list order decides between them. */
-export const Reorder = meta.story({
-  args: {
-    faction: factionWith([
-      { ...validPhase, id: 'first', type: 'prediction', title: 'First prediction', before: 'traitors' },
-      { ...validPhase, id: 'second', type: 'prediction', title: 'Second prediction', before: 'traitors' },
-    ]),
-  },
-  play: async ({ canvasElement }) => {
-    const canvas = await openPhases(canvasElement);
-    const shelf = canvas.getByRole('list', { name: 'Ordered faction phases' });
-    await expect(within(shelf).getAllByRole('listitem')[0]).toHaveTextContent('1. First prediction');
-
-    canvas.getByRole('button', { name: 'Drag to reorder First prediction' }).focus();
-    await userEvent.keyboard('[Space]');
-    await userEvent.keyboard('[ArrowRight]');
-    await userEvent.keyboard('[Space]');
-
-    await expect(within(shelf).getAllByRole('listitem')[0]).toHaveTextContent('1. Second prediction');
-    await expect(canvas.getByRole('button', { name: 'Save faction' })).not.toHaveAttribute('aria-disabled');
-    /* Same step and priority, so list order decides, and the sequence follows the new order before any save. */
-    await expect(sequenceRows(canvasElement, 'Setup').slice(0, 2)).toEqual(['Second prediction', 'First prediction']);
   },
 });

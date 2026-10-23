@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { UPDATE_STORY_ARGS } from 'storybook/internal/core-events';
 import { addons } from 'storybook/preview-api';
+import { expect, waitFor, within } from 'storybook/test';
 
 import { StorybookPage } from '../../storybook';
 import recording from './journey.recording/journey.json';
@@ -341,4 +342,15 @@ function JourneyFrame({
       />
     </>
   );
+}
+
+/** Waits for the journey panel to name the step, then for the connected page behind it. */
+export async function atStep(canvasElement: HTMLElement, step: number) {
+  const page = within(canvasElement.ownerDocument.body);
+  const panel = await page.findByRole('complementary', { name: 'Journey' }, { timeout: 30_000 });
+  await waitFor(() => expect(within(panel).getByText(stepCode(step - 1))).toBeVisible(), { timeout: 30_000 });
+  await expect(
+    page.findByRole('heading', { name: 'Dreamrules', level: 1 }, { timeout: 30_000 })
+  ).resolves.toBeVisible();
+  return { page, panel: within(panel) };
 }
