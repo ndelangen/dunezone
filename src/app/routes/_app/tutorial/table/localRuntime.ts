@@ -7,6 +7,15 @@ import { browserGameRuntime } from '../../play/multiplayer/gameRuntime';
 import type { GameRuntime, GameSocket } from '../../play/multiplayer/gameRuntime';
 import type { LocalTable, TableMessage } from './localTable';
 
+/** A page's local game: its browser effects, and what a chapter's Reset needs to start the page's connection afresh. */
+export type LocalRuntime = GameRuntime &
+  Readonly<{
+    /** Whether the page is replaying the table's history rather than showing it live. */
+    replaying: () => boolean;
+    /** Closes the page's connection, which it opens again at once onto whatever table is current. */
+    reconnect: () => void;
+  }>;
+
 /*
  * The browser effects of a game whose table runs in the page: its socket is answered by a local table, as the game Worker
  * answers a real one, and it admits itself, so nothing reaches Convex or the Worker.
@@ -15,10 +24,12 @@ import type { LocalTable, TableMessage } from './localTable';
 export function localRuntime(
   table: () => LocalTable,
   factions: Readonly<Partial<Record<string, PublicFaction | null>>>
-): GameRuntime {
+): LocalRuntime {
   let socket: LocalSocket | null = null;
 
   class LocalSocket {
+    /** Whether the page asked this connection for a replay, which only a fresh connection takes it out of. */
+    replayed = false;
     readyState: GameSocket['readyState'] = 0;
     bufferedAmount = 0;
     onopen: (() => void) | null = null;
@@ -59,6 +70,7 @@ export function localRuntime(
           return this.later({ ...message, entries: [], more: false });
         /* A local table keeps no replay, so its history is the table as it stands. */
         case 'history':
+          this.replayed = true;
           return this.later({ type: 'history', step: 0, lastStep: 0, snapshot: table().frame().snapshot });
         case 'catalogue':
           return this.later({
@@ -115,6 +127,8 @@ export function localRuntime(
       return socket.open();
     },
     /* The page's ticket has the shape the socket's messages require; nothing checks it but that. */
+    replaying: () => socket?.replayed ?? false,
+    reconnect: () => socket?.close(),
     admission: {
       request: () => Promise.resolve({ ok: true as const, ticket: '0'.repeat(64), expiresInMs: 3_600_000 }),
     },

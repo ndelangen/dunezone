@@ -54,6 +54,11 @@ function useTutorialTable(setup: TutorialSetup, chapter: ChapterScript) {
         holder.current.dispose();
         holder.current = open();
         holder.current.deliver = deliver;
+        /* A page replaying the old table leaves its replay only on a fresh connection, so it reconnects onto the new table. */
+        if (runtime.replaying()) {
+          runtime.reconnect();
+          return;
+        }
         deliver(holder.current.frame());
       },
     };
