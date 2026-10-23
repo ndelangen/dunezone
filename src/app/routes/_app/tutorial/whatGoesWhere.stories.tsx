@@ -129,7 +129,13 @@ const TASKS = [
     id: 'next-phase',
     task: 'Move the game on',
     detail: 'The header says the game is in the Storm. Press Next phase, top right.',
-    anchor: { kind: 'page', element: element('[aria-label="Phase navigation"]') },
+    anchor: {
+      kind: 'page',
+      element: () =>
+        [...document.querySelectorAll('[aria-label="Phase navigation"] button')].find(
+          (button) => button.textContent?.trim() === 'Next phase'
+        ) ?? null,
+    },
     begin: () => snapshot().phase,
     done: (start) => snapshot().phase !== start,
   }),

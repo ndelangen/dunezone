@@ -18,6 +18,8 @@ const NECK = 9;
 const HEAD = { half: 24, length: 30 };
 /* How far the rounded corners where the wedge meets the band reach along each side. */
 const FILLET = 22;
+/* The notch over a target close under the band: half its width, its length, its corners, and the room it leaves above the target. */
+const NOTCH = { half: 16, length: 18, fillet: 8, clear: 4 };
 /* How far the outline reaches past the window's edges, so only its lower edge and the wedge show. */
 const BLEED = 4;
 
@@ -77,6 +79,27 @@ function wedge(root: Point, target: Target): string[] | null {
   ];
 }
 
+/*
+ * A target that hugs the band, with no room for the wedge, gets a short notch dropped straight over it instead,
+ * as a tooltip's caret points at what it names. Nothing at all when even that would touch the target.
+ */
+function notch(edge: number, target: Target): string[] | null {
+  const top = target.y - target.halfHeight;
+  const tip = { x: target.x, y: Math.min(top - NOTCH.clear, edge + NOTCH.length) };
+  if (top <= edge || tip.y - edge < NOTCH.length / 2) {
+    return null;
+  }
+  const right = { x: target.x + NOTCH.half, y: edge };
+  const left = { x: target.x - NOTCH.half, y: edge };
+  return [
+    `L ${point({ x: right.x + NOTCH.fillet, y: edge })}`,
+    `Q ${point(right)} ${point(toward(right, tip, NOTCH.fillet))}`,
+    `L ${point(tip)}`,
+    `L ${point(toward(left, tip, NOTCH.fillet))}`,
+    `Q ${point(left)} ${point({ x: left.x - NOTCH.fillet, y: edge })}`,
+  ];
+}
+
 /**
  * The outline of the band, with its arrow toward `target` when there is one, as an SVG path.
  * The arrow leaves the band at `root`, a point on its lower edge.
@@ -85,7 +108,7 @@ export function guideShapePath(band: Edges, root: Point, target: Target | null):
   const left = band.left - BLEED;
   const right = band.right + BLEED;
   const top = -BLEED;
-  const arrow = target ? wedge({ x: root.x, y: band.bottom }, target) : null;
+  const arrow = target ? (wedge({ x: root.x, y: band.bottom }, target) ?? notch(band.bottom, target)) : null;
   /* Clockwise from the top left: across the top, down the right, back along the lower edge through the arrow. */
   return [
     `M ${point({ x: left, y: top })}`,
