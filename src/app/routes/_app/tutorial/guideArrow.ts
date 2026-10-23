@@ -38,13 +38,17 @@ function wedge(root: Point, target: Target): string[] | null {
   const dx = target.x - root.x;
   const dy = target.y - root.y;
   const distance = Math.hypot(dx, dy);
+  /* A target beside or above the band's edge, or one the arrow would reach almost flat along it, gets no arrow. */
+  if (distance < 1 || dy / distance < 0.5) {
+    return null;
+  }
   /* How far the arrow's line runs inside the target's box before it reaches the middle. */
   const inside = Math.min(
     target.halfWidth / Math.max(Math.abs(dx / distance), 1e-6),
     target.halfHeight / Math.max(Math.abs(dy / distance), 1e-6)
   );
   const length = distance - inside - ARROW_GAP_PX;
-  if (length < HEAD.length + FILLET + 20 || dy <= 0) {
+  if (length < HEAD.length + FILLET + 20) {
     return null;
   }
   const along = { x: dx / distance, y: dy / distance };
@@ -92,4 +96,3 @@ export function guideShapePath(band: Edges, root: Point, target: Target | null):
     'Z',
   ].join(' ');
 }
-

@@ -1,7 +1,7 @@
 import { Button, Group, Text } from '@mantine/core';
 import { _roots } from '@react-three/fiber/webgpu';
 import { Check, RotateCcw } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useId, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import { Vector3 } from 'three';
 import type { Camera, Vector3Tuple } from 'three';
@@ -41,7 +41,7 @@ export type GuideTask<Baseline = unknown> = Readonly<{
 
 /* How long the tick shows on a finished task before the next one starts. */
 const DONE_PAUSE_MS = 900;
-/* How many frames the camera holds still before a task takes its baseline. */
+/* How many frames the camera holds still before a run's first task takes its baseline. */
 const SETTLE_FRAMES = 20;
 /* The band's height, which the page frame below it makes room for. */
 const BAND_HEIGHT = '4.5rem';
@@ -63,7 +63,12 @@ function place(anchor: GuideAnchor): Target | null {
   if (anchor.kind === 'page') {
     const box = anchor.element()?.getBoundingClientRect();
     return box && box.width > 0
-      ? { x: box.left + box.width / 2, y: box.top + box.height / 2, halfWidth: box.width / 2, halfHeight: box.height / 2 }
+      ? {
+          x: box.left + box.width / 2,
+          y: box.top + box.height / 2,
+          halfWidth: box.width / 2,
+          halfHeight: box.height / 2,
+        }
       : null;
   }
   const view = tableView();
@@ -90,14 +95,22 @@ function place(anchor: GuideAnchor): Target | null {
  */
 function aim(paths: readonly (SVGPathElement | null)[], badge: DOMRect, band: DOMRect, spot: Target | null) {
   const margin = 60;
-  const root = {
-    x: Math.min(band.right - margin, Math.max(band.left + margin, (badge.left + badge.width / 2 + (spot?.x ?? 0)) / 2)),
-    y: band.bottom,
-  };
+  const clamp = (value: number, low: number, high: number) => Math.min(high, Math.max(low, value));
+  const midway = (badge.left + badge.width / 2 + (spot?.x ?? 0)) / 2;
+  /* It drops at least as steeply as it runs sideways, so a target close under the band is not pointed at along the band's edge. */
+  const drop = Math.max(0, (spot?.y ?? 0) - band.bottom);
+  const steep = spot ? clamp(midway, spot.x - drop, spot.x + drop) : midway;
+  const root = { x: clamp(steep, band.left + margin, band.right - margin), y: band.bottom };
   const outline = guideShapePath(band, root, spot);
+  /* The shape casts blurred shadows, so it is redrawn only when it changes, not every frame. */
+  if (paths[0]?.getAttribute('d') === outline) {
+    return;
+  }
   for (const path of paths) {
     path?.setAttribute('d', outline);
   }
+  /* Where the arrow points, for a test to find the part it shows. */
+  paths[0]?.setAttribute('data-target', spot ? `${Math.round(spot.x)} ${Math.round(spot.y)}` : '');
 }
 
 /**
@@ -130,11 +143,19 @@ export function TutorialGuide({
   const band = useRef<HTMLElement>(null);
   const step = useRef<HTMLSpanElement>(null);
   const task = tasks[current];
+  /* The loop below follows the task by its id, so a caller that builds its task list afresh on each render does not restart it. */
+  const taskId = task?.id;
+  const currentTask = useEffectEvent(() => tasks[current]);
+  const inset = `${useId()}-inset`;
   const finished = doneKey === `${run}:${current}`;
+  /* Which run has its table in place; until then the band says it is setting up, so nothing the player does is lost. */
+  const [readyRun, setReadyRun] = useState<number | null>(null);
+  const waiting = readyRun !== run;
 
   /* Every frame the pointer moves to its part, and the task is asked whether it is done. */
   useEffect(() => {
     let frame = 0;
+    const task = currentTask();
     /* Once the chapter is done the band stays, without its arrow. */
     if (!task) {
       const still = () => {
@@ -151,8 +172,11 @@ export function TutorialGuide({
     let baseline: unknown;
     let started = false;
     let doneAt: number | null = null;
-    /* The camera may still be gliding into its view, so a task starts counting from where it comes to rest. */
-    let still = 0;
+    /*
+     * As a run opens the camera may still be gliding into its view, so its first task starts counting from where it comes to rest,
+     * and the band shows the task only then. Later tasks start at once, so a move the player makes straight away counts.
+     */
+    let still = current === 0 ? 0 : SETTLE_FRAMES;
     const resting = new Vector3();
     const tick = () => {
       frame = requestAnimationFrame(tick);
@@ -160,7 +184,7 @@ export function TutorialGuide({
       const badge = step.current?.getBoundingClientRect();
       const box = band.current?.getBoundingClientRect();
       if (badge && box) {
-        aim([fill.current, edge.current], badge, box, doneAt === null ? place(task.anchor) : null);
+        aim([fill.current, edge.current], badge, box, started && doneAt === null ? place(task.anchor) : null);
       }
       if (!started) {
         if (!view.camera) {
@@ -173,6 +197,7 @@ export function TutorialGuide({
         }
         baseline = task.begin(view);
         started = true;
+        setReadyRun(run);
       }
       if (doneAt === null && task.done(baseline as never, view)) {
         doneAt = performance.now();
@@ -190,7 +215,7 @@ export function TutorialGuide({
         task.finish?.(baseline as never);
       }
     };
-  }, [task, run, current]);
+  }, [taskId, run, current]);
 
   const reset = () => {
     onReset();
@@ -204,7 +229,7 @@ export function TutorialGuide({
         <svg className={styles.shape} aria-hidden>
           <defs>
             {/* A shadow cast inward from every edge of the outline, so the band's depth follows it into the arrow. */}
-            <filter id="tutorial-guide-inset" x="-5%" y="-5%" width="110%" height="110%">
+            <filter id={inset} x="-5%" y="-5%" width="110%" height="110%">
               <feComponentTransfer in="SourceAlpha" result="outside">
                 <feFuncA type="table" tableValues="1 0" />
               </feComponentTransfer>
@@ -219,7 +244,7 @@ export function TutorialGuide({
               </feMerge>
             </filter>
           </defs>
-          <path ref={fill} className={styles.fill} data-tutorial-pointer filter="url(#tutorial-guide-inset)" />
+          <path ref={fill} className={styles.fill} data-tutorial-pointer filter={`url(#${inset})`} />
           <path ref={edge} className={styles.edge} />
         </svg>
         <header ref={band} className={styles.band} aria-label={`Chapter ${number}: ${title}`}>
@@ -230,7 +255,14 @@ export function TutorialGuide({
             <Text fw={700}>{title}</Text>
           </div>
           <div className={styles.task} aria-live="polite">
-            {task ? (
+            {task && waiting ? (
+              <>
+                <span ref={step} className={styles.step}>
+                  {current + 1}
+                </span>
+                <Text fw={700}>Setting the table…</Text>
+              </>
+            ) : task ? (
               <>
                 <span ref={step} className={styles.step} data-done={finished || undefined}>
                   {finished ? <Check size={16} aria-hidden /> : current + 1}

@@ -1,4 +1,5 @@
 import preview from '@sb/preview';
+import { BOARD_RADIUS } from '@shared/play/tableGeometry';
 import type { Decorator } from '@storybook/tanstack-react';
 import type { ReactNode } from 'react';
 import { expect, waitFor, within } from 'storybook/test';
@@ -26,29 +27,27 @@ const at = (piece: { position: readonly number[] } | undefined) => (piece ? (pie
 const element = (selector: string) => () => document.querySelector(selector);
 const tabSelected = (selector: string) => document.querySelector(selector)?.getAttribute('aria-selected') === 'true';
 /*
- * A tab task counts the player pressing that tab from the moment the task starts, so a tab left open by an earlier run does not count.
+ * A tab task counts the player pressing or arrowing onto that tab from the moment the task starts, so a tab left open by an earlier run does not count.
  * The tab must end up open as well.
  */
 const pressedTab = (selector: string) => ({
   begin: () => {
     const watch = { pressed: false, stop: new AbortController() };
-    document.addEventListener(
-      'click',
-      (event) => {
-        if (event.target instanceof Element && event.target.closest(selector)) {
-          watch.pressed = true;
-        }
-      },
-      { capture: true, signal: watch.stop.signal }
-    );
+    const press = (event: Event) => {
+      if (event.target instanceof Element && event.target.closest(selector)) {
+        watch.pressed = true;
+      }
+    };
+    /* The tabs open as the keyboard moves onto them as well, which comes as focus without a click. */
+    for (const type of ['click', 'focusin']) {
+      document.addEventListener(type, press, { capture: true, signal: watch.stop.signal });
+    }
     return watch;
   },
   done: (watch: { pressed: boolean }) => watch.pressed && tabSelected(selector),
   finish: (watch: { stop: AbortController }) => watch.stop.abort(),
 });
 
-/* The board's own radius on the table; a piece inside it is on Arrakis. */
-const BOARD_RADIUS = 3.6;
 const onBoard = (piece: { position: readonly number[] }) =>
   Math.hypot(piece.position[0]!, piece.position[2]!) < BOARD_RADIUS;
 const myTroopsOnBoard = () =>
@@ -141,7 +140,11 @@ const guideDecorator: Decorator = (Story) => (
     number={5}
     title="What goes where"
     tasks={TASKS}
-    onReset={() => restart({ start: START, seat: SEAT })}
+    onReset={() => {
+      restart({ start: START, seat: SEAT });
+      /* Choosing the map view again puts the camera back where the chapter starts, zoom and all. */
+      document.querySelector<HTMLButtonElement>('[aria-label^="Focus on map"]')?.click();
+    }}
     chaptersLink={({ children, ...props }: { children?: ReactNode }) => (
       <a {...props} href="/tutorial">
         {children}
@@ -182,4 +185,3 @@ export const Chapter = meta.story({
     );
   },
 });
-
