@@ -1,11 +1,16 @@
 {
   "version": 1,
   "authorization": "User requested extraction into decals, identified the new Karama motif, and instructed: do not replace, add.",
-  "sourceType": "User-supplied raster images; these SVGs are traced paths, not vector objects extracted from the PDF.",
+  "sourceType": "Solaris and Little Maker use traced paths from user-supplied raster images. Karama 2.0 adapts the existing Karama vector, with the supplied images as design references.",
   "tracing": {
     "tool": "potrace 1.16",
     "arguments": ["--svg", "--turdsize", "2", "--alphamax", "1", "--opttolerance", "0.15", "--flat"],
-    "normalization": "Existing normalizeSvg and generate:vectors pipeline; inherited paint and transparent cutouts."
+    "normalization": "Existing normalizeSvg and generate:vectors pipeline; inherited paint and transparent cutouts.",
+    "appliesTo": [
+      "/vector/decal/solaris.svg",
+      "/vector/decal/little-maker.svg",
+      "/vector/decal/little-maker-multicolor.svg"
+    ]
   },
   "records": [
     {
@@ -51,7 +56,8 @@
         "resampling": "Lanczos",
         "gaussianBlurPixelsAfterUpscale": 1.0
       },
-      "tracingArguments": ["--svg", "--turdsize", "6", "--alphamax", "1.2", "--opttolerance", "0.25", "--flat"]
+      "tracingArguments": ["--svg", "--turdsize", "6", "--alphamax", "1.2", "--opttolerance", "0.25", "--flat"],
+      "approval": "User said Little Maker is good on 23 October 2026; keep this artwork unchanged."
     },
     {
       "assetKey": "/vector/decal/karama-2-0.svg",
@@ -73,28 +79,42 @@
         "outputSize": [600, 840]
       },
       "crop": [166, 168, 430, 450],
-      "threshold": 70,
-      "operation": "Reconstruct the measured star edges and eight large triangular cutouts as straight paths. Restore the bold circular rim and eight small ray openings. Use concentric circles for the central ring and upper-right ring glyph; retain the other traced glyphs. The faint outer circle and long radial guides belong to the card background and remain omitted.",
-      "motifPolygonInCorrectedCard": [
-        [296, 175],
-        [316, 237],
-        [382, 217],
-        [359, 278],
-        [426, 307],
-        [359, 334],
-        [390, 404],
-        [320, 382],
-        [298, 442],
-        [275, 383],
-        [203, 406],
-        [233, 334],
-        [169, 308],
-        [234, 280],
-        [212, 220],
-        [274, 239]
-      ],
-      "cutoutIsolation": "Manually reconstruct eight large triangles and eight small openings from both references. Render only the exposed circular rim arcs, so the rim cannot fill a glyph cutout.",
-      "referenceCrop": "references/karama-2-0.png"
+      "operation": "Widen and join the original kite-shaped rays, shorten the diagonal tips slightly, enlarge the central octagon and narrow the circular sectors to a rim. Retain seven original ray glyph contours, with placement and scale adjustments. Replace the central waves with a circular ring and the eastern mountain with two interlaced waves. Construct eight large and eight small triangular openings from repeated geometric parameters.",
+      "referenceCrop": "references/karama-2-0.png",
+      "method": "Clone the original Karama vector and adapt its geometric construction; no raster-traced glyph contours.",
+      "baseVector": "/vector/icon/karama.svg",
+      "geometry": {
+        "coordinateSpace": [150, 149],
+        "centre": [75, 74.5],
+        "cardinalTipRadius": 74.5,
+        "diagonalTipRadius": 70.5,
+        "kiteShoulderDepth": 38,
+        "kiteShoulderHalfWidth": 16.3,
+        "kiteInnerRadius": 23.5,
+        "centralOctagonScale": 1.36,
+        "rimRadii": [59, 57.3],
+        "centralRingRadii": [15.5, 10.8],
+        "largeTriangleApexRadius": 35.5,
+        "largeTriangleBaseFractions": [0.18, 0.82],
+        "smallTriangleRadii": [38, 40.3],
+        "smallTriangleHalfAngleDegrees": 2
+      },
+      "glyphReuse": {
+        "north": "Original Leo contour; translate outward 7.5 units.",
+        "northEast": "Original ring contours; scale 0.85 and translate [5.3, -5.3].",
+        "east": "New interlaced-wave contour, replacing the original mountain.",
+        "southEast": "Original cup contours; scale 0.95 and translate [5.3, 5.3].",
+        "south": "Original diamond contours; scale 0.95 and translate outward 9 units.",
+        "southWest": "Original figure-eight contours; scale 0.95 and translate [-5.3, 5.3].",
+        "west": "Original eye contours; scale 0.85 and translate outward 7 units.",
+        "northWest": "Original arch contours; scale 0.85 and translate [-5.3, -5.3]."
+      },
+      "additionalReference": {
+        "file": "treachery_deck.png",
+        "crop": [381, 505, 519, 645],
+        "referenceCrop": "references/karama-2-0-sheet.png"
+      },
+      "authorization": "User rejected the raster-based Karama revisions and directed: clone the original Karama vector and work from there to get to the new design."
     },
     {
       "assetKey": "/vector/decal/little-maker-multicolor.svg",
@@ -118,7 +138,8 @@
       "textureCleanup": {
         "minimumDarkComponentNativePixels": 8,
         "preserveNativeRegion": [120, 60, 290, 160]
-      }
+      },
+      "approval": "User said Little Maker is good on 23 October 2026; keep this artwork unchanged."
     }
   ]
 }

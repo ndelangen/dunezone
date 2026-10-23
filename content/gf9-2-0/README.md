@@ -69,7 +69,7 @@ The source includes photographs with page curl, perspective, glare and a few cli
 
 ## Added decals
 
-The user supplied clearer card photographs and deck sheets for this artwork. These are SVG paths traced from those raster images. They are additions; existing artwork remains available.
+The user supplied clearer card photographs and deck sheets for this artwork. Solaris and Little Maker use traced SVG paths. Karama 2.0 adapts the existing Karama vector, using the supplied images to identify the design changes. These are additions; existing artwork remains available.
 
 | Decal | Collection |
 | --- | --- |
@@ -78,7 +78,7 @@ The user supplied clearer card photographs and deck sheets for this artwork. The
 | [Little Maker, multicolour](../../media/vector/decal/little-maker-multicolor.svg) | Animals and desert fauna |
 | [Karama 2.0](../../media/vector/decal/karama-2-0.svg) | Symbols and markings |
 
-The monochrome decals inherit their chosen colour and have transparent cutouts. Little Maker also has a fixed palette variant with pale water, an olive engraved band and dark ink. Karama retains its bold circular rim, star and symbols while omitting the card's faint background guides. Sources and transformations are recorded in the [provenance file](artwork/provenance.json). The [artwork review](artwork/review.md) records the missing details found in the first traces and their corrections. These catalogue additions do not create card or Rulebook records.
+The monochrome decals inherit their chosen colour and have transparent cutouts. Little Maker also has a fixed palette variant with pale water, an olive engraved band and dark ink. Karama uses the original vector's glyph contours and geometric construction, adapted to the 2.0 design, while omitting the card's faint background guides. Sources and transformations are recorded in the [provenance file](artwork/provenance.json). The [artwork review](artwork/review.md) records the inferred construction and design changes. These catalogue additions do not create card or Rulebook records.
 
 ## Extraction and review
 

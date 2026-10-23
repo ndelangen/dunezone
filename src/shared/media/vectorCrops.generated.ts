@@ -193,7 +193,7 @@ export const VECTOR_CROPS = {
   '/vector/decal/juice-of-sapho-multicolor.svg': [50.035, 49.935, 98.09, 99.87],
   '/vector/decal/juice-of-sapho.svg': [49.97, 49.985, 98.2, 99.97],
   '/vector/decal/kanly.svg': [50, 50, 100, 82.08],
-  '/vector/decal/karama-2-0.svg': [49.82, 49.82, 91.24, 94.78],
+  '/vector/decal/karama-2-0.svg': [50, 50, 99.44, 99.44],
   '/vector/decal/keeper-of-accounts-multicolor.svg': [52.81, 49.269999999999996, 80.68, 81.38],
   '/vector/decal/keeper-of-accounts.svg': [52.795, 49.269999999999996, 80.65, 81.38],
   '/vector/decal/killer-doctor-multicolor.svg': [50, 50, 100, 89.1],
