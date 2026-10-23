@@ -1,24 +1,32 @@
 name: Chromatic
 
 on:
+  # main keeps the baselines current. A pull request captures once it is ready for review and on each
+  # later push, never while it is a draft: every build bills snapshots.
   push:
-    branches: ["**"]
+    branches: [main]
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: chromatic-${{ github.ref }}
+  group: chromatic-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
   chromatic:
+    # Fork pull requests get no token, so they get no build.
+    if: ${{ github.event_name != 'pull_request' || (github.event.pull_request.draft == false && github.event.pull_request.head.repo.full_name == github.repository) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          # The PR head, not GitHub's merge commit, so TurboSnap diffs against the branch's own ancestors.
+          ref: ${{ github.event.pull_request.head.ref || github.ref }}
           fetch-depth: 0
           persist-credentials: false
           sparse-checkout: |
@@ -45,4 +53,7 @@ jobs:
       - name: Publish and test in Chromatic
         env:
           CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+          CHROMATIC_BRANCH: ${{ github.event.pull_request.head.ref || github.ref_name }}
+          CHROMATIC_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          CHROMATIC_SLUG: ${{ github.repository }}
         run: bun run chromatic --storybook-build-dir=storybook-static --zip
