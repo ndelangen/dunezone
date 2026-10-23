@@ -1,5 +1,5 @@
 import { Stack, Text, VisuallyHidden } from '@mantine/core';
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, Link } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
 import { StatusBadge } from '@ui/content/StatusBadge';
@@ -12,6 +12,7 @@ import { pageHead } from '@app/routes/pageTitle';
 
 import { chapterArt, TUTORIAL_CHAPTERS, TUTORIAL_PARTS } from './chapters';
 import type { TutorialChapter, TutorialPart } from './chapters';
+import { CHAPTER_SCRIPTS } from './chapterScripts/scripts';
 import styles from './index.module.css';
 
 /*
@@ -31,16 +32,30 @@ const chaptersIn = (part: TutorialPart) => TUTORIAL_CHAPTERS.filter((chapter) =>
 /*
  * A chapter's tile: its picture first, then its number beside its title and goal (the prototype Norbert picked, layout A).
  * A chapter not yet built keeps its picture in colour and says so in a chip where its minutes are, and opens nothing.
+ * A built chapter's title is a link that covers the whole tile, so the tile opens the chapter and reads as one link.
  */
 function ChapterTile({ chapter, eager }: Readonly<{ chapter: TutorialChapter; eager: boolean }>) {
   const titleId = useId();
+  const built = chapter.slug in CHAPTER_SCRIPTS;
+  const title = (
+    <>
+      <VisuallyHidden component="span">{`Chapter ${chapter.number}: `}</VisuallyHidden>
+      {chapter.title}
+    </>
+  );
   return (
     <li className={styles.cell}>
-      <Surface as="article" padding="none" className={styles.tile} aria-labelledby={titleId}>
+      <Surface
+        as="article"
+        padding="none"
+        className={styles.tile}
+        data-built={built || undefined}
+        aria-labelledby={titleId}
+      >
         <div className={styles.art}>
           <img src={chapterArt(chapter)} alt="" loading={eager ? undefined : 'lazy'} />
           <span className={styles.chips}>
-            <StatusBadge tone="pending">Coming soon</StatusBadge>
+            {built ? null : <StatusBadge tone="pending">Coming soon</StatusBadge>}
             <StatusBadge icon={<Clock size={12} aria-hidden />}>{`${chapter.minutes} min`}</StatusBadge>
           </span>
         </div>
@@ -49,8 +64,13 @@ function ChapterTile({ chapter, eager }: Readonly<{ chapter: TutorialChapter; ea
             {chapter.number}
           </span>
           <Text id={titleId} fw={700} lh={1.3}>
-            <VisuallyHidden component="span">{`Chapter ${chapter.number}: `}</VisuallyHidden>
-            {chapter.title}
+            {built ? (
+              <Link to="/tutorial/$chapter" params={{ chapter: chapter.slug }} className={styles.open}>
+                {title}
+              </Link>
+            ) : (
+              title
+            )}
           </Text>
           <Text size="sm" c="dimmed" lh={1.35}>
             {chapter.goal}

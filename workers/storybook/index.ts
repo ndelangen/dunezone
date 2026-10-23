@@ -7,10 +7,14 @@
  * A fetch from one Custom Domain Worker to another on the same zone invokes that Worker without a service binding.
  * A connection that drops is retried once, including a raster body interrupted after its headers arrive.
  * An interrupted raster resumes only from an unencoded response with the same media digest, so bytes from different releases cannot be joined.
+ * The tutorial's `/published/` art is forwarded the same way, so its chapters show the site's live cards and tokens;
+ * board faces there are not.
  * Every other path never reaches this code, and anything that does is handed back to the static assets.
  */
 const MEDIA_ORIGIN = 'https://dune.zone';
-const MEDIA_PREFIXES = ['/m/', '/image/', '/web/'];
+/* `/published/` is the tutorial's live art (`src/app/routes/_app/tutorial/setup`); board faces there stay the build's own fixture. */
+const MEDIA_PREFIXES = ['/m/', '/image/', '/web/', '/published/'];
+const OWN_BOARD_FACES = '/published/boards/';
 
 type Env = { ASSETS: { fetch: (request: Request) => Promise<Response> } };
 
@@ -127,7 +131,7 @@ async function fetchMedia(target: string, method: string): Promise<Response> {
 }
 
 export function isMediaPath(pathname: string): boolean {
-  return MEDIA_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+  return MEDIA_PREFIXES.some((prefix) => pathname.startsWith(prefix)) && !pathname.startsWith(OWN_BOARD_FACES);
 }
 
 export default {

@@ -66,7 +66,6 @@ export const JOB_INPUTS = {
       'tools/**',
       'e2e/**',
       'infra/**',
-      'workers/game/**',
       '.storybook/**',
       '**/*.stories.*',
       'vitest.storybook.config.ts',
@@ -74,6 +73,8 @@ export const JOB_INPUTS = {
       'src/**/*.test.*',
       'convex/**/*.test.*',
       'scripts/**/*.test.*',
+      /* The tutorial runs the game Worker's table in the page, so the build reads workers/game too, all but its tests. */
+      'workers/game/**/*.test.*',
     ],
   },
   /* Every story renders against the in-browser Convex, which globs the whole backend, so only the other suites and the other Workers stay out. */

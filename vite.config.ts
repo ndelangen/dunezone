@@ -36,6 +36,27 @@ const publicAssetFileName = ({ names }: { names: readonly string[] }) => {
  * A route no test renders never loads its chunk, so its component lines would drop out of the coverage denominator.
  * The reference-file plugin writes the lazy import, so the run fails when that name is not found.
  */
+/*
+ * The tutorial runs the game Worker's table in the browser, so in the client build that table's Node crypto imports
+ * resolve to a Web Crypto slice. Nothing else is redirected: the server build and the tests keep Node's own.
+ */
+function gameTableCryptoInBrowser(): PluginOption {
+  const slice = fileURLToPath(new URL('./src/app/routes/_app/tutorial/table/nodeCrypto.ts', import.meta.url));
+  return {
+    name: 'dunezone:game-table-crypto-in-browser',
+    enforce: 'pre',
+    resolveId(source, importer) {
+      if (
+        source === 'node:crypto' &&
+        importer?.includes('/workers/game/') &&
+        this.environment.config.consumer === 'client'
+      ) {
+        return slice;
+      }
+    },
+  };
+}
+
 function withoutRouteSplittingInVitest(plugins: PluginOption[]): PluginOption[] {
   if (!process.env.VITEST) {
     return plugins;
@@ -130,6 +151,7 @@ const config = defineConfig({
   plugins: withoutRouteSplittingInVitest([
     // devtools(),
     unsyncedMediaPreview(fileURLToPath(new URL('.', import.meta.url))),
+    gameTableCryptoInBrowser(),
     tanstackStart({
       srcDirectory: './src/app',
       start: { entry: './routes/start.ts' },

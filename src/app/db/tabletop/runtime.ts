@@ -1,3 +1,4 @@
+import type { requestPlayAdmission, watchSeatPass } from '../play';
 import type { TableStore } from './storedTable';
 
 export type GameSocket = Pick<
@@ -17,4 +18,9 @@ export type GameRuntime = {
   onLongTask?(listener: (durationMs: number) => void): () => void;
   /* Where a tab keeps its last table for a reload; a runtime without one starts every load at the connecting frame. */
   tables?: TableStore;
+  /* How the socket is admitted; a runtime without one asks Convex, as every real game does. A table running in the page admits itself. */
+  admission?: Readonly<{
+    request: typeof requestPlayAdmission;
+    watchPass?: typeof watchSeatPass;
+  }>;
 };

@@ -60,8 +60,8 @@ const SAMPLES: Record<ReusableJob, { reads: string[]; skips: string[] }> = {
     skips: ['src/app/ui/control/Button.tsx', '.github/workflows/deploy-main.yml', 'workers/game/README.md'],
   },
   publisher_release: {
-    reads: ['src/app/ui/control/Button.tsx', 'media/image/planet/earth.png'],
-    skips: ['src/app/ui/control/Button.stories.tsx', 'workers/game/session.ts'],
+    reads: ['src/app/ui/control/Button.tsx', 'media/image/planet/earth.png', 'workers/game/room.ts'],
+    skips: ['src/app/ui/control/Button.stories.tsx', 'workers/game/room.test.ts'],
   },
   storybook: {
     reads: ['src/app/ui/control/Button.stories.tsx', 'convex/schema.ts', 'workers/game/session.ts'],

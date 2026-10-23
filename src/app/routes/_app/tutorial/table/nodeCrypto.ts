@@ -1,8 +1,9 @@
 import HmacSHA256 from 'crypto-js/hmac-sha256';
 
 /*
- * The slice of Node's `node:crypto` the game Worker's table imports, for stories that run that table in the browser
- * (Pages / Play / Sandbox). Randomness comes from the Web Crypto API; nothing secret runs in a story.
+ * The slice of Node's `node:crypto` the game Worker's table imports, for pages and stories that run that table in the browser
+ * (the tutorial's chapters, Pages / Play / Sandbox). Randomness comes from the Web Crypto API; the table's secret in the
+ * browser guards nothing, since the whole table is the learner's own.
  */
 
 /** A uniform integer in [min, max), or [0, min) with one argument, as Node's `randomInt` answers. */
@@ -27,7 +28,7 @@ export const randomUUID = () => crypto.randomUUID();
 /** HMAC-SHA256 with the `update().digest('hex')` chain the table's card projection uses. */
 export function createHmac(algorithm: string, key: string) {
   if (algorithm !== 'sha256') {
-    throw new Error(`The Storybook crypto shim only computes sha256 HMACs, not ${algorithm}.`);
+    throw new Error(`The browser crypto slice only computes sha256 HMACs, not ${algorithm}.`);
   }
   let message = '';
   const hmac = {
@@ -37,7 +38,7 @@ export function createHmac(algorithm: string, key: string) {
     },
     digest(encoding: 'hex') {
       if (encoding !== 'hex') {
-        throw new Error(`The Storybook crypto shim only digests to hex, not ${encoding as string}.`);
+        throw new Error(`The browser crypto slice only digests to hex, not ${encoding as string}.`);
       }
       return HmacSHA256(message, key).toString();
     },

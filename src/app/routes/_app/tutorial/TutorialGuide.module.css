@@ -1,0 +1,111 @@
+/*
+ * The band takes the top of the window, and the table's page frame starts below it.
+ * Its background is the outline drawn behind it, which it shares with its arrow.
+ */
+.band {
+  position: absolute;
+  inset: 0 0 auto;
+  pointer-events: auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-sm);
+  height: 4.5rem;
+  padding-inline: var(--space-sm);
+  color: var(--color-paper);
+}
+
+.chapter,
+.count {
+  display: none;
+}
+
+/* A wide window gives the chapter's name a column of its own; a narrower one gives that room to the task, and the page header below still names the chapter. */
+@container tutorial-guide (width >= 62rem) {
+  .band {
+    grid-template-columns: 12rem minmax(0, 1fr) auto;
+    gap: var(--space-lg);
+    padding-inline: var(--space-lg);
+  }
+
+  .chapter {
+    display: grid;
+    line-height: 1.2;
+  }
+
+  .count {
+    display: revert;
+  }
+}
+
+.task {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+
+.step {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  background: var(--color-caution);
+  color: #111;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.step[data-done] {
+  background: var(--mantine-color-green-7);
+  color: #fff;
+}
+
+.count {
+  white-space: nowrap;
+}
+
+/*
+ * The band and its arrow share one shadow, cast by their wrapper, so they read as one shape over the table.
+ * The wrapper covers the window but takes no pointer events; only the band does.
+ */
+.guide {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  pointer-events: none;
+  container: tutorial-guide / inline-size;
+  filter: drop-shadow(0 6px 14px rgb(0 0 0 / 0.55));
+}
+
+.shape {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.fill {
+  fill: var(--color-ink);
+}
+
+/* A fine light edge around band and arrow alike, so the shape holds its line against the dark table. */
+.edge {
+  fill: none;
+  stroke: rgb(255 255 255 / 0.22);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+
+/* The guide and the page it wraps share one box; only the custom property it sets reaches the page. */
+.frame {
+  display: contents;
+}
+
+/* The page the guide wraps, in a box of its own only so it can be made inert; it lays out as if the box were not there. */
+.table {
+  display: contents;
+}

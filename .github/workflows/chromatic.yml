@@ -1,26 +1,25 @@
 name: Chromatic
 
 on:
-  # main keeps the baselines current. A pull request captures once it is ready for review and on each
-  # later push, never while it is a draft: every build bills snapshots.
+  # main keeps the baselines current. Pull requests call this workflow from ci-pr.yml once every other
+  # verify job has passed, so a failing run bills no snapshots; drafts never call it.
   push:
     branches: [main]
-  pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_call:
+    secrets:
+      CHROMATIC_PROJECT_TOKEN:
+        required: false
   workflow_dispatch:
 
 permissions:
   contents: read
 
-concurrency:
-  # A draft event skips the job, so it must not cancel a ready pull request's build.
-  group: chromatic-${{ github.event.pull_request.number || github.ref }}${{ github.event.pull_request.draft == true && '-draft' || '' }}
-  cancel-in-progress: true
-
 jobs:
   chromatic:
-    # Fork pull requests get no token, so they get no build.
-    if: ${{ github.event_name != 'pull_request' || (github.event.pull_request.draft == false && github.event.pull_request.head.repo.full_name == github.repository) }}
+    # A newer push to the same ref cancels the build in progress.
+    concurrency:
+      group: chromatic-${{ github.ref }}
+      cancel-in-progress: true
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
