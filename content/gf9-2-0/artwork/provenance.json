@@ -79,7 +79,7 @@
         "outputSize": [600, 840]
       },
       "crop": [166, 168, 430, 450],
-      "operation": "Widen and join the original kite-shaped rays, shorten the diagonal tips slightly, enlarge the central octagon and narrow the circular sectors to a rim. Retain seven original ray glyph contours, with placement and scale adjustments. Replace the central waves with a circular ring and the eastern mountain with two interlaced waves. Construct eight large and eight small triangular openings from repeated geometric parameters.",
+      "operation": "Adapt the original eight kites and central octagon. Preserve both concentric circular boundaries as separate thin rings. The overlapping kites, octagon and rings create the large and small openings naturally; there are no separately fitted triangle cutouts. Retain the seven original ray-glyph contours and the two changed symbols.",
       "referenceCrop": "references/karama-2-0.png",
       "method": "Clone the original Karama vector and adapt its geometric construction; no raster-traced glyph contours.",
       "baseVector": "/vector/icon/karama.svg",
@@ -88,16 +88,15 @@
         "centre": [75, 74.5],
         "cardinalTipRadius": 74.5,
         "diagonalTipRadius": 70.5,
-        "kiteShoulderDepth": 38,
-        "kiteShoulderHalfWidth": 16.3,
+        "kiteShoulderDepth": 35.3,
+        "kiteShoulderHalfWidth": 15.6,
         "kiteInnerRadius": 23.5,
-        "centralOctagonScale": 1.36,
-        "rimRadii": [59, 57.3],
+        "centralOctagonScale": 1.44,
         "centralRingRadii": [15.5, 10.8],
-        "largeTriangleApexRadius": 35.5,
-        "largeTriangleBaseFractions": [0.18, 0.82],
-        "smallTriangleRadii": [38, 40.3],
-        "smallTriangleHalfAngleDegrees": 2
+        "circularRadii": {
+          "outer": [57.7, 56],
+          "inner": [43.5, 42]
+        }
       },
       "glyphReuse": {
         "north": "Original Leo contour; translate outward 7.5 units.",
@@ -114,7 +113,13 @@
         "crop": [381, 505, 519, 645],
         "referenceCrop": "references/karama-2-0-sheet.png"
       },
-      "authorization": "User rejected the raster-based Karama revisions and directed: clone the original Karama vector and work from there to get to the new design."
+      "authorization": "User directed a clone of the original vector, then identified the missing second circle and requested inspection of an upscaled source.",
+      "inspection": {
+        "enlargement": 6,
+        "interpolation": "Lanczos",
+        "references": ["references/karama-2-0.png", "references/karama-2-0-sheet.png"],
+        "finding": "The second dark circle joins the ray bases. Its exposed arcs bound the small openings; replacing these with individual triangles loses the circular construction."
+      }
     },
     {
       "assetKey": "/vector/decal/little-maker-multicolor.svg",

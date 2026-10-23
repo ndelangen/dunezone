@@ -10,20 +10,20 @@ Reviewed the artwork against the supplied card photographs and deck sheets on 23
 
 ## Karama construction and changes
 
-The existing vector separates eight kite-shaped rays, a central octagon and eight broad circular sectors. The 2.0 image supports the following reconstruction. The original authoring objects are inferred from the repeated shapes, rather than recoverable from the raster source.
+The existing vector separates eight kite-shaped rays, a central octagon and eight broad circular sectors. Enlarging both source crops six times makes the second dark circle visible around the ray bases. The 2.0 design retains both circular boundaries as outlines. The following construction uses overlapping components, rather than fitting individual triangular holes to the scan.
 
 | Part | Existing vector | 2.0 reconstruction |
 | --- | --- | --- |
 | Rays | Eight separate kites with narrow shoulders. | Wider shoulders join into a star. The diagonal tips are slightly shorter. |
-| Circular shape | Eight broad filled sectors. | A thin circular rim, exposed between the rays. |
+| Circular shape | Eight broad filled sectors between an inner and outer circular boundary. | Two thin concentric circles, exposed between the rays. The inner circle joins the ray bases. |
 | Centre | Small octagon with three waves. | Larger octagon with a circular ring. |
-| Spaces between rays | Open channels around the separate kites. | Eight large triangular openings and eight small triangular openings, repeated around the centre. |
+| Spaces between rays | Open channels around the separate kites. | Large and small triangular spaces arise naturally from the overlapping kites, enlarged octagon and both circles. Their curved boundaries follow the circles. |
 | Seven ray glyphs | Loop, arch, ring, cup, diamond, figure-eight and eye contours. | The same original path contours, moved outward and scaled to fit the new placement. No raster tracing. |
 | East ray | Mountains. | Two interlaced waves with enclosed openings. |
 
-The star envelope comes from the widened kite edges. Each large triangle uses the enlarged octagon's edge and a repeated outer point; the small triangles use the same radial construction. The central ring uses concentric circles. These repeated parameters replace the earlier fitted scan points.
+Each ray is a rotated copy of the same kite geometry, with slightly shorter diagonal tips. The enlarged original octagon fills the centre. Both circular boundaries remain separate path components. Their exposed arcs stop at the kite edges, preserving the transparent glyphs. The middle symbol is a circular ring. There are no independent triangle cutouts.
 
-Karama's bold circular rim is part of the motif. The faint outer circle and long radial lines are shared card background guides and stay out of the decal. The exposed rim arcs stop at the star edges so they cannot fill its transparent glyphs. The vector remains a working reconstruction for visual review against the card, with the retained glyphs providing the starting geometry.
+Both dark circles are part of Karama's motif. The faint circle beyond them and the long radial lines are shared card background guides and stay out of the decal. The vector remains a working reconstruction for visual review against the card, with the retained glyphs providing the starting geometry.
 
 Little Maker's multicolour palette approximates the supplied deck sheet. Its pale water is opaque artwork, while the outer corners remain transparent. The monochrome partner keeps pale areas transparent and inherits the caller's colour. Both retain the basin, engraved marks, worm segments, mouth spots and water ripples.
 
