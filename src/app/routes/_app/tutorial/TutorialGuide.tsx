@@ -33,6 +33,8 @@ export type GuideTask<Baseline = unknown> = Readonly<{
   begin: (view: GuideView) => Baseline;
   /** Whether the player has done it yet; asked every frame. */
   done: (baseline: Baseline, view: GuideView) => boolean;
+  /** Lets go of anything `begin` set up, as the task ends. */
+  finish?: (baseline: Baseline) => void;
 }>;
 
 /* How long the tick shows on a finished task before the next one starts. */
@@ -175,7 +177,12 @@ export function TutorialGuide({
       }
     };
     frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
+    return () => {
+      cancelAnimationFrame(frame);
+      if (started) {
+        task.finish?.(baseline as never);
+      }
+    };
   }, [task, run, current]);
 
   const reset = () => {

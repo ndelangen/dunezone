@@ -25,6 +25,27 @@ const deck = (key: string) => pieces().find((piece) => piece.stackKey === key);
 const at = (piece: { position: readonly number[] } | undefined) => (piece ? (piece.position as Vector3Tuple) : null);
 const element = (selector: string) => () => document.querySelector(selector);
 const tabSelected = (selector: string) => document.querySelector(selector)?.getAttribute('aria-selected') === 'true';
+/*
+ * A tab task counts the player pressing that tab from the moment the task starts, so a tab left open by an earlier run does not count.
+ * The tab must end up open as well.
+ */
+const pressedTab = (selector: string) => ({
+  begin: () => {
+    const watch = { pressed: false, stop: new AbortController() };
+    document.addEventListener(
+      'click',
+      (event) => {
+        if (event.target instanceof Element && event.target.closest(selector)) {
+          watch.pressed = true;
+        }
+      },
+      { capture: true, signal: watch.stop.signal }
+    );
+    return watch;
+  },
+  done: (watch: { pressed: boolean }) => watch.pressed && tabSelected(selector),
+  finish: (watch: { stop: AbortController }) => watch.stop.abort(),
+});
 
 /* The board's own radius on the table; a piece inside it is on Arrakis. */
 const BOARD_RADIUS = 3.6;
@@ -96,16 +117,14 @@ const TASKS = [
     task: 'Count your spice',
     detail: 'Your own things are in the panel below the table. Open the Spice tab.',
     anchor: { kind: 'page', element: element('[role="tab"][aria-label="Spice"]') },
-    begin: () => null,
-    done: () => tabSelected('[role="tab"][aria-label="Spice"]'),
+    ...pressedTab('[role="tab"][aria-label="Spice"]'),
   }),
   task({
     id: 'player-info',
     task: 'See what another player holds',
     detail: 'The players sit on the right of the panel. Open the Info tab of the player shown.',
     anchor: { kind: 'page', element: element('aside[aria-label="Players"] [role="tab"][aria-label="Info"]') },
-    begin: () => null,
-    done: () => tabSelected('aside[aria-label="Players"] [role="tab"][aria-label="Info"]'),
+    ...pressedTab('aside[aria-label="Players"] [role="tab"][aria-label="Info"]'),
   }),
   task({
     id: 'next-phase',
@@ -152,7 +171,7 @@ export const Chapter = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const band = await page.findByRole('banner', { name: 'Chapter 5: What goes where' }, { timeout: 30_000 });
-    await expect(within(band).getByText('Look at the left of the table')).toBeVisible();
+    await expect(within(band).getByText('Look closer at Arrakis')).toBeVisible();
     await expect(within(band).queryByRole('button', { name: 'Next' })).toBeNull();
     /* The pointer finds the camera dial once the table has drawn. */
     await waitFor(
