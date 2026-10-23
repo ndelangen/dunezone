@@ -114,3 +114,25 @@
   pointer-events: none;
   z-index: 1000;
 }
+
+/* Over the table once a chapter is done: it dims the table and takes every pointer, so the table holds still. */
+.veil {
+  position: fixed;
+  inset: 4.5rem 0 0;
+  z-index: 250;
+  display: grid;
+  place-items: center;
+  padding: var(--space-md);
+  background: rgb(0 0 0 / 0.55);
+  backdrop-filter: blur(2px);
+}
+
+.complete {
+  max-width: 28rem;
+  padding: var(--space-xl) var(--space-lg);
+  border: 1px solid rgb(255 255 255 / 0.22);
+  border-radius: var(--mantine-radius-md);
+  background: var(--color-ink);
+  color: var(--color-paper);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 0.6);
+}

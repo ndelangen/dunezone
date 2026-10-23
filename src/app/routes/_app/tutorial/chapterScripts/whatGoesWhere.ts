@@ -44,6 +44,27 @@ const showing = (view: string) => () =>
   document.querySelector(`[aria-label^="Focus on ${view}"]`)?.getAttribute('aria-pressed') === 'true';
 const cameraDistance = ({ camera }: GuideView) => camera?.position.length() ?? 0;
 
+/*
+ * Zooming counts only the player's own scrolling over the table, measured from where the camera was at their first scroll,
+ * so the camera still gliding into its opening view never does the task for them.
+ */
+const scrolledIn = () => ({
+  begin: (view: GuideView) => {
+    const watch = { scrolled: 0, from: null as number | null, stop: new AbortController() };
+    const scroll = (event: WheelEvent) => {
+      if (event.target instanceof HTMLCanvasElement && event.deltaY > 0) {
+        watch.from ??= cameraDistance(view);
+        watch.scrolled += event.deltaY;
+      }
+    };
+    document.addEventListener('wheel', scroll, { capture: true, passive: true, signal: watch.stop.signal });
+    return watch;
+  },
+  done: (watch: { scrolled: number; from: number | null }, view: GuideView) =>
+    watch.from !== null && watch.scrolled >= 200 && cameraDistance(view) < watch.from * 0.85,
+  finish: (watch: { stop: AbortController }) => watch.stop.abort(),
+});
+
 /* Each task keeps its own kind of baseline; the guide only hands it back. */
 const task = <Baseline>(definition: GuideTask<Baseline>) => definition as unknown as GuideTask;
 
@@ -54,8 +75,7 @@ const cameraTasks = (): GuideTask[] => [
     task: 'Look closer at Arrakis',
     detail: 'Scroll down over the board. The camera moves in toward the spot under your pointer.',
     anchor: { kind: 'table', point: () => [0, 0, 0] },
-    begin: cameraDistance,
-    done: (start, view) => cameraDistance(view) < start * 0.8,
+    ...scrolledIn(),
   }),
   task({
     id: 'look-left',
@@ -75,21 +95,14 @@ const cameraTasks = (): GuideTask[] => [
   }),
 ];
 
-/* Where a deck stood and how many cards it held, so a later look can tell a card taken or the deck moved from a peek, shuffle or flip. */
-type DeckAt = { id: string; cards: number; position: readonly number[] } | undefined;
-const deckAt = (piece: Piece | undefined): DeckAt =>
-  piece && { id: piece.id, cards: piece.items.length, position: [...piece.position] };
-const deckTaken = (start: DeckAt, pieces: Piece[]) => {
-  if (!start) {
-    return false;
-  }
-  const now = pieces.find((piece) => piece.id === start.id);
-  return (
-    !now ||
-    now.items.length < start.cards ||
-    Math.hypot(now.position[0]! - start.position[0]!, now.position[2]! - start.position[2]!) > 0.01
-  );
-};
+/*
+ * Spice cards lying face up on their own. The table hands out cards under handles that change as they move,
+ * so cards are counted by what they show rather than followed by id; a whole deck turned over is one pile, so it does not count.
+ */
+const singleSpiceFaceUp = (pieces: Piece[]) =>
+  pieces.filter(
+    (piece) => piece.items.length === 1 && piece.items[0]!.faceUp && piece.items[0]!.artwork?.type === 'card-spice'
+  ).length;
 
 /* The table's own pieces: a card from a deck, troops onto the board and a card from the other deck. */
 function tableTasks(snapshot: () => GameSnapshot): GuideTask[] {
@@ -134,15 +147,11 @@ function tableTasks(snapshot: () => GameSnapshot): GuideTask[] {
     }),
     task({
       id: 'spice',
-      task: 'Take the top Spice card',
-      detail: 'The Spice deck sits on the right of the table. Drag its top card onto the table.',
+      task: 'Turn over the top Spice card',
+      detail: 'The Spice deck sits on the right of the table. Drag its top card onto the table, then press F to turn it over.',
       anchor: { kind: 'table', point: () => at(deck('right')) },
-      /*
-       * A quick drag takes the top card and a held one moves the whole deck; either way the player has found it.
-       * Peeking, shuffling or flipping the deck leaves its count and its place alone, so those do not count.
-       */
-      begin: () => deckAt(deck('right')),
-      done: (start) => deckTaken(start, pieces()),
+      begin: () => singleSpiceFaceUp(pieces()),
+      done: (start) => singleSpiceFaceUp(pieces()) > start,
     }),
   ];
 }

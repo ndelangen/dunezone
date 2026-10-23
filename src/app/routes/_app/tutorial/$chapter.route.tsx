@@ -32,6 +32,19 @@ const chaptersLink = ({ children, ...props }: { children?: ReactNode }) => (
   </Link>
 );
 
+/* The chapter after this one, when it is built: the end of a chapter leads on to it, or back to the list when there is none yet. */
+function nextLinkAfter(slug: string) {
+  const next = TUTORIAL_CHAPTERS[TUTORIAL_CHAPTERS.findIndex((chapter) => chapter.slug === slug) + 1];
+  if (!next || !CHAPTER_SCRIPTS[next.slug]) {
+    return undefined;
+  }
+  return ({ children, ...props }: { children?: ReactNode }) => (
+    <Link {...props} to="/tutorial/$chapter" params={{ chapter: next.slug }}>
+      {children}
+    </Link>
+  );
+}
+
 function ChapterPage() {
   const { chapter: slug } = Route.useParams();
   const chapter = chapterAt(slug);
@@ -64,7 +77,14 @@ function ChapterPage() {
   return (
     <ClientOnly fallback={loading}>
       <Suspense fallback={loading}>
-        <ChapterPlay key={slug} chapter={chapter} script={script} chaptersLink={chaptersLink} exit={exit} />
+        <ChapterPlay
+          key={slug}
+          chapter={chapter}
+          script={script}
+          chaptersLink={chaptersLink}
+          nextLink={nextLinkAfter(slug)}
+          exit={exit}
+        />
       </Suspense>
     </ClientOnly>
   );

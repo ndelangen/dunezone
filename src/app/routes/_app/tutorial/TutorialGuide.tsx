@@ -1,13 +1,12 @@
 import { Button, Group, Text } from '@mantine/core';
 import { _roots } from '@react-three/fiber/webgpu';
-import { CallToAction } from '@ui/control/CallToAction';
 import { Check, RotateCcw } from 'lucide-react';
 import { useEffect, useEffectEvent, useId, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import { Vector3 } from 'three';
 import type { Camera, Vector3Tuple } from 'three';
 
-import { ChapterConfetti } from './ChapterConfetti';
+import { ChapterComplete } from './ChapterComplete';
 import { guideShapePath } from './guideArrow';
 import type { Target } from './guideArrow';
 import styles from './TutorialGuide.module.css';
@@ -147,6 +146,7 @@ export function TutorialGuide({
   tasks,
   onReset,
   chaptersLink,
+  nextLink,
   children,
 }: Readonly<{
   number: number;
@@ -155,6 +155,8 @@ export function TutorialGuide({
   onReset: () => void;
   /** Renders the way back to the chapter list, as a router link on the page and a plain one in a story. */
   chaptersLink: (props: object) => ReactNode;
+  /** Renders the way on to the next chapter, when that one is built. */
+  nextLink?: ((props: object) => ReactNode) | undefined;
   children: ReactNode;
 }>) {
   const [current, setCurrent] = useState(0);
@@ -314,7 +316,7 @@ export function TutorialGuide({
           <path ref={fill} className={styles.fill} data-tutorial-pointer filter={`url(#${inset})`} />
           <path ref={edge} className={styles.edge} />
         </svg>
-        <header ref={band} className={styles.band} aria-label={`Chapter ${number}: ${title}`}>
+        <header ref={band} className={styles.band} data-tutorial-free aria-label={`Chapter ${number}: ${title}`}>
           <div className={styles.chapter}>
             <Text size="xs" fw={700} tt="uppercase" c="dimmed">
               Chapter {number}
@@ -331,21 +333,14 @@ export function TutorialGuide({
             <Button variant="default" size="xs" leftSection={<RotateCcw size={14} aria-hidden />} onClick={reset}>
               Reset
             </Button>
-            {/* Once the chapter is done, going back for the next one is the only thing left to do, so it becomes the page's call to action. */}
-            {task ? (
-              <Button variant="default" size="xs" renderRoot={chaptersLink}>
-                Back to chapters
-              </Button>
-            ) : (
-              <CallToAction direction="forward" size="xs" attention renderRoot={chaptersLink}>
-                Back to chapters
-              </CallToAction>
-            )}
+            <Button variant="default" size="xs" renderRoot={chaptersLink}>
+              Back to chapters
+            </Button>
           </Group>
         </header>
       </div>
       {children}
-      {!task && <ChapterConfetti key={run} />}
+      {!task && <ChapterComplete key={run} chaptersLink={chaptersLink} nextLink={nextLink} />}
     </div>
   );
 }

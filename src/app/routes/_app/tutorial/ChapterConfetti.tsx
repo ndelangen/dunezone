@@ -6,7 +6,7 @@ import styles from './TutorialGuide.module.css';
 /*
  * A burst of foil over the whole page as a chapter is done: two streams from the window's lower corners that arc in and flutter down.
  * The same foil colours as a game's result, drawn flat on a canvas above the page, so it never touches the table.
- * It plays once, ignores the pointer, and stays away for anyone who asked for less motion.
+ * It plays once and ignores the pointer; for anyone who asked for less motion the foil just lies still.
  */
 
 const PIECES = 220;
@@ -47,6 +47,26 @@ function burst(width: number, height: number): Foil[] {
   });
 }
 
+/* One disc of foil; one turning over in the air reads as an ellipse that narrows and widens. */
+function paint(context: CanvasRenderingContext2D, piece: Foil) {
+  context.save();
+  context.translate(piece.x, piece.y);
+  context.rotate(piece.spin);
+  context.scale(1, Math.cos(piece.flip));
+  context.fillStyle = piece.color;
+  context.beginPath();
+  context.ellipse(0, 0, piece.size / 2, piece.size / 2, 0, 0, Math.PI * 2);
+  context.fill();
+  context.restore();
+}
+
+/* The foil lying still, spread over the page. */
+function scatter(context: CanvasRenderingContext2D, width: number, height: number) {
+  for (const piece of burst(width, height)) {
+    paint(context, { ...piece, x: Math.random() * width, y: Math.random() * height });
+  }
+}
+
 /* Runs the burst on the canvas until it has fallen, and gives back what stops it early. */
 function play(context: CanvasRenderingContext2D, width: number, height: number) {
   const foil = burst(width, height);
@@ -66,16 +86,7 @@ function play(context: CanvasRenderingContext2D, width: number, height: number) 
       piece.y += piece.vy * step;
       piece.spin += piece.turn * step;
       piece.flip += 9 * step;
-      context.save();
-      context.translate(piece.x, piece.y);
-      context.rotate(piece.spin);
-      /* A disc turning over in the air reads as an ellipse that narrows and widens. */
-      context.scale(1, Math.cos(piece.flip));
-      context.fillStyle = piece.color;
-      context.beginPath();
-      context.ellipse(0, 0, piece.size / 2, piece.size / 2, 0, 0, Math.PI * 2);
-      context.fill();
-      context.restore();
+      paint(context, piece);
     }
     if (age < SECONDS) {
       frame = requestAnimationFrame(draw);
@@ -90,17 +101,21 @@ export function ChapterConfetti() {
   const canvas = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    const element = canvas.current;
-    const context = element?.getContext('2d');
-    if (!element || !context || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    const context = canvas.current?.getContext('2d');
+    if (!context) {
       return;
     }
     const scale = window.devicePixelRatio || 1;
     const width = window.innerWidth;
     const height = window.innerHeight;
-    element.width = width * scale;
-    element.height = height * scale;
+    context.canvas.width = width * scale;
+    context.canvas.height = height * scale;
     context.scale(scale, scale);
+    /* Anyone who asked for less motion gets the foil lying still across the page instead of a burst. */
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      scatter(context, width, height);
+      return;
+    }
     return play(context, width, height);
   }, []);
 

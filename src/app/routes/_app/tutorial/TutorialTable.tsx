@@ -81,11 +81,13 @@ export default function ChapterPlay({
   chapter,
   script,
   chaptersLink,
+  nextLink,
   exit,
 }: Readonly<{
   chapter: TutorialChapter;
   script: ChapterScript;
   chaptersLink: (props: object) => ReactNode;
+  nextLink?: ((props: object) => ReactNode) | undefined;
   exit: ReactNode;
 }>) {
   const { runtime, control } = useTutorialTable(setup as unknown as TutorialSetup, script);
@@ -100,6 +102,7 @@ export default function ChapterPlay({
         document.querySelector<HTMLButtonElement>('[aria-label^="Focus on map"]')?.click();
       }}
       chaptersLink={chaptersLink}
+      nextLink={nextLink}
     >
       <PageLayout height="fullscreen">
         <PageLayout.Header size="compact">
