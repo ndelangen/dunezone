@@ -285,6 +285,123 @@ describe('a peeked card moved with the arrow keys', () => {
   });
 });
 
+describe('the cursor over the table', () => {
+  /* A tab list moves its focus on an arrow and claims the key, as the controls panel's tabs do. */
+  function focusedTabList() {
+    document.body.innerHTML = '<div role="tablist"><button role="tab" data-tab>Hand</button></div>';
+    const tab = document.querySelector<HTMLElement>('[data-tab]')!;
+    const moved = vi.fn();
+    tab.addEventListener('keydown', (event) => {
+      if (event.key.startsWith('Arrow')) {
+        moved();
+        event.preventDefault();
+      }
+    });
+    tab.focus();
+    return { tab, moved };
+  }
+
+  test('pans with the arrow keys before a focused tab list moves its focus', () => {
+    const { keyboard } = table();
+    keyboard.setPanAvailable(true);
+    keyboard.hoverTable(true);
+    const { tab, moved } = focusedTabList();
+
+    key('keydown', { key: 'ArrowRight', code: 'ArrowRight' }, tab);
+
+    expect(moved).not.toHaveBeenCalled();
+    expect(keyboard.panDirection()).toEqual([1, 0]);
+    key('keyup', { key: 'ArrowRight', code: 'ArrowRight' }, tab);
+    expect(keyboard.panDirection()).toEqual([0, 0]);
+  });
+
+  test('keeps the arrows from a focused control even without a close look to slide', () => {
+    const { keyboard } = table();
+    keyboard.hoverTable(true);
+    const { tab, moved } = focusedTabList();
+    const arrow = new KeyboardEvent('keydown', {
+      bubbles: true,
+      cancelable: true,
+      key: 'ArrowDown',
+      code: 'ArrowDown',
+    });
+
+    tab.dispatchEvent(arrow);
+
+    expect(moved).not.toHaveBeenCalled();
+    expect(arrow.defaultPrevented).toBe(true);
+    expect(keyboard.panDirection()).toEqual([0, 0]);
+  });
+
+  test('answers the piece shortcuts over a focused button', () => {
+    const { keyboard, controls } = table();
+    keyboard.hoverTable(true);
+    const { tab } = focusedTabList();
+
+    key('keydown', { key: 'f' }, tab);
+
+    expect(controls.flipSelected.mock.calls).toEqual([['harkonnen-force-stack']]);
+  });
+
+  test('leaves a focused text field its arrows and letters', () => {
+    const { keyboard, controls } = table();
+    keyboard.setPanAvailable(true);
+    keyboard.hoverTable(true);
+    const field = document.body.appendChild(document.createElement('input'));
+    const heard: string[] = [];
+    field.addEventListener('keydown', (event) => heard.push(event.key));
+    field.focus();
+    const arrow = new KeyboardEvent('keydown', {
+      bubbles: true,
+      cancelable: true,
+      key: 'ArrowLeft',
+      code: 'ArrowLeft',
+    });
+    const letter = new KeyboardEvent('keydown', { bubbles: true, cancelable: true, key: 'f' });
+
+    field.dispatchEvent(arrow);
+    field.dispatchEvent(letter);
+
+    expect(heard).toEqual(['ArrowLeft', 'f']);
+    expect(arrow.defaultPrevented).toBe(false);
+    expect(letter.defaultPrevented).toBe(false);
+    expect(keyboard.panDirection()).toEqual([0, 0]);
+    expect(controls.flipSelected).not.toHaveBeenCalled();
+  });
+
+  test('leaves an open menu under the cursor its arrows', () => {
+    const { keyboard } = table();
+    keyboard.setPanAvailable(true);
+    keyboard.hoverTable(true);
+    document.body.innerHTML = '<div role="menu" tabindex="-1" data-menu></div>';
+    const menu = document.querySelector<HTMLElement>('[data-menu]')!;
+    const stepped = vi.fn();
+    menu.addEventListener('keydown', (event) => {
+      stepped();
+      event.preventDefault();
+    });
+    menu.focus();
+
+    key('keydown', { key: 'ArrowRight', code: 'ArrowRight' }, menu);
+
+    expect(stepped).toHaveBeenCalled();
+    expect(keyboard.panDirection()).toEqual([0, 0]);
+  });
+
+  test('off the table, the focused tab list keeps its arrows again', () => {
+    const { keyboard } = table();
+    keyboard.setPanAvailable(true);
+    keyboard.hoverTable(true);
+    keyboard.hoverTable(false);
+    const { tab, moved } = focusedTabList();
+
+    key('keydown', { key: 'ArrowRight', code: 'ArrowRight' }, tab);
+
+    expect(moved).toHaveBeenCalled();
+    expect(keyboard.panDirection()).toEqual([0, 0]);
+  });
+});
+
 describe('a held pan key', () => {
   test('stops panning when its physical key comes up, whatever it types by then', () => {
     const { keyboard } = table();
