@@ -35,6 +35,10 @@ as preferable to the source arrangement. Use its markers and legend, preserving 
 and explanations. No external label boxes, leader-line reproduction or connector extension
 is required.
 
+For the faction questions, use the existing `question-answer` Block. The review approved
+its separate question and answer presentation. Preserve the wording and let the renderer
+supply `Answer:` once. No compact variant or Q&A presentation change is required.
+
 ## What exists today
 
 The [Contents contract](../../src/shared/rulebooks/contents.ts#L59) has 19 Block kinds and
@@ -49,7 +53,7 @@ styling and heading treatment under the approved simplification.
 | Rules, exceptions and setup steps | `list`, with bulleted or numbered style and a starting number | Supports named items and icons. Nested prose lists also exist in formatted text. Check the source's marker shape, indentation and continuation. |
 | Section and faction bands | `section-heading`; optional faction reference | Use the existing heading and icon presentation. Preserve phase numbers and titles in the heading text. Source band styling and a separate subtitle field are not requirements. |
 | Examples, notes and quotations | `callout` | There are `note`, `example` and `quotation` variants. Test the source's unboxed examples and bordered Karama extracts before selecting one. |
-| Faction questions | `question-answer` | It inserts `Answer:` itself. Do not paste an additional answer label into the field. Some source answers say `Answer: No.` on the question line and need a closer presentation match. |
+| Faction questions | `question-answer` | Use the existing separate question and answer presentation as approved. It inserts `Answer:` itself; do not paste an additional answer label into the field. No compact variant is required. |
 | Standalone artwork and captions | `referenced-illustration` | Accepts small, medium or large size and an empty caption. Its source must resolve through the source catalogue. There is no arbitrary interior image URL or crop field. |
 | Faction overview bands | `faction-introduction` | Already composes a token, summary, ruler and leader roster. It also emits the faction name and `Leaders`; do not accidentally duplicate source labels or add labels absent from a particular source panel. |
 | Components | `illustrated-inventory` | The current renderer produces a vertical list of image/description rows and can insert source names and `Quantity:`. Page 7 is a collage with a separate token column and shaded component panel. |
@@ -158,11 +162,12 @@ Use `text` and plain illustrations where convenience blocks would add content. A
 presentation control for source names, quantities and repeated headings may make existing
 inventory/card/faction blocks reusable. Keep every actual source label in the authored data.
 
-Questions on pages 28, 29, 30 and 33 need a compact source-matched presentation. The existing
-[question/answer renderer](../../src/game/rulebook/RulebookBlockRenderer.tsx#L337) inserts an
-answer label and separates the answer from its question. Prefer a presentation adjustment
-over creating another question Block. The same applies to the small bordered Karama extracts
-on page 26; test a `callout` variant before adding a new kind.
+Use the existing [question/answer renderer](../../src/game/rulebook/RulebookBlockRenderer.tsx#L337)
+for questions on pages 28, 29, 30 and 33. Its separate question and answer presentation is
+approved. Keep the source wording, supply only the answer body in the answer field, and let
+the renderer add `Answer:` once. No Q&A variant or renderer change is required.
+
+For the small bordered Karama extracts on page 26, test an existing `callout` variant first.
 
 ### Artwork, maps and diagrams
 
@@ -237,8 +242,8 @@ decisions and evidence can accumulate independently.
    get the illustrations as close as those tools allow, and explain strength values and totals
    in text. No new Block or extension. Keep the wheel-window artwork decision separate.
 5. **Source-exact labels and compact explanations.** Pages 4-7, 11, 17-19 and 23-33. Track
-   suppression of automatic `Quantity:`, source names and repeated labels, source-matched Q&A,
-   and the small bordered Karama extracts. Prefer adjustments to existing Blocks.
+   suppression of automatic `Quantity:`, source names and repeated labels, and the small
+   bordered Karama extracts. Q&A is settled: use the existing Block without presentation changes.
 
 ## Later differences book
 
