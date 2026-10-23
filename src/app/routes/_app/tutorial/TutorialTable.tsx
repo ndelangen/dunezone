@@ -110,7 +110,7 @@ export default function ChapterPlay({
             <HostedTable
               gameId="tutorial"
               exitControl={exit}
-              identity={{ rulesetName: 'Dreamrules', address: 'tutorial' }}
+              identity={{ rulesetName: 'Dreamrules', address: 'tutorial', page: `/tutorial/${chapter.slug}` }}
             />
           </GameRuntimeContext>
         </PageLayout.Content>

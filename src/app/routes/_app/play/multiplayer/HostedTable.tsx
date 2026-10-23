@@ -1058,7 +1058,7 @@ function ConnectedTable({
                 {/* While drafting a spectator asks with the (+) in the roster on the table, so the popover waits for play. */}
                 {stage !== 'drafting' && <SeatPopover client={client} table={table} error={error} />}
                 <GameMenu
-                  sharing={<GameLink address={identity.address} />}
+                  sharing={<GameLink address={identity.address} page={identity.page} />}
                   client={client}
                   table={table}
                   onClearConfetti={celebration.hasConfetti ? celebration.clear : undefined}
