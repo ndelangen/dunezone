@@ -10026,10 +10026,20 @@
     "sourceHash": "2e338d90d3955422622b3987ae9a7c1185c5f790386ef9802ad6547d767ea1d9"
   },
   "/image/rulebook-cover/gf9-second-edition.png": {
-    "description": "Rust-colored sandworm and rider rising from pale dunes between purple rock spires beneath two moons and a blue starry sky, with a small circular motif at the foot of the right cliff.",
-    "tags": ["landscape", "illustration", "gf9", "second edition", "sandworm", "rider", "moons"],
-    "subjects": ["creatures", "places", "space", "people"],
-    "sourceHash": "2dd57d692933e19797bcaaaed6c84257c9f0d7e1ca0e0aef5821c12c5f3996d9"
+    "description": "Rust-colored sandworm and rider rising from golden dunes, with two cloaked onlookers in the lower-left foreground, two ornithopters near the moons and a circular motif at the foot of the right-hand rock spire.",
+    "tags": [
+      "landscape",
+      "illustration",
+      "gf9",
+      "second edition",
+      "sandworm",
+      "rider",
+      "moons",
+      "onlookers",
+      "ornithopters"
+    ],
+    "subjects": ["creatures", "places", "space", "people", "machines"],
+    "sourceHash": "67847aad3f3a3fec5b570851c5d8203a15dcf82dd436d3aa394149057a81f800"
   },
   "/image/rulebook-cover/kiss-planet.png": {
     "description": "Curved golden desert planet seen from orbit beneath two overlapping moons and a dark blue star field.",
