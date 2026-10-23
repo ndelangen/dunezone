@@ -10,6 +10,8 @@ type Face = {
   glyphs: string;
   sample: string;
   uppercase?: boolean;
+  /** Set when the game draws the face bolder than the file it ships. */
+  bold?: boolean;
   /** Where the printed game uses it, after Pkfod's list on BoardGameGeek. */
   printed: string;
   /** Where dune.zone draws with it. */
@@ -43,6 +45,7 @@ const FACES: readonly Face[] = [
     name: 'Trebuchet',
     family: 'C_Trebuchet',
     cut: 'Bold, title case',
+    bold: true,
     glyphs: 'Aa',
     sample: 'Weapon - Projectile',
     printed: 'Card title text',
@@ -98,6 +101,7 @@ export function TypeSpecimen() {
         const font = {
           fontFamily: `"${face.family}"`,
           textTransform: face.uppercase ? 'uppercase' : undefined,
+          fontWeight: face.bold ? 'bold' : undefined,
         } as const;
         return (
           <article key={face.name} className={styles.sheet}>

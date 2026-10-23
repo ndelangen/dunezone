@@ -18,13 +18,17 @@ export function hexes(colour: Colour): string[] {
   return typeof colour === 'string' ? [colour] : colour.stops.map(([stop]) => stop);
 }
 
-/** The CSS fill of a colour: the flat colour itself, or the split or gradient as the token wears it. */
+/**
+ * The CSS fill of a colour: the flat colour itself, or the split or gradient as the token wears it.
+ * The token renderer measures angles from left to right, counterclockwise;
+ * CSS measures from the bottom up, clockwise.
+ */
 export function fill(colour: Colour): string {
   if (typeof colour === 'string') {
     return colour;
   }
   const stops = colour.stops.map(([hex, at]) => `${hex} ${at * 100}%`);
   return colour.type === 'linear'
-    ? `linear-gradient(${colour.angle}deg, ${stops.join(', ')})`
+    ? `linear-gradient(${90 - colour.angle}deg, ${stops.join(', ')})`
     : `radial-gradient(${stops.join(', ')})`;
 }
