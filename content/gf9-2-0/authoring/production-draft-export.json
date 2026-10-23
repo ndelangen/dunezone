@@ -304,7 +304,7 @@
                   "id": "S4BX",
                   "kind": "text",
                   "name": "Stronghold income:",
-                  "text": "If a player controls Arrakeen or Carthag, they gain 2 spice from the Spice Bank. A player controlling Tuek\u2019s Sietch gains 1 spice from the Spice Bank. A player controlling more than one of these strongholds will collect for each one they control."
+                  "text": "If a player controls Arrakeen or Carthag, they gain 2 spice from the Spice Bank. A player controlling Tuek’s Sietch gains 1 spice from the Spice Bank. A player controlling more than one of these strongholds will collect for each one they control."
                 },
                 "SS4X": {
                   "id": "SS4X",
@@ -366,7 +366,7 @@
                 "BZAH": {
                   "id": "BZAH",
                   "kind": "text",
-                  "text": "\u2014The Future Pastimes team."
+                  "text": "—The Future Pastimes team."
                 },
                 "C3HU": {
                   "id": "C3HU",
@@ -614,7 +614,7 @@
                   "id": "3UZK",
                   "kind": "text",
                   "name": "Winning",
-                  "text": "If an Alliance occupies a total of at least 4 strongholds with one or more forces during the Mentat Pause phase, that Alliance wins the game. It doesn\u2019t matter what the ratio of strongholds is between the allied players (one player can be in one stronghold, with the other in three, or one player can be in four, while their ally is in none)."
+                  "text": "If an Alliance occupies a total of at least 4 strongholds with one or more forces during the Mentat Pause phase, that Alliance wins the game. It doesn’t matter what the ratio of strongholds is between the allied players (one player can be in one stronghold, with the other in three, or one player can be in four, while their ally is in none)."
                 },
                 "7JBV": {
                   "id": "7JBV",
@@ -859,7 +859,7 @@
                 "XA3K": {
                   "id": "XA3K",
                   "kind": "text",
-                  "text": "The Fremen, represented by the planetary ecologist Liet\\-Kynes \u2014 commanding fierce hordes of natives, adept at life and travel on the planet, and dedicated to preventing any outside control while bringing about Dune's own natural regeneration."
+                  "text": "The Fremen, represented by the planetary ecologist Liet\\-Kynes — commanding fierce hordes of natives, adept at life and travel on the planet, and dedicated to preventing any outside control while bringing about Dune's own natural regeneration."
                 }
               },
               "controlValues": {},
@@ -1240,7 +1240,7 @@
                   "style": "bulleted"
                 },
                 "UG8D": {
-                  "attribution": "\u2014 Baron Harkonnen",
+                  "attribution": "— Baron Harkonnen",
                   "id": "UG8D",
                   "kind": "callout",
                   "text": "\"A certain amount of killing has always been an arm of business\".",
@@ -1271,7 +1271,7 @@
               },
               "blocksById": {
                 "2HDQ": {
-                  "attribution": "\u2014 Paul Atreides, to Gurney Halleck",
+                  "attribution": "— Paul Atreides, to Gurney Halleck",
                   "id": "2HDQ",
                   "kind": "callout",
                   "text": "\"In shield fighting, one moves fast on defense, slow on attack. Attack has the sole purpose of tricking the opponent into a misstep, setting him up for the attack sinister. The shield turns the fast blow, admits the slow kindjal!\"",
@@ -1626,7 +1626,7 @@
                 "4495": {
                   "id": "4495",
                   "kind": "text",
-                  "text": "or, they may lose 1 ordinary force at full strength and 4 forces at half strength (\u00bd + \u00bd + \u00bd + \u00bd). In one case, the player loses 1 Sardaukar and 2 ordinary forces. In the other case, the player loses 5 ordinary forces. Either choice fulfills the Emperor player's spice/strength requirement."
+                  "text": "or, they may lose 1 ordinary force at full strength and 4 forces at half strength (½ + ½ + ½ + ½). In one case, the player loses 1 Sardaukar and 2 ordinary forces. In the other case, the player loses 5 ordinary forces. Either choice fulfills the Emperor player's spice/strength requirement."
                 },
                 "5DTQ": {
                   "id": "5DTQ",
@@ -1636,7 +1636,7 @@
                 "6Q6F": {
                   "id": "6Q6F",
                   "kind": "text",
-                  "text": "The Emperor player wins the battle, and they may choose to lose 1 Sardaukar force at full strength (2) and 2 ordinary forces at half strength (\u00bd + \u00bd),"
+                  "text": "The Emperor player wins the battle, and they may choose to lose 1 Sardaukar force at full strength (2) and 2 ordinary forces at half strength (½ + ½),"
                 },
                 "B466": {
                   "id": "B466",
@@ -1744,7 +1744,7 @@
                   "id": "XDLZ",
                   "kind": "piece-transfer",
                   "left": {
-                    "label": "2 + \u00bd + \u00bd",
+                    "label": "2 + ½ + ½",
                     "pieces": [
                       {
                         "count": 1,
@@ -1771,13 +1771,13 @@
                         "factionId": "k174q1wrg9y646pdvbdr9r1sxx8gmct2",
                         "id": "normal",
                         "kind": "troops",
-                        "label": "\u00bd each",
+                        "label": "½ each",
                         "troopId": "20d19e36-b903-4069-a66a-cbed1d0d0b4f"
                       }
                     ]
                   },
                   "right": {
-                    "label": "1 + \u00bd + \u00bd + \u00bd + \u00bd",
+                    "label": "1 + ½ + ½ + ½ + ½",
                     "pieces": [
                       {
                         "count": 1,
@@ -1804,7 +1804,7 @@
                         "factionId": "k174q1wrg9y646pdvbdr9r1sxx8gmct2",
                         "id": "unsupported",
                         "kind": "troops",
-                        "label": "\u00bd each",
+                        "label": "½ each",
                         "troopId": "20d19e36-b903-4069-a66a-cbed1d0d0b4f"
                       }
                     ]
@@ -2277,7 +2277,7 @@
                 "LZMF": {
                   "id": "LZMF",
                   "kind": "text",
-                  "text": "DUNE \u00a9 2026 Legendary. All Rights Reserved."
+                  "text": "DUNE © 2026 Legendary. All Rights Reserved."
                 },
                 "QPLR": {
                   "id": "QPLR",
@@ -2288,7 +2288,7 @@
                 "SYGU": {
                   "id": "SYGU",
                   "kind": "text",
-                  "text": "Games Design \u00a9 Gale Force Nine 2026. Gale Force Nine is a Battlefront Group Company"
+                  "text": "Games Design © Gale Force Nine 2026. Gale Force Nine is a Battlefront Group Company"
                 },
                 "TVE9": {
                   "id": "TVE9",
@@ -2466,7 +2466,7 @@
                 "KYER": {
                   "id": "KYER",
                   "kind": "text",
-                  "text": "Ornithopters provide a faction the ability to move a group of their forces up to three adjacent territories. The forces moved do not have to be in Arrakeen or Carthag to make a three\\-territory move. For example, a player with one or more forces in Arrakeen would be able to move forces starting in Tuek\u2019s Sietch through Pasty Mesa and Shield Wall to the Imperial Basin."
+                  "text": "Ornithopters provide a faction the ability to move a group of their forces up to three adjacent territories. The forces moved do not have to be in Arrakeen or Carthag to make a three\\-territory move. For example, a player with one or more forces in Arrakeen would be able to move forces starting in Tuek’s Sietch through Pasty Mesa and Shield Wall to the Imperial Basin."
                 },
                 "UA5B": {
                   "id": "UA5B",
@@ -2789,7 +2789,7 @@
                 "6WVR": {
                   "id": "6WVR",
                   "kind": "text",
-                  "text": "The Harkonnens, led by the decadent and notoriously cruel Baron Vladimir Harkonnen \u2014 master of treachery and sinister deeds, value power over all. The path to power leads to Arrakis, and the control of spice."
+                  "text": "The Harkonnens, led by the decadent and notoriously cruel Baron Vladimir Harkonnen — master of treachery and sinister deeds, value power over all. The path to power leads to Arrakis, and the control of spice."
                 },
                 "EWST": {
                   "id": "EWST",
@@ -3347,7 +3347,7 @@
                 "NQRU": {
                   "id": "NQRU",
                   "kind": "text",
-                  "text": "His majesty the Padishah Emperor Shaddam IV \u2014 keen and efficient, yet easily lulled into complacency by his own trappings of power. By leveraging his legions of Sardaukar, the Emperor will secure his legacy."
+                  "text": "His majesty the Padishah Emperor Shaddam IV — keen and efficient, yet easily lulled into complacency by his own trappings of power. By leveraging his legions of Sardaukar, the Emperor will secure his legacy."
                 },
                 "QQ77": {
                   "id": "QQ77",
@@ -3586,7 +3586,7 @@
                 "KLG7": {
                   "id": "KLG7",
                   "kind": "text",
-                  "text": "His majesty the Padishah Emperor Shaddam IV \u2014 keen and efficient, yet easily lulled into complacency by his own trappings of power. By leveraging his legions of Sardaukar, the Emperor will secure his legacy."
+                  "text": "His majesty the Padishah Emperor Shaddam IV — keen and efficient, yet easily lulled into complacency by his own trappings of power. By leveraging his legions of Sardaukar, the Emperor will secure his legacy."
                 },
                 "W4XQ": {
                   "id": "W4XQ",
@@ -3641,7 +3641,7 @@
                   "id": "DGSA",
                   "kind": "text",
                   "name": "Atreides",
-                  "text": "The Atreides, led by the compassionate, though cunning, Duke Leto and his son Paul Atreides \u2014 rightful heir to his family's ancient legacy, gifted with valiant lieutenants and a strange partial awareness of the future. Both are beset by treacherous opponents."
+                  "text": "The Atreides, led by the compassionate, though cunning, Duke Leto and his son Paul Atreides — rightful heir to his family's ancient legacy, gifted with valiant lieutenants and a strange partial awareness of the future. Both are beset by treacherous opponents."
                 },
                 "EBTG": {
                   "id": "EBTG",
@@ -3752,7 +3752,7 @@
                 "8FKC": {
                   "id": "8FKC",
                   "kind": "text",
-                  "text": "But death on Dune need never be tragic. The dead are routinely rendered up for their body's water \u2014 so that life on the arid planet may continue. And even one surviving cell of an individual may be [uncertain: cultured] by the Tleilaxu technicians until the original person is regrown."
+                  "text": "But death on Dune need never be tragic. The dead are routinely rendered up for their body's water — so that life on the arid planet may continue. And even one surviving cell of an individual may be [uncertain: cultured] by the Tleilaxu technicians until the original person is regrown."
                 },
                 "9EV6": {
                   "id": "9EV6",
@@ -3767,7 +3767,7 @@
                 "E4B6": {
                   "id": "E4B6",
                   "kind": "text",
-                  "text": "Dune \u2014 the very name conjures up desolation. Desert sandscapes cover most of the planet's surface, broken only by giant rock ridges. Giant sandworms a quarter mile long live beneath the sand and attack any who linger on it. Human life exists in a few scattered places where precious water is available, but even those settlements are buffeted by terrifying coriolis storms."
+                  "text": "Dune — the very name conjures up desolation. Desert sandscapes cover most of the planet's surface, broken only by giant rock ridges. Giant sandworms a quarter mile long live beneath the sand and attack any who linger on it. Human life exists in a few scattered places where precious water is available, but even those settlements are buffeted by terrifying coriolis storms."
                 },
                 "HFTW": {
                   "id": "HFTW",
@@ -3780,7 +3780,7 @@
                   "text": "Those controlling the cities will have access to ornithopters and cover great distances quickly. Other players will have to pick their way slowly across sand and rock."
                 },
                 "QXDE": {
-                  "attribution": "\u2014 from Manual of Muad'Dib by the Princess Irulan",
+                  "attribution": "— from Manual of Muad'Dib by the Princess Irulan",
                   "id": "QXDE",
                   "kind": "callout",
                   "text": "\"A beginning is the time for taking the most delicate care that the balances are correct. This every sister of the Bene Gesserit knows. To begin your study of the life of Muad'Dib then, take care that you first place him in his time: born in the [uncertain: 57th] year of the Padishah Emperor, Shaddam IV. And take the most special care that you locate Muad'Dib in his place: the planet Arrakis. Do not be deceived by the fact that he was born on Caladan and lived his first fifteen years there. Arrakis, the planet known as Dune, is forever his place.\"",
@@ -3995,7 +3995,7 @@
                   "variant": "example"
                 },
                 "6Q7W": {
-                  "attribution": "\u2014 Paul Atreides",
+                  "attribution": "— Paul Atreides",
                   "id": "6Q7W",
                   "kind": "callout",
                   "text": "\"I must not fear. Fear is the mind\\-killer. Fear is the little\\-death that brings total obliteration. I will face my fear. I will permit it to pass over me and through me. And when it has gone past I will turn the inner eye to see its path. Where the fear has gone there will be nothing. Only I will remain.\"",
@@ -4471,7 +4471,7 @@
                 "SM56": {
                   "id": "SM56",
                   "kind": "text",
-                  "text": "The Bene Gesserit Sisterhood, represented by Reverend Mother Gaius Helen Mohiam \u2014 ancient and inscrutable, carefully trained in psychological control and a genius at achieving her ends through the efforts of others."
+                  "text": "The Bene Gesserit Sisterhood, represented by Reverend Mother Gaius Helen Mohiam — ancient and inscrutable, carefully trained in psychological control and a genius at achieving her ends through the efforts of others."
                 }
               },
               "controlValues": {},
@@ -4553,7 +4553,7 @@
                 "QEW5": {
                   "id": "QEW5",
                   "kind": "text",
-                  "text": "The Atreides, led by the compassionate, though cunning, Duke Leto and his son Paul Atreides \u2014 rightful heir to his family's ancient legacy, gifted with valiant lieutenants and a strange partial awareness of the future. Both are beset by treacherous opponents."
+                  "text": "The Atreides, led by the compassionate, though cunning, Duke Leto and his son Paul Atreides — rightful heir to his family's ancient legacy, gifted with valiant lieutenants and a strange partial awareness of the future. Both are beset by treacherous opponents."
                 },
                 "SYYV": {
                   "id": "SYYV",
@@ -4954,7 +4954,7 @@
                   "showDuneLogo": true,
                   "showSubtitle": true,
                   "subtitle": "SECOND EDITION",
-                  "supportingText": "THE SPICE MUST FLOW\nA GAME OF CONQUEST, DIPLOMACY & BETRAYAL\nGF9 \u00b7 LEGENDARY"
+                  "supportingText": ""
                 }
               },
               "id": "SCMH",
@@ -5327,7 +5327,7 @@
                 "HHB4": {
                   "id": "HHB4",
                   "kind": "text",
-                  "text": "The Harkonnens, led by the decadent and notoriously cruel Baron Vladimir Harkonnen \u2014 master of treachery and sinister deeds, value power over all. The path to power leads to Arrakis, and the control of spice."
+                  "text": "The Harkonnens, led by the decadent and notoriously cruel Baron Vladimir Harkonnen — master of treachery and sinister deeds, value power over all. The path to power leads to Arrakis, and the control of spice."
                 },
                 "LYJX": {
                   "caption": "",
@@ -5825,7 +5825,7 @@
                 "T6ZH": {
                   "id": "T6ZH",
                   "kind": "text",
-                  "text": "Round track \u00b7 Spice Blow \u00b7 Territory \u00b7 Tleilaxu Tanks \u00b7 Longitude lines \u00b7 Sector \u00b7 Spice Bank \u00b7 Player circles"
+                  "text": "Round track · Spice Blow · Territory · Tleilaxu Tanks · Longitude lines · Sector · Spice Bank · Player circles"
                 },
                 "W7TV": {
                   "id": "W7TV",
@@ -5911,7 +5911,7 @@
                 "N7TE": {
                   "id": "N7TE",
                   "kind": "text",
-                  "text": "The Fremen, represented by the planetary ecologist Liet\\-Kynes \u2014 commanding fierce hordes of natives, adept at life and travel on the planet, and dedicated to preventing any outside control while bringing about Dune's own natural regeneration."
+                  "text": "The Fremen, represented by the planetary ecologist Liet\\-Kynes — commanding fierce hordes of natives, adept at life and travel on the planet, and dedicated to preventing any outside control while bringing about Dune's own natural regeneration."
                 },
                 "RM43": {
                   "id": "RM43",
@@ -5961,7 +5961,7 @@
                   "id": "DXLF",
                   "kind": "text",
                   "name": "Bidding",
-                  "text": "During the Bidding phase, allies may help each other by paying some or all of the cost of each other\u2019s Treachery cards. To do so, they pay the necessary balance to the Spice Bank (by either paying the full amount, or whatever amount is left after what their ally was willing or able to pay). Players cannot bid more than the total of the spice they have, plus the spice that their ally is willing to contribute to help pay for a card. If a player agrees to let their ally bid higher, they are committed to spending the spice if their ally wins the bid, or guaranteeing the bid."
+                  "text": "During the Bidding phase, allies may help each other by paying some or all of the cost of each other’s Treachery cards. To do so, they pay the necessary balance to the Spice Bank (by either paying the full amount, or whatever amount is left after what their ally was willing or able to pay). Players cannot bid more than the total of the spice they have, plus the spice that their ally is willing to contribute to help pay for a card. If a player agrees to let their ally bid higher, they are committed to spending the spice if their ally wins the bid, or guaranteeing the bid."
                 },
                 "PLHD": {
                   "id": "PLHD",
@@ -6134,7 +6134,7 @@
                 "69A7": {
                   "id": "69A7",
                   "kind": "text",
-                  "text": "The Bene Gesserit Sisterhood, represented by Reverend Mother Gaius Helen Mohiam \u2014 ancient and inscrutable, carefully trained in psychological control and a genius at achieving her ends through the efforts of others."
+                  "text": "The Bene Gesserit Sisterhood, represented by Reverend Mother Gaius Helen Mohiam — ancient and inscrutable, carefully trained in psychological control and a genius at achieving her ends through the efforts of others."
                 },
                 "6HFF": {
                   "id": "6HFF",
@@ -6748,7 +6748,7 @@
       "existing": {
         "slug": "gf9-2-0-rulebook"
       },
-      "expectedStateHash": "v1:46a5f57144da03aa85fcadaa087d456c953410e2427b7f2970424005f56b33bb",
+      "expectedStateHash": "v1:97dea5f1109681329dfad1dd6e1ea7d4c07a0b137293b906153759c365aeadfb",
       "key": "gf9-2-0-rulebook",
       "kind": "rulebook"
     }

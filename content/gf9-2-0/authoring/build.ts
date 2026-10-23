@@ -14,7 +14,17 @@ import { compose } from './compose';
 const here = fileURLToPath(new URL('.', import.meta.url));
 const source = readFileSync(`${here}../transcript-reworked.md`, 'utf8');
 const columnBreaks = JSON.parse(readFileSync(`${here}column-breaks.json`, 'utf8'));
-const bindings = JSON.parse(readFileSync(`${here}resolved-production-references.json`, 'utf8'));
+const previewBindings = `${here}correction/preview-references.json`;
+const bindings = JSON.parse(
+  readFileSync(
+    (await Bun.file(previewBindings).exists()) ? previewBindings : `${here}resolved-production-references.json`,
+    'utf8'
+  )
+);
+const pendingOverview = Object.values(bindings.overviewFactions ?? {}).some(
+  (f: any) => f.status === 'pending-production-roster'
+);
+const outputHere = pendingOverview ? `${here}correction/` : here;
 const stock = new Set<string>(RULEBOOK_STOCK_ARTWORK);
 const used = new Set<string>();
 function id(key: string) {
@@ -610,7 +620,7 @@ for (const { page } of allPages) {
     page.blockOrderByRegion[region] = next;
   }
 }
-writeFileSync(`${here}composition.json`, JSON.stringify(composition, null, 2) + '\n');
+writeFileSync(`${outputHere}composition.json`, JSON.stringify(composition, null, 2) + '\n');
 const paginationPath = `${here}pagination-rebuilt.json`;
 if (await Bun.file(paginationPath).exists()) {
   const pagination = JSON.parse(readFileSync(paginationPath, 'utf8'));
@@ -680,6 +690,9 @@ const assetsById = Object.fromEntries(
   ])
 );
 const settings = { size: 'square', design: 'restrained' };
+const preserved = JSON.parse(readFileSync(`${here}correction/before-overview.json`, 'utf8')).items[0].data;
+contents.pagesById[contents.pageOrder[0]].controlValues =
+  preserved.contents.pagesById[preserved.contents.pageOrder[0]].controlValues;
 const raw = rawRulebookSchema.parse({ settings, contents });
 assertRulebookReferences(raw.contents, assetsById, bindings.resolvedFactions);
 const document = projectRulebookDraftRenderDocument(
@@ -710,9 +723,9 @@ for (const match of sourcePages) {
     }
   }
 }
-writeFileSync(`${here}rulebook.json`, json);
+writeFileSync(`${outputHere}rulebook.json`, json);
 writeFileSync(
-  `${here}source-map.json`,
+  `${outputHere}source-map.json`,
   `${JSON.stringify({ sourceTranscriptSha256: createHash('sha256').update(source).digest('hex'), pages: pageMap, units: unitMap, omissions, editorial }, null, 2)}\n`
 );
 writeFileSync(`${here}render-document.json`, `${JSON.stringify(document, null, 2)}\n`);
@@ -733,5 +746,5 @@ const report = {
   uncertaintyMarkers: (json.match(/\[uncertain:/g) ?? []).length,
   unreadableMarkers: (json.match(/\[unreadable\]/g) ?? []).length,
 };
-writeFileSync(`${here}validation.json`, `${JSON.stringify(report, null, 2)}\n`);
+writeFileSync(`${outputHere}validation.json`, `${JSON.stringify(report, null, 2)}\n`);
 console.log(JSON.stringify(report, null, 2));

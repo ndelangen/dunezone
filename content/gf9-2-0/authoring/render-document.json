@@ -9,13 +9,8 @@
     "LLQL",
     "2VDK",
     "C7U2",
-    "KDSP",
-    "QF57",
-    "HTZ6",
-    "UQWD",
-    "XGCC",
-    "FB9Z",
-    "S48N",
+    "874R",
+    "LKXC",
     "TN3N",
     "MC57",
     "NFMC",
@@ -85,7 +80,7 @@
             "status": "unselected"
           },
           "subtitle": "SECOND EDITION",
-          "supportingText": "THE SPICE MUST FLOW\nA GAME OF CONQUEST, DIPLOMACY & BETRAYAL\nGF9 · LEGENDARY",
+          "supportingText": "",
           "backgroundImage": {
             "url": "https://dune.zone/user-images/e76d8241b236ed4b3ddd627c3c14238e32d3993e6a84ed6231592f7eace51523.jpg",
             "width": 1448,
@@ -381,828 +376,905 @@
         }
       ]
     },
-    "KDSP": {
-      "id": "KDSP",
+    "874R": {
+      "id": "874R",
       "anchor": "source-04",
       "title": "Faction overview",
-      "layoutId": "two-columns",
+      "layoutId": "sequence",
       "showHeading": true,
-      "headingIcon": "/vector/logo/atreides.svg",
       "controlValues": {},
       "regions": [
         {
-          "key": "column1",
+          "key": "content",
           "blocks": [
             {
-              "id": "X4T2",
+              "id": "9BLS",
               "kind": "text",
               "text": "You will be one of these factions:"
             },
             {
-              "id": "DGSA",
-              "kind": "text",
-              "name": "Atreides",
+              "id": "MWET",
+              "kind": "faction-introduction",
+              "faction": {
+                "status": "ready",
+                "factionId": "pending-gf9-2-0-atreides",
+                "name": "Atreides",
+                "color": "#393d05",
+                "emblemUrl": "/vector/logo/atreides.svg",
+                "token": {
+                  "logo": "/vector/logo/atreides.svg",
+                  "background": {
+                    "colors": [
+                      "#393d05",
+                      "#5c5d10"
+                    ],
+                    "definition": 0.5,
+                    "image": "/image/texture/082.jpg",
+                    "influence": 1,
+                    "invert": true
+                  }
+                },
+                "tokenImageUrl": "https://dune.zone/published/faction-tokens/k177h1yvxp36dxsxjfmgqx4jw58gm5jk/token.jpg?v=04d1479a-22b1-4d62-8077-b346d768dcf2",
+                "ruler": {
+                  "status": "ready",
+                  "reference": {
+                    "kind": "faction-member",
+                    "factionId": "pending-gf9-2-0-atreides",
+                    "memberId": "b6b51658-3ab4-46c9-8dd0-10dda4014987"
+                  },
+                  "name": "Duke Leto Atreides",
+                  "imageUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2MDAgNjAwIj48Y2lyY2xlIGN4PSIzMDAiIGN5PSIzMDAiIHI9IjI4NSIgZmlsbD0iIzM5M2QwNSIgc3Ryb2tlPSIjZDhjZDlhIiBzdHJva2Utd2lkdGg9IjE0Ii8+PHRleHQgeD0iMzAwIiB5PSIyMTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iNDAiIGZpbGw9IiNmZmYiPlBvcnRyYWl0IHBlbmRpbmc8L3RleHQ+PHRleHQgeD0iMzAwIiB5PSIzMzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMTcwIiBmaWxsPSIjZmZmIj4/PC90ZXh0Pjx0ZXh0IHg9IjMwMCIgeT0iNDEwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjQwIiBmaWxsPSIjZmZmIj5EdWtlIExldG8gQXRyZWlkZXM8L3RleHQ+PHRleHQgeD0iNDcwIiB5PSIzMTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iOTAiIGZpbGw9IiNmZmYiPjwvdGV4dD48L3N2Zz4=",
+                  "width": 600,
+                  "height": 600
+                },
+                "leaders": [
+                  {
+                    "status": "ready",
+                    "reference": {
+                      "kind": "faction-member",
+                      "factionId": "pending-gf9-2-0-atreides",
+                      "memberId": "1cbb3205-43b5-46db-8265-2d5e407a14a0"
+                    },
+                    "name": "Thufir Hawat",
+                    "imageUrl": "/gf9-preview/atreides-1.png",
+                    "width": 600,
+                    "height": 600
+                  },
+                  {
+                    "status": "ready",
+                    "reference": {
+                      "kind": "faction-member",
+                      "factionId": "pending-gf9-2-0-atreides",
+                      "memberId": "92a82f05-9387-4358-b5eb-b25cc775cb5f"
+                    },
+                    "name": "Lady Jessica",
+                    "imageUrl": "/gf9-preview/atreides-2.png",
+                    "width": 600,
+                    "height": 600
+                  },
+                  {
+                    "status": "ready",
+                    "reference": {
+                      "kind": "faction-member",
+                      "factionId": "pending-gf9-2-0-atreides",
+                      "memberId": "f6de205e-0bfa-4720-83a7-788cdb5db378"
+                    },
+                    "name": "Gurney Halleck",
+                    "imageUrl": "/gf9-preview/atreides-3.png",
+                    "width": 600,
+                    "height": 600
+                  },
+                  {
+                    "status": "ready",
+                    "reference": {
+                      "kind": "faction-member",
+                      "factionId": "pending-gf9-2-0-atreides",
+                      "memberId": "918acfed-e08e-46bc-8e11-ef6e789fa347"
+                    },
+                    "name": "Duncan Idaho",
+                    "imageUrl": "/gf9-preview/atreides-4.png",
+                    "width": 600,
+                    "height": 600
+                  },
+                  {
+                    "status": "ready",
+                    "reference": {
+                      "kind": "faction-member",
+                      "factionId": "pending-gf9-2-0-atreides",
+                      "memberId": "066d6195-2255-4c9e-aec8-06fa9c636220"
+                    },
+                    "name": "Dr. Wellington Yueh",
+                    "imageUrl": "/gf9-preview/atreides-5.png",
+                    "width": 600,
+                    "height": 600
+                  }
+                ],
+                "troops": [
+                  {
+                    "troopId": "448681e5-a635-48e9-8ec1-859dbee97975",
+                    "image": "/vector/troop/atreides.svg",
+                    "name": "Normal troop",
+                    "description": "Standard forces.",
+                    "count": 20
+                  }
+                ],
+                "troopSources": [
+                  {
+                    "status": "ready",
+                    "reference": {
+                      "kind": "faction-troop",
+                      "factionId": "k177h1yvxp36dxsxjfmgqx4jw58gm5jk",
+                      "troopId": "448681e5-a635-48e9-8ec1-859dbee97975",
+                      "face": "front"
+                    },
+                    "name": "Normal troop",
+                    "imageUrl": "https://dune.zone/published/faction-troops/k177h1yvxp36dxsxjfmgqx4jw58gm5jk.448681e5-a635-48e9-8ec1-859dbee97975/troop.jpg",
+                    "width": 600,
+                    "height": 600
+                  }
+                ]
+              },
               "text": "The Atreides, led by the compassionate, though cunning, Duke Leto and his son Paul Atreides — rightful heir to his family's ancient legacy, gifted with valiant lieutenants and a strange partial awareness of the future. Both are beset by treacherous opponents."
             },
             {
-              "id": "SHZN",
-              "kind": "card-entry",
-              "source": {
+              "id": "Z3YN",
+              "kind": "faction-introduction",
+              "faction": {
                 "status": "ready",
-                "reference": {
-                  "kind": "faction",
-                  "factionId": "k177h1yvxp36dxsxjfmgqx4jw58gm5jk",
-                  "presentation": "token"
+                "factionId": "pending-gf9-2-0-bene-gesserit",
+                "name": "Bene Gesserit",
+                "color": "#132b74",
+                "emblemUrl": "/vector/logo/bene-gesserit.svg",
+                "token": {
+                  "logo": "/vector/logo/bene-gesserit.svg",
+                  "background": {
+                    "colors": [
+                      "#132b74",
+                      "#34478b"
+                    ],
+                    "definition": 0.09,
+                    "image": "/image/texture/019.jpg",
+                    "influence": 0.8878,
+                    "invert": false
+                  }
                 },
-                "name": "Atreides",
-                "imageUrl": "https://dune.zone/published/faction-tokens/k177h1yvxp36dxsxjfmgqx4jw58gm5jk/token.jpg",
-                "width": 600,
-                "height": 600
-              },
-              "name": "Duke Leto Atreides",
-              "textFlow": "beside",
-              "size": "medium",
-              "text": ""
-            }
-          ]
-        },
-        {
-          "key": "column2",
-          "blocks": [
-            {
-              "id": "WHHR",
-              "kind": "card-entry",
-              "source": {
-                "status": "ready",
-                "reference": {
-                  "kind": "stock",
-                  "artworkId": "/image/leader/official/thufir.png"
+                "tokenImageUrl": "https://dune.zone/published/faction-tokens/k172tkm3r2r4sc96q7wnb3axvx8gn8g1/token.jpg?v=06d8133f-d358-424a-a69b-f52d17036c90",
+                "ruler": {
+                  "status": "ready",
+                  "reference": {
+                    "kind": "faction-member",
+                    "factionId": "pending-gf9-2-0-bene-gesserit",
+                    "memberId": "ba20d29d-6cd7-4d85-a603-3bc794fbb13d"
+                  },
+                  "name": "Mother Mohiam",
+                  "imageUrl": "/gf9-preview/bene-gesserit-0.png",
+                  "width": 600,
+                  "height": 600
                 },
-                "name": "thufir",
-                "imageUrl": "/image/leader/official/thufir.png"
+                "leaders": [
+                  {
+                    "status": "ready",
+                    "reference": {
+                      "kind": "faction-member",
+                      "factionId": "pending-gf9-2-0-bene-gesserit",
+                      "memberId": "6875fec9-a8ff-478f-8b04-c6a1babdab5d"
+                    },
+                    "name": "Lady Anirul Corrino",
+                    "imageUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2MDAgNjAwIj48Y2lyY2xlIGN4PSIzMDAiIGN5PSIzMDAiIHI9IjI4NSIgZmlsbD0iIzEzMmI3NCIgc3Ryb2tlPSIjZDhjZDlhIiBzdHJva2Utd2lkdGg9IjE0Ii8+PHRleHQgeD0iMzAwIiB5PSIyMTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iNDAiIGZpbGw9IiNmZmYiPlBvcnRyYWl0IHBlbmRpbmc8L3RleHQ+PHRleHQgeD0iMzAwIiB5PSIzMzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMTcwIiBmaWxsPSIjZmZmIj4/PC90ZXh0Pjx0ZXh0IHg9IjMwMCIgeT0iNDEwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjQwIiBmaWxsPSIjZmZmIj5MYWR5IEFuaXJ1bCBDb3JyaW5vPC90ZXh0Pjx0ZXh0IHg9IjQ3MCIgeT0iMzE1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjkwIiBmaWxsPSIjZmZmIj41PC90ZXh0Pjwvc3ZnPg==",
+                    "width": 600,
+                    "height": 600
+                  },
+                  {
+                    "status": "ready",
+                    "reference": {
+                      "kind": "faction-member",
+                      "factionId": "pending-gf9-2-0-bene-gesserit",
+                      "memberId": "5a19b7d3-0256-4013-8478-8343a47f8a46"
+                    },
+                    "name": "Margot Lady Fenring",
+                    "imageUrl": "/gf9-preview/bene-gesserit-2.png",
+                    "width": 600,
+                    "height": 600
+                  },
+                  {
+                    "status": "ready",
+                    "reference": {
+                      "kind": "faction-member",
+                      "factionId": "pending-gf9-2-0-bene-gesserit",
+                      "memberId": "09388176-6ad7-45a9-89a5-ac548b583e33"
+                    },
+                    "name": "Mother Ramallo",
+                    "imageUrl": "https://dune.zone/published/leaders/k172tkm3r2r4sc96q7wnb3axvx8gn8g1.09388176-6ad7-45a9-89a5-ac548b583e33/leader.jpg?v=902ed5cd-0cff-4adc-b03e-1675daffbad7",
+                    "width": 600,
+                    "height": 600
+                  },
+                  {
+                    "status": "ready",
+                    "reference": {
+                      "kind": "faction-member",
+                      "factionId": "pending-gf9-2-0-bene-gesserit",
+                      "memberId": "41101ead-6efa-4cd1-9aeb-462571fca76d"
+                    },
+                    "name": "Princess Irulan",
+                    "imageUrl": "/gf9-preview/bene-gesserit-4.png",
+                    "width": 600,
+                    "height": 600
+                  },
+                  {
+                    "status": "ready",
+                    "reference": {
+                      "kind": "faction-member",
+                      "factionId": "pending-gf9-2-0-bene-gesserit",
+                      "memberId": "70b72294-b07a-47e0-a5bd-3ebf520d5b02"
+                    },
+                    "name": "Wanna Yueh",
+                    "imageUrl": "/gf9-preview/bene-gesserit-5.png",
+                    "width": 600,
+                    "height": 600
+                  }
+                ],
+                "troops": [
+                  {
+                    "troopId": "a89c1e4b-379f-46da-8781-04b02b04686a",
+                    "image": "/vector/troop/bene-gesserit.svg",
+                    "name": "Fighter",
+                    "description": "Standard forces. The reverse face is an advisor.",
+                    "back": {
+                      "image": "/vector/troop/bene-gesserit.svg",
+                      "name": "Advisor",
+                      "description": "Advisors have no effect on other factions and cannot battle or collect spice.",
+                      "striped": true
+                    },
+                    "count": 20
+                  }
+                ],
+                "troopSources": [
+                  {
+                    "status": "ready",
+                    "reference": {
+                      "kind": "faction-troop",
+                      "factionId": "k172tkm3r2r4sc96q7wnb3axvx8gn8g1",
+                      "troopId": "a89c1e4b-379f-46da-8781-04b02b04686a",
+                      "face": "front"
+                    },
+                    "name": "Fighter",
+                    "imageUrl": "https://dune.zone/published/faction-troops/k172tkm3r2r4sc96q7wnb3axvx8gn8g1.a89c1e4b-379f-46da-8781-04b02b04686a/troop.jpg",
+                    "width": 600,
+                    "height": 600
+                  },
+                  {
+                    "status": "ready",
+                    "reference": {
+                      "kind": "faction-troop",
+                      "factionId": "k172tkm3r2r4sc96q7wnb3axvx8gn8g1",
+                      "troopId": "a89c1e4b-379f-46da-8781-04b02b04686a",
+                      "face": "back"
+                    },
+                    "name": "Advisor",
+                    "imageUrl": "https://dune.zone/published/faction-troops/k172tkm3r2r4sc96q7wnb3axvx8gn8g1.a89c1e4b-379f-46da-8781-04b02b04686a.back/troop.jpg",
+                    "width": 600,
+                    "height": 600
+                  }
+                ]
               },
-              "name": "Thufir Hawat 5",
-              "textFlow": "beside",
-              "size": "small",
-              "text": ""
-            },
-            {
-              "id": "PU5H",
-              "kind": "card-entry",
-              "source": {
-                "status": "ready",
-                "reference": {
-                  "kind": "stock",
-                  "artworkId": "/image/leader/official/jessica.png"
-                },
-                "name": "jessica",
-                "imageUrl": "/image/leader/official/jessica.png"
-              },
-              "name": "Lady Jessica 5",
-              "textFlow": "beside",
-              "size": "small",
-              "text": ""
-            },
-            {
-              "id": "EBTG",
-              "kind": "card-entry",
-              "source": {
-                "status": "ready",
-                "reference": {
-                  "kind": "stock",
-                  "artworkId": "/image/leader/official/gurney.png"
-                },
-                "name": "gurney",
-                "imageUrl": "/image/leader/official/gurney.png"
-              },
-              "name": "Gurney Halleck 4",
-              "textFlow": "beside",
-              "size": "small",
-              "text": ""
-            },
-            {
-              "id": "G7NP",
-              "kind": "card-entry",
-              "source": {
-                "status": "ready",
-                "reference": {
-                  "kind": "stock",
-                  "artworkId": "/image/leader/official/duncan.png"
-                },
-                "name": "duncan",
-                "imageUrl": "/image/leader/official/duncan.png"
-              },
-              "name": "Duncan Idaho 3",
-              "textFlow": "beside",
-              "size": "small",
-              "text": ""
-            },
-            {
-              "id": "7NET",
-              "kind": "card-entry",
-              "source": {
-                "status": "ready",
-                "reference": {
-                  "kind": "stock",
-                  "artworkId": "/image/leader/official/dryeuh.png"
-                },
-                "name": "dryeuh",
-                "imageUrl": "/image/leader/official/dryeuh.png"
-              },
-              "name": "Dr. Wellington Yueh 1",
-              "textFlow": "beside",
-              "size": "small",
-              "text": ""
-            }
-          ]
-        }
-      ]
-    },
-    "QF57": {
-      "id": "QF57",
-      "anchor": "source-04-part-2",
-      "title": "Bene Gesserit",
-      "layoutId": "two-columns",
-      "showHeading": true,
-      "headingIcon": "/vector/logo/bene-gesserit.svg",
-      "controlValues": {},
-      "regions": [
-        {
-          "key": "column1",
-          "blocks": [
-            {
-              "id": "SM56",
-              "kind": "text",
               "text": "The Bene Gesserit Sisterhood, represented by Reverend Mother Gaius Helen Mohiam — ancient and inscrutable, carefully trained in psychological control and a genius at achieving her ends through the efforts of others."
             },
             {
-              "id": "4E6R",
-              "kind": "card-entry",
-              "source": {
+              "id": "7RJG",
+              "kind": "faction-introduction",
+              "faction": {
                 "status": "ready",
-                "reference": {
-                  "kind": "stock",
-                  "artworkId": "/image/leader/official/mohiam.jpg"
+                "factionId": "pending-gf9-2-0-emperor",
+                "name": "Emperor",
+                "color": "#8C0402",
+                "emblemUrl": "/vector/logo/emperor.svg",
+                "token": {
+                  "logo": "/vector/logo/emperor.svg",
+                  "background": {
+                    "colors": [
+                      "#8C0402",
+                      "#db1918"
+                    ],
+                    "definition": 0.31,
+                    "image": "/image/texture/055.jpg",
+                    "influence": 1,
+                    "invert": false
+                  }
                 },
-                "name": "mohiam",
-                "imageUrl": "/image/leader/official/mohiam.jpg"
-              },
-              "name": "Mother Mohiam",
-              "textFlow": "beside",
-              "size": "medium",
-              "text": ""
-            }
-          ]
-        },
-        {
-          "key": "column2",
-          "blocks": [
-            {
-              "id": "FRRF",
-              "kind": "card-entry",
-              "source": {
-                "status": "ready",
-                "reference": {
-                  "kind": "stock",
-                  "artworkId": "/vector/logo/bene-gesserit.svg"
+                "tokenImageUrl": "https://dune.zone/published/faction-tokens/k174q1wrg9y646pdvbdr9r1sxx8gmct2/token.jpg?v=1fa1221a-a8fb-4ba0-a13b-c36ca111d213",
+                "ruler": {
+                  "status": "ready",
+                  "reference": {
+                    "kind": "faction-member",
+                    "factionId": "pending-gf9-2-0-emperor",
+                    "memberId": "2bdb6a44-9079-4ebb-b4f6-02acca2f445d"
+                  },
+                  "name": "Emperor Shaddam IV",
+                  "imageUrl": "/gf9-preview/emperor-0.png",
+                  "width": 600,
+                  "height": 600
                 },
-                "name": "bene gesserit",
-                "imageUrl": "/vector/logo/bene-gesserit.svg"
+                "leaders": [
+                  {
+                    "status": "ready",
+                    "reference": {
+                      "kind": "faction-member",
+                      "factionId": "pending-gf9-2-0-emperor",
+                      "memberId": "4cf337f6-8487-4f98-bdc8-e6948cf6ecfe"
+                    },
+                    "name": "Hasimir Fenring",
+                    "imageUrl": "/gf9-preview/emperor-1.png",
+                    "width": 600,
+                    "height": 600
+                  },
+                  {
+                    "status": "ready",
+                    "reference": {
+                      "kind": "faction-member",
+                      "factionId": "pending-gf9-2-0-emperor",
+                      "memberId": "2d83065e-f4ca-4ff6-8d0a-d24cffaec647"
+                    },
+                    "name": "Captain Aramsham",
+                    "imageUrl": "/gf9-preview/emperor-2.png",
+                    "width": 600,
+                    "height": 600
+                  },
+                  {
+                    "status": "ready",
+                    "reference": {
+                      "kind": "faction-member",
+                      "factionId": "pending-gf9-2-0-emperor",
+                      "memberId": "37c58b9a-c36c-411f-9097-8876eda02ed1"
+                    },
+                    "name": "Bashar Garon",
+                    "imageUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2MDAgNjAwIj48Y2lyY2xlIGN4PSIzMDAiIGN5PSIzMDAiIHI9IjI4NSIgZmlsbD0iIzhDMDQwMiIgc3Ryb2tlPSIjZDhjZDlhIiBzdHJva2Utd2lkdGg9IjE0Ii8+PHRleHQgeD0iMzAwIiB5PSIyMTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iNDAiIGZpbGw9IiNmZmYiPlBvcnRyYWl0IHBlbmRpbmc8L3RleHQ+PHRleHQgeD0iMzAwIiB5PSIzMzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMTcwIiBmaWxsPSIjZmZmIj4/PC90ZXh0Pjx0ZXh0IHg9IjMwMCIgeT0iNDEwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjQwIiBmaWxsPSIjZmZmIj5CYXNoYXIgR2Fyb248L3RleHQ+PHRleHQgeD0iNDcwIiB5PSIzMTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iOTAiIGZpbGw9IiNmZmYiPjM8L3RleHQ+PC9zdmc+",
+                    "width": 600,
+                    "height": 600
+                  },
+                  {
+                    "status": "ready",
+                    "reference": {
+                      "kind": "faction-member",
+                      "factionId": "pending-gf9-2-0-emperor",
+                      "memberId": "822709e6-e300-4db0-90d4-cab409278cde"
+                    },
+                    "name": "Colonel Kolona",
+                    "imageUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2MDAgNjAwIj48Y2lyY2xlIGN4PSIzMDAiIGN5PSIzMDAiIHI9IjI4NSIgZmlsbD0iIzhDMDQwMiIgc3Ryb2tlPSIjZDhjZDlhIiBzdHJva2Utd2lkdGg9IjE0Ii8+PHRleHQgeD0iMzAwIiB5PSIyMTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iNDAiIGZpbGw9IiNmZmYiPlBvcnRyYWl0IHBlbmRpbmc8L3RleHQ+PHRleHQgeD0iMzAwIiB5PSIzMzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMTcwIiBmaWxsPSIjZmZmIj4/PC90ZXh0Pjx0ZXh0IHg9IjMwMCIgeT0iNDEwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjQwIiBmaWxsPSIjZmZmIj5Db2xvbmVsIEtvbG9uYTwvdGV4dD48dGV4dCB4PSI0NzAiIHk9IjMxNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSI5MCIgZmlsbD0iI2ZmZiI+MzwvdGV4dD48L3N2Zz4=",
+                    "width": 600,
+                    "height": 600
+                  },
+                  {
+                    "status": "ready",
+                    "reference": {
+                      "kind": "faction-member",
+                      "factionId": "pending-gf9-2-0-emperor",
+                      "memberId": "94fd7927-9e00-421b-b32e-73322bc54d63"
+                    },
+                    "name": "Wensicia Corrino",
+                    "imageUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2MDAgNjAwIj48Y2lyY2xlIGN4PSIzMDAiIGN5PSIzMDAiIHI9IjI4NSIgZmlsbD0iIzhDMDQwMiIgc3Ryb2tlPSIjZDhjZDlhIiBzdHJva2Utd2lkdGg9IjE0Ii8+PHRleHQgeD0iMzAwIiB5PSIyMTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iNDAiIGZpbGw9IiNmZmYiPlBvcnRyYWl0IHBlbmRpbmc8L3RleHQ+PHRleHQgeD0iMzAwIiB5PSIzMzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMTcwIiBmaWxsPSIjZmZmIj4/PC90ZXh0Pjx0ZXh0IHg9IjMwMCIgeT0iNDEwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjQwIiBmaWxsPSIjZmZmIj5XZW5zaWNpYSBDb3JyaW5vPC90ZXh0Pjx0ZXh0IHg9IjQ3MCIgeT0iMzE1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjkwIiBmaWxsPSIjZmZmIj4yPC90ZXh0Pjwvc3ZnPg==",
+                    "width": 600,
+                    "height": 600
+                  }
+                ],
+                "troops": [
+                  {
+                    "troopId": "20d19e36-b903-4069-a66a-cbed1d0d0b4f",
+                    "image": "/vector/troop/emperor.svg",
+                    "name": "Normal troop",
+                    "description": "Standard forces.",
+                    "count": 15
+                  },
+                  {
+                    "troopId": "abbf72a5-4967-41f6-838e-5e99ac26f049",
+                    "image": "/vector/troop/emperor.svg",
+                    "name": "Sardaukar",
+                    "description": "Sardaukar forces are worth 2 forces in battle, except against Fremen.",
+                    "star": "/vector/troop_modifier/star-right.svg",
+                    "hue": "#e6de12",
+                    "count": 5
+                  }
+                ],
+                "troopSources": [
+                  {
+                    "status": "ready",
+                    "reference": {
+                      "kind": "faction-troop",
+                      "factionId": "k174q1wrg9y646pdvbdr9r1sxx8gmct2",
+                      "troopId": "20d19e36-b903-4069-a66a-cbed1d0d0b4f",
+                      "face": "front"
+                    },
+                    "name": "Normal troop",
+                    "imageUrl": "https://dune.zone/published/faction-troops/k174q1wrg9y646pdvbdr9r1sxx8gmct2.20d19e36-b903-4069-a66a-cbed1d0d0b4f/troop.jpg",
+                    "width": 600,
+                    "height": 600
+                  },
+                  {
+                    "status": "ready",
+                    "reference": {
+                      "kind": "faction-troop",
+                      "factionId": "k174q1wrg9y646pdvbdr9r1sxx8gmct2",
+                      "troopId": "abbf72a5-4967-41f6-838e-5e99ac26f049",
+                      "face": "front"
+                    },
+                    "name": "Sardaukar",
+                    "imageUrl": "https://dune.zone/published/faction-troops/k174q1wrg9y646pdvbdr9r1sxx8gmct2.abbf72a5-4967-41f6-838e-5e99ac26f049/troop.jpg",
+                    "width": 600,
+                    "height": 600
+                  }
+                ]
               },
-              "name": "Lady Anirul Corrino 5",
-              "textFlow": "beside",
-              "size": "small",
-              "text": ""
-            },
-            {
-              "id": "NFL7",
-              "kind": "card-entry",
-              "source": {
-                "status": "ready",
-                "reference": {
-                  "kind": "stock",
-                  "artworkId": "/image/leader/official/lady-fenring.png"
-                },
-                "name": "lady fenring",
-                "imageUrl": "/image/leader/official/lady-fenring.png"
-              },
-              "name": "Margot Lady Fenring 5",
-              "textFlow": "beside",
-              "size": "small",
-              "text": ""
-            },
-            {
-              "id": "D2DF",
-              "kind": "card-entry",
-              "source": {
-                "status": "ready",
-                "reference": {
-                  "kind": "stock",
-                  "artworkId": "/image/leader/official/ramallo.png"
-                },
-                "name": "ramallo",
-                "imageUrl": "/image/leader/official/ramallo.png"
-              },
-              "name": "Mother Ramallo 5",
-              "textFlow": "beside",
-              "size": "small",
-              "text": ""
-            },
-            {
-              "id": "QYKS",
-              "kind": "card-entry",
-              "source": {
-                "status": "ready",
-                "reference": {
-                  "kind": "stock",
-                  "artworkId": "/image/leader/official/irulan.png"
-                },
-                "name": "irulan",
-                "imageUrl": "/image/leader/official/irulan.png"
-              },
-              "name": "Princess Irulan 5",
-              "textFlow": "beside",
-              "size": "small",
-              "text": ""
-            },
-            {
-              "id": "C8SS",
-              "kind": "card-entry",
-              "source": {
-                "status": "ready",
-                "reference": {
-                  "kind": "stock",
-                  "artworkId": "/image/leader/official/wanna.png"
-                },
-                "name": "wanna",
-                "imageUrl": "/image/leader/official/wanna.png"
-              },
-              "name": "Wanna Yueh 5",
-              "textFlow": "beside",
-              "size": "small",
-              "text": ""
-            }
-          ]
-        }
-      ]
-    },
-    "HTZ6": {
-      "id": "HTZ6",
-      "anchor": "source-04-part-3",
-      "title": "Emperor",
-      "layoutId": "two-columns",
-      "showHeading": true,
-      "headingIcon": "/vector/logo/emperor.svg",
-      "controlValues": {},
-      "regions": [
-        {
-          "key": "column1",
-          "blocks": [
-            {
-              "id": "KLG7",
-              "kind": "text",
               "text": "His majesty the Padishah Emperor Shaddam IV — keen and efficient, yet easily lulled into complacency by his own trappings of power. By leveraging his legions of Sardaukar, the Emperor will secure his legacy."
             },
             {
-              "id": "AADE",
-              "kind": "card-entry",
-              "source": {
+              "id": "855A",
+              "kind": "faction-introduction",
+              "faction": {
                 "status": "ready",
-                "reference": {
-                  "kind": "stock",
-                  "artworkId": "/image/leader/official/shadam.jpg"
+                "factionId": "pending-gf9-2-0-fremen",
+                "name": "Fremen",
+                "color": "#fcb843",
+                "emblemUrl": "/vector/logo/fremen.svg",
+                "token": {
+                  "logo": "/vector/logo/fremen.svg",
+                  "background": {
+                    "colors": [
+                      "#fcb843",
+                      "#d2781d"
+                    ],
+                    "definition": 0.3,
+                    "image": "/image/texture/019.jpg",
+                    "influence": 0.634,
+                    "invert": false
+                  }
                 },
-                "name": "shadam",
-                "imageUrl": "/image/leader/official/shadam.jpg"
-              },
-              "name": "Emperor Shaddam IV",
-              "textFlow": "beside",
-              "size": "medium",
-              "text": ""
-            }
-          ]
-        },
-        {
-          "key": "column2",
-          "blocks": [
-            {
-              "id": "527P",
-              "kind": "card-entry",
-              "source": {
-                "status": "ready",
-                "reference": {
-                  "kind": "stock",
-                  "artworkId": "/image/leader/official/hasimir.png"
+                "tokenImageUrl": "https://dune.zone/published/faction-tokens/k170rt7fn11fxdtbe3vx2bg0xx8gnrx1/token.jpg?v=d7f43289-0ced-4f8d-8a6d-486343a3a3a5",
+                "ruler": {
+                  "status": "ready",
+                  "reference": {
+                    "kind": "faction-member",
+                    "factionId": "pending-gf9-2-0-fremen",
+                    "memberId": "fb36e676-7e9f-4a8d-b349-d3f4f624c765"
+                  },
+                  "name": "Liet Kynes",
+                  "imageUrl": "/gf9-preview/fremen-0.png",
+                  "width": 600,
+                  "height": 600
                 },
-                "name": "hasimir",
-                "imageUrl": "/image/leader/official/hasimir.png"
+                "leaders": [
+                  {
+                    "status": "ready",
+                    "reference": {
+                      "kind": "faction-member",
+                      "factionId": "pending-gf9-2-0-fremen",
+                      "memberId": "4f1b9a93-0064-49aa-82ef-819cf168b1ac"
+                    },
+                    "name": "Stilgar",
+                    "imageUrl": "/gf9-preview/fremen-1.png",
+                    "width": 600,
+                    "height": 600
+                  },
+                  {
+                    "status": "ready",
+                    "reference": {
+                      "kind": "faction-member",
+                      "factionId": "pending-gf9-2-0-fremen",
+                      "memberId": "8cce5f0e-2c66-4761-9464-991aea172c58"
+                    },
+                    "name": "Chani",
+                    "imageUrl": "/gf9-preview/fremen-2.png",
+                    "width": 600,
+                    "height": 600
+                  },
+                  {
+                    "status": "ready",
+                    "reference": {
+                      "kind": "faction-member",
+                      "factionId": "pending-gf9-2-0-fremen",
+                      "memberId": "588ef0f5-8098-4246-a16a-5f1834f72f94"
+                    },
+                    "name": "Otheym",
+                    "imageUrl": "/gf9-preview/fremen-3.png",
+                    "width": 600,
+                    "height": 600
+                  },
+                  {
+                    "status": "ready",
+                    "reference": {
+                      "kind": "faction-member",
+                      "factionId": "pending-gf9-2-0-fremen",
+                      "memberId": "8bd9ffeb-21fe-4196-9aeb-7584e1548f03"
+                    },
+                    "name": "Shadout Mapes",
+                    "imageUrl": "/gf9-preview/fremen-4.png",
+                    "width": 600,
+                    "height": 600
+                  },
+                  {
+                    "status": "ready",
+                    "reference": {
+                      "kind": "faction-member",
+                      "factionId": "pending-gf9-2-0-fremen",
+                      "memberId": "1ab6dd8d-51fe-4ef3-93b9-97adb20e9381"
+                    },
+                    "name": "Jamis",
+                    "imageUrl": "/gf9-preview/fremen-5.png",
+                    "width": 600,
+                    "height": 600
+                  }
+                ],
+                "troops": [
+                  {
+                    "troopId": "e212481b-8f96-4b46-8389-a5cfb7760e7c",
+                    "image": "/vector/troop/fremen.svg",
+                    "name": "Normal troop",
+                    "description": "Standard forces.",
+                    "count": 17
+                  },
+                  {
+                    "troopId": "3ac897c0-82d1-4c94-a796-2ce2788fab66",
+                    "image": "/vector/troop/fremen.svg",
+                    "name": "Fedaykin",
+                    "description": "Fedaykin are worth 2 normal forces in battle.",
+                    "star": "/vector/troop_modifier/star-right.svg",
+                    "hue": "#edecd5",
+                    "count": 3
+                  }
+                ],
+                "troopSources": [
+                  {
+                    "status": "ready",
+                    "reference": {
+                      "kind": "faction-troop",
+                      "factionId": "k170rt7fn11fxdtbe3vx2bg0xx8gnrx1",
+                      "troopId": "e212481b-8f96-4b46-8389-a5cfb7760e7c",
+                      "face": "front"
+                    },
+                    "name": "Normal troop",
+                    "imageUrl": "https://dune.zone/published/faction-troops/k170rt7fn11fxdtbe3vx2bg0xx8gnrx1.e212481b-8f96-4b46-8389-a5cfb7760e7c/troop.jpg",
+                    "width": 600,
+                    "height": 600
+                  },
+                  {
+                    "status": "ready",
+                    "reference": {
+                      "kind": "faction-troop",
+                      "factionId": "k170rt7fn11fxdtbe3vx2bg0xx8gnrx1",
+                      "troopId": "3ac897c0-82d1-4c94-a796-2ce2788fab66",
+                      "face": "front"
+                    },
+                    "name": "Fedaykin",
+                    "imageUrl": "https://dune.zone/published/faction-troops/k170rt7fn11fxdtbe3vx2bg0xx8gnrx1.3ac897c0-82d1-4c94-a796-2ce2788fab66/troop.jpg",
+                    "width": 600,
+                    "height": 600
+                  }
+                ]
               },
-              "name": "Hasimir Fenring 6",
-              "textFlow": "beside",
-              "size": "small",
-              "text": ""
-            },
-            {
-              "id": "W4XQ",
-              "kind": "card-entry",
-              "source": {
-                "status": "ready",
-                "reference": {
-                  "kind": "stock",
-                  "artworkId": "/image/leader/official/aramsham.png"
-                },
-                "name": "aramsham",
-                "imageUrl": "/image/leader/official/aramsham.png"
-              },
-              "name": "Captain Aramsham 5",
-              "textFlow": "beside",
-              "size": "small",
-              "text": ""
-            },
-            {
-              "id": "H75B",
-              "kind": "card-entry",
-              "source": {
-                "status": "ready",
-                "reference": {
-                  "kind": "stock",
-                  "artworkId": "/image/leader/official/caid.png"
-                },
-                "name": "caid",
-                "imageUrl": "/image/leader/official/caid.png"
-              },
-              "name": "Bashar Garon 3",
-              "textFlow": "beside",
-              "size": "small",
-              "text": ""
-            },
-            {
-              "id": "9QCL",
-              "kind": "card-entry",
-              "source": {
-                "status": "ready",
-                "reference": {
-                  "kind": "stock",
-                  "artworkId": "/image/leader/official/bashar.png"
-                },
-                "name": "bashar",
-                "imageUrl": "/image/leader/official/bashar.png"
-              },
-              "name": "Colonel Kolona 3",
-              "textFlow": "beside",
-              "size": "small",
-              "text": ""
-            },
-            {
-              "id": "FY55",
-              "kind": "card-entry",
-              "source": {
-                "status": "ready",
-                "reference": {
-                  "kind": "stock",
-                  "artworkId": "/vector/logo/emperor.svg"
-                },
-                "name": "emperor",
-                "imageUrl": "/vector/logo/emperor.svg"
-              },
-              "name": "Wensicia Corrino 2",
-              "textFlow": "beside",
-              "size": "small",
-              "text": ""
-            }
-          ]
-        }
-      ]
-    },
-    "UQWD": {
-      "id": "UQWD",
-      "anchor": "source-04-part-4",
-      "title": "Fremen",
-      "layoutId": "two-columns",
-      "showHeading": true,
-      "headingIcon": "/vector/logo/fremen.svg",
-      "controlValues": {},
-      "regions": [
-        {
-          "key": "column1",
-          "blocks": [
-            {
-              "id": "N7TE",
-              "kind": "text",
               "text": "The Fremen, represented by the planetary ecologist Liet\\-Kynes — commanding fierce hordes of natives, adept at life and travel on the planet, and dedicated to preventing any outside control while bringing about Dune's own natural regeneration."
-            },
-            {
-              "id": "WBJV",
-              "kind": "card-entry",
-              "source": {
-                "status": "ready",
-                "reference": {
-                  "kind": "stock",
-                  "artworkId": "/image/leader/official/liet.jpg"
-                },
-                "name": "liet",
-                "imageUrl": "/image/leader/official/liet.jpg"
-              },
-              "name": "Liet Kynes",
-              "textFlow": "beside",
-              "size": "medium",
-              "text": ""
-            }
-          ]
-        },
-        {
-          "key": "column2",
-          "blocks": [
-            {
-              "id": "9NJW",
-              "kind": "card-entry",
-              "source": {
-                "status": "ready",
-                "reference": {
-                  "kind": "stock",
-                  "artworkId": "/image/leader/official/stilgar.png"
-                },
-                "name": "stilgar",
-                "imageUrl": "/image/leader/official/stilgar.png"
-              },
-              "name": "Stilgar 7",
-              "textFlow": "beside",
-              "size": "small",
-              "text": ""
-            },
-            {
-              "id": "FQS9",
-              "kind": "card-entry",
-              "source": {
-                "status": "ready",
-                "reference": {
-                  "kind": "stock",
-                  "artworkId": "/image/leader/official/chani.png"
-                },
-                "name": "chani",
-                "imageUrl": "/image/leader/official/chani.png"
-              },
-              "name": "Chani 6",
-              "textFlow": "beside",
-              "size": "small",
-              "text": ""
-            },
-            {
-              "id": "2ZYD",
-              "kind": "card-entry",
-              "source": {
-                "status": "ready",
-                "reference": {
-                  "kind": "stock",
-                  "artworkId": "/image/leader/official/otheym.png"
-                },
-                "name": "otheym",
-                "imageUrl": "/image/leader/official/otheym.png"
-              },
-              "name": "Otheym 5",
-              "textFlow": "beside",
-              "size": "small",
-              "text": ""
-            },
-            {
-              "id": "RM43",
-              "kind": "card-entry",
-              "source": {
-                "status": "ready",
-                "reference": {
-                  "kind": "stock",
-                  "artworkId": "/image/leader/official/mapes.png"
-                },
-                "name": "mapes",
-                "imageUrl": "/image/leader/official/mapes.png"
-              },
-              "name": "Shadout Mapes 3",
-              "textFlow": "beside",
-              "size": "small",
-              "text": ""
-            },
-            {
-              "id": "5JDN",
-              "kind": "card-entry",
-              "source": {
-                "status": "ready",
-                "reference": {
-                  "kind": "stock",
-                  "artworkId": "/image/leader/official/jamis.png"
-                },
-                "name": "jamis",
-                "imageUrl": "/image/leader/official/jamis.png"
-              },
-              "name": "Jamis 2",
-              "textFlow": "beside",
-              "size": "small",
-              "text": ""
             }
           ]
         }
       ]
     },
-    "XGCC": {
-      "id": "XGCC",
+    "LKXC": {
+      "id": "LKXC",
       "anchor": "source-05",
-      "title": "Spacing Guild",
-      "layoutId": "two-columns",
-      "showHeading": true,
-      "headingIcon": "/vector/logo/guild.svg",
+      "title": "Faction overview",
+      "layoutId": "paired-rows",
+      "showHeading": false,
       "controlValues": {},
       "regions": [
         {
-          "key": "column1",
+          "key": "opening",
           "blocks": [
             {
-              "id": "QR4V",
-              "kind": "text",
+              "id": "SNAK",
+              "kind": "faction-introduction",
+              "faction": {
+                "status": "ready",
+                "factionId": "pending-gf9-2-0-spacing-guild",
+                "name": "Spacing Guild",
+                "color": "#bd3108",
+                "emblemUrl": "/vector/logo/guild.svg",
+                "token": {
+                  "logo": "/vector/logo/guild.svg",
+                  "background": {
+                    "colors": [
+                      "#bd3108",
+                      "#e05719"
+                    ],
+                    "definition": 0.2,
+                    "image": "/image/texture/006.jpg",
+                    "influence": 1,
+                    "invert": false
+                  }
+                },
+                "tokenImageUrl": "https://dune.zone/published/faction-tokens/k1782pjyezpza51gk5fj8rr47s8gnp0w/token.jpg?v=120f3a2d-d58a-43bf-a6da-0e7a926562f1",
+                "ruler": {
+                  "status": "ready",
+                  "reference": {
+                    "kind": "faction-member",
+                    "factionId": "pending-gf9-2-0-spacing-guild",
+                    "memberId": "10f775db-8ae8-4d54-89ba-6dfcd37224c1"
+                  },
+                  "name": "Edric",
+                  "imageUrl": "/gf9-preview/spacing-guild-0.png",
+                  "width": 600,
+                  "height": 600
+                },
+                "leaders": [
+                  {
+                    "status": "ready",
+                    "reference": {
+                      "kind": "faction-member",
+                      "factionId": "pending-gf9-2-0-spacing-guild",
+                      "memberId": "695097f4-12fb-4004-b42c-bafe7a3ae58e"
+                    },
+                    "name": "Starguide Serello",
+                    "imageUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2MDAgNjAwIj48Y2lyY2xlIGN4PSIzMDAiIGN5PSIzMDAiIHI9IjI4NSIgZmlsbD0iI2JkMzEwOCIgc3Ryb2tlPSIjZDhjZDlhIiBzdHJva2Utd2lkdGg9IjE0Ii8+PHRleHQgeD0iMzAwIiB5PSIyMTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iNDAiIGZpbGw9IiNmZmYiPlBvcnRyYWl0IHBlbmRpbmc8L3RleHQ+PHRleHQgeD0iMzAwIiB5PSIzMzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMTcwIiBmaWxsPSIjZmZmIj4/PC90ZXh0Pjx0ZXh0IHg9IjMwMCIgeT0iNDEwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjQwIiBmaWxsPSIjZmZmIj5TdGFyZ3VpZGUgU2VyZWxsbzwvdGV4dD48dGV4dCB4PSI0NzAiIHk9IjMxNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSI5MCIgZmlsbD0iI2ZmZiI+NTwvdGV4dD48L3N2Zz4=",
+                    "width": 600,
+                    "height": 600
+                  },
+                  {
+                    "status": "ready",
+                    "reference": {
+                      "kind": "faction-member",
+                      "factionId": "pending-gf9-2-0-spacing-guild",
+                      "memberId": "e245de2e-16d7-4e0b-a246-877edc6c09f5"
+                    },
+                    "name": "Ertun",
+                    "imageUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2MDAgNjAwIj48Y2lyY2xlIGN4PSIzMDAiIGN5PSIzMDAiIHI9IjI4NSIgZmlsbD0iI2JkMzEwOCIgc3Ryb2tlPSIjZDhjZDlhIiBzdHJva2Utd2lkdGg9IjE0Ii8+PHRleHQgeD0iMzAwIiB5PSIyMTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iNDAiIGZpbGw9IiNmZmYiPlBvcnRyYWl0IHBlbmRpbmc8L3RleHQ+PHRleHQgeD0iMzAwIiB5PSIzMzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMTcwIiBmaWxsPSIjZmZmIj4/PC90ZXh0Pjx0ZXh0IHg9IjMwMCIgeT0iNDEwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjQwIiBmaWxsPSIjZmZmIj5FcnR1bjwvdGV4dD48dGV4dCB4PSI0NzAiIHk9IjMxNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSI5MCIgZmlsbD0iI2ZmZiI+NDwvdGV4dD48L3N2Zz4=",
+                    "width": 600,
+                    "height": 600
+                  },
+                  {
+                    "status": "ready",
+                    "reference": {
+                      "kind": "faction-member",
+                      "factionId": "pending-gf9-2-0-spacing-guild",
+                      "memberId": "6230265a-ca3d-472f-adb5-27391791751c"
+                    },
+                    "name": "Olar",
+                    "imageUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2MDAgNjAwIj48Y2lyY2xlIGN4PSIzMDAiIGN5PSIzMDAiIHI9IjI4NSIgZmlsbD0iI2JkMzEwOCIgc3Ryb2tlPSIjZDhjZDlhIiBzdHJva2Utd2lkdGg9IjE0Ii8+PHRleHQgeD0iMzAwIiB5PSIyMTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iNDAiIGZpbGw9IiNmZmYiPlBvcnRyYWl0IHBlbmRpbmc8L3RleHQ+PHRleHQgeD0iMzAwIiB5PSIzMzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMTcwIiBmaWxsPSIjZmZmIj4/PC90ZXh0Pjx0ZXh0IHg9IjMwMCIgeT0iNDEwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjQwIiBmaWxsPSIjZmZmIj5PbGFyPC90ZXh0Pjx0ZXh0IHg9IjQ3MCIgeT0iMzE1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjkwIiBmaWxsPSIjZmZmIj4zPC90ZXh0Pjwvc3ZnPg==",
+                    "width": 600,
+                    "height": 600
+                  },
+                  {
+                    "status": "ready",
+                    "reference": {
+                      "kind": "faction-member",
+                      "factionId": "pending-gf9-2-0-spacing-guild",
+                      "memberId": "d782ab19-7a01-41b2-a08b-c887f2a3fbc9"
+                    },
+                    "name": "Crozeed",
+                    "imageUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2MDAgNjAwIj48Y2lyY2xlIGN4PSIzMDAiIGN5PSIzMDAiIHI9IjI4NSIgZmlsbD0iI2JkMzEwOCIgc3Ryb2tlPSIjZDhjZDlhIiBzdHJva2Utd2lkdGg9IjE0Ii8+PHRleHQgeD0iMzAwIiB5PSIyMTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iNDAiIGZpbGw9IiNmZmYiPlBvcnRyYWl0IHBlbmRpbmc8L3RleHQ+PHRleHQgeD0iMzAwIiB5PSIzMzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMTcwIiBmaWxsPSIjZmZmIj4/PC90ZXh0Pjx0ZXh0IHg9IjMwMCIgeT0iNDEwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjQwIiBmaWxsPSIjZmZmIj5Dcm96ZWVkPC90ZXh0Pjx0ZXh0IHg9IjQ3MCIgeT0iMzE1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjkwIiBmaWxsPSIjZmZmIj4yPC90ZXh0Pjwvc3ZnPg==",
+                    "width": 600,
+                    "height": 600
+                  },
+                  {
+                    "status": "ready",
+                    "reference": {
+                      "kind": "faction-member",
+                      "factionId": "pending-gf9-2-0-spacing-guild",
+                      "memberId": "4fae7b75-137a-4fcb-b922-76ef7f5eb53e"
+                    },
+                    "name": "Loyxo",
+                    "imageUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2MDAgNjAwIj48Y2lyY2xlIGN4PSIzMDAiIGN5PSIzMDAiIHI9IjI4NSIgZmlsbD0iI2JkMzEwOCIgc3Ryb2tlPSIjZDhjZDlhIiBzdHJva2Utd2lkdGg9IjE0Ii8+PHRleHQgeD0iMzAwIiB5PSIyMTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iNDAiIGZpbGw9IiNmZmYiPlBvcnRyYWl0IHBlbmRpbmc8L3RleHQ+PHRleHQgeD0iMzAwIiB5PSIzMzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMTcwIiBmaWxsPSIjZmZmIj4/PC90ZXh0Pjx0ZXh0IHg9IjMwMCIgeT0iNDEwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjQwIiBmaWxsPSIjZmZmIj5Mb3l4bzwvdGV4dD48dGV4dCB4PSI0NzAiIHk9IjMxNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSI5MCIgZmlsbD0iI2ZmZiI+MTwvdGV4dD48L3N2Zz4=",
+                    "width": 600,
+                    "height": 600
+                  }
+                ],
+                "troops": [
+                  {
+                    "troopId": "b495d280-18c8-41d7-96de-578a5fe25f80",
+                    "image": "/vector/troop/guild.svg",
+                    "name": "Troop",
+                    "description": "Standard forces.",
+                    "hue": "#ffffff",
+                    "count": 20
+                  }
+                ],
+                "troopSources": [
+                  {
+                    "status": "ready",
+                    "reference": {
+                      "kind": "faction-troop",
+                      "factionId": "k1782pjyezpza51gk5fj8rr47s8gnp0w",
+                      "troopId": "b495d280-18c8-41d7-96de-578a5fe25f80",
+                      "face": "front"
+                    },
+                    "name": "Troop",
+                    "imageUrl": "https://dune.zone/published/faction-troops/k1782pjyezpza51gk5fj8rr47s8gnp0w.b495d280-18c8-41d7-96de-578a5fe25f80/troop.jpg",
+                    "width": 600,
+                    "height": 600
+                  }
+                ]
+              },
               "text": "The Spacing Guild, represented by Navigator Edric, monopolist of transport, yet addicted to ever increasing spice flows, must ensure that trade continues unabated."
             },
             {
-              "id": "SPTK",
-              "kind": "card-entry",
-              "source": {
+              "id": "D4AJ",
+              "kind": "faction-introduction",
+              "faction": {
                 "status": "ready",
-                "reference": {
-                  "kind": "stock",
-                  "artworkId": "/image/leader/official/edric.jpg"
+                "factionId": "pending-gf9-2-0-harkonnen",
+                "name": "Harkonnen",
+                "color": "#0a080b",
+                "emblemUrl": "/vector/logo/harkonnen.svg",
+                "token": {
+                  "logo": "/vector/logo/harkonnen.svg",
+                  "background": {
+                    "colors": [
+                      "#0a080b",
+                      "#363636"
+                    ],
+                    "definition": 0.1,
+                    "image": "/image/texture/026.jpg",
+                    "influence": 1,
+                    "invert": false
+                  }
                 },
-                "name": "edric",
-                "imageUrl": "/image/leader/official/edric.jpg"
-              },
-              "name": "Edric",
-              "textFlow": "beside",
-              "size": "medium",
-              "text": ""
-            }
-          ]
-        },
-        {
-          "key": "column2",
-          "blocks": [
-            {
-              "id": "QGPB",
-              "kind": "card-entry",
-              "source": {
-                "status": "ready",
-                "reference": {
-                  "kind": "stock",
-                  "artworkId": "/vector/logo/guild.svg"
+                "tokenImageUrl": "https://dune.zone/published/faction-tokens/k1758sk6c1qky3yknx56hstk8x8gmcxm/token.jpg?v=34d7a670-82a6-469a-8800-c287ea0d7ab0",
+                "ruler": {
+                  "status": "ready",
+                  "reference": {
+                    "kind": "faction-member",
+                    "factionId": "pending-gf9-2-0-harkonnen",
+                    "memberId": "e6b3a54e-f351-4b55-8b8f-f2a0414b77e3"
+                  },
+                  "name": "Baron Harkonnen",
+                  "imageUrl": "/gf9-preview/harkonnen-0.png",
+                  "width": 600,
+                  "height": 600
                 },
-                "name": "guild",
-                "imageUrl": "/vector/logo/guild.svg"
+                "leaders": [
+                  {
+                    "status": "ready",
+                    "reference": {
+                      "kind": "faction-member",
+                      "factionId": "pending-gf9-2-0-harkonnen",
+                      "memberId": "39a71d18-1bc1-4628-b528-0a4f774fd47d"
+                    },
+                    "name": "Feyd-Rautha",
+                    "imageUrl": "/gf9-preview/harkonnen-1.png",
+                    "width": 600,
+                    "height": 600
+                  },
+                  {
+                    "status": "ready",
+                    "reference": {
+                      "kind": "faction-member",
+                      "factionId": "pending-gf9-2-0-harkonnen",
+                      "memberId": "61ae9c1f-bd2a-4cf8-b229-8714baabd730"
+                    },
+                    "name": "Beast Rabban",
+                    "imageUrl": "/gf9-preview/harkonnen-2.png",
+                    "width": 600,
+                    "height": 600
+                  },
+                  {
+                    "status": "ready",
+                    "reference": {
+                      "kind": "faction-member",
+                      "factionId": "pending-gf9-2-0-harkonnen",
+                      "memberId": "9b22b658-ba56-4037-9776-f381c0c62230"
+                    },
+                    "name": "Piter de Vries",
+                    "imageUrl": "/gf9-preview/harkonnen-3.png",
+                    "width": 600,
+                    "height": 600
+                  },
+                  {
+                    "status": "ready",
+                    "reference": {
+                      "kind": "faction-member",
+                      "factionId": "pending-gf9-2-0-harkonnen",
+                      "memberId": "c6c37ae9-932e-460f-826d-5b9553693b5d"
+                    },
+                    "name": "Iakin Nefud",
+                    "imageUrl": "/gf9-preview/harkonnen-4.png",
+                    "width": 600,
+                    "height": 600
+                  },
+                  {
+                    "status": "ready",
+                    "reference": {
+                      "kind": "faction-member",
+                      "factionId": "pending-gf9-2-0-harkonnen",
+                      "memberId": "cc089141-a48f-436e-b0c5-66c1ef4709a5"
+                    },
+                    "name": "Umman Kudu",
+                    "imageUrl": "/gf9-preview/harkonnen-5.png",
+                    "width": 600,
+                    "height": 600
+                  }
+                ],
+                "troops": [
+                  {
+                    "troopId": "31423b96-bc64-4e63-be15-5f58fdf681ad",
+                    "image": "/vector/troop/harkonnen.svg",
+                    "name": "Harkonnen Troop",
+                    "description": "Standard forces.",
+                    "count": 20
+                  }
+                ],
+                "troopSources": [
+                  {
+                    "status": "ready",
+                    "reference": {
+                      "kind": "faction-troop",
+                      "factionId": "k1758sk6c1qky3yknx56hstk8x8gmcxm",
+                      "troopId": "31423b96-bc64-4e63-be15-5f58fdf681ad",
+                      "face": "front"
+                    },
+                    "name": "Harkonnen Troop",
+                    "imageUrl": "https://dune.zone/published/faction-troops/k1758sk6c1qky3yknx56hstk8x8gmcxm.31423b96-bc64-4e63-be15-5f58fdf681ad/troop.jpg",
+                    "width": 600,
+                    "height": 600
+                  }
+                ]
               },
-              "name": "[uncertain: Staclude Sendallo] 5",
-              "textFlow": "beside",
-              "size": "small",
-              "text": ""
-            },
-            {
-              "id": "XDTN",
-              "kind": "card-entry",
-              "source": {
-                "status": "ready",
-                "reference": {
-                  "kind": "stock",
-                  "artworkId": "/vector/logo/guild.svg"
-                },
-                "name": "guild",
-                "imageUrl": "/vector/logo/guild.svg"
-              },
-              "name": "Ertun 4",
-              "textFlow": "beside",
-              "size": "small",
-              "text": ""
-            },
-            {
-              "id": "A5T4",
-              "kind": "card-entry",
-              "source": {
-                "status": "ready",
-                "reference": {
-                  "kind": "stock",
-                  "artworkId": "/vector/logo/guild.svg"
-                },
-                "name": "guild",
-                "imageUrl": "/vector/logo/guild.svg"
-              },
-              "name": "Olar 3",
-              "textFlow": "beside",
-              "size": "small",
-              "text": ""
-            },
-            {
-              "id": "3C5H",
-              "kind": "card-entry",
-              "source": {
-                "status": "ready",
-                "reference": {
-                  "kind": "stock",
-                  "artworkId": "/vector/logo/guild.svg"
-                },
-                "name": "guild",
-                "imageUrl": "/vector/logo/guild.svg"
-              },
-              "name": "Crozeed 2",
-              "textFlow": "beside",
-              "size": "small",
-              "text": ""
-            },
-            {
-              "id": "7LL5",
-              "kind": "card-entry",
-              "source": {
-                "status": "ready",
-                "reference": {
-                  "kind": "stock",
-                  "artworkId": "/vector/logo/guild.svg"
-                },
-                "name": "guild",
-                "imageUrl": "/vector/logo/guild.svg"
-              },
-              "name": "Loyxo 1",
-              "textFlow": "beside",
-              "size": "small",
-              "text": ""
-            }
-          ]
-        }
-      ]
-    },
-    "FB9Z": {
-      "id": "FB9Z",
-      "anchor": "source-05-part-2",
-      "title": "Harkonnen",
-      "layoutId": "two-columns",
-      "showHeading": true,
-      "headingIcon": "/vector/logo/harkonnen.svg",
-      "controlValues": {},
-      "regions": [
-        {
-          "key": "column1",
-          "blocks": [
-            {
-              "id": "6WVR",
-              "kind": "text",
               "text": "The Harkonnens, led by the decadent and notoriously cruel Baron Vladimir Harkonnen — master of treachery and sinister deeds, value power over all. The path to power leads to Arrakis, and the control of spice."
             },
             {
-              "id": "N9VH",
-              "kind": "card-entry",
-              "source": {
-                "status": "ready",
-                "reference": {
-                  "kind": "stock",
-                  "artworkId": "/image/leader/official/baron.jpg"
-                },
-                "name": "baron",
-                "imageUrl": "/image/leader/official/baron.jpg"
-              },
-              "name": "Baron Harkonnen",
-              "textFlow": "beside",
-              "size": "medium",
-              "text": ""
+              "id": "4DVA",
+              "kind": "section-heading",
+              "title": "Object of the game",
+              "faction": {
+                "status": "unselected"
+              }
             }
           ]
         },
         {
-          "key": "column2",
+          "key": "upperLeft",
           "blocks": [
             {
-              "id": "S9EE",
-              "kind": "card-entry",
-              "source": {
-                "status": "ready",
-                "reference": {
-                  "kind": "stock",
-                  "artworkId": "/image/leader/official/feyd.png"
-                },
-                "name": "feyd",
-                "imageUrl": "/image/leader/official/feyd.png"
-              },
-              "name": "Feyd-Rautha 6",
-              "textFlow": "beside",
-              "size": "small",
-              "text": ""
-            },
-            {
-              "id": "KLBY",
-              "kind": "card-entry",
-              "source": {
-                "status": "ready",
-                "reference": {
-                  "kind": "stock",
-                  "artworkId": "/image/leader/official/beast.png"
-                },
-                "name": "beast",
-                "imageUrl": "/image/leader/official/beast.png"
-              },
-              "name": "Beast Rabban 4",
-              "textFlow": "beside",
-              "size": "small",
-              "text": ""
-            },
-            {
-              "id": "JTGZ",
-              "kind": "card-entry",
-              "source": {
-                "status": "ready",
-                "reference": {
-                  "kind": "stock",
-                  "artworkId": "/image/leader/official/piter.png"
-                },
-                "name": "piter",
-                "imageUrl": "/image/leader/official/piter.png"
-              },
-              "name": "Piter de Vries 3",
-              "textFlow": "beside",
-              "size": "small",
-              "text": ""
-            },
-            {
-              "id": "EWST",
-              "kind": "card-entry",
-              "source": {
-                "status": "ready",
-                "reference": {
-                  "kind": "stock",
-                  "artworkId": "/image/leader/official/nafud.png"
-                },
-                "name": "nafud",
-                "imageUrl": "/image/leader/official/nafud.png"
-              },
-              "name": "Iakin Nefud 2",
-              "textFlow": "beside",
-              "size": "small",
-              "text": ""
-            },
-            {
-              "id": "WG4X",
-              "kind": "card-entry",
-              "source": {
-                "status": "ready",
-                "reference": {
-                  "kind": "stock",
-                  "artworkId": "/image/leader/official/uman.png"
-                },
-                "name": "uman",
-                "imageUrl": "/image/leader/official/uman.png"
-              },
-              "name": "Umman Kudu 1",
-              "textFlow": "beside",
-              "size": "small",
-              "text": ""
-            }
-          ]
-        }
-      ]
-    },
-    "S48N": {
-      "id": "S48N",
-      "anchor": "source-05-part-3",
-      "title": "Object of the game",
-      "layoutId": "two-columns",
-      "showHeading": true,
-      "controlValues": {},
-      "regions": [
-        {
-          "key": "column1",
-          "blocks": [
-            {
-              "id": "DTM7",
+              "id": "ZYLJ",
               "kind": "text",
               "text": "In DUNE, A Game of Conquest, Diplomacy & Betrayal, you take control of one of the great houses or factions seeking to control Arrakis."
             },
             {
-              "id": "HTDM",
+              "id": "W74E",
               "kind": "text",
               "text": "Each faction has a set of unique economic, military, strategic, diplomatic, technological, or treacherous advantages. The object of the game is to use these advantages to gain control of Dune."
             },
             {
-              "id": "TWE6",
+              "id": "RAJ4",
               "kind": "text",
               "text": "The winner is the first player to occupy at least 3 strongholds with at least one of their forces during the Mentat Pause phase (or 4 strongholds for an alliance\\- see Alliances page 21)."
             },
             {
-              "id": "DX6A",
+              "id": "3DQ7",
               "kind": "text",
               "text": "If a tie occurs (e.g., with the Ixians' Hidden Mobile Stronghold in play\\-from the Ixian and Tleilaxu expansion), players must agree to play another round or end the game in a tie."
-            },
+            }
+          ]
+        },
+        {
+          "key": "upperRight",
+          "blocks": [
             {
-              "id": "3R9J",
+              "id": "KBDZ",
               "kind": "text",
               "text": "A player may win alone or in an alliance with another player."
             },
             {
-              "id": "C5TA",
+              "id": "8CJH",
               "kind": "text",
               "text": "If at the end of round 10, no faction or alliance controls the required number of strongholds, or wins through a unique Special Victory Condition, the winner is the alliance or unallied faction that controls the highest number of strongholds. Break ties first in favor of unaligned factions over alliances, and second in favor of which side has the highest number of forces in their controlled strongholds, finally by who has the most spice \\- see Hierarchy of Winning on page 20."
             }
           ]
         },
         {
-          "key": "column2",
+          "key": "lowerLeft",
+          "blocks": []
+        },
+        {
+          "key": "lowerRight",
+          "blocks": []
+        },
+        {
+          "key": "closing",
           "blocks": []
         }
       ]

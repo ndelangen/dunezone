@@ -1,0 +1,305 @@
+{
+  "replacements": [
+    {
+      "sourcePage": 4,
+      "from": 2,
+      "to": 10,
+      "blockId": "MWET",
+      "reason": "Native Faction introduction row; second-edition roster and labelled portrait placeholders."
+    },
+    {
+      "sourcePage": 4,
+      "from": 11,
+      "to": 19,
+      "blockId": "Z3YN",
+      "reason": "Native Faction introduction row; second-edition roster and labelled portrait placeholders."
+    },
+    {
+      "sourcePage": 4,
+      "from": 20,
+      "to": 28,
+      "blockId": "7RJG",
+      "reason": "Native Faction introduction row; second-edition roster and labelled portrait placeholders."
+    },
+    {
+      "sourcePage": 4,
+      "from": 29,
+      "to": 37,
+      "blockId": "855A",
+      "reason": "Native Faction introduction row; second-edition roster and labelled portrait placeholders."
+    },
+    {
+      "sourcePage": 5,
+      "from": 0,
+      "to": 8,
+      "blockId": "SNAK",
+      "reason": "Native Faction introduction row; second-edition roster and labelled portrait placeholders."
+    },
+    {
+      "sourcePage": 5,
+      "from": 9,
+      "to": 17,
+      "blockId": "D4AJ",
+      "reason": "Native Faction introduction row; second-edition roster and labelled portrait placeholders."
+    },
+    {
+      "sourcePage": 8,
+      "from": 34,
+      "to": 38,
+      "blockId": "4KG5",
+      "reason": "Printed component lettering is represented by the complete illustration."
+    },
+    {
+      "sourcePage": 9,
+      "from": 4,
+      "to": 6,
+      "blockId": "KDFD",
+      "reason": "Existing phase icon and the complete phase description."
+    },
+    {
+      "sourcePage": 9,
+      "from": 7,
+      "to": 9,
+      "blockId": "SHZF",
+      "reason": "Existing phase icon and the complete phase description."
+    },
+    {
+      "sourcePage": 9,
+      "from": 10,
+      "to": 12,
+      "blockId": "KBNC",
+      "reason": "Existing phase icon and the complete phase description."
+    },
+    {
+      "sourcePage": 9,
+      "from": 13,
+      "to": 15,
+      "blockId": "VP6N",
+      "reason": "Existing phase icon and the complete phase description."
+    },
+    {
+      "sourcePage": 9,
+      "from": 16,
+      "to": 18,
+      "blockId": "E6CX",
+      "reason": "Existing phase icon and the complete phase description."
+    },
+    {
+      "sourcePage": 9,
+      "from": 19,
+      "to": 21,
+      "blockId": "U8M4",
+      "reason": "Existing phase icon and the complete phase description."
+    },
+    {
+      "sourcePage": 9,
+      "from": 22,
+      "to": 24,
+      "blockId": "TDMN",
+      "reason": "Existing phase icon and the complete phase description."
+    },
+    {
+      "sourcePage": 9,
+      "from": 25,
+      "to": 27,
+      "blockId": "5ERP",
+      "reason": "Existing phase icon and the complete phase description."
+    },
+    {
+      "sourcePage": 9,
+      "from": 28,
+      "to": 998,
+      "blockId": "4HEJ",
+      "reason": "Existing phase icon and the complete phase description."
+    },
+    {
+      "sourcePage": 10,
+      "from": 17,
+      "to": 17,
+      "blockId": "PZCT",
+      "reason": "Caption beside the first map."
+    },
+    {
+      "sourcePage": 10,
+      "from": 19,
+      "to": 19,
+      "blockId": "QBUF",
+      "reason": "Caption beside the second map."
+    },
+    {
+      "sourcePage": 11,
+      "from": 8,
+      "to": 13,
+      "blockId": "LGNV",
+      "reason": "Printed component lettering is represented by the complete illustration."
+    },
+    {
+      "sourcePage": 13,
+      "from": 13,
+      "to": 17,
+      "blockId": "TX75",
+      "reason": "Printed component lettering is represented by the complete illustration."
+    },
+    {
+      "sourcePage": 17,
+      "from": 28,
+      "to": 30,
+      "blockId": "393T",
+      "reason": "Printed component lettering is represented by the complete illustration."
+    },
+    {
+      "sourcePage": 18,
+      "from": 12,
+      "to": 18,
+      "blockId": "73QN",
+      "reason": "Printed component lettering is represented by the complete illustration."
+    },
+    {
+      "sourcePage": 18,
+      "from": 19,
+      "to": 23,
+      "blockId": "RM32",
+      "reason": "Printed component lettering is represented by the complete illustration."
+    },
+    {
+      "sourcePage": 18,
+      "from": 24,
+      "to": 29,
+      "blockId": "N7AG",
+      "reason": "Printed component lettering is represented by the complete illustration."
+    },
+    {
+      "sourcePage": 19,
+      "from": 21,
+      "to": 29,
+      "blockId": "8J6F",
+      "reason": "Printed component lettering is represented by the complete illustration."
+    },
+    {
+      "sourcePage": 19,
+      "from": 30,
+      "to": 35,
+      "blockId": "D2N8",
+      "reason": "Printed component lettering is represented by the complete illustration."
+    },
+    {
+      "sourcePage": 19,
+      "from": 26,
+      "to": 29,
+      "blockId": "VR55",
+      "reason": "Regular-weight result beside the plan and card."
+    },
+    {
+      "sourcePage": 23,
+      "from": 2,
+      "to": 2,
+      "blockId": "KUYJ",
+      "reason": "Section heading."
+    },
+    {
+      "sourcePage": 23,
+      "from": 5,
+      "to": 16,
+      "blockId": "4FQJ",
+      "reason": "Full weapon and defense cards."
+    },
+    {
+      "sourcePage": 23,
+      "from": 17,
+      "to": 23,
+      "blockId": "ZXM2",
+      "reason": "Action explanation beside the full card."
+    },
+    {
+      "sourcePage": 23,
+      "from": 24,
+      "to": 30,
+      "blockId": "HEUH",
+      "reason": "Worthless explanation beside the full card."
+    },
+    {
+      "sourcePage": 24,
+      "from": 0,
+      "to": 0,
+      "blockId": "5HW9",
+      "reason": "Section heading."
+    },
+    {
+      "sourcePage": 24,
+      "from": 2,
+      "to": 7,
+      "blockId": "X6L2",
+      "reason": "Full Family Atomics card."
+    },
+    {
+      "sourcePage": 24,
+      "from": 8,
+      "to": 8,
+      "blockId": "N75L",
+      "reason": "Maintained board crop with the destroyed-wall marker."
+    },
+    {
+      "sourcePage": 24,
+      "from": 12,
+      "to": 14,
+      "blockId": "HSJN",
+      "reason": "Explanation beside the full Karama card."
+    },
+    {
+      "sourcePage": 24,
+      "from": 22,
+      "to": 26,
+      "blockId": "HSJN",
+      "reason": "Full Karama card."
+    },
+    {
+      "sourcePage": 24,
+      "from": 15,
+      "to": 20,
+      "blockId": "Q4E5",
+      "reason": "The six printed Karama cancellations."
+    },
+    {
+      "sourcePage": 25,
+      "from": 15,
+      "to": 21,
+      "blockId": "G3Y7",
+      "reason": "Full Solaris card beside its printed explanation."
+    },
+    {
+      "sourcePage": 27,
+      "from": 24,
+      "to": 24,
+      "blockId": "J2XE",
+      "reason": "Printed component lettering is represented by the complete illustration."
+    },
+    {
+      "sourcePage": 28,
+      "from": 6,
+      "to": 6,
+      "blockId": "SNXC",
+      "reason": "Printed component lettering is represented by the complete illustration."
+    },
+    {
+      "sourcePage": 29,
+      "from": 10,
+      "to": 10,
+      "blockId": "YFWL",
+      "reason": "Printed component lettering is represented by the complete illustration."
+    },
+    {
+      "sourcePage": 30,
+      "from": 17,
+      "to": 17,
+      "blockId": "SLW4",
+      "reason": "Printed component lettering is represented by the complete illustration."
+    },
+    {
+      "sourcePage": 30,
+      "from": 18,
+      "to": 18,
+      "blockId": "7WKQ",
+      "reason": "Printed component lettering is represented by the complete illustration."
+    }
+  ]
+}

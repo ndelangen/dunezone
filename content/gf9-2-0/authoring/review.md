@@ -1,5 +1,7 @@
 # Reconstructed draft
 
+The overview described below is the earlier production draft. It is being replaced by [the native faction-row correction](correction/README.md). Its previous portrait compatibility assessment missed Bashar Garon and Colonel Kolona. The correction uses placeholders until the production tokens are ready.
+
 The working book uses Square and the existing restrained design. It has 66 pages, including the approved continuation pages. All 36 PDF pages are accounted for; the printed contents and the physical box inventory remain the approved omissions.
 
 The rulebook now contains portrait rosters, full card illustrations, phase icons, terrain explanations, storm and movement scenes, worked battle panels, force-loss diagrams, troop faces, faction strategy rails, callouts and Q&A. The source transcript has not been edited.

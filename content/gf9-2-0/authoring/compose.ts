@@ -7,10 +7,6 @@ export function compose({ allPages, contents, pageMap, unitMap, editorial, id, f
   const cards = JSON.parse(readFileSync(`${import.meta.dirname}/../components/production-cards.json`, 'utf8'));
   const cardSource = (key: string) => ({ kind: 'asset' as const, assetId: cards[key].assetId });
   const stock = (name: string) => ({ kind: 'existing-component', name });
-  const production = JSON.parse(
-    readFileSync(`${import.meta.dirname}/../components/production-factions-snapshot.json`, 'utf8')
-  );
-  const drafts = JSON.parse(readFileSync(`${import.meta.dirname}/../components/overview.json`, 'utf8'));
   const faction = (name: string) =>
     Object.values(bindings.factions).find((f: any) => f.sourceHeading.toLowerCase() === name.toLowerCase()) as any;
   const rawUnits = (n: number) => unitMap.filter((u: any) => u.sourcePage === n);
@@ -381,71 +377,62 @@ export function compose({ allPages, contents, pageMap, unitMap, editorial, id, f
     }
     if (n === 4 || n === 5) {
       const names = n === 4 ? ['Atreides', 'Bene Gesserit', 'Emperor', 'Fremen'] : ['Spacing Guild', 'Harkonnen'];
-      for (const [index, name] of names.entries()) {
-        const f = faction(name);
-        const originalData = production.find((row: any) => row._id === f.id).data;
-        const desired = drafts.find(
-          (row: any) =>
-            row.key === (name === 'Spacing Guild' ? 'spacing-guild' : name.toLowerCase().replaceAll(' ', '-'))
-        );
+      const profiles = names.map((name, index) => {
+        const key = name.toLowerCase().replaceAll(' ', '-');
+        const selected = bindings.overviewFactions[key];
         const starts = n === 4 ? [2, 11, 20, 29] : [0, 9];
         const from = starts[index];
         const to = (starts[index + 1] ?? (n === 4 ? 38 : 18)) - 1;
-        const unit = rawUnits(n).find((u: any) => sourceIndex(u) === from + 1)!;
-        const intro = text(`intro-${name}`, '', unit.text);
-        const sameRuler = name !== 'Atreides';
-        const ruler = newBlock(`ruler-${name}`, {
-          kind: 'card-entry',
-          source: sameRuler
-            ? { kind: 'stock', artworkId: originalData.factionLeader.image }
-            : { kind: 'faction', factionId: f.id, presentation: 'token' },
-          name: desired.factionLeader.name,
-          text: '',
-          size: 'medium',
-          textFlow: 'beside',
+        const description = rawUnits(n).find((u: any) => sourceIndex(u) === from + 1);
+        const block = newBlock(`overview-row-${key}`, {
+          kind: 'faction-introduction',
+          factionId: selected.id,
+          text: formatted(description.text),
         });
-        const leaders = desired.leaders.map((m: any, j: number) => {
-          const art = m.artworkId;
-          return newBlock(`overview-${name}-${j}`, {
-            kind: 'card-entry',
-            source: { kind: 'stock', artworkId: art },
-            name: `${m.name} ${m.strength}`,
-            text: '',
-            size: 'small',
-            textFlow: 'beside',
-          });
-        });
-        const p = addPage(original, [intro, ruler, ...leaders], 'two-columns', name, true);
-        p.headingIcon = f.emblem;
-        p.blockOrderByRegion = { column1: [intro.id, ruler.id], column2: leaders.map((b: any) => b.id) };
-        if (n === 4 && index === 0) {
-          p.title = 'Faction overview';
-          intro.name = 'Atreides';
-          const u = rawUnits(n).find((u: any) => sourceIndex(u) === 1)!;
-          const b = text('faction-intro', '', u.text);
-          u.blockId = b.id;
-          p.blocksById[b.id] = b;
-          p.blockOrderByRegion.column1.unshift(b.id);
-        }
         mapReplacement(
           n,
           from,
           to,
-          intro,
-          'Existing production portraits or faction emblems; source names and strengths are the labels.'
+          block,
+          'Native Faction introduction row; second-edition roster and labelled portrait placeholders.'
         );
-      }
-      if (n === 5) {
-        const obj = rawUnits(n).filter((u: any) => sourceIndex(u) >= 19);
-        const b = text('objective', '', obj.map((u: any) => u.text).join('\n\n'));
-        for (const u of obj) {
-          u.blockId = b.id;
-        }
-        const p = addPage(original, [b], 'two-columns', 'Object of the game', true);
+        return block;
+      });
+      const p = addPage(original, profiles, n === 4 ? 'sequence' : 'paired-rows', 'Faction overview', n === 4);
+      p.id = id(`overview-page-${n}`);
+      p.blocksById = Object.fromEntries(profiles.map((b: any) => [b.id, b]));
+      delete p.headingIcon;
+      if (n === 4) {
+        const u = rawUnits(n).find((u: any) => sourceIndex(u) === 1);
+        const intro = text('overview-introduction', '', u.text);
+        p.blocksById[intro.id] = intro;
+        p.blockOrderByRegion = { content: [intro.id, ...profiles.map((b: any) => b.id)] };
+        u.blockId = intro.id;
+      } else {
+        const heading = newBlock('objective-heading', { kind: 'section-heading', title: 'Object of the game' });
+        p.blocksById[heading.id] = heading;
+        const objective = rawUnits(n)
+          .filter((u: any) => sourceIndex(u) >= 19)
+          .map((u: any) => {
+            const block = text(`objective-${u.key}`, '', u.text);
+            p.blocksById[block.id] = block;
+            u.blockId = block.id;
+            return block;
+          });
+        p.blockOrderByRegion = {
+          opening: [...profiles.map((b: any) => b.id), heading.id],
+          upperLeft: objective.slice(0, 4).map((b: any) => b.id),
+          upperRight: objective.slice(4).map((b: any) => b.id),
+          lowerLeft: [],
+          lowerRight: [],
+          closing: [],
+        };
         const u = rawUnits(n).find((u: any) => sourceIndex(u) === 18);
-        u.field = 'title';
+        u.field = 'heading';
+        u.blockId = heading.id;
+      }
+      for (const u of rawUnits(n)) {
         u.pageId = p.id;
-        delete u.blockId;
       }
       continue;
     }

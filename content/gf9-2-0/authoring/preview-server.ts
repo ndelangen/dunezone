@@ -28,6 +28,9 @@ const server = Bun.serve({
     if (path.includes('..')) {
       return new Response('Not found', { status: 404 });
     }
+    if (path.startsWith('/gf9-preview/')) {
+      return new Response(Bun.file('/tmp/gf9-rebuild/parked-asset-work/preview-images/' + path.split('/').at(-1)));
+    }
     if (path === '/render-document.json') {
       return new Response(Bun.file(`${here}/render-document.json`));
     }

@@ -1,5 +1,7 @@
 # GF9 2.0 working rulebook
 
+The faction overview correction is in [correction/README.md](correction/README.md). Its local preview has 61 pages and uses native faction rows with explicit placeholders. Production remains at draft revision 3 until the new leader artwork and faction-token references are ready. The `rulebook.json` below remains the production baseline.
+
 [rulebook.json](rulebook.json) is the reconstructed manuscript for Dune Zone's JSON Load control. It uses Square, the existing restrained design and production references. The current draft has 66 output pages.
 
 Read [review.md](review.md) for the visual substitutions and verification. The [earlier fidelity audit](visual-fidelity-audit.md) records the defects in the 71-page baseline; it is retained as historical review evidence.
@@ -49,6 +51,6 @@ Inspect the actual renderer again. Measurements alone do not detect a wrong troo
 
 The destination is [GF9 2.0](https://dune.zone/rulesets/gf9-2-0), owned by Central and assigned to GF9. The book uses six existing GF9 faction records for compatible artwork. Printed second-edition names and strengths are authored independently of those older rosters.
 
-The reconstruction is saved as draft revision 2 in [the production editor](https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit). `production-draft-export.json` backs up that record, including the cover rendition stored by Save.
+The reconstruction is saved as draft revision 3 in [the production editor](https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit). `production-draft-export.json` backs up that record, including the cover rendition stored by Save.
 
 Use JSON Load with `rulebook.json` in the normal authenticated editor. Export an existing draft before replacing it. Inspect the result and Save. Publishing an Edition is a separate step. The cover source is the approved artwork already stored on production; the normal save flow can prepare its stored rendition.

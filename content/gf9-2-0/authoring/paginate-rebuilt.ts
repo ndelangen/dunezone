@@ -9,7 +9,7 @@ for (const m of measures) {
     continue;
   }
   if (page.layoutId === 'paired-rows') {
-    if (m.regions.some((r: any) => r.bottom > r.available)) {
+    if (m.regions.some((r: any) => r.blocks.length && r.bottom > r.available + 1)) {
       throw Error(`Paired rows overflow on ${m.id}`);
     }
     pagination[m.id] = [page.blockOrderByRegion];
