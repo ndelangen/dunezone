@@ -2,7 +2,7 @@
   "sourcePage": "https://dune.gaming.tools/landsraad",
   "retrievedAt": "2026-10-24",
   "attribution": "Dune Awakening game artwork belongs to Funcom and Legendary. Source images are hosted by gaming.tools, an unaffiliated fan database.",
-  "preparation": "Approximate monochrome SVG traces of the 25 public 64 by 64 WebP house emblems. ImageMagick extracts alpha, enlarges it eightfold with its default resampling, inverts it and thresholds at 50 percent. Potrace 1.16 traces with turdsize 0, alphamax 1 and opttolerance 0.2. The svg-authoring pipeline assigns root IDs and provenance stamps. Dune Zone normalizes coordinates and strips fixed paint so callers can recolor the artwork. Fine details are limited by source resolution.",
+  "preparation": "Approximate monochrome SVG traces of the 25 public 64 by 64 WebP house emblems. ImageMagick extracts alpha, enlarges it eightfold with its default resampling, inverts it and thresholds at 50 percent. Potrace 1.16 traces with turdsize 0, alphamax 1 and opttolerance 0.2. The svg-authoring pipeline assigns root IDs and provenance stamps. Trace view boxes are cropped to the combined path bounds with svg-path-commander. Dune Zone normalizes coordinates and strips fixed paint so callers can recolor the artwork. Fine details are limited by source resolution.",
   "assets": {
     "/vector/logo/dune-awakening-house-alexin.svg": {
       "name": "House Alexin",
