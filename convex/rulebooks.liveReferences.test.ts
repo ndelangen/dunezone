@@ -137,9 +137,18 @@ describe('Rulebook component references', () => {
     const source = { kind: 'faction', factionId: refs.factionId, presentation: 'sheet' } as const;
     const before = await t.run((ctx) => resolveRulebookReferences(ctx, contents));
     expect(before.factionsById[refs.factionId]?.sheet).toBeUndefined();
+    const legacy = await owner.query(api.rulebooks.editorPage, {
+      ...locator,
+      reference_faction_ids: [refs.factionId],
+    });
+    if (legacy?.kind !== 'editable') {
+      throw new Error('Expected editable rulebook');
+    }
+    expect(legacy.factionsById[refs.factionId]?.sheet).toBeUndefined();
     const editor = await owner.query(api.rulebooks.editorPage, {
       ...locator,
       reference_faction_ids: [refs.factionId],
+      faction_sheet_data: true,
     });
     if (editor?.kind !== 'editable') {
       throw new Error('Expected editable rulebook');
