@@ -20,6 +20,20 @@
   line-height: 1.2;
 }
 
+/* A narrow window gives the task the room the chapter's name took; the page header below still names the chapter. */
+@media (width < 60rem) {
+  .band {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--space-sm);
+    padding-inline: var(--space-sm);
+  }
+
+  .chapter,
+  .count {
+    display: none;
+  }
+}
+
 .task {
   display: flex;
   align-items: center;

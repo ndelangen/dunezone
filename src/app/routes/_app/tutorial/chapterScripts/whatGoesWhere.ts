@@ -37,7 +37,9 @@ const pressedTab = (selector: string) => ({
 
 const onBoard = (piece: { position: readonly number[] }) =>
   Math.hypot(piece.position[0]!, piece.position[2]!) < BOARD_RADIUS;
-const cameraX = ({ camera }: GuideView) => camera?.position.x ?? 0;
+/* The camera dial marks the view it shows, so a view the player chose early, even during the last task's tick, still counts. */
+const showing = (view: string) => () =>
+  document.querySelector(`[aria-label^="Focus on ${view}"]`)?.getAttribute('aria-pressed') === 'true';
 const cameraDistance = ({ camera }: GuideView) => camera?.position.length() ?? 0;
 
 /* Each task keeps its own kind of baseline; the guide only hands it back. */
@@ -58,16 +60,16 @@ const cameraTasks = (): GuideTask[] => [
     task: 'Look at the left of the table',
     detail: 'The camera dial, bottom right of the table, jumps the view. Press L.',
     anchor: { kind: 'page', element: element('[aria-label="Focus on left"]') },
-    begin: cameraX,
-    done: (start, view) => cameraX(view) < start - 1,
+    begin: () => undefined,
+    done: showing('left'),
   }),
   task({
     id: 'look-back',
     task: 'Go back to the map',
     detail: 'M on the same dial brings the whole board back, with both decks in view.',
     anchor: { kind: 'page', element: element('[aria-label^="Focus on map"]') },
-    begin: cameraX,
-    done: (start, view) => cameraX(view) > start + 1,
+    begin: () => undefined,
+    done: showing('map'),
   }),
 ];
 
@@ -97,8 +99,9 @@ function tableTasks(snapshot: () => GameSnapshot): GuideTask[] {
       task: 'Draw a Treachery card',
       detail: 'The Treachery deck sits on the left of the table. Right-click it and choose Draw a card.',
       anchor: { kind: 'table', point: () => at(deck('left')) },
-      begin: () => snapshot().hand?.length ?? 0,
-      done: (start) => (snapshot().hand?.length ?? 0) > start,
+      /* The card must leave the Treachery deck, so a Spice card drawn instead does not count. */
+      begin: () => ({ hand: snapshot().hand?.length ?? 0, deck: deck('left')?.items.length ?? 0 }),
+      done: (start) => (snapshot().hand?.length ?? 0) > start.hand && (deck('left')?.items.length ?? 0) < start.deck,
     }),
     task({
       id: 'ship',

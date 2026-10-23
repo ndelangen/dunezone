@@ -274,8 +274,11 @@ export function TutorialGuide({
           {finished ? <Check size={16} aria-hidden /> : current + 1}
         </span>
         <div>
-          <Text fw={700}>{task.task}</Text>
-          <Text size="sm" c="dimmed">
+          {/* The band keeps its height, so the task is cut to fit rather than reaching under it into the table. */}
+          <Text fw={700} lineClamp={1}>
+            {task.task}
+          </Text>
+          <Text size="sm" c="dimmed" lineClamp={2}>
             {task.detail}
           </Text>
         </div>
