@@ -1,11 +1,13 @@
 import { Button, Group, Text } from '@mantine/core';
 import { _roots } from '@react-three/fiber/webgpu';
+import { CallToAction } from '@ui/control/CallToAction';
 import { Check, RotateCcw } from 'lucide-react';
 import { useEffect, useEffectEvent, useId, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import { Vector3 } from 'three';
 import type { Camera, Vector3Tuple } from 'three';
 
+import { ChapterConfetti } from './ChapterConfetti';
 import { guideShapePath } from './guideArrow';
 import type { Target } from './guideArrow';
 import styles from './TutorialGuide.module.css';
@@ -329,13 +331,21 @@ export function TutorialGuide({
             <Button variant="default" size="xs" leftSection={<RotateCcw size={14} aria-hidden />} onClick={reset}>
               Reset
             </Button>
-            <Button variant="default" size="xs" renderRoot={chaptersLink}>
-              Back to chapters
-            </Button>
+            {/* Once the chapter is done, going back for the next one is the only thing left to do, so it becomes the page's call to action. */}
+            {task ? (
+              <Button variant="default" size="xs" renderRoot={chaptersLink}>
+                Back to chapters
+              </Button>
+            ) : (
+              <CallToAction direction="forward" size="xs" attention renderRoot={chaptersLink}>
+                Back to chapters
+              </CallToAction>
+            )}
           </Group>
         </header>
       </div>
       {children}
+      {!task && <ChapterConfetti key={run} />}
     </div>
   );
 }

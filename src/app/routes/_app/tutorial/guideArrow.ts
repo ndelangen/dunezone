@@ -23,7 +23,7 @@ const FILLET = 22;
  * how far the tail hangs from the head and how wide it drops, its corners, and the room it keeps under the band.
  */
 const HOOK = {
-  gap: 24,
+  gap: 15,
   head: { half: 20, length: 26 },
   shaft: 8,
   reach: 26,
@@ -36,7 +36,7 @@ const HOOK = {
 const BLEED = 4;
 
 /** How far short of its target's edge the arrow's tip stops. */
-export const ARROW_GAP_PX = 30;
+export const ARROW_GAP_PX = 15;
 
 const point = (p: Point) => `${p.x.toFixed(1)} ${p.y.toFixed(1)}`;
 const toward = (from: Point, to: Point, distance: number): Point => {
