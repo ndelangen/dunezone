@@ -14,9 +14,11 @@ import type {
   RulebookResolvedFactionsById,
 } from '../../src/shared/rulebooks/projectRenderDocument';
 import { collectRulebookReferenceIds } from '../../src/shared/rulebooks/references';
+import { rulebookFactionSheetSchema } from '../../src/shared/rulebooks/sources';
 import type { RulebookResolvedSource } from '../../src/shared/rulebooks/sources';
 import type { MutationCtx, QueryCtx } from '../types';
 import { assetDisplayName } from './assetInput';
+import { resolveBackgrounds } from './backgroundPresets';
 import { boardPublicationGeometry } from './boardPublicationGeometry';
 import { resolveRulebookTroopSource, rulebookTroopReferences } from './rulebookTroopSources';
 
@@ -80,6 +82,7 @@ export async function resolveRulebookReferences(
     troopSources = [],
     traitorFactionIds = [],
     tokenFactionIds = [],
+    sheetFactionIds = [],
     markupBoardIds = [],
   } = collectRulebookReferenceIds(contents, requested);
   const tinted = new Set(markupBoardIds);
@@ -211,6 +214,9 @@ export async function resolveRulebookReferences(
               ? { tokenImageUrl: publishedHref('faction-token', factionId, tokenPublication.cache_token) }
               : {}),
             token: { logo: parsed.data.logo, background: parsed.data.background },
+            ...(sheetFactionIds.includes(factionId) || requested.factionIds?.includes(factionId)
+              ? { sheet: await resolveBackgrounds(ctx, rulebookFactionSheetSchema.parse(parsed.data)) }
+              : {}),
             troops: parsed.data.troops.map((troop) => {
               const { capable: _capable, combat: _combat, back, ...artwork } = troop;
               if (!back) {

@@ -1,6 +1,10 @@
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server.edge';
 
+import sheetCss from '../../game/assets/faction/sheet/Sheet.module.css?inline';
+import tokenCss from '../../game/assets/faction/token/Token.module.css?inline';
+import backgroundCss from '../../game/assets/utils/Background.module.css?inline';
+import backgroundRendererCss from '../../game/assets/utils/BackgroundRenderer.module.css?inline';
 import interiorHeadingCss from '../../game/rulebook/RulebookInteriorHeading.module.css?inline';
 import {
   RULEBOOK_ARTWORK_HREF,
@@ -12,7 +16,7 @@ import type { RulebookRenderDocumentV1 } from '../../shared/rulebooks/renderDocu
 import { rulebookHtmlImages } from './rulebookHtmlImages';
 import { rulebookHtmlSvg } from './rulebookHtmlSvg';
 
-export const rulebookRendererCss = `${documentCss}\n${interiorHeadingCss}`;
+export const rulebookRendererCss = `${documentCss}\n${interiorHeadingCss}\n${sheetCss}\n${tokenCss}\n${backgroundCss}\n${backgroundRendererCss}`;
 
 type StaticRulebookDocument = Readonly<{
   canonicalHref: string;

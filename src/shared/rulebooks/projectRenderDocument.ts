@@ -109,6 +109,33 @@ export function projectRulebookSource(
   }
   if (reference.kind === 'faction') {
     const faction = factionsById[reference.factionId];
+    if (reference.presentation === 'sheet') {
+      return faction?.sheet && faction.emblemUrl
+        ? {
+            status: 'ready',
+            reference,
+            name: `${faction.name} faction sheet`,
+            imageUrl: faction.emblemUrl,
+            sheet: faction.sheet,
+            width: 1000,
+            height: (1000 * 297) / 210,
+            geometry: {
+              width: 1000,
+              height: (1000 * 297) / 210,
+              parts: [
+                {
+                  key: 'revival',
+                  label: 'Free force revivals',
+                  x: 0.14,
+                  y: 165 / ((1000 * 297) / 210),
+                  width: 0.2,
+                  height: 25 / ((1000 * 297) / 210),
+                },
+              ],
+            },
+          }
+        : { status: 'unavailable', reference };
+    }
     const imageUrl = reference.presentation === 'token' ? faction?.tokenImageUrl : faction?.emblemUrl;
     return faction && imageUrl
       ? {
