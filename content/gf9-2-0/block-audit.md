@@ -49,6 +49,11 @@ deck inventory, token inventory and faction-specific component panel from online
 Keep the page in the source PDF and transcripts. No inventory layout or Block work is needed
 for this omitted section.
 
+Use the existing battle wheel and battle Blocks for battle illustrations, as approved in
+the review. Preserve the source examples' selected cards, leaders, numbers and outcomes.
+Use text to explain the 2.0 spice calculation where the current presentation differs.
+No source-wheel recreation, new battle Block or renderer extension is required.
+
 ## What exists today
 
 The [Contents contract](../../src/shared/rulebooks/contents.ts#L59) has 19 Block kinds and
@@ -70,7 +75,7 @@ styling and heading treatment under the approved simplification.
 | Illustrated card explanations | `card-entry`; `card-group` | Entry supports image side, size and beside/wrapped text. Group supports compact, gallery, featured-member and fan variants. Exact GF9 card artwork remains a separate requirement. |
 | Labelled component diagrams | `asset-explainer` | Use existing markers and the separate legend. This presentation is approved for page 6 in place of its boxed external labels and long arrows. Preserve every label and explanation. |
 | Board examples | `board-scene` | Has crop viewport, storm, troops, players, highlights, routes and positioned annotations. It references a maintained board definition; an arbitrary scan extract is not a board definition. |
-| Battle examples | `battle-step`, `battle-plans`, `battle-comparison` | Store selected cards, leader, spice, forces, dial and authored explanation. Their composed diagrams must be compared with the specific GF9 wheel/card arrangements. |
+| Battle examples | `battle-step`, `battle-plans`, `battle-comparison` | Use existing battle Blocks and the existing wheel as approved. Preserve selected cards, leaders, forces, spice, strength and outcomes. Explain the 2.0 calculation in text; the source wheel/card arrangement is not required. |
 | Transfers and force examples | `piece-transfer`, `piece-movement`, `text` | Use existing piece groups and labels to approximate the source illustrations. Explain individual strengths and totals in text. Exact per-token arithmetic placement is not required. |
 | Credits | `credits`, plus text and illustrations | Supports groups, names and roles. Legal paragraphs and the publisher/studio logos still need their own content. |
 | Tables | `reference-table` | Stores authored headings and formatted cells. It has no dotted-leader contents presentation, column spanning or diagram cells. |
@@ -104,7 +109,7 @@ printed layout being reconstructed.
 | 3 | `outer-rail`, `text`, `credits`, illustrations | Notes and Credits share a page; credits use a second arrangement below the notes. Preserve the expansion note and right-hand legal/logo material. |
 | 4 | `single-column`, four `faction-introduction` blocks | Match Atreides, Bene Gesserit, Emperor and Fremen bands, token/ruler/leader sizes and colored backgrounds. Verify every displayed label and roster against this edition. |
 | 5 | Two faction introductions, `section-heading`, two text columns | Guild/Harkonnen occupy the upper part, then Object of the Game begins below. Need a full-width opening with two lower columns, without an added page heading above the faction bands. |
-| 6 | `asset-explainer`, `referenced-illustration`, `text` | Use the existing markers and legend for the board labels. Preserve labels and explanatory prose. Keep the Battle Wheel assembly illustration as a separate artwork item. No annotation capability change is required. |
+| 6 | `asset-explainer`, existing battle wheel, `text` | Use the existing markers and legend for board labels. Preserve labels and explanatory prose. Use the existing battle wheel presentation with the assembly explanation in text. No annotation or wheel capability change is required. |
 | 7 | Omitted from the online rulebook | Drop the complete component-inventory page/section as approved. Retain it in the source PDF and transcripts. No collage, deck/token inventory or faction-specific component panel is required online. |
 | 8 | `two-columns`, `text`, numbered `list`, bottom illustration | Setup has source margin notes and an Atreides sheet extract along the bottom. Test a rail plus bottom band, and preserve the callout labels on the extract. |
 | 9 | Numbered `list` with icons, `text`, `wide-narrow` | Phase list has nine numbered icons and page references, with introductory text above. Match the first-player explanation and list indentation without inventing captions. |
@@ -116,7 +121,7 @@ printed layout being reconstructed.
 | 15 | `two-columns` or `wide-narrow`, text and board scenes | No new page heading. Two smaller board examples on the left and a tall map crop on the right have captions outside the map. Preserve their bounds and the source reading order. |
 | 16 | `two-columns`, `text`, lists | Battle begins with a full phase heading and a margin note. Dense subheadings and bullet spacing are the main fit risks. |
 | 17 | `text`, lists, card entries, wheel illustration | Main battle text shares space with a narrow card strip and a wheel/spice example. The source wraps several explanatory notes around artwork. |
-| 18 | `two-columns`, `text`, lower band of battle-plan artwork | Battle result rules sit above Example of a Battle. The lower band has one side's prose and composed cards/wheel/leader. Existing `battle-step` is useful only if its drawn diagram matches the source. |
+| 18 | `two-columns`, `text`, existing battle Blocks | Battle result rules sit above Example of a Battle. Use the existing battle wheel and battle Blocks. Preserve the Emperor's chosen cards and leader, 6 force strength, 4 spice for +2 strength, and the explained total. No exact source-diagram recreation is required. |
 | 19 | `two-columns`, `text`, lists, lower band of battle-plan artwork | Traitors continues above the matching second battle-plan band. Do not merge pages 18 and 19 into one teaching step or add new outcome wording. |
 | 20 | Two phase headings, text, board illustration | Spice Collection and Mentat Pause each occupy part of the page. Their headings, image and two-column text require independent vertical bands. |
 | 21 | `two-columns`, `text`, lists, `section-heading` | Alliances/Nexus is mainly prose. Retain exact subsection order, bold lead-ins and the source heading wording. |
@@ -124,7 +129,7 @@ printed layout being reconstructed.
 | 23 | `two-columns`, text, card pair, card entries | Treachery Cards combines weapon/defense explanations with two illustrated weapons and a separate action-card column. Exact cards and captions must remain paired with their descriptions. |
 | 24 | `two-columns`, text, map extract, card entries | Shield Wall/Family Atomics material occupies the left; faction-specific Karama bullets and the Karama card occupy the right. Preserve the nested order and map caption. |
 | 25 | `two-columns`, text, card entry | Treachery-card insights are mainly short named paragraphs, plus Solaris art. Text flow beside the art is already supported by `card-entry`, but its heading/quantity defaults need care. |
-| 26 | `outer-rail`, text, callouts, illustrations, `piece-transfer` | Use existing piece groups for the force examples and explain the arithmetic in text. The left rail's half-increment wheel windows remain artwork candidates. Test the Karama extracts with existing callouts. No arithmetic Block or extension is required. |
+| 26 | `outer-rail`, text, existing wheel, callouts, `piece-transfer` | Use existing piece groups for force examples and explain the arithmetic in text. Use the existing battle wheel for half-increment illustrations and existing callouts for Karama extracts. No new arithmetic, wheel or callout capability is required. |
 | 27 | `outer-rail`, section headings, text, troop illustration | Bene Gesserit has two rules columns, a strategy rail, a faction emblem and an advisor token beside prose. Preserve the source's opening sentence about the following pages as printed. |
 | 28 | Existing column/rail layouts, text, headings, troop illustration, question/answer content | Complete Bene Gesserit first, then start Fremen on a new output page. The approved faction page break removes the need to reproduce the mixed-faction arrangement. |
 | 29 | `outer-rail`, text, headings, troop illustrations | Fremen continuation uses two rules columns and a right strategy rail. Preserve special victory, alliance, insights and token labels in their original positions. |
@@ -191,7 +196,7 @@ maintained-media/source mechanism or provide a reviewed image-source capability.
 source page, crop bounds, original hash, output dimensions and any transformation. The whole
 scanned page is valuable evidence, but it does not replace editable paragraphs and rules.
 
-Exact source cards, portraits, tokens, board crops, the exploded wheel and the cover require
+Exact source cards, portraits, tokens, board crops and the cover require
 their own artwork inventory. Existing Dune Zone artwork is a candidate only after comparison.
 The maintained [board catalogue](../../src/shared/rulebooks/boardDefinitions.ts#L17) currently
 contains one Arrakis definition. Its existence does not establish that it is the board image
@@ -201,8 +206,14 @@ decision because it changes the as-is result.
 For page 6, use the existing `asset-explainer` markers, position targets and legend.
 The review approved this presentation as better than the source's external boxes and long
 arrows. Match each marker to the correct board feature and preserve every label and explanation.
-No annotation extension or second annotation system is required. The board image and Battle
-Wheel assembly artwork still need valid source references.
+No annotation extension or second annotation system is required. The board image still needs
+a valid source reference. Use the existing battle wheel, with the assembly explanation in text.
+
+For battle examples on pages 17-19 and the half-increment examples on page 26, use the
+existing battle wheel and Blocks. Explain the 2.0 force/spice calculation in text. Check the
+selected cards, leaders, quantities and outcomes against the source, including card text
+that may differ between editions. The source wheel artwork and exact card arrangement do
+not need to be reproduced.
 
 For maps on pages 10, 14, 15, 20 and 24, `board-scene` already has a
 [viewport, routes and annotations](../../src/shared/rulebooks/illustratedScenes.ts#L96).
@@ -253,7 +264,7 @@ decisions and evidence can accumulate independently.
    retain the printed contents only in the source transcripts.
 4. **Force arithmetic with existing Blocks.** Page 26. Use existing piece groups and labels,
    get the illustrations as close as those tools allow, and explain strength values and totals
-   in text. No new Block or extension. Keep the wheel-window artwork decision separate.
+   in text. No new Block or extension. The wheel-window examples use the existing battle wheel.
 5. **Source-exact labels and compact explanations.** Pages 4-6, 11, 17-19 and 23-33. Track
    suppression of automatic `Quantity:`, source names and repeated labels. Q&A and the Karama
    extracts are settled: use the existing Q&A and callout Blocks without presentation changes.

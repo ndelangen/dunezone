@@ -11,6 +11,10 @@ Omit source page 7's complete component-inventory page/section from the online r
 The source PDF and transcripts retain it. No component collage or inventory reconstruction
 is required for the online edition.
 
+Use the existing battle wheel and battle Blocks for battle illustrations. Preserve the
+source examples' selected cards, leaders, numbers and outcomes, explaining the 2.0 spice
+calculation in text where needed. No source-wheel recreation or new battle capability is required.
+
 Build page 26's force-strength illustrations with existing piece Blocks and explain the
 arithmetic in text. Approximate their arrangement without adding a Block or renderer capability.
 
