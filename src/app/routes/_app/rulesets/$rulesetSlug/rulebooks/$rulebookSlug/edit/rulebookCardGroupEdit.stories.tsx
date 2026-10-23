@@ -1,11 +1,11 @@
-import preview from '@sb/preview';
+import { testingPreview } from '@sb/preview';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { cardGroupFixture, cardGuideAssets } from '@game/rulebook/RulebookCardGuides.stories.fixture';
 
 import { CardGroupStory } from './rulebookCardBlockEditors.shared.stories.fixture';
 
-const meta = preview.meta({
+const meta = testingPreview.meta({
   title: 'Blocks/Card group/Editing',
   parameters: { layout: 'fullscreen' },
 });

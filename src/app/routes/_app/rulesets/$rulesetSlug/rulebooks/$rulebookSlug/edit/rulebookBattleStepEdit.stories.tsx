@@ -1,9 +1,9 @@
-import preview from '@sb/preview';
+import { testingPreview } from '@sb/preview';
 import { expect, userEvent, within } from 'storybook/test';
 
 import { BattleStepStory } from './rulebookBattleStepEdit.stories.fixture';
 
-const meta = preview.meta({
+const meta = testingPreview.meta({
   title: 'Blocks/Battle step/Editing',
   parameters: { layout: 'fullscreen' },
 });
