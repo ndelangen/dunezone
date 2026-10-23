@@ -4,7 +4,7 @@ import { useEffect, useId, useRef } from 'react';
 import type { ReactNode } from 'react';
 
 import { ChapterConfetti } from './ChapterConfetti';
-import styles from './TutorialGuide.module.css';
+import styles from './ChapterComplete.module.css';
 
 /*
  * The end of a chapter (Norbert, 2026-10-23): the table stops taking input under a veil, confetti flies,

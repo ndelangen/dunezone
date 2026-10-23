@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 
 import { useMotionAllowed } from '../../../styles/motion';
 import { FOIL_COLORS } from '../play/confettiSimulation';
-import styles from './TutorialGuide.module.css';
+import styles from './ChapterConfetti.module.css';
 
 /*
  * A burst of foil over the whole page as a chapter is done: two streams from the window's lower corners that arc in and flutter down.
