@@ -18,6 +18,7 @@ import { rulebookFactionSheetSchema } from '../../src/shared/rulebooks/sources';
 import type { RulebookResolvedSource } from '../../src/shared/rulebooks/sources';
 import type { MutationCtx, QueryCtx } from '../types';
 import { assetDisplayName } from './assetInput';
+import { resolveBackgrounds } from './backgroundPresets';
 import { boardPublicationGeometry } from './boardPublicationGeometry';
 import { resolveRulebookTroopSource, rulebookTroopReferences } from './rulebookTroopSources';
 
@@ -213,7 +214,9 @@ export async function resolveRulebookReferences(
               ? { tokenImageUrl: publishedHref('faction-token', factionId, tokenPublication.cache_token) }
               : {}),
             token: { logo: parsed.data.logo, background: parsed.data.background },
-            ...(sheetFactionIds.includes(factionId) ? { sheet: rulebookFactionSheetSchema.parse(parsed.data) } : {}),
+            ...(sheetFactionIds.includes(factionId) || requested.factionIds?.includes(factionId)
+              ? { sheet: await resolveBackgrounds(ctx, rulebookFactionSheetSchema.parse(parsed.data)) }
+              : {}),
             troops: parsed.data.troops.map((troop) => {
               const { capable: _capable, combat: _combat, back, ...artwork } = troop;
               if (!back) {
