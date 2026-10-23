@@ -6911,6 +6911,15 @@
     "isOpaque": true,
     "color": "#98c868"
   },
+  "/image/rulebook-cover/gf9-second-edition.png": {
+    "sha256": "2dd57d692933e19797bcaaaed6c84257c9f0d7e1ca0e0aef5821c12c5f3996d9",
+    "bytes": 1746044,
+    "width": 1448,
+    "height": 1086,
+    "format": "png",
+    "isOpaque": true,
+    "color": "#082848"
+  },
   "/image/rulebook-cover/kiss-planet.png": {
     "sha256": "2881652c9105d5b366bebb0efa930e5bc189fb8ad08e713df94235d49b89f2e7",
     "bytes": 1620734,

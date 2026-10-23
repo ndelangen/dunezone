@@ -1,0 +1,15 @@
+{
+  "source": "User-supplied Dune 2026 Rulebook.pdf, page 1",
+  "sourcePdfSha256": "0d8a3a0bc504596199fe2fc8dcc600e6dba1c627649db057959245a42d89566a",
+  "confirmedBy": "Norbert",
+  "confirmedOn": "2026-10-23",
+  "preparation": "Generated a clean reconstruction of the supplied cover, removed typography and publisher logos for separate overlays, then extended the sides to match the existing 4:3 cover masters. Restored the small circular motif at the foot of the right-hand cliff from the user-supplied close-up. Source and earlier previews remain in the authoring workspace.",
+  "approvedAssetSha256": "2dd57d692933e19797bcaaaed6c84257c9f0d7e1ca0e0aef5821c12c5f3996d9",
+  "approvedDimensions": {
+    "width": 1448,
+    "height": 1086
+  },
+  "approval": "Norbert approved the restored motif preview on 23 October 2026, requested replacing the earlier cover, and explicitly requested this image on production.",
+  "generationMethod": "Built-in image generation",
+  "issue": "https://github.com/ndelangen/dunezone/issues/2431"
+}
