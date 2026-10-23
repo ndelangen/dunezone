@@ -13,7 +13,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: chromatic-${{ github.event.pull_request.number || github.ref }}
+  # A draft event skips the job, so it must not cancel a ready pull request's build.
+  group: chromatic-${{ github.event.pull_request.number || github.ref }}${{ github.event.pull_request.draft == true && '-draft' || '' }}
   cancel-in-progress: true
 
 jobs:
@@ -25,8 +26,9 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          # The PR head, not GitHub's merge commit, so TurboSnap diffs against the branch's own ancestors.
-          ref: ${{ github.event.pull_request.head.ref || github.ref }}
+          # The PR head commit, not GitHub's merge commit, so TurboSnap diffs against the branch's own
+          # ancestors, and a re-run captures the commit its event named.
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
           persist-credentials: false
           sparse-checkout: |
