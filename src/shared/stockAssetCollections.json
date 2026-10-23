@@ -81,7 +81,8 @@
       "/image/leader/official/duncan.png",
       "/image/leader/official/gurney.png",
       "/image/leader/official/thufir.png",
-      "/image/leader/official/jessica.png"
+      "/image/leader/official/jessica.png",
+      "/image/leader/custom/duke-leto.png"
     ]
   },
   {
@@ -105,7 +106,8 @@
       "/image/leader/official/lady-fenring.png",
       "/image/leader/official/mohiam.jpg",
       "/image/leader/official/ramallo.png",
-      "/image/leader/official/wanna.png"
+      "/image/leader/official/wanna.png",
+      "/image/leader/gf9-second-edition/anirul-corrino.png"
     ]
   },
   {
@@ -117,7 +119,9 @@
       "/image/leader/official/burseg.png",
       "/image/leader/official/caid.png",
       "/image/leader/official/hasimir.png",
-      "/image/leader/official/shadam.jpg"
+      "/image/leader/official/shadam.jpg",
+      "/image/leader/gf9-second-edition/bashar-garon.png",
+      "/image/leader/gf9-second-edition/wensicia-corrino.png"
     ]
   },
   {
@@ -141,7 +145,12 @@
       "/image/leader/official/esmar.png",
       "/image/leader/official/guildrep.png",
       "/image/leader/official/soo-soo-sook.png",
-      "/image/leader/official/staban.png"
+      "/image/leader/official/staban.png",
+      "/image/leader/gf9-second-edition/loyxo.png",
+      "/image/leader/gf9-second-edition/crozeed.png",
+      "/image/leader/gf9-second-edition/olar.png",
+      "/image/leader/gf9-second-edition/ertun.png",
+      "/image/leader/gf9-second-edition/starguide-serello.png"
     ]
   },
   {
