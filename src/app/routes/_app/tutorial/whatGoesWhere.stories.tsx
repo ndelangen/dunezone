@@ -85,7 +85,7 @@ const STOPS: TourStop[] = [
   {
     id: 'camera',
     title: 'Camera',
-    body: 'Jump to the map, or to the left, right or bottom of the table. Drag on the table to tilt, scroll to zoom.',
+    body: 'Jump to the map, or to the left, right or bottom of the table. Scroll over the table to look closer at the spot under your pointer, and pan with the arrow keys while you are close.',
     anchor: { kind: 'page', element: page('[aria-label="Table view"]') },
   },
   {
@@ -124,7 +124,7 @@ const meta = preview.meta({
   ],
 });
 
-/** The live table with the tour over it: step through the parts with Next, and tilt, zoom or pan to see the marks follow. */
+/** The live table with the tour over it: step through the parts with Next, and change the camera view or scroll in close to see the marks follow. */
 export const Tour = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
