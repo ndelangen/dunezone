@@ -1713,7 +1713,9 @@
       "/vector/decal/vaulting-sandcat.svg",
       "/vector/decal/vaulting-sandcat-multicolor.svg",
       "/vector/decal/sandmaster.svg",
-      "/vector/decal/sandmaster-multicolor.svg"
+      "/vector/decal/sandmaster-multicolor.svg",
+      "/vector/decal/little-maker.svg",
+      "/vector/decal/little-maker-multicolor.svg"
     ]
   },
   {
@@ -1832,7 +1834,9 @@
       "/vector/decal/box-outline.svg",
       "/vector/decal/box.svg",
       "/vector/decal/gems.svg",
-      "/vector/decal/supplies.svg"
+      "/vector/decal/supplies.svg",
+      "/vector/decal/solaris.svg",
+      "/vector/decal/solaris-multicolor.svg"
     ]
   },
   {
@@ -1895,6 +1899,7 @@
     "label": "Decals / Weather and natural hazards",
     "keywords": "storm wind dust weather hazard collapse terrain",
     "assets": [
+      "/vector/decal/dune-ridgelines.svg",
       "/vector/decal/storm-multicolor.svg",
       "/vector/decal/storm-standard-multicolor.svg",
       "/vector/decal/storm-standard.svg",
@@ -1931,7 +1936,8 @@
       "/vector/decal/sabotage.svg",
       "/vector/decal/sun-gear.svg",
       "/vector/decal/target.svg",
-      "/vector/decal/troll.svg"
+      "/vector/decal/troll.svg",
+      "/vector/decal/karama-2-0.svg"
     ]
   },
   {
