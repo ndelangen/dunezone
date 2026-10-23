@@ -40,6 +40,8 @@ jobs:
           with-deps: "false"
       - name: Build and verify the public Storybook
         run: bun run verify:storybook-publication
+      - name: Require the TurboSnap dependency graph
+        run: test -s storybook-static/preview-stats.json
       - name: Publish and test in Chromatic
         env:
           CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
