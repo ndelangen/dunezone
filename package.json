@@ -21,7 +21,7 @@
     "app:build": "vp build .",
     "app:dev": "bash ./scripts/app-dev.sh",
     "app:preview": "vp preview",
-    "build-storybook": "storybook build",
+    "build-storybook": "storybook build --stats-json",
     "check": "bun run lint && bun run format:check && bun run check:react-compiler && bun run publisher:manifest:verify-changed",
     "check:app-layout": "node scripts/assert-app-layout.ts",
     "check:breakpoints": "node scripts/assert-breakpoints.ts",

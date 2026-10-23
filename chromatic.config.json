@@ -1,5 +1,22 @@
 {
   "$schema": "https://www.chromatic.com/config-file.schema.json",
   "projectId": "Project:6adb5f9c3d9925e3217df200",
-  "exitZeroOnChanges": true
+  "exitZeroOnChanges": true,
+  "onlyChanged": true,
+  "externals": [
+    ".storybook/**",
+    "bun.lock",
+    "package.json",
+    "tsconfig.json",
+    "public/**",
+    "media/**",
+    "scripts/{generate-images,generate-vectors,media-variants}.ts",
+    "scripts/lib/{media-fetch,media-originals,raster-lock,reactCompiler,threeRendererStack}.ts",
+    "scripts/verify-storybook-publication.ts",
+    "src/app/db/storybook/convexStorybook.worker.ts",
+    "src/app/db/storybook/protocol.ts",
+    "convex/**",
+    "src/shared/**",
+    "workers/storybook/story-images.sw.ts"
+  ]
 }

@@ -308,9 +308,17 @@ For a local upload, generate the media as described below, set `CHROMATIC_PROJEC
 environment, and run `bun run chromatic`. To upload an existing verified build instead, run
 `bun run chromatic --storybook-build-dir=storybook-static --zip`.
 
-TurboSnap is disabled for the initial setup. Chromatic requires ten completed CI builds before
-enabling it. A later setup must account for generated media and both `staticDirs` entries so
-changes to images and fonts trigger fresh captures.
+TurboSnap is configured with `onlyChanged: true`. Storybook builds emit `preview-stats.json`,
+and the upload workflow requires that dependency graph. Once Chromatic unlocks TurboSnap after
+ten completed CI builds, it captures affected stories and copies unchanged snapshots from their
+baselines. Before that, Chromatic falls back to full captures. The account's snapshot allowance
+still applies.
+
+Changes to static assets, media-generation inputs, build configuration and helpers, dependencies,
+and either Storybook worker force full captures. The Convex worker builds separately, so its
+backend and shared source inputs also force full captures. Keep the `externals` list in
+`chromatic.config.json` aligned with those inputs. No dependencies are excluded from tracing
+with `untraced`.
 
 ### Writing stories
 
