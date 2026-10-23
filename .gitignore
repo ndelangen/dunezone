@@ -46,3 +46,6 @@ stryker.log
 .tanstack/
 scripts/play-load/run.bundle.mjs
 .vitest/
+
+# The tutorial art mirror: Storybook-only copies of live images (bun run tutorial:mirror).
+.storybook/static/published/

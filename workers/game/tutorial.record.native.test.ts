@@ -17,7 +17,8 @@ import { createPeer, createRuntime, eventually, provision, required } from './na
 /*
  * Records the tutorial's shared setup (`src/app/routes/_app/tutorial/setup`): the recipe's game, played on the real game
  * Worker over the catalogue `bun run tutorial:pull` copied, kept as one stored table per checkpoint.
- * Every image is the live `/published/...` address the catalogue gave, so the tutorial shows the site's own art.
+ * Every image is the live `/published/...` path the catalogue gave, under `{{origin}}`, which the page fills with its own origin,
+ * so the tutorial shows the site's own art.
  * Run with `bun run tutorial:record`; without RECORD_TUTORIAL this suite is skipped.
  */
 
@@ -72,6 +73,20 @@ async function tutorialRuntime() {
   return new JourneyRecorder(peer, runtime, { factions, ban: { id: ban.id, name: ban.name } });
 }
 
+/* The real Bene Gesserit opens setup with its prediction, which the story fixtures leave out: it names House Atreides on turn 3. */
+async function predict(journey: JourneyRecorder) {
+  const { setup } = required(journey.steps.at(-1)?.stored);
+  const step = required(required(setup).steps.find((entry) => entry.kind === 'prediction'));
+  const index = journey.indexOf(journey.id('bene-gesserit'));
+  await journey.act(
+    index,
+    { kind: 'prediction-lock', stepId: step.id, choice: { factionId: journey.id('house-atreides'), turn: 3 } },
+    'Prediction locked',
+    `${journey.who(index)} locks a secret prediction.`
+  );
+  await journey.next(0, 'Traitor selection', 'The prediction is locked and setup moves on to the Traitors.');
+}
+
 /* Each seated faction's sheet as the Worker answers a page asking for it, so the tutorial's table answers the same. */
 async function factionSheets(journey: JourneyRecorder) {
   const connection = journey.players[0]!;
@@ -105,6 +120,7 @@ describe.runIf(process.env.RECORD_TUTORIAL)('The tutorial setup recording', { ti
       await drafting(journey);
       await trading(journey);
       mark('setup');
+      await predict(journey);
       await dealTraitors(journey);
       await keepTraitors(journey);
       await startingTroops(journey);
@@ -140,7 +156,7 @@ describe.runIf(process.env.RECORD_TUTORIAL)('The tutorial setup recording', { ti
       await mkdir(SETUP, { recursive: true });
       await writeFile(
         join(SETUP, 'setup.json'),
-        `${renamed(JSON.stringify(setup).replaceAll(`${ORIGIN}/published/`, '/published/'))}\n`
+        `${renamed(JSON.stringify(setup).replaceAll(`${ORIGIN}/published/`, '{{origin}}/published/'))}\n`
       );
     } finally {
       await journey.close();

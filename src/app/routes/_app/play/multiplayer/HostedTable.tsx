@@ -1110,7 +1110,17 @@ export default function HostedTable({
   const runtime = useContext(GameRuntimeContext);
   const here = useLocation({ select: (location) => location.href });
   const [client] = useState(
-    () => new TableSession(gameId, new GameSubscription(gameId, requestPlayAdmission, runtime, watchSeatPass), runtime)
+    () =>
+      new TableSession(
+        gameId,
+        new GameSubscription(
+          gameId,
+          runtime.admission?.request ?? requestPlayAdmission,
+          runtime,
+          runtime.admission ? runtime.admission.watchPass : watchSeatPass
+        ),
+        runtime
+      )
   );
   const view = useSyncExternalStore(client.subscribe, client.getSnapshot);
   useEffect(() => client.connect(), [client]);

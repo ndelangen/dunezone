@@ -1,4 +1,4 @@
-import { writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import { ConvexHttpClient } from 'convex/browser';
@@ -62,6 +62,7 @@ for (const slug of TUTORIAL_RECIPE.factions) {
   ).raw;
 }
 
+await mkdir(path.dirname(OUTPUT), { recursive: true });
 await writeFile(
   OUTPUT,
   `${JSON.stringify(
