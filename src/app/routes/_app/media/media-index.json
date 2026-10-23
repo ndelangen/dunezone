@@ -10738,5 +10738,52 @@
     "tags": ["Duke Prad Vidal", "Ecaz", "Moritani", "dark hair", "gold trim", "purple drape"],
     "subjects": ["people"],
     "sourceHash": "6c66b6c4d55638b03d902ee7d76cd4b0ce970a3545cc0880d9073acc544f2a0f"
+  },
+  "/vector/decal/solaris.svg": {
+    "description": "Coins with planet, star, animal and profile cutouts.",
+    "tags": ["Solaris", "coins", "currency", "money", "GF9 2.0", "second edition", "vector"],
+    "subjects": ["trade", "symbols"],
+    "sourceHash": "552e3fffa5c46114f4a4c9b55aa118077dc4d9c85ef4c16c31c8984f37e7fa94"
+  },
+  "/vector/decal/little-maker.svg": {
+    "description": "Worm curled in a pool inside an engraved basin.",
+    "tags": ["Little Maker", "worm", "pool", "water", "basin", "GF9 2.0", "second edition", "vector"],
+    "subjects": ["creatures", "water"],
+    "sourceHash": "19bc11a22a3fa827c651cf669b660c6dab2f846e3fa9a1b8775adfa845bcb2f2"
+  },
+  "/vector/decal/karama-2-0.svg": {
+    "description": "Eight-ray star with triangular gaps, two circles and a central ring.",
+    "tags": ["Karama", "GF9 2.0", "second edition", "star", "eye", "vector", "hills", "dunes", "ridgelines"],
+    "subjects": ["symbols"],
+    "sourceHash": "da0cdd22a40647febca3049bf11016709f982f5e03a902eef2961e96b5b15631"
+  },
+  "/vector/decal/little-maker-multicolor.svg": {
+    "description": "Dark worm in pale water, within an olive basin.",
+    "tags": [
+      "Little Maker",
+      "worm",
+      "pool",
+      "water",
+      "basin",
+      "olive",
+      "multicolor",
+      "GF9 2.0",
+      "second edition",
+      "vector"
+    ],
+    "subjects": ["creatures", "water"],
+    "sourceHash": "a082f9eeb55e33ef4e5ca9b3f9a69192239fe6eb7ef147d25ef69ef55c54f1d0"
+  },
+  "/vector/decal/dune-ridgelines.svg": {
+    "description": "Thin, overlapping dune ridgelines.",
+    "tags": ["hills", "dunes", "mountains", "ridgelines", "Karama", "vector"],
+    "subjects": ["places"],
+    "sourceHash": "1ce31687937ae035c888e09c700ae2061bb268cd3b539db1f8530d1792138aca"
+  },
+  "/vector/decal/solaris-multicolor.svg": {
+    "description": "Dark coins with pale engravings.",
+    "tags": ["Solaris", "coins", "cream", "multicolor"],
+    "subjects": ["trade", "symbols"],
+    "sourceHash": "c17cee2ce5ac915879979057169363c451c19611c486464681dfbc80b9b29952"
   }
 }
