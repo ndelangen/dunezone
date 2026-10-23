@@ -79,7 +79,7 @@
         "outputSize": [600, 840]
       },
       "crop": [166, 168, 430, 450],
-      "operation": "Adapt the original eight kites and central octagon. Preserve both concentric circular boundaries as separate thin rings. The overlapping kites, octagon and rings create the large and small openings naturally; there are no separately fitted triangle cutouts. Retain the seven original ray-glyph contours and the two changed symbols.",
+      "operation": "Adapt the original eight kites and central octagon, preserving both concentric circular boundaries. Their intersections create the openings naturally. Retain seven original ray-glyph contours; use thin, irregular hill and dune ridgelines in the east point.",
       "referenceCrop": "references/karama-2-0.png",
       "method": "Clone the original Karama vector and adapt its geometric construction; no raster-traced glyph contours.",
       "baseVector": "/vector/icon/karama.svg",
@@ -101,7 +101,7 @@
       "glyphReuse": {
         "north": "Original Leo contour; translate outward 7.5 units.",
         "northEast": "Original ring contours; scale 0.85 and translate [5.3, -5.3].",
-        "east": "New interlaced-wave contour, replacing the original mountain.",
+        "east": "Two thin, irregular hill and dune ridgelines with tapered ends and unequal peaks. Their overlaps form the small enclosed spaces; the curves replace the regular zigzag in variant A.",
         "southEast": "Original cup contours; scale 0.95 and translate [5.3, 5.3].",
         "south": "Original diamond contours; scale 0.95 and translate outward 9 units.",
         "southWest": "Original figure-eight contours; scale 0.95 and translate [-5.3, 5.3].",
@@ -119,6 +119,28 @@
         "interpolation": "Lanczos",
         "references": ["references/karama-2-0.png", "references/karama-2-0-sheet.png"],
         "finding": "The second dark circle joins the ray bases. Its exposed arcs bound the small openings; replacing these with individual triangles loses the circular construction."
+      },
+      "variants": [
+        {
+          "name": "A",
+          "file": "variants/karama-2-0-A.svg",
+          "sourceCommit": "aa500f5b587",
+          "scope": "Exact user-requested checkpoint before refining the hills. Circle and star construction accepted; the eastern glyph still needs refinement."
+        }
+      ],
+      "hillRefinement": {
+        "scope": "Only the contours inside ray-east change. The other path components and the kite outline remain unchanged.",
+        "geometry": "Cubic Bezier ridgelines with variable widths and tapered ends, outlined and united into filled paths.",
+        "outlineTool": "paper 0.12.18, used only during authoring",
+        "centrelineRecipe": {
+          "ridges": [
+            "M11 12C12.5 11.5 14.6 9.5 16 10C17.8 10.5 20.3 13 23 12.6C25 12.3 26.1 11.5 28 11.8C30.1 12 32 12.4 33.3 11.3C35 10.1 37.5 8.6 39.9 8C40.5 7.8 40.9 8.1 41.4 8.5L44.5 11.1C45.3 11.8 46.2 12.1 47 12.1C49.1 12.3 50.5 11.6 52 12.8C54 14 56 14.7 59 15.5",
+            "M13 17C16.7 15.5 19.3 15.5 22.7 12.8C24.4 11.5 26.7 13.4 28 14.4L31.3 16.5C32.1 17.1 32.6 17.3 33.5 16.7L39.7 12.5C42 10.8 44.4 9.1 46 9.3C46.5 9.4 46.7 9.9 47 10.4C47.9 12 48.3 13.6 50 14.7"
+          ],
+          "scale": [0.59, 0.49],
+          "translation": [107.1, 74.3],
+          "strokeWidths": [0.54, 0.49]
+        }
       }
     },
     {

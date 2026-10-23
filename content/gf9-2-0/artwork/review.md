@@ -19,11 +19,13 @@ The existing vector separates eight kite-shaped rays, a central octagon and eigh
 | Centre | Small octagon with three waves. | Larger octagon with a circular ring. |
 | Spaces between rays | Open channels around the separate kites. | Large and small triangular spaces arise naturally from the overlapping kites, enlarged octagon and both circles. Their curved boundaries follow the circles. |
 | Seven ray glyphs | Loop, arch, ring, cup, diamond, figure-eight and eye contours. | The same original path contours, moved outward and scaled to fit the new placement. No raster tracing. |
-| East ray | Mountains. | Two interlaced waves with enclosed openings. |
+| East ray | Filled mountain silhouette. | Thin, uneven hill and dune ridgelines with tapered ends and overlapping slopes. |
 
 Each ray is a rotated copy of the same kite geometry, with slightly shorter diagonal tips. The enlarged original octagon fills the centre. Both circular boundaries remain separate path components. Their exposed arcs stop at the kite edges, preserving the transparent glyphs. The middle symbol is a circular ring. There are no independent triangle cutouts.
 
 Both dark circles are part of Karama's motif. The faint circle beyond them and the long radial lines are shared card background guides and stay out of the decal. The vector remains a working reconstruction for visual review against the card, with the retained glyphs providing the starting geometry.
+
+The user accepted this construction and requested [variant A](variants/karama-2-0-A.svg) as a recoverable checkpoint. That file is byte-for-byte identical to the decal at commit `aa500f5b587`. Subsequent changes affect only the hills inside the eastern point. The bitmap shows thin, irregular ridgelines, with unequal peaks and tapered ends. The current refinement uses curved contours in place of variant A's thick regular zigzag. Every other path component remains unchanged.
 
 Little Maker's multicolour palette approximates the supplied deck sheet. Its pale water is opaque artwork, while the outer corners remain transparent. The monochrome partner keeps pale areas transparent and inherits the caller's colour. Both retain the basin, engraved marks, worm segments, mouth spots and water ripples.
 

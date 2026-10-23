@@ -10753,9 +10753,21 @@
   },
   "/vector/decal/karama-2-0.svg": {
     "description": "An eight-pointed star with triangular spaces and two concentric circles surrounds a central ring, with a different small symbol on each ray.",
-    "tags": ["Karama", "GF9 2.0", "second edition", "compass", "star", "eye", "glyphs", "vector"],
+    "tags": [
+      "Karama",
+      "GF9 2.0",
+      "second edition",
+      "compass",
+      "star",
+      "eye",
+      "glyphs",
+      "vector",
+      "hills",
+      "dunes",
+      "ridgelines"
+    ],
     "subjects": ["symbols"],
-    "sourceHash": "6d7f67d994ca5c98244d33a082a2d778a0bb62164f487156083ecd9171f35933"
+    "sourceHash": "c1029a741104d6a18e7b9abcf47fed6a54a6c46fd2728b1cf89b216cdd24c722"
   },
   "/vector/decal/little-maker-multicolor.svg": {
     "description": "A dark segmented worm curls in pale water inside a basin with an olive band of engraved symbols.",
