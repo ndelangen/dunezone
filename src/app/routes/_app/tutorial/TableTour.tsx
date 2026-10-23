@@ -27,7 +27,9 @@ const projected = new Vector3();
 function tableView(): { camera: Camera; canvas: HTMLCanvasElement } | null {
   for (const [canvas, root] of _roots) {
     if (canvas instanceof HTMLCanvasElement && canvas.isConnected) {
-      return { camera: root.store.getState().camera, canvas };
+      /* The scene has no camera until its first frame. */
+      const camera = root.store.getState().camera as Camera | null;
+      return camera ? { camera, canvas } : null;
     }
   }
   return null;
@@ -70,6 +72,7 @@ export function TableTour({ title, stops }: Readonly<{ title: string; stops: rea
   useEffect(() => {
     let frame = 0;
     const tick = () => {
+      frame = requestAnimationFrame(tick);
       stops.forEach((stop, index) => {
         const mark = marks.current[index];
         if (!mark) {
@@ -87,7 +90,6 @@ export function TableTour({ title, stops }: Readonly<{ title: string; stops: rea
         const box = view.canvas.getBoundingClientRect();
         card.current.style.top = `${Math.max(box.top + 90, box.bottom - card.current.offsetHeight - 72)}px`;
       }
-      frame = requestAnimationFrame(tick);
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
@@ -104,6 +106,7 @@ export function TableTour({ title, stops }: Readonly<{ title: string; stops: rea
               marks.current[index] = element;
             }}
             className={styles.mark}
+            data-tour-mark
             data-current={index === current || undefined}
           >
             <span className={styles.dot} />

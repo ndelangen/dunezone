@@ -1,5 +1,6 @@
 import preview from '@sb/preview';
 import type { Decorator } from '@storybook/tanstack-react';
+import { expect, userEvent, waitFor, within } from 'storybook/test';
 import type { Vector3Tuple } from 'three';
 
 import { gameMeta, install } from '../play/game.stories.fixture';
@@ -124,4 +125,29 @@ const meta = preview.meta({
 });
 
 /** The live table with the tour over it: step through the parts with Next, and tilt, zoom or pan to see the marks follow. */
-export const Tour = meta.story({});
+export const Tour = meta.story({
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('complementary', { name: 'What goes where' })).resolves.toBeVisible();
+    /* Every mark finds its part once the table has drawn, and the card moves down clear of the header. */
+    await waitFor(
+      async () => {
+        const marks = [...canvasElement.ownerDocument.querySelectorAll<HTMLElement>('[data-tour-mark]')];
+        const placed = marks.filter(
+          (mark) => mark.style.display === '' && /^translate3d\((?!0px, 0px)/.test(mark.style.transform)
+        );
+        const card = page.getByRole('complementary', { name: 'What goes where' }).getBoundingClientRect();
+        await expect({ marks: marks.length, placed: placed.length, cardClear: card.top > 200 }).toEqual({
+          marks: STOPS.length,
+          placed: STOPS.length,
+          cardClear: true,
+        });
+      },
+      { timeout: 30_000 }
+    );
+    await userEvent.click(page.getByRole('button', { name: 'Next' }));
+    await expect(
+      within(page.getByRole('complementary', { name: 'What goes where' })).getByText('Your seat')
+    ).toBeVisible();
+  },
+});
