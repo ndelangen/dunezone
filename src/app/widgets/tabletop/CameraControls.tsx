@@ -279,6 +279,22 @@ function useCloseLook(enabled: boolean, viewKey: string, poseAt: PoseAt): WheelV
 
   const zoomedIn = view.zoom.scale < 1;
 
+  /* The cursor over the scene gives the table the keys, ahead of a control the last click left focused. */
+  useEffect(() => {
+    if (!keyboard) {
+      return;
+    }
+    const enter = () => keyboard.hoverTable(true);
+    const leave = () => keyboard.hoverTable(false);
+    surface.addEventListener('pointerenter', enter);
+    surface.addEventListener('pointerleave', leave);
+    return () => {
+      surface.removeEventListener('pointerenter', enter);
+      surface.removeEventListener('pointerleave', leave);
+      keyboard.hoverTable(false);
+    };
+  }, [keyboard, surface]);
+
   /* The pan keys answer only while a close look is open; otherwise their letters stay free. */
   useEffect(() => {
     if (!keyboard) {
