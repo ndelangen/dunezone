@@ -25,6 +25,11 @@ The review also approved omitting the printed table of contents from the Dune Zo
 Use the webapp's existing left navigator. Keep the contents in the source transcripts for
 reference. No contents Block, table presentation or printed-contents page-number work is needed.
 
+For page 26's force arithmetic, the review approved using existing piece Blocks and text.
+Approximate the token arrangements with existing group labels and piece labels, then explain
+the strength arithmetic in adjacent text. No arithmetic Block or renderer extension is required.
+Keep source prose in order; the added explanation must preserve the example's mechanics.
+
 ## What exists today
 
 The [Contents contract](../../src/shared/rulebooks/contents.ts#L59) has 19 Block kinds and
@@ -47,7 +52,7 @@ styling and heading treatment under the approved simplification.
 | Labelled component diagrams | `asset-explainer` | Has custom labels, position targets, named geometry targets and colors. It uses markers with a separate legend. Page 6 instead uses rectangular labels outside a board with long leader lines. |
 | Board examples | `board-scene` | Has crop viewport, storm, troops, players, highlights, routes and positioned annotations. It references a maintained board definition; an arbitrary scan extract is not a board definition. |
 | Battle examples | `battle-step`, `battle-plans`, `battle-comparison` | Store selected cards, leader, spice, forces, dial and authored explanation. Their composed diagrams must be compared with the specific GF9 wheel/card arrangements. |
-| Transfers and force examples | `piece-transfer`, `piece-movement` | Can compose groups of source images and troop tokens. They do not provide the source's exact arithmetic row with plus signs and one value under each token. |
+| Transfers and force examples | `piece-transfer`, `piece-movement`, `text` | Use existing piece groups and labels to approximate the source illustrations. Explain individual strengths and totals in text. Exact per-token arithmetic placement is not required. |
 | Credits | `credits`, plus text and illustrations | Supports groups, names and roles. Legal paragraphs and the publisher/studio logos still need their own content. |
 | Tables | `reference-table` | Stores authored headings and formatted cells. It has no dotted-leader contents presentation, column spanning or diagram cells. |
 | Front cover | `cover` Page with background image | Can use a supplied image and hide the generated title, Dune logo and subtitle. Retain the source's baked-in logos and words without drawing a second copy over them. |
@@ -100,7 +105,7 @@ printed layout being reconstructed.
 | 23 | `two-columns`, text, card pair, card entries | Treachery Cards combines weapon/defense explanations with two illustrated weapons and a separate action-card column. Exact cards and captions must remain paired with their descriptions. |
 | 24 | `two-columns`, text, map extract, card entries | Shield Wall/Family Atomics material occupies the left; faction-specific Karama bullets and the Karama card occupy the right. Preserve the nested order and map caption. |
 | 25 | `two-columns`, text, card entry | Treachery-card insights are mainly short named paragraphs, plus Solaris art. Text flow beside the art is already supported by `card-entry`, but its heading/quantity defaults need care. |
-| 26 | `outer-rail`, text, callouts, illustrations | The left rail has three cropped half-increment wheel windows. Main columns include arithmetic token rows and bordered Karama extracts. Current battle and transfer blocks do not exactly represent these compact diagrams. |
+| 26 | `outer-rail`, text, callouts, illustrations, `piece-transfer` | Use existing piece groups for the force examples and explain the arithmetic in text. The left rail's half-increment wheel windows remain artwork candidates. Test the Karama extracts with existing callouts. No arithmetic Block or extension is required. |
 | 27 | `outer-rail`, section headings, text, troop illustration | Bene Gesserit has two rules columns, a strategy rail, a faction emblem and an advisor token beside prose. Preserve the source's opening sentence about the following pages as printed. |
 | 28 | Existing column/rail layouts, text, headings, troop illustration, question/answer content | Complete Bene Gesserit first, then start Fremen on a new output page. The approved faction page break removes the need to reproduce the mixed-faction arrangement. |
 | 29 | `outer-rail`, text, headings, troop illustrations | Fremen continuation uses two rules columns and a right strategy rail. Preserve special victory, alliance, insights and token labels in their original positions. |
@@ -186,12 +191,22 @@ Test exact source crops and token positions rather than assuming a new map Block
 
 ## Candidate new Blocks
 
-One candidate remains after reuse and the approved presentation changes. It is not implemented here.
-Contents entries were removed from the requirements in favor of the existing left navigator.
+Neither proposed new Block remains required. Contents entries are omitted in favor of the
+existing left navigator. The force arithmetic uses existing piece Blocks with explanatory text.
 
-| Candidate | Source evidence | Why an existing kind does not quite cover it | Acceptance proof |
-| --- | --- | --- | --- |
-| Compact illustrated arithmetic row | Page 26, forces with spice above and `2 + 1/2 + 1/2` or longer sums below | `piece-transfer` is a pair of groups, while battle Blocks compose plans. Neither stores one source image and authored strength per term with separators. A narrow extension to an existing illustrated-piece composition may be enough. | Reproduce the two source rows with the right force faces, spice token, source fraction glyphs and placement. No computed rule result or replacement explanation. |
+For each page-26 loss option, start with `piece-transfer` and `direction: 'none'`. Use the left
+group for the full-strength loss and the right group for the half-strength losses. Existing
+piece/group labels identify the groups without drawing a transfer arrow.
+
+- First option: one supported Sardaukar contributes strength 2; two unsupported ordinary forces
+  contribute 1/2 each. Explain `2 + 1/2 + 1/2 = 3` in adjacent text.
+- Second option: one supported ordinary force contributes strength 1; four unsupported ordinary
+  forces contribute 1/2 each. Explain `1 + 1/2 + 1/2 + 1/2 + 1/2 = 3` in adjacent text.
+
+Include the one spice in the supported group using the existing source-piece capability if
+it remains readable. Use text if its exact overlapping position cannot be reproduced. Check
+that both diagrams distinguish the force types, show the correct counts and explain the same
+strength-3 loss requirement as the source. Exact plus-sign placement is not an acceptance condition.
 
 The component collage on page 7 does not automatically justify a new inventory Block. First
 test a page arrangement that places existing inventory/card/illustration blocks in the needed
@@ -216,9 +231,9 @@ decisions and evidence can accumulate independently.
    annotation support.
 3. **Contents omitted.** Closed by the review decision. Use the existing left navigator;
    retain the printed contents only in the source transcripts.
-4. **Compact force arithmetic illustration.** Page 26. Track whether an existing piece
-   Block can gain a narrow presentation or a new kind is needed. Keep the three wheel-window
-   extracts as artwork unless an exact live rendering is proved.
+4. **Force arithmetic with existing Blocks.** Page 26. Use existing piece groups and labels,
+   get the illustrations as close as those tools allow, and explain strength values and totals
+   in text. No new Block or extension. Keep the wheel-window artwork decision separate.
 5. **Source-exact labels and compact explanations.** Pages 4-7, 11, 17-19 and 23-33. Track
    suppression of automatic `Quantity:`, source names and repeated labels, source-matched Q&A,
    and the small bordered Karama extracts. Prefer adjustments to existing Blocks.
