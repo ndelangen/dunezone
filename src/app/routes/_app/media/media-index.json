@@ -10855,5 +10855,155 @@
     "tags": ["portrait", "head", "illustration", "Duke Leto Atreides", "Atreides", "duke", "leto", "atreides"],
     "subjects": ["people"],
     "sourceHash": "97517427c6e5d76fe12988a7509c1d22174b9ff14b5563e22c2ea0187174289f"
+  },
+  "/vector/logo/dune-awakening-house-alexin.svg": {
+    "description": "A vertical wheat ear with three pairs of pointed grains and a pointed tip.",
+    "tags": ["House Alexin", "Dune Awakening", "Landsraad", "wheat", "grain", "ear"],
+    "subjects": ["plants", "symbols"],
+    "sourceHash": "94997f6664850e0c69056cbdeb246aa2853dc95eb9415f231da001d4a97e93e6"
+  },
+  "/vector/logo/dune-awakening-house-argosaz.svg": {
+    "description": "A triangular frame divided into three triangular sections around a central junction.",
+    "tags": ["House Argosaz", "Dune Awakening", "Landsraad", "triangle", "frame", "three sections"],
+    "subjects": ["symbols"],
+    "sourceHash": "5e38b6e345c0979d0f6278385b252181e306dedce02ede631303b1ff4c8a120e"
+  },
+  "/vector/logo/dune-awakening-house-dyvetz.svg": {
+    "description": "A round opening above a central stem and three pairs of sweeping wings.",
+    "tags": ["House Dyvetz", "Dune Awakening", "Landsraad", "wings", "circle", "stem"],
+    "subjects": ["symbols"],
+    "sourceHash": "01e352c5ac19131f27677d2c499617234672662aa6ba877ea41614aa98ba8888"
+  },
+  "/vector/logo/dune-awakening-house-ecaz.svg": {
+    "description": "A branching tree with angular upward branches and three spreading roots.",
+    "tags": ["House Ecaz", "Dune Awakening", "Landsraad", "tree", "branches", "roots"],
+    "subjects": ["plants", "symbols"],
+    "sourceHash": "6ee61efed59ef8defb3440f7db9efa153ce9a2a75620d01d3bf2a6d9cf5ae1b7"
+  },
+  "/vector/logo/dune-awakening-house-hagal.svg": {
+    "description": "A fan of pointed segments surrounding a circular opening at the base.",
+    "tags": ["House Hagal", "Dune Awakening", "Landsraad", "fan", "rays", "circle"],
+    "subjects": ["symbols"],
+    "sourceHash": "9860e8d339288be4da90adfd3a1d0bd4bfb922918d13f1d459bf9847143fd71f"
+  },
+  "/vector/logo/dune-awakening-house-hurata.svg": {
+    "description": "Concentric circles above a semicircular fan of short radial spokes.",
+    "tags": ["House Hurata", "Dune Awakening", "Landsraad", "concentric circles", "spokes", "wheel"],
+    "subjects": ["symbols"],
+    "sourceHash": "4f889193f40caf46e78cdacafd25594512fca47ed9d4bec7cbb4dce76e3b6387"
+  },
+  "/vector/logo/dune-awakening-house-imota.svg": {
+    "description": "A rounded three-part crest with an arch above two inward-curving vertical arms.",
+    "tags": ["House Imota", "Dune Awakening", "Landsraad", "arch", "three parts", "curved arms"],
+    "subjects": ["symbols"],
+    "sourceHash": "ebe90c93b36ea4c8919aeef46947aec5bfdcf44a10454bd18d75e604968886aa"
+  },
+  "/vector/logo/dune-awakening-house-kenola.svg": {
+    "description": "Five rays rise above two horizontal bars with a small downward point.",
+    "tags": ["House Kenola", "Dune Awakening", "Landsraad", "sunrise", "rays", "bars"],
+    "subjects": ["symbols"],
+    "sourceHash": "a38b57d10563274a65c340c929013bb23c09a0dd1bfcbaf32470a80e3852f6d8"
+  },
+  "/vector/logo/dune-awakening-house-lindaren.svg": {
+    "description": "An angular vertical crest with three stepped points and a long diagonal lower tip.",
+    "tags": ["House Lindaren", "Dune Awakening", "Landsraad", "angular crest", "steps", "diagonal"],
+    "subjects": ["symbols"],
+    "sourceHash": "5431ca1f1de370c18ad06900960023d375e51bac78227a98c741a345b6d5aeb5"
+  },
+  "/vector/logo/dune-awakening-house-maros.svg": {
+    "description": "A narrow animal skull beneath two long upward-curving horns.",
+    "tags": ["House Maros", "Dune Awakening", "Landsraad", "skull", "horns", "animal"],
+    "subjects": ["creatures", "symbols"],
+    "sourceHash": "f1afe4be22304a945023473268925ede4689bb2f0ce44d7fe2dd016980ec782a"
+  },
+  "/vector/logo/dune-awakening-house-mikarrol.svg": {
+    "description": "A raised clenched fist above a wide flared cuff.",
+    "tags": ["House Mikarrol", "Dune Awakening", "Landsraad", "fist", "gauntlet", "cuff"],
+    "subjects": ["people", "weapons", "symbols"],
+    "sourceHash": "344b0771109fe8eaeabdfcf56c875120ae8f9f140d2551c7d5489cd5b770f932"
+  },
+  "/vector/logo/dune-awakening-house-moritani.svg": {
+    "description": "An angular horse head in profile with an open notch below its muzzle.",
+    "tags": ["House Moritani", "Dune Awakening", "Landsraad", "horse", "head", "profile"],
+    "subjects": ["creatures", "symbols"],
+    "sourceHash": "53170a6de9566c48bd570f1c0fac9510a5181f1f4ec4ee7ee98fe2b0bb292991"
+  },
+  "/vector/logo/dune-awakening-house-mutelli.svg": {
+    "description": "Five pointed panels arranged around a small central star.",
+    "tags": ["House Mutelli", "Dune Awakening", "Landsraad", "five panels", "star", "radial"],
+    "subjects": ["symbols"],
+    "sourceHash": "8d979bab42d1b51f7a824b4db6e06b0effe1fb4dc1c27a1a69ccd6dd79e035ab"
+  },
+  "/vector/logo/dune-awakening-house-novebruns.svg": {
+    "description": "Three curved sides form an open triangular crest divided by crossing diagonal lines.",
+    "tags": ["House Novebruns", "Dune Awakening", "Landsraad", "triangle", "open center", "crossing lines"],
+    "subjects": ["symbols"],
+    "sourceHash": "ab8ef380f0e9d88fe66930985e9ed14271a4b61c3977b4d1f1bb18975451e206"
+  },
+  "/vector/logo/dune-awakening-house-richese.svg": {
+    "description": "A concentric circular ring with a small cap above and a smaller ring suspended below.",
+    "tags": ["House Richese", "Dune Awakening", "Landsraad", "rings", "concentric circles", "pendant"],
+    "subjects": ["symbols"],
+    "sourceHash": "6761fa6fedd65f4a1c1f7a81e0242559da9d7a44399b3f0ee047ec489c6f19a0"
+  },
+  "/vector/logo/dune-awakening-house-sor.svg": {
+    "description": "A teardrop-shaped spiral with several close turns and a pointed cap.",
+    "tags": ["House Sor", "Dune Awakening", "Landsraad", "spiral", "teardrop", "concentric curves"],
+    "subjects": ["symbols"],
+    "sourceHash": "e888d14377054a5ecab8079bb3054ea2ef878a964b6fbef6fe0467a6d9e5bd7b"
+  },
+  "/vector/logo/dune-awakening-house-spinnette.svg": {
+    "description": "A long double-pointed vertical blade crossed by a short bar and diagonal cut.",
+    "tags": ["House Spinnette", "Dune Awakening", "Landsraad", "blade", "bar", "diamond"],
+    "subjects": ["weapons", "symbols"],
+    "sourceHash": "a39b17b2a7adb424f1919d38756f49439e54bc4e2de4acd8590a900b1a85a900"
+  },
+  "/vector/logo/dune-awakening-house-taligari.svg": {
+    "description": "A long central tapered point flanked by two pairs of shorter narrow points.",
+    "tags": ["House Taligari", "Dune Awakening", "Landsraad", "points", "five spikes", "geometric"],
+    "subjects": ["symbols"],
+    "sourceHash": "97cd5e6238d3d0141a4595552f0b2826b98618b7fda788630dd1fb23f0e48b46"
+  },
+  "/vector/logo/dune-awakening-house-thorvald.svg": {
+    "description": "A broad flag-shaped crest with a curled central opening on a short pedestal.",
+    "tags": ["House Thorvald", "Dune Awakening", "Landsraad", "flag", "curl", "pedestal"],
+    "subjects": ["symbols"],
+    "sourceHash": "67f1e1a310fdeb09936e4195559976caf3ac8fa2326acfb3d566accaa1a44cbd"
+  },
+  "/vector/logo/dune-awakening-house-tseida.svg": {
+    "description": "A ribbon curls into two broad horizontal bands with narrow curved lines near its edges.",
+    "tags": ["House Tseida", "Dune Awakening", "Landsraad", "ribbon", "bands", "scroll"],
+    "subjects": ["symbols"],
+    "sourceHash": "6a92d1817a0d768fbbb2ca546f3377c87cf6abc6b58a41d36113a7b191cf5534"
+  },
+  "/vector/logo/dune-awakening-house-varota.svg": {
+    "description": "A bowed string instrument with a rounded body, diagonal strings and small tuning dots.",
+    "tags": ["House Varota", "Dune Awakening", "Landsraad", "string instrument", "strings", "music"],
+    "subjects": ["culture", "symbols"],
+    "sourceHash": "c6ec02ba641dc47d6d83d72ff9484dc80c20479125a3db98949201360e191693"
+  },
+  "/vector/logo/dune-awakening-house-vernius.svg": {
+    "description": "Two angular opposing hooks with short horizontal bars inside their stems.",
+    "tags": ["House Vernius", "Dune Awakening", "Landsraad", "hooks", "opposing shapes", "bars"],
+    "subjects": ["symbols"],
+    "sourceHash": "f8c097fd718e676574b0e236ba4045f985fd61ab5857382ab571311fd7049e84"
+  },
+  "/vector/logo/dune-awakening-house-wallach.svg": {
+    "description": "A curved loop with a central field of fine strings and outward-facing curled ends.",
+    "tags": ["House Wallach", "Dune Awakening", "Landsraad", "loop", "strings", "curled ends"],
+    "subjects": ["culture", "symbols"],
+    "sourceHash": "0c6d86342f2da8d74e5a0cb862b2f7d7eb52160f5b6c5af4e9f15f9997fd1727"
+  },
+  "/vector/logo/dune-awakening-house-wayku.svg": {
+    "description": "A circular orbit encloses several discs connected by straight lines.",
+    "tags": ["House Wayku", "Dune Awakening", "Landsraad", "orbit", "discs", "network", "circles"],
+    "subjects": ["space", "symbols"],
+    "sourceHash": "c1e02b9b5af82dc6d25dd810fb4b6b45e556d9aee95ebff12b0d622964928d8f"
+  },
+  "/vector/logo/dune-awakening-house-wydras.svg": {
+    "description": "A symmetrical angular crest with two tall upper points and a broad wing-like lower shape.",
+    "tags": ["House Wydras", "Dune Awakening", "Landsraad", "angular crest", "points", "wings"],
+    "subjects": ["symbols"],
+    "sourceHash": "ea828893a1c9e474e6b7e47fcd4380023df48a476163a82ba00427b710d0a4bb"
   }
 }

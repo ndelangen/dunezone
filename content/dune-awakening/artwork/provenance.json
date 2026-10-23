@@ -1,0 +1,158 @@
+{
+  "sourcePage": "https://dune.gaming.tools/landsraad",
+  "retrievedAt": "2026-10-24",
+  "attribution": "Dune Awakening game artwork belongs to Funcom and Legendary. Source images are hosted by gaming.tools, an unaffiliated fan database.",
+  "preparation": "Approximate monochrome SVG traces of the 25 public 64 by 64 WebP house emblems. ImageMagick extracts alpha, enlarges it eightfold with its default resampling, inverts it and thresholds at 50 percent. Potrace 1.16 traces with turdsize 0, alphamax 1 and opttolerance 0.2. The svg-authoring pipeline assigns root IDs and provenance stamps. Dune Zone normalizes coordinates and strips fixed paint so callers can recolor the artwork. Fine details are limited by source resolution.",
+  "assets": {
+    "/vector/logo/dune-awakening-house-alexin.svg": {
+      "name": "House Alexin",
+      "page": "https://dune.gaming.tools/landsraad/housealexin",
+      "source": "https://cdn-hosted.gaming.tools/dune/images/dune/gui/textures/icons/gameplay/factions/landsraadhouses/t_ui_iconslandsraadfactionhousealexin_d.webp?v=1791931162463",
+      "sourceSha256": "f1675e672dfd3e1c98bbb78bfe8baab5f360314e60aeec16459b215c7d5acc79"
+    },
+    "/vector/logo/dune-awakening-house-argosaz.svg": {
+      "name": "House Argosaz",
+      "page": "https://dune.gaming.tools/landsraad/houseargosaz",
+      "source": "https://cdn-hosted.gaming.tools/dune/images/dune/gui/textures/icons/gameplay/factions/landsraadhouses/t_ui_iconslandsraadfactionhouseargosaz_d.webp?v=1791931162463",
+      "sourceSha256": "cb2e80f11c7eef3e217151ed221b93342f3d62a6345a68895c3669d096d4af97"
+    },
+    "/vector/logo/dune-awakening-house-dyvetz.svg": {
+      "name": "House Dyvetz",
+      "page": "https://dune.gaming.tools/landsraad/housedyvetz",
+      "source": "https://cdn-hosted.gaming.tools/dune/images/dune/gui/textures/icons/gameplay/factions/landsraadhouses/t_ui_iconslandsraadfactionhousedyvetz_d.webp?v=1791931162463",
+      "sourceSha256": "82e01614ade4f916b4d3048225f62b5748a6ae1d14e58b7c06efa9a8d93474b4"
+    },
+    "/vector/logo/dune-awakening-house-ecaz.svg": {
+      "name": "House Ecaz",
+      "page": "https://dune.gaming.tools/landsraad/houseecaz",
+      "source": "https://cdn-hosted.gaming.tools/dune/images/dune/gui/textures/icons/gameplay/factions/landsraadhouses/t_ui_iconslandsraadfactionhouseecaz_d.webp?v=1791931162463",
+      "sourceSha256": "6a043fd3be1454191ad8bbcacae5e31172aa42f13b61a6ff09f1d2fc626272e4"
+    },
+    "/vector/logo/dune-awakening-house-hagal.svg": {
+      "name": "House Hagal",
+      "page": "https://dune.gaming.tools/landsraad/househagal",
+      "source": "https://cdn-hosted.gaming.tools/dune/images/dune/gui/textures/icons/gameplay/factions/landsraadhouses/t_ui_iconslandsraadfactionhousehagal_d.webp?v=1791931162463",
+      "sourceSha256": "af79d687af71035a635e8d26500f795b8f34758f4ca9b9065a4870fd2bf5f562"
+    },
+    "/vector/logo/dune-awakening-house-hurata.svg": {
+      "name": "House Hurata",
+      "page": "https://dune.gaming.tools/landsraad/househurata",
+      "source": "https://cdn-hosted.gaming.tools/dune/images/dune/gui/textures/icons/gameplay/factions/landsraadhouses/t_ui_iconslandsraadfactionhousehurata_d.webp?v=1791931162463",
+      "sourceSha256": "c1701daca332a18871f7a1ddc02ba3e1b19a56df97dad04a0e9ddb2e419b1fef"
+    },
+    "/vector/logo/dune-awakening-house-imota.svg": {
+      "name": "House Imota",
+      "page": "https://dune.gaming.tools/landsraad/houseimota",
+      "source": "https://cdn-hosted.gaming.tools/dune/images/dune/gui/textures/icons/gameplay/factions/landsraadhouses/t_ui_iconslandsraadfactionhouseimota_d.webp?v=1791931162463",
+      "sourceSha256": "1daa597cd44dd40f81083cf622741c802a6f0ae0dc65bc4604acc1c9a1233200"
+    },
+    "/vector/logo/dune-awakening-house-kenola.svg": {
+      "name": "House Kenola",
+      "page": "https://dune.gaming.tools/landsraad/housekenola",
+      "source": "https://cdn-hosted.gaming.tools/dune/images/dune/gui/textures/icons/gameplay/factions/landsraadhouses/t_ui_iconslandsraadfactionhousekenola_d.webp?v=1791931162463",
+      "sourceSha256": "f482e25ca9ace5e90988657a7615b6e8d6e192416cc3f9499367cb3e39ba421a"
+    },
+    "/vector/logo/dune-awakening-house-lindaren.svg": {
+      "name": "House Lindaren",
+      "page": "https://dune.gaming.tools/landsraad/houselindaren",
+      "source": "https://cdn-hosted.gaming.tools/dune/images/dune/gui/textures/icons/gameplay/factions/landsraadhouses/t_ui_iconslandsraadfactionhouselindaren_d.webp?v=1791931162463",
+      "sourceSha256": "02f7f9a9a53fa138d9446a117268248276679be922f800931f36de662efd00be"
+    },
+    "/vector/logo/dune-awakening-house-maros.svg": {
+      "name": "House Maros",
+      "page": "https://dune.gaming.tools/landsraad/housemaros",
+      "source": "https://cdn-hosted.gaming.tools/dune/images/dune/gui/textures/icons/gameplay/factions/landsraadhouses/t_ui_iconslandsraadfactionhousemaros_d.webp?v=1791931162463",
+      "sourceSha256": "993af830a92e0164b6ca19a38b1710c6d1e80528cce92fa7e93f754b648dc2de"
+    },
+    "/vector/logo/dune-awakening-house-mikarrol.svg": {
+      "name": "House Mikarrol",
+      "page": "https://dune.gaming.tools/landsraad/housemikkarol",
+      "source": "https://cdn-hosted.gaming.tools/dune/images/dune/gui/textures/icons/gameplay/factions/landsraadhouses/t_ui_iconslandsraadfactionhousemikarrol_d.webp?v=1791931162463",
+      "sourceSha256": "5e0d998cfea9a038ea9430d7e46181fabf4a7b4c8ae0da97bb68f3512e0e7bd9"
+    },
+    "/vector/logo/dune-awakening-house-moritani.svg": {
+      "name": "House Moritani",
+      "page": "https://dune.gaming.tools/landsraad/housemoritani",
+      "source": "https://cdn-hosted.gaming.tools/dune/images/dune/gui/textures/icons/gameplay/factions/landsraadhouses/t_ui_iconslandsraadfactionhousemoritani_d.webp?v=1791931162463",
+      "sourceSha256": "ee292353439d3cbee84fd6c24b0b86875d1e76025b003f330577ad3d8efe18a8"
+    },
+    "/vector/logo/dune-awakening-house-mutelli.svg": {
+      "name": "House Mutelli",
+      "page": "https://dune.gaming.tools/landsraad/housemutelli",
+      "source": "https://cdn-hosted.gaming.tools/dune/images/dune/gui/textures/icons/gameplay/factions/landsraadhouses/t_ui_iconslandsraadfactionhousemutelli_d.webp?v=1791931162463",
+      "sourceSha256": "e340fbef973383473a8ee6713fe23154f7444f49de86372fb17c39bebab48729"
+    },
+    "/vector/logo/dune-awakening-house-novebruns.svg": {
+      "name": "House Novebruns",
+      "page": "https://dune.gaming.tools/landsraad/housenovebruns",
+      "source": "https://cdn-hosted.gaming.tools/dune/images/dune/gui/textures/icons/gameplay/factions/landsraadhouses/t_ui_iconslandsraadfactionhousenovebruns_d.webp?v=1791931162463",
+      "sourceSha256": "8d1b72ecb74cdaae52cafd4f0fe505cf35e1150ddc15f4169105bf629002c012"
+    },
+    "/vector/logo/dune-awakening-house-richese.svg": {
+      "name": "House Richese",
+      "page": "https://dune.gaming.tools/landsraad/houserichese",
+      "source": "https://cdn-hosted.gaming.tools/dune/images/dune/gui/textures/icons/gameplay/factions/landsraadhouses/t_ui_iconslandsraadfactionhouserichese_d.webp?v=1791931162463",
+      "sourceSha256": "bebf3014f512f95397f77eb628f6c37c809bd84ab87b716a115e28113cc8d596"
+    },
+    "/vector/logo/dune-awakening-house-sor.svg": {
+      "name": "House Sor",
+      "page": "https://dune.gaming.tools/landsraad/housesor",
+      "source": "https://cdn-hosted.gaming.tools/dune/images/dune/gui/textures/icons/gameplay/factions/landsraadhouses/t_ui_iconslandsraadfactionhousesor_d.webp?v=1791931162463",
+      "sourceSha256": "b3a36be4052d6681d5cfaf958c0ff78f390fd16f30a845669c4dcb950be016f9"
+    },
+    "/vector/logo/dune-awakening-house-spinnette.svg": {
+      "name": "House Spinnette",
+      "page": "https://dune.gaming.tools/landsraad/housespinette",
+      "source": "https://cdn-hosted.gaming.tools/dune/images/dune/gui/textures/icons/gameplay/factions/landsraadhouses/t_ui_iconslandsraadfactionhousespinette_d.webp?v=1791931162463",
+      "sourceSha256": "ba8b49af045b3e10d6742e4cc921d570cae680ecfcd8d7ecb73187f2a293e435"
+    },
+    "/vector/logo/dune-awakening-house-taligari.svg": {
+      "name": "House Taligari",
+      "page": "https://dune.gaming.tools/landsraad/housetaligari",
+      "source": "https://cdn-hosted.gaming.tools/dune/images/dune/gui/textures/icons/gameplay/factions/landsraadhouses/t_ui_iconslandsraadfactionhousetaligari_d.webp?v=1791931162463",
+      "sourceSha256": "92868d9ddace9b2b410257f3bdb1d7148b29fa594eab0447455a3ac3a78ccf0f"
+    },
+    "/vector/logo/dune-awakening-house-thorvald.svg": {
+      "name": "House Thorvald",
+      "page": "https://dune.gaming.tools/landsraad/housethorvald",
+      "source": "https://cdn-hosted.gaming.tools/dune/images/dune/gui/textures/icons/gameplay/factions/landsraadhouses/t_ui_iconslandsraadfactionhousethorvald_d.webp?v=1791931162463",
+      "sourceSha256": "4c27c7f8221b79204225429843534f38aa88e95bf40def7b1c04c75a2df6bca8"
+    },
+    "/vector/logo/dune-awakening-house-tseida.svg": {
+      "name": "House Tseida",
+      "page": "https://dune.gaming.tools/landsraad/housetseida",
+      "source": "https://cdn-hosted.gaming.tools/dune/images/dune/gui/textures/icons/gameplay/factions/landsraadhouses/t_ui_iconslandsraadfactionhousetseida_d.webp?v=1791931162463",
+      "sourceSha256": "e8c07b22a49f5ea5ac2ce0392a95306b12aa2dc54f533fb1c87193530697b2f4"
+    },
+    "/vector/logo/dune-awakening-house-varota.svg": {
+      "name": "House Varota",
+      "page": "https://dune.gaming.tools/landsraad/housevarota",
+      "source": "https://cdn-hosted.gaming.tools/dune/images/dune/gui/textures/icons/gameplay/factions/landsraadhouses/t_ui_iconslandsraadfactionhousevarota_d.webp?v=1791931162463",
+      "sourceSha256": "41b1cb359e9f57ea87f32c037f9e5357d4c96024c500a722cd7a1c070eec2447"
+    },
+    "/vector/logo/dune-awakening-house-vernius.svg": {
+      "name": "House Vernius",
+      "page": "https://dune.gaming.tools/landsraad/housevernius",
+      "source": "https://cdn-hosted.gaming.tools/dune/images/dune/gui/textures/icons/gameplay/factions/landsraadhouses/t_ui_iconslandsraadfactionhousevernius_d.webp?v=1791931162463",
+      "sourceSha256": "9ece84a4632aab5089cc41f76594c0c82dee91c588839fe5fb73ecae81e41488"
+    },
+    "/vector/logo/dune-awakening-house-wallach.svg": {
+      "name": "House Wallach",
+      "page": "https://dune.gaming.tools/landsraad/housewallach",
+      "source": "https://cdn-hosted.gaming.tools/dune/images/dune/gui/textures/icons/gameplay/factions/landsraadhouses/t_ui_iconslandsraadfactionhousewallach_d.webp?v=1791931162463",
+      "sourceSha256": "32f55c414d734171919aff5ea5d9403ad8c7e2cedf1625b17b000f6fa5a40d89"
+    },
+    "/vector/logo/dune-awakening-house-wayku.svg": {
+      "name": "House Wayku",
+      "page": "https://dune.gaming.tools/landsraad/housewayku",
+      "source": "https://cdn-hosted.gaming.tools/dune/images/dune/gui/textures/icons/gameplay/factions/landsraadhouses/t_ui_iconslandsraadfactionhousewayku_d.webp?v=1791931162463",
+      "sourceSha256": "19740e9e4e6071be1cfd6af3e11a031029f400052c5c6a97bd12931eaf543196"
+    },
+    "/vector/logo/dune-awakening-house-wydras.svg": {
+      "name": "House Wydras",
+      "page": "https://dune.gaming.tools/landsraad/housewydras",
+      "source": "https://cdn-hosted.gaming.tools/dune/images/dune/gui/textures/icons/gameplay/factions/landsraadhouses/t_ui_iconslandsraadfactionhousewydras_d.webp?v=1791931162463",
+      "sourceSha256": "161f1b1399c78158b10fae8b730c52f1de77f0e6a90a10fb6bdc10a0a010e8aa"
+    }
+  }
+}
