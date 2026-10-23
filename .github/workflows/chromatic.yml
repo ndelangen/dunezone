@@ -29,8 +29,7 @@ jobs:
           # The PR head commit, not GitHub's merge commit, so TurboSnap diffs against the branch's own
           # ancestors, and a re-run captures the commit its event named.
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
-          # Enough history for TurboSnap to find an ancestor build; the full history slowed Chromatic's
-          # git lookup until its API timed out.
+          # Enough history for TurboSnap to find an ancestor build without walking the full history.
           fetch-depth: 70
           persist-credentials: false
           sparse-checkout: |
