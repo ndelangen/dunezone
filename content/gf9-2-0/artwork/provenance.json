@@ -25,7 +25,7 @@
       },
       "crop": [2735, 726, 2953, 806],
       "threshold": 65,
-      "operation": "Reconstruct smooth coin faces and separated rims. Reuse the native Stormworld planet and Emperor lion as engraved cutouts, projected onto each coin face. Retain the source-traced star and portrait engravings. Preserve the prior upscaled trace as a working checkpoint.",
+      "operation": "Keep the native Stormworld planet and Emperor lion and the smooth coin faces and rims. Reconstruct the source star outline and divider with a consistent one-pixel line, and smooth the portrait contours and regularize its eyebrow, cheek, mouth and lower engraved grooves.",
       "referenceCrop": "references/solaris-sheet.png",
       "preparation": {
         "upscale": 8,
@@ -74,8 +74,7 @@
             "cy": 25.2,
             "rx": 28.7,
             "ry": 17.8,
-            "angle": 29,
-            "gold": "#b69250"
+            "angle": 29
           },
           {
             "id": "planet",
@@ -83,8 +82,7 @@
             "cy": 24.3,
             "rx": 28.7,
             "ry": 17,
-            "angle": -30,
-            "gold": "#d2b568"
+            "angle": -30
           },
           {
             "id": "lion",
@@ -92,8 +90,7 @@
             "cy": 31.9,
             "rx": 28.3,
             "ry": 18.3,
-            "angle": 29,
-            "gold": "#c29a4b"
+            "angle": 29
           },
           {
             "id": "star",
@@ -101,8 +98,7 @@
             "cy": 53.2,
             "rx": 30.3,
             "ry": 12.3,
-            "angle": 3.5,
-            "gold": "#d8b763"
+            "angle": 3.5
           }
         ],
         "planetGlyph": {
@@ -115,20 +111,38 @@
           "localSize": [1.14, 1.43]
         },
         "starGlyph": {
-          "source": "upscaled Solaris trace",
-          "component": "four-pointed star engraving"
+          "source": "source-guided reconstruction",
+          "outline": "M84.5 54.2C90 51.8 92.7 49.8 92.3 45.3C97.5 48.7 104.2 49.3 111.7 48.5C106.5 51.4 103.9 54.4 104.3 58.3C98.8 55.4 92.6 53.5 84.5 54.2Z",
+          "divider": "M92.3 45.3C92.6 48.9 93 51.5 93.6 54.4",
+          "lineWidth": 1
         },
         "portrait": {
           "source": "upscaled Solaris trace",
-          "interiorScale": 0.925
+          "interiorScale": 0.925,
+          "outerSmoothing": 0.16,
+          "faceSmoothing": 0.11,
+          "lineWidth": 0.78,
+          "lines": {
+            "eyebrow": "M176.9 15.7C178.2 14.6 179.6 14.15 180.9 14.5",
+            "mouth": "M185.5 23.7C184.15 24.7 183.95 25.6 185.5 26.5",
+            "cheek": "M175.15 21.55C176.0 22.25 177.5 22.9 178.35 23.4",
+            "bodyMark": "M170.1 23.85C171.1 24.45 172.05 25.3 172.8 26.0",
+            "bodyDot": "M174.85 27.85L176.05 28.4",
+            "shoulder": "M168.7 29.5C174 30.0 180.6 29.6 186.8 30.0",
+            "collar": [
+              "M181.8 33.45C183.2 32.8 185.1 31.9 186.45 31.6",
+              "M183.7 35.6C185.1 34.9 186.9 34.0 188.15 33.35",
+              "M185.6 37.65C186.8 37.1 188.4 36.25 189.25 35.8"
+            ]
+          }
         },
         "rim": {
           "verticalOffset": 4.2,
           "gapOffset": 1.5
         },
         "palette": {
-          "ink": "#252015",
-          "engraving": "#332814"
+          "ink": "#121111",
+          "engraving": "#f2edc2"
         },
         "tool": "paper 0.12.18, used only during authoring",
         "reusedVectors": [
@@ -146,7 +160,7 @@
           "sourceCommit": "ca8b3dec2ed",
           "sha256": "3e089eedc0e86f95df22e5225ae49d4572683bbaf900819e088fdb924d397cde"
         },
-        "review": "User requested reuse of existing vectors and a multicolour variant. Both reconstructed versions await visual approval."
+        "review": "User requested a bitmap-matched colour variant and more consistent star and portrait lines. Revised pair prepared for visual review."
       }
     },
     {
@@ -299,17 +313,20 @@
     {
       "assetKey": "/vector/decal/solaris-multicolor.svg",
       "sourceRecord": "/vector/decal/solaris.svg",
-      "operation": "Use the same reconstructed coin geometry with gold faces and dark engravings and rims. The exterior and spaces between rim arcs remain transparent.",
+      "operation": "Use the same refined coin geometry with near-black faces and pale cream engraving and rim bands, matching the supplied bitmap. Pale regions are opaque; the exterior remains transparent.",
       "palette": {
-        "planet": "#d2b568",
-        "lion": "#c29a4b",
-        "portrait": "#b69250",
-        "star": "#d8b763",
-        "ink": "#252015",
-        "engraving": "#332814"
+        "ink": "#121111",
+        "engravingAndRimBands": "#f2edc2"
       },
-      "limitation": "The metal colours are an interpretation for the requested multicolour variant; the supplied card artwork is monochrome.",
-      "approval": "Prepared for user review."
+      "limitation": "The sampled palette reflects the supplied bitmap; it does not measure the physical print inks.",
+      "approval": "Gold interpretation rejected by the user. Bitmap-matched revision awaits visual approval.",
+      "paletteSampling": {
+        "source": "references/solaris-sheet.png",
+        "region": [10, 4, 209, 66],
+        "darkPixels": "Mean RGB below 55",
+        "palePixels": "Mean RGB between 185 and 235",
+        "method": "Median RGB in each selected pixel group"
+      }
     }
   ]
 }
