@@ -1,0 +1,46 @@
+name: Chromatic
+
+on:
+  push:
+    branches: ["**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: chromatic-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  chromatic:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          sparse-checkout: |
+            /*
+            !/media/image/
+          sparse-checkout-cone-mode: false
+      - name: Require the Chromatic project token
+        env:
+          CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+        run: |
+          if [ -z "$CHROMATIC_PROJECT_TOKEN" ]; then
+            echo '::error::Set the CHROMATIC_PROJECT_TOKEN repository secret from Chromatic Manage > Configure.'
+            exit 1
+          fi
+      - uses: ./.github/actions/setup
+      - uses: ./.github/actions/generated-images
+      - uses: ./.github/actions/playwright-chromium
+        with:
+          with-deps: "false"
+      - name: Build and verify the public Storybook
+        run: bun run verify:storybook-publication
+      - name: Publish and test in Chromatic
+        env:
+          CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+        run: bun run chromatic --storybook-build-dir=storybook-static --zip

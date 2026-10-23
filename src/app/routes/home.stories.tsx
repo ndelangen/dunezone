@@ -11,6 +11,7 @@ const meta = preview.meta({
 });
 
 export const Default = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByRole('heading', { level: 1, name: 'Dune Play is coming soon' })).resolves.toBeVisible();
@@ -23,7 +24,7 @@ export const Default = meta.story({
 });
 
 export const SneakPeekLink = meta.story({
-  parameters: { identity: null },
+  parameters: { chromatic: { disableSnapshot: true }, identity: null },
   beforeEach: () => {
     window.location.hash = '#play-preview';
     return () => {

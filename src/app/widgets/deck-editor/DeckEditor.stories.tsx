@@ -34,6 +34,7 @@ const meta = preview.meta({
 
 /** A composed back exposes its background and emblem chapters. */
 export const CardbackComposedHere = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   args: {
     draft: draftWith({ mode: 'custom', ...INITIAL_CARDBACK_PRESETS[1]!.cardback, name: 'Hand of the Emperor' }),
   },
@@ -85,6 +86,7 @@ export const Background = meta.story({
   },
 });
 export const ResetFromEmblemToPreset = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   args: { chapter: 'emblem' as const },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);

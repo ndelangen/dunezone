@@ -590,7 +590,7 @@ export const BookSizeRespectsPageLayouts = meta.story({
 
 export const TraitorSourceEditor = meta.story({
   args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#RULE/ARTW' },
-  parameters: { database: db(withLiveReferenceRulebook) },
+  parameters: { chromatic: { disableSnapshot: true }, database: db(withLiveReferenceRulebook) },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(await page.findByRole('button', { name: 'Choose source' }, { timeout: 30_000 }));
@@ -612,7 +612,7 @@ export const TraitorSourceEditor = meta.story({
 
 export const FactionTokenSourceEditor = meta.story({
   args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#RULE/ARTW' },
-  parameters: { database: db(withLiveReferenceRulebook) },
+  parameters: { chromatic: { disableSnapshot: true }, database: db(withLiveReferenceRulebook) },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(await page.findByRole('button', { name: 'Choose source' }, { timeout: 30_000 }));

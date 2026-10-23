@@ -284,6 +284,34 @@ unpushable.
 
 ## Common workflows
 
+### Reviewing visual changes
+
+[Chromatic](https://www.chromatic.com/builds?appId=6adb5f9c3d9925e3217df200) captures the Storybook
+stories on every branch push and supports manual runs from GitHub Actions. The workflow generates
+the media, builds and verifies the public Storybook, then uploads that artifact with the pinned
+Chromatic CLI. The `CHROMATIC_PROJECT_TOKEN` repository secret is available only to the token
+check and upload steps. Keep it out of source files and command-line arguments.
+
+Review and accept intended visual changes in Chromatic. Visual differences leave the workflow
+green so an expected UI change does not fail the upload job; rendering and interaction failures
+still fail it. No branch automatically accepts changes. Chromatic runs separately from the
+required `ci_ok` check, and its visual review checks report through the GitHub integration.
+Fork pull requests do not receive this repository's token or run this push workflow here.
+
+The 131 stories that failed [the setup capture runs](https://www.chromatic.com/builds?appId=6adb5f9c3d9925e3217df200)
+have `parameters.chromatic.disableSnapshot: true` on their individual story definitions. They remain
+in Storybook and the existing Vitest suites. Story cleanup is deferred; remove each exclusion when
+its story works in Chromatic. The other 1,148 stories remain eligible for captures. New failures
+still fail the workflow and need investigation or an explicit exclusion.
+
+For a local upload, generate the media as described below, set `CHROMATIC_PROJECT_TOKEN` in your
+environment, and run `bun run chromatic`. To upload an existing verified build instead, run
+`bun run chromatic --storybook-build-dir=storybook-static --zip`.
+
+TurboSnap is disabled for the initial setup. Chromatic requires ten completed CI builds before
+enabling it. A later setup must account for generated media and both `staticDirs` entries so
+changes to images and fonts trigger fresh captures.
+
 ### Writing stories
 
 - Keep stories colocated with the component they render. Storybook navigation is owned by the

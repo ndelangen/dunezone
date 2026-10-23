@@ -94,6 +94,7 @@ export const Live = meta.story({
 });
 
 export const IncomingOffer = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => productTransport(VIEWER, alliancesSnapshot())),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -108,6 +109,7 @@ export const IncomingOffer = meta.story({
 });
 
 export const AlliedPlayerInfo = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => productTransport(VIEWER, alliancesSnapshot())),
   play: async ({ canvasElement }) => {
     const page = await openPlayer(canvasElement, /in an alliance/);
@@ -148,6 +150,7 @@ export const ManyAlliancesFitTheHeader = meta.story({
 
 /* Once the game is finished, everyone still sees who was allied, but nobody can change it. */
 export const FinishedReadOnly = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => {
     const snapshot = alliancesSnapshot();
     snapshot.stage = 'finished';

@@ -5,6 +5,8 @@ workers/publisher/runtime-generated
 .env
 supabase/.temp
 storybook-static
+chromatic.log
+chromatic-diagnostics.json
 .cache
 .wrangler/
 workers/publisher/.dev.vars*

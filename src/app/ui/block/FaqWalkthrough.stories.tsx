@@ -155,6 +155,7 @@ export const NaturalSpacing = meta.story({
 
 /** Reproduce resizing the actual preview during the arrival sequence. */
 export const ViewportResize = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   tags: ['!dev'],
   globals: { motion: 'on' },
   play: async ({ canvasElement }) => {
