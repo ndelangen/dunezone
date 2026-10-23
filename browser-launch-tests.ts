@@ -4,6 +4,7 @@
  * A test added here runs where a browser is; a browser-launching test left out fails in the unit job, which has none.
  */
 export const browserLaunchTests = [
+  'src/app/print/capture/captureSettle.browser.test.ts',
   'scripts/application-security.browser.test.ts',
   'scripts/faction-editor-readiness.browser.test.ts',
   'scripts/storybook-publication-images.test.ts',
