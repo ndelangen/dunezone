@@ -49,7 +49,7 @@ Retain the line breaks for checking against the photograph. Paragraph joins, emp
 
 ## Reconstruction work
 
-The [audit](block-audit.md#page-by-page-composition-plan) maps every source page. Most content can use existing text, list, illustration, card, callout and heading blocks. The strongest gaps are a source-matched page design, compound page layouts and exact artwork sources. Contents entries on page 2 and force arithmetic on page 26 are candidate new blocks, with small extensions to existing blocks still worth testing first.
+The [audit](block-audit.md#page-by-page-composition-plan) maps every source page. Most content can use existing text, list, illustration, card, callout and heading blocks. The page-design review approved existing headings, icons and page-number placement, so a separate page design is not required. Compound page arrangements and exact artwork sources remain to review. Contents entries on page 2 and force arithmetic on page 26 are candidate new blocks, with small extensions to existing blocks still worth testing first.
 
 Record decisions in the separate block comments on [#2431](https://github.com/ndelangen/dunezone/issues/2431). Prove the layout on pages 2, 7, 26 and 28 before committing to a general solution. Then compare every rendered page with its source at readable scale and check the exported PDF, text selection, reading order, images and overflow.
 

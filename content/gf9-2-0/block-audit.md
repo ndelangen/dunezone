@@ -10,19 +10,23 @@ examples, captions and printed references. Source mistakes and awkward continuat
 the transcription. Proposed software adjustments below do not authorize editing the rules or
 changing their page breaks. A separate differences book can explain changes later.
 
+The page-design review on 2026-10-23 approved using the existing heading, icon and
+page-number placement. Simplify the source phase bands to the normal heading presentation.
+Preserve the phase number and title as heading text. A separate page design is not required.
+
 ## What exists today
 
 The [Contents contract](../../src/shared/rulebooks/contents.ts#L59) has 19 Block kinds and
 [nine fixed Page layouts](../../src/shared/rulebooks/contents.ts#L456). The
 [settings contract](../../src/shared/rulebooks/settings.ts#L4) includes a 254 mm square
-`gf9-core` size. Its two designs are `illustrated` and `restrained`. Neither is a demonstrated
-match for the 2026 source.
+`gf9-core` size. Its two designs are `illustrated` and `restrained`. Use the existing page
+styling and heading treatment under the approved simplification.
 
 | Source material | Existing Block or control | What to check before using it |
 | --- | --- | --- |
 | Body paragraphs and short bold lead-ins | `text`; optional `name` | Preserve the actual paragraphs and emphasis. A `name` renders an added heading, so only use it for an existing source heading. |
 | Rules, exceptions and setup steps | `list`, with bulleted or numbered style and a starting number | Supports named items and icons. Nested prose lists also exist in formatted text. Check the source's marker shape, indentation and continuation. |
-| Section and faction bands | `section-heading`; optional faction reference | The renderer can derive a band color from the faction. It has one fixed heading treatment. It does not expose arbitrary source colors or phase subtitles. |
+| Section and faction bands | `section-heading`; optional faction reference | Use the existing heading and icon presentation. Preserve phase numbers and titles in the heading text. Source band styling and a separate subtitle field are not requirements. |
 | Examples, notes and quotations | `callout` | There are `note`, `example` and `quotation` variants. Test the source's unboxed examples and bordered Karama extracts before selecting one. |
 | Faction questions | `question-answer` | It inserts `Answer:` itself. Do not paste an additional answer label into the field. Some source answers say `Answer: No.` on the question line and need a closer presentation match. |
 | Standalone artwork and captions | `referenced-illustration` | Accepts small, medium or large size and an empty caption. Its source must resolve through the source catalogue. There is no arbitrary interior image URL or crop field. |
@@ -69,9 +73,9 @@ printed layout being reconstructed.
 | 7 | `asset-explainer`, `card-group` fan, inventory and illustrations | Needs an upper faction-component illustration, lower deck list, narrow token column and shaded two-column faction-specific panel. Preserve the five numbered labels and printed component quantities. |
 | 8 | `two-columns`, `text`, numbered `list`, bottom illustration | Setup has source margin notes and an Atreides sheet extract along the bottom. Test a rail plus bottom band, and preserve the callout labels on the extract. |
 | 9 | Numbered `list` with icons, `text`, `wide-narrow` | Phase list has nine numbered icons and page references, with introductory text above. Match the first-player explanation and list indentation without inventing captions. |
-| 10 | `two-columns`, `text`, `board-scene` or original map extracts | Storm examples include circular/cropped board images and exact italic captions in the right column. Match the phase-number subtitle, end icons and margin note. |
+| 10 | `two-columns`, `text`, `board-scene` or original map extracts | Storm examples include circular/cropped board images and exact italic captions in the right column. Use the existing heading and icon, retaining the phase number and title. Preserve the margin note. |
 | 11 | `two-columns`, `text`, card entries and paired card images | Main text and example card pair coexist with a narrow illustrated right area. Source cards include printed names and rules; retain their text in the transcription and their original appearance in artwork. |
-| 12 | `text`, lists and two phase headings | CHOAM Charity is a short full-width upper section; Bidding has two lower columns. Need the phase band twice at different widths/positions and the left margin note. |
+| 12 | `text`, lists and two phase headings | CHOAM Charity is a short upper section; Bidding follows in two columns. Use existing headings and icons for both phases. Review their placement and the margin note using existing layouts before proposing a layout change. |
 | 13 | `text`, lists, illustrated sheet extract | Revival is two upper columns, with a large Atreides sheet and an adjacent margin explanation below. Existing paired rows are a starting point; row heights and the sheet/explanation widths need proof. |
 | 14 | `two-columns`, `text`, lists, board example | Shipment and Movement includes a map extract in the upper right with caption and smaller subheadings. Use the original crop unless an exact board reconstruction passes visual review. |
 | 15 | `two-columns` or `wide-narrow`, text and board scenes | No new page heading. Two smaller board examples on the left and a tall map crop on the right have captions outside the map. Preserve their bounds and the source reading order. |
@@ -89,7 +93,7 @@ printed layout being reconstructed.
 | 27 | `outer-rail`, section headings, text, troop illustration | Bene Gesserit has two rules columns, a strategy rail, a faction emblem and an advisor token beside prose. Preserve the source's opening sentence about the following pages as printed. |
 | 28 | Text, headings, troop illustration, question/answer content | Bene Gesserit continues in the main columns with an empty left rail; a Fremen heading then spans only the main area above two lower columns. This combination is absent from the fixed layout catalogue. |
 | 29 | `outer-rail`, text, headings, troop illustrations | Fremen continuation uses two rules columns and a right strategy rail. Preserve special victory, alliance, insights and token labels in their original positions. |
-| 30 | `outer-rail`, text, headings, troop illustrations | Emperor uses a left strategy rail and two main columns, with two force tokens at the bottom of the first main column. Color and compact band styles need proof. |
+| 30 | `outer-rail`, text, headings, troop illustrations | Emperor uses a left strategy rail and two main columns, with two force tokens at the bottom of the first main column. Use existing heading styling. |
 | 31 | `outer-rail`, text, headings | Atreides uses a right strategy rail; a small source illustration appears at the lower edge. Preserve the source's intentional open space. |
 | 32 | `outer-rail`, text, headings | Harkonnen uses a left strategy rail and two main columns. Test dense lists and source subheadings without generating a roster panel. |
 | 33 | `outer-rail`, text, headings | Guild uses a right strategy rail, two main columns and several colored section bands. Its special victory condition and alliance text remain separate. |
@@ -99,23 +103,16 @@ printed layout being reconstructed.
 
 ## Adjust the existing tools first
 
-### A GF9 2026 page design
+### Use the existing page design
 
-The source has centered folios, compact text, blue component pages, colored faction bands,
-phase bands with a small number/title line, and small icons at both ends. The current
-[page CSS](../../src/game/rulebook/RulebookRenderer.css#L15) uses cream paper, fixed body
-type and margins. Its folios sit at the quarter-page positions, alternating by side. The
-[interior heading](../../src/game/rulebook/RulebookInteriorHeading.tsx#L4) has one title and
-one optional icon, while the source phase bands have more structure.
+Use the normal [heading with its existing icon support](../../src/game/rulebook/RulebookInteriorHeading.tsx#L4).
+Keep the phase number and title in the heading text. The source's two-line phase bands and
+icons at both ends can be simplified to that presentation. Keep the implemented page-number
+placement and existing typography and page styling. The page-design review on 2026-10-23
+removed the proposed separate design and heading changes from the requirements.
 
-A separate source-matched design is the first candidate. Give it source-matched typography,
-centered folios, page backgrounds, compact spacing and heading treatments. Keep existing
-designs stable. Confirm source page dimensions separately from the scans' perspective before
-choosing `gf9-core`; the presence of that size in the catalogue does not prove the PDF's
-physical dimensions.
-
-Do not shrink the words until they fit. Match measured source proportions, then compare a
-render of every page. The current [Page canvas clips overflow](../../src/game/rulebook/RulebookRenderer.css#L15)
+Keep all source wording and page boundaries, then compare a render of every page for fit.
+The current [Page canvas clips overflow](../../src/game/rulebook/RulebookRenderer.css#L15)
 and [print rules fix the physical page](../../src/game/rulebook/RulebookRenderer.css#L1134).
 A valid Contents object does not prove that the last paragraph, caption or image survived.
 
@@ -123,14 +120,15 @@ A valid Contents object does not prove that the last paragraph, caption or image
 
 The current grids have fixed column ratios and region sets. `outer-rail` alternates its rail
 by page side, `band-columns` offers one full-width band above or below two columns, and
-`paired-rows` offers an opening, two paired rows and a closing. They cannot directly express
-all the source arrangements.
+`paired-rows` offers an opening, two paired rows and a closing. Review the source arrangements
+against these layouts before treating a visual difference as a missing capability.
 
 Page 28 is the clearest proving page. It needs a rail spanning the page height, an upper
 two-column continuation, a faction band across only the main area, and two lower columns.
-Pages 2, 3, 5, 7, 12, 13 and 20 exercise related combinations. Extend the small set of named
-page arrangements from these examples before considering a general positioning editor.
-This gap belongs to Page layout, not to a new monolithic rules Block.
+Pages 2, 3, 5, 7, 12, 13 and 20 exercise related combinations. First test the existing named
+layouts and review any proposed simplification. Add a layout only if a required content
+arrangement remains unsupported. Keep that decision separate from the approved heading and
+page-number simplification.
 
 ### Suppress generated wording when the source does not contain it
 
@@ -194,9 +192,11 @@ Keep these findings as separate comments on
 [GF9 2.0 ruleset, #2431](https://github.com/ndelangen/dunezone/issues/2431), so implementation
 decisions and evidence can accumulate independently.
 
-1. **Page design and compound layouts.** Source pages 2, 3, 5, 7, 12, 13, 20 and especially
-   28. Track the GF9 2026 typography, phase bands, folios and the main-area/rail arrangements.
-   This is layout/design work, with the existing nine layouts as the starting point.
+1. **Compound layouts to review.** Source pages 2, 3, 5, 7, 12, 13, 20 and especially
+   28. Review the main-area/rail arrangements against the existing nine layouts. The page-design
+   review approved existing headings, icons and page-number placement; those require no new
+   capability. Demonstrate a content arrangement that existing layouts cannot express before
+   proposing a layout addition.
 2. **Interior artwork sources and labelled diagrams.** Source pages 1, 4-7, 10-15, 17-19,
    23-27 and 29-33. Track exact artwork/crop inventory and durable source references. Page 6
    tests an `asset-explainer` label/connector adjustment; map pages test existing viewport and
