@@ -1,12 +1,10 @@
 import preview from '@sb/preview';
-import { waitForFrame } from '@sb/storyWaits';
 import { createRulebookStarterContents } from '@shared/rulebooks/fixtures';
-import { rulebookNameKey } from '@shared/rulebooks/metadata';
 import { projectRulebookRenderDocument } from '@shared/rulebooks/projectRenderDocument';
 import { DEFAULT_RULEBOOK_SETTINGS } from '@shared/rulebooks/settings';
 import { expect, fn, userEvent, waitFor, within } from 'storybook/test';
 
-import { db, ref } from '@db/storybook';
+import { db } from '@db/storybook';
 import type { StorybookDatabase } from '@db/storybook';
 
 import { StorybookPage, syncPreviewFrameHash } from '../../storybook';
@@ -15,33 +13,17 @@ import {
   buildTextFragmentDirective,
   encodeRulebookTextLocator,
   locatorFromRulebookSelection,
-  parseRulebookTextLocator,
   resolveRulebookTextLocator,
 } from './$rulesetSlug/rulebooks/$rulebookSlug/rulebookReaderLinks';
-import type {
-  RulebookTextFragment,
-  RulebookTextLocator,
-} from './$rulesetSlug/rulebooks/$rulebookSlug/rulebookReaderLinks';
+import type { RulebookTextFragment } from './$rulesetSlug/rulebooks/$rulebookSlug/rulebookReaderLinks';
+import {
+  readerPath,
+  movementLocator,
+  movementLocatorParam,
+  SETTLE_TIMEOUT_MS,
+  withRulebookReader,
+} from './rulebook-reader.stories.fixture';
 
-const readerPath = '/rulesets/classicrules/rulebooks/rules-of-arrakis';
-const movementLocator: RulebookTextLocator = {
-  v: 1,
-  path: [
-    { kind: 'page', id: 'RULE' },
-    { kind: 'block', id: 'MVVE' },
-  ],
-  exact: 'Movement sequence',
-  suffix: 'Choose a troop',
-};
-const movementLocatorParam = encodeRulebookTextLocator(movementLocator);
-const historicalOnlyLocator = encodeRulebookTextLocator({
-  v: 1,
-  path: [
-    { kind: 'page', id: 'CHAP' },
-    { kind: 'block', id: 'HERA' },
-  ],
-  exact: 'A selected Asset with a short caption.',
-});
 const staleLocator = encodeRulebookTextLocator({
   ...movementLocator,
   exact: 'Words removed from this Edition',
@@ -52,12 +34,6 @@ const missingLocator = encodeRulebookTextLocator({
   exact: 'Missing Page',
 });
 const clippedCaptionEnding = 'The final caption words still belong to this Edition.';
-/*
- * Every wait in this file that observes an asynchronous result carries this bound, the same one the mount waits carry.
- * The results arrive from the reader's own timers and from Convex round trips, and on a loaded runner they arrive late: the library's one-second default at the time failed nine runs in four days on branches that never touched the reader (#995).
- * A bound is not a cost when the result arrives, and a result that never arrives still fails with the assertion that named it.
- */
-const SETTLE_TIMEOUT_MS = 30_000;
 const clippedLocatorParam = encodeRulebookTextLocator({
   v: 1,
   path: [
@@ -66,60 +42,6 @@ const clippedLocatorParam = encodeRulebookTextLocator({
   ],
   exact: clippedCaptionEnding,
 });
-
-function withRulebookReader(baseline: StorybookDatabase) {
-  const rulebookKey = 'rulebook:reader';
-  const editionOne = createRulebookStarterContents();
-  const editionTwo = structuredClone(editionOne);
-  editionTwo.pagesById[editionTwo.pageOrder[0]]!.title = 'The gathered rules';
-  const historicalOnlyPage = editionTwo.pagesById.CHAP;
-  if (historicalOnlyPage?.layoutId !== 'single-column') {
-    throw new Error('The Rulebook reader fixture needs its opening Page');
-  }
-  historicalOnlyPage.blockOrderByRegion.content = [];
-  delete historicalOnlyPage.blocksById.HERA;
-  baseline.rulebooks.push({
-    $key: rulebookKey,
-    ruleset_id: ref('ruleset:classicrules'),
-    name: 'Rules of Arrakis',
-    name_key: rulebookNameKey('Rules of Arrakis'),
-    slug: 'rules-of-arrakis',
-    sort_order: 0,
-    current_edition_number: 2,
-    created_by: ref('storybook-viewer'),
-    created_at: '2026-07-01T12:00:00.000Z',
-    updated_at: '2026-08-31T12:00:00.000Z',
-    is_deleted: false,
-    deleted_at: null,
-  });
-  baseline.rulebook_editions.push(
-    {
-      $key: 'rulebook-edition:reader:1',
-      rulebook_id: ref(rulebookKey),
-      edition_number: 1,
-      created_by: ref('storybook-viewer'),
-      created_at: '2026-07-01T12:00:00.000Z',
-    },
-    {
-      $key: 'rulebook-edition:reader:2',
-      rulebook_id: ref(rulebookKey),
-      edition_number: 2,
-      created_by: ref('storybook-viewer'),
-      created_at: '2026-08-31T12:00:00.000Z',
-    }
-  );
-  baseline.rulebook_edition_contents.push(
-    {
-      edition_id: ref('rulebook-edition:reader:1'),
-      contents: editionOne,
-    },
-    {
-      edition_id: ref('rulebook-edition:reader:2'),
-      contents: editionTwo,
-    }
-  );
-  return baseline;
-}
 
 function withClippedRulebookReader(baseline: StorybookDatabase) {
   withRulebookReader(baseline);
@@ -164,14 +86,6 @@ function selectRulebookRange(storyWindow: Window, start: Node | null | undefined
     throw new Error(locator.message);
   }
   return locator;
-}
-
-async function trackReaderScroll(storyWindow: Window) {
-  storyWindow.dispatchEvent(new Event('scroll'));
-  /* Let the reader's tracking frame run and React paint its result before checking feedback. */
-  await new Promise<void>((resolve) =>
-    storyWindow.requestAnimationFrame(() => storyWindow.requestAnimationFrame(() => resolve()))
-  );
 }
 
 async function prepareTargetRecovery(canvasElement: HTMLElement) {
@@ -257,51 +171,6 @@ export const CurrentEdition = meta.story({
   },
 });
 
-export const HistoricalEdition = meta.story({
-  args: { path: `${readerPath}?edition=1` },
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await expect(
-      page.findByRole('heading', { name: 'Rules of Arrakis', level: 1 }, { timeout: 30_000 })
-    ).resolves.toBeVisible();
-    /* The label goes through the dates module, so this reads the same in every locale and time zone rather than only in the one the runner happens to use. */
-    await userEvent.click(page.getByRole('button', { name: 'Choose Edition' }));
-    await expect(
-      waitForFrame(() => page.getByRole('menuitem', { name: 'Edition 1, Jul 1, 2026', current: true }))
-    ).resolves.toBeInTheDocument();
-    await userEvent.keyboard('{Escape}');
-    await expect(page.getByRole('heading', { name: 'Welcome to Arrakis' })).toBeVisible();
-    await expect(page.queryByRole('heading', { name: 'The gathered rules' })).not.toBeInTheDocument();
-    await expect(page.getByRole('link', { name: /Movement/ })).toHaveAttribute(
-      'href',
-      `${readerPath}?edition=1#movement`
-    );
-  },
-});
-
-export const SelectingCurrentEditionUsesCanonicalUrl = meta.story({
-  args: { path: `${readerPath}?edition=1` },
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await userEvent.click(await page.findByRole('button', { name: 'Choose Edition' }, { timeout: 30_000 }));
-    await userEvent.click(await waitForFrame(() => page.getByRole('menuitem', { name: 'Edition 2, Aug 31, 2026' })));
-    await expect(
-      page.findByRole('heading', { name: 'The gathered rules' }, { timeout: 30_000 })
-    ).resolves.toBeVisible();
-    /*
-     * The heading arrives with the new Edition's content, but the header's Edition and the links are
-     * rebuilt from the rewritten address, so both settle after it rather than with it.
-     */
-    await waitFor(() => expect(page.getByText('Edition 2', { exact: true })).toBeVisible(), {
-      timeout: SETTLE_TIMEOUT_MS,
-    });
-    await waitFor(
-      () => expect(page.getByRole('link', { name: /Movement/ })).toHaveAttribute('href', `${readerPath}#movement`),
-      { timeout: SETTLE_TIMEOUT_MS }
-    );
-  },
-});
-
 export const StaleSelectedText = meta.story({
   args: { path: `${readerPath}?loc=${staleLocator}` },
   play: async ({ canvasElement }) => {
@@ -373,115 +242,6 @@ export const MissingLocator = meta.story({
   },
 });
 
-export const SelectedTextLink = meta.story({
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    const storyWindow = canvasElement.ownerDocument.defaultView;
-    if (!storyWindow) {
-      throw new Error('Rulebook reader Story requires a browser Window');
-    }
-    const clipboardDescriptor = Object.getOwnPropertyDescriptor(storyWindow.navigator, 'clipboard');
-    const writeText = fn(async (_value: string) => undefined);
-    Object.defineProperty(storyWindow.navigator, 'clipboard', {
-      configurable: true,
-      value: { writeText },
-    });
-    const heading = await page.findByRole('heading', { name: 'Movement sequence' }, { timeout: 30_000 });
-    const liveRegion = page.getByRole('status');
-    const announcements: string[] = [];
-    const observer = new storyWindow.MutationObserver((records) => {
-      for (const record of records) {
-        for (const node of record.addedNodes) {
-          if (node.textContent === 'Selected-text link copied.') {
-            announcements.push(node.textContent);
-          }
-        }
-      }
-    });
-    observer.observe(liveRegion, { childList: true });
-    const selection = storyWindow.getSelection();
-    const range = canvasElement.ownerDocument.createRange();
-    range.selectNodeContents(heading);
-    selection?.removeAllRanges();
-    selection?.addRange(range);
-    try {
-      await userEvent.click(page.getByRole('button', { name: 'Copy link to selected text' }));
-      await waitFor(() => expect(announcements).toHaveLength(1), { timeout: SETTLE_TIMEOUT_MS });
-      await userEvent.click(page.getByRole('button', { name: 'Copy link to selected text' }));
-      await waitFor(() => expect(announcements).toHaveLength(2), { timeout: SETTLE_TIMEOUT_MS });
-      page.getByRole('article', { name: 'Rulebook page: Markers and tokens' }).scrollIntoView({ block: 'start' });
-      await trackReaderScroll(storyWindow);
-      await waitFor(
-        () => expect(page.getByRole('link', { name: /Markers and tokens/ })).toHaveAttribute('aria-current', 'page'),
-        { timeout: SETTLE_TIMEOUT_MS }
-      );
-      await waitFor(() => expect(liveRegion).toBeEmptyDOMElement(), { timeout: SETTLE_TIMEOUT_MS });
-      await expect(
-        page.queryByText('Selected-text link copied.', { selector: '[aria-hidden="true"]' })
-      ).not.toBeInTheDocument();
-      await expect(writeText).toHaveBeenCalledTimes(2);
-      const copiedUrl = new URL(writeText.mock.calls[0]![0]);
-      await expect(copiedUrl.origin).toBe(storyWindow.location.origin);
-      await expect(copiedUrl.pathname).toBe(storyWindow.location.pathname);
-      await expect(copiedUrl.searchParams.has('edition')).toBe(false);
-      await expect(parseRulebookTextLocator(copiedUrl.searchParams.get('loc') ?? undefined)).toMatchObject({
-        status: 'valid',
-        locator: {
-          path: [
-            { kind: 'page', id: 'RULE' },
-            { kind: 'block', id: 'MVVE' },
-          ],
-        },
-      });
-      await expect(copiedUrl.hash).toMatch(/^#movement:~:text=/);
-    } finally {
-      observer.disconnect();
-      if (clipboardDescriptor) {
-        Object.defineProperty(storyWindow.navigator, 'clipboard', clipboardDescriptor);
-      } else {
-        Reflect.deleteProperty(storyWindow.navigator, 'clipboard');
-      }
-    }
-  },
-});
-
-export const CopyFeedbackSurvivesSamePageTracking = meta.story({
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    const storyWindow = canvasElement.ownerDocument.defaultView;
-    if (!storyWindow) {
-      throw new Error('Rulebook reader Story requires a browser Window');
-    }
-    await expect(
-      page.findByRole('heading', { name: 'Rules of Arrakis', level: 1 }, { timeout: 30_000 })
-    ).resolves.toBeVisible();
-    storyWindow.scrollTo({ top: 0 });
-    await trackReaderScroll(storyWindow);
-    const firstPage = page.getByRole('link', { name: /The gathered rules/ });
-    await waitFor(() => expect(firstPage).toHaveAttribute('aria-current', 'page'), { timeout: SETTLE_TIMEOUT_MS });
-
-    storyWindow.getSelection()?.removeAllRanges();
-    await userEvent.click(page.getByRole('button', { name: 'Copy link to selected text' }));
-    const feedback = await page.findByText(
-      'Select some Rulebook text first.',
-      { selector: '[aria-hidden="true"]' },
-      { timeout: SETTLE_TIMEOUT_MS }
-    );
-    await trackReaderScroll(storyWindow);
-    await expect(firstPage).toHaveAttribute('aria-current', 'page');
-    await expect(feedback).toBeVisible();
-    await expect(page.getByRole('status')).toHaveTextContent('Select some Rulebook text first.');
-
-    page.getByRole('article', { name: 'Rulebook page: Movement' }).scrollIntoView({ block: 'start' });
-    await trackReaderScroll(storyWindow);
-    await waitFor(() => expect(page.getByRole('link', { name: /Movement/ })).toHaveAttribute('aria-current', 'page'), {
-      timeout: SETTLE_TIMEOUT_MS,
-    });
-    await expect(feedback).not.toBeInTheDocument();
-    await expect(page.getByRole('status')).toBeEmptyDOMElement();
-  },
-});
-
 export const PageScopedSelectedTextLink = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -521,69 +281,6 @@ export const BlockSelectedTextHighlightsAcrossContainers = meta.story({
     const end = paragraph?.firstChild;
     const locator = selectRulebookRange(storyWindow, start, end);
     await expectTextFragmentHighlights(storyWindow, locator.textFragment);
-  },
-});
-
-export const AnchoredPage = meta.story({
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    const storyWindow = canvasElement.ownerDocument.defaultView;
-    if (!storyWindow) {
-      throw new Error('Rulebook reader Story requires a browser Window');
-    }
-    await expect(
-      page.findByRole('heading', { name: 'Rules of Arrakis', level: 1 }, { timeout: 30_000 })
-    ).resolves.toBeVisible();
-    storyWindow.location.hash = 'movement';
-    await expect(
-      page.findByRole('button', { name: 'Unpin linked target' }, { timeout: 30_000 })
-    ).resolves.toBeVisible();
-    await userEvent.click(page.getByRole('button', { name: 'Unpin linked target' }));
-    await expect(page.findByText('Tracking', {}, { timeout: SETTLE_TIMEOUT_MS })).resolves.toBeVisible();
-    await waitFor(() => expect(page.queryByRole('button', { name: 'Unpin linked target' })).not.toBeInTheDocument(), {
-      timeout: SETTLE_TIMEOUT_MS,
-    });
-
-    storyWindow.location.hash = 'missing-page';
-    await expect(page.findByRole('alert', {}, { timeout: 30_000 })).resolves.toHaveTextContent(
-      'The linked target does not exist'
-    );
-    storyWindow.history.replaceState(
-      storyWindow.history.state,
-      '',
-      `${storyWindow.location.pathname}${storyWindow.location.search}`
-    );
-  },
-});
-
-export const SidebarNavigationStaysInDocument = meta.story({
-  args: { path: `${readerPath}?loc=${movementLocatorParam}#movement` },
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    const storyDocument = canvasElement.ownerDocument;
-    const link = await page.findByRole('link', { name: /Markers and tokens/ }, { timeout: 30_000 });
-    await expect(link).toHaveAttribute('href', `${readerPath}?loc=${movementLocatorParam}#markers-and-tokens`);
-
-    let routerIntercepted = false;
-    const observeNavigation = (event: MouseEvent) => {
-      routerIntercepted = event.defaultPrevented;
-      event.preventDefault();
-    };
-    storyDocument.addEventListener('click', observeNavigation, { once: true });
-    await userEvent.click(link);
-    await expect(routerIntercepted).toBe(true);
-    await userEvent.click(page.getByRole('button', { name: 'Choose Edition' }));
-    await userEvent.click(await waitForFrame(() => page.getByRole('menuitem', { name: 'Edition 1, Jul 1, 2026' })));
-    await waitFor(() => expect(page.getByText('Edition 1', { exact: true })).toBeVisible(), {
-      timeout: SETTLE_TIMEOUT_MS,
-    });
-    const nextPageHref = page.getByRole('link', { name: /Markers and tokens/ }).getAttribute('href');
-    if (!nextPageHref) {
-      throw new Error('Rulebook reader Page link is missing its href');
-    }
-    const nextPageUrl = new URL(nextPageHref, 'https://dune.zone');
-    await expect(nextPageUrl.searchParams.get('edition')).toBe('1');
-    await expect(nextPageUrl.searchParams.get('loc')).toBe(movementLocatorParam);
   },
 });
 
@@ -628,64 +325,5 @@ export const ControlKeyKeepsTargetRecovery = meta.story({
     } finally {
       restore();
     }
-  },
-});
-
-export const EditionChangeDropsAnUnresolvedPin = meta.story({
-  args: { path: `${readerPath}?edition=1&loc=${historicalOnlyLocator}#welcome-to-arrakis` },
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    const storyWindow = canvasElement.ownerDocument.defaultView;
-    if (!storyWindow) {
-      throw new Error('Rulebook reader Story requires a browser Window');
-    }
-    await expect(
-      page.findByRole('button', { name: 'Unpin linked target' }, { timeout: 30_000 })
-    ).resolves.toBeVisible();
-    /* The pinned Block sits below the first Page's anchor; the reveal brings it into the viewport before the story touches anything. */
-    const pinnedBlock = canvasElement.ownerDocument.querySelector<HTMLElement>('[data-rulebook-block-id="HERA"]');
-    if (!pinnedBlock) {
-      throw new Error('The pinned Block is missing from the historical Edition');
-    }
-    await waitFor(
-      async () => {
-        const bounds = pinnedBlock.getBoundingClientRect();
-        await expect(bounds.top).toBeGreaterThanOrEqual(0);
-        await expect(bounds.bottom).toBeLessThanOrEqual(storyWindow.innerHeight);
-      },
-      { timeout: SETTLE_TIMEOUT_MS }
-    );
-    storyWindow.getSelection()?.removeAllRanges();
-    await userEvent.click(page.getByRole('button', { name: 'Copy link to selected text' }));
-    await expect(
-      page.findByText('Select some Rulebook text first.', { selector: '[aria-hidden="true"]' }, { timeout: 30_000 })
-    ).resolves.toBeVisible();
-    await userEvent.click(page.getByRole('button', { name: 'Choose Edition' }));
-    await userEvent.click(await waitForFrame(() => page.getByRole('menuitem', { name: 'Edition 2, Aug 31, 2026' })));
-    await expect(page.findByRole('alert', {}, { timeout: 30_000 })).resolves.toHaveTextContent(
-      'The linked target does not exist'
-    );
-    await expect(page.findByText('Tracking', {}, { timeout: 30_000 })).resolves.toBeVisible();
-    await expect(page.queryByRole('button', { name: 'Unpin linked target' })).not.toBeInTheDocument();
-    await expect(page.queryByText('Select some Rulebook text first.')).not.toBeInTheDocument();
-  },
-});
-
-/**
- * A rejected `?edition` leaves the reader on the current Edition instead of an error frame.
- * The value has to be rejected by `validateSearch` and then not show through: a route's search is the parent match's search merged with the child's result, so a validator that omits a rejected key lets the raw one reach the loader and the Convex query.
- * Asserting the Edition menu's current entry rather than the heading is what makes that visible, since a reader that fell through to the raw value names it here.
- */
-export const RejectedEditionFallsBackToCurrent = meta.story({
-  args: { path: `${readerPath}?edition=abc` },
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await expect(
-      page.findByRole('heading', { name: 'Rules of Arrakis', level: 1 }, { timeout: 30_000 })
-    ).resolves.toBeVisible();
-    await userEvent.click(page.getByRole('button', { name: 'Choose Edition' }));
-    await expect(
-      waitForFrame(() => page.getByRole('menuitem', { name: 'Edition 2, Aug 31, 2026', current: true }))
-    ).resolves.toBeInTheDocument();
   },
 });

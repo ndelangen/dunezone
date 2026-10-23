@@ -1,0 +1,131 @@
+import { testingPreview } from '@sb/preview';
+import { expect, userEvent, within } from 'storybook/test';
+
+import type { CustomCardDraft } from './CustomCardEditor';
+import { InteractiveEditor } from './CustomCardEditor.stories.fixture';
+import { CUSTOM_CARD_PRESETS } from './customCardPresets';
+
+const meta = testingPreview.meta({
+  parameters: { layout: 'padded' },
+  title: 'Custom Card Editor',
+  component: InteractiveEditor,
+  args: { preset: 'treachery' },
+});
+
+export const MovingWindow = meta.story({
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole('tab', { name: 'Format' }));
+    const offset = canvas.getByRole('textbox', { name: 'Window vertical offset' });
+    await userEvent.tripleClick(offset);
+    await userEvent.keyboard('200');
+    await userEvent.tab();
+    await expect(offset).toHaveValue('200');
+    await userEvent.click(canvas.getByRole('tab', { name: '1. Decal' }));
+    await userEvent.click(canvas.getByRole('button', { name: 'Centre in decal window' }));
+    await expect(canvas.getByRole('textbox', { name: 'Vertical position' })).toHaveValue('670');
+    await userEvent.click(canvas.getByRole('tab', { name: '2. Text' }));
+    await userEvent.click(canvas.getByRole('button', { name: 'Fit box to text body' }));
+    await expect(canvas.getByRole('textbox', { name: 'Vertical position' })).toHaveValue('904');
+  },
+});
+
+export const LayerTabs = meta.story({
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole('tab', { name: '2. Text' }));
+    const position = canvas.getByRole('textbox', { name: 'Horizontal position' });
+    await userEvent.tripleClick(position);
+    await userEvent.keyboard('210');
+    await userEvent.tab();
+    await userEvent.click(canvas.getByRole('button', { name: 'Move backward' }));
+    await expect(canvas.getByRole('tab', { name: '1. Text' })).toHaveAttribute('aria-selected', 'true');
+    await expect(canvas.getByRole('textbox', { name: 'Horizontal position' })).toHaveValue('210');
+    await userEvent.click(canvas.getByRole('button', { name: 'Duplicate layer' }));
+    await expect(canvas.getByRole('tab', { name: '2. Text' })).toHaveAttribute('aria-selected', 'true');
+    await userEvent.click(canvas.getByRole('button', { name: 'Fit box to text body' }));
+    await expect(canvas.getByRole('textbox', { name: 'Horizontal position' })).toHaveValue('89');
+    await expect(canvas.getByRole('textbox', { name: 'Vertical position' })).toHaveValue('704');
+    await userEvent.click(canvas.getByRole('tab', { name: '1. Text' }));
+    await expect(canvas.getByRole('textbox', { name: 'Horizontal position' })).toHaveValue('210');
+    await userEvent.click(canvas.getByRole('tab', { name: 'Layers' }));
+    await userEvent.click(canvas.getByRole('button', { name: 'Add decal' }));
+    await expect(canvas.getByRole('tab', { name: '4. Decal' })).toHaveAttribute('aria-selected', 'true');
+    await userEvent.click(canvas.getByRole('button', { name: 'Centre vertically' }));
+    await expect(canvas.getByRole('textbox', { name: 'Vertical position' })).toHaveValue('631.5');
+    await userEvent.click(canvas.getByRole('button', { name: 'Centre in decal window' }));
+    await expect(canvas.getByRole('textbox', { name: 'Vertical position' })).toHaveValue('470');
+  },
+});
+
+export const ResizedHeadIcon = meta.story({
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole('tab', { name: 'Symbol' }));
+    const scale = canvas.getByRole('textbox', { name: 'Icon scale' });
+    await userEvent.tripleClick(scale);
+    await userEvent.keyboard('1.5');
+    await userEvent.tab();
+    await expect(scale).toHaveValue('1.5');
+    const cardIcon = Array.from(canvasElement.querySelectorAll<HTMLImageElement>('img')).find(
+      (image) => image.src.endsWith('/vector/icon/karama.svg') && getComputedStyle(image).mixBlendMode === 'overlay'
+    );
+    await expect(cardIcon).toBeDefined();
+    await expect(cardIcon!.style.width).toBe('127.5px');
+    await userEvent.click(canvas.getByRole('tab', { name: 'Format' }));
+    await expect(canvas.queryByRole('textbox', { name: 'Name' })).toBeNull();
+    await expect(canvas.getByRole('radiogroup', { name: 'Card format' })).toBeVisible();
+    await userEvent.click(canvas.getByRole('tab', { name: 'Symbol' }));
+    await expect(canvas.getByRole('textbox', { name: 'Icon scale' })).toHaveValue('1.5');
+  },
+});
+
+export const TokenLayer = meta.story({
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole('tab', { name: 'Layers' }));
+    await userEvent.click(canvas.getByRole('button', { name: 'Add token' }));
+    await userEvent.click(canvas.getByRole('button', { name: 'Pick Karama token' }));
+    await expect(canvas.getByRole('tab', { name: '3. Token' })).toHaveAttribute('aria-selected', 'true');
+    await expect(canvas.getByText('Karama token')).toBeVisible();
+    await userEvent.tripleClick(canvas.getByRole('textbox', { name: 'Token scale' }));
+    await userEvent.keyboard('1.5');
+    await userEvent.tab();
+    const scaleSlider = canvas.getByRole('slider', { name: 'Token scale' });
+    await expect(scaleSlider).toHaveAttribute('aria-valuenow', '1.5');
+    scaleSlider.focus();
+    await userEvent.keyboard('{ArrowRight}');
+    await expect(canvas.getByRole('textbox', { name: 'Token scale' })).toHaveValue('1.55');
+    await userEvent.keyboard('{ArrowLeft}');
+    await userEvent.click(canvas.getByRole('button', { name: 'Centre in window' }));
+    await expect(canvas.getByRole('textbox', { name: 'Vertical position' })).toHaveValue('470');
+    await userEvent.click(canvas.getByRole('button', { name: 'Move backward' }));
+    await expect(canvas.getByRole('tab', { name: '2. Token' })).toHaveAttribute('aria-selected', 'true');
+    await expect(canvas.getByRole('textbox', { name: 'Token scale' })).toHaveValue('1.5');
+    canvas.getByRole('slider', { name: 'Opacity for layer 2' }).focus();
+    await userEvent.keyboard('{ArrowLeft}');
+    await expect(canvas.getByRole('textbox', { name: 'Opacity for layer 2' })).toHaveValue('0.95');
+    canvas.getByRole('slider', { name: 'Rotation for layer 2' }).focus();
+    await userEvent.keyboard('{ArrowRight}');
+    await expect(canvas.getByRole('textbox', { name: 'Rotation for layer 2' })).toHaveValue('1');
+  },
+});
+
+export const BehindFrame = meta.story({
+  args: {
+    layers: [
+      { ...CUSTOM_CARD_PRESETS[0].layers[0], behindFrame: false },
+      CUSTOM_CARD_PRESETS[0].layers[1],
+    ] as CustomCardDraft['layers'],
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole('tab', { name: '1. Decal' }));
+    const control = canvas.getByRole('switch', { name: 'Behind frame' });
+    await expect(control).not.toBeChecked();
+    await userEvent.click(control);
+    await expect(control).toBeChecked();
+    await userEvent.click(canvas.getByRole('button', { name: 'Duplicate layer' }));
+    await expect(canvas.getByRole('switch', { name: 'Behind frame' })).toBeChecked();
+  },
+});

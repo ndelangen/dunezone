@@ -260,3 +260,10 @@ function SandboxFrame({
     </>
   );
 }
+
+/** What the page is shown of the room right now, in the ids it sends back. */
+export const shown = () => sandbox.table!.frame().snapshot;
+
+/** A table piece as the page sees it, by what it is. */
+export const piece = (match: (candidate: { kind: string; stackKey?: string | null }) => boolean) =>
+  shown().table.pieces.find((candidate) => !candidate.inventory && match(candidate))!;
