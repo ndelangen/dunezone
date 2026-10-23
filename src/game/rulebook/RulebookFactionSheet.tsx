@@ -18,7 +18,7 @@ export function RulebookFactionSheet({
       aria-label={`${sheet.name} faction sheet`}
       style={canvas ? { padding, aspectRatio: `${canvas.width} / ${canvas.height}` } : undefined}
     >
-      <FactionSheet {...sheet} page={1} />
+      <FactionSheet {...sheet} page={1} embedded />
       {projection && canvas ? (
         <svg className="rulebookFactionSheetMarks" viewBox={canvas.viewBox} aria-hidden="true">
           <RulebookAnnotationMarks projection={projection} />

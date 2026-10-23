@@ -5,6 +5,7 @@ import { factionTokenFixtures } from '../../game/fixtures/factionTokens';
 import { factionMemberPublicationId } from '../../shared/asset-publishing/componentPublication';
 import { publishedHref } from '../../shared/asset-publishing/publicationTargets';
 import { assetPublishingFaction } from '../../shared/factions/fixtures/assetPublishingFaction';
+import { normalizeFormattedText } from '../../shared/formattedText';
 import { resolveAsset } from '../../shared/media/resolveAsset';
 import type { RulebookContentsDraftV1 } from '../../shared/rulebooks/contents';
 import { rulebookContentsV1Schema } from '../../shared/rulebooks/contents';
@@ -25,6 +26,10 @@ describe('downloaded Rulebook images', () => {
   test('keeps a sheet and its annotation in standalone HTML instead of replacing it with an image endpoint', () => {
     const contents = createRulebookStarterContents();
     const reference = { kind: 'faction', factionId, presentation: 'sheet' } as const;
+    const description = normalizeFormattedText('2 free forces.');
+    if (!description.ok) {
+      throw new Error('Expected valid example wording');
+    }
     contents.pagesById.CHAP!.blocksById.HERA = {
       id: 'HERA',
       kind: 'asset-explainer',
@@ -37,7 +42,7 @@ describe('downloaded Rulebook images', () => {
         FREE: {
           id: 'FREE',
           label: '1',
-          text: '2 free forces.',
+          text: description.value,
           target: { kind: 'named', key: 'revival', source: reference },
         },
       },

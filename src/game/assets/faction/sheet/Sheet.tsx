@@ -13,10 +13,11 @@ import styles from './Sheet.module.css';
 
 type SheetProps = z.infer<typeof FactionRender.sheet>;
 
-export const FactionSheet = (props: SheetProps & { page?: 1 | 2 }) => {
+export const FactionSheet = (props: SheetProps & { page?: 1 | 2; embedded?: boolean }) => {
   return (
     <div
       className={styles.container}
+      data-embedded={props.embedded || undefined}
       style={
         {
           '--header-bg-color': props.themeColor,

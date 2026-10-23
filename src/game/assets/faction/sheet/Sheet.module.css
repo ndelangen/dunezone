@@ -336,12 +336,16 @@
 }
 
 @media print {
-  @page {
+  @page faction-sheet {
     margin: 0;
     size: 210mm 297mm;
   }
 
-  .page {
+  .container:not([data-embedded]) {
+    page: faction-sheet;
+  }
+
+  .container:not([data-embedded]) > .page {
     width: 210mm;
     height: 297mm;
     padding-top: 0;
