@@ -1,0 +1,56 @@
+{
+  "about": "GF9 second edition, 2026. Supplied Solaris wording and approved multicolour coins.",
+  "bodyLayout": "illustrated",
+  "decals": [
+    {
+      "id": "/vector/decal/solaris-multicolor.svg",
+      "muted": false,
+      "offset": [0, 0],
+      "outline": false,
+      "scale": 0.94
+    }
+  ],
+  "head": {
+    "colors": ["#474620", "#27260C"],
+    "definition": 1,
+    "image": "/image/texture/082.jpg",
+    "influence": 0.6,
+    "invert": false,
+    "source": {
+      "kind": "family"
+    }
+  },
+  "icon": [
+    {
+      "colors": [
+        {
+          "angle": 90,
+          "stops": [
+            ["#9A9256", 0],
+            ["#EEECA6", 1]
+          ],
+          "type": "linear"
+        },
+        {
+          "angle": 120,
+          "stops": [
+            ["#827E43", 0.3],
+            ["#DEDB91", 1]
+          ],
+          "type": "linear"
+        }
+      ],
+      "definition": 0,
+      "image": "/image/texture/076.jpg",
+      "influence": 1,
+      "invert": true,
+      "source": {
+        "kind": "family"
+      }
+    },
+    "/vector/icon/hand.svg"
+  ],
+  "name": "Solaris",
+  "subName": "Action",
+  "text": "Choose one:\n\n- Purchase a Treachery card for yourself when it is your turn to bid on a card in a normal auction, but pay no spice for the card,\n\n- Receive Spacing Guild rates for a Force Shipment for any faction from reserves (even Fremen), paid to the Spice Bank, or\n\n- Pay for spice strength in battle from the Spice Bank."
+}

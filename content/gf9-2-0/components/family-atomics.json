@@ -1,0 +1,51 @@
+{
+  "about": "GF9 second edition, 2026. Card wording follows the supplied rulebook and deck images.",
+  "bodyLayout": "illustrated",
+  "decals": [
+    {
+      "id": "/vector/decal/family-atomics-multicolor.svg",
+      "muted": false,
+      "offset": [0, 0],
+      "outline": false,
+      "scale": 1.5102
+    }
+  ],
+  "head": {
+    "colors": ["#474620", "#27260C"],
+    "definition": 1,
+    "image": "/image/texture/082.jpg",
+    "influence": 0.6,
+    "invert": false
+  },
+  "icon": [
+    {
+      "colors": [
+        {
+          "angle": 90,
+          "stops": [
+            ["#9A9256", 0],
+            ["#EEECA6", 1]
+          ],
+          "type": "linear"
+        },
+        {
+          "angle": 120,
+          "stops": [
+            ["#827E43", 0.3],
+            ["#DEDB91", 1]
+          ],
+          "type": "linear"
+        }
+      ],
+      "definition": 0,
+      "image": "/image/texture/076.jpg",
+      "influence": 1,
+      "invert": true
+    },
+    "/vector/icon/hand-alt.svg"
+  ],
+  "iconOffset": [0, 2],
+  "name": "Family Atomics",
+  "subName": "Action",
+  "text": "Cannot be played in Round 1\n\nPlay after the storm movement is revealed, but before the storm is moved - only if you have one or more forces in Shield Wall or an adjacent territory, with no storm between your sector and Shield Wall (even if your forces are in storm).\n\nAll forces in Shield Wall are destroyed.\n\nPlace the Destroyed Shield Wall token on Shield Wall. For the rest of the game, forces in Arrakeen, Carthag, and Imperial Basin are affected by the storm. Remove this card from the game."
+}

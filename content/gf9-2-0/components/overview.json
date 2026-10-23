@@ -1,0 +1,200 @@
+[
+  {
+    "key": "atreides",
+    "factionLeader": {
+      "name": "Duke Leto Atreides"
+    },
+    "leaders": [
+      {
+        "name": "Thufir Hawat",
+        "strength": 5,
+        "artworkId": "/image/leader/official/thufir.png"
+      },
+      {
+        "name": "Lady Jessica",
+        "strength": 5,
+        "artworkId": "/image/leader/official/jessica.png"
+      },
+      {
+        "name": "Gurney Halleck",
+        "strength": 4,
+        "artworkId": "/image/leader/official/gurney.png"
+      },
+      {
+        "name": "Duncan Idaho",
+        "strength": 3,
+        "artworkId": "/image/leader/official/duncan.png"
+      },
+      {
+        "name": "Dr. Wellington Yueh",
+        "strength": 1,
+        "artworkId": "/image/leader/official/dryeuh.png"
+      }
+    ]
+  },
+  {
+    "key": "bene-gesserit",
+    "factionLeader": {
+      "name": "Mother Mohiam"
+    },
+    "leaders": [
+      {
+        "name": "Lady Anirul Corrino",
+        "strength": 5,
+        "artworkId": "/vector/logo/bene-gesserit.svg"
+      },
+      {
+        "name": "Margot Lady Fenring",
+        "strength": 5,
+        "artworkId": "/image/leader/official/lady-fenring.png"
+      },
+      {
+        "name": "Mother Ramallo",
+        "strength": 5,
+        "artworkId": "/image/leader/official/ramallo.png"
+      },
+      {
+        "name": "Princess Irulan",
+        "strength": 5,
+        "artworkId": "/image/leader/official/irulan.png"
+      },
+      {
+        "name": "Wanna Yueh",
+        "strength": 5,
+        "artworkId": "/image/leader/official/wanna.png"
+      }
+    ]
+  },
+  {
+    "key": "emperor",
+    "factionLeader": {
+      "name": "Emperor Shaddam IV"
+    },
+    "leaders": [
+      {
+        "name": "Hasimir Fenring",
+        "strength": 6,
+        "artworkId": "/image/leader/official/hasimir.png"
+      },
+      {
+        "name": "Captain Aramsham",
+        "strength": 5,
+        "artworkId": "/image/leader/official/aramsham.png"
+      },
+      {
+        "name": "Bashar Garon",
+        "strength": 3,
+        "artworkId": "/image/leader/official/caid.png"
+      },
+      {
+        "name": "Colonel Kolona",
+        "strength": 3,
+        "artworkId": "/image/leader/official/bashar.png"
+      },
+      {
+        "name": "Wensicia Corrino",
+        "strength": 2,
+        "artworkId": "/vector/logo/emperor.svg"
+      }
+    ]
+  },
+  {
+    "key": "fremen",
+    "factionLeader": {
+      "name": "Liet Kynes"
+    },
+    "leaders": [
+      {
+        "name": "Stilgar",
+        "strength": 7,
+        "artworkId": "/image/leader/official/stilgar.png"
+      },
+      {
+        "name": "Chani",
+        "strength": 6,
+        "artworkId": "/image/leader/official/chani.png"
+      },
+      {
+        "name": "Otheym",
+        "strength": 5,
+        "artworkId": "/image/leader/official/otheym.png"
+      },
+      {
+        "name": "Shadout Mapes",
+        "strength": 3,
+        "artworkId": "/image/leader/official/mapes.png"
+      },
+      {
+        "name": "Jamis",
+        "strength": 2,
+        "artworkId": "/image/leader/official/jamis.png"
+      }
+    ]
+  },
+  {
+    "key": "spacing-guild",
+    "factionLeader": {
+      "name": "Edric"
+    },
+    "leaders": [
+      {
+        "name": "[uncertain: Staclude Sendallo]",
+        "strength": 5,
+        "artworkId": "/vector/logo/guild.svg"
+      },
+      {
+        "name": "Ertun",
+        "strength": 4,
+        "artworkId": "/vector/logo/guild.svg"
+      },
+      {
+        "name": "Olar",
+        "strength": 3,
+        "artworkId": "/vector/logo/guild.svg"
+      },
+      {
+        "name": "Crozeed",
+        "strength": 2,
+        "artworkId": "/vector/logo/guild.svg"
+      },
+      {
+        "name": "Loyxo",
+        "strength": 1,
+        "artworkId": "/vector/logo/guild.svg"
+      }
+    ]
+  },
+  {
+    "key": "harkonnen",
+    "factionLeader": {
+      "name": "Baron Harkonnen"
+    },
+    "leaders": [
+      {
+        "name": "Feyd-Rautha",
+        "strength": 6,
+        "artworkId": "/image/leader/official/feyd.png"
+      },
+      {
+        "name": "Beast Rabban",
+        "strength": 4,
+        "artworkId": "/image/leader/official/beast.png"
+      },
+      {
+        "name": "Piter de Vries",
+        "strength": 3,
+        "artworkId": "/image/leader/official/piter.png"
+      },
+      {
+        "name": "Iakin Nefud",
+        "strength": 2,
+        "artworkId": "/image/leader/official/nafud.png"
+      },
+      {
+        "name": "Umman Kudu",
+        "strength": 1,
+        "artworkId": "/image/leader/official/uman.png"
+      }
+    ]
+  }
+]

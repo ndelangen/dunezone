@@ -1,0 +1,33 @@
+{
+  "about": "GF9 second edition, 2026. Card wording follows the supplied rulebook and deck images.",
+  "bodyLayout": "illustrated",
+  "decals": [
+    {
+      "id": "/vector/decal/kulon.svg",
+      "muted": false,
+      "offset": [0, 0],
+      "outline": true,
+      "scale": 0.7
+    }
+  ],
+  "head": {
+    "colors": ["#7b7871", "#ded9c8"],
+    "definition": 0.7,
+    "image": "/image/texture/082.jpg",
+    "influence": 1,
+    "invert": false
+  },
+  "icon": [
+    {
+      "colors": ["#bda35d", "#f2dfa1"],
+      "definition": 0,
+      "image": "/image/texture/076.jpg",
+      "influence": 1,
+      "invert": true
+    },
+    "/vector/icon/worthless.svg"
+  ],
+  "name": "Kulon",
+  "subName": "Worthless",
+  "text": "Battle Plan: Any Slot\n\nThis card has no value in play, and you can only discard it by playing it as part of your Battle Plan in a Weapon or Defense Slot."
+}

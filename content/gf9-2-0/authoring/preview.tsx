@@ -1,12 +1,13 @@
 import { createRoot } from 'react-dom/client';
 
+import { RulebookDocumentRenderer } from '../../../src/game/rulebook/RulebookRenderer';
 import '@fontsource/caladea/latin-400.css';
 import '@fontsource/caladea/latin-400-italic.css';
 import '@fontsource/caladea/latin-700.css';
 import '@fontsource/caladea/latin-700-italic.css';
-import { RulebookDocumentRenderer } from '../../../src/game/rulebook/RulebookRenderer';
+import type { RulebookRenderDocumentV1 } from '../../../src/shared/rulebooks/renderDocument';
 import '../../../src/app/styles/fonts.css';
-import document from './render-document.json';
+const document = (await fetch('/render-document.json').then((response) => response.json())) as RulebookRenderDocumentV1;
 
 const params = new URLSearchParams(location.search);
 const selected = Number(params.get('page'));

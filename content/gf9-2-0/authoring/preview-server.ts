@@ -28,6 +28,9 @@ const server = Bun.serve({
     if (path.includes('..')) {
       return new Response('Not found', { status: 404 });
     }
+    if (path === '/render-document.json') {
+      return new Response(Bun.file(`${here}/render-document.json`));
+    }
     if (path === '/') {
       return new Response(html, { headers: { 'Content-Type': 'text/html' } });
     }

@@ -1,0 +1,57 @@
+{
+  "about": "GF9 second edition, 2026. Card wording follows the supplied rulebook and deck images.",
+  "bodyLayout": "illustrated",
+  "decals": [
+    {
+      "id": "/vector/decal/lasgun-extra.svg",
+      "muted": false,
+      "offset": [0, 100],
+      "outline": false,
+      "scale": 1.2166
+    },
+    {
+      "id": "/vector/decal/lasgun.svg",
+      "muted": false,
+      "offset": [0, -50],
+      "outline": true,
+      "scale": 1.2166
+    }
+  ],
+  "head": {
+    "colors": ["#7b7871", "#ded9c8"],
+    "definition": 0.7,
+    "image": "/image/texture/082.jpg",
+    "influence": 1,
+    "invert": false
+  },
+  "icon": [
+    {
+      "colors": [
+        {
+          "angle": 90,
+          "stops": [
+            ["#CB8E4A", 0],
+            ["#F3E086", 1]
+          ],
+          "type": "linear"
+        },
+        {
+          "angle": 120,
+          "stops": [
+            ["#CD7B38", 0.3],
+            ["#E9CA70", 1]
+          ],
+          "type": "linear"
+        }
+      ],
+      "definition": 0,
+      "image": "/image/texture/076.jpg",
+      "influence": 1,
+      "invert": true
+    },
+    "/vector/icon/lightning.svg"
+  ],
+  "name": "Lasgun",
+  "subName": "Weapon - Special",
+  "text": "Battle Plan: Weapon Slot\n\nKills opponent's leader.\n\nIf either player has a Shield in their Battle Plan, both sides lose. All forces, leaders, and spice in the territory are sent to the Tleilaxu Tanks and Spice Bank. No spice is paid for killed leaders.\n\nYou may keep this card if you win the battle."
+}

@@ -1,0 +1,50 @@
+{
+  "about": "GF9 second edition, 2026. Card wording follows the supplied rulebook and deck images.",
+  "bodyLayout": "illustrated",
+  "decals": [
+    {
+      "id": "/vector/decal/crysknife.svg",
+      "muted": false,
+      "offset": [0, 0],
+      "outline": true,
+      "scale": 1.0428
+    }
+  ],
+  "head": {
+    "colors": ["#8F2C1C", "#621D1A"],
+    "definition": 1,
+    "image": "/image/texture/082.jpg",
+    "influence": 0.5,
+    "invert": false
+  },
+  "icon": [
+    {
+      "colors": [
+        {
+          "angle": 90,
+          "stops": [
+            ["#CB8E4A", 0],
+            ["#F3E086", 1]
+          ],
+          "type": "linear"
+        },
+        {
+          "angle": 120,
+          "stops": [
+            ["#CD7B38", 0.3],
+            ["#E9CA70", 1]
+          ],
+          "type": "linear"
+        }
+      ],
+      "definition": 0,
+      "image": "/image/texture/076.jpg",
+      "influence": 1,
+      "invert": true
+    },
+    "/vector/icon/projectile.svg"
+  ],
+  "name": "Crysknife",
+  "subName": "Weapon - Kinetic",
+  "text": "Battle Plan: Weapon Slot.\n\nKills opponent's leader unless protected by a kinetic defense.\n\nYou may keep this card if you win the battle."
+}

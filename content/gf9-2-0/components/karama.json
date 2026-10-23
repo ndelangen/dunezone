@@ -1,0 +1,56 @@
+{
+  "about": "GF9 second edition, 2026. Approved Karama 2.0 artwork and supplied card wording.",
+  "bodyLayout": "illustrated",
+  "decals": [
+    {
+      "id": "/vector/decal/karama-2-0.svg",
+      "muted": false,
+      "offset": [0, 0],
+      "outline": false,
+      "scale": 0.94
+    }
+  ],
+  "head": {
+    "colors": ["#474620", "#27260C"],
+    "definition": 1,
+    "image": "/image/texture/082.jpg",
+    "influence": 0.6,
+    "invert": false,
+    "source": {
+      "kind": "family"
+    }
+  },
+  "icon": [
+    {
+      "colors": [
+        {
+          "angle": 90,
+          "stops": [
+            ["#9A9256", 0],
+            ["#EEECA6", 1]
+          ],
+          "type": "linear"
+        },
+        {
+          "angle": 120,
+          "stops": [
+            ["#827E43", 0.3],
+            ["#DEDB91", 1]
+          ],
+          "type": "linear"
+        }
+      ],
+      "definition": 0,
+      "image": "/image/texture/076.jpg",
+      "influence": 1,
+      "invert": true,
+      "source": {
+        "kind": "family"
+      }
+    },
+    "/vector/icon/hand.svg"
+  ],
+  "name": "Karama",
+  "subName": "Action",
+  "text": "Cancel a *vulnerable advantage* for any faction.\n\nOr, activate your one-time Karama power."
+}

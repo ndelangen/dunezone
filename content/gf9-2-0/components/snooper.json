@@ -1,0 +1,51 @@
+{
+  "about": "GF9 second edition, 2026. Card wording follows the supplied rulebook and deck images.",
+  "bodyLayout": "illustrated",
+  "decals": [
+    {
+      "id": "/vector/decal/snooper.svg",
+      "muted": false,
+      "offset": [0, 0],
+      "outline": true,
+      "scale": 1.05
+    }
+  ],
+  "head": {
+    "colors": ["#29335E", "#0A153C"],
+    "definition": 1,
+    "image": "/image/texture/082.jpg",
+    "influence": 0.6,
+    "invert": false
+  },
+  "icon": [
+    {
+      "colors": [
+        {
+          "angle": 90,
+          "stops": [
+            ["#757DAC", 0],
+            ["#CEDDF0", 1]
+          ],
+          "type": "linear"
+        },
+        {
+          "angle": 120,
+          "stops": [
+            ["#58608F", 0.3],
+            ["#B8BFDB", 1]
+          ],
+          "type": "linear"
+        }
+      ],
+      "definition": 0,
+      "image": "/image/texture/076.jpg",
+      "influence": 1,
+      "invert": true
+    },
+    "/vector/icon/snooper.svg"
+  ],
+  "iconOffset": [0, 5],
+  "name": "Snooper",
+  "subName": "Defense - Poison",
+  "text": "Battle Plan: Defense Slot.\n\nProtects your leader from a poison weapon.\n\nYou may keep this card if you win the battle."
+}

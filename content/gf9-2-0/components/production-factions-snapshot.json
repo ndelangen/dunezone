@@ -1,0 +1,439 @@
+[
+  {
+    "_id": "k177h1yvxp36dxsxjfmgqx4jw58gm5jk",
+    "slug": "atreides",
+    "data": {
+      "name": "Atreides",
+      "logo": "/vector/logo/atreides.svg",
+      "background": {
+        "colors": ["#393d05", "#5c5d10"],
+        "definition": 0.5,
+        "image": "/image/texture/082.jpg",
+        "influence": 1,
+        "invert": true
+      },
+      "factionLeader": {
+        "image": "/image/leader/official/paul.jpg",
+        "memberId": "b6b51658-3ab4-46c9-8dd0-10dda4014987",
+        "name": "Paul Atreides"
+      },
+      "leaders": [
+        {
+          "image": "/image/leader/official/jessica.png",
+          "memberId": "92a82f05-9387-4358-b5eb-b25cc775cb5f",
+          "name": "Lady Jessica",
+          "strength": 5
+        },
+        {
+          "image": "/image/leader/official/thufir.png",
+          "memberId": "1cbb3205-43b5-46db-8265-2d5e407a14a0",
+          "name": "Thufir Hawat",
+          "strength": 5
+        },
+        {
+          "image": "/image/leader/official/gurney.png",
+          "memberId": "f6de205e-0bfa-4720-83a7-788cdb5db378",
+          "name": "Gurney Halleck",
+          "strength": 4
+        },
+        {
+          "image": "/image/leader/official/duncan.png",
+          "memberId": "918acfed-e08e-46bc-8e11-ef6e789fa347",
+          "name": "Duncan Idaho",
+          "strength": 2
+        },
+        {
+          "image": "/image/leader/official/dryeuh.png",
+          "memberId": "066d6195-2255-4c9e-aec8-06fa9c636220",
+          "name": "Doctor Yueh",
+          "strength": 1
+        }
+      ],
+      "troops": [
+        {
+          "combat": {
+            "strength": 0.5,
+            "supportCost": 1,
+            "supportedStrength": 1
+          },
+          "count": 20,
+          "description": "Basic: strength 1. Advanced: strength 1/2 without spice, or 1 with 1 spice support.",
+          "image": "/vector/troop/atreides.svg",
+          "name": "Normal troop",
+          "troopId": "448681e5-a635-48e9-8ec1-859dbee97975"
+        }
+      ]
+    }
+  },
+  {
+    "_id": "k1758sk6c1qky3yknx56hstk8x8gmcxm",
+    "slug": "harkonnen",
+    "data": {
+      "name": "Harkonnen",
+      "logo": "/vector/logo/harkonnen.svg",
+      "background": {
+        "colors": ["#0a080b", "#363636"],
+        "definition": 0.1,
+        "image": "/image/texture/026.jpg",
+        "influence": 1,
+        "invert": false
+      },
+      "factionLeader": {
+        "image": "/image/leader/official/baron.jpg",
+        "memberId": "e6b3a54e-f351-4b55-8b8f-f2a0414b77e3",
+        "name": "Baron Vladimir Harkonnen"
+      },
+      "leaders": [
+        {
+          "image": "/image/leader/official/feyd.png",
+          "memberId": "39a71d18-1bc1-4628-b528-0a4f774fd47d",
+          "name": "Feyd-Rautha",
+          "strength": 6
+        },
+        {
+          "image": "/image/leader/official/beast.png",
+          "memberId": "61ae9c1f-bd2a-4cf8-b229-8714baabd730",
+          "name": "Beast Rabban",
+          "strength": 4
+        },
+        {
+          "image": "/image/leader/official/piter.png",
+          "memberId": "9b22b658-ba56-4037-9776-f381c0c62230",
+          "name": "Piter De Vries",
+          "strength": 3
+        },
+        {
+          "image": "/image/leader/official/nafud.png",
+          "memberId": "c6c37ae9-932e-460f-826d-5b9553693b5d",
+          "name": "Captain Iakin Nefud",
+          "strength": 2
+        },
+        {
+          "image": "/image/leader/official/uman.png",
+          "memberId": "cc089141-a48f-436e-b0c5-66c1ef4709a5",
+          "name": "Umman Kudu",
+          "strength": 1
+        }
+      ],
+      "troops": [
+        {
+          "combat": {
+            "strength": 0.5,
+            "supportCost": 1,
+            "supportedStrength": 1
+          },
+          "count": 20,
+          "description": "Basic: strength 1. Advanced: strength 1/2 without spice, or 1 with 1 spice support.",
+          "image": "/vector/troop/harkonnen.svg",
+          "name": "Harkonnen Troop",
+          "troopId": "31423b96-bc64-4e63-be15-5f58fdf681ad"
+        }
+      ]
+    }
+  },
+  {
+    "_id": "k174q1wrg9y646pdvbdr9r1sxx8gmct2",
+    "slug": "emperor-2",
+    "data": {
+      "name": "Emperor",
+      "logo": "/vector/logo/emperor.svg",
+      "background": {
+        "colors": ["#8C0402", "#db1918"],
+        "definition": 0.31,
+        "image": "/image/texture/055.jpg",
+        "influence": 1,
+        "invert": false
+      },
+      "factionLeader": {
+        "image": "/image/leader/official/shadam.jpg",
+        "memberId": "2bdb6a44-9079-4ebb-b4f6-02acca2f445d",
+        "name": "Shaddam Corrino IV"
+      },
+      "leaders": [
+        {
+          "image": "/image/leader/official/hasimir.png",
+          "memberId": "4cf337f6-8487-4f98-bdc8-e6948cf6ecfe",
+          "name": "Hasimir Fenring",
+          "strength": 6
+        },
+        {
+          "image": "/image/leader/official/aramsham.png",
+          "memberId": "2d83065e-f4ca-4ff6-8d0a-d24cffaec647",
+          "name": "Cpt. Aramsham",
+          "strength": 5
+        },
+        {
+          "image": "/image/leader/official/caid.png",
+          "memberId": "37c58b9a-c36c-411f-9097-8876eda02ed1",
+          "name": "Caid",
+          "strength": 3
+        },
+        {
+          "image": "/image/leader/official/burseg.png",
+          "memberId": "94fd7927-9e00-421b-b32e-73322bc54d63",
+          "name": "Burseg",
+          "strength": 3
+        },
+        {
+          "image": "/image/leader/official/bashar.png",
+          "memberId": "822709e6-e300-4db0-90d4-cab409278cde",
+          "name": "Bashar",
+          "strength": 2
+        }
+      ],
+      "troops": [
+        {
+          "combat": {
+            "strength": 0.5,
+            "supportCost": 1,
+            "supportedStrength": 1
+          },
+          "count": 15,
+          "description": "Basic: strength 1. Advanced: strength 1/2 without spice, or 1 with 1 spice support.",
+          "image": "/vector/troop/emperor.svg",
+          "name": "Normal troop",
+          "troopId": "20d19e36-b903-4069-a66a-cbed1d0d0b4f"
+        },
+        {
+          "combat": {
+            "strength": 1,
+            "supportCost": 1,
+            "supportedStrength": 2
+          },
+          "count": 5,
+          "description": "Basic: ordinary force. Advanced: strength 1 without spice, or 2 with 1 spice; ordinary against Fremen.",
+          "hue": "#e6de12",
+          "image": "/vector/troop/emperor.svg",
+          "name": "Sardaukar",
+          "star": "/vector/troop_modifier/star-right.svg",
+          "troopId": "abbf72a5-4967-41f6-838e-5e99ac26f049"
+        }
+      ]
+    }
+  },
+  {
+    "_id": "k1782pjyezpza51gk5fj8rr47s8gnp0w",
+    "slug": "spacing-guild-2",
+    "data": {
+      "name": "Spacing Guild",
+      "logo": "/vector/logo/guild.svg",
+      "background": {
+        "colors": ["#bd3108", "#e05719"],
+        "definition": 0.2,
+        "image": "/image/texture/006.jpg",
+        "influence": 1,
+        "invert": false
+      },
+      "factionLeader": {
+        "image": "/image/leader/official/edric.jpg",
+        "memberId": "10f775db-8ae8-4d54-89ba-6dfcd37224c1",
+        "name": "Navigator Edric"
+      },
+      "leaders": [
+        {
+          "image": "/image/leader/official/staban.png",
+          "memberId": "695097f4-12fb-4004-b42c-bafe7a3ae58e",
+          "name": "Staban Tuek",
+          "strength": 5
+        },
+        {
+          "image": "/image/leader/official/esmar.png",
+          "memberId": "e245de2e-16d7-4e0b-a246-877edc6c09f5",
+          "name": "Esmar Tuek",
+          "strength": 3
+        },
+        {
+          "image": "/image/leader/official/bewt.png",
+          "memberId": "6230265a-ca3d-472f-adb5-27391791751c",
+          "name": "Master Bewt",
+          "strength": 3
+        },
+        {
+          "image": "/image/leader/official/soo-soo-sook.png",
+          "memberId": "d782ab19-7a01-41b2-a08b-c887f2a3fbc9",
+          "name": "Soo Soo Sook",
+          "strength": 2
+        },
+        {
+          "image": "/image/leader/official/guildrep.png",
+          "memberId": "4fae7b75-137a-4fcb-b922-76ef7f5eb53e",
+          "name": "Guild Rep.",
+          "strength": 1
+        }
+      ],
+      "troops": [
+        {
+          "combat": {
+            "strength": 0.5,
+            "supportCost": 1,
+            "supportedStrength": 1
+          },
+          "count": 20,
+          "description": "Basic: strength 1. Advanced: strength 1/2 without spice, or 1 with 1 spice support.",
+          "hue": "#ffffff",
+          "image": "/vector/troop/guild.svg",
+          "name": "Troop",
+          "troopId": "b495d280-18c8-41d7-96de-578a5fe25f80"
+        }
+      ]
+    }
+  },
+  {
+    "_id": "k170rt7fn11fxdtbe3vx2bg0xx8gnrx1",
+    "slug": "fremen-2",
+    "data": {
+      "name": "Fremen",
+      "logo": "/vector/logo/fremen.svg",
+      "background": {
+        "colors": ["#fcb843", "#d2781d"],
+        "definition": 0.3,
+        "image": "/image/texture/019.jpg",
+        "influence": 0.634,
+        "invert": false
+      },
+      "factionLeader": {
+        "image": "/image/leader/official/liet.jpg",
+        "memberId": "fb36e676-7e9f-4a8d-b349-d3f4f624c765",
+        "name": "Liet-Kynes"
+      },
+      "leaders": [
+        {
+          "image": "/image/leader/official/stilgar.png",
+          "memberId": "4f1b9a93-0064-49aa-82ef-819cf168b1ac",
+          "name": "Stilgar",
+          "strength": 7
+        },
+        {
+          "image": "/image/leader/official/chani.png",
+          "memberId": "8cce5f0e-2c66-4761-9464-991aea172c58",
+          "name": "Chani",
+          "strength": 6
+        },
+        {
+          "image": "/image/leader/official/otheym.png",
+          "memberId": "588ef0f5-8098-4246-a16a-5f1834f72f94",
+          "name": "Otheym",
+          "strength": 5
+        },
+        {
+          "image": "/image/leader/official/mapes.png",
+          "memberId": "8bd9ffeb-21fe-4196-9aeb-7584e1548f03",
+          "name": "Shaddout Mapes",
+          "strength": 3
+        },
+        {
+          "image": "/image/leader/official/jamis.png",
+          "memberId": "1ab6dd8d-51fe-4ef3-93b9-97adb20e9381",
+          "name": "Jamis",
+          "strength": 2
+        }
+      ],
+      "troops": [
+        {
+          "combat": {
+            "strength": 1,
+            "supportCost": 0,
+            "supportedStrength": 1
+          },
+          "count": 17,
+          "description": "Basic: strength 1. Advanced: strength 1 without spice.",
+          "image": "/vector/troop/fremen.svg",
+          "name": "Normal troop",
+          "troopId": "e212481b-8f96-4b46-8389-a5cfb7760e7c"
+        },
+        {
+          "combat": {
+            "strength": 2,
+            "supportCost": 0,
+            "supportedStrength": 2
+          },
+          "count": 3,
+          "description": "Basic: ordinary force. Advanced: strength 2 without spice.",
+          "hue": "#edecd5",
+          "image": "/vector/troop/fremen.svg",
+          "name": "Fedaykin",
+          "star": "/vector/troop_modifier/star-right.svg",
+          "troopId": "3ac897c0-82d1-4c94-a796-2ce2788fab66"
+        }
+      ]
+    }
+  },
+  {
+    "_id": "k172tkm3r2r4sc96q7wnb3axvx8gn8g1",
+    "slug": "bene-gesserit-1",
+    "data": {
+      "name": "Bene Gesserit",
+      "logo": "/vector/logo/bene-gesserit.svg",
+      "background": {
+        "colors": ["#132b74", "#34478b"],
+        "definition": 0.09,
+        "image": "/image/texture/019.jpg",
+        "influence": 0.8878,
+        "invert": false
+      },
+      "factionLeader": {
+        "image": "/image/leader/official/mohiam.jpg",
+        "memberId": "ba20d29d-6cd7-4d85-a603-3bc794fbb13d",
+        "name": "Gaius Helen Mohiam"
+      },
+      "leaders": [
+        {
+          "image": "/image/leader/official/alia.png",
+          "memberId": "6875fec9-a8ff-478f-8b04-c6a1babdab5d",
+          "name": "Alia",
+          "strength": 5
+        },
+        {
+          "image": "/image/leader/official/irulan.png",
+          "memberId": "41101ead-6efa-4cd1-9aeb-462571fca76d",
+          "name": "Princess Irulan",
+          "strength": 5
+        },
+        {
+          "image": "/image/leader/official/ramallo.png",
+          "memberId": "09388176-6ad7-45a9-89a5-ac548b583e33",
+          "name": "Mother Ramallo",
+          "strength": 5
+        },
+        {
+          "image": "/image/leader/official/wanna.png",
+          "memberId": "70b72294-b07a-47e0-a5bd-3ebf520d5b02",
+          "name": "Wanna Yueh",
+          "strength": 5
+        },
+        {
+          "image": "/image/leader/official/lady-fenring.png",
+          "memberId": "5a19b7d3-0256-4013-8478-8343a47f8a46",
+          "name": "Margot Lady Fenring",
+          "strength": 5
+        }
+      ],
+      "troops": [
+        {
+          "back": {
+            "capable": false,
+            "combat": {
+              "strength": 0,
+              "supportCost": 0,
+              "supportedStrength": 0
+            },
+            "description": "Advanced advisor: cannot fight, collect spice, provide ornithopters or count toward control.",
+            "image": "/vector/troop/bene-gesserit.svg",
+            "name": "Advisor",
+            "striped": true
+          },
+          "combat": {
+            "strength": 0.5,
+            "supportCost": 1,
+            "supportedStrength": 1
+          },
+          "count": 20,
+          "description": "Basic: strength 1. Advanced: strength 1/2 without spice, or 1 with 1 spice support.",
+          "image": "/vector/troop/bene-gesserit.svg",
+          "name": "Fighter",
+          "troopId": "a89c1e4b-379f-46da-8781-04b02b04686a"
+        }
+      ]
+    }
+  }
+]

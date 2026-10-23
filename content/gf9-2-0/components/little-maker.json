@@ -1,0 +1,79 @@
+{
+  "about": "GF9 second edition, 2026. Supplied card wording and existing approved artwork.",
+  "format": "decal-window",
+  "head": {
+    "colors": ["#7A4421", "#56210B"],
+    "definition": 1,
+    "image": "/image/texture/082.jpg",
+    "influence": 0.3,
+    "invert": false,
+    "source": {
+      "key": "stock/spice",
+      "kind": "preset"
+    }
+  },
+  "icon": [
+    {
+      "colors": [
+        {
+          "angle": 90,
+          "stops": [
+            ["#AD8E49", 0],
+            ["#C3AB77", 1]
+          ],
+          "type": "linear"
+        },
+        {
+          "angle": 120,
+          "stops": [
+            ["#A28046", 0.3],
+            ["#BAA26D", 1]
+          ],
+          "type": "linear"
+        }
+      ],
+      "definition": 0,
+      "image": "/image/texture/076.jpg",
+      "influence": 1,
+      "invert": true,
+      "source": {
+        "key": "stock/striped-spice",
+        "kind": "preset"
+      }
+    },
+    "/vector/decal/shai-hulud.svg"
+  ],
+  "iconOffset": [0, 13],
+  "iconScale": 1.25,
+  "layers": [
+    {
+      "behindFrame": true,
+      "id": "/vector/decal/little-maker-multicolor.svg",
+      "kind": "decal",
+      "layerId": "ce10d19a-185b-43f5-b3ae-751dbec2f72b",
+      "muted": false,
+      "offset": [0, -160],
+      "opacity": 1,
+      "outline": false,
+      "rotation": 0,
+      "scale": 1.74
+    },
+    {
+      "align": "left",
+      "color": "#0b0503",
+      "content": "The last player in storm order places 10 spice on any spice blow marker with no spice or forces in it.\n\nThen a Nexus occurs. Factions can form and/or break alliances. No factions may Ride the Worm.",
+      "font": "C_Candara",
+      "height": 510,
+      "kind": "text",
+      "layerId": "755ae6bb-e5f4-4725-b2b8-9a0ec7a69392",
+      "offset": [-361, 72.5],
+      "opacity": 1,
+      "rotation": 0,
+      "size": 39,
+      "width": 734
+    }
+  ],
+  "name": "Little Maker",
+  "subName": "Spice Blow - Nexus",
+  "windowOffsetY": 0
+}

@@ -1,0 +1,761 @@
+[
+  {
+    "key": "baliset",
+    "type": "card-treachery",
+    "data": {
+      "about": "GF9 second edition, 2026. Card wording follows the supplied rulebook and deck images.",
+      "bodyLayout": "illustrated",
+      "decals": [
+        {
+          "id": "/vector/decal/baliset.svg",
+          "muted": false,
+          "offset": [0, 0],
+          "outline": true,
+          "scale": 1.0428
+        }
+      ],
+      "head": {
+        "colors": ["#7b7871", "#ded9c8"],
+        "definition": 0.7,
+        "image": "/image/texture/082.jpg",
+        "influence": 1,
+        "invert": false
+      },
+      "icon": [
+        {
+          "colors": ["#bda35d", "#f2dfa1"],
+          "definition": 0,
+          "image": "/image/texture/076.jpg",
+          "influence": 1,
+          "invert": true
+        },
+        "/vector/icon/worthless.svg"
+      ],
+      "name": "Baliset",
+      "subName": "Worthless",
+      "text": "Battle Plan: Any Slot\n\nThis card has no value in play, and you can only discard it by playing it as part of your Battle Plan in a Weapon or Defense Slot."
+    }
+  },
+  {
+    "key": "kulon",
+    "type": "card-treachery",
+    "data": {
+      "about": "GF9 second edition, 2026. Card wording follows the supplied rulebook and deck images.",
+      "bodyLayout": "illustrated",
+      "decals": [
+        {
+          "id": "/vector/decal/kulon.svg",
+          "muted": false,
+          "offset": [0, 0],
+          "outline": true,
+          "scale": 0.7
+        }
+      ],
+      "head": {
+        "colors": ["#7b7871", "#ded9c8"],
+        "definition": 0.7,
+        "image": "/image/texture/082.jpg",
+        "influence": 1,
+        "invert": false
+      },
+      "icon": [
+        {
+          "colors": ["#bda35d", "#f2dfa1"],
+          "definition": 0,
+          "image": "/image/texture/076.jpg",
+          "influence": 1,
+          "invert": true
+        },
+        "/vector/icon/worthless.svg"
+      ],
+      "name": "Kulon",
+      "subName": "Worthless",
+      "text": "Battle Plan: Any Slot\n\nThis card has no value in play, and you can only discard it by playing it as part of your Battle Plan in a Weapon or Defense Slot."
+    }
+  },
+  {
+    "key": "crysknife",
+    "type": "card-treachery",
+    "data": {
+      "about": "GF9 second edition, 2026. Card wording follows the supplied rulebook and deck images.",
+      "bodyLayout": "illustrated",
+      "decals": [
+        {
+          "id": "/vector/decal/crysknife.svg",
+          "muted": false,
+          "offset": [0, 0],
+          "outline": true,
+          "scale": 1.0428
+        }
+      ],
+      "head": {
+        "colors": ["#8F2C1C", "#621D1A"],
+        "definition": 1,
+        "image": "/image/texture/082.jpg",
+        "influence": 0.5,
+        "invert": false
+      },
+      "icon": [
+        {
+          "colors": [
+            {
+              "angle": 90,
+              "stops": [
+                ["#CB8E4A", 0],
+                ["#F3E086", 1]
+              ],
+              "type": "linear"
+            },
+            {
+              "angle": 120,
+              "stops": [
+                ["#CD7B38", 0.3],
+                ["#E9CA70", 1]
+              ],
+              "type": "linear"
+            }
+          ],
+          "definition": 0,
+          "image": "/image/texture/076.jpg",
+          "influence": 1,
+          "invert": true
+        },
+        "/vector/icon/projectile.svg"
+      ],
+      "name": "Crysknife",
+      "subName": "Weapon - Kinetic",
+      "text": "Battle Plan: Weapon Slot.\n\nKills opponent's leader unless protected by a kinetic defense.\n\nYou may keep this card if you win the battle."
+    }
+  },
+  {
+    "key": "maula-pistol",
+    "type": "card-treachery",
+    "data": {
+      "about": "GF9 second edition, 2026. Card wording follows the supplied rulebook and deck images.",
+      "bodyLayout": "illustrated",
+      "decals": [
+        {
+          "id": "/vector/decal/maula-pistol.svg",
+          "muted": false,
+          "offset": [0, 0],
+          "outline": true,
+          "scale": 1.2166
+        }
+      ],
+      "head": {
+        "colors": ["#8F2C1C", "#621D1A"],
+        "definition": 1,
+        "image": "/image/texture/082.jpg",
+        "influence": 0.5,
+        "invert": false
+      },
+      "icon": [
+        {
+          "colors": [
+            {
+              "angle": 90,
+              "stops": [
+                ["#CB8E4A", 0],
+                ["#F3E086", 1]
+              ],
+              "type": "linear"
+            },
+            {
+              "angle": 120,
+              "stops": [
+                ["#CD7B38", 0.3],
+                ["#E9CA70", 1]
+              ],
+              "type": "linear"
+            }
+          ],
+          "definition": 0,
+          "image": "/image/texture/076.jpg",
+          "influence": 1,
+          "invert": true
+        },
+        "/vector/icon/projectile.svg"
+      ],
+      "name": "Maula Pistol",
+      "subName": "Weapon - Kinetic",
+      "text": "Battle Plan: Weapon Slot.\n\nKills opponent's leader unless protected by a kinetic defense.\n\nYou may keep this card if you win the battle."
+    }
+  },
+  {
+    "key": "snooper",
+    "type": "card-treachery",
+    "data": {
+      "about": "GF9 second edition, 2026. Card wording follows the supplied rulebook and deck images.",
+      "bodyLayout": "illustrated",
+      "decals": [
+        {
+          "id": "/vector/decal/snooper.svg",
+          "muted": false,
+          "offset": [0, 0],
+          "outline": true,
+          "scale": 1.05
+        }
+      ],
+      "head": {
+        "colors": ["#29335E", "#0A153C"],
+        "definition": 1,
+        "image": "/image/texture/082.jpg",
+        "influence": 0.6,
+        "invert": false
+      },
+      "icon": [
+        {
+          "colors": [
+            {
+              "angle": 90,
+              "stops": [
+                ["#757DAC", 0],
+                ["#CEDDF0", 1]
+              ],
+              "type": "linear"
+            },
+            {
+              "angle": 120,
+              "stops": [
+                ["#58608F", 0.3],
+                ["#B8BFDB", 1]
+              ],
+              "type": "linear"
+            }
+          ],
+          "definition": 0,
+          "image": "/image/texture/076.jpg",
+          "influence": 1,
+          "invert": true
+        },
+        "/vector/icon/snooper.svg"
+      ],
+      "iconOffset": [0, 5],
+      "name": "Snooper",
+      "subName": "Defense - Poison",
+      "text": "Battle Plan: Defense Slot.\n\nProtects your leader from a poison weapon.\n\nYou may keep this card if you win the battle."
+    }
+  },
+  {
+    "key": "shield",
+    "type": "card-treachery",
+    "data": {
+      "about": "GF9 second edition, 2026. Card wording follows the supplied rulebook and deck images.",
+      "bodyLayout": "illustrated",
+      "decals": [
+        {
+          "id": "/vector/decal/shield.svg",
+          "muted": false,
+          "offset": [0, 0],
+          "outline": true,
+          "scale": 0.92
+        }
+      ],
+      "head": {
+        "colors": ["#29335E", "#0A153C"],
+        "definition": 1,
+        "image": "/image/texture/082.jpg",
+        "influence": 0.6,
+        "invert": false
+      },
+      "icon": [
+        {
+          "colors": [
+            {
+              "angle": 90,
+              "stops": [
+                ["#757DAC", 0],
+                ["#CEDDF0", 1]
+              ],
+              "type": "linear"
+            },
+            {
+              "angle": 120,
+              "stops": [
+                ["#58608F", 0.3],
+                ["#B8BFDB", 1]
+              ],
+              "type": "linear"
+            }
+          ],
+          "definition": 0,
+          "image": "/image/texture/076.jpg",
+          "influence": 1,
+          "invert": true
+        },
+        "/vector/icon/shield.svg"
+      ],
+      "iconOffset": [0, 5],
+      "name": "Shield",
+      "subName": "Defense - Kinetic",
+      "text": "Battle Plan: Defense Slot.\n\nProtects your leader from a kinetic weapon.\n\nYou may keep this card if you win the battle."
+    }
+  },
+  {
+    "key": "lasgun",
+    "type": "card-treachery",
+    "data": {
+      "about": "GF9 second edition, 2026. Card wording follows the supplied rulebook and deck images.",
+      "bodyLayout": "illustrated",
+      "decals": [
+        {
+          "id": "/vector/decal/lasgun-extra.svg",
+          "muted": false,
+          "offset": [0, 100],
+          "outline": false,
+          "scale": 1.2166
+        },
+        {
+          "id": "/vector/decal/lasgun.svg",
+          "muted": false,
+          "offset": [0, -50],
+          "outline": true,
+          "scale": 1.2166
+        }
+      ],
+      "head": {
+        "colors": ["#7b7871", "#ded9c8"],
+        "definition": 0.7,
+        "image": "/image/texture/082.jpg",
+        "influence": 1,
+        "invert": false
+      },
+      "icon": [
+        {
+          "colors": [
+            {
+              "angle": 90,
+              "stops": [
+                ["#CB8E4A", 0],
+                ["#F3E086", 1]
+              ],
+              "type": "linear"
+            },
+            {
+              "angle": 120,
+              "stops": [
+                ["#CD7B38", 0.3],
+                ["#E9CA70", 1]
+              ],
+              "type": "linear"
+            }
+          ],
+          "definition": 0,
+          "image": "/image/texture/076.jpg",
+          "influence": 1,
+          "invert": true
+        },
+        "/vector/icon/lightning.svg"
+      ],
+      "name": "Lasgun",
+      "subName": "Weapon - Special",
+      "text": "Battle Plan: Weapon Slot\n\nKills opponent's leader.\n\nIf either player has a Shield in their Battle Plan, both sides lose. All forces, leaders, and spice in the territory are sent to the Tleilaxu Tanks and Spice Bank. No spice is paid for killed leaders.\n\nYou may keep this card if you win the battle."
+    }
+  },
+  {
+    "key": "tleilaxu-ghola",
+    "type": "card-treachery",
+    "data": {
+      "about": "GF9 second edition, 2026. Card wording follows the supplied rulebook and deck images.",
+      "bodyLayout": "illustrated",
+      "decals": [
+        {
+          "id": "/vector/decal/tleilaxu-ghola.svg",
+          "muted": false,
+          "offset": [0, 0],
+          "outline": true,
+          "scale": 0.9412
+        }
+      ],
+      "head": {
+        "colors": ["#7b7871", "#ded9c8"],
+        "definition": 0.7,
+        "image": "/image/texture/082.jpg",
+        "influence": 1,
+        "invert": false
+      },
+      "icon": [
+        {
+          "colors": [
+            {
+              "angle": 90,
+              "stops": [
+                ["#9A9256", 0],
+                ["#EEECA6", 1]
+              ],
+              "type": "linear"
+            },
+            {
+              "angle": 120,
+              "stops": [
+                ["#827E43", 0.3],
+                ["#DEDB91", 1]
+              ],
+              "type": "linear"
+            }
+          ],
+          "definition": 0,
+          "image": "/image/texture/076.jpg",
+          "influence": 1,
+          "invert": true
+        },
+        "/vector/icon/hand-alt.svg"
+      ],
+      "name": "Tleilaxu Ghola",
+      "subName": "Action",
+      "text": "Play at any time to immediately revive 1 of your leaders or up to 5 of your forces (including starred forces) from the Tleilaxu Tanks for free, regardless of how many leaders you have in the Tleilaxu Tanks.\n\nThese revivals do not count against your normal revivals for the round."
+    }
+  },
+  {
+    "key": "family-atomics",
+    "type": "card-treachery",
+    "data": {
+      "about": "GF9 second edition, 2026. Card wording follows the supplied rulebook and deck images.",
+      "bodyLayout": "illustrated",
+      "decals": [
+        {
+          "id": "/vector/decal/family-atomics-multicolor.svg",
+          "muted": false,
+          "offset": [0, 0],
+          "outline": false,
+          "scale": 1.5102
+        }
+      ],
+      "head": {
+        "colors": ["#474620", "#27260C"],
+        "definition": 1,
+        "image": "/image/texture/082.jpg",
+        "influence": 0.6,
+        "invert": false
+      },
+      "icon": [
+        {
+          "colors": [
+            {
+              "angle": 90,
+              "stops": [
+                ["#9A9256", 0],
+                ["#EEECA6", 1]
+              ],
+              "type": "linear"
+            },
+            {
+              "angle": 120,
+              "stops": [
+                ["#827E43", 0.3],
+                ["#DEDB91", 1]
+              ],
+              "type": "linear"
+            }
+          ],
+          "definition": 0,
+          "image": "/image/texture/076.jpg",
+          "influence": 1,
+          "invert": true
+        },
+        "/vector/icon/hand-alt.svg"
+      ],
+      "iconOffset": [0, 2],
+      "name": "Family Atomics",
+      "subName": "Action",
+      "text": "Cannot be played in Round 1\n\nPlay after the storm movement is revealed, but before the storm is moved - only if you have one or more forces in Shield Wall or an adjacent territory, with no storm between your sector and Shield Wall (even if your forces are in storm).\n\nAll forces in Shield Wall are destroyed.\n\nPlace the Destroyed Shield Wall token on Shield Wall. For the rest of the game, forces in Arrakeen, Carthag, and Imperial Basin are affected by the storm. Remove this card from the game."
+    }
+  },
+  {
+    "key": "karama",
+    "type": "card-treachery",
+    "data": {
+      "about": "GF9 second edition, 2026. Approved Karama 2.0 artwork and supplied card wording.",
+      "bodyLayout": "illustrated",
+      "decals": [
+        {
+          "id": "/vector/decal/karama-2-0.svg",
+          "muted": false,
+          "offset": [0, 0],
+          "outline": false,
+          "scale": 0.94
+        }
+      ],
+      "head": {
+        "colors": ["#474620", "#27260C"],
+        "definition": 1,
+        "image": "/image/texture/082.jpg",
+        "influence": 0.6,
+        "invert": false,
+        "source": {
+          "kind": "family"
+        }
+      },
+      "icon": [
+        {
+          "colors": [
+            {
+              "angle": 90,
+              "stops": [
+                ["#9A9256", 0],
+                ["#EEECA6", 1]
+              ],
+              "type": "linear"
+            },
+            {
+              "angle": 120,
+              "stops": [
+                ["#827E43", 0.3],
+                ["#DEDB91", 1]
+              ],
+              "type": "linear"
+            }
+          ],
+          "definition": 0,
+          "image": "/image/texture/076.jpg",
+          "influence": 1,
+          "invert": true,
+          "source": {
+            "kind": "family"
+          }
+        },
+        "/vector/icon/hand.svg"
+      ],
+      "name": "Karama",
+      "subName": "Action",
+      "text": "Cancel a *vulnerable advantage* for any faction.\n\nOr, activate your one-time Karama power."
+    }
+  },
+  {
+    "key": "solaris",
+    "type": "card-treachery",
+    "data": {
+      "about": "GF9 second edition, 2026. Supplied Solaris wording and approved multicolour coins.",
+      "bodyLayout": "illustrated",
+      "decals": [
+        {
+          "id": "/vector/decal/solaris-multicolor.svg",
+          "muted": false,
+          "offset": [0, 0],
+          "outline": false,
+          "scale": 0.94
+        }
+      ],
+      "head": {
+        "colors": ["#474620", "#27260C"],
+        "definition": 1,
+        "image": "/image/texture/082.jpg",
+        "influence": 0.6,
+        "invert": false,
+        "source": {
+          "kind": "family"
+        }
+      },
+      "icon": [
+        {
+          "colors": [
+            {
+              "angle": 90,
+              "stops": [
+                ["#9A9256", 0],
+                ["#EEECA6", 1]
+              ],
+              "type": "linear"
+            },
+            {
+              "angle": 120,
+              "stops": [
+                ["#827E43", 0.3],
+                ["#DEDB91", 1]
+              ],
+              "type": "linear"
+            }
+          ],
+          "definition": 0,
+          "image": "/image/texture/076.jpg",
+          "influence": 1,
+          "invert": true,
+          "source": {
+            "kind": "family"
+          }
+        },
+        "/vector/icon/hand.svg"
+      ],
+      "name": "Solaris",
+      "subName": "Action",
+      "text": "Choose one:\n\n- Purchase a Treachery card for yourself when it is your turn to bid on a card in a normal auction, but pay no spice for the card,\n\n- Receive Spacing Guild rates for a Force Shipment for any faction from reserves (even Fremen), paid to the Spice Bank, or\n\n- Pay for spice strength in battle from the Spice Bank."
+    }
+  },
+  {
+    "key": "hagga-basin-cielago-depression",
+    "type": "card-spice",
+    "data": {
+      "about": "GF9 second edition, 2026. Both printed spice territories and amounts, using the existing Spice card presentation.",
+      "amount": 6,
+      "highlights": ["hagga-basin", "cielago-depression"],
+      "icon": "spice",
+      "name": "Hagga Basin",
+      "subName": "Spice Blows",
+      "text": "Add 6 spice in Hagga Basin.\n\nCielago Depression\nAdd 8 spice in Cielago Depression."
+    }
+  },
+  {
+    "key": "great-flat-cielago-south",
+    "type": "card-spice",
+    "data": {
+      "about": "GF9 second edition, 2026. Both printed spice territories and amounts, using the existing Spice card presentation.",
+      "amount": 6,
+      "highlights": ["the-great-flat", "cielago-south"],
+      "icon": "spice",
+      "name": "The Great Flat",
+      "subName": "Spice Blows",
+      "text": "Add 6 spice in The Great Flat.\n\nCielago South\nAdd 12 spice in Cielago South."
+    }
+  },
+  {
+    "key": "shai-hulud",
+    "type": "card-custom",
+    "data": {
+      "about": "GF9 second edition, 2026. Supplied card wording and existing approved artwork.",
+      "format": "decal-window",
+      "head": {
+        "colors": ["#7A3A07", "#3F1D03"],
+        "definition": 1,
+        "image": "/image/texture/082.jpg",
+        "influence": 0.8,
+        "invert": false
+      },
+      "icon": [
+        {
+          "colors": [
+            "#E9C55B",
+            {
+              "stops": [
+                ["#e9c55b", 0],
+                ["#e9c55b", 0.22],
+                ["#000000", 1]
+              ],
+              "type": "radial"
+            }
+          ],
+          "definition": 0.27,
+          "image": "/image/texture/079.jpg",
+          "influence": 0.9538,
+          "invert": false
+        },
+        "/vector/decal/shai-hulud.svg"
+      ],
+      "iconOffset": [0, 13],
+      "iconScale": 1.25,
+      "layers": [
+        {
+          "behindFrame": false,
+          "id": "/vector/decal/shai-hulud.svg",
+          "kind": "decal",
+          "layerId": "fa1caea2-b75b-4b21-a271-e38832136120",
+          "muted": false,
+          "offset": [0, -160],
+          "opacity": 1,
+          "outline": false,
+          "rotation": 0,
+          "scale": 0.9
+        },
+        {
+          "align": "left",
+          "color": "#0b0503",
+          "content": "All spice and forces in the last territories of the top Spice Blows card of the discard pile are sent to the Spice Bank and Tleilaxu Tanks.\n\nDraw again until a Spice Blows card is revealed (discarding any additional Shai-Hulud cards).\n\nThen a Nexus occurs. Factions can form and/or break alliances.",
+          "font": "C_Candara",
+          "height": 510,
+          "kind": "text",
+          "layerId": "7e0ddc75-8d31-4065-9621-80bd157274bb",
+          "offset": [-361, 72.5],
+          "opacity": 1,
+          "rotation": 0,
+          "size": 39,
+          "width": 734
+        }
+      ],
+      "name": "Shai-Hulud",
+      "subName": "Sandworm Alert",
+      "windowOffsetY": 0
+    }
+  },
+  {
+    "key": "little-maker",
+    "type": "card-custom",
+    "data": {
+      "about": "GF9 second edition, 2026. Supplied card wording and existing approved artwork.",
+      "format": "decal-window",
+      "head": {
+        "colors": ["#7A4421", "#56210B"],
+        "definition": 1,
+        "image": "/image/texture/082.jpg",
+        "influence": 0.3,
+        "invert": false,
+        "source": {
+          "key": "stock/spice",
+          "kind": "preset"
+        }
+      },
+      "icon": [
+        {
+          "colors": [
+            {
+              "angle": 90,
+              "stops": [
+                ["#AD8E49", 0],
+                ["#C3AB77", 1]
+              ],
+              "type": "linear"
+            },
+            {
+              "angle": 120,
+              "stops": [
+                ["#A28046", 0.3],
+                ["#BAA26D", 1]
+              ],
+              "type": "linear"
+            }
+          ],
+          "definition": 0,
+          "image": "/image/texture/076.jpg",
+          "influence": 1,
+          "invert": true,
+          "source": {
+            "key": "stock/striped-spice",
+            "kind": "preset"
+          }
+        },
+        "/vector/decal/shai-hulud.svg"
+      ],
+      "iconOffset": [0, 13],
+      "iconScale": 1.25,
+      "layers": [
+        {
+          "behindFrame": true,
+          "id": "/vector/decal/little-maker-multicolor.svg",
+          "kind": "decal",
+          "layerId": "ce10d19a-185b-43f5-b3ae-751dbec2f72b",
+          "muted": false,
+          "offset": [0, -160],
+          "opacity": 1,
+          "outline": false,
+          "rotation": 0,
+          "scale": 1.74
+        },
+        {
+          "align": "left",
+          "color": "#0b0503",
+          "content": "The last player in storm order places 10 spice on any spice blow marker with no spice or forces in it.\n\nThen a Nexus occurs. Factions can form and/or break alliances. No factions may Ride the Worm.",
+          "font": "C_Candara",
+          "height": 510,
+          "kind": "text",
+          "layerId": "755ae6bb-e5f4-4725-b2b8-9a0ec7a69392",
+          "offset": [-361, 72.5],
+          "opacity": 1,
+          "rotation": 0,
+          "size": 39,
+          "width": 734
+        }
+      ],
+      "name": "Little Maker",
+      "subName": "Spice Blow - Nexus",
+      "windowOffsetY": 0
+    }
+  }
+]

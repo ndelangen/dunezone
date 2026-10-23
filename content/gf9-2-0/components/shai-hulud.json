@@ -1,0 +1,64 @@
+{
+  "about": "GF9 second edition, 2026. Supplied card wording and existing approved artwork.",
+  "format": "decal-window",
+  "head": {
+    "colors": ["#7A3A07", "#3F1D03"],
+    "definition": 1,
+    "image": "/image/texture/082.jpg",
+    "influence": 0.8,
+    "invert": false
+  },
+  "icon": [
+    {
+      "colors": [
+        "#E9C55B",
+        {
+          "stops": [
+            ["#e9c55b", 0],
+            ["#e9c55b", 0.22],
+            ["#000000", 1]
+          ],
+          "type": "radial"
+        }
+      ],
+      "definition": 0.27,
+      "image": "/image/texture/079.jpg",
+      "influence": 0.9538,
+      "invert": false
+    },
+    "/vector/decal/shai-hulud.svg"
+  ],
+  "iconOffset": [0, 13],
+  "iconScale": 1.25,
+  "layers": [
+    {
+      "behindFrame": false,
+      "id": "/vector/decal/shai-hulud.svg",
+      "kind": "decal",
+      "layerId": "fa1caea2-b75b-4b21-a271-e38832136120",
+      "muted": false,
+      "offset": [0, -160],
+      "opacity": 1,
+      "outline": false,
+      "rotation": 0,
+      "scale": 0.9
+    },
+    {
+      "align": "left",
+      "color": "#0b0503",
+      "content": "All spice and forces in the last territories of the top Spice Blows card of the discard pile are sent to the Spice Bank and Tleilaxu Tanks.\n\nDraw again until a Spice Blows card is revealed (discarding any additional Shai-Hulud cards).\n\nThen a Nexus occurs. Factions can form and/or break alliances.",
+      "font": "C_Candara",
+      "height": 510,
+      "kind": "text",
+      "layerId": "7e0ddc75-8d31-4065-9621-80bd157274bb",
+      "offset": [-361, 72.5],
+      "opacity": 1,
+      "rotation": 0,
+      "size": 39,
+      "width": 734
+    }
+  ],
+  "name": "Shai-Hulud",
+  "subName": "Sandworm Alert",
+  "windowOffsetY": 0
+}

@@ -1,31 +1,31 @@
-# First authoring pass
+# Reconstructed draft
 
-The [visual comparison and repair plan](visual-fidelity-audit.md) supersedes the broad checklist below. It compares all 36 source pages with the captured 71-page draft and records the user's six browser corrections. The current manuscript has substantial missing visual content and an internally clipped variant illustration; the earlier region-height check did not establish fidelity.
+The working book uses Square and the existing restrained design. It has 66 pages, including the approved continuation pages. All 36 PDF pages are accounted for; the printed contents and the physical box inventory remain the approved omissions.
 
-The local manuscript is populated and schema-valid. It is ready for continued authoring and review. It is not ready to publish as the faithful edition.
+The rulebook now contains portrait rosters, full card illustrations, phase icons, terrain explanations, storm and movement scenes, worked battle panels, force-loss diagrams, troop faces, faction strategy rails, callouts and Q&A. The source transcript has not been edited.
 
-## Checked
+## Visual substitutions
 
-- The raw JSON passes the current Rulebook authoring schema and stays below 512 KiB.
-- Every retained transcript unit has a source-map entry. The printed contents and physical inventory are the recorded omissions.
-- Literal punctuation is escaped for Dune Zone's formatted-text grammar. Markdown bold is translated without changing visible words.
-- Eight faction questions use the existing Q&A Block, with the answer label supplied once by the renderer.
-- The two bordered Karama extracts use existing callouts.
-- Approved Solaris, Little Maker and Karama artwork is referenced by its added stock IDs.
-- The source text retains 16 bracketed uncertain readings. Editorial transcription notes are retained separately in the source map.
-- No old-edition roster is generated inside the faction overviews. Printed second-edition names and strengths remain in the manuscript.
-- Square and continuation pages are the user's approved choices. No new Block or renderer change has been made.
+These are the choices made to follow the instruction to use existing production artwork and Blocks. They do not require new software or another asset release.
 
-## Fidelity work before production
+- Eight portraits use the faction emblem: Duke Leto, Lady Anirul, Wensicia and the five new Guild leaders. The second-edition names and strengths remain printed beside them. Existing compatible portraits supply the other 28 characters.
+- The maintained board replaces the photographed board. Its terrain examples use named territory geometry. Round track, tanks, Spice Bank and other labels outside that circular board remain text rather than being attached to false targets.
+- Setup and revival sheet extracts use existing text and callout Blocks with the printed values and rules. They are not photographs of the faction sheet.
+- Existing battle wheels show force strength, spice spent and the adjustment separately. The printed +2 calculation remains in the explanation. The 8½ illustration also shows 8 for comparison, using the existing pair-of-wheels Block.
+- Battle step panels keep the example's words and result beside its plans. Full card images below the panels make the card text readable.
+- The destroyed Shield Wall is a labelled board highlight. Currency in the force-loss diagrams uses the existing spice symbol and a 1-spice label.
+- The source's printed page references remain unchanged. The web navigator and source map locate their corresponding reconstructed pages.
 
-1. **Cover.** The first page currently carries the cover words as text. Add the supplied original cover through the normal cover-image flow, then use the existing image-cover presentation without duplicate generated words.
-2. **Illustration descriptions.** Some transcript labels describe the original layout rather than printed body text. Convert these descriptions into actual illustration labels or source-review notes. Do not publish phrases such as "Battle Wheel illustration lettering" as though the publisher printed them.
-3. **Faction overviews.** The source rosters are present as text. Recreate their portrait/leader arrangements after establishing compatible second-edition component references. The old GF9 records contain edition differences, including Duncan Idaho's strength and several leader names.
-4. **Maps.** The terrain explainer, movement routes and collection locations are initial compositions. Storm examples on source page 10, shipment diagrams, the destroyed Shield Wall and exact troop/token placement still need the source comparison. Preserve printed map-name errors and cropped-label uncertainty in the review evidence.
-5. **Battle examples.** Initial wheels retain the selected force/spice numbers, and the source prose retains the +2 spice-strength calculation, leaders, cards and outcomes. Complete the card and leader-disc references before treating those panels as finished. The wheel's existing spice display is not the new printed wheel's bonus display.
-6. **Variant illustrations.** Existing piece groups show the two loss options. Complete the support-spice token placement and inspect all half-increment wheel presentations. Keep the printed 8½ caption.
-7. **Card presentation.** Current card entries pair stock decals with the transcribed card text. Check each card's boundaries against the source, and finish the card grouping and source captions. Do not substitute earlier card wording for a missing second-edition record.
-8. **Final reading pass.** Compare every output page with its mapped source page. Check emphasis, paragraph boundaries, continuation order, legal lines and miniature component text. Preserve uncertain readings unless a clearer supplied image resolves them.
-9. **Delivery.** Recheck the production references in JSON Load, Save through Central, inspect the loaded draft, then verify the published HTML and PDF when publication is requested.
+## Corrections checked
 
-These are authoring and review tasks. This pass does not establish a need for a new Block or layout. The differences book remains a separate document.
+The preface quotation shares its page with the prose. Credits begin on their own page. Small headings use sentence case, acknowledgements use regular weight, and continuation pages have no repeated banners. Each detailed faction begins on a fresh page.
+
+The shipment examples retain the printed 4 + 5 Harkonnen shipment, the move of 3 leaving 6, their Fremen and Atreides neighbours, and the Guild's 1-force shipment. The Guild example shows its other forces, storm restriction and the 2- and 10-spice tokens together at Cielago South. The storm examples show the separated forces and the blocked path to the spice.
+
+The source map accounts for 971 source units as text, headings, illustrations or editorial descriptions. Ten uncertainty markers remain in the reading copy. Clearer supplied deck images resolve the covered or washed-out card wording; the transcript retains its original uncertainty notes.
+
+The raw document passes the application's schema and reference checks and stays below the JSON Load size limit. All rendered pages were measured for height and horizontal clipping. Every output page was captured for visual review. These checks do not make the artwork substitutions exact reproductions.
+
+## Publication
+
+The JSON is the editable source. A screenshot PDF is provided for visual review; it is not the publisher's final searchable PDF. The 66-page book is saved on production as draft revision 2 under Central. The stored cover was prepared by the normal Save flow. The reconstruction has not been published as an Edition; Edition 1 is the initial starter created by the application. `production-draft-export.json` is the saved-record backup. The differences rulebook remains a separate document.

@@ -1,63 +1,54 @@
 # GF9 2.0 working rulebook
 
-[rulebook.json](rulebook.json) is the populated local draft for Dune Zone's JSON Load control. It uses the **Square** preset, the existing illustrated design and production references. It does not contain an importer envelope, local database IDs, owner overrides or publication commands.
+[rulebook.json](rulebook.json) is the reconstructed manuscript for Dune Zone's JSON Load control. It uses Square, the existing restrained design and production references. The current draft has 66 output pages.
 
-This is a first authoring pass, not the finished as-is edition. Read [review.md](review.md) before loading it into production.
-
-The [visual fidelity audit](visual-fidelity-audit.md) compares all 36 source pages with the 71-page browser draft. It records missing illustrations, incorrect grouping, clipped content and the user's typography and pagination corrections. [Its evidence index](visual-audit.json) identifies the captured draft and source fingerprints.
-
-## Decisions
-
-- Preserve the reworked transcript's wording, order and uncertainty markers.
-- Omit the printed contents and source page 7's physical box inventory.
-- Start each detailed faction section on a new page.
-- Use existing Blocks and artwork presentations.
-- Use Square, as requested on 23 October 2026.
-- Allow continuation pages where the existing text size needs them, as approved on 23 October 2026. Source-page anchors and the source map retain the connection to the PDF.
-
-The current draft has 71 output pages and covers all 36 source pages, with the approved omissions recorded. The page count is provisional. It is not a promise to reproduce the PDF's typography or page breaks.
+Read [review.md](review.md) for the visual substitutions and verification. The [earlier fidelity audit](visual-fidelity-audit.md) records the defects in the 71-page baseline; it is retained as historical review evidence.
 
 ## Files
 
 | File | Purpose |
 | --- | --- |
-| [rulebook.json](rulebook.json) | Raw `{settings, contents}` document accepted by the application's Rulebook schema. |
-| [source-map.json](source-map.json) | Transcript fingerprint, source-to-output page and Block mapping, omissions and editorial notes. |
-| [production-references.json](production-references.json) | Public production IDs and compatible faction artwork, captured through read-only public queries. |
-| [pagination.json](pagination.json) | Ordered Block partitions for the approved continuation pages. |
-| [column-breaks.json](column-breaks.json) | Initial source-page column boundaries, before continuation pagination. |
-| [validation.json](validation.json) | Schema, size, source coverage and reference counts from the builder. |
-| [render-document.json](render-document.json) | Resolved document used by the real renderer in the local preview. Not the JSON Load input. |
-| [build.ts](build.ts) | Rebuilds the initial manuscript from the transcript and recorded layout decisions. It never writes application data. |
-| [paginate.ts](paginate.ts) | Groups measured Blocks into columns without changing their order. |
-| [preview-server.ts](preview-server.ts) | Local preview server using the production Rulebook renderer, fonts and artwork. |
+| [rulebook.json](rulebook.json) | Editable `{settings, contents}` JSON Load document. |
+| [source-map.json](source-map.json) | Transcript fingerprint, page and Block mappings, omissions and editorial notes. |
+| [composition.json](composition.json) | Illustration replacements made during reconstruction. |
+| [resolved-production-references.json](resolved-production-references.json) | Existing faction artwork and component image references for local rendering. |
+| [../components/production-cards.json](../components/production-cards.json) | The 15 full production card references and their image revisions. |
+| [pagination-rebuilt.json](pagination-rebuilt.json) | Current measured page partitions. |
+| [measurements.json](measurements.json) | Block dimensions before pagination. |
+| [render-audit.json](render-audit.json) | Measurements and clipping checks for the paginated book. |
+| [validation.json](validation.json) | Schema, size, source coverage and reference counts. |
+| [render-document.json](render-document.json) | Resolved local authoring preview. This is not the JSON Load input. |
+| [reconstruction.md](reconstruction.md) | Source-page guide to the reconstructed pages. |
 
-## Rebuild and preview
+## Build and inspect
 
 From the repository root:
 
 ```sh
+bun content/gf9-2-0/components/bind-factions.ts
 bun content/gf9-2-0/authoring/build.ts
 bun content/gf9-2-0/authoring/preview-server.ts
 ```
 
-Open [the local preview](http://127.0.0.1:4317/). The page selector supports individual page inspection. The server binds to loopback and serves local generated artwork first. Missing public artwork is read from `https://dune.zone`; no authentication or mutations are involved.
+Open [the local preview](http://127.0.0.1:4317/). The server binds to loopback and reads public production artwork. It does not write application data. Reloading reads the latest render document without restarting the server.
 
-The builder proves that each retained transcript unit is assigned to a Page or Block, and that each formatted-text conversion preserves its visible wording. It also checks the raw JSON size limit, local identities, reference resolution and the publishable render-document contract. These checks do not certify the source transcription or visual fidelity.
+`build.ts` parses the transcript, applies `compose.ts`, splits long prose and applies the current measured pagination. It validates the raw JSON and production references. It never imports or saves records.
 
-The builder overwrites generated JSON. Once manual authoring starts, preserve those changes in the builder or a separate saved copy before rebuilding. Do not overwrite an editor export with an earlier generated draft.
+After changing a composition, set aside `pagination-rebuilt.json`, rebuild the logical pages, measure them with the read-only function in `measure-dom.js`, and save the results to `measurements.json`. Then run:
 
-## Production references
+```sh
+bun content/gf9-2-0/authoring/paginate-rebuilt.ts
+bun content/gf9-2-0/authoring/build.ts
+```
 
-The destination ruleset is [GF9 2.0](https://dune.zone/rulesets/gf9-2-0), owned by Central and assigned to GF9. The six referenced faction records currently belong to the older GF9 collection. Use their compatible artwork only. Several names and strengths differ in this edition, so the manuscript carries the new printed text independently and does not import an old faction roster or old card rules.
+Inspect the actual renderer again. Measurements alone do not detect a wrong troop count, misplaced caption or inaccurate artwork.
 
-The maintained Arrakis board and stock artwork IDs resolve through the existing catalogue. No development records must be migrated before JSON Load.
+`pagination.json` and `paginate.ts` belong to the earlier baseline audit. The rebuilt manuscript does not use them. `column-breaks.json` supplies the initial source boundaries before the reconstruction overrides them.
 
-## Load later
+## Production
 
-1. Finish the fidelity review and retain the final local JSON.
-2. Sign in as Central and create or open the intended book under GF9 2.0.
-3. Use JSON Load with **rulebook.json**. The application validates the current production references and replaces the editor draft.
-4. Inspect the loaded book, then Save. Publish is a separate operation.
+The destination is [GF9 2.0](https://dune.zone/rulesets/gf9-2-0), owned by Central and assigned to GF9. The book uses six existing GF9 faction records for compatible artwork. Printed second-edition names and strengths are authored independently of those older rosters.
 
-Before replacing an existing draft, export it. That export is the recovery copy if a load needs to be reversed. Ownership and the GF9 assignment come from the authenticated application flow and the parent ruleset, not fields in the JSON.
+The reconstruction is saved as draft revision 2 in [the production editor](https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit). `production-draft-export.json` backs up that record, including the cover rendition stored by Save.
+
+Use JSON Load with `rulebook.json` in the normal authenticated editor. Export an existing draft before replacing it. Inspect the result and Save. Publishing an Edition is a separate step. The cover source is the approved artwork already stored on production; the normal save flow can prepare its stored rendition.

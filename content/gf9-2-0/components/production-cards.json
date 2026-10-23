@@ -1,0 +1,197 @@
+{
+  "baliset": {
+    "assetId": "ns7b5pbv97x2zs70e9kdd5kqgs8gvnwy",
+    "slug": "baliset-2",
+    "type": "card-treachery",
+    "name": "Baliset",
+    "url": "https://dune.zone/assets/card-treachery/baliset-2",
+    "publication": {
+      "captureStatus": null,
+      "lastPublishedAt": 1792768349478,
+      "publicationHref": "/published/cards/ns7b5pbv97x2zs70e9kdd5kqgs8gvnwy/card.jpg?v=6cf72402-593f-4de0-b17b-4e3f5ab989c2",
+      "status": "current"
+    }
+  },
+  "kulon": {
+    "assetId": "ns72b2svfng2n4mjhm5jksvnqs8gtjw1",
+    "slug": "kulon-2",
+    "type": "card-treachery",
+    "name": "Kulon",
+    "url": "https://dune.zone/assets/card-treachery/kulon-2",
+    "publication": {
+      "captureStatus": null,
+      "lastPublishedAt": 1792768366651,
+      "publicationHref": "/published/cards/ns72b2svfng2n4mjhm5jksvnqs8gtjw1/card.jpg?v=acf52672-9620-4d50-bb6a-32709b9d7193",
+      "status": "current"
+    }
+  },
+  "crysknife": {
+    "assetId": "ns74m9r28feed5sx7ay2wpr9z58gt9x0",
+    "slug": "crysknife-2",
+    "type": "card-treachery",
+    "name": "Crysknife",
+    "url": "https://dune.zone/assets/card-treachery/crysknife-2",
+    "publication": {
+      "captureStatus": null,
+      "lastPublishedAt": 1792768387236,
+      "publicationHref": "/published/cards/ns74m9r28feed5sx7ay2wpr9z58gt9x0/card.jpg?v=a1238c69-1b6e-4f9b-90af-70b29fd88196",
+      "status": "current"
+    }
+  },
+  "maula-pistol": {
+    "assetId": "ns7bvt54q5h2h5chqdz53gy8ws8gt1za",
+    "slug": "maula-pistol-2",
+    "type": "card-treachery",
+    "name": "Maula Pistol",
+    "url": "https://dune.zone/assets/card-treachery/maula-pistol-2",
+    "publication": {
+      "captureStatus": null,
+      "lastPublishedAt": 1792768406502,
+      "publicationHref": "/published/cards/ns7bvt54q5h2h5chqdz53gy8ws8gt1za/card.jpg?v=0e93ef3f-9345-4e28-8e15-91b22ac9f596",
+      "status": "current"
+    }
+  },
+  "snooper": {
+    "assetId": "ns7b1s8qg28k2gfwhzgdvmksq98gvnm5",
+    "slug": "snooper-2",
+    "type": "card-treachery",
+    "name": "Snooper",
+    "url": "https://dune.zone/assets/card-treachery/snooper-2",
+    "publication": {
+      "captureStatus": null,
+      "lastPublishedAt": 1792768428976,
+      "publicationHref": "/published/cards/ns7b1s8qg28k2gfwhzgdvmksq98gvnm5/card.jpg?v=4bdefe09-e4d2-4e24-a053-4287ecacae81",
+      "status": "current"
+    }
+  },
+  "shield": {
+    "assetId": "ns71wd5rd9ajmqpr2wt30g5a1x8gvxyy",
+    "slug": "shield-2",
+    "type": "card-treachery",
+    "name": "Shield",
+    "url": "https://dune.zone/assets/card-treachery/shield-2",
+    "publication": {
+      "captureStatus": null,
+      "lastPublishedAt": 1792768460135,
+      "publicationHref": "/published/cards/ns71wd5rd9ajmqpr2wt30g5a1x8gvxyy/card.jpg?v=05e2bb2f-a5dc-4ec8-9b53-63502b6c9bc0",
+      "status": "current"
+    }
+  },
+  "lasgun": {
+    "assetId": "ns727bsfd8exajvm3hmg9svzy58gtnhc",
+    "slug": "lasgun-2",
+    "type": "card-treachery",
+    "name": "Lasgun",
+    "url": "https://dune.zone/assets/card-treachery/lasgun-2",
+    "publication": {
+      "captureStatus": null,
+      "lastPublishedAt": 1792768484077,
+      "publicationHref": "/published/cards/ns727bsfd8exajvm3hmg9svzy58gtnhc/card.jpg?v=943077a5-a028-476e-b54a-c363ea62739f",
+      "status": "current"
+    }
+  },
+  "tleilaxu-ghola": {
+    "assetId": "ns78xjv6cf60q9j1qmkdwe06718gtwa5",
+    "slug": "tleilaxu-ghola-2",
+    "type": "card-treachery",
+    "name": "Tleilaxu Ghola",
+    "url": "https://dune.zone/assets/card-treachery/tleilaxu-ghola-2",
+    "publication": {
+      "captureStatus": null,
+      "lastPublishedAt": 1792768513518,
+      "publicationHref": "/published/cards/ns78xjv6cf60q9j1qmkdwe06718gtwa5/card.jpg?v=a270cca3-582a-46db-b5ba-40e664660fcd",
+      "status": "current"
+    }
+  },
+  "family-atomics": {
+    "assetId": "ns7dmx88vyj0g27enj6y7n6tdx8gttvk",
+    "slug": "family-atomics-2",
+    "type": "card-treachery",
+    "name": "Family Atomics",
+    "url": "https://dune.zone/assets/card-treachery/family-atomics-2",
+    "publication": {
+      "captureStatus": null,
+      "lastPublishedAt": 1792769462435,
+      "publicationHref": "/published/cards/ns7dmx88vyj0g27enj6y7n6tdx8gttvk/card.jpg?v=0249b65a-92a1-4cf1-aaad-38f3de4ae176",
+      "status": "current"
+    }
+  },
+  "karama": {
+    "assetId": "ns7dzskjqc742nmr9wfd0z7sm98gvqe5",
+    "slug": "karama-3",
+    "type": "card-treachery",
+    "name": "Karama",
+    "url": "https://dune.zone/assets/card-treachery/karama-3",
+    "publication": {
+      "captureStatus": null,
+      "lastPublishedAt": 1792769471561,
+      "publicationHref": "/published/cards/ns7dzskjqc742nmr9wfd0z7sm98gvqe5/card.jpg?v=fdffcf91-e806-4a49-9421-b164790dfd5c",
+      "status": "current"
+    }
+  },
+  "solaris": {
+    "assetId": "ns7fmbx80hnq2ejgj9c45a7mqd8gt64y",
+    "slug": "solaris",
+    "type": "card-treachery",
+    "name": "Solaris",
+    "url": "https://dune.zone/assets/card-treachery/solaris",
+    "publication": {
+      "captureStatus": null,
+      "lastPublishedAt": 1792769484323,
+      "publicationHref": "/published/cards/ns7fmbx80hnq2ejgj9c45a7mqd8gt64y/card.jpg?v=2cfcf82a-e4f5-4fd5-961a-90847a26051a",
+      "status": "current"
+    }
+  },
+  "hagga-basin-cielago-depression": {
+    "assetId": "ns791yy132xqr9ygwxeh20nab58gthk8",
+    "slug": "hagga-basin-3",
+    "type": "card-spice",
+    "name": "Hagga Basin",
+    "url": "https://dune.zone/assets/card-spice/hagga-basin-3",
+    "publication": {
+      "captureStatus": null,
+      "lastPublishedAt": 1792769494913,
+      "publicationHref": "/published/spice-cards/ns791yy132xqr9ygwxeh20nab58gthk8/card.jpg?v=0444a5a3-26e4-41c1-9e8a-5e04bb05ee2e",
+      "status": "current"
+    }
+  },
+  "great-flat-cielago-south": {
+    "assetId": "ns74bj6r0gcdmwbrxps05b31v98gv9g5",
+    "slug": "the-great-flat-2",
+    "type": "card-spice",
+    "name": "The Great Flat",
+    "url": "https://dune.zone/assets/card-spice/the-great-flat-2",
+    "publication": {
+      "captureStatus": null,
+      "lastPublishedAt": 1792769504201,
+      "publicationHref": "/published/spice-cards/ns74bj6r0gcdmwbrxps05b31v98gv9g5/card.jpg?v=5c2b65fa-e278-47b9-b0b7-ab21e6ff3e67",
+      "status": "current"
+    }
+  },
+  "shai-hulud": {
+    "assetId": "ns7ahzy4f068xee36kdvt3sjbh8gvf2b",
+    "slug": "shai-hulud-2",
+    "type": "card-custom",
+    "name": "Shai-Hulud",
+    "url": "https://dune.zone/assets/card-custom/shai-hulud-2",
+    "publication": {
+      "captureStatus": null,
+      "lastPublishedAt": 1792769516760,
+      "publicationHref": "/published/custom-cards/ns7ahzy4f068xee36kdvt3sjbh8gvf2b/card.jpg?v=47cff9ae-e1d5-4036-a61e-b4624d42d8c0",
+      "status": "current"
+    }
+  },
+  "little-maker": {
+    "assetId": "ns7177t2mjyce6dhph7cqef6398gvh91",
+    "slug": "little-maker",
+    "type": "card-custom",
+    "name": "Little Maker",
+    "url": "https://dune.zone/assets/card-custom/little-maker",
+    "publication": {
+      "captureStatus": null,
+      "lastPublishedAt": 1792775155094,
+      "publicationHref": "/published/custom-cards/ns7177t2mjyce6dhph7cqef6398gvh91/card.jpg?v=09c91693-db40-4f96-81d5-f90208762304",
+      "status": "current"
+    }
+  }
+}

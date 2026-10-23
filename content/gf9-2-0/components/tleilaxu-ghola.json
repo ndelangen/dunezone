@@ -1,0 +1,50 @@
+{
+  "about": "GF9 second edition, 2026. Card wording follows the supplied rulebook and deck images.",
+  "bodyLayout": "illustrated",
+  "decals": [
+    {
+      "id": "/vector/decal/tleilaxu-ghola.svg",
+      "muted": false,
+      "offset": [0, 0],
+      "outline": true,
+      "scale": 0.9412
+    }
+  ],
+  "head": {
+    "colors": ["#7b7871", "#ded9c8"],
+    "definition": 0.7,
+    "image": "/image/texture/082.jpg",
+    "influence": 1,
+    "invert": false
+  },
+  "icon": [
+    {
+      "colors": [
+        {
+          "angle": 90,
+          "stops": [
+            ["#9A9256", 0],
+            ["#EEECA6", 1]
+          ],
+          "type": "linear"
+        },
+        {
+          "angle": 120,
+          "stops": [
+            ["#827E43", 0.3],
+            ["#DEDB91", 1]
+          ],
+          "type": "linear"
+        }
+      ],
+      "definition": 0,
+      "image": "/image/texture/076.jpg",
+      "influence": 1,
+      "invert": true
+    },
+    "/vector/icon/hand-alt.svg"
+  ],
+  "name": "Tleilaxu Ghola",
+  "subName": "Action",
+  "text": "Play at any time to immediately revive 1 of your leaders or up to 5 of your forces (including starred forces) from the Tleilaxu Tanks for free, regardless of how many leaders you have in the Tleilaxu Tanks.\n\nThese revivals do not count against your normal revivals for the round."
+}

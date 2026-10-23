@@ -5,15 +5,16 @@ import { fileURLToPath } from 'node:url';
 import { rawRulebookSchema, readRawAuthoringJson } from '../../../src/shared/authoring/raw';
 import { normalizeFormattedText, parseFormattedText } from '../../../src/shared/formattedText';
 import { rulebookLocalIdAlphabet } from '../../../src/shared/rulebooks/contents';
-import { projectRulebookRenderDocument } from '../../../src/shared/rulebooks/projectRenderDocument';
+import { projectRulebookDraftRenderDocument } from '../../../src/shared/rulebooks/projectRenderDocument';
 import { assertRulebookReferences, collectRulebookReferenceIds } from '../../../src/shared/rulebooks/references';
 import { RULEBOOK_STOCK_ARTWORK } from '../../../src/shared/rulebooks/sources';
+import { compose } from './compose';
 
 // This is a document builder, not a database importer. Its only writes are local files.
 const here = fileURLToPath(new URL('.', import.meta.url));
 const source = readFileSync(`${here}../transcript-reworked.md`, 'utf8');
 const columnBreaks = JSON.parse(readFileSync(`${here}column-breaks.json`, 'utf8'));
-const bindings = JSON.parse(readFileSync(`${here}production-references.json`, 'utf8'));
+const bindings = JSON.parse(readFileSync(`${here}resolved-production-references.json`, 'utf8'));
 const stock = new Set<string>(RULEBOOK_STOCK_ARTWORK);
 const used = new Set<string>();
 function id(key: string) {
@@ -551,7 +552,66 @@ for (const match of sourcePages) {
 }
 
 // Pagination is measured in the actual renderer. Continuations preserve source order.
-const paginationPath = `${here}pagination.json`;
+const composition = compose({ allPages, contents, pageMap, unitMap, editorial, id, formatted, bindings });
+// Split prose at paragraph/sentence boundaries so pagination moves words without shrinking them.
+for (const { page } of allPages) {
+  for (const [region, order] of Object.entries(page.blockOrderByRegion) as any) {
+    const next: string[] = [];
+    for (const blockId of order) {
+      const block = page.blocksById[blockId];
+      if (block.kind !== 'text' || !block.text) {
+        next.push(blockId);
+        continue;
+      }
+      const limit = region === 'rail' ? 430 : 1100;
+      const chunks: string[] = [];
+      for (const paragraph of block.text.split('\n\n')) {
+        let rest = paragraph;
+        while (rest.length > limit) {
+          let cut = rest.lastIndexOf('. ', limit);
+          if (cut < limit * 0.45) {
+            cut = rest.lastIndexOf(' ', limit);
+          } else {
+            cut++;
+          }
+          if (cut < 1) {
+            break;
+          }
+          chunks.push(rest.slice(0, cut));
+          rest = rest.slice(cut).trimStart();
+        }
+        if (rest) {
+          chunks.push(rest);
+        }
+      }
+      if (chunks.length < 2) {
+        next.push(blockId);
+        continue;
+      }
+      const copies = chunks.map((text, index) => ({
+        ...block,
+        id: index === 0 ? blockId : id(`${blockId}-prose-${index}`),
+        ...(index ? { name: undefined } : {}),
+        text,
+      }));
+      for (const copy of copies) {
+        if (copy.name === undefined) {
+          delete copy.name;
+        }
+        page.blocksById[copy.id] = copy;
+        next.push(copy.id);
+      }
+      for (const unit of unitMap.filter((u: any) => u.blockId === blockId)) {
+        const text = formatted(unit.text);
+        const match = copies.find((b: any) => b.text.includes(text) || text.includes(b.text));
+        unit.blockId = match?.id ?? blockId;
+      }
+    }
+    page.blockOrderByRegion[region] = next;
+  }
+}
+writeFileSync(`${here}composition.json`, JSON.stringify(composition, null, 2) + '\n');
+const paginationPath = `${here}pagination-rebuilt.json`;
 if (await Bun.file(paginationPath).exists()) {
   const pagination = JSON.parse(readFileSync(paginationPath, 'utf8'));
   const originalOrder = [...contents.pageOrder];
@@ -563,7 +623,7 @@ if (await Bun.file(paginationPath).exists()) {
     const original = allPages.find(({ page }) => page.id === pageId)!;
     const mapping = originalMap.find((entry) => entry.pageId === pageId)!;
     const partitions = pagination[pageId] ?? [original.page.blockOrderByRegion];
-    const partitionIds = partitions.flatMap((partition: any) => [...partition.column1, ...partition.column2]);
+    const partitionIds = partitions.flatMap((partition: any) => Object.values(partition).flat());
     const expectedIds = Object.values(original.page.blockOrderByRegion).flat();
     if (
       partitionIds.length !== expectedIds.length ||
@@ -573,15 +633,16 @@ if (await Bun.file(paginationPath).exists()) {
       throw new Error(`Pagination must preserve every block exactly once: ${pageId}`);
     }
     for (const [part, partition] of partitions.entries()) {
-      const ids = [...partition.column1, ...partition.column2];
+      const ids = Object.values(partition).flat() as string[];
       const newId = part === 0 ? pageId : id(`${pageId}-continuation-${part}`);
       const page = {
         ...original.page,
         id: newId,
         anchor: part === 0 ? original.page.anchor : `${original.page.anchor}-continued-${part + 1}`,
-        title: part === 0 ? original.page.title : `${original.page.title} (continued)`,
+        title: part === 0 ? original.page.title : original.page.title,
         blocksById: Object.fromEntries(ids.map((blockId: string) => [blockId, original.page.blocksById[blockId]])),
         blockOrderByRegion: partition,
+        showHeading: part === 0 ? original.page.showHeading : false,
       };
       if (ids.some((blockId: string) => !page.blocksById[blockId])) {
         throw new Error(`Stale pagination for ${pageId}`);
@@ -604,10 +665,29 @@ if (await Bun.file(paginationPath).exists()) {
   }
   pageMap.push(...originalMap.filter((entry) => !entry.pageId));
 }
-const settings = { size: 'square', design: 'illustrated' };
+const cardBindings = JSON.parse(readFileSync(`${here}../components/production-cards.json`, 'utf8'));
+const assetsById = Object.fromEntries(
+  Object.values(cardBindings).map((c: any) => [
+    c.assetId,
+    {
+      assetId: c.assetId,
+      name: c.name,
+      type: c.type,
+      imageUrl: 'https://dune.zone' + c.publication.publicationHref,
+      width: 900,
+      height: 1263,
+    },
+  ])
+);
+const settings = { size: 'square', design: 'restrained' };
 const raw = rawRulebookSchema.parse({ settings, contents });
-assertRulebookReferences(raw.contents, {}, bindings.resolvedFactions);
-const document = projectRulebookRenderDocument(raw.contents, {}, raw.settings, bindings.resolvedFactions);
+assertRulebookReferences(raw.contents, assetsById, bindings.resolvedFactions);
+const document = projectRulebookDraftRenderDocument(
+  raw.contents,
+  assetsById,
+  raw.settings,
+  bindings.resolvedFactions
+).document;
 const json = `${JSON.stringify(raw, null, 2)}\n`;
 rawRulebookSchema.parse(readRawAuthoringJson(json));
 const mapped = new Set(unitMap.map(({ key }) => key));
