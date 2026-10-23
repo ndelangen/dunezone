@@ -18,7 +18,7 @@ import styles from './index.module.css';
  * Read left to right and top to bottom, the tiles are a new player's path; any tile will start its chapter on its own.
  * The tutorial ships a chapter at a time (Norbert, 2026-10-23), so a chapter not yet built shows as coming soon and opens nothing,
  * the way the assets page showed planned types before every type existed.
- * Nothing in the app links here: like the lobby, the tutorial stays unlisted (and noindex) through the private beta.
+ * Only the lobby header links here, so the tutorial stays as unlisted (and noindex) as Play itself through the private beta.
  */
 export const Route = createFileRoute('/_app/tutorial/')({
   head: () => pageHead('Learn to play', { noindex: true }),
