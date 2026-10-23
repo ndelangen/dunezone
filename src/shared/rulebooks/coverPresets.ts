@@ -19,7 +19,6 @@ export const rulebookCoverPresetCatalogue = (
     ['shielded-city', 'Shielded city'],
     ['worm-riders', 'Shai-Hulud riders'],
     ['spice-harvester', 'Spice harvester'],
-    ['gf9-second-edition', 'GF9 2.0'],
   ] as const
 ).map(([id, label]) => ({
   id,
