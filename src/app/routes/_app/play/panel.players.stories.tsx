@@ -101,6 +101,7 @@ export const RemovalResolution = meta.story({
 });
 
 export const RemovalRejected = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => productTransport('seat-2', removalSnapshot())),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);

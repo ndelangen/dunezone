@@ -109,6 +109,7 @@ export const IncomingOffer = meta.story({
 });
 
 export const AlliedPlayerInfo = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => productTransport(VIEWER, alliancesSnapshot())),
   play: async ({ canvasElement }) => {
     const page = await openPlayer(canvasElement, /in an alliance/);

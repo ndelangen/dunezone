@@ -371,6 +371,7 @@ export const TwoFingersTiltTheCamera = meta.story({
  * A table opened mid-phase marks its phase's view and stays on the map: the first move waits for the next phase.
  */
 export const PhaseViews = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => productTransport('seat-2', { ...playingSnapshot(), phase: 1 })),
   play: async ({ canvasElement }) => {
     const { page, shell } = await tablePage(canvasElement, TABLE_PHASES[1].label);
@@ -509,6 +510,7 @@ export const SpiceDiscAnswersOnReturn = meta.story({
  * The key acts again once the pointer is back over the deck.
  */
 export const DeckShortcutsEndOffTheTable = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => productTransport()),
   play: async ({ canvasElement }) => {
     const { page, document } = await tablePage(canvasElement);

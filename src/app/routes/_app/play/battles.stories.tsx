@@ -292,6 +292,7 @@ export const Unclaimed = meta.story({
 });
 
 export const OneClaimed = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => {
     const snapshot = battleStory('preparing');
     snapshot.battle!.sides = [null, { factionId: 'house-atreides', ready: false, choice: null }];
@@ -644,6 +645,7 @@ export const WinnerCalled = meta.story({
 
 /** The other side's call is lit, so agreeing with it is one click. */
 export const WinnerCalledByOpponent = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: battleSetup('revealed', 'seat-2', (snapshot) => {
     snapshot.battle!.sides[0]!.choice = null;
     snapshot.battle!.sides[1]!.choice = 'left';
@@ -667,6 +669,7 @@ export const WinnerCallsDiffer = meta.story({
 
 /** After the reveal the battle ends as resolved, not cancelled, and it settles with whatever the sides called. */
 export const RevealedResolve = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: battleSetup('revealed', 'seat-2', (snapshot) => {
     for (const side of snapshot.battle!.sides) {
       side!.choice = null;

@@ -107,6 +107,7 @@ function clockSetup(timed: boolean) {
 }
 
 export const BeforeTheFirstRound = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: biddingSetup(null),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);

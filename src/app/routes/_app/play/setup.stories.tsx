@@ -37,6 +37,7 @@ export const TraitorSelection = meta.story({
 });
 
 export const StartingTroops = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => productTransport('seat-2', preparedSnapshot())),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);

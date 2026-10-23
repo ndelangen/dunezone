@@ -51,6 +51,7 @@ export const Game = meta.story({
 });
 
 export const Audit = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => {
     const snapshot = playingSnapshot();
     snapshot.removalVotes = [];

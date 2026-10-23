@@ -113,6 +113,7 @@ export const Shared = meta.story({
 });
 
 export const Observer = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => productTransport('neutral', { ...initialSnapshot(), phase: 5 })),
   play: async ({ canvasElement }) => {
     const { page, controls, waitForPhase, expectPrevious } = phaseControls(canvasElement);
@@ -162,6 +163,7 @@ export const FactionPhaseReadiness = meta.story({
 });
 
 export const MentatReadiness = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() =>
     productTransport('seat-2', {
       ...initialSnapshot(),

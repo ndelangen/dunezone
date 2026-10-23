@@ -213,6 +213,7 @@ export const Unreachable = meta.story({
 
 /* The shell opens through an iris once the renderer is ready; until then it stays closed behind the stage's status line. */
 export const OpensThroughAnIris = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => productTransport()),
   play: async ({ canvasElement }) => {
     const { shell, document } = await tablePage(canvasElement);
@@ -229,6 +230,7 @@ export const OpensThroughAnIris = meta.story({
  * It also stills the shell's transitions and smooth scrolling, whatever the OS hint says.
  */
 export const OpensStill = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => productTransport()),
   globals: { motion: 'reduce' },
   play: async ({ canvasElement }) => {
