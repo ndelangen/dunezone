@@ -18,8 +18,20 @@ const NECK = 9;
 const HEAD = { half: 24, length: 30 };
 /* How far the rounded corners where the wedge meets the band reach along each side. */
 const FILLET = 22;
-/* The notch over a target close under the band: half its width, its length, its corners, and the room it leaves above the target. */
-const NOTCH = { half: 16, length: 18, fillet: 8, clear: 4 };
+/*
+ * The hook beside a target close under the band: its gap to the target, its head, the shaft's half width,
+ * how far the tail hangs from the head and how wide it drops, its corners, and the room it keeps under the band.
+ */
+const HOOK = {
+  gap: 24,
+  head: { half: 20, length: 26 },
+  shaft: 8,
+  reach: 26,
+  drop: 44,
+  bend: 30,
+  fillet: 20,
+  clear: 6,
+};
 /* How far the outline reaches past the window's edges, so only its lower edge and the wedge show. */
 const BLEED = 4;
 
@@ -80,24 +92,61 @@ function wedge(root: Point, target: Target): string[] | null {
 }
 
 /*
- * A target that hugs the band, with no room for the wedge, gets a short notch dropped straight over it instead,
- * as a tooltip's caret points at what it names. Nothing at all when even that would touch the target.
+ * A target that hugs the band, with no room for the wedge to come down at it, gets a hook instead (Norbert, 2026-10-23: "B"):
+ * the band drops a short tail beside the target that turns and points across at it.
+ * It hangs on the target's left, or on its right where the left has no room. Nothing at all when the target is too close for even that.
  */
-function notch(edge: number, target: Target): string[] | null {
-  const top = target.y - target.halfHeight;
-  const tip = { x: target.x, y: Math.min(top - NOTCH.clear, edge + NOTCH.length) };
-  if (top <= edge || tip.y - edge < NOTCH.length / 2) {
+function hook(band: Edges, target: Target): string[] | null {
+  const edge = band.bottom;
+  const y = target.y;
+  if (y - HOOK.head.half < edge + HOOK.clear) {
     return null;
   }
-  const right = { x: target.x + NOTCH.half, y: edge };
-  const left = { x: target.x - NOTCH.half, y: edge };
-  return [
-    `L ${point({ x: right.x + NOTCH.fillet, y: edge })}`,
-    `Q ${point(right)} ${point(toward(right, tip, NOTCH.fillet))}`,
-    `L ${point(tip)}`,
-    `L ${point(toward(left, tip, NOTCH.fillet))}`,
-    `Q ${point(left)} ${point({ x: left.x - NOTCH.fillet, y: edge })}`,
+  const reach = HOOK.gap + HOOK.head.length + HOOK.drop + HOOK.fillet;
+  const fitsLeft = target.x - target.halfWidth - reach > band.left;
+  const fitsRight = target.x + target.halfWidth + reach < band.right;
+  if (!fitsLeft && !fitsRight) {
+    return null;
+  }
+  /* Points right from the target's left, or left from its right; every x below is measured back from the tip. */
+  const toward = fitsLeft ? 1 : -1;
+  const tip = target.x - toward * (target.halfWidth + HOOK.gap);
+  const at = (back: number, height: number): Point => ({ x: tip - toward * back, y: height });
+  const base = HOOK.head.length;
+  /* The tail's two sides, nearer the target and further from it. */
+  const near = base + HOOK.reach;
+  const far = near + HOOK.drop;
+  const shaft = HOOK.shaft;
+  const commands = [
+    [at(near - HOOK.fillet, edge)],
+    [at(near, edge), at(near, y - shaft)],
+    [at(base, y - shaft)],
+    [at(base, y - HOOK.head.half)],
+    [at(0, y)],
+    [at(base, y + HOOK.head.half)],
+    [at(base, y + shaft)],
+    [at(far - HOOK.bend, y + shaft)],
+    [at(far, y + shaft), at(far, edge + HOOK.fillet)],
+    [at(far, edge), at(far + HOOK.fillet, edge)],
   ];
+  /* The outline runs right to left along the band's lower edge, so a hook on the target's right is walked the other way. */
+  return (toward === 1 ? commands : backwards(commands)).map((step) =>
+    step.length === 2 ? `Q ${point(step[0]!)} ${point(step[1]!)}` : `L ${point(step[0]!)}`
+  );
+}
+
+/*
+ * An outline walked from its other end. Each step is its end point, after its curve's control point if it has one;
+ * the first step is where the outline starts. Walked back, each step ends where the step before it ended, through the same control.
+ */
+function backwards(steps: readonly (readonly Point[])[]): Point[][] {
+  const end = (step: readonly Point[]) => step.at(-1)!;
+  const result: Point[][] = [[end(steps.at(-1)!)]];
+  for (let index = steps.length - 1; index > 0; index -= 1) {
+    const step = steps[index]!;
+    result.push(step.length === 2 ? [step[0]!, end(steps[index - 1]!)] : [end(steps[index - 1]!)]);
+  }
+  return result;
 }
 
 /**
@@ -108,7 +157,7 @@ export function guideShapePath(band: Edges, root: Point, target: Target | null):
   const left = band.left - BLEED;
   const right = band.right + BLEED;
   const top = -BLEED;
-  const arrow = target ? (wedge({ x: root.x, y: band.bottom }, target) ?? notch(band.bottom, target)) : null;
+  const arrow = target ? (wedge({ x: root.x, y: band.bottom }, target) ?? hook(band, target)) : null;
   /* Clockwise from the top left: across the top, down the right, back along the lower edge through the arrow. */
   return [
     `M ${point({ x: left, y: top })}`,
