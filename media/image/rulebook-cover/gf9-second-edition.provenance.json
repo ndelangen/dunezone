@@ -1,15 +1,16 @@
 {
-  "source": "User-supplied Dune 2026 Rulebook.pdf, page 1",
+  "source": "User-supplied pic9878861.jpg; earlier reference from Dune 2026 Rulebook.pdf, page 1",
+  "sourceImageSha256": "bdc6a4acaa887b2390749475f6d3be2cf406fe67ad83c141943f1c1201d631c1",
   "sourcePdfSha256": "0d8a3a0bc504596199fe2fc8dcc600e6dba1c627649db057959245a42d89566a",
   "confirmedBy": "Norbert",
   "confirmedOn": "2026-10-23",
-  "preparation": "Generated a clean reconstruction of the supplied cover, removed typography and publisher logos for separate overlays, then extended the sides to match the existing 4:3 cover masters. Restored the small circular motif at the foot of the right-hand cliff from the user-supplied close-up. Source and earlier previews remain in the authoring workspace.",
-  "approvedAssetSha256": "2dd57d692933e19797bcaaaed6c84257c9f0d7e1ca0e0aef5821c12c5f3996d9",
+  "preparation": "Used the clearer supplied image to generate a text-free cover with both foreground onlookers, both ornithopters, the worm rider and the circular motif at the right-hand cliff. Extended the sides to 4:3 and normalized the preview to 1448 by 1086 pixels. Source, prompt and earlier previews remain in the authoring workspace.",
+  "approvedAssetSha256": "67847aad3f3a3fec5b570851c5d8203a15dcf82dd436d3aa394149057a81f800",
   "approvedDimensions": {
     "width": 1448,
     "height": 1086
   },
-  "approval": "Norbert approved the restored motif preview on 23 October 2026, requested replacing the earlier cover, and explicitly requested this image on production.",
+  "approval": "Norbert approved the corrected 4:3 preview from pic9878861.jpg on 23 October 2026 and requested replacing the old image and shipping it to production, with no bitmaps in Git.",
   "generationMethod": "Built-in image generation",
   "issue": "https://github.com/ndelangen/dunezone/issues/2431"
 }
