@@ -33,13 +33,22 @@
   }
 }
 
+/*
+ * Each tile spans two rows of the grid, its title and its body, and hands them on as a subgrid,
+ * so a title that wraps to two lines moves its whole row of pictures down together rather than its own picture alone.
+ */
 .cell {
-  display: flex;
+  display: grid;
+  grid-row: span 2;
+  grid-template-rows: subgrid;
   min-width: 0;
 }
 
-.tile {
-  width: 100%;
+.cell > .tile {
+  display: grid;
+  grid-row: span 2;
+  grid-template-rows: subgrid;
+  gap: var(--space-md);
 }
 
 /* The chapter's still, with its number pinned to the corner the eye reads first. */
