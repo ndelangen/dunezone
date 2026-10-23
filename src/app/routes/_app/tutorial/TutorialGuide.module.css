@@ -7,30 +7,34 @@
   inset: 0 0 auto;
   pointer-events: auto;
   display: grid;
-  grid-template-columns: 12rem minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: var(--space-lg);
+  gap: var(--space-sm);
   height: 4.5rem;
-  padding-inline: var(--space-lg);
+  padding-inline: var(--space-sm);
   color: var(--color-paper);
 }
 
-.chapter {
-  display: grid;
-  line-height: 1.2;
+.chapter,
+.count {
+  display: none;
 }
 
-/* A narrow window gives the task the room the chapter's name took; the page header below still names the chapter. */
-@media (width < 60rem) {
+/* A wide window gives the chapter's name a column of its own; a narrower one gives that room to the task, and the page header below still names the chapter. */
+@container tutorial-guide (width >= 62rem) {
   .band {
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: var(--space-sm);
-    padding-inline: var(--space-sm);
+    grid-template-columns: 12rem minmax(0, 1fr) auto;
+    gap: var(--space-lg);
+    padding-inline: var(--space-lg);
   }
 
-  .chapter,
+  .chapter {
+    display: grid;
+    line-height: 1.2;
+  }
+
   .count {
-    display: none;
+    display: revert;
   }
 }
 
@@ -72,6 +76,7 @@
   inset: 0;
   z-index: 300;
   pointer-events: none;
+  container: tutorial-guide / inline-size;
   filter: drop-shadow(0 6px 14px rgb(0 0 0 / 0.55));
 }
 

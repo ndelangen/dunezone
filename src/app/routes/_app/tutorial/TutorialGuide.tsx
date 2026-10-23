@@ -213,7 +213,9 @@ export function TutorialGuide({
       frame = requestAnimationFrame(tick);
       const view = { camera: tableView()?.camera ?? null };
       draw(started && doneAt === null ? place(task.anchor) : null);
-      started ||= start(view);
+      if (!started) {
+        started = start(view);
+      }
       if (!started) {
         return;
       }
