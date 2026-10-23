@@ -200,9 +200,16 @@ function interned(steps: JourneyStep[]) {
 
 /** The recording as text: fixture origins for the published paths, and the story profiles for the synthetic accounts. */
 function portable(text: string) {
-  let result = text
-    .replaceAll(`${ORIGIN}${PRODUCT}`, '{{origin}}/play-fixtures/product/')
-    .replaceAll(`${ORIGIN}${DREAMRULES}`, '{{origin}}/play-fixtures/dreamrules/');
+  return renamed(
+    text
+      .replaceAll(`${ORIGIN}${PRODUCT}`, '{{origin}}/play-fixtures/product/')
+      .replaceAll(`${ORIGIN}${DREAMRULES}`, '{{origin}}/play-fixtures/dreamrules/')
+  );
+}
+
+/** A recording's text with the synthetic accounts renamed to the public profiles the Play stories seat. */
+export function renamed(text: string) {
+  let result = text;
   for (const [index, suffix] of SUFFIXES.entries()) {
     result = result
       .replaceAll(`Synthetic ${suffix.toUpperCase()}`, PLAYERS[index])
@@ -226,6 +233,18 @@ type JourneyStep = {
   stored?: StoredSnapshot;
 };
 
+/** The factions a recording drafts, one per seat in seat order, and the one it bans; ids are what the game knows them by. */
+export type JourneyCast = Readonly<{
+  factions: readonly Readonly<{ id: string; slug: string; name: string }>[];
+  ban: Readonly<{ id: string; name: string }>;
+}>;
+
+/* The story fixtures know each faction by its slug. */
+const FIXTURE_CAST: JourneyCast = {
+  factions: factionFixtures.map(({ slug, data }) => ({ id: slug, slug, name: data.name })),
+  ban: { id: 'ixians', name: 'Ixians' },
+};
+
 export class JourneyRecorder {
   players: NativeConnection[] = [];
   spectator: NativeConnection | undefined;
@@ -236,8 +255,14 @@ export class JourneyRecorder {
 
   constructor(
     readonly peer: NativePeer,
-    readonly runtime: NativeRuntime
+    readonly runtime: NativeRuntime,
+    readonly cast: JourneyCast = FIXTURE_CAST
   ) {}
+
+  /** The id the game knows a faction by, from its slug. */
+  id(slug: string) {
+    return required(this.cast.factions.find((faction) => faction.slug === slug)).id;
+  }
 
   static async open() {
     const { peer, runtime } = await journeyRuntime();
@@ -257,11 +282,11 @@ export class JourneyRecorder {
     return [...this.players, ...(this.spectator ? [this.spectator] : [])];
   }
 
-  /** Seat index of the faction the deal assigned. */
-  indexOf(slug: string) {
+  /** Seat index of the faction the deal assigned, by the id the game knows it by. */
+  indexOf(id: string) {
     return (
       Number(
-        required(required(this.roster).seats.find((entry) => required(entry.faction).id === slug)).id.slice(
+        required(required(this.roster).seats.find((entry) => required(entry.faction).id === id)).id.slice(
           'seat-'.length
         )
       ) - 1
@@ -412,11 +437,12 @@ export class JourneyRecorder {
 
   /** Splits `count` troops off the faction's reserve and carries them into the territory; returns the seat index. */
   async moveTroops(slug: string, count: number, territory: string) {
-    const index = this.indexOf(slug);
+    const id = this.id(slug);
+    const index = this.indexOf(id);
     const reserve = (await this.pieces(index)).find(
       (piece) =>
         piece.kind === 'force' &&
-        piece.stackKey?.startsWith(`troops:${slug}:`) &&
+        piece.stackKey?.startsWith(`troops:${id}:`) &&
         !piece.id.startsWith('split-') &&
         piece.items.length > count
     );
