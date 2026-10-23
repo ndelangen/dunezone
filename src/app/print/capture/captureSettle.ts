@@ -159,32 +159,30 @@ export async function settleHtmlImages(signal: AbortSignal): Promise<void> {
 
 const CSS_IMAGE_PROPERTIES = ['background-image', 'border-image-source', 'mask-image', 'list-style-image', 'content'];
 
+function renderedStyles(element: Element): CSSStyleDeclaration[] {
+  const pseudoStyles = ['::before', '::after']
+    .map((pseudo) => getComputedStyle(element, pseudo))
+    .filter((style) => style.content !== 'none' && style.content !== 'normal');
+  return [getComputedStyle(element), ...pseudoStyles];
+}
+
+function cssImageUrls(style: CSSStyleDeclaration): string[] {
+  /* Computed styles serialize URL values as double-quoted strings, including inside image-set. */
+  const matches = CSS_IMAGE_PROPERTIES.flatMap((property) =>
+    Array.from(style.getPropertyValue(property).matchAll(/url\("((?:\\.|[^"\\])*)"\)/gu))
+  );
+  return matches
+    .map((match) =>
+      match[1].replace(/\\([0-9a-f]{1,6})\s?|\\(.)/giu, (_escape, hex: string | undefined, character: string) =>
+        hex ? String.fromCodePoint(Number.parseInt(hex, 16) || 0xff_fd) : character
+      )
+    )
+    .filter((href) => !href.startsWith('#'));
+}
+
 function captureResources() {
-  const cssImages = new Set<string>();
-  for (const element of document.querySelectorAll('*')) {
-    const styles = [getComputedStyle(element)];
-    for (const pseudo of ['::before', '::after']) {
-      const style = getComputedStyle(element, pseudo);
-      if (style.content !== 'none' && style.content !== 'normal') {
-        styles.push(style);
-      }
-    }
-    for (const style of styles) {
-      for (const property of CSS_IMAGE_PROPERTIES) {
-        /* Computed styles serialize URL values as double-quoted strings, including inside image-set. */
-        for (const match of style.getPropertyValue(property).matchAll(/url\("((?:\\.|[^"\\])*)"\)/gu)) {
-          const href = match[1].replace(
-            /\\([0-9a-f]{1,6})\s?|\\(.)/giu,
-            (_escape, hex: string | undefined, character: string) =>
-              hex ? String.fromCodePoint(Number.parseInt(hex, 16) || 0xff_fd) : character
-          );
-          if (!href.startsWith('#')) {
-            cssImages.add(href);
-          }
-        }
-      }
-    }
-  }
+  const styles = Array.from(document.querySelectorAll('*')).flatMap(renderedStyles);
+  const cssImages = new Set(styles.flatMap(cssImageUrls));
   return {
     cssImages,
     signature: JSON.stringify([
