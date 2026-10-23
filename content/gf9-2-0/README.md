@@ -17,6 +17,9 @@ labels and explanations; no connector changes are required.
 Use the existing Q&A Block for faction questions, with its current separate question and
 answer presentation. Preserve the wording and let the renderer supply `Answer:` once.
 
+Use the existing callout Block for the bordered Karama extracts on page 26. Keep each title
+and its formatted rules text, using the current border and spacing without a new variant.
+
 ## Source
 
 The user supplied `Dune 2026 Rulebook.pdf` on 22 October 2026 and reported that it came out the previous day. The retained [source.pdf](source.pdf) is byte-for-byte identical to that file. Its cover says `SECOND EDITION`. It has 36 image-only PDF pages, with no selectable text. Its embedded creation timestamp is 21 October 2026 at 22:02:17 CEST. That timestamp alone does not establish a publisher release date.

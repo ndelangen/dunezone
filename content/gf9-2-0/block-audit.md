@@ -39,6 +39,10 @@ For the faction questions, use the existing `question-answer` Block. The review 
 its separate question and answer presentation. Preserve the wording and let the renderer
 supply `Answer:` once. No compact variant or Q&A presentation change is required.
 
+Use the existing `callout` Block for page 26's bordered Karama extracts. Preserve each title
+and its formatted rules text. Use the existing border and spacing; surrounding explanation
+stays in ordinary text Blocks. No new callout variant or renderer change is required.
+
 ## What exists today
 
 The [Contents contract](../../src/shared/rulebooks/contents.ts#L59) has 19 Block kinds and
@@ -52,7 +56,7 @@ styling and heading treatment under the approved simplification.
 | Body paragraphs and short bold lead-ins | `text`; optional `name` | Preserve the actual paragraphs and emphasis. A `name` renders an added heading, so only use it for an existing source heading. |
 | Rules, exceptions and setup steps | `list`, with bulleted or numbered style and a starting number | Supports named items and icons. Nested prose lists also exist in formatted text. Check the source's marker shape, indentation and continuation. |
 | Section and faction bands | `section-heading`; optional faction reference | Use the existing heading and icon presentation. Preserve phase numbers and titles in the heading text. Source band styling and a separate subtitle field are not requirements. |
-| Examples, notes and quotations | `callout` | There are `note`, `example` and `quotation` variants. Test the source's unboxed examples and bordered Karama extracts before selecting one. |
+| Examples, notes and quotations | `callout` | Use the existing variants. Page 26's bordered Karama extracts are approved for the existing callout presentation, including its border and spacing. No new variant is required. |
 | Faction questions | `question-answer` | Use the existing separate question and answer presentation as approved. It inserts `Answer:` itself; do not paste an additional answer label into the field. No compact variant is required. |
 | Standalone artwork and captions | `referenced-illustration` | Accepts small, medium or large size and an empty caption. Its source must resolve through the source catalogue. There is no arbitrary interior image URL or crop field. |
 | Faction overview bands | `faction-introduction` | Already composes a token, summary, ruler and leader roster. It also emits the faction name and `Leaders`; do not accidentally duplicate source labels or add labels absent from a particular source panel. |
@@ -167,7 +171,9 @@ for questions on pages 28, 29, 30 and 33. Its separate question and answer prese
 approved. Keep the source wording, supply only the answer body in the answer field, and let
 the renderer add `Answer:` once. No Q&A variant or renderer change is required.
 
-For the small bordered Karama extracts on page 26, test an existing `callout` variant first.
+For the bordered Karama extracts on page 26, use the existing `callout` Block as approved.
+Put each source heading in its title and preserve the formatted rules text in its body.
+Use the current border and spacing; keep the surrounding explanation in text Blocks.
 
 ### Artwork, maps and diagrams
 
@@ -242,8 +248,8 @@ decisions and evidence can accumulate independently.
    get the illustrations as close as those tools allow, and explain strength values and totals
    in text. No new Block or extension. Keep the wheel-window artwork decision separate.
 5. **Source-exact labels and compact explanations.** Pages 4-7, 11, 17-19 and 23-33. Track
-   suppression of automatic `Quantity:`, source names and repeated labels, and the small
-   bordered Karama extracts. Q&A is settled: use the existing Block without presentation changes.
+   suppression of automatic `Quantity:`, source names and repeated labels. Q&A and the Karama
+   extracts are settled: use the existing Q&A and callout Blocks without presentation changes.
 
 ## Later differences book
 
