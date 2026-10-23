@@ -81,7 +81,7 @@ export const convexWorkerOptimizeDeps = {
 export const convexWorkerAliases = {
   'node:async_hooks': fileURLToPath(new URL('./async-hooks.ts', import.meta.url)),
   /* The game Worker's table, which the Play sandbox story runs in the browser, imports Node's crypto. */
-  'node:crypto': fileURLToPath(new URL('./node-crypto.ts', import.meta.url)),
+  'node:crypto': fileURLToPath(new URL('../src/app/routes/_app/tutorial/table/nodeCrypto.ts', import.meta.url)),
 };
 
 function isolateConvexTestStorageUrls(): Plugin {

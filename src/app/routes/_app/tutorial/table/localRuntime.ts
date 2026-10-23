@@ -41,7 +41,13 @@ export function localRuntime(
         queueMicrotask(() => this.answer(KEEPALIVE_PONG));
         return;
       }
-      const message = clientMessageSchema.parse(JSON.parse(data));
+      /* The Worker closes a socket that sends what the protocol does not allow, rather than throwing at the page. */
+      const parsed = clientMessageSchema.safeParse(JSON.parse(data));
+      if (!parsed.success) {
+        queueMicrotask(() => this.close(1008));
+        return;
+      }
+      const message = parsed.data;
       switch (message.type) {
         case 'admit':
           table().deliver = (next) => queueMicrotask(() => socket?.deliver(next));
@@ -49,7 +55,17 @@ export function localRuntime(
         case 'faction':
           return this.later({ ...message, faction: factions[message.factionId] ?? null });
         case 'conversation-history':
+        case 'spice-history':
           return this.later({ ...message, entries: [], more: false });
+        /* A local table keeps no replay, so its history is the table as it stands. */
+        case 'history':
+          return this.later({ type: 'history', step: 0, lastStep: 0, snapshot: table().frame().snapshot });
+        case 'catalogue':
+          return this.later({
+            type: 'catalogue',
+            requestId: message.requestId,
+            error: 'Bringing your own pieces is not part of this chapter.',
+          });
         case 'log-history': {
           const entries = (table().log()[message.tab] ?? []).filter((entry) => entry.sequence < message.before);
           return this.later({
@@ -100,7 +116,7 @@ export function localRuntime(
     },
     /* The page's ticket has the shape the socket's messages require; nothing checks it but that. */
     admission: {
-      request: async () => ({ ok: true as const, ticket: '0'.repeat(64), expiresInMs: 3_600_000 }),
+      request: () => Promise.resolve({ ok: true as const, ticket: '0'.repeat(64), expiresInMs: 3_600_000 }),
     },
   };
 }

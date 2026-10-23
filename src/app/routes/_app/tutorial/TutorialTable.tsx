@@ -1,7 +1,7 @@
 import type { GameSnapshot } from '@shared/play/protocol';
 import { PageTitle } from '@ui/block/PageTitle';
 import { PageLayout } from '@ui/layout/PageLayout';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import { GameRuntimeContext } from '../play/multiplayer/gameRuntime';
@@ -39,8 +39,16 @@ function useTutorialTable(setup: TutorialSetup, chapter: ChapterScript) {
     };
     const holder = { current: open() };
     const runtime = localRuntime(() => holder.current, withOrigin(setup.factions, origin));
+    /* The guide asks every frame, so the table is projected again only once its room has moved on. */
+    let seen: { room: unknown; snapshot: GameSnapshot } | undefined;
     const control: TutorialTableControl = {
-      snapshot: () => holder.current.frame().snapshot,
+      snapshot: () => {
+        const room = holder.current.room.snapshot;
+        if (seen?.room !== room) {
+          seen = { room, snapshot: holder.current.frame().snapshot };
+        }
+        return seen.snapshot;
+      },
       reset: () => {
         const { deliver } = holder.current;
         holder.current.dispose();
@@ -49,8 +57,14 @@ function useTutorialTable(setup: TutorialSetup, chapter: ChapterScript) {
         deliver(holder.current.frame());
       },
     };
-    return { runtime, control };
+    return { runtime, control, holder };
   });
+  /* The table keeps time only while the chapter is open, so leaving it stops the table's timers. */
+  useEffect(() => {
+    const { holder } = table;
+    holder.current.open();
+    return () => holder.current.dispose();
+  }, [table]);
   return table;
 }
 

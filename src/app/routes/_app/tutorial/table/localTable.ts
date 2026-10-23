@@ -26,8 +26,7 @@ import type { StoredSnapshot } from '../../../../../../workers/game/state';
 
 type View = Extract<ServerMessage, { type: 'view' }>;
 export type TableMessage = Exclude<ClientMessage, { type: 'admit' | 'log-history' | 'conversation-history' }>;
-type Message = TableMessage;
-type MessageOf<Type extends Message['type']> = Extract<Message, { type: Type }>;
+type MessageOf<Type extends TableMessage['type']> = Extract<TableMessage, { type: Type }>;
 type RoomAction = Parameters<Room['command']>[1];
 
 /** Where a local table starts: the stored state, every seat's viewer, the names at the table, and the log so far. */
@@ -134,9 +133,9 @@ export class LocalTable {
    * A seat other than the page's acts as a second player at the same table.
    * Replays, the spice history, conversations and metrics stay with the scripted transport, so those answer false.
    */
-  receive(message: Message, seat = this.seat): boolean {
+  receive(message: TableMessage, seat = this.seat): boolean {
     const handle = this.handlers[message.type] as
-      | ((message: Message, viewer: Viewer, own: boolean) => void)
+      | ((message: TableMessage, viewer: Viewer, own: boolean) => void)
       | undefined;
     if (!handle) {
       return false;
@@ -153,7 +152,7 @@ export class LocalTable {
   }
 
   private readonly handlers: {
-    [Type in Message['type']]?: (message: MessageOf<Type>, viewer: Viewer, own: boolean) => void;
+    [Type in TableMessage['type']]?: (message: MessageOf<Type>, viewer: Viewer, own: boolean) => void;
   } = {
     sync: () => this.deliver(this.frame()),
     pointer: (message, viewer) => {
@@ -192,7 +191,7 @@ export class LocalTable {
   };
 
   /* A refusal as the Worker sends one: a rejected drop lets go of its carry, and an unexpected error is reported but still answered. */
-  private refuse(message: Message, viewer: Viewer, own: boolean, error: unknown) {
+  private refuse(message: TableMessage, viewer: Viewer, own: boolean, error: unknown) {
     if (!(error instanceof GameRejection)) {
       console.error('The local table failed on a message.', error);
     }
@@ -299,7 +298,7 @@ export class LocalTable {
 }
 
 /* The id a rejection answers, as the Worker's `messageId` picks it. */
-function requestId(message: Message) {
+function requestId(message: TableMessage) {
   if ('commandId' in message) {
     return message.commandId;
   }

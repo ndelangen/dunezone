@@ -43,7 +43,36 @@ const cameraDistance = ({ camera }: GuideView) => camera?.position.length() ?? 0
 /* Each task keeps its own kind of baseline; the guide only hands it back. */
 const task = <Baseline>(definition: GuideTask<Baseline>) => definition as unknown as GuideTask;
 
-function tasks(snapshot: () => GameSnapshot): GuideTask[] {
+/* Finding the parts of the screen through the camera: in close, to the side, and back. */
+const cameraTasks = (): GuideTask[] => [
+  task({
+    id: 'zoom',
+    task: 'Look closer at Arrakis',
+    detail: 'Scroll down over the board. The camera moves in toward the spot under your pointer.',
+    anchor: { kind: 'table', point: () => [0, 0, 0] },
+    begin: cameraDistance,
+    done: (start, view) => cameraDistance(view) < start * 0.8,
+  }),
+  task({
+    id: 'look-left',
+    task: 'Look at the left of the table',
+    detail: 'The camera dial, bottom right of the table, jumps the view. Press L.',
+    anchor: { kind: 'page', element: element('[aria-label="Focus on left"]') },
+    begin: cameraX,
+    done: (start, view) => cameraX(view) < start - 1,
+  }),
+  task({
+    id: 'look-back',
+    task: 'Go back to the map',
+    detail: 'M on the same dial brings the whole board back, with both decks in view.',
+    anchor: { kind: 'page', element: element('[aria-label^="Focus on map"]') },
+    begin: cameraX,
+    done: (start, view) => cameraX(view) > start + 1,
+  }),
+];
+
+/* The table's own pieces: a card from a deck, troops onto the board and a card from the other deck. */
+function tableTasks(snapshot: () => GameSnapshot): GuideTask[] {
   const pieces = () => snapshot().table.pieces.filter((piece) => !piece.inventory);
   const mine = () => snapshot().bank?.factionId;
   /*
@@ -54,37 +83,15 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
     pieces().find(
       (piece) =>
         piece.stackKey?.startsWith('deck:') &&
-        !piece.inventory &&
         Math.abs(piece.position[0]) <= BOARD_RADIUS * 2 &&
         (side === 'left' ? piece.position[0] < 0 : piece.position[0] > 0)
     );
+  /* Troops, not stacks: a troop dropped onto one already there joins its stack, and splitting a stack on the board adds none. */
   const myTroopsOnBoard = () =>
-    pieces().filter((piece) => piece.stackKey?.startsWith(`troops:${mine()}:`) && onBoard(piece)).length;
+    pieces()
+      .filter((piece) => piece.stackKey?.startsWith(`troops:${mine()}:`) && onBoard(piece))
+      .reduce((total, piece) => total + piece.items.length, 0);
   return [
-    task({
-      id: 'zoom',
-      task: 'Look closer at Arrakis',
-      detail: 'Scroll down over the board. The camera moves in toward the spot under your pointer.',
-      anchor: { kind: 'table', point: () => [0, 0, 0] },
-      begin: cameraDistance,
-      done: (start, view) => cameraDistance(view) < start * 0.8,
-    }),
-    task({
-      id: 'look-left',
-      task: 'Look at the left of the table',
-      detail: 'The camera dial, bottom right of the table, jumps the view. Press L.',
-      anchor: { kind: 'page', element: element('[aria-label="Focus on left"]') },
-      begin: cameraX,
-      done: (start, view) => cameraX(view) < start - 1,
-    }),
-    task({
-      id: 'look-back',
-      task: 'Go back to the map',
-      detail: 'M on the same dial brings the whole board back, with both decks in view.',
-      anchor: { kind: 'page', element: element('[aria-label^="Focus on map"]') },
-      begin: cameraX,
-      done: (start, view) => cameraX(view) > start + 1,
-    }),
     task({
       id: 'draw',
       task: 'Draw a Treachery card',
@@ -113,35 +120,41 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       begin: () => snapshot().versions[deck('right')?.id ?? ''] ?? 0,
       done: (start) => (snapshot().versions[deck('right')?.id ?? ''] ?? 0) !== start,
     }),
-    task({
-      id: 'your-spice',
-      task: 'Count your spice',
-      detail: 'Your own things are in the panel below the table. Open the Spice tab.',
-      anchor: { kind: 'page', element: element('[role="tab"][aria-label="Spice"]') },
-      ...pressedTab('[role="tab"][aria-label="Spice"]'),
-    }),
-    task({
-      id: 'player-info',
-      task: 'See what another player holds',
-      detail: 'The players sit on the right of the panel. Open the Info tab of the player shown.',
-      anchor: { kind: 'page', element: element('aside[aria-label="Players"] [role="tab"][aria-label="Info"]') },
-      ...pressedTab('aside[aria-label="Players"] [role="tab"][aria-label="Info"]'),
-    }),
-    task({
-      id: 'next-phase',
-      task: 'Move the game on',
-      detail: 'The header says the game is in the Storm. Press Next phase, top right.',
-      anchor: {
-        kind: 'page',
-        element: () =>
-          [...document.querySelectorAll('[aria-label="Phase navigation"] button')].find(
-            (button) => button.textContent?.trim() === 'Next phase'
-          ) ?? null,
-      },
-      begin: () => snapshot().phase,
-      done: (start) => snapshot().phase !== start,
-    }),
   ];
 }
+
+/* The panels around the table: the player's own things, another player's, and the phase. */
+const panelTasks = (snapshot: () => GameSnapshot): GuideTask[] => [
+  task({
+    id: 'your-spice',
+    task: 'Count your spice',
+    detail: 'Your own things are in the panel below the table. Open the Spice tab.',
+    anchor: { kind: 'page', element: element('[role="tab"][aria-label="Spice"]') },
+    ...pressedTab('[role="tab"][aria-label="Spice"]'),
+  }),
+  task({
+    id: 'player-info',
+    task: 'See what another player holds',
+    detail: 'The players sit on the right of the panel. Open the Info tab of the player shown.',
+    anchor: { kind: 'page', element: element('aside[aria-label="Players"] [role="tab"][aria-label="Info"]') },
+    ...pressedTab('aside[aria-label="Players"] [role="tab"][aria-label="Info"]'),
+  }),
+  task({
+    id: 'next-phase',
+    task: 'Move the game on',
+    detail: 'The header says the game is in the Storm. Press Next phase, top right.',
+    anchor: {
+      kind: 'page',
+      element: () =>
+        [...document.querySelectorAll('[aria-label="Phase navigation"] button')].find(
+          (button) => button.textContent?.trim() === 'Next phase'
+        ) ?? null,
+    },
+    begin: () => snapshot().phase,
+    done: (start) => snapshot().phase !== start,
+  }),
+];
+
+const tasks = (snapshot: () => GameSnapshot) => [...cameraTasks(), ...tableTasks(snapshot), ...panelTasks(snapshot)];
 
 export const whatGoesWhere: ChapterScript = { slug: 'what-goes-where', checkpoint: 'turn-1-storm', tasks };

@@ -17,7 +17,7 @@ const paths = new Set(
     .filter((address) => !address.startsWith('/published/boards/'))
 );
 let bytes = 0;
-for (const address of [...paths].sort()) {
+for (const address of [...paths].sort((a, b) => a.localeCompare(b))) {
   const response = await fetch(new URL(address, site));
   if (!response.ok) {
     throw new Error(`${address} answered ${response.status}.`);

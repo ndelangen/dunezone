@@ -32,7 +32,7 @@ const { raw: rulesetSupply, value: supply } = checked(
   rulesetSupplySchema.nullable(),
   await client.query(api.playCatalogue.rulesetSupply, { rulesetId: ruleset.id })
 );
-if (!supply || supply.ruleset.slug !== ruleset.slug) {
+if (supply?.ruleset.slug !== ruleset.slug) {
   throw new Error(`The catalogue has no ruleset ${ruleset.slug} at ${ruleset.id}.`);
 }
 const assets: Record<string, unknown> = {};

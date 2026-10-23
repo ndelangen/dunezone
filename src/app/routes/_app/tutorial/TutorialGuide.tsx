@@ -52,33 +52,54 @@ const projected = new Vector3();
 function tableView(): { camera: Camera; canvas: HTMLCanvasElement } | null {
   for (const [canvas, root] of _roots) {
     const camera = root.store.getState().camera as Camera | null;
-    if (canvas instanceof HTMLCanvasElement && canvas.isConnected && camera) {
+    if (camera && onPage(canvas)) {
       return { camera, canvas };
     }
   }
   return null;
 }
 
+const onPage = (canvas: unknown): canvas is HTMLCanvasElement =>
+  canvas instanceof HTMLCanvasElement && canvas.isConnected;
+
+/* Whether the camera has held still for a run of frames, so a task's baseline is taken from where it came to rest. */
+function settling() {
+  let still = 0;
+  const resting = new Vector3();
+  return (camera: Camera) => {
+    still = camera.position.distanceToSquared(resting) < 1e-8 ? still + 1 : 0;
+    resting.copy(camera.position);
+    return still >= SETTLE_FRAMES;
+  };
+}
+
 function place(anchor: GuideAnchor): Target | null {
-  if (anchor.kind === 'page') {
-    const box = anchor.element()?.getBoundingClientRect();
-    return box && box.width > 0
-      ? {
-          x: box.left + box.width / 2,
-          y: box.top + box.height / 2,
-          halfWidth: box.width / 2,
-          halfHeight: box.height / 2,
-        }
-      : null;
+  return anchor.kind === 'page' ? onScreen(anchor.element()) : onTable(anchor.point());
+}
+
+function onScreen(element: Element | null): Target | null {
+  const box = element?.getBoundingClientRect();
+  if (!box || box.width <= 0) {
+    return null;
   }
+  return {
+    x: box.left + box.width / 2,
+    y: box.top + box.height / 2,
+    halfWidth: box.width / 2,
+    halfHeight: box.height / 2,
+  };
+}
+
+/* A point on the table where the camera shows it, or nothing when it is behind the camera or out of view. */
+function onTable(point: Vector3Tuple | null): Target | null {
   const view = tableView();
-  const point = anchor.point();
   if (!view || !point) {
     return null;
   }
   const box = view.canvas.getBoundingClientRect();
   projected.set(...point).project(view.camera);
-  if (projected.z > 1 || Math.abs(projected.x) > 1 || Math.abs(projected.y) > 1) {
+  const outOfView = Math.max(Math.abs(projected.x), Math.abs(projected.y), projected.z) > 1;
+  if (outOfView) {
     return null;
   }
   return {
@@ -156,15 +177,18 @@ export function TutorialGuide({
   useEffect(() => {
     let frame = 0;
     const task = currentTask();
+    const draw = (spot: Target | null) => {
+      const badge = step.current?.getBoundingClientRect();
+      const box = band.current?.getBoundingClientRect();
+      if (badge && box) {
+        aim([fill.current, edge.current], badge, box, spot);
+      }
+    };
     /* Once the chapter is done the band stays, without its arrow. */
     if (!task) {
       const still = () => {
         frame = requestAnimationFrame(still);
-        const badge = step.current?.getBoundingClientRect();
-        const box = band.current?.getBoundingClientRect();
-        if (badge && box) {
-          aim([fill.current, edge.current], badge, box, null);
-        }
+        draw(null);
       };
       frame = requestAnimationFrame(still);
       return () => cancelAnimationFrame(frame);
@@ -176,28 +200,22 @@ export function TutorialGuide({
      * As a run opens the camera may still be gliding into its view, so its first task starts counting from where it comes to rest,
      * and the band shows the task only then. Later tasks start at once, so a move the player makes straight away counts.
      */
-    let still = current === 0 ? 0 : SETTLE_FRAMES;
-    const resting = new Vector3();
+    const settled = current === 0 ? settling() : () => true;
+    const start = (view: GuideView) => {
+      if (!view.camera || !settled(view.camera)) {
+        return false;
+      }
+      baseline = task.begin(view);
+      setReadyRun(run);
+      return true;
+    };
     const tick = () => {
       frame = requestAnimationFrame(tick);
       const view = { camera: tableView()?.camera ?? null };
-      const badge = step.current?.getBoundingClientRect();
-      const box = band.current?.getBoundingClientRect();
-      if (badge && box) {
-        aim([fill.current, edge.current], badge, box, started && doneAt === null ? place(task.anchor) : null);
-      }
+      draw(started && doneAt === null ? place(task.anchor) : null);
+      started ||= start(view);
       if (!started) {
-        if (!view.camera) {
-          return;
-        }
-        still = view.camera.position.distanceToSquared(resting) < 1e-8 ? still + 1 : 0;
-        resting.copy(view.camera.position);
-        if (still < SETTLE_FRAMES) {
-          return;
-        }
-        baseline = task.begin(view);
-        started = true;
-        setReadyRun(run);
+        return;
       }
       if (doneAt === null && task.done(baseline as never, view)) {
         doneAt = performance.now();
@@ -221,6 +239,48 @@ export function TutorialGuide({
     onReset();
     setCurrent(0);
     setRun((count) => count + 1);
+  };
+
+  /* What the band says: setting up, the task at hand, or that the chapter is done. */
+  const line = () => {
+    if (!task) {
+      return (
+        <>
+          <span ref={step} className={styles.step} data-done>
+            <Check size={16} aria-hidden />
+          </span>
+          <div>
+            <Text fw={700}>Chapter done</Text>
+            <Text size="sm" c="dimmed">
+              You know your way around the table. Pick the next chapter, or reset to try again.
+            </Text>
+          </div>
+        </>
+      );
+    }
+    if (waiting) {
+      return (
+        <>
+          <span ref={step} className={styles.step}>
+            {current + 1}
+          </span>
+          <Text fw={700}>Setting the table…</Text>
+        </>
+      );
+    }
+    return (
+      <>
+        <span ref={step} className={styles.step} data-done={finished || undefined}>
+          {finished ? <Check size={16} aria-hidden /> : current + 1}
+        </span>
+        <div>
+          <Text fw={700}>{task.task}</Text>
+          <Text size="sm" c="dimmed">
+            {task.detail}
+          </Text>
+        </div>
+      </>
+    );
   };
 
   return (
@@ -255,38 +315,7 @@ export function TutorialGuide({
             <Text fw={700}>{title}</Text>
           </div>
           <div className={styles.task} aria-live="polite">
-            {task && waiting ? (
-              <>
-                <span ref={step} className={styles.step}>
-                  {current + 1}
-                </span>
-                <Text fw={700}>Setting the table…</Text>
-              </>
-            ) : task ? (
-              <>
-                <span ref={step} className={styles.step} data-done={finished || undefined}>
-                  {finished ? <Check size={16} aria-hidden /> : current + 1}
-                </span>
-                <div>
-                  <Text fw={700}>{task.task}</Text>
-                  <Text size="sm" c="dimmed">
-                    {task.detail}
-                  </Text>
-                </div>
-              </>
-            ) : (
-              <>
-                <span ref={step} className={styles.step} data-done>
-                  <Check size={16} aria-hidden />
-                </span>
-                <div>
-                  <Text fw={700}>Chapter done</Text>
-                  <Text size="sm" c="dimmed">
-                    You know your way around the table. Pick the next chapter, or reset to try again.
-                  </Text>
-                </div>
-              </>
-            )}
+            {line()}
           </div>
           <Group gap="xs" wrap="nowrap">
             <Text size="sm" c="dimmed" className={styles.count}>
