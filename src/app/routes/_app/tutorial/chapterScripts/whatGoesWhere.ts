@@ -195,4 +195,16 @@ const panelTasks = (snapshot: () => GameSnapshot): GuideTask[] => [
 
 const tasks = (snapshot: () => GameSnapshot) => [...cameraTasks(), ...tableTasks(snapshot), ...panelTasks(snapshot)];
 
-export const whatGoesWhere: ChapterScript = { slug: 'what-goes-where', checkpoint: 'turn-1-storm', tasks };
+/* One line for each part of the chapter, in the order it was played. */
+const learned = [
+  'Scroll over the board to look closer',
+  'Jump the view with the camera dial: L for the left, M for the map',
+  'Right-click a deck to draw a card',
+  'Drag troops from your reserves onto a territory',
+  'Press F to turn a card over',
+  'Your own things are in the panel below the table',
+  "Other players' things are in the players column",
+  'Next phase moves the game on',
+];
+
+export const whatGoesWhere: ChapterScript = { slug: 'what-goes-where', checkpoint: 'turn-1-storm', tasks, learned };

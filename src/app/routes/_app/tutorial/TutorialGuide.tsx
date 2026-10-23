@@ -144,6 +144,7 @@ export function TutorialGuide({
   number,
   title,
   tasks,
+  learned,
   onReset,
   chaptersLink,
   nextLink,
@@ -152,6 +153,8 @@ export function TutorialGuide({
   number: number;
   title: string;
   tasks: readonly GuideTask[];
+  /** What the chapter taught, listed when it ends. */
+  learned: readonly string[];
   onReset: () => void;
   /** Renders the way back to the chapter list, as a router link on the page and a plain one in a story. */
   chaptersLink: (props: object) => ReactNode;
@@ -343,7 +346,7 @@ export function TutorialGuide({
       <div className={styles.table} inert={!task}>
         {children}
       </div>
-      {!task && <ChapterComplete key={run} chaptersLink={chaptersLink} nextLink={nextLink} />}
+      {!task && <ChapterComplete key={run} learned={learned} chaptersLink={chaptersLink} nextLink={nextLink} />}
     </div>
   );
 }

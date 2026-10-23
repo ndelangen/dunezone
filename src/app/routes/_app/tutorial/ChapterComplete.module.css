@@ -19,3 +19,51 @@
   color: var(--color-paper);
   box-shadow: 0 12px 32px rgb(0 0 0 / 0.6);
 }
+
+.learned {
+  display: grid;
+  gap: var(--space-xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.learned li {
+  display: flex;
+  gap: var(--space-xs);
+  align-items: baseline;
+  animation: learned-in 400ms ease-out both;
+  animation-delay: calc(400ms + var(--learned-order) * 450ms);
+}
+
+.tick {
+  flex: none;
+  align-self: center;
+  color: var(--mantine-color-green-5);
+}
+
+/* The button comes last, after every line has come in; until then it can be neither seen nor pressed. */
+.onward {
+  animation: onward-in 400ms ease-out both;
+  animation-delay: calc(600ms + var(--learned-count) * 450ms);
+}
+
+.complete[data-motion="reduce"] .learned li,
+.complete[data-motion="reduce"] .onward {
+  animation: none;
+}
+
+@keyframes learned-in {
+  from {
+    opacity: 0;
+    transform: translateX(-0.75rem);
+  }
+}
+
+@keyframes onward-in {
+  from {
+    visibility: hidden;
+    opacity: 0;
+    transform: scale(0.9);
+  }
+}
