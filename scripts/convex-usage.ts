@@ -1,12 +1,12 @@
 import { execFile } from 'node:child_process';
-import { appendFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { parseArgs, promisify } from 'node:util';
 
 import { z } from 'zod';
 
-import { convexUsage } from './play-load/provider-usage';
-import type { UsageExec } from './play-load/provider-usage';
+import { convexUsage } from './play-load/provider-usage.ts';
+import type { UsageExec } from './play-load/provider-usage.ts';
 
 const counter = z.number().finite().nonnegative();
 const metric = z.object({ usage: z.object({ current_day: counter, current_month: counter }) });
@@ -47,8 +47,8 @@ const completionSchema = z.object({
     .optional(),
   usageStats: z
     .object({
-      databaseIoReadBytes: counter.catch(0),
-      databaseIoWriteBytes: counter.catch(0),
+      databaseIoReadBytes: counter.optional().default(0),
+      databaseIoWriteBytes: counter.optional().default(0),
     })
     .default({ databaseIoReadBytes: 0, databaseIoWriteBytes: 0 }),
 });
@@ -227,6 +227,7 @@ function deploymentUsageRow(label: string, deployment: DeploymentUsage, growth: 
 }
 
 export function usageMarkdown(report: UsageReport) {
+  const baselineInterval = report.elapsedHours === null ? 'none' : `${report.elapsedHours.toFixed(1)} hours`;
   const lines = [
     '# Convex usage',
     '',
@@ -242,7 +243,7 @@ export function usageMarkdown(report: UsageReport) {
   }
   lines.push(
     '',
-    `Baseline interval: ${report.elapsedHours === null ? 'none' : `${report.elapsedHours.toFixed(1)} hours`}. Daily alert threshold: ${report.dailyAlertGb} GB per 24 hours.`,
+    `Baseline interval: ${baselineInterval}. Daily alert threshold: ${report.dailyAlertGb} GB per 24 hours.`,
     '',
     'Function counters below cover at most 1,000 recent completions within the last 24 hours. They are a sample, not daily totals. Component and parent counters are shown as reported and are never added to provider totals.'
   );
@@ -274,20 +275,32 @@ if (import.meta.main) {
   const { values } = parseArgs({
     options: {
       capture: { type: 'string' },
-      report: { type: 'string' },
-      previous: { type: 'string' },
+      report: { type: 'boolean' },
     },
     strict: true,
   });
   if (values.capture) {
-    writeFileSync(values.capture, JSON.stringify(await captureDeployment(process.env), null, 2) + '\n');
+    if (values.capture !== 'production' && values.capture !== 'development') {
+      throw new Error('Capture must be production or development');
+    }
+    const captured = await captureDeployment(process.env);
+    const expectedKind = values.capture === 'production' ? 'prod' : 'dev';
+    if (captured.kind !== expectedKind) {
+      throw new Error('The capture label does not match its deployment key');
+    }
+    mkdirSync('usage', { recursive: true });
+    const payload = JSON.stringify(captured, null, 2) + '\n';
+    if (values.capture === 'production') {
+      writeFileSync('usage/production.json', payload);
+    } else {
+      writeFileSync('usage/development.json', payload);
+    }
   } else if (values.report) {
-    const readDeployment = (name: string) =>
-      deploymentSchema.parse(JSON.parse(readFileSync(path.join(values.report!, `${name}.json`), 'utf8')));
-    const previous =
-      values.previous && existsSync(values.previous)
-        ? reportSchema.parse(JSON.parse(readFileSync(values.previous, 'utf8')))
-        : undefined;
+    const readDeployment = (name: 'production' | 'development') =>
+      deploymentSchema.parse(JSON.parse(readFileSync(path.join('usage', `${name}.json`), 'utf8')));
+    const previous = existsSync('previous/report.json')
+      ? reportSchema.parse(JSON.parse(readFileSync('previous/report.json', 'utf8')))
+      : undefined;
     const report = assessUsage(
       { production: readDeployment('production'), development: readDeployment('development') },
       previous,
@@ -295,8 +308,8 @@ if (import.meta.main) {
       Number(process.env.CONVEX_IO_REFERENCE_GB ?? 1),
       Number(process.env.CONVEX_IO_DAILY_ALERT_GB ?? 0.1)
     );
-    writeFileSync(path.join(values.report, 'report.json'), JSON.stringify(report, null, 2) + '\n');
-    writeFileSync(path.join(values.report, 'report.md'), usageMarkdown(report));
+    writeFileSync('usage/report.json', JSON.stringify(report, null, 2) + '\n');
+    writeFileSync('usage/report.md', usageMarkdown(report));
     if (process.env.GITHUB_STEP_SUMMARY) {
       appendFileSync(process.env.GITHUB_STEP_SUMMARY, usageMarkdown(report));
     }
@@ -304,6 +317,6 @@ if (import.meta.main) {
       appendFileSync(process.env.GITHUB_OUTPUT, `alert=${report.newAlerts.length > 0}\n`);
     }
   } else {
-    throw new Error('Choose --capture output.json or --report directory');
+    throw new Error('Choose --capture production, --capture development or --report');
   }
 }

@@ -38,16 +38,16 @@ jobs:
             test -f previous/report.json
           fi
       - name: Read production counters and bounded function sample
-        run: bun run scripts/convex-usage.ts --capture usage/production.json
+        run: bun run scripts/convex-usage.ts --capture production
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
       - name: Read dev counters and bounded function sample
-        run: bun run scripts/convex-usage.ts --capture usage/development.json
+        run: bun run scripts/convex-usage.ts --capture development
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEV_DEPLOY_KEY }}
       - name: Assess growth and new threshold crossings
         id: report
-        run: bun run scripts/convex-usage.ts --report usage --previous previous/report.json
+        run: bun run scripts/convex-usage.ts --report
         env:
           CONVEX_IO_REFERENCE_GB: ${{ vars.CONVEX_IO_REFERENCE_GB || '1' }}
           CONVEX_IO_DAILY_ALERT_GB: ${{ vars.CONVEX_IO_DAILY_ALERT_GB || '0.1' }}

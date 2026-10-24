@@ -1,3 +1,6 @@
+import { spawnSync } from 'node:child_process';
+import path from 'node:path';
+
 import { expect, test } from 'vite-plus/test';
 
 import { assessUsage, summarizeFunctions, usageMarkdown } from './convex-usage';
@@ -115,4 +118,17 @@ test('swapped or duplicated deployment credentials cannot produce a combined rep
 test('a new calendar month starts a new threshold alert history', () => {
   const previous = { ...baseline(0.6, 0.2, ['calendar-0.75']), capturedAt: '2026-09-30T06:23:00.000Z' };
   expect(assessUsage(deployments(0.6, 0.2), previous, now).newAlerts).toEqual(['calendar-0.75']);
+});
+
+test('CLI capture labels cannot supply arbitrary filesystem paths', () => {
+  const result = spawnSync(
+    'bun',
+    [path.resolve(import.meta.dirname, 'convex-usage.ts'), '--capture', '../outside.json'],
+    {
+      encoding: 'utf8',
+      timeout: 10_000,
+    }
+  );
+  expect(result.status).not.toBe(0);
+  expect(result.stderr).toContain('Capture must be production or development');
 });

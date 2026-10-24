@@ -5,6 +5,8 @@ can be dispatched from main. It reads production and cloud dev separately, write
 and retains the counters and report as the `convex-usage-report` artifact for 90 days. It never
 exports records, runs migrations or resets data.
 
+The CLI accepts only `--capture production`, `--capture development` and `--report`. It writes fixed files under `usage/` and reads the previous baseline from `previous/report.json`. CLI arguments cannot choose filesystem paths.
+
 The next run downloads the latest saved main-branch report as its baseline. It computes I/O and
 call growth separately for each deployment, and normalizes I/O growth to 24 hours using the actual
 interval. The first capture, a new calendar month, a changed deployment or reset counters has no
