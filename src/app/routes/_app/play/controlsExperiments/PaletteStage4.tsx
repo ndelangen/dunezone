@@ -95,6 +95,12 @@ const OVERLAY_GAP = 12;
 /* The overlays a slot must never cover: the header chips (phase, alliances, next phase) and the camera dial. */
 const OVERLAYS = '.seated-header, .seated-column-camera, [data-overlay]';
 
+/* The header's Next phase button, found by what it says: the phase navigation labels its group, not its buttons. */
+function pressNextPhase() {
+  const buttons = document.querySelectorAll<HTMLButtonElement>('[aria-label="Phase navigation"] button');
+  [...buttons].find((button) => button.textContent?.trim() === 'Next phase')?.click();
+}
+
 /* A key typed into a text field, other than the compass's own search, belongs to that field. */
 function typingElsewhere(event: KeyboardEvent, search: HTMLInputElement | null) {
   const target = event.target;
@@ -394,7 +400,7 @@ export function PaletteStage4(props: ExperimentProps) {
         icon: <TopicIcon topic="turn" size={18} />,
         run: () => {
           close();
-          pressControl('[aria-label="Next phase"]');
+          pressNextPhase();
         },
         text: 'next phase',
         weight: 4,

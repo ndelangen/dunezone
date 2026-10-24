@@ -27,7 +27,7 @@ import { PieceArtwork } from '../../../../widgets/tabletop/PieceArtwork';
 import { usePointerSession } from '../../../../widgets/tabletop/PointerSessionContext';
 import { PredictionLogosContext } from '../../../../widgets/tabletop/prediction/predictionFace';
 import { TabletopSessionProvider } from '../../../../widgets/tabletop/TabletopContext';
-import { ExperimentPlayersContext } from '../controlsExperiments/experiment';
+import { ExperimentPlayersContext, useControlsExperiment } from '../controlsExperiments/experiment';
 import { FoilConfetti } from '../FoilConfetti';
 import { GameLink } from '../GameLink';
 import { GameTable } from '../GameTable';
@@ -1026,7 +1026,8 @@ function ConnectedTable({
   /* Each player fades the bidder for themselves, so the choice stays in this tab. */
   const [bidderFaded, setBidderFaded] = useState(false);
   const player = usePlayerSelection(table);
-  const playerWindows = usePlayerWindows(client, table);
+  const experiment = useControlsExperiment();
+  const playerWindows = usePlayerWindows(client, table, experiment !== null);
   const stage = table.snapshot.stage;
   const factionArtwork = table.snapshot.factionArtwork;
   const predictionLogos = useMemo(
@@ -1040,10 +1041,14 @@ function ConnectedTable({
         <div data-connection={connection} data-revision={table.liveRevision} style={{ display: 'contents' }}>
           {/* Read only by the controls-layout exploration's stories. */}
           <ExperimentPlayersContext
-            value={{
-              ...playerWindows,
-              render: (seat, tab) => <PlayerWindow client={client} table={table} seat={seat} tab={tab} error={error} />,
-            }}
+            value={
+              playerWindows && {
+                ...playerWindows,
+                render: (seat, tab) => (
+                  <PlayerWindow client={client} table={table} seat={seat} tab={tab} error={error} />
+                ),
+              }
+            }
           >
             <GameTable
               seatCount={table.snapshot.roster?.seatCount ?? DEFAULT_TABLE_SEAT_COUNT}

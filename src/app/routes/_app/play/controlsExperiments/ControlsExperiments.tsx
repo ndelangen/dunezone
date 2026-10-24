@@ -17,7 +17,7 @@ import { PaletteStage4 } from './PaletteStage4';
  * and shown only where a story or the New controls play-test chapter sets the experiment.
  */
 
-export type ExperimentNodes = Readonly<{
+type ExperimentNodes = Readonly<{
   scene: HeldNode;
   controls: HeldNode | null;
   players: HeldNode | null;
@@ -120,21 +120,28 @@ function readRemembered<T>(key: string, fallback: T): T {
 
 /* A remembered choice for one design, in this browser only. */
 export function useRemembered<T>(key: string, fallback: T) {
-  const [value, setValue] = useState<T>(() => readRemembered(key, fallback));
+  /* `touched` keeps a value nobody has changed out of storage, so a forgotten choice stays forgotten. */
+  const [state, setState] = useState(() => ({ value: readRemembered(key, fallback), touched: false }));
   const update = useCallback(
     (next: T | ((current: T) => T)) =>
-      setValue((current) => {
-        const resolved = typeof next === 'function' ? (next as (current: T) => T)(current) : next;
-        try {
-          localStorage.setItem(`${REMEMBERED}${key}`, JSON.stringify(resolved));
-        } catch {
-          /* A private window keeps the choice for this visit only. */
-        }
-        return resolved;
-      }),
-    [key]
+      setState((current) => ({
+        value: typeof next === 'function' ? (next as (current: T) => T)(current.value) : next,
+        touched: true,
+      })),
+    []
   );
-  return [value, update] as const;
+  /* Stored once the change is committed, so the updater stays pure for React to replay. */
+  useEffect(() => {
+    if (!state.touched) {
+      return;
+    }
+    try {
+      localStorage.setItem(`${REMEMBERED}${key}`, JSON.stringify(state.value));
+    } catch {
+      /* A private window keeps the choice for this visit only. */
+    }
+  }, [key, state]);
+  return [state.value, update] as const;
 }
 
 /* A press on the table itself, not on any of the chrome over it. */

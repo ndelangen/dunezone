@@ -410,7 +410,7 @@ function FactionPageButton({ slug, name }: Readonly<{ slug: string; name: string
  * Design exploration (controls layout, palette stage 2): each player as a window of their own, and what the chat bar beside
  * the palette shows for them. Only the exploration's stories read these.
  */
-export type PlayerWindowEntry = Readonly<{
+type PlayerWindowEntry = Readonly<{
   seat: string;
   name: string;
   factionName: string | null;
@@ -422,8 +422,12 @@ export type PlayerWindowEntry = Readonly<{
   ally: boolean;
 }>;
 
-export function usePlayerWindows(client: TableSession, table: TableProjection) {
+/** The players' windows for a controls experiment; with none on (every real game), nothing is looked up. */
+export function usePlayerWindows(client: TableSession, table: TableProjection, enabled: boolean) {
   const { conversations } = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getSnapshot);
+  if (!enabled) {
+    return null;
+  }
   const votes = table.snapshot.removalVotes ?? [];
   const asked = requestedSeats(table);
   const viewerSeat = table.viewer.viewerSeat;

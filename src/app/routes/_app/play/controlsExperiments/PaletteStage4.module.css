@@ -18,7 +18,9 @@
 
 .compass {
   display: grid;
-  grid-template-columns: 10.5rem 10.5rem 15rem 10.5rem 10.5rem;
+  /* Full size wherever the table has room (59.8rem), narrower in a smaller window, never cut off at the table's edges. */
+  width: min(59.8rem, 100% - 2rem);
+  grid-template-columns: 7fr 7fr 10fr 7fr 7fr;
   grid-template-areas:
     ". . battle . ."
     "hidden hand hub table ally"
@@ -37,6 +39,7 @@
 
 .tile {
   position: relative;
+  min-width: 0;
   display: grid;
   grid-template-rows: auto auto 1fr;
   gap: 0.2rem;
@@ -312,6 +315,7 @@
 /* A pinned slot's top edge: drag it to make the slot taller or shorter. */
 .resizeEdge {
   appearance: none;
+  touch-action: none;
   position: absolute;
   padding: 0;
   border: 0;

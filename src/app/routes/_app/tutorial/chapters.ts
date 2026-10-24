@@ -142,7 +142,7 @@ export const TUTORIAL_CHAPTERS: readonly TutorialChapter[] = CHAPTERS.map((chapt
  */
 export type PlaytestChapter = Omit<TutorialChapter, 'number'> & Readonly<{ number: null }>;
 
-export const PLAYTEST_CHAPTERS: readonly PlaytestChapter[] = [
+const PLAYTEST_CHAPTERS: readonly PlaytestChapter[] = [
   {
     slug: 'new-controls',
     number: null,
