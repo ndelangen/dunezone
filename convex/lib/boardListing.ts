@@ -1,18 +1,23 @@
 import type { Doc, Id } from '../_generated/dataModel';
 import type { QueryCtx } from '../types';
 
+/** Every optional listing field must be present before the source read can be skipped. */
+function hasListingFields(row: Doc<'board_readiness'>): row is Required<Doc<'board_readiness'>> {
+  return [
+    row.name,
+    row.slug,
+    row.owner_id,
+    row.group_id,
+    row.created_at,
+    row.updated_at,
+    row.is_deleted,
+    row.asset_creation_time,
+  ].every((value) => value !== undefined);
+}
+
 /** A listing uses the board's name and publication address, never its geometry. */
 function boardListing(row: Doc<'board_readiness'>): Doc<'assets'> | null {
-  if (
-    row.name === undefined ||
-    row.slug === undefined ||
-    row.owner_id === undefined ||
-    row.group_id === undefined ||
-    row.created_at === undefined ||
-    row.updated_at === undefined ||
-    row.is_deleted === undefined ||
-    row.asset_creation_time === undefined
-  ) {
+  if (!hasListingFields(row)) {
     return null;
   }
   return {
