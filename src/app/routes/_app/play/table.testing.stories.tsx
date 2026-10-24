@@ -279,6 +279,7 @@ export const SpiceMenuName = meta.story({
 
 /* The wheel over the board moves in for a close look and backs out to the view's own pose; Ctrl with the wheel stays the browser's zoom. */
 export const WheelTakesACloseLook = meta.story({
+  globals: { motion: 'on' },
   beforeEach: install(() => productTransport()),
   play: async ({ canvasElement }) => {
     const { shell, document } = await tablePage(canvasElement);
