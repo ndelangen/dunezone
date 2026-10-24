@@ -2,6 +2,7 @@ import { RULESET_ASSET_SLOTS } from '../../src/shared/rulesets/assetSlots';
 import type { Id } from '../_generated/dataModel';
 import type { QueryCtx } from '../types';
 import { assetDisplayName } from './assetInput';
+import { readBoardListing } from './boardListing';
 
 /** Bounds one many-asset slot's contents. The many-asset slots are curated by hand, so this is a ceiling on nonsense rather than a paging limit. */
 export const SLOT_CONTENTS_LIMIT = 100;
@@ -24,7 +25,7 @@ export async function listRulesetAssetSlots(ctx: QueryCtx, rulesetId: Id<'rulese
   return (await readRulesetAssetSlots(ctx, rulesetId, options)).map(({ slot, asset }) => ({ slot, asset }));
 }
 
-/** The slot entries with each live asset document, for a caller that needs more of a slotted asset than its name without reading it twice. */
+/** The slot entries and their presentation fields, with board geometry excluded when its summary is available. */
 export async function readRulesetAssetSlots(
   ctx: QueryCtx,
   rulesetId: Id<'rulesets'>,
@@ -41,7 +42,8 @@ export async function readRulesetAssetSlots(
     if (skipBoard && row.slot === 'board') {
       continue;
     }
-    const asset = await ctx.db.get('assets', row.asset_id);
+    const asset =
+      row.slot === 'board' ? await readBoardListing(ctx, row.asset_id) : await ctx.db.get('assets', row.asset_id);
     if (asset && !asset.is_deleted) {
       entries.push({
         slot: row.slot,

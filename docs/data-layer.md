@@ -183,3 +183,14 @@ Convex keep every loaded range reactive without adding a separate page subscript
 split metadata pass through unchanged, including when unavailable relationships leave an empty
 range. Loaders read the first range without a warm hold, because the native pagination hook owns
 its subscriptions and adds its own pagination identifier.
+
+## Board listing reads
+
+Board lists and ruleset slots read the existing `board_readiness` summaries through
+`convex/lib/boardListing.ts`. Those rows retain source creation order, names, ownership, deletion
+state and publication version dates. A listing's board `data` contains its name; editors and game
+captures still read the full definition from `assets`.
+
+The existing `board_readiness_listing_v1` backfill must be complete before this release. The asset
+trigger keeps summaries current in the same transaction as each write. A point lookup with a
+missing or incomplete summary reads the source asset. Lists select membership from the existing board catalogue, resolve each summary with the same fallback, and sort by source creation time. A catalogue with no entries or more than 1,024 boards retains the original indexed read. No new schema or production backfill is needed.
