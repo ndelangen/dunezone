@@ -8,7 +8,6 @@ import { DatabaseSync } from 'node:sqlite';
 import { fileURLToPath } from 'node:url';
 
 import type { IncomingRequestCfProperties, SqlStorageValue } from '@cloudflare/workers-types/experimental/index.ts';
-import type { FunctionArgs } from 'convex/server';
 import { build } from 'esbuild';
 import { Miniflare, convertV4MiniflareOptions } from 'miniflare';
 import type { RequestInit, V4WorkerdStructuredLog } from 'miniflare';
@@ -16,7 +15,6 @@ import { WebSocketServer } from 'ws';
 import type { WebSocket as PeerSocket, RawData } from 'ws';
 import { z } from 'zod';
 
-import type { api } from '../../convex/_generated/api';
 import type { HistoricalFactionPublicationObject } from '../../src/shared/factions/schema';
 import type { homepageAdmissionSchema } from '../../src/shared/homepage/protocol';
 import type { homepageMessageSchema } from '../../src/shared/homepage/protocol';
@@ -60,14 +58,10 @@ type AccountResult = Extract<z.infer<typeof playReconcileAccountsResultSchema>, 
 type Allowed = boolean | ((registrationId: string) => boolean);
 export type NativeMessage = ServerMessage & Partial<ServerClock>;
 export type NativeView = RoomView & Partial<ServerClock>;
-const assetTypesArgsSchema = z.object({ types: z.array(z.string()) }) satisfies z.ZodType<
-  FunctionArgs<typeof api.assets.listByTypes>
->;
 const peerBodySchema = z.object({ path: z.string(), args: z.tuple([z.unknown()]) });
 const frameTypeSchema = z.object({ type: z.string() });
 const optionalClockSchema = serverClockSchema.partial();
 const peerRequestSchema = z.discriminatedUnion('function', [
-  z.object({ function: z.literal('assets:listByTypes'), args: assetTypesArgsSchema }),
   z.object({
     function: z.literal('playCatalogue:assetSupply'),
     args: z.object({ type: z.string(), slug: z.string() }),
@@ -367,9 +361,6 @@ function accountStates(
 
 function answerPeerRequest(peer: NativePeer, record: PeerRequest) {
   switch (record.function) {
-    case 'assets:listByTypes':
-      record.release([...peer.catalogue.values()].map((page) => page.asset));
-      break;
     case 'playCatalogue:assetSupply':
       if (peer.catalogueMode !== 'hold') {
         record.release(peer.catalogue.get(`${record.args.type}/${record.args.slug}`) ?? null);

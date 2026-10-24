@@ -510,7 +510,7 @@ export class TableSession {
   /* The server's own view of the last live table, which a reload of this tab shows until a fresh view arrives (#1746). */
   private kept: Omit<StoredTable, 'pending'> | null = null;
   private traitorsGathered = 0;
-  private queuedCatalogue: { requestId: string; selection?: SpawnSelection } | null = null;
+  private queuedCatalogue: { requestId: string; selection: SpawnSelection } | null = null;
   private phaseCooldownUntil = 0;
   /* What `keep` last handed the store, so an emit that changed nothing saved costs no write. */
   private lastSaved: {
@@ -1252,7 +1252,7 @@ export class TableSession {
         break;
       case 'catalogue':
         if (message.requestId === this.catalogueRequestId) {
-          this.catalogueResult = { entries: this.catalogueResult?.entries, ...message };
+          this.catalogueResult = message;
         }
         break;
       case 'history':
@@ -1307,7 +1307,6 @@ export class TableSession {
       this.catalogueResult = {
         type: 'catalogue',
         requestId: message.requestId,
-        entries: this.catalogueResult?.entries,
         contents: null,
         error: message.message,
       };
@@ -1432,9 +1431,10 @@ export class TableSession {
     /* A catalogue read still unanswered goes again on the fresh connection, so the picker that stays on screen is not left checking. */
     const unanswered =
       this.catalogueRequestId !== undefined && this.catalogueResult?.requestId !== this.catalogueRequestId;
-    this.queuedCatalogue = unanswered
-      ? { requestId: this.catalogueRequestId!, selection: this.catalogueSelection }
-      : null;
+    this.queuedCatalogue =
+      unanswered && this.catalogueSelection
+        ? { requestId: this.catalogueRequestId!, selection: this.catalogueSelection }
+        : null;
     this.clearActivity();
   }
   private clearActivity() {
@@ -1710,7 +1710,7 @@ export class TableSession {
    * A newer selection waits until the capture in flight answers, and only the latest one is sent.
    * The picker keys its status on the latest request id, so a queued read shows as checking.
    */
-  catalogue = (selection?: SpawnSelection) => {
+  catalogue = (selection: SpawnSelection) => {
     const requestId = crypto.randomUUID();
     this.catalogueRequestId = requestId;
     this.catalogueSelection = selection;
