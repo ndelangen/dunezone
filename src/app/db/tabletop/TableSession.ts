@@ -1,4 +1,5 @@
 import { tableHandlingOpen } from '@shared/play/admission';
+import { isBattleLeader } from '@shared/play/battle';
 import type { BattlePlan, BattlePlanInput, Disclosure } from '@shared/play/battle';
 import type { PublicFaction } from '@shared/play/capture';
 import { foldedTurns, rotatedPiece } from '@shared/play/commands';
@@ -218,6 +219,11 @@ export type TableProjection = {
   deleteControls?: {
     remove(pieceId: string): void;
   };
+  /* Taking a loose card or a battle leader off the table into this viewer's hand; present only while this viewer can act. */
+  handControls?: {
+    canTake(pieceId: string): boolean;
+    take(pieceId: string): void;
+  };
   /* The piece this viewer's faction holds open by peeking, faces showing; only its own frames carry one. */
   peek: Peek | null;
   /* Peeking at a hidden card, token or deck, and changing a deck held open; present only while this viewer's faction can act. */
@@ -251,6 +257,13 @@ export type ConnectionView = {
   factions: Readonly<Partial<Record<string, PublicFaction | null>>>;
 };
 export type LogPage = Extract<ServerMessage, { type: 'log-history' }>;
+
+/** What the hand takes from the table: one loose, unlocked card or battle leader, not something already in an inventory. */
+function takeableIntoHand(piece: TablePiece) {
+  return (
+    !piece.inventory && !piece.locked && piece.items.length === 1 && (piece.kind === 'card' || isBattleLeader(piece))
+  );
+}
 
 /* Each faction a deck can deal to, with its token art for the deal ring. */
 function dealRecipients(snapshot: GameSnapshot) {
@@ -880,6 +893,7 @@ export class TableSession {
       deckControls:
         canHandleTable && this.subscription.supportsCommand('deck-draw') ? this.deckControls(displayed) : undefined,
       deleteControls: this.deleteControls(canHandleTable),
+      handControls: canHandleTable && this.subscription.supportsCommand('hand-take') ? this.handControls : undefined,
       /* A look back in time shows no peek: what a faction saw then is not what it holds open now. */
       peek:
         this.history || displayed.peek?.piece.id === this.closedPeek?.pieceId
@@ -917,6 +931,13 @@ export class TableSession {
   };
   private readonly removal: NonNullable<TableProjection['deleteControls']> = {
     remove: (pieceId) => this.command({ kind: 'delete', pieceId }),
+  };
+  private readonly handControls: NonNullable<TableProjection['handControls']> = {
+    canTake: (pieceId) => {
+      const piece = this.table?.state.pieces.find((entry) => entry.id === pieceId);
+      return piece !== undefined && takeableIntoHand(piece);
+    },
+    take: (pieceId) => this.command({ kind: 'hand-take', pieceId }),
   };
   private dealing: Cached<NonNullable<TableProjection['deckControls']>> | undefined;
   private peekClosing: Cached<() => void> | undefined;

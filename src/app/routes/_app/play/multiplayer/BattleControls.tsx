@@ -456,15 +456,6 @@ function PlanFields({ client, table, plan, battle }: Props & { plan: BattlePlan;
   );
 }
 
-function canTakeSelected(piece: TablePiece | undefined) {
-  return (
-    !!piece &&
-    !piece.inventory &&
-    !piece.locked &&
-    piece.items.length === 1 &&
-    (piece.kind === 'card' || isBattleLeader(piece))
-  );
-}
 export function HandControls({ client, table, hand }: Props & { hand: TablePiece[] }) {
   const selected = table.snapshot.table.pieces.find((piece) => piece.id === table.state.selectedPieceId);
   const [menu, setMenu] = useState<HandMenuAnchor | null>(null);
@@ -478,8 +469,8 @@ export function HandControls({ client, table, hand }: Props & { hand: TablePiece
         {controls === 'classic' && (
           <Button
             variant="default"
-            disabled={!table.canHandleTable || !canTakeSelected(selected)}
-            onClick={() => selected && client.command({ kind: 'hand-take', pieceId: selected.id })}
+            disabled={!selected || !table.handControls?.canTake(selected.id)}
+            onClick={() => selected && table.handControls?.take(selected.id)}
           >
             Take selected piece into hand
           </Button>
