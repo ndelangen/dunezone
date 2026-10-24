@@ -4,9 +4,9 @@ import type { ReactNode } from 'react';
 /*
  * Design exploration only (Norbert, 2026-10-24): other ways to lay out the table's controls so they cover less of the screen.
  * Storybook sets one of these through the context; the app never does, so the table keeps its two layouts.
- * `palette-2` and `palette-3` are the second and third stages of the command palette, after Norbert picked it to iterate on.
+ * `palette-2` to `palette-4` are the later stages of the command palette, after Norbert picked it to iterate on.
  */
-export type ControlsExperiment = 'floating-pair' | 'docking' | 'palette' | 'pie' | 'drawers' | 'fan' | 'swap' | 'palette-2' | 'palette-3';
+export type ControlsExperiment = 'floating-pair' | 'docking' | 'palette' | 'pie' | 'drawers' | 'fan' | 'swap' | 'palette-2' | 'palette-3' | 'palette-4';
 
 export const ControlsExperimentContext = createContext<ControlsExperiment | null>(null);
 

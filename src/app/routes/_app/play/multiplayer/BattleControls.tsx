@@ -475,7 +475,7 @@ export function HandControls({ client, table, hand }: Props & { hand: TablePiece
     <Section hiddenHeading title="Your hand and leaders" description={handHelp(table)}>
       <Stack gap="sm" ref={ref}>
         {/* The palette's second stage drops the button (Norbert, 2026-10-24): pieces reach the hand by dragging. */}
-        {experiment !== 'palette-2' && experiment !== 'palette-3' && (
+        {experiment !== 'palette-2' && experiment !== 'palette-3' && experiment !== 'palette-4' && (
           <Button
             variant="default"
             disabled={!table.canHandleTable || !canTakeSelected(selected)}
