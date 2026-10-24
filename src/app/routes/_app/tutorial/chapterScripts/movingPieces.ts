@@ -11,12 +11,13 @@ import type { Piece } from './guideChecks';
  * Taking more with T, locking, dealing and laying cards from a deck with a number key wait for a later chapter.
  */
 
-/* The cards of a deck held open by a peek, as the peek names them, top first; null while no deck is open. */
+/*
+ * The cards of a deck held open by a peek, by the ids the peek marks them with, top first; null while no deck is open.
+ * Ids rather than names, since a deck holds several cards of one name.
+ */
 const peekedOrder = () => {
   const row = document.querySelector('[role="dialog"][aria-label^="Peeking at"] ol');
-  return row
-    ? [...row.querySelectorAll('[role="button"]')].map((card) => card.getAttribute('aria-label')?.split(',')[0] ?? '')
-    : null;
+  return row ? [...row.querySelectorAll('[data-card]')].map((card) => card.getAttribute('data-card') ?? '') : null;
 };
 
 /*
@@ -31,7 +32,7 @@ const movedInPeek = () => ({
       return false;
     }
     watch.first ??= order;
-    return order.some((name, index) => name !== watch.first![index]);
+    return order.some((card, index) => card !== watch.first![index]);
   },
 });
 
@@ -45,16 +46,46 @@ const changedInPlace = (stacks: () => Piece[], changed: (before: Piece, now: Pie
     }),
 });
 
+const away = (from: readonly number[], to: readonly number[]) => Math.hypot(from[0]! - to[0]!, from[2]! - to[2]!);
+const total = (stacks: Piece[]) => stacks.reduce((sum, piece) => sum + piece.items.length, 0);
+const biggest = (stacks: Piece[]) => stacks.toSorted((a, b) => b.items.length - a.items.length)[0];
+
+/* Where the player's troops are: in their reserves on the rim, or on the board. */
+function troops(snapshot: () => GameSnapshot) {
+  const mine = () =>
+    snapshot().table.pieces.filter(
+      (piece) => !piece.inventory && piece.stackKey?.startsWith(`troops:${snapshot().bank?.factionId}:`)
+    );
+  return { reserves: () => mine().filter((piece) => !onBoard(piece)), onTheBoard: () => mine().filter(onBoard) };
+}
+
+/*
+ * The three carried onto the board: where they landed is kept, and the player's stack nearest that spot is them from then on,
+ * so a troop of theirs already on the board, or a whole reserve set down elsewhere, is never taken for them.
+ */
+function carriedStack(onTheBoard: () => Piece[]) {
+  const landed = { spot: null as Piece['position'] | null };
+  const carried = () => {
+    const spot = landed.spot;
+    return spot
+      ? onTheBoard().toSorted((a, b) => away(a.position, spot) - away(b.position, spot))[0]
+      : biggest(onTheBoard());
+  };
+  return {
+    carried,
+    only: () => onTheBoard().filter((piece) => piece === carried()),
+    land: () => {
+      landed.spot = biggest(onTheBoard())?.position ?? null;
+    },
+  };
+}
+
 /* The player's own troops: split off the reserves, carried whole onto the board, joined, turned and flipped. */
 function stackTasks(snapshot: () => GameSnapshot): GuideTask[] {
-  const pieces = () => snapshot().table.pieces.filter((piece) => !piece.inventory);
-  const myTroops = () =>
-    pieces().filter((piece) => piece.stackKey?.startsWith(`troops:${snapshot().bank?.factionId}:`));
-  const reserves = () => myTroops().filter((piece) => !onBoard(piece));
-  const onTheBoard = () => myTroops().filter(onBoard);
-  const total = (stacks: Piece[]) => stacks.reduce((sum, piece) => sum + piece.items.length, 0);
+  const { reserves, onTheBoard } = troops(snapshot);
+  const { carried, only: carriedOnly, land } = carriedStack(onTheBoard);
   /* The biggest of the player's reserve stacks, where a split comes from, and the smallest of two or more, where it went. */
-  const biggestReserve = () => reserves().toSorted((a, b) => b.items.length - a.items.length)[0];
+  const biggestReserve = () => biggest(reserves());
   const splitStack = () =>
     reserves()
       .filter((piece) => piece.items.length > 1)
@@ -84,30 +115,33 @@ function stackTasks(snapshot: () => GameSnapshot): GuideTask[] {
         const now = total(onTheBoard());
         const jumped = now - watch.last >= 2;
         watch.last = now;
+        if (jumped) {
+          land();
+        }
         return jumped;
       },
     }),
     task({
       id: 'join',
       task: 'Add a troop to them',
-      detail: 'Drag one troop from your reserves and drop it on your troops on the board. It joins their stack.',
-      anchor: { kind: 'table', point: () => at(onTheBoard()[0]) },
-      begin: () => ({ troops: total(onTheBoard()), stacks: onTheBoard().length }),
-      done: (start) => total(onTheBoard()) > start.troops && onTheBoard().length <= start.stacks,
+      detail: 'Quickly drag one troop from your reserves and let go right on top of your three. It joins their stack.',
+      anchor: { kind: 'table', point: () => at(carried()) },
+      begin: () => carried()?.items.length ?? 0,
+      done: (start) => (carried()?.items.length ?? 0) > start,
     }),
     task({
       id: 'turn',
       task: 'Turn your stack',
       detail: 'Point at your troops on the board and press Q or E. Each press turns them a step.',
-      anchor: { kind: 'table', point: () => at(onTheBoard()[0]) },
-      ...changedInPlace(onTheBoard, (before, now) => before.orientation !== now.orientation),
+      anchor: { kind: 'table', point: () => at(carried()) },
+      ...changedInPlace(carriedOnly, (before, now) => before.orientation !== now.orientation),
     }),
     task({
       id: 'flip',
       task: 'Flip the whole stack',
       detail: 'Still pointing at them, press F. A stack turns over all at once, as a single card does.',
-      anchor: { kind: 'table', point: () => at(onTheBoard()[0]) },
-      ...changedInPlace(onTheBoard, (before, now) => (now.flipRevision ?? 0) > (before.flipRevision ?? 0)),
+      anchor: { kind: 'table', point: () => at(carried()) },
+      ...changedInPlace(carriedOnly, (before, now) => (now.flipRevision ?? 0) > (before.flipRevision ?? 0)),
     }),
   ];
 }
