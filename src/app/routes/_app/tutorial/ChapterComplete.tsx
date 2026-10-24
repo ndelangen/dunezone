@@ -14,17 +14,12 @@ import { ChapterConfetti } from './ChapterConfetti';
  * What the chapter taught comes in one line at a time, and the button only after the last (Norbert, 2026-10-23).
  * The band above stays usable, so Reset still plays the chapter again.
  */
-/** How the lines come in: dealt like cards, stamped with a tick, or hopping like tokens. */
-export type LearnedEntrance = 'deal' | 'stamp' | 'bounce';
-
 export function ChapterComplete({
   learned,
-  entrance = 'deal',
   chaptersLink,
   nextLink,
 }: Readonly<{
   learned: readonly string[];
-  entrance?: LearnedEntrance;
   chaptersLink: (props: object) => ReactNode;
   nextLink?: ((props: object) => ReactNode) | undefined;
 }>) {
@@ -69,7 +64,6 @@ export function ChapterComplete({
           aria-labelledby={heading}
           data-tutorial-free
           data-motion={motion ? undefined : 'reduce'}
-          data-entrance={entrance}
           style={{ '--learned-count': learned.length } as CSSProperties}
         >
           <Stack align="center" gap="md">
