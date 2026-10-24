@@ -42,6 +42,7 @@ const recordTableContexts = () => {
 
 /* The shell opens through an iris once the renderer is ready; until then it stays closed behind the stage's status line. */
 export const OpensThroughAnIris = meta.story({
+  globals: { motion: 'on' },
   beforeEach: install(() => productTransport()),
   play: async ({ canvasElement }) => {
     const { shell, document } = await tablePage(canvasElement);

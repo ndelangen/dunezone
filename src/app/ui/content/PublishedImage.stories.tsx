@@ -56,6 +56,7 @@ export const Missing = meta.story({
 
 /** Landing after the slot has shown, the image develops out of a blur and a slight scale, and its shadow comes in with it. */
 export const Arriving = meta.story({
+  globals: { motion: 'on' },
   args: { src: imageAfter(600, 'arriving') },
   loaders: [serveStoryImages],
   play: async ({ canvasElement }) => {

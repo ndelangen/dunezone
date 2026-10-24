@@ -134,6 +134,7 @@ export const GameServerUnreachable = meta.story({
 
 /* The frame a table route shows while a view is still on its way: the status line on the dark ground, the pool of light breathing behind it. */
 export const Connecting = meta.story({
+  globals: { motion: 'on' },
   beforeEach: install(() => productTransport('seat-2', initialSnapshot(), { holdView: true })),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);

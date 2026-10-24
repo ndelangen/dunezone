@@ -12,6 +12,7 @@ const meta = preview.meta({
 
 /** Replies arrive in order, then the accepted reply moves first. The reader can pause the example. */
 export const Animated = meta.story({
+  globals: { motion: 'on' },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByText('Can I ship troops into the storm?')).toBeInTheDocument();
@@ -50,6 +51,7 @@ export const Phone = meta.story({ globals: { motion: 'reduce', viewport: { value
 
 /** Every phase shares one paused clock, including the smooth change in answer order. */
 export const Choreography = meta.story({
+  globals: { motion: 'on' },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await userEvent.click(canvas.getByRole('button', { name: 'Pause animation' }));

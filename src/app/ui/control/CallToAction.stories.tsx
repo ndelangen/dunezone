@@ -34,6 +34,7 @@ export const Small = meta.story({
  * Reserve it for a page whose whole purpose is this one action.
  */
 export const Attention = meta.story({
+  globals: { motion: 'on' },
   args: { attention: true },
   play: async ({ canvasElement }) => {
     const action = within(canvasElement).getByRole('link', { name: 'Create your own faction' });

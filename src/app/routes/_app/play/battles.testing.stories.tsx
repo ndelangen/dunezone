@@ -155,6 +155,7 @@ export const CalloutAboveSouthernTerritory = meta.story({
 
 /** A battle marked mid-game draws its callout beside the territory on its first frame, since a table that draws on demand may not draw another. */
 export const CalloutArrivesInPlace = meta.story({
+  globals: { motion: 'on' },
   beforeEach: battleSetup('preparing', 'seat-2', (snapshot) => {
     snapshot.battle = null;
     snapshot.battlePlan = null;

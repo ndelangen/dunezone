@@ -14,6 +14,7 @@ const meta = preview.meta({
 
 /** Before any search: how the FAQ works, told as one exchange, and the way to the rulesets to ask on. */
 export const Explainer = meta.story({
+  globals: { motion: 'on' },
   args: { path: '/faq' },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
