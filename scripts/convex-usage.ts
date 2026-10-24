@@ -217,6 +217,12 @@ export function assessUsage(
 
 export type UsageReport = ReturnType<typeof assessUsage>;
 
+function deploymentUsageRow(label: string, deployment: DeploymentUsage, growth: UsageReport['growth'][string]) {
+  const sinceBaseline = growth ? `${growth.ioGb.toFixed(3)} GB` : 'No comparable baseline';
+  const perDay = growth ? growth.perDayGb.toFixed(3) : 'Unknown';
+  return `| ${label}: ${deployment.name} | ${deployment.usage.metrics.databaseIoGb.usage.current_month.toFixed(3)} GB | ${deployment.usage.metrics.functionCalls.usage.current_month} | ${sinceBaseline} | ${perDay} |`;
+}
+
 export function usageMarkdown(report: UsageReport) {
   const lines = [
     '# Convex usage',
@@ -229,11 +235,7 @@ export function usageMarkdown(report: UsageReport) {
     '| --- | ---: | ---: | ---: | ---: |',
   ];
   for (const label of ['production', 'development'] as const) {
-    const deployment = report.deployments[label];
-    const growth = report.growth[label];
-    lines.push(
-      `| ${label}: ${deployment.name} | ${deployment.usage.metrics.databaseIoGb.usage.current_month.toFixed(3)} GB | ${deployment.usage.metrics.functionCalls.usage.current_month} | ${growth ? `${growth.ioGb.toFixed(3)} GB` : 'No comparable baseline'} | ${growth ? growth.perDayGb.toFixed(3) : 'Unknown'} |`
-    );
+    lines.push(deploymentUsageRow(label, report.deployments[label], report.growth[label]));
   }
   lines.push(
     '',
