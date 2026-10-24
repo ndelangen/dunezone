@@ -6,6 +6,7 @@ import { expect, test } from 'vite-plus/test';
 import { arrakisBoard } from '../src/shared/boards/geometry';
 import { api } from './_generated/api';
 import { applicationTest } from './application.test.fixture';
+import { insertMissingOrderItems } from './lib/catalogueOrder';
 
 async function boardFixture(bounded = false) {
   const t = applicationTest(bounded ? { transactionLimits: { bytesRead: 64 * 1024 } } : {});
@@ -41,7 +42,7 @@ async function boardFixture(bounded = false) {
       latest_end: 2,
       updated_at: timestamps.updated_at,
     });
-    await ctx.db.insert('catalogue_entries', {
+    const entryId = await ctx.db.insert('catalogue_entries', {
       kind: 'asset',
       source_id: asset,
       partition: 'board',
@@ -55,6 +56,8 @@ async function boardFixture(bounded = false) {
       complexity_score: 0,
       facets: ['board'],
     });
+    const entry = await ctx.db.get('catalogue_entries', entryId);
+    await insertMissingOrderItems(ctx, entry!, ['name', 'created', 'updated']);
     const ruleset = await ctx.db.insert('rulesets', {
       name: 'Dreamrules',
       slug: 'dreamrules',
@@ -74,6 +77,8 @@ async function boardFixture(bounded = false) {
 test('board listing readers stay under 64 KiB with a real Arrakis definition', async () => {
   const { t, asset } = await boardFixture(true);
   const landing = await t.query(api.assets.cataloguePage, {});
+  const catalogue = await t.query(api.assets.catalogue, { type: 'board' });
+  expect(catalogue.entries[0]?.id).toBe(asset);
   const picker = await t.query(api.assets.listByTypes, { types: ['board'] });
   const legacyBrowse = await t.query(api.assets.browsePage, { type: 'board' });
   const ruleset = await t.query(api.rulesets.detailPage, { slug: 'dreamrules' });
@@ -200,4 +205,46 @@ test('a selected incomplete summary still reads its source after the backfill', 
   const { t, summary } = await boardFixture();
   await t.run(async (ctx) => await ctx.db.patch('board_readiness', summary, { name: undefined }));
   expect((await t.query(api.assets.listByTypes, { types: ['board'] }))[0]?.data.board).toBeDefined();
+});
+
+test('ten large boards fit listing read budgets without loading their geometry', async () => {
+  const { t, summary } = await boardFixture(true);
+  for (let index = 2; index <= 10; index += 1) {
+    await t.run(async (ctx) => {
+      const original = await ctx.db.get('board_readiness', summary);
+      const { _id, _creationTime, asset_id: _assetId, ...fields } = original!;
+      const name = `Arrakis ${index}`;
+      const slug = `arrakis-${index}`;
+      const id = await ctx.db.insert('assets', {
+        owner_id: fields.owner_id!,
+        group_id: null,
+        type: 'board',
+        slug,
+        is_deleted: false,
+        created_at: fields.created_at!,
+        updated_at: fields.updated_at!,
+        data: { name, about: '', board: arrakisBoard() },
+      });
+      await ctx.db.insert('board_readiness', { ...fields, name, slug, asset_id: id, asset_creation_time: index });
+      const entryId = await ctx.db.insert('catalogue_entries', {
+        kind: 'asset',
+        source_id: id,
+        partition: 'board',
+        slug,
+        search_text: name,
+        name_key: name.toLowerCase(),
+        created_at: index,
+        updated_at: index,
+        edited_at: 0,
+        complexity: 0,
+        complexity_score: 0,
+        facets: ['board'],
+      });
+      const entry = await ctx.db.get('catalogue_entries', entryId);
+      await insertMissingOrderItems(ctx, entry!, ['name', 'created', 'updated']);
+    });
+  }
+  expect((await t.query(api.assets.cataloguePage, {})).recent).toHaveLength(5);
+  expect(await t.query(api.assets.listByTypes, { types: ['board'] })).toHaveLength(10);
+  expect((await t.query(api.assets.catalogue, { type: 'board' })).entries).toHaveLength(10);
 });

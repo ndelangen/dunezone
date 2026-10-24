@@ -521,6 +521,7 @@ Persistent authoring reviews can keep local data, auth and publishing artifacts 
 - [State Management](./state-management.md) - Convex live subscriptions, the loader/`initialData` handoff
 - [Membership](./membership.md) - Group membership approval flow
 - [Deployment](./deployment.md) - Cloudflare Worker deployment process
+- [Convex usage](./technical/convex-usage.md) - Daily production/dev reports, alerts and backend read budgets
 - [Convex Migrations](./convex-migrations.md) - Required widen/migrate/verify/narrow runbook + CI/deploy guards
 - [Stock artwork collections](./technical/stock-artwork.md) - Portrait sets, SVG categories, and adding artwork
 - [Media runbooks](./technical/media-runbooks.md) - A deploy that stops on a variant conflict, forward recovery from bad art or a bad release, and losing the upload token
