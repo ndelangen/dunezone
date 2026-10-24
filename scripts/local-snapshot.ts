@@ -71,7 +71,7 @@ const workflowRun = z.object({
 
 type SnapshotArtifact = { artifactId: number; runId: number; createdAt: number };
 
-/** Whether a run is the snapshot job itself, run on main of this repository by its own triggers, and finished green. */
+/** Whether a run is the snapshot job itself, run on main of this repository by its own triggers, and finished. */
 function isSnapshotJobRun(run: z.infer<typeof workflowRun>) {
   return (
     run.path === WORKFLOW_PATH &&
@@ -79,8 +79,7 @@ function isSnapshotJobRun(run: z.infer<typeof workflowRun>) {
     run.head_branch === 'main' &&
     run.repository.full_name === REPOSITORY &&
     run.head_repository?.full_name === REPOSITORY &&
-    run.status === 'completed' &&
-    run.conclusion === 'success'
+    run.status === 'completed'
   );
 }
 
