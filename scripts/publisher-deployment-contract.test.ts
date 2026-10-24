@@ -21,6 +21,7 @@ import {
   validatePublisherHealth,
   verifyPublicAuthRouting,
   verifyPublishedRulebookReader,
+  verifyHomepageShowcases,
 } from './publisher-deployment-contract';
 
 test('requires both public auth handlers before switching authentication URLs', async () => {
@@ -356,6 +357,10 @@ describe('production Rulebook smoke budget', () => {
     );
     await expect(verifyPublishedRulebookReader(fetcher)).resolves.toBeUndefined();
     expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(fetcher).toHaveBeenCalledWith(`${APPLICATION_ORIGIN}/rulesets/dreamrules/rulebooks/dream-rulebook`, {
+      redirect: 'error',
+      signal: expect.any(AbortSignal),
+    });
   });
 
   test.each([
@@ -365,17 +370,87 @@ describe('production Rulebook smoke budget', () => {
   ])('refuses fallback and missing or excessive query counts', async ({ queries, html }) => {
     await expect(
       verifyPublishedRulebookReader(
-        vi.fn<typeof fetch>().mockResolvedValue(
-          new Response(html, {
-            headers: { 'X-Public-Metadata-Queries': queries },
-          })
-        )
+        vi.fn<typeof fetch>().mockImplementation(
+          async () =>
+            new Response(html, {
+              headers: { 'X-Public-Metadata-Queries': queries },
+            })
+        ),
+        async () => {}
       )
     ).rejects.toThrow();
   });
+
+  test('retries a transient reader failure within three requests', async () => {
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response(null, { status: 503 }))
+      .mockResolvedValue(
+        new Response('<section data-published-rulebook/>', { headers: { 'X-Public-Metadata-Queries': '1' } })
+      );
+    const pause = vi.fn(async () => {});
+    await verifyPublishedRulebookReader(fetcher, pause);
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    expect(pause).toHaveBeenCalledTimes(1);
+  });
+
+  test('stops after three failed reader requests', async () => {
+    const fetcher = vi.fn<typeof fetch>().mockImplementation(async () => new Response(null, { status: 503 }));
+    await expect(verifyPublishedRulebookReader(fetcher, async () => {})).rejects.toThrow('unavailable');
+    expect(fetcher).toHaveBeenCalledTimes(3);
+  });
 });
 
-test('the isolated rehearsal finishes before production assembly and retained-bundle checks', () => {
+describe('production homepage showcase budget', () => {
+  test('checks only distinct editorial destinations with one query each', async () => {
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockImplementation(async (url) =>
+        url === `${APPLICATION_ORIGIN}/`
+          ? new Response(
+              '<a href="/rulesets/dreamrules">Rules</a><a href="/rulesets/dreamrules">Again</a><a href="/factions/space-orks">Orks</a><a href="https://external.example/">External</a>'
+            )
+          : new Response('<h1>Published content</h1>', { headers: { 'X-Public-Metadata-Queries': '1' } })
+      );
+    await verifyHomepageShowcases(fetcher);
+    expect(fetcher.mock.calls.map(([url]) => url)).toEqual([
+      `${APPLICATION_ORIGIN}/`,
+      `${APPLICATION_ORIGIN}/rulesets/dreamrules`,
+      `${APPLICATION_ORIGIN}/factions/space-orks`,
+    ]);
+    for (const [, options] of fetcher.mock.calls) {
+      expect(options?.redirect).toBe('error');
+    }
+  });
+
+  test.each([302, 404, 503])('refuses an unavailable or moved showcase with HTTP %i', async (status) => {
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response('<a href="/rulesets/dreamrules">Rules</a>'))
+      .mockResolvedValue(new Response(null, { status }));
+    await expect(verifyHomepageShowcases(fetcher)).rejects.toThrow('unavailable');
+  });
+
+  test('refuses a showcase exceeding its metadata budget', async () => {
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response('<a href="/rulesets/dreamrules">Rules</a>'))
+      .mockResolvedValue(new Response(null, { headers: { 'X-Public-Metadata-Queries': '2' } }));
+    await expect(verifyHomepageShowcases(fetcher)).rejects.toThrow('metadata query budget');
+  });
+
+  test.each([0, 9])('refuses %i destinations before fetching records', async (count) => {
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(
+        new Response(Array.from({ length: count }, (_, i) => `<a href="/rulesets/showcase-${i}">Rules</a>`).join(''))
+      );
+    await expect(verifyHomepageShowcases(fetcher)).rejects.toThrow('one to eight');
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+});
+
+test('deployment configuration orders rehearsal before production assembly and retained-bundle checks', () => {
   const workflow = parse(
     readFileSync(path.resolve(import.meta.dirname, '../.github/workflows/deploy-main.yml'), 'utf8')
   );

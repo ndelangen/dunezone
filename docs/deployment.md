@@ -78,8 +78,13 @@ images from their own origin.
 For a local release rehearsal:
 
 ```bash
+bun run scripts/verify-application-runtime-local.ts
 VITE_CONVEX_URL=https://exuberant-finch-263.eu-west-1.convex.cloud bun run publisher:dry-run
 ```
+
+The first command owns the disposable Docker backend, fixture and local artifact store. It builds
+the isolated release and cleans up afterward. The second command rebuilds with the production URL.
+Do not invoke `publisher:application-runtime:verify` directly without the launcher's fixture.
 
 CI uses `bun run publisher:release:dry-run` after verifying the already-built
 assets. Pull-request CI builds the same production-URL release on Linux and rejects
@@ -134,7 +139,7 @@ Both PR CI and deployment run it through `scripts/verify-application-runtime-loc
 the shared layout was opted into SSR before its child pages. Public page rendering and the layout
 now opt in together, with browser hydration checked against the assembled Worker.
 
-The live smoke makes one public Dream Rulebook request and requires published HTML with at most one metadata query. Missing-artifact and renderer-fallback coverage runs against the isolated fixture.
+The live smoke normally makes one public Dream Rulebook request and requires published HTML with at most one metadata query. It permits up to three attempts for transient failures or edge propagation. It also follows the homepage's editorial showcase links, capped at eight distinct destinations with at most one metadata query each. It does not crawl catalogues or render social images in production. Missing-artifact and renderer-fallback coverage runs against the isolated fixture.
 
 ### Forward fixes
 
