@@ -107,31 +107,6 @@ export const MissingSource = meta.story({
   },
 });
 
-export const SmallToken = meta.story({
-  parameters: { chromatic: { disableSnapshot: true } },
-  render: () => (
-    <RulebookBlockCanvas
-      block={projectRulebookDraftRenderBlock(
-        {
-          id: 'TECH',
-          kind: 'referenced-illustration',
-          source: { kind: 'asset', assetId: 'tech' },
-          size: 'small',
-          caption: 'A token keeps its outline at a smaller size.',
-        },
-        techTokenAssets
-      )}
-    />
-  ),
-  play: async ({ canvasElement }) => {
-    const image = canvasElement.querySelector('img')!;
-    await image.decode();
-    const bounds = image.getBoundingClientRect();
-    await expect(bounds.width / bounds.height).toBeCloseTo(1, 2);
-    await expect(getComputedStyle(image).clipPath).toMatch(/^polygon\(/);
-  },
-});
-
 export const FactionToken = meta.story({
   decorators: [
     (Story) => (

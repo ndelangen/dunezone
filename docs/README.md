@@ -308,10 +308,11 @@ preview turns Chromatic snapshots off for the whole file. Its plays still run in
 the Vitest story shards on every pull request, and the stories stay in Storybook. Each CSF file renders
 with the preview its meta came from, so a file holds stories of one kind only.
 
-113 stories in mixed files still carry a per-story `parameters.chromatic.disableSnapshot: true` from
-[the setup capture runs](https://www.chromatic.com/builds?appId=6adb5f9c3d9925e3217df200). They move into
-testing files as those files are split. A new capture failure still fails the workflow. A play that
-outruns Chromatic belongs in a testing file.
+A file that has stories of both kinds is split into a pair: `name.stories.tsx` keeps the presentation
+stories and `name.testing.stories.tsx` holds the testing ones under the same `title`, so both appear in
+one Storybook entry and keep their story ids. Helpers both files use live in `name.stories.fixture.ts(x)`.
+A handful of stories under review still carry a per-story `parameters.chromatic.disableSnapshot: true`.
+A new capture failure still fails the workflow. A play that outruns Chromatic belongs in a testing file.
 
 For a local upload, generate the media as described below, set `CHROMATIC_PROJECT_TOKEN` in your
 environment, and run `bun run chromatic`. To upload an existing verified build instead, run
