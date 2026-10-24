@@ -267,7 +267,7 @@ export const clientMessageSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('cancel'), carryId: id }),
   z.strictObject({ type: z.literal('renew'), carryId: id }),
   z.strictObject({ type: z.literal('command'), commandId: id, action: pieceActionSchema, expectedRevision: count }),
-  z.strictObject({ type: z.literal('catalogue'), requestId: id, selection: spawnSelectionSchema.optional() }),
+  z.strictObject({ type: z.literal('catalogue'), requestId: id, selection: spawnSelectionSchema }),
   z.strictObject({ type: z.literal('history'), step: count }),
   z.strictObject({ type: z.literal('spice-history'), before: count }),
   z.strictObject({ type: z.literal('log-history'), tab: logTabSchema, before: count }),
@@ -363,7 +363,6 @@ export const serverMessageSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('catalogue'),
     requestId: id,
-    entries: z.array(spawnSelectionSchema.extend({ name: z.string() })).optional(),
     contents: spawnContentsSchema.nullable().optional(),
     error: z.string().optional(),
   }),
