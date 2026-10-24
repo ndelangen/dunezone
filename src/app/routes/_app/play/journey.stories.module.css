@@ -11,7 +11,7 @@
   font:
     0.8125rem/1.35 system-ui,
     sans-serif;
-  box-shadow: 0 0.25rem 1rem rgb(0 0 0 / 0.4);
+  box-shadow: 0 0.25rem 1rem rgb(from var(--color-shadow) r g b / 0.4);
 }
 .header {
   display: flex;

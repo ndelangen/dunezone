@@ -3,7 +3,7 @@
   --callout-curved-inset: calc(var(--space-lg) * 1.1);
   position: relative;
   isolation: isolate;
-  filter: drop-shadow(0 6px 14px #0005);
+  filter: drop-shadow(0 6px 14px rgb(from var(--color-shadow) r g b / 0.333));
 }
 
 .content {

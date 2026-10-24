@@ -3,6 +3,7 @@ import { propertyId } from '@shared/boards/schema';
 import { boardTerritories } from '@shared/boards/territories';
 import { fitsTintCommand } from '@shared/play/territoryTints';
 import type { TerritoryTint } from '@shared/play/territoryTints';
+import { playUiColors } from '@shared/uiPalette';
 
 type Preset = Omit<TerritoryTint, 'id'>;
 
@@ -51,7 +52,7 @@ export function territoryTintPresets(board: Board): Preset[] {
       ? [
           {
             name: 'Fremen deployment',
-            color: '#2b5ea7',
+            color: playUiColors.territoryBlue,
             /* The Fremen send forces from their reserves to the Great Flat or any territory within two territories of it. */
             territories: within(board, greatFlat, 2),
           },
@@ -61,7 +62,7 @@ export function territoryTintPresets(board: Board): Preset[] {
       ? [
           {
             name: 'Shield Wall destroyed',
-            color: '#1b1b1b',
+            color: playUiColors.territoryBlack,
             stamps: ['explode' as const],
             territories: ['shield_wall'],
           },

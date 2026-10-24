@@ -3,7 +3,7 @@
   position: absolute;
   inset: 0;
   container: drafting-overlay / size;
-  background: rgba(12, 8, 6, 0.72);
+  background: color-mix(in srgb, var(--mantine-color-dark-9) 72%, transparent);
   backdrop-filter: blur(3px);
 }
 
@@ -154,7 +154,7 @@ button.token {
   position: absolute;
   z-index: 2;
   inset: 45% -12%;
-  border-top: 3px solid #d64545;
+  border-top: 3px solid var(--play-ban-mark);
   transform: rotate(-35deg);
   content: "";
 }
@@ -196,7 +196,7 @@ button.token {
   height: 2px;
   margin-inline: 0.5rem;
   border-radius: 1px;
-  background: rgba(255, 242, 216, 0.2);
+  background: rgb(from var(--input-border) r g b / var(--input-border-alpha));
 }
 
 .trackLinkMet {
@@ -219,7 +219,7 @@ button.token {
 
 .gate strong {
   overflow: visible;
-  color: #fff2d8;
+  color: var(--color-text);
   font-family: var(--font-sans);
   font-size: 0.75rem;
   font-weight: 700;
@@ -237,9 +237,9 @@ button.token {
   place-items: center;
   width: 1.05rem;
   height: 1.05rem;
-  border: 2px solid rgba(255, 242, 216, 0.35);
+  border: 2px solid rgb(from var(--input-border-strong) r g b / var(--input-border-strong-alpha));
   border-radius: 999px;
-  color: #1b1206;
+  color: var(--color-ink);
 }
 
 .gateMet .gateDot {
@@ -248,12 +248,12 @@ button.token {
 }
 
 .gateCurrent {
-  color: #fff2d8;
+  color: var(--color-text);
 }
 
 .gateCurrent .gateDot {
   border-color: var(--sand);
-  box-shadow: 0 0 0 0.22rem rgba(248, 175, 64, 0.22);
+  box-shadow: 0 0 0 0.22rem color-mix(in srgb, var(--color-brand) 22%, transparent);
 }
 
 .headerLine {
@@ -266,7 +266,7 @@ button.token {
 
 .headerAlert {
   font: inherit;
-  color: #f0b44c !important;
+  color: var(--color-brand-strong) !important;
   pointer-events: auto;
 }
 
@@ -336,22 +336,22 @@ button.token {
 
 /* A spectator's way into the roster: the dashed (+) under the seated players. */
 .openSeat {
-  border: 2px dashed rgba(255, 242, 216, 0.55);
+  border: 2px dashed rgb(from var(--input-border-strong) r g b / var(--input-border-strong-alpha));
   display: grid;
   place-items: center;
   width: 2.6rem;
   height: 2.6rem;
   border-radius: 999px;
-  color: #fff2d8;
+  color: var(--color-text);
   font-size: 1.3rem;
-  background: rgba(10, 7, 6, 0.4);
-  box-shadow: 0 0 0 0.35rem rgba(248, 175, 64, 0.12);
+  background: rgb(from var(--glass-surface-0) r g b / var(--glass-surface-0-alpha));
+  box-shadow: 0 0 0 0.35rem color-mix(in srgb, var(--color-brand) 12%, transparent);
   transition: box-shadow 160ms ease;
 }
 
 .openSeat:hover:not(:disabled),
 .openSeat:focus-visible {
-  box-shadow: 0 0 0 0.35rem rgba(248, 175, 64, 0.3);
+  box-shadow: 0 0 0 0.35rem color-mix(in srgb, var(--color-brand) 30%, transparent);
 }
 
 /* A requester waits as a ghost: dimmed, ringed by a slowly turning dashed circle. */
@@ -392,9 +392,9 @@ button.token {
   align-items: center;
   gap: 0.45rem;
   padding: 0.2rem 0.25rem 0.2rem 0.7rem;
-  border: 1px solid rgba(255, 242, 216, 0.1);
+  border: 1px solid rgb(from var(--input-border) r g b / var(--input-border-alpha));
   border-radius: 999px;
-  background: rgba(12, 9, 7, 0.78);
+  background: rgb(from var(--glass-overlay) r g b / var(--glass-overlay-alpha));
   white-space: nowrap;
 }
 

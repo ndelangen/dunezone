@@ -1,5 +1,6 @@
 import { testingPreview } from '@sb/preview';
 import { waitForFrame } from '@sb/storyWaits';
+import { coreColors } from '@shared/uiPalette';
 import { expect, userEvent, within } from 'storybook/test';
 
 import { gameMeta, install, lastCommand, session } from './game.stories.fixture';
@@ -75,7 +76,7 @@ export const Tabs = meta.story({
   },
 });
 
-/** The Play panel and its portaled controls keep their table palette inside the warm dark app. */
+/** The Play panel and its portaled controls share the core app palette. */
 export const SchemeIsland = meta.story({
   beforeEach: install(() => productTransport()),
   play: async ({ canvasElement }) => {
@@ -89,16 +90,22 @@ export const SchemeIsland = meta.story({
     const paint = () => [view.getComputedStyle(balance).color, view.getComputedStyle(button).backgroundColor];
     await expect(root).toHaveAttribute('data-mantine-color-scheme', 'dark');
     const tablePaint = paint();
+    await expect(view.getComputedStyle(island).getPropertyValue('--color-brand').trim()).toBe(
+      view.getComputedStyle(root).getPropertyValue('--color-brand').trim()
+    );
+    await expect(view.getComputedStyle(island).getPropertyValue('--mantine-color-dark-7').trim()).toBe(
+      view.getComputedStyle(root).getPropertyValue('--mantine-color-dark-7').trim()
+    );
     await expect(tablePaint[0]).toBe(
       paintedColor(island, view.getComputedStyle(island).getPropertyValue('--color-text').trim())
     );
     const deck = initialSnapshot().table.pieces.find((piece) => piece.id === 'treachery-deck')!;
-    const glass = paintedColor(island, view.getComputedStyle(island).getPropertyValue('--glass-overlay').trim());
+    const glass = paintedColor(island, 'rgb(from var(--glass-overlay) r g b / var(--glass-overlay-alpha))');
     const menu = await openPieceMenu(canvasElement.ownerDocument, deck, 'Deck actions');
-    /* The ring carries the table's leather palette. */
+    /* The menu keeps the app surface even when portaled out of the table. */
     await expect(
       view.getComputedStyle(within(menu).getByRole('menuitem', { name: 'Draw a card' })).backgroundColor
-    ).toBe('rgba(24, 16, 10, 0.95)');
+    ).toBe(glass);
     await userEvent.keyboard('{Escape}');
     await waitForFrame(() => expect(page.queryByRole('menu')).toBeNull());
     const raised = paintedColor(island, view.getComputedStyle(island).getPropertyValue('--tip-surface').trim());
@@ -112,7 +119,12 @@ export const SchemeIsland = meta.story({
       await expect(tip).not.toBeNull();
       return tip!;
     });
+    await expect(raised).toBe(paintedColor(island, coreColors.hover));
     await expect(view.getComputedStyle(tooltip).backgroundColor).toBe(raised);
+    await expect(view.getComputedStyle(tooltip).color).toBe(paintedColor(island, coreColors.text));
+    await expect(view.getComputedStyle(within(tooltip).getByText('Spice', { exact: true })).color).toBe(
+      paintedColor(island, coreColors.highlight)
+    );
     await expect(raised).not.toBe(glass);
     await userEvent.unhover(help);
     await waitForFrame(() => expect(spiceReserveTip()).toBeNull());

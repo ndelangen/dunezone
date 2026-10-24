@@ -1,5 +1,7 @@
 /* @jsxImportSource ./three-jsx */
+
 import { useThree } from '@react-three/fiber/webgpu';
+import { playUiColors } from '@shared/uiPalette';
 import { useEffect, useState } from 'react';
 
 import { PhaseSymbol } from './PhaseSymbol';
@@ -55,7 +57,12 @@ export function SpiceBankInteraction({ radius }: Readonly<{ radius: number }>) {
         onClick={(event) => event.stopPropagation()}
       >
         <circleGeometry args={[radius, 96]} />
-        <meshBasicMaterial transparent opacity={hovered && enabled ? 0.12 : 0} color="#ffb839" depthWrite={false} />
+        <meshBasicMaterial
+          transparent
+          opacity={hovered && enabled ? 0.12 : 0}
+          color={playUiColors.spiceHover}
+          depthWrite={false}
+        />
       </mesh>
     </group>
   );

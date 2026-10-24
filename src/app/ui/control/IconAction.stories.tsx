@@ -9,7 +9,7 @@ import { IconAction } from './IconAction';
 const meta = preview.meta({
   component: IconAction,
   parameters: { layout: 'centered' },
-  globals: { backgrounds: { value: 'light', grid: false } },
+  globals: { backgrounds: { value: 'dark', grid: false } },
   args: {
     label: 'Edit group settings',
     icon: <Pencil size={17} aria-hidden />,
@@ -50,7 +50,7 @@ export const LongerTooltip = meta.story({
 
 /**
  * Every meaning at standard emphasis, then a toggle that is on, then the two strong fills (Norbert, 2026-09-29).
- * Slate changes nothing, green creates or keeps, violet publishes, cyan hands over a file, and red loses something for good.
+ * Warm neutrals change nothing, olive creates or keeps, violet publishes, blue hands over a file, and red loses something for good.
  */
 export const Meanings = meta.story({
   render: () => (

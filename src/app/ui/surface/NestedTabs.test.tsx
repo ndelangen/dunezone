@@ -303,6 +303,72 @@ describe('NestedTabs with button items', () => {
     );
   });
 
+  it('waits five seconds before opening a panel tab tooltip and cancels an abandoned hover', async () => {
+    vi.useFakeTimers();
+    try {
+      const target = tab('Spice');
+      await act(async () => {
+        target.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+      });
+      await act(() => vi.advanceTimersByTimeAsync(350));
+      await act(() => vi.advanceTimersByTimeAsync(150));
+      expect(document.querySelector('[role="tooltip"]')).toBeNull();
+      await act(() => vi.advanceTimersByTimeAsync(4499));
+      expect(document.querySelector('[role="tooltip"]')).toBeNull();
+      await act(async () => {
+        target.dispatchEvent(new MouseEvent('mouseout', { bubbles: true }));
+        await vi.advanceTimersByTimeAsync(1000);
+      });
+      expect(document.querySelector('[role="tooltip"]')).toBeNull();
+      await act(async () => {
+        target.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+        await vi.advanceTimersByTimeAsync(4999);
+      });
+      expect(document.querySelector('[role="tooltip"]')).toBeNull();
+      await act(() => vi.advanceTimersByTimeAsync(1));
+      await act(() => vi.advanceTimersByTimeAsync(150));
+      expect(document.querySelector('[role="tooltip"]')?.textContent).toContain('Spice');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('a pointer click cancels pending guidance until the pointer leaves and returns', async () => {
+    vi.useFakeTimers();
+    try {
+      const target = tab('Spice');
+      act(() => {
+        target.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+      });
+      await act(() => vi.advanceTimersByTimeAsync(4000));
+      act(() => {
+        target.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
+        target.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
+      });
+      expect(selected).toEqual([['spice']]);
+      await act(() => vi.advanceTimersByTimeAsync(1000));
+      await act(() => vi.advanceTimersByTimeAsync(150));
+      expect(document.querySelector('[role="tooltip"]')).toBeNull();
+      await act(() => vi.advanceTimersByTimeAsync(10_000));
+      expect(document.querySelector('[role="tooltip"]')).toBeNull();
+      act(() => {
+        target.dispatchEvent(new MouseEvent('mouseout', { bubbles: true }));
+        target.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+      });
+      await act(() => vi.advanceTimersByTimeAsync(5000));
+      await act(() => vi.advanceTimersByTimeAsync(150));
+      expect(document.querySelector('[role="tooltip"]')?.textContent).toContain('Spice');
+      act(() => {
+        target.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
+        target.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
+      });
+      await act(() => vi.advanceTimersByTimeAsync(150));
+      expect(document.querySelector('[role="tooltip"]')).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('turns each level into a named vertical tablist instead of a navigation landmark', () => {
     expect(container?.querySelectorAll('nav')).toHaveLength(0);
     const lists = Array.from(container?.querySelectorAll('[role="tablist"]') ?? []);

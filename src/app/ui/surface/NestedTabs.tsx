@@ -23,6 +23,7 @@ import type {
   HTMLAttributes,
   KeyboardEvent,
   MouseEvent,
+  PointerEvent,
   PropsWithChildren,
   ReactElement,
   ReactNode,
@@ -353,6 +354,7 @@ function useNestedTabsContext(component: string) {
 
 /* A hover names the item and says what it is for; resting on it a while longer brings its full help. */
 const TOOLTIP_OPEN_MS = 350;
+const PANEL_TOOLTIP_OPEN_MS = 5000;
 const TOOLTIP_HELP_MS = 1800;
 
 function NestedTabsTooltip({
@@ -360,13 +362,20 @@ function NestedTabsTooltip({
   description,
   help,
   isScrolling,
+  hoverDelay = TOOLTIP_OPEN_MS,
   children,
 }: {
   label: string;
   description?: string;
   help?: string;
   isScrolling: boolean;
-  children: ReactElement<Pick<HTMLAttributes<HTMLElement>, 'onFocus' | 'onBlur' | 'onMouseOver' | 'onMouseOut'>>;
+  hoverDelay?: number;
+  children: ReactElement<
+    Pick<
+      HTMLAttributes<HTMLElement>,
+      'onFocus' | 'onBlur' | 'onMouseOver' | 'onMouseOut' | 'onPointerDown' | 'onClick' | 'onKeyDown'
+    >
+  >;
 }) {
   const [shown, setShown] = useState<'closed' | 'short' | 'help'>('closed');
   if (isScrolling && shown !== 'closed') {
@@ -376,6 +385,7 @@ function NestedTabsTooltip({
   const helpTimer = useRef(0);
   /* The pointer resting on the item, or keyboard focus on it: either keeps the tooltip coming. */
   const engaged = useRef({ pointer: false, focus: false });
+  const pointerDismissed = useRef(false);
 
   const clearTimers = () => {
     window.clearTimeout(openTimer.current);
@@ -383,9 +393,10 @@ function NestedTabsTooltip({
   };
   const arm = () => {
     clearTimers();
-    openTimer.current = window.setTimeout(() => setShown('short'), TOOLTIP_OPEN_MS);
+    const delay = engaged.current.focus ? TOOLTIP_OPEN_MS : hoverDelay;
+    openTimer.current = window.setTimeout(() => setShown('short'), delay);
     if (help) {
-      helpTimer.current = window.setTimeout(() => setShown('help'), TOOLTIP_HELP_MS);
+      helpTimer.current = window.setTimeout(() => setShown('help'), delay + TOOLTIP_HELP_MS - TOOLTIP_OPEN_MS);
     }
   };
   const release = (cause: 'pointer' | 'focus') => {
@@ -439,9 +450,33 @@ function NestedTabsTooltip({
   const text = shown === 'help' ? help : description;
 
   const Trigger = children.type;
+  const dismissPointer = (target: HTMLElement) => {
+    pointerDismissed.current = true;
+    target.dataset.pointerFocus = '';
+    engaged.current = { pointer: false, focus: false };
+    clearTimers();
+    setShown('closed');
+  };
+  const onPointerDown = (event: PointerEvent<HTMLElement>) => {
+    dismissPointer(event.currentTarget);
+    children.props.onPointerDown?.(event);
+  };
+  const onClick = (event: MouseEvent<HTMLElement>) => {
+    if (event.detail > 0) {
+      dismissPointer(event.currentTarget);
+    }
+    children.props.onClick?.(event);
+  };
+  const onKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+    delete event.currentTarget.dataset.pointerFocus;
+    if (event.key !== 'Escape' && event.key !== 'Tab' && event.currentTarget === document.activeElement) {
+      engage('focus');
+    }
+    children.props.onKeyDown?.(event);
+  };
   const onFocus = (event: FocusEvent<HTMLElement>) => {
     children.props.onFocus?.(event);
-    if (!event.currentTarget.matches(':focus-visible')) {
+    if (event.currentTarget.hasAttribute('data-pointer-focus') || !event.currentTarget.matches(':focus-visible')) {
       return;
     }
     /* Already hovered, the tooltip keeps its course; focus only holds it open once the pointer leaves. */
@@ -452,19 +487,24 @@ function NestedTabsTooltip({
     }
   };
   const onBlur = (event: FocusEvent<HTMLElement>) => {
+    delete event.currentTarget.dataset.pointerFocus;
     children.props.onBlur?.(event);
     release('focus');
   };
   /* A portal can disappear before its outgoing event; the next real hover still needs to open guidance. */
   const onMouseOver = (event: MouseEvent<HTMLElement>) => {
     children.props.onMouseOver?.(event);
-    if (!(event.relatedTarget instanceof Node && event.currentTarget.contains(event.relatedTarget))) {
+    if (
+      !pointerDismissed.current &&
+      !(event.relatedTarget instanceof Node && event.currentTarget.contains(event.relatedTarget))
+    ) {
       engage('pointer');
     }
   };
   const onMouseOut = (event: MouseEvent<HTMLElement>) => {
     children.props.onMouseOut?.(event);
     if (!(event.relatedTarget instanceof Node && event.currentTarget.contains(event.relatedTarget))) {
+      pointerDismissed.current = false;
       release('pointer');
     }
   };
@@ -494,6 +534,9 @@ function NestedTabsTooltip({
         onBlur={onBlur}
         onMouseOver={onMouseOver}
         onMouseOut={onMouseOut}
+        onPointerDown={onPointerDown}
+        onClick={onClick}
+        onKeyDown={onKeyDown}
       />
     </Tooltip>
   );
@@ -600,7 +643,13 @@ function Item<Root extends ElementType>({
 
   return (
     <li className={styles.itemSlot} role={tabs ? 'none' : undefined}>
-      <NestedTabsTooltip label={label} description={description} help={help} isScrolling={isScrolling}>
+      <NestedTabsTooltip
+        label={label}
+        description={description}
+        help={help}
+        isScrolling={isScrolling}
+        hoverDelay={tabs ? PANEL_TOOLTIP_OPEN_MS : TOOLTIP_OPEN_MS}
+      >
         {itemRoot}
       </NestedTabsTooltip>
       {guidance ? (
@@ -677,7 +726,11 @@ function Group<Root extends ElementType = 'li'>({
       'data-contains-active-item': containsActiveItem || undefined,
     } as ComponentPropsWithoutRef<Root>,
     <>
-      <NestedTabsTooltip label={label} isScrolling={isScrolling}>
+      <NestedTabsTooltip
+        label={label}
+        isScrolling={isScrolling}
+        hoverDelay={tabs ? PANEL_TOOLTIP_OPEN_MS : TOOLTIP_OPEN_MS}
+      >
         <span className={styles.groupAdornment} aria-hidden>
           {icon ?? <span className={styles.groupMarker} />}
         </span>
@@ -897,7 +950,9 @@ function splitRootChildren(children: ReactNode) {
  * With two levels the first connects to the second and the second to the panel;
  * with one level, its items connect straight to the panel.
  * An item's tooltip names it;
- * given a `description` it shows that line under the name, and given `help` it swaps in that full guidance once the pointer has rested 1.8 seconds, so a panel needs no help button of its own.
+ * given a `description` it shows that line under the name, and given `help` it swaps in that full guidance 1.45 seconds later.
+ * Panel tabs wait five seconds on hover;
+ * navigation links and keyboard focus keep the short opening delay.
  * Keyboard focus opens the same tooltip, and both texts describe the item to assistive technology.
  * The tooltip body and its timing live here while this is their one user;
  * a second component wanting a name, a description and rested help moves them to a `ui/content` component this composes.

@@ -29,11 +29,11 @@
 }
 
 .previewPage [data-rulebook-clipped-region] {
-  box-shadow: inset 0 -0.45cqw 0 var(--mantine-color-yellow-7);
+  box-shadow: inset 0 -0.45cqw 0 var(--color-caution);
 }
 
 .previewPage [data-rulebook-clipped] {
-  outline: 0.35cqw solid var(--mantine-color-yellow-7);
+  outline: 0.35cqw solid var(--color-caution);
   outline-offset: 0.35cqw;
 }
 
@@ -46,7 +46,7 @@
 .nestedTabs [data-rail-dragging="true"] {
   z-index: 20;
   opacity: 1;
-  filter: drop-shadow(0 0.35rem 0.55rem rgb(0 0 0 / 24%));
+  filter: drop-shadow(0 0.35rem 0.55rem rgb(from var(--color-shadow) r g b / 24%));
   cursor: grabbing;
 }
 

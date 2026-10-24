@@ -246,7 +246,7 @@ export function FactionPicker(props: FactionPickerProps) {
               isMember={selectedRow.groupId ? memberGroupSet.has(String(selectedRow.groupId)) : false}
             />
             {props.copy.confirmNote ? (
-              <Text size="xs" c="orange.9">
+              <Text size="xs" c="var(--color-caution)">
                 {props.copy.confirmNote}
               </Text>
             ) : null}

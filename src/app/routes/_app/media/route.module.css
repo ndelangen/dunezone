@@ -35,7 +35,7 @@
   box-sizing: border-box;
   padding: var(--space-xs);
   border-radius: var(--mantine-radius-sm);
-  background: repeating-conic-gradient(#f2f2f2 0% 25%, #dedede 0% 50%) 0 / 16px 16px;
+  background: repeating-conic-gradient(var(--ui-text) 0% 25%, var(--ui-muted) 0% 50%) 0 / 16px 16px;
 }
 .portrait {
   display: block;
@@ -68,7 +68,8 @@
 }
 
 .libraryArt {
-  filter: drop-shadow(0 2px 2px rgb(0 0 0 / 35%)) drop-shadow(0 6px 5px rgb(0 0 0 / 25%));
+  filter: drop-shadow(0 2px 2px rgb(from var(--color-shadow) r g b / 35%))
+    drop-shadow(0 6px 5px rgb(from var(--color-shadow) r g b / 25%));
   display: block;
   width: 100%;
   height: 100%;

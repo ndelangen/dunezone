@@ -2419,7 +2419,7 @@ function RulebookDifferenceReview({
     >
       <Stack gap="lg">
         {result.incompatibilities.length === 0 ? (
-          <Alert color="green" role="status">
+          <Alert color="confirm" role="status">
             All differences are reviewed. Return to editing to check and save your draft.
           </Alert>
         ) : null}
@@ -2493,7 +2493,7 @@ function RulebookDifferenceReview({
             <Section
               key={difference.id}
               title={name}
-              action={approved ? <Badge color="green">Reviewed</Badge> : undefined}
+              action={approved ? <Badge color="confirm">Reviewed</Badge> : undefined}
             >
               <AsymmetricSplitLayout>
                 <AsymmetricSplitLayout.Wide>
@@ -3137,7 +3137,7 @@ function RulebookEditorSession({
             </Alert>
           ) : null}
           {view.notice === 'published' ? (
-            <Alert color="green" role="status">
+            <Alert color="confirm" role="status">
               The new Edition is now current. HTML and PDF are being prepared independently.
             </Alert>
           ) : null}

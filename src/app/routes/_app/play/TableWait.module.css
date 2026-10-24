@@ -10,7 +10,7 @@
   justify-items: center;
   gap: var(--space-md);
   overflow: hidden;
-  background: #130d0a;
+  background: var(--color-ground);
 }
 
 .loading::before {
@@ -18,7 +18,11 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: radial-gradient(38% 34% at 50% 46%, rgba(248, 175, 64, 0.14), transparent 70%);
+  background: radial-gradient(
+    38% 34% at 50% 46%,
+    color-mix(in srgb, var(--color-brand) 14%, transparent),
+    transparent 70%
+  );
   animation: table-wait-breathe 2.6s ease-in-out infinite;
 }
 

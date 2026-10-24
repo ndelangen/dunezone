@@ -11,8 +11,8 @@ import { tableCountSchema as count, tableIdSchema as id } from './schema';
  */
 export const allianceStateSchema = z.object({
   /*
-   * Each alliance as its faction ids, at least two, and its mark: the colour slot that shows it on the table.
-   * An alliance keeps its mark while it grows or loses a member, so its colour never changes when other alliances do.
+   * Each alliance carries at least two faction ids and a stable group mark retained by stored games.
+   * Presentation takes colours from the allied factions rather than interpreting the mark as a palette slot.
    */
   groups: z.array(z.object({ members: z.array(id).min(2), mark: count })),
   /* Offers waiting on an answer, oldest first; each carries the table revision it was made at, so an answer names the very offer its player saw. */
@@ -61,7 +61,7 @@ export type AllianceContext = {
   revision: number;
 };
 
-/* The lowest mark no alliance holds, so a new alliance never shares a colour with another. */
+/* The lowest group mark no alliance holds. */
 function freeMark(state: AllianceState): number {
   const taken = new Set(state.groups.map((group) => group.mark));
   let mark = 0;

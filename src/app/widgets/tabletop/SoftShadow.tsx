@@ -1,4 +1,7 @@
 /* @jsxImportSource @app/widgets/tabletop/three-jsx */
+
+import { rendererColors } from '@shared/play/assetColors';
+import { withAlpha } from '@shared/uiPalette';
 import { CanvasTexture } from 'three';
 
 import { ignoreRaycast } from './ignoreRaycast';
@@ -19,9 +22,9 @@ function shadowTexture(solid: number, size: number) {
   canvas.width = canvas.height = size;
   const context = canvas.getContext('2d')!;
   const gradient = context.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
-  gradient.addColorStop(0, 'rgba(0, 0, 0, 1)');
-  gradient.addColorStop(solid, 'rgba(0, 0, 0, 0.85)');
-  gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  gradient.addColorStop(0, rendererColors.black);
+  gradient.addColorStop(solid, withAlpha(rendererColors.black, 0.85));
+  gradient.addColorStop(1, withAlpha(rendererColors.black, 0));
   context.fillStyle = gradient;
   context.fillRect(0, 0, size, size);
   const texture = new CanvasTexture(canvas);
@@ -52,7 +55,7 @@ export function SoftShadow({
         transparent
         opacity={opacity}
         depthWrite={false}
-        color="#000000"
+        color={rendererColors.black}
       />
     </mesh>
   );
