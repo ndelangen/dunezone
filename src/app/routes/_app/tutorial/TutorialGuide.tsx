@@ -75,48 +75,55 @@ function settling() {
   };
 }
 
-function place(anchor: GuideAnchor): Target | null {
-  return anchor.kind === 'page' ? onScreen(anchor.element()) : onTable(anchor.point());
+/* `below` is the band's lower edge: what is out of view is pointed toward from under the band, where the arrow can reach. */
+function place(anchor: GuideAnchor, below: number): Target | null {
+  return anchor.kind === 'page' ? onScreen(anchor.element(), below) : onTable(anchor.point(), below);
 }
 
-/* The window, where a part of the page off its edges is pointed toward. */
-const windowBox = () => ({ left: 0, top: 0, right: window.innerWidth, bottom: window.innerHeight });
+/* The window under the band, where a part of the page off its edges is pointed toward. */
+const windowBox = (below: number) => ({ left: 0, top: below, right: window.innerWidth, bottom: window.innerHeight });
 
-function onScreen(element: Element | null): Target | null {
+function onScreen(element: Element | null, below: number): Target | null {
   const box = element?.getBoundingClientRect();
   if (!box || box.width <= 0) {
     return null;
   }
   return keepInView(
     { x: box.left + box.width / 2, y: box.top + box.height / 2, halfWidth: box.width / 2, halfHeight: box.height / 2 },
-    windowBox()
+    windowBox(below)
   );
 }
 
 /* A point on the table where the camera shows it; one out of view, or behind the camera, is pointed toward from the table's edge. */
-function onTable(point: Vector3Tuple | null): Target | null {
+function onTable(point: Vector3Tuple | null, below: number): Target | null {
   const view = tableView();
   if (!view || !point) {
     return null;
   }
   const box = view.canvas.getBoundingClientRect();
   projected.set(...point).project(view.camera);
-  /* Behind the camera the projection comes out mirrored through the middle, so it is turned back to the side the point is on. */
-  const behind = projected.z > 1 ? -1 : 1;
-  const shown = windowBox();
+  let { x, y } = projected;
+  /*
+   * Behind the camera the projection comes out mirrored through the middle, and can land inside the view.
+   * It is turned back to the side the point is on and pushed well past the edge, so it is always pointed toward from there;
+   * one straight behind has no side, so it is pointed toward from the near edge, behind the player.
+   */
+  if (projected.z > 1) {
+    const length = Math.hypot(x, y);
+    [x, y] = length < 1e-6 ? [0, -10] : [(-x / length) * 10, (-y / length) * 10];
+  }
+  const shown = windowBox(below);
+  const visible = {
+    left: Math.max(box.left, shown.left),
+    top: Math.max(box.top, shown.top),
+    right: Math.min(box.right, shown.right),
+    bottom: Math.min(box.bottom, shown.bottom),
+  };
+  /* A table scrolled wholly out of the window is pointed toward from the window's edge instead. */
+  const empty = visible.left >= visible.right || visible.top >= visible.bottom;
   return keepInView(
-    {
-      x: box.left + ((behind * projected.x + 1) / 2) * box.width,
-      y: box.top + ((1 - behind * projected.y) / 2) * box.height,
-      halfWidth: 0,
-      halfHeight: 0,
-    },
-    {
-      left: Math.max(box.left, shown.left),
-      top: Math.max(box.top, shown.top),
-      right: Math.min(box.right, shown.right),
-      bottom: Math.min(box.bottom, shown.bottom),
-    }
+    { x: box.left + ((x + 1) / 2) * box.width, y: box.top + ((1 - y) / 2) * box.height, halfWidth: 0, halfHeight: 0 },
+    empty ? shown : visible
   );
 }
 
@@ -228,7 +235,7 @@ export function TutorialGuide({
     const tick = () => {
       frame = requestAnimationFrame(tick);
       const view = { camera: tableView()?.camera ?? null };
-      draw(started && doneAt === null ? place(task.anchor) : null);
+      draw(started && doneAt === null ? place(task.anchor, band.current?.getBoundingClientRect().bottom ?? 0) : null);
       if (!started) {
         started = start(view);
       }

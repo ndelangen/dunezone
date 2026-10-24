@@ -39,7 +39,7 @@ const BLEED = 4;
 export const ARROW_GAP_PX = 15;
 
 /** How far inside the visible area the arrow stops when its target is out of view. */
-export const OFFSCREEN_INSET_PX = 40;
+const OFFSCREEN_INSET_PX = 40;
 
 /**
  * A target out of view moved to the edge of `view`, in the direction it lies from the view's middle, so the arrow keeps pointing the way to go instead of disappearing (Norbert, 2026-10-24).
