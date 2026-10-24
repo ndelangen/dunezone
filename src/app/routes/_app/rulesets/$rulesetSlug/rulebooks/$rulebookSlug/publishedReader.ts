@@ -164,6 +164,52 @@ function publishedSectionMarkup(document: Document, root: Element) {
   return section.outerHTML;
 }
 
+/* The publisher embeds troop artwork and placed images in SVG foreignObject elements. */
+const ARTWORK_ELEMENTS = new Set([
+  'div',
+  'span',
+  'img',
+  'svg',
+  'g',
+  'defs',
+  'pattern',
+  'image',
+  'mask',
+  'rect',
+  'use',
+  'circle',
+  'path',
+  'polygon',
+  'polyline',
+  'line',
+  'ellipse',
+  'text',
+  'tspan',
+  'clippath',
+  'lineargradient',
+  'radialgradient',
+  'stop',
+  'title',
+  'desc',
+]);
+
+function assertInertEmbeddedArtwork(body: Element) {
+  for (const artwork of body.querySelectorAll('foreignObject')) {
+    const children = [...artwork.children];
+    const root = children[0];
+    const knownRoot =
+      root?.tagName.toLowerCase() === 'img' ||
+      (root?.tagName.toLowerCase() === 'div' && root.classList.contains('rulebookTerritoryTroop'));
+    if (
+      children.length !== 1 ||
+      !knownRoot ||
+      [...artwork.querySelectorAll('*')].some((element) => !ARTWORK_ELEMENTS.has(element.tagName.toLowerCase()))
+    ) {
+      throw new Error('Published Rulebook HTML contains unsupported embedded artwork');
+    }
+  }
+}
+
 /** Reads only publisher-generated markup, retaining its frozen styles and stable reading targets. */
 export function parsePublishedRulebook(html: string, href: string): PublishedRulebook {
   const { document } = parseHTML(html);
@@ -175,10 +221,11 @@ export function parsePublishedRulebook(html: string, href: string): PublishedRul
   if (!root || !css) {
     throw new Error('Published Rulebook HTML is unavailable');
   }
-  if (document.body.querySelector('foreignObject, animate, animateMotion, animateTransform, set, meta, link')) {
+  if (document.body.querySelector('animate, animateMotion, animateTransform, set, meta, link')) {
     throw new Error('Published Rulebook HTML contains executable content');
   }
   assertNoExecutableAttributes(document.body);
+  assertInertEmbeddedArtwork(document.body);
   return {
     href,
     markup: publishedSectionMarkup(document, root),

@@ -65,7 +65,7 @@ render exception, the request retries once without artwork.
 Every outbound HTTP request fails and is counted. It checks PNG dimensions, real artwork pixels,
 changed words, replacement artwork at the same URL, deletion, regeneration, corrupt JPEGs, long
 text and layout shapes. It also renders 60 distinct JPEGs near the byte limit in one isolate. The expected outbound count is zero. Unit tests cover invalid inputs and artwork bounds.
-`publisher:application-runtime:verify` also follows the actual HTML image URLs through the assembled
+`bun run scripts/verify-application-runtime-local.ts` also follows the fixture's actual HTML image URLs through the assembled
 publisher Worker and decodes their PNG headers.
 
 Cloudflare caches PNGs for one day, recognized fallbacks for five minutes, and existing artwork for
