@@ -9,6 +9,7 @@ import type { ControlsExperiment } from './experiment';
 
 /*
  * Design exploration (Norbert, 2026-10-24): a tester found the controls cover too much of the screen in both layouts.
+ * This is the start of the prototype, kept as first shown to Norbert on 2026-10-24; later iterations get their own stage beside it.
  * Each story is one way to lay them out, on the same seated game; the first two are today's layouts to compare against.
  */
 const withExperiment: Decorator = (Story, { parameters }) => (
@@ -19,7 +20,7 @@ const withExperiment: Decorator = (Story, { parameters }) => (
 
 const meta = preview.meta({
   ...gameMeta,
-  title: 'Play/Explorations/Controls layout',
+  title: 'Play/Explorations/Controls layout/Start of prototype',
   globals: { motion: 'on' },
   decorators: [...gameMeta.decorators, withExperiment],
   beforeEach: install(() => productTransport('seat-2')),
