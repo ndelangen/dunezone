@@ -21,7 +21,6 @@
     "FMKT",
     "P3L4",
     "G8TK",
-    "7LKU",
     "CDJ6",
     "4Z2S",
     "RNZM",
@@ -513,7 +512,97 @@
                     "width": 600,
                     "height": 600
                   }
-                ]
+                ],
+                "sheet": {
+                  "name": "Atreides",
+                  "themeColor": "#4a4c08",
+                  "logo": "/vector/logo/atreides.svg",
+                  "background": {
+                    "colors": [
+                      "#393d05",
+                      "#5c5d10"
+                    ],
+                    "definition": 0.5,
+                    "image": "/image/texture/082.jpg",
+                    "influence": 1,
+                    "invert": true
+                  },
+                  "leaders": [
+                    {
+                      "image": "/image/leader/official/thufir.png",
+                      "memberId": "1cbb3205-43b5-46db-8265-2d5e407a14a0",
+                      "name": "Thufir Hawat",
+                      "strength": 5
+                    },
+                    {
+                      "image": "/image/leader/official/jessica.png",
+                      "memberId": "92a82f05-9387-4358-b5eb-b25cc775cb5f",
+                      "name": "Lady Jessica",
+                      "strength": 5
+                    },
+                    {
+                      "image": "/image/leader/official/gurney.png",
+                      "memberId": "f6de205e-0bfa-4720-83a7-788cdb5db378",
+                      "name": "Gurney Halleck",
+                      "strength": 4
+                    },
+                    {
+                      "image": "/image/leader/official/duncan.png",
+                      "memberId": "918acfed-e08e-46bc-8e11-ef6e789fa347",
+                      "name": "Duncan Idaho",
+                      "strength": 3
+                    },
+                    {
+                      "image": "/image/leader/official/dryeuh.png",
+                      "memberId": "066d6195-2255-4c9e-aec8-06fa9c636220",
+                      "name": "Dr. Wellington Yueh",
+                      "strength": 1
+                    }
+                  ],
+                  "troops": [
+                    {
+                      "count": 20,
+                      "description": "Standard forces.",
+                      "image": "/vector/troop/atreides.svg",
+                      "name": "Normal troop",
+                      "troopId": "448681e5-a635-48e9-8ec1-859dbee97975"
+                    }
+                  ],
+                  "rules": {
+                    "advantages": [
+                      {
+                        "text": "You have limited prescience."
+                      },
+                      {
+                        "text": "Any time during the Shipping and Movement phase, you may look at the top card of the Spice deck.",
+                        "title": "Spice Vision"
+                      },
+                      {
+                        "text": "During the Bidding phase, you may look at each Treachery card as it comes up for auction before any faction bids on it. You, and only you, may keep written records about Treachery cards.",
+                        "title": "Bidding Insight"
+                      },
+                      {
+                        "text": "During the Battle phase, you may force your opponent to reveal to you your choice of one of the four elements they will use in their Battle Plan: the leader (disc or Cheap Hero), Treachery card in the Weapon slot, Treachery card in the Defense slot, or number of force strength dialed plus spice strength. An opponent revealing that they are not playing the particular element asked (e.g. no leader, an empty slot or zero strength) does not allow you to then demand to see another element instead.\n\nVulnerable to Karama: Karama can be played to cancel this effect immediately after you have named what you are using Battle Prescience to see.",
+                        "title": "Battle Prescience: Vulnerable to Karama"
+                      },
+                      {
+                        "text": "The Kwisatz Haderach token starts out inactive. Use the Kwisatz Haderach card and counter token to publicly keep track of force losses. Immediately after you have lost 7 or more forces in battle (even from a Traitor call), the Kwisatz Haderach token becomes active for the rest of the game and may be added to your Battle Plan (along with a leader) in one territory per round; used as follows:\n\n\\- Add +2 strength to your Battle Total if the leader or Cheap Hero is not killed.\n\n\\- A leader accompanied by the Kwisatz Haderach cannot be called as a Traitor.\n\n\\- The Kwisatz Haderach can only be killed if blown up by a Lasgun/Shield explosion. If killed, the Kwisatz Haderach may be your 1 leader revival during the Revival phase (even if you have not yet triggered leader revival) for 2 spice.\n\n\\- The Kwisatz Haderach does not need to die for you to be able to revive your other leaders and can be revived before all your other leaders have died.",
+                        "title": "Kwisatz Haderach"
+                      }
+                    ],
+                    "alliance": {
+                      "text": "You may force your ally's opponent to reveal one element of their Battle Plan to you and your ally, following the rules of your Battle Prescience advantage, subject to Karama."
+                    },
+                    "fate": {
+                      "label": "karama",
+                      "text": "The following one\\-time ability is triggered by playing a Karama card:\n\nLook at any one player's entire Battle Plan (not just your opponent). This cannot be canceled by Karama.\n\nSpirit World Variant: Family Atomics.",
+                      "title": "Karama Power - Golden Path"
+                    },
+                    "revivalText": "2 forces/round.",
+                    "spiceCount": 10,
+                    "startText": "10 forces in Arrakeen, 10 forces in reserves (off\\-planet), 10 spice, and 1 random Treachery card."
+                  }
+                }
               },
               "text": "The Atreides, led by the compassionate, though cunning, Duke Leto and his son Paul Atreides — rightful heir to his family's ancient legacy, gifted with valiant lieutenants and a strange partial awareness of the future. Both are beset by treacherous opponents."
             },
@@ -8967,141 +9056,59 @@
           "key": "column1",
           "blocks": [
             {
-              "id": "TX75",
-              "kind": "callout",
-              "variant": "example",
-              "title": "House Atreides faction sheet",
-              "text": "*Free force revivals: 2*\n\nHouse Atreides can revive 2 forces for free each turn. They can revive an additional force for 2 spice, for a total of 3 forces for the round."
-            },
-            {
-              "id": "D56S",
+              "id": "MDUB",
               "kind": "text",
               "text": "Players will be able to regain lost forces and eventually lost leaders."
             },
             {
-              "id": "89AC",
+              "id": "VWNT",
               "kind": "text",
               "name": "Force revival",
               "text": "Starting with the First Player and proceeding in storm order, all players may revive up to 3 forces from the Tleilaxu Tanks:"
             },
             {
-              "id": "KHAF",
+              "id": "P3QV",
               "kind": "list",
               "style": "bulleted",
               "items": [
                 {
-                  "id": "item-0",
+                  "id": "free",
                   "text": "Free: Players may revive the number of forces indicated on their Faction Sheets for free."
                 },
                 {
-                  "id": "item-1",
+                  "id": "spice",
                   "text": "By Spice: Additional forces may be revived at a cost of 2 spice per force (to the normal limit of 3 forces in total). All spice expended for force revival is placed in the Spice Bank."
                 },
                 {
-                  "id": "item-2",
+                  "id": "limit",
                   "text": "Limit: A player cannot revive more than 3 forces in this phase (including free revivals)."
                 },
                 {
-                  "id": "item-3",
+                  "id": "reserves",
                   "text": "To Reserves: Revived forces are placed in reserves."
                 }
               ]
             },
             {
-              "id": "HH6R",
+              "id": "5Z3D",
               "kind": "text",
               "name": "Leader revival",
               "text": "Initially, factions are not permitted to revive dead leaders. Once all of a faction's leaders are in the Tleilaxu Tanks and/or are currently captured, a player may then revive one of their leaders per round. When this has been triggered, a faction places their second Faction token in the Tleilaxu Tanks as a reminder that they may now revive leaders."
             },
             {
-              "id": "V3DM",
+              "id": "3LP9",
               "kind": "text",
               "text": "To revive a leader, a player must pay that leader's fighting strength in spice to the Spice Bank."
             },
             {
-              "id": "PFCL",
+              "id": "XBV3",
               "kind": "text",
               "text": "A revived leader can be played normally and is still subject to being a traitor."
-            }
-          ]
-        },
-        {
-          "key": "column2",
-          "blocks": [
+            },
             {
-              "id": "QF9B",
+              "id": "GETX",
               "kind": "text",
               "text": "When factions are able to revive leaders, there is no restriction on which leader they revive each round, including a leader they revived in a previous round."
-            },
-            {
-              "id": "4GJS",
-              "kind": "text",
-              "name": "Advantages",
-              "text": ""
-            },
-            {
-              "id": "R4LU",
-              "kind": "text",
-              "text": "SPICE VISION: Any time during the Shipping and Movement phase, you may look at the top card of the Spice deck."
-            },
-            {
-              "id": "UT3R",
-              "kind": "text",
-              "text": "BIDDING INSIGHT: During the Bidding phase, you may look at each Treachery card as it comes up for auction before any faction bids on it. You, and only you, may keep written records about Treachery cards."
-            },
-            {
-              "id": "EW8L",
-              "kind": "text",
-              "name": "Battle prescience: vulnerable to Karama",
-              "text": "During the Battle phase, you may force your opponent to reveal to you your choice of one of the four elements they will use in their Battle Plan: the leader (disc or Cheap Hero), Treachery card in the Weapon slot, Treachery card in the Defense slot, or number of force strength dialed plus spice strength. An opponent revealing that they are not playing the particular element asked (e.g., no leader, an empty slot or zero strength) does not allow you to then demand to see another element instead."
-            },
-            {
-              "id": "KJAP",
-              "kind": "text",
-              "text": "Vulnerable to Karama: Karama can be played to cancel this effect immediately after you have named what you are using Battle Prescience to see."
-            },
-            {
-              "id": "NVKH",
-              "kind": "text",
-              "text": "KWISATZ HADERACH: The Kwisatz Haderach token starts out inactive. Use the Kwisatz Haderach card and counter token to publicly keep track of force losses. Immediately after you have lost 7 or more forces in battle (even from a Traitor call), the Kwisatz Haderach token becomes active for the rest of the game and may be added to your Battle Plan (along with a leader) in one territory per round; used as follows:"
-            }
-          ]
-        }
-      ]
-    },
-    "7LKU": {
-      "id": "7LKU",
-      "anchor": "source-13-continued-2",
-      "title": "PHASE 5: REVIVAL",
-      "layoutId": "two-columns",
-      "showHeading": false,
-      "controlValues": {},
-      "regions": [
-        {
-          "key": "column1",
-          "blocks": [
-            {
-              "id": "B9MB",
-              "kind": "list",
-              "style": "bulleted",
-              "items": [
-                {
-                  "id": "item-0",
-                  "text": "Add +2 strength to your Battle Total if the leader or Cheap Hero is not killed."
-                },
-                {
-                  "id": "item-1",
-                  "text": "A leader accompanied by the Kwisatz Haderach cannot be called as a Traitor."
-                },
-                {
-                  "id": "item-2",
-                  "text": "The Kwisatz Haderach can only be killed if blown up by a Lasgun/Shield explosion. If killed, the Kwisatz Haderach may be your 1 leader revival during the Revival phase (even if you have not yet triggered leader revival) for 2 spice."
-                },
-                {
-                  "id": "item-3",
-                  "text": "The Kwisatz Haderach does not need to die for you to be able to revive your other leaders and can be revived before all your other leaders have died."
-                }
-              ]
             }
           ]
         },
@@ -9109,14 +9116,143 @@
           "key": "column2",
           "blocks": [
             {
-              "id": "NUNJ",
-              "kind": "text",
-              "text": "Free Force Revivals are shown here on your faction sheet."
-            },
-            {
-              "id": "C4RE",
-              "kind": "text",
-              "text": "House Atreides can revive 2 forces for free each turn. They can revive an additional force for 2 spice, for a total of 3 forces for the round."
+              "id": "K9Z9",
+              "kind": "asset-explainer",
+              "source": {
+                "status": "ready",
+                "reference": {
+                  "kind": "faction",
+                  "factionId": "k178pt05y4abwvwxeg247snr758gv794",
+                  "presentation": "sheet"
+                },
+                "name": "Atreides faction sheet",
+                "imageUrl": "/vector/logo/atreides.svg",
+                "sheet": {
+                  "name": "Atreides",
+                  "themeColor": "#4a4c08",
+                  "logo": "/vector/logo/atreides.svg",
+                  "background": {
+                    "colors": [
+                      "#393d05",
+                      "#5c5d10"
+                    ],
+                    "definition": 0.5,
+                    "image": "/image/texture/082.jpg",
+                    "influence": 1,
+                    "invert": true
+                  },
+                  "leaders": [
+                    {
+                      "image": "/image/leader/official/thufir.png",
+                      "memberId": "1cbb3205-43b5-46db-8265-2d5e407a14a0",
+                      "name": "Thufir Hawat",
+                      "strength": 5
+                    },
+                    {
+                      "image": "/image/leader/official/jessica.png",
+                      "memberId": "92a82f05-9387-4358-b5eb-b25cc775cb5f",
+                      "name": "Lady Jessica",
+                      "strength": 5
+                    },
+                    {
+                      "image": "/image/leader/official/gurney.png",
+                      "memberId": "f6de205e-0bfa-4720-83a7-788cdb5db378",
+                      "name": "Gurney Halleck",
+                      "strength": 4
+                    },
+                    {
+                      "image": "/image/leader/official/duncan.png",
+                      "memberId": "918acfed-e08e-46bc-8e11-ef6e789fa347",
+                      "name": "Duncan Idaho",
+                      "strength": 3
+                    },
+                    {
+                      "image": "/image/leader/official/dryeuh.png",
+                      "memberId": "066d6195-2255-4c9e-aec8-06fa9c636220",
+                      "name": "Dr. Wellington Yueh",
+                      "strength": 1
+                    }
+                  ],
+                  "troops": [
+                    {
+                      "count": 20,
+                      "description": "Standard forces.",
+                      "image": "/vector/troop/atreides.svg",
+                      "name": "Normal troop",
+                      "troopId": "448681e5-a635-48e9-8ec1-859dbee97975"
+                    }
+                  ],
+                  "rules": {
+                    "advantages": [
+                      {
+                        "text": "You have limited prescience."
+                      },
+                      {
+                        "text": "Any time during the Shipping and Movement phase, you may look at the top card of the Spice deck.",
+                        "title": "Spice Vision"
+                      },
+                      {
+                        "text": "During the Bidding phase, you may look at each Treachery card as it comes up for auction before any faction bids on it. You, and only you, may keep written records about Treachery cards.",
+                        "title": "Bidding Insight"
+                      },
+                      {
+                        "text": "During the Battle phase, you may force your opponent to reveal to you your choice of one of the four elements they will use in their Battle Plan: the leader (disc or Cheap Hero), Treachery card in the Weapon slot, Treachery card in the Defense slot, or number of force strength dialed plus spice strength. An opponent revealing that they are not playing the particular element asked (e.g. no leader, an empty slot or zero strength) does not allow you to then demand to see another element instead.\n\nVulnerable to Karama: Karama can be played to cancel this effect immediately after you have named what you are using Battle Prescience to see.",
+                        "title": "Battle Prescience: Vulnerable to Karama"
+                      },
+                      {
+                        "text": "The Kwisatz Haderach token starts out inactive. Use the Kwisatz Haderach card and counter token to publicly keep track of force losses. Immediately after you have lost 7 or more forces in battle (even from a Traitor call), the Kwisatz Haderach token becomes active for the rest of the game and may be added to your Battle Plan (along with a leader) in one territory per round; used as follows:\n\n\\- Add +2 strength to your Battle Total if the leader or Cheap Hero is not killed.\n\n\\- A leader accompanied by the Kwisatz Haderach cannot be called as a Traitor.\n\n\\- The Kwisatz Haderach can only be killed if blown up by a Lasgun/Shield explosion. If killed, the Kwisatz Haderach may be your 1 leader revival during the Revival phase (even if you have not yet triggered leader revival) for 2 spice.\n\n\\- The Kwisatz Haderach does not need to die for you to be able to revive your other leaders and can be revived before all your other leaders have died.",
+                        "title": "Kwisatz Haderach"
+                      }
+                    ],
+                    "alliance": {
+                      "text": "You may force your ally's opponent to reveal one element of their Battle Plan to you and your ally, following the rules of your Battle Prescience advantage, subject to Karama."
+                    },
+                    "fate": {
+                      "label": "karama",
+                      "text": "The following one\\-time ability is triggered by playing a Karama card:\n\nLook at any one player's entire Battle Plan (not just your opponent). This cannot be canceled by Karama.\n\nSpirit World Variant: Family Atomics.",
+                      "title": "Karama Power - Golden Path"
+                    },
+                    "revivalText": "2 forces/round.",
+                    "spiceCount": 10,
+                    "startText": "10 forces in Arrakeen, 10 forces in reserves (off\\-planet), 10 spice, and 1 random Treachery card."
+                  }
+                },
+                "width": 1000,
+                "height": 1414.2857142857142,
+                "geometry": {
+                  "width": 1000,
+                  "height": 1414.2857142857142,
+                  "parts": [
+                    {
+                      "key": "revival",
+                      "label": "Free force revivals",
+                      "x": 0.14,
+                      "y": 0.11666666666666667,
+                      "width": 0.2,
+                      "height": 0.017676767676767676
+                    }
+                  ]
+                }
+              },
+              "caption": "",
+              "numbering": "automatic",
+              "colorMode": "automatic",
+              "items": [
+                {
+                  "id": "revival",
+                  "label": "1",
+                  "text": "Free Force Revivals are shown here on your faction sheet.\n\nHouse Atreides can revive 2 forces for free each turn. They can revive an additional force for 2 spice, for a total of 3 forces for the round.",
+                  "target": {
+                    "kind": "named",
+                    "key": "revival",
+                    "source": {
+                      "kind": "faction",
+                      "factionId": "k178pt05y4abwvwxeg247snr758gv794",
+                      "presentation": "sheet"
+                    }
+                  }
+                }
+              ]
             }
           ]
         }

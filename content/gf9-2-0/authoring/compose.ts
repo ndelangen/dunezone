@@ -619,10 +619,75 @@ export function compose({ allPages, contents, pageMap, unitMap, editorial, id, f
       continue;
     }
     if (n === 13) {
-      const sheet = illustration('revival-sheet', stock('atreides-sheet'));
-      blocks = removeRange(blocks, n, 13, 17, sheet);
-      blocks = removeRange(blocks, n, 29, 30);
-      blocks.splice(0, 0, sheet);
+      const units = rawUnits(n);
+      const select = (from: number, to: number) =>
+        units.filter((u: any) => sourceIndex(u) >= from && sourceIndex(u) <= to);
+      const prose = (key: string, indices: number[], name = '') => {
+        const selected = units.filter((u: any) => indices.includes(sourceIndex(u)));
+        const b = text(key, name, selected.map((u: any) => u.text).join('\n\n'));
+        for (const u of selected) {
+          u.blockId = b.id;
+        }
+        return b;
+      };
+      const force = prose('revival-force-intro', [3], 'Force revival');
+      units.find((u: any) => sourceIndex(u) === 2).blockId = force.id;
+      const leader = prose('revival-leader-intro', [9], 'Leader revival');
+      units.find((u: any) => sourceIndex(u) === 8).blockId = leader.id;
+      const rules = newBlock('revival-force-rules', {
+        kind: 'list',
+        style: 'bulleted',
+        itemOrder: ['free', 'spice', 'limit', 'reserves'],
+        itemsById: Object.fromEntries(
+          select(4, 7).map((u: any, i: number) => {
+            const key = ['free', 'spice', 'limit', 'reserves'][i];
+            return [key, { id: key, text: formatted(u.text.replace(/^- /, '')) }];
+          })
+        ),
+      });
+      for (const u of select(4, 7)) {
+        u.blockId = rules.id;
+      }
+      const sourceFaction = bindings.overviewFactions.atreides;
+      const source = { kind: 'faction', factionId: sourceFaction.id, presentation: 'sheet' };
+      const sheet = newBlock('revival-native-sheet', {
+        kind: 'asset-explainer',
+        source,
+        caption: '',
+        numbering: 'automatic',
+        colorMode: 'automatic',
+        itemOrder: ['revival'],
+        itemsById: {
+          revival: {
+            id: 'revival',
+            label: '1',
+            text: formatted(
+              select(31, 32)
+                .map((u: any) => u.text)
+                .join('\n\n')
+            ),
+            target: { kind: 'named', key: 'revival', source },
+          },
+        },
+      });
+      const rulesInOrder = [
+        prose('revival-introduction', [1]),
+        force,
+        rules,
+        leader,
+        ...[10, 11, 12].map((i) => prose(`revival-leader-rule-${i}`, [i])),
+      ];
+      const p = addPage(original, [...rulesInOrder, sheet]);
+      p.blockOrderByRegion = { column1: rulesInOrder.map((b) => b.id), column2: [sheet.id] };
+      mapReplacement(
+        n,
+        13,
+        30,
+        sheet,
+        'The printed sheet extract is represented by the existing production faction-sheet renderer, not body prose.'
+      );
+      mapReplacement(n, 31, 32, sheet, 'The original explanation accompanies a marker on the free-revival value.');
+      continue;
     }
     if (n === 14) {
       blocks = removeRange(blocks, n, 17, 17);

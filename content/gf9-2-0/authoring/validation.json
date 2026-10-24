@@ -1,12 +1,12 @@
 {
-  "pages": 62,
+  "pages": 61,
   "blocks": {
-    "text": 451,
-    "callout": 9,
+    "text": 443,
+    "callout": 8,
     "faction-introduction": 6,
     "section-heading": 1,
-    "list": 22,
-    "asset-explainer": 1,
+    "list": 21,
+    "asset-explainer": 2,
     "battle-plans": 3,
     "board-scene": 8,
     "referenced-illustration": 24,
@@ -16,9 +16,9 @@
     "piece-transfer": 2,
     "question-answer": 8
   },
-  "rawBytes": 259599,
+  "rawBytes": 256020,
   "sourceUnitsMapped": 971,
-  "editorialUnits": 73,
+  "editorialUnits": 71,
   "approvedOmissions": 3,
   "references": {
     "assetIds": [
@@ -52,6 +52,9 @@
       "k178pt05y4abwvwxeg247snr758gv794",
       "k17awq8h6dd3ge61y8peg14z2h8gvpzy",
       "k17fvtpc5h6hfxvcwdgayvqfz58gtch1"
+    ],
+    "sheetFactionIds": [
+      "k178pt05y4abwvwxeg247snr758gv794"
     ],
     "troopSources": [
       {

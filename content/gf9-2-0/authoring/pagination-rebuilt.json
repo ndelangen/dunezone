@@ -287,37 +287,6 @@
       ]
     }
   ],
-  "G8TK": [
-    {
-      "column1": [
-        "TX75",
-        "D56S",
-        "89AC",
-        "KHAF",
-        "HH6R",
-        "V3DM",
-        "PFCL"
-      ],
-      "column2": [
-        "QF9B",
-        "4GJS",
-        "R4LU",
-        "UT3R",
-        "EW8L",
-        "KJAP",
-        "NVKH"
-      ]
-    },
-    {
-      "column1": [
-        "B9MB"
-      ],
-      "column2": [
-        "NUNJ",
-        "C4RE"
-      ]
-    }
-  ],
   "CDJ6": [
     {
       "column1": [
@@ -1133,6 +1102,22 @@
         "8ACX",
         "Y2MQ",
         "AAAX"
+      ]
+    }
+  ],
+  "G8TK": [
+    {
+      "column1": [
+        "MDUB",
+        "VWNT",
+        "P3QV",
+        "5Z3D",
+        "3LP9",
+        "XBV3",
+        "GETX"
+      ],
+      "column2": [
+        "K9Z9"
       ]
     }
   ]

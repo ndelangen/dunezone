@@ -1,6 +1,6 @@
 # GF9 2.0 working rulebook
 
-[rulebook.json](rulebook.json) is the reconstructed manuscript for Dune Zone's JSON Load control. It uses Square, the existing restrained design and production references. The current book has 62 pages and is saved as production draft revision 5.
+[rulebook.json](rulebook.json) is the reconstructed manuscript for Dune Zone's JSON Load control. It uses Square, the existing restrained design and production references. The manuscript has 61 pages and is saved as production draft revision 7. PR #2477 deployed the approved sheet-renderer connection.
 
 The compact overview and three corrected illustrations are documented in [correction/README.md](correction/README.md) and [the clearer scan review](../clearer-scan-review.md). All overview portraits now use published production tokens.
 
@@ -50,6 +50,6 @@ Inspect the actual renderer again. Measurements alone do not detect a wrong troo
 
 The destination is [GF9 2.0](https://dune.zone/rulesets/gf9-2-0), owned by Central and assigned to GF9. Six new second-edition faction records supply the overview rosters. Older GF9 records remain available for compatible battle and troop artwork. Do not rerun the historical `components/bind-factions.ts` preparation script over the current resolved references.
 
-The reconstruction is saved as draft revision 5 in [the production editor](https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit). `production-draft-export.json` backs up that record, including the cover rendition stored by Save.
+The reconstruction is saved as draft revision 7 in [the production editor](https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit). `production-draft-export.json` backs up that record, including the cover rendition stored by Save.
 
 Use JSON Load with `rulebook.json` in the normal authenticated editor. Export an existing draft before replacing it. Inspect the result and Save. Publishing an Edition is a separate step. The cover source is the approved artwork already stored on production; the normal save flow can prepare its stored rendition.

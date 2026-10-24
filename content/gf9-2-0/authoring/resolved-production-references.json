@@ -67,7 +67,10 @@
       "token": {
         "logo": "/vector/logo/atreides.svg",
         "background": {
-          "colors": ["#393d05", "#5c5d10"],
+          "colors": [
+            "#393d05",
+            "#5c5d10"
+          ],
           "definition": 0.5,
           "image": "/image/texture/082.jpg",
           "influence": 1,
@@ -182,7 +185,10 @@
       "token": {
         "logo": "/vector/logo/harkonnen.svg",
         "background": {
-          "colors": ["#0a080b", "#363636"],
+          "colors": [
+            "#0a080b",
+            "#363636"
+          ],
           "definition": 0.1,
           "image": "/image/texture/026.jpg",
           "influence": 1,
@@ -297,7 +303,10 @@
       "token": {
         "logo": "/vector/logo/emperor.svg",
         "background": {
-          "colors": ["#8C0402", "#db1918"],
+          "colors": [
+            "#8C0402",
+            "#db1918"
+          ],
           "definition": 0.31,
           "image": "/image/texture/055.jpg",
           "influence": 1,
@@ -434,7 +443,10 @@
       "token": {
         "logo": "/vector/logo/guild.svg",
         "background": {
-          "colors": ["#bd3108", "#e05719"],
+          "colors": [
+            "#bd3108",
+            "#e05719"
+          ],
           "definition": 0.2,
           "image": "/image/texture/006.jpg",
           "influence": 1,
@@ -550,7 +562,10 @@
       "token": {
         "logo": "/vector/logo/fremen.svg",
         "background": {
-          "colors": ["#fcb843", "#d2781d"],
+          "colors": [
+            "#fcb843",
+            "#d2781d"
+          ],
           "definition": 0.3,
           "image": "/image/texture/019.jpg",
           "influence": 0.634,
@@ -687,7 +702,10 @@
       "token": {
         "logo": "/vector/logo/bene-gesserit.svg",
         "background": {
-          "colors": ["#132b74", "#34478b"],
+          "colors": [
+            "#132b74",
+            "#34478b"
+          ],
           "definition": 0.09,
           "image": "/image/texture/019.jpg",
           "influence": 0.8878,
@@ -821,7 +839,10 @@
       "token": {
         "logo": "/vector/logo/atreides.svg",
         "background": {
-          "colors": ["#393d05", "#5c5d10"],
+          "colors": [
+            "#393d05",
+            "#5c5d10"
+          ],
           "definition": 0.5,
           "image": "/image/texture/082.jpg",
           "influence": 1,
@@ -926,7 +947,97 @@
           "width": 600,
           "height": 600
         }
-      ]
+      ],
+      "sheet": {
+        "name": "Atreides",
+        "themeColor": "#4a4c08",
+        "logo": "/vector/logo/atreides.svg",
+        "background": {
+          "colors": [
+            "#393d05",
+            "#5c5d10"
+          ],
+          "definition": 0.5,
+          "image": "/image/texture/082.jpg",
+          "influence": 1,
+          "invert": true
+        },
+        "leaders": [
+          {
+            "image": "/image/leader/official/thufir.png",
+            "memberId": "1cbb3205-43b5-46db-8265-2d5e407a14a0",
+            "name": "Thufir Hawat",
+            "strength": 5
+          },
+          {
+            "image": "/image/leader/official/jessica.png",
+            "memberId": "92a82f05-9387-4358-b5eb-b25cc775cb5f",
+            "name": "Lady Jessica",
+            "strength": 5
+          },
+          {
+            "image": "/image/leader/official/gurney.png",
+            "memberId": "f6de205e-0bfa-4720-83a7-788cdb5db378",
+            "name": "Gurney Halleck",
+            "strength": 4
+          },
+          {
+            "image": "/image/leader/official/duncan.png",
+            "memberId": "918acfed-e08e-46bc-8e11-ef6e789fa347",
+            "name": "Duncan Idaho",
+            "strength": 3
+          },
+          {
+            "image": "/image/leader/official/dryeuh.png",
+            "memberId": "066d6195-2255-4c9e-aec8-06fa9c636220",
+            "name": "Dr. Wellington Yueh",
+            "strength": 1
+          }
+        ],
+        "troops": [
+          {
+            "count": 20,
+            "description": "Standard forces.",
+            "image": "/vector/troop/atreides.svg",
+            "name": "Normal troop",
+            "troopId": "448681e5-a635-48e9-8ec1-859dbee97975"
+          }
+        ],
+        "rules": {
+          "advantages": [
+            {
+              "text": "You have limited prescience."
+            },
+            {
+              "text": "Any time during the Shipping and Movement phase, you may look at the top card of the Spice deck.",
+              "title": "Spice Vision"
+            },
+            {
+              "text": "During the Bidding phase, you may look at each Treachery card as it comes up for auction before any faction bids on it. You, and only you, may keep written records about Treachery cards.",
+              "title": "Bidding Insight"
+            },
+            {
+              "text": "During the Battle phase, you may force your opponent to reveal to you your choice of one of the four elements they will use in their Battle Plan: the leader (disc or Cheap Hero), Treachery card in the Weapon slot, Treachery card in the Defense slot, or number of force strength dialed plus spice strength. An opponent revealing that they are not playing the particular element asked (e.g. no leader, an empty slot or zero strength) does not allow you to then demand to see another element instead.\n\nVulnerable to Karama: Karama can be played to cancel this effect immediately after you have named what you are using Battle Prescience to see.",
+              "title": "Battle Prescience: Vulnerable to Karama"
+            },
+            {
+              "text": "The Kwisatz Haderach token starts out inactive. Use the Kwisatz Haderach card and counter token to publicly keep track of force losses. Immediately after you have lost 7 or more forces in battle (even from a Traitor call), the Kwisatz Haderach token becomes active for the rest of the game and may be added to your Battle Plan (along with a leader) in one territory per round; used as follows:\n\n\\- Add +2 strength to your Battle Total if the leader or Cheap Hero is not killed.\n\n\\- A leader accompanied by the Kwisatz Haderach cannot be called as a Traitor.\n\n\\- The Kwisatz Haderach can only be killed if blown up by a Lasgun/Shield explosion. If killed, the Kwisatz Haderach may be your 1 leader revival during the Revival phase (even if you have not yet triggered leader revival) for 2 spice.\n\n\\- The Kwisatz Haderach does not need to die for you to be able to revive your other leaders and can be revived before all your other leaders have died.",
+              "title": "Kwisatz Haderach"
+            }
+          ],
+          "alliance": {
+            "text": "You may force your ally's opponent to reveal one element of their Battle Plan to you and your ally, following the rules of your Battle Prescience advantage, subject to Karama."
+          },
+          "fate": {
+            "label": "karama",
+            "text": "The following one\\-time ability is triggered by playing a Karama card:\n\nLook at any one player's entire Battle Plan (not just your opponent). This cannot be canceled by Karama.\n\nSpirit World Variant: Family Atomics.",
+            "title": "Karama Power - Golden Path"
+          },
+          "revivalText": "2 forces/round.",
+          "spiceCount": 10,
+          "startText": "10 forces in Arrakeen, 10 forces in reserves (off\\-planet), 10 spice, and 1 random Treachery card."
+        }
+      }
     },
     "k1755fjba9y9b2hkfph4ztdy3s8gvwm8": {
       "factionId": "k1755fjba9y9b2hkfph4ztdy3s8gvwm8",
@@ -936,7 +1047,10 @@
       "token": {
         "logo": "/vector/logo/bene-gesserit.svg",
         "background": {
-          "colors": ["#132b74", "#34478b"],
+          "colors": [
+            "#132b74",
+            "#34478b"
+          ],
           "definition": 0.09,
           "image": "/image/texture/019.jpg",
           "influence": 0.8878,
@@ -1070,7 +1184,10 @@
       "token": {
         "logo": "/vector/logo/emperor.svg",
         "background": {
-          "colors": ["#8C0402", "#db1918"],
+          "colors": [
+            "#8C0402",
+            "#db1918"
+          ],
           "definition": 0.31,
           "image": "/image/texture/055.jpg",
           "influence": 1,
@@ -1207,7 +1324,10 @@
       "token": {
         "logo": "/vector/logo/fremen.svg",
         "background": {
-          "colors": ["#fcb843", "#d2781d"],
+          "colors": [
+            "#fcb843",
+            "#d2781d"
+          ],
           "definition": 0.3,
           "image": "/image/texture/019.jpg",
           "influence": 0.634,
@@ -1344,7 +1464,10 @@
       "token": {
         "logo": "/vector/logo/harkonnen.svg",
         "background": {
-          "colors": ["#0a080b", "#363636"],
+          "colors": [
+            "#0a080b",
+            "#363636"
+          ],
           "definition": 0.1,
           "image": "/image/texture/026.jpg",
           "influence": 1,
@@ -1459,7 +1582,10 @@
       "token": {
         "logo": "/vector/logo/guild.svg",
         "background": {
-          "colors": ["#bd3108", "#e05719"],
+          "colors": [
+            "#bd3108",
+            "#e05719"
+          ],
           "definition": 0.2,
           "image": "/image/texture/006.jpg",
           "influence": 1,

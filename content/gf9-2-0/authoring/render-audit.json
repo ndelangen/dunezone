@@ -1,8 +1,9 @@
 {
-  "checkedAt": "2026-10-23",
-  "pages": 62,
+  "checkedAt": "2026-10-24",
+  "pages": 61,
   "failures": [],
-  "capturedPages": 62,
+  "capturedPages": 61,
+  "captureMethod": "Native Chromium PDF; source page 13 visually checked after print containment fix.",
   "referencedImagesReady": true,
   "wheelScrollBleedPx": 2,
   "measurements": [
@@ -532,7 +533,7 @@
               "overflowWidth": 0
             },
             {
-              "height": 135.4296875,
+              "height": 131.6640625,
               "id": "2EC8",
               "overflowWidth": 0
             },
@@ -567,7 +568,7 @@
               "overflowWidth": 0
             }
           ],
-          "bottom": 769.3828125,
+          "bottom": 765.6171875,
           "gap": 15.0588,
           "key": "column1"
         },
@@ -1028,42 +1029,42 @@
           "available": 786.6875,
           "blocks": [
             {
-              "height": 138.546875,
-              "id": "TX75",
-              "overflowWidth": 0
-            },
-            {
               "height": 20.0625,
-              "id": "D56S",
+              "id": "MDUB",
               "overflowWidth": 0
             },
             {
               "height": 65.6796875,
-              "id": "89AC",
+              "id": "VWNT",
               "overflowWidth": 0
             },
             {
               "height": 194.3671875,
-              "id": "KHAF",
+              "id": "P3QV",
               "overflowWidth": 0
             },
             {
               "height": 145.9296875,
-              "id": "HH6R",
+              "id": "5Z3D",
               "overflowWidth": 0
             },
             {
               "height": 40.125,
-              "id": "V3DM",
+              "id": "3LP9",
               "overflowWidth": 0
             },
             {
               "height": 40.125,
-              "id": "PFCL",
+              "id": "XBV3",
+              "overflowWidth": 0
+            },
+            {
+              "height": 60.1875,
+              "id": "GETX",
               "overflowWidth": 0
             }
           ],
-          "bottom": 735.1640625,
+          "bottom": 656.8046875,
           "gap": 15.0588,
           "key": "column1"
         },
@@ -1071,79 +1072,12 @@
           "available": 786.6875,
           "blocks": [
             {
-              "height": 60.1875,
-              "id": "QF9B",
-              "overflowWidth": 0
-            },
-            {
-              "height": 25.5546875,
-              "id": "4GJS",
-              "overflowWidth": 0
-            },
-            {
-              "height": 40.125,
-              "id": "R4LU",
-              "overflowWidth": 0
-            },
-            {
-              "height": 80.25,
-              "id": "UT3R",
-              "overflowWidth": 0
-            },
-            {
-              "height": 186.0546875,
-              "id": "EW8L",
-              "overflowWidth": 0
-            },
-            {
-              "height": 60.1875,
-              "id": "KJAP",
-              "overflowWidth": 0
-            },
-            {
-              "height": 140.4375,
-              "id": "NVKH",
+              "height": 717.296875,
+              "id": "K9Z9",
               "overflowWidth": 0
             }
           ],
-          "bottom": 683.125,
-          "gap": 15.0588,
-          "key": "column2"
-        }
-      ]
-    },
-    {
-      "id": "7LKU",
-      "layout": "two-columns",
-      "regions": [
-        {
-          "available": 847.0625,
-          "blocks": [
-            {
-              "height": 254.5546875,
-              "id": "B9MB",
-              "overflowWidth": 0
-            }
-          ],
-          "bottom": 254.5546875,
-          "gap": 15.0588,
-          "key": "column1"
-        },
-        {
-          "available": 847.0625,
-          "blocks": [
-            {
-              "height": 20.0625,
-              "id": "NUNJ",
-              "overflowWidth": 0
-            },
-            {
-              "height": 60.1875,
-              "id": "C4RE",
-              "overflowWidth": 0
-            }
-          ],
-          "bottom": 95.3046875,
+          "bottom": 717.296875,
           "gap": 15.0588,
           "key": "column2"
         }
@@ -2689,6 +2623,29 @@
           "available": 784.078125,
           "blocks": [
             {
+              "height": 120.46875,
+              "id": "SA9B",
+              "overflowWidth": 0
+            },
+            {
+              "height": 246.09375,
+              "id": "XRUX",
+              "overflowWidth": 0
+            },
+            {
+              "height": 321,
+              "id": "X2DQ",
+              "overflowWidth": 0
+            }
+          ],
+          "bottom": 717.671875,
+          "gap": 15.0588,
+          "key": "rail"
+        },
+        {
+          "available": 784.078125,
+          "blocks": [
+            {
               "height": 40.125,
               "id": "6HFF",
               "overflowWidth": 0
@@ -2770,29 +2727,6 @@
           "bottom": 718.6953125,
           "gap": 15.0588,
           "key": "column2"
-        },
-        {
-          "available": 784.078125,
-          "blocks": [
-            {
-              "height": 120.46875,
-              "id": "SA9B",
-              "overflowWidth": 0
-            },
-            {
-              "height": 246.09375,
-              "id": "XRUX",
-              "overflowWidth": 0
-            },
-            {
-              "height": 321,
-              "id": "X2DQ",
-              "overflowWidth": 0
-            }
-          ],
-          "bottom": 717.671875,
-          "gap": 15.0588,
-          "key": "rail"
         }
       ]
     },
@@ -2800,19 +2734,6 @@
       "id": "4WXN",
       "layout": "outer-rail",
       "regions": [
-        {
-          "available": 847.0625,
-          "blocks": [
-            {
-              "height": 100.3125,
-              "id": "CKVW",
-              "overflowWidth": 0
-            }
-          ],
-          "bottom": 100.3125,
-          "gap": 15.0588,
-          "key": "rail"
-        },
         {
           "available": 847.0625,
           "blocks": [
@@ -2843,6 +2764,19 @@
           "bottom": 376.1875,
           "gap": 15.0588,
           "key": "column2"
+        },
+        {
+          "available": 847.0625,
+          "blocks": [
+            {
+              "height": 100.3125,
+              "id": "CKVW",
+              "overflowWidth": 0
+            }
+          ],
+          "bottom": 100.3125,
+          "gap": 15.0588,
+          "key": "rail"
         }
       ]
     },
@@ -2850,6 +2784,19 @@
       "id": "27N9",
       "layout": "outer-rail",
       "regions": [
+        {
+          "available": 847.0625,
+          "blocks": [
+            {
+              "height": 120.46875,
+              "id": "NN76",
+              "overflowWidth": 0
+            }
+          ],
+          "bottom": 120.46875,
+          "gap": 15.0588,
+          "key": "rail"
+        },
         {
           "available": 847.0625,
           "blocks": [
@@ -2925,19 +2872,6 @@
           "bottom": 790.953125,
           "gap": 15.0588,
           "key": "column2"
-        },
-        {
-          "available": 847.0625,
-          "blocks": [
-            {
-              "height": 120.46875,
-              "id": "NN76",
-              "overflowWidth": 0
-            }
-          ],
-          "bottom": 120.46875,
-          "gap": 15.0588,
-          "key": "rail"
         }
       ]
     },
@@ -2945,19 +2879,6 @@
       "id": "46PP",
       "layout": "outer-rail",
       "regions": [
-        {
-          "available": 784.078125,
-          "blocks": [
-            {
-              "height": 120.46875,
-              "id": "HWVQ",
-              "overflowWidth": 0
-            }
-          ],
-          "bottom": 120.46875,
-          "gap": 15.0588,
-          "key": "rail"
-        },
         {
           "available": 784.078125,
           "blocks": [
@@ -3018,6 +2939,19 @@
           "bottom": 357.5703125,
           "gap": 15.0588,
           "key": "column2"
+        },
+        {
+          "available": 784.078125,
+          "blocks": [
+            {
+              "height": 120.46875,
+              "id": "HWVQ",
+              "overflowWidth": 0
+            }
+          ],
+          "bottom": 120.46875,
+          "gap": 15.0588,
+          "key": "rail"
         }
       ]
     },
@@ -3025,6 +2959,24 @@
       "id": "SHV2",
       "layout": "outer-rail",
       "regions": [
+        {
+          "available": 847.0625,
+          "blocks": [
+            {
+              "height": 120.46875,
+              "id": "B9JG",
+              "overflowWidth": 0
+            },
+            {
+              "height": 366.6171875,
+              "id": "NDG3",
+              "overflowWidth": 0
+            }
+          ],
+          "bottom": 502.140625,
+          "gap": 15.0588,
+          "key": "rail"
+        },
         {
           "available": 847.0625,
           "blocks": [
@@ -3100,24 +3052,6 @@
           "bottom": 792.53125,
           "gap": 15.0588,
           "key": "column2"
-        },
-        {
-          "available": 847.0625,
-          "blocks": [
-            {
-              "height": 120.46875,
-              "id": "B9JG",
-              "overflowWidth": 0
-            },
-            {
-              "height": 366.6171875,
-              "id": "NDG3",
-              "overflowWidth": 0
-            }
-          ],
-          "bottom": 502.140625,
-          "gap": 15.0588,
-          "key": "rail"
         }
       ]
     },
@@ -3125,19 +3059,6 @@
       "id": "4VYV",
       "layout": "outer-rail",
       "regions": [
-        {
-          "available": 847.0625,
-          "blocks": [
-            {
-              "height": 381.1875,
-              "id": "2UVW",
-              "overflowWidth": 0
-            }
-          ],
-          "bottom": 381.1875,
-          "gap": 15.0588,
-          "key": "rail"
-        },
         {
           "available": 847.0625,
           "blocks": [
@@ -3188,6 +3109,19 @@
           "bottom": 351.5859375,
           "gap": 15.0588,
           "key": "column2"
+        },
+        {
+          "available": 847.0625,
+          "blocks": [
+            {
+              "height": 381.1875,
+              "id": "2UVW",
+              "overflowWidth": 0
+            }
+          ],
+          "bottom": 381.1875,
+          "gap": 15.0588,
+          "key": "rail"
         }
       ]
     },
@@ -3195,6 +3129,29 @@
       "id": "GP27",
       "layout": "outer-rail",
       "regions": [
+        {
+          "available": 784.078125,
+          "blocks": [
+            {
+              "height": 120.46875,
+              "id": "TYXP",
+              "overflowWidth": 0
+            },
+            {
+              "height": 326.4921875,
+              "id": "F77M",
+              "overflowWidth": 0
+            },
+            {
+              "height": 180.5625,
+              "id": "F2VV",
+              "overflowWidth": 0
+            }
+          ],
+          "bottom": 657.6328125,
+          "gap": 15.0588,
+          "key": "rail"
+        },
         {
           "available": 784.078125,
           "blocks": [
@@ -3285,29 +3242,6 @@
           "bottom": 752.40625,
           "gap": 15.0588,
           "key": "column2"
-        },
-        {
-          "available": 784.078125,
-          "blocks": [
-            {
-              "height": 120.46875,
-              "id": "TYXP",
-              "overflowWidth": 0
-            },
-            {
-              "height": 326.4921875,
-              "id": "F77M",
-              "overflowWidth": 0
-            },
-            {
-              "height": 180.5625,
-              "id": "F2VV",
-              "overflowWidth": 0
-            }
-          ],
-          "bottom": 657.6328125,
-          "gap": 15.0588,
-          "key": "rail"
         }
       ]
     },
@@ -3315,13 +3249,6 @@
       "id": "CBT5",
       "layout": "outer-rail",
       "regions": [
-        {
-          "available": 847.0625,
-          "blocks": [],
-          "bottom": 0,
-          "gap": 15.0588,
-          "key": "rail"
-        },
         {
           "available": 847.0625,
           "blocks": [
@@ -3362,6 +3289,13 @@
           "bottom": 308.9453125,
           "gap": 15.0588,
           "key": "column2"
+        },
+        {
+          "available": 847.0625,
+          "blocks": [],
+          "bottom": 0,
+          "gap": 15.0588,
+          "key": "rail"
         }
       ]
     },
@@ -3369,6 +3303,24 @@
       "id": "QJWF",
       "layout": "outer-rail",
       "regions": [
+        {
+          "available": 784.078125,
+          "blocks": [
+            {
+              "height": 120.46875,
+              "id": "5NJ3",
+              "overflowWidth": 0
+            },
+            {
+              "height": 366.46875,
+              "id": "DAAD",
+              "overflowWidth": 0
+            }
+          ],
+          "bottom": 501.9921875,
+          "gap": 15.0588,
+          "key": "rail"
+        },
         {
           "available": 784.078125,
           "blocks": [
@@ -3434,24 +3386,6 @@
           "bottom": 502.53125,
           "gap": 15.0588,
           "key": "column2"
-        },
-        {
-          "available": 784.078125,
-          "blocks": [
-            {
-              "height": 120.46875,
-              "id": "5NJ3",
-              "overflowWidth": 0
-            },
-            {
-              "height": 366.46875,
-              "id": "DAAD",
-              "overflowWidth": 0
-            }
-          ],
-          "bottom": 501.9921875,
-          "gap": 15.0588,
-          "key": "rail"
         }
       ]
     },
@@ -3459,19 +3393,6 @@
       "id": "44R2",
       "layout": "outer-rail",
       "regions": [
-        {
-          "available": 847.0625,
-          "blocks": [
-            {
-              "height": 341.0625,
-              "id": "ENNU",
-              "overflowWidth": 0
-            }
-          ],
-          "bottom": 341.0625,
-          "gap": 15.0588,
-          "key": "rail"
-        },
         {
           "available": 847.0625,
           "blocks": [
@@ -3517,6 +3438,19 @@
           "bottom": 291.890625,
           "gap": 15.0588,
           "key": "column2"
+        },
+        {
+          "available": 847.0625,
+          "blocks": [
+            {
+              "height": 341.0625,
+              "id": "ENNU",
+              "overflowWidth": 0
+            }
+          ],
+          "bottom": 341.0625,
+          "gap": 15.0588,
+          "key": "rail"
         }
       ]
     },
@@ -3524,6 +3458,24 @@
       "id": "SVS5",
       "layout": "outer-rail",
       "regions": [
+        {
+          "available": 784.078125,
+          "blocks": [
+            {
+              "height": 120.46875,
+              "id": "LYJX",
+              "overflowWidth": 0
+            },
+            {
+              "height": 386.53125,
+              "id": "WGMV",
+              "overflowWidth": 0
+            }
+          ],
+          "bottom": 522.0546875,
+          "gap": 15.0588,
+          "key": "rail"
+        },
         {
           "available": 784.078125,
           "blocks": [
@@ -3594,24 +3546,6 @@
           "bottom": 718.2109375,
           "gap": 15.0588,
           "key": "column2"
-        },
-        {
-          "available": 784.078125,
-          "blocks": [
-            {
-              "height": 120.46875,
-              "id": "LYJX",
-              "overflowWidth": 0
-            },
-            {
-              "height": 386.53125,
-              "id": "WGMV",
-              "overflowWidth": 0
-            }
-          ],
-          "bottom": 522.0546875,
-          "gap": 15.0588,
-          "key": "rail"
         }
       ]
     },
@@ -3619,19 +3553,6 @@
       "id": "ECSZ",
       "layout": "outer-rail",
       "regions": [
-        {
-          "available": 847.0625,
-          "blocks": [
-            {
-              "height": 300.9375,
-              "id": "MRDM",
-              "overflowWidth": 0
-            }
-          ],
-          "bottom": 300.9375,
-          "gap": 15.0588,
-          "key": "rail"
-        },
         {
           "available": 847.0625,
           "blocks": [
@@ -3667,6 +3588,19 @@
           "bottom": 135.9140625,
           "gap": 15.0588,
           "key": "column2"
+        },
+        {
+          "available": 847.0625,
+          "blocks": [
+            {
+              "height": 300.9375,
+              "id": "MRDM",
+              "overflowWidth": 0
+            }
+          ],
+          "bottom": 300.9375,
+          "gap": 15.0588,
+          "key": "rail"
         }
       ]
     },
@@ -3674,6 +3608,24 @@
       "id": "EPLF",
       "layout": "outer-rail",
       "regions": [
+        {
+          "available": 784.078125,
+          "blocks": [
+            {
+              "height": 53.25,
+              "id": "8JF7",
+              "overflowWidth": 0
+            },
+            {
+              "height": 386.53125,
+              "id": "537E",
+              "overflowWidth": 0
+            }
+          ],
+          "bottom": 454.8359375,
+          "gap": 15.0588,
+          "key": "rail"
+        },
         {
           "available": 784.078125,
           "blocks": [
@@ -3764,24 +3716,6 @@
           "bottom": 576.25,
           "gap": 15.0588,
           "key": "column2"
-        },
-        {
-          "available": 784.078125,
-          "blocks": [
-            {
-              "height": 120.46875,
-              "id": "8JF7",
-              "overflowWidth": 0
-            },
-            {
-              "height": 386.53125,
-              "id": "537E",
-              "overflowWidth": 0
-            }
-          ],
-          "bottom": 522.0546875,
-          "gap": 15.0588,
-          "key": "rail"
         }
       ]
     },
@@ -3789,24 +3723,6 @@
       "id": "3ESE",
       "layout": "outer-rail",
       "regions": [
-        {
-          "available": 847.0625,
-          "blocks": [
-            {
-              "height": 300.9375,
-              "id": "V6T7",
-              "overflowWidth": 0
-            },
-            {
-              "height": 160.5,
-              "id": "GZ7P",
-              "overflowWidth": 0
-            }
-          ],
-          "bottom": 476.4921875,
-          "gap": 15.0588,
-          "key": "rail"
-        },
         {
           "available": 847.0625,
           "blocks": [
@@ -3857,6 +3773,24 @@
           "bottom": 552.2109375,
           "gap": 15.0588,
           "key": "column2"
+        },
+        {
+          "available": 847.0625,
+          "blocks": [
+            {
+              "height": 300.9375,
+              "id": "V6T7",
+              "overflowWidth": 0
+            },
+            {
+              "height": 160.5,
+              "id": "GZ7P",
+              "overflowWidth": 0
+            }
+          ],
+          "bottom": 476.4921875,
+          "gap": 15.0588,
+          "key": "rail"
         }
       ]
     },
@@ -4056,6 +3990,19 @@
           "available": 786.6875,
           "blocks": [
             {
+              "height": 80.25,
+              "id": "V7TA",
+              "overflowWidth": 0
+            }
+          ],
+          "bottom": 80.25,
+          "gap": 15.0588,
+          "key": "rail"
+        },
+        {
+          "available": 786.6875,
+          "blocks": [
+            {
               "height": 60.1875,
               "id": "8WJB",
               "overflowWidth": 0
@@ -4147,19 +4094,6 @@
           "bottom": 662.125,
           "gap": 15.0588,
           "key": "column2"
-        },
-        {
-          "available": 786.6875,
-          "blocks": [
-            {
-              "height": 80.25,
-              "id": "V7TA",
-              "overflowWidth": 0
-            }
-          ],
-          "bottom": 80.25,
-          "gap": 15.0588,
-          "key": "rail"
         }
       ]
     },
@@ -4167,13 +4101,6 @@
       "id": "37RM",
       "layout": "outer-rail",
       "regions": [
-        {
-          "available": 847.0625,
-          "blocks": [],
-          "bottom": 0,
-          "gap": 15.0588,
-          "key": "rail"
-        },
         {
           "available": 847.0625,
           "blocks": [
@@ -4249,6 +4176,13 @@
           "bottom": 456.4609375,
           "gap": 15.0588,
           "key": "column2"
+        },
+        {
+          "available": 847.0625,
+          "blocks": [],
+          "bottom": 0,
+          "gap": 15.0588,
+          "key": "rail"
         }
       ]
     }

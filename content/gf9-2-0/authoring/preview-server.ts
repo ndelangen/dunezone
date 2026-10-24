@@ -46,7 +46,11 @@ const server = Bun.serve({
       }
     }
     if (/^\/(m|image|vector|page|font)\//.test(path)) {
-      return fetch(`https://dune.zone${path}`);
+      const response = await fetch(`https://dune.zone${path}`);
+      return new Response(response.body, {
+        status: response.status,
+        headers: { 'Content-Type': response.headers.get('Content-Type') ?? 'application/octet-stream' },
+      });
     }
     return new Response('Not found', { status: 404 });
   },

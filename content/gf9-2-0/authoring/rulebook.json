@@ -22,7 +22,6 @@
       "FMKT",
       "P3L4",
       "G8TK",
-      "7LKU",
       "CDJ6",
       "4Z2S",
       "RNZM",
@@ -1587,185 +1586,113 @@
         "controlValues": {},
         "blockOrderByRegion": {
           "column1": [
-            "TX75",
-            "D56S",
-            "89AC",
-            "KHAF",
-            "HH6R",
-            "V3DM",
-            "PFCL"
+            "MDUB",
+            "VWNT",
+            "P3QV",
+            "5Z3D",
+            "3LP9",
+            "XBV3",
+            "GETX"
           ],
           "column2": [
-            "QF9B",
-            "4GJS",
-            "R4LU",
-            "UT3R",
-            "EW8L",
-            "KJAP",
-            "NVKH"
+            "K9Z9"
           ]
         },
         "blocksById": {
-          "TX75": {
-            "id": "TX75",
-            "kind": "callout",
-            "variant": "example",
-            "title": "House Atreides faction sheet",
-            "text": "*Free force revivals: 2*\n\nHouse Atreides can revive 2 forces for free each turn. They can revive an additional force for 2 spice, for a total of 3 forces for the round."
-          },
-          "D56S": {
-            "id": "D56S",
+          "MDUB": {
+            "id": "MDUB",
             "kind": "text",
             "text": "Players will be able to regain lost forces and eventually lost leaders."
           },
-          "89AC": {
-            "id": "89AC",
+          "VWNT": {
+            "id": "VWNT",
             "kind": "text",
             "name": "Force revival",
             "text": "Starting with the First Player and proceeding in storm order, all players may revive up to 3 forces from the Tleilaxu Tanks:"
           },
-          "KHAF": {
-            "id": "KHAF",
+          "P3QV": {
+            "id": "P3QV",
             "kind": "list",
             "style": "bulleted",
             "itemOrder": [
-              "item-0",
-              "item-1",
-              "item-2",
-              "item-3"
+              "free",
+              "spice",
+              "limit",
+              "reserves"
             ],
             "itemsById": {
-              "item-0": {
-                "id": "item-0",
+              "free": {
+                "id": "free",
                 "text": "Free: Players may revive the number of forces indicated on their Faction Sheets for free."
               },
-              "item-1": {
-                "id": "item-1",
+              "spice": {
+                "id": "spice",
                 "text": "By Spice: Additional forces may be revived at a cost of 2 spice per force (to the normal limit of 3 forces in total). All spice expended for force revival is placed in the Spice Bank."
               },
-              "item-2": {
-                "id": "item-2",
+              "limit": {
+                "id": "limit",
                 "text": "Limit: A player cannot revive more than 3 forces in this phase (including free revivals)."
               },
-              "item-3": {
-                "id": "item-3",
+              "reserves": {
+                "id": "reserves",
                 "text": "To Reserves: Revived forces are placed in reserves."
               }
             }
           },
-          "HH6R": {
-            "id": "HH6R",
+          "5Z3D": {
+            "id": "5Z3D",
             "kind": "text",
             "name": "Leader revival",
             "text": "Initially, factions are not permitted to revive dead leaders. Once all of a faction's leaders are in the Tleilaxu Tanks and/or are currently captured, a player may then revive one of their leaders per round. When this has been triggered, a faction places their second Faction token in the Tleilaxu Tanks as a reminder that they may now revive leaders."
           },
-          "V3DM": {
-            "id": "V3DM",
+          "3LP9": {
+            "id": "3LP9",
             "kind": "text",
             "text": "To revive a leader, a player must pay that leader's fighting strength in spice to the Spice Bank."
           },
-          "PFCL": {
-            "id": "PFCL",
+          "XBV3": {
+            "id": "XBV3",
             "kind": "text",
             "text": "A revived leader can be played normally and is still subject to being a traitor."
           },
-          "QF9B": {
-            "id": "QF9B",
+          "GETX": {
+            "id": "GETX",
             "kind": "text",
             "text": "When factions are able to revive leaders, there is no restriction on which leader they revive each round, including a leader they revived in a previous round."
           },
-          "4GJS": {
-            "id": "4GJS",
-            "kind": "text",
-            "name": "Advantages",
-            "text": ""
-          },
-          "R4LU": {
-            "id": "R4LU",
-            "kind": "text",
-            "text": "SPICE VISION: Any time during the Shipping and Movement phase, you may look at the top card of the Spice deck."
-          },
-          "UT3R": {
-            "id": "UT3R",
-            "kind": "text",
-            "text": "BIDDING INSIGHT: During the Bidding phase, you may look at each Treachery card as it comes up for auction before any faction bids on it. You, and only you, may keep written records about Treachery cards."
-          },
-          "EW8L": {
-            "id": "EW8L",
-            "kind": "text",
-            "name": "Battle prescience: vulnerable to Karama",
-            "text": "During the Battle phase, you may force your opponent to reveal to you your choice of one of the four elements they will use in their Battle Plan: the leader (disc or Cheap Hero), Treachery card in the Weapon slot, Treachery card in the Defense slot, or number of force strength dialed plus spice strength. An opponent revealing that they are not playing the particular element asked (e.g., no leader, an empty slot or zero strength) does not allow you to then demand to see another element instead."
-          },
-          "KJAP": {
-            "id": "KJAP",
-            "kind": "text",
-            "text": "Vulnerable to Karama: Karama can be played to cancel this effect immediately after you have named what you are using Battle Prescience to see."
-          },
-          "NVKH": {
-            "id": "NVKH",
-            "kind": "text",
-            "text": "KWISATZ HADERACH: The Kwisatz Haderach token starts out inactive. Use the Kwisatz Haderach card and counter token to publicly keep track of force losses. Immediately after you have lost 7 or more forces in battle (even from a Traitor call), the Kwisatz Haderach token becomes active for the rest of the game and may be added to your Battle Plan (along with a leader) in one territory per round; used as follows:"
+          "K9Z9": {
+            "id": "K9Z9",
+            "kind": "asset-explainer",
+            "source": {
+              "kind": "faction",
+              "factionId": "k178pt05y4abwvwxeg247snr758gv794",
+              "presentation": "sheet"
+            },
+            "caption": "",
+            "numbering": "automatic",
+            "colorMode": "automatic",
+            "itemOrder": [
+              "revival"
+            ],
+            "itemsById": {
+              "revival": {
+                "id": "revival",
+                "label": "1",
+                "text": "Free Force Revivals are shown here on your faction sheet.\n\nHouse Atreides can revive 2 forces for free each turn. They can revive an additional force for 2 spice, for a total of 3 forces for the round.",
+                "target": {
+                  "kind": "named",
+                  "key": "revival",
+                  "source": {
+                    "kind": "faction",
+                    "factionId": "k178pt05y4abwvwxeg247snr758gv794",
+                    "presentation": "sheet"
+                  }
+                }
+              }
+            }
           }
         },
         "showHeading": true
-      },
-      "7LKU": {
-        "id": "7LKU",
-        "anchor": "source-13-continued-2",
-        "title": "PHASE 5: REVIVAL",
-        "layoutId": "two-columns",
-        "controlValues": {},
-        "blockOrderByRegion": {
-          "column1": [
-            "B9MB"
-          ],
-          "column2": [
-            "NUNJ",
-            "C4RE"
-          ]
-        },
-        "blocksById": {
-          "B9MB": {
-            "id": "B9MB",
-            "kind": "list",
-            "style": "bulleted",
-            "itemOrder": [
-              "item-0",
-              "item-1",
-              "item-2",
-              "item-3"
-            ],
-            "itemsById": {
-              "item-0": {
-                "id": "item-0",
-                "text": "Add +2 strength to your Battle Total if the leader or Cheap Hero is not killed."
-              },
-              "item-1": {
-                "id": "item-1",
-                "text": "A leader accompanied by the Kwisatz Haderach cannot be called as a Traitor."
-              },
-              "item-2": {
-                "id": "item-2",
-                "text": "The Kwisatz Haderach can only be killed if blown up by a Lasgun/Shield explosion. If killed, the Kwisatz Haderach may be your 1 leader revival during the Revival phase (even if you have not yet triggered leader revival) for 2 spice."
-              },
-              "item-3": {
-                "id": "item-3",
-                "text": "The Kwisatz Haderach does not need to die for you to be able to revive your other leaders and can be revived before all your other leaders have died."
-              }
-            }
-          },
-          "NUNJ": {
-            "id": "NUNJ",
-            "kind": "text",
-            "text": "Free Force Revivals are shown here on your faction sheet."
-          },
-          "C4RE": {
-            "id": "C4RE",
-            "kind": "text",
-            "text": "House Atreides can revive 2 forces for free each turn. They can revive an additional force for 2 spice, for a total of 3 forces for the round."
-          }
-        },
-        "showHeading": false
       },
       "CDJ6": {
         "id": "CDJ6",

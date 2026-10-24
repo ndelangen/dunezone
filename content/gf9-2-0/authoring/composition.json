@@ -136,9 +136,16 @@
     {
       "sourcePage": 13,
       "from": 13,
-      "to": 17,
-      "blockId": "TX75",
-      "reason": "Printed component lettering is represented by the complete illustration."
+      "to": 30,
+      "blockId": "K9Z9",
+      "reason": "The printed sheet extract is represented by the existing production faction-sheet renderer, not body prose."
+    },
+    {
+      "sourcePage": 13,
+      "from": 31,
+      "to": 32,
+      "blockId": "K9Z9",
+      "reason": "The original explanation accompanies a marker on the free-revival value."
     },
     {
       "sourcePage": 17,
