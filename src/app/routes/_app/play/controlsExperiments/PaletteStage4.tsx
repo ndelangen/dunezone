@@ -18,7 +18,7 @@ import styles from './PaletteStage4.module.css';
  * The command palette's fourth stage (Norbert, 2026-10-24), from the compass of stage 3:
  * a window opens in the centre and goes when you click the table, or is pinned into the bottom-left or bottom-right slot,
  * replacing what was pinned there; unpinning makes it disappear at once. The search field is the compass's centre and
- * its suggestions sit in a box below it. The camera dial moves to the top right.
+ * its suggestions sit in a box below it. The camera dial moves to the top right, just under the toolbar.
  */
 
 type Spot = 'hub' | 'hand' | 'hidden' | 'table' | 'ally' | 'battle' | 'search';
@@ -129,6 +129,12 @@ export function PaletteStage4(props: ExperimentProps) {
     const root = rootRef.current;
     if (!root) {
       return;
+    }
+    /* The camera dial hangs under the toolbar (Next phase, settings) by the same gap a slot keeps from it. */
+    const toolbar = root.querySelector('.seated-toolbar');
+    if (toolbar) {
+      const top = toolbar.getBoundingClientRect().bottom - root.getBoundingClientRect().top + OVERLAY_GAP;
+      root.style.setProperty('--palette-camera-top', `${Math.round(top)}px`);
     }
     const next: Record<Side, number | null> = { left: null, right: null };
     for (const side of ['left', 'right'] as const) {
@@ -526,7 +532,7 @@ export function PaletteStage4(props: ExperimentProps) {
     <div className={base.root} ref={rootRef}>
       <Scene node={nodes.scene} />
       {header}
-      <Camera camera={camera} inert={inert} style={{ top: 'calc(var(--play-header-height) + 0.5rem)', bottom: 'auto' }} />
+      <Camera camera={camera} inert={inert} style={{ top: 'var(--palette-camera-top, calc(var(--play-header-height) + 0.5rem))', bottom: 'auto' }} />
 
       {sheet &&
         frame(
