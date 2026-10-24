@@ -20,10 +20,28 @@ export async function productionSnapshotRevision(
   if (!response.ok) {
     throw new Error('Cannot identify the completed production release; dev data was not touched');
   }
-  const body = (await response.json()) as { workflow_runs?: Array<{ conclusion?: string; head_sha?: string }> };
+  const body = (await response.json()) as {
+    workflow_runs?: Array<{ id?: number; conclusion?: string; head_sha?: string }>;
+  };
   const run = body.workflow_runs?.[0];
   const sha = run?.head_sha;
-  if (run?.conclusion !== 'success' || !sha || !SHA.test(sha)) {
+  let deployed = run?.conclusion === 'success';
+  /* A failed dev sync must not prevent the weekly refresh that repairs dev. */
+  if (!deployed && Number.isSafeInteger(run?.id)) {
+    const jobsResponse = await request(
+      `https://api.github.com/repos/${repository}/actions/runs/${run!.id}/jobs?per_page=100`,
+      {
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
+        signal: AbortSignal.timeout(10_000),
+        redirect: 'error',
+      }
+    );
+    if (jobsResponse.ok) {
+      const jobs = (await jobsResponse.json()) as { jobs?: Array<{ name?: string; conclusion?: string }> };
+      deployed = jobs.jobs?.some((job) => job.name === 'deploy' && job.conclusion === 'success') ?? false;
+    }
+  }
+  if (!deployed || !sha || !SHA.test(sha)) {
     throw new Error('Finish the failed production release before refreshing the snapshot; dev data was not touched');
   }
   await assertProductionRevision(sha, request);
@@ -32,7 +50,9 @@ export async function productionSnapshotRevision(
 
 /** Refuse an older release sync rather than replacing dev code after production has advanced. */
 export async function assertProductionRevision(sha: string, request: typeof fetch = fetch): Promise<void> {
-  if (!SHA.test(sha)) throw new Error('Expected a full production commit SHA');
+  if (!SHA.test(sha)) {
+    throw new Error('Expected a full production commit SHA');
+  }
   for (const endpoint of HEALTH_ENDPOINTS) {
     const health = await request(endpoint, { signal: AbortSignal.timeout(10_000), redirect: 'error' });
     if (!health.ok) {
@@ -53,7 +73,9 @@ if (import.meta.main) {
   const sha = process.argv.includes('--expect-current')
     ? (process.env.GITHUB_SHA ?? '')
     : await productionSnapshotRevision(GITHUB_REPOSITORY, GITHUB_TOKEN);
-  if (process.argv.includes('--expect-current')) await assertProductionRevision(sha);
+  if (process.argv.includes('--expect-current')) {
+    await assertProductionRevision(sha);
+  }
   appendFileSync(GITHUB_OUTPUT, `sha=${sha}\n`);
   appendFileSync(GITHUB_STEP_SUMMARY, `Snapshot source release: \`${sha}\`.\n`);
 }

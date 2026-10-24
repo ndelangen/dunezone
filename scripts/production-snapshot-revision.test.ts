@@ -9,7 +9,9 @@ const healthy = (gitSha = sha) => Response.json({ identity: { gitSha } });
 
 const requestWith = (responses: Response[]) => {
   const request = vi.fn<typeof fetch>();
-  for (const response of responses) request.mockResolvedValueOnce(response);
+  for (const response of responses) {
+    request.mockResolvedValueOnce(response);
+  }
   return request;
 };
 
@@ -36,4 +38,19 @@ test.each([
 test('an older release sync cannot replace a newer production revision in dev', async () => {
   await expect(assertProductionRevision(sha, requestWith([healthy('b'.repeat(40))]))).rejects.toThrow(/do not match/);
   await expect(assertProductionRevision(sha, requestWith([healthy(), healthy()]))).resolves.toBeUndefined();
+});
+
+test('a failed dev sync still permits weekly recovery when the production deploy succeeded', async () => {
+  const request = requestWith([
+    Response.json({ workflow_runs: [{ id: 1, conclusion: 'failure', head_sha: sha }] }),
+    Response.json({
+      jobs: [
+        { name: 'deploy', conclusion: 'success' },
+        { name: 'dev_rebuild / rebuild', conclusion: 'failure' },
+      ],
+    }),
+    healthy(),
+    healthy(),
+  ]);
+  await expect(productionSnapshotRevision('owner/repo', 'test', request)).resolves.toBe(sha);
 });

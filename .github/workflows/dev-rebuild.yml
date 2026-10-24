@@ -8,15 +8,9 @@ on:
       CONVEX_DEV_DEPLOY_KEY:
         description: Deploy key scoped to the dev deployment.
         required: true
-  workflow_dispatch:
 
 permissions:
   contents: read
-
-concurrency:
-  group: dev-rebuild
-  cancel-in-progress: false
-  queue: max
 
 jobs:
   rebuild:

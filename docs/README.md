@@ -249,13 +249,12 @@ uploads the published-only snapshot for local development, then refreshes cloud 
 file. The refresh verifies the snapshot before clearing dev, pushes the selected release, imports the snapshot,
 seeds Rulebook drafts, checks the rebuild contract and rebuilds derived data through the migration
 guards. It holds only the dev deploy key; the export step alone holds the production key. The snapshot pins the last successful production release and requires both Workers to report that
-commit. It shares the production deployment lock for the whole export and refresh, and a second
-lock excludes manual dev syncs. Both queues retain waiting runs. A failed production release must
+commit. It shares the production deployment lock for the whole export and refresh, which also covers its called dev sync. The queue retains waiting runs. A failed production release must
 be completed before a snapshot refresh can start.
 
 The weekly refresh replaces dev-side experiments and sign-in accounts. To recover dev sooner, run
-`Anonymised snapshot` manually from main. It performs the same export and refresh. Running
-`Sync dev deployment` manually only retries code and outstanding migrations. A failed snapshot
+`Anonymised snapshot` manually from main. It performs the same export and refresh. Retry a failed dev sync job from its `Deploy production` run to retry code and outstanding migrations.
+A stale run refuses to overwrite dev after production has advanced. A failed snapshot
 verification leaves dev's data intact; a failure after the reset remains visible for recovery.
 
 After a rebuild, cloud dev holds no accounts from production: `users` and `profiles` hold only the

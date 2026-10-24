@@ -49,8 +49,9 @@ describe('cloud dev sync', () => {
   test('release sync and weekly refresh cannot overlap', () => {
     const sync = workflow('dev-rebuild.yml');
     const snapshot = workflow('anonymised-snapshot.yml');
-    expect(sync.concurrency).toEqual({ group: 'dev-rebuild', 'cancel-in-progress': false, queue: 'max' });
-    expect(snapshot.jobs.snapshot!.concurrency).toEqual(sync.concurrency);
+    expect(Object.keys(sync.on)).toEqual(['workflow_call']);
+    expect(sync.concurrency).toBeUndefined();
+    expect(snapshot.jobs.snapshot!.concurrency).toBeUndefined();
     expect(snapshot.concurrency).toEqual(workflow('deploy-main.yml').concurrency);
     expect(snapshot.concurrency).toEqual({ group: 'deploy-production', 'cancel-in-progress': false, queue: 'max' });
     const release = workflow('deploy-main.yml').jobs.dev_rebuild!;
