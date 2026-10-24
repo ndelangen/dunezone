@@ -11,6 +11,7 @@
   --shadow: 0 18px 40px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.4);
   position: absolute;
   inset: 0;
+  overflow: clip;
   color: var(--ink);
 }
 
@@ -752,8 +753,8 @@
   left: 0;
   display: flex;
   flex-direction: column;
-  width: 8.5rem;
-  height: 12rem;
+  width: 11rem;
+  height: 14rem;
   overflow: hidden;
   border: 1px solid rgba(255, 216, 148, 0.45);
   border-radius: 12px;
@@ -762,7 +763,7 @@
     repeating-linear-gradient(45deg, rgba(255, 216, 148, 0.03) 0 6px, transparent 6px 12px),
     #1c130e;
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.55);
-  transform-origin: 50% 160%;
+  transform-origin: 50% 200%;
   translate: calc(var(--fan-x) - 50%) calc(100% - 3.3rem + var(--fan-drop));
   rotate: var(--fan-angle);
   transition:
@@ -774,7 +775,12 @@
 }
 
 .fanCard:hover:not([data-raised]) {
-  translate: calc(var(--fan-x) - 50%) calc(100% - 5rem + var(--fan-drop));
+  translate: calc(var(--fan-x) - 50%) calc(100% - 6.2rem + var(--fan-drop));
+}
+
+.fanCard[data-raised] .windowTabs {
+  flex: 0 0 auto;
+  padding: 0.4rem 0.6rem 0;
 }
 
 .fan[data-raised] .fanCard:not([data-raised]) {
@@ -812,11 +818,10 @@
 }
 
 .fanCardGroup {
-  grid-column: 2;
+  grid-column: 1 / -1;
+  margin-top: 0.35rem;
   color: var(--ink-dim);
-  font: 500 0.66rem var(--font-sans);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font: 500 0.72rem/1.45 var(--font-sans);
 }
 
 .fanCardBody {

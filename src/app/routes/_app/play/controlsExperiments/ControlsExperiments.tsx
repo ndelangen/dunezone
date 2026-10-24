@@ -1030,16 +1030,14 @@ function Drawers({ nodes, header, camera, inert, tabs }: ExperimentProps) {
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 function Fan({ nodes, header, camera, inert, tabs }: ExperimentProps) {
-  const groups = useGroups(tabs, nodes.players);
-  const cards = groups.flatMap((group) => group.items);
-  const [raised, setRaised] = useState<string | null>(null);
+  const cards = useGroups(tabs, nodes.players);
+  const [raised, setRaised] = useState<{ group: string; tab?: string } | null>(null);
   useKey(
     (event) => event.key === 'Escape' && raised !== null,
     () => setRaised(null)
   );
   useTablePress(() => setRaised(null), raised !== null);
   const count = cards.length;
-  const spread = Math.min(7, 60 / Math.max(count, 1));
   return (
     <div className={styles.root}>
       <Scene node={nodes.scene} />
@@ -1048,7 +1046,8 @@ function Fan({ nodes, header, camera, inert, tabs }: ExperimentProps) {
       <div className={styles.fan} inert={inert} data-hides-cursor data-raised={raised !== null || undefined}>
         {cards.map((card, index) => {
           const offset = index - (count - 1) / 2;
-          const isRaised = raised === card.key;
+          const isRaised = raised?.group === card.key;
+          const active = card.items.find((item) => item.key === raised?.tab) ?? card.items[0]!;
           return (
             <section
               key={card.key}
@@ -1056,9 +1055,9 @@ function Fan({ nodes, header, camera, inert, tabs }: ExperimentProps) {
               data-raised={isRaised || undefined}
               style={
                 {
-                  '--fan-angle': `${offset * spread}deg`,
-                  '--fan-x': `${offset * 6.4}rem`,
-                  '--fan-drop': `${Math.abs(offset) ** 2 * 0.18}rem`,
+                  '--fan-angle': `${offset * 5}deg`,
+                  '--fan-x': `${offset * 8.4}rem`,
+                  '--fan-drop': `${Math.abs(offset) ** 2 * 0.12}rem`,
                   zIndex: isRaised ? 50 : index,
                 } as CSSProperties
               }
@@ -1068,13 +1067,31 @@ function Fan({ nodes, header, camera, inert, tabs }: ExperimentProps) {
                 type="button"
                 className={styles.fanCardFace}
                 aria-expanded={isRaised}
-                onClick={() => setRaised(isRaised ? null : card.key)}
+                onClick={() => setRaised(isRaised ? null : { group: card.key })}
               >
                 <TopicIcon topic={card.topic} size={20} />
                 <span className={styles.fanCardLabel}>{card.label}</span>
-                {card.group !== card.label && <span className={styles.fanCardGroup}>{card.group}</span>}
+                {card.items.length > 1 && (
+                  <span className={styles.fanCardGroup}>{card.items.map((item) => item.label).join(' · ')}</span>
+                )}
               </button>
-              {isRaised && <DestinationBody destination={card} className={styles.fanCardBody} />}
+              {isRaised && card.items.length > 1 && (
+                <span className={styles.windowTabs} role="tablist" aria-label={`${card.label} tabs`}>
+                  {card.items.map((item) => (
+                    <button
+                      key={item.key}
+                      type="button"
+                      role="tab"
+                      aria-selected={item.key === active.key}
+                      className={styles.windowTab}
+                      onClick={() => setRaised({ group: card.key, tab: item.key })}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </span>
+              )}
+              {isRaised && <DestinationBody destination={active} className={styles.fanCardBody} />}
             </section>
           );
         })}
