@@ -1,9 +1,8 @@
 import type { GameSnapshot } from '@shared/play/protocol';
-import { BOARD_RADIUS } from '@shared/play/tableGeometry';
 
 import type { GuideTask } from '../TutorialGuide';
 import type { ChapterScript } from './chapterScript';
-import { at, element, onBoard, pressedTab, task } from './guideChecks';
+import { at, element, onBoard, pressedTab, tableDeck, task } from './guideChecks';
 import type { Piece } from './guideChecks';
 
 /*
@@ -25,17 +24,7 @@ const singleSpiceFaceUp = (pieces: Piece[]) =>
 function tableTasks(snapshot: () => GameSnapshot): GuideTask[] {
   const pieces = () => snapshot().table.pieces.filter((piece) => !piece.inventory);
   const mine = () => snapshot().bank?.factionId;
-  /*
-   * The ruleset's decks are keyed by their asset, so they are found where the table lays them out:
-   * Treachery on the left of the table and Spice on the right, with the off-table stores left out.
-   */
-  const deck = (side: 'left' | 'right') =>
-    pieces().find(
-      (piece) =>
-        piece.stackKey?.startsWith('deck:') &&
-        Math.abs(piece.position[0]) <= BOARD_RADIUS * 2 &&
-        (side === 'left' ? piece.position[0] < 0 : piece.position[0] > 0)
-    );
+  const deck = (side: 'left' | 'right') => tableDeck(snapshot, side);
   /* Troops, not stacks: a troop dropped onto one already there joins its stack, and splitting a stack on the board adds none. */
   const myTroopsOnBoard = () =>
     pieces()

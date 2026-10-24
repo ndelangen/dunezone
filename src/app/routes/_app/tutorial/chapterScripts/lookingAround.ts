@@ -1,10 +1,9 @@
 import type { GameSnapshot } from '@shared/play/protocol';
-import { BOARD_RADIUS } from '@shared/play/tableGeometry';
 import type { Vector3 } from 'three';
 
 import type { GuideTask, GuideView } from '../TutorialGuide';
 import type { ChapterScript } from './chapterScript';
-import { at, dialTask, scrolled, task } from './guideChecks';
+import { at, dialTask, scrolled, tableDeck, task } from './guideChecks';
 
 /*
  * Chapter 6, "Looking around": the same table as chapter 5, seen through the camera.
@@ -46,14 +45,7 @@ const closeUpShown = () => ({
 
 function tasks(snapshot: () => GameSnapshot): GuideTask[] {
   /* The Spice deck lies on the right of the table, where the table lays it out. */
-  const spiceDeck = () =>
-    snapshot().table.pieces.find(
-      (piece) =>
-        !piece.inventory &&
-        piece.stackKey?.startsWith('deck:') &&
-        Math.abs(piece.position[0]) <= BOARD_RADIUS * 2 &&
-        piece.position[0] > 0
-    );
+  const spiceDeck = () => tableDeck(snapshot, 'right');
   return [
     task({
       id: 'zoom-in',

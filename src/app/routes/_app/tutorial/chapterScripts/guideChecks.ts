@@ -41,6 +41,19 @@ export const pressedTab = (selector: string) => ({
   finish: (watch: { stop: AbortController }) => watch.stop.abort(),
 });
 
+/*
+ * The ruleset's decks are keyed by their asset, so they are found where the table lays them out:
+ * Treachery on the left of the table and Spice on the right, with the off-table stores left out.
+ */
+export const tableDeck = (snapshot: () => GameSnapshot, side: 'left' | 'right') =>
+  snapshot().table.pieces.find(
+    (piece) =>
+      !piece.inventory &&
+      piece.stackKey?.startsWith('deck:') &&
+      Math.abs(piece.position[0]) <= BOARD_RADIUS * 2 &&
+      (side === 'left' ? piece.position[0] < 0 : piece.position[0] > 0)
+  );
+
 export const onBoard = (piece: { position: readonly number[] }) =>
   Math.hypot(piece.position[0]!, piece.position[2]!) < BOARD_RADIUS;
 

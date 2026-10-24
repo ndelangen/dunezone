@@ -1,9 +1,8 @@
 import type { GameSnapshot } from '@shared/play/protocol';
-import { BOARD_RADIUS } from '@shared/play/tableGeometry';
 
 import type { GuideTask } from '../TutorialGuide';
 import type { ChapterScript } from './chapterScript';
-import { at, element, onBoard, task } from './guideChecks';
+import { at, element, onBoard, tableDeck, task } from './guideChecks';
 import type { Piece } from './guideChecks';
 
 /*
@@ -49,11 +48,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
     reserves()
       .filter((piece) => piece.items.length > 1)
       .toSorted((a, b) => a.items.length - b.items.length)[0];
-  const spiceDeck = () =>
-    pieces().find(
-      (piece) =>
-        piece.stackKey?.startsWith('deck:') && Math.abs(piece.position[0]) <= BOARD_RADIUS * 2 && piece.position[0] > 0
-    );
+  const spiceDeck = () => tableDeck(snapshot, 'right');
   /* A piece as it was at the task's start, by id: turning and flipping leave a piece where it lies under the same id. */
   const byId = () => new Map(onTheBoard().map((piece) => [piece.id, piece]));
   return [
