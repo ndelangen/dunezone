@@ -8,6 +8,7 @@ import type { Camera, Vector3Tuple } from 'three';
 
 import { ChapterComplete } from './ChapterComplete';
 import { guideShapePath } from './guideArrow';
+import { keepInView } from './guideArrow';
 import type { Target } from './guideArrow';
 import styles from './TutorialGuide.module.css';
 
@@ -78,20 +79,21 @@ function place(anchor: GuideAnchor): Target | null {
   return anchor.kind === 'page' ? onScreen(anchor.element()) : onTable(anchor.point());
 }
 
+/* The window, where a part of the page off its edges is pointed toward. */
+const windowBox = () => ({ left: 0, top: 0, right: window.innerWidth, bottom: window.innerHeight });
+
 function onScreen(element: Element | null): Target | null {
   const box = element?.getBoundingClientRect();
   if (!box || box.width <= 0) {
     return null;
   }
-  return {
-    x: box.left + box.width / 2,
-    y: box.top + box.height / 2,
-    halfWidth: box.width / 2,
-    halfHeight: box.height / 2,
-  };
+  return keepInView(
+    { x: box.left + box.width / 2, y: box.top + box.height / 2, halfWidth: box.width / 2, halfHeight: box.height / 2 },
+    windowBox()
+  );
 }
 
-/* A point on the table where the camera shows it, or nothing when it is behind the camera or out of view. */
+/* A point on the table where the camera shows it; one out of view, or behind the camera, is pointed toward from the table's edge. */
 function onTable(point: Vector3Tuple | null): Target | null {
   const view = tableView();
   if (!view || !point) {
@@ -99,16 +101,23 @@ function onTable(point: Vector3Tuple | null): Target | null {
   }
   const box = view.canvas.getBoundingClientRect();
   projected.set(...point).project(view.camera);
-  const outOfView = Math.max(Math.abs(projected.x), Math.abs(projected.y), projected.z) > 1;
-  if (outOfView) {
-    return null;
-  }
-  return {
-    x: box.left + ((projected.x + 1) / 2) * box.width,
-    y: box.top + ((1 - projected.y) / 2) * box.height,
-    halfWidth: 0,
-    halfHeight: 0,
-  };
+  /* Behind the camera the projection comes out mirrored through the middle, so it is turned back to the side the point is on. */
+  const behind = projected.z > 1 ? -1 : 1;
+  const shown = windowBox();
+  return keepInView(
+    {
+      x: box.left + ((behind * projected.x + 1) / 2) * box.width,
+      y: box.top + ((1 - behind * projected.y) / 2) * box.height,
+      halfWidth: 0,
+      halfHeight: 0,
+    },
+    {
+      left: Math.max(box.left, shown.left),
+      top: Math.max(box.top, shown.top),
+      right: Math.min(box.right, shown.right),
+      bottom: Math.min(box.bottom, shown.bottom),
+    }
+  );
 }
 
 /*

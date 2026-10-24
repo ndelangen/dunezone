@@ -38,6 +38,32 @@ const BLEED = 4;
 /** How far short of its target's edge the arrow's tip stops. */
 export const ARROW_GAP_PX = 15;
 
+/** How far inside the visible area the arrow stops when its target is out of view. */
+export const OFFSCREEN_INSET_PX = 40;
+
+/**
+ * A target out of view moved to the edge of `view`, in the direction it lies from the view's middle, so the arrow keeps pointing the way to go instead of disappearing (Norbert, 2026-10-24).
+ * A target in view is kept as it is.
+ */
+export function keepInView(
+  target: Target,
+  view: Readonly<{ left: number; top: number; right: number; bottom: number }>
+): Target {
+  const inView = target.x >= view.left && target.x <= view.right && target.y >= view.top && target.y <= view.bottom;
+  if (inView) {
+    return target;
+  }
+  const middle = { x: (view.left + view.right) / 2, y: (view.top + view.bottom) / 2 };
+  const reach = {
+    x: Math.max(0, (view.right - view.left) / 2 - OFFSCREEN_INSET_PX),
+    y: Math.max(0, (view.bottom - view.top) / 2 - OFFSCREEN_INSET_PX),
+  };
+  const dx = target.x - middle.x;
+  const dy = target.y - middle.y;
+  const scale = Math.min(reach.x / Math.max(Math.abs(dx), 1e-6), reach.y / Math.max(Math.abs(dy), 1e-6));
+  return { x: middle.x + dx * scale, y: middle.y + dy * scale, halfWidth: 0, halfHeight: 0 };
+}
+
 const point = (p: Point) => `${p.x.toFixed(1)} ${p.y.toFixed(1)}`;
 const toward = (from: Point, to: Point, distance: number): Point => {
   const length = Math.hypot(to.x - from.x, to.y - from.y) || 1;

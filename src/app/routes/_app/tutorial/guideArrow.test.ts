@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vite-plus/test';
 
-import { ARROW_GAP_PX, guideShapePath } from './guideArrow';
+import { ARROW_GAP_PX, OFFSCREEN_INSET_PX, guideShapePath, keepInView } from './guideArrow';
 
 const band = { left: 0, right: 1440, bottom: 72 };
 const numbers = (path: string) => path.match(/-?\d+(\.\d+)?/g)!.map(Number);
@@ -43,5 +43,26 @@ describe('guideShapePath', () => {
     ]) {
       expect(guideShapePath(band, { x: 400, y: 72 }, target)).not.toMatch(/NaN|Infinity/);
     }
+  });
+});
+
+describe('keepInView', () => {
+  const view = { left: 0, top: 100, right: 1000, bottom: 700 };
+
+  test('keeps a target in view where it is', () => {
+    const target = { x: 300, y: 400, halfWidth: 20, halfHeight: 20 };
+    expect(keepInView(target, view)).toBe(target);
+  });
+
+  test('moves a target off the right edge onto it, the way it lies', () => {
+    const moved = keepInView({ x: 3000, y: 400, halfWidth: 20, halfHeight: 20 }, view);
+    expect(moved).toEqual({ x: 1000 - OFFSCREEN_INSET_PX, y: 400, halfWidth: 0, halfHeight: 0 });
+  });
+
+  test('moves a target off a corner along the line from the middle', () => {
+    const moved = keepInView({ x: 1500, y: 1400, halfWidth: 0, halfHeight: 0 }, view);
+    expect(moved.y).toBeCloseTo(700 - OFFSCREEN_INSET_PX);
+    /* From the middle (500, 400) the target lies 1000 across for 1000 down. */
+    expect(moved.x - 500).toBeCloseTo(moved.y - 400);
   });
 });
