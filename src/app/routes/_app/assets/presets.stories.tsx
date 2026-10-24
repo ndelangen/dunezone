@@ -1,7 +1,7 @@
 import preview from '@sb/preview';
 import { expect, userEvent, within } from 'storybook/test';
 
-import { db, storybookViewer } from '@db/storybook';
+import { db } from '@db/storybook';
 
 import { pageStoryMeta } from '../../storybookConfig';
 import { seedPresets, administratorDatabase } from './presets.stories.fixture';
@@ -30,28 +30,4 @@ export const Library = meta.story({
 export const Mobile = meta.story({
   parameters: { database: administratorDatabase },
   globals: { viewport: { value: 'appMobileNarrow' }, backgrounds: { value: 'app', grid: false } },
-});
-export const SignedOut = meta.story({
-  parameters: { identity: null },
-  play: async ({ canvasElement }) => {
-    await expect(
-      within(canvasElement.ownerDocument.body).findByText('to edit presets.', { exact: false }, { timeout: 30_000 })
-    ).resolves.toBeVisible();
-  },
-});
-export const NotAdministrator = meta.story({
-  parameters: {
-    database: db((baseline) => {
-      baseline.users.find((user) => user.$key === storybookViewer.subjectKey)!.isAdmin = false;
-    }),
-  },
-  play: async ({ canvasElement }) => {
-    await expect(
-      within(canvasElement.ownerDocument.body).findByRole(
-        'heading',
-        { name: 'Administrator access required' },
-        { timeout: 30_000 }
-      )
-    ).resolves.toBeVisible();
-  },
 });

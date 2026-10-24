@@ -1,6 +1,5 @@
 import preview from '@sb/preview';
 
-import { backgroundPresets } from '../../data/backgrounds';
 import { Background } from './Background';
 
 const meta = preview.meta({
@@ -69,8 +68,4 @@ export const RadialGradient = meta.story({
     invert: false,
     definition: 1,
   },
-});
-
-export const RadialToken = meta.story({
-  args: backgroundPresets.terror,
 });
