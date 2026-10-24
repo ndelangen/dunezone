@@ -123,7 +123,7 @@ export const SchemeIsland = meta.story({
     await expect(view.getComputedStyle(tooltip).backgroundColor).toBe(raised);
     await expect(view.getComputedStyle(tooltip).color).toBe(paintedColor(island, coreColors.text));
     await expect(view.getComputedStyle(within(tooltip).getByText('Spice', { exact: true })).color).toBe(
-      paintedColor(island, coreColors.highlight)
+      paintedColor(island, view.getComputedStyle(island).getPropertyValue('--color-brand-strong').trim())
     );
     await expect(raised).not.toBe(glass);
     await userEvent.unhover(help);
