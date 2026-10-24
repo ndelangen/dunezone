@@ -26,37 +26,195 @@
   margin: 0;
   padding: 0;
   list-style: none;
+  perspective: 600px;
 }
 
 .learned li {
   display: flex;
   gap: var(--space-xs);
-  align-items: baseline;
-  animation: learned-in 400ms ease-out both;
+  align-items: center;
+  animation-duration: 550ms;
+  animation-fill-mode: both;
   animation-delay: calc(400ms + var(--learned-order) * 450ms);
 }
 
 .tick {
+  display: grid;
   flex: none;
-  align-self: center;
-  color: var(--mantine-color-green-5);
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  background: var(--mantine-color-green-7);
+  color: var(--color-paper);
+  animation-duration: 450ms;
+  animation-fill-mode: both;
+  animation-delay: calc(400ms + var(--learned-order) * 450ms + 250ms);
 }
 
 /* The button comes last, after every line has come in; until then it can be neither seen nor pressed. */
 .onward {
-  animation: onward-in 400ms ease-out both;
-  animation-delay: calc(600ms + var(--learned-count) * 450ms);
+  animation: onward-in 700ms cubic-bezier(0.3, 1.6, 0.5, 1) both;
+  animation-delay: calc(700ms + var(--learned-count) * 450ms);
+}
+
+/* Dealt: each line is a card thrown onto the table from the top right, which lands with a little skid. */
+.complete[data-entrance="deal"] .learned li {
+  padding: 0.35rem 0.6rem;
+  border-radius: var(--mantine-radius-sm);
+  background: var(--color-paper);
+  color: var(--color-ink);
+  box-shadow: 0 3px 6px rgb(0 0 0 / 0.45);
+  rotate: calc((mod(var(--learned-order), 3) - 1) * 0.8deg);
+  animation-name: deal-in;
+  animation-timing-function: cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+
+.complete[data-entrance="deal"] .tick {
+  animation-name: tick-pop;
+}
+
+/* Stamped: the line slides in, then a big tick slams down on it and the line shakes under the blow. */
+.complete[data-entrance="stamp"] .learned li {
+  animation-name: stamp-line;
+  animation-duration: 700ms;
+  animation-timing-function: ease-out;
+}
+
+.complete[data-entrance="stamp"] .tick {
+  animation-name: tick-stamp;
+  animation-timing-function: cubic-bezier(0.5, 0, 0.75, 0);
+  animation-duration: 250ms;
+}
+
+/* Bouncy: each line hops in like a token dropped onto the board, squashing as it lands. */
+.complete[data-entrance="bounce"] .learned li {
+  animation-name: token-hop;
+  animation-duration: 650ms;
+  transform-origin: 50% 100%;
+}
+
+.complete[data-entrance="bounce"] .tick {
+  animation-name: tick-spin;
+  animation-timing-function: cubic-bezier(0.3, 1.6, 0.5, 1);
+  animation-duration: 600ms;
 }
 
 .complete[data-motion="reduce"] .learned li,
+.complete[data-motion="reduce"] .tick,
 .complete[data-motion="reduce"] .onward {
   animation: none;
 }
 
-@keyframes learned-in {
+@keyframes deal-in {
   from {
     opacity: 0;
-    transform: translateX(-0.75rem);
+    transform: translate(14rem, -10rem) rotate(35deg) rotateY(80deg) scale(1.2);
+  }
+
+  60% {
+    opacity: 1;
+    transform: translate(-0.4rem, 0.2rem) rotate(-4deg);
+  }
+
+  80% {
+    transform: translate(0.15rem, 0) rotate(1.5deg);
+  }
+
+  to {
+    transform: none;
+  }
+}
+
+@keyframes tick-pop {
+  from {
+    opacity: 0;
+    transform: scale(0);
+  }
+
+  70% {
+    opacity: 1;
+    transform: scale(1.35);
+  }
+
+  to {
+    transform: scale(1);
+  }
+}
+
+@keyframes stamp-line {
+  from {
+    opacity: 0;
+    transform: translateX(-2rem);
+  }
+
+  35% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  50% {
+    transform: translate(0, 0.2rem);
+  }
+
+  60% {
+    transform: translate(-0.2rem, -0.1rem);
+  }
+
+  70% {
+    transform: translate(0.15rem, 0.1rem);
+  }
+
+  to {
+    transform: none;
+  }
+}
+
+@keyframes tick-stamp {
+  from {
+    opacity: 0;
+    transform: scale(3.5) rotate(-25deg);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(-8deg);
+  }
+}
+
+@keyframes token-hop {
+  from {
+    opacity: 0;
+    transform: translateY(-4rem) scale(0.6);
+  }
+
+  45% {
+    opacity: 1;
+    transform: translateY(0) scale(1.15, 0.8);
+  }
+
+  65% {
+    transform: translateY(-0.9rem) scale(0.95, 1.05);
+  }
+
+  82% {
+    transform: translateY(0) scale(1.05, 0.95);
+  }
+
+  to {
+    transform: none;
+  }
+}
+
+@keyframes tick-spin {
+  from {
+    opacity: 0;
+    transform: scale(0) rotate(-270deg);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
   }
 }
 
@@ -64,6 +222,19 @@
   from {
     visibility: hidden;
     opacity: 0;
-    transform: scale(0.9);
+    transform: translateY(-3rem) scale(0.5) rotate(-6deg);
+  }
+
+  55% {
+    opacity: 1;
+    transform: translateY(0) scale(1.15, 0.9) rotate(3deg);
+  }
+
+  75% {
+    transform: scale(0.95, 1.05) rotate(-1.5deg);
+  }
+
+  to {
+    transform: none;
   }
 }
