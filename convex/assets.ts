@@ -52,6 +52,7 @@ import {
 import { assetCatalogueOrderOf } from './lib/assetCatalogue';
 import { assertKnownAssetType, assetDisplayName } from './lib/assetInput';
 import { backgroundProjection, resolveBackgrounds } from './lib/backgroundPresets';
+import { listAssetListingRows, readBoardListing } from './lib/boardListing';
 import { listCardbackPresets, presetFromKey, storeCardbackPreset } from './lib/cardbackPresets';
 import type { CardbackPresetMemo } from './lib/cardbackPresets';
 import { listCardFrontPresets } from './lib/cardFrontPresets';
@@ -230,13 +231,7 @@ export const cataloguePage = publicQuery({
   handler: async (ctx) => {
     const rows: Doc<'assets'>[] = [];
     for (const type of ASSET_TYPE_KEYS) {
-      rows.push(
-        ...(await ctx.db
-          .query('assets')
-          .withIndex('by_type_deleted', (q) => q.eq('type', type).eq('is_deleted', false))
-          .order('desc')
-          .take(RECENT_PER_TYPE))
-      );
+      rows.push(...(await listAssetListingRows(ctx, type, RECENT_PER_TYPE)));
     }
     rows.sort((a, b) => b._creationTime - a._creationTime);
 
@@ -257,15 +252,7 @@ export const listByTypes = publicQuery({
   args: { types: v.array(v.string()) },
   returns: v.array(assetListEntryValidator),
   handler: async (ctx, args) => {
-    const perType = await Promise.all(
-      args.types.map((type) =>
-        ctx.db
-          .query('assets')
-          .withIndex('by_type_deleted', (q) => q.eq('type', type).eq('is_deleted', false))
-          .order('desc')
-          .take(PER_TYPE_LIMIT)
-      )
-    );
+    const perType = await Promise.all(args.types.map((type) => listAssetListingRows(ctx, type, PER_TYPE_LIMIT)));
     const rows = perType.flat().sort((a, b) => b._creationTime - a._creationTime);
     /* Sequential rather than Promise.all, so the memos fill before the rows that would hit them. */
     const owners = new Map<Id<'users'>, Awaited<ReturnType<typeof profileSummary>>>();
@@ -1195,11 +1182,7 @@ export const browsePage = publicQuery({
     truncated: v.boolean(),
   }),
   handler: async (ctx, args) => {
-    const rows = await ctx.db
-      .query('assets')
-      .withIndex('by_type_deleted', (q) => q.eq('type', args.type).eq('is_deleted', false))
-      .order('desc')
-      .take(BROWSE_LIMIT + 1);
+    const rows = await listAssetListingRows(ctx, args.type, BROWSE_LIMIT + 1);
     const truncated = rows.length > BROWSE_LIMIT;
     const page = truncated ? rows.slice(0, BROWSE_LIMIT) : rows;
 
@@ -1240,7 +1223,11 @@ async function catalogueEntries(ctx: QueryCtx, type: string, selected: { source_
   const entries: Infer<typeof assetBrowseEntryValidator>[] = [];
   for (const entry of selected) {
     const assetId = ctx.db.normalizeId('assets', entry.source_id);
-    const row = assetId ? await ctx.db.get('assets', assetId) : null;
+    const row = assetId
+      ? type === 'board'
+        ? await readBoardListing(ctx, assetId)
+        : await ctx.db.get('assets', assetId)
+      : null;
     if (!row || row.is_deleted) {
       /* Drift: the page comes up one tile short until the backfill or the asset's next save. */
       console.warn(`Catalogue entry for asset ${entry.source_id} has no live asset.`);
