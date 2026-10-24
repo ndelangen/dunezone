@@ -333,6 +333,30 @@ describe('NestedTabs with button items', () => {
     }
   });
 
+  it('keyboard focus takes over a pending panel hover with its short guidance delay', async () => {
+    vi.useFakeTimers();
+    const target = tab('Spice');
+    const matches = target.matches.bind(target);
+    const focusVisible = vi
+      .spyOn(target, 'matches')
+      .mockImplementation((selector) => (selector === ':focus-visible' ? true : matches(selector)));
+    try {
+      act(() => {
+        target.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+      });
+      await act(() => vi.advanceTimersByTimeAsync(1000));
+      act(() => target.focus());
+      await act(() => vi.advanceTimersByTimeAsync(349));
+      expect(document.querySelector('[role="tooltip"]')).toBeNull();
+      await act(() => vi.advanceTimersByTimeAsync(1));
+      await act(() => vi.advanceTimersByTimeAsync(150));
+      expect(document.querySelector('[role="tooltip"]')?.textContent).toContain('Spice');
+    } finally {
+      focusVisible.mockRestore();
+      vi.useRealTimers();
+    }
+  });
+
   it('a pointer click cancels pending guidance until the pointer leaves and returns', async () => {
     vi.useFakeTimers();
     try {

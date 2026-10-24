@@ -479,8 +479,8 @@ function NestedTabsTooltip({
     if (event.currentTarget.hasAttribute('data-pointer-focus') || !event.currentTarget.matches(':focus-visible')) {
       return;
     }
-    /* Already hovered, the tooltip keeps its course; focus only holds it open once the pointer leaves. */
-    if (engaged.current.pointer) {
+    /* Focus keeps visible guidance open; pending guidance switches to the keyboard delay. */
+    if (engaged.current.pointer && open) {
       engaged.current.focus = true;
     } else {
       engage('focus');
