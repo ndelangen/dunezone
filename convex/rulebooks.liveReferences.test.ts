@@ -128,6 +128,52 @@ async function liveReferenceFixture() {
 }
 
 describe('Rulebook component references', () => {
+  test('sheet references carry printed data only when selected and become unavailable after deletion', async () => {
+    const { t, owner, refs, contents, locator } = await liveReferenceFixture();
+    const block = contents.pagesById.RULE!.blocksById.ARTW!;
+    if (block.kind !== 'referenced-illustration') {
+      throw new Error('Expected illustration');
+    }
+    const source = { kind: 'faction', factionId: refs.factionId, presentation: 'sheet' } as const;
+    const before = await t.run((ctx) => resolveRulebookReferences(ctx, contents));
+    expect(before.factionsById[refs.factionId]?.sheet).toBeUndefined();
+    const legacy = await owner.query(api.rulebooks.editorPage, {
+      ...locator,
+      reference_faction_ids: [refs.factionId],
+    });
+    if (legacy?.kind !== 'editable') {
+      throw new Error('Expected editable rulebook');
+    }
+    expect(legacy.factionsById[refs.factionId]?.sheet).toBeUndefined();
+    const editor = await owner.query(api.rulebooks.editorPage, {
+      ...locator,
+      reference_faction_ids: [refs.factionId],
+      faction_sheet_data: true,
+    });
+    if (editor?.kind !== 'editable') {
+      throw new Error('Expected editable rulebook');
+    }
+    expect(projectRulebookSource(source, {}, editor.factionsById)).toMatchObject({
+      status: 'ready',
+      sheet: { rules: { revivalText: '2 troops free.' } },
+    });
+    block.source = source;
+    const selected = await t.run((ctx) => resolveRulebookReferences(ctx, rulebookContentsV1Schema.parse(contents)));
+    const sheet = projectRulebookSource(source, {}, selected.factionsById);
+    expect(sheet).toMatchObject({
+      status: 'ready',
+      reference: source,
+      sheet: { rules: { revivalText: '2 troops free.' } },
+    });
+    await t.run((ctx) => ctx.db.patch('factions', refs.factionId, { is_deleted: true }));
+    const removed = await t.run((ctx) => resolveRulebookReferences(ctx, contents));
+    expect(projectRulebookSource(source, {}, removed.factionsById)).toEqual({
+      status: 'unavailable',
+      reference: source,
+    });
+    expect(sheet).toMatchObject({ sheet: { rules: { revivalText: '2 troops free.' } } });
+  });
+
   test('troop references retain their face through renames and become unavailable when that face is removed', async () => {
     const { t, owner, refs, data, contents, locator } = await liveReferenceFixture();
     const troop = data.troops[0]!;
