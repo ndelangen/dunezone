@@ -310,3 +310,32 @@
 .centre {
   width: min(44rem, calc(100vw - 2 * 27vw - 5rem));
 }
+
+/* A pinned slot's top edge: drag it to make the slot taller or shorter. */
+.resizeEdge {
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 0.6rem;
+  cursor: ns-resize;
+}
+
+.resizeEdge::after {
+  content: "";
+  position: absolute;
+  top: 0.2rem;
+  left: 50%;
+  width: 2.6rem;
+  height: 0.22rem;
+  border-radius: 999px;
+  background: rgba(255, 216, 148, 0.3);
+  translate: -50% 0;
+  transition: background 120ms;
+}
+
+.resizeEdge:hover::after,
+.resizeEdge:active::after {
+  background: var(--sand);
+}

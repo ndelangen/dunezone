@@ -2,7 +2,7 @@ import { TopicIcon } from '@ui/content/TopicIcon';
 import clsx from 'clsx';
 import { EyeOff, Hand, Handshake, MessagesSquare, PanelLeft, PanelRight, PinOff, Search, Swords } from 'lucide-react';
 import { useContext, useEffect, useRef, useState } from 'react';
-import type { ReactNode } from 'react';
+import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react';
 
 import { Camera, CloseIcon, DestinationBody, Key, pressControl, Scene, useRemembered, useTablePress } from './ControlsExperiments';
 import type { ExperimentProps } from './ControlsExperiments';
@@ -88,6 +88,25 @@ export function PaletteStage4(props: ExperimentProps) {
   const [sheet, setSheet] = useState<{ key: string; tab: PlayerTab } | null>(null);
   const [slots, setSlots] = useRemembered<Slots>('palette-4-slots', { left: null, right: null });
   const [flash, setFlash] = useState<{ side: Side; at: number } | null>(null);
+  /* Each slot's height in pixels, remembered once its top edge is dragged; null keeps the default. */
+  const [heights, setHeights] = useRemembered<Record<Side, number | null>>('palette-4-heights', { left: null, right: null });
+  /* Dragging a slot's top edge: up makes it taller, down shorter, between a title row and the header. */
+  const resize = (side: Side) => (event: ReactPointerEvent<HTMLElement>) => {
+    event.preventDefault();
+    const slot = event.currentTarget.parentElement!;
+    const start = { y: event.clientY, height: slot.getBoundingClientRect().height };
+    const room = slot.parentElement!.getBoundingClientRect().height;
+    const move = (moveEvent: PointerEvent) => {
+      const height = Math.round(Math.max(120, Math.min(room - 110, start.height + start.y - moveEvent.clientY)));
+      setHeights((current) => ({ ...current, [side]: height }));
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  };
   const inputRef = useRef<HTMLInputElement>(null);
   const hold = useRef({ down: false, steered: false });
 
@@ -365,7 +384,19 @@ export function PaletteStage4(props: ExperimentProps) {
         aria-label={entry.label}
         inert={inert}
         data-hides-cursor
+        style={where !== 'centre' && heights[where] ? { height: heights[where] } : undefined}
       >
+        {where !== 'centre' && (
+          <span
+            className={styles.resizeEdge}
+            role="separator"
+            aria-orientation="horizontal"
+            aria-label="Drag to resize"
+            title="Drag to resize; double-click to reset"
+            onPointerDown={resize(where)}
+            onDoubleClick={() => setHeights((current) => ({ ...current, [where]: null }))}
+          />
+        )}
         <header className={base.sheetTitle}>
           {entry.player ? <PlayerToken player={entry.player} size={24} /> : <TopicIcon topic={entry.topic} size={18} />}
           <span className={styles.frameName}>
