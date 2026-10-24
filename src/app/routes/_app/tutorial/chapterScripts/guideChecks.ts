@@ -1,5 +1,6 @@
 import type { GameSnapshot } from '@shared/play/protocol';
 import { BOARD_RADIUS } from '@shared/play/tableGeometry';
+import { Vector3 } from 'three';
 import type { Vector3Tuple } from 'three';
 
 import { wheelPixels } from '@app/widgets/tabletop/wheelPixels';
@@ -58,7 +59,19 @@ export const dialTask = (id: string, view: string, text: string, detail: string)
     done: showing(view),
   });
 
-const cameraDistance = ({ camera }: GuideView) => camera?.position.length() ?? 0;
+const forward = new Vector3();
+
+/*
+ * How far the camera looks to reach the table, along its own line of sight, so sliding the view sideways never changes it and only a zoom does.
+ * A camera that looks level or up never reaches the table, and counts as its height instead.
+ */
+const cameraDistance = ({ camera }: GuideView) => {
+  if (!camera) {
+    return 0;
+  }
+  camera.getWorldDirection(forward);
+  return forward.y < -0.01 ? camera.position.y / -forward.y : camera.position.y;
+};
 
 /*
  * Scrolling counts only the player's own turns of the wheel over the table, in one direction, measured from where the camera was at their first turn,
