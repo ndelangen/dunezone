@@ -19,6 +19,7 @@ import {
   validatePublisherDeployContract,
   validatePublisherHealth,
   verifyPublicAuthRouting,
+  verifyPublishedRulebookReader,
 } from './publisher-deployment-contract';
 
 test('requires both public auth handlers before switching authentication URLs', async () => {
@@ -342,5 +343,33 @@ describe('active deployment gate', () => {
     expect(Number(job?.[1]) * 60_000).toBeGreaterThanOrEqual(
       migrationTimeoutMs + 2 * ACTIVE_DEPLOYMENT_DEADLINE_MS + releaseWorkMs + narrowCheckWorstCaseMs + jobOverheadMs
     );
+  });
+});
+
+describe('production Rulebook smoke budget', () => {
+  test.each(['0', '1'])('checks published HTML in exactly one request with %s metadata queries', async (queries) => {
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response('<section data-published-rulebook/>', {
+        headers: { 'X-Public-Metadata-Queries': queries },
+      })
+    );
+    await expect(verifyPublishedRulebookReader(fetcher)).resolves.toBeUndefined();
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
+  test.each([
+    { queries: '2', html: '<section data-published-rulebook/>' },
+    { queries: '1', html: '<main data-rulebook-reader-document/>' },
+    { queries: '', html: '<section data-published-rulebook/>' },
+  ])('refuses fallback and missing or excessive query counts', async ({ queries, html }) => {
+    await expect(
+      verifyPublishedRulebookReader(
+        vi.fn<typeof fetch>().mockResolvedValue(
+          new Response(html, {
+            headers: { 'X-Public-Metadata-Queries': queries },
+          })
+        )
+      )
+    ).rejects.toThrow();
   });
 });

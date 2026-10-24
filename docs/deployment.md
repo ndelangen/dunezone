@@ -130,9 +130,11 @@ seven days after replacement, may still need a refresh. Stable artwork and font 
 
 `publisher:application-runtime:verify` starts the assembled Worker locally and checks complete HTML,
 hydration-entry availability, public dispatch, browser-only paths and protected capture delivery.
-Both PR CI and deployment run it. It caught truncated output from React's streaming renderer when
+Both PR CI and deployment run it through `scripts/verify-application-runtime-local.ts`, which owns an isolated Convex backend and local artifact store. The rehearsal refuses to start without its loopback fixture, so it cannot silently read production. It caught truncated output from React's streaming renderer when
 the shared layout was opted into SSR before its child pages. Public page rendering and the layout
 now opt in together, with browser hydration checked against the assembled Worker.
+
+The live smoke makes one public Dream Rulebook request and requires published HTML with at most one metadata query. Missing-artifact and renderer-fallback coverage runs against the isolated fixture.
 
 ### Forward fixes
 

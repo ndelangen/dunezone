@@ -63,6 +63,21 @@ export async function verifyPublicAuthRouting(
   }
 }
 
+/** One public reader request verifies metadata and its immutable HTML without forcing renderer fallback. */
+export async function verifyPublishedRulebookReader(fetcher: typeof fetch = fetch): Promise<void> {
+  const response = await fetcher(`${APPLICATION_ORIGIN}/rulesets/dreamrules/rulebooks/dream-rulebook`, {
+    redirect: 'error',
+    signal: AbortSignal.timeout(15_000),
+  });
+  invariant(response.status === 200, 'Published Rulebook reader is unavailable');
+  const queries = response.headers.get('X-Public-Metadata-Queries');
+  invariant(queries === '0' || queries === '1', 'Published Rulebook reader exceeded its one metadata query budget');
+  invariant(
+    (await response.text()).includes('data-published-rulebook'),
+    'Published Rulebook reader used renderer fallback'
+  );
+}
+
 type JsonObject = Record<string, unknown>;
 
 function invariant(condition: unknown, message: string): asserts condition {
@@ -407,6 +422,8 @@ async function run(): Promise<void> {
         cause: authFailure,
       });
     }
+    await verifyPublishedRulebookReader();
+    console.log('Published Rulebook reader smoke passed within its metadata query budget.');
     return;
   }
   throw new Error('Expected command: preflight or smoke');
