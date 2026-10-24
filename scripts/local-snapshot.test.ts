@@ -62,7 +62,10 @@ function fakeGitHub(
 }
 
 describe('latestSnapshotArtifact', () => {
-  test('takes the newest artifact the snapshot job uploaded green from main, and no copy a pull request or fork made', () => {
+  test.each([
+    { status: 'completed', artifactId: 7, runId: 70, createdAt: '2026-09-30T10:00:00Z' },
+    { status: 'in_progress', artifactId: 2, runId: 20, createdAt: '2026-09-30T05:17:00Z' },
+  ])('snapshot discovery checks trusted origins and run status $status', ({ status, artifactId, runId, createdAt }) => {
     const github = fakeGitHub(
       [
         artifact(7, 70, '2026-09-30T10:00:00Z'),
@@ -75,7 +78,7 @@ describe('latestSnapshotArtifact', () => {
         artifact(2, 20, '2026-09-30T05:17:00Z'),
       ],
       {
-        70: run({ conclusion: 'failure' }),
+        70: run({ status, conclusion: 'failure' }),
         50: run({ event: 'pull_request' }),
         40: run({ path: '.github/workflows/ci-pr.yml' }),
         30: run(),
@@ -84,9 +87,9 @@ describe('latestSnapshotArtifact', () => {
     );
 
     expect(latestSnapshotArtifact(github)).toEqual({
-      artifactId: 2,
-      runId: 20,
-      createdAt: Date.parse('2026-09-30T05:17:00Z'),
+      artifactId,
+      runId,
+      createdAt: Date.parse(createdAt),
     });
   });
 });

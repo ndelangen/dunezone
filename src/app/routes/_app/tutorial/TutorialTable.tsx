@@ -97,6 +97,7 @@ export default function ChapterPlay({
       number={chapter.number}
       title={chapter.title}
       tasks={tasks}
+      learned={script.learned}
       onReset={() => {
         control.reset();
         document.querySelector<HTMLButtonElement>('[aria-label^="Focus on map"]')?.click();

@@ -789,7 +789,7 @@ export function parseProvisionArgs(argv: string[]): ProvisionArgs {
   return { target, stages, stagesExplicit: explicit.length > 0, snapshotFile };
 }
 
-function provisionCloudDev(
+export function provisionCloudDev(
   stages: ProvisionStage[],
   snapshotFile: string | null,
   env: NodeJS.ProcessEnv,
@@ -813,11 +813,15 @@ function provisionCloudDev(
     return;
   }
   if (stages.includes('code')) {
+    /* Check the deployed migration state before narrowing, as production does. */
+    run(process.execPath, ['--no-env-file', 'run', './scripts/migration-guards.ts', 'narrow-check'], {
+      env: cloudDevEnvironment(env, deployment),
+    });
     console.log('Pushing code to the cloud dev deployment...');
     pushCode(deployment, env);
   }
   /*
-   * A migration-only merge migrates the data dev already holds instead of exporting production again.
+   * An ordinary release migrates the data dev already holds instead of exporting production again.
    * Migrations dev has finished are recorded as done there, so only the ones the merge added run.
    */
   if (stages.includes('migrate')) {

@@ -1,0 +1,9 @@
+# GitHub supports FIFO workflow queues; actionlint 1.7.12 predates this key.
+# https://docs.github.com/en/actions/using-jobs/using-concurrency
+paths:
+  .github/workflows/deploy-main.yml:
+    ignore:
+      - 'unexpected key "queue" for "concurrency" section'
+  .github/workflows/anonymised-snapshot.yml:
+    ignore:
+      - 'unexpected key "queue" for "concurrency" section'
