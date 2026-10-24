@@ -19,7 +19,7 @@ const RULESET_SLOT_LIMIT = Object.values(RULESET_ASSET_SLOTS).reduce(
  * A soft-deleted asset is filtered here rather than having its row removed, which is the same bargain `listPublicRulesetFactions` makes: the slot row survives, the slot presents empty, and undeleting the asset restores it.
  * Reads `by_ruleset` only.
  * Read by the capture a game makes of a ruleset's supply;
- * the ruleset detail page uses `readRulesetAssetSlots`, which keeps each asset's document.
+ * the ruleset detail page uses `readRulesetAssetSlots`, which includes its publication fields.
  */
 export async function listRulesetAssetSlots(ctx: QueryCtx, rulesetId: Id<'rulesets'>, options: SlotReadOptions = {}) {
   return (await readRulesetAssetSlots(ctx, rulesetId, options)).map(({ slot, asset }) => ({ slot, asset }));

@@ -69,6 +69,12 @@ test('board listing readers stay under 64 KiB with a real Arrakis definition', a
   const picker = await t.query(api.assets.listByTypes, { types: ['board'] });
   const legacyBrowse = await t.query(api.assets.browsePage, { type: 'board' });
   const ruleset = await t.query(api.rulesets.detailPage, { slug: 'dreamrules' });
+  const faqPicker = await t.query(api.cataloguePicker.options, {
+    group: 'board',
+    q: '',
+    paginationOpts: { numItems: 20, cursor: null },
+  });
+  expect(faqPicker.page[0]?.choice.id).toBe(asset);
   for (const row of [landing.recent[0], picker[0], legacyBrowse.entries[0]]) {
     expect(row).toMatchObject({ id: asset, name: 'Arrakis', slug: 'arrakis', data: { name: 'Arrakis' } });
     expect(row?.data).not.toHaveProperty('board');
