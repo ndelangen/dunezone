@@ -15,6 +15,7 @@ import { useEffect, useSyncExternalStore } from 'react';
 import { useFactionPageSlug } from '@db/factions';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
+import type { CompassPlayer } from '../compass/compassTable';
 import { allianceHue, PlayerAlliance } from './Alliances';
 import { Conversation } from './Conversation';
 import { FactionDetails } from './FactionDetails';
@@ -406,23 +407,9 @@ function FactionPageButton({ slug, name }: Readonly<{ slug: string; name: string
   );
 }
 
-/*
- * Design exploration (controls layout, palette stage 2): each player as a window of their own, and what the chat bar beside
- * the palette shows for them. Only the exploration's stories read these.
- */
-type PlayerWindowEntry = Readonly<{
-  seat: string;
-  name: string;
-  factionName: string | null;
-  token: string | null;
-  unread: number;
-  own: boolean;
-  canConverse: boolean;
-  attention: boolean;
-  ally: boolean;
-}>;
+/* Each player as a window of their own, and what the compass's chat bar shows for them. Only the compass controls read these. */
 
-/** The players' windows for a controls experiment; with none on (every real game), nothing is looked up. */
+/** The players as the compass controls show them; with the classic controls (every real game), nothing is looked up. */
 export function usePlayerWindows(client: TableSession, table: TableProjection, enabled: boolean) {
   const { conversations } = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getSnapshot);
   if (!enabled) {
@@ -432,7 +419,7 @@ export function usePlayerWindows(client: TableSession, table: TableProjection, e
   const asked = requestedSeats(table);
   const viewerSeat = table.viewer.viewerSeat;
   const ownHue = viewerSeat ? allianceHue(table.snapshot, seatFaction(table, viewerSeat)) : undefined;
-  const players: PlayerWindowEntry[] = seatPlayers(table).map((player) => {
+  const players: CompassPlayer[] = seatPlayers(table).map((player) => {
     const faction = rosterSeat(table.snapshot.roster, player.seat)?.faction;
     const peerId = seatFaction(table, player.seat);
     const token = faction ? factionTokenOf(table.snapshot.table.pieces, faction.id)?.items[0]?.artwork?.front : null;

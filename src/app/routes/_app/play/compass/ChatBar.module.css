@@ -1,10 +1,4 @@
-/* The command palette's second stage: the bar of the palette button and the chats, the shortcut hints, and the window above them. */
-
-.sheet {
-  bottom: 4.6rem;
-  width: min(46rem, 72vw);
-  max-height: min(32rem, calc(100% - var(--play-header-height) - 6rem));
-}
+/* The bar at the bottom of the table: the Controls button, the chats as tokens with their unread counts, and the tip over each. */
 
 .bar {
   position: absolute;

@@ -35,8 +35,8 @@ import { factionTokenFixtures } from '@game/fixtures/factionTokens';
 import type { TableSession, TableProjection } from '../../../../db/tabletop/TableSession';
 import { PointerSessionContext, usePointerSession } from '../../../../widgets/tabletop/PointerSessionContext';
 import { TABLE_PLATE_BOUNDS } from '../../../../widgets/tabletop/tablePlateGeometry';
-import { useControlsExperiment } from '../controlsExperiments/experiment';
 import { DarkSchemeIsland } from '../DarkSchemeIsland';
+import { useTableControls } from '../tableControls';
 import { BattleBeacon } from './BattleBeacon';
 import styles from './BattleControls.module.css';
 import { battleCapsuleY, headerInset } from './battlePlacement';
@@ -468,14 +468,14 @@ function canTakeSelected(piece: TablePiece | undefined) {
 export function HandControls({ client, table, hand }: Props & { hand: TablePiece[] }) {
   const selected = table.snapshot.table.pieces.find((piece) => piece.id === table.state.selectedPieceId);
   const [menu, setMenu] = useState<HandMenuAnchor | null>(null);
-  const experiment = useControlsExperiment();
+  const controls = useTableControls();
   /* The hidden zone is a tab beside this one, as wide, so a piece moved there lands in what its narrow view shows. */
   const { ref, width } = useElementSize<HTMLDivElement>();
   return (
     <Section hiddenHeading title="Your hand and leaders" description={handHelp(table)}>
       <Stack gap="sm" ref={ref}>
-        {/* The compass controls drop the button (Norbert, 2026-10-24); how a table piece reaches the hand there is still open. */}
-        {experiment === null && (
+        {/* The compass controls drop the button (Norbert, 2026-10-24): there a piece's ring menu takes it into the hand. */}
+        {controls === 'classic' && (
           <Button
             variant="default"
             disabled={!table.canHandleTable || !canTakeSelected(selected)}

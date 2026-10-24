@@ -41,6 +41,7 @@ import {
 import type { TabletopContextValue } from '../../../widgets/tabletop/TabletopContext';
 import { TabletopScene } from '../../../widgets/tabletop/TabletopScene';
 import type { TableProgress } from '../../../widgets/tabletop/tableTrackers';
+import { CompassControls } from './compass/CompassControls';
 import {
   controlsPanelLimits,
   DEFAULT_CONTROLS_PANEL_PERCENT,
@@ -48,11 +49,10 @@ import {
   KEYBOARD_STEP_PERCENT,
   paneLimits,
 } from './controlPanelLayout';
-import { ExperimentLayout } from './controlsExperiments/ControlsExperiments';
-import { experimentTakesTabs, useControlsExperiment } from './controlsExperiments/experiment';
 import { DarkSchemeIsland, darkSchemeIslandAttributes } from './DarkSchemeIsland';
 import { Held, HeldSlot, useHeldNode } from './HeldContent';
 import type { HeldNode } from './HeldContent';
+import { useTableControls } from './tableControls';
 import { TableLabelsContext } from './tableLabels';
 import type { TableLabels } from './tableLabels';
 import {
@@ -915,6 +915,7 @@ function TableLayouts({
   controls,
   players,
   tabs,
+  onView,
   ...props
 }: Omit<LayoutProps, 'nodes'> &
   Readonly<{
@@ -924,29 +925,30 @@ function TableLayouts({
     controls: ReactNode;
     players: ReactNode | undefined;
     tabs: readonly PanelTab[];
+    /** Moves the camera, for the compass's camera commands; the dial in `camera` does the same. */
+    onView: (view: TableView) => void;
   }>) {
   const headerNode = useHeldNode();
   const sceneNode = useHeldNode();
   const controlsNode = useHeldNode();
   const playersNode = useHeldNode();
-  const experiment = useControlsExperiment();
-  /* A design that opens each tab on its own leaves the dock unrendered, so no tab mounts twice. */
-  const takesTabs = experimentTakesTabs(experiment);
+  /* The compass opens each tab on its own and leaves the dock unrendered, so no tab mounts twice. */
+  const compass = useTableControls() === 'compass';
   const nodes = { header: headerNode, scene: sceneNode, controls: controlsNode, players: players ? playersNode : null };
   return (
     <>
       <Held node={headerNode}>{header}</Held>
       <Held node={sceneNode}>{scene}</Held>
-      {!takesTabs && <Held node={controlsNode}>{controls}</Held>}
+      {!compass && <Held node={controlsNode}>{controls}</Held>}
       {players && <Held node={playersNode}>{players}</Held>}
-      {experiment ? (
-        <ExperimentLayout
-          experiment={experiment}
-          nodes={{ scene: sceneNode, controls: takesTabs ? null : controlsNode, players: nodes.players }}
+      {compass ? (
+        <CompassControls
+          scene={sceneNode}
           header={<HeaderSlot node={headerNode} />}
           camera={props.camera}
           inert={props.inert}
           tabs={tabs}
+          onView={onView}
         />
       ) : layout === 'columns' ? (
         <ColumnsLayout key="columns" nodes={nodes} {...props} />
@@ -1043,12 +1045,13 @@ export function GameTable({
       )}
     </>
   );
+  const selectView = (view: TableView) => dispatchView({ type: 'view.selected', view });
   const camera = (
     <SceneCamera
       hidden={Boolean(stageOverlay)}
       activeView={viewState.activeView}
       preferredView={viewPhase === null ? undefined : PHASE_VIEWS[viewPhase]}
-      onSelect={(view) => dispatchView({ type: 'view.selected', view })}
+      onSelect={selectView}
     />
   );
   /* No bar of its own: the table runs to the top, and the phase, the game and the controls float over it as chips. Only the chips hide the cursor, so pointing at the table between them still shows to the others. */
@@ -1080,7 +1083,7 @@ export function GameTable({
       </div>
     </header>
   );
-  /* The dock's tabs, which the controls panel shows together and a controls experiment opens one by one. */
+  /* The dock's tabs, which the controls panel shows together and the compass opens one by one. */
   const dock: DockTabsProps = {
     panelTabs,
     tableControls,
@@ -1117,6 +1120,7 @@ export function GameTable({
                 camera={camera}
                 inert={overlaysInert}
                 tabs={dockTabs(dock)}
+                onView={selectView}
               />
             </div>
           </div>

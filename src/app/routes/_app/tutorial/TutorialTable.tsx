@@ -4,10 +4,10 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 
-import { forgetRemembered } from '../play/controlsExperiments/ControlsExperiments';
-import { ControlsEpochContext, ControlsExperimentContext } from '../play/controlsExperiments/experiment';
+import { forgetRemembered } from '../play/compass/useRemembered';
 import { GameRuntimeContext } from '../play/multiplayer/gameRuntime';
 import HostedTable from '../play/multiplayer/HostedTable';
+import { TableControlsContext, TableControlsEpochContext } from '../play/tableControls';
 import type { PlaytestChapter, TutorialChapter } from './chapters';
 import type { ChapterScript } from './chapterScripts/chapterScript';
 import setup from './setup/setup.json';
@@ -92,8 +92,9 @@ export default function ChapterPlay({
   nextLink?: ((props: object) => ReactNode) | undefined;
   exit: ReactNode;
 }>) {
+  const compass = script.controls === 'compass';
   /* A play-test starts from a clean screen, with nothing pinned or resized by an earlier run. */
-  useState(() => script.controls && forgetRemembered());
+  useState(() => compass && forgetRemembered());
   /* Reset starts the controls afresh as well, so a pinned window from the last run cannot do a task for the player. */
   const [controlsEpoch, setControlsEpoch] = useState(0);
   const { runtime, control } = useTutorialTable(setup as unknown as TutorialSetup, script);
@@ -106,7 +107,7 @@ export default function ChapterPlay({
       learned={script.learned}
       onReset={() => {
         control.reset();
-        if (script.controls) {
+        if (compass) {
           forgetRemembered();
           setControlsEpoch((epoch) => epoch + 1);
         }
@@ -121,15 +122,15 @@ export default function ChapterPlay({
         </PageLayout.Header>
         <PageLayout.Content width="viewport">
           <GameRuntimeContext value={runtime}>
-            <ControlsExperimentContext value={script.controls ?? null}>
-              <ControlsEpochContext value={controlsEpoch}>
+            <TableControlsContext value={script.controls ?? 'classic'}>
+              <TableControlsEpochContext value={controlsEpoch}>
                 <HostedTable
                   gameId="tutorial"
                   exitControl={exit}
                   identity={{ rulesetName: 'Dreamrules', address: 'tutorial', page: `/tutorial/${chapter.slug}` }}
                 />
-              </ControlsEpochContext>
-            </ControlsExperimentContext>
+              </TableControlsEpochContext>
+            </TableControlsContext>
           </GameRuntimeContext>
         </PageLayout.Content>
       </PageLayout>

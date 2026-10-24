@@ -27,12 +27,13 @@ import { PieceArtwork } from '../../../../widgets/tabletop/PieceArtwork';
 import { usePointerSession } from '../../../../widgets/tabletop/PointerSessionContext';
 import { PredictionLogosContext } from '../../../../widgets/tabletop/prediction/predictionFace';
 import { TabletopSessionProvider } from '../../../../widgets/tabletop/TabletopContext';
-import { ExperimentPlayersContext, useControlsExperiment } from '../controlsExperiments/experiment';
+import { CompassTableContext } from '../compass/compassTable';
 import { FoilConfetti } from '../FoilConfetti';
 import { GameLink } from '../GameLink';
 import { GameTable } from '../GameTable';
 import type { PanelTab } from '../GameTable';
 import { predictionCardInHand } from '../prediction/predictionCardInHand';
+import { useTableControls } from '../tableControls';
 import { TableWait } from '../TableWait';
 import { AllianceCoinsScene } from './AllianceCoins';
 import { AlliancesPanel, AllianceStrip, showsAlliances } from './Alliances';
@@ -70,7 +71,7 @@ import { publicControlsOf } from './publicControls';
 import { PlayerPanel, PlayerWindow, usePlayerWindows } from './RemovalVotes';
 import { useResultCelebration } from './resultCelebration';
 import { GameMenu, SeatPopover } from './SeatRequests';
-import { stageStatus, stageToolbar } from './StageHeader';
+import { nextPhaseStep, stageStatus, stageToolbar } from './StageHeader';
 import type { GameIdentity } from './StageHeader';
 import { SwapScene } from './SwapScene';
 import { factionName, factionOptions, isSpectator, stageInPlay, viewerFaction } from './tableFactions';
@@ -1026,8 +1027,7 @@ function ConnectedTable({
   /* Each player fades the bidder for themselves, so the choice stays in this tab. */
   const [bidderFaded, setBidderFaded] = useState(false);
   const player = usePlayerSelection(table);
-  const experiment = useControlsExperiment();
-  const playerWindows = usePlayerWindows(client, table, experiment !== null);
+  const playerWindows = usePlayerWindows(client, table, useTableControls() === 'compass');
   const stage = table.snapshot.stage;
   const factionArtwork = table.snapshot.factionArtwork;
   const predictionLogos = useMemo(
@@ -1039,14 +1039,15 @@ function ConnectedTable({
       <TabletopSessionProvider session={client}>
         {/* A boxless wrapper carries the connection state the browser verification waits on, whichever tab is open. */}
         <div data-connection={connection} data-revision={table.liveRevision} style={{ display: 'contents' }}>
-          {/* Read only by the controls-layout exploration's stories. */}
-          <ExperimentPlayersContext
+          {/* Read only by the compass controls. */}
+          <CompassTableContext
             value={
               playerWindows && {
                 ...playerWindows,
                 render: (seat, tab) => (
                   <PlayerWindow client={client} table={table} seat={seat} tab={tab} error={error} />
                 ),
+                nextPhase: nextPhaseStep(client, table),
               }
             }
           >
@@ -1106,7 +1107,7 @@ function ConnectedTable({
               tableGuidance={phaseGuidance(table)}
               tableControls={phaseTabControls({ client, table, error, progress })}
             />
-          </ExperimentPlayersContext>
+          </CompassTableContext>
         </div>
       </TabletopSessionProvider>
     </PredictionLogosContext>

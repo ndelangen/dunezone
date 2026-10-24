@@ -6,23 +6,23 @@ import { faction } from '../alliances.stories.fixture';
 import { gameMeta, install } from '../game.stories.fixture';
 import { battleStory } from '../playing.stories.fixture';
 import { productTransport } from '../product.stories.fixture';
-import { ControlsExperimentContext } from './experiment';
+import { TableControlsContext } from '../tableControls';
 
 /*
- * The command palette's fourth stage (Norbert, 2026-10-24): the compass with search at its centre and suggestions below,
+ * The compass controls (Norbert, 2026-10-24): the compass with search at its centre and suggestions below,
  * and two slots, bottom left and bottom right, that a window can be pinned into. The camera dial sits top right.
  */
-const withExperiment: Decorator = (Story) => (
-  <ControlsExperimentContext value="palette-4">
+const withCompass: Decorator = (Story) => (
+  <TableControlsContext value="compass">
     <Story />
-  </ControlsExperimentContext>
+  </TableControlsContext>
 );
 
 const meta = preview.meta({
   ...gameMeta,
-  title: 'Play/Explorations/Controls layout/Stage 4 Pinned slots',
+  title: 'Play/Compass controls',
   globals: { motion: 'on' },
-  decorators: [...gameMeta.decorators, withExperiment],
+  decorators: [...gameMeta.decorators, withCompass],
   parameters: { ...gameMeta.parameters, chromatic: { disableSnapshot: true } },
   tags: ['!test'],
   loaders: [
@@ -35,10 +35,7 @@ const meta = preview.meta({
 /* What the slots start with: the story either pins its pair or starts empty, whatever an earlier visit left. */
 function pinned(slots: Record<'left' | 'right', { key: string; tab: string } | null>, keep: boolean) {
   try {
-    localStorage.setItem(
-      'dunezone-controls-experiment:palette-4-slots',
-      JSON.stringify(keep ? slots : { left: null, right: null })
-    );
+    localStorage.setItem('dunezone-compass:slots', JSON.stringify(keep ? slots : { left: null, right: null }));
   } catch {
     /* Without storage the slots start empty. */
   }

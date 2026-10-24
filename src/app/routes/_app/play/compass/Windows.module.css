@@ -1,0 +1,213 @@
+/* A window over the table: in the centre above the chat bar, or pinned into the bottom-left or bottom-right slot. */
+
+.window {
+  position: absolute;
+  z-index: 12;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--edge);
+  border-radius: var(--radius);
+  background: var(--glass);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(10px);
+}
+
+/* The centre window keeps clear of the slots either side, and in a narrow window takes the width it needs over them. */
+.centre {
+  bottom: 4.6rem;
+  left: 50%;
+  width: min(44rem, max(22rem, 100vw - 2 * 27vw - 5rem), 100vw - 2rem);
+  max-height: min(32rem, calc(100% - var(--play-header-height) - 6rem));
+  transform: translateX(-50%);
+  animation: rise 200ms ease-out;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    translate: 0 1.5rem;
+  }
+}
+
+/* The two pinned slots, bottom left and bottom right, beside the bar of the compass button and the chats. */
+.slot {
+  bottom: 1rem;
+  width: min(30rem, 27vw);
+  height: min(28rem, 46vh);
+}
+
+.slot[data-side="left"] {
+  left: 1rem;
+}
+
+.slot[data-side="right"] {
+  right: 1rem;
+}
+
+.slot[data-flash="0"] {
+  animation: flash 520ms ease-out;
+}
+
+.slot[data-flash="1"] {
+  animation: flash2 520ms ease-out;
+}
+
+@keyframes flash {
+  30% {
+    border-color: var(--sand);
+    box-shadow: 0 0 0 4px rgba(248, 175, 64, 0.45);
+  }
+}
+
+@keyframes flash2 {
+  30% {
+    border-color: var(--sand);
+    box-shadow: 0 0 0 4px rgba(248, 175, 64, 0.45);
+  }
+}
+
+/* Running into an overlay: the top edge knocks back down and settles, never further up. */
+.slot[data-bounce="0"] {
+  animation: bounce 420ms ease-out;
+}
+
+.slot[data-bounce="1"] {
+  animation: bounce2 420ms ease-out;
+}
+
+@keyframes bounce {
+  25% {
+    translate: 0 7px;
+  }
+
+  55% {
+    translate: 0 0;
+  }
+
+  75% {
+    translate: 0 3px;
+  }
+}
+
+@keyframes bounce2 {
+  25% {
+    translate: 0 7px;
+  }
+
+  55% {
+    translate: 0 0;
+  }
+
+  75% {
+    translate: 0 3px;
+  }
+}
+
+/* A pinned slot's top edge: drag it to make the slot taller or shorter. */
+.resizeEdge {
+  appearance: none;
+  touch-action: none;
+  position: absolute;
+  padding: 0;
+  border: 0;
+  background: none;
+  z-index: 2;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 0.6rem;
+  cursor: ns-resize;
+}
+
+.resizeEdge::after {
+  content: "";
+  position: absolute;
+  top: 0.2rem;
+  left: 50%;
+  width: 2.6rem;
+  height: 0.22rem;
+  border-radius: 999px;
+  background: rgba(255, 216, 148, 0.3);
+  translate: -50% 0;
+  transition: background 120ms;
+}
+
+.resizeEdge:hover::after,
+.resizeEdge:active::after,
+.resizeEdge:focus-visible::after {
+  background: var(--sand);
+}
+
+.resizeEdge:focus-visible {
+  outline: none;
+}
+
+/* The title row: the window's glyph and name, a player's tabs, and the frame's own buttons. */
+.title {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 2.75rem;
+  padding: 0.35rem 0.5rem 0.35rem 0.9rem;
+  border-bottom: 1px solid var(--edge);
+  font: 600 0.92rem var(--font-sans);
+  letter-spacing: 0.01em;
+}
+
+.name {
+  overflow: hidden;
+  min-width: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.group {
+  color: var(--ink-dim);
+  font-weight: 500;
+}
+
+.actions {
+  display: inline-flex;
+  gap: 0.15rem;
+  margin-left: auto;
+}
+
+.tabs {
+  display: flex;
+  flex: 1;
+  gap: 0.15rem;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tab {
+  flex: 0 0 auto;
+  padding: 0.2rem 0.5rem;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink-dim);
+  cursor: pointer;
+  font: 500 0.76rem var(--font-sans);
+}
+
+.tab[aria-selected="true"] {
+  background: rgba(248, 175, 64, 0.16);
+  color: var(--sand);
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 0.9rem 1rem 1rem;
+  --nested-tabs-panel-inset: 1rem;
+}
+
+.bodyFlush {
+  display: grid;
+  padding: 0;
+}

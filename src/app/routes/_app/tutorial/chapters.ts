@@ -138,7 +138,7 @@ export const TUTORIAL_CHAPTERS: readonly TutorialChapter[] = CHAPTERS.map((chapt
 
 /*
  * Chapters for play-testing a prototype with testers, reached only by their link: they are not on the landing page and lead on to nothing.
- * Norbert, 2026-10-24: the stage 4 controls (compass, pinned slots) get a tutorial so testers can try them.
+ * Norbert, 2026-10-24: the compass controls (compass, pinned slots) get a tutorial so testers can try them.
  */
 export type PlaytestChapter = Omit<TutorialChapter, 'number'> & Readonly<{ number: null }>;
 

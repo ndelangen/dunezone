@@ -2,13 +2,13 @@ import type { GuideTask } from '../TutorialGuide';
 import type { ChapterScript } from './chapterScript';
 
 /*
- * The play-test chapter "New controls" (Norbert, 2026-10-24): the stage 4 controls, where Space opens a compass over the table,
+ * The play-test chapter "New controls" (Norbert, 2026-10-24): the compass controls, where Space opens a compass over the table,
  * a window opens in the middle and can be pinned to the bottom-left or bottom-right slot, and the chats sit beside the Controls button.
  * Every task is read from the screen, so it moves on only once the player has done it with the new controls.
  */
 
 const first = (selector: string) => () => document.querySelector(selector);
-const compassOpen = () => document.querySelector('[role="dialog"][aria-label="Controls compass"]') !== null;
+const compassOpen = () => document.querySelector('dialog[aria-label="Controls compass"]') !== null;
 /* Where a window shows: in the middle of the table or in one of the two slots. */
 const windowAt = (where: 'centre' | 'left' | 'right', key: string) =>
   document.querySelector(`section[data-side="${where}"][data-window="${key}"]`) !== null;
@@ -157,5 +157,5 @@ export const newControls: ChapterScript = {
   checkpoint: 'turn-1-storm',
   tasks,
   learned,
-  controls: 'palette-4',
+  controls: 'compass',
 };

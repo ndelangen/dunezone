@@ -1,0 +1,131 @@
+import { TopicIcon } from '@ui/content/TopicIcon';
+import clsx from 'clsx';
+import { useContext } from 'react';
+import type { CSSProperties, KeyboardEvent, PointerEvent as ReactPointerEvent, ReactNode } from 'react';
+
+import { CompassTableContext } from './compassTable';
+import type { CompassPlayer } from './compassTable';
+import { PlayerToken } from './PlayerToken';
+import type { Side } from './slotLimits';
+import { WindowBody } from './windows';
+import type { PlayerTab, TableWindow } from './windows';
+import styles from './Windows.module.css';
+
+/** The grip on a pinned slot's top edge: dragged, nudged with the arrows, or double-clicked back to the default. */
+type Resize = Readonly<{
+  onPointerDown: (event: ReactPointerEvent<HTMLElement>) => void;
+  onNudge: (slot: HTMLElement, direction: 'up' | 'down') => void;
+  onReset: () => void;
+}>;
+
+type WindowFrameProps = Readonly<{
+  entry: TableWindow;
+  tab: PlayerTab;
+  where: 'centre' | Side;
+  inert: boolean;
+  /** The slot's flash and bounce, alternating 0 and 1 so each replay is a change. */
+  flash?: number;
+  bounce?: number;
+  style?: CSSProperties;
+  resize?: Resize;
+  onTab: (tab: PlayerTab) => void;
+  /** The frame's own buttons: pin and close in the centre, unpin in a slot. */
+  actions: ReactNode;
+}>;
+
+/** One window's frame, in the centre or in a slot: its title, a player's tabs, the frame's own buttons, and its content. */
+export function WindowFrame({
+  entry,
+  tab,
+  where,
+  inert,
+  flash,
+  bounce,
+  style,
+  resize,
+  onTab,
+  actions,
+}: WindowFrameProps) {
+  const table = useContext(CompassTableContext);
+  const player = entry.player;
+  return (
+    <section
+      className={clsx(styles.window, where === 'centre' ? styles.centre : styles.slot)}
+      data-side={where}
+      data-window={entry.key}
+      data-flash={flash}
+      aria-label={entry.label}
+      inert={inert}
+      data-hides-cursor
+      data-bounce={bounce}
+      style={style}
+    >
+      {resize && <ResizeEdge resize={resize} />}
+      <header className={styles.title}>
+        {player ? <PlayerToken player={player} size={24} /> : <TopicIcon topic={entry.topic} size={18} />}
+        <span className={styles.name}>
+          {entry.label}
+          {player?.factionName && !player.own && <span className={styles.group}> · {player.factionName}</span>}
+        </span>
+        {player && <PlayerTabs player={player} tab={tab} onTab={onTab} />}
+        <span className={styles.actions}>{actions}</span>
+      </header>
+      <WindowBody flush={player ? false : entry.flush}>
+        {player ? table?.render(player.seat, tab) : entry.content}
+      </WindowBody>
+    </section>
+  );
+}
+
+function ResizeEdge({ resize }: Readonly<{ resize: Resize }>) {
+  const nudge = (event: KeyboardEvent<HTMLButtonElement>) => {
+    const direction = { ArrowUp: 'up', ArrowDown: 'down' }[event.key] as 'up' | 'down' | undefined;
+    if (direction) {
+      event.preventDefault();
+      event.stopPropagation();
+      resize.onNudge(event.currentTarget.parentElement!, direction);
+    }
+  };
+  return (
+    <button
+      type="button"
+      className={styles.resizeEdge}
+      aria-label="Resize: drag, or press the up and down arrows; double-click to reset"
+      title="Drag to resize; double-click to reset"
+      onPointerDown={resize.onPointerDown}
+      onKeyDown={nudge}
+      onDoubleClick={resize.onReset}
+    />
+  );
+}
+
+function PlayerTabs({
+  player,
+  tab,
+  onTab,
+}: Readonly<{ player: CompassPlayer; tab: PlayerTab; onTab: (tab: PlayerTab) => void }>) {
+  return (
+    <span className={styles.tabs} role="tablist" aria-label={`${player.name} tabs`}>
+      {player.canConverse && !player.own && (
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === 'conversation'}
+          className={styles.tab}
+          onClick={() => onTab('conversation')}
+        >
+          Chat
+        </button>
+      )}
+      <button
+        type="button"
+        role="tab"
+        aria-selected={tab === 'public' || player.own || !player.canConverse}
+        className={styles.tab}
+        onClick={() => onTab('public')}
+      >
+        Info
+      </button>
+    </span>
+  );
+}
