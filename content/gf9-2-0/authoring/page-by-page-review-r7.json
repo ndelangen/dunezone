@@ -1,0 +1,2130 @@
+{
+  "reviewDate": "2026-10-24",
+  "scope": "Meaning, teaching intent, examples, warnings, emphasis and illustration accuracy, using approved adaptations.",
+  "baseline": {
+    "sourcePdf": "/Users/me/.codex/worktrees/4b42/dunezone/content/gf9-2-0/source-clearer.pdf",
+    "digitalPdf": "/Users/me/.codex/visualizations/2026/10/22/01a162af-eb84-7b63-a6a2-19af5a11b1f6/output/rulebook/gf9-2-0-rulebook-review.pdf",
+    "baselineCommit": "c09adc8e825d4a69ecbef8b82c50df7264f8b1fe",
+    "sourcePages": 36,
+    "digitalPages": 61,
+    "sourceSha256": "c681228eaa328fc146cf273c3634216c29140c72be41723730b4c8989f7827ff",
+    "digitalSha256": "5cd491a1ae180d1c4106d7ded489d5433fd0302bb93c24901b6691e920589702",
+    "productionDraftRevision": 7,
+    "freshProductionExportMatchesLocalSettingsAndContents": true,
+    "productionExportSha256": "710884f5ca71a08ba0ec3f562585083eb23f725be5a4860ffa2425d9867a1508",
+    "localEvidenceDirectory": "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review"
+  },
+  "counts": {
+    "sourcePages": 36,
+    "digitalPages": 61,
+    "independentReviewers": 36,
+    "verdicts": {
+      "adapted": 30,
+      "gap": 5,
+      "approved-omission": 1
+    },
+    "substantiveCorrections": 5,
+    "minorIssues": 2
+  },
+  "limitations": [
+    "A semantic and visual review, not a certified character-for-character transcription.",
+    "No rulebook data or production records changed during this audit.",
+    "No new Edition was published."
+  ],
+  "pages": [
+    {
+      "sourcePage": 1,
+      "title": "Rulebook cover",
+      "reviewer": "/root/gf9_page_01",
+      "digitalPages": [
+        {
+          "outputPage": 1,
+          "pageId": "SCMH",
+          "title": "RULEBOOK",
+          "editorUrl": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit#SCMH/details"
+        }
+      ],
+      "verdict": "adapted",
+      "requiredCorrectionIds": [],
+      "minorIssueIds": [
+        "M1"
+      ],
+      "adjudication": null,
+      "rawReview": {
+        "sourcePage": 1,
+        "title": "Rulebook cover",
+        "digitalPages": [
+          1
+        ],
+        "verdict": "adapted",
+        "meaningSummary": "The digital cover still presents the Dune second-edition rulebook through the same sandworm, rider and desert scene. Its setting and identity survive, although the two printed framing lines are absent.",
+        "preserved": [
+          "The Dune logo remains the dominant title.",
+          "RULEBOOK and SECOND EDITION remain clearly readable.",
+          "The sandworm, rider, moons and rocky desert preserve the source cover's setting and sense of scale."
+        ],
+        "findings": [
+          {
+            "severity": "P3",
+            "title": "The cover drops its framing lines",
+            "sourceEvidence": "The source cover says \"THE SPICE MUST FLOW\" above the logo and \"A GAME OF CONQUEST, DIPLOMACY & BETRAYAL\" below it.",
+            "digitalEvidence": "Digital page 1 retains the logo, RULEBOOK and SECOND EDITION but shows neither framing line.",
+            "readerImpact": "The cover loses its explicit introduction to spice and to the game's blend of conquest, diplomacy and betrayal. This is a small loss of thematic framing, with no rule or example affected.",
+            "suggestedFix": "Use the existing cover supporting-text field for the two short lines.",
+            "confidence": "high"
+          }
+        ],
+        "acceptedAdaptations": [
+          "The square cover reframes the existing artwork without losing its central subjects.",
+          "The rulebook title and edition move together to the bottom.",
+          "Publisher marks are absent from the digital cover; this does not change its instructional meaning."
+        ],
+        "inspectedImages": [
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/source/page-01.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-01.jpg"
+        ],
+        "notes": [
+          "This page contains no rules, examples or instructional diagrams."
+        ]
+      }
+    },
+    {
+      "sourcePage": 2,
+      "title": "Preface",
+      "reviewer": "/root/gf9_page_02",
+      "digitalPages": [
+        {
+          "outputPage": 2,
+          "pageId": "LLQL",
+          "title": "PREFACE",
+          "editorUrl": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit#LLQL/details"
+        }
+      ],
+      "verdict": "adapted",
+      "requiredCorrectionIds": [],
+      "minorIssueIds": [],
+      "adjudication": null,
+      "rawReview": {
+        "sourcePage": 2,
+        "title": "Preface",
+        "digitalPages": [
+          2
+        ],
+        "verdict": "adapted",
+        "meaningSummary": "The digital page preserves the preface's invitation into Dune, its harsh environment and the struggle for spice. It also keeps the links between setting and play, including movement, the Nexus, treachery and revival, with Irulan's quotation still distinct from the main prose.",
+        "preserved": [
+          "The complete preface keeps its reading order and paragraph relationships across two columns.",
+          "Spice remains both the reason for conflict and the currency that governs harvesting, shipping and other costs.",
+          "The environmental danger, city access to ornithopters, sandworm-triggered Nexus, decisive leaders and treachery, water recovery and Tleilaxu regrowth all remain explicit.",
+          "Irulan's full quotation and attribution remain readable, with italics and a vertical rule separating the quotation from the preface."
+        ],
+        "findings": [],
+        "acceptedAdaptations": [
+          "The printed contents are omitted under the approved choice to use the web navigator.",
+          "The margin quotation moves beneath the right column and keeps its role as a literary quotation.",
+          "The square page and changed column breaks preserve the sequence and meaning of the prose."
+        ],
+        "inspectedImages": [
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/source/page-02.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-02.jpg"
+        ],
+        "notes": [
+          "No rule diagram or example appears on this source page. The visible digital text and quotation fit on the page without clipping."
+        ]
+      }
+    },
+    {
+      "sourcePage": 3,
+      "title": "Notes on this edition and credits",
+      "reviewer": "/root/gf9_page_03",
+      "digitalPages": [
+        {
+          "outputPage": 3,
+          "pageId": "2VDK",
+          "title": "NOTES ON THIS EDITION",
+          "editorUrl": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit#2VDK/details"
+        },
+        {
+          "outputPage": 4,
+          "pageId": "C7U2",
+          "title": "Credits",
+          "editorUrl": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit#C7U2/details"
+        }
+      ],
+      "verdict": "adapted",
+      "requiredCorrectionIds": [],
+      "minorIssueIds": [],
+      "adjudication": null,
+      "rawReview": {
+        "sourcePage": 3,
+        "title": "Notes on this edition and credits",
+        "digitalPages": [
+          3,
+          4
+        ],
+        "verdict": "adapted",
+        "meaningSummary": "The digital pages preserve the edition's stated aim of simplifying play while retaining its depth. They retain the explanations of unified rules, revised combat, the Karama and Solaris split, terminology changes, faction adjustments, and the instruction to ignore expansion references when using only the box contents. Credits and institutional acknowledgments remain readable on a separate page.",
+        "preserved": [
+          "The introductory reassurance that the edition retains the game's strategy, negotiation, theme, depth and tension.",
+          "The progression from the 1979 rules through Basic and Advanced rules to one unified system.",
+          "Combat remains the largest stated change, with streamlined spice use and the original advanced Spice Dialing available as a variant.",
+          "The Karama and Solaris explanation retains which card cancels a key faction ability and which carries the additional effects.",
+          "The terminology example changes projectile to kinetic, while the faction updates remain described as small adjustments informed by feedback and tournament data.",
+          "The expansions section names Ixians, Ecaz and Moritani and explicitly tells readers using only the box contents to ignore those references.",
+          "The Future Pastimes attribution, named credit groups, individual acknowledgments, copyright statements, Museum of Science Fiction association and website."
+        ],
+        "findings": [],
+        "acceptedAdaptations": [
+          "Notes and credits occupy two digital pages instead of sharing one source page.",
+          "The expansion sidebar follows the edition notes within the second column. Its heading clearly separates the advice from the main text.",
+          "Credit headings use ordinary readable emphasis and left alignment instead of the source's compact centered groups.",
+          "The museum mark is represented by its letters in ordinary text, with the full institution name and website preserving the acknowledgment."
+        ],
+        "inspectedImages": [
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/source/page-03.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-03.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-04.jpg"
+        ],
+        "notes": [
+          "All assigned images were visually inspected. No material change in meaning, instructional emphasis or attribution was demonstrated."
+        ]
+      }
+    },
+    {
+      "sourcePage": 4,
+      "title": "Faction overview",
+      "reviewer": "/root/gf9_page_04",
+      "digitalPages": [
+        {
+          "outputPage": 5,
+          "pageId": "874R",
+          "title": "Faction overview",
+          "editorUrl": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit#874R/details"
+        }
+      ],
+      "verdict": "adapted",
+      "requiredCorrectionIds": [],
+      "minorIssueIds": [],
+      "adjudication": null,
+      "rawReview": {
+        "sourcePage": 4,
+        "title": "Faction overview",
+        "digitalPages": [
+          5
+        ],
+        "verdict": "adapted",
+        "meaningSummary": "The digital page preserves the source's introduction to Atreides, Bene Gesserit, Emperor and Fremen. Each faction's description, symbol and representative remain tied to its five named leaders and their printed strengths, so the page still teaches the faction identities and the composition of their leadership.",
+        "preserved": [
+          "All four introductory descriptions preserve the source wording and characterization, including Atreides foresight, Bene Gesserit influence through others, Imperial Sardaukar power and Fremen independence and planetary regeneration.",
+          "Each row links the faction symbol, description, representative portrait and a separately labelled Leaders group.",
+          "Atreides leaders retain Thufir Hawat 5, Lady Jessica 5, Gurney Halleck 4, Duncan Idaho 3 and Dr. Wellington Yueh 1.",
+          "Bene Gesserit retains all five named leaders at strength 5.",
+          "Emperor leaders retain Hasimir Fenring 6, Captain Aramsham 5, Bashar Garon 3, Colonel Kolona 3 and Wensicia Corrino 2.",
+          "Fremen leaders retain Stilgar 7, Chani 6, Otheym 5, Shadout Mapes 3 and Jamis 2.",
+          "The larger representative portraits remain visually distinct from the smaller numbered leader discs."
+        ],
+        "findings": [],
+        "acceptedAdaptations": [
+          "Existing digital faction symbols and portraits replace the printed artwork while preserving identity, names and strength values.",
+          "Pale row backgrounds and the square page format preserve the four faction groupings and reading order.",
+          "The digital Atreides assets use green rather than the source black. The faction name, hawk symbol and leader grouping keep the identification clear."
+        ],
+        "inspectedImages": [
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/source/page-04.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-05.jpg"
+        ],
+        "notes": [
+          "Assessment is based on visual inspection of both assigned images, with the packet text used only as a reading aid.",
+          "No material difference in meaning, emphasis or teaching intent was demonstrated."
+        ]
+      }
+    },
+    {
+      "sourcePage": 5,
+      "title": "Faction overview and object of the game",
+      "reviewer": "/root/gf9_page_05",
+      "digitalPages": [
+        {
+          "outputPage": 6,
+          "pageId": "LKXC",
+          "title": "Faction overview",
+          "editorUrl": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit#LKXC/details"
+        }
+      ],
+      "verdict": "adapted",
+      "requiredCorrectionIds": [],
+      "minorIssueIds": [],
+      "adjudication": null,
+      "rawReview": {
+        "sourcePage": 5,
+        "title": "Faction overview and object of the game",
+        "digitalPages": [
+          6
+        ],
+        "verdict": "adapted",
+        "meaningSummary": "Digital page 6 preserves the two faction introductions and the complete victory explanation. The faction artwork still connects each faction emblem and representative to its five named leaders and their printed strengths.",
+        "preserved": [
+          "The Spacing Guild introduction retains its transport monopoly, dependence on spice, and need for uninterrupted trade.",
+          "The Harkonnen introduction retains the Baron, treachery, pursuit of power, and the connection between Arrakis and spice.",
+          "Both faction emblems, representative portraits, and five-leader groups remain visually distinct. Guild strengths are 5, 4, 3, 2, 1; Harkonnen strengths are 6, 4, 3, 2, 1, with the corresponding names preserved.",
+          "The object section explains asymmetric faction advantages and control of Arrakis.",
+          "The ordinary win condition remains at least three occupied strongholds during Mentat Pause, or four for an alliance, with at least one force present.",
+          "The simultaneous-win example retains the Ixian Hidden Mobile Stronghold and the agreement to play another round or accept a tie.",
+          "Solo and allied victory, the round-10 fallback, special victory conditions, and the ordered tie breakers remain intact."
+        ],
+        "findings": [],
+        "acceptedAdaptations": [
+          "Existing digital faction assets replace the printed artwork while preserving identities, leader values, and the relationship between each introduction and its pieces.",
+          "The square page uses larger faction rows and reflows the object section into two columns. Both sections remain readable and the victory explanation stays together.",
+          "The normal digital heading treatment and current page-number placement follow the settled choices."
+        ],
+        "inspectedImages": [
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/source/page-05.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-06.jpg"
+        ],
+        "notes": [
+          "No material change to rules, emphasis, or teaching intent was demonstrated by the assigned images.",
+          "Printed page references are retained. Their destination mapping was outside this page-level image comparison."
+        ]
+      }
+    },
+    {
+      "sourcePage": 6,
+      "title": "Game components",
+      "reviewer": "/root/gf9_page_06",
+      "digitalPages": [
+        {
+          "outputPage": 7,
+          "pageId": "TN3N",
+          "title": "GAME COMPONENTS",
+          "editorUrl": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit#TN3N/details"
+        }
+      ],
+      "verdict": "gap",
+      "requiredCorrectionIds": [
+        "R1"
+      ],
+      "minorIssueIds": [],
+      "adjudication": null,
+      "rawReview": {
+        "sourcePage": 6,
+        "title": "Game components",
+        "digitalPages": [
+          7
+        ],
+        "verdict": "gap",
+        "meaningSummary": "The digital page preserves the board rules and battle-wheel assembly instruction. Its four terrain examples remain useful, but the source's wider board-orientation lesson becomes a list of names with no visual referents.",
+        "preserved": [
+          "The four territory types retain their printed colour and border descriptions.",
+          "The text preserves Spice Blow locations, eighteen sectors, storm movement, territories spanning sectors, six player circles, revival storage and the Fremen shipment boundary.",
+          "The numbered board examples identify sand, strongholds, rock and the Polar Sink.",
+          "The quantity of two Battle Wheels and the instruction to join them with the centre pin before play remain intact."
+        ],
+        "findings": [
+          {
+            "severity": "P2",
+            "title": "Most board labels no longer identify anything in the illustration",
+            "sourceEvidence": "The source board has arrows locating the Round Track, Spice Blow symbol, a territory, Tleilaxu Tanks, longitude lines, a sector, Spice Bank and player circles. It also prints an enlarged Spice Blow icon beside the prose.",
+            "digitalEvidence": "On digital page 7, the AssetExplainer marks only four terrain examples. Beneath it, the other eight labels form one dot-separated text line. The circular map omits the surrounding track, tanks, bank and player circles, and no marker connects the longitude-line, sector, territory or Spice Blow labels to a feature.",
+            "readerImpact": "A newcomer can learn the names but cannot use this page to locate those features on the physical board. The visual distinction between a territory and a sector, and recognition of the Spice Blow symbol, receive much less support than in the source.",
+            "suggestedFix": "Use the existing AssetExplainer for any supported board features beyond terrain. For features the asset cannot show, replace the bare label line with short descriptions in existing text or list Blocks that tell the reader what to look for and where on the printed board, including the Spice Blow symbol and the difference between territory borders and longitude lines.",
+            "confidence": "high"
+          }
+        ],
+        "acceptedAdaptations": [
+          "The square page, two columns, ordinary headings and numbered terrain key preserve the reading order without copying the printed geometry.",
+          "Using the existing native board and assembled Battle Wheel assets is approved. The wheel illustration still conveys the pair of wheels, while prose retains the assembly requirement.",
+          "The four numbered terrain examples may use different named territories from the source arrows because the terrain distinctions remain the same."
+        ],
+        "inspectedImages": [
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/source/page-06.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-07.jpg"
+        ],
+        "notes": [
+          "Reviewed the source image first and then the assigned digital image. The packet text served only as a reading aid.",
+          "The Fremen boundary route remains explicit in prose. Its absence as a coloured line in the simplified map is not a separate finding.",
+          "No rule-value change or missing assembly instruction was found."
+        ]
+      }
+    },
+    {
+      "sourcePage": 7,
+      "title": "Physical components inventory",
+      "reviewer": "/root/gf9_page_07",
+      "digitalPages": [],
+      "verdict": "approved-omission",
+      "requiredCorrectionIds": [],
+      "minorIssueIds": [],
+      "adjudication": null,
+      "rawReview": {
+        "sourcePage": 7,
+        "title": "Physical components inventory",
+        "digitalPages": [],
+        "verdict": "approved-omission",
+        "meaningSummary": "The page identifies the physical contents of the box and introduces the purpose of faction components. Its complete omission matches the settled scope. The playing instructions embedded in the component descriptions survive in the digital faction rules.",
+        "preserved": [
+          "Digital page 48 identifies five special Emperor forces and explains their double battle strength. It shows the standard and starred Sardaukar tokens together.",
+          "Digital page 46 identifies three starred Fedaykin, explains their double battle strength, and shows both standard and starred Fremen tokens.",
+          "Digital page 43 explains striped advisors and unstriped fighters and shows the advisor token, preserving the distinction taught by the source token pair.",
+          "Digital pages 50 and 51 explain public tracking of battle losses, activation after seven lost forces, and the Kwisatz Haderach +2 battle bonus. These preserve the actual instructions printed on the small card illustration.",
+          "Digital page 46 explains the Fremen sandworm advantages, including placement and riding, preserving the purpose of the inventory page's sandworm token."
+        ],
+        "findings": [],
+        "acceptedAdaptations": [
+          "The complete physical inventory is intentionally omitted, including component quantities, deck counts, colour identification and the numbered photograph of a faction set.",
+          "Faction rules carry the usable instructions instead of repeating the abbreviated inventory descriptions."
+        ],
+        "inspectedImages": [
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/source/page-07.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-42.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-43.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-46.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-48.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-50.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-51.jpg"
+        ],
+        "notes": [
+          "There is no digital page assigned to source page 7. The listed digital images were inspected to check whether the omission removed actual playing instructions.",
+          "No unique playing instruction on this source page was demonstrated to be lost. The deck-purpose summaries are introductory explanations within the approved inventory omission."
+        ]
+      }
+    },
+    {
+      "sourcePage": 8,
+      "title": "Set-up for play",
+      "reviewer": "/root/gf9_page_08",
+      "digitalPages": [
+        {
+          "outputPage": 8,
+          "pageId": "MC57",
+          "title": "SET-UP FOR PLAY",
+          "editorUrl": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit#MC57/details"
+        },
+        {
+          "outputPage": 9,
+          "pageId": "NFMC",
+          "title": "SET-UP FOR PLAY",
+          "editorUrl": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit#NFMC/details"
+        }
+      ],
+      "verdict": "adapted",
+      "requiredCorrectionIds": [],
+      "minorIssueIds": [],
+      "adjudication": null,
+      "rawReview": {
+        "sourcePage": 8,
+        "title": "Set-up for play",
+        "digitalPages": [
+          8,
+          9
+        ],
+        "verdict": "adapted",
+        "meaningSummary": "The digital pages preserve the setup sequence, faction-selection options, recommendations for smaller games, and the priority of faction and card exceptions. The Atreides sheet example becomes a text callout that retains the starting values and distinguishes deployment, cards, spice, and revivals.",
+        "preserved": [
+          "Board preparation specifies the Spice Bank, all three shuffled decks, face-down draw piles, face-up discards, and reshuffling.",
+          "Both faction-selection methods and voluntary swaps remain. The printed wording about descending card order and the lowest card is retained.",
+          "The smaller-game recommendations retain the named factions, the option to play two factions each, four strongholds to win in two-player games, and no alliances.",
+          "All six player-setup steps remain in order, including randomized seats and markers, starting Treachery cards, removal of unused factions from the Traitor deck, four cards dealt and one secretly kept, the safe-leader option, secret spice holdings, deployment and reserves, and initial round and storm positions.",
+          "The exceptions note remains at the start of digital page 9. It explicitly gives faction advantages and card effects precedence over the general rules.",
+          "The Paul Atreides quotation and attribution remain.",
+          "The Atreides example retains 10 forces in Arrakeen, 10 in off-planet reserves, one starting Treachery card, 10 starting spice, and two force revivals."
+        ],
+        "findings": [],
+        "acceptedAdaptations": [
+          "One printed page occupies two digital pages. The setup instructions stay together on page 8; the exceptions note, quotation, and example continue on page 9.",
+          "Readable sentence-case headings replace the printed all-caps step headings without weakening their order or distinction.",
+          "An existing example callout replaces the illustrated faction-sheet strip and arrows. Its explicit labels preserve the practical teaching point: which Atreides starting values to take from the sheet. The faction slogan is not needed to perform setup."
+        ],
+        "inspectedImages": [
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/source/page-08.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-08.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-09.jpg"
+        ],
+        "notes": [
+          "Review based on visual inspection of the source page and both assigned digital pages, with the packet used for cross-checking.",
+          "No material change to a rule, setup instruction, or example was demonstrated."
+        ]
+      }
+    },
+    {
+      "sourcePage": 9,
+      "title": "Sequence of play",
+      "reviewer": "/root/gf9_page_09",
+      "digitalPages": [
+        {
+          "outputPage": 10,
+          "pageId": "XUD9",
+          "title": "SEQUENCE OF PLAY",
+          "editorUrl": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit#XUD9/details"
+        }
+      ],
+      "verdict": "adapted",
+      "requiredCorrectionIds": [],
+      "minorIssueIds": [],
+      "adjudication": null,
+      "rawReview": {
+        "sourcePage": 9,
+        "title": "Sequence of play",
+        "digitalPages": [
+          10
+        ],
+        "verdict": "adapted",
+        "meaningSummary": "The digital page preserves the nine-phase round and its required order, counter-clockwise storm order, and the warning that the game can end after one round. Every phase retains its purpose, timing and relevant conditions, including the Nexus, shipment before movement, and checking victory before starting another round.",
+        "preserved": [
+          "Up to 10 rounds, nine phases per round, and the explicit instruction to follow the displayed sequence.",
+          "Storm order begins with the First Player and proceeds counter-clockwise.",
+          "The early-victory warning still asks players to consider player order and factions able to win.",
+          "All nine phase names and summaries appear in the original order and remain visually distinct.",
+          "The Spice Blow summary keeps storm-sector exclusion and the opportunity to make or break Alliances when Shai-Hulud appears.",
+          "Charity eligibility remains 0 or 1 spice. Revival and Battle retain storm order.",
+          "Shipment precedes movement within each player turn. Spice collection still requires forces in the sector containing spice.",
+          "Mentat Pause retains the victory check, advancing the round marker only if there are no winners, and collecting bribes then."
+        ],
+        "findings": [],
+        "acceptedAdaptations": [
+          "The introduction is stacked above a single-column phase list instead of using two introductory columns.",
+          "Bullets replace phase numbers, but the list preserves all nine positions and the introductory instruction still states that the sequence is mandatory.",
+          "The counter-clockwise arrow is omitted while its direction remains explicit in the storm-order sentence.",
+          "Existing icons and readable phase headings preserve the visual separation between phases."
+        ],
+        "inspectedImages": [
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/source/page-09.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-10.jpg"
+        ],
+        "notes": [
+          "Both assigned images were inspected directly, source first.",
+          "The digital list retains the printed source-page references. This review did not validate their navigation behavior."
+        ]
+      }
+    },
+    {
+      "sourcePage": 10,
+      "title": "Phase 1: Storm",
+      "reviewer": "/root/gf9_page_10",
+      "digitalPages": [
+        {
+          "outputPage": 11,
+          "pageId": "YEP8",
+          "title": "PHASE 1: STORM",
+          "editorUrl": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit#YEP8/details"
+        },
+        {
+          "outputPage": 12,
+          "pageId": "8LF7",
+          "title": "Storm movement examples",
+          "editorUrl": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit#8LF7/details"
+        }
+      ],
+      "verdict": "adapted",
+      "requiredCorrectionIds": [],
+      "minorIssueIds": [],
+      "adjudication": null,
+      "rawReview": {
+        "sourcePage": 10,
+        "title": "Phase 1: Storm",
+        "digitalPages": [
+          11,
+          12
+        ],
+        "verdict": "adapted",
+        "meaningSummary": "The digital pages preserve the storm procedure, turn order, destruction exceptions and obstruction rules. Both diagrams retain their teaching point: a force may enter the adjacent clear sector but cannot cross the storm for spice, and forces separated by a storm sector cannot battle.",
+        "preserved": [
+          "First-round secret dials of 0 to 20, simultaneous reveal, summed movement counter-clockwise and the ban on coordination.",
+          "Subsequent movement by Storm card, first-player selection, the marker-alignment exception and counter-clockwise storm order.",
+          "Storm-card discards and reshuffling, the special 1-3-sector dials, the fallback participants and permission to negotiate for that card.",
+          "Destruction of sand forces and spice, Imperial Basin protection while Shield Wall remains intact, and the delayed effect of Family Atomics until storm movement.",
+          "The full obstruction rule, including the same-sector rock or stronghold battle exception.",
+          "In the Pasty Mesa example, the Atreides force starts below the storm band. A leftward arrow enters the clear portion of The Minor Erg; a separate upward path crosses the storm band, bears a prohibition mark and points toward the spice annotation. The spice values remain 3 + 5.",
+          "In the Plastic Basin example, the Fremen and Harkonnen markers occupy opposite sides of the highlighted storm sector. The unchanged caption explains why they cannot battle."
+        ],
+        "findings": [],
+        "acceptedAdaptations": [
+          "The source page becomes two square pages, with Obstruction beside its movement examples on page 12.",
+          "Native board scenes replace the source map photographs. The storm band, troop positions, allowed movement arrow and blocked path preserve the spatial lesson without copying the original geometry.",
+          "The digital board scenes use their captions and annotation key to identify the examples, rather than reproducing the original map labels.",
+          "Readable sentence-case subheadings and ordinary paragraph emphasis replace the printed styling."
+        ],
+        "inspectedImages": [
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/source/page-10.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-11.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-12.jpg"
+        ],
+        "notes": [
+          "Reviewed the original source image first, then both digital page images. The authored packet supplied supporting wording and scene coordinates.",
+          "The first diagram retains movement direction: the legal arrow points from the Atreides side toward the clear Minor Erg sector, and the blocked continuation heads across the storm toward spice. The second diagram retains separation by the storm rather than suggesting a battle within one protected sector."
+        ]
+      }
+    },
+    {
+      "sourcePage": 11,
+      "title": "Phase 2: Spice Blow and Nexus",
+      "reviewer": "/root/gf9_page_11",
+      "digitalPages": [
+        {
+          "outputPage": 13,
+          "pageId": "RXDU",
+          "title": "PHASE 2: SPICE BLOW AND NEXUS",
+          "editorUrl": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit#RXDU/details"
+        }
+      ],
+      "verdict": "adapted",
+      "requiredCorrectionIds": [],
+      "minorIssueIds": [],
+      "adjudication": {
+        "decision": "accepted-source-reference",
+        "reason": "The authoring policy deliberately retains printed source page references. The navigator and source map locate the digital section. This is not a required correction."
+      },
+      "rawReview": {
+        "sourcePage": 11,
+        "title": "Phase 2: Spice Blow and Nexus",
+        "digitalPages": [
+          13
+        ],
+        "verdict": "adapted",
+        "meaningSummary": "The digital page preserves the Spice Blow sequence, first-round exception, storm restriction, Wormsign resolution and Nexus timing. The two-territory example and the distinction between Shai-Hulud and Little Maker remain clear.",
+        "preserved": [
+          "The first round sets aside all non-Spice-Blows cards and reshuffles them after the phase.",
+          "Spice goes to the two indicated territories, with no placement at an icon in storm.",
+          "The example retains 6 spice in Hagga Basin and 8 in Cielago Depression, beside a card whose map distinguishes the two territories.",
+          "Wormsign removes spice and forces from the previous discard-card territories, then draws past additional Shai-Hulud or Little Maker cards until a Spice Blows card resolves.",
+          "Little Maker places 10 spice at a vacant icon outside storm, causes a Nexus and does not count as Shai-Hulud.",
+          "The illustrated card types remain identifiable, including the Little Maker card restriction against riding the Worm."
+        ],
+        "findings": [
+          {
+            "severity": "P3",
+            "title": "Alliance cross-reference retains the source page number",
+            "sourceEvidence": "The Nexus paragraph on source page 11 points to Alliances on page 21, where the printed rules place that section.",
+            "digitalEvidence": "Digital page 13 still says \"see Alliances on page 21\". Digital page 21 is the Spacing Guild movement example; Alliances begins on digital page 32.",
+            "readerImpact": "A reader following the printed page number reaches an unrelated movement example. The Nexus rule itself is intact.",
+            "suggestedFix": "Change the reference to the digital Alliances section, preferably using an existing section link or a generated export page reference.",
+            "confidence": "high"
+          }
+        ],
+        "acceptedAdaptations": [
+          "The approved production card assets replace the original card artwork. Both example values remain explicit in card prose and the adjacent example.",
+          "The example caption begins the second column, immediately after the example card in reading order.",
+          "Sentence-case subheadings, the square page and the narrow card rail preserve the instructional hierarchy."
+        ],
+        "inspectedImages": [
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/source/page-11.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-13.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-21.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-32.jpg"
+        ],
+        "notes": [
+          "No material rule or example gap found. Pages 21 and 32 were inspected only to verify the cross-reference."
+        ]
+      }
+    },
+    {
+      "sourcePage": 12,
+      "title": "CHOAM Charity and Bidding",
+      "reviewer": "/root/gf9_page_12",
+      "digitalPages": [
+        {
+          "outputPage": 14,
+          "pageId": "FMKT",
+          "title": "PHASE 3: CHOAM CHARITY",
+          "editorUrl": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit#FMKT/details"
+        },
+        {
+          "outputPage": 15,
+          "pageId": "P3L4",
+          "title": "PHASE 3: CHOAM CHARITY",
+          "editorUrl": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit#P3L4/details"
+        }
+      ],
+      "verdict": "adapted",
+      "requiredCorrectionIds": [],
+      "minorIssueIds": [],
+      "adjudication": null,
+      "rawReview": {
+        "sourcePage": 12,
+        "title": "CHOAM Charity and Bidding",
+        "digitalPages": [
+          14,
+          15
+        ],
+        "verdict": "adapted",
+        "meaningSummary": "The digital pages preserve the charity entitlement, Bene Gesserit exception and complete bidding procedure. Phase 4 is explicitly named after the charity rules, and its three final instructions continue on page 15 without changing their meaning.",
+        "preserved": [
+          "Charity follows storm order, requires revealing a holding of 0 or 1 spice, brings the total to 2, and requires a public declaration of the amount collected.",
+          "The Bene Gesserit always collect 2 spice regardless of their existing holding.",
+          "The separate Phase 4 label and introductory paragraph identify bidding as the next phase rather than a charity procedure.",
+          "Players declare card counts; the normal hand limit is 4; the auction deals one face-down card per eligible player, with a maximum of 6.",
+          "The opening bidder, storm-order raises and passes, ability to rejoin bidding, consecutive-pass stopping condition, payment and card receipt all survive.",
+          "The Truthtrance example preserves the distinction between regaining eligibility and adding another auction card.",
+          "The bid limit retains the ally guarantee exception and the Solaris restriction.",
+          "Rotation of the next opening bidder and return of unauctioned cards in their original order remain explicit.",
+          "Page 15 preserves the deck-exhaustion procedure, disclosure of card number rather than type, and the 10-second passing rule."
+        ],
+        "findings": [],
+        "acceptedAdaptations": [
+          "The source's second full-width phase banner becomes a readable Phase 4 heading within the left column. Its explicit phase number and wording preserve the boundary between charity and bidding.",
+          "The bidding bullets continue at the top of the right column after their introduction at the bottom of the left column. The two-column reading order remains clear.",
+          "The final three bidding subsections move to a continuation page, as allowed by the approved square format and additional pages.",
+          "Regular headings and readable body text replace the source's banner treatment and italic note. The Bene Gesserit exception remains clearly identified as a note."
+        ],
+        "inspectedImages": [
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/source/page-12.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-14.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-15.jpg"
+        ],
+        "notes": [
+          "Inspected all assigned images in source-first order. No diagram or numerical worked example appears on this source page.",
+          "No material omission, altered rule or misleading example demonstrated."
+        ]
+      }
+    },
+    {
+      "sourcePage": 13,
+      "title": "Phase 5: Revival",
+      "reviewer": "/root/gf9_page_13",
+      "digitalPages": [
+        {
+          "outputPage": 16,
+          "pageId": "G8TK",
+          "title": "PHASE 5: REVIVAL",
+          "editorUrl": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit#G8TK/details"
+        }
+      ],
+      "verdict": "adapted",
+      "requiredCorrectionIds": [],
+      "minorIssueIds": [],
+      "adjudication": null,
+      "rawReview": {
+        "sourcePage": 13,
+        "title": "Phase 5: Revival",
+        "digitalPages": [
+          16
+        ],
+        "verdict": "adapted",
+        "meaningSummary": "The digital page preserves the revival rules and the Atreides example. A numbered marker links the native faction sheet's revival entry to the explanation that two free forces plus one force costing 2 spice reaches the three-force limit.",
+        "preserved": [
+          "Force revival begins with the First Player and proceeds in storm order. Players revive up to three forces from the Tleilaxu Tanks.",
+          "Faction Sheets determine free revivals. Extra forces cost 2 spice each, paid to the Spice Bank, and the three-force cap includes free revivals. Revived forces go to reserves.",
+          "Leader revival becomes available once all leaders are in the Tanks and/or captured. The second faction token records that permission, and only one leader may be revived each round.",
+          "Leader revival costs the leader's fighting strength in spice. A revived leader remains subject to being a traitor, and previously revived leaders may be chosen again.",
+          "The sheet example retains the Atreides value of two free revivals and the complete worked calculation of one additional force for 2 spice, for three forces total."
+        ],
+        "findings": [],
+        "acceptedAdaptations": [
+          "The two sets of rules share the left column, while the faction sheet and its explanation occupy the right column.",
+          "The approved native faction sheet replaces the printed sheet image. Its REVIVAL entry gives 2 forces per round, and marker 1 connects that entry with the free-revival explanation below.",
+          "The printed arrow and side caption become a numbered AssetExplainer marker and caption. The values and teaching point survive.",
+          "Readable sentence-case subheadings and ordinary text replace the printed emphasis."
+        ],
+        "inspectedImages": [
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/source/page-13.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-16.jpg"
+        ],
+        "notes": [
+          "The sheet's other faction abilities provide context for the example. No material omission or changed revival rule was demonstrated."
+        ]
+      }
+    },
+    {
+      "sourcePage": 14,
+      "title": "Phase 6: Shipment and Movement",
+      "reviewer": "/root/gf9_page_14",
+      "digitalPages": [
+        {
+          "outputPage": 17,
+          "pageId": "CDJ6",
+          "title": "PHASE 6: SHIPMENT AND MOVEMENT",
+          "editorUrl": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit#CDJ6/details"
+        },
+        {
+          "outputPage": 18,
+          "pageId": "4Z2S",
+          "title": "PHASE 6: SHIPMENT AND MOVEMENT",
+          "editorUrl": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit#4Z2S/details"
+        }
+      ],
+      "verdict": "gap",
+      "requiredCorrectionIds": [
+        "R2"
+      ],
+      "minorIssueIds": [],
+      "adjudication": null,
+      "rawReview": {
+        "sourcePage": 14,
+        "title": "Phase 6: Shipment and Movement",
+        "digitalPages": [
+          17,
+          18
+        ],
+        "verdict": "gap",
+        "meaningSummary": "The digital pages preserve the shipment and movement rules, their exceptions, and the three-territory example. The replacement map identifies the two qualifying cities but does not show the ornithopter symbols the source diagram teaches readers to recognize.",
+        "preserved": [
+          "Each player completes optional shipment before optional movement, proceeding in storm order.",
+          "One shipment goes to one sector, with the printed stronghold and non-stronghold costs and all three shipment restrictions.",
+          "Movement uses one group, allows no pickup or drop-off, and retains the Arrakeen/Carthag access condition and the Tuek's Sietch example.",
+          "Sector distance, storm restrictions, Polar Sink immunity, and stronghold blocking retain their original meaning."
+        ],
+        "findings": [
+          {
+            "severity": "P2",
+            "title": "The ornithopter diagram labels cities without showing the icons",
+            "sourceEvidence": "The source map has arrows pointing to aircraft silhouettes in Arrakeen and Carthag beneath the caption \"Ornithopter Icons\".",
+            "digitalEvidence": "Page 18 retains the caption \"Ornithopter icons\", but the board crop shows city silhouettes and numbered city labels. It does not show the aircraft silhouettes, and the markers identify Arrakeen and Carthag rather than a recognizable ornithopter symbol.",
+            "readerImpact": "The reader can locate the two cities but cannot learn which printed map symbol denotes ornithopter access. The caption suggests that the visible city symbols are the ornithopter icons.",
+            "suggestedFix": "Use an existing asset crop that includes the aircraft symbols and point the annotations at those symbols. If the existing board cannot show them, change the caption to identify the qualifying cities and add a short explanation of the source map's aircraft symbols using an existing text block.",
+            "confidence": "high"
+          }
+        ],
+        "acceptedAdaptations": [
+          "The original page is spread across two square digital pages.",
+          "Sentence-case headings, bullets, and the native board crop replace the printed styling and map artwork.",
+          "Moving the map to the continuation page leaves the rules readable and keeps the qualifying cities identifiable."
+        ],
+        "inspectedImages": [
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/source/page-14.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-17.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-18.jpg"
+        ],
+        "notes": [
+          "No rule wording or example-value discrepancy was found."
+        ]
+      }
+    },
+    {
+      "sourcePage": 15,
+      "title": "Shipment and movement restrictions and examples",
+      "reviewer": "/root/gf9_page_15",
+      "digitalPages": [
+        {
+          "outputPage": 19,
+          "pageId": "RNZM",
+          "title": "PHASE 6: SHIPMENT AND MOVEMENT",
+          "editorUrl": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit#RNZM/details"
+        },
+        {
+          "outputPage": 20,
+          "pageId": "Q4A6",
+          "title": "Shipment and movement examples",
+          "editorUrl": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit#Q4A6/details"
+        },
+        {
+          "outputPage": 21,
+          "pageId": "WLKG",
+          "title": "Spacing Guild movement example",
+          "editorUrl": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit#WLKG/details"
+        }
+      ],
+      "verdict": "adapted",
+      "requiredCorrectionIds": [],
+      "minorIssueIds": [],
+      "adjudication": {
+        "decision": "accepted-source-reference",
+        "reason": "The authoring policy deliberately retains printed source page references. The rules and examples retain their meaning. Final verdict is adapted."
+      },
+      "rawReview": {
+        "sourcePage": 15,
+        "title": "Shipment and movement restrictions and examples",
+        "digitalPages": [
+          19,
+          20,
+          21
+        ],
+        "verdict": "gap",
+        "meaningSummary": "The restrictions and both examples retain their rules, values and teaching points. The Harkonnen diagrams show shipment before movement, and the Guild diagram connects storm-blocked shipment, ornithopter access and movement toward spice. One retained printed cross-reference now points to the wrong digital page.",
+        "preserved": [
+          "The ally restriction, rare stronghold exception and Polar Sink safe haven retain the source wording and distinctions.",
+          "The Harkonnen example keeps 4 existing forces plus 5 shipped, followed by 3 moving to Arrakeen and 6 remaining in Carthag. Both board scenes and their captions support those numbers.",
+          "The Guild example keeps the single-force shipment to Arrakeen, the Atreides danger there, the single Bene Gesserit force in Carthag and the storm reason Carthag cannot be used.",
+          "The Guild movement arrow runs from Tuek's Sietch through the southern territories toward Cielago South, with the 2 and 10 spice values retained in the annotation."
+        ],
+        "findings": [
+          {
+            "severity": "P2",
+            "title": "The ally constraint reference points to the Guild example",
+            "sourceEvidence": "The source's Territories With Allies paragraph directs readers to Constraint on printed page 21 for the fuller alliance restriction.",
+            "digitalEvidence": "Digital page 19 still says \"See Constraint on page 21.\" Digital page 21 is the Spacing Guild movement example. Constraint and its explanation of forced movement or return to reserves are on digital page 32.",
+            "readerImpact": "A reader following the instruction cannot find the fuller rule and its consequences at the stated location.",
+            "suggestedFix": "Change the reference to the Constraint section on digital page 32, or use the existing rulebook navigation link to that section.",
+            "confidence": "high"
+          }
+        ],
+        "acceptedAdaptations": [
+          "Splitting the source into three digital pages gives the restrictions and each example room without changing their relationship.",
+          "The existing board, flat troop arrangements and explicit arithmetic captions replace photographed token stacks while keeping the Harkonnen example understandable.",
+          "The full-board Guild scene, numbered annotations and segmented movement arrow preserve the storm, destination and spice teaching points without reproducing the printed crop.",
+          "Readable sentence-case subheadings replace the source's heading treatment."
+        ],
+        "inspectedImages": [
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/source/page-15.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-19.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-20.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-21.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-32.jpg"
+        ],
+        "notes": [
+          "Digital page 32 was inspected only to verify the target of the cross-reference on the assigned page."
+        ]
+      }
+    },
+    {
+      "sourcePage": 16,
+      "title": "Phase 7: Battle",
+      "reviewer": "/root/gf9_page_16",
+      "digitalPages": [
+        {
+          "outputPage": 22,
+          "pageId": "T4NA",
+          "title": "PHASE 7: BATTLE",
+          "editorUrl": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit#T4NA/details"
+        },
+        {
+          "outputPage": 23,
+          "pageId": "6LBR",
+          "title": "PHASE 7: BATTLE",
+          "editorUrl": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit#6LBR/details"
+        }
+      ],
+      "verdict": "adapted",
+      "requiredCorrectionIds": [],
+      "minorIssueIds": [],
+      "adjudication": null,
+      "rawReview": {
+        "sourcePage": 16,
+        "title": "Phase 7: Battle",
+        "digitalPages": [
+          22,
+          23
+        ],
+        "verdict": "adapted",
+        "meaningSummary": "The digital pages preserve when battles happen, how initiative passes, and how players assemble a Battle Plan. The force-loss example, leader restrictions and no-leader restriction retain their meaning, while the quotation remains clearly separate from the rules.",
+        "preserved": [
+          "Battle determination retains both storm exceptions, including forces that still battle in the same storm-covered rock or stronghold sector.",
+          "Polar Sink remains a haven, with the explicit exception for a territory created within it.",
+          "Initiative permits choosing battle order and returning to a territory, then passes to the player on the immediate right in storm order.",
+          "The Battle Plan requires dialed force strength and an available leader or Cheap Hero, with optional Treachery cards subject to the later restriction.",
+          "Force strength remains distinct from force count. The Atreides example preserves four forces, a dial range of 0-4, dialed losses on victory and total losses on defeat.",
+          "Leader reuse within one territory, the limit across territories, the traitor exception and the lack of an advance announcement requirement remain visible.",
+          "Page 23 preserves the mandatory battle and Treachery prohibition without a leader or Cheap Hero, together with the Cheap Hero's zero strength and permission to use Treachery cards.",
+          "The shield-fighting quotation retains its wording and attribution, with italic styling and a vertical rule that distinguish it from instructions."
+        ],
+        "findings": [],
+        "acceptedAdaptations": [
+          "One source page becomes two digital pages. The no-leader restriction continues immediately on page 23 under its own heading.",
+          "The margin quotation moves to a separate column on the continuation page. Its quotation treatment keeps it recognisable as flavour text.",
+          "Readable sentence-case headings replace the source's mixed heading styles. The explicit Example label keeps the force-loss example distinct despite the loss of source italics."
+        ],
+        "inspectedImages": [
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/source/page-16.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-22.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-23.jpg"
+        ],
+        "notes": [
+          "All assigned images were inspected visually. No material change in rules, instructional emphasis or quotation relationships was demonstrated."
+        ]
+      }
+    },
+    {
+      "sourcePage": 17,
+      "title": "Treachery cards, spice strength, and battle resolution",
+      "reviewer": "/root/gf9_page_17",
+      "digitalPages": [
+        {
+          "outputPage": 24,
+          "pageId": "PTKA",
+          "title": "PHASE 7: BATTLE",
+          "editorUrl": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit#PTKA/details"
+        },
+        {
+          "outputPage": 25,
+          "pageId": "EVTQ",
+          "title": "PHASE 7: BATTLE",
+          "editorUrl": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit#EVTQ/details"
+        }
+      ],
+      "verdict": "gap",
+      "requiredCorrectionIds": [
+        "R3"
+      ],
+      "minorIssueIds": [],
+      "adjudication": null,
+      "rawReview": {
+        "sourcePage": 17,
+        "title": "Treachery cards, spice strength, and battle resolution",
+        "digitalPages": [
+          24,
+          25
+        ],
+        "verdict": "gap",
+        "meaningSummary": "The prose preserves card-slot rules, secrecy, spice costs, battle totals, and the Lasgun–Shield explosion. The card examples remain readable, but the replacement battle-wheel illustration loses the source's visible strength-3 leader and adds an unexplained second plan.",
+        "preserved": [
+          "Weapon and Defense Slots remain distinct. Cheap Hero replaces the leader, permits a third Treachery card, and is not a slot card.",
+          "The secrecy instruction and the rule that a dead leader does not cancel accompanying Treachery cards remain explicit.",
+          "The spice thresholds remain 2 strength/2 spice/+1, 4/4/+2, and 8/8/+3. The Atreides example retains 6 force strength, 4 spice, and +2 spice strength.",
+          "The non-cumulative spending rule, Sardaukar strength distinction, cash-on-hand requirement, ally restriction, and simultaneous reveal remain readable.",
+          "Battle Total still includes dialed force strength, surviving leader strength, and spice strength. Initiative breaks ties; matching defenses protect leaders; Lasgun has no defense.",
+          "The Lasgun and Shield cards preserve their categories, slot instructions, effects, and keep-on-victory wording. The Lasgun card also retains the no-spice-for-killed-leaders warning.",
+          "The explosion paragraph retains all forces and leaders in the territory, previously surviving face-up leaders, return of spice, both players losing, and the exception for other kinetic defenses."
+        ],
+        "findings": [
+          {
+            "severity": "P2",
+            "title": "Replacement wheel example removes the visible leader",
+            "sourceEvidence": "The source spice-strength illustration shows a single wheel dialed to 6, a +2 spice-strength indicator, and a visible leader strength of 3. The caption identifies spending 4 spice.",
+            "digitalEvidence": "Page 25 places two wheels beneath the Shield. Both read 6 and explicitly show 'None' in the leader position. The left wheel shows +2 and 4 spice; the right shows 0 spice. Neither wheel has a caption connecting it to the Atreides example on page 24 or explaining the second wheel.",
+            "readerImpact": "The spice numbers survive, but the visual no longer demonstrates the same battle plan. A reader sees leaderless plans beside the battle-resolution rules instead of the source example with a strength-3 leader, and has no explanation for the extra plan.",
+            "suggestedFix": "Use the existing battle-plan block to retain the source's strength-3 leader and identify the 6-force, 4-spice, +2 example in a caption. Remove the extra plan if supported, or explain its comparison role.",
+            "confidence": "high"
+          }
+        ],
+        "acceptedAdaptations": [
+          "Two square pages replace the source's three-column page.",
+          "Normal headings and paragraph emphasis retain the instructional structure.",
+          "The secrecy note is moved into the text flow. Its instruction remains clear without reproducing the partly hidden miniature card.",
+          "Existing native card assets replace the printed card pictures while preserving the relevant wording."
+        ],
+        "inspectedImages": [
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/source/page-17.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-24.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-25.jpg"
+        ],
+        "notes": [
+          "All assigned images were visually inspected. The finding concerns the configured example, not the approved wheel artwork or page geometry. No incorrect spice arithmetic was found."
+        ]
+      }
+    },
+    {
+      "sourcePage": 18,
+      "title": "Battle aftermath and Emperor battle plan",
+      "reviewer": "/root/gf9_page_18",
+      "digitalPages": [
+        {
+          "outputPage": 26,
+          "pageId": "VKG8",
+          "title": "PHASE 7: BATTLE",
+          "editorUrl": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit#VKG8/details"
+        },
+        {
+          "outputPage": 27,
+          "pageId": "ZSCH",
+          "title": "Example of a battle",
+          "editorUrl": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit#ZSCH/details"
+        }
+      ],
+      "verdict": "adapted",
+      "requiredCorrectionIds": [],
+      "minorIssueIds": [],
+      "adjudication": null,
+      "rawReview": {
+        "sourcePage": 18,
+        "title": "Battle aftermath and Emperor battle plan",
+        "digitalPages": [
+          26,
+          27
+        ],
+        "verdict": "adapted",
+        "meaningSummary": "The digital pages preserve the rules for leader deaths, survivor reuse, losses, retained cards and special-force casualties. The Emperor example keeps the printed 6 force strength, 4 spice for +2 strength, 6-strength Hasimir Fenring and total of 14, with the correct Baliset and Snooper cards.",
+        "preserved": [
+          "The winner receives spice for every killed leader, including their own; the loser receives none even if they killed the winning leader.",
+          "Surviving leaders remain face up in the territory, may fight again there, cannot move to another territory during the phase and return to their owners at phase end.",
+          "The loser loses all forces and played cards. The winner loses the dialed strength and may retain cards when their text permits.",
+          "The special-force example retains three normal forces and three double-strength Sardaukar, a dial of 3, and the alternatives of three normal losses or one Sardaukar plus one normal loss.",
+          "The battle illustration and caption agree on Emperor force 6, spice paid 4, added strength +2 and Fenring strength 6. The printed total of 14 survives.",
+          "The enlarged Baliset and Snooper cards retain their distinct roles and readable effects, including the worthless card restriction and poison defense."
+        ],
+        "findings": [],
+        "acceptedAdaptations": [
+          "The aftermath rules and battle example occupy separate digital pages, with normal headings replacing the source typography.",
+          "The native battle wheel exposes the Emperor plan while the Atreides wheel remains concealed. The source spread shows Fenring already crossed out; digital page 29 shows his death at resolution alongside the revealed Maula Pistol, preserving the teaching point across the sequence.",
+          "The native wheel presents spice paid and added strength as separate values. It preserves the source arithmetic without copying the physical wheel geometry.",
+          "No troop-token illustration appears in this source example. The casualty rules and special-force troop counts remain explicit in prose."
+        ],
+        "inspectedImages": [
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/source/page-18.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-26.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-27.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/source/page-19.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-29.jpg"
+        ],
+        "notes": [
+          "Source page 19 and digital page 29 were inspected only to confirm the continuation and Fenring death marker. No finding is assigned to that adjacent page.",
+          "No material difference in rules, arithmetic, card roles or instructional emphasis was demonstrated."
+        ]
+      }
+    },
+    {
+      "sourcePage": 19,
+      "title": "Traitors and battle result",
+      "reviewer": "/root/gf9_page_19",
+      "digitalPages": [
+        {
+          "outputPage": 28,
+          "pageId": "GNAH",
+          "title": "TRAITORS",
+          "editorUrl": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit#GNAH/details"
+        },
+        {
+          "outputPage": 29,
+          "pageId": "H8P2",
+          "title": "Battle result",
+          "editorUrl": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit#H8P2/details"
+        }
+      ],
+      "verdict": "adapted",
+      "requiredCorrectionIds": [],
+      "minorIssueIds": [],
+      "adjudication": null,
+      "rawReview": {
+        "sourcePage": 19,
+        "title": "Traitors and battle result",
+        "digitalPages": [
+          28,
+          29
+        ],
+        "verdict": "adapted",
+        "meaningSummary": "The digital pages preserve the traitor rules, their exceptions and both examples. The worked battle still teaches that killing Fenring removes his leader strength, leaving the Emperor at 8 against Atreides at 9, with the printed losses, reward and card retention intact.",
+        "preserved": [
+          "Calling a matching traitor is optional and works when another faction controls the leader, including a captured leader or Ghola.",
+          "The caller wins immediately, loses nothing even against Lasgun and Shield, may discard played cards, receives the traitor's strength in spice, may reuse their own leader and retains committed spice.",
+          "The exposed player loses all forces in the territory, played Treachery cards and committed spice. The Fremen example retains the 13-to-11 reversal and Chani's 6-spice reward.",
+          "Dual traitors cost both players their forces, cards, committed spice and leaders, with no leader reward. Revival leaves a dead traitor vulnerable to the same Traitor card.",
+          "The captured Lady Jessica example retains the setup choice of a safe leader and the timing after Battle Plans are revealed.",
+          "Atreides dials 4, pays no spice, plays strength-5 Lady Jessica and Maula Pistol with no defense, for a total of 9. The wheel shows these values.",
+          "Fenring dies to the Maula Pistol. The text retains the Emperor's remaining 6 dial strength plus 2 spice strength, Atreides' 4-force loss and 6-spice reward, retention of the pistol, and the Emperor's loss of all forces and played cards.",
+          "The enlarged Maula Pistol card retains its kinetic weapon type, leader-killing condition and permission to keep it after winning."
+        ],
+        "findings": [],
+        "acceptedAdaptations": [
+          "The source page is split into a complete traitor page and a separate battle-result page.",
+          "The battle result uses native paired battle wheels and cards. The crossed-out Fenring makes his removal explicit, while the Atreides wheel preserves the printed 4, 0 and 5 values.",
+          "Readable headings and ordinary paragraph styling preserve the distinctions between general rules, exceptions and examples without reproducing the source's italic example paragraphs."
+        ],
+        "inspectedImages": [
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/source/page-19.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-28.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-29.jpg"
+        ],
+        "notes": [
+          "All assigned source and digital images were inspected visually. The packet text was used only to check small details after image inspection.",
+          "No material difference in meaning or instructional emphasis was demonstrated. Printed example values were assessed as printed, without correcting them."
+        ]
+      }
+    },
+    {
+      "sourcePage": 20,
+      "title": "Spice collection and Mentat Pause",
+      "reviewer": "/root/gf9_page_20",
+      "digitalPages": [
+        {
+          "outputPage": 30,
+          "pageId": "2SM5",
+          "title": "PHASE 8: SPICE COLLECTION",
+          "editorUrl": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit#2SM5/details"
+        },
+        {
+          "outputPage": 31,
+          "pageId": "56QM",
+          "title": "PHASE 8: SPICE COLLECTION",
+          "editorUrl": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit#56QM/details"
+        }
+      ],
+      "verdict": "gap",
+      "requiredCorrectionIds": [
+        "R4"
+      ],
+      "minorIssueIds": [],
+      "adjudication": null,
+      "rawReview": {
+        "sourcePage": 20,
+        "title": "Spice collection and Mentat Pause",
+        "digitalPages": [
+          30,
+          31
+        ],
+        "verdict": "gap",
+        "meaningSummary": "The digital pages preserve the collection rates, stronghold payments, victory conditions, bribe timing and winning hierarchy. The replacement map incorrectly distinguishes Arrakeen from Carthag even though both provide carryalls and stronghold income.",
+        "preserved": [
+          "Collection requires forces in the spice-bearing sector, pays 2 spice per force up to the available supply, and leaves uncollected spice and collecting forces in place.",
+          "Occupying Arrakeen or Carthag raises collection to 3 spice per force in every territory where that player collects.",
+          "The prose retains 2 spice income for Arrakeen or Carthag, 1 for Tuek's Sietch, and cumulative income for multiple controlled strongholds.",
+          "The separate Phase 9 heading clearly introduces victory checks and the Atreides/Fremen four-stronghold example.",
+          "The next-round instruction, deferred bribe collection, prohibition on new bribes and Treachery cards, six winning priorities and tournament tiebreakers all survive."
+        ],
+        "findings": [
+          {
+            "severity": "P2",
+            "title": "Arrakeen map annotation omits its stronghold income",
+            "sourceEvidence": "The source map connects the Stronghold Income label to Carthag, Arrakeen and Tuek's Sietch, and connects Carryalls to both Carthag and Arrakeen. Its symbols show two income coins in both northern strongholds.",
+            "digitalEvidence": "On digital page 30, the northern-right stronghold, Arrakeen, has marker 1 with the legend Carryalls. Carthag has marker 3, Carryalls and stronghold income. Tuek's Sietch has marker 2, Stronghold income. The map has no visible territory names or income values.",
+            "readerImpact": "The diagram teaches that Arrakeen supplies only carryalls while Carthag supplies both benefits. This contradicts the correct paragraph directly above it and loses the source image's shared-benefit teaching point.",
+            "suggestedFix": "Use the existing board-scene annotations to label both Arrakeen and Carthag as providing carryalls and 2 spice income, and Tuek's Sietch as providing 1 spice income. Include the stronghold names in the annotation text so the simplified map remains self-explanatory.",
+            "confidence": "high"
+          }
+        ],
+        "acceptedAdaptations": [
+          "The Mentat Pause section shares page 30 with spice collection and uses a normal readable heading.",
+          "The winning hierarchy continues on page 31 in the same order. The approved additional page does not remove any rule.",
+          "The margin quotation moves into a quotation block after the tournament note."
+        ],
+        "inspectedImages": [
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/source/page-20.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-30.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-31.jpg"
+        ],
+        "notes": [
+          "No text omissions or incorrect printed values were found. The finding concerns the map's distinction between stronghold benefits, not its artistic fidelity."
+        ]
+      }
+    },
+    {
+      "sourcePage": 21,
+      "title": "Alliances (Nexus)",
+      "reviewer": "/root/gf9_page_21",
+      "digitalPages": [
+        {
+          "outputPage": 32,
+          "pageId": "3TKC",
+          "title": "ALLIANCES (NEXUS)",
+          "editorUrl": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit#3TKC/details"
+        },
+        {
+          "outputPage": 33,
+          "pageId": "V6CT",
+          "title": "ALLIANCES (NEXUS)",
+          "editorUrl": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit#V6CT/details"
+        }
+      ],
+      "verdict": "adapted",
+      "requiredCorrectionIds": [],
+      "minorIssueIds": [],
+      "adjudication": null,
+      "rawReview": {
+        "sourcePage": 21,
+        "title": "Alliances (Nexus)",
+        "digitalPages": [
+          32,
+          33
+        ],
+        "verdict": "adapted",
+        "meaningSummary": "The digital pages preserve when alliances may change, their public membership, the four-stronghold victory condition, and the rules for cooperating without sharing territory. The exceptions, payment commitments, and distinction between secret discussions and publicly known communication remain clear.",
+        "preserved": [
+          "A Nexus follows a Shai-Hulud reveal after the first round and gives all players a chance to make or break alliances before play resumes.",
+          "Alliances contain at most two players, with only one alliance per player. Membership is public, and further changes wait until the next Nexus.",
+          "The two-minute discussion limit remains a guideline. Private discussions are allowed when the fact of discussion is public.",
+          "A player may announce a break during a Nexus and immediately form another alliance. The digital reading order keeps these consecutive across the columns.",
+          "Victory requires at least four occupied strongholds during Mentat Pause. Both the one-plus-three and four-plus-zero examples survive.",
+          "Allied forces cannot end an action or phase together except in Polar Sink. The adjacent note retains who must move first, when unmoved forces return to reserves, and the outcome if both factions cannot leave.",
+          "Allies may share strategy secretly at any time, but must make the act of communicating public.",
+          "Page 33 retains payment of Treachery-card costs to the Spice Bank, the combined available-spice bidding ceiling, and the binding commitment to fund a successful allied bid.",
+          "Allied shipment payments and assistance specified on Faction Sheets and Alliance cards remain explicit."
+        ],
+        "findings": [],
+        "acceptedAdaptations": [
+          "The source page continues over two square digital pages. Bidding, Shipment, and Alliance abilities appear together on page 33 in the original order.",
+          "Readable sentence-case headings replace the source capitalization and typography. The Constraint note remains directly below its rule.",
+          "This source page contains no explanatory pictures, so its teaching content is carried by the preserved prose and headings."
+        ],
+        "inspectedImages": [
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/source/page-21.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-32.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-33.jpg"
+        ],
+        "notes": [
+          "All three assigned images were visually inspected. No material rule, qualification, exception, or emphasis gap was demonstrated."
+        ]
+      }
+    },
+    {
+      "sourcePage": 22,
+      "title": "Other Rules",
+      "reviewer": "/root/gf9_page_22",
+      "digitalPages": [
+        {
+          "outputPage": 34,
+          "pageId": "T3NC",
+          "title": "OTHER RULES",
+          "editorUrl": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit#T3NC/details"
+        },
+        {
+          "outputPage": 35,
+          "pageId": "ZHTZ",
+          "title": "OTHER RULES",
+          "editorUrl": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit#ZHTZ/details"
+        }
+      ],
+      "verdict": "adapted",
+      "requiredCorrectionIds": [],
+      "minorIssueIds": [],
+      "adjudication": null,
+      "rawReview": {
+        "sourcePage": 22,
+        "title": "Other Rules",
+        "digitalPages": [
+          34,
+          35
+        ],
+        "verdict": "adapted",
+        "meaningSummary": "The digital pages preserve the source rules for secrecy, binding deals, delayed access to bribe spice, optional faction advantages, negotiated surrender, information trading, social play, and note-taking. Conditions and exceptions remain attached to their rules, and the examples retain their instructional meaning.",
+        "preserved": [
+          "Secrecy remains optional for cards, spice, leaders and selected traitors, with the same Bidding disclosure requirement, public force counts and announcement of private information exchanges.",
+          "Deals must be announced and honored, with the same impossibility and mutual-cancellation exceptions. Allied deals remain nonbinding and cannot transfer spice except through normal legal payments.",
+          "The restrictions on transferable items, the placement and Mentat Pause collection of bribe spice, the ban on bribes during Mentat Pause, and the requirement to obey rules and faction advantages all remain readable.",
+          "The word may still marks an optional faction advantage.",
+          "All six negotiated-surrender points survive, including the force-dial exception, expansion-effect examples, optional Tech token transfer and permission to agree different terms.",
+          "The Atreides and Harkonnen information-selling examples, encouragement to bargain and bluff, and Hagga Basin bargain example retain their source meaning.",
+          "The note-taking prohibition retains the Atreides Bidding exception. Discard piles remain private and may be searched only when an effect allows it."
+        ],
+        "findings": [],
+        "acceptedAdaptations": [
+          "One source page spans two digital pages. The first page ends with the Sharing information introduction, and its examples continue at the start of page 35 in the same reading order.",
+          "Sentence-case headings and regular type replace the source heading style and italic examples. Explicit example wording keeps the examples distinct from the rules.",
+          "The final Bribery and deals paragraph continues at the top of the right column on page 34 before Faction advantages. The column reading order preserves its relationship to the preceding paragraphs.",
+          "The Faction section reference intentionally retains printed source page 27."
+        ],
+        "inspectedImages": [
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/source/page-22.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-34.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-35.jpg"
+        ],
+        "notes": [
+          "Visually inspected the source image first, then both digital page images. No material change in meaning or missing instruction was demonstrated."
+        ]
+      }
+    },
+    {
+      "sourcePage": 23,
+      "title": "Treachery cards",
+      "reviewer": "/root/gf9_page_23",
+      "digitalPages": [
+        {
+          "outputPage": 36,
+          "pageId": "SRHY",
+          "title": "TREACHERY CARDS",
+          "editorUrl": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit#SRHY/details"
+        }
+      ],
+      "verdict": "adapted",
+      "requiredCorrectionIds": [],
+      "minorIssueIds": [],
+      "adjudication": null,
+      "rawReview": {
+        "sourcePage": 23,
+        "title": "Treachery cards",
+        "digitalPages": [
+          36
+        ],
+        "verdict": "adapted",
+        "meaningSummary": "The digital page preserves how Treachery cards are acquired, when each category can be played, and which cards may be kept or must be discarded. The four card examples retain their category, effect and relationship to the surrounding instruction.",
+        "preserved": [
+          "The deck contains Weapons, Defenses, Actions and Worthless cards, generally acquired through bidding after starting cards.",
+          "Kinetic, poison and special types remain distinct, including expansion cards with more than one type. Weapons and defenses are restricted to Battle Plans, and an appropriate defense prevents leader death, including for Cheap Heroes.",
+          "The kinetic example and special-weapon exceptions remain explicit. Crysknife still depicts a kinetic weapon and Snooper a poison defense, without suggesting that they counter each other.",
+          "Winners may retain weapons and defenses for later battles in the same round unless otherwise indicated, and may voluntarily discard cards from their Battle Plan.",
+          "Actions remain one-shot effects discarded after resolution. Family Atomics alone is removed from the game. Battle Plan Actions can only be played that way and are discarded even after winning.",
+          "The Tleilaxu Ghola example retains free revival of one leader or up to five forces, including starred forces, regardless of leader count in the Tanks, without counting against normal round revivals.",
+          "Worthless cards normally have no effect, occupy a weapon or defense slot when played, and must be discarded once revealed, subject to stated exceptions. Kulon remains the matching example."
+        ],
+        "findings": [],
+        "acceptedAdaptations": [
+          "The square two-column page uses the existing card assets and places Actions and Worthless text beside their examples.",
+          "Crysknife and Snooper appear separately with captions rather than overlapping. Their labels and card instructions remain visible.",
+          "Normal section headings, digital page numbering and changed card scale preserve the instructional hierarchy under the settled choices."
+        ],
+        "inspectedImages": [
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/source/page-23.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-36.jpg"
+        ],
+        "notes": [
+          "Reviewed the source image before the digital image. No material change in rule meaning, conditions or example teaching point was demonstrated.",
+          "No printed cross-references appear on this source page."
+        ]
+      }
+    },
+    {
+      "sourcePage": 24,
+      "title": "Shield Wall and Karama",
+      "reviewer": "/root/gf9_page_24",
+      "digitalPages": [
+        {
+          "outputPage": 37,
+          "pageId": "AYAN",
+          "title": "TREACHERY CARDS",
+          "editorUrl": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit#AYAN/details"
+        }
+      ],
+      "verdict": "adapted",
+      "requiredCorrectionIds": [],
+      "minorIssueIds": [
+        "M2"
+      ],
+      "adjudication": null,
+      "rawReview": {
+        "sourcePage": 24,
+        "title": "Shield Wall and Karama",
+        "digitalPages": [
+          37
+        ],
+        "verdict": "adapted",
+        "meaningSummary": "The digital page preserves the consequences of destroying Shield Wall and every faction-specific Karama cancellation, including its timing. Its replacement map teaches the same location, while the Family Atomics card illustration clips its final instructions, which the surrounding prose and preceding page otherwise preserve.",
+        "preserved": [
+          "Shield Wall begins intact, Family Atomics destroys it, and the destroyed token records the change.",
+          "Family Atomics card text retains the Round 1 prohibition, play window after storm movement is revealed and before movement, adjacent-force condition, intervening-storm restriction, allowance for forces already in storm, and destruction of all forces in Shield Wall.",
+          "The prose explicitly names Arrakeen, Carthag and Imperial Basin as losing storm protection, including forces in sectors the storm crosses or ends on.",
+          "Arrakeen and Carthag retain stronghold victory status, ornithopters, carryalls and occupied collection of 2 spice each.",
+          "Karama retains its choice between a once-per-game power and cancellation of one vulnerable faction advantage.",
+          "All six cancellation effects retain their exact scope and timing, including Fremen still being allowed to spend spice and Guild cancellation preceding deferral.",
+          "The expansion-faction player-screen reference remains present."
+        ],
+        "findings": [
+          {
+            "severity": "P3",
+            "title": "Family Atomics illustration clips its final paragraph",
+            "sourceEvidence": "The source card shows the complete token-placement paragraph, the lasting storm consequences and the instruction to remove the card from the game.",
+            "digitalEvidence": "On digital page 37, the Family Atomics card reaches the bottom frame at the line \"Place the Destroyed Shield Wall token on\". The remainder runs below the visible text area. The lasting storm consequences appear in the prose below, and digital page 36 states that Family Atomics is removed from the game after play.",
+            "readerImpact": "The card example visibly ends mid-instruction. The rules remain recoverable across these two pages, so this is an incomplete illustration rather than a demonstrated change to the rule.",
+            "suggestedFix": "Use the existing card rendering controls to fit the complete Family Atomics text inside its card, or repeat its complete instructions in an existing text Block beside the illustration.",
+            "confidence": "high"
+          }
+        ],
+        "acceptedAdaptations": [
+          "The native board crop highlights Shield Wall and uses a numbered location label instead of reproducing the photographed blue destroyed-wall token. The adjacent prose supplies the affected territory names and consequences.",
+          "The Round 1 warning moves to the top of the second column before Karama and remains readable.",
+          "Karama uses the current card asset, ordinary headings and a bulleted faction list. These preserve the source meaning."
+        ],
+        "inspectedImages": [
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/source/page-24.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-37.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-36.jpg"
+        ],
+        "notes": [
+          "Digital page 36 was inspected to resolve whether the clipped Family Atomics removal instruction was absent from the surrounding section. It is preserved there. No material rules gap was demonstrated."
+        ]
+      }
+    },
+    {
+      "sourcePage": 25,
+      "title": "Treachery cards additional insights",
+      "reviewer": "/root/gf9_page_25",
+      "digitalPages": [
+        {
+          "outputPage": 38,
+          "pageId": "4UQ6",
+          "title": "TREACHERY CARDS ADDITIONAL INSIGHTS",
+          "editorUrl": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit#4UQ6/details"
+        }
+      ],
+      "verdict": "gap",
+      "requiredCorrectionIds": [
+        "R5"
+      ],
+      "minorIssueIds": [],
+      "adjudication": null,
+      "rawReview": {
+        "sourcePage": 25,
+        "title": "Treachery cards additional insights",
+        "digitalPages": [
+          38
+        ],
+        "verdict": "gap",
+        "meaningSummary": "The digital page preserves every named insight and its timing, eligibility, and exception rules. The Solaris explanation retains all three effects, but the displayed card clips its third option and hides the explicit instruction that the Spice Bank pays for battle spice strength.",
+        "preserved": [
+          "Cheap Hero cannot accompany a Leader disc in the same Battle Plan.",
+          "Family Atomics and Weather Control retain their before-or-after Storm timing, storm-order conditions, and the instruction not to draw a Storm card when Weather Control is played first.",
+          "Harj retains the immediate second Movement action, choice of forces, and ornithopter access determined at the start of that second movement.",
+          "Karama retains its edition-history relationship to Solaris. Kinetic Weapons/Defenses retain the explanation of the terminology change.",
+          "Lasgun, Poison, and Shield retain their weapon/defense distinctions, Weirding Way exception, and Shield-Snooper explosion rule.",
+          "Solaris prose retains its three effects, payment after Battle Plans are revealed, and the transfer of its first two effects from Karama.",
+          "Tleilaxu Ghola retains the ownership restriction and permission for a revived leader to fight in a different territory that round.",
+          "Truthtrance retains independently verifiable questions, the future-action restriction, retention after an unanswerable question, and the ban on fishing for an I-do-not-know response.",
+          "Worthless Cards retain their Battle Plan discard uses and the Bene Gesserit and CHOAM exceptions."
+        ],
+        "findings": [
+          {
+            "severity": "P2",
+            "title": "Solaris card clips the Spice Bank battle-payment option",
+            "sourceEvidence": "The source Solaris illustration shows three complete choices. Its final choice says, \"Pay for spice strength in battle from the Spice Bank.\"",
+            "digitalEvidence": "On digital page 38, the Solaris card at the top of the right column ends after the second option and its trailing \"or\". Only a cut-off sliver of the third option appears below the text area. The adjacent prose mentions payment for spice strength but does not say the Spice Bank supplies that payment.",
+            "readerImpact": "Readers can see that three effects exist, but cannot read the card qualification that makes the third effect a bank-funded payment. The card also visibly presents an unfinished choice list.",
+            "suggestedFix": "Make all three options fit inside the existing Solaris card asset. Alternatively, add the complete option text to the existing card-entry explanation so the Spice Bank payment rule is readable.",
+            "confidence": "high"
+          }
+        ],
+        "acceptedAdaptations": [
+          "The square two-column layout and changed page number preserve the reading sequence.",
+          "The existing Solaris asset replaces the source card illustration, and its explanation sits beside it.",
+          "Regular paragraph labels and the Solaris heading are acceptable replacements for source bold labels."
+        ],
+        "inspectedImages": [
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/source/page-25.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-38.jpg"
+        ],
+        "notes": [
+          "Inspected both complete images and an enlarged in-memory crop of the digital Solaris card to confirm the clipping.",
+          "The retained \"See above\" and \"see below\" references do not change the rule meaning. No cross-reference renumbering is requested."
+        ]
+      }
+    },
+    {
+      "sourcePage": 26,
+      "title": "Game variants",
+      "reviewer": "/root/gf9_page_26",
+      "digitalPages": [
+        {
+          "outputPage": 39,
+          "pageId": "7Y77",
+          "title": "GAME VARIANTS",
+          "editorUrl": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit#7Y77/details"
+        },
+        {
+          "outputPage": 40,
+          "pageId": "88DW",
+          "title": "Classic spice dialing",
+          "editorUrl": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit#88DW/details"
+        },
+        {
+          "outputPage": 41,
+          "pageId": "SDE7",
+          "title": "Spirit World Karama",
+          "editorUrl": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit#SDE7/details"
+        }
+      ],
+      "verdict": "adapted",
+      "requiredCorrectionIds": [],
+      "minorIssueIds": [],
+      "adjudication": {
+        "decision": "accepted-existing-renderer-adaptation",
+        "reason": "The user approved native battle wheels and explanatory text. The prose preserves the physical half-step instruction and all three printed values, including 8½. Final verdict is adapted.",
+        "reviewerFollowup": "With that explicit approval, I would withdraw the P2 finding and change the verdict to adapted, with zero material findings. The prose preserves the physical alignment instruction, the native wheels demonstrate half-valued strengths, and the callout retains all three printed values, including 8½. A caption distinguishing physical alignment from digital readouts would be optional polish. My original finding gave the missing visual alignment more weight than the settled approval permits."
+      },
+      "rawReview": {
+        "sourcePage": 26,
+        "title": "Game variants",
+        "digitalPages": [
+          39,
+          40,
+          41
+        ],
+        "verdict": "gap",
+        "meaningSummary": "The rules, printed values, loss choices and Spirit World restrictions survive. The troop examples retain their arithmetic and troop distinctions, but the replacement Battle Wheels do not demonstrate the physical half-step alignment that the accompanying paragraph teaches.",
+        "preserved": [
+          "Classic spice dialing replaces spice strength. One spice supports each force at full strength; unsupported forces count at half strength.",
+          "Players hold their planned spice in hand. A traitor winner pays none; otherwise both sides pay their committed spice.",
+          "The winner may choose losses consistent with both dialed strength and spice spent.",
+          "Page 40 preserves the starting force pool, strength 3 and 1 spice, then depicts a starred Sardaukar at 2 plus two ordinary forces at ½ each, or five ordinary forces at 1 plus four halves. The prose explains both loss totals.",
+          "Fremen remain at full strength without spice. The historical note retains the 1979 and 2019 distinctions.",
+          "Spirit World offers an additional trigger for the same once-per-game power. Named cards cannot cancel another faction advantage, ordinary discards do not trigger the power, and another faction cannot trigger it for the owner.",
+          "Golden Path retains any player’s complete Battle Plan and immunity to Karama cancellation, with Family Atomics as its variant card. War Machine retains four forces including Sardaukar, one leader, free revival and no deduction from normal revival limits, with Cheap Hero as its variant card.",
+          "All three printed wheel values, including 8½, remain in the page 39 callout."
+        ],
+        "findings": [
+          {
+            "severity": "P2",
+            "title": "Wheel replacements lose the physical half-step demonstration",
+            "sourceEvidence": "The three source wheel windows show adjacent numbers separated by a line aligned with the index below the window. This visually explains how a physical wheel records a half increment.",
+            "digitalEvidence": "Page 39 instead shows two native wheels with complete decimal readouts, 2.5 and 4.5. Neither shows adjacent digits or an index aligned between them, although the paragraph still directs the reader to those examples for that operation. The third value appears only in the text callout.",
+            "readerImpact": "The numerical values are clear, but the reader cannot use the illustrations to recognize the physical wheel position described by the instructions.",
+            "suggestedFix": "Use an existing text or callout Block beside the native wheels to distinguish their numerical readouts from the physical-wheel demonstration and explain that the index sits between adjacent numbers. Preserve the printed values, including 8½. If an existing production asset shows that alignment, use it with the explanation.",
+            "confidence": "high"
+          }
+        ],
+        "acceptedAdaptations": [
+          "Three square digital pages replace one source page.",
+          "Native red troop assets distinguish Sardaukar with a star. Separate spice pieces and numerical labels replace overlapping source tokens and plus signs without changing the loss examples.",
+          "Existing callouts replace the printed faction-rule excerpts and preserve their association with the Atreides and Emperor examples.",
+          "Normal headings, emphasis and digital page numbering follow the settled choices."
+        ],
+        "inspectedImages": [
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/source/page-26.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-39.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-40.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-41.jpg"
+        ],
+        "notes": [
+          "The apparent source error 8½ is deliberately preserved and is not a defect.",
+          "The source says the wheel examples are to the right even though they occupy its left rail. The digital layout places them to the right, so that wording now agrees with their position.",
+          "No source page-number cross-references occur in this section."
+        ]
+      }
+    },
+    {
+      "sourcePage": 27,
+      "title": "Bene Gesserit faction rules and strategy",
+      "reviewer": "/root/gf9_page_27",
+      "digitalPages": [
+        {
+          "outputPage": 42,
+          "pageId": "W68K",
+          "title": "FACTIONS",
+          "editorUrl": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit#W68K/details"
+        },
+        {
+          "outputPage": 43,
+          "pageId": "4WXN",
+          "title": "FACTIONS",
+          "editorUrl": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit#4WXN/details"
+        }
+      ],
+      "verdict": "adapted",
+      "requiredCorrectionIds": [],
+      "minorIssueIds": [],
+      "adjudication": null,
+      "rawReview": {
+        "sourcePage": 27,
+        "title": "Bene Gesserit faction rules and strategy",
+        "digitalPages": [
+          42,
+          43
+        ],
+        "verdict": "adapted",
+        "meaningSummary": "The digital pages preserve the Bene Gesserit as a fragile faction that wins through prediction, manipulation and selective combat. The rules retain their exceptions and timing, and the striped advisor image supports the distinction between advisors and standard fighters.",
+        "preserved": [
+          "Starting placement follows Fremen placement and distinguishes a lone fighter from an advisor sharing another faction's territory. The 19 reserve forces, 5 spice, random Treachery card and one-force free revival remain explicit.",
+          "Prediction retains the secret faction and round selection, the solo win when the prediction succeeds, allied wins including the Bene Gesserit's own ally, normal victory and the Special Victory Condition exclusion.",
+          "Voice retains weapon and defense types, excluded Battle Plan cards, dual-type card treatment, the inability-to-comply exception and the precise Karama cancellation timing.",
+          "Transmutation preserves both Karama use and every Solaris use, including shipping rates and payment to the Spice Bank. Charity preserves the two-spice entitlement regardless of current holdings and any modifying effects.",
+          "Dual forces preserves the stripe distinction, standard-force status of fighters, prohibition on mixing types or flipping to join another type, and the Spiritual Advisors exception.",
+          "Spiritual advisors preserves the free deployment trigger, same-territory advisor or Polar Sink fighter choice, existing-fighter flip permission and restriction on advisor arrival.",
+          "The strategy rail retains the low-revival and low-income warning, force conservation, free advisors, covert support for the predicted winner, Voice in battle and patient misdirection."
+        ],
+        "findings": [],
+        "acceptedAdaptations": [
+          "The single printed page becomes two digital pages. Dual forces, Spiritual advisors, the advisor illustration and the final strategy sentence continue on page 43.",
+          "The strategy moves to the outer rail and uses normal readable emphasis. Its warnings and tactical advice remain distinct from the rules.",
+          "The existing advisor troop asset replaces the printed token image. The stripes remain clearly visible, and the Advisors caption ties it to the nearby explanation.",
+          "The original four-page faction-sheet reference remains source wording, consistent with the instruction to retain original cross-references."
+        ],
+        "inspectedImages": [
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/source/page-27.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-42.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-43.jpg"
+        ],
+        "notes": [
+          "All assigned images were inspected visually. No material change in rules or teaching intent was demonstrated."
+        ]
+      }
+    },
+    {
+      "sourcePage": 28,
+      "title": "Bene Gesserit continuation and Fremen opening",
+      "reviewer": "/root/gf9_page_28",
+      "digitalPages": [
+        {
+          "outputPage": 44,
+          "pageId": "27N9",
+          "title": "BENE GESSERIT",
+          "editorUrl": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit#27N9/details"
+        },
+        {
+          "outputPage": 45,
+          "pageId": "46PP",
+          "title": "FREMEN",
+          "editorUrl": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit#46PP/details"
+        }
+      ],
+      "verdict": "adapted",
+      "requiredCorrectionIds": [],
+      "minorIssueIds": [],
+      "adjudication": null,
+      "rawReview": {
+        "sourcePage": 28,
+        "title": "Bene Gesserit continuation and Fremen opening",
+        "digitalPages": [
+          44,
+          45
+        ],
+        "verdict": "adapted",
+        "meaningSummary": "The digital pages preserve the Bene Gesserit rules for switching advisors and fighters, the alliance Voice rule, and all three clarifying answers. The Fremen opening preserves the starting resources, revival allowance, storm losses and storm insight timing.",
+        "preserved": [
+          "Advisor conversion is limited to the period before Shipping and Movement begins, requires an announcement, and applies to all advisors in each chosen territory.",
+          "Advisors cannot collect spice, fight, affect stronghold control or blocking, use ornithopters, or enable Family Atomics. Their exposure to hazards and Terror tokens remains explicit.",
+          "Fighter shipping restrictions, optional conversion after movement, mandatory conversion when ending with an ally, and immediate conversion when another faction arrives are retained.",
+          "The Fighters token image and caption identify the fighter face beside its rules.",
+          "Bene Gesserit has no Karama Power; allied Voice remains subject to Karama.",
+          "The Q&A preserves the distinction between compelling and preventing Weirding Way or Chemistry, Voice's use of card labels, and Terror triggering on entry rather than flipping.",
+          "Fremen begins with 10 deployed forces in the named territories, 10 reserves, 4 spice, one random Treachery card, and free revival of 3 forces each round.",
+          "Storm shelter retains half losses rounded up, applies to standard and Fedaykin tokens regardless of strength, permits additional voluntary losses, and covers shipping, one-territory movement and sandworm travel into a storm.",
+          "Storm insight remains a look at the top Storm deck card at the end of the Storm phase."
+        ],
+        "findings": [],
+        "acceptedAdaptations": [
+          "Fremen starts on its own digital page, as approved.",
+          "Normal headings and spaced Q&A replace the source's banner headings and denser prose.",
+          "The fighter token is larger and appears below the fighter rules; its face and caption remain clear.",
+          "Faction emblems and the digital page layout replace the source page's geometric arrangement without changing the rules."
+        ],
+        "inspectedImages": [
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/source/page-28.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-44.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-45.jpg"
+        ],
+        "notes": [
+          "Reviewed the source image before both corresponding digital images.",
+          "The split between 'effect on the' and 'play of the other factions' adds a paragraph gap, but the sentence remains readable and the prohibition is intact.",
+          "No material omission or change in meaning was demonstrated."
+        ]
+      }
+    },
+    {
+      "sourcePage": 29,
+      "title": "Fremen",
+      "reviewer": "/root/gf9_page_29",
+      "digitalPages": [
+        {
+          "outputPage": 46,
+          "pageId": "SHV2",
+          "title": "FREMEN",
+          "editorUrl": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit#SHV2/details"
+        },
+        {
+          "outputPage": 47,
+          "pageId": "4VYV",
+          "title": "FREMEN",
+          "editorUrl": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit#4VYV/details"
+        }
+      ],
+      "verdict": "adapted",
+      "requiredCorrectionIds": [],
+      "minorIssueIds": [],
+      "adjudication": null,
+      "rawReview": {
+        "sourcePage": 29,
+        "title": "Fremen",
+        "digitalPages": [
+          46,
+          47
+        ],
+        "verdict": "adapted",
+        "meaningSummary": "The digital pages preserve the Fremen rules, exceptions, strategy and special victory condition. The normal force and starred Fedaykin remain visually distinct, and the storm questions retain the limits that qualify Fremen mobility.",
+        "preserved": [
+          "Wormriders preserves immunity from devouring, movement after the Nexus, storm and occupancy limits, and the survival of spice and forces at the destination.",
+          "Call Sandworms preserves the distinction between the first Shai-Hulud and subsequent draws, sand-territory placement after the Nexus, devouring, and allied worm riding.",
+          "Indigenous preserves free on-planet deployment, The Great Flat and the two-territory range. Sandwalk preserves movement of two territories.",
+          "Fedaykin text preserves the three starred forces, doubled battle and loss value, single-force revival value, one-per-round revival limit and Tleilaxu Ghola exception. The two captioned troop images show an unstarred Fremen Force and a starred Fedaykin Force.",
+          "Battle edge preserves free spice strength, the timing of Karama cancellation and the option to spend spice after cancellation. Bless The Maker preserves its one-time trigger and both sandworm placement choices. Harj remains identified as the Spirit World Variant.",
+          "The special victory condition preserves round 10, Sietch Tabr and Cave of Birds occupancy, the named factions excluded from Tuek's Sietch and the allied exception. Alliance benefits preserve sandworm protection, worm riding, three free revivals and shared special victory.",
+          "Both questions and answers preserve direct worm travel without tracing a path, half losses in storm, and the prohibition on shipping into storm and then moving into another storm territory.",
+          "The complete strategy advice survives across the rails on pages 46 and 47, including poverty, patience, force preservation, affordable battle losses, leader strength, limited shipment and positioning at spice blows."
+        ],
+        "findings": [],
+        "acceptedAdaptations": [
+          "The source page becomes two digital pages, with victory, alliance and questions on page 47.",
+          "Larger native troop images replace the printed counters. Their captions and visible star preserve the teaching distinction.",
+          "Ordinary headings replace the printed orange bands and long italic strategy passage. The strategy continues in the same outer rail on page 47."
+        ],
+        "inspectedImages": [
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/source/page-29.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-46.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-47.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/source/page-28.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-45.jpg"
+        ],
+        "notes": [
+          "Source page 28 introduces the Fremen, starting position, free revival, Storm Shelter and Storm Insight. Digital page 45 preserves that opening, so page 46 correctly continues the advantages with Wormriders.",
+          "No missing or changed rule, misleading illustration or material loss of emphasis was demonstrated."
+        ]
+      }
+    },
+    {
+      "sourcePage": 30,
+      "title": "Emperor",
+      "reviewer": "/root/gf9_page_30",
+      "digitalPages": [
+        {
+          "outputPage": 48,
+          "pageId": "GP27",
+          "title": "EMPEROR",
+          "editorUrl": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit#GP27/details"
+        },
+        {
+          "outputPage": 49,
+          "pageId": "CBT5",
+          "title": "EMPEROR",
+          "editorUrl": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit#CBT5/details"
+        }
+      ],
+      "verdict": "adapted",
+      "requiredCorrectionIds": [],
+      "minorIssueIds": [],
+      "adjudication": null,
+      "rawReview": {
+        "sourcePage": 30,
+        "title": "Emperor",
+        "digitalPages": [
+          48,
+          49
+        ],
+        "verdict": "adapted",
+        "meaningSummary": "The digital pages preserve the Emperor's wealth, elite-force advantages and their limits, together with the strategy advice and alliance payment example. The ordinary force and Sardaukar remain visually distinct, and both printed battle-loss examples retain their original values.",
+        "preserved": [
+          "Starting reserves, spice, random Treachery card and the printed free-revival wording are present on page 48.",
+          "Majority Share retains payment to the Emperor, the full-price requirement and the Emperor's own payments to the Spice Bank.",
+          "Sardaukar count as two for battle dialing and losses, count as one against Fremen, and remain single tokens for shipping and revival. The normal one-Sardaukar revival limit and its exceptions survive.",
+          "The Karama warning retains its Battle Plan timing and reduction to one force for that battle.",
+          "Both battle examples preserve their printed dial, spice-strength and casualty alternatives. The labeled force illustrations show an ordinary red troop and a red Sardaukar troop with a star.",
+          "War Machine retains the one-time Karama trigger, Revival Phase timing, up to four forces including Sardaukar, one leader, free cost and exemption from normal revival limits.",
+          "The rail preserves the strategy's shipping handicap, exposure in cities, bidding income and warning against losing too many Sardaukar in one round.",
+          "Page 49 preserves Cheap Hero, end-of-phase spice gifts behind the ally's screen, half-cost battle spice strength and the +2 for 2-spice example.",
+          "The alliance Q&A preserves normal payment to the Emperor, possible prior funding, the Emperor's payment to the bank and simultaneous payment preventing an Emperor with zero spice from contributing."
+        ],
+        "findings": [],
+        "acceptedAdaptations": [
+          "The source page is split across two square digital pages, with the Spirit World variant, Alliance and Additional insights continuing on page 49.",
+          "Existing troop assets replace the printed tokens. Their labels and the Sardaukar star preserve the ordinary-versus-elite distinction.",
+          "Readable headings, a separate strategy rail and the question-answer block preserve the source's instructional roles without reproducing its banners or paragraph-long italics."
+        ],
+        "inspectedImages": [
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/source/page-30.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-48.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-49.jpg"
+        ],
+        "notes": [
+          "All assigned images were visually inspected. The packet's transcript was used only as a reading aid.",
+          "The source's awkward example wording and free-revival grammar are retained as required. No rule correction is proposed.",
+          "No material meaning or emphasis gap was demonstrated."
+        ]
+      }
+    },
+    {
+      "sourcePage": 31,
+      "title": "House Atreides",
+      "reviewer": "/root/gf9_page_31",
+      "digitalPages": [
+        {
+          "outputPage": 50,
+          "pageId": "QJWF",
+          "title": "HOUSE ATREIDES",
+          "editorUrl": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit#QJWF/details"
+        },
+        {
+          "outputPage": 51,
+          "pageId": "44R2",
+          "title": "HOUSE ATREIDES",
+          "editorUrl": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit#44R2/details"
+        }
+      ],
+      "verdict": "adapted",
+      "requiredCorrectionIds": [],
+      "minorIssueIds": [],
+      "adjudication": null,
+      "rawReview": {
+        "sourcePage": 31,
+        "title": "House Atreides",
+        "digitalPages": [
+          50,
+          51
+        ],
+        "verdict": "adapted",
+        "meaningSummary": "The digital pages preserve the Atreides rules and the strategic tradeoff between scarce income and information advantages. All conditions, limits, Karama timing, Kwisatz Haderach effects and alliance permissions survive the split across two pages.",
+        "preserved": [
+          "The introduction, starting forces, reserves, spice, Treachery card and free revival match the source.",
+          "Spice Vision keeps its Shipping and Movement timing. Bidding Insight keeps pre-bid inspection and the exclusive right to keep written Treachery card records.",
+          "Battle Prescience retains all four choices, the prohibition on choosing again after an empty answer, and the precise window for Karama cancellation.",
+          "Kwisatz Haderach retains public loss tracking, activation after seven battle losses including Traitor calls, use alongside a leader in one territory per round, and all four effects and revival qualifications.",
+          "Golden Path remains a one-time Karama ability that can reveal any player's entire Battle Plan and cannot itself be canceled by Karama. The Spirit World variant remains attached to it.",
+          "Alliance information reaches both Atreides and its ally, under Battle Prescience rules and subject to Karama.",
+          "The strategy rail preserves the income handicap, card-information bribes, frequent battles, protection of Arrakeen and ornithopters, Spice Vision benefits, modest battle-information advantage, and advice to unlock Kwisatz Haderach through spice battles or negotiated surrenders."
+        ],
+        "findings": [],
+        "acceptedAdaptations": [
+          "Source page 31 becomes digital pages 50 and 51. Page 50 ends with the Kwisatz Haderach introduction and an explicit list lead-in; page 51 opens with its four bullets, so the rules remain a clear continuation.",
+          "The strategy paragraph continues in the narrow rail on page 51. Its full wording survives and its placement keeps advice separate from operative rules.",
+          "The native faction emblem and normal headings replace the printed green emblem and banner styling without changing their meaning."
+        ],
+        "inspectedImages": [
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/source/page-31.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-50.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-51.jpg"
+        ],
+        "notes": [
+          "Visual inspection found no missing rule, changed condition or material loss of instructional emphasis. No cross-reference numbering occurs on this source page."
+        ]
+      }
+    },
+    {
+      "sourcePage": 32,
+      "title": "House Harkonnen",
+      "reviewer": "/root/gf9_page_32",
+      "digitalPages": [
+        {
+          "outputPage": 52,
+          "pageId": "SVS5",
+          "title": "HOUSE HARKONNEN",
+          "editorUrl": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit#SVS5/details"
+        },
+        {
+          "outputPage": 53,
+          "pageId": "ECSZ",
+          "title": "HOUSE HARKONNEN",
+          "editorUrl": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit#ECSZ/details"
+        }
+      ],
+      "verdict": "adapted",
+      "requiredCorrectionIds": [],
+      "minorIssueIds": [],
+      "adjudication": null,
+      "rawReview": {
+        "sourcePage": 32,
+        "title": "House Harkonnen",
+        "digitalPages": [
+          52,
+          53
+        ],
+        "verdict": "adapted",
+        "meaningSummary": "The digital pages preserve Harkonnen's early strength in cards, spice shortage, leader capture choices and exceptions, and support for an ally through Traitor cards. All rules and strategy text remain readable across the two-page continuation, with no demonstrated change in meaning.",
+        "preserved": [
+          "Starting forces, spice, Treachery cards and free revival retain the printed values.",
+          "Traitor setup preserves keeping four cards, the optional own-leader redraw, its timing before other players return cards, and keeping replacement cards even when they show Harkonnen leaders.",
+          "The eight-card hand limit, mandatory bidding pass at eight, and free extra card subject to that limit remain explicit.",
+          "Capture retains the optional trigger after winning, random eligible selection, inclusion of a surviving battle leader, all exclusions, secret inspection, and the choice between two spice and one use of the captured leader.",
+          "The capture continuation preserves return after surviving use, unrevealed identity, mandatory return of all captives when every Harkonnen leader is unavailable, normal revival, and the own-faction safe-leader Traitor exception.",
+          "Karama cancellation retains its exact window after victory and before drawing the captive. The capture heading also identifies the vulnerability.",
+          "Vendetta retains its one-time Karama trigger, end-of-bidding timing, random cards from each other player plus the deck, chosen returns, nine-card discard condition, and unchanged hand limit. The Solaris variant remains present.",
+          "Alliance wording preserves Harkonnen's choice to use held Traitor cards against the ally's opponent and treats the result as the ally calling Traitor.",
+          "Strategy retains both the early aggressive card-buying recommendation and its spice warning, including later shipping and purchases, Worthless-card accumulation, and choosing battles to unload cards and reveal traitors."
+        ],
+        "findings": [],
+        "acceptedAdaptations": [
+          "The faction emblem uses the existing digital asset rather than the printed round badge; it still identifies the faction.",
+          "The source page becomes two square pages. Vendetta and strategy continue on page 53 without losing text or changing their relationship to the preceding material.",
+          "Readable headings and normal body text replace the source's banner headings and extended italic emphasis. The Karama warning remains a distinct paragraph under the capture rules."
+        ],
+        "inspectedImages": [
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/source/page-32.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-52.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-53.jpg"
+        ],
+        "notes": [
+          "Visually checked the source image before both digital images. The clearer source visibly supports the safe-leader wording flagged as uncertain in the reading aid.",
+          "No source cross-references occur on this page."
+        ]
+      }
+    },
+    {
+      "sourcePage": 33,
+      "title": "Spacing Guild",
+      "reviewer": "/root/gf9_page_33",
+      "digitalPages": [
+        {
+          "outputPage": 54,
+          "pageId": "EPLF",
+          "title": "SPACING GUILD",
+          "editorUrl": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit#EPLF/details"
+        },
+        {
+          "outputPage": 55,
+          "pageId": "3ESE",
+          "title": "SPACING GUILD",
+          "editorUrl": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit#3ESE/details"
+        }
+      ],
+      "verdict": "adapted",
+      "requiredCorrectionIds": [],
+      "minorIssueIds": [],
+      "adjudication": null,
+      "rawReview": {
+        "sourcePage": 33,
+        "title": "Spacing Guild",
+        "digitalPages": [
+          54,
+          55
+        ],
+        "verdict": "adapted",
+        "meaningSummary": "The digital pages preserve the Guild's shipping income, flexible turn timing, transport options, rates, Karama restrictions and end-of-game victory condition. Both examples retain their exact numbers and distinctions, and the strategy still teaches early vulnerability, later mobility and denying an opponent victory.",
+        "preserved": [
+          "The starting position remains 20 forces in off-planet reserves, 8 spice and 1 random Treachery card. The required shipment after setup step 5 still acknowledges the Bene Gesserit Spiritual Advisor advantage, and free revival remains 1 force per round.",
+          "Fold Space still permits an unannounced turn before, between or after other players, with shipping and movement in their normal sequence. Its Karama paragraph retains both the return to normal order and the prohibition on cancellation after that order has passed.",
+          "Monopoly directs other factions' off-planet shipment payments to the Guild. Troop Carrier retains all three shipment choices and the storm and occupancy restrictions. Guild Rates retains half fees rounded up for travel to or from Dune and normal fees for cross-shipping.",
+          "Blockade remains a one-time Karama ability stopping one player's off-planet shipment. The Weather Control Spirit World variant remains beside it.",
+          "The special victory condition still applies only when no one has won by the end of play. An unallied Guild compares against individual factions even if they are allied; an allied Guild compares its combined holdings against the leading faction or alliance.",
+          "Alliance benefits retain all three shipment options at Guild Rates, explicitly include the Fremen, and share the Guild's special victory.",
+          "The shipping example retains a 4-spice cost, 2 paid by the ally to the Guild and 2 paid by the Guild to the Spice Bank. Simultaneous payment still means a Guild with zero spice cannot help.",
+          "The victory example retains Guild 2, Atreides 2 and Bene Gesserit 1, plus the Emperor's required 1 when allied with the Guild, producing two alliances in 3 strongholds.",
+          "All strategy advice survives across the two rails, including weak leaders, slow revival, early card poverty, dependence on shipping income, surprise movement, the advantage of moving last and weakening leaders to secure the final tie."
+        ],
+        "findings": [],
+        "acceptedAdaptations": [
+          "The source's single page becomes two readable square pages. Rules, questions and answers remain grouped and complete.",
+          "The faction emblem uses the existing native asset. Normal headings and regular body text replace the source's red banners and long italic emphasis.",
+          "The strategy rail continues on the second page without repeating its heading. Its content and instructional relationship to the Guild rules remain clear."
+        ],
+        "inspectedImages": [
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/source/page-33.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-54.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-55.jpg"
+        ],
+        "notes": [
+          "Visually inspected the source first and both assigned digital images afterward. No material omission, altered example or misleading visual teaching point was demonstrated."
+        ]
+      }
+    },
+    {
+      "sourcePage": 34,
+      "title": "Dune synopsis",
+      "reviewer": "/root/gf9_page_34",
+      "digitalPages": [
+        {
+          "outputPage": 56,
+          "pageId": "ZYM3",
+          "title": "DUNE SYNOPSIS",
+          "editorUrl": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit#ZYM3/details"
+        },
+        {
+          "outputPage": 57,
+          "pageId": "7KDH",
+          "title": "DUNE SYNOPSIS",
+          "editorUrl": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit#7KDH/details"
+        }
+      ],
+      "verdict": "adapted",
+      "requiredCorrectionIds": [],
+      "minorIssueIds": [],
+      "adjudication": null,
+      "rawReview": {
+        "sourcePage": 34,
+        "title": "Dune synopsis",
+        "digitalPages": [
+          56,
+          57
+        ],
+        "verdict": "adapted",
+        "meaningSummary": "The digital synopsis preserves the source's account of the Emperor's plot against Duke Leto, the Bene Gesserit breeding program, and the Atreides' hope of an alliance with the Fremen. Its ominous political tone and its contrast between Arrakis's dangers, spice wealth and the Fremen's hidden strength survive the expansion onto two pages.",
+        "preserved": [
+          "Paragraph order follows the source's reading order. Leto's reputation and influence lead to Shaddam's fear, the disguised Sardaukar plot, the Bene Gesserit background and Jessica's disruption of their plan.",
+          "Digital page 57 continues with Leto and Hawat's response, including the underestimated Fremen population, their hatred of Harkonnen rule and uncertainty about their fighting ability.",
+          "The account of water scarcity, stillsuits, fatal 700-kilometer-per-hour storms, quarter-mile sandworms and safety in towns or rocky ridges remains complete and readable.",
+          "Spice retains its origin in the sandworm life cycle, life-extending and prescient effects, necessity for navigation and central place in the Imperial economy.",
+          "The final comparison of the planet's harsh appearance with the Fremen's concealed resilience and fighting potential remains the page's closing thought."
+        ],
+        "findings": [],
+        "acceptedAdaptations": [
+          "One source page becomes two digital pages, with the page break after Jessica and Paul's introduction. This preserves complete paragraphs and resumes with Leto's response to the Emperor's offer.",
+          "The Arrakis paragraph continues at the top of the second column on digital page 57, with an added paragraph break before the sandworms' response to noise. The danger and the safe locations remain connected in the reading order.",
+          "The heading treatment, square page size and current page-number placement follow the approved digital format."
+        ],
+        "inspectedImages": [
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/source/page-34.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-56.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-57.jpg"
+        ],
+        "notes": [
+          "The source page contains prose only. There is no illustration whose teaching role needs replacement.",
+          "No missing or reordered content required checking source page 35. No source-numbered cross-reference appears on this page."
+        ]
+      }
+    },
+    {
+      "sourcePage": 35,
+      "title": "Dune synopsis continuation",
+      "reviewer": "/root/gf9_page_35",
+      "digitalPages": [
+        {
+          "outputPage": 58,
+          "pageId": "VJCH",
+          "title": "DUNE SYNOPSIS",
+          "editorUrl": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit#VJCH/details"
+        },
+        {
+          "outputPage": 59,
+          "pageId": "BY7A",
+          "title": "DUNE SYNOPSIS",
+          "editorUrl": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit#BY7A/details"
+        }
+      ],
+      "verdict": "adapted",
+      "requiredCorrectionIds": [],
+      "minorIssueIds": [],
+      "adjudication": null,
+      "rawReview": {
+        "sourcePage": 35,
+        "title": "Dune synopsis continuation",
+        "digitalPages": [
+          58,
+          59
+        ],
+        "verdict": "adapted",
+        "meaningSummary": "The digital pages preserve the synopsis's political motives, betrayal, Fremen resistance and Paul's victory in the source's order. The Guild's dependence on spice still explains why Paul's threat prevents the reserve forces from landing, and the final ambush retains its dramatic tone.",
+        "preserved": [
+          "The Guild's transport monopoly and dependence on melange connect its initial concern about Dune to its eventual submission to Paul's threat.",
+          "Yueh's coercion, sabotage and the disguised Sardaukar explain the Atreides defeat; Paul and Jessica's escape follows before the Baron's campaign against the Fremen.",
+          "Rabban's pogrom, rising Fedaykin resistance and disrupted spice production retain their causal order and harsh language.",
+          "The narrative returns to Paul and Jessica with the same 'Meanwhile' transition, then explains the Fremen encounter, planted prophecy, Paul's visions and Water of Life test.",
+          "The final confrontation retains the orbiting reserve, Guild refusal to land it, sandstorm, family atomics, Shield Wall breach and Fremen riding sandworms.",
+          "The closing statement still identifies this as the end of the first book. No illustration, rule warning or cross-reference on this source page requires separate treatment."
+        ],
+        "findings": [],
+        "acceptedAdaptations": [
+          "One source page occupies two digital pages, with the page break before Paul's visions. This keeps the narrative sequence intact.",
+          "Paul and Jessica's escape begins a separate paragraph on digital page 58, while it belongs to the longer betrayal paragraph in print. The event and its relationship to the defeat remain clear.",
+          "Digital pages 58 and 59 omit a repeated heading. Source page 34 establishes the synopsis heading, and source page 35 also continues without one.",
+          "The printed quotation marks around the Bene Gesserit prophecy are absent digitally. Its attribution and meaning remain explicit in the preceding sentence."
+        ],
+        "inspectedImages": [
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/source/page-35.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-58.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-59.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/source/page-34.jpg"
+        ],
+        "notes": [
+          "Reviewed every assigned image and source page 34 for continuity. The supplied transcript was used only to support the visual comparison.",
+          "The source's account of Paul's powers and the battle is preserved as printed; this review does not substitute a different account of the novel.",
+          "No material loss of meaning, tone, paragraph sequence or emphasis was demonstrated."
+        ]
+      }
+    },
+    {
+      "sourcePage": 36,
+      "title": "Terminology",
+      "reviewer": "/root/gf9_page_36",
+      "digitalPages": [
+        {
+          "outputPage": 60,
+          "pageId": "SBYV",
+          "title": "TERMINOLOGY",
+          "editorUrl": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit#SBYV/details"
+        },
+        {
+          "outputPage": 61,
+          "pageId": "37RM",
+          "title": "TERMINOLOGY",
+          "editorUrl": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook/edit#37RM/details"
+        }
+      ],
+      "verdict": "adapted",
+      "requiredCorrectionIds": [],
+      "minorIssueIds": [],
+      "adjudication": null,
+      "rawReview": {
+        "sourcePage": 36,
+        "title": "Terminology",
+        "digitalPages": [
+          60,
+          61
+        ],
+        "verdict": "adapted",
+        "meaningSummary": "The digital glossary preserves the source definitions and their rule distinctions. Its two-page alphabetical sequence remains clear, and the expansion-faction note remains visible in the margin.",
+        "preserved": [
+          "All 28 definitions appear in source order, with bold terms separating entries clearly.",
+          "Bribes remain unavailable until Mentat Pause; payments are immediately available, and bribes explicitly do not count as payments.",
+          "Control remains an end-of-round determination with no carryover. Occupation and the two-faction occupancy limit retain their separate meanings and advisor exceptions.",
+          "Deploy remains distinct from shipment and disallows an accompanying Bene Gesserit advisor. Ornithopters retain the start-of-movement requirement and three-territory movement limit.",
+          "Captured retains the Duke Vidal exception. Forces retain the Fedaykin value of 2 and Suboid value of 1/2.",
+          "Secretly preserves the distinction between concealing information and publicly acknowledging that a private exchange took place.",
+          "Sector, territory and in-storm retain their geographic distinctions, including Polar Sink being outside the sectors.",
+          "Initiative retains battle ordering, tie priority and progression to the next player with battles. Set Aside remains public but outside play and player control, while Supply remains controlled."
+        ],
+        "findings": [],
+        "acceptedAdaptations": [
+          "The source glossary spans digital pages 60 and 61. Complete entries stay together and alphabetical reading continues from Ornithopters to Payment.",
+          "The expansion-faction note uses upright text with a bold Note label instead of the source italics; its position and purpose remain clear.",
+          "The Captured exception and selected examples use ordinary body text rather than source italics. Their wording and placement preserve the distinctions."
+        ],
+        "inspectedImages": [
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/source/page-36.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-60.jpg",
+          "/Users/me/.codex/visualizations/2026/10/24/gf9-r7-page-review/digital/page-61.jpg"
+        ],
+        "notes": [
+          "No missing definition, altered value or misleading relationship was demonstrated. The source page has no diagram or numbered cross-reference requiring separate verification."
+        ]
+      }
+    }
+  ]
+}
