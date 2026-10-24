@@ -35,7 +35,18 @@ const movedInPeek = () => ({
   },
 });
 
-function tasks(snapshot: () => GameSnapshot): GuideTask[] {
+/* A piece changed where it lies, by id: turning and flipping leave a piece in place under the same id. */
+const changedInPlace = (stacks: () => Piece[], changed: (before: Piece, now: Piece) => boolean) => ({
+  begin: () => new Map(stacks().map((piece) => [piece.id, piece])),
+  done: (start: Map<string, Piece>) =>
+    stacks().some((piece) => {
+      const before = start.get(piece.id);
+      return before !== undefined && changed(before, piece);
+    }),
+});
+
+/* The player's own troops: split off the reserves, carried whole onto the board, joined, turned and flipped. */
+function stackTasks(snapshot: () => GameSnapshot): GuideTask[] {
   const pieces = () => snapshot().table.pieces.filter((piece) => !piece.inventory);
   const myTroops = () =>
     pieces().filter((piece) => piece.stackKey?.startsWith(`troops:${snapshot().bank?.factionId}:`));
@@ -48,9 +59,6 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
     reserves()
       .filter((piece) => piece.items.length > 1)
       .toSorted((a, b) => a.items.length - b.items.length)[0];
-  const spiceDeck = () => tableDeck(snapshot, 'right');
-  /* A piece as it was at the task's start, by id: turning and flipping leave a piece where it lies under the same id. */
-  const byId = () => new Map(onTheBoard().map((piece) => [piece.id, piece]));
   return [
     task({
       id: 'split',
@@ -92,25 +100,22 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       task: 'Turn your stack',
       detail: 'Point at your troops on the board and press Q or E. Each press turns them a step.',
       anchor: { kind: 'table', point: () => at(onTheBoard()[0]) },
-      begin: byId,
-      done: (start) =>
-        onTheBoard().some((piece) => {
-          const before = start.get(piece.id);
-          return before !== undefined && before.orientation !== piece.orientation;
-        }),
+      ...changedInPlace(onTheBoard, (before, now) => before.orientation !== now.orientation),
     }),
     task({
       id: 'flip',
       task: 'Flip the whole stack',
       detail: 'Still pointing at them, press F. A stack turns over all at once, as a single card does.',
       anchor: { kind: 'table', point: () => at(onTheBoard()[0]) },
-      begin: byId,
-      done: (start) =>
-        onTheBoard().some((piece) => {
-          const before = start.get(piece.id);
-          return before !== undefined && (piece.flipRevision ?? 0) > (before.flipRevision ?? 0);
-        }),
+      ...changedInPlace(onTheBoard, (before, now) => (now.flipRevision ?? 0) > (before.flipRevision ?? 0)),
     }),
+  ];
+}
+
+/* The Spice deck: shuffled, then peeked at and one card moved. */
+function deckTasks(snapshot: () => GameSnapshot): GuideTask[] {
+  const spiceDeck = () => tableDeck(snapshot, 'right');
+  return [
     task({
       id: 'shuffle',
       task: 'Shuffle the Spice deck',
@@ -137,6 +142,8 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
     }),
   ];
 }
+
+const tasks = (snapshot: () => GameSnapshot) => [...stackTasks(snapshot), ...deckTasks(snapshot)];
 
 /* One line for each part of the chapter, in the order it was played. */
 const learned = [
