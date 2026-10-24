@@ -6,7 +6,6 @@ import { expect, test } from 'vite-plus/test';
 import { arrakisBoard } from '../src/shared/boards/geometry';
 import { api } from './_generated/api';
 import { applicationTest } from './application.test.fixture';
-import { readBoardListing } from './lib/boardListing';
 import { insertMissingOrderItems } from './lib/catalogueOrder';
 
 async function boardFixture(bounded = false) {
@@ -33,6 +32,15 @@ async function boardFixture(bounded = false) {
       ...timestamps,
       is_deleted: false,
       asset_creation_time: 1,
+    });
+    const backfill = await ctx.db.insert('migration_runs', {
+      migration_id: 'board_readiness_listing_v1',
+      state: 'success',
+      is_done: true,
+      processed: 1,
+      latest_start: 1,
+      latest_end: 2,
+      updated_at: timestamps.updated_at,
     });
     const entryId = await ctx.db.insert('catalogue_entries', {
       kind: 'asset',
@@ -61,7 +69,7 @@ async function boardFixture(bounded = false) {
       ...timestamps,
     });
     await ctx.db.insert('ruleset_asset_slots', { ruleset_id: ruleset, asset_id: asset, slot: 'board' });
-    return { asset, summary };
+    return { asset, summary, backfill };
   });
   return { t, ...ids };
 }
@@ -91,15 +99,16 @@ test('board listing readers stay under 64 KiB with a real Arrakis definition', a
 });
 
 test.each(['missing', 'legacy'])('a %s summary retains the authoritative board and listing', async (state) => {
-  const { t, asset, summary } = await boardFixture();
+  const { t, asset, summary, backfill } = await boardFixture();
   await t.run(async (ctx) => {
+    await ctx.db.delete('migration_runs', backfill);
     if (state === 'missing') {
       await ctx.db.delete('board_readiness', summary);
     } else {
       await ctx.db.replace('board_readiness', summary, { asset_id: asset, usable: true });
     }
   });
-  const row = await t.run(async (ctx) => await readBoardListing(ctx, asset));
+  const [row] = await t.query(api.assets.listByTypes, { types: ['board'] });
   expect(row?.data.board).toBeDefined();
   expect((await t.query(api.assets.cataloguePage, {})).recent[0]?.id).toBe(asset);
   expect((await t.query(api.rulesets.detailPage, { slug: 'dreamrules' }))?.board?.id).toBe(asset);
@@ -117,9 +126,10 @@ test('an unusable board remains listed and a deleted board stays hidden', async 
   expect((await t.query(api.rulesets.detailPage, { slug: 'dreamrules' }))?.board).toBeNull();
 });
 
-test('a missing summary among complete summaries never hides its board', async () => {
-  const { t, asset } = await boardFixture();
+test('an incomplete backfill preserves source order and membership among mixed summaries', async () => {
+  const { t, asset, backfill } = await boardFixture();
   const second = await t.run(async (ctx) => {
+    await ctx.db.patch('migration_runs', backfill, { state: 'inProgress', is_done: false });
     const original = await ctx.db.get('assets', asset);
     const { _id, _creationTime, ...fields } = original!;
     const id = await ctx.db.insert('assets', { ...fields, slug: 'second', data: { ...fields.data, name: 'Second' } });
@@ -142,7 +152,59 @@ test('a missing summary among complete summaries never hides its board', async (
   const rows = await t.query(api.assets.listByTypes, { types: ['board'] });
   expect(rows.map((row) => row.id)).toEqual([second, asset]);
   expect(rows[0]?.data.board).toBeDefined();
-  expect(rows[1]?.data.board).toBeUndefined();
+  expect(rows[1]?.data.board).toBeDefined();
+});
+
+test('five landing tiles stay under 64 KiB among 1,024 board summaries', async () => {
+  const { t, summary } = await boardFixture(true);
+  const expected = await t.run(async (ctx) => {
+    const first = (await ctx.db.get('board_readiness', summary))!;
+    const { _id, _creationTime, ...fields } = first;
+    const ids = [];
+    for (let i = 1; i < 1024; i += 1) {
+      const name = `Board ${i}`;
+      const asset = await ctx.db.insert('assets', {
+        owner_id: first.owner_id!,
+        group_id: null,
+        type: 'board',
+        slug: `board-${i}`,
+        created_at: first.created_at!,
+        updated_at: first.updated_at!,
+        is_deleted: false,
+        data: i >= 1019 ? { name, about: '', board: arrakisBoard() } : { name, about: '' },
+      });
+      await ctx.db.insert('board_readiness', {
+        ...fields,
+        asset_id: asset,
+        usable: i >= 1019,
+        name,
+        slug: `board-${i}`,
+        asset_creation_time: i + 1,
+      });
+      if (i >= 1019) {
+        ids.unshift(asset);
+      }
+    }
+    return ids;
+  });
+  const page = await t.query(api.assets.cataloguePage, {});
+  expect(page.recent.map((row) => row.id)).toEqual(expected);
+  expect(page.recent.every((row) => !Object.hasOwn(row.data, 'board'))).toBe(true);
+});
+
+test.each([
+  { state: 'success', is_done: false },
+  { state: 'failed', is_done: true },
+] as const)('an unready migration marker retains the bounded source read: %j', async (state) => {
+  const { t, backfill } = await boardFixture();
+  await t.run(async (ctx) => await ctx.db.patch('migration_runs', backfill, state));
+  expect((await t.query(api.assets.listByTypes, { types: ['board'] }))[0]?.data.board).toBeDefined();
+});
+
+test('a selected incomplete summary still reads its source after the backfill', async () => {
+  const { t, summary } = await boardFixture();
+  await t.run(async (ctx) => await ctx.db.patch('board_readiness', summary, { name: undefined }));
+  expect((await t.query(api.assets.listByTypes, { types: ['board'] }))[0]?.data.board).toBeDefined();
 });
 
 test('ten large boards fit listing read budgets without loading their geometry', async () => {
