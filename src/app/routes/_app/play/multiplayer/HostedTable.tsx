@@ -66,7 +66,8 @@ import {
 } from './panelGuidance';
 import { PlaybackControls } from './PlaybackControls';
 import { publicControlsOf } from './publicControls';
-import { PlayerPanel } from './RemovalVotes';
+import { PlayerPanel, PlayerWindow, usePlayerWindows } from './RemovalVotes';
+import { ExperimentPlayersContext } from '../controlsExperiments/experiment';
 import { useResultCelebration } from './resultCelebration';
 import { GameMenu, SeatPopover } from './SeatRequests';
 import { stageStatus, stageToolbar } from './StageHeader';
@@ -1025,6 +1026,7 @@ function ConnectedTable({
   /* Each player fades the bidder for themselves, so the choice stays in this tab. */
   const [bidderFaded, setBidderFaded] = useState(false);
   const player = usePlayerSelection(table);
+  const playerWindows = usePlayerWindows(client, table);
   const stage = table.snapshot.stage;
   const factionArtwork = table.snapshot.factionArtwork;
   const predictionLogos = useMemo(
@@ -1036,6 +1038,13 @@ function ConnectedTable({
       <TabletopSessionProvider session={client}>
         {/* A boxless wrapper carries the connection state the browser verification waits on, whichever tab is open. */}
         <div data-connection={connection} data-revision={table.liveRevision} style={{ display: 'contents' }}>
+          {/* Read only by the controls-layout exploration's stories. */}
+          <ExperimentPlayersContext
+            value={{
+              ...playerWindows,
+              render: (seat, tab) => <PlayerWindow client={client} table={table} seat={seat} tab={tab} error={error} />,
+            }}
+          >
           <GameTable
             seatCount={table.snapshot.roster?.seatCount ?? DEFAULT_TABLE_SEAT_COUNT}
             tableProgress={progress}
@@ -1092,6 +1101,7 @@ function ConnectedTable({
             tableGuidance={phaseGuidance(table)}
             tableControls={phaseTabControls({ client, table, error, progress })}
           />
+          </ExperimentPlayersContext>
         </div>
       </TabletopSessionProvider>
     </PredictionLogosContext>

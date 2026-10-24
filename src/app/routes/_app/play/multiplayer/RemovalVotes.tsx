@@ -1,5 +1,6 @@
 import { Avatar, Button, Group, Indicator, Stack, Text, VisuallyHidden } from '@mantine/core';
 import { TABLE_CONVERSATION } from '@shared/play/conversations';
+import { factionTokenOf } from '@shared/play/factionToken';
 import type { PublicControls } from '@shared/play/inventory';
 import type { RemovalVote } from '@shared/play/removal';
 import { rosterSeat } from '@shared/play/schema';
@@ -402,5 +403,80 @@ function FactionPageButton({ slug, name }: Readonly<{ slug: string; name: string
       View {name}
       <VisuallyHidden> (opens in a new tab)</VisuallyHidden>
     </Button>
+  );
+}
+
+/*
+ * Design exploration (controls layout, palette stage 2): each player as a window of their own, and what the chat bar beside
+ * the palette shows for them. Only the exploration's stories read these.
+ */
+export type PlayerWindowEntry = Readonly<{
+  seat: string;
+  name: string;
+  factionName: string | null;
+  token: string | null;
+  unread: number;
+  own: boolean;
+  canConverse: boolean;
+  attention: boolean;
+}>;
+
+export function usePlayerWindows(client: TableSession, table: TableProjection) {
+  const { conversations } = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getSnapshot);
+  const votes = table.snapshot.removalVotes ?? [];
+  const asked = requestedSeats(table);
+  const players: PlayerWindowEntry[] = seatPlayers(table).map((player) => {
+    const faction = rosterSeat(table.snapshot.roster, player.seat)?.faction;
+    const peerId = seatFaction(table, player.seat);
+    const token = faction ? factionTokenOf(table.snapshot.table.pieces, faction.id)?.items[0]?.artwork?.front : null;
+    return {
+      seat: player.seat,
+      name: player.name,
+      factionName: faction?.name ?? null,
+      token: token ?? table.snapshot.swapping?.tokens[player.seat] ?? player.avatar ?? null,
+      unread: conversations.summaries.find((entry) => entry.peerId === peerId)?.unread ?? 0,
+      own: player.seat === table.viewer.viewerSeat,
+      canConverse: Boolean(peerId && conversations.context?.peers.some((peer) => peer.id === peerId)),
+      attention: votes.some((vote) => vote.target.seat === player.seat) || asked.has(player.seat),
+    };
+  });
+  return {
+    players,
+    tableChat: conversations.context
+      ? { unread: conversations.summaries.find((entry) => entry.peerId === TABLE_CONVERSATION)?.unread ?? 0 }
+      : null,
+  };
+}
+
+/** One player's window: their conversation and their public information, without the rail of every player. */
+export function PlayerWindow({
+  client,
+  table,
+  seat,
+  tab,
+  error,
+}: Props & Readonly<{ seat: string; tab: 'public' | 'conversation'; error: string | null }>) {
+  const { conversations } = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getSnapshot);
+  const player = seatPlayers(table).find((entry) => entry.seat === seat);
+  if (seat === TABLE_CONVERSATION) {
+    return conversations.context ? (
+      <Conversation key={`${conversations.context.factionId}:${TABLE_CONVERSATION}`} client={client} peerId={TABLE_CONVERSATION} />
+    ) : null;
+  }
+  if (!player) {
+    return null;
+  }
+  const vote = (table.snapshot.removalVotes ?? []).find((entry) => entry.target.seat === seat);
+  const peerId = seatFaction(table, seat);
+  if (tab === 'conversation' && peerId && conversations.context?.peers.some((peer) => peer.id === peerId)) {
+    return <Conversation key={`${conversations.context.factionId}:${peerId}`} client={client} peerId={peerId} />;
+  }
+  return (
+    <Stack gap="lg">
+      {error && <FormError title="From the table">{error}</FormError>}
+      {vote && <OpenVote client={client} table={table} vote={vote} />}
+      <VacantSeatRequests client={client} table={table} seat={seat} />
+      <PlayerInformation client={client} table={table} player={player} hasVote={Boolean(vote)} />
+    </Stack>
   );
 }

@@ -10,6 +10,7 @@ import { HeldSlot } from '../HeldContent';
 import type { HeldNode } from '../HeldContent';
 import styles from './ControlsExperiments.module.css';
 import type { ControlsExperiment } from './experiment';
+import { PaletteStage2 } from './PaletteStage2';
 
 /*
  * Design exploration (Norbert, 2026-10-24): seven ways for the table's controls to cover less of the screen.
@@ -22,7 +23,7 @@ export type ExperimentNodes = Readonly<{
   players: HeldNode | null;
 }>;
 
-type ExperimentProps = Readonly<{
+export type ExperimentProps = Readonly<{
   experiment: ControlsExperiment;
   nodes: ExperimentNodes;
   header: ReactNode;
@@ -32,7 +33,7 @@ type ExperimentProps = Readonly<{
 }>;
 
 /** One place a design can open: a tab with no children, or one child of a group. */
-type Destination = Readonly<{
+export type Destination = Readonly<{
   key: string;
   label: string;
   group: string;
@@ -43,9 +44,9 @@ type Destination = Readonly<{
   flush: boolean;
 }>;
 
-type Group = Readonly<{ key: string; label: string; topic: TopicIconTopic; items: readonly Destination[] }>;
+export type Group = Readonly<{ key: string; label: string; topic: TopicIconTopic; items: readonly Destination[] }>;
 
-function groupsOf(tabs: readonly PanelTab[], players: HeldNode | null): Group[] {
+export function groupsOf(tabs: readonly PanelTab[], players: HeldNode | null): Group[] {
   const groups: Group[] = tabs.map((tab) => ({
     key: tab.key,
     label: tab.label,
@@ -87,7 +88,7 @@ function useGroups(tabs: readonly PanelTab[], players: HeldNode | null) {
   return useMemo(() => groupsOf(tabs, players), [tabs, players]);
 }
 
-function DestinationBody({ destination, className }: Readonly<{ destination: Destination; className?: string }>) {
+export function DestinationBody({ destination, className }: Readonly<{ destination: Destination; className?: string }>) {
   return (
     <div className={clsx(styles.body, destination.flush && styles.bodyFlush, className)}>
       {destination.flush ? destination.content : <Stack gap="lg">{destination.content}</Stack>}
@@ -96,7 +97,7 @@ function DestinationBody({ destination, className }: Readonly<{ destination: Des
 }
 
 /* A remembered choice for one design, in this browser only. */
-function useRemembered<T>(key: string, fallback: T) {
+export function useRemembered<T>(key: string, fallback: T) {
   const [value, setValue] = useState<T>(() => {
     try {
       const stored = localStorage.getItem(`dunezone-controls-experiment:${key}`);
@@ -121,7 +122,7 @@ function useRemembered<T>(key: string, fallback: T) {
   return [value, update] as const;
 }
 
-function useKey(match: (event: KeyboardEvent) => boolean, onKey: (event: KeyboardEvent) => void, enabled = true) {
+export function useKey(match: (event: KeyboardEvent) => boolean, onKey: (event: KeyboardEvent) => void, enabled = true) {
   const latest = useRef({ match, onKey });
   latest.current = { match, onKey };
   useEffect(() => {
@@ -138,7 +139,7 @@ function useKey(match: (event: KeyboardEvent) => boolean, onKey: (event: Keyboar
   }, [enabled]);
 }
 
-function inTextField(event: KeyboardEvent) {
+export function inTextField(event: KeyboardEvent) {
   const target = event.target;
   return (
     target instanceof HTMLElement &&
@@ -147,7 +148,7 @@ function inTextField(event: KeyboardEvent) {
 }
 
 /* A press on the table itself, not on any of the chrome over it. */
-function useTablePress(onPress: () => void, enabled: boolean) {
+export function useTablePress(onPress: () => void, enabled: boolean) {
   const latest = useRef(onPress);
   latest.current = onPress;
   useEffect(() => {
@@ -164,7 +165,7 @@ function useTablePress(onPress: () => void, enabled: boolean) {
   }, [enabled]);
 }
 
-function Camera({ camera, inert, style }: Readonly<{ camera: ReactNode; inert: boolean; style?: CSSProperties }>) {
+export function Camera({ camera, inert, style }: Readonly<{ camera: ReactNode; inert: boolean; style?: CSSProperties }>) {
   return (
     <div className="seated-column-camera" inert={inert} style={style}>
       {camera}
@@ -172,7 +173,7 @@ function Camera({ camera, inert, style }: Readonly<{ camera: ReactNode; inert: b
   );
 }
 
-function Scene({ node, className, style }: Readonly<{ node: HeldNode; className?: string; style?: CSSProperties }>) {
+export function Scene({ node, className, style }: Readonly<{ node: HeldNode; className?: string; style?: CSSProperties }>) {
   return (
     <div className={clsx(styles.scene, className)} style={style}>
       <HeldSlot node={node} />
@@ -180,7 +181,7 @@ function Scene({ node, className, style }: Readonly<{ node: HeldNode; className?
   );
 }
 
-function PinIcon({ pinned }: Readonly<{ pinned: boolean }>) {
+export function PinIcon({ pinned }: Readonly<{ pinned: boolean }>) {
   return (
     <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" className={styles.glyph}>
       <path d={pinned ? 'M9 3h6l-1 6 4 4H6l4-4-1-6ZM12 13v8' : 'M9 3h6l-1 6 4 4H6l4-4-1-6ZM12 13v8M4 4l16 16'} />
@@ -188,7 +189,7 @@ function PinIcon({ pinned }: Readonly<{ pinned: boolean }>) {
   );
 }
 
-function CloseIcon() {
+export function CloseIcon() {
   return (
     <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" className={styles.glyph}>
       <path d="M6 6l12 12M18 6 6 18" />
@@ -204,7 +205,7 @@ function Chevron({ up }: Readonly<{ up: boolean }>) {
   );
 }
 
-function Key({ children }: Readonly<{ children: ReactNode }>) {
+export function Key({ children }: Readonly<{ children: ReactNode }>) {
   return <kbd className={styles.kbd}>{children}</kbd>;
 }
 
@@ -532,7 +533,7 @@ type PaletteEntry = Readonly<{
 }>;
 
 /* Presses a control the header or dial already shows, so the palette can reach them without wiring of its own. */
-function pressControl(selector: string) {
+export function pressControl(selector: string) {
   document.querySelector<HTMLButtonElement>(selector)?.click();
 }
 
@@ -1157,6 +1158,7 @@ const LAYOUTS: Record<ControlsExperiment, (props: ExperimentProps) => ReactNode>
   drawers: Drawers,
   fan: Fan,
   swap: Swap,
+  'palette-2': PaletteStage2,
 };
 
 export function ExperimentLayout(props: ExperimentProps) {
