@@ -23,6 +23,11 @@ const chapterAt = (slug: string) => TUTORIAL_CHAPTERS.find((chapter) => chapter.
 /* A chapter's page: its table and its band, for a chapter that is built. Unlisted like the landing page. */
 export const Route = createFileRoute('/_app/tutorial/$chapter')({
   head: ({ params }) => pageHead(chapterAt(params.chapter)?.title ?? 'Learn to play', { noindex: true }),
+  /* `?step=4` opens a chapter at its fourth task, so a later task can be tried without playing the ones before it. */
+  validateSearch: (params: Record<string, unknown>): { step?: number } => {
+    const step = Number(params['step']);
+    return Number.isInteger(step) && step > 1 ? { step } : {};
+  },
   component: ChapterPage,
 });
 
@@ -47,6 +52,7 @@ function nextLinkAfter(slug: string) {
 
 function ChapterPage() {
   const { chapter: slug } = Route.useParams();
+  const { step } = Route.useSearch();
   const chapter = chapterAt(slug);
   const script = CHAPTER_SCRIPTS[slug];
   if (!chapter || !script) {
@@ -81,6 +87,7 @@ function ChapterPage() {
           key={slug}
           chapter={chapter}
           script={script}
+          firstTask={step === undefined ? 0 : step - 1}
           chaptersLink={chaptersLink}
           nextLink={nextLinkAfter(slug)}
           exit={exit}

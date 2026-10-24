@@ -1,103 +1,15 @@
 import type { GameSnapshot } from '@shared/play/protocol';
-import { BOARD_RADIUS } from '@shared/play/tableGeometry';
-import type { Vector3Tuple } from 'three';
 
-import { wheelPixels } from '@app/widgets/tabletop/wheelPixels';
-
-import type { GuideTask, GuideView } from '../TutorialGuide';
+import type { GuideTask } from '../TutorialGuide';
 import type { ChapterScript } from './chapterScript';
+import { at, element, onBoard, pressedTab, tableDeck, task } from './guideChecks';
+import type { Piece } from './guideChecks';
 
 /*
  * Chapter 5, "What goes where": the table at the start of turn 1, seen from the learner's seat.
  * One task for each part of the screen, each done on the table itself, so the band moves on only once the player found it.
+ * Moving the camera is chapter 6's (Norbert, 2026-10-24), so this one starts at the decks.
  */
-
-type Piece = GameSnapshot['table']['pieces'][number];
-
-const at = (piece: { position: readonly number[] } | undefined) => (piece ? (piece.position as Vector3Tuple) : null);
-const element = (selector: string) => () => document.querySelector(selector);
-const tabSelected = (selector: string) => document.querySelector(selector)?.getAttribute('aria-selected') === 'true';
-/*
- * A tab task counts the player pressing or arrowing onto that tab from the moment the task starts, so a tab left open by an earlier run does not count.
- * The tab must end up open as well.
- */
-const pressedTab = (selector: string) => ({
-  begin: () => {
-    const watch = { pressed: false, stop: new AbortController() };
-    const press = (event: Event) => {
-      if (event.target instanceof Element && event.target.closest(selector)) {
-        watch.pressed = true;
-      }
-    };
-    /* The tabs open as the keyboard moves onto them as well, which comes as focus without a click. */
-    for (const type of ['click', 'focusin']) {
-      document.addEventListener(type, press, { capture: true, signal: watch.stop.signal });
-    }
-    return watch;
-  },
-  done: (watch: { pressed: boolean }) => watch.pressed && tabSelected(selector),
-  finish: (watch: { stop: AbortController }) => watch.stop.abort(),
-});
-
-const onBoard = (piece: { position: readonly number[] }) =>
-  Math.hypot(piece.position[0]!, piece.position[2]!) < BOARD_RADIUS;
-/* The camera dial marks the view it shows, so a view the player chose early, even during the last task's tick, still counts. */
-const showing = (view: string) => () =>
-  document.querySelector(`[aria-label^="Focus on ${view}"]`)?.getAttribute('aria-pressed') === 'true';
-const cameraDistance = ({ camera }: GuideView) => camera?.position.length() ?? 0;
-
-/*
- * Zooming counts only the player's own scrolling over the table, measured from where the camera was at their first scroll,
- * so the camera still gliding into its opening view never does the task for them.
- */
-const scrolledIn = () => ({
-  begin: (view: GuideView) => {
-    const watch = { scrolled: 0, from: null as number | null, stop: new AbortController() };
-    const scroll = (event: WheelEvent) => {
-      /* Counted in pixels as the camera counts it, whether the browser reports the turn in pixels, lines or pages. */
-      const pixels = wheelPixels(event.deltaY, event.deltaMode);
-      if (event.target instanceof HTMLCanvasElement && pixels > 0) {
-        watch.from ??= cameraDistance(view);
-        watch.scrolled += pixels;
-      }
-    };
-    document.addEventListener('wheel', scroll, { capture: true, passive: true, signal: watch.stop.signal });
-    return watch;
-  },
-  done: (watch: { scrolled: number; from: number | null }, view: GuideView) =>
-    watch.from !== null && watch.scrolled >= 200 && cameraDistance(view) < watch.from * 0.85,
-  finish: (watch: { stop: AbortController }) => watch.stop.abort(),
-});
-
-/* Each task keeps its own kind of baseline; the guide only hands it back. */
-const task = <Baseline>(definition: GuideTask<Baseline>) => definition as unknown as GuideTask;
-
-/* Finding the parts of the screen through the camera: in close, to the side, and back. */
-const cameraTasks = (): GuideTask[] => [
-  task({
-    id: 'zoom',
-    task: 'Look closer at Arrakis',
-    detail: 'Scroll down over the board. The camera moves in toward the spot under your pointer.',
-    anchor: { kind: 'table', point: () => [0, 0, 0] },
-    ...scrolledIn(),
-  }),
-  task({
-    id: 'look-left',
-    task: 'Look at the left of the table',
-    detail: 'The camera dial, bottom right of the table, jumps the view. Press L.',
-    anchor: { kind: 'page', element: element('[aria-label="Focus on left"]') },
-    begin: () => undefined,
-    done: showing('left'),
-  }),
-  task({
-    id: 'look-back',
-    task: 'Go back to the map',
-    detail: 'M on the same dial brings the whole board back, with both decks in view.',
-    anchor: { kind: 'page', element: element('[aria-label^="Focus on map"]') },
-    begin: () => undefined,
-    done: showing('map'),
-  }),
-];
 
 /*
  * Spice cards lying face up on their own. The table hands out cards under handles that change as they move,
@@ -112,17 +24,7 @@ const singleSpiceFaceUp = (pieces: Piece[]) =>
 function tableTasks(snapshot: () => GameSnapshot): GuideTask[] {
   const pieces = () => snapshot().table.pieces.filter((piece) => !piece.inventory);
   const mine = () => snapshot().bank?.factionId;
-  /*
-   * The ruleset's decks are keyed by their asset, so they are found where the table lays them out:
-   * Treachery on the left of the table and Spice on the right, with the off-table stores left out.
-   */
-  const deck = (side: 'left' | 'right') =>
-    pieces().find(
-      (piece) =>
-        piece.stackKey?.startsWith('deck:') &&
-        Math.abs(piece.position[0]) <= BOARD_RADIUS * 2 &&
-        (side === 'left' ? piece.position[0] < 0 : piece.position[0] > 0)
-    );
+  const deck = (side: 'left' | 'right') => tableDeck(snapshot, side);
   /* Troops, not stacks: a troop dropped onto one already there joins its stack, and splitting a stack on the board adds none. */
   const myTroopsOnBoard = () =>
     pieces()
@@ -193,12 +95,10 @@ const panelTasks = (snapshot: () => GameSnapshot): GuideTask[] => [
   }),
 ];
 
-const tasks = (snapshot: () => GameSnapshot) => [...cameraTasks(), ...tableTasks(snapshot), ...panelTasks(snapshot)];
+const tasks = (snapshot: () => GameSnapshot) => [...tableTasks(snapshot), ...panelTasks(snapshot)];
 
 /* One line for each part of the chapter, in the order it was played. */
 const learned = [
-  'Scroll over the board to look closer',
-  'Jump the view with the camera dial: L for the left, M for the map',
   'Right-click a deck to draw a card',
   'Drag troops from your reserves onto a territory',
   'Press F to turn a card over',
