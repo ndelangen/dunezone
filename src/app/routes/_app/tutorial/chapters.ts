@@ -62,7 +62,7 @@ const CHAPTERS: readonly Omit<TutorialChapter, 'number'>[] = [
   {
     slug: 'looking-around',
     title: 'Looking around',
-    goal: 'Tilt, zoom, pan and read a card close up',
+    goal: 'Zoom, slide, turn the view and read a card close up',
     minutes: 3,
     part: 'The table',
   },

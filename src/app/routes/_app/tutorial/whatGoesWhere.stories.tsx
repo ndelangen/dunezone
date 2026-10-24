@@ -29,7 +29,7 @@ export const Chapter = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const band = await page.findByRole('banner', { name: 'Chapter 5: What goes where' }, { timeout: 60_000 });
-    await expect(await within(band).findByText('Look closer at Arrakis', {}, { timeout: 60_000 })).toBeVisible();
+    await expect(await within(band).findByText('Draw a Treachery card', {}, { timeout: 60_000 })).toBeVisible();
     await expect(within(band).queryByRole('button', { name: 'Next' })).toBeNull();
     /* The band grows its arrow, a curve-cornered wedge in its outline, once the table has drawn. */
     await waitFor(

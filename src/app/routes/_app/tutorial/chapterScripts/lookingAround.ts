@@ -1,0 +1,116 @@
+import type { GameSnapshot } from '@shared/play/protocol';
+import { BOARD_RADIUS } from '@shared/play/tableGeometry';
+import type { Vector3 } from 'three';
+
+import type { GuideTask, GuideView } from '../TutorialGuide';
+import type { ChapterScript } from './chapterScript';
+import { at, dialTask, scrolled, task } from './guideChecks';
+
+/*
+ * Chapter 6, "Looking around": the same table as chapter 5, seen through the camera.
+ * In close with the wheel, along the board with the keys, back out, round the table with the dial, and a card read up close with Alt.
+ * Tilting is left out: on a desktop the table has no tilt of its own, only a trackpad's two fingers.
+ */
+
+/* The keys that slide a close look, as the table names them. */
+const PAN_KEYS = new Set(['w', 'a', 's', 'd', 'arrowup', 'arrowleft', 'arrowdown', 'arrowright']);
+
+/*
+ * Sliding counts the player pressing a pan key from the moment the task starts, and the camera then moving sideways
+ * by a twentieth of its distance from the table's middle, so a glide left from the zoom does not do it for them.
+ */
+const slid = () => ({
+  begin: ({ camera }: GuideView) => {
+    const watch = { pressed: false, from: camera?.position.clone() ?? null, stop: new AbortController() };
+    const press = (event: KeyboardEvent) => {
+      if (PAN_KEYS.has(event.key.toLowerCase())) {
+        watch.pressed = true;
+      }
+    };
+    window.addEventListener('keydown', press, { capture: true, signal: watch.stop.signal });
+    return watch;
+  },
+  done: (watch: { pressed: boolean; from: Vector3 | null }, { camera }: GuideView) =>
+    watch.pressed &&
+    watch.from !== null &&
+    camera !== null &&
+    camera.position.distanceTo(watch.from) > camera.position.length() * 0.05,
+  finish: (watch: { stop: AbortController }) => watch.stop.abort(),
+});
+
+/* Holding Alt over a card or token shows it flat beside the pointer; the close-up's own mark says it is showing. */
+const closeUpShown = () => ({
+  begin: () => undefined,
+  done: () => document.querySelector('[data-piece-close-up]') !== null,
+});
+
+function tasks(snapshot: () => GameSnapshot): GuideTask[] {
+  /* The Spice deck lies on the right of the table, where the table lays it out. */
+  const spiceDeck = () =>
+    snapshot().table.pieces.find(
+      (piece) =>
+        !piece.inventory &&
+        piece.stackKey?.startsWith('deck:') &&
+        Math.abs(piece.position[0]) <= BOARD_RADIUS * 2 &&
+        piece.position[0] > 0
+    );
+  return [
+    task({
+      id: 'zoom-in',
+      task: 'Look closer at Arrakis',
+      detail: 'Scroll down over the board. The camera moves in toward the spot under your pointer.',
+      anchor: { kind: 'table', point: () => [0, 0, 0] },
+      ...scrolled('in'),
+    }),
+    task({
+      id: 'slide',
+      task: 'Slide along the board',
+      detail: 'While you are in close, the arrow keys or W, A, S and D slide the view. Hold one for a moment.',
+      anchor: { kind: 'table', point: () => [0, 0, 0] },
+      ...slid(),
+    }),
+    task({
+      id: 'zoom-out',
+      task: 'Step back',
+      detail: 'Scroll up over the board to move the camera back out.',
+      anchor: { kind: 'table', point: () => [0, 0, 0] },
+      ...scrolled('out'),
+    }),
+    dialTask(
+      'look-left',
+      'left',
+      'Look at the left of the table',
+      'The camera dial, bottom right of the table, jumps the view. Press L.'
+    ),
+    dialTask(
+      'look-right',
+      'right',
+      'Look at the right of the table',
+      'R on the same dial turns to the other side, where the Spice deck lies.'
+    ),
+    dialTask(
+      'look-bottom',
+      'bottom',
+      'Look at your own side',
+      'B on the dial turns to the rim nearest you, where your reserves wait.'
+    ),
+    task({
+      id: 'close-up',
+      task: 'Read a card up close',
+      detail: 'Point at the Spice deck and hold Alt. Its top card shows flat and large beside the pointer.',
+      anchor: { kind: 'table', point: () => at(spiceDeck()) },
+      ...closeUpShown(),
+    }),
+    dialTask('look-back', 'map', 'Go back to the map', 'M on the dial brings the whole board back.'),
+  ];
+}
+
+/* One line for each part of the chapter, in the order it was played. */
+const learned = [
+  'Scroll over the board to look closer, and back to step out',
+  'Slide a close look with the arrow keys or W, A, S and D',
+  'Jump the view with the camera dial: L, R, B and M',
+  'Hold Alt over a card to read it flat and large',
+];
+
+export const lookingAround: ChapterScript = { slug: 'looking-around', checkpoint: 'turn-1-storm', tasks, learned };
