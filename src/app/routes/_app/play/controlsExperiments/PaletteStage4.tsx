@@ -32,8 +32,10 @@ import styles from './PaletteStage4.module.css';
 
 type Spot = 'hub' | 'hand' | 'hidden' | 'table' | 'ally' | 'battle' | 'search';
 
+type Arrow = 'left' | 'right' | 'up' | 'down';
+
 /* Where each arrow leads from each spot: outward along an arm, back toward the hub from the other arm. */
-const MOVES: Record<Spot, Record<'left' | 'right' | 'up' | 'down', Spot>> = {
+const MOVES: Record<Spot, Record<Arrow, Spot>> = {
   hub: { left: 'hand', right: 'table', up: 'battle', down: 'search' },
   hand: { left: 'hidden', right: 'hub', up: 'battle', down: 'search' },
   hidden: { left: 'hidden', right: 'hand', up: 'battle', down: 'search' },
@@ -43,7 +45,7 @@ const MOVES: Record<Spot, Record<'left' | 'right' | 'up' | 'down', Spot>> = {
   search: { left: 'hand', right: 'table', up: 'hub', down: 'search' },
 };
 
-const ARROWS: Record<string, 'left' | 'right' | 'up' | 'down'> = {
+const ARROWS: Record<string, Arrow> = {
   ArrowLeft: 'left',
   ArrowRight: 'right',
   ArrowUp: 'up',
@@ -93,25 +95,48 @@ const OVERLAY_GAP = 12;
 /* The overlays a slot must never cover: the header chips (phase, alliances, next phase) and the camera dial. */
 const OVERLAYS = '.seated-header, .seated-column-camera, [data-overlay]';
 
+/* A key typed into a text field, other than the compass's own search, belongs to that field. */
+function typingElsewhere(event: KeyboardEvent, search: HTMLInputElement | null) {
+  const target = event.target;
+  if (target === search || !(target instanceof HTMLElement)) {
+    return false;
+  }
+  return target.isContentEditable || target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement;
+}
+
+/*
+ * Space is the compass's everywhere on the table, even on a button left focused by a click, which keeps Enter.
+ * Only an open menu (a piece's radial menu holds Space to confirm), a list being stepped through, a select or a dialog keep it.
+ */
+const KEEPS_SPACE = '[role="menu"], [role="listbox"], select, [role="dialog"], [aria-modal="true"]';
+function spaceBelongsTo(target: EventTarget | null) {
+  return target instanceof Element && target.closest(KEEPS_SPACE) !== null;
+}
+
+/*
+ * Whether a part of an overlay is drawn above a slot's columns. Full-width containers are layout, not something drawn;
+ * the visible chips inside them count.
+ */
+function coversSlot(part: HTMLElement, box: DOMRect, rootWidth: number) {
+  const rect = part.getBoundingClientRect();
+  const drawn = rect.width > 0 && rect.height > 0 && rect.width <= rootWidth * 0.6;
+  const above = rect.right > box.left && rect.left < box.right && rect.top < box.bottom - MIN_SLOT_HEIGHT;
+  if (!drawn || !above) {
+    return false;
+  }
+  const style = getComputedStyle(part);
+  return style.visibility !== 'hidden' && style.opacity !== '0';
+}
+
 /* How tall a slot may be: from its bottom up to the lowest visible overlay part that shares its columns. */
 function slotLimit(root: HTMLElement, slot: HTMLElement) {
   const box = slot.getBoundingClientRect();
   let ceiling = root.getBoundingClientRect().top;
   for (const overlay of root.querySelectorAll<HTMLElement>(OVERLAYS)) {
     for (const part of [overlay, ...overlay.querySelectorAll<HTMLElement>('*')]) {
-      const rect = part.getBoundingClientRect();
-      /* Full-width containers are layout, not something drawn; the visible chips inside them count. */
-      if (rect.width === 0 || rect.height === 0 || rect.width > root.clientWidth * 0.6) {
-        continue;
+      if (coversSlot(part, box, root.clientWidth)) {
+        ceiling = Math.max(ceiling, part.getBoundingClientRect().bottom);
       }
-      if (rect.right <= box.left || rect.left >= box.right || rect.top >= box.bottom - MIN_SLOT_HEIGHT) {
-        continue;
-      }
-      const style = getComputedStyle(part);
-      if (style.visibility === 'hidden' || style.opacity === '0') {
-        continue;
-      }
-      ceiling = Math.max(ceiling, rect.bottom);
     }
   }
   return Math.max(MIN_SLOT_HEIGHT, Math.floor(box.bottom - ceiling - OVERLAY_GAP));
@@ -171,8 +196,12 @@ export function PaletteStage4(props: ExperimentProps) {
     for (const overlay of root.querySelectorAll(OVERLAYS)) {
       observer.observe(overlay);
     }
+    /* Only the overlays' own contents and the slots arriving matter, not every chat line or badge under the table. */
     const mutations = new MutationObserver(measure);
-    mutations.observe(root, { childList: true, subtree: true });
+    mutations.observe(root, { childList: true });
+    for (const overlay of root.querySelectorAll(OVERLAYS)) {
+      mutations.observe(overlay, { childList: true, subtree: true });
+    }
     return () => {
       observer.disconnect();
       mutations.disconnect();
@@ -205,9 +234,11 @@ export function PaletteStage4(props: ExperimentProps) {
     const up = () => {
       window.removeEventListener('pointermove', move);
       window.removeEventListener('pointerup', up);
+      window.removeEventListener('pointercancel', up);
     };
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', up);
+    window.addEventListener('pointercancel', up);
   };
   /* The arrow keys on a slot's grip: a step taller or shorter, with the same stop and bounce as a drag. */
   const nudge = (side: Side, slot: HTMLElement, step: number) => {
@@ -277,26 +308,29 @@ export function PaletteStage4(props: ExperimentProps) {
     },
   };
 
+  /* Already pinned: the slot shows it, so it lights up (on the tab asked for) rather than opening twice. */
+  const showPinned = (side: Side, key: string, tab?: PlayerTab) => {
+    if (tab) {
+      setSlots((current) => ({ ...current, [side]: { key, tab } }));
+    }
+    setFlash((current) => ({ side, at: (current?.at ?? 0) + 1 }));
+    setSheet(null);
+  };
+  /* A player's window opens on the chat when there is one to have, otherwise on what they show. */
+  const firstTab = (key: string): PlayerTab => {
+    const player = byKey(key)?.player;
+    return player && !player.own && player.canConverse ? 'conversation' : 'public';
+  };
+  /* Opens a window in the centre; asking again for the one already there closes it. */
   const show = (key: string, tab?: PlayerTab) => {
+    setOpen(false);
     const side = (['left', 'right'] as const).find((entry) => slots[entry]?.key === key);
     if (side) {
-      /* Already pinned: the slot shows it, so it lights up rather than opening twice. */
-      if (tab) {
-        setSlots((current) => ({ ...current, [side]: { key, tab } }));
-      }
-      setFlash((current) => ({ side, at: (current?.at ?? 0) + 1 }));
-      setSheet(null);
-      setOpen(false);
+      showPinned(side, key, tab);
       return;
     }
-    const target = byKey(key);
-    const chatFirst = target?.player && !target.player.own && target.player.canConverse;
-    setSheet((current) =>
-      current?.key === key && (tab === undefined || current.tab === tab)
-        ? null
-        : { key, tab: tab ?? (chatFirst ? 'conversation' : 'public') }
-    );
-    setOpen(false);
+    const again = (current: Opened | null) => current?.key === key && (tab === undefined || current.tab === tab);
+    setSheet((current) => (again(current) ? null : { key, tab: tab ?? firstTab(key) }));
   };
   /* Pinning moves the centre window into a slot, replacing whatever was pinned there. */
   const pin = (side: Side) => {
@@ -391,19 +425,48 @@ export function PaletteStage4(props: ExperimentProps) {
 
   /* The compass's keys: Space opens and confirms, the arrows steer, a window's letter jumps there. The table hears none of them. */
   useEffect(() => {
+    /* An arrow steers between tiles, moves through the suggestions, or moves the search field's caret. */
+    const steer = (event: KeyboardEvent, arrow: Arrow) => {
+      const sideways = arrow === 'left' || arrow === 'right';
+      if (spot === 'hub' && query && sideways) {
+        return;
+      }
+      event.preventDefault();
+      if (spot === 'search' && !sideways) {
+        moveCursor(arrow);
+        return;
+      }
+      hold.current.steered = true;
+      setSpot((current) => MOVES[current][arrow]);
+    };
+    const moveCursor = (arrow: 'up' | 'down') => {
+      if (arrow === 'up' && cursor === 0) {
+        setSpot('hub');
+        return;
+      }
+      setCursor((current) => Math.max(0, Math.min(suggestions.length - 1, current + (arrow === 'up' ? -1 : 1))));
+    };
+    /* Enter, or a tapped Space with nothing typed, opens what the compass points at; anything else typed goes to the search. */
+    const press = (event: KeyboardEvent) => {
+      const space = event.code === 'Space';
+      const holding = space && (hold.current.down || event.repeat);
+      if (event.key === 'Enter' || (space && !holding && !query)) {
+        event.preventDefault();
+        confirm();
+      } else if (holding) {
+        event.preventDefault();
+      } else if (event.key === 'Escape') {
+        close();
+      } else if (event.target !== inputRef.current) {
+        inputRef.current?.focus();
+      }
+    };
     const keydown = (event: KeyboardEvent) => {
-      const inSearch = event.target === inputRef.current;
-      const typing =
-        !inSearch &&
-        event.target instanceof HTMLElement &&
-        (event.target.isContentEditable ||
-          event.target instanceof HTMLInputElement ||
-          event.target instanceof HTMLTextAreaElement);
-      if (typing) {
+      if (typingElsewhere(event, inputRef.current)) {
         return;
       }
       if (!open) {
-        if (event.code === 'Space' && !event.repeat) {
+        if (event.code === 'Space' && !event.repeat && !inert && !spaceBelongsTo(event.target)) {
           event.preventDefault();
           event.stopPropagation();
           openCompass();
@@ -411,40 +474,12 @@ export function PaletteStage4(props: ExperimentProps) {
         }
         return;
       }
-      const arrow = ARROWS[event.key];
       event.stopPropagation();
-      /* With text in the centre field, left and right move its caret instead of steering. */
-      if (arrow && spot === 'hub' && query && (arrow === 'left' || arrow === 'right')) {
-        return;
-      }
-      if (arrow && spot === 'search' && (arrow === 'up' || arrow === 'down')) {
-        event.preventDefault();
-        if (arrow === 'up' && cursor === 0) {
-          setSpot('hub');
-        } else {
-          setCursor((current) => Math.max(0, Math.min(suggestions.length - 1, current + (arrow === 'up' ? -1 : 1))));
-        }
-        return;
-      }
+      const arrow = ARROWS[event.key];
       if (arrow) {
-        event.preventDefault();
-        hold.current.steered = true;
-        setSpot((current) => MOVES[current][arrow]);
-        return;
-      }
-      if (event.key === 'Enter') {
-        event.preventDefault();
-        confirm();
-      } else if (event.code === 'Space' && (hold.current.down || event.repeat)) {
-        event.preventDefault();
-      } else if (event.code === 'Space' && !query) {
-        event.preventDefault();
-        confirm();
-      } else if (event.key === 'Escape') {
-        close();
-      } else if (!inSearch) {
-        /* Anything else typed goes into the centre field. */
-        inputRef.current?.focus();
+        steer(event, arrow);
+      } else {
+        press(event);
       }
     };
     const keyup = (event: KeyboardEvent) => {
@@ -492,7 +527,7 @@ export function PaletteStage4(props: ExperimentProps) {
     }
     return (
       <section
-        key={where}
+        key={opened.key}
         className={clsx(base.sheet, where === 'centre' ? [bar.sheet, styles.centre] : styles.slot)}
         data-side={where}
         data-window={opened.key}
@@ -573,54 +608,62 @@ export function PaletteStage4(props: ExperimentProps) {
         style={{ top: 'var(--palette-camera-top, calc(var(--play-header-height) + 0.5rem))', bottom: 'auto' }}
       />
 
-      {sheet &&
-        frame(
-          sheet,
-          'centre',
-          (tab) => setSheet({ key: sheet.key, tab }),
-          <>
-            <button
-              type="button"
-              className={base.iconButton}
-              aria-label="Pin to the bottom left"
-              title={slots.left ? `Pin bottom left, replacing ${byKey(slots.left.key)?.label}` : 'Pin bottom left'}
-              onClick={() => pin('left')}
-            >
-              <PanelLeft size={16} />
-            </button>
-            <button
-              type="button"
-              className={base.iconButton}
-              aria-label="Pin to the bottom right"
-              title={slots.right ? `Pin bottom right, replacing ${byKey(slots.right.key)?.label}` : 'Pin bottom right'}
-              onClick={() => pin('right')}
-            >
-              <PanelRight size={16} />
-            </button>
-            <button type="button" className={base.iconButton} aria-label="Close" onClick={() => setSheet(null)}>
-              <CloseIcon />
-            </button>
-          </>
-        )}
-      {(['left', 'right'] as const).map((side) => {
-        const opened = slots[side];
-        return opened
-          ? frame(
-              opened,
-              side,
-              (tab) => setSlots((current) => ({ ...current, [side]: { key: opened.key, tab } })),
+      {/*
+        One list of windows keyed by what they show, so pinning moves a window rather than remounting it,
+        and whatever it holds (a chat draft, a scroll position) comes along.
+      */}
+      {[
+        sheet &&
+          frame(
+            sheet,
+            'centre',
+            (tab) => setSheet({ key: sheet.key, tab }),
+            <>
               <button
                 type="button"
                 className={base.iconButton}
-                aria-label="Unpin"
-                title="Unpin: it disappears"
-                onClick={() => unpin(side)}
+                aria-label="Pin to the bottom left"
+                title={slots.left ? `Pin bottom left, replacing ${byKey(slots.left.key)?.label}` : 'Pin bottom left'}
+                onClick={() => pin('left')}
               >
-                <PinOff size={16} />
+                <PanelLeft size={16} />
               </button>
-            )
-          : null;
-      })}
+              <button
+                type="button"
+                className={base.iconButton}
+                aria-label="Pin to the bottom right"
+                title={
+                  slots.right ? `Pin bottom right, replacing ${byKey(slots.right.key)?.label}` : 'Pin bottom right'
+                }
+                onClick={() => pin('right')}
+              >
+                <PanelRight size={16} />
+              </button>
+              <button type="button" className={base.iconButton} aria-label="Close" onClick={() => setSheet(null)}>
+                <CloseIcon />
+              </button>
+            </>
+          ),
+        ...(['left', 'right'] as const).map((side) => {
+          const opened = slots[side];
+          return opened
+            ? frame(
+                opened,
+                side,
+                (tab) => setSlots((current) => ({ ...current, [side]: { key: opened.key, tab } })),
+                <button
+                  type="button"
+                  className={base.iconButton}
+                  aria-label="Unpin"
+                  title="Unpin: it disappears"
+                  onClick={() => unpin(side)}
+                >
+                  <PinOff size={16} />
+                </button>
+              )
+            : null;
+        }),
+      ]}
 
       <div className={bar.bar} inert={inert} data-hides-cursor>
         <button type="button" className={bar.launcher} data-compass-launcher onClick={openCompass}>

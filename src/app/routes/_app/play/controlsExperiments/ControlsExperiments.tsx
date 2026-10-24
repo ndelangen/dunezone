@@ -1,13 +1,14 @@
 import { Stack } from '@mantine/core';
 import type { TopicIconTopic } from '@ui/content/TopicIcon';
 import clsx from 'clsx';
-import { useCallback, useEffect, useEffectEvent, useState } from 'react';
+import { useCallback, useContext, useEffect, useEffectEvent, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 
 import type { PanelTab } from '../GameTable';
 import { HeldSlot } from '../HeldContent';
 import type { HeldNode } from '../HeldContent';
 import styles from './ControlsExperiments.module.css';
+import { ControlsEpochContext } from './experiment';
 import type { ControlsExperiment } from './experiment';
 import { PaletteStage4 } from './PaletteStage4';
 
@@ -108,13 +109,13 @@ export function forgetRemembered() {
 }
 
 function readRemembered<T>(key: string, fallback: T): T {
-  let stored: string | null = null;
   try {
-    stored = localStorage.getItem(`${REMEMBERED}${key}`);
+    const stored = localStorage.getItem(`${REMEMBERED}${key}`);
+    return stored === null ? fallback : (JSON.parse(stored) as T);
   } catch {
-    /* Blocked storage remembers nothing. */
+    /* Blocked storage, or a value that no longer parses, remembers nothing. */
+    return fallback;
   }
-  return stored ? (JSON.parse(stored) as T) : fallback;
 }
 
 /* A remembered choice for one design, in this browser only. */
@@ -195,5 +196,7 @@ export function pressControl(selector: string) {
 }
 
 export function ExperimentLayout(props: ExperimentProps) {
-  return <PaletteStage4 {...props} />;
+  /* The table's own pieces live in held nodes, so starting the layout afresh moves them back in without remounting them. */
+  const epoch = useContext(ControlsEpochContext);
+  return <PaletteStage4 key={epoch} {...props} />;
 }

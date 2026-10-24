@@ -1080,7 +1080,8 @@ export function GameTable({
       </div>
     </header>
   );
-  const experimentTabs = dockTabs({
+  /* The dock's tabs, which the controls panel shows together and a controls experiment opens one by one. */
+  const dock: DockTabsProps = {
     panelTabs,
     tableControls,
     tableGuidance,
@@ -1088,20 +1089,8 @@ export function GameTable({
     showStormControls,
     word: frame.word,
     tableTab: frame.tableTab,
-  });
-  const controls = (
-    <TableControlsPanel
-      panelTabs={panelTabs}
-      focusTab={focusTab}
-      openOn={openOn}
-      tableControls={tableControls}
-      tableGuidance={tableGuidance}
-      panelContent={panelContent}
-      word={frame.word}
-      tableTab={frame.tableTab}
-      showStormControls={showStormControls}
-    />
-  );
+  };
+  const controls = <TableControlsPanel {...dock} focusTab={focusTab} openOn={openOn} />;
 
   return (
     <PointerSessionContext value={pointerSession}>
@@ -1127,7 +1116,7 @@ export function GameTable({
                 players={playerPanel}
                 camera={camera}
                 inert={overlaysInert}
-                tabs={experimentTabs}
+                tabs={dockTabs(dock)}
               />
             </div>
           </div>

@@ -10,6 +10,9 @@ export type ControlsExperiment = 'palette-4';
 
 export const ControlsExperimentContext = createContext<ControlsExperiment | null>(null);
 
+/** Bumping it starts the experiment afresh, as the tutorial's Reset does: nothing open, pinned or resized. */
+export const ControlsEpochContext = createContext(0);
+
 export function useControlsExperiment(): ControlsExperiment | null {
   return useContext(ControlsExperimentContext);
 }

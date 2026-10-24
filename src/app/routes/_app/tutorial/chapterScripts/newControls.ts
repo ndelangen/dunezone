@@ -17,6 +17,30 @@ const viaCompass = (spot: string) => () =>
   document.querySelector(compassOpen() ? `[data-spot="${spot}"]` : '[data-compass-launcher]');
 const slotHeight = (side: 'left' | 'right') =>
   document.querySelector(`section[data-side="${side}"]`)?.getBoundingClientRect().height ?? 0;
+const RESIZE_GRIP = 'section[data-side="right"] button[aria-label^="Resize"]';
+/*
+ * Resizing counts only once the player took hold of the grip, and once the chat grew or ran into the overlay above it:
+ * on a short window the chat may already be as tall as it can be, and the bounce tells the player so.
+ */
+const resizedTaller = () => ({
+  begin: () => {
+    const watch = { grabbed: false, from: slotHeight('right'), stop: new AbortController() };
+    const grab = (event: Event) => {
+      if (event.target instanceof Element && event.target.closest(RESIZE_GRIP)) {
+        watch.grabbed = true;
+      }
+    };
+    for (const type of ['pointerdown', 'keydown']) {
+      document.addEventListener(type, grab, { capture: true, signal: watch.stop.signal });
+    }
+    return watch;
+  },
+  done: (watch: { grabbed: boolean; from: number }) =>
+    watch.grabbed &&
+    (slotHeight('right') >= watch.from + 40 ||
+      document.querySelector('section[data-side="right"][data-bounce]') !== null),
+  finish: (watch: { stop: AbortController }) => watch.stop.abort(),
+});
 const showing = (view: string) =>
   document.querySelector(`[aria-label^="Focus on ${view}"]`)?.getAttribute('aria-pressed') === 'true';
 
@@ -24,7 +48,8 @@ const showing = (view: string) =>
 const task = <Baseline>(definition: GuideTask<Baseline>) => definition as unknown as GuideTask;
 const nothing = () => undefined;
 
-const tasks = (): GuideTask[] => [
+/* The compass and the windows it opens, pinned into the slots. */
+const windowTasks = (): GuideTask[] => [
   task({
     id: 'open-compass',
     task: 'Open the controls',
@@ -58,6 +83,10 @@ const tasks = (): GuideTask[] => [
     begin: nothing,
     done: () => windowAt('centre', 'hidden-zone'),
   }),
+];
+
+/* The chat pinned on the right, made taller, then the chat bar, the search and unpinning. */
+const slotTasks = (): GuideTask[] => [
   task({
     id: 'table-chat',
     task: 'Open the table chat',
@@ -78,9 +107,8 @@ const tasks = (): GuideTask[] => [
     id: 'resize',
     task: 'Make the chat taller',
     detail: 'Drag the grip on the top edge of the pinned chat upward. Double-click the grip to put it back.',
-    anchor: { kind: 'page', element: first('section[data-side="right"] button[aria-label^="Resize"]') },
-    begin: () => slotHeight('right'),
-    done: (start: number) => slotHeight('right') >= start + 40,
+    anchor: { kind: 'page', element: first(RESIZE_GRIP) },
+    ...resizedTaller(),
   }),
   task({
     id: 'player',
@@ -106,9 +134,12 @@ const tasks = (): GuideTask[] => [
     detail: 'The crossed-out pin in the hand’s title takes it off the screen at once. Space ← brings it back any time.',
     anchor: { kind: 'page', element: first('section[data-side="left"] [aria-label="Unpin"]') },
     begin: nothing,
-    done: () => !windowAt('left', 'hand'),
+    /* Whatever ended up pinned bottom left, the slot is empty once it is unpinned. */
+    done: () => document.querySelector('section[data-side="left"]') === null,
   }),
 ];
+
+const tasks = () => [...windowTasks(), ...slotTasks()];
 
 const learned = [
   'Space opens the compass over the table',
