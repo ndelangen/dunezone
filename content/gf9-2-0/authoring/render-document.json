@@ -80,7 +80,7 @@
             "status": "unselected"
           },
           "subtitle": "SECOND EDITION",
-          "supportingText": "",
+          "supportingText": "THE SPICE MUST FLOW\nA GAME OF CONQUEST, DIPLOMACY & BETRAYAL",
           "backgroundImage": {
             "url": "https://dune.zone/user-images/e76d8241b236ed4b3ddd627c3c14238e32d3993e6a84ed6231592f7eace51523.jpg",
             "width": 1448,
@@ -9379,7 +9379,7 @@
               "id": "NUC2",
               "kind": "board-scene",
               "boardId": "arrakis",
-              "caption": "Ornithopter icons",
+              "caption": "Cities granting ornithopter access. Aircraft symbols identify these cities on the printed board.",
               "size": "fit-width",
               "routes": [],
               "viewport": {
@@ -19735,6 +19735,7 @@
                 "dial": 6,
                 "spice": 4,
                 "adjustment": 2,
+                "result": "6 force strength + 2 spice strength (4 spice), with a strength-3 leader.",
                 "faction": {
                   "status": "ready",
                   "factionId": "k177h1yvxp36dxsxjfmgqx4jw58gm5jk",
@@ -19855,7 +19856,16 @@
                   ]
                 },
                 "leader": {
-                  "status": "unselected"
+                  "status": "ready",
+                  "reference": {
+                    "kind": "faction-member",
+                    "factionId": "k178pt05y4abwvwxeg247snr758gv794",
+                    "memberId": "918acfed-e08e-46bc-8e11-ef6e789fa347"
+                  },
+                  "name": "Duncan Idaho",
+                  "imageUrl": "https://dune.zone/published/leaders/k178pt05y4abwvwxeg247snr758gv794.918acfed-e08e-46bc-8e11-ef6e789fa347/leader.jpg?v=04cf0c98-e705-43c3-b028-e4c9a13137fa",
+                  "width": 600,
+                  "height": 600
                 },
                 "cards": [],
                 "troops": []
@@ -19866,6 +19876,7 @@
                 "dial": 6,
                 "spice": 0,
                 "adjustment": 0,
+                "result": "Comparison without spice: the same 6 force strength and strength-3 leader, with no spice strength.",
                 "faction": {
                   "status": "ready",
                   "factionId": "k177h1yvxp36dxsxjfmgqx4jw58gm5jk",
@@ -19986,7 +19997,16 @@
                   ]
                 },
                 "leader": {
-                  "status": "unselected"
+                  "status": "ready",
+                  "reference": {
+                    "kind": "faction-member",
+                    "factionId": "k178pt05y4abwvwxeg247snr758gv794",
+                    "memberId": "918acfed-e08e-46bc-8e11-ef6e789fa347"
+                  },
+                  "name": "Duncan Idaho",
+                  "imageUrl": "https://dune.zone/published/leaders/k178pt05y4abwvwxeg247snr758gv794.918acfed-e08e-46bc-8e11-ef6e789fa347/leader.jpg?v=04cf0c98-e705-43c3-b028-e4c9a13137fa",
+                  "width": 600,
+                  "height": 600
                 },
                 "cards": [],
                 "troops": []
@@ -23055,8 +23075,8 @@
               "annotations": [
                 {
                   "id": "carry",
-                  "title": "Carryalls",
-                  "text": "",
+                  "title": "Arrakeen",
+                  "text": "Carryalls and 2 spice stronghold income.",
                   "x": 0.7,
                   "y": 0.05,
                   "targetX": 0.655,
@@ -23064,8 +23084,8 @@
                 },
                 {
                   "id": "income",
-                  "title": "Stronghold income",
-                  "text": "",
+                  "title": "Tuek's Sietch",
+                  "text": "1 spice stronghold income.",
                   "x": 0.94,
                   "y": 0.82,
                   "targetX": 0.864,
@@ -23073,8 +23093,8 @@
                 },
                 {
                   "id": "carthag",
-                  "title": "Carryalls and stronghold income",
-                  "text": "",
+                  "title": "Carthag",
+                  "text": "Carryalls and 2 spice stronghold income.",
                   "x": 0.34,
                   "y": 0.3,
                   "targetX": 0.486,
@@ -25828,7 +25848,7 @@
               "name": "",
               "textFlow": "wrap",
               "size": "medium",
-              "text": "This has three possible effects: gaining a free Treachery card, Spacing Guild rates for any shipping action, and payment for spice strength. Spice strength is paid after Battle Plans are revealed. In previous editions of Dune, the first two of these effects were assigned to Karama."
+              "text": "This has three possible effects: gaining a free Treachery card, Spacing Guild rates for any shipping action, and payment for spice strength. Spice strength is paid after Battle Plans are revealed. In previous editions of Dune, the first two of these effects were assigned to Karama.\n\nPay for spice strength in battle from the Spice Bank."
             },
             {
               "id": "PZLM",

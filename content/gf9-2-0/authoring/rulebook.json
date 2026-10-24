@@ -89,7 +89,7 @@
             "showDuneLogo": true,
             "showSubtitle": true,
             "subtitle": "SECOND EDITION",
-            "supportingText": ""
+            "supportingText": "THE SPICE MUST FLOW\nA GAME OF CONQUEST, DIPLOMACY & BETRAYAL"
           }
         },
         "blockOrderByRegion": {},
@@ -1833,7 +1833,7 @@
         "blocksById": {
           "NUC2": {
             "boardId": "arrakis",
-            "caption": "Ornithopter icons",
+            "caption": "Cities granting ornithopter access. Aircraft symbols identify these cities on the printed board.",
             "size": "fit-width",
             "routes": [],
             "viewport": {
@@ -2644,7 +2644,13 @@
               "dial": 6,
               "spice": 4,
               "adjustment": 2,
+              "leader": {
+                "kind": "faction-member",
+                "factionId": "k178pt05y4abwvwxeg247snr758gv794",
+                "memberId": "918acfed-e08e-46bc-8e11-ef6e789fa347"
+              },
               "cards": [],
+              "result": "6 force strength + 2 spice strength (4 spice), with a strength-3 leader.",
               "troops": []
             },
             "right": {
@@ -2654,7 +2660,13 @@
               "dial": 6,
               "spice": 0,
               "adjustment": 0,
+              "leader": {
+                "kind": "faction-member",
+                "factionId": "k178pt05y4abwvwxeg247snr758gv794",
+                "memberId": "918acfed-e08e-46bc-8e11-ef6e789fa347"
+              },
               "cards": [],
+              "result": "Comparison without spice: the same 6 force strength and strength-3 leader, with no spice strength.",
               "troops": []
             },
             "showSideLabels": false
@@ -3126,8 +3138,8 @@
             "annotations": [
               {
                 "id": "carry",
-                "title": "Carryalls",
-                "text": "",
+                "title": "Arrakeen",
+                "text": "Carryalls and 2 spice stronghold income.",
                 "x": 0.7,
                 "y": 0.05,
                 "targetX": 0.655,
@@ -3135,8 +3147,8 @@
               },
               {
                 "id": "income",
-                "title": "Stronghold income",
-                "text": "",
+                "title": "Tuek's Sietch",
+                "text": "1 spice stronghold income.",
                 "x": 0.94,
                 "y": 0.82,
                 "targetX": 0.864,
@@ -3144,8 +3156,8 @@
               },
               {
                 "id": "carthag",
-                "title": "Carryalls and stronghold income",
-                "text": "",
+                "title": "Carthag",
+                "text": "Carryalls and 2 spice stronghold income.",
                 "x": 0.34,
                 "y": 0.3,
                 "targetX": 0.486,
@@ -3899,7 +3911,7 @@
               "kind": "asset",
               "assetId": "ns7fmbx80hnq2ejgj9c45a7mqd8gt64y"
             },
-            "text": "This has three possible effects: gaining a free Treachery card, Spacing Guild rates for any shipping action, and payment for spice strength. Spice strength is paid after Battle Plans are revealed. In previous editions of Dune, the first two of these effects were assigned to Karama.",
+            "text": "This has three possible effects: gaining a free Treachery card, Spacing Guild rates for any shipping action, and payment for spice strength. Spice strength is paid after Battle Plans are revealed. In previous editions of Dune, the first two of these effects were assigned to Karama.\n\nPay for spice strength in battle from the Spice Bank.",
             "name": "",
             "size": "medium"
           },

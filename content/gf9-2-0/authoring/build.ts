@@ -697,6 +697,8 @@ const settings = { size: 'square', design: 'restrained' };
 const preserved = JSON.parse(readFileSync(`${here}correction/before-overview.json`, 'utf8')).items[0].data;
 contents.pagesById[contents.pageOrder[0]].controlValues =
   preserved.contents.pagesById[preserved.contents.pageOrder[0]].controlValues;
+contents.pagesById[contents.pageOrder[0]].controlValues.cover.supportingText =
+  'THE SPICE MUST FLOW\nA GAME OF CONQUEST, DIPLOMACY & BETRAYAL';
 const raw = rawRulebookSchema.parse({ settings, contents });
 assertRulebookReferences(raw.contents, assetsById, bindings.resolvedFactions);
 const document = projectRulebookDraftRenderDocument(

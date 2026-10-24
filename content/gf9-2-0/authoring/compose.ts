@@ -695,13 +695,17 @@ export function compose({ allPages, contents, pageMap, unitMap, editorial, id, f
       blocks.splice(
         at + 2,
         0,
-        map('ornithopters', 'Ornithopter icons', {
-          viewport: { x: 0.35, y: 0, width: 0.42, height: 0.35 },
-          annotations: [
-            mark('arr', 'Arrakeen', 0.68, 0.08, 0.655, 0.147),
-            mark('car', 'Carthag', 0.43, 0.28, 0.486, 0.184),
-          ],
-        })
+        map(
+          'ornithopters',
+          'Cities granting ornithopter access. Aircraft symbols identify these cities on the printed board.',
+          {
+            viewport: { x: 0.35, y: 0, width: 0.42, height: 0.35 },
+            annotations: [
+              mark('arr', 'Arrakeen', 0.68, 0.08, 0.655, 0.147),
+              mark('car', 'Carthag', 0.43, 0.28, 0.486, 0.184),
+            ],
+          }
+        )
       );
     }
     if (n === 15) {
@@ -779,6 +783,21 @@ export function compose({ allPages, contents, pageMap, unitMap, editorial, id, f
         stock('wheel-6'),
         '6 force strength + 2 spice strength (4 spice).'
       );
+      const overviewAtreides = Object.values(bindings.resolvedFactions).find(
+        (f: any) =>
+          f.name === 'Atreides' &&
+          f.factionId !== faction('Atreides').id &&
+          f.leaders?.some((leader: any) => leader.name === 'Duncan Idaho')
+      ) as any;
+      const leader = overviewAtreides?.leaders.find((leader: any) => leader.name === 'Duncan Idaho')?.reference;
+      if (!leader) {
+        throw Error('Missing production second-edition Duncan Idaho for the strength-3 example.');
+      }
+      wheel.left.leader = leader;
+      wheel.right.leader = leader;
+      wheel.left.result = '6 force strength + 2 spice strength (4 spice), with a strength-3 leader.';
+      wheel.right.result =
+        'Comparison without spice: the same 6 force strength and strength-3 leader, with no spice strength.';
       blocks = removeRange(blocks, n, 28, 30, wheel);
       addPage(original, [...blocks, wheel]);
       continue;
@@ -874,9 +893,9 @@ export function compose({ allPages, contents, pageMap, unitMap, editorial, id, f
           opacity: 0.3,
         })),
         annotations: [
-          mark('carry', 'Carryalls', 0.7, 0.05, 0.655, 0.147),
-          mark('income', 'Stronghold income', 0.94, 0.82, 0.864, 0.707),
-          mark('carthag', 'Carryalls and stronghold income', 0.34, 0.3, 0.486, 0.184),
+          { ...mark('carry', 'Arrakeen', 0.7, 0.05, 0.655, 0.147), text: 'Carryalls and 2 spice stronghold income.' },
+          { ...mark('income', "Tuek's Sietch", 0.94, 0.82, 0.864, 0.707), text: '1 spice stronghold income.' },
+          { ...mark('carthag', 'Carthag', 0.34, 0.3, 0.486, 0.184), text: 'Carryalls and 2 spice stronghold income.' },
         ],
       });
       blocks.splice(at < 0 ? blocks.length : at, 0, scene);
@@ -971,7 +990,7 @@ export function compose({ allPages, contents, pageMap, unitMap, editorial, id, f
       for (let i = 1; i <= 14; i++) {
         if (i === 10) {
           solaris = guide('solaris-guide', 'solaris', '', [10]);
-          solaris.text = formatted(unit(10).text.replace(/^Solaris: /, ''));
+          solaris.text = formatted(unit(10).text.replace(/^Solaris: /, '') + '\n\n' + unit(21).text.replace(/^- /, ''));
           paragraphs.push(solaris);
         } else {
           paragraphs.push(prose(`insight-${i}`, [i]));

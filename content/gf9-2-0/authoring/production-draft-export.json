@@ -222,8 +222,8 @@
                       "id": "carry",
                       "targetX": 0.655,
                       "targetY": 0.147,
-                      "text": "",
-                      "title": "Carryalls",
+                      "text": "Carryalls and 2 spice stronghold income.",
+                      "title": "Arrakeen",
                       "x": 0.7,
                       "y": 0.05
                     },
@@ -231,8 +231,8 @@
                       "id": "income",
                       "targetX": 0.864,
                       "targetY": 0.707,
-                      "text": "",
-                      "title": "Stronghold income",
+                      "text": "1 spice stronghold income.",
+                      "title": "Tuek's Sietch",
                       "x": 0.94,
                       "y": 0.82
                     },
@@ -240,8 +240,8 @@
                       "id": "carthag",
                       "targetX": 0.486,
                       "targetY": 0.184,
-                      "text": "",
-                      "title": "Carryalls and stronghold income",
+                      "text": "Carryalls and 2 spice stronghold income.",
+                      "title": "Carthag",
                       "x": 0.34,
                       "y": 0.3
                     }
@@ -911,7 +911,7 @@
                     "assetId": "ns7fmbx80hnq2ejgj9c45a7mqd8gt64y",
                     "kind": "asset"
                   },
-                  "text": "This has three possible effects: gaining a free Treachery card, Spacing Guild rates for any shipping action, and payment for spice strength. Spice strength is paid after Battle Plans are revealed. In previous editions of Dune, the first two of these effects were assigned to Karama.",
+                  "text": "This has three possible effects: gaining a free Treachery card, Spacing Guild rates for any shipping action, and payment for spice strength. Spice strength is paid after Battle Plans are revealed. In previous editions of Dune, the first two of these effects were assigned to Karama.\n\nPay for spice strength in battle from the Spice Bank.",
                   "textFlow": "wrap"
                 },
                 "GW5R": {
@@ -1155,7 +1155,7 @@
                     }
                   ],
                   "boardId": "arrakis",
-                  "caption": "Ornithopter icons",
+                  "caption": "Cities granting ornithopter access. Aircraft symbols identify these cities on the printed board.",
                   "highlights": [],
                   "id": "NUC2",
                   "kind": "board-scene",
@@ -2570,6 +2570,12 @@
                     "cards": [],
                     "dial": 6,
                     "factionId": "k177h1yvxp36dxsxjfmgqx4jw58gm5jk",
+                    "leader": {
+                      "factionId": "k178pt05y4abwvwxeg247snr758gv794",
+                      "kind": "faction-member",
+                      "memberId": "918acfed-e08e-46bc-8e11-ef6e789fa347"
+                    },
+                    "result": "6 force strength + 2 spice strength (4 spice), with a strength-3 leader.",
                     "revealed": true,
                     "role": "",
                     "spice": 4,
@@ -2580,6 +2586,12 @@
                     "cards": [],
                     "dial": 6,
                     "factionId": "k177h1yvxp36dxsxjfmgqx4jw58gm5jk",
+                    "leader": {
+                      "factionId": "k178pt05y4abwvwxeg247snr758gv794",
+                      "kind": "faction-member",
+                      "memberId": "918acfed-e08e-46bc-8e11-ef6e789fa347"
+                    },
+                    "result": "Comparison without spice: the same 6 force strength and strength-3 leader, with no spice strength.",
                     "revealed": true,
                     "role": "",
                     "spice": 0,
@@ -4404,7 +4416,7 @@
                   "showDuneLogo": true,
                   "showSubtitle": true,
                   "subtitle": "SECOND EDITION",
-                  "supportingText": ""
+                  "supportingText": "THE SPICE MUST FLOW\nA GAME OF CONQUEST, DIPLOMACY & BETRAYAL"
                 }
               },
               "id": "SCMH",
@@ -6073,7 +6085,7 @@
       "existing": {
         "slug": "gf9-2-0-rulebook"
       },
-      "expectedStateHash": "v1:77b14aa58e8fef222c85c6448cf68c056eded40ad2ce6d3f43eedc05866ad765",
+      "expectedStateHash": "v1:cf4a245063ed2a2dd26c67f97644dc3c59ecae0789efe366f8ed072bbef4b3e4",
       "key": "gf9-2-0-rulebook",
       "kind": "rulebook"
     }

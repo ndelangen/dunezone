@@ -1,6 +1,6 @@
 # Reconstructed draft
 
-The saved Square draft has 61 pages, using existing Blocks and the restrained design. Production draft revision 7 uses the native faction-sheet connection deployed in PR #2477. Central owns the Rulebook, assigned through GF9 2.0 to GF9. Edition 1 remains the starter; this reconstruction has not been published as an Edition.
+The saved Square draft has 61 pages, using existing Blocks and the restrained design. Production draft revision 8 uses the native faction-sheet connection deployed in PR #2477. Central owns the Rulebook, assigned through GF9 2.0 to GF9. Edition 1 remains the starter; this reconstruction has not been published as an Edition.
 
 The original transcripts remain unchanged. Ten readings confirmed from the clearer supplied scan are applied by the builder and recorded in [the scan review](../clearer-scan-review.md). All 971 source units are accounted for. The current reading copy has no remaining uncertainty markers. That count is not a claim that every word has been rechecked against the newer scan.
 
@@ -28,3 +28,7 @@ The approved printed contents and physical box-inventory omissions remain in eff
 The raw JSON passes the application schema and reference checks and stays below the JSON Load limit. All 61 pages were measured with no overflowing regions. A native Chromium review PDF contains 61 Square pages with selectable text. Its Revival page was rendered and inspected after fixing embedded sheet sizing under print styles. All referenced images were loaded before capture.
 
 The saved production record is revision 7. It was loaded and saved through the authenticated editor as Central, then reloaded and exported. Its settings and contents exactly match the local manuscript. The live marker lands inside the sheet's revival line, and its referenced images are loaded. Deployment run 40043971581 passed; the production renderer reports Git SHA `c9379d1d50151396502bbf4f100fc2abb867f41e`. Rejected revision 6 is backed up in [correction/rejected-revival-r6.json](correction/rejected-revival-r6.json). Draft revision 5 is backed up in [correction/before-revival.json](correction/before-revival.json). The earlier cover and overview baseline remains in [correction/before-overview.json](correction/before-overview.json). The differences rulebook remains separate work.
+
+## Revision 8 corrections
+
+[The first correction pass](easy-fixes-r8.md) fixes the ornithopter caption, battle-example leader and comparison captions, stronghold income annotations, and cover framing lines. It also restores Solaris's bank-payment option in readable text beside the clipped image. Five pages changed. The saved revision 8 export exactly matches the local manuscript. The board explanation and clipped card images remain.
