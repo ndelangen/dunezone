@@ -43,24 +43,27 @@ export async function readBoardListing(ctx: QueryCtx, id: Id<'assets'>) {
   return (summary && boardListing(summary)) || (await ctx.db.get('assets', id));
 }
 
-/** The catalogue selects membership; optional board summaries only reduce the bytes per selected asset. */
+/** Completed backfills make the summary index authoritative; recovery retains the original bounded source read. */
 export async function listAssetListingRows(ctx: QueryCtx, type: string, limit: number): Promise<Doc<'assets'>[]> {
   if (type === 'board') {
-    /* Resolve a bounded set before sorting by source creation time, as the original asset index did. */
-    const entries = await ctx.db
-      .query('catalogue_entries')
-      .withIndex('by_kind_partition_created', (q) => q.eq('kind', 'asset').eq('partition', 'board'))
-      .take(1025);
-    if (entries.length > 0 && entries.length <= 1024) {
+    const backfill = await ctx.db
+      .query('migration_runs')
+      .withIndex('by_migration_id', (q) => q.eq('migration_id', 'board_readiness_listing_v1'))
+      .unique();
+    if (backfill?.state === 'success' && backfill.is_done) {
+      const summaries = await ctx.db
+        .query('board_readiness')
+        .withIndex('by_deleted_created', (q) => q.eq('is_deleted', false))
+        .order('desc')
+        .take(limit);
       const boards = [];
-      for (const entry of entries) {
-        const id = ctx.db.normalizeId('assets', entry.source_id);
-        const board = id ? await readBoardListing(ctx, id) : null;
+      for (const summary of summaries) {
+        const board = boardListing(summary) || (await ctx.db.get('assets', summary.asset_id));
         if (board && board.type === 'board' && !board.is_deleted) {
           boards.push(board);
         }
       }
-      return boards.sort((a, b) => b._creationTime - a._creationTime).slice(0, limit);
+      return boards;
     }
   }
   return await ctx.db
