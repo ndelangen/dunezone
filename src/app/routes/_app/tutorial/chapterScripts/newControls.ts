@@ -44,7 +44,8 @@ const tasks = (): GuideTask[] => [
   task({
     id: 'pin-hand',
     task: 'Keep your hand open',
-    detail: 'A window in the middle closes when you click the table. Pin it to the bottom left with the button in its title.',
+    detail:
+      'A window in the middle closes when you click the table. Pin it to the bottom left with the button in its title.',
     anchor: { kind: 'page', element: first('[aria-label="Pin to the bottom left"]') },
     begin: nothing,
     done: () => windowAt('left', 'hand'),
@@ -77,14 +78,15 @@ const tasks = (): GuideTask[] => [
     id: 'resize',
     task: 'Make the chat taller',
     detail: 'Drag the grip on the top edge of the pinned chat upward. Double-click the grip to put it back.',
-    anchor: { kind: 'page', element: first('section[data-side="right"] [role="separator"]') },
+    anchor: { kind: 'page', element: first('section[data-side="right"] button[aria-label^="Resize"]') },
     begin: () => slotHeight('right'),
     done: (start: number) => slotHeight('right') >= start + 40,
   }),
   task({
     id: 'player',
     task: 'Talk to one player',
-    detail: 'The faction tokens beside Controls are your chats, one per player, with a badge when they wrote. Click one.',
+    detail:
+      'The faction tokens beside Controls are your chats, one per player, with a badge when they wrote. Click one.',
     anchor: { kind: 'page', element: first('nav[aria-label="Chats"] button:nth-of-type(2)') },
     begin: nothing,
     done: () => document.querySelector('section[data-side="centre"][data-window^="player:"]') !== null,
@@ -119,4 +121,10 @@ const learned = [
   'Type anything on the compass to find it',
 ];
 
-export const newControls: ChapterScript = { slug: 'new-controls', checkpoint: 'turn-1-storm', tasks, learned, controls: 'palette-4' };
+export const newControls: ChapterScript = {
+  slug: 'new-controls',
+  checkpoint: 'turn-1-storm',
+  tasks,
+  learned,
+  controls: 'palette-4',
+};

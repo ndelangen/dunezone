@@ -35,7 +35,10 @@ const meta = preview.meta({
 /* What the slots start with: the story either pins its pair or starts empty, whatever an earlier visit left. */
 function pinned(slots: Record<'left' | 'right', { key: string; tab: string } | null>, keep: boolean) {
   try {
-    localStorage.setItem('dunezone-controls-experiment:palette-4-slots', JSON.stringify(keep ? slots : { left: null, right: null }));
+    localStorage.setItem(
+      'dunezone-controls-experiment:palette-4-slots',
+      JSON.stringify(keep ? slots : { left: null, right: null })
+    );
   } catch {
     /* Without storage the slots start empty. */
   }
@@ -43,7 +46,10 @@ function pinned(slots: Record<'left' | 'right', { key: string; tab: string } | n
 
 /* The viewer allied with seat 4, so the ally arm has someone to talk to. */
 function allied(snapshot: GameSnapshot) {
-  snapshot.alliances = { groups: [{ members: [faction(snapshot, 'seat-2'), faction(snapshot, 'seat-4')], mark: 0 }], offers: [] };
+  snapshot.alliances = {
+    groups: [{ members: [faction(snapshot, 'seat-2'), faction(snapshot, 'seat-4')], mark: 0 }],
+    offers: [],
+  };
   return snapshot;
 }
 

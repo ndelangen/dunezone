@@ -464,7 +464,11 @@ export function PlayerWindow({
   const player = seatPlayers(table).find((entry) => entry.seat === seat);
   if (seat === TABLE_CONVERSATION) {
     return conversations.context ? (
-      <Conversation key={`${conversations.context.factionId}:${TABLE_CONVERSATION}`} client={client} peerId={TABLE_CONVERSATION} />
+      <Conversation
+        key={`${conversations.context.factionId}:${TABLE_CONVERSATION}`}
+        client={client}
+        peerId={TABLE_CONVERSATION}
+      />
     ) : null;
   }
   if (!player) {

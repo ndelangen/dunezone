@@ -1,4 +1,3 @@
-import { useControlsExperiment } from '../controlsExperiments/experiment';
 import { Button, Checkbox, Group, Menu, NumberInput, Radio, Select, Stack, Text, VisuallyHidden } from '@mantine/core';
 import type { ButtonProps, NumberInputProps } from '@mantine/core';
 import { useElementSize } from '@mantine/hooks';
@@ -36,6 +35,7 @@ import { factionTokenFixtures } from '@game/fixtures/factionTokens';
 import type { TableSession, TableProjection } from '../../../../db/tabletop/TableSession';
 import { PointerSessionContext, usePointerSession } from '../../../../widgets/tabletop/PointerSessionContext';
 import { TABLE_PLATE_BOUNDS } from '../../../../widgets/tabletop/tablePlateGeometry';
+import { useControlsExperiment } from '../controlsExperiments/experiment';
 import { DarkSchemeIsland } from '../DarkSchemeIsland';
 import { BattleBeacon } from './BattleBeacon';
 import styles from './BattleControls.module.css';
@@ -474,8 +474,8 @@ export function HandControls({ client, table, hand }: Props & { hand: TablePiece
   return (
     <Section hiddenHeading title="Your hand and leaders" description={handHelp(table)}>
       <Stack gap="sm" ref={ref}>
-        {/* The palette's second stage drops the button (Norbert, 2026-10-24): pieces reach the hand by dragging. */}
-        {experiment !== 'palette-2' && experiment !== 'palette-3' && experiment !== 'palette-4' && (
+        {/* The compass controls drop the button (Norbert, 2026-10-24); how a table piece reaches the hand there is still open. */}
+        {experiment === null && (
           <Button
             variant="default"
             disabled={!table.canHandleTable || !canTakeSelected(selected)}

@@ -4,8 +4,8 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 
-import { ControlsExperimentContext } from '../play/controlsExperiments/experiment';
 import { forgetRemembered } from '../play/controlsExperiments/ControlsExperiments';
+import { ControlsExperimentContext } from '../play/controlsExperiments/experiment';
 import { GameRuntimeContext } from '../play/multiplayer/gameRuntime';
 import HostedTable from '../play/multiplayer/HostedTable';
 import type { PlaytestChapter, TutorialChapter } from './chapters';

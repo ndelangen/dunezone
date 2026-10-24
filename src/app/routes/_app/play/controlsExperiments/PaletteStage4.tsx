@@ -4,7 +4,16 @@ import { EyeOff, Hand, Handshake, MessagesSquare, PanelLeft, PanelRight, PinOff,
 import { useContext, useEffect, useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react';
 
-import { Camera, CloseIcon, DestinationBody, Key, pressControl, Scene, useRemembered, useTablePress } from './ControlsExperiments';
+import {
+  Camera,
+  CloseIcon,
+  DestinationBody,
+  Key,
+  pressControl,
+  Scene,
+  useRemembered,
+  useTablePress,
+} from './ControlsExperiments';
 import type { ExperimentProps } from './ControlsExperiments';
 import base from './ControlsExperiments.module.css';
 import { ExperimentPlayersContext } from './experiment';
@@ -77,6 +86,8 @@ type Slots = Readonly<Record<Side, Opened | null>>;
 type Suggestion = Readonly<{ key: string; label: string; hint: string; icon: ReactNode; run: () => void }>;
 
 const MIN_SLOT_HEIGHT = 120;
+/* How far one arrow key press on a slot's grip resizes it. */
+const RESIZE_STEP = 24;
 /* Breathing room kept between a slot's top edge and the overlay above it. */
 const OVERLAY_GAP = 12;
 /* The overlays a slot must never cover: the header chips (phase, alliances, next phase) and the camera dial. */
@@ -119,7 +130,10 @@ export function PaletteStage4(props: ExperimentProps) {
   const [slots, setSlots] = useRemembered<Slots>('palette-4-slots', { left: null, right: null });
   const [flash, setFlash] = useState<{ side: Side; at: number } | null>(null);
   /* Each slot's height in pixels, remembered once its top edge is dragged; null keeps the default. */
-  const [heights, setHeights] = useRemembered<Record<Side, number | null>>('palette-4-heights', { left: null, right: null });
+  const [heights, setHeights] = useRemembered<Record<Side, number | null>>('palette-4-heights', {
+    left: null,
+    right: null,
+  });
   /* The tallest each slot may grow before its top edge meets an overlay above it; null until measured. */
   const [limits, setLimits] = useState<Record<Side, number | null>>({ left: null, right: null });
   /* Bumps each time a drag runs into the limit, replaying the bounce. */
@@ -194,6 +208,15 @@ export function PaletteStage4(props: ExperimentProps) {
     };
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', up);
+  };
+  /* The arrow keys on a slot's grip: a step taller or shorter, with the same stop and bounce as a drag. */
+  const nudge = (side: Side, slot: HTMLElement, step: number) => {
+    const limit = slotLimit(rootRef.current!, slot);
+    const wanted = slot.getBoundingClientRect().height + step;
+    if (wanted > limit) {
+      setBounce((current) => ({ side, at: (current?.at ?? 0) + 1 }));
+    }
+    setHeights((current) => ({ ...current, [side]: Math.round(Math.max(MIN_SLOT_HEIGHT, Math.min(limit, wanted))) }));
   };
   const inputRef = useRef<HTMLInputElement>(null);
   const hold = useRef({ down: false, steered: false });
@@ -290,10 +313,8 @@ export function PaletteStage4(props: ExperimentProps) {
     setQuery('');
     setCursor(0);
   };
-  const close = () => {
-    setOpen(false);
-    hold.current = { down: false, steered: false };
-  };
+  /* The hold is let go by the keys alone: Space's keyup ends it, so closing never needs to touch it. */
+  const close = () => setOpen(false);
   /* Opens what the compass points at; a tile with nothing behind it shakes instead. */
   const confirm = (at: Spot = spot) => {
     if (at === 'hub' && !query.trim()) {
@@ -322,7 +343,11 @@ export function PaletteStage4(props: ExperimentProps) {
           : entry.group === entry.label
             ? (entry.description ?? '')
             : entry.group,
-        icon: entry.player ? <PlayerToken player={entry.player} size={20} /> : <TopicIcon topic={entry.topic} size={18} />,
+        icon: entry.player ? (
+          <PlayerToken player={entry.player} size={20} />
+        ) : (
+          <TopicIcon topic={entry.topic} size={18} />
+        ),
         run: () => show(entry.key),
         text: `${entry.label} ${entry.player?.factionName ?? ''} ${entry.group}`,
         /* With nothing typed, unread chats and the phase lead. */
@@ -371,7 +396,9 @@ export function PaletteStage4(props: ExperimentProps) {
       const typing =
         !inSearch &&
         event.target instanceof HTMLElement &&
-        (event.target.isContentEditable || event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement);
+        (event.target.isContentEditable ||
+          event.target instanceof HTMLInputElement ||
+          event.target instanceof HTMLTextAreaElement);
       if (typing) {
         return;
       }
@@ -477,13 +504,20 @@ export function PaletteStage4(props: ExperimentProps) {
         style={where === 'centre' ? undefined : heightOf(where)}
       >
         {where !== 'centre' && (
-          <span
+          <button
+            type="button"
             className={styles.resizeEdge}
-            role="separator"
-            aria-orientation="horizontal"
-            aria-label="Drag to resize"
+            aria-label="Resize: drag, or press the up and down arrows; double-click to reset"
             title="Drag to resize; double-click to reset"
             onPointerDown={resize(where)}
+            onKeyDown={(event) => {
+              const step = { ArrowUp: RESIZE_STEP, ArrowDown: -RESIZE_STEP }[event.key];
+              if (step) {
+                event.preventDefault();
+                event.stopPropagation();
+                nudge(where, event.currentTarget.parentElement!, step);
+              }
+            }}
             onDoubleClick={() => setHeights((current) => ({ ...current, [where]: null }))}
           />
         )}
@@ -508,7 +542,7 @@ export function PaletteStage4(props: ExperimentProps) {
     );
   };
   const others = players?.players.filter((player) => !player.own) ?? [];
-  
+
   const tile = (entry: Tile) => (
     <button
       key={entry.spot}
@@ -533,7 +567,11 @@ export function PaletteStage4(props: ExperimentProps) {
     <div className={base.root} ref={rootRef}>
       <Scene node={nodes.scene} />
       {header}
-      <Camera camera={camera} inert={inert} style={{ top: 'var(--palette-camera-top, calc(var(--play-header-height) + 0.5rem))', bottom: 'auto' }} />
+      <Camera
+        camera={camera}
+        inert={inert}
+        style={{ top: 'var(--palette-camera-top, calc(var(--play-header-height) + 0.5rem))', bottom: 'auto' }}
+      />
 
       {sheet &&
         frame(
@@ -656,17 +694,18 @@ export function PaletteStage4(props: ExperimentProps) {
             </label>
             {tile(tiles.table)}
             {tile(tiles.ally)}
-            <ul
+            <div
               className={styles.suggestions}
               data-selected={spot === 'search' || undefined}
               role="listbox"
               aria-label={query ? 'Matches' : 'Suggested'}
             >
-              <li className={styles.suggestionsTitle}>{query ? 'Matches' : 'Suggested'}</li>
+              <div className={styles.suggestionsTitle}>{query ? 'Matches' : 'Suggested'}</div>
               {suggestions.map((entry, index) => (
-                <li
+                <div
                   key={entry.key}
                   role="option"
+                  tabIndex={-1}
                   aria-selected={(spot === 'search' || (spot === 'hub' && query !== '')) && index === cursor}
                   className={styles.suggestion}
                   onPointerEnter={() => {
@@ -674,14 +713,15 @@ export function PaletteStage4(props: ExperimentProps) {
                     setCursor(index);
                   }}
                   onClick={() => entry.run()}
+                  onKeyDown={(event) => event.key === 'Enter' && entry.run()}
                 >
                   {entry.icon}
                   <span className={styles.suggestionLabel}>{entry.label}</span>
                   <span className={styles.suggestionHint}>{entry.hint}</span>
-                </li>
+                </div>
               ))}
-              {suggestions.length === 0 && <li className={styles.suggestionsTitle}>Nothing matches “{query}”</li>}
-            </ul>
+              {suggestions.length === 0 && <div className={styles.suggestionsTitle}>Nothing matches “{query}”</div>}
+            </div>
           </div>
         </div>
       )}
@@ -720,7 +760,11 @@ function PlayerTabs({
   );
 }
 
-function ChatToken({ player, open, onOpen }: Readonly<{ player: ExperimentPlayer; open: boolean; onOpen: () => void }>) {
+function ChatToken({
+  player,
+  open,
+  onOpen,
+}: Readonly<{ player: ExperimentPlayer; open: boolean; onOpen: () => void }>) {
   return (
     <button
       type="button"

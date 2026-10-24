@@ -48,6 +48,8 @@ import {
   KEYBOARD_STEP_PERCENT,
   paneLimits,
 } from './controlPanelLayout';
+import { ExperimentLayout } from './controlsExperiments/ControlsExperiments';
+import { experimentTakesTabs, useControlsExperiment } from './controlsExperiments/experiment';
 import { DarkSchemeIsland, darkSchemeIslandAttributes } from './DarkSchemeIsland';
 import { Held, HeldSlot, useHeldNode } from './HeldContent';
 import type { HeldNode } from './HeldContent';
@@ -65,8 +67,6 @@ import {
 } from './tableLayout';
 import type { TableLayout } from './tableLayout';
 import { TableWait } from './TableWait';
-import { ExperimentLayout } from './controlsExperiments/ControlsExperiments';
-import { experimentTakesTabs, useControlsExperiment } from './controlsExperiments/experiment';
 
 /* How long the shell waits for the renderer before opening anyway. */
 const SCENE_READY_FALLBACK_MS = 1500;

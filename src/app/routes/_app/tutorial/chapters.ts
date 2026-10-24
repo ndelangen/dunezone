@@ -155,7 +155,8 @@ export const PLAYTEST_CHAPTERS: readonly PlaytestChapter[] = [
 
 /** A chapter by its slug, from the tutorial or the play-tests. */
 export const chapterAt = (slug: string): TutorialChapter | PlaytestChapter | undefined =>
-  TUTORIAL_CHAPTERS.find((chapter) => chapter.slug === slug) ?? PLAYTEST_CHAPTERS.find((chapter) => chapter.slug === slug);
+  TUTORIAL_CHAPTERS.find((chapter) => chapter.slug === slug) ??
+  PLAYTEST_CHAPTERS.find((chapter) => chapter.slug === slug);
 
 /*
  * The picture on a chapter's tile: a still of the Play table standing in for the live preview each tile will animate.

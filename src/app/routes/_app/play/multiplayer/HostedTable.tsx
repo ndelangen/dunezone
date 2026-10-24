@@ -27,6 +27,7 @@ import { PieceArtwork } from '../../../../widgets/tabletop/PieceArtwork';
 import { usePointerSession } from '../../../../widgets/tabletop/PointerSessionContext';
 import { PredictionLogosContext } from '../../../../widgets/tabletop/prediction/predictionFace';
 import { TabletopSessionProvider } from '../../../../widgets/tabletop/TabletopContext';
+import { ExperimentPlayersContext } from '../controlsExperiments/experiment';
 import { FoilConfetti } from '../FoilConfetti';
 import { GameLink } from '../GameLink';
 import { GameTable } from '../GameTable';
@@ -67,7 +68,6 @@ import {
 import { PlaybackControls } from './PlaybackControls';
 import { publicControlsOf } from './publicControls';
 import { PlayerPanel, PlayerWindow, usePlayerWindows } from './RemovalVotes';
-import { ExperimentPlayersContext } from '../controlsExperiments/experiment';
 import { useResultCelebration } from './resultCelebration';
 import { GameMenu, SeatPopover } from './SeatRequests';
 import { stageStatus, stageToolbar } from './StageHeader';
@@ -1045,62 +1045,62 @@ function ConnectedTable({
               render: (seat, tab) => <PlayerWindow client={client} table={table} seat={seat} tab={tab} error={error} />,
             }}
           >
-          <GameTable
-            seatCount={table.snapshot.roster?.seatCount ?? DEFAULT_TABLE_SEAT_COUNT}
-            tableProgress={progress}
-            stage={stage}
-            mapVisible={setupMapVisible(table.snapshot.setup)}
-            connectionStatus={<ConnectionStatus table={table} />}
-            alliances={<AllianceStrip table={table} />}
-            toolbarControl={stageToolbar({ client, table, error, bidderFaded, onBidderFadedChange: setBidderFaded })}
-            /* The gathered Traitor pile lies under the Tleilaxu Tanks, below the Map view's frame on a wide screen (#1635). */
-            requestedView={table.traitorsGathered ? { view: 'bottom', revision: table.traitorsGathered } : undefined}
-            showStormControls={stageInPlay(stage) && progress.activePhaseId === 'storm'}
-            sceneContent={
-              <>
-                {stageScene({ client, table, bidderFaded })}
-                {celebration.mounted && <FoilConfetti launch={celebration.launch} />}
-              </>
-            }
-            gameMenu={
-              <>
-                {/* While drafting a spectator asks with the (+) in the roster on the table, so the popover waits for play. */}
-                {stage !== 'drafting' && <SeatPopover client={client} table={table} error={error} />}
-                <GameMenu
-                  sharing={<GameLink address={identity.address} page={identity.page} />}
-                  client={client}
-                  table={table}
-                  onClearConfetti={celebration.hasConfetti ? celebration.clear : undefined}
-                />
-              </>
-            }
-            stageStatus={stageStatus({ client, table, identity })}
-            stageOverlay={
-              stage === 'drafting' ? <DraftingOverlay client={client} table={table} error={error} /> : undefined
-            }
-            panelContent={
-              stage === 'drafting' && !isSpectator(table) ? (
-                <DraftingPanel client={client} table={table} error={error} />
-              ) : undefined
-            }
-            playerPanel={
-              stage && stage !== 'discarded' ? (
-                <PlayerPanel
-                  client={client}
-                  table={table}
-                  error={error}
-                  selected={player.seat}
-                  selectedTab={player.tab}
-                  onSelect={player.select}
-                />
-              ) : undefined
-            }
-            focusTab={focusTab}
-            openOn={openingTabs(table)}
-            panelTabs={controlTabs({ client, table, error, declare })}
-            tableGuidance={phaseGuidance(table)}
-            tableControls={phaseTabControls({ client, table, error, progress })}
-          />
+            <GameTable
+              seatCount={table.snapshot.roster?.seatCount ?? DEFAULT_TABLE_SEAT_COUNT}
+              tableProgress={progress}
+              stage={stage}
+              mapVisible={setupMapVisible(table.snapshot.setup)}
+              connectionStatus={<ConnectionStatus table={table} />}
+              alliances={<AllianceStrip table={table} />}
+              toolbarControl={stageToolbar({ client, table, error, bidderFaded, onBidderFadedChange: setBidderFaded })}
+              /* The gathered Traitor pile lies under the Tleilaxu Tanks, below the Map view's frame on a wide screen (#1635). */
+              requestedView={table.traitorsGathered ? { view: 'bottom', revision: table.traitorsGathered } : undefined}
+              showStormControls={stageInPlay(stage) && progress.activePhaseId === 'storm'}
+              sceneContent={
+                <>
+                  {stageScene({ client, table, bidderFaded })}
+                  {celebration.mounted && <FoilConfetti launch={celebration.launch} />}
+                </>
+              }
+              gameMenu={
+                <>
+                  {/* While drafting a spectator asks with the (+) in the roster on the table, so the popover waits for play. */}
+                  {stage !== 'drafting' && <SeatPopover client={client} table={table} error={error} />}
+                  <GameMenu
+                    sharing={<GameLink address={identity.address} page={identity.page} />}
+                    client={client}
+                    table={table}
+                    onClearConfetti={celebration.hasConfetti ? celebration.clear : undefined}
+                  />
+                </>
+              }
+              stageStatus={stageStatus({ client, table, identity })}
+              stageOverlay={
+                stage === 'drafting' ? <DraftingOverlay client={client} table={table} error={error} /> : undefined
+              }
+              panelContent={
+                stage === 'drafting' && !isSpectator(table) ? (
+                  <DraftingPanel client={client} table={table} error={error} />
+                ) : undefined
+              }
+              playerPanel={
+                stage && stage !== 'discarded' ? (
+                  <PlayerPanel
+                    client={client}
+                    table={table}
+                    error={error}
+                    selected={player.seat}
+                    selectedTab={player.tab}
+                    onSelect={player.select}
+                  />
+                ) : undefined
+              }
+              focusTab={focusTab}
+              openOn={openingTabs(table)}
+              panelTabs={controlTabs({ client, table, error, declare })}
+              tableGuidance={phaseGuidance(table)}
+              tableControls={phaseTabControls({ client, table, error, progress })}
+            />
           </ExperimentPlayersContext>
         </div>
       </TabletopSessionProvider>

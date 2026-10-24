@@ -2,11 +2,11 @@ import { createContext, useContext } from 'react';
 import type { ReactNode } from 'react';
 
 /*
- * Design exploration only (Norbert, 2026-10-24): other ways to lay out the table's controls so they cover less of the screen.
- * Storybook sets one of these through the context; the app never does, so the table keeps its two layouts.
- * `palette-2` to `palette-4` are the later stages of the command palette, after Norbert picked it to iterate on.
+ * A controls layout on trial (Norbert, 2026-10-24): the compass with pinned slots, the fourth stage of the command palette,
+ * so the controls cover less of the screen. Storybook and the New controls play-test chapter set it through the context;
+ * real games never do, so they keep their two layouts. The earlier stages live on branch claude/controls-layout-prototype-stages.
  */
-export type ControlsExperiment = 'floating-pair' | 'docking' | 'palette' | 'pie' | 'drawers' | 'fan' | 'swap' | 'palette-2' | 'palette-3' | 'palette-4';
+export type ControlsExperiment = 'palette-4';
 
 export const ControlsExperimentContext = createContext<ControlsExperiment | null>(null);
 
@@ -16,7 +16,7 @@ export function useControlsExperiment(): ControlsExperiment | null {
 
 /** The designs that take each tab on its own, rather than the controls dock as a whole. */
 export function experimentTakesTabs(experiment: ControlsExperiment | null): boolean {
-  return experiment !== null && experiment !== 'floating-pair' && experiment !== 'swap';
+  return experiment !== null;
 }
 
 /** One player as the palette's chat bar and player windows see them. */

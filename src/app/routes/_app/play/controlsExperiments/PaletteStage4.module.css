@@ -45,9 +45,7 @@
   padding: 0.9rem 0.6rem 0.7rem;
   border: 1px solid rgba(255, 216, 148, 0.22);
   border-radius: 16px;
-  background:
-    radial-gradient(circle at 50% 0%, rgba(248, 175, 64, 0.1), transparent 70%),
-    rgba(23, 16, 13, 0.94);
+  background: radial-gradient(circle at 50% 0%, rgba(248, 175, 64, 0.1), transparent 70%), rgba(23, 16, 13, 0.94);
   color: #f3e7d3;
   box-shadow: 0 14px 30px rgba(0, 0, 0, 0.45);
   cursor: pointer;
@@ -313,7 +311,11 @@
 
 /* A pinned slot's top edge: drag it to make the slot taller or shorter. */
 .resizeEdge {
+  appearance: none;
   position: absolute;
+  padding: 0;
+  border: 0;
+  background: none;
   z-index: 2;
   top: 0;
   right: 0;
@@ -336,7 +338,8 @@
 }
 
 .resizeEdge:hover::after,
-.resizeEdge:active::after {
+.resizeEdge:active::after,
+.resizeEdge:focus-visible::after {
   background: var(--sand);
 }
 
@@ -375,4 +378,8 @@
   75% {
     translate: 0 3px;
   }
+}
+
+.resizeEdge:focus-visible {
+  outline: none;
 }
