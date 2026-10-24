@@ -101,6 +101,12 @@ function pressNextPhase() {
   [...buttons].find((button) => button.textContent?.trim() === 'Next phase')?.click();
 }
 
+/* Tab moves focus as usual, and a button Tab reached opens itself on Enter or Space. */
+function leftToBrowser(event: KeyboardEvent) {
+  const activates = event.key === 'Enter' || event.code === 'Space';
+  return event.key === 'Tab' || (activates && event.target instanceof HTMLButtonElement);
+}
+
 /* A key typed into a text field, other than the compass's own search, belongs to that field. */
 function typingElsewhere(event: KeyboardEvent, search: HTMLInputElement | null) {
   const target = event.target;
@@ -454,11 +460,7 @@ export function PaletteStage4(props: ExperimentProps) {
     };
     /* Enter, or a tapped Space with nothing typed, opens what the compass points at; anything else typed goes to the search. */
     const press = (event: KeyboardEvent) => {
-      /* Tab moves focus as usual, and a button Tab reached opens itself on Enter or Space. */
-      if (
-        event.key === 'Tab' ||
-        (event.target instanceof HTMLButtonElement && (event.key === 'Enter' || event.code === 'Space'))
-      ) {
+      if (leftToBrowser(event)) {
         return;
       }
       const space = event.code === 'Space';

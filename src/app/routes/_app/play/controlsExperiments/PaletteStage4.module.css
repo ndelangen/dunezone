@@ -311,9 +311,9 @@
   white-space: nowrap;
 }
 
-/* The centre window keeps clear of the slots either side. */
+/* The centre window keeps clear of the slots either side, and in a narrow window takes the width it needs over them. */
 .centre {
-  width: min(44rem, calc(100vw - 2 * 27vw - 5rem));
+  width: min(44rem, max(22rem, 100vw - 2 * 27vw - 5rem), 100vw - 2rem);
 }
 
 /* A pinned slot's top edge: drag it to make the slot taller or shorter. */
