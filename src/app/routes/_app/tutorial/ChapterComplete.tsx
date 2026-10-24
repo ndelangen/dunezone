@@ -28,6 +28,13 @@ export function ChapterComplete({
   /* The site's own motion preference: without it the list and the button are all there at once. */
   const motion = useMotionAllowed();
   const focusOn = () => card.current?.querySelector<HTMLElement>('a, button')?.focus();
+  /* Where focus was as the card opened; the button only takes it from there, never from a control the player chose meanwhile. */
+  const opened = useRef<Element | null>(null);
+  const focusOnUnlessMoved = () => {
+    if (document.activeElement === opened.current || document.activeElement === document.body) {
+      focusOn();
+    }
+  };
 
   /*
    * The table under the veil is inert, but its keys answer on the window, so they are stopped on the way down,
@@ -49,6 +56,7 @@ export function ChapterComplete({
 
   /* A hidden button cannot take focus, so with motion it takes focus once it has come in. */
   useEffect(() => {
+    opened.current = document.activeElement;
     if (!motion) {
       focusOn();
     }
@@ -85,7 +93,7 @@ export function ChapterComplete({
             </ul>
             <div
               className={styles.onward}
-              onAnimationEnd={(event) => event.target === event.currentTarget && focusOn()}
+              onAnimationEnd={(event) => event.target === event.currentTarget && focusOnUnlessMoved()}
             >
               <CallToAction direction="forward" size="lg" attention renderRoot={nextLink ?? chaptersLink}>
                 {nextLink ? 'Go to the next chapter' : 'Go back to the chapter list'}
