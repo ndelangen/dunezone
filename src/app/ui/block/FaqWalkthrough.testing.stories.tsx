@@ -68,7 +68,9 @@ export const Animated = meta.story({
     await userEvent.click(pause);
     await expect(pause).toHaveAttribute('aria-pressed', 'true');
     const stage = canvas.getByRole('list', { name: 'Example answers' }).parentElement!;
-    await expect(stage.getAnimations({ subtree: true }).every((frame) => frame.playState === 'paused')).toBe(true);
+    const paused = stage.getAnimations({ subtree: true });
+    await expect(paused.length).toBeGreaterThan(0);
+    await expect(paused.every((frame) => frame.playState === 'paused')).toBe(true);
     await userEvent.click(pause);
     await expect(pause).toHaveAttribute('aria-pressed', 'false');
   },

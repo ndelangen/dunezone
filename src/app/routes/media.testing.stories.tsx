@@ -57,6 +57,7 @@ export const DecalVersions = meta.story({
 
 export const Catalogue = meta.story({
   args: { path: '/media' },
+  globals: { motion: 'on' },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement);
     await expect(page.findByRole('link', { name: 'Leaders' })).resolves.toBeVisible();
@@ -64,6 +65,9 @@ export const Catalogue = meta.story({
     await expect(page.queryByRole('textbox', { name: 'Search media' })).toBeNull();
     await expect(page.queryByRole('link', { name: 'Textures' })).toBeNull();
     await expect(page.queryByRole('article')).toBeNull();
+    /* The showcase rotates its artwork until the visitor pauses it. */
+    await userEvent.click(page.getByRole('button', { name: 'Pause artwork preview' }));
+    await expect(page.getByRole('button', { name: 'Play artwork preview' })).toBeVisible();
   },
 });
 export const LegacyLink = meta.story({
