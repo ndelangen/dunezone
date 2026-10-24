@@ -254,6 +254,16 @@ export const DESIGN_DECISIONS: readonly DesignDecision[] = [
     source: 'docs/adr/0002-confidence-stack.md',
   },
   {
+    id: 'visual-and-testing-stories',
+    group: 'code',
+    title: 'Chromatic captures each UI capability once',
+    rule: 'A visual story shows a UI capability and is captured once. Behaviour, repeats and content go in testing stories, which CI runs but Chromatic skips.',
+    product: 'Visual review stays focused on UI changes, and new artwork or copy does not ask for one.',
+    code: 'Every play still runs on every pull request, while Chromatic spends snapshots only where a regression could be seen.',
+    guard: 'review',
+    source: 'docs/adr/0004-visual-stories-and-testing-stories.md',
+  },
+  {
     id: 'comments-earned',
     group: 'code',
     title: 'Comments explain what the code cannot',

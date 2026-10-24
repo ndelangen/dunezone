@@ -1,4 +1,4 @@
-import { expect } from 'storybook/test';
+import { expect, within } from 'storybook/test';
 
 export async function expectDiagramLabelsFit(region: HTMLElement) {
   const labels = Array.from(region.querySelectorAll<SVGSVGElement>('svg[role="img"]')).flatMap((drawing) => {
@@ -18,4 +18,10 @@ export async function expectDiagramLabelsFit(region: HTMLElement) {
       await expect(ink.right, label).toBeLessThanOrEqual(bounds.right + 1);
     })
   );
+}
+
+export async function expectMissingLesson({ canvasElement }: { canvasElement: HTMLElement }) {
+  await expect(
+    within(canvasElement.ownerDocument.body).findByRole('heading', { name: 'Page not found' }, { timeout: 30_000 })
+  ).resolves.toBeVisible();
 }

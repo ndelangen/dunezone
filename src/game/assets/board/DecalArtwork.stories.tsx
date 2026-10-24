@@ -128,14 +128,6 @@ export const WithoutOutline = meta.story({
   args: { decal: { ...decal, outline: false }, svg: preset },
 });
 
-export const PalaceInk = meta.story({
-  args: { decal: { ...decal, artwork: '/vector/decal/palace.svg', outline: false } },
-});
-
-export const PalaceOutline = meta.story({
-  args: { decal: { ...decal, artwork: '/vector/decal/palace.svg' } },
-});
-
 export const InlinePalace = meta.story({
   args: { decal: { ...decal, artwork: '/vector/decal/palace.svg', outline: false }, svg: palace },
 });
