@@ -73,3 +73,16 @@ test('ignores a late completed run whose production deployment was skipped', asy
   ]);
   await expect(productionSnapshotRevision('owner/repo', 'test', request)).resolves.toBe(sha);
 });
+
+test('searches the next page after twenty deliberately skipped deployments', async () => {
+  const request = requestWith([
+    Response.json({ workflow_runs: Array.from({ length: 20 }, (_, index) => ({ id: index + 2, head_sha: sha })) }),
+    ...Array.from({ length: 20 }, () => Response.json({ jobs: [{ name: 'deploy', conclusion: 'skipped' }] })),
+    release(),
+    deployed(),
+    healthy(),
+    healthy(),
+  ]);
+  await expect(productionSnapshotRevision('owner/repo', 'test', request)).resolves.toBe(sha);
+  expect(request.mock.calls[21]?.[0]).toContain('&page=2');
+});

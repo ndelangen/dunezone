@@ -254,7 +254,7 @@ be completed before a snapshot refresh can start.
 
 The weekly refresh replaces dev-side experiments and sign-in accounts. To recover dev sooner, run
 `Anonymised snapshot` manually from main. It performs the same export and refresh. Retry a failed dev sync job from its `Deploy production` run to retry code and outstanding migrations.
-A stale run refuses to overwrite dev after production has advanced. A failed snapshot
+A stale run refuses to overwrite dev after production has advanced. An uploaded snapshot remains available for local launches if the later dev refresh fails. A failed snapshot
 verification leaves dev's data intact; a failure after the reset remains visible for recovery.
 
 After a rebuild, cloud dev holds no accounts from production: `users` and `profiles` hold only the
