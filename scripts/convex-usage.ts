@@ -148,14 +148,17 @@ function deploymentGrowth(
   baseline: DeploymentUsage | undefined,
   elapsedHours: number | null
 ) {
-  if (!baseline || baseline.name !== current.name || !elapsedHours) {
+  if (!baseline || baseline.name !== current.name) {
+    return null;
+  }
+  if (elapsedHours === null || elapsedHours < 1) {
     return null;
   }
   const ioGb =
     current.usage.metrics.databaseIoGb.usage.current_month - baseline.usage.metrics.databaseIoGb.usage.current_month;
   const calls =
     current.usage.metrics.functionCalls.usage.current_month - baseline.usage.metrics.functionCalls.usage.current_month;
-  if (elapsedHours < 1 || ioGb < 0 || calls < 0) {
+  if (ioGb < 0 || calls < 0) {
     return null;
   }
   return { ioGb, calls, perDayGb: (ioGb * 24) / elapsedHours };
