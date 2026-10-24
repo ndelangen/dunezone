@@ -26,6 +26,7 @@ permissions:
 concurrency:
   group: deploy-production
   cancel-in-progress: false
+  queue: max
 
 # No verify job (#286): main's ruleset only accepts a pull request merge whose required checks passed
 # on a branch up to date with main, and a dispatched run deploys a commit that reached main that way.
@@ -33,8 +34,7 @@ concurrency:
 jobs:
   # Ends the run green without deploying when production already serves a later commit, or, on the
   # run's first attempt, this commit after an earlier run of this workflow finished it green.
-  # The deploy-production group runs one run at a time and holds one more waiting: a newly queued run
-  # cancels the waiting one and takes its place, whatever commit either carries.
+  # The deploy-production group queues releases and weekly snapshots without dropping a pending refresh.
   # So a late push event (80 to 219 s late on 2026-09-28 and 2026-09-29), a second event for a merge
   # that already deployed, or "Re-run all jobs" on an older run can start after a later release is
   # live, and without this check it would put the older commit back.

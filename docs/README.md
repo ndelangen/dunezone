@@ -191,7 +191,7 @@ state or aggregates; the migration guards that every launch runs rebuild both. T
 synthetic export; the launch leaves that file where it is.
 
 No command loads raw production data outside production. The only command that exports production
-is the snapshot job's script, which `dev-rebuild` also runs. It refuses to run outside a GitHub
+is the weekly snapshot job's script. It refuses to run outside a GitHub
 Actions run on `main` and needs `CONVEX_PROD_DEPLOY_KEY`, so a Convex login is never enough.
 
 A supervised local Convex watcher pushes later function, schema, shared contract, and backend
@@ -246,10 +246,12 @@ as production. If dev missed a prerequisite release, recover it explicitly befor
 
 Every Monday at 05:17 UTC, `Anonymised snapshot` exports production once, anonymises and scans it,
 uploads the published-only snapshot for local development, then refreshes cloud dev from that same
-file. The refresh verifies the snapshot before clearing dev, pushes main, imports the snapshot,
+file. The refresh verifies the snapshot before clearing dev, pushes the selected release, imports the snapshot,
 seeds Rulebook drafts, checks the rebuild contract and rebuilds derived data through the migration
-guards. It holds only the dev deploy key; the export step alone holds the production key. The two
-workflows share one concurrency group so a refresh and a release sync cannot overlap.
+guards. It holds only the dev deploy key; the export step alone holds the production key. The snapshot pins the last successful production release and requires both Workers to report that
+commit. It shares the production deployment lock for the whole export and refresh, and a second
+lock excludes manual dev syncs. Both queues retain waiting runs. A failed production release must
+be completed before a snapshot refresh can start.
 
 The weekly refresh replaces dev-side experiments and sign-in accounts. To recover dev sooner, run
 `Anonymised snapshot` manually from main. It performs the same export and refresh. Running
@@ -268,6 +270,7 @@ The cloud dev deployment is the shared integration copy of `main`, not a feature
 Do not run a branch's `convex dev` against it. Use `bun run app:dev --local` when the checked-out
 Convex code must run.
 
+## Common workflows
 
 ### Reviewing visual changes
 

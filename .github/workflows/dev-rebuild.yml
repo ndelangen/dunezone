@@ -16,6 +16,7 @@ permissions:
 concurrency:
   group: dev-rebuild
   cancel-in-progress: false
+  queue: max
 
 jobs:
   rebuild:
@@ -28,6 +29,11 @@ jobs:
           persist-credentials: false
 
       - uses: ./.github/actions/setup
+
+      - name: Refuse a stale release sync
+        run: bun run scripts/production-snapshot-revision.ts --expect-current
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
 
       # A refused push or migration keeps its failure visible and never clears dev.
       - name: Sync code and outstanding migrations without resetting dev
