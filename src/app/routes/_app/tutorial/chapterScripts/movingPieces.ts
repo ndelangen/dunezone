@@ -46,7 +46,6 @@ const changedInPlace = (stacks: () => Piece[], changed: (before: Piece, now: Pie
     }),
 });
 
-const away = (from: readonly number[], to: readonly number[]) => Math.hypot(from[0]! - to[0]!, from[2]! - to[2]!);
 const total = (stacks: Piece[]) => stacks.reduce((sum, piece) => sum + piece.items.length, 0);
 const biggest = (stacks: Piece[]) => stacks.toSorted((a, b) => b.items.length - a.items.length)[0];
 
@@ -60,22 +59,20 @@ function troops(snapshot: () => GameSnapshot) {
 }
 
 /*
- * The three carried onto the board: where they landed is kept, and the player's stack nearest that spot is them from then on,
- * so a troop of theirs already on the board, or a whole reserve set down elsewhere, is never taken for them.
+ * The three carried onto the board, followed by their troops: the table hands troops out under their own ids, which a move
+ * or a join keeps, so the stack holding them is the player's wherever it goes, and a troop of theirs already on the board never is.
  */
 function carriedStack(onTheBoard: () => Piece[]) {
-  const landed = { spot: null as Piece['position'] | null };
-  const carried = () => {
-    const spot = landed.spot;
-    return spot
-      ? onTheBoard().toSorted((a, b) => away(a.position, spot) - away(b.position, spot))[0]
+  const landed = { troops: new Set<string>() };
+  const carried = () =>
+    landed.troops.size
+      ? onTheBoard().find((piece) => piece.items.some((item) => landed.troops.has(item.id)))
       : biggest(onTheBoard());
-  };
   return {
     carried,
     only: () => onTheBoard().filter((piece) => piece === carried()),
     land: () => {
-      landed.spot = biggest(onTheBoard())?.position ?? null;
+      landed.troops = new Set(biggest(onTheBoard())?.items.map((item) => item.id));
     },
   };
 }
