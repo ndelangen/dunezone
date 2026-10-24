@@ -50,13 +50,11 @@ export async function loadProfilePageBySlug(ctx: QueryCtx, slug: string, pages: 
     loadFaqAnswersGivenBy(ctx, profile.user_id),
   ]);
 
-  /* `factions` keeps its old meaning, every faction the member made, for bundles that still read it; drop it with the next contract release. */
-  const { factions, factionCount, listedFactionCount } = await loadOwnerFactionPreview(
-    ctx,
-    profile.user_id,
-    PROFILE_DETAIL_LIMIT
-  );
-  const factionPreview = factions.slice(0, PROFILE_FACTION_PREVIEW_SIZE);
+  const {
+    factions: factionPreview,
+    factionCount,
+    listedFactionCount,
+  } = await loadOwnerFactionPreview(ctx, profile.user_id, PROFILE_FACTION_PREVIEW_SIZE);
 
   const faqLists = await loadProfileFaqLists(ctx, faqAsked, faqAnswers, pages);
 
@@ -65,7 +63,6 @@ export async function loadProfilePageBySlug(ctx: QueryCtx, slug: string, pages: 
     faqAsked,
     faqAnswers,
     faqLists,
-    factions,
     factionPreview,
     factionCount,
     listedFactionCount,

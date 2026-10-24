@@ -1165,6 +1165,10 @@
   min-width: 0;
 }
 
+.rulebookAssetExplainer:has(.rulebookFactionSheet) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .rulebookExplainerIllustration svg,
 .rulebookExplainerIllustration img {
   display: block;
@@ -1808,4 +1812,18 @@
 }
 .rulebookCardEntry .rulebookCardGuide[data-image-side="right"] > .rulebookSourceVisual img {
   object-position: right top;
+}
+
+.rulebookFactionSheet {
+  position: relative;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.rulebookFactionSheet > .rulebookFactionSheetMarks {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
 }

@@ -829,6 +829,7 @@ export const editorPage = viewerQuery({
     reference_asset_ids: v.optional(v.array(v.string())),
     reference_faction_ids: v.optional(v.array(v.string())),
     faction_token_images: v.optional(v.boolean()),
+    faction_sheet_data: v.optional(v.boolean()),
   },
   returns: v.union(
     v.null(),
@@ -888,6 +889,7 @@ export const editorPage = viewerQuery({
         assetIds: args.reference_asset_ids,
         factionIds: args.reference_faction_ids,
         factionTokenImages: args.faction_token_images === true,
+        factionSheetData: args.faction_sheet_data === true,
         boardData: true,
       })),
     };

@@ -225,6 +225,7 @@ export async function loadRulebookEditor({
     rulebook_slug: rulebookSlug,
     reference_asset_ids: referenceAssetIds ? [...referenceAssetIds] : undefined,
     reference_faction_ids: referenceFactionIds ? [...referenceFactionIds] : undefined,
+    faction_sheet_data: true,
   });
   return raw ? normalizeEditorPage(raw) : null;
 }
@@ -242,6 +243,7 @@ export function useRulebookEditor({
     rulebook_slug: rulebookSlug,
     reference_asset_ids: referenceAssetIds ? [...referenceAssetIds] : undefined,
     reference_faction_ids: referenceFactionIds ? [...referenceFactionIds] : undefined,
+    faction_sheet_data: true,
   });
   const normalized = useMemo(
     () => (live === undefined ? undefined : live === null ? null : normalizeEditorPage(live)),

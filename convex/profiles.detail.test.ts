@@ -319,19 +319,18 @@ describe('profile detail projection (api.profiles.pageBySlug)', () => {
 
     const page = await t.query(api.profiles.pageBySlug, { slug: 'central' });
 
-    expect(page.factions.map((faction) => faction._id)).toEqual([seed.activeFactionId]);
-    expect(page.factions[0]?.data.name).toBe('Atreides');
+    expect(page.factionPreview.map((faction) => faction._id)).toEqual([seed.activeFactionId]);
+    expect(page.factionPreview[0]?.data.name).toBe('Atreides');
     expect(page.factionCount).toBe(1);
   });
 
-  test('shows the newest few factions and counts them all, keeping the full list for bundles from before the preview', async () => {
+  test('shows the newest few factions and counts them all', async () => {
     const t = applicationTest();
     await seedProfileDetail(t, PROFILE_FACTION_PREVIEW_SIZE + 2);
 
     const page = await t.query(api.profiles.pageBySlug, { slug: 'central' });
 
     expect(page.factionCount).toBe(PROFILE_FACTION_PREVIEW_SIZE + 3);
-    expect(page.factions).toHaveLength(PROFILE_FACTION_PREVIEW_SIZE + 3);
     expect(page.factionPreview.map((faction) => faction.data.name)).toEqual(
       Array.from(
         { length: PROFILE_FACTION_PREVIEW_SIZE },
@@ -359,8 +358,8 @@ describe('profile detail projection (api.profiles.pageBySlug)', () => {
 
     const page = await t.query(api.profiles.pageBySlug, { slug: 'central' });
 
-    expect(page.factions[0]?.rulesets.map((ruleset) => ruleset.name)).toEqual(['Advanced', 'Basic']);
-    expect(page.factions[0]?.rulesets.map((ruleset) => ruleset.id)).toEqual([
+    expect(page.factionPreview[0]?.rulesets.map((ruleset) => ruleset.name)).toEqual(['Advanced', 'Basic']);
+    expect(page.factionPreview[0]?.rulesets.map((ruleset) => ruleset.id)).toEqual([
       seed.advancedRulesetId,
       seed.basicRulesetId,
     ]);
