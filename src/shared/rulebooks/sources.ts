@@ -4,6 +4,7 @@ import { componentGeometrySchema } from '../asset-publishing/componentGeometry';
 import { BACKGROUND, DECAL, GENERIC, ICON, LEADERS, LOGO, PLANET, TEXTURE, TROOP, TROOP_MODIFIER } from '../assetIds';
 import { GEAR_CLIP, POINTER_CLIP } from '../assets/tokenOutline';
 import { FactionMemberIdSchema } from '../factions/memberIdentity';
+import { CanonicalFactionStoredObject } from '../factions/schema';
 import { FactionTroopIdSchema } from '../factions/troopIdentity';
 import { RULEBOOK_BOARD_DEFINITIONS } from './boardDefinitions';
 
@@ -21,7 +22,7 @@ export const rulebookSourceReferenceSchema = z.discriminatedUnion('kind', [
   z.strictObject({
     kind: z.literal('faction'),
     factionId: z.string().min(1),
-    presentation: z.enum(['emblem', 'token']).optional(),
+    presentation: z.enum(['emblem', 'token', 'sheet']).optional(),
   }),
   z.strictObject({
     kind: z.literal('faction-member'),
@@ -38,6 +39,18 @@ export const rulebookSourceReferenceSchema = z.discriminatedUnion('kind', [
 ]);
 export type RulebookSourceReference = z.infer<typeof rulebookSourceReferenceSchema>;
 
+/** A sheet illustration freezes only the data its existing renderer consumes. */
+export const rulebookFactionSheetSchema = CanonicalFactionStoredObject.pick({
+  name: true,
+  themeColor: true,
+  logo: true,
+  background: true,
+  leaders: true,
+  troops: true,
+  rules: true,
+}).strip();
+export type RulebookFactionSheet = z.infer<typeof rulebookFactionSheetSchema>;
+
 /** Resolution preserves missing identities, including stock artwork that leaves the maintained catalogue. */
 export const rulebookResolvedSourceSchema = z.discriminatedUnion('status', [
   z.strictObject({ status: z.literal('unselected') }),
@@ -52,6 +65,7 @@ export const rulebookResolvedSourceSchema = z.discriminatedUnion('status', [
     geometry: componentGeometrySchema.optional(),
     assetType: z.string().optional(),
     publicationRevision: z.string().min(1).max(256).optional(),
+    sheet: rulebookFactionSheetSchema.optional(),
   }),
 ]);
 export type RulebookResolvedSource = z.infer<typeof rulebookResolvedSourceSchema>;

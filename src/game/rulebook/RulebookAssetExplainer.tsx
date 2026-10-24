@@ -12,6 +12,7 @@ import { useAsset } from '../assets/assetRenderMode';
 import { FormattedText } from '../assets/utils/FormattedText';
 import { RulebookAnnotationMarks } from './RulebookAnnotationMarks';
 import { RulebookDesignContext } from './RulebookDesignContext';
+import { RulebookFactionSheet } from './RulebookFactionSheet';
 
 type AssetExplainer = Extract<RulebookRenderBlockV1, { kind: 'asset-explainer' }>;
 
@@ -82,6 +83,8 @@ export function RulebookAssetExplainer({
         <div className="rulebookExplainerIllustration">
           {renderIllustration ? (
             renderIllustration(projection)
+          ) : source.status === 'ready' && source.sheet ? (
+            <RulebookFactionSheet sheet={source.sheet} projection={projection} />
           ) : block.illustrationUrl ? (
             <img src={block.illustrationUrl} alt={projection.sourceName} width={canvas.width} height={canvas.height} />
           ) : block.source.status === 'ready' ? (

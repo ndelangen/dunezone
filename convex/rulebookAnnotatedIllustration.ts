@@ -27,7 +27,8 @@ import type { QueryCtx } from './types';
 type SourceResolution = Extract<RulebookAnnotatedIllustrationResolution, { status: 'found' }>['source'];
 
 async function resolveSource(ctx: QueryCtx, reference: RulebookSourceReference | undefined): Promise<SourceResolution> {
-  if (!reference) {
+  /* Sheet illustrations are frozen native markup in saved HTML, not image composites. */
+  if (!reference || (reference.kind === 'faction' && reference.presentation === 'sheet')) {
     return { status: 'unavailable' };
   }
   if (reference.kind === 'stock') {
