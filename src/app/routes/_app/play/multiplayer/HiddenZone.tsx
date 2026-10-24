@@ -14,7 +14,8 @@ import type { DragEvent, MouseEvent, ReactNode, RefObject } from 'react';
 import { useEffect, useId, useRef, useState } from 'react';
 
 import type { TableSession, TableProjection } from '../../../../db/tabletop/TableSession';
-import { PieceImage, pieceName } from './HandPiece';
+import { HandPieceCloseUp } from '../../../../widgets/tabletop/PieceCloseUp';
+import { PieceImage, pieceName, useHandCloseUp } from './HandPiece';
 import styles from './HiddenZone.module.css';
 import { HIDDEN_ZONE_HELP } from './panelGuidance';
 
@@ -111,6 +112,7 @@ export function HiddenZone({ client, table, hand }: Props) {
   const enabled = table.canHandleTable;
   const frame = useRef<HTMLDivElement>(null);
   const fitHeight = useScrollParentHeight(frame);
+  const closeUp = useHandCloseUp(pieces);
 
   const drop = (event: DragEvent<HTMLDivElement>) => {
     const pieceId = event.dataTransfer.getData('application/dune-hand');
@@ -192,6 +194,7 @@ export function HiddenZone({ client, table, hand }: Props) {
                     grab.current = null;
                   }}
                   onContextMenu={(event) => setMenu(handMenuAnchor(event, piece.id))}
+                  {...closeUp.hover(piece)}
                 >
                   <PieceImage piece={piece} width={pieceWidth} height={pieceDepth} />
                 </div>
@@ -199,6 +202,7 @@ export function HiddenZone({ client, table, hand }: Props) {
             })}
         </div>
       </div>
+      <HandPieceCloseUp area={frame} piece={closeUp.piece} />
       <HandPieceMenu anchor={menu} label="Hidden zone actions" onClose={() => setMenu(null)}>
         <Menu.Item
           disabled={!enabled}
