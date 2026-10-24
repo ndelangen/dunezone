@@ -18,12 +18,7 @@ export function playColorLiterals(path: string, source: string): { line: number;
   }
   const file = ts.createSourceFile(path, source, ts.ScriptTarget.Latest, true);
   const visit = (node: ts.Node) => {
-    if (
-      ts.isStringLiteralLike(node) ||
-      ts.isTemplateHead(node) ||
-      ts.isTemplateMiddle(node) ||
-      ts.isTemplateTail(node)
-    ) {
+    if (ts.isStringLiteralLike(node) || ts.isTemplateLiteralToken(node)) {
       inspect(node.getText(file), node.getStart(file));
     }
     ts.forEachChild(node, visit);
