@@ -14,6 +14,7 @@ import { setMotionOverride } from '../src/app/styles/motion';
 import { appColorSchemeManager, appContentTheme } from '../src/app/ui/theme';
 import * as sizes from '../src/game/data/sizes';
 import { coreColors } from '../src/shared/uiPalette';
+import { emulateReducedMotion } from './browserMotion';
 import { settleStoryViewport } from './storyViewport';
 import { resetFrameLag } from './storyWaits';
 
@@ -42,14 +43,18 @@ const preview = definePreview({
       },
     },
   },
-  /* Stories use the app's warm dark UI and the real ambient-motion preference. */
+  /* Stories use the app's warm dark UI. Chromatic and the Vitest story shards run with reduced motion,
+     so a capture or a play never lands on a moving frame; a story that shows motion pins `motion: 'on'`. */
   beforeEach: async ({ globals }) => {
     await settleStoryViewport();
     resetFrameLag();
+    await emulateReducedMotion(globals.motion !== 'on');
     setMotionOverride(globals.motion === 'on' ? 'on' : globals.motion === 'reduce' ? 'off' : null);
     document.documentElement.setAttribute('data-mantine-color-scheme', 'dark');
   },
   parameters: {
+    /* A capture of a moving frame differs from build to build. */
+    chromatic: { prefersReducedMotion: 'reduce' },
     options: {
       storySort: {
         order: [
