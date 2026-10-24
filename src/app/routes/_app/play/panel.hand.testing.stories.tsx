@@ -61,7 +61,8 @@ export const SpiceReserveNarrowGuidance = meta.story({
     await openTab(page, 'Spice');
     await settled(() => expect(page.getByLabelText('Spice reserve balance')).toBeVisible());
     await userEvent.hover(page.getByRole('tab', { name: 'Spice' }));
-    /* The tooltip's label mounts only from inside an animation-frame callback, so each poll runs the waiting frames itself (https://github.com/ndelangen/dunezone/issues/1422). Resting on the tab brings the reserve's help. */
+    /* Observe the short guidance before waiting for the later help. Each phase keeps its own frame-aware visibility check. */
+    await waitForFrame(() => expect(finishTransitions(page.getByRole('tooltip'))).toBeVisible());
     await waitForFrame(() =>
       expect(
         finishTransitions(within(page.getByRole('tooltip')).getByText(/^Only you see this balance\./))
