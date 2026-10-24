@@ -442,3 +442,49 @@ export const CreateNexusCardLinksFaction = meta.story({
     await expect(page.getByRole('button', { name: 'Change faction' })).toBeVisible();
   },
 });
+
+export const CreateDeckSignedOut = meta.story({
+  args: { path: '/assets/deck/create' },
+  parameters: { identity: null },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('link', { name: 'Log in' }, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(page.findByRole('link', { name: 'Back to decks' }, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(page.queryByRole('button', { name: 'Save deck' })).toBeNull();
+  },
+});
+
+export const CreateDiscTokenSignedOut = meta.story({
+  args: { path: '/assets/token-disc/create' },
+  parameters: { identity: null },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('link', { name: 'Log in' }, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(page.findByRole('link', { name: 'Back to disc tokens' }, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(page.queryByRole('button', { name: 'Save token' })).toBeNull();
+  },
+});
+
+export const CreateEnhanceTokenSignedOut = meta.story({
+  args: { path: '/assets/token-enhance/create' },
+  parameters: { identity: null },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('link', { name: 'Log in' }, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(
+      page.findByRole('link', { name: 'Back to enhance tokens' }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+    await expect(page.queryByRole('button', { name: 'Save token' })).toBeNull();
+  },
+});
+
+export const CreateBundleSignedOut = meta.story({
+  args: { path: '/assets/bundle/create' },
+  parameters: { identity: null },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('link', { name: 'Log in' }, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(page.findByRole('link', { name: 'Back to bundles' }, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(page.queryByRole('button', { name: 'Save bundle' })).toBeNull();
+  },
+});

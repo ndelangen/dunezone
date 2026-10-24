@@ -343,6 +343,11 @@ file are exempt: organs, and a component whose story lives under a sibling's nam
 only make sense together (`SortableItem` and `SortableReorderHandle` share `SortableDnd.stories.tsx`,
 which is why no `SortableDnd.tsx` exists).
 
+A story is visual or testing ([ADR-0004](docs/adr/0004-visual-stories-and-testing-stories.md)).
+Chromatic captures a visual story, so it shows a UI capability no other story shows, using fixed
+fixture data rather than a live catalogue. Behaviour, a repeat of a captured screen, and content go
+in a `name.testing.stories.tsx` file on `testingPreview`, which CI runs and Chromatic skips.
+
 Three filename conventions carry weight here. A story-only fixture takes the `.stories.fixture.tsx`
 suffix, which the lint overrides key on, so it is a name the tooling reads rather than a preference.
 A Picker's pure view splits into a `.parts.tsx` companion, keeping the fetching shell and the

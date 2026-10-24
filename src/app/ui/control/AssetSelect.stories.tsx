@@ -1,11 +1,10 @@
 import preview from '@sb/preview';
-import { LOGO } from '@shared/assetIds';
 import { resolveAsset } from '@shared/media/resolveAsset';
 import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 import { expect, screen, within } from 'storybook/test';
 
 import { AssetSelect } from './AssetSelect';
-import { ControlledAssetSelect, previews, options } from './AssetSelect.stories.fixture';
+import { ControlledAssetSelect, emblems, previews, options } from './AssetSelect.stories.fixture';
 
 const meta = preview.meta({
   title: 'Asset Select',
@@ -57,13 +56,13 @@ export const FactionEmblems = meta.story({
     'aria-label': 'Faction emblem',
     w: 680,
     maw: 'calc(100vw - 2rem)',
-    data: stockAssetOptions(LOGO.options),
+    data: stockAssetOptions(emblems),
     getPreviewSrc: (value) => resolveAsset(value, 'small'),
     value: '/vector/logo/atreides.svg',
   },
   play: async ({ canvasElement, userEvent }) => {
     await userEvent.click(within(canvasElement).getByRole('combobox', { name: 'Faction emblem' }));
-    await expect(screen.getByRole('listbox').querySelectorAll('[role="option"]')).toHaveLength(LOGO.options.length);
+    await expect(screen.getByRole('listbox').querySelectorAll('[role="option"]')).toHaveLength(emblems.length);
     await expect(screen.getByRole('group', { name: 'Faction emblems / Board game factions' })).toBeVisible();
   },
 });

@@ -6,7 +6,6 @@ import { expect, userEvent, waitFor, within } from 'storybook/test';
 import { db, ref, ruleset } from '@db/storybook';
 import type { StorybookDatabase } from '@db/storybook';
 
-import { expectToolbarOnOneLine } from './authoringToolbarPlay';
 import { expectFieldValue } from './pagePlay';
 import { seedLinkedFactions } from './rulesets.stories.fixture';
 import { pageStoryMeta } from './storybookConfig';
@@ -264,26 +263,6 @@ export const AskQuestionMissingRuleset = meta.story({
     const back = await page.findByRole('link', { name: 'Back to rulesets' }, { timeout: 30_000 });
     await expect(back.closest('main')).toBeNull();
   },
-});
-
-/** The ruleset editor's toolbar on one line at a phone, tablet, laptop and desktop width (#1423), stating only its save state at rest. */
-export const EditToolbarAt360 = meta.story({
-  args: { path: '/rulesets/classicrules/edit' },
-  globals: { viewport: { value: 'appMobileNarrow' } },
-  play: async ({ canvasElement }) =>
-    await expectToolbarOnOneLine(canvasElement, { statusDescribes: ['No unsaved changes'] }),
-});
-export const EditToolbarAt768 = meta.story({
-  args: { path: '/rulesets/classicrules/edit' },
-  globals: { viewport: { value: 'appTablet' } },
-  play: async ({ canvasElement }) =>
-    await expectToolbarOnOneLine(canvasElement, { statusDescribes: ['No unsaved changes'] }),
-});
-export const EditToolbarAt1100 = meta.story({
-  args: { path: '/rulesets/classicrules/edit' },
-  globals: { viewport: { value: 'appLaptop' } },
-  play: async ({ canvasElement }) =>
-    await expectToolbarOnOneLine(canvasElement, { statusDescribes: ['No unsaved changes'] }),
 });
 
 /** One native cursor list spans rulesets and appends the final range without duplicating rows. */

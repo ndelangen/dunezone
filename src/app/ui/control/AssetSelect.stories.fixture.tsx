@@ -31,3 +31,12 @@ export const options = [
   { value: 'ocean', label: 'Ocean emblem' },
   { value: 'text-only', label: 'Text-only option' },
 ];
+
+/* A fixed handful across two collections: the story shows the grouped picker, not the emblem catalogue, so new artwork leaves its snapshot alone. */
+export const emblems = [
+  '/vector/logo/atreides.svg',
+  '/vector/logo/bene-gesserit.svg',
+  '/vector/logo/choam.svg',
+  '/vector/logo/glass-owl.svg',
+  '/vector/logo/spice-fox.svg',
+];
