@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
 import { describe, expect, test, vi } from 'vite-plus/test';
+import { parse } from 'yaml';
 
 import packageJson from '../package.json';
 import { rendererManifest } from '../workers/publisher/renderer-manifest.generated';
@@ -372,4 +373,19 @@ describe('production Rulebook smoke budget', () => {
       )
     ).rejects.toThrow();
   });
+});
+
+test('the isolated rehearsal finishes before production assembly and retained-bundle checks', () => {
+  const workflow = parse(
+    readFileSync(path.resolve(import.meta.dirname, '../.github/workflows/deploy-main.yml'), 'utf8')
+  );
+  const commands = workflow.jobs.deploy.steps.map((step: { run?: string }) => step.run ?? '');
+  const rehearsal = commands.indexOf('bun run scripts/verify-application-runtime-local.ts');
+  const assembly = commands.indexOf('bun run publisher:assets');
+  const retention = commands.indexOf('bun run publisher:retain-assets');
+  const exactRelease = commands.indexOf('bun run publisher:release:dry-run');
+  expect(rehearsal).toBeGreaterThan(-1);
+  expect(assembly).toBeGreaterThan(rehearsal);
+  expect(retention).toBeGreaterThan(assembly);
+  expect(exactRelease).toBeGreaterThan(retention);
 });
