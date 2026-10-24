@@ -18,7 +18,7 @@ export function useTablePalette() {
       slotRim: color('--table-slot-rim'),
       well: color('--table-slot-well'),
       keyLight: color('--color-text'),
-      fillLight: color('--color-brand-strong'),
+      fillLight: color('--ui-highlight'),
     };
   }, [canvas]);
 }

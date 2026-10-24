@@ -29,7 +29,8 @@ table materials reuse the app's core pigments. Procedural game materials live in
 The canonical palette has 25 pigments. Mantine's ten-slot ramps reuse them; ramp positions are
 adapters, not independent color definitions. Export and progress share blue, publish uses violet,
 positive states use olive, and warnings use amber. Filled semantic controls keep darker companions
-so their cream labels remain readable. Near-black, cream, brass and warm brown roles cover the
+so their cream labels remain readable. Primary actions and active-phase emphasis use the existing warm yellow with dark labels.
+Olive remains the positive status colour. Near-black, cream, brass and warm brown roles cover the
 remaining UI and table furniture. New pigments require a distinct use and a contrast check.
 
 ### Color roles

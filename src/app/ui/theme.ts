@@ -74,12 +74,19 @@ export const appContentTheme = createTheme({
     confirm,
     red: danger,
   },
-  primaryColor: 'slate',
+  primaryColor: 'brand',
   primaryShade: { light: 8, dark: 8 },
   focusClassName: styles.focus,
   variantColorResolver: (input) => {
     const resolved = defaultVariantColorsResolver(input);
-    const family = typeof input.color === 'string' ? input.color.split('.')[0] : '';
+    const family = (input.color ?? input.theme.primaryColor).split('.')[0];
+    if (family === 'brand' && input.variant === 'filled') {
+      return {
+        ...resolved,
+        color: 'var(--color-ink)',
+        hover: `color-mix(in srgb, ${resolved.background} 88%, var(--color-white))`,
+      };
+    }
     const signal = ['confirm', 'green', 'lime', 'teal'].includes(family)
       ? '--color-positive'
       : family === 'red' || family === 'pink'

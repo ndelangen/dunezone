@@ -11,7 +11,7 @@
   }
 
   87% {
-    box-shadow: 0 0 0 5px rgb(from var(--color-positive) r g b / 18%);
+    box-shadow: 0 0 0 5px rgb(from var(--color-brand) r g b / 18%);
     transform: translateY(-1px);
   }
 }

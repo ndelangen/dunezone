@@ -61,7 +61,7 @@ export function ReadyToggle({
       <Tooltip label={ready ? 'Withdraw readiness' : 'Tell the table you are ready'} withinPortal>
         <Button
           disabled={disabled}
-          color={ready ? 'confirm' : 'slate'}
+          color={ready ? 'confirm' : 'brand'}
           variant={ready ? 'light' : 'filled'}
           aria-pressed={ready}
           aria-describedby={countId}
@@ -98,7 +98,12 @@ function PhaseStepButton({
       </Button>
       <Menu position="bottom-end" shadow="md" withinPortal>
         <Menu.Target>
-          <Button aria-label="More phase actions" px={8} style={{ borderStartStartRadius: 0, borderEndStartRadius: 0 }}>
+          <Button
+            aria-label="More phase actions"
+            variant="default"
+            px={8}
+            style={{ borderStartStartRadius: 0, borderEndStartRadius: 0 }}
+          >
             <ChevronDown size={16} aria-hidden />
           </Button>
         </Menu.Target>

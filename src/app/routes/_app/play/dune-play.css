@@ -246,7 +246,7 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
 :where(.dune-play-shell) .seated-phase-status strong {
   max-width: 100%;
   overflow: hidden;
-  color: var(--color-text);
+  color: var(--color-brand-strong);
   /* The board's own display face, as the bidder and the battle wheel use it. */
   font-family: "C_Advokat_Modern", serif;
   font-size: 0.95rem;

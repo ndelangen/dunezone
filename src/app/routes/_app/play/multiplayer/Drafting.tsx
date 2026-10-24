@@ -640,7 +640,7 @@ export function DraftingReady({ client, table }: Props) {
   if (draft.failure && ready) {
     return (
       <Button
-        color="slate"
+        color="brand"
         disabled={locked(table)}
         onClick={() => client.command({ kind: 'draft-ready', ready: true })}
       >

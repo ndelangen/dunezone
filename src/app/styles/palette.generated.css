@@ -119,7 +119,7 @@
   --play-face-down-ink: #171511;
   --play-face-down-card: #211d18;
   --play-stack-target: #d7c299;
-  --play-draft-highlight: #c7ad7d;
+  --play-draft-highlight: #ffd772;
   --play-piece-label: #f0e8da;
   --play-nameplate: #211d18;
   --play-contact-shadow: #171511;
@@ -132,7 +132,7 @@
   --play-alliance-band: #f0e8da;
   --play-pointer-brass: #c7ad7d;
   --play-turn-tracker-edge: #c7ad7d;
-  --play-active-tracker: #d7c299;
+  --play-active-tracker: #ffd772;
   --play-shadow-warm: #171511;
   --play-shadow-pass: #171511;
   --play-shadow-radial: #171511;
@@ -150,9 +150,9 @@
   --color-progress: #74c0fc;
   --color-publish: #b197fc;
   --color-caution: #ffd772;
-  --color-brand: #c7ad7d;
-  --color-brand-strong: #d7c299;
-  --color-focus-ring: #d7c299;
+  --color-brand: #ffd772;
+  --color-brand-strong: #ffd772;
+  --color-focus-ring: #ffd772;
   --color-ground: #171511;
   --button-neutral-bg: #352e25;
   --button-neutral-hover-bg: #4c4236;

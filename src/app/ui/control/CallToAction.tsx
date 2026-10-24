@@ -40,7 +40,7 @@ export function CallToAction({
 
   return (
     <Button
-      color="confirm"
+      color="brand"
       className={attention ? styles.attention : undefined}
       size={size}
       leftSection={direction === 'start' ? <Plus size={iconSize} aria-hidden /> : undefined}

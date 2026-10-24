@@ -362,9 +362,9 @@ The enums are per component and per prop rather than one shared union, because a
 an action's intents are different questions. They draw their words from one language so a reader
 meeting a new component already knows what the words mean.
 
-For actions the words land as you would expect: a forward-moving primary is `positive`, a
-destructive action is `negative`, and auxiliary actions are `neutral`, varying by weight and never
-by hue.
+A forward-moving primary uses the shared yellow brand accent with dark text. Positive statuses
+remain olive, destructive actions are `negative`, and auxiliary actions are `neutral`.
+`CallToAction` and `SubmitAction` own primary emphasis; callers supply their words and intent.
 
 The rule's subject is app UI. Asset components are not app components and live under their own
 rules, and `src/game`'s renderers are outside it entirely: a renderer draws an artifact, not an
@@ -379,7 +379,7 @@ The language, each word earned by usage the survey found rather than invented:
 | `positive` | affirms or creates | any |
 | `negative` | destroys, or reports a failure | any |
 | `caution` | warns without failing | any |
-| `brand` | ownership | any |
+| `brand` | primary emphasis and ownership | any |
 | `selected` | currently chosen among alternatives | any |
 | `pending` | waiting to start | `StatusBadge`, `StatusMark` |
 | `progress` | running | `StatusBadge`, `StatusMark` |

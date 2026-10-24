@@ -57,9 +57,16 @@ describe('shared UI palette contract', () => {
     }
   });
   it('keeps filled control labels readable in every semantic family', () => {
-    for (const ramp of Object.values(themeRamps)) {
-      expect(contrast(coreColors.paper, ramp[8])).toBeGreaterThanOrEqual(4.5);
-      expect(contrast(coreColors.paper, ramp[9])).toBeGreaterThanOrEqual(4.5);
+    for (const [family, ramp] of Object.entries(themeRamps)) {
+      const ink = family === 'brand' ? coreColors.ink : coreColors.paper;
+      expect(contrast(ink, ramp[8])).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(ink, ramp[9])).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+  it('separates primary actions and the active phase from surrounding dark surfaces', () => {
+    for (const surface of [coreColors.ground, coreColors.raised, coreColors.selected]) {
+      expect(contrast(themeRamps.brand[8], surface)).toBeGreaterThanOrEqual(3);
+      expect(contrast(playUiColors.activeTracker, surface)).toBeGreaterThanOrEqual(3);
     }
   });
   it('shares table furniture with the app while retaining paper and inverse inks', () => {
