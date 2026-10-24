@@ -31,9 +31,9 @@ import styles from './PaletteStage2.module.css';
  * and a chat bar of faction tokens stays beside the palette's button, with each player's unread count.
  */
 
-type PlayerTab = 'public' | 'conversation';
+export type PlayerTab = 'public' | 'conversation';
 
-type PaletteWindow = Destination &
+export type PaletteWindow = Destination &
   Readonly<{
     shortcut: string;
     player?: ExperimentPlayer;
@@ -70,7 +70,7 @@ function assignShortcuts<T extends Readonly<{ key: string; label: string }>>(ent
   });
 }
 
-function PlayerToken({ player, size = 30 }: Readonly<{ player: ExperimentPlayer; size?: number }>) {
+export function PlayerToken({ player, size = 30 }: Readonly<{ player: ExperimentPlayer; size?: number }>) {
   return player.token ? (
     <img className={styles.token} src={player.token} alt="" width={size} height={size} />
   ) : (
@@ -80,7 +80,7 @@ function PlayerToken({ player, size = 30 }: Readonly<{ player: ExperimentPlayer;
   );
 }
 
-function useWindows(props: ExperimentProps): PaletteWindow[] {
+export function useWindows(props: ExperimentProps): PaletteWindow[] {
   const players = useContext(ExperimentPlayersContext);
   const items = groupsOf(props.tabs, null).flatMap((group) => group.items);
   const hand = items.find((item) => item.key === 'hand');

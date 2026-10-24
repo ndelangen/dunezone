@@ -419,12 +419,15 @@ export type PlayerWindowEntry = Readonly<{
   own: boolean;
   canConverse: boolean;
   attention: boolean;
+  ally: boolean;
 }>;
 
 export function usePlayerWindows(client: TableSession, table: TableProjection) {
   const { conversations } = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getSnapshot);
   const votes = table.snapshot.removalVotes ?? [];
   const asked = requestedSeats(table);
+  const viewerSeat = table.viewer.viewerSeat;
+  const ownHue = viewerSeat ? allianceHue(table.snapshot, seatFaction(table, viewerSeat)) : undefined;
   const players: PlayerWindowEntry[] = seatPlayers(table).map((player) => {
     const faction = rosterSeat(table.snapshot.roster, player.seat)?.faction;
     const peerId = seatFaction(table, player.seat);
@@ -438,6 +441,7 @@ export function usePlayerWindows(client: TableSession, table: TableProjection) {
       own: player.seat === table.viewer.viewerSeat,
       canConverse: Boolean(peerId && conversations.context?.peers.some((peer) => peer.id === peerId)),
       attention: votes.some((vote) => vote.target.seat === player.seat) || asked.has(player.seat),
+      ally: player.seat !== viewerSeat && ownHue !== undefined && allianceHue(table.snapshot, peerId) === ownHue,
     };
   });
   return {

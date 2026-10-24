@@ -11,6 +11,7 @@ import type { HeldNode } from '../HeldContent';
 import styles from './ControlsExperiments.module.css';
 import type { ControlsExperiment } from './experiment';
 import { PaletteStage2 } from './PaletteStage2';
+import { PaletteStage3 } from './PaletteStage3';
 
 /*
  * Design exploration (Norbert, 2026-10-24): seven ways for the table's controls to cover less of the screen.
@@ -1159,6 +1160,7 @@ const LAYOUTS: Record<ControlsExperiment, (props: ExperimentProps) => ReactNode>
   fan: Fan,
   swap: Swap,
   'palette-2': PaletteStage2,
+  'palette-3': PaletteStage3,
 };
 
 export function ExperimentLayout(props: ExperimentProps) {
