@@ -468,6 +468,7 @@ export function PaletteStage4(props: ExperimentProps) {
         key={where}
         className={clsx(base.sheet, where === 'centre' ? [bar.sheet, styles.centre] : styles.slot)}
         data-side={where}
+        data-window={opened.key}
         data-flash={flash?.side === where ? flash.at % 2 : undefined}
         aria-label={entry.label}
         inert={inert}
@@ -584,7 +585,7 @@ export function PaletteStage4(props: ExperimentProps) {
       })}
 
       <div className={bar.bar} inert={inert} data-hides-cursor>
-        <button type="button" className={bar.launcher} onClick={openCompass}>
+        <button type="button" className={bar.launcher} data-compass-launcher onClick={openCompass}>
           <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" className={base.glyph}>
             <circle cx="12" cy="12" r="8" />
             <path d="m12 7 2 5-2 5-2-5z" />

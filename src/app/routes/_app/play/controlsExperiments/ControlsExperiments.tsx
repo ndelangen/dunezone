@@ -98,11 +98,24 @@ export function DestinationBody({ destination, className }: Readonly<{ destinati
   );
 }
 
+const REMEMBERED = 'dunezone-controls-experiment:';
+
+/** Forgets every remembered choice, so the designs open as they first would; read before they mount. */
+export function forgetRemembered() {
+  try {
+    for (const key of Object.keys(localStorage).filter((entry) => entry.startsWith(REMEMBERED))) {
+      localStorage.removeItem(key);
+    }
+  } catch {
+    /* Nothing remembered where storage is blocked. */
+  }
+}
+
 /* A remembered choice for one design, in this browser only. */
 export function useRemembered<T>(key: string, fallback: T) {
   const [value, setValue] = useState<T>(() => {
     try {
-      const stored = localStorage.getItem(`dunezone-controls-experiment:${key}`);
+      const stored = localStorage.getItem(`${REMEMBERED}${key}`);
       return stored ? (JSON.parse(stored) as T) : fallback;
     } catch {
       return fallback;
@@ -113,7 +126,7 @@ export function useRemembered<T>(key: string, fallback: T) {
       setValue((current) => {
         const resolved = typeof next === 'function' ? (next as (current: T) => T)(current) : next;
         try {
-          localStorage.setItem(`dunezone-controls-experiment:${key}`, JSON.stringify(resolved));
+          localStorage.setItem(`${REMEMBERED}${key}`, JSON.stringify(resolved));
         } catch {
           /* A private window keeps the choice for this visit only. */
         }

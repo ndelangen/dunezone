@@ -137,6 +137,27 @@ export const TUTORIAL_CHAPTERS: readonly TutorialChapter[] = CHAPTERS.map((chapt
 }));
 
 /*
+ * Chapters for play-testing a prototype with testers, reached only by their link: they are not on the landing page and lead on to nothing.
+ * Norbert, 2026-10-24: the stage 4 controls (compass, pinned slots) get a tutorial so testers can try them.
+ */
+export type PlaytestChapter = Omit<TutorialChapter, 'number'> & Readonly<{ number: null }>;
+
+export const PLAYTEST_CHAPTERS: readonly PlaytestChapter[] = [
+  {
+    slug: 'new-controls',
+    number: null,
+    title: 'New controls',
+    goal: 'Open, pin and resize windows with the compass',
+    minutes: 4,
+    part: 'The table',
+  },
+];
+
+/** A chapter by its slug, from the tutorial or the play-tests. */
+export const chapterAt = (slug: string): TutorialChapter | PlaytestChapter | undefined =>
+  TUTORIAL_CHAPTERS.find((chapter) => chapter.slug === slug) ?? PLAYTEST_CHAPTERS.find((chapter) => chapter.slug === slug);
+
+/*
  * The picture on a chapter's tile: a still of the Play table standing in for the live preview each tile will animate.
  * The stills are display copies in public/tutorial, named by the chapter's slug.
  */
