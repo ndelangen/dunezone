@@ -44,3 +44,12 @@ export const ReviewedImport = meta.story({
     await expect(page.findByText('unchanged', {}, { timeout: 30_000 })).resolves.toBeVisible();
   },
 });
+
+export const SignedOut = meta.story({
+  parameters: { identity: null },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('link', { name: 'Log in' }, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(page.queryByRole('textbox', { name: 'Package JSON' })).toBeNull();
+  },
+});

@@ -1,5 +1,6 @@
 import type { WithoutSystemFields } from 'convex/server';
 import type { GenericId } from 'convex/values';
+import { z } from 'zod';
 
 import type { components } from '../../convex/_generated/api';
 import type { Doc, Id, TableNames } from '../../convex/_generated/dataModel';
@@ -31,10 +32,10 @@ type ReferenceRule<Value> = [ReferencedTable<Value>] extends [never]
       | ('users' extends ReferencedTable<Value> ? 'owner' : never);
 
 /**
- * Rewrites an untyped value into what the public reads of it.
+ * Rewrites a stored value into the published data the snapshot may keep.
  * It throws on a value it cannot read, and the run then stops.
  */
-type Projection = { project: (value: unknown) => unknown };
+type Projection<Value = unknown> = { project: (value: unknown) => Value };
 
 /**
  * The rule for one field of a kept row.
@@ -45,7 +46,7 @@ type Projection = { project: (value: unknown) => unknown };
  * - `parent` keeps the row only when the row it points at is kept too, and drops a row that has no such reference.
  * - `orNull` sets a nullable reference to null when the row it points at is not kept.
  * - `current-edition-settings` replaces saved draft settings with the current published Edition's settings.
- * - `project` writes the value as a public read shows it, for an untyped field whose public read hides part of it.
+ * - `project` removes source data while preserving the stored field's shape.
  *
  * The reference rules name the table the field's validator points at, so a rule aimed at the wrong table does not compile.
  */
@@ -54,6 +55,7 @@ type FieldRule<Row, Field extends keyof Row> =
     ? 'keep' | Projection
     :
         | 'keep'
+        | Projection<Row[Field]>
         | (IsOptional<Row, Field> extends true ? 'drop' : never)
         | ReferenceRule<Row[Field]>
         | (Row extends Doc<'rulebooks'> ? (Field extends 'settings' ? 'current-edition-settings' : never) : never);
@@ -99,6 +101,24 @@ const notDeleted = (row: { readonly is_deleted?: unknown }) => row.is_deleted ==
  */
 const readerEditionContents: Projection = {
   project: (value) => readerContents(rulebookEditionContentsV1Schema.parse(value)),
+};
+
+const rulesetCoverSchema = z
+  .object({
+    url: z.string(),
+    thumb_url: z.string(),
+    source_url: z.string(),
+    width: z.number(),
+    height: z.number(),
+  })
+  .nullable();
+
+/** Keep the rehosted image and use it as dev's source, since the original can carry credentials. */
+const publishedRulesetCover: Projection<Doc<'rulesets'>['cover']> = {
+  project: (value) => {
+    const cover = rulesetCoverSchema.parse(value);
+    return cover === null ? null : { ...cover, source_url: cover.url };
+  },
 };
 
 export const snapshotPolicy = {
@@ -239,7 +259,7 @@ export const snapshotPolicy = {
       group_id: { orNull: 'groups' },
       is_deleted: 'keep',
       image_cover: 'keep',
-      cover: 'keep',
+      cover: publishedRulesetCover,
     },
     rows: notDeleted,
   },

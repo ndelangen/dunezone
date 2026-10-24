@@ -1,6 +1,8 @@
 import { testingPreview } from '@sb/preview';
 import { expect, userEvent, within } from 'storybook/test';
 
+import { db, storybookViewer } from '@db/storybook';
+
 import { pageStoryMeta } from '../../storybookConfig';
 import { administratorDatabase } from './presets.stories.fixture';
 
@@ -37,5 +39,29 @@ export const Families = meta.story({
     await userEvent.click(icon);
     await userEvent.click(page.getByRole('option', { name: "Each card's faction" }));
     await expect(nexus.queryByRole('region', { name: 'Background builder' })).not.toBeInTheDocument();
+  },
+});
+export const SignedOut = meta.story({
+  parameters: { identity: null },
+  play: async ({ canvasElement }) => {
+    await expect(
+      within(canvasElement.ownerDocument.body).findByText('to edit presets.', { exact: false }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+  },
+});
+export const NotAdministrator = meta.story({
+  parameters: {
+    database: db((baseline) => {
+      baseline.users.find((user) => user.$key === storybookViewer.subjectKey)!.isAdmin = false;
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    await expect(
+      within(canvasElement.ownerDocument.body).findByRole(
+        'heading',
+        { name: 'Administrator access required' },
+        { timeout: 30_000 }
+      )
+    ).resolves.toBeVisible();
   },
 });

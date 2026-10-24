@@ -139,7 +139,7 @@ There are two distinct export paths:
   runs on 7 through 11 October completed successfully.
 - The [development rebuild workflow](../../.github/workflows/dev-rebuild.yml) makes
   another fresh production export only when its data stage is selected. The
-  [decision module](../../scripts/dev-rebuild-decision.ts) selects schema, migration,
+  [decision module at the measured revision](https://github.com/ndelangen/dunezone/blob/c9379d1d50151396502bbf4f100fc2abb867f41e/scripts/dev-rebuild-decision.ts) selects schema, migration,
   snapshot-policy and pipeline changes, forced rebuilds, or unknown base history.
   Other releases push code only.
 

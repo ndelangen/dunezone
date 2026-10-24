@@ -485,3 +485,28 @@ export const RawJsonKeepsComponentIdentities = meta.story({
     await expect(saved.group_id).toBe(before.faction.group_id);
   },
 });
+
+const FACTION_EDIT_STATUSES = ['No unsaved changes', 'The public asset will be available soon.'];
+
+/**
+ * The faction editor's toolbar at a phone, tablet, laptop and desktop width, on one line at each (#1423).
+ * The seeded faction states two things at rest, both behind the Status action: nothing unsaved, and no publication yet.
+ */
+export const EditToolbarAt360 = meta.story({
+  args: { path: '/factions/house-atreides/edit' },
+  globals: { viewport: { value: 'appMobileNarrow' } },
+  play: async ({ canvasElement }) =>
+    await expectToolbarOnOneLine(canvasElement, { statusDescribes: FACTION_EDIT_STATUSES }),
+});
+export const EditToolbarAt768 = meta.story({
+  args: { path: '/factions/house-atreides/edit' },
+  globals: { viewport: { value: 'appTablet' } },
+  play: async ({ canvasElement }) =>
+    await expectToolbarOnOneLine(canvasElement, { statusDescribes: FACTION_EDIT_STATUSES }),
+});
+export const EditToolbarAt1100 = meta.story({
+  args: { path: '/factions/house-atreides/edit' },
+  globals: { viewport: { value: 'appLaptop' } },
+  play: async ({ canvasElement }) =>
+    await expectToolbarOnOneLine(canvasElement, { statusDescribes: FACTION_EDIT_STATUSES }),
+});
