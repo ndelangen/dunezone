@@ -1,9 +1,9 @@
 import { testingPreview } from '@sb/preview';
-import { imageFailingOnce, serveStoryImages } from '@sb/storyImages';
+import { imageFailingOnce, serveStoryImages, imageAfter } from '@sb/storyImages';
 import { expect, waitFor, within } from 'storybook/test';
 
 import { PublishedImage } from './PublishedImage';
-import { decodedImage } from './PublishedImage.stories.fixture';
+import { decodedImage, arrivalKeyframes } from './PublishedImage.stories.fixture';
 
 const meta = testingPreview.meta({
   title: 'PublishedImage',
@@ -30,5 +30,18 @@ export const RecoversAfterFailedLoad = meta.story({
     await waitFor(() => expect(image.closest('[aria-busy]')).toBeNull());
     await expect(image.naturalWidth).toBe(600);
     await expect(canvas.queryByRole('img', { name: 'Atreides: preview unavailable' })).toBeNull();
+  },
+});
+
+/** Landing after the slot has shown, the image develops out of a blur and a slight scale, and its shadow comes in with it. */
+export const Arriving = meta.story({
+  globals: { motion: 'on' },
+  args: { src: imageAfter(600, 'arriving') },
+  loaders: [serveStoryImages],
+  play: async ({ canvasElement }) => {
+    const image = await within(canvasElement).findByRole('img', { name: 'Atreides' });
+    await waitFor(() => expect(image.closest('[aria-busy]')).toBeNull());
+    const keyframes = arrivalKeyframes(canvasElement);
+    await expect(keyframes).toContainEqual(expect.objectContaining({ filter: 'blur(12px)', transform: 'scale(1.03)' }));
   },
 });

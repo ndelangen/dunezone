@@ -28,6 +28,9 @@ without data, and the production media gallery is where the content itself is sh
   request. Moving a story to a testing file never loses a check.
 - **Stories use fixed fixture data, not live catalogues.** A story that lists `LOGO.options` or the
   stock collections changes whenever art is added. It picks a fixed handful instead.
+- **Captures and plays run with reduced motion.** Chromatic and the Vitest story shards both set
+  `prefers-reduced-motion: reduce`, so a capture never lands on a moving frame. A story that checks an
+  animation pins `globals: { motion: 'on' }`, which the story run honours.
 - **A file holds stories of one kind.** A component with both kinds has a pair:
   `name.stories.tsx` for the visual stories and `name.testing.stories.tsx` for the testing ones,
   under the same `title`. Shared helpers live in `name.stories.fixture.ts(x)`.

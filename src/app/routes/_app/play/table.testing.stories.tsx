@@ -83,6 +83,7 @@ function leaveTheCanvas(page: ReturnType<typeof within>, scene: HTMLCanvasElemen
 }
 
 export const Controls = meta.story({
+  globals: { motion: 'on' },
   beforeEach: install(() => productTransport()),
   play: async ({ canvasElement }) => {
     const { page, shell, document } = await tablePage(canvasElement);
@@ -141,6 +142,7 @@ export const Controls = meta.story({
 
 /* Holding Control names every piece and its owning faction; a shared piece shows its name alone, and letting go clears the names. */
 export const PieceNames = meta.story({
+  globals: { motion: 'on' },
   beforeEach: install(() => productTransport()),
   play: async ({ canvasElement }) => {
     const { shell, document } = await tablePage(canvasElement);
@@ -277,6 +279,7 @@ export const SpiceMenuName = meta.story({
 
 /* The wheel over the board moves in for a close look and backs out to the view's own pose; Ctrl with the wheel stays the browser's zoom. */
 export const WheelTakesACloseLook = meta.story({
+  globals: { motion: 'on' },
   beforeEach: install(() => productTransport()),
   play: async ({ canvasElement }) => {
     const { shell, document } = await tablePage(canvasElement);
@@ -328,6 +331,7 @@ export const WheelTakesACloseLook = meta.story({
 
 /* Two fingers dragged up over the board tilt the camera toward top-down, and dragged down tilt it back. */
 export const TwoFingersTiltTheCamera = meta.story({
+  globals: { motion: 'on' },
   beforeEach: install(() => productTransport()),
   play: async ({ canvasElement }) => {
     const { shell, document } = await tablePage(canvasElement);
