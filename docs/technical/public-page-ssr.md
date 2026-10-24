@@ -75,7 +75,7 @@ assets also read members, related containers, publication state and maintaining-
 The existing queries keep their bounds. Metadata adds no lookup of its own. A browser additionally
 starts its normal live page and session subscriptions, whose work is separate from this table.
 
-`publisher:application-runtime:verify` checks the assembled Worker against public catalogues, entity details, Rulesets and published Rulebooks,
+`bun run scripts/verify-application-runtime-local.ts` provisions an isolated backend and checks the assembled Worker against public catalogues, entity details, Rulesets and published Rulebooks,
 profiles, Groups and FAQ questions,
 including detail links discovered from catalogue HTML. It also verifies complete documents, metadata,
 hydration scripts, real 404s, browser-only paths and protected capture delivery. Local browser checks
