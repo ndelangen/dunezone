@@ -336,17 +336,10 @@ jobs:
           path: .cache/media-verified
           key: media-verified-${{ github.run_id }}-${{ github.run_attempt }}
 
-  # Production has already shipped when this starts: a failed dev rebuild reddens the run without
-  # ever gating the release.
-  # The rebuild measures its change range from the release production served before this run, which
-  # also covers a merge whose push event never arrived.
-  # When the gate cannot name that release, the range starts at the push's previous tip; a dispatched
-  # run has no previous tip, and an empty base rebuilds dev's data.
+  # Production has already shipped when this starts.
+  # Dev preserves its data between the weekly snapshot refreshes.
   dev_rebuild:
     needs: [release_gate, deploy]
     uses: ./.github/workflows/dev-rebuild.yml
-    with:
-      base: ${{ needs.release_gate.outputs.base || github.event.before }}
     secrets:
-      CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
       CONVEX_DEV_DEPLOY_KEY: ${{ secrets.CONVEX_DEV_DEPLOY_KEY }}

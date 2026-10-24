@@ -15,7 +15,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: anonymised-snapshot
+  # Serialize the data refresh with ordinary dev code syncs.
+  group: dev-rebuild
   cancel-in-progress: false
 
 env:
@@ -28,7 +29,7 @@ jobs:
     if: github.ref == 'refs/heads/main'
     environment: production
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -51,6 +52,13 @@ jobs:
           # Kept until the next weekly run has uploaded its own, with a day of slack for GitHub's schedule drift.
           retention-days: 8
           if-no-files-found: error
+
+      # Reuse this export for cloud dev, after the anonymised artifact is safely uploaded.
+      - name: Refresh cloud dev from the weekly anonymised snapshot
+        if: success() && env.SNAPSHOT_UPLOAD == 'true'
+        run: bun run provision dev --stage data --snapshot-file "${RUNNER_TEMP}/anonymised-snapshot/snapshot.zip"
+        env:
+          CONVEX_DEV_DEPLOY_KEY: ${{ secrets.CONVEX_DEV_DEPLOY_KEY }}
 
       - name: Delete the export and the snapshot from the runner
         if: always()

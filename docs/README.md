@@ -238,30 +238,23 @@ tables as the e2e target does; the snapshot load belongs to `app:dev --local` al
 
 ### Keeping the cloud dev deployment usable
 
-`deploy-main` calls the `Rebuild dev deployment` workflow once production has shipped, so a
-failed rebuild reddens the run without ever gating the release. Every merge pushes main's
-functions to the dev deployment; the **data** is only reloaded when the deploy cannot tell which
-commits it adds to production, or when those commits touch `convex/schema.ts`, which can invalidate
-dev's existing data, or the files that make, load and check the snapshot: the snapshot
-policy and anonymiser (`scripts/lib/snapshot-*.ts`, `scripts/snapshot-*.ts`),
-`scripts/anonymised-snapshot.ts`, the rebuild contract (`convex/lib/provisioningContract.ts`,
-`convex/provisioningChecks.ts`) and `.github/workflows/dev-rebuild.yml`. So a tightened policy
-reaches dev on the merge that makes it. A merge whose only such change is a migration
-(`convex/migrations*.ts` or `convex/migration-guards.json`) reloads nothing: dev runs the new
-migrations on its existing data, as the deploy does on production, which spares a production
-export. When the code push or that migrate step fails, for instance because the schema narrowed through a
-validator it imports, the job falls back to the full rebuild.
-`scripts/dev-rebuild-decision.ts` holds the list. Ordinary
-merges leave your dev session and any dev-side experiments intact.
+`deploy-main` calls `Sync dev deployment` after production ships. Each release pushes main's
+functions and runs outstanding migrations against dev's existing data. Completed migrations keep
+their progress and are skipped. A failed push or migration fails the job without clearing data or
+exporting production. Schema changes follow the same widen, migrate, verify and narrow sequence
+as production. If dev missed a prerequisite release, recover it explicitly before narrowing.
 
-Dev's data is the anonymised snapshot, never raw production. A data rebuild runs the snapshot job's
-own script (`scripts/anonymised-snapshot.ts`) in the same job: it exports production, deletes the
-raw export once it has read it, anonymises it and scans the result. The next step loads that file
-with `provision dev --stage data --snapshot-file`, holding only the dev deploy key. The rebuild does
-not depend on the public artifact, and it uploads nothing. The job's step summary shows the same
-table report as the snapshot job. When the export, the anonymiser or its leak scan refuses, the job
-fails before dev is touched, and dev keeps the data it had; the same holds when the dev step refuses
-the file, because it checks the file before it clears anything.
+Every Monday at 05:17 UTC, `Anonymised snapshot` exports production once, anonymises and scans it,
+uploads the published-only snapshot for local development, then refreshes cloud dev from that same
+file. The refresh verifies the snapshot before clearing dev, pushes main, imports the snapshot,
+seeds Rulebook drafts, checks the rebuild contract and rebuilds derived data through the migration
+guards. It holds only the dev deploy key; the export step alone holds the production key. The two
+workflows share one concurrency group so a refresh and a release sync cannot overlap.
+
+The weekly refresh replaces dev-side experiments and sign-in accounts. To recover dev sooner, run
+`Anonymised snapshot` manually from main. It performs the same export and refresh. Running
+`Sync dev deployment` manually only retries code and outstanding migrations. A failed snapshot
+verification leaves dev's data intact; a failure after the reset remains visible for recovery.
 
 After a rebuild, cloud dev holds no accounts from production: `users` and `profiles` hold only the
 placeholder owner, and `authAccounts` is empty. Signing in to dev therefore creates a new account
@@ -275,14 +268,6 @@ The cloud dev deployment is the shared integration copy of `main`, not a feature
 Do not run a branch's `convex dev` against it. Use `bun run app:dev --local` when the checked-out
 Convex code must run.
 
-Run the `Rebuild dev deployment` workflow manually (Actions → Run workflow) to force a fresh
-snapshot at any time. A skipped or failed rebuild cannot go unnoticed for long, and it
-recovers: Convex validates existing data against every pushed schema, so stale dev data fails
-the next ordinary merge's code push loudly, and a rebuild clears the target before pushing the new
-schema, which is why a forced rebuild heals a deployment whose data a schema change has already made
-unpushable.
-
-## Common workflows
 
 ### Reviewing visual changes
 
