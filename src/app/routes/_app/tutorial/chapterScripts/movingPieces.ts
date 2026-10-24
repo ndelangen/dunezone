@@ -36,13 +36,20 @@ const movedInPeek = () => ({
   },
 });
 
-/* A piece changed where it lies, by id: turning and flipping leave a piece in place under the same id. */
+/*
+ * A piece changed where it lies, by id: turning and flipping leave a piece in place under the same id.
+ * A stack that joins another during the task goes on under the other's id, so a piece first seen then is taken as it is, to compare against from there.
+ */
 const changedInPlace = (stacks: () => Piece[], changed: (before: Piece, now: Piece) => boolean) => ({
   begin: () => new Map(stacks().map((piece) => [piece.id, piece])),
   done: (start: Map<string, Piece>) =>
     stacks().some((piece) => {
       const before = start.get(piece.id);
-      return before !== undefined && changed(before, piece);
+      if (before === undefined) {
+        start.set(piece.id, piece);
+        return false;
+      }
+      return changed(before, piece);
     }),
 });
 
