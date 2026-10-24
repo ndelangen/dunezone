@@ -62,33 +62,39 @@ function fakeGitHub(
 }
 
 describe('latestSnapshotArtifact', () => {
-  test('takes the newest completed main snapshot even when its later dev refresh failed', () => {
-    const github = fakeGitHub(
-      [
-        artifact(7, 70, '2026-09-30T10:00:00Z'),
-        artifact(6, 60, '2026-09-30T09:00:00Z', {
-          workflow_run: { id: 60, repository_id: 1, head_repository_id: 2, head_branch: 'main' },
-        }),
-        artifact(5, 50, '2026-09-30T08:00:00Z'),
-        artifact(4, 40, '2026-09-30T07:00:00Z'),
-        artifact(3, 30, '2026-09-30T06:00:00Z', { expired: true }),
-        artifact(2, 20, '2026-09-30T05:17:00Z'),
-      ],
-      {
-        70: run({ conclusion: 'failure' }),
-        50: run({ event: 'pull_request' }),
-        40: run({ path: '.github/workflows/ci-pr.yml' }),
-        30: run(),
-        20: run(),
-      }
-    );
+  test.each([
+    { status: 'completed', artifactId: 7, runId: 70, createdAt: '2026-09-30T10:00:00Z' },
+    { status: 'in_progress', artifactId: 2, runId: 20, createdAt: '2026-09-30T05:17:00Z' },
+  ])(
+    'keeps trusted completed artifacts and rejects untrusted or $status runs',
+    ({ status, artifactId, runId, createdAt }) => {
+      const github = fakeGitHub(
+        [
+          artifact(7, 70, '2026-09-30T10:00:00Z'),
+          artifact(6, 60, '2026-09-30T09:00:00Z', {
+            workflow_run: { id: 60, repository_id: 1, head_repository_id: 2, head_branch: 'main' },
+          }),
+          artifact(5, 50, '2026-09-30T08:00:00Z'),
+          artifact(4, 40, '2026-09-30T07:00:00Z'),
+          artifact(3, 30, '2026-09-30T06:00:00Z', { expired: true }),
+          artifact(2, 20, '2026-09-30T05:17:00Z'),
+        ],
+        {
+          70: run({ status, conclusion: 'failure' }),
+          50: run({ event: 'pull_request' }),
+          40: run({ path: '.github/workflows/ci-pr.yml' }),
+          30: run(),
+          20: run(),
+        }
+      );
 
-    expect(latestSnapshotArtifact(github)).toEqual({
-      artifactId: 7,
-      runId: 70,
-      createdAt: Date.parse('2026-09-30T10:00:00Z'),
-    });
-  });
+      expect(latestSnapshotArtifact(github)).toEqual({
+        artifactId,
+        runId,
+        createdAt: Date.parse(createdAt),
+      });
+    }
+  );
 });
 
 describe('resolveLocalSnapshot', () => {
