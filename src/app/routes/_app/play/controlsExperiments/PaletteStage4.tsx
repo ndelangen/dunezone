@@ -296,7 +296,7 @@ export function PaletteStage4(props: ExperimentProps) {
       spot: 'ally',
       window: allyWindow,
       tab: 'conversation',
-      label: ally ? 'Ally chat' : 'Ally chat',
+      label: 'Ally chat',
       detail: ally ? `${ally.name}${ally.factionName ? ` · ${ally.factionName}` : ''}` : 'No ally yet',
       icon: ally ? <PlayerToken player={ally} size={34} /> : <Handshake size={30} strokeWidth={1.6} />,
       keys: '→ →',
@@ -454,6 +454,13 @@ export function PaletteStage4(props: ExperimentProps) {
     };
     /* Enter, or a tapped Space with nothing typed, opens what the compass points at; anything else typed goes to the search. */
     const press = (event: KeyboardEvent) => {
+      /* Tab moves focus as usual, and a button Tab reached opens itself on Enter or Space. */
+      if (
+        event.key === 'Tab' ||
+        (event.target instanceof HTMLButtonElement && (event.key === 'Enter' || event.code === 'Space'))
+      ) {
+        return;
+      }
       const space = event.code === 'Space';
       const holding = space && (hold.current.down || event.repeat);
       if (event.key === 'Enter' || (space && !holding && !query)) {
@@ -463,7 +470,7 @@ export function PaletteStage4(props: ExperimentProps) {
         event.preventDefault();
       } else if (event.key === 'Escape') {
         close();
-      } else if (event.target !== inputRef.current) {
+      } else if (event.target !== inputRef.current && event.key.length === 1 && !event.metaKey && !event.ctrlKey) {
         inputRef.current?.focus();
       }
     };
