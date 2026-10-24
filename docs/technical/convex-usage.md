@@ -22,9 +22,7 @@ at 75%, 90% and 100% create or extend one open GitHub issue with the `convex-usa
 Both are repository variables. These thresholds are alerts; they do not pause deployments.
 
 The saved report records active conditions. An unchanged condition produces no new issue comment.
-A higher reference band or a fresh daily burst produces a new alert. A failed collection opens an
-issue if none is already open. Failed workflow runs remain visible in Actions even when an issue
-already exists. GitHub's schedule can be delayed or dropped, so check the report's timestamp and
+A higher reference band or a fresh daily burst produces a new alert. A failed collection opens one issue with the `convex-usage-collection` label, even if a threshold issue is already open. A successful collection and delivery closes that failure issue. Failed workflow runs remain visible in Actions. GitHub's schedule can be delayed or dropped, so check the report's timestamp and
 baseline interval when investigating a gap.
 
 ## Function attribution

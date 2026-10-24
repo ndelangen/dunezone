@@ -111,3 +111,8 @@ test('swapped or duplicated deployment credentials cannot produce a combined rep
   wrong.development.kind = 'prod';
   expect(() => assessUsage(wrong, undefined, now)).toThrow(/distinct production and development/);
 });
+
+test('a new calendar month starts a new threshold alert history', () => {
+  const previous = { ...baseline(0.6, 0.2, ['calendar-0.75']), capturedAt: '2026-09-30T06:23:00.000Z' };
+  expect(assessUsage(deployments(0.6, 0.2), previous, now).newAlerts).toEqual(['calendar-0.75']);
+});

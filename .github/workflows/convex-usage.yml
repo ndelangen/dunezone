@@ -31,10 +31,11 @@ jobs:
           REPO: ${{ github.repository }}
         run: |
           mkdir -p usage previous
-          previous="$(gh api "repos/$REPO/actions/artifacts?name=convex-usage-report&per_page=100" --jq '[.artifacts[] | select(.expired == false and .workflow_run.head_branch == "main")] | sort_by(.created_at) | last | .id // empty')"
+          previous="$(gh api "repos/$REPO/actions/artifacts?name=convex-usage-report&per_page=100" --jq '[.artifacts[] | select(.expired == false and .workflow_run.head_branch == "main" and .workflow_run.head_repository_id == .workflow_run.repository_id)] | sort_by(.created_at) | last | .id // empty')"
           if [ -n "$previous" ]; then
             gh api "repos/$REPO/actions/artifacts/$previous/zip" > "${RUNNER_TEMP}/convex-usage-previous.zip"
             unzip -q "${RUNNER_TEMP}/convex-usage-previous.zip" -d previous
+            test -f previous/report.json
           fi
       - name: Read production counters and bounded function sample
         run: bun run scripts/convex-usage.ts --capture usage/production.json
@@ -73,6 +74,16 @@ jobs:
           path: usage/
           retention-days: 90
           if-no-files-found: error
+      - name: Close a recovered collection failure
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          number="$(gh issue list --repo "$REPO" --label convex-usage-collection --state open --limit 1 --json number --jq '.[0].number // empty')"
+          if [ -n "$number" ]; then
+            gh issue close "$number" --repo "$REPO" --comment "Usage collection and report delivery recovered: $RUN_URL"
+          fi
       - name: Report a collection or notification failure once
         if: failure()
         env:
@@ -80,9 +91,9 @@ jobs:
           REPO: ${{ github.repository }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          gh label create convex-usage --repo "$REPO" --description "Convex usage crossed a reference threshold or collection failed" --color B60205 --force
-          number="$(gh issue list --repo "$REPO" --label convex-usage --state open --limit 1 --json number --jq '.[0].number // empty')"
+          gh label create convex-usage-collection --repo "$REPO" --description "Convex usage collection or notification is failing" --color B60205 --force
+          number="$(gh issue list --repo "$REPO" --label convex-usage-collection --state open --limit 1 --json number --jq '.[0].number // empty')"
           if [ -z "$number" ]; then
             printf 'Convex usage collection or notification failed. No new baseline was saved. Inspect the failing step and retry the run: %s\n' "$RUN_URL" > "${RUNNER_TEMP}/convex-usage-failure.md"
-            gh issue create --repo "$REPO" --title "Convex usage collection failed" --label convex-usage --label needs-triage --body-file "${RUNNER_TEMP}/convex-usage-failure.md"
+            gh issue create --repo "$REPO" --title "Convex usage collection failed" --label convex-usage-collection --label needs-triage --body-file "${RUNNER_TEMP}/convex-usage-failure.md"
           fi

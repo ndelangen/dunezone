@@ -98,7 +98,7 @@ export function summarizeFunctions(jsonl: string, now: number) {
 }
 
 /** Deployment credentials stay in the child environment, and the streaming child has a fixed deadline. */
-async function recentFunctions(env: NodeJS.ProcessEnv, now: number, kind: string) {
+async function recentFunctions(env: NodeJS.ProcessEnv, now: number, deploymentName: string) {
   let stdout = '';
   try {
     const result = await promisify(execFile)(
@@ -109,7 +109,7 @@ async function recentFunctions(env: NodeJS.ProcessEnv, now: number, kind: string
         '--history',
         '1000',
         '--jsonl',
-        ...(env.CONVEX_DEPLOY_KEY ? [] : ['--deployment', `dunezone:${kind}`]),
+        ...(env.CONVEX_DEPLOY_KEY ? [] : ['--deployment', deploymentName]),
       ],
       { env, timeout: 15_000, maxBuffer: 16 * 1024 * 1024 }
     );
@@ -133,13 +133,13 @@ export async function captureDeployment(env: NodeJS.ProcessEnv): Promise<Deploym
   const [, kind, name] = match;
   const capturedAt = new Date().toISOString();
   const execFn: UsageExec = async (file, args, options) => await promisify(execFile)(file, args, options);
-  const result = await convexUsage(execFn, { backendName: name!, project: 'dunezone', reference: kind! }, env);
+  const result = await convexUsage(execFn, { backendName: name!, project: 'dunezone', reference: name! }, env);
   return deploymentSchema.parse({
     name,
     kind,
     capturedAt,
     usage: result.current,
-    sample: await recentFunctions(env, Date.now(), kind!),
+    sample: await recentFunctions(env, Date.now(), name!),
   });
 }
 
@@ -200,7 +200,8 @@ export function assessUsage(
     }
   }
 
-  const newAlerts = activeAlerts.filter((alert) => !previous?.activeAlerts.includes(alert));
+  const priorAlerts = previous?.capturedAt.slice(0, 7) === now.slice(0, 7) ? previous.activeAlerts : [];
+  const newAlerts = activeAlerts.filter((alert) => !priorAlerts.includes(alert));
   return {
     capturedAt: now,
     deployments,

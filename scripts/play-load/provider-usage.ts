@@ -289,7 +289,8 @@ export async function convexUsage(
 ) {
   const key = env.CONVEX_DEPLOY_KEY ?? '';
   const selected = ['dev', 'prod'].some((kind) => key.startsWith(`${kind}:${target.backendName}|`));
-  const reference = `${target.project}:${target.reference}`;
+  const reference =
+    target.reference === target.backendName ? target.backendName : `${target.project}:${target.reference}`;
   const { stdout } = await execFn(
     'bunx',
     ['convex', 'deployment', 'usage', ...(selected ? [] : ['--deployment', reference]), '--json'],
