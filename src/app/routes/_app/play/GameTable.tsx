@@ -65,6 +65,8 @@ import {
 } from './tableLayout';
 import type { TableLayout } from './tableLayout';
 import { TableWait } from './TableWait';
+import { ExperimentLayout } from './controlsExperiments/ControlsExperiments';
+import { experimentTakesTabs, useControlsExperiment } from './controlsExperiments/experiment';
 
 /* How long the shell waits for the renderer before opening anyway. */
 const SCENE_READY_FALLBACK_MS = 1500;
@@ -912,6 +914,7 @@ function TableLayouts({
   scene,
   controls,
   players,
+  tabs,
   ...props
 }: Omit<LayoutProps, 'nodes'> &
   Readonly<{
@@ -920,19 +923,32 @@ function TableLayouts({
     scene: ReactNode;
     controls: ReactNode;
     players: ReactNode | undefined;
+    tabs: readonly PanelTab[];
   }>) {
   const headerNode = useHeldNode();
   const sceneNode = useHeldNode();
   const controlsNode = useHeldNode();
   const playersNode = useHeldNode();
+  const experiment = useControlsExperiment();
+  /* A design that opens each tab on its own leaves the dock unrendered, so no tab mounts twice. */
+  const takesTabs = experimentTakesTabs(experiment);
   const nodes = { header: headerNode, scene: sceneNode, controls: controlsNode, players: players ? playersNode : null };
   return (
     <>
       <Held node={headerNode}>{header}</Held>
       <Held node={sceneNode}>{scene}</Held>
-      <Held node={controlsNode}>{controls}</Held>
+      {!takesTabs && <Held node={controlsNode}>{controls}</Held>}
       {players && <Held node={playersNode}>{players}</Held>}
-      {layout === 'columns' ? (
+      {experiment ? (
+        <ExperimentLayout
+          experiment={experiment}
+          nodes={{ scene: sceneNode, controls: takesTabs ? null : controlsNode, players: nodes.players }}
+          header={<HeaderSlot node={headerNode} />}
+          camera={props.camera}
+          inert={props.inert}
+          tabs={tabs}
+        />
+      ) : layout === 'columns' ? (
         <ColumnsLayout key="columns" nodes={nodes} {...props} />
       ) : (
         <StackedLayout key="stacked" nodes={nodes} {...props} />
@@ -1064,6 +1080,15 @@ export function GameTable({
       </div>
     </header>
   );
+  const experimentTabs = dockTabs({
+    panelTabs,
+    tableControls,
+    tableGuidance,
+    panelContent,
+    showStormControls,
+    word: frame.word,
+    tableTab: frame.tableTab,
+  });
   const controls = (
     <TableControlsPanel
       panelTabs={panelTabs}
@@ -1102,6 +1127,7 @@ export function GameTable({
                 players={playerPanel}
                 camera={camera}
                 inert={overlaysInert}
+                tabs={experimentTabs}
               />
             </div>
           </div>
