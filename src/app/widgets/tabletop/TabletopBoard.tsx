@@ -1,7 +1,9 @@
 /* @jsxImportSource ./three-jsx */
+
 import { useTexture } from '@react-three/drei/webgpu';
 import { useFrame, useThree } from '@react-three/fiber/webgpu';
 import { retainedArrakisBoard } from '@shared/boards/geometry';
+import { rendererColors } from '@shared/play/assetColors';
 import type { Vector3Tuple } from '@shared/play/model';
 import type { GameSnapshot } from '@shared/play/protocol';
 import {
@@ -27,6 +29,7 @@ import { PLAYER_RING_RADIUS, tableSeatAngles, TABLE_SECTOR_COUNT } from '@shared
 import type { TableSeatCount } from '@shared/play/tableSettings';
 import { TRACKER_DISC_HEIGHT } from '@shared/play/tableTrackers';
 import type { TrackerArcSlot } from '@shared/play/tableTrackers';
+import { playUiColors } from '@shared/uiPalette';
 import { lazy, Suspense, useMemo, useRef, useLayoutEffect, useEffect } from 'react';
 import type { ExtrudeGeometry, Group } from 'three';
 import { BufferGeometry, CircleGeometry, EdgesGeometry, Float32BufferAttribute, SRGBColorSpace } from 'three';
@@ -39,19 +42,14 @@ import stormMarkerUrl from './assets/storm-marker.webp?url';
 import { boardFurnitureFor } from './boardFurniture';
 import { boardMapGeometry } from './boardMapGeometry';
 import { POLAR_SINK_RENDER_ORDER, STORM_OUTLINE_RENDER_ORDER, STORM_SECTOR_RENDER_ORDER } from './boardRenderOrder';
-import {
-  BOARD_RIM_COLOR,
-  BOARD_RIM_DEPTH,
-  BOARD_RIM_METALNESS,
-  BOARD_RIM_ROUGHNESS,
-  createBoardRimShape,
-} from './boardRimGeometry';
+import { BOARD_RIM_DEPTH, BOARD_RIM_METALNESS, BOARD_RIM_ROUGHNESS, createBoardRimShape } from './boardRimGeometry';
 import { ignoreRaycast } from './ignoreRaycast';
 import { PhaseSymbol } from './PhaseSymbol';
 import { useSharedMeshes } from './sharedMeshes';
 import { SoftShadow } from './SoftShadow';
 import { loadSpiceBank } from './tableChunks';
 import { TableFurniture } from './TableFurniture';
+import { useTablePalette } from './tablePalette';
 import { activePhaseIndex, trackerDiscColor } from './tableTrackers';
 import type { TableProgress } from './tableTrackers';
 import { TerritoryTints } from './TerritoryTints';
@@ -60,9 +58,9 @@ const SpiceBank = lazy(() => loadSpiceBank().then((module) => ({ default: module
 useTexture.preload(stormMarkerUrl);
 
 /* Under the map's own shapes, the colour of its outer ring, and how far above the disc the shapes lie. */
-const BOARD_MAP_BASE_COLOR = '#000000';
+const BOARD_MAP_BASE_COLOR = rendererColors.black;
 const BOARD_MAP_LIFT = 0.001;
-const BOARD_RIM_DIVIDER_COLOR = '#050505';
+const BOARD_RIM_DIVIDER_COLOR = playUiColors.boardDivider;
 const BOARD_RIM_SHADOW_SPREAD = 0.2;
 const BOARD_RIM_DIVIDER_OVERLAP = 0.002;
 const BOARD_RIM_DIVIDER_WIDTH = 0.035;
@@ -134,7 +132,7 @@ function PlayerStations({ seatCount }: { seatCount: TableSeatCount }) {
               raycast={ignoreRaycast}
             >
               <circleGeometry args={[0.19, 48]} />
-              <meshBasicMaterial color="#fff0bd" />
+              <meshBasicMaterial color={playUiColors.stationGround} />
             </mesh>
           </group>
         );
@@ -144,6 +142,7 @@ function PlayerStations({ seatCount }: { seatCount: TableSeatCount }) {
 }
 
 function BoardRim({ seatCount }: { seatCount: TableSeatCount }) {
+  const palette = useTablePalette();
   /* Replace the mesh with its geometry so WebGPU cannot reuse disposed buffers. */
   const shape = useMemo(() => createBoardRimShape(seatCount), [seatCount]);
   const geometryArgs = useMemo(
@@ -160,7 +159,7 @@ function BoardRim({ seatCount }: { seatCount: TableSeatCount }) {
       rotation={[Math.PI / 2, 0, 0]}
     >
       <extrudeGeometry args={geometryArgs} />
-      <meshStandardMaterial color={BOARD_RIM_COLOR} roughness={BOARD_RIM_ROUGHNESS} metalness={BOARD_RIM_METALNESS} />
+      <meshStandardMaterial color={palette.boardRim} roughness={BOARD_RIM_ROUGHNESS} metalness={BOARD_RIM_METALNESS} />
     </mesh>
   );
 }
@@ -342,7 +341,7 @@ function StormSectorHighlight({ sectorIndex }: { sectorIndex: number }) {
         {/* The storm's sides meet at the board's centre, under the Polar Sink, which is drawn above it. */}
         <circleGeometry args={[BOARD_RADIUS, 96, -STORM_SECTOR_ANGLE / 2, STORM_SECTOR_ANGLE]} />
         <meshBasicMaterial
-          color="#e13632"
+          color={playUiColors.stormSector}
           transparent
           opacity={STORM_SECTOR_FILL_OPACITY}
           depthTest
@@ -359,7 +358,7 @@ function StormSectorHighlight({ sectorIndex }: { sectorIndex: number }) {
         raycast={ignoreRaycast}
       >
         <lineBasicMaterial
-          color="#ef5a50"
+          color={playUiColors.stormEdge}
           depthTest
           depthWrite={false}
           opacity={STORM_SECTOR_OUTLINE_OPACITY}

@@ -84,7 +84,7 @@
   border: 1px solid var(--split-panels-grip-border, var(--input-border-strong));
   border-radius: var(--radius-pill);
   background: var(--split-panels-grip, var(--button-neutral-bg));
-  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 1px 8px rgb(from var(--color-shadow) r g b / 0.45);
   transition:
     width var(--transition-fast),
     height var(--transition-fast),

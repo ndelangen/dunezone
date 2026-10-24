@@ -7,7 +7,7 @@ import { ConfirmDeleteAction } from './ConfirmDeleteAction';
 const meta = preview.meta({
   component: ConfirmDeleteAction,
   parameters: { layout: 'centered' },
-  globals: { backgrounds: { value: 'light', grid: false } },
+  globals: { backgrounds: { value: 'dark', grid: false } },
   args: {
     label: 'Delete faction',
     pending: false,

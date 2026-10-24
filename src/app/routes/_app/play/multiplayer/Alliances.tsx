@@ -3,22 +3,17 @@ import { alliesOf } from '@shared/play/alliances';
 import type { AllianceAction, AllianceState } from '@shared/play/alliances';
 import { snapshotFactionLabels } from '@shared/play/factionLabels';
 import { factionTokenOf } from '@shared/play/factionToken';
+import { playUiColors, withAlpha } from '@shared/uiPalette';
 import { Section } from '@ui/block/Section';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import type { ReactNode } from 'react';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
-import { allianceSlot, allianceThemeColor } from './allianceHues';
+import { alliedFactionColors, allianceRingStyle, factionColor } from './allianceColors';
 import { ALLIANCES_HELP } from './panelGuidance';
 import { seatFaction, viewerFaction } from './tableFactions';
 
 type Props = Readonly<{ client: TableSession; table: TableProjection }>;
-
-/** The ring colour of the alliance `factionId` belongs to, or undefined when it stands alone. */
-export function allianceHue(snapshot: TableProjection['snapshot'], factionId: string | undefined) {
-  const slot = allianceSlot(snapshot, factionId);
-  return slot === undefined ? undefined : allianceThemeColor(slot);
-}
 
 function factionList(names: Readonly<Record<string, string>>, ids: readonly string[]) {
   const labels = ids.map((id) => names[id] ?? id);
@@ -41,7 +36,7 @@ export function PlayerAlliance({ client, table, seat }: Props & Readonly<{ seat:
   return (
     <Group gap="sm" justify="space-between" wrap="wrap">
       <Group gap="xs" wrap="nowrap">
-        <AllianceMark hue={allianceHue(table.snapshot, factionId)} />
+        <AllianceMark colors={alliedFactionColors(table.snapshot, factionId)} />
         <Text size="sm">{rowStatus(table.snapshot.alliances, row, viewerFaction(table), names)}</Text>
       </Group>
       <RowAction client={client} table={table} row={row} />
@@ -49,10 +44,19 @@ export function PlayerAlliance({ client, table, seat }: Props & Readonly<{ seat:
   );
 }
 
-function AllianceMark({ hue }: Readonly<{ hue: string | undefined }>) {
+function AllianceMark({ colors }: Readonly<{ colors: readonly string[] }>) {
   return (
-    <span style={{ color: hue ?? 'var(--mantine-color-dimmed)', display: 'inline-flex' }}>
-      <TopicIcon topic="alliance" size={18} />
+    <span style={allianceRingStyle(colors)}>
+      <span
+        style={{
+          display: 'inline-flex',
+          borderRadius: '50%',
+          background: 'var(--color-ground)',
+          color: 'var(--color-muted)',
+        }}
+      >
+        <TopicIcon topic="alliance" size={18} />
+      </span>
     </span>
   );
 }
@@ -206,19 +210,15 @@ export function AlliancesPanel({ client, table }: Props) {
       <Stack gap="xs">
         {rows.map((row) => {
           const logo = snapshot.factionArtwork?.[row.factionId]?.logo;
-          const hue = allianceHue(snapshot, row.factionId);
+          const colors = alliedFactionColors(snapshot, row.factionId);
           return (
             <Group key={row.factionId} justify="space-between" gap="sm" wrap="nowrap">
               <Group gap="sm" wrap="nowrap">
-                <Avatar
-                  src={logo}
-                  size={32}
-                  radius="xl"
-                  alt=""
-                  style={hue ? { boxShadow: `0 0 0 2px ${hue}` } : undefined}
-                >
-                  {(names[row.factionId] ?? row.factionId).slice(0, 1)}
-                </Avatar>
+                <span style={allianceRingStyle(colors)}>
+                  <Avatar src={logo} size={32} radius="xl" alt="">
+                    {(names[row.factionId] ?? row.factionId).slice(0, 1)}
+                  </Avatar>
+                </span>
                 <Stack gap={0}>
                   <Text size="sm" fw={700}>
                     {names[row.factionId] ?? row.factionId}
@@ -269,8 +269,8 @@ export function AllianceStrip({ table }: Readonly<{ table: TableProjection }>) {
                 flexShrink: 0,
                 padding: '2px 6px',
                 borderRadius: 999,
-                background: 'rgba(210, 174, 104, 0.14)',
-                border: '1px solid rgba(210, 174, 104, 0.55)',
+                background: withAlpha(playUiColors.annotationGold, 0.14),
+                border: `1px solid ${withAlpha(playUiColors.annotationGold, 0.55)}`,
               }}
             >
               {group.map((factionId, index) => (
@@ -280,7 +280,10 @@ export function AllianceStrip({ table }: Readonly<{ table: TableProjection }>) {
                   size={26}
                   radius="xl"
                   alt=""
-                  style={{ marginLeft: index ? -6 : 0, border: '1px solid #d2ae68' }}
+                  style={{
+                    marginLeft: index ? -6 : 0,
+                    border: `1px solid ${factionColor(table.snapshot, factionId) ?? playUiColors.annotationGold}`,
+                  }}
                 >
                   {(names[factionId] ?? factionId).slice(0, 1)}
                 </Avatar>

@@ -1,15 +1,14 @@
 import { Checkbox, Radio, Switch, Tabs, createTheme, defaultVariantColorsResolver } from '@mantine/core';
-import type { MantineColorsTuple, MantineColorSchemeManager } from '@mantine/core';
+import type { MantineColorSchemeManager } from '@mantine/core';
+import { playUiColors, themeRamps, withAlpha } from '@shared/uiPalette';
 
 import styles from './theme.module.css';
 
 /*
- * Color values live in styles/tokens.css, the single source of truth, with dark overrides under
- * `:root[data-mantine-color-scheme='dark']`. Slots whose values flow to the DOM verbatim reference
- * them via var() and flip with the scheme for free.
+ * Palette values and Mantine ramps live in src/shared/uiPalette.ts.
+ * The generated stylesheet provides the CSS variables; slots whose values reach the DOM verbatim
+ * reference those variables, while Mantine takes the same source's literal ramps to derive variants.
  *
- * The color tuples below are the exception: Mantine parses tuple hex to bake hover and light-variant
- * derivations, so they stay literal. They are Mantine-internal ramps, not mirrors of tokens.css.
  * `white`/`black` are scheme-invariant inks by Mantine's contract (filled-component text in both
  * schemes); they bind to the non-flipping --color-paper/--color-ink tokens, never to ones that
  * flip. Never combine `autoContrast` or `color="white"/"black"/"bright"` with var()-valued slots:
@@ -25,61 +24,12 @@ export const appColorSchemeManager: MantineColorSchemeManager = {
   clear: () => {},
 };
 
-const slate: MantineColorsTuple = [
-  '#f8f4eb',
-  '#e7dfd0',
-  '#d5c8b4',
-  '#c5b399',
-  '#b3a084',
-  '#a08a6c',
-  '#8c7659',
-  '#786247',
-  '#66513a',
-  '#53412e',
-];
-
-const confirm: MantineColorsTuple = [
-  '#f4f8f0',
-  '#e1ebd9',
-  '#c8d6bc',
-  '#aac196',
-  '#8dac74',
-  '#7f9e66',
-  '#6f8e57',
-  '#607c49',
-  '#50683e',
-  '#3f542f',
-];
-
-const danger: MantineColorsTuple = [
-  '#fff5f5',
-  '#ffe3e3',
-  '#ffc9c9',
-  '#ffa8a8',
-  '#ff8787',
-  '#ff6b6b',
-  '#fa5252',
-  '#e03131',
-  '#c92a2a',
-  '#b02525',
-];
-
 /*
  * In dark mode Mantine derives text, body, borders, dimmed, and disabled from the `dark` tuple,
  * not from our tokens, so the stock cool-gray ramp is replaced with warm mineral neutrals.
  */
-const warmDark: MantineColorsTuple = [
-  '#f0e8da',
-  '#d3c8b6',
-  '#b6a38a',
-  '#94816b',
-  '#887252',
-  '#4c4236',
-  '#352e25',
-  '#28231d',
-  '#211d18',
-  '#1c1915',
-];
+
+const { slate, confirm, red: danger, dark: warmDark } = themeRamps;
 
 const contentFontFamily = '"C_Candara", Candara, sans-serif';
 
@@ -91,7 +41,7 @@ const contentFontFamily = '"C_Candara", Candara, sans-serif';
 const headingFontFamily = '"C_Copperplate_Gothic", sans-serif';
 
 const glassSurface = {
-  backgroundColor: 'var(--glass-surface-1)',
+  backgroundColor: 'rgb(from var(--glass-surface-1) r g b / var(--glass-surface-1-alpha))',
   borderColor: 'var(--panel-border)',
   boxShadow: 'var(--panel-shadow)',
   backdropFilter: 'blur(8px)',
@@ -106,6 +56,15 @@ export const appContentTheme = createTheme({
   white: 'var(--color-paper)',
   black: 'var(--color-ink)',
   colors: {
+    ...themeRamps,
+    orange: themeRamps.yellow,
+    green: confirm,
+    lime: confirm,
+    teal: confirm,
+    cyan: themeRamps.blue,
+    indigo: themeRamps.blue,
+    grape: themeRamps.violet,
+    pink: danger,
     slate,
     /* Existing dune-named UI colours resolve to slate too. Game artwork owns its own palette. */
     dune: slate,
@@ -120,6 +79,33 @@ export const appContentTheme = createTheme({
   focusClassName: styles.focus,
   variantColorResolver: (input) => {
     const resolved = defaultVariantColorsResolver(input);
+    const family = typeof input.color === 'string' ? input.color.split('.')[0] : '';
+    const signal = ['confirm', 'green', 'lime', 'teal'].includes(family)
+      ? '--color-positive'
+      : family === 'red' || family === 'pink'
+        ? '--color-error'
+        : family === 'yellow' || family === 'orange'
+          ? '--color-caution'
+          : ['blue', 'cyan', 'indigo'].includes(family)
+            ? '--color-progress'
+            : family === 'violet' || family === 'grape'
+              ? '--color-publish'
+              : null;
+    if (signal && input.variant === 'filled') {
+      return {
+        ...resolved,
+        hover: `color-mix(in srgb, ${resolved.background} 88%, var(--color-shadow))`,
+      };
+    }
+    if (signal && ['light', 'subtle', 'outline', 'transparent'].includes(input.variant)) {
+      return {
+        ...resolved,
+        color: `var(${signal})`,
+        border: input.variant === 'outline' ? `1px solid rgb(from var(${signal}) r g b / 0.5)` : resolved.border,
+        background: input.variant === 'light' ? `rgb(from var(${signal}) r g b / 0.16)` : resolved.background,
+        hover: input.variant === 'transparent' ? 'transparent' : `rgb(from var(${signal}) r g b / 0.24)`,
+      };
+    }
     if (input.color !== 'selected') {
       return resolved;
     }
@@ -163,11 +149,11 @@ export const appContentTheme = createTheme({
     xl: '16px',
   },
   shadows: {
-    xs: '0 2px 8px rgba(38, 24, 11, 0.12)',
+    xs: `0 2px 8px ${withAlpha(playUiColors.shadowWarm, 0.12)}`,
     sm: 'var(--panel-shadow)',
-    md: '0 8px 24px rgba(38, 24, 11, 0.22)',
-    lg: '0 12px 36px rgba(38, 24, 11, 0.26)',
-    xl: '0 18px 48px rgba(38, 24, 11, 0.3)',
+    md: `0 8px 24px ${withAlpha(playUiColors.shadowWarm, 0.22)}`,
+    lg: `0 12px 36px ${withAlpha(playUiColors.shadowWarm, 0.26)}`,
+    xl: `0 18px 48px ${withAlpha(playUiColors.shadowWarm, 0.3)}`,
   },
   components: {
     Input: {
@@ -228,7 +214,7 @@ export const appContentTheme = createTheme({
       styles: {
         dropdown: {
           ...glassSurface,
-          backgroundColor: 'var(--glass-overlay)',
+          backgroundColor: 'rgb(from var(--glass-overlay) r g b / var(--glass-overlay-alpha))',
         },
       },
     },
@@ -237,7 +223,7 @@ export const appContentTheme = createTheme({
       styles: {
         dropdown: {
           ...glassSurface,
-          backgroundColor: 'var(--glass-overlay)',
+          backgroundColor: 'rgb(from var(--glass-overlay) r g b / var(--glass-overlay-alpha))',
         },
       },
     },
@@ -252,7 +238,7 @@ export const appContentTheme = createTheme({
       styles: {
         content: {
           ...glassSurface,
-          backgroundColor: 'var(--glass-overlay)',
+          backgroundColor: 'rgb(from var(--glass-overlay) r g b / var(--glass-overlay-alpha))',
         },
       },
     },

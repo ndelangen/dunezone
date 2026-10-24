@@ -1,13 +1,16 @@
 /* @jsxImportSource ./three-jsx */
+
 import { TABLE_SURFACE_Y } from '@shared/play/tableGeometry';
+import { playUiColors } from '@shared/uiPalette';
 
 import { coinBand, coinRadius, coinTop } from './allianceCoinGeometry';
-import { BOARD_RIM_COLOR, BOARD_RIM_METALNESS, BOARD_RIM_ROUGHNESS } from './boardRimGeometry';
+import { BOARD_RIM_METALNESS, BOARD_RIM_ROUGHNESS } from './boardRimGeometry';
 import { ignoreRaycast } from './ignoreRaycast';
 import { SoftShadow } from './SoftShadow';
+import { useTablePalette } from './tablePalette';
 
 /* The coin's colour: the ally's with the cream line the tokens carry inside their rim, or, standing alone, plain in the board rim's colour. */
-const CREAM = '#efe3c2';
+const CREAM = playUiColors.allianceBand;
 
 const SHADOW_SPREAD = 0.08;
 const SHADOW_OPACITY = 0.75;
@@ -24,6 +27,7 @@ export type AllianceCoinProps = Readonly<{
 
 /** One coin under a faction token, centred on the token's place on the table. */
 export function AllianceCoin({ color, index, count, base }: AllianceCoinProps) {
+  const palette = useTablePalette();
   const band = coinBand(count);
   const radius = coinRadius(index, count);
   const top = coinTop(index, count, base);
@@ -36,7 +40,7 @@ export function AllianceCoin({ color, index, count, base }: AllianceCoinProps) {
           <meshStandardMaterial color={color} roughness={0.56} metalness={0.1} />
         ) : (
           <meshStandardMaterial
-            color={BOARD_RIM_COLOR}
+            color={palette.boardRim}
             roughness={BOARD_RIM_ROUGHNESS}
             metalness={BOARD_RIM_METALNESS}
           />

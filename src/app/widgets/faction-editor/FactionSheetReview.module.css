@@ -96,9 +96,9 @@
   max-height: 100%;
   padding: clamp(0.75rem, 2vw, 1.5rem);
   overflow: hidden;
-  background: #f3eee5;
-  color: #302a25;
-  box-shadow: -18px 0 42px rgb(46 35 24 / 18%);
+  background: var(--ui-raised);
+  color: var(--color-text);
+  box-shadow: -18px 0 42px rgb(from var(--color-shadow) r g b / 0.18);
 }
 
 .reviewHeading {
@@ -113,20 +113,20 @@
   min-height: 0;
   overflow: hidden;
   padding: clamp(0.65rem, 1.5vw, 1.1rem);
-  border: 1px solid rgb(225 202 158 / 50%);
+  border: 1px solid rgb(from var(--ui-edge) r g b / 0.8);
   border-radius: var(--mantine-radius-md);
   background:
-    linear-gradient(rgb(236 208 153 / 7%) 1px, transparent 1px),
-    linear-gradient(90deg, rgb(236 208 153 / 7%) 1px, transparent 1px),
-    radial-gradient(circle at 50% 0%, #3c4c48 0, #202b2a 48%, #151c1b 100%);
+    linear-gradient(rgb(from var(--ui-brass) r g b / 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(from var(--ui-brass) r g b / 0.07) 1px, transparent 1px),
+    radial-gradient(circle at 50% 0%, var(--ui-raised) 0, var(--ui-recess) 48%, var(--ui-ground) 100%);
   background-size:
     1.5rem 1.5rem,
     1.5rem 1.5rem,
     auto;
   box-shadow:
-    inset 0 0 0 1px rgb(255 255 255 / 5%),
-    inset 0 -3rem 5rem rgb(0 0 0 / 18%);
-  color: #f4ead8;
+    inset 0 0 0 1px rgb(from var(--color-inverse) r g b / 5%),
+    inset 0 -3rem 5rem rgb(from var(--color-shadow) r g b / 18%);
+  color: var(--color-text);
 }
 
 .proofDesk::before,
@@ -134,7 +134,7 @@
   position: absolute;
   width: 2.5rem;
   height: 2.5rem;
-  border-color: #c7934c;
+  border-color: var(--ui-brass);
   content: "";
   pointer-events: none;
 }
@@ -158,17 +158,17 @@
   position: relative;
   z-index: 1;
   padding-inline: 0.25rem;
-  color: #e7dac3;
+  color: var(--color-muted);
 }
 
 .proofDeskHeader {
   padding-bottom: 0.55rem;
-  border-bottom: 1px solid rgb(231 218 195 / 18%);
+  border-bottom: 1px solid rgb(from var(--ui-edge) r g b / 0.35);
 }
 
 .proofDeskFooter {
   padding-top: 0.55rem;
-  border-top: 1px solid rgb(231 218 195 / 18%);
+  border-top: 1px solid rgb(from var(--ui-edge) r g b / 0.35);
 }
 
 .sheetCanvasShell {
@@ -186,7 +186,7 @@
   padding: clamp(0.75rem, 1.8vw, 1.4rem);
   scroll-padding-block: 1rem;
   scroll-snap-type: y proximity;
-  scrollbar-color: #c7934c rgb(255 255 255 / 8%);
+  scrollbar-color: var(--ui-brass) rgb(from var(--color-inverse) r g b / 8%);
   scrollbar-gutter: stable;
   scrollbar-width: thin;
 }
@@ -209,7 +209,7 @@
 
 /* Only the decoration: the frame's position and clipping belong to `CanvasScale`. */
 .shieldFrame {
-  filter: drop-shadow(0 0.75rem 1.2rem rgb(0 0 0 / 32%));
+  filter: drop-shadow(0 0.75rem 1.2rem rgb(from var(--color-shadow) r g b / 32%));
 }
 
 .sheetSpread {
@@ -226,7 +226,7 @@
   overflow: hidden;
   border: 1px solid #d4c9ad;
   background: #fffdf1;
-  box-shadow: 0 12px 34px rgb(0 0 0 / 28%);
+  box-shadow: 0 12px 34px rgb(from var(--color-shadow) r g b / 28%);
   scroll-snap-align: start;
 }
 
@@ -239,11 +239,11 @@
   align-items: center;
   gap: 0.35rem;
   padding: 0.45rem 0.75rem;
-  border: 1px solid rgb(239 214 163 / 55%);
+  border: 1px solid rgb(from var(--ui-edge) r g b / 0.8);
   border-radius: 999px;
-  background: rgb(20 28 27 / 90%);
-  box-shadow: 0 0.5rem 1.5rem rgb(0 0 0 / 32%);
-  color: #f3e5ca;
+  background: rgb(from var(--ui-recess) r g b / 0.9);
+  box-shadow: 0 0.5rem 1.5rem rgb(from var(--color-shadow) r g b / 32%);
+  color: var(--color-text);
   pointer-events: none;
   transform: translateX(-50%);
 }

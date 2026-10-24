@@ -1,3 +1,4 @@
+import { playUiColors } from '@shared/uiPalette';
 import { useSyncExternalStore } from 'react';
 
 /** The tint the paintbrush adds territories to or takes them out of, and how a click on the board reaches the table. */
@@ -53,5 +54,5 @@ const BRUSH_PATHS = [
 ];
 const stroked = (color: string, width: number) =>
   `<g fill='none' stroke='${color}' stroke-width='${width}' stroke-linecap='round' stroke-linejoin='round'>${BRUSH_PATHS.map((d) => `<path d='${d}'/>`).join('')}</g>`;
-const BRUSH_ICON = `<svg xmlns='http://www.w3.org/2000/svg' width='26' height='26' viewBox='0 0 26 26'><g transform='translate(1 1)'>${stroked('#1d120b', 4)}${stroked('#f3e6c8', 2)}</g></svg>`;
+const BRUSH_ICON = `<svg xmlns='http://www.w3.org/2000/svg' width='26' height='26' viewBox='0 0 26 26'><g transform='translate(1 1)'>${stroked(playUiColors.brushOutline, 4)}${stroked(playUiColors.brushInk, 2)}</g></svg>`;
 export const BRUSH_CURSOR = `url("data:image/svg+xml;utf8,${encodeURIComponent(BRUSH_ICON)}") 4 22, crosshair`;

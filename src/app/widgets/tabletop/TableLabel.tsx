@@ -1,6 +1,7 @@
 /* @jsxImportSource ./three-jsx */
 
 import type { Vector3Tuple } from '@shared/play/model';
+import { playUiColors } from '@shared/uiPalette';
 import { useEffect, useMemo, useState } from 'react';
 import { CanvasTexture, LinearFilter, SRGBColorSpace } from 'three';
 
@@ -79,7 +80,7 @@ const FLAT_ROTATION: [number, number, number] = [-Math.PI / 2, 0, 0];
 
 export function TableLabel({
   children,
-  color = '#d2ae68',
+  color = playUiColors.annotationGold,
   fontSize = 0.36,
   maxWidth,
   position,

@@ -4,7 +4,7 @@ import preview from '@sb/preview';
 const meta = preview.meta({
   component: Slider,
   globals: {
-    backgrounds: { value: 'light', grid: false },
+    backgrounds: { value: 'dark', grid: false },
   },
   parameters: {
     layout: 'padded',

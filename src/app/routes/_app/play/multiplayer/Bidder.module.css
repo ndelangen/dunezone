@@ -10,10 +10,10 @@
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: #2b2116;
-  border: 2px solid #e3c27a;
-  box-shadow: 0 2px 8px rgb(0 0 0 / 55%);
-  color: #f4e6c4;
+  background: var(--button-neutral-bg);
+  border: 2px solid var(--panel-border);
+  box-shadow: 0 2px 8px rgb(from var(--play-black) r g b / 0.55);
+  color: var(--color-text);
   overflow: hidden;
 }
 
@@ -26,10 +26,10 @@
 }
 
 .disc[data-mine] {
-  border-color: #ffe39a;
+  border-color: var(--color-brand-strong);
   box-shadow:
-    0 0 0 3px rgb(255 227 154 / 45%),
-    0 2px 8px rgb(0 0 0 / 55%);
+    0 0 0 3px color-mix(in srgb, var(--color-brand) 45%, transparent),
+    0 2px 8px rgb(from var(--play-black) r g b / 0.55);
   cursor: pointer;
 }
 
@@ -43,10 +43,10 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: #2b2116;
-  border: 2px solid #e3c27a;
-  box-shadow: 0 2px 6px rgb(0 0 0 / 55%);
-  color: #f4e6c4;
+  background: var(--button-neutral-bg);
+  border: 2px solid var(--panel-border);
+  box-shadow: 0 2px 6px rgb(from var(--play-black) r g b / 0.55);
+  color: var(--color-text);
   font-size: 11px;
   font-weight: 700;
   overflow: hidden;
@@ -62,10 +62,10 @@
 }
 
 .pick:hover:not(:disabled) {
-  border-color: #ffe39a;
+  border-color: var(--color-brand-strong);
   box-shadow:
-    0 0 0 3px rgb(255 227 154 / 45%),
-    0 2px 6px rgb(0 0 0 / 55%);
+    0 0 0 3px color-mix(in srgb, var(--color-brand) 45%, transparent),
+    0 2px 6px rgb(from var(--play-black) r g b / 0.55);
 }
 
 .pick:disabled {
@@ -92,10 +92,10 @@
   font-family: C_Advokat_Modern, sans-serif;
   font-size: 26px;
   line-height: 1;
-  color: #fff;
+  color: var(--play-white);
   text-shadow:
-    0 0 4px #000,
-    0 0 8px #000;
+    0 0 4px var(--play-black),
+    0 0 8px var(--play-black);
 }
 
 .prompt {
@@ -108,8 +108,8 @@
 .timer {
   padding: 1px 8px;
   border-radius: 999px;
-  background: rgb(20 15 10 / 80%);
-  color: #f4e6c4;
+  background: rgb(from var(--glass-overlay) r g b / var(--glass-overlay-alpha));
+  color: var(--color-text);
   white-space: nowrap;
 }
 
@@ -135,16 +135,16 @@
 }
 
 .clockTrack {
-  stroke: rgb(244 230 196 / 20%);
+  stroke: rgb(from var(--input-border) r g b / var(--input-border-alpha));
 }
 
 .clockArc {
-  stroke: #ffe39a;
+  stroke: var(--color-brand-strong);
   stroke-dasharray: 100;
 }
 
 .clockWarning {
-  stroke: #ffe39a;
+  stroke: var(--color-brand-strong);
   stroke-width: 4;
   opacity: 0;
 }

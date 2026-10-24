@@ -39,8 +39,8 @@
   flex-shrink: 0;
   border: 2px solid;
   border-radius: 50%;
-  background: #21170d;
-  box-shadow: 0 2px 5px #0006;
+  background: var(--button-neutral-bg);
+  box-shadow: 0 2px 5px rgb(from var(--play-black) r g b / 0.4);
 }
 .avatar svg,
 .avatar img {

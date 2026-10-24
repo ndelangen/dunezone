@@ -4,7 +4,7 @@
  */
 .surface {
   box-sizing: border-box;
-  background-color: var(--panel-bg);
+  background-color: rgb(from var(--panel-bg) r g b / var(--glass-surface-1-alpha));
   border: 1px solid var(--panel-border);
   border-radius: var(--mantine-radius-md);
   box-shadow: var(--panel-shadow);
@@ -44,8 +44,12 @@
 
 .interactive:hover {
   transform: translateY(-2px);
-  background-color: color-mix(in srgb, var(--panel-bg) 60%, var(--surface-hover-tint));
-  box-shadow: 0 4px 24px 0 rgb(0 0 0 / 30%);
+  background-color: color-mix(
+    in srgb,
+    rgb(from var(--panel-bg) r g b / var(--glass-surface-1-alpha)) 60%,
+    var(--surface-hover-tint)
+  );
+  box-shadow: 0 4px 24px 0 rgb(from var(--color-shadow) r g b / 30%);
 }
 
 .interactive:focus-visible {
