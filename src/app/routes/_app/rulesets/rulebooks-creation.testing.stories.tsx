@@ -161,3 +161,13 @@ export const MemberCreation = meta.story({
     await expect(page.findByRole('button', { name: 'Save' }, { timeout: 30_000 })).resolves.toBeDisabled();
   },
 });
+
+export const SignedOut = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/create' },
+  parameters: { identity: null },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('link', { name: 'Log in' }, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(page.queryByRole('textbox', { name: 'Rulebook name' })).toBeNull();
+  },
+});

@@ -3,6 +3,7 @@ import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { db, ruleset } from '@db/storybook';
 
+import { expectToolbarOnOneLine } from './authoringToolbarPlay';
 import { seedLinkedFactions } from './rulesets.stories.fixture';
 import { pageStoryMeta } from './storybookConfig';
 
@@ -157,4 +158,24 @@ export const QuestionReferences = meta.story({
     await waitFor(() => expect(page.queryByRole('button', { name: 'Remove reference to House Atreides' })).toBeNull());
     await expect(question).toHaveValue('An unsaved question draft?');
   },
+});
+
+/** The ruleset editor's toolbar on one line at a phone, tablet, laptop and desktop width (#1423), stating only its save state at rest. */
+export const EditToolbarAt360 = meta.story({
+  args: { path: '/rulesets/classicrules/edit' },
+  globals: { viewport: { value: 'appMobileNarrow' } },
+  play: async ({ canvasElement }) =>
+    await expectToolbarOnOneLine(canvasElement, { statusDescribes: ['No unsaved changes'] }),
+});
+export const EditToolbarAt768 = meta.story({
+  args: { path: '/rulesets/classicrules/edit' },
+  globals: { viewport: { value: 'appTablet' } },
+  play: async ({ canvasElement }) =>
+    await expectToolbarOnOneLine(canvasElement, { statusDescribes: ['No unsaved changes'] }),
+});
+export const EditToolbarAt1100 = meta.story({
+  args: { path: '/rulesets/classicrules/edit' },
+  globals: { viewport: { value: 'appLaptop' } },
+  play: async ({ canvasElement }) =>
+    await expectToolbarOnOneLine(canvasElement, { statusDescribes: ['No unsaved changes'] }),
 });

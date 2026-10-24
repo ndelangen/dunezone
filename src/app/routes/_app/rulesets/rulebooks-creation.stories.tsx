@@ -58,13 +58,3 @@ export const InactiveMember = meta.story({
   },
   play: async ({ canvasElement }) => expectDenied(canvasElement),
 });
-
-export const SignedOut = meta.story({
-  args: { path: '/rulesets/classicrules/rulebooks/create' },
-  parameters: { identity: null },
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await expect(page.findByRole('link', { name: 'Log in' }, { timeout: 30_000 })).resolves.toBeVisible();
-    await expect(page.queryByRole('textbox', { name: 'Rulebook name' })).toBeNull();
-  },
-});
