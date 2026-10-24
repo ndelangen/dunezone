@@ -11,6 +11,7 @@ const meta = testingPreview.meta({
 });
 
 export const Default = meta.story({
+  globals: { motion: 'on' },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByRole('heading', { level: 1, name: 'Dune Play is coming soon' })).resolves.toBeVisible();
@@ -23,6 +24,7 @@ export const Default = meta.story({
 });
 
 export const SneakPeekLink = meta.story({
+  globals: { motion: 'on' },
   parameters: { identity: null },
   beforeEach: () => {
     window.location.hash = '#play-preview';

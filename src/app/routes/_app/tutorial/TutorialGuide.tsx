@@ -167,7 +167,8 @@ export function TutorialGuide({
   nextLink,
   children,
 }: Readonly<{
-  number: number;
+  /** The chapter's place in the tutorial; a play-test chapter has none. */
+  number: number | null;
   title: string;
   tasks: readonly GuideTask[];
   /** The task the guide opens at, counted from 0; Reset still starts from the first. */
@@ -190,6 +191,7 @@ export function TutorialGuide({
   const band = useRef<HTMLElement>(null);
   const step = useRef<HTMLSpanElement>(null);
   const task = tasks[current];
+  const kicker = number === null ? 'Play-test' : `Chapter ${number}`;
   /* The loop below follows the task by its id, so a caller that builds its task list afresh on each render does not restart it. */
   const taskId = task?.id;
   const currentTask = useEffectEvent(() => tasks[current]);
@@ -338,10 +340,10 @@ export function TutorialGuide({
           <path ref={fill} className={styles.fill} data-tutorial-pointer filter={`url(#${inset})`} />
           <path ref={edge} className={styles.edge} />
         </svg>
-        <header ref={band} className={styles.band} data-tutorial-free aria-label={`Chapter ${number}: ${title}`}>
+        <header ref={band} className={styles.band} data-tutorial-free aria-label={`${kicker}: ${title}`}>
           <div className={styles.chapter}>
             <Text size="xs" fw={700} tt="uppercase" c="dimmed">
-              Chapter {number}
+              {kicker}
             </Text>
             <Text fw={700}>{title}</Text>
           </div>

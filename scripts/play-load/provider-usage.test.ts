@@ -12,7 +12,14 @@ import type {
   UsageExec,
   UsageReport,
 } from './provider-usage.ts';
-import { captureProviderUsage, delta, discoverDatasets, queryNamespace, reportPath } from './provider-usage.ts';
+import {
+  captureProviderUsage,
+  convexUsage,
+  delta,
+  discoverDatasets,
+  queryNamespace,
+  reportPath,
+} from './provider-usage.ts';
 
 const scalar = (name: string): TypeReference => ({ kind: 'SCALAR', name, ofType: null });
 const list = (name: string): TypeReference => ({
@@ -292,4 +299,18 @@ test('a report without a hosted namespace or a window is refused', async () => {
     b: 'y',
     c: 2,
   });
+});
+
+test('an exact deployment name is not reinterpreted as a project reference', async () => {
+  const execFn: UsageExec = async (_file, args) => {
+    expect(args).toContain('tame-raccoon-541');
+    expect(args).not.toContain('dunezone:tame-raccoon-541');
+    return { stdout: JSON.stringify({ metrics: {} }) };
+  };
+  const usage = await convexUsage(
+    execFn,
+    { project: 'dunezone', backendName: 'tame-raccoon-541', reference: 'tame-raccoon-541' },
+    {}
+  );
+  expect(usage.selection).toBe('tame-raccoon-541');
 });

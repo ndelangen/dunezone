@@ -429,6 +429,40 @@ describe('anonymiseExport on Rulebook Editions', () => {
     ]);
   });
 
+  test('replaces signed ruleset cover sources with the rehosted image', () => {
+    const { world } = rulebookWorld();
+    const url = `https://dune.zone${userImagePublicPath(`${'a'.repeat(64)}.jpg`)}`;
+    const thumb = `https://dune.zone${userImagePublicPath(`${'b'.repeat(64)}.jpg`)}`;
+    const token = 'eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJzeW50aGV0aWMifQ.c2lnbmF0dXJlLXNpZ25hdHVyZQ';
+    world.add('rulesets', {
+      name: 'Signed cover',
+      slug: 'signed-cover',
+      about: '',
+      owner_id: 'unused',
+      group_id: null,
+      is_deleted: false,
+      image_cover: url,
+      ...timestamps,
+      cover: {
+        url,
+        thumb_url: thumb,
+        source_url: `https://private-user-images.githubusercontent.com/cover.jpg?jwt=${token}`,
+        width: 1280,
+        height: 1600,
+      },
+    });
+    const { entries } = anonymiseExport(world.entries());
+    expect(rowsOf(entries, 'rulesets').find((row) => row.slug === 'signed-cover')?.cover).toEqual({
+      url,
+      thumb_url: thumb,
+      source_url: url,
+      width: 1280,
+      height: 1600,
+    });
+    expect([...entries.values()].join('\n')).not.toContain(token);
+    expect(verifySnapshot(entries)).toEqual(manifestOf(entries));
+  });
+
   test('shows Edition Contents the way the public reader does, so a signed cover source stays in production', () => {
     const { world, first, current } = rulebookWorld();
     const { entries } = anonymiseExport(world.entries());

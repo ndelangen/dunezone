@@ -67,3 +67,18 @@ export const LoadMore = meta.story({
     await expect(main.queryByRole('button', { name: 'Load more' })).toBeNull();
   },
 });
+
+/** Before any search: how the FAQ works, told as one exchange, and the way to the rulesets to ask on. */
+export const Explainer = meta.story({
+  globals: { motion: 'on' },
+  args: { path: '/faq' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('heading', { name: 'Community FAQ' }, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(page.getByRole('heading', { name: 'How the FAQ works' })).toBeVisible();
+    await expect(page.getByText('Accepted answer')).toBeInTheDocument();
+    await expect(page.getByRole('link', { name: 'Browse the rulesets' })).toHaveAttribute('href', '/rulesets');
+    await expect(page.getByRole('button', { name: 'Pause animation' })).toBeVisible();
+    await expect(page.queryByRole('main')?.querySelector('table')).toBeNull();
+  },
+});

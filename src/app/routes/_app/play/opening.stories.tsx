@@ -132,23 +132,6 @@ export const GameServerUnreachable = meta.story({
   },
 });
 
-/* The frame a table route shows while a view is still on its way: the status line on the dark ground, the pool of light breathing behind it. */
-export const Connecting = meta.story({
-  beforeEach: install(() => productTransport('seat-2', initialSnapshot(), { holdView: true })),
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    const status = await page.findByText('Connecting to the hosted table...', {}, { timeout: 30_000 });
-    /* The status line eases in from transparent through a keyframe animation, so the wait finishes it and reads the settled style instead of waiting on drawn frames (https://github.com/ndelangen/dunezone/issues/1413). */
-    await waitFor(() => expect(finishTransitions(status)).toBeVisible());
-    const frame = status.closest('[data-connection]');
-    await expect(frame).toHaveAttribute('data-connection', 'connecting');
-    await expect(page.getByRole('link', { name: 'Back to lobby' })).toBeVisible();
-    const view = canvasElement.ownerDocument.defaultView!;
-    await expect(view.getComputedStyle(frame!, '::before').animationName).toMatch(/breathe/);
-    await expect(canvasElement.ownerDocument.querySelector('.dune-play-shell')).toBeNull();
-  },
-});
-
 /* The motion verdict keeps the waiting frame still. */
 export const ConnectingStill = meta.story({
   globals: { motion: 'reduce' },

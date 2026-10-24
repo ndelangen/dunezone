@@ -9,9 +9,9 @@ import { anonymiseZip, readZip } from './snapshot-anonymise';
 
 /**
  * The anonymised snapshot job (#1559), which `.github/workflows/anonymised-snapshot.yml` runs.
- * `.github/workflows/dev-rebuild.yml` runs it too, and loads the snapshot it writes into cloud dev without uploading it.
+ * The weekly workflow uploads the checked snapshot, then loads the same file into cloud dev.
  *
- * It exports production the way the dev rebuild does, reads the raw export into memory and deletes it before anonymising, whether the read succeeded or not.
+ * It exports production once, reads the raw export into memory and deletes it before anonymising, whether the read succeeded or not.
  * Its step summary gives table names, row counts, kept field names and the leak scan result, never a value, because Actions logs on this repository are public.
  * It uploads nothing itself.
  * The workflow's upload step does that, and only when SNAPSHOT_UPLOAD is 'true'.

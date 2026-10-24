@@ -1,10 +1,11 @@
 import { testingPreview } from '@sb/preview';
+import { finishTransitions } from '@sb/storyWaits';
 import { expect, waitFor, within } from 'storybook/test';
 
 import { gameMeta, install, session } from './game.stories.fixture';
 import { nativeGetContext } from './opening.stories.fixture';
 import { tablePage } from './playing.stories.fixture';
-import { productTransport } from './product.stories.fixture';
+import { productTransport, playingSnapshot as initialSnapshot } from './product.stories.fixture';
 
 /* The game page before its table opens: an unknown id, provisioning and the ways it can fail. The create form itself is Play/Create. */
 const meta = testingPreview.meta({
@@ -42,6 +43,7 @@ const recordTableContexts = () => {
 
 /* The shell opens through an iris once the renderer is ready; until then it stays closed behind the stage's status line. */
 export const OpensThroughAnIris = meta.story({
+  globals: { motion: 'on' },
   beforeEach: install(() => productTransport()),
   play: async ({ canvasElement }) => {
     const { shell, document } = await tablePage(canvasElement);
@@ -101,5 +103,23 @@ export const ReleasesItsRendererOnRemount = meta.story({
     session.transport.deliver({ type: 'admission', status: 'denied' });
     await waitFor(() => expect(first.canvas.isConnected).toBe(false), { timeout: 30_000 });
     await waitFor(() => expect(first.context.isContextLost()).toBe(true), { timeout: 5000 });
+  },
+});
+
+/* The frame a table route shows while a view is still on its way: the status line on the dark ground, the pool of light breathing behind it. */
+export const Connecting = meta.story({
+  globals: { motion: 'on' },
+  beforeEach: install(() => productTransport('seat-2', initialSnapshot(), { holdView: true })),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const status = await page.findByText('Connecting to the hosted table...', {}, { timeout: 30_000 });
+    /* The status line eases in from transparent through a keyframe animation, so the wait finishes it and reads the settled style instead of waiting on drawn frames (https://github.com/ndelangen/dunezone/issues/1413). */
+    await waitFor(() => expect(finishTransitions(status)).toBeVisible());
+    const frame = status.closest('[data-connection]');
+    await expect(frame).toHaveAttribute('data-connection', 'connecting');
+    await expect(page.getByRole('link', { name: 'Back to lobby' })).toBeVisible();
+    const view = canvasElement.ownerDocument.defaultView!;
+    await expect(view.getComputedStyle(frame!, '::before').animationName).toMatch(/breathe/);
+    await expect(canvasElement.ownerDocument.querySelector('.dune-play-shell')).toBeNull();
   },
 });

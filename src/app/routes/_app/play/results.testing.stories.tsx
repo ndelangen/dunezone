@@ -224,6 +224,7 @@ export const Finished = meta.story({
 
 /* A result declared just now: the allied winners' slots fire their foil across the table. */
 export const Celebration = meta.story({
+  globals: { motion: 'on' },
   beforeEach: install(() => productTransport('seat-2', finishedSnapshot('seat-2', STORYBOOK_NOW))),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -238,6 +239,7 @@ export const Celebration = meta.story({
 
 /* The game menu stops the stream and clears the table for this viewer, then has nothing left to clear. */
 export const ClearingCelebration = meta.story({
+  globals: { motion: 'on' },
   beforeEach: install(() => productTransport('seat-2', finishedSnapshot('seat-2', STORYBOOK_NOW))),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
