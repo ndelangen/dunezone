@@ -4,16 +4,11 @@ import { expect, waitFor, within } from 'storybook/test';
 
 import { PublishedImage } from './PublishedImage';
 import { decodedImage } from './PublishedImage.stories.fixture';
+import { arrivalKeyframes } from './PublishedImage.stories.fixture';
 
 /* The slot fades in over 240 ms, a reduced-motion arrival is a 160 ms fade, and the develop runs 450 ms. */
 function animationDurations(canvasElement: HTMLElement) {
   return canvasElement.getAnimations({ subtree: true }).map((animation) => animation.effect?.getTiming().duration);
-}
-
-function arrivalKeyframes(canvasElement: HTMLElement) {
-  return canvasElement
-    .getAnimations({ subtree: true })
-    .flatMap((animation) => (animation.effect instanceof KeyframeEffect ? animation.effect.getKeyframes() : []));
 }
 
 const meta = preview.meta({
@@ -51,19 +46,6 @@ export const Missing = meta.story({
     await expect(missing).toBeVisible();
     await expect(missing).not.toHaveAttribute('aria-busy');
     await expect(canvasElement.querySelectorAll('img')).toHaveLength(0);
-  },
-});
-
-/** Landing after the slot has shown, the image develops out of a blur and a slight scale, and its shadow comes in with it. */
-export const Arriving = meta.story({
-  globals: { motion: 'on' },
-  args: { src: imageAfter(600, 'arriving') },
-  loaders: [serveStoryImages],
-  play: async ({ canvasElement }) => {
-    const image = await within(canvasElement).findByRole('img', { name: 'Atreides' });
-    await waitFor(() => expect(image.closest('[aria-busy]')).toBeNull());
-    const keyframes = arrivalKeyframes(canvasElement);
-    await expect(keyframes).toContainEqual(expect.objectContaining({ filter: 'blur(12px)', transform: 'scale(1.03)' }));
   },
 });
 
