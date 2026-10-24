@@ -4,9 +4,11 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 
+import { forgetRemembered } from '../play/controlsExperiments/ControlsExperiments';
+import { ControlsEpochContext, ControlsExperimentContext } from '../play/controlsExperiments/experiment';
 import { GameRuntimeContext } from '../play/multiplayer/gameRuntime';
 import HostedTable from '../play/multiplayer/HostedTable';
-import type { TutorialChapter } from './chapters';
+import type { PlaytestChapter, TutorialChapter } from './chapters';
 import type { ChapterScript } from './chapterScripts/chapterScript';
 import setup from './setup/setup.json';
 import { startAt, withOrigin } from './setup/tutorialSetup';
@@ -84,12 +86,16 @@ export default function ChapterPlay({
   nextLink,
   exit,
 }: Readonly<{
-  chapter: TutorialChapter;
+  chapter: TutorialChapter | PlaytestChapter;
   script: ChapterScript;
   chaptersLink: (props: object) => ReactNode;
   nextLink?: ((props: object) => ReactNode) | undefined;
   exit: ReactNode;
 }>) {
+  /* A play-test starts from a clean screen, with nothing pinned or resized by an earlier run. */
+  useState(() => script.controls && forgetRemembered());
+  /* Reset starts the controls afresh as well, so a pinned window from the last run cannot do a task for the player. */
+  const [controlsEpoch, setControlsEpoch] = useState(0);
   const { runtime, control } = useTutorialTable(setup as unknown as TutorialSetup, script);
   const [tasks] = useState(() => script.tasks(control.snapshot));
   return (
@@ -100,6 +106,10 @@ export default function ChapterPlay({
       learned={script.learned}
       onReset={() => {
         control.reset();
+        if (script.controls) {
+          forgetRemembered();
+          setControlsEpoch((epoch) => epoch + 1);
+        }
         document.querySelector<HTMLButtonElement>('[aria-label^="Focus on map"]')?.click();
       }}
       chaptersLink={chaptersLink}
@@ -111,11 +121,15 @@ export default function ChapterPlay({
         </PageLayout.Header>
         <PageLayout.Content width="viewport">
           <GameRuntimeContext value={runtime}>
-            <HostedTable
-              gameId="tutorial"
-              exitControl={exit}
-              identity={{ rulesetName: 'Dreamrules', address: 'tutorial', page: `/tutorial/${chapter.slug}` }}
-            />
+            <ControlsExperimentContext value={script.controls ?? null}>
+              <ControlsEpochContext value={controlsEpoch}>
+                <HostedTable
+                  gameId="tutorial"
+                  exitControl={exit}
+                  identity={{ rulesetName: 'Dreamrules', address: 'tutorial', page: `/tutorial/${chapter.slug}` }}
+                />
+              </ControlsEpochContext>
+            </ControlsExperimentContext>
           </GameRuntimeContext>
         </PageLayout.Content>
       </PageLayout>
