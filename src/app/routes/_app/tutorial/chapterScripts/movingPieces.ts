@@ -168,7 +168,8 @@ function deckTasks(snapshot: () => GameSnapshot): GuideTask[] {
       id: 'reorder',
       task: 'Move a card in the deck',
       detail: 'Drag a card along the row to a new place, or move it with the arrow keys. The deck keeps the new order.',
-      anchor: { kind: 'page', element: element('[role="dialog"][aria-label^="Peeking at"] ol') },
+      /* The arrow stops at the peek's edge, so its wedge never lies over the peek's own heading. */
+      anchor: { kind: 'page', element: element('[role="dialog"][aria-label^="Peeking at"]') },
       ...movedInPeek(),
     }),
   ];

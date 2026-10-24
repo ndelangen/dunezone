@@ -87,17 +87,22 @@ const cameraDistance = ({ camera }: GuideView) => {
 };
 
 /*
- * Scrolling counts only the player's own turns of the wheel over the table, in one direction, measured from where the camera was at their first turn,
- * so the camera still gliding into its opening view never does the task for them. In is closer by a sixth or more, out is further by as much.
+ * Scrolling counts only the player's own turns of the wheel over the table, measured from the camera's furthest point the other way
+ * since their first turn, so the camera still gliding into its opening view never does the task for them, and a camera already
+ * as far as it goes can be turned back and then the asked way. In is closer by a sixth or more, out is further by as much.
  */
 export const scrolled = (direction: 'in' | 'out') => ({
   begin: (view: GuideView) => {
     const watch = { scrolled: 0, from: null as number | null, stop: new AbortController() };
+    const furthest = direction === 'in' ? Math.max : Math.min;
     const scroll = (event: WheelEvent) => {
+      if (!(event.target instanceof HTMLCanvasElement)) {
+        return;
+      }
+      watch.from = furthest(watch.from ?? cameraDistance(view), cameraDistance(view));
       /* Counted in pixels as the camera counts it, whether the browser reports the turn in pixels, lines or pages. */
       const pixels = wheelPixels(event.deltaY, event.deltaMode) * (direction === 'in' ? 1 : -1);
-      if (event.target instanceof HTMLCanvasElement && pixels > 0) {
-        watch.from ??= cameraDistance(view);
+      if (pixels > 0) {
         watch.scrolled += pixels;
       }
     };
