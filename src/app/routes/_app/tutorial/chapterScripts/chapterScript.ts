@@ -9,4 +9,6 @@ export type ChapterScript = Readonly<{
   checkpoint: TutorialCheckpoint;
   /** The chapter's tasks, in order, reading the table as the learner sees it. */
   tasks: (snapshot: () => GameSnapshot) => GuideTask[];
+  /** What the learner can do once the chapter is done, one short line each, listed on its end screen. */
+  learned: readonly string[];
 }>;

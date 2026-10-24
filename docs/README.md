@@ -288,7 +288,7 @@ still fail it. No branch automatically accepts changes. Chromatic runs separatel
 required `ci_ok` check, and its visual review checks report through the GitHub integration.
 Fork pull requests do not receive this repository's token and get no Chromatic build.
 
-Stories come in two kinds. A presentation story shows a state, and Chromatic captures it. A testing
+Stories come in two kinds ([ADR-0004](adr/0004-visual-stories-and-testing-stories.md)). A presentation story shows a UI capability, and Chromatic captures it once. A testing
 story drives behaviour: it clicks, types or delivers, or its play runs for seconds. Its file builds its
 meta from `testingPreview` (exported by `.storybook/preview.tsx`) instead of the default preview. That
 preview turns Chromatic snapshots off for the whole file. Its plays still run in

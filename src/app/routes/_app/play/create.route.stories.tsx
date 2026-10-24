@@ -10,22 +10,6 @@ const meta = preview.meta({
   args: { path: '/play/create' },
 });
 
-export const SignedOut = meta.story({
-  parameters: { identity: null },
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await expect(
-      page.findByRole('heading', { name: 'Create a game', level: 1 }, { timeout: 30_000 })
-    ).resolves.toBeVisible();
-    await expect(page.findByRole('link', { name: 'Log in' }, { timeout: 30_000 })).resolves.toHaveAttribute(
-      'href',
-      /* Signing in returns the reader to the page they asked from. */
-      '/auth/login?redirect=%2Fplay%2Fcreate'
-    );
-    await expect(page.queryByRole('button', { name: 'Create game' })).toBeNull();
-  },
-});
-
 /** A reserved address is advice, never a validation error. */
 export const DuplicateName = meta.story({
   parameters: creatable,

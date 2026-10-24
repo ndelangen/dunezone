@@ -1,8 +1,16 @@
-import preview from '@sb/preview';
+import { testingPreview } from '@sb/preview';
 import type { ComponentProps } from 'react';
 import { expect, within } from 'storybook/test';
 
 import { Token } from '../token/Token';
+
+const tokenBackground = {
+  image: '/image/texture/021.jpg',
+  colors: ['#253b3b', '#253b3b'],
+  invert: false,
+  definition: 0,
+  influence: 0,
+} satisfies ComponentProps<typeof Token>['background'];
 
 type Logo = ComponentProps<typeof Token>['logo'];
 
@@ -99,15 +107,8 @@ const emblems = {
   },
 } as const satisfies Record<string, { name: string; logo: Logo; detail: string }>;
 
-const tokenBackground = {
-  image: '/image/texture/021.jpg',
-  colors: ['#253b3b', '#253b3b'],
-  invert: false,
-  definition: 0,
-  influence: 0,
-} satisfies ComponentProps<typeof Token>['background'];
-
-const meta = preview.meta({
+const meta = testingPreview.meta({
+  title: 'Logo',
   component: Token,
   args: { background: tokenBackground },
   globals: { viewport: { value: 'disc' } },

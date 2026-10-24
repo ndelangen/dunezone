@@ -3,27 +3,12 @@ import { standardStormCard } from '@shared/assets/standardStormDeck';
 import { resolveAsset } from '@shared/media/resolveAsset';
 import { expect, within } from 'storybook/test';
 
-import { CardGallery, GalleryCard } from './CardGallery.stories.fixture';
 import { StormCard } from './Storm';
 
 const meta = preview.meta({
   component: StormCard,
   globals: { viewport: { value: 'card' } },
   args: standardStormCard(1),
-});
-/** The six stock faces of the shipped deck in one view, singular and plural sector text included. */
-export const StandardStormDeck = meta.story({
-  globals: { viewport: { value: undefined } },
-  parameters: { layout: 'fullscreen' },
-  render: () => (
-    <CardGallery>
-      {[1, 2, 3, 4, 5, 6].map((sectors) => (
-        <GalleryCard key={sectors} label={`${sectors} sector storm card`}>
-          <StormCard {...standardStormCard(sectors)} />
-        </GalleryCard>
-      ))}
-    </CardGallery>
-  ),
 });
 
 /* Saved backgrounds from the former editor cannot change the fixed Storm head or symbol. */
