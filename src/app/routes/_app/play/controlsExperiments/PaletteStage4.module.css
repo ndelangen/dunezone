@@ -339,3 +339,40 @@
 .resizeEdge:active::after {
   background: var(--sand);
 }
+
+/* Running into an overlay: the top edge knocks back down and settles, never further up. */
+.slot[data-bounce="0"] {
+  animation: bounce 420ms ease-out;
+}
+
+.slot[data-bounce="1"] {
+  animation: bounce2 420ms ease-out;
+}
+
+@keyframes bounce {
+  25% {
+    translate: 0 7px;
+  }
+
+  55% {
+    translate: 0 0;
+  }
+
+  75% {
+    translate: 0 3px;
+  }
+}
+
+@keyframes bounce2 {
+  25% {
+    translate: 0 7px;
+  }
+
+  55% {
+    translate: 0 0;
+  }
+
+  75% {
+    translate: 0 3px;
+  }
+}

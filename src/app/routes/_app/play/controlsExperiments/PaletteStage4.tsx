@@ -76,6 +76,36 @@ type Slots = Readonly<Record<Side, Opened | null>>;
 
 type Suggestion = Readonly<{ key: string; label: string; hint: string; icon: ReactNode; run: () => void }>;
 
+const MIN_SLOT_HEIGHT = 120;
+/* Breathing room kept between a slot's top edge and the overlay above it. */
+const OVERLAY_GAP = 12;
+/* The overlays a slot must never cover: the header chips (phase, alliances, next phase) and the camera dial. */
+const OVERLAYS = '.seated-header, .seated-column-camera, [data-overlay]';
+
+/* How tall a slot may be: from its bottom up to the lowest visible overlay part that shares its columns. */
+function slotLimit(root: HTMLElement, slot: HTMLElement) {
+  const box = slot.getBoundingClientRect();
+  let ceiling = root.getBoundingClientRect().top;
+  for (const overlay of root.querySelectorAll<HTMLElement>(OVERLAYS)) {
+    for (const part of [overlay, ...overlay.querySelectorAll<HTMLElement>('*')]) {
+      const rect = part.getBoundingClientRect();
+      /* Full-width containers are layout, not something drawn; the visible chips inside them count. */
+      if (rect.width === 0 || rect.height === 0 || rect.width > root.clientWidth * 0.6) {
+        continue;
+      }
+      if (rect.right <= box.left || rect.left >= box.right || rect.top >= box.bottom - MIN_SLOT_HEIGHT) {
+        continue;
+      }
+      const style = getComputedStyle(part);
+      if (style.visibility === 'hidden' || style.opacity === '0') {
+        continue;
+      }
+      ceiling = Math.max(ceiling, rect.bottom);
+    }
+  }
+  return Math.max(MIN_SLOT_HEIGHT, Math.floor(box.bottom - ceiling - OVERLAY_GAP));
+}
+
 export function PaletteStage4(props: ExperimentProps) {
   const { nodes, header, camera, inert } = props;
   const players = useContext(ExperimentPlayersContext);
@@ -90,14 +120,66 @@ export function PaletteStage4(props: ExperimentProps) {
   const [flash, setFlash] = useState<{ side: Side; at: number } | null>(null);
   /* Each slot's height in pixels, remembered once its top edge is dragged; null keeps the default. */
   const [heights, setHeights] = useRemembered<Record<Side, number | null>>('palette-4-heights', { left: null, right: null });
-  /* Dragging a slot's top edge: up makes it taller, down shorter, between a title row and the header. */
+  /* The tallest each slot may grow before its top edge meets an overlay above it; null until measured. */
+  const [limits, setLimits] = useState<Record<Side, number | null>>({ left: null, right: null });
+  /* Bumps each time a drag runs into the limit, replaying the bounce. */
+  const [bounce, setBounce] = useState<{ side: Side; at: number } | null>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const measure = () => {
+    const root = rootRef.current;
+    if (!root) {
+      return;
+    }
+    const next: Record<Side, number | null> = { left: null, right: null };
+    for (const side of ['left', 'right'] as const) {
+      const slot = root.querySelector<HTMLElement>(`.${styles.slot}[data-side="${side}"]`);
+      if (slot) {
+        next[side] = slotLimit(root, slot);
+      }
+    }
+    setLimits((current) => (current.left === next.left && current.right === next.right ? current : next));
+  };
+  useEffect(() => {
+    measure();
+    const root = rootRef.current;
+    if (!root) {
+      return;
+    }
+    /* Chips come and go (an alliance forms, the phase changes), and the window resizes. */
+    const observer = new ResizeObserver(measure);
+    observer.observe(root);
+    for (const overlay of root.querySelectorAll(OVERLAYS)) {
+      observer.observe(overlay);
+    }
+    const mutations = new MutationObserver(measure);
+    mutations.observe(root, { childList: true, subtree: true });
+    return () => {
+      observer.disconnect();
+      mutations.disconnect();
+    };
+  }, [slots.left?.key, slots.right?.key]);
+  const heightOf = (side: Side) => {
+    const wanted = heights[side];
+    const limit = limits[side];
+    if (wanted === null) {
+      return limit === null ? undefined : { maxHeight: limit };
+    }
+    return { height: limit === null ? wanted : Math.min(wanted, limit) };
+  };
+  /* Dragging a slot's top edge: up makes it taller, down shorter. It stops short of any overlay above it and bounces there. */
   const resize = (side: Side) => (event: ReactPointerEvent<HTMLElement>) => {
     event.preventDefault();
     const slot = event.currentTarget.parentElement!;
     const start = { y: event.clientY, height: slot.getBoundingClientRect().height };
-    const room = slot.parentElement!.getBoundingClientRect().height;
+    const limit = slotLimit(rootRef.current!, slot);
+    let stopped = false;
     const move = (moveEvent: PointerEvent) => {
-      const height = Math.round(Math.max(120, Math.min(room - 110, start.height + start.y - moveEvent.clientY)));
+      const wanted = start.height + start.y - moveEvent.clientY;
+      const height = Math.round(Math.max(MIN_SLOT_HEIGHT, Math.min(limit, wanted)));
+      if (wanted > limit && !stopped) {
+        setBounce((current) => ({ side, at: (current?.at ?? 0) + 1 }));
+      }
+      stopped = wanted > limit;
       setHeights((current) => ({ ...current, [side]: height }));
     };
     const up = () => {
@@ -384,7 +466,8 @@ export function PaletteStage4(props: ExperimentProps) {
         aria-label={entry.label}
         inert={inert}
         data-hides-cursor
-        style={where !== 'centre' && heights[where] ? { height: heights[where] } : undefined}
+        data-bounce={bounce?.side === where ? bounce.at % 2 : undefined}
+        style={where === 'centre' ? undefined : heightOf(where)}
       >
         {where !== 'centre' && (
           <span
@@ -440,7 +523,7 @@ export function PaletteStage4(props: ExperimentProps) {
   );
 
   return (
-    <div className={base.root}>
+    <div className={base.root} ref={rootRef}>
       <Scene node={nodes.scene} />
       {header}
       <Camera camera={camera} inert={inert} style={{ top: 'calc(var(--play-header-height) + 0.5rem)', bottom: 'auto' }} />
