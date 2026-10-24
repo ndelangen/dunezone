@@ -160,6 +160,7 @@ export function TutorialGuide({
   number,
   title,
   tasks,
+  firstTask = 0,
   learned,
   onReset,
   chaptersLink,
@@ -169,6 +170,8 @@ export function TutorialGuide({
   number: number;
   title: string;
   tasks: readonly GuideTask[];
+  /** The task the guide opens at, counted from 0; Reset still starts from the first. */
+  firstTask?: number;
   /** What the chapter taught, listed when it ends. */
   learned: readonly string[];
   onReset: () => void;
@@ -178,7 +181,7 @@ export function TutorialGuide({
   nextLink?: ((props: object) => ReactNode) | undefined;
   children: ReactNode;
 }>) {
-  const [current, setCurrent] = useState(0);
+  const [current, setCurrent] = useState(() => Math.min(firstTask, tasks.length - 1));
   const [run, setRun] = useState(0);
   /* Which task, in which run, the player has just done; its tick shows until the next task starts. */
   const [doneKey, setDoneKey] = useState<string | null>(null);

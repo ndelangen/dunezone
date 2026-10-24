@@ -20,3 +20,10 @@ export const Chapter = meta.story({
   parameters: chapterParameters,
   play: playChapter('Chapter 7: Moving pieces', 'Split three troops off'),
 });
+
+/** The chapter opened at its fourth task with `?step=4`, so the later tasks can be tried without carrying a stack first. */
+export const FromTurning = meta.story({
+  args: { path: '/tutorial/moving-pieces?step=4' },
+  parameters: chapterParameters,
+  play: playChapter('Chapter 7: Moving pieces', 'Turn your stack'),
+});

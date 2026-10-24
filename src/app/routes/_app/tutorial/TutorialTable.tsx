@@ -80,12 +80,15 @@ function useTutorialTable(setup: TutorialSetup, chapter: ChapterScript) {
 export default function ChapterPlay({
   chapter,
   script,
+  firstTask = 0,
   chaptersLink,
   nextLink,
   exit,
 }: Readonly<{
   chapter: TutorialChapter;
   script: ChapterScript;
+  /** The task the chapter opens at, counted from 0. */
+  firstTask?: number;
   chaptersLink: (props: object) => ReactNode;
   nextLink?: ((props: object) => ReactNode) | undefined;
   exit: ReactNode;
@@ -97,6 +100,7 @@ export default function ChapterPlay({
       number={chapter.number}
       title={chapter.title}
       tasks={tasks}
+      firstTask={firstTask}
       learned={script.learned}
       onReset={() => {
         control.reset();
