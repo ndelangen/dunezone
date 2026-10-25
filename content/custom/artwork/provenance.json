@@ -1,0 +1,14 @@
+{
+  "assets": {
+    "/vector/troop/armoured-rifleman.svg": {
+      "source": "armoured-rifleman/reference.webp",
+      "bitmapMaster": "armoured-rifleman/bitmap-3072.png",
+      "sourceDescription": "User-supplied scan of an armored soldier holding a rifle, with one knee raised and the other boot kicked back. The source publication was not identified.",
+      "preparation": "The built-in imagegen tool adapted the supplied pose into a solid monochrome bitmap, using the existing Atreides troop silhouette as the style reference. The approved revision fills the head, simplifies the rifle and armor, and gives the raised leg a broad shin and ankle. ImageMagick enlarged the bitmap to 2304 by 3072 pixels and thresholded it at 50 percent. Potrace 1.16 traced it with turdsize 4, alphamax 0.8 and opttolerance 0.12. The svg-authoring pipeline cropped the path bounds, normalized the result to a 100 by 100 viewBox, removed fixed paint and assigned the root ID and authoring stamp.",
+      "approval": {
+        "date": "2026-10-25",
+        "scope": "The user approved the bitmap-derived troop silhouette after reviewing it beside the Atreides troop vector and at 32, 48 and 72 pixels."
+      }
+    }
+  }
+}

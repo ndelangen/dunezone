@@ -5267,6 +5267,12 @@
     "subjects": ["people"],
     "sourceHash": "992bdf056b5051d7e0e9be03af64408214f67c8d5b7e9ba9af99e381780975cd"
   },
+  "/vector/troop/armoured-rifleman.svg": {
+    "description": "Armored rifleman advancing with one knee raised and the other boot kicked back.",
+    "tags": ["silhouette", "armored", "armoured", "rifleman", "rifle", "soldier", "running", "vector"],
+    "subjects": ["people", "weapons"],
+    "sourceHash": "5ca7de4dc55efd7e77950520ea2f84b5a7c91aba60ff9f993fb205b925a1309a"
+  },
   "/vector/troop/atreides.svg": {
     "description": "Soldier aiming a rifle upward.",
     "tags": ["silhouette", "rifle", "soldier", "vector"],
