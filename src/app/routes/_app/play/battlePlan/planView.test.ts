@@ -93,8 +93,9 @@ test('a spice amount no troops add up to moves on to one that does, the way it w
   };
   expect(snapSpice(plan, 6, 3)).toBe(4);
   expect(snapSpice(plan, 6, 1)).toBe(0);
-  /* Nothing past what the troops can use: it stays where it was. */
-  expect(snapSpice(plan, 6, 5)).toBe(2);
+  /* Past what the troops can use, it stops at the most they can. */
+  expect(snapSpice(plan, 6, 5)).toBe(4);
+  expect(snapSpice({ ...plan, troops: [] }, 6, 3)).toBe(0);
 });
 
 test('free support that still changes strength keeps its Custom choice, and a Custom plan never loses it', () => {

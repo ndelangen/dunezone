@@ -410,6 +410,8 @@ export const NumericDraft = meta.story({
 export const SpiceBound = meta.story({
   beforeEach: battleSetup('preparing', 'seat-2', (snapshot) => {
     snapshot.bank!.balance = 2;
+    /* Five troops could take five spice, so the reserve is what bounds it. */
+    snapshot.battlePlan!.troops = [{ faceId: 'troop-0-front', undialed: 5, dialed: 0 }];
   }),
   play: async ({ canvasElement }) => {
     const page = await expectPlanBound(canvasElement, 'Spice', { spice: 2 });

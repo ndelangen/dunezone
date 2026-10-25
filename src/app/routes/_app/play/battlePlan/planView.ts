@@ -141,12 +141,11 @@ export function fullSupport(plan: BattlePlan, balance: number) {
   return supportableSpice(plan, balance).findLast((amount) => amount <= wanted) ?? 0;
 }
 
-/** A spice amount moved to one whole troops can use: onward in the direction it moved, or back to where it was. */
+/** A spice amount moved to one whole troops can use: onward in the direction it moved, or the most they can use when it went past that. */
 export function snapSpice(plan: BattlePlan, balance: number, wanted: number) {
   const amounts = supportableSpice(plan, balance);
-  const snapped =
-    wanted > plan.spice ? amounts.find((amount) => amount >= wanted) : amounts.findLast((amount) => amount <= wanted);
-  return snapped ?? plan.spice;
+  const onward = wanted > plan.spice ? amounts.find((amount) => amount >= wanted) : undefined;
+  return onward ?? amounts.findLast((amount) => amount <= wanted) ?? 0;
 }
 
 /** The most supported troops a face can have in Custom mode, given the spice the other faces already spend. */
