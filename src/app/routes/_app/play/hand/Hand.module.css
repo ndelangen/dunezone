@@ -82,7 +82,7 @@
   opacity: 0;
 }
 
-/* The spice reserve: the balance, and the amount to withdraw between − and +. */
+/* The spice reserve: the balance, and the kit stepper with the amount to withdraw. */
 .spice {
   display: flex;
   flex-wrap: wrap;
@@ -136,15 +136,6 @@
     opacity: 0;
     translate: 0 -26px;
   }
-}
-
-.amount {
-  width: 3.2rem;
-}
-
-.amount input {
-  text-align: center;
-  font-variant-numeric: tabular-nums;
 }
 
 /* Quiet where the visitor asked for less motion: by the site's own setting, or by the OS unless the site welcomes motion. */

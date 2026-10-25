@@ -1,0 +1,138 @@
+/* The kit stepper: − and + either side of a typed count, popping as it changes and knocking at its limits. */
+
+.stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  height: 2rem;
+  padding: 0 0.15rem;
+  border: 1px solid var(--edge);
+  border-radius: 999px;
+  background: rgb(from var(--ui-recess) r g b / 0.8);
+}
+
+.stepper[data-disabled] {
+  opacity: 0.55;
+}
+
+.stepperSmall {
+  height: 1.7rem;
+}
+
+.stepButton {
+  display: grid;
+  place-items: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  color: var(--ink-dim);
+  transition:
+    background 120ms,
+    color 120ms,
+    scale 120ms;
+}
+
+.stepperSmall .stepButton {
+  width: 1.35rem;
+  height: 1.35rem;
+}
+
+.stepButton:hover:not(:disabled) {
+  background: var(--ui-hover);
+  color: var(--ink);
+}
+
+.stepButton:active:not(:disabled) {
+  scale: 0.88;
+}
+
+.stepValue {
+  width: 2.4ch;
+  min-width: 2.4ch;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: none;
+  color: var(--ink);
+  font: 700 0.95rem/1 var(--font-sans);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  field-sizing: content;
+}
+
+.stepValue:focus {
+  color: var(--sand);
+}
+
+.stepValue[data-bump="0"] {
+  animation: pop 220ms ease-out;
+}
+
+.stepValue[data-bump="1"] {
+  animation: pop2 220ms ease-out;
+}
+
+.stepSuffix {
+  color: var(--ink-dim);
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+/* At a limit the stepper knocks sideways and settles: the value cannot go further. */
+.stepper[data-knock="0"] {
+  animation: knock 300ms ease-out;
+}
+
+.stepper[data-knock="1"] {
+  animation: knock2 300ms ease-out;
+}
+
+@keyframes pop {
+  40% {
+    scale: 1.25;
+  }
+}
+
+@keyframes pop2 {
+  40% {
+    scale: 1.25;
+  }
+}
+
+@keyframes knock {
+  25% {
+    translate: 3px 0;
+  }
+
+  60% {
+    translate: -2px 0;
+  }
+}
+
+@keyframes knock2 {
+  25% {
+    translate: 3px 0;
+  }
+
+  60% {
+    translate: -2px 0;
+  }
+}
+
+:global(html[data-motion="reduce"]) :is(.stepper, .stepValue) {
+  animation: none !important;
+}
+
+:global(html[data-motion="reduce"]) .stepButton {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :global(html:not([data-motion="ok"])) :is(.stepper, .stepValue) {
+    animation: none !important;
+  }
+
+  :global(html:not([data-motion="ok"])) .stepButton {
+    transition: none;
+  }
+}
