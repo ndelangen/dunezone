@@ -1,0 +1,21 @@
+/* A piece of a sortable row: it can be grabbed, and while it is lifted its place stays as a faint outline of it. */
+.tile {
+  touch-action: none;
+}
+
+.tile[data-dragging] {
+  opacity: 0.3;
+}
+
+/* The lifted piece, under the pointer, raised above the row by its shadow. */
+.lifted {
+  cursor: grabbing;
+  pointer-events: none;
+  filter: drop-shadow(0 8px 10px rgb(from var(--color-shadow) r g b / 0.6));
+  transition: opacity 120ms ease-out;
+}
+
+/* Carried off the row, it fades a little, as a sign that it will leave the row where it is let go. */
+.away {
+  opacity: 0.8;
+}

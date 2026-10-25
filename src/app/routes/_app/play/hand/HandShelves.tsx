@@ -2,18 +2,19 @@ import { Menu, Text } from '@mantine/core';
 import { useElementSize, useMergedRef } from '@mantine/hooks';
 import type { TablePiece } from '@shared/play/model';
 import { Section } from '@ui/block/Section';
+import { SortableRow } from '@ui/control/SortableRow';
 import { ArrowUpFromLine, EyeOff } from 'lucide-react';
 import { useRef, useState } from 'react';
 
 import { HandPieceCloseUp } from '../../../../widgets/tabletop/PieceCloseUp';
 import { PieceImage, pieceName, useHandCloseUp } from '../multiplayer/HandPiece';
+import { dropOnTable } from '../multiplayer/dropOnTable';
 import { HandPieceMenu, handMenuAnchor } from '../multiplayer/HiddenZone';
 import type { HandMenuAnchor } from '../multiplayer/HiddenZone';
 import { HAND_HELP } from '../multiplayer/panelGuidance';
 import styles from './Hand.module.css';
 import { useHandActions } from './useHandActions';
 import type { HandActions, HandProps } from './useHandActions';
-import { useShelfReorder } from './useShelfReorder';
 
 /* What a right-click on a piece offers: play it in front of you, or set it on your side-table. */
 function pieceActions(actions: HandActions, piece: TablePiece, viewWidth: number) {
@@ -50,7 +51,6 @@ export function HandShelves(props: HandProps) {
   const ref = useMergedRef(measure, area);
   const [menu, setMenu] = useState<HandMenuAnchor | null>(null);
   const closeUp = useHandCloseUp(actions.inHand);
-  const shelfOrder = useShelfReorder(actions.groups, actions.reorder, actions.enabled);
   const menuPiece = menu ? actions.inHand.find((piece) => piece.id === menu.pieceId) : undefined;
   const tile = (piece: TablePiece, tileWidth: number) => {
     return (
@@ -59,14 +59,10 @@ export function HandShelves(props: HandProps) {
         className={styles.tile}
         data-leaving={actions.leaving(piece)}
         data-round={piece.kind !== 'card' || undefined}
-        data-gap={shelfOrder.gap(piece)}
-        data-dragging={shelfOrder.dragging(piece) || undefined}
-        {...shelfOrder.handlers(piece)}
       >
         <button
           type="button"
           className={styles.face}
-          draggable={actions.enabled}
           aria-label={`Drag ${pieceName(piece)} from hand`}
           onContextMenu={(event) => setMenu(handMenuAnchor(event, piece.id))}
           {...closeUp.hover(piece)}
@@ -88,11 +84,15 @@ export function HandShelves(props: HandProps) {
             <Text size="xs" fw={700} tt="uppercase" className={styles.caption}>
               {group.label} <span className={styles.count}>{group.pieces.length}</span>
             </Text>
-            <div className={styles.row}>
-              {group.pieces.map((piece) =>
-                tile(piece, group.key === 'leaders' ? TILE_WIDTH.leaders : TILE_WIDTH.cards)
-              )}
-            </div>
+            <SortableRow
+              items={group.pieces}
+              disabled={!actions.enabled}
+              className={styles.row}
+              onMove={actions.reorder}
+              onDropOutside={(piece, point) => dropOnTable(piece.id, point.x, point.y)}
+            >
+              {(piece) => tile(piece, group.key === 'leaders' ? TILE_WIDTH.leaders : TILE_WIDTH.cards)}
+            </SortableRow>
           </section>
         ))}
         {!actions.groups.length && (

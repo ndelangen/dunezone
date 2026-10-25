@@ -157,6 +157,10 @@ describe('the hidden zone', () => {
     });
     send({ kind: 'hand-order', pieceId: LOOSE, before: LEADER });
     expect(room.snapshot.handOrders.atreides).toEqual([LOOSE, LEADER]);
+    /* Revealed, the plan's pieces are everyone's to take, so the order stops naming them. */
+    room.snapshot.battleState!.stage = 'revealed';
+    const projection = new RoomProjection('secret');
+    expect(projection.snapshot(room.snapshot, 'atreides').handOrder).toEqual([LEADER]);
   });
 
   test('refuses a piece that is not in the hand', () => {

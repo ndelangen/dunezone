@@ -35,6 +35,7 @@ import { PointerSessionContext, usePointerSession } from '../../../../widgets/ta
 import { TABLE_PLATE_BOUNDS } from '../../../../widgets/tabletop/tablePlateGeometry';
 import { DarkSchemeIsland } from '../DarkSchemeIsland';
 import { HandShelves } from '../hand/HandShelves';
+import { useHandOrder } from '../hand/useHandOrder';
 import { BattleBeacon } from './BattleBeacon';
 import styles from './BattleControls.module.css';
 import { battleCapsuleY, headerInset } from './battlePlacement';
@@ -366,8 +367,13 @@ function PlanFields({ client, table, plan, battle }: Props & { plan: BattlePlan;
   const update = (patch: Partial<BattlePlanInput>) => {
     client.editBattlePlan(patch);
   };
-  const pieces = [...(table.snapshot.hand ?? []), ...plan.pieces].filter(
-    (piece, index, all) => all.findIndex((candidate) => candidate.id === piece.id) === index
+  /* In the player's own hand order, as the Hand & spice window shows it. */
+  const { pieces } = useHandOrder(
+    client,
+    table,
+    [...(table.snapshot.hand ?? []), ...plan.pieces].filter(
+      (piece, index, all) => all.findIndex((candidate) => candidate.id === piece.id) === index
+    )
   );
   const preview = { ...plan, pieces };
   const availableSpice = bank.balance + plan.spice;

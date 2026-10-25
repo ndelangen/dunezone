@@ -3,7 +3,6 @@ import { hiddenZoneView, nextHiddenZoneSpot } from '@shared/play/hiddenZone';
 import type { TablePiece, Vector3Tuple } from '@shared/play/model';
 import { PLAYER_RING_RADIUS } from '@shared/play/tableSettings';
 import { useEffect, useRef, useState } from 'react';
-import type { DragEvent } from 'react';
 
 import { useMotionAllowed } from '@app/styles/motion';
 
@@ -142,12 +141,3 @@ export function useHandActions({ client, table, hand }: HandProps) {
 }
 
 export type HandActions = ReturnType<typeof useHandActions>;
-
-/** The native drag a piece starts, which the table's drop reads to play it face down where it lands. */
-export function dragFromHand(piece: TablePiece) {
-  return (event: DragEvent<HTMLElement>) => {
-    event.dataTransfer.setData('application/dune-hand', piece.id);
-    const target = event.currentTarget;
-    event.dataTransfer.setDragImage(target, target.offsetWidth / 2, target.offsetHeight / 2);
-  };
-}

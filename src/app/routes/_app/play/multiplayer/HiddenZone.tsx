@@ -19,6 +19,7 @@ import { createPortal } from 'react-dom';
 
 import type { TableSession, TableProjection } from '../../../../db/tabletop/TableSession';
 import { HandPieceCloseUp } from '../../../../widgets/tabletop/PieceCloseUp';
+import { dropOnTable } from './dropOnTable';
 import { PieceImage, pieceName, useHandCloseUp } from './HandPiece';
 import styles from './HiddenZone.module.css';
 import { HIDDEN_ZONE_HELP } from './panelGuidance';
@@ -152,20 +153,6 @@ function typing(target: EventTarget | null) {
     target instanceof HTMLElement &&
     (target.isContentEditable || target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement)
   );
-}
-
-/*
- * A carry let go over the table plays the piece there, through the same drop the hand's drags use,
- * so the table alone decides where on its plate the piece lands.
- */
-function dropOnTable(pieceId: string, clientX: number, clientY: number) {
-  const target = document.elementFromPoint(clientX, clientY);
-  if (!(target instanceof HTMLCanvasElement)) {
-    return;
-  }
-  const dataTransfer = new DataTransfer();
-  dataTransfer.setData('application/dune-hand', pieceId);
-  target.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, clientX, clientY, dataTransfer }));
 }
 
 /**

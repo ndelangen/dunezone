@@ -37,23 +37,36 @@ export const HandActions = meta.story({
   },
 });
 
-/* A native drag from one piece to another, as the browser sends it: the drag starts, passes over the target's first half, and drops. */
-function dragOnto(source: HTMLElement, target: HTMLElement) {
-  const dataTransfer = new DataTransfer();
-  const box = target.getBoundingClientRect();
-  const at = {
-    bubbles: true,
-    cancelable: true,
-    dataTransfer,
-    clientX: box.left + 2,
-    clientY: box.top + box.height / 2,
-  };
-  source.dispatchEvent(new DragEvent('dragstart', at));
-  return {
-    over: () => target.dispatchEvent(new DragEvent('dragover', at)),
-    drop: () => target.dispatchEvent(new DragEvent('drop', at)),
-    end: () => source.dispatchEvent(new DragEvent('dragend', at)),
-  };
+/* A mouse drag as the browser sends it: pressed on one piece, moved in small steps onto the first half of another, and let go there. */
+async function dragOnto(source: HTMLElement, target: HTMLElement) {
+  const from = source.getBoundingClientRect();
+  const to = target.getBoundingClientRect();
+  const start = { x: from.left + from.width / 2, y: from.top + from.height / 2 };
+  const end = { x: to.left + to.width / 4, y: to.top + to.height / 2 };
+  const pointer = (type: string, x: number, y: number, on: EventTarget) =>
+    on.dispatchEvent(
+      new PointerEvent(type, {
+        bubbles: true,
+        cancelable: true,
+        isPrimary: true,
+        pointerId: 1,
+        button: 0,
+        buttons: 1,
+        clientX: x,
+        clientY: y,
+      })
+    );
+  pointer('pointerdown', start.x, start.y, source);
+  for (let step = 1; step <= 12; step++) {
+    pointer(
+      'pointermove',
+      start.x + ((end.x - start.x) * step) / 12,
+      start.y + ((end.y - start.y) * step) / 12,
+      source.ownerDocument
+    );
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+  }
+  pointer('pointerup', end.x, end.y, source.ownerDocument);
 }
 
 const treacheryOrder = (page: ReturnType<typeof within>) =>
@@ -61,7 +74,7 @@ const treacheryOrder = (page: ReturnType<typeof within>) =>
     .getAllByRole('button')
     .map((button) => button.getAttribute('aria-label'));
 
-/** Dragging a card along its shelf opens a gap where it would land, and dropping it there puts the hand in that order. */
+/** Dragging a card along its shelf makes room where it would land, and letting go there puts the hand in that order. */
 export const ReorderByDrag = meta.story({
   beforeEach: at('Battle plan'),
   play: async ({ canvasElement }) => {
@@ -70,14 +83,7 @@ export const ReorderByDrag = meta.story({
     const crysknife = page.getByRole('button', { name: 'Drag Crysknife from hand' });
     const before = treacheryOrder(page);
     await expect(before.indexOf('Drag Shield from hand')).toBeGreaterThan(before.indexOf('Drag Crysknife from hand'));
-    const drag = dragOnto(shield, crysknife);
-    /* The browser keeps sending dragover while the pointer rests over the target. */
-    await waitFor(() => {
-      drag.over();
-      return expect(crysknife.parentElement).toHaveAttribute('data-gap', 'before');
-    });
-    drag.drop();
-    drag.end();
+    await dragOnto(shield, crysknife);
     const after = before.filter((label) => label !== 'Drag Shield from hand');
     after.splice(after.indexOf('Drag Crysknife from hand'), 0, 'Drag Shield from hand');
     await waitFor(() => expect(treacheryOrder(page)).toEqual(after));

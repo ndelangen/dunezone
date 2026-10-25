@@ -38,47 +38,7 @@
   position: relative;
   transition:
     transform 160ms ease-out,
-    opacity 160ms ease-out,
-    margin 140ms ease-out;
-}
-
-/* Dragged along its shelf, the piece dims where it was, and a gap with a sand bar opens where it would land. */
-.tile[data-dragging] {
-  opacity: 0.35;
-}
-
-.tile[data-gap="before"] {
-  margin-inline-start: 12px;
-}
-
-.tile[data-gap="after"] {
-  margin-inline-end: 12px;
-}
-
-.tile[data-gap]::after {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 3px;
-  border-radius: 2px;
-  background: var(--sand);
-  content: "";
-  animation: gap-open 140ms ease-out;
-}
-
-.tile[data-gap="before"]::after {
-  left: -12px;
-}
-
-.tile[data-gap="after"]::after {
-  right: -12px;
-}
-
-@keyframes gap-open {
-  from {
-    opacity: 0;
-    scale: 1 0.4;
-  }
+    opacity 160ms ease-out;
 }
 
 .face {
@@ -128,17 +88,9 @@
   transition: none;
 }
 
-:global(html[data-motion="reduce"]) .tile[data-gap]::after {
-  animation: none;
-}
-
 @media (prefers-reduced-motion: reduce) {
   :global(html:not([data-motion="ok"])) .tile,
   :global(html:not([data-motion="ok"])) .face {
     transition: none;
-  }
-
-  :global(html:not([data-motion="ok"])) .tile[data-gap]::after {
-    animation: none;
   }
 }
