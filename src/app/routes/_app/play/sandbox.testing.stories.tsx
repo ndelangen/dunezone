@@ -277,13 +277,13 @@ export const HiddenZone = meta.story({
     await expect(zoneLeader.getBoundingClientRect().left).toBeCloseTo(resting.left, 0);
 
     /* A move the table refuses puts the piece back where the table keeps it. */
-    const receive = table.receive;
+    const receive = table.receive.bind(table);
     table.receive = (message, seat) => {
       if (message.type === 'command' && message.action.kind === 'hand-zone') {
         table.deliver({ type: 'rejected', requestId: message.commandId, message: 'Refused for the story.' });
         return true;
       }
-      return receive.call(table, message, seat);
+      return receive(message, seat);
     };
     press('pointerdown', restX, restY);
     press('pointermove', restX + 40, restY);
