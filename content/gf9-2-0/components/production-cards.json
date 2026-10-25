@@ -106,13 +106,13 @@
   "family-atomics": {
     "assetId": "ns7dmx88vyj0g27enj6y7n6tdx8gttvk",
     "slug": "family-atomics-2",
-    "type": "card-treachery",
+    "type": "card-custom",
     "name": "Family Atomics",
-    "url": "https://dune.zone/assets/card-treachery/family-atomics-2",
+    "url": "https://dune.zone/assets/card-custom/family-atomics-2",
     "publication": {
       "captureStatus": null,
-      "lastPublishedAt": 1792769462435,
-      "publicationHref": "/published/cards/ns7dmx88vyj0g27enj6y7n6tdx8gttvk/card.jpg?v=0249b65a-92a1-4cf1-aaad-38f3de4ae176",
+      "lastPublishedAt": 1792959958385,
+      "publicationHref": "/published/custom-cards/ns7dmx88vyj0g27enj6y7n6tdx8gttvk/card.jpg?v=e4934165-e259-426b-a9a0-b1b9b26788f0",
       "status": "current"
     }
   },
@@ -132,13 +132,13 @@
   "solaris": {
     "assetId": "ns7fmbx80hnq2ejgj9c45a7mqd8gt64y",
     "slug": "solaris",
-    "type": "card-treachery",
+    "type": "card-custom",
     "name": "Solaris",
-    "url": "https://dune.zone/assets/card-treachery/solaris",
+    "url": "https://dune.zone/assets/card-custom/solaris",
     "publication": {
       "captureStatus": null,
-      "lastPublishedAt": 1792769484323,
-      "publicationHref": "/published/cards/ns7fmbx80hnq2ejgj9c45a7mqd8gt64y/card.jpg?v=2cfcf82a-e4f5-4fd5-961a-90847a26051a",
+      "lastPublishedAt": 1792959953903,
+      "publicationHref": "/published/custom-cards/ns7fmbx80hnq2ejgj9c45a7mqd8gt64y/card.jpg?v=b5f164de-7782-439f-92f0-2e4c306693e6",
       "status": "current"
     }
   },

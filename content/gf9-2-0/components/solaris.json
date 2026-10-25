@@ -1,17 +1,11 @@
 {
   "about": "GF9 second edition, 2026. Supplied Solaris wording and approved multicolour coins.",
-  "bodyLayout": "illustrated",
-  "decals": [
-    {
-      "id": "/vector/decal/solaris-multicolor.svg",
-      "muted": false,
-      "offset": [0, 0],
-      "outline": false,
-      "scale": 0.94
-    }
-  ],
+  "format": "decal-window",
   "head": {
-    "colors": ["#474620", "#27260C"],
+    "colors": [
+      "#474620",
+      "#27260C"
+    ],
     "definition": 1,
     "image": "/image/texture/082.jpg",
     "influence": 0.6,
@@ -26,16 +20,28 @@
         {
           "angle": 90,
           "stops": [
-            ["#9A9256", 0],
-            ["#EEECA6", 1]
+            [
+              "#9A9256",
+              0
+            ],
+            [
+              "#EEECA6",
+              1
+            ]
           ],
           "type": "linear"
         },
         {
           "angle": 120,
           "stops": [
-            ["#827E43", 0.3],
-            ["#DEDB91", 1]
+            [
+              "#827E43",
+              0.3
+            ],
+            [
+              "#DEDB91",
+              1
+            ]
           ],
           "type": "linear"
         }
@@ -50,7 +56,40 @@
     },
     "/vector/icon/hand.svg"
   ],
+  "layers": [
+    {
+      "behindFrame": true,
+      "id": "/vector/decal/solaris-multicolor.svg",
+      "kind": "decal",
+      "layerId": "00000000-0000-4000-8000-000000000001",
+      "muted": false,
+      "offset": [
+        0,
+        -161.5
+      ],
+      "opacity": 1,
+      "outline": false,
+      "rotation": 0,
+      "scale": 0.94
+    },
+    {
+      "align": "left",
+      "color": "#0b0503",
+      "content": "Choose one:\n\n- Purchase a Treachery card for yourself when it is your turn to bid on a card in a normal auction, but pay no spice for the card,\n\n- Receive Spacing Guild rates for a Force Shipment for any faction from reserves (even Fremen), paid to the Spice Bank, or\n\n- Pay for spice strength in battle from the Spice Bank.",
+      "font": "C_Candara",
+      "height": 499,
+      "kind": "text",
+      "layerId": "00000000-0000-4000-8000-000000000002",
+      "offset": [
+        -361,
+        72.5
+      ],
+      "opacity": 0.937,
+      "rotation": 0,
+      "size": 36,
+      "width": 734
+    }
+  ],
   "name": "Solaris",
-  "subName": "Action",
-  "text": "Choose one:\n\n- Purchase a Treachery card for yourself when it is your turn to bid on a card in a normal auction, but pay no spice for the card,\n\n- Receive Spacing Guild rates for a Force Shipment for any faction from reserves (even Fremen), paid to the Spice Bank, or\n\n- Pay for spice strength in battle from the Spice Bank."
+  "subName": "Action"
 }

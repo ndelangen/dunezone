@@ -102,7 +102,7 @@ The [audit](block-audit.md#page-by-page-composition-plan) maps every source page
 
 Record decisions in the separate block comments on [#2431](https://github.com/ndelangen/dunezone/issues/2431). Test the remaining compositions with existing tools, including page 26's force arithmetic. Page 7's component inventory is omitted online. Compare every rendered page with its source and the approved presentation changes, and check the exported PDF, text selection, reading order, images and overflow.
 
-This branch contains preparation documents, source evidence, added decals and the importable 61-page manuscript. The normal application flow has created the second-edition faction records and saved the book as draft revision 7. PR #2477 deployed the approved native sheet connection. The saved production export matches the local settings and contents. The current reconstruction has not been published as an Edition. Existing [GF9 content](../gf9/README.md) and its authoring files remain the earlier edition's work. Do not regenerate or replace them from this transcript.
+This branch contains preparation documents, source evidence, added decals and the importable 61-page manuscript. Production draft revision 9 is published as Edition 2 under Central in GF9 2.0, assigned to GF9. The [release record](authoring/published-edition-2.md) links the public reader, HTML, PDF and verification. PR #2477 deployed the approved native sheet connection. The separate differences rulebook remains open work. Existing [GF9 content](../gf9/README.md) and its authoring files remain the earlier edition's work. Do not regenerate or replace them from this transcript.
 
 ## Verification of this preparation
 

@@ -1,6 +1,6 @@
 # Reconstructed draft
 
-The saved Square draft has 61 pages, using existing Blocks and the restrained design. Production draft revision 8 uses the native faction-sheet connection deployed in PR #2477. Central owns the Rulebook, assigned through GF9 2.0 to GF9. Edition 1 remains the starter; this reconstruction has not been published as an Edition.
+The saved Square draft has 61 pages, using existing Blocks and the restrained design. Production draft revision 9 uses the native faction-sheet connection deployed in PR #2477. Central owns the Rulebook, assigned through GF9 2.0 to GF9. The reconstruction is published as Edition 2. See [the release and verification record](published-edition-2.md).
 
 The original transcripts remain unchanged. Ten readings confirmed from the clearer supplied scan are applied by the builder and recorded in [the scan review](../clearer-scan-review.md). All 971 source units are accounted for. The current reading copy has no remaining uncertainty markers. That count is not a claim that every word has been rechecked against the newer scan.
 
@@ -36,3 +36,7 @@ The saved production record is revision 7. It was loaded and saved through the a
 ## Pending publication candidate
 
 The [publication candidate](publication-candidate/README.md) prepares the last board-page correction and fitted Solaris and Family Atomics cards. All 61 candidate pages fit. These changes have not been applied to production; the saved production export remains revision 8. Applying them through the CLI requires the administrative-write confirmation in AGENTS.md because browser controls are unavailable.
+
+## Edition 2 publication
+
+The user approved the prepared administrative scope. The board correction and fitted production card images are applied, draft revision 9 is saved, and Edition 2 is published. This supersedes the pending status above. The [release record](published-edition-2.md) links the ready reader, HTML and PDF, with final verification. The separate differences rulebook remains open work.

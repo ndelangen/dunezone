@@ -1,0 +1,962 @@
+{
+  "verified_at": "2026-10-25",
+  "edition": 2,
+  "draft_revision": 9,
+  "page_count": 61,
+  "rulebook_id": "pd78axr5dcce1vqkcyxpp3asps8gtkd6",
+  "owner_auth_user_id": "m173qphzmypfhhx627wcsg9wyh83gj56",
+  "assigned_group": {
+    "id": "kh73774x91q1xsagtxnkmpkmj98gk5f0",
+    "name": "GF9",
+    "slug": "gf9"
+  },
+  "reader_url": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook",
+  "html": {
+    "href": "/published/rulebooks/pd78axr5dcce1vqkcyxpp3asps8gtkd6/editions/2/rulebook.html",
+    "status": "ready"
+  },
+  "pdf": {
+    "href": "/published/rulebooks/pd78axr5dcce1vqkcyxpp3asps8gtkd6/editions/2/rulebook.pdf",
+    "status": "ready",
+    "page_count": 61,
+    "page_size_pt": [
+      722.835,
+      720
+    ],
+    "bytes": 2896265,
+    "tagged": true,
+    "visually_checked_pages": [
+      7,
+      37,
+      38
+    ]
+  },
+  "saved_export_matches_local_settings_and_contents": true,
+  "published_settings_match": true,
+  "published_contents_match_except_resolved_cover_urls": true,
+  "resolved_cover_urls": {
+    "sourceUrl": "https://dune.zone/user-images/e76d8241b236ed4b3ddd627c3c14238e32d3993e6a84ed6231592f7eace51523.jpg",
+    "backgroundImageUrl": "https://dune.zone/user-images/e76d8241b236ed4b3ddd627c3c14238e32d3993e6a84ed6231592f7eace51523.jpg"
+  },
+  "published_html_unloaded_images": [],
+  "published_html_overflow_regions": 0,
+  "visually_checked_digital_pages": [
+    7,
+    37,
+    38
+  ],
+  "corrections": [
+    "Board-feature explanations and Spice Blow symbol using existing Blocks and assets",
+    "Solaris full wording fits its existing text region at 36px Candara",
+    "Family Atomics full wording fits its existing text region at 33px Candara"
+  ],
+  "administrative_scope": "User explicitly approved applying the prepared production plan as Central, saving revision 9, and publishing Edition 2.",
+  "recovery_plan": "publication-candidate/production-plan.json",
+  "whole_book_render_checks": {
+    "url": "https://dune.zone/published/rulebooks/pd78axr5dcce1vqkcyxpp3asps8gtkd6/editions/2/rulebook.html",
+    "title": "GF9 2.0 Rulebook",
+    "editionText": "RULEBOOK\n\nSECOND EDITION\n\nTHE SPICE MUST FLOW\nA GAME OF CONQUEST, DIPLOMACY & BETRAYAL\n\nPREFACE\n\nFrank Herbert's classic science fiction novel Dune will live for generations as a masterpiece of creative imagination. In this game, you can bring to life the unique desert planet and the swirling intrigues of all the book's major characters.\n\nDune — the very name conjures up desolation. Desert sandsca",
+    "unloadedImages": [],
+    "pages": [
+      {
+        "id": "SCMH",
+        "regions": []
+      },
+      {
+        "id": "LLQL",
+        "regions": [
+          {
+            "region": "column1",
+            "overrun": 0
+          },
+          {
+            "region": "column2",
+            "overrun": 0
+          }
+        ]
+      },
+      {
+        "id": "2VDK",
+        "regions": [
+          {
+            "region": "column1",
+            "overrun": 0
+          },
+          {
+            "region": "column2",
+            "overrun": 0
+          }
+        ]
+      },
+      {
+        "id": "C7U2",
+        "regions": [
+          {
+            "region": "column1",
+            "overrun": 0
+          },
+          {
+            "region": "column2",
+            "overrun": 0
+          }
+        ]
+      },
+      {
+        "id": "874R",
+        "regions": [
+          {
+            "region": "content",
+            "overrun": 0
+          }
+        ]
+      },
+      {
+        "id": "LKXC",
+        "regions": [
+          {
+            "region": "opening",
+            "overrun": 0
+          },
+          {
+            "region": "upperLeft",
+            "overrun": 0
+          },
+          {
+            "region": "upperRight",
+            "overrun": 0
+          },
+          {
+            "region": "lowerLeft",
+            "overrun": 0
+          },
+          {
+            "region": "lowerRight",
+            "overrun": 0
+          },
+          {
+            "region": "closing",
+            "overrun": 0
+          }
+        ]
+      },
+      {
+        "id": "TN3N",
+        "regions": [
+          {
+            "region": "column1",
+            "overrun": 0
+          },
+          {
+            "region": "column2",
+            "overrun": 0
+          }
+        ]
+      },
+      {
+        "id": "MC57",
+        "regions": [
+          {
+            "region": "column1",
+            "overrun": 0
+          },
+          {
+            "region": "column2",
+            "overrun": 0
+          }
+        ]
+      },
+      {
+        "id": "NFMC",
+        "regions": [
+          {
+            "region": "column1",
+            "overrun": 0
+          },
+          {
+            "region": "column2",
+            "overrun": 0
+          }
+        ]
+      },
+      {
+        "id": "XUD9",
+        "regions": [
+          {
+            "region": "content",
+            "overrun": 0
+          }
+        ]
+      },
+      {
+        "id": "YEP8",
+        "regions": [
+          {
+            "region": "column1",
+            "overrun": 0
+          },
+          {
+            "region": "column2",
+            "overrun": 0
+          }
+        ]
+      },
+      {
+        "id": "8LF7",
+        "regions": [
+          {
+            "region": "column1",
+            "overrun": 0
+          },
+          {
+            "region": "column2",
+            "overrun": 0
+          }
+        ]
+      },
+      {
+        "id": "RXDU",
+        "regions": [
+          {
+            "region": "column1",
+            "overrun": 0
+          },
+          {
+            "region": "column2",
+            "overrun": 0
+          },
+          {
+            "region": "rail",
+            "overrun": 0
+          }
+        ]
+      },
+      {
+        "id": "FMKT",
+        "regions": [
+          {
+            "region": "column1",
+            "overrun": 0
+          },
+          {
+            "region": "column2",
+            "overrun": 0
+          }
+        ]
+      },
+      {
+        "id": "P3L4",
+        "regions": [
+          {
+            "region": "column1",
+            "overrun": 0
+          },
+          {
+            "region": "column2",
+            "overrun": 0
+          }
+        ]
+      },
+      {
+        "id": "G8TK",
+        "regions": [
+          {
+            "region": "column1",
+            "overrun": 0
+          },
+          {
+            "region": "column2",
+            "overrun": 0
+          }
+        ]
+      },
+      {
+        "id": "CDJ6",
+        "regions": [
+          {
+            "region": "column1",
+            "overrun": 0
+          },
+          {
+            "region": "column2",
+            "overrun": 0
+          }
+        ]
+      },
+      {
+        "id": "4Z2S",
+        "regions": [
+          {
+            "region": "column1",
+            "overrun": 0
+          },
+          {
+            "region": "column2",
+            "overrun": 0
+          }
+        ]
+      },
+      {
+        "id": "RNZM",
+        "regions": [
+          {
+            "region": "column1",
+            "overrun": 0
+          },
+          {
+            "region": "column2",
+            "overrun": 0
+          }
+        ]
+      },
+      {
+        "id": "Q4A6",
+        "regions": [
+          {
+            "region": "column1",
+            "overrun": 0
+          },
+          {
+            "region": "column2",
+            "overrun": 0
+          }
+        ]
+      },
+      {
+        "id": "WLKG",
+        "regions": [
+          {
+            "region": "content",
+            "overrun": 0
+          }
+        ]
+      },
+      {
+        "id": "T4NA",
+        "regions": [
+          {
+            "region": "column1",
+            "overrun": 0
+          },
+          {
+            "region": "column2",
+            "overrun": 0
+          }
+        ]
+      },
+      {
+        "id": "6LBR",
+        "regions": [
+          {
+            "region": "column1",
+            "overrun": 0
+          },
+          {
+            "region": "column2",
+            "overrun": 0
+          }
+        ]
+      },
+      {
+        "id": "PTKA",
+        "regions": [
+          {
+            "region": "column1",
+            "overrun": 0
+          },
+          {
+            "region": "column2",
+            "overrun": 0
+          }
+        ]
+      },
+      {
+        "id": "EVTQ",
+        "regions": [
+          {
+            "region": "column1",
+            "overrun": 0
+          },
+          {
+            "region": "column2",
+            "overrun": 0
+          }
+        ]
+      },
+      {
+        "id": "VKG8",
+        "regions": [
+          {
+            "region": "column1",
+            "overrun": 0
+          },
+          {
+            "region": "column2",
+            "overrun": 0
+          }
+        ]
+      },
+      {
+        "id": "ZSCH",
+        "regions": [
+          {
+            "region": "opening",
+            "overrun": 0
+          },
+          {
+            "region": "upperLeft",
+            "overrun": 0
+          },
+          {
+            "region": "upperRight",
+            "overrun": 0
+          },
+          {
+            "region": "lowerLeft",
+            "overrun": 0
+          },
+          {
+            "region": "lowerRight",
+            "overrun": 0
+          },
+          {
+            "region": "closing",
+            "overrun": 0
+          }
+        ]
+      },
+      {
+        "id": "GNAH",
+        "regions": [
+          {
+            "region": "column1",
+            "overrun": 0
+          },
+          {
+            "region": "column2",
+            "overrun": 0
+          }
+        ]
+      },
+      {
+        "id": "H8P2",
+        "regions": [
+          {
+            "region": "opening",
+            "overrun": 0
+          },
+          {
+            "region": "upperLeft",
+            "overrun": 0
+          },
+          {
+            "region": "upperRight",
+            "overrun": 0
+          },
+          {
+            "region": "lowerLeft",
+            "overrun": 0
+          },
+          {
+            "region": "lowerRight",
+            "overrun": 0
+          },
+          {
+            "region": "closing",
+            "overrun": 0
+          }
+        ]
+      },
+      {
+        "id": "2SM5",
+        "regions": [
+          {
+            "region": "column1",
+            "overrun": 0
+          },
+          {
+            "region": "column2",
+            "overrun": 0
+          }
+        ]
+      },
+      {
+        "id": "56QM",
+        "regions": [
+          {
+            "region": "column1",
+            "overrun": 0
+          },
+          {
+            "region": "column2",
+            "overrun": 0
+          }
+        ]
+      },
+      {
+        "id": "3TKC",
+        "regions": [
+          {
+            "region": "column1",
+            "overrun": 0
+          },
+          {
+            "region": "column2",
+            "overrun": 0
+          }
+        ]
+      },
+      {
+        "id": "V6CT",
+        "regions": [
+          {
+            "region": "column1",
+            "overrun": 0
+          },
+          {
+            "region": "column2",
+            "overrun": 0
+          }
+        ]
+      },
+      {
+        "id": "T3NC",
+        "regions": [
+          {
+            "region": "column1",
+            "overrun": 0
+          },
+          {
+            "region": "column2",
+            "overrun": 0
+          }
+        ]
+      },
+      {
+        "id": "ZHTZ",
+        "regions": [
+          {
+            "region": "column1",
+            "overrun": 0
+          },
+          {
+            "region": "column2",
+            "overrun": 0
+          }
+        ]
+      },
+      {
+        "id": "SRHY",
+        "regions": [
+          {
+            "region": "column1",
+            "overrun": 0
+          },
+          {
+            "region": "column2",
+            "overrun": 0
+          }
+        ]
+      },
+      {
+        "id": "AYAN",
+        "regions": [
+          {
+            "region": "column1",
+            "overrun": 0
+          },
+          {
+            "region": "column2",
+            "overrun": 0
+          }
+        ]
+      },
+      {
+        "id": "4UQ6",
+        "regions": [
+          {
+            "region": "column1",
+            "overrun": 0
+          },
+          {
+            "region": "column2",
+            "overrun": 0
+          }
+        ]
+      },
+      {
+        "id": "7Y77",
+        "regions": [
+          {
+            "region": "column1",
+            "overrun": 0
+          },
+          {
+            "region": "column2",
+            "overrun": 0
+          }
+        ]
+      },
+      {
+        "id": "88DW",
+        "regions": [
+          {
+            "region": "content",
+            "overrun": 0
+          }
+        ]
+      },
+      {
+        "id": "SDE7",
+        "regions": [
+          {
+            "region": "column1",
+            "overrun": 0
+          },
+          {
+            "region": "column2",
+            "overrun": 0
+          }
+        ]
+      },
+      {
+        "id": "W68K",
+        "regions": [
+          {
+            "region": "rail",
+            "overrun": 0
+          },
+          {
+            "region": "column1",
+            "overrun": 0
+          },
+          {
+            "region": "column2",
+            "overrun": 0
+          }
+        ]
+      },
+      {
+        "id": "4WXN",
+        "regions": [
+          {
+            "region": "column1",
+            "overrun": 0
+          },
+          {
+            "region": "column2",
+            "overrun": 0
+          },
+          {
+            "region": "rail",
+            "overrun": 0
+          }
+        ]
+      },
+      {
+        "id": "27N9",
+        "regions": [
+          {
+            "region": "rail",
+            "overrun": 0
+          },
+          {
+            "region": "column1",
+            "overrun": 0
+          },
+          {
+            "region": "column2",
+            "overrun": 0
+          }
+        ]
+      },
+      {
+        "id": "46PP",
+        "regions": [
+          {
+            "region": "column1",
+            "overrun": 0
+          },
+          {
+            "region": "column2",
+            "overrun": 0
+          },
+          {
+            "region": "rail",
+            "overrun": 0
+          }
+        ]
+      },
+      {
+        "id": "SHV2",
+        "regions": [
+          {
+            "region": "rail",
+            "overrun": 0
+          },
+          {
+            "region": "column1",
+            "overrun": 0
+          },
+          {
+            "region": "column2",
+            "overrun": 0
+          }
+        ]
+      },
+      {
+        "id": "4VYV",
+        "regions": [
+          {
+            "region": "column1",
+            "overrun": 0
+          },
+          {
+            "region": "column2",
+            "overrun": 0
+          },
+          {
+            "region": "rail",
+            "overrun": 0
+          }
+        ]
+      },
+      {
+        "id": "GP27",
+        "regions": [
+          {
+            "region": "rail",
+            "overrun": 0
+          },
+          {
+            "region": "column1",
+            "overrun": 0
+          },
+          {
+            "region": "column2",
+            "overrun": 0
+          }
+        ]
+      },
+      {
+        "id": "CBT5",
+        "regions": [
+          {
+            "region": "column1",
+            "overrun": 0
+          },
+          {
+            "region": "column2",
+            "overrun": 0
+          },
+          {
+            "region": "rail",
+            "overrun": 0
+          }
+        ]
+      },
+      {
+        "id": "QJWF",
+        "regions": [
+          {
+            "region": "rail",
+            "overrun": 0
+          },
+          {
+            "region": "column1",
+            "overrun": 0
+          },
+          {
+            "region": "column2",
+            "overrun": 0
+          }
+        ]
+      },
+      {
+        "id": "44R2",
+        "regions": [
+          {
+            "region": "column1",
+            "overrun": 0
+          },
+          {
+            "region": "column2",
+            "overrun": 0
+          },
+          {
+            "region": "rail",
+            "overrun": 0
+          }
+        ]
+      },
+      {
+        "id": "SVS5",
+        "regions": [
+          {
+            "region": "rail",
+            "overrun": 0
+          },
+          {
+            "region": "column1",
+            "overrun": 0
+          },
+          {
+            "region": "column2",
+            "overrun": 0
+          }
+        ]
+      },
+      {
+        "id": "ECSZ",
+        "regions": [
+          {
+            "region": "column1",
+            "overrun": 0
+          },
+          {
+            "region": "column2",
+            "overrun": 0
+          },
+          {
+            "region": "rail",
+            "overrun": 0
+          }
+        ]
+      },
+      {
+        "id": "EPLF",
+        "regions": [
+          {
+            "region": "rail",
+            "overrun": 0
+          },
+          {
+            "region": "column1",
+            "overrun": 0
+          },
+          {
+            "region": "column2",
+            "overrun": 0
+          }
+        ]
+      },
+      {
+        "id": "3ESE",
+        "regions": [
+          {
+            "region": "column1",
+            "overrun": 0
+          },
+          {
+            "region": "column2",
+            "overrun": 0
+          },
+          {
+            "region": "rail",
+            "overrun": 0
+          }
+        ]
+      },
+      {
+        "id": "ZYM3",
+        "regions": [
+          {
+            "region": "column1",
+            "overrun": 0
+          },
+          {
+            "region": "column2",
+            "overrun": 0
+          }
+        ]
+      },
+      {
+        "id": "7KDH",
+        "regions": [
+          {
+            "region": "column1",
+            "overrun": 0
+          },
+          {
+            "region": "column2",
+            "overrun": 0
+          }
+        ]
+      },
+      {
+        "id": "VJCH",
+        "regions": [
+          {
+            "region": "column1",
+            "overrun": 0
+          },
+          {
+            "region": "column2",
+            "overrun": 0
+          }
+        ]
+      },
+      {
+        "id": "BY7A",
+        "regions": [
+          {
+            "region": "column1",
+            "overrun": 0
+          },
+          {
+            "region": "column2",
+            "overrun": 0
+          }
+        ]
+      },
+      {
+        "id": "SBYV",
+        "regions": [
+          {
+            "region": "rail",
+            "overrun": 0
+          },
+          {
+            "region": "column1",
+            "overrun": 0
+          },
+          {
+            "region": "column2",
+            "overrun": 0
+          }
+        ]
+      },
+      {
+        "id": "37RM",
+        "regions": [
+          {
+            "region": "column1",
+            "overrun": 0
+          },
+          {
+            "region": "column2",
+            "overrun": 0
+          },
+          {
+            "region": "rail",
+            "overrun": 0
+          }
+        ]
+      }
+    ],
+    "cardImages": [
+      {
+        "alt": "Family Atomics",
+        "src": "https://dune.zone/published/custom-cards/ns7dmx88vyj0g27enj6y7n6tdx8gttvk/card.jpg?v=e4934165-e259-426b-a9a0-b1b9b26788f0",
+        "width": 900,
+        "height": 1263
+      },
+      {
+        "alt": "Solaris",
+        "src": "https://dune.zone/published/custom-cards/ns7fmbx80hnq2ejgj9c45a7mqd8gt64y/card.jpg?v=b5f164de-7782-439f-92f0-2e4c306693e6",
+        "width": 900,
+        "height": 1263
+      }
+    ]
+  },
+  "differences_book": "Separate work, tracked in open issue #2431"
+}

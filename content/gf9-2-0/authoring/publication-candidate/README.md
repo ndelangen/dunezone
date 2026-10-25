@@ -1,6 +1,6 @@
 # GF9 2.0 publication candidate
 
-Prepared on 25 October 2026. Nothing in this candidate has been applied to production. The live record was checked read-only and still contains draft revision 8 and published Edition 1.
+Prepared on 25 October 2026, then applied after the user explicitly approved this administrative scope. Edition 2 is now published from revision 9. See [the release record](../published-edition-2.md). The sections below retain the original preparation and recovery details.
 
 ## Corrections
 

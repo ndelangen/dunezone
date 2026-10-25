@@ -1,17 +1,11 @@
 {
   "about": "GF9 second edition, 2026. Card wording follows the supplied rulebook and deck images.",
-  "bodyLayout": "illustrated",
-  "decals": [
-    {
-      "id": "/vector/decal/family-atomics-multicolor.svg",
-      "muted": false,
-      "offset": [0, 0],
-      "outline": false,
-      "scale": 1.5102
-    }
-  ],
+  "format": "decal-window",
   "head": {
-    "colors": ["#474620", "#27260C"],
+    "colors": [
+      "#474620",
+      "#27260C"
+    ],
     "definition": 1,
     "image": "/image/texture/082.jpg",
     "influence": 0.6,
@@ -23,16 +17,28 @@
         {
           "angle": 90,
           "stops": [
-            ["#9A9256", 0],
-            ["#EEECA6", 1]
+            [
+              "#9A9256",
+              0
+            ],
+            [
+              "#EEECA6",
+              1
+            ]
           ],
           "type": "linear"
         },
         {
           "angle": 120,
           "stops": [
-            ["#827E43", 0.3],
-            ["#DEDB91", 1]
+            [
+              "#827E43",
+              0.3
+            ],
+            [
+              "#DEDB91",
+              1
+            ]
           ],
           "type": "linear"
         }
@@ -44,8 +50,44 @@
     },
     "/vector/icon/hand-alt.svg"
   ],
-  "iconOffset": [0, 2],
+  "iconOffset": [
+    0,
+    2
+  ],
+  "layers": [
+    {
+      "behindFrame": true,
+      "id": "/vector/decal/family-atomics-multicolor.svg",
+      "kind": "decal",
+      "layerId": "00000000-0000-4000-8000-000000000001",
+      "muted": false,
+      "offset": [
+        0,
+        -161.5
+      ],
+      "opacity": 1,
+      "outline": false,
+      "rotation": 0,
+      "scale": 1.5102
+    },
+    {
+      "align": "left",
+      "color": "#0b0503",
+      "content": "Cannot be played in Round 1\n\nPlay after the storm movement is revealed, but before the storm is moved - only if you have one or more forces in Shield Wall or an adjacent territory, with no storm between your sector and Shield Wall (even if your forces are in storm).\n\nAll forces in Shield Wall are destroyed.\n\nPlace the Destroyed Shield Wall token on Shield Wall. For the rest of the game, forces in Arrakeen, Carthag, and Imperial Basin are affected by the storm. Remove this card from the game.",
+      "font": "C_Candara",
+      "height": 499,
+      "kind": "text",
+      "layerId": "00000000-0000-4000-8000-000000000002",
+      "offset": [
+        -361,
+        72.5
+      ],
+      "opacity": 0.937,
+      "rotation": 0,
+      "size": 33,
+      "width": 734
+    }
+  ],
   "name": "Family Atomics",
-  "subName": "Action",
-  "text": "Cannot be played in Round 1\n\nPlay after the storm movement is revealed, but before the storm is moved - only if you have one or more forces in Shield Wall or an adjacent territory, with no storm between your sector and Shield Wall (even if your forces are in storm).\n\nAll forces in Shield Wall are destroyed.\n\nPlace the Destroyed Shield Wall token on Shield Wall. For the rest of the game, forces in Arrakeen, Carthag, and Imperial Basin are affected by the storm. Remove this card from the game."
+  "subName": "Action"
 }
