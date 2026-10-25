@@ -1,9 +1,20 @@
 import { emptyBattlePlan } from '@shared/play/battle';
+import type { BattleFace } from '@shared/play/battle';
 import type { TablePiece } from '@shared/play/model';
 import { piece } from '@shared/play/setupSupply';
 import { expect, test } from 'vite-plus/test';
 
-import { arranged, cardsOf, planPieces, seated, toggleIn, toggleLeader } from './planView';
+import {
+  arranged,
+  cardsOf,
+  fullSupport,
+  planPieces,
+  seated,
+  snapSpice,
+  supportMatters,
+  toggleIn,
+  toggleLeader,
+} from './planView';
 
 const card = (id: string, extra: Partial<TablePiece> = {}): TablePiece => ({
   ...piece(id, 'Card', 'house-harkonnen', '#000', 'card', 'cards:treachery'),
@@ -50,4 +61,46 @@ test("choosing a piece keeps the strip's order, and the plan takes the chosen on
 test("the player's order holds as pieces come and go, and a reload seats the plan's own order", () => {
   expect(arranged(['b', 'a', 'gone'], ['a', 'b', 'new'])).toEqual(['b', 'a', 'new']);
   expect(seated(['a', 'b', 'c', 'd'], ['d', 'b'])).toEqual(['a', 'd', 'c', 'b']);
+});
+
+const face = (values: Partial<BattleFace>): BattleFace => ({
+  id: 'troop-0-front',
+  name: 'Troops',
+  capable: true,
+  strength: 0.5,
+  supportedStrength: 1,
+  supportCost: 1,
+  ...values,
+});
+
+test('All supports only as many whole troops as the spice pays for exactly', () => {
+  const plan = {
+    ...emptyBattlePlan([face({ supportCost: 2 })]),
+    pieces: [],
+    troops: [{ faceId: 'troop-0-front', undialed: 2, dialed: 0 }],
+  };
+  expect(fullSupport(plan, 3)).toBe(2);
+  expect(fullSupport(plan, 4)).toBe(4);
+  expect(fullSupport(plan, 9)).toBe(4);
+});
+
+test('a spice amount no troops add up to moves on to one that does, the way it was moved', () => {
+  const plan = {
+    ...emptyBattlePlan([face({ supportCost: 2 })]),
+    pieces: [],
+    spice: 2,
+    troops: [{ faceId: 'troop-0-front', undialed: 1, dialed: 1 }],
+  };
+  expect(snapSpice(plan, 6, 3)).toBe(4);
+  expect(snapSpice(plan, 6, 1)).toBe(0);
+  /* Nothing past what the troops can use: it stays where it was. */
+  expect(snapSpice(plan, 6, 5)).toBe(2);
+});
+
+test('free support that still changes strength keeps its Custom choice, and a Custom plan never loses it', () => {
+  const free = { ...emptyBattlePlan([face({ supportCost: 0, strength: 0.5, supportedStrength: 1.5 })]), pieces: [] };
+  expect(supportMatters(free)).toBe(true);
+  const even = { ...emptyBattlePlan([face({ supportCost: 0, strength: 1, supportedStrength: 1 })]), pieces: [] };
+  expect(supportMatters(even)).toBe(false);
+  expect(supportMatters({ ...even, mode: 'custom' })).toBe(true);
 });

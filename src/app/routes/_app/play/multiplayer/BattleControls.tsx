@@ -30,7 +30,7 @@ import { PointerSessionContext, usePointerSession } from '../../../../widgets/ta
 import { TABLE_PLATE_BOUNDS } from '../../../../widgets/tabletop/tablePlateGeometry';
 import { LedgerPlan } from '../battlePlan/LedgerPlan';
 import { ModeToggle } from '../battlePlan/parts';
-import { planLocks, spiceMatters } from '../battlePlan/planView';
+import { planLocks, supportMatters } from '../battlePlan/planView';
 import type { BattlePlanViewProps, WheelArt } from '../battlePlan/planView';
 import { DarkSchemeIsland } from '../DarkSchemeIsland';
 import { BattleBeacon } from './BattleBeacon';
@@ -215,7 +215,7 @@ export function BattleModeToggle({ client, table }: Props) {
       disabled={
         planLocks({ plan, stage: battle.stage, ready: own?.ready ?? false, canAct: table.canHandleTable }).dialLocked
       }
-      free={!spiceMatters(plan)}
+      free={!supportMatters(plan)}
       onChange={(mode) => client.editBattlePlan({ mode })}
     />
   );

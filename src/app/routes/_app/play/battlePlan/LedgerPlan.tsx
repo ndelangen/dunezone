@@ -16,7 +16,9 @@ import {
   planLocks,
   planPieces,
   setTotal,
+  snapSpice,
   spiceMatters,
+  supportMatters,
   supportedMax,
   toggleCard,
   toggleLeader,
@@ -134,7 +136,7 @@ function DialRows(props: BattlePlanViewProps & { disabled: boolean }) {
   const faces = capableFaces(plan);
   /* A faction with one troop type has just its troops to name. */
   const named = (face: BattleFace) => (faces.length === 1 ? 'Troops' : face.name);
-  if (plan.mode === 'custom' && spiceMatters(plan)) {
+  if (plan.mode === 'custom' && supportMatters(plan)) {
     return faces.map((face) => {
       const own = troopsOf(plan, face.id);
       const limit = troopLimitOf(props, face.id);
@@ -192,7 +194,7 @@ function DialRows(props: BattlePlanViewProps & { disabled: boolean }) {
           value={plan.spice}
           max={availableSpice(plan, balance)}
           disabled={disabled}
-          onChange={(spice) => onEdit({ spice })}
+          onChange={(spice) => onEdit({ spice: snapSpice(plan, balance, spice) })}
           spice
         />
       ) : null}

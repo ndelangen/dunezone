@@ -13,7 +13,7 @@ import { DarkSchemeIsland, darkSchemeIslandAttributes } from '../DarkSchemeIslan
 import { cardBack, factions, playingSnapshot } from '../product.stories.fixture';
 import { LedgerPlan } from './LedgerPlan';
 import { ModeToggle } from './parts';
-import { planLocks, spiceMatters } from './planView';
+import { planLocks, supportMatters } from './planView';
 import type { BattlePlanViewProps } from './planView';
 import '../dune-play.css';
 
@@ -243,7 +243,7 @@ export function PlanHarness({ initial, size }: { initial: Harness; size: SlotSiz
         <ModeToggle
           mode={state.plan.mode}
           disabled={planLocks(state).dialLocked}
-          free={!spiceMatters(state.plan)}
+          free={!supportMatters(state.plan)}
           onChange={(mode) => setState((before) => simulate(before, { mode }))}
         />
       }

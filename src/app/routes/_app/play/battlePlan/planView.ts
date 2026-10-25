@@ -80,6 +80,14 @@ export function spiceMatters(plan: BattlePlan) {
   return capableFaces(plan).some((face) => face.supportCost > 0 && face.supportedStrength > face.strength);
 }
 
+/**
+ * Whether the player has a support choice to make in Custom: some troop fights differently supported, even where support costs nothing.
+ * A plan already in Custom keeps its controls, so it never loses its supported troops to the simpler editor.
+ */
+export function supportMatters(plan: BattlePlan) {
+  return plan.mode === 'custom' || capableFaces(plan).some((face) => face.supportedStrength !== face.strength);
+}
+
 export function troopsOf(plan: BattlePlan, faceId: string): FaceTroops {
   const troop = plan.troops.find((entry) => entry.faceId === faceId);
   return { undialed: troop?.undialed ?? 0, dialed: troop?.dialed ?? 0 };
@@ -104,10 +112,40 @@ export function setTotal(plan: BattlePlan, faceId: string, total: number): Parti
 /** Everything the plan could spend: the reserve and what the plan already holds. */
 export const availableSpice = (plan: BattlePlan, balance: number) => balance + plan.spice;
 
-/** The spice that would support every troop in Max mode, within what the viewer has. */
+/**
+ * Every spice amount whole troops can use up exactly in Max mode, within what the viewer has, lowest first.
+ * The Worker refuses any other amount, since no number of supported troops adds up to it.
+ */
+export function supportableSpice(plan: BattlePlan, balance: number): number[] {
+  const limit = availableSpice(plan, balance);
+  const reachable = new Set([0]);
+  for (const face of capableFaces(plan)) {
+    if (!face.supportCost) {
+      continue;
+    }
+    for (let count = 0; count < totalOf(plan, face.id); count++) {
+      for (const spent of [...reachable]) {
+        if (spent + face.supportCost <= limit) {
+          reachable.add(spent + face.supportCost);
+        }
+      }
+    }
+  }
+  return [...reachable].sort((a, b) => a - b);
+}
+
+/** The spice that would support every troop in Max mode, or as many as the viewer's spice reaches exactly. */
 export function fullSupport(plan: BattlePlan, balance: number) {
   const wanted = capableFaces(plan).reduce((total, face) => total + totalOf(plan, face.id) * face.supportCost, 0);
-  return Math.min(wanted, availableSpice(plan, balance));
+  return supportableSpice(plan, balance).findLast((amount) => amount <= wanted) ?? 0;
+}
+
+/** A spice amount moved to one whole troops can use: onward in the direction it moved, or back to where it was. */
+export function snapSpice(plan: BattlePlan, balance: number, wanted: number) {
+  const amounts = supportableSpice(plan, balance);
+  const snapped =
+    wanted > plan.spice ? amounts.find((amount) => amount >= wanted) : amounts.findLast((amount) => amount <= wanted);
+  return snapped ?? plan.spice;
 }
 
 /** The most supported troops a face can have in Custom mode, given the spice the other faces already spend. */
