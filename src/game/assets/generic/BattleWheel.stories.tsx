@@ -5,27 +5,13 @@ import { card } from '../../data/sizes';
 import { treacheryCardFixtures } from '../../fixtures/treacheryCards';
 import { LeaderToken } from '../faction/leader/Leader';
 import { TreacheryCard } from '../treachery/Treachery';
-import { BattleWheel } from './BattleWheel';
 import { artwork, troop, revealedArgs } from './BattleWheel.stories.fixture';
 
 const wheelCards = [treacheryCardFixtures.maulaPistol, treacheryCardFixtures.shield];
 
-const meta = preview.meta({
-  component: BattleWheel,
-  parameters: { layout: 'centered' },
-  argTypes: {
-    state: { control: 'radio', options: ['unrevealed', 'revealed'] },
-    strength: { description: 'Troop strength including adjustment, excluding the leader.' },
-  },
-  render: (args) =>
-    args.state === 'unrevealed' ? (
-      <div style={{ width: 170, height: 170 }}>
-        <BattleWheel {...args} artwork={args.artwork ?? artwork} ready={args.ready ?? false} />
-      </div>
-    ) : (
-      <BattleWheel {...revealedArgs} {...args} />
-    ),
-});
+import { battleWheelMeta } from './BattleWheel.stories.fixture';
+
+const meta = preview.meta({ ...battleWheelMeta });
 
 export const Revealed = meta.story({ args: revealedArgs });
 export const Empty = meta.story({ args: { ...revealedArgs, strength: 0, spice: 0, troops: [] } });

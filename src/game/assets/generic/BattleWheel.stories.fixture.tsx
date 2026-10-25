@@ -1,7 +1,8 @@
+import type { Meta } from '@storybook/tanstack-react';
 import type { ComponentProps } from 'react';
 
 import { factionTokenFixtures } from '../../fixtures/factionTokens';
-import type { BattleWheel } from './BattleWheel';
+import { BattleWheel } from './BattleWheel';
 
 export const artwork = factionTokenFixtures.atreides;
 export const troop = {
@@ -27,3 +28,20 @@ export const revealedArgs = {
   adjustment: 0,
   troops: [troop],
 } satisfies ComponentProps<typeof BattleWheel>;
+
+export const battleWheelMeta = {
+  component: BattleWheel,
+  parameters: { layout: 'centered' },
+  argTypes: {
+    state: { control: 'radio', options: ['unrevealed', 'revealed'] },
+    strength: { description: 'Troop strength including adjustment, excluding the leader.' },
+  },
+  render: (args) =>
+    args.state === 'unrevealed' ? (
+      <div style={{ width: 170, height: 170 }}>
+        <BattleWheel {...args} artwork={args.artwork ?? artwork} ready={args.ready ?? false} />
+      </div>
+    ) : (
+      <BattleWheel {...revealedArgs} {...args} />
+    ),
+} satisfies Meta<typeof BattleWheel>;

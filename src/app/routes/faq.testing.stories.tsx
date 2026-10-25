@@ -3,7 +3,7 @@ import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { db, ruleset } from '@db/storybook';
 
-import { seedRulesets, questionRows } from './faq.stories.fixture';
+import { findFaqMain, seedRulesets, questionRows } from './faq.stories.fixture';
 import { pageStoryMeta } from './storybookConfig';
 
 const meta = testingPreview.meta({
@@ -20,8 +20,7 @@ export const LoadMore = meta.story({
   args: { path: '/faq?q=storm' },
   parameters: { database: db((baseline) => seedRulesets(baseline, 25)) },
   play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    const main = within(await page.findByRole('main', {}, { timeout: 30_000 }));
+    const { page, main } = await findFaqMain(canvasElement);
     const loadMore = await main.findByRole('button', { name: 'Load more' }, { timeout: 30_000 });
     await expect(questionRows(main)).toHaveLength(24);
 
@@ -96,8 +95,7 @@ export const PickedRulesetWithoutQuestions = meta.story({
     }),
   },
   play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    const main = within(await page.findByRole('main', {}, { timeout: 30_000 }));
+    const { page, main } = await findFaqMain(canvasElement);
     await expect(
       main.findByRole('link', { name: 'When does the storm move?' }, { timeout: 30_000 })
     ).resolves.toBeVisible();
@@ -113,8 +111,7 @@ export const PickedRulesetWithoutQuestions = meta.story({
 export const SingleRuleset = meta.story({
   args: { path: '/faq?q=storm&rulesets=classicrules' },
   play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    const main = within(await page.findByRole('main', {}, { timeout: 30_000 }));
+    const { main } = await findFaqMain(canvasElement);
     await expect(
       main.findByRole('link', { name: 'When does the storm move?' }, { timeout: 30_000 })
     ).resolves.toBeVisible();
@@ -127,8 +124,7 @@ export const MissingRuleset = meta.story({
   args: { path: '/faq?q=storm&rulesets=missing' },
   parameters: { database: db((baseline) => seedRulesets(baseline, 0)) },
   play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    const main = within(await page.findByRole('main', {}, { timeout: 30_000 }));
+    const { main } = await findFaqMain(canvasElement);
     await expect(
       main.findByRole('link', { name: 'When does the storm move?' }, { timeout: 30_000 })
     ).resolves.toHaveAttribute('href', '/rulesets/classicrules/faq/when-does-the-storm-move');

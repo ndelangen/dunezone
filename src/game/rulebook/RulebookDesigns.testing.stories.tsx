@@ -1,36 +1,11 @@
 import { testingPreview } from '@sb/preview';
-import { getRulebookSize, rulebookDesignCatalogue, rulebookSizeCatalogue } from '@shared/rulebooks/settings';
+import { getRulebookSize } from '@shared/rulebooks/settings';
 import type { RulebookSettings } from '@shared/rulebooks/settings';
 import { expect } from 'storybook/test';
 
-import { DesignPages } from './RulebookDesigns.stories.fixture';
+import { rulebookDesignsMeta } from './RulebookDesigns.stories.fixture';
 
-const meta = testingPreview.meta({
-  title: 'Document/Sizes and styles',
-  component: DesignPages,
-  args: { size: 'a4', design: 'illustrated' },
-  argTypes: {
-    size: { control: 'radio', options: rulebookSizeCatalogue.map(({ id }) => id) },
-    design: { control: 'radio', options: rulebookDesignCatalogue.map(({ id }) => id) },
-  },
-  parameters: { layout: 'fullscreen' },
-  decorators: [
-    (Story) => (
-      <div style={{ padding: '1rem' }}>
-        <style>{`
-          @media screen {
-            [data-rulebook-design-example] .rulebookDocument {
-              grid-template-columns: repeat(2, minmax(0, 1fr));
-              gap: 2px;
-              align-items: start;
-            }
-          }
-        `}</style>
-        <Story />
-      </div>
-    ),
-  ],
-});
+const meta = testingPreview.meta({ ...rulebookDesignsMeta, title: 'Document/Sizes and styles' });
 
 async function expectFacingPages({ canvasElement }: { canvasElement: HTMLElement }) {
   const pages = [...canvasElement.querySelectorAll<HTMLElement>('[data-rulebook-page]')];

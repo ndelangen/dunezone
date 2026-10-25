@@ -1,36 +1,16 @@
 import { testingPreview } from '@sb/preview';
 import { expect } from 'storybook/test';
 
-import type { DocumentEditorFit } from './DocumentEditorLayout';
 import {
   A4_RATIO,
-  DocumentEditorLayoutFixture,
   expectPreviewFillToStayContained,
   expectSidebarToMatchPreviewMinimum,
   paneWhileScrolling,
-  defaultArgs,
   renderInDocument,
 } from './DocumentEditorLayout.stories.fixture';
+import { documentEditorLayoutMeta } from './DocumentEditorLayout.stories.fixture';
 
-const meta = testingPreview.meta({
-  title: 'DocumentEditorLayout',
-  component: DocumentEditorLayoutFixture,
-  args: defaultArgs,
-  argTypes: {
-    ratio: { control: { type: 'number', min: 0.45, max: 1.8, step: 0.01 } },
-    fit: { control: { type: 'inline-radio' }, options: ['height', 'width'] satisfies DocumentEditorFit[] },
-    sidebarContentHeight: { control: { type: 'range', min: 240, max: 1600, step: 20 } },
-  },
-  parameters: {
-    layout: 'fullscreen',
-    docs: {
-      description: {
-        component:
-          'DocumentEditorLayout takes ratio, fit, Sidebar, and Preview. Use the viewport toolbar to exercise container sizes. Sidebar content height belongs only to the neutral story fixture.',
-      },
-    },
-  },
-});
+const meta = testingPreview.meta({ ...documentEditorLayoutMeta, title: 'DocumentEditorLayout' });
 
 /** The same narrow track opens at its Preview snap position. */
 export const NarrowPreviewFirst = meta.story({

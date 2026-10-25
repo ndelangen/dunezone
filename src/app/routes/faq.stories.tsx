@@ -4,7 +4,7 @@ import { expect, within } from 'storybook/test';
 import { db, ruleset } from '@db/storybook';
 import type { StorybookDatabase } from '@db/storybook';
 
-import { seedRulesets, questionRows } from './faq.stories.fixture';
+import { findFaqMain, seedRulesets, questionRows } from './faq.stories.fixture';
 import { pageStoryMeta } from './storybookConfig';
 
 const meta = preview.meta({
@@ -33,8 +33,7 @@ export const SearchResults = meta.story({
   args: { path: '/faq?q=storm&rulesets=classicrules,dreamrules' },
   parameters: { database: db((baseline) => seedRulesets(baseline, 24)) },
   play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    const main = within(await page.findByRole('main', {}, { timeout: 30_000 }));
+    const { page, main } = await findFaqMain(canvasElement);
     await expect(
       main.findByRole('link', { name: 'Can I ship troops into the storm?' }, { timeout: 30_000 })
     ).resolves.toHaveAttribute('href', '/rulesets/dreamrules/faq/storm-and-shipment');
@@ -82,8 +81,7 @@ export const SearchCapped = meta.story({
   args: { path: `/faq?q=storm ship&rulesets=${cappedRulesets}` },
   parameters: { database: db(seedCappedSearch) },
   play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    const main = within(await page.findByRole('main', {}, { timeout: 30_000 }));
+    const { main } = await findFaqMain(canvasElement);
     await expect(
       main.findByRole('link', { name: 'Can I ship troops into the storm?' }, { timeout: 30_000 })
     ).resolves.toBeVisible();
@@ -99,8 +97,7 @@ export const NothingMatchesCapped = meta.story({
   args: { path: `/faq?q=storm nowhere&rulesets=${cappedRulesets}` },
   parameters: { database: db(seedCappedSearch) },
   play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    const main = within(await page.findByRole('main', {}, { timeout: 30_000 }));
+    const { main } = await findFaqMain(canvasElement);
     await expect(main.findByRole('heading', { name: 'Nothing matches' }, { timeout: 30_000 })).resolves.toBeVisible();
     await expect(main.getByText(/some were not\. A word or two more might help\./)).toBeVisible();
     await expect(main.queryByRole('button', { name: 'Load more' })).toBeNull();

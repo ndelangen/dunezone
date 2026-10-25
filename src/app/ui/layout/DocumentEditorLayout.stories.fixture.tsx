@@ -1,3 +1,4 @@
+import type { Meta } from '@storybook/tanstack-react';
 import { expect, waitFor } from 'storybook/test';
 
 import { DocumentEditorLayout } from './DocumentEditorLayout';
@@ -85,7 +86,7 @@ export async function paneWhileScrolling(
   return { rects, viewportHeight: view.innerHeight };
 }
 
-export const defaultArgs = {
+const defaultArgs = {
   ratio: A4_RATIO,
   fit: 'height',
   sidebarContentHeight: 560,
@@ -100,3 +101,22 @@ export function renderInDocument(args: StoryFixtureProps) {
     </>
   );
 }
+
+export const documentEditorLayoutMeta = {
+  component: DocumentEditorLayoutFixture,
+  args: defaultArgs,
+  argTypes: {
+    ratio: { control: { type: 'number', min: 0.45, max: 1.8, step: 0.01 } },
+    fit: { control: { type: 'inline-radio' }, options: ['height', 'width'] satisfies DocumentEditorFit[] },
+    sidebarContentHeight: { control: { type: 'range', min: 240, max: 1600, step: 20 } },
+  },
+  parameters: {
+    layout: 'fullscreen',
+    docs: {
+      description: {
+        component:
+          'DocumentEditorLayout takes ratio, fit, Sidebar, and Preview. Use the viewport toolbar to exercise container sizes. Sidebar content height belongs only to the neutral story fixture.',
+      },
+    },
+  },
+} satisfies Meta<typeof DocumentEditorLayoutFixture>;

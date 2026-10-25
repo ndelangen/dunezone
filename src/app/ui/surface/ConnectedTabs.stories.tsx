@@ -1,51 +1,12 @@
 import { Box } from '@mantine/core';
 import preview from '@sb/preview';
-import { useState } from 'react';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { ConnectedTabs } from './ConnectedTabs';
 import { examplePanels } from './ConnectedTabs.stories.fixture';
-import type { ExampleTab } from './ConnectedTabs.stories.fixture';
+import { connectedTabsMeta } from './ConnectedTabs.stories.fixture';
 
-const meta = preview.meta({
-  title: 'Connected Tabs',
-  component: ConnectedTabs,
-  args: {
-    value: 'overview',
-    onValueChange: () => {},
-    ariaLabel: 'Workbench sections',
-    items: examplePanels(),
-  },
-  argTypes: {
-    value: { control: false, table: { disable: true } },
-    onValueChange: { control: false, table: { disable: true } },
-    items: { control: false, table: { disable: true } },
-    ariaLabel: { control: false, table: { disable: true } },
-  },
-  parameters: {
-    layout: 'fullscreen',
-    docs: {
-      description: {
-        component:
-          'ConnectedTabs is controlled: consumers own the selected value. These stories use a small decorator-only state harness to demonstrate interaction without changing the component contract.',
-      },
-    },
-  },
-  decorators: [
-    function ControlledSelection(Story, context) {
-      const [value, setValue] = useState<ExampleTab>(context.args.value ?? 'overview');
-      return (
-        <Story
-          args={{
-            ...context.args,
-            value,
-            onValueChange: setValue,
-          }}
-        />
-      );
-    },
-  ],
-});
+const meta = preview.meta({ ...connectedTabsMeta, title: 'Connected Tabs' });
 
 export const FirstActive = meta.story({
   args: { value: 'overview' },

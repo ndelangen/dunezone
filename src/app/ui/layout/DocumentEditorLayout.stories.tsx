@@ -2,14 +2,11 @@ import preview from '@sb/preview';
 import { expect, within } from 'storybook/test';
 
 import { DocumentEditorLayout } from './DocumentEditorLayout';
-import type { DocumentEditorFit } from './DocumentEditorLayout';
 import {
-  DocumentEditorLayoutFixture,
   expectPreviewFillToStayContained,
   expectSidebarToMatchPreviewMinimum,
   paneElement,
   paneWhileScrolling,
-  defaultArgs,
   renderInDocument,
 } from './DocumentEditorLayout.stories.fixture';
 import { LayoutSlotPlaceholder, slotRect } from './LayoutSlotPlaceholder.stories.fixture';
@@ -22,25 +19,9 @@ async function expectPaneHeldInView(canvasElement: HTMLElement, pane: 'sidebar' 
   await expect(rects[0]!.bottom).toBeLessThanOrEqual(viewportHeight);
 }
 
-const meta = preview.meta({
-  title: 'DocumentEditorLayout',
-  component: DocumentEditorLayoutFixture,
-  args: defaultArgs,
-  argTypes: {
-    ratio: { control: { type: 'number', min: 0.45, max: 1.8, step: 0.01 } },
-    fit: { control: { type: 'inline-radio' }, options: ['height', 'width'] satisfies DocumentEditorFit[] },
-    sidebarContentHeight: { control: { type: 'range', min: 240, max: 1600, step: 20 } },
-  },
-  parameters: {
-    layout: 'fullscreen',
-    docs: {
-      description: {
-        component:
-          'DocumentEditorLayout takes ratio, fit, Sidebar, and Preview. Use the viewport toolbar to exercise container sizes. Sidebar content height belongs only to the neutral story fixture.',
-      },
-    },
-  },
-});
+import { documentEditorLayoutMeta } from './DocumentEditorLayout.stories.fixture';
+
+const meta = preview.meta({ ...documentEditorLayoutMeta, title: 'DocumentEditorLayout' });
 
 /** The A4 Preview targets the viewport height. Sidebar receives the remaining width. */
 export const WideFitHeight = meta.story({

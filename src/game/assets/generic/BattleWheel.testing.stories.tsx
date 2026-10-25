@@ -5,23 +5,9 @@ import { expect, waitFor, within } from 'storybook/test';
 
 import { BattleWheel } from './BattleWheel';
 import { artwork, revealedArgs } from './BattleWheel.stories.fixture';
+import { battleWheelMeta } from './BattleWheel.stories.fixture';
 
-const meta = testingPreview.meta({
-  component: BattleWheel,
-  parameters: { layout: 'centered' },
-  argTypes: {
-    state: { control: 'radio', options: ['unrevealed', 'revealed'] },
-    strength: { description: 'Troop strength including adjustment, excluding the leader.' },
-  },
-  render: (args) =>
-    args.state === 'unrevealed' ? (
-      <div style={{ width: 170, height: 170 }}>
-        <BattleWheel {...args} artwork={args.artwork ?? artwork} ready={args.ready ?? false} />
-      </div>
-    ) : (
-      <BattleWheel {...revealedArgs} {...args} />
-    ),
-});
+const meta = testingPreview.meta({ ...battleWheelMeta });
 function RevealExample(args: ComponentProps<typeof BattleWheel>) {
   const [started, setStarted] = useState(false);
   useEffect(() => {

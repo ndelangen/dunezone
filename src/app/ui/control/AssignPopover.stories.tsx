@@ -1,33 +1,11 @@
-import { MantineThemeProvider, Popover } from '@mantine/core';
 import preview from '@sb/preview';
-import { Users } from 'lucide-react';
 import { expect, fn, userEvent, waitFor, within } from 'storybook/test';
 
-import { AssignOptions, AssignPopover } from './AssignPopover';
-import { groups, onAssign } from './AssignPopover.stories.fixture';
+import { AssignOptions } from './AssignPopover';
+import { onAssign } from './AssignPopover.stories.fixture';
+import { assignPopoverMeta } from './AssignPopover.stories.fixture';
 
-const meta = preview.meta({
-  component: AssignPopover,
-  parameters: { layout: 'centered' },
-  /* These stories test labels and assignment, not the opening fade.
-     Keep the real portal and theme, but do not make visibility depend on animation-frame scheduling. */
-  decorators: [
-    (Story) => (
-      <MantineThemeProvider
-        theme={{ components: { Popover: Popover.extend({ defaultProps: { transitionProps: { duration: 0 } } }) } }}
-      >
-        <Story />
-      </MantineThemeProvider>
-    ),
-  ],
-  args: {
-    noun: 'group',
-    disabled: false,
-    icon: <Users size={17} aria-hidden />,
-    children: <AssignOptions options={groups} onAssign={onAssign} />,
-  },
-  argTypes: { icon: { control: false }, children: { control: false } },
-});
+const meta = preview.meta({ ...assignPopoverMeta });
 
 export const Default = meta.story({
   play: async ({ canvasElement }) => {

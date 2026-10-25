@@ -36,6 +36,14 @@ const meta = testingPreview.meta({
   ...pageStoryMeta,
 });
 
+/** The signed-out reader's notice and its status badge, both found once the page has loaded; returns the page to query further. */
+async function findReaderNotice(canvasElement: HTMLElement, notice: string, status: string) {
+  const page = within(canvasElement.ownerDocument.body);
+  await expect(page.findByText(notice, {}, { timeout: 30_000 })).resolves.toBeVisible();
+  await expect(page.findByText(status)).resolves.toBeVisible();
+  return page;
+}
+
 /**
  * Back to a member's list from a ruleset's keeps the member in the address and narrows the grid to their factions again;
  * Forward widens both.
@@ -224,15 +232,11 @@ export const DetailTellsReadersTheFirstPublishFailed = meta.story({
   args: { path: '/factions/house-atreides' },
   parameters: { database: noSheetWithAFailedCapture, identity: null },
   play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await expect(
-      page.findByText(
-        'The latest changes were not captured, so no faction sheet is published yet.',
-        {},
-        { timeout: 30_000 }
-      )
-    ).resolves.toBeVisible();
-    await expect(page.findByText('Publish failed')).resolves.toBeVisible();
+    const page = await findReaderNotice(
+      canvasElement,
+      'The latest changes were not captured, so no faction sheet is published yet.',
+      'Publish failed'
+    );
     await expect(page.queryByText('Update failed')).toBeNull();
     await expect(page.queryByRole('link', { name: 'Open published PDF' })).toBeNull();
   },
@@ -705,15 +709,11 @@ export const DetailTellsReadersAReplacementFailed = meta.story({
   args: { path: '/factions/house-atreides' },
   parameters: { database: currentSheetWithAFailedReplacement, identity: null },
   play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await expect(
-      page.findByText(
-        'The published faction sheet may be out of date because the latest changes were not captured.',
-        {},
-        { timeout: 30_000 }
-      )
-    ).resolves.toBeVisible();
-    await expect(page.findByText('Update failed')).resolves.toBeVisible();
+    const page = await findReaderNotice(
+      canvasElement,
+      'The published faction sheet may be out of date because the latest changes were not captured.',
+      'Update failed'
+    );
     await expect(page.queryByText('Current')).toBeNull();
     await expect(page.queryByRole('link', { name: 'Edit faction' })).toBeNull();
     await expect(page.findByRole('link', { name: 'Open published PDF' })).resolves.toBeVisible();
