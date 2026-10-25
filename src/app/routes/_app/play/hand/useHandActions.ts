@@ -9,6 +9,7 @@ import { useMotionAllowed } from '@app/styles/motion';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 import { handGroups } from './handGroups';
+import { useHandOrder } from './useHandOrder';
 
 type Outgoing = Readonly<{ where: 'table' | 'side'; commandId?: string }>;
 
@@ -48,7 +49,12 @@ export function useHandActions({ client, table, hand }: HandProps) {
     []
   );
   const factionId = table.snapshot.bank?.factionId ?? hand[0]?.owner ?? undefined;
-  const inHand = hand.filter((piece) => !piece.hiddenZone);
+  const order = useHandOrder(
+    client,
+    table,
+    hand.filter((piece) => !piece.hiddenZone)
+  );
+  const inHand = order.pieces;
   const enabled = table.canHandleTable;
 
   /*
@@ -123,7 +129,6 @@ export function useHandActions({ client, table, hand }: HandProps) {
       })
     );
   };
-
   return {
     enabled,
     inHand,
@@ -132,6 +137,7 @@ export function useHandActions({ client, table, hand }: HandProps) {
     playReason,
     playInFront,
     toSideTable,
+    reorder: (piece: TablePiece, before: string | null) => enabled && order.reorder(piece, before),
   };
 }
 

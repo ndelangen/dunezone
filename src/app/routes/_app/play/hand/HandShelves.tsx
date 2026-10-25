@@ -11,8 +11,9 @@ import { HandPieceMenu, handMenuAnchor } from '../multiplayer/HiddenZone';
 import type { HandMenuAnchor } from '../multiplayer/HiddenZone';
 import { HAND_HELP } from '../multiplayer/panelGuidance';
 import styles from './Hand.module.css';
-import { dragFromHand, useHandActions } from './useHandActions';
+import { useHandActions } from './useHandActions';
 import type { HandActions, HandProps } from './useHandActions';
+import { useShelfReorder } from './useShelfReorder';
 
 /* What a right-click on a piece offers: play it in front of you, or set it on your side-table. */
 function pieceActions(actions: HandActions, piece: TablePiece, viewWidth: number) {
@@ -40,7 +41,7 @@ const TILE_WIDTH = { leaders: 50, cards: 54 };
 /**
  * The hand as shelves: the Treachery cards, the leaders on a row of their own, then each other kind of card under its name and count.
  * A piece lifts under the pointer;
- * drag it onto the table, right-click it for its actions, or hold Alt to see it close up.
+ * drag it onto the table, or along its shelf to put the hand in your own order, right-click it for its actions, or hold Alt to see it close up.
  */
 export function HandShelves(props: HandProps) {
   const actions = useHandActions(props);
@@ -49,6 +50,7 @@ export function HandShelves(props: HandProps) {
   const ref = useMergedRef(measure, area);
   const [menu, setMenu] = useState<HandMenuAnchor | null>(null);
   const closeUp = useHandCloseUp(actions.inHand);
+  const shelfOrder = useShelfReorder(actions.groups, actions.reorder, actions.enabled);
   const menuPiece = menu ? actions.inHand.find((piece) => piece.id === menu.pieceId) : undefined;
   const tile = (piece: TablePiece, tileWidth: number) => {
     return (
@@ -57,13 +59,15 @@ export function HandShelves(props: HandProps) {
         className={styles.tile}
         data-leaving={actions.leaving(piece)}
         data-round={piece.kind !== 'card' || undefined}
+        data-gap={shelfOrder.gap(piece)}
+        data-dragging={shelfOrder.dragging(piece) || undefined}
+        {...shelfOrder.handlers(piece)}
       >
         <button
           type="button"
           className={styles.face}
           draggable={actions.enabled}
           aria-label={`Drag ${pieceName(piece)} from hand`}
-          onDragStart={dragFromHand(piece)}
           onContextMenu={(event) => setMenu(handMenuAnchor(event, piece.id))}
           {...closeUp.hover(piece)}
         >
