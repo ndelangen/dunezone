@@ -161,8 +161,9 @@ function aim(paths: readonly (SVGPathElement | null)[], badge: DOMRect, rail: DO
 }
 
 /*
- * How wide the rail is. The table beside it never gets narrower than its own 720px minimum while the rail
- * can give way, down to a floor of 16rem; the rail never covers the table (Norbert, 2026-10-25), so below that the table scrolls.
+ * How wide the rail is. The rail gives way first, down to a floor of 16rem, so the table beside it keeps 720px on any desktop window
+ * wider than 976px. The rail never covers the table (Norbert, 2026-10-25): in a narrower window the table gets narrower too,
+ * as Play is desktop-only for now.
  */
 const TABLE_MIN_WIDTH = '720px';
 const RAIL_WIDTH = `clamp(16rem, 100vw - ${TABLE_MIN_WIDTH}, 25rem)`;
