@@ -178,6 +178,17 @@ export function JourneyPage({ path }: Readonly<{ path: string } & JourneyArgs>) 
   return <StorybookPage path={path} />;
 }
 
+/** Every recorded step as the Play debugger panel lists it. */
+export const timelineSteps = () =>
+  journeySteps().map((step, index) => ({
+    index,
+    code: stepCode(index),
+    title: step.title,
+    detail: step.detail,
+    actor: step.actor,
+    action: step.action?.kind ?? null,
+  }));
+
 /** How the replay looks in the Play debugger panel: the recorded steps, the viewers, and the step shown now. */
 function describeJourney() {
   const steps = journeySteps();
@@ -189,14 +200,7 @@ function describeJourney() {
       const current = steps[journey.step]!;
       return {
         label: 'Step',
-        steps: steps.map((step, index) => ({
-          index,
-          code: stepCode(index),
-          title: step.title,
-          detail: step.detail,
-          actor: step.actor,
-          action: step.action?.kind ?? null,
-        })),
+        steps: timelineSteps(),
         reachable: steps.map((_, index) => index),
         current: journey.step,
         viewers: journeyViewers().map((id) => ({ id, label: viewerLabel(current, id) })),

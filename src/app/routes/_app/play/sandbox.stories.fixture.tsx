@@ -10,7 +10,7 @@ import type { StoredSnapshot } from '../../../../../workers/game/state';
 import { LocalTable } from '../tutorial/table/localTable';
 import type { TableMessage } from '../tutorial/table/localTable';
 import recording from './journey.recording/journey.json';
-import { journeySteps, journeyViewers, stepCode, viewerLabel } from './journey.stories.fixture';
+import { journeySteps, journeyViewers, stepCode, timelineSteps, viewerLabel } from './journey.stories.fixture';
 import { capturedFactions } from './product.stories.fixture';
 import { storyTransport } from './storyTransport';
 
@@ -116,14 +116,7 @@ function describeSandbox() {
       const table = sandbox.table!;
       return {
         label: 'Start from',
-        steps: steps.map((step, index) => ({
-          index,
-          code: stepCode(index),
-          title: step.title,
-          detail: step.detail,
-          actor: step.actor,
-          action: step.action?.kind ?? null,
-        })),
+        steps: timelineSteps(),
         reachable: sandboxSteps(),
         current: table.start,
         viewers: journeyViewers().map((id) => ({ id, label: viewerLabel(steps[table.start]!, id) })),
