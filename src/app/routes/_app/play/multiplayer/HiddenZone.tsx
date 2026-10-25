@@ -251,17 +251,21 @@ export function HiddenZone({ client, table, hand }: Props) {
     const lifted = carrying.current;
     const carried = lifted && lifted.moving ? lifted.pieceId : null;
     const pieceId = carried ?? closeUp.piece?.id ?? null;
-    if ((key !== 'q' && key !== 'e') || event.ctrlKey || event.metaKey || event.altKey || typing(event.target)) {
-      return;
-    }
-    /* The turn goes out when the key comes up, wherever the pointer has gone since, unless the piece is still carried. */
+    /*
+     * The turn goes out when its key comes up, wherever the pointer has gone since and whatever modifier is held by then
+     * (Alt for a close look changes the letter a key types), unless the piece is still carried.
+     */
     const pending = turns.current;
     if (event.type === 'keyup') {
-      if (pending && carried !== pending.pieceId) {
+      const turnKeyUp = key === 'q' || key === 'e' || event.code === 'KeyQ' || event.code === 'KeyE';
+      if (turnKeyUp && pending && carried !== pending.pieceId) {
         event.preventDefault();
         event.stopPropagation();
         sendTurn(pending);
       }
+      return;
+    }
+    if ((key !== 'q' && key !== 'e') || event.ctrlKey || event.metaKey || event.altKey || typing(event.target)) {
       return;
     }
     if (!enabled || !pieceId) {

@@ -338,6 +338,17 @@ export const HiddenZone = meta.story({
     await waitFor(() => expect(centreX()).toBeCloseTo(turnedX + 60, 0));
     await expect(kept().turn).toBe(1);
 
+    /* A turn's key that comes up while Alt is held for a close look still sends the turn. */
+    over('pointerover');
+    over('pointermove');
+    await new Promise((settle) => requestAnimationFrame(settle));
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'e', code: 'KeyE', bubbles: true }));
+    window.dispatchEvent(new KeyboardEvent('keyup', { key: '´', code: 'KeyE', altKey: true, bubbles: true }));
+    await waitFor(() => expect(kept().turn).toBe(2));
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'q', bubbles: true }));
+    window.dispatchEvent(new KeyboardEvent('keyup', { key: 'q', bubbles: true }));
+    await waitFor(() => expect(kept().turn).toBe(1));
+
     /* Leaving the window while Q is held sends the turn it shows, since the key comes up elsewhere. */
     over('pointerover');
     over('pointermove');
