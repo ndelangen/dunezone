@@ -35,7 +35,7 @@ export function LedgerPlan(props: BattlePlanViewProps) {
   const { plan, hand, onEdit, onDisclose } = props;
   const locks = planLocks(props);
   const pieces = planPieces(plan, hand);
-  const cards = cardsOf(pieces);
+  const cards = cardsOf(pieces, plan.cardIds);
   return (
     <div className={styles.ledger}>
       <PlanHead view={props} />

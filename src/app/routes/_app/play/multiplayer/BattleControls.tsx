@@ -265,7 +265,8 @@ function TroopFields(props: PlanEditor & { spiceLimit: number }) {
 }
 
 function PlanInventory({ plan, locked, update, pieces }: PlanEditor & { pieces: TablePiece[] }) {
-  const cards = pieces.filter(isBattleCard);
+  // A card an older plan already holds stays listed even when it no longer belongs in one, so it can be taken out.
+  const cards = pieces.filter((piece) => isBattleCard(piece) || plan.cardIds.includes(piece.id));
   return (
     <>
       <Select

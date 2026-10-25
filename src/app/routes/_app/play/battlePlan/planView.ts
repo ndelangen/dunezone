@@ -69,8 +69,9 @@ export function planPieces(plan: BattlePlan, hand: readonly TablePiece[]): Table
 }
 
 export const leadersOf = (pieces: readonly TablePiece[]) => pieces.filter(isBattleLeader);
-/** The cards a plan can take: Treachery cards only. */
-export const cardsOf = (pieces: readonly TablePiece[]) => pieces.filter(isBattleCard);
+/** The cards a plan can take: Treachery cards only, plus any card an older plan already holds, so it can still be taken out. */
+export const cardsOf = (pieces: readonly TablePiece[], chosen: readonly string[]) =>
+  pieces.filter((piece) => isBattleCard(piece) || chosen.includes(piece.id));
 
 export const capableFaces = (plan: BattlePlan) => plan.faces.filter((face) => face.capable);
 
