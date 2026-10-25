@@ -43,19 +43,11 @@ export function ChatBar({ inert, isOpen, onOpenCompass, onShow }: ChatBarProps) 
       {(tableChat || others.length > 0) && (
         <nav className={styles.chats} aria-label="Chats">
           {tableChat && (
-            <button
-              type="button"
-              className={styles.chat}
-              aria-pressed={isOpen('table-chat')}
-              aria-label={words('Table chat', tableChat.unread && `${tableChat.unread} unread`).join(', ')}
-              data-tip="Table chat · Space →"
-              onClick={() => onShow('table-chat', 'conversation')}
-            >
-              <span className={clsx(styles.token, styles.planet)}>
-                <MessagesSquare size={17} />
-              </span>
-              {tableChat.unread > 0 && <span className={styles.badge}>{tableChat.unread}</span>}
-            </button>
+            <TableChatToken
+              unread={tableChat.unread}
+              open={isOpen('table-chat')}
+              onOpen={() => onShow('table-chat', 'conversation')}
+            />
           )}
           {others.map((player) => (
             <ChatToken
@@ -68,6 +60,24 @@ export function ChatBar({ inert, isOpen, onOpenCompass, onShow }: ChatBarProps) 
         </nav>
       )}
     </div>
+  );
+}
+
+function TableChatToken({ unread, open, onOpen }: Readonly<{ unread: number; open: boolean; onOpen: () => void }>) {
+  return (
+    <button
+      type="button"
+      className={styles.chat}
+      aria-pressed={open}
+      aria-label={words('Table chat', unread && `${unread} unread`).join(', ')}
+      data-tip="Table chat · Space →"
+      onClick={onOpen}
+    >
+      <span className={clsx(styles.token, styles.planet)}>
+        <MessagesSquare size={17} />
+      </span>
+      {unread > 0 && <span className={styles.badge}>{unread}</span>}
+    </button>
   );
 }
 
