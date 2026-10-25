@@ -123,7 +123,9 @@ export const DeclaringOnAPhone = meta.story({
     const declare = within(bar).getByRole('button', { name: 'Declare' });
     await waitFor(async () => {
       const box = declare.getBoundingClientRect();
-      if (box.bottom > view.innerHeight) {
+      /* Below the window, or below the bottom of the slot that clips it, where the board shows instead. */
+      const covered = !declare.contains(canvasElement.ownerDocument.elementFromPoint(box.left + 4, box.top + 4));
+      if (box.bottom > view.innerHeight || covered) {
         const scrollers = touchScrollers(declare);
         await expect(scrollers, 'Declare sits below the window with nothing to scroll it into view').not.toHaveLength(
           0
