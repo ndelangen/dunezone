@@ -127,6 +127,8 @@ type Carry = Readonly<{
   width: number;
   depth: number;
   turn: number;
+  /** The zone's box on the page, measured once when the piece is lifted so a move reads no layout. */
+  zone: DOMRect;
 }>;
 
 /*
@@ -196,10 +198,7 @@ export function HiddenZone({ client, table, hand }: Props) {
   const carriedAt = (current: Carry) => {
     const left = current.x - current.grabX;
     const top = current.y - current.grabY;
-    const zone = frame.current?.getBoundingClientRect();
-    if (!zone) {
-      return { left, top };
-    }
+    const { zone } = current;
     const pending = turns.current && turns.current.pieceId === current.pieceId ? turns.current.by : 0;
     const { across, down } = turnedReach(current.width, current.depth, { x: 0, y: 0, turn: current.turn + pending });
     const sideways = (current.width - across) / 2;
@@ -367,15 +366,12 @@ export function HiddenZone({ client, table, hand }: Props) {
     if (!current || current.pointerId !== event.pointerId || !current.moving) {
       return;
     }
-    const zone = frame.current?.getBoundingClientRect();
+    const { zone } = current;
     const pending = turns.current && turns.current.pieceId === piece.id ? turns.current : null;
     const { turn } = pending ? turnHiddenZoneSpot(spotOf(piece), pending.by) : spotOf(piece);
     const at = carriedAt(current);
     if (pending) {
       setTurning(null);
-    }
-    if (!zone) {
-      return;
     }
     const footprint = hiddenZoneFootprint(piece);
     lay(
@@ -444,6 +440,7 @@ export function HiddenZone({ client, table, hand }: Props) {
                     width: pieceWidth,
                     depth: pieceDepth,
                     turn: spotOf(piece).turn ?? 0,
+                    zone: frame.current!.getBoundingClientRect(),
                   });
                 },
                 onPointerMove: (event: PointerEvent<HTMLDivElement>) => {
