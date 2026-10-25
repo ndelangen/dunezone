@@ -5,7 +5,7 @@ import { Html } from '@react-three/drei/webgpu';
 import { useFrame, useThree } from '@react-three/fiber/webgpu';
 import type { Board } from '@shared/boards/schema';
 import { troopBattleFaces } from '@shared/factions/troopBattle';
-import { isBattleLeader } from '@shared/play/battle';
+import { isBattleCard, isBattleLeader } from '@shared/play/battle';
 import type {
   BattlePlan,
   BattlePlanInput,
@@ -265,7 +265,7 @@ function TroopFields(props: PlanEditor & { spiceLimit: number }) {
 }
 
 function PlanInventory({ plan, locked, update, pieces }: PlanEditor & { pieces: TablePiece[] }) {
-  const cards = pieces.filter((piece) => piece.kind === 'card');
+  const cards = pieces.filter(isBattleCard);
   return (
     <>
       <Select
