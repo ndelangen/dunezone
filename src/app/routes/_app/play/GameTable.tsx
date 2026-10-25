@@ -1072,11 +1072,9 @@ export function GameTable({
         </div>
       </div>
 
-      {connectionStatus && (
-        <div className="seated-connection" data-hides-cursor>
-          {connectionStatus}
-        </div>
-      )}
+      <div className="seated-connection" data-hides-cursor>
+        {connectionStatus}
+      </div>
 
       <div className="seated-chip seated-toolbar" data-hides-cursor>
         {toolbarControl}
