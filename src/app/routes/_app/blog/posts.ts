@@ -33,7 +33,7 @@ export const BLOG_POST_META: Record<BlogPostSlug, BlogPostMeta> = {
   'building-a-dune-sandbox': {
     slug: 'building-a-dune-sandbox',
     title: "Playing Dune online: why I'm building a sandbox for homebrew",
-    date: '2026-10-26',
+    date: '2026-10-25',
     author: 'Central419',
     summary:
       'Why I love Treachery.Online, why my group still plays Dune on Tabletop Simulator, and why I want a sandbox in the browser with room for homebrew.',
