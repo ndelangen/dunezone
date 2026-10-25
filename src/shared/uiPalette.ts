@@ -19,6 +19,7 @@ export const coreColors = {
   negative: '#ffa8a8',
   negativeFill: '#c92a2a',
   caution: '#ffd772',
+  spice: '#f19b37',
   cautionFill: '#8b4d06',
   progress: '#74c0fc',
   progressFill: '#1971c2',
@@ -32,6 +33,18 @@ export const coreColors = {
 
 /* Mantine requires ten positions per ramp; positions reuse pigments instead of declaring ten more shades. */
 export const themeRamps = {
+  cta: [
+    coreColors.text,
+    coreColors.text,
+    coreColors.spice,
+    coreColors.spice,
+    coreColors.spice,
+    coreColors.spice,
+    coreColors.spice,
+    coreColors.spice,
+    coreColors.spice,
+    coreColors.spice,
+  ],
   brand: [
     coreColors.text,
     coreColors.text,
@@ -134,6 +147,7 @@ export const themeRamps = {
 export const cssPalette = {
   base: {
     '--color-paper': coreColors.paper,
+    '--color-cta': coreColors.spice,
     '--color-ink': coreColors.ink,
     '--color-text': coreColors.ink,
     '--color-muted': coreColors.umber,

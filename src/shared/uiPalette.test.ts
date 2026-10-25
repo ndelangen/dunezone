@@ -16,7 +16,7 @@ describe('shared UI palette contract', () => {
   it('derives every theme and Play role from the canonical pigments', () => {
     const canonical = new Set<string>(Object.values(coreColors));
     expect(canonical.size).toBe(Object.keys(coreColors).length);
-    expect(canonical.size).toBeLessThanOrEqual(25);
+    expect(canonical.size).toBeLessThanOrEqual(26);
     const roles = [
       ...Object.values(playUiColors),
       ...Object.values(themeRamps).flat(),
@@ -58,7 +58,7 @@ describe('shared UI palette contract', () => {
   });
   it('keeps filled control labels readable in every semantic family', () => {
     for (const [family, ramp] of Object.entries(themeRamps)) {
-      const ink = family === 'brand' ? coreColors.ink : coreColors.paper;
+      const ink = family === 'brand' || family === 'cta' ? coreColors.ink : coreColors.paper;
       expect(contrast(ink, ramp[8])).toBeGreaterThanOrEqual(4.5);
       expect(contrast(ink, ramp[9])).toBeGreaterThanOrEqual(4.5);
     }
@@ -66,6 +66,7 @@ describe('shared UI palette contract', () => {
   it('separates primary actions and the active phase from surrounding dark surfaces', () => {
     for (const surface of [coreColors.ground, coreColors.raised, coreColors.selected]) {
       expect(contrast(themeRamps.brand[8], surface)).toBeGreaterThanOrEqual(3);
+      expect(contrast(themeRamps.cta[8], surface)).toBeGreaterThanOrEqual(3);
       expect(contrast(playUiColors.activeTracker, surface)).toBeGreaterThanOrEqual(3);
     }
   });

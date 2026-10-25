@@ -41,7 +41,7 @@ export function SubmitAction({
       type="submit"
       form={form}
       variant="filled"
-      color="brand"
+      color="cta"
       size={size}
       leftSection={icon}
       loading={pending}

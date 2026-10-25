@@ -1,4 +1,5 @@
 import { Avatar, Button, Group, Indicator, Stack, Text, VisuallyHidden } from '@mantine/core';
+import { alliesOf } from '@shared/play/alliances';
 import { TABLE_CONVERSATION } from '@shared/play/conversations';
 import { factionTokenOf } from '@shared/play/factionToken';
 import type { PublicControls } from '@shared/play/inventory';
@@ -427,7 +428,8 @@ export function usePlayerWindows(client: TableSession, table: TableProjection, e
   const votes = table.snapshot.removalVotes ?? [];
   const asked = requestedSeats(table);
   const viewerSeat = table.viewer.viewerSeat;
-  const ownHue = viewerSeat ? allianceHue(table.snapshot, seatFaction(table, viewerSeat)) : undefined;
+  const ownFaction = viewerSeat ? seatFaction(table, viewerSeat) : undefined;
+  const allies = ownFaction ? alliesOf(table.snapshot.alliances, ownFaction) : [];
   const players: PlayerWindowEntry[] = seatPlayers(table).map((player) => {
     const faction = rosterSeat(table.snapshot.roster, player.seat)?.faction;
     const peerId = seatFaction(table, player.seat);
@@ -441,7 +443,7 @@ export function usePlayerWindows(client: TableSession, table: TableProjection, e
       own: player.seat === table.viewer.viewerSeat,
       canConverse: Boolean(peerId && conversations.context?.peers.some((peer) => peer.id === peerId)),
       attention: votes.some((vote) => vote.target.seat === player.seat) || asked.has(player.seat),
-      ally: player.seat !== viewerSeat && ownHue !== undefined && allianceHue(table.snapshot, peerId) === ownHue,
+      ally: Boolean(peerId && allies.includes(peerId)),
     };
   });
   return {

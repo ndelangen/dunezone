@@ -27,7 +27,7 @@ export interface CallToActionProps {
  * The button that starts a page's primary journey.
  *
  * Callers own the words and the destination.
- * This component owns what makes the invitation read as the same invitation everywhere it appears: the affirmative colour, the icon convention that distinguishes creating from continuing, icon sizing tied to button size, and the opt-in attention pulse (which respects `prefers-reduced-motion`).
+ * This component owns the primary action colour, the icon convention for creating or continuing, icon sizing tied to button size, and the opt-in attention pulse that respects `prefers-reduced-motion`.
  */
 export function CallToAction({
   children,
@@ -40,7 +40,7 @@ export function CallToAction({
 
   return (
     <Button
-      color="brand"
+      color="cta"
       className={attention ? styles.attention : undefined}
       size={size}
       leftSection={direction === 'start' ? <Plus size={iconSize} aria-hidden /> : undefined}

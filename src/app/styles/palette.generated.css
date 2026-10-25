@@ -17,6 +17,7 @@
   --ui-negative: #ffa8a8;
   --ui-negative-fill: #c92a2a;
   --ui-caution: #ffd772;
+  --ui-spice: #f19b37;
   --ui-caution-fill: #8b4d06;
   --ui-progress: #74c0fc;
   --ui-progress-fill: #1971c2;
@@ -27,6 +28,7 @@
   --ui-paper: #fffdf8;
   --ui-ink: #2e2927;
   --color-paper: #fffdf8;
+  --color-cta: #f19b37;
   --color-ink: #2e2927;
   --color-text: #2e2927;
   --color-muted: #53412e;

@@ -549,6 +549,7 @@ function FactionRow({
       <Group gap="xs" wrap="nowrap" className={styles.rowActions}>
         <Button
           size="compact-sm"
+          color="brand"
           variant={picked ? 'filled' : 'default'}
           aria-pressed={picked}
           disabled={locked(table) || ((banned || !dealable) && !picked)}
@@ -639,11 +640,7 @@ export function DraftingReady({ client, table }: Props) {
   /* A failed deal keeps everyone's readiness, so a ready player deals again rather than withdrawing. */
   if (draft.failure && ready) {
     return (
-      <Button
-        color="brand"
-        disabled={locked(table)}
-        onClick={() => client.command({ kind: 'draft-ready', ready: true })}
-      >
+      <Button color="cta" disabled={locked(table)} onClick={() => client.command({ kind: 'draft-ready', ready: true })}>
         Deal again
       </Button>
     );

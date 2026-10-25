@@ -61,7 +61,7 @@ export function ReadyToggle({
       <Tooltip label={ready ? 'Withdraw readiness' : 'Tell the table you are ready'} withinPortal>
         <Button
           disabled={disabled}
-          color={ready ? 'confirm' : 'brand'}
+          color={ready ? 'confirm' : 'cta'}
           variant={ready ? 'light' : 'filled'}
           aria-pressed={ready}
           aria-describedby={countId}
@@ -93,7 +93,12 @@ function PhaseStepButton({
 }: Readonly<{ nextDisabled: boolean; previousDisabled: boolean; onNext: () => void; onPrevious: () => void }>) {
   return (
     <Group gap={1} wrap="nowrap">
-      <Button disabled={nextDisabled} onClick={onNext} style={{ borderStartEndRadius: 0, borderEndEndRadius: 0 }}>
+      <Button
+        color="cta"
+        disabled={nextDisabled}
+        onClick={onNext}
+        style={{ borderStartEndRadius: 0, borderEndEndRadius: 0 }}
+      >
         Next phase
       </Button>
       <Menu position="bottom-end" shadow="md" withinPortal>

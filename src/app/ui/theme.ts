@@ -74,13 +74,21 @@ export const appContentTheme = createTheme({
     confirm,
     red: danger,
   },
-  primaryColor: 'brand',
+  primaryColor: 'cta',
   primaryShade: { light: 8, dark: 8 },
   focusClassName: styles.focus,
   variantColorResolver: (input) => {
     const resolved = defaultVariantColorsResolver(input);
     const family = (input.color ?? input.theme.primaryColor).split('.')[0];
-    if (family === 'brand' && input.variant === 'filled') {
+    if (family === 'cta' && input.variant === 'artwork') {
+      return {
+        background: 'var(--ui-ground)',
+        hover: 'var(--ui-raised)',
+        color: 'var(--color-paper)',
+        border: 'transparent',
+      };
+    }
+    if ((family === 'brand' || family === 'cta') && input.variant === 'filled') {
       return {
         ...resolved,
         color: 'var(--color-ink)',

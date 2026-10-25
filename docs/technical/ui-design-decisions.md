@@ -362,7 +362,9 @@ The enums are per component and per prop rather than one shared union, because a
 an action's intents are different questions. They draw their words from one language so a reader
 meeting a new component already knows what the words mean.
 
-A forward-moving primary uses the shared yellow brand accent with dark text. Positive statuses
+A forward-moving primary uses the shared spice amber with dark text. The homepage's primary
+uses the `artwork` variant of `cta`, near-black with cream text against the sandy header.
+The `brand` family retains pale gold for emphasis and selected Play choices. Positive statuses
 remain olive, destructive actions are `negative`, and auxiliary actions are `neutral`.
 `CallToAction` and `SubmitAction` own primary emphasis; callers supply their words and intent.
 
@@ -379,7 +381,9 @@ The language, each word earned by usage the survey found rather than invented:
 | `positive` | affirms or creates | any |
 | `negative` | destroys, or reports a failure | any |
 | `caution` | warns without failing | any |
-| `brand` | primary emphasis and ownership | any |
+| `cta` | the forward-moving primary action | buttons |
+| `artwork` | a primary action contrasted against sandy artwork | `cta` buttons |
+| `brand` | active emphasis and ownership | any |
 | `selected` | currently chosen among alternatives | any |
 | `pending` | waiting to start | `StatusBadge`, `StatusMark` |
 | `progress` | running | `StatusBadge`, `StatusMark` |
@@ -398,7 +402,8 @@ the four Mantine variants the code already used, added when that vendor enum sto
 component's boundary. At the token layer, `inverse` also names caution's legible-on-dark-artwork
 value (`--color-caution-inverse`), the same meaning the Eyebrow row gives the word. Default actions,
 hover states, links, ownership marks and keyboard focus use the warm mineral UI palette. The former
-dune colour name resolves to that same palette; it must not reintroduce a separate orange accent.
+dune colour name resolves to that same palette; it must not introduce an independent palette.
+The canonical `cta` role owns the spice-amber action accent.
 Destructive actions use red. Game artwork and authored asset colours remain renderer-owned.
 Selected fills, text and hover states resolve through the `--button-toggle-*` tokens in both schemes.
 Selection controls use `color="selected"`; dropdown options receive the same treatment through
