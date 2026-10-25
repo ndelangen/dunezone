@@ -57,8 +57,11 @@ export const RemovalVoting = meta.story({
   beforeEach: install(() => productTransport('seat-2', removalSnapshot())),
   play: async ({ canvasElement }) => {
     const page = await openPlayer(canvasElement, 'Twaffle', 'Info');
-    /* The token in the chat bar carries a mark while the vote stands. */
+    /* The token in the chat bar carries a mark while the vote stands, and says so in its name. */
     await expect(attentionOn(page, 'Twaffle')).not.toBeNull();
+    await expect(
+      within(page.getByRole('navigation', { name: 'Chats' })).getByRole('button', { name: /^Twaffle.*removal vote/u })
+    ).toBeVisible();
     await userEvent.click(page.getByRole('button', { name: 'Withdraw' }));
     await expect(lastCommand()).toMatchObject({
       action: { kind: 'removal-ballot', voteId: 'removal-12', choice: null },

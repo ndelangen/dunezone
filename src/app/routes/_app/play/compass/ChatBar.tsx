@@ -81,14 +81,23 @@ function TableChatToken({ unread, open, onOpen }: Readonly<{ unread: number; ope
   );
 }
 
+/* What waits on a player, said with their name: a vote to remove them, or a request for their empty seat. */
+function waiting(player: CompassPlayer) {
+  if (player.vote) {
+    return 'removal vote';
+  }
+  return player.attention ? 'seat request' : null;
+}
+
 function ChatToken({ player, open, onOpen }: Readonly<{ player: CompassPlayer; open: boolean; onOpen: () => void }>) {
+  const reason = waiting(player);
   return (
     <button
       type="button"
       className={styles.chat}
       aria-pressed={open}
-      aria-label={words(player.name, player.factionName, player.unread && `${player.unread} unread`).join(', ')}
-      data-tip={words(player.name, player.factionName, player.ally && 'ally · Space → →').join(' · ')}
+      aria-label={words(player.name, player.factionName, reason, player.unread && `${player.unread} unread`).join(', ')}
+      data-tip={words(player.name, player.factionName, reason, player.ally && 'ally · Space → →').join(' · ')}
       data-ally={player.ally || undefined}
       onClick={onOpen}
     >
