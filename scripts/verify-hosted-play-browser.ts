@@ -1633,11 +1633,12 @@ async function sharedPhaseFlow(a: HostedPeer, b: HostedPeer) {
   assert.notEqual(nextView, 'map', 'The phase after Storm must recommend a view other than the map.');
   await clearCentre(a);
   await clearCentre(b);
+  /* The stack stays where this carry drops it, so every spot keeps clear of the later carries' destinations near the rim. */
   const candidates: Vector3Tuple[] = [
     [-1.5, 0.38, 1.4],
-    [1.2, 0.38, 1.2],
     [1.4, 0.38, 0.4],
     [0.9, 0.38, -0.6],
+    [-0.9, 0.38, -0.6],
   ];
   await focus(a, nextView);
   await a.page.mouse.move(10, 10);
