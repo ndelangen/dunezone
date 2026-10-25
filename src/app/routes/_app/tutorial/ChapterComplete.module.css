@@ -1,0 +1,123 @@
+/* Over the table once a chapter is done: it dims the table and takes every pointer, so the table holds still. */
+.veil {
+  position: fixed;
+  inset: 4.5rem 0 0;
+  z-index: 250;
+  display: grid;
+  /* A window too short for the card scrolls it, from its top, instead of cutting off the button. */
+  place-items: safe center;
+  overflow-y: auto;
+  padding: var(--space-md);
+  background: rgb(0 0 0 / 0.55);
+  backdrop-filter: blur(2px);
+}
+
+.complete {
+  max-width: 28rem;
+  padding: var(--space-xl) var(--space-lg);
+  border: 1px solid rgb(255 255 255 / 0.22);
+  border-radius: var(--mantine-radius-md);
+  background: var(--color-ink);
+  color: var(--color-paper);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 0.6);
+}
+
+.learned {
+  display: grid;
+  gap: var(--space-xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Each line hops in like a token dropped onto the board, squashing as it lands, and its tick spins in after it (Norbert, 2026-10-24). */
+.learned li {
+  display: flex;
+  gap: var(--space-xs);
+  align-items: center;
+  transform-origin: 50% 100%;
+  animation: token-hop 650ms both;
+  animation-delay: calc(400ms + var(--learned-order) * 450ms);
+}
+
+.tick {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  background: var(--mantine-color-green-7);
+  color: var(--color-paper);
+  animation: tick-spin 600ms cubic-bezier(0.3, 1.6, 0.5, 1) both;
+  animation-delay: calc(400ms + var(--learned-order) * 450ms + 250ms);
+}
+
+/* The button comes last, after every line has come in, with a wobble; until then it can be neither seen nor pressed. */
+.onward {
+  animation: onward-in 700ms cubic-bezier(0.3, 1.6, 0.5, 1) both;
+  animation-delay: calc(700ms + var(--learned-count) * 450ms);
+}
+
+.complete[data-motion="reduce"] .learned li,
+.complete[data-motion="reduce"] .tick,
+.complete[data-motion="reduce"] .onward {
+  animation: none;
+}
+
+@keyframes token-hop {
+  from {
+    opacity: 0;
+    transform: translateY(-4rem) scale(0.6);
+  }
+
+  45% {
+    opacity: 1;
+    transform: translateY(0) scale(1.15, 0.8);
+  }
+
+  65% {
+    transform: translateY(-0.9rem) scale(0.95, 1.05);
+  }
+
+  82% {
+    transform: translateY(0) scale(1.05, 0.95);
+  }
+
+  to {
+    transform: none;
+  }
+}
+
+@keyframes tick-spin {
+  from {
+    opacity: 0;
+    transform: scale(0) rotate(-270deg);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes onward-in {
+  from {
+    visibility: hidden;
+    opacity: 0;
+    transform: translateY(-3rem) scale(0.5) rotate(-6deg);
+  }
+
+  55% {
+    opacity: 1;
+    transform: translateY(0) scale(1.15, 0.9) rotate(3deg);
+  }
+
+  75% {
+    transform: scale(0.95, 1.05) rotate(-1.5deg);
+  }
+
+  to {
+    transform: none;
+  }
+}

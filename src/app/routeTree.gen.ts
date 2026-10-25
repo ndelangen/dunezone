@@ -47,6 +47,7 @@ import { Route as AppProfilesIndexRouteImport } from './routes/_app/profiles/ind
 import { Route as AppRulesetsIndexRouteImport } from './routes/_app/rulesets/index'
 import { Route as AppRulesetsCreateRouteRouteImport } from './routes/_app/rulesets/create.route'
 import { Route as AppTutorialIndexRouteImport } from './routes/_app/tutorial/index'
+import { Route as AppTutorialChapterRouteRouteImport } from './routes/_app/tutorial/$chapter.route'
 import { Route as PreviewSheetFactionSlugRouteRouteImport } from './routes/preview/sheet/$factionSlug.route'
 import { Route as AppAssetsTypeIndexRouteImport } from './routes/_app/assets/$type/index'
 import { Route as AppBlogPostSlugIndexRouteImport } from './routes/_app/blog/$postSlug/index'
@@ -271,6 +272,11 @@ const AppTutorialIndexRoute = AppTutorialIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppTutorialRouteRoute,
 } as any)
+const AppTutorialChapterRouteRoute = AppTutorialChapterRouteRouteImport.update({
+  id: '/$chapter',
+  path: '/$chapter',
+  getParentRoute: () => AppTutorialRouteRoute,
+} as any)
 const PreviewSheetFactionSlugRouteRoute =
   PreviewSheetFactionSlugRouteRouteImport.update({
     id: '/preview/sheet/$factionSlug',
@@ -490,6 +496,7 @@ export interface FileRoutesByFullPath {
   '/play/$gameId': typeof AppPlayGameIdRouteRoute
   '/play/create': typeof AppPlayCreateRouteRoute
   '/rulesets/create': typeof AppRulesetsCreateRouteRoute
+  '/tutorial/$chapter': typeof AppTutorialChapterRouteRoute
   '/preview/sheet/$factionSlug': typeof PreviewSheetFactionSlugRouteRoute
   '/assets/': typeof AppAssetsIndexRoute
   '/auth/': typeof AppAuthIndexRoute
@@ -560,6 +567,7 @@ export interface FileRoutesByTo {
   '/play/$gameId': typeof AppPlayGameIdRouteRoute
   '/play/create': typeof AppPlayCreateRouteRoute
   '/rulesets/create': typeof AppRulesetsCreateRouteRoute
+  '/tutorial/$chapter': typeof AppTutorialChapterRouteRoute
   '/preview/sheet/$factionSlug': typeof PreviewSheetFactionSlugRouteRoute
   '/assets': typeof AppAssetsIndexRoute
   '/auth': typeof AppAuthIndexRoute
@@ -634,6 +642,7 @@ export interface FileRoutesById {
   '/_app/play/$gameId': typeof AppPlayGameIdRouteRoute
   '/_app/play/create': typeof AppPlayCreateRouteRoute
   '/_app/rulesets/create': typeof AppRulesetsCreateRouteRoute
+  '/_app/tutorial/$chapter': typeof AppTutorialChapterRouteRoute
   '/preview/sheet/$factionSlug': typeof PreviewSheetFactionSlugRouteRoute
   '/_app/assets/': typeof AppAssetsIndexRoute
   '/_app/auth/': typeof AppAuthIndexRoute
@@ -708,6 +717,7 @@ export interface FileRouteTypes {
     | '/play/$gameId'
     | '/play/create'
     | '/rulesets/create'
+    | '/tutorial/$chapter'
     | '/preview/sheet/$factionSlug'
     | '/assets/'
     | '/auth/'
@@ -778,6 +788,7 @@ export interface FileRouteTypes {
     | '/play/$gameId'
     | '/play/create'
     | '/rulesets/create'
+    | '/tutorial/$chapter'
     | '/preview/sheet/$factionSlug'
     | '/assets'
     | '/auth'
@@ -851,6 +862,7 @@ export interface FileRouteTypes {
     | '/_app/play/$gameId'
     | '/_app/play/create'
     | '/_app/rulesets/create'
+    | '/_app/tutorial/$chapter'
     | '/preview/sheet/$factionSlug'
     | '/_app/assets/'
     | '/_app/auth/'
@@ -1173,6 +1185,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppTutorialIndexRouteImport
       parentRoute: typeof AppTutorialRouteRoute
     }
+    '/_app/tutorial/$chapter': {
+      id: '/_app/tutorial/$chapter'
+      path: '/$chapter'
+      fullPath: '/tutorial/$chapter'
+      preLoaderRoute: typeof AppTutorialChapterRouteRouteImport
+      parentRoute: typeof AppTutorialRouteRoute
+    }
     '/preview/sheet/$factionSlug': {
       id: '/preview/sheet/$factionSlug'
       path: '/preview/sheet/$factionSlug'
@@ -1447,10 +1466,12 @@ const AppPlayRouteRouteWithChildren = AppPlayRouteRoute._addFileChildren(
 )
 
 interface AppTutorialRouteRouteChildren {
+  AppTutorialChapterRouteRoute: typeof AppTutorialChapterRouteRoute
   AppTutorialIndexRoute: typeof AppTutorialIndexRoute
 }
 
 const AppTutorialRouteRouteChildren: AppTutorialRouteRouteChildren = {
+  AppTutorialChapterRouteRoute: AppTutorialChapterRouteRoute,
   AppTutorialIndexRoute: AppTutorialIndexRoute,
 }
 

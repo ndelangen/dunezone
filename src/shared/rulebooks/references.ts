@@ -8,7 +8,7 @@ import { resolveRulebookBoardDefinition } from './boardDefinitions';
 import { getRulebookCoverFooter } from './contents';
 import type { RulebookContentsDraftV1 } from './contents';
 import type { RulebookBoardSceneValue } from './illustratedScenes';
-import { rulebookResolvedSourceSchema, resolveRulebookArtworkSource } from './sources';
+import { rulebookResolvedSourceSchema, resolveRulebookArtworkSource, rulebookFactionSheetSchema } from './sources';
 import type { RulebookResolvedAssetsById, RulebookSourceReference } from './sources';
 
 export const rulebookResolvedFactionSchema = z.strictObject({
@@ -23,6 +23,7 @@ export const rulebookResolvedFactionSchema = z.strictObject({
   ruler: rulebookResolvedSourceSchema.optional(),
   leaders: z.array(rulebookResolvedSourceSchema).optional(),
   traitors: z.array(rulebookResolvedSourceSchema).optional(),
+  sheet: rulebookFactionSheetSchema.optional(),
 });
 export const rulebookResolvedFactionsByIdSchema = z.record(z.string(), rulebookResolvedFactionSchema);
 export type RulebookResolvedFactionsById = Readonly<
@@ -161,6 +162,7 @@ export function collectRulebookReferenceIds(
   const troopSources = new Map<string, Extract<RulebookSourceReference, { kind: 'faction-troop' }>>();
   const traitorFactionIds = new Set<string>();
   const tokenFactionIds = new Set<string>();
+  const sheetFactionIds = new Set<string>();
   const markupBoardIds = new Set<string>();
   for (const use of rulebookReferenceUses(contents)) {
     if (use.kind === 'troop') {
@@ -184,6 +186,9 @@ export function collectRulebookReferenceIds(
     if (source.kind === 'faction' && source.presentation === 'token') {
       tokenFactionIds.add(source.factionId);
     }
+    if (source.kind === 'faction' && source.presentation === 'sheet') {
+      sheetFactionIds.add(source.factionId);
+    }
     if (source.kind === 'faction-member' && source.presentation === 'traitor') {
       traitorFactionIds.add(source.factionId);
     }
@@ -198,6 +203,7 @@ export function collectRulebookReferenceIds(
     assetIds: [...assetIds].sort(compareCodeUnits),
     factionIds: [...factionIds].sort(compareCodeUnits),
     ...(tokenFactionIds.size ? { tokenFactionIds: [...tokenFactionIds] } : {}),
+    ...(sheetFactionIds.size ? { sheetFactionIds: [...sheetFactionIds] } : {}),
     ...(traitorFactionIds.size ? { traitorFactionIds: [...traitorFactionIds] } : {}),
     ...(troopSources.size ? { troopSources: [...troopSources.values()] } : {}),
     ...(markupBoardIds.size ? { markupBoardIds: [...markupBoardIds].sort(compareCodeUnits) } : {}),

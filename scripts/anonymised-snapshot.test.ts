@@ -43,10 +43,22 @@ describe('anonymised snapshot job', () => {
     expect(crons[0]!.slice(0, 2)).toEqual([expect.stringMatching(/^\d+$/), expect.stringMatching(/^\d+$/)]);
     expect(crons[0]!.slice(2)).toEqual(['*', '*', '1']);
     expect(job).toMatchObject({ if: "github.ref == 'refs/heads/main'", environment: 'production' });
-    expect(JSON.stringify(workflow).match(/secrets\./g)).toHaveLength(1);
+    expect(JSON.stringify(workflow).match(/secrets\./g)).toHaveLength(2);
     expect(steps[stepNamed('Export production, anonymise it and scan the snapshot')]?.env).toEqual({
       CONVEX_PROD_DEPLOY_KEY: '${{ secrets.CONVEX_DEPLOY_KEY }}',
     });
+  });
+
+  test('refreshes cloud dev from the same checked snapshot after uploading it', () => {
+    const refresh = stepNamed('Refresh cloud dev from the weekly anonymised snapshot');
+    expect(refresh).toBeGreaterThan(stepNamed('Upload the anonymised snapshot'));
+    expect(refresh).toBeLessThan(stepNamed('Delete the export and the snapshot from the runner'));
+    expect(steps[refresh]).toMatchObject({
+      if: "success() && env.SNAPSHOT_UPLOAD == 'true'",
+      run: `bun run provision dev --stage data --snapshot-file "\${RUNNER_TEMP}/${JOB_DIRECTORY}/${SNAPSHOT_FILE}"`,
+      env: { CONVEX_DEV_DEPLOY_KEY: '${{ secrets.CONVEX_DEV_DEPLOY_KEY }}' },
+    });
+    expect(steps.filter((step) => step.run?.includes('anonymised-snapshot.ts'))).toHaveLength(1);
   });
 
   test('uploads only the snapshot file, only when SNAPSHOT_UPLOAD is on, and always deletes the job directory', () => {

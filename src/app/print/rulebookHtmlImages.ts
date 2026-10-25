@@ -71,7 +71,7 @@ export function rulebookHtmlImages(
     }
   }
   function resolveBlockImages(block: RulebookRenderBlockV1, pageId: string) {
-    if (block.kind === 'asset-explainer' && edition) {
+    if (block.kind === 'asset-explainer' && edition && !(block.source.status === 'ready' && block.source.sheet)) {
       block.illustrationUrl = new URL(
         rulebookAnnotatedIllustrationPath({ ...edition, pageId, blockId: block.id }),
         canonicalHref

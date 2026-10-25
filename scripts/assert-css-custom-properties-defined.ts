@@ -33,6 +33,12 @@ const PROVIDED_ELSEWHERE = [
   ['--document-editor-', 'DocumentEditorLayout, via setProperty'],
   ['--editor-plane-width', 'the faction editor plane, via setProperty'],
   ['--brush-cursor', 'TabletopScene while the territory paintbrush is on, via inline style'],
+  ['--page-layout-fullscreen-top', 'TutorialGuide, which puts its band above a fullscreen page, via inline style'],
+  [
+    '--palette-camera-top',
+    'the controls compass (PaletteStage4), which hangs the camera dial under the toolbar, via setProperty',
+  ],
+  ['--learned-', 'ChapterComplete in routes/_app/tutorial, which numbers the lines of its list, via inline style'],
 ];
 
 const definitionsRoot = process.env.CSS_VAR_DEFINITIONS_ROOT ?? 'src';

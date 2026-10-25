@@ -1587,11 +1587,9 @@ export class GameRoom extends DurableObject<GameEnv> {
   ) {
     const catalogue = this.catalogue();
     try {
-      const result = message.selection
-        ? { contents: this.session.projectContents(await catalogue.capture(message.selection)) }
-        : { entries: await catalogue.list() };
+      const contents = this.session.projectContents(await catalogue.capture(message.selection));
       if (await this.outlastFence(socket, connection, suspensions)) {
-        this.send(socket, { type: 'catalogue', requestId: message.requestId, ...result });
+        this.send(socket, { type: 'catalogue', requestId: message.requestId, contents });
       }
     } catch (error) {
       if (!(error instanceof GameRejection)) {

@@ -282,10 +282,15 @@ export async function queryNamespace(
  * With the isolated deploy key loaded the CLI resolves the deployment from the key and refuses a reference;
  * without it the reference needs an account login.
  */
-async function convexUsage(execFn: UsageExec, target: UsageTarget, env: NodeJS.ProcessEnv) {
+export async function convexUsage(
+  execFn: UsageExec,
+  target: Pick<UsageTarget, 'backendName' | 'project' | 'reference'>,
+  env: NodeJS.ProcessEnv
+) {
   const key = env.CONVEX_DEPLOY_KEY ?? '';
   const selected = ['dev', 'prod'].some((kind) => key.startsWith(`${kind}:${target.backendName}|`));
-  const reference = `${target.project}:${target.reference}`;
+  const reference =
+    target.reference === target.backendName ? target.backendName : `${target.project}:${target.reference}`;
   const { stdout } = await execFn(
     'bunx',
     ['convex', 'deployment', 'usage', ...(selected ? [] : ['--deployment', reference]), '--json'],

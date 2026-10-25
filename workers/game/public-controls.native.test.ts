@@ -515,7 +515,7 @@ describe('Hosted readiness and shared inventory through native commands', () => 
     const a = await admit('a');
     await admit('b');
     const observer = await admit('c');
-    observer.send({ type: 'catalogue', requestId: 'browse-1' });
+    observer.send({ type: 'catalogue', requestId: 'browse-1', selection: { type: 'token-disc', slug: 'recovery' } });
     const refused = await observer.message('rejected', (message) => message.requestId === 'browse-1');
     expect(refused.message).toContain('seated');
     peer.catalogueMode = 'hold';

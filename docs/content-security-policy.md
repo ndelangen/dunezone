@@ -52,7 +52,7 @@ external request channel if an attacker already controls script execution.
 `scripts/application-security.browser.test.ts` exercises native HTMLRewriter, the real edge cache and
 Chromium. It checks trusted nonce and hash startup, fresh nonces on cache hits, same-origin scripts,
 the configured backend, and blocked injected scripts, event handlers, `eval` and foreign connections.
-`publisher:application-runtime:verify` checks nonces on executable scripts in assembled public responses and
+`bun run scripts/verify-application-runtime-local.ts` provisions the isolated rehearsal that checks nonces on executable scripts in assembled public responses and
 compares cached HTML after normalizing only its delivery nonce. Publisher assembly tests cover the
 static hash and connection policy.
 The capture contract regression serves its fixtures with the assembled CSP, so publisher scripts,

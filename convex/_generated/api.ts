@@ -48,6 +48,7 @@ import type * as lib_backgroundPresetSlots from "../lib/backgroundPresetSlots.js
 import type * as lib_backgroundPresets from "../lib/backgroundPresets.js";
 import type * as lib_backgroundRegeneration from "../lib/backgroundRegeneration.js";
 import type * as lib_backgroundUses from "../lib/backgroundUses.js";
+import type * as lib_boardListing from "../lib/boardListing.js";
 import type * as lib_boardPublicationGeometry from "../lib/boardPublicationGeometry.js";
 import type * as lib_boardReadiness from "../lib/boardReadiness.js";
 import type * as lib_canonicalJson from "../lib/canonicalJson.js";
@@ -220,6 +221,7 @@ const fullApi: ApiFromModules<{
   "lib/backgroundPresets": typeof lib_backgroundPresets;
   "lib/backgroundRegeneration": typeof lib_backgroundRegeneration;
   "lib/backgroundUses": typeof lib_backgroundUses;
+  "lib/boardListing": typeof lib_boardListing;
   "lib/boardPublicationGeometry": typeof lib_boardPublicationGeometry;
   "lib/boardReadiness": typeof lib_boardReadiness;
   "lib/canonicalJson": typeof lib_canonicalJson;

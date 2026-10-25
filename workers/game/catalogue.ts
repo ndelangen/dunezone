@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import type { z } from 'zod';
 
 import { api } from '../../convex/_generated/api';
 import { cardbackPresetLabel } from '../../src/shared/assets/cardbackPresets';
@@ -26,7 +26,7 @@ import {
 import type { DraftFaction } from '../../src/shared/play/drafting';
 import { playDraftableFactionsSchema } from '../../src/shared/play/drafting';
 import type { SpawnSelection, StoredSpawnContents } from '../../src/shared/play/inventory';
-import { SPAWN_TYPES, spawnSelectionSchema, storedSpawnContentsSchema } from '../../src/shared/play/inventory';
+import { spawnSelectionSchema, storedSpawnContentsSchema } from '../../src/shared/play/inventory';
 import type { StoredPiece } from '../../src/shared/play/model';
 import { GameRejection } from '../../src/shared/play/rejection';
 import type { RulesetAssetSlot } from '../../src/shared/rulesets/assetSlots';
@@ -34,13 +34,6 @@ import { RULESET_ASSET_SLOTS } from '../../src/shared/rulesets/assetSlots';
 import { gameHttpClient } from './authorization';
 import type { ConvexObserver } from './authorization';
 
-const entrySchema = z.object({
-  id: z.string(),
-  type: z.string(),
-  slug: z.string(),
-  name: z.string(),
-  data: z.unknown(),
-});
 type SuppliedMember = AssetSupply['members'][number];
 type SlotAsset = RulesetSupply['slots'][number]['asset'];
 /** The rows a supplied asset's definition spans: itself and whichever back it wears. */
@@ -98,16 +91,6 @@ export class GameCatalogue {
     private readonly applicationOrigin: string,
     private readonly observe?: ConvexObserver
   ) {}
-
-  async list() {
-    const raw = await gameHttpClient(this.convexUrl, this.observe).query(api.assets.listByTypes, {
-      types: [...SPAWN_TYPES],
-    });
-    return z
-      .array(entrySchema)
-      .parse(raw)
-      .map(({ type, slug, name }) => ({ ...spawnSelectionSchema.parse({ type, slug }), name }));
-  }
 
   private async supply(selection: SpawnSelection): Promise<AssetSupply> {
     const raw: unknown = await gameHttpClient(this.convexUrl, this.observe).query(

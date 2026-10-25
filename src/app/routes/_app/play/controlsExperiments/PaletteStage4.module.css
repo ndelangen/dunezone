@@ -1,0 +1,393 @@
+/* The command palette's fourth stage: the compass with a search field at its centre and suggestions below, and two pinned slots. */
+
+.backdrop {
+  position: absolute;
+  z-index: 40;
+  inset: 0;
+  display: grid;
+  /* A window shorter than the compass scrolls it, from its top, so every tile and suggestion stays reachable. */
+  overflow: auto;
+  align-items: safe center;
+  justify-items: center;
+  padding-block: 1rem;
+  background: radial-gradient(circle at 50% 50%, rgba(8, 5, 3, 0.25), rgba(8, 5, 3, 0.6));
+  animation: fade 120ms ease-out;
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}
+
+.compass {
+  display: grid;
+  /* Full size wherever the table has room (59.8rem), narrower in a smaller window, never cut off at the table's edges. */
+  width: min(59.8rem, 100% - 2rem);
+  grid-template-columns: 7fr 7fr 10fr 7fr 7fr;
+  grid-template-areas:
+    ". . battle . ."
+    "hidden hand hub table ally"
+    ". search search search .";
+  gap: 0.7rem;
+  align-items: stretch;
+  animation: open 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes open {
+  from {
+    opacity: 0;
+    scale: 0.92;
+  }
+}
+
+.tile {
+  position: relative;
+  min-width: 0;
+  display: grid;
+  grid-template-rows: auto auto 1fr;
+  gap: 0.2rem;
+  justify-items: center;
+  min-height: 8.2rem;
+  padding: 0.9rem 0.6rem 0.7rem;
+  border: 1px solid rgba(255, 216, 148, 0.22);
+  border-radius: 16px;
+  background: radial-gradient(circle at 50% 0%, rgba(248, 175, 64, 0.1), transparent 70%), rgba(23, 16, 13, 0.94);
+  color: #f3e7d3;
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+  text-align: center;
+  transition:
+    transform 140ms ease,
+    border-color 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.tile[data-spot="battle"] {
+  grid-area: battle;
+}
+
+.tile[data-spot="hidden"] {
+  grid-area: hidden;
+  scale: 0.92;
+  opacity: 0.9;
+}
+
+.tile[data-spot="hand"] {
+  grid-area: hand;
+}
+
+.tile[data-spot="table"] {
+  grid-area: table;
+}
+
+.tile[data-spot="ally"] {
+  grid-area: ally;
+  scale: 0.92;
+  opacity: 0.9;
+}
+
+.tile[data-selected] {
+  border-color: var(--sand);
+  box-shadow:
+    0 0 0 3px rgba(248, 175, 64, 0.3),
+    0 18px 36px rgba(0, 0, 0, 0.55);
+  opacity: 1;
+  scale: 1.06;
+}
+
+.tile[data-disabled] {
+  color: #8d8478;
+  cursor: not-allowed;
+}
+
+.tile[data-disabled] .tileIcon {
+  opacity: 0.45;
+}
+
+.tile[data-refused="0"] {
+  animation: shake 260ms;
+}
+
+.tile[data-refused="1"] {
+  animation: shake2 260ms;
+}
+
+@keyframes shake {
+  25% {
+    translate: -6px 0;
+  }
+  75% {
+    translate: 6px 0;
+  }
+}
+
+@keyframes shake2 {
+  25% {
+    translate: 6px 0;
+  }
+  75% {
+    translate: -6px 0;
+  }
+}
+
+.tileIcon {
+  display: grid;
+  place-items: center;
+  height: 2.6rem;
+  color: var(--sand);
+}
+
+.tileLabel {
+  font: 650 0.95rem var(--font-sans);
+}
+
+.tileDetail {
+  color: #bdb3a4;
+  font: 400 0.76rem/1.35 var(--font-sans);
+}
+
+.tileKeys {
+  position: absolute;
+  top: 0.45rem;
+  right: 0.55rem;
+  color: rgba(248, 175, 64, 0.75);
+  font: 700 0.78rem var(--font-sans);
+  letter-spacing: 0.1em;
+}
+
+.hub {
+  display: grid;
+  grid-area: hub;
+  grid-template-columns: auto 1fr;
+  gap: 0.6rem 0.55rem;
+  align-content: center;
+  align-items: center;
+  padding: 1rem;
+  border: 2px solid rgba(255, 216, 148, 0.25);
+  border-radius: 18px;
+  background: radial-gradient(circle at 50% 30%, #2a2219, #0f0b08);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.55);
+  color: #bdb3a4;
+  cursor: text;
+}
+
+.hub[data-selected] {
+  border-color: var(--sand);
+  box-shadow:
+    0 0 0 3px rgba(248, 175, 64, 0.3),
+    0 18px 36px rgba(0, 0, 0, 0.55);
+}
+
+.hub input {
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #f3e7d3;
+  font: 600 1.05rem var(--font-sans);
+}
+
+.hub input::placeholder {
+  color: #8d8478;
+}
+
+.hub .hubHint {
+  grid-column: 1 / -1;
+  max-width: none;
+}
+
+.hubHint {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.2rem;
+  justify-content: center;
+  max-width: 8.5rem;
+  color: #bdb3a4;
+  font: 400 0.7rem/1.6 var(--font-sans);
+}
+
+.suggestions {
+  display: grid;
+  grid-area: search;
+  gap: 0.1rem;
+  margin: 0;
+  padding: 0.4rem;
+  border: 1px solid rgba(255, 216, 148, 0.22);
+  border-radius: 16px;
+  background: rgba(23, 16, 13, 0.96);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.45);
+  list-style: none;
+}
+
+.suggestions[data-selected] {
+  border-color: var(--sand);
+}
+
+.suggestionsTitle {
+  grid-column: 1 / -1;
+  padding: 0.2rem 0.5rem;
+  color: #8d8478;
+  font: 600 0.68rem var(--font-sans);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.suggestion {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+  padding: 0.4rem 0.55rem;
+  border-radius: 8px;
+  color: #f3e7d3;
+  cursor: pointer;
+}
+
+.suggestion[aria-selected="true"] {
+  background: rgba(248, 175, 64, 0.16);
+}
+
+.suggestionLabel {
+  font: 600 0.85rem var(--font-sans);
+  white-space: nowrap;
+}
+
+.suggestionHint {
+  overflow: hidden;
+  flex: 1;
+  color: #bdb3a4;
+  font: 400 0.74rem var(--font-sans);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The two pinned slots, bottom left and bottom right, beside the bar of the compass button and the chats. */
+.slot {
+  top: auto;
+  bottom: 1rem;
+  width: min(30rem, 27vw);
+  height: min(28rem, 46vh);
+  max-height: none;
+  transform: none;
+  animation: none;
+}
+
+.slot[data-side="left"] {
+  left: 1rem;
+}
+
+.slot[data-side="right"] {
+  right: 1rem;
+  left: auto;
+}
+
+.slot[data-flash="0"] {
+  animation: flash 520ms ease-out;
+}
+
+.slot[data-flash="1"] {
+  animation: flash2 520ms ease-out;
+}
+
+@keyframes flash {
+  30% {
+    border-color: var(--sand);
+    box-shadow: 0 0 0 4px rgba(248, 175, 64, 0.45);
+  }
+}
+
+@keyframes flash2 {
+  30% {
+    border-color: var(--sand);
+    box-shadow: 0 0 0 4px rgba(248, 175, 64, 0.45);
+  }
+}
+
+.frameName {
+  overflow: hidden;
+  min-width: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The centre window keeps clear of the slots either side, and in a narrow window takes the width it needs over them. */
+.centre {
+  width: min(44rem, max(22rem, 100vw - 2 * 27vw - 5rem), 100vw - 2rem);
+}
+
+/* A pinned slot's top edge: drag it to make the slot taller or shorter. */
+.resizeEdge {
+  appearance: none;
+  touch-action: none;
+  position: absolute;
+  padding: 0;
+  border: 0;
+  background: none;
+  z-index: 2;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 0.6rem;
+  cursor: ns-resize;
+}
+
+.resizeEdge::after {
+  content: "";
+  position: absolute;
+  top: 0.2rem;
+  left: 50%;
+  width: 2.6rem;
+  height: 0.22rem;
+  border-radius: 999px;
+  background: rgba(255, 216, 148, 0.3);
+  translate: -50% 0;
+  transition: background 120ms;
+}
+
+.resizeEdge:hover::after,
+.resizeEdge:active::after,
+.resizeEdge:focus-visible::after {
+  background: var(--sand);
+}
+
+/* Running into an overlay: the top edge knocks back down and settles, never further up. */
+.slot[data-bounce="0"] {
+  animation: bounce 420ms ease-out;
+}
+
+.slot[data-bounce="1"] {
+  animation: bounce2 420ms ease-out;
+}
+
+@keyframes bounce {
+  25% {
+    translate: 0 7px;
+  }
+
+  55% {
+    translate: 0 0;
+  }
+
+  75% {
+    translate: 0 3px;
+  }
+}
+
+@keyframes bounce2 {
+  25% {
+    translate: 0 7px;
+  }
+
+  55% {
+    translate: 0 0;
+  }
+
+  75% {
+    translate: 0 3px;
+  }
+}
+
+.resizeEdge:focus-visible {
+  outline: none;
+}

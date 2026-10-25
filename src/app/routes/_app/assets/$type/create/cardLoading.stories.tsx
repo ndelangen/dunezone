@@ -1,4 +1,4 @@
-import preview from '@sb/preview';
+import { testingPreview } from '@sb/preview';
 import { finishTransitions, waitForFrame } from '@sb/storyWaits';
 import { publishingSpiceCard } from '@shared/assets/fixtures/publishingSpiceCard';
 import { useNavigate } from '@tanstack/react-router';
@@ -18,7 +18,7 @@ async function enabledLoadButton(page: ReturnType<typeof within>) {
   return load;
 }
 
-const meta = preview.meta({
+const meta = testingPreview.meta({
   ...pageStoryMeta,
   title: 'Assets/Load card',
   args: { path: '/assets/card-custom/create' },

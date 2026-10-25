@@ -151,6 +151,26 @@ describe('published Rulebook reading', () => {
     }
   });
 
+  test('keeps inert troop artwork and placed images embedded in SVG', () => {
+    const artwork =
+      '<svg><foreignObject width="20" height="20"><div class="rulebookTerritoryTroop"><div><svg><defs><mask id="troop"><rect width="10" height="10"/></mask></defs><circle r="4" mask="url(#troop)"/></svg></div></div></foreignObject><foreignObject width="20" height="20"><img src="/published/token.webp"/></foreignObject></svg>';
+    const book = parsePublishedRulebook(html().replace('</main>', `${artwork}</main>`), href);
+    expect(book.markup).toContain('rulebookTerritoryTroop');
+    expect(book.markup).toContain('/published/token.webp');
+    expect(book.pageOrder).toHaveLength(3);
+  });
+
+  test.each([
+    '<button>Unexpected control</button>',
+    '<input autofocus>',
+    '<iframe src="https://example.com"></iframe>',
+    '<svg><animate attributeName="href" to="javascript:alert(1)"/></svg>',
+    '<img src="x" onerror="alert(1)">',
+  ])('rejects active content inside embedded troop artwork', (injected) => {
+    const artwork = `<svg><foreignObject><div class="rulebookTerritoryTroop">${injected}</div></foreignObject></svg>`;
+    expect(() => parsePublishedRulebook(html().replace('</main>', `${artwork}</main>`), href)).toThrow();
+  });
+
   test.each([
     '<script>alert(1)</script>',
     '<img src="x" onerror="alert(1)">',

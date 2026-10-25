@@ -1,6 +1,7 @@
 import type { PaginationOptions } from 'convex/server';
 
 import type { QueryCtx } from '../types';
+import { readBoardListing } from './boardListing';
 import { faqReferencePreview } from './faqReferencePreviews';
 import { liveFaqReferenceTarget } from './faqReferenceTarget';
 import type { FaqReferenceTarget } from './faqReferenceTarget';
@@ -43,7 +44,14 @@ export async function loadCataloguePickerOptions(
       if (!target) {
         return null;
       }
-      const live = await liveFaqReferenceTarget(ctx, target);
+      const board =
+        target.kind === 'asset' && args.partition === 'board' ? await readBoardListing(ctx, target.id) : undefined;
+      const live =
+        board === undefined
+          ? await liveFaqReferenceTarget(ctx, target)
+          : board && !board.is_deleted
+            ? { kind: 'asset' as const, asset: board }
+            : null;
       return live ? await faqReferencePreview(ctx, live) : null;
     })
   );

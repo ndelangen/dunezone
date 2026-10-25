@@ -1,0 +1,85 @@
+import { testingPreview } from '@sb/preview';
+import { expect, userEvent, within } from 'storybook/test';
+
+import { representativeFaction } from './FactionAuthoringStoryFixtures';
+import { FactionEditorFixture } from './FactionEditor.stories.fixture';
+
+const meta = testingPreview.meta({
+  title: 'Faction Editor',
+  component: FactionEditorFixture,
+  args: {
+    faction: representativeFaction(),
+    errors: [],
+  },
+  globals: {
+    viewport: {
+      value: 'appDesktop',
+    },
+  },
+  parameters: {
+    layout: 'fullscreen',
+  },
+});
+
+export const RetainsManualComplexityAcrossChapters = meta.story({
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+
+    await userEvent.click(canvas.getByRole('tab', { name: /Complexity/ }));
+    const manualSwitch = canvas.getByRole('switch', { name: 'Set the rating manually' });
+    await userEvent.click(manualSwitch);
+
+    const slider = canvas.getByRole('slider', { name: 'Manual complexity rating' });
+    slider.focus();
+    await userEvent.keyboard(
+      '{Home}{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}'
+    );
+    await expect(slider).toHaveAttribute('aria-valuenow', '7');
+
+    await userEvent.click(manualSwitch);
+    await userEvent.click(canvas.getByRole('tab', { name: /Identity/ }));
+    await userEvent.click(canvas.getByRole('tab', { name: /Complexity/ }));
+    await userEvent.click(canvas.getByRole('switch', { name: 'Set the rating manually' }));
+
+    await expect(canvas.getByRole('slider', { name: 'Manual complexity rating' })).toHaveAttribute(
+      'aria-valuenow',
+      '7'
+    );
+  },
+});
+
+export const AuthorsTroopBattleValues = meta.story({
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+
+    await userEvent.click(canvas.getByRole('tab', { name: /Troops/ }));
+    const strength = canvas.getByRole('textbox', { name: 'Strength' });
+    await expect(strength).toHaveValue('1');
+    await expect(canvas.getByRole('textbox', { name: 'Support cost' })).toHaveValue('');
+
+    await userEvent.clear(strength);
+    await userEvent.type(strength, '-0.75');
+    await userEvent.tab();
+    await expect(strength).toHaveValue('-0.75');
+
+    const supported = canvas.getByRole('textbox', { name: 'Supported strength' });
+    await userEvent.clear(supported);
+    await userEvent.type(supported, '1.5{Enter}');
+    await expect(supported).toHaveValue('1.5');
+
+    const capable = canvas.getByRole('switch', { name: 'Fights in battle' });
+    await userEvent.click(capable);
+    await expect(canvas.queryByRole('textbox', { name: 'Strength' })).toBeNull();
+    await userEvent.click(capable);
+    await expect(canvas.getByRole('textbox', { name: 'Strength' })).toHaveValue('-0.75');
+
+    await userEvent.click(canvas.getByRole('radio', { name: 'Back side' }));
+    await expect(canvas.getByRole('textbox', { name: 'Back-side supported strength' })).toHaveValue('-0.5');
+    await expect(canvas.getByRole('textbox', { name: 'Back-side support cost' })).toHaveValue('0');
+    const backStrength = canvas.getByRole('textbox', { name: 'Back-side strength' });
+    await expect(canvas.queryByText(/Enter both strengths/)).toBeNull();
+    await userEvent.clear(backStrength);
+    await userEvent.tab();
+    await expect(canvas.getByText(/Enter both strengths/)).toHaveAttribute('role', 'status');
+  },
+});

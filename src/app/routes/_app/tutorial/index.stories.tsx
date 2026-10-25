@@ -3,6 +3,7 @@ import { expect, within } from 'storybook/test';
 
 import { pageStoryMeta } from '../../storybookConfig';
 import { TUTORIAL_CHAPTERS, TUTORIAL_PARTS } from './chapters';
+import { CHAPTER_SCRIPTS } from './chapterScripts/scripts';
 
 const meta = preview.meta({
   ...pageStoryMeta,
@@ -10,7 +11,7 @@ const meta = preview.meta({
   args: { path: '/tutorial' },
 });
 
-/** Every chapter as a tile, in rows by part; a chapter not yet built shows as coming soon and opens nothing. */
+/** Every chapter as a tile, in rows by part; a built chapter's tile opens it, and one not yet built shows as coming soon. */
 export const Landing = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -21,7 +22,12 @@ export const Landing = meta.story({
       await expect(page.getByRole('list', { name: part })).toBeVisible();
     }
     await expect(page.getAllByRole('listitem')).toHaveLength(TUTORIAL_CHAPTERS.length);
-    await expect(page.getAllByText('Coming soon')).toHaveLength(TUTORIAL_CHAPTERS.length);
+    const built = TUTORIAL_CHAPTERS.filter((chapter) => chapter.slug in CHAPTER_SCRIPTS).length;
+    await expect(page.getAllByText('Coming soon')).toHaveLength(TUTORIAL_CHAPTERS.length - built);
+    await expect(page.getByRole('link', { name: 'Chapter 5: What goes where' })).toHaveAttribute(
+      'href',
+      '/tutorial/what-goes-where'
+    );
     await expect(page.queryByRole('link', { name: /Battle/ })).toBeNull();
   },
 });

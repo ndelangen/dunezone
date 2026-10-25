@@ -35,6 +35,7 @@ import { factionTokenFixtures } from '@game/fixtures/factionTokens';
 import type { TableSession, TableProjection } from '../../../../db/tabletop/TableSession';
 import { PointerSessionContext, usePointerSession } from '../../../../widgets/tabletop/PointerSessionContext';
 import { TABLE_PLATE_BOUNDS } from '../../../../widgets/tabletop/tablePlateGeometry';
+import { useControlsExperiment } from '../controlsExperiments/experiment';
 import { DarkSchemeIsland } from '../DarkSchemeIsland';
 import { BattleBeacon } from './BattleBeacon';
 import styles from './BattleControls.module.css';
@@ -467,18 +468,22 @@ function canTakeSelected(piece: TablePiece | undefined) {
 export function HandControls({ client, table, hand }: Props & { hand: TablePiece[] }) {
   const selected = table.snapshot.table.pieces.find((piece) => piece.id === table.state.selectedPieceId);
   const [menu, setMenu] = useState<HandMenuAnchor | null>(null);
+  const experiment = useControlsExperiment();
   /* The hidden zone is a tab beside this one, as wide, so a piece moved there lands in what its narrow view shows. */
   const { ref, width } = useElementSize<HTMLDivElement>();
   return (
     <Section hiddenHeading title="Your hand and leaders" description={handHelp(table)}>
       <Stack gap="sm" ref={ref}>
-        <Button
-          variant="default"
-          disabled={!table.canHandleTable || !canTakeSelected(selected)}
-          onClick={() => selected && client.command({ kind: 'hand-take', pieceId: selected.id })}
-        >
-          Take selected piece into hand
-        </Button>
+        {/* The compass controls drop the button (Norbert, 2026-10-24); how a table piece reaches the hand there is still open. */}
+        {experiment === null && (
+          <Button
+            variant="default"
+            disabled={!table.canHandleTable || !canTakeSelected(selected)}
+            onClick={() => selected && client.command({ kind: 'hand-take', pieceId: selected.id })}
+          >
+            Take selected piece into hand
+          </Button>
+        )}
         <Group gap="sm">
           {hand
             .filter((piece) => !piece.hiddenZone)

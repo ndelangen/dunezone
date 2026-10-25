@@ -1,10 +1,10 @@
-import preview from '@sb/preview';
+import { testingPreview } from '@sb/preview';
 import { expect, waitFor, within } from 'storybook/test';
 
 import { createPhaseListPage } from './RulebookPhaseList.stories.fixture';
 import { RulebookPageRenderer } from './RulebookRenderer';
 
-const meta = preview.meta({
+const meta = testingPreview.meta({
   title: 'Blocks/List/Rendered',
   parameters: { layout: 'centered' },
   decorators: [

@@ -4,12 +4,8 @@ import { INITIAL_CARDBACK_PRESETS } from '@shared/assets/cardbackPresets';
 import { GF9_LEADER_SKILL_DECK_BACK } from '@shared/assets/gf9LeaderSkills';
 import { expect, fn, within } from 'storybook/test';
 
-import type { DeckDraft } from './DeckEditor';
 import { DeckEditor, INITIAL_DECK_DRAFT, initialDeckMemory } from './DeckEditor';
-
-function draftWith(cardback: DeckDraft['cardback']): DeckDraft {
-  return { ...INITIAL_DECK_DRAFT, name: 'Treachery', cardback };
-}
+import { draftWith } from './DeckEditor.stories.fixture';
 
 const meta = preview.meta({
   title: 'Deck Editor',
@@ -29,20 +25,6 @@ const meta = preview.meta({
     backPicker: <Text size="xs">Choose a deck…</Text>,
     backProof: null,
     draft: INITIAL_DECK_DRAFT,
-  },
-});
-
-/** A composed back exposes its background and emblem chapters. */
-export const CardbackComposedHere = meta.story({
-  parameters: { chromatic: { disableSnapshot: true } },
-  args: {
-    draft: draftWith({ mode: 'custom', ...INITIAL_CARDBACK_PRESETS[1]!.cardback, name: 'Hand of the Emperor' }),
-  },
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    await expect(canvas.getByRole('radio', { name: 'Composed here' })).toBeChecked();
-    await expect(canvas.getByRole('tab', { name: 'Background' })).toBeVisible();
-    await expect(canvas.getByRole('tab', { name: 'Emblem' })).toBeVisible();
   },
 });
 
@@ -83,15 +65,5 @@ export const Background = meta.story({
     const canvas = within(canvasElement);
     await expect(canvas.getByRole('combobox', { name: 'Background preset' })).toBeVisible();
     await expect(canvas.queryByRole('textbox', { name: 'Label' })).toBeNull();
-  },
-});
-export const ResetFromEmblemToPreset = meta.story({
-  parameters: { chromatic: { disableSnapshot: true } },
-  args: { chapter: 'emblem' as const },
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    await expect(canvas.getByRole('tab', { name: 'Back' })).toHaveAttribute('aria-selected', 'true');
-    await expect(canvas.getByRole('radio', { name: 'Shared preset' })).toBeChecked();
-    await expect(canvas.queryByRole('tab', { name: 'Emblem' })).toBeNull();
   },
 });

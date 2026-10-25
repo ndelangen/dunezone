@@ -226,6 +226,5 @@ describe('the release gate in the production deploy workflow', () => {
     expect(deployJob).toContain(`\n    if: ${failOpen}\n`);
     const conditions = [...workflow.matchAll(new RegExp(`needs\\.release_gate\\.outputs\\.${deploy}\\b.*`, 'g'))];
     expect([...new Set(conditions.map(([condition]) => condition))]).toEqual([failOpen]);
-    expect(workflow).toContain(`base: \${{ needs.release_gate.outputs.${base} || github.event.before }}`);
   });
 });

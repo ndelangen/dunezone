@@ -101,6 +101,9 @@
     "tool:test": "bun run --cwd tools/svg-authoring test",
     "tool:test:e2e": "bun run --cwd tools/svg-authoring test:e2e",
     "tool:typecheck": "bun run --cwd tools/svg-authoring typecheck",
+    "tutorial:mirror": "bun run ./scripts/tutorial-mirror.ts",
+    "tutorial:pull": "bun run ./scripts/tutorial-pull.ts && vp fmt src/app/routes/_app/tutorial/setup/catalogue.json",
+    "tutorial:record": "RECORD_TUTORIAL=1 vp test run workers/game/tutorial.record.native.test.ts && vp fmt src/app/routes/_app/tutorial/setup/setup.json",
     "typecheck": "node ./node_modules/@typescript/native/bin/tsc --noEmit && node ./node_modules/@typescript/native/bin/tsc --noEmit -p workers/storybook/tsconfig.service-worker.json",
     "verify:images": "bun run ./scripts/verify-images.ts",
     "verify:storybook-publication": "bun run ./scripts/verify-storybook-publication.ts",
@@ -225,7 +228,7 @@
     "js-yaml": "4.3.2",
     "launch-editor": "2.14.2",
     "miniflare": {
-      "undici": "7.30.0"
+      "undici": "7.30.1"
     },
     "nanoid": "3.3.20",
     "picomatch": "4.0.7",

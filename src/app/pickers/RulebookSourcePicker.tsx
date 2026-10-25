@@ -12,17 +12,17 @@ import { useRulebookFactionMembers, useRulebookFactionTroops } from '@db/ruleboo
 import { AssetPicker } from './AssetPicker';
 import { FactionPicker } from './FactionPicker';
 
-type PickerState = { kind: RulebookSourceReference['kind']; factionId?: string; alternate?: boolean };
+type PickerState = { kind: RulebookSourceReference['kind']; factionId?: string; alternate?: boolean; sheet?: boolean };
 type PickerAction =
   | { type: 'kind'; kind: PickerState['kind'] }
   | { type: 'faction'; factionId?: string }
-  | { type: 'presentation'; alternate: boolean };
+  | { type: 'presentation'; alternate: boolean; sheet?: boolean };
 function reducePicker(state: PickerState, action: PickerAction): PickerState {
   if (action.type === 'kind') {
     return { kind: action.kind };
   }
   if (action.type === 'presentation') {
-    return { ...state, alternate: action.alternate };
+    return { ...state, alternate: action.alternate, sheet: action.sheet };
   }
   return { ...state, factionId: action.factionId };
 }
@@ -207,19 +207,22 @@ export function RulebookSourcePicker({
           input={
             <Select
               aria-label="Presentation"
-              value={state.alternate ? 'alternate' : 'default'}
+              value={state.sheet ? 'sheet' : state.alternate ? 'alternate' : 'default'}
               data={
                 state.kind === 'faction'
                   ? [
                       { value: 'default', label: 'Emblem' },
                       { value: 'alternate', label: 'Faction token' },
+                      { value: 'sheet', label: 'Faction sheet, front' },
                     ]
                   : [
                       { value: 'default', label: 'Leader disc' },
                       { value: 'alternate', label: 'Traitor card' },
                     ]
               }
-              onChange={(value) => dispatch({ type: 'presentation', alternate: value === 'alternate' })}
+              onChange={(value) =>
+                dispatch({ type: 'presentation', alternate: value === 'alternate', sheet: value === 'sheet' })
+              }
             />
           }
         />
@@ -307,7 +310,9 @@ export function RulebookSourcePicker({
                   ? 'Choose the faction whose Leader you want to show.'
                   : state.kind === 'faction-troop'
                     ? 'Choose the faction whose troop token you want to show.'
-                    : "Show the faction's current emblem.",
+                    : state.sheet
+                      ? "Show the front of this faction's sheet."
+                      : "Show the faction's current emblem.",
               errorTitle: 'Faction could not be loaded',
               emptyMessage: 'No factions are available.',
               confirmTitle: 'Selected faction',
@@ -324,7 +329,7 @@ export function RulebookSourcePicker({
                 onPick({
                   kind: 'faction',
                   factionId: picked.id,
-                  ...(state.alternate ? { presentation: 'token' } : {}),
+                  ...(state.sheet ? { presentation: 'sheet' } : state.alternate ? { presentation: 'token' } : {}),
                 });
               } else {
                 dispatch({ type: 'faction', factionId: picked.id });

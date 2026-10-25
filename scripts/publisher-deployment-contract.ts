@@ -1,6 +1,7 @@
 import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
+import { setTimeout as delay } from 'node:timers/promises';
 
 import { PUBLICATION_MAX_PICKUP } from '../src/shared/asset-publishing/publication';
 import { compareCodeUnits } from '../src/shared/compareText';
@@ -57,6 +58,72 @@ export async function verifyPublicAuthRouting(
         `The ${provider} cancellation must return home`
       );
       invariant(response.headers.get('Cache-Control') === 'no-store', `The ${provider} callback must not be cached`);
+    } finally {
+      await response.body?.cancel();
+    }
+  }
+}
+
+async function checkPublishedRulebookReader(fetcher: typeof fetch): Promise<void> {
+  const response = await fetcher(`${APPLICATION_ORIGIN}/rulesets/dreamrules/rulebooks/dream-rulebook`, {
+    redirect: 'error',
+    signal: AbortSignal.timeout(15_000),
+  });
+  try {
+    invariant(response.status === 200, 'Published Rulebook reader is unavailable');
+    const queries = response.headers.get('X-Public-Metadata-Queries');
+    invariant(queries === '0' || queries === '1', 'Published Rulebook reader exceeded its one metadata query budget');
+    invariant(
+      (await response.text()).includes('data-published-rulebook'),
+      'Published Rulebook reader used renderer fallback'
+    );
+  } finally {
+    if (!response.bodyUsed) {
+      await response.body?.cancel();
+    }
+  }
+}
+
+/** A healthy reader costs one request; three attempts bound transient errors and edge propagation. */
+export async function verifyPublishedRulebookReader(
+  fetcher: typeof fetch = fetch,
+  pause: () => Promise<void> = () => delay(1000)
+): Promise<void> {
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      await checkPublishedRulebookReader(fetcher);
+      return;
+    } catch (error) {
+      if (attempt === 2) {
+        throw error;
+      }
+      await pause();
+    }
+  }
+}
+
+/** Follow the homepage's small editorial selection without crawling catalogues or rendering social images. */
+export async function verifyHomepageShowcases(fetcher: typeof fetch = fetch): Promise<void> {
+  const homepage = await fetcher(`${APPLICATION_ORIGIN}/`, { redirect: 'error', signal: AbortSignal.timeout(15_000) });
+  invariant(homepage.status === 200, 'The homepage is unavailable');
+  const html = await homepage.text();
+  const links = [
+    ...new Set(
+      [...html.matchAll(/<a[^>]+href="([^"]+)"/g)]
+        .map((match) => match[1]!)
+        .filter((href) => /^\/(?:(?:factions|groups|rulesets)|assets\/[^/?]+)\/(?!create(?:\/|$))[^/?]+\/?$/.test(href))
+    ),
+  ];
+  invariant(links.length > 0 && links.length <= 8, 'Homepage showcase verification requires one to eight destinations');
+  for (const href of links) {
+    const response = await fetcher(`${APPLICATION_ORIGIN}${href}`, {
+      redirect: 'error',
+      signal: AbortSignal.timeout(15_000),
+    });
+    try {
+      invariant(response.status === 200, `Homepage showcase ${href} is unavailable`);
+      const queries = response.headers.get('X-Public-Metadata-Queries');
+      invariant(queries === '0' || queries === '1', `Homepage showcase ${href} exceeded its one metadata query budget`);
     } finally {
       await response.body?.cancel();
     }
@@ -407,6 +474,10 @@ async function run(): Promise<void> {
         cause: authFailure,
       });
     }
+    await verifyPublishedRulebookReader();
+    console.log('Published Rulebook reader smoke passed within its metadata query budget.');
+    await verifyHomepageShowcases();
+    console.log('Homepage showcase destinations passed their bounded production checks.');
     return;
   }
   throw new Error('Expected command: preflight or smoke');

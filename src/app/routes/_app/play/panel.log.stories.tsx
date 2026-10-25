@@ -1,4 +1,4 @@
-import preview from '@sb/preview';
+import { testingPreview } from '@sb/preview';
 import type { LogEntry } from '@shared/play/log';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
@@ -15,7 +15,7 @@ import {
 import { openTab } from './playing.stories.fixture';
 import { productTransport, playingSnapshot } from './product.stories.fixture';
 
-const meta = preview.meta({
+const meta = testingPreview.meta({
   ...gameMeta,
   title: 'Play/Panels/Log',
   /* The stories load the table chunk before they render, so its cold first load falls outside their first wait (#1302). */
@@ -27,7 +27,6 @@ const meta = preview.meta({
 });
 
 export const Game = meta.story({
-  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() =>
     productTransport('seat-6', revealedPredictionSnapshot(), { logEntries: { game: GAME_LOG } })
   ),
@@ -51,7 +50,6 @@ export const Game = meta.story({
 });
 
 export const Audit = meta.story({
-  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => {
     const snapshot = playingSnapshot();
     snapshot.removalVotes = [];
@@ -69,7 +67,6 @@ export const Audit = meta.story({
 });
 
 export const Pagination = meta.story({
-  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => productTransport('seat-6', revealedPredictionSnapshot(), { holdLogHistory: true })),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);

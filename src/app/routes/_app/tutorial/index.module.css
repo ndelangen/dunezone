@@ -36,10 +36,36 @@
 
 /* The picture runs to the pane's edges, so the pane clips it to its own corners. */
 .tile {
+  position: relative;
   display: flex;
   flex-direction: column;
   width: 100%;
   overflow: hidden;
+}
+
+/* A built chapter's link stretches over its whole tile. */
+.open {
+  color: inherit;
+  text-decoration: none;
+}
+
+.open::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+}
+
+.tile[data-built]:hover {
+  outline: 2px solid var(--color-brand);
+}
+
+.tile[data-built]:has(.open:focus-visible) {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}
+
+.open:focus-visible {
+  outline: none;
 }
 
 .art {
