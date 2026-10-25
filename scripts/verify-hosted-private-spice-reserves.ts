@@ -22,6 +22,7 @@ export async function verifyPrivateSpiceReserves(toolkit: HostedToolkit) {
     windowOf,
     pinWindow,
     growSlot,
+    uncover,
     point,
     spiceBankShortcut,
     carrySteps,
@@ -143,6 +144,8 @@ export async function verifyPrivateSpiceReserves(toolkit: HostedToolkit) {
     await focus(a, 'map');
     const start = await stackPoint(a, spices(a)[0]);
     const target = await point(a, [slot.position[0], TRACKER_DISC_TOP_Y + 0.015, slot.position[2]]);
+    await uncover(a, start);
+    await uncover(a, target);
     await a.page.mouse.move(start.x, start.y);
     await a.page.mouse.down();
     await a.page.waitForTimeout(350);

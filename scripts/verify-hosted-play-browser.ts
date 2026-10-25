@@ -1397,6 +1397,29 @@ async function coverAt(who: HostedPeer, at: Point) {
       : (hit?.closest('[aria-label]')?.getAttribute('aria-label') ?? hit?.tagName ?? 'nothing');
   }, at);
 }
+/*
+ * Uncovers the board at a page point before a drag lands there: a window the table placed in a free slot by itself stays
+ * through a press on the table, where a centre window would close, so the slot covering the point is unpinned.
+ */
+async function uncover(who: HostedPeer, at: Point) {
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const side = await who.page.evaluate(({ x, y }) => {
+      const frame = document.elementFromPoint(x, y)?.closest<HTMLElement>('[data-window]');
+      return frame?.dataset.side ?? null;
+    }, at);
+    if (side === null) {
+      return;
+    }
+    if (side === 'centre') {
+      await clearCentre(who);
+    } else {
+      const frame = who.page.locator(`[data-window][data-side="${side}"]`);
+      await frame.getByRole('button', { name: 'Unpin', exact: true }).click();
+      await frame.waitFor({ state: 'detached' });
+    }
+  }
+  await assertBoardAt(who, at, 'the drop point');
+}
 /** Fails when anything but the board's canvas is topmost at a page point, naming what covers it. */
 async function assertBoardAt(who: HostedPeer, at: Point, what: string) {
   const cover = await coverAt(who, at);
@@ -2326,6 +2349,7 @@ try {
     growSlot,
     point,
     coverAt,
+    uncover,
     tableLoaded,
     recordRenderer,
     spiceBankShortcut,
@@ -2484,6 +2508,7 @@ export type HostedToolkit = {
   growSlot: typeof growSlot;
   point: typeof point;
   coverAt: typeof coverAt;
+  uncover: typeof uncover;
   tableLoaded: typeof tableLoaded;
   recordRenderer: typeof recordRenderer;
   spiceBankShortcut: typeof spiceBankShortcut;

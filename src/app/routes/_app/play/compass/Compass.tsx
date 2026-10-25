@@ -1,6 +1,6 @@
 import { Search } from 'lucide-react';
 import { useEffect } from 'react';
-import type { RefObject } from 'react';
+import type { KeyboardEvent, RefObject } from 'react';
 
 import bar from './ChatBar.module.css';
 import styles from './Compass.module.css';
@@ -30,6 +30,22 @@ export type CompassProps = Readonly<{
   onConfirm: (spot: TileSpot) => void;
   onClose: () => void;
 }>;
+
+/*
+ * Shown in place, the dialog does not hold focus the way a modal one would, so Tab wraps around its own controls
+ * rather than leave for a field behind the veil, where the compass's keys would no longer reach it.
+ */
+function keepFocus(event: KeyboardEvent<HTMLDialogElement>) {
+  if (event.key !== 'Tab') {
+    return;
+  }
+  const stops = [...event.currentTarget.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled)')];
+  const edge = event.shiftKey ? stops[0] : stops.at(-1);
+  if (edge && event.target === edge) {
+    event.preventDefault();
+    (event.shiftKey ? stops.at(-1) : stops[0])?.focus();
+  }
+}
 
 /* Opened as soon as it is in the document, so its first paint is the open one. */
 function open(dialog: HTMLDialogElement | null) {
@@ -184,6 +200,7 @@ export function Compass({
         className={styles.compass}
         aria-label="Controls compass"
         onPointerDown={(event) => event.stopPropagation()}
+        onKeyDown={keepFocus}
       >
         {tile(tiles.battle)}
         {tile(tiles.hidden)}
