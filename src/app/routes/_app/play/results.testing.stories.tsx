@@ -4,7 +4,7 @@ import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { STORYBOOK_NOW } from '@db/storybook';
 
-import { unpinWindow, windowNamed } from './controls.stories.fixture';
+import { unpinWindow, WAIT, windowNamed } from './controls.stories.fixture';
 import { gameMeta, install, lastCommand, session } from './game.stories.fixture';
 import { openTab } from './playing.stories.fixture';
 import { productTransport, SIX } from './product.stories.fixture';
@@ -89,6 +89,13 @@ export const StoppedDeclaringKeepsGameReachable = meta.story({
   },
 });
 
+/* What sits over a point instead, named by its nearest label and the window holding it, for a failure to read. */
+function coverOf(hit: Element | null) {
+  const frame = hit?.closest('[data-window]');
+  const label = hit?.closest('[aria-label]')?.getAttribute('aria-label');
+  return `${hit?.tagName ?? 'nothing'} ${label ?? ''} in ${frame ? `the ${frame.getAttribute('data-side')} window` : 'no window'}`;
+}
+
 /* The ancestors a finger can scroll, nearest first, as overflow hidden is not. */
 function touchScrollers(element: Element) {
   const scrollers: HTMLElement[] = [];
@@ -129,12 +136,12 @@ export const DeclaringOnAPhone = meta.story({
       }
       const shown = declare.getBoundingClientRect();
       await expect(shown.bottom).toBeLessThanOrEqual(view.innerHeight);
-      await expect(declare.contains(canvasElement.ownerDocument.elementFromPoint(shown.left + 4, shown.top + 4))).toBe(
-        true
-      );
+      const hit = canvasElement.ownerDocument.elementFromPoint(shown.left + 4, shown.top + 4);
+      await expect(declare.contains(hit), `Declare is covered by ${coverOf(hit)}`).toBe(true);
       /* The section holds its whole content, so Declare sits inside its frame. */
       await expect(shown.bottom).toBeLessThanOrEqual(bar.getBoundingClientRect().bottom);
-    });
+      /* The window the table opened by itself settles into its slot over a few frames, which a slow runner draws seconds apart. */
+    }, WAIT);
     /* An alliance is declared only once its factions are picked, and the declaration names them. */
     await expect(declare).toBeDisabled();
     const snapshot = mentatSnapshot('seat-2');

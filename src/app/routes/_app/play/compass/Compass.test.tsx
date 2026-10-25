@@ -1,12 +1,13 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { createRef } from 'react';
+import { act, cleanup, render, screen } from '@testing-library/react';
+import { useRef } from 'react';
 import { afterEach, beforeAll, expect, test, vi } from 'vite-plus/test';
 
 import { Compass } from './Compass';
 import type { TileSpot } from './compassSpots';
 import type { Tile } from './compassTiles';
+import { useCompassKeys } from './useCompassKeys';
 
 /* jsdom has the dialog element without its show(). */
 beforeAll(() => {
@@ -24,40 +25,67 @@ const tiles = Object.fromEntries(
   SPOTS.map((spot): [TileSpot, Tile] => [spot, { spot, label: spot, detail: '', keys: '', icon: null }])
 ) as Record<TileSpot, Tile>;
 
-function compass() {
-  const behind = document.body.appendChild(document.createElement('textarea'));
-  render(
-    <Compass
-      tiles={tiles}
-      suggestions={[]}
-      spot="hub"
-      query=""
-      cursor={0}
-      refused={0}
-      input={createRef()}
-      onSpot={vi.fn()}
-      onQuery={vi.fn()}
-      onCursor={vi.fn()}
-      onConfirm={vi.fn()}
-      onClose={vi.fn()}
-    />
+/* The open compass over the table, with its keys listening as the controls wire them, and a chat field behind the veil. */
+function OpenCompass() {
+  const input = useRef<HTMLInputElement>(null);
+  useCompassKeys({
+    open: true,
+    inert: false,
+    spot: 'hub',
+    query: '',
+    cursor: 0,
+    suggestions: 0,
+    input,
+    onOpen: vi.fn(),
+    onClose: vi.fn(),
+    onSpot: vi.fn(),
+    onCursor: vi.fn(),
+    onConfirm: vi.fn(),
+  });
+  return (
+    <div data-compass-controls>
+      <textarea aria-label="Chat behind the veil" />
+      <Compass
+        tiles={tiles}
+        suggestions={[]}
+        spot="hub"
+        query=""
+        cursor={0}
+        refused={0}
+        input={input}
+        onSpot={vi.fn()}
+        onQuery={vi.fn()}
+        onCursor={vi.fn()}
+        onConfirm={vi.fn()}
+        onClose={vi.fn()}
+      />
+    </div>
   );
-  return { behind, buttons: screen.getAllByRole('button', { hidden: true }) };
 }
 
-test('Tab from the last control comes back to the first, rather than leave for a field behind the veil', () => {
-  const { behind, buttons } = compass();
+function tab(target: Element, shiftKey = false) {
+  const event = new KeyboardEvent('keydown', { key: 'Tab', shiftKey, bubbles: true, cancelable: true });
+  act(() => void target.dispatchEvent(event));
+  return event;
+}
+
+test('Tab from the compass’s last control comes back to its first, rather than leave for a field behind the veil', () => {
+  render(<OpenCompass />);
+  const buttons = screen.getAllByRole('button', { hidden: true });
   const last = buttons.at(-1)!;
   last.focus();
-  expect(fireEvent.keyDown(last, { key: 'Tab' })).toBe(false);
+  expect(tab(last).defaultPrevented).toBe(true);
   expect(document.activeElement).toBe(buttons[0]);
-  expect(fireEvent.keyDown(buttons[0]!, { key: 'Tab', shiftKey: true })).toBe(false);
+  expect(tab(buttons[0]!, true).defaultPrevented).toBe(true);
   expect(document.activeElement).toBe(last);
-  expect(document.activeElement).not.toBe(behind);
 });
 
-test('Tab between the compass’s own controls is the browser’s', () => {
-  const { buttons } = compass();
-  buttons[0]!.focus();
-  expect(fireEvent.keyDown(buttons[0]!, { key: 'Tab' })).toBe(true);
+test('Tab between the compass’s own controls is the browser’s, and Tab from a field behind the veil comes back in', () => {
+  render(<OpenCompass />);
+  const buttons = screen.getAllByRole('button', { hidden: true });
+  expect(tab(buttons[0]!).defaultPrevented).toBe(false);
+  const behind = screen.getByRole('textbox', { name: 'Chat behind the veil' });
+  behind.focus();
+  expect(tab(behind).defaultPrevented).toBe(true);
+  expect(document.activeElement).toBe(buttons[0]);
 });

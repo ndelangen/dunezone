@@ -69,6 +69,23 @@ function outsideTable(target: EventTarget | null) {
   );
 }
 
+/*
+ * The compass is shown in place, not as a modal, so the browser would Tab on past its controls to a field behind the veil,
+ * where its keys no longer reach. Tab moves through its own controls as the browser does, and wraps around at either end.
+ */
+function keepFocus(event: KeyboardEvent, compass: HTMLDialogElement | null) {
+  if (!compass) {
+    return;
+  }
+  const stops = [...compass.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled)')];
+  const inside = event.target instanceof Node && compass.contains(event.target);
+  const edge = event.shiftKey ? stops[0] : stops.at(-1);
+  if (!inside || event.target === edge) {
+    event.preventDefault();
+    (event.shiftKey ? stops.at(-1) : stops[0])?.focus();
+  }
+}
+
 /* A fresh Space on the table, while nothing holds it, opens the compass. */
 function opensCompass(event: KeyboardEvent, inert: boolean) {
   return (
@@ -175,6 +192,11 @@ export function useCompassKeys(keys: CompassKeys) {
     }
   };
   const keydown = useEffectEvent((event: KeyboardEvent) => {
+    if (keys.open && event.key === 'Tab') {
+      event.stopPropagation();
+      keepFocus(event, keys.input.current?.closest('dialog') ?? null);
+      return;
+    }
     if (typingElsewhere(event, keys.input.current)) {
       return;
     }
