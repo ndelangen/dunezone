@@ -48,7 +48,7 @@ const showing = (view: string) =>
 const task = <Baseline>(definition: GuideTask<Baseline>) => definition as unknown as GuideTask;
 const nothing = () => undefined;
 
-/* The compass and the windows it opens, pinned into the slots. */
+/* The compass and the hand it opens, pinned into a slot; the hidden zone waits for a chapter of its own. */
 const windowTasks = (): GuideTask[] => [
   task({
     id: 'open-compass',
@@ -74,14 +74,6 @@ const windowTasks = (): GuideTask[] => [
     anchor: { kind: 'page', element: first('[aria-label="Pin to the bottom left"]') },
     begin: nothing,
     done: () => windowAt('left', 'hand'),
-  }),
-  task({
-    id: 'hidden-zone',
-    task: 'Look at your hidden zone',
-    detail: 'Two steps left on the compass: hold Space, tap ← twice and let go.',
-    anchor: { kind: 'page', element: viaCompass('hidden') },
-    begin: nothing,
-    done: () => windowAt('centre', 'hidden-zone'),
   }),
 ];
 
@@ -143,7 +135,7 @@ const tasks = () => [...windowTasks(), ...slotTasks()];
 
 const learned = [
   'Space opens the compass over the table',
-  'Left is your hand, twice left your hidden zone',
+  'Left is your hand',
   'Right is the table chat, twice right your ally',
   'Up is your battle plan, down the search',
   'Pin a window to the bottom left or right to keep it open',
