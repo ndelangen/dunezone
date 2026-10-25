@@ -276,6 +276,15 @@ export const HiddenZone = meta.story({
     await expect(kept()).toEqual(keptBefore);
     await expect(zoneLeader.getBoundingClientRect().left).toBeCloseTo(resting.left, 0);
 
+    /* Leaving the window puts a carried piece back too, so a release it never saw moves nothing. */
+    press('pointerdown', restX, restY);
+    press('pointermove', restX + 40, restY);
+    await waitFor(() => expect(carried()).not.toBeNull());
+    window.dispatchEvent(new FocusEvent('blur'));
+    await waitFor(() => expect(carried()).toBeNull());
+    press('pointerup', restX + 40, restY);
+    await expect(kept()).toEqual(keptBefore);
+
     /* A move the table refuses puts the piece back where the table keeps it. */
     const receive = table.receive.bind(table);
     table.receive = (message, seat) => {

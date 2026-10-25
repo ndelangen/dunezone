@@ -152,12 +152,33 @@ function dropOnTable(pieceId: string, clientX: number, clientY: number) {
  */
 export function HiddenZone({ client, table, hand }: Props) {
   const { ref, width, height } = useElementSize<HTMLDivElement>();
-  /* The carry in a ref as well, so a release that follows a move before React renders still sees where the pointer went. */
+  /*
+   * The carry lives in a ref, and React renders only when a piece is lifted or let go.
+   * In between, each pointer move places the lifted piece itself, a compositor-only transform, so it keeps up with the pointer.
+   */
   const [carry, renderCarry] = useState<Carry | null>(null);
   const carrying = useRef<Carry | null>(null);
+  const lifted = useRef<HTMLDivElement | null>(null);
+  const place = () => {
+    const current = carrying.current;
+    if (lifted.current && current) {
+      lifted.current.style.transform = `translate3d(${current.x - current.grabX}px, ${current.y - current.grabY}px, 0)`;
+    }
+  };
   const setCarry = (next: Carry | null | ((current: Carry | null) => Carry | null)) => {
-    carrying.current = typeof next === 'function' ? next(carrying.current) : next;
-    renderCarry(carrying.current);
+    const previous = carrying.current;
+    carrying.current = typeof next === 'function' ? next(previous) : next;
+    const current = carrying.current;
+    const lifts = previous && current ? previous.moving !== current.moving : previous !== current;
+    if (lifts) {
+      renderCarry(current);
+    }
+    place();
+  };
+  /* Placed as it mounts, from wherever the pointer has gone since the render that lifted it. */
+  const lift = (element: HTMLDivElement | null) => {
+    lifted.current = element;
+    place();
   };
   const [landing, setLanding] = useState<Landing | null>(null);
   const [menu, setMenu] = useState<HandMenuAnchor | null>(null);
@@ -174,26 +195,36 @@ export function HiddenZone({ client, table, hand }: Props) {
       ? landing.at
       : piece.hiddenZone!;
 
-  /* Escape puts a carried piece back where it was, as the browser's own drags do, and keeps Escape from the windows behind it. */
+  /*
+   * Escape puts a carried piece back where it was, as the browser's own drags do, and keeps Escape from the windows behind it.
+   * Leaving the window does too, as the table's own carries do, so a release it never saw cannot move the piece later.
+   */
   const carryingPiece = carry?.pieceId ?? null;
   useEffect(() => {
     if (!carryingPiece) {
       return;
     }
-    const cancel = (event: KeyboardEvent) => {
+    const drop = () => {
       const current = carrying.current;
-      if (event.key !== 'Escape' || !current) {
+      setCarry(null);
+      if (current?.holder.hasPointerCapture(current.pointerId)) {
+        current.holder.releasePointerCapture(current.pointerId);
+      }
+    };
+    const escape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || !carrying.current) {
         return;
       }
       event.preventDefault();
       event.stopPropagation();
-      setCarry(null);
-      if (current.holder.hasPointerCapture(current.pointerId)) {
-        current.holder.releasePointerCapture(current.pointerId);
-      }
+      drop();
     };
-    window.addEventListener('keydown', cancel, true);
-    return () => window.removeEventListener('keydown', cancel, true);
+    window.addEventListener('keydown', escape, true);
+    window.addEventListener('blur', drop);
+    return () => {
+      window.removeEventListener('keydown', escape, true);
+      window.removeEventListener('blur', drop);
+    };
   }, [carryingPiece]);
 
   const release = (event: PointerEvent<HTMLDivElement>, piece: TablePiece) => {
@@ -311,11 +342,7 @@ export function HiddenZone({ client, table, hand }: Props) {
                    */}
                   {carried &&
                     createPortal(
-                      <div
-                        className={styles.carried}
-                        style={{ left: carried.x - carried.grabX, top: carried.y - carried.grabY, ...box }}
-                        aria-hidden
-                      >
+                      <div ref={lift} className={styles.carried} style={box} aria-hidden>
                         <PieceImage piece={piece} width={pieceWidth} height={pieceDepth} />
                       </div>,
                       document.body

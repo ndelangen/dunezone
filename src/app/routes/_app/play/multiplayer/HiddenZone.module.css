@@ -37,7 +37,10 @@
 /* A carried piece, lifted over everything on the page and following the pointer. */
 .carried {
   position: fixed;
+  top: 0;
+  left: 0;
   z-index: 40;
+  will-change: transform;
   display: grid;
   place-items: center;
   pointer-events: none;
