@@ -1,10 +1,12 @@
+import { PLAY_DEBUGGER_EVENTS } from '@sb/playDebugger/events';
 import { testingPreview } from '@sb/preview';
+import { addons } from 'storybook/preview-api';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { gameMeta, install } from './game.stories.fixture';
 import { chapter, journeyViewers, JourneyPage } from './journey.stories.fixture';
 import { expectHeaderPhase, openTab, phaseControls } from './playing.stories.fixture';
-import { sandbox, sandboxDecorator, sandboxSteps, sandboxTransport } from './sandbox.stories.fixture';
+import { sandbox, sandboxReady, sandboxSteps, sandboxTransport } from './sandbox.stories.fixture';
 import { shown, piece } from './sandbox.stories.fixture';
 import { COLUMNS_MIN_WIDTH_REM, setTableLayout } from './tableLayout';
 
@@ -21,17 +23,15 @@ const meta = testingPreview.meta({
   },
   parameters: {
     ...gameMeta.parameters,
-    controls: { disable: false, include: ['step', 'seat'] },
     docs: {
       description: {
         component:
-          "The game Worker's own table running in the browser, started from the room's stored state at a step of Play/Journey (J13 onwards). Drag pieces, draw cards, change phases and fight battles as any seat; the panel switches seats and restarts the table. Drafting, seats, votes, the result and the log stay as recorded.",
+          "The game Worker's own table running in the browser, started from the room's stored state at a step of Play/Journey (J13 onwards). Drag pieces, draw cards, change phases and fight battles as any seat; the Play debugger panel switches seats and restarts the table. Drafting, seats, votes, the result and the log stay as recorded.",
       },
     },
   },
   beforeEach: ({ args }) =>
     install(() => sandboxTransport({ start: Number(args.step ?? 1) - 1, seat: String(args.seat ?? 'seat-1') }))(),
-  decorators: [...gameMeta.decorators, sandboxDecorator],
   /* The stories load the table chunk before they render, so its cold first load falls outside their first wait (#1302). */
   loaders: [
     async () => {
@@ -47,7 +47,6 @@ const meta = testingPreview.meta({
 export const Sandbox = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await expect(page.findByRole('complementary', { name: 'Sandbox' }, { timeout: 30_000 })).resolves.toBeVisible();
     await expect(
       page.findByRole('heading', { name: 'Dreamrules', level: 1 }, { timeout: 30_000 })
     ).resolves.toBeVisible();
@@ -104,8 +103,8 @@ export const Sandbox = meta.story({
     await waitFor(() => expect(room.snapshot.phase).toBe(4));
     await waitForPhase(() => expectHeaderPhase(canvasElement, 4));
 
-    /* Restart puts the table back at Bidding. */
-    await userEvent.click(page.getByRole('button', { name: 'Restart' }));
+    /* Restart, from the Play debugger panel, puts the table back at Bidding. */
+    addons.getChannel().emit(PLAY_DEBUGGER_EVENTS.act, 'restart');
     await waitForPhase(() => expectHeaderPhase(canvasElement, 3));
     await expect(sandbox.table).not.toBe(table);
     await expect(shown().hand ?? []).toHaveLength(handSize);
@@ -119,7 +118,7 @@ export const Sandbox = meta.story({
 export const PeekAtTheDeck = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await expect(page.findByRole('complementary', { name: 'Sandbox' }, { timeout: 30_000 })).resolves.toBeVisible();
+    await sandboxReady(page);
     const table = sandbox.table!;
     const faction = shown().bank!.factionId;
     const deck = piece((candidate) => candidate.stackKey === 'deck:treachery-deck');
@@ -148,7 +147,7 @@ export const PeekAtTheDeck = meta.story({
 export const PeekAtACard = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await expect(page.findByRole('complementary', { name: 'Sandbox' }, { timeout: 30_000 })).resolves.toBeVisible();
+    await sandboxReady(page);
     const table = sandbox.table!;
     const deck = piece((candidate) => candidate.stackKey === 'deck:treachery-deck');
     const command = (
@@ -174,7 +173,7 @@ export const PeekAtACard = meta.story({
 export const DeleteACard = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await expect(page.findByRole('complementary', { name: 'Sandbox' }, { timeout: 30_000 })).resolves.toBeVisible();
+    await sandboxReady(page);
     const table = sandbox.table!;
     const deck = piece((candidate) => candidate.stackKey === 'deck:treachery-deck');
     const command = (
@@ -205,7 +204,7 @@ export const DeleteACard = meta.story({
 export const HiddenZone = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await expect(page.findByRole('complementary', { name: 'Sandbox' }, { timeout: 30_000 })).resolves.toBeVisible();
+    await sandboxReady(page);
     const table = sandbox.table!;
     const command = (
       commandId: string,
