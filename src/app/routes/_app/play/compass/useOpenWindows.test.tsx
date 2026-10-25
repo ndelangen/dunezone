@@ -67,3 +67,23 @@ test('pinning replaces what the slot held, and unpinning empties it', () => {
   act(() => result.current.unpin('right'));
   expect(result.current.slots.right).toBeNull();
 });
+
+test('a press on the table blurs the focused field before the centre window closes, so its draft commits', () => {
+  const { result } = renderHook(() => useOpenWindows(windows, false));
+  act(() => result.current.show('battle'));
+  const field = document.body.appendChild(document.createElement('input'));
+  const table = document.body.appendChild(document.createElement('canvas'));
+  let openAtBlur: unknown;
+  field.addEventListener('blur', () => {
+    openAtBlur = result.current.centre;
+  });
+  field.focus();
+  act(() => {
+    table.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0 }));
+  });
+  expect(openAtBlur).toEqual({ key: 'battle', tab: 'public' });
+  expect(document.activeElement).not.toBe(field);
+  expect(result.current.centre).toBeNull();
+  field.remove();
+  table.remove();
+});

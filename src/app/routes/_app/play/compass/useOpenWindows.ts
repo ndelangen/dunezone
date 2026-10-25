@@ -39,6 +39,10 @@ function useTablePress(onPress: () => void, enabled: boolean) {
     }
     const listener = (event: PointerEvent) => {
       if (event.target instanceof HTMLCanvasElement && event.button === 0) {
+        /* A field commits its draft on blur, which has to happen before the press closes its window. */
+        if (document.activeElement instanceof HTMLElement) {
+          document.activeElement.blur();
+        }
         press();
       }
     };
