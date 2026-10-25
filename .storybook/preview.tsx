@@ -3,16 +3,19 @@ import addonDocs from '@storybook/addon-docs';
 import { definePreview } from '@storybook/tanstack-react';
 import { sb } from 'storybook/test';
 
+import { loadStorybookDatabase, StorybookDatabaseProvider, storybookViewer } from '../src/app/db/storybook';
 import '@mantine/core/styles.layer.css';
 import '../src/app/styles/fonts.css';
 import '@fontsource/caladea/latin-700.css';
 import '../src/app/styles/tokens.css';
 import '../src/app/styles/mantine-shell-compatibility.css';
-import { StorybookDatabaseProvider, storybookViewer } from '../src/app/db/storybook';
 import type { DatabaseDefinition, WorkerIdentity } from '../src/app/db/storybook';
 import { setMotionOverride } from '../src/app/styles/motion';
-import { appContentTheme } from '../src/app/ui/theme';
+import { appColorSchemeManager, appContentTheme } from '../src/app/ui/theme';
 import * as sizes from '../src/game/data/sizes';
+import { coreColors } from '../src/shared/uiPalette';
+import { emulateReducedMotion } from './browserMotion';
+import { settleStoryViewport } from './storyViewport';
 import { resetFrameLag } from './storyWaits';
 
 /* Storybook has no backend or auth context. Connected components must opt into
@@ -22,23 +25,12 @@ const REGION = { width: 960, height: 600 };
 
 sb.mock(import('../src/app/db/core/index.ts'));
 
-export default definePreview({
+const preview = definePreview({
   addons: [addonDocs()],
+  loaders: [loadStorybookDatabase],
   globalTypes: {
-    colorScheme: {
-      description: 'Color scheme: the shell tokens and Mantine theme',
-      toolbar: {
-        title: 'Scheme',
-        icon: 'circlehollow',
-        items: [
-          { value: 'light', title: 'Scheme: light' },
-          { value: 'dark', title: 'Scheme: dark' },
-        ],
-        dynamicTitle: true,
-      },
-    },
     motion: {
-      description: "Ambient motion: the chrome's band video and turning dice",
+      description: "Ambient motion: the chrome's band video and orbital background",
       toolbar: {
         title: 'Motion',
         icon: 'play',
@@ -51,20 +43,18 @@ export default definePreview({
       },
     },
   },
-  /* The toolbar drives the real `motion` cookie override rather than a module mock, so stories
-     exercise the same code path visitors do; `auto` clears it back to the browser's own hint. The
-     scheme global mirrors the app's attribute so tokens.css flips with the provider; a story can
-     force a scheme by setting `globals: { colorScheme: 'dark' }`. Visual tests stay on the light
-     default for determinism. */
-  beforeEach: ({ globals }) => {
+  /* Stories use the app's warm dark UI. Chromatic and the Vitest story shards run with reduced motion,
+     so a capture or a play never lands on a moving frame; a story that shows motion pins `motion: 'on'`. */
+  beforeEach: async ({ globals }) => {
+    await settleStoryViewport();
     resetFrameLag();
+    await emulateReducedMotion(globals.motion !== 'on');
     setMotionOverride(globals.motion === 'on' ? 'on' : globals.motion === 'reduce' ? 'off' : null);
-    document.documentElement.setAttribute(
-      'data-mantine-color-scheme',
-      globals.colorScheme === 'dark' ? 'dark' : 'light'
-    );
+    document.documentElement.setAttribute('data-mantine-color-scheme', 'dark');
   },
   parameters: {
+    /* A capture of a moving frame differs from build to build. */
+    chromatic: { prefersReducedMotion: 'reduce' },
     options: {
       storySort: {
         order: [
@@ -150,6 +140,12 @@ export default definePreview({
       },
     },
     layout: 'centered',
+    backgrounds: {
+      options: {
+        dark: { name: 'Warm dark', value: coreColors.ground },
+        light: { name: 'Paper', value: coreColors.paper },
+      },
+    },
     viewport: {
       options: {
         /* Constrained widths a story can select when its subject *is* the behaviour at that
@@ -269,6 +265,13 @@ export default definePreview({
             height: '800px',
           },
         },
+        appShortCanvas: {
+          name: 'App short canvas',
+          styles: {
+            width: '360px',
+            height: '298px',
+          },
+        },
         appTablet: {
           name: 'App tablet',
           styles: {
@@ -324,7 +327,7 @@ export default definePreview({
          renderers that carry their own colour and must not inherit the app's palette. */
       if (!title.startsWith('Game Assets/')) {
         return (
-          <MantineProvider theme={appContentTheme} forceColorScheme={globals.colorScheme === 'dark' ? 'dark' : 'light'}>
+          <MantineProvider theme={appContentTheme} forceColorScheme="dark" colorSchemeManager={appColorSchemeManager}>
             {story}
           </MantineProvider>
         );
@@ -332,26 +335,46 @@ export default definePreview({
 
       return story;
     },
-    (Story, { parameters }) => {
+    (Story, { parameters, loaded }) => {
       const database = parameters.database as DatabaseDefinition | undefined;
       if (!database) {
         return <Story />;
       }
       const identity =
         parameters.identity === undefined ? storybookViewer : (parameters.identity as WorkerIdentity | null);
+      const prepared = loaded.storybookDatabase as Awaited<
+        ReturnType<typeof loadStorybookDatabase>
+      >['storybookDatabase'];
+      if (!prepared) {
+        throw new Error('Storybook database setup did not finish before rendering.');
+      }
       return (
-        <StorybookDatabaseProvider database={database} identity={identity ?? undefined}>
+        <StorybookDatabaseProvider key={prepared.key} identity={identity ?? undefined} prepared={prepared}>
           <Story />
         </StorybookDatabaseProvider>
       );
     },
   ],
   initialGlobals: {
-    colorScheme: 'light',
     motion: 'auto',
     backgrounds: {
-      value: '#333333',
+      value: 'dark',
       grid: true,
     },
   },
 });
+
+/* Stories that exist to drive behaviour rather than to show a state. Their plays still run in the
+   Vitest story shards on every pull request; Chromatic skips them, because a long play times out
+   its capture and the end state is not what the story is about. A story file opts in with
+   `testingPreview.meta(...)`; each CSF file renders with the preview its meta came from. It sets no
+   tags: Storybook reads project tags statically from this file, so a tag here would land on every story.
+   Each `definePreview` call also replaces Storybook's global project annotations, so the default
+   export is defined again last and stays the global one. */
+export const testingPreview = definePreview({
+  ...preview.input,
+  addons: [addonDocs()],
+  parameters: { ...preview.input.parameters, chromatic: { disableSnapshot: true } },
+});
+
+export default definePreview({ ...preview.input, addons: [addonDocs()] });

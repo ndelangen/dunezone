@@ -81,7 +81,7 @@
   width: var(--leader-size);
   overflow: hidden;
   border-radius: 50%;
-  filter: drop-shadow(0 6px 10px rgb(54 29 8 / 28%));
+  filter: drop-shadow(0 6px 10px rgb(from var(--color-shadow) r g b / 28%));
 }
 
 /* A troop is half a leader's diameter, as on the table. */
@@ -93,7 +93,7 @@
   display: block;
   width: clamp(7rem, 29cqi, 13rem);
   border-radius: var(--radius-md);
-  filter: drop-shadow(0 6px 10px rgb(54 29 8 / 28%));
+  filter: drop-shadow(0 6px 10px rgb(from var(--color-shadow) r g b / 28%));
 }
 
 .glyph {
@@ -159,7 +159,7 @@
 
 .wheel {
   width: min(100%, 32rem);
-  filter: drop-shadow(0 8px 14px rgb(54 29 8 / 24%));
+  filter: drop-shadow(0 8px 14px rgb(from var(--color-shadow) r g b / 24%));
 }
 
 /* These two live inside the wheel's own 170px canvas, so they are sized in its pixels and scale with it. */
@@ -196,7 +196,7 @@
   width: calc(var(--leader-size) / 2);
   height: auto;
   border-radius: 50%;
-  filter: drop-shadow(0 4px 6px rgb(54 29 8 / 28%));
+  filter: drop-shadow(0 4px 6px rgb(from var(--color-shadow) r g b / 28%));
 }
 
 .factions {
@@ -283,7 +283,7 @@
 .piece[data-demonstrating] .art,
 .faction[data-lit] {
   transform: translateY(-4px) scale(1.04);
-  filter: drop-shadow(0 0 12px rgb(240 180 80 / 55%));
+  filter: drop-shadow(0 0 12px rgb(from var(--ui-brass) r g b / 55%));
 }
 
 /* Fanned cards keep their tilt while they lift. */
@@ -301,14 +301,14 @@
 
 /* A lit phase steps out of the list in the same spice gold as the glow on lit pieces. */
 .phase[data-lit] {
-  color: rgb(100 58 8);
-  background: rgb(240 180 80 / 22%);
-  box-shadow: 0 0 18px rgb(240 180 80 / 45%);
+  color: var(--ui-ink);
+  background: rgb(from var(--ui-brass) r g b / 22%);
+  box-shadow: 0 0 18px rgb(from var(--ui-brass) r g b / 45%);
   transform: scale(1.08);
 }
 
 :global(html[data-mantine-color-scheme="dark"]) .phase[data-lit] {
-  color: rgb(240 180 80);
+  color: var(--color-brand-strong);
 }
 
 /* Troops and leaders that go to the Tleilaxu Tanks fade and sink out of play. */

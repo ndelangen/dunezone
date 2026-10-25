@@ -11,6 +11,7 @@ import { SVGLoader } from 'three/examples/jsm/loaders/SVGLoader.js';
 import rasterLock from '../media/raster.lock.json';
 import stockAssetCollections from '../src/shared/stockAssetCollections.json';
 import { normalizeSvg } from '../src/shared/vectorNormalize';
+import { VECTOR_ARTWORK_ALIASES } from '../src/shared/vectorRules';
 import { linkedomDom } from './generate-vectors';
 
 /* SVGLoader expects unset inline CSS values to be empty strings, while linkedom returns undefined. */
@@ -75,7 +76,7 @@ const enums = {
   generic,
   logo,
   decal,
-  icon,
+  icon: [...icon, ...Object.keys(VECTOR_ARTWORK_ALIASES).map((path) => path.slice(1))],
   leaders,
   planet,
   texture,
@@ -184,6 +185,9 @@ for (const key of [...generic, ...logo, ...decal, ...icon, ...troop]
     Number((right - left).toFixed(2)),
     Number((bottom - top).toFixed(2)),
   ];
+}
+for (const [alias, target] of Object.entries(VECTOR_ARTWORK_ALIASES)) {
+  vectorCrops[alias] = vectorCrops[target];
 }
 const crops = await format(
   'vectorCrops.generated.ts',

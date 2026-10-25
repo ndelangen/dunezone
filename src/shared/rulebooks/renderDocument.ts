@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { BoardTokenPlacement } from '../boards/markup';
+import { tintDrawingSchema } from '../boards/tintDrawing';
 import { TroopArtwork } from '../factions/schema';
 import { parseFormattedText } from '../formattedText';
 import type { NormalizedFormattedText } from '../formattedText';
@@ -64,15 +66,23 @@ const renderBattleSideSchema = rulebookBattleSideSchema
     troops: z.array(rulebookBattleTroopSchema.extend({ artwork: TroopArtwork.optional() })),
   });
 
-const renderBoardSceneSchema = rulebookBoardSceneSchema.omit({ players: true, troops: true }).extend({
-  board: rulebookResolvedSourceSchema,
-  players: z.array(rulebookBoardPlayerSchema.omit({ factionId: true }).extend({ faction: renderFactionSchema })),
-  troops: z.array(
-    rulebookBoardTroopSchema
-      .omit({ factionId: true })
-      .extend({ faction: renderFactionSchema, artwork: TroopArtwork.optional() })
-  ),
-});
+const renderBoardSceneSchema = rulebookBoardSceneSchema
+  .omit({ players: true, troops: true, tints: true, tokens: true })
+  .extend({
+    board: rulebookResolvedSourceSchema,
+    /** The scene's tints as drawn on its saved board, in the board's frame. */
+    tints: z.array(tintDrawingSchema).optional(),
+    /** Placed token assets that resolved, with their published image. */
+    tokens: z
+      .array(BoardTokenPlacement.extend({ name: z.string(), type: z.string(), imageUrl: z.string() }))
+      .optional(),
+    players: z.array(rulebookBoardPlayerSchema.omit({ factionId: true }).extend({ faction: renderFactionSchema })),
+    troops: z.array(
+      rulebookBoardTroopSchema
+        .omit({ factionId: true })
+        .extend({ faction: renderFactionSchema, artwork: TroopArtwork.optional() })
+    ),
+  });
 const renderMovementGroupSchema = rulebookMovementGroupSchema.omit({ pieces: true }).extend({
   pieces: z.array(
     z.discriminatedUnion('kind', [
@@ -227,6 +237,8 @@ const renderBlockSchemas = {
   'card-entry': z.strictObject({
     ...renderBlockBase,
     kind: z.literal('card-entry'),
+    imageSide: z.enum(['left', 'right']).optional(),
+    textFlow: z.enum(['beside', 'wrap']).optional(),
     ...renderCardGuideFields,
     name: z.string().optional(),
     size: rulebookIllustrationSizeSchema.optional(),
@@ -236,7 +248,7 @@ const renderBlockSchemas = {
     kind: z.literal('card-group'),
     title: z.string(),
     text: renderFormattedTextSchema,
-    variant: z.enum(['compact', 'gallery', 'featured-member']),
+    variant: z.enum(['compact', 'gallery', 'featured-member', 'fan']),
     featuredItemId: renderLocalIdSchema.optional(),
     items: z.array(z.strictObject({ id: renderLocalIdSchema, ...renderCardGuideFields })),
   }),

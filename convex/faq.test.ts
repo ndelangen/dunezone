@@ -340,6 +340,86 @@ describe('FAQ lifecycle', () => {
     ).rejects.toThrow('Ruleset not found');
   });
 
+  test('acceptance has its own stable timestamp, cleared on unaccept and renewed on acceptance', async () => {
+    const { t, owner, answerer, ruleset } = await faqFixture();
+    const question = await owner.mutation(api.faq.createQuestion, {
+      rulesetId: ruleset._id,
+      question: 'When was this answer accepted?',
+      tags: ['rules'],
+    });
+    const answer = await answerer.mutation(api.faq.createAnswer, {
+      faq_item_id: question.questionId,
+      answer: 'Acceptance has its own timestamp.',
+    });
+    const locator = { rulesetSlug: ruleset.slug, questionSlug: question.questionSlug };
+    const first = '2030-01-01T12:00:00.000Z';
+    const later = '2030-01-02T12:00:00.000Z';
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date(first));
+      await owner.mutation(api.faq.setAcceptedAnswer, {
+        faq_item_id: question.questionId,
+        accepted_answer_id: answer._id,
+      });
+      expect((await t.query(api.faq.question, locator)).answers[0]!.acceptedAt).toBe(first);
+      vi.setSystemTime(new Date(later));
+      await owner.mutation(api.faq.editQuestion, {
+        questionId: question.questionId,
+        input: { question: 'When was this edited question answered?', tags: ['rules'] },
+      });
+      await answerer.mutation(api.faq.editAnswer, {
+        answerId: answer._id,
+        input: { answer: 'This edited answer keeps its acceptance timestamp.' },
+      });
+      await owner.mutation(api.faq.setAcceptedAnswer, {
+        faq_item_id: question.questionId,
+        accepted_answer_id: answer._id,
+      });
+      expect((await t.query(api.faq.question, locator)).answers[0]!.acceptedAt).toBe(first);
+      await owner.mutation(api.faq.setAcceptedAnswer, { faq_item_id: question.questionId, accepted_answer_id: null });
+      expect((await t.query(api.faq.question, locator)).answers[0]).toMatchObject({
+        accepted: false,
+        acceptedAt: null,
+      });
+      await owner.mutation(api.faq.setAcceptedAnswer, {
+        faq_item_id: question.questionId,
+        accepted_answer_id: answer._id,
+      });
+      expect((await t.query(api.faq.question, locator)).answers[0]!.acceptedAt).toBe(later);
+      await answerer.mutation(api.faq.deleteAnswer, { id: answer._id });
+      expect(await t.run((ctx) => ctx.db.get('faq_items', question.questionId))).toMatchObject({
+        accepted_answer_id: null,
+        accepted_at: null,
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test('legacy accepted answers retain an unknown acceptance date after edits or repeated acceptance', async () => {
+    const { t, owner, answerer, ruleset } = await faqFixture();
+    const question = await owner.mutation(api.faq.createQuestion, {
+      rulesetId: ruleset._id,
+      question: 'When was a legacy answer accepted?',
+      tags: ['rules'],
+    });
+    const answer = await answerer.mutation(api.faq.createAnswer, {
+      faq_item_id: question.questionId,
+      answer: 'Its date was never recorded.',
+    });
+    await t.run((ctx) => ctx.db.patch('faq_items', question.questionId, { accepted_answer_id: answer._id }));
+    await owner.mutation(api.faq.editQuestion, {
+      questionId: question.questionId,
+      input: { question: 'This legacy question has now been edited.', tags: ['rules'] },
+    });
+    await owner.mutation(api.faq.setAcceptedAnswer, {
+      faq_item_id: question.questionId,
+      accepted_answer_id: answer._id,
+    });
+    const page = await t.query(api.faq.question, { rulesetSlug: ruleset.slug, questionSlug: question.questionSlug });
+    expect(page.answers[0]).toMatchObject({ accepted: true, acceptedAt: null });
+  });
+
   test('clears acceptance when the accepted answer is deleted', async () => {
     const { t, owner, answerer, ruleset } = await faqFixture();
     const question = await owner.mutation(api.faq.createQuestion, {

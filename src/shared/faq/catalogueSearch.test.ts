@@ -15,6 +15,13 @@ describe('ruleset FAQ search parameters', () => {
     expect(parseFaqCatalogueSearch({ tag: 'gossip', q: '   ' })).toEqual({});
   });
 
+  test('drops the page alongside a search, which is always best match and loads more in place', () => {
+    expect(parseFaqCatalogueSearch({ q: 'storm', page: '3' })).toEqual({ q: 'storm' });
+    expect(parseFaqCatalogueSearch({ q: 'storm', tag: 'errata', page: '3' })).toEqual({ q: 'storm', tag: 'errata' });
+    /* A search that is blank once trimmed is no search, so the page stays. */
+    expect(parseFaqCatalogueSearch({ q: '   ', page: '3' })).toEqual({ page: 3 });
+  });
+
   test('cuts a search at the longest one the FAQ runs', () => {
     expect(parseFaqCatalogueSearch({ q: 'a'.repeat(FAQ_CATALOGUE_QUERY_LIMIT + 20) }).q).toHaveLength(
       FAQ_CATALOGUE_QUERY_LIMIT

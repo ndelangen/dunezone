@@ -1,5 +1,6 @@
 import { Alert, Popover } from '@mantine/core';
 import { BundleAsset } from '@shared/assets/schema';
+import { ASSET_TYPE_KEYS, holdsBundleMembership } from '@shared/assets/types';
 import { useNavigate } from '@tanstack/react-router';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
@@ -9,6 +10,7 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { useReducer, useState } from 'react';
 
+import { useAuthoringAccountKey } from '@db/authoring';
 import { useAssetPage, useSetMemberCount, useUpdateAsset } from '@app/db/assets';
 import type { AssetPageData, AssetPublicPage } from '@app/db/assets';
 import { mutationErrorMessage } from '@app/db/core/mutationError';
@@ -20,6 +22,7 @@ import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { bundleDraftWarnings, BundleEditor, INITIAL_BUNDLE_MEMORY } from '@app/widgets/bundle-editor/BundleEditor';
 import type { BundleChapter, BundleDraft, BundleMemory } from '@app/widgets/bundle-editor/BundleEditor';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
+import { BackgroundLibrary } from '@game/assets/utils/BackgroundLibrary';
 import { BundleAsset as BundleAssetSchema } from '@game/data/objects';
 
 import {
@@ -33,7 +36,7 @@ import {
 } from '../../../assetEditorStates';
 
 /** Every token type a bundle may hold. A bundle mixes shapes freely, which is the point of it. */
-const TOKEN_TYPES = ['token-disc', 'token-tech', 'token-plate', 'token-pointer', 'token-enhance'];
+const TOKEN_TYPES = ASSET_TYPE_KEYS.filter(holdsBundleMembership);
 
 export function BundleEditPage({ slug, loaderData }: { slug: string; loaderData: AssetPublicPage }) {
   const query = useAssetPage('bundle', slug, { initialData: loaderData });
@@ -81,13 +84,15 @@ export function BundleEditPage({ slug, loaderData }: { slug: string; loaderData:
   }
 
   return (
-    <BundleEditSession
-      key={data.asset.id}
-      access={{ viewerAccess: data.viewerAccess, assignableGroups: data.assignableGroups }}
-      asset={data.asset}
-      members={data.members}
-      initialDraft={parsed.data}
-    />
+    <BackgroundLibrary presets={data.backgrounds ?? []} fronts={data.cardFrontPresets}>
+      <BundleEditSession
+        key={data.asset.id}
+        access={{ viewerAccess: data.viewerAccess, assignableGroups: data.assignableGroups }}
+        asset={data.asset}
+        members={data.members}
+        initialDraft={parsed.data}
+      />
+    </BackgroundLibrary>
   );
 }
 
@@ -137,6 +142,7 @@ function BundleEditSession({
   members: NonNullable<AssetPageData>['members'];
   initialDraft: BundleDraft;
 }) {
+  const authoringAccountKey = useAuthoringAccountKey();
   const navigate = useNavigate();
   const groupActions = useAssetGroupActions({ asset, access });
   const updateAsset = useUpdateAsset();
@@ -197,11 +203,13 @@ function BundleEditSession({
       {header.slot}
       <PageLayout.Toolbar>
         <AuthoringToolbar
+          scopeKey={authoringAccountKey}
           load={assetLoad({
             noun: 'bundle',
             type: 'bundle',
             schema: BundleAsset,
             editing: asset,
+            canRename: access.viewerAccess.capabilities.rename,
             disabled: saveState === 'saving',
             onLoaded: header.releasing((loaded) => dispatch({ kind: 'replace', data: loaded.data })),
           })}

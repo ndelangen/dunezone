@@ -31,9 +31,11 @@ export const ASSET_TYPES = {
   },
   'card-storm': { category: 'cards', label: 'Storm cards', shortLabel: 'Storm', status: 'live' },
   'card-stronghold': { category: 'cards', label: 'Stronghold cards', shortLabel: 'Stronghold', status: 'live' },
+  'card-homeworld': { category: 'cards', label: 'Homeworld cards', shortLabel: 'Homeworld', status: 'live' },
   'card-nexus': { category: 'cards', label: 'Nexus cards', shortLabel: 'Nexus', status: 'live' },
   deck: { category: 'decks', label: 'Decks', shortLabel: 'Decks', status: 'live' },
   'token-disc': { category: 'tokens', label: 'Disc tokens', shortLabel: 'Disc', status: 'live' },
+  'token-leader': { category: 'tokens', label: 'Leader tokens', shortLabel: 'Leader', status: 'live' },
   'token-tech': { category: 'tokens', label: 'Tech tokens', shortLabel: 'Tech', status: 'live' },
   'token-plate': { category: 'tokens', label: 'Plate tokens', shortLabel: 'Plate', status: 'live' },
   'token-pointer': { category: 'tokens', label: 'Pointer tokens', shortLabel: 'Pointer', status: 'live' },
@@ -58,6 +60,11 @@ export const ASSET_TYPE_KEYS = Object.keys(ASSET_TYPES) as AssetType[];
  */
 export function holdsDeckMembership(type: string): boolean {
   return isAssetType(type) && ASSET_TYPES[type].category === 'cards';
+}
+
+/** Bundles hold token Assets, including single-face leaders, but never another bundle. */
+export function holdsBundleMembership(type: string): boolean {
+  return isAssetType(type) && type !== 'bundle' && ASSET_TYPES[type].category === 'tokens';
 }
 
 /** The Asset type is the URL vocabulary: `/assets/{type}/…` uses these discriminators verbatim. */

@@ -1,0 +1,105 @@
+.timeline {
+  container: release-timeline / inline-size;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: release;
+}
+.timeline > li {
+  position: relative;
+  counter-increment: release;
+  border-inline-start: 2px solid var(--action-export-fg);
+  margin-inline-start: var(--space-md);
+  padding-inline-start: var(--space-xl);
+  padding-block-end: var(--space-xl);
+}
+.timeline > li::before {
+  content: counter(release);
+  position: absolute;
+  inset-inline-start: calc(-1 * var(--space-md));
+  top: 0;
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  font-weight: 800;
+  color: var(--action-export-fg);
+  background: rgb(from var(--glass-overlay) r g b / var(--glass-overlay-alpha));
+  border: 2px solid currentColor;
+  border-radius: 50%;
+}
+.timeline > li:not(:last-child)::after {
+  content: "↓";
+  position: absolute;
+  inset-inline-start: -0.5rem;
+  bottom: var(--space-xs);
+  color: var(--action-export-fg);
+  background: rgb(from var(--glass-overlay) r g b / var(--glass-overlay-alpha));
+}
+.timeline > li:last-child {
+  padding-block-end: 0;
+  border-color: transparent;
+}
+.command {
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+.releaseFigure {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-md);
+  margin: 0;
+}
+.states {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-xs);
+}
+.releaseNode,
+.releaseAction {
+  width: 100%;
+  height: auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  color: var(--color-muted);
+}
+.releaseAction {
+  max-width: 26rem;
+  justify-self: center;
+}
+.releaseNode text,
+.releaseAction text {
+  fill: currentColor;
+  stroke: none;
+  font: 15px var(--mantine-font-family);
+}
+.releaseNode .versionLabel {
+  font-weight: 700;
+  font-size: 13px;
+}
+.releaseNode[data-version="new"],
+.nextCode {
+  color: var(--action-export-fg);
+  stroke: currentColor;
+}
+.releaseNode[data-changing] .changeRing {
+  stroke-width: 2;
+}
+.releaseNode[data-version="previous"] path,
+.releaseNode[data-version="previous"] rect {
+  stroke-dasharray: 4 2;
+}
+@container release-timeline (width >= 48rem) {
+  .releaseFigure {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr);
+  }
+}
+@container release-timeline (width < 30rem) {
+  .states {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

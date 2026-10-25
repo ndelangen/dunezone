@@ -10,7 +10,9 @@ import { Undo2, Redo2 } from 'lucide-react';
 import { useReducer, useMemo } from 'react';
 
 import { useCreateAsset } from '@db/assets';
+import { useAuthoringAccountKey } from '@db/authoring';
 import { useSessionViewer } from '@db/profiles';
+import { assetLoad } from '@app/pickers/assetLoadSource';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { BoardEditor } from '@app/widgets/board-editor/BoardEditor';
 import { boardLoadSource } from '@app/widgets/board-editor/boardLoadSource';
@@ -50,6 +52,7 @@ function reduce(state: State, event: Event): State {
 }
 
 export function BoardCreatePage() {
+  const authoringAccountKey = useAuthoringAccountKey();
   const navigate = useNavigate();
   const viewer = useSessionViewer();
   const saving = useCreateAsset();
@@ -57,14 +60,15 @@ export function BoardCreatePage() {
   const parsed = useMemo(() => BoardAsset.safeParse(state.draft), [state.draft]);
   const { nodes, edges } = state.draft.board;
   const geometryError = useMemo(() => {
+    let result: ReturnType<typeof derive>;
     try {
-      const result = derive({ nodes, edges, properties: {} });
-      return result.unrecoveredSegments || !result.faces.length
-        ? 'A boundary could not be rendered. Undo the last edit before saving.'
-        : undefined;
+      result = derive({ nodes, edges, properties: {} });
     } catch {
       return 'A boundary could not be rendered. Undo the last edit before saving.';
     }
+    return result.unrecoveredSegments || !result.faces.length
+      ? 'A boundary could not be rendered. Undo the last edit before saving.'
+      : undefined;
   }, [nodes, edges]);
   const isDirty = useMemo(
     () => JSON.stringify(state.draft) !== JSON.stringify(state.baseline),
@@ -104,10 +108,19 @@ export function BoardCreatePage() {
     <PageLayout>
       <PageLayout.Toolbar>
         <AuthoringToolbar
+          scopeKey={authoringAccountKey}
           load={{
             noun: 'board',
+            scopeKey: 'create:board',
             mode: 'create',
             disabled: saving.isPending,
+            raw: assetLoad({
+              noun: 'board',
+              type: 'board',
+              schema: BoardAsset,
+              disabled: saving.isPending,
+              onLoaded: () => {},
+            }).raw,
             source: boardLoadSource(),
             onLoaded: (loaded) => dispatch({ kind: 'replace', draft: loaded.data }),
           }}

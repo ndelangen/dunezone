@@ -1,78 +1,8 @@
-/* Only the document background consumes scroll progress; descendants must not recalculate it. */
-@property --scroll-pct {
-  syntax: "<number>";
-  inherits: false;
-  initial-value: 0;
-}
-
 html {
-  background-color: rgba(0, 0, 0);
+  background-color: var(--ui-ground);
   min-height: 100vh;
   width: 100vw;
   scrollbar-gutter: stable both-edges;
-  background-image: url("/web/page-large.jpg");
-  background-size: cover;
-  background-repeat: no-repeat;
-  background-attachment: fixed;
-  background-position: center calc(var(--scroll-pct, 0) * 1%);
-  box-shadow: inset 0 0 90px 0 rgba(0, 0, 0, 0.5);
-}
-
-html[data-mantine-color-scheme="dark"] {
-  background-image: url("/web/page-dark-large.jpg");
-}
-
-html::after {
-  content: "";
-  position: fixed;
-  /* One step further back than the page's own content, which sits at -1: the band artwork and the
-     dice shared that level, so tree order decided, and generated content on `html` paints last.
-     The dice therefore drew across the header on any window short enough for the two to meet. At
-     -2 it stays what it is, a texture on the page background, and blends against that alone. */
-  z-index: -2;
-  bottom: -40vh;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-image: url("/dice.svg");
-  background-size: 60vw 60vh;
-  background-repeat: no-repeat;
-  background-position: center;
-  background-attachment: fixed;
-  opacity: 1;
-  animation: spin 40s linear infinite;
-  mix-blend-mode: overlay;
-}
-
-/* The dice hold still for reduced-motion visitors. The `_app` layout's pre-hydration script
-   stamps `data-motion` before first paint, and the site-local override (see styles/motion.ts)
-   wins either way. The media block covers documents that never stamp (routes outside that
-   layout, and visitors with scripts disabled), where the OS hint decides alone. */
-html[data-motion="reduce"]::after {
-  animation: none;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  html:not([data-motion="ok"])::after {
-    animation: none;
-  }
-}
-
-@media (width < 62rem) {
-  html::after {
-    bottom: -45%;
-    background-size: 80vw 80vh;
-  }
-}
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-
-  to {
-    transform: rotate(360deg);
-  }
 }
 
 body {

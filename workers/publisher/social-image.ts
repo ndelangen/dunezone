@@ -1,3 +1,4 @@
+import { PUBLICATION_TARGETS } from '../../src/shared/asset-publishing/publicationTargets';
 import { parseSocialCard, SOCIAL_CARD_PATH, socialArtwork, socialCardPath } from '../../src/shared/socialCard';
 import type { SocialCardInput } from '../../src/shared/socialCard';
 import { jpegProfile } from './image-inspection';
@@ -23,25 +24,35 @@ async function artworkData(input: SocialCardInput, buckets: ArtworkBuckets): Pro
   if (!target || !bucket) {
     return null;
   }
+  const boardCapture =
+    target.bucket === 'ASSET_BUCKET' &&
+    target.key.startsWith('boards/') &&
+    PUBLICATION_TARGETS.board.capture.output === 'image'
+      ? PUBLICATION_TARGETS.board.capture
+      : undefined;
+  const maxBytes = boardCapture?.maxBytes ?? MAX_ART_BYTES;
+  const maxWidth = boardCapture?.widthPx ?? 2048;
+  const maxHeight = boardCapture?.heightPx ?? 2048;
+  const maxPixels = boardCapture ? maxWidth * maxHeight : MAX_ART_PIXELS;
   try {
     /* A bounded direct read cannot call a metadata resolver or follow a caller-provided URL. */
     const object = await bucket.get(target.key, {
-      range: { offset: 0, length: MAX_ART_BYTES + 1 },
+      range: { offset: 0, length: maxBytes + 1 },
     });
     if (!object) {
       return null;
     }
-    if (object.size > MAX_ART_BYTES) {
+    if (object.size > maxBytes) {
       await object.body.cancel();
       return null;
     }
     const buffer = await object.arrayBuffer();
     const bytes = new Uint8Array(buffer);
-    if (bytes.byteLength > MAX_ART_BYTES) {
+    if (bytes.byteLength > maxBytes) {
       return null;
     }
     const { widthPx, heightPx } = jpegProfile(bytes);
-    if (widthPx < 1 || heightPx < 1 || widthPx > 2048 || heightPx > 2048 || widthPx * heightPx > MAX_ART_PIXELS) {
+    if (widthPx < 1 || heightPx < 1 || widthPx > maxWidth || heightPx > maxHeight || widthPx * heightPx > maxPixels) {
       return null;
     }
     return buffer;

@@ -27,13 +27,18 @@ const PROVIDED_ELSEWHERE = [
   ['--canvas-width', 'CanvasScale, via setProperty'],
   ['--contain-fit-width', 'the contain-fit observer, via setProperty'],
   ['--contain-fit-height', 'the contain-fit observer, via setProperty'],
-  ['--scroll-pct', 'the parallax scroll writer, via setProperty'],
   ['--app-frame-left', 'AppHeader, via setProperty'],
   ['--pile-slot', 'the pile layout, via inline style'],
   ['--rulebook-aspect', 'RulesetRulebooks in routes/_app/rulesets/$rulesetSlug/index.tsx, via inline style'],
   ['--document-editor-', 'DocumentEditorLayout, via setProperty'],
   ['--editor-plane-width', 'the faction editor plane, via setProperty'],
   ['--brush-cursor', 'TabletopScene while the territory paintbrush is on, via inline style'],
+  ['--page-layout-fullscreen-top', 'TutorialGuide, which puts its band above a fullscreen page, via inline style'],
+  [
+    '--palette-camera-top',
+    'the controls compass (PaletteStage4), which hangs the camera dial under the toolbar, via setProperty',
+  ],
+  ['--learned-', 'ChapterComplete in routes/_app/tutorial, which numbers the lines of its list, via inline style'],
 ];
 
 const definitionsRoot = process.env.CSS_VAR_DEFINITIONS_ROOT ?? 'src';

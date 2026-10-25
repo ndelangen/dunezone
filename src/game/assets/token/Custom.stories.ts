@@ -1,7 +1,9 @@
 import preview from '@sb/preview';
+import { discoveryTokenFronts } from '@shared/assets/fixtures/discoveryTokens';
 
 import { backgroundPresets } from '../../data/backgrounds';
 import { CustomToken } from './Custom';
+import { tokenFaceProps } from './tokenFace';
 
 const meta = preview.meta({
   component: CustomToken,
@@ -69,4 +71,8 @@ export const Pointer = meta.story({
     image: '/vector/icon/heighliners.svg',
     circle: true,
   },
+});
+
+export const HieregBack = meta.story({
+  args: tokenFaceProps(discoveryTokenFronts['gf9-hiereg-discovery-marker'].face),
 });

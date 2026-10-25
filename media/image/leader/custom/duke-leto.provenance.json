@@ -1,0 +1,11 @@
+{
+  "sourceFile": "User-supplied leto.png",
+  "sourceSha256": "c4bf8fb400fdcb7326353313b8877b684d2360adb7420db783e6936613a22215",
+  "requestedBy": "Norbert",
+  "requestedOn": "2026-10-23",
+  "request": "Convert Duke Leto to an art style closely matching Paul Atreides and the other Atreides leader images.",
+  "asset": "/image/leader/custom/duke-leto.png",
+  "preparation": "Used built-in image generation with the supplied Duke Leto portrait for likeness and existing Paul Atreides and Thufir Hawat portraits for style. Matched their uneven ink contours, soft shading, muted uniform colors and loose shoulder edges. Resized the approved image to 640 by 640 pixels as an opaque lossless RGB PNG, retaining its ochre background.",
+  "authoringEvidence": "The input, generated foregrounds, prompts and comparison sheet remain in the authoring workspace.",
+  "approval": "On 23 October 2026, Norbert accepted the Paul-and-Thufir style revision with the reply: acceptable."
+}

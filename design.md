@@ -13,13 +13,27 @@ decision log in [`docs/technical/ui-design-decisions.md`](docs/technical/ui-desi
 - Glass surfaces with subtle blur on interactive containers.
 - Strong `2px` borders as a primary visual motif.
 - Controls should stand out clearly over glass surfaces with strong contrast.
-- Warm sand palette aligned with `media/web/page.jpg` and `media/web/head.png`, which
-  `bun run generate:images` publishes under `public/web/`.
+- Warm dark mineral palette aligned with the masthead video. The app is dark-only.
+- An anchored, shaded desert planet and procedural SVG stars replace the old desert photograph and dice. The planet turns once per hour using the visitor's clock; only the stars follow scroll parallax. Ambient-motion preferences still apply.
 - Icon-only action controls as the default, with clear tooltip labels.
 
 ## Design tokens
 
-Global tokens live in `src/app/styles/tokens.css` and are imported by `src/app/routes/__root.tsx`.
+Colour values live in `src/shared/uiPalette.ts`. It supplies Mantine's ramps and generates the CSS
+palette imported by `src/app/styles/tokens.css`. Pigments are opaque. `cssOpacity` records alpha
+treatments separately; consumers apply them to their background, border, fill or shadow color,
+so text and children retain their own opacity. The root route imports those tokens. Play's UI and
+table materials reuse the app's core pigments. Procedural game materials live in
+`src/shared/play/assetColors.ts`; faction colours and board artwork keep their authored palettes.
+
+The canonical palette has 25 pigments. Mantine's ten-slot ramps reuse them; ramp positions are
+adapters, not independent color definitions. Export and progress share blue, publish uses violet,
+positive states use olive, and warnings use amber. Filled semantic controls keep darker companions
+so their cream labels remain readable. Primary actions use bright yellow with dark labels.
+Over the sandy header artwork, the primary uses near-black with cream text for contrast.
+Selections and active-phase emphasis retain pale gold.
+Olive remains the positive status colour. Near-black, cream, brass and warm brown roles cover the
+remaining UI and table furniture. New pigments require a distinct use and a contrast check.
 
 ### Color roles
 

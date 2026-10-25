@@ -1,0 +1,61 @@
+.source {
+  margin: 0;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  font-family: var(--mantine-font-family-monospace);
+  font-size: var(--mantine-font-size-sm);
+  line-height: 1.75;
+  color: var(--color-text);
+  tab-size: 2;
+}
+
+.source:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+.source pre {
+  margin: 0;
+}
+.source code {
+  display: block;
+  width: max-content;
+  min-width: 100%;
+}
+
+.line {
+  display: flex;
+  min-width: max-content;
+}
+
+.marker {
+  flex: 0 0 2ch;
+  user-select: none;
+}
+
+.marker[data-kind="added"] {
+  color: var(--color-positive);
+}
+.marker[data-kind="removed"] {
+  color: var(--color-error);
+}
+.source :global(.hljs-keyword),
+.source :global(.hljs-selector-class) {
+  color: var(--color-publish);
+}
+.source :global(.hljs-string),
+.source :global(.hljs-attr) {
+  color: var(--color-positive);
+}
+.source :global(.hljs-title),
+.source :global(.hljs-name),
+.source :global(.hljs-built_in) {
+  color: var(--color-progress);
+}
+.source :global(.hljs-number),
+.source :global(.hljs-literal) {
+  color: var(--color-caution);
+}
+.source :global(.hljs-comment) {
+  color: var(--color-muted);
+}

@@ -1,11 +1,8 @@
-import { Button } from '@mantine/core';
 import preview from '@sb/preview';
-import { PageTitle } from '@ui/block/PageTitle';
-import { PageLayout } from '@ui/layout/PageLayout';
-import { useState } from 'react';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { AppRoot } from './AppRoot';
+import { HeaderResizePage, playHeaderResize } from './AppRoot.stories.fixture';
 import {
   FullscreenShellPage,
   ShellPageBackdrop,
@@ -20,7 +17,7 @@ const meta = preview.meta({
     docs: {
       description: {
         component:
-          'The persistent chrome: the masthead band, the route below it, the footer, and the document-level effects. Scrolling is the part worth watching. The shell measures how far down the page is and writes it to `--scroll-pct` on the document element, and `page.css` uses it to pan the desert photograph behind everything. These stories carry that stylesheet for their own lifetime only.',
+          'The persistent masthead, page and footer sit above an anchored planet and SVG stars. Only the starfield moves with document scrolling.',
       },
     },
   },
@@ -59,162 +56,15 @@ export const DefaultMobile = meta.story({
   globals: { viewport: { value: 'appMobile' } },
 });
 
-/**
- * The page has one banner, the page's own header, and one main;
- * the band above is artwork and site navigation.
- * The first Tab shows a skip link, and following it puts focus on the main, past the navigation.
- */
-export const SkipToContent = meta.story({
-  globals: { viewport: { value: 'appDesktop' } },
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    const view = canvasElement.ownerDocument.defaultView;
-    await expect(canvas.getAllByRole('banner')).toHaveLength(1);
-    await expect(canvas.getAllByRole('main')).toHaveLength(1);
-    const main = canvas.getByRole('main');
-    const skip = canvas.getByRole('link', { name: 'Skip to content' });
-    await expect(skip.getBoundingClientRect().width).toBe(1);
-    canvasElement.ownerDocument.body.focus();
-    await userEvent.tab();
-    await expect(skip).toHaveFocus();
-    await expect(skip.getBoundingClientRect().width).toBeGreaterThan(1);
-    await expect(skip).toHaveAttribute('href', `#${main.id}`);
-    const hash = view?.location.hash;
-    await userEvent.keyboard('{Enter}');
-    await expect(main).toHaveFocus();
-    await expect(view?.location.hash).toBe(hash);
-    /* The main holds focus only while it has it, so a later click inside it never lands there. */
-    await userEvent.tab();
-    await expect(main).not.toHaveAttribute('tabindex');
-  },
-});
-
 export const HeaderlessPage = meta.story({
   globals: { viewport: { value: 'appDesktop' } },
   args: { children: shellPageOptionLabels[2] },
 });
 
-function HeaderResizePage() {
-  const [showHeader, setShowHeader] = useState(false);
-
-  return (
-    <PageLayout>
-      {showHeader && (
-        <PageLayout.Header size="compact">
-          <PageTitle title="Header resize example" />
-        </PageLayout.Header>
-      )}
-      <PageLayout.Toolbar>
-        <Button onClick={() => setShowHeader(!showHeader)}>
-          {showHeader ? 'Hide page header' : 'Show page header'}
-        </Button>
-      </PageLayout.Toolbar>
-      <PageLayout.Content>Use the control to expand and collapse the page header.</PageLayout.Content>
-    </PageLayout>
-  );
-}
-
-/* The band's `height 0.2s` transition in `AppHeader.module.css`. */
-const BAND_TRANSITION_MS = 200;
-
-/**
- * Takes hold of the band's height transition if it has not finished.
- * A finished transition leaves the element's animations, and one still listed is skipped, so the previous leg's transition cannot be rewound and read as this one's.
- * It pauses the transition, seeks it half way, reads the band's height there and finishes it, and returns that height.
- * Reading the animations flushes style, so a transition the last style change started is already there, whether or not a frame has run since.
- */
-function holdHalfWay(header: HTMLElement, view: Window & typeof globalThis) {
-  const transition = header
-    .getAnimations()
-    .find(
-      (animation): animation is CSSTransition =>
-        animation instanceof view.CSSTransition &&
-        animation.transitionProperty === 'height' &&
-        animation.playState !== 'finished'
-    );
-  if (!transition) {
-    return undefined;
-  }
-  transition.pause();
-  transition.currentTime = BAND_TRANSITION_MS / 2;
-  const midway = header.getBoundingClientRect().height;
-  transition.finish();
-  return midway;
-}
-
-/**
- * In Chromium, as measured for this story, a CSS transition advances only on drawn frames, and its `transitionend` reaches the page from inside one.
- * When the GPU process is busy the page can draw no frame for seconds while its timers, and a wait's polls, keep running.
- * The transition then sits at one point until the wait's bound, so a story that waits for the end event times the runner rather than the band (https://github.com/ndelangen/dunezone/issues/1180).
- * So the story takes hold of the transition itself, from a mutation observer: its callback runs in the microtask after the click's render is committed, before any frame can advance or end the transition that render started.
- * A height strictly between the two resting heights proves the band animates, and none of that waits for a frame.
- * The story reads no transition events, so events a finished transition delivers late cannot stand in for a later change that did not animate.
- */
-async function playHeaderResize({ canvasElement }: { canvasElement: HTMLElement }, motion: 'reduce' | 'ok') {
-  const canvas = within(canvasElement);
-  const root = canvasElement.ownerDocument.documentElement;
-  const view = canvasElement.ownerDocument.defaultView;
-  /* The band is artwork and site navigation; the page's own header is the banner landmark. */
-  const header = canvasElement.querySelector<HTMLElement>('[data-app-band]');
-  if (!view || !header) {
-    throw new Error('The header resize story requires a browser window and a mounted band.');
-  }
-
-  await waitFor(async () => {
-    await expect(root).toHaveAttribute('data-motion', motion);
-    await expect(header.getBoundingClientRect().height).toBe(51);
-  });
-
-  for (const expanded of [true, false]) {
-    const from = header.getBoundingClientRect().height;
-    let midway: number | undefined;
-    const observer = new view.MutationObserver(() => {
-      midway ??= holdHalfWay(header, view);
-      if (midway !== undefined) {
-        observer.disconnect();
-      }
-    });
-    observer.observe(canvasElement, { attributes: true, childList: true, subtree: true });
-    try {
-      await userEvent.click(canvas.getByRole('button', { name: expanded ? 'Show page header' : 'Hide page header' }));
-    } finally {
-      observer.disconnect();
-    }
-    /* The band transitions its height alone; the immersive grow and shrink run as animations in bandMotion.ts. */
-    const durations = new Set(view.getComputedStyle(header).transitionDuration.split(', '));
-    await expect([...durations]).toEqual([motion === 'reduce' ? '0s' : '0.2s']);
-    await waitFor(async () => {
-      await expect(canvasElement.querySelector('[data-app-band]')).toBe(header);
-      if (expanded) {
-        await expect(header.getBoundingClientRect().height).toBeGreaterThan(51);
-      } else {
-        await expect(header.getBoundingClientRect().height).toBe(51);
-      }
-    });
-    if (motion === 'reduce') {
-      await expect(midway).toBeUndefined();
-    } else {
-      await expect(
-        midway,
-        `The band's height started no transition when the page header was ${expanded ? 'shown' : 'hidden'}.`
-      ).toBeDefined();
-      const to = header.getBoundingClientRect().height;
-      await expect(midway).toBeGreaterThan(Math.min(from, to));
-      await expect(midway).toBeLessThan(Math.max(from, to));
-    }
-  }
-}
-
 export const ReducedMotionHeaderResize = meta.story({
   globals: { viewport: { value: 'appDesktop' }, motion: 'reduce' },
   args: { children: <HeaderResizePage /> },
   play: (context) => playHeaderResize(context, 'reduce'),
-});
-
-export const AnimatedHeaderResize = meta.story({
-  globals: { viewport: { value: 'appDesktop' }, motion: 'on' },
-  args: { children: <HeaderResizePage /> },
-  play: (context) => playHeaderResize(context, 'ok'),
 });
 
 function fullscreenElements(canvasElement: HTMLElement) {
@@ -253,8 +103,9 @@ async function playFullscreenHeight({ canvasElement }: { canvasElement: HTMLElem
     await expect(header.getBoundingClientRect().width).toBe(1);
     await expect(header.getBoundingClientRect().height).toBe(1);
     await expect(view.getComputedStyle(header).clipPath).toBe('inset(50%)');
-    await expect(view.getComputedStyle(root).backgroundImage).toBe('none');
-    await expect(view.getComputedStyle(root, '::after').display).toBe('none');
+    const background = canvasElement.querySelector<HTMLElement>('[data-app-background]');
+    await expect(background).not.toBeNull();
+    await expect(view.getComputedStyle(background!).visibility).toBe('hidden');
     /* The band is hidden, so its video never mounts and never downloads. */
     await expect(canvasElement.querySelector('video')).toBeNull();
   });
@@ -299,8 +150,8 @@ export const FullscreenExitRestoresDocument = meta.story({
       await expect(footer).toBeVisible();
       await expect(root.scrollHeight).toBeGreaterThan(root.clientHeight);
       await expect(content.getBoundingClientRect().width).toBeLessThan(view.innerWidth);
-      await expect(view.getComputedStyle(root).backgroundImage).not.toBe('none');
-      await expect(view.getComputedStyle(root, '::after').display).not.toBe('none');
+      const background = canvasElement.querySelector<HTMLElement>('[data-app-background]');
+      await expect(view.getComputedStyle(background!).visibility).toBe('visible');
       await expect(view.getComputedStyle(root).scrollbarGutter).toBe('stable both-edges');
     });
 
@@ -312,51 +163,39 @@ export const FullscreenExitRestoresDocument = meta.story({
   },
 });
 
-/**
- * Scrolls the preview to the bottom on open so the backdrop travels without being touched, then checks the shell actually drove it: `--scroll-pct` reaching the bottom of its range is what moves `background-position`.
- * The variable is written from a requestAnimationFrame handler, so under load the last update can land a hair short of 100.
- * Wait (against the suite bound in `.storybook/storyWaits.ts`) for it to settle into [99.5, 100] rather than demand exactly 100.
- *
- * Reaching the bottom of the range only says something about the shell if the page started at the top of it and had somewhere to travel, and neither is given.
- * A story that ran earlier leaves the preview wherever it stopped, so the starting sample can already be the end-of-range value and the pan reads as broken when it is not.
- * A page with nothing to scroll is the other way round: `AppRoot` reports 100 rather than 0 for it, so the range checks are met without the window having moved at all.
- * Driving to the top and waiting for the shell to write that measurement rules out the first, and requiring the window to have travelled rules out the second.
- * The wait cannot be skipped: on mount the shell seeds `--scroll-pct` with a literal 0 before it has measured anything, so a sample taken straight away says nothing about where the page is.
- */
+/** The stars traverse their parallax range while the planet's frame stays anchored. */
 async function playBackgroundPan({ canvasElement }: { canvasElement: HTMLElement }) {
   const view = canvasElement.ownerDocument.defaultView;
   const root = canvasElement.ownerDocument.documentElement;
-  if (view == null) {
-    throw new Error('The story has no window, so scroll progress cannot be driven.');
+  const stars = canvasElement.querySelector<HTMLElement>('[data-background-stars]');
+  const planet = canvasElement.querySelector<HTMLElement>('[data-background-planet]');
+  if (!view || !stars || !planet) {
+    throw new Error('The scroll story requires the orbital background.');
   }
-
-  const readPosition = () => view.getComputedStyle(root).backgroundPosition;
-  const readPercent = () => Number.parseFloat(root.style.getPropertyValue('--scroll-pct'));
-
+  const readProgress = () => Number.parseFloat(stars.style.getPropertyValue('--scroll-progress'));
   view.scrollTo({ top: 0 });
   await waitFor(async () => {
     await expect(view.scrollY).toBe(0);
-    await expect(readPercent()).toBe(0);
+    await expect(readProgress()).toBe(0);
   });
-  const atTop = readPosition();
-
-  view.scrollTo({ top: root.scrollHeight, behavior: 'smooth' });
+  const planetTop = planet.getBoundingClientRect().top;
+  const starTop = stars.getBoundingClientRect().top;
+  await expect((view.innerHeight - planetTop) / planet.getBoundingClientRect().height).toBeCloseTo(0.2, 3);
+  view.scrollTo({ top: root.scrollHeight, behavior: 'instant' });
   await waitFor(async () => {
     await expect(view.scrollY).toBeGreaterThan(0);
-    const pct = readPercent();
-    await expect(pct).toBeGreaterThanOrEqual(99.5);
-    await expect(pct).toBeLessThanOrEqual(100);
-    await expect(readPosition()).not.toBe(atTop);
+    await expect(readProgress()).toBeGreaterThanOrEqual(0.995);
+    await expect(stars.getBoundingClientRect().top).toBeLessThan(starTop);
+    await expect(planet.getBoundingClientRect().top).toBe(planetTop);
   });
 }
 
 export const ScrollingBackground = meta.story({
-  globals: { viewport: { value: 'appDesktop' } },
+  globals: { viewport: { value: 'appDesktop' }, motion: 'on' },
   parameters: {
     docs: {
       description: {
-        story:
-          'The backdrop pans as the page scrolls, at its own pace behind the band and the footer. Scroll back up to run it in reverse.',
+        story: 'The stars move in parallax while the shaded planet remains anchored with its upper 20% visible.',
       },
     },
   },

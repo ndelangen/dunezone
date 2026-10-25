@@ -6,11 +6,11 @@
  */
 
 .root {
-  /* Sand glass and a sand socket, the approved values; artwork sits behind these in either scheme. */
-  --published-image-slot: rgba(226, 206, 168, 0.16);
-  --published-image-slot-edge: rgba(255, 250, 238, 0.3);
-  --published-image-socket: rgba(176, 156, 124, 0.78);
-  --published-image-socket-ink: rgba(66, 48, 24, 0.62);
+  /* Loading and missing states use opaque UI pigments with alpha applied to their paint. */
+  --published-image-slot: rgb(from var(--ui-muted) r g b / 0.16);
+  --published-image-slot-edge: rgb(from var(--ui-text) r g b / 0.3);
+  --published-image-socket: rgb(from var(--ui-muted) r g b / 0.78);
+  --published-image-socket-ink: var(--ui-ground);
 
   position: relative;
   width: 100%;
@@ -49,7 +49,7 @@
 /* The shadow belongs to the artwork, so a slot never carries it and it comes in with the image. */
 .raised[data-phase="arriving"] .art,
 .raised[data-phase="shown"] .art {
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 2px 10px rgb(from var(--color-shadow) r g b / 0.45);
 }
 
 /*
@@ -58,7 +58,7 @@
  */
 .cutout[data-phase="arriving"],
 .cutout[data-phase="shown"] {
-  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.5));
+  filter: drop-shadow(0 2px 6px rgb(from var(--color-shadow) r g b / 0.5));
 }
 
 .root[data-phase="arriving"] .art {
@@ -95,8 +95,8 @@
   color: var(--published-image-socket-ink);
   background: var(--published-image-socket);
   box-shadow:
-    inset 0 1px 3px rgba(60, 40, 15, 0.35),
-    inset 0 0 14px rgba(60, 40, 15, 0.14);
+    inset 0 1px 3px rgb(from var(--color-shadow) r g b / 0.35),
+    inset 0 0 14px rgb(from var(--color-shadow) r g b / 0.14);
   pointer-events: none;
 }
 

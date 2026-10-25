@@ -6,6 +6,7 @@ export const pageStoryMeta = {
   component: StorybookPage,
   args: { path: '/' },
   beforeEach: syncPreviewFrameHash,
+  globals: { backgrounds: { value: 'dark', grid: false } },
   parameters: {
     controls: { disable: true },
     layout: 'fullscreen',

@@ -95,6 +95,20 @@ Three 0.186 now removes destroyed bind groups itself, so that part of the old pa
 The patch covers `build/three.webgpu.js`,
 `build/three.webgpu.nodes.js` and the matching `src/` files.
 
+The Storybook React 10.6.1 patch uses an asynchronous `act` callback when unmounting a story.
+Its test environment flag then stays enabled until React drains the cleanup work. A synchronous
+callback restores the flag before the awaited cleanup finishes, so Fiber reports an unsupported
+act environment during later stories. The two-story Play table loop reproduces the warning.
+Remove the patch when Storybook uses an asynchronous unmount callback itself.
+
+The Floating UI 1.8.0 patch coalesces positions requested by `ResizeObserver` into the next
+animation frame. Updating a portalled tooltip inside resize delivery can change its wrapping and
+leave undelivered notifications in the same browser cycle. Initial placement and scroll updates
+still run immediately. Cleanup cancels both pending resize updates and floating-element
+reobservation. The installed-package regression checks scheduling, coalescing and disposal; the
+Faction Special Rule and board editor stories cover the original browser failures. Remove the
+patch when Floating UI provides the same resize scheduling and cleanup.
+
 The `miniflare` entry in `package.json` `overrides` moves only miniflare's own `undici` to 7.30.0,
 for [GHSA-3wwx-pv8p-q78v](https://github.com/advisories/GHSA-3wwx-pv8p-q78v). miniflare pins
 `undici` to exactly 7.29.0, which no range can reach, and an override of `undici` everywhere would
@@ -149,13 +163,15 @@ one placeholder user, "Snapshot owner", the snapshot's only user and profile. It
 no sign-in account, so nobody can sign in as it. `scripts/lib/snapshot-policy.ts` says what each
 table keeps. Without a draft a Rulebook's editor cannot open, so the load gives every Rulebook a draft
 that holds its current Edition as the public reader shows it, saved by the placeholder owner.
+Both the snapshot and the seeded draft use that Edition's settings and Contents together. An
+Edition without stored settings uses the A4 illustrated defaults, never private draft settings.
 
 Without `--snapshot-file <zip>`, the launch downloads the newest snapshot that the `Anonymised
 snapshot` workflow uploaded from `main`, using the GitHub CLI (`gh auth login` first). It ignores an
 artifact of that name from any other workflow, event, branch or fork, and one from a run that did
 not succeed. The download goes to the launch's private temporary directory, and the launch deletes
-it as soon as the import finishes or fails. Nothing is cached between launches. The workflow keeps
-each upload for one day, and uploads only while its `SNAPSHOT_UPLOAD` switch is `"true"`. With no
+it as soon as the import finishes or fails. Nothing is cached between launches. The workflow runs weekly and
+keeps each upload for eight days, so the newest is usually under a week old (after a failed Monday run the previous upload lasts about one more day, then none is left until the next Monday's run or a manual dispatch), and it uploads only while its `SNAPSHOT_UPLOAD` switch is `"true"`. With no
 artifact, or when GitHub cannot be reached, the launch stops before Docker starts and points at
 `--data=fixture`.
 
@@ -175,7 +191,7 @@ state or aggregates; the migration guards that every launch runs rebuild both. T
 synthetic export; the launch leaves that file where it is.
 
 No command loads raw production data outside production. The only command that exports production
-is the snapshot job's script, which `dev-rebuild` also runs. It refuses to run outside a GitHub
+is the weekly snapshot job's script. It refuses to run outside a GitHub
 Actions run on `main` and needs `CONVEX_PROD_DEPLOY_KEY`, so a Convex login is never enough.
 
 A supervised local Convex watcher pushes later function, schema, shared contract, and backend
@@ -222,26 +238,24 @@ tables as the e2e target does; the snapshot load belongs to `app:dev --local` al
 
 ### Keeping the cloud dev deployment usable
 
-`deploy-main` calls the `Rebuild dev deployment` workflow once production has shipped, so a
-failed rebuild reddens the run without ever gating the release. Every merge pushes main's
-functions to the dev deployment; the **data** is only reloaded when the deploy cannot tell which
-commits it adds to production, or when those commits touch `convex/schema.ts`,
-`convex/migrations*.ts`, or `convex/migration-guards.json`, the changes that can invalidate or
-reshape dev's existing data, or the files that make, load and check the snapshot: the snapshot
-policy and anonymiser (`scripts/lib/snapshot-*.ts`, `scripts/snapshot-*.ts`),
-`scripts/anonymised-snapshot.ts`, the rebuild contract (`convex/lib/provisioningContract.ts`,
-`convex/provisioningChecks.ts`) and `.github/workflows/dev-rebuild.yml`. So a tightened policy
-reaches dev on the merge that makes it. `scripts/dev-rebuild-decision.ts` holds the list. Ordinary
-merges leave your dev session and any dev-side experiments intact.
+`deploy-main` calls `Sync dev deployment` after production ships. Each release pushes main's
+functions and runs outstanding migrations against dev's existing data. Completed migrations keep
+their progress and are skipped. A failed push or migration fails the job without clearing data or
+exporting production. Schema changes follow the same widen, migrate, verify and narrow sequence
+as production. If dev missed a prerequisite release, recover it explicitly before narrowing.
 
-Dev's data is the anonymised snapshot, never raw production. A data rebuild runs the snapshot job's
-own script (`scripts/anonymised-snapshot.ts`) in the same job: it exports production, deletes the
-raw export once it has read it, anonymises it and scans the result. The next step loads that file
-with `provision dev --stage data --snapshot-file`, holding only the dev deploy key. The rebuild does
-not depend on the public artifact, and it uploads nothing. The job's step summary shows the same
-table report as the snapshot job. When the export, the anonymiser or its leak scan refuses, the job
-fails before dev is touched, and dev keeps the data it had; the same holds when the dev step refuses
-the file, because it checks the file before it clears anything.
+Every Monday at 05:17 UTC, `Anonymised snapshot` exports production once, anonymises and scans it,
+uploads the published-only snapshot for local development, then refreshes cloud dev from that same
+file. The refresh verifies the snapshot before clearing dev, pushes the selected release, imports the snapshot,
+seeds Rulebook drafts, checks the rebuild contract and rebuilds derived data through the migration
+guards. It holds only the dev deploy key; the export step alone holds the production key. The snapshot pins the last successful production release and requires both Workers to report that
+commit. It shares the production deployment lock for the whole export and refresh, which also covers its called dev sync. The queue retains waiting runs. A failed production release must
+be completed before a snapshot refresh can start.
+
+The weekly refresh replaces dev-side experiments and sign-in accounts. To recover dev sooner, run
+`Anonymised snapshot` manually from main. It performs the same export and refresh. Retry a failed dev sync job from its `Deploy production` run to retry code and outstanding migrations.
+A stale run refuses to overwrite dev after production has advanced. An uploaded snapshot remains available for local launches if the later dev refresh fails. A failed snapshot
+verification leaves dev's data intact; a failure after the reset remains visible for recovery.
 
 After a rebuild, cloud dev holds no accounts from production: `users` and `profiles` hold only the
 placeholder owner, and `authAccounts` is empty. Signing in to dev therefore creates a new account
@@ -255,14 +269,53 @@ The cloud dev deployment is the shared integration copy of `main`, not a feature
 Do not run a branch's `convex dev` against it. Use `bun run app:dev --local` when the checked-out
 Convex code must run.
 
-Run the `Rebuild dev deployment` workflow manually (Actions → Run workflow) to force a fresh
-snapshot at any time. A skipped or failed rebuild cannot go unnoticed for long, and it
-recovers: Convex validates existing data against every pushed schema, so stale dev data fails
-the next ordinary merge's code push loudly, and a rebuild clears the target before pushing the new
-schema, which is why a forced rebuild heals a deployment whose data a schema change has already made
-unpushable.
-
 ## Common workflows
+
+### Reviewing visual changes
+
+[Chromatic](https://www.chromatic.com/builds?appId=6adb5f9c3d9925e3217df200) captures the Storybook
+stories on pushes to `main` and on pull requests that are ready for review, once when a draft is
+marked ready and again on each later push. Drafts get no Chromatic build, because every build bills
+snapshots. On a pull request the build starts only after every other PR CI job has passed, so a
+failing run is never captured. Manual runs from GitHub Actions are supported. The workflow generates
+the media, builds and verifies the public Storybook, then uploads that artifact with the pinned
+Chromatic CLI. The `CHROMATIC_PROJECT_TOKEN` repository secret is available only to the token
+check and upload steps. Keep it out of source files and command-line arguments.
+
+Review and accept intended visual changes in Chromatic. Visual differences leave the workflow
+green so an expected UI change does not fail the upload job; rendering and interaction failures
+still fail it. No branch automatically accepts changes. Chromatic runs separately from the
+required `ci_ok` check, and its visual review checks report through the GitHub integration.
+Fork pull requests do not receive this repository's token and get no Chromatic build.
+
+Stories come in two kinds ([ADR-0004](adr/0004-visual-stories-and-testing-stories.md)). A presentation story shows a UI capability, and Chromatic captures it once. A testing
+story drives behaviour: it clicks, types or delivers, or its play runs for seconds. Its file builds its
+meta from `testingPreview` (exported by `.storybook/preview.tsx`) instead of the default preview. That
+preview turns Chromatic snapshots off for the whole file. Its plays still run in
+the Vitest story shards on every pull request, and the stories stay in Storybook. Each CSF file renders
+with the preview its meta came from, so a file holds stories of one kind only.
+
+A file that has stories of both kinds is split into a pair: `name.stories.tsx` keeps the presentation
+stories and `name.testing.stories.tsx` holds the testing ones under the same `title`, so both appear in
+one Storybook entry and keep their story ids. Helpers both files use live in `name.stories.fixture.ts(x)`.
+A handful of stories under review still carry a per-story `parameters.chromatic.disableSnapshot: true`.
+A new capture failure still fails the workflow. A play that outruns Chromatic belongs in a testing file.
+
+For a local upload, generate the media as described below, set `CHROMATIC_PROJECT_TOKEN` in your
+environment, and run `bun run chromatic`. To upload an existing verified build instead, run
+`bun run chromatic --storybook-build-dir=storybook-static --zip`.
+
+TurboSnap is configured with `onlyChanged: true`. Storybook builds emit `preview-stats.json`,
+and the upload workflow requires that dependency graph. Once Chromatic unlocks TurboSnap after
+ten completed CI builds, it captures affected stories and copies unchanged snapshots from their
+baselines. Before that, Chromatic falls back to full captures. The account's snapshot allowance
+still applies.
+
+Changes to static assets, media-generation inputs, build configuration and helpers, dependencies,
+and either Storybook worker force full captures. The Convex worker builds separately, so its
+backend and shared source inputs also force full captures. Keep the `externals` list in
+`chromatic.config.json` aligned with those inputs. No dependencies are excluded from tracing
+with `untraced`.
 
 ### Writing stories
 
@@ -450,6 +503,8 @@ section of [`AGENTS.md`](../AGENTS.md) and the [media runbooks](./technical/medi
 the typed public-asset catalog used by game schemas, and `src/shared/media/vectorCrops.generated.ts`,
 the geometry used to fit illustrations after square normalization.
 
+Persistent authoring reviews can keep local data, auth and publishing artifacts across restarts. See [Persistent local review](./technical/persistent-local-review.md) for the explicit launcher flags and reset scope.
+
 ## Detailed documentation
 
 - [Architecture](./architecture.md) - Request flow, structure, tsconfig paths
@@ -461,10 +516,12 @@ the geometry used to fit illustrations after square normalization.
 - [Data Layer](./data-layer.md) - Domain patterns, DB syncing, structure
 - [Routing](./routing.md) - Route configuration, file-based routing
 - [Authentication](./authentication.md) - Auth patterns, Convex Auth integration
+- [Content security policy](./content-security-policy.md) - Browser resource origins, inline scripts and cached HTML delivery
 - [User Data Contract](./user-data-contract.md) - What belongs in `users` vs `profiles`
 - [State Management](./state-management.md) - Convex live subscriptions, the loader/`initialData` handoff
 - [Membership](./membership.md) - Group membership approval flow
 - [Deployment](./deployment.md) - Cloudflare Worker deployment process
+- [Convex usage](./technical/convex-usage.md) - Daily production/dev reports, alerts and backend read budgets
 - [Convex Migrations](./convex-migrations.md) - Required widen/migrate/verify/narrow runbook + CI/deploy guards
 - [Stock artwork collections](./technical/stock-artwork.md) - Portrait sets, SVG categories, and adding artwork
 - [Media runbooks](./technical/media-runbooks.md) - A deploy that stops on a variant conflict, forward recovery from bad art or a bad release, and losing the upload token

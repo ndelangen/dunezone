@@ -1,0 +1,2030 @@
+{
+  "issue": "https://github.com/ndelangen/dunezone/issues/2284",
+  "range": [200, 401],
+  "reviewer": "gf9_sources",
+  "method": "Read full collected answer text; link targets trusted per user and not reopened. Each entry records application or exclusion.",
+  "completedCount": 202,
+  "entries": [
+    {
+      "index": 200,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225389557",
+      "topic": "Does the Ixian ally see the bought card before swapping it?",
+      "read": true,
+      "contentSha256": "a05f1079a96b3adfcdbfce7de7956202d86c4ca5eee7d82d82f5ddd3cee045b6",
+      "destination": ["ixian-tleilaxu#ixian-bidding"],
+      "decision": "Inspect the bought card before each immediate swap; cache auction excluded, Black Market included.",
+      "status": "reviewed"
+    },
+    {
+      "index": 201,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225389842",
+      "topic": "Can the Bene Gesserit free advisor go to the Polar Sink?",
+      "read": true,
+      "contentSha256": "b064d8c045ae27d48c6001d48437a2b8a88cf8739303818f72a8c1d9eb8b8adc",
+      "destination": ["core#advisors"],
+      "decision": "Polar Sink remains a choice; existing fighters must first flip by Intrusion before an accompanying advisor can join them.",
+      "status": "reviewed"
+    },
+    {
+      "index": 202,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225389915",
+      "topic": "Can Ecaz win by occupying strongholds with an ally?",
+      "read": true,
+      "contentSha256": "5cd57ab8e47c597c46d93879f9e79788ea2e9b41719afa455c1559c67cf1ddf9",
+      "destination": ["ecaz-moritani#ecaz-co-occupation"],
+      "decision": "Three co-occupied strongholds suffice. Preserve existing verified Ecaz Homeworld stock; conflict over both Emperor worlds versus two other factions flagged for root judgement rather than silently choosing.",
+      "status": "reviewed"
+    },
+    {
+      "index": 203,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225391223",
+      "topic": "Can Bene Gesserit advisors share a territory with their ally?",
+      "read": true,
+      "contentSha256": "c9f216baea9ce05ba2ca6b1f0eac4719a17ee1e5fc3ad9109c5b2d19bc9dd12b",
+      "destination": ["core#nexus", "GF9-CORE-005"],
+      "decision": "Use official advisor separation and later-player evacuation; reject unofficial coexistence default.",
+      "status": "reviewed"
+    },
+    {
+      "index": 204,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225391729",
+      "topic": "Do Bene Gesserit advisors count for controlling a stronghold?",
+      "read": true,
+      "contentSha256": "c6534165a0cedb22c9b56ae2d21a0e676a1d3efef3fb3688b6f3631f9328b417",
+      "destination": ["core#advisors", "core#storm-effects"],
+      "decision": "Advisors do not control or block. Alone they flip; unresolved storm conflict prevents victory counting.",
+      "status": "reviewed"
+    },
+    {
+      "index": 205,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225392202",
+      "topic": "Does the Emperor's extra ally revival stack with the Tleilaxu increase?",
+      "read": true,
+      "contentSha256": "63481551a25cb52349fecf8ea4681a7ed0bc779df963b7853290b56fef60730a",
+      "destination": ["ixian-tleilaxu#tleilaxu-revival", "core#emperor"],
+      "decision": "Emperor extra three stacks with Tleilaxu limit five for total eight; not for Emperor itself.",
+      "status": "reviewed"
+    },
+    {
+      "index": 206,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225392769",
+      "topic": "How does the Bene Gesserit prediction win work?",
+      "read": true,
+      "contentSha256": "26e0a834415f04178cba6fec3aa341ecfb108b05d25a312301db8b78d3b2f196",
+      "destination": ["core#bene-gesserit"],
+      "decision": "Choose one other faction and turn before traitors; normal allied win can trigger, special wins cannot.",
+      "status": "reviewed"
+    },
+    {
+      "index": 207,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225393043",
+      "topic": "What is the difference between the Ixian bidding and technology advantages?",
+      "read": true,
+      "contentSha256": "28d5d4cb77f5337bd10654f9f581ffbc271202aec6c6b0f5a5f7c6df977ab8a9",
+      "destination": ["ixian-tleilaxu#ixian-bidding", "ixian-tleilaxu#ixian-advanced"],
+      "decision": "Auction inspection extra draw differs from once-per-phase hand swap; full hand permits swap.",
+      "status": "reviewed"
+    },
+    {
+      "index": 208,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225393132",
+      "topic": "Can more than one Sardaukar or Fedaykin be revived per turn?",
+      "read": true,
+      "contentSha256": "e9e03e51c9fc409a8f2941912452846ac31fdcd945df306363eefd0ad8b78958",
+      "destination": ["core#revive-forces"],
+      "decision": "At most one elite force of each faction revived per turn despite Ghola, Emperor or Tleilaxu.",
+      "status": "reviewed"
+    },
+    {
+      "index": 209,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225393530",
+      "topic": "Can the Emperor revive a leader as well as three forces?",
+      "read": true,
+      "contentSha256": "c448677f7c29be9e2739f9c5371377c0d91719d756a8a9def7187a11c57552df",
+      "destination": ["core#revive-leaders"],
+      "decision": "Eligible leader revival is additional to normal force revival. Emperor special Karama is forces OR leader.",
+      "status": "reviewed"
+    },
+    {
+      "index": 210,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225393584",
+      "topic": "Can the Bene Gesserit use Worthless cards as Karama?",
+      "read": true,
+      "contentSha256": "d879597a81ba661940599a1b703a1f0d2e46748b52e4a1e517a3ab9facb9536c",
+      "destination": ["core#advisors", "core#karama"],
+      "decision": "Worthless-as-Karama repeatable in Advanced; prevention discards Worthless card.",
+      "status": "reviewed"
+    },
+    {
+      "index": 211,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225393800",
+      "topic": "How do the Ixians choose their starting treachery card?",
+      "read": true,
+      "contentSha256": "e4b49be10194dc09378671ee991755770ee192516fa75173ff652a36bfac9c24",
+      "destination": ["ixian-tleilaxu#ixian-setup", "EXP-002"],
+      "decision": "Use explicit official one-per-faction initial inspection; Harkonnen extra afterward.",
+      "status": "reviewed"
+    },
+    {
+      "index": 212,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225394071",
+      "topic": "Are Sardaukar worth 1 or 2 against the Fremen?",
+      "read": true,
+      "contentSha256": "0b09a26ef1a8e43008602de40b653d6a4d0e47060fceed12cf8a2f930129ad47",
+      "destination": ["core#advanced-battle", "core#emperor"],
+      "decision": "Sardaukar are ordinary versus all Fremen forces, not only Fedaykin.",
+      "status": "reviewed"
+    },
+    {
+      "index": 213,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225394199",
+      "topic": "Where do the Bene Gesserit start in the advanced game?",
+      "read": true,
+      "contentSha256": "feb0cac32140269e1616bd0f1ec9d31869612987215b1128177712ce991af073",
+      "destination": ["core#starting-forces", "core#advisors"],
+      "decision": "One advanced starting advisor anywhere instead of a Polar Sink force, not an additional force.",
+      "status": "reviewed"
+    },
+    {
+      "index": 214,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225394468",
+      "topic": "How does the Emperor take losses with a mix of Sardaukar and normal forces?",
+      "read": true,
+      "contentSha256": "c32feb93100cc074c1d2612ddd2432d57355285c2fbe9f5d6cde1d2d66c47a1a",
+      "destination": ["core#advanced-battle"],
+      "decision": "Choose casualties matching dial and support, including several valid mixes.",
+      "status": "reviewed"
+    },
+    {
+      "index": 215,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225394504",
+      "topic": "Can the Bene Gesserit Voice the opponent of their ally?",
+      "read": true,
+      "contentSha256": "e7aae58cf6058afb171d850c37e630a0e214f36e7b2ae991bac33f0213f6f2c4",
+      "destination": ["core#bene-gesserit"],
+      "decision": "Bene Gesserit may Voice its ally's opponent.",
+      "status": "reviewed"
+    },
+    {
+      "index": 216,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225395005",
+      "topic": "How do Ixian Cyborgs and Suboids take losses, and what if Karama weakens Cyborgs?",
+      "read": true,
+      "contentSha256": "ac1e2f5a3d8779d6becf26adfb224149d5756353445f801a5daba1ccec8860b0",
+      "destination": ["ixian-tleilaxu#cyborgs-and-suboids", "ixian-tleilaxu#ixian-tleilaxu-karama"],
+      "decision": "Pay exact troop strength losses; Karama only clamps an excessive maximum; remaining Suboids may replace lost Cyborgs.",
+      "status": "reviewed"
+    },
+    {
+      "index": 217,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225395452",
+      "topic": "Can an Ixian ally swap a card bought from Richese or the Black Market?",
+      "read": true,
+      "contentSha256": "17573d9c05485248806490e2d0997bbb0dd35f66f98fc3cb494a0af329309276",
+      "destination": ["ixian-tleilaxu#ixian-bidding", "choam-richese#richese-auctions"],
+      "decision": "Ixian swap allowed for Black Market, not cache; Harkonnen bonus applies to both.",
+      "status": "reviewed"
+    },
+    {
+      "index": 218,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225395793",
+      "topic": "Can the Hidden Mobile Stronghold be used without the Ixians?",
+      "read": true,
+      "contentSha256": "b1b49585ca2987ba3f8a70a75cd9665e7555fcc4675e016dd53cf84c5281df2c",
+      "destination": ["excluded-house-rule"],
+      "decision": "HMS without Ixians is a community implementation toggle, outside default GF9.",
+      "status": "excluded"
+    },
+    {
+      "index": 219,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225396580",
+      "topic": "How does the Cheap Hero traitor card work?",
+      "read": true,
+      "contentSha256": "9e7b015a458fe66be31c152da86149788cf7cafe4b7f3a98a58e7184fbe0aca4",
+      "destination": ["ixian-tleilaxu#new-cards"],
+      "decision": "Cheap Hero traitor can betray multiple Cheap Heroes over the game.",
+      "status": "reviewed"
+    },
+    {
+      "index": 220,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225397275",
+      "topic": "Can Karama stop an alliance ability, such as CHOAM or Richese ones?",
+      "read": true,
+      "contentSha256": "506e548720953fdac6dcb654cbed8e3a061cdf10b9e28c6f5b4bd29ab1c2eeb9",
+      "destination": ["core#karama", "choam-richese#replacement-card-text"],
+      "decision": "Normal Karama can stop alliance abilities; expansion table need not repeat general permission.",
+      "status": "reviewed"
+    },
+    {
+      "index": 221,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225397651",
+      "topic": "Can Karama be used to pay for someone else's shipment?",
+      "read": true,
+      "contentSha256": "ecf77bbafd0e5bff88f59cbfcb0e521b07926cf5c20404237fc445d6b04f6277",
+      "destination": ["core#karama"],
+      "decision": "Any player's normal shipment may be bought at Guild rates paid to Bank; no extra shipment.",
+      "status": "reviewed"
+    },
+    {
+      "index": 222,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225398200",
+      "topic": "Why was the Karama card reworded?",
+      "read": true,
+      "contentSha256": "b9fcede6971b2c1a319f49a38a0fa111f3de8bad9a1cf451592879ef8d0a148d",
+      "destination": ["core#karama", "GF9-CORE-001", "GF9-CORE-017"],
+      "decision": "Updated CHOAM copies replace original Karama; use corrected wording.",
+      "status": "reviewed"
+    },
+    {
+      "index": 223,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225398657",
+      "topic": "Can Karama stop Harkonnen calling a traitor in an ally's battle?",
+      "read": true,
+      "contentSha256": "d4c5f724c06b4545208949eea918606c5583ae56441895c032473b31e79fc0f9",
+      "destination": ["core#karama-factions"],
+      "decision": "Ally-battle Harkonnen traitor can be prevented; own battle reveal and hand limit cannot.",
+      "status": "reviewed"
+    },
+    {
+      "index": 224,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225399588",
+      "topic": "When can each faction use its advanced Karama power, and is it once per game?",
+      "read": true,
+      "contentSha256": "573a92920d3abf32da590e9109e80571c9d1fc7bf7b156ae6837916f730c3e9f",
+      "destination": ["core#special-karama"],
+      "decision": "Use source timing table and once-per-game limit; Bene Gesserit has no separate special power.",
+      "status": "reviewed"
+    },
+    {
+      "index": 225,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225400064",
+      "topic": "What does Karama do against the Emperor?",
+      "read": true,
+      "contentSha256": "ea1f97fe4c994d71acf7a517c4e76e4efdc7a489817b92e059f05f12c5f52fb3",
+      "destination": ["core#karama-factions"],
+      "decision": "Cancel one Emperor payment, affected gift, extra revivals or Sardaukar bonus; preserve normal allied payment aid.",
+      "status": "reviewed"
+    },
+    {
+      "index": 226,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225653495",
+      "topic": "Can you use a treachery card to help your ally in their battle?",
+      "read": true,
+      "contentSha256": "758d8c2cc306c16b577f87c27bdea89f64c6012c0f6b611e61ea9078ca27cf4c",
+      "destination": ["core#allied-payments", "core#battle-plan"],
+      "decision": "Battle-plan cards belong to participant; third-party anytime cards follow their own timing.",
+      "status": "reviewed"
+    },
+    {
+      "index": 227,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225653912",
+      "topic": "Can allies show each other their treachery cards and battle plans?",
+      "read": true,
+      "contentSha256": "08cb4699966713131920be620023e63af55a985710e39dfb621486d1bbd1e13c",
+      "destination": ["core#information"],
+      "decision": "Share or show information to anyone privately or publicly; reject stricter community secrecy.",
+      "status": "reviewed"
+    },
+    {
+      "index": 228,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225654522",
+      "topic": "What does the Richese alliance give the ally?",
+      "read": true,
+      "contentSha256": "873e2c5213157f013d3eded3502ba291576588bfad09a3ab9662cd3c539c582d",
+      "destination": ["choam-richese#richese-alliance-and-advanced"],
+      "decision": "Richese may ship ally by immediately revealed No-Field and gift a cache-origin card from hand if space.",
+      "status": "reviewed"
+    },
+    {
+      "index": 229,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225654843",
+      "topic": "What happens to a player's forces and spice if they leave the game?",
+      "read": true,
+      "contentSha256": "57a86fdb71fc2038e104f650c2269815283ea854499e0736f8b5759ac2889e37",
+      "destination": ["excluded-tournament-rule"],
+      "decision": "WBC player-dropout procedure has no official GF9 source here; do not silently import it.",
+      "status": "excluded"
+    },
+    {
+      "index": 230,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225654861",
+      "topic": "If allies end up in the same territory after a Nexus, whose forces must leave?",
+      "read": true,
+      "contentSha256": "ad8668237bce2d42a0aa58663a0f2c031c0a294cde553b723e6716e8c89b903b",
+      "destination": ["core#nexus", "GF9-CORE-005"],
+      "decision": "Retain later-player evacuation for newly allied co-occupation, not revised end-of-each-turn casualties.",
+      "status": "reviewed"
+    },
+    {
+      "index": 231,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225655144",
+      "topic": "What does the Fremen alliance give the ally?",
+      "read": true,
+      "contentSha256": "1454fe46afa89735ff123068fd176d91764a44ac160068a9382f85f377b421ba",
+      "destination": ["core#fremen", "GF9-CORE-010"],
+      "decision": "Fremen chooses protection and three free allied revivals; ally shares special victory.",
+      "status": "reviewed"
+    },
+    {
+      "index": 232,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225655275",
+      "topic": "Which leader can Harkonnen capture after winning a battle?",
+      "read": true,
+      "contentSha256": "b4eef5f9f7ca2371107ed702510429140dd43ed578e7e64daed69c9eea5fe17b",
+      "destination": ["core#harkonnen"],
+      "decision": "Capture randomly from eligible living loser leaders; include just-used survivor, exclude used elsewhere.",
+      "status": "reviewed"
+    },
+    {
+      "index": 233,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225655362",
+      "topic": "Does the CHOAM Auditor interact with Atreides Prescience?",
+      "read": true,
+      "contentSha256": "87a6419395a67edc406176f2f62b11d94cdfdc6a63eff2097fd08f4d6e380614",
+      "destination": ["unresolved-source-gap"],
+      "decision": "No collected answer to Auditor versus Prescience. Apply existing timing; invent no special interaction.",
+      "status": "unresolved"
+    },
+    {
+      "index": 234,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225655751",
+      "topic": "Are the Fremen's allies protected from sandworms?",
+      "read": true,
+      "contentSha256": "12c2c08ba0efd070de5e4ffbf874a12f839bda55e85df53e754460e403b8c21b",
+      "destination": ["core#sandworms", "core#fremen"],
+      "decision": "Fremen protection is discretionary; reject mandatory WBC2019 protection.",
+      "status": "reviewed"
+    },
+    {
+      "index": 235,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225656048",
+      "topic": "Can Juice of Sapho be played in a Richese once-around auction to bid last?",
+      "read": true,
+      "contentSha256": "ce7a178efa604deabcd6de76dd15084433fcd2c093b509c24d0eafb2d6431362",
+      "destination": ["choam-richese#richese-auctions"],
+      "decision": "Juice of Sapho can make a bidder last in Once Around.",
+      "status": "reviewed"
+    },
+    {
+      "index": 236,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225656208",
+      "topic": "Can you play with bigger alliances or a different stronghold win count?",
+      "read": true,
+      "contentSha256": "2923fec3d63332ee70790b6ef1d002a48b00f97fa2777272ba7c38c844f855a0",
+      "destination": ["core#alliance-variants"],
+      "decision": "Optional alliance sizes and counts remain opt-in, default two/four.",
+      "status": "reviewed"
+    },
+    {
+      "index": 237,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225656475",
+      "topic": "How do the Ecaz Loyalty and Collection advantages work?",
+      "read": true,
+      "contentSha256": "96fa178d092316b1ee626d05e762d201055f77f4b4bcecd184aaa31342bcfaed",
+      "destination": ["ecaz-moritani#ecaz-advanced"],
+      "decision": "Loyalty setup protected from Karama; full co-occupied stronghold income for each ally.",
+      "status": "reviewed"
+    },
+    {
+      "index": 238,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225656634",
+      "topic": "How long can players negotiate alliances during a Nexus?",
+      "read": true,
+      "contentSha256": "86175448603d1fcb3d03236ab5951b4b265ea572d3d17af1eadde82184cb8261",
+      "destination": ["core#nexus"],
+      "decision": "Do not add the unofficial five-minute Nexus limit.",
+      "status": "reviewed"
+    },
+    {
+      "index": 239,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225656670",
+      "topic": "Can the Nullentropy Box take itself back from the discard pile?",
+      "read": true,
+      "contentSha256": "64bb3b4ef144f99652796f0685fa4ef15b2ca0d2b0847962de420bbd3910bdf2",
+      "destination": ["choam-richese#richese-cache-reference"],
+      "decision": "Nullentropy cannot retrieve itself; full-hand swap allowed, selection stays secret.",
+      "status": "reviewed"
+    },
+    {
+      "index": 240,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225656698",
+      "topic": "When Harkonnen reveal a traitor in an ally's battle, who wins and who gets the spice?",
+      "read": true,
+      "contentSha256": "d6af6b2265e2cd1573c09029e39d66d792817ee693169f11191d386ea08497bb",
+      "destination": ["core#traitors", "core#harkonnen"],
+      "decision": "Harkonnen ally is the battle winner and receives leader spice, not Harkonnen supplying traitor.",
+      "status": "reviewed"
+    },
+    {
+      "index": 241,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225656905",
+      "topic": "Can Duke Vidal be revived with the Ghola card?",
+      "read": true,
+      "contentSha256": "3e31cd9d13e110b188d872e7dd70420259df46060996eb24a414b42d3bccadcd",
+      "destination": ["ecaz-moritani#duke-vidal"],
+      "decision": "Only Ecaz can revive Vidal, including via Ghola.",
+      "status": "reviewed"
+    },
+    {
+      "index": 242,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225656907",
+      "topic": "Is your spice behind the shield secret?",
+      "read": true,
+      "contentSha256": "27d3d788c8256e51d23d4a1efa2b0df773c41029855f7fcd42d0269fea105e11",
+      "destination": ["core#information"],
+      "decision": "Spice holdings stay private; voluntary disclosure allowed.",
+      "status": "reviewed"
+    },
+    {
+      "index": 243,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225656955",
+      "topic": "If an ally gets Prescience, Voice or a traitor call in the ally's battle, who uses it?",
+      "read": true,
+      "contentSha256": "4903e88cf55213999fe0e2f96c4a44531973e61f8df1d69952c658971d65d5cf",
+      "destination": ["core#allied-payments"],
+      "decision": "Do not override faction sheets with WBC allocation of who chooses alliance battle powers.",
+      "status": "reviewed"
+    },
+    {
+      "index": 244,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225657134",
+      "topic": "Can a Karama cancel a treachery card such as Hajr?",
+      "read": true,
+      "contentSha256": "48bf5bf288b588d944cb4ef7436c6dd19f7727cfbc60544c3c64f22106c0817f",
+      "destination": ["core#karama"],
+      "decision": "Karama cancels faction advantages, not an ordinary Hajr card; Worthless conversion is a faction advantage.",
+      "status": "reviewed"
+    },
+    {
+      "index": 245,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225657305",
+      "topic": "Can the Kwisatz Haderach be used together with a Cheap Hero?",
+      "read": true,
+      "contentSha256": "ce353c48665cb42eab63e79fb1f34206657ba1686eb9579e209c950300d37c6e",
+      "destination": ["core#kwisatz-haderach"],
+      "decision": "KH accompanies a leader or Cheap Hero; no unrelated Avalon Hill Paul restriction.",
+      "status": "reviewed"
+    },
+    {
+      "index": 246,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225657467",
+      "topic": "How is spice split when Ecaz and their ally collect together?",
+      "read": true,
+      "contentSha256": "1001f66e1ccb9690f087a069659eb48788b8a82ca4ff512374174050bc6f2744",
+      "destination": ["ecaz-moritani#ecaz-co-occupation", "ecaz-moritani#ecaz-advanced"],
+      "decision": "Agree desert split or ally gets odd spice; each gains full stronghold income in Advanced.",
+      "status": "reviewed"
+    },
+    {
+      "index": 247,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225657587",
+      "topic": "If a Karama stops your faction ability, can you change what you were doing?",
+      "read": true,
+      "contentSha256": "6937b1b48d301a7113a1f4208947fa4f699f02203fe1b67a290e627eba5c7695",
+      "destination": ["core#karama"],
+      "decision": "After canceled advantage choose a legal adjusted action respecting cancellation, such as one-territory Fremen move.",
+      "status": "reviewed"
+    },
+    {
+      "index": 248,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225657596",
+      "topic": "Can CHOAM discard a Snooper and a Shield Snooper as duplicates?",
+      "read": true,
+      "contentSha256": "ee0caa9e0bd16dcd83e8f84f5141de7c4778258538a42e3259b2f9f086d31c4c",
+      "destination": ["choam-richese#choam-treachery"],
+      "decision": "Duplicate sale requires exact card name; Shield Snooper and Portable Snooper are not Snooper.",
+      "status": "reviewed"
+    },
+    {
+      "index": 249,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225657772",
+      "topic": "Can Atreides tell other players what the treachery card up for bid is?",
+      "read": true,
+      "contentSha256": "2976d911038c674df8a02778f35eb05dbba3ab8fcda8ed8e6d93e0e1fe833c6c",
+      "destination": ["core#information", "core#atreides"],
+      "decision": "Atreides can show or tell anyone the current card; information need not be public to all.",
+      "status": "reviewed"
+    },
+    {
+      "index": 250,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225658091",
+      "topic": "Which treachery cards can Atreides look at during bidding?",
+      "read": true,
+      "contentSha256": "5b27542f4c71257a9f0711b24389493840b1e5cd8577570249924269edccca2e",
+      "destination": ["core#atreides", "core#bidding"],
+      "decision": "Inspect only current offered card, not unsold later cards or Harkonnen bonus.",
+      "status": "reviewed"
+    },
+    {
+      "index": 251,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225658097",
+      "topic": "Can Ecaz Ambassadors be destroyed by the storm?",
+      "read": true,
+      "contentSha256": "59da51d9b2244e796d08cc8587b5826c9f2917e84c3f778d452069779c4cd6c8",
+      "destination": ["ecaz-moritani#ecaz-setup"],
+      "decision": "Storm/explosions return Ambassadors to supply; cannot place under storm.",
+      "status": "reviewed"
+    },
+    {
+      "index": 252,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225658757",
+      "topic": "What happens when Harass and Withdraw is played with Ecaz and an ally in the territory?",
+      "read": true,
+      "contentSha256": "6c4aea8c9cc67458b40fc3d7334a426af31766eba8d8b82edb44a82ca15a3e6e",
+      "destination": ["ecaz-moritani#new-treachery"],
+      "decision": "Harass withdraws only the playing faction's undialed troops in Ecaz battle.",
+      "status": "reviewed"
+    },
+    {
+      "index": 253,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225658794",
+      "topic": "What do CHOAM's Worthless card effects do?",
+      "read": true,
+      "contentSha256": "7936cc549ac814696bd7e449b6650e1f0fe0e1a19ddf3c67b1e35355056ffaf3",
+      "destination": ["choam-richese#choam-treachery", "EXP-008"],
+      "decision": "CHOAM reactive Worthless effects occur at relevant triggers; Trip to Gamont may stop a win before victory check.",
+      "status": "reviewed"
+    },
+    {
+      "index": 254,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225658795",
+      "topic": "Can Karama stop the Fremen giving their ally free revivals?",
+      "read": true,
+      "contentSha256": "cd00da3d05a5cb56f2b80a1726df851beba78a805d9459ce60278f10a5c2afb0",
+      "destination": ["core#karama-factions"],
+      "decision": "Karama can stop Fremen free-revival alliance use under general alliance cancellation.",
+      "status": "reviewed"
+    },
+    {
+      "index": 255,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225659040",
+      "topic": "Can any player use Karama to ship at the Guild rate?",
+      "read": true,
+      "contentSha256": "84e94fc95fc01a29aa7fd93cc147811c7b858e5a752fcbda12dd12390ce47f16",
+      "destination": ["excluded-tournament-restriction"],
+      "decision": "Do not import WBC own-shipment-only restriction over official Karama permission to buy ally shipment.",
+      "status": "excluded"
+    },
+    {
+      "index": 256,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225659185",
+      "topic": "Do Reinforcements and Harass and Withdraw count as weapons or defenses?",
+      "read": true,
+      "contentSha256": "190e302a79011b999ac75fa3d5821c7b4cb9144b03661d03bf89053945783a54",
+      "destination": ["ecaz-moritani#new-treachery"],
+      "decision": "Reinforcements and Harass replace a slot but are neither weapon nor defense for Prescience.",
+      "status": "reviewed"
+    },
+    {
+      "index": 257,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225659265",
+      "topic": "Which territories are adjacent on the Dune board?",
+      "read": true,
+      "contentSha256": "843ffbf39033771cf85ba4c727c2afe6b6bdabc0a338f8d309233a8511e3abba",
+      "destination": ["core#board", "core#movement"],
+      "decision": "Count territory borders, not sector lines; actual storm remains obstruction.",
+      "status": "reviewed"
+    },
+    {
+      "index": 258,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225659528",
+      "topic": "Can anyone enter the Polar Sink?",
+      "read": true,
+      "contentSha256": "edbf71a9210c79fbe9567d047825a9302c1528b3e4463f149bc34182a24adf57",
+      "destination": ["core#board", "core#movement"],
+      "decision": "Polar Sink accessible to everyone, never stormed, no battles.",
+      "status": "reviewed"
+    },
+    {
+      "index": 259,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225659687",
+      "topic": "How many players can play Dune with all expansions?",
+      "read": true,
+      "contentSha256": "02a20ba3393edfe1d96291f426814f175e5adb5a5e51d2157f605f476fdfd30c",
+      "destination": ["core#choose-game", "ecaz-moritani#using-this-expansion"],
+      "decision": "Twelve factions are choices; recommend at most six players, larger games an experiment.",
+      "status": "reviewed"
+    },
+    {
+      "index": 260,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225659853",
+      "topic": "What happens when CHOAM uses Trip to Gamont on Richese with a No-Field token?",
+      "read": true,
+      "contentSha256": "55a792626d3b023a216be7d5e55ad05e3c8006d614a95b6e6b3730b0516ff305",
+      "destination": ["choam-richese#richese-no-field"],
+      "decision": "Trip reveals No-Field then returns one actual force; 0 still spends the card.",
+      "status": "reviewed"
+    },
+    {
+      "index": 261,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225660354",
+      "topic": "Do forces that moved into different sectors of the same territory act as one group?",
+      "read": true,
+      "contentSha256": "f2eca9c040524417e72000084a646ba8ee16c593fa312b370dbd39d4fc3d095c",
+      "destination": ["core#movement", "core#battle-order"],
+      "decision": "Same-territory sector groups may move together and must fight together unless storm separates.",
+      "status": "reviewed"
+    },
+    {
+      "index": 262,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225660780",
+      "topic": "When does Atreides look at the top spice card, and what if the deck is reshuffled?",
+      "read": true,
+      "contentSha256": "2439a5fdd3b6cad6ad9fb9a161c023608edde9b41cb2ed1a9165f8341c8176d9",
+      "destination": ["core#atreides"],
+      "decision": "Inspect one top Spice Card at start of Shipment and Movement, not both Advanced draws.",
+      "status": "reviewed"
+    },
+    {
+      "index": 263,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225660825",
+      "topic": "How do you ship to another faction's homeworld, and what does occupying it give?",
+      "read": true,
+      "contentSha256": "b0f462ffae44fffc9b7e9062ab26cb59f7a96fe0b368b11d686dc5f9d2e3b05b",
+      "destination": ["ecaz-moritani#homeworld-shipment"],
+      "decision": "One normal shipment between worlds; Heighliners triggers; only Guild ships from Arrakis absent granted exception.",
+      "status": "reviewed"
+    },
+    {
+      "index": 264,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225661258",
+      "topic": "How do Kaitain's Low Threshold and occupied effects combine?",
+      "read": true,
+      "contentSha256": "55c6e47e33b7f50ae326fc88b69d2b78f21352b157ec627ed47de47038072cf2",
+      "destination": ["ecaz-moritani#homeworld-battles-and-emperor"],
+      "decision": "Five-spice Kaitain split is Emperor three/occupier two; Harkonnen benefit totals two for phase.",
+      "status": "reviewed"
+    },
+    {
+      "index": 265,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225661269",
+      "topic": "Does a dead Kwisatz Haderach change Atreides leader revival?",
+      "read": true,
+      "contentSha256": "57e64679650a830de3e7bc7f541dc6a9318c2588934ba7b52e52f852295304b5",
+      "destination": ["core#revive-leaders", "core#kwisatz-haderach"],
+      "decision": "KH alive/dead never changes five-leader revival eligibility.",
+      "status": "reviewed"
+    },
+    {
+      "index": 266,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225661677",
+      "topic": "Does the storm over Arrakeen or Carthag affect the ornithopter move?",
+      "read": true,
+      "contentSha256": "054ceb16e9576b77fd564eed498bc5d64604eb605fe7b2bf520f4bf4066807c8",
+      "destination": ["core#movement"],
+      "decision": "Storm over an occupied city does not itself remove ornithopters; route cannot cross storm.",
+      "status": "reviewed"
+    },
+    {
+      "index": 267,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225661749",
+      "topic": "Who manages the treachery and spice decks?",
+      "read": true,
+      "contentSha256": "aec98e4190e8028469694c8d275d65611cf5ae67952abdee1fe98241ede15965",
+      "destination": ["core#atreides"],
+      "decision": "Atreides manages Spice and Treachery decks.",
+      "status": "reviewed"
+    },
+    {
+      "index": 268,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225662104",
+      "topic": "Can you move forces from several territories in one Shipment and Movement phase?",
+      "read": true,
+      "contentSha256": "48413d451fe922bdcc7412e6739f7792f4126d594c5f897680fba413a6f7cef9",
+      "destination": ["core#movement"],
+      "decision": "One group from one origin to one destination per movement; extra range is not extra groups.",
+      "status": "reviewed"
+    },
+    {
+      "index": 269,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225662149",
+      "topic": "Can CHOAM's Kull Wahad stop a Karama?",
+      "read": true,
+      "contentSha256": "5418db22a96ad775120c3c276cf25c655b3c4c791c32273ae424f1fbdf643fc4",
+      "destination": ["choam-richese#choam-treachery"],
+      "decision": "Direct designer: Kull Wahad stops that player's Karama for entire phase; prevented Karama retained. Sent author for correction.",
+      "status": "reviewed"
+    },
+    {
+      "index": 270,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225662283",
+      "topic": "How do the Emperor's two homeworlds work?",
+      "read": true,
+      "contentSha256": "aa77afa716a46c8ee3ab7ab41b34737d1ed59a97ac2e692878f59254264aa6f7",
+      "destination": ["ecaz-moritani#homeworld-battles-and-emperor"],
+      "decision": "Kaitain only Basic; add Salusa Advanced, respective revivals, shared shipment, no Salusa charity/revival bonus.",
+      "status": "reviewed"
+    },
+    {
+      "index": 271,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225662294",
+      "topic": "Can the Kwisatz Haderach token be killed in battle?",
+      "read": true,
+      "contentSha256": "1acbb85b8739e8cabf65d2455c7652c03d95f260cacf89f017bb0273da5250ab",
+      "destination": ["core#kwisatz-haderach"],
+      "decision": "Only explosion kills KH, ordinary accompanied leader death merely removes that battle bonus.",
+      "status": "reviewed"
+    },
+    {
+      "index": 272,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225662628",
+      "topic": "What happens if a Prescience answer becomes impossible to follow?",
+      "read": true,
+      "contentSha256": "9b903b58de1e5a63e526aab2665349f5fc8f101da7076d4c7c9b92c9d1a07a7e",
+      "destination": ["core#battle-information"],
+      "decision": "If later legal effect makes revealed answer impossible, give updated legal answer; no new unrelated question.",
+      "status": "reviewed"
+    },
+    {
+      "index": 273,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225662761",
+      "topic": "What happens when a revived leader is killed again?",
+      "read": true,
+      "contentSha256": "bf43db6b4d1f812516489d1b3c2092a4b489edd1a9fbb33089b43a926ae70e91",
+      "destination": ["core#revive-leaders"],
+      "decision": "Second death face down; wait other revivable leaders' death cycle unless explicit exception.",
+      "status": "reviewed"
+    },
+    {
+      "index": 274,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225662916",
+      "topic": "Can Juice of Sapho be played after battle plans are revealed?",
+      "read": true,
+      "contentSha256": "14c3c8f98a753b77b2a52bc3d4e68e65608e4b790041f8e21473e910a641a0e1",
+      "destination": ["choam-richese#richese-cache-reference"],
+      "decision": "Direct designer allows Juice of Sapho after reveal; sent author for explicit card-timing correction.",
+      "status": "reviewed"
+    },
+    {
+      "index": 275,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225662960",
+      "topic": "Does CHOAM Charity trigger the Spice Production Tech Token?",
+      "read": true,
+      "contentSha256": "45f2e5d36b9c31214154682be44edfa1881a8b0683f5bcc3b6b3aed4acc96b50",
+      "destination": ["ixian-tleilaxu#tech-token-setup"],
+      "decision": "CHOAM/BG special charity alone does not trigger token; income comes from Bank, unaffected by Inflation.",
+      "status": "reviewed"
+    },
+    {
+      "index": 276,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225663236",
+      "topic": "Where do revived forces go, and who gets the revival spice?",
+      "read": true,
+      "contentSha256": "c61e10faf60ac815fdd6f8f05ef0c06e389505961ecec7e8db47f6c2a3fc3146",
+      "destination": ["core#revive-forces", "ixian-tleilaxu#tleilaxu-revival"],
+      "decision": "Revived forces go to reserves; Bank receives cost except redirected Tleilaxu payments.",
+      "status": "reviewed"
+    },
+    {
+      "index": 277,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225663535",
+      "topic": "What happens when three factions are in the same territory?",
+      "read": true,
+      "contentSha256": "9985310ffa906b47c1ea908b4552894c5e0bd8a4115e61b385c3fe9369a60048",
+      "destination": ["core#battle-order"],
+      "decision": "Aggressor fights sequential opponents while surviving; entry limit still blocks third ordinary stronghold faction.",
+      "status": "reviewed"
+    },
+    {
+      "index": 278,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225663634",
+      "topic": "How do you set up starting positions and traitors in a 6-player game?",
+      "read": true,
+      "contentSha256": "23896f858d3e86d8ec22ccb38ba97f1226854f6683772da4e723cb3d099e7dcd",
+      "destination": ["core#starting-forces"],
+      "decision": "Correct collected summary typo: Emperor has twenty reserves and none in Arrakeen, as explicit source sheet states.",
+      "status": "reviewed"
+    },
+    {
+      "index": 279,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225663792",
+      "topic": "How does a CHOAM audit work when the player has only one card?",
+      "read": true,
+      "contentSha256": "78a1156f9b2e875516b5ac7a857c3c3f1eae60a7f36aed4812de21652867951e",
+      "destination": ["choam-richese#choam-alliance-and-advanced"],
+      "decision": "Audit payment equals available cards actually inspectable; no partial-payment reduction.",
+      "status": "reviewed"
+    },
+    {
+      "index": 280,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225663894",
+      "topic": "Does the Bene Gesserit choose their prediction or is it random?",
+      "read": true,
+      "contentSha256": "28434ba9add7d1a3ee154603e1551908714d7fc895e4967dc0fca5b699419cbd",
+      "destination": ["core#setup", "core#bene-gesserit"],
+      "decision": "Bene Gesserit deliberately chooses prediction after player positions, before traitors.",
+      "status": "reviewed"
+    },
+    {
+      "index": 281,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225664003",
+      "topic": "How do players choose which faction to play?",
+      "read": true,
+      "contentSha256": "126a7155559201aa190e3d26eb6666cc33eb654403d32366612d3c396d284e48",
+      "destination": ["core#setup"],
+      "decision": "Use random faction cards or descending turn-card choice, with swaps allowed.",
+      "status": "reviewed"
+    },
+    {
+      "index": 282,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225664148",
+      "topic": "Can Moritani put Terror tokens on a homeworld or in the Hidden Mobile Stronghold?",
+      "read": true,
+      "contentSha256": "06d5c04bd74438bc2a70b0909bca86bf330c6451e0f6f677e70df358ba9bbe20",
+      "destination": ["ecaz-moritani#moritani-setup-and-terror"],
+      "decision": "No Terror on Homeworld or HMS; Homeworld territory exclusions remain.",
+      "status": "reviewed"
+    },
+    {
+      "index": 283,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225664364",
+      "topic": "Does CHOAM get spice when someone uses the Arrakeen Stronghold card?",
+      "read": true,
+      "contentSha256": "c4baa72c50f49dc02ac1b24288d53b339be9643a1b96e2125a071839670ac16f",
+      "destination": ["choam-richese#choam-alliance-and-advanced"],
+      "decision": "Arrakeen support paid by card counts toward CHOAM support-income calculation.",
+      "status": "reviewed"
+    },
+    {
+      "index": 284,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225664659",
+      "topic": "When does the Bene Gesserit get a free Spiritual Advisor, for example after a Guild cross-ship or Fremen shipment?",
+      "read": true,
+      "contentSha256": "f8e561ac5ad709b47b55d1bb0c90c15caa7e050347d220782770e47446c4b7f6",
+      "destination": ["core#bene-gesserit", "core#advisors"],
+      "decision": "Off-planet to Arrakis triggers advisor, including HMS; no cross-ship/Fremen trigger; existing fighters need Intrusion flip.",
+      "status": "reviewed"
+    },
+    {
+      "index": 285,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225664713",
+      "topic": "Does CHOAM Inflation affect Tupile or homeworld charity?",
+      "read": true,
+      "contentSha256": "14b19381fe2c455443a038918af8c96fa6c06a4bfbd63a182abddc9d55b0f99f",
+      "destination": ["ecaz-moritani#homeworld-setup"],
+      "decision": "Low Homeworld adds charity only to actually eligible recipient; it does not increase eligibility threshold. Inflation interaction not inferred beyond explicit effects.",
+      "status": "reviewed"
+    },
+    {
+      "index": 286,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225665078",
+      "topic": "Can the Bene Gesserit send advisors to a homeworld?",
+      "read": true,
+      "contentSha256": "85a976344a1df8b521e998e1126cce0d0a42402efe9a1e5178e3e199266419d9",
+      "destination": ["ecaz-moritani#homeworld-shipment"],
+      "decision": "No advisors on Homeworlds or Intrusion there; non-native traitor restrictions apply.",
+      "status": "reviewed"
+    },
+    {
+      "index": 287,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225665200",
+      "topic": "What does CHOAM start with, and how does CHOAM revival work?",
+      "read": true,
+      "contentSha256": "d6139c60d7314476fa2555e142863cf5c438778c75408dcfa84fe03f120cf0fa",
+      "destination": ["choam-richese#choam-setup-and-charity"],
+      "decision": "CHOAM starts twenty reserves, two spice, zero free revival; unlimited paid forces at one each.",
+      "status": "reviewed"
+    },
+    {
+      "index": 288,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225665371",
+      "topic": "Can the Bene Gesserit send a Spiritual Advisor when the Ixians ship into the Hidden Mobile Stronghold?",
+      "read": true,
+      "contentSha256": "3ba15736a1ef4dd24fc37cace3b0a2f440b36bd286f13c59af3e336662685921",
+      "destination": ["ixian-tleilaxu#hidden-mobile-stronghold"],
+      "decision": "Free advisor may accompany Ixian shipment directly into HMS.",
+      "status": "reviewed"
+    },
+    {
+      "index": 289,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225665490",
+      "topic": "When does the Bene Gesserit make their prediction, and when do the Fremen place their forces?",
+      "read": true,
+      "contentSha256": "3dc2afeb899622e8f4ea1a20bef7e7cb50bbaf2ac67a2ecd9b091e6da2dfaae2",
+      "destination": ["core#setup", "core#starting-forces"],
+      "decision": "Prediction timing and Fremen-before-BG setup already explicit; no additional tournament setup doctrine imported.",
+      "status": "reviewed"
+    },
+    {
+      "index": 290,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225665620",
+      "topic": "Can the Bene Gesserit Voice affect the Kwisatz Haderach?",
+      "read": true,
+      "contentSha256": "2794e0147bf1960119d26c3892173590dec93abadef7076e086e053a253356e4",
+      "destination": ["core#bene-gesserit", "core#kwisatz-haderach"],
+      "decision": "Voice targets permitted cards, not KH token or dial; can affect protection of accompanied leader indirectly.",
+      "status": "reviewed"
+    },
+    {
+      "index": 291,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225665674",
+      "topic": "Can you ally with a faction that occupies your homeworld?",
+      "read": true,
+      "contentSha256": "30e1fc865660869ff8990238ec19040783ef92759471eb02991cc4a313d92a3b",
+      "destination": ["ecaz-moritani#homeworld-shipment"],
+      "decision": "Cannot ally with Homeworld occupier or invade ally Homeworld.",
+      "status": "reviewed"
+    },
+    {
+      "index": 292,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225665740",
+      "topic": "How much does it cost to ship forces to Dune?",
+      "read": true,
+      "contentSha256": "d1b269597842807c3a744f63c7df4fb270cee9d66ba5301c09851d8551719206",
+      "destination": ["core#shipment"],
+      "decision": "One per force stronghold, two elsewhere, redirected to Guild if present.",
+      "status": "reviewed"
+    },
+    {
+      "index": 293,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225666176",
+      "topic": "How much spice does CHOAM get from other factions' battles?",
+      "read": true,
+      "contentSha256": "c6ec0005f69ccbb0790399c624b361ad0cdbe92bcadd2e8c807cf166f2bfc6ae",
+      "destination": ["choam-richese#choam-alliance-and-advanced"],
+      "decision": "Half battle support rounded down to CHOAM; no traitor payment; include Arrakeen card support.",
+      "status": "reviewed"
+    },
+    {
+      "index": 294,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225666218",
+      "topic": "Can you ship forces from the board back to your reserves?",
+      "read": true,
+      "contentSha256": "4d6bb8477b4c26238fb8cadfb6f1106d74c088a7c9a05110b42bd8a712c8857b",
+      "destination": ["core#shipment", "core#spacing-guild"],
+      "decision": "Only Guild can normally return to reserves, ally cannot inherit that option.",
+      "status": "reviewed"
+    },
+    {
+      "index": 295,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225666296",
+      "topic": "What happens to forces on a homeworld in a lasgun-shield explosion?",
+      "read": true,
+      "contentSha256": "326708f47b918bf4fefddb0c7e4304257516623aead145ac0b9c75efb5cd9a2c",
+      "destination": ["ecaz-moritani#homeworld-battles-and-emperor"],
+      "decision": "Explosion destroys only native printed battle-strength count; invaders lose normally, both lose battle.",
+      "status": "reviewed"
+    },
+    {
+      "index": 296,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225666668",
+      "topic": "Do you need to occupy a stronghold alone, or for the whole turn, to get its spice bonus?",
+      "read": true,
+      "contentSha256": "0d085d83acc12b40f86a04fabf53710f6eb0e8583e87ad0c908911127f42d144",
+      "destination": ["core#collection"],
+      "decision": "Occupy at collection time, not entire turn; advisors neither collect nor block another faction's control.",
+      "status": "reviewed"
+    },
+    {
+      "index": 297,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225666995",
+      "topic": "What do Karama cards do against Moritani and Ecaz?",
+      "read": true,
+      "contentSha256": "523ba108fee43321cc7b4f10fe0d849cc04c957f56fe23d3f2ff5b4bfd221888",
+      "destination": ["ecaz-moritani#ecaz-battle", "ecaz-moritani#moritani-alliance"],
+      "decision": "Use explicit expansion Karama limits; cannot stop Moritani assassination or Ecaz Loyalty.",
+      "status": "reviewed"
+    },
+    {
+      "index": 298,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225667148",
+      "topic": "Can bribes be made while CHOAM's Inflation token is on Double?",
+      "read": true,
+      "contentSha256": "4c6e03197766fbd347dba1425521ab495d5798f8ed438756bf466bd171141493",
+      "destination": ["choam-richese#choam-inflation"],
+      "decision": "No bribes while Inflation Double side face up.",
+      "status": "reviewed"
+    },
+    {
+      "index": 299,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225667450",
+      "topic": "What do Moritani and Ecaz start with?",
+      "read": true,
+      "contentSha256": "f2e87409912af8085663ee30823b70b39f3d53d8032f73474cfa8c0df51d5f9e",
+      "destination": ["ecaz-moritani#ecaz-setup", "ecaz-moritani#moritani-setup-and-terror"],
+      "decision": "Use distinct Ecaz Imperial Basin setup and Moritani after-others unoccupied setup.",
+      "status": "reviewed"
+    },
+    {
+      "index": 300,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225667623",
+      "topic": "Can CHOAM pay for their ally's spice support in battle?",
+      "read": true,
+      "contentSha256": "083cd01e2d1d5f6f52236313e92295dcfa37ad81d44a5aeb83df36a28b0f9c47",
+      "destination": ["choam-richese#choam-alliance-and-advanced"],
+      "decision": "CHOAM may pay allied battle support to Bank.",
+      "status": "reviewed"
+    },
+    {
+      "index": 301,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225667632",
+      "topic": "What happens when the spice deck runs out?",
+      "read": true,
+      "contentSha256": "54ba724fcbbc7af86631af309b02772e691897cb08e023998151aab3e1ab11cc",
+      "destination": ["core#information"],
+      "decision": "Reshuffle entire exhausted Spice Deck including both Advanced piles; do not import fixed WBC turn-seven procedure.",
+      "status": "reviewed"
+    },
+    {
+      "index": 302,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225668006",
+      "topic": "Can Bene Gesserit advisors play Family Atomics?",
+      "read": true,
+      "contentSha256": "d5bc4b8f7974a33c77180a41fe6f6e806309196c28e2d95cb10a7e4b8c5e5fea",
+      "destination": ["core#advisors", "core#family-atomics"],
+      "decision": "Advisors cannot enable Family Atomics.",
+      "status": "reviewed"
+    },
+    {
+      "index": 303,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225668217",
+      "topic": "Can the CHOAM Auditor be captured, made a Ghola or given a Leader Skill?",
+      "read": true,
+      "contentSha256": "019be86999f371b4070d87fb212e07e8e7e90a71af2238a72e0ad2e402aed707",
+      "destination": ["choam-richese#choam-alliance-and-advanced"],
+      "decision": "Auditor cannot be ghola, captive or skilled; its one-per-phase leader revival is always eligible.",
+      "status": "reviewed"
+    },
+    {
+      "index": 304,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225668477",
+      "topic": "How does Double Spice Blow work, and which pile does Shai-Hulud hit?",
+      "read": true,
+      "contentSha256": "b29b544d2867730ec317cf3c8d5dad80ae6fefa214252c1c7713338bcf8e49ee",
+      "destination": ["core#advanced-spice", "GF9-CORE-016"],
+      "decision": "Specific Advanced sequence prevails: per-pile Nexus and ride, up to two alliance windows. CORE016 corrected after independent review.",
+      "status": "reviewed"
+    },
+    {
+      "index": 305,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225668479",
+      "topic": "What does the Moritani Atomics Terror token and its Aftermath do?",
+      "read": true,
+      "contentSha256": "ba1753a2f3ab5087cfcfdb0464ae057c148abdfdbff9f00c11d9cd7aa592e763",
+      "destination": ["ecaz-moritani#terror-effects"],
+      "decision": "Atomics kills all, bars shipment including Fremen, reduces Moritani/ally hand; Sneak Attack explicit exception.",
+      "status": "reviewed"
+    },
+    {
+      "index": 306,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225668780",
+      "topic": "Do you have to tell other players how many treachery cards you hold?",
+      "read": true,
+      "contentSha256": "efefbfa777938afd1f2cd934358c93bcff19962c61b60bc3cc675e6117354059",
+      "destination": ["core#information", "core#bidding"],
+      "decision": "Hand count public throughout Bidding, may be hidden at other times.",
+      "status": "reviewed"
+    },
+    {
+      "index": 307,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225669491",
+      "topic": "How many treachery cards are put up for auction, and what happens if everyone passes?",
+      "read": true,
+      "contentSha256": "0a7e540d3e310efbe1c7243f2512cb9dacc4ca6edb4b0825fef9ecea27b6bc33",
+      "destination": ["core#bidding"],
+      "decision": "Deal one per eligible bidder; rotate opening bidder; all pass returns unsold cards and ends round.",
+      "status": "reviewed"
+    },
+    {
+      "index": 308,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225669615",
+      "topic": "How does Moritani's Assassinate Leaders work?",
+      "read": true,
+      "contentSha256": "434e87cf3caabd8c8ad94403715870fb3554ed33305e95b3e7597ef03b0c8849",
+      "destination": ["ecaz-moritani#moritani-advanced"],
+      "decision": "Assassinate only other matching-faction leader after surviving opponent and no traitor; one per faction, normal traitor use forfeits.",
+      "status": "reviewed"
+    },
+    {
+      "index": 309,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225669811",
+      "topic": "Where is the spice placed when a territory spans several sectors?",
+      "read": true,
+      "contentSha256": "b931fa4db4801904a4447b8c968ee5aaa5db2ea4de1ddcf846eecd4118a463e0",
+      "destination": ["core#spice-blow"],
+      "decision": "Place spice in printed blow-icon sector.",
+      "status": "reviewed"
+    },
+    {
+      "index": 310,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225669989",
+      "topic": "Is there a time limit for bidding in Dune?",
+      "read": true,
+      "contentSha256": "d807d77aafed36f857f03c641e7e2bdfc64e2835bd729ca00da6bb1d343de7c9",
+      "destination": ["core#bidding"],
+      "decision": "Ten-second bid deadline retained.",
+      "status": "reviewed"
+    },
+    {
+      "index": 311,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225670027",
+      "topic": "What is the exact order of the Spice Blow phase with Shai-Hulud, the Nexus and worm riding?",
+      "read": true,
+      "contentSha256": "4a1100a056583162229d69daa3e21f62a2c5f3fda50316d5c280ed1ab1d284b6",
+      "destination": ["core#sandworms", "GF9-CORE-016"],
+      "decision": "Do not import WBC eating-after-Nexus ordering; exact GF9 timing judgement kept explicit.",
+      "status": "reviewed"
+    },
+    {
+      "index": 312,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225670309",
+      "topic": "What does the Moritani alliance give the ally?",
+      "read": true,
+      "contentSha256": "5ce2a4a8e65f9b63c23f841c37c54badcf3395d3f1abd4691f8faa0ca5bc7e5f",
+      "destination": ["ecaz-moritani#moritani-alliance"],
+      "decision": "Moritani ally may retain one otherwise retainable card after losing a battle with a winner.",
+      "status": "reviewed"
+    },
+    {
+      "index": 313,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225670400",
+      "topic": "What happens when the treachery deck runs out?",
+      "read": true,
+      "contentSha256": "d960ddc0b63b379ae8745fee0a3ed40efc6a1cebd5449043bb166f18af95d85c",
+      "destination": ["core#information", "core#family-atomics"],
+      "decision": "Reshuffle exhausted Treachery discards; Family Atomics stays removed.",
+      "status": "reviewed"
+    },
+    {
+      "index": 314,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225670599",
+      "topic": "Does Harkonnen get a free card when buying a Richese or Black Market card?",
+      "read": true,
+      "contentSha256": "7487ec315f1cf21edd3b8c92e73a280c526e044eb04080350ac961d7cee74c6b",
+      "destination": ["choam-richese#richese-auctions"],
+      "decision": "Harkonnen bonus card for cache and Black Market buys.",
+      "status": "reviewed"
+    },
+    {
+      "index": 315,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225670688",
+      "topic": "What happens if a player makes an illegal bid?",
+      "read": true,
+      "contentSha256": "0f8831a37778ca47863132705be58d2da1bf64b75c3af2d8a484a1ecdb099021",
+      "destination": ["excluded-tournament-penalty"],
+      "decision": "No official invalid-bid restart penalty supplied; do not import WBC offender exclusion.",
+      "status": "excluded"
+    },
+    {
+      "index": 316,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225670798",
+      "topic": "How does the storm move when the Fremen aren't in the game?",
+      "read": true,
+      "contentSha256": "61d20078157b66ec39742ba401a8889a7ccef8a7dc18718a3d27ad2a5247934b",
+      "destination": ["core#storm-movement", "GF9-CORE-004"],
+      "decision": "Dial without Advanced Fremen; always-deck is optional variant, not default.",
+      "status": "reviewed"
+    },
+    {
+      "index": 317,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225670882",
+      "topic": "What does the Moritani Sabotage Terror token do?",
+      "read": true,
+      "contentSha256": "5a7d9897baa8f85e3d09122aabfc93bc7031e21ce5c86abe0c340b719aab24b0",
+      "destination": ["ecaz-moritani#terror-effects"],
+      "decision": "Sabotage discards a random enemy card if possible, then optional gift.",
+      "status": "reviewed"
+    },
+    {
+      "index": 318,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225670912",
+      "topic": "What if a player ends up with more treachery cards than their hand limit?",
+      "read": true,
+      "contentSha256": "7de232c5adbac9f9d1a767385c362153dc1f145f38e33a47f965e2fa03e2aa58",
+      "destination": ["excluded-tournament-penalty"],
+      "decision": "No blanket random-discard rule imported. Each official over-limit effect specifies its own remedy.",
+      "status": "excluded"
+    },
+    {
+      "index": 319,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225671102",
+      "topic": "How are storm sectors counted when the storm moves?",
+      "read": true,
+      "contentSha256": "d64180db1c1caf88e04f38af7d666e557e69c4ccd7ce71b87ca15744b6a78d38",
+      "destination": ["core#first-storm", "core#storm-movement"],
+      "decision": "Counterclockwise distance counts entered sectors; first turn zero-to-twenty dials.",
+      "status": "reviewed"
+    },
+    {
+      "index": 320,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225671375",
+      "topic": "Can the two players who dial the storm agree on the number?",
+      "read": true,
+      "contentSha256": "95c51163df64bfde4179a09178ade08b518d2ef39548d01dcc68de269b57631d",
+      "destination": ["core#storm-movement", "core#deals"],
+      "decision": "Secret simultaneous dials do not create an unwritten ban on legal Advanced negotiation. Keep choices secret until reveal.",
+      "status": "reviewed"
+    },
+    {
+      "index": 321,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225671487",
+      "topic": "What does Karama do against CHOAM?",
+      "read": true,
+      "contentSha256": "cba37b80e0b5bc8341250e283bd5290de5aacd7b177bf33cf17417b6a8a2f279",
+      "destination": ["choam-richese#replacement-card-text"],
+      "decision": "Use explicit cancellations and once-per-game CHOAM special discard benefit; already placed Inflation flip unaffected.",
+      "status": "reviewed"
+    },
+    {
+      "index": 322,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225671514",
+      "topic": "Does Family Atomics affect the sector the storm is in?",
+      "read": true,
+      "contentSha256": "eb7c410260882f1adf0ceedb40a711e7ff2e6cfe98829f002936420ad85c680b",
+      "destination": ["core#family-atomics"],
+      "decision": "No retroactive effect on current storm sector; source force or wall being stormed does not itself forbid launch.",
+      "status": "reviewed"
+    },
+    {
+      "index": 323,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225671835",
+      "topic": "Do you have to discard your Nexus card when you form an alliance?",
+      "read": true,
+      "contentSha256": "35e4690162462ca99e177c776651c0d0e5c0f1007dcd56e371d62dc9a7d956bb",
+      "destination": ["ecaz-moritani#nexus-cards"],
+      "decision": "Discard Nexus Card to ally; redraw only at qualifying unallied window; own-card redraw allowed.",
+      "status": "reviewed"
+    },
+    {
+      "index": 324,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225672122",
+      "topic": "How many weapon and defense cards can a battle plan have, and can you add cards with a Cheap Hero?",
+      "read": true,
+      "contentSha256": "13cf82ba17aa1898341e757a0c81e336c2b2cb0a45495fbfcb88d21ca6e7172c",
+      "destination": ["core#battle-plan", "core#worthless-cheap-hero"],
+      "decision": "One weapon and one defense; Cheap Hero is leader substitute and always discarded.",
+      "status": "reviewed"
+    },
+    {
+      "index": 325,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225672210",
+      "topic": "Can you move through a territory that is only partly in the storm?",
+      "read": true,
+      "contentSha256": "3cb7c0c56ff830d5e8ab8174b9c85dbc2e58885f7f42009cd5efead121e8baa3",
+      "destination": ["core#storm-effects", "core#movement"],
+      "decision": "Clear-sector route permitted in partially stormed territory; use current Fremen restriction not old community exception.",
+      "status": "reviewed"
+    },
+    {
+      "index": 326,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225672216",
+      "topic": "What does Karama do against Richese?",
+      "read": true,
+      "contentSha256": "cabbbdf4ea3507aba37e03976ab9d52d3855f292f4de1e1e753a5fab2dda69c7",
+      "destination": ["choam-richese#replacement-card-text"],
+      "decision": "Richese cache auction, No-Field shipment and Black Market may be stopped.",
+      "status": "reviewed"
+    },
+    {
+      "index": 327,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225672615",
+      "topic": "Can forces in a storm sector move to a clear sector of the same territory?",
+      "read": true,
+      "contentSha256": "22dd253904d7015142bcf31b0af79c85c289be957b096c06d44e24e861e42cf5",
+      "destination": ["core#storm-effects", "core#board"],
+      "decision": "No movement out of storm even to same-territory clear sector; clear-to-clear reposition uses movement.",
+      "status": "reviewed"
+    },
+    {
+      "index": 328,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225672627",
+      "topic": "Must the Secret Ally Nexus effect be played before Prescience?",
+      "read": true,
+      "contentSha256": "dc6d1062b6a8f80f481d55b770c234db7066eecf37f3ea5618aa429041e96199",
+      "destination": ["ecaz-moritani#nexus-cards"],
+      "decision": "BG Secret Ally before Prescience; Tleilaxu gained card is Face Dancer; Moritani betrayal removes one token only.",
+      "status": "reviewed"
+    },
+    {
+      "index": 329,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225672772",
+      "topic": "What are the special Karama powers of CHOAM and Richese?",
+      "read": true,
+      "contentSha256": "976000c81ad5a866377b62b65dba7e1f0f66966e35e1288a252e4bf46bfc4b62",
+      "destination": ["choam-richese#choam-alliance-and-advanced"],
+      "decision": "CHOAM discard and Richese purchase are separate once-per-game advanced Karama powers usable anytime.",
+      "status": "reviewed"
+    },
+    {
+      "index": 330,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225673027",
+      "topic": "Can you play a Cheap Hero instead of a weapon or defense card to get rid of it?",
+      "read": true,
+      "contentSha256": "ac635d90870ec214d00afefa5059b02e68b121e54f50e60ff9e889d31c006dd0",
+      "destination": ["core#worthless-cheap-hero"],
+      "decision": "Cheap Hero cannot be thrown away in weapon/defense slot.",
+      "status": "reviewed"
+    },
+    {
+      "index": 331,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225673624",
+      "topic": "Does the losing leader die, and what happens to leaders who survive a battle?",
+      "read": true,
+      "contentSha256": "04b47f21737ed8d629868317063539392e07ef291f9388aa6dc083f0f7b9e0da",
+      "destination": ["core#battle-resolution"],
+      "decision": "Losing does not itself kill leader; weapons and explicit exceptional effects do.",
+      "status": "reviewed"
+    },
+    {
+      "index": 332,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225673765",
+      "topic": "How do Leader Skill cards work?",
+      "read": true,
+      "contentSha256": "619c693a865e744283d82c3fdf15611e7f001f6faa94e035f60547e0996b2514",
+      "destination": ["choam-richese#leader-skills-in-battle"],
+      "decision": "Retain skill timing, face-up general benefit, battle-specific use, discard-on-death and draw-on-own-revival.",
+      "status": "reviewed"
+    },
+    {
+      "index": 333,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225673871",
+      "topic": "Can battles happen in the Polar Sink?",
+      "read": true,
+      "contentSha256": "3ab560d03ce00b13aba4fe83609f34ce694567049ced26090ad7f03104a64758",
+      "destination": ["core#battle-order", "core#nexus"],
+      "decision": "Polar Sink never battles and permits allied co-occupation.",
+      "status": "reviewed"
+    },
+    {
+      "index": 334,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225674030",
+      "topic": "Does Richese with the Smuggler skill get a free force when shipping a No-Field token?",
+      "read": true,
+      "contentSha256": "b1aa85fe429e24a6c58b3f2af4bbae1f62e9d5cbe02576b3c809adeba1d9758c",
+      "destination": ["choam-richese#leader-skills-in-battle"],
+      "decision": "Smuggler extra force accompanies No-Field to empty destination.",
+      "status": "reviewed"
+    },
+    {
+      "index": 335,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225674174",
+      "topic": "Is spice destroyed when the storm passes over it?",
+      "read": true,
+      "contentSha256": "5130ef8c5ace30fcb3e3665dd2cee69cdc231fa941d7e6d86064e870269a97b4",
+      "destination": ["core#storm-effects"],
+      "decision": "Remove spice in crossed/final sectors, not other sectors of same territory.",
+      "status": "reviewed"
+    },
+    {
+      "index": 336,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225674440",
+      "topic": "Can you ship forces into a sector in the storm?",
+      "read": true,
+      "contentSha256": "23f3ff2500a38e550c2b625d0307a9936ed92cd911077d6d3ec9803627c3afd5",
+      "destination": ["core#shipment", "core#storm-effects"],
+      "decision": "No storm shipment except Advanced Fremen legal reserve placement with half loss.",
+      "status": "reviewed"
+    },
+    {
+      "index": 337,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225674528",
+      "topic": "Does a Shield protect against the Poison Blade?",
+      "read": true,
+      "contentSha256": "9aab925b8599fb49e76aa4718d6d6275e740e177c984dd06c14fd2bec2ca4727",
+      "destination": ["ixian-tleilaxu#new-cards"],
+      "decision": "Poison Blade requires combined defense; Shield alone insufficient.",
+      "status": "reviewed"
+    },
+    {
+      "index": 338,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225674824",
+      "topic": "Can players separated by the storm in the same territory fight or ally?",
+      "read": true,
+      "contentSha256": "b2b26f063a3081e8eba8524aa0348bb3c22b5e91cf51faad277c3f1a0fcc35b8",
+      "destination": ["core#storm-effects", "core#nexus"],
+      "decision": "Storm blocks relevant battle, not alliance formation; apply later evacuation rule afterward.",
+      "status": "reviewed"
+    },
+    {
+      "index": 339,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225674826",
+      "topic": "Can a leader with the Mentat skill still fight after using it?",
+      "read": true,
+      "contentSha256": "f104010339704fc6faf04a2c9fc5864dfa119721bc048659ed50e91a278e8244",
+      "destination": ["choam-richese#leader-skills-in-battle"],
+      "decision": "Mentat can be used before plan then same leader selected to fight.",
+      "status": "reviewed"
+    },
+    {
+      "index": 340,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225674839",
+      "topic": "How do Ixian Cyborgs fight against Fremen Fedaykin?",
+      "read": true,
+      "contentSha256": "2f6fcecaaa6cf08c863b18c1d5a6b7c611b1b9211174ab2912af3b4a1138964e",
+      "destination": ["ixian-tleilaxu#ixian-advanced"],
+      "decision": "Cyborgs retain double against Fremen but require spice; only Sardaukar has Fremen reduction.",
+      "status": "reviewed"
+    },
+    {
+      "index": 341,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225675180",
+      "topic": "Do Fedaykin count double for Fremen storm losses?",
+      "read": true,
+      "contentSha256": "6ef93cf8c78cb263add1ff52b826d8f15d4d0b74d6051a17893c946bce1185d6",
+      "destination": ["core#fremen-advanced"],
+      "decision": "Storm halves tokens, not battle strength; no Fedaykin double-loss penalty.",
+      "status": "reviewed"
+    },
+    {
+      "index": 342,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225675183",
+      "topic": "Can you win a battle if you lose all your forces?",
+      "read": true,
+      "contentSha256": "8c3c9d5e79fac1a8a4de4a62ed2f6acb91841872996d9c3af1b9378149df7e1f",
+      "destination": ["core#battle-resolution"],
+      "decision": "Win can leave no surviving forces; keep normal winner benefits.",
+      "status": "reviewed"
+    },
+    {
+      "index": 343,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225675299",
+      "topic": "Can the Ixian Technology advantage be used more than once?",
+      "read": true,
+      "contentSha256": "fd07c07ef8d668188aba333b084505d4cef8b896f2872ee0fb366fc5b42297e8",
+      "destination": ["ixian-tleilaxu#ixian-advanced"],
+      "decision": "Technology once per Bidding Phase, not game; swaps hand card with auction card.",
+      "status": "reviewed"
+    },
+    {
+      "index": 344,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225675457",
+      "topic": "Does the Spice Banker skill pay out on revival?",
+      "read": true,
+      "contentSha256": "7ec32d1826c21e8ff13532e14e07826c6587faf5ab356b0dc1900080f294940b",
+      "destination": ["choam-richese#leader-skills-in-battle"],
+      "decision": "Spice Banker triggers qualifying Bank revival payments, not payments redirected elsewhere.",
+      "status": "reviewed"
+    },
+    {
+      "index": 345,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225675525",
+      "topic": "Can Weather Control or Family Atomics be played on the first turn?",
+      "read": true,
+      "contentSha256": "312028ce9e7ef75c2c7a1e023acc576d88ba2cd480503ce696ab26de5354b691",
+      "destination": ["core#family-atomics", "core#hajr-ghola-weather"],
+      "decision": "No Weather Control or Family Atomics on turn one.",
+      "status": "reviewed"
+    },
+    {
+      "index": 346,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225675540",
+      "topic": "Can you change your battle plan before it is revealed?",
+      "read": true,
+      "contentSha256": "3a8040f74d12ff1dc3f342755cc205b25faad52f9b59d02817c3aa242dfbb8fa",
+      "destination": ["core#battle-information"],
+      "decision": "May revise unfixed plan elements until commitment; respect Voice, Prescience, Karama and Truthtrance.",
+      "status": "reviewed"
+    },
+    {
+      "index": 347,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225675806",
+      "topic": "Does Weather Control add to the storm's normal movement, and can it stop the storm?",
+      "read": true,
+      "contentSha256": "7c7e363ff8b15eb3663575e9be7ba61060b9a1e9abdbbc6d01baab1294bb2c08",
+      "destination": ["core#storm-movement"],
+      "decision": "Weather Control replaces distance; zero enters no new sectors and does not repeat storm damage.",
+      "status": "reviewed"
+    },
+    {
+      "index": 348,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225675904",
+      "topic": "Are deals between players binding?",
+      "read": true,
+      "contentSha256": "f5487f77cc57522b69137e311a46cb6e14b9f6c1036a435fbb91bc79359b7d04",
+      "destination": ["core#deals"],
+      "decision": "Binding possible public terms persist; impossible terms void, unanimous cancellation allowed.",
+      "status": "reviewed"
+    },
+    {
+      "index": 349,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225676024",
+      "topic": "Can Shai-Hulud devour forces in a territory under the storm?",
+      "read": true,
+      "contentSha256": "b627915cfaff49d224f5cdde665eadb568e554396265ae4f29dbf8725bd70baf",
+      "destination": ["unresolved-source-gap"],
+      "decision": "No special storm-versus-worm answer collected. Apply stated general worm destruction; add no invented immunity or timing exception.",
+      "status": "unresolved"
+    },
+    {
+      "index": 350,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225676063",
+      "topic": "Does a Traitor card the Tleilaxu gain count as a traitor or a Face Dancer?",
+      "read": true,
+      "contentSha256": "ca42c9abf6d6a3c75e57342df0886c680845016317a3057e6432d09c04985c89",
+      "destination": ["choam-richese#leader-skills-in-battle"],
+      "decision": "Rihani gives Tleilaxu a Face Dancer replacing unrevealed one, not a fourth or ordinary traitor.",
+      "status": "reviewed"
+    },
+    {
+      "index": 351,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225676071",
+      "topic": "What does it cost the Ixians to ship and revive Cyborgs and Suboids?",
+      "read": true,
+      "contentSha256": "df5eed1f0e14c1cc90f036ccf7ebcc787182e294efc3ee57c08c612569509fca",
+      "destination": ["ixian-tleilaxu#ixian-setup", "ixian-tleilaxu#hidden-mobile-stronghold"],
+      "decision": "Normal shipping costs for both types; Cyborg paid revival three, Suboid normal two; HMS direct only Ixian/qualifying advisor.",
+      "status": "reviewed"
+    },
+    {
+      "index": 352,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225676313",
+      "topic": "If a card is won with Karama, does the Emperor still get paid?",
+      "read": true,
+      "contentSha256": "ca72ceda08be2257dfb3e7ab7362fb0c12520790cbff291a4c49e5d294a76342",
+      "destination": ["core#karama", "core#bidding"],
+      "decision": "Karama-free card creates no spice for Emperor to collect.",
+      "status": "reviewed"
+    },
+    {
+      "index": 353,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225676516",
+      "topic": "Can the Hidden Mobile Stronghold be placed in the Polar Sink?",
+      "read": true,
+      "contentSha256": "81c7edc2c213b1aabd163ae3210c5302beec8bdf8de96e2acab96c779c0c84d9",
+      "destination": ["ixian-tleilaxu#hidden-mobile-stronghold"],
+      "decision": "HMS may point at Polar Sink sector; cannot point at original stronghold.",
+      "status": "reviewed"
+    },
+    {
+      "index": 354,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225676797",
+      "topic": "Do the Fremen's free revivals for an ally count against the ally's revival limit?",
+      "read": true,
+      "contentSha256": "fe8c0a5aabb932c8357a9eec10127e92cb72c1c1d6464fff1b7df05d3a91bf9e",
+      "destination": ["core#fremen", "GF9-CORE-010"],
+      "decision": "Keep three free within applicable limit; collected on-top summary conflicts actual wording and community consensus.",
+      "status": "reviewed"
+    },
+    {
+      "index": 355,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225676932",
+      "topic": "Does Zoal copy a leader's skill bonus?",
+      "read": true,
+      "contentSha256": "bb3a9e225ddc6d245bf99cce6fe580c2a19dc6e4a645ba8b25957fe1a028ef72",
+      "destination": ["ixian-tleilaxu#tleilaxu-revival"],
+      "decision": "Zoal copies printed leader value only, not KH or Leader Skill bonus.",
+      "status": "reviewed"
+    },
+    {
+      "index": 356,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225677114",
+      "topic": "Can the Fremen combine their two-territory move with ornithopters?",
+      "read": true,
+      "contentSha256": "e73b662e8a0d133d53b7b0536e54de0eba1a4de5b7f9d15d9cc18726c72b1a81",
+      "destination": ["core#movement"],
+      "decision": "Ornithopter three replaces Fremen two; ranges do not add.",
+      "status": "reviewed"
+    },
+    {
+      "index": 357,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225677328",
+      "topic": "Can the Ixians spend spice to strengthen Suboids?",
+      "read": true,
+      "contentSha256": "d7f9aedf84723c8fe8364e7e7f2274bf1b5eb44888a878a11ecbf8a6baf5e91c",
+      "destination": ["ixian-tleilaxu#ixian-advanced", "ixian-tleilaxu#cyborgs-and-suboids"],
+      "decision": "Suboids permanently half strength, no spice needed or permitted improvement; survivors can replace Cyborg losses.",
+      "status": "reviewed"
+    },
+    {
+      "index": 358,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225677387",
+      "topic": "How are Tech Tokens assigned at the start of the game?",
+      "read": true,
+      "contentSha256": "0cd78b6a80dd1fe0ddcf50aa8dacbd09bbaac3b85dd81b52aee40858b8b71c84",
+      "destination": ["ixian-tleilaxu#tech-token-setup"],
+      "decision": "Assign preferred tokens to present factions, remainder randomly by poststorm order to factions without one.",
+      "status": "reviewed"
+    },
+    {
+      "index": 359,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225677440",
+      "topic": "How long does a game of Dune take and how many turns can it last?",
+      "read": true,
+      "contentSha256": "e9c0cc071782075b53d5e52060c547e9b6fbe4e98939991c840130c574f88058",
+      "destination": ["core#turn"],
+      "decision": "Maximum ten turns; omit variable community duration statistics from rules.",
+      "status": "reviewed"
+    },
+    {
+      "index": 360,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225677714",
+      "topic": "Does the game end as soon as someone reaches the victory condition mid-turn?",
+      "read": true,
+      "contentSha256": "55f89da70170515767bfa6d963716d4aaa568059ac744850e23a8e0cb68c38d2",
+      "destination": ["core#mentat"],
+      "decision": "Normal victory checked at Mentat Pause, not midturn.",
+      "status": "reviewed"
+    },
+    {
+      "index": 361,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225677961",
+      "topic": "Can you win Dune on the first turn?",
+      "read": true,
+      "contentSha256": "6920ad9090a18955bffc0cbadc37c8bf8b235f9d78cc66c356dc4fe79787e806",
+      "destination": ["core#mentat"],
+      "decision": "Turn-one Mentat check can produce ordinary victory; no first-turn exemption.",
+      "status": "reviewed"
+    },
+    {
+      "index": 362,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225678069",
+      "topic": "How far can Ixian Cyborgs and Suboids move, and how much spice can they carry?",
+      "read": true,
+      "contentSha256": "52f0115e2462f2fb30a7847d304d3a3390c55b92773cee035936b273128f996d",
+      "destination": ["ixian-tleilaxu#cyborgs-and-suboids"],
+      "decision": "Cyborg move two/collect three; Suboids move two with Cyborg else one, collect and occupy normally.",
+      "status": "reviewed"
+    },
+    {
+      "index": 363,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225678174",
+      "topic": "Are faction abilities mandatory or optional?",
+      "read": true,
+      "contentSha256": "df0d78a8ec4a14ec85d3f1cae12ddc5632bcb0df6ed7e9977e3e06a58baa211b",
+      "destination": ["core#begin", "core#harkonnen"],
+      "decision": "Respect may/can optional wording and mandatory gets; no discretionary refusal of Harkonnen bonus.",
+      "status": "reviewed"
+    },
+    {
+      "index": 364,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225678325",
+      "topic": "How do you take a Tech Token from another player, and is it mandatory?",
+      "read": true,
+      "contentSha256": "9ab23c2b03343709acbbcc79ef38d32e375bdad2a3fb35282faed761bed633b1",
+      "destination": ["ixian-tleilaxu#tech-token-setup"],
+      "decision": "Winner takes one token if any, choosing among several; not an optional refusal.",
+      "status": "reviewed"
+    },
+    {
+      "index": 365,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225678531",
+      "topic": "What do the Ixians start with?",
+      "read": true,
+      "contentSha256": "1933d506b0fde411d9531cf7ae4922602b02f54eccf7f4eeb32d92b2d67d7a63",
+      "destination": ["ixian-tleilaxu#ixian-setup"],
+      "decision": "Three Cyborg and three Suboid in HMS, remaining fourteen reserves, ten spice, one free either type.",
+      "status": "reviewed"
+    },
+    {
+      "index": 366,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225678934",
+      "topic": "Where does the card the Ixians remove from the auction go?",
+      "read": true,
+      "contentSha256": "a30da5ad9c746ad923e1e922e0c2771b4a5df72c1058a25d986232802b1f7b6e",
+      "destination": ["ixian-tleilaxu#ixian-bidding"],
+      "decision": "Choose top OR bottom of deck; reject WBC bottom-only restriction.",
+      "status": "reviewed"
+    },
+    {
+      "index": 367,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225679228",
+      "topic": "Does a Tleilaxu Ghola get a Leader Skill card?",
+      "read": true,
+      "contentSha256": "e1700f51f7ee7f8b0c91c99bb8512af944dd39825315a18298c27ca5313ae2e6",
+      "destination": ["choam-richese#leader-skills-in-battle", "ixian-tleilaxu#tleilaxu-advanced"],
+      "decision": "Acquiring foreign ghola earns no skill draw; revive own leader without skill to qualify.",
+      "status": "reviewed"
+    },
+    {
+      "index": 368,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225679232",
+      "topic": "Can the Ixians swap a treachery card when their hand is full?",
+      "read": true,
+      "contentSha256": "46fb7fb723ba7167f139bf4ac75cb2669925f9d13e68bf734bed439fc7ce2076",
+      "destination": ["ixian-tleilaxu#ixian-advanced"],
+      "decision": "Full hand permits equal Technology swap, as swapping does not add card count.",
+      "status": "reviewed"
+    },
+    {
+      "index": 369,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225679258",
+      "topic": "If several factions trigger a Tech Token, do you collect once or for each?",
+      "read": true,
+      "contentSha256": "819f07578bafa0e65d4f375c3a335925981337b021d65b917b2fc7ccc80b0728",
+      "destination": ["ixian-tleilaxu#tech-token-setup"],
+      "decision": "Once per phase per relevant token, scaled by holder total, excluding native-only triggers.",
+      "status": "reviewed"
+    },
+    {
+      "index": 370,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225679631",
+      "topic": "Is a traitor card discarded after it is revealed?",
+      "read": true,
+      "contentSha256": "a3ea0c6c3db9f0e9133310ba2c3abcbcc900f360e9b1ef7b926b7ab660b44228",
+      "destination": ["core#traitors"],
+      "decision": "Revealed traitor remains held and reusable for revived leader; never consumed by call.",
+      "status": "reviewed"
+    },
+    {
+      "index": 371,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225679664",
+      "topic": "Does the Master of Assassins skill work with Chemistry?",
+      "read": true,
+      "contentSha256": "5b2cb004c9724605c2ea93baf65f0998c858ada50ebe3ef5839ecfbf5b16c92d",
+      "destination": ["choam-richese#leader-skills-in-battle"],
+      "decision": "Chemistry must actually play as poison weapon for Master of Assassins benefit.",
+      "status": "reviewed"
+    },
+    {
+      "index": 372,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225679733",
+      "topic": "What are the special Karama powers of the Ixians and Tleilaxu?",
+      "read": true,
+      "contentSha256": "3a91490e75ebe9a13cb3066b832b7985448a0aa5b6e33d42527b6031f6961af3",
+      "destination": ["ixian-tleilaxu#ixian-advanced", "ixian-tleilaxu#tleilaxu-advanced"],
+      "decision": "Once-per-game special Karama: HMS additional two movement, or cancel revival.",
+      "status": "reviewed"
+    },
+    {
+      "index": 373,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225680267",
+      "topic": "Can you answer 'I don't know' to a Truthtrance question?",
+      "read": true,
+      "contentSha256": "82fcc72a9c1733b543912e4a5479ed39ab0d4b1c6280dae7f93948c13db8d2d2",
+      "destination": ["core#truthtrance"],
+      "decision": "Unknown beyond ability permits new question or saving card; no binding future-turn action.",
+      "status": "reviewed"
+    },
+    {
+      "index": 374,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225680576",
+      "topic": "Can Karama be used to get a Richese treachery card?",
+      "read": true,
+      "contentSha256": "ec439a554b1625fde5b6c6feb7489b1c4c31a4f588f9df2e8f8f7ca54bfda24d",
+      "destination": ["choam-richese#richese-auctions"],
+      "decision": "No Karama taking/free buying/overbidding in Richese cache or Black Market auctions.",
+      "status": "reviewed"
+    },
+    {
+      "index": 375,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225680801",
+      "topic": "Do CHOAM and the Tleilaxu get half-price revival for all forces when allied?",
+      "read": true,
+      "contentSha256": "c1153cfd131af9578b07bbf261a3d23326788b68c34beb48de3c9a12eb3d5b99",
+      "destination": ["ixian-tleilaxu#tleilaxu-revival", "choam-richese#choam-alliance-and-advanced"],
+      "decision": "CHOAM alliance discount halves total revival cost, round total up.",
+      "status": "reviewed"
+    },
+    {
+      "index": 376,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225681087",
+      "topic": "How does Distrans work?",
+      "read": true,
+      "contentSha256": "115c3001d8e8128f43d6fd3e5454672a723264bb6b715ef1752c52a60eac86af",
+      "destination": ["choam-richese#richese-cache-reference"],
+      "decision": "Distrans one own hand card to recipient with room, except during a bid; cache entry not main setup deck.",
+      "status": "reviewed"
+    },
+    {
+      "index": 377,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225681322",
+      "topic": "When can the Tleilaxu offer to revive another faction's leader?",
+      "read": true,
+      "contentSha256": "ebee59a32008e8894f58734d29fd705f4714e9cb94456eb2ab8432efcc4868f2",
+      "destination": ["ixian-tleilaxu#tleilaxu-revival"],
+      "decision": "One early own-leader revival per other faction, normal when eligible; Tleilaxu itself has separately unlimited leader revival.",
+      "status": "reviewed"
+    },
+    {
+      "index": 378,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225681447",
+      "topic": "What does the CHOAM alliance give the ally?",
+      "read": true,
+      "contentSha256": "beb2ad37f3b5f202f33b8c635f915da5dbc31fa23802641f0ebd824dfbb5afd9",
+      "destination": ["choam-richese#choam-alliance-and-advanced"],
+      "decision": "One two-way allied card trade per turn at phase end, and CHOAM may support ally battle.",
+      "status": "reviewed"
+    },
+    {
+      "index": 379,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225681715",
+      "topic": "Are used Richese cards shuffled into the treachery deck, and can you use them without Richese?",
+      "read": true,
+      "contentSha256": "06df4acc2784b32e8e812a561b8aee5f636f93fd9f25c61be98b1534c16a39b0",
+      "destination": ["choam-richese#richese-setup-and-cache"],
+      "decision": "Discarded cache cards enter normal cycle; no starting-cache shuffle without Richese, per direct designer intent.",
+      "status": "reviewed"
+    },
+    {
+      "index": 380,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225682183",
+      "topic": "When are Face Dancers replaced, and can the Tleilaxu swap them?",
+      "read": true,
+      "contentSha256": "21512cbd781152f52689f3406ef8095acc220ba5f39e1b355f9cc4e642b2d36b",
+      "destination": ["ixian-tleilaxu#tleilaxu-setup"],
+      "decision": "Only unrevealed Face Dancer may be swapped each Mentat; revealed reset together after all three.",
+      "status": "reviewed"
+    },
+    {
+      "index": 381,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225682367",
+      "topic": "Does a No-Field shipment trigger the Heighliners Tech Token?",
+      "read": true,
+      "contentSha256": "3ec4eacb092d583f499535005d48046d097dce99c3cb4aaa4a5f4d22ba52c227",
+      "destination": ["choam-richese#richese-no-field", "ixian-tleilaxu#tech-token-setup"],
+      "decision": "No-Field costs one-force shipment and triggers Heighliners except Guild ally-only shipment.",
+      "status": "reviewed"
+    },
+    {
+      "index": 382,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225682427",
+      "topic": "Can a Ghola leader be called as a traitor?",
+      "read": true,
+      "contentSha256": "ac894dff764c25531385409c0ebda883e4ee99b91e03d9acdf5f07869f954913",
+      "destination": ["ixian-tleilaxu#tleilaxu-advanced"],
+      "decision": "Ghola traitor requires matching held card; no automatic betrayal against original faction.",
+      "status": "reviewed"
+    },
+    {
+      "index": 383,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225682909",
+      "topic": "Does the Tleilaxu Ghola ability work when they already have 5 leaders?",
+      "read": true,
+      "contentSha256": "2b8eb6eb78baa70ac86e15f7a4883918f1a55c004de65b0e7176d1a8925ef49d",
+      "destination": ["ixian-tleilaxu#tleilaxu-advanced"],
+      "decision": "Foreign ghola acquisition only below five active leaders, up to five.",
+      "status": "reviewed"
+    },
+    {
+      "index": 384,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225683238",
+      "topic": "Who pays when Richese ships an ally's forces with a No-Field token?",
+      "read": true,
+      "contentSha256": "4db9d696a881fe9678d93c24cbfe039d41e80723ca010aab95c1d8bba931d626",
+      "destination": ["choam-richese#richese-alliance-and-advanced"],
+      "decision": "Either ally pays No-Field one-force price to Guild or Bank; forces reveal immediately.",
+      "status": "reviewed"
+    },
+    {
+      "index": 385,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225683399",
+      "topic": "Do the Tleilaxu get Traitor cards at setup?",
+      "read": true,
+      "contentSha256": "562b5fbba407c61a82da7f65f061aa32e5895a73565949efc5b32be06226e7b2",
+      "destination": ["ixian-tleilaxu#tleilaxu-setup"],
+      "decision": "Tleilaxu skips initial four-card traitor choice; receives three Face Dancers after others return cards.",
+      "status": "reviewed"
+    },
+    {
+      "index": 386,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225683607",
+      "topic": "What does Richese start with?",
+      "read": true,
+      "contentSha256": "0e6f676eadc5c7bd2c24993778b86a1976faed70d17bb05731e95731517e74c6",
+      "destination": ["choam-richese#richese-setup-and-cache"],
+      "decision": "Twenty reserves, five spice, ten-card separate cache, No-Field zero/three/five, two free revival.",
+      "status": "reviewed"
+    },
+    {
+      "index": 387,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225683892",
+      "topic": "Where do the Tleilaxu forces that replace a Face Dancer victim come from?",
+      "read": true,
+      "contentSha256": "04eabb9364e5da78ad58d8f7a5ba9148bed1d64f16ec86235bb765c79aaa745b",
+      "destination": ["ixian-tleilaxu#tleilaxu-setup"],
+      "decision": "Replacement forces come from reserves and/or anywhere on planet, up to returned winner count.",
+      "status": "reviewed"
+    },
+    {
+      "index": 388,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225684042",
+      "topic": "How does Richese count for the Fremen special victory?",
+      "read": true,
+      "contentSha256": "d22865daa433823239472154c67dba30584db0866414cc022d806855446eeb2b",
+      "destination": ["core#fremen", "choam-richese#richese-alliance-and-advanced"],
+      "decision": "Richese at Tuek's blocks Fremen special victory.",
+      "status": "reviewed"
+    },
+    {
+      "index": 389,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225684795",
+      "topic": "Does the battle winner still collect spice and keep cards when a Face Dancer is revealed?",
+      "read": true,
+      "contentSha256": "e1033744c6949639e95e7f3713cc05abf02a55c7ca7ffcd1368c416846089840",
+      "destination": ["ixian-tleilaxu#tleilaxu-setup"],
+      "decision": "Winner keeps battle benefits; Face Dancer killed without extra spice, surviving troops return to reserves not Tanks.",
+      "status": "reviewed"
+    },
+    {
+      "index": 390,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225685318",
+      "topic": "Can Karama stop the Tleilaxu Face Dancer?",
+      "read": true,
+      "contentSha256": "36b4de7e07428f1e97cfef49ce3f69d7366afe09f827ced1dc9e0f432f136e3e",
+      "destination": ["ixian-tleilaxu#ixian-tleilaxu-karama"],
+      "decision": "Karama stops only Mentat Face Dancer replacement, not reveal or takeover.",
+      "status": "reviewed"
+    },
+    {
+      "index": 391,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225685930",
+      "topic": "How strong is Zoal against a Cheap Hero?",
+      "read": true,
+      "contentSha256": "ae55c4342f92bd45fa29282473f60921a6d43bad5995122940965d4970b9202e",
+      "destination": ["ixian-tleilaxu#tleilaxu-revival"],
+      "decision": "Zoal zero versus Cheap Hero; death spice based copied printed value, not a weapon kill bonus.",
+      "status": "reviewed"
+    },
+    {
+      "index": 392,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225686498",
+      "topic": "What do the Tleilaxu start with?",
+      "read": true,
+      "contentSha256": "e832c3d66ef17b12f8bef128e9c8baf0177bbcd6a497c726eeba3b370261345e",
+      "destination": ["ixian-tleilaxu#tleilaxu-setup"],
+      "decision": "Tleilaxu starts twenty reserves, five spice, two free revivals and three Face Dancers.",
+      "status": "reviewed"
+    },
+    {
+      "index": 393,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225686540",
+      "topic": "How are Stronghold Cards claimed and passed on?",
+      "read": true,
+      "contentSha256": "47906c1dc33b2aa0c276172edaa0541d4519b3fecc0a2d1a3afdc6d0a91d8799",
+      "destination": ["choam-richese#advanced-stronghold-cards"],
+      "decision": "Claim at Mentat beginning after turn-one play, not setup; keep until next transfer window.",
+      "status": "reviewed"
+    },
+    {
+      "index": 394,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225686768",
+      "topic": "Can a revealed Face Dancer be used again?",
+      "read": true,
+      "contentSha256": "242708e65eac5100200e60c32b820ade0a0f0f74d09141fe5d65261a56ac6ae4",
+      "destination": ["ixian-tleilaxu#tleilaxu-setup"],
+      "decision": "Revealed Face Dancer inactive until full reset, unlike persistent ordinary traitor.",
+      "status": "reviewed"
+    },
+    {
+      "index": 395,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225687162",
+      "topic": "Do the Bene Gesserit lose a Stronghold Card when they flip to advisors?",
+      "read": true,
+      "contentSha256": "a494c2094fb4306c539a0653f0e9c94e915c91327d5305b574554baae0d51c16",
+      "destination": ["choam-richese#advanced-stronghold-cards"],
+      "decision": "BG advisor flip does not immediately remove card; transfer/set aside at Mentat.",
+      "status": "reviewed"
+    },
+    {
+      "index": 396,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225687633",
+      "topic": "Do Bene Gesserit advisors trigger Ambassadors and Terror tokens?",
+      "read": true,
+      "contentSha256": "672fe43227f789ea3d11b006164c33f56f171f88b4a28b32d44c9fc2e31a75ec",
+      "destination": ["ecaz-moritani#ecaz-setup", "ecaz-moritani#moritani-setup-and-terror"],
+      "decision": "Advisors excluded from Ambassador trigger, included for Terror.",
+      "status": "reviewed"
+    },
+    {
+      "index": 397,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225688436",
+      "topic": "How does the Discovery spice card work?",
+      "read": true,
+      "contentSha256": "5c4baca14eed63834917c6ca9c37a48654474fbb121fb08bc2973b0e8acdb559",
+      "destination": ["ecaz-moritani#discovery-setup-and-cards"],
+      "decision": "Discovery blow destroys old spice/forces, places six in blow sector and separate random token at printed token site.",
+      "status": "reviewed"
+    },
+    {
+      "index": 398,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225689301",
+      "topic": "What do the Discovery tokens do?",
+      "read": true,
+      "contentSha256": "9387fdba2a57df8f3a52ec645017511fc1e78bd305ebeb68be850779fbe4cc1e",
+      "destination": ["ecaz-moritani#discovering-and-entering"],
+      "decision": "Five nested locations, no immediate occupation upon reveal; next-turn free entry then normal entry/shipment rules.",
+      "status": "reviewed"
+    },
+    {
+      "index": 399,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225690213",
+      "topic": "Does the Ecaz Occupy bonus round up or down?",
+      "read": true,
+      "contentSha256": "34f4fe00cd6e8ee0b5eca622b3054183e574ee91f2840adfa33d7dc93eae10dc",
+      "destination": ["ecaz-moritani#ecaz-battle", "EXP-001"],
+      "decision": "Follow normative round-up bonus/loss and round-down survivors, correcting printed example.",
+      "status": "reviewed"
+    },
+    {
+      "index": 400,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225690732",
+      "topic": "Does Ecaz Occupy apply to Tech Tokens, strongholds and ornithopters?",
+      "read": true,
+      "contentSha256": "89a2393c0f37688edb167d0159f2582f60e8dbb19354af7886aaea11e6f87667",
+      "destination": ["ecaz-moritani#ecaz-co-occupation"],
+      "decision": "Both allies gain city ornithopters; all Tech Tokens must be held by one, no shared synthetic stronghold.",
+      "status": "reviewed"
+    },
+    {
+      "index": 401,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225691110",
+      "topic": "Can Ecaz in Sietch Tabr stop the Fremen special victory?",
+      "read": true,
+      "contentSha256": "1459c28977afd65b0f2d7cbea790a3317a6ce9237772ce190cba45a92d77ea8f",
+      "destination": ["core#fremen", "ecaz-moritani#ecaz-co-occupation"],
+      "decision": "Ecaz co-occupation with Fremen does not block special win; Fedaykin keep full no-spice value.",
+      "status": "reviewed"
+    }
+  ],
+  "status": "complete"
+}

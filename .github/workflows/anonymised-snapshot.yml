@@ -6,16 +6,20 @@ name: Anonymised snapshot
 # before anonymising, and the last step deletes the job's directory whatever happened before.
 on:
   schedule:
-    # Once a day. GitHub runs scheduled workflows from the default branch only.
-    - cron: "17 5 * * *"
+    # Once a week, on Mondays: the export reads all of production, and local snapshot launches tolerate week-old data
+    # (Norbert, 18 October 2026). GitHub runs scheduled workflows from the default branch only.
+    - cron: "17 5 * * 1"
   workflow_dispatch:
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
-  group: anonymised-snapshot
+  # Hold production stable from revision selection through the dev refresh.
+  group: deploy-production
   cancel-in-progress: false
+  queue: max
 
 env:
   # "false" makes every run a dry run that uploads nothing, and "true" turns on the upload step below (#1559).
@@ -26,12 +30,28 @@ jobs:
     # The production environment holds the deploy key and admits only main; this condition says so here too.
     if: github.ref == 'refs/heads/main'
     environment: production
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+
+      - name: Setup Bun for production revision selection
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
+
+      - name: Select the completed production release
+        id: production
+        run: bun run scripts/production-snapshot-revision.ts
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ steps.production.outputs.sha }}
 
       - uses: ./.github/actions/setup
 
@@ -43,12 +63,20 @@ jobs:
       # Runs while SNAPSHOT_UPLOAD is "true" (Norbert, 30 September 2026, #1559). It uploads the anonymised file alone, never the directory.
       - name: Upload the anonymised snapshot
         if: success() && env.SNAPSHOT_UPLOAD == 'true'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: anonymised-snapshot
           path: ${{ runner.temp }}/anonymised-snapshot/snapshot.zip
-          retention-days: 1
+          # Kept until the next weekly run has uploaded its own, with a day of slack for GitHub's schedule drift.
+          retention-days: 8
           if-no-files-found: error
+
+      # Reuse this export for cloud dev, after the anonymised artifact is safely uploaded.
+      - name: Refresh cloud dev from the weekly anonymised snapshot
+        if: success() && env.SNAPSHOT_UPLOAD == 'true'
+        run: bun run provision dev --stage data --snapshot-file "${RUNNER_TEMP}/anonymised-snapshot/snapshot.zip"
+        env:
+          CONVEX_DEV_DEPLOY_KEY: ${{ secrets.CONVEX_DEV_DEPLOY_KEY }}
 
       - name: Delete the export and the snapshot from the runner
         if: always()

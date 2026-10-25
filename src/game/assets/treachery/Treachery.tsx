@@ -15,6 +15,7 @@ import { treacheryStyle } from './treacheryStyle';
 
 export const TreacheryCard: FC<z.infer<typeof Treachery> & { frontStyle?: CardFrontStyle }> = ({
   frontStyle,
+  bodyLayout,
   name,
   decals,
   text,
@@ -28,10 +29,10 @@ export const TreacheryCard: FC<z.infer<typeof Treachery> & { frontStyle?: CardFr
 
   return (
     <div className={styles.card}>
-      <div className={styles.decal_bg_1} />
+      {bodyLayout !== 'text-only' && <div className={styles.decal_bg_1} />}
 
       {/* decals */}
-      {decals.length > 0 && (
+      {bodyLayout !== 'text-only' && decals.length > 0 && (
         <svg {...card} viewBox={`0 0 ${card.width} ${card.height}`} className={unique.overlay}>
           <g {...{ [COMPONENT_GEOMETRY_PROTOCOL.partAttribute]: 'decals' }}>
             <FrontDecals {...{ decals, prefix }} />
@@ -40,7 +41,10 @@ export const TreacheryCard: FC<z.infer<typeof Treachery> & { frontStyle?: CardFr
       )}
 
       <CardHeadBackground head={frontStyle?.head ?? style.head} measureParts />
-      <div className={styles.shape} />
+      <div
+        className={styles.shape}
+        style={bodyLayout === 'text-only' ? { backgroundImage: "url('/image/card/base-full-large.webp')" } : undefined}
+      />
       <CardHeadContents
         name={name}
         subName={subName}
@@ -54,7 +58,7 @@ export const TreacheryCard: FC<z.infer<typeof Treachery> & { frontStyle?: CardFr
 
       <CardText
         value={text}
-        className={styles.body}
+        className={bodyLayout === 'text-only' ? unique.textOnly : styles.body}
         {...{ [COMPONENT_GEOMETRY_PROTOCOL.partAttribute]: text.trim() ? 'body' : undefined }}
       />
     </div>

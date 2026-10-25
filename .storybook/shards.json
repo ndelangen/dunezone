@@ -1,18 +1,25 @@
 {
   "play-table": [
     "src/app/routes/_app/play/battles.stories.tsx",
+    "src/app/routes/_app/play/battles.testing.stories.tsx",
     "src/app/routes/_app/play/phases.stories.tsx",
+    "src/app/routes/_app/play/phases.testing.stories.tsx",
     "src/app/routes/_app/play/panel.conversations.stories.tsx",
     "src/app/routes/_app/play/panel.hand.stories.tsx",
+    "src/app/routes/_app/play/panel.hand.testing.stories.tsx",
     "src/app/routes/_app/play/panel.inventory.stories.tsx",
     "src/app/routes/_app/play/panel.layout.stories.tsx",
+    "src/app/routes/_app/play/panel.layout.testing.stories.tsx",
     "src/app/routes/_app/play/panel.log.stories.tsx",
-    "src/app/routes/_app/play/panel.players.stories.tsx"
+    "src/app/routes/_app/play/panel.players.stories.tsx",
+    "src/app/routes/_app/play/panel.players.testing.stories.tsx"
   ],
   "play-flows": ["src/app/routes/_app/play/"],
   "components": [
     "src/app/routes/_app/rulesets/rulebooks-editor.stories.tsx",
+    "src/app/routes/_app/rulesets/rulebooks-editor.testing.stories.tsx",
     "src/app/routes/_app/rulesets/rulebooks-editing.stories.tsx",
+    "src/app/routes/_app/rulesets/rulebooks-editing.testing.stories.tsx",
     "src/app/db/",
     "src/app/shell/",
     "src/app/ui/",

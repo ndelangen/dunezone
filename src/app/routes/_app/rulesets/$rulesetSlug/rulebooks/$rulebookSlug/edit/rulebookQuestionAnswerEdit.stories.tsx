@@ -5,7 +5,6 @@ import { questionAnswerChange, QuestionAnswerStory } from './rulebookBlockEditor
 
 const meta = preview.meta({
   title: 'Blocks/Question and answer/Editing',
-  globals: { colorScheme: 'dark' },
   parameters: { layout: 'fullscreen' },
 });
 

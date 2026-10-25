@@ -40,37 +40,48 @@ export function productDatabase(baseline: StorybookDatabase) {
   baseline.factions[0]!.slug = factions[0]!.slug;
 }
 
+type ProductGame = {
+  state: 'pending' | 'ready' | 'expired';
+  reason?: string;
+  minimumPlayers?: TableSeatCount;
+  name?: string;
+};
+
+/** The real game's rows over the product database: the viewer's session and the game itself, in the given state. */
+export function productGameDatabase(baseline: StorybookDatabase, game: ProductGame) {
+  const { state, reason, minimumPlayers = 6, name = ruleset.name } = game;
+  productDatabase(baseline);
+  baseline.authSessions.push({
+    $key: 'game-session',
+    userId: ref(storybookViewer.subjectKey),
+    expirationTime: 4_102_444_800_000,
+  });
+  baseline.authRefreshTokens.push({ sessionId: ref('game-session'), expirationTime: 4_102_444_800_000 });
+  baseline.play_games.push({
+    $key: GAME_KEY,
+    name,
+    slug: normalizePlayGameSlug(name),
+    state,
+    ruleset_id: ref(RULESET_KEY),
+    minimum_players: minimumPlayers,
+    creator_id: ref(storybookViewer.subjectKey),
+    secret: 'story-only-secret',
+    attempt_id: 'story-attempt',
+    provision_expires_at: 4_102_444_800_000,
+    created_at: 0,
+    ...(reason ? { provision_error: reason } : {}),
+    ...(state === 'ready' ? { confirmed_at: 0 } : {}),
+  });
+}
+
 export const parameters = (
-  state: 'pending' | 'ready' | 'expired',
+  state: ProductGame['state'],
   reason?: string,
   minimumPlayers: TableSeatCount = 6,
   name = ruleset.name
 ) => ({
   identity: { ...storybookViewer, sessionKey: 'game-session' },
-  database: db((baseline) => {
-    productDatabase(baseline);
-    baseline.authSessions.push({
-      $key: 'game-session',
-      userId: ref(storybookViewer.subjectKey),
-      expirationTime: 4_102_444_800_000,
-    });
-    baseline.authRefreshTokens.push({ sessionId: ref('game-session'), expirationTime: 4_102_444_800_000 });
-    baseline.play_games.push({
-      $key: GAME_KEY,
-      name,
-      slug: normalizePlayGameSlug(name),
-      state,
-      ruleset_id: ref(RULESET_KEY),
-      minimum_players: minimumPlayers,
-      creator_id: ref(storybookViewer.subjectKey),
-      secret: 'story-only-secret',
-      attempt_id: 'story-attempt',
-      provision_expires_at: 4_102_444_800_000,
-      created_at: 0,
-      ...(reason ? { provision_error: reason } : {}),
-      ...(state === 'ready' ? { confirmed_at: 0 } : {}),
-    });
-  }),
+  database: db((baseline) => productGameDatabase(baseline, { state, reason, minimumPlayers, name })),
 });
 
 export function swappingSnapshot(): GameSnapshot {

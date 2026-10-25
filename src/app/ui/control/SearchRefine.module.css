@@ -72,11 +72,20 @@
 
 /* The ladder's 48rem step: below it the page cannot seat a box, two segments and the edges' actions in one row. */
 @container page-frame (width < 48rem) {
-  .field[data-segmented] .segment {
+  .field[data-segmented]:not([data-inline]) .segment {
     display: none;
   }
 
-  .field[data-segmented] .refine {
+  .field[data-segmented]:not([data-inline]) .refine {
     display: flex;
   }
+}
+
+.field[data-inline] {
+  width: 100%;
+}
+
+.field[data-inline] .segment {
+  flex: 0 1 10rem;
+  min-width: 7rem;
 }

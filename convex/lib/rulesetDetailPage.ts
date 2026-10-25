@@ -2,19 +2,20 @@ import { FAQ_PREVIEW_SIZE } from '../../src/shared/faq/catalogueSearch';
 import type { Id } from '../_generated/dataModel';
 import type { QueryCtx } from '../types';
 import { ownPublishedFace } from './assetBacks';
+import { resolveBackgrounds } from './backgroundPresets';
 import { countCataloguePartitions } from './catalogueOrder';
 import { assignedGroupSummary } from './collaborativeAccess';
 import { catalogueFactionFromCard, toCatalogueFaction } from './factionCatalogue';
 import { faqAnsweredPartition, faqRulesetPartition } from './faqCatalogue';
 import { loadNewestFaqItems } from './faqRulesetList';
-
-/* What `faqItems` carried before the FAQ had its own page, kept for browsers still on that bundle; the next release drops it. */
-const LEGACY_FAQ_LIST_LIMIT = 200;
 import { profileSummary } from './profileSummary';
 import { listRulesetRulebooks } from './rulebookList';
+import { RULESET_FACTION_LIMIT, rulesetFactionLinksByCreation } from './rulesetFactionLinks';
 import { readRulesetAssetSlots } from './rulesetSlots';
 
-const RULESET_FACTION_LIMIT = 500;
+export { RULESET_FACTION_LIMIT };
+/** Factions the ruleset page shows; "All N factions" opens the catalogue filtered to the ruleset for the rest. */
+export const RULESET_FACTION_PREVIEW_SIZE = 3;
 
 /** A non-deleted ruleset resolved by its public slug, or null. The one soft-delete gate. */
 export async function loadPublicRulesetBySlug(ctx: QueryCtx, slug: string) {
@@ -37,10 +38,7 @@ export async function loadPublicRulesetBySlug(ctx: QueryCtx, slug: string) {
  * Callers that need the full list have the catalogue for it.
  */
 async function listPublicRulesetFactions(ctx: QueryCtx, rulesetId: Id<'rulesets'>) {
-  const links = await ctx.db
-    .query('ruleset_factions')
-    .withIndex('by_ruleset', (q) => q.eq('ruleset_id', rulesetId))
-    .take(RULESET_FACTION_LIMIT);
+  const links = await rulesetFactionLinksByCreation(ctx, rulesetId);
   const factions = await Promise.all(links.map((link) => linkedCatalogueFaction(ctx, link.faction_id)));
   return factions.filter((faction) => faction !== null);
 }
@@ -55,7 +53,36 @@ async function linkedCatalogueFaction(ctx: QueryCtx, factionId: Id<'factions'>) 
     return card.is_deleted ? null : await catalogueFactionFromCard(ctx, card, []);
   }
   const faction = await ctx.db.get('factions', factionId);
-  return faction && !faction.is_deleted ? toCatalogueFaction(faction, []) : null;
+  return faction && !faction.is_deleted ? await resolveBackgrounds(ctx, toCatalogueFaction(faction, [])) : null;
+}
+
+/**
+ * A ruleset's live factions in its own order, each with its name, address and token but not its card: behind `api.rulesets.orderedFactions`.
+ * Each is read from its card, or from the faction where the card backfill has not reached it;
+ * soft-deleted and dangling links are dropped.
+ */
+export async function listOrderedRulesetFactions(ctx: QueryCtx, rulesetId: Id<'rulesets'>, limit: number) {
+  const bounded = Math.min(Math.max(1, Math.floor(limit)), RULESET_FACTION_LIMIT);
+  const links = await ctx.db
+    .query('ruleset_factions')
+    .withIndex('by_ruleset_position', (q) => q.eq('ruleset_id', rulesetId))
+    .take(bounded + 1);
+  const factions = await Promise.all(
+    links.slice(0, bounded).map((link) => linkedCatalogueFaction(ctx, link.faction_id))
+  );
+  return {
+    factions: factions
+      .filter((faction) => faction !== null)
+      .map((faction) => ({
+        _id: faction._id,
+        slug: faction.slug,
+        name: faction.data.name,
+        logo: faction.data.logo,
+        background: faction.data.background,
+      })),
+    /* Never past the limit, which `addFaction` holds rulesets to, so Load more cannot stall on the same page. */
+    hasMore: links.length > bounded && bounded < RULESET_FACTION_LIMIT,
+  };
 }
 
 /** The ruleset and its factions, the same for every viewer: behind `api.rulesets.page`. Throws for an unknown slug. */
@@ -76,6 +103,36 @@ function rulesetBoardFace(slots: Awaited<ReturnType<typeof readRulesetAssetSlots
   return entry ? { ...entry.asset, previewHref: ownPublishedFace(entry.doc) } : null;
 }
 
+/**
+ * The ruleset's first factions in its own order, and how many live ones it has from the faction catalogue's list for it, so the page reads a few cards whatever the ruleset's size.
+ * Soft-deleted and dangling links are skipped.
+ */
+async function rulesetFactionPreview(ctx: QueryCtx, rulesetId: Id<'rulesets'>) {
+  const [factionPreview, [factionCount = 0]] = await Promise.all([
+    firstLiveRulesetFactions(ctx, rulesetId),
+    countCataloguePartitions(ctx, 'faction', [rulesetId]),
+  ]);
+  return { factionPreview, factionCount };
+}
+
+/* Walks the links in order until the preview is full, so any number of soft-deleted factions near the top still leave it full; a ruleset holds at most `RULESET_FACTION_LIMIT` links. */
+async function firstLiveRulesetFactions(ctx: QueryCtx, rulesetId: Id<'rulesets'>) {
+  const preview: NonNullable<Awaited<ReturnType<typeof linkedCatalogueFaction>>>[] = [];
+  const links = ctx.db.query('ruleset_factions').withIndex('by_ruleset_position', (q) => q.eq('ruleset_id', rulesetId));
+  let read = 0;
+  for await (const link of links) {
+    read += 1;
+    const faction = await linkedCatalogueFaction(ctx, link.faction_id);
+    if (faction) {
+      preview.push(faction);
+    }
+    if (preview.length === RULESET_FACTION_PREVIEW_SIZE || read === RULESET_FACTION_LIMIT) {
+      break;
+    }
+  }
+  return preview;
+}
+
 /** How many questions a ruleset has, and how many of them have an accepted answer, from its FAQ lists' counts. */
 async function rulesetFaqCounts(ctx: QueryCtx, rulesetId: Id<'rulesets'>) {
   const [questions = 0, answered = 0] = await countCataloguePartitions(ctx, 'faq', [
@@ -94,9 +151,8 @@ export async function loadRulesetPublicDetailPageBySlug(ctx: QueryCtx, slug: str
   const slots = await readRulesetAssetSlots(ctx, row._id);
   return {
     ruleset: row,
-    factions: await listPublicRulesetFactions(ctx, row._id),
+    ...(await rulesetFactionPreview(ctx, row._id)),
     assignedGroup: await assignedGroupSummary(ctx, row.group_id),
-    faqItems: await loadNewestFaqItems(ctx, row._id, LEGACY_FAQ_LIST_LIMIT),
     faqPreview: await loadNewestFaqItems(ctx, row._id, FAQ_PREVIEW_SIZE),
     faqCounts: await rulesetFaqCounts(ctx, row._id),
     owner: await profileSummary(ctx, row.owner_id),

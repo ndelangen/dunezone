@@ -6,7 +6,6 @@ import { RelatedRulesStory } from './rulebookIllustratedBook.stories.fixture';
 
 const meta = preview.meta({
   title: 'Blocks/Text/Editing',
-  globals: { colorScheme: 'dark' },
   parameters: { layout: 'fullscreen' },
 });
 

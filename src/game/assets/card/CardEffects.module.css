@@ -1,0 +1,107 @@
+.reference {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 753px;
+  height: 1048px;
+  transform: scale(1.1952191235, 1.2051526718);
+  transform-origin: top left;
+  color: #171810;
+  font-family: "C_Candara", sans-serif;
+}
+.effects {
+  position: absolute;
+  top: 224px;
+  left: 82px;
+  width: 588px;
+  height: 764px;
+  display: flex;
+  flex-direction: column;
+  font-size: 36px;
+}
+.effect {
+  flex-shrink: 0;
+}
+.effect:first-child {
+  border-bottom: 1px solid #676646;
+  padding-bottom: 22px;
+  margin-bottom: 12px;
+}
+.heading {
+  font-family: "C_Copperplate_Gothic", sans-serif;
+  font-size: 44px;
+  line-height: 1.08;
+}
+.condition {
+  font-family: "C_Trebuchet", sans-serif;
+  font-size: 26px;
+  font-weight: bold;
+  line-height: 1.12;
+  overflow-wrap: anywhere;
+}
+.rules {
+  margin-top: 12px;
+  font-size: inherit;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.final {
+  position: relative;
+  margin-top: auto;
+  margin-left: -12px;
+  margin-right: -15px;
+  padding: 8px 18px 14px;
+  background: #353329;
+  color: #fffef0;
+  border-radius: 0 0 38px 38px;
+}
+.final .condition {
+  padding-bottom: 10px;
+  border-bottom: 1px solid #25241b;
+}
+.final .rules {
+  margin-top: 6px;
+  text-shadow: 1px 2px 2px rgb(0 0 0 / 0.5);
+}
+
+.reference[data-layout="homeworld"] .effects {
+  top: 170px;
+  left: calc(95px / 1.1952191235);
+  height: 818px;
+}
+
+.reference[data-layout="homeworld"] .final {
+  padding-left: 12px;
+}
+
+.row {
+  display: flex;
+  gap: 18px;
+}
+.body {
+  flex: 1;
+  min-width: 0;
+}
+.strength {
+  flex-shrink: 0;
+  width: 115px;
+  padding-top: 20px;
+  text-align: right;
+}
+.value {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  font:
+    bold 108px/1 "Caladea",
+    serif;
+}
+.strengthLabel {
+  font:
+    bold 20px/1.1 "C_Trebuchet",
+    sans-serif;
+}
+
+.value[data-wide="true"] {
+  font-size: 72px;
+}

@@ -1,3 +1,5 @@
+import type { CardFrontPreset } from '@shared/assets/cardFrontPresets';
+import type { SharedBackgroundPreset } from '@shared/backgrounds/schema';
 import { useNavigate } from '@tanstack/react-router';
 import { LoadPending } from '@ui/block/LoadPending';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
@@ -6,11 +8,15 @@ import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
+import { useAuthoringAccountKey } from '@db/authoring';
+import { useAuthoringPresets } from '@db/backgroundPresets';
 import { useSessionViewer } from '@db/profiles';
 import { useCreateAsset } from '@app/db/assets';
 import { assetLoad } from '@app/pickers/assetLoadSource';
+import type { LoadPreset } from '@app/pickers/assetLoadSource';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
+import { BackgroundLibrary } from '@game/assets/utils/BackgroundLibrary';
 
 import { AssetEditorMessage, SaveErrorAlert } from '../../assetEditorStates';
 
@@ -24,9 +30,11 @@ type CardType =
   | 'card-spice'
   | 'card-custom'
   | 'card-nexus'
+  | 'card-homeworld'
   | 'card-stronghold'
   | 'card-storm'
-  | 'card-leaderability';
+  | 'card-leaderability'
+  | 'token-leader';
 
 /** Posts a new card and opens its edit page once it has an address. */
 export function useCardCreate(type: CardType) {
@@ -56,18 +64,7 @@ export function useCardCreate(type: CardType) {
   return { saveState, save, error: createAsset.error };
 }
 
-/** The page around a new card's workbench, shown once the viewer is known to be signed in. */
-export function CardCreateFrame<Draft extends { name: string }>({
-  type,
-  title,
-  headerSlot,
-  status,
-  onSave,
-  onReset,
-  load,
-  saveError,
-  children,
-}: {
+type CardCreateFrameProps<Draft extends { name: string }> = Readonly<{
   type: CardType;
   /** The page title before the card has a name, e.g. "New spice card". */
   title: string;
@@ -80,12 +77,51 @@ export function CardCreateFrame<Draft extends { name: string }>({
   };
   onSave: () => void;
   onReset: () => void;
-  load: { schema: z.ZodType<Draft>; onLoaded: (draft: Draft) => void };
+  load: { schema: z.ZodType<Draft>; presets?: LoadPreset<Draft>[]; onLoaded: (draft: Draft) => void };
   saveError: Error | null;
   children: ReactNode;
-}) {
+  backgrounds?: SharedBackgroundPreset[];
+  fronts?: CardFrontPreset[];
+  loadingPresets?: boolean;
+}>;
+
+/** The page around a new card's workbench, shown once the viewer is known to be signed in. */
+export function CardCreateFrame<Draft extends { name: string }>(props: CardCreateFrameProps<Draft>) {
+  return props.backgrounds === undefined ? (
+    <StandardCardCreateFrame {...props} />
+  ) : (
+    <CardCreateFrameContent {...props} />
+  );
+}
+function StandardCardCreateFrame<Draft extends { name: string }>(props: CardCreateFrameProps<Draft>) {
+  const standards = useAuthoringPresets();
+  return (
+    <CardCreateFrameContent
+      {...props}
+      backgrounds={standards?.backgrounds ?? []}
+      fronts={props.fronts ?? standards?.fronts}
+      loadingPresets={!standards || props.loadingPresets}
+    />
+  );
+}
+function CardCreateFrameContent<Draft extends { name: string }>({
+  type,
+  title,
+  headerSlot,
+  status,
+  onSave,
+  onReset,
+  load,
+  saveError,
+  children,
+  backgrounds,
+  fronts,
+  loadingPresets = false,
+}: CardCreateFrameProps<Draft>) {
+  const authoringAccountKey = useAuthoringAccountKey();
   const navigate = useNavigate();
   const viewer = useSessionViewer();
+  const noun = type === 'token-leader' ? 'token' : 'card';
 
   switch (viewer.kind) {
     case 'pending':
@@ -97,43 +133,55 @@ export function CardCreateFrame<Draft extends { name: string }>({
     case 'signed-out':
       return (
         <AssetEditorMessage title={title} type={type}>
-          <LoginGate action="create cards" />
+          <LoginGate action={`create ${noun}s`} />
         </AssetEditorMessage>
       );
     default:
       break;
   }
 
+  if (loadingPresets) {
+    return (
+      <AssetEditorMessage title={title} type={type}>
+        <LoadPending title="Loading presets">Loading the current design standards.</LoadPending>
+      </AssetEditorMessage>
+    );
+  }
+
   return (
-    <PageLayout>
-      {headerSlot}
-      <PageLayout.Toolbar>
-        <AuthoringToolbar
-          load={assetLoad({
-            noun: 'card',
-            type,
-            schema: load.schema,
-            disabled: status.saveState === 'saving',
-            onLoaded: (loaded) => load.onLoaded(loaded.data),
-          })}
-          status={status}
-          copy={{
-            saveLabel: 'Save card',
-            nameBlankMessage: 'Add a card name before saving; it determines the card URL.',
-          }}
-          actions={{
-            onSave,
-            onReset,
-            onBack: () => void navigate({ to: '/assets/$type', params: { type } }),
-          }}
-        />
-      </PageLayout.Toolbar>
-      <PageLayout.Content>
-        <WorkbenchLayout gap="sm">
-          <SaveErrorAlert error={saveError} />
-          {children}
-        </WorkbenchLayout>
-      </PageLayout.Content>
-    </PageLayout>
+    <BackgroundLibrary presets={backgrounds ?? []} fronts={fronts}>
+      <PageLayout>
+        {headerSlot}
+        <PageLayout.Toolbar>
+          <AuthoringToolbar
+            scopeKey={authoringAccountKey}
+            load={assetLoad({
+              noun,
+              type,
+              schema: load.schema,
+              presets: load.presets,
+              disabled: status.saveState === 'saving',
+              onLoaded: (loaded) => load.onLoaded(loaded.data),
+            })}
+            status={status}
+            copy={{
+              saveLabel: `Save ${noun}`,
+              nameBlankMessage: `Add a ${noun} name before saving; it determines the ${noun} URL.`,
+            }}
+            actions={{
+              onSave,
+              onReset,
+              onBack: () => void navigate({ to: '/assets/$type', params: { type } }),
+            }}
+          />
+        </PageLayout.Toolbar>
+        <PageLayout.Content>
+          <WorkbenchLayout gap="sm">
+            <SaveErrorAlert error={saveError} />
+            {children}
+          </WorkbenchLayout>
+        </PageLayout.Content>
+      </PageLayout>
+    </BackgroundLibrary>
   );
 }

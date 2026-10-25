@@ -1,12 +1,11 @@
-import preview from '@sb/preview';
+import { testingPreview } from '@sb/preview';
 import { finishTransitions, waitForFrame } from '@sb/storyWaits';
 import { expect, userEvent, within } from 'storybook/test';
 
 import { SceneEditorStory } from './rulebookScenes.stories.fixture';
 
-const meta = preview.meta({
+const meta = testingPreview.meta({
   title: 'Blocks/Board scene/Editing',
-  globals: { colorScheme: 'dark' },
   parameters: { layout: 'fullscreen' },
 });
 export const MarkersAndAnnotations = meta.story({

@@ -1,0 +1,206 @@
+/* The queries below read these wrappers, since a container query never reads the element it styles. */
+.specFrame,
+.releasesFrame {
+  container-type: inline-size;
+}
+
+.spec {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-md);
+  align-items: center;
+}
+
+@container (width >= 48rem) {
+  .spec {
+    grid-template-columns: minmax(0, 20rem) minmax(0, 1fr);
+    gap: var(--space-lg);
+  }
+}
+
+/* The portrait is shown whole, with the part the token keeps lit and the rest dimmed. */
+.frame {
+  position: relative;
+  width: min(100%, 20rem);
+  margin-inline: auto;
+  overflow: hidden;
+  border-radius: var(--mantine-radius-md);
+  box-shadow: 0 2px 10px rgb(from var(--color-shadow) r g b / 45%);
+}
+
+.frame img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+}
+
+.guides {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.guideLabel {
+  position: absolute;
+  right: var(--space-xs);
+  padding: 0 4px;
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #e3dbb3;
+  background: rgb(from var(--color-shadow) r g b / 55%);
+  transform: translateY(-100%);
+}
+
+.marker {
+  position: absolute;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border: 1.5px solid #e3dbb3;
+  border-radius: 50%;
+  background: rgb(11 5 3 / 85%);
+  color: #e3dbb3;
+  font-family: "C_Advokat_Modern", serif;
+  font-size: var(--mantine-font-size-sm);
+  line-height: 1;
+  transform: translate(-50%, -50%);
+}
+
+.rules {
+  display: grid;
+  gap: var(--space-xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: rule;
+}
+
+.rules li {
+  display: grid;
+  grid-template-columns: 1.5rem minmax(0, 1fr);
+  column-gap: var(--space-xs);
+  padding-block-end: var(--space-xs);
+  border-block-end: 1px solid var(--mantine-color-default-border);
+  counter-increment: rule;
+  font-size: var(--mantine-font-size-sm);
+  line-height: 1.4;
+}
+
+.rules li::before {
+  content: counter(rule);
+  grid-row: 1 / span 2;
+  font-family: "C_Advokat_Modern", serif;
+  font-size: var(--mantine-font-size-lg);
+  line-height: 1.1;
+}
+
+.ruleLabel {
+  font-family: var(--mantine-font-family-headings);
+  font-weight: 700;
+}
+
+.ruleValue {
+  grid-column: 2;
+}
+
+.releases {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-md);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@container (width >= 48rem) {
+  .releases {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* A spec card per release, on the page's own surface. */
+.release {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-md);
+}
+
+.releaseHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.year {
+  font-family: "C_Advokat_Modern", serif;
+  font-size: 2.6rem;
+  line-height: 1;
+}
+
+.releaseTitle {
+  display: flex;
+  flex-direction: column;
+}
+
+.releaseName {
+  font-family: var(--mantine-font-family-headings);
+  font-weight: 700;
+}
+
+.artists {
+  color: var(--mantine-color-dimmed);
+  font-size: var(--mantine-font-size-sm);
+}
+
+.leaders {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.leaders img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgb(from var(--color-shadow) r g b / 40%);
+}
+
+.rows {
+  display: grid;
+  gap: var(--space-xs);
+  margin: 0;
+  font-size: var(--mantine-font-size-sm);
+  line-height: 1.4;
+}
+
+.rows > div {
+  display: grid;
+  grid-template-columns: 4.5rem minmax(0, 1fr);
+  gap: var(--space-xs);
+  padding-block-start: var(--space-xs);
+  border-block-start: 1px solid var(--mantine-color-default-border);
+}
+
+.rows dt {
+  font-family: var(--mantine-font-family-headings);
+  font-size: var(--mantine-font-size-xs);
+  font-weight: 700;
+}
+
+.rows dd {
+  margin: 0;
+}

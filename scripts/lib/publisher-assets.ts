@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import {
   copyFileSync,
   cpSync,
@@ -11,10 +12,36 @@ import {
 } from 'node:fs';
 import path from 'node:path';
 
+import { parseHTML } from 'linkedom';
+
 import { COMMITTED_WEB_FILES } from '../../src/shared/assetRules';
+import { applicationContentSecurityPolicy } from '../../workers/publisher/application-security';
 
 const WORKERS_FREE_STATIC_ASSET_LIMIT = 20_000;
 export const WORKERS_STATIC_ASSET_FILE_LIMIT_BYTES = 25 * 1024 * 1024;
+
+/** Hash the final shell bytes, after timestamp normalization, so the build permits only its inline scripts. */
+function shellSecurityHeaders(template: string, shell: string, convexUrl: string | undefined): string {
+  if (!template.includes('__APPLICATION_CSP__')) {
+    return template;
+  }
+  if (!convexUrl) {
+    throw new Error('VITE_CONVEX_URL is required to assemble the application CSP');
+  }
+  const scripts = [...parseHTML(shell).document.querySelectorAll('script')]
+    .filter((script) => !script.hasAttribute('src') && script.textContent.length > 0)
+    /* HTML parsing normalizes line endings and replaces NULLs before CSP hashes script text. */
+    .map(
+      (script) =>
+        `'sha256-${createHash('sha256').update(script.textContent.replace(/\r\n?/g, '\n').replaceAll('\0', '\uFFFD')).digest('base64')}'`
+    );
+  const policy = applicationContentSecurityPolicy(convexUrl, [...new Set(scripts)]);
+  const result = template.replace('__APPLICATION_CSP__', policy);
+  if (result.split('\n').some((line) => line.length > 2000)) {
+    throw new Error('Static Assets security headers exceed the 2000-character line limit');
+  }
+  return result;
+}
 
 export type PublisherAssetReport = {
   assetCount: number;
@@ -134,7 +161,8 @@ export function inspectPublisherAssets(directory: string): PublisherAssetReport 
 export function assemblePublisherAssets(
   appDirectory: string,
   publisherDirectory: string,
-  headersFile: string
+  headersFile: string,
+  convexUrl = process.env.VITE_CONVEX_URL
 ): PublisherAssetReport {
   assertDirectory(appDirectory, 'Application build');
   assertDirectory(publisherDirectory, 'Publisher capture build');
@@ -155,8 +183,6 @@ export function assemblePublisherAssets(
       force: true,
     });
   }
-  /* The Static Assets cache policy ships beside the bundle, from the Worker's own directory rather than the app's public files, so Storybook's copy of those files never carries it. */
-  copyFileSync(headersFile, path.join(publisherDirectory, '_headers'));
   const shell = path.join(publisherDirectory, '_shell.html');
   if (!existsSync(shell)) {
     throw new Error('Application build is missing the TanStack SPA shell');
@@ -165,6 +191,11 @@ export function assemblePublisherAssets(
   assertAnonymousShell(normalizedShell);
   writeFileSync(shell, normalizedShell);
   copyFileSync(shell, path.join(publisherDirectory, 'index.html'));
+  /* The Static Assets headers ship only with the publisher; Storybook's copy of the app's public files never carries them. */
+  writeFileSync(
+    path.join(publisherDirectory, '_headers'),
+    shellSecurityHeaders(readFileSync(headersFile, 'utf8'), normalizedShell, convexUrl)
+  );
   return inspectPublisherAssets(publisherDirectory);
 }
 

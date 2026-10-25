@@ -1,8 +1,9 @@
 import type { Board } from '@shared/boards/schema';
-import { territoryId } from '@shared/boards/schema';
+import { propertyId } from '@shared/boards/schema';
 import { boardTerritories } from '@shared/boards/territories';
 import { fitsTintCommand } from '@shared/play/territoryTints';
 import type { TerritoryTint } from '@shared/play/territoryTints';
+import { playUiColors } from '@shared/uiPalette';
 
 type Preset = Omit<TerritoryTint, 'id'>;
 
@@ -20,7 +21,7 @@ function overlaps(a: Stretch, b: Stretch) {
 /** Territories by ID, each with the territories it shares a stretch of border with. */
 function neighbours(board: Board) {
   const faces = boardTerritories(board).map((face) => ({
-    id: territoryId(board.properties[face.key].name),
+    id: propertyId(board.properties[face.key]),
     stretches: face.boundaries.flat(),
   }));
   const borders = (a: Stretch[], b: Stretch[]) => a.some((stretch) => b.some((other) => overlaps(stretch, other)));
@@ -44,14 +45,14 @@ function within(board: Board, start: string, steps: number) {
 
 /** The presets this board can lay: a custom board missing a preset's territories, or with more of them than one command carries, offers fewer. */
 export function territoryTintPresets(board: Board): Preset[] {
-  const ids = new Set(Object.values(board.properties).map((property) => territoryId(property.name)));
+  const ids = new Set(Object.values(board.properties).map((property) => propertyId(property)));
   const greatFlat = ['the_great_flat', 'great_flat'].find((id) => ids.has(id));
   const presets: Preset[] = [
     ...(greatFlat
       ? [
           {
             name: 'Fremen deployment',
-            color: '#2b5ea7',
+            color: playUiColors.territoryBlue,
             /* The Fremen send forces from their reserves to the Great Flat or any territory within two territories of it. */
             territories: within(board, greatFlat, 2),
           },
@@ -61,7 +62,7 @@ export function territoryTintPresets(board: Board): Preset[] {
       ? [
           {
             name: 'Shield Wall destroyed',
-            color: '#1b1b1b',
+            color: playUiColors.territoryBlack,
             stamps: ['explode' as const],
             territories: ['shield_wall'],
           },

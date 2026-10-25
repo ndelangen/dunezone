@@ -5,7 +5,6 @@ import { FactionIntroductionStory } from './rulebookBlockEditors.shared.stories.
 
 const meta = preview.meta({
   title: 'Blocks/Faction introduction/Editing',
-  globals: { colorScheme: 'dark' },
   parameters: { layout: 'fullscreen' },
 });
 

@@ -1,0 +1,30 @@
+.root {
+  container: anatomy-lesson / inline-size;
+  min-width: 0;
+}
+.layout,
+.copy {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+  min-width: 0;
+}
+.diagram {
+  order: -1;
+  width: min(100%, 24rem);
+  align-self: center;
+}
+@container anatomy-lesson (width >= 48rem) {
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.3fr) minmax(13rem, 1fr);
+    align-items: start;
+  }
+  .diagram {
+    order: 0;
+    position: sticky;
+    top: calc(var(--app-shell-header-offset) + var(--space-md));
+    align-self: start;
+    width: 100%;
+  }
+}

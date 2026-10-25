@@ -81,7 +81,8 @@
       "/image/leader/official/duncan.png",
       "/image/leader/official/gurney.png",
       "/image/leader/official/thufir.png",
-      "/image/leader/official/jessica.png"
+      "/image/leader/official/jessica.png",
+      "/image/leader/custom/duke-leto.png"
     ]
   },
   {
@@ -105,7 +106,8 @@
       "/image/leader/official/lady-fenring.png",
       "/image/leader/official/mohiam.jpg",
       "/image/leader/official/ramallo.png",
-      "/image/leader/official/wanna.png"
+      "/image/leader/official/wanna.png",
+      "/image/leader/gf9-second-edition/anirul-corrino.png"
     ]
   },
   {
@@ -117,7 +119,9 @@
       "/image/leader/official/burseg.png",
       "/image/leader/official/caid.png",
       "/image/leader/official/hasimir.png",
-      "/image/leader/official/shadam.jpg"
+      "/image/leader/official/shadam.jpg",
+      "/image/leader/gf9-second-edition/bashar-garon.png",
+      "/image/leader/gf9-second-edition/wensicia-corrino.png"
     ]
   },
   {
@@ -141,7 +145,12 @@
       "/image/leader/official/esmar.png",
       "/image/leader/official/guildrep.png",
       "/image/leader/official/soo-soo-sook.png",
-      "/image/leader/official/staban.png"
+      "/image/leader/official/staban.png",
+      "/image/leader/gf9-second-edition/loyxo.png",
+      "/image/leader/gf9-second-edition/crozeed.png",
+      "/image/leader/gf9-second-edition/olar.png",
+      "/image/leader/gf9-second-edition/ertun.png",
+      "/image/leader/gf9-second-edition/starguide-serello.png"
     ]
   },
   {
@@ -177,7 +186,8 @@
       "/image/leader/official/frankos-aru.png",
       "/image/leader/official/lady-yalma.png",
       "/image/leader/official/rajiv-londine.png",
-      "/image/leader/official/viscount-tull.png"
+      "/image/leader/official/viscount-tull.png",
+      "/image/leader/gf9/ur-director-malina-aru.png"
     ]
   },
   {
@@ -188,7 +198,8 @@
       "/image/leader/official/flinto-kinnis.png",
       "/image/leader/official/haloa-rund.png",
       "/image/leader/official/lady-helena.png",
-      "/image/leader/official/talis-balt.png"
+      "/image/leader/official/talis-balt.png",
+      "/image/leader/gf9/count-ilban-richese.png"
     ]
   },
   {
@@ -201,7 +212,8 @@
       "/image/leader/official/whitemore-bludd.png",
       "/image/leader/official/whitmore.jpg",
       "/image/leader/brainfood/rivvy-dinari.png",
-      "/image/leader/ilya/ecaz.jpg"
+      "/image/leader/ilya/ecaz.jpg",
+      "/image/leader/gf9/duke-prad-vidal.png"
     ]
   },
   {
@@ -587,6 +599,37 @@
     "label": "Faction emblems / Community factions",
     "keywords": "homebrew fan",
     "assets": ["/vector/logo/ginaz.svg", "/vector/logo/hagal.svg", "/vector/logo/iduali.svg"]
+  },
+  {
+    "label": "Dune Awakening / Landsraad houses",
+    "keywords": "Dune Awakening Landsraad house emblems crests gaming.tools Funcom Legendary",
+    "assets": [
+      "/vector/logo/dune-awakening-house-alexin.svg",
+      "/vector/logo/dune-awakening-house-argosaz.svg",
+      "/vector/logo/dune-awakening-house-dyvetz.svg",
+      "/vector/logo/dune-awakening-house-ecaz.svg",
+      "/vector/logo/dune-awakening-house-hagal.svg",
+      "/vector/logo/dune-awakening-house-hurata.svg",
+      "/vector/logo/dune-awakening-house-imota.svg",
+      "/vector/logo/dune-awakening-house-kenola.svg",
+      "/vector/logo/dune-awakening-house-lindaren.svg",
+      "/vector/logo/dune-awakening-house-maros.svg",
+      "/vector/logo/dune-awakening-house-mikarrol.svg",
+      "/vector/logo/dune-awakening-house-moritani.svg",
+      "/vector/logo/dune-awakening-house-mutelli.svg",
+      "/vector/logo/dune-awakening-house-novebruns.svg",
+      "/vector/logo/dune-awakening-house-richese.svg",
+      "/vector/logo/dune-awakening-house-sor.svg",
+      "/vector/logo/dune-awakening-house-spinnette.svg",
+      "/vector/logo/dune-awakening-house-taligari.svg",
+      "/vector/logo/dune-awakening-house-thorvald.svg",
+      "/vector/logo/dune-awakening-house-tseida.svg",
+      "/vector/logo/dune-awakening-house-varota.svg",
+      "/vector/logo/dune-awakening-house-vernius.svg",
+      "/vector/logo/dune-awakening-house-wallach.svg",
+      "/vector/logo/dune-awakening-house-wayku.svg",
+      "/vector/logo/dune-awakening-house-wydras.svg"
+    ]
   },
   {
     "label": "Custom emblems / Creatures",
@@ -1710,7 +1753,9 @@
       "/vector/decal/vaulting-sandcat.svg",
       "/vector/decal/vaulting-sandcat-multicolor.svg",
       "/vector/decal/sandmaster.svg",
-      "/vector/decal/sandmaster-multicolor.svg"
+      "/vector/decal/sandmaster-multicolor.svg",
+      "/vector/decal/little-maker.svg",
+      "/vector/decal/little-maker-multicolor.svg"
     ]
   },
   {
@@ -1829,7 +1874,9 @@
       "/vector/decal/box-outline.svg",
       "/vector/decal/box.svg",
       "/vector/decal/gems.svg",
-      "/vector/decal/supplies.svg"
+      "/vector/decal/supplies.svg",
+      "/vector/decal/solaris.svg",
+      "/vector/decal/solaris-multicolor.svg"
     ]
   },
   {
@@ -1892,6 +1939,7 @@
     "label": "Decals / Weather and natural hazards",
     "keywords": "storm wind dust weather hazard collapse terrain",
     "assets": [
+      "/vector/decal/dune-ridgelines.svg",
       "/vector/decal/storm-multicolor.svg",
       "/vector/decal/storm-standard-multicolor.svg",
       "/vector/decal/storm-standard.svg",
@@ -1928,7 +1976,8 @@
       "/vector/decal/sabotage.svg",
       "/vector/decal/sun-gear.svg",
       "/vector/decal/target.svg",
-      "/vector/decal/troll.svg"
+      "/vector/decal/troll.svg",
+      "/vector/decal/karama-2-0.svg"
     ]
   },
   {

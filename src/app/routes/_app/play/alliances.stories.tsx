@@ -1,14 +1,11 @@
 import preview from '@sb/preview';
 import { applyAlliance } from '@shared/play/alliances';
 import type { AllianceState } from '@shared/play/alliances';
-import type { ClientMessage, GameSnapshot } from '@shared/play/protocol';
-import { rosterSeat } from '@shared/play/schema';
-import { expect, userEvent, waitFor, within } from 'storybook/test';
+import type { ClientMessage } from '@shared/play/protocol';
+import { expect, waitFor, within } from 'storybook/test';
 
-import { STORYBOOK_NOW } from '@db/storybook';
-
-import { openPanel } from './controls.stories.fixture';
-import { gameMeta, install, lastCommand, session } from './game.stories.fixture';
+import { VIEWER, faction, alliancesSnapshot } from './alliances.stories.fixture';
+import { gameMeta, install } from './game.stories.fixture';
 import { playingSnapshot, productTransport } from './product.stories.fixture';
 
 const meta = preview.meta({
@@ -20,19 +17,6 @@ const meta = preview.meta({
     },
   ],
 });
-
-const VIEWER = 'seat-2';
-const faction = (snapshot: GameSnapshot, seat: string) => rosterSeat(snapshot.roster, seat)!.faction!.id;
-
-/* Seats 4 and 5 are allied, and seat 1 has offered the viewer an alliance. */
-function alliancesSnapshot(): GameSnapshot {
-  const snapshot = playingSnapshot(VIEWER);
-  snapshot.alliances = {
-    groups: [{ members: [faction(snapshot, 'seat-4'), faction(snapshot, 'seat-5')], mark: 0 }],
-    offers: [{ from: faction(snapshot, 'seat-1'), to: faction(snapshot, VIEWER), at: STORYBOOK_NOW, id: 0 }],
-  };
-  return snapshot;
-}
 
 /**
  * The table as the Worker runs it: every alliance command is applied by the shared rules, and any other faction the viewer offers an alliance accepts it a moment later, so the whole round trip can be tried by hand.
@@ -80,39 +64,11 @@ function liveTransport() {
   return transport;
 }
 
-async function openPlayer(canvasElement: HTMLElement, name: RegExp) {
-  const page = within(canvasElement.ownerDocument.body);
-  await userEvent.click((await page.findAllByRole('tab', { name }, { timeout: 30_000 }))[0]!);
-  const info = page.getAllByRole('tab', { name: 'Info' }).at(-1)!;
-  await userEvent.click(info);
-  return page;
-}
-
 /** Try it by hand: accept or decline the offer, offer another faction an alliance, or break one. */
 export const Live = meta.story({
+  /* Freeze the flowing offer arrows for a repeatable visual capture. */
+  globals: { motion: 'reduce' },
   beforeEach: install(liveTransport),
-});
-
-export const IncomingOffer = meta.story({
-  beforeEach: install(() => productTransport(VIEWER, alliancesSnapshot())),
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    /* An offer flows across the table as arcs; it is answered in the Alliances tab. */
-    await openPanel(canvasElement, 'Alliances');
-    await expect(page.findByText('Offers you an alliance')).resolves.toBeVisible();
-    await userEvent.click(await page.findByRole('button', { name: 'Accept' }));
-    await expect(lastCommand()).toMatchObject({
-      action: { kind: 'alliance-accept', factionId: faction(session.transport.snapshot, 'seat-1'), offer: 0 },
-    });
-  },
-});
-
-export const AlliedPlayerInfo = meta.story({
-  beforeEach: install(() => productTransport(VIEWER, alliancesSnapshot())),
-  play: async ({ canvasElement }) => {
-    const page = await openPlayer(canvasElement, /in an alliance/);
-    await waitFor(() => expect(page.getByText(/^Allied with/)).toBeVisible());
-  },
 });
 
 /* Three alliances at a six-seat table on a tablet-wide screen: the strip sits in its own chip under the phase and stays clear of the toolbar. */
@@ -143,29 +99,5 @@ export const ManyAlliancesFitTheHeader = meta.story({
         true
       );
     });
-  },
-});
-
-/* Once the game is finished, everyone still sees who was allied, but nobody can change it. */
-export const FinishedReadOnly = meta.story({
-  beforeEach: install(() => {
-    const snapshot = alliancesSnapshot();
-    snapshot.stage = 'finished';
-    snapshot.result = {
-      kind: 'alliance',
-      factionIds: [faction(snapshot, 'seat-4'), faction(snapshot, 'seat-5')],
-      by: { seat: 'seat-1', name: 'Seat 1' },
-      declaredAt: 1,
-    };
-    return productTransport(VIEWER, snapshot);
-  }),
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await expect(await page.findByRole('img', { name: /are allied/ }, { timeout: 30_000 })).toBeVisible();
-    await openPanel(canvasElement, 'Alliances');
-    await expect(await page.findByText('Offers you an alliance')).toBeVisible();
-    await expect(
-      page.queryByRole('button', { name: /Offer alliance|Accept|Withdraw offer|Break alliance/ })
-    ).toBeNull();
   },
 });

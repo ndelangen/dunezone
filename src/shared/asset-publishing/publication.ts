@@ -4,7 +4,9 @@ import { cardFrontSnapshotSchema } from '../assets/cardFrontPresets';
 import {
   CustomCardAsset,
   LeaderSkillAsset,
+  LeaderTokenAsset,
   NexusCardAsset,
+  HomeworldCardAsset,
   CustomCardTokens,
   CardBack,
   RectangleTokenFace,
@@ -14,7 +16,7 @@ import {
   TokenFace,
   TreacheryAsset,
 } from '../assets/schema';
-import { BoardDefinition } from '../boards/schema';
+import { BoardDefinition, HistoricalBoardDefinition } from '../boards/schema';
 import {
   FactionRowSlugSchema,
   HeroKeyedHistoricalFactionObject,
@@ -43,6 +45,7 @@ export const TREACHERY_CARD_ASSET_TYPE = 'card-treachery' as const;
 export const LEADER_SKILL_ASSET_TYPE = 'card-leaderability' as const;
 export const STRONGHOLD_CARD_ASSET_TYPE = 'card-stronghold' as const;
 export const CUSTOM_CARD_ASSET_TYPE = 'card-custom' as const;
+export const HOMEWORLD_CARD_ASSET_TYPE = 'card-homeworld' as const;
 export const NEXUS_CARD_ASSET_TYPE = 'card-nexus' as const;
 export const STORM_CARD_ASSET_TYPE = 'card-storm' as const;
 export const SPICE_CARD_ASSET_TYPE = 'card-spice' as const;
@@ -111,6 +114,8 @@ export const nexusCardAssetDataSchema = z.strictObject({
   frontPreset: cardFrontSnapshotSchema.optional(),
 });
 
+export const homeworldCardAssetDataSchema = nexusCardAssetDataSchema.extend({ card: HomeworldCardAsset });
+
 export const strongholdCardAssetDataSchema = z.strictObject({
   assetId: z.string().min(1),
   slug: z.string().min(1),
@@ -122,6 +127,7 @@ export const customCardAssetDataSchema = z.strictObject({
   assetId: z.string().min(1),
   slug: z.string().min(1),
   card: CustomCardAsset,
+  frontPreset: cardFrontSnapshotSchema.optional(),
   tokens: CustomCardTokens.optional(),
 });
 
@@ -130,11 +136,18 @@ export const stormCardAssetDataSchema = customCardAssetDataSchema.extend({
   frontPreset: cardFrontSnapshotSchema.optional(),
 });
 
-/** The same envelope for a spice card, whose stored shape is the renderer's props plus its About. */
+/**
+ * The same envelope for a spice card, whose stored shape is the renderer's props plus its About.
+ * A card linked to a board carries that board and its token fronts, resolved at enqueue;
+ * a gone board is null and draws an empty map (#1973).
+ */
 export const spiceCardAssetDataSchema = z.strictObject({
   assetId: z.string().min(1),
   slug: z.string().min(1),
   card: SpiceAsset,
+  frontPreset: cardFrontSnapshotSchema.optional(),
+  board: HistoricalBoardDefinition.nullable().optional(),
+  tokens: CustomCardTokens.optional(),
 });
 
 /**
@@ -170,6 +183,12 @@ export const rectangleTokenFaceAssetDataSchema = z.strictObject({
   face: RectangleTokenFace,
 });
 
+export const leaderTokenAssetDataSchema = z.strictObject({
+  assetId: z.string().min(1),
+  slug: z.string().min(1),
+  leader: LeaderTokenAsset.omit({ about: true }),
+});
+
 /** One immutable Edition's first Page, projected through the publishable Rulebook render contract. */
 export const rulebookFirstPageAssetDataSchema = z.strictObject({
   rulebookId: z.string().min(1),
@@ -202,11 +221,13 @@ const PUBLICATION_ASSET_DATA_SCHEMAS = {
   [CUSTOM_CARD_ASSET_TYPE]: customCardAssetDataSchema,
   [LEADER_SKILL_ASSET_TYPE]: leaderSkillAssetDataSchema,
   [NEXUS_CARD_ASSET_TYPE]: nexusCardAssetDataSchema,
+  [HOMEWORLD_CARD_ASSET_TYPE]: homeworldCardAssetDataSchema,
   [STRONGHOLD_CARD_ASSET_TYPE]: strongholdCardAssetDataSchema,
   [STORM_CARD_ASSET_TYPE]: stormCardAssetDataSchema,
   [DECK_ASSET_TYPE]: deckCardbackAssetDataSchema,
   'cardback-preset': deckCardbackAssetDataSchema,
   'token-disc': tokenFaceAssetDataSchema,
+  'token-leader': leaderTokenAssetDataSchema,
   'token-tech': tokenFaceAssetDataSchema,
   'token-plate': tokenFaceAssetDataSchema,
   'token-pointer': tokenFaceAssetDataSchema,

@@ -12,17 +12,28 @@ import { useRulebookFactionMembers, useRulebookFactionTroops } from '@db/ruleboo
 import { AssetPicker } from './AssetPicker';
 import { FactionPicker } from './FactionPicker';
 
-type PickerState = { kind: RulebookSourceReference['kind']; factionId?: string };
-type PickerAction = { type: 'kind'; kind: PickerState['kind'] } | { type: 'faction'; factionId?: string };
+type PickerState = { kind: RulebookSourceReference['kind']; factionId?: string; alternate?: boolean; sheet?: boolean };
+type PickerAction =
+  | { type: 'kind'; kind: PickerState['kind'] }
+  | { type: 'faction'; factionId?: string }
+  | { type: 'presentation'; alternate: boolean; sheet?: boolean };
 function reducePicker(state: PickerState, action: PickerAction): PickerState {
-  return action.type === 'kind' ? { kind: action.kind } : { ...state, factionId: action.factionId };
+  if (action.type === 'kind') {
+    return { kind: action.kind };
+  }
+  if (action.type === 'presentation') {
+    return { ...state, alternate: action.alternate, sheet: action.sheet };
+  }
+  return { ...state, factionId: action.factionId };
 }
 
 function FactionMemberChoices({
   factionId,
+  traitor = false,
   onPick,
 }: {
   factionId: string;
+  traitor?: boolean;
   onPick: (reference: RulebookSourceReference) => void;
 }) {
   const result = useRulebookFactionMembers(factionId);
@@ -42,27 +53,36 @@ function FactionMemberChoices({
       input={
         <Stack gap="sm">
           {result.data.members.length === 0 ? <Text size="sm">No leaders are available.</Text> : null}
-          {result.data.members.map((member) => (
-            <Button
-              key={member.memberId}
-              variant="subtle"
-              justify="start"
-              h="auto"
-              onClick={() => onPick({ kind: 'faction-member', factionId, memberId: member.memberId })}
-            >
-              <Group gap="sm" wrap="nowrap">
-                {member.imageUrl ? (
-                  /* Decorative beside the leader's name, which already names the button. */
-                  <Box w={44} miw={44} aria-hidden>
-                    <TokenImage src={member.imageUrl} name={member.name} shape="round" />
-                  </Box>
-                ) : null}
-                <Text size="sm">
-                  {member.name || `Unnamed ${member.role.toLowerCase()}`} · {member.role}
-                </Text>
-              </Group>
-            </Button>
-          ))}
+          {result.data.members
+            .filter((member) => !traitor || member.role === 'Leader')
+            .map((member) => (
+              <Button
+                key={member.memberId}
+                variant="subtle"
+                justify="start"
+                h="auto"
+                onClick={() =>
+                  onPick({
+                    kind: 'faction-member',
+                    factionId,
+                    memberId: member.memberId,
+                    ...(traitor ? { presentation: 'traitor' } : {}),
+                  })
+                }
+              >
+                <Group gap="sm" wrap="nowrap">
+                  {member.imageUrl ? (
+                    /* Decorative beside the leader's name, which already names the button. */
+                    <Box w={44} miw={44} aria-hidden>
+                      <TokenImage src={member.imageUrl} name={member.name} shape="round" />
+                    </Box>
+                  ) : null}
+                  <Text size="sm">
+                    {member.name || `Unnamed ${member.role.toLowerCase()}`} · {member.role}
+                  </Text>
+                </Group>
+              </Button>
+            ))}
         </Stack>
       }
     />
@@ -134,16 +154,16 @@ export function RulebookSourcePicker({
   onCancel,
 }: {
   initialKind?: RulebookSourceReference['kind'];
-  purpose?: 'illustration' | 'card';
+  purpose?: 'illustration' | 'card' | 'card-group';
   onPick: (reference: RulebookSourceReference) => void;
   onCancel: () => void;
 }) {
   const [state, dispatch] = useReducer(reducePicker, { kind: initialKind });
-  if (purpose === 'card') {
+  if (purpose === 'card' || purpose === 'card-group') {
     return (
       <Stack gap="sm">
         <AssetPicker
-          types={['card-treachery']}
+          types={purpose === 'card-group' ? ['card-treachery', 'card-storm'] : ['card-treachery']}
           copy={{
             searchLabel: 'Find Card',
             searchPlaceholder: 'Search Cards',
@@ -181,12 +201,40 @@ export function RulebookSourcePicker({
           />
         }
       />
+      {state.kind === 'faction' || state.kind === 'faction-member' ? (
+        <ControlBlock
+          title="Presentation"
+          input={
+            <Select
+              aria-label="Presentation"
+              value={state.sheet ? 'sheet' : state.alternate ? 'alternate' : 'default'}
+              data={
+                state.kind === 'faction'
+                  ? [
+                      { value: 'default', label: 'Emblem' },
+                      { value: 'alternate', label: 'Faction token' },
+                      { value: 'sheet', label: 'Faction sheet, front' },
+                    ]
+                  : [
+                      { value: 'default', label: 'Leader disc' },
+                      { value: 'alternate', label: 'Traitor card' },
+                    ]
+              }
+              onChange={(value) =>
+                dispatch({ type: 'presentation', alternate: value === 'alternate', sheet: value === 'sheet' })
+              }
+            />
+          }
+        />
+      ) : null}
       {state.kind === 'asset' ? (
         <AssetPicker
           types={[
             'card-treachery',
+            'card-storm',
             'deck',
             'token-disc',
+            'token-leader',
             'token-tech',
             'token-plate',
             'token-pointer',
@@ -250,7 +298,7 @@ export function RulebookSourcePicker({
             {state.kind === 'faction-troop' ? (
               <FactionTroopChoices factionId={state.factionId} onPick={onPick} />
             ) : (
-              <FactionMemberChoices factionId={state.factionId} onPick={onPick} />
+              <FactionMemberChoices factionId={state.factionId} traitor={state.alternate} onPick={onPick} />
             )}
           </Stack>
         ) : (
@@ -262,7 +310,9 @@ export function RulebookSourcePicker({
                   ? 'Choose the faction whose Leader you want to show.'
                   : state.kind === 'faction-troop'
                     ? 'Choose the faction whose troop token you want to show.'
-                    : "Show the faction's current emblem.",
+                    : state.sheet
+                      ? "Show the front of this faction's sheet."
+                      : "Show the faction's current emblem.",
               errorTitle: 'Faction could not be loaded',
               emptyMessage: 'No factions are available.',
               confirmTitle: 'Selected faction',
@@ -276,7 +326,11 @@ export function RulebookSourcePicker({
             }}
             onPick={(picked) => {
               if (state.kind === 'faction') {
-                onPick({ kind: 'faction', factionId: picked.id });
+                onPick({
+                  kind: 'faction',
+                  factionId: picked.id,
+                  ...(state.sheet ? { presentation: 'sheet' } : state.alternate ? { presentation: 'token' } : {}),
+                });
               } else {
                 dispatch({ type: 'faction', factionId: picked.id });
               }

@@ -48,6 +48,8 @@ import {
   KEYBOARD_STEP_PERCENT,
   paneLimits,
 } from './controlPanelLayout';
+import { ExperimentLayout } from './controlsExperiments/ControlsExperiments';
+import { experimentTakesTabs, useControlsExperiment } from './controlsExperiments/experiment';
 import { DarkSchemeIsland, darkSchemeIslandAttributes } from './DarkSchemeIsland';
 import { Held, HeldSlot, useHeldNode } from './HeldContent';
 import type { HeldNode } from './HeldContent';
@@ -99,7 +101,7 @@ type GameTableProps = {
   /** The game menu in the toolbar, present in every stage: what a player can do about their own seat. Previous and Next stay rightmost. */
   gameMenu?: ReactNode;
   toolbarControl?: ReactNode;
-  /** The connection's state, beside the logo where the bar has room, present only while the table is not live. */
+  /** Connection recovery, centred above the table and separate from the phase. */
   connectionStatus?: ReactNode;
   /** Who is allied with whom, under the game's name beside the phase. */
   alliances?: ReactNode;
@@ -541,7 +543,8 @@ function useControlsSelection(
     select({ type: 'stage-changed', shown: hasStage });
   }
   /* A group opens on its remembered child while that child still exists, else on its first, so a closed tab such as Result is never chosen again. */
-  const choose = ([key, child = selection.remembered[key!]]: string[]) => {
+  const choose = ([key, requestedChild]: string[]) => {
+    const child = requestedChild ?? selection.remembered[key!];
     const subtabs = tabs.find((tab) => tab.key === key)?.subtabs;
     const leaf = subtabs?.some((tab) => tab.key === child) ? child : subtabs?.[0]?.key;
     select({ type: 'destination-selected', path: leaf ? [key!, leaf] : [key!] });
@@ -911,6 +914,7 @@ function TableLayouts({
   scene,
   controls,
   players,
+  tabs,
   ...props
 }: Omit<LayoutProps, 'nodes'> &
   Readonly<{
@@ -919,19 +923,32 @@ function TableLayouts({
     scene: ReactNode;
     controls: ReactNode;
     players: ReactNode | undefined;
+    tabs: readonly PanelTab[];
   }>) {
   const headerNode = useHeldNode();
   const sceneNode = useHeldNode();
   const controlsNode = useHeldNode();
   const playersNode = useHeldNode();
+  const experiment = useControlsExperiment();
+  /* A design that opens each tab on its own leaves the dock unrendered, so no tab mounts twice. */
+  const takesTabs = experimentTakesTabs(experiment);
   const nodes = { header: headerNode, scene: sceneNode, controls: controlsNode, players: players ? playersNode : null };
   return (
     <>
       <Held node={headerNode}>{header}</Held>
       <Held node={sceneNode}>{scene}</Held>
-      <Held node={controlsNode}>{controls}</Held>
+      {!takesTabs && <Held node={controlsNode}>{controls}</Held>}
       {players && <Held node={playersNode}>{players}</Held>}
-      {layout === 'columns' ? (
+      {experiment ? (
+        <ExperimentLayout
+          experiment={experiment}
+          nodes={{ scene: sceneNode, controls: takesTabs ? null : controlsNode, players: nodes.players }}
+          header={<HeaderSlot node={headerNode} />}
+          camera={props.camera}
+          inert={props.inert}
+          tabs={tabs}
+        />
+      ) : layout === 'columns' ? (
         <ColumnsLayout key="columns" nodes={nodes} {...props} />
       ) : (
         <StackedLayout key="stacked" nodes={nodes} {...props} />
@@ -971,8 +988,8 @@ export function GameTable({
   const frame = stageFrame(stage);
   /* The camera follows the phase while the header names one: in play, and on the fixture. */
   /* A faction phase takes the camera view of the standard phase it precedes (#1138). */
-  const activeEntry = tableProgress.phases.find((entry) => entry.id === tableProgress.activePhaseId);
-  const viewPhase = frame.word || !activeEntry ? null : standardPhaseOf(activeEntry);
+  const activePhase = tableProgress.phases.find((entry) => entry.id === tableProgress.activePhaseId);
+  const viewPhase = frame.word || !activePhase ? null : standardPhaseOf(activePhase);
   const [viewState, dispatchView] = useReducer(reduceTableView, viewPhase, createTableViewState);
   if (viewState.phase !== viewPhase) {
     /* The phase changed since the last render; the reducer answers it before this render commits. */
@@ -986,8 +1003,6 @@ export function GameTable({
     }),
     [viewState.activeView, viewState.cameraRevision]
   );
-  const activePhaseIndex = tableProgress.phases.findIndex((phase) => phase.id === tableProgress.activePhaseId);
-  const activePhase = tableProgress.phases[activePhaseIndex];
 
   useRequestedView(requestedView, dispatchView);
 
@@ -1049,12 +1064,14 @@ export function GameTable({
               />
             )}
           </div>
-          {/* The connection status is its own status region, so it stays outside the phase's live region and is announced once. */}
-          {connectionStatus}
         </div>
         <div className="seated-chip seated-chip--game" data-hides-cursor>
           {alliances}
         </div>
+      </div>
+
+      <div className="seated-connection" data-hides-cursor>
+        {connectionStatus}
       </div>
 
       <div className="seated-chip seated-toolbar" data-hides-cursor>
@@ -1063,19 +1080,17 @@ export function GameTable({
       </div>
     </header>
   );
-  const controls = (
-    <TableControlsPanel
-      panelTabs={panelTabs}
-      focusTab={focusTab}
-      openOn={openOn}
-      tableControls={tableControls}
-      tableGuidance={tableGuidance}
-      panelContent={panelContent}
-      word={frame.word}
-      tableTab={frame.tableTab}
-      showStormControls={showStormControls}
-    />
-  );
+  /* The dock's tabs, which the controls panel shows together and a controls experiment opens one by one. */
+  const dock: DockTabsProps = {
+    panelTabs,
+    tableControls,
+    tableGuidance,
+    panelContent,
+    showStormControls,
+    word: frame.word,
+    tableTab: frame.tableTab,
+  };
+  const controls = <TableControlsPanel {...dock} focusTab={focusTab} openOn={openOn} />;
 
   return (
     <PointerSessionContext value={pointerSession}>
@@ -1101,6 +1116,7 @@ export function GameTable({
                 players={playerPanel}
                 camera={camera}
                 inert={overlaysInert}
+                tabs={dockTabs(dock)}
               />
             </div>
           </div>

@@ -449,6 +449,7 @@ function SeatsField({
     <Stack gap="md">
       <CountHeading label="Seats at the table" value={value} />
       <Slider
+        color="slate.3"
         min={MINIMUM}
         max={MAXIMUM}
         step={1}
@@ -482,6 +483,7 @@ function LastTurnField({
     <Stack gap="md" className={styles.turns}>
       <CountHeading label="Last turn" value={value} />
       <Slider
+        color="slate.3"
         min={MIN_LAST_TURN}
         max={MAX_LAST_TURN}
         step={1}

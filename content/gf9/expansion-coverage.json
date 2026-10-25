@@ -1,0 +1,605 @@
+{
+  "schemaVersion": 1,
+  "scope": "GF9 base plus all 3 expansions; this manifest covers expansion additions",
+  "ruleset": "gf9",
+  "group": "gf9",
+  "books": [
+    {
+      "file": "ixian-tleilaxu-manuscript.json",
+      "sections": 13,
+      "sourcePagesRead": "1-12, including illustrated leader roster on page 3"
+    },
+    {
+      "file": "choam-richese-manuscript.json",
+      "sections": 13,
+      "sourcePagesRead": "1-12, including illustrated leader roster on page 3"
+    },
+    {
+      "file": "ecaz-moritani-manuscript.json",
+      "sections": 20,
+      "sourcePagesRead": "1-16, including illustrated leader roster on page 3"
+    }
+  ],
+  "factions": [
+    {
+      "key": "gf9-ixians",
+      "startingSpice": 10,
+      "troopCount": 20,
+      "standardLeaderCount": 5,
+      "advancedAdditionalLeaders": [],
+      "freeRevival": 1
+    },
+    {
+      "key": "gf9-tleilaxu",
+      "startingSpice": 5,
+      "troopCount": 20,
+      "standardLeaderCount": 5,
+      "advancedAdditionalLeaders": [],
+      "freeRevival": 2
+    },
+    {
+      "key": "gf9-richese",
+      "startingSpice": 5,
+      "troopCount": 20,
+      "standardLeaderCount": 5,
+      "advancedAdditionalLeaders": [],
+      "freeRevival": 2
+    },
+    {
+      "key": "gf9-choam",
+      "startingSpice": 2,
+      "troopCount": 20,
+      "standardLeaderCount": 5,
+      "advancedAdditionalLeaders": ["Auditor"],
+      "freeRevival": 0
+    },
+    {
+      "key": "gf9-ecaz",
+      "startingSpice": 12,
+      "troopCount": 20,
+      "standardLeaderCount": 5,
+      "advancedAdditionalLeaders": [],
+      "freeRevival": 2
+    },
+    {
+      "key": "gf9-moritani",
+      "startingSpice": 12,
+      "troopCount": 20,
+      "standardLeaderCount": 5,
+      "advancedAdditionalLeaders": [],
+      "freeRevival": 2
+    }
+  ],
+  "decks": [
+    {
+      "key": "gf9-ixian-tleilaxu-treachery-additions",
+      "totalCards": 14,
+      "uniqueDesigns": 14,
+      "names": [
+        "Poison Blade",
+        "Hunter-Seeker",
+        "Basilia Weapon",
+        "Weirding Way",
+        "Poison Tooth",
+        "Shield Snooper",
+        "Chemistry",
+        "Artillery Strike",
+        "Harvester",
+        "Thumper",
+        "Amal",
+        "Kull Wahad"
+      ],
+      "multiplicityStatus": "Resolved against collected TreacheryCardManager.cs: 12 new named designs, one additional standard Shield and one additional standard Snooper, each once; 14 total.",
+      "replacementRules": "Replace Poison Tooth and Artillery Strike with later corrected CHOAM & Richese versions; preserve one logical deck entry for each replaced card, never add both editions.",
+      "additionalStandardCards": [
+        {
+          "name": "Shield",
+          "count": 1
+        },
+        {
+          "name": "Snooper",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "key": "gf9-richese-cache",
+      "totalCards": 10,
+      "uniqueDesigns": 10,
+      "members": [
+        {
+          "name": "Distrans",
+          "count": 1
+        },
+        {
+          "name": "Juice Of Sapho",
+          "count": 1
+        },
+        {
+          "name": "Mirror Weapon",
+          "count": 1
+        },
+        {
+          "name": "Portable Snooper",
+          "count": 1
+        },
+        {
+          "name": "Ornithopter",
+          "count": 1
+        },
+        {
+          "name": "Nullentropy Box",
+          "count": 1
+        },
+        {
+          "name": "Semuta Drug",
+          "count": 1
+        },
+        {
+          "name": "Residual Poison",
+          "count": 1
+        },
+        {
+          "name": "Stone Burner",
+          "count": 1
+        },
+        {
+          "name": "Karama",
+          "count": 1
+        }
+      ],
+      "setup": "Only with Richese; outside normal Treachery Deck and hand. Cache Karama is distinct inventory from 2 updated core replacements.",
+      "discard": "Ordinary Treachery discard after use, not cache."
+    },
+    {
+      "key": "gf9-choam-richese-replacement-treachery",
+      "totalCards": 4,
+      "members": [
+        {
+          "name": "Poison Tooth",
+          "count": 1
+        },
+        {
+          "name": "Artillery Strike",
+          "count": 1
+        },
+        {
+          "name": "Karama",
+          "count": 2
+        }
+      ],
+      "setup": "Poison Tooth/Artillery replace earlier expansion cards if used, otherwise add. Both Karama replace core copies."
+    },
+    {
+      "key": "gf9-ecaz-moritani-treachery-additions",
+      "totalCards": 3,
+      "members": [
+        {
+          "name": "Recruits",
+          "count": 1
+        },
+        {
+          "name": "Reinforcements",
+          "count": 1
+        },
+        {
+          "name": "Harass and Withdraw",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "key": "gf9-leader-skill-deck",
+      "totalCards": 14,
+      "reuseExisting": true,
+      "members": [
+        {
+          "name": "Bureaucrat",
+          "count": 1
+        },
+        {
+          "name": "Diplomat",
+          "count": 1
+        },
+        {
+          "name": "Rihani Decipherer",
+          "count": 1
+        },
+        {
+          "name": "Smuggler",
+          "count": 1
+        },
+        {
+          "name": "Suk Graduate",
+          "count": 1
+        },
+        {
+          "name": "Planetologist",
+          "count": 1
+        },
+        {
+          "name": "Warmaster",
+          "count": 1
+        },
+        {
+          "name": "Prana Bindu Adept",
+          "count": 1
+        },
+        {
+          "name": "Swordmaster of Ginaz",
+          "count": 1
+        },
+        {
+          "name": "Killer Medic",
+          "count": 1
+        },
+        {
+          "name": "Master of Assassins",
+          "count": 1
+        },
+        {
+          "name": "Sandmaster",
+          "count": 1
+        },
+        {
+          "name": "Mentat",
+          "count": 1
+        },
+        {
+          "name": "Spice Banker",
+          "count": 1
+        }
+      ],
+      "setup": "Optional, 2 dealt per player, choose 1 and shuffle other back; replace only when reviving own eligible leader without a skill."
+    },
+    {
+      "key": "gf9-stronghold-deck",
+      "totalCards": 6,
+      "reuseExisting": true,
+      "members": [
+        {
+          "name": "Arrakeen",
+          "count": 1
+        },
+        {
+          "name": "Carthag",
+          "count": 1
+        },
+        {
+          "name": "Habbanya Sietch",
+          "count": 1
+        },
+        {
+          "name": "HMS stronghold",
+          "count": 1
+        },
+        {
+          "name": "Sietch Tabr",
+          "count": 1
+        },
+        {
+          "name": "Tuek's Sietch",
+          "count": 1
+        }
+      ],
+      "setup": "Advanced optional, none awarded at setup, assign at Mentat Pause."
+    },
+    {
+      "key": "gf9-nexus-deck",
+      "totalCards": 12,
+      "reuseExisting": true,
+      "members": [
+        {
+          "name": "Atreides",
+          "count": 1
+        },
+        {
+          "name": "Bene Gesserit",
+          "count": 1
+        },
+        {
+          "name": "CHOAM",
+          "count": 1
+        },
+        {
+          "name": "Ecaz",
+          "count": 1
+        },
+        {
+          "name": "Emperor",
+          "count": 1
+        },
+        {
+          "name": "Fremen",
+          "count": 1
+        },
+        {
+          "name": "Harkonnen",
+          "count": 1
+        },
+        {
+          "name": "Ixians",
+          "count": 1
+        },
+        {
+          "name": "Moritani",
+          "count": 1
+        },
+        {
+          "name": "Richese",
+          "count": 1
+        },
+        {
+          "name": "Spacing Guild",
+          "count": 1
+        },
+        {
+          "name": "Tleilaxu",
+          "count": 1
+        }
+      ],
+      "setup": "Optional, unallied draw only after qualifying Nexus. Existing Fremen/Richese scan variants require judgement ledger."
+    },
+    {
+      "key": "gf9-homeworld-deck",
+      "totalCards": 13,
+      "members": [
+        {
+          "name": "Caladan",
+          "count": 1
+        },
+        {
+          "name": "Giedi Prime",
+          "count": 1
+        },
+        {
+          "name": "Arrakis",
+          "count": 1
+        },
+        {
+          "name": "Kaitain",
+          "count": 1
+        },
+        {
+          "name": "Salusa Secundus",
+          "count": 1
+        },
+        {
+          "name": "Junction",
+          "count": 1
+        },
+        {
+          "name": "Wallach IX",
+          "count": 1
+        },
+        {
+          "name": "Ix",
+          "count": 1
+        },
+        {
+          "name": "Tleilax",
+          "count": 1
+        },
+        {
+          "name": "Tupile",
+          "count": 1
+        },
+        {
+          "name": "Richese",
+          "count": 1
+        },
+        {
+          "name": "Ecaz",
+          "count": 1
+        },
+        {
+          "name": "Grumman",
+          "count": 1
+        }
+      ],
+      "setup": "Optional, native card each; Salusa only Advanced Emperor. Render one face with threshold strengths if all special rules remain explicit."
+    },
+    {
+      "key": "gf9-spice-expansion-additions",
+      "totalCards": 8,
+      "members": [
+        {
+          "name": "Sandtrout",
+          "count": 1
+        },
+        {
+          "name": "Great Maker",
+          "count": 1
+        }
+      ],
+      "discoveryBlows": {
+        "count": 6,
+        "amountEach": 6,
+        "locations": "Resolved in assets-source-manifest.json from collected Map.cs and card faces: Sihaya Ridge→Cielago East; Rock Outcroppings→Meridian; Hagga Basin→Gara Kulon; Funeral Plain→Pasty Mesa; Wind Pass North→Plastic Basin; Old Gap→False Wall West; exact sectors are retained in the manifest."
+      },
+      "setup": "Sandtrout with first expansion; remaining 7 only with Discovery module."
+    },
+    {
+      "key": "gf9-traitor-expansion-additions",
+      "totalCards": 32,
+      "breakdown": [
+        {
+          "expansion": "ixian-tleilaxu",
+          "count": 11,
+          "detail": "5 Ixian leaders + 5 Tleilaxu leaders + Cheap Hero"
+        },
+        {
+          "expansion": "choam-richese",
+          "count": 11,
+          "detail": "5 CHOAM + 5 Richese + Advanced Auditor"
+        },
+        {
+          "expansion": "ecaz-moritani",
+          "count": 10,
+          "detail": "5 Ecaz + 5 Moritani; no Vidal"
+        }
+      ],
+      "setup": "Filter absent factions and Advanced-only Auditor; Tleilaxu draw Face Dancers after other Traitor selection."
+    },
+    {
+      "key": "gf9-prediction-expansion-additions",
+      "totalCards": 6,
+      "detail": "One per expansion faction; use alongside core 6, not as an unrelated duplicate Prediction deck."
+    }
+  ],
+  "components": [
+    {
+      "key": "hidden-mobile-stronghold",
+      "count": 1,
+      "faction": "gf9-ixians",
+      "requiredText": "Separate stronghold, non-stronghold parent sector, storm/worm immunity, cannot move through storm, limited entry and collection."
+    },
+    {
+      "key": "gf9-tech-tokens",
+      "count": 3,
+      "members": ["Axlotl Tanks", "Heighliners", "Spice Production"],
+      "reuseExistingTypes": true,
+      "setup": "Independent optional module; assigned native factions or random missing-faction distribution after first storm."
+    },
+    {
+      "key": "gf9-no-field-tokens",
+      "count": 3,
+      "members": ["0", "3", "5"],
+      "faction": "gf9-richese",
+      "hiddenBack": true,
+      "requiredText": "Only one on Arrakis; cannot use same number consecutively."
+    },
+    {
+      "key": "gf9-inflation-token",
+      "count": 1,
+      "faces": ["Double", "Cancel"],
+      "faction": "gf9-choam"
+    },
+    {
+      "key": "gf9-ambassador-tokens",
+      "count": 11,
+      "members": [
+        "Ecaz",
+        "Atreides",
+        "Bene Gesserit",
+        "CHOAM",
+        "Emperor",
+        "Fremen",
+        "Harkonnen",
+        "Ixians",
+        "Richese",
+        "Spacing Guild",
+        "Tleilaxu"
+      ],
+      "faction": "gf9-ecaz",
+      "hiddenBack": false
+    },
+    {
+      "key": "gf9-terror-tokens",
+      "count": 6,
+      "members": ["Assassination", "Atomics", "Extortion", "Robbery", "Sabotage", "Sneak Attack"],
+      "faction": "gf9-moritani",
+      "hiddenBack": true
+    },
+    {
+      "key": "gf9-atomics-aftermath",
+      "count": 1,
+      "faction": "gf9-moritani",
+      "requiredText": "No shipment including Fremen; on-planet movement and explicit Sneak Attack still allowed."
+    },
+    {
+      "key": "gf9-duke-vidal",
+      "count": 1,
+      "strength": 6,
+      "faction": "gf9-ecaz",
+      "sharedWith": "gf9-moritani",
+      "traitorCard": false,
+      "startsControlled": false
+    },
+    {
+      "key": "gf9-homeworld-reserves",
+      "count": 13,
+      "members": [
+        "Caladan",
+        "Giedi Prime",
+        "Arrakis",
+        "Kaitain",
+        "Salusa Secundus",
+        "Junction",
+        "Wallach IX",
+        "Ix",
+        "Tleilax",
+        "Tupile",
+        "Richese",
+        "Ecaz",
+        "Grumman"
+      ],
+      "setup": "Corresponding reserve discs; Salusa optional Advanced Emperor only."
+    },
+    {
+      "key": "gf9-discovery-tokens",
+      "count": 8,
+      "members": [
+        {
+          "name": "Jacurutu Sietch",
+          "type": "Hiereg",
+          "count": 1
+        },
+        {
+          "name": "Cistern",
+          "type": "Hiereg",
+          "count": 1
+        },
+        {
+          "name": "Ecological Testing Station",
+          "type": "Hiereg",
+          "count": 1
+        },
+        {
+          "name": "Shrine",
+          "type": "Hiereg",
+          "count": 1
+        },
+        {
+          "name": "Orgiz Processing Station",
+          "type": "Smuggler",
+          "count": 1
+        },
+        {
+          "name": "Treachery Card Stash",
+          "type": "Smuggler",
+          "count": 1
+        },
+        {
+          "name": "Spice Stash",
+          "type": "Smuggler",
+          "count": 1
+        },
+        {
+          "name": "Ornithopter",
+          "type": "Smuggler",
+          "count": 1
+        }
+      ],
+      "hiddenBack": true
+    }
+  ],
+  "checks": [
+    "All new GF9 records assigned gf9 group through authenticated application write.",
+    "Audit current stock ownership before reassigning or cloning, preserving current addresses where approved.",
+    "12-faction roster checked against visual leader page3 sources; 20 troops each; Ixians 7 Cyborgs+13 Suboids.",
+    "No FAQ Q&A blocks. Settled rule clarifications are ordinary procedural text.",
+    "Independent review must compare each finished source page to book coverage and each card multiplicity to source inventory.",
+    "All expansion per-design multiplicities are resolved; all 13 Homeworld faces were reviewed against collected scans and documented card/source discrepancies.",
+    "Source-to-page review plus source-to-card review, faction sheet render proof, HTML anchors and every PDF page must pass before production publishing."
+  ],
+  "authoredStatus": "Complete expansion manuscripts and six semantic factions. Component counts, all 13 Homeworld faces and the full 235-item asset package independently reviewed; rendered publication review remains required.",
+  "combinedDeckCounts": {
+    "treacheryStartingMainAllExpansions": 50,
+    "treacheryCalculation": "33 core +14 I&T +3 E&M; CHOAM replacements replace copies without increasing count. 10 Richese cache cards remain outside the starting main deck.",
+    "startingTraitorsAllFactionsAdvanced": 62,
+    "traitorCalculation": "30 core +11 I&T +11 C&R +10 E&M; includes Cheap Hero and Auditor, excludes Vidal. Filter actual faction selection and Auditor in Basic.",
+    "predictionFactions": 12,
+    "homeworldCards": 13
+  }
+}

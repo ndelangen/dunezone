@@ -1,7 +1,7 @@
 import { publisherErrorMessage } from '../../src/shared/asset-publishing/publisher-diagnostics';
 
 const DEFAULT_MAX_JSON_BYTES = 1_000_000;
-const DEFAULT_REQUEST_TIMEOUT_MS = 30_000;
+export const DEFAULT_REQUEST_TIMEOUT_MS = 30_000;
 
 export class PublisherHttpError extends Error {
   constructor(

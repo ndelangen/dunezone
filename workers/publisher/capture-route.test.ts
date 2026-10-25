@@ -47,6 +47,25 @@ describe('dedicated exact-snapshot capture boundary', () => {
     expect(assetFetch).not.toHaveBeenCalled();
   });
 
+  test.each([
+    ['isolated-local-v1', 'http://127.0.0.1:4301/asset-publishing/render', 200, true],
+    [undefined, 'http://127.0.0.1:4301/asset-publishing/render', 404, false],
+    ['isolated-local-v1', 'https://convex.invalid/asset-publishing/render', 404, false],
+    ['isolated-local-v1', 'http://user:pass@127.0.0.1:4301/render', 404, false],
+  ] as const)('the actual capture boundary validates local transport (%s, %s)', async (local, url, status, allowed) => {
+    const upstream = stubValidJob();
+    const assetFetch = vi.fn(async () => new Response('capture'));
+    const response = await handleCaptureRoute(
+      new Request('http://127.0.0.1:4300/__asset-publisher/capture', {
+        headers: { [CAPTURE_PROTOCOL.credentials.jobHeader]: jobId },
+      }),
+      { ...env(assetFetch), LOCAL_REVIEW: local, CONVEX_RENDER_URL: url }
+    );
+    expect(response?.status).toBe(status);
+    expect(upstream).toHaveBeenCalledTimes(allowed ? 1 : 0);
+    expect(assetFetch).toHaveBeenCalledTimes(allowed ? 1 : 0);
+  });
+
   test('serves only the top-level capture document with no-store', async () => {
     const upstream = stubValidJob();
     const assetFetch = vi.fn(async (_request: Request) => new Response('<html>capture</html>'));

@@ -79,6 +79,8 @@ test('bootstraps transitive Vite imports, preload maps and CSS font URLs', async
     'public/font-abcd.woff2': 'font bytes',
   };
   const read = vi.fn(async (file: string) => new TextEncoder().encode(files[file]));
+  /* The script tag and byte reader are fixed fixtures; this test never executes HTML. */
+  /* nosemgrep: javascript.lang.security.audit.unknown-value-with-script-tag.unknown-value-with-script-tag */
   const result = await bootstrapApplicationAssets('<script src="/public/index-abcd.js"></script>', read, 1);
   expect(result.manifest.files.map((file) => file.path).sort()).toEqual(Object.keys(files).sort());
   expect(read).toHaveBeenCalledTimes(6);

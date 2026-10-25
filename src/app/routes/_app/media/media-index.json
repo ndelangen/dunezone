@@ -5603,6 +5603,12 @@
     "subjects": ["space"],
     "sourceHash": "cb91942b074559a821075d7a09ef77f7ae709606bbe7b16c228aadae752d6a9f"
   },
+  "/vector/background/starfield.svg": {
+    "description": "White stars of varied sizes scattered across a black sky.",
+    "tags": ["starfield", "stars", "space", "sky", "vector"],
+    "subjects": ["space"],
+    "sourceHash": "b83fcadd58095498b27d614e816d3102eb5e6b81b0c581730d98bbcb524d5c9d"
+  },
   "/image/leader/official/dryeuh.png": {
     "description": "Dr. Yueh. Illustrated head-and-shoulders character portrait. Forehead diamond, short beard and brown scarf.",
     "tags": ["portrait", "head", "diamond", "illustration"],
@@ -5611,7 +5617,7 @@
   },
   "/image/leader/official/duncan.png": {
     "description": "Duncan. Illustrated head-and-shoulders character portrait. Short brown hair and green uniform.",
-    "tags": ["portrait", "head", "illustration"],
+    "tags": ["portrait", "head", "illustration", "Duncan Idaho"],
     "subjects": ["people"],
     "sourceHash": "14d2d75078b3abbd7fbc5218c6b5ed3dd70320575976f61ce5c7edd73935b6c5"
   },
@@ -5659,7 +5665,7 @@
   },
   "/image/leader/official/nafud.png": {
     "description": "Nefud. Illustrated head-and-shoulders character portrait. Red scarf and raised black collar.",
-    "tags": ["portrait", "head", "illustration"],
+    "tags": ["portrait", "head", "illustration", "Iakin Nefud"],
     "subjects": ["people"],
     "sourceHash": "bc7d4970cd440d8e4bccc5902a2bc8fd9e9deebd06fac2abb9968c953a6e345d"
   },
@@ -5707,7 +5713,7 @@
   },
   "/image/leader/official/wanna.png": {
     "description": "Wanna. Illustrated head-and-shoulders character portrait.",
-    "tags": ["portrait", "head", "illustration"],
+    "tags": ["portrait", "head", "illustration", "Wanna Marcus", "Wanna Yueh"],
     "subjects": ["people"],
     "sourceHash": "a163129c0c18d62e82702e35811d90549803ecf7e564faf3e822f6e7e15caa89"
   },
@@ -5725,7 +5731,7 @@
   },
   "/image/leader/official/burseg.png": {
     "description": "Burseg. Illustrated head-and-shoulders character portrait.",
-    "tags": ["portrait", "head", "illustration"],
+    "tags": ["portrait", "head", "illustration", "Col. Kolona", "Colonel Kolona"],
     "subjects": ["people"],
     "sourceHash": "285d998eacaa3b9ce829bda4dd44f77e2438de58bbdd715fcf65946ee5529b60"
   },
@@ -10019,6 +10025,22 @@
     "subjects": ["places", "space", "creatures", "people"],
     "sourceHash": "2e338d90d3955422622b3987ae9a7c1185c5f790386ef9802ad6547d767ea1d9"
   },
+  "/image/rulebook-cover/gf9-second-edition.png": {
+    "description": "Rust-colored sandworm and rider rising from golden dunes, with two cloaked onlookers in the lower-left foreground, two ornithopters near the moons and a circular motif at the foot of the right-hand rock spire.",
+    "tags": [
+      "landscape",
+      "illustration",
+      "gf9",
+      "second edition",
+      "sandworm",
+      "rider",
+      "moons",
+      "onlookers",
+      "ornithopters"
+    ],
+    "subjects": ["creatures", "places", "space", "people", "machines"],
+    "sourceHash": "67847aad3f3a3fec5b570851c5d8203a15dcf82dd436d3aa394149057a81f800"
+  },
   "/image/rulebook-cover/kiss-planet.png": {
     "description": "Curved golden desert planet seen from orbit beneath two overlapping moons and a dark blue star field.",
     "tags": ["landscape", "illustration", "kiss", "planet", "moons", "orbit"],
@@ -10096,6 +10118,12 @@
     "tags": ["dune.zone", "game table", "spice blow", "online play", "blog"],
     "subjects": ["places", "symbols"],
     "sourceHash": "a341b95b962cd947a2e2564c5f3a53a06ba84d24d26f6a3ce49d907291ac4ab8"
+  },
+  "/web/blog/dune-board-game-style-guide/faction-palette.jpg": {
+    "description": "Twelve faction swatch cards on a dark blue page: each faction's token, its light and shade colours with hex codes, and its texture number.",
+    "tags": ["factions", "colours", "blog"],
+    "subjects": ["symbols"],
+    "sourceHash": "8e6aeae2ee34b48485b31cb20d2fcd9cb431c02849badc95f1e8116b826ed7c5"
   },
   "/web/blog/drawing-dune-tokens-and-cards/atreides-leaders.jpg": {
     "description": "The House Atreides leader tokens on dune.zone in a row: Lady Jessica, Thufir Hawat, a larger Paul Atreides, Gurney Halleck, Duncan Idaho and Doctor Yueh.",
@@ -10300,18 +10328,6 @@
     "tags": ["background", "illustration"],
     "subjects": ["patterns", "creatures"],
     "sourceHash": "e1f3a4e2b506f47beceb67fe9979ebe600c525f91ffad835d5fb4c02bb3455a5"
-  },
-  "/web/page-dark.jpg": {
-    "description": "Dark blue cloudy page background with pale dunes along the bottom.",
-    "tags": ["background", "illustration"],
-    "subjects": ["patterns"],
-    "sourceHash": "61f252d1947657aea7f34c2c888745c2e5b6dd27e2e739cd3c1e1ba299303e1c"
-  },
-  "/web/page.jpg": {
-    "description": "Pale parchment page background with tan dunes along the bottom.",
-    "tags": ["background", "parchment"],
-    "subjects": ["patterns"],
-    "sourceHash": "31673a60687fac505f7a71247b2a80a03168d1707a389578d2e613d821e6dbdf"
   },
   "/web/tablet1.jpg": {
     "description": "Pale ornamental tablet panel with a circular medallion and flowing tan border.",
@@ -10559,20 +10575,6 @@
     "subjects": ["people", "symbols", "creatures"],
     "sourceHash": "5b73b4701741d8f7d50e64c9028587b489577336e157d30c9fd5ecf68e0b04f0"
   },
-  "/vector/icon/arrakis-city.svg": {
-    "description": "City silhouette with an optional white outline for the Arrakis board.",
-    "tags": ["city", "towers", "vector"],
-    "subjects": ["places"],
-    "sourceHash": "dc09537d3a733de26cf2ad54d293ab3aa3ef5f682517771aba7bfc2629b96c14",
-    "label": "Arrakis city"
-  },
-  "/vector/icon/arrakis-sietch.svg": {
-    "description": "Sietch silhouette with an optional white outline for the Arrakis board.",
-    "tags": ["arch", "cave", "vector"],
-    "subjects": ["places"],
-    "sourceHash": "5ab59d9fc91fdf8d41fa074ff83b7bab1995c37abe9fec31f603ac9b3e242d0c",
-    "label": "Arrakis sietch"
-  },
   "/vector/decal/sandmaster.svg": {
     "description": "A Sandmaster points across the dunes beside a sandtrout.",
     "tags": ["sandmaster", "leader skill", "sandtrout", "desert", "GF9", "CHOAM", "Richese"],
@@ -10728,5 +10730,286 @@
     "tags": ["desert", "storm", "multicolor"],
     "subjects": ["places"],
     "sourceHash": "ea97d5f0dc5d062a06f90f1a77e752796326dbeabe8eb1b465df3b6c0151b652"
+  },
+  "/image/leader/gf9/ur-director-malina-aru.png": {
+    "description": "A painted portrait of a dark-haired woman in a high gray collar and red shoulders, against a gold background.",
+    "tags": ["Ur-Director Malina Aru", "CHOAM", "dark hair", "gray collar"],
+    "subjects": ["people"],
+    "sourceHash": "8837fa06740d9ee0bb6a37e1651bf99dd661acc40c76f316460211a44e55ce98"
+  },
+  "/image/leader/gf9/count-ilban-richese.png": {
+    "description": "A painted portrait of a gray-haired man with a moustache and pointed white beard in a high gray collar, against a gold background.",
+    "tags": ["Count Ilban Richese", "Richese", "gray hair", "moustache", "pointed beard", "gray collar"],
+    "subjects": ["people"],
+    "sourceHash": "61b2044852c51c0715761f55170d37d26e8ca7ffd4369997f2eb936c089c597f"
+  },
+  "/image/texture/hiereg-discovery.png": {
+    "description": "A mottled grayscale surface with a dark circular line and alternating outlined trapezoids and small rectangles around it.",
+    "tags": ["Hiereg", "Discovery", "Smuggler", "mottled", "grayscale", "ring", "trapezoids"],
+    "subjects": ["patterns", "symbols"],
+    "sourceHash": "17418d80b07639ef6c52abfc087ff4777e2a0145eec81413672e9a71614f95c6"
+  },
+  "/web/rulesets/gf9-logo.png": {
+    "description": "The complete Gale Force Nine wordmark centered on a dark square.",
+    "tags": ["Gale Force Nine", "GF9", "publisher", "wordmark", "logo"],
+    "subjects": ["symbols", "culture"],
+    "sourceHash": "ca0d8a68fbf167ab4385422fd97663c281a574e21d3fccf995d0e15bba5662ae"
+  },
+  "/image/leader/gf9/duke-prad-vidal.png": {
+    "description": "A painted portrait of a dark-haired man wearing a high black collar with gold trim and a purple shoulder drape, against a gold background.",
+    "tags": ["Duke Prad Vidal", "Ecaz", "Moritani", "dark hair", "gold trim", "purple drape"],
+    "subjects": ["people"],
+    "sourceHash": "6c66b6c4d55638b03d902ee7d76cd4b0ce970a3545cc0880d9073acc544f2a0f"
+  },
+  "/vector/decal/solaris.svg": {
+    "description": "Coins with planet, star, animal and profile cutouts.",
+    "tags": ["Solaris", "coins", "currency", "money", "GF9 2.0", "second edition", "vector"],
+    "subjects": ["trade", "symbols"],
+    "sourceHash": "552e3fffa5c46114f4a4c9b55aa118077dc4d9c85ef4c16c31c8984f37e7fa94"
+  },
+  "/vector/decal/little-maker.svg": {
+    "description": "Worm curled in a pool inside an engraved basin.",
+    "tags": ["Little Maker", "worm", "pool", "water", "basin", "GF9 2.0", "second edition", "vector"],
+    "subjects": ["creatures", "water"],
+    "sourceHash": "19bc11a22a3fa827c651cf669b660c6dab2f846e3fa9a1b8775adfa845bcb2f2"
+  },
+  "/vector/decal/karama-2-0.svg": {
+    "description": "Eight-ray star with triangular gaps, two circles and a central ring.",
+    "tags": ["Karama", "GF9 2.0", "second edition", "star", "eye", "vector", "hills", "dunes", "ridgelines"],
+    "subjects": ["symbols"],
+    "sourceHash": "da0cdd22a40647febca3049bf11016709f982f5e03a902eef2961e96b5b15631"
+  },
+  "/vector/decal/little-maker-multicolor.svg": {
+    "description": "Dark worm in pale water, within an olive basin.",
+    "tags": [
+      "Little Maker",
+      "worm",
+      "pool",
+      "water",
+      "basin",
+      "olive",
+      "multicolor",
+      "GF9 2.0",
+      "second edition",
+      "vector"
+    ],
+    "subjects": ["creatures", "water"],
+    "sourceHash": "a082f9eeb55e33ef4e5ca9b3f9a69192239fe6eb7ef147d25ef69ef55c54f1d0"
+  },
+  "/vector/decal/dune-ridgelines.svg": {
+    "description": "Thin, overlapping dune ridgelines.",
+    "tags": ["hills", "dunes", "mountains", "ridgelines", "Karama", "vector"],
+    "subjects": ["places"],
+    "sourceHash": "1ce31687937ae035c888e09c700ae2061bb268cd3b539db1f8530d1792138aca"
+  },
+  "/vector/decal/solaris-multicolor.svg": {
+    "description": "Dark coins with pale engravings.",
+    "tags": ["Solaris", "coins", "cream", "multicolor"],
+    "subjects": ["trade", "symbols"],
+    "sourceHash": "c17cee2ce5ac915879979057169363c451c19611c486464681dfbc80b9b29952"
+  },
+  "/image/leader/gf9-second-edition/bashar-garon.png": {
+    "description": "Bashar Garon. Illustrated head-and-shoulders portrait. Older pale man, silver swept-back hair and pronounced sideburns, clean-shaven chin, lined face, red high-collared uniform and gold shoulder sash.",
+    "tags": ["portrait", "head", "illustration", "Bashar Garon", "Emperor", "gf9", "second edition"],
+    "subjects": ["people"],
+    "sourceHash": "6b801c6c629aa2a385740a01c88c668fde3b7fbcbaaffe985085dadd6a782fbf"
+  },
+  "/image/leader/gf9-second-edition/wensicia-corrino.png": {
+    "description": "Wensicia Corrino. Illustrated head-and-shoulders portrait. Young pale woman, short light-brown hair, red fan-shaped segmented headdress, white flared collar, pearl necklace, red high-collared dress with small diamond brooch.",
+    "tags": ["portrait", "head", "illustration", "Wensicia Corrino", "Emperor", "gf9", "second edition"],
+    "subjects": ["people"],
+    "sourceHash": "b81ed69eee1af44291d74b9cabbb0f7d98dcf46eee0b36a99fbad5d9b555f6e3"
+  },
+  "/image/leader/gf9-second-edition/loyxo.png": {
+    "description": "Loyxo. Illustrated head-and-shoulders portrait. Pale altered face, reddish long hair, grey metallic patches on forehead and cheek, patterned neck, grey circular collar with dark openings.",
+    "tags": ["portrait", "head", "illustration", "Loyxo", "Spacing Guild", "gf9", "second edition"],
+    "subjects": ["people"],
+    "sourceHash": "a6f1c873824ae0fca5b27aeff8125ad700ead7a48d2af9df807b44bfeb24b1b5"
+  },
+  "/image/leader/gf9-second-edition/crozeed.png": {
+    "description": "Crozeed. Illustrated head-and-shoulders portrait. Dark-skinned young man, short dark-brown tightly curled hair, very pale blue eyes, fine facial lines and ribbed light-grey padded collar.",
+    "tags": ["portrait", "head", "illustration", "Crozeed", "Spacing Guild", "gf9", "second edition"],
+    "subjects": ["people"],
+    "sourceHash": "9f679db13a22ad13702bb5573449151d6fb4e33f8b483834badd723e5ca24a32"
+  },
+  "/image/leader/gf9-second-edition/olar.png": {
+    "description": "Olar. Illustrated head-and-shoulders portrait. Very pale slim man with spiky light-brown hair, wide pale eyes, angular long face and broad grey high collar with black oval vents.",
+    "tags": ["portrait", "head", "illustration", "Olar", "Spacing Guild", "gf9", "second edition"],
+    "subjects": ["people"],
+    "sourceHash": "91bff6ab18172b1d52a7f885acff38d3efebdc22f52ee6cf75e2c17cb0c06143"
+  },
+  "/image/leader/gf9-second-edition/ertun.png": {
+    "description": "Ertun. Illustrated head-and-shoulders portrait. Very pale slim androgynous man with long straight black hair tucked back, pale eyes, narrow face, red neck band and broad grey high collar with black vents.",
+    "tags": ["portrait", "head", "illustration", "Ertun", "Spacing Guild", "gf9", "second edition"],
+    "subjects": ["people"],
+    "sourceHash": "e6a5bb6e1efd60287b72a45ef81919817415b1052f2397c62dd37c2623f244df"
+  },
+  "/image/leader/gf9-second-edition/starguide-serello.png": {
+    "description": "Starguide Serello. Illustrated head-and-shoulders portrait. Young medium-brown-skinned man with wavy shoulder-length black hair, dark eyes, solemn expression, grey ribbed round padded collar with orange central inset.",
+    "tags": ["portrait", "head", "illustration", "Starguide Serello", "Spacing Guild", "gf9", "second edition"],
+    "subjects": ["people"],
+    "sourceHash": "6c2da1e9d65a435678e6a402cdec878c65b30a1062ab89ed05f304b38ffe6441"
+  },
+  "/image/leader/gf9-second-edition/anirul-corrino.png": {
+    "description": "Anirul Corrino. Illustrated head-and-shoulders portrait. Pale blonde woman with short curls, broad rounded pale-blue headdress with red diamond jewels and white drops, hanging red-and-blue beaded strands, dark-blue collar and blue dress.",
+    "tags": ["portrait", "head", "illustration", "Anirul Corrino", "Bene Gesserit", "gf9", "second edition"],
+    "subjects": ["people"],
+    "sourceHash": "66fa79b3efdebcda6fb979e60c87fdcaaaeab31c5034937ab5be315bff492d27"
+  },
+  "/image/leader/custom/duke-leto.png": {
+    "description": "Duke Leto Atreides. Illustrated head-and-shoulders portrait. Man with swept-back dark hair with grey streaks, blue-grey eyes, strong eyebrows, moustache joined to a short pointed goatee, long nose and stern expression. Green Atreides uniform with gold edging and small gold collar emblems.",
+    "tags": ["portrait", "head", "illustration", "Duke Leto Atreides", "Atreides", "duke", "leto", "atreides"],
+    "subjects": ["people"],
+    "sourceHash": "97517427c6e5d76fe12988a7509c1d22174b9ff14b5563e22c2ea0187174289f"
+  },
+  "/vector/logo/dune-awakening-house-alexin.svg": {
+    "description": "A vertical wheat ear with three pairs of pointed grains and a pointed tip.",
+    "tags": ["House Alexin", "Dune Awakening", "Landsraad", "wheat", "grain", "ear"],
+    "subjects": ["plants", "symbols"],
+    "sourceHash": "5901ffefcf7ffe9dfeff472ff081268cf9643fafc1b35419273bb80d8295ee51"
+  },
+  "/vector/logo/dune-awakening-house-argosaz.svg": {
+    "description": "A triangular frame divided into three triangular sections around a central junction.",
+    "tags": ["House Argosaz", "Dune Awakening", "Landsraad", "triangle", "frame", "three sections"],
+    "subjects": ["symbols"],
+    "sourceHash": "2c97c8fec55d43517b3919a4ee6fa1423212d0d66210e42001f2247138cf0b7a"
+  },
+  "/vector/logo/dune-awakening-house-dyvetz.svg": {
+    "description": "A round opening above a central stem and two pairs of sweeping wings.",
+    "tags": ["House Dyvetz", "Dune Awakening", "Landsraad", "wings", "circle", "stem"],
+    "subjects": ["symbols"],
+    "sourceHash": "9d003acfb6ee6f579750cb9abc2c5b1833214c51d6f521476c7b1e68b2a14d95"
+  },
+  "/vector/logo/dune-awakening-house-ecaz.svg": {
+    "description": "A branching tree with angular upward branches and three spreading roots.",
+    "tags": ["House Ecaz", "Dune Awakening", "Landsraad", "tree", "branches", "roots"],
+    "subjects": ["plants", "symbols"],
+    "sourceHash": "b8b43345aad42af7ed1131aff0ff31bd9ab394bf30f77702fdd7998e7183d0fb"
+  },
+  "/vector/logo/dune-awakening-house-hagal.svg": {
+    "description": "A fan of pointed segments surrounding a circular opening at the base.",
+    "tags": ["House Hagal", "Dune Awakening", "Landsraad", "fan", "rays", "circle"],
+    "subjects": ["symbols"],
+    "sourceHash": "84282ec0fcafa66cd92dc80b967269cf948cabbbdbee96e4445114b844fca574"
+  },
+  "/vector/logo/dune-awakening-house-hurata.svg": {
+    "description": "Concentric circles above a semicircular fan of short radial spokes.",
+    "tags": ["House Hurata", "Dune Awakening", "Landsraad", "concentric circles", "spokes", "wheel"],
+    "subjects": ["symbols"],
+    "sourceHash": "e1a8ef8e64169f870a7a9b62124a58b274cd1fd6017e02c3e80216e717eb868c"
+  },
+  "/vector/logo/dune-awakening-house-imota.svg": {
+    "description": "A rounded three-part crest with an arch above two inward-curving vertical arms.",
+    "tags": ["House Imota", "Dune Awakening", "Landsraad", "arch", "three parts", "curved arms"],
+    "subjects": ["symbols"],
+    "sourceHash": "531863522746ef82df6cdf08674fb0f95e2a9ee31e63b70703ceb9d58bfc8973"
+  },
+  "/vector/logo/dune-awakening-house-kenola.svg": {
+    "description": "Five rays rise above two horizontal bars with a small downward point.",
+    "tags": ["House Kenola", "Dune Awakening", "Landsraad", "sunrise", "rays", "bars"],
+    "subjects": ["symbols"],
+    "sourceHash": "34ad0504040a232847d24c24dd93efc2096c254f4651fc180c58ed2bfb0bc5ad"
+  },
+  "/vector/logo/dune-awakening-house-lindaren.svg": {
+    "description": "An angular vertical crest with three stepped points and a long diagonal lower tip.",
+    "tags": ["House Lindaren", "Dune Awakening", "Landsraad", "angular crest", "steps", "diagonal"],
+    "subjects": ["symbols"],
+    "sourceHash": "22181d3033c839360051cbd7a1d6f46fa25bf17690464cc40391aee735e32ec9"
+  },
+  "/vector/logo/dune-awakening-house-maros.svg": {
+    "description": "A narrow animal skull beneath two long upward-curving horns.",
+    "tags": ["House Maros", "Dune Awakening", "Landsraad", "skull", "horns", "animal"],
+    "subjects": ["creatures", "symbols"],
+    "sourceHash": "2d93bb1f98c28a3ab26ccb953045c4ea3c01b77d762b40544660550095bd2f69"
+  },
+  "/vector/logo/dune-awakening-house-mikarrol.svg": {
+    "description": "A raised clenched fist above a wide flared cuff.",
+    "tags": ["House Mikarrol", "Dune Awakening", "Landsraad", "fist", "gauntlet", "cuff"],
+    "subjects": ["people", "weapons", "symbols"],
+    "sourceHash": "69e71db5a72b82ba48711f04fc6b088ba877c7ce8581692c40d29db6341dde3d"
+  },
+  "/vector/logo/dune-awakening-house-moritani.svg": {
+    "description": "An angular horse head in profile with an open notch below its muzzle.",
+    "tags": ["House Moritani", "Dune Awakening", "Landsraad", "horse", "head", "profile"],
+    "subjects": ["creatures", "symbols"],
+    "sourceHash": "ea263ee5e159c31348feafe9603512fa1799566e1930b93275705fe699fe770c"
+  },
+  "/vector/logo/dune-awakening-house-mutelli.svg": {
+    "description": "Five pointed panels arranged around a small central star.",
+    "tags": ["House Mutelli", "Dune Awakening", "Landsraad", "five panels", "star", "radial"],
+    "subjects": ["symbols"],
+    "sourceHash": "aa33ce339edb4af2197ad931ea99ba4212853605dd5d8d467e5a6eda27a325ce"
+  },
+  "/vector/logo/dune-awakening-house-novebruns.svg": {
+    "description": "Three curved sides form an open triangular crest divided by crossing diagonal lines.",
+    "tags": ["House Novebruns", "Dune Awakening", "Landsraad", "triangle", "open center", "crossing lines"],
+    "subjects": ["symbols"],
+    "sourceHash": "09cfd043f26aa769ac5acd7d80ac8fcd09eb86b6f17860a224953d46f63938c3"
+  },
+  "/vector/logo/dune-awakening-house-richese.svg": {
+    "description": "A concentric circular ring with a small cap above and a smaller ring suspended below.",
+    "tags": ["House Richese", "Dune Awakening", "Landsraad", "rings", "concentric circles", "pendant"],
+    "subjects": ["symbols"],
+    "sourceHash": "7366f32b6be1b972e1aedd05b749c73ff3046e7efef0ae3bf612a5ac13cde155"
+  },
+  "/vector/logo/dune-awakening-house-sor.svg": {
+    "description": "A teardrop-shaped spiral with several close turns and a pointed cap.",
+    "tags": ["House Sor", "Dune Awakening", "Landsraad", "spiral", "teardrop", "concentric curves"],
+    "subjects": ["symbols"],
+    "sourceHash": "b034f05c29621db15a49ae826afe80106a38033c9889a9c3927d71981ca38fff"
+  },
+  "/vector/logo/dune-awakening-house-spinnette.svg": {
+    "description": "A long double-pointed vertical blade crossed by a short bar and diagonal cut.",
+    "tags": ["House Spinnette", "Dune Awakening", "Landsraad", "blade", "bar", "diamond"],
+    "subjects": ["weapons", "symbols"],
+    "sourceHash": "d75fbb4648db5eb9a069a0b045477c5bdbd88f50f3739d11e5335f5e42f862c8"
+  },
+  "/vector/logo/dune-awakening-house-taligari.svg": {
+    "description": "A long central tapered point flanked by two pairs of shorter narrow points.",
+    "tags": ["House Taligari", "Dune Awakening", "Landsraad", "points", "five spikes", "geometric"],
+    "subjects": ["symbols"],
+    "sourceHash": "46fca468f6503bcc447019b5a1192d2e998e4e2aa9cc672b5b6fc4ab5826ec65"
+  },
+  "/vector/logo/dune-awakening-house-thorvald.svg": {
+    "description": "A broad flag-shaped crest with a curled central opening on a short pedestal.",
+    "tags": ["House Thorvald", "Dune Awakening", "Landsraad", "flag", "curl", "pedestal"],
+    "subjects": ["symbols"],
+    "sourceHash": "b64b0a70fd49607bcf6313d09a0db553f88a5c250444379d031e271922776f9e"
+  },
+  "/vector/logo/dune-awakening-house-tseida.svg": {
+    "description": "A ribbon curls into two broad horizontal bands with narrow curved lines near its edges.",
+    "tags": ["House Tseida", "Dune Awakening", "Landsraad", "ribbon", "bands", "scroll"],
+    "subjects": ["symbols"],
+    "sourceHash": "5798de862e60044e742bc2a08a62421ede757309bdef2c71f097ae539cebefa3"
+  },
+  "/vector/logo/dune-awakening-house-varota.svg": {
+    "description": "A bowed string instrument with a rounded body, diagonal strings and small tuning dots.",
+    "tags": ["House Varota", "Dune Awakening", "Landsraad", "string instrument", "strings", "music"],
+    "subjects": ["culture", "symbols"],
+    "sourceHash": "8aff50f9a605ddb90c1e11e36ec2ee3a06a8146ee508cf3e3db2cc990d9e80aa"
+  },
+  "/vector/logo/dune-awakening-house-vernius.svg": {
+    "description": "Two angular opposing hooks with short horizontal bars inside their stems.",
+    "tags": ["House Vernius", "Dune Awakening", "Landsraad", "hooks", "opposing shapes", "bars"],
+    "subjects": ["symbols"],
+    "sourceHash": "8ef6416135b93ccf58a08db1f65d9678cac55343dfdfc30323cd68959c1a60df"
+  },
+  "/vector/logo/dune-awakening-house-wallach.svg": {
+    "description": "A curved loop with a central field of fine strings and outward-facing curled ends.",
+    "tags": ["House Wallach", "Dune Awakening", "Landsraad", "loop", "strings", "curled ends"],
+    "subjects": ["culture", "symbols"],
+    "sourceHash": "118cdf055707dbc759cff70f50a45c9c7d1f4da585d739baf748fd95292eb6b9"
+  },
+  "/vector/logo/dune-awakening-house-wayku.svg": {
+    "description": "A circular orbit encloses several discs connected by straight lines.",
+    "tags": ["House Wayku", "Dune Awakening", "Landsraad", "orbit", "discs", "network", "circles"],
+    "subjects": ["space", "symbols"],
+    "sourceHash": "268e20760952e78e37d2c0623eb15e6ed6ad6e6968fdd1d01e91c7ed2b70f80d"
+  },
+  "/vector/logo/dune-awakening-house-wydras.svg": {
+    "description": "A symmetrical angular crest with two tall upper points and a broad wing-like lower shape.",
+    "tags": ["House Wydras", "Dune Awakening", "Landsraad", "angular crest", "points", "wings"],
+    "subjects": ["symbols"],
+    "sourceHash": "ff557fc691ab338443993d090b57702be1fa5546fe1ff38feeb6e218b1216038"
   }
 }

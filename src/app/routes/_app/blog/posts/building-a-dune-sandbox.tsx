@@ -1,9 +1,7 @@
 import { Anchor } from '@mantine/core';
-import { Link } from '@tanstack/react-router';
 import { Section } from '@ui/block/Section';
-import type { ReactNode } from 'react';
 
-import { Figure, Lead, Paragraph } from '../postContent';
+import { Figure, Lead, Paragraph, PostLink } from '../postContent';
 import { BLOG_POST_META } from '../posts';
 
 const meta = BLOG_POST_META['building-a-dune-sandbox'];
@@ -27,23 +25,18 @@ export default function Post() {
   );
 }
 
-function PostLink({ slug, children }: { slug: 'why-dune' | 'tabletop-simulator'; children: ReactNode }) {
-  return (
-    <Anchor renderRoot={(props) => <Link {...props} to="/blog/$postSlug" params={{ postSlug: slug }} />}>
-      {children}
-    </Anchor>
-  );
-}
-
 function TreacherySection() {
   return (
     <Section title="Treachery.Online is a marvel">
       <Paragraph>
         If you haven&rsquo;t played on <Anchor href="https://treachery.online">Treachery.Online</Anchor>, go try it.{' '}
         <Anchor href="https://github.com/ronaldossendrijver">Ronald Ossendrijver</Anchor> started building it during the
-        2020 lockdowns, around the same time <PostLink slug="why-dune">I fell for this game</PostLink>. Today it plays
-        the whole thing in your browser: every faction, the expansions, bots to fill empty seats, live games and slow
-        games. Every rule is in there, and the game makes sure everyone follows it. Ronald even made{' '}
+        2020 lockdowns, around the same time{' '}
+        <PostLink to="/blog/$postSlug" params={{ postSlug: 'why-dune' }}>
+          I fell for this game
+        </PostLink>
+        . Today it plays the whole thing in your browser: every faction, the expansions, bots to fill empty seats, live
+        games and slow games. Every rule is in there, and the game makes sure everyone follows it. Ronald even made{' '}
         <Anchor href="https://github.com/ronaldossendrijver/treachery.online">the code</Anchor> open source.
       </Paragraph>
       <Paragraph>It&rsquo;s a marvel of engineering, and I play on it myself.</Paragraph>
@@ -76,9 +69,11 @@ function TabletopSimulatorSection() {
       />
       <Paragraph>
         But the biggest reason is homebrew, which I care about a lot. Our group even wrote{' '}
-        <PostLink slug="why-dune">a rule set of our own</PostLink>. We love trying new ideas: a new faction, a changed
-        rule, a mechanic someone dreamt up last week. On Tabletop Simulator you put the new pieces on the table and play
-        tonight.
+        <PostLink to="/blog/$postSlug" params={{ postSlug: 'why-dune' }}>
+          a rule set of our own
+        </PostLink>
+        . We love trying new ideas: a new faction, a changed rule, a mechanic someone dreamt up last week. On Tabletop
+        Simulator you put the new pieces on the table and play tonight.
       </Paragraph>
       <Paragraph>
         On Treachery.Online you can&rsquo;t, and that&rsquo;s not a flaw. It&rsquo;s the reason it works so well. Every
@@ -102,7 +97,10 @@ function AsksSection() {
       </Paragraph>
       <Paragraph>
         And making a proper mod for it is still hard work, as I found out myself. I wrote about that in{' '}
-        <PostLink slug="tabletop-simulator">Building Dune on Tabletop Simulator</PostLink>.
+        <PostLink to="/blog/$postSlug" params={{ postSlug: 'tabletop-simulator' }}>
+          Building Dune on Tabletop Simulator
+        </PostLink>
+        .
       </Paragraph>
     </Section>
   );

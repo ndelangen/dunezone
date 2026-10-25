@@ -1,7 +1,7 @@
 import preview from '@sb/preview';
+import { stockBackgroundValues as backgroundPresets } from '@shared/backgrounds/defaults';
 import { expect, fn, userEvent, within } from 'storybook/test';
 
-import { backgroundPresets } from '@game/data/backgrounds';
 import { treacheryCardFixtures } from '@game/fixtures/treacheryCards';
 
 import { INITIAL_TREACHERY_DRAFT, INITIAL_TREACHERY_MEMORY, TreacheryCardEditor } from './TreacheryCardEditor';
@@ -53,5 +53,15 @@ export const ExistingLogoSymbol = meta.story({
     await expect(args.patch).toHaveBeenCalledWith({
       icon: [backgroundPresets.stripedSpecial, '/vector/icon/shield.svg'],
     });
+  },
+});
+
+export const TextOnlyBody = meta.story({
+  args: { chapter: 'body' },
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole('combobox', { name: 'Body layout' }));
+    await userEvent.click(within(canvasElement.ownerDocument.body).getByRole('option', { name: 'Text only' }));
+    await expect(args.patch).toHaveBeenCalledWith({ bodyLayout: 'text-only' });
   },
 });

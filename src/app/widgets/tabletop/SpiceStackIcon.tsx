@@ -1,4 +1,6 @@
 /* @jsxImportSource ./three-jsx */
+
+import { gameAssetColors } from '@shared/play/assetColors';
 import { SPICE_TOKEN_RADIUS } from '@shared/play/spice';
 import { useSyncExternalStore } from 'react';
 import type { ExtrudeGeometry } from 'three';
@@ -7,7 +9,7 @@ import { ignoreRaycast } from './ignoreRaycast';
 import { loadPhaseSymbolGeometry } from './phaseSymbolGeometry';
 
 const SPICE_ICON = '/vector/icon/spice.svg';
-const SPICE_ICON_COLOR = '#6b431d';
+const SPICE_ICON_COLOR = gameAssetColors.spiceIcon;
 const SPICE_FACE_RADIUS = SPICE_TOKEN_RADIUS * 0.79;
 
 /* Every spice stack shares one icon solid, loaded once for the page and never disposed. */

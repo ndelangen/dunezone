@@ -1,3 +1,5 @@
+import { fileURLToPath } from 'node:url';
+
 /*
  * Runs every story as a Vitest browser-mode test in Chromium via
  * @storybook/addon-vitest. Coverage is opt-in (--coverage) and uploads as the
@@ -60,6 +62,7 @@ export default defineConfig({
       /* Hold helpers must be bundled before the first story starts. */
       '@sinonjs/fake-timers',
       '@mantine/hooks',
+      '@testing-library/react/pure',
       /* Prebundle imports discovered by full page stories before Chromium starts testing. */
       '@convex-dev/auth/react',
       '@radix-ui/react-select',
@@ -69,6 +72,7 @@ export default defineConfig({
       'linkedom/worker',
       'react-icons/fa6',
       'react-icons/si',
+      'react-icons/vsc',
       'storybook/internal/core-events',
       'three/examples/jsm/loaders/SVGLoader.js',
       'crypto-js/sha256',
@@ -86,6 +90,11 @@ export default defineConfig({
       ...convexPackageMocks,
       ...Object.entries(convexWorkerAliases).map(([find, replacement]) => ({ find, replacement })),
       ...threeRendererStackAliases,
+      /* Stories run with reduced motion unless they pin `motion: 'on'` (see .storybook/preview.tsx). */
+      {
+        find: /^\.\/browserMotion$/,
+        replacement: fileURLToPath(new URL('./.storybook/browserMotion.vitest.ts', import.meta.url)),
+      },
     ],
   },
   plugins: [
@@ -122,7 +131,15 @@ export default defineConfig({
     testTimeout: 120_000,
     browser: {
       enabled: true,
+      /* Match the addon's default so file boundaries do not resize desktop stories to Vitest's 414x896. */
+      viewport: { width: 1200, height: 900 },
       provider: playwright(),
+      commands: {
+        /* Called from .storybook/browserMotion.vitest.ts; a command, because Storybook turns off the CDP access a page-side call would need. */
+        emulateReducedMotion: async ({ page }, reduce: boolean) => {
+          await page.emulateMedia({ reducedMotion: reduce ? 'reduce' : 'no-preference' });
+        },
+      },
       headless: true,
       screenshotFailures: true,
       screenshotDirectory: './test-results/storybook-screenshots',

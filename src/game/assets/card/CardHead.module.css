@@ -23,7 +23,6 @@
   top: 73px;
   width: 560px;
   height: 86px;
-  overflow: hidden;
   position: absolute;
   font-family: "C_Copperplate_Gothic", sans-serif;
   font-size: 60px;
@@ -37,7 +36,6 @@
   top: 176px;
   width: 470px;
   height: 67px;
-  overflow: hidden;
   position: absolute;
   font-family: "C_Trebuchet", sans-serif;
   font-weight: bold;
@@ -62,9 +60,13 @@
   overflow: hidden;
 }
 
-.titleText {
-  display: inline-block;
-  white-space: nowrap;
+.picture {
+  position: absolute;
+  top: 94px;
+  right: 101px;
+  width: 129px;
+  height: 129px;
+  object-fit: contain;
 }
 .symbolOverlay {
   width: 85px;

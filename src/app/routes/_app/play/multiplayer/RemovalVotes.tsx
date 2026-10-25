@@ -1,5 +1,7 @@
 import { Avatar, Button, Group, Indicator, Stack, Text, VisuallyHidden } from '@mantine/core';
+import { alliesOf } from '@shared/play/alliances';
 import { TABLE_CONVERSATION } from '@shared/play/conversations';
+import { factionTokenOf } from '@shared/play/factionToken';
 import type { PublicControls } from '@shared/play/inventory';
 import type { RemovalVote } from '@shared/play/removal';
 import { rosterSeat } from '@shared/play/schema';
@@ -14,7 +16,8 @@ import { useEffect, useSyncExternalStore } from 'react';
 import { useFactionPageSlug } from '@db/factions';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
-import { allianceHue, PlayerAlliance } from './Alliances';
+import { alliedFactionColors, allianceRingStyle } from './allianceColors';
+import { PlayerAlliance } from './Alliances';
 import { Conversation } from './Conversation';
 import { FactionDetails } from './FactionDetails';
 import { PLAYER_CONVERSATION_GUIDANCE, PLAYER_INFO_GUIDANCE, TABLE_CONVERSATION_GUIDANCE } from './panelGuidance';
@@ -252,7 +255,7 @@ export function PlayerPanel({
 }
 
 /*
- * One player in the rail, their avatar ringed in their alliance's hue and dotted while a vote, a request or unread messages wait.
+ * One player in the rail, their avatar ringed in their allies' faction colours and dotted while a vote, a request or unread messages wait.
  * It is an element rather than a component because the rail only sees items it is handed directly.
  */
 function playerItem(
@@ -272,31 +275,26 @@ function playerItem(
 ) {
   const token = table.snapshot.swapping?.tokens[entry.seat];
   const unreadLabel = unread ? `, ${unread} unread` : '';
-  const hue = allianceHue(table.snapshot, seatFaction(table, entry.seat));
+  const colors = alliedFactionColors(table.snapshot, seatFaction(table, entry.seat));
   return (
     <NestedTabs.Item
       key={entry.seat}
       as="button"
       type="button"
       path={[entry.seat]}
-      label={`${entry.name}${hue ? ', in an alliance' : ''}${active ? ', removal vote in progress' : ''}${requested ? ', a spectator asks for this seat' : ''}${unreadLabel}`}
+      label={`${entry.name}${colors.length ? ', in an alliance' : ''}${active ? ', removal vote in progress' : ''}${requested ? ', a spectator asks for this seat' : ''}${unreadLabel}`}
       icon={
         <Indicator
-          color={active ? 'red.6' : requested ? 'yellow.5' : undefined}
+          color={active ? 'red.6' : requested ? 'slate.3' : undefined}
           size={16}
           label={unread || undefined}
           disabled={!active && !requested && !unread}
         >
-          <Avatar
-            src={token ?? entry.avatar}
-            size={26}
-            radius="xl"
-            alt=""
-            /* Allies share a ring, one hue per alliance. */
-            style={hue ? { boxShadow: `0 0 0 2px ${hue}` } : undefined}
-          >
-            {entry.name.slice(0, 1)}
-          </Avatar>
+          <span style={allianceRingStyle(colors)}>
+            <Avatar src={token ?? entry.avatar} size={26} radius="xl" alt="">
+              {entry.name.slice(0, 1)}
+            </Avatar>
+          </span>
         </Indicator>
       }
       onClick={() => {
@@ -402,5 +400,93 @@ function FactionPageButton({ slug, name }: Readonly<{ slug: string; name: string
       View {name}
       <VisuallyHidden> (opens in a new tab)</VisuallyHidden>
     </Button>
+  );
+}
+
+/*
+ * Design exploration (controls layout, palette stage 2): each player as a window of their own, and what the chat bar beside
+ * the palette shows for them. Only the exploration's stories read these.
+ */
+type PlayerWindowEntry = Readonly<{
+  seat: string;
+  name: string;
+  factionName: string | null;
+  token: string | null;
+  unread: number;
+  own: boolean;
+  canConverse: boolean;
+  attention: boolean;
+  ally: boolean;
+}>;
+
+/** The players' windows for a controls experiment; with none on (every real game), nothing is looked up. */
+export function usePlayerWindows(client: TableSession, table: TableProjection, enabled: boolean) {
+  const { conversations } = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getSnapshot);
+  if (!enabled) {
+    return null;
+  }
+  const votes = table.snapshot.removalVotes ?? [];
+  const asked = requestedSeats(table);
+  const viewerSeat = table.viewer.viewerSeat;
+  const ownFaction = viewerSeat ? seatFaction(table, viewerSeat) : undefined;
+  const allies = ownFaction ? alliesOf(table.snapshot.alliances, ownFaction) : [];
+  const players: PlayerWindowEntry[] = seatPlayers(table).map((player) => {
+    const faction = rosterSeat(table.snapshot.roster, player.seat)?.faction;
+    const peerId = seatFaction(table, player.seat);
+    const token = faction ? factionTokenOf(table.snapshot.table.pieces, faction.id)?.items[0]?.artwork?.front : null;
+    return {
+      seat: player.seat,
+      name: player.name,
+      factionName: faction?.name ?? null,
+      token: token ?? table.snapshot.swapping?.tokens[player.seat] ?? player.avatar ?? null,
+      unread: conversations.summaries.find((entry) => entry.peerId === peerId)?.unread ?? 0,
+      own: player.seat === table.viewer.viewerSeat,
+      canConverse: Boolean(peerId && conversations.context?.peers.some((peer) => peer.id === peerId)),
+      attention: votes.some((vote) => vote.target.seat === player.seat) || asked.has(player.seat),
+      ally: Boolean(peerId && allies.includes(peerId)),
+    };
+  });
+  return {
+    players,
+    tableChat: conversations.context
+      ? { unread: conversations.summaries.find((entry) => entry.peerId === TABLE_CONVERSATION)?.unread ?? 0 }
+      : null,
+  };
+}
+
+/** One player's window: their conversation and their public information, without the rail of every player. */
+export function PlayerWindow({
+  client,
+  table,
+  seat,
+  tab,
+  error,
+}: Props & Readonly<{ seat: string; tab: 'public' | 'conversation'; error: string | null }>) {
+  const { conversations } = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getSnapshot);
+  const player = seatPlayers(table).find((entry) => entry.seat === seat);
+  if (seat === TABLE_CONVERSATION) {
+    return conversations.context ? (
+      <Conversation
+        key={`${conversations.context.factionId}:${TABLE_CONVERSATION}`}
+        client={client}
+        peerId={TABLE_CONVERSATION}
+      />
+    ) : null;
+  }
+  if (!player) {
+    return null;
+  }
+  const vote = (table.snapshot.removalVotes ?? []).find((entry) => entry.target.seat === seat);
+  const peerId = seatFaction(table, seat);
+  if (tab === 'conversation' && peerId && conversations.context?.peers.some((peer) => peer.id === peerId)) {
+    return <Conversation key={`${conversations.context.factionId}:${peerId}`} client={client} peerId={peerId} />;
+  }
+  return (
+    <Stack gap="lg">
+      {error && <FormError title="From the table">{error}</FormError>}
+      {vote && <OpenVote client={client} table={table} vote={vote} />}
+      <VacantSeatRequests client={client} table={table} seat={seat} />
+      <PlayerInformation client={client} table={table} player={player} hasVote={Boolean(vote)} />
+    </Stack>
   );
 }

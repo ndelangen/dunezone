@@ -39,7 +39,7 @@ export function RulebookPieceMovementBlock({ block }: Readonly<{ block: Movement
       outcome={block.outcome}
       visual={
         <div className="rulebookMovementVisual" data-with-board={Boolean(block.board) || undefined}>
-          {block.board ? <RulebookBoardSceneVisual scene={block.board} /> : null}
+          {block.board ? <RulebookBoardSceneVisual scene={block.board} blockId={block.id} /> : null}
           <div>
             <RulebookPieceTransferVisual value={block} />
             {block.notes?.length ? (

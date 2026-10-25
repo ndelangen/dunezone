@@ -2,13 +2,12 @@ import { mkdtemp, readdir, rm } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import type { SQLOutputValue } from 'node:sqlite';
 import { DatabaseSync } from 'node:sqlite';
 import { fileURLToPath } from 'node:url';
 
 import type { IncomingRequestCfProperties, SqlStorageValue } from '@cloudflare/workers-types/experimental/index.ts';
-import type { FunctionArgs } from 'convex/server';
 import { build } from 'esbuild';
 import { Miniflare, convertV4MiniflareOptions } from 'miniflare';
 import type { RequestInit, V4WorkerdStructuredLog } from 'miniflare';
@@ -16,7 +15,6 @@ import { WebSocketServer } from 'ws';
 import type { WebSocket as PeerSocket, RawData } from 'ws';
 import { z } from 'zod';
 
-import type { api } from '../../convex/_generated/api';
 import type { HistoricalFactionPublicationObject } from '../../src/shared/factions/schema';
 import type { homepageAdmissionSchema } from '../../src/shared/homepage/protocol';
 import type { homepageMessageSchema } from '../../src/shared/homepage/protocol';
@@ -60,14 +58,10 @@ type AccountResult = Extract<z.infer<typeof playReconcileAccountsResultSchema>, 
 type Allowed = boolean | ((registrationId: string) => boolean);
 export type NativeMessage = ServerMessage & Partial<ServerClock>;
 export type NativeView = RoomView & Partial<ServerClock>;
-const assetTypesArgsSchema = z.object({ types: z.array(z.string()) }) satisfies z.ZodType<
-  FunctionArgs<typeof api.assets.listByTypes>
->;
 const peerBodySchema = z.object({ path: z.string(), args: z.tuple([z.unknown()]) });
 const frameTypeSchema = z.object({ type: z.string() });
 const optionalClockSchema = serverClockSchema.partial();
 const peerRequestSchema = z.discriminatedUnion('function', [
-  z.object({ function: z.literal('assets:listByTypes'), args: assetTypesArgsSchema }),
   z.object({
     function: z.literal('playCatalogue:assetSupply'),
     args: z.object({ type: z.string(), slug: z.string() }),
@@ -225,6 +219,27 @@ export function required<T>(value: T, message = 'Expected the fixture value to e
 
 const directory = dirname(fileURLToPath(import.meta.url));
 const repository = join(directory, '../..');
+const runtimeEntries = {
+  probe: join(directory, 'authorization.native.fixture.ts'),
+  game: join(directory, 'game-room.native.fixture.ts'),
+  load: join(directory, 'load-limits.native.fixture.ts'),
+  homepage: join(directory, 'homepage.native.fixture.ts'),
+};
+/*
+ * Worker code is immutable within a test file, while every runtime owns a fresh process and database.
+ * Compile during fixture loading so repeated builds cannot consume hook budgets or compete with another test's commands.
+ */
+const prepared = await build({
+  entryPoints: runtimeEntries,
+  outdir: join(tmpdir(), 'dunezone-native-game-bundles'),
+  bundle: true,
+  format: 'esm',
+  platform: 'browser',
+  target: 'es2022',
+  write: false,
+  external: ['cloudflare:workers', 'node:*'],
+});
+const runtimeScripts = new Map(prepared.outputFiles.map((file) => [basename(file.path, '.js'), file.text]));
 const gameId = 'fixture-game';
 const secret = 'a'.repeat(64);
 const attemptId = 'b'.repeat(64);
@@ -346,9 +361,6 @@ function accountStates(
 
 function answerPeerRequest(peer: NativePeer, record: PeerRequest) {
   switch (record.function) {
-    case 'assets:listByTypes':
-      record.release([...peer.catalogue.values()].map((page) => page.asset));
-      break;
     case 'playCatalogue:assetSupply':
       if (peer.catalogueMode !== 'hold') {
         record.release(peer.catalogue.get(`${record.args.type}/${record.args.slug}`) ?? null);
@@ -655,38 +667,23 @@ export async function createPeer(): Promise<NativePeer> {
 
 export async function createRuntime(
   peer: NativePeer,
-  kind: 'probe' | 'game' | 'load' | 'homepage' = 'probe',
+  kind: keyof typeof runtimeEntries = 'probe',
   bindings: NativeBindings = {}
 ) {
   const logs: V4WorkerdStructuredLog[] = [];
   const origin = bindings.APPLICATION_ORIGIN ?? 'http://table.test';
+  const script = runtimeScripts.get(kind);
+  if (script === undefined) {
+    throw new Error(`The native ${kind} Worker was not compiled during fixture loading.`);
+  }
   const persistence = await mkdtemp(join(tmpdir(), 'dunezone-native-game-'));
-  const built = await build({
-    entryPoints: [
-      join(
-        directory,
-        {
-          probe: 'authorization.native.fixture.ts',
-          game: 'game-room.native.fixture.ts',
-          load: 'load-limits.native.fixture.ts',
-          homepage: 'homepage.native.fixture.ts',
-        }[kind]
-      ),
-    ],
-    bundle: true,
-    format: 'esm',
-    platform: 'browser',
-    target: 'es2022',
-    write: false,
-    external: ['cloudflare:workers', 'node:*'],
-  });
   const configure = (overrides: NativeBindings = {}) =>
     convertV4MiniflareOptions({
       handleStructuredLogs: (log) => logs.push(log),
       rootPath: repository,
       resourcePersistencePath: persistence,
       modules: true,
-      script: built.outputFiles[0].text,
+      script,
       compatibilityDate: '2026-08-11',
       compatibilityFlags: ['nodejs_compat'],
       durableObjects:

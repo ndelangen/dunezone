@@ -20,7 +20,7 @@ const mixedBlocks = validBlocks(
 const meta = preview.meta({
   component: FormattedText,
   globals: {
-    backgrounds: { value: 'light', grid: false },
+    backgrounds: { value: 'dark', grid: false },
   },
   parameters: { layout: 'padded' },
 });
@@ -34,7 +34,6 @@ export const MixedBlocks = meta.story({
 export const Dark = meta.story({
   globals: {
     backgrounds: { value: 'dark', grid: false },
-    colorScheme: 'dark',
   },
   args: {
     blocks: mixedBlocks,

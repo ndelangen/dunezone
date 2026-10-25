@@ -33,7 +33,7 @@ export const BLOG_POST_META: Record<BlogPostSlug, BlogPostMeta> = {
   'building-a-dune-sandbox': {
     slug: 'building-a-dune-sandbox',
     title: "Playing Dune online: why I'm building a sandbox for homebrew",
-    date: '2026-10-21',
+    date: '2026-10-26',
     author: 'Central419',
     summary:
       'Why I love Treachery.Online, why my group still plays Dune on Tabletop Simulator, and why I want a sandbox in the browser with room for homebrew.',
@@ -41,6 +41,19 @@ export const BLOG_POST_META: Record<BlogPostSlug, BlogPostMeta> = {
       key: '/web/blog/building-a-dune-sandbox/game-table.jpg',
       alt: 'The dune.zone game table during the spice blow: the Dune board with troops, faction shields and the treachery deck',
       aspect: 1019 / 2048,
+    },
+  },
+  'dune-board-game-style-guide': {
+    slug: 'dune-board-game-style-guide',
+    title: 'The unofficial Dune board game style guide: every font, colour and texture in the GF9 edition',
+    date: '2026-10-23',
+    author: 'Central419',
+    summary:
+      'The fonts Gale Force Nine used in Dune and where each one appears, the colours of every faction and card, the textures and frames under them, and how the leader portraits changed from the base game to Ecaz & Moritani.',
+    cover: {
+      key: '/web/blog/dune-board-game-style-guide/faction-palette.jpg',
+      alt: 'Swatch cards for twelve Dune factions, each with its token, its light and shade colours in hex and its texture number',
+      aspect: 1330 / 1792,
     },
   },
   'drawing-dune-tokens-and-cards': {

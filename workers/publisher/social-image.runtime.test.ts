@@ -106,6 +106,70 @@ test('renders bounded PNGs from local publications with zero outbound requests',
       completedRenders += 1;
       return png;
     };
+    phase = 'full-size boards';
+    const boardKey = 'boards/abcdefghijklmnop/board.jpg';
+    const board = await sharp(
+      Buffer.from(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="1948" height="1948">' +
+          '<rect width="1948" height="1948" fill="#ff0000"/>' +
+          '<rect x="974" width="974" height="1948" fill="#0000ff"/></svg>'
+      )
+    )
+      .jpeg()
+      .toBuffer();
+    const boardComment = Buffer.alloc(60_004, 32);
+    boardComment.set([0xff, 0xfe, 0xea, 0x62]);
+    const fullBoard = Buffer.concat([board.subarray(0, 2), ...Array<Buffer>(40).fill(boardComment), board.subarray(2)]);
+    expect(fullBoard.byteLength).toBeGreaterThan(2_000_000);
+    expect(fullBoard.byteLength).toBeLessThan(3_000_000);
+    await bucket.put(boardKey, fullBoard);
+    for (let batch = 0; batch < 3; batch += 1) {
+      const boards = await Promise.all(
+        [0, 1].map((index) =>
+          render(
+            socialCardHref({
+              name: `Arrakis ${batch}-${index}`,
+              kind: 'Board',
+              description: '',
+              image: `/published/${boardKey}`,
+            })
+          )
+        )
+      );
+      for (const png of boards) {
+        for (const [left, top, channel] of [
+          [755, 148, 0],
+          [1105, 148, 2],
+          [755, 498, 0],
+          [1105, 498, 2],
+        ] as const) {
+          const pixel = await sharp(png).extract({ left, top, width: 1, height: 1 }).raw().toBuffer();
+          expect(pixel[channel]).toBeGreaterThan(240);
+          expect(pixel[1]).toBeLessThan(15);
+          expect(pixel[3]).toBe(255);
+        }
+      }
+    }
+    const roundBoard = await render(
+      socialCardHref({
+        name: 'Arrakis',
+        kind: 'Board',
+        description: '',
+        image: `/published/${boardKey}`,
+        shape: 'round',
+      })
+    );
+    for (const [left, top] of [
+      [755, 148],
+      [1105, 148],
+      [755, 498],
+      [1105, 498],
+    ]) {
+      const corner = await sharp(roundBoard).extract({ left, top, width: 1, height: 1 }).raw().toBuffer();
+      expect([...corner]).toEqual([23, 46, 48, 255]);
+    }
+    const boardCenter = await sharp(roundBoard).extract({ left: 950, top: 323, width: 1, height: 1 }).raw().toBuffer();
+    expect(boardCenter[2]).toBeGreaterThan(240);
     phase = 'publications and cache';
     const cover = await sharp({ create: { width: 840, height: 1188, channels: 3, background: '#ff0000' } })
       .jpeg()

@@ -1,6 +1,9 @@
+import { PROFILE_FAQ_PAGE_SIZE, parseProfileFaqPages } from '../../src/shared/profiles/faqActivity';
+import type { ProfileFaqPages } from '../../src/shared/profiles/faqActivity';
 import { rulesetCoverThumbUrl } from '../../src/shared/rulesets/cover';
 import type { Doc, Id } from '../_generated/dataModel';
 import type { QueryCtx } from '../types';
+import { projectFaqListItems } from './faqRulesetList';
 import { memoised } from './memoised';
 import { profileSummaryReader } from './profileSummary';
 
@@ -85,4 +88,50 @@ export async function loadFaqAnswersGivenBy(ctx: QueryCtx, profileId: Id<'users'
     })
   );
   return listed.filter((answer) => answer !== null);
+}
+
+/** One question per row, sharing the projection used by ruleset, search and related FAQ lists. */
+export async function loadProfileFaqLists(
+  ctx: QueryCtx,
+  asked: Awaited<ReturnType<typeof loadFaqQuestionsAskedBy>>,
+  answers: Awaited<ReturnType<typeof loadFaqAnswersGivenBy>>,
+  pages: ProfileFaqPages
+) {
+  const parsed = parseProfileFaqPages(pages);
+  const answeredQuestions = (
+    await Promise.all(
+      [...new Set(answers.map((answer) => answer.faq_item.id))].map((id) => ctx.db.get('faq_items', id))
+    )
+  )
+    .filter((item) => item !== null)
+    .sort((a, b) => b.created_at.localeCompare(a.created_at) || b._creationTime - a._creationTime);
+  const windowOf = <T>(items: T[], requested: number | undefined) => {
+    const pageCount = Math.max(1, Math.ceil(items.length / PROFILE_FAQ_PAGE_SIZE));
+    const page = Math.min(requested ?? 1, pageCount);
+    return { page, pageCount, items: items.slice((page - 1) * PROFILE_FAQ_PAGE_SIZE, page * PROFILE_FAQ_PAGE_SIZE) };
+  };
+  const askedPage = windowOf(asked, parsed.askedPage);
+  const answeredPage = windowOf(answeredQuestions, parsed.answeredPage);
+  const rulesets = new Map([...asked, ...answers].map((row) => [row.ruleset.id, row.ruleset]));
+  const items = new Map<Id<'faq_items'>, Doc<'faq_items'>>();
+  for (const { ruleset: _ruleset, ...question } of askedPage.items) {
+    items.set(question._id, question);
+  }
+  for (const question of answeredPage.items) {
+    items.set(question._id, question);
+  }
+  const projected = await projectFaqListItems(ctx, [...items.values()]);
+  const rows = new Map(
+    projected.map((item) => {
+      const ruleset = rulesets.get(item.ruleset_id);
+      if (!ruleset) {
+        throw new Error(`Ruleset ${item.ruleset_id} missing for FAQ item ${item._id}`);
+      }
+      return [item._id, { ...item, ruleset: { id: ruleset.id, name: ruleset.name, slug: ruleset.slug } }];
+    })
+  );
+  return {
+    asked: { ...askedPage, items: askedPage.items.flatMap((item) => rows.get(item._id) ?? []) },
+    answered: { ...answeredPage, items: answeredPage.items.flatMap((item) => rows.get(item._id) ?? []) },
+  };
 }

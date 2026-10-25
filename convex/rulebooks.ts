@@ -4,7 +4,6 @@ import type { ObjectType } from 'convex/values';
 
 import {
   createRulebookLocalId,
-  isRulebookLayoutSupported,
   RULEBOOK_CATALOGUE_VERSION,
   rulebookContentsV1Schema,
   rulebookEditionContentsV1Schema,
@@ -28,7 +27,8 @@ import {
 import { rulesetViewerAccessValidator } from './lib/collaborativeAccessValidators';
 import { recordFormerSlug } from './lib/formerSlugs';
 import { requireAuthUserId } from './lib/policy';
-import { isRulebookCoverImageDeliveryUrl } from './lib/rulebookCoverImage';
+import { rulebookCoverImageOrigins } from './lib/rulebookCoverImage';
+import { assertRulebookDraftCompatibility } from './lib/rulebookDraftValidation';
 import {
   ensureRulebookEditionArtifacts,
   rulebookEditionArtifactReadinessValidator,
@@ -40,11 +40,16 @@ import {
   contentsForRulebookEdition,
   insertRulebookEditionContents,
   rulebookContentsHashesMatch,
+  rulebookAuthoredHash,
+  rulebookAuthoredHashesMatch,
+  rulebookContentsMatch,
   rulebookDraftContentsHash,
   rulebookEditionContentsHash,
 } from './lib/rulebookEditionContents';
 import {
   listRulesetRulebooks,
+  listRulesetRulebookCloneChoices,
+  rulebookCloneChoiceValidator,
   rulebookMetadata as metadataFrom,
   rulebookMetadataValidator,
   rulebookListEntryValidator,
@@ -66,8 +71,10 @@ const savedDraftValidator = v.object({
   _creationTime: v.number(),
   rulebook_id: v.id('rulebooks'),
   revision: v.number(),
+  settings: rulebookSettingsValidator,
   contents: v.any(),
   contents_hash: v.optional(v.string()),
+  authored_hash: v.optional(v.string()),
   updated_by: v.id('users'),
   updated_at: v.string(),
 });
@@ -80,6 +87,7 @@ const editionValidator = v.object({
   edition_number: v.number(),
   contents: v.any(),
   contents_hash: v.optional(v.string()),
+  authored_hash: v.optional(v.string()),
   created_by: v.id('users'),
   created_at: v.string(),
 });
@@ -153,12 +161,16 @@ export async function storedRulebookDraft(ctx: AnyCtx, rulebookId: Id<'rulebooks
     .unique();
 }
 
-async function draftFor(ctx: AnyCtx, rulebookId: Id<'rulebooks'>) {
-  const draft = await storedRulebookDraft(ctx, rulebookId);
+async function draftFor(ctx: AnyCtx, rulebook: Doc<'rulebooks'>) {
+  const draft = await storedRulebookDraft(ctx, rulebook._id);
   if (!draft) {
     throw new Error('Rulebook draft not found');
   }
-  return { ...draft, contents: parseContents(draft.contents) };
+  return {
+    ...draft,
+    settings: rulebook.settings ?? DEFAULT_RULEBOOK_SETTINGS,
+    contents: parseContents(draft.contents),
+  };
 }
 
 /** One Edition's metadata row, without its Contents. */
@@ -333,9 +345,16 @@ async function requireRulebookOwner(ctx: MutationCtx, rulebookId: Id<'rulebooks'
 
 type RulebookCreationSource =
   | { kind: 'starter'; settings?: RulebookSettings }
-  | { kind: 'clone'; rulebook_id: Id<'rulebooks'>; design?: RulebookDesign };
+  | { kind: 'clone'; rulebook_id: Id<'rulebooks'>; design?: RulebookDesign }
+  | { kind: 'json'; contents: unknown; settings: RulebookSettings };
 
 async function contentsForCreation(ctx: MutationCtx, rulesetId: Id<'rulesets'>, source: RulebookCreationSource) {
+  if (source.kind === 'json') {
+    const contents = parseContents(source.contents);
+    const settings = rulebookSettingsSchema.parse(source.settings);
+    assertRulebookDraftCompatibility({ schemaVersion: 1, pageOrder: [], pagesById: {} }, contents, settings);
+    return { contents, settings };
+  }
   if (source.kind === 'starter') {
     return {
       contents: createRulebookEditorialStarterContents(),
@@ -348,7 +367,7 @@ async function contentsForCreation(ctx: MutationCtx, rulesetId: Id<'rulesets'>, 
   }
   const sourceSettings = sourceRulebook.settings ?? DEFAULT_RULEBOOK_SETTINGS;
   return {
-    contents: cloneContentsWithFreshIds((await draftFor(ctx, sourceRulebook._id)).contents),
+    contents: cloneContentsWithFreshIds((await draftFor(ctx, sourceRulebook)).contents),
     settings: rulebookSettingsSchema.parse({
       size: sourceSettings.size,
       design: source.design ?? sourceSettings.design,
@@ -389,13 +408,20 @@ function assertCompleteRulebookOrder(currentIds: Id<'rulebooks'>[], proposedIds:
 /** A Rulebook's first draft starts at revision 1. */
 async function insertRulebookDraft(
   ctx: MutationCtx,
-  input: { rulebookId: Id<'rulebooks'>; contents: RulebookContentsV1; updatedBy: Id<'users'>; now: string }
+  input: {
+    rulebookId: Id<'rulebooks'>;
+    contents: RulebookContentsV1;
+    settings: RulebookSettings;
+    updatedBy: Id<'users'>;
+    now: string;
+  }
 ) {
   return await ctx.db.insert('rulebook_drafts', {
     rulebook_id: input.rulebookId,
     revision: 1,
     contents: input.contents,
     contents_hash: rulebookDraftContentsHash(input.contents),
+    authored_hash: rulebookAuthoredHash(input.settings, rulebookDraftContentsHash(input.contents)),
     updated_by: input.updatedBy,
     updated_at: input.now,
   });
@@ -419,9 +445,11 @@ export async function seedRulebookDraftFromCurrentEdition(
   await insertRulebookDraft(ctx, {
     rulebookId: rulebook._id,
     contents: parseContents(readerContents(edition.contents)),
+    settings: edition.settings,
     updatedBy,
     now: nowIso(),
   });
+  await ctx.db.patch('rulebooks', rulebook._id, { settings: edition.settings });
   return true;
 }
 
@@ -456,6 +484,7 @@ async function insertRulebookBundle(
   const draftId = await insertRulebookDraft(ctx, {
     rulebookId,
     contents: input.contents,
+    settings: input.settings,
     updatedBy: input.viewerId,
     now,
   });
@@ -464,6 +493,7 @@ async function insertRulebookBundle(
     settings: input.settings,
     edition_number: 1,
     contents_hash: rulebookEditionContentsHash(input.contents),
+    authored_hash: rulebookAuthoredHash(input.settings, rulebookEditionContentsHash(input.contents)),
     created_by: input.viewerId,
     created_at: now,
   });
@@ -487,8 +517,8 @@ async function insertRulebookBundle(
   ]);
   const createdEdition = createdDocument(edition);
   return {
-    rulebook: metadataFrom(createdDocument(rulebook)),
-    draft: createdDocument(draft),
+    rulebook: metadataFrom(createdDocument(rulebook), input.settings),
+    draft: { ...createdDocument(draft), settings: input.settings },
     edition: { ...createdEdition, settings: input.settings, contents: input.contents },
   };
 }
@@ -520,7 +550,7 @@ export const creationPage = viewerQuery({
         slug: v.string(),
       }),
       viewerAccess: rulesetViewerAccessValidator,
-      rulebooks: v.array(rulebookListEntryValidator),
+      rulebooks: v.array(rulebookCloneChoiceValidator),
     })
   ),
   handler: async (ctx, args) => {
@@ -532,7 +562,7 @@ export const creationPage = viewerQuery({
     return {
       ruleset: { _id: ruleset._id, name: ruleset.name, slug: ruleset.slug },
       viewerAccess,
-      rulebooks: viewerAccess.capabilities.edit ? await listRulesetRulebooks(ctx, ruleset._id) : [],
+      rulebooks: viewerAccess.capabilities.edit ? await listRulesetRulebookCloneChoices(ctx, ruleset._id) : [],
     };
   },
 });
@@ -566,8 +596,8 @@ export const editorBySlugs = viewerQuery({
       throw new Error('Not authorized');
     }
     return {
-      rulebook: metadataFrom(rulebook),
-      draft: await draftFor(ctx, rulebook._id),
+      rulebook: metadataFrom(rulebook, rulebook.settings ?? DEFAULT_RULEBOOK_SETTINGS),
+      draft: await draftFor(ctx, rulebook),
       edition: await editionFor(ctx, rulebook._id, rulebook.current_edition_number),
     };
   },
@@ -612,7 +642,11 @@ export const editionHistory = publicQuery({
       .collect();
     return {
       ruleset: { name: ruleset.name, slug: ruleset.slug },
-      rulebook: metadataFrom(rulebook),
+      rulebook: metadataFrom(
+        rulebook,
+        editions.find((edition) => edition.edition_number === rulebook.current_edition_number)?.settings ??
+          DEFAULT_RULEBOOK_SETTINGS
+      ),
       editions: await Promise.all(editions.map((edition) => rulebookEditionSummary(ctx, edition))),
     };
   },
@@ -691,7 +725,7 @@ export const readerPage = publicQuery({
     const firstPage = await rulebookFirstPagePublicationStatus(ctx, selected._id);
     return {
       ruleset: { name: ruleset.name, slug: ruleset.slug },
-      rulebook: metadataFrom(rulebook),
+      rulebook: metadataFrom(rulebook, selected.settings ?? DEFAULT_RULEBOOK_SETTINGS),
       access: await readerAccess(ctx, ruleset),
       edition: {
         first_page_image_url: firstPage.imageUrl,
@@ -752,7 +786,7 @@ async function loadReaderDelivery(ctx: QueryCtx, args: ObjectType<typeof readerD
   const image = await rulebookFirstPageImage(ctx, selected._id);
   const metadata = {
     ruleset: { name: ruleset.name, slug: ruleset.slug },
-    rulebook: metadataFrom(rulebook),
+    rulebook: metadataFrom(rulebook, selected.settings ?? DEFAULT_RULEBOOK_SETTINGS),
     edition: { ...summary, first_page_image_url: image },
     editions: editions.map(({ edition_number, created_at }) => ({ edition_number, created_at })),
   };
@@ -795,6 +829,7 @@ export const editorPage = viewerQuery({
     reference_asset_ids: v.optional(v.array(v.string())),
     reference_faction_ids: v.optional(v.array(v.string())),
     faction_token_images: v.optional(v.boolean()),
+    faction_sheet_data: v.optional(v.boolean()),
   },
   returns: v.union(
     v.null(),
@@ -811,6 +846,7 @@ export const editorPage = viewerQuery({
       hasUnpublishedChanges: v.boolean(),
       assetsById: resolvedAssetsValidator,
       factionsById: resolvedFactionsValidator,
+      coverImageOrigins: v.array(v.string()),
     })
   ),
   handler: async (ctx, args) => {
@@ -820,25 +856,32 @@ export const editorPage = viewerQuery({
     }
     const { ruleset, rulebook } = found;
     const { viewerAccess } = await loadRulesetAccessForLoadedSubject(ctx, ruleset);
-    const metadata = metadataFrom(rulebook);
+    const edition = await editionMetadataFor(ctx, rulebook._id, rulebook.current_edition_number);
     if (!viewerAccess.capabilities.edit) {
       return {
         kind: viewerAccess.viewer.kind === 'anonymous' ? ('sign-in-required' as const) : ('denied' as const),
-        rulebook: metadata,
+        rulebook: metadataFrom(rulebook, edition.settings ?? DEFAULT_RULEBOOK_SETTINGS),
       };
     }
-    const draft = await draftFor(ctx, rulebook._id);
-    const edition = await editionMetadataFor(ctx, rulebook._id, rulebook.current_edition_number);
-    /* Matching hashes settle the question from the two metadata rows; the Edition's Contents are read only when either hash is missing or stale. */
-    const hashesMatch = rulebookContentsHashesMatch(draft.contents_hash, edition.contents_hash);
+    const draft = await draftFor(ctx, rulebook);
+    const contentsHashesMatch = rulebookContentsHashesMatch(draft.contents_hash, edition.contents_hash);
+    const pairMatch =
+      contentsHashesMatch === undefined
+        ? undefined
+        : rulebookAuthoredHashesMatch(draft.authored_hash, edition.authored_hash);
+    const settingsMatch = rulebookContentsMatch(draft.settings, edition.settings ?? DEFAULT_RULEBOOK_SETTINGS);
     const hasUnpublishedChanges =
-      hashesMatch === undefined
-        ? !contentsMatch(draft.contents, parseEditionContents(await contentsForRulebookEdition(ctx, edition)))
-        : !hashesMatch;
+      pairMatch === undefined
+        ? !settingsMatch ||
+          (contentsHashesMatch === undefined
+            ? !contentsMatch(draft.contents, parseEditionContents(await contentsForRulebookEdition(ctx, edition)))
+            : !contentsHashesMatch)
+        : !pairMatch;
     return {
       kind: 'editable' as const,
+      coverImageOrigins: rulebookCoverImageOrigins(),
       canRename: viewerAccess.capabilities.rename,
-      rulebook: metadata,
+      rulebook: metadataFrom(rulebook, draft.settings),
       draft,
       currentEdition: await rulebookEditionSummary(ctx, edition),
       hasUnpublishedChanges,
@@ -846,6 +889,8 @@ export const editorPage = viewerQuery({
         assetIds: args.reference_asset_ids,
         factionIds: args.reference_faction_ids,
         factionTokenImages: args.faction_token_images === true,
+        factionSheetData: args.faction_sheet_data === true,
+        boardData: true,
       })),
     };
   },
@@ -858,6 +903,7 @@ export const create = mutation({
     name: v.string(),
     source: v.union(
       v.object({ kind: v.literal('starter'), settings: v.optional(rulebookSettingsValidator) }),
+      v.object({ kind: v.literal('json'), contents: v.any(), settings: rulebookSettingsValidator }),
       v.object({
         kind: v.literal('clone'),
         rulebook_id: v.id('rulebooks'),
@@ -887,41 +933,12 @@ export const create = mutation({
   },
 });
 
-/** Surviving Page identities retain their layout and creation-only arrangement. */
-function assertFixedPageLayouts(previous: RulebookContentsV1, next: RulebookContentsV1, settings: RulebookSettings) {
-  for (const page of Object.values(next.pagesById)) {
-    const before = previous.pagesById[page.id];
-    if (!before) {
-      if (!isRulebookLayoutSupported(page.layoutId, settings.size)) {
-        throw new ConvexError('Choose a Page layout supported by this Rulebook size.');
-      }
-      continue;
-    }
-    if (before.layoutId !== page.layoutId) {
-      throw new ConvexError('A Page layout is fixed when the Page is created.');
-    }
-    if (
-      page.layoutId === 'wide-narrow' &&
-      before.layoutId === 'wide-narrow' &&
-      before.controlValues.widePosition !== page.controlValues.widePosition
-    ) {
-      throw new ConvexError('The wide column position is fixed when the Page is created.');
-    }
-    if (
-      page.layoutId === 'band-columns' &&
-      before.layoutId === 'band-columns' &&
-      before.controlValues.bandPosition !== page.controlValues.bandPosition
-    ) {
-      throw new ConvexError('The band position is fixed when the Page is created.');
-    }
-  }
-}
-
 export const save = mutation({
   args: {
     rulebook_id: v.id('rulebooks'),
     expected_revision: v.number(),
     contents: v.any(),
+    settings: v.optional(rulebookSettingsValidator),
   },
   returns: saveResultValidator,
   handler: async (ctx, args) => {
@@ -930,37 +947,26 @@ export const save = mutation({
     const viewerId = await requireAuthUserId(ctx);
     const expectedRevision = rulebookRevisionSchema.parse(args.expected_revision);
     const contents = parseContents(args.contents);
-    const current = await draftFor(ctx, rulebook._id);
+    const current = await draftFor(ctx, rulebook);
     if (current.revision !== expectedRevision) {
       return { kind: 'stale' as const, draft: current };
     }
-    assertFixedPageLayouts(current.contents, contents, rulebook.settings ?? DEFAULT_RULEBOOK_SETTINGS);
-    for (const page of Object.values(contents.pagesById)) {
-      if (page.layoutId !== 'cover') {
-        continue;
-      }
-      const { backgroundImageUrl, backgroundImage, backgroundSource } = page.controlValues.cover;
-      const usesUrl = backgroundSource?.kind !== 'preset';
-      if (
-        (usesUrl && backgroundImageUrl && backgroundImageUrl !== backgroundImage?.sourceUrl) ||
-        (backgroundImage &&
-          ((usesUrl && backgroundImageUrl === '') || !isRulebookCoverImageDeliveryUrl(backgroundImage.url)))
-      ) {
-        throw new ConvexError('Store the cover image before saving the Rulebook.');
-      }
-    }
+    const settings = rulebookSettingsSchema.parse(args.settings ?? current.settings);
+    assertRulebookDraftCompatibility(current.contents, contents, settings, current.settings);
     const now = nowIso();
     const saved = {
       revision: current.revision + 1,
       contents,
       contents_hash: rulebookDraftContentsHash(contents),
+      authored_hash: rulebookAuthoredHash(settings, rulebookDraftContentsHash(contents)),
       updated_by: viewerId,
       updated_at: now,
     };
     await ctx.db.patch('rulebook_drafts', current._id, saved);
+    await ctx.db.patch('rulebooks', rulebook._id, { settings, updated_at: now });
     return {
       kind: 'saved' as const,
-      draft: { ...current, ...saved },
+      draft: { ...current, ...saved, settings },
     };
   },
 });
@@ -978,12 +984,12 @@ export const publish = mutation({
     await requireRulesetMaintenance(ctx, rulebook.ruleset_id);
     const viewerId = await requireAuthUserId(ctx);
     const expectedRevision = rulebookRevisionSchema.parse(args.expected_revision);
-    const draft = await draftFor(ctx, rulebook._id);
+    const draft = await draftFor(ctx, rulebook);
     if (draft.revision !== expectedRevision) {
       return { kind: 'stale' as const, draft };
     }
     const current = await editionFor(ctx, rulebook._id, rulebook.current_edition_number);
-    if (contentsMatch(draft.contents, current.contents)) {
+    if (rulebookContentsMatch(draft.settings, current.settings) && contentsMatch(draft.contents, current.contents)) {
       return {
         kind: 'unchanged' as const,
         currentEdition: await rulebookEditionSummary(ctx, current),
@@ -1004,13 +1010,14 @@ export const publish = mutation({
       throw new Error('Next Rulebook Edition already exists');
     }
     const now = nowIso();
-    const settings = rulebook.settings ?? DEFAULT_RULEBOOK_SETTINGS;
+    const settings = draft.settings;
     const contentsHash = rulebookEditionContentsHash(draft.contents);
     const editionId = await ctx.db.insert('rulebook_editions', {
       rulebook_id: rulebook._id,
       settings,
       edition_number: editionNumber,
       contents_hash: contentsHash,
+      authored_hash: rulebookAuthoredHash(settings, contentsHash),
       created_by: viewerId,
       created_at: now,
     });
@@ -1022,6 +1029,7 @@ export const publish = mutation({
       edition_number: editionNumber,
       contents: draft.contents,
       contents_hash: contentsHash,
+      authored_hash: rulebookAuthoredHash(settings, contentsHash),
       created_by: viewerId,
       created_at: now,
     };
@@ -1112,13 +1120,16 @@ export const rename = mutation({
       slug,
       updated_at: updatedAt,
     });
-    return metadataFrom({
-      ...rulebook,
-      name,
-      name_key: nameKey,
-      slug,
-      updated_at: updatedAt,
-    });
+    return metadataFrom(
+      {
+        ...rulebook,
+        name,
+        name_key: nameKey,
+        slug,
+        updated_at: updatedAt,
+      },
+      rulebook.settings ?? DEFAULT_RULEBOOK_SETTINGS
+    );
   },
 });
 

@@ -1,0 +1,42 @@
+.figure {
+  margin: 0;
+}
+.page {
+  width: 100%;
+  height: auto;
+  font-family: var(--mantine-font-family-monospace);
+  font-size: 15px;
+}
+.page rect,
+.page path {
+  fill: none;
+  stroke: var(--color-link);
+  stroke-width: 1.5;
+}
+.page text {
+  fill: var(--color-text);
+}
+.page .chrome {
+  stroke: var(--color-muted);
+}
+.page .band {
+  fill: color-mix(in srgb, var(--ui-brass) 24%, transparent);
+}
+.page .section {
+  stroke-dasharray: 5 4;
+  stroke: var(--color-muted);
+}
+.small {
+  font-size: 13px;
+}
+
+.region[data-active] > rect,
+.region[data-active] > path {
+  stroke: var(--action-export-fg);
+  stroke-width: 3;
+  fill: color-mix(in srgb, var(--action-export-fg) 14%, transparent);
+}
+.region[data-active] > text {
+  fill: var(--action-export-fg);
+  font-weight: 700;
+}

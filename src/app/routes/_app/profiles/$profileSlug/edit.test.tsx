@@ -16,6 +16,7 @@ const mocks = vi.hoisted(() => ({
   signIn: vi.fn(),
   signOut: vi.fn(),
   disconnectMethod: vi.fn(),
+  signOutEverywhere: vi.fn(),
   mutate: vi.fn(),
   useSessionViewer: vi.fn(),
   useProfileSettings: vi.fn(),
@@ -60,6 +61,7 @@ vi.mock('@db/accounts', async (importOriginal) => ({
   ...(await importOriginal<typeof Accounts>()),
   useBeginAuthConnection: () => mocks.beginConnection,
   useDisconnectAuthMethod: () => mocks.disconnectMethod,
+  useSignOutEverywhere: () => mocks.signOutEverywhere,
 }));
 
 import { Route } from './edit.route';
@@ -125,6 +127,7 @@ beforeEach(() => {
   mocks.signIn.mockReset().mockResolvedValue(undefined);
   mocks.signOut.mockReset().mockResolvedValue(undefined);
   mocks.disconnectMethod.mockReset().mockResolvedValue(undefined);
+  mocks.signOutEverywhere.mockReset().mockResolvedValue(null);
   mocks.mutate.mockReset();
   mocks.useSessionViewer.mockReset();
   mocks.useSessionViewer.mockReturnValue({ kind: 'profile', profile });
@@ -146,14 +149,6 @@ beforeEach(() => {
   document.cookie = 'motion=; path=/; max-age=0';
   document.documentElement.removeAttribute('data-mantine-color-scheme');
   vi.stubGlobal('ResizeObserver', ResizeObserverStub);
-  vi.stubGlobal(
-    'requestAnimationFrame',
-    vi.fn((callback: FrameRequestCallback) => {
-      callback(0);
-      return 1;
-    })
-  );
-  vi.stubGlobal('cancelAnimationFrame', vi.fn());
   Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
     configurable: true,
     value: vi.fn(),
@@ -205,12 +200,9 @@ describe('profile settings page', () => {
 
     await chooseTab(view, 'Appearance');
     expect(view.getByRole('radiogroup', { name: 'Ambient motion' })).not.toBeNull();
-    expect(view.getByRole('radiogroup', { name: 'Color scheme' })).not.toBeNull();
+    expect(view.queryByRole('radiogroup', { name: 'Color scheme' })).toBeNull();
     expect(
       view.getByRole('group', { name: 'Ambient motion' }).querySelector('[role="img"][aria-label="Help"]')
-    ).not.toBeNull();
-    expect(
-      view.getByRole('group', { name: 'Color scheme' }).querySelector('[role="img"][aria-label="Help"]')
     ).not.toBeNull();
     await chooseTab(view, 'Sign-in methods');
     expect(view.getByRole('button', { name: 'Disconnect Google' })).toHaveProperty('disabled', true);
@@ -248,6 +240,38 @@ describe('profile settings page', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it('ends every session after a held sign-out, then clears local authentication', async () => {
+    const view = await renderPage();
+    await chooseTab(view, 'Sign-in methods');
+    const trigger = view.getByRole('button', { name: 'Sign out on all devices' });
+    expect(trigger).toHaveProperty('disabled', false);
+    vi.useFakeTimers();
+    try {
+      fireEvent.keyDown(trigger, { key: 'Enter' });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(5000);
+      });
+      expect(mocks.signOutEverywhere).toHaveBeenCalledWith({});
+      expect(mocks.signOut).toHaveBeenCalledOnce();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('keeps the sign-out everywhere control locked while a merge is in progress', async () => {
+    mocks.useProfileSettings.mockReturnValue({
+      data: {
+        account: {
+          merging: true,
+          methods: [{ provider: 'google', connected: true, available: true }],
+        },
+      },
+    });
+    const view = await renderPage();
+    await chooseTab(view, 'Sign-in methods');
+    expect(view.getByRole('button', { name: 'Sign out on all devices' })).toHaveProperty('disabled', true);
   });
 
   it('connects from its own tab without saving the draft and releases buttons when sign-in settles', async () => {
@@ -345,10 +369,6 @@ describe('profile settings page', () => {
     const view = await renderPage();
 
     await chooseTab(view, 'Appearance');
-    fireEvent.click(view.getByRole('radio', { name: 'Dark' }));
-    expect(localStorage.getItem('dunezone-color-scheme')).toBe('dark');
-    expect(document.documentElement.getAttribute('data-mantine-color-scheme')).toBe('dark');
-
     fireEvent.click(view.getByRole('radio', { name: 'Off' }));
     expect(document.cookie).toContain('motion=off');
 
@@ -360,10 +380,7 @@ describe('profile settings page', () => {
     })) as unknown as typeof window.matchMedia;
     const systemOptions = view.getAllByRole('radio', { name: 'System' });
     fireEvent.click(systemOptions[0] as HTMLElement);
-    fireEvent.click(systemOptions[1] as HTMLElement);
     expect(document.cookie).not.toContain('motion=');
-    expect(localStorage.getItem('dunezone-color-scheme')).toBeNull();
-    expect(document.documentElement.getAttribute('data-mantine-color-scheme')).toBe('dark');
 
     await chooseTab(view, 'Profile');
     fireEvent.change(view.getByRole('textbox', { name: /Display name/ }), { target: { value: 'ChangedOwner' } });

@@ -1,4 +1,4 @@
-import { Alert } from '@mantine/core';
+import { Alert, Select } from '@mantine/core';
 import { TokenAsset } from '@shared/assets/schema';
 import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
 import type { AssetType } from '@shared/assets/types';
@@ -9,6 +9,8 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { useReducer, useState } from 'react';
 
+import { useAuthoringAccountKey } from '@db/authoring';
+import { useAuthoringPresets } from '@db/backgroundPresets';
 import { useSessionViewer } from '@db/profiles';
 import { useCreateAsset } from '@app/db/assets';
 import { postedPayload } from '@app/widgets/authoring/authoringEnvelope';
@@ -23,6 +25,7 @@ import {
   tokenDraftWarnings,
 } from '@app/widgets/token-editor/TokenEditor';
 import type { TokenChapter, TokenDraft, TokenMemory } from '@app/widgets/token-editor/TokenEditor';
+import { BackgroundLibrary } from '@game/assets/utils/BackgroundLibrary';
 
 import { referencedTokenBackFace } from '../$slug/edit/referencedBackFace';
 import { CreateBackNote, referencedBackProof } from '../$slug/edit/ReferencedBackProof';
@@ -69,9 +72,11 @@ function reduce(state: PageState, event: PageEvent): PageState {
  * A referenced backside cannot be set here: the relation needs an asset id, and there is none until the first save, so creation always starts from a custom back and the edit page offers the choice.
  */
 export function TokenCreatePage({ type }: { type: AssetType }) {
+  const authoringAccountKey = useAuthoringAccountKey();
   const navigate = useNavigate();
   const viewer = useSessionViewer();
   const createAsset = useCreateAsset();
+  const standards = useAuthoringPresets();
   const initialDraft = initialTokenDraft(type);
   const [chapter, setChapter] = useState<TokenChapter>('identity');
   const label = isAssetType(type) ? ASSET_TYPES[type].shortLabel.toLowerCase() : 'token';
@@ -142,48 +147,73 @@ export function TokenCreatePage({ type }: { type: AssetType }) {
   };
 
   return (
-    <PageLayout>
-      {header.slot}
-      <PageLayout.Toolbar>
-        <AuthoringToolbar
-          load={tokenLoad({ type, schema: LoadedTokenDraft, saveState, header, dispatch })}
-          status={{ isDirty, isNameBlank, saveState }}
-          copy={{
-            saveLabel: 'Save token',
-            nameBlankMessage: 'Add a token name before saving; it determines the token URL.',
-          }}
-          actions={{
-            onSave: save,
-            onReset: header.releasing(() => dispatch({ kind: 'replace', data: state.baseline, pick: null })),
-            onBack: () => void navigate({ to: '/assets/$type', params: { type } }),
-          }}
-        />
-      </PageLayout.Toolbar>
-      <PageLayout.Content>
-        <WorkbenchLayout gap="sm">
-          <SaveErrorAlert error={createAsset.error} />
-          {state.memory.pickBlocked && pickless ? (
-            <Alert color="yellow" variant="light" role="alert" title="No token picked">
-              Picking a token's back happens on the edit page; save with another back mode first.
-            </Alert>
-          ) : null}
-          <TokenEditor
-            nameField={nameField}
-            draft={state.data}
-            patch={patch}
-            memory={state.memory}
-            remember={(update) => dispatch({ kind: 'remember', update })}
-            type={type}
-            chapter={chapter}
-            onChapterChange={setChapter}
-            onSettle={header.settle}
-            backPicker={() => <CreateBackNote picked={state.memory.pickedBack} />}
-            backProof={referencedBackProof(state.memory.pickedBack, referencedTokenBackFace, (face) => (
-              <TokenProof face={face} type={type} />
-            ))}
+    <BackgroundLibrary presets={standards?.backgrounds ?? []} fronts={standards?.fronts}>
+      <PageLayout>
+        {header.slot}
+        <PageLayout.Toolbar>
+          <AuthoringToolbar
+            scopeKey={authoringAccountKey}
+            load={tokenLoad({ type, schema: LoadedTokenDraft, saveState, header, dispatch })}
+            status={{ isDirty, isNameBlank, saveState }}
+            copy={{
+              saveLabel: 'Save token',
+              nameBlankMessage: 'Add a token name before saving; it determines the token URL.',
+            }}
+            actions={{
+              onSave: save,
+              onReset: header.releasing(() => dispatch({ kind: 'replace', data: state.baseline, pick: null })),
+              onBack: () => void navigate({ to: '/assets/$type', params: { type } }),
+            }}
           />
-        </WorkbenchLayout>
-      </PageLayout.Content>
-    </PageLayout>
+        </PageLayout.Toolbar>
+        <PageLayout.Content>
+          <WorkbenchLayout gap="sm">
+            <SaveErrorAlert error={createAsset.error} />
+            {state.memory.pickBlocked && pickless ? (
+              <Alert color="yellow" variant="light" role="alert" title="No token picked">
+                Picking a token's back happens on the edit page; save with another back mode first.
+              </Alert>
+            ) : null}
+            {type === 'token-disc' ? (
+              <Select
+                label="Discovery preset"
+                placeholder="Choose a standard"
+                value={null}
+                data={(standards?.discovery ?? []).map((preset) => ({ value: preset.key, label: preset.label }))}
+                onChange={(key) => {
+                  const preset = standards?.discovery.find((entry) => entry.key === key);
+                  if (preset) {
+                    dispatch({
+                      kind: 'replace',
+                      data: {
+                        ...state.data,
+                        front: { ...preset.front, image: state.data.front.image },
+                        back: { mode: 'custom', face: preset.back },
+                      },
+                      pick: null,
+                    });
+                  }
+                }}
+              />
+            ) : null}
+            <TokenEditor
+              nameField={nameField}
+              draft={state.data}
+              patch={patch}
+              memory={state.memory}
+              remember={(update) => dispatch({ kind: 'remember', update })}
+              type={type}
+              chapter={chapter}
+              onChapterChange={setChapter}
+              onSettle={header.settle}
+              backPicker={() => <CreateBackNote picked={state.memory.pickedBack} />}
+              backProof={referencedBackProof(state.memory.pickedBack, referencedTokenBackFace, (face) => (
+                <TokenProof face={face} type={type} />
+              ))}
+            />
+          </WorkbenchLayout>
+        </PageLayout.Content>
+      </PageLayout>
+    </BackgroundLibrary>
   );
 }

@@ -1,4 +1,4 @@
-import preview from '@sb/preview';
+import { testingPreview } from '@sb/preview';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { STORYBOOK_NOW } from '@db/storybook';
@@ -14,7 +14,7 @@ import {
 } from './game.stories.fixture';
 import { productTransport, playingSnapshot } from './product.stories.fixture';
 
-const meta = preview.meta({
+const meta = testingPreview.meta({
   ...gameMeta,
   title: 'Play/Panels/Conversations',
   /* The stories load the table chunk before they render, so its cold first load falls outside their first wait (#1302). */

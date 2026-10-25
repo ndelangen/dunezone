@@ -181,6 +181,84 @@ describe('Rulebook Card guide persistence and publication', () => {
     }
   });
 
+  test.each(['gf9-core', 'gf9-expansion'] as const)(
+    'retains every illustration side and flow in %s saved and published data',
+    async (size) => {
+      const fixture = await cardGuideFixture();
+      const { owner, t, created, contents, locator, assetIds } = fixture;
+      const placements = [
+        { imageSide: 'left', textFlow: 'beside' },
+        { imageSide: 'left', textFlow: 'wrap' },
+        { imageSide: 'right', textFlow: 'beside' },
+        { imageSide: 'right', textFlow: 'wrap' },
+      ] as const;
+      const sources = [
+        { kind: 'asset', assetId: assetIds[0]! },
+        { kind: 'stock', artworkId: '/vector/decal/shield.svg' },
+      ] as const;
+      const entries: RulebookBlockDraft[] = placements.flatMap((placement, placementIndex) =>
+        sources.map((source, sourceIndex) => ({
+          id: `ENT${'23456789ABCDEFGHJKLMNPQRSTUVWXYZ'[placementIndex * sources.length + sourceIndex]}`,
+          kind: 'card-entry',
+          ...placement,
+          source,
+          name: 'Illustrated explanation',
+          size: 'small',
+          quantity: 1,
+          text: 'Keep the complete explanation with its illustration.',
+        }))
+      );
+      const page = contents.pagesById.PAGE!;
+      if (page.layoutId !== 'single-column') {
+        throw new Error('Expected single column fixture');
+      }
+      page.blocksById = rulebookContentsV1Schema.parse({
+        ...contents,
+        pagesById: {
+          PAGE: {
+            ...page,
+            blocksById: Object.fromEntries(entries.map((entry) => [entry.id, entry])),
+            blockOrderByRegion: { content: entries.map(({ id }) => id) },
+          },
+        },
+      }).pagesById.PAGE!.blocksById;
+      page.blockOrderByRegion.content = entries.map(({ id }) => id);
+      const settings = { size, design: 'illustrated' as const };
+      const saved = await owner.mutation(api.rulebooks.save, {
+        rulebook_id: created.rulebook._id,
+        expected_revision: 1,
+        settings,
+        contents,
+      });
+      expect(saved.draft.contents).toEqual(contents);
+      await owner.mutation(api.rulebooks.publish, {
+        rulebook_id: created.rulebook._id,
+        expected_revision: 2,
+        confirmed: true,
+      });
+      const reader = await t.query(api.rulebooks.readerPage, locator);
+      expect(reader?.edition).toMatchObject({ settings, contents });
+      const document = projectRulebookRenderDocument(
+        reader!.edition.contents,
+        reader!.assetsById,
+        reader!.edition.settings
+      );
+      const blocks = document.pagesById.PAGE!.regions[0]!.blocks;
+      expect(blocks).toHaveLength(entries.length);
+      for (const [index, block] of blocks.entries()) {
+        const entry = entries[index]!;
+        if (entry.kind !== 'card-entry') {
+          throw new Error('Expected Card entry');
+        }
+        expect(block).toMatchObject({
+          imageSide: entry.imageSide,
+          textFlow: entry.textFlow,
+          source: { status: 'ready' },
+        });
+      }
+    }
+  );
+
   test('clones group identities and the featured member together while preserving live references and authored content', async () => {
     const fixture = await cardGuideFixture();
     const { owner, ids, created, assetIds, contents } = fixture;

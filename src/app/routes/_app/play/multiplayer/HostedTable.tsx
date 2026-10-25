@@ -8,6 +8,7 @@ import { phaseAt, tableProgressFor } from '@shared/play/phases';
 import { setupMapVisible, setupStep } from '@shared/play/setup';
 import type { SpiceTransfer } from '@shared/play/spiceReserve';
 import { DEFAULT_TABLE_SEAT_COUNT } from '@shared/play/tableSettings';
+import { playUiColors } from '@shared/uiPalette';
 import { Link, useLocation } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { Section } from '@ui/block/Section';
@@ -17,6 +18,7 @@ import { useContext, useEffect, useMemo, useReducer, useState, useSyncExternalSt
 import type { ReactNode } from 'react';
 
 import { requestPlayAdmission, watchSeatPass } from '@db/play';
+import { SpawnAssetPicker } from '@app/pickers/SpawnAssetPicker';
 import { GameSubscription } from '@app/routes/_app/play/multiplayer/GameSubscription';
 
 import { TableSession } from '../../../../db/tabletop/TableSession';
@@ -26,6 +28,7 @@ import { PieceArtwork } from '../../../../widgets/tabletop/PieceArtwork';
 import { usePointerSession } from '../../../../widgets/tabletop/PointerSessionContext';
 import { PredictionLogosContext } from '../../../../widgets/tabletop/prediction/predictionFace';
 import { TabletopSessionProvider } from '../../../../widgets/tabletop/TabletopContext';
+import { ExperimentPlayersContext, useControlsExperiment } from '../controlsExperiments/experiment';
 import { FoilConfetti } from '../FoilConfetti';
 import { GameLink } from '../GameLink';
 import { GameTable } from '../GameTable';
@@ -65,7 +68,7 @@ import {
 } from './panelGuidance';
 import { PlaybackControls } from './PlaybackControls';
 import { publicControlsOf } from './publicControls';
-import { PlayerPanel } from './RemovalVotes';
+import { PlayerPanel, PlayerWindow, usePlayerWindows } from './RemovalVotes';
 import { useResultCelebration } from './resultCelebration';
 import { GameMenu, SeatPopover } from './SeatRequests';
 import { stageStatus, stageToolbar } from './StageHeader';
@@ -212,16 +215,34 @@ function PredictionCards({ table, factionId, turn }: { table: TableProjection; f
   const name = factionName(table, factionId);
   return (
     <svg width="300" height="190" viewBox="0 0 300 190" role="img" aria-label={`${name}, turn ${turn}`}>
-      <rect x="2" y="2" width="142" height="184" rx="10" fill="#dfcbaa" stroke="#66503a" strokeWidth="3" />
-      <rect x="156" y="2" width="142" height="184" rx="10" fill="#dfcbaa" stroke="#66503a" strokeWidth="3" />
+      <rect
+        x="2"
+        y="2"
+        width="142"
+        height="184"
+        rx="10"
+        fill={playUiColors.demoCard}
+        stroke={playUiColors.demoCardBorder}
+        strokeWidth="3"
+      />
+      <rect
+        x="156"
+        y="2"
+        width="142"
+        height="184"
+        rx="10"
+        fill={playUiColors.demoCard}
+        stroke={playUiColors.demoCardBorder}
+        strokeWidth="3"
+      />
       {token && <image href={token} x="23" y="20" width="100" height="100" />}
-      <text x="73" y="153" textAnchor="middle" fill="#302219" fontSize="13">
+      <text x="73" y="153" textAnchor="middle" fill={playUiColors.demoCardInk} fontSize="13">
         {name}
       </text>
-      <text x="227" y="62" textAnchor="middle" fill="#302219" fontSize="20">
+      <text x="227" y="62" textAnchor="middle" fill={playUiColors.demoCardInk} fontSize="20">
         TURN
       </text>
-      <text x="227" y="135" textAnchor="middle" fill="#302219" fontSize="68">
+      <text x="227" y="135" textAnchor="middle" fill={playUiColors.demoCardInk} fontSize="68">
         {turn}
       </text>
     </svg>
@@ -389,13 +410,7 @@ type PickerState = {
   selection: SpawnSelection | null;
   requestId: string | null;
 };
-type PickerEvent =
-  | { type: 'open' | 'close' }
-  | {
-      type: 'select';
-      selection: SpawnSelection | null;
-      requestId: string | null;
-    };
+type PickerEvent = { type: 'open' | 'close' } | { type: 'select'; selection: SpawnSelection; requestId: string };
 function pickerReducer(_state: PickerState, event: PickerEvent): PickerState {
   if (event.type === 'select') {
     return {
@@ -415,7 +430,6 @@ function SharedInventory({ client, table }: TableControlProps) {
     requestId: null,
   });
   const view = useSyncExternalStore(client.subscribe, client.getSnapshot);
-  const entries = view.catalogue?.entries ?? [];
   const controls = publicControlsOf(table);
   const contents = view.catalogue?.requestId === picker.requestId ? view.catalogue.contents : null;
   const pieces = table.snapshot.table.pieces.filter((piece) => piece.inventory === 'shared');
@@ -429,12 +443,7 @@ function SharedInventory({ client, table }: TableControlProps) {
           <Button
             variant="default"
             disabled={!table.canHandleTable}
-            onClick={() => {
-              if (!picker.open) {
-                client.catalogue();
-              }
-              dispatch({ type: picker.open ? 'close' : 'open' });
-            }}
+            onClick={() => dispatch({ type: picker.open ? 'close' : 'open' })}
           >
             {picker.open ? 'Close catalogue' : 'Add from catalogue'}
           </Button>
@@ -452,42 +461,33 @@ function SharedInventory({ client, table }: TableControlProps) {
           </Button>
         )}
         {picker.open && (
-          <Group align="end">
-            <Select
-              label="Catalogue asset"
-              searchable
+          <Stack gap="sm">
+            {/* The picker lists the catalogue; the table checks the choice, so a pick asks it before the request button opens. */}
+            <SpawnAssetPicker
+              value={picker.selection}
               disabled={table.reconnecting}
-              placeholder="Choose a deck, bundle or token"
-              data={entries.map((entry) => ({
-                value: `${entry.type}/${entry.slug}`,
-                label: entry.name,
-              }))}
-              value={picker.selection ? `${picker.selection.type}/${picker.selection.slug}` : null}
-              onChange={(value) => {
-                const selection = entries.find((entry) => `${entry.type}/${entry.slug}` === value) ?? null;
-                dispatch({
-                  type: 'select',
-                  selection,
-                  requestId: selection ? client.catalogue(selection) : null,
-                });
-              }}
+              onPick={({ type, slug }) =>
+                dispatch({ type: 'select', selection: { type, slug }, requestId: client.catalogue({ type, slug }) })
+              }
             />
-            <Button
-              disabled={!table.canHandleTable || !contents || !picker.selection}
-              onClick={() => {
-                if (picker.selection) {
-                  client.command({
-                    kind: 'spawn-request',
-                    type: picker.selection.type,
-                    slug: picker.selection.slug,
-                  });
-                }
-              }}
-            >
-              {controls.seats.length === 1 ? 'Spawn' : 'Request'}
-            </Button>
-            {picker.selection && <Text size="sm">{catalogueStatus(view.catalogue, picker.requestId)}</Text>}
-          </Group>
+            <Group align="center">
+              <Button
+                disabled={!table.canHandleTable || !contents || !picker.selection}
+                onClick={() => {
+                  if (picker.selection) {
+                    client.command({
+                      kind: 'spawn-request',
+                      type: picker.selection.type,
+                      slug: picker.selection.slug,
+                    });
+                  }
+                }}
+              >
+                {controls.seats.length === 1 ? 'Spawn' : 'Request'}
+              </Button>
+              {picker.selection && <Text size="sm">{catalogueStatus(view.catalogue, picker.requestId)}</Text>}
+            </Group>
+          </Stack>
         )}
         <Group align="start">
           {!pieces.length && <Text c="dimmed">The shared inventory is empty.</Text>}
@@ -680,8 +680,7 @@ function SpiceHistory({ client, table }: TableControlProps) {
   );
 }
 
-/* While a lost connection is restored the last table stays on screen, read-only, under this line. */
-/* While the table is locked the top bar says so beside the logo in one short line; the sentence behind it is the tooltip and the accessible description, and a phone keeps only the spinner. */
+/* A lost connection keeps the last table read-only, with recovery stated above it and explained on hover. */
 function ConnectionStatus({ table }: Readonly<{ table: TableProjection }>) {
   if (!table.reconnecting) {
     return null;
@@ -690,8 +689,8 @@ function ConnectionStatus({ table }: Readonly<{ table: TableProjection }>) {
   return (
     <Tooltip label={detail} withinPortal>
       <Group gap={6} wrap="nowrap" role="status" aria-label={`Reconnecting. ${detail}`}>
-        <Loader size="xs" />
-        <Text size="sm" fw={700} visibleFrom="sm" aria-hidden>
+        <Loader size="xs" color="gray.2" />
+        <Text size="sm" fw={700} aria-hidden>
           Reconnecting
         </Text>
       </Group>
@@ -1045,6 +1044,8 @@ function ConnectedTable({
   /* Each player fades the bidder for themselves, so the choice stays in this tab. */
   const [bidderFaded, setBidderFaded] = useState(false);
   const player = usePlayerSelection(table);
+  const experiment = useControlsExperiment();
+  const playerWindows = usePlayerWindows(client, table, experiment !== null);
   const stage = table.snapshot.stage;
   const factionArtwork = table.snapshot.factionArtwork;
   const predictionLogos = useMemo(
@@ -1056,62 +1057,74 @@ function ConnectedTable({
       <TabletopSessionProvider session={client}>
         {/* A boxless wrapper carries the connection state the browser verification waits on, whichever tab is open. */}
         <div data-connection={connection} data-revision={table.liveRevision} style={{ display: 'contents' }}>
-          <GameTable
-            seatCount={table.snapshot.roster?.seatCount ?? DEFAULT_TABLE_SEAT_COUNT}
-            tableProgress={progress}
-            stage={stage}
-            mapVisible={setupMapVisible(table.snapshot.setup)}
-            connectionStatus={<ConnectionStatus table={table} />}
-            alliances={<AllianceStrip table={table} />}
-            toolbarControl={stageToolbar({ client, table, error, bidderFaded, onBidderFadedChange: setBidderFaded })}
-            /* The gathered Traitor pile lies under the Tleilaxu Tanks, below the Map view's frame on a wide screen (#1635). */
-            requestedView={table.traitorsGathered ? { view: 'bottom', revision: table.traitorsGathered } : undefined}
-            showStormControls={stageInPlay(stage) && progress.activePhaseId === 'storm'}
-            sceneContent={
-              <>
-                {stageScene({ client, table, bidderFaded })}
-                {celebration.mounted && <FoilConfetti launch={celebration.launch} />}
-              </>
+          {/* Read only by the controls-layout exploration's stories. */}
+          <ExperimentPlayersContext
+            value={
+              playerWindows && {
+                ...playerWindows,
+                render: (seat, tab) => (
+                  <PlayerWindow client={client} table={table} seat={seat} tab={tab} error={error} />
+                ),
+              }
             }
-            gameMenu={
-              <>
-                {/* While drafting a spectator asks with the (+) in the roster on the table, so the popover waits for play. */}
-                {stage !== 'drafting' && <SeatPopover client={client} table={table} error={error} />}
-                <GameMenu
-                  sharing={<GameLink address={identity.address} />}
-                  client={client}
-                  table={table}
-                  onClearConfetti={celebration.hasConfetti ? celebration.clear : undefined}
-                />
-              </>
-            }
-            stageStatus={stageStatus({ client, table, identity })}
-            stageOverlay={
-              stage === 'drafting' ? <DraftingOverlay client={client} table={table} error={error} /> : undefined
-            }
-            panelContent={
-              stage === 'drafting' && !isSpectator(table) ? (
-                <DraftingPanel client={client} table={table} error={error} />
-              ) : undefined
-            }
-            playerPanel={
-              stage && stage !== 'discarded' ? (
-                <PlayerPanel
-                  client={client}
-                  table={table}
-                  error={error}
-                  selected={player.seat}
-                  selectedTab={player.tab}
-                  onSelect={player.select}
-                />
-              ) : undefined
-            }
-            focusTab={focusTab}
-            openOn={openingTabs(table)}
-            panelTabs={controlTabs({ client, table, error, declare })}
-            tableGuidance={phaseGuidance(table)}
-            tableControls={phaseTabControls({ client, table, error, progress })}
-          />
+          >
+            <GameTable
+              seatCount={table.snapshot.roster?.seatCount ?? DEFAULT_TABLE_SEAT_COUNT}
+              tableProgress={progress}
+              stage={stage}
+              mapVisible={setupMapVisible(table.snapshot.setup)}
+              connectionStatus={<ConnectionStatus table={table} />}
+              alliances={<AllianceStrip table={table} />}
+              toolbarControl={stageToolbar({ client, table, error, bidderFaded, onBidderFadedChange: setBidderFaded })}
+              /* The gathered Traitor pile lies under the Tleilaxu Tanks, below the Map view's frame on a wide screen (#1635). */
+              requestedView={table.traitorsGathered ? { view: 'bottom', revision: table.traitorsGathered } : undefined}
+              showStormControls={stageInPlay(stage) && progress.activePhaseId === 'storm'}
+              sceneContent={
+                <>
+                  {stageScene({ client, table, bidderFaded })}
+                  {celebration.mounted && <FoilConfetti launch={celebration.launch} />}
+                </>
+              }
+              gameMenu={
+                <>
+                  {/* While drafting a spectator asks with the (+) in the roster on the table, so the popover waits for play. */}
+                  {stage !== 'drafting' && <SeatPopover client={client} table={table} error={error} />}
+                  <GameMenu
+                    sharing={<GameLink address={identity.address} page={identity.page} />}
+                    client={client}
+                    table={table}
+                    onClearConfetti={celebration.hasConfetti ? celebration.clear : undefined}
+                  />
+                </>
+              }
+              stageStatus={stageStatus({ client, table, identity })}
+              stageOverlay={
+                stage === 'drafting' ? <DraftingOverlay client={client} table={table} error={error} /> : undefined
+              }
+              panelContent={
+                stage === 'drafting' && !isSpectator(table) ? (
+                  <DraftingPanel client={client} table={table} error={error} />
+                ) : undefined
+              }
+              playerPanel={
+                stage && stage !== 'discarded' ? (
+                  <PlayerPanel
+                    client={client}
+                    table={table}
+                    error={error}
+                    selected={player.seat}
+                    selectedTab={player.tab}
+                    onSelect={player.select}
+                  />
+                ) : undefined
+              }
+              focusTab={focusTab}
+              openOn={openingTabs(table)}
+              panelTabs={controlTabs({ client, table, error, declare })}
+              tableGuidance={phaseGuidance(table)}
+              tableControls={phaseTabControls({ client, table, error, progress })}
+            />
+          </ExperimentPlayersContext>
         </div>
       </TabletopSessionProvider>
     </PredictionLogosContext>
@@ -1130,7 +1143,17 @@ export default function HostedTable({
   const runtime = useContext(GameRuntimeContext);
   const here = useLocation({ select: (location) => location.href });
   const [client] = useState(
-    () => new TableSession(gameId, new GameSubscription(gameId, requestPlayAdmission, runtime, watchSeatPass), runtime)
+    () =>
+      new TableSession(
+        gameId,
+        new GameSubscription(
+          gameId,
+          runtime.admission?.request ?? requestPlayAdmission,
+          runtime,
+          runtime.admission ? runtime.admission.watchPass : watchSeatPass
+        ),
+        runtime
+      )
   );
   const view = useSyncExternalStore(client.subscribe, client.getSnapshot);
   useEffect(() => client.connect(), [client]);

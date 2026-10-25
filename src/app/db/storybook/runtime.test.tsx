@@ -6,7 +6,12 @@ import type { PropsWithChildren } from 'react';
 import { expect, test, vi } from 'vite-plus/test';
 
 import { api } from '../../../../convex/_generated/api';
-import { ConvexStorybookWorkerContext, useConvexStorybookPaginatedQuery, useConvexStorybookQuery } from './runtime';
+import {
+  ConvexStorybookWorkerContext,
+  useConvexStorybookPaginatedQuery,
+  useConvexStorybookQuery,
+  useConvexStorybookQueries,
+} from './runtime';
 import type { ConvexStorybookWorkerClient } from './runtime';
 
 function deferred<Value>() {
@@ -36,7 +41,7 @@ test('a revision refresh preserves the current query value until its replacement
   const wrapper = ({ children }: PropsWithChildren) => (
     <ConvexStorybookWorkerContext.Provider value={{ client }}>{children}</ConvexStorybookWorkerContext.Provider>
   );
-  const hook = renderHook(() => useConvexStorybookQuery(api.rulesets.list, {}), { wrapper });
+  const hook = renderHook(() => useConvexStorybookQuery(api.rulesets.catalogue, {}), { wrapper });
 
   firstQuery.resolve(initial);
   await waitFor(() => expect(hook.result.current).toBe(initial));
@@ -121,4 +126,73 @@ test('a skipped page reads nothing and a new argument starts from its own first 
   await waitFor(() => expect(hook.result.current.results).toEqual(['new']));
   await act(async () => more.resolve({ page: ['late old'], isDone: true, continueCursor: '' }));
   expect(hook.result.current.results).toEqual(['new']);
+});
+
+test('query batches return failures as values, clear changed arguments, and recover on refresh', async () => {
+  const listeners = new Set<() => void>();
+  let revision = 0;
+  const error = new Error('Query timed out');
+  let unavailable = true;
+  const query = vi.fn((_reference: unknown, args: { scope: string }) =>
+    unavailable && args.scope === 'failed' ? Promise.reject(error) : Promise.resolve(args.scope)
+  );
+  const client = {
+    getRevision: () => revision,
+    query,
+    subscribe: (listener: () => void) => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+  } as unknown as ConvexStorybookWorkerClient;
+  const wrapper = ({ children }: PropsWithChildren) => (
+    <ConvexStorybookWorkerContext.Provider value={{ client }}>{children}</ConvexStorybookWorkerContext.Provider>
+  );
+  const reference = makeFunctionReference<'query', { scope: string }, string>('test:batch');
+  const hook = renderHook(
+    ({ scope }) =>
+      useConvexStorybookQueries({
+        ready: { query: reference, args: { scope: 'ready' } },
+        changing: { query: reference, args: { scope } },
+      }),
+    { wrapper, initialProps: { scope: 'failed' } }
+  );
+  expect(hook.result.current).toEqual({ ready: undefined, changing: undefined });
+  await waitFor(() => expect(hook.result.current).toEqual({ ready: 'ready', changing: error }));
+  act(() => {
+    unavailable = false;
+    revision += 1;
+    for (const listener of listeners) {
+      listener();
+    }
+  });
+  expect(hook.result.current).toEqual({ ready: 'ready', changing: undefined });
+  await waitFor(() => expect(hook.result.current.changing).toBe('failed'));
+  hook.rerender({ scope: 'recovered' });
+  expect(hook.result.current).toEqual({ ready: 'ready', changing: undefined });
+  await waitFor(() => expect(hook.result.current.changing).toBe('recovered'));
+  await waitFor(() => expect(query).toHaveBeenCalledTimes(6));
+});
+
+test('a lazy query reads nothing while skipped and drops the last value when closed', async () => {
+  const query = vi.fn().mockResolvedValue(['ready']);
+  const client = {
+    getRevision: () => 0,
+    query,
+    subscribe: () => () => undefined,
+  } as unknown as ConvexStorybookWorkerClient;
+  const wrapper = ({ children }: PropsWithChildren) => (
+    <ConvexStorybookWorkerContext.Provider value={{ client }}>{children}</ConvexStorybookWorkerContext.Provider>
+  );
+  const reference = makeFunctionReference<'query', Record<string, never>, string[]>('test:lazy');
+  const hook = renderHook(({ open }) => useConvexStorybookQuery(reference, open ? {} : 'skip'), {
+    wrapper,
+    initialProps: { open: false },
+  });
+  expect(query).not.toHaveBeenCalled();
+  expect(hook.result.current).toBeUndefined();
+  hook.rerender({ open: true });
+  await waitFor(() => expect(hook.result.current).toEqual(['ready']));
+  hook.rerender({ open: false });
+  expect(hook.result.current).toBeUndefined();
+  expect(query).toHaveBeenCalledTimes(1);
 });

@@ -1,12 +1,17 @@
 import preview from '@sb/preview';
+import { publishingTokenFace } from '@shared/assets/fixtures/publishingTokenFace';
+import { SPAWN_PICKER_STEP } from '@shared/play/inventory';
 import { item, piece } from '@shared/play/setupSupply';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
+
+import { asset, db } from '@db/storybook';
 
 import { gameMeta, install, lastCommand, session } from './game.stories.fixture';
 import { openTab, pendingRequestTransport, phaseControls, settled } from './playing.stories.fixture';
 import {
   cardBack,
   factions,
+  productGameDatabase,
   productTransport,
   playingSnapshot as initialSnapshot,
   SIX,
@@ -26,6 +31,7 @@ const meta = preview.meta({
 const drawerFactions = factions.slice(3);
 
 export const Requests = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(pendingRequestTransport),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -98,6 +104,7 @@ export const Narrow = meta.story({
 
 /** A drawer of catalogue pieces, cards and tokens, whose thumbnails arrive through `PublishedImage` at their own shapes. */
 export const Arrival = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => {
     const snapshot = initialSnapshot();
     const tokens = drawerFactions.map(({ slug, data, token }) => {
@@ -135,6 +142,7 @@ export const Arrival = meta.story({
 });
 
 export const HiddenDeckBacks = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => {
     const snapshot = initialSnapshot();
     const card = {
@@ -171,5 +179,74 @@ export const HiddenDeckBacks = meta.story({
     );
     await expect(page.getByRole('img', { name: 'Treachery deck' })).toHaveAttribute('src', cardBack());
     await expect(page.getByRole('button', { name: 'Drag Treachery deck onto the table' })).toBeEnabled();
+  },
+});
+
+/* The baseline holds six spawnable assets; these take the catalogue past the picker's first page, so Load more has something to load. */
+const EXTRA_TOKENS = 10;
+const catalogueDatabase = db((baseline) => {
+  productGameDatabase(baseline, { state: 'ready' });
+  for (let index = 1; index <= EXTRA_TOKENS; index += 1) {
+    baseline.assets.push(
+      asset({
+        type: 'token-disc',
+        data: {
+          name: `Sietch Token ${String(index).padStart(2, '0')}`,
+          about: 'A disc token seeded for the spawn picker story.',
+          front: publishingTokenFace,
+          back: { mode: 'same' },
+        },
+      })
+    );
+  }
+});
+const SPAWNABLE_ASSETS = 6 + EXTRA_TOKENS;
+
+/**
+ * The catalogue picker: the newest spawnable assets a page at a time, a server search over the asset's and its owner's name, and a keyboard pick that asks the table to check the asset before it can be requested.
+ * The story's transport answers no catalogue read, so the check stays pending, as it does while the Worker reads the definitions.
+ */
+export const Catalogue = meta.story({
+  parameters: { chromatic: { disableSnapshot: true }, database: catalogueDatabase },
+  beforeEach: install(() => productTransport('seat-2', initialSnapshot())),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await openTab(page, 'Shared inventory');
+    await userEvent.click(await page.findByRole('button', { name: 'Add from catalogue' }, { timeout: 30_000 }));
+    const options = () => within(page.getByRole('listbox', { name: 'Catalogue assets' })).getAllByRole('option');
+    /* The row Enter would pick: Mantine marks it on the row itself, since the rows are inline rather than in a dropdown of their own. */
+    const highlighted = () => options().findIndex((option) => option.hasAttribute('data-combobox-selected'));
+    const picks = () => session.transport.messages.filter((message) => message.type === 'catalogue');
+    const search = page.getByRole('searchbox', { name: 'Search the catalogue' });
+    await waitFor(() => expect(options()).toHaveLength(SPAWN_PICKER_STEP), { timeout: 30_000 });
+    await waitFor(() => expect(highlighted()).toBe(0));
+    /* Load more grows the list under the reader's highlight, so a keyboard reader keeps their place in it. */
+    await userEvent.click(search);
+    await userEvent.keyboard('{ArrowDown}');
+    await expect(highlighted()).toBe(1);
+    await userEvent.click(page.getByRole('button', { name: 'Load more' }));
+    await waitFor(() => expect(options()).toHaveLength(SPAWNABLE_ASSETS), { timeout: 30_000 });
+    await expect(page.queryByRole('button', { name: 'Load more' })).toBeNull();
+    await expect(highlighted()).toBe(1);
+    /*
+     * Escape has no dropdown to close here, so the rows stay pickable afterwards.
+     * Enter before the typed word settles picks nothing, since the rows still answer the search before it.
+     */
+    await userEvent.click(search);
+    await userEvent.keyboard('{Escape}t{Enter}');
+    await expect(picks()).toHaveLength(0);
+    /* The search matches the deck and not the treachery card of the same name, which no game spawns on its own. */
+    await userEvent.keyboard('reachery');
+    await waitFor(() => expect(options()).toHaveLength(1), { timeout: 30_000 });
+    await expect(options()[0]).toHaveTextContent('House Treachery');
+    /* The best match is highlighted as soon as it lists, so Enter from the search box picks it without an arrow key first. */
+    await userEvent.keyboard('{Enter}');
+    await waitFor(() =>
+      expect(picks()).toEqual([
+        expect.objectContaining({ type: 'catalogue', selection: { type: 'deck', slug: 'house-treachery' } }),
+      ])
+    );
+    await expect(page.getByText('Checking published definitions and images...')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Request' })).toBeDisabled();
   },
 });

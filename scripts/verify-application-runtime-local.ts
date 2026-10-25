@@ -146,6 +146,8 @@ try {
     ...environment,
     APPLICATION_RUNTIME_FIXTURE: fixtureFile,
     ASSET_PUBLISHER_EXECUTOR_SECRET: executorSecret,
+    MEDIA_PUBLISH_TOKEN: randomBytes(32).toString('hex'),
+    MEDIA_UPLOAD_TOKEN: randomBytes(32).toString('hex'),
   });
 } finally {
   try {

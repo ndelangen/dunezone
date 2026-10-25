@@ -1,5 +1,7 @@
 /* @jsxImportSource @app/widgets/tabletop/three-jsx */
+
 import { useFrame } from '@react-three/fiber/webgpu';
+import { playUiColors } from '@shared/uiPalette';
 import type { RefObject } from 'react';
 import { useEffect, useMemo, useRef } from 'react';
 import type { Group, Material, Mesh, MeshBasicMaterial } from 'three';
@@ -27,11 +29,11 @@ export type BeaconPose = {
 export const BEACON_FRAME = { priority: -1 };
 const MARK_FRAME = { priority: -2 };
 
-const MARK = '#3fe0ff';
-const MARK_HOT = '#d8fbff';
+const MARK = playUiColors.target;
+const MARK_HOT = playUiColors.targetHot;
 /* A dark wash under the mark keeps the cyan lines readable on pale sand. */
-const UNDERLAY = '#06323a';
-const ACRYLIC = '#bff2ff';
+const UNDERLAY = playUiColors.targetUnderlay;
+const ACRYLIC = playUiColors.targetAcrylic;
 
 /* Radius of the acrylic disc a player picks up. */
 const STRIKE_DISC_RADIUS = 0.16;
@@ -96,6 +98,8 @@ function useCornerTicks(half: number, arm: number, thickness: number) {
   return geometry;
 }
 
+const FULL_TURN = Math.PI * 2;
+
 function Ring({
   inner,
   outer,
@@ -103,7 +107,7 @@ function Ring({
   opacity = 1,
   color,
   start = 0,
-  length = Math.PI * 2,
+  length = FULL_TURN,
 }: Readonly<{
   inner: number;
   outer: number;

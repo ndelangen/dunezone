@@ -6,6 +6,8 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { useReducer, useState } from 'react';
 
+import { useAuthoringAccountKey } from '@db/authoring';
+import { useAuthoringPresets } from '@db/backgroundPresets';
 import { useCardbackPresets } from '@db/cardbackPresets';
 import { useSessionViewer } from '@db/profiles';
 import { useCreateAsset } from '@app/db/assets';
@@ -24,6 +26,7 @@ import {
   initialDeckMemory,
 } from '@app/widgets/deck-editor/DeckEditor';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
+import { BackgroundLibrary } from '@game/assets/utils/BackgroundLibrary';
 import { DeckAsset as DeckAssetSchema } from '@game/data/objects';
 
 import { AssetEditorMessage, SaveErrorAlert, assetNameField } from '../../assetEditorStates';
@@ -83,6 +86,8 @@ function reduce(state: DeckState, event: DeckEvent): DeckState {
  * The Cards chapter says so rather than offering steppers that cannot write.
  */
 export function DeckCreatePage() {
+  const standards = useAuthoringPresets();
+  const authoringAccountKey = useAuthoringAccountKey();
   const presets = useCardbackPresets();
   const navigate = useNavigate();
   const viewer = useSessionViewer();
@@ -158,87 +163,90 @@ export function DeckCreatePage() {
   };
 
   return (
-    <PageLayout>
-      {header.slot}
-      <PageLayout.Toolbar>
-        <AuthoringToolbar
-          load={assetLoad({
-            noun: 'deck',
-            type: 'deck',
-            schema: LoadedDeckDraft,
-            disabled: saveState === 'saving',
-            onLoaded: header.releasing((loaded) =>
-              dispatch({
-                kind: 'replace',
-                data: loaded.data,
-                pick: loaded.source?.backDeck ?? null,
-                clonedFrom: clonedMembersOf(loaded),
-              })
-            ),
-          })}
-          status={{ isDirty, isNameBlank, saveState }}
-          copy={{
-            saveLabel: 'Save deck',
-            nameBlankMessage: 'Add a deck name before saving; it determines the deck URL.',
-          }}
-          actions={{
-            onSave: save,
-            onReset: header.releasing(() =>
-              dispatch({ kind: 'replace', data: state.baseline, pick: null, clonedFrom: null })
-            ),
-            onBack: () => void navigate({ to: '/assets/$type', params: { type: 'deck' } }),
-          }}
-        />
-      </PageLayout.Toolbar>
-      <PageLayout.Content>
-        <WorkbenchLayout gap="sm">
-          <SaveErrorAlert error={createAsset.error} />
-          {state.memory.pickBlocked && pickless ? (
-            <Alert color="yellow" variant="light" role="alert" title="No deck picked">
-              Pick a deck whose cardback this one wears, or choose another back mode.
-            </Alert>
-          ) : null}
-          <DeckEditor
-            presets={presets}
-            nameField={nameField}
-            draft={state.data}
-            patch={patch}
-            memory={state.memory}
-            remember={(update) => dispatch({ kind: 'remember', update })}
-            chapter={chapter}
-            onChapterChange={setChapter}
-            onSettle={header.settle}
-            members={(state.memory.clonedFrom?.members ?? []).map((entry) => ({
-              card: entry.member,
-              count: entry.count,
-            }))}
-            onCountChange={null}
-            cardPicker={
-              <Text size="xs" c="dimmed">
-                {state.memory.clonedFrom
-                  ? `These cards are copied from ${state.memory.clonedFrom.name} when you save. Change them after saving.`
-                  : 'Cards can be added once the deck has been saved.'}
-              </Text>
-            }
-            backPicker={
-              /*
-               * Offered before the first save, unlike the members below it: a reference is a value the draft can
-               * already hold, so nothing about it needs an id of our own. Cards, by contrast, are relation rows
-               * written against a deck that does not exist yet, which is why that slot still waits.
-               */
-              <DeckBackPicker
-                picked={state.memory.pickedBackDeck}
-                onPick={(deck) => {
-                  /* A pick is a draft edit, not a write; the reference reaches storage when the deck is saved. */
-                  dispatch({ kind: 'remember', update: { pickedBackDeck: deck } });
-                  patch({ cardback: { mode: 'reference', asset_id: deck.id } });
-                }}
-              />
-            }
-            backProof={<DeckBackProof picked={state.memory.pickedBackDeck} />}
+    <BackgroundLibrary presets={standards?.backgrounds ?? []} fronts={standards?.fronts}>
+      <PageLayout>
+        {header.slot}
+        <PageLayout.Toolbar>
+          <AuthoringToolbar
+            scopeKey={authoringAccountKey}
+            load={assetLoad({
+              noun: 'deck',
+              type: 'deck',
+              schema: LoadedDeckDraft,
+              disabled: saveState === 'saving',
+              onLoaded: header.releasing((loaded) =>
+                dispatch({
+                  kind: 'replace',
+                  data: loaded.data,
+                  pick: loaded.referencedBack ?? loaded.source?.backDeck ?? null,
+                  clonedFrom: clonedMembersOf(loaded),
+                })
+              ),
+            })}
+            status={{ isDirty, isNameBlank, saveState }}
+            copy={{
+              saveLabel: 'Save deck',
+              nameBlankMessage: 'Add a deck name before saving; it determines the deck URL.',
+            }}
+            actions={{
+              onSave: save,
+              onReset: header.releasing(() =>
+                dispatch({ kind: 'replace', data: state.baseline, pick: null, clonedFrom: null })
+              ),
+              onBack: () => void navigate({ to: '/assets/$type', params: { type: 'deck' } }),
+            }}
           />
-        </WorkbenchLayout>
-      </PageLayout.Content>
-    </PageLayout>
+        </PageLayout.Toolbar>
+        <PageLayout.Content>
+          <WorkbenchLayout gap="sm">
+            <SaveErrorAlert error={createAsset.error} />
+            {state.memory.pickBlocked && pickless ? (
+              <Alert color="yellow" variant="light" role="alert" title="No deck picked">
+                Pick a deck whose cardback this one wears, or choose another back mode.
+              </Alert>
+            ) : null}
+            <DeckEditor
+              presets={presets}
+              nameField={nameField}
+              draft={state.data}
+              patch={patch}
+              memory={state.memory}
+              remember={(update) => dispatch({ kind: 'remember', update })}
+              chapter={chapter}
+              onChapterChange={setChapter}
+              onSettle={header.settle}
+              members={(state.memory.clonedFrom?.members ?? []).map((entry) => ({
+                card: entry.member,
+                count: entry.count,
+              }))}
+              onCountChange={null}
+              cardPicker={
+                <Text size="xs" c="dimmed">
+                  {state.memory.clonedFrom
+                    ? `These cards are copied from ${state.memory.clonedFrom.name} when you save. Change them after saving.`
+                    : 'Cards can be added once the deck has been saved.'}
+                </Text>
+              }
+              backPicker={
+                /*
+                 * Offered before the first save, unlike the members below it: a reference is a value the draft can
+                 * already hold, so nothing about it needs an id of our own. Cards, by contrast, are relation rows
+                 * written against a deck that does not exist yet, which is why that slot still waits.
+                 */
+                <DeckBackPicker
+                  picked={state.memory.pickedBackDeck}
+                  onPick={(deck) => {
+                    /* A pick is a draft edit, not a write; the reference reaches storage when the deck is saved. */
+                    dispatch({ kind: 'remember', update: { pickedBackDeck: deck } });
+                    patch({ cardback: { mode: 'reference', asset_id: deck.id } });
+                  }}
+                />
+              }
+              backProof={<DeckBackProof picked={state.memory.pickedBackDeck} />}
+            />
+          </WorkbenchLayout>
+        </PageLayout.Content>
+      </PageLayout>
+    </BackgroundLibrary>
   );
 }

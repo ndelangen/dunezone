@@ -1,5 +1,6 @@
 import type { WithoutSystemFields } from 'convex/server';
 import type { GenericId } from 'convex/values';
+import { z } from 'zod';
 
 import type { components } from '../../convex/_generated/api';
 import type { Doc, Id, TableNames } from '../../convex/_generated/dataModel';
@@ -26,15 +27,15 @@ type IsOptional<Row, Field extends keyof Row> = object extends Pick<Row, Field> 
 type ReferenceRule<Value> = [ReferencedTable<Value>] extends [never]
   ? never
   :
-      | { parent: ReferencedTable<Value> }
+      | { parent: ReferencedTable<Value> | readonly ReferencedTable<Value>[] }
       | (null extends Value ? { orNull: ReferencedTable<Value> } : never)
       | ('users' extends ReferencedTable<Value> ? 'owner' : never);
 
 /**
- * Rewrites an untyped value into what the public reads of it.
+ * Rewrites a stored value into the published data the snapshot may keep.
  * It throws on a value it cannot read, and the run then stops.
  */
-type Projection = { project: (value: unknown) => unknown };
+type Projection<Value = unknown> = { project: (value: unknown) => Value };
 
 /**
  * The rule for one field of a kept row.
@@ -44,14 +45,20 @@ type Projection = { project: (value: unknown) => unknown };
  * - `owner` replaces a user reference with the placeholder owner, because no `users` row leaves production.
  * - `parent` keeps the row only when the row it points at is kept too, and drops a row that has no such reference.
  * - `orNull` sets a nullable reference to null when the row it points at is not kept.
- * - `project` writes the value as a public read shows it, for an untyped field whose public read hides part of it.
+ * - `current-edition-settings` replaces saved draft settings with the current published Edition's settings.
+ * - `project` removes source data while preserving the stored field's shape.
  *
  * The reference rules name the table the field's validator points at, so a rule aimed at the wrong table does not compile.
  */
 type FieldRule<Row, Field extends keyof Row> =
   IsAny<Row[Field]> extends true
     ? 'keep' | Projection
-    : 'keep' | (IsOptional<Row, Field> extends true ? 'drop' : never) | ReferenceRule<Row[Field]>;
+    :
+        | 'keep'
+        | Projection<Row[Field]>
+        | (IsOptional<Row, Field> extends true ? 'drop' : never)
+        | ReferenceRule<Row[Field]>
+        | (Row extends Doc<'rulebooks'> ? (Field extends 'settings' ? 'current-edition-settings' : never) : never);
 
 /** A stored row as the export has it: the schema's field names, with values not yet checked. */
 type StoredRow<Table extends TableNames> = { readonly [Field in keyof Doc<Table>]?: unknown };
@@ -96,7 +103,26 @@ const readerEditionContents: Projection = {
   project: (value) => readerContents(rulebookEditionContentsV1Schema.parse(value)),
 };
 
+const rulesetCoverSchema = z
+  .object({
+    url: z.string(),
+    thumb_url: z.string(),
+    source_url: z.string(),
+    width: z.number(),
+    height: z.number(),
+  })
+  .nullable();
+
+/** Keep the rehosted image and use it as dev's source, since the original can carry credentials. */
+const publishedRulesetCover: Projection<Doc<'rulesets'>['cover']> = {
+  project: (value) => {
+    const cover = rulesetCoverSchema.parse(value);
+    return cover === null ? null : { ...cover, source_url: cover.url };
+  },
+};
+
 export const snapshotPolicy = {
+  content_import_receipts: { drop: 'deployment-specific import receipts and author identities' },
   board_readiness: {
     fields: {
       asset_id: { parent: 'assets' },
@@ -167,6 +193,15 @@ export const snapshotPolicy = {
   catalogue_entries: {
     drop: 'catalogue read models, which the replayed catalogue backfill rebuilds from the kept rows',
   },
+  discovery_presets: {
+    fields: { key: 'keep', label: 'keep', front: 'keep', back: 'keep', revision: 'keep', updated_at: 'keep' },
+    rows: 'all',
+  },
+  background_presets: {
+    fields: { key: 'keep', name: 'keep', value: 'keep', revision: 'keep', updated_at: 'keep' },
+    rows: 'all',
+  },
+  background_uses: { fields: { key: 'keep', subject: { parent: ['assets', 'factions'] }, kind: 'keep' }, rows: 'all' },
   card_front_presets: {
     fields: { key: 'keep', style: 'keep', revision: 'keep', updated_at: 'keep' },
     rows: 'all',
@@ -224,7 +259,7 @@ export const snapshotPolicy = {
       group_id: { orNull: 'groups' },
       is_deleted: 'keep',
       image_cover: 'keep',
-      cover: 'keep',
+      cover: publishedRulesetCover,
     },
     rows: notDeleted,
   },
@@ -233,13 +268,13 @@ export const snapshotPolicy = {
     rows: 'all',
   },
   ruleset_factions: {
-    fields: { ruleset_id: { parent: 'rulesets' }, faction_id: { parent: 'factions' } },
+    fields: { ruleset_id: { parent: 'rulesets' }, faction_id: { parent: 'factions' }, position: 'keep' },
     rows: 'all',
   },
   rulebooks: {
     fields: {
       ruleset_id: { parent: 'rulesets' },
-      settings: 'keep',
+      settings: 'current-edition-settings',
       name: 'keep',
       name_key: 'keep',
       slug: 'keep',
@@ -261,6 +296,7 @@ export const snapshotPolicy = {
       edition_number: 'keep',
       /* The snapshot projects Contents for the public reader, so a hash of the stored Contents would not match; the load's backfill rewrites it. */
       contents_hash: 'drop',
+      authored_hash: 'drop',
       created_by: 'owner',
       created_at: 'keep',
     },
@@ -284,6 +320,15 @@ export const snapshotPolicy = {
     },
     rows: (row) => row.status === 'ready',
   },
+  faq_references: {
+    fields: {
+      faq_item_id: { parent: 'faq_items' },
+      question_created_at: 'keep',
+      kind: 'keep',
+      target_id: { parent: ['factions', 'assets'] },
+    },
+    rows: 'all',
+  },
   /** Questions are public on their ruleset's FAQ, and their answers are dropped, so no answer is ever accepted. */
   faq_items: {
     fields: {
@@ -295,6 +340,7 @@ export const snapshotPolicy = {
       created_at: 'keep',
       updated_at: 'keep',
       accepted_answer_id: { orNull: 'faq_answers' },
+      accepted_at: 'drop',
     },
     rows: 'all',
   },

@@ -92,6 +92,18 @@ export const Homepage = meta.story({
   },
 });
 
+/** With motion allowed, the preview's pieces arrive one after another; Chromatic captures them at rest in Homepage. */
+export const HomepageArrival = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
+  globals: { motion: 'on' },
+  args: { presentation: 'preview' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('img', { name: 'Game table' })).resolves.toBeInTheDocument();
+    await expect(page.queryByRole('alert')).toBeNull();
+  },
+});
+
 /* Installed before the story renders, since the authored board can mount before the play starts. */
 let objectUrls: MockInstance<typeof URL.createObjectURL> | undefined;
 
@@ -100,6 +112,7 @@ let objectUrls: MockInstance<typeof URL.createObjectURL> | undefined;
  * That URL is the one sign the chunk loaded and drew, since the board itself is pixels on the canvas.
  */
 export const AuthoredArrakis = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
   args: { presentation: 'play', board: arrakisBoardCapture },
   beforeEach: () => {
     objectUrls = spyOn(URL, 'createObjectURL');

@@ -4,6 +4,11 @@ import babel from '@rolldown/plugin-babel';
 import { reactCompilerPreset } from '@vitejs/plugin-react';
 import type { Logger } from 'babel-plugin-react-compiler';
 
+export const compilerSourceFilter = {
+  include: /\/src\/app\/(?:db|pickers|routes|shell|ui|widgets)\//,
+  exclude: [/\/db\/storybook\//, /\.(?:stories|test)\./],
+};
+
 /**
  * The app, Storybook and browser story tests compile the same application code.
  * Print renderers and the browser-local database runtime stay outside this rollout.
@@ -28,10 +33,7 @@ export function reactCompiler() {
   const preset = reactCompilerPreset({ target: '19', logger });
   preset.rolldown.filter = {
     ...preset.rolldown.filter,
-    id: {
-      include: /\/src\/app\/(?:db|pickers|routes|shell|ui|widgets)\//,
-      exclude: [/\/db\/storybook\//, /\.(?:stories|test)\./],
-    },
+    id: compilerSourceFilter,
   };
   return babel({ presets: [preset] });
 }

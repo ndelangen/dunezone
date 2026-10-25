@@ -14,6 +14,9 @@ import {
 } from '../../src/shared/asset-publishing/componentGeometry';
 import { resolvePublicationCapture } from '../../src/shared/asset-publishing/publicationTargets';
 import { INITIAL_CARDBACK_PRESETS } from '../../src/shared/assets/cardbackPresets';
+import discoverySpiceCards from '../../src/shared/assets/fixtures/discoverySpiceCards.json';
+import { discoveryTokenFronts, discoveryOutcomeFronts } from '../../src/shared/assets/fixtures/discoveryTokens';
+import karamaReplacement from '../../src/shared/assets/fixtures/karamaReplacement.json';
 import { publishingCustomCard } from '../../src/shared/assets/fixtures/publishingCustomCard';
 import {
   publishingCustomCardTokens,
@@ -27,7 +30,10 @@ import { publishingTreacheryCard } from '../../src/shared/assets/fixtures/publis
 import { GF9_LEADER_SKILLS } from '../../src/shared/assets/gf9LeaderSkills';
 import { GF9_NEXUS_CARDS } from '../../src/shared/assets/gf9Nexus';
 import { GF9_STRONGHOLD_CARDS } from '../../src/shared/assets/gf9StrongholdDeck';
+import { EXAMPLE_HOMEWORLD_CARD } from '../../src/shared/assets/homeworldTemplate';
+import { TreacheryAsset, TokenFace } from '../../src/shared/assets/schema';
 import { STANDARD_STORM_CARDS, STANDARD_STORM_CARDBACK } from '../../src/shared/assets/standardStormDeck';
+import { TREACHERY_BACKGROUNDS } from '../../src/shared/assets/treacheryStyles';
 import { arrakisBoard } from '../../src/shared/boards/geometry';
 import { assetPublishingFaction } from '../../src/shared/factions/fixtures/assetPublishingFaction';
 import { resolveAsset } from '../../src/shared/media/resolveAsset';
@@ -57,6 +63,13 @@ import { captureCompressedRulebookPdf } from './rulebook-pdf-stream';
 
 const repositoryRoot = path.resolve(import.meta.dirname, '../..');
 const publisherDist = path.join(repositoryRoot, 'workers/publisher/dist');
+const applicationCsp = /^\s*Content-Security-Policy: (.+)$/m.exec(
+  await Bun.file(path.join(publisherDist, '_headers')).text()
+)?.[1];
+invariant(
+  applicationCsp && !applicationCsp.includes('__APPLICATION_CSP__'),
+  'Capture regression needs the assembled CSP'
+);
 
 function envelope(assetType: string, payload: unknown) {
   return {
@@ -81,6 +94,22 @@ const spiceSnapshot = envelope('card-spice', {
   assetId: 'k17publisherContractSpice',
   slug: 'publisher-contract-spice',
   card: publishingSpiceCard,
+});
+/* A card linked to a saved board, as a save enqueues it: the board's data and each placed token's face ride in the payload (#1973). */
+const linkedSpiceSnapshot = envelope('card-spice', {
+  assetId: 'k17publisherContractLinkedSpice',
+  slug: 'publisher-contract-linked-spice',
+  card: {
+    ...publishingSpiceCard,
+    highlights: [],
+    board: {
+      asset_id: 'k17publisherBoard',
+      tints: [{ id: 'blow', name: 'Spice blow', color: '#e8b923', territories: ['funeral_plain'] }],
+      tokens: [{ layerId: 'spice-token', asset_id: 'disc-token', x: 240, y: 240, size: 40, rotation: 0 }],
+    },
+  },
+  board: arrakisBoard(),
+  tokens: { 'disc-token': publishingCustomCardTokens['disc-token'] },
 });
 const tokenSnapshot = envelope('token-disc', {
   assetId: 'k17publisherContractToken',
@@ -182,7 +211,9 @@ const server = Bun.serve({
       return new Response('Not found', { status: 404 });
     }
     const file = Bun.file(path.join(publisherDist, relative));
-    return (await file.exists()) ? new Response(file) : new Response('Not found', { status: 404 });
+    return (await file.exists())
+      ? new Response(file, { headers: { 'Content-Security-Policy': applicationCsp } })
+      : new Response('Not found', { status: 404 });
   },
 });
 
@@ -228,6 +259,22 @@ async function checkCorruptExternalUse(browser: Browser): Promise<void> {
     const result = await openCapture(page);
     invariant(result.state === 'error', `Corrupt external SVG use was reported as ${result.state}: ${result.detail}`);
   } finally {
+    await page.close();
+  }
+}
+
+async function checkCorruptCssImage(browser: Browser): Promise<void> {
+  activeSnapshot = cardSnapshot;
+  const page = await newPublisherPage(browser);
+  try {
+    await page.route('**/image/card/base-decal-large.webp', (route) =>
+      route.fulfill({ status: 200, contentType: 'image/webp', body: 'not a webp' })
+    );
+    const result = await openCapture(page);
+    invariant(result.state === 'error', `Corrupt CSS artwork was reported as ${result.state}: ${result.detail}`);
+    invariant(result.detail.includes('CSS image failed to decode'), 'Capture must report its missing CSS artwork');
+  } finally {
+    activeSnapshot = factionSnapshot;
     await page.close();
   }
 }
@@ -447,6 +494,7 @@ async function checkPublisherImageCapture(
     | 'card-custom'
     | 'card-leaderability'
     | 'card-nexus'
+    | 'card-homeworld'
     | 'card-stronghold'
     | 'card-storm'
     | 'faction-troop'
@@ -459,7 +507,8 @@ async function checkPublisherImageCapture(
     | 'rulebook-first-page',
   snapshot: ReturnType<typeof envelope>,
   label: string,
-  size?: RulebookSize
+  size?: RulebookSize,
+  assertPage?: (page: Page) => Promise<void>
 ): Promise<Uint8Array> {
   const capture = resolvePublicationCapture(assetType, size);
   invariant(capture.output === 'image', `${label} must publish as an image`);
@@ -482,10 +531,101 @@ async function checkPublisherImageCapture(
     invariant(result.payloadHash === snapshot.payloadHash, `${label} capture did not expose the exact payload hash`);
     invariant(errors.length === 0, `${label} capture emitted errors: ${errors.join(' | ')}`);
     await assertCaptureImageBounds(page, capture);
-    if (assetType === 'card-nexus') {
+    if (
+      [
+        'card-treachery',
+        'card-spice',
+        'card-custom',
+        'card-leaderability',
+        'card-nexus',
+        'card-homeworld',
+        'card-stronghold',
+        'card-storm',
+        'faction-traitor',
+        'faction-alliance',
+      ].includes(assetType)
+    ) {
+      const titles = await page.evaluate(() =>
+        Array.from(document.querySelectorAll<HTMLDivElement>('div[aria-label]'))
+          .filter(
+            (element) =>
+              element.firstElementChild instanceof HTMLSpanElement &&
+              (element.firstElementChild as HTMLElement).style.whiteSpace === 'pre'
+          )
+          .map((element) => {
+            const span = element.firstElementChild as HTMLSpanElement;
+            const range = document.createRange();
+            range.selectNodeContents(span);
+            const rect = element.getBoundingClientRect();
+            const scale = rect.width / element.clientWidth;
+            const font = getComputedStyle(span);
+            const context = document.createElement('canvas').getContext('2d')!;
+            context.font = `${font.fontStyle} ${font.fontWeight} ${font.fontSize} ${font.fontFamily}`;
+            const ink = context.measureText(span.innerText);
+            const baseline =
+              (span.getBoundingClientRect().top - rect.top) / scale +
+              (Number.parseFloat(font.lineHeight) + ink.fontBoundingBoxAscent - ink.fontBoundingBoxDescent) / 2;
+            return {
+              full: element.getAttribute('aria-label'),
+              text: span.textContent,
+              lines: range.getClientRects().length,
+              width: span.getBoundingClientRect().width / scale,
+              available: element.clientWidth,
+              top: baseline - ink.actualBoundingBoxAscent,
+              bottom: baseline + ink.actualBoundingBoxDescent,
+              height: element.clientHeight,
+            };
+          })
+      );
+      invariant(titles.length === 2, `${label} must register and render both title and subtitle`);
+      invariant(
+        titles.every(
+          (title) =>
+            title.text === title.full?.replaceAll(/\s+/gu, ' ').trim() &&
+            title.lines <= 1 &&
+            title.width <= title.available + 0.02 &&
+            title.top >= -0.02 &&
+            title.bottom <= title.height + 0.02
+        ),
+        `${label} titles were not settled before CAPTURE_PROTOCOL ready: ${JSON.stringify(titles)}`
+      );
+    }
+
+    if (assetType === 'deck' || assetType === 'cardback-preset') {
+      const glyphs = await page.locator('svg[aria-label]').evaluate((element) => {
+        const full = element.getAttribute('aria-label')!;
+        return Array.from(element.querySelectorAll('text')).map((text) => {
+          const box = text.getBBox();
+          return {
+            full,
+            text: text.textContent,
+            width: text.getComputedTextLength(),
+            x: box.x,
+            y: box.y,
+            right: box.x + box.width,
+            bottom: box.y + box.height,
+          };
+        });
+      });
+      invariant(
+        glyphs.length === 4 &&
+          glyphs.every(
+            (text) =>
+              text.text === text.full.replaceAll(/\s+/gu, ' ').trim() &&
+              text.width <= 680.02 &&
+              text.x >= 109.98 &&
+              text.right <= 790.02 &&
+              text.y >= 962.98 &&
+              text.bottom <= 1063.02
+          ),
+        `${label} mask and shade titles must fit before capture ready`
+      );
+    }
+    await assertPage?.(page);
+    if (assetType === 'card-nexus' || assetType === 'card-homeworld') {
       const regions = await page.locator('section').evaluateAll((sections) =>
         sections.map((section) => {
-          const rules = section.lastElementChild as HTMLElement;
+          const rules = section.querySelector<HTMLElement>('[data-card-effect-text]')!;
           return {
             height: rules.clientHeight,
             contentHeight: rules.scrollHeight,
@@ -497,7 +637,7 @@ async function checkPublisherImageCapture(
           };
         })
       );
-      invariant(regions.length === 3, 'Nexus capture must contain its three effects');
+      invariant(regions.length === 3, `${assetType} capture must contain its three effects`);
       invariant(
         regions.every(
           ({ height, contentHeight, width, contentWidth, top, bottom, availableBottom }) =>
@@ -507,7 +647,7 @@ async function checkPublisherImageCapture(
             bottom <= availableBottom + 1 &&
             bottom <= capture.heightPx
         ),
-        `Nexus effect text must fit its printed region: ${JSON.stringify(regions)}`
+        `Card effect text must fit its printed region: ${JSON.stringify(regions)}`
       );
     }
     if (isComponentAssetType(assetType)) {
@@ -519,12 +659,28 @@ async function checkPublisherImageCapture(
         geometry.width === capture.widthPx && geometry.height === capture.heightPx,
         `${label} geometry differs from its image`
       );
-      const expectedParts =
-        assetType === 'card-treachery'
-          ? ['decals', 'head', 'icon', 'name', 'type', 'body']
-          : assetType === 'token-enhance'
-            ? ['decals', 'body', 'ring']
-            : ['symbol', 'ring', 'top-text', 'bottom-text'];
+      let expectedParts: string[];
+      if (assetType === 'card-treachery') {
+        const card = TreacheryAsset.parse((snapshot.payload as { card: unknown }).card);
+        expectedParts = [
+          ...(card.bodyLayout !== 'text-only' && card.decals.length ? ['decals'] : []),
+          'head',
+          'icon',
+          'name',
+          'type',
+          ...(card.text.trim() ? ['body'] : []),
+        ];
+      } else if (assetType === 'token-enhance') {
+        expectedParts = ['decals', 'body', 'ring'];
+      } else {
+        const face = TokenFace.parse((snapshot.payload as { face: unknown }).face);
+        expectedParts = [
+          'symbol',
+          ...(face.ring ? ['ring'] : []),
+          ...(face.top.trim() ? ['top-text'] : []),
+          ...(face.bottomFirst.trim() || face.bottomSecond.trim() ? ['bottom-text'] : []),
+        ];
+      }
       invariant(
         JSON.stringify(geometry.parts.map(({ key }) => key)) === JSON.stringify(expectedParts),
         `${label} named geometry is incomplete`
@@ -565,6 +721,7 @@ async function checkNexusCapture(browser: Browser, card: (typeof GF9_NEXUS_CARDS
 try {
   await checkCorruptSvgImage(browser);
   await checkCorruptExternalUse(browser);
+  await checkCorruptCssImage(browser);
   await checkPublisherPdf(browser);
   for (const { id: size } of rulebookSizeCatalogue) {
     for (const { id: design } of rulebookDesignCatalogue) {
@@ -587,7 +744,60 @@ try {
   if (process.env.BOARD_PROOF_PATH) {
     await Bun.write(process.env.BOARD_PROOF_PATH, boardCapture);
   }
+  for (const name of ['Rock Outcroppings', 'Habbanya Ridge Flat']) {
+    const captured = await checkPublisherImageCapture(
+      browser,
+      'card-spice',
+      envelope('card-spice', { ...(spiceSnapshot.payload as object), card: { ...publishingSpiceCard, name } }),
+      `full Spice title ${name}`
+    );
+    if (process.env.CARD_TITLE_PROOF_DIRECTORY) {
+      await mkdir(process.env.CARD_TITLE_PROOF_DIRECTORY, { recursive: true });
+      await Bun.write(path.join(process.env.CARD_TITLE_PROOF_DIRECTORY, `${name.replaceAll(' ', '-')}.png`), captured);
+    }
+  }
+  for (const name of ['Captain Iakin Nefud', 'Margot Lady Fenring', 'Premier Ein Calimar']) {
+    const captured = await checkPublisherImageCapture(
+      browser,
+      'faction-traitor',
+      envelope('faction-traitor', {
+        ...(traitorSnapshot.payload as object),
+        name,
+        owner: 'A long non-GF9 faction owner with an unabridged name',
+      }),
+      `full Traitor title ${name}`
+    );
+    if (process.env.CARD_TITLE_PROOF_DIRECTORY) {
+      await mkdir(process.env.CARD_TITLE_PROOF_DIRECTORY, { recursive: true });
+      await Bun.write(path.join(process.env.CARD_TITLE_PROOF_DIRECTORY, `${name.replaceAll(' ', '-')}.png`), captured);
+    }
+  }
   await checkPublisherImageCapture(browser, 'card-treachery', cardSnapshot, 'card');
+  await checkPublisherImageCapture(
+    browser,
+    'card-homeworld',
+    envelope('card-homeworld', { assetId: 'k17publisherHomeworld', slug: 'pelagos', card: EXAMPLE_HOMEWORLD_CARD }),
+    'Homeworld'
+  );
+  await checkPublisherImageCapture(
+    browser,
+    'card-homeworld',
+    envelope('card-homeworld', {
+      assetId: 'k17publisherScaledHomeworld',
+      slug: 'scaled-homeworld',
+      card: { ...EXAMPLE_HOMEWORLD_CARD, name: 'Habbanya Ridge Flat', iconScale: 2 },
+    }),
+    'Homeworld with scaled planet',
+    undefined,
+    async (page) => {
+      const clearance = await page.evaluate(() => {
+        const title = document.querySelector<HTMLElement>('[aria-label="Habbanya Ridge Flat"]')!;
+        const picture = document.querySelector<HTMLImageElement>('img[class*="picture"]')!;
+        return picture.getBoundingClientRect().left - title.getBoundingClientRect().right;
+      });
+      invariant(clearance >= 9.98, `Scaled Homeworld planet overlaps the settled title: ${clearance}`);
+    }
+  );
   for (const card of GF9_NEXUS_CARDS) {
     await checkNexusCapture(browser, card); /* NOSONAR: Captures share the active snapshot. */
   }
@@ -643,8 +853,142 @@ try {
       await Bun.write(path.join(process.env.STORM_PROOF_DIRECTORY, `storm-${card.sectors}.png`), proof);
     }
   }
-  await checkPublisherImageCapture(browser, 'card-spice', spiceSnapshot, 'spice card');
+  const classicSpice = await checkPublisherImageCapture(browser, 'card-spice', spiceSnapshot, 'spice card');
+  const linkedSpice = await checkPublisherImageCapture(
+    browser,
+    'card-spice',
+    linkedSpiceSnapshot,
+    'linked spice card',
+    undefined,
+    async (page) => {
+      invariant((await page.locator('[data-tint="blow"] path').count()) > 0, 'Linked spice card must draw its tint');
+      invariant(
+        (await page.locator('[data-token-instance="spice-token"]').count()) === 1,
+        'Linked spice card must draw its placed token'
+      );
+    }
+  );
+  invariant(
+    !Buffer.from(classicSpice).equals(Buffer.from(linkedSpice)),
+    'A linked board must change the spice capture'
+  );
+  if (process.env.SPICE_PROOF_DIRECTORY) {
+    await mkdir(process.env.SPICE_PROOF_DIRECTORY, { recursive: true });
+    await Bun.write(path.join(process.env.SPICE_PROOF_DIRECTORY, 'classic.png'), classicSpice);
+    await Bun.write(path.join(process.env.SPICE_PROOF_DIRECTORY, 'linked.png'), linkedSpice);
+  }
+  const componentProof = process.env.GF9_COMPONENT_PROOF_DIRECTORY;
+  if (componentProof) {
+    await mkdir(componentProof, { recursive: true });
+  }
+  for (const card of discoverySpiceCards) {
+    const proof = await checkPublisherImageCapture(
+      browser,
+      'card-spice',
+      envelope('card-spice', {
+        assetId: 'native-discovery-' + card.name,
+        slug: 'native-discovery',
+        card,
+        board: arrakisBoard(),
+        tokens: discoveryTokenFronts,
+      }),
+      'native Discovery ' + card.name,
+      undefined,
+      async (page) => {
+        invariant(
+          (await page.locator('[data-spice-type-token]').count()) === 1,
+          'Discovery must draw its fixed type token'
+        );
+        invariant((await page.locator('[data-token-instance]').count()) === 2, 'Discovery must draw both map markers');
+        invariant((await page.locator('strong').count()) === 2, 'Discovery instructions must retain both bold spans');
+        const boxes = await page.evaluate(() => {
+          const map = document.querySelector('svg[data-look="textured-burn"]')!;
+          const tint = document.querySelector('svg:has([data-tint])')!;
+          const markers = document.querySelector('[data-token-instance]')!.parentElement!;
+          return [map, tint, markers].map((e) => e.getBoundingClientRect().top);
+        });
+        invariant(
+          boxes.every((top) => top === boxes[0]),
+          'Board, tints and markers must share one aligned map box'
+        );
+      }
+    );
+    if (componentProof) {
+      await Bun.write(path.join(componentProof, card.name.toLowerCase().replaceAll(' ', '-') + '.png'), proof);
+    }
+  }
+  for (const [kind, icon] of [
+    ['main', '/vector/icon/hand.svg'],
+    ['cache', '/vector/logo/richese.svg'],
+  ]) {
+    const proof = await checkPublisherImageCapture(
+      browser,
+      'card-treachery',
+      envelope('card-treachery', {
+        assetId: 'karama-' + kind,
+        slug: 'karama-' + kind,
+        card: {
+          ...publishingTreacheryCard,
+          ...karamaReplacement,
+          decals: [],
+          head: TREACHERY_BACKGROUNDS.special,
+          icon: [TREACHERY_BACKGROUNDS.stripedSpecial, icon],
+        },
+      }),
+      'text-only Karama ' + kind,
+      undefined,
+      async (page) => {
+        const body = page.locator('[data-component-part="body"]');
+        invariant(
+          await body.evaluate((e) => e.scrollHeight <= e.clientHeight),
+          'Karama must preserve its complete body'
+        );
+        invariant(
+          (await body.textContent())?.includes('Cannot be used to stop a Special Victory Condition'),
+          'Karama must retain its final clause'
+        );
+      }
+    );
+    if (componentProof) {
+      await Bun.write(path.join(componentProof, 'karama-' + kind + '.png'), proof);
+    }
+  }
+  for (const token of [...Object.values(discoveryTokenFronts).slice(0, 2), ...discoveryOutcomeFronts]) {
+    const proof = await checkPublisherImageCapture(
+      browser,
+      'token-disc',
+      envelope('token-disc', {
+        assetId: 'discovery-token',
+        slug: 'discovery-token',
+        face: token.face,
+      }),
+      'styled Discovery ' + token.name,
+      undefined,
+      async (page) => {
+        if (token.face.symbolShadow === false) {
+          invariant(
+            (await page.locator('[data-component-part="symbol"][filter]').count()) === 0,
+            'A shadowless symbol must not receive a glow pass'
+          );
+        }
+      }
+    );
+    if (componentProof) {
+      await Bun.write(path.join(componentProof, token.name.toLowerCase().replaceAll(' ', '-') + '.png'), proof);
+    }
+  }
   await checkPublisherImageCapture(browser, 'deck', deckSnapshot, 'deck cardback');
+  await checkPublisherImageCapture(
+    browser,
+    'deck',
+    envelope('deck', {
+      assetId: 'k17publisherLongDeck',
+      slug: 'long-storm-deck',
+      cardback: { ...publishingDeckCardback, name: 'A very long custom Storm deck label: Écaz & Moritani' },
+    }),
+    'long Storm deck back title'
+  );
+
   const stormBack = await checkPublisherImageCapture(
     browser,
     'cardback-preset',

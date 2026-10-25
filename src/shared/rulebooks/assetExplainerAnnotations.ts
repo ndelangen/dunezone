@@ -58,7 +58,11 @@ function sameSource(left: RulebookSourceReference | undefined, right: RulebookSo
     case 'stock':
       return right.kind === 'stock' && left.artworkId === right.artworkId;
     case 'faction':
-      return right.kind === 'faction' && left.factionId === right.factionId;
+      return (
+        right.kind === 'faction' &&
+        left.factionId === right.factionId &&
+        (left.presentation ?? 'emblem') === (right.presentation ?? 'emblem')
+      );
     case 'faction-troop':
       return (
         right.kind === 'faction-troop' &&
@@ -109,6 +113,7 @@ function namedMarker(part: Part, kind: RulebookSourceReference['kind']): { marke
           'top-text': { x: 0.13, y: 0.15 },
           'bottom-text': { x: 0.13, y: 0.85 },
           ring: { x: 0.9, y: 0.85 },
+          revival: { x: 0.07, y: 0.125 },
         };
   const placement = placements[part.key];
   if (placement) {

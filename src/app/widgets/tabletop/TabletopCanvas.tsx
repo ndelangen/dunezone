@@ -1,4 +1,5 @@
 /* @jsxImportSource ./three-jsx */
+
 import { Canvas, useFrame, useThree } from '@react-three/fiber/webgpu';
 import type { ComponentProps, ReactNode } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -7,20 +8,16 @@ import { NeutralToneMapping } from 'three';
 import { releaseSharedMeshes } from './sharedMeshes';
 import { TableGraphicsBoundary, TableGraphicsUnavailable } from './TableGraphicsBoundary';
 import { useTableLighting } from './tableLighting';
+import { useTablePalette } from './tablePalette';
 import { useTableGraphics } from './useTableGraphics';
 
-/**
- * Frees the renderer, and with it the canvas's WebGL context or GPU device, once the table's canvas has left the page.
- * R3F does this on unmount only for its legacy WebGLRenderer, so every remount of the table (a reconnect, a reload of the view) otherwise left a live context behind until the browser ran out of them.
- * A canvas still on the page is a remount of this component alone, as R3F's own teardown assumes, and keeps its renderer.
- */
-function ReleaseRendererOnUnmount() {
+/** Releases the table's shared shapes before Fiber disposes the renderer after root teardown. */
+function ReleaseSharedMeshesOnUnmount() {
   const renderer = useThree((state) => state.renderer);
   useEffect(
     () => () => {
       if (!renderer.domElement.isConnected) {
         releaseSharedMeshes(renderer);
-        void renderer.dispose();
       }
     },
     [renderer]
@@ -31,11 +28,12 @@ function ReleaseRendererOnUnmount() {
 /* The table's lights, scaled by this viewer's lighting choice; only they re-render while the slider moves. */
 function TableLights() {
   const lighting = useTableLighting();
+  const palette = useTablePalette();
   return (
     <>
       <ambientLight intensity={1.25 * lighting} />
-      <directionalLight position={[-4, 9, 5]} intensity={3.1 * lighting} color="#ffe2ae" />
-      <pointLight position={[5, 4, -4]} intensity={14 * lighting} distance={16} color="#d67b44" />
+      <directionalLight position={[-4, 9, 5]} intensity={3.1 * lighting} color={palette.keyLight} />
+      <pointLight position={[5, 4, -4]} intensity={14 * lighting} distance={16} color={palette.fillLight} />
     </>
   );
 }
@@ -105,7 +103,7 @@ export function TabletopCanvas({
             }}
             onCreated={presentation === 'play' ? onSceneReady : undefined}
           >
-            <ReleaseRendererOnUnmount />
+            <ReleaseSharedMeshesOnUnmount />
             <TableLights />
             {presentation === 'preview' && <PaintedFrames onReady={ready} />}
             {children}

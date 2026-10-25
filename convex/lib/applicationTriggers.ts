@@ -2,6 +2,7 @@ import { Triggers } from 'convex-helpers/server/triggers';
 
 import type { DataModel } from '../_generated/dataModel';
 import type { MutationCtx } from '../_generated/server';
+import { registerBackgroundUseTriggers } from './backgroundUses';
 import { registerBoardReadinessTriggers } from './boardReadiness';
 import { registerCatalogueTriggers } from './catalogueEntries';
 import { registerFactionCardTriggers } from './factionCards';
@@ -18,3 +19,5 @@ registerProfileDiscoveryTriggers(applicationTriggers);
 registerBoardReadinessTriggers(applicationTriggers);
 registerCatalogueTriggers(applicationTriggers);
 registerFactionCardTriggers(applicationTriggers);
+
+registerBackgroundUseTriggers(applicationTriggers);

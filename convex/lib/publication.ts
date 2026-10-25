@@ -1,3 +1,5 @@
+import type { z } from 'zod';
+
 import {
   factionLeaderAssetData,
   factionMemberPublicationId,
@@ -24,6 +26,7 @@ import {
   CUSTOM_CARD_ASSET_TYPE,
   LEADER_SKILL_ASSET_TYPE,
   NEXUS_CARD_ASSET_TYPE,
+  HOMEWORLD_CARD_ASSET_TYPE,
   STORM_CARD_ASSET_TYPE,
   SPICE_CARD_ASSET_TYPE,
   STRONGHOLD_CARD_ASSET_TYPE,
@@ -32,14 +35,36 @@ import {
 import type { FactionSheetAssetData } from '../../src/shared/asset-publishing/publication';
 import { publicationFaceId } from '../../src/shared/asset-publishing/publicationTargets';
 import type { PublicationAssetType } from '../../src/shared/asset-publishing/publicationTargets';
+import type { CardFrontStyle } from '../../src/shared/assets/cardFrontPresets';
 import { CARD_FRONT_PUBLICATION_REVISIONS, cardFrontAssetTypeSchema } from '../../src/shared/assets/cardFrontPresets';
-import { authoredCardback, DeckAsset, RectangleTokenAsset, TokenAsset } from '../../src/shared/assets/schema';
+import {
+  authoredCardback,
+  DeckAsset,
+  RectangleTokenAsset,
+  LeaderTokenAsset,
+  SPICE_BOARD_REVISION,
+  SPICE_DISCOVERY_REVISION,
+  TREACHERY_TEXT_ONLY_REVISION,
+  ROUND_TOKEN_SYMBOL_STYLE_REVISION,
+  CUSTOM_CARD_STYLED_TOKEN_REVISION,
+  STORM_CARD_STYLED_TOKEN_REVISION,
+  TreacheryAsset,
+  TokenAsset,
+} from '../../src/shared/assets/schema';
+import type { TokenFace, CustomCardTokens } from '../../src/shared/assets/schema';
 import { BoardAsset } from '../../src/shared/boards/schema';
 import { HistoricalFactionPublicationSchema } from '../../src/shared/factions/schema';
 import type { Id } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../_generated/server';
+import { resolveBackgrounds } from './backgroundPresets';
 import { resolveCardFrontPreset } from './cardFrontPresets';
 import { customCardTokenIds, customCardPublicationError, resolveCustomCardTokens } from './customCardTokens';
+import {
+  resolveSpiceCardBoard,
+  spiceCardBoardLink,
+  spiceCardPublicationError,
+  spiceCardTokenIds,
+} from './spiceCardBoard';
 
 type PublicationReadCtx = Pick<QueryCtx, 'db'> | Pick<MutationCtx, 'db'>;
 
@@ -81,6 +106,34 @@ export async function supersedePendingPublication(ctx: MutationCtx, assetType: s
   }
 }
 
+/** Only payloads that need a new treatment wait for its supporting renderer. */
+async function holdsForRenderer(ctx: MutationCtx, assetType: PublicationAssetType, assetId: string, minimum: number) {
+  if (((await publicationSettings(ctx))?.renderer_revisions[assetType] ?? 0) >= minimum) {
+    return false;
+  }
+  for (const job of await publicationJobsForAsset(ctx, assetType, assetId)) {
+    if (job.status !== 'in_progress') {
+      await ctx.db.delete(job._id);
+    }
+  }
+  return true;
+}
+
+function hasSymbolStyle(face: z.infer<typeof TokenFace>) {
+  return (
+    face.symbolFill !== undefined ||
+    face.symbolStroke !== undefined ||
+    face.symbolStrokeWidth !== undefined ||
+    face.symbolShadow !== undefined
+  );
+}
+
+function hasStyledTokens(tokens: z.infer<typeof CustomCardTokens> | undefined) {
+  return Object.values(tokens ?? {}).some(
+    (token) => token && token.type !== 'token-enhance' && hasSymbolStyle(token.face)
+  );
+}
+
 /**
  * Uniform save/scan enqueue behavior.
  * Pending work is coalesced, failed work is replaced, and an in-progress job may retain one pending successor.
@@ -95,7 +148,7 @@ export async function enqueuePublicationJob(
     componentVersion?: number;
   }
 ) {
-  const assetData = parsePublicationAssetData(input.assetType, input.assetData);
+  const assetData = parsePublicationAssetData(input.assetType, await resolveBackgrounds(ctx, input.assetData));
   const now = input.now ?? Date.now();
   const jobs = await publicationJobsForAsset(ctx, input.assetType, input.assetId);
   const pending = jobs.find((job) => job.status === 'pending');
@@ -209,6 +262,13 @@ export async function enqueueAssetPublication(
   },
   now?: number
 ) {
+  if (
+    asset.type === TREACHERY_CARD_ASSET_TYPE &&
+    TreacheryAsset.parse(asset.data).bodyLayout === 'text-only' &&
+    (await holdsForRenderer(ctx, TREACHERY_CARD_ASSET_TYPE, asset._id, TREACHERY_TEXT_ONLY_REVISION))
+  ) {
+    return null;
+  }
   const frontType = cardFrontAssetTypeSchema.safeParse(asset.type);
   const frontPreset =
     frontType.success &&
@@ -224,10 +284,12 @@ export async function enqueueAssetPublication(
         assetData: { assetId: asset._id, slug: asset.slug, board: BoardAsset.parse(asset.data).board },
         now,
       });
+    case SPICE_CARD_ASSET_TYPE:
+      return await enqueueSpiceCardPublication(ctx, asset, now, frontPreset);
     case LEADER_SKILL_ASSET_TYPE:
     case NEXUS_CARD_ASSET_TYPE:
+    case HOMEWORLD_CARD_ASSET_TYPE:
     case TREACHERY_CARD_ASSET_TYPE:
-    case SPICE_CARD_ASSET_TYPE:
     case STRONGHOLD_CARD_ASSET_TYPE:
       return await enqueuePublicationJob(ctx, {
         assetType: asset.type,
@@ -244,6 +306,11 @@ export async function enqueueAssetPublication(
         return await recordCardPublicationError(ctx, asset, error, now);
       }
       const tokens = resolved?.tokens;
+      const minimum =
+        asset.type === CUSTOM_CARD_ASSET_TYPE ? CUSTOM_CARD_STYLED_TOKEN_REVISION : STORM_CARD_STYLED_TOKEN_REVISION;
+      if (hasStyledTokens(tokens) && (await holdsForRenderer(ctx, asset.type, asset._id, minimum))) {
+        return null;
+      }
       return await enqueuePublicationJob(ctx, {
         assetType: asset.type,
         assetId: asset._id,
@@ -287,12 +354,77 @@ export async function enqueueAssetPublication(
     case 'token-tech':
     case 'token-pointer':
     case 'token-plate':
-      return await enqueueTokenFaces(ctx, asset, asset.type, TokenAsset.parse(asset.data), now);
+      return await enqueueTokenFaces(ctx, asset, asset.type, TokenAsset.parse(asset.data), now, (face) =>
+        hasSymbolStyle(face) ? ROUND_TOKEN_SYMBOL_STYLE_REVISION : 0
+      );
+    case 'token-leader': {
+      if (await holdsForRenderer(ctx, asset.type, asset._id, 1)) {
+        return null;
+      }
+      const { about: _about, ...leader } = LeaderTokenAsset.parse(asset.data);
+      return await enqueuePublicationJob(ctx, {
+        assetType: asset.type,
+        assetId: asset._id,
+        assetData: { assetId: asset._id, slug: asset.slug, leader },
+        now,
+      });
+    }
     case RECTANGLE_TOKEN_ASSET_TYPE:
       return await enqueueTokenFaces(ctx, asset, asset.type, RectangleTokenAsset.parse(asset.data), now);
     default:
       return null;
   }
+}
+
+/**
+ * A linked card resolves its board and tokens into the payload, so the capture draws exactly what was saved.
+ * Before the publisher runs the revision that draws boards, a linked card waits;
+ * activating that revision is its backfill.
+ */
+async function enqueueSpiceCardPublication(
+  ctx: MutationCtx,
+  asset: { _id: Id<'assets'>; type: string; slug: string; data: unknown },
+  now?: number,
+  frontPreset?: { style: CardFrontStyle; revision: number }
+) {
+  const link = spiceCardBoardLink(asset.data);
+  if (!link) {
+    return await enqueuePublicationJob(ctx, {
+      assetType: SPICE_CARD_ASSET_TYPE,
+      assetId: asset._id,
+      assetData: { assetId: asset._id, slug: asset.slug, card: asset.data, ...(frontPreset ? { frontPreset } : {}) },
+      now,
+    });
+  }
+  const minimumRevision =
+    link.typeToken || link.look?.style === 'textured-burn' ? SPICE_DISCOVERY_REVISION : SPICE_BOARD_REVISION;
+  if (await holdsForRenderer(ctx, SPICE_CARD_ASSET_TYPE, asset._id, minimumRevision)) {
+    return null;
+  }
+  const resolved = await resolveSpiceCardBoard(ctx, link.asset_id, spiceCardTokenIds(asset.data));
+  if (
+    hasStyledTokens(resolved.tokens) &&
+    (await holdsForRenderer(ctx, SPICE_CARD_ASSET_TYPE, asset._id, SPICE_DISCOVERY_REVISION))
+  ) {
+    return null;
+  }
+  const error = spiceCardPublicationError(asset.data, resolved);
+  if (error) {
+    return await recordCardPublicationError(ctx, asset, error, now);
+  }
+  return await enqueuePublicationJob(ctx, {
+    assetType: SPICE_CARD_ASSET_TYPE,
+    assetId: asset._id,
+    assetData: {
+      assetId: asset._id,
+      slug: asset.slug,
+      card: asset.data,
+      ...(frontPreset ? { frontPreset } : {}),
+      board: resolved.board,
+      tokens: resolved.tokens,
+    },
+    now,
+  });
 }
 
 /** A failed dependency keeps its diagnostic without replacing an active capture or publishing incomplete artwork. */
@@ -342,22 +474,25 @@ async function enqueueTokenFaces<TFace>(
   asset: { _id: Id<'assets'>; slug: string },
   assetType: PublicationAssetType,
   token: TokenFaces<TFace>,
-  now?: number
+  now?: number,
+  minimumForFace: (face: TFace) => number = () => 0
 ) {
-  const front = await enqueuePublicationJob(ctx, {
-    assetType,
-    assetId: asset._id,
-    assetData: { assetId: asset._id, slug: asset.slug, face: token.front },
-    now,
-  });
-  const backId = publicationFaceId(asset._id, 'back');
-  if (token.back.mode === 'custom') {
-    await enqueuePublicationJob(ctx, {
+  const enqueueFace = async (face: TFace, assetId: string) => {
+    const minimum = minimumForFace(face);
+    if (minimum && (await holdsForRenderer(ctx, assetType, assetId, minimum))) {
+      return null;
+    }
+    return await enqueuePublicationJob(ctx, {
       assetType,
-      assetId: backId,
-      assetData: { assetId: backId, slug: asset.slug, face: token.back.face },
+      assetId,
+      assetData: { assetId, slug: asset.slug, face },
       now,
     });
+  };
+  const front = await enqueueFace(token.front, asset._id);
+  const backId = publicationFaceId(asset._id, 'back');
+  if (token.back.mode === 'custom') {
+    await enqueueFace(token.back.face, backId);
   } else {
     await supersedePendingPublication(ctx, assetType, backId);
   }
@@ -410,9 +545,23 @@ async function enqueueChangedFaces(
   const changed = [...current].filter(
     ([assetId, assetData]) => JSON.stringify(previous.get(assetId)) !== JSON.stringify(assetData)
   );
-  for (const [assetId, assetData] of changed) {
-    await enqueuePublicationJob(ctx, { assetType, assetId, assetData });
-  }
+  const frontPreset =
+    (assetType === 'faction-traitor' || assetType === 'faction-alliance') &&
+    ((await publicationSettings(ctx))?.renderer_revisions[assetType] ?? 0) >= 3
+      ? await resolveCardFrontPreset(ctx, assetType, {})
+      : undefined;
+  await Promise.all(
+    changed.map(([assetId, assetData]) =>
+      enqueuePublicationJob(ctx, {
+        assetType,
+        assetId,
+        assetData:
+          frontPreset && assetData && typeof assetData === 'object'
+            ? { ...assetData, frontStyle: frontPreset.style }
+            : assetData,
+      })
+    )
+  );
   for (const assetId of [...previous.keys()].filter((assetId) => !current.has(assetId))) {
     await supersedePendingPublication(ctx, assetType, assetId);
   }
@@ -505,7 +654,7 @@ export async function currentFactionLeaderData(ctx: PublicationReadCtx, assetId:
   if (!faction || faction.is_deleted) {
     return null;
   }
-  return factionLeaderAssetData(faction._id, faction.data, identity.memberId);
+  return await resolveBackgrounds(ctx, factionLeaderAssetData(faction._id, faction.data, identity.memberId));
 }
 
 /** A plain faction face is readable while its faction is live and still draws that face. */
@@ -515,7 +664,17 @@ async function currentFactionFaceData(ctx: PublicationReadCtx, assetType: Factio
   if (!faction || faction.is_deleted) {
     return null;
   }
-  return FACTION_FACE_PUBLICATIONS[assetType](faction._id, faction.data).get(assetId) ?? null;
+  const data = FACTION_FACE_PUBLICATIONS[assetType](faction._id, faction.data).get(assetId) ?? null;
+  const frontPreset =
+    data &&
+    (assetType === 'faction-traitor' || assetType === 'faction-alliance') &&
+    ((await publicationSettings(ctx))?.renderer_revisions[assetType] ?? 0) >= 3
+      ? await resolveCardFrontPreset(ctx, assetType, data)
+      : undefined;
+  return await resolveBackgrounds(
+    ctx,
+    frontPreset && data && typeof data === 'object' ? { ...data, frontStyle: frontPreset.style } : data
+  );
 }
 
 /** The current payload for a face that follows a faction's roster, or `undefined` for types whose publication does not. */

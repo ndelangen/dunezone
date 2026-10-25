@@ -24,9 +24,32 @@ describe('faction catalogue search parameters', () => {
     }
   });
 
-  test('accepts every order the query takes and drops anything else', () => {
-    expect(parseFactionCatalogueSearch({ sort: 'name', q: ' leto ' })).toEqual({ sort: 'name', q: 'leto' });
+  test('accepts every browsing order but the default, and drops anything else', () => {
+    expect(parseFactionCatalogueSearch({ sort: 'created' })).toEqual({ sort: 'created' });
+    expect(parseFactionCatalogueSearch({ sort: 'name' })).toEqual({});
     expect(parseFactionCatalogueSearch({ sort: 'relevance' })).toEqual({});
+  });
+
+  test('drops the order and the page alongside a search, which is always best match and loads more in place', () => {
+    expect(parseFactionCatalogueSearch({ q: ' leto ', sort: 'created', page: '3' })).toEqual({ q: 'leto' });
+    expect(parseFactionCatalogueSearch({ q: 'leto', ruleset: 'classic', complexity: '2-5' })).toEqual({
+      q: 'leto',
+      ruleset: 'classic',
+      complexity: '2-5',
+    });
+  });
+
+  test('keeps a member beside a search and a complexity range, and drops the ruleset beside a member, as a list is one facet', () => {
+    expect(parseFactionCatalogueSearch({ owner: ' chani ', q: 'leto', complexity: '2-5' })).toEqual({
+      q: 'leto',
+      owner: 'chani',
+      complexity: '2-5',
+    });
+    expect(parseFactionCatalogueSearch({ owner: 'chani', ruleset: 'classic', page: '2' })).toEqual({
+      owner: 'chani',
+      page: 2,
+    });
+    expect(parseFactionCatalogueSearch({ owner: '  ', ruleset: 'classic' })).toEqual({ ruleset: 'classic' });
   });
 
   test('cuts a search at the query limit', () => {

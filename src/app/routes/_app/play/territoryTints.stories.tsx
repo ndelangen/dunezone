@@ -1,4 +1,4 @@
-import preview from '@sb/preview';
+import { testingPreview } from '@sb/preview';
 import type { ClientMessage, GameSnapshot } from '@shared/play/protocol';
 import { applyTerritoryTint, isTerritoryTintAction } from '@shared/play/territoryTints';
 import type { TerritoryTintAction } from '@shared/play/territoryTints';
@@ -8,7 +8,7 @@ import { openPanel } from './controls.stories.fixture';
 import { gameMeta, install, lastCommand } from './game.stories.fixture';
 import { playingSnapshot, productTransport } from './product.stories.fixture';
 
-const meta = preview.meta({
+const meta = testingPreview.meta({
   ...gameMeta,
   title: 'Play/Territory tints',
   loaders: [

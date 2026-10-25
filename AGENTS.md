@@ -343,6 +343,11 @@ file are exempt: organs, and a component whose story lives under a sibling's nam
 only make sense together (`SortableItem` and `SortableReorderHandle` share `SortableDnd.stories.tsx`,
 which is why no `SortableDnd.tsx` exists).
 
+A story is visual or testing ([ADR-0004](docs/adr/0004-visual-stories-and-testing-stories.md)).
+Chromatic captures a visual story, so it shows a UI capability no other story shows, using fixed
+fixture data rather than a live catalogue. Behaviour, a repeat of a captured screen, and content go
+in a `name.testing.stories.tsx` file on `testingPreview`, which CI runs and Chromatic skips.
+
 Three filename conventions carry weight here. A story-only fixture takes the `.stories.fixture.tsx`
 suffix, which the lint overrides key on, so it is a name the tooling reads rather than a preference.
 A Picker's pure view splits into a `.parts.tsx` companion, keeping the fetching shell and the
@@ -410,6 +415,12 @@ a `subjectGroupId: unknown` beside it, and re-narrowed at runtime with a `kind !
 three callers had already settled statically. The other module imported two string-literal unions
 and cost nothing but the second path. `no-restricted-imports` enforces this for all of `src/**`
 except `src/app/db/**`.
+
+Viewer-query registration lives in `convex/queryAudience.ts`, which carries no mutation-trigger
+registration. `convex/functions.ts` re-exports it for existing callers; read-only modules may import
+it directly to avoid initializing mutation and allocation code before their first database read
+(#2437). The audience mark is shared, and `queryAudience.architecture.test.ts` still checks every
+public query. Mutations continue to use the trigger-aware builders below.
 
 Inside `convex/`, mutations come from the trigger-aware builders in
 [`convex/functions.ts`](convex/functions.ts), never from `_generated/server`: the builders run the
@@ -487,9 +498,11 @@ produce them. The prefix tells you whether a failure means "the code is wrong" o
 stale".
 
 **Push a branch once the change is finished, and batch every follow-up into one push.** One PR run
-takes 17 of the account's 20 runner slots and about 80 runner minutes. A newer push cancels the run
-in flight, but by then the run has usually spent most of those minutes, so every push costs about a
-full run. In early October 2026 a merged PR took 3.1 runs on average, and 60% of follow-up pushes
+takes 17 of the account's 20 runner slots and about 80 runner minutes. A newer push cancels older
+runs in its own draft or full profile, but by then the run has usually spent most of those minutes,
+so every push costs about a full run. The profiles have separate concurrency groups so a late draft
+event cannot cancel full verification (#2429). In early October 2026 a merged PR took 3.1 runs on
+average, and 60% of follow-up pushes
 landed while the previous run was still going, one per review bot as each one reported
 ([#1921](https://github.com/ndelangen/dunezone/issues/1921)). So:
 

@@ -3,12 +3,12 @@ import { useClipboard } from '@mantine/hooks';
 import { Check, Link2 } from 'lucide-react';
 
 /* The button is the whole share; the address itself shows only when copying fails, for the player to copy by hand. */
-export function GameLink({ address }: Readonly<{ address: string }>) {
+export function GameLink({ address, page }: Readonly<{ address: string; page?: string }>) {
   const clipboard = useClipboard();
-  const url = new URL(`/play/${address}`, window.location.origin).href;
+  const url = new URL(page ?? `/play/${address}`, window.location.origin).href;
   return (
     <Stack gap="xs" p="xs" maw={300}>
-      <Button variant="light" onClick={() => clipboard.copy(url)}>
+      <Button variant="default" onClick={() => clipboard.copy(url)}>
         {clipboard.copied ? 'Game link copied' : 'Copy game link'}
       </Button>
       {clipboard.error ? (

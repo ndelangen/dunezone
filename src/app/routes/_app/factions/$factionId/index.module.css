@@ -11,7 +11,7 @@
   border: 0;
   border-radius: 50%;
   background: transparent;
-  filter: drop-shadow(0 0 20px rgba(0, 0, 0, 0.5));
+  filter: drop-shadow(0 0 20px rgb(from var(--color-shadow) r g b / 0.5));
 }
 
 .factionSymbol > *,
@@ -23,21 +23,33 @@
 }
 
 .horizontalLane {
-  --lane-bleed: var(--space-xl);
+  --lane-bleed: min(var(--space-xl), var(--app-shell-inline-gutter));
 
   display: flex;
   flex-flow: row nowrap;
   gap: var(--space-md);
   min-width: 0;
-  margin: calc(var(--space-xs) - var(--lane-bleed)) calc(-1 * var(--lane-bleed));
-  -webkit-mask-image: linear-gradient(to right, transparent, #000 40px, #000 calc(100% - 90px), transparent);
-  mask-image: linear-gradient(to right, transparent, #000 40px, #000 calc(100% - 90px), transparent);
+  margin: calc(var(--space-xs) - var(--space-xl)) calc(-1 * var(--lane-bleed));
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent,
+    var(--color-shadow) var(--lane-bleed),
+    var(--color-shadow) calc(100% - var(--lane-bleed)),
+    transparent
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    var(--color-shadow) var(--lane-bleed),
+    var(--color-shadow) calc(100% - var(--lane-bleed)),
+    transparent
+  );
   overflow-x: auto;
   overflow-y: hidden;
   overscroll-behavior-inline: contain;
   scrollbar-width: thin;
   scroll-snap-type: none;
-  padding: var(--lane-bleed);
+  padding: var(--space-xl) var(--lane-bleed);
 }
 
 .leaderTile {
@@ -122,7 +134,7 @@
   width: 4rem;
   height: 4rem;
   object-fit: contain;
-  filter: drop-shadow(0 10px 14px rgba(0, 0, 0, 0.25));
+  filter: drop-shadow(0 10px 14px rgb(from var(--color-shadow) r g b / 0.25));
 }
 
 .loreFactionLeaderToken {
@@ -130,15 +142,6 @@
   width: min(100%, 15rem);
   margin-inline: auto;
   aspect-ratio: 1;
-}
-
-@container (width < 62rem) {
-  .horizontalLane {
-    margin-inline: calc(-1 * var(--app-shell-inline-gutter));
-    -webkit-mask-image: none;
-    mask-image: none;
-    padding-inline: var(--app-shell-inline-gutter);
-  }
 }
 
 @container (width < 48rem) {

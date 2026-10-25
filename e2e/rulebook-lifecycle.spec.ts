@@ -16,6 +16,63 @@ test.afterEach(async ({ context }) => {
   await context.storageState({ path: '.playwright/user-a-rulebook-lifecycle.json' });
 });
 
+test('reader tracking updates the URL without moving the scroll position', async ({ page }) => {
+  const fixture = await seedRulebookEditor();
+  const readerPath = fixture.path.replace(/\/edit$/, '');
+  await page.goto(`${readerPath}?edition=1`);
+  await expect(page.getByText('Tracking', { exact: true })).toBeVisible();
+  const historyLength = await page.evaluate(() => history.length);
+  const urlWrites: string[] = [];
+  await page.exposeFunction('recordReaderUrl', (url: string) => urlWrites.push(url));
+  await page.evaluate(() => {
+    const original = window.history.replaceState.bind(window.history);
+    window.history.replaceState = (...args) => {
+      void (window as unknown as { recordReaderUrl: (url: string) => Promise<void> }).recordReaderUrl(String(args[2]));
+      original(...args);
+    };
+  });
+
+  for (const pageIndex of [1, 2, 0, 0]) {
+    const position = await page
+      .locator('[data-rulebook-page-id]')
+      .nth(pageIndex)
+      .evaluate((element) => {
+        const requested = Math.round(element.getBoundingClientRect().top + window.scrollY - 280);
+        window.dispatchEvent(new WheelEvent('wheel'));
+        window.scrollTo({ top: requested, behavior: 'instant' });
+        return { anchor: element.id, scrollY: window.scrollY };
+      });
+    await expect(page).toHaveURL(`${readerPath}?edition=1#${position.anchor}`);
+    const positions = await page.evaluate(async () => {
+      const samples: number[] = [];
+      for (let frame = 0; frame < 12; frame += 1) {
+        await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+        samples.push(window.scrollY);
+      }
+      return samples;
+    });
+    expect(positions).toEqual(Array<number>(12).fill(position.scrollY));
+  }
+  expect(urlWrites).toHaveLength(3);
+  expect(await page.evaluate(() => history.length)).toBe(historyLength);
+
+  await page.getByRole('link', { name: /Welcome to Arrakis/ }).click();
+  await expect(page.getByRole('button', { name: 'Unpin linked target' })).toBeVisible();
+  await expect
+    .poll(() =>
+      page.locator('#welcome-to-arrakis').evaluate((element) => Math.round(element.getBoundingClientRect().top))
+    )
+    .toBe(80);
+  await page.evaluate(() => {
+    window.dispatchEvent(new WheelEvent('wheel'));
+    window.scrollBy({ top: 125, behavior: 'instant' });
+  });
+  const beforeUnpin = await page.evaluate(() => window.scrollY);
+  await page.getByRole('button', { name: 'Unpin linked target' }).click();
+  await expect(page.getByText('Tracking', { exact: true })).toBeVisible();
+  expect(await page.evaluate(() => window.scrollY)).toBe(beforeUnpin);
+});
+
 async function copySavedRulebookAndMoveFirst(page: Page, rulesetPath: string) {
   await page.goto(rulesetPath);
   await expect(page.getByRole('list', { name: 'Rulebooks' })).toBeVisible();
@@ -83,6 +140,9 @@ test('members create clean Rulebooks and owners manage the saved Ruleset list', 
   await page.getByRole('link', { name: 'Back to ruleset', exact: true }).click();
   await page.getByRole('button', { name: 'Actions for Member copy', exact: true }).click();
   await page.getByRole('menuitem', { name: 'Edit', exact: true }).click();
+  const moreActions = page.getByRole('button', { name: 'More actions', exact: true });
+  await expect(moreActions).toBeVisible();
+  await moreActions.click();
   await page.getByRole('button', { name: 'Rename Rulebook', exact: true }).click();
   await page.getByRole('textbox', { name: 'Rulebook name' }).fill('Battle reference');
   await expect(page.getByText(/bookmarks or shared links to the old one stop/)).toBeVisible();

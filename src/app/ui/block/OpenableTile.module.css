@@ -28,7 +28,7 @@
  */
 .tile:hover .art {
   transform: translateY(-2px);
-  filter: drop-shadow(0 4px 12px rgb(0 0 0 / 30%));
+  filter: drop-shadow(0 4px 12px rgb(from var(--color-shadow) r g b / 30%));
 }
 
 /* The ring goes on the anchor with an offset, so focus never crops the art. */

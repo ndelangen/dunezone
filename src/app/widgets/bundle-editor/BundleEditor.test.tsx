@@ -9,6 +9,9 @@ import { afterEach, expect, it, vi } from 'vite-plus/test';
 import { BundleEditor, INITIAL_BUNDLE_DRAFT, INITIAL_BUNDLE_MEMORY } from './BundleEditor';
 import type { BundleChapter, BundleDraft, BundleMemory } from './BundleEditor';
 
+/* The band transition does not open its connected background picker. Page stories exercise that read. */
+vi.mock('@app/pickers/BackgroundPicker', () => ({ BackgroundPicker: () => null }));
+
 window.matchMedia = vi.fn().mockImplementation((query: string) => ({
   matches: false,
   media: query,

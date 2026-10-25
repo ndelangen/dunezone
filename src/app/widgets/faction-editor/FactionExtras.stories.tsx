@@ -1,43 +1,9 @@
 import preview from '@sb/preview';
-import { finishTransitions, waitForFrame } from '@sb/storyWaits';
-import { expect, fn, userEvent, waitFor, within } from 'storybook/test';
+import { expect, userEvent, within } from 'storybook/test';
 
-import type { Faction } from '@db/factions';
 import { db } from '@db/storybook';
 
-import { representativeFaction } from './FactionAuthoringStoryFixtures';
-import { FactionEditorHarness } from './FactionEditorHarness.stories.fixture';
-
-/* The story database's baseline catalogue holds a deck, a bundle and single tokens, so the picker lists real rows. */
-const saved = fn();
-
-function factionWith(extras: Faction['extras']): Faction {
-  const faction = representativeFaction();
-  if (extras) {
-    faction.extras = extras;
-  }
-  return faction;
-}
-
-function FactionExtrasFixture({ faction }: { faction: Faction }) {
-  return <FactionEditorHarness faction={faction} sessionKey="storybook-faction-extras" onSave={saved} />;
-}
-
-async function openExtras(canvasElement: HTMLElement) {
-  const canvas = within(canvasElement);
-  await userEvent.click(await canvas.findByRole('tab', { name: /Extras/ }, { timeout: 30_000 }));
-  return canvas;
-}
-
-/* The slugs the chapter lists, in order. */
-function listedSlugs(canvasElement: HTMLElement) {
-  const list = within(canvasElement).queryByRole('list', { name: 'Extras' });
-  return list
-    ? within(list)
-        .getAllByRole('listitem')
-        .map((item) => item.querySelector('p')?.textContent)
-    : [];
-}
+import { saved, factionWith, FactionExtrasFixture, openExtras, listedSlugs } from './FactionExtras.stories.fixture';
 
 const meta = preview.meta({
   title: 'Faction Editor/Extras',
@@ -57,30 +23,6 @@ export const Empty = meta.story({
     await expect(canvas.getByText('No Extras. The faction brings only its own components.')).toBeVisible();
     await expect(canvas.getByText("Nothing beyond the faction's own components.")).toBeVisible();
     await expect(canvas.getByRole('button', { name: 'Save faction' })).toBeEnabled();
-  },
-});
-
-/** Adding from the picker appends the reference and offers each asset once; the save carries only type and slug. */
-export const AddFromCatalogue = meta.story({
-  args: { faction: factionWith([{ type: 'deck', slug: 'house-treachery' }]) },
-  play: async ({ canvasElement }) => {
-    const canvas = await openExtras(canvasElement);
-    await userEvent.click(canvas.getByRole('button', { name: 'Add Extra' }));
-    const body = within(canvasElement.ownerDocument.body);
-    /* The picker mounts transparent and fades in, so the check finishes the fade rather than waiting for the frames that draw it. */
-    await waitForFrame(
-      () => expect(finishTransitions(body.getByRole('option', { name: /Atreides Tokens/ }))).toBeVisible(),
-      { timeout: 30_000 }
-    );
-    await expect(body.queryByRole('option', { name: /House Treachery/ })).toBeNull();
-    await userEvent.click(body.getByRole('option', { name: /Atreides Tokens/ }));
-    await waitFor(() => expect(listedSlugs(canvasElement)).toEqual(['house-treachery', 'atreides-tokens']));
-    await userEvent.click(canvas.getByRole('button', { name: 'Save faction' }));
-    await waitFor(() => expect(saved).toHaveBeenCalledTimes(1));
-    await expect((saved.mock.calls[0]![0] as Faction).extras).toEqual([
-      { type: 'deck', slug: 'house-treachery' },
-      { type: 'bundle', slug: 'atreides-tokens' },
-    ]);
   },
 });
 

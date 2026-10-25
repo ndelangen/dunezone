@@ -10,11 +10,14 @@ describe('asset catalogue search parameters', () => {
     }
   });
 
-  test('writes newest out only to override best match while searching', () => {
+  test('never writes the default order out, and drops anything else', () => {
     expect(parseAssetCatalogueSearch({ sort: 'newest' })).toEqual({});
-    expect(parseAssetCatalogueSearch({ sort: 'newest', q: ' lasgun ' })).toEqual({ sort: 'newest', q: 'lasgun' });
     expect(parseAssetCatalogueSearch({ sort: 'name' })).toEqual({ sort: 'name' });
     expect(parseAssetCatalogueSearch({ sort: 'relevance', q: '  ' })).toEqual({});
+  });
+
+  test('drops the order and the page alongside a search, which is always best match and loads more in place', () => {
+    expect(parseAssetCatalogueSearch({ sort: 'name', q: ' lasgun ', page: '2' })).toEqual({ q: 'lasgun' });
   });
 
   test('cuts a search at the longest one the catalogue runs', () => {

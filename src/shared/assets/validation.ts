@@ -4,7 +4,9 @@ import {
   BundleAssetInput,
   CustomCardAssetInput,
   LeaderSkillAssetInput,
+  LeaderTokenAssetInput,
   NexusCardAssetInput,
+  HomeworldCardAssetInput,
   DeckAssetInput,
   RectangleTokenAssetInput,
   SpiceAssetInput,
@@ -22,14 +24,25 @@ export function parseNexusCardInput(data: unknown) {
   return result.data;
 }
 
+/*
+ * A write and its readiness trigger validate identical linework, as does a clone.
+ * Keep only the last linework's territory keys, bounded by the board payload limit.
+ * Saved fields are parsed on every call; changed points or edges require fresh geometry.
+ */
+let lastBoardBoundaries: { linework: string; territoryKeys: string[] } | undefined;
+
 /** A board must have usable geometry as well as valid saved fields. */
 export function parseBoardData(data: unknown) {
   const parsed = BoardAsset.parse(data);
-  const geometry = derive(parsed.board);
-  if (!geometry.faces.length || geometry.unrecoveredSegments) {
-    throw new Error('The board needs closed, renderable territory boundaries');
+  const linework = JSON.stringify([parsed.board.nodes, parsed.board.edges]);
+  if (lastBoardBoundaries?.linework !== linework) {
+    const geometry = derive(parsed.board);
+    if (!geometry.faces.length || geometry.unrecoveredSegments) {
+      throw new Error('The board needs closed, renderable territory boundaries');
+    }
+    lastBoardBoundaries = { linework, territoryKeys: geometry.faces.map((face) => face.key) };
   }
-  if (geometry.faces.some((face) => !parsed.board.properties[face.key])) {
+  if (lastBoardBoundaries.territoryKeys.some((key) => !parsed.board.properties[key])) {
     throw new Error('Every territory needs a name');
   }
   return parsed;
@@ -40,6 +53,10 @@ export function parseBoardData(data: unknown) {
  */
 export function parseAssetDataForWrite(type: string, data: unknown): { data: unknown; name: string } {
   switch (type) {
+    case 'token-leader': {
+      const parsed = LeaderTokenAssetInput.parse(data);
+      return { data: parsed, name: parsed.name };
+    }
     case 'board': {
       const parsed = parseBoardData(data);
       return { data: parsed, name: parsed.name };
@@ -54,6 +71,10 @@ export function parseAssetDataForWrite(type: string, data: unknown): { data: unk
     }
     case 'card-leaderability': {
       const parsed = LeaderSkillAssetInput.parse(data);
+      return { data: parsed, name: parsed.name };
+    }
+    case 'card-homeworld': {
+      const parsed = HomeworldCardAssetInput.parse(data);
       return { data: parsed, name: parsed.name };
     }
     case 'card-nexus': {

@@ -10,6 +10,8 @@ import { applicationTest } from './application.test.fixture';
 import { applicationTriggers } from './lib/applicationTriggers';
 
 beforeEach(() => {
+  /* Keep scheduled avatar and month-long session jobs under this suite's control. */
+  vi.useFakeTimers();
   vi.stubEnv('AUTH_DISCORD_ID', 'test-discord-client');
   vi.stubEnv('AUTH_DISCORD_SECRET', 'test-discord-secret');
   vi.stubEnv('CONVEX_SITE_URL', 'https://backend.convex.site');
@@ -17,6 +19,8 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.clearAllTimers();
+  vi.useRealTimers();
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
 });

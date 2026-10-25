@@ -303,6 +303,96 @@ describe('NestedTabs with button items', () => {
     );
   });
 
+  it('waits five seconds before opening a panel tab tooltip and cancels an abandoned hover', async () => {
+    vi.useFakeTimers();
+    try {
+      const target = tab('Spice');
+      await act(async () => {
+        target.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+      });
+      await act(() => vi.advanceTimersByTimeAsync(350));
+      await act(() => vi.advanceTimersByTimeAsync(150));
+      expect(document.querySelector('[role="tooltip"]')).toBeNull();
+      await act(() => vi.advanceTimersByTimeAsync(4499));
+      expect(document.querySelector('[role="tooltip"]')).toBeNull();
+      await act(async () => {
+        target.dispatchEvent(new MouseEvent('mouseout', { bubbles: true }));
+        await vi.advanceTimersByTimeAsync(1000);
+      });
+      expect(document.querySelector('[role="tooltip"]')).toBeNull();
+      await act(async () => {
+        target.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+        await vi.advanceTimersByTimeAsync(4999);
+      });
+      expect(document.querySelector('[role="tooltip"]')).toBeNull();
+      await act(() => vi.advanceTimersByTimeAsync(1));
+      await act(() => vi.advanceTimersByTimeAsync(150));
+      expect(document.querySelector('[role="tooltip"]')?.textContent).toContain('Spice');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('keyboard focus takes over a pending panel hover with its short guidance delay', async () => {
+    vi.useFakeTimers();
+    const target = tab('Spice');
+    const matches = target.matches.bind(target);
+    const focusVisible = vi
+      .spyOn(target, 'matches')
+      .mockImplementation((selector) => (selector === ':focus-visible' ? true : matches(selector)));
+    try {
+      act(() => {
+        target.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+      });
+      await act(() => vi.advanceTimersByTimeAsync(1000));
+      act(() => target.focus());
+      await act(() => vi.advanceTimersByTimeAsync(349));
+      expect(document.querySelector('[role="tooltip"]')).toBeNull();
+      await act(() => vi.advanceTimersByTimeAsync(1));
+      await act(() => vi.advanceTimersByTimeAsync(150));
+      expect(document.querySelector('[role="tooltip"]')?.textContent).toContain('Spice');
+    } finally {
+      focusVisible.mockRestore();
+      vi.useRealTimers();
+    }
+  });
+
+  it('a pointer click cancels pending guidance until the pointer leaves and returns', async () => {
+    vi.useFakeTimers();
+    try {
+      const target = tab('Spice');
+      act(() => {
+        target.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+      });
+      await act(() => vi.advanceTimersByTimeAsync(4000));
+      act(() => {
+        target.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
+        target.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
+      });
+      expect(selected).toEqual([['spice']]);
+      await act(() => vi.advanceTimersByTimeAsync(1000));
+      await act(() => vi.advanceTimersByTimeAsync(150));
+      expect(document.querySelector('[role="tooltip"]')).toBeNull();
+      await act(() => vi.advanceTimersByTimeAsync(10_000));
+      expect(document.querySelector('[role="tooltip"]')).toBeNull();
+      act(() => {
+        target.dispatchEvent(new MouseEvent('mouseout', { bubbles: true }));
+        target.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+      });
+      await act(() => vi.advanceTimersByTimeAsync(5000));
+      await act(() => vi.advanceTimersByTimeAsync(150));
+      expect(document.querySelector('[role="tooltip"]')?.textContent).toContain('Spice');
+      act(() => {
+        target.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
+        target.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
+      });
+      await act(() => vi.advanceTimersByTimeAsync(150));
+      expect(document.querySelector('[role="tooltip"]')).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('turns each level into a named vertical tablist instead of a navigation landmark', () => {
     expect(container?.querySelectorAll('nav')).toHaveLength(0);
     const lists = Array.from(container?.querySelectorAll('[role="tablist"]') ?? []);
@@ -363,7 +453,7 @@ describe('NestedTabs with button items', () => {
   });
 
   it('moves focus with Up, Down, Home and End, wrapping, without opening a tab', () => {
-    tab('Log').focus();
+    act(() => tab('Log').focus());
     press('ArrowDown');
     expect(document.activeElement).toBe(tab('Spice'));
     press('ArrowDown');
@@ -382,7 +472,7 @@ describe('NestedTabs with button items', () => {
   });
 
   it('moves within its own level, through groups', () => {
-    tab('Game').focus();
+    act(() => tab('Game').focus());
     press('ArrowDown');
     expect(document.activeElement).toBe(tab('Audit'));
     press('ArrowDown');
@@ -390,7 +480,7 @@ describe('NestedTabs with button items', () => {
   });
 
   it('opens the focused tab through the button itself', () => {
-    tab('Hand').focus();
+    act(() => tab('Hand').focus());
     act(() => tab('Hand').click());
     expect(selected).toEqual([['hand']]);
   });

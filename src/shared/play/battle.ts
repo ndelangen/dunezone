@@ -168,9 +168,11 @@ export function emptyBattlePlan(faces: BattleFace[]): StoredBattlePlan {
   };
 }
 
-/** Published disc tokens can be chosen as leaders; physical troop discs stay on the board, and a faction token is never a leader. */
+/** Published leader and disc tokens can fight; physical troops and faction tokens stay out of leader selection. */
 export function isBattleLeader(piece: z.infer<typeof tablePieceSchema>): boolean {
   return (
-    piece.kind === 'force' && !isFactionToken(piece) && piece.items.every((item) => item.artwork?.type === 'token-disc')
+    piece.kind === 'force' &&
+    !isFactionToken(piece) &&
+    piece.items.every((item) => item.artwork?.type === 'token-disc' || item.artwork?.type === 'token-leader')
   );
 }

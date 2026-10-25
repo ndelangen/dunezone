@@ -5,8 +5,10 @@ import { v } from 'convex/values';
 
 import { componentGeometrySchema } from '../src/shared/asset-publishing/componentGeometry';
 import { cardbackPresetKeySchema } from '../src/shared/assets/cardbackPresetKeys';
-import { cardFrontPresetKeySchema, cardFrontStyleSchema } from '../src/shared/assets/cardFrontPresets';
+import { cardFrontPresetKeySchema, authoredCardFrontStyleSchema } from '../src/shared/assets/cardFrontPresets';
 import { CardBack } from '../src/shared/assets/schema';
+import { discoveryPresetSchema } from '../src/shared/backgrounds/families';
+import { backgroundPresetSchema } from '../src/shared/backgrounds/schema';
 import { playProvisionFailureReasonSchema, playStageSchema } from '../src/shared/play/admission';
 import { playDirectorySummarySchema } from '../src/shared/play/directory';
 import { lastTurnSchema } from '../src/shared/play/lastTurn';
@@ -14,6 +16,7 @@ import { tableSeatCountSchema } from '../src/shared/play/schema';
 import { rulebookCoverImageSchema } from '../src/shared/rulebooks/coverImage';
 import { authProviderValidator } from './lib/accountMethods';
 import { directOwnershipKindValidator } from './lib/directOwnership';
+import { faqReferenceTargets } from './lib/faqReferenceTarget';
 import { faqTagValidator } from './lib/faqTags';
 import { formerSlugValidator } from './lib/formerSlugs';
 import { ingestTokenCapabilityValidator } from './lib/ingestTokens';
@@ -34,9 +37,24 @@ export default defineSchema({
     ...authTables.authSessions.validator.fields,
     expiry_job_id: v.optional(v.id('_scheduled_functions')),
   }).index('userId', ['userId']),
+  discovery_presets: defineTable({ ...zodToConvex(discoveryPresetSchema).fields, updated_at: v.number() }).index(
+    'by_key',
+    ['key']
+  ),
+  background_presets: defineTable({
+    ...zodToConvex(backgroundPresetSchema).fields,
+    updated_at: v.number(),
+  }).index('by_key', ['key']),
+  background_uses: defineTable({
+    key: v.string(),
+    subject: v.union(v.id('assets'), v.id('factions')),
+    kind: v.union(v.literal('asset'), v.literal('faction')),
+  })
+    .index('by_key', ['key'])
+    .index('by_subject', ['subject']),
   card_front_presets: defineTable({
     key: zodToConvex(cardFrontPresetKeySchema),
-    style: zodToConvex(cardFrontStyleSchema),
+    style: zodToConvex(authoredCardFrontStyleSchema),
     revision: v.number(),
     updated_at: v.number(),
   }).index('by_key', ['key']),
@@ -413,6 +431,18 @@ export default defineSchema({
     .index('by_owner_deleted', ['owner_id', 'is_deleted'])
     .index('by_group_deleted', ['group_id', 'is_deleted'])
     .index('by_deleted_name', ['is_deleted', 'name']),
+  /** Import identity and reviewed state for one package item in one Ruleset. */
+  content_import_receipts: defineTable({
+    ruleset_id: v.id('rulesets'),
+    package_key: v.string(),
+    item_key: v.string(),
+    kind: v.union(v.literal('asset'), v.literal('faction'), v.literal('rulebook')),
+    subject_id: v.string(),
+    item_hash: v.string(),
+    resolved_hash: v.optional(v.string()),
+    state_hash: v.string(),
+    updated_by: v.id('users'),
+  }).index('by_ruleset_package_item', ['ruleset_id', 'package_key', 'item_key']),
   /**
    * Ruleset-owned Rulebook metadata and list placement.
    * Authorship stays on the Ruleset and Contents stay in `rulebook_drafts` and `rulebook_edition_contents`.
@@ -449,6 +479,8 @@ export default defineSchema({
      * A missing hash means a full comparison.
      */
     contents_hash: v.optional(v.string()),
+    /* Versioned settings and Contents comparison, with read fallback for older rows. */
+    authored_hash: v.optional(v.string()),
     updated_by: v.id('users'),
     updated_at: v.string(),
   })
@@ -466,6 +498,8 @@ export default defineSchema({
      * A missing hash means a full comparison.
      */
     contents_hash: v.optional(v.string()),
+    /* Versioned settings and Contents comparison, with read fallback for older rows. */
+    authored_hash: v.optional(v.string()),
     created_by: v.id('users'),
     created_at: v.string(),
   })
@@ -613,10 +647,34 @@ export default defineSchema({
   ruleset_factions: defineTable({
     ruleset_id: v.id('rulesets'),
     faction_id: v.id('factions'),
+    /**
+     * Where the faction sits in the ruleset's own order, lowest first;
+     * its maintainers set it by dragging on the edit page, and the ruleset page shows the first few.
+     * Only the order matters, not the numbers: a new link is appended with the time it was made, and a reorder renumbers every link from 0.
+     */
+    position: v.number(),
   })
-    .index('by_ruleset', ['ruleset_id'])
+    .index('by_ruleset_position', ['ruleset_id', 'position'])
     .index('by_faction', ['faction_id'])
     .index('by_ruleset_faction', ['ruleset_id', 'faction_id']),
+  faq_references: defineTable(
+    v.union(
+      v.object({
+        faq_item_id: v.id('faq_items'),
+        question_created_at: v.string(),
+        kind: faqReferenceTargets.faction.fields.kind,
+        target_id: faqReferenceTargets.faction.fields.id,
+      }),
+      v.object({
+        faq_item_id: v.id('faq_items'),
+        question_created_at: v.string(),
+        kind: faqReferenceTargets.asset.fields.kind,
+        target_id: faqReferenceTargets.asset.fields.id,
+      })
+    )
+  )
+    .index('by_faq_item_id_and_target_id', ['faq_item_id', 'target_id'])
+    .index('by_target_id_and_question_created_at', ['target_id', 'question_created_at']),
   faq_items: defineTable({
     ruleset_id: v.id('rulesets'),
     slug: v.string(),
@@ -626,6 +684,7 @@ export default defineSchema({
     created_at: v.string(),
     updated_at: v.string(),
     accepted_answer_id: v.union(v.id('faq_answers'), v.null()),
+    accepted_at: v.optional(v.union(v.string(), v.null())),
   })
     .index('by_ruleset_created', ['ruleset_id', 'created_at'])
     .index('by_ruleset_slug', ['ruleset_id', 'slug'])

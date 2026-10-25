@@ -1165,6 +1165,10 @@
   min-width: 0;
 }
 
+.rulebookAssetExplainer:has(.rulebookFactionSheet) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .rulebookExplainerIllustration svg,
 .rulebookExplainerIllustration img {
   display: block;
@@ -1270,6 +1274,7 @@
 }
 
 .rulebookSourceVisual[data-source-status="ready"][data-rulebook-source-kind="asset"],
+.rulebookSourceVisual[data-source-status="ready"][data-rulebook-source-kind="faction"][data-source-clipped],
 .rulebookSourceVisual[data-source-status="ready"][data-rulebook-source-kind="faction-member"],
 .rulebookSourceVisual[data-source-status="ready"][data-rulebook-source-kind="faction-troop"] {
   filter: drop-shadow(0 calc(0.8 * var(--rulebook-mm)) calc(0.8 * var(--rulebook-mm)) rgb(0 0 0 / 45%));
@@ -1721,4 +1726,104 @@
   width: calc(5 * var(--rulebook-mm));
   height: calc(1 * var(--rulebook-mm));
   flex: none;
+}
+
+/* The editor's input surface over a saved board scene: tokens drag, and an open brush paints. */
+.rulebookBoardEditSurface {
+  cursor: grab;
+  touch-action: none;
+}
+
+.rulebookBoardEditSurface[data-brush] {
+  cursor: crosshair;
+}
+
+/* A Card entry uses the same image width on either side and in either text flow. */
+.rulebookCardEntry .rulebookCardGuide {
+  --rulebook-entry-image-width: calc((100% - 5 * var(--rulebook-mm)) / 3);
+  grid-template-columns: minmax(0, var(--rulebook-entry-image-width)) minmax(0, 1fr);
+}
+.rulebookCardEntry .rulebookCardGuide[data-illustration-size="small"] {
+  --rulebook-entry-image-width: min(32 * var(--rulebook-mm), 35%);
+}
+.rulebookCardEntry .rulebookCardGuide[data-illustration-size="medium"] {
+  --rulebook-entry-image-width: min(60 * var(--rulebook-mm), 40%);
+}
+.rulebookCardEntry .rulebookCardGuide[data-illustration-size="large"] {
+  --rulebook-entry-image-width: min(90 * var(--rulebook-mm), 50%);
+}
+.rulebookCardEntry .rulebookCardGuide[data-image-side="right"] {
+  grid-template-columns: minmax(0, 1fr) minmax(0, var(--rulebook-entry-image-width));
+}
+.rulebookCardEntry .rulebookCardGuide[data-image-side="right"] > .rulebookSourceVisual {
+  grid-column: 2;
+  grid-row: 1;
+}
+.rulebookCardEntry .rulebookCardGuide[data-image-side="right"] > .rulebookCardGuidance {
+  grid-column: 1;
+  grid-row: 1;
+}
+.rulebookCardEntry .rulebookCardGuide[data-text-flow="wrap"] {
+  display: flow-root;
+}
+.rulebookCardEntry .rulebookCardGuide[data-text-flow="wrap"] > .rulebookSourceVisual {
+  float: left;
+  width: var(--rulebook-entry-image-width);
+  margin: 0 calc(5 * var(--rulebook-mm)) calc(2 * var(--rulebook-mm)) 0;
+}
+.rulebookCardEntry .rulebookCardGuide[data-text-flow="wrap"][data-image-side="right"] > .rulebookSourceVisual {
+  float: right;
+  margin: 0 0 calc(2 * var(--rulebook-mm)) calc(5 * var(--rulebook-mm));
+}
+.rulebookCardEntry .rulebookCardGuide[data-text-flow="wrap"] > .rulebookCardGuidance {
+  display: contents;
+}
+.rulebookCardEntry .rulebookCardGuide[data-text-flow="wrap"] > .rulebookCardGuidance > * + * {
+  margin-top: calc(2 * var(--rulebook-mm));
+}
+
+.rulebookCardFan {
+  display: flex;
+  justify-content: center;
+  /* Reserve the rotated corners of a 42mm card at 15deg, plus its source shadow. */
+  padding: calc(10 * var(--rulebook-mm)) calc(17 * var(--rulebook-mm));
+}
+.rulebookCardFan > div {
+  flex: 0 1 calc(42 * var(--rulebook-mm));
+  min-width: 0;
+  transform-origin: center 85%;
+}
+.rulebookCardFan > div + div {
+  margin-left: calc(-16 * var(--rulebook-mm));
+}
+.rulebookCardFan .rulebookSourceVisual {
+  aspect-ratio: 900 / 1263;
+}
+.rulebookCardFan .rulebookSourceVisual img {
+  width: 100%;
+  max-height: none;
+}
+.rulebookCardGroup[data-card-group-variant="fan"] .rulebookCardGuide {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.rulebookCardEntry .rulebookCardGuide[data-image-side="left"] > .rulebookSourceVisual img {
+  object-position: left top;
+}
+.rulebookCardEntry .rulebookCardGuide[data-image-side="right"] > .rulebookSourceVisual img {
+  object-position: right top;
+}
+
+.rulebookFactionSheet {
+  position: relative;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.rulebookFactionSheet > .rulebookFactionSheetMarks {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
 }

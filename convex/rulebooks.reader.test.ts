@@ -373,3 +373,37 @@ describe('Rulebook HTML reader delivery', () => {
     expect(await fixture.t.query(api.rulebooks.readerDelivery, fixture.locator)).toBeNull();
   });
 });
+
+test('published reader metadata stays below 16 KiB when Edition Contents grow', async () => {
+  const { t, created, locator } = await readerFixture();
+  await t.run(async (ctx) => {
+    const contents = await ctx.db
+      .query('rulebook_edition_contents')
+      .withIndex('by_edition_id', (q) => q.eq('edition_id', created.edition._id))
+      .unique();
+    const large = structuredClone(contents!.contents) as RulebookContentsV1;
+    large.pagesById.RULE!.title = 'Large published text '.repeat(8000);
+    await ctx.db.patch('rulebook_edition_contents', contents!._id, { contents: large });
+    const artifact = await ctx.db
+      .query('rulebook_edition_artifacts')
+      .withIndex('by_edition_and_kind', (q) => q.eq('edition_id', created.edition._id).eq('kind', 'html'))
+      .unique();
+    await ctx.db.patch('rulebook_edition_artifacts', artifact!._id, { status: 'ready' });
+  });
+  const page = await t.run(
+    async (ctx) =>
+      await ctx.runQuery(api.rulebooks.readerDelivery, locator, {
+        transactionLimits: { bytesRead: 16 * 1024 },
+      })
+  );
+  expect(page?.edition.html.status).toBe('ready');
+  expect(page?.edition).not.toHaveProperty('contents');
+  await expect(
+    t.run(
+      async (ctx) =>
+        await ctx.runQuery(api.rulebooks.readerPage, locator, {
+          transactionLimits: { bytesRead: 16 * 1024 },
+        })
+    )
+  ).rejects.toThrow(/Read too much data/);
+});

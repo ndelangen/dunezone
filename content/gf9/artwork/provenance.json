@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "initialApproval": "https://github.com/ndelangen/dunezone/issues/2362#issuecomment-6292530247",
+  "portraitRestorationApproval": "User approved both displayed restorations in this chat on 2026-10-20: \"those look really good!\"",
+  "records": [
+    {
+      "assetKey": "/image/leader/gf9/ur-director-malina-aru.png",
+      "referenceCommit": "2981ba53216abca5913098c4fa0e99ae28153858",
+      "operation": "AI-assisted restoration of the approved wider portrait, preserving the depicted identity and pose while removing printed token rims and badges and matching the painted leader portrait family.",
+      "generation": "Built-in image_gen"
+    },
+    {
+      "assetKey": "/image/leader/gf9/count-ilban-richese.png",
+      "referenceCommit": "2981ba53216abca5913098c4fa0e99ae28153858",
+      "operation": "AI-assisted restoration of the approved wider portrait, preserving the depicted identity and pose while removing printed token rims and badges and matching the painted leader portrait family.",
+      "generation": "Built-in image_gen; Ilban second pass restores his pointed white goatee."
+    },
+    {
+      "assetKey": "/web/rulesets/gf9-logo.png",
+      "operation": "Original transparent mark composited at native pixels, centered; no resampling",
+      "reviewSourceUrl": "https://raw.githubusercontent.com/ndelangen/dunezone/2981ba53216abca5913098c4fa0e99ae28153858/content/gf9/component-prototype/public/art/gf9-ruleset-tile.png"
+    },
+    {
+      "assetKey": "/image/texture/hiereg-discovery.png",
+      "operation": "Encoded as a single-channel grayscale PNG with the existing Sharp texture pipeline. The AI output had small neutral-channel deviations, so final source pixels are explicitly grayscale.",
+      "provenanceCommit": "2981ba53216abca5913098c4fa0e99ae28153858",
+      "generation": "Built-in image_gen, initial extraction plus targeted grayscale and outer-edge correction",
+      "sharedBy": ["Hiereg", "Smuggler"]
+    },
+    {
+      "assetKey": "/image/leader/gf9/duke-prad-vidal.png",
+      "operation": "AI-assisted portrait matching the approved Duke Prad Vidal reference and the existing Ecaz portrait family.",
+      "generation": "Built-in image_gen, second draft without glasses.",
+      "approvedAt": "2026-10-21",
+      "approval": "User approved the displayed second draft: \"sure, let's go with that image\".",
+      "sourceHash": "6c66b6c4d55638b03d902ee7d76cd4b0ce970a3545cc0880d9073acc544f2a0f",
+      "reference": "https://www.gf9games.com/dune/wp-content/uploads/EcazMoritani-Rulebook-LOWRES.pdf",
+      "referencePage": 3,
+      "promptFile": "duke-prad-vidal-prompt.txt"
+    }
+  ]
+}

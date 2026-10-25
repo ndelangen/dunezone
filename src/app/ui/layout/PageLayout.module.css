@@ -20,7 +20,7 @@
      The paper scheme's own link ink falls to 1.65:1 on the sand band, and the kit's darkest navy to 4.4:1 on the compact crop.
      Black measures 4.8:1 or more there in both schemes, since the band does not flip with them (#821).
      It lives here rather than in tokens.css, which the faction sheet renderer also bundles, so a band style does not change the Renderer identity. */
-  --mantine-color-anchor: #000;
+  --mantine-color-anchor: var(--color-shadow);
 }
 
 /* With the ink no longer a link colour, the weight and a permanent underline are what still say "link".
@@ -124,7 +124,8 @@
 }
 
 /* Keep the route's heading in the accessibility tree without taking space from the workspace. */
-.layout[data-page-layout-height="fullscreen"] .headerContent {
+.layout[data-page-layout-height="fullscreen"] .headerContent,
+.layout[data-page-layout-header-size="collapsed"] .headerContent {
   position: absolute;
   top: 0;
   left: 0;
@@ -137,12 +138,16 @@
   white-space: nowrap;
 }
 
+/*
+ * A page that puts a band of its own above the table workspace, as a tutorial chapter does, sets `--page-layout-fullscreen-top` to the band's height,
+ * and the workspace starts below it instead of under it.
+ */
 .layout[data-page-layout-height="fullscreen"] .content {
   position: fixed;
-  inset: 0;
+  inset: var(--page-layout-fullscreen-top, 0px) 0 0;
   width: 100vw;
-  height: 100vh;
-  height: 100dvh;
+  height: calc(100vh - var(--page-layout-fullscreen-top, 0px));
+  height: calc(100dvh - var(--page-layout-fullscreen-top, 0px));
   min-height: 0;
   gap: 0;
   overflow: hidden;

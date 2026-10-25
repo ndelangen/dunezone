@@ -1,12 +1,9 @@
 import preview from '@sb/preview';
 import { expect, fn, userEvent, waitFor, within } from 'storybook/test';
 
-import { LayoutSlotPlaceholder } from './LayoutSlotPlaceholder.stories.fixture';
 import { SplitPanels } from './SplitPanels';
 import type { SplitLimits } from './SplitPanels';
-
-const EVEN_LIMITS: SplitLimits = { min: 28, max: 72 };
-const evenLimits = () => EVEN_LIMITS;
+import { EVEN_LIMITS, evenLimits, panels, separatorOf, sizeOf } from './SplitPanels.stories.fixture';
 
 /* The first panel keeps 320px when the room allows it; the second never drops below 18%. */
 const TOP_PANEL_PX = 320;
@@ -14,15 +11,6 @@ const roomForTop = (room: number): SplitLimits => ({
   min: 18,
   max: Math.max(18, Math.min(50, ((room - TOP_PANEL_PX) / room) * 100)),
 });
-
-const panels = [
-  <SplitPanels.First key="first">
-    <LayoutSlotPlaceholder name="first" tone="primary" minHeight={0} />
-  </SplitPanels.First>,
-  <SplitPanels.Second key="second">
-    <LayoutSlotPlaceholder name="second" tone="secondary" minHeight={0} />
-  </SplitPanels.Second>,
-];
 
 const meta = preview.meta({
   component: SplitPanels,
@@ -37,14 +25,6 @@ const meta = preview.meta({
   },
   args: { children: panels, step: 2, pageStep: 5 },
 });
-
-function separatorOf(canvasElement: HTMLElement) {
-  return within(canvasElement).getByRole('separator');
-}
-
-function sizeOf(separator: HTMLElement) {
-  return Number(separator.getAttribute('aria-valuenow'));
-}
 
 /**
  * A pointer event at the middle of the separator, moved `offset` pixels down the split.
@@ -70,36 +50,6 @@ async function pointer(separator: HTMLElement, type: string, init: PointerEventI
     await new Promise((resolve) => requestAnimationFrame(resolve));
   }
 }
-
-/** Side by side: the separator is vertical, and the first panel is the one it measures. Keys step it within the limits. */
-export const SideBySide = meta.story({
-  args: {
-    orientation: 'vertical',
-    defaultSize: 50,
-    limits: evenLimits,
-    label: 'Resize the two panels',
-  },
-  globals: { viewport: { value: 'region' } },
-  play: async ({ canvasElement }) => {
-    const separator = separatorOf(canvasElement);
-    await expect(separator).toHaveAttribute('aria-orientation', 'vertical');
-    separator.focus();
-    await userEvent.keyboard('{Home}');
-    await expect(sizeOf(separator)).toBe(EVEN_LIMITS.min);
-    await userEvent.keyboard('{ArrowRight}');
-    await expect(sizeOf(separator)).toBe(EVEN_LIMITS.min + 2);
-    await userEvent.keyboard('{ArrowUp}');
-    await expect(sizeOf(separator)).toBe(EVEN_LIMITS.min + 2);
-    await userEvent.keyboard('{PageUp}');
-    await expect(sizeOf(separator)).toBe(EVEN_LIMITS.min + 7);
-    await userEvent.keyboard('{End}');
-    await expect(sizeOf(separator)).toBe(EVEN_LIMITS.max);
-    await userEvent.keyboard('{ArrowRight}{PageUp}');
-    await expect(sizeOf(separator)).toBe(EVEN_LIMITS.max);
-    await userEvent.keyboard('{ArrowLeft}');
-    await expect(sizeOf(separator)).toBe(EVEN_LIMITS.max - 2);
-  },
-});
 
 /**
  * Stacked: the separator is horizontal, and it measures the second panel, whose ceiling keeps the first panel 320px tall when the room allows.

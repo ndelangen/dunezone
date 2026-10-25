@@ -1,0 +1,2441 @@
+{
+  "title": "GF9 Dune: core rules",
+  "introduction": "Learn and play Gale Force Nine's Dune with the six original factions. This reference follows the Basic Game, identifies Advanced Game additions, and places faction exceptions beside the rules they affect. Expansion factions and optional modules have separate companion books.",
+  "sections": [
+    {
+      "id": "begin",
+      "title": "The struggle for Arrakis",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "Each player leads a faction competing for control of Arrakis. Spice pays for cards, shipment and revival. Leaders, weapons and traitors decide battles, while the storm controls movement and turn order. You can win alone or form a public alliance with one other faction."
+        },
+        {
+          "kind": "text",
+          "text": "Play up to ten turns. At the Mentat Pause, an unallied faction normally wins by occupying at least three strongholds. A two-faction alliance normally needs four distinct strongholds between its members. Check victory after battles and spice collection, not as soon as a force enters a stronghold."
+        },
+        {
+          "kind": "text",
+          "text": "The five original strongholds are Arrakeen, Carthag, Sietch Tabr, Habbanya Sietch and Tuek's Sietch. A faction occupies a stronghold with at least one force that counts for occupation. Advanced Bene Gesserit advisors do not count."
+        },
+        {
+          "kind": "callout",
+          "title": "Learn the Basic Game first",
+          "text": "The Basic Game uses the common rules and basic faction advantages. The Advanced Game adds double spice blows, spice support in battle, stronghold income, advanced faction advantages and special Karama powers. Expansion factions and optional modules have their own books."
+        },
+        {
+          "kind": "text",
+          "text": "A specific faction advantage or card effect changes the general rule only where it says so. Apply the rest of the general rule normally."
+        },
+        {
+          "kind": "text",
+          "text": "An advantage saying may or can gives a choice. Carry out mandatory effects as written, such as the Harkonnen bonus card after a purchase when there is room."
+        }
+      ],
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 6
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 11
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 13
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 18
+        }
+      ]
+    },
+    {
+      "id": "board",
+      "title": "Read the board",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "Territories are named areas with borders. Sand territories have single borders, rock double borders, and strongholds triple borders. The Polar Sink is the central safe area. Eighteen radial sectors divide the board for storm movement, spice placement and spice collection."
+        },
+        {
+          "kind": "text",
+          "text": "A territory can span several sectors. Keep each group in a particular sector. Forces in different sectors of the same territory can normally move or fight together, unless the storm separates them. Moving to another sector of the same territory uses your normal force movement."
+        },
+        {
+          "kind": "text",
+          "text": "The storm moves counterclockwise around the outer edge. Sand forces and spice in sectors it crosses are vulnerable. Rock, strongholds and the Polar Sink protect forces from storm losses, but a sector currently under the storm still blocks shipment, movement and battle. Imperial Basin is the protected sand exception."
+        },
+        {
+          "kind": "text",
+          "text": "Keep dead forces and leaders in the Tleilaxu Tanks. Keep living reserves off the board beside your shield. The Spice Bank supplies spice and receives payments unless a faction or card redirects them. The turn track records the current turn."
+        }
+      ],
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 4
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 7
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 10
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 2
+        }
+      ]
+    },
+    {
+      "id": "components",
+      "title": "Prepare the components",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "Each base faction has a shield, reference sheet, player marker, twenty force tokens and five leader discs. A leader's printed number is its battle strength and normal revival cost. The character on a faction shield represents the faction and is not an additional leader disc."
+        },
+        {
+          "kind": "table",
+          "title": "Base card decks",
+          "columns": ["Deck", "Cards", "Use"],
+          "rows": [
+            ["Spice", "21", "Territory spice blows and Shai-Hulud sandworms"],
+            ["Treachery", "33", "Weapons, defenses and special effects"],
+            ["Traitor", "30", "One for each base leader"],
+            ["Prediction", "16", "Six factions and turns 1 through 10"],
+            ["Alliance", "6", "Reminders of alliance benefits"],
+            ["Storm", "6", "Advanced Fremen storm movement"]
+          ]
+        },
+        {
+          "kind": "text",
+          "text": "Set out spice tokens, both battle wheels, the storm marker, turn counter and Destroyed Shield Wall token. The Advanced Game also uses the Kwisatz Haderach card and counter, the Fremen sandworm token, three Fedaykin and five Sardaukar. Starred tokens count as ordinary forces in the Basic Game."
+        }
+      ],
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 4
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 5
+        }
+      ]
+    },
+    {
+      "id": "choose-game",
+      "title": "Choose the game before setup",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "Agree whether to play Basic or Advanced, which expansion factions are available, and which optional modules are in use. Owning an expansion does not require using all its modules. Keep cards for unused modules out of their decks."
+        },
+        {
+          "kind": "text",
+          "text": "The expanded faction selection still assumes a game of at most six players. Larger groups can experiment, but adding factions does not by itself add player circles, strongholds or a revised winning target."
+        },
+        {
+          "kind": "text",
+          "text": "For three players, GF9 recommends Atreides, Harkonnen and Fremen. A three-player alliance still needs four strongholds. For four players, consider leaving out Spacing Guild and Bene Gesserit; for five, consider leaving out Bene Gesserit."
+        },
+        {
+          "kind": "text",
+          "text": "For two players, try Atreides against Harkonnen, or have each player control two factions. GF9 increases the winning requirement to four strongholds for a two-player game. Keep the factions' hands, spice, forces and rules separate when controlling more than one."
+        },
+        {
+          "kind": "text",
+          "text": "The default alliance limit is two factions and its winning requirement is four strongholds. Other alliance arrangements are optional and must be agreed before play."
+        }
+      ],
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 6
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 24
+        },
+        {
+          "source": "gf9-ecaz-moritani",
+          "page": 9
+        }
+      ]
+    },
+    {
+      "id": "setup",
+      "title": "Set up the game",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "list",
+          "title": "Follow this order",
+          "items": [
+            "Put all spice in the Spice Bank. Shuffle the Spice and Treachery decks separately and place them face down beside the board. Leave room for discards.",
+            "Choose factions. You can deal random faction prediction cards, or draw numbered prediction cards and choose factions from highest number to lowest. Players may agree to swap.",
+            "Place each player marker in the circle nearest that player's shield and seat. The circles determine storm order. Bene Gesserit now secretly records its faction and turn prediction.",
+            "Remove traitor cards for factions not playing. Shuffle and deal four to each player. Each normally chooses one and returns the other three face down to the bottom of the Traitor Deck. Harkonnen keeps all four. A player may keep a card for their own leader to protect that leader from selection by another player.",
+            "Give each faction its starting spice and place its starting forces as described below. Put its remaining forces in reserves.",
+            "Deal one Treachery Card to each faction, except Harkonnen receives two. Keep hands secret. Expansion setup can alter this dealing procedure.",
+            "Place the turn counter at 1. Resolve the first storm using the special first-turn procedure."
+          ]
+        },
+        {
+          "kind": "text",
+          "text": "If using Leader Skills, that module moves the starting Treachery deal before traitor selection. Ixians, Tleilaxu, Ecaz and Moritani also have setup instructions; follow the appropriate expansion book when they are in play."
+        }
+      ],
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 6
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 17
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 18
+        },
+        {
+          "source": "gf9-choam-richese",
+          "page": 8
+        },
+        {
+          "source": "gf9-ixian-tleilaxu",
+          "page": 6
+        },
+        {
+          "source": "gf9-ixian-tleilaxu",
+          "page": 8
+        }
+      ]
+    },
+    {
+      "id": "starting-forces",
+      "title": "Starting positions and resources",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "table",
+          "title": "Base factions",
+          "columns": ["Faction", "Starting position", "Reserves", "Spice", "Free revival"],
+          "rows": [
+            ["Atreides", "10 in Arrakeen", "10", "10", "2"],
+            ["Bene Gesserit, Basic", "1 in Polar Sink", "19", "5", "1"],
+            ["Emperor", "None on Arrakis", "20", "10", "1"],
+            [
+              "Fremen",
+              "10 divided between Sietch Tabr, False Wall South and False Wall West",
+              "10 on the far side of Dune",
+              "3",
+              "3"
+            ],
+            ["Harkonnen", "10 in Carthag", "10", "10", "2"],
+            ["Spacing Guild", "5 in Tuek's Sietch", "15", "5", "1"]
+          ]
+        },
+        {
+          "kind": "text",
+          "text": "In the Advanced Game, Bene Gesserit places only one starting advisor in any territory after the Fremen placement. If alone, it immediately becomes a fighter. This replaces the Basic starting force in Polar Sink; it does not add a second force."
+        },
+        {
+          "kind": "text",
+          "text": "Advanced Emperor has fifteen ordinary forces and five Sardaukar; Advanced Fremen has seventeen ordinary forces and three Fedaykin. These are parts of the twenty-force supply."
+        }
+      ],
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 16
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 17
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 18
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 19
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 3
+        }
+      ]
+    },
+    {
+      "id": "information",
+      "title": "Information, hands and discards",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "Keep spice behind your shield. Keep your hand and selected traitors secret if you wish. You may voluntarily tell or show information to another player, publicly or privately, unless a particular effect forbids it. Information sharing does not transfer ownership of a card."
+        },
+        {
+          "kind": "text",
+          "text": "During Bidding, everyone must disclose the number of Treachery Cards in their hand. Their identities remain private. The normal hand limit is four; Harkonnen's is eight. You cannot bid with a full hand, including when holding Karama."
+        },
+        {
+          "kind": "text",
+          "text": "Atreides alone may make written records about Treachery Cards. Other notes about the game may be kept privately under GF9's general clarification. Tournament restrictions on notes are separate rules."
+        },
+        {
+          "kind": "text",
+          "text": "Discarded cards are placed face up, but the discard pile may not be searched unless an effect allows it. Watching a discard happen does not give permission to look through the pile later. When a deck is exhausted, reshuffle its discards; in the Advanced Game combine both Spice discard piles for the reshuffle."
+        }
+      ],
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 6
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 8
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 12
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 2
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 7
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 9
+        },
+        {
+          "source": "gf9-choam-richese",
+          "page": 4
+        }
+      ]
+    },
+    {
+      "id": "turn",
+      "title": "The nine phases of a turn",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "table",
+          "title": "Play in this order",
+          "columns": ["Phase", "What happens"],
+          "rows": [
+            ["1. Storm", "Move the storm, remove losses and determine First Player."],
+            ["2. Spice Blow and Nexus", "Reveal spice cards; resolve worms and any alliance opportunity."],
+            ["3. CHOAM Charity", "Eligible factions take charity."],
+            ["4. Bidding", "Auction Treachery Cards."],
+            ["5. Revival", "Return eligible dead forces and leaders to play."],
+            ["6. Shipment and Movement", "Each player ships once, then moves one group."],
+            ["7. Battle", "Resolve all required battles."],
+            ["8. Spice Collection", "Collect spice with surviving forces."],
+            ["9. Mentat Pause", "Collect deferred bribes and check victory; advance the turn if needed."]
+          ]
+        },
+        {
+          "kind": "text",
+          "text": "First Player is the faction whose player marker the storm will next approach while continuing counterclockwise. Proceed to that player's right, counterclockwise, when an activity calls for storm order. In battle, the earliest involved faction in that order is the aggressor."
+        },
+        {
+          "kind": "text",
+          "text": "Complete one phase before beginning the next. A card or faction ability can introduce a specific action within a phase; it does not give permission to skip the remaining sequence."
+        }
+      ],
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 7
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 10
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 12
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 3
+        }
+      ]
+    },
+    {
+      "id": "first-storm",
+      "title": "Turn one: place the storm",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "Place the storm at the Storm Start sector. The players whose circles are nearest on either side of that sector each secretly dial a number from zero through twenty. Reveal both numbers together, add them, and move the storm counterclockwise that many sectors."
+        },
+        {
+          "kind": "text",
+          "text": "This procedure determines the first storm position and turn order. Resolve storm losses in sectors crossed under the normal storm rule. In an Advanced Game with Fremen, use this same first storm procedure; the Fremen Storm Deck takes over on later turns."
+        }
+      ],
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 7
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 16
+        }
+      ]
+    },
+    {
+      "id": "storm-movement",
+      "title": "Later storm movement",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "On turns two onward, the two players who last used the battle wheels secretly dial one, two or three. Reveal together, add the numbers and move the storm counterclockwise that many sectors."
+        },
+        {
+          "kind": "text",
+          "text": "If Advanced Fremen is playing, reveal the Storm Card it selected during the preceding turn instead. Move that many sectors, return the card, shuffle the Storm Deck, and let Fremen secretly select and inspect the card for the next turn. Without Advanced Fremen, continue using the two dials."
+        },
+        {
+          "kind": "text",
+          "text": "Weather Control can replace the calculated movement. After turn one, its player chooses zero through ten sectors and discards the card. The card can be played after the ordinary distance is known, but before the storm moves. Family Atomics also has a window before movement."
+        }
+      ],
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 7
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 16
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 1
+        }
+      ]
+    },
+    {
+      "id": "storm-effects",
+      "title": "Storm losses and obstruction",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "Send forces in crossed or final sectors of sand territories to the Tanks. Imperial Basin is protected while the Shield Wall stands. Forces in rock, strongholds and the Polar Sink survive normal storm movement. Return spice in sectors crossed or stopped on to the Bank."
+        },
+        {
+          "kind": "text",
+          "text": "Forces cannot ship, move or battle into, out of or through the sector currently under the storm. In a territory spanning several sectors, a group may enter or leave an uncovered part if its path does not cross the covered part. The Polar Sink is never covered."
+        },
+        {
+          "kind": "text",
+          "text": "Forces in different parts of one territory cannot battle if separated by the storm. Two factions can therefore survive in the same stronghold while it is blocked; neither counts that disputed stronghold toward victory."
+        },
+        {
+          "kind": "callout",
+          "title": "Advanced Fremen exception",
+          "text": "In the Advanced Game, Fremen loses half the forces caught in the storm, rounding losses up. It can bring reserves into its permitted landing area under storm at the same half loss. This exception permits reserve placement, not ordinary movement or a worm ride into or out of the storm."
+        }
+      ],
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 7
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 10
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 16
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 1
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 5
+        }
+      ]
+    },
+    {
+      "id": "spice-blow",
+      "title": "Reveal a spice blow",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "Turn over the top Spice Card. For a territory card, take the printed amount of spice from the Bank and place it in that territory's sector marked with the spice-blow symbol. If that sector is under the storm, place no spice. Put the card face up on the Spice discard pile."
+        },
+        {
+          "kind": "text",
+          "text": "On the first turn, set every revealed Shai-Hulud card aside and keep drawing until the required territory card appears. Those set-aside worms have no effect and cause no Nexus. Shuffle them back into the Spice Deck after the phase."
+        },
+        {
+          "kind": "text",
+          "text": "In the Basic Game, resolve one spice blow each turn. In the Advanced Game, resolve two, keeping separate discard piles A and B. Apply a worm to the territory on top of its own pile, not the other pile."
+        }
+      ],
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 8
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 13
+        }
+      ]
+    },
+    {
+      "id": "sandworms",
+      "title": "Sandworms and riding",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "After turn one, a Shai-Hulud card devours the spice and forces in the territory shown on the card previously on top of that discard pile. Return spice to the Bank and forces to the Tanks. The attack is against that previous blow, not the new spice about to appear."
+        },
+        {
+          "kind": "text",
+          "text": "Discard the worm on that pile and draw again. Discard consecutive worms and continue until a territory card appears. Resolve that spice blow. In the Basic Game, a worm appearing during the phase provides a Nexus after the spice draw is complete. In the Advanced Game, finish that pile's draw, Nexus and riding before resolving the other pile."
+        },
+        {
+          "kind": "text",
+          "text": "Fremen forces are not devoured. After the Nexus, Fremen may ride the worm with some or all of its forces at the attacked location to one destination, subject to storm and occupancy rules. A ride may end in any territory, including a stronghold; the destination need not be sand. It uses no normal movement and costs no shipment spice."
+        },
+        {
+          "kind": "text",
+          "text": "Fremen can choose whether to protect its ally from being devoured. Protection does not give that ally a worm ride. Advanced Fremen can place consecutive additional worms in sand territories of its choice; resolve each such worm's destruction and the Fremen riding benefit."
+        }
+      ],
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 8
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 13
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 16
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 3
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 5
+        }
+      ]
+    },
+    {
+      "id": "advanced-spice",
+      "title": "Two spice blows",
+      "applicability": "advanced",
+      "blocks": [
+        {
+          "kind": "list",
+          "title": "Resolve both piles",
+          "items": [
+            "Reveal and resolve a card using pile A. If worms appear, resolve their destruction and continue drawing until a territory card is resolved. Then hold the Nexus and resolve the Fremen rides for that pile.",
+            "Reveal and resolve a card using pile B with the same procedure. Its worms affect the previous territory on pile B. If that pile produces a Nexus, hold it and resolve its rides too.",
+            "A turn can therefore have a Nexus from each pile. Keep the piles separate until a deck reshuffle. A special Fremen Karama worm retains its own stated phase-end Nexus timing."
+          ]
+        },
+        {
+          "kind": "text",
+          "text": "The first-turn worm exemption applies to both draws. Atreides' next-spice inspection still reveals only the single top card, not two cards. Expansion Sandtrout, Thumper and discovery cards add instructions described in their expansion books."
+        }
+      ],
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 13
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 3
+        }
+      ]
+    },
+    {
+      "id": "nexus",
+      "title": "Make or break alliances",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "During a Nexus, players may discuss alliances, publicly break an existing alliance and form a new one. No faction can belong to more than one alliance. The default maximum is two factions. Declare all alliances openly and exchange alliance reminder cards."
+        },
+        {
+          "kind": "text",
+          "text": "A player may leave an alliance during a Nexus without the former ally's permission. Outside a Nexus, alliances persist unless a specific expansion effect changes them. A Nexus does not compel anyone to ally."
+        },
+        {
+          "kind": "text",
+          "text": "An alliance normally wins by occupying four distinct strongholds between its members at the Mentat Pause. Allies may not battle one another. Except in Polar Sink, they must not finish the applicable evacuation window sharing a territory."
+        },
+        {
+          "kind": "text",
+          "text": "If newly allied factions already share a territory, one must leave during Shipment and Movement. If the first to ship and move does not leave, the later ally must leave or send its forces there to the Tanks. Advanced Bene Gesserit advisors are included in this official alliance restriction. Ecaz's Occupy advantage is a specific expansion exception."
+        },
+        {
+          "kind": "text",
+          "text": "An ally may pass through a territory containing allied forces or ship there and then move out, as long as the move ends elsewhere. The rule blocking entry into a stronghold with two other factions still applies."
+        }
+      ],
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 12
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 23
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 2
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 4
+        },
+        {
+          "source": "gf9-ecaz-moritani",
+          "page": 8
+        }
+      ]
+    },
+    {
+      "id": "allied-payments",
+      "title": "Helping an ally",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "You may pay part or all of an ally's Treachery purchase or shipment, up to the actual cost. Promise that help before the ally bids beyond its own holdings. Pay the recipient of that transaction directly, rather than transferring unrestricted spice to the ally."
+        },
+        {
+          "kind": "text",
+          "text": "For a normal Treachery purchase, pay the Emperor, or the Bank if no Emperor is playing. When the Emperor itself helps its ally buy a card, the Emperor's contribution goes to the ally and is paid back to the Emperor under the official clarification."
+        },
+        {
+          "kind": "text",
+          "text": "For shipment, pay the Guild, or the Bank if no Guild is playing. Any contribution the Guild itself makes toward its ally's shipment goes to the Bank."
+        },
+        {
+          "kind": "text",
+          "text": "Alliance does not normally let players transfer spice for other purposes, pay one another's battle support or revival, transfer cards, share leaders, or use every faction power. Each faction's alliance advantage states the further help it permits. The Emperor can give spice directly to its ally, immediately and for any purpose."
+        },
+        {
+          "kind": "text",
+          "text": "You cannot put a weapon or defense from your own hand into an ally's battle plan. Cards with independent timing, such as Truthtrance or Karama, may be played by a nonparticipant when their own instructions allow it."
+        }
+      ],
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 12
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 19
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 2
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 5
+        }
+      ]
+    },
+    {
+      "id": "charity",
+      "title": "Take CHOAM Charity",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "A faction with zero or one spice may call CHOAM Charity and take enough spice to bring its total to two. This is a top-up, not two extra spice for a faction already holding one."
+        },
+        {
+          "kind": "text",
+          "text": "Advanced Bene Gesserit receives two spice regardless of its existing holdings, including on turn one. If CHOAM is in play, its charity and Inflation rules change who supplies charity and its amount; use that expansion book."
+        },
+        {
+          "kind": "text",
+          "text": "Spice promised by a bribe and sitting in front of a shield is not yet spendable. Do not treat it as money behind that shield before the Mentat Pause."
+        }
+      ],
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 8
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 18
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 9
+        },
+        {
+          "source": "gf9-choam-richese",
+          "page": 7
+        },
+        {
+          "source": "gf9-choam-richese",
+          "page": 8
+        }
+      ]
+    },
+    {
+      "id": "bidding",
+      "title": "Auction Treachery Cards",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "list",
+          "title": "Run the auctions",
+          "items": [
+            "Everyone declares their current hand size. Count factions with room for at least one card and deal that many cards face down in a row. Harkonnen's larger hand limit applies.",
+            "Atreides may inspect the card about to be auctioned before anyone bids. The First Player opens, or the next eligible player to the right if First Player's hand is full.",
+            "The opening bid is at least one spice, or a pass. Proceed to the right. A bid must exceed the current bid. A previous pass does not stop a player re-entering if bidding returns to them.",
+            "When one bidder remains and all others pass, that bidder pays and takes the card. Other factions pay the Emperor if present; the Emperor pays the Bank for its own purchase. Harkonnen also draws its bonus card if room remains.",
+            "The next auction opens with the first eligible faction to the right of the previous opening bidder. Repeat until the offered cards are sold or everyone passes on a card.",
+            "If nobody bids, return the unsold cards to the top of the Treachery Deck and end the normal auction round."
+          ]
+        },
+        {
+          "kind": "text",
+          "text": "You may not bid more spice than you can pay using your holdings and your ally's promised contribution, except while holding Karama. A full hand must pass even with Karama. Each bid must be made within ten seconds or it counts as a pass."
+        },
+        {
+          "kind": "text",
+          "text": "A player can acquire several cards while space remains. The number offered was determined when dealing; it is not one guaranteed purchase per player. Expansion Ixian and Richese auction procedures can alter the normal offer."
+        }
+      ],
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 8
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 17
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 19
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 2
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 7
+        }
+      ]
+    },
+    {
+      "id": "revive-forces",
+      "title": "Revive forces",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "During Revival, each faction may return dead forces from the Tanks to its reserves. Its free revival allowance is shown on its sheet. Additional ordinary forces cost two spice each. Free and paid revivals together normally cannot exceed three forces per turn."
+        },
+        {
+          "kind": "text",
+          "text": "Only forces actually in the Tanks can be revived. Reserves and forces on Arrakis are already alive. Revival returns forces to reserves; getting them onto Arrakis normally requires shipment later in the turn."
+        },
+        {
+          "kind": "text",
+          "text": "Fremen gets three free revivals and cannot buy additional revivals under the base rules. The Emperor may pay for up to three additional revivals for its ally. A Ghola card adds the revival stated on that card. Tleilaxu and expansion modules can change limits or costs."
+        },
+        {
+          "kind": "text",
+          "text": "In the Advanced Game, no more than one Fedaykin and one Sardaukar of the respective factions may be revived per turn. Each counts as one force toward the applicable force allowance. Ghola, the Emperor's alliance and Tleilaxu do not bypass the one-special-force limit."
+        }
+      ],
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 9
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 16
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 19
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 2
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 5
+        }
+      ]
+    },
+    {
+      "id": "revive-leaders",
+      "title": "Revive leaders",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "Leader revival is separate from force revival. If eligible, you may revive one leader as well as taking your force revivals in the same phase."
+        },
+        {
+          "kind": "text",
+          "text": "Once all five of your leaders are in the Tanks, you may revive one per Revival Phase until all have been revived. Pay that leader's printed strength in spice to the Bank. The leader returns to your available leaders and remains subject to its original traitor card."
+        },
+        {
+          "kind": "text",
+          "text": "In Advanced play, having no leader of your own available because the others are captured also opens normal leader revival. A leader merely committed to another territory earlier in the Battle Phase does not create a Revival Phase action."
+        },
+        {
+          "kind": "text",
+          "text": "When a revived leader dies again, place it face down in the Tanks. It cannot be revived again until all the faction's other revivable leaders have also been revived, killed and returned to the Tanks. Ghola and Tleilaxu may explicitly bypass normal availability restrictions."
+        },
+        {
+          "kind": "text",
+          "text": "A leader revived by Ghola during Battle can fight immediately, including in that same phase. The Kwisatz Haderach is a separate Atreides token; whether it is alive or dead does not delay normal revival of the five Atreides leaders."
+        }
+      ],
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 9
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 17
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 22
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 6
+        }
+      ]
+    },
+    {
+      "id": "shipment",
+      "title": "Ship reserves to Arrakis",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "Beginning with First Player and proceeding to the right, each faction completes its shipment and then its movement. A faction may make one shipment of any number of its reserves to one sector of one territory."
+        },
+        {
+          "kind": "table",
+          "title": "Normal shipment cost",
+          "columns": ["Destination", "Cost per force"],
+          "rows": [
+            ["Stronghold", "1 spice"],
+            ["Other territory", "2 spice"]
+          ]
+        },
+        {
+          "kind": "text",
+          "text": "Pay the Guild if it is playing, otherwise the Bank. The Guild pays its own costs to the Bank. Clearly identify the destination sector in a territory spanning several sectors. Shipment does not consume normal movement, so newly shipped forces may move immediately."
+        },
+        {
+          "kind": "text",
+          "text": "You cannot ship into the storm or into a stronghold containing two other factions. Ordinary shipment is from reserves to the board; it cannot retrieve forces or move them between board territories. Fremen's free placement and Guild cross-shipment are exceptions."
+        },
+        {
+          "kind": "text",
+          "text": "You may decline shipment or movement. You still finish your own shipment opportunity before your own movement. The Advanced Guild may choose the gap between players in which it takes the complete shipment-and-movement turn."
+        }
+      ],
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 9
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 16
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 19
+        }
+      ]
+    },
+    {
+      "id": "movement",
+      "title": "Move one group",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "For your normal movement, choose any number of your forces in one territory and move them together to one destination territory. Ordinary range is one adjacent territory. You may leave forces behind, but cannot split one movement into several destinations or gather forces from several origins."
+        },
+        {
+          "kind": "text",
+          "text": "If you occupy Arrakeen or Carthag when that movement begins, you have ornithopters and may move up to three adjacent territories. The moving group can start anywhere on Arrakis. Forces just shipped into one of those cities can provide the ornithopters immediately."
+        },
+        {
+          "kind": "text",
+          "text": "Fremen normally moves two territories instead of one. It can use three-territory ornithopter movement if it has access. Ranges replace rather than add to one another."
+        },
+        {
+          "kind": "text",
+          "text": "A city under the storm can still provide ornithopters for a group elsewhere. The storm does not itself switch off city access, but the moving group cannot enter, leave or cross a stormed sector."
+        },
+        {
+          "kind": "text",
+          "text": "Count territory borders, not sector lines. Sectors still matter for avoiding the storm and choosing a final position. Changing sector within a territory uses movement. Forces in separate uncovered sectors of the same territory can form the moving group."
+        },
+        {
+          "kind": "text",
+          "text": "Never enter or pass through a stronghold already containing two other factions. Passing through an allied territory is permitted if you finish elsewhere. Do not move into, out of or across the storm. The Polar Sink permits all factions and is never a battle site."
+        },
+        {
+          "kind": "text",
+          "text": "Play Hajr immediately after your normal force movement during your own turn to make an additional on-planet movement. Reassess ornithopter access when that extra movement begins, so reaching a city with the first move can extend the second."
+        }
+      ],
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 9
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 10
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 16
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 22
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 23
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 2
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 8
+        }
+      ]
+    },
+    {
+      "id": "battle-order",
+      "title": "Determine the battles",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "After everyone has shipped and moved, opposing forces in the same territory must fight until only one faction or no forces remain. Do not battle in Polar Sink, under the storm, or across the storm. Advanced Bene Gesserit advisors neither fight nor require a battle."
+        },
+        {
+          "kind": "text",
+          "text": "Starting with First Player, each faction becomes aggressor for all battles in which it is involved. The aggressor chooses which of its territories to resolve first and, with several enemies in one territory, which opponent to fight first. When its battles are finished, continue to the right."
+        },
+        {
+          "kind": "text",
+          "text": "All of a faction's forces in the territory participate as one side unless separated by the storm. You cannot withdraw just because a battle looks unfavorable. Choosing a zero dial is legal, but you still risk your leader, cards and all forces if you lose."
+        }
+      ],
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 10
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 18
+        }
+      ]
+    },
+    {
+      "id": "battle-plan",
+      "title": "Make a battle plan",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "list",
+          "title": "Choose secretly",
+          "items": [
+            "Dial a number from zero up to the legal strength of your forces in the territory. In Basic play, each force is worth one and the winner loses that many force tokens. Advanced play uses spice support and special-force values.",
+            "Include one available leader disc, or a Cheap Hero worth zero instead. If any leader or Cheap Hero can be used, you must include one.",
+            "You may include one weapon, one defense, both or neither. A Worthless Card may fill either the weapon or defense place without an effect. You may play two Worthless Cards, one in each place.",
+            "When both sides are ready, reveal the plans simultaneously."
+          ]
+        },
+        {
+          "kind": "text",
+          "text": "If you have no usable leader or Cheap Hero, announce it. You still dial and battle, but cannot include Treachery Cards in the plan. Cards played outside the plan follow their own timing."
+        },
+        {
+          "kind": "text",
+          "text": "A living leader can fight several battles in one territory during a phase, but cannot fight in two different territories that phase. Leave surviving leader discs by the territory as reminders, then retrieve them when all battles are finished. A Cheap Hero is discarded after use even by a winner."
+        }
+      ],
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 10
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 11
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 8
+        },
+        {
+          "source": "revised-v2.3",
+          "page": 12
+        }
+      ]
+    },
+    {
+      "id": "battle-information",
+      "title": "Voice and battle information",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "Bene Gesserit Voice is used before Atreides Prescience. Voice gives one instruction about a card or category to play or not play. If the opponent cannot comply, it may make an otherwise legal plan. Voice does not allow extra cards or remove the need for a leader."
+        },
+        {
+          "kind": "text",
+          "text": "Atreides may then ask for one chosen element: leader, weapon, defense or number dialed. An answer of no weapon or no defense uses the question; Atreides cannot choose another element. The revealed element must be honored."
+        },
+        {
+          "kind": "text",
+          "text": "Truthtrance may be played at any time in this interaction. A player may revise the parts of its plan not fixed by Voice, Prescience or Truthtrance. The revealed plans still need to be legal."
+        },
+        {
+          "kind": "text",
+          "text": "When expansion cards have alternate roles, Prescience sees the role actually used. For example, Weirding Way alongside another weapon is the defense, so an Atreides weapon question reveals the other weapon. Special No-Field rules prevent asking for the number dialed in the relevant battle."
+        },
+        {
+          "kind": "text",
+          "text": "If a later legal effect makes a Prescience answer impossible to honor, give a new legal answer to that same question before reveal. If the original answer remains possible, keep it."
+        }
+      ],
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 17
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 18
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 23
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 3
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 4
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 5
+        }
+      ]
+    },
+    {
+      "id": "battle-resolution",
+      "title": "Resolve an ordinary battle",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "list",
+          "title": "Resolve the result",
+          "items": [
+            "Reveal any traitor calls first. A valid traitor overrides the ordinary result, including weapons and a lasgun-shield explosion.",
+            "If no traitor overrides the plans, resolve weapons and defenses. An unprotected leader killed by a weapon contributes no strength. Both leaders may die.",
+            "Add each side's dialed strength to its surviving leader's strength and any applicable effect. The higher total wins; a tie goes to the aggressor.",
+            "Send every losing force in the territory to the Tanks. The winner loses only the forces committed by its dial, using the correct basic or advanced values. A side can win while losing all its own forces.",
+            "Place killed leaders face up in the Tanks. The winner takes spice from the Bank equal to the values of leaders killed in that battle, including its own leader if killed. A surviving losing leader stays alive.",
+            "The loser discards every Treachery Card used in its plan. The winner may keep or discard its played battle cards unless a card explicitly says it must be discarded. Then apply any applicable post-battle faction advantage."
+          ]
+        },
+        {
+          "kind": "text",
+          "text": "In the Advanced Game, both sides pay the support spice in their plans, win or lose, except a traitor-winning side keeps its committed spice. Taking leader rewards does not refund battle support."
+        }
+      ],
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 10
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 11
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 13
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 2
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 8
+        }
+      ]
+    },
+    {
+      "id": "traitors",
+      "title": "Reveal a traitor",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "If your opponent uses a leader matching a traitor card you hold, you may reveal it and call treachery. Revealing is optional. A selected traitor stays a traitor for the entire game, including after revival."
+        },
+        {
+          "kind": "text",
+          "text": "The side revealing the traitor wins immediately, keeps its forces and committed support spice, sends the traitorous leader to the Tanks and collects that leader's printed strength in spice. It may retain or discard its battle cards under the normal winner rule."
+        },
+        {
+          "kind": "text",
+          "text": "The betrayed side loses all forces in the territory, its committed support spice and all cards in its plan. The winner's leader survives even if the revealed weapons would have killed it. A lasgun-shield combination is overridden."
+        },
+        {
+          "kind": "text",
+          "text": "If each side reveals the other's leader as a traitor, neither wins: both lose all forces in the territory, both leaders and all played cards. Neither collects leader spice."
+        },
+        {
+          "kind": "text",
+          "text": "Harkonnen may call a traitor against its ally's opponent. An Atreides leader accompanied by the Kwisatz Haderach cannot turn traitor. Face Dancers are an expansion ability resolved after a battle and are not ordinary traitor calls."
+        },
+        {
+          "kind": "text",
+          "text": "Keep a revealed Traitor Card. It remains yours and may betray the same leader again after revival. In an allied Harkonnen call, the faction actually fighting is the battle winner and receives the traitorous leader's spice."
+        }
+      ],
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 11
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 17
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 2
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 3
+        }
+      ]
+    },
+    {
+      "id": "weapons",
+      "title": "Weapons and defenses",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "table",
+          "title": "Base weapons and protection",
+          "columns": ["Card or type", "Effect", "Defense"],
+          "rows": [
+            ["Projectile: Crysknife, Maula Pistol, Slip Tip, Stunner", "Kills the opposing leader", "Shield"],
+            ["Poison: Chaumas, Chaumurky, Ellaca Drug, Gom Jabbar", "Kills the opposing leader", "Snooper"],
+            [
+              "Lasgun",
+              "Kills the opposing leader",
+              "No ordinary defense; any Shield in the battle causes an explosion"
+            ],
+            ["Shield", "Protects your leader from a projectile weapon", "Does not stop poison or Lasgun"],
+            ["Snooper", "Protects your leader from poison", "Does not stop projectile or Lasgun"]
+          ]
+        },
+        {
+          "kind": "text",
+          "text": "A defense protects only the leader, not the dialed forces. A killed leader adds zero, but the force dial still counts. If both leaders die, compare the dials; the aggressor wins a tie."
+        },
+        {
+          "kind": "text",
+          "text": "A Lasgun with any Shield in the same battle, including its own side's Shield, explodes. Destroy all spice and forces in the territory, including uninvolved forces and advisors. Kill the leaders used in that battle. Neither side wins or collects spice for killed leaders. A traitor call can override this explosion."
+        },
+        {
+          "kind": "text",
+          "text": "Keep previously used surviving leaders beside the territory to enforce their movement restriction. They are markers of a previous battle, not leaders participating in a later battle there. A later lasgun-shield explosion does not kill those earlier surviving leaders."
+        },
+        {
+          "kind": "text",
+          "text": "Expansion weapons and defenses have special definitions. A card that counts as projectile defense is not automatically a Shield. Read its actual categories when resolving Voice, Lasgun or Artillery Strike."
+        }
+      ],
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 10
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 11
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 22
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 4
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 5
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 8
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 9
+        },
+        {
+          "source": "revised-v2.3",
+          "page": 11
+        }
+      ]
+    },
+    {
+      "id": "advanced-battle",
+      "title": "Support forces with spice",
+      "applicability": "advanced",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "An ordinary force contributes one-half strength without support, or one strength when supported with one spice. Secretly put the spice committed to support on your battle wheel. You cannot support forces using spice that is not yet spendable."
+        },
+        {
+          "kind": "text",
+          "text": "The dial is the total strength committed, not the number of tokens. Half points are legal. For example, three ordinary forces supported with one spice can contribute two strength: one supported force and two unsupported forces."
+        },
+        {
+          "kind": "text",
+          "text": "If you win, select losses whose strength matches the dial and whose support matches the spice committed. You may choose among several valid combinations; you are not required to remove a predetermined token for each spice."
+        },
+        {
+          "kind": "table",
+          "title": "Advanced force values",
+          "columns": ["Force", "Without support", "With one spice", "Special rule"],
+          "rows": [
+            ["Ordinary force", "1/2", "1", "Normal base-faction force"],
+            ["Sardaukar", "1", "2", "Against Fremen use ordinary values"],
+            ["Fremen ordinary", "1", "1", "Full strength without spice"],
+            ["Fedaykin", "2", "2", "Full strength without spice"],
+            ["Ixian Cyborg", "1", "2", "See Ixian expansion"],
+            ["Ixian Suboid", "1/2", "1/2", "Cannot be improved with spice"]
+          ]
+        },
+        {
+          "kind": "callout",
+          "title": "Example",
+          "text": "The Emperor has one Sardaukar and five ordinary forces, dials three and commits one spice. After winning it may lose the supported Sardaukar plus two unsupported ordinary forces, or one supported ordinary plus four unsupported ordinary forces. Both remove three strength with one spice supported."
+        },
+        {
+          "kind": "text",
+          "text": "A Karama played before reveal can make Sardaukar or Fedaykin ordinary for that battle. A separate cancellation can remove the Fremen no-spice advantage. Recalculate the legal maximum and losses using the advantage actually canceled."
+        }
+      ],
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 13
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 16
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 19
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 3
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 7
+        },
+        {
+          "source": "gf9-ixian-tleilaxu",
+          "page": 9
+        }
+      ]
+    },
+    {
+      "id": "collection",
+      "title": "Collect spice",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "During Spice Collection, a faction with forces in the same territory and sector as spice can take it from the board and put it behind its shield. Its rate is two spice per force, or three per force if it currently occupies Arrakeen or Carthag. City access can help a collecting group elsewhere."
+        },
+        {
+          "kind": "text",
+          "text": "Take no more than the spice actually present. Leave any excess spice on the board. Collecting forces stay where they are; collection does not return them to reserves or move them out of danger."
+        },
+        {
+          "kind": "text",
+          "text": "Advanced Bene Gesserit advisors cannot collect spice or provide ornithopters. Faction and module exceptions, such as Ixian Cyborgs or discovery locations, state their own rates or income."
+        },
+        {
+          "kind": "callout",
+          "title": "Advanced stronghold income",
+          "text": "The current occupant of Arrakeen takes two spice, Carthag takes two, and Tuek's Sietch takes one from the Bank each collection phase. Collect for each qualifying stronghold occupied. This income is additional to spice harvested by forces and is absent in the Basic Game."
+        }
+      ],
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 11
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 13
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 18
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 2
+        }
+      ]
+    },
+    {
+      "id": "mentat",
+      "title": "Mentat Pause and victory",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "At the start of the Mentat Pause, move deferred bribe spice from in front of your shield to behind it. Resolve the end-of-turn actions of the factions and modules in use, then check victory using the resulting position."
+        },
+        {
+          "kind": "text",
+          "text": "An unallied faction occupying at least three strongholds wins. A two-faction alliance occupying four distinct strongholds wins jointly. Advisors do not count, and a stronghold disputed by factions unable to battle because of storm does not count for either side."
+        },
+        {
+          "kind": "text",
+          "text": "If several players or alliances meet their requirements together, they share the win. The group may instead agree to play another whole turn, optionally increasing the requirement. Holding more strongholds does not automatically beat another qualifying faction."
+        },
+        {
+          "kind": "text",
+          "text": "Bene Gesserit's correct faction-and-turn prediction replaces the predicted normal victory with a sole Bene Gesserit win. A normal victory on turn ten takes priority over end-of-game special victories."
+        },
+        {
+          "kind": "text",
+          "text": "If nobody has won before the end of turn ten, check the Fremen special condition first. If it is satisfied, Fremen and its ally win. Otherwise Spacing Guild and its ally win if the Guild is playing. If Guild is absent, use GF9's printed fallback awarding the Fremen the game if present, otherwise the factions occupying the most strongholds share the win. This fallback is distinct from satisfying the named Fremen Special Victory Condition."
+        },
+        {
+          "kind": "text",
+          "text": "If no winner is due and turns remain, advance the counter and start the next Storm Phase. Expansion Homeworlds, Tech Tokens, Hidden Mobile Stronghold, discovery strongholds and Ecaz Occupy can affect the victory count."
+        }
+      ],
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 11
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 16
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 18
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 19
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 23
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 1
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 9
+        }
+      ]
+    },
+    {
+      "id": "deals",
+      "title": "Deals and bribes",
+      "applicability": "advanced",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "Players outside the same alliance may make binding spoken deals about legal future actions, information and spice. State the agreement aloud. It cannot authorize an illegal action or transfer forces, leaders, cards or faction advantages unless a separate effect allows that transfer."
+        },
+        {
+          "kind": "text",
+          "text": "Put a spice bribe in front of the recipient's shield. It cannot be spent until collected at the start of the Mentat Pause. Allies cannot bribe each other; use their permitted purchase or shipment contributions and their specific alliance advantages."
+        },
+        {
+          "kind": "text",
+          "text": "A player must honor the possible parts of an agreement. If a promise becomes impossible, that part is void. All parties may agree to cancel their deal."
+        },
+        {
+          "kind": "text",
+          "text": "This reference places bribery in the Advanced Game, following GF9's November 2020 design-intent correction. Players learning the Basic Game may still share information; paid and binding bribery is an advanced rule."
+        }
+      ],
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 12
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 1
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 3
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 9
+        }
+      ]
+    },
+    {
+      "id": "karama",
+      "title": "Use a Karama Card",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "After setup and At Start actions are complete, a Karama can stop one use of a faction advantage, including an alliance advantage, when that advantage is attempted. It does not switch the whole faction off for the phase. In battle, play it before plans are revealed."
+        },
+        {
+          "kind": "list",
+          "title": "Other uses",
+          "items": [
+            "Pay for any player's shipment at Guild rates, paying the Bank. This changes the price of that shipment; it does not grant a second shipment.",
+            "While holding Karama, bid more spice than you have without revealing it. If outbid, keep it. If you win using it, discard it and pay no spice for the purchased card. An eligible bidder can also play it to take the current card.",
+            "In the Advanced Game, activate your faction's special Karama power once in the game."
+          ]
+        },
+        {
+          "kind": "text",
+          "text": "A full hand cannot buy or take another card with Karama. Richese special auctions disallow Karama purchases. Discard Karama after use. The updated cards supplied with CHOAM & Richese replace the core copies."
+        },
+        {
+          "kind": "text",
+          "text": "Karama does not stop a Special Victory Condition or the Bene Gesserit prediction. It cannot reduce Harkonnen's hand limit or stop an ordinary traitor reveal in Harkonnen's own battle. Use the following faction reference for the actions it can cancel."
+        },
+        {
+          "kind": "text",
+          "text": "Karama does not cancel the ordinary effect of a Treachery Card such as Hajr, or another faction's Special Karama Power. Stopping Bene Gesserit from converting a Worthless Card is a cancellation of its faction advantage. After an advantage is canceled, its player may choose a revised legal action that respects that cancellation."
+        }
+      ],
+      "sources": [
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 7
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 8
+        },
+        {
+          "source": "gf9-choam-richese",
+          "page": 4
+        },
+        {
+          "source": "revised-v2.3",
+          "page": 39
+        }
+      ]
+    },
+    {
+      "id": "karama-factions",
+      "title": "Karama against the base factions",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "table",
+          "title": "One canceled use",
+          "columns": ["Faction", "Examples of a legal cancellation", "Limits"],
+          "rows": [
+            [
+              "Atreides",
+              "Inspecting one auction card; looking at the next Spice Card; asking for one battle-plan element; using Kwisatz Haderach in one battle",
+              "Cannot stop activation after the seventh battle loss"
+            ],
+            [
+              "Bene Gesserit",
+              "One Voice, advisor shipment or flip; charity above normal eligibility; using one Worthless Card as Karama",
+              "Cannot cancel prediction; a prevented Worthless Karama is discarded"
+            ],
+            [
+              "Emperor",
+              "Receiving one card payment; giving spice to an ally for the affected use; granting three extra allied revivals; Sardaukar bonus in one battle",
+              "Stopping spice-giving does not remove normal allied purchase or shipment aid"
+            ],
+            [
+              "Fremen",
+              "Two-territory movement; protection/riding against one worm; inspecting the next Storm Card; Fedaykin bonus in one battle",
+              "Cannot cancel ordinary reserve placement or special victory; revealed Storm Card still determines distance"
+            ],
+            [
+              "Harkonnen",
+              "Bonus card after one purchase; traitor call in an ally's battle; capture after one battle",
+              "Cannot stop an eight-card hand, its own traitor reveal, or use of an already captured leader"
+            ],
+            [
+              "Spacing Guild",
+              "One payment, discount or special shipment; out-of-order shipment and movement",
+              "Cannot stop special victory; canceling out-of-order action makes it use normal storm order for that turn."
+            ]
+          ]
+        },
+        {
+          "kind": "text",
+          "text": "The precise advantage named matters. Canceling Fedaykin's doubled value does not also cancel all Fremen battle advantages. Benefits with separate triggers require their own cancellation. Expansion factions and homeworld abilities have their own limits."
+        }
+      ],
+      "sources": [
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 7
+        },
+        {
+          "source": "revised-v2.3",
+          "page": 17
+        },
+        {
+          "source": "revised-v2.3",
+          "page": 18
+        },
+        {
+          "source": "revised-v2.3",
+          "page": 19
+        }
+      ]
+    },
+    {
+      "id": "special-karama",
+      "title": "Special Karama powers",
+      "applicability": "advanced",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "Each faction other than Bene Gesserit may spend a Karama on its special power once per game. This is an alternative to the card's normal uses, not an additional effect. Bene Gesserit's conversion of Worthless Cards is a repeatable advantage and gives it no separate once-per-game power."
+        },
+        {
+          "kind": "table",
+          "title": "Base faction powers",
+          "columns": ["Faction", "Timing", "Power"],
+          "rows": [
+            ["Atreides", "Battle, before plan reveal", "Inspect one player's entire battle plan."],
+            ["Emperor", "Revival", "Revive up to three forces or one leader for free."],
+            [
+              "Fremen",
+              "Spice Blow and Nexus",
+              "Place a worm in a chosen sand territory, destroy spice and unprotected other forces, permit Fremen riding, and generate a phase-end Nexus."
+            ],
+            [
+              "Harkonnen",
+              "Bidding",
+              "Take up to four random cards from another player, combine them with your hand, then return the same number of cards of your choice. Returned cards may be ones just taken."
+            ],
+            ["Spacing Guild", "Shipment and Movement", "Stop one other player's off-planet shipment."]
+          ]
+        },
+        {
+          "kind": "text",
+          "text": "Harkonnen may temporarily handle the taken cards even with a full hand; returning the same number restores the limit. The power does not let it permanently exceed eight. The Emperor's special revival still observes the one-Sardaukar-per-turn restriction."
+        }
+      ],
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 14
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 2
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 3
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 6
+        },
+        {
+          "source": "revised-v2.3",
+          "page": 20
+        }
+      ]
+    },
+    {
+      "id": "atreides",
+      "title": "Atreides",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "Start with ten forces in Arrakeen, ten in reserves, ten spice and one Treachery Card. Free revival is two forces. Keep the Spice and Treachery decks nearby, since your prescience involves them."
+        },
+        {
+          "kind": "list",
+          "title": "Basic advantages",
+          "items": [
+            "Before bidding begins on each normal auction card, inspect that card. You alone may keep written records about Treachery Cards. You may share information you learn.",
+            "At the start of Shipment and Movement, before anyone moves, inspect the single top card of the Spice Deck.",
+            "In each of your battles, require the opponent to reveal one element of its plan: leader, weapon, defense or dial. Asking about an absent weapon or defense still uses the question.",
+            "For your ally's battle, you may require its opponent to show your ally one element of the plan."
+          ]
+        },
+        {
+          "kind": "callout",
+          "title": "Expansion interaction",
+          "text": "Against a Richese No-Field in battle you may not inspect the number dialed. With two spice blows, your next-card inspection is still only one card. Apply Voice before your battle question."
+        }
+      ],
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 17
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 23
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 3
+        },
+        {
+          "source": "gf9-choam-richese",
+          "page": 6
+        }
+      ]
+    },
+    {
+      "id": "kwisatz-haderach",
+      "title": "Activate the Kwisatz Haderach",
+      "applicability": "advanced",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "Secretly track Atreides force tokens lost in battles. Once at least seven have been lost, the Kwisatz Haderach becomes active immediately, so it can help in a later battle of the same turn. Storm and worm losses are not battle losses."
+        },
+        {
+          "kind": "text",
+          "text": "In one territory per turn, accompany an Atreides leader or Cheap Hero with the token to add two strength. It cannot fight alone. If the accompanied leader or Cheap Hero is killed, the token adds nothing to that battle. An accompanied leader cannot turn traitor."
+        },
+        {
+          "kind": "text",
+          "text": "Only a lasgun-shield explosion kills the Kwisatz Haderach. It then requires revival for two spice. This ruleset follows normal leader eligibility for that revival, with Ghola and Tleilaxu exceptions. Its life or death never counts when deciding whether the five Atreides leaders qualify for normal revival."
+        },
+        {
+          "kind": "text",
+          "text": "The special Atreides Karama power allows inspection of one player's whole battle plan before reveal. It is separate from the one-element battle question and may be used once per game."
+        }
+      ],
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 17
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 14
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 3
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 6
+        },
+        {
+          "source": "revised-v2.3",
+          "page": 27
+        }
+      ]
+    },
+    {
+      "id": "bene-gesserit",
+      "title": "Bene Gesserit",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "In Basic play start with one force in Polar Sink, nineteen in reserve, five spice and one Treachery Card. Free revival is one force."
+        },
+        {
+          "kind": "text",
+          "text": "After player positions are set, secretly select one other faction and one turn number. If that faction earns a normal victory, alone or in an alliance, on the chosen turn, reveal your prediction and win alone instead. You may predict your eventual ally. You cannot predict a Guild or Fremen special end-game victory, and may win normally if your prediction fails."
+        },
+        {
+          "kind": "text",
+          "text": "Whenever another faction ships from off-planet to Arrakis, you may send one reserve force for free to Polar Sink. This is additional to your own normal shipment. Fremen reserve placement and Guild cross-shipment do not qualify as off-planet shipment."
+        },
+        {
+          "kind": "text",
+          "text": "In battle, Voice your opponent to play or not play one weapon, defense, Worthless Card or Cheap Hero as specified. A legal category instruction can name poison weapon, projectile weapon, poison defense or Shield. Special cards can require exact names. If compliance is impossible, the opponent may play an otherwise legal plan."
+        },
+        {
+          "kind": "text",
+          "text": "You may Voice the opponent in your ally's battle. Give the Voice before Atreides asks its Prescience question. You do not gain the ally's other advantages."
+        }
+      ],
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 18
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 23
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 4
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 5
+        }
+      ]
+    },
+    {
+      "id": "advisors",
+      "title": "Bene Gesserit advisors and fighters",
+      "applicability": "advanced",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "After Fremen places its forces, put one advisor in any territory, leaving nineteen in reserve. If it is alone it becomes a fighter. All your forces in a territory must show the same side."
+        },
+        {
+          "kind": "text",
+          "text": "You receive two spice in every CHOAM Charity Phase regardless of holdings. You may use any Worthless Card as a Karama. You have no separate special Karama power."
+        },
+        {
+          "kind": "text",
+          "text": "An advisor coexists peacefully with other forces. It cannot fight, collect spice, count toward stronghold control or the two-faction limit, provide ornithopters, or enable Family Atomics. It can be lost to storm, worm, a lasgun-shield explosion or atomics."
+        },
+        {
+          "kind": "text",
+          "text": "When accompanying another faction's off-planet shipment, you may put a free advisor in its destination instead of Polar Sink. That new accompanying advisor cannot flip to a fighter during the same turn unless it becomes alone."
+        },
+        {
+          "kind": "text",
+          "text": "If you already have fighters at the destination of an off-planet shipment, first use Intrusion to flip them to advisors before sending an accompanying advisor there. Otherwise send the free force to Polar Sink or decline it; you may not place the two types together."
+        },
+        {
+          "kind": "list",
+          "title": "Changing sides",
+          "items": [
+            "Whenever advisors become alone in a territory, flip them to fighters.",
+            "After Spice Blow and Nexus but before anyone ships, announce each territory in which you wish to fight and flip all advisors there to fighters. Do not flip under storm or in an ally's territory.",
+            "When another faction ships, moves or rides into a territory containing your fighters, you may immediately flip them to advisors, including when that faction was already present and adds more forces.",
+            "Advisors moving into an occupied territory may stay advisors or become fighters. Fighters entering a territory without your advisors remain fighters.",
+            "Forces moved or shipped into a territory already containing your forces must end as the same type as those already there. Thus fighters joining your advisors flip to advisors."
+          ]
+        },
+        {
+          "kind": "text",
+          "text": "The alliance restriction still applies to advisors. Their lack of battle strength does not allow indefinite co-occupation with an ally under this reference's chosen official ruling. Homeworlds cannot receive advisors."
+        }
+      ],
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 18
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 3
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 4
+        },
+        {
+          "source": "gf9-ecaz-moritani",
+          "page": 10
+        }
+      ]
+    },
+    {
+      "id": "emperor",
+      "title": "Emperor",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "Start with all twenty forces in reserves, ten spice and one Treachery Card. Free revival is one force."
+        },
+        {
+          "kind": "text",
+          "text": "Other factions pay their normal Treachery auction purchases to you. They must pay the full winning bid; you cannot discount it. Pay the Bank for your own normal purchases."
+        },
+        {
+          "kind": "text",
+          "text": "You may give spice directly to your ally, for any reason and at any time. It goes behind the ally's shield and is immediately usable. This is separate from normal allied contributions to purchases and shipments."
+        },
+        {
+          "kind": "text",
+          "text": "During Revival, you may pay for up to three additional forces for your ally. These are extra to its normal three-force ceiling, allowing six in the base game. Pay two spice per ordinary force, redirected to Tleilaxu if its revival payment ability applies."
+        },
+        {
+          "kind": "callout",
+          "title": "Advanced Sardaukar",
+          "text": "In the Advanced Game, five of your twenty forces are Sardaukar. Each has doubled strength for battle and losses, except against Fremen, when each counts as an ordinary force. Supported Sardaukar is worth two and unsupported one. Revive at most one per turn."
+        },
+        {
+          "kind": "callout",
+          "title": "Special Karama",
+          "text": "Once per Advanced Game during Revival, spend Karama to revive up to three forces or one leader for free."
+        }
+      ],
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 19
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 14
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 2
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 5
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 6
+        }
+      ]
+    },
+    {
+      "id": "fremen",
+      "title": "Fremen",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "Start with ten forces divided as you choose between Sietch Tabr, False Wall South and False Wall West, ten in reserves on Dune's far side, three spice and one Treachery Card. Revive three forces free and do not buy extra base-game revivals."
+        },
+        {
+          "kind": "text",
+          "text": "For your shipment, bring any number of reserves for free into The Great Flat or one territory within two territory borders of it. Do not count The Great Flat itself against the range. This is your faction's reserve-placement action, rather than a paid off-planet shipment."
+        },
+        {
+          "kind": "text",
+          "text": "Your normal movement range is two territories. Worm riding is a separate move after a Nexus and does not consume your normal movement. Worms do not devour your forces unless an applicable cancellation removes that protection."
+        },
+        {
+          "kind": "text",
+          "text": "You may protect your ally against worms and grant it three free revivals during Revival. This reference treats those three as its total free allowance within its normal limit, not three additional forces beyond that limit. Your ally shares your special victory."
+        },
+        {
+          "kind": "text",
+          "text": "At the end of the last turn, if no normal victory occurred, your special victory requires Sietch Tabr and Habbanya Sietch to be occupied only by you or nobody, and Tuek's Sietch not to be occupied by Atreides, Harkonnen or Emperor. Allies do not become Fremen for this test. Richese adds itself to the prohibited Tuek's occupants when that expansion applies; Ecaz has a specific co-occupation exception."
+        }
+      ],
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 16
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 5
+        },
+        {
+          "source": "gf9-choam-richese",
+          "page": 5
+        },
+        {
+          "source": "gf9-ecaz-moritani",
+          "page": 15
+        }
+      ]
+    },
+    {
+      "id": "fremen-advanced",
+      "title": "Advanced Fremen",
+      "applicability": "advanced",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "After the first dialed storm, secretly select the Storm Card for the next turn. Reveal it at the next Storm Phase, move that distance, return and shuffle it, then select the following card."
+        },
+        {
+          "kind": "text",
+          "text": "If caught by storm, lose half the affected force tokens, rounding losses up. You may place reserves into your legal landing area under storm and lose half. You cannot use ordinary movement or a worm ride to enter or leave storm."
+        },
+        {
+          "kind": "text",
+          "text": "Additional consecutive worms after the first can be placed in sand territories of your choice. They devour other unprotected forces and spice there. Your own forces are immune and may benefit from riding."
+        },
+        {
+          "kind": "text",
+          "text": "Your three Fedaykin each count as two ordinary forces in battle and losses. All your forces fight at full strength without spice. Only one Fedaykin can be revived each turn."
+        },
+        {
+          "kind": "text",
+          "text": "Once per game, spend Karama during Spice Blow and Nexus to place a worm in a sand territory. Treat it as a normal worm, including a Nexus at phase end and your riding opportunity. This uses your special power; it is separate from placing additional naturally drawn worms."
+        }
+      ],
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 16
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 3
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 5
+        }
+      ]
+    },
+    {
+      "id": "harkonnen",
+      "title": "Harkonnen",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "Start with ten forces in Carthag, ten in reserves, ten spice and two Treachery Cards. Free revival is two forces."
+        },
+        {
+          "kind": "text",
+          "text": "Keep all four traitor cards dealt at setup, including your own leaders. You may reveal any qualifying opponent leader in your own battles. You may also reveal a traitor against your ally's opponent."
+        },
+        {
+          "kind": "text",
+          "text": "Your hand limit is eight. Whenever you buy a Treachery Card, draw another from the top of the deck for free if that would not exceed eight. Buying with seven cards fills the hand and gives no extra card. You must pass when full."
+        },
+        {
+          "kind": "callout",
+          "title": "Advanced capture",
+          "text": "After a win, you may randomly take one of the loser's available leaders, including the one just used if alive. Exclude leaders dead in the Tanks or used elsewhere that turn. Inspect it, then either kill it face down for two spice from the Bank or keep it to use once. The face-down death counts as a second death."
+        },
+        {
+          "kind": "text",
+          "text": "A captured leader may be a traitor. If it survives the one battle for you, return it to its own faction. If killed, put it in the Tanks for its own faction. Return all captives immediately when all your own leaders are dead. The captor and original owner know the captive's identity and may disclose it."
+        },
+        {
+          "kind": "callout",
+          "title": "Special Karama",
+          "text": "Once per Advanced Game during Bidding, take up to four cards randomly from another hand, look at them as part of your hand, and give back an equal number of your choice. You may return the same cards."
+        }
+      ],
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 17
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 14
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 5
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 6
+        }
+      ]
+    },
+    {
+      "id": "spacing-guild",
+      "title": "Spacing Guild",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "Start with five forces in Tuek's Sietch, fifteen in reserves, five spice and one Treachery Card. Free revival is one force."
+        },
+        {
+          "kind": "text",
+          "text": "Receive payments when other factions ship onto Arrakis from off-planet reserves. Pay the Bank for your own shipments."
+        },
+        {
+          "kind": "list",
+          "title": "Choose one shipment type on your turn",
+          "items": [
+            "Ship reserves to one destination on Arrakis.",
+            "Cross-ship a group from one territory to another, applying normal destination costs and restrictions.",
+            "Return a group from one territory to reserves at one spice per two forces."
+          ]
+        },
+        {
+          "kind": "text",
+          "text": "For the first two types pay half normal cost, rounding the final cost up. The back-to-reserve rate of one per two is already your stated rate and is not halved again. A one-force shipment to a stronghold costs one spice."
+        },
+        {
+          "kind": "text",
+          "text": "Your ally may ship reserves to Arrakis or cross-ship forces on Arrakis at Guild rates, but cannot use your return-to-reserve option. The November FAQ permits allied Fremen to treat its off-board reserve territory as the origin of such a cross-shipment."
+        },
+        {
+          "kind": "text",
+          "text": "If no one has won when the game ends and the Fremen special victory does not apply, you and your ally win. A correct Bene Gesserit prediction cannot target this special victory."
+        },
+        {
+          "kind": "callout",
+          "title": "Advanced timing",
+          "text": "Choose when to take your whole shipment-and-movement turn, first, last or between other factions. Announce only when taking it; do not interrupt the middle of another faction's turn. Other factions retain normal order."
+        },
+        {
+          "kind": "callout",
+          "title": "Special Karama",
+          "text": "Once per Advanced Game, stop one other faction's off-planet shipment during Shipment and Movement."
+        },
+        {
+          "kind": "text",
+          "text": "If Karama stops your out-of-order shipment-and-movement advantage, take your turn in normal storm order. Do not simply retry the same timing advantage in a later gap that turn."
+        }
+      ],
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 19
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 23
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 5
+        }
+      ]
+    },
+    {
+      "id": "card-reference",
+      "title": "Base Treachery Cards",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "The base deck has thirty-three physical cards. Repeated copies share rules. The card names below provide the effects needed to use the Basic and Advanced core game; expansion cards are described in their books."
+        },
+        {
+          "kind": "table",
+          "title": "Base deck contents",
+          "columns": ["Cards", "Copies", "Function"],
+          "rows": [
+            ["Crysknife, Maula Pistol, Slip Tip, Stunner", "1 each", "Projectile weapon"],
+            ["Chaumas, Chaumurky, Ellaca Drug, Gom Jabbar", "1 each", "Poison weapon"],
+            ["Shield", "4", "Projectile defense"],
+            ["Snooper", "4", "Poison defense"],
+            ["Lasgun", "1", "Special weapon"],
+            ["Cheap Hero", "3", "Zero-strength leader substitute"],
+            ["Baliset, Jubba Cloak, Kulon, La La La, Trip to Gamont", "1 each", "Worthless"],
+            ["Karama", "2", "Cancel an advantage or use a listed special benefit"],
+            ["Truthtrance", "2", "A binding truthful answer"],
+            ["Family Atomics", "1", "Destroy the Shield Wall"],
+            ["Hajr", "1", "Additional movement"],
+            ["Tleilaxu Ghola", "1", "Free revival"],
+            ["Weather Control", "1", "Replace storm movement"]
+          ]
+        },
+        {
+          "kind": "text",
+          "text": "Return retained battle cards to your hand after resolution. Discard cards whose effects require it; remove Family Atomics from the game after use. The new CHOAM & Richese Karama cards replace the old two copies, rather than adding two more."
+        }
+      ],
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 5
+        },
+        {
+          "source": "treachery-online",
+          "page": "skin.json: TreacheryCardName_STR 0-32"
+        },
+        {
+          "source": "gf9-choam-richese",
+          "page": 4
+        }
+      ]
+    },
+    {
+      "id": "worthless-cheap-hero",
+      "title": "Worthless Cards and Cheap Heroes",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "A Worthless Card has no base effect. Play one instead of your weapon or defense, or two to fill both places, to get it out of your hand through battle. The loser discards it; a winner may discard or retain it. You cannot freely discard a Worthless Card outside an effect permitting it."
+        },
+        {
+          "kind": "text",
+          "text": "A Cheap Hero fills the leader position with zero strength. It permits weapon and defense play normally, and can be chosen instead of a living leader. If you have no usable leader but do have a Cheap Hero, you must play it. It cannot fill a weapon or defense place merely to discard it."
+        },
+        {
+          "kind": "text",
+          "text": "Always discard a Cheap Hero after its battle. Advanced Bene Gesserit may instead play Worthless Cards as Karama. CHOAM has separate expansion uses for specific Worthless Cards."
+        }
+      ],
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 10
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 23
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 18
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 8
+        },
+        {
+          "source": "revised-v2.3",
+          "page": 12
+        }
+      ]
+    },
+    {
+      "id": "truthtrance",
+      "title": "Truthtrance",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "At any time, play Truthtrance to publicly ask one player one yes-or-no question about the game. The answer must be truthful and public. Pause play for the answer. A question may use and or or."
+        },
+        {
+          "kind": "text",
+          "text": "A question about a choice during the current turn binds the player to do everything possible to honor the answer. It cannot bind actions in a later turn. If carrying out the answer becomes impossible under the rules, that obligation ends."
+        },
+        {
+          "kind": "text",
+          "text": "If the question asks something beyond the player's ability to know or decide, it may answer that it does not know. The questioner may then ask another question or save the card for later. Resolve simultaneous attempts in storm order."
+        },
+        {
+          "kind": "text",
+          "text": "Truthtrance can interact with Voice and Prescience before battle reveal. The player can change elements that those effects have not fixed. Discard the card after resolving its use."
+        }
+      ],
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 23
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 8
+        },
+        {
+          "source": "revised-v2.3",
+          "page": 39
+        }
+      ]
+    },
+    {
+      "id": "family-atomics",
+      "title": "Family Atomics",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "After turn one, play during a Storm Phase before the storm actually moves. You need at least one qualifying force on the Shield Wall or in a territory adjacent to it. Storm between your force's sector and the Shield Wall prevents the connection, but a force or the wall itself being under storm does not by itself prohibit the card."
+        },
+        {
+          "kind": "text",
+          "text": "Destroy every force on the Shield Wall and remove the card from the game. Place the Destroyed Shield Wall marker. Arrakeen, Carthag and Imperial Basin lose their protection from storm for the rest of the game. Shield Wall remains rock and can be entered normally."
+        },
+        {
+          "kind": "text",
+          "text": "You may wait until storm distance is known, then play before movement. The current storm sector is not retroactively hit; vulnerable sectors it moves into are affected. Weather Control and Family Atomics can be played in either order, resolving each in the order played."
+        },
+        {
+          "kind": "text",
+          "text": "Advanced Bene Gesserit advisors do not qualify as forces enabling Family Atomics."
+        }
+      ],
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 22
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 1
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 8
+        },
+        {
+          "source": "gf9-base-2019",
+          "page": 18
+        },
+        {
+          "source": "revised-v2.3",
+          "page": 39
+        }
+      ]
+    },
+    {
+      "id": "hajr-ghola-weather",
+      "title": "Movement, revival and weather cards",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "table",
+          "title": "Special base cards",
+          "columns": ["Card", "Timing and effect", "After use"],
+          "rows": [
+            [
+              "Hajr",
+              "Immediately after your normal force movement during your own Shipment and Movement turn, make one additional on-planet force movement, subject to the normal range, storm and occupancy rules. It may move the same group again or another group.",
+              "Discard"
+            ],
+            [
+              "Tleilaxu Ghola",
+              "At any time, revive one of your leaders or up to five of your forces free. This is additional to normal revival and can revive a leader without waiting for all five to be dead. A revived leader may fight immediately. The one-special-force-per-turn limit still applies.",
+              "Discard"
+            ],
+            [
+              "Weather Control",
+              "After turn one, before the storm moves, replace its calculated movement with any distance from zero to ten sectors. You may wait until the ordinary distance is known.",
+              "Discard"
+            ]
+          ]
+        },
+        {
+          "kind": "text",
+          "text": "An extra movement is not an extra shipment. Free revival does not ship the revived forces. Weather Control changes the number of sectors, while storm direction and damage remain normal."
+        }
+      ],
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 22
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 1
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 2
+        },
+        {
+          "source": "gf9-faq-2020-11",
+          "page": 8
+        },
+        {
+          "source": "revised-v2.3",
+          "page": 39
+        },
+        {
+          "source": "treachery-online",
+          "page": "skin.json: TreacheryCardDescription_STR 20,22,27"
+        }
+      ]
+    },
+    {
+      "id": "expansion-map",
+      "title": "Adding expansions",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "The Ixian & Tleilaxu book adds those two factions, Hidden Mobile Stronghold, Cyborgs, Suboids, Face Dancers, Sandtrout, new Treachery Cards and the optional Tech Tokens."
+        },
+        {
+          "kind": "text",
+          "text": "CHOAM & Richese adds those factions, the Auditor, No-Field tokens, special Richese auctions and card cache, replacement Karama, Poison Tooth and Artillery Strike cards, and the Leader Skill and Advanced Stronghold variants."
+        },
+        {
+          "kind": "text",
+          "text": "Ecaz & Moritani adds those factions, Ambassadors, Terror, Duke Vidal, Nexus Cards, Homeworlds, discoveries and new Treachery Cards. Its modular variants can be chosen independently."
+        },
+        {
+          "kind": "text",
+          "text": "Apply each selected module's setup, timing and exceptions alongside the core sequence. Do not mix KISS, tournament, Landsraad, Dreamrules or other variant changes into GF9 unless choosing that separate ruleset."
+        }
+      ],
+      "sources": [
+        {
+          "source": "gf9-ixian-tleilaxu",
+          "page": 4
+        },
+        {
+          "source": "gf9-choam-richese",
+          "page": 4
+        },
+        {
+          "source": "gf9-ecaz-moritani",
+          "page": 4
+        },
+        {
+          "source": "gf9-ecaz-moritani",
+          "page": 9
+        }
+      ]
+    },
+    {
+      "id": "alliance-variants",
+      "title": "Optional alliance arrangements",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "The standard game uses two-faction alliances needing four strongholds. GF9 also lists the following optional arrangements. Choose one before starting; do not change the target midway because an alliance is close to winning."
+        },
+        {
+          "kind": "table",
+          "title": "Optional arrangements",
+          "columns": ["Maximum factions per alliance", "Strongholds to win"],
+          "rows": [
+            ["2", "3"],
+            ["3", "4"],
+            ["3", "3"],
+            ["Any number", "3"]
+          ]
+        },
+        {
+          "kind": "text",
+          "text": "With larger alliances, each member still follows the chosen game's payment, movement and public-alliance rules unless the variant explicitly changes them. These alternatives are not the default GF9 alliance requirement."
+        }
+      ],
+      "sources": [
+        {
+          "source": "gf9-base-2019",
+          "page": 24
+        }
+      ]
+    },
+    {
+      "id": "sources-and-judgements",
+      "title": "Sources and judgements",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "Source notes throughout this book use the short labels below. Numeric page references count PDF pages from the front cover as page 1. In the unofficial revised book, the printed rule-page number is two less than the PDF page number. Named references, such as a faction sheet or skin.json entry, identify a section or file location."
+        },
+        {
+          "kind": "list",
+          "title": "Source labels",
+          "items": [
+            "gf9-base-2019 means Dune Rulebook, Gale Force Nine, 2019 base edition, 24 PDF pages. The read copy is preserved in the treachery.online document mirror.",
+            "gf9-faq-2020-11 and faq-nov2020 mean Dune Questions and Answers, Gale Force Nine, November 2020, 9 PDF pages. Its clarifications inform the rules; its questions and answers are not reproduced here.",
+            "gf9-ixian-tleilaxu and ixian-tleilaxu mean Dune: Ixians & Tleilaxu Rulebook, Gale Force Nine, 2020 expansion, 12 PDF pages.",
+            "gf9-choam-richese and choam-richese mean Dune: CHOAM & Richese Rulebook, Gale Force Nine, supplied 2021 expansion copy, 12 PDF pages.",
+            "gf9-ecaz-moritani and ecaz-moritani mean Dune: Ecaz & Moritani Rulebook, Gale Force Nine, supplied copy with 2022 copyright, 16 PDF pages.",
+            "revised-v2.3 means Unofficial Revised Dune Rulebook by Van Willis, the supplied file named v2.3. Its internal heading says Version 2.2. It has 44 PDF pages and marks unofficial changes with outlined text. It is a comparison reference, not a new official edition.",
+            "compilation means Dune Boardgame Rules Compilation, assembled by Johannes Cassebaum for the Dune Tabletop Discord server, supplied undated copy, 46 PDF pages. It combines the base game, first two expansions and published questions and answers.",
+            "treachery-online means the treachery.online community implementation and card reference files by Ronald Ossendrijver and contributors. File locations identify the referenced data, rather than a printed page."
+          ]
+        },
+        {
+          "kind": "text",
+          "text": "The source copies and community references are linked from the GF9 source ticket: https://github.com/ndelangen/dunezone/issues/2216. The supplied copies identify what was read; a mirror or filename alone does not establish the latest official printing."
+        },
+        {
+          "kind": "text",
+          "text": "Conflicting statements and the interpretation adopted for Dune Zone are recorded in GF9 judgements: https://github.com/ndelangen/dunezone/issues/2352. Specific expansion rules apply within their scope. Explicit corrections replace the text they correct. Where the sources disagree, consult that record for the decision, reasons and affected content."
+        }
+      ],
+      "sources": []
+    }
+  ]
+}

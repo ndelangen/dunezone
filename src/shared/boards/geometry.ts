@@ -11,7 +11,7 @@ import { at, arcParameters } from './curves';
 export { at } from './curves';
 import { compareCodeUnits } from '../compareText';
 import type { Board, Point, Edge, Properties, AppearanceContour } from './schema';
-import { territoryId, TERRITORY_NAME_LIMIT } from './schema';
+import { freshTerritoryId, propertyId, territoryId, TERRITORY_NAME_LIMIT } from './schema';
 export type { Board, Point, Edge, Properties, Decal, AppearanceContour } from './schema';
 export type Face = {
   key: string;
@@ -30,8 +30,6 @@ export const commonArtwork = {
   city: '/vector/icon/city.svg',
   sietch: '/vector/icon/seitch.svg',
   ornithopter: '/vector/icon/ornithopter.svg',
-  arrakisCity: '/vector/icon/arrakis-city.svg',
-  arrakisSietch: '/vector/icon/arrakis-sietch.svg',
 } as const;
 export const CENTER: Point = [243.53, 243.53];
 export const RADIUS = 242.5;
@@ -336,6 +334,11 @@ export function reconcile(board: Board, previous: Board, oldFaces: Face[], faces
     faces.filter((face) => board.properties[face.key] || previous.properties[face.key]).map((face) => face.key)
   );
   const reserved = new Set(Object.values(previous.properties).map((p) => territoryId(p.name)));
+  /* Every territory that carries on keeps its ID; a new one must not take an ID that is still saved. */
+  const keptIds = new Set(
+    [...Object.values(previous.properties), ...Object.values(board.properties)].map((p) => propertyId(p))
+  );
+  const ids = new Set<string>();
   for (const face of faces) {
     const same = board.properties[face.key] || previous.properties[face.key];
     const candidates = oldFaces
@@ -355,7 +358,9 @@ export function reconcile(board: Board, previous: Board, oldFaces: Face[], faces
       name = `${base.slice(0, TERRITORY_NAME_LIMIT - ending.length).trimEnd()}${ending}`;
     }
     used.add(territoryId(name));
-    properties[face.key] = value ? { ...value, name, id: territoryId(name) } : defaults(name);
+    const id = generated ? freshTerritoryId(name, new Set([...keptIds, ...ids])) : propertyId(value!);
+    ids.add(id);
+    properties[face.key] = value ? { ...value, name, id } : { ...defaults(name), id };
   }
   return { ...board, properties };
 }

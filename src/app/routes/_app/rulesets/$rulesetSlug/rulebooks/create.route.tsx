@@ -97,7 +97,7 @@ function creationSubmission(draft: CreationDraft, page: RulebookCreationPageData
     draft.source === 'starter'
       ? { kind: 'starter', settings: draft.starterSettings }
       : clone
-        ? { kind: 'clone', rulebookId: clone._id, design: draft.cloneDesign ?? clone.settings.design }
+        ? { kind: 'clone', rulebookId: clone._id, design: draft.cloneDesign ?? clone.draft_settings.design }
         : null;
   return { input: source ? { rulesetId: page.ruleset._id, name: name.data, source } : null, nameError: undefined };
 }
@@ -185,7 +185,7 @@ function RulebookSettingsChoices({
         {onSizeChange ? (
           <ControlBlock
             title="Size"
-            description="The Size is fixed once the Rulebook is created. Tall is A4 folded lengthwise."
+            description="Size can be changed later when every Page layout supports it. Tall is A4 folded lengthwise."
             input={
               <PreviewChoice
                 label="Rulebook Size"
@@ -209,7 +209,7 @@ function RulebookSettingsChoices({
         )}
         <ControlBlock
           title="Design"
-          description="The Design is fixed once the Rulebook is created. These examples show two facing pages."
+          description="Design can be changed later. These examples show two facing pages."
           input={
             <PreviewChoice
               label="Rulebook Design"
@@ -254,7 +254,7 @@ function CreateRulebookForm({ page }: { page: RulebookCreationPageData }) {
     draft.source === 'starter'
       ? draft.starterSettings
       : clone
-        ? { size: clone.settings.size, design: draft.cloneDesign ?? clone.settings.design }
+        ? { size: clone.draft_settings.size, design: draft.cloneDesign ?? clone.draft_settings.design }
         : undefined;
   return (
     <Stack

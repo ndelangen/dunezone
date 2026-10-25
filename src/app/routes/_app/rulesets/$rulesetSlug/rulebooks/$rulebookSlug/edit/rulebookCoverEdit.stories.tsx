@@ -1,4 +1,4 @@
-import preview from '@sb/preview';
+import { testingPreview } from '@sb/preview';
 import { waitForFrame } from '@sb/storyWaits';
 import { expect, userEvent, within } from 'storybook/test';
 
@@ -9,9 +9,8 @@ import {
   CoverFooterStory,
 } from './rulebookControlRegionEditors.shared.stories.fixture';
 
-const meta = preview.meta({
+const meta = testingPreview.meta({
   title: 'Page/Cover/Editing',
-  globals: { colorScheme: 'dark' },
   parameters: { layout: 'centered' },
 });
 

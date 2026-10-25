@@ -3,7 +3,7 @@ import {
   publisherErrorMessage,
   serializePublisherLogEvent,
 } from '../../src/shared/asset-publishing/publisher-diagnostics';
-import { absoluteHttpsUrl } from './config';
+import { publisherTransportUrl } from './config';
 import { readBoundedJson, runWithDeadline } from './http';
 import { hasRulebookPdfCapture, isRulebookPdfCaptureToken, readRulebookPdfCaptureBatch } from './rulebook-pdf-capture';
 import type { RulebookPdfCaptureBucket } from './rulebook-pdf-capture';
@@ -16,6 +16,7 @@ const MAX_SNAPSHOT_BYTES = 1_000_000;
 const SNAPSHOT_DEADLINE_MS = 30_000;
 
 export type CaptureEnv = {
+  LOCAL_REVIEW?: string;
   ASSET_BUCKET: RulebookPdfCaptureBucket;
   ASSETS: { fetch(request: Request): Promise<Response> };
   CONVEX_RENDER_URL: string;
@@ -103,7 +104,7 @@ async function validatePublicationJob(request: Request, env: CaptureEnv): Promis
   }
   try {
     return await runWithDeadline(snapshotDeadline(request), async (signal) => {
-      const upstream = await fetch(absoluteHttpsUrl('CONVEX_RENDER_URL', env.CONVEX_RENDER_URL), {
+      const upstream = await fetch(publisherTransportUrl('CONVEX_RENDER_URL', env.CONVEX_RENDER_URL, env), {
         method: 'GET',
         headers: { Authorization: `Bearer ${jobId}` },
         signal,

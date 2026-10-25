@@ -1,0 +1,585 @@
+{
+  "title": "GF9: Ixians & Tleilaxu",
+  "introduction": "Faction rules, cards and optional Tech Tokens for the first GF9 expansion. Read with the GF9 core rulebook.",
+  "sections": [
+    {
+      "id": "using-this-expansion",
+      "title": "Using this expansion",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "Add Ixians and Tleilaxu to the available factions. Choose which factions will play before building the Traitor and Prediction decks. This expansion adds choices of faction, not a requirement to play with more players. Use its faction rules in either the Basic or Advanced game; abilities marked Advanced apply only in the Advanced game."
+        },
+        {
+          "kind": "text",
+          "text": "Tech Tokens are a separate optional module. Decide whether to use them before setup. Retain the core turn sequence and all core rules except where an expansion rule gives an exception."
+        },
+        {
+          "kind": "table",
+          "columns": ["Component", "Quantity and setup"],
+          "rows": [
+            ["Faction sets", "2 sets, each with a shield, sheet, player marker, 5 leader discs and 20 troops."],
+            ["Ixian special troops", "7 Cyborgs and 13 Suboids, plus the Hidden Mobile Stronghold."],
+            [
+              "Treachery Cards",
+              "14 additions. If using the CHOAM & Richese replacement Poison Tooth and Artillery Strike, replace the earlier copies."
+            ],
+            ["Spice Cards", "1 Sandtrout, shuffled into the Spice Deck."],
+            [
+              "Traitor Cards",
+              "11 additions: 5 per new faction and a Cheap Hero traitor. Exclude absent factions as usual."
+            ],
+            ["Prediction Cards", "2 faction additions."],
+            ["Tech Tokens", "3 optional tokens: Axlotl Tanks, Heighliners and Spice Production."]
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "source": "ixian-tleilaxu",
+          "page": "4"
+        }
+      ]
+    },
+    {
+      "id": "ixian-setup",
+      "title": "Ixian setup",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "Start with 10 spice. Of your 7 Cyborgs and 13 Suboids, place 3 of each in the Hidden Mobile Stronghold. Your other 4 Cyborgs and 10 Suboids start in reserves. After the first storm movement, place the stronghold pointing at a sector of any non-stronghold territory, including the Polar Sink."
+        },
+        {
+          "kind": "text",
+          "text": "Before starting Treachery Cards are dealt, draw one card per faction in the game. Keep one, shuffle the remainder and deal one to every other faction. Harkonnen then receive their additional starting card from the deck. This replaces the normal one-card starting deal."
+        },
+        {
+          "kind": "text",
+          "text": "Your free revival is 1 troop, either a Cyborg or a Suboid. Both types pay normal shipment costs. A paid Cyborg revival costs 3 spice; paid Suboid revival uses the normal troop cost."
+        }
+      ],
+      "sources": [
+        {
+          "source": "ixian-tleilaxu",
+          "page": "8"
+        },
+        {
+          "source": "ixian-tleilaxu",
+          "page": "9"
+        },
+        {
+          "source": "ixian-tleilaxu",
+          "page": "11"
+        }
+      ]
+    },
+    {
+      "id": "ixian-bidding",
+      "title": "Ixian bidding and alliance",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "Before the Bidding round, draw one more Treachery Card than the number of normal cards to be auctioned and inspect them. Return one card of your choice face down to either the top or bottom of the deck. Shuffle the remaining drawn cards to form the auction supply. You know which cards are in the auction, but their shuffled order is secret."
+        },
+        {
+          "kind": "text",
+          "text": "After an ally buys a card in normal bidding, they may inspect it, immediately discard it and draw the top card of the Treachery Deck. Make the decision separately for each purchase. This applies to a Richese Black Market purchase, even if that card is Richese technology, but not to a purchase from the separate Richese cache."
+        },
+        {
+          "kind": "callout",
+          "title": "With Richese",
+          "text": "Richese announces whether their cache card comes first or last before the Ixian Bidding advantage. Draw one fewer normal auction card for each cache or successfully sold Black Market card replacing a normal card. The Ixian extra draw still supplies one card to return to the deck."
+        }
+      ],
+      "sources": [
+        {
+          "source": "ixian-tleilaxu",
+          "page": "8"
+        },
+        {
+          "source": "ixian-tleilaxu",
+          "page": "9"
+        }
+      ]
+    },
+    {
+      "id": "cyborgs-and-suboids",
+      "title": "Cyborgs and Suboids",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "table",
+          "columns": ["Troop", "Battle and travel"],
+          "rows": [
+            [
+              "Cyborg",
+              "7 troops. Each is worth 2 normal troops in Basic battle, moves up to 2 territories, and collects up to 3 spice."
+            ],
+            [
+              "Suboid",
+              "13 troops. Each is worth 1/2 in battle. Move up to 2 territories with at least one Cyborg, otherwise 1, subject to normal ornithopter movement. Collect spice normally."
+            ]
+          ]
+        },
+        {
+          "kind": "text",
+          "text": "Pay battle losses in the battle strength of the troops removed. After calculating losses, exchange any surviving Suboids in the battle territory one for one for Cyborgs lost in that battle. Send the exchanged Suboids to the Tanks and retain those Cyborgs."
+        },
+        {
+          "kind": "callout",
+          "title": "Example",
+          "text": "With 2 Cyborgs and 6 Suboids, a dial of 6 can cost both Cyborgs and 4 Suboids. Exchange the 2 surviving Suboids for the 2 lost Cyborgs. The surviving force is 2 Cyborgs."
+        },
+        {
+          "kind": "text",
+          "text": "Suboids still occupy territories, control strongholds and collect spice despite their fractional battle strength."
+        }
+      ],
+      "sources": [
+        {
+          "source": "ixian-tleilaxu",
+          "page": "9"
+        },
+        {
+          "source": "ixian-tleilaxu",
+          "page": "10"
+        }
+      ]
+    },
+    {
+      "id": "hidden-mobile-stronghold",
+      "title": "The Hidden Mobile Stronghold",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "The Hidden Mobile Stronghold is a separate stronghold inside the non-stronghold territory it points at. Its position and occupants are public. Occupying it counts as one stronghold toward victory, and troops inside are protected from sandworms and the storm."
+        },
+        {
+          "kind": "text",
+          "text": "On later turns, before storm movement is dialed or revealed, if Ixian troops occupy the stronghold, the Ixians may move it up to 3 territories, ending with its pointer in a sector of a non-stronghold territory. It may not move into, out of or through the storm. Troops outside do not board it merely because it passes them."
+        },
+        {
+          "kind": "text",
+          "text": "When it moves into, out of or through a spice-bearing sector, immediately collect up to 2 spice per troop inside, taking spice from that territory. The pointer must pass through the sector that actually holds the spice. This is the stronghold movement collection rule; Cyborg collection capacity of 3 applies to ordinary Spice Collection."
+        },
+        {
+          "kind": "text",
+          "text": "Ixians may ship directly into it at the stronghold shipment rate. Other factions must first ship or move to its parent territory and then spend one territory of movement to enter. Capturing the stronghold does not let another faction move it. Bene Gesserit Spiritual Advisors may accompany an Ixian shipment directly inside. Fremen worm riding may also end directly inside, subject to storm and occupancy rules."
+        },
+        {
+          "kind": "text",
+          "text": "Pointing at the Polar Sink does not make the stronghold part of the neutral Polar Sink. Battles can occur inside the stronghold. Moritani cannot place a Terror token inside it."
+        }
+      ],
+      "sources": [
+        {
+          "source": "ixian-tleilaxu",
+          "page": "9"
+        },
+        {
+          "source": "ixian-tleilaxu",
+          "page": "11"
+        }
+      ]
+    },
+    {
+      "id": "ixian-advanced",
+      "title": "Advanced Ixian rules",
+      "applicability": "advanced",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "Cyborgs need spice support to count at their full strength of 2. Without support they count as 1. Suboids always count as 1/2 and cannot be increased by paying spice. Their support cost is zero."
+        },
+        {
+          "kind": "text",
+          "text": "Technology: once per Bidding round, before bidding begins on a normal card and before Atreides inspects it, exchange that card for one from your hand. This is a swap, so a full hand does not prevent it. It does not replace the separate Bidding advantage."
+        },
+        {
+          "kind": "text",
+          "text": "Special Karama: once per game, spend a Karama Card to move the Hidden Mobile Stronghold up to 2 territories during your own Shipment and Movement turn, in addition to your normal movement. Normal stronghold movement restrictions still apply."
+        }
+      ],
+      "sources": [
+        {
+          "source": "ixian-tleilaxu",
+          "page": "6"
+        },
+        {
+          "source": "ixian-tleilaxu",
+          "page": "9"
+        }
+      ]
+    },
+    {
+      "id": "tleilaxu-setup",
+      "title": "Tleilaxu setup and Face Dancers",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "Start with 5 spice and all 20 troops in reserves. Your free revival is 2 troops. You receive no Traitor Cards during ordinary Traitor selection. After other factions have selected traitors and returned unused cards, shuffle the remaining deck and draw 3 Face Dancers."
+        },
+        {
+          "kind": "list",
+          "items": [
+            "Resolve traitors and determine the battle winner first. Whenever another faction wins a battle, you may reveal a Face Dancer matching its leader, including in a battle you did not fight.",
+            "The battle remains that faction's win. Resolve its card retention, spice for killed leaders and Tech Token claim normally.",
+            "Send the revealed leader to the Tanks if not already killed. Collect no spice for killing it through the Face Dancer reveal.",
+            "Return that winner's surviving troops in the battle territory to its reserves. Replace up to that number with Tleilaxu troops from your reserves and/or anywhere on Arrakis."
+          ]
+        },
+        {
+          "kind": "text",
+          "text": "An Atreides leader accompanied by the Kwisatz Haderach can still be a Face Dancer. Face Dancer replacement is not shipment or movement and does not trigger Terror tokens."
+        },
+        {
+          "kind": "text",
+          "text": "Keep revealed Face Dancers face up. Do not replace or reuse them individually. After all 3 have been revealed, return all 3 to the Traitor Deck, shuffle and draw 3 new ones. During each Mentat Pause you may instead return one unrevealed Face Dancer to the deck, shuffle and draw a replacement."
+        }
+      ],
+      "sources": [
+        {
+          "source": "ixian-tleilaxu",
+          "page": "6"
+        },
+        {
+          "source": "ixian-tleilaxu",
+          "page": "7"
+        },
+        {
+          "source": "ixian-tleilaxu",
+          "page": "10"
+        },
+        {
+          "source": "ixian-tleilaxu",
+          "page": "11"
+        }
+      ]
+    },
+    {
+      "id": "tleilaxu-revival",
+      "title": "Tleilaxu revival, Zoal and alliance",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "You have no troop revival limit. Pay the Spice Bank half the normal total revival price, rounded up. Other factions pay their revival costs to you. You may raise another faction's normal 3-troop revival limit to 5; this also lets Fremen buy additional troops up to that limit. Special limits on reviving elite troops still apply."
+        },
+        {
+          "kind": "text",
+          "text": "For every faction that takes free revival or uses a Ghola Card, take 1 spice from the Spice Bank, including when you take free revival yourself. If the Emperor pays for an ally's extra revivals, those payments also go to you."
+        },
+        {
+          "kind": "text",
+          "text": "When a faction cannot otherwise revive a leader, it may ask you to revive one specific dead leader, face up or face down. Set a price; if the faction agrees and pays, revive that leader. This allows early revival, not an extra leader revival: at most one leader per faction per Revival phase. When its leaders are all unavailable and normal leader revival is allowed, apply the normal rule instead."
+        },
+        {
+          "kind": "text",
+          "text": "You may offer your ally half-price troop and leader revival, rounding up the total price. The ally pays you; this alliance benefit does not let you pay the ally's revival bill. CHOAM allied with Tleilaxu may halve its total troop revival price rather than rounding each troop separately."
+        },
+        {
+          "kind": "text",
+          "text": "Zoal copies the opposing leader disc's value for battle and for spice collected if Zoal is killed. Against a Cheap Hero, Zoal is 0. Do not copy additions from the Kwisatz Haderach or a Leader Skill. Reviving Zoal costs 3 spice. This is the explicit Zoal revival price. Do not halve it again."
+        }
+      ],
+      "sources": [
+        {
+          "source": "ixian-tleilaxu",
+          "page": "7"
+        },
+        {
+          "source": "ixian-tleilaxu",
+          "page": "10"
+        }
+      ]
+    },
+    {
+      "id": "tleilaxu-advanced",
+      "title": "Advanced Tleilaxu rules",
+      "applicability": "advanced",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "Gholas: while you have fewer than 5 active leaders, you may revive dead leaders belonging to other factions at your discounted price and add them to your pool, up to 5 active leaders in total. Face-down leaders are eligible. You may revive more than one ghola in a Revival phase if there is room in your pool."
+        },
+        {
+          "kind": "text",
+          "text": "A ghola can be exposed as a traitor by whoever holds its Traitor Card; it does not automatically betray its original faction. A ghola does not earn you a Leader Skill draw. The Auditor and Duke Vidal are excluded from Tleilaxu ghola acquisition."
+        },
+        {
+          "kind": "text",
+          "text": "A ghola cannot be sold back while alive. After it dies and returns to the Tanks, its owning faction may request revival under the normal Tleilaxu revival arrangement."
+        },
+        {
+          "kind": "text",
+          "text": "Special Karama: once per game, spend a Karama Card to prevent one player from performing a revival of troops and/or a leader."
+        }
+      ],
+      "sources": [
+        {
+          "source": "ixian-tleilaxu",
+          "page": "6"
+        },
+        {
+          "source": "ixian-tleilaxu",
+          "page": "7"
+        },
+        {
+          "source": "ixian-tleilaxu",
+          "page": "10"
+        }
+      ]
+    },
+    {
+      "id": "tech-token-setup",
+      "title": "Optional Tech Tokens",
+      "applicability": "optional",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "Keep Tech Tokens visible in front of shields. Initially give Axlotl Tanks to Tleilaxu, Heighliners to Ixians, and Spice Production to Fremen. After the first storm movement, assign any token whose faction is absent at random to the next factions in turn order that have no token. No starting faction receives a second token this way."
+        },
+        {
+          "kind": "text",
+          "text": "When you defeat a faction holding Tech Tokens, take one. If it holds several, choose which one to take. This transfer follows the battle winner even if a later Face Dancer reveal replaces its troops."
+        },
+        {
+          "kind": "text",
+          "text": "One player controlling all 3 tokens counts them as one stronghold for victory. Allied players may not combine their tokens to create this stronghold, including an Ecaz alliance."
+        },
+        {
+          "kind": "table",
+          "columns": ["Token", "Income condition"],
+          "rows": [
+            ["Axlotl Tanks", "At least one faction takes free revival, except when only Tleilaxu does so."],
+            ["Heighliners", "At least one faction ships from off-planet, except when only the Spacing Guild does so."],
+            [
+              "Spice Production",
+              "At least one faction takes CHOAM Charity, except when only Bene Gesserit and/or CHOAM use their faction Charity advantages."
+            ]
+          ]
+        },
+        {
+          "kind": "text",
+          "text": "Each qualifying token triggers only once in its phase, however many factions qualify. Its income is 1 spice from the Spice Bank for every Tech Token its holder controls. Place that income on the triggering token and collect it at the end of the phase. Inflation does not alter this amount."
+        },
+        {
+          "kind": "callout",
+          "title": "Example",
+          "text": "If you hold Axlotl Tanks and Heighliners and another faction takes free revival, Axlotl Tanks produces 2 spice. If a qualifying shipment later occurs, Heighliners produces 2 more. Multiple qualifying revivals do not multiply the first payment."
+        }
+      ],
+      "sources": [
+        {
+          "source": "ixian-tleilaxu",
+          "page": "4"
+        },
+        {
+          "source": "ixian-tleilaxu",
+          "page": "5"
+        }
+      ]
+    },
+    {
+      "id": "new-cards",
+      "title": "Expansion card rules",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "Shuffle Sandtrout into the Spice Deck. When it is drawn, existing alliances end. The next Shai-Hulud produces no Nexus. Look at that worm's replacement: a second Shai-Hulud produces a normal Nexus; a Spice Blow is doubled. A Spice Blow immediately after Sandtrout is not doubled merely because it follows Sandtrout."
+        },
+        {
+          "kind": "text",
+          "text": "The Cheap Hero Traitor Card can betray any opposing Cheap Hero. After its first reveal, it remains usable against later Cheap Heroes, though everyone knows you hold it."
+        },
+        {
+          "kind": "text",
+          "text": "Poison Blade is both a projectile and poison weapon. A Shield alone does not protect against it; Shield Snooper provides the combined protection. Shield Snooper also counts as a Shield for a Lasgun explosion and protects against Artillery Strike. Weirding Way played as a projectile defense is not a Shield: it neither causes a Lasgun explosion nor protects from Artillery Strike."
+        },
+        {
+          "kind": "text",
+          "text": "Poison Tooth is not stopped by a Snooper, but Chemistry played as a poison defense stops it. After seeing battle results, its player may choose not to use it. A winner may keep an unused Poison Tooth; otherwise discard it. Artillery Strike is always discarded after use. Use the corrected CHOAM & Richese versions of those cards when available."
+        },
+        {
+          "kind": "text",
+          "text": "Bene Gesserit Voice names a special weapon specifically when required, such as Artillery Strike. Chemistry and Weirding Way only count as the type in which they are actually played for Prescience and Leader Skills."
+        },
+        {
+          "kind": "text",
+          "text": "Voice may name a generic projectile or poison weapon, Shield or Snooper, or the exact special card. Poison Blade, Poison Tooth, Shield Snooper, Weirding Way and Chemistry can be prohibited through the generic type stated on the card. Artillery Strike and Lasgun must be named specifically; a command simply banning all special cards is invalid. Voice can compel Weirding Way in its default projectile-weapon role, but cannot force its conversion into a defense. Chemistry defaults to poison defense and cannot be forced into its alternate weapon role. Voice may prohibit either alternate role when it applies."
+        }
+      ],
+      "sources": [
+        {
+          "source": "ixian-tleilaxu",
+          "page": "10"
+        },
+        {
+          "source": "ixian-tleilaxu",
+          "page": "11"
+        }
+      ]
+    },
+    {
+      "id": "treachery-reference",
+      "title": "New Treachery Card reference",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "table",
+          "columns": ["Card", "Rule"],
+          "rows": [
+            [
+              "Poison Blade",
+              "Weapon - Special - Play as part of your Battle Plan. This weapon counts as both projectile and poison. You may keep this card if you win this battle."
+            ],
+            [
+              "Hunter-Seeker",
+              "Weapon - Projectile - Play as part of your Battle Plan. Kills opponent's leader before battle is resolved. Opponent may protect leader with a Shield. You may keep this card if you win the battle."
+            ],
+            [
+              "Basilia Weapon",
+              "Weapon - Poison - Play as part of your Battle Plan. Kills opponent's leader before battle is resolved. Opponent may protect leader with a Snooper. You may keep this card if you win the battle."
+            ],
+            [
+              "Weirding Way",
+              "Weapon - Special - Play as part of your Battle Plan. Counts as a projectile weapon but has the same effect as a projectile defense when played as a defense with another weapon. You may keep this card if you win this battle."
+            ],
+            [
+              "Poison Tooth",
+              "Weapon - Special - Play as part of your Battle Plan. Kills both leaders, and is not stopped by a Snooper. After seeing the battle results, you may choose not to use this weapon in which case you don't need to discard it if you win the battle."
+            ],
+            [
+              "Shield Snooper",
+              "Defense - Special - Play as part of your Battle Plan. Counts as both a Shield (projectile defense) and Snooper (poison defense). You may keep this card if you win this battle."
+            ],
+            [
+              "Chemistry",
+              "Defense - Special - Play as part of your Battle Plan. Counts as a poison defense but has the same effect as a poison weapon when played as a weapon with another defense. You may keep this card if you win this battle."
+            ],
+            [
+              "Artillery Strike",
+              "Weapon - Special - Play as part of your Battle Plan. Kills both leaders (no spice is paid for them). Both players may use Shields to protect their leader against the Artillery Strike. Surviving (shielded) leaders do not count towards the battle total, the side that dialed higher wins the battle. Discard after use."
+            ],
+            [
+              "Harvester",
+              "Play just after a spice blow comes up. Doubles the Spice blow. Place double the amount of spice in the territory."
+            ],
+            [
+              "Thumper",
+              "Play at beginning of Spice Blow Phase instead of revealing the Spice Blow card. Causes a Shai-Hulud to appear. Play proceeds as though Shai-Hulud has been revealed."
+            ],
+            [
+              "Amal",
+              "At the beginning of any phase, cause all players to discard half of the spice behind their shields, rounded up, to the Spice Bank."
+            ],
+            [
+              "Kull Wahad",
+              "Worthless Card - Play as part of your Battle Plan, in place of a weapon, defense, or both. This card has no value in play, and you can discard it only by playing it in your Battle plan."
+            ]
+          ]
+        },
+        {
+          "kind": "text",
+          "text": "The 14-card expansion has 12 named designs; deck membership supplies repeated copies. Poison Tooth and Artillery Strike use the corrected versions explained above. Harvester doubles a qualifying blow; it does not increase spice protected by a different rule. Thumper is played before the ordinary Spice Card draw and resolves as a Shai-Hulud draw, with first-turn worm restrictions. Amal is played at the beginning of a phase and removes half of each player's behind-shield spice, rounded up."
+        }
+      ],
+      "sources": [
+        {
+          "source": "ixian-tleilaxu",
+          "page": "4"
+        },
+        {
+          "source": "ixian-tleilaxu",
+          "page": "11"
+        }
+      ]
+    },
+    {
+      "id": "ixian-tleilaxu-karama",
+      "title": "Karama against these factions",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "table",
+          "columns": ["Faction advantage", "Effect that can be prevented"],
+          "rows": [
+            ["Ixian Bidding", "Inspecting the auction supply and choosing a card to return."],
+            ["Ixian movement", "The extra Cyborg/Suboid movement. Normal ornithopters still apply."],
+            [
+              "Ixian Cyborg battle strength",
+              "Reduce Cyborgs to normal troop strength, then reduce any unsupported dial to the legal maximum."
+            ],
+            ["Ixian Suboid exchange", "Replacing lost Cyborgs with surviving Suboids."],
+            ["Hidden Mobile Stronghold", "Moving the stronghold or collecting spice through that movement."],
+            ["Ixian alliance", "One immediate purchased-card replacement."],
+            ["Ixian Technology, Advanced", "The one card swap for that Bidding round."],
+            [
+              "Tleilaxu Face Dancers",
+              "Only replacing one unrevealed Face Dancer during Mentat Pause. Reveals and their effects cannot be stopped."
+            ],
+            [
+              "Tleilaxu revival",
+              "The relevant revival advantage, including discounted or unlimited revival, early leader revival, payment for one revival, or free-revival income."
+            ],
+            ["Tleilaxu Gholas, Advanced", "Acquiring another faction's dead leader through the ghola advantage."]
+          ]
+        },
+        {
+          "kind": "text",
+          "text": "Karama stops one use of an advantage when attempted, after setup. It does not permanently remove that advantage. Suboids remain half strength, and a special Karama power cannot itself be canceled by another Karama."
+        },
+        {
+          "kind": "text",
+          "text": "Canceling Cyborg strength makes Cyborgs ordinary troops for that battle: strength 1 in Basic, or 1/2 without support and 1 with support in Advanced. The Cyborg strength advantage is inherited from the Basic faction rules; its cancellation still applies in Advanced. Suboids remain 1/2."
+        }
+      ],
+      "sources": [
+        {
+          "source": "ixian-tleilaxu",
+          "page": "12"
+        }
+      ]
+    },
+    {
+      "id": "sources-and-judgements",
+      "title": "Sources and judgements",
+      "applicability": "all",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "Source notes throughout this book use the short labels below. Numeric page references count PDF pages from the front cover as page 1. In the unofficial revised book, the printed rule-page number is two less than the PDF page number. Named references, such as a faction sheet or skin.json entry, identify a section or file location."
+        },
+        {
+          "kind": "list",
+          "title": "Source labels",
+          "items": [
+            "gf9-base-2019 means Dune Rulebook, Gale Force Nine, 2019 base edition, 24 PDF pages. The read copy is preserved in the treachery.online document mirror.",
+            "gf9-faq-2020-11 and faq-nov2020 mean Dune Questions and Answers, Gale Force Nine, November 2020, 9 PDF pages. Its clarifications inform the rules; its questions and answers are not reproduced here.",
+            "gf9-ixian-tleilaxu and ixian-tleilaxu mean Dune: Ixians & Tleilaxu Rulebook, Gale Force Nine, 2020 expansion, 12 PDF pages.",
+            "gf9-choam-richese and choam-richese mean Dune: CHOAM & Richese Rulebook, Gale Force Nine, supplied 2021 expansion copy, 12 PDF pages.",
+            "gf9-ecaz-moritani and ecaz-moritani mean Dune: Ecaz & Moritani Rulebook, Gale Force Nine, supplied copy with 2022 copyright, 16 PDF pages.",
+            "revised-v2.3 means Unofficial Revised Dune Rulebook by Van Willis, the supplied file named v2.3. Its internal heading says Version 2.2. It has 44 PDF pages and marks unofficial changes with outlined text. It is a comparison reference, not a new official edition.",
+            "compilation means Dune Boardgame Rules Compilation, assembled by Johannes Cassebaum for the Dune Tabletop Discord server, supplied undated copy, 46 PDF pages. It combines the base game, first two expansions and published questions and answers.",
+            "treachery-online means the treachery.online community implementation and card reference files by Ronald Ossendrijver and contributors. File locations identify the referenced data, rather than a printed page."
+          ]
+        },
+        {
+          "kind": "text",
+          "text": "The source copies and community references are linked from the GF9 source ticket: https://github.com/ndelangen/dunezone/issues/2216. The supplied copies identify what was read; a mirror or filename alone does not establish the latest official printing."
+        },
+        {
+          "kind": "text",
+          "text": "Conflicting statements and the interpretation adopted for Dune Zone are recorded in GF9 judgements: https://github.com/ndelangen/dunezone/issues/2352. Specific expansion rules apply within their scope. Explicit corrections replace the text they correct. Where the sources disagree, consult that record for the decision, reasons and affected content."
+        }
+      ],
+      "sources": []
+    }
+  ]
+}

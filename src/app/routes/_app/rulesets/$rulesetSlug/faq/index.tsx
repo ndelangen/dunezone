@@ -1,5 +1,5 @@
-import { Button, Select, Stack, Text, Title } from '@mantine/core';
-import { parseFaqCatalogueSearch } from '@shared/faq/catalogueSearch';
+import { Button, Select, Stack, Text, Title, VisuallyHidden } from '@mantine/core';
+import { FAQ_CATALOGUE_PAGE_SIZE, parseFaqCatalogueSearch } from '@shared/faq/catalogueSearch';
 import type { FaqCatalogueSearch } from '@shared/faq/catalogueSearch';
 import { FAQ_TAG_VALUES } from '@shared/faq/tags';
 import { createFileRoute, Link, notFound, useNavigate } from '@tanstack/react-router';
@@ -8,17 +8,20 @@ import { PageIdentity } from '@ui/block/PageIdentity';
 import { FAQ_TAG_LABELS } from '@ui/content/faqTagLabels';
 import { CataloguePager } from '@ui/control/CataloguePager';
 import { IconAction } from '@ui/control/IconAction';
+import { LoadMoreButton } from '@ui/control/LoadMoreButton';
 import { SearchRefine } from '@ui/control/SearchRefine';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { FaqList } from '@ui/list/FaqList';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowLeft, MessageCircleQuestionMark } from 'lucide-react';
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
+import type { Ref } from 'react';
 
 import { loadRulesetFaqPage, useRulesetFaqPage } from '@db/faq';
-import type { RulesetFaqPageData } from '@db/faq';
+import type { RulesetFaqArgs, RulesetFaqBrowseData, RulesetFaqPageData, RulesetFaqSearchData } from '@db/faq';
 import { useCurrentProfile } from '@db/profiles';
+import { useFocusFirstNewRow, useGrowingLimit, useGrowingSearch } from '@app/routes/growingSearch';
 import { publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
 import { useSearchDraft } from '@app/routes/searchDraft';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
@@ -27,9 +30,33 @@ import styles from './index.module.css';
 
 const ALL_TAGS = '__all__';
 
-/** The page query's arguments for a parsed address; every key is spelled out so the loader deps compare equal however the address was written. */
+/** How many matches a search shows at first, and how many more each "Load more" asks for. */
+const SEARCH_STEP = FAQ_CATALOGUE_PAGE_SIZE;
+
+/** The list's rows, as the kit renders them: each is the link that opens its question. */
+const QUESTION_ROW = 'tr[role="link"]';
+
+/**
+ * The page query's arguments for an address, parsed again since the router keeps a parameter the parser dropped, such as an old link's page beside a search;
+ * every key is spelled out so the loader deps compare equal however the address was written.
+ */
 function faqDeps(search: FaqCatalogueSearch) {
-  return { q: search.q, tag: search.tag, page: search.page };
+  const parsed = parseFaqCatalogueSearch(search);
+  return { q: parsed.q, tag: parsed.tag, page: parsed.page };
+}
+
+/** What one FAQ page asks for before its limit: the ruleset and the parsed address. */
+type FaqArgs = { rulesetSlug: string } & ReturnType<typeof faqDeps>;
+
+/** The query's arguments at one limit: a search asks for its best matches up to it, a browsed page ignores it. */
+function faqQueryArgs(args: FaqArgs, limit: number): RulesetFaqArgs {
+  return { ...args, limit: args.q ? limit : undefined };
+}
+
+/** The live FAQ for a parsed address at one limit; the growing list asks for a longer one through it. */
+function useFaqRows(args: FaqArgs, limit: number) {
+  /* A live null is a ruleset deleted while open; the last page stays until the reader leaves. */
+  return useRulesetFaqPage(faqQueryArgs(args, limit)).data ?? undefined;
 }
 
 /** The search parameters a change writes: any change but a page turn starts again from the first page. */
@@ -70,12 +97,12 @@ export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/faq/')({
   validateSearch: parseFaqCatalogueSearch,
   loaderDeps: ({ search }) => faqDeps(search),
   loader: async ({ params, deps }) => {
-    const data = await loadRulesetFaqPage({ rulesetSlug: params.rulesetSlug, ...deps });
+    const data = await loadRulesetFaqPage(faqQueryArgs({ rulesetSlug: params.rulesetSlug, ...deps }, SEARCH_STEP));
     if (!data) {
       throw notFound();
     }
-    /* A page past the end is an address that does not exist, so it answers 404 and points at the last page. */
-    if (data.page > data.pageCount) {
+    /* A browsed page past the end is an address that does not exist, so it answers 404 and points at the last page. */
+    if (!('mode' in data) && data.page > data.pageCount) {
       throw notFound({ data: { pageCount: data.pageCount } });
     }
     return data;
@@ -109,9 +136,16 @@ function RulesetFaqPage() {
   const deps = Route.useLoaderDeps();
   const navigate = Route.useNavigate();
   const loaderData = Route.useLoaderData();
-  const live = useRulesetFaqPage({ rulesetSlug, ...deps }, { initialData: loaderData });
-  /* A live null is a ruleset deleted while open; the last page stays until the reader leaves. */
-  const data = live.data ?? loaderData;
+  const growing = useGrowingLimit({ rulesetSlug, ...deps }, SEARCH_STEP);
+  const live = useFaqRows({ rulesetSlug, ...deps }, growing.limit);
+  const { data, loading, loaded, grown, loadMore } = useGrowingSearch({
+    search: growing,
+    initial: loaderData,
+    live,
+    rows: (page) => page.items.length,
+  });
+  const list = useRef<HTMLDivElement>(null);
+  useFocusFirstNewRow(list, loaded, grown, QUESTION_ROW);
   const profile = useCurrentProfile();
 
   /* Every write re-parses, so a default never reaches the address. Replacing keeps a browse session to one history entry. */
@@ -177,7 +211,14 @@ function RulesetFaqPage() {
         </Toolbar>
       </PageLayout.Toolbar>
       <PageLayout.Content>
-        <FaqResults data={data} refined={isRefined(search)} pending={live.isPending} />
+        <FaqResults
+          data={data}
+          refined={isRefined(search)}
+          loading={loading}
+          loaded={loaded}
+          onLoadMore={loadMore}
+          ref={list}
+        />
       </PageLayout.Content>
     </PageLayout>
   );
@@ -226,62 +267,119 @@ function AskQuestion({ rulesetSlug }: { rulesetSlug: string }) {
   );
 }
 
-/** The page's questions and pager, or why there are none: nothing matches, or the address is past the last page. */
-function FaqResults({
-  data,
-  refined,
-  pending,
-}: {
+/** Opens a question of this ruleset; the page navigates, the list only says which row was picked. */
+function useOpenQuestion(rulesetSlug: string) {
+  const navigate = useNavigate();
+  return (questionSlug: string) =>
+    navigate({ to: '/rulesets/$rulesetSlug/faq/$questionSlug', params: { rulesetSlug, questionSlug } });
+}
+
+type FaqResultsProps = {
   data: NonNullable<RulesetFaqPageData>;
   refined: boolean;
-  pending: boolean;
-}) {
-  const openQuestion = useNavigate();
+  loading: boolean;
+  /** Whether the longer list asked for has arrived. */
+  loaded: boolean;
+  onLoadMore: () => void;
+  ref: Ref<HTMLDivElement>;
+};
+
+/** The page's body: a search's matches, or a browsed page with its pager. */
+function FaqResults({ data, refined, loading, loaded, onLoadMore, ref }: FaqResultsProps) {
+  if ('mode' in data) {
+    return <SearchedFaq data={data} loading={loading} loaded={loaded} onLoadMore={onLoadMore} ref={ref} />;
+  }
+  return <BrowsedFaq data={data} refined={refined} />;
+}
+
+/** One page of the browsed FAQ with its pager, or why there is none: nothing matches the tag, or the address is past the last page. */
+function BrowsedFaq({ data, refined }: { data: RulesetFaqBrowseData; refined: boolean }) {
+  const openQuestion = useOpenQuestion(data.ruleset.slug);
+  if (data.total === 0 && refined) {
+    return <NothingMatches capped={!data.complete} />;
+  }
+  if (data.page > 1 && data.items.length === 0) {
+    return (
+      <Surface padding="xl">
+        <PastTheEnd rulesetSlug={data.ruleset.slug} pageCount={data.pageCount} />
+      </Surface>
+    );
+  }
   return (
-    <>
-      {data.total === 0 && refined ? (
-        <NothingMatches complete={data.complete} />
-      ) : data.page > 1 && data.items.length === 0 ? (
-        <Surface padding="xl">
-          <PastTheEnd rulesetSlug={data.ruleset.slug} pageCount={data.pageCount} />
-        </Surface>
-      ) : (
-        <Stack gap="lg" aria-busy={pending}>
-          <FaqList
-            emptyLabel="No FAQ items yet."
-            items={data.items}
-            rulesetSlug={data.ruleset.slug}
-            onOpenQuestion={(questionSlug) =>
-              openQuestion({
-                to: '/rulesets/$rulesetSlug/faq/$questionSlug',
-                params: { rulesetSlug: data.ruleset.slug, questionSlug },
-              })
-            }
-          />
-          {data.total > 0 ? (
-            <CataloguePager
-              page={data.page}
-              pageCount={data.pageCount}
-              pageSize={data.pageSize}
-              total={data.total}
-              complete={data.complete}
-              noun="questions"
-              label="FAQ pages"
-              pageLinkProps={(page) => ({
-                component: Link,
-                to: '/rulesets/$rulesetSlug/faq',
-                params: { rulesetSlug: data.ruleset.slug },
-                search: pageSearch(page),
-              })}
-            />
-          ) : null}
-        </Stack>
-      )}
-    </>
+    <Stack gap="lg">
+      <FaqList
+        emptyLabel="No FAQ items yet."
+        items={data.items}
+        rulesetSlug={data.ruleset.slug}
+        onOpenQuestion={openQuestion}
+      />
+      {data.total > 0 ? (
+        <CataloguePager
+          page={data.page}
+          pageCount={data.pageCount}
+          pageSize={data.pageSize}
+          total={data.total}
+          complete={data.complete}
+          noun="questions"
+          label="FAQ pages"
+          pageLinkProps={(page) => ({
+            component: Link,
+            to: '/rulesets/$rulesetSlug/faq',
+            params: { rulesetSlug: data.ruleset.slug },
+            search: pageSearch(page),
+          })}
+        />
+      ) : null}
+    </Stack>
   );
 }
 
-function NothingMatches({ complete }: { complete: boolean }) {
+/**
+ * The best matches of a search, and a "Load more" that asks for a longer list while there is one: no count and no pages.
+ * When the longer list arrives, focus moves to its first new row, so a keyboard reader carries on from where the list grew.
+ */
+function SearchedFaq({
+  data,
+  loading,
+  loaded,
+  onLoadMore,
+  ref,
+}: {
+  data: RulesetFaqSearchData;
+  loading: boolean;
+  /** Whether the longer list asked for has arrived. */
+  loaded: boolean;
+  onLoadMore: () => void;
+  ref: Ref<HTMLDivElement>;
+}) {
+  const openQuestion = useOpenQuestion(data.ruleset.slug);
+  if (data.items.length === 0) {
+    return <NothingMatches capped={data.capped} />;
+  }
+  return (
+    <Stack gap="lg" aria-busy={loading} ref={ref}>
+      <FaqList
+        emptyLabel="No questions match."
+        items={data.items}
+        rulesetSlug={data.ruleset.slug}
+        onOpenQuestion={openQuestion}
+      />
+      {/* The rows say how many arrived; this says only that they did, so a reader hears the list grow without a count the page never shows. */}
+      <VisuallyHidden role="status" aria-live="polite">
+        {loaded ? 'More questions loaded' : null}
+      </VisuallyHidden>
+      {data.hasMore ? <LoadMoreButton loading={loading} onLoadMore={onLoadMore} /> : null}
+      {data.capped ? (
+        <Text c="dimmed" ta="center">
+          That's as far as this search goes. Add a word to narrow it.
+        </Text>
+      ) : null}
+    </Stack>
+  );
+}
+
+/** No match among the questions checked; a capped search did not check them all, so another word may still find one. */
+function NothingMatches({ capped }: { capped: boolean }) {
   return (
     <Surface padding="xl">
       <Stack gap="xs" align="center">
@@ -289,11 +387,11 @@ function NothingMatches({ complete }: { complete: boolean }) {
         <Text c="dimmed" ta="center">
           No question matches this search.
         </Text>
-        {complete ? null : (
+        {capped ? (
           <Text size="xs" c="dimmed" ta="center">
             Only the first matches of this search were checked. Add a word to narrow it.
           </Text>
-        )}
+        ) : null}
       </Stack>
     </Surface>
   );

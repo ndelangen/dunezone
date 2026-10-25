@@ -17,7 +17,12 @@ import type { Config } from 'svgo';
 
 import { normalizeSvg } from '../src/shared/vectorNormalize';
 import type { SvgDom, SvgElementLike } from '../src/shared/vectorNormalize';
-import { VECTOR_AUTHORED_ATTRIBUTE, VECTOR_CATEGORY_RULES, VECTOR_PRECISION } from '../src/shared/vectorRules';
+import {
+  VECTOR_ARTWORK_ALIASES,
+  VECTOR_AUTHORED_ATTRIBUTE,
+  VECTOR_CATEGORY_RULES,
+  VECTOR_PRECISION,
+} from '../src/shared/vectorRules';
 import type { VectorCategory } from '../src/shared/vectorRules';
 
 const repoRoot = path.resolve(import.meta.dirname, '..');
@@ -126,5 +131,10 @@ if (import.meta.main) {
     console.error(`\n${failures.length} vector generation failure(s)`);
     process.exit(1);
   }
-  console.log(JSON.stringify({ ok: true, generated }));
+  for (const [alias, target] of Object.entries(VECTOR_ARTWORK_ALIASES)) {
+    const destination = path.join(repoRoot, 'public', alias);
+    mkdirSync(path.dirname(destination), { recursive: true });
+    writeFileSync(destination, readFileSync(path.join(repoRoot, 'public', target)));
+  }
+  console.log(JSON.stringify({ ok: true, generated, aliases: Object.keys(VECTOR_ARTWORK_ALIASES).length }));
 }

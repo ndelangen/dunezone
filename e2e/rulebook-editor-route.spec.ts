@@ -160,7 +160,7 @@ test('draft edits stay live and diagnostics block Save', async ({ page }) => {
 
   const title = page.getByRole('textbox', { name: 'Title' });
   const anchor = page.getByRole('textbox', { name: 'Anchor' });
-  const save = page.getByRole('button', { name: 'Save' });
+  const save = page.getByRole('button', { name: 'Save', exact: true });
   await anchor.fill('Not a valid anchor');
   await expect(save).toBeDisabled();
   await expect(page.getByText('Use lowercase letters, numbers, and single hyphens')).toBeVisible();
@@ -184,7 +184,7 @@ test('Block edits and invalid local text update the safe rendered preview', asyn
 
   const preview = page.getByRole('article', { name: 'Rulebook page: Movement' });
   const content = page.getByRole('textbox', { name: 'Content' });
-  const save = page.getByRole('button', { name: 'Save' });
+  const save = page.getByRole('button', { name: 'Save', exact: true });
   await expect(preview.getByRole('img', { name: 'No source selected' })).toBeVisible();
 
   await content.fill('Cross the *open desert* before the illustration moves.');
@@ -343,7 +343,7 @@ test('rail cross-region dragging previews placement without settling the Block b
   await expect(page.getByRole('button', { name: /^(Save|Saved|Review differences)$/ })).toHaveAccessibleDescription(
     /^Saved draft/
   );
-  await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeDisabled();
 
   const expectedAdvancedColumn2Order = [
     'Referenced illustration Block',
@@ -391,7 +391,7 @@ test('rail cross-region dragging previews placement without settling the Block b
   await expect(page.getByRole('button', { name: /^(Save|Saved|Review differences)$/ })).toHaveAccessibleDescription(
     /^Saved draft/
   );
-  await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeDisabled();
 
   await page.keyboard.press('Escape');
   await page.mouse.up();
@@ -404,7 +404,7 @@ test('rail cross-region dragging previews placement without settling the Block b
   await expect(page.getByRole('button', { name: /^(Save|Saved|Review differences)$/ })).toHaveAccessibleDescription(
     /^Saved draft/
   );
-  await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeDisabled();
 
   await dragToVerticalRatio(text, illustration, page, 0.15, false);
   await page.mouse.up();
@@ -420,7 +420,7 @@ test('rail cross-region dragging previews placement without settling the Block b
   await expect(page.getByRole('button', { name: /^(Save|Saved|Review differences)$/ })).toHaveAccessibleDescription(
     /^Unsaved changes/
   );
-  await expect(page.getByRole('button', { name: 'Save' })).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeEnabled();
 });
 
 test('Page-details cross-region preview stays transient until drop', async ({ page }) => {
@@ -464,7 +464,7 @@ test('Page-details cross-region preview stays transient until drop', async ({ pa
   await expect(page.getByRole('button', { name: /^(Save|Saved|Review differences)$/ })).toHaveAccessibleDescription(
     /^Saved draft/
   );
-  await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeDisabled();
 
   const expectedAdvancedColumn2Order = [
     'Referenced illustration Block',
@@ -480,7 +480,7 @@ test('Page-details cross-region preview stays transient until drop', async ({ pa
   await expect(page.getByRole('button', { name: /^(Save|Saved|Review differences)$/ })).toHaveAccessibleDescription(
     /^Saved draft/
   );
-  await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeDisabled();
 
   await page.keyboard.press('Escape');
   await page.mouse.up();
@@ -492,13 +492,13 @@ test('Page-details cross-region preview stays transient until drop', async ({ pa
   await expect(page.getByRole('button', { name: /^(Save|Saved|Review differences)$/ })).toHaveAccessibleDescription(
     /^Saved draft/
   );
-  await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeDisabled();
 
   await page.reload();
   await expect(page.getByRole('button', { name: /^(Save|Saved|Review differences)$/ })).toHaveAccessibleDescription(
     /^Saved draft/
   );
-  await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeDisabled();
 
   await dragToVerticalRatio(text, illustration, page, 0.15, false);
   await page.mouse.up();
@@ -507,7 +507,7 @@ test('Page-details cross-region preview stays transient until drop', async ({ pa
   await expect(page.getByRole('button', { name: /^(Save|Saved|Review differences)$/ })).toHaveAccessibleDescription(
     /^Unsaved changes/
   );
-  await expect(page.getByRole('button', { name: 'Save' })).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeEnabled();
 });
 
 test('cross-region previews reach the first and last slots in the rail and Page details', async ({ page }) => {

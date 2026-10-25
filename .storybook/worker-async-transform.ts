@@ -48,7 +48,9 @@ function assertNoNativeAsync(code: string, filename: string) {
   }
 }
 
-export const convexWorkerOxc = { target: 'es2020' } as const;
+/* Coverage also transforms the publisher entry, whose batch PDF setup uses top-level await.
+   The browser target supports it; the Convex worker closure still lowers async to es2016 below. */
+export const convexWorkerOxc = { target: 'es2022' } as const;
 
 export const convexWorkerOptimizeDeps = {
   /* Optimized dependencies bypass Vite's Oxc transform and retain native await.
@@ -79,7 +81,7 @@ export const convexWorkerOptimizeDeps = {
 export const convexWorkerAliases = {
   'node:async_hooks': fileURLToPath(new URL('./async-hooks.ts', import.meta.url)),
   /* The game Worker's table, which the Play sandbox story runs in the browser, imports Node's crypto. */
-  'node:crypto': fileURLToPath(new URL('./node-crypto.ts', import.meta.url)),
+  'node:crypto': fileURLToPath(new URL('../src/app/routes/_app/tutorial/table/nodeCrypto.ts', import.meta.url)),
 };
 
 function isolateConvexTestStorageUrls(): Plugin {

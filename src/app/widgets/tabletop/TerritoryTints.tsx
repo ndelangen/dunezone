@@ -1,20 +1,23 @@
 /* @jsxImportSource ./three-jsx */
+
 import { CENTER, RADIUS } from '@shared/boards/geometry';
 import type { Board, Point } from '@shared/boards/schema';
-import { territoryId } from '@shared/boards/schema';
+import { propertyId } from '@shared/boards/schema';
+import { placeStickers } from '@shared/boards/stickerPlacement';
 import { boardTerritories, boardTerritoryAt } from '@shared/boards/territories';
+import type { OutlinePath } from '@shared/boards/tintOutline';
+import { offRim, offsetPath, outerSegments, outlinePaths } from '@shared/boards/tintOutline';
+import { tintOutlineOpacity } from '@shared/boards/tints';
 import { BOARD_RADIUS } from '@shared/play/tableGeometry';
 import type { TerritoryTint, TintStamp } from '@shared/play/territoryTints';
 import { tintPaint } from '@shared/play/territoryTints';
+import { playUiColors } from '@shared/uiPalette';
 import { useEffect, useMemo } from 'react';
 import { BufferAttribute, BufferGeometry, DoubleSide, ShapeGeometry, ShapeUtils, Vector2 } from 'three';
 import { SVGLoader } from 'three/examples/jsm/loaders/SVGLoader.js';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
 import { ignoreRaycast } from './ignoreRaycast';
-import { placeStickers } from './stickerPlacement';
-import type { OutlinePath } from './tintOutline';
-import { offRim, offsetPath, outerSegments, outlinePaths } from './tintOutline';
 import { TINT_STICKERS } from './tintStickers';
 
 /* Board drawing units run across the board's circle; the table's board disc is BOARD_RADIUS wide. */
@@ -28,7 +31,7 @@ export function territoryAtTablePoint(board: Board, x: number, z: number) {
     CENTER[0] + (x * RADIUS) / BOARD_RADIUS,
     CENTER[1] + (z * RADIUS) / BOARD_RADIUS,
   ]);
-  return property && { id: territoryId(property.name), name: property.name };
+  return property && { id: propertyId(property), name: property.name };
 }
 
 function fillGeometry(rings: Point[][]) {
@@ -150,9 +153,10 @@ function TintOutline({ tint, faces }: Readonly<{ tint: TerritoryTint; faces: rea
     [geometries]
   );
   const color = tintPaint(tint.color).color;
+  const opacity = tintOutlineOpacity(tint.color);
   return geometries.map(({ geometry, order }) => (
     <mesh key={order} geometry={geometry} raycast={ignoreRaycast} renderOrder={order}>
-      <meshBasicMaterial color={color} transparent depthWrite={false} side={DoubleSide} />
+      <meshBasicMaterial color={color} transparent opacity={opacity} depthWrite={false} side={DoubleSide} />
     </mesh>
   ));
 }
@@ -161,8 +165,8 @@ function TintOutline({ tint, faces }: Readonly<{ tint: TerritoryTint; faces: rea
 const STICKER_LARGEST = 0.3;
 const STICKER_SMALLEST = 0.14;
 /* The board's glyph colours: near-black ink inside a pale outline. */
-const STICKER_INK = '#1a0b00';
-const STICKER_OUTLINE = '#fffed8';
+const STICKER_INK = playUiColors.annotationInk;
+const STICKER_OUTLINE = playUiColors.annotationOutline;
 /* The outline's width per unit of sticker size, drawn as copies of the shape nudged round a circle. */
 const OUTLINE_WIDTH = 0.035;
 const OUTLINE_STEPS = 16;
@@ -281,7 +285,7 @@ export function TerritoryTints({ board, tints }: Readonly<{ board: Board; tints:
   const faces = useMemo<Face[]>(
     () =>
       boardTerritories(board).map((face) => ({
-        id: territoryId(board.properties[face.key].name),
+        id: propertyId(board.properties[face.key]),
         center: face.center,
         rings: face.rings,
         polar: board.properties[face.key].type === 'polar',

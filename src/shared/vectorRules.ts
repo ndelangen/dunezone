@@ -19,6 +19,15 @@ export const VECTOR_VIEWBOX_SIZE = 100;
 export const VECTOR_PRECISION = 2;
 /** Root attribute every generated file must carry so `<use href="…#root">` resolves. */
 export const VECTOR_ROOT_ID = 'root';
+
+/** Retired outlined copies resolve to the plain artwork; saved identifiers remain readable. */
+export const VECTOR_ARTWORK_ALIASES: Readonly<Record<string, string>> = {
+  '/vector/icon/arrakis-city.svg': '/vector/icon/city.svg',
+  '/vector/icon/arrakis-sietch.svg': '/vector/icon/seitch.svg',
+};
+
+export const canonicalVectorArtwork = (path: string): string =>
+  Object.hasOwn(VECTOR_ARTWORK_ALIASES, path) ? VECTOR_ARTWORK_ALIASES[path] : path;
 /** Stamp the authoring tool writes on processed sources; verify warns (later: fails) without it. */
 export const VECTOR_AUTHORED_ATTRIBUTE = 'data-authored';
 

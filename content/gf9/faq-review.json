@@ -1,0 +1,1702 @@
+{
+  "schemaVersion": 1,
+  "coverageStatus": "complete-first-half",
+  "range": {
+    "firstIndex": 0,
+    "lastIndex": 199,
+    "count": 200
+  },
+  "readingMethod": "Every comment in this range read semantically in full, preserving all source claims and contradictions. Only link targets and repeated citation boilerplate removed for display. No online reverification. Core manuscript read fully; both faction drafts and all expansion manuscripts compared.",
+  "reviewedIndexes": [
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
+    31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59,
+    60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88,
+    89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113,
+    114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136,
+    137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159,
+    160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 180, 181, 182,
+    183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199
+  ],
+  "entries": [
+    {
+      "index": 0,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225343704",
+      "topic": "How does paying for an ally's treachery cards or shipment work, and who gets the spice?",
+      "status": "covered",
+      "destinations": ["core#allied-payments"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 1,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225344100",
+      "topic": "Does the Emperor's payment for an ally's extra revivals go to the Tleilaxu?",
+      "status": "covered",
+      "destinations": ["ixian-tleilaxu#tleilaxu-revival"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 2,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225344337",
+      "topic": "Does the Spacing Guild get the spice when an ally or the Emperor pays for a shipment?",
+      "status": "covered",
+      "destinations": ["core#allied-payments"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 3,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225344349",
+      "topic": "What does Karama do against the Fremen?",
+      "status": "covered",
+      "destinations": ["core#karama-factions"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 4,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225344641",
+      "topic": "Does the Emperor still get the spice when his ally buys a treachery card he paid for?",
+      "status": "covered",
+      "destinations": ["core#allied-payments"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 5,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225344735",
+      "topic": "If a player can't obey the Voice, do they have to say so?",
+      "status": "covered",
+      "destinations": ["core#battle-information"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 6,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225345066",
+      "topic": "What does Karama do against the Spacing Guild?",
+      "status": "covered",
+      "destinations": ["core#karama-factions"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 7,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225345108",
+      "topic": "What is the difference between a Bene Gesserit advisor and a fighter?",
+      "status": "covered",
+      "destinations": ["core#advisors"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 8,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225345280",
+      "topic": "How do Tleilaxu Face Dancers work?",
+      "status": "covered",
+      "destinations": ["ixian-tleilaxu#tleilaxu-setup"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 9,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225345380",
+      "topic": "What happens when the Bene Gesserit move into a territory occupied by a non-ally?",
+      "status": "covered",
+      "destinations": ["core#advisors"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 10,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225345631",
+      "topic": "Can the Bene Gesserit flip advisors in a stronghold under the storm?",
+      "status": "covered",
+      "destinations": ["core#advisors"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 11,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225345804",
+      "topic": "Can a Face Dancer be revealed in a battle between other factions?",
+      "status": "covered",
+      "destinations": ["ixian-tleilaxu#tleilaxu-setup"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 12,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225345924",
+      "topic": "What does Karama do against the Atreides?",
+      "status": "covered",
+      "destinations": ["core#karama-factions"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 13,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225346052",
+      "topic": "Do Bene Gesserit advisors flip to fighters automatically when they are alone?",
+      "status": "covered",
+      "destinations": ["core#advisors"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 14,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225346287",
+      "topic": "Do the Bene Gesserit always get CHOAM Charity?",
+      "status": "covered",
+      "destinations": ["core#charity"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 15,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225346320",
+      "topic": "Is a leader revealed as a Face Dancer killed?",
+      "status": "covered",
+      "destinations": ["ixian-tleilaxu#tleilaxu-setup", "core#revive-leaders"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 16,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225347307",
+      "topic": "What can the Emperor do with spice for his ally?",
+      "status": "covered",
+      "destinations": ["core#emperor"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 17,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225348220",
+      "topic": "When can alliances be formed or broken in Dune?",
+      "status": "covered",
+      "destinations": ["core#nexus"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 18,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225348343",
+      "topic": "Can the Bene Gesserit win alone while they are in an alliance?",
+      "status": "covered",
+      "destinations": ["core#bene-gesserit"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 19,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225348476",
+      "topic": "What does Karama do against the Ixians?",
+      "status": "judgement-recorded",
+      "destinations": ["ixian-tleilaxu#ixian-tleilaxu-karama"],
+      "assessment": "Explicit EXP-021 adopts inherited Cyborg-strength cancellation in both games, with ordinary Advanced support values. FAQ Basic wording acknowledged; medium confidence, not hidden."
+    },
+    {
+      "index": 20,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225348736",
+      "topic": "What does Karama do against the Bene Gesserit?",
+      "status": "covered",
+      "destinations": ["core#karama-factions"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 21,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225348882",
+      "topic": "Can non-allied players talk in secret or make secret deals?",
+      "status": "covered",
+      "destinations": ["core#information"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 22,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225348951",
+      "topic": "Do Face Dancers trigger Terror tokens or count as traitors on a homeworld?",
+      "status": "covered",
+      "destinations": ["ecaz-moritani#homeworld-battles-and-emperor"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 23,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225349127",
+      "topic": "What does Karama do against the Tleilaxu?",
+      "status": "covered",
+      "destinations": ["ixian-tleilaxu#ixian-tleilaxu-karama"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 24,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225349188",
+      "topic": "Can you bid on a treachery card after passing on it?",
+      "status": "covered",
+      "destinations": ["core#bidding"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 25,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225349410",
+      "topic": "Are players allowed to take notes in Dune?",
+      "status": "covered",
+      "destinations": ["core#information"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 26,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225349458",
+      "topic": "When must Karama be played against the Voice or Prescience?",
+      "status": "intentionally-excluded",
+      "destinations": ["core#battle-information"],
+      "assessment": "Detailed sequencing cited only to WBC tournament rules. Core gives GF9 Voice, Prescience and Karama windows; do not import a tournament-only rigid sequence."
+    },
+    {
+      "index": 27,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225349732",
+      "topic": "What happens if I can't keep the terms of a deal?",
+      "status": "covered",
+      "destinations": ["core#deals"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 28,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225349896",
+      "topic": "Can the Fremen move into or through the storm, and how many forces do they lose?",
+      "status": "covered",
+      "destinations": ["core#storm-effects"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 29,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225350267",
+      "topic": "What is the treachery card hand limit, and can you bid with a full hand or bid more spice than you have?",
+      "status": "covered",
+      "destinations": ["core#bidding"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 30,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225350395",
+      "topic": "Can I move or ship through a territory that contains my ally's forces?",
+      "status": "covered",
+      "destinations": ["core#nexus"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 31,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225350415",
+      "topic": "Does moving to another sector of the same territory count as a move?",
+      "status": "covered",
+      "destinations": ["core#movement"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 32,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225350557",
+      "topic": "Can the Emperor pay for bids of players who aren't his ally?",
+      "status": "intentionally-excluded",
+      "destinations": ["core#allied-payments"],
+      "assessment": "Optional implementation permission for non-allied bid support is excluded from GF9."
+    },
+    {
+      "index": 33,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225350932",
+      "topic": "Is the Polar Sink ever hit by the storm?",
+      "status": "covered",
+      "destinations": ["core#board"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 34,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225350954",
+      "topic": "How far can the Fremen ship for free, and does the Great Flat count?",
+      "status": "covered",
+      "destinations": ["core#fremen", "core#spacing-guild"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 35,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225351300",
+      "topic": "Can the Fremen move forces they just shipped, or move after riding a worm?",
+      "status": "covered",
+      "destinations": ["core#fremen"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 36,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225351539",
+      "topic": "How do you use Karama to win a treachery card in the auction?",
+      "status": "covered",
+      "destinations": ["core#karama"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 37,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225351839",
+      "topic": "Can a player with a full hand use Karama to buy another card?",
+      "status": "covered",
+      "destinations": ["core#bidding"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 38,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225352972",
+      "topic": "When is bribe spice paid, and when can it be used?",
+      "status": "covered",
+      "destinations": ["core#deals"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 39,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225352999",
+      "topic": "Can you move through a stronghold that already has two other factions?",
+      "status": "covered",
+      "destinations": ["core#movement"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 40,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225353018",
+      "topic": "Can allies end their move in the same territory?",
+      "status": "covered",
+      "destinations": ["core#nexus"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 41,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225353364",
+      "topic": "Does a Fremen ally get back the spice they dialed in battle?",
+      "status": "intentionally-excluded",
+      "destinations": ["core#fremen"],
+      "assessment": "House toggle refunding a Fremen ally battle support is excluded."
+    },
+    {
+      "index": 42,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225353478",
+      "topic": "Is bribery part of the basic game, and can you bribe your ally?",
+      "status": "judgement-recorded",
+      "destinations": ["core#deals"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 43,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225353606",
+      "topic": "Can players give spice to each other freely?",
+      "status": "intentionally-excluded",
+      "destinations": ["core#allied-payments"],
+      "assessment": "Implementation toggle is not a new GF9 unrestricted-spice-transfer rule."
+    },
+    {
+      "index": 44,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225353903",
+      "topic": "Can players trade treachery cards with each other?",
+      "status": "intentionally-excluded",
+      "destinations": ["core#allied-payments"],
+      "assessment": "Optional unrestricted card trading excluded; named faction/card transfers remain."
+    },
+    {
+      "index": 45,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225353969",
+      "topic": "How does Fremen worm riding work, and can they ride over rock?",
+      "status": "covered",
+      "destinations": ["core#sandworms"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 46,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225354304",
+      "topic": "Can I use ornithopters on the turn I ship into Arrakeen or Carthag?",
+      "status": "covered",
+      "destinations": ["core#movement"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 47,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225354777",
+      "topic": "Can the Kwisatz Haderach be used right after Atreides loses their 7th force?",
+      "status": "covered",
+      "destinations": ["core#kwisatz-haderach"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 48,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225354779",
+      "topic": "How far can you move with ornithopters?",
+      "status": "covered",
+      "destinations": ["core#movement"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 49,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225355048",
+      "topic": "Can the Kwisatz Haderach be used in more than one battle per turn?",
+      "status": "covered",
+      "destinations": ["core#kwisatz-haderach"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 50,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225355121",
+      "topic": "Can allies share ornithopters?",
+      "status": "covered",
+      "destinations": ["core#movement"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 51,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225355265",
+      "topic": "Does the Fremen Karama sandworm cause a Nexus?",
+      "status": "judgement-recorded",
+      "destinations": ["core#fremen-advanced"],
+      "assessment": "Known explicit conflict between original special worm and later clarification; core decision is recorded, not silently inferred."
+    },
+    {
+      "index": 52,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225355311",
+      "topic": "Do you have to include spice in a deal?",
+      "status": "covered",
+      "destinations": ["core#deals"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 53,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225355630",
+      "topic": "Do you need to be in the same sector as the spice to collect it?",
+      "status": "covered",
+      "destinations": ["core#collection"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 54,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225355656",
+      "topic": "Can the Kwisatz Haderach be used in an ally's battle?",
+      "status": "covered",
+      "destinations": ["core#kwisatz-haderach"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 55,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225355927",
+      "topic": "What happens to forces after they collect spice?",
+      "status": "covered",
+      "destinations": ["core#collection"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 56,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225355998",
+      "topic": "Can the Fremen revive more forces when the Tleilaxu are in the game?",
+      "status": "covered",
+      "destinations": ["ixian-tleilaxu#tleilaxu-revival"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 57,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225356057",
+      "topic": "If the leader with the Kwisatz Haderach dies, how much spice does the winner get?",
+      "status": "covered",
+      "destinations": ["core#kwisatz-haderach", "core#battle-resolution"],
+      "assessment": "Printed leader reward and KH loses effect if leader killed together cover this; no separate FAQ item."
+    },
+    {
+      "index": 58,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225356187",
+      "topic": "Do Increased Spice Flow and the stronghold spice bonus both apply?",
+      "status": "intentionally-excluded",
+      "destinations": ["core#advanced-spice", "core#collection"],
+      "assessment": "Independent house-rule toggles are excluded; selected Advanced modules are explained explicitly."
+    },
+    {
+      "index": 59,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225356646",
+      "topic": "Can Family Atomics be played when the storm is between your forces and the Shield Wall, and what does it destroy?",
+      "status": "covered",
+      "destinations": ["core#family-atomics"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 60,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225357406",
+      "topic": "Do allied forces count for the Fremen special victory?",
+      "status": "covered",
+      "destinations": ["core#fremen"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 61,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225357470",
+      "topic": "Can Hajr be played out of turn order, and how does it work?",
+      "status": "covered",
+      "destinations": ["core#hajr-ghola-weather"],
+      "assessment": "Core should state Hajr immediately follows own movement; community claim excluding Fremen movement has no authoritative support."
+    },
+    {
+      "index": 62,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225358249",
+      "topic": "Is a Cheap Hero always discarded after use?",
+      "status": "covered",
+      "destinations": ["core#worthless-cheap-hero"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 63,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225358619",
+      "topic": "What happens if Shai-Hulud is drawn on the first turn?",
+      "status": "covered",
+      "destinations": ["core#spice-blow"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 64,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225358887",
+      "topic": "Does the Kwisatz Haderach protect a leader from being a traitor or a Face Dancer?",
+      "status": "covered",
+      "destinations": ["ixian-tleilaxu#tleilaxu-setup"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 65,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225359098",
+      "topic": "What questions can you ask with Truthtrance?",
+      "status": "covered",
+      "destinations": ["core#truthtrance"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 66,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225359192",
+      "topic": "What does Shai-Hulud destroy, and when is there a Nexus?",
+      "status": "corrected",
+      "destinations": ["core#sandworms"],
+      "assessment": "Independent review identified specific Advanced p13 per-pile Nexus instruction over general phase-end wording. Core author changed GF9-CORE-016 to Nexus after each worm-generating pile."
+    },
+    {
+      "index": 67,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225359377",
+      "topic": "How is the Kwisatz Haderach revived and what does it cost?",
+      "status": "judgement-recorded",
+      "destinations": ["core#kwisatz-haderach"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 68,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225359810",
+      "topic": "Can Karama stop the Kwisatz Haderach?",
+      "status": "covered",
+      "destinations": ["core#karama-factions"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 69,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225360014",
+      "topic": "Is a Truthtrance answer binding, including for future turns?",
+      "status": "covered",
+      "destinations": ["core#truthtrance"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 70,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225360016",
+      "topic": "How does the Sandtrout card work?",
+      "status": "judgement-recorded",
+      "destinations": ["ixian-tleilaxu#new-cards"],
+      "assessment": "Sandtrout sequencing follows explicit official rule. Community timing variants do not become a separate FAQ section."
+    },
+    {
+      "index": 71,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225360188",
+      "topic": "With Double Spice Blow, does Atreides see both spice cards?",
+      "status": "covered",
+      "destinations": ["core#advanced-spice"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 72,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225360412",
+      "topic": "When can Truthtrance be played, and what if two players play it at once?",
+      "status": "covered",
+      "destinations": ["core#truthtrance"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 73,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225360493",
+      "topic": "Is spice placed when the spice blow sector is in the storm?",
+      "status": "covered",
+      "destinations": ["core#spice-blow"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 74,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225360585",
+      "topic": "What happens if no one has won by the end of turn 10?",
+      "status": "judgement-recorded",
+      "destinations": ["core#mentat"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 75,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225360623",
+      "topic": "What does the Atreides ally get from the alliance?",
+      "status": "covered",
+      "destinations": ["core#atreides"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 76,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225360704",
+      "topic": "With two Truthtrance cards, can I ask 'Will you answer yes to my next Truthtrance?'",
+      "status": "intentionally-excluded",
+      "destinations": ["core#truthtrance"],
+      "assessment": "Detailed meta-question example intentionally excluded; general cannot-know and current-turn binding rule governs."
+    },
+    {
+      "index": 77,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225361009",
+      "topic": "Can Atreides use Prescience on a part of the battle plan the opponent isn't playing, and ask again?",
+      "status": "covered",
+      "destinations": ["core#battle-information"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 78,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225361060",
+      "topic": "How does the Great Maker spice card work?",
+      "status": "covered",
+      "destinations": ["ecaz-moritani#discovery-setup-and-cards"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 79,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225361104",
+      "topic": "Can the Fremen control the storm?",
+      "status": "covered",
+      "destinations": ["core#storm-movement"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 80,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225361501",
+      "topic": "Do Fremen forces need spice support in battle?",
+      "status": "covered",
+      "destinations": ["core#advanced-battle"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 81,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225361889",
+      "topic": "Can the Fremen ride a worm to the Hidden Mobile Stronghold?",
+      "status": "covered",
+      "destinations": ["ixian-tleilaxu#hidden-mobile-stronghold"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 82,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225361909",
+      "topic": "What does Prescience show when the opponent plays Weirding Way or Chemistry?",
+      "status": "covered",
+      "destinations": ["core#battle-information"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 83,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225362167",
+      "topic": "How does Tleilaxu revival work and what does it cost?",
+      "status": "covered",
+      "destinations": ["ixian-tleilaxu#tleilaxu-revival"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 84,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225362628",
+      "topic": "Can the Fremen or other Guild allies use cross-ship and off-planet shipping?",
+      "status": "judgement-recorded",
+      "destinations": ["core#spacing-guild"],
+      "assessment": "Direct official FAQ allows Fremen cross-shipment from reserve origin; relayed conflicting video answer is not adopted."
+    },
+    {
+      "index": 85,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225362681",
+      "topic": "Does a Thumper cause a Nexus, and can the Fremen place later worms anywhere?",
+      "status": "covered",
+      "destinations": ["ixian-tleilaxu#treachery-reference"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 86,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225362934",
+      "topic": "In what order do Voice, Prescience and Truthtrance happen in a battle?",
+      "status": "covered",
+      "destinations": ["core#battle-information"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 87,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225362990",
+      "topic": "How many other factions' leaders can the Tleilaxu revive?",
+      "status": "covered",
+      "destinations": ["ixian-tleilaxu#tleilaxu-revival"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 88,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225363254",
+      "topic": "Does Weirding Way as a defense stop a lasgun, cause an explosion or protect against Artillery Strike?",
+      "status": "covered",
+      "destinations": ["ixian-tleilaxu#new-cards"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 89,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225363639",
+      "topic": "Does the Shield Snooper cause a lasgun-shield explosion or protect against Artillery Strike?",
+      "status": "covered",
+      "destinations": ["ixian-tleilaxu#new-cards"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 90,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225363891",
+      "topic": "How many forces and leaders can you revive per turn?",
+      "status": "covered",
+      "destinations": ["core#revive-forces", "core#revive-leaders"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 91,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225364696",
+      "topic": "What does a lasgun-shield explosion destroy?",
+      "status": "corrected",
+      "destinations": ["core#weapons"],
+      "assessment": "Core author changed earlier surviving leaders to immune from later explosion and revised GF9-CORE-012 to direct final designer consensus."
+    },
+    {
+      "index": 92,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225365322",
+      "topic": "Can a Karama take away the Fremen's control of a worm?",
+      "status": "covered",
+      "destinations": ["core#karama-factions"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 93,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225365339",
+      "topic": "What happens when both players in a battle reveal a traitor?",
+      "status": "covered",
+      "destinations": ["core#traitors"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 94,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225365775",
+      "topic": "After winning a battle with a traitor, can the winner discard the treachery cards they played?",
+      "status": "covered",
+      "destinations": ["core#traitors"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 95,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225365816",
+      "topic": "Can Weather Control or Family Atomics be played after seeing the storm number, and in what order?",
+      "status": "covered",
+      "destinations": ["core#family-atomics"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 96,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225365817",
+      "topic": "Can the Fremen ride a second worm in the same Spice Blow?",
+      "status": "covered",
+      "destinations": ["core#sandworms"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 97,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225366400",
+      "topic": "What is different in the GF9 edition of Dune compared to the Avalon Hill original?",
+      "status": "covered",
+      "destinations": ["core#begin", "core#expansion-map"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 98,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225366596",
+      "topic": "Do you have to play a Cheap Hero if you have no other leader?",
+      "status": "covered",
+      "destinations": ["core#worthless-cheap-hero"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 99,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225366608",
+      "topic": "Can the Tleilaxu revive or pay for their ally's revivals?",
+      "status": "covered",
+      "destinations": ["ixian-tleilaxu#tleilaxu-revival"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 100,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225366664",
+      "topic": "How does the Tleilaxu Ghola treachery card work?",
+      "status": "covered",
+      "destinations": ["core#hajr-ghola-weather"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 101,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225366866",
+      "topic": "Can the Tleilaxu revive another faction's leaders when one is captured by Harkonnen?",
+      "status": "covered",
+      "destinations": ["core#revive-leaders"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 102,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225366931",
+      "topic": "How does the Harvester card work?",
+      "status": "covered",
+      "destinations": ["ixian-tleilaxu#treachery-reference"],
+      "assessment": "Collected comment itself has only Avalon Hill history, but existing card-specific collected skin text confirms doubling; no fan movement variant added."
+    },
+    {
+      "index": 103,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225366941",
+      "topic": "Can the Spacing Guild cross-ship when the origin or destination is in the storm?",
+      "status": "covered",
+      "destinations": ["core#spacing-guild"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 104,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225367166",
+      "topic": "Can the Tleilaxu revive the Kwisatz Haderach?",
+      "status": "covered",
+      "destinations": ["core#kwisatz-haderach"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 105,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225367235",
+      "topic": "What happens if you have no leader or Cheap Hero to play in a battle?",
+      "status": "covered",
+      "destinations": ["core#battle-plan"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 106,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225367248",
+      "topic": "Can a Karama cancel another Karama?",
+      "status": "covered",
+      "destinations": ["core#karama"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 107,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225367422",
+      "topic": "Can the Tleilaxu revive two enemy leaders as Gholas in one turn?",
+      "status": "covered",
+      "destinations": ["ixian-tleilaxu#tleilaxu-advanced"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 108,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225367683",
+      "topic": "How is the Guild's half-price shipping rounded?",
+      "status": "covered",
+      "destinations": ["core#spacing-guild"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 109,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225367724",
+      "topic": "If I reveal a traitor while my opponent played a lasgun and I played a shield, do my forces survive?",
+      "status": "covered",
+      "destinations": ["core#traitors"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 110,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225367795",
+      "topic": "Do the Tleilaxu get spice for their own free revival?",
+      "status": "covered",
+      "destinations": ["ixian-tleilaxu#tleilaxu-revival"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 111,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225368048",
+      "topic": "How much does it cost to revive Zoal?",
+      "status": "judgement-recorded",
+      "destinations": ["ixian-tleilaxu#tleilaxu-revival"],
+      "assessment": "Independent author review identified nominal-before-discount wording unsupported. Corrected expansion text and faction: final paid Zoal revival3spice, no second discount; EXP-016 records it."
+    },
+    {
+      "index": 112,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225368249",
+      "topic": "Does the player who reveals a traitor still pay for spice support in the advanced game?",
+      "status": "covered",
+      "destinations": ["core#traitors"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 113,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225368276",
+      "topic": "Does Zoal get the Kwisatz Haderach bonus?",
+      "status": "covered",
+      "destinations": ["ixian-tleilaxu#tleilaxu-revival"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 114,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225368442",
+      "topic": "When can the Spacing Guild ship and move out of turn order?",
+      "status": "judgement-recorded",
+      "destinations": ["core#spacing-guild"],
+      "assessment": "Specific I&T p12 table says Guild must go in turn order after cancellation. Core author notified to choose normal order rather than retry a later interruption; one use is the whole chosen out-of-order turn."
+    },
+    {
+      "index": 115,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225369052",
+      "topic": "How do Tleilaxu Gholas work?",
+      "status": "covered",
+      "destinations": ["ixian-tleilaxu#tleilaxu-advanced"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 116,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225369193",
+      "topic": "How do spice support and dialing work in advanced battles?",
+      "status": "covered",
+      "destinations": ["core#advanced-battle"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 117,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225369657",
+      "topic": "Does a Karama stop an ability for one use or for the whole phase?",
+      "status": "judgement-recorded",
+      "destinations": ["core#karama"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 118,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225369733",
+      "topic": "In the advanced game, which forces do you lose after winning a battle?",
+      "status": "covered",
+      "destinations": ["core#advanced-battle"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 119,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225370361",
+      "topic": "What faction abilities can and can't Karama stop?",
+      "status": "covered",
+      "destinations": ["core#karama-factions"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 120,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225370807",
+      "topic": "Can Karama stop the Spacing Guild's special victory?",
+      "status": "covered",
+      "destinations": ["core#karama-factions"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 121,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225370878",
+      "topic": "Can Worthless cards be played as weapons or defenses?",
+      "status": "covered",
+      "destinations": ["core#worthless-cheap-hero"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 122,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225370930",
+      "topic": "Can the Tleilaxu revive face-down leaders as Gholas?",
+      "status": "covered",
+      "destinations": ["ixian-tleilaxu#tleilaxu-advanced"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 123,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225371217",
+      "topic": "Can the Spacing Guild ship forces back to reserves?",
+      "status": "covered",
+      "destinations": ["core#spacing-guild"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 124,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225371223",
+      "topic": "When can the Tleilaxu sell a Ghola back to its owner?",
+      "status": "covered",
+      "destinations": ["ixian-tleilaxu#tleilaxu-advanced"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 125,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225371864",
+      "topic": "Can Harkonnen use captured leaders in battle, and what if it's the other faction's last leader?",
+      "status": "covered",
+      "destinations": ["core#harkonnen", "core#revive-leaders"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 126,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225371896",
+      "topic": "Are Poison Tooth and Artillery Strike discarded after use?",
+      "status": "covered",
+      "destinations": ["choam-richese#replacement-card-text"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 127,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225372022",
+      "topic": "What is the highest number you can dial on the battle wheel?",
+      "status": "intentionally-excluded",
+      "destinations": ["core#battle-plan"],
+      "assessment": "Physical wheel maximum convention and general illegal-plan remediation have no direct official general answer here. Specific Ixian Karama maximum adjustment remains covered. Keep detailed convention outside published teaching book pending judgement."
+    },
+    {
+      "index": 128,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225372177",
+      "topic": "How do Richese No-Field tokens work?",
+      "status": "covered",
+      "destinations": ["choam-richese#richese-no-field"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 129,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225372365",
+      "topic": "Who gets spice for leaders killed in battle?",
+      "status": "covered",
+      "destinations": ["core#battle-resolution"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 130,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225372671",
+      "topic": "Is Poison Tooth stopped by Chemistry or the Snooper?",
+      "status": "covered",
+      "destinations": ["ixian-tleilaxu#new-cards"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 131,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225372764",
+      "topic": "Does an unrevealed No-Field token count for spice, Terror tokens and Prescience?",
+      "status": "covered",
+      "destinations": ["choam-richese#richese-no-field"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 132,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225372903",
+      "topic": "Can Voice, Truthtrance, Karama or Prescience affect the Sardaukar or Fedaykin bonus?",
+      "status": "covered",
+      "destinations": ["core#advanced-battle"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 133,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225373010",
+      "topic": "Can Harkonnen look at a captured leader, and is its identity secret?",
+      "status": "covered",
+      "destinations": ["core#harkonnen"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 134,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225373233",
+      "topic": "Does Artillery Strike kill leaders, and what stops it?",
+      "status": "covered",
+      "destinations": ["choam-richese#replacement-card-text"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 135,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225373582",
+      "topic": "Is a leader revealed as a traitor still a traitor after being revived?",
+      "status": "covered",
+      "destinations": ["core#traitors"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 136,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225373598",
+      "topic": "When Harkonnen kill a captured leader, does it count as dying twice?",
+      "status": "covered",
+      "destinations": ["core#harkonnen"],
+      "assessment": "Core covers second-death secrecy. Tleilaxu knowledge of executed leader additionally noted in source; detailed identity-inspection edge is outside main teaching prose."
+    },
+    {
+      "index": 137,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225373668",
+      "topic": "Do Weirding Way and Chemistry count as weapons and defenses for other cards?",
+      "status": "covered",
+      "destinations": ["ixian-tleilaxu#new-cards"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 138,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225373916",
+      "topic": "How do Richese card auctions work?",
+      "status": "covered",
+      "destinations": ["choam-richese#richese-auctions"],
+      "assessment": "Added explicit source-backed Richese ally-bid payment split and full-hand/Declaration timing to Richese auctions; EXP-020 records interpretation."
+    },
+    {
+      "index": 139,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225374146",
+      "topic": "Is the treachery discard pile public?",
+      "status": "covered",
+      "destinations": ["choam-richese#using-this-expansion"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 140,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225374413",
+      "topic": "How does the Richese Black Market work?",
+      "status": "covered",
+      "destinations": ["choam-richese#richese-alliance-and-advanced"],
+      "assessment": "Added explicit source-backed Richese ally-bid payment split and full-hand/Declaration timing to Richese auctions; EXP-020 records interpretation."
+    },
+    {
+      "index": 141,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225374480",
+      "topic": "Can Harkonnen redraw traitors if they draw their own leaders?",
+      "status": "covered",
+      "destinations": ["core#harkonnen"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 142,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225374545",
+      "topic": "Who is the aggressor, who chooses the order of battles, and who wins a tie?",
+      "status": "covered",
+      "destinations": ["core#battle-order"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 143,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225374738",
+      "topic": "Can I keep the unused traitor cards as a reference?",
+      "status": "covered",
+      "destinations": ["core#setup"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 144,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225375100",
+      "topic": "Can I pick one of my own leaders as my traitor?",
+      "status": "covered",
+      "destinations": ["core#setup"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 145,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225375336",
+      "topic": "Can a leader fight in more than one battle in the same turn?",
+      "status": "covered",
+      "destinations": ["core#battle-plan"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 146,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225376289",
+      "topic": "Does the battle winner have to discard the treachery cards they used?",
+      "status": "covered",
+      "destinations": ["core#battle-resolution"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 147,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225376799",
+      "topic": "Can I give all my spice to a non-ally right before CHOAM Charity to collect it?",
+      "status": "covered",
+      "destinations": ["core#charity", "core#deals"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 148,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225376912",
+      "topic": "Can there be a battle in a territory covered by the storm?",
+      "status": "judgement-recorded",
+      "destinations": ["core#storm-effects"],
+      "assessment": "Storm blockage conflict is an explicit core judgement; no direct primary correction demonstrated by this comment."
+    },
+    {
+      "index": 149,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225377162",
+      "topic": "Who can claim CHOAM Charity and how much do they get?",
+      "status": "covered",
+      "destinations": ["core#charity"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 150,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225377253",
+      "topic": "What changes in 2, 3, 4 and 5 player games?",
+      "status": "covered",
+      "destinations": ["core#choose-game"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 151,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225377335",
+      "topic": "How many treachery cards does Harkonnen start with and get when buying?",
+      "status": "covered",
+      "destinations": ["core#harkonnen", "ixian-tleilaxu#ixian-setup"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 152,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225377734",
+      "topic": "What is the difference between the basic and advanced rules?",
+      "status": "covered",
+      "destinations": ["core#begin", "core#advanced-battle"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 153,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225378138",
+      "topic": "How do CHOAM Charity and Inflation work with the CHOAM faction?",
+      "status": "covered",
+      "destinations": ["choam-richese#choam-setup-and-charity"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 154,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225378305",
+      "topic": "Can a faction revive leaders when some of its leaders are captured by Harkonnen?",
+      "status": "covered",
+      "destinations": ["core#revive-leaders"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 155,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225378411",
+      "topic": "What happens when a traitor is revealed, and can I choose not to reveal it?",
+      "status": "covered",
+      "destinations": ["core#traitors"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 156,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225378804",
+      "topic": "Who goes first, and what is the turn order for bidding and shipping?",
+      "status": "covered",
+      "destinations": ["core#turn", "core#bidding"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 157,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225378837",
+      "topic": "When must Harkonnen return captured leaders?",
+      "status": "covered",
+      "destinations": ["core#harkonnen"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 158,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225379139",
+      "topic": "Can Harkonnen return a captured leader early as part of a deal?",
+      "status": "intentionally-excluded",
+      "destinations": ["core#deals", "core#harkonnen"],
+      "assessment": "No primary answer here. General prohibition on unlisted leader transfers plus capture return procedure is enough; do not invent sale permission."
+    },
+    {
+      "index": 159,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225379168",
+      "topic": "How does the CHOAM faction's treachery advantage and Auditor work?",
+      "status": "covered",
+      "destinations": ["choam-richese#choam-treachery", "choam-richese#choam-alliance-and-advanced"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 160,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225379375",
+      "topic": "What happens to a captured leader when Harkonnen ally with its owner?",
+      "status": "intentionally-excluded",
+      "destinations": ["core#harkonnen"],
+      "assessment": "No primary answer; retain explicit capture rules and normal no-transfer contract."
+    },
+    {
+      "index": 161,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225379632",
+      "topic": "What happens if a battle plan is illegal?",
+      "status": "intentionally-excluded",
+      "destinations": ["core#battle-plan"],
+      "assessment": "General illegal-plan randomization comes only from unofficial revised rulebook. Detailed remediation is intentionally not imported as a GF9 teaching rule."
+    },
+    {
+      "index": 162,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225379682",
+      "topic": "Are forces in the sector where the storm starts killed?",
+      "status": "covered",
+      "destinations": ["core#storm-effects"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 163,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225379933",
+      "topic": "Does a captured leader's skill card go with it?",
+      "status": "covered",
+      "destinations": ["choam-richese#leader-skills-in-battle"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 164,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225380125",
+      "topic": "Can the same weapon or defense card be used in more than one battle per turn?",
+      "status": "covered",
+      "destinations": ["core#battle-resolution"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 165,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225380152",
+      "topic": "How does Duke Vidal move between Ecaz and Moritani?",
+      "status": "covered",
+      "destinations": ["ecaz-moritani#duke-vidal"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 166,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225380467",
+      "topic": "Can a captured leader be called as a traitor?",
+      "status": "covered",
+      "destinations": ["core#traitors"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 167,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225380690",
+      "topic": "Where does the storm start, and how is the first storm movement decided?",
+      "status": "covered",
+      "destinations": ["core#first-storm"],
+      "assessment": "Official first-storm movement procedure retained. Lone community no-damage placement convention is not adopted without stronger evidence."
+    },
+    {
+      "index": 168,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225381066",
+      "topic": "How does the Harkonnen Karama power work, and is it limited by the hand limit?",
+      "status": "covered",
+      "destinations": ["core#harkonnen"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 169,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225381506",
+      "topic": "How do Ecaz Ambassadors work?",
+      "status": "covered",
+      "destinations": ["ecaz-moritani#ecaz-setup"],
+      "assessment": "Designer face-up Ambassador and placement-not-shipment clarifications are ordinary rules in expansion text."
+    },
+    {
+      "index": 170,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225381779",
+      "topic": "What happens if two factions are in the same stronghold under the storm?",
+      "status": "covered",
+      "destinations": ["core#storm-effects", "core#mentat"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 171,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225382285",
+      "topic": "Does the Bene Gesserit Voice have to name specific cards like Poison Blade or Weirding Way?",
+      "status": "covered",
+      "destinations": ["ixian-tleilaxu#new-cards"],
+      "assessment": "Added full default/alternate Voice role rule in I&T ordinary card procedure; EXP-018."
+    },
+    {
+      "index": 172,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225382343",
+      "topic": "What does the storm destroy in rock, strongholds and the Imperial Basin?",
+      "status": "covered",
+      "destinations": ["core#storm-effects"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 173,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225382815",
+      "topic": "Can the Voice force a player to play Weirding Way or Chemistry in a certain role?",
+      "status": "covered",
+      "destinations": ["ixian-tleilaxu#new-cards"],
+      "assessment": "Added full default/alternate Voice role rule in I&T ordinary card procedure; EXP-018."
+    },
+    {
+      "index": 174,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225383034",
+      "topic": "How does the Ecaz Occupy advantage work in battle?",
+      "status": "covered",
+      "destinations": ["ecaz-moritani#ecaz-battle"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 175,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225383831",
+      "topic": "Can the Bene Gesserit Voice a Cheap Hero or a Worthless card?",
+      "status": "covered",
+      "destinations": ["core#bene-gesserit"],
+      "assessment": "Cheap Hero and Worthless are legal Voice targets. Optional tournament noncompulsion and player-aid contradiction do not override rulebook."
+    },
+    {
+      "index": 176,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225384237",
+      "topic": "How do Moritani Terror tokens work?",
+      "status": "covered",
+      "destinations": ["ecaz-moritani#moritani-setup-and-terror"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 177,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225384297",
+      "topic": "Can the Ixians choose from the Harkonnen's extra starting card?",
+      "status": "intentionally-excluded",
+      "destinations": ["ixian-tleilaxu#ixian-setup"],
+      "assessment": "Toggle allowing Ixian inspection of Harkonnen extra card excluded; explicit GF9 source deal retained."
+    },
+    {
+      "index": 178,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225384693",
+      "topic": "When does the Shield Wall count as a stronghold?",
+      "status": "intentionally-excluded",
+      "destinations": ["core#board"],
+      "assessment": "Optional Shield Wall stronghold convention is excluded from default GF9; board remains rock unless selected separate variant."
+    },
+    {
+      "index": 179,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225384705",
+      "topic": "Is the Harkonnen's free extra treachery card mandatory?",
+      "status": "covered",
+      "destinations": ["core#harkonnen"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 180,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225385284",
+      "topic": "What does Karama do against the Harkonnen?",
+      "status": "covered",
+      "destinations": ["core#karama-factions"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 181,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225385475",
+      "topic": "When can the Bene Gesserit flip advisors to fighters?",
+      "status": "covered",
+      "destinations": ["core#advisors"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 182,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225385874",
+      "topic": "Do Tech Tokens count as a stronghold, and how does their income work?",
+      "status": "covered",
+      "destinations": ["ixian-tleilaxu#tech-token-setup"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 183,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225385996",
+      "topic": "When can the Bene Gesserit flip fighters to advisors?",
+      "status": "covered",
+      "destinations": ["core#advisors"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 184,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225386263",
+      "topic": "Can the Hidden Mobile Stronghold move through the storm?",
+      "status": "covered",
+      "destinations": ["ixian-tleilaxu#hidden-mobile-stronghold"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 185,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225386364",
+      "topic": "How does Moritani's Enemy of My Enemy work?",
+      "status": "judgement-recorded",
+      "destinations": ["ecaz-moritani#moritani-setup-and-terror"],
+      "assessment": "Adopted reinforcement-entry trigger using new group entering, EXP-019. Opposing community first-occupation reading rejected with reason."
+    },
+    {
+      "index": 186,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225386379",
+      "topic": "How does the Recruits card work with homeworld revival?",
+      "status": "covered",
+      "destinations": ["ecaz-moritani#new-treachery"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 187,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225386391",
+      "topic": "Can the Bene Gesserit have advisors and fighters in the same territory?",
+      "status": "covered",
+      "destinations": ["core#advisors"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 188,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225386761",
+      "topic": "How do Leader Skill cards work with captured leaders?",
+      "status": "covered",
+      "destinations": ["choam-richese#leader-skills-in-battle"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 189,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225386806",
+      "topic": "Can Moritani assassinate a traitor leader captured by Harkonnen?",
+      "status": "covered",
+      "destinations": ["ecaz-moritani#moritani-advanced"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 190,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225387014",
+      "topic": "Do the Tleilaxu have a special win condition?",
+      "status": "intentionally-excluded",
+      "destinations": ["ixian-tleilaxu#tleilaxu-setup"],
+      "assessment": "No answer or special condition exists in supplied evidence. Do not invent Tleilaxu special victory."
+    },
+    {
+      "index": 191,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225387273",
+      "topic": "How does the Hidden Mobile Stronghold move and collect spice?",
+      "status": "judgement-recorded",
+      "destinations": ["ixian-tleilaxu#hidden-mobile-stronghold"],
+      "assessment": "Use explicit pointer in spice-bearing sector and per-territory collection, avoid loose relayed support interpretation."
+    },
+    {
+      "index": 192,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225387414",
+      "topic": "How do Nexus cards and Secret Ally work?",
+      "status": "covered",
+      "destinations": ["ecaz-moritani#nexus-cards"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 193,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225387931",
+      "topic": "What if several players reach the winning number of strongholds at once?",
+      "status": "covered",
+      "destinations": ["core#mentat"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 194,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225387948",
+      "topic": "Can other factions ship into the Hidden Mobile Stronghold?",
+      "status": "covered",
+      "destinations": ["ixian-tleilaxu#hidden-mobile-stronghold"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 195,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225388542",
+      "topic": "How do you win Dune, and how many strongholds do you need?",
+      "status": "covered",
+      "destinations": ["core#begin", "core#mentat"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 196,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225388613",
+      "topic": "How do homeworld high and low thresholds work?",
+      "status": "judgement-recorded",
+      "destinations": [
+        "ecaz-moritani#homeworld-setup",
+        "ecaz-moritani#homeworld-shipment",
+        "ecaz-moritani#homeworld-battles-and-emperor"
+      ],
+      "assessment": "Salusa hysteresis and Occupier timing resolved through direct designer explanations; EXP-009 and EXP-011."
+    },
+    {
+      "index": 197,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225388643",
+      "topic": "Is the Hidden Mobile Stronghold's location hidden?",
+      "status": "covered",
+      "destinations": ["ixian-tleilaxu#hidden-mobile-stronghold"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    },
+    {
+      "index": 198,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225389112",
+      "topic": "Can the Bene Gesserit ship or move as advisors, and when can they accompany a shipment?",
+      "status": "covered",
+      "destinations": ["core#advisors"],
+      "assessment": "Core author adding explicit existing-fighter accompaniment restriction and Intrusion order."
+    },
+    {
+      "index": 199,
+      "url": "https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225389334",
+      "topic": "Does shipping to a homeworld use the Heighliner tech token, and can the Guild cross-ship there?",
+      "status": "covered",
+      "destinations": ["ecaz-moritani#homeworld-shipment"],
+      "assessment": "Read all collected claims; selected GF9 procedural rule is covered at the cited destination. FAQ question-and-answer text is not imported."
+    }
+  ],
+  "unresolved": [],
+  "coreJudgementReview": [
+    {
+      "id": "GF9-CORE-001",
+      "assessment": "Supported, specific replacement-card single-use wording."
+    },
+    {
+      "id": "GF9-CORE-002",
+      "assessment": "Supported, exact special-worm later official correction; phase-end applies this special effect."
+    },
+    {
+      "id": "GF9-CORE-003",
+      "assessment": "Supported, explicit placement/movement distinction."
+    },
+    {
+      "id": "GF9-CORE-004",
+      "assessment": "Supported, original conditional Fremen card ability over convenience house change."
+    },
+    {
+      "id": "GF9-CORE-005",
+      "assessment": "Supported, explicit official ally advisor evacuation rule; Ecaz exception remains."
+    },
+    {
+      "id": "GF9-CORE-006",
+      "assessment": "Supported, explicit official Emperor payment loop despite unofficial economic alternative."
+    },
+    {
+      "id": "GF9-CORE-007",
+      "assessment": "Supported medium, specific conditional Fremen victory must remain meaningful before general Guild stall win."
+    },
+    {
+      "id": "GF9-CORE-008",
+      "assessment": "Supported medium, explicit printed fallback is distinct from named special territorial test."
+    },
+    {
+      "id": "GF9-CORE-009",
+      "assessment": "Supported, direct shared-win official answer."
+    },
+    {
+      "id": "GF9-CORE-010",
+      "assessment": "Supported medium, three free is a rate, not additional allowance; other explicit limits remain."
+    },
+    {
+      "id": "GF9-CORE-011",
+      "assessment": "Supported medium, direct designer normal leader eligibility plus explicit exception sources."
+    },
+    {
+      "id": "GF9-CORE-012",
+      "assessment": "Corrected, final direct designer consensus excludes earlier surviving leaders from later explosion."
+    },
+    {
+      "id": "GF9-CORE-013",
+      "assessment": "Supported medium, specific up-to-four quantitative answer controls loose all-card shorthand."
+    },
+    {
+      "id": "GF9-CORE-014",
+      "assessment": "Supported medium, explicit published design-intent note identifies bribery as Advanced."
+    },
+    {
+      "id": "GF9-CORE-015",
+      "assessment": "Supported medium, specific Atreides card-note privilege retained alongside general notes."
+    },
+    {
+      "id": "GF9-CORE-016",
+      "assessment": "Corrected after review: specific Advanced per-pile Nexus sequence prevails; original single-phase synthesis unsupported."
+    },
+    {
+      "id": "GF9-CORE-017",
+      "assessment": "Supported, explicit replacement inventory instruction."
+    },
+    {
+      "id": "GF9-CORE-018",
+      "assessment": "Supported at medium confidence. Independent simultaneous dials prescribe how each player chooses and reveals a number. The broad Advanced verbal-deal permission has no supplied storm-specific exception; preserve public legal deals without adding a coordination ban. Community disagreement leaves this an interpretation.",
+      "evidence": "Base rulebook PDF pp7,12; collected FAQ comment index320, https://github.com/ndelangen/dunezone/issues/2284#issuecomment-6225671375; content/gf9/faq-review.json#coreJudgementReview"
+    }
+  ]
+}

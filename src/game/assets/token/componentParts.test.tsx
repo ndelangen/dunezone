@@ -8,6 +8,7 @@ import { expect, it } from 'vite-plus/test';
 
 import { CustomToken } from './Custom';
 import { RectangleToken } from './Rectangle';
+import { tokenFaceProps } from './tokenFace';
 
 function parts(container: HTMLElement) {
   return [...container.querySelectorAll(COMPONENT_GEOMETRY_PROTOCOL.partSelector)].map((element) =>
@@ -46,4 +47,27 @@ it('names rectangle collections without binding individual elements to their pos
   expect(parts(container)).toEqual([]);
   rerender(<RectangleToken {...publishingRectangleTokenFace} texts={[]} decals={[]} ring={false} />);
   expect(parts(container)).toEqual([]);
+});
+
+it('keeps legacy shadow passes and renders an explicitly shadowless styled symbol once', () => {
+  const { container, rerender } = render(<CustomToken {...tokenFaceProps(publishingTokenFace)} />);
+  expect(container.querySelector('[data-component-part="symbol"]')?.getAttribute('filter')).toContain('drop-shadow');
+  const legacyPaints = container.querySelectorAll('use').length;
+  rerender(
+    <CustomToken
+      {...tokenFaceProps({
+        ...publishingTokenFace,
+        ring: false,
+        symbolShadow: false,
+        symbolFill: '#07120f',
+        symbolStroke: '#f3edbf',
+        symbolStrokeWidth: 5.5,
+      })}
+    />
+  );
+  expect(container.querySelector('[data-component-part="symbol"]')?.getAttribute('filter')).toBeNull();
+  expect(container.querySelectorAll('use')).toHaveLength(2);
+  expect(legacyPaints).toBeGreaterThan(2);
+  expect(container.querySelector('use[stroke="#f3edbf"]')?.getAttribute('stroke-width')).toBe('5.5');
+  expect(container.querySelector('use')?.getAttribute('fill')).toBe('#07120f');
 });

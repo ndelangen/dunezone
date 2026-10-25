@@ -1,8 +1,10 @@
 /* @jsxImportSource @app/widgets/tabletop/three-jsx */
+
 import { factionTokenFaceUp, factionTokenOf } from '@shared/play/factionToken';
 import { handCountGrid } from '@shared/play/handCounts';
 import { stormOrder } from '@shared/play/stormSector';
 import { CARD_SLOT_OUTER_SIZE, cardBaySlotPositions } from '@shared/play/tableFurnitureLayout';
+import { playUiColors, withAlpha } from '@shared/uiPalette';
 import { useEffect, useMemo, useState } from 'react';
 import { CanvasTexture, LinearMipmapLinearFilter, SRGBColorSpace } from 'three';
 
@@ -14,7 +16,7 @@ import {
 } from '@app/widgets/tabletop/tableLabelFont';
 
 import type { TableProjection } from '../../../../db/tabletop/TableSession';
-import { allianceColor, allianceSlot } from './allianceHues';
+import { alliedFactionColors } from './allianceColors';
 
 /* The left card bay leaves its outer bottom slot empty: the counts fill exactly the space a card well would. */
 const [, SURFACE_Y, SLOT_Z] = cardBaySlotPositions('left').at(-1)!;
@@ -28,9 +30,9 @@ const PX = 1024 / DEPTH;
 const PADDING = 0.12;
 /* A cell is a logo with its count beside it. */
 const CELL_ASPECT = 1.75;
-const GOLD = '#d2ae68';
+const GOLD = playUiColors.annotationGold;
 
-/* `ring` is the colour of the faction's alliance, or null while it stands alone. */
+/* Each ring segment takes one ally's authored faction colour. */
 type Row = {
   id: string;
   count: number;
@@ -38,7 +40,7 @@ type Row = {
   front: string | null;
   color: string;
   initials: string;
-  ring: string | null;
+  ring: string[];
 };
 
 /*
@@ -99,12 +101,20 @@ function drawLogo(
     context.fillText(row.initials, cx, cy);
   }
   context.restore();
-  context.beginPath();
-  context.arc(cx, cy, radius, 0, Math.PI * 2);
-  /* An allied faction's logo wears its alliance's colour, thicker than the plain gold rim. */
-  context.lineWidth = Math.max(2, radius * (row.ring ? 0.16 : 0.06));
-  context.strokeStyle = row.ring ?? GOLD;
-  context.stroke();
+  const colors = row.ring.length ? row.ring : [GOLD];
+  context.lineWidth = Math.max(2, radius * (row.ring.length ? 0.16 : 0.06));
+  colors.forEach((color, index) => {
+    context.beginPath();
+    context.arc(
+      cx,
+      cy,
+      radius,
+      (index * Math.PI * 2) / colors.length - Math.PI / 2,
+      ((index + 1) * Math.PI * 2) / colors.length - Math.PI / 2
+    );
+    context.strokeStyle = color;
+    context.stroke();
+  });
 }
 
 /** A count pressed into the table: a dark lip above the gold, shrunk when a long count would run past `right`. */
@@ -119,7 +129,7 @@ function drawCount(
   context.font = `${size}px ${font}`;
   context.textAlign = 'left';
   context.textBaseline = 'middle';
-  context.fillStyle = 'rgba(0, 0, 0, 0.55)';
+  context.fillStyle = withAlpha(playUiColors.black, 0.55);
   context.fillText(text, x, y - size * 0.03);
   context.fillStyle = GOLD;
   context.fillText(text, x, y);
@@ -175,15 +185,14 @@ function handCountRows(table: TableProjection, order: readonly string[]): Row[] 
   return order.map((id) => {
     const token = factionTokenOf(table.state.pieces, id);
     const name = table.state.factionNames[id] ?? id;
-    const alliance = allianceSlot(table.snapshot, id);
     return {
       id,
       count: counts[id] ?? 0,
       out: !factionTokenFaceUp(table.state.pieces, id),
       front: token?.items[0]?.artwork?.front ?? null,
-      color: token?.color ?? '#3a2a22',
+      color: token?.color ?? playUiColors.fallbackFaction,
       initials: name.slice(0, 2).toUpperCase(),
-      ring: alliance === undefined ? null : allianceColor(alliance),
+      ring: alliedFactionColors(table.snapshot, id),
     };
   });
 }
