@@ -19,12 +19,15 @@
 
 .row {
   display: grid;
-  grid-template-columns: 3.6rem minmax(0, 1fr);
+  grid-template-columns: 4.6rem minmax(0, 1fr);
   align-items: center;
   gap: 0.5rem;
 }
 
 .label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
   color: var(--ink-dim);
   font: 600 0.68rem var(--font-sans);
   letter-spacing: 0.06em;
@@ -37,9 +40,14 @@
   align-items: center;
   gap: 0.6rem;
   min-width: 0;
-  padding: 0.45rem 0.4rem 0.45rem 0.4rem;
+  padding: 0.75rem 0.5rem 0.55rem 0.4rem;
   overflow-x: auto;
   scrollbar-width: thin;
+}
+
+/* The leader's eye sits on the row's label: showing your leader is one choice, whichever leader it is. */
+.label .labelReveal {
+  position: static;
 }
 
 .empty {

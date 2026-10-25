@@ -2,7 +2,7 @@ import { Button, Popover, Slider, Tooltip, UnstyledButton } from '@mantine/core'
 import type { BattleFace, BattlePlan, Disclosure } from '@shared/play/battle';
 import type { TablePiece } from '@shared/play/model';
 import clsx from 'clsx';
-import { Check, Eye, EyeOff, Minus, Plus, SlidersHorizontal } from 'lucide-react';
+import { Check, Diff, Eye, EyeOff, Minus, Plus, SlidersHorizontal } from 'lucide-react';
 import type { ReactNode, WheelEvent } from 'react';
 import { useEffect, useRef, useState } from 'react';
 
@@ -28,19 +28,20 @@ export function AdjustButton({
   onEdit: BattlePlanViewProps['onEdit'];
 }) {
   const { adjustment } = plan;
-  const shown = adjustment ? `${adjustment > 0 ? '+' : '−'}${formatStrength(Math.abs(adjustment))}` : '±';
+  const shown = adjustment ? `${adjustment > 0 ? '+' : '−'}${formatStrength(Math.abs(adjustment))}` : null;
   return (
     <Popover position="bottom" withArrow shadow="md">
-      <Popover.Target>
-        <UnstyledButton
-          className={styles.adjustButton}
-          data-set={adjustment ? true : undefined}
-          aria-label={`Adjust the strength by hand${adjustment ? `, now ${shown}` : ''}`}
-          title="Adjust the strength by hand, for what the plan does not count"
-        >
-          {shown}
-        </UnstyledButton>
-      </Popover.Target>
+      <Tooltip label="Adjust the strength by hand, for what the plan does not count" withArrow>
+        <Popover.Target>
+          <UnstyledButton
+            className={styles.adjustButton}
+            data-set={shown ? true : undefined}
+            aria-label={`Adjust the strength by hand${shown ? `, now ${shown}` : ''}`}
+          >
+            {shown ?? <Diff size={13} />}
+          </UnstyledButton>
+        </Popover.Target>
+      </Tooltip>
       <Popover.Dropdown className={styles.adjust}>
         <span>Adjust</span>
         <Stepper

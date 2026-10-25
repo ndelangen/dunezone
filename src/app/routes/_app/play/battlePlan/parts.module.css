@@ -79,18 +79,30 @@
 }
 
 .adjustButton {
+  display: inline-grid;
+  place-items: center;
   min-width: 1.6rem;
-  padding: 0.1rem 0.4rem;
+  height: 1.6rem;
+  padding: 0 0.4rem;
   border: 1px solid var(--edge);
   border-radius: 999px;
+  background: rgb(from var(--ui-recess) r g b / 0.8);
   color: var(--ink-dim);
-  font: 600 0.74rem var(--font-sans);
+  font: 700 0.74rem var(--font-sans);
   font-variant-numeric: tabular-nums;
-  text-align: center;
+  transition:
+    background 120ms,
+    color 120ms,
+    scale 120ms;
 }
 
 .adjustButton:hover {
+  background: var(--ui-hover);
   color: var(--ink);
+}
+
+.adjustButton:active {
+  scale: 0.92;
 }
 
 .adjustButton[data-set] {
@@ -257,6 +269,11 @@
     0 6px 14px rgb(from var(--color-shadow) r g b / 0.5);
 }
 
+/* Cards keep the rounded corners of the printed card. */
+.tile:not([data-leader]) .tileButton img {
+  border-radius: 4px;
+}
+
 .tileButton:disabled {
   cursor: default;
 }
@@ -318,6 +335,7 @@
 
 .opponent {
   display: inline-flex;
+  white-space: nowrap;
   align-items: flex-start;
   gap: 0.35rem;
   color: var(--ink-dim);

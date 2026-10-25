@@ -126,9 +126,7 @@ function RevealedWheel({
               </div>
               <span>{troop.undialed + troop.dialed}</span>
               <small>
-                {troop.dialed} supported
-                <br />
-                {troop.undialed} unsupported
+                {troop.dialed}/{troop.undialed + troop.dialed} supported
               </small>
             </div>
           ))}
