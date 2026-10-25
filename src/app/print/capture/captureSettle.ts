@@ -1,7 +1,7 @@
 /**
  * Everything a capture document has to prove before the driver is allowed to take bytes off it.
  *
- * None of it is per asset type: fonts, HTML images and SVG resources settle the same way whether the subject is a two-page sheet or one card, so the checks live apart from the thing being drawn.
+ * HTML images, SVG resources and CSS artwork settle the same way for every asset type.
  */
 import { redactPublisherResource } from '@shared/asset-publishing/publisher-diagnostics';
 
@@ -18,6 +18,27 @@ function svgHref(element: SVGImageElement | SVGUseElement): string | undefined {
 
 function abortReason(signal: AbortSignal): unknown {
   return signal.reason ?? new Error('Capture asset settlement was aborted');
+}
+
+function decodeImage(image: HTMLImageElement, signal: AbortSignal): Promise<void> {
+  signal.throwIfAborted();
+  return new Promise<void>((resolve, reject) => {
+    const onAbort = () => {
+      signal.removeEventListener('abort', onAbort);
+      reject(abortReason(signal));
+    };
+    signal.addEventListener('abort', onAbort, { once: true });
+    void image.decode().then(
+      () => {
+        signal.removeEventListener('abort', onAbort);
+        resolve();
+      },
+      (error: unknown) => {
+        signal.removeEventListener('abort', onAbort);
+        reject(error);
+      }
+    );
+  });
 }
 
 async function settleImage(image: HTMLImageElement, signal: AbortSignal): Promise<void> {
@@ -51,10 +72,10 @@ async function settleImage(image: HTMLImageElement, signal: AbortSignal): Promis
   if (image.naturalWidth === 0) {
     throw new Error(`Image has no decoded pixels: ${imageLabel(image)}`);
   }
-  await image.decode();
+  await decodeImage(image, signal);
 }
 
-async function settleSvgImage(href: string, signal: AbortSignal): Promise<void> {
+async function settleResourceImage(href: string, signal: AbortSignal, kind: 'SVG' | 'CSS'): Promise<void> {
   if (signal.aborted) {
     throw abortReason(signal);
   }
@@ -65,18 +86,20 @@ async function settleSvgImage(href: string, signal: AbortSignal): Promise<void> 
   };
   signal.addEventListener('abort', onAbort, { once: true });
   try {
-    await image.decode();
+    await decodeImage(image, signal);
     if (signal.aborted) {
       throw abortReason(signal);
     }
     if (image.naturalWidth === 0 || image.naturalHeight === 0) {
-      throw new Error(`SVG image has no decoded pixels: ${redactPublisherResource(href, document.baseURI)}`);
+      throw new Error(`${kind} image has no decoded pixels: ${redactPublisherResource(href, document.baseURI)}`);
     }
   } catch (error) {
     if (signal.aborted) {
       throw abortReason(signal);
     }
-    throw new Error(`SVG image failed to decode: ${redactPublisherResource(href, document.baseURI)}`, { cause: error });
+    throw new Error(`${kind} image failed to decode: ${redactPublisherResource(href, document.baseURI)}`, {
+      cause: error,
+    });
   } finally {
     signal.removeEventListener('abort', onAbort);
   }
@@ -122,7 +145,7 @@ export async function settleSvgResources(signal: AbortSignal): Promise<void> {
     )
   );
   await Promise.all([
-    ...Array.from(images, (href) => settleSvgImage(href, signal)),
+    ...Array.from(images, (href) => settleResourceImage(href, signal, 'SVG')),
     ...Array.from(uses, (href) => settleExternalSvgUse(href, signal)),
   ]);
 }
@@ -131,6 +154,67 @@ export async function settleHtmlImages(signal: AbortSignal): Promise<void> {
   /* Large documents can exhaust Chromium decoding capacity when every image decodes at once. */
   for (const image of Array.from(document.images)) {
     await settleImage(image, signal);
+  }
+}
+
+const CSS_IMAGE_PROPERTIES = ['background-image', 'border-image-source', 'mask-image', 'list-style-image', 'content'];
+
+function renderedStyles(element: Element): CSSStyleDeclaration[] {
+  const pseudoStyles = ['::before', '::after']
+    .map((pseudo) => getComputedStyle(element, pseudo))
+    .filter((style) => style.content !== 'none' && style.content !== 'normal');
+  return [getComputedStyle(element), ...pseudoStyles];
+}
+
+function cssImageUrls(style: CSSStyleDeclaration): string[] {
+  /* Computed styles serialize URL values as double-quoted strings, including inside image-set. */
+  const matches = CSS_IMAGE_PROPERTIES.flatMap((property) =>
+    Array.from(style.getPropertyValue(property).matchAll(/url\("((?:\\.|[^"\\])*)"\)/gu))
+  );
+  return matches
+    .map((match) =>
+      match[1].replace(/\\([0-9a-f]{1,6})\s?|\\(.)/giu, (_escape, hex: string | undefined, character: string) =>
+        hex ? String.fromCodePoint(Number.parseInt(hex, 16) || 0xff_fd) : character
+      )
+    )
+    .filter((href) => !href.startsWith('#'));
+}
+
+function captureResources() {
+  const styles = Array.from(document.querySelectorAll('*')).flatMap(renderedStyles);
+  const cssImages = new Set(styles.flatMap(cssImageUrls));
+  return {
+    cssImages,
+    signature: JSON.stringify([
+      Array.from(document.images, (image) => [image.src, image.srcset, image.currentSrc]),
+      Array.from(document.querySelectorAll<SVGImageElement | SVGUseElement>('svg image, svg use'), svgHref),
+      [...cssImages],
+    ]),
+  };
+}
+
+/** Load callbacks can add artwork; only a painted document with no new resources is ready. */
+export async function settleCaptureAssets(signal: AbortSignal): Promise<void> {
+  const decodedCssImages = new Set<string>();
+  let resources = captureResources();
+  while (true) {
+    signal.throwIfAborted();
+    await settleHtmlImages(signal);
+    await settleSvgResources(signal);
+    /* Decode sequentially, like HTML images, to bound Chromium's decoding memory. */
+    for (const href of resources.cssImages) {
+      if (!decodedCssImages.has(href)) {
+        await settleResourceImage(href, signal, 'CSS');
+        decodedCssImages.add(href);
+      }
+    }
+    await afterPaint();
+    signal.throwIfAborted();
+    const painted = captureResources();
+    if (painted.signature === resources.signature) {
+      return;
+    }
+    resources = painted;
   }
 }
 
