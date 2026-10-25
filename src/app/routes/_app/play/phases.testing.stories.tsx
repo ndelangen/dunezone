@@ -106,7 +106,7 @@ export const FactionPhase = meta.story({
     const phaseHelp = within(windowNamed(page, 'Phase')!).getByRole('img', { name: 'Help' });
     /* The kit's HelpMark story owns timed tooltip display, since a slow frame here can outlast it; this page checks that the window's (?) carries the phase's description and its instructions. */
     await expect(phaseHelp).toHaveAccessibleDescription(
-      'Guild negotiations, instructions and actions. Agree any shipment deals before bidding opens. Previous changes the tracker only. Pieces and storm position stay as they are.'
+      'Guild negotiations, instructions and actions. Agree any shipment deals before bidding opens. Previous changes the tracker only. Pieces and storm position stay as they are. Open in the centre, [ pins it bottom left and ] bottom right.'
     );
     const header = canvasElement.ownerDocument.querySelector('.seated-header') as HTMLElement;
     await expect(within(header).getByText('Guild negotiations')).toBeVisible();
