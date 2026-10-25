@@ -118,7 +118,7 @@ function deckActions(
   ];
 }
 
-/* Taking a loose card or a battle leader into the hand, as the classic controls' button does; it closes the ring, since the piece leaves the table. */
+/* Taking a loose card or a battle leader into the hand; it closes the ring, since the piece leaves the table. */
 function handAction(
   piece: TablePiece,
   handControls: NonNullable<MenuControls['handControls']>,

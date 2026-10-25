@@ -3,13 +3,11 @@ import { useContext, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import type { TableView } from '../../../../widgets/tabletop/playView';
-import type { PanelTab } from '../GameTable';
-import { HeldSlot } from '../HeldContent';
-import type { HeldNode } from '../HeldContent';
-import { TableControlsEpochContext } from '../tableControls';
+import type { TablePanel } from '../GameTable';
 import { ChatBar } from './ChatBar';
 import { Compass } from './Compass';
 import styles from './CompassControls.module.css';
+import { CompassEpochContext } from './compassEpoch';
 import type { Spot, TileSpot } from './compassSpots';
 import { CompassTableContext } from './compassTable';
 import { tilesOf } from './compassTiles';
@@ -20,40 +18,39 @@ import type { Side } from './slotLimits';
 import { candidatesOf, rankSuggestions } from './suggestions';
 import { useCompassKeys } from './useCompassKeys';
 import { useOpenWindows } from './useOpenWindows';
-import { CAMERA_TOP, useSlotHeights } from './useSlotHeights';
+import { useSlotHeights } from './useSlotHeights';
 import { WindowFrame } from './WindowFrame';
 import { useTableWindows } from './windows';
 
 /*
- * The table's controls as a compass (Norbert, 2026-10-24), picked from seven explorations (branch claude/controls-layout-prototype-stages):
- * Space opens a compass over the table; a window opens in the centre and goes when you click the table, or is pinned into
- * the bottom-left or bottom-right slot. The chats are a bar of tokens, and the camera dial sits top right under the toolbar.
+ * The table's controls as a compass: Space opens a compass over the table; a window opens in the centre and goes when
+ * you click the table, or is pinned into the bottom-left or bottom-right slot. The chats are a bar of tokens beside the
+ * Controls button, and the camera dial sits top right under the toolbar.
  */
 
 export type CompassControlsProps = Readonly<{
-  /** The held table scene, which stays mounted while the layout around it changes. */
-  scene: HeldNode;
+  /** The table scene, which the controls lie over. */
+  scene: ReactNode;
   header: ReactNode;
   camera: ReactNode;
   /** A board gesture holds the table, and the chrome over it stops taking input. */
   inert: boolean;
-  /** The dock's tabs, which the compass opens one by one. */
-  tabs: readonly PanelTab[];
+  /** The table's panels, grouped, which the compass opens one by one as windows. */
+  panels: readonly TablePanel[];
   /** Moves the camera, as the dial does. */
   onView: (view: TableView) => void;
-  /** The window an event asks for (a battle, the end of the game, a phase with a tab of its own), once per token. */
+  /** The window an event asks for (a battle, the end of the game, a phase with a panel of its own), once per token. */
   focus?: Readonly<{ key: string; token: string }> | null;
 }>;
 
 export function CompassControls(props: CompassControlsProps) {
-  /* The table's own pieces live in held nodes, so starting the controls afresh moves them back in without remounting them. */
-  const epoch = useContext(TableControlsEpochContext);
+  const epoch = useContext(CompassEpochContext);
   return <Controls key={epoch} {...props} />;
 }
 
-function Controls({ scene, header, camera, inert, tabs, onView, focus }: CompassControlsProps) {
+function Controls({ scene, header, camera, inert, panels, onView, focus }: CompassControlsProps) {
   const table = useContext(CompassTableContext);
-  const windows = useTableWindows(tabs);
+  const windows = useTableWindows(panels);
   const [open, setOpen] = useState(false);
   const [spot, setSpot] = useState<Spot>('hub');
   const [query, setQuery] = useState('');
@@ -68,10 +65,10 @@ function Controls({ scene, header, camera, inert, tabs, onView, focus }: Compass
   });
   const byKey = (key: string) => windows.find((entry) => entry.key === key);
   /*
-   * An event opens its window as the dock opens its tab, once per token, answered in the render that brings it;
-   * a token already there when the controls mount is old news. The Spice tab lives in the Hand & spice window.
+   * An event opens its window once per token, answered in the render that brings it, the first render included:
+   * the table decides which events are news (windowFocus.ts). The Spice panel lives in the Hand & spice window.
    */
-  const [followed, setFollowed] = useState(focus?.token ?? null);
+  const [followed, setFollowed] = useState<string | null>(null);
   const focusKey = focus?.key === 'spice' ? 'hand' : focus?.key;
   if (focus && focusKey && focus.token !== followed && byKey(focusKey)) {
     setFollowed(focus.token);
@@ -135,17 +132,9 @@ function Controls({ scene, header, camera, inert, tabs, onView, focus }: Compass
   const centre = opened.centre && byKey(opened.centre.key);
   return (
     <div className={styles.root} ref={rootRef}>
-      <div className={styles.scene}>
-        <HeldSlot node={scene} />
-      </div>
+      <div className={styles.scene}>{scene}</div>
       {header}
-      <div
-        className="seated-column-camera"
-        inert={inert}
-        style={{ top: `var(${CAMERA_TOP}, calc(var(--play-header-height) + 0.5rem))`, bottom: 'auto' }}
-      >
-        {camera}
-      </div>
+      {camera}
 
       {/*
         One list of windows keyed by what they show, so pinning moves a window rather than remounting it,

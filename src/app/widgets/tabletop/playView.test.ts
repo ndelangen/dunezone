@@ -126,7 +126,7 @@ describe('table views', () => {
   const under = (point: Vector3, rect: ScreenRect) =>
     Math.min(point.x - rect.left, rect.right - point.x, point.y - rect.bottom, rect.top - point.y) > 1e-9;
 
-  /* The table above a tall dock, as in a wide window: the phase chips at the top left, the toolbar at the top right, the dial at the bottom right. */
+  /* A short, wide table: the phase chips at the top left, the toolbar at the top right, the dial at the bottom right. */
   test('runs the board up to the canvas top beside the chips over a short, wide canvas', () => {
     const [canvasWidth, canvasHeight] = [1497, 427];
     const aspectRatio = canvasWidth / canvasHeight;

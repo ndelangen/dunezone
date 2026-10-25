@@ -73,7 +73,7 @@ function placeBeside(pointer: Point, width: number, height: number, bounds: Boun
 }
 
 /*
- * The window below the seated header, which lies over the canvas's top: the close-up may spill over the controls panel and the dock
+ * The window below the seated header, which lies over the canvas's top: the close-up may spill over the pinned windows
  * when the table's own area is too small to hold it beside the pointer.
  */
 function closeUpBounds(area: HTMLElement | null): Bounds {

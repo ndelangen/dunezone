@@ -8,7 +8,7 @@ import type { CompassPlayer } from './compassTable';
 import { PlayerToken } from './PlayerToken';
 import type { Side } from './slotLimits';
 import { WindowBody, WindowHelp } from './windows';
-import type { PlayerTab, TableWindow } from './windows';
+import type { PlayerTab, TableWindow, WindowLayout } from './windows';
 import styles from './Windows.module.css';
 
 /** The grip on a pinned slot's top edge: dragged, nudged with the arrows, or double-clicked back to the default. */
@@ -33,6 +33,11 @@ type WindowFrameProps = Readonly<{
   actions: ReactNode;
 }>;
 
+/* A player's chat fills the window; their public details stack. */
+function playerLayout(player: CompassPlayer, tab: PlayerTab): WindowLayout {
+  return tab === 'conversation' && player.canConverse && !player.own ? 'fill' : 'stack';
+}
+
 /** One window's frame, in the centre or in a slot: its title, a player's tabs, the frame's own buttons, and its content. */
 export function WindowFrame({
   entry,
@@ -49,7 +54,8 @@ export function WindowFrame({
   const table = useContext(CompassTableContext);
   const player = entry.player;
   return (
-    <section
+    <div
+      role="group"
       className={clsx(styles.window, where === 'centre' ? styles.centre : styles.slot)}
       data-side={where}
       data-window={entry.key}
@@ -71,10 +77,10 @@ export function WindowFrame({
         {player && <PlayerTabs player={player} tab={tab} onTab={onTab} />}
         <span className={styles.actions}>{actions}</span>
       </header>
-      <WindowBody flush={player ? false : entry.flush}>
+      <WindowBody layout={player ? playerLayout(player, tab) : entry.layout}>
         {player ? table?.render(player.seat, tab) : entry.content}
       </WindowBody>
-    </section>
+    </div>
   );
 }
 

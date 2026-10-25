@@ -36,7 +36,6 @@ import type { TableSession, TableProjection } from '../../../../db/tabletop/Tabl
 import { PointerSessionContext, usePointerSession } from '../../../../widgets/tabletop/PointerSessionContext';
 import { TABLE_PLATE_BOUNDS } from '../../../../widgets/tabletop/tablePlateGeometry';
 import { DarkSchemeIsland } from '../DarkSchemeIsland';
-import { useTableControls } from '../tableControls';
 import { BattleBeacon } from './BattleBeacon';
 import styles from './BattleControls.module.css';
 import { battleCapsuleY, headerInset } from './battlePlacement';
@@ -457,24 +456,12 @@ function PlanFields({ client, table, plan, battle }: Props & { plan: BattlePlan;
 }
 
 export function HandControls({ client, table, hand }: Props & { hand: TablePiece[] }) {
-  const selected = table.snapshot.table.pieces.find((piece) => piece.id === table.state.selectedPieceId);
   const [menu, setMenu] = useState<HandMenuAnchor | null>(null);
-  const controls = useTableControls();
-  /* The hidden zone is a tab beside this one, as wide, so a piece moved there lands in what its narrow view shows. */
+  /* The hidden zone is a window as wide as this one, so a piece moved there lands in what its narrow view shows. */
   const { ref, width } = useElementSize<HTMLDivElement>();
   return (
     <Section hiddenHeading title="Your hand and leaders" description={handHelp(table)}>
       <Stack gap="sm" ref={ref}>
-        {/* The compass controls drop the button (Norbert, 2026-10-24): there a piece's ring menu takes it into the hand. */}
-        {controls === 'classic' && (
-          <Button
-            variant="default"
-            disabled={!selected || !table.handControls?.canTake(selected.id)}
-            onClick={() => selected && table.handControls?.take(selected.id)}
-          >
-            Take selected piece into hand
-          </Button>
-        )}
         <Group gap="sm">
           {hand
             .filter((piece) => !piece.hiddenZone)

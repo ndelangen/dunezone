@@ -2,22 +2,22 @@ import type { GuideTask } from '../TutorialGuide';
 import type { ChapterScript } from './chapterScript';
 
 /*
- * The play-test chapter "New controls" (Norbert, 2026-10-24): the compass controls, where Space opens a compass over the table,
+ * The play-test chapter "New controls": the compass, where Space opens a compass over the table,
  * a window opens in the middle and can be pinned to the bottom-left or bottom-right slot, and the chats sit beside the Controls button.
- * Every task is read from the screen, so it moves on only once the player has done it with the new controls.
+ * Every task is read from the screen, so it moves on only once the player has done it with the controls.
  */
 
 const first = (selector: string) => () => document.querySelector(selector);
 const compassOpen = () => document.querySelector('dialog[aria-label="Controls compass"]') !== null;
 /* Where a window shows: in the middle of the table or in one of the two slots. */
 const windowAt = (where: 'centre' | 'left' | 'right', key: string) =>
-  document.querySelector(`section[data-side="${where}"][data-window="${key}"]`) !== null;
+  document.querySelector(`[data-side="${where}"][data-window="${key}"]`) !== null;
 /* With the compass open the arrow points at the tile to pick, otherwise at the button that opens it. */
 const viaCompass = (spot: string) => () =>
   document.querySelector(compassOpen() ? `[data-spot="${spot}"]` : '[data-compass-launcher]');
 const slotHeight = (side: 'left' | 'right') =>
-  document.querySelector(`section[data-side="${side}"]`)?.getBoundingClientRect().height ?? 0;
-const RESIZE_GRIP = 'section[data-side="right"] button[aria-label^="Resize"]';
+  document.querySelector(`[data-side="${side}"]`)?.getBoundingClientRect().height ?? 0;
+const RESIZE_GRIP = '[data-side="right"] button[aria-label^="Resize"]';
 /*
  * Resizing counts only once the player took hold of the grip, and once the chat grew or ran into the overlay above it:
  * on a short window the chat may already be as tall as it can be, and the bounce tells the player so.
@@ -37,8 +37,7 @@ const resizedTaller = () => ({
   },
   done: (watch: { grabbed: boolean; from: number }) =>
     watch.grabbed &&
-    (slotHeight('right') >= watch.from + 40 ||
-      document.querySelector('section[data-side="right"][data-bounce]') !== null),
+    (slotHeight('right') >= watch.from + 40 || document.querySelector('[data-side="right"][data-bounce]') !== null),
   finish: (watch: { stop: AbortController }) => watch.stop.abort(),
 });
 const showing = (view: string) =>
@@ -109,7 +108,7 @@ const slotTasks = (): GuideTask[] => [
       'The faction tokens beside Controls are your chats, one per player, with a badge when they wrote. Click one.',
     anchor: { kind: 'page', element: first('nav[aria-label="Chats"] button:nth-of-type(2)') },
     begin: nothing,
-    done: () => document.querySelector('section[data-side="centre"][data-window^="player:"]') !== null,
+    done: () => document.querySelector('[data-side="centre"][data-window^="player:"]') !== null,
   }),
   task({
     id: 'search',
@@ -124,10 +123,10 @@ const slotTasks = (): GuideTask[] => [
     id: 'unpin',
     task: 'Unpin your hand',
     detail: 'The crossed-out pin in the hand’s title takes it off the screen at once. Space ← brings it back any time.',
-    anchor: { kind: 'page', element: first('section[data-side="left"] [aria-label="Unpin"]') },
+    anchor: { kind: 'page', element: first('[data-side="left"] [aria-label="Unpin"]') },
     begin: nothing,
     /* Whatever ended up pinned bottom left, the slot is empty once it is unpinned. */
-    done: () => document.querySelector('section[data-side="left"]') === null,
+    done: () => document.querySelector('[data-side="left"]') === null,
   }),
 ];
 
@@ -144,10 +143,4 @@ const learned = [
   'Type anything on the compass to find it',
 ];
 
-export const newControls: ChapterScript = {
-  slug: 'new-controls',
-  checkpoint: 'turn-1-storm',
-  tasks,
-  learned,
-  controls: 'compass',
-};
+export const newControls: ChapterScript = { slug: 'new-controls', checkpoint: 'turn-1-storm', tasks, learned };

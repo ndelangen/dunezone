@@ -17,7 +17,17 @@ export type Opened = Readonly<{ key: string; tab: PlayerTab }>;
 
 export type Slots = Readonly<Record<Side, Opened | null>>;
 
-/* A press on the table itself, not on any of the chrome over it. */
+/* Something open over the table that takes Escape first: a menu, a list, a dialog, or the control whose popover is open. */
+const OPEN_ABOVE = '[role="menu"], [role="listbox"], [role="dialog"], [aria-modal="true"]';
+const EXPANDED = '[aria-expanded="true"]';
+
+function escapeTaken(target: EventTarget | null) {
+  return (
+    document.querySelector(OPEN_ABOVE) !== null || (target instanceof Element && target.closest(EXPANDED) !== null)
+  );
+}
+
+/* A primary press on the table itself: not on any of the chrome over it, and not the secondary press that opens a piece's menu. */
 function useTablePress(onPress: () => void, enabled: boolean) {
   const press = useEffectEvent(onPress);
   useEffect(() => {
@@ -25,7 +35,7 @@ function useTablePress(onPress: () => void, enabled: boolean) {
       return;
     }
     const listener = (event: PointerEvent) => {
-      if (event.target instanceof HTMLCanvasElement) {
+      if (event.target instanceof HTMLCanvasElement && event.button === 0) {
         press();
       }
     };
@@ -91,18 +101,19 @@ export function useOpenWindows(windows: readonly TableWindow[], compassOpen: boo
   /** Whether a window is open anywhere: in the centre or pinned. */
   const isOpen = (key: string) => [centre, slots.left, slots.right].some((entry) => entry?.key === key);
 
-  /* Escape closes the centre window once the compass is not there to take it. */
+  /* Escape closes the centre window once the compass is not there to take it, and no menu, list, popover or dialog is open to take it first. */
   useEffect(() => {
     if (compassOpen || centre === null) {
       return;
     }
     const escape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
+      if (event.key === 'Escape' && !escapeTaken(event.target)) {
         setCentre(null);
       }
     };
-    window.addEventListener('keydown', escape);
-    return () => window.removeEventListener('keydown', escape);
+    /* Seen first, before whatever is open answers the key and goes, so the window stays while Escape closed something else. */
+    window.addEventListener('keydown', escape, true);
+    return () => window.removeEventListener('keydown', escape, true);
   }, [compassOpen, centre]);
   useTablePress(close, centre !== null && !compassOpen);
 

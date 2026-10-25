@@ -78,7 +78,7 @@ export function HandPieceMenu({
   );
 }
 
-/* The height the panel scrolling the zone shows, so the zone fills the tab without scrolling, whatever the dock's height. */
+/* The height the window scrolling the zone shows, so the zone fills the window without scrolling, whatever its height. */
 function useScrollParentHeight(ref: RefObject<HTMLElement | null>) {
   const [height, setHeight] = useState<number | null>(null);
   useEffect(() => {

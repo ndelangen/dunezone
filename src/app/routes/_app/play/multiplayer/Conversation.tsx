@@ -281,7 +281,7 @@ function observeVisible(target: HTMLElement, onVisible: () => void) {
       onVisible();
     }
   };
-  /* A viewport-root observer accounts for both the scrollback and the surrounding dock being off-screen. */
+  /* A viewport-root observer accounts for both the scrollback and the surrounding window being off-screen. */
   const observer = new IntersectionObserver(
     ([entry]) => {
       /* Fractional scroll rounding can clip part of this one-pixel end marker. */

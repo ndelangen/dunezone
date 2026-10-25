@@ -140,3 +140,14 @@
   border-radius: 50%;
   background: #e5484d;
 }
+
+/* With motion reduced a new count appears in place. */
+:global(html[data-motion="reduce"]) .badge {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :global(html:not([data-motion="ok"])) .badge {
+    animation: none;
+  }
+}

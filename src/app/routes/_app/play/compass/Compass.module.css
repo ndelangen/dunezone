@@ -272,3 +272,18 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* With motion reduced the compass appears in place, and a refused tile stays still. */
+:global(html[data-motion="reduce"]) .veil,
+:global(html[data-motion="reduce"]) .compass,
+:global(html[data-motion="reduce"]) .tile[data-refused] {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :global(html:not([data-motion="ok"])) .veil,
+  :global(html:not([data-motion="ok"])) .compass,
+  :global(html:not([data-motion="ok"])) .tile[data-refused] {
+    animation: none;
+  }
+}

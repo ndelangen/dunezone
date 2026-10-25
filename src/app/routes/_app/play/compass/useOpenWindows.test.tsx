@@ -27,7 +27,7 @@ const window = (key: string, extra: Partial<TableWindow> = {}): TableWindow => (
   group: 'Game',
   topic: 'game',
   content: null,
-  flush: false,
+  layout: 'stack',
   ...extra,
 });
 const windows = [window('hand'), window('battle'), window('player:seat-4', { player })];

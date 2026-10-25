@@ -15,7 +15,7 @@ import { useRemembered } from './useRemembered';
 type Heights = Record<Side, number | null>;
 
 /** The CSS custom property the camera dial's top edge reads, set on the controls' root. */
-export const CAMERA_TOP = '--compass-camera-top';
+const CAMERA_TOP = '--compass-camera-top';
 
 const NONE: Heights = { left: null, right: null };
 

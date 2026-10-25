@@ -105,7 +105,7 @@ function tokenCandidates(actions: SuggestionActions): Candidate[] {
       icon,
       run,
       text: 'flip faction token',
-      weight: 1,
+      weight: 0,
     },
     ...(token.faceUp
       ? [
@@ -116,7 +116,7 @@ function tokenCandidates(actions: SuggestionActions): Candidate[] {
             icon,
             run,
             text: 'pass',
-            weight: 1,
+            weight: 0,
           },
         ]
       : []),

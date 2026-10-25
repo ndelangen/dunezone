@@ -1,4 +1,4 @@
-import { Avatar, Button, Group, Indicator, Stack, Text, VisuallyHidden } from '@mantine/core';
+import { Button, Group, Stack, Text, VisuallyHidden } from '@mantine/core';
 import { TABLE_CONVERSATION } from '@shared/play/conversations';
 import { factionTokenOf } from '@shared/play/factionToken';
 import type { PublicControls } from '@shared/play/inventory';
@@ -7,9 +7,7 @@ import { rosterSeat } from '@shared/play/schema';
 import { FormError } from '@ui/block/FormError';
 import { Section } from '@ui/block/Section';
 import { StatusBadge } from '@ui/content/StatusBadge';
-import { TopicIcon } from '@ui/content/TopicIcon';
-import { NestedTabs } from '@ui/surface/NestedTabs';
-import { ExternalLink, MessageCircle } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
 import { useEffect, useSyncExternalStore } from 'react';
 
 import { useFactionPageSlug } from '@db/factions';
@@ -19,7 +17,6 @@ import type { CompassPlayer } from '../compass/compassTable';
 import { allianceHue, PlayerAlliance } from './Alliances';
 import { Conversation } from './Conversation';
 import { FactionDetails } from './FactionDetails';
-import { PLAYER_CONVERSATION_GUIDANCE, PLAYER_INFO_GUIDANCE, TABLE_CONVERSATION_GUIDANCE } from './panelGuidance';
 import { requestedSeats, VacantSeatRequests } from './SeatRequests';
 import { SwappingSeat } from './Swapping';
 import { isSpectator, seatFaction } from './tableFactions';
@@ -122,214 +119,6 @@ function seatPlayers(table: TableProjection): Player[] {
     .sort((a, b) => Number(a.seat === table.viewer.viewerSeat) - Number(b.seat === table.viewer.viewerSeat));
 }
 
-/** The caller owns selection; the panel owns faction conversations, public information and ballot controls. */
-export function PlayerPanel({
-  client,
-  table,
-  selected,
-  selectedTab,
-  onSelect,
-  error,
-}: Props &
-  Readonly<{
-    selected: string | null;
-    selectedTab: 'public' | 'conversation';
-    onSelect(seat: string, tab: 'public' | 'conversation'): void;
-    error: string | null;
-  }>) {
-  const { conversations } = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getSnapshot);
-  const players = seatPlayers(table);
-  const votes = table.snapshot.removalVotes ?? [];
-  const player = players.find((entry) => entry.seat === selected) ?? players[0];
-  if (!player) {
-    return null;
-  }
-  const vote = votes.find((entry) => entry.target.seat === player.seat);
-  const unread = (seat: string) =>
-    conversations.summaries.find((entry) => entry.peerId === seatFaction(table, seat))?.unread ?? 0;
-  const asked = requestedSeats(table);
-  const playerItems = players.map((entry) =>
-    playerItem(table, entry, {
-      active: votes.some((candidate) => candidate.target.seat === entry.seat),
-      /* A vacant seat someone asks for carries a sand dot until a player approves them from its Info; it and a player under a removal vote open on Info. */
-      requested: asked.has(entry.seat),
-      unread: unread(entry.seat),
-      onSelect,
-    })
-  );
-  const peerId = seatFaction(table, player.seat);
-  const canConverse = peerId && conversations.context?.peers.some((peer) => peer.id === peerId);
-  const activeTab = canConverse ? selectedTab : 'public';
-  const tableItem = conversations.context
-    ? tableConversationItem(
-        conversations.summaries.find((entry) => entry.peerId === TABLE_CONVERSATION)?.unread ?? 0,
-        () => onSelect(TABLE_CONVERSATION, 'conversation')
-      )
-    : null;
-  /* One rail for both views, so the table and the players never drift apart. */
-  const rail = (
-    <NestedTabs.Level label="Players">
-      {tableItem}
-      {playerItems}
-    </NestedTabs.Level>
-  );
-  if (selected === TABLE_CONVERSATION && conversations.context) {
-    return (
-      <NestedTabs
-        activePath={[TABLE_CONVERSATION, 'conversation']}
-        ariaLabel="Players"
-        className="seated-controls-tabs"
-      >
-        {rail}
-        <NestedTabs.Level label="Table">
-          <NestedTabs.Item
-            as="button"
-            type="button"
-            path={[TABLE_CONVERSATION, 'conversation']}
-            label="Conversation"
-            {...TABLE_CONVERSATION_GUIDANCE}
-            icon={<MessageCircle size={22} aria-hidden />}
-            onClick={() => onSelect(TABLE_CONVERSATION, 'conversation')}
-          />
-        </NestedTabs.Level>
-        <NestedTabs.ContentPanel className="seated-controls-tab-content">
-          <Conversation
-            key={`${conversations.context.factionId}:${TABLE_CONVERSATION}`}
-            client={client}
-            peerId={TABLE_CONVERSATION}
-          />
-        </NestedTabs.ContentPanel>
-      </NestedTabs>
-    );
-  }
-  return (
-    <NestedTabs activePath={[player.seat, activeTab]} ariaLabel="Players" className="seated-controls-tabs">
-      {rail}
-      <NestedTabs.Level label={player.name}>
-        {canConverse && (
-          <NestedTabs.Item
-            as="button"
-            type="button"
-            path={[player.seat, 'conversation']}
-            label="Conversation"
-            {...PLAYER_CONVERSATION_GUIDANCE}
-            icon={
-              <Indicator disabled={!unread(player.seat)} label={unread(player.seat)} size={16}>
-                <MessageCircle size={22} aria-hidden />
-              </Indicator>
-            }
-            onClick={() => onSelect(player.seat, 'conversation')}
-          />
-        )}
-        <NestedTabs.Item
-          as="button"
-          type="button"
-          path={[player.seat, 'public']}
-          label="Info"
-          {...PLAYER_INFO_GUIDANCE}
-          icon={
-            <Indicator color="red.6" size={10} disabled={!vote}>
-              <TopicIcon topic="about" size={22} />
-            </Indicator>
-          }
-          onClick={() => {
-            onSelect(player.seat, 'public');
-          }}
-        />
-      </NestedTabs.Level>
-      <NestedTabs.ContentPanel className="seated-controls-tab-content">
-        {activeTab === 'conversation' && peerId ? (
-          <Conversation key={`${conversations.context?.factionId}:${peerId}`} client={client} peerId={peerId} />
-        ) : (
-          <Stack id="player-public-state" gap="lg">
-            {error && <FormError title="From the table">{error}</FormError>}
-            {vote && <OpenVote client={client} table={table} vote={vote} />}
-            <VacantSeatRequests client={client} table={table} seat={player.seat} />
-            <PlayerInformation client={client} table={table} player={player} hasVote={Boolean(vote)} />
-          </Stack>
-        )}
-      </NestedTabs.ContentPanel>
-    </NestedTabs>
-  );
-}
-
-/*
- * One player in the rail, their avatar ringed in their alliance's hue and dotted while a vote, a request or unread messages wait.
- * It is an element rather than a component because the rail only sees items it is handed directly.
- */
-function playerItem(
-  table: TableProjection,
-  entry: Player,
-  {
-    active,
-    requested,
-    unread,
-    onSelect,
-  }: Readonly<{
-    active: boolean;
-    requested: boolean;
-    unread: number;
-    onSelect(seat: string, tab: 'public' | 'conversation'): void;
-  }>
-) {
-  const token = table.snapshot.swapping?.tokens[entry.seat];
-  const unreadLabel = unread ? `, ${unread} unread` : '';
-  const hue = allianceHue(table.snapshot, seatFaction(table, entry.seat));
-  return (
-    <NestedTabs.Item
-      key={entry.seat}
-      as="button"
-      type="button"
-      path={[entry.seat]}
-      label={`${entry.name}${hue ? ', in an alliance' : ''}${active ? ', removal vote in progress' : ''}${requested ? ', a spectator asks for this seat' : ''}${unreadLabel}`}
-      icon={
-        <Indicator
-          color={active ? 'red.6' : requested ? 'yellow.5' : undefined}
-          size={16}
-          label={unread || undefined}
-          disabled={!active && !requested && !unread}
-        >
-          <Avatar
-            src={token ?? entry.avatar}
-            size={26}
-            radius="xl"
-            alt=""
-            /* Allies share a ring, one hue per alliance. */
-            style={hue ? { boxShadow: `0 0 0 2px ${hue}` } : undefined}
-          >
-            {entry.name.slice(0, 1)}
-          </Avatar>
-        </Indicator>
-      }
-      onClick={() => {
-        onSelect(entry.seat, requested || active ? 'public' : 'conversation');
-      }}
-    />
-  );
-}
-
-/*
- * The whole table's conversation, a planet at the head of the players.
- * It is an element rather than a component because the rail only sees items it is handed directly.
- */
-function tableConversationItem(unread: number, onSelect: () => void) {
-  return (
-    <NestedTabs.Item
-      as="button"
-      type="button"
-      path={[TABLE_CONVERSATION]}
-      label={unread ? `Table, ${unread} unread` : 'Table'}
-      {...TABLE_CONVERSATION_GUIDANCE}
-      icon={
-        <Indicator size={16} label={unread || undefined} disabled={!unread}>
-          <TopicIcon topic="planet" size={26} />
-        </Indicator>
-      }
-      onClick={onSelect}
-    />
-  );
-}
-
 /* Another seated player, under no vote yet, can be put to one by a seated viewer. */
 function removable(table: TableProjection, seat: string, hasVote: boolean) {
   return (
@@ -407,14 +196,11 @@ function FactionPageButton({ slug, name }: Readonly<{ slug: string; name: string
   );
 }
 
-/* Each player as a window of their own, and what the compass's chat bar shows for them. Only the compass controls read these. */
+/* Each player as a window of their own, and what the compass's chat bar shows for them. */
 
-/** The players as the compass controls show them; with the classic controls (every real game), nothing is looked up. */
-export function usePlayerWindows(client: TableSession, table: TableProjection, enabled: boolean) {
+/** The players as the compass shows them: a token each in the chat bar, with what waits on them. */
+export function usePlayerWindows(client: TableSession, table: TableProjection) {
   const { conversations } = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getSnapshot);
-  if (!enabled) {
-    return null;
-  }
   const votes = table.snapshot.removalVotes ?? [];
   const asked = requestedSeats(table);
   const viewerSeat = table.viewer.viewerSeat;
@@ -443,7 +229,7 @@ export function usePlayerWindows(client: TableSession, table: TableProjection, e
   };
 }
 
-/** One player's window: their conversation and their public information, without the rail of every player. */
+/** One player's window: their conversation, or their public information with any vote and seat request against their seat. */
 export function PlayerWindow({
   client,
   table,

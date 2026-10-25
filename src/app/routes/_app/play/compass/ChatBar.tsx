@@ -83,7 +83,7 @@ function ChatToken({ player, open, onOpen }: Readonly<{ player: CompassPlayer; o
     >
       <PlayerToken player={player} />
       {player.unread > 0 && <span className={styles.badge}>{player.unread}</span>}
-      {player.attention && <span className={styles.attention} aria-hidden="true" />}
+      {player.attention && <span className={styles.attention} data-attention aria-hidden="true" />}
     </button>
   );
 }

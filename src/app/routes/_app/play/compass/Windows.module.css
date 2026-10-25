@@ -211,3 +211,22 @@
   display: grid;
   padding: 0;
 }
+
+/* A chat takes the whole body, so its history scrolls inside it and its composer stays at the bottom. */
+.bodyFill {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+}
+
+/* With motion reduced a window appears in place, and a slot stops at its limit without the knock. */
+:global(html[data-motion="reduce"]) .centre,
+:global(html[data-motion="reduce"]) .slot[data-bounce] {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :global(html:not([data-motion="ok"])) .centre,
+  :global(html:not([data-motion="ok"])) .slot[data-bounce] {
+    animation: none;
+  }
+}

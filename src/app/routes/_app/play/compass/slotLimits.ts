@@ -13,7 +13,7 @@ export const RESIZE_STEP = 24;
 /* Breathing room kept between a slot's top edge and the overlay above it. */
 export const OVERLAY_GAP = 12;
 /* The overlays a slot must never cover. */
-export const OVERLAYS = '.seated-header, .seated-column-camera, [data-overlay]';
+export const OVERLAYS = '.seated-header, .seated-camera, [data-overlay]';
 
 /*
  * Whether a part of an overlay is drawn above a slot's columns. Full-width containers are layout, not something drawn;

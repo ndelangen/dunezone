@@ -49,15 +49,12 @@ test('a chip beside the slot’s columns, a hidden chip and one that would leave
   const hidden = placed('div', { left: 16, top: 100, width: 200, height: 56 }, 'seated-chip');
   hidden.style.visibility = 'hidden';
   header.append(hidden);
-  const { root, slot } = table(
-    header,
-    placed('div', { left: 16, top: 800, width: 100, height: 40 }, 'seated-column-camera')
-  );
+  const { root, slot } = table(header, placed('div', { left: 16, top: 800, width: 100, height: 40 }, 'seated-camera'));
   expect(slotLimit(root, slot)).toBe(884 - OVERLAY_GAP);
 });
 
 test('a slot never has a limit under the minimum height', () => {
-  const dial = placed('div', { left: 16, top: 700, width: 100, height: 60 }, 'seated-column-camera');
+  const dial = placed('div', { left: 16, top: 700, width: 100, height: 60 }, 'seated-camera');
   const { root, slot } = table(dial);
   expect(slotLimit(root, slot)).toBe(MIN_SLOT_HEIGHT);
 });
