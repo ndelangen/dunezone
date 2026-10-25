@@ -146,12 +146,14 @@ function Stepper({
     }
     go(value + (event.deltaY < 0 ? step : -step));
   };
+  /* What the field holds now: a valid typed count, or the plan's own. */
+  const current = () => {
+    const typed = draft === null || draft.trim() === '' ? NaN : Number(draft);
+    return Number.isFinite(typed) ? Math.round(typed / step) * step : value;
+  };
   const commit = () => {
     if (draft !== null) {
-      const typed = Number(draft);
-      if (draft.trim() !== '' && Number.isFinite(typed)) {
-        go(Math.round(typed / step) * step);
-      }
+      go(current());
       setDraft(null);
     }
   };
@@ -187,7 +189,8 @@ function Stepper({
             event.currentTarget.blur();
           } else if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
             event.preventDefault();
-            go(value + (event.key === 'ArrowUp' ? step : -step));
+            go(current() + (event.key === 'ArrowUp' ? step : -step));
+            setDraft(null);
           }
         }}
       />

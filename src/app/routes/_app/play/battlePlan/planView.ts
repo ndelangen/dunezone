@@ -61,9 +61,9 @@ export const MODE_HELP =
 export const FREE_SUPPORT_HELP =
   'Your troops fight at full strength without spice, so there is no support to choose: say how many fight.';
 
-/** The pieces a plan can draw on: the hand and the plan's own, each once. */
+/** The pieces a plan can draw on: the hand, private side-table included, and the plan's own, each once. */
 export function planPieces(plan: BattlePlan, hand: readonly TablePiece[]): TablePiece[] {
-  return [...hand.filter((piece) => !piece.hiddenZone), ...plan.pieces].filter(
+  return [...hand, ...plan.pieces].filter(
     (piece, index, all) => all.findIndex((candidate) => candidate.id === piece.id) === index
   );
 }
