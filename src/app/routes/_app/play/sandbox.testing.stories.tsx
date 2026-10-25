@@ -349,6 +349,29 @@ export const HiddenZone = meta.story({
     window.dispatchEvent(new KeyboardEvent('keyup', { key: 'q', bubbles: true }));
     await waitFor(() => expect(kept().turn).toBe(1));
 
+    /* Picking a piece up takes focus from a text field, so Q and E turn the carried piece instead of typing. */
+    const field = canvasElement.ownerDocument.createElement('textarea');
+    canvasElement.ownerDocument.body.append(field);
+    field.focus();
+    const fieldBox = zoneLeader.getBoundingClientRect();
+    const fieldX = fieldBox.left + fieldBox.width / 2;
+    const fieldY = fieldBox.top + fieldBox.height / 2;
+    press('pointerdown', fieldX, fieldY);
+    press('pointermove', fieldX + 30, fieldY);
+    await waitFor(() => expect(carried()).not.toBeNull());
+    await expect(canvasElement.ownerDocument.activeElement).toBe(zoneLeader);
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'e', bubbles: true }));
+    press('pointerup', fieldX + 30, fieldY);
+    await waitFor(() => expect(kept().turn).toBe(2));
+    window.dispatchEvent(new KeyboardEvent('keyup', { key: 'e', bubbles: true }));
+    field.remove();
+    over('pointerover');
+    over('pointermove');
+    await new Promise((settle) => requestAnimationFrame(settle));
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'q', bubbles: true }));
+    window.dispatchEvent(new KeyboardEvent('keyup', { key: 'q', bubbles: true }));
+    await waitFor(() => expect(kept().turn).toBe(1));
+
     /* Leaving the window while Q is held sends the turn it shows, since the key comes up elsewhere. */
     over('pointerover');
     over('pointermove');

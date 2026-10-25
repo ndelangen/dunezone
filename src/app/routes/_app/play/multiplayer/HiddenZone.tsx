@@ -406,6 +406,8 @@ export function HiddenZone({ client, table, hand }: Props) {
                     return;
                   }
                   event.preventDefault();
+                  /* The press keeps no default focus change, so the piece takes focus itself: a chat field focused before keeps Q and E no more. */
+                  event.currentTarget.focus({ preventScroll: true });
                   event.currentTarget.setPointerCapture(event.pointerId);
                   /* Grabbed from the piece's upright box around its centre, the box a turned piece is carried and laid in. */
                   const bounds = event.currentTarget.getBoundingClientRect();
