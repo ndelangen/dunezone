@@ -24,7 +24,7 @@ describe('Play story fixture labels', () => {
   });
 
   test('a kept Traitor carries the name the deal gives it', () => {
-    const cards = preparedSnapshot().hand!.filter((piece) => piece.kind === 'card');
+    const cards = preparedSnapshot().hand!.filter((piece) => piece.stackKey === 'cards:traitor');
     expect(cards).not.toHaveLength(0);
     expect(new Set(cards.map((piece) => piece.label))).toEqual(new Set(['Card']));
   });

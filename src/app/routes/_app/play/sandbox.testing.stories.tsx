@@ -211,7 +211,7 @@ export const HiddenZone = meta.story({
       action: Extract<Parameters<typeof table.receive>[0], { type: 'command' }>['action']
     ) => table.receive({ type: 'command', commandId, expectedRevision: table.room.snapshot.revision, action });
     const hand = shown().hand!;
-    const card = hand.find((candidate) => candidate.kind === 'card')!;
+    const card = hand.find((candidate) => candidate.stackKey === 'cards:traitor')!;
     const leader = hand.find((candidate) => candidate.kind === 'force')!;
     /* The leader stands in for a tracker marker: a token its author set to 35% of the standard size. */
     const faction = shown().bank!.factionId;
@@ -227,10 +227,7 @@ export const HiddenZone = meta.story({
     const zonePieces = await page.findAllByRole('button', { name: /in hidden zone$/ }, { timeout: 30_000 });
     await expect(zonePieces).toHaveLength(2);
 
-    /*
-     * Holding Alt over a piece in the zone, or in the hand, shows its face large beside the pointer, as it does on the table.
-     * The card is the recording's Traitor stand-in, with no published face to show, so the leader shows it.
-     */
+    /* Holding Alt over a piece in the zone, or in the hand, shows its face large beside the pointer, as it does on the table. */
     const closeUp = () => canvasElement.ownerDocument.body.querySelector('[class*="closeUp"]');
     /* The pointer's own events carry Alt, as a real mouse's do while it is held. */
     const point = (target: Element, type: string) => {
@@ -238,14 +235,13 @@ export const HiddenZone = meta.story({
       const at = { clientX: bounds.left + bounds.width / 2, clientY: bounds.top + bounds.height / 2 };
       target.dispatchEvent(new PointerEvent(type, { bubbles: true, altKey: true, pointerType: 'mouse', ...at }));
     };
-    const zoneLeader = page.getByRole('button', {
-      name: `Drag ${leader.items[0]?.artwork?.name ?? leader.label} in hidden zone`,
-    });
-    point(zoneLeader, 'pointerover');
-    point(zoneLeader, 'pointermove');
-    await waitFor(() => expect(closeUp()).not.toBeNull());
-    point(zoneLeader, 'pointerout');
-    await waitFor(() => expect(closeUp()).toBeNull());
+    for (const zonePiece of zonePieces) {
+      point(zonePiece, 'pointerover');
+      point(zonePiece, 'pointermove');
+      await waitFor(() => expect(closeUp()).not.toBeNull());
+      point(zonePiece, 'pointerout');
+      await waitFor(() => expect(closeUp()).toBeNull());
+    }
     await openTab(page, 'Hand');
     const handPiece = (await page.findAllByRole('button', { name: /from hand$/ }, { timeout: 30_000 }))[0]!;
     point(handPiece, 'pointerover');

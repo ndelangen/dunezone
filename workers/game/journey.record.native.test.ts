@@ -7,7 +7,15 @@ import { describe, expect, it } from 'vite-plus/test';
 
 import { BATTLE_COUNTDOWN_MS } from '../../src/shared/play/battle';
 import { JourneyRecorder, PLAYERS, territoryName, territoryPosition } from './journey.native.fixture.ts';
-import { dealTraitors, drafting, keepTraitors, startingTroops, stormAndSpice, trading } from './journey.script.ts';
+import {
+  dealTraitors,
+  drafting,
+  keepTraitors,
+  predict,
+  startingTroops,
+  stormAndSpice,
+  trading,
+} from './journey.script.ts';
 import { eventually, required, syncView } from './native-runtime.fixture.ts';
 
 /*
@@ -144,6 +152,7 @@ describe.runIf(process.env.RECORD_JOURNEY)('The Play journey recording', { timeo
       for (const chapter of [
         drafting,
         trading,
+        predict,
         dealTraitors,
         keepTraitors,
         startingTroops,

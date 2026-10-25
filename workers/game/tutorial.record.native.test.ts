@@ -11,7 +11,7 @@ import type { ServerMessage } from '../../src/shared/play/protocol';
 import { TUTORIAL_CHECKPOINTS, TUTORIAL_RECIPE } from '../../src/shared/tutorial/recipe';
 import type { TutorialCheckpoint } from '../../src/shared/tutorial/recipe';
 import { JourneyRecorder, renamed } from './journey.native.fixture.ts';
-import { dealTraitors, drafting, keepTraitors, startingTroops, trading } from './journey.script.ts';
+import { dealTraitors, drafting, keepTraitors, predict, startingTroops, trading } from './journey.script.ts';
 import { createPeer, createRuntime, eventually, provision, required } from './native-runtime.fixture.ts';
 
 /*
@@ -71,20 +71,6 @@ async function tutorialRuntime() {
   });
   const ban = required(draftable.factions.find((faction) => !factions.some((chosen) => chosen.id === faction.id)));
   return new JourneyRecorder(peer, runtime, { factions, ban: { id: ban.id, name: ban.name } });
-}
-
-/* The real Bene Gesserit opens setup with its prediction, which the story fixtures leave out: it names House Atreides on turn 3. */
-async function predict(journey: JourneyRecorder) {
-  const { setup } = required(journey.steps.at(-1)?.stored);
-  const step = required(required(setup).steps.find((entry) => entry.kind === 'prediction'));
-  const index = journey.indexOf(journey.id('bene-gesserit'));
-  await journey.act(
-    index,
-    { kind: 'prediction-lock', stepId: step.id, choice: { factionId: journey.id('house-atreides'), turn: 3 } },
-    'Prediction locked',
-    `${journey.who(index)} locks a secret prediction.`
-  );
-  await journey.next(0, 'Traitor selection', 'The prediction is locked and setup moves on to the Traitors.');
 }
 
 /* Each seated faction's sheet as the Worker answers a page asking for it, so the tutorial's table answers the same. */

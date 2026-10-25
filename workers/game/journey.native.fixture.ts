@@ -61,8 +61,6 @@ const fixture = (path: string) => path.replace('/play-fixtures/product/', PRODUC
 export const SUFFIXES = ['a', 'b', 'c', 'd', 'e', 'f'];
 /* The public profiles the other Play stories seat, in seat order (drafting.stories.fixture.ts). */
 export const PLAYERS = ['Twaffle', 'Thialfi', 'Fectumbra', 'Erickenneth', 'Ridwan', 'Argelius'];
-/* Only these two factions have Traitor fronts among the Storybook fixtures; the others deal without a face. */
-const TRAITOR_FRONTS = new Set(['house-atreides', 'house-harkonnen']);
 /* The stages the sandbox story runs the table in; drafting and trading stay with the recorded journey. */
 const SANDBOX_STAGES = new Set(['setup', 'play']);
 
@@ -71,8 +69,12 @@ function definition({ slug, data, token, leaders }: FactionFixture): z.infer<typ
     faction: { id: slug, slug, name: data.name },
     data,
     token: fixture(token),
-    tokenBack: null,
-    cardbacks: { traitor: `${PRODUCT}traitor-back.jpg`, alliance: null },
+    tokenBack: `${PRODUCT}${slug}-token-back.jpg`,
+    cardbacks: {
+      traitor: `${PRODUCT}traitor-back.jpg`,
+      alliance: `${PRODUCT}alliance-back.jpg`,
+      prediction: `${PRODUCT}prediction-back.jpg`,
+    },
     leaders: leaders.map((leader) => ({
       memberId: leader.memberId,
       front: leader.front === null ? null : fixture(leader.front),
@@ -84,9 +86,10 @@ function definition({ slug, data, token, leaders }: FactionFixture): z.infer<typ
     })),
     traitors: data.leaders.map((leader, index) => ({
       memberId: leader.memberId,
-      front: TRAITOR_FRONTS.has(slug) ? `${PRODUCT}${slug}-traitor-${index}.jpg` : null,
+      front: `${PRODUCT}${slug}-traitor-${index}.jpg`,
     })),
-    alliance: null,
+    alliance: `${PRODUCT}${slug}-alliance.jpg`,
+    prediction: `${PRODUCT}prediction.jpg`,
   });
 }
 

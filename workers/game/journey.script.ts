@@ -75,9 +75,29 @@ export async function trading(journey: JourneyRecorder) {
   }
   await eventually(async () => (await journey.stage()) === 'setup', 'setup', 20_000);
   await journey.readRoster();
-  await journey.record('Setup begins', 'Trading closed. Setup opens on Traitor selection.', 'seat-6', {
+  await journey.record('Setup begins', 'Trading closed and setup opens.', 'seat-6', {
     kind: 'swap-ready',
   });
+}
+
+/** The Bene Gesserit opens setup with its prediction where it is seated: it names House Atreides, or the next seat's faction, on turn 3. */
+export async function predict(journey: JourneyRecorder) {
+  const { setup } = required(journey.steps.at(-1)?.stored);
+  const step = setup?.steps.find((entry) => entry.kind === 'prediction');
+  if (!step?.factionId) {
+    return;
+  }
+  const index = journey.indexOf(step.factionId);
+  const atreides = journey.id('house-atreides');
+  const seated = journey.players.some((_, seatIndex) => journey.factionAt(seatIndex)?.id === atreides);
+  const named = seated ? atreides : required(journey.factionAt((index + 1) % journey.players.length)).id;
+  await journey.act(
+    index,
+    { kind: 'prediction-lock', stepId: step.id, choice: { factionId: named, turn: 3 } },
+    'Prediction locked',
+    `${journey.who(index)} locks a secret prediction.`
+  );
+  await journey.next(0, 'Traitor selection', 'The prediction is locked and setup moves on to the Traitors.');
 }
 
 /** Traitor selection: gather the six decks, shuffle, and deal four to every seat. */

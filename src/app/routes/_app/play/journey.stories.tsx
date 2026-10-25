@@ -3,7 +3,14 @@ import { expect, within } from 'storybook/test';
 
 import { openPlayer, WAIT } from './controls.stories.fixture';
 import { gameMeta } from './game.stories.fixture';
-import { chapter, JourneyPage, journeySteps, journeyBeforeEach, journeyViewers } from './journey.stories.fixture';
+import {
+  chapter,
+  journeyBeforeEach,
+  journeyFrame,
+  JourneyPage,
+  journeySteps,
+  journeyViewers,
+} from './journey.stories.fixture';
 import { atStep } from './journey.stories.fixture';
 
 const meta = preview.meta({
@@ -50,7 +57,10 @@ export const Trading = meta.story({
     const { page } = await atStep(canvasElement, chapter('Trading'));
     await expect(page.findByRole('timer', { name: 'Trading time remaining' })).resolves.toBeVisible();
     await openPlayer(canvasElement, 'Thialfi', 'Info');
-    await expect(page.findByRole('button', { name: 'Offer trade to House Atreides' }, WAIT)).resolves.toBeVisible();
+    /* The deal is random, so Thialfi's faction comes from the recorded view. */
+    const { roster } = journeyFrame(chapter('Trading') - 1, 'seat-1').snapshot;
+    const faction = roster!.seats.find((seat) => seat.id === 'seat-2')!.faction!.name;
+    await expect(page.findByRole('button', { name: `Offer trade to ${faction}` }, WAIT)).resolves.toBeVisible();
   },
 });
 

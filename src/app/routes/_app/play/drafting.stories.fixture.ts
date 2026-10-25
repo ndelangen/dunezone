@@ -15,7 +15,7 @@ import capturedFactions from './product.stories.fixture/factions.json';
 
 /*
  * Real data for the Play page stories, per Norbert's rule that a page story shows a complete game state on real data.
- * The six product factions are the public catalogue copies from 2026-09-21 in `factions.json`.
+ * The six product factions are the public catalogue copies from 2026-10-25 in `factions.json`.
  * The drafting catalogue's other 13 factions were read from production through the public query API on 2026-09-12, with test rows and jokes left out.
  * The eight profiles are real public profiles with their avatars.
  * All of it is a display-only snapshot the catalogue may since have moved past.
