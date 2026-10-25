@@ -33,11 +33,11 @@ function recordFirstDraws(document: Document) {
 
 async function expectPlanBound(
   canvasElement: HTMLElement,
-  field: 'Committed spice' | 'Supported',
+  field: 'Spice' | 'Troops spiced',
   plan: Partial<NonNullable<GameSnapshot['battlePlan']>>
 ) {
   const page = within(canvasElement.ownerDocument.body);
-  await openTab(page, 'Battle');
+  await openTab(page, 'Battle plan');
   await settled(async () => {
     const input = page.getByRole('textbox', { name: field });
     await userEvent.clear(input);
@@ -290,7 +290,7 @@ export const Readiness = meta.story({
 export const Planning = meta.story({
   beforeEach: install(() => productTransport('seat-2', withCardInHand(battleStory('preparing')))),
   play: async ({ canvasElement }) => {
-    const page = await openPanel(canvasElement, 'Battle');
+    const page = await openPanel(canvasElement, 'Battle plan');
     await expect(page.findByRole('button', { name: 'Ready for battle' }, WAIT)).resolves.toBeVisible();
   },
 });
@@ -305,7 +305,7 @@ export const Planner = meta.story({
   }),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await openTab(page, 'Battle');
+    await openTab(page, 'Battle plan');
     await settled(() => expect(page.getByRole('button', { name: 'Ready for battle' })).toBeEnabled());
     await settled(async () => {
       await expect(page.getByRole('textbox', { name: 'Troops' })).toBeEnabled();
@@ -313,19 +313,12 @@ export const Planner = meta.story({
       await expect(page.queryByRole('region', { name: 'Battle results' })).toBeNull();
     });
 
-    const wheel = await page.findByLabelText(
-      'House Harkonnen plan, troop strength 0, 0 spice',
-      {},
-      { timeout: 30_000 }
-    );
-    await settled(() => expect(page.getByRole('textbox', { name: 'Committed spice' })).toBeEnabled());
-    let sticky: HTMLElement | null = wheel.parentElement;
-    while (sticky && getComputedStyle(sticky).position !== 'sticky') {
-      sticky = sticky.parentElement;
-    }
-    await expect(sticky).not.toBeNull();
+    await expect(
+      page.findByLabelText('Your plan: troop strength 0, 0 spice', {}, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+    await settled(() => expect(page.getByRole('textbox', { name: 'Spice' })).toBeEnabled());
 
-    const card = await page.findByRole('button', { name: 'Add Snooper to battle plan' }, { timeout: 30_000 });
+    const card = await page.findByRole('button', { name: 'Put Snooper into the plan' }, { timeout: 30_000 });
     await expect(card).toHaveAttribute('aria-pressed', 'false');
     await expect(within(card).getByRole('img', { name: 'Snooper' })).toBeInTheDocument();
     await userEvent.click(card);
@@ -334,7 +327,7 @@ export const Planner = meta.story({
       kind: 'battle-plan',
       plan: { cardIds: ['treachery-card-loose'] },
     });
-    const currentWheel = page.getByLabelText(/^House Harkonnen plan,/);
+    const currentWheel = page.getByLabelText(/^Your plan:/);
     await expect(within(currentWheel).getByRole('img', { name: 'Snooper' })).toBeInTheDocument();
   },
 });
@@ -343,7 +336,7 @@ export const Planner = meta.story({
 export const PlanArtwork = meta.story({
   beforeEach: battleSetup('preparing', 'seat-2', (snapshot) => {
     const named = (name: string) => snapshot.hand!.find((piece) => piece.items[0]?.artwork?.name === name)!;
-    named('Duncan Idaho').items[0]!.artwork!.front = new URL(
+    named('Beast Rabban').items[0]!.artwork!.front = new URL(
       '/play-fixtures/product/unpublished-traitor.jpg',
       location.origin
     ).href;
@@ -351,16 +344,16 @@ export const PlanArtwork = meta.story({
   }),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await openTab(page, 'Battle');
+    await openTab(page, 'Battle plan');
     const arrived = (image: HTMLElement) =>
       expect(image.closest('[data-phase]')).toHaveAttribute('data-phase', 'shown');
     await settled(async () => {
-      const hand = page.getByLabelText('Cards from your hand');
-      await expect(within(hand).getByRole('img', { name: 'Duncan Idaho: preview unavailable' })).toBeVisible();
-      for (const name of ['Thufir Hawat', 'Gurney Halleck', 'Doctor Yueh']) {
-        await arrived(within(hand).getByRole('img', { name }));
+      const leaders = page.getByRole('region', { name: 'Leader' });
+      await expect(within(leaders).getByRole('img', { name: 'Beast Rabban: preview unavailable' })).toBeVisible();
+      for (const name of ['Piter De Vries', 'Cpt. Iakin Nefud']) {
+        await arrived(within(leaders).getByRole('img', { name }));
       }
-      await arrived(within(page.getByLabelText(/^House Harkonnen plan,/)).getByRole('img', { name: 'Feyd Rautha' }));
+      await arrived(within(page.getByLabelText(/^Your plan:/)).getByRole('img', { name: 'Feyd Rautha' }));
     });
   },
 });
@@ -370,14 +363,14 @@ export const FocusOnce = meta.story({
   beforeEach: battleSetup('preparing'),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await settled(() => expect(windowNamed(page, 'Battle')).toBeVisible());
-    await unpinWindow(page, 'Battle');
+    await settled(() => expect(windowNamed(page, 'Battle plan')).toBeVisible());
+    await unpinWindow(page, 'Battle plan');
     await openTab(page, 'Hand');
     const snapshot = battleStory('preparing');
     snapshot.revision = 1;
     session.transport.deliver(session.transport.view(snapshot));
     await settled(() => expect(windowNamed(page, 'Hand')).toBeVisible());
-    await expect(windowNamed(page, 'Battle')).toBeNull();
+    await expect(windowNamed(page, 'Battle plan')).toBeNull();
   },
 });
 
@@ -385,22 +378,23 @@ export const NumericDraft = meta.story({
   beforeEach: battleSetup('preparing'),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await openTab(page, 'Battle');
-    const adjustment = page.getByRole('textbox', { name: 'Adjustment' });
+    await openTab(page, 'Battle plan');
+    await userEvent.click(await page.findByRole('button', { name: /^Adjust the strength by hand/ }, WAIT));
+    const adjustment = await page.findByRole('textbox', { name: 'Adjustment' }, WAIT);
     await userEvent.clear(adjustment);
-    await userEvent.type(adjustment, '-0.25');
+    await userEvent.type(adjustment, '-1.5');
     await expect(session.transport.messages.filter((message) => message.type === 'command')).toHaveLength(0);
     await userEvent.keyboard('{Enter}');
     const saved = lastCommand();
-    await expect(saved?.action).toMatchObject({ kind: 'battle-plan', plan: { adjustment: -0.25 } });
+    await expect(saved?.action).toMatchObject({ kind: 'battle-plan', plan: { adjustment: -1.5 } });
     const troops = page.getByRole('textbox', { name: 'Troops' });
     await userEvent.clear(troops);
-    await userEvent.type(troops, '12');
+    await userEvent.type(troops, '5');
     await userEvent.keyboard('{Enter}');
     await expect(session.transport.messages.filter((message) => message.type === 'command')).toHaveLength(1);
     const snapshot = battleStory('preparing');
     snapshot.revision = 1;
-    snapshot.battlePlan!.adjustment = -0.25;
+    snapshot.battlePlan!.adjustment = -1.5;
     session.transport.deliver(session.transport.view(snapshot, saved!.commandId));
     await settled(() =>
       expect(session.transport.messages.filter((message) => message.type === 'command')).toHaveLength(2)
@@ -408,7 +402,7 @@ export const NumericDraft = meta.story({
     const next = lastCommand();
     await expect(next?.action).toMatchObject({
       kind: 'battle-plan',
-      plan: { adjustment: -0.25, troops: [{ faceId: 'house-harkonnen-front', undialed: 12, dialed: 0 }] },
+      plan: { adjustment: -1.5, troops: [{ faceId: 'house-harkonnen-front', undialed: 5, dialed: 0 }] },
     });
   },
 });
@@ -418,8 +412,8 @@ export const SpiceBound = meta.story({
     snapshot.bank!.balance = 2;
   }),
   play: async ({ canvasElement }) => {
-    const page = await expectPlanBound(canvasElement, 'Committed spice', { spice: 2 });
-    await settled(() => expect(page.getByText(/0 in your spice reserve, 2 set aside/)).toBeVisible());
+    const page = await expectPlanBound(canvasElement, 'Spice', { spice: 2 });
+    await settled(() => expect(page.getByRole('textbox', { name: 'Spice' })).toHaveValue('2'));
   },
 });
 
@@ -429,7 +423,7 @@ export const CustomSpiceBound = meta.story({
     snapshot.battlePlan!.mode = 'custom';
   }),
   play: async ({ canvasElement }) => {
-    await expectPlanBound(canvasElement, 'Supported', {
+    await expectPlanBound(canvasElement, 'Troops spiced', {
       troops: [{ faceId: 'house-harkonnen-front', undialed: 0, dialed: 2 }],
     });
   },
@@ -438,9 +432,14 @@ export const CustomSpiceBound = meta.story({
 export const EarlyReveal = meta.story({
   beforeEach: install(() => productTransport('seat-2', earlyRevealSnapshot())),
   play: async ({ canvasElement }) => {
-    const page = await openPanel(canvasElement, 'Battle');
-    await expect(page.findByRole('checkbox', { name: 'Dial' }, WAIT)).resolves.toBeChecked();
-    await expect(page.findByRole('checkbox', { name: 'Leader' }, WAIT)).resolves.not.toBeChecked();
+    const page = await openPanel(canvasElement, 'Battle plan');
+    await expect(page.findByRole('button', { name: 'Hide your dial again' }, WAIT)).resolves.toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
+    await expect(
+      page.findByRole('button', { name: 'Show your leader to everyone now' }, WAIT)
+    ).resolves.toHaveAttribute('aria-pressed', 'false');
     /* The parts fade in on the table, so the check is that they are drawn, not that the fade has finished. */
     await expect(
       page.findByRole('img', { name: /Harkonnen dial revealed early: 3\.5$/ }, WAIT)
@@ -455,7 +454,7 @@ export const Ready = meta.story({
   beforeEach: battleSetup('preparing'),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await openTab(page, 'Battle');
+    await openTab(page, 'Battle plan');
     await settled(() => expect(page.getByRole('button', { name: 'Ready for battle' })).toBeEnabled());
     await userEvent.click(page.getByRole('button', { name: 'Ready for battle' }));
     await expect(lastCommand()?.action).toEqual({
@@ -470,9 +469,9 @@ export const Countdown = meta.story({
   beforeEach: battleSetup('countdown'),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await openTab(page, 'Battle');
+    await openTab(page, 'Battle plan');
     await settled(() => expect(page.getByRole('button', { name: 'Undo Ready' })).toBeEnabled());
-    await expect(page.getByRole('textbox', { name: 'Committed spice' })).toBeDisabled();
+    await expect(page.getByRole('textbox', { name: 'Spice' })).toBeDisabled();
     await expect(page.queryByRole('button', { name: 'Cancel battle' })).toBeNull();
   },
 });
@@ -481,8 +480,8 @@ export const Countdown = meta.story({
 export const Revealed = meta.story({
   beforeEach: install(() => productTransport('seat-2', battleStory('revealed'))),
   play: async ({ canvasElement }) => {
-    const page = await openPanel(canvasElement, 'Battle');
-    await expect(page.findByRole('textbox', { name: 'Adjustment' }, WAIT)).resolves.toBeDisabled();
+    const page = await openPanel(canvasElement, 'Battle plan');
+    await expect(page.findByRole('textbox', { name: 'Troops' }, WAIT)).resolves.toBeDisabled();
     await expect(page.queryByRole('button', { name: /Ready for battle|Undo Ready/ })).toBeNull();
     await expect(page.findByRole('button', { name: 'No winner' }, WAIT)).resolves.toBeVisible();
   },
@@ -492,10 +491,10 @@ export const Observer = meta.story({
   beforeEach: install(() => productTransport('neutral', battleStory('revealed', true))),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await openTab(page, 'Battle');
+    await openTab(page, 'Battle plan');
     await settled(() => expect(page.getByRole('button', { name: 'No winner' })).toBeDisabled());
     await expect(page.getByText('Both plans are revealed on the table.')).toBeVisible();
-    await expect(page.queryByRole('textbox', { name: 'Committed spice' })).toBeNull();
+    await expect(page.queryByRole('textbox', { name: 'Spice' })).toBeNull();
     await expect(page.queryByRole('region', { name: 'Your hand and leaders' })).toBeNull();
   },
 });
@@ -550,7 +549,7 @@ export const Resolved = meta.story({
     );
     await settled(() => expect(windowNamed(page, 'Battles')).toBeVisible());
     await openTab(page, 'Phase');
-    await expectNoControl(page, 'Battle');
+    await expectNoControl(page, 'Battle plan');
     await openTab(page, 'Battles');
     await expect(page.getByText('Arrakeen: House Harkonnen against House Atreides. Left side won.')).toBeVisible();
   },

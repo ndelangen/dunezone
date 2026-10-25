@@ -1,26 +1,18 @@
-import { Button, Checkbox, Group, Menu, NumberInput, Radio, Select, Stack, Text, VisuallyHidden } from '@mantine/core';
-import type { ButtonProps, NumberInputProps } from '@mantine/core';
+import { Button, Group, Menu, Stack, Text } from '@mantine/core';
+import type { ButtonProps } from '@mantine/core';
 import { useElementSize } from '@mantine/hooks';
 import { Html } from '@react-three/drei/webgpu';
 import { useFrame, useThree } from '@react-three/fiber/webgpu';
 import type { Board } from '@shared/boards/schema';
 import { troopBattleFaces } from '@shared/factions/troopBattle';
-import { isBattleCard, isBattleLeader } from '@shared/play/battle';
-import type {
-  BattlePlan,
-  BattlePlanInput,
-  BattleFace,
-  Disclosure,
-  DisclosedPlan,
-  PublicBattle,
-} from '@shared/play/battle';
+import { isBattleLeader } from '@shared/play/battle';
+import type { BattlePlan, DisclosedPlan, PublicBattle } from '@shared/play/battle';
 import { snapshotFactionLabels } from '@shared/play/factionLabels';
 import { hiddenZoneView, nextHiddenZoneSpot } from '@shared/play/hiddenZone';
 import type { TablePiece, Vector3Tuple } from '@shared/play/model';
 import { BOARD_RADIUS } from '@shared/play/tableGeometry';
 import { resolveRulebookBoardDefinition } from '@shared/rulebooks/boardDefinitions';
 import { Section } from '@ui/block/Section';
-import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { CalloutSurface } from '@ui/surface/CalloutSurface';
 import clsx from 'clsx';
 import type { CSSProperties, ReactNode } from 'react';
@@ -36,6 +28,10 @@ import type { TableSession, TableProjection } from '../../../../db/tabletop/Tabl
 import { HandPieceCloseUp } from '../../../../widgets/tabletop/PieceCloseUp';
 import { PointerSessionContext, usePointerSession } from '../../../../widgets/tabletop/PointerSessionContext';
 import { TABLE_PLATE_BOUNDS } from '../../../../widgets/tabletop/tablePlateGeometry';
+import { LedgerPlan } from '../battlePlan/LedgerPlan';
+import { ModeToggle } from '../battlePlan/parts';
+import { planLocks, spiceMatters } from '../battlePlan/planView';
+import type { BattlePlanViewProps, WheelArt } from '../battlePlan/planView';
 import { DarkSchemeIsland } from '../DarkSchemeIsland';
 import { BattleBeacon } from './BattleBeacon';
 import styles from './BattleControls.module.css';
@@ -162,300 +158,66 @@ function BattleWheel({ plan, factionId, factionName, client, active, artwork }: 
   );
 }
 
-function completedNumber(draft: string | number | null, props: NumberInputProps): number | null {
-  if (draft === null || draft === '') {
-    return null;
-  }
-  const bounded = Math.min(props.max ?? Infinity, Math.max(props.min ?? -Infinity, Number(draft)));
-  if (!Number.isFinite(bounded)) {
-    return null;
-  }
-  if (props.allowDecimal === false && !Number.isSafeInteger(bounded)) {
-    return null;
-  }
-  return bounded;
-}
-
-/** Keep incomplete numeric text local and commit one complete value on blur or Enter. */
-function BattleNumberInput({
-  value,
-  onChange,
-  ...props
-}: Omit<NumberInputProps, 'value' | 'onChange'> & { value: number; onChange: (value: number) => void }) {
-  const [draft, setDraft] = useState<string | number | null>(null);
-  return (
-    <NumberInput
-      {...props}
-      allowNegative={props.min === undefined || props.min < 0}
-      value={draft ?? value}
-      onChange={setDraft}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter') {
-          event.currentTarget.blur();
-        }
-      }}
-      onBlur={() => {
-        const next = completedNumber(draft, props);
-        if (next !== null && next !== value) {
-          onChange(next);
-        }
-        setDraft(null);
-      }}
-    />
-  );
-}
-
-type PlanEditor = { plan: BattlePlan; locked: boolean; update: (patch: Partial<BattlePlanInput>) => void };
-function TroopFaceFields({
-  plan,
-  face,
-  locked,
-  update,
-  single,
-  spiceLimit,
-}: PlanEditor & { face: BattleFace; single: boolean; spiceLimit: number }) {
-  const troop = plan.troops.find((troop) => troop.faceId === face.id) ?? {
-    faceId: face.id,
-    undialed: 0,
-    dialed: 0,
+/* The plan's wheel dressed in the faction's own artwork, with what each troop face does and how many of it the faction owns. */
+function planDress(plan: BattlePlan, factionId: string, artwork?: FactionArtwork) {
+  const retained = artwork?.[factionId];
+  const { background } = factionArtwork(factionId, artwork);
+  const faces = retained ? troopBattleFaces(retained.troops) : [];
+  const wheelArt: WheelArt = {
+    background,
+    troops: Object.fromEntries(
+      wheelTroops(plan, factionId, background, retained).map((troop) => [troop.id, troop.artwork])
+    ),
+    descriptions: Object.fromEntries(faces.map(({ id, face }) => [id, face.description])),
   };
-  const set = (value: Partial<typeof troop>) =>
-    update({
-      troops: [...plan.troops.filter((entry) => entry.faceId !== face.id), { ...troop, ...value }],
-    });
-  const otherSpice = plan.troops.reduce((total, entry) => {
-    if (entry.faceId === face.id) {
-      return total;
-    }
-    const otherFace = plan.faces.find((candidate) => candidate.id === entry.faceId);
-    return total + entry.dialed * (otherFace?.supportCost ?? 0);
-  }, 0);
-  const dialedMax = face.supportCost
-    ? Math.max(0, Math.floor((spiceLimit - otherSpice) / face.supportCost))
+  /* A troop's two faces are one token, so either face can field as many as the faction owns of that troop. */
+  const troopLimit = retained
+    ? Object.fromEntries(faces.map(({ id, troopIndex }) => [id, retained.troops[troopIndex]!.count]))
     : undefined;
-  return (
-    <div className={styles.faceFields}>
-      <BattleNumberInput
-        label={
-          plan.mode === 'max' ? (single ? 'Troops' : face.name) : single ? 'Unsupported' : `${face.name} unsupported`
-        }
-        value={plan.mode === 'max' ? troop.undialed + troop.dialed : troop.undialed}
-        min={0}
-        allowDecimal={false}
-        disabled={locked}
-        onChange={(value) => set({ undialed: Number(value), ...(plan.mode === 'max' ? { dialed: 0 } : {}) })}
-      />
-      {plan.mode === 'custom' && (
-        <BattleNumberInput
-          label={single ? 'Supported' : `${face.name} supported`}
-          value={troop.dialed}
-          min={0}
-          max={dialedMax}
-          allowDecimal={false}
-          disabled={locked}
-          onChange={(value) => set({ dialed: Number(value) })}
-        />
-      )}
-    </div>
-  );
-}
-function TroopFields(props: PlanEditor & { spiceLimit: number }) {
-  const faces = props.plan.faces.filter((face) => face.capable);
-  return faces.map((face) => <TroopFaceFields key={face.id} face={face} single={faces.length === 1} {...props} />);
+  return { wheelArt, troopLimit };
 }
 
-function PlanInventory({ plan, locked, update, pieces }: PlanEditor & { pieces: TablePiece[] }) {
-  // A card an older plan already holds stays listed even when it no longer belongs in one, so it can be taken out.
-  const cards = pieces.filter((piece) => isBattleCard(piece) || plan.cardIds.includes(piece.id));
-  return (
-    <>
-      <Select
-        label="Leader"
-        placeholder="No leader"
-        clearable
-        disabled={locked || plan.disclosed.leader}
-        value={plan.leaderIds[0] ?? null}
-        data={pieces.filter(isBattleLeader).map((piece) => ({ value: piece.id, label: pieceName(piece) }))}
-        onChange={(leaderId) => update({ leaderIds: leaderId ? [leaderId] : [] })}
-      />
-      <div className={styles.hand} role="group" aria-label="Cards from your hand">
-        {cards.map((piece) => {
-          const selected = plan.cardIds.includes(piece.id);
-          const disclosed = plan.disclosed.cardIds.includes(piece.id);
-          return (
-            <Button
-              key={piece.id}
-              className={styles.cardChoice}
-              color="selected"
-              variant={selected ? 'light' : 'transparent'}
-              h="auto"
-              p="xs"
-              styles={{ label: { display: 'grid', justifyItems: 'center', gap: 'var(--space-xs)', height: 'auto' } }}
-              aria-label={`${selected ? 'Remove' : 'Add'} ${pieceName(piece)} ${selected ? 'from' : 'to'} battle plan`}
-              aria-pressed={selected}
-              disabled={locked || disclosed}
-              onClick={() =>
-                update({
-                  cardIds: selected ? plan.cardIds.filter((id) => id !== piece.id) : [...plan.cardIds, piece.id],
-                })
-              }
-            >
-              <PieceImage piece={piece} />
-              <Text component="span" size="xs">
-                {selected ? 'In plan' : 'In hand'}
-              </Text>
-            </Button>
-          );
-        })}
-        {!cards.length && (
-          <Text size="sm" c="dimmed">
-            No cards in hand.
-          </Text>
-        )}
-      </div>
-    </>
-  );
-}
+type PlanProps = Props & { plan: BattlePlan; battle: PublicBattle };
 
-/** Shows or hides parts of the player's own plan for everyone before the reveal; the table leaves who may do so to the players. */
-function EarlyReveal({
-  client,
-  battle,
-  plan,
-  pieces,
-  disabled,
-}: {
-  client: TableSession;
-  battle: PublicBattle;
-  plan: BattlePlan;
-  pieces: TablePiece[];
-  disabled: boolean;
-}) {
-  const toggle = (disclosure: Disclosure, shown: boolean) =>
-    client.command({ kind: 'battle-disclose', battleId: battle.id, disclosure, shown });
-  const cards = plan.cardIds.flatMap((id) => pieces.filter((piece) => piece.id === id));
-  return (
-    <Stack gap="xs" role="group" aria-label="Reveal early">
-      <Text size="sm" fw={600}>
-        Reveal early
-      </Text>
-      <Checkbox
-        label="Leader"
-        disabled={disabled || (!plan.leaderIds.length && !plan.disclosed.leader)}
-        checked={plan.disclosed.leader}
-        onChange={(event) => toggle({ element: 'leader' }, event.currentTarget.checked)}
-      />
-      <Checkbox
-        label="Dial"
-        disabled={disabled}
-        checked={plan.disclosed.dial}
-        onChange={(event) => toggle({ element: 'dial' }, event.currentTarget.checked)}
-      />
-      {cards.map((piece) => (
-        <Checkbox
-          key={piece.id}
-          label={pieceName(piece)}
-          disabled={disabled}
-          checked={plan.disclosed.cardIds.includes(piece.id)}
-          onChange={(event) => toggle({ element: 'card', cardId: piece.id }, event.currentTarget.checked)}
-        />
-      ))}
-    </Stack>
-  );
-}
-
-function PlanFields({ client, table, plan, battle }: Props & { plan: BattlePlan; battle: PublicBattle }) {
+/** The viewer's plan as the Battle plan window shows it: data from the table in, each intent sent to the table. */
+function planView({ client, table, plan, battle }: PlanProps): BattlePlanViewProps {
   const bank = table.snapshot.bank!;
   const factionId = bank.factionId;
-  const side = battle.sides.find((side) => side?.factionId === factionId)!;
-  const locked = !table.canHandleTable || side.ready || battle.stage !== 'preparing';
-  const dialLocked = locked || plan.disclosed.dial;
-  const update = (patch: Partial<BattlePlanInput>) => {
-    client.editBattlePlan(patch);
+  const own = battle.sides.find((side) => side?.factionId === factionId);
+  const other = battle.sides.find((side) => side && side.factionId !== factionId);
+  const names = snapshotFactionLabels(table.snapshot);
+  return {
+    plan,
+    hand: table.snapshot.hand ?? [],
+    balance: bank.balance,
+    stage: battle.stage,
+    ready: own?.ready ?? false,
+    canAct: table.canHandleTable,
+    opponent: other ? { name: rosterName(other.factionId, names), ready: other.ready } : null,
+    ...planDress(plan, factionId, table.snapshot.factionArtwork),
+    onEdit: (patch) => client.editBattlePlan(patch),
+    onReady: (ready) => client.command({ kind: 'battle-ready', battleId: battle.id, ready }),
+    onDisclose: (disclosure, shown) =>
+      client.command({ kind: 'battle-disclose', battleId: battle.id, disclosure, shown }),
   };
-  const pieces = [...(table.snapshot.hand ?? []), ...plan.pieces].filter(
-    (piece, index, all) => all.findIndex((candidate) => candidate.id === piece.id) === index
-  );
-  const preview = { ...plan, pieces };
-  const availableSpice = bank.balance + plan.spice;
+}
+
+/** Max or Custom support, in the Battle plan window's title bar while the viewer has a plan. */
+export function BattleModeToggle({ client, table }: Props) {
+  const { battle, battlePlan: plan, bank } = table.snapshot;
+  if (!plan || !battle || !bank) {
+    return null;
+  }
+  const own = battle.sides.find((side) => side?.factionId === bank.factionId);
   return (
-    <WorkbenchLayout gap="sm">
-      <WorkbenchLayout.Workbench>
-        <WorkbenchLayout.Chapters>
-          <Stack gap="md">
-            <div className={styles.editorFields}>
-              <Radio.Group
-                className={styles.supportMode}
-                label={<VisuallyHidden>Support mode</VisuallyHidden>}
-                disabled={dialLocked}
-                value={plan.mode}
-                onChange={(mode) => update({ mode: mode as BattlePlan['mode'] })}
-              >
-                <Group gap="lg" wrap="wrap">
-                  {[
-                    { value: 'max', label: 'Max' },
-                    { value: 'custom', label: 'Custom' },
-                  ].map(({ value, label }) => (
-                    <Radio key={value} value={value} label={label} />
-                  ))}
-                </Group>
-              </Radio.Group>
-              <TroopFields plan={plan} locked={dialLocked} update={update} spiceLimit={availableSpice} />
-              {plan.mode === 'max' ? (
-                <BattleNumberInput
-                  label="Committed spice"
-                  value={plan.spice}
-                  min={0}
-                  max={availableSpice}
-                  allowDecimal={false}
-                  disabled={dialLocked}
-                  onChange={(value) => update({ spice: Number(value) })}
-                />
-              ) : null}
-              <BattleNumberInput
-                label="Adjustment"
-                value={plan.adjustment}
-                step={0.5}
-                disabled={dialLocked}
-                onChange={(value) => update({ adjustment: Number(value) })}
-              />
-            </div>
-            <PlanInventory plan={plan} locked={locked} update={update} pieces={pieces} />
-            <Text size="sm">
-              {bank.balance} in your spice reserve, {plan.spice} set aside. Troop strength excludes leader strength.
-            </Text>
-            {battle.stage !== 'revealed' && (
-              <Button
-                disabled={!table.canHandleTable}
-                variant={side.ready ? 'default' : 'filled'}
-                onClick={() => client.command({ kind: 'battle-ready', battleId: battle.id, ready: !side.ready })}
-              >
-                {side.ready ? 'Undo Ready' : 'Ready for battle'}
-              </Button>
-            )}
-            {battle.stage === 'preparing' && (
-              <EarlyReveal
-                client={client}
-                battle={battle}
-                plan={plan}
-                pieces={pieces}
-                disabled={!table.canHandleTable}
-              />
-            )}
-          </Stack>
-        </WorkbenchLayout.Chapters>
-        <WorkbenchLayout.Rail>
-          <div className={styles.preview}>
-            <BattleWheel
-              plan={preview}
-              factionId={factionId}
-              factionName={rosterName(factionId, snapshotFactionLabels(table.snapshot))}
-              artwork={table.snapshot.factionArtwork}
-            />
-          </div>
-        </WorkbenchLayout.Rail>
-      </WorkbenchLayout.Workbench>
-    </WorkbenchLayout>
+    <ModeToggle
+      mode={plan.mode}
+      disabled={
+        planLocks({ plan, stage: battle.stage, ready: own?.ready ?? false, canAct: table.canHandleTable }).dialLocked
+      }
+      free={!spiceMatters(plan)}
+      onChange={(mode) => client.editBattlePlan({ mode })}
+    />
   );
 }
 
@@ -567,19 +329,16 @@ function battleNotice(table: TableProjection, battle: PublicBattle | null | unde
   return 'Claim a side on the table to prepare your private plan.';
 }
 
+/** The viewer's own plan for the battle on the table, or why there is none. */
 export function BattleControls({ client, table }: Props) {
-  const { battle, battlePlan, hand } = table.snapshot;
+  const { battle, battlePlan } = table.snapshot;
+  if (battlePlan && battle && table.snapshot.bank) {
+    return <LedgerPlan {...planView({ client, table, plan: battlePlan, battle })} />;
+  }
   return (
-    <>
-      <Section hiddenHeading title="Battle" description={battleHelp(table)}>
-        {battlePlan && battle ? (
-          <PlanFields client={client} table={table} plan={battlePlan} battle={battle} />
-        ) : (
-          <Text size="sm">{battleNotice(table, battle)}</Text>
-        )}
-      </Section>
-      {hand && <HandControls client={client} table={table} hand={hand} />}
-    </>
+    <Section hiddenHeading title="Battle" description={battleHelp(table)}>
+      <Text size="sm">{battleNotice(table, battle)}</Text>
+    </Section>
   );
 }
 

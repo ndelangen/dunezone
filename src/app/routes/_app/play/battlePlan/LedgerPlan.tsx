@@ -1,4 +1,5 @@
 import { UnstyledButton } from '@mantine/core';
+import type { BattleFace } from '@shared/play/battle';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { Fragment } from 'react';
 
@@ -131,6 +132,8 @@ export function LedgerPlan(props: BattlePlanViewProps) {
 function DialRows(props: BattlePlanViewProps & { disabled: boolean }) {
   const { plan, balance, onEdit, disabled } = props;
   const faces = capableFaces(plan);
+  /* A faction with one troop type has just its troops to name. */
+  const named = (face: BattleFace) => (faces.length === 1 ? 'Troops' : face.name);
   if (plan.mode === 'custom' && spiceMatters(plan)) {
     return faces.map((face) => {
       const own = troopsOf(plan, face.id);
@@ -140,7 +143,7 @@ function DialRows(props: BattlePlanViewProps & { disabled: boolean }) {
           <DialRow
             label={<TroopLabel face={face} wheelArt={props.wheelArt} />}
             sub="plain"
-            name={`${face.name} plain`}
+            name={`${named(face)} plain`}
             value={own.undialed}
             max={limit - own.dialed}
             disabled={disabled}
@@ -148,7 +151,7 @@ function DialRows(props: BattlePlanViewProps & { disabled: boolean }) {
           />
           <DialRow
             sub="spiced"
-            name={`${face.name} spiced`}
+            name={`${named(face)} spiced`}
             value={own.dialed}
             max={Math.min(limit - own.undialed, supportedMax(plan, face, balance) ?? limit)}
             disabled={disabled}
@@ -165,7 +168,7 @@ function DialRows(props: BattlePlanViewProps & { disabled: boolean }) {
         <DialRow
           key={face.id}
           label={<TroopLabel face={face} wheelArt={props.wheelArt} />}
-          name={face.name}
+          name={named(face)}
           value={totalOf(plan, face.id)}
           max={troopLimitOf(props, face.id)}
           disabled={disabled}

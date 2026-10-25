@@ -465,6 +465,8 @@ export function ReadyButton({
       variant={ready ? 'default' : 'filled'}
       disabled={!canAct}
       onClick={() => onReady(!ready)}
+      /* One name per action, however the label reads: Ready for battle, or Undo Ready. */
+      aria-label={ready ? 'Undo Ready' : 'Ready for battle'}
       title={
         ready ? `${waiting && opponent ? `Waiting for ${opponent.name}. ` : ''}Undo to reopen the plan` : undefined
       }
@@ -492,9 +494,12 @@ export function StrengthSum({
   adjust?: ReactNode;
 }) {
   const { plan } = props;
-  const leader = plan.leaderIds.length
-    ? plan.leaderIds.reduce((total, id) => total + (props.leaderStrength?.[id] ?? 0), 0)
-    : undefined;
+  /* A leader's printed strength counts only where the faction names it; otherwise the token on the wheel shows it. */
+  const strengths = plan.leaderIds.map((id) => props.leaderStrength?.[id]);
+  const leader =
+    strengths.length && strengths.every((value) => value !== undefined)
+      ? strengths.reduce((total, value) => total + value, 0)
+      : undefined;
   const total = plan.strength + (leader ?? 0);
   return (
     <div className={styles.sum} aria-live="polite">

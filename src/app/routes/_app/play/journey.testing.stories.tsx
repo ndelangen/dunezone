@@ -101,7 +101,7 @@ export const BattleRevealed = meta.story({
   args: { step: chapter('Battle revealed'), seat: 'neutral' },
   play: async ({ canvasElement }) => {
     const { page } = await atStep(canvasElement, chapter('Battle revealed'));
-    await openControl(page, 'Battle');
+    await openControl(page, 'Battle plan');
     await waitFor(() => expect(page.getAllByLabelText(/ plan, troop strength/).length).toBeGreaterThanOrEqual(2));
     await expect(page.getByRole('button', { name: 'Left side won' })).toBeVisible();
   },

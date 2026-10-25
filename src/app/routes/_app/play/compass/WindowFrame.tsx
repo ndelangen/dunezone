@@ -66,7 +66,17 @@ export function WindowFrame({
       style={style}
     >
       {resize && <ResizeEdge resize={resize} />}
-      <WindowTitle entry={entry} tab={tab} onTab={onTab} actions={actions} />
+      <WindowTitle
+        entry={entry}
+        tab={tab}
+        onTab={onTab}
+        actions={
+          <>
+            {entry.actions}
+            {actions}
+          </>
+        }
+      />
       <WindowContent entry={entry} tab={tab} />
     </div>
   );

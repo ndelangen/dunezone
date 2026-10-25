@@ -70,6 +70,12 @@ export type TablePanel = Readonly<{
   content: ReactNode;
   /** False when the content runs to the window's sides and insets its own text. */
   padding?: boolean;
+  /** True when the content fills the window and scrolls its own parts, as the Battle plan does. */
+  fill?: boolean;
+  /** The content may peek over the window's top edge, as the Battle plan's cards do. */
+  peek?: boolean;
+  /** The window's own buttons in its title bar, such as the Battle plan's support mode. */
+  actions?: ReactNode;
   /** A group's panels; the group itself opens nothing. */
   panels?: readonly TablePanel[];
 }>;
