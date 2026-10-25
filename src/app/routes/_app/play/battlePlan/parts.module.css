@@ -365,14 +365,28 @@
 /* Ready may take two lines where the head leaves it a narrow column. */
 .ready {
   height: auto;
+  max-width: 100%;
   min-height: 2.25rem;
   padding-block: 0.35rem;
+  padding-inline: 0.5rem;
 }
 
 .ready :global(.mantine-Button-label) {
   white-space: normal;
   text-align: center;
   line-height: 1.15;
+}
+
+.readyStack {
+  display: grid;
+  font-size: 0.85em;
+  justify-items: center;
+}
+
+.readyStack small {
+  font-size: 0.72em;
+  font-weight: 500;
+  opacity: 0.8;
 }
 
 .ready[data-bump="0"] {

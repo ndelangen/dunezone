@@ -6,7 +6,9 @@
   grid-template-columns: max-content auto minmax(0, 1fr);
   align-items: center;
   gap: 0.6rem;
-  padding-bottom: 0.6rem;
+  /* The dividing line runs to the window's edges: the head reaches through the body's side padding and pads itself back in. */
+  margin-inline: calc(-1 * var(--nested-tabs-panel-inset, 1rem));
+  padding: 0 var(--nested-tabs-panel-inset, 1rem) 0.6rem;
   border-bottom: 1px solid var(--edge);
 }
 

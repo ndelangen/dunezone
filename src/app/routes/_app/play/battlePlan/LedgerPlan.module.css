@@ -72,15 +72,12 @@
   align-content: start;
   gap: 0.35rem;
   padding: 0.45rem 0.7rem 0.55rem;
-  border: 1px solid var(--edge);
-  border-radius: 10px;
-  background: rgb(from var(--ui-recess) r g b / 0.5);
   position: relative;
 }
 
-/* The dial's eye sits on its box's top edge, as each tile's eye sits on the tile's, inside the sheet's scroll. */
+/* The dial's eye sits at its top corner, as each tile's eye sits on the tile's, inside the sheet's scroll. */
 .dial .dialReveal {
-  top: -8px;
+  top: -10px;
   right: 0.6rem;
   bottom: auto;
   left: auto;

@@ -30,7 +30,7 @@ export function AdjustButton({
   const { adjustment } = plan;
   const shown = adjustment ? `${adjustment > 0 ? '+' : '−'}${formatStrength(Math.abs(adjustment))}` : null;
   return (
-    <Popover position="bottom" withArrow shadow="md">
+    <Popover position="bottom" withArrow shadow="md" withinPortal={false}>
       <Tooltip label="Adjust the strength by hand, for what the plan does not count" withArrow>
         <Popover.Target>
           <UnstyledButton
@@ -45,7 +45,6 @@ export function AdjustButton({
       <Popover.Dropdown className={styles.adjust}>
         <span>Adjust</span>
         <Stepper
-          size="sm"
           label="Adjustment"
           value={adjustment}
           min={-20}
@@ -456,7 +455,7 @@ export function ReadyButton({
     return null;
   }
   /* The battle line already names the opponent and shows their readiness, so the button stays short enough for a slot. */
-  const waiting = ready && opponent && !opponent.ready ? 'Waiting · Undo' : null;
+  const waiting = ready && opponent && !opponent.ready ? 'Waiting' : null;
   return (
     <Button
       className={styles.ready}
@@ -465,15 +464,20 @@ export function ReadyButton({
       fullWidth={fullWidth}
       variant={ready ? 'default' : 'filled'}
       disabled={!canAct}
-      leftSection={ready ? <Check size={15} /> : null}
       onClick={() => onReady(!ready)}
       title={
         ready ? `${waiting && opponent ? `Waiting for ${opponent.name}. ` : ''}Undo to reopen the plan` : undefined
       }
     >
-      {ready
-        ? (waiting ?? (stage === 'countdown' ? 'Revealing… Undo' : 'Ready · Undo'))
-        : (children ?? 'Ready for battle')}
+      {ready ? (
+        /* The state on top and Undo under it, so the label never runs wider than its longest word. */
+        <span className={styles.readyStack}>
+          <span>{waiting ?? (stage === 'countdown' ? 'Revealing…' : 'Ready')}</span>
+          <small>Undo</small>
+        </span>
+      ) : (
+        (children ?? 'Ready for battle')
+      )}
     </Button>
   );
 }
