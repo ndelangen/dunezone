@@ -112,10 +112,13 @@ function playerGuidance(player: CompassPlayer, tab: PlayerTab): Pick<TableWindow
   return tab === 'conversation' && player.canConverse ? PLAYER_CONVERSATION_GUIDANCE : PLAYER_INFO_GUIDANCE;
 }
 
+/* Every window can be pinned from the centre, by its buttons or by key. */
+const PIN_HINT = 'Open in the centre, [ pins it bottom left and ] bottom right.';
+
 /** The (?) beside a window's name: one line on what the window is for, and its full guidance under it where there is one. */
 export function WindowHelp({ entry, tab }: Readonly<{ entry: TableWindow; tab: PlayerTab }>) {
   const { description, help } = entry.player ? playerGuidance(entry.player, tab) : entry;
-  const text = [description, help].filter(Boolean).join(' ');
+  const text = [description, help, PIN_HINT].filter(Boolean).join(' ');
   return text ? <HelpMark text={text} /> : null;
 }
 

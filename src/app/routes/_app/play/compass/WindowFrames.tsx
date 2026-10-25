@@ -5,6 +5,7 @@ import { CloseIcon } from './glyphs';
 import { pulseOf } from './pulse';
 import { SIDES } from './slotLimits';
 import type { Side } from './slotLimits';
+import { PIN_KEYS } from './useOpenWindows';
 import type { OpenWindows } from './useOpenWindows';
 import type { SlotHeights } from './useSlotHeights';
 import { WindowFrame } from './WindowFrame';
@@ -60,7 +61,8 @@ function centreFrame({ byKey, opened, inert }: CentreFrame) {
 /* The pin buttons say what they would replace. */
 function pinTitle(side: Side, byKey: Found, opened: OpenWindows) {
   const replaced = opened.slots[side];
-  return replaced ? `Pin bottom ${side}, replacing ${byKey(replaced.key)?.label}` : `Pin bottom ${side}`;
+  const pin = replaced ? `Pin bottom ${side}, replacing ${byKey(replaced.key)?.label}` : `Pin bottom ${side}`;
+  return `${pin} (${PIN_KEYS[side]})`;
 }
 
 function CentreActions({ byKey, opened }: Readonly<{ byKey: Found; opened: OpenWindows }>) {

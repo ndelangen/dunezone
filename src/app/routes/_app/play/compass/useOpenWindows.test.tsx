@@ -88,6 +88,28 @@ test('a slot holding a window the table no longer has, such as the last battle, 
   });
 });
 
+test('[ and ] pin the centre window bottom left and right, but not from a text field or with a modifier', () => {
+  const key = (key: string, target: EventTarget = document.body, extra: KeyboardEventInit = {}) =>
+    act(
+      () => void target.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true, ...extra }))
+    );
+  const field = document.body.appendChild(document.createElement('textarea'));
+  const { result } = renderHook(() => useOpenWindows(windows, false));
+  act(() => result.current.show('hand'));
+  key('[', field);
+  key('[', document.body, { metaKey: true });
+  expect(result.current.centre?.key).toBe('hand');
+  key('[');
+  expect(result.current.slots.left?.key).toBe('hand');
+  act(() => result.current.show('battle'));
+  key(']');
+  expect(result.current.slots).toEqual({
+    left: { key: 'hand', tab: 'public' },
+    right: { key: 'battle', tab: 'public' },
+  });
+  expect(result.current.centre).toBeNull();
+});
+
 test('pinning replaces what the slot held, and unpinning empties it', () => {
   const { result } = renderHook(() => useOpenWindows(windows, false));
   act(() => result.current.show('hand'));
