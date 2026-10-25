@@ -16,4 +16,18 @@
   body {
     text-rendering: geometricPrecision;
   }
+
+  /*
+   * A full-page capture stretches the window to the page's height, and the shell background sizes its starfield and planet from the window (150vmax, 140vh).
+   * On a page 13,000px tall each became a composited square over 38,000 device pixels wide, Chromium ran out of raster memory, and other layers went blank: the header band, inlined placeholder included, vanished from Chromatic captures.
+   * Capping both at a size above every story viewport (the largest is 1440 by 1200) leaves ordinary captures unchanged.
+   */
+  [data-background-stars] > svg {
+    width: min(150vmax, 2400px);
+    height: min(150vmax, 2400px);
+  }
+
+  [data-app-background] [data-background-planet] {
+    --planet-diameter: min(max(140vw, 140vh), 2400px);
+  }
 </style>
