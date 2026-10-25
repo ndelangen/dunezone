@@ -27,6 +27,12 @@ export const Default = meta.story({
     await userEvent.clear(page.getByRole('textbox', { name: 'Spice to withdraw' }));
     await userEvent.type(page.getByRole('textbox', { name: 'Spice to withdraw' }), '9{Enter}');
     await expect(page.getByRole('textbox', { name: 'Spice to withdraw' })).toHaveValue('5');
+    /* A key steps from what was typed, not from the value before it. */
+    await userEvent.clear(page.getByRole('textbox', { name: 'Spice to withdraw' }));
+    await userEvent.type(page.getByRole('textbox', { name: 'Spice to withdraw' }), '3{ArrowUp}');
+    await expect(page.getByRole('textbox', { name: 'Spice to withdraw' })).toHaveValue('4');
+    await userEvent.tab();
+    await expect(page.getByRole('textbox', { name: 'Spice to withdraw' })).toHaveValue('4');
   },
 });
 

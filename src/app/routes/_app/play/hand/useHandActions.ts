@@ -76,6 +76,25 @@ export function useHandActions({ client, table, hand }: HandProps) {
     }, LEAVE_MS);
     pending.current.set(timer, send);
   };
+  /*
+   * The room's answer may leave the table as it was, so nothing here would render again: each update the session
+   * emits drops the pieces whose command it has answered, so a refused piece comes back.
+   */
+  const answered = [...outgoing.values()].some((entry) => entry.commandId);
+  useEffect(() => {
+    if (!answered) {
+      return;
+    }
+    const stop = client.subscribe(() =>
+      setOutgoing((current) => {
+        const next = new Map([...current].filter(([, entry]) => !entry.commandId || client.awaiting(entry.commandId)));
+        return next.size === current.size ? current : next;
+      })
+    );
+    return () => {
+      stop();
+    };
+  }, [client, answered]);
   const leaving = (piece: TablePiece) => {
     const entry = outgoing.get(piece.id);
     return entry && (!entry.commandId || client.awaiting(entry.commandId)) ? entry.where : undefined;

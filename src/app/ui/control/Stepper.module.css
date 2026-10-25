@@ -6,7 +6,7 @@
   gap: 0.15rem;
   height: 2rem;
   padding: 0 0.15rem;
-  border: 1px solid var(--edge);
+  border: 1px solid rgb(from var(--ui-highlight) r g b / 0.2);
   border-radius: 999px;
   background: rgb(from var(--ui-recess) r g b / 0.8);
 }
@@ -25,7 +25,7 @@
   width: 1.6rem;
   height: 1.6rem;
   border-radius: 50%;
-  color: var(--ink-dim);
+  color: var(--color-muted);
   transition:
     background 120ms,
     color 120ms,
@@ -39,7 +39,7 @@
 
 .stepButton:hover:not(:disabled) {
   background: var(--ui-hover);
-  color: var(--ink);
+  color: var(--color-text);
 }
 
 .stepButton:active:not(:disabled) {
@@ -53,15 +53,22 @@
   border: 0;
   outline: none;
   background: none;
-  color: var(--ink);
-  font: 700 0.95rem/1 var(--font-sans);
+  color: var(--color-text);
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1;
   font-variant-numeric: tabular-nums;
   text-align: center;
   field-sizing: content;
 }
 
-.stepValue:focus {
-  color: var(--sand);
+.stepValue:focus-visible {
+  color: var(--color-brand);
+}
+
+.stepper:focus-within {
+  border-color: rgb(from var(--color-brand) r g b / 0.65);
 }
 
 .stepValue[data-bump="0"] {
@@ -73,7 +80,7 @@
 }
 
 .stepSuffix {
-  color: var(--ink-dim);
+  color: var(--color-muted);
   font-size: 0.72rem;
   white-space: nowrap;
 }
