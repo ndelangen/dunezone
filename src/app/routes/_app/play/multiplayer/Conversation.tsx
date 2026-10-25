@@ -61,7 +61,11 @@ export function Conversation({ client, peerId }: Readonly<{ client: TableSession
           ))}
         </Stack>
         <VisuallyHidden role="status">{arrival}</VisuallyHidden>
-        <Composer submit={(text) => client.conversations.submit({ peerId, text })} />
+        <Composer
+          drafts={draftsOf(client)}
+          draftKey={`${view.context?.factionId ?? ''}:${peerId}`}
+          submit={(text) => client.conversations.submit({ peerId, text })}
+        />
       </Stack>
     </Section>
   );
@@ -221,14 +225,41 @@ function PendingMessage({
   );
 }
 
-function Composer({ submit }: Readonly<{ submit: (text: string) => boolean }>) {
-  const [draft, setDraft] = useState('');
+/*
+ * Unsent messages, per table session and conversation, outlive the composer: a window the table swaps for another
+ * (a battle, a phase's panel) gives the draft back when the conversation opens again.
+ */
+const DRAFTS = new WeakMap<TableSession, Map<string, string>>();
+
+function draftsOf(client: TableSession) {
+  let drafts = DRAFTS.get(client);
+  if (!drafts) {
+    drafts = new Map();
+    DRAFTS.set(client, drafts);
+  }
+  return drafts;
+}
+
+function Composer({
+  drafts,
+  draftKey,
+  submit,
+}: Readonly<{ drafts: Map<string, string>; draftKey: string; submit: (text: string) => boolean }>) {
+  const [draft, setDraft] = useState(() => drafts.get(draftKey) ?? '');
+  const write = (text: string) => {
+    setDraft(text);
+    if (text) {
+      drafts.set(draftKey, text);
+    } else {
+      drafts.delete(draftKey);
+    }
+  };
   return (
     <form
       onSubmit={(event) => {
         event.preventDefault();
         if (submit(draft)) {
-          setDraft('');
+          write('');
         }
       }}
     >
@@ -236,7 +267,7 @@ function Composer({ submit }: Readonly<{ submit: (text: string) => boolean }>) {
         aria-label="Message"
         placeholder="Message"
         value={draft}
-        onChange={(event) => setDraft(event.currentTarget.value)}
+        onChange={(event) => write(event.currentTarget.value)}
         maxLength={2000}
         autosize
         minRows={2}

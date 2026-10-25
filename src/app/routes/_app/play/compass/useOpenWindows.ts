@@ -115,7 +115,13 @@ export function useOpenWindows(windows: readonly TableWindow[], compassOpen: boo
     setSlots((current) => ({ ...current, [side]: centre }));
     setCentre(null);
   };
-  const unpin = (side: Side) => setSlots((current) => ({ ...current, [side]: null }));
+  /* Unpinning takes the player away everywhere they were stored, so a window hidden as their duplicate cannot come back. */
+  const unpin = (side: Side) => {
+    const key = slots[side]?.key;
+    const gone = (entry: Opened | null) => (followed(entry)?.key === key ? null : entry);
+    setSlots((current) => ({ left: gone(current.left), right: gone(current.right) }));
+    setCentre(gone);
+  };
   const close = () => setCentre(null);
   const showTab = (side: Side | 'centre', key: string, tab: PlayerTab) => {
     if (side === 'centre') {

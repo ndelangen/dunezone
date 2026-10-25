@@ -7,6 +7,7 @@
   left: 50%;
   display: flex;
   align-items: center;
+  max-width: calc(100% - 2 * var(--edge-gap));
   gap: 0.6rem;
   transform: translateX(-50%);
 }
@@ -39,9 +40,16 @@
   color: #f3e7d3;
 }
 
+/* A large table's tokens wrap into further rows rather than run past the edge of the table. */
 .chats {
+  flex-wrap: wrap;
+  justify-content: center;
+  min-width: 0;
+  height: auto;
+  min-height: 2.9rem;
   gap: 0.3rem;
-  padding: 0 0.4rem;
+  padding: 0.3rem 0.4rem;
+  border-radius: 1.45rem;
 }
 
 .chat {

@@ -39,6 +39,10 @@ const PROVIDED_ELSEWHERE = [
     'the compass controls (useSlotHeights), which hang the camera dial under the toolbar, via setProperty',
   ],
   [
+    '--compass-centre-bottom',
+    'the compass controls (useSlotHeights), which stand the centre window over the chat bar, via setProperty',
+  ],
+  [
     '--compass-slot-bottom',
     'the compass controls (useSlotHeights), which lift the slots above the chat bar on a narrow table, via setProperty',
   ],

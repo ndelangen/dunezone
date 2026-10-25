@@ -10,13 +10,15 @@ import { useRemembered } from './useRemembered';
 /*
  * Where each pinned slot stands and how tall it is: its bottom edge beside the chat bar or above it, its height
  * dragged by its top edge or nudged with the arrow keys, remembered, and held under the chrome drawn over the table.
- * The same measurement hangs the camera dial under the toolbar.
+ * The same measurement hangs the camera dial under the toolbar and stands the centre window over the chat bar.
  */
 
 type Heights = Record<Side, number | null>;
 
 /** The CSS custom property the camera dial's top edge reads, set on the controls' root. */
 const CAMERA_TOP = '--compass-camera-top';
+/** The CSS custom property the centre window's bottom edge reads: over the chat bar, however many rows it wraps to. */
+const CENTRE_BOTTOM = '--compass-centre-bottom';
 
 const NONE: Heights = { left: null, right: null };
 
@@ -51,6 +53,10 @@ export function useSlotHeights(rootRef: RefObject<HTMLElement | null>, pinned: R
       }
       /* The slots stand beside the chat bar while the table is wide enough for both and the bar, else above it. */
       const bar = root.querySelector('[data-compass-bar]');
+      if (bar) {
+        const over = box.bottom - bar.getBoundingClientRect().top + OVERLAY_GAP;
+        root.style.setProperty(CENTRE_BOTTOM, `${Math.round(over)}px`);
+      }
       const anySlot = SIDES.map((side) => slotOn(root, side)).find((slot) => slot !== null);
       if (bar && anySlot) {
         const lift = slotBottom(
