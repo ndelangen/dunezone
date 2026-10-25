@@ -154,13 +154,15 @@
   font-size: 0.76rem;
 }
 
+/* One row that scrolls sideways, so the hand never runs under the Ready bar. */
 .hand {
   display: flex;
-  flex-wrap: wrap;
-  align-content: flex-start;
+  align-items: center;
   gap: 0.45rem;
   min-height: 4.2rem;
-  padding: 0.5rem;
+  padding: 0.6rem 0.5rem 0.5rem;
+  overflow-x: auto;
+  scrollbar-width: thin;
   border: 1px dashed transparent;
   border-top: 1px solid var(--edge);
   border-radius: 0 0 10px 10px;
