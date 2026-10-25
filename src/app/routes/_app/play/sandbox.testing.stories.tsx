@@ -306,6 +306,7 @@ export const HiddenZone = meta.story({
         new PointerEvent(type, { bubbles: true, pointerType: 'mouse', clientX: restX, clientY: restY })
       );
     over('pointerover');
+    over('pointermove');
     /* A pointer reaches the piece a frame or more before a key goes down. */
     await new Promise((settle) => requestAnimationFrame(settle));
     for (const type of ['keydown', 'keydown', 'keyup']) {
@@ -313,10 +314,29 @@ export const HiddenZone = meta.story({
     }
     await waitFor(() => expect(kept().turn).toBe(2));
     await waitFor(() => expect(zoneLeader.style.transform).toBe('rotate(30deg)'));
+    /* The turn is kept even when the pointer leaves the piece before the key comes up. */
     window.dispatchEvent(new KeyboardEvent('keydown', { key: 'q', bubbles: true }));
+    over('pointerout');
+    await new Promise((settle) => requestAnimationFrame(settle));
     window.dispatchEvent(new KeyboardEvent('keyup', { key: 'q', bubbles: true }));
     await waitFor(() => expect(kept().turn).toBe(1));
-    over('pointerout');
+
+    /* A turned piece is lifted from where it lies and laid where it is let go, without a jump. */
+    const turnedBox = zoneLeader.getBoundingClientRect();
+    const turnedX = turnedBox.left + turnedBox.width / 2;
+    const turnedY = turnedBox.top + turnedBox.height / 2;
+    press('pointerdown', turnedX, turnedY);
+    press('pointermove', turnedX + 60, turnedY);
+    await waitFor(() => expect(carried()).not.toBeNull());
+    const liftedBox = carried()!.getBoundingClientRect();
+    await expect(liftedBox.left + liftedBox.width / 2).toBeCloseTo(turnedX + 60, 0);
+    press('pointerup', turnedX + 60, turnedY);
+    const centreX = () => {
+      const box = zoneLeader.getBoundingClientRect();
+      return box.left + box.width / 2;
+    };
+    await waitFor(() => expect(centreX()).toBeCloseTo(turnedX + 60, 0));
+    await expect(kept().turn).toBe(1);
 
     /* Holding Alt over a piece in the zone, or in the hand, shows its face large beside the pointer, as it does on the table. */
     const closeUp = () => canvasElement.ownerDocument.body.querySelector('[class*="closeUp"]');

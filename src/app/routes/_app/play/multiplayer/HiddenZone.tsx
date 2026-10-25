@@ -247,18 +247,21 @@ export function HiddenZone({ client, table, hand }: Props) {
     if ((key !== 'q' && key !== 'e') || event.ctrlKey || event.metaKey || event.altKey || typing(event.target)) {
       return;
     }
+    /* The turn goes out when the key comes up, wherever the pointer has gone since, unless the piece is still carried. */
+    const pending = turns.current;
+    if (event.type === 'keyup') {
+      if (pending && carried !== pending.pieceId) {
+        event.preventDefault();
+        event.stopPropagation();
+        sendTurn(pending);
+      }
+      return;
+    }
     if (!enabled || !pieceId) {
       return;
     }
     event.preventDefault();
     event.stopPropagation();
-    const pending = turns.current;
-    if (event.type === 'keyup') {
-      if (pending && carried !== pending.pieceId) {
-        sendTurn(pending);
-      }
-      return;
-    }
     if (pending && pending.pieceId !== pieceId) {
       sendTurn(pending);
     }
@@ -371,6 +374,7 @@ export function HiddenZone({ client, table, hand }: Props) {
               const left = inside(spot.x * HIDDEN_ZONE_WIDTH * scale - pieceWidth / 2, width - pieceWidth);
               const top = inside(spot.y * HIDDEN_ZONE_DEPTH * scale - pieceDepth / 2, height - pieceDepth);
               const box = { width: pieceWidth, height: pieceDepth };
+              const hover = closeUp.hover(piece);
               const handlers = {
                 onPointerDown: (event: PointerEvent<HTMLDivElement>) => {
                   if (!enabled || event.button !== 0) {
@@ -378,13 +382,14 @@ export function HiddenZone({ client, table, hand }: Props) {
                   }
                   event.preventDefault();
                   event.currentTarget.setPointerCapture(event.pointerId);
+                  /* Grabbed from the piece's upright box around its centre, the box a turned piece is carried and laid in. */
                   const bounds = event.currentTarget.getBoundingClientRect();
                   setCarry({
                     pieceId: piece.id,
                     holder: event.currentTarget,
                     pointerId: event.pointerId,
-                    grabX: event.clientX - bounds.left,
-                    grabY: event.clientY - bounds.top,
+                    grabX: event.clientX - (bounds.left + bounds.width / 2 - pieceWidth / 2),
+                    grabY: event.clientY - (bounds.top + bounds.height / 2 - pieceDepth / 2),
                     startX: event.clientX,
                     startY: event.clientY,
                     x: event.clientX,
@@ -393,6 +398,7 @@ export function HiddenZone({ client, table, hand }: Props) {
                   });
                 },
                 onPointerMove: (event: PointerEvent<HTMLDivElement>) => {
+                  hover.onPointerMove();
                   setCarry((current) =>
                     current && current.pointerId === event.pointerId
                       ? {
@@ -422,8 +428,8 @@ export function HiddenZone({ client, table, hand }: Props) {
                   style={{ left, top, ...box, transform: turned(spot) }}
                   onDragStart={(event) => event.preventDefault()}
                   onContextMenu={(event) => setMenu(handMenuAnchor(event, piece.id))}
+                  {...hover}
                   {...handlers}
-                  {...closeUp.hover(piece)}
                 >
                   <PieceImage piece={piece} width={pieceWidth} height={pieceDepth} />
                   {/*
