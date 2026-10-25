@@ -1,0 +1,394 @@
+{
+  "status": "prepared-not-applied",
+  "deployment": "exuberant-finch-263",
+  "identity": {
+    "profile": "Central",
+    "userId": "m173qphzmypfhhx627wcsg9wyh83gj56",
+    "verifiedAdministrator": true
+  },
+  "rulebook": {
+    "id": "pd78axr5dcce1vqkcyxpp3asps8gtkd6",
+    "ruleset": "gf9-2-0",
+    "slug": "gf9-2-0-rulebook",
+    "expectedRevision": 8,
+    "expectedCurrentEdition": 1,
+    "saveAsRevision": 9,
+    "publishAsEdition": 2,
+    "contentsFile": "../rulebook.json",
+    "settings": {
+      "size": "square",
+      "design": "restrained"
+    }
+  },
+  "cards": [
+    {
+      "id": "ns7fmbx80hnq2ejgj9c45a7mqd8gt64y",
+      "slug": "solaris",
+      "name": "Solaris",
+      "fromType": "card-treachery",
+      "type": "card-custom",
+      "before": {
+        "about": "GF9 second edition, 2026. Supplied Solaris wording and approved multicolour coins.",
+        "bodyLayout": "illustrated",
+        "decals": [
+          {
+            "id": "/vector/decal/solaris-multicolor.svg",
+            "muted": false,
+            "offset": [
+              0,
+              0
+            ],
+            "outline": false,
+            "scale": 0.94
+          }
+        ],
+        "head": {
+          "colors": [
+            "#474620",
+            "#27260C"
+          ],
+          "definition": 1,
+          "image": "/image/texture/082.jpg",
+          "influence": 0.6,
+          "invert": false,
+          "source": {
+            "kind": "family"
+          }
+        },
+        "icon": [
+          {
+            "colors": [
+              {
+                "angle": 90,
+                "stops": [
+                  [
+                    "#9A9256",
+                    0
+                  ],
+                  [
+                    "#EEECA6",
+                    1
+                  ]
+                ],
+                "type": "linear"
+              },
+              {
+                "angle": 120,
+                "stops": [
+                  [
+                    "#827E43",
+                    0.3
+                  ],
+                  [
+                    "#DEDB91",
+                    1
+                  ]
+                ],
+                "type": "linear"
+              }
+            ],
+            "definition": 0,
+            "image": "/image/texture/076.jpg",
+            "influence": 1,
+            "invert": true,
+            "source": {
+              "kind": "family"
+            }
+          },
+          "/vector/icon/hand.svg"
+        ],
+        "name": "Solaris",
+        "subName": "Action",
+        "text": "Choose one:\n\n- Purchase a Treachery card for yourself when it is your turn to bid on a card in a normal auction, but pay no spice for the card,\n\n- Receive Spacing Guild rates for a Force Shipment for any faction from reserves (even Fremen), paid to the Spice Bank, or\n\n- Pay for spice strength in battle from the Spice Bank."
+      },
+      "data": {
+        "name": "Solaris",
+        "subName": "Action",
+        "head": {
+          "image": "/image/texture/082.jpg",
+          "colors": [
+            "#474620",
+            "#27260C"
+          ],
+          "invert": false,
+          "definition": 1,
+          "influence": 0.6,
+          "source": {
+            "kind": "family"
+          }
+        },
+        "icon": [
+          {
+            "image": "/image/texture/076.jpg",
+            "colors": [
+              {
+                "type": "linear",
+                "angle": 90,
+                "stops": [
+                  [
+                    "#9A9256",
+                    0
+                  ],
+                  [
+                    "#EEECA6",
+                    1
+                  ]
+                ]
+              },
+              {
+                "type": "linear",
+                "angle": 120,
+                "stops": [
+                  [
+                    "#827E43",
+                    0.3
+                  ],
+                  [
+                    "#DEDB91",
+                    1
+                  ]
+                ]
+              }
+            ],
+            "invert": true,
+            "definition": 0,
+            "influence": 1,
+            "source": {
+              "kind": "family"
+            }
+          },
+          "/vector/icon/hand.svg"
+        ],
+        "format": "decal-window",
+        "layers": [
+          {
+            "id": "/vector/decal/solaris-multicolor.svg",
+            "muted": false,
+            "outline": false,
+            "scale": 0.94,
+            "offset": [
+              0,
+              -161.5
+            ],
+            "kind": "decal",
+            "layerId": "00000000-0000-4000-8000-000000000001",
+            "behindFrame": true,
+            "opacity": 1,
+            "rotation": 0
+          },
+          {
+            "kind": "text",
+            "layerId": "00000000-0000-4000-8000-000000000002",
+            "content": "Choose one:\n\n- Purchase a Treachery card for yourself when it is your turn to bid on a card in a normal auction, but pay no spice for the card,\n\n- Receive Spacing Guild rates for a Force Shipment for any faction from reserves (even Fremen), paid to the Spice Bank, or\n\n- Pay for spice strength in battle from the Spice Bank.",
+            "offset": [
+              -361,
+              72.5
+            ],
+            "width": 734,
+            "height": 499,
+            "size": 36,
+            "font": "C_Candara",
+            "color": "#0b0503",
+            "align": "left",
+            "opacity": 0.937,
+            "rotation": 0
+          }
+        ],
+        "about": "GF9 second edition, 2026. Supplied Solaris wording and approved multicolour coins."
+      }
+    },
+    {
+      "id": "ns7dmx88vyj0g27enj6y7n6tdx8gttvk",
+      "slug": "family-atomics-2",
+      "name": "Family Atomics",
+      "fromType": "card-treachery",
+      "type": "card-custom",
+      "before": {
+        "about": "GF9 second edition, 2026. Card wording follows the supplied rulebook and deck images.",
+        "bodyLayout": "illustrated",
+        "decals": [
+          {
+            "id": "/vector/decal/family-atomics-multicolor.svg",
+            "muted": false,
+            "offset": [
+              0,
+              0
+            ],
+            "outline": false,
+            "scale": 1.5102
+          }
+        ],
+        "head": {
+          "colors": [
+            "#474620",
+            "#27260C"
+          ],
+          "definition": 1,
+          "image": "/image/texture/082.jpg",
+          "influence": 0.6,
+          "invert": false
+        },
+        "icon": [
+          {
+            "colors": [
+              {
+                "angle": 90,
+                "stops": [
+                  [
+                    "#9A9256",
+                    0
+                  ],
+                  [
+                    "#EEECA6",
+                    1
+                  ]
+                ],
+                "type": "linear"
+              },
+              {
+                "angle": 120,
+                "stops": [
+                  [
+                    "#827E43",
+                    0.3
+                  ],
+                  [
+                    "#DEDB91",
+                    1
+                  ]
+                ],
+                "type": "linear"
+              }
+            ],
+            "definition": 0,
+            "image": "/image/texture/076.jpg",
+            "influence": 1,
+            "invert": true
+          },
+          "/vector/icon/hand-alt.svg"
+        ],
+        "iconOffset": [
+          0,
+          2
+        ],
+        "name": "Family Atomics",
+        "subName": "Action",
+        "text": "Cannot be played in Round 1\n\nPlay after the storm movement is revealed, but before the storm is moved - only if you have one or more forces in Shield Wall or an adjacent territory, with no storm between your sector and Shield Wall (even if your forces are in storm).\n\nAll forces in Shield Wall are destroyed.\n\nPlace the Destroyed Shield Wall token on Shield Wall. For the rest of the game, forces in Arrakeen, Carthag, and Imperial Basin are affected by the storm. Remove this card from the game."
+      },
+      "data": {
+        "name": "Family Atomics",
+        "subName": "Action",
+        "head": {
+          "image": "/image/texture/082.jpg",
+          "colors": [
+            "#474620",
+            "#27260C"
+          ],
+          "invert": false,
+          "definition": 1,
+          "influence": 0.6
+        },
+        "icon": [
+          {
+            "image": "/image/texture/076.jpg",
+            "colors": [
+              {
+                "type": "linear",
+                "angle": 90,
+                "stops": [
+                  [
+                    "#9A9256",
+                    0
+                  ],
+                  [
+                    "#EEECA6",
+                    1
+                  ]
+                ]
+              },
+              {
+                "type": "linear",
+                "angle": 120,
+                "stops": [
+                  [
+                    "#827E43",
+                    0.3
+                  ],
+                  [
+                    "#DEDB91",
+                    1
+                  ]
+                ]
+              }
+            ],
+            "invert": true,
+            "definition": 0,
+            "influence": 1
+          },
+          "/vector/icon/hand-alt.svg"
+        ],
+        "iconOffset": [
+          0,
+          2
+        ],
+        "format": "decal-window",
+        "layers": [
+          {
+            "id": "/vector/decal/family-atomics-multicolor.svg",
+            "muted": false,
+            "outline": false,
+            "scale": 1.5102,
+            "offset": [
+              0,
+              -161.5
+            ],
+            "kind": "decal",
+            "layerId": "00000000-0000-4000-8000-000000000001",
+            "behindFrame": true,
+            "opacity": 1,
+            "rotation": 0
+          },
+          {
+            "kind": "text",
+            "layerId": "00000000-0000-4000-8000-000000000002",
+            "content": "Cannot be played in Round 1\n\nPlay after the storm movement is revealed, but before the storm is moved - only if you have one or more forces in Shield Wall or an adjacent territory, with no storm between your sector and Shield Wall (even if your forces are in storm).\n\nAll forces in Shield Wall are destroyed.\n\nPlace the Destroyed Shield Wall token on Shield Wall. For the rest of the game, forces in Arrakeen, Carthag, and Imperial Basin are affected by the storm. Remove this card from the game.",
+            "offset": [
+              -361,
+              72.5
+            ],
+            "width": 734,
+            "height": 499,
+            "size": 33,
+            "font": "C_Candara",
+            "color": "#0b0503",
+            "align": "left",
+            "opacity": 0.937,
+            "rotation": 0
+          }
+        ],
+        "about": "GF9 second edition, 2026. Card wording follows the supplied rulebook and deck images."
+      }
+    }
+  ],
+  "preserve": [
+    "Asset IDs",
+    "Owners",
+    "Existing deck and rulebook references",
+    "Artwork",
+    "All card wording"
+  ],
+  "requiresConfirmation": "Administrative production writes through existing Convex functions, because browser controls are unavailable.",
+  "steps": [
+    "Compare the live draft to the revision 8 backup and each live card to its saved before data. Stop on any mismatch.",
+    "For each card, remove only the optional bodyLayout field using assets:update. The illustrated presentation remains the default. This avoids an existing conversion-validator rejection of that field.",
+    "Run assets:convertTreacheryToCustom for each existing card. Run assets:update with its fitted candidate data. No replacement asset records are created.",
+    "Wait for both card publications to become current, verify complete text and unchanged image proportions, and refresh the local production-card bindings.",
+    "Save the candidate book through rulebooks:save with expected_revision 8. Verify the saved settings and contents.",
+    "Publish through rulebooks:publish with the returned revision and confirmed true. Verify public Edition 2, HTML and PDF delivery."
+  ],
+  "recovery": [
+    "The unchanged revision 8 Rulebook export is retained. Its contents can be saved and published as a subsequent Edition if the release must be superseded.",
+    "The complete original and proposed data for both cards are retained. The old layout can be restored inside the custom cards, preserving their IDs. Type conversion has no normal UI reverse operation; restoring the treachery classification would need a separately confirmed administrative repair.",
+    "Do not change owners, groups, account data, authentication, or unrelated records. Do not add or deploy a server write path. Stop if Central identity is rejected."
+  ]
+}

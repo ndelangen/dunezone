@@ -32,3 +32,7 @@ The saved production record is revision 7. It was loaded and saved through the a
 ## Revision 8 corrections
 
 [The first correction pass](easy-fixes-r8.md) fixes the ornithopter caption, battle-example leader and comparison captions, stronghold income annotations, and cover framing lines. It also restores Solaris's bank-payment option in readable text beside the clipped image. Five pages changed. The saved revision 8 export exactly matches the local manuscript. The board explanation and clipped card images remain.
+
+## Pending publication candidate
+
+The [publication candidate](publication-candidate/README.md) prepares the last board-page correction and fitted Solaris and Family Atomics cards. All 61 candidate pages fit. These changes have not been applied to production; the saved production export remains revision 8. Applying them through the CLI requires the administrative-write confirmation in AGENTS.md because browser controls are unavailable.

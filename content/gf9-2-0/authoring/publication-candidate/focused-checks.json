@@ -1,0 +1,43 @@
+[
+  {
+    "slug": "solaris",
+    "check": [
+      {
+        "text": "Choose one:Purchase a Treachery card for yourself when it is your turn to bid on a card in a normal auction, but pay no spice for the card,Receive Spacing Guild rates for a Force Shipment for any faction from reserves (even Fremen), paid to the Spice Bank, orPay for spice strength in battle from the Spice Bank.",
+        "clientHeight": 499,
+        "scrollHeight": 499,
+        "clientWidth": 734,
+        "scrollWidth": 734,
+        "font": "C_Candara, sans-serif",
+        "size": "36px"
+      }
+    ]
+  },
+  {
+    "slug": "family-atomics-2",
+    "check": [
+      {
+        "text": "Cannot be played in Round 1Play after the storm movement is revealed, but before the storm is moved - only if you have one or more forces in Shield Wall or an adjacent territory, with no storm between your sector and Shield Wall (even if your forces are in storm).All forces in Shield Wall are destroyed.Place the Destroyed Shield Wall token on Shield Wall. For the rest of the game, forces in Arrakeen, Carthag, and Imperial Basin are affected by the storm. Remove this card from the game.",
+        "clientHeight": 499,
+        "scrollHeight": 499,
+        "clientWidth": 734,
+        "scrollWidth": 734,
+        "font": "C_Candara, sans-serif",
+        "size": "33px"
+      }
+    ]
+  },
+  {
+    "page": 7,
+    "check": [
+      {
+        "region": "column1",
+        "overrun": 0
+      },
+      {
+        "region": "column2",
+        "overrun": 0
+      }
+    ]
+  }
+]

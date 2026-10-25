@@ -474,11 +474,19 @@ export function compose({ allPages, contents, pageMap, unitMap, editorial, id, f
       });
       const labels = text(
         'board-reference-labels',
-        '',
-        'Round track · Spice Blow · Territory · Tleilaxu Tanks · Longitude lines · Sector · Spice Bank · Player circles'
+        'Finding the board features',
+        'Territory: a named, outlined area, such as Hagga Basin. A sector is the wedge between two longitude lines running from the Polar Sink to the outer edge.\n\n' +
+          'On the printed board, look around the map for the Round Track, the Tleilaxu Tanks holding dead pieces, the Spice Bank holding the spice supply, and the six player circles used for storm order.'
+      );
+      const spiceBlow = illustration(
+        'board-spice-blow-symbol',
+        { kind: 'stock', artworkId: '/vector/icon/spice-blow_standalone.svg' },
+        'Spice Blow symbol. Look for this symbol inside territories where spice can appear.',
+        'small'
       );
       const boundary = blocks.findIndex((b: any) => b.name === 'Battle wheels');
       const left = blocks.slice(0, boundary);
+      left.splice(left.findIndex((b: any) => b.text?.startsWith('Some territories are marked')) + 1, 0, spiceBlow);
       const right = [explainer, labels, ...blocks.slice(boundary), illustration('wheel-assembly', stock('wheel-0'))];
       const p = addPage(original, [...left, ...right]);
       p.blockOrderByRegion = { column1: left.map((b: any) => b.id), column2: right.map((b: any) => b.id) };

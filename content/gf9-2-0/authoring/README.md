@@ -1,6 +1,6 @@
 # GF9 2.0 working rulebook
 
-[rulebook.json](rulebook.json) is the reconstructed manuscript for Dune Zone's JSON Load control. It uses Square, the existing restrained design and production references. The manuscript has 61 pages and is saved as production draft revision 8. PR #2477 deployed the approved sheet-renderer connection.
+[rulebook.json](rulebook.json) is the reconstructed manuscript for Dune Zone's JSON Load control. It uses Square, the existing restrained design and production references. The manuscript has 61 pages. Production still contains draft revision 8; the local manuscript now includes the pending board-page correction in [the publication candidate](publication-candidate/README.md). PR #2477 deployed the approved sheet-renderer connection.
 
 The compact overview and three corrected illustrations are documented in [correction/README.md](correction/README.md) and [the clearer scan review](../clearer-scan-review.md). All overview portraits now use published production tokens.
 

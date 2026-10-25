@@ -1420,6 +1420,21 @@
               "text": "Some territories are marked with a Spice Blow icon to show the locations of possible Spice Blows."
             },
             {
+              "id": "2AKG",
+              "kind": "referenced-illustration",
+              "size": "small",
+              "source": {
+                "status": "ready",
+                "reference": {
+                  "kind": "stock",
+                  "artworkId": "/vector/icon/spice-blow_standalone.svg"
+                },
+                "name": "spice blow standalone",
+                "imageUrl": "/vector/icon/spice-blow_standalone.svg"
+              },
+              "caption": "Spice Blow symbol. Look for this symbol inside territories where spice can appear."
+            },
+            {
               "id": "W7TV",
               "kind": "text",
               "text": "The map is also divided by longitude lines into eighteen sectors, which extend from the edge of the Polar Sink to the equator at the edge of the board. Sectors control the way the storm moves around the board. Note that some territories can span more than one sector."
@@ -3503,7 +3518,13 @@
             {
               "id": "T6ZH",
               "kind": "text",
-              "text": "Round track · Spice Blow · Territory · Tleilaxu Tanks · Longitude lines · Sector · Spice Bank · Player circles"
+              "name": "Finding the board features",
+              "text": "Territory: a named, outlined area, such as Hagga Basin. A sector is the wedge between two longitude lines running from the Polar Sink to the outer edge."
+            },
+            {
+              "id": "TLNY",
+              "kind": "text",
+              "text": "On the printed board, look around the map for the Round Track, the Tleilaxu Tanks holding dead pieces, the Spice Bank holding the spice supply, and the six player circles used for storm order."
             },
             {
               "id": "4NEH",
