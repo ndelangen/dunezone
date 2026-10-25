@@ -47,7 +47,7 @@
 
 .tileFace:hover {
   transform: translateY(-3px);
-  filter: drop-shadow(0 6px 8px rgb(0 0 0 / 55%));
+  filter: drop-shadow(0 6px 8px rgb(from var(--color-shadow) r g b / 0.55));
 }
 
 .tileFace:focus-visible {
@@ -223,7 +223,7 @@
 }
 
 .ledgerRow:hover {
-  background: rgb(255 255 255 / 5%);
+  background: rgb(from var(--ui-highlight) r g b / 0.08);
 }
 
 .ledgerThumb {
@@ -402,4 +402,10 @@
   :global(html:not([data-motion="ok"])) .floatAway {
     display: none;
   }
+}
+
+/* The hovered piece and its strip rise over the pieces in the row below. */
+.hoverTile:hover,
+.hoverTile:focus-within {
+  z-index: 3;
 }

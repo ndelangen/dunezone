@@ -1,42 +1,32 @@
 import preview from '@sb/preview';
-import type { GameSnapshot } from '@shared/play/protocol';
 
 import { gameMeta, install } from '../game.stories.fixture';
-import { battleStory } from '../playing.stories.fixture';
-import { productTransport, playingSnapshot } from '../product.stories.fixture';
+import { chapter, journeyViewers } from '../journey.stories.fixture';
+import { sandboxTransport } from '../sandbox.stories.fixture';
 import { HandWindowHarness } from './HandWindowHarness.stories.fixture';
 
 /*
  * Four prototypes of the Hand & spice window's content, each on its own in a bottom-left slot.
- * The data is the product fixture's (captured from production): Harkonnen's leaders and Traitor cards,
- * with the loose Treachery card taken into the hand, ten spice, and a battle at Arrakeen being prepared.
+ * Each runs on the game Worker's own table in the browser, started from the recorded journey (captured from production),
+ * so every action really happens: withdrawn spice leaves the reserve, a piece set aside leaves the hand, the plan fills.
+ * The seat control views the same table as another faction.
  */
 const meta = preview.meta({
   title: 'Play/Explorations/Hand and spice',
   component: HandWindowHarness,
   decorators: gameMeta.decorators,
   globals: { motion: 'on' },
-  parameters: { layout: 'fullscreen', controls: { disable: true }, chromatic: { disableSnapshot: true } },
+  args: { seat: 'seat-2' },
+  argTypes: { seat: { control: 'select', options: journeyViewers().filter((seat) => seat !== 'neutral') } },
+  parameters: { layout: 'fullscreen', chromatic: { disableSnapshot: true } },
   tags: ['!test'],
 });
 
-/* The loose Treachery card moves into the viewer's hand, so the hand holds more than one kind of card. */
-function withTreachery(snapshot: GameSnapshot) {
-  const card = snapshot.table.pieces.find((piece) => piece.id === 'treachery-card-loose');
-  if (card && snapshot.hand) {
-    snapshot.hand.push({ ...card, owner: 'house-harkonnen' });
-    snapshot.table.pieces = snapshot.table.pieces.filter((piece) => piece.id !== card.id);
-  }
-  return snapshot;
-}
-
-const inBattle = install(() => productTransport('seat-2', withTreachery(battleStory('preparing'))));
-const quiet = install(() =>
-  productTransport('seat-2', {
-    ...withTreachery(playingSnapshot('seat-2')),
-    bank: { factionId: 'house-harkonnen', balance: 10 },
-  })
-);
+/* The live table from the recorded journey: Atreides (seat 2) mid-battle at Arrakeen, or earlier at Shipment with no battle. */
+const inBattle = ({ args }: { args: { seat?: string } }) =>
+  install(() => sandboxTransport({ start: chapter('Battle plan') - 1, seat: args.seat ?? 'seat-2' }))();
+const quiet = ({ args }: { args: { seat?: string } }) =>
+  install(() => sandboxTransport({ start: chapter('Shipment') - 1, seat: args.seat ?? 'seat-2' }))();
 
 /** A. Shelves: rows by kind, hover a piece for its one-click actions, spice by one-click amounts. */
 export const AShelves = meta.story({ name: 'A Shelves', args: { variant: 'shelves' }, beforeEach: inBattle });

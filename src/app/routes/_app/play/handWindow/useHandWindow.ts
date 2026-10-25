@@ -162,13 +162,6 @@ export function useHandWindow({ client, table, hand }: HandWindowProps) {
     withdrawals.current += 1;
     setWithdrawn({ amount, key: withdrawals.current });
   };
-  const commitSpice = (amount: number) => {
-    if (!planOpen || !plan) {
-      return;
-    }
-    client.editBattlePlan({ spice: Math.max(0, Math.min(balance + committed, amount)) });
-  };
-
   return {
     enabled,
     inHand,
@@ -190,7 +183,6 @@ export function useHandWindow({ client, table, hand }: HandWindowProps) {
     committed,
     withdraw,
     withdrawn,
-    commitSpice,
   };
 }
 

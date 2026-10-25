@@ -1,7 +1,5 @@
 import { useContext, useEffect, useState, useSyncExternalStore } from 'react';
 
-import { requestPlayAdmission, watchSeatPass } from '@db/play';
-
 import { TableSession } from '../../../../db/tabletop/TableSession';
 import compass from '../compass/CompassControls.module.css';
 import { WindowFrame } from '../compass/WindowFrame';
@@ -19,7 +17,7 @@ import '../dune-play.css';
 export function HandWindowHarness({
   variant,
   height = 448,
-}: Readonly<{ variant: HandWindowVariant | null; height?: number }>) {
+}: Readonly<{ variant: HandWindowVariant | null; height?: number; seat?: string }>) {
   const runtime = useContext(GameRuntimeContext);
   const [client] = useState(
     () =>
@@ -27,9 +25,9 @@ export function HandWindowHarness({
         'hand-window-story',
         new GameSubscription(
           'hand-window-story',
-          runtime.admission?.request ?? requestPlayAdmission,
-          runtime,
-          runtime.admission ? runtime.admission.watchPass : watchSeatPass
+          /* No game page asked the database for a seat, so the story admits itself, as the tutorial's table does. */
+          () => Promise.resolve({ ok: true as const, ticket: '0'.repeat(64), expiresInMs: 3_600_000 }),
+          runtime
         ),
         runtime
       )
@@ -42,6 +40,7 @@ export function HandWindowHarness({
     <DarkSchemeIsland>
       <div className="dune-play-shell" style={{ height: '100vh' }}>
         <div className={compass.root}>
+          {!hand && <p style={{ padding: 16 }}>{view.error ?? `Table: ${view.status}`}</p>}
           {table && hand && (
             <WindowFrame
               entry={{

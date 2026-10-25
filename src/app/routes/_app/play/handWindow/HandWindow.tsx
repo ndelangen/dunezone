@@ -248,7 +248,6 @@ function BattleHand({ model }: Readonly<{ model: HandWindowModel }>) {
   }
   const leader = plan.leaderId ? model.planPieces.find((piece) => piece.id === plan.leaderId) : undefined;
   const cards = plan.cardIds.flatMap((id) => model.planPieces.filter((piece) => piece.id === id));
-  const available = model.balance + model.committed;
   return (
     <div ref={ref} className={styles.stack}>
       <section className={styles.planStrip} aria-label="Battle plan" data-open={model.planOpen || undefined}>
@@ -270,31 +269,11 @@ function BattleHand({ model }: Readonly<{ model: HandWindowModel }>) {
           <PlanSlot label="Card" model={model} chrome={chrome} />
           <div className={styles.planSpice}>
             <Text size="xs" c="dimmed">
-              Spice
+              Spice on the dial
             </Text>
-            <Group gap={4} wrap="nowrap">
-              <Button
-                size="compact-xs"
-                variant="default"
-                aria-label="One less spice in plan"
-                disabled={!model.planOpen || model.committed < 1}
-                onClick={() => model.commitSpice(model.committed - 1)}
-              >
-                −
-              </Button>
-              <Text component="span" fw={700} className={styles.stepValue}>
-                {model.committed}
-              </Text>
-              <Button
-                size="compact-xs"
-                variant="default"
-                aria-label="One more spice in plan"
-                disabled={!model.planOpen || model.committed >= available}
-                onClick={() => model.commitSpice(model.committed + 1)}
-              >
-                +
-              </Button>
-            </Group>
+            <Text component="span" fw={700} className={styles.stepValue}>
+              {model.committed}
+            </Text>
           </div>
         </div>
       </section>
