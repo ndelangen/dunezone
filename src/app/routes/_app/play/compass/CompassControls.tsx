@@ -24,6 +24,8 @@ import type { TableWindow } from './windows';
 export type CompassControlsProps = Readonly<{
   /** The table scene, which the controls lie over. */
   scene: ReactNode;
+  /** A stage's layer over the scene, under the header, which keeps to the table's box as the controls do. */
+  overlay?: ReactNode;
   header: ReactNode;
   camera: ReactNode;
   /** A board gesture holds the table, and the chrome over it stops taking input. */
@@ -58,7 +60,7 @@ function useFocusedWindow(
   }
 }
 
-function Controls({ scene, header, camera, inert, panels, onView, focus }: CompassControlsProps) {
+function Controls({ scene, overlay, header, camera, inert, panels, onView, focus }: CompassControlsProps) {
   const table = useContext(CompassTableContext);
   const windows = useTableWindows(panels);
   const [open, setOpen] = useState(false);
@@ -72,7 +74,10 @@ function Controls({ scene, header, camera, inert, panels, onView, focus }: Compa
   const compass = useCompass({ open, onOpen: setOpen, inert, windows, table, onView, onShow: opened.show });
   return (
     <div className={styles.root} ref={rootRef}>
-      <div className={styles.scene}>{scene}</div>
+      <div className={styles.scene}>
+        <div className={styles.board}>{scene}</div>
+      </div>
+      {overlay}
       {header}
       {camera}
       <WindowFrames windows={windows} opened={opened} heights={heights} inert={inert} />

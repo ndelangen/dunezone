@@ -657,28 +657,25 @@ export function GameTable({
   }, [handleSceneReady]);
 
   const scene = (
-    <>
-      <TableKeyboardContext value={tableKeyboard}>
-        <TabletopScene
-          className="scene scene--immersive"
-          cameraView={cameraView}
-          onSceneReady={handleSceneReady}
-          onInteractionActiveChange={handleInteractionActiveChange}
-          seatCount={seatCount}
-          tableProgress={tableProgress}
-          stage={stage}
-          mapVisible={mapVisible}
-        >
-          {sceneContent}
-        </TabletopScene>
-      </TableKeyboardContext>
-
-      {stageOverlay && (
-        <div className="seated-stage-overlay" inert={overlaysInert}>
-          {stageOverlay}
-        </div>
-      )}
-    </>
+    <TableKeyboardContext value={tableKeyboard}>
+      <TabletopScene
+        className="scene scene--immersive"
+        cameraView={cameraView}
+        onSceneReady={handleSceneReady}
+        onInteractionActiveChange={handleInteractionActiveChange}
+        seatCount={seatCount}
+        tableProgress={tableProgress}
+        stage={stage}
+        mapVisible={mapVisible}
+      >
+        {sceneContent}
+      </TabletopScene>
+    </TableKeyboardContext>
+  );
+  const overlay = stageOverlay && (
+    <div className="seated-stage-overlay" inert={overlaysInert}>
+      {stageOverlay}
+    </div>
   );
   const selectView = (view: TableView) => dispatchView({ type: 'view.selected', view });
   useTopViewKey(selectView);
@@ -738,6 +735,7 @@ export function GameTable({
             >
               <CompassControls
                 scene={scene}
+                overlay={overlay}
                 header={header}
                 camera={camera}
                 inert={overlaysInert}

@@ -1,7 +1,8 @@
 /*
  * The compass controls' root over the table, in the table's sand-on-leather palette, and the small pieces every part
  * shares. The root is the size container: the windows, the slots and the compass take their measure from the table's
- * box, not the viewport, so a table beside other content lays out as a table of that size.
+ * box, not the viewport, so a table beside other content lays out as a table of that size. The board alone keeps a
+ * minimum width, and scrolls sideways under the controls in a box narrower than that.
  */
 
 .root {
@@ -26,6 +27,14 @@
 .scene {
   position: absolute;
   inset: 0;
+  overflow: auto hidden;
+}
+
+/* A board narrower than this has no room for its pieces, so the scene scrolls it sideways instead of squeezing it. */
+.board {
+  position: relative;
+  min-width: 720px;
+  height: 100%;
 }
 
 .glyph {
