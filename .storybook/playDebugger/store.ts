@@ -36,8 +36,11 @@ export function listenForPlay() {
   );
 }
 
-/** Empties the history the panel shows; the story keeps running. */
-export const clearTraffic = () => set({ traffic: [] });
+/** Empties the history the panel shows, and the preview's copy it replays to a panel that opens later; the story keeps running. */
+export function clearTraffic() {
+  addons.getChannel().emit(PLAY_DEBUGGER_EVENTS.clear);
+  set({ traffic: [] });
+}
 
 export const usePlayDebugger = () =>
   useSyncExternalStore(

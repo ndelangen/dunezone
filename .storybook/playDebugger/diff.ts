@@ -19,20 +19,30 @@ export function changes(before: unknown, after: unknown, limit = 300): Change[] 
     if (found.length >= limit || Object.is(left, right)) {
       return;
     }
-    if (Array.isArray(left) && Array.isArray(right)) {
-      for (let index = 0; index < Math.max(left.length, right.length); index++) {
-        walk(left[index], right[index], `${path}${segment(index)}`);
-      }
+    const pairs = children(left, right);
+    if (!pairs) {
+      found.push({ path: path || '(root)', before: left, after: right });
       return;
     }
-    if (isRecord(left) && isRecord(right)) {
-      for (const key of new Set([...Object.keys(left), ...Object.keys(right)])) {
-        walk(left[key], right[key], `${path}${segment(key)}`);
-      }
-      return;
+    for (const [key, leftChild, rightChild] of pairs) {
+      walk(leftChild, rightChild, `${path}${segment(key)}`);
     }
-    found.push({ path: path || '(root)', before: left, after: right });
   };
   walk(before, after, '');
   return found;
+}
+
+/** What two branches of the same shape hold, side by side by index or key; null for leaves or shapes that differ. */
+function children(left: unknown, right: unknown): [string | number, unknown, unknown][] | null {
+  if (Array.isArray(left) && Array.isArray(right)) {
+    return Array.from({ length: Math.max(left.length, right.length) }, (_, index) => [
+      index,
+      left[index],
+      right[index],
+    ]);
+  }
+  if (isRecord(left) && isRecord(right)) {
+    return [...new Set([...Object.keys(left), ...Object.keys(right)])].map((key) => [key, left[key], right[key]]);
+  }
+  return null;
 }

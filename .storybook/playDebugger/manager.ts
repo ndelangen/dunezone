@@ -12,6 +12,8 @@ addons.register(PLAY_DEBUGGER_ADDON, () => {
     type: types.PANEL,
     title: 'Play debugger',
     paramKey: PLAY_DEBUGGER_PARAMETER,
+    /* The panel is opt-in: Storybook's paramKey only hides it when the parameter says `disable`. */
+    disabled: (parameters?: Record<string, unknown>) => !parameters?.[PLAY_DEBUGGER_PARAMETER],
     render: ({ active }) => createElement(PlayDebuggerPanel, { active: !!active }),
   });
 });

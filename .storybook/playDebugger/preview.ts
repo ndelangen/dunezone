@@ -92,6 +92,10 @@ function listen() {
     session.pending = [...session.history];
     flush();
   });
+  channel().on(PLAY_DEBUGGER_EVENTS.clear, () => {
+    session.history = [];
+    session.pending = [];
+  });
   /* A panel still showing a story that has moved on may ask for an action the new one lacks. */
   channel().on(PLAY_DEBUGGER_EVENTS.act, (id: string) => {
     if (session.source.actions?.some((candidate) => candidate.id === id)) {

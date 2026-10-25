@@ -18,6 +18,8 @@ export const PLAY_DEBUGGER_EVENTS = {
   traffic: `${PLAY_DEBUGGER_ADDON}/traffic`,
   /** Panel to preview: send the whole state and history again, as a panel that opened late asks. */
   request: `${PLAY_DEBUGGER_ADDON}/request`,
+  /** Panel to preview: forget the history so far, so a panel that asks again starts from here. */
+  clear: `${PLAY_DEBUGGER_ADDON}/clear`,
   /** Panel to preview: run one of the story's actions. */
   act: `${PLAY_DEBUGGER_ADDON}/act`,
 } as const;

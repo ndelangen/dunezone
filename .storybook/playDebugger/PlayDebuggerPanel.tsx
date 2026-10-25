@@ -58,6 +58,8 @@ const Tabs = styled.div(({ theme }) => ({
 
 const Body = styled.div({ flex: 1, minHeight: 0, display: 'flex' });
 const Scroll = styled.div({ flex: 1, minWidth: 0, overflow: 'auto', padding: '8px 10px' });
+/* A table's sticky header sits flush with the top, so rows never show above it. */
+const TableScroll = styled(Scroll)({ paddingTop: 0 });
 
 const Split = styled.div(({ theme }) => ({
   flex: '0 0 min(46%, 520px)',
@@ -116,99 +118,96 @@ function copy(text: string) {
   void navigator.clipboard?.writeText(text);
 }
 
-/** The bar that moves the story: the step, the arrows through the steps it can reach, the viewer, and the story's actions. */
-function Controls({
-  state,
+/** Moves the story to a step through its arguments, viewed as the seat that acted to reach it when following. */
+function useMoveTo(timeline: DebuggerTimeline, follow: boolean) {
+  const [, updateArgs] = useArgs();
+  return (index: number) => {
+    const actor = timeline.steps[index]?.actor;
+    const followed = follow && timeline.viewers.some((viewer) => viewer.id === actor);
+    updateArgs({ [timeline.stepArg]: index + 1, ...(followed ? { [timeline.viewerArg]: actor } : {}) });
+  };
+}
+
+/** The step shown, the arrows and scrubber through the steps the story can reach, and the viewer. */
+function StepNavigator({
   timeline,
   follow,
   onFollow,
-}: Readonly<{
-  state: DebuggerState;
-  timeline: DebuggerTimeline | null;
-  follow: boolean;
-  onFollow: (on: boolean) => void;
-}>) {
+}: Readonly<{ timeline: DebuggerTimeline; follow: boolean; onFollow: (on: boolean) => void }>) {
   const [, updateArgs] = useArgs();
+  const go = useMoveTo(timeline, follow);
+  const { reachable } = timeline;
+  const at = reachable.indexOf(timeline.current);
+  const step = timeline.steps[timeline.current]!;
+  const atStart = at <= 0;
+  const atEnd = at < 0 || at >= reachable.length - 1;
+  return (
+    <>
+      <Code>{step.code}</Code>
+      <Title>{step.title}</Title>
+      <Muted>
+        {timeline.current + 1} of {timeline.steps.length}
+      </Muted>
+      <Button size="small" variant="ghost" disabled={atStart} onClick={() => go(reachable[0]!)}>
+        First
+      </Button>
+      <Button size="small" variant="ghost" disabled={atStart} onClick={() => go(reachable[at - 1]!)}>
+        Previous
+      </Button>
+      <Button size="small" variant="ghost" disabled={atEnd} onClick={() => go(reachable[at + 1]!)}>
+        Next
+      </Button>
+      <Button size="small" variant="ghost" disabled={atEnd} onClick={() => go(reachable.at(-1)!)}>
+        Last
+      </Button>
+      <Scrub
+        type="range"
+        min={0}
+        max={Math.max(reachable.length - 1, 0)}
+        value={Math.max(at, 0)}
+        aria-label={timeline.label}
+        aria-valuetext={`${step.code} ${step.title}`}
+        onChange={(event) => go(reachable[Number(event.currentTarget.value)]!)}
+      />
+      <Label>
+        <Muted>Viewing as</Muted>
+        <NativeSelect
+          value={timeline.viewer}
+          aria-label="Viewing as"
+          onChange={(event) => updateArgs({ [timeline.viewerArg]: event.currentTarget.value })}
+        >
+          {timeline.viewers.map((viewer) => (
+            <option key={viewer.id} value={viewer.id}>
+              {viewer.label}
+            </option>
+          ))}
+        </NativeSelect>
+      </Label>
+      <ToggleButton
+        size="small"
+        variant="ghost"
+        pressed={follow}
+        tooltip="Each step is viewed as the seat that acted to reach it"
+        onClick={() => onFollow(!follow)}
+      >
+        Follow the acting seat
+      </ToggleButton>
+    </>
+  );
+}
+
+/** The bar that moves the story: its steps and viewer when it has them, and the story's actions. */
+function Controls({
+  state,
+  follow,
+  onFollow,
+}: Readonly<{ state: DebuggerState; follow: boolean; onFollow: (on: boolean) => void }>) {
   const emit = useChannel({});
-  const go = (index: number) => {
-    if (!timeline) {
-      return;
-    }
-    const actor = timeline.steps[index]?.actor;
-    updateArgs({
-      [timeline.stepArg]: index + 1,
-      ...(follow && actor && timeline.viewers.some((viewer) => viewer.id === actor)
-        ? { [timeline.viewerArg]: actor }
-        : {}),
-    });
-  };
-  const reachable = timeline?.reachable ?? [];
-  const at = timeline ? reachable.indexOf(timeline.current) : -1;
-  const step = timeline?.steps[timeline.current];
+  const { timeline } = state;
   return (
     <Bar>
-      {timeline && step ? (
-        <>
-          <Code>{step.code}</Code>
-          <Title>{step.title}</Title>
-          <Muted>
-            {timeline.current + 1} of {timeline.steps.length}
-          </Muted>
-          <Button size="small" variant="ghost" disabled={at <= 0} onClick={() => go(reachable[0]!)}>
-            First
-          </Button>
-          <Button size="small" variant="ghost" disabled={at <= 0} onClick={() => go(reachable[at - 1]!)}>
-            Previous
-          </Button>
-          <Button
-            size="small"
-            variant="ghost"
-            disabled={at < 0 || at >= reachable.length - 1}
-            onClick={() => go(reachable[at + 1]!)}
-          >
-            Next
-          </Button>
-          <Button
-            size="small"
-            variant="ghost"
-            disabled={at < 0 || at >= reachable.length - 1}
-            onClick={() => go(reachable.at(-1)!)}
-          >
-            Last
-          </Button>
-          <Scrub
-            type="range"
-            min={0}
-            max={Math.max(reachable.length - 1, 0)}
-            value={Math.max(at, 0)}
-            aria-label={timeline.label}
-            aria-valuetext={`${step.code} ${step.title}`}
-            onChange={(event) => go(reachable[Number(event.currentTarget.value)]!)}
-          />
-          <Label>
-            <Muted>Viewing as</Muted>
-            <NativeSelect
-              value={timeline.viewer}
-              aria-label="Viewing as"
-              onChange={(event) => updateArgs({ [timeline.viewerArg]: event.currentTarget.value })}
-            >
-              {timeline.viewers.map((viewer) => (
-                <option key={viewer.id} value={viewer.id}>
-                  {viewer.label}
-                </option>
-              ))}
-            </NativeSelect>
-          </Label>
-          <ToggleButton
-            size="small"
-            variant="ghost"
-            pressed={follow}
-            tooltip="Each step is viewed as the seat that acted to reach it"
-            onClick={() => onFollow(!follow)}
-          >
-            Follow the acting seat
-          </ToggleButton>
-        </>
+      {timeline ? (
+        <StepNavigator timeline={timeline} follow={follow} onFollow={onFollow} />
       ) : (
         <Title>{state.title}</Title>
       )}
@@ -224,7 +223,7 @@ function Controls({
           {action.label}
         </Button>
       ))}
-      <Detail>{step ? step.detail : state.description}</Detail>
+      <Detail>{timeline ? timeline.steps[timeline.current]?.detail : state.description}</Detail>
     </Bar>
   );
 }
@@ -426,12 +425,12 @@ function HistoryTab({ traffic }: Readonly<{ traffic: TrafficEntry[] }>) {
 
 /** The steps tab: every step of the game, the one shown marked; a step the story can reach moves it there. */
 function StepsTab({ timeline, follow }: Readonly<{ timeline: DebuggerTimeline; follow: boolean }>) {
-  const [, updateArgs] = useArgs();
+  const go = useMoveTo(timeline, follow);
   const reachable = new Set(timeline.reachable);
   const current = React.useRef<HTMLTableRowElement>(null);
   React.useEffect(() => current.current?.scrollIntoView({ block: 'nearest' }), [timeline.current]);
   return (
-    <Scroll>
+    <TableScroll>
       <Table aria-label={`${timeline.label} steps`}>
         <thead>
           <tr>
@@ -451,13 +450,7 @@ function StepsTab({ timeline, follow }: Readonly<{ timeline: DebuggerTimeline; f
                 ref={step.index === timeline.current ? current : undefined}
                 aria-selected={step.index === timeline.current}
                 data-unreachable={canReach ? undefined : ''}
-                onClick={() =>
-                  canReach &&
-                  updateArgs({
-                    [timeline.stepArg]: step.index + 1,
-                    ...(follow && step.actor ? { [timeline.viewerArg]: step.actor } : {}),
-                  })
-                }
+                onClick={() => canReach && go(step.index)}
               >
                 <td>
                   <Code>{step.code}</Code>
@@ -473,25 +466,20 @@ function StepsTab({ timeline, follow }: Readonly<{ timeline: DebuggerTimeline; f
           })}
         </tbody>
       </Table>
-    </Scroll>
+    </TableScroll>
   );
 }
 
 type Tab = 'state' | 'history' | 'steps';
 
-/** The Play debugger panel, for a story whose parameters ask for it. */
-export function PlayDebuggerPanel({ active }: Readonly<{ active: boolean }>) {
-  const { state, traffic } = usePlayDebugger();
-  const { storyId } = useStorybookState();
+/** The tabs under the bar: the state now, the socket's history, and the steps when the story has them. */
+function DebuggerTabs({
+  state,
+  traffic,
+  follow,
+}: Readonly<{ state: DebuggerState; traffic: TrafficEntry[]; follow: boolean }>) {
   const [tab, setTab] = React.useState<Tab>('state');
-  const [follow, setFollow] = React.useState(false);
-  /* A panel opened after the story connected asks for what it missed. */
-  React.useEffect(() => {
-    if (active) {
-      addons.getChannel().emit(PLAY_DEBUGGER_EVENTS.request);
-    }
-  }, [active, storyId]);
-  const timeline = state?.timeline ?? null;
+  const { timeline } = state;
   const tabs: [Tab, string][] = [
     ['state', 'State'],
     ['history', `History (${traffic.length})`],
@@ -499,28 +487,40 @@ export function PlayDebuggerPanel({ active }: Readonly<{ active: boolean }>) {
   ];
   const shown = tab === 'steps' && !timeline ? 'state' : tab;
   return (
+    <>
+      <Tabs role="tablist" aria-label="Play debugger">
+        {tabs.map(([id, label]) => (
+          <TabButton key={id} role="tab" active={shown === id} aria-selected={shown === id} onClick={() => setTab(id)}>
+            {label}
+          </TabButton>
+        ))}
+      </Tabs>
+      <Body>
+        {shown === 'state' && <StateTab state={state} />}
+        {shown === 'history' && <HistoryTab traffic={traffic} />}
+        {shown === 'steps' && timeline && <StepsTab timeline={timeline} follow={follow} />}
+      </Body>
+    </>
+  );
+}
+
+/** The Play debugger panel, for a story whose parameters ask for it. */
+export function PlayDebuggerPanel({ active }: Readonly<{ active: boolean }>) {
+  const { state, traffic } = usePlayDebugger();
+  const { storyId } = useStorybookState();
+  const [follow, setFollow] = React.useState(false);
+  /* A panel opened after the story connected asks for what it missed. */
+  React.useEffect(() => {
+    if (active) {
+      addons.getChannel().emit(PLAY_DEBUGGER_EVENTS.request);
+    }
+  }, [active, storyId]);
+  return (
     <AddonPanel active={active} hasScrollbar={false}>
       {state ? (
         <Layout>
-          <Controls state={state} timeline={timeline} follow={follow} onFollow={setFollow} />
-          <Tabs role="tablist" aria-label="Play debugger">
-            {tabs.map(([id, label]) => (
-              <TabButton
-                key={id}
-                role="tab"
-                active={shown === id}
-                aria-selected={shown === id}
-                onClick={() => setTab(id)}
-              >
-                {label}
-              </TabButton>
-            ))}
-          </Tabs>
-          <Body>
-            {shown === 'state' && <StateTab state={state} />}
-            {shown === 'history' && <HistoryTab traffic={traffic} />}
-            {shown === 'steps' && timeline && <StepsTab timeline={timeline} follow={follow} />}
-          </Body>
+          <Controls state={state} follow={follow} onFollow={setFollow} />
+          <DebuggerTabs state={state} traffic={traffic} follow={follow} />
         </Layout>
       ) : (
         <Scroll>
