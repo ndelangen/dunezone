@@ -11,6 +11,8 @@ import { useMotionAllowed } from '@app/styles/motion';
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 import { handGroups } from './handGroups';
 
+type Outgoing = Readonly<{ where: 'table' | 'side'; commandId?: string }>;
+
 export type HandProps = Readonly<{ client: TableSession; table: TableProjection; hand: TablePiece[] }>;
 
 /** The table point just outside the viewer's faction token, where a piece played "in front of me" goes; the room finds the clear spot. */
@@ -32,9 +34,10 @@ const LEAVE_MS = 190;
  */
 export function useHandActions({ client, table, hand }: HandProps) {
   const motion = useMotionAllowed();
-  const [leaving, setLeaving] = useState<ReadonlyMap<string, 'table' | 'side'>>(new Map());
+  /* The pieces on their way out, and once sent, the command that takes them; a piece shows gone until the room refuses it. */
+  const [outgoing, setOutgoing] = useState<ReadonlyMap<string, Outgoing>>(new Map());
   /* The pieces animating out, whose commands wait; unmounting sends them at once rather than dropping them. */
-  const pending = useRef(new Map<number, () => void>());
+  const pending = useRef(new Map<number, () => unknown>());
   useEffect(
     () => () => {
       for (const [timer, send] of pending.current) {
@@ -45,7 +48,9 @@ export function useHandActions({ client, table, hand }: HandProps) {
     },
     []
   );
-  const { battle, battlePlan: plan, bank } = table.snapshot;
+  const { battle, bank } = table.snapshot;
+  /* After the reveal the plan is only the record of what was declared, and its pieces have gone wherever the battle sent them. */
+  const plan = battle && battle.stage !== 'revealed' ? table.snapshot.battlePlan : undefined;
   const factionId = bank?.factionId ?? hand[0]?.owner ?? undefined;
   const inHand = hand.filter((piece) => !piece.hiddenZone);
   const enabled = table.canHandleTable;
@@ -90,23 +95,34 @@ export function useHandActions({ client, table, hand }: HandProps) {
     }
   };
 
-  /* A piece first animates out of the hand, then its command goes; without motion it goes at once. */
-  const leave = (piece: TablePiece, where: 'table' | 'side', send: () => void) => {
+  /*
+   * A piece first animates out of the hand, then its command goes, and it stays out while the room has not answered;
+   * the room's hand then drops it, or a refusal brings it back. Without motion its command goes at once.
+   */
+  const leave = (piece: TablePiece, where: Outgoing['where'], send: () => string | undefined) => {
     if (!motion) {
       send();
       return;
     }
-    setLeaving((current) => new Map(current).set(piece.id, where));
+    setOutgoing((current) => new Map(current).set(piece.id, { where }));
     const timer = window.setTimeout(() => {
       pending.current.delete(timer);
-      send();
-      setLeaving((current) => {
+      const commandId = send();
+      setOutgoing((current) => {
         const next = new Map(current);
-        next.delete(piece.id);
+        if (commandId) {
+          next.set(piece.id, { where, commandId });
+        } else {
+          next.delete(piece.id);
+        }
         return next;
       });
     }, LEAVE_MS);
     pending.current.set(timer, send);
+  };
+  const leaving = (piece: TablePiece) => {
+    const entry = outgoing.get(piece.id);
+    return entry && (!entry.commandId || client.awaiting(entry.commandId)) ? entry.where : undefined;
   };
   const front = frontOf(table, factionId);
   const playReason = !enabled

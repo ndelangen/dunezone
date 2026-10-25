@@ -80,7 +80,7 @@ export function HandShelves(props: HandProps) {
       <div
         key={piece.id}
         className={styles.tile}
-        data-leaving={actions.leaving.get(piece.id)}
+        data-leaving={actions.leaving(piece)}
         data-planned={inPlan || undefined}
         data-round={piece.kind !== 'card' || undefined}
       >
