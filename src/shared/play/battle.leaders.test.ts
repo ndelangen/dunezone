@@ -3,6 +3,7 @@ import { expect, test } from 'vite-plus/test';
 import {
   battleActionSchema,
   battlePlanSchema,
+  publicBattleSchema,
   emptyBattlePlan,
   isBattleLeader,
   storedBattlePlanSchema,
@@ -38,4 +39,10 @@ test('a plan sent or stored with the single leaderId of before reads as a list o
     plan: { mode: 'max', troops: [], spice: 0, adjustment: 0, leaderId: 'stilgar', cardIds: [] },
   });
   expect(action.kind === 'battle-plan' && action.plan.leaderIds).toEqual(['stilgar']);
+});
+
+test('an early reveal cached with the single leader of before reads as a list of that one', () => {
+  const leader = freshTableState().pieces.find((piece) => piece.id === 'harkonnen-force-loose')!;
+  const [disclosed] = publicBattleSchema.shape.disclosed.parse([{ leader, cards: [] }, null])!;
+  expect(disclosed?.leaders?.map((piece) => piece.id)).toEqual([leader.id]);
 });

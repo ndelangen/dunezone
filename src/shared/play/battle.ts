@@ -79,12 +79,22 @@ export type BattlePlan = z.infer<typeof battlePlanSchema>;
 export type StoredBattlePlan = z.infer<typeof storedBattlePlanSchema>;
 const publicSideSchema = z.object({ factionId: id, ready: z.boolean(), choice: battleOutcomeSchema.nullable() });
 /** What everyone sees of a side's plan before the reveal: only the parts its faction chose to show. */
-const disclosedPlanSchema = z.object({
-  leaders: z.array(tablePieceSchema).optional(),
-  cards: z.array(tablePieceSchema),
-  /* Only the dial's number: which troops and how much spice back it stay secret until the reveal. */
-  dial: z.object({ strength: z.number() }).optional(),
-});
+const disclosedPlanSchema = z.preprocess(
+  /* A view a browser cached before a plan could hold several leaders shows one `leader`: it reads as a list of that one. */
+  (value) => {
+    if (typeof value !== 'object' || value === null || !('leader' in value) || 'leaders' in value) {
+      return value;
+    }
+    const { leader, ...rest } = value as { leader: unknown };
+    return leader ? { ...rest, leaders: [leader] } : rest;
+  },
+  z.object({
+    leaders: z.array(tablePieceSchema).optional(),
+    cards: z.array(tablePieceSchema),
+    /* Only the dial's number: which troops and how much spice back it stay secret until the reveal. */
+    dial: z.object({ strength: z.number() }).optional(),
+  })
+);
 export type DisclosedPlan = z.infer<typeof disclosedPlanSchema>;
 const disclosureSchema = z.discriminatedUnion('element', [
   z.strictObject({ element: z.literal('leader') }),
