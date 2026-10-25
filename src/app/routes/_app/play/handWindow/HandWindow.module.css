@@ -98,7 +98,17 @@
   opacity: 0;
 }
 
-/* A. Shelves */
+/* A. Shelves: the leaders take a row of their own, and the card groups sit side by side beneath it while they fit. */
+.shelves {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm) 18px;
+}
+
+.shelf[data-group="leaders"] {
+  flex-basis: 100%;
+}
+
 .shelf {
   display: flex;
   flex-direction: column;
@@ -108,8 +118,8 @@
 .shelfRow {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  padding-top: 4px;
+  gap: 8px;
+  padding-top: 2px;
 }
 
 .hoverActions {
@@ -213,8 +223,8 @@
 .ledgerRow {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 4px 6px;
+  gap: 8px;
+  padding: 2px 4px;
   border-radius: 8px;
   transition:
     background-color 120ms ease-out,
@@ -231,9 +241,7 @@
 }
 
 .ledgerName {
-  display: flex;
   flex: 1;
-  flex-direction: column;
   min-width: 0;
 }
 

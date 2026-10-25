@@ -55,27 +55,29 @@ function ShelvesHand({ model }: Readonly<{ model: HandWindowModel }>) {
     <div ref={ref} className={styles.stack}>
       {model.bank && <SpiceChips model={model} />}
       {model.groups.length ? (
-        model.groups.map((group) => (
-          <section key={group.key} className={styles.shelf} aria-label={group.label}>
-            <GroupCaption label={group.label} count={group.pieces.length} />
-            <div className={styles.shelfRow}>
-              {group.pieces.map((piece) => (
-                <HandTile
-                  key={piece.id}
-                  model={model}
-                  piece={piece}
-                  chrome={chrome}
-                  width={64}
-                  className={styles.hoverTile}
-                >
-                  <div className={styles.hoverActions}>
-                    <PieceActionButtons model={model} piece={piece} viewWidth={width} />
-                  </div>
-                </HandTile>
-              ))}
-            </div>
-          </section>
-        ))
+        <div className={styles.shelves}>
+          {model.groups.map((group) => (
+            <section key={group.key} className={styles.shelf} data-group={group.key} aria-label={group.label}>
+              <GroupCaption label={group.label} count={group.pieces.length} />
+              <div className={styles.shelfRow}>
+                {group.pieces.map((piece) => (
+                  <HandTile
+                    key={piece.id}
+                    model={model}
+                    piece={piece}
+                    chrome={chrome}
+                    width={group.key === 'leaders' ? 50 : 54}
+                    className={styles.hoverTile}
+                  >
+                    <div className={styles.hoverActions}>
+                      <PieceActionButtons model={model} piece={piece} viewWidth={width} />
+                    </div>
+                  </HandTile>
+                ))}
+              </div>
+            </section>
+          ))}
+        </div>
       ) : (
         <EmptyHand />
       )}
@@ -216,16 +218,14 @@ function LedgerHand({ model }: Readonly<{ model: HandWindowModel }>) {
       <ul className={styles.ledger} aria-label="Your hand">
         {shown.map((piece) => (
           <li key={piece.id} className={styles.ledgerRow} data-leaving={model.leaving.get(piece.id)}>
-            <HandTile model={model} piece={piece} chrome={chrome} width={36} className={styles.ledgerThumb} />
-            <span className={styles.ledgerName}>
-              <Text size="sm" fw={600} truncate>
-                {pieceName(piece)}
-              </Text>
-              <Text size="xs" c="dimmed">
+            <HandTile model={model} piece={piece} chrome={chrome} width={26} className={styles.ledgerThumb} />
+            <Text size="sm" fw={600} truncate className={styles.ledgerName}>
+              {pieceName(piece)}{' '}
+              <Text component="span" size="xs" c="dimmed" fw={400}>
                 {isBattleLeader(piece) ? 'Leader' : (piece.items[0]?.artwork?.backName ?? 'Card')}
-                {model.inPlan(piece) ? ' · in battle plan' : ''}
+                {model.inPlan(piece) ? ' · in plan' : ''}
               </Text>
-            </span>
+            </Text>
             <PieceActionButtons model={model} piece={piece} viewWidth={width} emphasis="quiet" />
           </li>
         ))}

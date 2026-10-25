@@ -1,5 +1,6 @@
 import preview from '@sb/preview';
 
+import type { StoredSnapshot } from '../../../../../../workers/game/state';
 import { gameMeta, install } from '../game.stories.fixture';
 import { chapter, journeyViewers } from '../journey.stories.fixture';
 import { sandboxTransport } from '../sandbox.stories.fixture';
@@ -22,11 +23,42 @@ const meta = preview.meta({
   tags: ['!test'],
 });
 
+/* Treachery cards from the production catalogue, beside the recording's one Snooper, so the hand holds a real mix. */
+const TREACHERY = [
+  ['crysknife', 'Crysknife'],
+  ['chaumas', 'Chaumas'],
+  ['shield', 'Shield'],
+  ['cheap-hero', 'Cheap Hero'],
+] as const;
+
+/* Atreides draws them as Treachery cards are drawn: copies of its Snooper with each card's own face. */
+function withTreachery(stored: StoredSnapshot): StoredSnapshot {
+  const hand = stored.factionInventories['house-atreides'] ?? [];
+  const snooper = hand.find((piece) => piece.items[0]?.artwork?.name === 'Snooper');
+  if (!snooper) {
+    return stored;
+  }
+  const drawn = TREACHERY.map(([file, name]) => ({
+    ...snooper,
+    id: `story-treachery-${file}`,
+    items: snooper.items.map((item) => ({
+      ...item,
+      id: `story-treachery-${file}-item`,
+      artwork: { ...item.artwork!, name, front: item.artwork!.front!.replace('snooper.jpg', `${file}.jpg`) },
+    })),
+  }));
+  return { ...stored, factionInventories: { ...stored.factionInventories, 'house-atreides': [...hand, ...drawn] } };
+}
+
 /* The live table from the recorded journey: Atreides (seat 2) mid-battle at Arrakeen, or earlier at Shipment with no battle. */
-const inBattle = ({ args }: { args: { seat?: string } }) =>
-  install(() => sandboxTransport({ start: chapter('Battle plan') - 1, seat: args.seat ?? 'seat-2' }))();
-const quiet = ({ args }: { args: { seat?: string } }) =>
-  install(() => sandboxTransport({ start: chapter('Shipment') - 1, seat: args.seat ?? 'seat-2' }))();
+const at =
+  (title: string) =>
+  ({ args }: { args: { seat?: string } }) =>
+    install(() =>
+      sandboxTransport({ start: chapter(title) - 1, seat: args.seat ?? 'seat-2', prepare: withTreachery })
+    )();
+const inBattle = at('Battle plan');
+const quiet = at('Shipment');
 
 /** A. Shelves: rows by kind, hover a piece for its one-click actions, spice by one-click amounts. */
 export const AShelves = meta.story({ name: 'A Shelves', args: { variant: 'shelves' }, beforeEach: inBattle });
