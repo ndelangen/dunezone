@@ -1,19 +1,24 @@
-import { Button, Group, Text } from '@mantine/core';
+import { Button, Group, Text, VisuallyHidden } from '@mantine/core';
 import { _roots } from '@react-three/fiber/webgpu';
-import { Check, RotateCcw } from 'lucide-react';
+import { Eyebrow } from '@ui/content/Eyebrow';
+import { KeyedText } from '@ui/content/Kbd';
+import { RotateCcw } from 'lucide-react';
 import { useEffect, useEffectEvent, useId, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import { Vector3 } from 'three';
 import type { Camera, Vector3Tuple } from 'three';
 
+import { useMotionAllowed } from '@app/styles/motion';
+
+import { DarkSchemeIsland, darkSchemeIslandAttributes } from '../play/DarkSchemeIsland';
 import { ChapterComplete } from './ChapterComplete';
-import { guideShapePath } from './guideArrow';
-import { keepInView } from './guideArrow';
+import { guideShapePath, keepInView, transposed } from './guideArrow';
 import type { Target } from './guideArrow';
 import styles from './TutorialGuide.module.css';
 
 /*
- * A tutorial chapter over the live Play table: a band above the table says the one thing to do now, one pointer shows where,
+ * A tutorial chapter beside the live Play table: a rail down the left lists the chapter's tasks and opens the one to do now,
+ * an arrow grown from the rail shows where,
  * and the chapter moves on only once the player has done it. There is no Next button; the table itself is the answer.
  * The pointer follows a point on the table through the table's own camera every frame, or an element of the page.
  */
@@ -45,8 +50,6 @@ export type GuideTask<Baseline = unknown> = Readonly<{
 const DONE_PAUSE_MS = 900;
 /* How many frames the camera holds still before a run's first task takes its baseline. */
 const SETTLE_FRAMES = 20;
-/* The band's height, which the page frame below it makes room for. */
-const BAND_HEIGHT = '4.5rem';
 
 const projected = new Vector3();
 
@@ -75,27 +78,44 @@ function settling() {
   };
 }
 
-/* `below` is the band's lower edge: what is out of view is pointed toward from under the band, where the arrow can reach. */
-function place(anchor: GuideAnchor, below: number): Target | null {
-  return anchor.kind === 'page' ? onScreen(anchor.element(), below) : onTable(anchor.point(), below);
+/* The part of the window the guide leaves to the page, where what is out of view is pointed toward from its edge. */
+type Box = Readonly<{
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+}>;
+
+function place(anchor: GuideAnchor, shown: Box): Target | null {
+  return anchor.kind === 'page' ? onScreen(anchor.element(), shown) : onTable(anchor.point(), shown);
 }
 
-/* The window under the band, where a part of the page off its edges is pointed toward. */
-const windowBox = (below: number) => ({ left: 0, top: below, right: window.innerWidth, bottom: window.innerHeight });
+/* The window right of the rail. */
+const windowBox = (rail: DOMRect | undefined): Box => ({
+  left: rail?.right ?? 0,
+  top: 0,
+  right: window.innerWidth,
+  bottom: window.innerHeight,
+});
 
-function onScreen(element: Element | null, below: number): Target | null {
+function onScreen(element: Element | null, shown: Box): Target | null {
   const box = element?.getBoundingClientRect();
   if (!box || box.width <= 0) {
     return null;
   }
   return keepInView(
-    { x: box.left + box.width / 2, y: box.top + box.height / 2, halfWidth: box.width / 2, halfHeight: box.height / 2 },
-    windowBox(below)
+    {
+      x: box.left + box.width / 2,
+      y: box.top + box.height / 2,
+      halfWidth: box.width / 2,
+      halfHeight: box.height / 2,
+    },
+    shown
   );
 }
 
 /* A point on the table where the camera shows it; one out of view, or behind the camera, is pointed toward from the table's edge. */
-function onTable(point: Vector3Tuple | null, below: number): Target | null {
+function onTable(point: Vector3Tuple | null, shown: Box): Target | null {
   const view = tableView();
   if (!view || !point) {
     return null;
@@ -112,7 +132,6 @@ function onTable(point: Vector3Tuple | null, below: number): Target | null {
     const length = Math.hypot(x, y);
     [x, y] = length < 1e-6 ? [0, -10] : [(-x / length) * 10, (-y / length) * 10];
   }
-  const shown = windowBox(below);
   const visible = {
     left: Math.max(box.left, shown.left),
     top: Math.max(box.top, shown.top),
@@ -122,24 +141,42 @@ function onTable(point: Vector3Tuple | null, below: number): Target | null {
   /* A table scrolled wholly out of the window is pointed toward from the window's edge instead. */
   const empty = visible.left >= visible.right || visible.top >= visible.bottom;
   return keepInView(
-    { x: box.left + ((x + 1) / 2) * box.width, y: box.top + ((1 - y) / 2) * box.height, halfWidth: 0, halfHeight: 0 },
+    {
+      x: box.left + ((x + 1) / 2) * box.width,
+      y: box.top + ((1 - y) / 2) * box.height,
+      halfWidth: 0,
+      halfHeight: 0,
+    },
     empty ? shown : visible
   );
 }
 
 /*
- * Redraws the band's outline, with its arrow toward a spot when there is one.
- * The arrow leaves the band partway between the task's number and the spot, so it reads as coming from the instruction.
+ * Redraws the rail's outline, with its arrow toward a spot when there is one.
+ * The arrow leaves the rail partway between the task's number and the spot, so it reads as coming from the instruction.
+ * The outline is worked out as if the rail lay along the top of the window, then turned onto its side: mirrored across the diagonal.
  */
-function aim(paths: readonly (SVGPathElement | null)[], badge: DOMRect, band: DOMRect, spot: Target | null) {
+function aim(paths: readonly (SVGPathElement | null)[], badge: DOMRect, rail: DOMRect, spot: Target | null) {
+  const flip = (box: DOMRect) => new DOMRect(box.y, box.x, box.height, box.width);
+  const along = spot && {
+    x: spot.y,
+    y: spot.x,
+    halfWidth: spot.halfHeight,
+    halfHeight: spot.halfWidth,
+  };
+  const edges = flip(rail);
+  const mark = flip(badge);
   const margin = 60;
   const clamp = (value: number, low: number, high: number) => Math.min(high, Math.max(low, value));
-  const midway = (badge.left + badge.width / 2 + (spot?.x ?? 0)) / 2;
-  /* It drops at least as steeply as it runs sideways, so a target close under the band is not pointed at along the band's edge. */
-  const drop = Math.max(0, (spot?.y ?? 0) - band.bottom);
-  const steep = spot ? clamp(midway, spot.x - drop, spot.x + drop) : midway;
-  const root = { x: clamp(steep, band.left + margin, band.right - margin), y: band.bottom };
-  const outline = guideShapePath(band, root, spot);
+  const midway = (mark.left + mark.width / 2 + (along?.x ?? 0)) / 2;
+  /* It runs out at least as steeply as it runs along the rail, so a target close beside the rail is not pointed at along its edge. */
+  const drop = Math.max(0, (along?.y ?? 0) - edges.bottom);
+  const steep = along ? clamp(midway, along.x - drop, along.x + drop) : midway;
+  const root = {
+    x: clamp(steep, edges.left + margin, edges.right - margin),
+    y: edges.bottom,
+  };
+  const outline = transposed(guideShapePath(edges, root, along));
   /* The shape casts blurred shadows, so it is redrawn only when it changes, not every frame. */
   if (paths[0]?.getAttribute('d') === outline) {
     return;
@@ -151,25 +188,36 @@ function aim(paths: readonly (SVGPathElement | null)[], badge: DOMRect, band: DO
   paths[0]?.setAttribute('data-target', spot ? `${Math.round(spot.x)} ${Math.round(spot.y)}` : '');
 }
 
+/*
+ * How wide the rail is. The rail gives way first, down to a floor of 16rem, so the table beside it keeps 720px on any desktop window
+ * wider than 976px. The rail never covers the table (Norbert, 2026-10-25): in a narrower window the table gets narrower too,
+ * as Play is desktop-only for now.
+ */
+const TABLE_MIN_WIDTH = '720px';
+const RAIL_WIDTH = `clamp(16rem, 100vw - ${TABLE_MIN_WIDTH}, 25rem)`;
+
 /**
  * The guide for one chapter, beside whatever page holds the table.
  * Callers own the tasks and what Reset puts back;
- * this owns the order, the checking, the band and the pointer.
+ * this owns the order, the checking, the rail and its arrow.
  */
 export function TutorialGuide({
   number,
   title,
   tasks,
+  firstTask = 0,
   learned,
   onReset,
   chaptersLink,
   nextLink,
   children,
 }: Readonly<{
-  /** The chapter's place in the tutorial; a play-test chapter has none. */
-  number: number | null;
+  /** The chapter's place in the tutorial. */
+  number: number;
   title: string;
   tasks: readonly GuideTask[];
+  /** The task the guide opens at, counted from 0; Reset still starts from the first. */
+  firstTask?: number;
   /** What the chapter taught, listed when it ends. */
   learned: readonly string[];
   onReset: () => void;
@@ -179,22 +227,23 @@ export function TutorialGuide({
   nextLink?: ((props: object) => ReactNode) | undefined;
   children: ReactNode;
 }>) {
-  const [current, setCurrent] = useState(0);
+  const [current, setCurrent] = useState(() => Math.min(firstTask, tasks.length - 1));
   const [run, setRun] = useState(0);
   /* Which task, in which run, the player has just done; its tick shows until the next task starts. */
   const [doneKey, setDoneKey] = useState<string | null>(null);
   const fill = useRef<SVGPathElement>(null);
   const edge = useRef<SVGPathElement>(null);
-  const band = useRef<HTMLElement>(null);
+  const rail = useRef<HTMLElement>(null);
   const step = useRef<HTMLSpanElement>(null);
   const task = tasks[current];
-  const kicker = number === null ? 'Play-test' : `Chapter ${number}`;
+  const motion = useMotionAllowed();
+  const kicker = `Chapter ${number}`;
   /* The loop below follows the task by its id, so a caller that builds its task list afresh on each render does not restart it. */
   const taskId = task?.id;
   const currentTask = useEffectEvent(() => tasks[current]);
   const inset = `${useId()}-inset`;
   const finished = doneKey === `${run}:${current}`;
-  /* Which run has its table in place; until then the band says it is setting up, so nothing the player does is lost. */
+  /* Which run has its table in place; until then the rail says it is setting up, so nothing the player does is lost. */
   const [readyRun, setReadyRun] = useState<number | null>(null);
   const waiting = readyRun !== run;
 
@@ -204,12 +253,13 @@ export function TutorialGuide({
     const task = currentTask();
     const draw = (spot: Target | null) => {
       const badge = step.current?.getBoundingClientRect();
-      const box = band.current?.getBoundingClientRect();
-      if (badge && box) {
-        aim([fill.current, edge.current], badge, box, spot);
+      const box = rail.current?.getBoundingClientRect();
+      /* With no number showing, as once the chapter is done, the arrow-less outline still needs a box to draw from. */
+      if (box) {
+        aim([fill.current, edge.current], badge ?? box, box, spot);
       }
     };
-    /* Once the chapter is done the band stays, without its arrow. */
+    /* Once the chapter is done the rail stays, without its arrow. */
     if (!task) {
       const still = () => {
         frame = requestAnimationFrame(still);
@@ -223,7 +273,7 @@ export function TutorialGuide({
     let doneAt: number | null = null;
     /*
      * As a run opens the camera may still be gliding into its view, so its first task starts counting from where it comes to rest,
-     * and the band shows the task only then. Later tasks start at once, so a move the player makes straight away counts.
+     * and the rail shows the task only then. Later tasks start at once, so a move the player makes straight away counts.
      */
     const settled = current === 0 ? settling() : () => true;
     const start = (view: GuideView) => {
@@ -237,7 +287,11 @@ export function TutorialGuide({
     const tick = () => {
       frame = requestAnimationFrame(tick);
       const view = { camera: tableView()?.camera ?? null };
-      draw(started && doneAt === null ? place(task.anchor, band.current?.getBoundingClientRect().bottom ?? 0) : null);
+      const spot =
+        started && doneAt === null ? place(task.anchor, windowBox(rail.current?.getBoundingClientRect())) : null;
+      draw(spot);
+      /* With nothing on screen to point at, only a key can be the way in, so the keys in the task call for attention instead. */
+      rail.current?.toggleAttribute('data-keys-only', started && doneAt === null && spot === null);
       if (!started) {
         started = start(view);
       }
@@ -268,98 +322,117 @@ export function TutorialGuide({
     setRun((count) => count + 1);
   };
 
-  /* What the band says: setting up, the task at hand, or that the chapter is done. */
-  const line = () => {
-    if (!task) {
-      return (
-        <>
-          <span ref={step} className={styles.step} data-done>
-            <Check size={16} aria-hidden />
-          </span>
-          <div>
-            <Text fw={700}>Chapter done</Text>
-            <Text size="sm" c="dimmed">
-              You know your way around the table. Pick the next chapter, or reset to try again.
-            </Text>
-          </div>
-        </>
-      );
-    }
-    if (waiting) {
-      return (
-        <>
-          <span ref={step} className={styles.step}>
-            {current + 1}
-          </span>
-          <Text fw={700}>Setting the table…</Text>
-        </>
-      );
-    }
+  /*
+   * A task in the rail, with its number on the arrow's side of the list. The one at hand is large and opens to say where;
+   * done and coming tasks are one small line each, and the coming ones blur the further off they are, so the eye lands on the task at hand.
+   * Each part is always there and only its look changes with the task's state, so a task can grow, shrink and tick over smoothly.
+   */
+  const railTask = (index: number) => {
+    const item = tasks[index]!;
+    const done = index < current || (index === current && finished);
+    const open = index === current && !waiting;
     return (
       <>
-        <span ref={step} className={styles.step} data-done={finished || undefined}>
-          {finished ? <Check size={16} aria-hidden /> : current + 1}
+        <span ref={index === current ? step : undefined} className={styles.step}>
+          <span className={styles.number}>{index + 1}</span>
+          <svg className={styles.tick} viewBox="0 0 24 24" aria-hidden>
+            <path d="M5 12.5 9.5 17 19 7" pathLength={1} />
+          </svg>
         </span>
-        <div>
-          {/* The band keeps its height, so the task is cut to fit rather than reaching under it into the table. */}
-          <Text fw={700} lineClamp={1}>
-            {task.task}
-          </Text>
-          <Text size="sm" c="dimmed" lineClamp={2}>
-            {task.detail}
-          </Text>
+        <div className={styles.railText}>
+          <p className={styles.railTitle}>
+            {index === current && waiting ? 'Setting the table…' : <KeyedText>{item.task}</KeyedText>}
+            {done && <VisuallyHidden> (done)</VisuallyHidden>}
+          </p>
+          <div className={styles.railMore} aria-hidden={!open}>
+            <p className={styles.railDetail}>
+              <KeyedText>{item.detail}</KeyedText>
+            </p>
+          </div>
         </div>
       </>
     );
   };
+  const chapterDone = (
+    <div className={styles.railText}>
+      <p className={styles.railTitle}>Chapter done</p>
+      <p className={styles.railEnd}>Pick the next chapter, or reset to try again.</p>
+    </div>
+  );
+  const frameStyle = {
+    '--page-layout-fullscreen-left': RAIL_WIDTH,
+    '--rail-width': RAIL_WIDTH,
+  };
 
   return (
-    <div className={styles.frame} style={{ '--page-layout-fullscreen-top': BAND_HEIGHT } as CSSProperties}>
-      <div className={styles.guide}>
-        <svg className={styles.shape} aria-hidden>
-          <defs>
-            {/* A shadow cast inward from every edge of the outline, so the band's depth follows it into the arrow. */}
-            <filter id={inset} x="-5%" y="-5%" width="110%" height="110%">
-              <feComponentTransfer in="SourceAlpha" result="outside">
-                <feFuncA type="table" tableValues="1 0" />
-              </feComponentTransfer>
-              <feGaussianBlur in="outside" stdDeviation="7" />
-              <feOffset dy="2" result="spread" />
-              <feFlood floodColor="#000" floodOpacity="0.75" />
-              <feComposite in2="spread" operator="in" />
-              <feComposite in2="SourceAlpha" operator="in" result="inset" />
-              <feMerge>
-                <feMergeNode in="SourceGraphic" />
-                <feMergeNode in="inset" />
-              </feMerge>
-            </filter>
-          </defs>
-          <path ref={fill} className={styles.fill} data-tutorial-pointer filter={`url(#${inset})`} />
-          <path ref={edge} className={styles.edge} />
-        </svg>
-        <header ref={band} className={styles.band} data-tutorial-free aria-label={`${kicker}: ${title}`}>
-          <div className={styles.chapter}>
-            <Text size="xs" fw={700} tt="uppercase" c="dimmed">
-              {kicker}
-            </Text>
-            <Text fw={700}>{title}</Text>
-          </div>
-          <div className={styles.task} aria-live="polite">
-            {line()}
-          </div>
-          <Group gap="xs" wrap="nowrap">
-            <Text size="sm" c="dimmed" className={styles.count}>
-              {Math.min(current + 1, tasks.length)} of {tasks.length}
-            </Text>
-            <Button variant="default" size="xs" leftSection={<RotateCcw size={14} aria-hidden />} onClick={reset}>
-              Reset
-            </Button>
-            <Button variant="default" size="xs" renderRoot={chaptersLink}>
-              Back to chapters
-            </Button>
-          </Group>
-        </header>
-      </div>
+    <div className={styles.frame} style={frameStyle as CSSProperties}>
+      <DarkSchemeIsland>
+        <div className={styles.guide} {...darkSchemeIslandAttributes} data-motion={motion ? undefined : 'reduce'}>
+          <svg className={styles.shape} aria-hidden>
+            <defs>
+              {/* A shadow cast inward from every edge of the outline, so the rail's depth follows it into the arrow. */}
+              <filter id={inset} x="-5%" y="-5%" width="110%" height="110%">
+                <feComponentTransfer in="SourceAlpha" result="outside">
+                  <feFuncA type="table" tableValues="1 0" />
+                </feComponentTransfer>
+                <feGaussianBlur in="outside" stdDeviation="7" />
+                <feOffset dy="2" result="spread" />
+                <feFlood floodColor="#000" floodOpacity="0.75" />
+                <feComposite in2="spread" operator="in" />
+                <feComposite in2="SourceAlpha" operator="in" result="inset" />
+                <feMerge>
+                  <feMergeNode in="SourceGraphic" />
+                  <feMergeNode in="inset" />
+                </feMerge>
+              </filter>
+            </defs>
+            <path ref={fill} className={styles.fill} data-tutorial-pointer filter={`url(#${inset})`} />
+            <path ref={edge} className={styles.edge} />
+          </svg>
+          <header ref={rail} className={styles.rail} data-tutorial-free aria-label={`${kicker}: ${title}`}>
+            <div className={styles.railHead}>
+              <Eyebrow>{`${kicker} · ${Math.min(current + 1, tasks.length)} of ${tasks.length}`}</Eyebrow>
+              <Text fz="xl" fw={700}>
+                {title}
+              </Text>
+              <div
+                className={styles.progress}
+                style={
+                  {
+                    '--progress': (current + (finished ? 1 : 0)) / tasks.length,
+                  } as CSSProperties
+                }
+              />
+            </div>
+            <ol className={styles.railSteps} aria-live="polite">
+              {tasks.map((item, index) => (
+                <li
+                  key={item.id}
+                  className={styles.railStep}
+                  data-state={index < current ? 'done' : index === current ? 'current' : 'next'}
+                  data-ticked={index < current || (index === current && finished) || undefined}
+                  style={{ '--ahead': Math.max(0, index - current) } as CSSProperties}
+                >
+                  {railTask(index)}
+                </li>
+              ))}
+              {!task && (
+                <li className={styles.railStep} data-state="current">
+                  {chapterDone}
+                </li>
+              )}
+            </ol>
+            <Group gap="xs" wrap="nowrap" className={styles.railFoot}>
+              <Button variant="default" size="sm" leftSection={<RotateCcw size={14} aria-hidden />} onClick={reset}>
+                Reset
+              </Button>
+              <Button variant="default" size="sm" renderRoot={chaptersLink}>
+                Back to chapters
+              </Button>
+            </Group>
+          </header>
+        </div>
+      </DarkSchemeIsland>
       {/* Under the end of a chapter the table holds still: nothing in it takes focus, clicks or keys. */}
       <div className={styles.table} inert={!task}>
         {children}
