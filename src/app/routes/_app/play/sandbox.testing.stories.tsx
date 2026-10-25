@@ -1,5 +1,6 @@
 import { PLAY_DEBUGGER_EVENTS } from '@sb/playDebugger/events';
 import { testingPreview } from '@sb/preview';
+import { factionTokenOf } from '@shared/play/factionToken';
 import { addons } from 'storybook/preview-api';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
@@ -254,11 +255,18 @@ export const HiddenZone = meta.story({
     await waitFor(() => expect(carried()!.getBoundingClientRect().left).toBeCloseTo(first + 30, 0));
     const spotBefore = shown().hand!.find((candidate) => candidate.id === leader.id)!.hiddenZone!;
     press('pointerup', fromX + 60, fromY + 10);
+    /* It lands where it is let go at once: no frame draws it back where it was picked up, as a transition on its place would. */
+    const landed: number[] = [];
+    /* Watched from the change that lays it down, which the wait sees as it happens. */
     await waitFor(() => expect(carried()).toBeNull());
+    for (let frame = 0; frame < 6; frame++) {
+      landed.push(zoneLeader.getBoundingClientRect().left);
+      await new Promise((settle) => requestAnimationFrame(settle));
+    }
+    await expect(landed.map((left) => Math.round(left - before.left))).toEqual(landed.map(() => 60));
     await waitFor(() =>
       expect(shown().hand!.find((candidate) => candidate.id === leader.id)!.hiddenZone!.x).toBeGreaterThan(spotBefore.x)
     );
-    await waitFor(() => expect(zoneLeader.getBoundingClientRect().left).toBeCloseTo(before.left + 60, 0));
 
     /* Escape puts a carried piece back where it was, and the release that follows sends nothing. */
     const kept = () => shown().hand!.find((candidate) => candidate.id === leader.id)!.hiddenZone!;
@@ -404,27 +412,35 @@ export const HiddenZone = meta.story({
     window.dispatchEvent(new KeyboardEvent('keyup', { key: 'Alt', altKey: false }));
     await waitFor(() => expect(closeUp()).toBeNull());
 
-    /* Carried out of the zone and let go over the table, the leader is played there, as a drag from the hand plays it. */
+    /* Carried past the zone's edge, the leader stays whole inside it, and is laid at the edge where it was let go. */
     await openTab(page, 'Private side-table');
     /* The zone drew its pieces afresh when its tab came back. */
     zoneLeader = await page.findByRole('button', { name: leaderName }, { timeout: 30_000 });
+    const zone = zoneLeader.parentElement!.getBoundingClientRect();
+    const insideZone = (box: DOMRect) =>
+      box.left >= zone.left - 0.5 &&
+      box.right <= zone.right + 0.5 &&
+      box.top >= zone.top - 0.5 &&
+      box.bottom <= zone.bottom + 0.5;
     const start = zoneLeader.getBoundingClientRect();
-    /* The spot nearest the table's centre that no window covers, whatever the viewport: a window may sit over the centre. */
-    const canvasNode = canvasElement.ownerDocument.querySelector('canvas')!;
-    const canvas = canvasNode.getBoundingClientRect();
-    const spots = Array.from({ length: 81 }, (_, index) => [
-      canvas.left + (canvas.width * (1 + (index % 9))) / 10,
-      canvas.top + (canvas.height * (1 + Math.floor(index / 9))) / 10,
-    ]);
-    const fromCentre = ([x, y]: number[]) =>
-      Math.hypot(x! - canvas.left - canvas.width / 2, y! - canvas.top - canvas.height / 2);
-    spots.sort((a, b) => fromCentre(a) - fromCentre(b));
-    const overTable = spots.find(([x, y]) => canvasElement.ownerDocument.elementFromPoint(x!, y!) === canvasNode)!;
-    await expect(overTable, 'no spot of the table is left uncovered').toBeDefined();
     press('pointerdown', start.left + start.width / 2, start.top + start.height / 2);
-    press('pointermove', overTable[0]!, overTable[1]!);
-    press('pointerup', overTable[0]!, overTable[1]!);
+    press('pointermove', zone.right + 400, zone.top - 300);
+    await waitFor(() => expect(carried()).not.toBeNull());
+    await expect(insideZone(carried()!.getBoundingClientRect())).toBe(true);
+    press('pointerup', zone.right + 400, zone.top - 300);
+    await waitFor(() => expect(Math.round(zone.right - zoneLeader.getBoundingClientRect().right)).toBe(0));
+    await expect(insideZone(zoneLeader.getBoundingClientRect())).toBe(true);
+    await expect(shown().hand!.find((candidate) => candidate.id === leader.id)?.hiddenZone).toBeDefined();
+
+    /* Its menu places it on the table instead, beside the faction's own token, face down as a play from the hand. */
+    zoneLeader.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, clientX: start.left, clientY: start.top }));
+    await userEvent.click(await page.findByRole('menuitem', { name: 'Place on table' }));
     await waitFor(() => expect(shown().hand!.some((candidate) => candidate.id === leader.id)).toBe(false));
+    const placed = table.room.snapshot.table.pieces.find((candidate) => candidate.id === leader.id)!;
+    const token = factionTokenOf(table.room.snapshot.table.pieces, faction)!;
+    await expect(
+      Math.hypot(placed.position[0] - token.position[0], placed.position[2] - token.position[2])
+    ).toBeLessThan(2);
   },
 });
 
