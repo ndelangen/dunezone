@@ -27,6 +27,11 @@ export const SpiceReserve = meta.story({
     await userEvent.clear(amount);
     await userEvent.type(amount, '38');
     await expect(page.getByRole('button', { name: 'Withdraw spice' })).toBeDisabled();
+    /* Clicking Withdraw moves focus off the amount, and the amount past the balance stays as typed, so nothing is withdrawn. */
+    await userEvent.click(page.getByRole('button', { name: 'Withdraw spice' }));
+    await expect(amount).toHaveValue('38');
+    await expect(page.getByRole('button', { name: 'Withdraw spice' })).toBeDisabled();
+    await expect(lastCommand()).toBeUndefined();
     await userEvent.clear(amount);
     await userEvent.type(amount, '37');
     await userEvent.click(page.getByRole('button', { name: 'Withdraw spice' }));

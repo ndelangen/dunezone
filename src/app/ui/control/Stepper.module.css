@@ -67,6 +67,11 @@
   color: var(--color-brand);
 }
 
+/* A typed count past the limits, kept until it is changed, settled with Enter or dropped with Escape. */
+.stepValue[aria-invalid] {
+  color: var(--color-error);
+}
+
 .stepper:focus-within {
   border-color: rgb(from var(--color-brand) r g b / 0.65);
 }

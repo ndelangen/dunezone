@@ -34,7 +34,8 @@ export type StepperProps = {
 };
 
 /**
- * A count with − and + either side: one click per step, the wheel over it steps too, and typing commits on Enter or blur.
+ * A count with − and + either side: one click per step, the wheel over it steps too, and typing commits on Enter or blur
+ * (Escape drops it).
  * At either end the value knocks against its limit instead of silently refusing.
  */
 export function Stepper({
@@ -81,14 +82,25 @@ export function Stepper({
     }
     stepBy(event.deltaY < 0 ? step : -step);
   };
-  const commit = () => {
-    if (draft !== null) {
-      const next = current();
-      if (next !== value) {
-        go(next);
-      }
-      setDraft(null);
+  /* Whether what is typed is a count the stepper can take as it stands. */
+  const typedFits = () => {
+    const typed = draft === null || draft.trim() === '' ? NaN : Number(draft);
+    return Number.isFinite(typed) && typed >= min && typed <= max;
+  };
+  const invalid = draft !== null && !typedFits();
+  /*
+   * Enter settles what is typed, onto the limit when it is past one. Leaving the field takes only a count that fits:
+   * one that does not stays, marked, so the click that moved focus away cannot act on a value nobody chose.
+   */
+  const commit = (settle: boolean) => {
+    if (draft === null || (!settle && invalid)) {
+      return;
     }
+    const next = current();
+    if (next !== value) {
+      go(next);
+    }
+    setDraft(null);
   };
   return (
     <div
@@ -113,13 +125,17 @@ export function Stepper({
         aria-label={label}
         inputMode="decimal"
         disabled={disabled}
+        aria-invalid={invalid || undefined}
         value={draft ?? format(value)}
         onChange={(event) => setDraft(event.currentTarget.value)}
         onFocus={(event) => event.currentTarget.select()}
-        onBlur={commit}
+        onBlur={() => commit(false)}
         onKeyDown={(event) => {
           if (event.key === 'Enter') {
+            commit(true);
             event.currentTarget.blur();
+          } else if (event.key === 'Escape') {
+            setDraft(null);
           } else if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
             event.preventDefault();
             stepBy(event.key === 'ArrowUp' ? step : -step);

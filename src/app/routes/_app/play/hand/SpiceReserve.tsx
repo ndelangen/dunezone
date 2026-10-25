@@ -5,7 +5,7 @@ import { useState } from 'react';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 import { SPICE_RESERVE_HELP } from '../multiplayer/panelGuidance';
-import styles from './Hand.module.css';
+import styles from './SpiceReserve.module.css';
 
 /**
  * The faction's private spice reserve: its balance, and the amount to withdraw onto the table, on the kit stepper: − and +, the wheel, or typed.
