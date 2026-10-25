@@ -1,4 +1,8 @@
-/* The compass controls' root over the table, in the table's sand-on-leather palette, and the small pieces every part shares. */
+/*
+ * The compass controls' root over the table, in the table's sand-on-leather palette, and the small pieces every part
+ * shares. The root is the size container: the windows, the slots and the compass take their measure from the table's
+ * box, not the viewport, so a table beside other content lays out as a table of that size.
+ */
 
 .root {
   --glass: rgba(20, 14, 11, 0.86);
@@ -9,9 +13,13 @@
   --ink-dim: #bdb3a4;
   --radius: 14px;
   --shadow: 0 18px 40px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.4);
+  /* The gap the slots and the bar keep from the table's edges (slotLimits.ts measures with the same 12px). */
+  --edge-gap: 12px;
+  --slot-width: clamp(18rem, 27cqw, 30rem);
   position: absolute;
   inset: 0;
   overflow: clip;
+  container-type: size;
   color: var(--ink);
 }
 

@@ -57,6 +57,30 @@ export const PinnedHandAndAlly = meta.story({
   ],
 });
 
+/* Both slots pinned and every chat in the bar, so the bar and the slots have to share the table's width. */
+const bothSlotsAndAllChats = [
+  install(() => productTransport('seat-2')),
+  () => pinned({ left: { key: 'hand', tab: 'public' }, right: { key: 'table-chat', tab: 'conversation' } }, true),
+];
+
+/** The narrowest table: the slots rise above the chat bar, which has the width to itself. */
+export const Width760 = meta.story({
+  globals: { viewport: { value: 'table760' } },
+  beforeEach: bothSlotsAndAllChats,
+});
+
+/** A middling table: the slots at their least width still leave no room for the bar beside them. */
+export const Width1000 = meta.story({
+  globals: { viewport: { value: 'table1000' } },
+  beforeEach: bothSlotsAndAllChats,
+});
+
+/** A wide table: both slots stand on the table's edge beside the bar. */
+export const Width1280 = meta.story({
+  globals: { viewport: { value: 'table1280' } },
+  beforeEach: bothSlotsAndAllChats,
+});
+
 /** A quiet moment: no battle and no ally, so those two arms show what's missing. */
 export const Quiet = meta.story({
   beforeEach: [install(() => productTransport('seat-2')), () => pinned({ left: null, right: null }, false)],

@@ -4,7 +4,7 @@ import { act, cleanup, renderHook } from '@testing-library/react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import { afterEach, beforeEach, expect, test } from 'vite-plus/test';
 
-import { MIN_SLOT_HEIGHT, OVERLAY_GAP, RESIZE_STEP } from './slotLimits';
+import { EDGE_GAP, MIN_SLOT_HEIGHT, OVERLAY_GAP, RESIZE_STEP } from './slotLimits';
 import { useSlotHeights } from './useSlotHeights';
 
 beforeEach(() => {
@@ -20,15 +20,18 @@ afterEach(() => {
   document.body.replaceChildren();
 });
 
-/* The table with a header chip 68px down, a toolbar top right, and a slot pinned bottom left that is 448 tall. */
-function table() {
+/*
+ * The table with a header chip 68px down, a toolbar top right, a chat bar at the bottom middle,
+ * and a slot pinned bottom left that is 448 tall. A 1500px table seats both slots beside the bar.
+ */
+function table(width = 1500) {
   const place = (element: HTMLElement, box: { left: number; top: number; width: number; height: number }) => {
     element.getBoundingClientRect = () =>
       ({ ...box, right: box.left + box.width, bottom: box.top + box.height }) as DOMRect;
     return element;
   };
-  const root = place(document.createElement('div'), { left: 0, top: 0, width: 1500, height: 900 });
-  Object.defineProperty(root, 'clientWidth', { value: 1500 });
+  const root = place(document.createElement('div'), { left: 0, top: 0, width, height: 900 });
+  Object.defineProperty(root, 'clientWidth', { value: width });
   const header = place(document.createElement('header'), { left: 0, top: 12, width: 1500, height: 60 });
   header.className = 'seated-header';
   const chip = place(document.createElement('div'), { left: 16, top: 12, width: 200, height: 56 });
@@ -40,7 +43,9 @@ function table() {
   slot.dataset.side = 'left';
   const grip = document.createElement('button');
   slot.append(grip);
-  root.append(header, slot);
+  const bar = place(document.createElement('div'), { left: width / 2 - 210, top: 842, width: 420, height: 46 });
+  bar.dataset.compassBar = '';
+  root.append(header, slot, bar);
   document.body.append(root);
   const limit = 884 - 68 - OVERLAY_GAP;
   return { root, slot, grip, limit };
@@ -56,6 +61,14 @@ test('a slot keeps its default height under the chip above it, and the camera di
   expect(result.current.styleOf('left')).toEqual({ maxHeight: limit });
   expect(result.current.styleOf('right')).toBeUndefined();
   expect(root.style.getPropertyValue('--compass-camera-top')).toBe(`${68 + OVERLAY_GAP}px`);
+  expect(root.style.getPropertyValue('--compass-slot-bottom')).toBe(`${EDGE_GAP}px`);
+});
+
+test('on a table too narrow for both slots beside the bar, the slots rise above it', () => {
+  const { root } = table(1000);
+  heights(root);
+  /* The bar's top is 842 on a 900px table, so the slots' bottoms sit a gap above it. */
+  expect(root.style.getPropertyValue('--compass-slot-bottom')).toBe(`${900 - 842 + EDGE_GAP}px`);
 });
 
 test('the arrow keys nudge a slot a step at a time, stop at the limit with a bounce, never go under the minimum, and reset', () => {

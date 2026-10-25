@@ -2,7 +2,7 @@
 
 import { afterEach, expect, test } from 'vite-plus/test';
 
-import { fitHeight, MIN_SLOT_HEIGHT, OVERLAY_GAP, slotLimit } from './slotLimits';
+import { EDGE_GAP, fitHeight, MIN_SLOT_HEIGHT, OVERLAY_GAP, slotBottom, slotLimit } from './slotLimits';
 
 afterEach(() => {
   document.body.replaceChildren();
@@ -64,4 +64,22 @@ test('a height asked for stays between the minimum and the limit, and bounces pa
   expect(fitHeight(40, 500)).toEqual({ height: MIN_SLOT_HEIGHT, bounced: false });
   expect(fitHeight(620, 500)).toEqual({ height: 500, bounced: true });
   expect(fitHeight(500, 500)).toEqual({ height: 500, bounced: false });
+});
+
+/* The table's box and the chat bar at its bottom middle, as the layout puts them. */
+const ROOT = { width: 1280, bottom: 800 };
+const BAR = { width: 420, top: 800 - EDGE_GAP - 46 };
+
+test('the slots stand beside the bar while both slots, the bar and the four gaps fit in one row', () => {
+  /* 2 * 400 + 420 + 48 = 1268, inside 1280. */
+  expect(slotBottom(ROOT, BAR, 400)).toBe(EDGE_GAP);
+  /* 2 * 410 + 420 + 48 = 1288, a shade over. */
+  expect(slotBottom(ROOT, BAR, 410)).toBe(800 - BAR.top + EDGE_GAP);
+});
+
+test('on a narrow table the slots rise to a gap above the bar, whatever the bar holds', () => {
+  const narrow = { width: 760, bottom: 600 };
+  expect(slotBottom(narrow, { width: 420, top: 542 }, 288)).toBe(600 - 542 + EDGE_GAP);
+  /* A bar with no chats yet is short enough to share the row with two narrow slots. */
+  expect(slotBottom(narrow, { width: 120, top: 542 }, 288)).toBe(EDGE_GAP);
 });

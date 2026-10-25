@@ -38,6 +38,10 @@ const PROVIDED_ELSEWHERE = [
     '--compass-camera-top',
     'the compass controls (useSlotHeights), which hang the camera dial under the toolbar, via setProperty',
   ],
+  [
+    '--compass-slot-bottom',
+    'the compass controls (useSlotHeights), which lift the slots above the chat bar on a narrow table, via setProperty',
+  ],
   ['--learned-', 'ChapterComplete in routes/_app/tutorial, which numbers the lines of its list, via inline style'],
 ];
 

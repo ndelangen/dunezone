@@ -3,13 +3,14 @@ import type { CSSProperties, PointerEvent as ReactPointerEvent, RefObject } from
 
 import { pulse } from './pulse';
 import type { Pulse } from './pulse';
-import { fitHeight, OVERLAY_GAP, OVERLAYS, RESIZE_STEP, SIDES, slotLimit } from './slotLimits';
+import { fitHeight, OVERLAY_GAP, OVERLAYS, RESIZE_STEP, SIDES, SLOT_BOTTOM, slotBottom, slotLimit } from './slotLimits';
 import type { Side } from './slotLimits';
 import { useRemembered } from './useRemembered';
 
 /*
- * How tall each pinned slot is: dragged by its top edge or nudged with the arrow keys, remembered, and held under
- * the chrome drawn over the table. The same measurement hangs the camera dial under the toolbar.
+ * Where each pinned slot stands and how tall it is: its bottom edge beside the chat bar or above it, its height
+ * dragged by its top edge or nudged with the arrow keys, remembered, and held under the chrome drawn over the table.
+ * The same measurement hangs the camera dial under the toolbar.
  */
 
 type Heights = Record<Side, number | null>;
@@ -38,11 +39,23 @@ export function useSlotHeights(rootRef: RefObject<HTMLElement | null>, pinned: R
       return;
     }
     const measure = () => {
+      const box = root.getBoundingClientRect();
       /* The camera dial hangs under the toolbar (Next phase, settings) by the same gap a slot keeps from it. */
       const toolbar = root.querySelector('.seated-toolbar');
       if (toolbar) {
-        const top = toolbar.getBoundingClientRect().bottom - root.getBoundingClientRect().top + OVERLAY_GAP;
+        const top = toolbar.getBoundingClientRect().bottom - box.top + OVERLAY_GAP;
         root.style.setProperty(CAMERA_TOP, `${Math.round(top)}px`);
+      }
+      /* The slots stand beside the chat bar while the table is wide enough for both and the bar, else above it. */
+      const bar = root.querySelector('[data-compass-bar]');
+      const anySlot = SIDES.map((side) => slotOn(root, side)).find((slot) => slot !== null);
+      if (bar && anySlot) {
+        const lift = slotBottom(
+          { width: root.clientWidth, bottom: box.bottom },
+          bar.getBoundingClientRect(),
+          anySlot.getBoundingClientRect().width
+        );
+        root.style.setProperty(SLOT_BOTTOM, `${lift}px`);
       }
       const next: Heights = { ...NONE };
       for (const side of SIDES) {
@@ -63,6 +76,10 @@ export function useSlotHeights(rootRef: RefObject<HTMLElement | null>, pinned: R
     for (const overlay of root.querySelectorAll(OVERLAYS)) {
       observer.observe(overlay);
       mutations.observe(overlay, { childList: true, subtree: true });
+    }
+    /* The bar widens as chats join it. */
+    for (const bar of root.querySelectorAll('[data-compass-bar]')) {
+      observer.observe(bar);
     }
     return () => {
       observer.disconnect();

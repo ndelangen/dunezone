@@ -3,7 +3,7 @@
 .bar {
   position: absolute;
   z-index: 13;
-  bottom: 1rem;
+  bottom: var(--edge-gap);
   left: 50%;
   display: flex;
   align-items: center;

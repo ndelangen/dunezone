@@ -30,7 +30,7 @@ export function ChatBar({ inert, isOpen, onOpenCompass, onShow }: ChatBarProps) 
   const others = table?.players.filter((player) => !player.own) ?? [];
   const tableChat = table?.tableChat;
   return (
-    <div className={styles.bar} inert={inert} data-hides-cursor>
+    <div className={styles.bar} inert={inert} data-hides-cursor data-compass-bar>
       <button type="button" className={styles.launcher} data-compass-launcher onClick={onOpenCompass}>
         <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" className={base.glyph}>
           <circle cx="12" cy="12" r="8" />

@@ -13,11 +13,11 @@
   backdrop-filter: blur(10px);
 }
 
-/* The centre window keeps clear of the slots either side, and in a narrow window takes the width it needs over them. */
+/* The centre window keeps clear of the slots either side, and on a narrow table takes the width it needs over them. */
 .centre {
   bottom: 4.6rem;
   left: 50%;
-  width: min(44rem, max(22rem, 100vw - 2 * 27vw - 5rem), 100vw - 2rem);
+  width: min(44rem, max(22rem, 100cqw - 2 * var(--slot-width) - 5rem), 100cqw - 2rem);
   max-height: min(32rem, calc(100% - var(--play-header-height) - 6rem));
   transform: translateX(-50%);
   animation: rise 200ms ease-out;
@@ -30,19 +30,22 @@
   }
 }
 
-/* The two pinned slots, bottom left and bottom right, beside the bar of the compass button and the chats. */
+/*
+ * The two pinned slots, bottom left and bottom right: beside the bar of the compass button and the chats while both
+ * fit in one row, else lifted above it (useSlotHeights sets the lift). A slot's limit from the top still applies.
+ */
 .slot {
-  bottom: 1rem;
-  width: min(30rem, 27vw);
-  height: min(28rem, 46vh);
+  bottom: var(--compass-slot-bottom, var(--edge-gap));
+  width: var(--slot-width);
+  height: min(28rem, 46cqh);
 }
 
 .slot[data-side="left"] {
-  left: 1rem;
+  left: var(--edge-gap);
 }
 
 .slot[data-side="right"] {
-  right: 1rem;
+  right: var(--edge-gap);
 }
 
 .slot[data-flash="0"] {
