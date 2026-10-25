@@ -1,7 +1,7 @@
 /* The manager bundles addons with the classic JSX transform, which reads `React` in scope. */
 import React from 'react';
 import { AddonPanel, Button, Form, TabButton, ToggleButton } from 'storybook/internal/components';
-import { addons, useArgs, useChannel, useStorybookState } from 'storybook/manager-api';
+import { addons, useArgs, useChannel } from 'storybook/manager-api';
 import { styled } from 'storybook/theming';
 
 import { changes } from './diff';
@@ -114,8 +114,9 @@ function useParsed(json: string | undefined) {
   return React.useMemo(() => (json === undefined ? undefined : (JSON.parse(json) as unknown)), [json]);
 }
 
+/** Copies text to the clipboard; a browser that refuses says so in the console rather than failing unseen. */
 function copy(text: string) {
-  void navigator.clipboard?.writeText(text);
+  navigator.clipboard.writeText(text).catch((error: unknown) => console.warn('Play debugger: copy failed', error));
 }
 
 /** Moves the story to a step through its arguments, viewed as the seat that acted to reach it when following. */
@@ -507,14 +508,16 @@ function DebuggerTabs({
 /** The Play debugger panel, for a story whose parameters ask for it. */
 export function PlayDebuggerPanel({ active }: Readonly<{ active: boolean }>) {
   const { state, traffic } = usePlayDebugger();
-  const { storyId } = useStorybookState();
   const [follow, setFollow] = React.useState(false);
-  /* A panel opened after the story connected asks for what it missed. */
+  /*
+   * A panel opened after the story connected asks for what it missed.
+   * A new story announces itself as it connects, so a story change asks for nothing: the old story's session would answer.
+   */
   React.useEffect(() => {
     if (active) {
       addons.getChannel().emit(PLAY_DEBUGGER_EVENTS.request);
     }
-  }, [active, storyId]);
+  }, [active]);
   return (
     <AddonPanel active={active} hasScrollbar={false}>
       {state ? (
