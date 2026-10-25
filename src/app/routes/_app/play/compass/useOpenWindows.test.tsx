@@ -128,32 +128,29 @@ test('a tutorial remembers nothing: it neither reads nor overwrites the game lay
   });
 });
 
-test('a window following a vote onto a player already open elsewhere leaves them shown once', () => {
+/* Both players pinned, seat-4 under a removal vote, and then the two trade seats, so the vote moves to seat-2. */
+function pinBothThenTrade() {
   const voted = (seat: string) => window(`player:${seat}`, { player: { ...player, seat, vote: 'vote-1' } });
   const plain = (seat: string) => window(`player:${seat}`, { player: { ...player, seat } });
-  const { result, rerender } = renderHook(({ list }) => useOpenWindows(list, false), {
+  const hook = renderHook(({ list }) => useOpenWindows(list, false), {
     initialProps: { list: [voted('seat-4'), plain('seat-2')] },
   });
-  act(() => result.current.show('player:seat-4', 'public'));
-  act(() => result.current.pin('left'));
-  act(() => result.current.show('player:seat-2', 'public'));
-  act(() => result.current.pin('right'));
-  rerender({ list: [plain('seat-4'), voted('seat-2')] });
+  act(() => hook.result.current.show('player:seat-4', 'public'));
+  act(() => hook.result.current.pin('left'));
+  act(() => hook.result.current.show('player:seat-2', 'public'));
+  act(() => hook.result.current.pin('right'));
+  hook.rerender({ list: [plain('seat-4'), voted('seat-2')] });
+  return hook.result;
+}
+
+test('a window following a vote onto a player already open elsewhere leaves them shown once', () => {
+  const result = pinBothThenTrade();
   expect(result.current.slots.left?.key).toBe('player:seat-2');
   expect(result.current.slots.right).toBeNull();
 });
 
 test('unpinning a player who was shown once for two windows takes both away', () => {
-  const voted = (seat: string) => window(`player:${seat}`, { player: { ...player, seat, vote: 'vote-1' } });
-  const plain = (seat: string) => window(`player:${seat}`, { player: { ...player, seat } });
-  const { result, rerender } = renderHook(({ list }) => useOpenWindows(list, false), {
-    initialProps: { list: [voted('seat-4'), plain('seat-2')] },
-  });
-  act(() => result.current.show('player:seat-4', 'public'));
-  act(() => result.current.pin('left'));
-  act(() => result.current.show('player:seat-2', 'public'));
-  act(() => result.current.pin('right'));
-  rerender({ list: [plain('seat-4'), voted('seat-2')] });
+  const result = pinBothThenTrade();
   act(() => result.current.unpin('left'));
   expect(result.current.slots).toEqual({ left: null, right: null });
 });

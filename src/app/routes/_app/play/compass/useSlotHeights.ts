@@ -30,6 +30,37 @@ function slotOn(root: HTMLElement, side: Side) {
   return root.querySelector<HTMLElement>(`[data-window][data-side="${side}"]`);
 }
 
+/*
+ * Sets where the chrome around the chat bar stands: the camera dial under the toolbar (Next phase, settings) by the gap
+ * a slot keeps from it, the centre window over the bar, and the slots beside the bar while the table is wide enough
+ * for both and the bar, else above it.
+ */
+function placeAroundBar(root: HTMLElement) {
+  const box = root.getBoundingClientRect();
+  const toolbar = root.querySelector('.seated-toolbar');
+  if (toolbar) {
+    root.style.setProperty(
+      CAMERA_TOP,
+      `${Math.round(toolbar.getBoundingClientRect().bottom - box.top + OVERLAY_GAP)}px`
+    );
+  }
+  const bar = root.querySelector('[data-compass-bar]');
+  if (!bar) {
+    return;
+  }
+  const barBox = bar.getBoundingClientRect();
+  root.style.setProperty(CENTRE_BOTTOM, `${Math.round(box.bottom - barBox.top + OVERLAY_GAP)}px`);
+  const anySlot = SIDES.map((side) => slotOn(root, side)).find((slot) => slot !== null);
+  if (anySlot) {
+    const lift = slotBottom(
+      { width: root.clientWidth, bottom: box.bottom },
+      barBox,
+      anySlot.getBoundingClientRect().width
+    );
+    root.style.setProperty(SLOT_BOTTOM, `${lift}px`);
+  }
+}
+
 export function useSlotHeights(rootRef: RefObject<HTMLElement | null>, pinned: Readonly<Record<Side, string | null>>) {
   /* Each slot's height in pixels, remembered once its top edge is dragged; null keeps the default. */
   const [heights, setHeights] = useRemembered<Heights>('heights', NONE);
@@ -44,28 +75,7 @@ export function useSlotHeights(rootRef: RefObject<HTMLElement | null>, pinned: R
       return;
     }
     const measure = () => {
-      const box = root.getBoundingClientRect();
-      /* The camera dial hangs under the toolbar (Next phase, settings) by the same gap a slot keeps from it. */
-      const toolbar = root.querySelector('.seated-toolbar');
-      if (toolbar) {
-        const top = toolbar.getBoundingClientRect().bottom - box.top + OVERLAY_GAP;
-        root.style.setProperty(CAMERA_TOP, `${Math.round(top)}px`);
-      }
-      /* The slots stand beside the chat bar while the table is wide enough for both and the bar, else above it. */
-      const bar = root.querySelector('[data-compass-bar]');
-      if (bar) {
-        const over = box.bottom - bar.getBoundingClientRect().top + OVERLAY_GAP;
-        root.style.setProperty(CENTRE_BOTTOM, `${Math.round(over)}px`);
-      }
-      const anySlot = SIDES.map((side) => slotOn(root, side)).find((slot) => slot !== null);
-      if (bar && anySlot) {
-        const lift = slotBottom(
-          { width: root.clientWidth, bottom: box.bottom },
-          bar.getBoundingClientRect(),
-          anySlot.getBoundingClientRect().width
-        );
-        root.style.setProperty(SLOT_BOTTOM, `${lift}px`);
-      }
+      placeAroundBar(root);
       const next: Heights = { ...NONE };
       for (const side of SIDES) {
         const slot = slotOn(root, side);
