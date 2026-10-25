@@ -3,7 +3,7 @@ import type { TablePiece } from '@shared/play/model';
 import { piece } from '@shared/play/setupSupply';
 import { expect, test } from 'vite-plus/test';
 
-import { cardsOf, planPieces, toggleLeader } from './planView';
+import { arranged, cardsOf, planPieces, seated, toggleIn, toggleLeader } from './planView';
 
 const card = (id: string, extra: Partial<TablePiece> = {}): TablePiece => ({
   ...piece(id, 'Card', 'house-harkonnen', '#000', 'card', 'cards:treachery'),
@@ -39,4 +39,15 @@ test('a Traitor card stays out of the picker, unless an older plan already holds
   const pieces = [card('treachery', { items: [{ id: 't', faceUp: true }] }), traitor('loose'), traitor('kept')];
   expect(cardsOf(pieces, []).map((entry) => entry.id)).toEqual(['treachery']);
   expect(cardsOf(pieces, ['kept']).map((entry) => entry.id)).toEqual(['treachery', 'kept']);
+});
+
+test("choosing a piece keeps the strip's order, and the plan takes the chosen ones in that order", () => {
+  const order = ['crysknife', 'shield', 'chaumas'];
+  expect(toggleIn(['chaumas'], 'crysknife', order)).toEqual(['crysknife', 'chaumas']);
+  expect(toggleIn(['crysknife', 'chaumas'], 'crysknife', order)).toEqual(['chaumas']);
+});
+
+test("the player's order holds as pieces come and go, and a reload seats the plan's own order", () => {
+  expect(arranged(['b', 'a', 'gone'], ['a', 'b', 'new'])).toEqual(['b', 'a', 'new']);
+  expect(seated(['a', 'b', 'c', 'd'], ['d', 'b'])).toEqual(['a', 'd', 'c', 'b']);
 });

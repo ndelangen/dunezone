@@ -126,22 +126,36 @@ export function troopLimitOf(props: Pick<BattlePlanViewProps, 'troopLimit'>, fac
   return props.troopLimit?.[faceId] ?? DEFAULT_TROOP_LIMIT;
 }
 
-export function toggleCard(plan: BattlePlan, cardId: string): Partial<BattlePlanInput> {
-  return {
-    cardIds: plan.cardIds.includes(cardId) ? plan.cardIds.filter((id) => id !== cardId) : [...plan.cardIds, cardId],
-  };
+/**
+ * Pieces in the player's own order: the ones already placed keep their places, and new ones join at the end.
+ * Choosing follows this order, so putting a piece into the plan never moves it, and the wheel shows the pieces as laid out.
+ */
+export function arranged(order: readonly string[], ids: readonly string[]) {
+  return [...order.filter((id) => ids.includes(id)), ...ids.filter((id) => !order.includes(id))];
+}
+
+/** A strip's first order: the pieces as they come, with the chosen ones in the plan's own order across their places. */
+export function seated(ids: readonly string[], chosen: readonly string[]) {
+  const queue = chosen.filter((id) => ids.includes(id));
+  let next = 0;
+  return ids.map((id) => (queue.includes(id) ? queue[next++]! : id));
+}
+
+/** Puts a piece in among the chosen ones, in the strip's order, or takes it out. */
+export function toggleIn(chosen: readonly string[], id: string, order: readonly string[] = chosen) {
+  return chosen.includes(id) ? chosen.filter((entry) => entry !== id) : arranged(order, [...chosen, id]);
+}
+
+/** Puts a card into the plan or takes it out. */
+export function toggleCard(plan: BattlePlan, cardId: string, order?: readonly string[]): Partial<BattlePlanInput> {
+  return { cardIds: toggleIn(plan.cardIds, cardId, order) };
 }
 
 /** Puts a leader into the plan beside any already there, or takes it out: a plan usually holds one, but may hold several. */
-export function toggleLeader(plan: BattlePlan, leaderId: string): Partial<BattlePlanInput> {
-  return {
-    leaderIds: plan.leaderIds.includes(leaderId)
-      ? plan.leaderIds.filter((id) => id !== leaderId)
-      : [...plan.leaderIds, leaderId],
-  };
+export function toggleLeader(plan: BattlePlan, leaderId: string, order?: readonly string[]): Partial<BattlePlanInput> {
+  return { leaderIds: toggleIn(plan.leaderIds, leaderId, order) };
 }
 
-/** What the window may change: anything before Ready, and the dial only while it is not shown to everyone. */
 export function planLocks(props: Pick<BattlePlanViewProps, 'canAct' | 'ready' | 'stage' | 'plan'>) {
   const locked = !props.canAct || props.ready || props.stage !== 'preparing';
   return {

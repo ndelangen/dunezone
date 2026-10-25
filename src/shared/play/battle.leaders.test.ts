@@ -1,6 +1,12 @@
 import { expect, test } from 'vite-plus/test';
 
-import { battleActionSchema, emptyBattlePlan, isBattleLeader, storedBattlePlanSchema } from './battle';
+import {
+  battleActionSchema,
+  battlePlanSchema,
+  emptyBattlePlan,
+  isBattleLeader,
+  storedBattlePlanSchema,
+} from './battle';
 import { freshTableState } from './model';
 
 test('standalone and disc leaders can fight while troop and faction tokens remain excluded', () => {
@@ -25,6 +31,7 @@ test('a plan sent or stored with the single leaderId of before reads as a list o
   const { leaderIds: _none, ...stored } = emptyBattlePlan([]);
   expect(storedBattlePlanSchema.parse({ ...stored, leaderId: 'stilgar' }).leaderIds).toEqual(['stilgar']);
   expect(storedBattlePlanSchema.parse({ ...stored, leaderId: null }).leaderIds).toEqual([]);
+  expect(battlePlanSchema.parse({ ...stored, leaderId: 'stilgar' }).leaderIds).toEqual(['stilgar']);
   const action = battleActionSchema.parse({
     kind: 'battle-plan',
     battleId: 'battle',

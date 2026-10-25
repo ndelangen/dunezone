@@ -25,6 +25,7 @@ import {
   withTroops,
 } from './planView';
 import type { BattlePlanViewProps } from './planView';
+import { SortableStrip } from './SortableStrip';
 
 /**
  * The ledger: the whole plan on one sheet under the wheel, a row per part, so every change is one click where it shows.
@@ -55,39 +56,51 @@ export function LedgerPlan(props: BattlePlanViewProps) {
             ) : null}
           </span>
           <div className={styles.strip}>
-            {leadersOf(pieces).map((piece) => (
-              <PieceTile
-                key={piece.id}
-                piece={piece}
-                selected={plan.leaderIds.includes(piece.id)}
-                disabled={locks.leaderLocked}
-                onToggle={() => onEdit(toggleLeader(plan, piece.id))}
-              />
-            ))}
+            <SortableStrip
+              pieces={leadersOf(pieces)}
+              chosen={plan.leaderIds}
+              locked={locks.leaderLocked}
+              onChoose={(leaderIds) => onEdit({ leaderIds })}
+            >
+              {(piece, order) => (
+                <PieceTile
+                  piece={piece}
+                  selected={plan.leaderIds.includes(piece.id)}
+                  disabled={locks.leaderLocked}
+                  onToggle={() => onEdit(toggleLeader(plan, piece.id, order))}
+                />
+              )}
+            </SortableStrip>
           </div>
         </section>
         <section className={styles.row} aria-label="Cards">
           <span className={styles.label}>Cards</span>
           <div className={styles.strip}>
-            {cards.map((piece) => (
-              <PieceTile
-                key={piece.id}
-                piece={piece}
-                width={38}
-                selected={plan.cardIds.includes(piece.id)}
-                disabled={locks.cardLocked(piece.id)}
-                onToggle={() => onEdit(toggleCard(plan, piece.id))}
-                reveal={
-                  <RevealToggle
-                    plan={plan}
-                    part={disclosure.card(piece.id)}
-                    name="this card"
-                    disabled={locks.revealLocked}
-                    onDisclose={onDisclose}
-                  />
-                }
-              />
-            ))}
+            <SortableStrip
+              pieces={cards}
+              chosen={plan.cardIds}
+              locked={locks.locked}
+              onChoose={(cardIds) => onEdit({ cardIds })}
+            >
+              {(piece, order) => (
+                <PieceTile
+                  piece={piece}
+                  width={38}
+                  selected={plan.cardIds.includes(piece.id)}
+                  disabled={locks.cardLocked(piece.id)}
+                  onToggle={() => onEdit(toggleCard(plan, piece.id, order))}
+                  reveal={
+                    <RevealToggle
+                      plan={plan}
+                      part={disclosure.card(piece.id)}
+                      name="this card"
+                      disabled={locks.revealLocked}
+                      onDisclose={onDisclose}
+                    />
+                  }
+                />
+              )}
+            </SortableStrip>
             {cards.length ? null : <span className={styles.empty}>No cards in hand</span>}
           </div>
         </section>

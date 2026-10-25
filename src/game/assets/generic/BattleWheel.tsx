@@ -46,6 +46,9 @@ type Props = {
 );
 
 /** Callers own battle state and piece interactions; this renderer owns both faces and their reveal. */
+/* How far each further leader shifts right behind the one before it: enough to show its strength. */
+const LEADER_STEP = 15;
+
 export function BattleWheel(props: Props) {
   return (
     <div
@@ -137,7 +140,7 @@ function RevealedWheel({
             <span className={styles.spiceIcon} aria-hidden />
             <span className={styles.spiceValue}>{spice}</span>
           </div>
-          <div className={styles.leader}>
+          <div className={styles.leader} style={{ translate: `${-(leaders.length - 1) * (LEADER_STEP / 3)}px 0` }}>
             {leaders
               .slice(1)
               .map((behind, index) => ({ behind, index }))
@@ -146,7 +149,7 @@ function RevealedWheel({
                 <div
                   key={index}
                   className={clsx(styles.leaderPiece, styles.leaderBehind)}
-                  style={{ translate: `${-(index + 1) * 10}px ${(index + 1) * 27}px`, scale: 0.85 }}
+                  style={{ translate: `${(index + 1) * LEADER_STEP}px 0` }}
                 >
                   {behind}
                 </div>

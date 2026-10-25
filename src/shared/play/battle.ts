@@ -62,15 +62,17 @@ const disclosedSchema = z.object({
   dial: z.boolean().default(false),
   cardIds: z.array(id).default([]),
 });
-export const battlePlanSchema = battlePlanInputSchema.extend({
+const battlePlanShape = battlePlanInputSchema.extend({
   strength: z.number(),
   pieces: z.array(tablePieceSchema),
   faces: z.array(battleFaceSchema),
   disclosed: disclosedSchema.default({ leader: false, dial: false, cardIds: [] }),
 });
+/* Read through withLeaderList too, so a table a browser cached before the change still decodes. */
+export const battlePlanSchema = z.preprocess(withLeaderList, battlePlanShape);
 export const storedBattlePlanSchema = z.preprocess(
   withLeaderList,
-  battlePlanSchema.extend({ pieces: z.array(storedPieceSchema) })
+  battlePlanShape.extend({ pieces: z.array(storedPieceSchema) })
 );
 export type BattlePlanInput = z.infer<typeof battlePlanInputSchema>;
 export type BattlePlan = z.infer<typeof battlePlanSchema>;

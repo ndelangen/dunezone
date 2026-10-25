@@ -176,7 +176,7 @@
   place-items: center;
 }
 
-/* A second leader stacks below and behind the first, as coins slid off a pile. */
+/* A further leader tucks behind the one before it, shifted right so its strength still shows. */
 .leaderBehind {
   box-shadow: 1px 1px 3px #29271e80;
 }
