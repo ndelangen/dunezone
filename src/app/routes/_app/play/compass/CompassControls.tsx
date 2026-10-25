@@ -92,7 +92,7 @@ function Controls({ scene, header, camera, inert, tabs, onView, focus }: Compass
   };
   const tiles = tilesOf(windows, table);
   const suggestions = rankSuggestions(
-    candidatesOf(windows, { open: show, nextPhase: table?.nextPhase, view: onView, close }),
+    candidatesOf(windows, { open: show, nextPhase: table?.nextPhase, token: table?.token, view: onView, close }),
     query
   );
   /* Opens what the compass points at; a tile with nothing behind it shakes instead. */

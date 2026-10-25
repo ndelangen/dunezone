@@ -80,9 +80,48 @@ export type SuggestionActions = Readonly<{
   nextPhase: (() => void) | null | undefined;
   /** Moves the camera, as the dial does. */
   view: (view: TableView) => void;
+  /** The viewer's own faction token on the table, when they have one. */
+  token: Readonly<{ faceUp: boolean; flip: () => void }> | null | undefined;
   /** Closes the compass before a command runs. */
   close: () => void;
 }>;
+
+/* Turning the token over, and passing with it: facing it down says the faction sits out, so a token already down has no Pass. */
+function tokenCandidates(actions: SuggestionActions): Candidate[] {
+  const token = actions.token;
+  if (!token) {
+    return [];
+  }
+  const run = () => {
+    actions.close();
+    token.flip();
+  };
+  const icon = <TopicIcon topic="flip" size={18} />;
+  return [
+    {
+      key: 'cmd:token:flip',
+      label: 'Flip faction token',
+      hint: 'Command',
+      icon,
+      run,
+      text: 'flip faction token',
+      weight: 1,
+    },
+    ...(token.faceUp
+      ? [
+          {
+            key: 'cmd:token:pass',
+            label: 'Pass',
+            hint: 'Command: your token face down',
+            icon,
+            run,
+            text: 'pass',
+            weight: 1,
+          },
+        ]
+      : []),
+  ];
+}
 
 /** Every window and command the search can reach. */
 export function candidatesOf(windows: readonly TableWindow[], actions: SuggestionActions): Candidate[] {
@@ -112,6 +151,7 @@ export function candidatesOf(windows: readonly TableWindow[], actions: Suggestio
       text: 'next phase',
       weight: 4,
     },
+    ...tokenCandidates(actions),
     ...(Object.keys(CAMERA_VIEWS) as TableView[]).map((view): Candidate => ({
       key: `cmd:camera:${view}`,
       label: `Camera: ${CAMERA_VIEWS[view]}`,

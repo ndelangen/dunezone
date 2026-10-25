@@ -1,6 +1,6 @@
 import { expect, test } from 'vite-plus/test';
 
-import { fuzzy, rankSuggestions } from './suggestions';
+import { candidatesOf, fuzzy, rankSuggestions } from './suggestions';
 
 const candidate = (label: string, weight = 0) => ({
   key: label,
@@ -37,4 +37,32 @@ test('with nothing typed the heaviest lead, six at most; typed, the best eight m
   expect(rankSuggestions(all, 'w').map((entry) => entry.label)).toHaveLength(7);
   expect(rankSuggestions(all, 'tab').map((entry) => entry.label)).toEqual(['Table chat']);
   expect(rankSuggestions(all, 'zz')).toEqual([]);
+});
+
+const actions = (token: { faceUp: boolean; flip: () => void } | null, close = () => {}) => ({
+  open: () => {},
+  nextPhase: null,
+  token,
+  view: () => {},
+  close,
+});
+
+test('the token commands appear only with a token, and Pass only while it shows its face', () => {
+  const labels = (token: { faceUp: boolean; flip: () => void } | null) =>
+    candidatesOf([], actions(token))
+      .filter((entry) => entry.key.startsWith('cmd:token:'))
+      .map((entry) => entry.label);
+  expect(labels(null)).toEqual([]);
+  expect(labels({ faceUp: true, flip: () => {} })).toEqual(['Flip faction token', 'Pass']);
+  expect(labels({ faceUp: false, flip: () => {} })).toEqual(['Flip faction token']);
+});
+
+test('Pass closes the compass and turns the token over', () => {
+  const calls: string[] = [];
+  const all = candidatesOf(
+    [],
+    actions({ faceUp: true, flip: () => calls.push('flip') }, () => calls.push('close'))
+  );
+  rankSuggestions(all, 'pass')[0]!.run();
+  expect(calls).toEqual(['close', 'flip']);
 });

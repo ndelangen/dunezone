@@ -2,6 +2,7 @@ import { Anchor, Button, Group, List, Loader, NumberInput, Select, Stack, Text, 
 import { signInReturnFrom } from '@shared/authDestination';
 import { tableHandlingOpen } from '@shared/play/admission';
 import { snapshotFactionLabels } from '@shared/play/factionLabels';
+import { factionTokenOf } from '@shared/play/factionToken';
 import type { PublicControls, SpawnSelection } from '@shared/play/inventory';
 import { lastTurnOf } from '@shared/play/lastTurn';
 import { phaseAt, tableProgressFor } from '@shared/play/phases';
@@ -27,6 +28,7 @@ import { PieceArtwork } from '../../../../widgets/tabletop/PieceArtwork';
 import { usePointerSession } from '../../../../widgets/tabletop/PointerSessionContext';
 import { PredictionLogosContext } from '../../../../widgets/tabletop/prediction/predictionFace';
 import { TabletopSessionProvider } from '../../../../widgets/tabletop/TabletopContext';
+import type { CompassTable } from '../compass/compassTable';
 import { CompassTableContext } from '../compass/compassTable';
 import { FoilConfetti } from '../FoilConfetti';
 import { GameLink } from '../GameLink';
@@ -72,6 +74,16 @@ import { PlayerPanel, PlayerWindow, usePlayerWindows } from './RemovalVotes';
 import { useResultCelebration } from './resultCelebration';
 import { GameMenu, SeatPopover } from './SeatRequests';
 import { nextPhaseStep, stageStatus, stageToolbar } from './StageHeader';
+
+/* The viewer's own faction token on the table, for the compass's flip and pass commands; none without a seat or a token. */
+function viewerToken(client: TableSession, table: TableProjection): CompassTable['token'] {
+  const faction = viewerFaction(table);
+  const token = faction ? factionTokenOf(table.state.pieces, faction) : undefined;
+  if (!token || !table.canHandleTable) {
+    return null;
+  }
+  return { faceUp: token.items[0]?.faceUp ?? true, flip: () => client.flipSelected(token.id) };
+}
 import type { GameIdentity } from './StageHeader';
 import { SwapScene } from './SwapScene';
 import { factionName, factionOptions, isSpectator, stageInPlay, viewerFaction } from './tableFactions';
@@ -1048,6 +1060,7 @@ function ConnectedTable({
                   <PlayerWindow client={client} table={table} seat={seat} tab={tab} error={error} />
                 ),
                 nextPhase: nextPhaseStep(client, table),
+                token: viewerToken(client, table),
               }
             }
           >
