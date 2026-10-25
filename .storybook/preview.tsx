@@ -243,6 +243,10 @@ const preview = definePreview({
             height: `${REGION.height}px`,
           },
         },
+        /* The play table at the widths its chrome is checked at: the narrowest it lays out, a middling and a wide one. */
+        table760: { name: 'Table 760', styles: { width: '760px', height: '800px' } },
+        table1000: { name: 'Table 1000', styles: { width: '1000px', height: '800px' } },
+        table1280: { name: 'Table 1280', styles: { width: '1280px', height: '800px' } },
         appMobile: {
           name: 'App mobile',
           styles: {

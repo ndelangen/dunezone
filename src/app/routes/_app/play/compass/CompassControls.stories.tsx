@@ -1,28 +1,19 @@
 import preview from '@sb/preview';
 import type { GameSnapshot } from '@shared/play/protocol';
-import type { Decorator } from '@storybook/tanstack-react';
 
 import { faction } from '../alliances.stories.fixture';
 import { gameMeta, install } from '../game.stories.fixture';
 import { battleStory } from '../playing.stories.fixture';
 import { productTransport } from '../product.stories.fixture';
-import { ControlsExperimentContext } from './experiment';
 
 /*
- * The command palette's fourth stage (Norbert, 2026-10-24): the compass with search at its centre and suggestions below,
+ * The compass controls: the compass with search at its centre and suggestions below,
  * and two slots, bottom left and bottom right, that a window can be pinned into. The camera dial sits top right.
  */
-const withExperiment: Decorator = (Story) => (
-  <ControlsExperimentContext value="palette-4">
-    <Story />
-  </ControlsExperimentContext>
-);
-
 const meta = preview.meta({
   ...gameMeta,
-  title: 'Play/Explorations/Controls layout/Stage 4 Pinned slots',
+  title: 'Play/Compass controls',
   globals: { motion: 'on' },
-  decorators: [...gameMeta.decorators, withExperiment],
   parameters: { ...gameMeta.parameters, chromatic: { disableSnapshot: true } },
   tags: ['!test'],
   loaders: [
@@ -35,10 +26,7 @@ const meta = preview.meta({
 /* What the slots start with: the story either pins its pair or starts empty, whatever an earlier visit left. */
 function pinned(slots: Record<'left' | 'right', { key: string; tab: string } | null>, keep: boolean) {
   try {
-    localStorage.setItem(
-      'dunezone-controls-experiment:palette-4-slots',
-      JSON.stringify(keep ? slots : { left: null, right: null })
-    );
+    localStorage.setItem('dunezone-compass:slots', JSON.stringify(keep ? slots : { left: null, right: null }));
   } catch {
     /* Without storage the slots start empty. */
   }
@@ -67,6 +55,30 @@ export const PinnedHandAndAlly = meta.story({
     install(() => productTransport('seat-2', allied(battleStory('preparing')))),
     () => pinned({ left: { key: 'hand', tab: 'public' }, right: { key: 'player:seat-4', tab: 'conversation' } }, true),
   ],
+});
+
+/* Both slots pinned and every chat in the bar, so the bar and the slots have to share the table's width. */
+const bothSlotsAndAllChats = [
+  install(() => productTransport('seat-2')),
+  () => pinned({ left: { key: 'hand', tab: 'public' }, right: { key: 'table-chat', tab: 'conversation' } }, true),
+];
+
+/** The narrowest table: the slots rise above the chat bar, which has the width to itself. */
+export const Width760 = meta.story({
+  globals: { viewport: { value: 'table760' } },
+  beforeEach: bothSlotsAndAllChats,
+});
+
+/** A middling table: the slots at their least width still leave no room for the bar beside them. */
+export const Width1000 = meta.story({
+  globals: { viewport: { value: 'table1000' } },
+  beforeEach: bothSlotsAndAllChats,
+});
+
+/** A wide table: both slots stand on the table's edge beside the bar. */
+export const Width1280 = meta.story({
+  globals: { viewport: { value: 'table1280' } },
+  beforeEach: bothSlotsAndAllChats,
 });
 
 /** A quiet moment: no battle and no ally, so those two arms show what's missing. */

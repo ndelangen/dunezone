@@ -4,6 +4,7 @@ import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { STORYBOOK_NOW } from '@db/storybook';
 
+import { windowNamed } from './controls.stories.fixture';
 import { gameMeta, install, lastCommand, session } from './game.stories.fixture';
 import { openTab } from './playing.stories.fixture';
 import { productTransport, SIX } from './product.stories.fixture';
@@ -71,7 +72,7 @@ export const DeclaringKeepsChoiceAcrossTabs = meta.story({
   },
 });
 
-/* Once the Result tab closes, the Game group opens on a tab that still exists, so Phase stays in reach. */
+/* Once the Result panel goes, its window goes with it, and Phase stays in reach. */
 export const StoppedDeclaringKeepsGameReachable = meta.story({
   beforeEach: install(() => {
     const snapshot = mentatSnapshot('seat-2');
@@ -82,7 +83,7 @@ export const StoppedDeclaringKeepsGameReachable = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await page.findByText('Declare the result', {}, { timeout: 30_000 });
     session.transport.deliver(session.transport.view({ ...mentatSnapshot('seat-2'), revision: 1 }));
-    await waitFor(() => expect(page.queryByRole('tab', { name: 'Result' })).toBeNull());
+    await waitFor(() => expect(windowNamed(page, 'Result')).toBeNull());
     await openTab(page, 'Phase');
     await expect(page.findByRole('button', { name: 'Determine winner' })).resolves.toBeVisible();
   },
@@ -99,7 +100,7 @@ function touchScrollers(element: Element) {
   return scrollers;
 }
 
-/* On a phone the Result tab outgrows the dock's floor; it scrolls inside the dock, so Declare is in reach. */
+/* On a phone the Result window outgrows the screen; it scrolls inside its frame, so Declare is in reach. */
 export const DeclaringOnAPhone = meta.story({
   globals: { viewport: { value: 'appMobile' }, motion: 'reduce' },
   beforeEach: install(() => {
@@ -120,7 +121,7 @@ export const DeclaringOnAPhone = meta.story({
         await expect(scrollers, 'Declare sits below the window with nothing to scroll it into view').not.toHaveLength(
           0
         );
-        /* The Result tab sits above the players' pane in the phone's stacked dock, so each pane scrolls to Declare, not to its end, the panel first and then the dock around it. */
+        /* Each scroller scrolls to Declare, not to its end: the section first and then the window around it. */
         for (const scroller of scrollers) {
           const bottom = Math.min(scroller.getBoundingClientRect().bottom, view.innerHeight);
           scroller.scrollTop += Math.max(0, declare.getBoundingClientRect().bottom - bottom);

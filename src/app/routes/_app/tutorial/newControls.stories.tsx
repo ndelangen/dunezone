@@ -4,7 +4,7 @@ import { expect, within } from 'storybook/test';
 import { pageStoryMeta } from '../../storybookConfig';
 
 /*
- * The play-test chapter "New controls", as its page serves it: the tutorial's table with the stage 4 controls
+ * The play-test chapter "New controls", as its page serves it: the tutorial's table with the compass controls
  * (the compass on Space, two pinned slots, the chats beside Controls) and the rail teaching them one task at a time.
  * Its art is the site's live `/published/...` images, as in the other chapters: blank in a local Storybook without `bun run tutorial:mirror`.
  */

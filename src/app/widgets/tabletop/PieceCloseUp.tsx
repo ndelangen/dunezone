@@ -1,4 +1,5 @@
 import { pieceCount } from '@shared/play/model';
+import type { TablePiece } from '@shared/play/model';
 import { tokenBoxRatio } from '@shared/play/tableGeometry';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { RefObject } from 'react';
@@ -21,7 +22,10 @@ type Point = { x: number; y: number };
  * Whether Alt is held, and a ref to where the pointer is; a lost window or hidden page lets go of Alt.
  * Only Alt renders: the pointer is followed in a ref, so moving it costs no React render.
  */
-function useAltPointer(): Readonly<{ alt: boolean; pointer: RefObject<Point> }> {
+function useAltPointer(): Readonly<{
+  alt: boolean;
+  pointer: RefObject<Point>;
+}> {
   const [alt, setAlt] = useState(false);
   const pointer = useRef<Point>({ x: 0, y: 0 });
 
@@ -62,23 +66,36 @@ function useAltPointer(): Readonly<{ alt: boolean; pointer: RefObject<Point> }> 
   return { alt, pointer };
 }
 
-type Bounds = Readonly<{ left: number; top: number; right: number; bottom: number }>;
+type Bounds = Readonly<{
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+}>;
 
 /** The close-up's box beside the pointer within the bounds, turned to the pointer's other side where the area would cut it off. */
 function placeBeside(pointer: Point, width: number, height: number, bounds: Bounds) {
   const right = pointer.x + CURSOR_GAP_PX;
   const left = right + width + EDGE_PX > bounds.right ? pointer.x - CURSOR_GAP_PX - width : right;
   const top = Math.min(pointer.y - height / 2, bounds.bottom - height - EDGE_PX);
-  return { left: Math.max(bounds.left + EDGE_PX, left), top: Math.max(bounds.top + EDGE_PX, top) };
+  return {
+    left: Math.max(bounds.left + EDGE_PX, left),
+    top: Math.max(bounds.top + EDGE_PX, top),
+  };
 }
 
 /*
- * The window below the seated header, which lies over the canvas's top: the close-up may spill over the controls panel and the dock
+ * The window below the seated header, which lies over the canvas's top: the close-up may spill over the pinned windows
  * when the table's own area is too small to hold it beside the pointer.
  */
 function closeUpBounds(area: HTMLElement | null): Bounds {
   const header = area ? seatedHeaderOf(area)?.getBoundingClientRect() : undefined;
-  return { left: 0, top: Math.max(0, header?.bottom ?? 0), right: window.innerWidth, bottom: window.innerHeight };
+  return {
+    left: 0,
+    top: Math.max(0, header?.bottom ?? 0),
+    right: window.innerWidth,
+    bottom: window.innerHeight,
+  };
 }
 
 /*
@@ -119,19 +136,52 @@ function useFollowPointer(
   }, [box, pointer, area, width, height]);
 }
 
+type CloseUpProps = Readonly<{ area: RefObject<HTMLElement | null> }>;
+
 /*
  * Holding Alt over a card or token shows its face flat and large beside the pointer, out of the table's perspective, the way it is printed.
  * It shows the face the table shows, so a face-down card shows its back.
  */
-export function PieceCloseUp({ area }: Readonly<{ area: RefObject<HTMLElement | null> }>) {
-  const { alt, pointer } = useAltPointer();
-  const box = useRef<HTMLDivElement>(null);
+export function PieceCloseUp({ area }: CloseUpProps) {
   const piece = useTabletopSelector((table) =>
     table.hoveredPieceId ? (table.renderedPieces.find((entry) => entry.id === table.hoveredPieceId) ?? null) : null
   );
-  const href = piece ? topFaceHref(piece) : undefined;
-  const top = piece ? topItem(piece) : undefined;
-  const shown = alt && piece && href && top ? piece : null;
+  return (
+    <CloseUp
+      area={area}
+      piece={piece}
+      item={piece ? topItem(piece) : undefined}
+      src={piece ? topFaceHref(piece) : undefined}
+    />
+  );
+}
+
+/*
+ * The same close-up for a piece in the hand or the hidden zone, which the owner sees from the front.
+ * A piece without a published front, drawn there as the Traitor stand-in, has none.
+ */
+export function HandPieceCloseUp({ area, piece }: CloseUpProps & Readonly<{ piece: TablePiece | null }>) {
+  const item = piece?.items[0];
+  return <CloseUp area={area} piece={piece} item={item} src={item?.artwork?.front} />;
+}
+
+type Item = TablePiece['items'][number];
+
+/* The close-up of one item of a piece, shown while Alt is held; the piece's other items only count. */
+function CloseUp({
+  area,
+  piece,
+  item,
+  src,
+}: CloseUpProps &
+  Readonly<{
+    piece: TablePiece | null;
+    item: Item | undefined;
+    src: string | undefined;
+  }>) {
+  const { alt, pointer } = useAltPointer();
+  const box = useRef<HTMLDivElement>(null);
+  const shown = alt && piece && item && src ? piece : null;
   const isCard = shown?.kind === 'card';
   /* A disc token stays a disc, as it lies on the table. */
   const round = shown != null && !isCard && tokenBoxRatio(shown) == null;
@@ -139,7 +189,7 @@ export function PieceCloseUp({ area }: Readonly<{ area: RefObject<HTMLElement | 
   const height = isCard ? CARD_HEIGHT_PX : TOKEN_SIZE_PX;
   const count = shown ? pieceCount(shown) : 0;
   useFollowPointer(box, pointer, area, shown ? { width, height: height + (count > 1 && !round ? 40 : 16) } : null);
-  if (!shown || !href || !top) {
+  if (!shown || !item || !src) {
     return null;
   }
   /* On the page's body, so the table's own stacking cannot slide it under a panel it spills over. */
@@ -147,8 +197,8 @@ export function PieceCloseUp({ area }: Readonly<{ area: RefObject<HTMLElement | 
     <div ref={box} className={styles.closeUp} data-round={round || undefined} data-piece-close-up aria-hidden>
       {/* Only the top item, so a stack of prediction cards that share one front shows the top card's prediction. */}
       <PieceArtwork
-        piece={{ ...shown, items: [top] }}
-        src={href}
+        piece={{ ...shown, items: [item] }}
+        src={src}
         name={shown.label}
         width={width}
         height={height}

@@ -16,7 +16,7 @@ const meta = preview.meta({
   ],
 });
 
-/** A spectator of a full game reads that from the header's seat action; the dock keeps its height for the tabs. */
+/** A spectator of a full game reads that from the header's seat action alone. */
 export const FullGameSpectatorSeat = meta.story({
   beforeEach: install(() => productTransport('neutral', battleStory('revealed', true))),
   play: async ({ canvasElement }) => {
@@ -24,8 +24,6 @@ export const FullGameSpectatorSeat = meta.story({
     const seat = await seatPopover(canvasElement, 'You are watching');
     await expect(seat().findByText('All 6 seats are taken')).resolves.toBeVisible();
     await expect(seat().queryByRole('button', { name: /^Request/ })).toBeNull();
-    const dock = canvasElement.ownerDocument.querySelector<HTMLElement>('.seated-controls-panel')!;
-    await expect(within(dock).queryByRole('region', { name: 'You are watching' })).toBeNull();
     await expect(page.getAllByRole('region', { name: 'You are watching' })).toHaveLength(1);
   },
 });

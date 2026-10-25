@@ -263,6 +263,22 @@ async function checkCorruptExternalUse(browser: Browser): Promise<void> {
   }
 }
 
+async function checkCorruptCssImage(browser: Browser): Promise<void> {
+  activeSnapshot = cardSnapshot;
+  const page = await newPublisherPage(browser);
+  try {
+    await page.route('**/image/card/base-decal-large.webp', (route) =>
+      route.fulfill({ status: 200, contentType: 'image/webp', body: 'not a webp' })
+    );
+    const result = await openCapture(page);
+    invariant(result.state === 'error', `Corrupt CSS artwork was reported as ${result.state}: ${result.detail}`);
+    invariant(result.detail.includes('CSS image failed to decode'), 'Capture must report its missing CSS artwork');
+  } finally {
+    activeSnapshot = factionSnapshot;
+    await page.close();
+  }
+}
+
 async function assertPageBounds(page: Page): Promise<void> {
   await assertCapturePhysicalBounds(page);
   invariant(
@@ -705,6 +721,7 @@ async function checkNexusCapture(browser: Browser, card: (typeof GF9_NEXUS_CARDS
 try {
   await checkCorruptSvgImage(browser);
   await checkCorruptExternalUse(browser);
+  await checkCorruptCssImage(browser);
   await checkPublisherPdf(browser);
   for (const { id: size } of rulebookSizeCatalogue) {
     for (const { id: design } of rulebookDesignCatalogue) {

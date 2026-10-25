@@ -1,6 +1,7 @@
 import preview from '@sb/preview';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
+import { openPlayer, WAIT } from './controls.stories.fixture';
 import { gameMeta, install, lastCommand } from './game.stories.fixture';
 import { productTransport, swappingSnapshot } from './product.stories.fixture';
 
@@ -12,8 +13,9 @@ const meta = preview.meta({
 export const Swapping = meta.story({
   beforeEach: install(() => productTransport('seat-2', swappingSnapshot())),
   play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    const offer = await page.findByRole('button', { name: 'Offer trade to House Atreides' }, { timeout: 30_000 });
+    /* A trade is offered from the other player's Info. */
+    const page = await openPlayer(canvasElement, 'Twaffle', 'Info');
+    const offer = await page.findByRole('button', { name: 'Offer trade to House Atreides' }, WAIT);
     /* The deadline is four minutes past the view's serverNow, and the countdown runs on the page's monotonic clock from there. */
     await expect(page.getByLabelText('Trading time remaining')).toHaveTextContent(/^(4:00|3:[0-5]\d) left$/);
     await expect(page.getByRole('button', { name: 'Ready' })).toBeEnabled();

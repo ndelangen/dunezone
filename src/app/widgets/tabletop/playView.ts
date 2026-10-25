@@ -6,6 +6,7 @@ import { PerspectiveCamera, Vector3 } from 'three';
 import { mapViewFramingPoints } from './tablePlateGeometry';
 import { wheelPixels } from './wheelPixels';
 
+/** The views around the camera dial's ring: the board at its approved angle, the two bays and the bottom shelf. */
 export const TABLE_VIEW_OPTIONS = [
   { id: 'map', label: 'Map' },
   { id: 'left', label: 'Left' },
@@ -13,7 +14,10 @@ export const TABLE_VIEW_OPTIONS = [
   { id: 'bottom', label: 'Bottom' },
 ] as const;
 
-export type TableView = (typeof TABLE_VIEW_OPTIONS)[number]['id'];
+/** The view at the dial's hub: straight down on the whole board, flat and centred. */
+export const TOP_VIEW = { id: 'top', label: 'Top' } as const;
+
+export type TableView = (typeof TABLE_VIEW_OPTIONS)[number]['id'] | typeof TOP_VIEW.id;
 
 /** The view each phase recommends: the camera moves there when the phase begins, and the view picker marks it. */
 export const PHASE_VIEWS: Record<TablePhaseId, TableView> = {
@@ -37,6 +41,8 @@ type PendingView = Readonly<{ view: TableView; source: 'player' | 'phase' }>;
 
 type TableViewState = Readonly<{
   activeView: TableView;
+  /* The view the top-down view was chosen from, which choosing it again returns to. */
+  viewUnderTop: TableView | null;
   cameraRevision: number;
   interactionActive: boolean;
   /* Whether the renderer is ready to draw: the shell opens through its iris only once there is a table to see. */
@@ -81,7 +87,9 @@ const CAMERA_OFFSET: Vector3Tuple = [0, 9.4, 11.2];
 const CAMERA_OFFSET_LENGTH = Math.hypot(...CAMERA_OFFSET);
 /* The approved table angle, measured from straight down, and the steepest the player may tilt to: near top-down, short of the pole where the orbit loses its heading. */
 const CAMERA_APPROVED_POLAR_ANGLE = Math.atan2(CAMERA_OFFSET[2], CAMERA_OFFSET[1]);
-export const CAMERA_TOP_DOWN_POLAR_ANGLE = 0.2;
+const CAMERA_TOP_DOWN_POLAR_ANGLE = 0.2;
+/* The top-down view's angle from straight down: flat to the eye, a hair short of the pole so the orbit keeps its heading. */
+export const CAMERA_TOP_VIEW_POLAR_ANGLE = 0.02;
 /* Scroll distance, in pixels, that tilts the camera from the approved angle all the way to top-down. */
 const CAMERA_TILT_SCROLL_RANGE_PX = 600;
 const CAMERA_TANGENT = Math.tan((TABLE_CAMERA_FIELD_OF_VIEW * Math.PI) / 360);
@@ -103,6 +111,7 @@ const NO_SCREEN_RECTS: readonly ScreenRect[] = [];
 
 const TABLE_VIEW_TARGETS: Record<TableView, Vector3Tuple> = {
   map: [0, 0.1, MAP_VIEW_TARGET_Z],
+  top: [0, 0.1, MAP_VIEW_TARGET_Z],
   left: [-SIDE_VIEW_TARGET_X, 0.1, 0],
   right: [SIDE_VIEW_TARGET_X, 0.1, 0],
   bottom: [0, 0.1, BOTTOM_SHELF_POSITION[2] - 1.3],
@@ -129,9 +138,7 @@ export function cameraTiltAfterWheel(tilt: number, deltaY: number, deltaMode = 0
   return clampCameraTilt(tilt + wheelPixels(deltaY, deltaMode) / CAMERA_TILT_SCROLL_RANGE_PX);
 }
 
-function cameraBasisFor(tilt: number): CameraBasis {
-  const polarAngle =
-    CAMERA_APPROVED_POLAR_ANGLE + (CAMERA_TOP_DOWN_POLAR_ANGLE - CAMERA_APPROVED_POLAR_ANGLE) * clampCameraTilt(tilt);
+function cameraBasisAt(polarAngle: number): CameraBasis {
   const height = Math.cos(polarAngle);
   const depth = Math.sin(polarAngle);
   return {
@@ -140,6 +147,15 @@ function cameraBasisFor(tilt: number): CameraBasis {
     up: [0, depth, -height],
   };
 }
+
+function cameraBasisFor(tilt: number): CameraBasis {
+  return cameraBasisAt(
+    CAMERA_APPROVED_POLAR_ANGLE + (CAMERA_TOP_DOWN_POLAR_ANGLE - CAMERA_APPROVED_POLAR_ANGLE) * clampCameraTilt(tilt)
+  );
+}
+
+/* The top-down view keeps one angle whatever the player's tilt, so a wheel turn from it only brings the board closer. */
+const TOP_VIEW_BASIS = cameraBasisAt(CAMERA_TOP_VIEW_POLAR_ANGLE);
 
 /* The least reciprocal depth at which a coordinate c, seen at c * u on screen, lies within [min, max]; Infinity when it never does. */
 function reciprocalFrom(c: number, min: number, max: number): number {
@@ -311,7 +327,7 @@ function centredMapTarget(
 }
 
 /* Where a side or bottom view looks; a narrow canvas moves a side view further out, so its card well stays in frame. */
-function fixedViewTarget(view: Exclude<TableView, 'map'>, aspectRatio: number): Vector3Tuple {
+function fixedViewTarget(view: Exclude<TableView, 'map' | 'top'>, aspectRatio: number): Vector3Tuple {
   const baseTarget = TABLE_VIEW_TARGETS[view];
   if (view === 'bottom') {
     return [...baseTarget];
@@ -328,6 +344,8 @@ function fixedViewTarget(view: Exclude<TableView, 'map'>, aspectRatio: number): 
  * than stepping. The camera's distance, worked out for the tilt itself, still keeps the frame in view.
  */
 const MAP_TARGET_TILT_STEPS = 32;
+/* The top-down view's own step in the cache, outside the tilt steps. */
+const TOP_VIEW_STEP = -1;
 const MAP_TARGET_CACHE_SIZE = 64;
 const mapTargetCache = new WeakMap<
   readonly Vector3Tuple[],
@@ -364,7 +382,7 @@ function steppedMapTarget(
     aspectRatio,
     framingPoints,
     MAP_VIEW_TOP_LIMIT,
-    cameraBasisFor(step / MAP_TARGET_TILT_STEPS),
+    step === TOP_VIEW_STEP ? TOP_VIEW_BASIS : cameraBasisFor(step / MAP_TARGET_TILT_STEPS),
     obstacles
   );
   if (targets.size >= MAP_TARGET_CACHE_SIZE) {
@@ -394,7 +412,8 @@ function cachedMapTarget(
 
 /*
  * The pose for a view. `mapObstacles` are the chips floating over the canvas: the map view keeps its frame out from under them
- * and otherwise runs to the canvas's edges, so the board takes the room between them.
+ * and otherwise runs to the canvas's edges, so the board takes the room between them. The top-down view frames the same
+ * points from straight above, at its own angle whatever the tilt.
  */
 export function cameraPoseFor(
   view: TableView,
@@ -403,33 +422,41 @@ export function cameraPoseFor(
   tilt = 0,
   mapObstacles: readonly ScreenRect[] = NO_SCREEN_RECTS
 ): CameraPose {
-  const basis = cameraBasisFor(tilt);
+  const basis = view === 'top' ? TOP_VIEW_BASIS : cameraBasisFor(tilt);
   const safeAspectRatio = Number.isFinite(aspectRatio) && aspectRatio > 0 ? aspectRatio : 1;
+  const framesMap = view === 'map' || view === 'top';
   const target: Vector3Tuple =
-    view === 'map'
-      ? cachedMapTarget(safeAspectRatio, mapFramingPoints, clampCameraTilt(tilt), mapObstacles)
-      : fixedViewTarget(view, safeAspectRatio);
-  const cameraScale =
-    view === 'map'
-      ? cameraScaleForFraming(
+    view === 'top'
+      ? steppedMapTarget(
+          mapTargetsFor(mapFramingPoints, mapObstacles),
           safeAspectRatio,
           mapFramingPoints,
+          TOP_VIEW_STEP,
+          mapObstacles
+        )
+      : view === 'map'
+        ? cachedMapTarget(safeAspectRatio, mapFramingPoints, clampCameraTilt(tilt), mapObstacles)
+        : fixedViewTarget(view, safeAspectRatio);
+  const cameraScale = framesMap
+    ? cameraScaleForFraming(
+        safeAspectRatio,
+        mapFramingPoints,
+        MAP_VIEW_TOP_LIMIT,
+        basis,
+        target,
+        MAP_VIEW_MINIMUM_CAMERA_SCALE,
+        mapObstacles
+      )
+    : view === 'bottom'
+      ? cameraScaleForFraming(
+          safeAspectRatio,
+          BOTTOM_VIEW_FRAMING_POINTS,
           MAP_VIEW_TOP_LIMIT,
           basis,
           target,
-          MAP_VIEW_MINIMUM_CAMERA_SCALE,
-          mapObstacles
+          BOTTOM_VIEW_CAMERA_SCALE
         )
-      : view === 'bottom'
-        ? cameraScaleForFraming(
-            safeAspectRatio,
-            BOTTOM_VIEW_FRAMING_POINTS,
-            MAP_VIEW_TOP_LIMIT,
-            basis,
-            target,
-            BOTTOM_VIEW_CAMERA_SCALE
-          )
-        : FOCUS_VIEW_CAMERA_SCALE;
+      : FOCUS_VIEW_CAMERA_SCALE;
   return {
     target: [...target],
     position: [
@@ -740,6 +767,7 @@ export function cameraFogRange(position: Vector3Tuple): CameraFogRange {
 export function createTableViewState(phase: TablePhaseId | null = null): TableViewState {
   return {
     activeView: 'map',
+    viewUnderTop: null,
     cameraRevision: 0,
     interactionActive: false,
     sceneReady: false,
@@ -752,12 +780,28 @@ function requestView(state: TableViewState, pendingView: PendingView): TableView
   if (state.interactionActive) {
     return { ...state, pendingView };
   }
+  /* The top-down view remembers the view it was chosen from; any other view forgets it. */
+  const viewUnderTop =
+    pendingView.view === 'top' ? (state.activeView === 'top' ? state.viewUnderTop : state.activeView) : null;
   return {
     ...state,
     activeView: pendingView.view,
+    viewUnderTop,
     cameraRevision: state.cameraRevision + 1,
     pendingView: null,
   };
+}
+
+/*
+ * The view a player's choice asks for: the top-down view chosen again returns to the view it was chosen from, or,
+ * while it still waits on an interaction, stays on the view that is showing.
+ */
+function chosenView(state: TableViewState, view: TableView): TableView {
+  const showing = state.pendingView?.view ?? state.activeView;
+  if (view !== 'top' || showing !== 'top') {
+    return view;
+  }
+  return state.activeView === 'top' ? (state.viewUnderTop ?? 'map') : state.activeView;
 }
 
 function changePhase(state: TableViewState, phase: TablePhaseId | null): TableViewState {
@@ -785,7 +829,7 @@ function changeInteraction(state: TableViewState, active: boolean): TableViewSta
 export function reduceTableView(state: TableViewState, event: TableViewEvent): TableViewState {
   switch (event.type) {
     case 'view.selected':
-      return requestView(state, { view: event.view, source: 'player' });
+      return requestView(state, { view: chosenView(state, event.view), source: 'player' });
     case 'phase.changed':
       return changePhase(state, event.phase);
     case 'interaction.changed':

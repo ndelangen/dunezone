@@ -2,6 +2,7 @@ import { Anchor, Button, Group, List, Loader, NumberInput, Select, Stack, Text, 
 import { signInReturnFrom } from '@shared/authDestination';
 import { tableHandlingOpen } from '@shared/play/admission';
 import { snapshotFactionLabels } from '@shared/play/factionLabels';
+import { factionTokenOf } from '@shared/play/factionToken';
 import type { PublicControls, SpawnSelection } from '@shared/play/inventory';
 import { lastTurnOf } from '@shared/play/lastTurn';
 import { phaseAt, tableProgressFor } from '@shared/play/phases';
@@ -27,11 +28,12 @@ import { PieceArtwork } from '../../../../widgets/tabletop/PieceArtwork';
 import { usePointerSession } from '../../../../widgets/tabletop/PointerSessionContext';
 import { PredictionLogosContext } from '../../../../widgets/tabletop/prediction/predictionFace';
 import { TabletopSessionProvider } from '../../../../widgets/tabletop/TabletopContext';
-import { ExperimentPlayersContext, useControlsExperiment } from '../controlsExperiments/experiment';
+import type { CompassTable } from '../compass/compassTable';
+import { CompassTableContext } from '../compass/compassTable';
 import { FoilConfetti } from '../FoilConfetti';
 import { GameLink } from '../GameLink';
 import { GameTable } from '../GameTable';
-import type { PanelTab } from '../GameTable';
+import type { TablePanel } from '../GameTable';
 import { predictionCardInHand } from '../prediction/predictionCardInHand';
 import { TableWait } from '../TableWait';
 import { AllianceCoinsScene } from './AllianceCoins';
@@ -39,7 +41,6 @@ import { AlliancesPanel, AllianceStrip, showsAlliances } from './Alliances';
 import { BattleControls, BattleHistory, BattleScene, HandControls } from './BattleControls';
 import { BidderScene } from './Bidder';
 import { OfflineConversations } from './Conversation';
-import { initialDockFocus, nextDockFocus } from './dockFocus';
 import { DraftingOverlay, DraftingPanel } from './Drafting';
 import { DetermineWinner, ResultControls, useDeclareChoice } from './GameResult';
 import type { DeclareChoice } from './GameResult';
@@ -67,17 +68,28 @@ import {
 } from './panelGuidance';
 import { PlaybackControls } from './PlaybackControls';
 import { publicControlsOf } from './publicControls';
-import { PlayerPanel, PlayerWindow, usePlayerWindows } from './RemovalVotes';
+import { PlayerWindow, usePlayerWindows } from './RemovalVotes';
 import { useResultCelebration } from './resultCelebration';
 import { GameMenu, SeatPopover } from './SeatRequests';
-import { stageStatus, stageToolbar } from './StageHeader';
+import { nextPhaseStep, stageStatus, stageToolbar } from './StageHeader';
 import type { GameIdentity } from './StageHeader';
 import { SwapScene } from './SwapScene';
 import { factionName, factionOptions, isSpectator, stageInPlay, viewerFaction } from './tableFactions';
 import { TableSettings } from './TableSettings';
 import { TerritoryTints } from './TerritoryTints';
 import { ServerClockContext } from './useServerNow';
+import { initialWindowFocus, nextWindowFocus } from './windowFocus';
 import '../dune-play.css';
+
+/* The viewer's own faction token on the table, for the compass's flip and pass commands; none without a seat or a token. */
+function viewerToken(client: TableSession, table: TableProjection): CompassTable['token'] {
+  const faction = viewerFaction(table);
+  const token = faction ? factionTokenOf(table.state.pieces, faction) : undefined;
+  if (!token || !table.canHandleTable) {
+    return null;
+  }
+  return { faceUp: token.items[0]?.faceUp ?? true, flip: () => client.flipSelected(token.id) };
+}
 
 const SETUP_TOPICS = {
   traitors: 'leaders',
@@ -125,14 +137,11 @@ function ConnectionControls({ client, table, error }: ConnectionControlsProps) {
   );
 }
 
-/* A spectator's dock opens on the battle when it loads during one, otherwise on the Log; later the spectator picks. */
-const SPECTATOR_OPENING_TABS = ['battle', 'history'];
-
-/* A battle the viewer's faction fights in opens the Battle tab once, when that faction takes its side. */
+/* A battle the viewer's faction fights in opens the Battle window once, when that faction takes its side. */
 function battleFocus(table: TableProjection) {
   const battle = table.snapshot.battle;
   const own = viewerFaction(table);
-  /* The same "in play" test that shows the Battle tab: a hosted game in play, or a table with no stage. */
+  /* The same "in play" test that shows the Battle panel: a hosted game in play, or a table with no stage. */
   if (!stageInPlay(table.snapshot.stage) || !battle || !own || !battle.sides.some((side) => side?.factionId === own)) {
     return null;
   }
@@ -140,10 +149,10 @@ function battleFocus(table: TableProjection) {
 }
 
 /*
- * The tab each phase is about, which the dock opens once as the phase begins.
- * Phases played on the table alone (spice blow, revival, movement) leave the dock where the player put it.
+ * The panel each phase is about, whose window opens once as the phase begins.
+ * Phases played on the table alone (spice blow, revival, movement) open nothing.
  */
-const PHASE_TABS: Partial<Record<string, string>> = {
+const PHASE_PANELS: Partial<Record<string, string>> = {
   storm: 'phase',
   'choam-charity': 'spice',
   bidding: 'hand',
@@ -152,27 +161,27 @@ const PHASE_TABS: Partial<Record<string, string>> = {
   'mentat-pause': 'phase',
 };
 
-/* A seat's own tabs are disabled for a spectator, so only the battle, which they came to watch, opens for them. */
-const SPECTATOR_PHASE_TABS = new Set(['battle']);
+/* A seat's own panels are not a spectator's, so only the battle, which they came to watch, opens for them. */
+const SPECTATOR_PHASE_PANELS = new Set(['battle']);
 
-/* The tab this phase opens for this viewer, or null when the phase leaves the dock alone. */
-function phaseTab(table: TableProjection, activePhaseId: string) {
+/* The window this phase opens for this viewer, or null when the phase opens nothing. */
+function phaseWindow(table: TableProjection, activePhaseId: string) {
   if (table.playback || table.snapshot.stage !== 'play') {
     return null;
   }
-  const key = PHASE_TABS[activePhaseId] ?? null;
-  return isSpectator(table) && key && !SPECTATOR_PHASE_TABS.has(key) ? null : key;
+  const key = PHASE_PANELS[activePhaseId] ?? null;
+  return isSpectator(table) && key && !SPECTATOR_PHASE_PANELS.has(key) ? null : key;
 }
 
-/* The dock follows the live table: each phase change, battle and end-of-game event opens its tab once (see dockFocus.ts). */
-function useDockFocus(table: TableProjection, progress: ReturnType<typeof gameProgress>) {
+/* The windows follow the live table: each phase change, battle and end-of-game event opens its window once (see windowFocus.ts). */
+function useWindowFocus(table: TableProjection, progress: ReturnType<typeof gameProgress>) {
   const phase = `${table.snapshot.stage}:${progress.turn}:${progress.activePhaseId}`;
-  const [state, setState] = useState(() => initialDockFocus(phase, table.snapshot.stage === 'play'));
-  const next = nextDockFocus(state, {
+  const [state, setState] = useState(() => initialWindowFocus(phase, table.snapshot.stage === 'play'));
+  const next = nextWindowFocus(state, {
     playback: Boolean(table.playback),
     phase,
-    phaseTab: phaseTab(table, progress.activePhaseId),
-    events: [resultFocus(table), battleFocus(table)],
+    phaseTab: phaseWindow(table, progress.activePhaseId),
+    events: [resultFocus(table), battleFocus(table), stageFocus(table)],
   });
   if (next !== state) {
     setState(next);
@@ -180,7 +189,22 @@ function useDockFocus(table: TableProjection, progress: ReturnType<typeof gamePr
   return next.focus;
 }
 
-/* The end of the game opens the Result tab once for everyone: when someone starts determining the winner, and when it is declared. */
+/*
+ * A seated player's own stage opens once, as they take their seat or load the table mid-stage: the draft while drafting,
+ * the setup steps (traitors, predictions) while setting up. A spectator has no panel for either.
+ */
+function stageFocus(table: TableProjection) {
+  const { stage } = table.snapshot;
+  if (isSpectator(table)) {
+    return null;
+  }
+  if (stage === 'drafting') {
+    return { key: 'stage', token: 'stage:drafting' };
+  }
+  return stage === 'setup' ? { key: 'setup', token: 'stage:setup' } : null;
+}
+
+/* The end of the game opens the Result window once for everyone: when someone starts determining the winner, and when it is declared. */
 function resultFocus(table: TableProjection) {
   const { ending, result, stage } = table.snapshot;
   if (table.playback) {
@@ -294,7 +318,7 @@ function Predictions({ client, table }: TableControlProps) {
       /* While its card is in hand, placing the card is the reveal; a game that dealt none keeps the button during setup and in the winner bars. */
       const byCard = own && prediction?.revealedAt === null && predictionCardInHand(table, step.id);
       return (
-        /* The Setup tab's guidance names the current step only, so every other declaration keeps its heading in view. */
+        /* The Setup panel's guidance names the current step only, so every other declaration keeps its heading in view. */
         <Section
           hiddenHeading={Boolean(table.snapshot.stage) && current?.id === step.id}
           key={step.id}
@@ -344,7 +368,7 @@ function SetupControls({ client, table }: TableControlProps) {
     return null;
   }
   const step = setupStep(setup);
-  /* The viewer's own starting troops lead, so a narrow dock shows the line that seat has to follow. */
+  /* The viewer's own starting troops lead, so a narrow window shows the line that seat has to follow. */
   const ownFaction = viewerFaction(table);
   const instructions =
     step.kind === 'forces'
@@ -680,7 +704,7 @@ function ConnectionStatus({ table }: Readonly<{ table: TableProjection }>) {
   );
 }
 
-/* A tab's controls beneath the table's refusal of the last command they sent, when there is one. */
+/* A panel's controls beneath the table's refusal of the last command they sent, when there is one. */
 function withTableError(error: string | null, controls: ReactNode) {
   return (
     <>
@@ -690,8 +714,8 @@ function withTableError(error: string | null, controls: ReactNode) {
   );
 }
 
-/* The Alliances tab, only while the game is in play. */
-function alliancesTab({ client, table, error }: ConnectionControlsProps) {
+/* The Alliances panel, only while the game is in play. */
+function alliancesPanel({ client, table, error }: ConnectionControlsProps) {
   if (!showsAlliances(table.snapshot.stage)) {
     return [];
   }
@@ -706,8 +730,8 @@ function alliancesTab({ client, table, error }: ConnectionControlsProps) {
   ];
 }
 
-/* The Hand and Hidden zone tabs, for a seat that holds a hand. */
-function handTabs({ client, table }: TableControlProps) {
+/* The Hand and Hidden zone panels, for a seat that holds a hand. */
+function handPanels({ client, table }: TableControlProps) {
   const hand = table.snapshot.hand;
   if (!hand) {
     return [];
@@ -730,8 +754,8 @@ function handTabs({ client, table }: TableControlProps) {
   ];
 }
 
-/** The Result tab, while a declared result or an ending game asks the table to settle it. */
-function resultTabs({ client, table, error, declare }: ControlTabsProps) {
+/** The Result panel, while a declared result or an ending game asks the table to settle it. */
+function resultPanels({ client, table, error, declare }: ControlPanelsProps) {
   return resultFocus(table)
     ? [
         {
@@ -746,15 +770,15 @@ function resultTabs({ client, table, error, declare }: ControlTabsProps) {
 }
 
 /** The private destinations are only installed for a viewer with a hand. */
-function yoursTab({ client, table }: TableControlProps): PanelTab {
+function yoursGroup({ client, table }: TableControlProps): TablePanel {
   return {
     key: 'yours',
     label: 'Yours',
     topic: 'hand',
     description: 'Your private pieces and spice reserve.',
     content: null,
-    subtabs: [
-      ...handTabs({ client, table }),
+    panels: [
+      ...handPanels({ client, table }),
       ...(table.snapshot.bank
         ? [
             {
@@ -771,7 +795,7 @@ function yoursTab({ client, table }: TableControlProps): PanelTab {
 }
 
 /** GameTable supplies the stage and phase controls beside these game actions. */
-function gameTab({ client, table, error, declare }: ControlTabsProps, inPlay: boolean): PanelTab {
+function gameGroup({ client, table, error, declare }: ControlPanelsProps, inPlay: boolean): TablePanel {
   const { setup, stage, battle } = table.snapshot;
   const activePhaseId = gameProgress(table.snapshot).activePhaseId;
   return {
@@ -780,7 +804,7 @@ function gameTab({ client, table, error, declare }: ControlTabsProps, inPlay: bo
     topic: 'game',
     description: 'The current stage, battles and alliances.',
     content: null,
-    subtabs: [
+    panels: [
       ...(setup && stage === 'setup'
         ? [
             {
@@ -803,21 +827,21 @@ function gameTab({ client, table, error, declare }: ControlTabsProps, inPlay: bo
             },
           ]
         : []),
-      ...resultTabs({ client, table, error, declare }),
-      ...alliancesTab({ client, table, error }),
+      ...resultPanels({ client, table, error, declare }),
+      ...alliancesPanel({ client, table, error }),
     ],
   };
 }
 
 /** Shared inventory persists after play; settings remain available only while playing. */
-function tableTab({ client, table, error }: ConnectionControlsProps): PanelTab {
+function tableGroup({ client, table, error }: ConnectionControlsProps): TablePanel {
   return {
     key: 'table',
     label: 'Table',
     topic: 'board',
     description: 'Shared pieces and table settings.',
     content: null,
-    subtabs: [
+    panels: [
       {
         key: 'shared',
         label: 'Shared inventory',
@@ -852,14 +876,14 @@ function tableTab({ client, table, error }: ConnectionControlsProps): PanelTab {
 }
 
 /** Public records and replay stay together as the game changes phase or finishes. */
-function historyTab({ client, table, error }: ConnectionControlsProps, hasInventory: boolean): PanelTab {
+function historyGroup({ client, table, error }: ConnectionControlsProps, hasInventory: boolean): TablePanel {
   return {
     key: 'history',
     label: 'History',
     topic: 'log',
     ...LOG_GUIDANCE,
     content: null,
-    subtabs: [
+    panels: [
       {
         key: 'game-log',
         label: 'Game log',
@@ -909,33 +933,18 @@ function historyTab({ client, table, error }: ConnectionControlsProps, hasInvent
 }
 
 /** The left rail keeps personal resources first and omits groups with no stage content. */
-type ControlTabsProps = ConnectionControlsProps & Readonly<{ declare: DeclareChoice }>;
+type ControlPanelsProps = ConnectionControlsProps & Readonly<{ declare: DeclareChoice }>;
 
-function controlTabs(props: ControlTabsProps): PanelTab[] {
+function controlPanels(props: ControlPanelsProps): TablePanel[] {
   const { stage, hand } = props.table.snapshot;
   const inPlay = stageInPlay(stage);
   const hasInventory = inPlay || stage === 'finished' || stage === 'setup';
   return [
-    ...(hasInventory && hand ? [yoursTab(props)] : []),
-    gameTab(props, inPlay),
-    ...(hasInventory ? [tableTab(props)] : []),
-    ...(stage ? [historyTab(props, hasInventory)] : []),
+    ...(hasInventory && hand ? [yoursGroup(props)] : []),
+    gameGroup(props, inPlay),
+    ...(hasInventory ? [tableGroup(props)] : []),
+    ...(stage ? [historyGroup(props, hasInventory)] : []),
   ];
-}
-
-/* The player the panel shows, through their seat or the removal vote against them, and which of its tabs is open. */
-type PlayerSelection = Readonly<{ seat: string | null; vote: string | null; tab: 'public' | 'conversation' }>;
-
-/* While a removal vote stands against the chosen player the panel follows its target, otherwise the chosen seat. */
-function usePlayerSelection(table: TableProjection) {
-  const [selection, setSelection] = useState<PlayerSelection>({ seat: null, vote: null, tab: 'conversation' });
-  const removalVotes = table.snapshot.removalVotes ?? [];
-  return {
-    seat: removalVotes.find((vote) => vote.id === selection.vote)?.target.seat ?? selection.seat,
-    tab: selection.tab,
-    select: (seat: string, tab: PlayerSelection['tab']) =>
-      setSelection({ seat, vote: removalVotes.find((vote) => vote.target.seat === seat)?.id ?? null, tab }),
-  };
 }
 
 /* The pieces the stage stands on the board: the trade and setup scenes before play, then the battle, bidder, hands and coins. */
@@ -957,18 +966,6 @@ function stageScene({ client, table, bidderFaded }: TableControlProps & Readonly
       <AllianceCoinsScene table={table} />
     </>
   );
-}
-
-/* Spectators open the current battle when present, otherwise History. Finished games open History. */
-function openingTabs(table: TableProjection) {
-  const stage = table.snapshot.stage;
-  if (stage === 'finished') {
-    return ['history'];
-  }
-  if (isSpectator(table)) {
-    return SPECTATOR_OPENING_TABS;
-  }
-  return stage === 'setup' ? ['setup'] : undefined;
 }
 
 /* A finished game keeps its panels and playback; only the phase controls stop. */
@@ -1020,14 +1017,12 @@ function ConnectedTable({
   identity: GameIdentity;
 }>) {
   const progress = gameProgress(table.snapshot);
-  const focusTab = useDockFocus(table, progress);
+  const focus = useWindowFocus(table, progress);
   const celebration = useResultCelebration(table);
   const declare = useDeclareChoice(table);
-  /* Each player fades the bidder for themselves, so the choice stays in this tab. */
+  /* Each player fades the bidder for themselves, so the choice stays in this browser tab. */
   const [bidderFaded, setBidderFaded] = useState(false);
-  const player = usePlayerSelection(table);
-  const experiment = useControlsExperiment();
-  const playerWindows = usePlayerWindows(client, table, experiment !== null);
+  const playerWindows = usePlayerWindows(client, table);
   const stage = table.snapshot.stage;
   const factionArtwork = table.snapshot.factionArtwork;
   const predictionLogos = useMemo(
@@ -1037,18 +1032,16 @@ function ConnectedTable({
   return (
     <PredictionLogosContext value={predictionLogos}>
       <TabletopSessionProvider session={client}>
-        {/* A boxless wrapper carries the connection state the browser verification waits on, whichever tab is open. */}
+        {/* A boxless wrapper carries the connection state the browser verification waits on, whichever browser tab is open. */}
         <div data-connection={connection} data-revision={table.liveRevision} style={{ display: 'contents' }}>
-          {/* Read only by the controls-layout exploration's stories. */}
-          <ExperimentPlayersContext
-            value={
-              playerWindows && {
-                ...playerWindows,
-                render: (seat, tab) => (
-                  <PlayerWindow client={client} table={table} seat={seat} tab={tab} error={error} />
-                ),
-              }
-            }
+          {/* What the compass shows of the table beyond its panels: the players, the chats and its commands. */}
+          <CompassTableContext
+            value={{
+              ...playerWindows,
+              render: (seat, tab) => <PlayerWindow client={client} table={table} seat={seat} tab={tab} error={error} />,
+              nextPhase: nextPhaseStep(client, table),
+              token: viewerToken(client, table),
+            }}
           >
             <GameTable
               seatCount={table.snapshot.roster?.seatCount ?? DEFAULT_TABLE_SEAT_COUNT}
@@ -1088,25 +1081,12 @@ function ConnectedTable({
                   <DraftingPanel client={client} table={table} error={error} />
                 ) : undefined
               }
-              playerPanel={
-                stage && stage !== 'discarded' ? (
-                  <PlayerPanel
-                    client={client}
-                    table={table}
-                    error={error}
-                    selected={player.seat}
-                    selectedTab={player.tab}
-                    onSelect={player.select}
-                  />
-                ) : undefined
-              }
-              focusTab={focusTab}
-              openOn={openingTabs(table)}
-              panelTabs={controlTabs({ client, table, error, declare })}
+              focus={focus}
+              panels={controlPanels({ client, table, error, declare })}
               tableGuidance={phaseGuidance(table)}
               tableControls={phaseTabControls({ client, table, error, progress })}
             />
-          </ExperimentPlayersContext>
+          </CompassTableContext>
         </div>
       </TabletopSessionProvider>
     </PredictionLogosContext>

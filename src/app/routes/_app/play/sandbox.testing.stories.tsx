@@ -6,7 +6,6 @@ import { chapter, journeyViewers, JourneyPage } from './journey.stories.fixture'
 import { expectHeaderPhase, openTab, phaseControls } from './playing.stories.fixture';
 import { sandbox, sandboxDecorator, sandboxSteps, sandboxTransport } from './sandbox.stories.fixture';
 import { shown, piece } from './sandbox.stories.fixture';
-import { COLUMNS_MIN_WIDTH_REM, setTableLayout } from './tableLayout';
 
 const meta = testingPreview.meta({
   ...gameMeta,
@@ -201,6 +200,7 @@ export const DeleteACard = meta.story({
  * The zone is part of the hand, so no other seat's frame carries it.
  * Right-click a piece in the Hand tab and choose "Move to hidden zone" to try it by hand;
  * drag pieces about in the Hidden zone tab, or onto the table to play them.
+ * Hold Alt over a piece in either tab to see it close up.
  */
 export const HiddenZone = meta.story({
   play: async ({ canvasElement }) => {
@@ -225,9 +225,35 @@ export const HiddenZone = meta.story({
     const other = journeyViewers().find((seat) => seat !== table.seat)!;
     await expect(JSON.stringify(table.frame(other).snapshot)).not.toContain('hiddenZone');
     await openTab(page, 'Hidden zone');
-    await expect(page.findAllByRole('button', { name: /in hidden zone$/ }, { timeout: 30_000 })).resolves.toHaveLength(
-      2
-    );
+    const zonePieces = await page.findAllByRole('button', { name: /in hidden zone$/ }, { timeout: 30_000 });
+    await expect(zonePieces).toHaveLength(2);
+
+    /*
+     * Holding Alt over a piece in the zone, or in the hand, shows its face large beside the pointer, as it does on the table.
+     * The card is the recording's Traitor stand-in, with no published face to show, so the leader shows it.
+     */
+    const closeUp = () => canvasElement.ownerDocument.body.querySelector('[class*="closeUp"]');
+    /* The pointer's own events carry Alt, as a real mouse's do while it is held. */
+    const point = (target: Element, type: string) => {
+      const bounds = target.getBoundingClientRect();
+      const at = { clientX: bounds.left + bounds.width / 2, clientY: bounds.top + bounds.height / 2 };
+      target.dispatchEvent(new PointerEvent(type, { bubbles: true, altKey: true, pointerType: 'mouse', ...at }));
+    };
+    const zoneLeader = page.getByRole('button', {
+      name: `Drag ${leader.items[0]?.artwork?.name ?? leader.label} in hidden zone`,
+    });
+    point(zoneLeader, 'pointerover');
+    point(zoneLeader, 'pointermove');
+    await waitFor(() => expect(closeUp()).not.toBeNull());
+    point(zoneLeader, 'pointerout');
+    await waitFor(() => expect(closeUp()).toBeNull());
+    await openTab(page, 'Hand');
+    const handPiece = (await page.findAllByRole('button', { name: /from hand$/ }, { timeout: 30_000 }))[0]!;
+    point(handPiece, 'pointerover');
+    point(handPiece, 'pointermove');
+    await waitFor(() => expect(closeUp()).not.toBeNull());
+    window.dispatchEvent(new KeyboardEvent('keyup', { key: 'Alt', altKey: false }));
+    await waitFor(() => expect(closeUp()).toBeNull());
   },
 });
 
@@ -239,78 +265,5 @@ export const BattleBeacon = meta.story({
     await expect(
       page.findByRole('button', { name: 'Drag battle marker onto territory' }, { timeout: 30_000 })
     ).resolves.toBeInTheDocument();
-  },
-});
-
-/**
- * The table between the controls and the players, the layout a viewer picks in the game menu;
- * the separators either side of the table resize the columns.
- * A window too narrow for the columns keeps the board on top.
- * Switching back and forth keeps the table's renderer and a half-typed message: the layouts move the same content, they never mount it afresh.
- */
-export const ThreeColumns = meta.story({
-  beforeEach: () => {
-    setTableLayout('columns');
-    return () => setTableLayout('stacked');
-  },
-  play: async ({ canvasElement }) => {
-    const body = canvasElement.ownerDocument.body;
-    const page = within(body);
-    await expect(
-      page.findByRole('heading', { name: 'Dreamrules', level: 1 }, { timeout: 30_000 })
-    ).resolves.toBeVisible();
-    const shell = () => body.querySelector<HTMLElement>('.dune-play-shell')!;
-    await waitFor(() => expect(body.querySelector('.dune-play-stage[data-scene-ready="true"] canvas')).not.toBeNull(), {
-      timeout: 30_000,
-    });
-    const fits = window.matchMedia(`(min-width: ${COLUMNS_MIN_WIDTH_REM}rem)`).matches;
-    await expect(shell().dataset.tableLayout).toBe(fits ? 'columns' : 'stacked');
-    if (fits) {
-      await expect(page.getByRole('separator', { name: 'Resize controls column' })).toBeVisible();
-      await expect(page.getByRole('separator', { name: 'Resize players column' })).toBeVisible();
-      /* The header's chips float over the table's column only, between the two separators, and the side columns run to the top. */
-      const header = body.querySelector<HTMLElement>('.seated-header')!.getBoundingClientRect();
-      const controlsEdge = page.getByRole('separator', { name: 'Resize controls column' }).getBoundingClientRect();
-      const playersEdge = page.getByRole('separator', { name: 'Resize players column' }).getBoundingClientRect();
-      await expect(header.left).toBeGreaterThanOrEqual(controlsEdge.right);
-      await expect(header.right).toBeLessThanOrEqual(playersEdge.left);
-    }
-    const canvas = body.querySelector('canvas');
-    const message = (await page.findByPlaceholderText('Message')) as HTMLTextAreaElement;
-    await userEvent.type(message, 'half typed');
-
-    for (const [choice, layout] of [
-      ['Board on top', 'stacked'],
-      ['Three columns', fits ? 'columns' : 'stacked'],
-    ] as const) {
-      await userEvent.click(page.getByRole('button', { name: 'Game menu' }));
-      await userEvent.click(await page.findByRole('menuitemradio', { name: choice }));
-      await userEvent.keyboard('{Escape}');
-      await waitFor(() => expect(shell().dataset.tableLayout).toBe(layout));
-      await expect(body.querySelector('canvas')).toBe(canvas);
-      await expect(page.getByPlaceholderText('Message')).toHaveValue('half typed');
-    }
-
-    /* A layout change while typing, as when the window crosses the columns' width, moves the composer without blurring or refocusing it. */
-    message.focus();
-    message.setSelectionRange(2, 6, 'backward');
-    const focusChanges: string[] = [];
-    const count = (event: FocusEvent) => focusChanges.push(event.type);
-    message.addEventListener('focus', count);
-    message.addEventListener('blur', count);
-    setTableLayout('stacked');
-    await waitFor(() => expect(shell().dataset.tableLayout).toBe('stacked'));
-    await expect(body.ownerDocument.activeElement).toBe(message);
-    await expect([message.selectionStart, message.selectionEnd, message.selectionDirection]).toEqual([
-      2,
-      6,
-      'backward',
-    ]);
-    await expect(focusChanges).toEqual([]);
-    message.removeEventListener('focus', count);
-    message.removeEventListener('blur', count);
-    /* The story rests in the layout it is named for. */
-    setTableLayout('columns');
-    await waitFor(() => expect(shell().dataset.tableLayout).toBe(fits ? 'columns' : 'stacked'));
   },
 });

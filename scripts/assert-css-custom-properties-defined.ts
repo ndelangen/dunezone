@@ -36,8 +36,16 @@ const PROVIDED_ELSEWHERE = [
   ['--page-layout-fullscreen-left', 'TutorialGuide, which puts its rail beside a fullscreen page, via inline style'],
   ['--rail-width', 'TutorialGuide, which sizes its rail, via inline style'],
   [
-    '--palette-camera-top',
-    'the controls compass (PaletteStage4), which hangs the camera dial under the toolbar, via setProperty',
+    '--compass-camera-top',
+    'the compass controls (useSlotHeights), which hang the camera dial under the toolbar, via setProperty',
+  ],
+  [
+    '--compass-centre-bottom',
+    'the compass controls (useSlotHeights), which stand the centre window over the chat bar, via setProperty',
+  ],
+  [
+    '--compass-slot-bottom',
+    'the compass controls (useSlotHeights), which lift the slots above the chat bar on a narrow table, via setProperty',
   ],
   ['--learned-', 'ChapterComplete in routes/_app/tutorial, which numbers the lines of its list, via inline style'],
 ];

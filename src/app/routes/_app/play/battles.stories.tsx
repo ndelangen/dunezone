@@ -84,8 +84,8 @@ export const RevealedPiecesStill = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const plans = /^House (Harkonnen|Atreides) plan,/;
-    /* The viewer is a side, so the dock opens on the Battle tab with its own plan's wheel; the two on the table are the reveal. */
-    const revealed = () => page.getAllByLabelText(plans).filter((plan) => !plan.closest('.seated-controls-panel'));
+    /* The viewer is a side, so the Battle window opens with its own plan's wheel; the two on the table are the reveal. */
+    const revealed = () => page.getAllByLabelText(plans).filter((plan) => !plan.closest('[data-window]'));
     await settled(() => expect(revealed()).toHaveLength(2));
     await expect(animatedIn(page.getAllByLabelText(plans))).toEqual([]);
     for (const plan of revealed()) {

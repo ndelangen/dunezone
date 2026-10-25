@@ -7,7 +7,7 @@ import { createPortal } from 'react-dom';
 import styles from './RadialMenu.module.css';
 import { HOLD_SECONDS, useHoldToConfirm } from './useHoldToConfirm';
 
-type RadialIcon = 'peek' | 'draw' | 'deal' | 'shuffle' | 'reserve' | 'delete' | 'back';
+type RadialIcon = 'peek' | 'draw' | 'deal' | 'shuffle' | 'reserve' | 'hand' | 'delete' | 'back';
 
 export type RadialAction = Readonly<{
   key: string;
@@ -65,6 +65,13 @@ const ICONS: Record<RadialIcon, ReactNode> = {
     <>
       <rect x="3" y="6" width="10" height="14" rx="2" />
       <path d="M14 9h7M18 6l3 3-3 3" />
+    </>
+  ),
+  hand: (
+    <>
+      <path d="M18 11V6a2 2 0 0 0-4 0v1a2 2 0 0 0-4 0v2a2 2 0 0 0-4 0v6" />
+      <path d="M14 10V4a2 2 0 0 0-4 0v2M10 10.5V6a2 2 0 0 0-4 0v8" />
+      <path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15" />
     </>
   ),
   delete: <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />,
