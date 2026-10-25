@@ -1,5 +1,5 @@
 import { emptyBattlePlan, isBattleLeader } from '@shared/play/battle';
-import type { BattleFace, BattlePlan, BattlePlanInput, Disclosure, PublicBattle } from '@shared/play/battle';
+import type { BattleFace, BattlePlan, BattlePlanInput, Disclosure } from '@shared/play/battle';
 import type { TablePiece } from '@shared/play/model';
 import type { ComponentType, CSSProperties, ReactNode } from 'react';
 import { useState } from 'react';
@@ -116,7 +116,7 @@ export function scenario(name: Scenario): Harness {
 /**
  * What the Worker makes of a plan edit, for the story: switching mode starts the dial over, Max supports as many troops as the spice reaches, Custom spends what its supported troops cost, and the committed pieces leave the hand.
  */
-export function simulate(state: Harness, patch: Partial<BattlePlanInput>): Harness {
+function simulate(state: Harness, patch: Partial<BattlePlanInput>): Harness {
   const before = state.plan;
   const input = { ...before, ...patch };
   const available = state.balance + before.spice;
@@ -242,4 +242,3 @@ export function SlotFrame({ size, children }: { size: SlotSize; children: ReactN
 }
 
 export type { Harness };
-export type BattleStage = PublicBattle['stage'];

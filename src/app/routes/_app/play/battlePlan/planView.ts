@@ -3,7 +3,7 @@ import type { BattleFace, BattlePlan, BattlePlanInput, Disclosure, PublicBattle 
 import type { TablePiece } from '@shared/play/model';
 
 /** What a battle plan window says it wants: a plan edit, readiness, or a part shown or hidden before the reveal. */
-export type PlanIntents = Readonly<{
+type PlanIntents = Readonly<{
   onEdit: (patch: Partial<BattlePlanInput>) => void;
   onReady: (ready: boolean) => void;
   onDisclose: (disclosure: Disclosure, shown: boolean) => void;
@@ -40,7 +40,7 @@ export type BattlePlanViewProps = Readonly<{
 export type FaceTroops = Readonly<{ undialed: number; dialed: number }>;
 
 /** The faction's own forces, used where no limit is known: a full reserve. */
-export const DEFAULT_TROOP_LIMIT = 20;
+const DEFAULT_TROOP_LIMIT = 20;
 
 export const MODE_HELP =
   'Max: say how many troops fight and how much spice backs them, and the spice supports as many as it can. Custom: say for each troop type how many fight unsupported and how many supported; the spice follows.';
@@ -138,7 +138,7 @@ export function planLocks(props: Pick<BattlePlanViewProps, 'canAct' | 'ready' | 
 }
 
 /** The plan's leader's printed strength, when known. */
-export function leaderStrengthOf(props: Pick<BattlePlanViewProps, 'plan' | 'leaderStrength'>) {
+function leaderStrengthOf(props: Pick<BattlePlanViewProps, 'plan' | 'leaderStrength'>) {
   const id = props.plan.leaderId;
   return id ? props.leaderStrength?.[id] : undefined;
 }
