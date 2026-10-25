@@ -23,7 +23,7 @@ const piece = (
   kind,
 });
 
-test('leaders come first, then each card back by name, then tokens', () => {
+test('Treachery cards come first, then leaders, then each other card back by name, then tokens', () => {
   const leader = {
     ...piece('jessica', 'force'),
     items: [
@@ -38,9 +38,9 @@ test('leaders come first, then each card back by name, then tokens', () => {
     piece('shield', 'card', 'Treachery'),
   ]);
   expect(groups.map((group) => [group.label, group.pieces.map((entry) => entry.id)])).toEqual([
+    ['Treachery', ['snooper', 'shield']],
     ['Leaders', ['jessica']],
     ['Traitor', ['bewt']],
-    ['Treachery', ['snooper', 'shield']],
     ['Tokens', ['marker']],
   ]);
 });

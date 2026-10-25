@@ -60,7 +60,7 @@ function handOnlyActions(actions: HandActions, piece: TablePiece, viewWidth: num
 const TILE_WIDTH = { leaders: 50, cards: 54 };
 
 /**
- * The hand as shelves: the leaders on a row of their own, then each kind of card under its name and count.
+ * The hand as shelves: the Treachery cards, the leaders on a row of their own, then each other kind of card under its name and count.
  * A piece lifts under the pointer;
  * drag it onto the table, right-click it for its actions, or hold Alt to see it close up.
  * In a battle the pieces in your plan stay on their shelf, ringed, even once committed, so taking one back is the same right-click.

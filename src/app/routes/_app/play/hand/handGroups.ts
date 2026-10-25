@@ -1,7 +1,7 @@
 import { isBattleLeader } from '@shared/play/battle';
 import type { TablePiece } from '@shared/play/model';
 
-/** How a hand sorts its pieces for reading: leaders, then each card back by the word printed on it, then everything else. */
+/** How a hand sorts its pieces for reading: Treachery cards, then leaders, then each other card back by the word printed on it, then everything else. */
 export type HandGroup = Readonly<{ key: string; label: string; pieces: TablePiece[] }>;
 
 export function handGroups(pieces: readonly TablePiece[]): HandGroup[] {
@@ -21,7 +21,8 @@ export function handGroups(pieces: readonly TablePiece[]): HandGroup[] {
       add('other', 'Tokens', piece);
     }
   }
-  const order = (key: string) => (key === 'leaders' ? 0 : key === 'other' ? 2 : 1);
+  const RANK: Record<string, number> = { 'card:Treachery': 0, leaders: 1, other: 3 };
+  const order = (key: string) => RANK[key] ?? 2;
   return [...groups.entries()]
     .sort(([a], [b]) => order(a) - order(b) || a.localeCompare(b))
     .map(([key, group]) => ({ key, ...group }));

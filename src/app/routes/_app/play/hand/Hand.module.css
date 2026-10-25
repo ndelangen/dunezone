@@ -1,6 +1,6 @@
 /* The Hand & spice window's content, inside a compass window: the window's own ink, edge and sand accent. */
 
-/* The leaders take a row of their own, and the card groups sit side by side beneath it while they fit. */
+/* The Treachery cards lead, the leaders take a row of their own beneath them, and the other card groups sit side by side below while they fit. */
 .shelves {
   display: flex;
   flex-wrap: wrap;
