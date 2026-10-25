@@ -107,6 +107,8 @@ const CARRY_THRESHOLD_PX = 4;
 /* A piece being carried: where it was grabbed within its box, and where the pointer is now. */
 type Carry = Readonly<{
   pieceId: string;
+  /** The piece's place in the zone, which holds the pointer while it is carried. */
+  holder: HTMLElement;
   pointerId: number;
   grabX: number;
   grabY: number;
@@ -117,8 +119,16 @@ type Carry = Readonly<{
   moving: boolean;
 }>;
 
-/* A dropped piece stays where it was let go until the room's answer moves it, so it never jumps back first. */
-type Landing = Readonly<{ pieceId: string; at: { x: number; y: number }; from: TablePiece['hiddenZone'] }>;
+/*
+ * A dropped piece stays where it was let go until the room's answer moves it, so it never jumps back first.
+ * A move the room refuses brings no new spot, so the piece goes back to where the room keeps it once the answer is in.
+ */
+type Landing = Readonly<{
+  pieceId: string;
+  commandId: string;
+  at: { x: number; y: number };
+  from: TablePiece['hiddenZone'];
+}>;
 
 /*
  * A carry let go over the table plays the piece there, through the same drop the hand's drags use,
@@ -160,7 +170,34 @@ export function HiddenZone({ client, table, hand }: Props) {
 
   /* The spot a piece shows: where it was let go while the room has not answered yet, else where the room keeps it. */
   const spotOf = (piece: TablePiece) =>
-    landing && landing.pieceId === piece.id && landing.from === piece.hiddenZone ? landing.at : piece.hiddenZone!;
+    landing &&
+    landing.pieceId === piece.id &&
+    landing.from === piece.hiddenZone &&
+    client.awaiting(landing.commandId)
+      ? landing.at
+      : piece.hiddenZone!;
+
+  /* Escape puts a carried piece back where it was, as the browser's own drags do, and keeps Escape from the windows behind it. */
+  const carryingPiece = carry?.pieceId ?? null;
+  useEffect(() => {
+    if (!carryingPiece) {
+      return;
+    }
+    const cancel = (event: KeyboardEvent) => {
+      const current = carrying.current;
+      if (event.key !== 'Escape' || !current) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      setCarry(null);
+      if (current.holder.hasPointerCapture(current.pointerId)) {
+        current.holder.releasePointerCapture(current.pointerId);
+      }
+    };
+    window.addEventListener('keydown', cancel, true);
+    return () => window.removeEventListener('keydown', cancel, true);
+  }, [carryingPiece]);
 
   const release = (event: PointerEvent<HTMLDivElement>, piece: TablePiece) => {
     const current = carrying.current;
@@ -188,8 +225,8 @@ export function HiddenZone({ client, table, hand }: Props) {
       },
       extent
     );
-    setLanding({ pieceId: piece.id, at, from: piece.hiddenZone });
-    client.command({ kind: 'hand-zone', pieceId: piece.id, at });
+    const commandId = client.command({ kind: 'hand-zone', pieceId: piece.id, at });
+    setLanding(commandId ? { pieceId: piece.id, commandId, at, from: piece.hiddenZone } : null);
   };
 
   return (
@@ -226,6 +263,7 @@ export function HiddenZone({ client, table, hand }: Props) {
                   const bounds = event.currentTarget.getBoundingClientRect();
                   setCarry({
                     pieceId: piece.id,
+                    holder: event.currentTarget,
                     pointerId: event.pointerId,
                     grabX: event.clientX - bounds.left,
                     grabY: event.clientY - bounds.top,

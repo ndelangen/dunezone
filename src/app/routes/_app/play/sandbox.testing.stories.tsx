@@ -261,6 +261,37 @@ export const HiddenZone = meta.story({
     );
     await waitFor(() => expect(zoneLeader.getBoundingClientRect().left).toBeCloseTo(before.left + 60, 0));
 
+    /* Escape puts a carried piece back where it was, and the release that follows sends nothing. */
+    const kept = () => shown().hand!.find((candidate) => candidate.id === leader.id)!.hiddenZone!;
+    const resting = zoneLeader.getBoundingClientRect();
+    const restX = resting.left + resting.width / 2;
+    const restY = resting.top + resting.height / 2;
+    const keptBefore = kept();
+    press('pointerdown', restX, restY);
+    press('pointermove', restX + 40, restY);
+    await waitFor(() => expect(carried()).not.toBeNull());
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    await waitFor(() => expect(carried()).toBeNull());
+    press('pointerup', restX + 40, restY);
+    await expect(kept()).toEqual(keptBefore);
+    await expect(zoneLeader.getBoundingClientRect().left).toBeCloseTo(resting.left, 0);
+
+    /* A move the table refuses puts the piece back where the table keeps it. */
+    const receive = table.receive;
+    table.receive = (message, seat) => {
+      if (message.type === 'command' && message.action.kind === 'hand-zone') {
+        table.deliver({ type: 'rejected', requestId: message.commandId, message: 'Refused for the story.' });
+        return true;
+      }
+      return receive.call(table, message, seat);
+    };
+    press('pointerdown', restX, restY);
+    press('pointermove', restX + 40, restY);
+    press('pointerup', restX + 40, restY);
+    await waitFor(() => expect(zoneLeader.getBoundingClientRect().left).toBeCloseTo(resting.left, 0));
+    table.receive = receive;
+    await expect(kept()).toEqual(keptBefore);
+
     /* Holding Alt over a piece in the zone, or in the hand, shows its face large beside the pointer, as it does on the table. */
     const closeUp = () => canvasElement.ownerDocument.body.querySelector('[class*="closeUp"]');
     /* The pointer's own events carry Alt, as a real mouse's do while it is held. */

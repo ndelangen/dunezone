@@ -22,11 +22,13 @@ export type Slots = Readonly<Record<Side, Opened | null>>;
 export type OpenWindows = ReturnType<typeof useOpenWindows>;
 
 /*
- * Something that takes Escape first: a menu, a list, a dialog, the control whose popover is open, or the territory paintbrush.
+ * Something that takes Escape first: a menu, a list, a dialog, the control whose popover is open, a piece carried in the hidden zone,
+ * or the territory paintbrush.
  * Escape then stops painting and leaves the window open, and a second Escape closes it.
  */
 const OPEN_ABOVE = '[role="menu"], [role="listbox"], [role="dialog"], [aria-modal="true"]';
 const EXPANDED = '[aria-expanded="true"]';
+const CARRIED = '[data-carried]';
 
 /* Shown, not just mounted: a select keeps its list in the document, hidden, while it is shut. */
 function shown(element: Element) {
@@ -44,6 +46,7 @@ function escapeTaken(event: KeyboardEvent) {
   return (
     brushTakes(event) ||
     [...document.querySelectorAll(OPEN_ABOVE)].some(shown) ||
+    document.querySelector(CARRIED) !== null ||
     (target instanceof Element && target.closest(EXPANDED) !== null)
   );
 }
