@@ -1,6 +1,5 @@
 import type { GameSnapshot } from '@shared/play/protocol';
 import { BOARD_RADIUS } from '@shared/play/tableGeometry';
-import { Vector3 } from 'three';
 import type { Vector3Tuple } from 'three';
 
 import { wheelPixels } from '@app/widgets/tabletop/wheelPixels';
@@ -99,18 +98,20 @@ export const dialTask = (id: string, view: string, text: string, detail: string)
     done: showing(view),
   });
 
-const forward = new Vector3();
-
 /*
  * How far the camera looks to reach the table, along its own line of sight, so sliding the view sideways never changes it and only a zoom does.
  * A camera that looks level or up never reaches the table, and counts as its height instead.
+ * The line of sight is read off the camera's world matrix, as Three's getWorldDirection does, so the chapter list that imports these
+ * checks never loads Three itself, and the landing page keeps Three in the table's own chunk.
  */
 const cameraDistance = ({ camera }: GuideView) => {
   if (!camera) {
     return 0;
   }
-  camera.getWorldDirection(forward);
-  return forward.y < -0.01 ? camera.position.y / -forward.y : camera.position.y;
+  camera.updateWorldMatrix(true, false);
+  const [x, y, z] = camera.matrixWorld.elements.slice(8, 11) as [number, number, number];
+  const down = y / Math.hypot(x, y, z);
+  return down > 0.01 ? camera.position.y / down : camera.position.y;
 };
 
 /*

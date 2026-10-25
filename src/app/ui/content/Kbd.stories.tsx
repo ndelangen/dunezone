@@ -25,7 +25,9 @@ export const InProse = meta.story({
   play: async ({ canvasElement }) => {
     const keys = [...canvasElement.querySelectorAll('kbd')].map((key) => key.textContent);
     await expect(keys).toEqual(['Space', '←', 'Space', 'Escape']);
-    await expect(canvasElement.textContent).toBe('Press Space, then ← and Space again. Escape closes it.');
+    await expect(canvasElement.querySelector('p')?.textContent).toBe(
+      'Press Space, then ← and Space again. Escape closes it.'
+    );
   },
 });
 

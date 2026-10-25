@@ -32,6 +32,3 @@ export function KeyedText({ children }: Readonly<{ children: string }>) {
     </>
   );
 }
-
-/** The words of keyed prose, without the braces: for labels, titles and anything else that is read rather than shown. */
-export const keyedPlain = (text: string) => text.replace(KEY, '$1');
