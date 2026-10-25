@@ -1369,9 +1369,40 @@ async function redPixels(recipient: HostedPeer, sender: HostedPeer, center: Poin
   return count;
 }
 
+/**
+ * Closes the centre window a stage or phase opens by itself over the board, so a press or pixel read there reaches the board.
+ * Escape closes it, and pinned windows stay.
+ */
+async function clearCentre(who: HostedPeer) {
+  const centre = who.page.locator('[data-window][data-side="centre"]');
+  for (let attempt = 0; attempt < 3 && (await centre.count()) > 0; attempt += 1) {
+    await who.page.mouse.move(10, 10);
+    await who.page.keyboard.press('Escape');
+    await centre
+      .first()
+      .waitFor({ state: 'detached', timeout: 2000 })
+      .catch(() => undefined);
+  }
+  if ((await centre.count()) > 0) {
+    throw new Error(`${who.label}'s centre window did not close on Escape.`);
+  }
+}
+/** Fails when anything but the board's canvas is topmost at a page point, naming what covers it. */
+async function assertBoardAt(who: HostedPeer, at: Point, what: string) {
+  const cover = await who.page.evaluate(({ x, y }) => {
+    const hit = document.elementFromPoint(x, y);
+    return hit instanceof HTMLCanvasElement
+      ? null
+      : (hit?.closest('[aria-label]')?.getAttribute('aria-label') ?? hit?.tagName ?? 'nothing');
+  }, at);
+  assert.equal(cover, null, `${who.label}: ${what} is covered by ${cover}.`);
+}
+
 async function visibleActivity(sender: HostedPeer, recipient: HostedPeer, name: string) {
   await focus(sender, 'map');
   await focus(recipient, 'map');
+  await clearCentre(sender);
+  await clearCentre(recipient);
   const savedRevision = requireView(sender).snapshot.revision;
   const first = await point(sender, [0, 0.38, 1]);
   const second = await point(sender, [1, 0.38, 1]);
@@ -1398,6 +1429,11 @@ async function visibleActivity(sender: HostedPeer, recipient: HostedPeer, name: 
     destinations.push({ senderPoint, recipientPoint, baseline: await redPixels(recipient, sender, recipientPoint) });
   }
   await capture(recipient, `${name}-before-carry`);
+  await assertBoardAt(sender, start, 'the troop stack');
+  for (const destination of destinations) {
+    await assertBoardAt(sender, destination.senderPoint, 'a carry destination');
+    await assertBoardAt(recipient, destination.recipientPoint, 'a carry destination');
+  }
   const sentBefore = sender.sent.length;
   await sender.page.mouse.move(start.x, start.y);
   await sender.page.mouse.down();
