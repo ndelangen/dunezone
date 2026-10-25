@@ -8,7 +8,7 @@ import type { Camera } from 'three';
 
 import {
   CAMERA_CLOSEST_DISTANCE,
-  CAMERA_TOP_DOWN_POLAR_ANGLE,
+  CAMERA_TOP_VIEW_POLAR_ANGLE,
   cameraFogRange,
   cameraGlideShare,
   cameraPoseFor,
@@ -343,7 +343,7 @@ function useCloseLook(enabled: boolean, viewKey: string, poseAt: PoseAt): WheelV
 
 /*
  * The chips and dial floating over the canvas, kept current as they grow, shrink or move (a status appearing, a phase's copy
- * changing, the dial moving into the dock), so the map view reframes around them without waiting for a view command.
+ * changing, the dial moving under a grown toolbar), so the map view reframes around them without waiting for a view command.
  */
 function useTableOverlayRects(canvas: HTMLCanvasElement): readonly ScreenRect[] {
   const [measured, setMeasured] = useState<{ canvas: HTMLCanvasElement; key: string; rects: readonly ScreenRect[] }>({
@@ -368,7 +368,7 @@ function useTableOverlayRects(canvas: HTMLCanvasElement): readonly ScreenRect[] 
       return;
     }
     let frame = 0;
-    /* The dial moves into the dock a moment after the canvas shrinks, so a change is measured again once it has settled. */
+    /* The dial settles under the toolbar a moment after the canvas shrinks, so a change is measured again once it has settled. */
     const observer = new ResizeObserver(() => {
       measure();
       cancelAnimationFrame(frame);
@@ -515,7 +515,7 @@ export function CameraControls(props: SeatedCameraProps) {
       enableZoom={false}
       minDistance={CAMERA_CLOSEST_DISTANCE}
       maxDistance={96}
-      minPolarAngle={CAMERA_TOP_DOWN_POLAR_ANGLE}
+      minPolarAngle={CAMERA_TOP_VIEW_POLAR_ANGLE}
       maxPolarAngle={1.08}
       minAzimuthAngle={-0.72}
       maxAzimuthAngle={0.72}

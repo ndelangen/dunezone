@@ -4,9 +4,9 @@ import type { setupStep } from '@shared/play/setup';
 import type { TableProjection } from '../../../../db/tabletop/TableSession';
 
 /*
- * What each tab of the play dock says about itself.
- * A tab's tooltip gives its one-line description on hover and its full help once the pointer rests there;
- * the section the tab opens keeps the same help for assistive technology, so both read from here.
+ * What each panel of the table's controls says about itself.
+ * The window's (?) gives the one-line description and the full help under it, and the compass's search shows the description as a hint;
+ * the section the window holds keeps the same help for assistive technology, so both read from here.
  */
 
 type Guidance = Readonly<{ description: string; help?: string }>;
@@ -93,7 +93,7 @@ export function phaseHelp(table: TableProjection) {
     : `${phase.instructions} Previous changes the tracker only. Pieces and storm position stay as they are.`;
 }
 
-/** The Phase tab's guidance; a fixture table without a stage keeps its plain Table tab. */
+/** The Phase panel's guidance; a fixture table without a stage keeps its plain Table panel. */
 export function phaseGuidance(table: TableProjection): Guidance | undefined {
   if (!table.snapshot.stage) {
     return undefined;

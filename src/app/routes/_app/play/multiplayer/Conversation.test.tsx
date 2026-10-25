@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 
 import { MantineProvider } from '@mantine/core';
-import { act, cleanup, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { appContentTheme } from '@ui/theme';
 import { afterEach, expect, test, vi } from 'vite-plus/test';
 
@@ -151,4 +151,24 @@ test("a message's time follows the server clock's tick into minutes and hours", 
   });
   expect(time()).toBe('2 hours ago');
   vi.useRealTimers();
+});
+
+test('an unsent message comes back when the conversation is shown again', () => {
+  const client = clientWith({
+    context: null,
+    online: false,
+    summaries: [],
+    pages: { peer: { entries: [], more: false, load: { state: 'idle' } } },
+    pending: [],
+  });
+  const view = () => (
+    <MantineProvider theme={appContentTheme}>
+      <Conversation client={client} peerId="peer" />
+    </MantineProvider>
+  );
+  const first = render(view());
+  fireEvent.change(screen.getByRole('textbox', { name: 'Message' }), { target: { value: 'Half a thought' } });
+  first.unmount();
+  render(view());
+  expect(screen.getByRole<HTMLTextAreaElement>('textbox', { name: 'Message' }).value).toBe('Half a thought');
 });

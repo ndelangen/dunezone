@@ -8,11 +8,19 @@ export type TerritoryBrush = Readonly<{
 
 let brush: TerritoryBrush | null = null;
 const listeners = new Set<() => void>();
+/* The Escape presses that stopped painting, so a listener that hears one after the brush is off still knows it was taken. */
+const stoppers = new WeakSet<Event>();
 
 function stopOnEscape(event: KeyboardEvent) {
   if (event.key === 'Escape') {
+    stoppers.add(event);
     setTerritoryBrush(null);
   }
+}
+
+/** Whether this key press is taken by the paintbrush: it is on, or the press itself just turned it off. */
+export function brushTakes(event: Event) {
+  return brush !== null || stoppers.has(event);
 }
 
 /** Turns the paintbrush on for one tint, or off with null; Escape turns it off too. One page has one brush. */

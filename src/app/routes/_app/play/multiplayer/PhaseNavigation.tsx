@@ -6,15 +6,21 @@ import { useId } from 'react';
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 import { publicControlsOf } from './publicControls';
 
+/* What the phase asks of the table before it moves on: the public readiness and seats, through the shared gate. */
+function gateOf(table: TableProjection) {
+  const controls = publicControlsOf(table);
+  return { controls, ...phaseGate({ ...table.snapshot, ready: controls.ready, seats: controls.seats }) };
+}
+
+/** Whether Next phase is enabled: the viewer may act, the last step has cooled, and the phase's gate is open. */
+export function canStepPhase(table: TableProjection) {
+  return table.canInteract && !table.phaseCooling && gateOf(table).refusal === null;
+}
+
 /* The header's phase controls: the Ready toggle when the phase asks for readiness, then the Next phase split button. */
 export function PhaseNavigation({ client, table }: Readonly<{ client: TableSession; table: TableProjection }>) {
-  const controls = publicControlsOf(table);
   const cooling = table.phaseCooling;
-  const { needsReady, refusal } = phaseGate({
-    ...table.snapshot,
-    ready: controls.ready,
-    seats: controls.seats,
-  });
+  const { controls, needsReady, refusal } = gateOf(table);
   const ready = controls.ready.includes(table.viewer.viewerSeat);
   /* Readiness is a phase control, so it sits beside Next phase in the header rather than on a tab. */
   return (

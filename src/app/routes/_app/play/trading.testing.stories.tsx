@@ -1,6 +1,7 @@
 import { testingPreview } from '@sb/preview';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
+import { openControl } from './controls.stories.fixture';
 import { gameMeta, install, lastCommand } from './game.stories.fixture';
 import { productTransport, swappingSnapshot } from './product.stories.fixture';
 
@@ -22,12 +23,13 @@ export const Offers = meta.story({
   }),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
+    await openControl(page, 'Twaffle');
     await page.findByRole('button', { name: 'Accept trade from House Atreides' }, { timeout: 30_000 });
-    await userEvent.click(page.getByRole('tab', { name: 'fectumbra' }));
+    await openControl(page, 'fectumbra');
     await expect(page.getByRole('button', { name: 'Offer trade to Emperor' })).toBeDisabled();
-    await userEvent.click(page.getByRole('tab', { name: 'Ridwan' }));
+    await openControl(page, 'Ridwan');
     await expect(page.getByRole('button', { name: 'Cancel offer to Fremen' })).toBeEnabled();
-    await userEvent.click(page.getByRole('tab', { name: 'Twaffle' }));
+    await openControl(page, 'Twaffle');
     await userEvent.click(page.getByRole('button', { name: 'Accept trade from House Atreides' }));
     await waitFor(() => expect(lastCommand()).toMatchObject({ action: { kind: 'swap-accept', offerId: 'offer-one' } }));
   },

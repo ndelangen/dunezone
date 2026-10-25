@@ -1,9 +1,7 @@
-import { Box, Group, Stack, Text, Tooltip, VisuallyHidden } from '@mantine/core';
-import { CircleHelp } from 'lucide-react';
+import { Box, Group, Stack, Text, Tooltip } from '@mantine/core';
+import { HelpMark } from '@ui/content/HelpMark';
 import { useId, useLayoutEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-
-import styles from './ControlBlock.module.css';
 
 export interface ControlBlockProps {
   title: string;
@@ -58,30 +56,7 @@ export function ControlBlock({ title, description, tool, input }: ControlBlockPr
       <Group gap="sm" justify="space-between" align="center" wrap="nowrap">
         <Group gap={6} wrap="nowrap" flex="1 1 12rem" miw={0}>
           <OverflowTooltipTitle id={titleId} text={title} />
-          {description ? (
-            <>
-              <VisuallyHidden id={descriptionId}>{description}</VisuallyHidden>
-              <Tooltip
-                label={description}
-                multiline
-                maw={360}
-                position="top-start"
-                withArrow
-                events={{ hover: true, focus: true, touch: true }}
-              >
-                <Box
-                  component="span"
-                  role="img"
-                  aria-label="Help"
-                  aria-describedby={descriptionId}
-                  tabIndex={0}
-                  className={styles.help}
-                >
-                  <CircleHelp size={14} aria-hidden />
-                </Box>
-              </Tooltip>
-            </>
-          ) : null}
+          {description ? <HelpMark id={descriptionId} text={description} /> : null}
         </Group>
         {tool ? <Box>{tool}</Box> : null}
       </Group>

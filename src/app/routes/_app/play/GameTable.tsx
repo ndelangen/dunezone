@@ -1,4 +1,4 @@
-import { Button, Group, Stack, Text } from '@mantine/core';
+import { Button, Group, Text } from '@mantine/core';
 import { turnCaption } from '@shared/play/lastTurn';
 import { pieceCount } from '@shared/play/model';
 import type { TablePiece } from '@shared/play/model';
@@ -7,11 +7,18 @@ import type { GameSnapshot } from '@shared/play/protocol';
 import { TABLE_SECTOR_COUNT } from '@shared/play/tableSettings';
 import type { TableSeatCount } from '@shared/play/tableSettings';
 import { Section } from '@ui/block/Section';
-import { TopicIcon } from '@ui/content/TopicIcon';
 import type { TopicIconTopic } from '@ui/content/TopicIcon';
-import { SplitPanels } from '@ui/layout/SplitPanels';
-import { NestedTabs } from '@ui/surface/NestedTabs';
-import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from 'react';
 import type { ReactNode } from 'react';
 
 import {
@@ -26,6 +33,7 @@ import {
   PHASE_VIEWS,
   reduceTableView,
   TABLE_VIEW_OPTIONS,
+  TOP_VIEW,
 } from '../../../widgets/tabletop/playView';
 import type { CameraViewCommand, TableView } from '../../../widgets/tabletop/playView';
 import { PointerSession } from '../../../widgets/tabletop/PointerSession';
@@ -41,63 +49,41 @@ import {
 import type { TabletopContextValue } from '../../../widgets/tabletop/TabletopContext';
 import { TabletopScene } from '../../../widgets/tabletop/TabletopScene';
 import type { TableProgress } from '../../../widgets/tabletop/tableTrackers';
-import {
-  controlsPanelLimits,
-  DEFAULT_CONTROLS_PANEL_PERCENT,
-  KEYBOARD_PAGE_STEP_PERCENT,
-  KEYBOARD_STEP_PERCENT,
-  paneLimits,
-} from './controlPanelLayout';
-import { ExperimentLayout } from './controlsExperiments/ControlsExperiments';
-import { experimentTakesTabs, useControlsExperiment } from './controlsExperiments/experiment';
+import { CompassControls } from './compass/CompassControls';
 import { DarkSchemeIsland, darkSchemeIslandAttributes } from './DarkSchemeIsland';
-import { Held, HeldSlot, useHeldNode } from './HeldContent';
-import type { HeldNode } from './HeldContent';
 import { TableLabelsContext } from './tableLabels';
 import type { TableLabels } from './tableLabels';
-import {
-  controlsColumnLimits,
-  controlsColumnLimitsWithoutPlayers,
-  playersColumnLimits,
-  setControlsColumnPercent,
-  setPlayersColumnPercent,
-  useControlsColumnPercent,
-  usePlayersColumnPercent,
-  useShownTableLayout,
-} from './tableLayout';
-import type { TableLayout } from './tableLayout';
 import { TableWait } from './TableWait';
 
 /* How long the shell waits for the renderer before opening anyway. */
 const SCENE_READY_FALLBACK_MS = 1500;
 
-/** One tab of the controls panel: what it is called, its glyph from the topic map, and what it shows. */
-export type PanelTab = Readonly<{
+/** One panel of the table's controls, which the compass opens as a window: its name, its glyph from the topic map, and what it shows. */
+export type TablePanel = Readonly<{
   key: string;
   label: string;
   topic: TopicIconTopic;
-  /** One line saying what the tab is for, under its name in the tab's tooltip. */
+  /** One line saying what the panel is for: the search's hint, and the first line behind the window's (?). */
   description?: string;
-  /** The tab's full guidance, in the tooltip once the pointer rests on the tab. */
+  /** The panel's full guidance, behind the window's (?) under the description. */
   help?: string;
   content: ReactNode;
-  /** False when the content runs to the pane's sides and insets its own text, as `NestedTabs.ContentPanel` takes it. */
+  /** False when the content runs to the window's sides and insets its own text. */
   padding?: boolean;
-  subtabs?: readonly PanelTab[];
+  /** A group's panels; the group itself opens nothing. */
+  panels?: readonly TablePanel[];
 }>;
 
 type GameTableProps = {
   sceneContent?: ReactNode;
-  /** Tabs the host adds ahead of the fixture's own Table tab, in the accepted order. */
-  panelTabs?: readonly PanelTab[];
-  /** A tab to open once per token, as a battle opens on the viewer's side; the player can move away and it stays put. */
-  focusTab?: Readonly<{ key: string; token: string }> | null;
-  /** The tabs the panel opens on, in preference, as a spectator opens past tabs whose controls are a seat's; without one present it opens on the first. */
-  openOn?: readonly string[];
-  /** Sections the host adds to the Table tab, above the fixture's trackers. */
+  /** The host's panels, grouped, ahead of the fixture's own Table panel. */
+  panels?: readonly TablePanel[];
+  /** A window to open once per token, as a battle opens on the viewer's side; the player can close it and it stays closed. */
+  focus?: Readonly<{ key: string; token: string }> | null;
+  /** Sections the host adds to the Table panel, above the fixture's trackers. */
   tableControls?: ReactNode;
-  /** What the Table tab's tooltip says about it: play's Phase tab explains the phase. */
-  tableGuidance?: Pick<PanelTab, 'description' | 'help'>;
+  /** What the Table panel's (?) says about it: play's Phase panel explains the phase. */
+  tableGuidance?: Pick<TablePanel, 'description' | 'help'>;
   /** The game menu in the toolbar, present in every stage: what a player can do about their own seat. Previous and Next stay rightmost. */
   gameMenu?: ReactNode;
   toolbarControl?: ReactNode;
@@ -113,11 +99,10 @@ type GameTableProps = {
   mapVisible?: boolean;
   /* The header's centre during a stage that says more than its word: the drafting counts and status. */
   stageStatus?: ReactNode;
-  /* Play chrome laid over the scene for a stage, between the header and the panel: the drafting ledger. */
+  /* Play chrome laid over the scene for a stage, under the header: the drafting ledger. */
   stageOverlay?: ReactNode;
-  /* A stage's own panel in place of the tabs: the drafting panel. Its tab's pane is flush, so the content insets itself with --nested-tabs-panel-inset. */
+  /* A stage's own panel, leading the Game group: the drafting panel. Its window is flush, so the content insets itself. */
   panelContent?: ReactNode;
-  playerPanel?: ReactNode;
   /* A view the host asks for after something the viewer did lands out of frame; each new revision moves the camera once. */
   requestedView?: Readonly<{ view: TableView; revision: number }>;
 };
@@ -245,15 +230,52 @@ const DIAL_LETTERS: Record<TableView, string> = {
   left: 'L',
   right: 'R',
   bottom: 'B',
+  top: 'U',
 };
 
-/* Where each view sits on the dial: the board at the top, the bays to the sides, the bottom stem below. */
+/* The key that turns the camera straight down and back; the letters of the ring are the dial's buttons alone. */
+const TOP_VIEW_KEY = 'u';
+
+/* Where each view sits on the dial: the board at the top, the bays to the sides, the bottom stem below; the hub needs no needle. */
 const DIAL_ANGLES: Record<TableView, number> = {
   map: 180,
   left: 90,
   right: 270,
   bottom: 0,
+  top: 180,
 };
+
+/* A key typed into a text field belongs to that field. */
+function typesIntoField(event: KeyboardEvent) {
+  const target = event.target;
+  return target instanceof HTMLElement && (target.isContentEditable || target.matches('input, textarea, select'));
+}
+
+/* A fresh, bare press of the top view's key that nothing else has answered yet. */
+function pressesTopView(event: KeyboardEvent) {
+  const bare = !event.metaKey && !event.ctrlKey && !event.altKey;
+  const fresh = !event.repeat && !event.defaultPrevented;
+  return event.key.toLowerCase() === TOP_VIEW_KEY && bare && fresh && !typesIntoField(event);
+}
+
+/*
+ * U turns the camera to the top-down view, and back to the view it came from, from anywhere but a text field.
+ * The compass takes the keys while it is open, so none reach here then.
+ */
+function useTopViewKey(select: (view: TableView) => void) {
+  const choose = useEffectEvent(() => select(TOP_VIEW.id));
+  useEffect(() => {
+    const keydown = (event: KeyboardEvent) => {
+      if (!pressesTopView(event)) {
+        return;
+      }
+      event.preventDefault();
+      choose();
+    };
+    window.addEventListener('keydown', keydown);
+    return () => window.removeEventListener('keydown', keydown);
+  }, []);
+}
 
 /* The phase's disc in the header chip: the board's phase colours, with the phase symbol clipped to the disc. */
 function PhaseDisc({ symbol }: Readonly<{ symbol: string }>) {
@@ -305,19 +327,26 @@ function PhaseCopy({ word, caption, label }: Readonly<{ word?: string; caption: 
   );
 }
 
-/* The dial rides on the dock's top edge, so it stays over the scene where a short window grows the dock up over it. A stage overlay hides the table, and the dial with it. */
-function SceneCamera({ hidden, ...dial }: Readonly<{ hidden: boolean } & Parameters<typeof TableViewDial>[0]>) {
+/* The dial in the table's top right corner, under the toolbar; a slot pinned below it keeps clear of it. A stage overlay hides the table, and the dial with it. */
+function SceneCamera({
+  hidden,
+  inert,
+  ...dial
+}: Readonly<{ hidden: boolean; inert: boolean } & Parameters<typeof TableViewDial>[0]>) {
   if (hidden) {
     return null;
   }
   return (
-    <div className="seated-camera" data-hides-cursor>
+    <div className="seated-camera" data-hides-cursor inert={inert}>
       <TableViewDial {...dial} />
     </div>
   );
 }
 
-/* The camera dial in the scene's corner: the needle points at the view the camera holds, a ring marks the phase's recommended view, and each letter moves the camera there. */
+/*
+ * The camera dial in the scene's corner: the needle points at the view the camera holds, a ring marks the phase's recommended view,
+ * and each letter moves the camera there. The hub is the top-down view, straight down on the whole board; pressed again it returns.
+ */
 function TableViewDial({
   activeView,
   preferredView,
@@ -328,9 +357,19 @@ function TableViewDial({
   onSelect: (view: TableView) => void;
 }) {
   return (
-    <div className="camera-dial" role="group" aria-label="Table view">
+    <div className="camera-dial" role="group" aria-label="Table view" data-view={activeView}>
       <span className="camera-dial__needle" style={{ rotate: `${DIAL_ANGLES[activeView]}deg` }} aria-hidden="true" />
-      <span className="camera-dial__hub" aria-hidden="true" />
+      <button
+        type="button"
+        className="camera-dial__hub"
+        data-view={TOP_VIEW.id}
+        title={`Camera: ${TOP_VIEW.label} (${DIAL_LETTERS.top})`}
+        aria-label="Focus on top, straight down"
+        aria-pressed={activeView === TOP_VIEW.id}
+        onClick={() => onSelect(TOP_VIEW.id)}
+      >
+        {DIAL_LETTERS.top}
+      </button>
       {TABLE_VIEW_OPTIONS.map((view) => {
         const phasePreferred = preferredView === view.id;
         return (
@@ -359,23 +398,23 @@ function TableViewDial({
 type StageFrame = Readonly<{
   /** The header's word in place of the turn and phase. */
   word?: string;
-  /** The Game group's last stage control: the fixture's full Table tab, or play's Phase tab with its storm controls named for assistive technology only. */
-  tableTab?: 'Table' | 'Phase';
+  /** The Game group's last stage panel: the fixture's full Table panel, or play's Phase panel with its storm controls named for assistive technology only. */
+  tablePanel?: 'Table' | 'Phase';
 }>;
 
 /**
- * What a Stage changes in the header and the panel.
- * The fixture has no Stage and keeps its full Table tab.
- * Play keeps the turn and phase in the header and names that tab Phase.
+ * What a Stage changes in the header and the panels.
+ * The fixture has no Stage and keeps its full Table panel.
+ * Play keeps the turn and phase in the header and names that panel Phase.
  * A finished game shows its word and keeps the final phase readable.
- * Every other stage shows its word in the header and brings its own tabs.
+ * Every other stage shows its word in the header and brings its own panels.
  */
 function stageFrame(stage: GameSnapshot['stage']): StageFrame {
   switch (stage) {
     case undefined:
-      return { tableTab: 'Table' };
+      return { tablePanel: 'Table' };
     case 'play':
-      return { tableTab: 'Phase' };
+      return { tablePanel: 'Phase' };
     case 'drafting':
       return { word: 'Drafting' };
     case 'swapping':
@@ -383,108 +422,41 @@ function stageFrame(stage: GameSnapshot['stage']): StageFrame {
     case 'setup':
       return { word: 'Setup' };
     case 'finished':
-      return { word: 'Finished', tableTab: 'Phase' };
+      return { word: 'Finished', tablePanel: 'Phase' };
     case 'discarded':
       return { word: 'Discarded' };
   }
 }
 
-/* Which destination the controls panel shows, which child each group last opened, and what a focus or the stage opened over. */
-type ControlsSelection = Readonly<{
-  path: string[];
-  remembered: Record<string, string>;
-  stageShown: boolean;
-  stageOpened: boolean;
-  focused: string | null;
-  beneath: string[] | null;
-}>;
-
-type ControlsSelectionEvent =
-  | { type: 'destination-selected'; path: string[] }
-  | { type: 'stage-changed'; shown: boolean }
-  | { type: 'focus-requested'; path: string[]; token: string };
-
-function reduceControlsSelection(state: ControlsSelection, event: ControlsSelectionEvent): ControlsSelection {
-  if (event.type === 'stage-changed') {
-    return { ...state, stageShown: event.shown, stageOpened: event.shown };
-  }
-  const group = event.path[0]!;
-  const child = event.path[1] ?? state.remembered[group];
-  const path = child ? [group, child] : [group];
-  const stageOpened = path[1] === 'stage';
-  return {
-    ...state,
-    focused: event.type === 'focus-requested' ? event.token : state.focused,
-    /* The destination a focus opened over, so when the focused tab closes, as a result does, the panel returns to it. */
-    beneath:
-      event.type === 'focus-requested' && state.path.join('/') !== event.path.join('/') ? state.path : state.beneath,
-    stageOpened,
-    path: stageOpened ? state.path : path,
-    remembered: !stageOpened && child ? { ...state.remembered, [group]: child } : state.remembered,
-  };
-}
-
-/* Focus and opening preferences name a destination, whether it is a group or one of its children. */
-function tabPath(tabs: readonly PanelTab[], key: string) {
-  for (const tab of tabs) {
-    if (tab.key === key) {
-      return [tab.key];
-    }
-    const child = tab.subtabs?.find((item) => item.key === key);
-    if (child) {
-      return [tab.key, child.key];
-    }
-  }
-  return undefined;
-}
-
-/* One tab of either level, which opens the destination at `path`. */
-function tabItem(tab: PanelTab, path: string[], onClick: () => void) {
-  return (
-    <NestedTabs.Item
-      key={tab.key}
-      as="button"
-      type="button"
-      path={path}
-      label={tab.label}
-      description={tab.description}
-      help={tab.help}
-      icon={<TopicIcon topic={tab.topic} size={22} />}
-      onClick={onClick}
-    />
-  );
-}
-
-type DockTabsProps = Readonly<
-  Pick<GameTableProps, 'panelTabs' | 'tableControls' | 'tableGuidance' | 'showStormControls' | 'panelContent'> &
-    StageFrame
+type PanelSources = Readonly<
+  Pick<GameTableProps, 'panels' | 'tableControls' | 'tableGuidance' | 'showStormControls' | 'panelContent'> & StageFrame
 >;
 
-/* The host's groups, with the stage's own panel and the Table or Phase tab leading the Game group; a group left empty is dropped. */
-function dockTabs({
-  panelTabs = [],
+/* The host's groups, with the stage's own panel and the Table or Phase panel leading the Game group; a group left empty is dropped. */
+function tablePanels({
+  panels = [],
   tableControls,
   tableGuidance,
   showStormControls,
   word,
-  tableTab: tableTabLabel,
+  tablePanel: tablePanelLabel,
   panelContent,
-}: DockTabsProps): PanelTab[] {
-  const tableTab: PanelTab = {
+}: PanelSources): TablePanel[] {
+  const tablePanel: TablePanel = {
     key: 'phase',
-    label: tableTabLabel ?? 'Table',
+    label: tablePanelLabel ?? 'Table',
     topic: 'controls',
     ...tableGuidance,
     content: (
       <>
         {tableControls}
-        {tableTabLabel === 'Table' && <SpiceBankControls />}
-        {tableTabLabel === 'Table' && <SelectedPieceControl />}
-        {showStormControls && <StormControls hiddenHeading={tableTabLabel === 'Phase'} />}
+        {tablePanelLabel === 'Table' && <SpiceBankControls />}
+        {tablePanelLabel === 'Table' && <SelectedPieceControl />}
+        {showStormControls && <StormControls hiddenHeading={tablePanelLabel === 'Phase'} />}
       </>
     ),
   };
-  const stageTab: PanelTab | null = panelContent
+  const stagePanel: TablePanel | null = panelContent
     ? {
         key: 'stage',
         label: word ?? 'Game',
@@ -493,143 +465,20 @@ function dockTabs({
         padding: false,
       }
     : null;
-  return panelTabs
-    .map((tab) =>
-      tab.key === 'game'
+  return panels
+    .map((group) =>
+      group.key === 'game'
         ? {
-            ...tab,
-            subtabs: [...(stageTab ? [stageTab] : []), ...(tableTabLabel ? [tableTab] : []), ...(tab.subtabs ?? [])],
+            ...group,
+            panels: [
+              ...(stagePanel ? [stagePanel] : []),
+              ...(tablePanelLabel ? [tablePanel] : []),
+              ...(group.panels ?? []),
+            ],
           }
-        : tab
+        : group
     )
-    .filter((tab) => !tab.subtabs || tab.subtabs.length > 0);
-}
-
-/*
- * The tab and subtab the panel shows: the stage while it is open, else the chosen destination,
- * or the one a focus opened over once the focused tab has closed; a group stands in for a child that is gone.
- */
-function shownDestination(
-  tabs: readonly PanelTab[],
-  selection: ControlsSelection,
-  hasStage: boolean,
-  opening: string[]
-) {
-  const pathTo = (key: string) => tabPath(tabs, key);
-  const closed = !pathTo(selection.path.at(-1)!) && selection.beneath;
-  const path = selection.stageOpened && hasStage ? pathTo('stage')! : closed || selection.path;
-  const active = tabs.find((tab) => tab.key === path[0]) ?? tabs.find((tab) => tab.key === opening[0]) ?? tabs[0];
-  const subtab = active?.subtabs?.find((tab) => tab.key === path[1]) ?? active?.subtabs?.[0];
-  return { active, subtab };
-}
-
-/** The panel's chosen destination, kept in step with the stage and with each new focus request. */
-function useControlsSelection(
-  tabs: readonly PanelTab[],
-  opening: string[],
-  hasStage: boolean,
-  focusTab: GameTableProps['focusTab']
-) {
-  const [selection, select] = useReducer(reduceControlsSelection, {
-    path: opening,
-    remembered: {},
-    stageShown: hasStage,
-    stageOpened: false,
-    focused: null,
-    beneath: null,
-  });
-  /* A newly seated drafter sees their stage. The previous destination remains underneath for playback and later stages. */
-  if (hasStage !== selection.stageShown) {
-    select({ type: 'stage-changed', shown: hasStage });
-  }
-  /* A group opens on its remembered child while that child still exists, else on its first, so a closed tab such as Result is never chosen again. */
-  const choose = ([key, requestedChild]: string[]) => {
-    const child = requestedChild ?? selection.remembered[key!];
-    const subtabs = tabs.find((tab) => tab.key === key)?.subtabs;
-    const leaf = subtabs?.some((tab) => tab.key === child) ? child : subtabs?.[0]?.key;
-    select({ type: 'destination-selected', path: leaf ? [key!, leaf] : [key!] });
-  };
-  /* A battle focuses its nested planner only once; subsequent updates preserve the player's choice. */
-  const focus = pendingFocus(tabs, focusTab, selection.focused);
-  if (focus) {
-    select({ type: 'focus-requested', ...focus });
-  }
-  return [selection, choose] as const;
-}
-
-/* A focus request the panel has not yet followed, while its tab exists. */
-function pendingFocus(
-  tabs: readonly PanelTab[],
-  focusTab: GameTableProps['focusTab'],
-  focused: ControlsSelection['focused']
-) {
-  if (!focusTab || focusTab.token === focused) {
-    return null;
-  }
-  const path = tabPath(tabs, focusTab.key);
-  return path ? { path, token: focusTab.token } : null;
-}
-
-/**
- * The controls panel groups personal resources, game actions, shared controls and history in two levels.
- * Each group remembers its last destination;
- * the current stage and phase join the Game group.
- * The per-player tabs are the host's `playerPanel`, in the pane beside this one.
- */
-function TableControlsPanel({
-  focusTab = null,
-  openOn = [],
-  ...dock
-}: DockTabsProps & Readonly<Pick<GameTableProps, 'focusTab' | 'openOn'>>) {
-  const tabs = dockTabs(dock);
-  const opening = openOn.map((key) => tabPath(tabs, key)).find(Boolean) ?? [tabs[0]?.key ?? 'game'];
-  const hasStage = Boolean(dock.panelContent);
-  const [selection, choose] = useControlsSelection(tabs, opening, hasStage, focusTab);
-  const { active, subtab } = shownDestination(tabs, selection, hasStage, opening);
-  /* Before play there is nothing to step, select or place, and each earlier stage brings its own accepted panel with its delivery; until then the dock holds only what the stage brings. */
-  if (!active) {
-    return null;
-  }
-  return (
-    <NestedTabs
-      activePath={subtab ? [active.key, subtab.key] : [active.key]}
-      ariaLabel="Table controls"
-      className="seated-controls-tabs"
-    >
-      <NestedTabs.Level label="Controls">
-        {tabs.map((tab) => tabItem(tab, [tab.key], () => choose([tab.key])))}
-      </NestedTabs.Level>
-      {active.subtabs && (
-        <NestedTabs.Level label={active.label}>
-          {active.subtabs.map((tab) => tabItem(tab, [active.key, tab.key], () => choose([active.key, tab.key])))}
-        </NestedTabs.Level>
-      )}
-      {/* No label of its own: the panel is the tabs' tabpanel, which NestedTabs names after the selected tab, and the sections inside stay the regions. */}
-      <NestedTabs.ContentPanel className="seated-controls-tab-content" padding={(subtab ?? active).padding}>
-        <Stack gap="lg">{subtab?.content ?? active.content}</Stack>
-      </NestedTabs.ContentPanel>
-    </NestedTabs>
-  );
-}
-
-/** The two dock panes share a movable divider; each pane owns its own tabs and scroll position. */
-function PanelPanes({ children, secondary }: Readonly<{ children: ReactNode; secondary?: ReactNode }>) {
-  if (!secondary) {
-    return children;
-  }
-  return (
-    <SplitPanels
-      orientation="vertical"
-      defaultSize={50}
-      limits={paneLimits}
-      step={KEYBOARD_STEP_PERCENT}
-      pageStep={KEYBOARD_PAGE_STEP_PERCENT}
-      label="Resize the two panes"
-    >
-      <SplitPanels.First>{children}</SplitPanels.First>
-      <SplitPanels.Second>{secondary}</SplitPanels.Second>
-    </SplitPanels>
-  );
+    .filter((group) => !group.panels || group.panels.length > 0);
 }
 
 function SpiceBankControls() {
@@ -735,18 +584,9 @@ function useTableKeyboardBinding(keyboard: TableKeyboard) {
   const read = useTabletopReader();
   useLayoutEffect(() => keyboard.bind({ events: window, read }), [keyboard, read]);
 }
-
-function controlsPanelValueText(percent: number) {
-  return `${Math.round(percent)}% of the window for controls`;
-}
-
-/*
- * Names and controls wrap independently; the stage overlay starts below the rendered header.
- * The header is held, so it is measured from the slot a layout shows it in: by then the slot holds it, inside the shell.
- */
-function measureHeader(slot: HTMLElement | null) {
-  const shell = slot?.closest<HTMLElement>('.dune-play-shell');
-  const node = slot?.querySelector<HTMLElement>('.seated-header');
+/* Names and controls wrap independently; the stage overlay and the camera dial start below the rendered header. */
+function measureHeader(node: HTMLElement | null) {
+  const shell = node?.closest<HTMLElement>('.dune-play-shell');
   if (!node || !shell) {
     return;
   }
@@ -757,211 +597,10 @@ function measureHeader(slot: HTMLElement | null) {
   return () => observer.disconnect();
 }
 
-/* The scene's height above the dock the camera dial needs, in rem: the dial, the gap under it for its caption, and room above it. */
-const CAMERA_ROOM_REM = 5.75 + 1.6 + 2 * 0.75;
-
-/* The play shell and its header around the dock, once both are mounted. */
-function dockFrame(node: HTMLElement) {
-  const shell = node.closest<HTMLElement>('.dune-play-shell');
-  const header = shell?.querySelector<HTMLElement>('.seated-header');
-  return shell && header ? { shell, header } : null;
-}
-
-/*
- * Where the dock starts within the shell, and whether the scene above it is too low for the camera dial.
- * There the dial moves into the dock's upper right corner instead of reaching under the header's chips or the separator.
- */
-function measureDock(node: HTMLElement | null) {
-  const frame = node && dockFrame(node);
-  if (!frame) {
-    return;
-  }
-  const { shell, header } = frame;
-  const update = () => {
-    const top = node.getBoundingClientRect().top - shell.getBoundingClientRect().top;
-    const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
-    shell.style.setProperty('--play-dock-top', `${top}px`);
-    shell.dataset.cameraDocked = String(top - header.getBoundingClientRect().height < CAMERA_ROOM_REM * rem);
-  };
-  const observer = new ResizeObserver(update);
-  for (const element of [node, shell, header]) {
-    observer.observe(element);
-  }
-  update();
-  /* A layout without the dock leaves nothing behind for the dial's rules to read. */
-  return () => {
-    observer.disconnect();
-    shell.style.removeProperty('--play-dock-top');
-    delete shell.dataset.cameraDocked;
-  };
-}
-
-type LayoutProps = Readonly<{
-  /** The held scene, controls and players; no players node when the stage has no players panel. */
-  nodes: Readonly<{ header: HeldNode; scene: HeldNode; controls: HeldNode; players: HeldNode | null }>;
-  camera: ReactNode;
-  inert: boolean;
-}>;
-
-/* Where a layout shows the header; the wrapper's ref runs after the slot's, so the header is in place when it is measured. */
-function HeaderSlot({ node }: Readonly<{ node: HeldNode }>) {
-  return (
-    <div ref={measureHeader} className="seated-held">
-      <HeldSlot node={node} />
-    </div>
-  );
-}
-
-/*
- * The controls, the table and the players side by side; the separators either side of the table resize the columns and are remembered.
- * A window this wide has room to spare across and little up and down, so the header's chips float over the table's column
- * and the side columns run to the top.
- */
-function ColumnsLayout({ nodes, camera, inert }: LayoutProps) {
-  const controlsPercent = useControlsColumnPercent();
-  const playersPercent = usePlayersColumnPercent();
-  const scene = (
-    <>
-      <HeldSlot node={nodes.scene} />
-      <HeaderSlot node={nodes.header} />
-      <div className="seated-column-camera" inert={inert}>
-        {camera}
-      </div>
-    </>
-  );
-  return (
-    <SplitPanels
-      orientation="vertical"
-      defaultSize={controlsPercent}
-      limits={nodes.players ? controlsColumnLimits : controlsColumnLimitsWithoutPlayers}
-      step={KEYBOARD_STEP_PERCENT}
-      pageStep={KEYBOARD_PAGE_STEP_PERCENT}
-      label="Resize controls column"
-      onSizeChange={setControlsColumnPercent}
-    >
-      <SplitPanels.First>
-        <div className="seated-controls-panel seated-controls-panel--column" inert={inert}>
-          <HeldSlot node={nodes.controls} />
-        </div>
-      </SplitPanels.First>
-      <SplitPanels.Second>
-        {nodes.players ? (
-          <SplitPanels
-            orientation="vertical"
-            primary="second"
-            defaultSize={playersPercent}
-            limits={playersColumnLimits}
-            step={KEYBOARD_STEP_PERCENT}
-            pageStep={KEYBOARD_PAGE_STEP_PERCENT}
-            label="Resize players column"
-            onSizeChange={setPlayersColumnPercent}
-          >
-            <SplitPanels.First>{scene}</SplitPanels.First>
-            <SplitPanels.Second>
-              <div className="seated-controls-panel seated-controls-panel--column" inert={inert}>
-                <HeldSlot node={nodes.players} />
-              </div>
-            </SplitPanels.Second>
-          </SplitPanels>
-        ) : (
-          scene
-        )}
-      </SplitPanels.Second>
-    </SplitPanels>
-  );
-}
-
-/* The table above the dock, whose two panes hold the controls and the players. */
-function StackedLayout({ nodes, camera, inert }: LayoutProps) {
-  return (
-    <>
-      {/* The header sits outside the split, in the shell's own stacking, so it paints above the dock where the dock's floor grows up over the scene. It comes before the split so its controls lead the reading and Tab order. */}
-      <HeaderSlot node={nodes.header} />
-      <SplitPanels
-        orientation="horizontal"
-        primary="second"
-        defaultSize={DEFAULT_CONTROLS_PANEL_PERCENT}
-        limits={controlsPanelLimits}
-        step={KEYBOARD_STEP_PERCENT}
-        pageStep={KEYBOARD_PAGE_STEP_PERCENT}
-        label="Resize controls panel"
-        valueText={controlsPanelValueText}
-      >
-        <SplitPanels.First>
-          <HeldSlot node={nodes.scene} />
-        </SplitPanels.First>
-        <SplitPanels.Second>
-          <div ref={measureDock} className="seated-controls-panel" inert={inert}>
-            {camera}
-            <PanelPanes secondary={nodes.players && <HeldSlot node={nodes.players} />}>
-              <HeldSlot node={nodes.controls} />
-            </PanelPanes>
-          </div>
-        </SplitPanels.Second>
-      </SplitPanels>
-    </>
-  );
-}
-
-/*
- * The layout this viewer picked in the game menu, where the window is wide enough for it.
- * The scene, the controls and the players render once into held nodes that whichever layout is shown takes into its slots, so switching keeps them mounted.
- * Each layout is keyed, so neither inherits the other's separator size.
- */
-function TableLayouts({
-  layout,
-  header,
-  scene,
-  controls,
-  players,
-  tabs,
-  ...props
-}: Omit<LayoutProps, 'nodes'> &
-  Readonly<{
-    layout: TableLayout;
-    header: ReactNode;
-    scene: ReactNode;
-    controls: ReactNode;
-    players: ReactNode | undefined;
-    tabs: readonly PanelTab[];
-  }>) {
-  const headerNode = useHeldNode();
-  const sceneNode = useHeldNode();
-  const controlsNode = useHeldNode();
-  const playersNode = useHeldNode();
-  const experiment = useControlsExperiment();
-  /* A design that opens each tab on its own leaves the dock unrendered, so no tab mounts twice. */
-  const takesTabs = experimentTakesTabs(experiment);
-  const nodes = { header: headerNode, scene: sceneNode, controls: controlsNode, players: players ? playersNode : null };
-  return (
-    <>
-      <Held node={headerNode}>{header}</Held>
-      <Held node={sceneNode}>{scene}</Held>
-      {!takesTabs && <Held node={controlsNode}>{controls}</Held>}
-      {players && <Held node={playersNode}>{players}</Held>}
-      {experiment ? (
-        <ExperimentLayout
-          experiment={experiment}
-          nodes={{ scene: sceneNode, controls: takesTabs ? null : controlsNode, players: nodes.players }}
-          header={<HeaderSlot node={headerNode} />}
-          camera={props.camera}
-          inert={props.inert}
-          tabs={tabs}
-        />
-      ) : layout === 'columns' ? (
-        <ColumnsLayout key="columns" nodes={nodes} {...props} />
-      ) : (
-        <StackedLayout key="stacked" nodes={nodes} {...props} />
-      )}
-    </>
-  );
-}
-
 export function GameTable({
   sceneContent,
-  panelTabs,
-  focusTab,
-  openOn,
+  panels,
+  focus,
   tableControls,
   tableGuidance,
   gameMenu,
@@ -970,7 +609,6 @@ export function GameTable({
   mapVisible,
   stageOverlay,
   panelContent,
-  playerPanel,
   toolbarControl,
   connectionStatus,
   alliances,
@@ -1018,42 +656,41 @@ export function GameTable({
     return () => clearTimeout(timer);
   }, [handleSceneReady]);
 
-  const layout = useShownTableLayout();
   const scene = (
-    <>
-      <TableKeyboardContext value={tableKeyboard}>
-        <TabletopScene
-          className="scene scene--immersive"
-          cameraView={cameraView}
-          onSceneReady={handleSceneReady}
-          onInteractionActiveChange={handleInteractionActiveChange}
-          seatCount={seatCount}
-          tableProgress={tableProgress}
-          stage={stage}
-          mapVisible={mapVisible}
-        >
-          {sceneContent}
-        </TabletopScene>
-      </TableKeyboardContext>
-
-      {stageOverlay && (
-        <div className="seated-stage-overlay" inert={overlaysInert}>
-          {stageOverlay}
-        </div>
-      )}
-    </>
+    <TableKeyboardContext value={tableKeyboard}>
+      <TabletopScene
+        className="scene scene--immersive"
+        cameraView={cameraView}
+        onSceneReady={handleSceneReady}
+        onInteractionActiveChange={handleInteractionActiveChange}
+        seatCount={seatCount}
+        tableProgress={tableProgress}
+        stage={stage}
+        mapVisible={mapVisible}
+      >
+        {sceneContent}
+      </TabletopScene>
+    </TableKeyboardContext>
   );
+  const overlay = stageOverlay && (
+    <div className="seated-stage-overlay" inert={overlaysInert}>
+      {stageOverlay}
+    </div>
+  );
+  const selectView = (view: TableView) => dispatchView({ type: 'view.selected', view });
+  useTopViewKey(selectView);
   const camera = (
     <SceneCamera
       hidden={Boolean(stageOverlay)}
+      inert={overlaysInert}
       activeView={viewState.activeView}
       preferredView={viewPhase === null ? undefined : PHASE_VIEWS[viewPhase]}
-      onSelect={(view) => dispatchView({ type: 'view.selected', view })}
+      onSelect={selectView}
     />
   );
   /* No bar of its own: the table runs to the top, and the phase, the game and the controls float over it as chips. Only the chips hide the cursor, so pointing at the table between them still shows to the others. */
   const header = (
-    <header className="seated-header" inert={overlaysInert}>
+    <header ref={measureHeader} className="seated-header" inert={overlaysInert}>
       <div className="seated-header__start">
         <div className="seated-chip seated-phase-status" data-hides-cursor>
           <div className="seated-phase-status__live" aria-live="polite">
@@ -1080,17 +717,6 @@ export function GameTable({
       </div>
     </header>
   );
-  /* The dock's tabs, which the controls panel shows together and a controls experiment opens one by one. */
-  const dock: DockTabsProps = {
-    panelTabs,
-    tableControls,
-    tableGuidance,
-    panelContent,
-    showStormControls,
-    word: frame.word,
-    tableTab: frame.tableTab,
-  };
-  const controls = <TableControlsPanel {...dock} focusTab={focusTab} openOn={openOn} />;
 
   return (
     <PointerSessionContext value={pointerSession}>
@@ -1100,23 +726,30 @@ export function GameTable({
           <div className="dune-play-stage" data-scene-ready={viewState.sceneReady}>
             {viewState.sceneReady ? null : <TableWait status="Opening the table..." />}
             <div
-              className="dune-play-shell dune-play-shell--seated"
+              className="dune-play-shell"
               {...darkSchemeIslandAttributes}
               data-board-gesture-active={overlaysInert}
               data-table-view={viewState.activeView}
-              data-table-layout={layout}
               data-show-counts={heldOverlays.counts || tableLabels.pinned.counts}
               data-show-names={heldOverlays.names || tableLabels.pinned.names}
             >
-              <TableLayouts
-                layout={layout}
-                header={header}
+              <CompassControls
                 scene={scene}
-                controls={controls}
-                players={playerPanel}
+                overlay={overlay}
+                header={header}
                 camera={camera}
                 inert={overlaysInert}
-                tabs={dockTabs(dock)}
+                panels={tablePanels({
+                  panels,
+                  tableControls,
+                  tableGuidance,
+                  panelContent,
+                  showStormControls,
+                  word: frame.word,
+                  tablePanel: frame.tablePanel,
+                })}
+                onView={selectView}
+                focus={focus}
               />
             </div>
           </div>

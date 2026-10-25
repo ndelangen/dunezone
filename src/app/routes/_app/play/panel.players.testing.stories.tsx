@@ -8,6 +8,13 @@ import { gameMeta, install, lastCommand, removalSnapshot, session } from './game
 import { openTab } from './playing.stories.fixture';
 import { productTransport, playingSnapshot } from './product.stories.fixture';
 
+/* The mark on a player's token in the chat bar, while a vote or a seat request waits on them. */
+function attentionOn(page: ReturnType<typeof within>, player: string) {
+  return within(page.getByRole('navigation', { name: 'Chats' }))
+    .getByRole('button', { name: new RegExp(`^${player}`) })
+    .querySelector('[data-attention]');
+}
+
 const meta = testingPreview.meta({
   ...gameMeta,
   title: 'Play/Panels/Players',
@@ -19,7 +26,7 @@ const meta = testingPreview.meta({
   ],
 });
 
-/** A player's public information beside the controls: the faction's name opens its page, with the leaders it starts with, in a new tab. */
+/** A player's public information in their window: the faction's name opens its page, with the leaders it starts with, in a new browser tab. */
 export const Info = meta.story({
   decorators: [seatFactionsResolve],
   beforeEach: install(() => productTransport('seat-2', playingSnapshot())),
@@ -37,7 +44,7 @@ export const Info = meta.story({
   },
 });
 
-/** A vote to remove a player, cast from that player's Info tab. */
+/** A vote to remove a player, cast from that player's Info. */
 export const RemovalVote = meta.story({
   beforeEach: install(() => productTransport('seat-2', removalSnapshot())),
   play: async ({ canvasElement }) => {
@@ -49,9 +56,12 @@ export const RemovalVote = meta.story({
 export const RemovalVoting = meta.story({
   beforeEach: install(() => productTransport('seat-2', removalSnapshot())),
   play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await userEvent.click(await page.findByRole('tab', { name: 'Twaffle, removal vote in progress' }));
-    await expect(page.getByRole('tab', { name: 'Twaffle, removal vote in progress' })).toBeVisible();
+    const page = await openPlayer(canvasElement, 'Twaffle', 'Info');
+    /* The token in the chat bar carries a mark while the vote stands, and says so in its name. */
+    await expect(attentionOn(page, 'Twaffle')).not.toBeNull();
+    await expect(
+      within(page.getByRole('navigation', { name: 'Chats' })).getByRole('button', { name: /^Twaffle.*removal vote/u })
+    ).toBeVisible();
     await userEvent.click(page.getByRole('button', { name: 'Withdraw' }));
     await expect(lastCommand()).toMatchObject({
       action: { kind: 'removal-ballot', voteId: 'removal-12', choice: null },
@@ -78,8 +88,7 @@ export const RemovalResolution = meta.story({
     });
   }),
   play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await userEvent.click(await page.findByRole('tab', { name: 'Twaffle, removal vote in progress' }));
+    const page = await openPlayer(canvasElement, 'Twaffle', 'Info');
     await userEvent.click(page.getByRole('button', { name: 'Keep' }));
     const command = lastCommand();
     await expect(command).toMatchObject({ action: { kind: 'removal-ballot', choice: 'keep' } });
@@ -89,9 +98,8 @@ export const RemovalResolution = meta.story({
     session.transport.deliver(session.transport.view(resolved, command!.commandId));
     await waitFor(() => expect(page.queryByRole('heading', { name: 'Remove Twaffle?' })).toBeNull());
     await expect(page.queryByRole('heading', { name: 'Remove Twaffle?' })).toBeNull();
-    await expect(page.queryByRole('tab', { name: 'Twaffle, removal vote in progress' })).toBeNull();
-    await openTab(page, 'Game log');
-    await userEvent.click(await page.findByRole('tab', { name: 'Audit' }));
+    await expect(attentionOn(page, 'Twaffle')).toBeNull();
+    await openTab(page, 'Audit');
     await expect(page.findByText(/Twaffle keeps seat 1/)).resolves.toBeVisible();
   },
 });
@@ -99,16 +107,14 @@ export const RemovalResolution = meta.story({
 export const RemovalRejected = meta.story({
   beforeEach: install(() => productTransport('seat-2', removalSnapshot())),
   play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await userEvent.click(await page.findByRole('tab', { name: 'Twaffle, removal vote in progress' }));
+    const page = await openPlayer(canvasElement, 'Twaffle', 'Info');
     await userEvent.click(page.getByRole('button', { name: 'Keep' }));
     session.transport.deliver({
       type: 'rejected',
       requestId: lastCommand()!.commandId,
       message: 'The vote changed. Try again.',
     });
-    const publicState = within(canvasElement.ownerDocument.getElementById('player-public-state')!);
-    await expect(publicState.findByText('The vote changed. Try again.')).resolves.toBeVisible();
+    await expect(page.findByText('The vote changed. Try again.')).resolves.toBeVisible();
     await expect(page.getByRole('button', { name: 'Remove' })).toHaveAttribute('aria-pressed', 'true');
   },
 });

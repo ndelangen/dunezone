@@ -7,7 +7,7 @@ import { InviteLink } from '../GameLink';
 import { BidderToolbar } from './BidderToolbar';
 import { DraftingHeader, DraftingReady } from './Drafting';
 import { ContinuePlaying, resultTitle } from './GameResult';
-import { PhaseNavigation } from './PhaseNavigation';
+import { canStepPhase, PhaseNavigation } from './PhaseNavigation';
 import { StagePlayback } from './SeatRequests';
 import { SwappingReady, SwappingStatus } from './Swapping';
 import { stageInPlay } from './tableFactions';
@@ -59,6 +59,12 @@ export function stageToolbar({
 /** Setup steps its phases once its first step is dealt. */
 function settingUp(table: TableProjection): boolean {
   return table.snapshot.stage === 'setup' && Boolean(table.snapshot.setup);
+}
+
+/** Stepping to the next phase, as the header's button does; null wherever that button is absent or disabled. */
+export function nextPhaseStep(client: TableSession, table: TableProjection): (() => void) | null {
+  const shown = stageInPlay(table.snapshot.stage) || settingUp(table);
+  return shown && canStepPhase(table) ? () => client.command({ kind: 'phase' }) : null;
 }
 
 /** The control a stage with no phases to step puts in the header: its Ready, or Continue playing once finished. */

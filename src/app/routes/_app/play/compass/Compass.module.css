@@ -1,6 +1,6 @@
-/* The command palette's fourth stage: the compass with a search field at its centre and suggestions below, and two pinned slots. */
+/* The compass over the table: a tile at the end of each arm, the search field at its centre, and the suggestions below. */
 
-.backdrop {
+.veil {
   position: absolute;
   z-index: 40;
   inset: 0;
@@ -20,10 +20,21 @@
   }
 }
 
+/* A dialog element shown in place, so the browser's dialog box (its margins, border, infill and colour) gives way to the grid. */
 .compass {
+  position: static;
   display: grid;
   /* Full size wherever the table has room (59.8rem), narrower in a smaller window, never cut off at the table's edges. */
   width: min(59.8rem, 100% - 2rem);
+  height: auto;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  overflow: visible;
   grid-template-columns: 7fr 7fr 10fr 7fr 7fr;
   grid-template-areas:
     ". . battle . ."
@@ -262,132 +273,17 @@
   white-space: nowrap;
 }
 
-/* The two pinned slots, bottom left and bottom right, beside the bar of the compass button and the chats. */
-.slot {
-  top: auto;
-  bottom: 1rem;
-  width: min(30rem, 27vw);
-  height: min(28rem, 46vh);
-  max-height: none;
-  transform: none;
+/* With motion reduced the compass appears in place, and a refused tile stays still. */
+:global(html[data-motion="reduce"]) .veil,
+:global(html[data-motion="reduce"]) .compass,
+:global(html[data-motion="reduce"]) .tile[data-refused] {
   animation: none;
 }
 
-.slot[data-side="left"] {
-  left: 1rem;
-}
-
-.slot[data-side="right"] {
-  right: 1rem;
-  left: auto;
-}
-
-.slot[data-flash="0"] {
-  animation: flash 520ms ease-out;
-}
-
-.slot[data-flash="1"] {
-  animation: flash2 520ms ease-out;
-}
-
-@keyframes flash {
-  30% {
-    border-color: var(--sand);
-    box-shadow: 0 0 0 4px rgba(248, 175, 64, 0.45);
+@media (prefers-reduced-motion: reduce) {
+  :global(html:not([data-motion="ok"])) .veil,
+  :global(html:not([data-motion="ok"])) .compass,
+  :global(html:not([data-motion="ok"])) .tile[data-refused] {
+    animation: none;
   }
-}
-
-@keyframes flash2 {
-  30% {
-    border-color: var(--sand);
-    box-shadow: 0 0 0 4px rgba(248, 175, 64, 0.45);
-  }
-}
-
-.frameName {
-  overflow: hidden;
-  min-width: 0;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* The centre window keeps clear of the slots either side, and in a narrow window takes the width it needs over them. */
-.centre {
-  width: min(44rem, max(22rem, 100vw - 2 * 27vw - 5rem), 100vw - 2rem);
-}
-
-/* A pinned slot's top edge: drag it to make the slot taller or shorter. */
-.resizeEdge {
-  appearance: none;
-  touch-action: none;
-  position: absolute;
-  padding: 0;
-  border: 0;
-  background: none;
-  z-index: 2;
-  top: 0;
-  right: 0;
-  left: 0;
-  height: 0.6rem;
-  cursor: ns-resize;
-}
-
-.resizeEdge::after {
-  content: "";
-  position: absolute;
-  top: 0.2rem;
-  left: 50%;
-  width: 2.6rem;
-  height: 0.22rem;
-  border-radius: 999px;
-  background: rgba(255, 216, 148, 0.3);
-  translate: -50% 0;
-  transition: background 120ms;
-}
-
-.resizeEdge:hover::after,
-.resizeEdge:active::after,
-.resizeEdge:focus-visible::after {
-  background: var(--sand);
-}
-
-/* Running into an overlay: the top edge knocks back down and settles, never further up. */
-.slot[data-bounce="0"] {
-  animation: bounce 420ms ease-out;
-}
-
-.slot[data-bounce="1"] {
-  animation: bounce2 420ms ease-out;
-}
-
-@keyframes bounce {
-  25% {
-    translate: 0 7px;
-  }
-
-  55% {
-    translate: 0 0;
-  }
-
-  75% {
-    translate: 0 3px;
-  }
-}
-
-@keyframes bounce2 {
-  25% {
-    translate: 0 7px;
-  }
-
-  55% {
-    translate: 0 0;
-  }
-
-  75% {
-    translate: 0 3px;
-  }
-}
-
-.resizeEdge:focus-visible {
-  outline: none;
 }

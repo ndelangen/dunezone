@@ -1,9 +1,9 @@
 /*
  * The play shell's own chrome: what the kit has no concern for. The 3D scene and the labels it
- * projects, the seated header's floating chips with the phase status, the camera dial, and the docked panel
- * frame; the kit's SplitPanels places the scene and the dock, and draws the separator between
- * them. Everything inside the panel is the kit (Section, Eyebrow, Mantine controls) on the
- * dark-scheme island the shell declares with data-scheme-dark; see tokens.css.
+ * projects, the seated header's floating chips with the phase status, and the camera dial; the
+ * compass and its windows bring their own styles (compass/*.module.css). Everything inside a window
+ * is the kit (Section, Eyebrow, Mantine controls) on the dark-scheme island the shell declares with
+ * data-scheme-dark; see tokens.css.
  * Every class here is named by a source file under this route; check:css-orphans reads it. These
  * rules are unlayered and Mantine's live in a layer, so a rule on a bare element name here would
  * beat every kit component's own styling: elements are only ever reached through a chrome class.
@@ -13,7 +13,6 @@
    the island. */
 .dune-play-shell {
   --play-header-height: 5.2rem;
-  --play-dock-top: 0px;
   --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --sand: #f8af40;
   --cream-muted: #bdb3a4;
@@ -22,7 +21,7 @@
   height: 100%;
   min-height: 0;
   overflow: hidden;
-  background: #17100c;
+  background: #130d0a;
   font-family: var(--font-sans);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -94,51 +93,20 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
   user-select: none;
 }
 
-/*
- * Seated arrangement: the scene fills the split's upper panel, above the docked panel. Both
- * separators, between the table and the dock and between the dock's two panes, take the dock's
- * sand and amber through the kit split's colour properties.
- */
-:where(.dune-play-shell).dune-play-shell--seated {
-  --split-panels-line: rgba(255, 216, 148, 0.26);
-  --split-panels-line-active: rgba(248, 175, 64, 0.78);
-  --split-panels-grip: #5a3a27;
-  --split-panels-grip-border: rgba(255, 216, 148, 0.34);
-  --split-panels-grip-active: var(--sand);
-
-  min-height: 0;
-  background: #130d0a;
-}
-
 :where(.dune-play-shell) .scene--immersive {
   z-index: 0;
 }
 
-/* While a board gesture is held, the chrome around the scene stops taking the pointer: the overlay, the header, the dock and the separator above it. */
-:where(.dune-play-shell).dune-play-shell--seated[data-board-gesture-active="true"]
-  :is(
-    .seated-stage-overlay,
-    .seated-header,
-    .seated-camera,
-    .seated-column-camera,
-    .seated-controls-panel,
-    [role="separator"]
-  ),
-:where(.dune-play-shell).dune-play-shell--seated[data-board-gesture-active="true"]
-  :is(
-    .seated-stage-overlay,
-    .seated-header,
-    .seated-camera,
-    .seated-column-camera,
-    .seated-controls-panel,
-    [role="separator"]
-  )
+/* While a board gesture is held, the chrome over the scene stops taking the pointer: the overlay, the header and the dial; the compass's own parts go inert. */
+:where(.dune-play-shell)[data-board-gesture-active="true"] :is(.seated-stage-overlay, .seated-header, .seated-camera),
+:where(.dune-play-shell)[data-board-gesture-active="true"]
+  :is(.seated-stage-overlay, .seated-header, .seated-camera)
   * {
   pointer-events: none !important;
   user-select: none;
 }
 
-/* A stage's overlay over the scene, between the header and the panel: a layer under both, not a surface, so only what it draws takes the pointer. */
+/* A stage's overlay over the scene, under the header: a layer, not a surface, so only what it draws takes the pointer. */
 :where(.dune-play-shell) .seated-stage-overlay {
   position: absolute;
   z-index: 7;
@@ -155,9 +123,8 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
 }
 
 /* Header: no bar of its own. The table runs to the top of the screen, and the phase with the game beside it (left) and
-   the phase and settings controls (right) float over it as chips. It is the shell's child beside the split, not the scene
-   panel's: the split makes each panel a stacking context, so a header inside the scene's panel would paint under the dock
-   wherever the dock's floor grows up over the scene. Only the chips take the pointer; the table shows through between them. */
+   the phase and settings controls (right) float over it as chips. Only the chips take the pointer; the table shows
+   through between them. */
 :where(.dune-play-shell) .seated-header {
   position: absolute;
   z-index: 10;
@@ -257,26 +224,14 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
   white-space: nowrap;
 }
 
-/* The camera dial in the scene's lower right corner: letters around a dot, a needle from the dot to the view the camera
-   holds, a ring on the view the phase recommends, and a caption naming what it moves. It is the dock's child, set just
-   above the dock's top edge and the separator's track, so it follows the dock wherever the scene ends. */
+/* The camera dial in the table's top right corner, under the toolbar's chip (the compass measures where that ends as
+   --compass-camera-top): letters around a dot, a needle from the dot to the view the camera holds, a ring on the view
+   the phase recommends, and a caption naming what it moves. */
 :where(.dune-play-shell) .seated-camera {
   position: absolute;
   z-index: 1;
+  top: var(--compass-camera-top, calc(var(--play-header-height) + 0.5rem));
   right: 1.1rem;
-  bottom: calc(100% + var(--space-sm) + 1.6rem);
-}
-
-/* Where the scene above the dock is too low for the dial (measured as data-camera-docked), it sits in the dock's upper
-   right corner, and below the header's chips where a short window grows the dock up under them. */
-:where(.dune-play-shell)[data-camera-docked="true"] .seated-camera {
-  top: max(var(--space-sm), var(--play-header-height) + var(--space-sm) - var(--play-dock-top));
-  bottom: auto;
-}
-
-/* The dock's panes then stop short of the dial's column, so it covers none of their messages or controls. */
-:where(.dune-play-shell)[data-camera-docked="true"] .seated-controls-panel:has(> .seated-camera) {
-  padding-right: calc(1.1rem + 5.75rem + var(--space-sm));
 }
 
 :where(.dune-play-shell) .camera-dial {
@@ -300,18 +255,47 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
   border-radius: 0.125rem;
   background: #fff2d8;
   transform-origin: 50% 0;
-  transition: rotate 0.4s ease;
+  transition:
+    rotate 0.4s ease,
+    opacity 0.2s ease;
 }
 
+/* The hub is the top-down stop: its letter sits in the needle's pivot, and the needle goes while the camera looks straight down. */
 :where(.dune-play-shell) .camera-dial__hub {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 0.75rem;
-  height: 0.75rem;
-  margin: -0.375rem 0 0 -0.375rem;
+  display: grid;
+  place-items: center;
+  width: 1.2rem;
+  height: 1.2rem;
+  margin: -0.6rem 0 0 -0.6rem;
+  padding: 0;
+  border: 0;
   border-radius: 50%;
+  color: #24170e;
   background: #fff2d8;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.6rem;
+  font-weight: 800;
+}
+
+:where(.dune-play-shell) .camera-dial__hub:hover {
+  background: #fff;
+}
+
+:where(.dune-play-shell) .camera-dial__hub:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+:where(.dune-play-shell) .camera-dial__hub[aria-pressed="true"] {
+  background: var(--sand);
+}
+
+:where(.dune-play-shell) .camera-dial[data-view="top"] .camera-dial__needle {
+  opacity: 0;
 }
 
 :where(.dune-play-shell) .camera-dial__view {
@@ -383,52 +367,8 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
   translate: -50% 0;
 }
 
-/* Panel frame: the dock below the table that the kit's tabs sit in. The dock paints the ground;
-   the tabs bring their own glass, fill the dock's height, and scroll their content inside it so
-   the rail stays put. The dock never drops below the height the rail needs for three items and
-   its label; the split's lower limit is this same floor (CONTROLS_DOCK_MIN_HEIGHT_REM in
-   controlPanelLayout.ts), so the dock never rises out of its panel under the separator. Only a
-   shell too short for the floor and the table lets it rise; the split is fixed there and conceals its separator. */
-:where(.dune-play-shell) .seated-controls-panel {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  display: grid;
-  height: 100%;
-  min-height: 17rem;
-  padding: var(--space-sm) clamp(var(--space-sm), 2.2vw, var(--space-xl));
-  background:
-    radial-gradient(circle at 72% 0%, rgba(112, 65, 35, 0.15), transparent 42%),
-    linear-gradient(180deg, #17100d, #100b09);
-  box-shadow: 0 -12px 35px rgba(0, 0, 0, 0.3);
-}
-
-/*
- * Nothing sits between the board and the controls (Norbert, 2026-10-11): no bar or banner above the tabs, in any stage.
- * What once took that row lives in the header, on the table, or in a tab.
- */
-:where(.dune-play-shell) .seated-controls-tabs {
-  width: min(78rem, 100%);
-  height: 100%;
-  min-height: 0;
-  margin: 0 auto;
-}
-
-:where(.dune-play-shell) .seated-controls-tabs .seated-controls-tab-content {
-  min-height: 0;
-  overflow: auto;
-  overscroll-behavior: contain;
-}
-
-/* A 768px tablet keeps the header's chips side by side and the side-by-side dock, since a step belongs to its wider side. */
+/* A 768px tablet keeps the header's chips side by side, since a step belongs to its wider side. */
 @media (width < 48rem) {
-  :where(.dune-play-shell) {
-    height: auto;
-    min-height: 100dvh;
-    overflow: visible;
-  }
-
   :where(.dune-play-shell) .seated-header {
     z-index: 12;
     flex-wrap: wrap;
@@ -436,19 +376,9 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
     padding: 0.5rem;
   }
 
-  :where(.dune-play-shell).dune-play-shell--seated {
-    height: 100%;
-    min-height: 0;
-    overflow: hidden;
-  }
-
   :where(.dune-play-shell) .scene--immersive {
     top: 0;
     height: auto;
-  }
-
-  :where(.dune-play-shell) .seated-controls-panel {
-    padding: var(--space-xs);
   }
 }
 
@@ -469,54 +399,4 @@ html[data-motion="reduce"] :where(.dune-play-shell) *::after {
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
   }
-}
-
-/*
- * Once the dock's two panes stack, a pane's scroll hands on to the column they share. The query
- * is the split's own stacking condition: inside a pane, the nearest split-panels container is the
- * split between the panes.
- */
-@container split-panels (width < 40.75rem) {
-  :where(.dune-play-shell)
-    .seated-controls-panel:has([role="separator"][aria-orientation="vertical"])
-    .seated-controls-tab-content {
-    overscroll-behavior: auto;
-  }
-}
-
-/*
- * Three columns (a viewer's choice in the game menu): the controls, the table, and the players side by side.
- * The header's chips float over the table's column only, so each side column runs to the top.
- */
-:where(.dune-play-shell) .seated-controls-panel--column {
-  top: 0;
-  min-height: 0;
-  padding: var(--space-sm);
-  box-shadow: none;
-}
-
-/* The table's column can be narrow, so its two chip groups wrap rather than overlap. */
-:where(.dune-play-shell)[data-table-layout="columns"] .seated-header {
-  flex-wrap: wrap;
-}
-
-:where(.dune-play-shell) .seated-controls-panel--column .seated-controls-tabs {
-  width: 100%;
-}
-
-/* The camera dial keeps to the table's lower right corner. */
-:where(.dune-play-shell) .seated-column-camera {
-  position: absolute;
-  z-index: 1;
-  right: 1.1rem;
-  bottom: calc(var(--space-sm) + 1.6rem);
-}
-
-:where(.dune-play-shell) .seated-column-camera .seated-camera {
-  position: static;
-}
-
-/* The scene, the controls and the players stay mounted while the layout moves them (HeldContent.tsx); their holders draw no box of their own. */
-:where(.dune-play-shell) .seated-held {
-  display: contents;
 }

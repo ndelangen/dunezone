@@ -62,6 +62,21 @@ test('the first arrow back from the ring lands on the last item, and Tab closes 
   expect(onClose).toHaveBeenCalledOnce();
 });
 
+test('focus moving on to something outside the ring closes it, but moving between its items does not', () => {
+  const onClose = vi.fn();
+  const menu = deckMenu(onClose);
+  const outside = document.body.appendChild(document.createElement('input'));
+  const draw = screen.getByRole('menuitem', { name: 'Draw a card' });
+  draw.focus();
+  fireEvent.click(draw);
+  screen.getByRole('menuitem', { name: 'Deal a card' }).focus();
+  expect(onClose).not.toHaveBeenCalled();
+  expect(menu).toBeTruthy();
+  outside.focus();
+  expect(onClose).toHaveBeenCalledOnce();
+  outside.remove();
+});
+
 test('closing hands focus back to what held it before the ring opened', () => {
   const opener = document.createElement('button');
   document.body.append(opener);

@@ -9,7 +9,7 @@ import { ConvexHttpClient } from 'convex/browser';
 import { makeFunctionReference } from 'convex/server';
 import type { FunctionArgs, FunctionReturnType } from 'convex/server';
 import { chromium, errors } from 'playwright';
-import type { Browser, BrowserContext, Locator, Page, WebSocket as BrowserSocket } from 'playwright';
+import type { Browser, BrowserContext, Page, WebSocket as BrowserSocket } from 'playwright';
 import sharp from 'sharp';
 import { z } from 'zod';
 
@@ -792,7 +792,7 @@ async function account(label: string) {
 /**
  * A spectator asks for a seat and a seated player approves it where the seat is shown.
  * Drafting: the (+) in the roster on the table, and the requester's ghost there carries Approve.
- * Later: the header's Seats popover names the open seat, and the vacant seat's Info in the player rail carries Approve.
+ * Later: the header's Seats popover names the open seat, and the vacant seat's window carries Approve.
  */
 async function seatThrough(approver: HostedPeer, who: HostedPeer) {
   const drafting = requireView(who).snapshot.stage === 'drafting';
@@ -807,7 +807,15 @@ async function seatThrough(approver: HostedPeer, who: HostedPeer) {
   await request.click();
   await until(() => requireView(who).snapshot.revision > before, 'The seat request did not commit.');
   if (!drafting) {
-    await approver.page.getByRole('tab', { name: /, a spectator asks for this seat/u }).click();
+    /* The vacant seat's window is named for its faction, as every seat without a player is. */
+    const roster = required(requireView(approver).snapshot.roster, 'roster');
+    const seated = new Set(requireView(approver).snapshot.controls?.players.map((player) => player.seat));
+    const vacant = roster.seats.find((seat) => !seated.has(seat.id));
+    assert.ok(vacant, 'No seat is open for the request.');
+    const name = vacant.faction?.name ?? vacant.id;
+    await openTab(approver, name);
+    /* A seat that kept its faction is still someone to chat with, so its window opens on Chat; the request is under Info. */
+    await windowOf(approver, name).getByRole('tab', { name: 'Info', exact: true }).click();
   }
   await act(approver, 'Approve');
   await until(() => requireView(who).viewer.viewerSeat !== SPECTATOR, 'The approved request did not seat its player.');
@@ -990,63 +998,75 @@ async function converged(peers: HostedPeer[]) {
     'Recipient revisions did not converge.'
   );
 }
-const TAB_GROUPS: Record<string, string> = {
-  Hand: 'Yours',
-  'Hidden zone': 'Yours',
-  Spice: 'Yours',
-  Setup: 'Game',
-  Phase: 'Game',
-  Battle: 'Game',
-  Alliances: 'Game',
-  Result: 'Game',
-  'Shared inventory': 'Table',
-  Settings: 'Table',
-  'Game log': 'History',
-  Audit: 'History',
-  Battles: 'History',
-  'Spice transfers': 'History',
-  Replay: 'History',
-};
-/** Shows the group holding a dock tab until the tab stays, outlasting a phase opening its own tab. */
-async function revealTab(who: HostedPeer, name: string, tab: Locator) {
-  /*
-   * The dock opens a phase's own tab once as the phase begins (Spice for Spice Collection, Hand for Bidding), and that
-   * can land just after this looks, moving the dock to another group. So the group is clicked again until the tab stays.
-   */
+/* The window a panel opens in: Hand and Spice share one. */
+const WINDOW_OF: Record<string, string> = { Hand: 'Hand & spice', Spice: 'Hand & spice' };
+/** The window named for a panel, by the label on its frame; the sections inside carry names of their own. */
+function windowOf(who: HostedPeer, name: string) {
+  return who.page.locator(`[data-window][aria-label="${WINDOW_OF[name] ?? name}"]`);
+}
+/**
+ * Opens one window of the controls through the compass's search unless it is open already, in the centre or pinned.
+ * A phase opening its own window as it begins can land just after this looks, which moves the centre to another window.
+ * So the search is repeated until the window asked for stays.
+ */
+async function openTab(who: HostedPeer, name: string) {
+  const label = WINDOW_OF[name] ?? name;
   const deadline = Date.now() + 30_000;
   for (;;) {
-    if ((await tab.count()) > 0) {
-      /* A moment's grace lets a phase's own tab, opened as the phase began, take the dock first. */
+    if ((await windowOf(who, name).count()) > 0) {
+      /* A moment's grace lets a phase's own window, opened as the phase began, take the centre first. */
       await delay(400);
-      if ((await tab.count()) > 0) {
-        break;
+      if ((await windowOf(who, name).count()) > 0) {
+        return;
       }
     }
     if (Date.now() > deadline) {
-      throw new Error(`${who.label} has no ${name} tab.`);
+      throw new Error(`${who.label} has no ${label} window.`);
     }
-    if (TAB_GROUPS[name]) {
-      await who.page
-        .getByRole('tablist', { name: 'Controls' })
-        .getByRole('tab', { name: TAB_GROUPS[name], exact: true })
-        .click();
+    await who.page.getByRole('button', { name: /^Controls/u }).click();
+    const compass = who.page.getByRole('dialog', { name: 'Controls compass' });
+    await compass.getByRole('textbox', { name: 'Search controls' }).fill(label);
+    const option = compass
+      .getByRole('option')
+      .filter({ has: who.page.getByText(label, { exact: true }) })
+      .first();
+    if ((await option.count()) === 0) {
+      await who.page.keyboard.press('Escape');
+      await delay(400);
+      continue;
     }
-    await tab.waitFor({ state: 'attached', timeout: 2000 }).catch(() => {});
+    await option.click();
+    await windowOf(who, name)
+      .waitFor({ timeout: 2000 })
+      .catch(() => {});
   }
 }
-/** Opens one tab of the controls panel unless it is already the current one. */
-async function openTab(who: HostedPeer, name: string) {
-  const tab = who.page.getByRole('tab', { name, exact: true });
-  await revealTab(who, name, tab);
-  /* A short window can push the lower tabs below the panel's default height. */
-  const box = await tab.boundingBox();
-  if (!box || box.y + box.height > required(who.page.viewportSize(), 'viewport').height) {
-    await who.page.getByRole('separator', { name: 'Resize controls panel' }).press('End');
+type Slot = 'left' | 'right';
+/**
+ * Pins a window into a bottom slot, opening it first when it is not open.
+ * A pinned window stays through a press on the table, which closes the centre window, and through a board gesture, which holds the Controls button.
+ */
+async function pinWindow(who: HostedPeer, name: string, side: Slot) {
+  const frame = windowOf(who, name);
+  await openTab(who, name);
+  const where = await frame.getAttribute('data-side');
+  if (where === side) {
+    return;
   }
-  await tab.waitFor();
-  if ((await tab.getAttribute('aria-selected')) !== 'true') {
-    await tab.click();
-    await who.page.locator(`[role="tab"][aria-label="${name}"][aria-selected="true"]`).waitFor();
+  if (where !== 'centre') {
+    await frame.getByRole('button', { name: 'Unpin', exact: true }).click();
+    await frame.waitFor({ state: 'hidden' });
+    await openTab(who, name);
+  }
+  await frame.getByRole('button', { name: `Pin to the bottom ${side}`, exact: true }).click();
+  await who.page.locator(`[data-window][data-side="${side}"][aria-label="${WINDOW_OF[name] ?? name}"]`).waitFor();
+}
+/** Makes a pinned slot as tall as the table allows, so a capture shows as much of its window as fits. */
+async function growSlot(who: HostedPeer, side: Slot) {
+  const edge = who.page.locator(`[data-window][data-side="${side}"]`).getByRole('button', { name: /^Resize/u });
+  await edge.focus();
+  for (let step = 0; step < 40; step++) {
+    await edge.press('ArrowUp');
   }
 }
 const shownView = (who: HostedPeer) =>
@@ -1349,9 +1369,51 @@ async function redPixels(recipient: HostedPeer, sender: HostedPeer, center: Poin
   return count;
 }
 
+/**
+ * Closes the centre window a stage or phase opens by itself over the board, so a press or pixel read there reaches the board.
+ * Escape closes it, and pinned windows stay.
+ */
+async function clearCentre(who: HostedPeer) {
+  const centre = who.page.locator('[data-window][data-side="centre"]');
+  for (let attempt = 0; attempt < 3 && (await centre.count()) > 0; attempt += 1) {
+    await who.page.mouse.move(10, 10);
+    await who.page.keyboard.press('Escape');
+    await centre
+      .first()
+      .waitFor({ state: 'detached', timeout: 2000 })
+      .catch(() => undefined);
+  }
+  if ((await centre.count()) > 0) {
+    throw new Error(`${who.label}'s centre window did not close on Escape.`);
+  }
+}
+/** What covers a page point, or null when the board's canvas is topmost there. */
+/** What covers the board at a page point, by its label, or null when the board's canvas is topmost there. */
+async function coverAt(who: HostedPeer, at: Point) {
+  return who.page.evaluate(({ x, y }) => {
+    const hit = document.elementFromPoint(x, y);
+    return hit instanceof HTMLCanvasElement
+      ? null
+      : (hit?.closest('[aria-label]')?.getAttribute('aria-label') ?? hit?.tagName ?? 'nothing');
+  }, at);
+}
+/** Fails when anything but the board's canvas is topmost at a page point, naming what covers it. */
+async function assertBoardAt(who: HostedPeer, at: Point, what: string) {
+  const cover = await coverAt(who, at);
+  assert.equal(cover, null, `${who.label}: ${what} is covered by ${cover}.`);
+}
+/** Whether the 48 px box redPixels samples around a page point lies on the page, with the board topmost at its centre. */
+async function boardShows(who: HostedPeer, at: Point) {
+  const viewport = required(who.page.viewportSize(), 'viewport');
+  const inside = at.x >= 24 && at.y >= 24 && at.x <= viewport.width - 24 && at.y <= viewport.height - 24;
+  return inside && (await coverAt(who, at)) === null;
+}
+
 async function visibleActivity(sender: HostedPeer, recipient: HostedPeer, name: string) {
   await focus(sender, 'map');
   await focus(recipient, 'map');
+  await clearCentre(sender);
+  await clearCentre(recipient);
   const savedRevision = requireView(sender).snapshot.revision;
   const first = await point(sender, [0, 0.38, 1]);
   const second = await point(sender, [1, 0.38, 1]);
@@ -1378,6 +1440,11 @@ async function visibleActivity(sender: HostedPeer, recipient: HostedPeer, name: 
     destinations.push({ senderPoint, recipientPoint, baseline: await redPixels(recipient, sender, recipientPoint) });
   }
   await capture(recipient, `${name}-before-carry`);
+  await assertBoardAt(sender, start, 'the troop stack');
+  for (const destination of destinations) {
+    await assertBoardAt(sender, destination.senderPoint, 'a carry destination');
+    await assertBoardAt(recipient, destination.recipientPoint, 'a carry destination');
+  }
   const sentBefore = sender.sent.length;
   await sender.page.mouse.move(start.x, start.y);
   await sender.page.mouse.down();
@@ -1425,7 +1492,7 @@ async function visibleActivity(sender: HostedPeer, recipient: HostedPeer, name: 
 async function capturePhaseTooltip(page: Page) {
   return page
     .evaluate(() => {
-      const tab = document.querySelector('[role="tab"][aria-label="Phase"]');
+      const tab = document.querySelector('[data-window="phase"] [role="img"][aria-label="Help"]');
       const box = tab?.getBoundingClientRect();
       const hit = box && document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
       return {
@@ -1455,15 +1522,15 @@ async function displayedPhase(who: HostedPeer, index: number, { held = false } =
   const controls = who.page;
   await openTab(who, 'Phase');
   /*
-   * A real game names the phase's section for assistive technology only, and the Phase tab's tooltip brings the
-   * phase's instructions once the pointer rests on the tab. While this player holds a board gesture the panel refuses
+   * A real game names the phase's section for assistive technology only, and the Phase window's (?) brings the
+   * phase's instructions once the pointer rests on it. While this player holds a board gesture the window refuses
    * the pointer, and hovering would move the held piece, so only the named section is checked then.
    */
   /* The phase's own section leads the panel; the Battle phase adds a battle section of the same name below it. */
   const section = controls.getByRole('region', { name: phase.label, exact: true }).first();
   await section.waitFor({ state: 'attached' });
   if (!held) {
-    await controls.getByRole('tab', { name: 'Phase', exact: true }).hover();
+    await windowOf(who, 'Phase').getByRole('img', { name: 'Help', exact: true }).hover();
     try {
       await controls.getByRole('tooltip').filter({ hasText: phase.instructions }).waitFor();
     } catch (error) {
@@ -1535,10 +1602,13 @@ async function phaseStep(sender: HostedPeer, recipient: HostedPeer, direction = 
 async function sharedPhaseFlow(a: HostedPeer, b: HostedPeer) {
   await focus(a, 'map');
   await focus(b, 'map');
-  /* Both players open the Phase tab now: the panel is inert while a board gesture is held, so a
-     later tab click during the remote-carry step would be refused. */
+  /*
+   * Both players open the Phase window now: the windows are inert while a board gesture is held, so opening one during
+   * the remote-carry step would be refused. B's is pinned, as B's press on the table to pick the piece up would close
+   * a window in the centre.
+   */
   await openTab(a, 'Phase');
-  await openTab(b, 'Phase');
+  await pinWindow(b, 'Phase', 'left');
   await displayedPhase(a, 0);
   assert.equal(await previousPhaseDisabled(a), true);
   await a.page.getByRole('heading', { name: 'Storm sector', exact: true }).waitFor();
@@ -1557,20 +1627,47 @@ async function sharedPhaseFlow(a: HostedPeer, b: HostedPeer) {
   const source = piece(b, id);
   const beforeCarry = requireView(a).snapshot.revision;
   const start = await point(b, [source.position[0], source.position[1] + 0.12, source.position[2]]);
-  const target: Vector3Tuple = [-1.5, 0.38, 1.4];
-  const targetPoint = await point(b, target);
   /* The next phase recommends a view other than the map (#1389). At the phase change the idle recipient's
      camera moves there, and the carrying player's camera waits for the drop, so the recipient samples the
-     held token in both views, each against its own empty board. */
+     held token in both views, each against its own empty board. The target is the first spot both views show. */
   const nextView = PHASE_VIEWS[phaseAt(requireView(a).snapshot.phase + 1).id as keyof typeof PHASE_VIEWS];
   assert.notEqual(nextView, 'map', 'The phase after Storm must recommend a view other than the map.');
+  await clearCentre(a);
+  await clearCentre(b);
+  /* The stack stays where this carry drops it, so every spot keeps clear of the later carries' destinations near the rim. */
+  const candidates: Vector3Tuple[] = [
+    [-1.5, 0.38, 1.4],
+    [1.4, 0.38, 0.4],
+    [0.9, 0.38, -0.6],
+    [-0.9, 0.38, -0.6],
+  ];
   await focus(a, nextView);
   await a.page.mouse.move(10, 10);
-  const nextViewPoint = await point(a, target);
+  const inNextView = [];
+  for (const candidate of candidates) {
+    const at = await point(a, candidate);
+    if (await boardShows(a, at)) {
+      inNextView.push({ candidate, at });
+    }
+  }
+  await focus(a, 'map');
+  await a.page.mouse.move(10, 10);
+  let chosen: { nextViewPoint: Point; recipientPoint: Point; targetPoint: Point } | undefined;
+  for (const { candidate, at } of inNextView) {
+    const recipientAt = await point(a, candidate);
+    const senderAt = await point(b, candidate);
+    if ((await boardShows(a, recipientAt)) && (await boardShows(b, senderAt))) {
+      chosen = { nextViewPoint: at, recipientPoint: recipientAt, targetPoint: senderAt };
+      break;
+    }
+  }
+  assert.ok(chosen, `No carry target shows on the board in both the map and the ${nextView} view.`);
+  const { nextViewPoint, recipientPoint, targetPoint } = chosen;
+  await focus(a, nextView);
+  await a.page.mouse.move(10, 10);
   const nextViewBaseline = await redPixels(a, b, nextViewPoint);
   await focus(a, 'map');
   await a.page.mouse.move(10, 10);
-  const recipientPoint = await point(a, target);
   const baseline = await redPixels(a, b, recipientPoint);
   await b.page.mouse.move(start.x, start.y);
   await b.page.mouse.down();
@@ -2224,7 +2321,11 @@ try {
     converged,
     focus,
     openTab,
+    windowOf,
+    pinWindow,
+    growSlot,
     point,
+    coverAt,
     tableLoaded,
     recordRenderer,
     spiceBankShortcut,
@@ -2378,7 +2479,11 @@ export type HostedToolkit = {
   converged: typeof converged;
   focus: typeof focus;
   openTab: typeof openTab;
+  windowOf: typeof windowOf;
+  pinWindow: typeof pinWindow;
+  growSlot: typeof growSlot;
   point: typeof point;
+  coverAt: typeof coverAt;
   tableLoaded: typeof tableLoaded;
   recordRenderer: typeof recordRenderer;
   spiceBankShortcut: typeof spiceBankShortcut;

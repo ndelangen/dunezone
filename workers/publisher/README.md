@@ -128,6 +128,11 @@ those scans or captures to finish.
 
 ## Runtime telemetry
 
+Capture readiness waits for fonts, HTML images, SVG resources, and CSS artwork,
+including generated content and masks. It rechecks resources after painting so
+artwork added during loading also settles. A failed decode or an expired capture
+deadline refuses publication.
+
 The scheduled handler emits one bounded `asset_publisher_cron` JSON event per
 invocation. Completed events report job and Browser-session counts; failures contain
 bounded diagnostics. Capture and public-delivery failures emit separate sanitized

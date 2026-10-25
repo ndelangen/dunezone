@@ -19,7 +19,10 @@ export async function verifyBattles(toolkit: HostedToolkit) {
     converged,
     focus,
     openTab,
+    pinWindow,
+    growSlot,
     point,
+    coverAt,
     carrySteps,
     capture,
     until,
@@ -41,6 +44,15 @@ export async function verifyBattles(toolkit: HostedToolkit) {
     requireView(a).snapshot.table.pieces.find((piece) => piece.inventory),
     'token'
   );
+  /* The battle's callout floats over the middle of the board, so a piece dropped under it could not be pressed again. */
+  async function clearOfCallout(who: HostedPeer, candidates: readonly Vector3Tuple[]) {
+    for (const candidate of candidates) {
+      if ((await coverAt(who, await point(who, candidate))) === null) {
+        return candidate;
+      }
+    }
+    throw new Error(`${who.label}: every drop point is covered: ${JSON.stringify(candidates)}.`);
+  }
   async function drag(who: HostedPeer, locator: Locator, destination: Vector3Tuple) {
     await locator.scrollIntoViewIfNeeded();
     /* The battle marker floats over the canvas and is placed on the next rendered frame, so until then its box lies far off screen. */
@@ -98,14 +110,25 @@ export async function verifyBattles(toolkit: HostedToolkit) {
       'piece'
     );
     const at = await point(who, [piece.position[0], piece.position[1] + 0.05, piece.position[2]]);
-    await who.page.mouse.click(at.x, at.y);
-    await openTab(who, 'Battle');
     const previousHand = new Set(required(requireView(who).snapshot.hand, 'hand').map((entry) => entry.id));
-    await act(who, 'Take selected piece into hand');
+    /* The Battle window in the centre can sit over the near rim, so it closes for the right-click and opens again after. */
+    await who.page.mouse.move(10, 10);
+    await who.page.keyboard.press('Escape');
+    await who.page.locator('[data-window][data-side="centre"]').waitFor({ state: 'detached' });
+    const cover = await coverAt(who, at);
+    assert.equal(cover, null, `${who.label}: the piece to take is covered by ${cover}.`);
+    await who.page.mouse.click(at.x, at.y, { button: 'right' });
+    const takeItem = who.page.getByRole('menuitem', { name: 'Take into hand', exact: true });
+    await takeItem.waitFor({ timeout: 5000 }).catch(async () => {
+      const items = await who.page.getByRole('menuitem').allTextContents();
+      throw new Error(`${who.label}: the piece's menu offers no Take into hand; it offers [${items.join(', ')}].`);
+    });
+    await takeItem.click();
     await until(
       () => required(requireView(who).snapshot.hand, 'hand').length === previousHand.size + 1,
       'Private inventory did not receive the piece.'
     );
+    await openTab(who, 'Battle');
     const received = required(requireView(who).snapshot.hand, 'hand').find((entry) => !previousHand.has(entry.id));
     assert.ok(received);
     assert.equal(received.kind, piece.kind);
@@ -156,7 +179,19 @@ export async function verifyBattles(toolkit: HostedToolkit) {
   );
   assert.equal(requireView(observer).snapshot.battlePlan, null);
   const cardName = required(required(battleCard.items[0].artwork, 'battle artwork').name, 'battle card name');
-  await verifySupport({ a, b, observer, token, cardName, startingSpice, until, converged, capture });
+  await verifySupport({
+    a,
+    b,
+    observer,
+    token,
+    cardName,
+    startingSpice,
+    until,
+    converged,
+    capture,
+    pinWindow,
+    growSlot,
+  });
   await act(a, 'Ready for battle');
   await act(b, 'Ready for battle');
   await until(
@@ -176,13 +211,25 @@ export async function verifyBattles(toolkit: HostedToolkit) {
     15_000
   );
   await capture(a, 'after-battle-reveal');
+  await focus(a, 'map');
+  const leaderDrop = await clearOfCallout(a, [
+    [-2, 0.38, 2],
+    [-2.6, 0.38, 2.4],
+    [-2.6, 0.38, 1.2],
+  ]);
+  const cardDrop = await clearOfCallout(a, [
+    [1.6, 0.38, 1.8],
+    [2.6, 0.38, 2.4],
+    [2.6, 0.38, 1.2],
+    [-1.2, 0.38, 2.8],
+  ]);
   assert.equal(required(requireView(a).snapshot.bank, 'bank').balance, startingSpice + 4);
   await drag(
     a,
     a.page
       .locator('[data-battle-stage="revealed"]')
       .getByRole('button', { name: 'Drag Recovery token onto table', exact: true }),
-    [-2, 0.38, 2]
+    leaderDrop
   );
   await until(
     () => requireView(a).snapshot.table.pieces.some((piece) => piece.id === token.id && !piece.battleOverlay),
@@ -193,7 +240,7 @@ export async function verifyBattles(toolkit: HostedToolkit) {
     a.page
       .locator('[data-battle-stage="revealed"]')
       .getByRole('button', { name: `Drag ${cardName} onto table`, exact: true }),
-    [1.6, 0.38, 1.8]
+    cardDrop
   );
   await until(
     () => requireView(a).snapshot.table.pieces.some((piece) => piece.id === battleCard.id && !piece.battleOverlay),
@@ -249,7 +296,9 @@ async function verifySupport({
   until,
   converged,
   capture,
-}: Pick<HostedToolkit, 'until' | 'converged' | 'capture'> & {
+  pinWindow,
+  growSlot,
+}: Pick<HostedToolkit, 'until' | 'converged' | 'capture' | 'pinWindow' | 'growSlot'> & {
   a: HostedPeer;
   b: HostedPeer;
   observer: HostedPeer;
@@ -283,7 +332,8 @@ async function verifySupport({
   /* B's view is read once it holds A's commit; before then it would show no reveal whatever the commit sent (#1481). */
   await converged([a, b]);
   assert.equal(required(requireView(b).snapshot.battle, 'battle').revealed, undefined);
-  await a.page.getByRole('separator', { name: 'Resize controls panel' }).press('End');
+  await pinWindow(a, 'Battle', 'left');
+  await growSlot(a, 'left');
   await a.page.getByRole('heading', { name: 'Battle', exact: true }).scrollIntoViewIfNeeded();
   await capture(a, 'after-battle-private-plan');
   await capture(observer, 'after-battle-observer-preparation');
