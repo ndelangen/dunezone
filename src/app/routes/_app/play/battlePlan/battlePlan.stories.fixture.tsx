@@ -1,6 +1,7 @@
 import { emptyBattlePlan, isBattleLeader } from '@shared/play/battle';
 import type { BattleFace, BattlePlan, BattlePlanInput, Disclosure } from '@shared/play/battle';
 import type { TablePiece } from '@shared/play/model';
+import { item } from '@shared/play/setupSupply';
 import type { ComponentType, CSSProperties, ReactNode } from 'react';
 import { useState } from 'react';
 
@@ -9,7 +10,7 @@ import { WindowFrame } from '../compass/WindowFrame';
 import type { TableWindow } from '../compass/windows';
 import { DarkSchemeIsland, darkSchemeIslandAttributes } from '../DarkSchemeIsland';
 import { battleStory } from '../playing.stories.fixture';
-import { factions, playingSnapshot } from '../product.stories.fixture';
+import { cardBack, factions, playingSnapshot } from '../product.stories.fixture';
 import type { BattlePlanViewProps } from './planView';
 import '../dune-play.css';
 
@@ -36,13 +37,32 @@ function facesOf(faction: Faction): BattleFace[] {
   }));
 }
 
-/* The loose Snooper on the playing table, picked up twice over, as the story's one published Treachery front. */
-function treacheryCards(count: number): TablePiece[] {
+/* Published Dreamrules Treachery fronts, pulled from production: a weapon of each kind, a defense and a Cheap Hero. */
+const TREACHERY = [
+  ['crysknife', 'Crysknife'],
+  ['chaumas', 'Chaumas'],
+  ['shield', 'Shield'],
+  ['cheap-hero', 'Cheap Hero'],
+] as const;
+
+/** Treachery cards drawn into the hand, each a single card as the loose Snooper on the playing table is. */
+function treacheryCards(): TablePiece[] {
   const loose = playingSnapshot('seat-2').table.pieces.find((entry) => entry.id === 'treachery-card-loose')!;
-  return Array.from({ length: count }, (_, index) => ({
+  return TREACHERY.map(([slug, name]) => ({
     ...loose,
-    id: `treachery-in-hand-${index}`,
-    items: loose.items.map((entry) => ({ ...entry, id: `treachery-in-hand-${index}-item` })),
+    id: `treachery-${slug}`,
+    label: name,
+    items: [
+      item(
+        `treachery-${slug}-item`,
+        name,
+        new URL(`/play-fixtures/dreamrules/${slug}.jpg`, location.origin).href,
+        cardBack(),
+        'card-treachery',
+        true,
+        'Treachery'
+      ),
+    ],
   }));
 }
 
@@ -55,9 +75,9 @@ export function scenario(name: Scenario): Harness {
   const emperor = name === 'emperor';
   const faction = factionBySlug(emperor ? 'emperor' : 'house-harkonnen');
   const story = battleStory('preparing');
-  /* The viewer's own hand from the playing fixture: leaders, alliance card and kept Traitors, and three Treachery cards drawn since. */
+  /* The viewer's own hand from the playing fixture: leaders, alliance card and kept Traitors, and four Treachery cards drawn since. */
   const own = playingSnapshot(emperor ? 'seat-3' : 'seat-2').hand!;
-  const hand = [...own, ...treacheryCards(3)];
+  const hand = [...own, ...treacheryCards()];
   const leaders = own.filter(isBattleLeader);
   const faces = facesOf(faction);
   const plan: BattlePlan = { ...emptyBattlePlan(faces), pieces: [] };
@@ -87,7 +107,7 @@ export function scenario(name: Scenario): Harness {
   }
   const committed = simulate(harness, {
     leaderId: leaders[0]!.id,
-    cardIds: ['treachery-in-hand-0'],
+    cardIds: ['treachery-crysknife'],
     ...(emperor
       ? { mode: 'custom' as const }
       : { troops: [{ faceId: faces[0]!.id, undialed: 6, dialed: 0 }], spice: 4 }),
