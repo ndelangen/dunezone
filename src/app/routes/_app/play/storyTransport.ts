@@ -1,4 +1,4 @@
-import { beginDebugging, traffic } from '@sb/playDebugger/preview';
+import { beginDebugging } from '@sb/playDebugger/preview';
 import type { PublicFaction } from '@shared/play/capture';
 import { treacheryHandCounts } from '@shared/play/handCounts';
 import { LOG_PAGE_SIZE } from '@shared/play/log';
@@ -128,7 +128,7 @@ export function storyTransport(
         queueMicrotask(() => this.answerKeepalive());
         return;
       }
-      traffic('sent', data);
+      debugging.traffic('sent', data);
       const message = clientMessageSchema.parse(JSON.parse(data));
       messages.push(message);
       if (message.type !== 'admit' && message.type !== 'log-history' && message.type !== 'conversation-history') {
@@ -184,7 +184,7 @@ export function storyTransport(
     deliver(message: ServerMessage) {
       if (this.readyState === StorySocket.OPEN) {
         const data = JSON.stringify(message.type === 'admission' ? message : { serverNow: STORYBOOK_NOW, ...message });
-        traffic('received', data);
+        debugging.traffic('received', data);
         this.onmessage?.({ data });
       }
     }
@@ -196,7 +196,7 @@ export function storyTransport(
   }
 
   /* The Play debugger panel shows this socket's traffic and the page's newest view; a replay or a live table describes itself over it. */
-  const endDebugging = beginDebugging({
+  const debugging = beginDebugging({
     title: 'Scripted story',
     description:
       "A scripted transport answers the page with the story's fixed view. Commands are recorded, never executed.",
@@ -220,7 +220,7 @@ export function storyTransport(
     snapshot,
     runtime,
     dispose: () => {
-      endDebugging();
+      debugging.end();
       for (const socket of sockets) {
         socket.onclose = null;
         socket.close();

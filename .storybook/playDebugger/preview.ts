@@ -166,17 +166,26 @@ function retire(source: DebuggerSource, active: boolean) {
 
 /**
  * A new socket for a story: the debugger's history starts over and the story is described afresh.
- * The returned function ends the session when the story's transport is disposed, so a later story without a socket shows nothing of this one.
+ * The story's transport reports its socket's messages through the returned `traffic`, and calls `end` when it is disposed, so a later story without a socket shows nothing of this one.
+ * Both are bound to this session: a story that ended cannot write into, or end, the one that replaced it.
  */
 export function beginDebugging(source: DebuggerSource) {
   listen();
   const generation = ++session.generation;
   retire(source, true);
   schedule();
-  return () => {
-    if (session.generation === generation) {
-      retire({ title: '', description: '' }, false);
-    }
+  const current = () => session.generation === generation;
+  return {
+    traffic: (direction: 'sent' | 'received', json: string) => {
+      if (current()) {
+        traffic(direction, json);
+      }
+    },
+    end: () => {
+      if (current()) {
+        retire({ title: '', description: '' }, false);
+      }
+    },
   };
 }
 
@@ -210,8 +219,8 @@ function summarize(message: Record<string, unknown>) {
   return parts.join(' · ');
 }
 
-/** A message that crossed the socket, as the JSON text that crossed it; keepalives are left out. */
-export function traffic(direction: 'sent' | 'received', json: string) {
+/* A message that crossed the socket, as the JSON text that crossed it; keepalives are left out. */
+function traffic(direction: 'sent' | 'received', json: string) {
   let message: Record<string, unknown>;
   try {
     message = JSON.parse(json) as Record<string, unknown>;
