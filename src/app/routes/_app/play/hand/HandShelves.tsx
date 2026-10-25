@@ -14,9 +14,30 @@ import styles from './Hand.module.css';
 import { dragFromHand, useHandActions } from './useHandActions';
 import type { HandActions, HandProps } from './useHandActions';
 
-/* What a right-click on a piece offers: play it in front of you, set it on your side-table, or put it in your battle plan. */
+/*
+ * What a right-click on a piece offers: play it in front of you, set it on your side-table, or put it in your battle plan.
+ * A piece committed to the plan has left the hand, so taking it out of the plan is all it offers.
+ */
 function pieceActions(actions: HandActions, piece: TablePiece, viewWidth: number) {
   const planned = actions.inPlan(piece);
+  const held = actions.inHand.some((entry) => entry.id === piece.id);
+  return [
+    ...(held ? handOnlyActions(actions, piece, viewWidth) : []),
+    ...(actions.plan
+      ? [
+          {
+            key: 'plan',
+            label: planned ? 'Take out of battle plan' : 'Add to battle plan',
+            icon: <Swords size={16} aria-hidden />,
+            disabled: Boolean(actions.planReason(piece)),
+            run: () => actions.togglePlan(piece),
+          },
+        ]
+      : []),
+  ];
+}
+
+function handOnlyActions(actions: HandActions, piece: TablePiece, viewWidth: number) {
   return [
     {
       key: 'play',
@@ -32,17 +53,6 @@ function pieceActions(actions: HandActions, piece: TablePiece, viewWidth: number
       disabled: !actions.enabled,
       run: () => actions.toSideTable(piece, viewWidth),
     },
-    ...(actions.plan
-      ? [
-          {
-            key: 'plan',
-            label: planned ? 'Take out of battle plan' : 'Add to battle plan',
-            icon: <Swords size={16} aria-hidden />,
-            disabled: Boolean(actions.planReason(piece)),
-            run: () => actions.togglePlan(piece),
-          },
-        ]
-      : []),
   ];
 }
 
@@ -53,7 +63,7 @@ const TILE_WIDTH = { leaders: 50, cards: 54 };
  * The hand as shelves: the leaders on a row of their own, then each kind of card under its name and count.
  * A piece lifts under the pointer;
  * drag it onto the table, right-click it for its actions, or hold Alt to see it close up.
- * In a battle the pieces in your plan stay on their shelf, ringed, so taking one back is the same right-click.
+ * In a battle the pieces in your plan stay on their shelf, ringed, even once committed, so taking one back is the same right-click.
  */
 export function HandShelves(props: HandProps) {
   const actions = useHandActions(props);
@@ -62,11 +72,6 @@ export function HandShelves(props: HandProps) {
   const ref = useMergedRef(measure, area);
   const [menu, setMenu] = useState<HandMenuAnchor | null>(null);
   const closeUp = useHandCloseUp(actions.planPieces);
-  const planned = actions.plan
-    ? actions.planPieces.filter(
-        (piece) => actions.inPlan(piece) && !actions.inHand.some((held) => held.id === piece.id)
-      )
-    : [];
   const menuPiece = menu ? actions.planPieces.find((piece) => piece.id === menu.pieceId) : undefined;
   const tile = (piece: TablePiece, tileWidth: number) => {
     const inPlan = actions.inPlan(piece);
@@ -117,17 +122,7 @@ export function HandShelves(props: HandProps) {
             </div>
           </section>
         ))}
-        {planned.length > 0 && (
-          <section className={styles.shelf} aria-label="In your battle plan">
-            <Text size="xs" fw={700} tt="uppercase" className={styles.caption}>
-              In your battle plan <span className={styles.count}>{planned.length}</span>
-            </Text>
-            <div className={styles.row}>
-              {planned.map((piece) => tile(piece, piece.kind === 'card' ? TILE_WIDTH.cards : TILE_WIDTH.leaders))}
-            </div>
-          </section>
-        )}
-        {!actions.groups.length && !planned.length && (
+        {!actions.groups.length && (
           <Text size="sm" c="dimmed">
             Your hand is empty. Right-click a card or leader on the table and choose Take into hand.
           </Text>

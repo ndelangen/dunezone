@@ -52,7 +52,7 @@ export function useHandActions({ client, table, hand }: HandProps) {
 
   const side = battle && plan ? battle.sides.find((entry) => entry?.factionId === factionId) : undefined;
   const planOpen = Boolean(enabled && plan && battle && side && !side.ready && battle.stage === 'preparing');
-  /* The plan's pieces may have left the hand while committed, so the window shows them beside the hand. */
+  /* The plan's pieces may have left the hand while committed, so the window keeps them on their shelves beside the hand. */
   const planPieces = plan
     ? [...inHand, ...plan.pieces].filter(
         (piece, index, all) => all.findIndex((candidate) => candidate.id === piece.id) === index
@@ -136,7 +136,7 @@ export function useHandActions({ client, table, hand }: HandProps) {
   return {
     enabled,
     inHand,
-    groups: handGroups(inHand),
+    groups: handGroups(planPieces),
     leaving,
     plan,
     battle,

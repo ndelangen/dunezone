@@ -92,6 +92,8 @@ export const InBattle = meta.story({
     await userEvent.click(page.getByRole('button', { name: 'One spice more' }));
     await userEvent.click(page.getByRole('button', { name: 'Withdraw spice' }));
     await waitFor(() => expect(page.getByLabelText('Spice reserve balance')).toHaveTextContent(String(before - 2)));
+    /* The window is left as a player would see it, with no focus ring. */
+    (canvasElement.ownerDocument.activeElement as HTMLElement | null)?.blur();
   },
 });
 
