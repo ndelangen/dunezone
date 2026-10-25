@@ -17,6 +17,9 @@ export type Opened = Readonly<{ key: string; tab: PlayerTab }>;
 
 export type Slots = Readonly<Record<Side, Opened | null>>;
 
+/** The open windows and the ways to open, pin, unpin and close them. */
+export type OpenWindows = ReturnType<typeof useOpenWindows>;
+
 /* Something open over the table that takes Escape first: a menu, a list, a dialog, or the control whose popover is open. */
 const OPEN_ABOVE = '[role="menu"], [role="listbox"], [role="dialog"], [aria-modal="true"]';
 const EXPANDED = '[aria-expanded="true"]';

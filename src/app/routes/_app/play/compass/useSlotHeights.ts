@@ -20,6 +20,9 @@ const CAMERA_TOP = '--compass-camera-top';
 
 const NONE: Heights = { left: null, right: null };
 
+/** Each slot's height and bounce, and the ways to drag, nudge and reset it. */
+export type SlotHeights = ReturnType<typeof useSlotHeights>;
+
 /* The slot pinned to a side, by the attributes its frame carries. */
 function slotOn(root: HTMLElement, side: Side) {
   return root.querySelector<HTMLElement>(`[data-window][data-side="${side}"]`);

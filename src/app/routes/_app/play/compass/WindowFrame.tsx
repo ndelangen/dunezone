@@ -51,8 +51,6 @@ export function WindowFrame({
   onTab,
   actions,
 }: WindowFrameProps) {
-  const table = useContext(CompassTableContext);
-  const player = entry.player;
   return (
     <div
       role="group"
@@ -67,21 +65,52 @@ export function WindowFrame({
       style={style}
     >
       {resize && <ResizeEdge resize={resize} />}
-      <header className={styles.title}>
-        {player ? <PlayerToken player={player} size={24} /> : <TopicIcon topic={entry.topic} size={18} />}
-        <span className={styles.name}>
-          {entry.label}
-          {player?.factionName && !player.own && <span className={styles.group}> · {player.factionName}</span>}
-        </span>
-        <WindowHelp entry={entry} tab={tab} />
-        {player && <PlayerTabs player={player} tab={tab} onTab={onTab} />}
-        <span className={styles.actions}>{actions}</span>
-      </header>
-      <WindowBody layout={player ? playerLayout(player, tab) : entry.layout}>
-        {player ? table?.render(player.seat, tab) : entry.content}
-      </WindowBody>
+      <WindowTitle entry={entry} tab={tab} onTab={onTab} actions={actions} />
+      <WindowContent entry={entry} tab={tab} />
     </div>
   );
+}
+
+type WindowTitleProps = Readonly<{
+  entry: TableWindow;
+  tab: PlayerTab;
+  onTab: (tab: PlayerTab) => void;
+  actions: ReactNode;
+}>;
+
+/* The title bar: the window's icon or the player's token, its name, its help, a player's tabs and the frame's buttons. */
+function WindowTitle({ entry, tab, onTab, actions }: WindowTitleProps) {
+  const player = entry.player;
+  return (
+    <header className={styles.title}>
+      {player ? <PlayerToken player={player} size={24} /> : <TopicIcon topic={entry.topic} size={18} />}
+      <span className={styles.name}>
+        {entry.label}
+        {player && <FactionName player={player} />}
+      </span>
+      <WindowHelp entry={entry} tab={tab} />
+      {player && <PlayerTabs player={player} tab={tab} onTab={onTab} />}
+      <span className={styles.actions}>{actions}</span>
+    </header>
+  );
+}
+
+/* Another player's faction follows their name; the viewer's own window names the faction already. */
+function FactionName({ player }: Readonly<{ player: CompassPlayer }>) {
+  if (!player.factionName || player.own) {
+    return null;
+  }
+  return <span className={styles.group}> · {player.factionName}</span>;
+}
+
+/* A player's window shows what the table renders for their seat; any other shows its own content. */
+function WindowContent({ entry, tab }: Readonly<{ entry: TableWindow; tab: PlayerTab }>) {
+  const table = useContext(CompassTableContext);
+  const player = entry.player;
+  if (!player) {
+    return <WindowBody layout={entry.layout}>{entry.content}</WindowBody>;
+  }
+  return <WindowBody layout={playerLayout(player, tab)}>{table?.render(player.seat, tab)}</WindowBody>;
 }
 
 function ResizeEdge({ resize }: Readonly<{ resize: Resize }>) {

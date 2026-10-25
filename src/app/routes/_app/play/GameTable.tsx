@@ -245,6 +245,19 @@ const DIAL_ANGLES: Record<TableView, number> = {
   top: 180,
 };
 
+/* A key typed into a text field belongs to that field. */
+function typesIntoField(event: KeyboardEvent) {
+  const target = event.target;
+  return target instanceof HTMLElement && (target.isContentEditable || target.matches('input, textarea, select'));
+}
+
+/* A fresh, bare press of the top view's key that nothing else has answered yet. */
+function pressesTopView(event: KeyboardEvent) {
+  const bare = !event.metaKey && !event.ctrlKey && !event.altKey;
+  const fresh = !event.repeat && !event.defaultPrevented;
+  return event.key.toLowerCase() === TOP_VIEW_KEY && bare && fresh && !typesIntoField(event);
+}
+
 /*
  * U turns the camera to the top-down view, and back to the view it came from, from anywhere but a text field.
  * The compass takes the keys while it is open, so none reach here then.
@@ -253,11 +266,7 @@ function useTopViewKey(select: (view: TableView) => void) {
   const choose = useEffectEvent(() => select(TOP_VIEW.id));
   useEffect(() => {
     const keydown = (event: KeyboardEvent) => {
-      const typing =
-        event.target instanceof HTMLElement &&
-        (event.target.isContentEditable || event.target.matches('input, textarea, select'));
-      const modified = event.metaKey || event.ctrlKey || event.altKey;
-      if (event.key.toLowerCase() !== TOP_VIEW_KEY || event.repeat || event.defaultPrevented || modified || typing) {
+      if (!pressesTopView(event)) {
         return;
       }
       event.preventDefault();

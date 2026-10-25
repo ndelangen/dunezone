@@ -893,7 +893,7 @@ export class TableSession {
       deckControls:
         canHandleTable && this.subscription.supportsCommand('deck-draw') ? this.deckControls(displayed) : undefined,
       deleteControls: this.deleteControls(canHandleTable),
-      handControls: canHandleTable && this.subscription.supportsCommand('hand-take') ? this.handControls : undefined,
+      handControls: this.handControls(canHandleTable),
       /* A look back in time shows no peek: what a faction saw then is not what it holds open now. */
       peek:
         this.history || displayed.peek?.piece.id === this.closedPeek?.pieceId
@@ -932,7 +932,7 @@ export class TableSession {
   private readonly removal: NonNullable<TableProjection['deleteControls']> = {
     remove: (pieceId) => this.command({ kind: 'delete', pieceId }),
   };
-  private readonly handControls: NonNullable<TableProjection['handControls']> = {
+  private readonly taking: NonNullable<TableProjection['handControls']> = {
     canTake: (pieceId) => {
       const piece = this.table?.state.pieces.find((entry) => entry.id === pieceId);
       return piece !== undefined && takeableIntoHand(piece);
@@ -960,6 +960,9 @@ export class TableSession {
   }
   private deleteControls(canHandleTable: boolean): TableProjection['deleteControls'] {
     return canHandleTable && this.subscription.supportsCommand('delete') ? this.removal : undefined;
+  }
+  private handControls(canHandleTable: boolean): TableProjection['handControls'] {
+    return canHandleTable && this.subscription.supportsCommand('hand-take') ? this.taking : undefined;
   }
   /* Whether the peeked deck still shows the order this viewer asked for: the room has neither refused it nor sent the deck again. */
   private arrangementShown(peek: Peek | null) {

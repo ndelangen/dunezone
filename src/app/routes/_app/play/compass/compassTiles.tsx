@@ -2,7 +2,7 @@ import { EyeOff, Hand, Handshake, MessagesSquare, Swords } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import type { TileSpot } from './compassSpots';
-import type { CompassTable } from './compassTable';
+import type { CompassPlayer, CompassTable } from './compassTable';
 import { PlayerToken } from './PlayerToken';
 import type { PlayerTab, TableWindow } from './windows';
 
@@ -21,62 +21,88 @@ export type Tile = Readonly<{
 
 const ICON = { size: 30, strokeWidth: 1.6 };
 
+type Windows = (key: string) => TableWindow | undefined;
+
+function handTile(windowOf: Windows): Tile {
+  const window = windowOf('hand');
+  return {
+    spot: 'hand',
+    window,
+    label: window?.label ?? 'Hand',
+    detail: 'Cards, leaders and spice',
+    icon: <Hand {...ICON} />,
+    keys: '←',
+    disabled: !window,
+  };
+}
+
+function hiddenTile(windowOf: Windows): Tile {
+  const window = windowOf('hidden-zone');
+  return {
+    spot: 'hidden',
+    window,
+    label: 'Hidden zone',
+    detail: 'Pieces only you see',
+    icon: <EyeOff {...ICON} />,
+    keys: '← ←',
+    disabled: !window,
+  };
+}
+
+function tableTile(windowOf: Windows, unread: number | undefined): Tile {
+  const window = windowOf('table-chat');
+  return {
+    spot: 'table',
+    window,
+    tab: 'conversation',
+    label: 'Table chat',
+    detail: unread ? `${unread} unread` : 'Everyone at the table',
+    icon: <MessagesSquare {...ICON} />,
+    keys: '→',
+    badge: unread,
+    disabled: !window,
+  };
+}
+
+function allyTile(windowOf: Windows, ally: CompassPlayer | undefined): Tile {
+  const window = ally ? windowOf(`player:${ally.seat}`) : undefined;
+  return {
+    spot: 'ally',
+    window,
+    tab: 'conversation',
+    label: 'Ally chat',
+    detail: ally ? [ally.name, ally.factionName].filter(Boolean).join(' · ') : 'No ally yet',
+    icon: ally ? <PlayerToken player={ally} size={34} /> : <Handshake {...ICON} />,
+    keys: '→ →',
+    badge: ally?.unread,
+    disabled: !window,
+  };
+}
+
+function battleTile(windowOf: Windows): Tile {
+  const window = windowOf('battle');
+  return {
+    spot: 'battle',
+    window,
+    label: 'Battle plan',
+    detail: window ? 'Your plan for this battle' : 'No battle right now',
+    icon: <Swords {...ICON} />,
+    keys: '↑',
+    disabled: !window,
+  };
+}
+
 /** The five tiles, from the windows the table has right now. */
 export function tilesOf(windows: readonly TableWindow[], table: CompassTable | null): Record<TileSpot, Tile> {
-  const byKey = (key: string) => windows.find((entry) => entry.key === key);
-  const ally = table?.players.find((player) => player.ally);
-  const allyWindow = ally ? byKey(`player:${ally.seat}`) : undefined;
-  const battle = byKey('battle');
-  const unread = table?.tableChat?.unread;
+  const windowOf: Windows = (key) => windows.find((entry) => entry.key === key);
   return {
-    hand: {
-      spot: 'hand',
-      window: byKey('hand'),
-      label: byKey('hand')?.label ?? 'Hand',
-      detail: 'Cards, leaders and spice',
-      icon: <Hand {...ICON} />,
-      keys: '←',
-      disabled: !byKey('hand'),
-    },
-    hidden: {
-      spot: 'hidden',
-      window: byKey('hidden-zone'),
-      label: 'Hidden zone',
-      detail: 'Pieces only you see',
-      icon: <EyeOff {...ICON} />,
-      keys: '← ←',
-      disabled: !byKey('hidden-zone'),
-    },
-    table: {
-      spot: 'table',
-      window: byKey('table-chat'),
-      tab: 'conversation',
-      label: 'Table chat',
-      detail: unread ? `${unread} unread` : 'Everyone at the table',
-      icon: <MessagesSquare {...ICON} />,
-      keys: '→',
-      badge: unread,
-      disabled: !byKey('table-chat'),
-    },
-    ally: {
-      spot: 'ally',
-      window: allyWindow,
-      tab: 'conversation',
-      label: 'Ally chat',
-      detail: ally ? [ally.name, ally.factionName].filter(Boolean).join(' · ') : 'No ally yet',
-      icon: ally ? <PlayerToken player={ally} size={34} /> : <Handshake {...ICON} />,
-      keys: '→ →',
-      badge: ally?.unread,
-      disabled: !allyWindow,
-    },
-    battle: {
-      spot: 'battle',
-      window: battle,
-      label: 'Battle plan',
-      detail: battle ? 'Your plan for this battle' : 'No battle right now',
-      icon: <Swords {...ICON} />,
-      keys: '↑',
-      disabled: !battle,
-    },
+    hand: handTile(windowOf),
+    hidden: hiddenTile(windowOf),
+    table: tableTile(windowOf, table?.tableChat?.unread),
+    ally: allyTile(
+      windowOf,
+      table?.players.find((player) => player.ally)
+    ),
+    battle: battleTile(windowOf),
   };
 }

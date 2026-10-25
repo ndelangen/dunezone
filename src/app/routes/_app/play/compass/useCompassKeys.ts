@@ -27,6 +27,9 @@ export type CompassKeys = Readonly<{
   onConfirm: () => void;
 }>;
 
+/** Whether Space is down since it opened the compass, and whether an arrow was pressed while it was. */
+type Hold = Readonly<{ down: boolean; steered: boolean }>;
+
 /* Tab moves focus as usual, and a button Tab reached opens itself on Enter or Space. */
 function leftToBrowser(event: KeyboardEvent) {
   const activates = event.key === 'Enter' || event.code === 'Space';
@@ -56,30 +59,75 @@ function opensCompass(event: KeyboardEvent, inert: boolean) {
   return event.code === 'Space' && !event.repeat && !inert && !spaceBelongsTo(event.target);
 }
 
+/* Space is held when it is still down from opening the compass, or the key repeats. */
+function spaceHeld(event: KeyboardEvent, hold: Hold) {
+  return event.code === 'Space' && (hold.down || event.repeat);
+}
+
 type Press = 'confirm' | 'held' | 'close' | 'search';
+
+/** What was pressed on the open compass, read once so the presses below each ask one question. */
+type Pressed = Readonly<{
+  enter: boolean;
+  escape: boolean;
+  holding: boolean;
+  /** Space tapped on its own, with nothing typed: confirms what the compass points at. */
+  taps: boolean;
+  /** A letter typed outside the search field, which the search then takes. */
+  letter: boolean;
+}>;
+
+function pressedOf(event: KeyboardEvent, holding: boolean, query: string, search: HTMLInputElement | null): Pressed {
+  const bare = !event.metaKey && !event.ctrlKey;
+  return {
+    enter: event.key === 'Enter',
+    escape: event.key === 'Escape',
+    holding,
+    taps: event.code === 'Space' && !holding && !query,
+    letter: event.key.length === 1 && bare && event.target !== search,
+  };
+}
+
+/* The presses in the order they are asked: the first that fits is the one. */
+const PRESSES: readonly (readonly [Press, (pressed: Pressed) => boolean])[] = [
+  ['confirm', (pressed) => pressed.enter || pressed.taps],
+  ['held', (pressed) => pressed.holding],
+  ['close', (pressed) => pressed.escape],
+  ['search', (pressed) => pressed.letter],
+];
 
 /* What a key other than an arrow does on the open compass; nothing when the browser keeps it. */
 function pressOf(event: KeyboardEvent, holding: boolean, query: string, search: HTMLInputElement | null): Press | null {
   if (leftToBrowser(event)) {
     return null;
   }
-  const space = event.code === 'Space';
-  if (event.key === 'Enter' || (space && !holding && !query)) {
-    return 'confirm';
-  }
-  if (holding) {
-    return 'held';
-  }
-  if (event.key === 'Escape') {
-    return 'close';
-  }
-  const letter = event.key.length === 1 && !event.metaKey && !event.ctrlKey;
-  return letter && event.target !== search ? 'search' : null;
+  const pressed = pressedOf(event, holding, query, search);
+  return PRESSES.find(([, fits]) => fits(pressed))?.[0] ?? null;
+}
+
+const ANSWERS: Record<Press, (event: KeyboardEvent, keys: CompassKeys) => void> = {
+  confirm: (event, keys) => {
+    event.preventDefault();
+    keys.onConfirm();
+  },
+  held: (event) => event.preventDefault(),
+  close: (_event, keys) => keys.onClose(),
+  search: (_event, keys) => keys.input.current?.focus(),
+};
+
+/* A left or right arrow in the hub with text typed moves the search field's caret, as it would anywhere. */
+function movesCaret(keys: CompassKeys, arrow: Arrow) {
+  const sideways = arrow === 'left' || arrow === 'right';
+  return keys.spot === 'hub' && keys.query !== '' && sideways;
+}
+
+/* Up and down among the suggestions step through them. */
+function stepsSuggestions(keys: CompassKeys, arrow: Arrow) {
+  return keys.spot === 'search' && (arrow === 'up' || arrow === 'down');
 }
 
 export function useCompassKeys(keys: CompassKeys) {
-  /* Whether Space is down since it opened the compass, and whether an arrow was pressed while it was. */
-  const hold = useRef({ down: false, steered: false });
+  const hold = useRef<Hold>({ down: false, steered: false });
 
   /* Up from the first suggestion returns to the hub; otherwise the cursor steps through them. */
   const moveCursor = (arrow: Arrow) => {
@@ -92,36 +140,21 @@ export function useCompassKeys(keys: CompassKeys) {
   };
   /* An arrow steers between tiles, moves through the suggestions, or moves the search field's caret. */
   const steer = (event: KeyboardEvent, arrow: Arrow) => {
-    const sideways = arrow === 'left' || arrow === 'right';
-    if (keys.spot === 'hub' && keys.query && sideways) {
+    if (movesCaret(keys, arrow)) {
       return;
     }
     event.preventDefault();
-    if (keys.spot === 'search' && !sideways) {
+    if (stepsSuggestions(keys, arrow)) {
       moveCursor(arrow);
       return;
     }
-    hold.current.steered = true;
+    hold.current = { ...hold.current, steered: true };
     keys.onSpot((current) => MOVES[current][arrow]);
   };
   const press = (event: KeyboardEvent) => {
-    const holding = event.code === 'Space' && (hold.current.down || event.repeat);
-    switch (pressOf(event, holding, keys.query, keys.input.current)) {
-      case 'confirm':
-        event.preventDefault();
-        keys.onConfirm();
-        break;
-      case 'held':
-        event.preventDefault();
-        break;
-      case 'close':
-        keys.onClose();
-        break;
-      case 'search':
-        keys.input.current?.focus();
-        break;
-      case null:
-        break;
+    const pressed = pressOf(event, spaceHeld(event, hold.current), keys.query, keys.input.current);
+    if (pressed) {
+      ANSWERS[pressed](event, keys);
     }
   };
   const keydown = useEffectEvent((event: KeyboardEvent) => {

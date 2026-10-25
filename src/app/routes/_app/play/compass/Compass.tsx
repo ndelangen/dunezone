@@ -15,7 +15,7 @@ import type { Suggestion } from './suggestions';
  * under its veil, a press on the veil closes it, and the keys reach it through the window as they always did.
  */
 
-type CompassProps = Readonly<{
+export type CompassProps = Readonly<{
   tiles: Record<TileSpot, Tile>;
   suggestions: readonly Suggestion[];
   spot: Spot;
@@ -38,6 +38,117 @@ function open(dialog: HTMLDialogElement | null) {
   }
 }
 
+type CompassTileProps = Readonly<{
+  tile: Tile;
+  selected: boolean;
+  /** The refusal count while this tile is the one pointed at, else nothing. */
+  refused: number;
+  onSpot: (spot: TileSpot) => void;
+  onConfirm: (spot: TileSpot) => void;
+}>;
+
+function CompassTile({ tile, selected, refused, onSpot, onConfirm }: CompassTileProps) {
+  return (
+    <button
+      type="button"
+      className={styles.tile}
+      data-spot={tile.spot}
+      data-selected={selected || undefined}
+      data-disabled={tile.disabled || undefined}
+      data-refused={selected && refused ? refused % 2 : undefined}
+      onPointerEnter={() => onSpot(tile.spot)}
+      onClick={() => onConfirm(tile.spot)}
+    >
+      <span className={styles.tileIcon}>{tile.icon}</span>
+      <span className={styles.tileLabel}>{tile.label}</span>
+      <span className={styles.tileDetail}>{tile.detail}</span>
+      <span className={styles.tileKeys}>{tile.keys}</span>
+      {tile.badge ? <span className={bar.badge}>{tile.badge}</span> : null}
+    </button>
+  );
+}
+
+type SearchHubProps = Readonly<{
+  spot: Spot;
+  query: string;
+  input: RefObject<HTMLInputElement | null>;
+  onSpot: (spot: Spot) => void;
+  onQuery: (query: string) => void;
+  onCursor: (cursor: number) => void;
+}>;
+
+/* The search field at the compass's centre; typing starts the matches over from the top. */
+function SearchHub({ spot, query, input, onSpot, onQuery, onCursor }: SearchHubProps) {
+  return (
+    <label className={styles.hub} data-selected={spot === 'hub' || undefined}>
+      <Search size={18} aria-hidden="true" />
+      <input
+        ref={input}
+        aria-label="Search controls"
+        placeholder="Type to search"
+        value={query}
+        onFocus={() => spot === 'search' || onSpot('hub')}
+        onChange={(event) => {
+          onQuery(event.target.value);
+          onCursor(0);
+          onSpot('hub');
+        }}
+      />
+      <span className={styles.hubHint}>
+        <Key>←</Key>
+        <Key>→</Key>
+        <Key>↑</Key>
+        <Key>↓</Key>
+      </span>
+    </label>
+  );
+}
+
+type SuggestionListProps = Readonly<{
+  suggestions: readonly Suggestion[];
+  spot: Spot;
+  query: string;
+  cursor: number;
+  onSpot: (spot: Spot) => void;
+  onCursor: (cursor: number) => void;
+}>;
+
+/* The suggestions below the hub: the matches for what was typed, or what the table suggests while nothing was. */
+function SuggestionList({ suggestions, spot, query, cursor, onSpot, onCursor }: SuggestionListProps) {
+  const listed = spot === 'search' || (spot === 'hub' && query !== '');
+  const title = query ? 'Matches' : 'Suggested';
+  return (
+    <div
+      className={styles.suggestions}
+      data-selected={spot === 'search' || undefined}
+      role="listbox"
+      aria-label={title}
+    >
+      <div className={styles.suggestionsTitle}>{title}</div>
+      {suggestions.map((entry, index) => (
+        <div
+          key={entry.key}
+          role="option"
+          tabIndex={-1}
+          aria-selected={listed && index === cursor}
+          className={styles.suggestion}
+          onPointerEnter={() => {
+            onSpot('search');
+            onCursor(index);
+          }}
+          onClick={() => entry.run()}
+          onKeyDown={(event) => event.key === 'Enter' && entry.run()}
+        >
+          {entry.icon}
+          <span className={styles.suggestionLabel}>{entry.label}</span>
+          <span className={styles.suggestionHint}>{entry.hint}</span>
+        </div>
+      ))}
+      {suggestions.length === 0 && <div className={styles.suggestionsTitle}>Nothing matches “{query}”</div>}
+    </div>
+  );
+}
+
 export function Compass({
   tiles,
   suggestions,
@@ -56,26 +167,15 @@ export function Compass({
   useEffect(() => {
     input.current?.focus();
   }, [input, spot]);
-  const listed = spot === 'search' || (spot === 'hub' && query !== '');
-  const title = query ? 'Matches' : 'Suggested';
   const tile = (entry: Tile) => (
-    <button
+    <CompassTile
       key={entry.spot}
-      type="button"
-      className={styles.tile}
-      data-spot={entry.spot}
-      data-selected={spot === entry.spot || undefined}
-      data-disabled={entry.disabled || undefined}
-      data-refused={spot === entry.spot && refused ? refused % 2 : undefined}
-      onPointerEnter={() => onSpot(entry.spot)}
-      onClick={() => onConfirm(entry.spot)}
-    >
-      <span className={styles.tileIcon}>{entry.icon}</span>
-      <span className={styles.tileLabel}>{entry.label}</span>
-      <span className={styles.tileDetail}>{entry.detail}</span>
-      <span className={styles.tileKeys}>{entry.keys}</span>
-      {entry.badge ? <span className={bar.badge}>{entry.badge}</span> : null}
-    </button>
+      tile={entry}
+      selected={spot === entry.spot}
+      refused={refused}
+      onSpot={onSpot}
+      onConfirm={onConfirm}
+    />
   );
   return (
     <div className={styles.veil} onPointerDown={onClose}>
@@ -88,57 +188,17 @@ export function Compass({
         {tile(tiles.battle)}
         {tile(tiles.hidden)}
         {tile(tiles.hand)}
-        <label className={styles.hub} data-selected={spot === 'hub' || undefined}>
-          <Search size={18} aria-hidden="true" />
-          <input
-            ref={input}
-            aria-label="Search controls"
-            placeholder="Type to search"
-            value={query}
-            onFocus={() => spot === 'search' || onSpot('hub')}
-            onChange={(event) => {
-              onQuery(event.target.value);
-              onCursor(0);
-              onSpot('hub');
-            }}
-          />
-          <span className={styles.hubHint}>
-            <Key>←</Key>
-            <Key>→</Key>
-            <Key>↑</Key>
-            <Key>↓</Key>
-          </span>
-        </label>
+        <SearchHub spot={spot} query={query} input={input} onSpot={onSpot} onQuery={onQuery} onCursor={onCursor} />
         {tile(tiles.table)}
         {tile(tiles.ally)}
-        <div
-          className={styles.suggestions}
-          data-selected={spot === 'search' || undefined}
-          role="listbox"
-          aria-label={title}
-        >
-          <div className={styles.suggestionsTitle}>{title}</div>
-          {suggestions.map((entry, index) => (
-            <div
-              key={entry.key}
-              role="option"
-              tabIndex={-1}
-              aria-selected={listed && index === cursor}
-              className={styles.suggestion}
-              onPointerEnter={() => {
-                onSpot('search');
-                onCursor(index);
-              }}
-              onClick={() => entry.run()}
-              onKeyDown={(event) => event.key === 'Enter' && entry.run()}
-            >
-              {entry.icon}
-              <span className={styles.suggestionLabel}>{entry.label}</span>
-              <span className={styles.suggestionHint}>{entry.hint}</span>
-            </div>
-          ))}
-          {suggestions.length === 0 && <div className={styles.suggestionsTitle}>Nothing matches “{query}”</div>}
-        </div>
+        <SuggestionList
+          suggestions={suggestions}
+          spot={spot}
+          query={query}
+          cursor={cursor}
+          onSpot={onSpot}
+          onCursor={onCursor}
+        />
       </dialog>
     </div>
   );
