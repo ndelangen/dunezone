@@ -1,17 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 
 const REMEMBERED = 'dunezone-compass:';
 
-/** Forgets every remembered choice, so the compass opens as it first would; read before it mounts. */
-export function forgetRemembered() {
-  try {
-    for (const key of Object.keys(localStorage).filter((entry) => entry.startsWith(REMEMBERED))) {
-      localStorage.removeItem(key);
-    }
-  } catch {
-    /* Nothing remembered where storage is blocked. */
-  }
-}
+/** Whether choices are remembered in this browser; a tutorial turns it off, so a lesson neither reads nor overwrites a game's. */
+export const RememberedContext = createContext(true);
 
 function readRemembered<T>(key: string, fallback: T): T {
   try {
@@ -25,8 +17,12 @@ function readRemembered<T>(key: string, fallback: T): T {
 
 /** A remembered choice (what is pinned, how tall a slot is), in this browser only. */
 export function useRemembered<T>(key: string, fallback: T) {
-  /* `touched` keeps a value nobody has changed out of storage, so a forgotten choice stays forgotten. */
-  const [state, setState] = useState(() => ({ value: readRemembered(key, fallback), touched: false }));
+  const remembers = useContext(RememberedContext);
+  /* `touched` keeps a value nobody has changed out of storage, so one read back is not written again. */
+  const [state, setState] = useState(() => ({
+    value: remembers ? readRemembered(key, fallback) : fallback,
+    touched: false,
+  }));
   const update = useCallback(
     (next: T | ((current: T) => T)) =>
       setState((current) => ({
@@ -37,7 +33,7 @@ export function useRemembered<T>(key: string, fallback: T) {
   );
   /* Stored once the change is committed, so the updater stays pure for React to replay. */
   useEffect(() => {
-    if (!state.touched) {
+    if (!remembers || !state.touched) {
       return;
     }
     try {
@@ -45,6 +41,6 @@ export function useRemembered<T>(key: string, fallback: T) {
     } catch {
       /* A private window keeps the choice for this visit only. */
     }
-  }, [key, state]);
+  }, [key, remembers, state]);
   return [state.value, update] as const;
 }

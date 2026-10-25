@@ -12,6 +12,8 @@ export type CompassPlayer = Readonly<{
   canConverse: boolean;
   attention: boolean;
   ally: boolean;
+  /** The removal vote standing against them, if any: their window follows it when they trade seats. */
+  vote?: string;
 }>;
 
 /** What the hosted table hands the compass: the players, the table's chat, one player's window, and the phase step. */

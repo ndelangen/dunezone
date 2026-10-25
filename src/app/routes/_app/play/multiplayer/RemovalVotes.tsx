@@ -209,7 +209,9 @@ export function usePlayerWindows(client: TableSession, table: TableProjection) {
     const faction = rosterSeat(table.snapshot.roster, player.seat)?.faction;
     const peerId = seatFaction(table, player.seat);
     const token = faction ? factionTokenOf(table.snapshot.table.pieces, faction.id)?.items[0]?.artwork?.front : null;
+    const vote = votes.find((entry) => entry.target.seat === player.seat)?.id;
     return {
+      ...(vote && { vote }),
       seat: player.seat,
       name: player.name,
       factionName: faction?.name ?? null,
@@ -217,7 +219,7 @@ export function usePlayerWindows(client: TableSession, table: TableProjection) {
       unread: conversations.summaries.find((entry) => entry.peerId === peerId)?.unread ?? 0,
       own: player.seat === table.viewer.viewerSeat,
       canConverse: Boolean(peerId && conversations.context?.peers.some((peer) => peer.id === peerId)),
-      attention: votes.some((vote) => vote.target.seat === player.seat) || asked.has(player.seat),
+      attention: Boolean(vote) || asked.has(player.seat),
       ally: player.seat !== viewerSeat && ownHue !== undefined && allianceHue(table.snapshot, peerId) === ownHue,
     };
   });

@@ -12,8 +12,8 @@ import type { PlayerTab, TableWindow } from './windows';
  * which stays until unpinned. Pinning moves the centre window into a slot, replacing whatever was pinned there.
  */
 
-/** A window that is open, and for a player's window the tab it shows. */
-export type Opened = Readonly<{ key: string; tab: PlayerTab }>;
+/** An open window; a player's also has its tab, and any removal vote against them, which it follows across seats. */
+export type Opened = Readonly<{ key: string; tab: PlayerTab; vote?: string }>;
 
 export type Slots = Readonly<Record<Side, Opened | null>>;
 
@@ -52,10 +52,22 @@ function useTablePress(onPress: () => void, enabled: boolean) {
 }
 
 export function useOpenWindows(windows: readonly TableWindow[], compassOpen: boolean) {
-  const [centre, setCentre] = useState<Opened | null>(null);
-  const [slots, setSlots] = useRemembered<Slots>('slots', { left: null, right: null });
+  const [openCentre, setCentre] = useState<Opened | null>(null);
+  const [openSlots, setSlots] = useRemembered<Slots>('slots', { left: null, right: null });
   /* Bumps when a pinned window is asked for again, lighting its slot up. */
   const [flash, setFlash] = useState<Pulse>(null);
+
+  /* A player's window keeps the vote against them, so it moves with them when they trade seats. */
+  const opened = (key: string, tab: PlayerTab): Opened => {
+    const vote = windows.find((entry) => entry.key === key)?.player?.vote;
+    return vote ? { key, tab, vote } : { key, tab };
+  };
+  const followed = (entry: Opened | null): Opened | null => {
+    const target = entry?.vote ? windows.find((window) => window.player?.vote === entry.vote) : undefined;
+    return entry && target && target.key !== entry.key ? { ...entry, key: target.key } : entry;
+  };
+  const centre = followed(openCentre);
+  const slots: Slots = { left: followed(openSlots.left), right: followed(openSlots.right) };
 
   /* A player's window opens on the chat when there is one to have, otherwise on what they show. */
   const firstTab = (key: string): PlayerTab => {
@@ -65,7 +77,7 @@ export function useOpenWindows(windows: readonly TableWindow[], compassOpen: boo
   /* Already pinned: the slot shows it, so it lights up (on the tab asked for) rather than opening twice. */
   const showPinned = (side: Side, key: string, tab?: PlayerTab) => {
     if (tab) {
-      setSlots((current) => ({ ...current, [side]: { key, tab } }));
+      setSlots((current) => ({ ...current, [side]: opened(key, tab) }));
     }
     setFlash(pulse(side));
     setCentre(null);
@@ -78,7 +90,7 @@ export function useOpenWindows(windows: readonly TableWindow[], compassOpen: boo
       return;
     }
     const again = (current: Opened | null) => current?.key === key && (tab === undefined || current.tab === tab);
-    setCentre((current) => (again(current) ? null : { key, tab: tab ?? firstTab(key) }));
+    setCentre((current) => (again(followed(current)) ? null : opened(key, tab ?? firstTab(key))));
   };
   /* Brings a window into view without closing anything: a pinned one lights up beside the centre window, one already in the centre stays, else it opens there. */
   const reveal = (key: string) => {
@@ -87,7 +99,7 @@ export function useOpenWindows(windows: readonly TableWindow[], compassOpen: boo
       setFlash(pulse(side));
       return;
     }
-    setCentre((current) => (current?.key === key ? current : { key, tab: firstTab(key) }));
+    setCentre((current) => (followed(current)?.key === key ? current : opened(key, firstTab(key))));
   };
   const pin = (side: Side) => {
     if (!centre) {
@@ -100,9 +112,9 @@ export function useOpenWindows(windows: readonly TableWindow[], compassOpen: boo
   const close = () => setCentre(null);
   const showTab = (side: Side | 'centre', key: string, tab: PlayerTab) => {
     if (side === 'centre') {
-      setCentre({ key, tab });
+      setCentre(opened(key, tab));
     } else {
-      setSlots((current) => ({ ...current, [side]: { key, tab } }));
+      setSlots((current) => ({ ...current, [side]: opened(key, tab) }));
     }
   };
   /** Whether a window is open anywhere: in the centre or pinned. */
@@ -110,7 +122,7 @@ export function useOpenWindows(windows: readonly TableWindow[], compassOpen: boo
 
   /* Escape closes the centre window once the compass is not there to take it, and no menu, list, popover or dialog is open to take it first. */
   useEffect(() => {
-    if (compassOpen || centre === null) {
+    if (compassOpen || openCentre === null) {
       return;
     }
     const escape = (event: KeyboardEvent) => {
@@ -121,8 +133,8 @@ export function useOpenWindows(windows: readonly TableWindow[], compassOpen: boo
     /* Seen first, before whatever is open answers the key and goes, so the window stays while Escape closed something else. */
     window.addEventListener('keydown', escape, true);
     return () => window.removeEventListener('keydown', escape, true);
-  }, [compassOpen, centre]);
-  useTablePress(close, centre !== null && !compassOpen);
+  }, [compassOpen, openCentre]);
+  useTablePress(close, openCentre !== null && !compassOpen);
 
   return { centre, slots, flash, show, reveal, pin, unpin, close, showTab, isOpen };
 }

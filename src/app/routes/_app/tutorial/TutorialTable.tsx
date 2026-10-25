@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import { CompassEpochContext } from '../play/compass/compassEpoch';
-import { forgetRemembered } from '../play/compass/useRemembered';
+import { RememberedContext } from '../play/compass/useRemembered';
 import { GameRuntimeContext } from '../play/multiplayer/gameRuntime';
 import HostedTable from '../play/multiplayer/HostedTable';
 import type { PlaytestChapter, TutorialChapter } from './chapters';
@@ -92,8 +92,6 @@ export default function ChapterPlay({
   nextLink?: ((props: object) => ReactNode) | undefined;
   exit: ReactNode;
 }>) {
-  /* A chapter starts from a clean screen, with nothing pinned or resized by an earlier run. */
-  useState(() => forgetRemembered());
   /* Reset starts the controls afresh as well, so a pinned window from the last run cannot do a task for the player. */
   const [controlsEpoch, setControlsEpoch] = useState(0);
   const { runtime, control } = useTutorialTable(setup as unknown as TutorialSetup, script);
@@ -106,7 +104,6 @@ export default function ChapterPlay({
       learned={script.learned}
       onReset={() => {
         control.reset();
-        forgetRemembered();
         setControlsEpoch((epoch) => epoch + 1);
         document.querySelector<HTMLButtonElement>('[aria-label^="Focus on map"]')?.click();
       }}
@@ -119,13 +116,16 @@ export default function ChapterPlay({
         </PageLayout.Header>
         <PageLayout.Content width="viewport">
           <GameRuntimeContext value={runtime}>
-            <CompassEpochContext value={controlsEpoch}>
-              <HostedTable
-                gameId="tutorial"
-                exitControl={exit}
-                identity={{ rulesetName: 'Dreamrules', address: 'tutorial', page: `/tutorial/${chapter.slug}` }}
-              />
-            </CompassEpochContext>
+            {/* A chapter starts from a clean screen and leaves the player's own game layout alone: nothing it pins or resizes is remembered. */}
+            <RememberedContext value={false}>
+              <CompassEpochContext value={controlsEpoch}>
+                <HostedTable
+                  gameId="tutorial"
+                  exitControl={exit}
+                  identity={{ rulesetName: 'Dreamrules', address: 'tutorial', page: `/tutorial/${chapter.slug}` }}
+                />
+              </CompassEpochContext>
+            </RememberedContext>
           </GameRuntimeContext>
         </PageLayout.Content>
       </PageLayout>

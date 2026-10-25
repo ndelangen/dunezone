@@ -5,6 +5,7 @@ import { afterEach, beforeEach, expect, test } from 'vite-plus/test';
 
 import type { CompassPlayer } from './compassTable';
 import { useOpenWindows } from './useOpenWindows';
+import { RememberedContext } from './useRemembered';
 import type { TableWindow } from './windows';
 
 beforeEach(() => localStorage.clear());
@@ -96,4 +97,33 @@ test('revealing a pinned window lights its slot and leaves the centre window ope
   act(() => result.current.reveal('hand'));
   expect(result.current.centre).toEqual({ key: 'player:seat-4', tab: 'conversation' });
   expect(result.current.flash).toEqual({ side: 'left', at: 1 });
+});
+
+test('a player window opened on a removal vote follows its target to the seat they trade into', () => {
+  const voted = (seat: string) => window(`player:${seat}`, { player: { ...player, seat, vote: 'vote-1' } });
+  const { result, rerender } = renderHook(({ list }) => useOpenWindows(list, false), {
+    initialProps: {
+      list: [window('hand'), voted('seat-4'), window('player:seat-2', { player: { ...player, seat: 'seat-2' } })],
+    },
+  });
+  act(() => result.current.show('player:seat-4', 'public'));
+  act(() => result.current.pin('left'));
+  act(() => result.current.show('player:seat-4', 'public'));
+  rerender({ list: [window('hand'), window('player:seat-4', { player }), voted('seat-2')] });
+  expect(result.current.slots.left?.key).toBe('player:seat-2');
+  expect(result.current.isOpen('player:seat-2')).toBe(true);
+});
+
+test('a tutorial remembers nothing: it neither reads nor overwrites the game layout', () => {
+  localStorage.setItem('dunezone-compass:slots', JSON.stringify({ left: { key: 'hand', tab: 'public' }, right: null }));
+  const { result } = renderHook(() => useOpenWindows(windows, false), {
+    wrapper: ({ children }) => <RememberedContext value={false}>{children}</RememberedContext>,
+  });
+  expect(result.current.slots.left).toBeNull();
+  act(() => result.current.show('battle'));
+  act(() => result.current.pin('right'));
+  expect(JSON.parse(localStorage.getItem('dunezone-compass:slots') ?? 'null')).toEqual({
+    left: { key: 'hand', tab: 'public' },
+    right: null,
+  });
 });
