@@ -20,6 +20,11 @@ const meta = preview.meta({
 
 /** A Treachery card drawn into the viewer's hand sits beside the faction's leaders, each draggable back onto the table. */
 export const Hand = meta.story({
+  /*
+   * Not captured: under Chromatic's software GL the table and the compass's way to the window outlast its 15 s capture limit.
+   * The story test runner still plays it through, and CompassControls captures the window itself.
+   */
+  parameters: { chromatic: { disableSnapshot: true } },
   beforeEach: install(() => {
     const snapshot = initialSnapshot();
     const card = snapshot.table.pieces.find((piece) => piece.id === 'treachery-card-loose')!;
