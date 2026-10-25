@@ -22,7 +22,8 @@ const peekedOrder = () => {
 
 /*
  * Moving a card counts the order the peek first showed against the order it shows now, so the task waits for the deck to open
- * and then for one card to change place, by dragging or by the arrow keys.
+ * and then for one card to change place, by dragging or by the arrow keys. Only cards in both orders are compared, so pulling
+ * a card out of the deck does not count as a move.
  */
 const movedInPeek = () => ({
   begin: () => ({ first: null as string[] | null }),
@@ -31,8 +32,10 @@ const movedInPeek = () => ({
     if (!order) {
       return false;
     }
-    watch.first ??= order;
-    return order.some((card, index) => card !== watch.first![index]);
+    const first = (watch.first ??= order);
+    const before = first.filter((card) => order.includes(card));
+    const now = order.filter((card) => first.includes(card));
+    return before.some((card, index) => card !== now[index]);
   },
 });
 
