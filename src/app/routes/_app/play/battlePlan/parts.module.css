@@ -228,6 +228,15 @@
   transition: translate 140ms;
 }
 
+.troopInitial {
+  display: grid;
+  place-items: center;
+  background: var(--ui-recess);
+  color: var(--ink);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
 .troopLabel:hover {
   translate: 0 -1px;
 }

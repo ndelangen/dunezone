@@ -402,7 +402,7 @@ export const NumericDraft = meta.story({
     const next = lastCommand();
     await expect(next?.action).toMatchObject({
       kind: 'battle-plan',
-      plan: { adjustment: -1.5, troops: [{ faceId: 'house-harkonnen-front', undialed: 5, dialed: 0 }] },
+      plan: { adjustment: -1.5, troops: [{ faceId: 'troop-0-front', undialed: 5, dialed: 0 }] },
     });
   },
 });
@@ -424,7 +424,7 @@ export const CustomSpiceBound = meta.story({
   }),
   play: async ({ canvasElement }) => {
     await expectPlanBound(canvasElement, 'Troops spiced', {
-      troops: [{ faceId: 'house-harkonnen-front', undialed: 0, dialed: 2 }],
+      troops: [{ faceId: 'troop-0-front', undialed: 0, dialed: 2 }],
     });
   },
 });

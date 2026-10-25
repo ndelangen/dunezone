@@ -325,7 +325,14 @@ export function TroopLabel({ face, wheelArt }: { face: BattleFace; wheelArt: Whe
       withArrow
     >
       <span className={styles.troopLabel} role="img" aria-label={face.name}>
-        {artwork ? <TroopToken {...artwork} /> : face.name}
+        {artwork ? (
+          <TroopToken {...artwork} />
+        ) : (
+          /* Without the faction's artwork the token is the troop's initial, so the label keeps its round size. */
+          <span className={styles.troopInitial} aria-hidden="true">
+            {face.name.slice(0, 1)}
+          </span>
+        )}
       </span>
     </Tooltip>
   );

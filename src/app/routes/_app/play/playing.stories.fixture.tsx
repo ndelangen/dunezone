@@ -122,11 +122,12 @@ export function paintedColor(element: HTMLElement, value: string) {
 }
 
 export function battleStory(stage: 'preparing' | 'countdown' | 'revealed', observer = false): GameSnapshot {
-  /* Both copied troop descriptions specify half strength, or one strength supported with one spice. */
+  /* Both copied troop descriptions specify half strength, or one strength supported with one spice.
+     Each face carries the id a captured faction gives its first troop's front, so the retained artwork dresses it. */
   const plans = [factions[1]!, factions[0]!].map((faction) =>
     emptyBattlePlan([
       {
-        id: `${faction.slug}-front`,
+        id: 'troop-0-front',
         name: faction.data.troops[0]!.name,
         image: faction.data.troops[0]!.image,
         capable: true,
