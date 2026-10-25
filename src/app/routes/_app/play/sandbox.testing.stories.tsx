@@ -306,6 +306,7 @@ export const HiddenZone = meta.story({
         new PointerEvent(type, { bubbles: true, pointerType: 'mouse', clientX: restX, clientY: restY })
       );
     over('pointerover');
+    over('pointermove');
     /* A pointer reaches the piece a frame or more before a key goes down. */
     await new Promise((settle) => requestAnimationFrame(settle));
     for (const type of ['keydown', 'keydown', 'keyup']) {
@@ -313,9 +314,71 @@ export const HiddenZone = meta.story({
     }
     await waitFor(() => expect(kept().turn).toBe(2));
     await waitFor(() => expect(zoneLeader.style.transform).toBe('rotate(30deg)'));
+    /* The turn is kept even when the pointer leaves the piece before the key comes up. */
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'q', bubbles: true }));
+    over('pointerout');
+    await new Promise((settle) => requestAnimationFrame(settle));
+    window.dispatchEvent(new KeyboardEvent('keyup', { key: 'q', bubbles: true }));
+    await waitFor(() => expect(kept().turn).toBe(1));
+
+    /* A turned piece is lifted from where it lies and laid where it is let go, without a jump. */
+    const turnedBox = zoneLeader.getBoundingClientRect();
+    const turnedX = turnedBox.left + turnedBox.width / 2;
+    const turnedY = turnedBox.top + turnedBox.height / 2;
+    press('pointerdown', turnedX, turnedY);
+    press('pointermove', turnedX + 60, turnedY);
+    await waitFor(() => expect(carried()).not.toBeNull());
+    const liftedBox = carried()!.getBoundingClientRect();
+    await expect(liftedBox.left + liftedBox.width / 2).toBeCloseTo(turnedX + 60, 0);
+    press('pointerup', turnedX + 60, turnedY);
+    const centreX = () => {
+      const box = zoneLeader.getBoundingClientRect();
+      return box.left + box.width / 2;
+    };
+    await waitFor(() => expect(centreX()).toBeCloseTo(turnedX + 60, 0));
+    await expect(kept().turn).toBe(1);
+
+    /* A turn's key that comes up while Alt is held for a close look still sends the turn. */
+    over('pointerover');
+    over('pointermove');
+    await new Promise((settle) => requestAnimationFrame(settle));
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'e', code: 'KeyE', bubbles: true }));
+    window.dispatchEvent(new KeyboardEvent('keyup', { key: '´', code: 'KeyE', altKey: true, bubbles: true }));
+    await waitFor(() => expect(kept().turn).toBe(2));
     window.dispatchEvent(new KeyboardEvent('keydown', { key: 'q', bubbles: true }));
     window.dispatchEvent(new KeyboardEvent('keyup', { key: 'q', bubbles: true }));
     await waitFor(() => expect(kept().turn).toBe(1));
+
+    /* Picking a piece up takes focus from a text field, so Q and E turn the carried piece instead of typing. */
+    const field = canvasElement.ownerDocument.createElement('textarea');
+    canvasElement.ownerDocument.body.append(field);
+    field.focus();
+    const fieldBox = zoneLeader.getBoundingClientRect();
+    const fieldX = fieldBox.left + fieldBox.width / 2;
+    const fieldY = fieldBox.top + fieldBox.height / 2;
+    press('pointerdown', fieldX, fieldY);
+    press('pointermove', fieldX + 30, fieldY);
+    await waitFor(() => expect(carried()).not.toBeNull());
+    await expect(canvasElement.ownerDocument.activeElement).toBe(zoneLeader);
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'e', bubbles: true }));
+    press('pointerup', fieldX + 30, fieldY);
+    await waitFor(() => expect(kept().turn).toBe(2));
+    window.dispatchEvent(new KeyboardEvent('keyup', { key: 'e', bubbles: true }));
+    field.remove();
+    over('pointerover');
+    over('pointermove');
+    await new Promise((settle) => requestAnimationFrame(settle));
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'q', bubbles: true }));
+    window.dispatchEvent(new KeyboardEvent('keyup', { key: 'q', bubbles: true }));
+    await waitFor(() => expect(kept().turn).toBe(1));
+
+    /* Leaving the window while Q is held sends the turn it shows, since the key comes up elsewhere. */
+    over('pointerover');
+    over('pointermove');
+    await new Promise((settle) => requestAnimationFrame(settle));
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'q', bubbles: true }));
+    window.dispatchEvent(new FocusEvent('blur'));
+    await waitFor(() => expect(kept().turn).toBeUndefined());
     over('pointerout');
 
     /* Holding Alt over a piece in the zone, or in the hand, shows its face large beside the pointer, as it does on the table. */

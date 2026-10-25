@@ -136,6 +136,13 @@ type Landing = Readonly<{
 /* A turn the page shows at once and sends when Q or E comes up, as a held key on the table does: `by` 15° steps, clockwise when positive. */
 type Turning = Readonly<{ pieceId: string; by: number }>;
 
+/* The box a piece of `width` by `depth` covers once turned, so a turned card is kept whole in view by its turned size. */
+function turnedReach(width: number, depth: number, spot: HiddenZoneSpot) {
+  const angle = ((spot.turn ?? 0) * Math.PI) / 12;
+  const [cos, sin] = [Math.abs(Math.cos(angle)), Math.abs(Math.sin(angle))];
+  return { across: width * cos + depth * sin, down: width * sin + depth * cos };
+}
+
 /* How the zone draws a piece turned in 15° steps. */
 const turned = (spot: HiddenZoneSpot) => (spot.turn ? `rotate(${spot.turn * 15}deg)` : undefined);
 
@@ -244,6 +251,20 @@ export function HiddenZone({ client, table, hand }: Props) {
     const lifted = carrying.current;
     const carried = lifted && lifted.moving ? lifted.pieceId : null;
     const pieceId = carried ?? closeUp.piece?.id ?? null;
+    /*
+     * The turn goes out when its key comes up, wherever the pointer has gone since and whatever modifier is held by then
+     * (Alt for a close look changes the letter a key types), unless the piece is still carried.
+     */
+    const pending = turns.current;
+    if (event.type === 'keyup') {
+      const turnKeyUp = key === 'q' || key === 'e' || event.code === 'KeyQ' || event.code === 'KeyE';
+      if (turnKeyUp && pending && carried !== pending.pieceId) {
+        event.preventDefault();
+        event.stopPropagation();
+        sendTurn(pending);
+      }
+      return;
+    }
     if ((key !== 'q' && key !== 'e') || event.ctrlKey || event.metaKey || event.altKey || typing(event.target)) {
       return;
     }
@@ -252,26 +273,30 @@ export function HiddenZone({ client, table, hand }: Props) {
     }
     event.preventDefault();
     event.stopPropagation();
-    const pending = turns.current;
-    if (event.type === 'keyup') {
-      if (pending && carried !== pending.pieceId) {
-        sendTurn(pending);
-      }
-      return;
-    }
     if (pending && pending.pieceId !== pieceId) {
       sendTurn(pending);
     }
     const by = pending && pending.pieceId === pieceId ? pending.by : 0;
     setTurning({ pieceId, by: by + (key === 'q' ? -1 : 1) });
   });
+  const finishTurn = useEffectEvent(() => {
+    const pending = turns.current;
+    const lifted = carrying.current;
+    if (pending && !(lifted && lifted.pieceId === pending.pieceId)) {
+      sendTurn(pending);
+    }
+  });
   useEffect(() => {
     const listen = (event: KeyboardEvent) => turnKey(event);
+    /* A key let go in another window never comes up here, so leaving the window sends the turn it shows, as the table does. */
+    const leave = () => finishTurn();
     window.addEventListener('keydown', listen, true);
     window.addEventListener('keyup', listen, true);
+    window.addEventListener('blur', leave);
     return () => {
       window.removeEventListener('keydown', listen, true);
       window.removeEventListener('keyup', listen, true);
+      window.removeEventListener('blur', leave);
     };
   }, []);
 
@@ -367,24 +392,31 @@ export function HiddenZone({ client, table, hand }: Props) {
               const pieceDepth = footprint.depth * scale;
               const spot = shownSpot(piece);
               const carried = carry?.pieceId === piece.id && carry.moving ? carry : null;
-              /* Kept whole in view: a piece laid out in a roomier tab sits at this one's edge until moved. */
-              const left = inside(spot.x * HIDDEN_ZONE_WIDTH * scale - pieceWidth / 2, width - pieceWidth);
-              const top = inside(spot.y * HIDDEN_ZONE_DEPTH * scale - pieceDepth / 2, height - pieceDepth);
+              /* Kept whole in view, as turned: a piece laid out in a roomier tab sits at this one's edge until moved. */
+              const { across, down } = turnedReach(pieceWidth, pieceDepth, spot);
+              const left =
+                inside(spot.x * HIDDEN_ZONE_WIDTH * scale - across / 2, width - across) + (across - pieceWidth) / 2;
+              const top =
+                inside(spot.y * HIDDEN_ZONE_DEPTH * scale - down / 2, height - down) + (down - pieceDepth) / 2;
               const box = { width: pieceWidth, height: pieceDepth };
+              const hover = closeUp.hover(piece);
               const handlers = {
                 onPointerDown: (event: PointerEvent<HTMLDivElement>) => {
                   if (!enabled || event.button !== 0) {
                     return;
                   }
                   event.preventDefault();
+                  /* The press keeps no default focus change, so the piece takes focus itself: a chat field focused before keeps Q and E no more. */
+                  event.currentTarget.focus({ preventScroll: true });
                   event.currentTarget.setPointerCapture(event.pointerId);
+                  /* Grabbed from the piece's upright box around its centre, the box a turned piece is carried and laid in. */
                   const bounds = event.currentTarget.getBoundingClientRect();
                   setCarry({
                     pieceId: piece.id,
                     holder: event.currentTarget,
                     pointerId: event.pointerId,
-                    grabX: event.clientX - bounds.left,
-                    grabY: event.clientY - bounds.top,
+                    grabX: event.clientX - (bounds.left + bounds.width / 2 - pieceWidth / 2),
+                    grabY: event.clientY - (bounds.top + bounds.height / 2 - pieceDepth / 2),
                     startX: event.clientX,
                     startY: event.clientY,
                     x: event.clientX,
@@ -393,6 +425,7 @@ export function HiddenZone({ client, table, hand }: Props) {
                   });
                 },
                 onPointerMove: (event: PointerEvent<HTMLDivElement>) => {
+                  hover.onPointerMove();
                   setCarry((current) =>
                     current && current.pointerId === event.pointerId
                       ? {
@@ -422,8 +455,8 @@ export function HiddenZone({ client, table, hand }: Props) {
                   style={{ left, top, ...box, transform: turned(spot) }}
                   onDragStart={(event) => event.preventDefault()}
                   onContextMenu={(event) => setMenu(handMenuAnchor(event, piece.id))}
+                  {...hover}
                   {...handlers}
-                  {...closeUp.hover(piece)}
                 >
                   <PieceImage piece={piece} width={pieceWidth} height={pieceDepth} />
                   {/*
