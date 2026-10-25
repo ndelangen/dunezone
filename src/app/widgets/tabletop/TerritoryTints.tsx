@@ -1,4 +1,5 @@
 /* @jsxImportSource ./three-jsx */
+
 import { CENTER, RADIUS } from '@shared/boards/geometry';
 import type { Board, Point } from '@shared/boards/schema';
 import { propertyId } from '@shared/boards/schema';
@@ -10,6 +11,7 @@ import { tintOutlineOpacity } from '@shared/boards/tints';
 import { BOARD_RADIUS } from '@shared/play/tableGeometry';
 import type { TerritoryTint, TintStamp } from '@shared/play/territoryTints';
 import { tintPaint } from '@shared/play/territoryTints';
+import { playUiColors } from '@shared/uiPalette';
 import { useEffect, useMemo } from 'react';
 import { BufferAttribute, BufferGeometry, DoubleSide, ShapeGeometry, ShapeUtils, Vector2 } from 'three';
 import { SVGLoader } from 'three/examples/jsm/loaders/SVGLoader.js';
@@ -163,8 +165,8 @@ function TintOutline({ tint, faces }: Readonly<{ tint: TerritoryTint; faces: rea
 const STICKER_LARGEST = 0.3;
 const STICKER_SMALLEST = 0.14;
 /* The board's glyph colours: near-black ink inside a pale outline. */
-const STICKER_INK = '#1a0b00';
-const STICKER_OUTLINE = '#fffed8';
+const STICKER_INK = playUiColors.annotationInk;
+const STICKER_OUTLINE = playUiColors.annotationOutline;
 /* The outline's width per unit of sticker size, drawn as copies of the shape nudged round a circle. */
 const OUTLINE_WIDTH = 0.035;
 const OUTLINE_STEPS = 16;

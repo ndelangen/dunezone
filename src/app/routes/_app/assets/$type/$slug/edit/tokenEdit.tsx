@@ -303,7 +303,8 @@ function TokenEditSession({
                 <Popover opened={pickerOpen} onChange={setPickerOpen} width={340} position="bottom-start" withinPortal>
                   <Popover.Target>
                     <Button
-                      variant="light"
+                      variant="default"
+                      color="gray"
                       size="compact-sm"
                       style={{ flexShrink: 0 }}
                       disabled={disabled}

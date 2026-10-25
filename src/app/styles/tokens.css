@@ -1,50 +1,21 @@
+@import "./palette.generated.css";
+
 /*
- * The single source of truth for shell colors. Paper values live on bare `:root`, dark overrides
+ * Palette values are generated from src/shared/uiPalette.ts. Paper values live on bare `:root`, dark overrides
  * under `:root[data-mantine-color-scheme='dark']`, the attribute Mantine maintains, so contexts
  * without the app chrome (print capture, the publisher entry, bare renderer routes) degrade to
- * light. A subtree marked `data-scheme-dark` takes the dark overrides in both schemes. `theme.ts` consumes these via var(); it holds no color values of its own besides the
- * Mantine tuples, which are internal ramps, not mirrors.
+ * light. A subtree marked `data-scheme-dark` takes the dark overrides in both schemes. `theme.ts` takes its Mantine ramps from the same source.
  */
 :root {
   color-scheme: light;
-
-  /*
-   * Scheme-invariant inks: Mantine's `white`/`black` slots. Mantine uses these as filled-component
-   * ink in both schemes (~70 static-CSS sites), so they must never flip with the scheme.
-   */
-  --color-paper: #fffdf8;
-  --color-ink: #2e2927;
-
-  --color-text: #2e2927;
-  --color-muted: #526582;
-  --color-link: #43536e;
-  --color-error: #c92a2a;
-  --color-brand: #526582;
-  --color-brand-strong: #43536e;
-  --color-focus-ring: #43536e;
-
-  /*
-   * Caution warns without failing. A pair rather than one value because caution sits on two
-   * opposite grounds: on paper the band amber reads 1.36:1 (invisible), and on the dark masthead
-   * band the paper amber drops the title from 13.8:1 to 6.35:1, so neither value can serve both.
-   * `inverse` is the ratified word for legible-on-dark-artwork. Scheme-invariant, like the
-   * yellow.9 both schemes rendered before these had a name.
-   */
-  --color-caution: #e67700;
-  --color-caution-inverse: #ffd772;
 
   /* The chrome height sticky panels sit below. Nothing writes it yet, so the neutral value here is
      the truth rather than a fallback three stylesheets carry separately; a shell that gains fixed
      chrome writes this one name. */
   --app-shell-header-offset: 0px;
 
-  --button-neutral-bg: #e2e5eb;
-  --button-neutral-hover-bg: #d2d8e2;
-  --button-neutral-fg: #1d2635;
-
   --button-toggle-bg: var(--button-neutral-bg);
   --button-toggle-hover-bg: var(--button-neutral-hover-bg);
-  --button-toggle-active-bg: #c0c9d7;
   --button-toggle-fg: var(--button-neutral-fg);
   --selection-border: var(--button-toggle-fg);
 
@@ -55,36 +26,13 @@
   --action-neutral-bg: var(--button-neutral-bg);
   --action-neutral-hover-bg: var(--button-neutral-hover-bg);
   --action-neutral-fg: var(--button-neutral-fg);
-  --action-positive-bg: #e1ebd9;
-  --action-positive-hover-bg: #c8d6bc;
-  --action-positive-fg: #3f542f;
-  --action-negative-bg: #ffe3e3;
-  --action-negative-hover-bg: #ffc9c9;
-  --action-negative-fg: #b02525;
-  --action-publish-bg: #e5dbff;
-  --action-publish-hover-bg: #d0bfff;
-  --action-publish-fg: #5f3dc4;
-  --action-export-bg: #c5f6fa;
-  --action-export-hover-bg: #99e9f2;
-  --action-export-fg: #0b7285;
 
-  --glass-surface-0: rgba(255, 255, 255, 0.1);
-  --glass-surface-1: rgba(255, 255, 255, 0.12);
-  --glass-surface-2: rgba(255, 255, 255, 0.2);
-  --glass-input: rgba(255, 251, 243, 0.94);
-  --glass-overlay: rgba(255, 253, 248, 0.95);
   --glass-blur-sm: 6px;
   --glass-blur-md: 10px;
 
   --panel-bg: var(--glass-surface-1);
-  --panel-border: #fee7c0;
-  --surface-hover-tint: white;
-  --panel-shadow: 0 0 20px 0 rgba(0, 0, 0, 0.166);
   --panel-radius: 6px;
   --input-bg: var(--glass-input);
-  --input-border: rgba(92, 63, 34, 0.35);
-  --input-border-strong: rgba(86, 58, 31, 0.45);
-  --field-shadow: 0 3px 12px rgba(38, 24, 11, 0.2);
 
   --radius-sm: 6px;
   --radius-md: 8px;
@@ -140,7 +88,7 @@
   }
 }
 
-/* The app uses warm mineral neutrals, sand accents and a restrained blue focus ring.
+/* The app uses warm mineral neutrals, sand accents and a warm focus ring.
  * Structural tokens (spacing, radii, transitions) never flip.
  * A subtree marked data-scheme-dark sits on its own dark ground in both schemes (the play shell,
  * whose table and panel are dark by design), so it takes the same block rather than a copy of it. */
@@ -148,43 +96,7 @@
 [data-scheme-dark] {
   color-scheme: dark;
 
-  --color-text: #f0e8da;
-  --color-muted: #bfb09a;
-  --color-link: #c7ad7d;
-  --color-error: #ffa8a8;
-  --color-brand: #c7ad7d;
-  --color-brand-strong: #d7c299;
-  --color-focus-ring: #9fb4cb;
-
-  --button-neutral-bg: #352e25;
-  --button-neutral-hover-bg: #484036;
-  --button-neutral-fg: #ece7dc;
-
-  --button-toggle-active-bg: #5b4d3c;
-
-  --action-positive-bg: rgba(135, 145, 96, 0.3);
-  --action-positive-hover-bg: rgba(135, 145, 96, 0.42);
-  --action-positive-fg: #aeb780;
-  --action-negative-bg: rgba(250, 82, 82, 0.3);
-  --action-negative-hover-bg: rgba(250, 82, 82, 0.42);
-  --action-negative-fg: #ffc9c9;
-  --action-publish-bg: rgba(121, 80, 242, 0.3);
-  --action-publish-hover-bg: rgba(121, 80, 242, 0.42);
-  --action-publish-fg: #d0bfff;
-  --action-export-bg: rgba(21, 170, 191, 0.3);
-  --action-export-hover-bg: rgba(21, 170, 191, 0.42);
-  --action-export-fg: #99e9f2;
-
-  --glass-surface-0: rgba(28, 25, 21, 0.42);
-  --glass-surface-1: rgba(40, 35, 29, 0.55);
-  --glass-surface-2: rgba(53, 46, 37, 0.65);
-  --glass-input: rgba(33, 29, 24, 0.94);
-  --glass-overlay: rgba(33, 29, 24, 0.96);
-
-  --panel-border: #887252;
-  --surface-hover-tint: #887252;
-  --input-border: rgba(188, 165, 133, 0.6);
-  --input-border-strong: rgba(188, 165, 133, 0.7);
+  --color-focus-ring: var(--color-brand-strong);
 }
 
 /*
@@ -216,22 +128,9 @@
  * translucent glass over artwork.
  */
 [data-scheme-paper] {
-  --color-muted: #c9b394;
-  --color-link: #c6c9d4;
-  --color-focus-ring: #c6c9d4;
-
-  --glass-surface-0: rgba(255, 255, 255, 0.1);
-  --glass-surface-1: rgba(255, 255, 255, 0.12);
-  --glass-surface-2: rgba(255, 255, 255, 0.2);
-  --glass-overlay: rgba(255, 253, 248, 0.95);
-
   /* Re-declared, not inherited: --panel-bg resolves its var() at :root, so the dark value would
      arrive here already baked unless the alias is re-resolved inside this subtree. */
   --panel-bg: var(--glass-surface-1);
-
-  --panel-border: #fee7c0;
-  --surface-hover-tint: white;
-  --mantine-color-dimmed: rgba(255, 249, 239, 0.7);
 
   /* Inherited text resolves at body, outside this subtree, so the ink is set directly. */
   color: var(--color-paper);

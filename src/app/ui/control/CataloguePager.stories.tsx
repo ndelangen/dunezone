@@ -6,7 +6,7 @@ import { CataloguePager } from './CataloguePager';
 const meta = preview.meta({
   component: CataloguePager,
   globals: {
-    backgrounds: { value: 'light', grid: false },
+    backgrounds: { value: 'dark', grid: false },
   },
   parameters: {
     layout: 'padded',

@@ -1,9 +1,10 @@
 import { useConvexAuth } from '@convex-dev/auth/react';
-import { Button } from '@mantine/core';
+import { Button, Stack } from '@mantine/core';
 import { ClientOnly, createFileRoute, Link, redirect } from '@tanstack/react-router';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageTitle } from '@ui/block/PageTitle';
 import { PageLayout } from '@ui/layout/PageLayout';
+import { Orbit } from 'lucide-react';
 import { lazy, Suspense, useContext, useEffect, useMemo, useReducer, useSyncExternalStore } from 'react';
 import type { ReactNode } from 'react';
 
@@ -152,9 +153,9 @@ function GameAccessPage() {
       return <GameLoginGate />;
     case 'not_found':
       return (
-        <PageMessage size="compact" title="Game" back={exit}>
-          <NotAvailable title="This game is not available">There is no game you can open at this address.</NotAvailable>
-        </PageMessage>
+        <UnavailableTable title="This game is not available" exit={exit}>
+          There is no game you can open at this address.
+        </UnavailableTable>
       );
     case 'preparing':
       return (
@@ -170,15 +171,30 @@ function GameAccessPage() {
       );
     case 'unavailable':
       return (
-        <PageMessage size="compact" title={data.name} back={exit}>
-          <NotAvailable title="This game could not be prepared">
-            {data.reason ?? 'The table was not ready in time. Create the game again from the lobby.'}
-          </NotAvailable>
-        </PageMessage>
+        <UnavailableTable title="This game could not be prepared" exit={exit}>
+          {data.reason ?? 'The table was not ready in time. Create the game again from the lobby.'}
+        </UnavailableTable>
       );
     case 'ready':
       return <TablePage game={data} exit={exit} />;
   }
+}
+
+function UnavailableTable({ title, children, exit }: Readonly<{ title: string; children: string; exit: ReactNode }>) {
+  return (
+    <TableFrame title="Game">
+      <TableWait
+        status={
+          <Stack gap="lg" align="center">
+            <Orbit size={64} strokeWidth={1} aria-hidden style={{ color: 'var(--color-muted)' }} />
+            <NotAvailable title={title}>{children}</NotAvailable>
+          </Stack>
+        }
+      >
+        {exit}
+      </TableWait>
+    </TableFrame>
+  );
 }
 
 const noSubscription = () => () => {};

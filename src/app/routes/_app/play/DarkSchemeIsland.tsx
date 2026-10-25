@@ -6,7 +6,7 @@ import {
   mergeMantineTheme,
   mergeThemeOverrides,
 } from '@mantine/core';
-import type { MantineColorSchemeManager, MantineColorsTuple } from '@mantine/core';
+import type { MantineColorSchemeManager } from '@mantine/core';
 import { appContentTheme } from '@ui/theme';
 import type { ReactNode } from 'react';
 import { useLayoutEffect, useMemo, useState } from 'react';
@@ -21,55 +21,8 @@ const ISLAND_SELECTOR = '[data-scheme-dark]';
  */
 export const darkSchemeIslandAttributes = { 'data-scheme-dark': '', 'data-mantine-color-scheme': 'dark' } as const;
 
-/* The sietch kit's ramps (see DarkSchemeIsland.css): sand for the one action to press, leather where the app uses slate and navy. */
-const sand: MantineColorsTuple = [
-  '#fff6e6',
-  '#ffe9c4',
-  '#ffd894',
-  '#fcc563',
-  '#f8b546',
-  '#f3a93c',
-  '#e49a30',
-  '#cf8724',
-  '#f3a93c',
-  '#e09630',
-];
-const leather: MantineColorsTuple = [
-  '#f2e6cf',
-  '#d9c7a4',
-  '#bba98a',
-  '#8f7a5c',
-  '#5c4327',
-  '#3b2c1e',
-  '#2b1f15',
-  '#21170f',
-  '#180f09',
-  '#100a06',
-];
-const brass: MantineColorsTuple = [
-  '#fbf4e6',
-  '#efe1c6',
-  '#dcc6a0',
-  '#c9ad7f',
-  '#b49a72',
-  '#9c8360',
-  '#806a4c',
-  '#66533a',
-  '#4f402d',
-  '#3b2f21',
-];
-/* Sand is light, so a filled sand control carries the dark ink the table's own labels use. */
-const SAND_INK = '#1b1206';
-
+/* Keep Mantine controls on the app palette, including dropdowns portaled outside the table. */
 const islandTheme = mergeThemeOverrides(appContentTheme, {
-  colors: { slate: sand, dune: sand, gray: brass, dark: leather, selected: leather },
-  variantColorResolver: (input) => {
-    const resolved = appContentTheme.variantColorResolver!(input);
-    const color = input.color ?? 'slate';
-    return input.variant === 'filled' && (color === 'slate' || color === 'dune')
-      ? { ...resolved, color: SAND_INK }
-      : resolved;
-  },
   components: { Popover: { defaultProps: { attributes: { dropdown: darkSchemeIslandAttributes } } } },
 });
 
@@ -104,7 +57,7 @@ const islandVariables =
   `${ISLAND_SELECTOR}{--mantine-color-scheme:dark;}`;
 
 /**
- * Children sit on their own dark ground in both page schemes: the play table, its panel and the placeholders shown while the table loads.
+ * Children share the app palette on their own dark ground: the play table, its panel and the placeholders shown while the table loads.
  * `tokens.css` gives `data-scheme-dark` the app's dark tokens;
  * Mantine scopes its own scheme variables to `:root`, so this nested provider re-emits them under the same selector, and the island's element carries `data-mantine-color-scheme` for Mantine's static dark rules.
  * `getRootElement` returns nothing on purpose: the provider must never write the document's scheme attribute, which the app's provider owns.

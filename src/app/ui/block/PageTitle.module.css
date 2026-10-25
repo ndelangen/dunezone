@@ -23,11 +23,11 @@
  * because it rendered a bare `h1` with nothing competing.
  */
 :global([data-page-layout-header-size="hero"]) .title {
-  color: white;
+  color: var(--color-inverse);
   font-family: "C_Desdemona", sans-serif;
   line-height: 0.94;
   letter-spacing: -0.01em;
-  text-shadow: 0 3px 18px rgb(0 0 0 / 92%);
+  text-shadow: 0 3px 18px rgb(from var(--color-shadow) r g b / 92%);
   text-transform: uppercase;
 }
 
@@ -51,10 +51,10 @@
  * It keeps the band's own heading face, so the name reads as the same masthead title grown up rather than a new voice.
  */
 :global([data-page-layout-header-size="immersive"]) .title {
-  color: white;
+  color: var(--color-inverse);
   font-size: clamp(2.75rem, 6.5vw, 4.75rem);
   line-height: 1;
-  text-shadow: 0 4px 30px rgb(0 0 0 / 50%);
+  text-shadow: 0 4px 30px rgb(from var(--color-shadow) r g b / 50%);
 }
 
 /*
@@ -66,13 +66,13 @@
   align-items: center;
   gap: var(--space-md);
   margin: var(--space-xs) 0 0;
-  color: rgb(246 228 190);
+  color: var(--ui-highlight);
   font-family: "C_Copperplate_Gothic", sans-serif;
   font-size: 1.2rem;
   font-variant: small-caps;
   letter-spacing: 0.18em;
   text-wrap: balance;
-  text-shadow: 0 2px 8px rgb(0 0 0 / 85%);
+  text-shadow: 0 2px 8px rgb(from var(--color-shadow) r g b / 85%);
 }
 
 .subtitle::before,
@@ -81,8 +81,8 @@
   flex: none;
   width: 3.5rem;
   height: 1px;
-  background: rgb(242 214 160);
-  box-shadow: 0 1px 4px rgb(0 0 0 / 60%);
+  background: var(--ui-brass);
+  box-shadow: 0 1px 4px rgb(from var(--color-shadow) r g b / 60%);
 }
 
 @container (width < 30rem) {

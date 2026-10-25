@@ -1,7 +1,7 @@
 import { Text } from '@mantine/core';
 
 /** The drop shadow under white text on header artwork; `ProfileLink.module.css` repeats it for an inverse name. */
-const INVERSE_TEXT_SHADOW = '0 2px 8px rgb(0 0 0 / 85%)';
+const INVERSE_TEXT_SHADOW = '0 2px 8px rgb(from var(--color-shadow) r g b / 85%)';
 
 export interface EyebrowProps {
   /** The label itself. A string, not a node: the words are the data this renders. */
@@ -30,7 +30,7 @@ export function Eyebrow({ children, tone = 'muted', id }: EyebrowProps) {
       tt="uppercase"
       lts="0.14em"
       lh={1.4}
-      c={tone === 'accent' ? 'var(--color-link)' : tone === 'inverse' ? '#fff' : 'dimmed'}
+      c={tone === 'accent' ? 'var(--color-link)' : tone === 'inverse' ? 'var(--color-inverse)' : 'dimmed'}
       style={tone === 'inverse' ? { textShadow: INVERSE_TEXT_SHADOW } : undefined}
     >
       {children}

@@ -20,7 +20,7 @@
   stroke: var(--color-muted);
 }
 .page .band {
-  fill: color-mix(in srgb, #ba8c46 24%, transparent);
+  fill: color-mix(in srgb, var(--ui-brass) 24%, transparent);
 }
 .page .section {
   stroke-dasharray: 5 4;

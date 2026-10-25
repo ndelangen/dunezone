@@ -3,6 +3,12 @@
   outline-offset: 2px;
 }
 
+/* Buttons use a flat fill; keyboard focus retains its separate ring. */
+.button {
+  border: 0;
+  box-shadow: none;
+}
+
 .selectedOption[data-combobox-selected]:not([data-combobox-disabled]) {
   color: var(--button-toggle-fg);
   background-color: var(--button-toggle-active-bg);

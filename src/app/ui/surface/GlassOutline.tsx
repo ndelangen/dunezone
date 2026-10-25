@@ -41,7 +41,7 @@ export function GlassOutline({ geometry }: { geometry: GlassOutlineGeometry | nu
           <filter id={shadowId} x="-20%" y="-20%" width="140%" height="140%" colorInterpolationFilters="sRGB">
             <feGaussianBlur in="SourceAlpha" stdDeviation="10" result="shadowBlur" />
             <feComposite in="shadowBlur" in2="SourceAlpha" operator="out" result="outsideShadowAlpha" />
-            <feFlood floodColor="#000000" floodOpacity="0.165" result="shadowColor" />
+            <feFlood floodColor="var(--color-shadow)" floodOpacity="0.165" result="shadowColor" />
             <feComposite in="shadowColor" in2="outsideShadowAlpha" operator="in" result="shadow" />
           </filter>
         </defs>

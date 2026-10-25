@@ -257,17 +257,19 @@ export const SharedItemSlots = meta.story({
       await waitFor(() => expect(shell.querySelector(`[data-piece-id="${id}"]`)).toBeInTheDocument());
     }
     /* The slots are two rows of four along the bottom edge: each row's tags run left to right in slot order, and the second row sits nearer the viewer. */
-    const centers = pieces.map(({ id }) => {
-      const rect = shell.querySelector(`[data-piece-id="${id}"]`)!.getBoundingClientRect();
-      return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
-    });
-    const [far, near] = [centers.slice(0, 4), centers.slice(4)];
-    for (const row of [far, near]) {
-      for (let slot = 1; slot < row.length; slot += 1) {
-        await expect(row[slot]!.x).toBeGreaterThan(row[slot - 1]!.x);
+    await waitForFrame(async () => {
+      const centers = pieces.map(({ id }) => {
+        const rect = shell.querySelector(`[data-piece-id="${id}"]`)!.getBoundingClientRect();
+        return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+      });
+      const [far, near] = [centers.slice(0, 4), centers.slice(4)];
+      for (const row of [far, near]) {
+        for (let slot = 1; slot < row.length; slot += 1) {
+          await expect(row[slot]!.x).toBeGreaterThan(row[slot - 1]!.x);
+        }
       }
-    }
-    await expect(Math.min(...near.map(({ y }) => y))).toBeGreaterThan(Math.max(...far.map(({ y }) => y)));
+      await expect(Math.min(...near.map(({ y }) => y))).toBeGreaterThan(Math.max(...far.map(({ y }) => y)));
+    });
   },
 });
 

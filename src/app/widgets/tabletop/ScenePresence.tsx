@@ -1,4 +1,5 @@
 /* @jsxImportSource ./three-jsx */
+
 import { Html } from '@react-three/drei/webgpu';
 import { useFrame, useThree } from '@react-three/fiber/webgpu';
 import type { Vector3Tuple } from '@shared/play/model';
@@ -6,6 +7,7 @@ import type { PublicPointer } from '@shared/play/protocol';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
 import { CARRIED_BASE_Y, pointOnRayAtHeight } from '@shared/play/tableGeometry';
 import type { TrackerArcSlot } from '@shared/play/tableTrackers';
+import { playUiColors, withAlpha } from '@shared/uiPalette';
 import { memo, useEffect, useLayoutEffect, useMemo, useRef, useSyncExternalStore } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Matrix4, Raycaster, Vector2, Vector3 } from 'three';
@@ -119,16 +121,26 @@ function HandLabel({
         height="32"
         viewBox="0 0 26 32"
         aria-hidden="true"
-        style={{ overflow: 'visible', filter: 'drop-shadow(0 2px 2px #0008)', flexShrink: 0 }}
+        style={{
+          overflow: 'visible',
+          filter: `drop-shadow(0 2px 2px ${withAlpha(playUiColors.black, 0.5333333333333333)})`,
+          flexShrink: 0,
+        }}
       >
-        <path d={HAND_PATH} fill={color} stroke="#2a2018" strokeWidth="1.4" strokeLinejoin="round" />
+        <path
+          d={HAND_PATH}
+          fill={color}
+          stroke={playUiColors.pointerOutline}
+          strokeWidth="1.4"
+          strokeLinejoin="round"
+        />
       </svg>
       <HandAvatar color={color} avatarUrl={avatarUrl} />
       {displayName && (
         <span
           style={{
             color,
-            background: '#21170de6',
+            background: 'rgb(from var(--glass-overlay) r g b / var(--glass-overlay-alpha))',
             border: `1px solid ${color}`,
             borderRadius: 4,
             padding: '2px 5px',
@@ -238,7 +250,7 @@ export function ScenePresence({
     /* The browser owns the local cursor; only its avatar follows input in the DOM, independently of scene frames. */
     const canvas = renderer.domElement;
     const color = viewer.color.replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;');
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="26" height="32" viewBox="0 0 26 32"><path d="${HAND_PATH}" fill="${color}" stroke="#2a2018" stroke-width="1.4" stroke-linejoin="round"/></svg>`;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="26" height="32" viewBox="0 0 26 32"><path d="${HAND_PATH}" fill="${color}" stroke="${playUiColors.pointerOutline}" stroke-width="1.4" stroke-linejoin="round"/></svg>`;
     const cursor = `url("data:image/svg+xml,${encodeURIComponent(svg)}") 8 2, pointer`;
     canvas.style.setProperty('--table-hand-cursor', cursor);
     const label = document.createElement('div');
