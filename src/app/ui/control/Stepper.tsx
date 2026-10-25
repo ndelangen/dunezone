@@ -82,10 +82,11 @@ export function Stepper({
     }
     stepBy(event.deltaY < 0 ? step : -step);
   };
-  /* Whether what is typed is a count the stepper can take as it stands. */
+  /* Whether what is typed is a count the stepper can take as it stands: within the limits and on a step. */
   const typedFits = () => {
     const typed = draft === null || draft.trim() === '' ? NaN : Number(draft);
-    return Number.isFinite(typed) && typed >= min && typed <= max;
+    const onStep = Math.abs(typed / step - Math.round(typed / step)) < 1e-9;
+    return Number.isFinite(typed) && onStep && typed >= min && typed <= max;
   };
   const invalid = draft !== null && !typedFits();
   /*
