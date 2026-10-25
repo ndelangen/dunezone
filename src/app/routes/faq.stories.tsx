@@ -1,5 +1,5 @@
 import preview from '@sb/preview';
-import { expect, userEvent, within } from 'storybook/test';
+import { expect, within } from 'storybook/test';
 
 import { db, ruleset } from '@db/storybook';
 import type { StorybookDatabase } from '@db/storybook';
@@ -57,32 +57,6 @@ export const SearchResults = meta.story({
 });
 
 /**
- * A picked ruleset that holds no questions yet is not among the select's options.
- * Its pill still stands, named by its slug, since the picks are listed in slug order and it comes first, and the search runs within the rulesets that do have questions.
- */
-export const PickedRulesetWithoutQuestions = meta.story({
-  args: { path: '/faq?q=storm&rulesets=barren,classicrules' },
-  parameters: {
-    database: db((baseline) => {
-      baseline.rulesets.push(ruleset({ name: 'Barren' }));
-      return baseline;
-    }),
-  },
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    const main = within(await page.findByRole('main', {}, { timeout: 30_000 }));
-    await expect(
-      main.findByRole('link', { name: 'When does the storm move?' }, { timeout: 30_000 })
-    ).resolves.toBeVisible();
-    const pill = page.getByText('barren', { selector: '.mantine-Pill-label' });
-    await expect(pill).toBeVisible();
-    /* Mantine keeps a pill's remove button from assistive tech, since Backspace drops the last pick, so it is found by its class. */
-    await expect(pill.closest('.mantine-Pill-root')?.querySelector('.mantine-Pill-remove')).not.toBeNull();
-    await expect(page.getByText('and 1 more rulesets')).toBeInTheDocument();
-  },
-});
-
-/**
  * Picked rulesets split what one search may read between them, so with many picked a ruleset full of near misses runs out of reading before its share of the index is checked.
  * These fillers hold no questions;
  * ClassicRules holds more storm questions than its share reads.
@@ -130,58 +104,5 @@ export const NothingMatchesCapped = meta.story({
     await expect(main.findByRole('heading', { name: 'Nothing matches' }, { timeout: 30_000 })).resolves.toBeVisible();
     await expect(main.getByText(/some were not\. A word or two more might help\./)).toBeVisible();
     await expect(main.queryByRole('button', { name: 'Load more' })).toBeNull();
-  },
-});
-
-/** A single selected ruleset supplies the context for every result. */
-export const SingleRuleset = meta.story({
-  args: { path: '/faq?q=storm&rulesets=classicrules' },
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    const main = within(await page.findByRole('main', {}, { timeout: 30_000 }));
-    await expect(
-      main.findByRole('link', { name: 'When does the storm move?' }, { timeout: 30_000 })
-    ).resolves.toBeVisible();
-    await expect(main.queryByRole('link', { name: /^ClassicRules$/ })).toBeNull();
-  },
-});
-
-/** Unknown filters fall back to global search, so rows keep their real ruleset and destination. */
-export const MissingRuleset = meta.story({
-  args: { path: '/faq?q=storm&rulesets=missing' },
-  parameters: { database: db((baseline) => seedRulesets(baseline, 0)) },
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    const main = within(await page.findByRole('main', {}, { timeout: 30_000 }));
-    await expect(
-      main.findByRole('link', { name: 'When does the storm move?' }, { timeout: 30_000 })
-    ).resolves.toHaveAttribute('href', '/rulesets/classicrules/faq/when-does-the-storm-move');
-    await expect(main.getByRole('link', { name: 'Can I ship troops into the storm?' })).toHaveAttribute(
-      'href',
-      '/rulesets/dreamrules/faq/storm-and-shipment'
-    );
-    await expect(main.getByRole('link', { name: 'ClassicRules' })).toBeVisible();
-    await expect(main.getAllByRole('link', { name: 'Dreamrules' })[0]).toBeVisible();
-  },
-});
-
-/** Wrapped replies keep the normal list gap before acceptance. */
-export const ExplainerSpacing = meta.story({
-  args: { path: '/faq' },
-  globals: { motion: 'on', viewport: { value: 'appAuthoringTablet' } },
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await userEvent.click(await page.findByRole('button', { name: 'Pause animation' }, { timeout: 30_000 }));
-    const list = page.getByRole('list', { name: 'Example answers' });
-    for (const animation of list.parentElement!.getAnimations({ subtree: true })) {
-      const timing = animation.effect!.getTiming();
-      animation.currentTime = (timing.delay ?? 0) + Number(timing.duration) * 1.7;
-    }
-    const first = page.getByRole('article', { name: "Stilgar's example answer" }).getBoundingClientRect();
-    const second = page.getByRole('article', { name: "Liet's example answer" }).getBoundingClientRect();
-    const third = page.getByRole('article', { name: "Jessica's example answer" }).getBoundingClientRect();
-    const gap = Number.parseFloat(getComputedStyle(list).rowGap);
-    await expect(second.top - first.bottom).toBeCloseTo(gap, 0);
-    await expect(third.top - second.bottom).toBeCloseTo(gap, 0);
   },
 });

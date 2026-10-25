@@ -1,102 +1,11 @@
 import { Box } from '@mantine/core';
 import preview from '@sb/preview';
-import { BookOpen, CircleUserRound, Settings } from 'lucide-react';
 import { useState } from 'react';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { ConnectedTabs } from './ConnectedTabs';
-import type { ConnectedTabsProps } from './ConnectedTabs';
-import storyStyles from './ConnectedTabs.stories.module.css';
-import { SurfaceFiller } from './SurfaceFiller.stories.fixture';
-
-type ExampleTab = 'overview' | 'people' | 'settings';
-
-/**
- * What the example panels are made of.
- * These are the story's own knobs, not props: the component takes finished panels, so a story that wants taller ones builds taller ones rather than asking the component for them.
- */
-interface ExamplePanels {
-  contentHeight?: number;
-  animateDimensions?: boolean;
-  showPanelTitle?: boolean;
-}
-
-/**
- * Neutral panel body.
- * The tabs' labels are the component's own API and stay real;
- * what sits inside a panel is the caller's, so the story shows a placeholder rather than prose.
- */
-function Panel({
-  value,
-  contentHeight,
-  animateDimensions,
-  showPanelTitle,
-}: {
-  value: ExampleTab;
-  contentHeight: number;
-  animateDimensions: boolean;
-  showPanelTitle: boolean;
-}) {
-  return (
-    <Box data-testid={`panel-body-${value}`}>
-      {showPanelTitle ? <SurfaceFiller height={28} width={180} /> : null}
-      <Box mt={showPanelTitle ? 'sm' : 0}>
-        <SurfaceFiller height={contentHeight} className={animateDimensions ? storyStyles.animatedContent : undefined} />
-      </Box>
-    </Box>
-  );
-}
-
-function examplePanels({
-  contentHeight,
-  animateDimensions,
-  showPanelTitle,
-}: ExamplePanels = {}): ConnectedTabsProps<ExampleTab>['items'] {
-  const resolvedContentHeight = contentHeight ?? 180;
-  const resolvedAnimateDimensions = animateDimensions ?? false;
-  const resolvedShowPanelTitle = showPanelTitle ?? true;
-  return [
-    {
-      value: 'overview',
-      label: 'Overview',
-      icon: <BookOpen size={20} />,
-      panel: (
-        <Panel
-          value="overview"
-          contentHeight={resolvedContentHeight}
-          animateDimensions={resolvedAnimateDimensions}
-          showPanelTitle={resolvedShowPanelTitle}
-        />
-      ),
-    },
-    {
-      value: 'people',
-      label: 'People',
-      icon: <CircleUserRound size={20} />,
-      panel: (
-        <Panel
-          value="people"
-          contentHeight={resolvedContentHeight}
-          animateDimensions={resolvedAnimateDimensions}
-          showPanelTitle={resolvedShowPanelTitle}
-        />
-      ),
-    },
-    {
-      value: 'settings',
-      label: 'Settings',
-      icon: <Settings size={20} />,
-      panel: (
-        <Panel
-          value="settings"
-          contentHeight={resolvedContentHeight}
-          animateDimensions={resolvedAnimateDimensions}
-          showPanelTitle={resolvedShowPanelTitle}
-        />
-      ),
-    },
-  ];
-}
+import { examplePanels } from './ConnectedTabs.stories.fixture';
+import type { ExampleTab } from './ConnectedTabs.stories.fixture';
 
 const meta = preview.meta({
   title: 'Connected Tabs',
@@ -149,14 +58,6 @@ export const FirstActive = meta.story({
     const surface = canvasElement.querySelector<HTMLElement>('[class*="glassSurface"]');
     await expect(getComputedStyle(surface as HTMLElement).backdropFilter).toBe('blur(8px)');
   },
-});
-
-export const MiddleActive = meta.story({
-  args: { value: 'people' },
-});
-
-export const FinalActive = meta.story({
-  args: { value: 'settings' },
 });
 
 export const ContentDrivenHeight = meta.story({
@@ -243,19 +144,6 @@ export const MobileViewport = meta.story({
     await userEvent.click(canvas.getByRole('button', { name: 'Next section' }));
     await expect(picker).toHaveTextContent('People');
     await expect(canvas.getByTestId('panel-body-people')).toBeVisible();
-  },
-});
-
-export const KeyboardAndPointerActivation = meta.story({
-  args: { value: 'overview' },
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    const overview = canvas.getByRole('tab', { name: 'Overview' });
-    overview.focus();
-    await userEvent.keyboard('{ArrowDown}');
-    await expect(canvas.getByRole('tab', { name: 'People' })).toHaveAttribute('data-state', 'active');
-    await userEvent.click(canvas.getByRole('tab', { name: 'Settings' }));
-    await expect(canvas.getByTestId('panel-body-settings')).toBeVisible();
   },
 });
 

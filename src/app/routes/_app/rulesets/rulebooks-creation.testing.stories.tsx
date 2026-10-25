@@ -4,12 +4,15 @@ import { expect, userEvent, within } from 'storybook/test';
 
 import { db } from '@db/storybook';
 
+import { expectWithinWidth } from '../../pagePlay';
+import { expectDenied } from './rulebooks-creation.stories.fixture';
 import {
   replaceWithFinalContents,
   rulebooksMeta,
   withFailedRulebookPreview,
   withFinalRulebooks,
   withSizedRulebooks,
+  withRulebooks,
 } from './rulebooks.stories.fixture';
 
 const meta = testingPreview.meta({
@@ -170,4 +173,28 @@ export const SignedOut = meta.story({
     await expect(page.findByRole('link', { name: 'Log in' }, { timeout: 30_000 })).resolves.toBeVisible();
     await expect(page.queryByRole('textbox', { name: 'Rulebook name' })).toBeNull();
   },
+});
+
+/** At 260 px the size and design choices stay inside the width. */
+export const CreationNarrow = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/create' },
+  globals: { viewport: { value: 'contentNarrow' } },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await page.findByRole('radio', { name: 'A4 210 × 297 mm' }, { timeout: 30_000 });
+    const choices = page.getAllByRole('radio').map((radio) => radio.closest('label') ?? radio);
+    await expectWithinWidth(canvasElement, choices);
+  },
+});
+
+export const InactiveMember = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/create' },
+  parameters: {
+    identity: { subjectKey: 'member', name: 'Member' },
+    database: db((baseline) => {
+      withRulebooks(baseline);
+      baseline.group_members[baseline.group_members.length - 1].status = 'removed';
+    }),
+  },
+  play: async ({ canvasElement }) => expectDenied(canvasElement),
 });

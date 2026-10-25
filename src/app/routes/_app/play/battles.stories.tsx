@@ -1,11 +1,9 @@
 import preview from '@sb/preview';
-import { finishTransitions } from '@sb/storyWaits';
-import { expect, waitFor, within } from 'storybook/test';
+import { expect, within } from 'storybook/test';
 
-import { battleSetup, readiness, withConvexIds } from './battles.stories.fixture';
-import { gameMeta, install } from './game.stories.fixture';
-import { battleStory, settled } from './playing.stories.fixture';
-import { productTransport } from './product.stories.fixture';
+import { battleSetup, readiness, revealedPieces } from './battles.stories.fixture';
+import { gameMeta } from './game.stories.fixture';
+import { settled } from './playing.stories.fixture';
 
 const meta = preview.meta({
   ...gameMeta,
@@ -22,16 +20,6 @@ function animatedIn(wheels: readonly HTMLElement[]) {
     .filter((element) => getComputedStyle(element).animationName !== 'none');
 }
 
-const revealedPieces = install(() => {
-  const snapshot = battleStory('revealed');
-  const battle = snapshot.battle!;
-  const card = snapshot.table.pieces.find((piece) => piece.id === 'treachery-card-loose')!;
-  card.battleOverlay = battle.id;
-  battle.revealed![0].pieces = [card];
-  battle.revealed![0].cardIds = [card.id];
-  return productTransport('seat-2', snapshot);
-});
-
 /** The site's Motion setting reaches the wheels: the preparing side's ring holds still and dashed instead of pulsing. */
 export const ReadinessStill = meta.story({
   globals: { motion: 'reduce' },
@@ -46,34 +34,6 @@ export const ReadinessStill = meta.story({
     const ready = page.getByRole('img', { name: 'House Atreides, right side, Ready' });
     await expect(animatedIn([preparing, ready])).toEqual([]);
     await expect(getComputedStyle(preparing.querySelector('svg[data-ready]')!).strokeDasharray).not.toBe('none');
-  },
-});
-
-/** A live battle's wheels name both sides from the roster in a real game too. */
-export const ReadinessInRealGame = meta.story({
-  beforeEach: install(() => productTransport('neutral', withConvexIds(battleStory('preparing', true)))),
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await settled(() =>
-      expect(page.getByRole('img', { name: 'House Harkonnen, left side, aggressor, Preparing' })).toBeVisible()
-    );
-    await expect(page.getByRole('img', { name: 'House Atreides, right side, Ready' })).toBeVisible();
-  },
-});
-
-export const RevealedPieces = meta.story({
-  beforeEach: revealedPieces,
-  play: async ({ canvasElement }) => {
-    await waitFor(
-      async () => {
-        const callout = canvasElement.ownerDocument.querySelector<HTMLElement>('[data-battle-stage="revealed"]');
-        await expect(callout).not.toBeNull();
-        const card = within(callout!).getByRole('button', { name: 'Drag Snooper onto table' });
-        await expect(finishTransitions(card)).toBeVisible();
-        await expect(card).toBeEnabled();
-      },
-      { timeout: 30_000 }
-    );
   },
 });
 

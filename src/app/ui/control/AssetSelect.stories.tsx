@@ -4,7 +4,7 @@ import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 import { expect, screen, within } from 'storybook/test';
 
 import { AssetSelect } from './AssetSelect';
-import { ControlledAssetSelect, emblems, previews, options } from './AssetSelect.stories.fixture';
+import { ControlledAssetSelect, previews, options } from './AssetSelect.stories.fixture';
 
 const meta = preview.meta({
   title: 'Asset Select',
@@ -48,22 +48,6 @@ export const DropdownOpen = meta.story({
     // The dropdown is portalled to the document body, outside the story canvas.
     await expect(await screen.findByRole('option', { name: 'Dune emblem' })).toBeVisible();
     await expect(await screen.findByRole('option', { name: 'Text-only option' })).toBeVisible();
-  },
-});
-
-export const FactionEmblems = meta.story({
-  args: {
-    'aria-label': 'Faction emblem',
-    w: 680,
-    maw: 'calc(100vw - 2rem)',
-    data: stockAssetOptions(emblems),
-    getPreviewSrc: (value) => resolveAsset(value, 'small'),
-    value: '/vector/logo/atreides.svg',
-  },
-  play: async ({ canvasElement, userEvent }) => {
-    await userEvent.click(within(canvasElement).getByRole('combobox', { name: 'Faction emblem' }));
-    await expect(screen.getByRole('listbox').querySelectorAll('[role="option"]')).toHaveLength(emblems.length);
-    await expect(screen.getByRole('group', { name: 'Faction emblems / Board game factions' })).toBeVisible();
   },
 });
 

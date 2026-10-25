@@ -1,5 +1,5 @@
 import preview from '@sb/preview';
-import { expect, screen, userEvent, within } from 'storybook/test';
+import { expect, within } from 'storybook/test';
 
 import { initialTokenDraft, TokenProof } from './TokenEditor';
 import type { TokenDraft } from './TokenEditor';
@@ -41,16 +41,6 @@ export const BackReferenceNotYetPicked = meta.story({
     await expect(canvas.getByRole('radio', { name: "Another token's back" })).toBeChecked();
     await expect(canvas.getByText('No token chosen')).toBeVisible();
     await expect(canvas.getByText('Choose a token…')).toBeVisible();
-  },
-});
-
-/** Raster illustrations stay in card editors while token symbols use SVG fragments. */
-export const FrontSymbols = meta.story({
-  args: { chapter: 'front' },
-  play: async ({ canvasElement }) => {
-    await userEvent.click(within(canvasElement).getByRole('combobox', { name: 'Symbol' }));
-    await expect(screen.getByRole('group', { name: 'Decals / Custom stronghold illustrations' })).toBeVisible();
-    await expect(screen.queryByRole('group', { name: 'Decals / GF9 Stronghold cards' })).toBeNull();
   },
 });
 

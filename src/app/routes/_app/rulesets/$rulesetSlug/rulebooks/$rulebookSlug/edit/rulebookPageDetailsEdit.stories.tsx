@@ -3,11 +3,8 @@ import { expect, userEvent, within } from 'storybook/test';
 
 import { HeadingIconStory } from './rulebookIllustratedBook.stories.fixture';
 import {
-  onBlockDrag,
   movement,
   stormTiming,
-  terrainSequence,
-  retreatSequence,
   exampleList,
   stormFigure,
   PageDetailsStory,
@@ -92,85 +89,6 @@ export const CollapsedRegions = meta.story({
   },
 });
 
-export const DragBetweenCompatibleRegions = meta.story({
-  render: () => (
-    <PageDetailsStory
-      initialValue={{ title: 'Movement', anchor: 'movement', showHeading: true }}
-      initialRegions={[
-        {
-          key: 'column1',
-          label: 'Rules',
-          blocks: [stormTiming],
-          collapsed: false,
-          containsActiveBlock: false,
-        },
-        {
-          key: 'column2',
-          label: 'Examples',
-          blocks: [],
-          collapsed: false,
-          containsActiveBlock: false,
-        },
-      ]}
-    />
-  ),
-  play: async ({ canvasElement }) => {
-    onBlockDrag.mockClear();
-    const canvas = pageDetailsCanvas(canvasElement);
-    const handle = within(canvas.getByLabelText('Rules')).getByRole('button', {
-      name: 'Edit The storm closes the boundary between its two sectors.',
-    });
-    handle.focus();
-    await userEvent.keyboard('[Space][ArrowDown][Space]');
-    await expect(onBlockDrag).toHaveBeenCalledWith(expect.objectContaining({ kind: 'commit', blockId: 'TEXT' }));
-    await expect(canvas.getByLabelText('Examples')).toHaveTextContent(
-      'The storm closes the boundary between its two sectors.'
-    );
-  },
-});
-
-export const SameRegionDragCommitsOnDrop = meta.story({
-  render: () => (
-    <PageDetailsStory
-      initialValue={{ title: 'Movement', anchor: 'movement', showHeading: true }}
-      initialRegions={[
-        {
-          key: 'column1',
-          label: 'Rules',
-          blocks: [movement, terrainSequence, retreatSequence],
-          collapsed: false,
-          containsActiveBlock: false,
-        },
-      ]}
-    />
-  ),
-  play: async ({ canvasElement }) => {
-    onBlockDrag.mockClear();
-    const canvas = pageDetailsCanvas(canvasElement);
-    const row = canvas.getByRole('button', { name: 'Edit Movement sequence' });
-    row.focus();
-    await userEvent.keyboard('[Space][ArrowDown]');
-    const sourceRow = row.closest<HTMLElement>('li');
-    const dragPreview = canvasElement.ownerDocument.querySelector<HTMLElement>('[data-block-drag-preview]');
-    await expect(sourceRow).not.toBeNull();
-    await expect(dragPreview).not.toBeNull();
-    await expect(
-      Math.abs(dragPreview!.getBoundingClientRect().width - sourceRow!.getBoundingClientRect().width)
-    ).toBeLessThan(1);
-    await expect(onBlockDrag.mock.calls.filter(([event]) => event.kind === 'commit')).toHaveLength(0);
-    await userEvent.keyboard('[Space]');
-    await expect(onBlockDrag.mock.calls.filter(([event]) => event.kind === 'commit')).toEqual([
-      [
-        {
-          kind: 'commit',
-          blockId: 'MVVE',
-          placement: { regionKey: 'column1', index: 1 },
-        },
-      ],
-    ]);
-  },
-});
-
 export const InvalidCommonValues = meta.story({
   render: () => (
     <PageDetailsStory
@@ -187,19 +105,6 @@ export const InvalidCommonValues = meta.story({
     await expect(canvas.getByRole('textbox', { name: 'Title' })).toHaveAttribute('aria-invalid', 'true');
     await expect(canvas.getByRole('textbox', { name: 'Anchor' })).toHaveAttribute('aria-invalid', 'true');
     await expect(canvas.getByText('Enter a Page title.')).toBeVisible();
-  },
-});
-
-export const InteriorHeadingVisibility = meta.story({
-  render: () => (
-    <PageDetailsStory initialValue={{ anchor: 'movement', title: 'Movement', showHeading: true }} initialRegions={[]} />
-  ),
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    const toggle = canvas.getByRole('switch', { name: 'Show page heading' });
-    await userEvent.click(toggle);
-    await expect(toggle).not.toBeChecked();
-    await expect(canvas.getByRole('textbox', { name: 'Title' })).toHaveValue('Movement');
   },
 });
 

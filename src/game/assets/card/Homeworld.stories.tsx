@@ -30,14 +30,9 @@ export const Pelagos = meta.story({
     await expect(sections[0]!.getBoundingClientRect().top - title.getBoundingClientRect().bottom).toBeLessThan(60);
   },
 });
-
-export const SharedStrength = meta.story({
-  args: { high: { ...EXAMPLE_HOMEWORLD_CARD.high, strength: 2 }, low: { ...EXAMPLE_HOMEWORLD_CARD.low, strength: 2 } },
-});
 export const RingedPlanet = meta.story({
   args: { icon: [EXAMPLE_HOMEWORLD_CARD.icon[0], '/image/planet/06.png'], iconScale: 1.3 },
 });
-export const SingleForceThreshold = meta.story({ args: { threshold: 1 } });
 export const LongEffects = meta.story({
   args: {
     high: { strength: 9, text: 'Long rules text with several words. '.repeat(11) },

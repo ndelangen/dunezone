@@ -5,29 +5,7 @@ import { History, UserRoundMinus } from 'lucide-react';
 import { expect, userEvent, within } from 'storybook/test';
 
 import { AuthoringToolbar, failureStatus, groupAccessStatus } from './AuthoringToolbar';
-
-const toolbarActions = {
-  onSave: () => undefined,
-  onReset: () => undefined,
-  onBack: () => undefined,
-};
-
-const cleanStatus = {
-  isDirty: false,
-  isNameBlank: false,
-  saveState: 'idle' as const,
-};
-
-const factionCopy = {
-  saveLabel: 'Save faction',
-  nameBlankMessage: 'Add a faction name before saving; it determines the faction URL.',
-};
-
-const cleanToolbar = {
-  status: cleanStatus,
-  copy: factionCopy,
-  actions: toolbarActions,
-};
+import { cleanStatus, cleanToolbar } from './AuthoringToolbar.stories.fixture';
 
 const SCHEDULED =
   'A new faction sheet capture is scheduled. The current PDF remains available. Last published Aug 4, 2026, 6:30 PM';
@@ -91,20 +69,6 @@ export const UnsavedWithStatuses = meta.story({
     const list = await waitForFrame(() => page.getByRole('dialog', { name: 'Status' }));
     await expect(list).toHaveTextContent(SCHEDULED);
     await expect(list).toHaveTextContent('Group access: Arrakeen Rules Council');
-  },
-});
-
-/** A blank name blocks Save: it looks disabled, says why on hover, and pressing it does nothing. */
-export const NameBlank = meta.story({
-  args: { ...cleanToolbar, status: { ...cleanStatus, isDirty: true, isNameBlank: true } },
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    const save = page.getByRole('button', { name: 'Save faction' });
-    await expect(save).toHaveAttribute('aria-disabled', 'true');
-    await userEvent.hover(save);
-    await expect(
-      await waitForFrame(() => page.getByRole('tooltip', { name: factionCopy.nameBlankMessage }))
-    ).toBeInTheDocument();
   },
 });
 

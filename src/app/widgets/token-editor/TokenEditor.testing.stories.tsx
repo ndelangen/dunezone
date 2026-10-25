@@ -1,5 +1,5 @@
 import { testingPreview } from '@sb/preview';
-import { expect, userEvent, within } from 'storybook/test';
+import { expect, userEvent, within, screen } from 'storybook/test';
 
 import { initialTokenDraft } from './TokenEditor';
 import { DISC, discDraftWith, InteractiveEditor } from './TokenEditor.stories.fixture';
@@ -31,5 +31,15 @@ export const SymbolStyling = meta.story({
     ).not.toBeNull();
     const symbol = canvasElement.querySelector('use[fill="#07120f"]')!.closest('[data-component-part="symbol"]');
     await expect(symbol).not.toHaveAttribute('filter');
+  },
+});
+
+/** Raster illustrations stay in card editors while token symbols use SVG fragments. */
+export const FrontSymbols = meta.story({
+  args: { chapter: 'front' },
+  play: async ({ canvasElement }) => {
+    await userEvent.click(within(canvasElement).getByRole('combobox', { name: 'Symbol' }));
+    await expect(screen.getByRole('group', { name: 'Decals / Custom stronghold illustrations' })).toBeVisible();
+    await expect(screen.queryByRole('group', { name: 'Decals / GF9 Stronghold cards' })).toBeNull();
   },
 });

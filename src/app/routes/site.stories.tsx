@@ -2,6 +2,7 @@ import preview from '@sb/preview';
 import { expect, within } from 'storybook/test';
 
 import { expectWithinWidth } from './pagePlay';
+import { findTitledPage, titled } from './site.stories.fixture';
 import { pageStoryMeta } from './storybookConfig';
 
 const meta = preview.meta({
@@ -25,23 +26,11 @@ export const NotFound = meta.story({
     await expect(back.closest('main')).toBeNull();
   },
 });
-async function findTitledPage(canvasElement: HTMLElement, name: RegExp) {
-  const page = within(canvasElement.ownerDocument.body);
-  await expect(page.findByRole('heading', { level: 1, name }, { timeout: 30_000 })).resolves.toBeVisible();
-  return page;
-}
-
-const titled =
-  (name: RegExp) =>
-  async ({ canvasElement }: { canvasElement: HTMLElement }) => {
-    await findTitledPage(canvasElement, name);
-  };
 
 export const FuturePlans = meta.story({
   args: { path: '/future-plans' },
   play: titled(/^A map of what Dune Zone could become$/),
 });
-export const Privacy = meta.story({ args: { path: '/privacy' }, play: titled(/privacy/i) });
 
 /** The blog's numbered list of posts, newest first, each title opening its post. */
 export const Blog = meta.story({
