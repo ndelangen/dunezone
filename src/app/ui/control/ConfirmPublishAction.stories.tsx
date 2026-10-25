@@ -7,7 +7,7 @@ import { ConfirmPublishAction } from './ConfirmPublishAction';
 const meta = preview.meta({
   component: ConfirmPublishAction,
   parameters: { layout: 'centered' },
-  globals: { backgrounds: { value: 'light', grid: false } },
+  globals: { backgrounds: { value: 'dark', grid: false } },
   args: {
     label: 'Publish Edition 4',
     pending: false,

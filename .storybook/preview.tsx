@@ -3,16 +3,17 @@ import addonDocs from '@storybook/addon-docs';
 import { definePreview } from '@storybook/tanstack-react';
 import { sb } from 'storybook/test';
 
+import { loadStorybookDatabase, StorybookDatabaseProvider, storybookViewer } from '../src/app/db/storybook';
 import '@mantine/core/styles.layer.css';
 import '../src/app/styles/fonts.css';
 import '@fontsource/caladea/latin-700.css';
 import '../src/app/styles/tokens.css';
 import '../src/app/styles/mantine-shell-compatibility.css';
-import { loadStorybookDatabase, StorybookDatabaseProvider, storybookViewer } from '../src/app/db/storybook';
 import type { DatabaseDefinition, WorkerIdentity } from '../src/app/db/storybook';
 import { setMotionOverride } from '../src/app/styles/motion';
 import { appColorSchemeManager, appContentTheme } from '../src/app/ui/theme';
 import * as sizes from '../src/game/data/sizes';
+import { coreColors } from '../src/shared/uiPalette';
 import { emulateReducedMotion } from './browserMotion';
 import { settleStoryViewport } from './storyViewport';
 import { resetFrameLag } from './storyWaits';
@@ -139,6 +140,12 @@ const preview = definePreview({
       },
     },
     layout: 'centered',
+    backgrounds: {
+      options: {
+        dark: { name: 'Warm dark', value: coreColors.ground },
+        light: { name: 'Paper', value: coreColors.paper },
+      },
+    },
     viewport: {
       options: {
         /* Constrained widths a story can select when its subject *is* the behaviour at that
@@ -351,7 +358,7 @@ const preview = definePreview({
   initialGlobals: {
     motion: 'auto',
     backgrounds: {
-      value: '#333333',
+      value: 'dark',
       grid: true,
     },
   },

@@ -35,7 +35,13 @@ export function DeckBackPicker({
       {/* Gated by the popover: the picker subscribes on mount, so it must not mount until asked for. */}
       <Popover opened={open} onChange={setOpen} width={340} position="bottom-start" withinPortal>
         <Popover.Target>
-          <Button variant="light" size="compact-sm" style={{ flexShrink: 0 }} onClick={() => setOpen((was) => !was)}>
+          <Button
+            variant="default"
+            color="gray"
+            size="compact-sm"
+            style={{ flexShrink: 0 }}
+            onClick={() => setOpen((was) => !was)}
+          >
             {picked ? 'Change' : 'Choose'}
           </Button>
         </Popover.Target>

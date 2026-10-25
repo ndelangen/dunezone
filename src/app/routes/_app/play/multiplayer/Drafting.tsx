@@ -168,7 +168,7 @@ function PlayerMark({ player, size, ready = false }: Readonly<{ player: Player; 
     </Avatar>
   );
   return (
-    <Indicator color="green" size={16} label={<span aria-hidden="true">✓</span>} disabled={!ready}>
+    <Indicator color="confirm" size={16} label={<span aria-hidden="true">✓</span>} disabled={!ready}>
       {mark}
     </Indicator>
   );
@@ -226,7 +226,7 @@ function RequestRow({ client, table, request }: Props & Readonly<{ request: Seat
                 key={request.id}
                 size="compact-sm"
                 radius="xl"
-                color="green"
+                color="confirm"
                 leftSection={<Check size={14} aria-hidden />}
                 disabled={seatLocked(table)}
                 onClick={() => client.command({ kind: 'seat-approve', requestId: request.id })}
@@ -505,7 +505,7 @@ function Attribution({
   const cited = seats.map((seat) => players.find((player) => player.seat === seat)).filter((p) => p !== undefined);
   return (
     <Group gap="xs" wrap="nowrap">
-      <Text span size="xs" c={verb === 'banned' ? 'red' : 'dimmed'}>
+      <Text span size="xs" c={verb === 'banned' ? 'var(--color-error)' : 'dimmed'}>
         {verb}
       </Text>
       {cited.map((player) => (
@@ -549,6 +549,7 @@ function FactionRow({
       <Group gap="xs" wrap="nowrap" className={styles.rowActions}>
         <Button
           size="compact-sm"
+          color="brand"
           variant={picked ? 'filled' : 'default'}
           aria-pressed={picked}
           disabled={locked(table) || ((banned || !dealable) && !picked)}
@@ -639,11 +640,7 @@ export function DraftingReady({ client, table }: Props) {
   /* A failed deal keeps everyone's readiness, so a ready player deals again rather than withdrawing. */
   if (draft.failure && ready) {
     return (
-      <Button
-        color="yellow"
-        disabled={locked(table)}
-        onClick={() => client.command({ kind: 'draft-ready', ready: true })}
-      >
+      <Button color="cta" disabled={locked(table)} onClick={() => client.command({ kind: 'draft-ready', ready: true })}>
         Deal again
       </Button>
     );

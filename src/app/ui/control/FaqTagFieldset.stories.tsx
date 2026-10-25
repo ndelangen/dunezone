@@ -13,7 +13,7 @@ function checkedTags(canvasElement: HTMLElement) {
 const meta = preview.meta({
   component: FaqTagFieldset,
   parameters: { layout: 'centered' },
-  globals: { backgrounds: { value: 'light', grid: false } },
+  globals: { backgrounds: { value: 'dark', grid: false } },
 });
 
 /** The ask form's shape: an uncontrolled form field named `tags`, with the default tag pre-checked. */

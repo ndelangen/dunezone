@@ -1,4 +1,6 @@
-import { Button, Group } from '@mantine/core';
+import { Group } from '@mantine/core';
+import { IconAction } from '@ui/control/IconAction';
+import { Eye, EyeOff, RotateCcw } from 'lucide-react';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 import { biddingPhase } from './Bidder';
@@ -22,16 +24,22 @@ export function BidderToolbar({ client, table, faded, onFadedChange }: Props) {
   const stage = table.snapshot.bidding?.stage ?? 'idle';
   return (
     <Group gap="xs" wrap="nowrap" role="group" aria-label="Bidder">
-      <Button variant="subtle" aria-pressed={faded} onClick={() => onFadedChange(!faded)}>
-        {faded ? 'Show bidder' : 'Fade bidder'}
-      </Button>
-      <Button
-        variant="subtle"
+      <IconAction
+        label={faded ? 'Show bidder' : 'Fade bidder'}
+        intent="neutral"
+        emphasis="quiet"
+        pressed={faded}
+        icon={faded ? <Eye size={18} aria-hidden /> : <EyeOff size={18} aria-hidden />}
+        onClick={() => onFadedChange(!faded)}
+      />
+      <IconAction
+        label="Reset bidder"
+        intent="neutral"
+        emphasis="quiet"
+        icon={<RotateCcw size={18} aria-hidden />}
         disabled={!table.canInteract || !table.snapshot.bank || stage === 'idle'}
         onClick={() => client.command({ kind: 'bid-reset' })}
-      >
-        Reset bidder
-      </Button>
+      />
     </Group>
   );
 }

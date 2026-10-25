@@ -2,7 +2,6 @@ import preview from '@sb/preview';
 import { expect, within } from 'storybook/test';
 
 import { gameMeta, install, seatPopover } from './game.stories.fixture';
-import { battleStory } from './playing.stories.fixture';
 import { productTransport } from './product.stories.fixture';
 
 const meta = preview.meta({
@@ -18,7 +17,7 @@ const meta = preview.meta({
 
 /** A spectator of a full game reads that from the header's seat action; the dock keeps its height for the tabs. */
 export const FullGameSpectatorSeat = meta.story({
-  beforeEach: install(() => productTransport('neutral', battleStory('revealed', true))),
+  beforeEach: install(() => productTransport('neutral')),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const seat = await seatPopover(canvasElement, 'You are watching');

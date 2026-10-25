@@ -1,4 +1,5 @@
 import { cardbackPresetLabel } from '../assets/cardbackPresets';
+import { gameAssetColors } from './assetColors';
 import type { FactionCapture } from './capture';
 import { factionTokenStackKey } from './factionToken';
 import type { StoredPiece, TablePiece, Vector3Tuple } from './model';
@@ -28,7 +29,7 @@ export function piece(
     label,
     owner,
     color,
-    accent: '#ead9bb',
+    accent: gameAssetColors.pieceAccent,
     kind,
     stackKey,
     items: [],
@@ -136,7 +137,7 @@ function traitorDeck(
   layout: ReturnType<typeof factionSupplyLayout>
 ) {
   const { traitors } = capture.components;
-  const deck = piece(id(), 'Traitor cards', 'shared', '#d5ba8c', 'card', 'cards:traitor');
+  const deck = piece(id(), 'Traitor cards', 'shared', gameAssetColors.traitorCardBase, 'card', 'cards:traitor');
   deck.items = shuffle(
     traitors.cards.map((card) =>
       item(id(), card.name, card.front, traitors.back, 'card-traitor', false, cardbackPresetLabel('traitor'))

@@ -23,7 +23,7 @@
   aspect-ratio: 1;
   overflow: hidden;
   border-radius: var(--mantine-radius-sm);
-  box-shadow: 0 2px 8px rgb(0 0 0 / 40%);
+  box-shadow: 0 2px 8px rgb(from var(--color-shadow) r g b / 40%);
 }
 
 .split img {
@@ -95,7 +95,7 @@
   display: block;
   width: 100%;
   object-fit: contain;
-  filter: drop-shadow(0 4px 8px rgb(0 0 0 / 50%));
+  filter: drop-shadow(0 4px 8px rgb(from var(--color-shadow) r g b / 50%));
 }
 
 .shieldPart {
@@ -174,5 +174,5 @@
   border-radius: 50%;
   box-shadow:
     0 0 0 3px var(--ring),
-    0 2px 8px rgb(0 0 0 / 40%);
+    0 2px 8px rgb(from var(--color-shadow) r g b / 40%);
 }

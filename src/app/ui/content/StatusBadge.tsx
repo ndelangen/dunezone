@@ -9,7 +9,7 @@ export type StatusBadgeTone = 'neutral' | 'positive' | 'negative' | 'pending' | 
 
 const TONE_COLOR: Record<StatusBadgeTone, string> = {
   neutral: 'gray',
-  positive: 'green',
+  positive: 'confirm',
   negative: 'red',
   pending: 'yellow',
   progress: 'blue',
@@ -34,7 +34,7 @@ export interface StatusBadgeProps {
  * this component owns the mapping from tone to colour, so "pending" is the same yellow whether it describes a membership request or an asset publication, and no page re-invents that ladder inline.
  */
 export function StatusBadge({ tone = 'neutral', live = false, icon, children }: StatusBadgeProps) {
-  /* Neutral takes the default variant so its boundary remains visible on navy surfaces. */
+  /* Neutral takes the default variant so its boundary remains visible on dark surfaces. */
   return (
     <Badge
       {...(tone === 'neutral'

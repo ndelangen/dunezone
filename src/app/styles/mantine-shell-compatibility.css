@@ -1,6 +1,6 @@
 /* Preserve the legacy shell around Mantine's layered baseline; the dark tooltip rule below is the one Mantine part it styles. */
 body:has([data-app-root]) {
-  background-color: rgba(0, 0, 0, 0);
+  background-color: rgb(from var(--color-shadow) r g b / 0);
   color: var(--color-text);
 }
 
@@ -21,7 +21,7 @@ body:has([data-app-root]) {
 
 /* Mantine inverts tooltips to light in the dark scheme; the glass aesthetic keeps them dark. The play island raises its own with the --tip- tokens (play/DarkSchemeIsland.css). */
 [data-mantine-color-scheme="dark"] .mantine-Tooltip-tooltip {
-  --tooltip-bg: var(--tip-surface, var(--glass-overlay));
+  --tooltip-bg: var(--tip-surface, rgb(from var(--glass-overlay) r g b / var(--glass-overlay-alpha)));
   --tooltip-color: var(--color-text);
 
   box-shadow: var(--tip-ring, none);

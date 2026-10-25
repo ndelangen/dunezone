@@ -94,9 +94,9 @@
 }
 
 .readerDocument ::target-text {
-  color: #1d2635;
-  background: #c6c9d4;
-  text-decoration: underline 2px #43536e;
+  color: var(--ui-ink);
+  background: var(--ui-highlight);
+  text-decoration: underline 2px var(--ui-brass);
   text-underline-offset: 0.15em;
 }
 
