@@ -114,3 +114,66 @@ export async function playHeaderResize({ canvasElement }: { canvasElement: HTMLE
     }
   }
 }
+
+export function fullscreenElements(canvasElement: HTMLElement) {
+  const root = canvasElement.ownerDocument.documentElement;
+  const view = canvasElement.ownerDocument.defaultView;
+  const shell = canvasElement.querySelector<HTMLElement>('[data-app-root]');
+  const navigation = canvasElement.querySelector<HTMLElement>('nav');
+  const content = canvasElement.querySelector<HTMLElement>('[data-page-layout-content]');
+  const scroller = canvasElement.querySelector<HTMLElement>('[data-shell-workspace]');
+  const footer = shell?.querySelector<HTMLElement>('footer');
+  const heading = within(canvasElement).getByRole('heading', { level: 1, name: 'Fullscreen workspace' });
+  const header = heading.closest<HTMLElement>('[data-scheme-paper]');
+  if (!view || !shell || !navigation || !content || !scroller || !footer || !header) {
+    throw new Error('The fullscreen story must mount the complete shell and a child-owned scroll area.');
+  }
+  return { root, view, shell, navigation, content, scroller, footer, header };
+}
+
+export async function playFullscreenHeight({ canvasElement }: { canvasElement: HTMLElement }) {
+  const { root, view, navigation, content, scroller, footer, header } = fullscreenElements(canvasElement);
+  const canvas = within(canvasElement);
+
+  await waitFor(async () => {
+    const bounds = content.getBoundingClientRect();
+    await expect(bounds.top).toBe(0);
+    await expect(bounds.left).toBe(0);
+    await expect(bounds.width).toBe(view.innerWidth);
+    await expect(bounds.height).toBe(view.innerHeight);
+    await expect(root.scrollHeight).toBeLessThanOrEqual(root.clientHeight + 1);
+    await expect(root.scrollWidth).toBe(root.clientWidth);
+    await expect(scroller.scrollHeight).toBeGreaterThan(scroller.clientHeight);
+    await expect(canvas.queryByRole('navigation')).toBeNull();
+    await expect(navigation).not.toBeVisible();
+    await expect(footer).not.toBeVisible();
+    await expect(canvas.getAllByRole('heading', { level: 1 })).toHaveLength(1);
+    await expect(header.getBoundingClientRect().width).toBe(1);
+    await expect(header.getBoundingClientRect().height).toBe(1);
+    await expect(view.getComputedStyle(header).clipPath).toBe('inset(50%)');
+    const background = canvasElement.querySelector<HTMLElement>('[data-app-background]');
+    await expect(background).not.toBeNull();
+    await expect(view.getComputedStyle(background!).visibility).toBe('hidden');
+    /* The band is hidden, so its video never mounts and never downloads. */
+    await expect(canvasElement.querySelector('video')).toBeNull();
+  });
+
+  const exit = canvas.getByRole('button', { name: 'Exit fullscreen' });
+  exit.focus();
+  await userEvent.tab();
+  await expect(canvasElement.ownerDocument.activeElement).toBe(canvasElement.ownerDocument.body);
+  /* The skip link is the first stop, and the workspace's own control the next. */
+  await userEvent.tab();
+  await expect(canvas.getByRole('link', { name: 'Skip to content' })).toHaveFocus();
+  await userEvent.tab();
+  await expect(exit).toHaveFocus();
+
+  scroller.scrollTop = 100;
+  view.scrollTo({ top: 100, left: 100 });
+  await waitFor(async () => {
+    await expect(scroller.scrollTop).toBe(100);
+    await expect(view.scrollY).toBe(0);
+    await expect(view.scrollX).toBe(0);
+  });
+  scroller.scrollTop = 0;
+}

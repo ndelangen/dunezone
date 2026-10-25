@@ -1,52 +1,10 @@
 import preview from '@sb/preview';
 import { getRulebookCoverPreset } from '@shared/rulebooks/coverPresets';
-import type { RulebookRenderPageByLayoutV1 } from '@shared/rulebooks/renderDocument';
 import { getRulebookSize, rulebookDesignCatalogue, rulebookSizeCatalogue } from '@shared/rulebooks/settings';
 import type { RulebookSettings } from '@shared/rulebooks/settings';
 import { expect, within } from 'storybook/test';
 
-import { createCoverFooter, createImageCoverPage } from './RulebookCovers.stories.fixture';
-import { RulebookPageRenderer } from './RulebookRenderer';
-
-function CoverExample({
-  size,
-  design,
-  backgroundImageUrl = '/page/cover-a.svg',
-  showDuneLogo = true,
-  showHeading = true,
-  showSubtitle = true,
-  title = 'Dreamrules',
-  supportingText = '',
-  footer,
-  legacyArtwork = false,
-}: RulebookSettings & {
-  backgroundImageUrl?: string;
-  showDuneLogo?: boolean;
-  showHeading?: boolean;
-  showSubtitle?: boolean;
-  title?: string;
-  supportingText?: string;
-  footer?: RulebookRenderPageByLayoutV1<'cover'>['controlValues']['cover']['footer'];
-  legacyArtwork?: boolean;
-}) {
-  const page = createImageCoverPage({
-    backgroundImageUrl: legacyArtwork ? undefined : backgroundImageUrl,
-    artwork: legacyArtwork
-      ? { status: 'ready', assetId: 'storm', name: 'Storm marker', type: 'marker', imageUrl: '/page/storm.svg' }
-      : { status: 'unselected' },
-    showDuneLogo,
-    showSubtitle,
-    supportingText,
-    footer,
-  });
-  page.title = title;
-  page.showHeading = showHeading;
-  return (
-    <div style={{ width: `min(100%, ${getRulebookSize(size).widthMm}mm)` }}>
-      <RulebookPageRenderer page={page} settings={{ size, design }} />
-    </div>
-  );
-}
+import { createCoverFooter, CoverExample, expectCoverBounds } from './RulebookCovers.stories.fixture';
 
 const meta = preview.meta({
   title: 'Page/Cover/Rendered',
@@ -59,40 +17,7 @@ const meta = preview.meta({
   parameters: { layout: 'fullscreen' },
 });
 
-async function expectCoverBounds({ canvasElement }: { canvasElement: HTMLElement }) {
-  await document.fonts.ready;
-  await Promise.all([...canvasElement.querySelectorAll<HTMLImageElement>('img')].map((image) => image.decode()));
-  const pages = [...canvasElement.querySelectorAll<HTMLElement>('[data-rulebook-page]')];
-  await expect(pages.length).toBeGreaterThan(0);
-  for (const page of pages) {
-    const dimensions = getRulebookSize(page.dataset.rulebookSize as RulebookSettings['size']);
-    const bounds = page.getBoundingClientRect();
-    await expect(bounds.width / bounds.height).toBeCloseTo(dimensions.widthMm / dimensions.heightMm, 2);
-    await expect(page.querySelector('.rulebookPageFolio')).toBeNull();
-    await expect(page.querySelector('.rulebookPageArtwork')).toBeNull();
-    await expect(getComputedStyle(page, '::after').content).toBe('none');
-    await expect(getComputedStyle(page.querySelector('.rulebookPageContent')!).padding).toBe('0px');
-    const background = page.querySelector('.rulebookCoverBackground');
-    if (background) {
-      const imageBounds = background.getBoundingClientRect();
-      await expect(imageBounds.x).toBeCloseTo(bounds.x, 1);
-      await expect(imageBounds.y).toBeCloseTo(bounds.y, 1);
-      await expect(imageBounds.width).toBeCloseTo(bounds.width, 1);
-      await expect(imageBounds.height).toBeCloseTo(bounds.height, 1);
-      await expect(getComputedStyle(background).objectFit).toBe('cover');
-    }
-  }
-}
-
 export const BackgroundImage = meta.story({ play: expectCoverBounds });
-export const DreamrulesRainbow = meta.story({
-  args: {
-    backgroundImageUrl: getRulebookCoverPreset('dreamrules-rainbow').imageUrl,
-    title: 'dream rulebook',
-    showSubtitle: false,
-  },
-  play: expectCoverBounds,
-});
 /** The titles stay when only the Dune logo is switched off. */
 export const WithoutLogo = meta.story({
   args: { showDuneLogo: false },

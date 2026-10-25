@@ -1,0 +1,2 @@
+/* A synthetic document image exercises image delivery without depending on publication infrastructure. */
+export const imageUrl = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="210" height="297" viewBox="0 0 210 297"><rect width="210" height="297" fill="#f4eed7"/><text x="20" y="36" font-family="serif" font-size="18">Movement</text><path d="M20 48h170M20 76h140M20 86h160M20 96h155M20 125h165M20 135h130" stroke="#6d5b3a"/></svg>')}`;

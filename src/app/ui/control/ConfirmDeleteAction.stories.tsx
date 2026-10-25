@@ -1,5 +1,4 @@
 import preview from '@sb/preview';
-import { LogOut } from 'lucide-react';
 import { expect, fn, within } from 'storybook/test';
 
 import { ConfirmDeleteAction } from './ConfirmDeleteAction';
@@ -26,9 +25,4 @@ export const Pending = meta.story({
     /* Mantine's loading state disables the button, which is the latch made visible. */
     await expect(page.getByRole('button', { name: 'Delete faction' })).toBeDisabled();
   },
-});
-
-/** The same hold signing the reader out of every session: hovering says "hold to sign out" and the countdown "sign-out in 4..". */
-export const SignOut = meta.story({
-  args: { label: 'Sign out on all devices', verb: 'sign out', icon: <LogOut size={17} aria-hidden /> },
 });

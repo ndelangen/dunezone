@@ -37,7 +37,9 @@ without data, and the production media gallery is where the content itself is sh
 
 ## Consequences
 
-- A full Chromatic build captured about 1,148 stories before this decision and about 835 after it.
+- A full Chromatic build captured about 1,148 stories before this decision and about 835 after it. A
+  second pass on 25 Oct 2026 brought it to 660: behaviour stories still captured, a page or width
+  captured twice, and stories that differ only in their data.
 - A new story starts as a testing story unless it shows a capability no other story shows.
 - A capture failure still fails the Chromatic workflow; a slow play is a sign the story belongs in a
   testing file.

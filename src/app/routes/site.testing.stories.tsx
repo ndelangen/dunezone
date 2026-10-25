@@ -4,6 +4,7 @@ import { expect, userEvent, within } from 'storybook/test';
 import { db, ref } from '@db/storybook';
 
 import { expectRefused, withoutAdmins } from './adminPages.stories.fixture';
+import { titled } from './site.stories.fixture';
 import { pageStoryMeta } from './storybookConfig';
 
 const meta = testingPreview.meta({
@@ -150,3 +151,5 @@ export const BlogPostTabletopSimulator = meta.story({
     await expect(page.findByRole('link', { name: 'Iduali' })).resolves.toHaveAttribute('href', '/factions/iduali');
   },
 });
+
+export const Privacy = meta.story({ args: { path: '/privacy' }, play: titled(/privacy/i) });

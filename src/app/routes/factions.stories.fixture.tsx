@@ -148,3 +148,24 @@ export async function expectLeaderLane(canvasElement: HTMLElement) {
   });
   lane.scrollLeft = 0;
 }
+
+/* A current faction sheet with a replacement capture that failed after it (#1318, #1385). */
+export const currentSheetWithAFailedReplacement = db((baseline) => {
+  const factionId = refText('faction:house-atreides', SEED_REF_TOKEN);
+  baseline.publication_assets.push({
+    asset_type: 'faction_sheet',
+    asset_id: factionId,
+    cache_token: 'storybook-sheet',
+    published_at: Date.parse('2026-01-01T12:00:00.000Z'),
+  });
+  baseline.publication_jobs.push({
+    asset_type: 'faction_sheet',
+    asset_id: factionId,
+    asset_data: {},
+    status: 'error',
+    attempt_counter: 10,
+    error: 'Storybook capture failure',
+    created_at: Date.parse('2026-01-01T13:00:00.000Z'),
+    updated_at: Date.parse('2026-01-01T13:10:00.000Z'),
+  });
+});

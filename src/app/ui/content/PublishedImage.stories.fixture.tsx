@@ -8,3 +8,8 @@ export function arrivalKeyframes(canvasElement: HTMLElement) {
     .getAnimations({ subtree: true })
     .flatMap((animation) => (animation.effect instanceof KeyframeEffect ? animation.effect.getKeyframes() : []));
 }
+
+/* The slot fades in over 240 ms, a reduced-motion arrival is a 160 ms fade, and the develop runs 450 ms. */
+export function animationDurations(canvasElement: HTMLElement) {
+  return canvasElement.getAnimations({ subtree: true }).map((animation) => animation.effect?.getTiming().duration);
+}

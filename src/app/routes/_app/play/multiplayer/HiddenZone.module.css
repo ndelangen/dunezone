@@ -22,8 +22,13 @@
   text-align: center;
 }
 
+/*
+ * A piece lands where it is let go at once. With Reduce motion the Play shell gives every element a near-zero transition,
+ * and one on its place or opacity would draw the piece's old look for a frame as it lands: a blink.
+ */
 .piece {
   position: absolute;
+  transition-property: none;
   display: grid;
   place-items: center;
   cursor: grab;
@@ -31,9 +36,9 @@
   filter: drop-shadow(0 2px 3px rgb(from var(--play-black) r g b / 0.5));
 }
 
-/* Its place stays in the zone, unseen, holding the pointer while the piece itself is carried. */
+/* Its place stays in the zone, unseen, holding the pointer while the piece itself is carried; still drawn, it keeps focus for Q and E. */
 .piece[data-carried] {
-  visibility: hidden;
+  opacity: 0;
 }
 
 /* A carried piece, lifted over everything on the page and following the pointer. */

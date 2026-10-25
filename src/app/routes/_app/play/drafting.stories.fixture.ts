@@ -7,6 +7,7 @@ import { emptyPublicControls } from '@shared/play/inventory';
 import type { GameSnapshot } from '@shared/play/protocol';
 import type { TableSeatCount } from '@shared/play/tableSettings';
 import type { ComponentProps } from 'react';
+import { within } from 'storybook/test';
 import type { z } from 'zod';
 
 import type { Token } from '@game/assets/faction/token/Token';
@@ -379,3 +380,14 @@ export function draftingSnapshot(
     },
   };
 }
+
+/** The drafting chip's warning line, with the help it carries for assistive technology; it speaks through the header's polite region, so it has no alert role of its own. */
+export function headerAlert(canvasElement: HTMLElement) {
+  const header = canvasElement.ownerDocument.querySelector<HTMLElement>('.seated-header')!;
+  return within(header)
+    .getByText(/^(Seats were not dealt|Not enough factions in the pool)/u)
+    .closest('strong');
+}
+
+/** The deal found a drafted faction unready: it is set aside with its reason, readiness cleared, and it cannot be drafted again until it is ready. */
+export const NOT_READY = 'faction token, The faction token back has no published face.';

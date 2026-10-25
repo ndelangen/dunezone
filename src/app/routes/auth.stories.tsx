@@ -1,6 +1,7 @@
 import preview from '@sb/preview';
 import { expect, within } from 'storybook/test';
 
+import { lastSignedInWithDiscord } from './auth.stories.fixture';
 import { pageStoryMeta } from './storybookConfig';
 
 const meta = preview.meta({
@@ -33,11 +34,6 @@ export const LoginAfterUnfinishedSignIn = meta.story({
     ).resolves.toBeInTheDocument();
   },
 });
-/* The browser remembers the provider it last finished signing in with, so the story plants that memory before the page reads it. */
-const lastSignedInWithDiscord = () => {
-  localStorage.setItem('dunezone-last-sign-in', 'discord');
-  return () => localStorage.removeItem('dunezone-last-sign-in');
-};
 /** The last-used provider has a mark on its logo and "Last used" in its accessible name. */
 export const LoginLastUsed = meta.story({
   args: { path: '/auth/login' },
@@ -50,20 +46,6 @@ export const LoginLastUsed = meta.story({
     await expect(page.getByRole('button', { name: 'Continue with Google' })).toHaveAccessibleName(
       'Continue with Google'
     );
-  },
-});
-/** On a phone the mark stays on the logo without clipping the label. */
-export const LoginLastUsedMobile = meta.story({
-  args: { path: '/auth/login' },
-  parameters: { identity: null },
-  globals: { viewport: { value: 'appMobile' } },
-  beforeEach: lastSignedInWithDiscord,
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    const discord = await page.findByRole('button', { name: /^Continue with Discord/ }, { timeout: 30_000 });
-    await expect(discord).toHaveAccessibleName('Continue with Discord Last used');
-    await expect(discord.scrollWidth).toBeLessThanOrEqual(discord.clientWidth);
-    await expect(canvasElement.ownerDocument.documentElement.scrollWidth).toBeLessThanOrEqual(window.innerWidth);
   },
 });
 /** A failed sign-in lands on the error page, which names the code the provider returned. */

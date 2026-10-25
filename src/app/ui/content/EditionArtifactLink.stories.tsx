@@ -37,11 +37,3 @@ export const PreparingInAToolbar = meta.story({
     await expect(action).toHaveAccessibleDescription('The HTML is still being prepared.');
   },
 });
-
-/** A ready file in a toolbar wears the same tile as every other toolbar action. */
-export const ReadyInAToolbar = meta.story({
-  args: {
-    size: 'lg' as const,
-    artifact: { status: 'ready' as const, href: '/published/rulebooks/example/editions/2/rulebook.html' },
-  },
-});

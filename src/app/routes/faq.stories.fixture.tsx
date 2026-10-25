@@ -1,4 +1,4 @@
-import type { within } from 'storybook/test';
+import { within } from 'storybook/test';
 
 import { ref, ruleset } from '@db/storybook';
 import type { StorybookDatabase } from '@db/storybook';
@@ -45,4 +45,11 @@ export function seedRulesets(baseline: StorybookDatabase, classicQuestions: numb
 /** The list's rows, each named by the question it opens. */
 export function questionRows(main: ReturnType<typeof within>) {
   return main.getAllByRole('link', { name: /^Open question: / });
+}
+
+/** The whole page and its main region, once the FAQ page has rendered. */
+export async function findFaqMain(canvasElement: HTMLElement) {
+  const page = within(canvasElement.ownerDocument.body);
+  const main = within(await page.findByRole('main', {}, { timeout: 30_000 }));
+  return { page, main };
 }

@@ -1,5 +1,5 @@
 import preview from '@sb/preview';
-import { expect, waitFor, within } from 'storybook/test';
+import { expect } from 'storybook/test';
 
 import { AppHeader } from './AppHeader';
 import { shellPageOptionLabels, shellPageOptions } from './ShellStoryPage.stories.fixture';
@@ -28,22 +28,6 @@ const meta = preview.meta({
       control: { type: 'radio' },
     },
   },
-});
-
-export const DefaultHeader = meta.story({
-  globals: { viewport: { value: 'appDesktop' }, motion: 'on' },
-  play: async ({ canvasElement }) => {
-    const band = canvasElement.querySelector<HTMLElement>('[data-app-band]');
-    await expect(band).toBeVisible();
-    await expect(within(band!).getByRole('navigation', { name: 'Primary navigation' })).toBeVisible();
-    /* Motion is pinned on, so the loop mounts over the poster once the band has its height, whatever the runner prefers. */
-    await waitFor(() => expect(band!.querySelector('video')).not.toBeNull(), { timeout: 30_000 });
-  },
-});
-
-/** Below 62rem the band drops to a fixed height and the artwork anchors left. */
-export const DefaultHeaderMobile = meta.story({
-  globals: { viewport: { value: 'appMobile' } },
 });
 
 /**

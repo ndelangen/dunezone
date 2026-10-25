@@ -40,8 +40,3 @@ export const LastPage = meta.story({
 export const IncompleteSearch = meta.story({
   args: { page: 1, pageCount: 43, total: 1024, complete: false },
 });
-
-/* One page of results draws nothing, unless the search stopped short. */
-export const SinglePageIncomplete = meta.story({
-  args: { page: 1, pageCount: 1, total: 12, complete: false },
-});

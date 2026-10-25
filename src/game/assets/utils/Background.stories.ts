@@ -16,16 +16,6 @@ export const SubtleTexture = meta.story({
   },
 });
 
-export const DominantTexture = meta.story({
-  args: {
-    image: '/image/texture/011.jpg',
-    colors: ['#D6409F', '#1DA6D8'],
-    influence: 0.9,
-    invert: false,
-    definition: 1,
-  },
-});
-
 export const LinearGradient = meta.story({
   args: {
     image: '/image/texture/011.jpg',

@@ -3,7 +3,7 @@ import preview from '@sb/preview';
 import { expect, fn, userEvent, within } from 'storybook/test';
 
 import { FaqList } from './FaqList';
-import { faqItems } from './FaqList.stories.fixture';
+import { faqItems, expectLean } from './FaqList.stories.fixture';
 
 const meta = preview.meta({
   component: FaqList,
@@ -76,18 +76,6 @@ export const AcrossRulesets = meta.story({
   },
 });
 
-/** The same component given less room, without a viewport breakpoint. */
-export const Narrow = meta.story({
-  render: (args) => (
-    <div style={{ width: 320 }}>
-      <FaqList {...args} />
-    </div>
-  ),
-  play: async ({ canvasElement }) => {
-    await expectLean(within(canvasElement));
-  },
-});
-
 export const WidthBoundary = meta.story({
   render: (args) => (
     <div style={{ display: 'flex', gap: 'var(--space-xl)', alignItems: 'start' }}>
@@ -115,40 +103,6 @@ export const WidthBoundary = meta.story({
     await expect(getComputedStyle(full.getByText('Only when the ruleset explicitly allows it.')).webkitLineClamp).toBe(
       'none'
     );
-  },
-});
-
-async function expectLean(canvas: ReturnType<typeof within>) {
-  await expect(canvas.getByRole('link', { name: 'Can leaders move through the storm?' })).toBeVisible();
-  await expect(canvas.queryByRole('link', { name: 'Chani' })).not.toBeInTheDocument();
-  await expect(canvas.queryByRole('link', { name: 'Stilgar' })).not.toBeInTheDocument();
-  await expect(canvas.queryByRole('link', { name: 'Lasgun' })).not.toBeInTheDocument();
-  await expect(canvas.getByRole('link', { name: '2 related' })).toHaveAttribute(
-    'href',
-    '/rulesets/dreamrules/faq/storm-movement'
-  );
-  for (const label of canvas.getAllByText('Asked by:')) {
-    await expect(label).not.toBeVisible();
-  }
-  await expect(canvas.getByText('Answered by:')).not.toBeVisible();
-  await expect(canvas.getByText('Rules', { exact: true })).not.toBeVisible();
-}
-
-export const NarrowMixedRulesets = meta.story({
-  args: {
-    rulesetSlug: undefined,
-    items: faqItems.map((item) => ({ ...item, ruleset: { name: 'Dreamrules', slug: 'dreamrules' } })),
-  },
-  render: (args) => (
-    <div style={{ width: 400 }}>
-      <FaqList {...args} />
-    </div>
-  ),
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    await expectLean(canvas);
-    await expect(canvas.getAllByRole('link', { name: 'Dreamrules' })).toHaveLength(2);
-    await expect(canvas.getByRole('link', { name: /Open question:.*Unanswered, 0 answers/ })).toBeVisible();
   },
 });
 
@@ -192,22 +146,6 @@ export const LeanOverflow = meta.story({
   },
 });
 
-export const Medium = meta.story({
-  render: (args) => (
-    <div style={{ width: 560 }}>
-      <FaqList {...args} />
-    </div>
-  ),
-});
-
-export const Wide = meta.story({
-  render: (args) => (
-    <div style={{ width: 960 }}>
-      <FaqList {...args} />
-    </div>
-  ),
-});
-
 export const OpenDiscussion = meta.story({
   args: {
     items: [
@@ -225,37 +163,5 @@ export const OpenDiscussion = meta.story({
     const canvas = within(canvasElement);
     await expect(canvas.getByText('Answered by:')).toBeVisible();
     await expect(canvas.queryByText('Only when the ruleset explicitly allows it.')).not.toBeInTheDocument();
-  },
-});
-
-export const MoreReferences = meta.story({
-  args: { items: [{ ...faqItems[0]!, list_details: { ...faqItems[0]!.list_details!, has_more_references: true } }] },
-  play: async ({ canvasElement }) => {
-    await expect(within(canvasElement).getByRole('link', { name: 'View all references' })).toHaveAttribute(
-      'href',
-      '/rulesets/dreamrules/faq/storm-movement'
-    );
-  },
-});
-
-export const LongDiscussion = meta.story({
-  args: {
-    items: [
-      {
-        ...faqItems[0]!,
-        accepted_answer_id: null,
-        list_details: {
-          ...faqItems[0]!.list_details!,
-          accepted_answer: null,
-          has_more_answers: true,
-        },
-      },
-    ],
-  },
-  play: async ({ canvasElement }) => {
-    await expect(within(canvasElement).getByRole('link', { name: 'View all answers' })).toHaveAttribute(
-      'href',
-      '/rulesets/dreamrules/faq/storm-movement'
-    );
   },
 });

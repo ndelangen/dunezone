@@ -1,13 +1,11 @@
 import preview from '@sb/preview';
-import { spiceBoardLink, spiceBoardTokens } from '@shared/assets/fixtures/spiceBoardCard';
+import { spiceBoardTokens } from '@shared/assets/fixtures/spiceBoardCard';
 import { arrakisBoard } from '@shared/boards/geometry';
 import { resolveAsset } from '@shared/media/resolveAsset';
-import type { ComponentProps } from 'react';
 import { expect } from 'storybook/test';
 
 import { SpiceCard } from './Spice';
-
-type SpiceCardProps = ComponentProps<typeof SpiceCard>;
+import { discoveryOnBoard } from './Spice.stories.fixture';
 
 const meta = preview.meta({
   component: SpiceCard,
@@ -64,16 +62,6 @@ export const DiscoveryWindPassNorth = meta.story({
     await expect(overlays[0]).toHaveAttribute('width', '6.2');
   },
 });
-
-const discoveryOnBoard: SpiceCardProps = {
-  name: 'Funeral Plain',
-  subName: 'Spice blow - Discovery',
-  icon: 'spice',
-  highlights: [],
-  amount: 6,
-  text: `**Smuggler token** on Pasty Mesa\n+\n**6 spice** on Funeral Plain`,
-  board: spiceBoardLink,
-};
 
 /** A card linked to a saved board: Play tints over the board's own artwork, then tokens placed freely. */
 export const OnSavedBoard = meta.story({
@@ -139,23 +127,6 @@ export const MissingTerritory = meta.story({
   play: async ({ canvasElement }) => {
     await expect(canvasElement.querySelectorAll('[data-tint="blow"] > g')).toHaveLength(0);
     await expect(canvasElement.querySelectorAll('[data-tint="strongholds"] > g')).toHaveLength(5);
-  },
-});
-
-/** Renaming a territory keeps its ID, so the card's tint on it still draws. */
-export const RenamedTerritory = meta.story({
-  args: {
-    ...discoveryOnBoard,
-    boardDefinition: (() => {
-      const board = arrakisBoard();
-      const key = Object.keys(board.properties).find((k) => board.properties[k].name === 'Funeral plain')!;
-      board.properties[key] = { ...board.properties[key], name: 'Funeral flats' };
-      return board;
-    })(),
-    boardTokens: spiceBoardTokens,
-  },
-  play: async ({ canvasElement }) => {
-    await expect(canvasElement.querySelectorAll('[data-tint="blow"] > g').length).toBeGreaterThan(0);
   },
 });
 
