@@ -56,6 +56,15 @@ describe('Play debugger preview', () => {
     expect(emitted).toEqual([]);
   });
 
+  it('sends nothing after a story ends while a panel replay overtook its batch', () => {
+    const debugging = beginDebugging({ title: 'First', description: '' });
+    ask();
+    debugging.end();
+    emitted.length = 0;
+    vi.runAllTimers();
+    expect(emitted).toEqual([]);
+  });
+
   it('keeps an older story out of the session that replaced it', () => {
     const first = beginDebugging({ title: 'First', description: '' });
     const second = beginDebugging({ title: 'Second', description: '' });

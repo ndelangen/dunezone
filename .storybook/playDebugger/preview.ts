@@ -76,7 +76,12 @@ function state(): DebuggerState {
 }
 
 function flush() {
+  /* A replay flushes at once; the batch it overtakes must not fire later, after the session may have ended. */
+  clearTimeout(session.timer);
   session.timer = undefined;
+  if (!session.active) {
+    return;
+  }
   if (session.pending.length) {
     channel().emit(PLAY_DEBUGGER_EVENTS.traffic, session.pending);
     session.pending = [];
