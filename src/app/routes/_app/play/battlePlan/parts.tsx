@@ -1,4 +1,4 @@
-import { Button, Tooltip, UnstyledButton } from '@mantine/core';
+import { Button, Popover, Tooltip, UnstyledButton } from '@mantine/core';
 import type { BattleFace, BattlePlan, Disclosure } from '@shared/play/battle';
 import type { TablePiece } from '@shared/play/model';
 import clsx from 'clsx';
@@ -15,8 +15,10 @@ import styles from './parts.module.css';
 import { MODE_HELP, formatStrength, isShown } from './planView';
 import type { BattlePlanViewProps, Opponent, WheelArt } from './planView';
 
-/** The rare strength adjustment, kept small beside the mode switch: a half-step stepper with its name. */
-export function AdjustField({
+/**
+ * The rare strength adjustment, folded into a small button beside the strength it changes: it reads ± until set, then the adjustment itself, and opens a half-step stepper.
+ */
+export function AdjustButton({
   plan,
   disabled,
   onEdit,
@@ -25,21 +27,35 @@ export function AdjustField({
   disabled: boolean;
   onEdit: BattlePlanViewProps['onEdit'];
 }) {
+  const { adjustment } = plan;
+  const shown = adjustment ? `${adjustment > 0 ? '+' : '−'}${formatStrength(Math.abs(adjustment))}` : '±';
   return (
-    <span className={styles.adjust} title="Strength added or taken by hand, for what the plan does not count">
-      <span>Adjust</span>
-      <Stepper
-        size="sm"
-        label="Adjustment"
-        value={plan.adjustment}
-        min={-20}
-        max={20}
-        step={0.5}
-        format={formatStrength}
-        disabled={disabled}
-        onChange={(adjustment) => onEdit({ adjustment })}
-      />
-    </span>
+    <Popover position="bottom" withArrow shadow="md">
+      <Popover.Target>
+        <UnstyledButton
+          className={styles.adjustButton}
+          data-set={adjustment ? true : undefined}
+          aria-label={`Adjust the strength by hand${adjustment ? `, now ${shown}` : ''}`}
+          title="Adjust the strength by hand, for what the plan does not count"
+        >
+          {shown}
+        </UnstyledButton>
+      </Popover.Target>
+      <Popover.Dropdown className={styles.adjust}>
+        <span>Adjust</span>
+        <Stepper
+          size="sm"
+          label="Adjustment"
+          value={adjustment}
+          min={-20}
+          max={20}
+          step={0.5}
+          format={formatStrength}
+          disabled={disabled}
+          onChange={(next) => onEdit({ adjustment: next })}
+        />
+      </Popover.Dropdown>
+    </Popover>
   );
 }
 

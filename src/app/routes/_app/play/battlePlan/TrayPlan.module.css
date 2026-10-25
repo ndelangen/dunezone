@@ -1,7 +1,7 @@
 .tray {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 0.45rem;
+  gap: 0.35rem;
   min-height: 100%;
 }
 
@@ -46,7 +46,7 @@
   display: grid;
   grid-template-columns: 30px auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: 0.35rem 0.55rem;
+  gap: 0.25rem 0.55rem;
 }
 
 /* Each row lays its cells straight into the dial's grid, so the sliders and steppers line up in columns. */
@@ -82,19 +82,13 @@
   color: var(--ui-brass);
 }
 
-.adjust {
-  display: flex;
-  grid-column: 1 / -1;
-  justify-content: flex-end;
-}
-
 /* One row that scrolls sideways, so the hand stays one line. */
 .hand {
   display: flex;
   align-items: center;
   gap: 0.45rem;
-  min-height: 4.2rem;
-  padding: 0.6rem 0.5rem 0.5rem;
+  min-height: 3.8rem;
+  padding: 0.45rem 0.5rem 0.35rem;
   overflow-x: auto;
   scrollbar-width: thin;
   border: 1px dashed transparent;

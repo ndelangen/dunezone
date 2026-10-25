@@ -148,11 +148,6 @@
   filter: none;
 }
 
-.adjust {
-  display: flex;
-  justify-content: flex-end;
-}
-
 :global(html[data-motion="reduce"]) :is(.fill, .knob, .handPiece) {
   transition: none;
 }

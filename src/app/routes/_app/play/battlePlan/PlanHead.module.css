@@ -1,21 +1,19 @@
-/* Sticks to the top of the window's scrolling body, edge to edge, so the wheel never scrolls away. */
+/* Sticks to the top of the window's scrolling body, edge to edge, so the strength and Ready never scroll away. */
 .head {
   position: sticky;
-  top: -1rem;
+  top: -0.9rem;
   z-index: 3;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: end;
-  gap: 0.8rem;
-  margin: -1rem -1rem 0;
-  padding: 0.5rem 1rem 0.6rem;
+  gap: 0.35rem;
+  margin: -0.9rem -1rem 0;
+  padding: 0.55rem 1rem 0.55rem;
   border-bottom: 1px solid var(--edge);
   background: var(--glass-solid);
 }
 
 /* Room above the wheel for the fanned cards, as the wheel draws them over its top edge. */
 .wheelBox {
-  --wheel-zoom: 0.72;
+  --wheel-zoom: 0.7;
 
   position: relative;
   display: grid;
@@ -28,6 +26,8 @@
   position: relative;
   z-index: 1;
   zoom: var(--wheel-zoom);
+  /* Standing over the window's edge, the wheel casts a shadow onto the table below. */
+  filter: drop-shadow(0 6px 12px rgb(from var(--color-shadow) r g b / 0.55));
   transition: filter 150ms;
   pointer-events: none;
 }
@@ -39,7 +39,7 @@
 
 /* A piece dragged over the wheel lights its rim: let go and it lands there. */
 .wheelBox[data-over] .wheel {
-  filter: drop-shadow(0 0 5px var(--sand));
+  filter: drop-shadow(0 0 6px var(--sand));
 }
 
 .wheel[data-thunk="0"] {
@@ -73,11 +73,16 @@
   cursor: default;
 }
 
-.side {
-  display: grid;
-  align-content: end;
-  gap: 0.45rem;
+.sumRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   min-width: 0;
+}
+
+.ready {
+  flex: none;
+  margin-left: auto;
 }
 
 .reveals {

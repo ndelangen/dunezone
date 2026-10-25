@@ -8,7 +8,7 @@ import { Fragment, useLayoutEffect, useRef, useState } from 'react';
 import { useMotionAllowed } from '@app/styles/motion';
 
 import { PieceImage, pieceName } from '../multiplayer/HandPiece';
-import { AdjustField, Stepper, TroopLabel } from './parts';
+import { Stepper, TroopLabel } from './parts';
 import { PlanHead } from './PlanHead';
 import {
   availableSpice,
@@ -135,7 +135,7 @@ export function TrayPlan(props: BattlePlanViewProps) {
         {onWheel ? (
           <PieceImage piece={piece} />
         ) : (
-          <PieceImage piece={piece} width={piece.kind === 'card' ? 40 : 44} height={piece.kind === 'card' ? 56 : 44} />
+          <PieceImage piece={piece} width={piece.kind === 'card' ? 36 : 40} height={piece.kind === 'card' ? 50 : 40} />
         )}
       </UnstyledButton>
     </div>
@@ -196,9 +196,6 @@ export function TrayPlan(props: BattlePlanViewProps) {
             );
           })
         )}
-        <div className={styles.adjust}>
-          <AdjustField plan={plan} disabled={locks.dialLocked} onEdit={onEdit} />
-        </div>
       </section>
       <section className={styles.hand} aria-label="Your hand" {...zone('hand')}>
         {inHand.map((piece) => tile(piece, 'plan'))}

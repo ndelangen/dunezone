@@ -6,8 +6,9 @@ import type { HTMLAttributes, ReactNode } from 'react';
 import { useMotionAllowed } from '@app/styles/motion';
 import { BattleWheel } from '@game/assets/generic/BattleWheel';
 
+import { WindowHero } from '../compass/windowHero';
 import { PieceImage, pieceName } from '../multiplayer/HandPiece';
-import { BattleLine, ReadyButton, RevealToggle, StrengthSum, useBump } from './parts';
+import { AdjustButton, BattleLine, ReadyButton, RevealToggle, StrengthSum, useBump } from './parts';
 import styles from './PlanHead.module.css';
 import { capableFaces, disclosure, planLocks, planPieces, toggleCard, toggleLeader } from './planView';
 import type { BattlePlanViewProps } from './planView';
@@ -53,43 +54,52 @@ export function PlanHead({ view, around, wheelBox, renderPiece, reveals }: Props
       );
     });
   return (
-    <header className={styles.head}>
-      <div {...wheelBox} className={clsx(styles.wheelBox, wheelBox?.className)}>
-        {around}
-        <div className={styles.wheel} data-thunk={thunk}>
-          <BattleWheel
-            state="revealed"
-            motion={motion}
-            label={`Your plan: troop strength ${plan.strength}, ${plan.spice} spice`}
-            background={wheelArt.background}
-            strength={plan.strength}
-            spice={plan.spice}
-            adjustment={plan.adjustment}
-            troops={capableFaces(plan).flatMap((face) => {
-              const troop = plan.troops.find((entry) => entry.faceId === face.id);
-              const artwork = wheelArt.troops[face.id];
-              return artwork
-                ? [
-                    {
-                      id: face.id,
-                      name: face.name,
-                      dialed: troop?.dialed ?? 0,
-                      undialed: troop?.undialed ?? 0,
-                      artwork,
-                    },
-                  ]
-                : [];
-            })}
-            cards={cards.map((card) => (
-              <div key={card.id}>{piece(card)}</div>
-            ))}
-            leader={leader ? piece(leader) : undefined}
-          />
+    <>
+      <WindowHero>
+        <div {...wheelBox} className={clsx(styles.wheelBox, wheelBox?.className)}>
+          {around}
+          <div className={styles.wheel} data-thunk={thunk}>
+            <BattleWheel
+              state="revealed"
+              motion={motion}
+              wordmark={false}
+              label={`Your plan: troop strength ${plan.strength}, ${plan.spice} spice`}
+              background={wheelArt.background}
+              strength={plan.strength}
+              spice={plan.spice}
+              adjustment={plan.adjustment}
+              troops={capableFaces(plan).flatMap((face) => {
+                const troop = plan.troops.find((entry) => entry.faceId === face.id);
+                const artwork = wheelArt.troops[face.id];
+                return artwork
+                  ? [
+                      {
+                        id: face.id,
+                        name: face.name,
+                        dialed: troop?.dialed ?? 0,
+                        undialed: troop?.undialed ?? 0,
+                        artwork,
+                      },
+                    ]
+                  : [];
+              })}
+              cards={cards.map((card) => (
+                <div key={card.id}>{piece(card)}</div>
+              ))}
+              leader={leader ? piece(leader) : undefined}
+            />
+          </div>
         </div>
-      </div>
-      <div className={styles.side}>
+      </WindowHero>
+      <header className={styles.head}>
         <BattleLine territory={view.territory} opponent={view.opponent} />
-        <StrengthSum props={view} />
+        <div className={styles.sumRow}>
+          <StrengthSum props={view} />
+          <AdjustButton plan={plan} disabled={locks.dialLocked} onEdit={view.onEdit} />
+          <span className={styles.ready}>
+            <ReadyButton {...view} />
+          </span>
+        </div>
         {reveals ? (
           <div className={styles.reveals} aria-label="Show parts before the reveal">
             {leader ? (
@@ -131,8 +141,7 @@ export function PlanHead({ view, around, wheelBox, renderPiece, reveals }: Props
             </span>
           </div>
         ) : null}
-        <ReadyButton {...view} fullWidth />
-      </div>
-    </header>
+      </header>
+    </>
   );
 }

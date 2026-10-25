@@ -1,7 +1,7 @@
 import { UnstyledButton } from '@mantine/core';
 
 import styles from './LedgerPlan.module.css';
-import { AdjustField, PieceTile, RevealToggle, Stepper, TroopLabel } from './parts';
+import { PieceTile, RevealToggle, Stepper, TroopLabel } from './parts';
 import { PlanHead } from './PlanHead';
 import {
   availableSpice,
@@ -86,7 +86,6 @@ export function LedgerPlan(props: BattlePlanViewProps) {
       </section>
       <section className={styles.dial} aria-label="Dial">
         <header className={styles.dialHead}>
-          <AdjustField plan={plan} disabled={locks.dialLocked} onEdit={onEdit} />
           <RevealToggle
             className={styles.dialReveal}
             plan={plan}

@@ -12,7 +12,6 @@ import {
   capableFaces,
   cardsOf,
   disclosure,
-  formatStrength,
   fullSupport,
   leadersOf,
   planLocks,
@@ -230,18 +229,6 @@ export function StepsPlan(props: BattlePlanViewProps) {
               ))
             )}
             <div className={styles.adjust}>
-              <span>Adjust</span>
-              <Stepper
-                size="sm"
-                label="Adjustment"
-                value={plan.adjustment}
-                min={-20}
-                max={20}
-                step={0.5}
-                format={formatStrength}
-                disabled={locks.dialLocked}
-                onChange={(adjustment) => onEdit({ adjustment })}
-              />
               <UnstyledButton className={styles.next} disabled={locks.locked} onClick={() => finish('dial')}>
                 Done
               </UnstyledButton>

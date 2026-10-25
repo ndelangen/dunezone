@@ -6,7 +6,7 @@ import { useRef, useState } from 'react';
 
 import { Key } from '../compass/glyphs';
 import { PieceImage, pieceName } from '../multiplayer/HandPiece';
-import { AdjustField, TroopLabel } from './parts';
+import { TroopLabel } from './parts';
 import { PlanHead } from './PlanHead';
 import {
   availableSpice,
@@ -159,9 +159,6 @@ export function WheelPlan(props: BattlePlanViewProps) {
             onPick={() => onEdit(entry.kind === 'card' ? toggleCard(plan, entry.id) : { leaderId: entry.id })}
           />
         ))}
-      </div>
-      <div className={styles.adjust}>
-        <AdjustField plan={plan} disabled={locks.dialLocked} onEdit={onEdit} />
       </div>
     </div>
   );

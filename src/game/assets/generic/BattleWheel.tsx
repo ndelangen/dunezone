@@ -21,6 +21,8 @@ type Revealed = {
   }[];
   cards?: readonly ReactNode[];
   leader?: ReactNode;
+  /** The faint wordmark behind the numbers; left out where the wheel is drawn small and it would only blur the strength. */
+  wordmark?: boolean;
 };
 
 type Props = {
@@ -72,7 +74,16 @@ export function BattleWheel(props: Props) {
   );
 }
 
-function RevealedWheel({ background, strength, spice, adjustment, troops, cards = [], leader }: Revealed) {
+function RevealedWheel({
+  background,
+  strength,
+  spice,
+  adjustment,
+  troops,
+  cards = [],
+  leader,
+  wordmark = true,
+}: Revealed) {
   return (
     <>
       <div className={styles.cards}>
@@ -140,9 +151,11 @@ function RevealedWheel({ background, strength, spice, adjustment, troops, cards 
             </div>
           </div>
         </div>
-        <svg className={styles.wordmark} viewBox="0 0 100 100" aria-hidden="true">
-          <use href="/vector/decal/battlewheel-multicolor.svg#root" />
-        </svg>
+        {wordmark ? (
+          <svg className={styles.wordmark} viewBox="0 0 100 100" aria-hidden="true">
+            <use href="/vector/decal/battlewheel-multicolor.svg#root" />
+          </svg>
+        ) : null}
         {!!adjustment && (
           <div
             className={clsx(styles.adjustment, adjustment > 0 ? styles.positive : styles.negative)}

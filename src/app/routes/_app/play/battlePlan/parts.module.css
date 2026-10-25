@@ -78,6 +78,26 @@
   white-space: nowrap;
 }
 
+.adjustButton {
+  min-width: 1.6rem;
+  padding: 0.1rem 0.4rem;
+  border: 1px solid var(--edge);
+  border-radius: 999px;
+  color: var(--ink-dim);
+  font: 600 0.74rem var(--font-sans);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.adjustButton:hover {
+  color: var(--ink);
+}
+
+.adjustButton[data-set] {
+  border-color: var(--sand);
+  color: var(--sand);
+}
+
 .adjust {
   display: inline-flex;
   align-items: center;

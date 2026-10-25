@@ -254,7 +254,11 @@ const BATTLE_WINDOW: Omit<TableWindow, 'content'> = {
   topic: 'battle',
   description: 'Your private plan for the battle on the table.',
   layout: 'stack',
+  hero: true,
 };
+
+/* Room above the slot for the wheel and its cards, which stand over the window's top edge. */
+const HERO_ROOM = 150;
 
 export type SlotSize = 'slot' | 'narrow' | 'wide' | 'tall';
 const SLOT_SIZES: Readonly<Record<SlotSize, { width: string; height: string }>> = {
@@ -273,7 +277,7 @@ function SlotFrame({ size, actions, children }: { size: SlotSize; actions: React
       <div
         className="dune-play-shell"
         {...darkSchemeIslandAttributes}
-        style={{ width: `calc(${width} + 24px)`, height: `calc(${height} + 24px)` }}
+        style={{ width: `calc(${width} + 24px)`, height: `calc(${height} + 24px + ${HERO_ROOM}px)` }}
       >
         <div className={compassStyles.root} style={{ '--slot-width': width } as CSSProperties}>
           <WindowFrame
