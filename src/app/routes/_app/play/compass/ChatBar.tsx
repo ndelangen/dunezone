@@ -27,7 +27,8 @@ function words(...parts: (string | null | false | 0 | undefined)[]) {
 
 export function ChatBar({ inert, isOpen, onOpenCompass, onShow }: ChatBarProps) {
   const table = useContext(CompassTableContext);
-  const others = table?.players.filter((player) => !player.own) ?? [];
+  /* The other players to talk to, and the viewer too while a removal vote stands against them. */
+  const others = table?.players.filter((player) => !player.own || player.vote) ?? [];
   const tableChat = table?.tableChat;
   return (
     <div className={styles.bar} inert={inert} data-hides-cursor data-compass-bar>

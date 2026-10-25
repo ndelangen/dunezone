@@ -51,6 +51,10 @@ function useTablePress(onPress: () => void, enabled: boolean) {
   }, [enabled]);
 }
 
+function unlessShown(entry: Opened | null, shown: readonly (Opened | null)[]) {
+  return entry && shown.some((other) => other?.key === entry.key) ? null : entry;
+}
+
 export function useOpenWindows(windows: readonly TableWindow[], compassOpen: boolean) {
   const [openCentre, setCentre] = useState<Opened | null>(null);
   const [openSlots, setSlots] = useRemembered<Slots>('slots', { left: null, right: null });
@@ -66,8 +70,11 @@ export function useOpenWindows(windows: readonly TableWindow[], compassOpen: boo
     const target = entry?.vote ? windows.find((window) => window.player?.vote === entry.vote) : undefined;
     return entry && target && target.key !== entry.key ? { ...entry, key: target.key } : entry;
   };
-  const centre = followed(openCentre);
-  const slots: Slots = { left: followed(openSlots.left), right: followed(openSlots.right) };
+  /* Following a vote can bring two windows onto one player; the slots keep theirs, left first, and the centre gives way. */
+  const left = followed(openSlots.left);
+  const right = unlessShown(followed(openSlots.right), [left]);
+  const slots: Slots = { left, right };
+  const centre = unlessShown(followed(openCentre), [left, right]);
 
   /* A player's window opens on the chat when there is one to have, otherwise on what they show. */
   const firstTab = (key: string): PlayerTab => {

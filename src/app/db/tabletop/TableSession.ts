@@ -831,6 +831,7 @@ export class TableSession {
       affordances: [],
       spiceReserveControls: undefined,
       deckControls: undefined,
+      handControls: undefined,
       deleteControls: undefined,
       peek: null,
       peekControls: undefined,

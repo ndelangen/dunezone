@@ -127,3 +127,18 @@ test('a tutorial remembers nothing: it neither reads nor overwrites the game lay
     right: null,
   });
 });
+
+test('a window following a vote onto a player already open elsewhere leaves them shown once', () => {
+  const voted = (seat: string) => window(`player:${seat}`, { player: { ...player, seat, vote: 'vote-1' } });
+  const plain = (seat: string) => window(`player:${seat}`, { player: { ...player, seat } });
+  const { result, rerender } = renderHook(({ list }) => useOpenWindows(list, false), {
+    initialProps: { list: [voted('seat-4'), plain('seat-2')] },
+  });
+  act(() => result.current.show('player:seat-4', 'public'));
+  act(() => result.current.pin('left'));
+  act(() => result.current.show('player:seat-2', 'public'));
+  act(() => result.current.pin('right'));
+  rerender({ list: [plain('seat-4'), voted('seat-2')] });
+  expect(result.current.slots.left?.key).toBe('player:seat-2');
+  expect(result.current.slots.right).toBeNull();
+});
