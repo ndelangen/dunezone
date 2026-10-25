@@ -41,7 +41,8 @@ export const install = (transportFor: () => ReturnType<typeof productTransport>)
 export const gameMeta = {
   ...pageStoryMeta,
   args: { path: refText(GAME_KEY, `/play/${SEED_REF_TOKEN}`) },
-  parameters: { ...pageStoryMeta.parameters, ...parameters('ready') },
+  /* The Play debugger panel shows the page's game socket: its state, its history and the story's controls. */
+  parameters: { ...pageStoryMeta.parameters, ...parameters('ready'), playDebugger: true },
   decorators: [
     ((Story) => (
       <GameRuntimeContext value={session.runtime}>
