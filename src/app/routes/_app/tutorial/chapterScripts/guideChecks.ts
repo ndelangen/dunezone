@@ -46,10 +46,17 @@ export const viaCompass = (spot: string) => () =>
       : '[data-compass-launcher]'
   );
 
-/* Holding Alt over a card or token shows it flat beside the pointer; the close-up's own mark says it is showing. */
+/*
+ * Holding Alt over a card or token shows it flat beside the pointer; the close-up's own mark says it is showing.
+ * The task counts once the close-up has shown and closed again, so it does not tick over while the player is still reading it.
+ */
 export const closeUpShown = () => ({
-  begin: () => undefined,
-  done: () => document.querySelector('[data-piece-close-up]') !== null,
+  begin: () => ({ seen: false }),
+  done: (watch: { seen: boolean }) => {
+    const showing = document.querySelector('[data-piece-close-up]') !== null;
+    watch.seen ||= showing;
+    return watch.seen && !showing;
+  },
 });
 
 /*

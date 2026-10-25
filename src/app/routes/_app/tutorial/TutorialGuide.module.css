@@ -293,6 +293,24 @@
   margin-top: auto;
 }
 
+/* When the arrow has nothing to point at, the keys named in the task at hand pulse, as they are what to press. */
+.rail[data-keys-only] .railStep[data-state="current"] .railDetail kbd {
+  animation: key-call 1.6s var(--ease) infinite;
+}
+
+@keyframes key-call {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-caution-inverse) 0%, transparent);
+    color: inherit;
+  }
+  30% {
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-caution-inverse) 45%, transparent);
+    color: var(--color-caution-inverse);
+    transform: translateY(-1px);
+  }
+}
+
 /* Without motion every state shows at once. */
 .guide[data-motion="reduce"] *,
 .guide[data-motion="reduce"] *::after {

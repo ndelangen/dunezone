@@ -70,7 +70,8 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
     task({
       id: 'close-up',
       task: 'Read the card up close',
-      detail: 'Point at the card in your hand and hold {Alt}. It shows flat and large, as on the table.',
+      detail:
+        'Point at the card in your hand and hold {Alt}. It shows flat and large, as on the table; read it, then let go.',
       anchor: { kind: 'page', element: lastElement(HAND_PIECE) },
       ...closeUpShown(),
     }),

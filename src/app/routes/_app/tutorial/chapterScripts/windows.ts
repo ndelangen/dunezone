@@ -47,18 +47,29 @@ const showing = (view: string) =>
   document.querySelector(`[aria-label^="Focus on ${view}"]`)?.getAttribute('aria-pressed') === 'true';
 
 const nothing = () => undefined;
-/* A window's (?) explains it on hover or focus, so the task counts the player pointing at one or tabbing onto it. */
+/*
+ * A window's (?) explains it on hover or focus. The task counts once the player has pointed at one or tabbed onto it
+ * and then moved away again, so it does not tick over while they are still reading (Norbert, 2026-10-25).
+ */
 const HELP = '[data-window] [aria-label="Help"]';
 const readHelp = () => ({
   begin: () => {
-    const watch = { read: false, stop: new AbortController() };
+    const watch = { reading: false, read: false, stop: new AbortController() };
+    const onHelp = (event: Event) => event.target instanceof Element && event.target.closest(HELP) !== null;
     const look = (event: Event) => {
-      if (event.target instanceof Element && event.target.closest(HELP)) {
+      watch.reading ||= onHelp(event);
+    };
+    const leave = (event: Event) => {
+      const next = (event as FocusEvent | PointerEvent).relatedTarget;
+      if (watch.reading && onHelp(event) && !(next instanceof Element && next.closest(HELP))) {
         watch.read = true;
       }
     };
     for (const type of ['pointerover', 'focusin']) {
       document.addEventListener(type, look, { capture: true, signal: watch.stop.signal });
+    }
+    for (const type of ['pointerout', 'focusout']) {
+      document.addEventListener(type, leave, { capture: true, signal: watch.stop.signal });
     }
     return watch;
   },
@@ -87,7 +98,8 @@ const windowTasks = (): GuideTask[] => [
   task({
     id: 'help',
     task: 'Find out what a window is for',
-    detail: 'Every window has a (?) beside its name. Point at it to read what the window holds.',
+    detail:
+      'Every window has a (?) beside its name. Point at it, read what the window holds, then move the pointer away.',
     anchor: { kind: 'page', element: first(HELP) },
     ...readHelp(),
   }),

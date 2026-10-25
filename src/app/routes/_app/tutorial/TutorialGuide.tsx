@@ -287,7 +287,11 @@ export function TutorialGuide({
     const tick = () => {
       frame = requestAnimationFrame(tick);
       const view = { camera: tableView()?.camera ?? null };
-      draw(started && doneAt === null ? place(task.anchor, windowBox(rail.current?.getBoundingClientRect())) : null);
+      const spot =
+        started && doneAt === null ? place(task.anchor, windowBox(rail.current?.getBoundingClientRect())) : null;
+      draw(spot);
+      /* With nothing on screen to point at, only a key can be the way in, so the keys in the task call for attention instead. */
+      rail.current?.toggleAttribute('data-keys-only', started && doneAt === null && spot === null);
       if (!started) {
         started = start(view);
       }
