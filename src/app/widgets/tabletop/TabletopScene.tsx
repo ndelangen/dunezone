@@ -1,7 +1,9 @@
 /* @jsxImportSource ./three-jsx */
+
 import { useFrame, useThree } from '@react-three/fiber/webgpu';
 import type { ThreeEvent } from '@react-three/fiber/webgpu';
 import { retainedArrakisBoard } from '@shared/boards/geometry';
+import { gameAssetColors, rendererColors } from '@shared/play/assetColors';
 import { isFactionToken } from '@shared/play/factionToken';
 import { gestureBlockReason, pieceCount } from '@shared/play/model';
 import type { TablePiece, TableState, Vector3Tuple } from '@shared/play/model';
@@ -45,6 +47,7 @@ import type { TableSeatCount } from '@shared/play/tableSettings';
 import type { TrackerArcSlot } from '@shared/play/tableTrackers';
 import { TRACKER_DISC_HEIGHT } from '@shared/play/tableTrackers';
 import { isTroopStack } from '@shared/play/troop';
+import { playUiColors } from '@shared/uiPalette';
 import clsx from 'clsx';
 import {
   createContext,
@@ -93,6 +96,7 @@ import { SpiceBankInteraction } from './SpiceBank';
 import { SpiceStackIcon } from './SpiceStackIcon';
 import { loadPieceBadge, loadPlayCamera, loadScenePings, loadScenePresence, loadTabletopTools } from './tableChunks';
 import { useTableFraming } from './tableFraming';
+import { useTablePalette } from './tablePalette';
 import { isPublicTablePoint } from './tablePointerPoint';
 import { TabletopBoard } from './TabletopBoard';
 import { TabletopCanvas } from './TabletopCanvas';
@@ -279,7 +283,13 @@ function PublishedFace({ href, card, ratio }: { href: string; card: boolean; rat
           <meshBasicMaterial key={href} map={texture} transparent />
         )
       ) : (
-        <meshStandardMaterial key="placeholder" color="#d5ba8c" transparent roughness={0.68} metalness={0} />
+        <meshStandardMaterial
+          key="placeholder"
+          color={playUiColors.placeholder}
+          transparent
+          roughness={0.68}
+          metalness={0}
+        />
       )}
     </mesh>
   );
@@ -313,14 +323,14 @@ function SittingOutSign() {
   return (
     <group position={[0, 0, 0.003]}>
       <mesh renderOrder={PHYSICAL_OBJECT_RENDER_ORDER} geometry={meshes.ring(SITTING_OUT_INNER, SITTING_OUT_OUTER, 64)}>
-        <meshBasicMaterial color="#000000" />
+        <meshBasicMaterial color={rendererColors.black} />
       </mesh>
       <mesh
         rotation={[0, 0, Math.PI / 4]}
         renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
         geometry={meshes.plane(SITTING_OUT_INNER * 2, SITTING_OUT_STROKE)}
       >
-        <meshBasicMaterial color="#000000" />
+        <meshBasicMaterial color={rendererColors.black} />
       </mesh>
     </group>
   );
@@ -331,7 +341,7 @@ function plainTokenFaceColor(piece: TablePiece, faceUp: boolean, printed: boolea
   if (printed) {
     return piece.color;
   }
-  return faceUp ? piece.accent : '#261c18';
+  return faceUp ? piece.accent : playUiColors.faceDownInk;
 }
 
 function TokenFace({
@@ -454,7 +464,11 @@ function CardFace({
         renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
         geometry={meshes.roundedPlane(CARD_WIDTH, CARD_DEPTH, CARD_CORNER_RADIUS)}
       >
-        <meshStandardMaterial color={faceUp ? piece.color : '#2b1a1a'} roughness={0.68} metalness={0.03} />
+        <meshStandardMaterial
+          color={faceUp ? piece.color : playUiColors.faceDownCard}
+          roughness={0.68}
+          metalness={0.03}
+        />
       </mesh>
       {covered ? null : (
         <mesh position={[0, 0, 0.001]} renderOrder={PHYSICAL_OBJECT_RENDER_ORDER} geometry={meshes.plane(0.58, 0.82)}>
@@ -487,7 +501,7 @@ function CardStackLayers({ piece }: { piece: TablePiece }) {
               renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
               geometry={meshes.roundedSlab(CARD_WIDTH, CARD_LAYER_HEIGHT, CARD_DEPTH, CARD_CORNER_RADIUS)}
             >
-              <meshStandardMaterial color="#ead9bb" roughness={0.68} metalness={0.03} />
+              <meshStandardMaterial color={gameAssetColors.pieceAccent} roughness={0.68} metalness={0.03} />
             </mesh>
             <CardFace piece={piece} faceUp={faceUp} covered={index < shownLayers - 1} itemIndex={itemIndex} />
             <CardFace piece={piece} faceUp={!faceUp} underside covered={index > 0} itemIndex={itemIndex} />
@@ -535,7 +549,7 @@ function SpiceLayers({ piece }: { piece: TablePiece }) {
             renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
             geometry={meshes.cylinder(SPICE_TOKEN_RADIUS, SPICE_TOKEN_RADIUS, SPICE_LAYER_HEIGHT, 48)}
           >
-            <meshStandardMaterial color="#b8842f" roughness={0.8} metalness={0} />
+            <meshStandardMaterial color={gameAssetColors.spiceStack} roughness={0.8} metalness={0} />
           </mesh>
           <SpiceFace />
         </group>
@@ -569,7 +583,7 @@ function SpiceFace() {
         renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
         geometry={meshes.circle(SPICE_TOKEN_RADIUS * 0.79, 48)}
       >
-        <meshStandardMaterial color="#f6d77f" roughness={1} metalness={0} />
+        <meshStandardMaterial color={gameAssetColors.spiceFallbackFace} roughness={1} metalness={0} />
       </mesh>
       <SpiceStackIcon y={SPICE_LAYER_HEIGHT} renderOrder={PHYSICAL_OBJECT_RENDER_ORDER} />
     </>
@@ -916,7 +930,9 @@ function PieceSelectionRing({
       geometry={selectionRingGeometry(meshes, piece)}
     >
       <meshBasicMaterial
-        color={stackTargeted ? '#f6bd55' : drafted ? '#f6c879' : '#fff0c9'}
+        color={
+          stackTargeted ? playUiColors.stackTarget : drafted ? playUiColors.draftHighlight : playUiColors.pieceLabel
+        }
         {...PIECE_SELECTION_RING_MATERIAL}
       />
     </mesh>
@@ -975,7 +991,7 @@ function PieceLock({ piece }: { piece: TablePiece }) {
       renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
       geometry={meshes.box(0.16, 0.19, 0.09)}
     >
-      <meshStandardMaterial color="#251912" roughness={0.6} metalness={0.3} />
+      <meshStandardMaterial color={playUiColors.nameplate} roughness={0.6} metalness={0.3} />
     </mesh>
   );
   return piece.kind === 'force' ? <group scale={0.5 * troopScale(piece)}>{lock}</group> : lock;
@@ -1078,7 +1094,7 @@ const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) 
                 side={DoubleSide}
               >
                 {/* Attached as drei attached its own: a `map` property would have Fiber mark the texture sRGB and darken the shadow. */}
-                <primitive object={meshes.contactShadow('#100906', 0.18)} attach="map" />
+                <primitive object={meshes.contactShadow(playUiColors.contactShadow, 0.18)} attach="map" />
               </meshBasicMaterial>
             </mesh>
           </group>
@@ -1164,6 +1180,7 @@ function SceneContents({
   mapFramingPoints: readonly Vector3Tuple[];
 }) {
   const table = useTabletop();
+  const palette = useTablePalette();
   const board = useTabletopSelector((value) => value.snapshot.board);
   const tints = useTabletopSelector((value) => value.snapshot.tints);
   const { state, renderedPieces, selectPiece } = table;
@@ -1176,8 +1193,8 @@ function SceneContents({
     <>
       {presentation !== 'preview' && (
         <>
-          <color attach="background" args={['#130d0a']} />
-          <fog attach="fog" args={['#130d0a', 10, 22]} />
+          <color attach="background" args={[palette.ground]} />
+          <fog attach="fog" args={[palette.ground, 10, 22]} />
         </>
       )}
       {presentation !== 'preview' && (

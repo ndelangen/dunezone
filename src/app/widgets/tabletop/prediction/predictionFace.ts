@@ -1,3 +1,4 @@
+import { gameAssetColors } from '@shared/play/assetColors';
 import type { TableItem } from '@shared/play/model';
 import { createContext, useContext, useEffect, useState } from 'react';
 
@@ -17,8 +18,8 @@ const DECAL_CENTRE_Y = 470;
 const LOGO = { centreY: DECAL_CENTRE_Y - 40, size: 230 };
 const TURN = { centreY: DECAL_CENTRE_Y + 165, size: 170, font: 'C_Advokat_Modern' };
 /* Decals draw black with a light outline (`Decals.tsx`); the overlay keeps both colours and the outline width. */
-const FOREGROUND = '#e3dbb3';
-const INK = '#1c140d';
+const FOREGROUND = gameAssetColors.predictionPaper;
+const INK = gameAssetColors.predictionInk;
 const OUTLINE = 6;
 const SCALE = 0.5;
 

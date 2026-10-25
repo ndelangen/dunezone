@@ -129,20 +129,27 @@ export function useSlotHeights(rootRef: RefObject<HTMLElement | null>, pinned: R
     /* The bounce plays once per run into the limit, not on every pixel dragged past it. */
     let stopped = false;
     const move = (moveEvent: PointerEvent) => {
+      /* A release outside the browser never reaches the page; the next move, with no button held, ends the drag instead. */
+      if ((moveEvent.buttons & 1) === 0) {
+        up();
+        return;
+      }
       const bounced = set(side, start.height + start.y - moveEvent.clientY, limit);
       if (bounced && !stopped) {
         setBounce(pulse(side));
       }
       stopped = bounced;
     };
-    const up = () => {
+    function up() {
       window.removeEventListener('pointermove', move);
       window.removeEventListener('pointerup', up);
       window.removeEventListener('pointercancel', up);
-    };
+      window.removeEventListener('blur', up);
+    }
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', up);
     window.addEventListener('pointercancel', up);
+    window.addEventListener('blur', up);
   };
   /** The arrow keys on a slot's grip: a step taller or shorter, with the same stop and bounce as a drag. */
   const nudge = (side: Side, slot: HTMLElement, direction: 'up' | 'down') => {

@@ -17,27 +17,27 @@
   display: inline-flex;
   align-items: center;
   height: 2.9rem;
-  border: 1px solid rgba(255, 216, 148, 0.2);
+  border: 1px solid rgb(from var(--ui-highlight) r g b / 0.2);
   border-radius: 999px;
-  background: rgba(20, 14, 11, 0.86);
+  background: rgb(from var(--ui-ground) r g b / 0.86);
   box-shadow:
-    0 18px 40px rgba(0, 0, 0, 0.5),
-    0 2px 6px rgba(0, 0, 0, 0.4);
+    0 18px 40px rgb(from var(--color-shadow) r g b / 0.5),
+    0 2px 6px rgb(from var(--color-shadow) r g b / 0.4);
   backdrop-filter: blur(10px);
 }
 
 .launcher {
   gap: 0.6rem;
   padding: 0 0.7rem 0 0.95rem;
-  color: #bdb3a4;
+  color: var(--color-muted);
   cursor: pointer;
   font: 500 0.88rem var(--font-sans);
   white-space: nowrap;
 }
 
 .launcher:hover {
-  border-color: rgba(248, 175, 64, 0.65);
-  color: #f3e7d3;
+  border-color: rgb(from var(--color-brand) r g b / 0.65);
+  color: var(--color-text);
 }
 
 /* A large table's tokens wrap into further rows rather than run past the edge of the table. */
@@ -72,7 +72,7 @@
 
 .chat[aria-pressed="true"] .token {
   box-shadow:
-    0 0 0 2px #120c09,
+    0 0 0 2px var(--ui-ground),
     0 0 0 4px var(--sand);
 }
 
@@ -84,8 +84,8 @@
   left: 50%;
   padding: 0.3rem 0.6rem;
   border-radius: 6px;
-  background: #0d0907;
-  color: #f3e7d3;
+  background: var(--ui-ground);
+  color: var(--color-text);
   font: 500 0.78rem var(--font-sans);
   opacity: 0;
   pointer-events: none;
@@ -103,9 +103,9 @@
   place-items: center;
   overflow: hidden;
   border-radius: 50%;
-  background: #2a2219;
-  color: #f3e7d3;
-  box-shadow: 0 0 0 1px rgba(255, 216, 148, 0.3);
+  background: var(--ui-raised);
+  color: var(--color-text);
+  box-shadow: 0 0 0 1px rgb(from var(--ui-highlight) r g b / 0.3);
   font: 700 0.8rem var(--font-sans);
   object-fit: cover;
 }
@@ -123,10 +123,10 @@
   min-width: 1.15rem;
   height: 1.15rem;
   padding: 0 0.3rem;
-  border: 2px solid #140e0b;
+  border: 2px solid var(--ui-ground);
   border-radius: 999px;
   background: var(--sand);
-  color: #241307;
+  color: var(--color-ink);
   font: 700 0.66rem/0.85rem var(--font-sans);
   text-align: center;
   animation: bump 320ms ease-out;
@@ -144,9 +144,9 @@
   left: 0;
   width: 0.6rem;
   height: 0.6rem;
-  border: 2px solid #140e0b;
+  border: 2px solid var(--ui-ground);
   border-radius: 50%;
-  background: #e5484d;
+  background: var(--color-error);
 }
 
 /* With motion reduced a new count appears in place. */

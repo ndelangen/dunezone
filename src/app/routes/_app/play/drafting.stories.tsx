@@ -33,6 +33,9 @@ export const WaitingForPlayers = meta.story({
         await expect(within(header as HTMLElement).getByRole('button', { name: 'Ready' })).toBeVisible();
         /* The (+) is a spectator's way into the roster, never a player's. */
         await expect(page.queryByRole('button', { name: 'Take a seat' })).toBeNull();
+        const overlay = canvasElement.ownerDocument.querySelector<HTMLElement>('.seated-stage-overlay')!;
+        const scene = canvasElement.ownerDocument.querySelector<HTMLElement>('.scene--immersive')!;
+        await expect(overlay.getBoundingClientRect().top).toBe(scene.getBoundingClientRect().top);
         /* Nothing sits between the board and the controls. */
         await expect(canvasElement.ownerDocument.querySelector('[data-decision-bar]')).toBeNull();
         /* The seated player is cited through ProfileLink, leading to their profile. */

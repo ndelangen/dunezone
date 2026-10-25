@@ -3,7 +3,6 @@ import { tokenShapeOfType } from '@shared/assets/tokenOutline';
 import type { RulesetAssetSlot } from '@shared/rulesets/assetSlots';
 import { Link } from '@tanstack/react-router';
 import { Eyebrow } from '@ui/content/Eyebrow';
-import { StatusBadge } from '@ui/content/StatusBadge';
 import { TokenImage } from '@ui/content/TokenImage';
 import { ExternalLink } from 'lucide-react';
 import type { ReactNode } from 'react';
@@ -72,7 +71,7 @@ export function RulesetManifest({
           </Text>
         ) : null}
         {own.length > 0 ? (
-          <FactionGroup label={<StatusBadge tone="pending">{`Made for ${ruleset.name}`}</StatusBadge>} factions={own} />
+          <FactionGroup label={<Text size="xs" c="dimmed">{`Made for ${ruleset.name}`}</Text>} factions={own} />
         ) : null}
         {shared.length > 0 ? (
           <FactionGroup

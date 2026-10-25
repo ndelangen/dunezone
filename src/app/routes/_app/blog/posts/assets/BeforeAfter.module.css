@@ -19,7 +19,7 @@
   width: 2px;
   margin-left: -1px;
   background: rgb(255 255 255 / 0.85);
-  box-shadow: 0 0 6px rgb(0 0 0 / 0.6);
+  box-shadow: 0 0 6px rgb(from var(--color-shadow) r g b / 0.6);
   pointer-events: none;
 }
 

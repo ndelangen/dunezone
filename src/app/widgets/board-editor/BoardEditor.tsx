@@ -684,8 +684,8 @@ export function BoardEditor({
       cx={shownBoard.nodes[key][0]}
       cy={shownBoard.nodes[key][1]}
       r={3 / state.zoom}
-      fill="#fff"
-      stroke="#386c8e"
+      fill="var(--color-inverse)"
+      stroke="var(--ui-progress-fill)"
       strokeWidth={1 / state.zoom}
       data-node={key}
       tabIndex={0}
@@ -853,7 +853,13 @@ export function BoardEditor({
           />
           {!state.compare && tracing?.visible && <TracingImageLayer tracing={tracing} />}
           {!state.compare && selectedFace && (
-            <path d={selectedFace.path} fill="none" stroke="#386c8e" strokeWidth="2.5" pointerEvents="none" />
+            <path
+              d={selectedFace.path}
+              fill="none"
+              stroke="var(--ui-progress-fill)"
+              strokeWidth="2.5"
+              pointerEvents="none"
+            />
           )}
           {!state.compare &&
             state.ghosts &&
@@ -880,14 +886,14 @@ export function BoardEditor({
                     <g key={key}>
                       <path
                         d={`M${shownBoard.nodes[key === 'c1' ? e.a : e.b].join(' ')}L${shownBoard.edges.find((edge) => edge.id === e.id)![key]!.join(' ')}`}
-                        stroke="#386c8e"
+                        stroke="var(--ui-progress-fill)"
                         fill="none"
                       />
                       <circle
                         cx={shownBoard.edges.find((edge) => edge.id === e.id)![key]![0]}
                         cy={shownBoard.edges.find((edge) => edge.id === e.id)![key]![1]}
                         r={4 / state.zoom}
-                        fill="#386c8e"
+                        fill="var(--ui-progress-fill)"
                         data-node={e.id}
                         data-handle={key}
                       />
@@ -901,12 +907,12 @@ export function BoardEditor({
           {!state.compare &&
             state.points.map(({ point }, i) => (
               <g key={i}>
-                <circle cx={point[0]} cy={point[1]} r="3" fill="#386c8e" />
+                <circle cx={point[0]} cy={point[1]} r="3" fill="var(--ui-progress-fill)" />
                 {i > 0 && state.tool !== 'line' && (
                   <path
                     d={`M${state.points[i - 1].point.join(' ')}L${point.join(' ')}`}
                     fill="none"
-                    stroke="#386c8e"
+                    stroke="var(--ui-progress-fill)"
                     strokeDasharray="3 3"
                   />
                 )}
@@ -916,13 +922,20 @@ export function BoardEditor({
             <path
               d={`M${state.points.at(-1)!.point.join(' ')}L${state.hover.join(' ')}`}
               fill="none"
-              stroke="#386c8e"
+              stroke="var(--ui-progress-fill)"
               strokeDasharray="3 3"
               pointerEvents="none"
             />
           )}
           {!state.compare && state.hover && state.tool !== 'select' && (
-            <circle cx={state.hover[0]} cy={state.hover[1]} r="4" fill="none" stroke="#386c8e" pointerEvents="none" />
+            <circle
+              cx={state.hover[0]}
+              cy={state.hover[1]}
+              r="4"
+              fill="none"
+              stroke="var(--ui-progress-fill)"
+              pointerEvents="none"
+            />
           )}
         </g>
       </svg>

@@ -200,7 +200,7 @@
   border-radius: 2px;
   overflow: hidden;
   transform-origin: bottom center;
-  box-shadow: 0 1px 4px #000a;
+  box-shadow: 0 1px 4px rgb(from var(--play-black) r g b / 0.6666666666666666);
 }
 
 /* The revealed wheel prints its number at the top centre (left 61 px, 48 px wide); here it stands bare on the token art, held legible by a dark outline and glow. */
@@ -211,18 +211,18 @@
   width: 60px;
   text-align: center;
   line-height: 1;
-  color: #fff;
+  color: var(--play-white);
 }
 
 .earlyDial > span {
   display: block;
-  -webkit-text-stroke: 1.2px #17150f;
+  -webkit-text-stroke: 1.2px var(--play-battle-text-stroke);
   paint-order: stroke fill;
   font-family: "C_Advokat_Modern", serif;
   font-size: 34px;
   text-shadow:
-    0 0 6px #000,
-    0 0 12px #000;
+    0 0 6px var(--play-black),
+    0 0 12px var(--play-black);
 }
 
 .earlyDial small {
@@ -230,10 +230,10 @@
   margin-top: 2px;
   font-family: "C_Copperplate_Gothic", serif;
   font-size: 8px;
-  color: #e7dfc5;
+  color: var(--play-battle-text);
   text-shadow:
-    0 0 3px #000,
-    0 0 6px #000;
+    0 0 3px var(--play-black),
+    0 0 6px var(--play-black);
 }
 
 /* The revealed wheel's leader piece: its 72 px slot at top 73 px, right 20 px, inset 8% 2% 8% 14%. */
@@ -245,7 +245,7 @@
   height: 61px;
   border-radius: 50%;
   overflow: hidden;
-  box-shadow: 0 1px 6px #000c;
+  box-shadow: 0 1px 6px rgb(from var(--play-black) r g b / 0.8);
 }
 
 .earlyLeader > * {

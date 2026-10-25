@@ -98,7 +98,7 @@ function IndexPage() {
             subtitle="Soon, your next game of Dune will be right here."
           />
           <Group justify="center">
-            <Button component="a" href="#play-preview">
+            <Button color="cta" variant="artwork" component="a" href="#play-preview">
               Take a sneak peek
             </Button>
             <Button variant="subtle" component="a" href="#make">

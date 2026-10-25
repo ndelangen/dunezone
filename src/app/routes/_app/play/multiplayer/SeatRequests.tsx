@@ -268,7 +268,7 @@ export function VacantSeatRequests({
             client={client}
             table={table}
             action={{ kind: 'seat-approve', requestId: request.id }}
-            color="green"
+            color="confirm"
           >
             Approve
           </SeatButton>

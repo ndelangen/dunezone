@@ -180,7 +180,8 @@ function GuidanceFixture() {
 }
 
 /**
- * A tab can say what it is for: hovering shows its name over a one-line description, and resting on it for 1.8 seconds swaps in its full help.
+ * A panel tab waits five seconds on hover before showing its name and description.
+ * Resting for another 1.45 seconds brings its full help.
  * Assistive technology reads both as the tab's description.
  */
 export const TabGuidance = meta.story({
@@ -206,6 +207,10 @@ export const TabGuidance = meta.story({
         'SpiceOnly you see this balance. Withdraw onto the table.'
       )
     );
+    await userEvent.click(spice);
+    await expect(spice).toHaveAttribute('aria-selected', 'true');
+    await expect(getComputedStyle(spice).outlineStyle).toBe('none');
+    await waitForFrame(() => expect(storyDocument.queryByRole('tooltip')).not.toBeInTheDocument());
     await userEvent.unhover(spice);
     await waitForFrame(() => expect(storyDocument.queryByRole('tooltip')).not.toBeInTheDocument());
     /* Escape dismisses the tooltip wherever focus is, and leaves focus there. */
@@ -227,6 +232,16 @@ export const TabGuidance = meta.story({
       expect(storyDocument.getAllByRole('tooltip').some((tip) => tip.textContent?.startsWith('Spice'))).toBe(true)
     );
     spice.blur();
+    await waitForFrame(() => expect(storyDocument.queryAllByRole('tooltip')).toHaveLength(0));
+    /* Switching back to the keyboard restores the focus ring and guidance on the clicked tab. */
+    await userEvent.click(spice);
+    await expect(getComputedStyle(spice).outlineStyle).toBe('none');
+    await userEvent.keyboard('{Home}');
+    await expect(spice).toHaveFocus();
+    await expect(getComputedStyle(spice).outlineStyle).toBe('solid');
+    await waitForFrame(() => expect(storyDocument.getByRole('tooltip')).toHaveTextContent('Spice'));
+    spice.blur();
+    await userEvent.unhover(spice);
     await waitForFrame(() => expect(storyDocument.queryAllByRole('tooltip')).toHaveLength(0));
   },
 });
