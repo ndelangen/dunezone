@@ -195,67 +195,9 @@ export function guideShapePath(band: Edges, root: Point, target: Target | null):
   ].join(' ');
 }
 
-/* The short arrow beside a target, for a guide on the window's side: its length, its shaft and head, and its rounded tail's reach. */
-const SHORT = { length: 96, shaft: 10, head: { half: 26, length: 32 } };
-
 /**
- * A short arrow that comes in from `origin`'s direction and stops just short of `target`, as an SVG path, with where its tail ends.
- * It never stretches across the table: only its last stretch is drawn, so it reads as a marker on the part, not a line from the guide.
+ * A path mirrored across the window's diagonal, every point's x and y swapped: the band's outline, worked out along a top edge, becomes a rail's down the left with its arrow grown from the rail's right edge.
  */
-export function shortArrowPath(origin: Point, target: Target): Readonly<{ path: string; tail: Point }> {
-  const dx = target.x - origin.x;
-  const dy = target.y - origin.y;
-  const distance = Math.hypot(dx, dy) || 1;
-  const along = { x: dx / distance, y: dy / distance };
-  const across = { x: along.y, y: -along.x };
-  const inside = Math.min(
-    target.halfWidth / Math.max(Math.abs(along.x), 1e-6),
-    target.halfHeight / Math.max(Math.abs(along.y), 1e-6)
-  );
-  const tip = { x: target.x - along.x * (inside + ARROW_GAP_PX), y: target.y - along.y * (inside + ARROW_GAP_PX) };
-  const at = (back: number, side: number): Point => ({
-    x: tip.x - along.x * back + across.x * side,
-    y: tip.y - along.y * back + across.y * side,
-  });
-  const neck = SHORT.head.length;
-  const end = SHORT.length;
-  const shaft = SHORT.shaft;
-  /* The tail is rounded off by two quarter curves around its end. */
-  const path = [
-    `M ${point(at(end, shaft))}`,
-    `L ${point(at(neck, shaft))}`,
-    `L ${point(at(neck, SHORT.head.half))}`,
-    `L ${point(tip)}`,
-    `L ${point(at(neck, -SHORT.head.half))}`,
-    `L ${point(at(neck, -shaft))}`,
-    `L ${point(at(end, -shaft))}`,
-    `Q ${point(at(end + shaft, -shaft))} ${point(at(end + shaft, 0))}`,
-    `Q ${point(at(end + shaft, shaft))} ${point(at(end, shaft))}`,
-    'Z',
-  ].join(' ');
-  return { path, tail: at(end + shaft + 22, 0) };
-}
-
-/** A rounded ring around `target`, padded off its edge, as an SVG path; a point gets a round ring of its own. */
-export function ringPath(target: Target): string {
-  const pad = 10;
-  const halfWidth = Math.max(target.halfWidth + pad, 30);
-  const halfHeight = Math.max(target.halfHeight + pad, 30);
-  const radius = Math.min(halfWidth, halfHeight, 30);
-  const left = target.x - halfWidth;
-  const right = target.x + halfWidth;
-  const top = target.y - halfHeight;
-  const bottom = target.y + halfHeight;
-  return [
-    `M ${point({ x: left + radius, y: top })}`,
-    `L ${point({ x: right - radius, y: top })}`,
-    `Q ${point({ x: right, y: top })} ${point({ x: right, y: top + radius })}`,
-    `L ${point({ x: right, y: bottom - radius })}`,
-    `Q ${point({ x: right, y: bottom })} ${point({ x: right - radius, y: bottom })}`,
-    `L ${point({ x: left + radius, y: bottom })}`,
-    `Q ${point({ x: left, y: bottom })} ${point({ x: left, y: bottom - radius })}`,
-    `L ${point({ x: left, y: top + radius })}`,
-    `Q ${point({ x: left, y: top })} ${point({ x: left + radius, y: top })}`,
-    'Z',
-  ].join(' ');
+export function transposed(path: string): string {
+  return path.replaceAll(/(-?[\d.]+) (-?[\d.]+)/g, '$2 $1');
 }

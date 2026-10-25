@@ -112,7 +112,7 @@
 
 /*
  * The rail down the left of the window (Norbert, 2026-10-25), in large type so it is read before the board,
- * and the page beside it starts at its right edge. Its marker on the table is short, and coloured like the task's number.
+ * and the page beside it starts at its right edge. Like the band, its background is the outline drawn behind it, shared with its arrow.
  */
 .rail {
   position: absolute;
@@ -124,9 +124,7 @@
   width: var(--rail-width);
   padding: var(--space-lg);
   overflow-y: auto;
-  background: var(--color-ink);
   color: var(--color-paper);
-  box-shadow: inset -1px 0 0 rgb(255 255 255 / 0.22);
 }
 
 .railCurrent {
@@ -202,37 +200,4 @@
 
 .railFoot {
   margin-top: auto;
-}
-
-.marker {
-  fill: var(--color-caution);
-  stroke: #111;
-  stroke-width: 2;
-  stroke-linejoin: round;
-}
-
-/* The ring layout circles the part instead, and breathes so the eye finds it. */
-.guide[data-layout="ring"] .marker {
-  fill: none;
-  stroke: var(--color-caution);
-  stroke-width: 5;
-  animation: ring-breathe 1.4s ease-in-out infinite;
-}
-
-@keyframes ring-breathe {
-  50% {
-    stroke-opacity: 0.45;
-  }
-}
-
-.tag circle {
-  fill: var(--color-caution);
-  stroke: #111;
-  stroke-width: 2;
-}
-
-.tag text {
-  fill: #111;
-  font-weight: 700;
-  font-size: 16px;
 }

@@ -7,7 +7,7 @@ import { Vector3 } from 'three';
 import type { Camera, Vector3Tuple } from 'three';
 
 import { ChapterComplete } from './ChapterComplete';
-import { guideShapePath, keepInView, ringPath, shortArrowPath } from './guideArrow';
+import { guideShapePath, keepInView, transposed } from './guideArrow';
 import type { Target } from './guideArrow';
 import styles from './TutorialGuide.module.css';
 
@@ -135,16 +135,28 @@ function onTable(point: Vector3Tuple | null, shown: Box): Target | null {
 /*
  * Redraws the band's outline, with its arrow toward a spot when there is one.
  * The arrow leaves the band partway between the task's number and the spot, so it reads as coming from the instruction.
+ * A rail down the left is the same shape mirrored across the diagonal: worked out as a band along the top, then turned onto its side.
  */
-function aim(paths: readonly (SVGPathElement | null)[], badge: DOMRect, band: DOMRect, spot: Target | null) {
+function aim(
+  paths: readonly (SVGPathElement | null)[],
+  badge: DOMRect,
+  band: DOMRect,
+  spot: Target | null,
+  side: boolean
+) {
+  const flip = (box: DOMRect) => (side ? new DOMRect(box.y, box.x, box.height, box.width) : box);
+  const along = spot && side ? { x: spot.y, y: spot.x, halfWidth: spot.halfHeight, halfHeight: spot.halfWidth } : spot;
+  const edges = flip(band);
+  const mark = flip(badge);
   const margin = 60;
   const clamp = (value: number, low: number, high: number) => Math.min(high, Math.max(low, value));
-  const midway = (badge.left + badge.width / 2 + (spot?.x ?? 0)) / 2;
+  const midway = (mark.left + mark.width / 2 + (along?.x ?? 0)) / 2;
   /* It drops at least as steeply as it runs sideways, so a target close under the band is not pointed at along the band's edge. */
-  const drop = Math.max(0, (spot?.y ?? 0) - band.bottom);
-  const steep = spot ? clamp(midway, spot.x - drop, spot.x + drop) : midway;
-  const root = { x: clamp(steep, band.left + margin, band.right - margin), y: band.bottom };
-  const outline = guideShapePath(band, root, spot);
+  const drop = Math.max(0, (along?.y ?? 0) - edges.bottom);
+  const steep = along ? clamp(midway, along.x - drop, along.x + drop) : midway;
+  const root = { x: clamp(steep, edges.left + margin, edges.right - margin), y: edges.bottom };
+  const shape = guideShapePath(edges, root, along);
+  const outline = side ? transposed(shape) : shape;
   /* The shape casts blurred shadows, so it is redrawn only when it changes, not every frame. */
   if (paths[0]?.getAttribute('d') === outline) {
     return;
@@ -157,42 +169,18 @@ function aim(paths: readonly (SVGPathElement | null)[], badge: DOMRect, band: DO
 }
 
 /**
- * How the guide sits over the page: a band across the top with an arrow grown from it, or a rail down the left
- * (Norbert, 2026-10-25: testers read the board and not the text, and a long arrow looked comical) in three trial layouts: the task alone in large type, the whole list with the task open, or the list with a ring round the part instead of an arrow.
+ * How the guide sits over the page: a band across the top, or a rail down the left (Norbert, 2026-10-25: testers read the board and not the band's small text), its arrow grown from the edge facing the table either way.
+ * The rail is tried in two layouts: the task alone in large type, or the whole list with the task open.
  */
-export type GuideLayout = 'top' | 'card' | 'list' | 'ring';
-
-/* How wide the rail is in each of its layouts. */
-const RAIL_WIDTH: Record<Exclude<GuideLayout, 'top'>, string> = { card: '21rem', list: '25rem', ring: '25rem' };
+export type GuideLayout = 'top' | 'card' | 'list';
 
 /*
- * Redraws the marker beside a rail: a short arrow coming in from the task's line in the rail, with the task's number at its tail,
- * or a ring round the part. Nothing while there is no part to show.
+ * How wide the rail is in each of its layouts. The table beside it never gets narrower than its own 720px minimum while the rail
+ * can give way, down to a floor of 16rem; the rail never covers the table (Norbert, 2026-10-25), so below that the table scrolls.
  */
-function mark(
-  layout: Exclude<GuideLayout, 'top'>,
-  shape: SVGPathElement | null,
-  tag: SVGGElement | null,
-  from: DOMRect | undefined,
-  spot: Target | null
-) {
-  let outline = '';
-  let tail: { x: number; y: number } | null = null;
-  if (spot && layout === 'ring') {
-    outline = ringPath(spot);
-    tail = { x: spot.x - Math.max(spot.halfWidth + 10, 30), y: spot.y - Math.max(spot.halfHeight + 10, 30) };
-  } else if (spot && from) {
-    ({ path: outline, tail } = shortArrowPath({ x: from.right, y: from.top + from.height / 2 }, spot));
-  }
-  if (shape && shape.getAttribute('d') !== outline) {
-    shape.setAttribute('d', outline);
-    shape.setAttribute('data-target', spot ? `${Math.round(spot.x)} ${Math.round(spot.y)}` : '');
-  }
-  if (tag) {
-    tag.style.display = tail ? '' : 'none';
-    tag.setAttribute('transform', tail ? `translate(${tail.x.toFixed(1)} ${tail.y.toFixed(1)})` : '');
-  }
-}
+const TABLE_MIN_WIDTH = '720px';
+const railWidth = (wanted: string) => `clamp(16rem, 100vw - ${TABLE_MIN_WIDTH}, ${wanted})`;
+const RAIL_WIDTH: Record<Exclude<GuideLayout, 'top'>, string> = { card: railWidth('21rem'), list: railWidth('25rem') };
 
 /**
  * The guide for one chapter, beside whatever page holds the table.
@@ -235,7 +223,6 @@ export function TutorialGuide({
   const edge = useRef<SVGPathElement>(null);
   const band = useRef<HTMLElement>(null);
   const step = useRef<HTMLSpanElement>(null);
-  const tag = useRef<SVGGElement>(null);
   const side = layout !== 'top';
   const task = tasks[current];
   const kicker = number === null ? 'Play-test' : `Chapter ${number}`;
@@ -255,16 +242,9 @@ export function TutorialGuide({
     const draw = (spot: Target | null) => {
       const badge = step.current?.getBoundingClientRect();
       const box = band.current?.getBoundingClientRect();
-      if (layout !== 'top') {
-        mark(
-          layout,
-          fill.current,
-          tag.current,
-          box && badge ? new DOMRect(box.right, badge.top, 0, badge.height) : undefined,
-          spot
-        );
-      } else if (badge && box) {
-        aim([fill.current, edge.current], badge, box, spot);
+      /* With no number showing, as once the chapter is done, the arrow-less outline still needs a box to draw from. */
+      if (box) {
+        aim([fill.current, edge.current], badge ?? box, box, spot, layout !== 'top');
       }
     };
     /* Once the chapter is done the band stays, without its arrow. */
@@ -470,21 +450,8 @@ export function TutorialGuide({
               </feMerge>
             </filter>
           </defs>
-          <path
-            ref={fill}
-            className={side ? styles.marker : styles.fill}
-            data-tutorial-pointer
-            filter={side ? undefined : `url(#${inset})`}
-          />
+          <path ref={fill} className={styles.fill} data-tutorial-pointer filter={`url(#${inset})`} />
           <path ref={edge} className={styles.edge} />
-          {side && (
-            <g ref={tag} className={styles.tag} style={{ display: 'none' }}>
-              <circle r="17" />
-              <text textAnchor="middle" dominantBaseline="central">
-                {current + 1}
-              </text>
-            </g>
-          )}
         </svg>
         {side ? (
           rail
