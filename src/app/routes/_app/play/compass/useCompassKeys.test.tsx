@@ -21,8 +21,13 @@ function page() {
   menu.setAttribute('role', 'menu');
   const item = document.createElement('div');
   menu.append(item);
-  document.body.append(input, button, textarea, menu);
-  return { input, button, textarea, item };
+  const controls = document.createElement('div');
+  controls.setAttribute('data-compass-controls', '');
+  controls.append(input, button, textarea, menu);
+  /* A control beside the table, as a tutorial's guide is. */
+  const beside = document.createElement('button');
+  document.body.append(controls, beside);
+  return { input, button, textarea, item, beside };
 }
 
 /* The compass's state as the controls hold it, with the hook listening for the keys. */
@@ -173,4 +178,13 @@ test('Space stays with a text field, an open menu, a held table and a repeat', (
   const held = compass({ inert: true });
   expect(press('keydown', SPACE).defaultPrevented).toBe(false);
   expect(held.result.current.open).toBe(false);
+});
+
+test('a button on the table opens the compass with Space, and one beside the table keeps Space to press itself', () => {
+  const { button, beside } = page();
+  const { result } = compass();
+  expect(press('keydown', SPACE, beside).defaultPrevented).toBe(false);
+  expect(result.current.open).toBe(false);
+  expect(press('keydown', SPACE, button).defaultPrevented).toBe(true);
+  expect(result.current.open).toBe(true);
 });

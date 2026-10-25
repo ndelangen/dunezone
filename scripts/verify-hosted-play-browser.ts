@@ -812,7 +812,10 @@ async function seatThrough(approver: HostedPeer, who: HostedPeer) {
     const seated = new Set(requireView(approver).snapshot.controls?.players.map((player) => player.seat));
     const vacant = roster.seats.find((seat) => !seated.has(seat.id));
     assert.ok(vacant, 'No seat is open for the request.');
-    await openTab(approver, vacant.faction?.name ?? vacant.id);
+    const name = vacant.faction?.name ?? vacant.id;
+    await openTab(approver, name);
+    /* A seat that kept its faction is still someone to chat with, so its window opens on Chat; the request is under Info. */
+    await windowOf(approver, name).getByRole('tab', { name: 'Info', exact: true }).click();
   }
   await act(approver, 'Approve');
   await until(() => requireView(who).viewer.viewerSeat !== SPECTATOR, 'The approved request did not seat its player.');

@@ -54,9 +54,21 @@ function spaceBelongsTo(target: EventTarget | null) {
   return target instanceof Element && target.closest(KEEPS_SPACE) !== null;
 }
 
+/* A control outside the table, such as a tutorial's guide beside it, keeps Space to press itself. */
+function outsideTable(target: EventTarget | null) {
+  return (
+    target instanceof Element &&
+    target !== document.body &&
+    target !== document.documentElement &&
+    target.closest('[data-compass-controls]') === null
+  );
+}
+
 /* A fresh Space on the table, while nothing holds it, opens the compass. */
 function opensCompass(event: KeyboardEvent, inert: boolean) {
-  return event.code === 'Space' && !event.repeat && !inert && !spaceBelongsTo(event.target);
+  return (
+    event.code === 'Space' && !event.repeat && !inert && !spaceBelongsTo(event.target) && !outsideTable(event.target)
+  );
 }
 
 /* Space is held when it is still down from opening the compass, or the key repeats. */

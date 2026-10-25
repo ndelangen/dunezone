@@ -73,7 +73,7 @@ function Controls({ scene, overlay, header, camera, inert, panels, onView, focus
   useFocusedWindow(focus, windows, opened.reveal);
   const compass = useCompass({ open, onOpen: setOpen, inert, windows, table, onView, onShow: opened.show });
   return (
-    <div className={styles.root} ref={rootRef}>
+    <div className={styles.root} ref={rootRef} data-compass-controls>
       <div className={styles.scene}>
         <div className={styles.board}>{scene}</div>
       </div>
