@@ -2,18 +2,17 @@ import { Slider, UnstyledButton } from '@mantine/core';
 import type { TablePiece } from '@shared/play/model';
 import clsx from 'clsx';
 import type { DragEvent } from 'react';
-import { useLayoutEffect, useRef, useState } from 'react';
+import { Fragment, useLayoutEffect, useRef, useState } from 'react';
 
 import { useMotionAllowed } from '@app/styles/motion';
 
 import { PieceImage, pieceName } from '../multiplayer/HandPiece';
-import { BattleLine, ModeSwitch, ReadyButton, RevealToggle, Stepper, StrengthSum } from './parts';
+import { AdjustField, BattleLine, ModeSwitch, ReadyButton, RevealToggle, StrengthSum } from './parts';
 import {
   availableSpice,
   capableFaces,
   cardsOf,
   disclosure,
-  formatStrength,
   leadersOf,
   planLocks,
   planPieces,
@@ -164,6 +163,7 @@ export function TrayPlan(props: BattlePlanViewProps) {
       <section className={styles.sliders} aria-label="Dial">
         <div className={styles.dialHead}>
           <ModeSwitch mode={plan.mode} disabled={locks.dialLocked} onChange={(mode) => onEdit({ mode })} />
+          <AdjustField plan={plan} disabled={locks.dialLocked} onEdit={onEdit} />
           <RevealToggle
             className={styles.dialReveal}
             plan={plan}
@@ -195,45 +195,39 @@ export function TrayPlan(props: BattlePlanViewProps) {
             />
           </>
         ) : (
-          faces.map((face) => {
-            const own = troopsOf(plan, face.id);
-            const limit = troopLimitOf(props, face.id);
-            return (
-              <div key={face.id} className={styles.faceGroup}>
-                {faces.length > 1 ? <span className={styles.faceName}>{face.name}</span> : null}
-                <PlanSlider
-                  label="Plain"
-                  value={own.undialed}
-                  max={limit - own.dialed}
-                  disabled={locks.dialLocked}
-                  onCommit={(undialed) => onEdit({ troops: withTroops(plan, face.id, { undialed }) })}
-                />
-                <PlanSlider
-                  label="Spiced"
-                  value={own.dialed}
-                  max={Math.min(limit - own.undialed, supportedMax(plan, face, balance) ?? limit)}
-                  disabled={locks.dialLocked}
-                  onCommit={(dialed) => onEdit({ troops: withTroops(plan, face.id, { dialed }) })}
-                  spice
-                />
-              </div>
-            );
-          })
+          <div className={styles.custom}>
+            <span />
+            <span className={styles.columnHead}>Plain</span>
+            <span className={styles.columnHead}>Spiced</span>
+            {faces.map((face) => {
+              const own = troopsOf(plan, face.id);
+              const limit = troopLimitOf(props, face.id);
+              const name = faces.length === 1 ? 'Troops' : face.name;
+              return (
+                <Fragment key={face.id}>
+                  <span className={styles.faceName}>{name}</span>
+                  <PlanSlider
+                    label={`${name} plain`}
+                    value={own.undialed}
+                    max={limit - own.dialed}
+                    disabled={locks.dialLocked}
+                    onCommit={(undialed) => onEdit({ troops: withTroops(plan, face.id, { undialed }) })}
+                    bare
+                  />
+                  <PlanSlider
+                    label={`${name} spiced`}
+                    value={own.dialed}
+                    max={Math.min(limit - own.undialed, supportedMax(plan, face, balance) ?? limit)}
+                    disabled={locks.dialLocked}
+                    onCommit={(dialed) => onEdit({ troops: withTroops(plan, face.id, { dialed }) })}
+                    spice
+                    bare
+                  />
+                </Fragment>
+              );
+            })}
+          </div>
         )}
-        <div className={styles.adjust}>
-          <span>Adjust</span>
-          <Stepper
-            size="sm"
-            label="Adjustment"
-            value={plan.adjustment}
-            min={-20}
-            max={20}
-            step={0.5}
-            format={formatStrength}
-            disabled={locks.dialLocked}
-            onChange={(adjustment) => onEdit({ adjustment })}
-          />
-        </div>
       </section>
       <section className={styles.hand} aria-label="Your hand" {...zone('hand')}>
         {inHand.map((piece) => tile(piece, 'plan'))}
@@ -254,6 +248,7 @@ function PlanSlider({
   disabled,
   onCommit,
   spice,
+  bare,
 }: {
   label: string;
   value: number;
@@ -261,12 +256,14 @@ function PlanSlider({
   disabled: boolean;
   onCommit: (value: number) => void;
   spice?: boolean;
+  /** In a table whose row and column already name it: no label of its own. */
+  bare?: boolean;
 }) {
   const [draft, setDraft] = useState<number | null>(null);
   const shown = draft ?? value;
   return (
-    <div className={styles.slider} data-spice={spice || undefined}>
-      <span className={styles.sliderLabel}>{label}</span>
+    <div className={styles.slider} data-spice={spice || undefined} data-bare={bare || undefined}>
+      {bare ? null : <span className={styles.sliderLabel}>{label}</span>}
       <Slider
         aria-label={label}
         thumbLabel={label}

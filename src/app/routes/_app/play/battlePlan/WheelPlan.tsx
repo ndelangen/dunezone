@@ -7,13 +7,12 @@ import { useRef, useState } from 'react';
 
 import { Key } from '../compass/glyphs';
 import { PieceImage, pieceName } from '../multiplayer/HandPiece';
-import { BattleLine, ModeSwitch, ReadyButton, RevealToggle, RollingNumber, Stepper, useBump } from './parts';
+import { AdjustField, BattleLine, ModeSwitch, ReadyButton, RevealToggle, RollingNumber, useBump } from './parts';
 import {
   availableSpice,
   capableFaces,
   cardsOf,
   disclosure,
-  formatStrength,
   leadersOf,
   planLocks,
   planPieces,
@@ -124,21 +123,24 @@ export function WheelPlan(props: BattlePlanViewProps) {
   return (
     <div className={styles.wheelPlan}>
       <BattleLine territory={props.territory} opponent={props.opponent} />
-      {faces.length > 1 ? (
-        <div className={styles.faces} role="tablist" aria-label="Troop type on the dial">
-          {faces.map((entry) => (
-            <UnstyledButton
-              key={entry.id}
-              role="tab"
-              aria-selected={entry.id === face.id}
-              className={styles.faceTab}
-              onClick={() => setFaceId(entry.id)}
-            >
-              {entry.name} <b>{totalOf(plan, entry.id)}</b>
-            </UnstyledButton>
-          ))}
-        </div>
-      ) : null}
+      <div className={styles.controls}>
+        {faces.length > 1 ? (
+          <div className={styles.faces} role="tablist" aria-label="Troop type on the dial">
+            {faces.map((entry) => (
+              <UnstyledButton
+                key={entry.id}
+                role="tab"
+                aria-selected={entry.id === face.id}
+                className={styles.faceTab}
+                onClick={() => setFaceId(entry.id)}
+              >
+                {entry.name} <b>{totalOf(plan, entry.id)}</b>
+              </UnstyledButton>
+            ))}
+          </div>
+        ) : null}
+        <ModeSwitch mode={plan.mode} disabled={locks.dialLocked} onChange={(mode) => onEdit({ mode })} />
+      </div>
       <div className={styles.stage}>
         <ul className={styles.fan} aria-label="Cards in the plan">
           {planCards.map((card, index) => {
@@ -201,15 +203,13 @@ export function WheelPlan(props: BattlePlanViewProps) {
       </div>
       <div className={styles.readout}>
         <span>
-          <b>{rings.outer.value}</b> {plan.mode === 'max' ? 'troops' : face.name.toLowerCase()}
+          <b>{rings.outer.value}</b> {plan.mode === 'max' ? 'troops' : face.name.toLowerCase()} <Key>↑</Key>
+          <Key>↓</Key>
         </span>
         <span>
-          <b>{plan.mode === 'max' ? plan.spice : own.dialed}</b> {plan.mode === 'max' ? 'spice' : 'supported'}
-        </span>
-        <span className={styles.keys}>
-          <Key>↑</Key>
-          <Key>↓</Key> troops <Key>←</Key>
-          <Key>→</Key> {plan.mode === 'max' ? 'spice' : 'supported'}
+          <b>{plan.mode === 'max' ? plan.spice : own.dialed}</b> {plan.mode === 'max' ? 'spice' : 'supported'}{' '}
+          <Key>←</Key>
+          <Key>→</Key>
         </span>
       </div>
       <div className={styles.hand} role="group" aria-label="Your hand">
@@ -224,18 +224,11 @@ export function WheelPlan(props: BattlePlanViewProps) {
         ))}
       </div>
       <footer className={styles.footer}>
-        <ModeSwitch mode={plan.mode} disabled={locks.dialLocked} onChange={(mode) => onEdit({ mode })} />
-        <Stepper
-          size="sm"
-          label="Adjustment"
-          value={plan.adjustment}
-          min={-20}
-          max={20}
-          step={0.5}
-          format={formatStrength}
-          disabled={locks.dialLocked}
-          onChange={(adjustment) => onEdit({ adjustment })}
-        />
+        {locks.dialLocked && !plan.adjustment ? (
+          <span />
+        ) : (
+          <AdjustField plan={plan} disabled={locks.dialLocked} onEdit={onEdit} />
+        )}
         <ReadyButton {...props} />
       </footer>
     </div>
@@ -261,7 +254,7 @@ function HandPiece({
       disabled={locked}
       onClick={onPick}
     >
-      <PieceImage piece={piece} width={card ? 32 : 36} height={card ? 45 : 36} />
+      <PieceImage piece={piece} width={card ? 28 : 32} height={card ? 39 : 32} />
     </UnstyledButton>
   );
 }

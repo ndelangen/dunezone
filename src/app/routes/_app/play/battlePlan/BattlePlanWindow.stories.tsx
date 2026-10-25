@@ -27,10 +27,10 @@ const meta = preview.meta({
   globals: { motion: 'on' },
   parameters: { layout: 'centered', chromatic: { disableSnapshot: true } },
   tags: ['!test'],
-  args: { scenario: 'fresh', size: 'wide' } satisfies Args,
+  args: { scenario: 'fresh', size: 'slot' } satisfies Args,
   argTypes: {
     scenario: { control: 'inline-radio', options: ['fresh', 'planned', 'emperor', 'ready', 'countdown'] },
-    size: { control: 'inline-radio', options: ['narrow', 'wide', 'tall'] },
+    size: { control: 'inline-radio', options: ['slot', 'narrow', 'wide', 'tall'] },
   },
 });
 

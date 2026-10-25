@@ -78,6 +78,14 @@
   white-space: nowrap;
 }
 
+.adjust {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--ink-dim);
+  font-size: 0.72rem;
+}
+
 /* At a limit the stepper knocks sideways and settles: the value cannot go further. */
 .stepper[data-knock="0"] {
   animation: knock 300ms ease-out;

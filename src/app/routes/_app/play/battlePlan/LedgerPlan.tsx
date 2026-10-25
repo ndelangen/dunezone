@@ -1,13 +1,21 @@
 import { UnstyledButton } from '@mantine/core';
 
 import styles from './LedgerPlan.module.css';
-import { BattleLine, ModeSwitch, PieceTile, ReadyButton, RevealToggle, Stepper, StrengthSum } from './parts';
+import {
+  AdjustField,
+  BattleLine,
+  ModeSwitch,
+  PieceTile,
+  ReadyButton,
+  RevealToggle,
+  Stepper,
+  StrengthSum,
+} from './parts';
 import {
   availableSpice,
   capableFaces,
   cardsOf,
   disclosure,
-  formatStrength,
   fullSupport,
   leadersOf,
   planLocks,
@@ -86,8 +94,8 @@ export function LedgerPlan(props: BattlePlanViewProps) {
       </section>
       <section className={styles.dial} aria-label="Dial">
         <header className={styles.dialHead}>
-          <span className={styles.label}>Dial</span>
           <ModeSwitch mode={plan.mode} disabled={locks.dialLocked} onChange={(mode) => onEdit({ mode })} />
+          <AdjustField plan={plan} disabled={locks.dialLocked} onEdit={onEdit} />
           <RevealToggle
             className={styles.dialReveal}
             plan={plan}
@@ -161,19 +169,6 @@ export function LedgerPlan(props: BattlePlanViewProps) {
             </span>
           </div>
         ) : null}
-        <div className={styles.field}>
-          <span>Adjust</span>
-          <Stepper
-            label="Adjustment"
-            value={plan.adjustment}
-            min={-20}
-            max={20}
-            step={0.5}
-            format={formatStrength}
-            disabled={locks.dialLocked}
-            onChange={(adjustment) => onEdit({ adjustment })}
-          />
-        </div>
       </section>
       <footer className={styles.footer}>
         <StrengthSum props={props} compact />

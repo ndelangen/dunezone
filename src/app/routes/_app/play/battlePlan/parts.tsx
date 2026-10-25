@@ -14,6 +14,34 @@ import styles from './parts.module.css';
 import { MODE_HELP, formatStrength, isShown } from './planView';
 import type { BattlePlanViewProps, Opponent } from './planView';
 
+/** The rare strength adjustment, kept small beside the mode switch: a half-step stepper with its name. */
+export function AdjustField({
+  plan,
+  disabled,
+  onEdit,
+}: {
+  plan: BattlePlan;
+  disabled: boolean;
+  onEdit: BattlePlanViewProps['onEdit'];
+}) {
+  return (
+    <span className={styles.adjust} title="Strength added or taken by hand, for what the plan does not count">
+      <span>Adjust</span>
+      <Stepper
+        size="sm"
+        label="Adjustment"
+        value={plan.adjustment}
+        min={-20}
+        max={20}
+        step={0.5}
+        format={formatStrength}
+        disabled={disabled}
+        onChange={(adjustment) => onEdit({ adjustment })}
+      />
+    </span>
+  );
+}
+
 /** A value that replays an animation each time it changes: alternates 0 and 1, so the attribute changes on every bump. */
 export function useBump(value: unknown) {
   const [bump, setBump] = useState<number | undefined>(undefined);
@@ -317,7 +345,8 @@ export function ReadyButton({
   if (stage === 'revealed') {
     return null;
   }
-  const waiting = ready && opponent && !opponent.ready ? `Waiting for ${opponent.name} · Undo` : null;
+  /* The battle line already names the opponent and shows their readiness, so the button stays short enough for a slot. */
+  const waiting = ready && opponent && !opponent.ready ? 'Waiting · Undo' : null;
   return (
     <Button
       className={styles.ready}
@@ -328,7 +357,9 @@ export function ReadyButton({
       disabled={!canAct}
       leftSection={ready ? <Check size={15} /> : null}
       onClick={() => onReady(!ready)}
-      title={ready ? 'Reopen the plan to change it' : undefined}
+      title={
+        ready ? `${waiting && opponent ? `Waiting for ${opponent.name}. ` : ''}Undo to reopen the plan` : undefined
+      }
     >
       {ready
         ? (waiting ?? (stage === 'countdown' ? 'Revealing… Undo' : 'Ready · Undo'))

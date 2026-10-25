@@ -228,8 +228,10 @@ const BATTLE_WINDOW: Omit<TableWindow, 'content'> = {
   layout: 'stack',
 };
 
-export type SlotSize = 'narrow' | 'wide' | 'tall';
+export type SlotSize = 'slot' | 'narrow' | 'wide' | 'tall';
 const SLOT_SIZES: Readonly<Record<SlotSize, { width: string; height: string }>> = {
+  /* The bottom-left pinned slot as the compass opens it on a laptop table. */
+  slot: { width: '389px', height: '414px' },
   narrow: { width: '18rem', height: '28rem' },
   wide: { width: '30rem', height: '28rem' },
   tall: { width: '24rem', height: '34rem' },
