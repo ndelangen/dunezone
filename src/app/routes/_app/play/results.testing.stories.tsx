@@ -4,7 +4,7 @@ import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { STORYBOOK_NOW } from '@db/storybook';
 
-import { windowNamed } from './controls.stories.fixture';
+import { unpinWindow, windowNamed } from './controls.stories.fixture';
 import { gameMeta, install, lastCommand, session } from './game.stories.fixture';
 import { openTab } from './playing.stories.fixture';
 import { productTransport, SIX } from './product.stories.fixture';
@@ -63,7 +63,7 @@ export const DeclaringKeepsChoiceAcrossTabs = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     const bar = (await page.findByText('Declare the result', {}, { timeout: 30_000 })).closest('section')!;
     await userEvent.click(within(bar).getByText('No winner'));
-    await openTab(page, 'Hand');
+    await unpinWindow(page, 'Result');
     await waitFor(() => expect(page.queryByText('Declare the result')).toBeNull());
     await openTab(page, 'Result');
     const back = (await page.findByText('Declare the result')).closest('section')!;

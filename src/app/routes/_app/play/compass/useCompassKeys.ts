@@ -56,13 +56,16 @@ function spaceBelongsTo(target: EventTarget | null) {
   return target instanceof Element && target.closest(KEEPS_SPACE) !== null;
 }
 
-/* A control outside the table, such as a tutorial's guide beside it, keeps Space to press itself. */
+/*
+ * A control outside the table, such as a tutorial's guide beside it, keeps Space to press itself.
+ * A piece's radial ring is the table's own, though it is portalled to the page's body.
+ */
 function outsideTable(target: EventTarget | null) {
   return (
     target instanceof Element &&
     target !== document.body &&
     target !== document.documentElement &&
-    target.closest('[data-compass-controls]') === null
+    target.closest('[data-compass-controls], [data-radial-menu]') === null
   );
 }
 

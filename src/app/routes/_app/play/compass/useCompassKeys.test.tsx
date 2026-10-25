@@ -28,10 +28,11 @@ function page() {
   ring.append(spoke);
   const controls = document.createElement('div');
   controls.setAttribute('data-compass-controls', '');
-  controls.append(input, button, textarea, menu, ring);
+  controls.append(input, button, textarea, menu);
   /* A control beside the table, as a tutorial's guide is. */
   const beside = document.createElement('button');
-  document.body.append(controls, beside);
+  /* A piece's radial ring is portalled to the body, outside the controls. */
+  document.body.append(controls, beside, ring);
   return { input, button, textarea, item, spoke, beside };
 }
 
