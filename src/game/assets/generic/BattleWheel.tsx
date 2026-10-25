@@ -146,7 +146,7 @@ function RevealedWheel({
                 <div
                   key={index}
                   className={clsx(styles.leaderPiece, styles.leaderBehind)}
-                  style={{ translate: `${-(index + 1) * 16}px ${(index + 1) * 24}px`, scale: 0.85 }}
+                  style={{ translate: `${-(index + 1) * 10}px ${(index + 1) * 27}px`, scale: 0.85 }}
                 >
                   {behind}
                 </div>
