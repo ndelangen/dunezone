@@ -24,6 +24,8 @@ export function useHandCloseUp(pieces: readonly TablePiece[]) {
     piece: pieces.find((piece) => piece.id === hoveredId) ?? null,
     hover: (piece: TablePiece) => ({
       onPointerEnter: () => setHoveredId(piece.id),
+      /* A piece that came to lie under a pointer at rest counts as hovered once the pointer stirs. */
+      onPointerMove: () => setHoveredId(piece.id),
       onPointerLeave: () => setHoveredId((id) => (id === piece.id ? null : id)),
     }),
   };

@@ -53,10 +53,11 @@ export const PRODUCT_TERMS = [
       'A step in the life of a hosted game. The stages are drafting, swapping, setup, play, finished and discarded. Phases are steps within play.',
   },
   {
-    id: 'hidden-zone',
-    term: 'Hidden zone',
+    id: 'private-side-table',
+    term: 'Private side-table',
     topic: 'play',
-    explanation: "A faction's private area beside its hand. Other players see the pieces there face down.",
+    explanation:
+      "A faction's own small table beside its hand, which only it sees. Pieces there stay where they are put and can be turned, such as a marker on a card's track.",
   },
   {
     id: 'game-log',

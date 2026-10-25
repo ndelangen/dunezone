@@ -39,7 +39,7 @@ const looseSpiceCard = (pieces: readonly Piece[], deck: Piece | undefined) =>
 function tasks(snapshot: () => GameSnapshot): GuideTask[] {
   const pieces = () => snapshot().table.pieces;
   const spiceDeck = () => tableDeck(snapshot, 'right');
-  /* The hand as the Hand & spice window shows it: what the player laid in the hidden zone is not in it. */
+  /* The hand as the Hand & spice window shows it: what the player laid on the private side-table is not in it. */
   const inHand = () => (snapshot().hand ?? []).filter((piece) => !piece.hiddenZone).length;
   const reserve = () => snapshot().bank?.balance ?? 0;
   return [

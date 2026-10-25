@@ -15,7 +15,7 @@
         "calculated": 0.43870967741935485
       },
       "decals": [],
-      "hero": {
+      "factionLeader": {
         "image": "/image/leader/official/paul.jpg",
         "memberId": "08bbac42-960c-476c-a46c-2b904edf2fe4",
         "name": "Paul Atreides"
@@ -71,13 +71,13 @@
             "title": "Nexus Prescience"
           },
           {
-            "karama": "(Combat step 2.2) Atreides may not force their opponent to reveal any part of their battle plan this phase. May be done after Atreides ask, before the target answers.",
+            "karama": "(Battle step 2.2) Atreides may not force their opponent to reveal any part of their battle plan this phase. May be done after Atreides ask, before the target answers.",
             "text": "During battle (step 2.2) you may force your opponent to reveal 1 part of their Battle Plan early (Weapon, Defense, Dial + whether Mercenaries is being played, or Leader).",
             "title": "Battle Prescience"
           },
           {
-            "karama": "(Combat step 2.3) Atreides may not play the Kwisatz Haderach token in any battle this phase.",
-            "text": "Once you have lost 7 or more total forces in battles you gain the Kwiatz Haderach token that can be played alongside leaders in battles in one territory per turn.\nThe token adds +2 to leader strength, and the leader cannot be called traitor. The token can only be lost in a lazgun-shield explosion, after which it can be revived like a normal leader.",
+            "karama": "(Battle step 2.3) Atreides may not play the Kwisatz Haderach token in any battle this phase.",
+            "text": "Once you have lost 7 or more total troops in battles you gain the Kwisatz Haderach token that can be played alongside leaders in battles in one territory per turn.\nThe token adds +2 to leader strength, and the leader cannot be called traitor. The token can only be lost in a lazgun-shield explosion, after which it can be revived like a normal leader.",
             "title": "Kwisatz Haderach"
           },
           {
@@ -90,25 +90,30 @@
           "text": "Shared Prescience: Your ally may allow you to use Battle Prescience in their battles."
         },
         "fate": {
-          "text": "Arrakis Fiefdom: Play your fate card at any time before Ship & Move Phase to obtain the Carryall Tech Token, which you cannot lose. The token triggers when a spice mine sends troops to reserves. You may also spawn a 3 spice mine on any sand territory that doesn't have a Spice Blow marker.",
+          "text": "Arrakis Fiefdom: Play your fate card at any time before Shipment and Movement Phase to obtain the Carryall Tech Token, which you cannot lose. The token triggers when a spice mine sends troops to reserves. You may also spawn a 3 spice mine on any sand territory that doesn't have a Spice Blow marker.",
           "title": ""
         },
-        "revivalText": "2 forces.",
+        "revivalText": "2 troops.",
         "spiceCount": 10.0,
-        "startText": "10 forces in Arrakeen and 10 in reserves. Start with 10 spice."
+        "startText": "10 troops in Arrakeen and 10 in reserves. Start with 10 spice."
       },
       "themeColor": "#4a4c08",
       "troops": [
         {
+          "combat": {
+            "strength": 0.5,
+            "supportCost": 1.0,
+            "supportedStrength": 1.0
+          },
           "count": 20.0,
           "description": "0.5 strength when undialed, 1 strength when dialed",
           "image": "/vector/troop/atreides.svg",
           "name": "Normal troop",
-          "troopId": "30000000-0000-4000-8000-000000000001"
+          "troopId": "ba1b0692-e338-4852-936b-1bf581b79a40"
         }
       ]
     },
-    "updated_at": "2026-09-20T20:13:07.492Z",
+    "updated_at": "2026-10-24T19:05:40.736Z",
     "token": "/play-fixtures/product/house-atreides-token.jpg",
     "leaders": [
       {
@@ -150,7 +155,7 @@
         "manual": 0.4
       },
       "decals": [],
-      "hero": {
+      "factionLeader": {
         "image": "/image/leader/official/baron.jpg",
         "memberId": "9f2287c1-cc2f-417b-a4fa-e1a9d088fabf",
         "name": "Baron Vladimir Harkonnen"
@@ -206,12 +211,12 @@
             "title": "Extra Treachery Cards"
           },
           {
-            "karama": "(Combat step 4.7) Harkonnen may not capture any leaders this phase.",
-            "text": "Whenever you win a battle (step 4.7) you may randomly take one of the loser's leaders. Leaders already used in battles elsewhere this turn are exempt. You may immediately kill the stolen leader face down for 2 spice, or keep the leader. A kept leader can be used once in combat, and then is returned to the original faction (if it is still alive).\nIf you have no alive Harkonnen leaders all captured leaders are returned. If a leader is played against its own faction, that faction may always call that leader traitor.",
+            "karama": "(Battle step 4.7) Harkonnen may not capture any leaders this phase.",
+            "text": "Whenever you win a battle (step 4.7) you may randomly take one of the loser's leaders. Leaders already used in battles elsewhere this turn are exempt. You may immediately kill the stolen leader face down for 2 spice, or keep the leader. A kept leader can be used once in battle, and then is returned to the original faction (if it is still alive).\nIf you have no alive Harkonnen leaders all captured leaders are returned. If a leader is played against its own faction, that faction may always call that leader traitor.",
             "title": "Captured Leaders"
           },
           {
-            "karama": "(Combat step 2.3) Harkonnen may not swap Treachery Cards between players this phase.",
+            "karama": "(Battle step 2.3) Harkonnen may not swap Treachery Cards between players this phase.",
             "text": "If a leader you use in battle is killed you may remove the opponent's Treachery Cards by swapping cards between players (such as giving your opponent the worthless card you played in return for their weapon) (step 4.5). The cards are then discarded or returned to the winning faction appropriately. Winning players cannot immediately discard cards you give them this way. This ability does not affect who won the battle.\n\nDead Cheap Heroes do not trigger Spite. A battle resolved with a traitor or a proced Break Conditioning does not trigger Spite. Cheap Hero cards and Supplies! cards cannot be swapped with Spite.",
             "title": "Vladimir's Spite"
           }
@@ -220,25 +225,30 @@
           "text": "We Have a Traitor in Their Midst: You may call traitor and use your fate in your ally's battles."
         },
         "fate": {
-          "text": "Play your fate card during combat (step 2.3) to force you or your ally's opponent to reveal their entire battle plan early.",
+          "text": "Play your fate card during battle (step 2.3) to force you or your ally's opponent to reveal their entire battle plan early.",
           "title": "Blackmail"
         },
-        "revivalText": "2 forces.",
+        "revivalText": "2 troops.",
         "spiceCount": 10.0,
-        "startText": "10 forces in Carthag and 10 in reserves. Start with 10 spice."
+        "startText": "10 troops in Carthag and 10 in reserves. Start with 10 spice."
       },
       "themeColor": "#151315",
       "troops": [
         {
+          "combat": {
+            "strength": 0.5,
+            "supportCost": 1.0,
+            "supportedStrength": 1.0
+          },
           "count": 20.0,
           "description": "0.5 strength, 1 strength when spice dialed",
           "image": "/vector/troop/harkonnen.svg",
           "name": "Harkonnen Troop",
-          "troopId": "30000000-0000-4000-8000-000000000002"
+          "troopId": "b5a3c19c-799e-48c9-a3bc-84a45728adc5"
         }
       ]
     },
-    "updated_at": "2026-08-26T23:30:12.673Z",
+    "updated_at": "2026-10-24T19:04:56.401Z",
     "token": "/play-fixtures/product/house-harkonnen-token.jpg",
     "leaders": [
       {
@@ -279,7 +289,7 @@
         "calculated": 0.34838709677419355
       },
       "decals": [],
-      "hero": {
+      "factionLeader": {
         "image": "/image/leader/official/shadam.jpg",
         "memberId": "7a734535-fd3d-4791-bfb8-45d7dc34ae01",
         "name": "Shaddam Corrino IV"
@@ -335,8 +345,8 @@
             "title": "Shaddam's Favor (AKA Subsidy)"
           },
           {
-            "karama": "(Combat step 2.3) Sardaukar are considered normal forces this phase. If Battle Prescience has asked dial Emperor may re-answer the prescience.",
-            "text": "Your five starred forces are double combat strength. Only one Sardaukar can be revived per turn. Sardaukar are considered normal strength forces against Fremen.",
+            "karama": "(Battle step 2.3) Sardaukar are considered normal troops this phase. If Battle Prescience has asked dial Emperor may re-answer the prescience.",
+            "text": "Your five elite troops are double battle strength. Only one Sardaukar can be revived per turn. Sardaukar are considered normal strength troops against Fremen.",
             "title": "Sardaukar"
           }
         ],
@@ -344,34 +354,44 @@
           "text": "Golden Lion Throne: You may instantly give spice to your ally at any time. (You can effectively pay for revivals and spice dialing, which normal allies can't.)"
         },
         "fate": {
-          "text": "Prison Planet: Play your fate card at any time to revive up to 5 of any troops and any leader for their normal cost (including for other players). There are no limits for starred troops or leaders. (Cannot be played during combat step 3) (BT does not collect spice for this revival)",
+          "text": "Prison Planet: Play your fate card at any time to revive up to 5 of any troops and any leader for their normal cost (including for other players). There are no limits for starred troops or leaders. (Cannot be played during battle step 3) (BT does not collect spice for this revival)",
           "title": ""
         },
         "revivalText": "1 force.",
         "spiceCount": 10.0,
-        "startText": "20 forces in reserves. Start with 10 spice."
+        "startText": "20 troops in reserves. Start with 10 spice."
       },
       "themeColor": "#be1010",
       "troops": [
         {
+          "combat": {
+            "strength": 0.5,
+            "supportCost": 1.0,
+            "supportedStrength": 1.0
+          },
           "count": 15.0,
           "description": "0.5 strength when undialed, 1 strength dialed",
           "image": "/vector/troop/emperor.svg",
           "name": "Normal troop",
-          "troopId": "30000000-0000-4000-8000-000000000003"
+          "troopId": "19daf387-c125-4125-b9c2-80bff59fad07"
         },
         {
+          "combat": {
+            "strength": 1.0,
+            "supportCost": 1.0,
+            "supportedStrength": 2.0
+          },
           "count": 5.0,
           "description": "1 strength when undialed, 2 strength when dialed",
           "hue": "#e6de12",
           "image": "/vector/troop/emperor.svg",
           "name": "Saudarkar",
           "star": "/vector/troop_modifier/star-right.svg",
-          "troopId": "30000000-0000-4000-8000-000000000004"
+          "troopId": "1257c66a-9f7c-41c1-a253-372e740469a2"
         }
       ]
     },
-    "updated_at": "2026-09-20T20:09:37.125Z",
+    "updated_at": "2026-10-24T19:18:51.122Z",
     "token": "/play-fixtures/product/emperor-token.jpg",
     "leaders": [
       {
@@ -428,7 +448,7 @@
           "scale": 0.41
         }
       ],
-      "hero": {
+      "factionLeader": {
         "image": "/image/leader/official/edric.jpg",
         "memberId": "77de5a63-ddbd-48a5-a794-dcf597ee29e1",
         "name": "Navigator Edric"
@@ -477,31 +497,31 @@
       "rules": {
         "advantages": [
           {
-            "text": "You control all shipment on Dune.\n"
+            "text": "You control all shipment on Dune."
           },
           {
-            "karama": "(Ship & Move Phase) Spice paid for shipment is paid to the Spice Bank this phase.",
+            "karama": "(Shipment and Movement Phase) Spice paid for shipment is paid to the Spice Bank this phase.",
             "text": "When other factions pay to ship, they pay the spice to you.",
             "title": "Shipping Payments"
           },
           {
-            "karama": "(Ship & Move Phase) Guild must pay normal shipping rates to ship their forces. If played while Guild is shipping, they may change their shipment after Karama is played. Does not affect Guild\u2019s ally.",
+            "karama": "(Shipment and Movement Phase) Guild must pay normal shipping rates to ship their troops. If played while Guild is shipping, they may change their shipment after Karama is played. Does not affect Guild\u2019s ally.",
             "text": "You pay half the normal shipping rates.",
             "title": "Discount Shipping"
           },
           {
-            "karama": "(Ship & Move Phase) Guild and their ally can only ship from reserves to the planet this phase. Doesn\u2019t affect their shipping rate.",
-            "text": "When you ship forces choose one:\n\n- Ship normally from reserves to one territory\n- Ship from one territory to another (at rates of destination territory).\n- Ship from one territory to reserves (at stronghold rates).",
+            "karama": "(Shipment and Movement Phase) Guild and their ally can only ship from reserves to the planet this phase. Doesn\u2019t affect their shipping rate.",
+            "text": "When you ship troops choose one:\n\n- Ship normally from reserves to one territory\n- Ship from one territory to another (at rates of destination territory).\n- Ship from one territory to reserves (at stronghold rates).",
             "title": "Three Types of Shipment"
           },
           {
-            "karama": "(Ship & Move Phase before Guild\u2019s turn in Storm Order) Guild cannot effect storm order this phase.",
-            "text": "Once at any point during Ship & Move Phase you may affect turn order in one of the following ways:\n\n- Take your turn first, last, or between any other factions.\n- Swap your turn position with another faction  (cannot be done after your normal spot in turn order).\n- Force another player to go now, and you take their place in turn order (cannot be done after your normal spot in turn order).",
+            "karama": "(Shipment and Movement Phase before Guild\u2019s turn in Storm Order) Guild cannot effect storm order this phase.",
+            "text": "Once at any point during Shipment and Movement Phase you may affect turn order in one of the following ways:\n\n- Take your turn first, last, or between any other factions.\n- Swap your turn position with another faction  (cannot be done after your normal spot in turn order).\n- Force another player to go now, and you take their place in turn order (cannot be done after your normal spot in turn order).",
             "title": "Three Types of Interjection"
           },
           {
-            "karama": "(Combat Step 2.3) Guild cannot retreat this phase.",
-            "text": "Once battle plans are revealed (step 4.3) you may decide to retreat. If you retreat your opponent wins the battle as if by traitor.\n\nYour units may be shipped back to reserves at stronghold shipping rates. Your Treachery Cards can be saved by paying spice for each equal to your leader's strength. If your leader would've been killed in combat they die. Spice you use to spice dial and retreat is paid to the Spice Bank. You cannot retreat if the battle is resolved with a Traitor or Break Conditioning. Both your leader and your opponents leader are considered committed to the territory.",
+            "karama": "(Battle Step 2.3) Guild cannot retreat this phase.",
+            "text": "Once battle plans are revealed (step 4.3) you may decide to retreat. If you retreat your opponent wins the battle as if by traitor.\n\nYour units may be shipped back to reserves at stronghold shipping rates. Your Treachery Cards can be saved by paying spice for each equal to your leader's strength. If your leader would've been killed in battle they die. Spice you use to spice dial and retreat is paid to the Spice Bank. You cannot retreat if the battle is resolved with a Traitor or Break Conditioning. Both your leader and your opponents leader are considered committed to the territory.",
             "title": "Retreat"
           }
         ],
@@ -509,27 +529,32 @@
           "text": "Shared Shipping Advantage: You ally may use your Discount Shipping. You may allow your ally to ship using Three Types of Shipment (including Fremen). You may also reveal spice from your hidden area to pay for an ally's shipment (You don't lose the spice)."
         },
         "fate": {
-          "text": "Battle Training: Play your fate card at any time before Ship & Move phase to permanently gain the ability to play two leaders per battle. (Including cheap heroes) Either leader can be called traitor. If you retreat the lowest leader is used for saving Treachery Cards. Leaders survive/die as one.",
+          "text": "Battle Training: Play your fate card at any time before Shipment and Movement phase to permanently gain the ability to play two leaders per battle. (Including cheap heroes) Either leader can be called traitor. If you retreat the lowest leader is used for saving Treachery Cards. Leaders survive/die as one.",
           "title": ""
         },
         "revivalText": "1 force.",
         "spiceCount": 10.0,
-        "startText": "5 forces in Tuek's Sietch and 15 forces in reserves. Start with 5 spice."
+        "startText": "5 troops in Tuek's Sietch and 15 troops in reserves. Start with 5 spice."
       },
       "themeColor": "#dc5317",
       "troops": [
         {
+          "combat": {
+            "strength": 0.5,
+            "supportCost": 1.0,
+            "supportedStrength": 1.0
+          },
           "count": 20.0,
           "description": "worth 0.5 strength, or 1 strength with 1 spice",
           "hue": "#ffffff",
           "image": "/vector/troop/guild.svg",
           "name": "Troop",
           "planet": "Shipping Junction",
-          "troopId": "30000000-0000-4000-8000-000000000005"
+          "troopId": "a824968e-80e9-464d-ae4d-dd4f4b2c0841"
         }
       ]
     },
-    "updated_at": "2026-08-22T00:25:38.028Z",
+    "updated_at": "2026-10-24T19:20:40.629Z",
     "token": "/play-fixtures/product/spacing-guild-token.jpg",
     "leaders": [
       {
@@ -571,7 +596,7 @@
         "manual": 0.6
       },
       "decals": [],
-      "hero": {
+      "factionLeader": {
         "image": "/image/leader/official/liet.jpg",
         "memberId": "15b3451f-5b15-44d8-8f9b-4200de394404",
         "name": "Leit Kynes"
@@ -622,23 +647,23 @@
             "title": "Rallying Shipment"
           },
           {
-            "karama": "(Combat step 2.3) Fremen must pay spice, or their forces will fight at half strength following normal spice dialing rules this phase.",
-            "text": "Your forces do not require spice to count at their full strength.",
+            "karama": "(Battle step 2.3) Fremen must pay spice, or their troops will fight at half strength following normal spice dialing rules this phase.",
+            "text": "Your troops do not require spice to count at their full strength.",
             "title": "Free Spice Dialing"
           },
           {
-            "karama": "(Ship & Move Phase) Fremen may not move 2 territories this phase, defaulting to 1 territory. (They may move 3 if they have ornithopters) Can be done after Fremen declare their movement, in which case the fremen must redo their on planet movement.",
-            "text": "Your forces may move two territories instead of one.",
+            "karama": "(Shipment and Movement Phase) Fremen may not move 2 territories this phase, defaulting to 1 territory. (They may move 3 if they have ornithopters) Can be done after Fremen declare their movement, in which case the fremen must redo their on planet movement.",
+            "text": "Your troops may move two territories instead of one.",
             "title": "Native Movement"
           },
           {
             "karama": "(Spice Blow Phase) The Fremen may not place additional worms and Fremen can be devoured this phase. (Does not affect riding worms from thumpers)",
-            "text": "Shai-Hulud will not devour your forces. Instead, those forces can worm-ride to any territory on the map.  If multiple Shai-Hulud would appear, you choose where all after the first appear (including in rock/stronghold territories for your forces to ride from).",
-            "title": "Worm Riding"
+            "text": "Shai-Hulud will not devour your troops. Instead, those troops can Shai-Hulud-ride to any territory on the map.  If multiple Shai-Hulud would appear, you choose where all after the first appear (including in rock/stronghold territories for your troops to ride from).",
+            "title": "Shai-Hulud Riding"
           },
           {
             "karama": "no interaction",
-            "text": "You start the game with two thumper tokens. After the Spice Blow Cards are revealed you may discard a token to summon a riding worm to any sand or polar territory where you have forces. Riding worms eat spice, but don't eat troops. You can only play one thumper per turn. Thumper worms are always considered the first worm of the phase so they can be used to redirect Shai Hulud that appear from cards using the Worm Riding ability.",
+            "text": "You start the game with two thumper tokens. After the Spice cards are revealed you may discard a token to summon a riding Shai-Hulud to any sand or polar territory where you have troops. Riding worms eat spice, but don't eat troops. You can only play one thumper per turn. Thumper worms are always considered the first Shai-Hulud of the phase so they can be used to redirect Shai Hulud that appear from cards using the Shai-Hulud Riding ability.",
             "title": "Thumpers"
           },
           {
@@ -652,17 +677,17 @@
             "title": "Spice Blow Knowledge"
           },
           {
-            "karama": "(Storm or Ship & Move Phase) Fremen take full losses from Storm this phase. If done during the Fremen Ship+Move turn they may redo their entire Ship+Move.",
-            "text": "Your forces are immune to storm. (Your forces do not die. They may move into/out of/ through Storm.) You may choose to have your forces die in Storm anyway.",
+            "karama": "(Storm or Shipment and Movement Phase) Fremen take full losses from Storm this phase. If done during the Fremen Ship+Move turn they may redo their entire Ship+Move.",
+            "text": "Your troops are immune to storm. (Your troops do not die. They may move into/out of/ through Storm.) You may choose to have your troops die in Storm anyway.",
             "title": "Storm Immunity"
           },
           {
-            "karama": "(Combat step 2.3) Fedaykin are considered normal forces this phase. If Battle Prescience has asked dial Fremen may re-answer the prescience.",
-            "text": "Your three starred forces are double combat strength. Only one Fedaykin may be revived per turn.",
+            "karama": "(Battle step 2.3) Fedaykin are considered normal troops this phase. If Battle Prescience has asked dial Fremen may re-answer the prescience.",
+            "text": "Your three elite troops are double battle strength. Only one Fedaykin may be revived per turn.",
             "title": "Fedaykin"
           },
           {
-            "karama": "(Combat step 3.1) Fremen cannot announce unlosable cards this phase.",
+            "karama": "(Battle step 3.1) Fremen cannot announce unlosable cards this phase.",
             "text": "During battle (step 3.1) you may publicly show a weapon and/or defense Treachery Card you are playing in the battle early. If you do, the card(s) cannot be lost in this battle even if you lose. You will lose the card(s) if your leader is called traitor or there is a lazgun-shield explosion.\n\nHarkonnen can only use Vladimir's Spite to replace these with cards with cards of the same color.",
             "title": "Fantatical Tactics (AKA Teeth)"
           },
@@ -678,37 +703,47 @@
           }
         ],
         "alliance": {
-          "text": "Desert Power: Whenever your ally spice dials they may place the spice into their Bribes instead of the Spice Bank. Your ally's forces are not devoured by Shai-Hulud. (Forces are always devoured after alliances are made/broken)"
+          "text": "Desert Power: Whenever your ally spice dials they may place the spice into their Bribes instead of the Spice Bank. Your ally's troops are not devoured by Shai-Hulud. (Troops are always devoured after alliances are made/broken)"
         },
         "fate": {
           "text": "Planetology: Play your fate card during Storm Phase to add or subtract 1 from the revealed Storm Card. You may repeat this every turn for the rest of the game.",
           "title": ""
         },
-        "revivalText": "3 forces.",
+        "revivalText": "3 troops.",
         "spiceCount": 10.0,
-        "startText": "10 forces distributed on the board (see setup). 10 in reserves. Start with 3 spice."
+        "startText": "10 troops distributed on the board (see setup). 10 in reserves. Start with 3 spice."
       },
       "themeColor": "#e4942e",
       "troops": [
         {
+          "combat": {
+            "strength": 1.0,
+            "supportCost": 0.0,
+            "supportedStrength": 1.0
+          },
           "count": 17.0,
           "description": "1 strength",
           "image": "/vector/troop/fremen.svg",
           "name": "Normal troop",
-          "troopId": "30000000-0000-4000-8000-000000000006"
+          "troopId": "0ddab428-10fc-4522-b648-8f342a8d13cf"
         },
         {
+          "combat": {
+            "strength": 2.0,
+            "supportCost": 0.0,
+            "supportedStrength": 2.0
+          },
           "count": 3.0,
           "description": "2 strength",
           "hue": "#edecd5",
           "image": "/vector/troop/fremen.svg",
           "name": "Fedaykin",
           "star": "/vector/troop_modifier/star-right.svg",
-          "troopId": "30000000-0000-4000-8000-000000000007"
+          "troopId": "8eefca28-56bf-4bce-bde4-687a390908b7"
         }
       ]
     },
-    "updated_at": "2026-09-20T20:12:20.253Z",
+    "updated_at": "2026-10-17T20:38:27.450Z",
     "token": "/play-fixtures/product/fremen-token.jpg",
     "leaders": [
       {
@@ -749,7 +784,19 @@
         "calculated": 0.6419354838709678
       },
       "decals": [],
-      "hero": {
+      "extraPhases": [
+        {
+          "allPlayersMustBeReady": false,
+          "before": "traitors",
+          "id": "6ffb5e59-1549-4047-a9f8-d3a5a7b4fb01",
+          "instructions": "During setup secretly choose a turn number and a faction. If that faction wins the game on that turn, you win instead. (Fremen Special Victory condition does not count)",
+          "priority": 10.0,
+          "symbol": "/vector/icon/fate.svg",
+          "title": "Bene Gesserit prediction",
+          "type": "prediction"
+        }
+      ],
+      "factionLeader": {
         "image": "/image/leader/official/mohiam.jpg",
         "memberId": "65fe405d-a2ff-44b7-a950-457c30248cfd",
         "name": "Gaius Helen Mohiam"
@@ -796,12 +843,12 @@
           },
           {
             "karama": "(Charity Phase) BG may not claim CHOAM Charity this phase unless they normally qualify (they have less than 3 spice).",
-            "text": "You always receive CHOAM Charity.",
+            "text": "You always receive CHOAM charity.",
             "title": "Charity"
           },
           {
             "karama": "(Any Phase) BG may not use worthless cards as karamas this phase. This may be played in response to BG playing a worthless card as a karama. BG must discard the worthless card and it has no effect.",
-            "text": "You may use worthless cards as Karamas. (Play to either stop the use of a faction advantage, ship forces at half price with the spice going to the Spice Bank, or purchase a Treachery Card without paying for it)",
+            "text": "You may use worthless cards as Karamas. (Play to either stop the use of a faction advantage, ship troops at half price with the spice going to the Spice Bank, or purchase a Treachery Card without paying for it)",
             "title": "Worthless Karama"
           },
           {
@@ -810,13 +857,13 @@
             "title": "Prediction"
           },
           {
-            "karama": "(Combat step 2.1) BG may not use Voice in their or their ally\u2019s battles this phase.",
-            "text": "During battle (step 2.1) you may force your opponent to play/not play a Treachery Card in their Battle Plan. (Projectile Weapon, Poison Defense, Worthless Card, Mercenaries, etc) Cheap Heroes may not be voiced. Special combat cards like Lazgun and Weirding Way must be voiced by name. If you force the use of a card the opponent does not have, they may silently ignore The Voice.",
+            "karama": "(Battle step 2.1) BG may not use Voice in their or their ally\u2019s battles this phase.",
+            "text": "During battle (step 2.1) you may force your opponent to play/not play a Treachery Card in their Battle Plan. (Projectile Weapon, Poison Defense, Worthless Card, Mercenaries, etc) Cheap Heroes may not be voiced. Special battle cards like Lazgun and Weirding Way must be voiced by name. If you force the use of a card the opponent does not have, they may silently ignore The Voice.",
             "title": "The Voice"
           },
           {
-            "karama": "(Ship & Move or before) Bene Gesserit forces may not flip at all for the rest of the turn.",
-            "text": "Your forces have two sides: fighters and advisors. Fighters act like normal forces. Advisors may be moved but otherwise have no effect on the game, coexisting with enemy forces and the forces of your ally.\n\nYour forces may flip from fighters to advisors when another faction moves into a territory with them. (Fighters can't become advisors when a faction reinforces a territory.)\n\nAt the beginning of Ship & Move Phase you may flip any number of groups of advisors to fighters, the groups will automatically become fighters if no other faction is present. This is the only time a territory with advisors can switch to fighters.\n\nThe state of your troops is tracked on a per territory basis. (Ex. If advisors move to a territory with fighters they become fighters.) You may ship forces as fighters or advisors.\n\nWhen a faction ships from off planet you may put an advisor at their destination (if you have no fighters there) or a fighter in the polar sink.",
+            "karama": "(Shipment and Movement or before) Bene Gesserit troops may not flip at all for the rest of the turn.",
+            "text": "Your troops have two sides: fighters and advisors. Fighters act like normal troops. Advisors may be moved but otherwise have no effect on the game, coexisting with enemy troops and the troops of your ally.\n\nYour troops may flip from fighters to advisors when another faction moves into a territory with them. (Fighters can't become advisors when a faction reinforces a territory.)\n\nAt the beginning of Shipment and Movement Phase you may flip any number of groups of advisors to fighters, the groups will automatically become fighters if no other faction is present. This is the only time a territory with advisors can switch to fighters.\n\nThe state of your troops is tracked on a per territory basis. (Ex. If advisors move to a territory with fighters they become fighters.) You may ship troops as fighters or advisors.\n\nWhen a faction ships from off planet you may put an advisor at their destination (if you have no fighters there) or a fighter in the polar sink.",
             "title": "Spiritual Advisors"
           }
         ],
@@ -829,26 +876,37 @@
         },
         "revivalText": "1 force.",
         "spiceCount": 5.0,
-        "startText": "1 in an unoccupied territory, 1 in the polar sink, 18 forces in reserves. 5 spice."
+        "startText": "1 in an unoccupied territory, 1 in the polar sink, 18 troops in reserves. 5 spice."
       },
       "themeColor": "#253b82",
       "troops": [
         {
           "back": {
-            "description": "Cannot participate in combat, do not count for occupancy limits, do not exert control for ornithopters or victory purposes",
+            "capable": false,
+            "combat": {
+              "strength": 0.0,
+              "supportCost": 0.0,
+              "supportedStrength": 0.0
+            },
+            "description": "Cannot participate in battle, do not count for occupancy limits, do not exert control for ornithopters or victory purposes",
             "image": "/vector/troop/bene-gesserit.svg",
             "name": "Advisor",
             "striped": true
+          },
+          "combat": {
+            "strength": 0.5,
+            "supportCost": 1.0,
+            "supportedStrength": 1.0
           },
           "count": 20.0,
           "description": "Normal troops, 0.5 strength if undialed, 1 strength when dialed.",
           "image": "/vector/troop/bene-gesserit.svg",
           "name": "Fighter",
-          "troopId": "30000000-0000-4000-8000-000000000008"
+          "troopId": "eea9f99d-2b42-4180-97b1-04d1ef672b5b"
         }
       ]
     },
-    "updated_at": "2026-09-20T20:05:04.438Z",
+    "updated_at": "2026-10-24T19:06:50.755Z",
     "token": "/play-fixtures/product/bene-gesserit-token.jpg",
     "leaders": [
       {

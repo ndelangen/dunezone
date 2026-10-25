@@ -2,12 +2,14 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import { publishedPath } from '../src/shared/asset-publishing/publicationTargets';
+import { SPICE_TOKEN_HREF } from '../src/shared/play/spiceToken';
 
 /*
  * Copies every published image the tutorial setup names into Storybook's static files, at the same path,
  * so the tutorial's stories show the real art without ever contacting the site.
  * The site keeps serving the live images; only Storybook reads this copy. Board faces are left out: Storybook answers those already.
  * A token laid on a card (a Spice card's board token) is named only by its asset id, so its image is looked for under each token shape.
+ * The spice token the table lays out for every bank is mirrored too, since the setup does not name it.
  * Usage, after `bun run tutorial:pull`: bun run tutorial:mirror (TUTORIAL_SITE defaults to https://dune.zone)
  */
 
@@ -18,6 +20,7 @@ const paths = new Set(
   [...catalogue.matchAll(/(?:https?:\/\/[^/"]+)?(\/published\/[^"?]+)/g)]
     .map((match) => match[1]!)
     .filter((address) => !address.startsWith('/published/boards/'))
+    .concat(SPICE_TOKEN_HREF)
 );
 const TOKEN_TYPES = ['token-disc', 'token-tech', 'token-plate', 'token-pointer', 'token-enhance'] as const;
 const tokenIds = new Set([...catalogue.matchAll(/"asset_id":\s*"([^"]+)"/g)].map((match) => match[1]!));

@@ -164,7 +164,7 @@ const tasks = () => [...windowTasks(), ...slotTasks()];
 /* One line for each part of the chapter, in the order it was played. */
 const learned = [
   '{Space} opens the compass over the table',
-  'Left is your hand, twice left your hidden zone',
+  'Left is your hand, twice left your private side-table',
   'Right is the table chat, twice right your ally',
   'Up is your battle plan, down the search',
   'The (?) beside a window’s name says what it is for',
