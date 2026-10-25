@@ -16,5 +16,3 @@ export const Pending = meta.story({
     await expect(page.getByRole('button', { name: 'Convert to custom card' })).toBeDisabled();
   },
 });
-
-export const SpiceCard = meta.story({ args: { target: 'spice card' } });

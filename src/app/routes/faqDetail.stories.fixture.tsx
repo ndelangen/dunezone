@@ -151,11 +151,18 @@ export async function openReferencePicker({ canvasElement }: { canvasElement: HT
   await expectPickerBounds(canvasElement, picker);
 }
 
-export async function expectPickerBounds(canvasElement: HTMLElement, picker: HTMLElement) {
+async function expectPickerBounds(canvasElement: HTMLElement, picker: HTMLElement) {
   await waitFor(() => expectWithinWidth(canvasElement, [picker]));
   await waitFor(async () => {
     const box = picker.getBoundingClientRect();
     await expect(box.top).toBeGreaterThanOrEqual(0);
     await expect(box.bottom).toBeLessThanOrEqual(canvasElement.ownerDocument.documentElement.clientHeight);
   });
+}
+
+export async function openTreacheryPicker(context: { canvasElement: HTMLElement }) {
+  await openReferencePicker(context);
+  const picker = within(context.canvasElement.ownerDocument.body).getByRole('dialog', { name: 'Add references' });
+  await expect(within(picker).findByRole('option', { name: 'Lasgun' }, { timeout: 30_000 })).resolves.toBeVisible();
+  await expectPickerBounds(context.canvasElement, picker);
 }

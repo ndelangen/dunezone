@@ -1,9 +1,19 @@
 import { testingPreview } from '@sb/preview';
-import { expect, userEvent, within } from 'storybook/test';
+import { expect, userEvent, within, waitFor } from 'storybook/test';
 
 import { AppRoot } from './AppRoot';
-import { HeaderResizePage, playHeaderResize } from './AppRoot.stories.fixture';
-import { ShellPageBackdrop, shellPageOptionLabels, shellPageOptions } from './ShellStoryPage.stories.fixture';
+import {
+  HeaderResizePage,
+  playHeaderResize,
+  fullscreenElements,
+  playFullscreenHeight,
+} from './AppRoot.stories.fixture';
+import {
+  ShellPageBackdrop,
+  shellPageOptionLabels,
+  shellPageOptions,
+  FullscreenShellPage,
+} from './ShellStoryPage.stories.fixture';
 
 const meta = testingPreview.meta({
   title: 'AppRoot',
@@ -72,4 +82,76 @@ export const AnimatedHeaderResize = meta.story({
   globals: { viewport: { value: 'appDesktop' }, motion: 'on' },
   args: { children: <HeaderResizePage /> },
   play: (context) => playHeaderResize(context, 'ok'),
+});
+
+/** The stars traverse their parallax range while the planet's frame stays anchored. */
+async function playBackgroundPan({ canvasElement }: { canvasElement: HTMLElement }) {
+  const view = canvasElement.ownerDocument.defaultView;
+  const root = canvasElement.ownerDocument.documentElement;
+  const stars = canvasElement.querySelector<HTMLElement>('[data-background-stars]');
+  const planet = canvasElement.querySelector<HTMLElement>('[data-background-planet]');
+  if (!view || !stars || !planet) {
+    throw new Error('The scroll story requires the orbital background.');
+  }
+  const readProgress = () => Number.parseFloat(stars.style.getPropertyValue('--scroll-progress'));
+  view.scrollTo({ top: 0 });
+  await waitFor(async () => {
+    await expect(view.scrollY).toBe(0);
+    await expect(readProgress()).toBe(0);
+  });
+  const planetTop = planet.getBoundingClientRect().top;
+  const starTop = stars.getBoundingClientRect().top;
+  await expect((view.innerHeight - planetTop) / planet.getBoundingClientRect().height).toBeCloseTo(0.2, 3);
+  view.scrollTo({ top: root.scrollHeight, behavior: 'instant' });
+  await waitFor(async () => {
+    await expect(view.scrollY).toBeGreaterThan(0);
+    await expect(readProgress()).toBeGreaterThanOrEqual(0.995);
+    await expect(stars.getBoundingClientRect().top).toBeLessThan(starTop);
+    await expect(planet.getBoundingClientRect().top).toBe(planetTop);
+  });
+}
+
+export const ReducedMotionHeaderResize = meta.story({
+  globals: { viewport: { value: 'appDesktop' }, motion: 'reduce' },
+  args: { children: <HeaderResizePage /> },
+  play: (context) => playHeaderResize(context, 'reduce'),
+});
+
+export const FullscreenExitRestoresDocument = meta.story({
+  globals: { viewport: { value: 'appLarge' } },
+  args: { children: <FullscreenShellPage /> },
+  play: async ({ canvasElement }) => {
+    await playFullscreenHeight({ canvasElement });
+    const { root, view, navigation, content, footer } = fullscreenElements(canvasElement);
+    await userEvent.click(within(canvasElement).getByRole('button', { name: 'Exit fullscreen' }));
+
+    await waitFor(async () => {
+      await expect(canvasElement.querySelector('[data-page-layout-height="fullscreen"]')).toBeNull();
+      await expect(navigation).toBeVisible();
+      await expect(footer).toBeVisible();
+      await expect(root.scrollHeight).toBeGreaterThan(root.clientHeight);
+      await expect(content.getBoundingClientRect().width).toBeLessThan(view.innerWidth);
+      const background = canvasElement.querySelector<HTMLElement>('[data-app-background]');
+      await expect(view.getComputedStyle(background!).visibility).toBe('visible');
+      await expect(view.getComputedStyle(root).scrollbarGutter).toBe('stable both-edges');
+    });
+
+    view.scrollTo({ top: 100 });
+    await waitFor(() => expect(view.scrollY).toBe(100));
+    view.scrollTo({ top: 0 });
+    await userEvent.click(within(canvasElement).getByRole('button', { name: 'Enter fullscreen' }));
+    await playFullscreenHeight({ canvasElement });
+  },
+});
+
+export const ScrollingBackground = meta.story({
+  globals: { viewport: { value: 'appDesktop' }, motion: 'on' },
+  parameters: {
+    docs: {
+      description: {
+        story: 'The stars move in parallax while the shaded planet remains anchored with its upper 20% visible.',
+      },
+    },
+  },
+  play: playBackgroundPan,
 });

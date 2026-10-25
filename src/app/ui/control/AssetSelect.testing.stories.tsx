@@ -7,7 +7,7 @@ import { Plus } from 'lucide-react';
 import { expect, screen, userEvent, waitFor, within } from 'storybook/test';
 
 import { AssetSelect } from './AssetSelect';
-import { ControlledAssetSelect, previews, options } from './AssetSelect.stories.fixture';
+import { ControlledAssetSelect, previews, options, emblems } from './AssetSelect.stories.fixture';
 
 const meta = testingPreview.meta({
   title: 'Asset Select',
@@ -94,5 +94,21 @@ export const IconPicker = meta.story({
     await act(async () => ocean.click());
     await expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
     await waitFor(() => expect(canvas.getByRole('button', { name: 'Add decal' })).toHaveFocus());
+  },
+});
+
+export const FactionEmblems = meta.story({
+  args: {
+    'aria-label': 'Faction emblem',
+    w: 680,
+    maw: 'calc(100vw - 2rem)',
+    data: stockAssetOptions(emblems),
+    getPreviewSrc: (value) => resolveAsset(value, 'small'),
+    value: '/vector/logo/atreides.svg',
+  },
+  play: async ({ canvasElement, userEvent }) => {
+    await userEvent.click(within(canvasElement).getByRole('combobox', { name: 'Faction emblem' }));
+    await expect(screen.getByRole('listbox').querySelectorAll('[role="option"]')).toHaveLength(emblems.length);
+    await expect(screen.getByRole('group', { name: 'Faction emblems / Board game factions' })).toBeVisible();
   },
 });

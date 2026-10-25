@@ -1,15 +1,9 @@
 import preview from '@sb/preview';
-import { heldImage, imageAfter, serveStoryImages } from '@sb/storyImages';
+import { heldImage, serveStoryImages } from '@sb/storyImages';
 import { expect, waitFor, within } from 'storybook/test';
 
 import { PublishedImage } from './PublishedImage';
-import { decodedImage } from './PublishedImage.stories.fixture';
-import { arrivalKeyframes } from './PublishedImage.stories.fixture';
-
-/* The slot fades in over 240 ms, a reduced-motion arrival is a 160 ms fade, and the develop runs 450 ms. */
-function animationDurations(canvasElement: HTMLElement) {
-  return canvasElement.getAnimations({ subtree: true }).map((animation) => animation.effect?.getTiming().duration);
-}
+import { decodedImage, animationDurations } from './PublishedImage.stories.fixture';
 
 const meta = preview.meta({
   component: PublishedImage,
@@ -46,19 +40,5 @@ export const Missing = meta.story({
     await expect(missing).toBeVisible();
     await expect(missing).not.toHaveAttribute('aria-busy');
     await expect(canvasElement.querySelectorAll('img')).toHaveLength(0);
-  },
-});
-
-/** Reduced motion keeps the arrival as a short fade, with no blur and no scale. */
-export const ArrivingWithReducedMotion = meta.story({
-  args: { src: imageAfter(600, 'reduced-motion') },
-  loaders: [serveStoryImages],
-  globals: { motion: 'reduce' },
-  play: async ({ canvasElement }) => {
-    const image = await within(canvasElement).findByRole('img', { name: 'Atreides' });
-    await waitFor(() => expect(image.closest('[aria-busy]')).toBeNull());
-    await expect(animationDurations(canvasElement)).toContain(160);
-    const keyframes = arrivalKeyframes(canvasElement);
-    await expect(keyframes.some((frame) => 'filter' in frame || 'transform' in frame)).toBe(false);
   },
 });

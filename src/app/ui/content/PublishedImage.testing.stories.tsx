@@ -3,7 +3,7 @@ import { imageFailingOnce, serveStoryImages, imageAfter } from '@sb/storyImages'
 import { expect, waitFor, within } from 'storybook/test';
 
 import { PublishedImage } from './PublishedImage';
-import { decodedImage, arrivalKeyframes } from './PublishedImage.stories.fixture';
+import { decodedImage, arrivalKeyframes, animationDurations } from './PublishedImage.stories.fixture';
 
 const meta = testingPreview.meta({
   title: 'PublishedImage',
@@ -43,5 +43,19 @@ export const Arriving = meta.story({
     await waitFor(() => expect(image.closest('[aria-busy]')).toBeNull());
     const keyframes = arrivalKeyframes(canvasElement);
     await expect(keyframes).toContainEqual(expect.objectContaining({ filter: 'blur(12px)', transform: 'scale(1.03)' }));
+  },
+});
+
+/** Reduced motion keeps the arrival as a short fade, with no blur and no scale. */
+export const ArrivingWithReducedMotion = meta.story({
+  args: { src: imageAfter(600, 'reduced-motion') },
+  loaders: [serveStoryImages],
+  globals: { motion: 'reduce' },
+  play: async ({ canvasElement }) => {
+    const image = await within(canvasElement).findByRole('img', { name: 'Atreides' });
+    await waitFor(() => expect(image.closest('[aria-busy]')).toBeNull());
+    await expect(animationDurations(canvasElement)).toContain(160);
+    const keyframes = arrivalKeyframes(canvasElement);
+    await expect(keyframes.some((frame) => 'filter' in frame || 'transform' in frame)).toBe(false);
   },
 });

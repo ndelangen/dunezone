@@ -1,3 +1,6 @@
+import type { within } from 'storybook/test';
+import { expect } from 'storybook/test';
+
 import type { FaqItemWithDetails } from '@db/faq';
 
 export const faqItems = [
@@ -61,3 +64,19 @@ export const faqItems = [
     },
   },
 ] as unknown as FaqItemWithDetails[];
+
+export async function expectLean(canvas: ReturnType<typeof within>) {
+  await expect(canvas.getByRole('link', { name: 'Can leaders move through the storm?' })).toBeVisible();
+  await expect(canvas.queryByRole('link', { name: 'Chani' })).not.toBeInTheDocument();
+  await expect(canvas.queryByRole('link', { name: 'Stilgar' })).not.toBeInTheDocument();
+  await expect(canvas.queryByRole('link', { name: 'Lasgun' })).not.toBeInTheDocument();
+  await expect(canvas.getByRole('link', { name: '2 related' })).toHaveAttribute(
+    'href',
+    '/rulesets/dreamrules/faq/storm-movement'
+  );
+  for (const label of canvas.getAllByText('Asked by:')) {
+    await expect(label).not.toBeVisible();
+  }
+  await expect(canvas.getByText('Answered by:')).not.toBeVisible();
+  await expect(canvas.getByText('Rules', { exact: true })).not.toBeVisible();
+}

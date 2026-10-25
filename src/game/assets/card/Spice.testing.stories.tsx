@@ -1,12 +1,14 @@
 import { testingPreview } from '@sb/preview';
 import discoverySpiceCards from '@shared/assets/fixtures/discoverySpiceCards.json';
 import { discoveryTokenFronts } from '@shared/assets/fixtures/discoveryTokens';
+import { spiceBoardTokens } from '@shared/assets/fixtures/spiceBoardCard';
 import { SpiceAsset } from '@shared/assets/schema';
 import { arrakisBoard } from '@shared/boards/geometry';
 import { expect } from 'storybook/test';
 
 import { CardGallery, GalleryCard } from './CardGallery.stories.fixture';
 import { SpiceCard } from './Spice';
+import { discoveryOnBoard } from './Spice.stories.fixture';
 
 const meta = testingPreview.meta({
   title: 'Spice',
@@ -54,5 +56,22 @@ export const DiscoveryCards = meta.story({
       await expect(getComputedStyle(tint).filter).toBe('none');
       await expect(getComputedStyle(marker).filter).toBe('none');
     }
+  },
+});
+
+/** Renaming a territory keeps its ID, so the card's tint on it still draws. */
+export const RenamedTerritory = meta.story({
+  args: {
+    ...discoveryOnBoard,
+    boardDefinition: (() => {
+      const board = arrakisBoard();
+      const key = Object.keys(board.properties).find((k) => board.properties[k].name === 'Funeral plain')!;
+      board.properties[key] = { ...board.properties[key], name: 'Funeral flats' };
+      return board;
+    })(),
+    boardTokens: spiceBoardTokens,
+  },
+  play: async ({ canvasElement }) => {
+    await expect(canvasElement.querySelectorAll('[data-tint="blow"] > g').length).toBeGreaterThan(0);
   },
 });

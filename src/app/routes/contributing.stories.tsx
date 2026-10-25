@@ -2,7 +2,6 @@ import preview from '@sb/preview';
 import { expect, userEvent, within } from 'storybook/test';
 
 import { expectDiagramLabelsFit } from './contributing.stories.fixture';
-import { expectMissingLesson } from './contributing.stories.fixture';
 import { pageStoryMeta } from './storybookConfig';
 
 const meta = preview.meta({ title: 'Contributing', ...pageStoryMeta });
@@ -67,9 +66,4 @@ export const PhoneRolloutDiagrams = meta.story({
     await expect(within(shipping).getByRole('region', { name: 'Verify' })).toBeVisible();
     await diagramsFit();
   },
-});
-
-export const UnknownCodeLesson = meta.story({
-  args: { path: '/contributing/code/toString' },
-  play: expectMissingLesson,
 });

@@ -1,8 +1,7 @@
 import preview from '@sb/preview';
-import { waitForFrame } from '@sb/storyWaits';
-import { expect, userEvent, waitFor, within } from 'storybook/test';
+import { expect, waitFor, within } from 'storybook/test';
 
-import { draftingSnapshot, storyPlayer } from './drafting.stories.fixture';
+import { draftingSnapshot, storyPlayer, headerAlert, NOT_READY } from './drafting.stories.fixture';
 import { drafting, gameMeta, install, lastCommand, MIDWAY, press, shows } from './game.stories.fixture';
 import { productTransport, SIX } from './product.stories.fixture';
 
@@ -48,34 +47,6 @@ export const WaitingForPlayers = meta.story({
   },
 });
 
-/** Players left a six-seat table that deals from four: the header waits for the draft's minimum, never the table's seat count. */
-export const PlayersLeftBelowMinimum = meta.story({
-  beforeEach: install(() => productTransport('seat-1', draftingSnapshot(SIX.slice(0, 2), 6, { minimum: 4 }))),
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await expect(page.findByText('Waiting for 2 more players', {}, { timeout: 30_000 })).resolves.toBeVisible();
-    await expect(page.getByRole('list', { name: 'Before the deal' })).toHaveTextContent(/Players 2\/4\+/);
-  },
-});
-
-/**
- * The panel's search filters the draft's own list of factions, which every viewer already holds in the game's snapshot (at most 500, the ruleset's own first).
- * A typed word reaches past the suitable ones to every faction, so "Show all" need not be on.
- */
-export const SearchedFactions = meta.story({
-  beforeEach: install(() => productTransport('seat-2', draftingSnapshot(SIX, 6, MIDWAY))),
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    const search = await page.findByRole('textbox', { name: 'Search factions' }, { timeout: 30_000 });
-    await userEvent.type(search, 'ecaz');
-    const list = () => within(page.getByRole('list', { name: 'Factions' }));
-    await waitFor(() => expect(list().getAllByRole('listitem')).toHaveLength(2));
-    await expect(list().getByText('Ecaz (Ecaz/Moritani)')).toBeVisible();
-    await expect(list().getByText('Moritani (Ecaz/Moritani)')).toBeVisible();
-    await expect(page.getByRole('switch', { name: 'Show all factions' })).not.toBeChecked();
-  },
-});
-
 /** A spectator sees the same ledger with a (+) to ask for a seat, and none of the drafting tools. */
 export const Observer = meta.story({
   beforeEach: install(() => productTransport('neutral', draftingSnapshot(SIX, 6, MIDWAY))),
@@ -117,17 +88,6 @@ export const InsufficientFactionPool = meta.story({
     );
   },
 });
-
-/** The drafting chip's warning line, with the help it carries for assistive technology; it speaks through the header's polite region, so it has no alert role of its own. */
-function headerAlert(canvasElement: HTMLElement) {
-  const header = canvasElement.ownerDocument.querySelector<HTMLElement>('.seated-header')!;
-  return within(header)
-    .getByText(/^(Seats were not dealt|Not enough factions in the pool)/u)
-    .closest('strong');
-}
-
-/** The deal found a drafted faction unready: it is set aside with its reason, readiness cleared, and it cannot be drafted again until it is ready. */
-const NOT_READY = 'faction token, The faction token back has no published face.';
 export const FactionSetAside = meta.story({
   beforeEach: install(() =>
     productTransport(
@@ -152,29 +112,6 @@ export const FactionSetAside = meta.story({
     await shows(() => list().getByText(`Not ready to deal: ${NOT_READY}`));
     const row = list().getByText('Iduali').closest('li') as HTMLElement;
     await expect(within(row).getByRole('button', { name: /^Draft$/ })).toBeDisabled();
-  },
-});
-
-/** A spectator reads why the deal failed in the header; dealing again is the players' Ready. */
-export const ObserverAfterAFailedDeal = meta.story({
-  beforeEach: install(() =>
-    productTransport(
-      'neutral',
-      draftingSnapshot(SIX, 6, {
-        picks: { 'seat-1': ['house-atreides', 'iduali'], 'seat-2': ['fremen'] },
-        setAside: { iduali: NOT_READY },
-        failure: `Set aside as not ready to deal: Iduali (${NOT_READY.replace(/\.$/, '')}).`,
-      })
-    )
-  ),
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await waitFor(
-      () => expect(headerAlert(canvasElement)).toHaveTextContent('Set aside as not ready to deal: Iduali'),
-      { timeout: 30_000 }
-    );
-    await expect(headerAlert(canvasElement)).toHaveTextContent('Seats were not dealt');
-    await expect(page.queryByRole('button', { name: 'Ready' })).toBeNull();
   },
 });
 
@@ -215,19 +152,6 @@ export const PlayerApprovesARequest = meta.story({
         type: 'command',
         action: { kind: 'seat-approve', requestId: 'seat-request-2' },
       })
-    );
-  },
-});
-
-/** A spectator's game menu has nothing to give up. */
-export const SpectatorGameMenu = meta.story({
-  beforeEach: install(() => productTransport('neutral', drafting())),
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await shows(() => page.getByRole('button', { name: 'Take a seat' }));
-    await press(() => page.getByRole('button', { name: 'Game menu' }));
-    await waitForFrame(() =>
-      expect(page.getByRole('menuitem', { name: 'Give up your seat' })).toHaveAttribute('data-disabled')
     );
   },
 });

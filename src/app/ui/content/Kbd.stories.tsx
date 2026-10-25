@@ -12,9 +12,6 @@ const meta = preview.meta({
 /** One key. */
 export const Key = meta.story({});
 
-/** Arrows are keys too, and keep the cap's minimum width. */
-export const Arrow = meta.story({ args: { children: '←' } });
-
 /** Keys named in braces inside an instruction show as caps; the rest stays prose. */
 export const InProse = meta.story({
   render: () => (
