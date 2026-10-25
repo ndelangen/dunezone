@@ -124,7 +124,8 @@ export function supportableSpice(plan: BattlePlan, balance: number): number[] {
       continue;
     }
     for (let count = 0; count < totalOf(plan, face.id); count++) {
-      for (const spent of [...reachable]) {
+      /* A snapshot, so each pass adds one more troop at most. */
+      for (const spent of Array.from(reachable)) {
         if (spent + face.supportCost <= limit) {
           reachable.add(spent + face.supportCost);
         }
