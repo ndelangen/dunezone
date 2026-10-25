@@ -1,16 +1,15 @@
 import { testingPreview } from '@sb/preview';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
-import { gameMeta, install } from './game.stories.fixture';
+import { gameMeta } from './game.stories.fixture';
 import {
   chapter,
   journey,
-  journeyDecorator,
   JourneyPage,
   journeySteps,
-  journeyTransport,
+  journeyBeforeEach,
   journeyViewers,
-  stepCode,
+  showJourney,
 } from './journey.stories.fixture';
 import { atStep } from './journey.stories.fixture';
 
@@ -25,22 +24,14 @@ const meta = testingPreview.meta({
   },
   parameters: {
     ...gameMeta.parameters,
-    controls: { disable: false, include: ['step', 'seat'] },
     docs: {
       description: {
         component:
-          'One real six-seat game recorded from the game Worker, replayed step by step. The panel moves between steps, switches the seat the page is viewed as, and names each step (J01, J02) for feedback. Record it again with `bun run play:record`.',
+          'One real six-seat game recorded from the game Worker, replayed step by step. The Play debugger panel moves between steps, switches the seat the page is viewed as, and names each step (J01, J02) for feedback. Record it again with `bun run play:record`.',
       },
     },
   },
-  beforeEach: ({ args }) => {
-    /* Storybook runs this again on every argument change without unmounting the page, so the page keeps the transport it connected to and the panel delivers the new step there. */
-    if (journey.transport?.connected()) {
-      return;
-    }
-    return install(() => journeyTransport(Number(args.step ?? 1) - 1, String(args.seat ?? 'seat-1')))();
-  },
-  decorators: [...gameMeta.decorators, journeyDecorator],
+  beforeEach: journeyBeforeEach,
   /* The stories load the table chunk before they render, so its cold first load falls outside their first wait (#1302). */
   loaders: [
     async () => {
@@ -52,22 +43,22 @@ const meta = testingPreview.meta({
 /* The second seat's player, who joins between J01 and J02. */
 const PLAYERS_AT_TABLE_FULL = 'Thialfi';
 
-/** The whole game: start at J01 and step, scrub or switch seats from the panel. */
+/** The whole game: start at J01 and step through it from the Play debugger panel; the canvas holds the page alone. */
 export const Walkthrough = meta.story({
   play: async ({ canvasElement }) => {
     const { page } = await atStep(canvasElement, 1);
-    const panel = within(await page.findByRole('complementary', { name: 'Journey' }));
-    await expect(panel.getByText(journeySteps()[0]!.title)).toBeVisible();
-    /* The page itself follows the panel: the second player shows once the table fills, and leaves again at the start. */
+    /* No story controls sit over the page: the debugger lives in Storybook's own panel. */
+    await expect(page.queryByRole('complementary', { name: 'Journey' })).toBeNull();
+    /* The page itself follows the step: the second player shows once the table fills, and leaves again at the start. */
     const seated = () => page.queryAllByText(PLAYERS_AT_TABLE_FULL, { exact: true });
     await expect(seated()).toHaveLength(0);
-    await userEvent.click(panel.getByRole('button', { name: 'Next' }));
-    await waitFor(() => expect(panel.getByText(stepCode(1))).toBeVisible());
-    await expect(journey.step).toBe(1);
+    /* The Play debugger panel moves the step argument; the story's `beforeEach` then delivers it like this. */
+    showJourney(1, 'seat-1');
+    await waitFor(() => expect(journey.step).toBe(1));
     await waitFor(() => expect(seated().length).toBeGreaterThan(0));
     /* Back to the start, so the story opens where the game does. */
-    await userEvent.click(panel.getByRole('button', { name: 'Previous' }));
-    await waitFor(() => expect(panel.getByText(stepCode(0))).toBeVisible());
+    showJourney(0, 'seat-1');
+    await waitFor(() => expect(journey.step).toBe(0));
     await waitFor(() => expect(seated()).toHaveLength(0));
   },
 });

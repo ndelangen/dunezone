@@ -63,7 +63,6 @@ export default defineConfig({
       '@sinonjs/fake-timers',
       '@mantine/hooks',
       '@testing-library/react/pure',
-      'chromatic/isChromatic',
       /* Prebundle imports discovered by full page stories before Chromium starts testing. */
       '@convex-dev/auth/react',
       '@radix-ui/react-select',
