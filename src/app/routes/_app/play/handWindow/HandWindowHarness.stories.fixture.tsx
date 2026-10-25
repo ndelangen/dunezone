@@ -1,82 +1,21 @@
-import { List, Text } from '@mantine/core';
 import { useContext, useEffect, useState, useSyncExternalStore } from 'react';
 
 import { TableSession } from '../../../../db/tabletop/TableSession';
-import type { TableProjection } from '../../../../db/tabletop/TableSession';
 import compass from '../compass/CompassControls.module.css';
 import { WindowFrame } from '../compass/WindowFrame';
 import { DarkSchemeIsland } from '../DarkSchemeIsland';
 import { GameRuntimeContext } from '../multiplayer/gameRuntime';
 import { GameSubscription } from '../multiplayer/GameSubscription';
-import { pieceName } from '../multiplayer/HandPiece';
+import { HiddenZone } from '../multiplayer/HiddenZone';
+import { HIDDEN_ZONE_GUIDANCE } from '../multiplayer/panelGuidance';
 import { HandWindow } from './HandWindow';
 import type { HandWindowVariant } from './useHandWindow';
 import '../dune-play.css';
 
-/** Story only: the table's side of each action, so a click in the window shows where it went. */
-function TableEcho({ table }: Readonly<{ table: TableProjection }>) {
-  const { hand = [], battlePlan: plan, bank } = table.snapshot;
-  const [log, setLog] = useState<{ seen: TableProjection; lines: string[] }>({ seen: table, lines: [] });
-  if (log.seen !== table) {
-    const before = log.seen.snapshot;
-    const lines: string[] = [];
-    const now = new Set(hand.map((piece) => piece.id));
-    for (const piece of before.hand ?? []) {
-      if (!now.has(piece.id)) {
-        const played = table.snapshot.table.pieces.some((candidate) => candidate.id === piece.id);
-        const planned = plan?.pieces.some((candidate) => candidate.id === piece.id);
-        lines.push(
-          `${pieceName(piece)} ${played ? 'was played face down by your faction token' : planned ? 'went into your battle plan' : 'left your hand'}.`
-        );
-      }
-    }
-    for (const piece of hand) {
-      const was = before.hand?.find((candidate) => candidate.id === piece.id);
-      if (piece.hiddenZone && !was?.hiddenZone) {
-        lines.push(`${pieceName(piece)} moved to your private side-table.`);
-      }
-    }
-    if (before.bank && bank && before.bank.balance !== bank.balance) {
-      const change = before.bank.balance - bank.balance;
-      lines.push(change > 0 ? `${change} spice went onto the table.` : `${-change} spice came back to your reserve.`);
-    }
-    const leaderBefore = before.battlePlan?.leaderId ?? null;
-    if (plan && leaderBefore !== plan.leaderId) {
-      lines.push(plan.leaderId ? 'Your plan has a leader now.' : 'Your plan has no leader now.');
-    }
-    if (plan && before.battlePlan && before.battlePlan.cardIds.length !== plan.cardIds.length) {
-      lines.push(`Your plan holds ${plan.cardIds.length} card${plan.cardIds.length === 1 ? '' : 's'} now.`);
-    }
-    setLog({ seen: table, lines: [...lines, ...log.lines].slice(0, 12) });
-  }
-  const sideTable = hand.filter((piece) => piece.hiddenZone);
-  const named = (id: string | null) => (id ? plan?.pieces.find((piece) => piece.id === id) : undefined);
-  return (
-    <>
-      <Text size="sm">
-        Spice reserve: <b>{bank?.balance ?? 0}</b>
-      </Text>
-      {plan && (
-        <Text size="sm">
-          Battle plan:{' '}
-          {[named(plan.leaderId), ...plan.cardIds.map(named)]
-            .flatMap((piece) => (piece ? [pieceName(piece)] : []))
-            .join(', ') || 'empty'}
-        </Text>
-      )}
-      <Text size="sm">Private side-table: {sideTable.map(pieceName).join(', ') || 'empty'}</Text>
-      <List size="sm" spacing={4}>
-        {log.lines.map((line, index) => (
-          <List.Item key={`${log.lines.length - index}`}>{line}</List.Item>
-        ))}
-      </List>
-    </>
-  );
-}
-
 /*
  * The Hand & spice window on its own: a live table session from the story's transport, and the window in a bottom-left slot
- * on the table's dark ground, without the table itself, so each prototype can be judged alone.
+ * on the table's dark ground, without the table itself, so each prototype can be judged alone. The real Private side-table window
+ * sits bottom right, so a piece set aside is seen arriving; the Play debugger panel shows the room's state for the rest.
  */
 export function HandWindowHarness({
   variant,
@@ -127,13 +66,13 @@ export function HandWindowHarness({
           {table && hand && (
             <WindowFrame
               entry={{
-                key: 'echo',
-                label: 'What reached the table',
-                group: 'Story',
-                topic: 'assets',
-                description: 'Story only: what your clicks in the Hand & spice window did on the live table.',
-                content: <TableEcho table={table} />,
-                layout: 'stack',
+                key: 'hidden-zone',
+                label: 'Private side-table',
+                group: 'Yours',
+                topic: 'hiddenZone',
+                ...HIDDEN_ZONE_GUIDANCE,
+                content: <HiddenZone client={client} table={table} hand={hand} />,
+                layout: 'flush',
               }}
               tab="public"
               where="right"

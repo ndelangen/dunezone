@@ -19,7 +19,7 @@ const meta = preview.meta({
   globals: { motion: 'on' },
   args: { seat: 'seat-2' },
   argTypes: { seat: { control: 'select', options: journeyViewers().filter((seat) => seat !== 'neutral') } },
-  parameters: { layout: 'fullscreen', chromatic: { disableSnapshot: true } },
+  parameters: { layout: 'fullscreen', playDebugger: true, chromatic: { disableSnapshot: true } },
   tags: ['!test'],
 });
 
