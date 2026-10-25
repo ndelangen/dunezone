@@ -1,5 +1,5 @@
 import { testingPreview } from '@sb/preview';
-import { expect, userEvent, within } from 'storybook/test';
+import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { stepperMeta } from './Stepper.stories.fixture';
 
@@ -29,5 +29,24 @@ export const Stepping = meta.story({
     await expect(page.getByRole('textbox', { name: 'Spice to withdraw' })).toHaveAttribute('aria-invalid', 'true');
     await userEvent.type(page.getByRole('textbox', { name: 'Spice to withdraw' }), '{Escape}');
     await expect(page.getByRole('textbox', { name: 'Spice to withdraw' })).toHaveValue('4');
+  },
+});
+
+/** The wheel steps the count without scrolling what holds it, and a three-digit count shows whole. */
+export const WheelAndWidth = meta.story({
+  args: { initial: 99, max: 500 },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement);
+    const field = page.getByRole('textbox', { name: 'Spice to withdraw' });
+    const wheel = new WheelEvent('wheel', { deltaY: -100, bubbles: true, cancelable: true });
+    field.dispatchEvent(wheel);
+    await expect(wheel.defaultPrevented).toBe(true);
+    await waitFor(() => expect(field).toHaveValue('100'));
+    await expect(field.scrollWidth).toBeLessThanOrEqual(field.clientWidth);
+    /* A count a hair off a whole step is not one, so leaving the field keeps it as typed. */
+    await userEvent.clear(field);
+    await userEvent.type(field, '1.0000000001');
+    await userEvent.tab();
+    await expect(field).toHaveAttribute('aria-invalid', 'true');
   },
 });

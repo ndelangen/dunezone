@@ -46,8 +46,9 @@
   scale: 0.88;
 }
 
+/* Sized to its content where the browser can, at least two digits wide; elsewhere wide enough for four. */
 .stepValue {
-  width: 2.4ch;
+  width: 4.4ch;
   min-width: 2.4ch;
   padding: 0;
   border: 0;
@@ -61,6 +62,12 @@
   font-variant-numeric: tabular-nums;
   text-align: center;
   field-sizing: content;
+}
+
+@supports (field-sizing: content) {
+  .stepValue {
+    width: auto;
+  }
 }
 
 .stepValue:focus-visible {

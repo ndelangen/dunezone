@@ -1,8 +1,8 @@
 import { UnstyledButton } from '@mantine/core';
 import clsx from 'clsx';
 import { Minus, Plus } from 'lucide-react';
-import type { ReactNode, WheelEvent } from 'react';
-import { useState } from 'react';
+import type { ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 
 import styles from './Stepper.module.css';
 
@@ -76,16 +76,31 @@ export function Stepper({
     go(current() + delta);
     setDraft(null);
   };
-  const wheel = (event: WheelEvent) => {
-    if (disabled || !event.deltaY) {
+  /*
+   * The wheel over the stepper steps the count and nothing else: the window it sits in does not scroll it away from the
+   * pointer. React listens to wheels passively, so the listener is the element's own, renewed with each render's values.
+   */
+  const [group, setGroup] = useState<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!group) {
       return;
     }
-    stepBy(event.deltaY < 0 ? step : -step);
-  };
+    const wheel = (event: WheelEvent) => {
+      if (disabled || !event.deltaY) {
+        return;
+      }
+      event.preventDefault();
+      stepBy(event.deltaY < 0 ? step : -step);
+    };
+    group.addEventListener('wheel', wheel, { passive: false });
+    return () => group.removeEventListener('wheel', wheel);
+  });
   /* Whether what is typed is a count the stepper can take as it stands: within the limits and on a step. */
   const typedFits = () => {
     const typed = draft === null || draft.trim() === '' ? NaN : Number(draft);
-    const onStep = Math.abs(typed / step - Math.round(typed / step)) < 1e-9;
+    /* A whole step is exact; a fractional one allows for floating-point error. */
+    const steps = typed / step;
+    const onStep = Number.isInteger(step) ? Number.isInteger(steps) : Math.abs(steps - Math.round(steps)) < 1e-9;
     return Number.isFinite(typed) && onStep && typed >= min && typed <= max;
   };
   const invalid = draft !== null && !typedFits();
@@ -108,7 +123,7 @@ export function Stepper({
       className={clsx(styles.stepper, size === 'sm' && styles.stepperSmall)}
       data-knock={knock}
       data-disabled={disabled || undefined}
-      onWheel={wheel}
+      ref={setGroup}
       role="group"
       aria-label={label}
     >
