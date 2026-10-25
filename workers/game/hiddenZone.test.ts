@@ -120,7 +120,7 @@ describe('the hidden zone', () => {
     send({
       kind: 'battle-plan',
       battleId,
-      plan: { mode: 'max', troops: [], spice: 0, adjustment: 0, leaderId: null, cardIds: [LOOSE] },
+      plan: { mode: 'max', troops: [], spice: 0, adjustment: 0, leaderIds: [], cardIds: [LOOSE] },
     });
     expect(room.snapshot.battleState!.plans[0]!.pieces.map((piece) => piece.id)).toEqual([LOOSE]);
     expect(JSON.stringify(room.snapshot.battleState)).not.toContain('hiddenZone');

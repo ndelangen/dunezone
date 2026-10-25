@@ -1,4 +1,4 @@
-import { isBattleLeader } from '@shared/play/battle';
+import { isBattleCard, isBattleLeader } from '@shared/play/battle';
 import type { BattleFace, BattlePlan, BattlePlanInput, Disclosure, PublicBattle } from '@shared/play/battle';
 import type { TablePiece } from '@shared/play/model';
 import type { ComponentProps } from 'react';
@@ -69,18 +69,8 @@ export function planPieces(plan: BattlePlan, hand: readonly TablePiece[]): Table
 }
 
 export const leadersOf = (pieces: readonly TablePiece[]) => pieces.filter(isBattleLeader);
-/* Traitors, predictions and alliance cards are cards in hand, but never part of a plan: a Traitor is called, not played. */
-const NOT_BATTLE_CARDS = new Set(['card-traitor', 'card-prediction', 'card-alliance']);
-
-/** The cards a plan can take, Treachery cards and the like. */
-export const cardsOf = (pieces: readonly TablePiece[]) =>
-  pieces.filter(
-    (piece) =>
-      piece.kind === 'card' &&
-      piece.items.length === 1 &&
-      !piece.stackKey?.startsWith('prediction:') &&
-      !NOT_BATTLE_CARDS.has(piece.items[0]?.artwork?.type ?? '')
-  );
+/** The cards a plan can take: Treachery cards only. */
+export const cardsOf = (pieces: readonly TablePiece[]) => pieces.filter(isBattleCard);
 
 export const capableFaces = (plan: BattlePlan) => plan.faces.filter((face) => face.capable);
 
@@ -141,8 +131,13 @@ export function toggleCard(plan: BattlePlan, cardId: string): Partial<BattlePlan
   };
 }
 
+/** Puts a leader into the plan beside any already there, or takes it out: a plan usually holds one, but may hold several. */
 export function toggleLeader(plan: BattlePlan, leaderId: string): Partial<BattlePlanInput> {
-  return { leaderId: plan.leaderId === leaderId ? null : leaderId };
+  return {
+    leaderIds: plan.leaderIds.includes(leaderId)
+      ? plan.leaderIds.filter((id) => id !== leaderId)
+      : [...plan.leaderIds, leaderId],
+  };
 }
 
 /** What the window may change: anything before Ready, and the dial only while it is not shown to everyone. */

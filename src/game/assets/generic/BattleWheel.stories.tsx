@@ -56,20 +56,28 @@ const meta = preview.meta({
 
 export const Revealed = meta.story({ args: revealedArgs });
 export const Empty = meta.story({ args: { ...revealedArgs, strength: 0, spice: 0, troops: [] } });
+const leaderToken = (name: string, image: ComponentProps<typeof LeaderToken>['image'], strength: string) => (
+  <div key={name} style={{ width: 60, height: 60 }}>
+    <LeaderToken
+      background={artwork.background}
+      image={image}
+      logo="/vector/logo/atreides.svg"
+      name={name}
+      strength={strength}
+    />
+  </div>
+);
 export const WithLeader = meta.story({
+  args: { ...revealedArgs, leaders: [leaderToken('Thufir Hawat', '/image/leader/official/thufir.png', '5')] },
+});
+/** Several leaders in one plan: the first sits in the slot and the others stack behind it. */
+export const WithSeveralLeaders = meta.story({
   args: {
     ...revealedArgs,
-    leader: (
-      <div style={{ width: 60, height: 60 }}>
-        <LeaderToken
-          background={artwork.background}
-          image="/image/leader/official/thufir.png"
-          logo="/vector/logo/atreides.svg"
-          name="Thufir Hawat"
-          strength="5"
-        />
-      </div>
-    ),
+    leaders: [
+      leaderToken('Thufir Hawat', '/image/leader/official/thufir.png', '5'),
+      leaderToken('Duncan Idaho', '/image/leader/official/duncan.png', '2'),
+    ],
   },
 });
 export const WithCards = meta.story({

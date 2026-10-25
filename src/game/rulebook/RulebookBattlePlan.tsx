@@ -94,7 +94,7 @@ function PlanWheel({ side }: Readonly<{ side: RulebookBattleSide }>) {
           <Piece source={source} />
         </span>
       ))}
-      leader={<Piece source={side.plan.leader} killed={side.plan.leaderKilled} />}
+      leaders={[<Piece key="leader" source={side.plan.leader} killed={side.plan.leaderKilled} />]}
     />
   );
 }

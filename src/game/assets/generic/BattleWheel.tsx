@@ -20,7 +20,8 @@ type Revealed = {
     artwork: ComponentProps<typeof TroopToken>;
   }[];
   cards?: readonly ReactNode[];
-  leader?: ReactNode;
+  /** Usually one; where a plan commits several, the first sits in the slot and the others stack behind it. */
+  leaders?: readonly ReactNode[];
   /** The faint wordmark behind the numbers; left out where the wheel is drawn small and it would only blur the strength. */
   wordmark?: boolean;
 };
@@ -81,7 +82,7 @@ function RevealedWheel({
   adjustment,
   troops,
   cards = [],
-  leader,
+  leaders = [],
   wordmark = true,
 }: Revealed) {
   return (
@@ -137,8 +138,21 @@ function RevealedWheel({
             <span className={styles.spiceValue}>{spice}</span>
           </div>
           <div className={styles.leader}>
+            {leaders
+              .slice(1)
+              .map((behind, index) => ({ behind, index }))
+              .reverse()
+              .map(({ behind, index }) => (
+                <div
+                  key={index}
+                  className={clsx(styles.leaderPiece, styles.leaderBehind)}
+                  style={{ translate: `${-(index + 1) * 6}px ${(index + 1) * 18}px` }}
+                >
+                  {behind}
+                </div>
+              ))}
             <div className={styles.leaderPiece}>
-              {leader ?? (
+              {leaders[0] ?? (
                 <span className={styles.noLeader}>
                   <svg viewBox="0 0 100 100" aria-hidden="true">
                     <use href="/vector/decal/cheap-hero.svg#root" />

@@ -119,7 +119,7 @@ function earlyRevealSnapshot() {
     troops: [{ faceId, undialed: 3, dialed: 2 }],
     spice: 2,
     strength: 3.5,
-    leaderId: leader.id,
+    leaderIds: [leader.id],
     cardIds: [card.id],
     pieces: [leader, card],
     disclosed: { leader: false, dial: true, cardIds: [card.id] },
@@ -131,7 +131,7 @@ function earlyRevealSnapshot() {
       dial: { strength: 3.5 },
     },
     {
-      leader: storyLeader('atreides-leader', 'house-atreides-01f1cf94-2df1-4b96-9fbf-dd757afef27b', 'Duncan Idaho'),
+      leaders: [storyLeader('atreides-leader', 'house-atreides-01f1cf94-2df1-4b96-9fbf-dd757afef27b', 'Duncan Idaho')],
       cards: [atreidesCard],
     },
   ];
@@ -347,7 +347,7 @@ export const PlanArtwork = meta.story({
       '/play-fixtures/product/unpublished-traitor.jpg',
       location.origin
     ).href;
-    snapshot.battlePlan!.leaderId = named('Feyd Rautha').id;
+    snapshot.battlePlan!.leaderIds = [named('Feyd Rautha').id];
   }),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);

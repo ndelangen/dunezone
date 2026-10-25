@@ -16,7 +16,10 @@ const meta = preview.meta({
   tags: ['!test'],
   args: { scenario: 'fresh', size: 'slot' } satisfies Args,
   argTypes: {
-    scenario: { control: 'inline-radio', options: ['fresh', 'planned', 'emperor', 'fremen', 'ready', 'countdown'] },
+    scenario: {
+      control: 'inline-radio',
+      options: ['fresh', 'planned', 'emperor', 'fremen', 'leaders', 'ready', 'countdown'],
+    },
     size: { control: 'inline-radio', options: ['slot', 'narrow', 'wide', 'tall'] },
   },
 });
@@ -31,3 +34,6 @@ export const Ledger = meta.story({ render });
 
 /** The Fremen: two troop types, dialed for free, so no spice row and no Custom mode. */
 export const Fremen = meta.story({ args: { scenario: 'fremen' }, render });
+
+/** Several leaders in one plan: each picked leader joins the wheel, stacked behind the first, and their strengths add up. */
+export const SeveralLeaders = meta.story({ args: { scenario: 'leaders' }, render });

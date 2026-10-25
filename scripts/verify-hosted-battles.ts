@@ -325,7 +325,7 @@ async function verifySupport({
   await a.page.getByRole('combobox', { name: 'Leader', exact: true }).click();
   await a.page.getByRole('option', { name: 'Recovery token', exact: true }).click();
   await until(
-    () => required(requireView(a).snapshot.battlePlan, 'battlePlan').leaderId === token.id,
+    () => required(requireView(a).snapshot.battlePlan, 'battlePlan').leaderIds[0] === token.id,
     'Leader did not commit.'
   );
   await commitCard({ who: a, name: cardName, until });

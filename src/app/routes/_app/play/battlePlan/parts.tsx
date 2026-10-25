@@ -488,7 +488,9 @@ export function StrengthSum({
   adjust?: ReactNode;
 }) {
   const { plan } = props;
-  const leader = plan.leaderId ? props.leaderStrength?.[plan.leaderId] : undefined;
+  const leader = plan.leaderIds.length
+    ? plan.leaderIds.reduce((total, id) => total + (props.leaderStrength?.[id] ?? 0), 0)
+    : undefined;
   const total = plan.strength + (leader ?? 0);
   return (
     <div className={styles.sum} aria-live="polite">
@@ -503,7 +505,11 @@ export function StrengthSum({
           troops {formatStrength(plan.strength - plan.adjustment)}
           {plan.adjustment ? ` ${plan.adjustment > 0 ? '+' : '−'} ${formatStrength(Math.abs(plan.adjustment))}` : ''}
         </span>
-        {leader !== undefined ? <span>leader {leader}</span> : null}
+        {leader !== undefined ? (
+          <span>
+            {plan.leaderIds.length > 1 ? 'leaders' : 'leader'} {leader}
+          </span>
+        ) : null}
         {spiceMatters(plan) ? <span>{plan.spice} spice</span> : null}
       </span>
     </div>

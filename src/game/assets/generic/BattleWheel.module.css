@@ -176,6 +176,11 @@
   place-items: center;
 }
 
+/* A second leader stacks below and behind the first, as coins slid off a pile. */
+.leaderBehind {
+  box-shadow: 1px 1px 3px #29271e80;
+}
+
 .leaderPiece > * {
   width: 100%;
   height: 100%;

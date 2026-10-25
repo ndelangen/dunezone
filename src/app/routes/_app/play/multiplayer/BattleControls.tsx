@@ -135,7 +135,7 @@ function wheelTroops(
 }
 /** Play owns piece visibility, pointer sessions and the Motion verdict; the asset owns the wheel artwork. */
 function BattleWheel({ plan, factionId, factionName, client, active, artwork }: WheelProps) {
-  const leader = plan.pieces.find((piece) => piece.id === plan.leaderId);
+  const leaders = plan.pieces.filter((piece) => plan.leaderIds.includes(piece.id) && visiblePiece(piece, active));
   const motion = useMotionAllowed();
   const retained = artwork?.[factionId];
   const { background } = factionArtwork(factionId, artwork);
@@ -155,7 +155,9 @@ function BattleWheel({ plan, factionId, factionName, client, active, artwork }: 
         .map((piece) => (
           <DraggablePiece key={piece.id} piece={piece} client={client} />
         ))}
-      leader={leader && visiblePiece(leader, active) ? <DraggablePiece piece={leader} client={client} /> : undefined}
+      leaders={leaders.map((leader) => (
+        <DraggablePiece key={leader.id} piece={leader} client={client} />
+      ))}
     />
   );
 }
@@ -271,9 +273,9 @@ function PlanInventory({ plan, locked, update, pieces }: PlanEditor & { pieces: 
         placeholder="No leader"
         clearable
         disabled={locked || plan.disclosed.leader}
-        value={plan.leaderId}
+        value={plan.leaderIds[0] ?? null}
         data={pieces.filter(isBattleLeader).map((piece) => ({ value: piece.id, label: pieceName(piece) }))}
-        onChange={(leaderId) => update({ leaderId })}
+        onChange={(leaderId) => update({ leaderIds: leaderId ? [leaderId] : [] })}
       />
       <div className={styles.hand} role="group" aria-label="Cards from your hand">
         {cards.map((piece) => {
@@ -338,7 +340,7 @@ function EarlyReveal({
       </Text>
       <Checkbox
         label="Leader"
-        disabled={disabled || (!plan.leaderId && !plan.disclosed.leader)}
+        disabled={disabled || (!plan.leaderIds.length && !plan.disclosed.leader)}
         checked={plan.disclosed.leader}
         onChange={(event) => toggle({ element: 'leader' }, event.currentTarget.checked)}
       />
@@ -846,7 +848,7 @@ function EarlyRevealWheel({
   factionName: string;
   children: ReactNode;
 }) {
-  const { leader, dial, cards } = early;
+  const { leaders = [], dial, cards } = early;
   const motion = useMotionAllowed();
   return (
     <div className={styles.early}>
@@ -878,11 +880,17 @@ function EarlyRevealWheel({
             <small>Strength</small>
           </div>
         ) : null}
-        {leader ? (
-          <div className={styles.earlyLeader} aria-label={`${factionName} leader revealed early`} role="group">
+        {leaders.map((leader, index) => (
+          <div
+            key={leader.id}
+            className={styles.earlyLeader}
+            style={index ? { translate: `${-index * 10}px ${-index * 8}px`, zIndex: -index } : undefined}
+            aria-label={`${factionName} leader revealed early`}
+            role="group"
+          >
             <PieceImage piece={leader} />
           </div>
-        ) : null}
+        ))}
       </div>
     </div>
   );
@@ -922,7 +930,7 @@ function SideContents({
         ready={side.ready}
       />
     );
-    if (early && (early.leader || early.dial || early.cards.length)) {
+    if (early && (early.leaders?.length || early.dial || early.cards.length)) {
       return (
         <EarlyRevealWheel early={early} factionName={name}>
           {closed}

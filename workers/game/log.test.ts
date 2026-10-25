@@ -161,7 +161,7 @@ describe('the public log', () => {
         plans: [
           null,
           {
-            leaderId: 'leader',
+            leaderIds: ['leader'],
             strength: 4.5,
             spice: 3,
             pieces: [piece('leader', 'Stilgar {0}'), piece('card', 'Crysknife')],

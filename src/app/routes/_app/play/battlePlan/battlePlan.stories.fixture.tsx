@@ -76,18 +76,23 @@ function treacheryCards(): TablePiece[] {
   }));
 }
 
-export type Scenario = 'fresh' | 'planned' | 'emperor' | 'fremen' | 'ready' | 'countdown';
+export type Scenario = 'fresh' | 'planned' | 'emperor' | 'fremen' | 'leaders' | 'ready' | 'countdown';
 
 /* The viewer's seat and faction per scenario, in the playing fixture's seat order. */
-const SEATS = { emperor: ['seat-3', 'emperor'], fremen: ['seat-5', 'fremen'] } as const;
+const SEATS = {
+  emperor: ['seat-3', 'emperor'],
+  fremen: ['seat-5', 'fremen'],
+  leaders: ['seat-5', 'fremen'],
+} as const;
 
 type Harness = Omit<BattlePlanViewProps, 'onEdit' | 'onReady' | 'onDisclose'>;
 
 /** The viewer's side of the story battle: Harkonnen against Atreides, or the Emperor or the Fremen in its place. */
 export function scenario(name: Scenario): Harness {
   const emperor = name === 'emperor';
-  const fremen = name === 'fremen';
-  const [seat, slug] = emperor || fremen ? SEATS[name] : ['seat-2', 'house-harkonnen'];
+  const severalLeaders = name === 'leaders';
+  const fremen = name === 'fremen' || severalLeaders;
+  const [seat, slug] = name === 'emperor' || fremen ? SEATS[name as keyof typeof SEATS] : ['seat-2', 'house-harkonnen'];
   const faction = factionBySlug(slug);
   /* The viewer's own hand from the playing fixture: leaders, alliance card and kept Traitors, and four Treachery cards drawn since. */
   const own = playingSnapshot(seat).hand!;
@@ -131,7 +136,8 @@ export function scenario(name: Scenario): Harness {
     return { ...harness, opponent: { ...harness.opponent!, ready: false } };
   }
   const committed = simulate(harness, {
-    leaderId: leaders[0]!.id,
+    /* The Fremen story with several leaders puts its two strongest in the plan. */
+    leaderIds: severalLeaders ? [leaders[0]!.id, leaders[1]!.id] : [leaders[0]!.id],
     cardIds: fremen ? ['treachery-crysknife', 'treachery-shield'] : ['treachery-crysknife'],
     ...(emperor
       ? { mode: 'custom' as const }
@@ -197,7 +203,7 @@ function simulate(state: Harness, patch: Partial<BattlePlanInput>): Harness {
     return total + troop.undialed * face.strength + troop.dialed * face.supportedStrength;
   }, input.adjustment);
   const pool = [...state.hand, ...before.pieces];
-  const ids = [...(input.leaderId ? [input.leaderId] : []), ...input.cardIds];
+  const ids = [...input.leaderIds, ...input.cardIds];
   const plan: BattlePlan = {
     ...input,
     troops,

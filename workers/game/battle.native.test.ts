@@ -96,7 +96,7 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
   async function revealWithCarriedLeader(carryId: string) {
     await accepted(a, { kind: 'hand-take' as const, pieceId: 'fixture-leader' });
     const battleId = await start();
-    await accepted(a, { kind: 'battle-plan' as const, battleId, plan: plan(1, 0, { leaderId: 'fixture-leader' }) });
+    await accepted(a, { kind: 'battle-plan' as const, battleId, plan: plan(1, 0, { leaderIds: ['fixture-leader'] }) });
     await ready(battleId);
     await runtime.clock(6000);
     const view = await syncView(a);
@@ -116,7 +116,7 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
       troops: [{ faceId: 'harkonnen-front', undialed: troops, dialed: 0 }],
       spice,
       adjustment: -0.25,
-      leaderId: null,
+      leaderIds: [],
       cardIds: [],
       ...extra,
     };
@@ -276,7 +276,7 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     const battleId = await start();
     const before = (await syncView(a)).snapshot.table;
     const selected = plan(5, 5, {
-      leaderId: 'fixture-leader',
+      leaderIds: ['fixture-leader'],
       cardIds: [required(required((await syncView(a)).snapshot.hand).find((piece) => piece.kind === 'card')).id],
     });
     await accepted(a, { kind: 'battle-plan' as const, battleId, plan: selected });
@@ -305,7 +305,7 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     await accepted(a, {
       kind: 'battle-plan' as const,
       battleId,
-      plan: plan(5, 5, { leaderId: 'fixture-leader', cardIds: [cardId] }),
+      plan: plan(5, 5, { leaderIds: ['fixture-leader'], cardIds: [cardId] }),
     });
     const hidden = (await syncView(observer)).snapshot;
     expect(required(required(hidden.battle).disclosed)[0]).toEqual({ cards: [] });
@@ -337,7 +337,7 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
       shown: true,
     });
     const all = required(required((await syncView(b)).snapshot.battle).disclosed)[0];
-    expect(required(required(all).leader).id).toBe('fixture-leader');
+    expect(required(required(all).leaders).map((leader) => leader.id)).toEqual(['fixture-leader']);
     expect(required(all).dial).toEqual({ strength: 4.75 });
     expect(required(required((await syncView(b)).snapshot.battle).disclosed)[1]).toEqual({ cards: [] });
     return { battleId, cardId };
@@ -366,14 +366,14 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
       ).reply.type
     ).toBe('rejected');
     for (const extra of [
-      { leaderId: null, cardIds: [cardId] },
-      { leaderId: 'fixture-leader', cardIds: [] },
+      { leaderIds: [], cardIds: [cardId] },
+      { leaderIds: ['fixture-leader'], cardIds: [] },
     ]) {
       expect(
         (await sendCommand(a, { kind: 'battle-plan' as const, battleId, plan: plan(5, 5, extra) })).reply.type
       ).toBe('rejected');
     }
-    const fixed = { leaderId: 'fixture-leader', cardIds: [cardId] };
+    const fixed = { leaderIds: ['fixture-leader'], cardIds: [cardId] };
     expect((await sendCommand(a, { kind: 'battle-plan' as const, battleId, plan: plan(4, 4, fixed) })).reply.type).toBe(
       'rejected'
     );
@@ -740,7 +740,7 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     if (order === 'movement-first') {
       expect([leaders[0].position[0], leaders[0].position[2]]).toEqual([-2, 2]);
     }
-    expect(required(final.battleResults)[0].plans[0].leaderId).toBe('fixture-leader');
+    expect(required(final.battleResults)[0].plans[0].leaderIds).toEqual(['fixture-leader']);
     expect(required(final.bank).balance).toBe(10);
   });
   it('rejects invalid anchors, unavailable resources, duplicate choices and locked plan edits', async () => {
@@ -756,7 +756,7 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     ).toBe('There is not enough spice in the spice reserve for this plan.');
     const invalid = [
       plan(12, 12),
-      plan(1, 0, { leaderId: 'harkonnen-force-loose' }),
+      plan(1, 0, { leaderIds: ['harkonnen-force-loose'] }),
       plan(1, 0, { cardIds: ['not-owned'] }),
       plan(1, 0, {
         troops: [
@@ -795,7 +795,7 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
         await sendCommand(a, {
           kind: 'battle-plan' as const,
           battleId,
-          plan: plan(1, 0, { leaderId: 'treachery-card-loose' }),
+          plan: plan(1, 0, { leaderIds: ['treachery-card-loose'] }),
         })
       ).reply.type
     ).toBe('rejected');

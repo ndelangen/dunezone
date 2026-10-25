@@ -19,12 +19,12 @@ export function PlanHead({ view }: { view: BattlePlanViewProps }) {
   const motion = useMotionAllowed();
   const locks = planLocks(view);
   const pieces = planPieces(plan, view.hand);
-  const leader = pieces.find((entry) => entry.id === plan.leaderId);
+  const leaders = plan.leaderIds.flatMap((id) => pieces.filter((entry) => entry.id === id));
   const cards = plan.cardIds.flatMap((id) => pieces.filter((entry) => entry.id === id));
   /* A piece landing on the wheel or leaving it gives the wheel a small thunk. */
-  const thunk = useBump(`${plan.leaderId}|${plan.cardIds.join()}`);
+  const thunk = useBump(`${plan.leaderIds.join()}|${plan.cardIds.join()}`);
   const piece = (entry: TablePiece) => {
-    const isLeader = entry.id === plan.leaderId;
+    const isLeader = plan.leaderIds.includes(entry.id);
     return (
       <UnstyledButton
         className={styles.piece}
@@ -75,7 +75,9 @@ export function PlanHead({ view }: { view: BattlePlanViewProps }) {
             cards={cards.map((card) => (
               <div key={card.id}>{piece(card)}</div>
             ))}
-            leader={leader ? piece(leader) : undefined}
+            leaders={leaders.map((leader) => (
+              <div key={leader.id}>{piece(leader)}</div>
+            ))}
           />
         </div>
       </div>

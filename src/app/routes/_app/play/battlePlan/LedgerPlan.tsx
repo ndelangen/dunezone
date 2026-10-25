@@ -43,12 +43,12 @@ export function LedgerPlan(props: BattlePlanViewProps) {
         <section className={styles.row} aria-label="Leader">
           <span className={styles.label}>
             Leader
-            {plan.leaderId ? (
+            {plan.leaderIds.length ? (
               <RevealToggle
                 className={styles.labelReveal}
                 plan={plan}
                 part={disclosure.leader}
-                name="your leader"
+                name={plan.leaderIds.length > 1 ? 'your leaders' : 'your leader'}
                 disabled={locks.revealLocked}
                 onDisclose={onDisclose}
               />
@@ -59,7 +59,7 @@ export function LedgerPlan(props: BattlePlanViewProps) {
               <PieceTile
                 key={piece.id}
                 piece={piece}
-                selected={plan.leaderId === piece.id}
+                selected={plan.leaderIds.includes(piece.id)}
                 disabled={locks.leaderLocked}
                 onToggle={() => onEdit(toggleLeader(plan, piece.id))}
               />
