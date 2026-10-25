@@ -87,3 +87,13 @@ test('a press on the table blurs the focused field before the centre window clos
   field.remove();
   table.remove();
 });
+
+test('revealing a pinned window lights its slot and leaves the centre window open', () => {
+  const { result } = renderHook(() => useOpenWindows(windows, false));
+  act(() => result.current.show('hand'));
+  act(() => result.current.pin('left'));
+  act(() => result.current.show('player:seat-4'));
+  act(() => result.current.reveal('hand'));
+  expect(result.current.centre).toEqual({ key: 'player:seat-4', tab: 'conversation' });
+  expect(result.current.flash).toEqual({ side: 'left', at: 1 });
+});
