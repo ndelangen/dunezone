@@ -8,7 +8,13 @@ import { element as first, task, viaCompass } from './guideChecks';
  * Every task is read from the screen, so it moves on only once the player has done it with the controls.
  */
 
-const compassOpen = () => document.querySelector('dialog[aria-label="Controls compass"]') !== null;
+const COMPASS = 'dialog[aria-label="Controls compass"]';
+const compassOpen = () => document.querySelector(COMPASS) !== null;
+/*
+ * Inside the open compass only: with the hand pinned bottom left, an arrow to the Controls button would run across it,
+ * so these tasks say which keys to press and the arrow comes once the compass is open.
+ */
+const inCompass = (selector: string) => () => document.querySelector(`${COMPASS} ${selector}`);
 /* Where a window shows: in the middle of the table or in one of the two slots. */
 const windowAt = (where: 'centre' | 'left' | 'right', key: string) =>
   document.querySelector(`[data-side="${where}"][data-window="${key}"]`) !== null;
@@ -102,7 +108,7 @@ const slotTasks = (): GuideTask[] => [
     id: 'table-chat',
     task: 'Open the table chat',
     detail: 'Right on the compass is the chat everyone at the table reads. Hold Space, tap → and let go.',
-    anchor: { kind: 'page', element: viaCompass('table') },
+    anchor: { kind: 'page', element: inCompass('[data-spot="table"]') },
     begin: nothing,
     done: () => windowAt('centre', 'table-chat'),
   }),
@@ -125,8 +131,7 @@ const slotTasks = (): GuideTask[] => [
     id: 'search',
     task: 'Look at the right bay by typing',
     detail: 'Open the controls and just type: “right” finds the camera view. Press Enter to pick it.',
-    /* The search field while the compass is open, the Controls button before. */
-    anchor: { kind: 'page', element: first('[aria-label="Search controls"], [data-compass-launcher]') },
+    anchor: { kind: 'page', element: inCompass('[aria-label="Search controls"]') },
     begin: nothing,
     done: () => showing('right'),
   }),

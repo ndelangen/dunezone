@@ -2,7 +2,17 @@ import type { GameSnapshot } from '@shared/play/protocol';
 
 import type { GuideTask } from '../TutorialGuide';
 import type { ChapterScript } from './chapterScript';
-import { at, closeUpShown, lastElement, openedWindow, tableDeck, task, viaCompass, windowShown } from './guideChecks';
+import {
+  at,
+  closeUpShown,
+  element,
+  lastElement,
+  openedWindow,
+  tableDeck,
+  task,
+  viaCompass,
+  windowShown,
+} from './guideChecks';
 import type { Piece } from './guideChecks';
 
 /*
@@ -76,14 +86,8 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
     task({
       id: 'withdraw',
       task: 'Take spice from your reserve',
-      detail: 'Your reserve is in the same window, under your hand. Pick an amount and press Withdraw spice.',
-      anchor: {
-        kind: 'page',
-        element: () =>
-          [...document.querySelectorAll('[data-window="hand"] button')].find(
-            (button) => button.textContent?.trim() === 'Withdraw spice'
-          ) ?? null,
-      },
+      detail: 'The big number under your hand is your reserve. Pick an amount below it and press Withdraw spice.',
+      anchor: { kind: 'page', element: element('[data-window="hand"] [aria-label="Spice reserve balance"]') },
       begin: reserve,
       done: (start) => reserve() < start,
     }),
