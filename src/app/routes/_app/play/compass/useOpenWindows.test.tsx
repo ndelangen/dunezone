@@ -221,6 +221,15 @@ test('a player window opened on a removal vote follows its target to the seat th
   rerender({ list: [window('hand'), window('player:seat-4', { player }), voted('seat-2')] });
   expect(result.current.slots.left?.key).toBe('player:seat-2');
   expect(result.current.isOpen('player:seat-2')).toBe(true);
+  /* Once the vote ends the window stays with the player it followed, rather than jump back to the seat they left. */
+  rerender({
+    list: [
+      window('hand'),
+      window('player:seat-4', { player }),
+      window('player:seat-2', { player: { ...player, seat: 'seat-2' } }),
+    ],
+  });
+  expect(result.current.slots.left?.key).toBe('player:seat-2');
 });
 
 test('a tutorial remembers nothing: it neither reads nor overwrites the game layout', () => {

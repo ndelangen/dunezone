@@ -1,11 +1,11 @@
 // @vitest-environment jsdom
 
 import { act, cleanup, render, screen } from '@testing-library/react';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { afterEach, beforeAll, expect, test, vi } from 'vite-plus/test';
 
 import { Compass } from './Compass';
-import type { TileSpot } from './compassSpots';
+import type { Spot, TileSpot } from './compassSpots';
 import type { Tile } from './compassTiles';
 import { useCompassKeys } from './useCompassKeys';
 
@@ -88,4 +88,53 @@ test('Tab between the compass’s own controls is the browser’s, and Tab from 
   behind.focus();
   expect(tab(behind).defaultPrevented).toBe(true);
   expect(document.activeElement).toBe(buttons[0]);
+});
+
+/* The compass with its spot held as the controls hold it, so the arrows really move the selection. */
+function SteeredCompass() {
+  const input = useRef<HTMLInputElement>(null);
+  const [spot, setSpot] = useState<Spot>('hub');
+  useCompassKeys({
+    open: true,
+    inert: false,
+    spot,
+    query: '',
+    cursor: 0,
+    suggestions: 0,
+    input,
+    onOpen: vi.fn(),
+    onClose: vi.fn(),
+    onSpot: setSpot,
+    onCursor: vi.fn(),
+    onConfirm: vi.fn(),
+  });
+  return (
+    <div data-compass-controls>
+      <Compass
+        tiles={tiles}
+        suggestions={[]}
+        spot={spot}
+        query=""
+        cursor={0}
+        refused={0}
+        input={input}
+        onSpot={setSpot}
+        onQuery={vi.fn()}
+        onCursor={vi.fn()}
+        onConfirm={vi.fn()}
+        onClose={vi.fn()}
+      />
+    </div>
+  );
+}
+
+test('an arrow from a tile Tab reached keeps its selection when the caret goes back to the search', () => {
+  const { container } = render(<SteeredCompass />);
+  const tile = container.querySelector<HTMLElement>('[data-spot="table"]')!;
+  act(() => tile.focus());
+  act(
+    () => void tile.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true, cancelable: true }))
+  );
+  expect(document.activeElement).toBe(screen.getByRole('textbox', { name: 'Search controls', hidden: true }));
+  expect(container.querySelector('[data-spot="hand"]')?.hasAttribute('data-selected')).toBe(true);
 });

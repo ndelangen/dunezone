@@ -10,6 +10,13 @@
   margin: 0;
 }
 
+.headingWithAction {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: var(--space-md);
+}
+
 .body {
   min-width: 0;
 

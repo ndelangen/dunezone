@@ -3,9 +3,9 @@
   --nested-tabs-item-size: 2.65rem;
   --nested-tabs-gap: 0.3rem;
   --nested-tabs-radius: var(--mantine-radius-md);
-  --nested-tabs-level-one-bg: var(--glass-surface-0);
-  --nested-tabs-level-two-bg: var(--glass-surface-1);
-  --nested-tabs-panel-bg: var(--glass-surface-2);
+  --nested-tabs-level-one-bg: rgb(from var(--glass-surface-0) r g b / var(--glass-surface-0-alpha));
+  --nested-tabs-level-two-bg: rgb(from var(--glass-surface-1) r g b / var(--glass-surface-1-alpha));
+  --nested-tabs-panel-bg: rgb(from var(--glass-surface-2) r g b / var(--glass-surface-2-alpha));
 
   container: nested-tabs / inline-size;
   display: grid;
@@ -132,28 +132,48 @@
 }
 
 .levelItems[data-scroll-before] {
-  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 var(--nested-tabs-scroll-fade), #000 100%);
-  mask-image: linear-gradient(to bottom, transparent, #000 var(--nested-tabs-scroll-fade), #000 100%);
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    var(--color-shadow) var(--nested-tabs-scroll-fade),
+    var(--color-shadow) 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    var(--color-shadow) var(--nested-tabs-scroll-fade),
+    var(--color-shadow) 100%
+  );
 }
 
 .levelItems[data-scroll-after] {
-  -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 calc(100% - var(--nested-tabs-scroll-fade)), transparent);
-  mask-image: linear-gradient(to bottom, #000 0, #000 calc(100% - var(--nested-tabs-scroll-fade)), transparent);
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    var(--color-shadow) 0,
+    var(--color-shadow) calc(100% - var(--nested-tabs-scroll-fade)),
+    transparent
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    var(--color-shadow) 0,
+    var(--color-shadow) calc(100% - var(--nested-tabs-scroll-fade)),
+    transparent
+  );
 }
 
 .levelItems[data-scroll-before][data-scroll-after] {
   -webkit-mask-image: linear-gradient(
     to bottom,
     transparent,
-    #000 var(--nested-tabs-scroll-fade),
-    #000 calc(100% - var(--nested-tabs-scroll-fade)),
+    var(--color-shadow) var(--nested-tabs-scroll-fade),
+    var(--color-shadow) calc(100% - var(--nested-tabs-scroll-fade)),
     transparent
   );
   mask-image: linear-gradient(
     to bottom,
     transparent,
-    #000 var(--nested-tabs-scroll-fade),
-    #000 calc(100% - var(--nested-tabs-scroll-fade)),
+    var(--color-shadow) var(--nested-tabs-scroll-fade),
+    var(--color-shadow) calc(100% - var(--nested-tabs-scroll-fade)),
     transparent
   );
 }
@@ -190,7 +210,7 @@
 }
 
 .item:hover,
-.item:focus-visible {
+.item:focus-visible:not([data-pointer-focus]) {
   opacity: 1;
 }
 
@@ -198,9 +218,13 @@
   transform: translateY(-1px);
 }
 
-.item:focus-visible {
+.item:focus-visible:not([data-pointer-focus]) {
   outline: 3px solid var(--color-focus-ring);
   outline-offset: 2px;
+}
+
+.item[data-pointer-focus] {
+  outline: none;
 }
 
 .itemIcon {

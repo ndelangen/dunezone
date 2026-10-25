@@ -30,7 +30,7 @@
   height: calc(100cqw * (1125 / 3064));
   overflow: hidden;
   border-radius: 6px;
-  box-shadow: 0 0 20px 0 rgba(0, 0, 0, 0.5);
+  box-shadow: 0 0 20px 0 rgb(from var(--color-shadow) r g b / 0.5);
   transition: height 0.2s ease-out;
 }
 
@@ -154,8 +154,13 @@
   z-index: -1;
   opacity: 0;
   background:
-    linear-gradient(90deg, rgb(20 12 6 / 92%) 0%, rgb(20 12 6 / 72%) 40%, rgb(20 12 6 / 5%) 75%),
-    linear-gradient(0deg, rgb(20 12 6 / 70%), transparent 40%);
+    linear-gradient(
+      90deg,
+      rgb(from var(--ui-ground) r g b / 92%) 0%,
+      rgb(from var(--ui-ground) r g b / 72%) 40%,
+      rgb(from var(--ui-ground) r g b / 5%) 75%
+    ),
+    linear-gradient(0deg, rgb(from var(--ui-ground) r g b / 70%), transparent 40%);
   pointer-events: none;
   transition: opacity 0.5s ease-out;
   will-change: opacity;

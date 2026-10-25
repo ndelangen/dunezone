@@ -40,10 +40,26 @@ const INTENT_COLOR = {
  */
 const TILE = {
   neutral: ['var(--action-neutral-bg)', 'var(--action-neutral-hover-bg)', 'var(--action-neutral-fg)'],
-  positive: ['var(--action-positive-bg)', 'var(--action-positive-hover-bg)', 'var(--action-positive-fg)'],
-  negative: ['var(--action-negative-bg)', 'var(--action-negative-hover-bg)', 'var(--action-negative-fg)'],
-  publish: ['var(--action-publish-bg)', 'var(--action-publish-hover-bg)', 'var(--action-publish-fg)'],
-  export: ['var(--action-export-bg)', 'var(--action-export-hover-bg)', 'var(--action-export-fg)'],
+  positive: [
+    'rgb(from var(--action-positive-bg) r g b / var(--action-positive-bg-alpha))',
+    'rgb(from var(--action-positive-hover-bg) r g b / var(--action-positive-hover-bg-alpha))',
+    'var(--action-positive-fg)',
+  ],
+  negative: [
+    'rgb(from var(--action-negative-bg) r g b / var(--action-negative-bg-alpha))',
+    'rgb(from var(--action-negative-hover-bg) r g b / var(--action-negative-hover-bg-alpha))',
+    'var(--action-negative-fg)',
+  ],
+  publish: [
+    'rgb(from var(--action-publish-bg) r g b / var(--action-publish-bg-alpha))',
+    'rgb(from var(--action-publish-hover-bg) r g b / var(--action-publish-hover-bg-alpha))',
+    'var(--action-publish-fg)',
+  ],
+  export: [
+    'rgb(from var(--action-export-bg) r g b / var(--action-export-bg-alpha))',
+    'rgb(from var(--action-export-hover-bg) r g b / var(--action-export-hover-bg-alpha))',
+    'var(--action-export-fg)',
+  ],
 } as const satisfies Record<IconActionIntent, readonly [string, string, string]>;
 
 const PRESSED_TILE = [

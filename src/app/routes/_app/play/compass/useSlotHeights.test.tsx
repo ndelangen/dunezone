@@ -106,7 +106,7 @@ test('dragging the grip resizes with the pointer, bounces once per run into the 
   act(() => result.current.resize('left')(start));
   const moveTo = (clientY: number) =>
     act(() => {
-      window.dispatchEvent(new PointerEvent('pointermove', { clientY }));
+      window.dispatchEvent(new PointerEvent('pointermove', { clientY, buttons: 1 }));
     });
   moveTo(400);
   expect(result.current.styleOf('left')).toEqual({ height: 488 });
@@ -123,6 +123,33 @@ test('dragging the grip resizes with the pointer, bounces once per run into the 
   });
   moveTo(400);
   expect(result.current.styleOf('left')).toEqual({ height: limit });
+});
+
+test('a drag released outside the browser, or left by the window losing focus, ends there', () => {
+  const { root, grip } = table();
+  const { result } = heights(root);
+  const start = {
+    clientY: 440,
+    currentTarget: grip,
+    preventDefault: () => {},
+  } as unknown as ReactPointerEvent<HTMLElement>;
+  const moveTo = (clientY: number, buttons = 1) =>
+    act(() => {
+      window.dispatchEvent(new PointerEvent('pointermove', { clientY, buttons }));
+    });
+  act(() => result.current.resize('left')(start));
+  moveTo(400);
+  expect(result.current.styleOf('left')).toEqual({ height: 488 });
+  /* The release happened outside: the pointer comes back with no button held. */
+  moveTo(300, 0);
+  moveTo(300);
+  expect(result.current.styleOf('left')).toEqual({ height: 488 });
+  act(() => result.current.resize('left')(start));
+  act(() => {
+    window.dispatchEvent(new Event('blur'));
+  });
+  moveTo(300);
+  expect(result.current.styleOf('left')).toEqual({ height: 488 });
 });
 
 test('a dragged height is remembered for the next visit', () => {

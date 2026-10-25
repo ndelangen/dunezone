@@ -126,11 +126,23 @@ export function useOpenWindows(windows: readonly TableWindow[], compassOpen: boo
     const target = entry?.vote ? windows.find((window) => window.player?.vote === entry.vote) : undefined;
     return entry && target && target.key !== entry.key ? { ...entry, key: target.key } : entry;
   };
+  /* A window that followed its vote to another seat stays there, so it does not jump back once the vote ends. */
+  const [movedLeft, movedRight, movedCentre] = [
+    followed(openSlots.left),
+    followed(openSlots.right),
+    followed(openCentre),
+  ];
+  if (movedLeft !== openSlots.left || movedRight !== openSlots.right) {
+    setSlots({ left: movedLeft, right: movedRight });
+  }
+  if (movedCentre !== openCentre) {
+    setCentre(movedCentre);
+  }
   /* Following a vote can bring two windows onto one player; the slots keep theirs, left first, and the centre gives way. */
-  const left = followed(openSlots.left);
-  const right = unlessShown(followed(openSlots.right), [left]);
+  const left = movedLeft;
+  const right = unlessShown(movedRight, [left]);
   const slots: Slots = { left, right };
-  const centre = unlessShown(followed(openCentre), [left, right]);
+  const centre = unlessShown(movedCentre, [left, right]);
 
   /* A player's window opens on the chat when there is one to have, otherwise on what they show. */
   const firstTab = (key: string): PlayerTab => {

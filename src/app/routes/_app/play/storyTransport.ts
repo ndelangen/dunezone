@@ -1,3 +1,4 @@
+import { beginDebugging } from '@sb/playDebugger/preview';
 import type { PublicFaction } from '@shared/play/capture';
 import { treacheryHandCounts } from '@shared/play/handCounts';
 import { LOG_PAGE_SIZE } from '@shared/play/log';
@@ -127,6 +128,7 @@ export function storyTransport(
         queueMicrotask(() => this.answerKeepalive());
         return;
       }
+      debugging.traffic('sent', data);
       const message = clientMessageSchema.parse(JSON.parse(data));
       messages.push(message);
       if (message.type !== 'admit' && message.type !== 'log-history' && message.type !== 'conversation-history') {
@@ -181,9 +183,9 @@ export function storyTransport(
      */
     deliver(message: ServerMessage) {
       if (this.readyState === StorySocket.OPEN) {
-        this.onmessage?.({
-          data: JSON.stringify(message.type === 'admission' ? message : { serverNow: STORYBOOK_NOW, ...message }),
-        });
+        const data = JSON.stringify(message.type === 'admission' ? message : { serverNow: STORYBOOK_NOW, ...message });
+        debugging.traffic('received', data);
+        this.onmessage?.({ data });
       }
     }
 
@@ -192,6 +194,21 @@ export function storyTransport(
       this.onclose?.({ code });
     }
   }
+
+  /* The Play debugger panel shows this socket's traffic and the page's newest view; a replay or a live table describes itself over it. */
+  const debugging = beginDebugging({
+    title: 'Scripted story',
+    description:
+      "A scripted transport answers the page with the story's fixed view. Commands are recorded, never executed.",
+    actions: [
+      {
+        id: 'disconnect',
+        label: 'Drop connection',
+        description: "Closes the page's socket as a lost network does; the page reconnects on its own.",
+        run: () => sockets.at(-1)?.close(1006),
+      },
+    ],
+  });
 
   const runtime: GameRuntime = {
     ...browserGameRuntime,
@@ -203,6 +220,7 @@ export function storyTransport(
     snapshot,
     runtime,
     dispose: () => {
+      debugging.end();
       for (const socket of sockets) {
         socket.onclose = null;
         socket.close();

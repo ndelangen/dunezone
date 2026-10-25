@@ -10,7 +10,7 @@
   box-sizing: border-box;
   gap: 1rem;
   padding: 0.5rem 1.5rem;
-  color: #fff;
+  color: var(--color-inverse);
   z-index: 2;
 }
 
@@ -22,7 +22,12 @@
   left: 0;
   right: 0;
   height: 220%;
-  background: linear-gradient(to bottom, rgba(10, 8, 4, 0.75), rgba(10, 8, 4, 0.35) 45%, transparent);
+  background: linear-gradient(
+    to bottom,
+    rgb(from var(--ui-ground) r g b / 0.75),
+    rgb(from var(--ui-ground) r g b / 0.35) 45%,
+    transparent
+  );
   pointer-events: none;
   z-index: -1;
 }
@@ -146,7 +151,7 @@
   border-radius: 50%;
   object-fit: cover;
   display: block;
-  box-shadow: 0 0 8px 0 rgba(0, 0, 0, 0.7);
+  box-shadow: 0 0 8px 0 rgb(from var(--color-shadow) r g b / 0.7);
 }
 
 .avatarInitials {
@@ -154,10 +159,10 @@
   height: 32px;
   border-radius: 50%;
   /* Opaque so the white initials keep a deterministic contrast over any video frame. */
-  background: #2b3648;
-  border: 1px solid rgba(255, 255, 255, 0.4);
+  background: var(--ui-raised);
+  border: 1px solid rgb(from var(--color-inverse) r g b / 0.4);
   box-sizing: border-box;
-  color: #fff;
+  color: var(--color-inverse);
   display: flex;
   align-items: center;
   justify-content: center;
