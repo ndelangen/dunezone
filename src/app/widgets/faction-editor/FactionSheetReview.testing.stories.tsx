@@ -20,6 +20,17 @@ async function afterResizeObservers(view: Window) {
   await new Promise<void>((resolve) => view.requestAnimationFrame(() => view.requestAnimationFrame(() => resolve())));
 }
 
+/** The review stage and the box that sets its width, or an error when the stage never rendered. */
+function reviewStage(canvasElement: HTMLElement) {
+  const view = canvasElement.ownerDocument.defaultView!;
+  const stage = canvasElement.querySelector<HTMLElement>('[data-faction-sheet-review]');
+  const stageHost = stage?.parentElement;
+  if (!stageHost) {
+    throw new Error('The review stage never rendered, so it cannot be narrowed.');
+  }
+  return { view, stage: stage!, stageHost };
+}
+
 /**
  * A stage that narrows below the review's width closes an open review the way its close button does, so focus goes back to the button that opened it instead of dropping to the page body when the panel goes inert.
  * Once the review is closed, a stage resize leaves focus where it is.
@@ -35,12 +46,7 @@ export const NarrowingStageClosesReview = meta.story({
   },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    const view = canvasElement.ownerDocument.defaultView;
-    const stage = canvasElement.querySelector<HTMLElement>('[data-faction-sheet-review]');
-    const stageHost = stage?.parentElement;
-    if (!view || !stage || !stageHost) {
-      throw new Error('The review stage never rendered, so it cannot be narrowed.');
-    }
+    const { view, stage, stageHost } = reviewStage(canvasElement);
     const trigger = page.getByRole('button', { name: 'Review faction sheet' });
 
     await openReview(canvasElement);
