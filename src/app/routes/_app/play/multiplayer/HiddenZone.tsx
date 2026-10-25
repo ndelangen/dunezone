@@ -170,10 +170,7 @@ export function HiddenZone({ client, table, hand }: Props) {
 
   /* The spot a piece shows: where it was let go while the room has not answered yet, else where the room keeps it. */
   const spotOf = (piece: TablePiece) =>
-    landing &&
-    landing.pieceId === piece.id &&
-    landing.from === piece.hiddenZone &&
-    client.awaiting(landing.commandId)
+    landing && landing.pieceId === piece.id && landing.from === piece.hiddenZone && client.awaiting(landing.commandId)
       ? landing.at
       : piece.hiddenZone!;
 
