@@ -4,8 +4,8 @@
  * The stub's ground and accent are the play shell's own, so the step into the table starts here.
  */
 .pass {
-  --pass-ground: #17100c;
-  --pass-accent: #f8af40;
+  --pass-ground: var(--color-ground);
+  --pass-accent: var(--color-brand);
   container: pass / inline-size;
   position: relative;
   display: grid;
@@ -13,7 +13,7 @@
   max-width: 64rem;
   margin: 0 auto;
   border-radius: var(--radius-md);
-  box-shadow: 0 1.5rem 3.5rem rgba(30, 15, 5, 0.35);
+  box-shadow: 0 1.5rem 3.5rem rgb(from var(--play-shadow-pass) r g b / 0.35);
 }
 
 .pass > * {
@@ -155,7 +155,7 @@
 }
 
 .ringGround {
-  fill: #0f0a07;
+  fill: var(--pass-ground);
   stroke: var(--pass-accent);
   stroke-opacity: 0.2;
 }
@@ -190,7 +190,9 @@
   position: fixed;
   inset: 0;
   z-index: 1000;
-  background: radial-gradient(38% 34% at 50% 46%, rgba(248, 175, 64, 0.14), transparent 70%), #130d0a;
+  background:
+    radial-gradient(38% 34% at 50% 46%, color-mix(in srgb, var(--color-brand) 14%, transparent), transparent 70%),
+    var(--color-ground);
   animation: create-departure 0.7s ease-in forwards;
 }
 

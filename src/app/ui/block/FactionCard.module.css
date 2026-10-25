@@ -54,8 +54,8 @@
   inset: 0;
   z-index: 1;
   background:
-    linear-gradient(to bottom, rgba(8, 6, 4, 0.2), transparent 35%),
-    linear-gradient(to top, rgba(8, 6, 4, 0.88), transparent 62%);
+    linear-gradient(to bottom, rgb(from var(--ui-ground) r g b / 0.2), transparent 35%),
+    linear-gradient(to top, rgb(from var(--ui-ground) r g b / 0.88), transparent 62%);
 }
 
 .factionToken,
@@ -79,7 +79,7 @@
   z-index: 3;
   width: 20%;
   aspect-ratio: 1;
-  filter: drop-shadow(0 5px 10px rgba(0, 0, 0, 0.38));
+  filter: drop-shadow(0 5px 10px rgb(from var(--color-shadow) r g b / 0.38));
 }
 
 .cast {
@@ -94,7 +94,7 @@
   bottom: 0;
   width: 48%;
   aspect-ratio: 1;
-  filter: drop-shadow(0 12px 17px rgba(0, 0, 0, 0.38));
+  filter: drop-shadow(0 12px 17px rgb(from var(--color-shadow) r g b / 0.38));
   transition: transform 160ms ease;
 }
 
@@ -112,7 +112,7 @@
   width: 29%;
   aspect-ratio: 1;
   margin-left: -5.5%;
-  filter: drop-shadow(0 4px 7px rgba(0, 0, 0, 0.45));
+  filter: drop-shadow(0 4px 7px rgb(from var(--color-shadow) r g b / 0.45));
 }
 
 .leaders > span:first-child {
@@ -124,7 +124,7 @@
 }
 
 .tokenPlaceholder {
-  border: 1px solid #e3dbb3;
+  border: 1px solid var(--ui-highlight);
   font-size: 30cqw;
 }
 
@@ -153,7 +153,12 @@
   box-sizing: border-box;
   min-height: 20%;
   padding: 6% 5% 3.5%;
-  background: linear-gradient(to top, rgba(7, 5, 4, 0.8), rgba(7, 5, 4, 0.48) 70%, transparent);
+  background: linear-gradient(
+    to top,
+    rgb(from var(--ui-ground) r g b / 0.8),
+    rgb(from var(--ui-ground) r g b / 0.48) 70%,
+    transparent
+  );
 }
 
 .captionText {
@@ -170,7 +175,7 @@
 
 .ruleset {
   margin-top: 0.15rem;
-  color: rgba(255, 248, 231, 0.78);
+  color: rgb(from var(--color-inverse) r g b / 0.78);
   line-height: 1.15;
 }
 

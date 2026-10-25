@@ -103,12 +103,12 @@ export function AppBackground({ motion }: { motion: boolean }) {
         <svg ref={starsLayer} className={styles.stars} viewBox="0 0 1600 1600">
           <defs>
             <radialGradient id={gradientId}>
-              <stop stopColor="#242018" />
-              <stop offset="1" stopColor="#171511" />
+              <stop stopColor="var(--ui-recess)" />
+              <stop offset="1" stopColor="var(--ui-ground)" />
             </radialGradient>
           </defs>
           <path fill={`url(#${gradientId})`} d="M0 0h1600v1600H0z" />
-          <g fill="#e1cfab">
+          <g fill="var(--ui-highlight)">
             {stars.map((star) => (
               <circle
                 key={star.id}

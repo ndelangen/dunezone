@@ -1,4 +1,3 @@
-import { Group } from '@mantine/core';
 import clsx from 'clsx';
 import { useId } from 'react';
 import type { ReactNode } from 'react';
@@ -61,10 +60,10 @@ export function Card({
         {action == null ? (
           <BlockHeading id={headingId} title={title} icon={icon} />
         ) : (
-          <Group justify="space-between" align="end" wrap="wrap" gap="md">
+          <div className={styles.headingWithAction}>
             <BlockHeading id={headingId} title={title} icon={icon} />
             {action}
-          </Group>
+          </div>
         )}
       </div>
       <div className={styles.body}>

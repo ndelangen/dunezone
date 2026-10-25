@@ -60,14 +60,14 @@
 @keyframes flash {
   30% {
     border-color: var(--sand);
-    box-shadow: 0 0 0 4px rgba(248, 175, 64, 0.45);
+    box-shadow: 0 0 0 4px rgb(from var(--color-brand) r g b / 0.45);
   }
 }
 
 @keyframes flash2 {
   30% {
     border-color: var(--sand);
-    box-shadow: 0 0 0 4px rgba(248, 175, 64, 0.45);
+    box-shadow: 0 0 0 4px rgb(from var(--color-brand) r g b / 0.45);
   }
 }
 
@@ -132,7 +132,7 @@
   width: 2.6rem;
   height: 0.22rem;
   border-radius: 999px;
-  background: rgba(255, 216, 148, 0.3);
+  background: rgb(from var(--ui-highlight) r g b / 0.3);
   translate: -50% 0;
   transition: background 120ms;
 }
@@ -198,7 +198,7 @@
 }
 
 .tab[aria-selected="true"] {
-  background: rgba(248, 175, 64, 0.16);
+  background: rgb(from var(--color-brand) r g b / 0.16);
   color: var(--sand);
 }
 

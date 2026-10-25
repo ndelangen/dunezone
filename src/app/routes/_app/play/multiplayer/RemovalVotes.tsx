@@ -1,4 +1,5 @@
 import { Button, Group, Stack, Text, VisuallyHidden } from '@mantine/core';
+import { alliesOf } from '@shared/play/alliances';
 import { TABLE_CONVERSATION } from '@shared/play/conversations';
 import { factionTokenOf } from '@shared/play/factionToken';
 import type { PublicControls } from '@shared/play/inventory';
@@ -14,7 +15,7 @@ import { useFactionPageSlug } from '@db/factions';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 import type { CompassPlayer } from '../compass/compassTable';
-import { allianceHue, PlayerAlliance } from './Alliances';
+import { PlayerAlliance } from './Alliances';
 import { Conversation } from './Conversation';
 import { FactionDetails } from './FactionDetails';
 import { requestedSeats, VacantSeatRequests } from './SeatRequests';
@@ -204,7 +205,8 @@ export function usePlayerWindows(client: TableSession, table: TableProjection) {
   const votes = table.snapshot.removalVotes ?? [];
   const asked = requestedSeats(table);
   const viewerSeat = table.viewer.viewerSeat;
-  const ownHue = viewerSeat ? allianceHue(table.snapshot, seatFaction(table, viewerSeat)) : undefined;
+  const ownFaction = viewerSeat ? seatFaction(table, viewerSeat) : undefined;
+  const allies = ownFaction ? alliesOf(table.snapshot.alliances, ownFaction) : [];
   const players: CompassPlayer[] = seatPlayers(table).map((player) => {
     const faction = rosterSeat(table.snapshot.roster, player.seat)?.faction;
     const peerId = seatFaction(table, player.seat);
@@ -220,7 +222,7 @@ export function usePlayerWindows(client: TableSession, table: TableProjection) {
       own: player.seat === table.viewer.viewerSeat,
       canConverse: Boolean(peerId && conversations.context?.peers.some((peer) => peer.id === peerId)),
       attention: Boolean(vote) || asked.has(player.seat),
-      ally: player.seat !== viewerSeat && ownHue !== undefined && allianceHue(table.snapshot, peerId) === ownHue,
+      ally: Boolean(peerId && allies.includes(peerId)),
     };
   });
   return {

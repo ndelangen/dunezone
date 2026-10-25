@@ -4,7 +4,7 @@ import preview from '@sb/preview';
 const meta = preview.meta({
   component: TextInput,
   globals: {
-    backgrounds: { value: 'light', grid: false },
+    backgrounds: { value: 'dark', grid: false },
   },
   parameters: {
     layout: 'centered',

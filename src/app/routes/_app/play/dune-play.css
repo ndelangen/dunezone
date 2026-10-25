@@ -14,14 +14,14 @@
 .dune-play-shell {
   --play-header-height: 5.2rem;
   --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --sand: #f8af40;
-  --cream-muted: #bdb3a4;
+  --sand: var(--color-brand);
+  --cream-muted: var(--color-muted);
   position: relative;
   width: 100%;
   height: 100%;
   min-height: 0;
   overflow: hidden;
-  background: #130d0a;
+  background: var(--color-ground);
   font-family: var(--font-sans);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -38,7 +38,7 @@
   height: 100%;
   min-height: 0;
   overflow: hidden;
-  background: #130d0a;
+  background: var(--color-ground);
 }
 
 .dune-play-stage > * {
@@ -110,7 +110,7 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
 :where(.dune-play-shell) .seated-stage-overlay {
   position: absolute;
   z-index: 7;
-  top: var(--play-header-height);
+  top: 0;
   right: 0;
   bottom: 0;
   left: 0;
@@ -146,6 +146,23 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
   min-width: 0;
 }
 
+/* Connection recovery belongs to the table, separate from its phase and action controls. */
+:where(.dune-play-shell) .seated-connection {
+  position: absolute;
+  top: var(--space-md);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-pill);
+  background: var(--ui-recess);
+  color: var(--color-text);
+  pointer-events: auto;
+}
+
+:where(.dune-play-shell) .seated-connection:empty {
+  display: none;
+}
+
 :where(.dune-play-shell) .seated-chip {
   display: flex;
   align-items: center;
@@ -153,9 +170,9 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
   min-width: 0;
   max-width: 100%;
   padding: 0.4rem 0.65rem;
-  border: 1px solid rgba(255, 242, 216, 0.1);
+  border: 1px solid rgb(from var(--input-border) r g b / var(--input-border-alpha));
   border-radius: 0.75rem;
-  background: rgba(12, 9, 7, 0.78);
+  background: rgb(from var(--glass-overlay) r g b / var(--glass-overlay-alpha));
   backdrop-filter: blur(6px);
   pointer-events: auto;
 }
@@ -172,16 +189,15 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
   padding: 0.3rem 0.35rem;
 }
 
-/* The gear stands apart from the shared phase controls: they move the whole table, it only changes this screen. */
-:where(.dune-play-shell) .seated-toolbar__settings {
-  display: flex;
-  padding-left: 0.4rem;
-  border-left: 1px solid rgba(255, 242, 216, 0.12);
+/* Flat controls float over the table; the gap separates settings without another outline or divider. */
+:where(.dune-play-shell) .seated-toolbar {
+  border: 0;
+  background: transparent;
+  backdrop-filter: none;
 }
 
-:where(.dune-play-shell) .seated-toolbar__settings:first-child {
-  padding-left: 0;
-  border-left: 0;
+:where(.dune-play-shell) .seated-toolbar__settings {
+  display: flex;
 }
 
 :where(.dune-play-shell) .seated-phase-status {
@@ -213,7 +229,7 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
 :where(.dune-play-shell) .seated-phase-status strong {
   max-width: 100%;
   overflow: hidden;
-  color: #fff2d8;
+  color: var(--color-brand-strong);
   /* The board's own display face, as the bidder and the battle wheel use it. */
   font-family: "C_Advokat_Modern", serif;
   font-size: 0.95rem;
@@ -239,10 +255,10 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
   width: 5.75rem;
   height: 5.75rem;
   border-radius: 50%;
-  background: radial-gradient(circle at 50% 40%, #2a2219, #120e0b);
+  background: radial-gradient(circle at 50% 40%, var(--button-neutral-bg), var(--mantine-color-dark-9));
   box-shadow:
-    0 0 0 1px rgba(255, 242, 216, 0.1),
-    0 8px 20px rgba(0, 0, 0, 0.5);
+    0 0 0 1px rgb(from var(--input-border) r g b / var(--input-border-alpha)),
+    0 8px 20px rgb(from var(--play-black) r g b / 0.5);
 }
 
 :where(.dune-play-shell) .camera-dial__needle {
@@ -253,7 +269,7 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
   height: 1.6rem;
   margin-left: -0.125rem;
   border-radius: 0.125rem;
-  background: #fff2d8;
+  background: var(--color-text);
   transform-origin: 50% 0;
   transition:
     rotate 0.4s ease,
@@ -273,8 +289,8 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
   padding: 0;
   border: 0;
   border-radius: 50%;
-  color: #24170e;
-  background: #fff2d8;
+  color: var(--color-ink);
+  background: var(--color-text);
   cursor: pointer;
   font: inherit;
   font-size: 0.6rem;
@@ -282,7 +298,7 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
 }
 
 :where(.dune-play-shell) .camera-dial__hub:hover {
-  background: #fff;
+  background: var(--color-white);
 }
 
 :where(.dune-play-shell) .camera-dial__hub:focus-visible {
@@ -336,7 +352,7 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
 
 :where(.dune-play-shell) .camera-dial__view:hover {
   color: var(--color-text);
-  background: rgba(255, 255, 255, 0.07);
+  background: rgb(from var(--play-white) r g b / 0.07);
 }
 
 :where(.dune-play-shell) .camera-dial__view:focus-visible {
@@ -349,7 +365,7 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
 }
 
 :where(.dune-play-shell) .camera-dial__view[aria-pressed="true"] {
-  color: #24170e;
+  color: var(--color-ink);
   background: var(--sand);
 }
 
@@ -362,7 +378,7 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
   font-size: 0.56rem;
   font-weight: 800;
   letter-spacing: 0.2em;
-  text-shadow: 0 1px 3px #000;
+  text-shadow: 0 1px 3px var(--play-black);
   text-transform: uppercase;
   translate: -50% 0;
 }

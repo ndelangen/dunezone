@@ -1,4 +1,6 @@
 /* @jsxImportSource ./three-jsx */
+
+import { playUiColors } from '@shared/uiPalette';
 import { useEffect, useMemo, useState } from 'react';
 
 import { ignoreRaycast } from './ignoreRaycast';
@@ -55,7 +57,7 @@ export function TurnTracker({ radius, turn, lastTurn }: Readonly<{ radius: numbe
       {/* Replace each mesh with its geometry so WebGPU cannot reuse disposed vertex buffers. */}
       <mesh key={wedge.uuid} raycast={ignoreRaycast}>
         <primitive object={wedge} attach="geometry" />
-        <meshStandardMaterial color="#d8bd74" roughness={1} metalness={0} fog={false} />
+        <meshStandardMaterial color={playUiColors.turnTrackerEdge} roughness={1} metalness={0} fog={false} />
       </mesh>
       <mesh key={frame.uuid} raycast={ignoreRaycast}>
         <primitive object={frame} attach="geometry" />

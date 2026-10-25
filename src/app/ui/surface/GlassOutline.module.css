@@ -14,7 +14,7 @@
 
 .geometryShadow {
   z-index: 0;
-  fill: #000;
+  fill: var(--color-shadow);
 }
 
 .glassSurface {

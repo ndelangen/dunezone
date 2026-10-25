@@ -26,7 +26,7 @@
   height: 2rem;
   font-weight: 800;
   color: var(--action-export-fg);
-  background: var(--glass-overlay);
+  background: rgb(from var(--glass-overlay) r g b / var(--glass-overlay-alpha));
   border: 2px solid currentColor;
   border-radius: 50%;
 }
@@ -36,7 +36,7 @@
   inset-inline-start: -0.5rem;
   bottom: var(--space-xs);
   color: var(--action-export-fg);
-  background: var(--glass-overlay);
+  background: rgb(from var(--glass-overlay) r g b / var(--glass-overlay-alpha));
 }
 .timeline > li:last-child {
   padding-block-end: 0;

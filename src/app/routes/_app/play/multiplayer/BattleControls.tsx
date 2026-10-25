@@ -736,6 +736,7 @@ function OutcomeButton({ client, table, battle, own, outcome }: ActiveProps & { 
       className={outcome === 'none' ? undefined : styles.outcome}
       data-outcome={outcome}
       aria-label={OUTCOME_LABELS[outcome]}
+      color="brand"
       variant={own >= 0 && battle.sides[own]?.choice === outcome ? 'filled' : 'default'}
       disabled={!table.canHandleTable || own < 0}
       onClick={() => client.command({ kind: 'battle-outcome', battleId: battle.id, outcome })}

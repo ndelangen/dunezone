@@ -1,4 +1,6 @@
 import { useThree } from '@react-three/fiber/webgpu';
+import { rendererColors } from '@shared/play/assetColors';
+import { withAlpha } from '@shared/uiPalette';
 import type { BufferGeometry, Texture } from 'three';
 import {
   BoxGeometry,
@@ -86,7 +88,7 @@ function sharedMeshes() {
         const context = canvas.getContext('2d')!;
         const gradient = context.createRadialGradient(64, 64, 0, 64, 64, 64);
         gradient.addColorStop(colorStop, new Color(color).getStyle());
-        gradient.addColorStop(1, 'rgba(0,0,0,0)');
+        gradient.addColorStop(1, withAlpha(rendererColors.black, 0));
         context.fillStyle = gradient;
         context.fillRect(0, 0, canvas.width, canvas.height);
         return new CanvasTexture(canvas);

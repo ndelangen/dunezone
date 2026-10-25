@@ -20,7 +20,10 @@ export async function dragBattleMarker(
     async () => {
       [clientX, clientY] = mapViewPoint(document, point);
       const under = document.elementFromPoint(clientX, clientY);
-      await expect(under === scene || Boolean(under?.closest('[data-local-carry]'))).toBe(true);
+      await expect(
+        under === scene || Boolean(under?.closest('[data-local-carry]')),
+        `Battle drop at ${clientX},${clientY} is covered by ${under?.outerHTML.slice(0, 500) ?? 'nothing'}`
+      ).toBe(true);
     },
     { timeout: 30_000 }
   );

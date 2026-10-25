@@ -1,11 +1,11 @@
 /* The ring is positioned by its centre: every child is placed from that point. */
 .ring {
   --radial-item: 3.1rem;
-  --radial-ink: #f2e6cf;
-  --radial-sand: #f3a93c;
-  --radial-leather: rgba(24, 16, 10, 0.95);
-  --radial-edge: rgba(243, 169, 60, 0.5);
-  --radial-danger: #e0574a;
+  --radial-ink: var(--color-text);
+  --radial-sand: var(--color-brand-strong);
+  --radial-surface: rgb(from var(--glass-overlay) r g b / var(--glass-overlay-alpha));
+  --radial-edge: rgb(from var(--input-border-strong) r g b / var(--input-border-strong-alpha));
+  --radial-danger: var(--play-danger-edge);
   /* The halo, hold and target sizes are rewritten inline by RadialMenu; these are their starting values. */
   --halo-size: 13rem;
   --hold-progress: 0;
@@ -44,8 +44,8 @@
   background: radial-gradient(
     closest-side,
     transparent 46%,
-    rgba(10, 6, 4, 0.55) 48%,
-    rgba(10, 6, 4, 0.55) 98%,
+    color-mix(in srgb, var(--mantine-color-dark-9) 55%, transparent) 48%,
+    color-mix(in srgb, var(--mantine-color-dark-9) 55%, transparent) 98%,
     transparent 100%
   );
   translate: -50% -50%;
@@ -61,7 +61,7 @@
   height: 0.55rem;
   border-radius: 50%;
   background: var(--radial-sand);
-  box-shadow: 0 0 0 3px rgba(10, 6, 4, 0.6);
+  box-shadow: 0 0 0 3px rgb(from var(--play-shadow-radial) r g b / 0.6);
   translate: -50% -50%;
   pointer-events: none;
 }
@@ -76,8 +76,8 @@
   border: 1px solid var(--radial-edge);
   border-radius: 50%;
   color: var(--radial-ink);
-  background: var(--radial-leather);
-  box-shadow: 0 0.5rem 1.2rem rgba(0, 0, 0, 0.5);
+  background: var(--radial-surface);
+  box-shadow: 0 0.5rem 1.2rem rgb(from var(--play-black) r g b / 0.5);
   cursor: pointer;
   translate: -50% -50%;
   transition:
@@ -88,7 +88,7 @@
 
 .item:hover:not(:disabled),
 .item:focus-visible {
-  color: #1b1206;
+  color: var(--color-ink);
   background: var(--radial-sand);
   outline: none;
   scale: 1.1;
@@ -100,15 +100,15 @@
 }
 
 .danger {
-  border-color: rgba(224, 87, 74, 0.55);
-  color: #ffb4a8;
+  border-color: rgb(from var(--play-danger-edge) r g b / 0.55);
+  color: var(--play-danger-text);
 }
 
 .danger:hover:not(:disabled),
 .danger:focus-visible,
 .danger[data-holding] {
-  color: #ffe1dc;
-  background: #7a2a22;
+  color: var(--play-danger-active-text);
+  background: var(--play-danger-active-surface);
 }
 
 .glyph {
@@ -149,11 +149,11 @@
   height: var(--target-size);
   padding: 0;
   overflow: hidden;
-  border: 2px solid rgba(255, 242, 216, 0.25);
+  border: 2px solid rgb(from var(--play-radial-target-border) r g b / 0.25);
   border-radius: 50%;
   color: var(--radial-ink);
-  background: var(--radial-leather);
-  box-shadow: 0 0.4rem 0.9rem rgba(0, 0, 0, 0.5);
+  background: var(--radial-surface);
+  box-shadow: 0 0.4rem 0.9rem rgb(from var(--play-black) r g b / 0.5);
   font: inherit;
   font-size: 0.72rem;
   font-weight: 700;
@@ -211,8 +211,8 @@
   padding: 0.4rem 0.7rem;
   border: 1px solid var(--radial-edge);
   border-radius: 0.5rem;
-  background: var(--radial-leather);
-  box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.5);
+  background: var(--radial-surface);
+  box-shadow: 0 0.5rem 1.5rem rgb(from var(--play-black) r g b / 0.5);
   font-size: 0.82rem;
   /* A long label wraps inside the room the ring keeps for it, rather than run off a narrow window. */
   width: max-content;
@@ -222,8 +222,8 @@
 }
 
 .caption[data-tone="danger"] {
-  border-color: rgba(224, 87, 74, 0.6);
-  color: #ffc9c0;
+  border-color: rgb(from var(--play-danger-edge) r g b / 0.6);
+  color: var(--play-danger-caption);
 }
 
 .key {
@@ -232,10 +232,10 @@
   min-width: 1.4rem;
   height: 1.4rem;
   padding: 0 0.35rem;
-  border: 1px solid rgba(255, 242, 216, 0.3);
+  border: 1px solid rgb(from var(--input-border) r g b / var(--input-border-alpha));
   border-bottom-width: 2px;
   border-radius: 0.3rem;
-  background: #2a2018;
+  background: var(--button-neutral-bg);
   font-family: ui-monospace, Menlo, monospace;
   font-size: 0.72rem;
 }

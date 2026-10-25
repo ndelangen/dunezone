@@ -5,10 +5,12 @@
   min-height: 8rem;
   overflow: hidden;
   border-radius: var(--mantine-radius-md);
-  background: radial-gradient(circle at 50% 40%, rgb(255 255 255 / 6%), transparent 70%), #3b2a1e;
+  background:
+    radial-gradient(circle at 50% 40%, rgb(from var(--play-white) r g b / 0.06), transparent 70%),
+    var(--button-neutral-bg);
   box-shadow:
-    inset 0 0 0 1px rgb(255 255 255 / 10%),
-    inset 0 2px 12px rgb(0 0 0 / 45%);
+    inset 0 0 0 1px rgb(from var(--play-white) r g b / 0.1),
+    inset 0 2px 12px rgb(from var(--play-black) r g b / 0.45);
 }
 
 .empty {
@@ -26,7 +28,7 @@
   place-items: center;
   cursor: grab;
   touch-action: none;
-  filter: drop-shadow(0 2px 3px rgb(0 0 0 / 50%));
+  filter: drop-shadow(0 2px 3px rgb(from var(--play-black) r g b / 0.5));
 }
 
 /* Its place stays in the zone, unseen, holding the pointer while the piece itself is carried. */
@@ -44,7 +46,7 @@
   display: grid;
   place-items: center;
   pointer-events: none;
-  filter: drop-shadow(0 8px 10px rgb(0 0 0 / 55%));
+  filter: drop-shadow(0 8px 10px rgb(from var(--play-black) r g b / 0.55));
 }
 
 /* The carried piece, turned as it lies in the zone. */

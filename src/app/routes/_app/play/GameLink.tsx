@@ -8,7 +8,7 @@ export function GameLink({ address, page }: Readonly<{ address: string; page?: s
   const url = new URL(page ?? `/play/${address}`, window.location.origin).href;
   return (
     <Stack gap="xs" p="xs" maw={300}>
-      <Button variant="light" onClick={() => clipboard.copy(url)}>
+      <Button variant="default" onClick={() => clipboard.copy(url)}>
         {clipboard.copied ? 'Game link copied' : 'Copy game link'}
       </Button>
       {clipboard.error ? (

@@ -27,11 +27,11 @@
 }
 
 .positive {
-  color: var(--mantine-color-green-text);
+  color: var(--color-positive);
 }
 
 .negative {
-  color: var(--mantine-color-red-text);
+  color: var(--color-error);
 }
 
 .caution {
@@ -39,9 +39,9 @@
 }
 
 .pending {
-  color: var(--mantine-color-yellow-text);
+  color: var(--color-caution);
 }
 
 .progress {
-  color: var(--mantine-color-blue-text);
+  color: var(--color-progress);
 }

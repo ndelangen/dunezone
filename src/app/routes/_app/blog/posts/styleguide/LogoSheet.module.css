@@ -22,7 +22,7 @@
   aspect-ratio: 1;
   overflow: hidden;
   border-radius: var(--mantine-radius-md);
-  box-shadow: 0 2px 8px rgb(0 0 0 / 40%);
+  box-shadow: 0 2px 8px rgb(from var(--color-shadow) r g b / 40%);
 }
 
 .emblem {
@@ -47,7 +47,7 @@
 .variants li {
   aspect-ratio: 1;
   overflow: hidden;
-  box-shadow: 0 1px 4px rgb(0 0 0 / 40%);
+  box-shadow: 0 1px 4px rgb(from var(--color-shadow) r g b / 40%);
 }
 
 /* The token: the emblem inside the cream ring the token renderer draws at radius 46. */
