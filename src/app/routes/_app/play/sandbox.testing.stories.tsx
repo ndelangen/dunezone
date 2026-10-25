@@ -197,8 +197,8 @@ export const DeleteACard = meta.story({
 /**
  * Seat 1 lays a card from its hand in its hidden zone and a leader on top of it, as a token sits on a tracker card's track.
  * The zone is part of the hand, so no other seat's frame carries it.
- * Right-click a piece in the Hand tab and choose "Move to hidden zone" to try it by hand;
- * drag pieces about in the Hidden zone tab, or onto the table to play them.
+ * Right-click a piece in the Hand tab and choose "Move to private side-table" to try it by hand;
+ * carry pieces about on the Private side-table, or onto the table to play them.
  * Hold Alt over a piece in either tab to see it close up.
  */
 export const HiddenZone = meta.story({
@@ -223,9 +223,163 @@ export const HiddenZone = meta.story({
     await expect(shown().hand!.filter((candidate) => candidate.hiddenZone)).toHaveLength(2);
     const other = journeyViewers().find((seat) => seat !== table.seat)!;
     await expect(JSON.stringify(table.frame(other).snapshot)).not.toContain('hiddenZone');
-    await openTab(page, 'Hidden zone');
-    const zonePieces = await page.findAllByRole('button', { name: /in hidden zone$/ }, { timeout: 30_000 });
+    await openTab(page, 'Private side-table');
+    const zonePieces = await page.findAllByRole('button', { name: /on private side-table$/ }, { timeout: 30_000 });
     await expect(zonePieces).toHaveLength(2);
+
+    /* Carrying the leader moves the piece itself under the pointer, and letting go lays it there. */
+    const leaderName = `Move ${leader.items[0]?.artwork?.name ?? leader.label} on private side-table`;
+    let zoneLeader = page.getByRole('button', { name: leaderName });
+    const press = (type: string, clientX: number, clientY: number) =>
+      zoneLeader.dispatchEvent(
+        new PointerEvent(type, {
+          bubbles: true,
+          pointerId: 1,
+          pointerType: 'mouse',
+          button: 0,
+          buttons: 1,
+          clientX,
+          clientY,
+        })
+      );
+    const before = zoneLeader.getBoundingClientRect();
+    const fromX = before.left + before.width / 2;
+    const fromY = before.top + before.height / 2;
+    const carried = () => canvasElement.ownerDocument.body.querySelector<HTMLElement>('[class*="carried"]');
+    press('pointerdown', fromX, fromY);
+    press('pointermove', fromX + 30, fromY);
+    await waitFor(() => expect(carried()).not.toBeNull());
+    const first = carried()!.getBoundingClientRect().left;
+    press('pointermove', fromX + 60, fromY + 10);
+    await waitFor(() => expect(carried()!.getBoundingClientRect().left).toBeCloseTo(first + 30, 0));
+    const spotBefore = shown().hand!.find((candidate) => candidate.id === leader.id)!.hiddenZone!;
+    press('pointerup', fromX + 60, fromY + 10);
+    await waitFor(() => expect(carried()).toBeNull());
+    await waitFor(() =>
+      expect(shown().hand!.find((candidate) => candidate.id === leader.id)!.hiddenZone!.x).toBeGreaterThan(spotBefore.x)
+    );
+    await waitFor(() => expect(zoneLeader.getBoundingClientRect().left).toBeCloseTo(before.left + 60, 0));
+
+    /* Escape puts a carried piece back where it was, and the release that follows sends nothing. */
+    const kept = () => shown().hand!.find((candidate) => candidate.id === leader.id)!.hiddenZone!;
+    const resting = zoneLeader.getBoundingClientRect();
+    const restX = resting.left + resting.width / 2;
+    const restY = resting.top + resting.height / 2;
+    const keptBefore = kept();
+    press('pointerdown', restX, restY);
+    press('pointermove', restX + 40, restY);
+    await waitFor(() => expect(carried()).not.toBeNull());
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    await waitFor(() => expect(carried()).toBeNull());
+    press('pointerup', restX + 40, restY);
+    await expect(kept()).toEqual(keptBefore);
+    await expect(zoneLeader.getBoundingClientRect().left).toBeCloseTo(resting.left, 0);
+
+    /* Leaving the window puts a carried piece back too, so a release it never saw moves nothing. */
+    press('pointerdown', restX, restY);
+    press('pointermove', restX + 40, restY);
+    await waitFor(() => expect(carried()).not.toBeNull());
+    window.dispatchEvent(new FocusEvent('blur'));
+    await waitFor(() => expect(carried()).toBeNull());
+    press('pointerup', restX + 40, restY);
+    await expect(kept()).toEqual(keptBefore);
+
+    /* A move the table refuses puts the piece back where the table keeps it. */
+    const receive = table.receive.bind(table);
+    table.receive = (message, seat) => {
+      if (message.type === 'command' && message.action.kind === 'hand-zone') {
+        table.deliver({ type: 'rejected', requestId: message.commandId, message: 'Refused for the story.' });
+        return true;
+      }
+      return receive(message, seat);
+    };
+    press('pointerdown', restX, restY);
+    press('pointermove', restX + 40, restY);
+    press('pointerup', restX + 40, restY);
+    await waitFor(() => expect(zoneLeader.getBoundingClientRect().left).toBeCloseTo(resting.left, 0));
+    table.receive = receive;
+    await expect(kept()).toEqual(keptBefore);
+
+    /* E turns the piece under the pointer clockwise in 15° steps, and the turn is kept once the key comes up. */
+    const over = (type: string) =>
+      zoneLeader.dispatchEvent(
+        new PointerEvent(type, { bubbles: true, pointerType: 'mouse', clientX: restX, clientY: restY })
+      );
+    over('pointerover');
+    over('pointermove');
+    /* A pointer reaches the piece a frame or more before a key goes down. */
+    await new Promise((settle) => requestAnimationFrame(settle));
+    for (const type of ['keydown', 'keydown', 'keyup']) {
+      window.dispatchEvent(new KeyboardEvent(type, { key: 'e', bubbles: true }));
+    }
+    await waitFor(() => expect(kept().turn).toBe(2));
+    await waitFor(() => expect(zoneLeader.style.transform).toBe('rotate(30deg)'));
+    /* The turn is kept even when the pointer leaves the piece before the key comes up. */
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'q', bubbles: true }));
+    over('pointerout');
+    await new Promise((settle) => requestAnimationFrame(settle));
+    window.dispatchEvent(new KeyboardEvent('keyup', { key: 'q', bubbles: true }));
+    await waitFor(() => expect(kept().turn).toBe(1));
+
+    /* A turned piece is lifted from where it lies and laid where it is let go, without a jump. */
+    const turnedBox = zoneLeader.getBoundingClientRect();
+    const turnedX = turnedBox.left + turnedBox.width / 2;
+    const turnedY = turnedBox.top + turnedBox.height / 2;
+    press('pointerdown', turnedX, turnedY);
+    press('pointermove', turnedX + 60, turnedY);
+    await waitFor(() => expect(carried()).not.toBeNull());
+    const liftedBox = carried()!.getBoundingClientRect();
+    await expect(liftedBox.left + liftedBox.width / 2).toBeCloseTo(turnedX + 60, 0);
+    press('pointerup', turnedX + 60, turnedY);
+    const centreX = () => {
+      const box = zoneLeader.getBoundingClientRect();
+      return box.left + box.width / 2;
+    };
+    await waitFor(() => expect(centreX()).toBeCloseTo(turnedX + 60, 0));
+    await expect(kept().turn).toBe(1);
+
+    /* A turn's key that comes up while Alt is held for a close look still sends the turn. */
+    over('pointerover');
+    over('pointermove');
+    await new Promise((settle) => requestAnimationFrame(settle));
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'e', code: 'KeyE', bubbles: true }));
+    window.dispatchEvent(new KeyboardEvent('keyup', { key: '´', code: 'KeyE', altKey: true, bubbles: true }));
+    await waitFor(() => expect(kept().turn).toBe(2));
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'q', bubbles: true }));
+    window.dispatchEvent(new KeyboardEvent('keyup', { key: 'q', bubbles: true }));
+    await waitFor(() => expect(kept().turn).toBe(1));
+
+    /* Picking a piece up takes focus from a text field, so Q and E turn the carried piece instead of typing. */
+    const field = canvasElement.ownerDocument.createElement('textarea');
+    canvasElement.ownerDocument.body.append(field);
+    field.focus();
+    const fieldBox = zoneLeader.getBoundingClientRect();
+    const fieldX = fieldBox.left + fieldBox.width / 2;
+    const fieldY = fieldBox.top + fieldBox.height / 2;
+    press('pointerdown', fieldX, fieldY);
+    press('pointermove', fieldX + 30, fieldY);
+    await waitFor(() => expect(carried()).not.toBeNull());
+    await expect(canvasElement.ownerDocument.activeElement).toBe(zoneLeader);
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'e', bubbles: true }));
+    press('pointerup', fieldX + 30, fieldY);
+    await waitFor(() => expect(kept().turn).toBe(2));
+    window.dispatchEvent(new KeyboardEvent('keyup', { key: 'e', bubbles: true }));
+    field.remove();
+    over('pointerover');
+    over('pointermove');
+    await new Promise((settle) => requestAnimationFrame(settle));
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'q', bubbles: true }));
+    window.dispatchEvent(new KeyboardEvent('keyup', { key: 'q', bubbles: true }));
+    await waitFor(() => expect(kept().turn).toBe(1));
+
+    /* Leaving the window while Q is held sends the turn it shows, since the key comes up elsewhere. */
+    over('pointerover');
+    over('pointermove');
+    await new Promise((settle) => requestAnimationFrame(settle));
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'q', bubbles: true }));
+    window.dispatchEvent(new FocusEvent('blur'));
+    await waitFor(() => expect(kept().turn).toBeUndefined());
+    over('pointerout');
 
     /* Holding Alt over a piece in the zone, or in the hand, shows its face large beside the pointer, as it does on the table. */
     const closeUp = () => canvasElement.ownerDocument.body.querySelector('[class*="closeUp"]');
@@ -249,6 +403,28 @@ export const HiddenZone = meta.story({
     await waitFor(() => expect(closeUp()).not.toBeNull());
     window.dispatchEvent(new KeyboardEvent('keyup', { key: 'Alt', altKey: false }));
     await waitFor(() => expect(closeUp()).toBeNull());
+
+    /* Carried out of the zone and let go over the table, the leader is played there, as a drag from the hand plays it. */
+    await openTab(page, 'Private side-table');
+    /* The zone drew its pieces afresh when its tab came back. */
+    zoneLeader = await page.findByRole('button', { name: leaderName }, { timeout: 30_000 });
+    const start = zoneLeader.getBoundingClientRect();
+    /* The spot nearest the table's centre that no window covers, whatever the viewport: a window may sit over the centre. */
+    const canvasNode = canvasElement.ownerDocument.querySelector('canvas')!;
+    const canvas = canvasNode.getBoundingClientRect();
+    const spots = Array.from({ length: 81 }, (_, index) => [
+      canvas.left + (canvas.width * (1 + (index % 9))) / 10,
+      canvas.top + (canvas.height * (1 + Math.floor(index / 9))) / 10,
+    ]);
+    const fromCentre = ([x, y]: number[]) =>
+      Math.hypot(x! - canvas.left - canvas.width / 2, y! - canvas.top - canvas.height / 2);
+    spots.sort((a, b) => fromCentre(a) - fromCentre(b));
+    const overTable = spots.find(([x, y]) => canvasElement.ownerDocument.elementFromPoint(x!, y!) === canvasNode)!;
+    await expect(overTable, 'no spot of the table is left uncovered').toBeDefined();
+    press('pointerdown', start.left + start.width / 2, start.top + start.height / 2);
+    press('pointermove', overTable[0]!, overTable[1]!);
+    press('pointerup', overTable[0]!, overTable[1]!);
+    await waitFor(() => expect(shown().hand!.some((candidate) => candidate.id === leader.id)).toBe(false));
   },
 });
 

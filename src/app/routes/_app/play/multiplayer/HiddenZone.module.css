@@ -27,5 +27,30 @@
   display: grid;
   place-items: center;
   cursor: grab;
+  touch-action: none;
   filter: drop-shadow(0 2px 3px rgb(from var(--play-black) r g b / 0.5));
+}
+
+/* Its place stays in the zone, unseen, holding the pointer while the piece itself is carried. */
+.piece[data-carried] {
+  visibility: hidden;
+}
+
+/* A carried piece, lifted over everything on the page and following the pointer. */
+.carried {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 40;
+  will-change: transform;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  filter: drop-shadow(0 8px 10px rgb(from var(--play-black) r g b / 0.55));
+}
+
+/* The carried piece, turned as it lies in the zone. */
+.turn {
+  display: grid;
+  place-items: center;
 }
