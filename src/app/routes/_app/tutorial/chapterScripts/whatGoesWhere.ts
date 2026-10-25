@@ -63,6 +63,11 @@ function tableTasks(snapshot: () => GameSnapshot): GuideTask[] {
   ];
 }
 
+/* Another player's window, which opens on its Chat tab; what they hold is on its Info tab. */
+const otherPlayerWindow = () => document.querySelector('[data-window^="player:"]:not([aria-label^="You ("])');
+const infoTab = (window: Element | null) =>
+  [...(window?.querySelectorAll('[role="tab"]') ?? [])].find((tab) => tab.textContent?.trim() === 'Info') ?? null;
+
 /* The windows over the table: the player's own things and another player's; then the phase. */
 const panelTasks = (snapshot: () => GameSnapshot): GuideTask[] => [
   task({
@@ -75,9 +80,13 @@ const panelTasks = (snapshot: () => GameSnapshot): GuideTask[] => [
   task({
     id: 'player-info',
     task: 'See what another player holds',
-    detail: 'Every player is a faction token in the chat bar beside Controls. Click one to open their window.',
-    anchor: { kind: 'page', element: element('nav[aria-label="Chats"] button:not([aria-label^="Table chat"])') },
-    ...openedWindow(() => document.querySelector('[data-window^="player:"]:not([aria-label^="You ("])') !== null),
+    detail: 'Every player is a faction token in the chat bar beside Controls. Click one, then its Info tab.',
+    anchor: {
+      kind: 'page',
+      element: () =>
+        infoTab(otherPlayerWindow()) ?? element('nav[aria-label="Chats"] button:not([aria-label^="Table chat"])')(),
+    },
+    ...openedWindow(() => infoTab(otherPlayerWindow())?.getAttribute('aria-selected') === 'true'),
   }),
   task({
     id: 'next-phase',

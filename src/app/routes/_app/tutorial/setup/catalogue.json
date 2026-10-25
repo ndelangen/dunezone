@@ -1,6 +1,6 @@
 {
   "pulledFrom": "exuberant-finch-263.eu-west-1.convex.cloud",
-  "pulledAt": "2026-10-23T17:18:48.074Z",
+  "pulledAt": "2026-10-25T18:48:28.311Z",
   "rulesetSupply": {
     "board": {
       "asset": {
@@ -14278,6 +14278,102 @@
         "name": "Village Hidden in the Leaf",
         "published": true,
         "slug": "village-hidden-in-the-leaf"
+      },
+      {
+        "background": {
+          "colors": ["#393d05", "#5c5d10"],
+          "definition": 0.5,
+          "image": "/image/texture/082.jpg",
+          "influence": 1,
+          "invert": true
+        },
+        "color": "#4a4c08",
+        "id": "k178pt05y4abwvwxeg247snr758gv794",
+        "linked": false,
+        "logo": "/vector/logo/atreides.svg",
+        "name": "Atreides",
+        "published": true,
+        "slug": "atreides-1"
+      },
+      {
+        "background": {
+          "colors": ["#132b74", "#34478b"],
+          "definition": 0.09,
+          "image": "/image/texture/019.jpg",
+          "influence": 0.8878,
+          "invert": false
+        },
+        "color": "#253b82",
+        "id": "k1755fjba9y9b2hkfph4ztdy3s8gvwm8",
+        "linked": false,
+        "logo": "/vector/logo/bene-gesserit.svg",
+        "name": "Bene Gesserit",
+        "published": true,
+        "slug": "bene-gesserit-2"
+      },
+      {
+        "background": {
+          "colors": ["#8C0402", "#db1918"],
+          "definition": 0.31,
+          "image": "/image/texture/055.jpg",
+          "influence": 1,
+          "invert": false
+        },
+        "color": "#be1010",
+        "id": "k17awq8h6dd3ge61y8peg14z2h8gvpzy",
+        "linked": false,
+        "logo": "/vector/logo/emperor.svg",
+        "name": "Emperor",
+        "published": true,
+        "slug": "emperor-3"
+      },
+      {
+        "background": {
+          "colors": ["#fcb843", "#d2781d"],
+          "definition": 0.3,
+          "image": "/image/texture/019.jpg",
+          "influence": 0.634,
+          "invert": false
+        },
+        "color": "#e4942e",
+        "id": "k170ex3wwnd6ygv289qw1ypvdd8gtfv7",
+        "linked": false,
+        "logo": "/vector/logo/fremen.svg",
+        "name": "Fremen",
+        "published": true,
+        "slug": "fremen-3"
+      },
+      {
+        "background": {
+          "colors": ["#0a080b", "#363636"],
+          "definition": 0.1,
+          "image": "/image/texture/026.jpg",
+          "influence": 1,
+          "invert": false
+        },
+        "color": "#151315",
+        "id": "k17fvtpc5h6hfxvcwdgayvqfz58gtch1",
+        "linked": false,
+        "logo": "/vector/logo/harkonnen.svg",
+        "name": "Harkonnen",
+        "published": true,
+        "slug": "harkonnen-1"
+      },
+      {
+        "background": {
+          "colors": ["#bd3108", "#e05719"],
+          "definition": 0.2,
+          "image": "/image/texture/006.jpg",
+          "influence": 1,
+          "invert": false
+        },
+        "color": "#dc5317",
+        "id": "k1716zfezm7w1ppfzp8gwzk63d8gvmhy",
+        "linked": false,
+        "logo": "/vector/logo/guild.svg",
+        "name": "Spacing Guild",
+        "published": true,
+        "slug": "spacing-guild-3"
       }
     ]
   },
@@ -14400,6 +14496,7 @@
         "troops": [
           {
             "back": {
+              "capable": false,
               "combat": {
                 "strength": 0,
                 "supportCost": 0,
@@ -14588,6 +14685,7 @@
         "themeColor": "#4a4c08",
         "troops": [
           {
+            "combat": { "strength": 0.5, "supportCost": 1, "supportedStrength": 1 },
             "count": 20,
             "description": "0.5 strength when undialed, 1 strength when dialed",
             "image": "/vector/troop/atreides.svg",
@@ -14757,6 +14855,7 @@
         "themeColor": "#151315",
         "troops": [
           {
+            "combat": { "strength": 0.5, "supportCost": 1, "supportedStrength": 1 },
             "count": 20,
             "description": "0.5 strength, 1 strength when spice dialed",
             "image": "/vector/troop/harkonnen.svg",
@@ -14920,6 +15019,7 @@
         "themeColor": "#be1010",
         "troops": [
           {
+            "combat": { "strength": 0.5, "supportCost": 1, "supportedStrength": 1 },
             "count": 15,
             "description": "0.5 strength when undialed, 1 strength dialed",
             "image": "/vector/troop/emperor.svg",
@@ -14927,6 +15027,7 @@
             "troopId": "19daf387-c125-4125-b9c2-80bff59fad07"
           },
           {
+            "combat": { "strength": 1, "supportCost": 1, "supportedStrength": 2 },
             "count": 5,
             "description": "1 strength when undialed, 2 strength when dialed",
             "hue": "#e6de12",
@@ -15087,7 +15188,7 @@
         "rules": {
           "advantages": [
             {
-              "text": "You control all shipment on Dune.\n"
+              "text": "You control all shipment on Dune."
             },
             {
               "karama": "(Shipment and Movement Phase) Spice paid for shipment is paid to the Spice Bank this phase.",
@@ -15129,6 +15230,7 @@
         "themeColor": "#dc5317",
         "troops": [
           {
+            "combat": { "strength": 0.5, "supportCost": 1, "supportedStrength": 1 },
             "count": 20,
             "description": "worth 0.5 strength, or 1 strength with 1 spice",
             "hue": "#ffffff",
