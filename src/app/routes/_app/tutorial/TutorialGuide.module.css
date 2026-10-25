@@ -109,3 +109,130 @@
 .table {
   display: contents;
 }
+
+/*
+ * The rail down the left of the window (Norbert, 2026-10-25), in large type so it is read before the board,
+ * and the page beside it starts at its right edge. Its marker on the table is short, and coloured like the task's number.
+ */
+.rail {
+  position: absolute;
+  inset: 0 auto 0 0;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  width: var(--rail-width);
+  padding: var(--space-lg);
+  overflow-y: auto;
+  background: var(--color-ink);
+  color: var(--color-paper);
+  box-shadow: inset -1px 0 0 rgb(255 255 255 / 0.22);
+}
+
+.railCurrent {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-md);
+}
+
+.railCurrent .step,
+.railStep .step {
+  width: 2.25rem;
+  height: 2.25rem;
+  font-size: 1.1rem;
+}
+
+.railText {
+  display: grid;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+
+.railText p {
+  margin: 0;
+}
+
+.railTitle {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.railDetail {
+  font-size: 1.15rem;
+  line-height: 1.45;
+  color: rgb(255 255 255 / 0.82);
+}
+
+.railSteps {
+  display: grid;
+  gap: var(--space-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.railStep {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-md);
+}
+
+/* Done and coming tasks stay one quiet line each, so the open task is the one thing to read. */
+.railStep:not([data-state="current"]) .railTitle {
+  font-size: 1rem;
+  font-weight: 500;
+  color: rgb(255 255 255 / 0.55);
+}
+
+.railStep:not([data-state="current"]) .step {
+  width: 1.75rem;
+  height: 1.75rem;
+  font-size: 0.9rem;
+}
+
+.railStep[data-state="next"] .step {
+  background: rgb(255 255 255 / 0.18);
+  color: var(--color-paper);
+}
+
+.railStep[data-state="current"] {
+  padding-block: var(--space-sm);
+}
+
+.railFoot {
+  margin-top: auto;
+}
+
+.marker {
+  fill: var(--color-caution);
+  stroke: #111;
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+/* The ring layout circles the part instead, and breathes so the eye finds it. */
+.guide[data-layout="ring"] .marker {
+  fill: none;
+  stroke: var(--color-caution);
+  stroke-width: 5;
+  animation: ring-breathe 1.4s ease-in-out infinite;
+}
+
+@keyframes ring-breathe {
+  50% {
+    stroke-opacity: 0.45;
+  }
+}
+
+.tag circle {
+  fill: var(--color-caution);
+  stroke: #111;
+  stroke-width: 2;
+}
+
+.tag text {
+  fill: #111;
+  font-weight: 700;
+  font-size: 16px;
+}

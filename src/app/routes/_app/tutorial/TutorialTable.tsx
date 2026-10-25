@@ -16,6 +16,7 @@ import type { TutorialSetup } from './setup/tutorialSetup';
 import { localRuntime } from './table/localRuntime';
 import { LocalTable } from './table/localTable';
 import { TutorialGuide } from './TutorialGuide';
+import type { GuideLayout } from './TutorialGuide';
 
 /*
  * A chapter's live table: the Play table itself, connected to a game Worker table running in the page from the chapter's
@@ -83,6 +84,7 @@ export default function ChapterPlay({
   chapter,
   script,
   firstTask = 0,
+  layout,
   chaptersLink,
   nextLink,
   exit,
@@ -91,6 +93,8 @@ export default function ChapterPlay({
   script: ChapterScript;
   /** The task the chapter opens at, counted from 0. */
   firstTask?: number;
+  /** How the guide sits over the page; a band across the top unless asked otherwise. */
+  layout?: GuideLayout | undefined;
   chaptersLink: (props: object) => ReactNode;
   nextLink?: ((props: object) => ReactNode) | undefined;
   exit: ReactNode;
@@ -107,6 +111,7 @@ export default function ChapterPlay({
       title={chapter.title}
       tasks={tasks}
       firstTask={firstTask}
+      layout={layout}
       learned={script.learned}
       onReset={() => {
         control.reset();
