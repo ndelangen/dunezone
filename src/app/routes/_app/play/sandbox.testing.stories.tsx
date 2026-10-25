@@ -312,7 +312,7 @@ export const HiddenZone = meta.story({
       window.dispatchEvent(new KeyboardEvent(type, { key: 'e', bubbles: true }));
     }
     await waitFor(() => expect(kept().turn).toBe(2));
-    await expect(zoneLeader.style.transform).toBe('rotate(30deg)');
+    await waitFor(() => expect(zoneLeader.style.transform).toBe('rotate(30deg)'));
     window.dispatchEvent(new KeyboardEvent('keydown', { key: 'q', bubbles: true }));
     window.dispatchEvent(new KeyboardEvent('keyup', { key: 'q', bubbles: true }));
     await waitFor(() => expect(kept().turn).toBe(1));
