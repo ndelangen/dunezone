@@ -326,9 +326,16 @@ export function RadialMenu({
       aria-labelledby={labelId}
       aria-describedby={`${labelId}-hub`}
       tabIndex={-1}
+      data-radial-menu=""
       className={styles.ring}
       style={centre}
       onKeyDown={onKeyDown}
+      onBlur={(event) => {
+        /* Focus moving on to something outside, such as the compass that Space opens, closes the ring rather than leave it open without the keys. */
+        if (event.relatedTarget instanceof Node && !event.currentTarget.contains(event.relatedTarget)) {
+          onClose();
+        }
+      }}
       onContextMenu={(event) => {
         event.preventDefault();
         if (level) {

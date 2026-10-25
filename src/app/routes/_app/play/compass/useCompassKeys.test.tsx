@@ -21,13 +21,18 @@ function page() {
   menu.setAttribute('role', 'menu');
   const item = document.createElement('div');
   menu.append(item);
+  const ring = document.createElement('div');
+  ring.setAttribute('role', 'menu');
+  ring.setAttribute('data-radial-menu', '');
+  const spoke = document.createElement('button');
+  ring.append(spoke);
   const controls = document.createElement('div');
   controls.setAttribute('data-compass-controls', '');
-  controls.append(input, button, textarea, menu);
+  controls.append(input, button, textarea, menu, ring);
   /* A control beside the table, as a tutorial's guide is. */
   const beside = document.createElement('button');
   document.body.append(controls, beside);
-  return { input, button, textarea, item, beside };
+  return { input, button, textarea, item, spoke, beside };
 }
 
 /* The compass's state as the controls hold it, with the hook listening for the keys. */
@@ -186,5 +191,12 @@ test('a button on the table opens the compass with Space, and one beside the tab
   expect(press('keydown', SPACE, beside).defaultPrevented).toBe(false);
   expect(result.current.open).toBe(false);
   expect(press('keydown', SPACE, button).defaultPrevented).toBe(true);
+  expect(result.current.open).toBe(true);
+});
+
+test('Space on a piece’s radial ring, left open after a draw, opens the compass instead of pressing the spoke again', () => {
+  const { spoke } = page();
+  const { result } = compass();
+  expect(press('keydown', SPACE, spoke).defaultPrevented).toBe(true);
   expect(result.current.open).toBe(true);
 });
