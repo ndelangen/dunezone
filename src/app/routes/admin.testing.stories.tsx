@@ -1,6 +1,7 @@
 import { testingPreview } from '@sb/preview';
 import { expect, within } from 'storybook/test';
 
+import { expectRefused, withoutAdmins } from './adminPages.stories.fixture';
 import { pageStoryMeta } from './storybookConfig';
 
 const meta = testingPreview.meta({
@@ -19,5 +20,17 @@ export const MigrationsSignedOut = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByRole('link', { name: 'Log in' }, { timeout: 30_000 })).resolves.toBeVisible();
     await expect(page.queryByRole('button', { name: 'Sync migration status' })).toBeNull();
+  },
+});
+
+/** The dashboard reached by a signed-in reader without the administrative role. */
+export const MigrationsNotAuthorized = meta.story({
+  args: { path: '/admin/migrations' },
+  parameters: withoutAdmins,
+  play: async ({ canvasElement }) => {
+    await expectRefused(canvasElement, 'You cannot view migration activity', {
+      role: 'button',
+      name: 'Sync migration status',
+    });
   },
 });

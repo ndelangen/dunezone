@@ -1,5 +1,6 @@
 import { Menu, Text } from '@mantine/core';
 import { useElementSize } from '@mantine/hooks';
+import { factionTokenOf } from '@shared/play/factionToken';
 import {
   clampHiddenZoneSpot,
   HIDDEN_ZONE_DEPTH,
@@ -10,8 +11,9 @@ import {
   turnHiddenZoneSpot,
 } from '@shared/play/hiddenZone';
 import type { HiddenZoneSpot } from '@shared/play/hiddenZone';
-import type { TablePiece } from '@shared/play/model';
+import type { TablePiece, Vector3Tuple } from '@shared/play/model';
 import { HIDDEN_ZONE_TURNS } from '@shared/play/schema';
+import { PLAYER_RING_RADIUS } from '@shared/play/tableSettings';
 import { Section } from '@ui/block/Section';
 import type { ComponentProps, MouseEvent, PointerEvent, ReactNode, RefObject } from 'react';
 import { useEffect, useEffectEvent, useId, useRef, useState } from 'react';
@@ -19,10 +21,10 @@ import { createPortal } from 'react-dom';
 
 import type { TableSession, TableProjection } from '../../../../db/tabletop/TableSession';
 import { HandPieceCloseUp } from '../../../../widgets/tabletop/PieceCloseUp';
-import { dropOnTable } from './dropOnTable';
 import { PieceImage, pieceName, useHandCloseUp } from './HandPiece';
 import styles from './HiddenZone.module.css';
 import { HIDDEN_ZONE_HELP } from './panelGuidance';
+import { viewerFaction } from './tableFactions';
 
 /* A piece's offset along one side, kept within the zone, or at its start where the piece is larger than the zone. */
 const inside = (offset: number, max: number) => Math.max(0, Math.min(max, offset));
@@ -121,6 +123,12 @@ type Carry = Readonly<{
   x: number;
   y: number;
   moving: boolean;
+  /** The piece's upright size in the zone and its turn when lifted, which keep it whole inside the zone while carried. */
+  width: number;
+  depth: number;
+  turn: number;
+  /** The zone's box on the page, measured once when the piece is lifted so a move reads no layout. */
+  zone: DOMRect;
 }>;
 
 /*
@@ -155,11 +163,25 @@ function typing(target: EventTarget | null) {
   );
 }
 
+/* How far along the seats' ring from its faction token a piece placed on the table lands; the table moves it on to a clear spot. */
+const BESIDE_TOKEN = 0.7;
+
+/* Where "Place on table" plays a piece: beside the viewer's faction token, in front of its seat, or at the near edge of a table without one. */
+function besideOwnToken(table: TableProjection): Vector3Tuple {
+  const faction = viewerFaction(table);
+  const token = faction ? factionTokenOf(table.snapshot.table.pieces, faction) : undefined;
+  const angle = token
+    ? Math.atan2(token.position[2], token.position[0]) + BESIDE_TOKEN / PLAYER_RING_RADIUS
+    : Math.PI / 2;
+  return [Math.cos(angle) * PLAYER_RING_RADIUS, 0, Math.sin(angle) * PLAYER_RING_RADIUS];
+}
+
 /**
  * The faction's hidden zone: a private top-down patch of table where it lays out pieces from its hand, such as a token on a card's track.
  * Only the faction sees it.
  * Pieces move freely and may overlap, cards below tokens.
- * A carried piece follows the pointer itself, with no drag image, and a carry let go over the table plays the piece as the hand does.
+ * A carried piece follows the pointer itself, with no drag image, and stays inside the zone.
+ * Its menu places it on the table.
  */
 export function HiddenZone({ client, table, hand }: Props) {
   const { ref, width, height } = useElementSize<HTMLDivElement>();
@@ -170,10 +192,27 @@ export function HiddenZone({ client, table, hand }: Props) {
   const [carry, renderCarry] = useState<Carry | null>(null);
   const carrying = useRef<Carry | null>(null);
   const lifted = useRef<HTMLDivElement | null>(null);
+  /* The frame holds the zone alone, so its box is the zone's. */
+  const frame = useRef<HTMLDivElement>(null);
+  /* Where a carried piece's upright box lies on the page: under the pointer, kept whole inside the zone as it is turned now. */
+  const carriedAt = (current: Carry) => {
+    const left = current.x - current.grabX;
+    const top = current.y - current.grabY;
+    const { zone } = current;
+    const pending = turns.current && turns.current.pieceId === current.pieceId ? turns.current.by : 0;
+    const { across, down } = turnedReach(current.width, current.depth, { x: 0, y: 0, turn: current.turn + pending });
+    const sideways = (current.width - across) / 2;
+    const upways = (current.depth - down) / 2;
+    return {
+      left: zone.left + inside(left + sideways - zone.left, zone.width - across) - sideways,
+      top: zone.top + inside(top + upways - zone.top, zone.height - down) - upways,
+    };
+  };
   const place = () => {
     const current = carrying.current;
     if (lifted.current && current) {
-      lifted.current.style.transform = `translate3d(${current.x - current.grabX}px, ${current.y - current.grabY}px, 0)`;
+      const { left, top } = carriedAt(current);
+      lifted.current.style.transform = `translate3d(${left}px, ${top}px, 0)`;
     }
   };
   const setCarry = (next: Carry | null | ((current: Carry | null) => Carry | null)) => {
@@ -203,7 +242,6 @@ export function HiddenZone({ client, table, hand }: Props) {
   const pieces = hiddenZonePieces(hand);
   const { scale, extent } = hiddenZoneView(width, height);
   const enabled = table.canHandleTable;
-  const frame = useRef<HTMLDivElement>(null);
   const fitHeight = useScrollParentHeight(frame);
   const closeUp = useHandCloseUp(pieces);
 
@@ -328,30 +366,20 @@ export function HiddenZone({ client, table, hand }: Props) {
     if (!current || current.pointerId !== event.pointerId || !current.moving) {
       return;
     }
-    /* The frame holds the zone alone, so its box is the zone's. */
-    const zone = frame.current?.getBoundingClientRect();
-    const inside =
-      zone &&
-      event.clientX >= zone.left &&
-      event.clientX <= zone.right &&
-      event.clientY >= zone.top &&
-      event.clientY <= zone.bottom;
+    const { zone } = current;
     const pending = turns.current && turns.current.pieceId === piece.id ? turns.current : null;
     const { turn } = pending ? turnHiddenZoneSpot(spotOf(piece), pending.by) : spotOf(piece);
+    const at = carriedAt(current);
     if (pending) {
       setTurning(null);
-    }
-    if (!inside || !zone) {
-      dropOnTable(piece.id, event.clientX, event.clientY);
-      return;
     }
     const footprint = hiddenZoneFootprint(piece);
     lay(
       piece,
       clampHiddenZoneSpot(
         {
-          x: (event.clientX - zone.left - current.grabX + (footprint.width * scale) / 2) / (HIDDEN_ZONE_WIDTH * scale),
-          y: (event.clientY - zone.top - current.grabY + (footprint.depth * scale) / 2) / (HIDDEN_ZONE_DEPTH * scale),
+          x: (at.left - zone.left + (footprint.width * scale) / 2) / (HIDDEN_ZONE_WIDTH * scale),
+          y: (at.top - zone.top + (footprint.depth * scale) / 2) / (HIDDEN_ZONE_DEPTH * scale),
           ...(turn ? { turn } : {}),
         },
         extent
@@ -409,6 +437,10 @@ export function HiddenZone({ client, table, hand }: Props) {
                     x: event.clientX,
                     y: event.clientY,
                     moving: false,
+                    width: pieceWidth,
+                    depth: pieceDepth,
+                    turn: spotOf(piece).turn ?? 0,
+                    zone: frame.current!.getBoundingClientRect(),
                   });
                 },
                 onPointerMove: (event: PointerEvent<HTMLDivElement>) => {
@@ -447,8 +479,8 @@ export function HiddenZone({ client, table, hand }: Props) {
                 >
                   <PieceImage piece={piece} width={pieceWidth} height={pieceDepth} />
                   {/*
-                   * The carried piece itself, on the page's body so neither the zone's edge nor a window's transform holds it back:
-                   * it follows the pointer over the table too. Its place in the zone keeps the pointer, unseen, until it is let go.
+                   * The carried piece itself, on the page's body so a window's transform cannot shift it: it follows the pointer
+                   * within the zone. Its place in the zone keeps the pointer, unseen, until it is let go.
                    */}
                   {carried &&
                     createPortal(
@@ -487,6 +519,18 @@ export function HiddenZone({ client, table, hand }: Props) {
             {label}
           </Menu.Item>
         ))}
+        {/* Carries stay inside the zone, so a piece goes onto the table from here, face down as a play from the hand goes. */}
+        <Menu.Item
+          disabled={!enabled}
+          onClick={() => {
+            if (menu) {
+              client.command({ kind: 'hand-play', pieceId: menu.pieceId, position: besideOwnToken(table) });
+            }
+            setMenu(null);
+          }}
+        >
+          Place on table
+        </Menu.Item>
         <Menu.Item
           disabled={!enabled}
           onClick={() => {

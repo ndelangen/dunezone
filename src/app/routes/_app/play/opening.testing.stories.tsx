@@ -2,10 +2,20 @@ import { testingPreview } from '@sb/preview';
 import { finishTransitions } from '@sb/storyWaits';
 import { expect, waitFor, within } from 'storybook/test';
 
+import { storedAuthTokenKey, STORED_PLAY_TABLE_PREFIX } from '@db/playTables';
+import { convexNeverAnswers, STORYBOOK_NOW } from '@db/storybook';
+
+import { storedTableText } from '../../../db/tabletop/storedTable';
 import { gameMeta, install, session } from './game.stories.fixture';
-import { nativeGetContext } from './opening.stories.fixture';
+import { browserGameRuntime } from './multiplayer/gameRuntime';
+import { nativeGetContext, withoutGraphics, expectGraphicsMessage } from './opening.stories.fixture';
 import { tablePage } from './playing.stories.fixture';
-import { productTransport, playingSnapshot as initialSnapshot } from './product.stories.fixture';
+import {
+  productTransport,
+  playingSnapshot as initialSnapshot,
+  parameters,
+  playingSnapshot,
+} from './product.stories.fixture';
 
 /* The game page before its table opens: an unknown id, provisioning and the ways it can fail. The create form itself is Play/Create. */
 const meta = testingPreview.meta({
@@ -121,5 +131,105 @@ export const Connecting = meta.story({
     const view = canvasElement.ownerDocument.defaultView!;
     await expect(view.getComputedStyle(frame!, '::before').animationName).toMatch(/breathe/);
     await expect(canvasElement.ownerDocument.querySelector('.dune-play-shell')).toBeNull();
+  },
+});
+
+/* A game this tab kept for a reload, at an address the story's directory never answers for. */
+const STORED_GAME = 'stored-game';
+
+export const CatalogueRefused = meta.story({
+  parameters: parameters(
+    'expired',
+    'This ruleset is not ready: spice: Spice deck, Publish every member and back before requesting this asset.'
+  ),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    /* The page moves from the game's id to its slug and draws the message again, so the wait finds it afresh each time. */
+    await waitFor(
+      async () => {
+        await expect(page.getByText('This game could not be prepared')).toBeVisible();
+        await expect(page.getByText(/Publish every member and back/)).toBeVisible();
+      },
+      { timeout: 30_000 }
+    );
+    await expect(page.queryByText('Preparing the table')).toBeNull();
+    await expect(page.queryByRole('group', { name: 'Table view' })).toBeNull();
+  },
+});
+
+export const ProvisionTimedOut = meta.story({
+  parameters: parameters('expired'),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await waitFor(
+      () =>
+        expect(page.getByText('The table was not ready in time. Create the game again from the lobby.')).toBeVisible(),
+      { timeout: 30_000 }
+    );
+  },
+});
+
+/* A table the browser cannot reach says so through every retry instead of reading as still connecting, and the way back to the lobby stays. */
+export const Unreachable = meta.story({
+  beforeEach: install(() => productTransport('seat-2', initialSnapshot(), { unreachable: true })),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const status = await page.findByText('The table could not be reached. Reconnecting...', {}, { timeout: 30_000 });
+    await waitFor(() => expect(finishTransitions(status)).toBeVisible());
+    await expect(page.getByRole('link', { name: 'Back to lobby' })).toBeVisible();
+    await expect(page.queryByText('Connecting to the hosted table...')).toBeNull();
+  },
+});
+
+/* An adapter that answers but refuses its device sends the renderer to WebGL2, which is missing too; its failed start reads the same. */
+export const WithoutGraphicsDevice = meta.story({
+  beforeEach: withoutGraphics({
+    requestAdapter: async () => ({
+      features: new Set(),
+      limits: {},
+      requestDevice: async () => {
+        throw new Error('The story refuses the device.');
+      },
+    }),
+    getPreferredCanvasFormat: () => 'bgra8unorm',
+  }),
+  play: async ({ canvasElement }) => expectGraphicsMessage(canvasElement),
+});
+
+/*
+ * A reload while neither the directory nor the table can be reached shows the table this tab kept, locked under the reconnecting bar, instead of the unreachable notice (#1746).
+ * The story stands in for the signed-in tab: an auth token naming the transport's viewer, and the table stored under it.
+ */
+export const ReloadedWhileUnreachable = meta.story({
+  args: { path: `/play/${STORED_GAME}` },
+  decorators: [convexNeverAnswers],
+  beforeEach: () => {
+    const transport = productTransport('seat-2', playingSnapshot(), { unreachable: true });
+    session.transport = transport;
+    session.runtime = transport.runtime;
+    const { viewer, snapshot } = transport.view(playingSnapshot());
+    const subject = btoa(JSON.stringify({ sub: `${viewer.userId}|story-session` }));
+    localStorage.setItem(storedAuthTokenKey(), `story.${subject}.token`);
+    const text = storedTableText(
+      STORED_GAME,
+      { viewer, snapshot, serverNow: STORYBOOK_NOW, pending: [] },
+      { userId: viewer.userId, sessionId: 'story-session' },
+      Date.now()
+    );
+    sessionStorage.setItem(`${STORED_PLAY_TABLE_PREFIX}${STORED_GAME}`, text!);
+    return () => {
+      transport.dispose();
+      localStorage.removeItem(storedAuthTokenKey());
+      sessionStorage.removeItem(`${STORED_PLAY_TABLE_PREFIX}${STORED_GAME}`);
+      session.runtime = browserGameRuntime;
+    };
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const bar = await page.findByText('Reconnecting', { exact: true }, { timeout: 30_000 });
+    await expect(bar.closest('[data-connection]')).not.toHaveAttribute('data-connection', 'authorized');
+    await page.findByRole('button', { name: /^Controls/ }, { timeout: 30_000 });
+    await expect(page.queryByText("Can't reach the server. Retrying...")).toBeNull();
+    await expect(session.transport.messages.filter((message) => message.type === 'command')).toEqual([]);
   },
 });

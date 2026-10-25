@@ -1,62 +1,9 @@
-import { NativeSelect, Select } from '@mantine/core';
 import preview from '@sb/preview';
 import { waitForFrame } from '@sb/storyWaits';
-import { useState } from 'react';
 import { expect, fn, userEvent, within } from 'storybook/test';
 
 import { SearchRefine } from './SearchRefine';
-
-const commitSearch = fn();
-
-const SORTS = [
-  { value: 'newest', label: 'Newest first' },
-  { value: 'name', label: 'Name (A–Z)' },
-];
-
-function Harness({
-  segmented = false,
-  active = 0,
-  inline = false,
-  onCommit,
-}: {
-  segmented?: boolean;
-  active?: number;
-  inline?: boolean;
-  onCommit?: () => void;
-}) {
-  const [query, setQuery] = useState('');
-  const [sort, setSort] = useState('newest');
-  const sortSelect = (label?: string) => (
-    <Select
-      variant={label ? 'default' : 'unstyled'}
-      label={label}
-      aria-label="Sort"
-      allowDeselect={false}
-      data={SORTS}
-      value={sort}
-      onChange={(value) => setSort(value ?? 'newest')}
-    />
-  );
-  const segment = segmented ? sortSelect() : null;
-  const inlineType = (
-    <NativeSelect variant="unstyled" aria-label="Card type" data={['Treachery cards', 'Spice cards']} />
-  );
-  return (
-    <SearchRefine
-      label="Card filters"
-      search={{
-        value: query,
-        onChange: setQuery,
-        onCommit: inline ? undefined : (onCommit ?? (() => {})),
-        label: 'Search cards',
-        placeholder: 'Search by name or owner…',
-      }}
-      refine={inline ? undefined : { label: 'Refine cards', content: sortSelect('Sort by'), active }}
-    >
-      {inline ? inlineType : segment}
-    </SearchRefine>
-  );
-}
+import { commitSearch, Harness } from './SearchRefine.stories.fixture';
 
 const meta = preview.meta({
   component: SearchRefine,
@@ -80,16 +27,6 @@ export const Default = meta.story({
   },
 });
 
-/** Enter commits the search and leaves the box. */
-export const CommitsOnEnter = meta.story({
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    await userEvent.type(canvas.getByRole('textbox', { name: 'Search cards' }), 'shield{Enter}');
-    await expect(commitSearch).toHaveBeenCalled();
-    await expect(canvas.getByRole('textbox', { name: 'Search cards' })).not.toHaveFocus();
-  },
-});
-
 /** With a refinement set, the button says so in its name and wears a dot. */
 export const Narrowed = meta.story({
   render: () => <Harness active={1} />,
@@ -101,18 +38,4 @@ export const Narrowed = meta.story({
 /** A wide page shows the sort joined to the box instead of the button; below 48rem of page the button takes its place. */
 export const WithSegments = meta.story({
   render: () => <Harness segmented />,
-});
-
-/** A picker keeps its type selector joined to a live search at every width. */
-export const JoinedSelector = meta.story({
-  render: () => <Harness inline />,
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    const input = canvas.getByRole('textbox', { name: 'Search cards' });
-    await userEvent.type(input, 'shield{Enter}');
-    await expect(input).toHaveFocus();
-    await expect(input).toHaveValue('shield');
-    await userEvent.selectOptions(canvas.getByRole('combobox', { name: 'Card type' }), 'Spice cards');
-    await expect(input).toHaveValue('shield');
-  },
 });

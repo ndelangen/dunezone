@@ -3,7 +3,7 @@ import { waitForFrame } from '@sb/storyWaits';
 import { expect, spyOn, userEvent, waitFor, within } from 'storybook/test';
 
 import { windowNamed } from './controls.stories.fixture';
-import { draftingSnapshot, storyPlayer } from './drafting.stories.fixture';
+import { draftingSnapshot, storyPlayer, headerAlert, NOT_READY } from './drafting.stories.fixture';
 import { drafting, gameMeta, install, lastCommand, MIDWAY, press, session, shows } from './game.stories.fixture';
 import { productTransport, parameters, SIX } from './product.stories.fixture';
 
@@ -158,6 +158,70 @@ export const NamedGame = meta.story({
      */
     await expect(writeText).toHaveBeenCalledWith(
       expect.stringMatching(/\/play\/annual-bene-gesserit-wedding-traitor-and-the-unexpected-arrakeen$/)
+    );
+  },
+});
+
+/** Players left a six-seat table that deals from four: the header waits for the draft's minimum, never the table's seat count. */
+export const PlayersLeftBelowMinimum = meta.story({
+  beforeEach: install(() => productTransport('seat-1', draftingSnapshot(SIX.slice(0, 2), 6, { minimum: 4 }))),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByText('Waiting for 2 more players', {}, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(page.getByRole('list', { name: 'Before the deal' })).toHaveTextContent(/Players 2\/4\+/);
+  },
+});
+
+/**
+ * The panel's search filters the draft's own list of factions, which every viewer already holds in the game's snapshot (at most 500, the ruleset's own first).
+ * A typed word reaches past the suitable ones to every faction, so "Show all" need not be on.
+ */
+export const SearchedFactions = meta.story({
+  beforeEach: install(() => productTransport('seat-2', draftingSnapshot(SIX, 6, MIDWAY))),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const search = await page.findByRole('textbox', { name: 'Search factions' }, { timeout: 30_000 });
+    await userEvent.type(search, 'ecaz');
+    const list = () => within(page.getByRole('list', { name: 'Factions' }));
+    await waitFor(() => expect(list().getAllByRole('listitem')).toHaveLength(2));
+    await expect(list().getByText('Ecaz (Ecaz/Moritani)')).toBeVisible();
+    await expect(list().getByText('Moritani (Ecaz/Moritani)')).toBeVisible();
+    await expect(page.getByRole('switch', { name: 'Show all factions' })).not.toBeChecked();
+  },
+});
+
+/** A spectator reads why the deal failed in the header; dealing again is the players' Ready. */
+export const ObserverAfterAFailedDeal = meta.story({
+  beforeEach: install(() =>
+    productTransport(
+      'neutral',
+      draftingSnapshot(SIX, 6, {
+        picks: { 'seat-1': ['house-atreides', 'iduali'], 'seat-2': ['fremen'] },
+        setAside: { iduali: NOT_READY },
+        failure: `Set aside as not ready to deal: Iduali (${NOT_READY.replace(/\.$/, '')}).`,
+      })
+    )
+  ),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await waitFor(
+      () => expect(headerAlert(canvasElement)).toHaveTextContent('Set aside as not ready to deal: Iduali'),
+      { timeout: 30_000 }
+    );
+    await expect(headerAlert(canvasElement)).toHaveTextContent('Seats were not dealt');
+    await expect(page.queryByRole('button', { name: 'Ready' })).toBeNull();
+  },
+});
+
+/** A spectator's game menu has nothing to give up. */
+export const SpectatorGameMenu = meta.story({
+  beforeEach: install(() => productTransport('neutral', drafting())),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await shows(() => page.getByRole('button', { name: 'Take a seat' }));
+    await press(() => page.getByRole('button', { name: 'Game menu' }));
+    await waitForFrame(() =>
+      expect(page.getByRole('menuitem', { name: 'Give up your seat' })).toHaveAttribute('data-disabled')
     );
   },
 });

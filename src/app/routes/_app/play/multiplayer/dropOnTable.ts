@@ -1,5 +1,5 @@
 /*
- * A hand or side-table piece let go over the table plays there, through the table's own drop,
+ * A hand piece let go over the table plays there, through the table's own drop,
  * so the table alone decides where on its plate the piece lands.
  */
 export function dropOnTable(pieceId: string, clientX: number, clientY: number) {

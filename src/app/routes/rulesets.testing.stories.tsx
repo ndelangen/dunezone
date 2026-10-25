@@ -1,10 +1,13 @@
 import { testingPreview } from '@sb/preview';
+import { FAQ_CATALOGUE_PAGE_SIZE } from '@shared/faq/catalogueSearch';
+import { RULESET_CATALOGUE_PAGE_SIZE } from '@shared/rulesets/catalogueSearch';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
-import { db, ruleset } from '@db/storybook';
+import { db, ruleset, ref } from '@db/storybook';
+import type { StorybookDatabase } from '@db/storybook';
 
 import { expectToolbarOnOneLine } from './authoringToolbarPlay';
-import { seedLinkedFactions } from './rulesets.stories.fixture';
+import { seedLinkedFactions, seedQuestions } from './rulesets.stories.fixture';
 import { pageStoryMeta } from './storybookConfig';
 
 const meta = testingPreview.meta({
@@ -178,4 +181,204 @@ export const EditToolbarAt1100 = meta.story({
   globals: { viewport: { value: 'appLaptop' } },
   play: async ({ canvasElement }) =>
     await expectToolbarOnOneLine(canvasElement, { statusDescribes: ['No unsaved changes'] }),
+});
+
+/** Numbered rulesets beside ClassicRules, so the catalogue has more than one page holds. */
+function seedRulesets(baseline: StorybookDatabase, count: number) {
+  for (let index = 1; index <= count; index++) {
+    baseline.rulesets.push(ruleset({ name: `Ruleset ${String(index).padStart(2, '0')}` }));
+  }
+}
+/** The catalogue's tiles, each the link that opens its ruleset. */
+function rulesetTiles(main: ReturnType<typeof within>, name: RegExp) {
+  return main.getAllByRole('link', { name });
+}
+/** The FAQ's rows, each the link that opens its question. */
+function questionRows(main: ReturnType<typeof within>, name: RegExp) {
+  return main.getAllByRole('link', { name });
+}
+/** More rulesets than one page holds, so the catalogue pages them with an exact count, and a search narrows them. */
+export const DirectoryPagesAndSearch = meta.story({
+  args: { path: '/rulesets?page=2' },
+  parameters: { database: db((baseline) => seedRulesets(baseline, 30)) },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const main = within(await page.findByRole('main', {}, { timeout: 30_000 }));
+    /* A to Z, ClassicRules sorts before every numbered ruleset, so page two holds the last seven of the thirty-one. */
+    await expect(main.findByRole('link', { name: /Ruleset 24/ }, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(main.getByRole('link', { name: /Ruleset 30/ })).toBeVisible();
+    await expect(main.queryByRole('link', { name: /Ruleset 23/ })).toBeNull();
+    await expect(main.queryByRole('link', { name: /ClassicRules/ })).toBeNull();
+    await expect(page.findByText(/^25–31 of 31 rulesets$/)).resolves.toBeVisible();
+    await expect(page.getByRole('link', { name: 'First page' })).toHaveAttribute('href', '/rulesets');
+
+    await userEvent.type(page.getByRole('textbox', { name: 'Search rulesets' }), 'Ruleset 07');
+    await expect(main.findByRole('link', { name: /Ruleset 07/ }, { timeout: 30_000 })).resolves.toBeVisible();
+    await waitFor(() => expect(main.queryByRole('link', { name: /Ruleset 24/ })).toBeNull());
+    /* The search is one short grid: no pages and no count. */
+    await expect(page.queryByRole('link', { name: 'First page' })).toBeNull();
+    await expect(page.queryByText(/of \d+ rulesets/)).toBeNull();
+  },
+});
+/**
+ * A search shows its best matches and loads more in place: no pages, no count, and the sort is best match alone.
+ * An old link's page and order are dropped, so it opens the search's first matches.
+ * "Load more" lengthens the grid until every match is shown, and hands focus to the first new tile.
+ */
+export const DirectorySearched = meta.story({
+  args: { path: '/rulesets?q=ruleset&page=2&sort=newest' },
+  /* One past the first step: the smallest search that has more to load. */
+  parameters: { database: db((baseline) => seedRulesets(baseline, RULESET_CATALOGUE_PAGE_SIZE + 1)) },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    /* Found on the body, not within a `main` found earlier: the pending frame has a `main` of its own, which the loaded page replaces. */
+    const loadMore = await page.findByRole('button', { name: 'Load more' }, { timeout: 60_000 });
+    const main = within(page.getByRole('main'));
+    await expect(rulesetTiles(main, /^Ruleset \d\d$/)).toHaveLength(RULESET_CATALOGUE_PAGE_SIZE);
+    await expect(main.queryByRole('link', { name: /ClassicRules/ })).toBeNull();
+    await expect(page.queryByLabelText('Ruleset pages')).toBeNull();
+    await expect(page.queryByText(/of \d+ rulesets/)).toBeNull();
+    await expect(page.getByRole('textbox', { name: 'Search rulesets' })).toHaveValue('ruleset');
+    const sort = page.getByRole('combobox', { name: 'Sort' });
+    await expect(sort).toHaveValue('Best match');
+    await expect(sort).toBeDisabled();
+
+    await userEvent.click(loadMore);
+    await waitFor(() => expect(rulesetTiles(main, /^Ruleset \d\d$/)).toHaveLength(RULESET_CATALOGUE_PAGE_SIZE + 1), {
+      timeout: 60_000,
+    });
+    /* Focus moves in an effect after the longer grid is committed, so it is waited for rather than read off the first paint. */
+    await waitFor(() => expect(rulesetTiles(main, /^Ruleset \d\d$/)[RULESET_CATALOGUE_PAGE_SIZE]).toHaveFocus());
+    await expect(main.getByRole('status')).toHaveTextContent('More rulesets loaded');
+    await expect(main.queryByRole('button', { name: 'Load more' })).toBeNull();
+  },
+});
+/** A ruleset with no board keeps the section, drawn as the missing face with a line saying so. */
+export const DetailWithoutBoard = meta.story({
+  args: { path: '/rulesets/classicrules' },
+  parameters: {
+    database: db((baseline) => {
+      const slots = baseline.ruleset_asset_slots;
+      slots.splice(
+        slots.findIndex((row) => row.slot === 'board'),
+        1
+      );
+      return baseline;
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const board = within(await page.findByRole('region', { name: 'Board' }, { timeout: 30_000 }));
+    await expect(board.getByText('This ruleset has no board yet.')).toBeVisible();
+    await expect(board.queryByRole('link')).toBeNull();
+  },
+});
+
+/**
+ * A search shows its best matches and loads more in place: no pages and no count.
+ * An old link's page is dropped, so it opens the search's first matches.
+ * "Load more" lengthens the list until every match is shown, and hands focus to the first new row.
+ */
+export const FaqSearched = meta.story({
+  args: { path: '/rulesets/classicrules/faq?q=question&page=2' },
+  /* One past the first step: the smallest search that has more to load. */
+  parameters: { database: db((baseline) => seedQuestions(baseline, FAQ_CATALOGUE_PAGE_SIZE + 1)) },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    /* Found on the body, not within a `main` found earlier: the pending frame has a `main` of its own, which the loaded page replaces. */
+    const loadMore = await page.findByRole('button', { name: 'Load more' }, { timeout: 60_000 });
+    const main = within(page.getByRole('main'));
+    await expect(questionRows(main, /^Question \d\d\?$/)).toHaveLength(FAQ_CATALOGUE_PAGE_SIZE);
+    await expect(main.queryByRole('link', { name: 'When does the storm move?' })).toBeNull();
+    await expect(page.queryByLabelText('FAQ pages')).toBeNull();
+    await expect(page.queryByText(/of \d+ questions/)).toBeNull();
+    await expect(page.getByRole('textbox', { name: 'Search FAQ questions' })).toHaveValue('question');
+
+    await userEvent.click(loadMore);
+    await waitFor(() => expect(questionRows(main, /^Question \d\d\?$/)).toHaveLength(FAQ_CATALOGUE_PAGE_SIZE + 1), {
+      timeout: 60_000,
+    });
+    await waitFor(() =>
+      expect(main.getAllByRole('link', { name: /^Open question: Question/ })[FAQ_CATALOGUE_PAGE_SIZE]).toHaveFocus()
+    );
+    await expect(main.getByRole('status')).toHaveTextContent('More questions loaded');
+    await expect(main.queryByRole('button', { name: 'Load more' })).toBeNull();
+  },
+});
+/** A link from before the FAQ had its own page, which searched on the ruleset's page, lands on the FAQ's page with the same search. */
+export const FaqFormerSearchLink = meta.story({
+  args: { path: '/rulesets/classicrules?q=storm&tag=rules' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('link', { name: 'Back to ClassicRules' }, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(page.getByRole('textbox', { name: 'Search FAQ questions' })).toHaveValue('storm');
+    await expect(
+      within(page.getByRole('main')).findByRole('link', { name: 'When does the storm move?' }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+  },
+});
+/**
+ * The same page reached through a ruleset slug that names nothing, which is the state the route's own frame exists for.
+ * Its loader throws rather than returning nothing, so without that frame this path falls to the router's default and renders the error unstyled.
+ */
+export const AskQuestionMissingRuleset = meta.story({
+  args: { path: '/rulesets/there-is-no-such-ruleset/faq/create' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('heading', { name: 'Ask a question' }, { timeout: 30_000 })).resolves.toBeVisible();
+    /* Not merely that something rendered: the router's default renders too, and without the route's
+       own frame this page shows its unstyled block with no way out. The alert's own title and a way
+       back that lives in the band are what only the frame produces. */
+    await expect(page.findByText('This ruleset could not be loaded', {}, { timeout: 30_000 })).resolves.toBeVisible();
+    const back = await page.findByRole('link', { name: 'Back to rulesets' }, { timeout: 30_000 });
+    await expect(back.closest('main')).toBeNull();
+  },
+});
+
+/** One native cursor list spans rulesets and appends the final range without duplicating rows. */
+export const AssetRelatedFaqLoadMore = meta.story({
+  args: { path: '/assets/card-treachery/lasgun' },
+  parameters: {
+    database: db((baseline) => {
+      baseline.rulesets.push(ruleset({ name: 'Dreamrules' }));
+      const target = baseline.assets.find((row) => row.type === 'card-treachery' && row.data.name === 'Lasgun')!;
+      for (let index = 1; index <= 14; index++) {
+        const key = `related-faq-${index}`;
+        const created = `2030-01-${String(index).padStart(2, '0')}T00:00:00.000Z`;
+        baseline.faq_items.push({
+          $key: key,
+          ruleset_id: ref(index % 2 === 0 ? 'ruleset:classicrules' : 'ruleset:dreamrules'),
+          slug: `reference-${index}`,
+          question: `Storm reference ${index}?`,
+          tags: ['rules'],
+          asked_by: ref('storybook-viewer'),
+          created_at: created,
+          updated_at: created,
+          accepted_answer_id: null,
+        });
+        baseline.faq_references.push({
+          faq_item_id: ref(key),
+          question_created_at: created,
+          kind: 'asset',
+          target_id: ref(target.$key!),
+        });
+      }
+      return baseline;
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const list = within(await page.findByRole('region', { name: 'Related FAQ' }, { timeout: 30_000 }));
+    await waitFor(() => expect(list.getAllByRole('link', { name: /^Open question:/ })).toHaveLength(12));
+    await expect(list.getAllByRole('link', { name: /^Open question:/ })[0]).toHaveAccessibleName(
+      'Open question: Storm reference 14?. Unanswered, 0 answers'
+    );
+    await expect(list.getAllByRole('link', { name: 'ClassicRules' })).toHaveLength(6);
+    await expect(list.getAllByRole('link', { name: 'Dreamrules' })).toHaveLength(6);
+    const loadMore = await list.findByRole('button', { name: 'Load more' }, { timeout: 30_000 });
+    await expect(list.getAllByRole('button', { name: 'Load more' })).toHaveLength(1);
+    await userEvent.click(loadMore);
+    await waitFor(() => expect(list.getAllByRole('link', { name: /^Open question:/ })).toHaveLength(14));
+    await expect(list.queryByRole('button', { name: 'Load more' })).toBeNull();
+  },
 });

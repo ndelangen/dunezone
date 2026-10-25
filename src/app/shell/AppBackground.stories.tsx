@@ -19,4 +19,3 @@ const meta = preview.meta({
 });
 
 export const Still = meta.story({});
-export const Moving = meta.story({ args: { motion: true } });

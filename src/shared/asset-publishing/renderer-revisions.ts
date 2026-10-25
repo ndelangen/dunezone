@@ -32,8 +32,9 @@ export const CHECKED_IN_RENDERER_REVISIONS = {
   /* The first activation publishes every identified troop's front, and its back where one is authored (#1228). */
   'faction-troop': 1,
   /* Revision 2 fits complete Traitor titles, owner subtitles and Alliance titles. */
-  'faction-traitor': 3,
-  'faction-alliance': 3,
+  /* Revision 4 recaptures cards taken before capture waited for CSS artwork, which left some without their frame. */
+  'faction-traitor': 4,
+  'faction-alliance': 4,
   // 9: formatted text replaces Markdown while setup and revival stay inline (wayfinder #669).
   // 10: the PDF is titled after its faction rather than the capture page, since search engines show that title.
   /* Revision 11 uses the faction's section name, defaulting to Faction Special Karama (#2271). */

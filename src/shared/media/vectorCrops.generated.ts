@@ -868,6 +868,7 @@ export const VECTOR_CROPS = {
   '/vector/logo/worm-crown.svg': [50, 49.925, 98.12, 99.85],
   '/vector/logo/worm-hook.svg': [50.07, 50.015, 85.32, 99.97],
   '/vector/troop/acolyte.svg': [50.190000000000005, 49.77, 58.98, 99.54],
+  '/vector/troop/armoured-rifleman.svg': [50, 50, 74.34, 100],
   '/vector/troop/atreides.svg': [50, 50, 79.4, 100],
   '/vector/troop/banner-marshal.svg': [49.705, 47.81999999999999, 44.81, 86.5],
   '/vector/troop/bene-gesserit.svg': [49.995000000000005, 50, 99.25, 100],

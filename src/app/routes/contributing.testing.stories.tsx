@@ -425,3 +425,8 @@ export const UnknownGlossaryTopic = meta.story({
   args: { path: '/contributing/glossary/constructor' },
   play: expectMissingLesson,
 });
+
+export const UnknownCodeLesson = meta.story({
+  args: { path: '/contributing/code/toString' },
+  play: expectMissingLesson,
+});

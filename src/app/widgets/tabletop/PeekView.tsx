@@ -281,6 +281,7 @@ function DeckCard({ piece, stored, slot, placement, carrying, move, pull }: Deck
   return (
     <li
       className={styles.peekDeckCard}
+      data-card={item.id}
       data-held={held || undefined}
       style={shift ? { transform: `translateX(${shift}px)` } : undefined}
     >

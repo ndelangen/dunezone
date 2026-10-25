@@ -32,17 +32,6 @@ const meta = preview.meta({
 /** A name over content that carries its own panes. */
 export const Default = meta.story({});
 
-/** The one control that belongs beside the name, usually a link onward. */
-export const WithAction = meta.story({
-  args: {
-    action: (
-      <Anchor href="#" fw={700}>
-        See every faction <ArrowRight size={15} aria-hidden />
-      </Anchor>
-    ),
-  },
-});
-
 /** Everything at once, which is how a page's leading section usually looks. */
 export const Full = meta.story({
   args: {

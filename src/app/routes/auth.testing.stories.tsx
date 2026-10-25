@@ -2,6 +2,7 @@ import { testingPreview } from '@sb/preview';
 import { createMemoryHistory } from '@tanstack/react-router';
 import { expect, waitFor, within } from 'storybook/test';
 
+import { lastSignedInWithDiscord } from './auth.stories.fixture';
 import { StorybookPage } from './storybook';
 import { pageStoryMeta } from './storybookConfig';
 
@@ -36,5 +37,20 @@ export const BandGrowsAndShrinks = meta.story({
     history.push('/faq');
     await waitFor(() => expect(frame).toHaveAttribute('data-band-unwinding'));
     await waitFor(() => expect(frame).not.toHaveAttribute('data-band-unwinding'));
+  },
+});
+
+/** On a phone the mark stays on the logo without clipping the label. */
+export const LoginLastUsedMobile = meta.story({
+  args: { path: '/auth/login' },
+  parameters: { identity: null },
+  globals: { viewport: { value: 'appMobile' } },
+  beforeEach: lastSignedInWithDiscord,
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const discord = await page.findByRole('button', { name: /^Continue with Discord/ }, { timeout: 30_000 });
+    await expect(discord).toHaveAccessibleName('Continue with Discord Last used');
+    await expect(discord.scrollWidth).toBeLessThanOrEqual(discord.clientWidth);
+    await expect(canvasElement.ownerDocument.documentElement.scrollWidth).toBeLessThanOrEqual(window.innerWidth);
   },
 });

@@ -1,10 +1,12 @@
 import { testingPreview } from '@sb/preview';
+import { publishingTreacheryCard } from '@shared/assets/fixtures/publishingTreacheryCard';
 import { GF9_LEADER_SKILLS } from '@shared/assets/gf9LeaderSkills';
 import { install } from '@sinonjs/fake-timers';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
-import { db, ref } from '@db/storybook';
+import { db, ref, asset } from '@db/storybook';
 
+import { storyPage, findDetailFace } from './assets.stories.fixture';
 import { findSave } from './authoringToolbarPlay';
 import {
   craftLinearAngle,
@@ -13,6 +15,7 @@ import {
   openLayerEditor,
   resetAndSettle,
 } from './backgroundMemoryPlay';
+import { expectFieldValue } from './pagePlay';
 import { pageStoryMeta } from './storybookConfig';
 
 const meta = testingPreview.meta({
@@ -486,5 +489,106 @@ export const CreateBundleSignedOut = meta.story({
     await expect(page.findByRole('link', { name: 'Log in' }, { timeout: 30_000 })).resolves.toBeVisible();
     await expect(page.findByRole('link', { name: 'Back to bundles' }, { timeout: 30_000 })).resolves.toBeVisible();
     await expect(page.queryByRole('button', { name: 'Save bundle' })).toBeNull();
+  },
+});
+
+/**
+ * A search shows its best matches and loads more in place: no pages, no count, and the sort is best match alone.
+ * An old link's page and order are dropped, so it opens the search's first matches.
+ * "Load more" lengthens the grid until every match is shown, and hands focus to the first new tile.
+ */
+export const TreacheryCardsSearched = meta.story({
+  args: { path: '/assets/card-treachery?q=lasgun&page=2&sort=name' },
+  parameters: {
+    database: db((baseline) => {
+      for (let index = 1; index <= 25; index += 1) {
+        const name = `Lasgun ${String(index).padStart(2, '0')}`;
+        baseline.assets.push(asset({ type: 'card-treachery', data: { ...publishingTreacheryCard, name } }));
+      }
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const page = storyPage(canvasElement);
+    const main = within(await page.findByRole('main', {}, { timeout: 30_000 }));
+    const loadMore = await main.findByRole('button', { name: 'Load more' }, { timeout: 30_000 });
+    await expect(main.getAllByRole('link', { name: /Lasgun/ })).toHaveLength(24);
+    await expect(page.queryByLabelText('Treachery cards pages')).toBeNull();
+    await expect(page.queryByText(/of \d+ treachery cards/)).toBeNull();
+    await expect(page.getByRole('textbox', { name: 'Search treachery cards' })).toHaveValue('lasgun');
+    const sort = page.getByRole('combobox', { name: 'Sort' });
+    await expect(sort).toHaveValue('Best match');
+    await expect(sort).toBeDisabled();
+
+    await userEvent.click(loadMore);
+    /* The baseline's own Lasgun matches too, so the whole grid is one more than the seeded cards. */
+    await waitFor(() => expect(main.getAllByRole('link', { name: /Lasgun/ })).toHaveLength(26), { timeout: 30_000 });
+    await expect(main.getAllByRole('link', { name: /Lasgun/ })[24]).toHaveFocus();
+    await expect(main.getByRole('status')).toHaveTextContent('More treachery cards loaded');
+    await expect(main.queryByRole('button', { name: 'Load more' })).toBeNull();
+  },
+});
+export const DiscToken = meta.story({
+  args: { path: '/assets/token-disc/karama' },
+  play: async ({ canvasElement }) => {
+    const { width, height } = (await findDetailFace(canvasElement, 'Karama')).getBoundingClientRect();
+    await expect(width / height).toBeCloseTo(1, 1);
+  },
+});
+export const EnhanceToken = meta.story({
+  args: { path: '/assets/token-enhance/kwisatz-haderach' },
+  play: async ({ canvasElement }) => {
+    const { width, height } = (await findDetailFace(canvasElement, 'Kwisatz Haderach')).getBoundingClientRect();
+    await expect(width).toBeGreaterThan(height);
+  },
+});
+export const Bundle = meta.story({
+  args: { path: '/assets/bundle/atreides-tokens' },
+  play: async ({ canvasElement }) => {
+    const page = storyPage(canvasElement);
+    await expect(findDetailFace(canvasElement, 'Atreides Tokens')).resolves.toBeVisible();
+    await expect(page.findByRole('link', { name: /Karama/ })).resolves.toBeVisible();
+    await expect(page.findByRole('link', { name: /Kwisatz Haderach/ })).resolves.toBeVisible();
+  },
+});
+
+export const CreateTreacheryCard = meta.story({
+  args: { path: '/assets/card-treachery/create' },
+  play: ({ canvasElement }) => expectFieldValue(canvasElement, 'Name', ''),
+});
+export const CreateDeck = meta.story({
+  args: { path: '/assets/deck/create' },
+  play: ({ canvasElement }) => expectFieldValue(canvasElement, 'Name', ''),
+});
+export const CreateEnhanceToken = meta.story({
+  args: { path: '/assets/token-enhance/create' },
+  play: ({ canvasElement }) => expectFieldValue(canvasElement, 'Name', ''),
+});
+export const CreateBundle = meta.story({
+  args: { path: '/assets/bundle/create' },
+  play: ({ canvasElement }) => expectFieldValue(canvasElement, 'Name', ''),
+});
+export const EditEnhanceToken = meta.story({
+  args: { path: '/assets/token-enhance/kwisatz-haderach/edit' },
+  play: ({ canvasElement }) => expectFieldValue(canvasElement, 'Name', 'Kwisatz Haderach'),
+});
+
+export const CreateSpiceCard = meta.story({
+  args: { path: '/assets/card-spice/create' },
+  play: ({ canvasElement }) => expectFieldValue(canvasElement, 'Name', ''),
+});
+
+export const CreateCustomCard = meta.story({
+  args: { path: '/assets/card-custom/create' },
+  play: ({ canvasElement }) => expectFieldValue(canvasElement, 'Name', ''),
+});
+export const TreacheryConversionUnavailable = meta.story({
+  args: { path: '/assets/card-treachery/lasgun' },
+  parameters: {
+    database: db((baseline) => ({ ...baseline, users: baseline.users!.map((user) => ({ ...user, isAdmin: false })) })),
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await page.findByRole('heading', { name: 'Lasgun' }, { timeout: 30_000 });
+    await expect(page.queryByRole('button', { name: 'Convert to custom card' })).toBeNull();
   },
 });

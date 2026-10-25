@@ -8,7 +8,7 @@ import { CompassEpochContext } from '../play/compass/compassEpoch';
 import { RememberedContext } from '../play/compass/useRemembered';
 import { GameRuntimeContext } from '../play/multiplayer/gameRuntime';
 import HostedTable from '../play/multiplayer/HostedTable';
-import type { PlaytestChapter, TutorialChapter } from './chapters';
+import type { TutorialChapter } from './chapters';
 import type { ChapterScript } from './chapterScripts/chapterScript';
 import setup from './setup/setup.json';
 import { startAt, withOrigin } from './setup/tutorialSetup';
@@ -76,18 +76,21 @@ function useTutorialTable(setup: TutorialSetup, chapter: ChapterScript) {
 }
 
 /**
- * A built chapter as a player meets it: the band with one task at a time over the live table, and the table itself.
+ * A built chapter as a player meets it: the rail with one task at a time beside the live table, and the table itself.
  * The camera returns to the map view on Reset, zoom and all, by choosing that view again.
  */
 export default function ChapterPlay({
   chapter,
   script,
+  firstTask = 0,
   chaptersLink,
   nextLink,
   exit,
 }: Readonly<{
-  chapter: TutorialChapter | PlaytestChapter;
+  chapter: TutorialChapter;
   script: ChapterScript;
+  /** The task the chapter opens at, counted from 0. */
+  firstTask?: number;
   chaptersLink: (props: object) => ReactNode;
   nextLink?: ((props: object) => ReactNode) | undefined;
   exit: ReactNode;
@@ -101,6 +104,7 @@ export default function ChapterPlay({
       number={chapter.number}
       title={chapter.title}
       tasks={tasks}
+      firstTask={firstTask}
       learned={script.learned}
       onReset={() => {
         control.reset();

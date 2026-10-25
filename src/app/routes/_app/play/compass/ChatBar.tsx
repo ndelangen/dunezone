@@ -1,3 +1,4 @@
+import { Kbd } from '@ui/content/Kbd';
 import clsx from 'clsx';
 import { MessagesSquare } from 'lucide-react';
 import { useContext } from 'react';
@@ -6,7 +7,6 @@ import styles from './ChatBar.module.css';
 import base from './CompassControls.module.css';
 import { CompassTableContext } from './compassTable';
 import type { CompassPlayer } from './compassTable';
-import { Key } from './glyphs';
 import { PlayerToken } from './PlayerToken';
 import type { PlayerTab } from './windows';
 
@@ -38,7 +38,7 @@ export function ChatBar({ inert, isOpen, onOpenCompass, onShow }: ChatBarProps) 
           <path d="m12 7 2 5-2 5-2-5z" />
         </svg>
         Controls
-        <Key>Space</Key>
+        <Kbd>Space</Kbd>
       </button>
       {(tableChat || others.length > 0) && (
         <nav className={styles.chats} aria-label="Chats">

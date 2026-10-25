@@ -1,12 +1,12 @@
 import { testingPreview } from '@sb/preview';
-import { waitForFrame } from '@sb/storyWaits';
+import { waitForFrame, finishTransitions } from '@sb/storyWaits';
 import type { GameSnapshot } from '@shared/play/protocol';
 import { BOARD_RADIUS } from '@shared/play/tableGeometry';
 import { resolveRulebookBoardDefinition } from '@shared/rulebooks/boardDefinitions';
-import { expect, userEvent, within } from 'storybook/test';
+import { expect, userEvent, within, waitFor } from 'storybook/test';
 
 import { dragBattleMarker } from './battles.marker.stories.fixture';
-import { battleSetup, readiness, convexIds, withConvexIds } from './battles.stories.fixture';
+import { battleSetup, readiness, convexIds, withConvexIds, revealedPieces } from './battles.stories.fixture';
 import { expectNoControl, openPanel, unpinWindow, WAIT, windowNamed } from './controls.stories.fixture';
 import { gameMeta, install, lastCommand, session } from './game.stories.fixture';
 import { battleStory, expectBattleCalloutPlacement, openTab, settled } from './playing.stories.fixture';
@@ -571,5 +571,33 @@ export const ResolvedInRealGame = meta.story({
       await expect(page.queryByText(new RegExp(id))).toBeNull();
       await expect(page.queryByLabelText(new RegExp(id))).toBeNull();
     }
+  },
+});
+
+/** A live battle's wheels name both sides from the roster in a real game too. */
+export const ReadinessInRealGame = meta.story({
+  beforeEach: install(() => productTransport('neutral', withConvexIds(battleStory('preparing', true)))),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await settled(() =>
+      expect(page.getByRole('img', { name: 'House Harkonnen, left side, aggressor, Preparing' })).toBeVisible()
+    );
+    await expect(page.getByRole('img', { name: 'House Atreides, right side, Ready' })).toBeVisible();
+  },
+});
+
+export const RevealedPieces = meta.story({
+  beforeEach: revealedPieces,
+  play: async ({ canvasElement }) => {
+    await waitFor(
+      async () => {
+        const callout = canvasElement.ownerDocument.querySelector<HTMLElement>('[data-battle-stage="revealed"]');
+        await expect(callout).not.toBeNull();
+        const card = within(callout!).getByRole('button', { name: 'Drag Snooper onto table' });
+        await expect(finishTransitions(card)).toBeVisible();
+        await expect(card).toBeEnabled();
+      },
+      { timeout: 30_000 }
+    );
   },
 });

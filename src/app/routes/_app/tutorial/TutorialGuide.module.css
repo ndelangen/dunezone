@@ -1,82 +1,12 @@
 /*
- * The band takes the top of the window, and the table's page frame starts below it.
- * Its background is the outline drawn behind it, which it shares with its arrow.
- */
-.band {
-  position: absolute;
-  inset: 0 0 auto;
-  pointer-events: auto;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: var(--space-sm);
-  height: 4.5rem;
-  padding-inline: var(--space-sm);
-  color: var(--color-paper);
-}
-
-.chapter,
-.count {
-  display: none;
-}
-
-/* A wide window gives the chapter's name a column of its own; a narrower one gives that room to the task, and the page header below still names the chapter. */
-@container tutorial-guide (width >= 62rem) {
-  .band {
-    grid-template-columns: 12rem minmax(0, 1fr) auto;
-    gap: var(--space-lg);
-    padding-inline: var(--space-lg);
-  }
-
-  .chapter {
-    display: grid;
-    line-height: 1.2;
-  }
-
-  .count {
-    display: revert;
-  }
-}
-
-.task {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  min-width: 0;
-}
-
-.step {
-  display: inline-grid;
-  flex: none;
-  place-items: center;
-  width: 1.75rem;
-  height: 1.75rem;
-  border-radius: 50%;
-  background: var(--color-caution);
-  color: #111;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-}
-
-.step[data-done] {
-  background: var(--mantine-color-green-7);
-  color: #fff;
-}
-
-.count {
-  white-space: nowrap;
-}
-
-/*
- * The band and its arrow share one shadow, cast by their wrapper, so they read as one shape over the table.
- * The wrapper covers the window but takes no pointer events; only the band does.
+ * The rail and its arrow share one shadow, cast by their wrapper, so they read as one shape beside the table.
+ * The wrapper covers the window but takes no pointer events; only the rail does.
  */
 .guide {
   position: fixed;
   inset: 0;
   z-index: 300;
   pointer-events: none;
-  container: tutorial-guide / inline-size;
   filter: drop-shadow(0 6px 14px rgb(0 0 0 / 0.55));
 }
 
@@ -89,18 +19,18 @@
 }
 
 .fill {
-  fill: var(--color-ink);
+  fill: var(--glass-overlay);
 }
 
-/* A fine light edge around band and arrow alike, so the shape holds its line against the dark table. */
+/* A fine light edge around rail and arrow alike, so the shape holds its line against the dark table. */
 .edge {
   fill: none;
-  stroke: rgb(255 255 255 / 0.22);
+  stroke: color-mix(in srgb, var(--panel-border) 55%, transparent);
   stroke-width: 1.5;
   stroke-linejoin: round;
 }
 
-/* The guide and the page it wraps share one box; only the custom property it sets reaches the page. */
+/* The guide and the page it wraps share one box; only the custom properties it sets reach the page. */
 .frame {
   display: contents;
 }
@@ -108,4 +38,282 @@
 /* The page the guide wraps, in a box of its own only so it can be made inert; it lays out as if the box were not there. */
 .table {
   display: contents;
+}
+
+/*
+ * The rail down the left of the window, in large type so it is read before the board (Norbert, 2026-10-25),
+ * and the page beside it starts at its right edge. Its background is the outline drawn behind it, shared with its arrow.
+ */
+.rail {
+  /* One easing and pace for every change of a task's state, so its parts move as one. */
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --pace: 650ms;
+
+  position: absolute;
+  inset: 0 auto 0 0;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  box-sizing: border-box;
+  width: var(--rail-width);
+  padding: var(--space-lg);
+  overflow-y: auto;
+  color: var(--color-text);
+}
+
+.railHead {
+  display: grid;
+  gap: var(--space-xs);
+}
+
+/* How much of the chapter is done, as a fine line under its title that fills as each task ticks over. */
+.progress {
+  height: 3px;
+  margin-top: var(--space-xs);
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--color-text) 12%, transparent);
+  overflow: hidden;
+}
+
+.progress::after {
+  content: "";
+  display: block;
+  height: 100%;
+  background: var(--action-positive-fg);
+  transform: scaleX(var(--progress));
+  transform-origin: left;
+  transition: transform var(--pace) var(--ease);
+}
+
+.railSteps {
+  display: grid;
+  gap: var(--space-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.railStep {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-md);
+  transition:
+    filter var(--pace) var(--ease),
+    opacity var(--pace) var(--ease),
+    padding var(--pace) var(--ease);
+}
+
+/* Coming tasks blur the further off they are, up to a point, so the next one can still be made out. */
+.railStep[data-state="next"] {
+  filter: blur(calc(min(var(--ahead), 4) * 0.35px + 0.5px));
+  opacity: calc(0.85 - min(var(--ahead), 4) * 0.08);
+}
+
+.railStep[data-state="current"] {
+  padding-block: var(--space-xs);
+}
+
+/* The task's number, in a disc that is the forward colour while it is the one to do and turns to a drawn tick once done. */
+.step {
+  position: relative;
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  margin-top: 0.1rem;
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--color-text) 35%, transparent);
+  color: var(--color-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  transition:
+    width var(--pace) var(--ease),
+    height var(--pace) var(--ease),
+    margin var(--pace) var(--ease),
+    font-size var(--pace) var(--ease),
+    background-color var(--pace) var(--ease),
+    box-shadow var(--pace) var(--ease),
+    color var(--pace) var(--ease);
+}
+
+.railStep[data-state="current"] .step {
+  width: 2rem;
+  height: 2rem;
+  margin-top: 0;
+  background: var(--color-caution-inverse);
+  box-shadow: inset 0 0 0 0 transparent;
+  color: var(--color-ink);
+  font-size: 1rem;
+}
+
+/* The task at hand calls once as it opens: a soft ring that swells out of its disc and fades. */
+.railStep[data-state="current"]:not([data-ticked]) .step::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  animation: call 1.4s var(--ease) 0.25s both;
+  pointer-events: none;
+}
+
+@keyframes call {
+  from {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-caution-inverse) 70%, transparent);
+  }
+  to {
+    box-shadow: 0 0 0 14px color-mix(in srgb, var(--color-caution-inverse) 0%, transparent);
+  }
+}
+
+.railStep[data-ticked] .step {
+  background: var(--action-positive-fg);
+  box-shadow: inset 0 0 0 0 transparent;
+  color: var(--color-ink);
+  animation: tick-pop 500ms var(--ease);
+}
+
+@keyframes tick-pop {
+  40% {
+    transform: scale(1.22);
+  }
+}
+
+.number,
+.tick {
+  grid-area: 1 / 1;
+  transition:
+    opacity calc(var(--pace) * 0.5) var(--ease),
+    transform var(--pace) var(--ease);
+}
+
+.tick {
+  width: 70%;
+  height: 70%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0;
+}
+
+/* The tick draws itself in once the number has made way for it. */
+.tick path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  transition: stroke-dashoffset 450ms var(--ease) 120ms;
+}
+
+.railStep[data-ticked] .number {
+  opacity: 0;
+  transform: scale(0.4);
+}
+
+.railStep[data-ticked] .tick {
+  opacity: 1;
+}
+
+.railStep[data-ticked] .tick path {
+  stroke-dashoffset: 0;
+}
+
+.railText {
+  display: grid;
+  min-width: 0;
+}
+
+.railText p {
+  margin: 0;
+}
+
+/* Done and coming tasks are one small, quiet line each; the task at hand is large. */
+.railTitle {
+  font-size: 0.95rem;
+  font-weight: 500;
+  line-height: 1.35;
+  color: var(--color-muted);
+  transition:
+    font-size var(--pace) var(--ease),
+    color var(--pace) var(--ease);
+}
+
+.railStep[data-state="current"] .railTitle {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--color-text);
+}
+
+/* What the task at hand says about where; it unfolds under the title as the task opens and folds away as it is done. */
+.railMore {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transform: translateY(-0.4rem);
+  visibility: hidden;
+  transition:
+    grid-template-rows var(--pace) var(--ease),
+    opacity calc(var(--pace) * 0.6) var(--ease),
+    transform var(--pace) var(--ease),
+    visibility 0s var(--pace);
+}
+
+.railMore[aria-hidden="false"] {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  transform: none;
+  visibility: visible;
+  transition:
+    grid-template-rows var(--pace) var(--ease),
+    opacity var(--pace) var(--ease) 120ms,
+    transform var(--pace) var(--ease) 120ms,
+    visibility 0s;
+}
+
+.railDetail {
+  min-height: 0;
+  overflow: hidden;
+  padding-top: var(--space-xs);
+  font-size: 1.15rem;
+  line-height: 1.5;
+  color: color-mix(in srgb, var(--color-text) 85%, transparent);
+}
+
+.railEnd {
+  font-size: 1.15rem;
+  line-height: 1.5;
+  color: var(--color-muted);
+}
+
+.railFoot {
+  margin-top: auto;
+}
+
+/* When the arrow has nothing to point at, the keys named in the task at hand pulse, as they are what to press. */
+.rail[data-keys-only] .railStep[data-state="current"] .railDetail kbd {
+  animation: key-call 1.6s var(--ease) infinite;
+}
+
+@keyframes key-call {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-caution-inverse) 0%, transparent);
+    color: inherit;
+  }
+  30% {
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-caution-inverse) 45%, transparent);
+    color: var(--color-caution-inverse);
+    transform: translateY(-1px);
+  }
+}
+
+/* Without motion every state shows at once. */
+.guide[data-motion="reduce"] *,
+.guide[data-motion="reduce"] *::after {
+  transition: none !important;
+  animation: none !important;
 }

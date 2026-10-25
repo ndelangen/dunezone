@@ -1,4 +1,5 @@
 import { VisuallyHidden } from '@mantine/core';
+import { Kbd } from '@ui/content/Kbd';
 import clsx from 'clsx';
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import type { CSSProperties, KeyboardEvent, ReactNode } from 'react';
@@ -435,7 +436,7 @@ export function RadialMenu({
       )}
       <span className={styles.caption} style={captionStyle} data-tone={caption?.tone} aria-hidden>
         <span>{caption?.text ?? hub}</span>
-        {caption?.shortcut && <kbd className={styles.key}>{caption.shortcut}</kbd>}
+        {caption?.shortcut && <Kbd>{caption.shortcut}</Kbd>}
       </span>
     </div>,
     document.body

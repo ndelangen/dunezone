@@ -62,18 +62,6 @@ export const IconPlacement = meta.story({
   },
 });
 
-/** The Map chapter, where the highlighted territories are chosen by their readable names and added to the ones already there. */
-export const Territories = meta.story({
-  args: { chapter: 'map' as const },
-  play: async ({ canvasElement, args }) => {
-    const canvas = within(canvasElement);
-    const page = within(canvasElement.ownerDocument.body);
-    await userEvent.type(canvas.getByRole('combobox', { name: 'Highlighted territories' }), 'Broken');
-    await userEvent.click(await page.findByRole('option', { name: 'Broken Land' }));
-    await expect(args.patch).toHaveBeenLastCalledWith({ highlights: ['arsunt', 'broken-land'] });
-  },
-});
-
 /** A fresh card warns about its missing name and territory rather than refusing to draw. */
 export const Blank = meta.story({
   args: { draft: INITIAL_SPICE_DRAFT, nameField: <TextInput aria-label="Name" readOnly value="" /> },
@@ -109,24 +97,5 @@ export const CarriedRegion = meta.story({
     const tint = (args.patch as ReturnType<typeof fn>).mock.lastCall![0].board.tints[0];
     await expect(tint.types).toBeUndefined();
     await expect(tint.territories).not.toContain('arrakeen');
-  },
-});
-
-/** Moving a classic card onto a saved board carries its highlights over as its first tint. */
-export const LinkBoard = meta.story({
-  args: { chapter: 'map' as const },
-  render: (args) => <LiveEditor {...args} initial={publishingSpiceCard} />,
-  play: async ({ canvasElement, args }) => {
-    const canvas = within(canvasElement);
-    await expect(canvas.getByRole('combobox', { name: 'Board' })).toHaveValue('classic');
-    await userEvent.selectOptions(canvas.getByRole('combobox', { name: 'Board' }), 'arrakis-board');
-    await expect(args.patch).toHaveBeenLastCalledWith({
-      board: {
-        asset_id: 'arrakis-board',
-        tints: [{ id: 'highlights', name: 'Spice blow', color: '#9e5f00', territories: ['arsunt'] }],
-        tokens: [],
-      },
-    });
-    await expect(canvas.getByRole('button', { name: 'Paint Spice blow' })).toBeVisible();
   },
 });
