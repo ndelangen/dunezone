@@ -229,9 +229,8 @@ export const HiddenZone = meta.story({
     await expect(zonePieces).toHaveLength(2);
 
     /* Carrying the leader moves the piece itself under the pointer, and letting go lays it there. */
-    const zoneLeader = page.getByRole('button', {
-      name: `Move ${leader.items[0]?.artwork?.name ?? leader.label} in hidden zone`,
-    });
+    const leaderName = `Move ${leader.items[0]?.artwork?.name ?? leader.label} in hidden zone`;
+    let zoneLeader = page.getByRole('button', { name: leaderName });
     const press = (type: string, clientX: number, clientY: number) =>
       zoneLeader.dispatchEvent(
         new PointerEvent(type, {
@@ -287,12 +286,24 @@ export const HiddenZone = meta.story({
 
     /* Carried out of the zone and let go over the table, the leader is played there, as a drag from the hand plays it. */
     await openTab(page, 'Hidden zone');
-    const canvas = canvasElement.ownerDocument.querySelector('canvas')!.getBoundingClientRect();
+    /* The zone drew its pieces afresh when its tab came back. */
+    zoneLeader = await page.findByRole('button', { name: leaderName }, { timeout: 30_000 });
     const start = zoneLeader.getBoundingClientRect();
-    const overTable = [canvas.left + canvas.width / 2, canvas.top + canvas.height / 2] as const;
+    /* The spot nearest the table's centre that no window covers, whatever the viewport: a window may sit over the centre. */
+    const canvasNode = canvasElement.ownerDocument.querySelector('canvas')!;
+    const canvas = canvasNode.getBoundingClientRect();
+    const spots = Array.from({ length: 81 }, (_, index) => [
+      canvas.left + (canvas.width * (1 + (index % 9))) / 10,
+      canvas.top + (canvas.height * (1 + Math.floor(index / 9))) / 10,
+    ]);
+    const fromCentre = ([x, y]: number[]) =>
+      Math.hypot(x! - canvas.left - canvas.width / 2, y! - canvas.top - canvas.height / 2);
+    spots.sort((a, b) => fromCentre(a) - fromCentre(b));
+    const overTable = spots.find(([x, y]) => canvasElement.ownerDocument.elementFromPoint(x!, y!) === canvasNode)!;
+    await expect(overTable, 'no spot of the table is left uncovered').toBeDefined();
     press('pointerdown', start.left + start.width / 2, start.top + start.height / 2);
-    press('pointermove', overTable[0], overTable[1]);
-    press('pointerup', overTable[0], overTable[1]);
+    press('pointermove', overTable[0]!, overTable[1]!);
+    press('pointerup', overTable[0]!, overTable[1]!);
     await waitFor(() => expect(shown().hand!.some((candidate) => candidate.id === leader.id)).toBe(false));
   },
 });
