@@ -57,3 +57,16 @@ test('an arrow key steps from the typed count, and the field shows what was sent
   expect(onChange).toHaveBeenCalledTimes(1);
   expect(field).toHaveProperty('value', '8');
 });
+
+test('the scroll wheel steps from the typed count too', () => {
+  const onChange = vi.fn();
+  render(<Row onChange={onChange} />);
+  const field = screen.getByRole('textbox', { name: 'Fedaykin' });
+  fireEvent.focus(field);
+  fireEvent.change(field, { target: { value: '7' } });
+  fireEvent.wheel(field, { deltaY: -1 });
+  expect(onChange).toHaveBeenLastCalledWith(8);
+  fireEvent.blur(field);
+  expect(onChange).toHaveBeenCalledTimes(1);
+  expect(field).toHaveProperty('value', '8');
+});

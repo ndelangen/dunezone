@@ -144,12 +144,17 @@ function Stepper({
     if (disabled || !event.deltaY) {
       return;
     }
-    go(value + (event.deltaY < 0 ? step : -step));
+    stepBy(event.deltaY < 0 ? step : -step);
   };
   /* What the field holds now: a valid typed count, or the plan's own. */
   const current = () => {
     const typed = draft === null || draft.trim() === '' ? NaN : Number(draft);
     return Number.isFinite(typed) ? Math.round(typed / step) * step : value;
+  };
+  /* A step from the wheel, a key or a button starts from what the field shows, typed or not, and settles the field. */
+  const stepBy = (delta: number) => {
+    go(current() + delta);
+    setDraft(null);
   };
   const commit = () => {
     if (draft !== null) {
@@ -170,7 +175,7 @@ function Stepper({
         className={styles.stepButton}
         aria-label={`Fewer: ${label}`}
         disabled={disabled}
-        onClick={() => go(value - step)}
+        onClick={() => stepBy(-step)}
       >
         <Minus size={14} />
       </UnstyledButton>
@@ -189,8 +194,7 @@ function Stepper({
             event.currentTarget.blur();
           } else if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
             event.preventDefault();
-            go(current() + (event.key === 'ArrowUp' ? step : -step));
-            setDraft(null);
+            stepBy(event.key === 'ArrowUp' ? step : -step);
           }
         }}
       />
@@ -199,7 +203,7 @@ function Stepper({
         className={styles.stepButton}
         aria-label={`More: ${label}`}
         disabled={disabled}
-        onClick={() => go(value + step)}
+        onClick={() => stepBy(step)}
       >
         <Plus size={14} />
       </UnstyledButton>
