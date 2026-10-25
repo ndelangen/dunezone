@@ -1,8 +1,8 @@
 import { closestCenter, DndContext, DragOverlay, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
-import type { CollisionDetection, DragEndEvent, DragMoveEvent, DragStartEvent } from '@dnd-kit/core';
+import type { CollisionDetection, DragEndEvent, DragStartEvent } from '@dnd-kit/core';
 import { rectSortingStrategy, SortableContext, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -11,14 +11,6 @@ import { useMotionAllowed } from '@app/styles/motion';
 import styles from './SortableRow.module.css';
 
 type Point = Readonly<{ x: number; y: number }>;
-
-/* The pointer, from where the drag began and how far it has moved since. */
-function pointerOf(event: DragMoveEvent | DragEndEvent): Point | undefined {
-  const start = event.activatorEvent;
-  return start instanceof PointerEvent
-    ? { x: start.clientX + event.delta.x, y: start.clientY + event.delta.y }
-    : undefined;
-}
 
 /* Within the row, give or take a little slack at its edges, so a drag along its last piece still counts as inside. */
 function within(row: HTMLElement | null, point: Point | undefined) {
@@ -63,6 +55,22 @@ export function SortableRow<T extends { id: string }>({
   const row = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState<T>();
   const [outside, setOutside] = useState(false);
+  /*
+   * Where the pointer is in the viewport, read from the pointer itself while a drag lasts:
+   * dnd-kit's own delta also counts any scroll since the drag began, which would land a drop beside the point let go.
+   */
+  const pointer = useRef<Point>(undefined);
+  const dragging = active !== undefined;
+  useEffect(() => {
+    if (!dragging) {
+      return;
+    }
+    const track = (event: PointerEvent) => {
+      pointer.current = { x: event.clientX, y: event.clientY };
+    };
+    window.addEventListener('pointermove', track, { capture: true });
+    return () => window.removeEventListener('pointermove', track, { capture: true });
+  }, [dragging]);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
   const ids = items.map((item) => item.id);
   /* Over the row the nearest piece takes the drop; anywhere else nothing does, so the row settles back. */
@@ -72,9 +80,13 @@ export function SortableRow<T extends { id: string }>({
     setActive(undefined);
     setOutside(false);
   };
-  const onDragStart = ({ active: start }: DragStartEvent) => setActive(items.find((item) => item.id === start.id));
-  const onDragMove = (event: DragMoveEvent) => {
-    const away = !within(row.current, pointerOf(event));
+  const onDragStart = ({ active: start, activatorEvent }: DragStartEvent) => {
+    pointer.current =
+      activatorEvent instanceof PointerEvent ? { x: activatorEvent.clientX, y: activatorEvent.clientY } : undefined;
+    setActive(items.find((item) => item.id === start.id));
+  };
+  const onDragMove = () => {
+    const away = !within(row.current, pointer.current);
     if (away !== outside) {
       setOutside(away);
     }
@@ -85,7 +97,7 @@ export function SortableRow<T extends { id: string }>({
     if (!item) {
       return;
     }
-    const point = pointerOf(event);
+    const point = pointer.current;
     if (!event.over) {
       if (point && !within(row.current, point)) {
         onDropOutside?.(item, point);

@@ -38,7 +38,7 @@ export const HandActions = meta.story({
 });
 
 /* A mouse drag as the browser sends it: pressed on one piece, moved in small steps onto the first half of another, and let go there. */
-async function dragOnto(source: HTMLElement, target: HTMLElement) {
+async function dragOnto(source: HTMLElement, target: HTMLElement, held: () => void = () => {}) {
   const from = source.getBoundingClientRect();
   const to = target.getBoundingClientRect();
   const start = { x: from.left + from.width / 2, y: from.top + from.height / 2 };
@@ -66,6 +66,7 @@ async function dragOnto(source: HTMLElement, target: HTMLElement) {
     );
     await new Promise((resolve) => requestAnimationFrame(resolve));
   }
+  held();
   pointer('pointerup', end.x, end.y, source.ownerDocument);
 }
 
@@ -83,9 +84,21 @@ export const ReorderByDrag = meta.story({
     const crysknife = page.getByRole('button', { name: 'Drag Crysknife from hand' });
     const before = treacheryOrder(page);
     await expect(before.indexOf('Drag Shield from hand')).toBeGreaterThan(before.indexOf('Drag Crysknife from hand'));
-    await dragOnto(shield, crysknife);
+    /* While it is held, the pieces it passed slide aside rather than jump. */
+    let slide = '';
+    await dragOnto(shield, crysknife, () => {
+      slide = crysknife.parentElement?.parentElement?.style.transition ?? '';
+    });
+    await expect(slide).toContain('transform');
     const after = before.filter((label) => label !== 'Drag Shield from hand');
     after.splice(after.indexOf('Drag Crysknife from hand'), 0, 'Drag Shield from hand');
     await waitFor(() => expect(treacheryOrder(page)).toEqual(after));
+    /* Let go off its shelf, the piece settles back where it was. */
+    await dragOnto(
+      page.getByRole('button', { name: 'Drag Shield from hand' }),
+      page.getByLabelText('Spice reserve balance')
+    );
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    await expect(treacheryOrder(page)).toEqual(after);
   },
 });
