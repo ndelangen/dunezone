@@ -3,45 +3,15 @@ import { factionTokenOf, factionTokenRingAngle } from '@shared/play/factionToken
 import { hiddenZoneView, nextHiddenZoneSpot } from '@shared/play/hiddenZone';
 import type { TablePiece, Vector3Tuple } from '@shared/play/model';
 import { PLAYER_RING_RADIUS } from '@shared/play/tableSettings';
-import { createContext, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { DragEvent } from 'react';
 
 import { useMotionAllowed } from '@app/styles/motion';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
+import { handGroups } from './handGroups';
 
-/** The prototypes of the Hand & spice window a story can choose; without one the window shows the current content. */
-export type HandWindowVariant = 'shelves' | 'fan' | 'ledger' | 'battle';
-
-export const HandWindowVariantContext = createContext<HandWindowVariant | null>(null);
-
-export type HandWindowProps = Readonly<{ client: TableSession; table: TableProjection; hand: TablePiece[] }>;
-
-/** How a hand sorts its pieces for reading: leaders, then each card back by the word printed on it, then everything else. */
-export type HandGroup = Readonly<{ key: string; label: string; pieces: TablePiece[] }>;
-
-export function handGroups(pieces: readonly TablePiece[]): HandGroup[] {
-  const groups = new Map<string, { label: string; pieces: TablePiece[] }>();
-  const add = (key: string, label: string, piece: TablePiece) => {
-    const group = groups.get(key) ?? { label, pieces: [] };
-    group.pieces.push(piece);
-    groups.set(key, group);
-  };
-  for (const piece of pieces) {
-    if (isBattleLeader(piece)) {
-      add('leaders', 'Leaders', piece);
-    } else if (piece.kind === 'card') {
-      const back = piece.items[0]?.artwork?.backName ?? 'Cards';
-      add(`card:${back}`, back, piece);
-    } else {
-      add('other', 'Tokens', piece);
-    }
-  }
-  const order = (key: string) => (key === 'leaders' ? 0 : key === 'other' ? 2 : 1);
-  return [...groups.entries()]
-    .sort(([a], [b]) => order(a) - order(b) || a.localeCompare(b))
-    .map(([key, group]) => ({ key, ...group }));
-}
+export type HandProps = Readonly<{ client: TableSession; table: TableProjection; hand: TablePiece[] }>;
 
 /** The table point just outside the viewer's faction token, where a piece played "in front of me" goes; the room finds the clear spot. */
 function frontOf(table: TableProjection, factionId: string | undefined): Vector3Tuple | null {
@@ -58,17 +28,26 @@ function frontOf(table: TableProjection, factionId: string | undefined): Vector3
 const LEAVE_MS = 190;
 
 /**
- * Everything the Hand & spice prototypes do, in one place: what is in the hand, the battle plan it can feed, and each one-click action on a piece or on the spice reserve.
+ * What the hand offers: its pieces sorted for reading, the battle plan they can go into, and each piece's actions from its right-click menu, which animate the piece out before their command goes.
  */
-export function useHandWindow({ client, table, hand }: HandWindowProps) {
+export function useHandActions({ client, table, hand }: HandProps) {
   const motion = useMotionAllowed();
   const [leaving, setLeaving] = useState<ReadonlyMap<string, 'table' | 'side'>>(new Map());
-  const [withdrawn, setWithdrawn] = useState<{ amount: number; key: number } | null>(null);
-  const withdrawals = useRef(0);
+  /* The pieces animating out, whose commands wait; unmounting sends them at once rather than dropping them. */
+  const pending = useRef(new Map<number, () => void>());
+  useEffect(
+    () => () => {
+      for (const [timer, send] of pending.current) {
+        window.clearTimeout(timer);
+        send();
+      }
+      pending.current.clear();
+    },
+    []
+  );
   const { battle, battlePlan: plan, bank } = table.snapshot;
   const factionId = bank?.factionId ?? hand[0]?.owner ?? undefined;
   const inHand = hand.filter((piece) => !piece.hiddenZone);
-  const sideTable = hand.filter((piece) => piece.hiddenZone);
   const enabled = table.canHandleTable;
 
   const side = battle && plan ? battle.sides.find((entry) => entry?.factionId === factionId) : undefined;
@@ -118,7 +97,8 @@ export function useHandWindow({ client, table, hand }: HandWindowProps) {
       return;
     }
     setLeaving((current) => new Map(current).set(piece.id, where));
-    window.setTimeout(() => {
+    const timer = window.setTimeout(() => {
+      pending.current.delete(timer);
       send();
       setLeaving((current) => {
         const next = new Map(current);
@@ -126,6 +106,7 @@ export function useHandWindow({ client, table, hand }: HandWindowProps) {
         return next;
       });
     }, LEAVE_MS);
+    pending.current.set(timer, send);
   };
   const front = frontOf(table, factionId);
   const playReason = !enabled
@@ -152,20 +133,9 @@ export function useHandWindow({ client, table, hand }: HandWindowProps) {
     );
   };
 
-  const balance = bank?.balance ?? 0;
-  const committed = plan?.spice ?? 0;
-  const withdraw = (amount: number) => {
-    if (!enabled || !bank || amount < 1 || amount > balance) {
-      return;
-    }
-    client.command({ kind: 'bank-withdraw', amount });
-    withdrawals.current += 1;
-    setWithdrawn({ amount, key: withdrawals.current });
-  };
   return {
     enabled,
     inHand,
-    sideTable,
     groups: handGroups(inHand),
     leaving,
     plan,
@@ -178,15 +148,10 @@ export function useHandWindow({ client, table, hand }: HandWindowProps) {
     playReason,
     playInFront,
     toSideTable,
-    bank,
-    balance,
-    committed,
-    withdraw,
-    withdrawn,
   };
 }
 
-export type HandWindowModel = ReturnType<typeof useHandWindow>;
+export type HandActions = ReturnType<typeof useHandActions>;
 
 /** The native drag a piece starts, which the table's drop reads to play it face down where it lands. */
 export function dragFromHand(piece: TablePiece) {

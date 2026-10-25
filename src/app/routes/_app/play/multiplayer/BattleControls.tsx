@@ -1,6 +1,5 @@
-import { Button, Checkbox, Group, Menu, NumberInput, Radio, Select, Stack, Text, VisuallyHidden } from '@mantine/core';
+import { Button, Checkbox, Group, NumberInput, Radio, Select, Stack, Text, VisuallyHidden } from '@mantine/core';
 import type { ButtonProps, NumberInputProps } from '@mantine/core';
-import { useElementSize } from '@mantine/hooks';
 import { Html } from '@react-three/drei/webgpu';
 import { useFrame, useThree } from '@react-three/fiber/webgpu';
 import type { Board } from '@shared/boards/schema';
@@ -15,7 +14,6 @@ import type {
   PublicBattle,
 } from '@shared/play/battle';
 import { snapshotFactionLabels } from '@shared/play/factionLabels';
-import { hiddenZoneView, nextHiddenZoneSpot } from '@shared/play/hiddenZone';
 import type { TablePiece, Vector3Tuple } from '@shared/play/model';
 import { BOARD_RADIUS } from '@shared/play/tableGeometry';
 import { resolveRulebookBoardDefinition } from '@shared/rulebooks/boardDefinitions';
@@ -33,17 +31,15 @@ import { BattleWheel as BattleWheelAsset } from '@game/assets/generic/BattleWhee
 import { factionTokenFixtures } from '@game/fixtures/factionTokens';
 
 import type { TableSession, TableProjection } from '../../../../db/tabletop/TableSession';
-import { HandPieceCloseUp } from '../../../../widgets/tabletop/PieceCloseUp';
 import { PointerSessionContext, usePointerSession } from '../../../../widgets/tabletop/PointerSessionContext';
 import { TABLE_PLATE_BOUNDS } from '../../../../widgets/tabletop/tablePlateGeometry';
 import { DarkSchemeIsland } from '../DarkSchemeIsland';
+import { HandShelves } from '../hand/HandShelves';
 import { BattleBeacon } from './BattleBeacon';
 import styles from './BattleControls.module.css';
 import { battleCapsuleY, headerInset } from './battlePlacement';
-import { PieceImage, pieceName, useHandCloseUp } from './HandPiece';
-import { HandPieceMenu, handMenuAnchor } from './HiddenZone';
-import type { HandMenuAnchor } from './HiddenZone';
-import { battleHelp, handHelp } from './panelGuidance';
+import { PieceImage, pieceName } from './HandPiece';
+import { battleHelp } from './panelGuidance';
 import { isSpectator } from './tableFactions';
 
 type Props = { client: TableSession; table: TableProjection };
@@ -456,62 +452,6 @@ function PlanFields({ client, table, plan, battle }: Props & { plan: BattlePlan;
   );
 }
 
-export function HandControls({ client, table, hand }: Props & { hand: TablePiece[] }) {
-  const [menu, setMenu] = useState<HandMenuAnchor | null>(null);
-  /* The hidden zone is a window as wide as this one, so a piece moved there lands in what its narrow view shows. */
-  const { ref, width } = useElementSize<HTMLDivElement>();
-  const inHand = hand.filter((piece) => !piece.hiddenZone);
-  const closeUp = useHandCloseUp(inHand);
-  const pieces = useRef<HTMLDivElement>(null);
-  return (
-    <Section hiddenHeading title="Your hand and leaders" description={handHelp(table)}>
-      <Stack gap="sm" ref={ref}>
-        <Group gap="sm" ref={pieces}>
-          {inHand.map((piece) => (
-            <Button
-              variant="transparent"
-              h="auto"
-              radius={isBattleLeader(piece) ? '50%' : undefined}
-              p={0}
-              styles={{ label: { height: 'auto' } }}
-              key={piece.id}
-              className={styles.piece}
-              draggable={table.canHandleTable}
-              aria-label={`Drag ${pieceName(piece)} from hand`}
-              onDragStart={(event) => {
-                event.dataTransfer.setData('application/dune-hand', piece.id);
-                const target = event.currentTarget;
-                event.dataTransfer.setDragImage(target, target.offsetWidth / 2, target.offsetHeight / 2);
-              }}
-              onContextMenu={(event) => setMenu(handMenuAnchor(event, piece.id))}
-              {...closeUp.hover(piece)}
-            >
-              <PieceImage piece={piece} />
-            </Button>
-          ))}
-        </Group>
-      </Stack>
-      <HandPieceCloseUp area={pieces} piece={closeUp.piece} />
-      <HandPieceMenu anchor={menu} label="Hand actions" onClose={() => setMenu(null)}>
-        <Menu.Item
-          disabled={!table.canHandleTable}
-          onClick={() => {
-            if (menu) {
-              client.command({
-                kind: 'hand-zone',
-                pieceId: menu.pieceId,
-                at: nextHiddenZoneSpot(hand, width > 0 ? hiddenZoneView(width, Infinity).extent : undefined),
-              });
-            }
-            setMenu(null);
-          }}
-        >
-          Move to private side-table
-        </Menu.Item>
-      </HandPieceMenu>
-    </Section>
-  );
-}
 function BattleResults({
   results: battleResults,
   artwork,
@@ -575,7 +515,7 @@ export function BattleControls({ client, table }: Props) {
           <Text size="sm">{battleNotice(table, battle)}</Text>
         )}
       </Section>
-      {hand && <HandControls client={client} table={table} hand={hand} />}
+      {hand && <HandShelves client={client} table={table} hand={hand} />}
     </>
   );
 }

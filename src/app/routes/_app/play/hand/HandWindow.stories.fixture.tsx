@@ -8,19 +8,16 @@ import { GameRuntimeContext } from '../multiplayer/gameRuntime';
 import { GameSubscription } from '../multiplayer/GameSubscription';
 import { HiddenZone } from '../multiplayer/HiddenZone';
 import { HIDDEN_ZONE_GUIDANCE } from '../multiplayer/panelGuidance';
-import { HandWindow } from './HandWindow';
-import type { HandWindowVariant } from './useHandWindow';
+import { HandShelves } from './HandShelves';
+import { SpiceReserve } from './SpiceReserve';
 import '../dune-play.css';
 
 /*
  * The Hand & spice window on its own: a live table session from the story's transport, and the window in a bottom-left slot
- * on the table's dark ground, without the table itself, so each prototype can be judged alone. The real Private side-table window
+ * on the table's dark ground, as the compass composes it, without the table itself. The real Private side-table window
  * sits bottom right, so a piece set aside is seen arriving; the Play debugger panel shows the room's state for the rest.
  */
-export function HandWindowHarness({
-  variant,
-  height = 448,
-}: Readonly<{ variant: HandWindowVariant | null; height?: number; seat?: string }>) {
+export function HandWindowHarness({ height = 448 }: Readonly<{ height?: number; seat?: string }>) {
   const runtime = useContext(GameRuntimeContext);
   const [client] = useState(
     () =>
@@ -52,7 +49,12 @@ export function HandWindowHarness({
                 group: 'Yours',
                 topic: 'hand',
                 description: 'Your cards, leaders and spice reserve.',
-                content: <HandWindow variant={variant} client={client} table={table} hand={hand} />,
+                content: (
+                  <>
+                    <SpiceReserve client={client} table={table} />
+                    <HandShelves client={client} table={table} hand={hand} />
+                  </>
+                ),
                 layout: 'stack',
               }}
               tab="public"

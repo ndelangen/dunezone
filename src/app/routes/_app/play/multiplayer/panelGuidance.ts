@@ -29,9 +29,11 @@ export function setupGuidance(step: ReturnType<typeof setupStep>): Guidance {
 }
 
 export function handHelp(table: TableProjection) {
+  const basics =
+    'Drag a piece onto the table to play it face down. Right-click a piece to play it in front of you or move it to your private side-table. Hold Alt over a piece to see it close up.';
   return table.snapshot.stage === 'setup'
-    ? 'Drag pieces onto the table face down. Right-click a piece to move it to your private side-table.'
-    : 'Drag pieces onto the table face down. Right-click a piece to move it to your private side-table. Committed pieces stay in your plan until cancellation or reveal.';
+    ? basics
+    : `${basics} In a battle, right-click adds a leader or card to your plan. Committed pieces stay in your plan until cancellation or reveal.`;
 }
 
 export function handGuidance(table: TableProjection): Guidance {
