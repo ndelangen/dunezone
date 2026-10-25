@@ -120,7 +120,7 @@ function FanHand({ model }: Readonly<{ model: HandWindowModel }>) {
         </div>
       )}
       {cards.length > 0 && (
-        <div className={styles.fan} aria-label="Cards" role="group">
+        <div className={styles.fan} aria-label="Cards" role="group" style={{ '--n': cards.length } as CSSProperties}>
           {cards.map((piece, index) => (
             <HandTile
               key={piece.id}

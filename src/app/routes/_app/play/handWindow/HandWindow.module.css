@@ -159,15 +159,18 @@
 }
 
 .fan {
+  --n: 1;
   display: flex;
   justify-content: center;
-  padding: 26px 0 6px;
+  padding: 26px 0 18px;
 }
 
 .fanCard {
   --i: 0;
-  margin: 0 -14px;
-  transform: rotate(calc(var(--i) * 6deg)) translateY(calc(var(--i) * var(--i) * 2.5px));
+  /* A fuller hand overlaps more and fans flatter, so it keeps inside the window. */
+  margin: 0 calc(-6px - var(--n) * 3px);
+  transform: rotate(calc(var(--i) * 30deg / max(var(--n), 5)))
+    translateY(calc(var(--i) * var(--i) * 12px / max(var(--n), 5)));
   transform-origin: 50% 120%;
 }
 
