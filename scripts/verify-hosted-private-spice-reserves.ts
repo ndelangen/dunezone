@@ -19,6 +19,9 @@ export async function verifyPrivateSpiceReserves(toolkit: HostedToolkit) {
     converged,
     focus,
     openTab,
+    windowOf,
+    pinWindow,
+    growSlot,
     point,
     spiceBankShortcut,
     carrySteps,
@@ -101,8 +104,8 @@ export async function verifyPrivateSpiceReserves(toolkit: HostedToolkit) {
     assert.equal(spices(a)[0].items.length, 7);
     await collect(b, spices(b)[0]);
     assert.equal(required(requireView(b).snapshot.bank, 'bank').balance, startingSpice + 7);
-    await openTab(b, 'Spice');
-    await b.page.getByRole('separator', { name: 'Resize controls panel' }).press('End');
+    await pinWindow(b, 'Spice', 'left');
+    await growSlot(b, 'left');
     await b.page.getByRole('region', { name: 'Spice reserve' }).scrollIntoViewIfNeeded();
     await capture(b, 'after-own-spice-reserve-and-public-transfers');
     await b.page.setViewportSize({ width: 900, height: 1000 });
@@ -158,8 +161,8 @@ export async function verifyPrivateSpiceReserves(toolkit: HostedToolkit) {
       'Disposal was not public.'
     );
     assert.equal(required(requireView(observer).snapshot.spiceTransfers, 'spiceTransfers')[0].amount, 3);
-    await openTab(observer, 'Spice transfers');
-    await observer.page.getByRole('separator', { name: 'Resize controls panel' }).press('End');
+    await pinWindow(observer, 'Spice transfers', 'left');
+    await growSlot(observer, 'left');
     await observer.page.getByRole('region', { name: 'Public spice transfers' }).scrollIntoViewIfNeeded();
     await capture(observer, 'after-observer-public-transfers');
     passed(
@@ -208,8 +211,8 @@ export async function verifyPrivateSpiceReserves(toolkit: HostedToolkit) {
     passed(
       'Raw snapshots, compact deltas and historical frames contain only the spice reserve of the recipient faction; observer and guessed HTTP paths expose no spice reserve; reconnect and a second tab restore the current spice reserve'
     );
-    /* A real game's history starts at drafting, which has no Spice tab; its playback bar returns a viewer to the live table.
-       The sign-out step opens the Spice tab on both viewers that replayed here, so both go back. */
+    /* A real game's history starts at drafting, which has no Spice window; its playback bar returns a viewer to the live table.
+       The sign-out step opens the Spice window on both viewers that replayed here, so both go back. */
     for (const who of [tab, observer]) {
       await who.page.getByRole('button', { name: 'Return to live' }).click();
       await openTab(who, who === observer ? 'Spice transfers' : 'Spice');
@@ -286,11 +289,9 @@ export async function verifyPrivateSpiceReserves(toolkit: HostedToolkit) {
         `${who.label}'s table remounted.`
       );
       assert.equal(
-        await who.page
-          .getByRole('tab', { name: who === observer ? 'Spice transfers' : 'Spice', exact: true, selected: true })
-          .count(),
+        await windowOf(who, who === observer ? 'Spice transfers' : 'Spice').count(),
         1,
-        `${who.label} lost the Spice tab.`
+        `${who.label} lost the Spice window.`
       );
     }
     /* Player A's own press above moved A's camera; the observer's stays where it was put. */

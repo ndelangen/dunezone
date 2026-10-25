@@ -19,6 +19,8 @@ export async function verifyBattles(toolkit: HostedToolkit) {
     converged,
     focus,
     openTab,
+    pinWindow,
+    growSlot,
     point,
     carrySteps,
     capture,
@@ -156,7 +158,19 @@ export async function verifyBattles(toolkit: HostedToolkit) {
   );
   assert.equal(requireView(observer).snapshot.battlePlan, null);
   const cardName = required(required(battleCard.items[0].artwork, 'battle artwork').name, 'battle card name');
-  await verifySupport({ a, b, observer, token, cardName, startingSpice, until, converged, capture });
+  await verifySupport({
+    a,
+    b,
+    observer,
+    token,
+    cardName,
+    startingSpice,
+    until,
+    converged,
+    capture,
+    pinWindow,
+    growSlot,
+  });
   await act(a, 'Ready for battle');
   await act(b, 'Ready for battle');
   await until(
@@ -249,7 +263,9 @@ async function verifySupport({
   until,
   converged,
   capture,
-}: Pick<HostedToolkit, 'until' | 'converged' | 'capture'> & {
+  pinWindow,
+  growSlot,
+}: Pick<HostedToolkit, 'until' | 'converged' | 'capture' | 'pinWindow' | 'growSlot'> & {
   a: HostedPeer;
   b: HostedPeer;
   observer: HostedPeer;
@@ -283,7 +299,8 @@ async function verifySupport({
   /* B's view is read once it holds A's commit; before then it would show no reveal whatever the commit sent (#1481). */
   await converged([a, b]);
   assert.equal(required(requireView(b).snapshot.battle, 'battle').revealed, undefined);
-  await a.page.getByRole('separator', { name: 'Resize controls panel' }).press('End');
+  await pinWindow(a, 'Battle', 'left');
+  await growSlot(a, 'left');
   await a.page.getByRole('heading', { name: 'Battle', exact: true }).scrollIntoViewIfNeeded();
   await capture(a, 'after-battle-private-plan');
   await capture(observer, 'after-battle-observer-preparation');

@@ -11,7 +11,7 @@ import type { HostedPeer } from './verify-hosted-types.ts';
 /**
  * A real game played to a declared result and continued, through ordinary browser controls.
  * The native journeys prove the rules.
- * This flow proves the lobby, the Result tab and Continue playing in signed-in browsers.
+ * This flow proves the lobby, the Result window and Continue playing in signed-in browsers.
  */
 export async function verifyResults({
   seated,
@@ -21,6 +21,7 @@ export async function verifyResults({
   act,
   converged,
   openTab,
+  windowOf,
   capture,
   until,
   passed,
@@ -30,9 +31,8 @@ export async function verifyResults({
   const { a, b, observer } = await seated();
   const everyone: HostedPeer[] = [a, b, observer];
   const stage = (who: HostedPeer) => requireView(who).snapshot.stage;
-  /* The end of the game opens the Result tab once for every panel; the finished result also heads the phase chip. */
-  const bar = (who: HostedPeer) =>
-    who.page.getByRole('tabpanel').filter({ has: who.page.getByText(/^(Determine winner|Finished)$/u) });
+  /* The end of the game opens the Result window once for everyone; the finished result also heads the phase chip. */
+  const bar = (who: HostedPeer) => windowOf(who, 'Result');
   const header = (who: HostedPeer) => who.page.locator('.seated-header');
   const winner = factionOf(a);
   const gameId = currentGameId();
@@ -66,7 +66,7 @@ export async function verifyResults({
   assert.equal(await button(b, 'Determine winner').count(), 0);
   assert.equal(await declared.getByRole('button', { name: 'Declare', exact: true }).isDisabled(), true);
   await capture(a, 'after-declare-result-tab-1440x1000');
-  passed('Opening the sequence opens the Result tab: Declare for its player, their name on every other panel');
+  passed('Opening the sequence opens the Result window: Declare for its player, their name for everyone else');
 
   await declared.getByRole('combobox', { name: 'Winning faction', exact: true }).click();
   await a.page.getByRole('option', { name: winner.name, exact: true }).click();
@@ -105,7 +105,7 @@ export async function verifyResults({
   await b.page.locator('[data-connection="authorized"]').waitFor();
   assert.equal(stage(b), 'finished');
   await bar(b).getByText(title, { exact: true }).waitFor();
-  /* The reloaded panel opens on its default tab, so the Phase tab is chosen again for the checks after Continue playing. */
+  /* The reloaded table opens the Result window alone, so Phase is opened again for the checks after Continue playing. */
   await openTab(b, 'Phase');
   passed('A reloaded player re-enters the finished game with its declared result');
 
@@ -137,7 +137,7 @@ export async function verifyResults({
   assert.equal(phaseAt(requireView(a).snapshot.phase).id, 'mentat-pause');
   for (const who of [a, b]) {
     assert.equal(await header(who).getByText(title, { exact: true }).count(), 0);
-    /* The Result tab closes with the result and the panel returns to the tab it opened over; Phase is chosen again so the check does not depend on which. */
+    /* The Result window goes with the result; Phase is opened again so the check does not depend on what is left open. */
     await openTab(who, 'Phase');
     await button(who, 'Determine winner').waitFor();
   }

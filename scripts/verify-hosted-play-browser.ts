@@ -1038,6 +1038,34 @@ async function openTab(who: HostedPeer, name: string) {
       .catch(() => {});
   }
 }
+type Slot = 'left' | 'right';
+/**
+ * Pins a window into a bottom slot, opening it first when it is not open.
+ * A pinned window stays through a press on the table, which closes the centre window, and through a board gesture, which holds the Controls button.
+ */
+async function pinWindow(who: HostedPeer, name: string, side: Slot) {
+  const frame = windowOf(who, name);
+  await openTab(who, name);
+  const where = await frame.getAttribute('data-side');
+  if (where === side) {
+    return;
+  }
+  if (where !== 'centre') {
+    await frame.getByRole('button', { name: 'Unpin', exact: true }).click();
+    await frame.waitFor({ state: 'hidden' });
+    await openTab(who, name);
+  }
+  await frame.getByRole('button', { name: `Pin to the bottom ${side}`, exact: true }).click();
+  await who.page.locator(`[data-window][data-side="${side}"][aria-label="${WINDOW_OF[name] ?? name}"]`).waitFor();
+}
+/** Makes a pinned slot as tall as the table allows, so a capture shows as much of its window as fits. */
+async function growSlot(who: HostedPeer, side: Slot) {
+  const edge = who.page.locator(`[data-window][data-side="${side}"]`).getByRole('button', { name: /^Resize/u });
+  await edge.focus();
+  for (let step = 0; step < 40; step++) {
+    await edge.press('ArrowUp');
+  }
+}
 const shownView = (who: HostedPeer) =>
   who.page.locator('.dune-play-shell').evaluate((element) => element.dataset.tableView);
 async function focus(who: HostedPeer, view: TableView) {
@@ -1524,10 +1552,13 @@ async function phaseStep(sender: HostedPeer, recipient: HostedPeer, direction = 
 async function sharedPhaseFlow(a: HostedPeer, b: HostedPeer) {
   await focus(a, 'map');
   await focus(b, 'map');
-  /* Both players open the Phase window now: the windows are inert while a board gesture is held, so
-     opening one during the remote-carry step would be refused. */
+  /*
+   * Both players open the Phase window now: the windows are inert while a board gesture is held, so opening one during
+   * the remote-carry step would be refused. B's is pinned, as B's press on the table to pick the piece up would close
+   * a window in the centre.
+   */
   await openTab(a, 'Phase');
-  await openTab(b, 'Phase');
+  await pinWindow(b, 'Phase', 'left');
   await displayedPhase(a, 0);
   assert.equal(await previousPhaseDisabled(a), true);
   await a.page.getByRole('heading', { name: 'Storm sector', exact: true }).waitFor();
@@ -2213,6 +2244,9 @@ try {
     converged,
     focus,
     openTab,
+    windowOf,
+    pinWindow,
+    growSlot,
     point,
     tableLoaded,
     recordRenderer,
@@ -2367,6 +2401,9 @@ export type HostedToolkit = {
   converged: typeof converged;
   focus: typeof focus;
   openTab: typeof openTab;
+  windowOf: typeof windowOf;
+  pinWindow: typeof pinWindow;
+  growSlot: typeof growSlot;
   point: typeof point;
   tableLoaded: typeof tableLoaded;
   recordRenderer: typeof recordRenderer;

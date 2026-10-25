@@ -49,6 +49,8 @@ export async function verifyPublicControls({
   act,
   focus,
   openTab,
+  pinWindow,
+  growSlot,
   pickCatalogueAsset,
   point,
   carrySteps,
@@ -133,7 +135,8 @@ export async function verifyPublicControls({
       original
     );
     await button(a, 'Close catalogue').click();
-    await a.page.getByRole('separator', { name: 'Resize controls panel' }).press('End');
+    await pinWindow(a, 'Shared inventory', 'left');
+    await growSlot(a, 'left');
     await button(a, 'Drag Recovery token onto the table').scrollIntoViewIfNeeded();
     await capture(a, 'after-sole-player-inventory');
     passed(
@@ -163,8 +166,8 @@ export async function verifyPublicControls({
     }
     assert.equal(await previousPhaseDisabled(observer), true);
     assert.equal(await button(observer, 'Drag Recovery token onto the table').isDisabled(), true);
-    await openTab(b, 'Shared inventory');
-    await b.page.getByRole('separator', { name: 'Resize controls panel' }).press('End');
+    await pinWindow(b, 'Shared inventory', 'left');
+    await growSlot(b, 'left');
     await button(b, 'Approve').scrollIntoViewIfNeeded();
     await capture(b, 'after-pending-request');
     await a.page.goto(`${origin}/play`, { waitUntil: 'domcontentloaded' });
@@ -277,7 +280,8 @@ export async function verifyPublicControls({
     assert.ok(required(requireView(a).snapshot.controls, 'controls').ready.includes(requireView(a).viewer.viewerSeat));
     assert.deepEqual(requireView(a).snapshot.table.pieces, saved.table.pieces);
     assert.equal(await button(observer, 'Ready').isDisabled(), true);
-    await a.page.getByRole('separator', { name: 'Resize controls panel' }).press('End');
+    await pinWindow(a, 'Phase', 'left');
+    await growSlot(a, 'left');
     await button(a, 'Withdraw readiness').scrollIntoViewIfNeeded();
     await capture(a, 'after-mentat-ready');
     await act(a, 'Withdraw readiness');
