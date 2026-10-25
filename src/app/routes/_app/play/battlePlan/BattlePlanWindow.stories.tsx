@@ -37,3 +37,12 @@ export const Fremen = meta.story({ args: { scenario: 'fremen' }, render });
 
 /** Several leaders in one plan: each picked leader joins the wheel, stacked behind the first, and their strengths add up. */
 export const SeveralLeaders = meta.story({ args: { scenario: 'leaders' }, render });
+
+/** The Adjust popover open: the strength nudged by hand with the same (− 0 +) stepper as the dial. */
+export const Adjust = meta.story({
+  args: { scenario: 'leaders' },
+  render,
+  play: async ({ canvas, userEvent }) => {
+    await userEvent.click(await canvas.findByRole('button', { name: /^Adjust the strength by hand/ }));
+  },
+});
