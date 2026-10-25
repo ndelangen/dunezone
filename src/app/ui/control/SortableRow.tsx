@@ -1,5 +1,5 @@
 import { closestCenter, DndContext, DragOverlay, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
-import type { CollisionDetection, DragEndEvent, DragStartEvent } from '@dnd-kit/core';
+import type { CollisionDetection, DragEndEvent, DragStartEvent, PointerSensorProps } from '@dnd-kit/core';
 import { rectSortingStrategy, SortableContext, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useEffect, useRef, useState } from 'react';
@@ -11,6 +11,30 @@ import { useMotionAllowed } from '@app/styles/motion';
 import styles from './SortableRow.module.css';
 
 type Point = Readonly<{ x: number; y: number }>;
+
+/*
+ * dnd-kit's pointer sensor, which also drops the drag when the window loses focus:
+ * a pointer let go in another window never reaches this one, and the next click here would otherwise end the drag where it lands.
+ */
+class FocusedPointerSensor extends PointerSensor {
+  constructor(props: PointerSensorProps) {
+    const session = new AbortController();
+    super({
+      ...props,
+      onEnd: () => {
+        session.abort();
+        props.onEnd();
+      },
+      onCancel: () => {
+        session.abort();
+        props.onCancel();
+      },
+    });
+    /* Its own cancel is private, and is what a resize or a hidden tab already calls. */
+    const cancel = () => (this as unknown as { handleCancel: () => void }).handleCancel();
+    window.addEventListener('blur', cancel, { signal: session.signal });
+  }
+}
 
 /* Within the row, give or take a little slack at its edges, so a drag along its last piece still counts as inside. */
 function within(row: HTMLElement | null, point: Point | undefined) {
@@ -60,18 +84,22 @@ export function SortableRow<T extends { id: string }>({
    * dnd-kit's own delta also counts any scroll since the drag began, which would land a drop beside the point let go.
    */
   const pointer = useRef<Point>(undefined);
+  const held = useRef<number>(undefined);
   const dragging = active !== undefined;
   useEffect(() => {
     if (!dragging) {
       return;
     }
     const track = (event: PointerEvent) => {
+      if (event.pointerId !== held.current) {
+        return;
+      }
       pointer.current = { x: event.clientX, y: event.clientY };
     };
     window.addEventListener('pointermove', track, { capture: true });
     return () => window.removeEventListener('pointermove', track, { capture: true });
   }, [dragging]);
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
+  const sensors = useSensors(useSensor(FocusedPointerSensor, { activationConstraint: { distance: 6 } }));
   const ids = items.map((item) => item.id);
   /* Over the row the nearest piece takes the drop; anywhere else nothing does, so the row settles back. */
   const collision: CollisionDetection = (args) =>
@@ -81,8 +109,9 @@ export function SortableRow<T extends { id: string }>({
     setOutside(false);
   };
   const onDragStart = ({ active: start, activatorEvent }: DragStartEvent) => {
-    pointer.current =
-      activatorEvent instanceof PointerEvent ? { x: activatorEvent.clientX, y: activatorEvent.clientY } : undefined;
+    const press = activatorEvent instanceof PointerEvent ? activatorEvent : undefined;
+    pointer.current = press && { x: press.clientX, y: press.clientY };
+    held.current = press?.pointerId;
     setActive(items.find((item) => item.id === start.id));
   };
   const onDragMove = () => {

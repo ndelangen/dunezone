@@ -98,6 +98,12 @@ export const ReorderByDrag = meta.story({
       page.getByRole('button', { name: 'Drag Shield from hand' }),
       page.getByLabelText('Spice reserve balance')
     );
+    /* A drag the window lost focus during is dropped: letting go on its return moves nothing. */
+    await dragOnto(
+      page.getByRole('button', { name: 'Drag Crysknife from hand' }),
+      page.getByRole('button', { name: 'Drag Shield from hand' }),
+      () => window.dispatchEvent(new FocusEvent('blur'))
+    );
     await new Promise((resolve) => requestAnimationFrame(resolve));
     await expect(treacheryOrder(page)).toEqual(after);
   },
