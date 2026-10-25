@@ -1,15 +1,14 @@
 import preview from '@sb/preview';
+import type { ComponentProps } from 'react';
 import { expect, within } from 'storybook/test';
 
 import { card } from '../../data/sizes';
 import { treacheryCardFixtures } from '../../fixtures/treacheryCards';
 import { LeaderToken } from '../faction/leader/Leader';
 import { TreacheryCard } from '../treachery/Treachery';
-import { artwork, troop, revealedArgs } from './BattleWheel.stories.fixture';
+import { artwork, battleWheelMeta, troop, revealedArgs } from './BattleWheel.stories.fixture';
 
 const wheelCards = [treacheryCardFixtures.maulaPistol, treacheryCardFixtures.shield];
-
-import { battleWheelMeta } from './BattleWheel.stories.fixture';
 
 const meta = preview.meta({ ...battleWheelMeta });
 
