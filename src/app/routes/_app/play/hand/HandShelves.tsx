@@ -7,8 +7,8 @@ import { ArrowUpFromLine, EyeOff } from 'lucide-react';
 import { useRef, useState } from 'react';
 
 import { HandPieceCloseUp } from '../../../../widgets/tabletop/PieceCloseUp';
-import { PieceImage, pieceName, useHandCloseUp } from '../multiplayer/HandPiece';
 import { dropOnTable } from '../multiplayer/dropOnTable';
+import { PieceImage, pieceName, useHandCloseUp } from '../multiplayer/HandPiece';
 import { HandPieceMenu, handMenuAnchor } from '../multiplayer/HiddenZone';
 import type { HandMenuAnchor } from '../multiplayer/HiddenZone';
 import { HAND_HELP } from '../multiplayer/panelGuidance';
