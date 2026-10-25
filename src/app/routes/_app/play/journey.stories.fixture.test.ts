@@ -9,6 +9,7 @@ import { journeyFrame, journeySteps, journeyViewers, railsTarget, stepCode } fro
 vi.mock('@db/core', () => ({ db: {} }));
 
 describe('The Play journey recording', () => {
+  /* Every frame of every seat is parsed, which outlasts the default timeout on a busy CI runner. */
   test('every recorded frame is a view the page accepts today', () => {
     for (const [index, step] of journeySteps().entries()) {
       for (const seat of Object.keys(step.views)) {
@@ -16,7 +17,7 @@ describe('The Play journey recording', () => {
         expect(parsed.error?.issues ?? [], `${stepCode(index)} as ${seat}`).toEqual([]);
       }
     }
-  });
+  }, 30_000);
 
   test('the game runs from drafting to a finished result, seen by six seats and a spectator', () => {
     const steps = journeySteps();

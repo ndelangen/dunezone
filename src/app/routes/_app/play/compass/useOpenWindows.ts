@@ -77,6 +77,36 @@ function useTablePress(onPress: () => void, enabled: boolean) {
   }, [enabled]);
 }
 
+/* The keys that pin the centre window: [ to the bottom left and ] to the bottom right. */
+export const PIN_KEYS: Readonly<Record<Side, string>> = { left: '[', right: ']' };
+
+function typing(target: EventTarget | null) {
+  return (
+    target instanceof HTMLElement &&
+    (target.isContentEditable || target.closest('input, textarea, select, [role="textbox"]') !== null)
+  );
+}
+
+/* A bare [ or ] away from a text field pins the centre window, as its pin buttons do. */
+function usePinKeys(onPin: (side: Side) => void, enabled: boolean) {
+  const pinTo = useEffectEvent(onPin);
+  useEffect(() => {
+    if (!enabled) {
+      return;
+    }
+    const listener = (event: KeyboardEvent) => {
+      const side = SIDES.find((entry) => PIN_KEYS[entry] === event.key);
+      if (!side || event.repeat || event.metaKey || event.ctrlKey || event.altKey || typing(event.target)) {
+        return;
+      }
+      event.preventDefault();
+      pinTo(side);
+    };
+    window.addEventListener('keydown', listener);
+    return () => window.removeEventListener('keydown', listener);
+  }, [enabled]);
+}
+
 function unlessShown(entry: Opened | null, shown: readonly (Opened | null)[]) {
   return entry && shown.some((other) => other?.key === entry.key) ? null : entry;
 }
@@ -187,6 +217,7 @@ export function useOpenWindows(windows: readonly TableWindow[], compassOpen: boo
     return () => window.removeEventListener('keydown', escape, true);
   }, [compassOpen, openCentre]);
   useTablePress(close, openCentre !== null && !compassOpen);
+  usePinKeys(pin, openCentre !== null && !compassOpen);
 
   return { centre, slots, flash, show, reveal, pin, unpin, close, showTab, isOpen };
 }
