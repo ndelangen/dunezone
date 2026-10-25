@@ -3,6 +3,7 @@
 import { act, cleanup, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, expect, test } from 'vite-plus/test';
 
+import { setTerritoryBrush } from '../../../../widgets/tabletop/territoryBrush';
 import type { CompassPlayer } from './compassTable';
 import { useOpenWindows } from './useOpenWindows';
 import { RememberedContext } from './useRemembered';
@@ -87,6 +88,17 @@ test('a press on the table blurs the focused field before the centre window clos
   expect(result.current.centre).toBeNull();
   field.remove();
   table.remove();
+});
+
+test('Escape while painting territories stops the paintbrush and keeps the window; the next Escape closes it', () => {
+  const { result } = renderHook(() => useOpenWindows(windows, false));
+  act(() => result.current.show('battle'));
+  act(() => setTerritoryBrush({ tintId: 'tint-1', paint: () => {} }));
+  const escape = () => act(() => void globalThis.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })));
+  escape();
+  expect(result.current.centre).toEqual({ key: 'battle', tab: 'public' });
+  escape();
+  expect(result.current.centre).toBeNull();
 });
 
 test('revealing a pinned window lights its slot and leaves the centre window open', () => {
