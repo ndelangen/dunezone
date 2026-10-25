@@ -746,7 +746,7 @@ function handPanels({ client, table }: TableControlProps) {
     },
     {
       key: 'hidden-zone',
-      label: 'Hidden zone',
+      label: 'Private side-table',
       topic: 'hiddenZone' as const,
       ...HIDDEN_ZONE_GUIDANCE,
       content: <HiddenZone client={client} table={table} hand={hand} />,

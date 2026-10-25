@@ -46,3 +46,9 @@
   pointer-events: none;
   filter: drop-shadow(0 8px 10px rgb(0 0 0 / 55%));
 }
+
+/* The carried piece, turned as it lies in the zone. */
+.turn {
+  display: grid;
+  place-items: center;
+}

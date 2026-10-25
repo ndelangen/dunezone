@@ -30,8 +30,8 @@ export function setupGuidance(step: ReturnType<typeof setupStep>): Guidance {
 
 export function handHelp(table: TableProjection) {
   return table.snapshot.stage === 'setup'
-    ? 'Drag pieces onto the table face down. Right-click a piece to move it to your hidden zone.'
-    : 'Drag pieces onto the table face down. Right-click a piece to move it to your hidden zone. Committed pieces stay in your plan until cancellation or reveal.';
+    ? 'Drag pieces onto the table face down. Right-click a piece to move it to your private side-table.'
+    : 'Drag pieces onto the table face down. Right-click a piece to move it to your private side-table. Committed pieces stay in your plan until cancellation or reveal.';
 }
 
 export function handGuidance(table: TableProjection): Guidance {
@@ -39,10 +39,10 @@ export function handGuidance(table: TableProjection): Guidance {
 }
 
 export const HIDDEN_ZONE_HELP =
-  'Lay out pieces from your hand anywhere here, such as a marker on a card. Cards stay below tokens. Drag a piece onto the table to play it face down, or right-click it to move it back to your hand.';
+  "For pieces that need to sit in a particular spot, such as a marker on a card's track. Lay out pieces from your hand anywhere here; they stay where you put them. Q and E turn the piece under the pointer. Cards stay below tokens. Drag a piece onto the table to play it face down, or right-click it to move it back to your hand.";
 
 export const HIDDEN_ZONE_GUIDANCE: Guidance = {
-  description: 'Your private play area. Only you see it.',
+  description: 'Your own small table for pieces that need a specific place. Only you see it.',
   help: HIDDEN_ZONE_HELP,
 };
 

@@ -198,8 +198,8 @@ export const DeleteACard = meta.story({
 /**
  * Seat 1 lays a card from its hand in its hidden zone and a leader on top of it, as a token sits on a tracker card's track.
  * The zone is part of the hand, so no other seat's frame carries it.
- * Right-click a piece in the Hand tab and choose "Move to hidden zone" to try it by hand;
- * carry pieces about in the Hidden zone tab, or onto the table to play them.
+ * Right-click a piece in the Hand tab and choose "Move to private side-table" to try it by hand;
+ * carry pieces about on the Private side-table, or onto the table to play them.
  * Hold Alt over a piece in either tab to see it close up.
  */
 export const HiddenZone = meta.story({
@@ -224,12 +224,12 @@ export const HiddenZone = meta.story({
     await expect(shown().hand!.filter((candidate) => candidate.hiddenZone)).toHaveLength(2);
     const other = journeyViewers().find((seat) => seat !== table.seat)!;
     await expect(JSON.stringify(table.frame(other).snapshot)).not.toContain('hiddenZone');
-    await openTab(page, 'Hidden zone');
-    const zonePieces = await page.findAllByRole('button', { name: /in hidden zone$/ }, { timeout: 30_000 });
+    await openTab(page, 'Private side-table');
+    const zonePieces = await page.findAllByRole('button', { name: /on private side-table$/ }, { timeout: 30_000 });
     await expect(zonePieces).toHaveLength(2);
 
     /* Carrying the leader moves the piece itself under the pointer, and letting go lays it there. */
-    const leaderName = `Move ${leader.items[0]?.artwork?.name ?? leader.label} in hidden zone`;
+    const leaderName = `Move ${leader.items[0]?.artwork?.name ?? leader.label} on private side-table`;
     let zoneLeader = page.getByRole('button', { name: leaderName });
     const press = (type: string, clientX: number, clientY: number) =>
       zoneLeader.dispatchEvent(
@@ -301,6 +301,24 @@ export const HiddenZone = meta.story({
     table.receive = receive;
     await expect(kept()).toEqual(keptBefore);
 
+    /* E turns the piece under the pointer clockwise in 15° steps, and the turn is kept once the key comes up. */
+    const over = (type: string) =>
+      zoneLeader.dispatchEvent(
+        new PointerEvent(type, { bubbles: true, pointerType: 'mouse', clientX: restX, clientY: restY })
+      );
+    over('pointerover');
+    /* A pointer reaches the piece a frame or more before a key goes down. */
+    await new Promise((settle) => requestAnimationFrame(settle));
+    for (const type of ['keydown', 'keydown', 'keyup']) {
+      window.dispatchEvent(new KeyboardEvent(type, { key: 'e', bubbles: true }));
+    }
+    await waitFor(() => expect(kept().turn).toBe(2));
+    await expect(zoneLeader.style.transform).toBe('rotate(30deg)');
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'q', bubbles: true }));
+    window.dispatchEvent(new KeyboardEvent('keyup', { key: 'q', bubbles: true }));
+    await waitFor(() => expect(kept().turn).toBe(1));
+    over('pointerout');
+
     /* Holding Alt over a piece in the zone, or in the hand, shows its face large beside the pointer, as it does on the table. */
     const closeUp = () => canvasElement.ownerDocument.body.querySelector('[class*="closeUp"]');
     /* The pointer's own events carry Alt, as a real mouse's do while it is held. */
@@ -325,7 +343,7 @@ export const HiddenZone = meta.story({
     await waitFor(() => expect(closeUp()).toBeNull());
 
     /* Carried out of the zone and let go over the table, the leader is played there, as a drag from the hand plays it. */
-    await openTab(page, 'Hidden zone');
+    await openTab(page, 'Private side-table');
     /* The zone drew its pieces afresh when its tab came back. */
     zoneLeader = await page.findByRole('button', { name: leaderName }, { timeout: 30_000 });
     const start = zoneLeader.getBoundingClientRect();

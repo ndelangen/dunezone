@@ -80,6 +80,12 @@ describe('the hidden zone', () => {
     ]);
   });
 
+  test('keeps how far a piece is turned', () => {
+    const { send, hand } = roomWithHand();
+    send({ kind: 'hand-zone', pieceId: LOOSE, at: { x: 0.25, y: 0.5, turn: 6 } });
+    expect(hand().find((piece) => piece.id === LOOSE)!.hiddenZone).toEqual({ x: 0.25, y: 0.5, turn: 6 });
+  });
+
   test('moves a piece back to the plain inventory', () => {
     const { send, hand } = roomWithHand();
     send({ kind: 'hand-zone', pieceId: LOOSE, at: { x: 0.25, y: 0.5 } });

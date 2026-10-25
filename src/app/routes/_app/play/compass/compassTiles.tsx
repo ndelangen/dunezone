@@ -41,7 +41,7 @@ function hiddenTile(windowOf: Windows): Tile {
   return {
     spot: 'hidden',
     window,
-    label: 'Hidden zone',
+    label: 'Private side-table',
     detail: 'Pieces only you see',
     icon: <EyeOff {...ICON} />,
     keys: '← ←',

@@ -1,7 +1,7 @@
 import type { z } from 'zod';
 
 import type { TablePiece } from './model';
-import { HIDDEN_ZONE_SPOT_MAX } from './schema';
+import { HIDDEN_ZONE_SPOT_MAX, HIDDEN_ZONE_TURNS } from './schema';
 import type { hiddenZoneSpotSchema } from './schema';
 import {
   CARD_DEPTH,
@@ -81,5 +81,12 @@ export function nextHiddenZoneSpot(
  */
 export function clampHiddenZoneSpot(spot: HiddenZoneSpot, extent: HiddenZoneSpot = { x: 1, y: 1 }): HiddenZoneSpot {
   const clamp = (value: number, max: number) => Math.min(max, Math.max(0, value));
-  return { x: clamp(spot.x, extent.x), y: clamp(spot.y, extent.y) };
+  return { ...spot, x: clamp(spot.x, extent.x), y: clamp(spot.y, extent.y) };
+}
+
+/** A spot turned `by` 15° steps, clockwise for a positive count; a whole turn round leaves the turn out. */
+export function turnHiddenZoneSpot(spot: HiddenZoneSpot, by: number): HiddenZoneSpot {
+  const { turn: _turn, ...place } = spot;
+  const turn = ((((spot.turn ?? 0) + by) % HIDDEN_ZONE_TURNS) + HIDDEN_ZONE_TURNS) % HIDDEN_ZONE_TURNS;
+  return turn ? { ...place, turn } : place;
 }

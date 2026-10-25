@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vite-plus/test';
 
 import {
-  clampHiddenZoneSpot,
   HIDDEN_ZONE_MIN_SCALE,
+  clampHiddenZoneSpot,
   hiddenZoneFootprint,
   hiddenZonePieces,
   hiddenZoneView,
   nextHiddenZoneSpot,
+  turnHiddenZoneSpot,
 } from './hiddenZone';
 import type { TablePiece } from './model';
 import { CARD_DEPTH, CARD_WIDTH, TROOP_FOOTPRINT_RADIUS } from './tableGeometry';
@@ -100,6 +101,21 @@ describe('clampHiddenZoneSpot', () => {
 
   it('keeps a spot inside the zone a roomier view shows', () => {
     expect(clampHiddenZoneSpot({ x: 0.5, y: 3.4 }, { x: 1.2, y: 2.5 })).toEqual({ x: 0.5, y: 2.5 });
+  });
+});
+
+describe('turnHiddenZoneSpot', () => {
+  it('turns a piece clockwise in 15° steps, and back round past upright', () => {
+    expect(turnHiddenZoneSpot({ x: 0.5, y: 0.5 }, 1)).toEqual({ x: 0.5, y: 0.5, turn: 1 });
+    expect(turnHiddenZoneSpot({ x: 0.5, y: 0.5 }, -1)).toEqual({ x: 0.5, y: 0.5, turn: 23 });
+  });
+
+  it('leaves the turn out once the piece is upright again', () => {
+    expect(turnHiddenZoneSpot({ x: 0.5, y: 0.5, turn: 23 }, 1)).toEqual({ x: 0.5, y: 0.5 });
+  });
+
+  it('keeps the turn through a clamp', () => {
+    expect(clampHiddenZoneSpot({ x: 1.4, y: 0.5, turn: 6 })).toEqual({ x: 1, y: 0.5, turn: 6 });
   });
 });
 

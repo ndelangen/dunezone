@@ -7,11 +7,14 @@ import {
   hiddenZoneFootprint,
   hiddenZonePieces,
   hiddenZoneView,
+  turnHiddenZoneSpot,
 } from '@shared/play/hiddenZone';
+import type { HiddenZoneSpot } from '@shared/play/hiddenZone';
 import type { TablePiece } from '@shared/play/model';
+import { HIDDEN_ZONE_TURNS } from '@shared/play/schema';
 import { Section } from '@ui/block/Section';
 import type { ComponentProps, MouseEvent, PointerEvent, ReactNode, RefObject } from 'react';
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import type { TableSession, TableProjection } from '../../../../db/tabletop/TableSession';
@@ -126,9 +129,23 @@ type Carry = Readonly<{
 type Landing = Readonly<{
   pieceId: string;
   commandId: string;
-  at: { x: number; y: number };
+  at: HiddenZoneSpot;
   from: TablePiece['hiddenZone'];
 }>;
+
+/* A turn the page shows at once and sends when Q or E comes up, as a held key on the table does: `by` 15° steps, clockwise when positive. */
+type Turning = Readonly<{ pieceId: string; by: number }>;
+
+/* How the zone draws a piece turned in 15° steps. */
+const turned = (spot: HiddenZoneSpot) => (spot.turn ? `rotate(${spot.turn * 15}deg)` : undefined);
+
+/* A key typed into a text field belongs to that field. */
+function typing(target: EventTarget | null) {
+  return (
+    target instanceof HTMLElement &&
+    (target.isContentEditable || target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement)
+  );
+}
 
 /*
  * A carry let go over the table plays the piece there, through the same drop the hand's drags use,
@@ -181,6 +198,13 @@ export function HiddenZone({ client, table, hand }: Props) {
     place();
   };
   const [landing, setLanding] = useState<Landing | null>(null);
+  /* The pending turn in a ref as well, so a key that comes up before React renders still sends the whole turn. */
+  const [turning, renderTurning] = useState<Turning | null>(null);
+  const turns = useRef<Turning | null>(null);
+  const setTurning = (next: Turning | null) => {
+    turns.current = next;
+    renderTurning(next);
+  };
   const [menu, setMenu] = useState<HandMenuAnchor | null>(null);
   const pieces = hiddenZonePieces(hand);
   const { scale, extent } = hiddenZoneView(width, height);
@@ -194,6 +218,62 @@ export function HiddenZone({ client, table, hand }: Props) {
     landing && landing.pieceId === piece.id && landing.from === piece.hiddenZone && client.awaiting(landing.commandId)
       ? landing.at
       : piece.hiddenZone!;
+  /* The spot a piece shows with the turn this page has not sent yet. */
+  const shownSpot = (piece: TablePiece) =>
+    turning && turning.pieceId === piece.id ? turnHiddenZoneSpot(spotOf(piece), turning.by) : spotOf(piece);
+
+  /* Lays a piece at a spot, showing it there until the room answers. */
+  const lay = (piece: TablePiece, at: HiddenZoneSpot) => {
+    const commandId = client.command({ kind: 'hand-zone', pieceId: piece.id, at });
+    setLanding(commandId ? { pieceId: piece.id, commandId, at, from: piece.hiddenZone } : null);
+  };
+  const sendTurn = (pending: Turning | null) => {
+    const piece = pending && pieces.find((candidate) => candidate.id === pending.pieceId);
+    setTurning(null);
+    if (piece && pending.by % HIDDEN_ZONE_TURNS !== 0) {
+      lay(piece, turnHiddenZoneSpot(spotOf(piece), pending.by));
+    }
+  };
+
+  /*
+   * Q and E turn the piece under the pointer, or the one being carried, as they turn a piece on the table.
+   * The table's own keys never hear them, so a piece selected there stays as it is.
+   */
+  const turnKey = useEffectEvent((event: KeyboardEvent) => {
+    const key = event.key.toLowerCase();
+    const lifted = carrying.current;
+    const carried = lifted && lifted.moving ? lifted.pieceId : null;
+    const pieceId = carried ?? closeUp.piece?.id ?? null;
+    if ((key !== 'q' && key !== 'e') || event.ctrlKey || event.metaKey || event.altKey || typing(event.target)) {
+      return;
+    }
+    if (!enabled || !pieceId) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    const pending = turns.current;
+    if (event.type === 'keyup') {
+      if (pending && carried !== pending.pieceId) {
+        sendTurn(pending);
+      }
+      return;
+    }
+    if (pending && pending.pieceId !== pieceId) {
+      sendTurn(pending);
+    }
+    const by = pending && pending.pieceId === pieceId ? pending.by : 0;
+    setTurning({ pieceId, by: by + (key === 'q' ? -1 : 1) });
+  });
+  useEffect(() => {
+    const listen = (event: KeyboardEvent) => turnKey(event);
+    window.addEventListener('keydown', listen, true);
+    window.addEventListener('keyup', listen, true);
+    return () => {
+      window.removeEventListener('keydown', listen, true);
+      window.removeEventListener('keyup', listen, true);
+    };
+  }, []);
 
   /*
    * Escape puts a carried piece back where it was, as the browser's own drags do, and keeps Escape from the windows behind it.
@@ -207,6 +287,9 @@ export function HiddenZone({ client, table, hand }: Props) {
     const drop = () => {
       const current = carrying.current;
       setCarry(null);
+      if (turns.current && turns.current.pieceId === current?.pieceId) {
+        setTurning(null);
+      }
       if (current?.holder.hasPointerCapture(current.pointerId)) {
         current.holder.releasePointerCapture(current.pointerId);
       }
@@ -241,24 +324,31 @@ export function HiddenZone({ client, table, hand }: Props) {
       event.clientX <= zone.right &&
       event.clientY >= zone.top &&
       event.clientY <= zone.bottom;
+    const pending = turns.current && turns.current.pieceId === piece.id ? turns.current : null;
+    const { turn } = pending ? turnHiddenZoneSpot(spotOf(piece), pending.by) : spotOf(piece);
+    if (pending) {
+      setTurning(null);
+    }
     if (!inside || !zone) {
       dropOnTable(piece.id, event.clientX, event.clientY);
       return;
     }
     const footprint = hiddenZoneFootprint(piece);
-    const at = clampHiddenZoneSpot(
-      {
-        x: (event.clientX - zone.left - current.grabX + (footprint.width * scale) / 2) / (HIDDEN_ZONE_WIDTH * scale),
-        y: (event.clientY - zone.top - current.grabY + (footprint.depth * scale) / 2) / (HIDDEN_ZONE_DEPTH * scale),
-      },
-      extent
+    lay(
+      piece,
+      clampHiddenZoneSpot(
+        {
+          x: (event.clientX - zone.left - current.grabX + (footprint.width * scale) / 2) / (HIDDEN_ZONE_WIDTH * scale),
+          y: (event.clientY - zone.top - current.grabY + (footprint.depth * scale) / 2) / (HIDDEN_ZONE_DEPTH * scale),
+          ...(turn ? { turn } : {}),
+        },
+        extent
+      )
     );
-    const commandId = client.command({ kind: 'hand-zone', pieceId: piece.id, at });
-    setLanding(commandId ? { pieceId: piece.id, commandId, at, from: piece.hiddenZone } : null);
   };
 
   return (
-    <Section hiddenHeading title="Hidden zone" description={HIDDEN_ZONE_HELP}>
+    <Section hiddenHeading title="Private side-table" description={HIDDEN_ZONE_HELP}>
       <div ref={frame}>
         <div
           ref={ref}
@@ -267,7 +357,7 @@ export function HiddenZone({ client, table, hand }: Props) {
         >
           {!pieces.length && (
             <Text size="sm" c="dimmed" className={styles.empty}>
-              Right-click a piece in your hand and choose Move to hidden zone.
+              Right-click a piece in your hand and choose Move to private side-table.
             </Text>
           )}
           {scale > 0 &&
@@ -275,7 +365,7 @@ export function HiddenZone({ client, table, hand }: Props) {
               const footprint = hiddenZoneFootprint(piece);
               const pieceWidth = footprint.width * scale;
               const pieceDepth = footprint.depth * scale;
-              const spot = spotOf(piece);
+              const spot = shownSpot(piece);
               const carried = carry?.pieceId === piece.id && carry.moving ? carry : null;
               /* Kept whole in view: a piece laid out in a roomier tab sits at this one's edge until moved. */
               const left = inside(spot.x * HIDDEN_ZONE_WIDTH * scale - pieceWidth / 2, width - pieceWidth);
@@ -326,10 +416,10 @@ export function HiddenZone({ client, table, hand }: Props) {
                   key={piece.id}
                   className={styles.piece}
                   data-carried={carried ? true : undefined}
-                  aria-label={`Move ${pieceName(piece)} in hidden zone`}
+                  aria-label={`Move ${pieceName(piece)} on private side-table`}
                   role="button"
                   tabIndex={0}
-                  style={{ left, top, ...box }}
+                  style={{ left, top, ...box, transform: turned(spot) }}
                   onDragStart={(event) => event.preventDefault()}
                   onContextMenu={(event) => setMenu(handMenuAnchor(event, piece.id))}
                   {...handlers}
@@ -343,7 +433,9 @@ export function HiddenZone({ client, table, hand }: Props) {
                   {carried &&
                     createPortal(
                       <div ref={lift} className={styles.carried} style={box} aria-hidden>
-                        <PieceImage piece={piece} width={pieceWidth} height={pieceDepth} />
+                        <div className={styles.turn} style={{ ...box, transform: turned(spot) }}>
+                          <PieceImage piece={piece} width={pieceWidth} height={pieceDepth} />
+                        </div>
                       </div>,
                       document.body
                     )}
@@ -353,7 +445,28 @@ export function HiddenZone({ client, table, hand }: Props) {
         </div>
       </div>
       <HandPieceCloseUp area={frame} piece={closeUp.piece} />
-      <HandPieceMenu anchor={menu} label="Hidden zone actions" onClose={() => setMenu(null)}>
+      <HandPieceMenu anchor={menu} label="Private side-table actions" onClose={() => setMenu(null)}>
+        {/* A quarter turn at a time from the menu; Q and E turn in 15° steps. */}
+        {(
+          [
+            ['Turn left', -HIDDEN_ZONE_TURNS / 4],
+            ['Turn right', HIDDEN_ZONE_TURNS / 4],
+          ] as const
+        ).map(([label, by]) => (
+          <Menu.Item
+            key={label}
+            disabled={!enabled}
+            onClick={() => {
+              const piece = menu && pieces.find((candidate) => candidate.id === menu.pieceId);
+              if (piece) {
+                lay(piece, turnHiddenZoneSpot(spotOf(piece), by));
+              }
+              setMenu(null);
+            }}
+          >
+            {label}
+          </Menu.Item>
+        ))}
         <Menu.Item
           disabled={!enabled}
           onClick={() => {
