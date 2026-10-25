@@ -1388,6 +1388,7 @@ async function clearCentre(who: HostedPeer) {
   }
 }
 /** What covers a page point, or null when the board's canvas is topmost there. */
+/** What covers the board at a page point, by its label, or null when the board's canvas is topmost there. */
 async function coverAt(who: HostedPeer, at: Point) {
   return who.page.evaluate(({ x, y }) => {
     const hit = document.elementFromPoint(x, y);
@@ -2324,6 +2325,7 @@ try {
     pinWindow,
     growSlot,
     point,
+    coverAt,
     tableLoaded,
     recordRenderer,
     spiceBankShortcut,
@@ -2481,6 +2483,7 @@ export type HostedToolkit = {
   pinWindow: typeof pinWindow;
   growSlot: typeof growSlot;
   point: typeof point;
+  coverAt: typeof coverAt;
   tableLoaded: typeof tableLoaded;
   recordRenderer: typeof recordRenderer;
   spiceBankShortcut: typeof spiceBankShortcut;

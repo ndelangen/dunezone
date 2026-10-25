@@ -22,6 +22,7 @@ export async function verifyBattles(toolkit: HostedToolkit) {
     pinWindow,
     growSlot,
     point,
+    coverAt,
     carrySteps,
     capture,
     until,
@@ -43,6 +44,15 @@ export async function verifyBattles(toolkit: HostedToolkit) {
     requireView(a).snapshot.table.pieces.find((piece) => piece.inventory),
     'token'
   );
+  /* The battle's callout floats over the middle of the board, so a piece dropped under it could not be pressed again. */
+  async function clearOfCallout(who: HostedPeer, candidates: readonly Vector3Tuple[]) {
+    for (const candidate of candidates) {
+      if ((await coverAt(who, await point(who, candidate))) === null) {
+        return candidate;
+      }
+    }
+    throw new Error(`${who.label}: every drop point is covered: ${JSON.stringify(candidates)}.`);
+  }
   async function drag(who: HostedPeer, locator: Locator, destination: Vector3Tuple) {
     await locator.scrollIntoViewIfNeeded();
     /* The battle marker floats over the canvas and is placed on the next rendered frame, so until then its box lies far off screen. */
@@ -105,12 +115,7 @@ export async function verifyBattles(toolkit: HostedToolkit) {
     await who.page.mouse.move(10, 10);
     await who.page.keyboard.press('Escape');
     await who.page.locator('[data-window][data-side="centre"]').waitFor({ state: 'detached' });
-    const cover = await who.page.evaluate(({ x, y }) => {
-      const hit = document.elementFromPoint(x, y);
-      return hit instanceof HTMLCanvasElement
-        ? null
-        : (hit?.closest('[aria-label]')?.getAttribute('aria-label') ?? hit?.tagName ?? 'nothing');
-    }, at);
+    const cover = await coverAt(who, at);
     assert.equal(cover, null, `${who.label}: the piece to take is covered by ${cover}.`);
     await who.page.mouse.click(at.x, at.y, { button: 'right' });
     const takeItem = who.page.getByRole('menuitem', { name: 'Take into hand', exact: true });
@@ -206,13 +211,25 @@ export async function verifyBattles(toolkit: HostedToolkit) {
     15_000
   );
   await capture(a, 'after-battle-reveal');
+  await focus(a, 'map');
+  const leaderDrop = await clearOfCallout(a, [
+    [-2, 0.38, 2],
+    [-2.6, 0.38, 2.4],
+    [-2.6, 0.38, 1.2],
+  ]);
+  const cardDrop = await clearOfCallout(a, [
+    [1.6, 0.38, 1.8],
+    [2.6, 0.38, 2.4],
+    [2.6, 0.38, 1.2],
+    [-1.2, 0.38, 2.8],
+  ]);
   assert.equal(required(requireView(a).snapshot.bank, 'bank').balance, startingSpice + 4);
   await drag(
     a,
     a.page
       .locator('[data-battle-stage="revealed"]')
       .getByRole('button', { name: 'Drag Recovery token onto table', exact: true }),
-    [-2, 0.38, 2]
+    leaderDrop
   );
   await until(
     () => requireView(a).snapshot.table.pieces.some((piece) => piece.id === token.id && !piece.battleOverlay),
@@ -223,7 +240,7 @@ export async function verifyBattles(toolkit: HostedToolkit) {
     a.page
       .locator('[data-battle-stage="revealed"]')
       .getByRole('button', { name: `Drag ${cardName} onto table`, exact: true }),
-    [1.6, 0.38, 1.8]
+    cardDrop
   );
   await until(
     () => requireView(a).snapshot.table.pieces.some((piece) => piece.id === battleCard.id && !piece.battleOverlay),
