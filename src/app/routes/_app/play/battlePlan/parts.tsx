@@ -415,8 +415,13 @@ export function OpponentLine({ opponent }: { opponent: Opponent | null }) {
     <div className={styles.battleLine}>
       {opponent ? (
         <span className={styles.opponent} data-ready={opponent.ready || undefined}>
-          against {opponent.name}
-          <span className={styles.readyDot} aria-label={opponent.ready ? 'ready' : 'preparing'} role="img" />
+          <span
+            className={styles.readyDot}
+            aria-label={opponent.ready ? 'ready' : 'preparing'}
+            title={opponent.ready ? `${opponent.name} is ready` : `${opponent.name} is still planning`}
+            role="img"
+          />
+          <span>against {opponent.name}</span>
         </span>
       ) : (
         <span className={styles.opponent}>waiting for a second side</span>

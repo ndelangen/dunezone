@@ -4,6 +4,7 @@
   grid-template-rows: auto minmax(0, 1fr);
   gap: 0.4rem;
   height: 100%;
+  container-type: inline-size;
 }
 
 /* The head stays put; the sheet under it scrolls when the slot is short. */

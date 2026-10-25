@@ -318,12 +318,14 @@
 
 .opponent {
   display: inline-flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.35rem;
   color: var(--ink-dim);
 }
 
 .readyDot {
+  flex: none;
+  margin-top: 0.4em;
   width: 7px;
   height: 7px;
   border: 1px solid var(--ink-dim);

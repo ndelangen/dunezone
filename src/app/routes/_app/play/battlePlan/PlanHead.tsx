@@ -80,7 +80,7 @@ export function PlanHead({ view }: { view: BattlePlanViewProps }) {
         </div>
       </div>
       <div className={styles.ready}>
-        <ReadyButton {...view} />
+        <ReadyButton {...view}>Ready</ReadyButton>
       </div>
     </header>
   );
