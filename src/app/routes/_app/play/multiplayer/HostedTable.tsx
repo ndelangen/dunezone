@@ -56,7 +56,7 @@ import {
   AUDIT_LOG_GUIDANCE,
   battleGuidance,
   GAME_LOG_GUIDANCE,
-  handGuidance,
+  HAND_GUIDANCE,
   HIDDEN_ZONE_GUIDANCE,
   LOG_GUIDANCE,
   phaseGuidance,
@@ -722,7 +722,7 @@ function handPanels({ client, table }: TableControlProps) {
       key: 'hand',
       label: 'Hand',
       topic: 'hand' as const,
-      ...handGuidance(table),
+      ...HAND_GUIDANCE,
       content: <HandShelves client={client} table={table} hand={hand} />,
     },
     {

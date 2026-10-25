@@ -71,31 +71,6 @@
   outline-offset: 2px;
 }
 
-/* In the battle plan: ringed in sand, popping once as it goes in. */
-.tile[data-planned] .face {
-  box-shadow: 0 0 0 2px var(--sand);
-  animation: plan-pop 260ms ease-out;
-}
-
-@keyframes plan-pop {
-  40% {
-    transform: scale(1.12);
-  }
-}
-
-.planBadge {
-  position: absolute;
-  top: -5px;
-  right: -5px;
-  display: grid;
-  place-items: center;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: var(--sand);
-  color: var(--glass-solid);
-}
-
 /* Played onto the table it rises and shrinks away; set on the side-table it sinks. */
 .tile[data-leaving="table"] {
   transform: translateY(-18px) scale(0.6);
@@ -178,7 +153,6 @@
   transition: none;
 }
 
-:global(html[data-motion="reduce"]) .tile[data-planned] .face,
 :global(html[data-motion="reduce"]) .balanceNumber[data-bump] {
   animation: none;
 }
@@ -193,7 +167,6 @@
     transition: none;
   }
 
-  :global(html:not([data-motion="ok"])) .tile[data-planned] .face,
   :global(html:not([data-motion="ok"])) .balanceNumber[data-bump] {
     animation: none;
   }

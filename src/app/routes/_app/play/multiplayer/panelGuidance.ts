@@ -28,17 +28,10 @@ export function setupGuidance(step: ReturnType<typeof setupStep>): Guidance {
   return { description: step.title, help: setupHelp(step) };
 }
 
-export function handHelp(table: TableProjection) {
-  const basics =
-    'Drag a piece onto the table to play it face down. Right-click a piece to play it in front of you or move it to your private side-table. Hold Alt over a piece to see it close up.';
-  return table.snapshot.stage === 'setup'
-    ? basics
-    : `${basics} In a battle, right-click adds a leader or card to your plan. Committed pieces stay in your plan until cancellation or reveal.`;
-}
+export const HAND_HELP =
+  'Drag a piece onto the table to play it face down. Right-click a piece to play it in front of you or move it to your private side-table. Hold Alt over a piece to see it close up.';
 
-export function handGuidance(table: TableProjection): Guidance {
-  return { description: 'Your cards and leaders. Only you see them.', help: handHelp(table) };
-}
+export const HAND_GUIDANCE: Guidance = { description: 'Your cards and leaders. Only you see them.', help: HAND_HELP };
 
 export const HIDDEN_ZONE_HELP =
   "For pieces that need to sit in a particular spot, such as a marker on a card's track. Lay out pieces from your hand anywhere here; they stay where you put them. Q and E turn the piece under the pointer. Cards stay below tokens. Drag a piece onto the table to play it face down, or right-click it to move it back to your hand.";

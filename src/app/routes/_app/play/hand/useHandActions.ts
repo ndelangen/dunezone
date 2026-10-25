@@ -1,4 +1,3 @@
-import { isBattleLeader } from '@shared/play/battle';
 import { factionTokenOf, factionTokenRingAngle } from '@shared/play/factionToken';
 import { hiddenZoneView, nextHiddenZoneSpot } from '@shared/play/hiddenZone';
 import type { TablePiece, Vector3Tuple } from '@shared/play/model';
@@ -30,7 +29,7 @@ function frontOf(table: TableProjection, factionId: string | undefined): Vector3
 const LEAVE_MS = 190;
 
 /**
- * What the hand offers: its pieces sorted for reading, the battle plan they can go into, and each piece's actions from its right-click menu, which animate the piece out before their command goes.
+ * What the hand offers: its pieces sorted for reading, and each piece's actions from its right-click menu, which animate the piece out before their command goes.
  */
 export function useHandActions({ client, table, hand }: HandProps) {
   const motion = useMotionAllowed();
@@ -48,52 +47,9 @@ export function useHandActions({ client, table, hand }: HandProps) {
     },
     []
   );
-  const { battle, bank } = table.snapshot;
-  /* After the reveal the plan is only the record of what was declared, and its pieces have gone wherever the battle sent them. */
-  const plan = battle && battle.stage !== 'revealed' ? table.snapshot.battlePlan : undefined;
-  const factionId = bank?.factionId ?? hand[0]?.owner ?? undefined;
+  const factionId = table.snapshot.bank?.factionId ?? hand[0]?.owner ?? undefined;
   const inHand = hand.filter((piece) => !piece.hiddenZone);
   const enabled = table.canHandleTable;
-
-  const side = battle && plan ? battle.sides.find((entry) => entry?.factionId === factionId) : undefined;
-  const planOpen = Boolean(enabled && plan && battle && side && !side.ready && battle.stage === 'preparing');
-  /* The plan's pieces may have left the hand while committed, so the window keeps them on their shelves beside the hand. */
-  const planPieces = plan
-    ? [...inHand, ...plan.pieces].filter(
-        (piece, index, all) => all.findIndex((candidate) => candidate.id === piece.id) === index
-      )
-    : inHand;
-  const inPlan = (piece: TablePiece) =>
-    Boolean(plan && (plan.leaderId === piece.id || plan.cardIds.includes(piece.id)));
-  const planReason = (piece: TablePiece): string | undefined => {
-    if (!plan || !battle) {
-      return 'There is no battle plan to add to.';
-    }
-    if (!planOpen) {
-      return side?.ready ? 'Undo Ready in the battle to change your plan.' : 'Your plan is locked.';
-    }
-    if (isBattleLeader(piece) ? plan.disclosed.leader : plan.disclosed.cardIds.includes(piece.id)) {
-      return 'Shown to everyone, so it stays in the plan.';
-    }
-    if (!isBattleLeader(piece) && piece.kind !== 'card') {
-      return 'Only leaders and cards go in a battle plan.';
-    }
-    return undefined;
-  };
-  const togglePlan = (piece: TablePiece) => {
-    if (!plan || planReason(piece)) {
-      return;
-    }
-    if (isBattleLeader(piece)) {
-      client.editBattlePlan({ leaderId: plan.leaderId === piece.id ? null : piece.id });
-    } else {
-      client.editBattlePlan({
-        cardIds: plan.cardIds.includes(piece.id)
-          ? plan.cardIds.filter((id) => id !== piece.id)
-          : [...plan.cardIds, piece.id],
-      });
-    }
-  };
 
   /*
    * A piece first animates out of the hand, then its command goes, and it stays out while the room has not answered;
@@ -152,15 +108,8 @@ export function useHandActions({ client, table, hand }: HandProps) {
   return {
     enabled,
     inHand,
-    groups: handGroups(planPieces),
+    groups: handGroups(inHand),
     leaving,
-    plan,
-    battle,
-    planOpen,
-    planPieces,
-    inPlan,
-    planReason,
-    togglePlan,
     playReason,
     playInFront,
     toSideTable,

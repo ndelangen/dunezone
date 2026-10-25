@@ -49,7 +49,7 @@ function withTreachery(stored: StoredSnapshot): StoredSnapshot {
   return { ...stored, factionInventories: { ...stored.factionInventories, 'house-atreides': [...hand, ...drawn] } };
 }
 
-/* The live table from the recorded journey: Atreides mid-battle at Arrakeen, or earlier at Shipment with no battle. */
+/* The live table from the recorded journey: Atreides mid-game with leaders, Treachery, Traitor and Alliance cards, or earlier at Shipment. */
 /* The seat Atreides holds at that step, found by its faction, so a re-recorded journey that reseats the factions keeps the same hand. */
 function atreidesSeat(start: number) {
   const views = journeySteps()[start]!.views;
@@ -62,12 +62,10 @@ const at =
     const start = chapter(title) - 1;
     return install(() => sandboxTransport({ start, seat: args.seat ?? atreidesSeat(start), prepare: withTreachery }))();
   };
-const inBattle = at('Battle plan');
-const quiet = at('Shipment');
 
-/** Atreides mid-battle at Arrakeen: right-click a leader or card to put it in the plan, and it stays ringed on its shelf. */
-export const InBattle = meta.story({
-  beforeEach: inBattle,
+/** Atreides mid-game: right-click a piece to play it in front of you or set it on the side-table, and withdraw spice. */
+export const FullHand = meta.story({
+  beforeEach: at('Battle plan'),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     /* A right-click on a card sets it on the side-table, where the side-table window shows it. */
@@ -78,15 +76,13 @@ export const InBattle = meta.story({
       page.findByRole('button', { name: 'Move Crysknife on private side-table' }, { timeout: 30_000 })
     ).resolves.toBeVisible();
     await expect(page.queryByRole('button', { name: 'Drag Crysknife from hand' })).toBeNull();
-    /* A right-click on a leader puts it in the battle plan, ringed on the plan's shelf. */
+    /* The hand knows nothing of battles: a leader's menu offers the same two actions as a card's. */
     await userEvent.pointer({
       keys: '[MouseRight]',
       target: page.getByRole('button', { name: 'Drag Lady Jessica from hand' }),
     });
-    await userEvent.click(await page.findByRole('menuitem', { name: 'Add to battle plan' }));
-    await expect(
-      page.findByRole('button', { name: 'Lady Jessica, in battle plan' }, { timeout: 30_000 })
-    ).resolves.toBeVisible();
+    await expect(page.findAllByRole('menuitem')).resolves.toHaveLength(2);
+    await userEvent.keyboard('{Escape}');
     /* Stepping the amount up and withdrawing takes it out of the reserve. */
     const before = Number(page.getByLabelText('Spice reserve balance').textContent);
     await userEvent.click(page.getByRole('button', { name: 'One spice more' }));
@@ -97,5 +93,5 @@ export const InBattle = meta.story({
   },
 });
 
-/** Earlier, at Shipment, with no battle: the menu offers playing a piece in front of you or setting it aside. */
-export const NoBattle = meta.story({ beforeEach: quiet });
+/** Earlier, at Shipment, with a smaller hand. */
+export const AtShipment = meta.story({ beforeEach: at('Shipment') });
