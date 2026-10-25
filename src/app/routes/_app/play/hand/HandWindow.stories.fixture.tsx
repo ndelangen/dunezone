@@ -21,7 +21,7 @@ import '../dune-play.css';
  * on the table's dark ground, as the compass composes it, without the table itself. The real Private side-table window
  * sits bottom right, so a piece set aside is seen arriving; the Play debugger panel shows the room's state for the rest.
  */
-export function HandWindowHarness({ height = 448 }: Readonly<{ height?: number; seat?: string }>) {
+function HandWindowHarness({ height = 448 }: Readonly<{ height?: number; seat?: string }>) {
   const runtime = useContext(GameRuntimeContext);
   const [client] = useState(
     () =>

@@ -4,7 +4,7 @@ import { Stepper } from './Stepper';
 import type { StepperProps } from './Stepper';
 
 /* The stepper holding its own value, as a form would. */
-export function Controlled(props: Omit<StepperProps, 'value' | 'onChange'> & { initial: number }) {
+function Controlled(props: Omit<StepperProps, 'value' | 'onChange'> & { initial: number }) {
   const [value, setValue] = useState(props.initial);
   return <Stepper {...props} value={value} onChange={setValue} />;
 }
