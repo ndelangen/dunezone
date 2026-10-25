@@ -139,12 +139,12 @@
 }
 
 .clockArc {
-  stroke: var(--color-brand-strong);
+  stroke: var(--color-text);
   stroke-dasharray: 100;
 }
 
 .clockWarning {
-  stroke: var(--color-brand-strong);
+  stroke: var(--color-error);
   stroke-width: 4;
   opacity: 0;
 }

@@ -1,4 +1,4 @@
-import { Text } from '@mantine/core';
+import { Group, Text } from '@mantine/core';
 import type { ReactNode } from 'react';
 
 import { DarkSchemeIsland, darkSchemeIslandAttributes } from './DarkSchemeIsland';
@@ -15,14 +15,23 @@ export function TableWait({
   status,
   connection,
   children,
-}: Readonly<{ status: string; connection?: string; children?: ReactNode }>) {
+}: Readonly<{ status: ReactNode; connection?: string; children?: ReactNode }>) {
   return (
     <DarkSchemeIsland>
       <div className={styles.loading} {...darkSchemeIslandAttributes} data-connection={connection}>
-        <Text key={status} role="status" className={styles.status}>
+        <Text
+          component="div"
+          key={typeof status === 'string' ? status : 'notice'}
+          role="status"
+          className={styles.status}
+        >
           {status}
         </Text>
-        {children}
+        {children && (
+          <Group justify="center" gap="sm">
+            {children}
+          </Group>
+        )}
       </div>
     </DarkSchemeIsland>
   );

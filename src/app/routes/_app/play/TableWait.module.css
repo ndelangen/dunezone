@@ -32,6 +32,9 @@
 
 /* A status line that changes eases in, so the waits read as one frame filling in. */
 .status {
+  max-width: 38rem;
+  padding-inline: var(--space-md);
+  text-align: center;
   animation: table-wait-status 420ms ease-out;
 }
 

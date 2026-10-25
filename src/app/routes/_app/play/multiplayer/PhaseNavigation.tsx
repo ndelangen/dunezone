@@ -47,7 +47,7 @@ function atFirstStepOrHeld(snapshot: TableProjection['snapshot']) {
   return setup ? setup.index === 0 : snapshot.phase === 0;
 }
 
-/* One toggle for readiness that carries the count: a filled Ready until pressed, then a quiet ticked Ready that withdraws. */
+/* Readiness carries its count and changes to a green tick when confirmed; pressing again withdraws it. */
 export function ReadyToggle({
   ready,
   count,
@@ -62,7 +62,7 @@ export function ReadyToggle({
         <Button
           disabled={disabled}
           color={ready ? 'confirm' : 'cta'}
-          variant={ready ? 'light' : 'filled'}
+          variant="filled"
           aria-pressed={ready}
           aria-describedby={countId}
           leftSection={ready ? <Check size={16} aria-hidden /> : undefined}
@@ -105,7 +105,8 @@ function PhaseStepButton({
         <Menu.Target>
           <Button
             aria-label="More phase actions"
-            variant="default"
+            color={nextDisabled ? 'gray' : 'cta'}
+            variant={nextDisabled ? 'default' : 'filled'}
             px={8}
             style={{ borderStartStartRadius: 0, borderEndStartRadius: 0 }}
           >

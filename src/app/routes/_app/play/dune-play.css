@@ -138,11 +138,11 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
   user-select: none;
 }
 
-/* A stage's overlay over the scene, between the header and the panel: a layer under both, not a surface, so only what it draws takes the pointer. */
+/* A stage overlay covers the whole scene beneath the header and dock, including its blur. */
 :where(.dune-play-shell) .seated-stage-overlay {
   position: absolute;
   z-index: 7;
-  top: var(--play-header-height);
+  top: 0;
   right: 0;
   bottom: 0;
   left: 0;
@@ -179,6 +179,23 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
   min-width: 0;
 }
 
+/* Connection recovery belongs to the table, separate from its phase and action controls. */
+:where(.dune-play-shell) .seated-connection {
+  position: absolute;
+  top: var(--space-md);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-pill);
+  background: var(--ui-recess);
+  color: var(--color-text);
+  pointer-events: auto;
+}
+
+:where(.dune-play-shell) .seated-connection:empty {
+  display: none;
+}
+
 :where(.dune-play-shell) .seated-chip {
   display: flex;
   align-items: center;
@@ -205,16 +222,15 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
   padding: 0.3rem 0.35rem;
 }
 
-/* The gear stands apart from the shared phase controls: they move the whole table, it only changes this screen. */
-:where(.dune-play-shell) .seated-toolbar__settings {
-  display: flex;
-  padding-left: 0.4rem;
-  border-left: 1px solid rgb(from var(--input-border) r g b / var(--input-border-alpha));
+/* Flat controls float over the table; the gap separates settings without another outline or divider. */
+:where(.dune-play-shell) .seated-toolbar {
+  border: 0;
+  background: transparent;
+  backdrop-filter: none;
 }
 
-:where(.dune-play-shell) .seated-toolbar__settings:first-child {
-  padding-left: 0;
-  border-left: 0;
+:where(.dune-play-shell) .seated-toolbar__settings {
+  display: flex;
 }
 
 :where(.dune-play-shell) .seated-phase-status {
@@ -436,6 +452,10 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
     padding: 0.5rem;
   }
 
+  :where(.dune-play-shell) .seated-header:has(.seated-connection:not(:empty)) {
+    padding-block-start: calc(var(--space-md) + 3rem);
+  }
+
   :where(.dune-play-shell).dune-play-shell--seated {
     height: 100%;
     min-height: 0;
@@ -498,6 +518,10 @@ html[data-motion="reduce"] :where(.dune-play-shell) *::after {
 /* The table's column can be narrow, so its two chip groups wrap rather than overlap. */
 :where(.dune-play-shell)[data-table-layout="columns"] .seated-header {
   flex-wrap: wrap;
+}
+
+:where(.dune-play-shell)[data-table-layout="columns"] .seated-header:has(.seated-connection:not(:empty)) {
+  padding-block-start: calc(var(--space-md) + 3rem);
 }
 
 :where(.dune-play-shell) .seated-controls-panel--column .seated-controls-tabs {

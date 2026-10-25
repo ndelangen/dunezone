@@ -16,7 +16,7 @@ describe('shared UI palette contract', () => {
   it('derives every theme and Play role from the canonical pigments', () => {
     const canonical = new Set<string>(Object.values(coreColors));
     expect(canonical.size).toBe(Object.keys(coreColors).length);
-    expect(canonical.size).toBeLessThanOrEqual(26);
+    expect(canonical.size).toBeLessThanOrEqual(25);
     const roles = [
       ...Object.values(playUiColors),
       ...Object.values(themeRamps).flat(),

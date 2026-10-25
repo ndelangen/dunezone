@@ -680,8 +680,7 @@ function SpiceHistory({ client, table }: TableControlProps) {
   );
 }
 
-/* While a lost connection is restored the last table stays on screen, read-only, under this line. */
-/* While the table is locked the top bar says so beside the logo in one short line; the sentence behind it is the tooltip and the accessible description, and a phone keeps only the spinner. */
+/* A lost connection keeps the last table read-only, with recovery stated above it and explained on hover. */
 function ConnectionStatus({ table }: Readonly<{ table: TableProjection }>) {
   if (!table.reconnecting) {
     return null;
@@ -690,8 +689,8 @@ function ConnectionStatus({ table }: Readonly<{ table: TableProjection }>) {
   return (
     <Tooltip label={detail} withinPortal>
       <Group gap={6} wrap="nowrap" role="status" aria-label={`Reconnecting. ${detail}`}>
-        <Loader size="xs" />
-        <Text size="sm" fw={700} visibleFrom="sm" aria-hidden>
+        <Loader size="xs" color="gray.2" />
+        <Text size="sm" fw={700} aria-hidden>
           Reconnecting
         </Text>
       </Group>

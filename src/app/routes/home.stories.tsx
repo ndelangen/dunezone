@@ -6,15 +6,6 @@ import { pageStoryMeta } from './storybookConfig';
 const meta = preview.meta({
   title: 'Home',
   ...pageStoryMeta,
-  /* Keep the shell's negative artwork layers above Storybook's own canvas background. */
-  decorators: [
-    (Story) => (
-      <div style={{ isolation: 'isolate' }}>
-        <Story />
-      </div>
-    ),
-  ],
-  globals: { backgrounds: { value: 'dark', grid: false } },
 });
 
 /** The homepage's primary action stays distinct against the sandy header artwork. */

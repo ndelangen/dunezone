@@ -1,6 +1,7 @@
 import type { LogEntry, LogTab } from '@shared/play/log';
 import type { ClientMessage, ServerMessage, Viewer } from '@shared/play/protocol';
 import type { Decorator } from '@storybook/tanstack-react';
+import isChromatic from 'chromatic/isChromatic';
 import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { UPDATE_STORY_ARGS } from 'storybook/internal/core-events';
@@ -334,23 +335,24 @@ function JourneyFrame({
   return (
     <>
       {children}
-      <JourneyPanel
-        step={step}
-        seat={seat}
-        onStep={(next) => change({ step: next })}
-        onSeat={(next) => change({ seat: next })}
-      />
+      {!isChromatic() && (
+        <JourneyPanel
+          step={step}
+          seat={seat}
+          onStep={(next) => change({ step: next })}
+          onSeat={(next) => change({ seat: next })}
+        />
+      )}
     </>
   );
 }
 
-/** Waits for the journey panel to name the step, then for the connected page behind it. */
+/** Waits for the recorded step and its connected page; the review controls stay outside captures. */
 export async function atStep(canvasElement: HTMLElement, step: number) {
   const page = within(canvasElement.ownerDocument.body);
-  const panel = await page.findByRole('complementary', { name: 'Journey' }, { timeout: 30_000 });
-  await waitFor(() => expect(within(panel).getByText(stepCode(step - 1))).toBeVisible(), { timeout: 30_000 });
+  await waitFor(() => expect(journey.step + 1).toBe(step), { timeout: 30_000 });
   await expect(
     page.findByRole('heading', { name: 'Dreamrules', level: 1 }, { timeout: 30_000 })
   ).resolves.toBeVisible();
-  return { page, panel: within(panel) };
+  return { page };
 }

@@ -5,6 +5,7 @@
   container: drafting-overlay / size;
   background: color-mix(in srgb, var(--mantine-color-dark-9) 72%, transparent);
   backdrop-filter: blur(3px);
+  padding-block-start: var(--play-header-height);
 }
 
 .layout {

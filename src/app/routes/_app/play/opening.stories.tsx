@@ -179,7 +179,7 @@ export const WithoutGraphicsDevice = meta.story({
   play: async ({ canvasElement }) => expectGraphicsMessage(canvasElement),
 });
 
-/* A tab that lost its connection keeps the last table on screen, read-only, with a reconnecting status beside the logo, until a fresh view arrives. */
+/* A lost connection keeps the last table read-only, with recovery stated at the top centre. */
 export const Reconnecting = meta.story({
   beforeEach: install(() => productTransport('seat-2', playingSnapshot())),
   play: async ({ canvasElement }) => {
@@ -187,7 +187,12 @@ export const Reconnecting = meta.story({
     await page.findByRole('tab', { name: 'Conversation' });
     session.transport.deliver({ type: 'admission', status: 'suspended' });
     const status = await page.findByRole('status', { name: /^Reconnecting\./ });
-    await expect(status.closest('.seated-phase-status')).not.toBeNull();
+    const header = status.closest('.seated-header')!;
+    await expect(header).not.toBeNull();
+    await expect(status.closest('.seated-phase-status')).toBeNull();
+    const frame = header.getBoundingClientRect();
+    const notice = status.getBoundingClientRect();
+    await expect(Math.abs(notice.left + notice.width / 2 - (frame.left + frame.width / 2))).toBeLessThan(2);
     await expect(status.closest('[data-connection]')).toHaveAttribute('data-connection', 'suspended');
     await expect(page.getByText('Reconnecting', { exact: true })).toBeVisible();
   },

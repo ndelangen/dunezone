@@ -505,7 +505,7 @@ function Attribution({
   const cited = seats.map((seat) => players.find((player) => player.seat === seat)).filter((p) => p !== undefined);
   return (
     <Group gap="xs" wrap="nowrap">
-      <Text span size="xs" c={verb === 'banned' ? 'red' : 'dimmed'}>
+      <Text span size="xs" c={verb === 'banned' ? 'var(--color-error)' : 'dimmed'}>
         {verb}
       </Text>
       {cited.map((player) => (

@@ -55,7 +55,8 @@ const PLAYERS_AT_TABLE_FULL = 'Thialfi';
 /** The whole game: start at J01 and step, scrub or switch seats from the panel. */
 export const Walkthrough = meta.story({
   play: async ({ canvasElement }) => {
-    const { page, panel } = await atStep(canvasElement, 1);
+    const { page } = await atStep(canvasElement, 1);
+    const panel = within(await page.findByRole('complementary', { name: 'Journey' }));
     await expect(panel.getByText(journeySteps()[0]!.title)).toBeVisible();
     /* The page itself follows the panel: the second player shows once the table fills, and leaves again at the start. */
     const seated = () => page.queryAllByText(PLAYERS_AT_TABLE_FULL, { exact: true });

@@ -13,11 +13,10 @@
   --ui-brass: #c7ad7d;
   --ui-highlight: #d7c299;
   --ui-positive: #aeb780;
-  --ui-positive-fill: #50683e;
+  --ui-positive-fill: #477a3c;
   --ui-negative: #ffa8a8;
   --ui-negative-fill: #c92a2a;
   --ui-caution: #ffd772;
-  --ui-spice: #f19b37;
   --ui-caution-fill: #8b4d06;
   --ui-progress: #74c0fc;
   --ui-progress-fill: #1971c2;
@@ -28,13 +27,13 @@
   --ui-paper: #fffdf8;
   --ui-ink: #2e2927;
   --color-paper: #fffdf8;
-  --color-cta: #f19b37;
+  --color-cta: #ffd772;
   --color-ink: #2e2927;
   --color-text: #2e2927;
   --color-muted: #53412e;
   --color-link: #53412e;
   --color-error: #c92a2a;
-  --color-positive: #50683e;
+  --color-positive: #477a3c;
   --color-progress: #1971c2;
   --color-publish: #6741d9;
   --color-brand: #53412e;
@@ -51,7 +50,7 @@
   --button-toggle-active-bg: #d7c299;
   --action-positive-bg: #f0e8da;
   --action-positive-hover-bg: #aeb780;
-  --action-positive-fg: #50683e;
+  --action-positive-fg: #477a3c;
   --action-negative-bg: #f0e8da;
   --action-negative-hover-bg: #ffa8a8;
   --action-negative-fg: #c92a2a;

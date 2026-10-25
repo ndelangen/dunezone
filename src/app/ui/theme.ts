@@ -171,6 +171,7 @@ export const appContentTheme = createTheme({
     xl: `0 18px 48px ${withAlpha(playUiColors.shadowWarm, 0.3)}`,
   },
   components: {
+    Button: { classNames: { root: styles.button } },
     Input: {
       vars: () => ({ wrapper: { '--input-bd-focus': 'var(--color-focus-ring)' } }),
     },

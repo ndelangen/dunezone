@@ -26,10 +26,10 @@ so text and children retain their own opacity. The root route imports those toke
 table materials reuse the app's core pigments. Procedural game materials live in
 `src/shared/play/assetColors.ts`; faction colours and board artwork keep their authored palettes.
 
-The canonical palette has 26 pigments. Mantine's ten-slot ramps reuse them; ramp positions are
+The canonical palette has 25 pigments. Mantine's ten-slot ramps reuse them; ramp positions are
 adapters, not independent color definitions. Export and progress share blue, publish uses violet,
 positive states use olive, and warnings use amber. Filled semantic controls keep darker companions
-so their cream labels remain readable. Primary actions use spice amber with dark labels.
+so their cream labels remain readable. Primary actions use bright yellow with dark labels.
 Over the sandy header artwork, the primary uses near-black with cream text for contrast.
 Selections and active-phase emphasis retain pale gold.
 Olive remains the positive status colour. Near-black, cream, brass and warm brown roles cover the

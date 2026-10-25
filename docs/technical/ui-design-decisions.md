@@ -362,7 +362,7 @@ The enums are per component and per prop rather than one shared union, because a
 an action's intents are different questions. They draw their words from one language so a reader
 meeting a new component already knows what the words mean.
 
-A forward-moving primary uses the shared spice amber with dark text. The homepage's primary
+A forward-moving primary uses the shared bright yellow with dark text. The homepage's primary
 uses the `artwork` variant of `cta`, near-black with cream text against the sandy header.
 The `brand` family retains pale gold for emphasis and selected Play choices. Positive statuses
 remain olive, destructive actions are `negative`, and auxiliary actions are `neutral`.

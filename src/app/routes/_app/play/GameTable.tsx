@@ -101,7 +101,7 @@ type GameTableProps = {
   /** The game menu in the toolbar, present in every stage: what a player can do about their own seat. Previous and Next stay rightmost. */
   gameMenu?: ReactNode;
   toolbarControl?: ReactNode;
-  /** The connection's state, beside the logo where the bar has room, present only while the table is not live. */
+  /** Connection recovery, centred above the table and separate from the phase. */
   connectionStatus?: ReactNode;
   /** Who is allied with whom, under the game's name beside the phase. */
   alliances?: ReactNode;
@@ -1066,13 +1066,17 @@ export function GameTable({
               />
             )}
           </div>
-          {/* The connection status is its own status region, so it stays outside the phase's live region and is announced once. */}
-          {connectionStatus}
         </div>
         <div className="seated-chip seated-chip--game" data-hides-cursor>
           {alliances}
         </div>
       </div>
+
+      {connectionStatus && (
+        <div className="seated-connection" data-hides-cursor>
+          {connectionStatus}
+        </div>
+      )}
 
       <div className="seated-chip seated-toolbar" data-hides-cursor>
         {toolbarControl}
