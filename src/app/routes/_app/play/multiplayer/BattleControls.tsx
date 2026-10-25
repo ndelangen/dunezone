@@ -33,14 +33,14 @@ import { BattleWheel as BattleWheelAsset } from '@game/assets/generic/BattleWhee
 import { factionTokenFixtures } from '@game/fixtures/factionTokens';
 
 import type { TableSession, TableProjection } from '../../../../db/tabletop/TableSession';
+import { HandPieceCloseUp } from '../../../../widgets/tabletop/PieceCloseUp';
 import { PointerSessionContext, usePointerSession } from '../../../../widgets/tabletop/PointerSessionContext';
 import { TABLE_PLATE_BOUNDS } from '../../../../widgets/tabletop/tablePlateGeometry';
-import { useControlsExperiment } from '../controlsExperiments/experiment';
 import { DarkSchemeIsland } from '../DarkSchemeIsland';
 import { BattleBeacon } from './BattleBeacon';
 import styles from './BattleControls.module.css';
 import { battleCapsuleY, headerInset } from './battlePlacement';
-import { PieceImage, pieceName } from './HandPiece';
+import { PieceImage, pieceName, useHandCloseUp } from './HandPiece';
 import { HandPieceMenu, handMenuAnchor } from './HiddenZone';
 import type { HandMenuAnchor } from './HiddenZone';
 import { battleHelp, handHelp } from './panelGuidance';
@@ -456,60 +456,42 @@ function PlanFields({ client, table, plan, battle }: Props & { plan: BattlePlan;
   );
 }
 
-function canTakeSelected(piece: TablePiece | undefined) {
-  return (
-    !!piece &&
-    !piece.inventory &&
-    !piece.locked &&
-    piece.items.length === 1 &&
-    (piece.kind === 'card' || isBattleLeader(piece))
-  );
-}
 export function HandControls({ client, table, hand }: Props & { hand: TablePiece[] }) {
-  const selected = table.snapshot.table.pieces.find((piece) => piece.id === table.state.selectedPieceId);
   const [menu, setMenu] = useState<HandMenuAnchor | null>(null);
-  const experiment = useControlsExperiment();
-  /* The hidden zone is a tab beside this one, as wide, so a piece moved there lands in what its narrow view shows. */
+  /* The hidden zone is a window as wide as this one, so a piece moved there lands in what its narrow view shows. */
   const { ref, width } = useElementSize<HTMLDivElement>();
+  const inHand = hand.filter((piece) => !piece.hiddenZone);
+  const closeUp = useHandCloseUp(inHand);
+  const pieces = useRef<HTMLDivElement>(null);
   return (
     <Section hiddenHeading title="Your hand and leaders" description={handHelp(table)}>
       <Stack gap="sm" ref={ref}>
-        {/* The compass controls drop the button (Norbert, 2026-10-24); how a table piece reaches the hand there is still open. */}
-        {experiment === null && (
-          <Button
-            variant="default"
-            disabled={!table.canHandleTable || !canTakeSelected(selected)}
-            onClick={() => selected && client.command({ kind: 'hand-take', pieceId: selected.id })}
-          >
-            Take selected piece into hand
-          </Button>
-        )}
-        <Group gap="sm">
-          {hand
-            .filter((piece) => !piece.hiddenZone)
-            .map((piece) => (
-              <Button
-                variant="transparent"
-                h="auto"
-                radius={isBattleLeader(piece) ? '50%' : undefined}
-                p={0}
-                styles={{ label: { height: 'auto' } }}
-                key={piece.id}
-                className={styles.piece}
-                draggable={table.canHandleTable}
-                aria-label={`Drag ${pieceName(piece)} from hand`}
-                onDragStart={(event) => {
-                  event.dataTransfer.setData('application/dune-hand', piece.id);
-                  const target = event.currentTarget;
-                  event.dataTransfer.setDragImage(target, target.offsetWidth / 2, target.offsetHeight / 2);
-                }}
-                onContextMenu={(event) => setMenu(handMenuAnchor(event, piece.id))}
-              >
-                <PieceImage piece={piece} />
-              </Button>
-            ))}
+        <Group gap="sm" ref={pieces}>
+          {inHand.map((piece) => (
+            <Button
+              variant="transparent"
+              h="auto"
+              radius={isBattleLeader(piece) ? '50%' : undefined}
+              p={0}
+              styles={{ label: { height: 'auto' } }}
+              key={piece.id}
+              className={styles.piece}
+              draggable={table.canHandleTable}
+              aria-label={`Drag ${pieceName(piece)} from hand`}
+              onDragStart={(event) => {
+                event.dataTransfer.setData('application/dune-hand', piece.id);
+                const target = event.currentTarget;
+                event.dataTransfer.setDragImage(target, target.offsetWidth / 2, target.offsetHeight / 2);
+              }}
+              onContextMenu={(event) => setMenu(handMenuAnchor(event, piece.id))}
+              {...closeUp.hover(piece)}
+            >
+              <PieceImage piece={piece} />
+            </Button>
+          ))}
         </Group>
       </Stack>
+      <HandPieceCloseUp area={pieces} piece={closeUp.piece} />
       <HandPieceMenu anchor={menu} label="Hand actions" onClose={() => setMenu(null)}>
         <Menu.Item
           disabled={!table.canHandleTable}

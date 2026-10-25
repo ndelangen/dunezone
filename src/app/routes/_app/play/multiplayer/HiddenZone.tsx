@@ -10,11 +10,13 @@ import {
 } from '@shared/play/hiddenZone';
 import type { TablePiece } from '@shared/play/model';
 import { Section } from '@ui/block/Section';
-import type { DragEvent, MouseEvent, ReactNode, RefObject } from 'react';
+import type { ComponentProps, DragEvent, MouseEvent, ReactNode, RefObject } from 'react';
 import { useEffect, useId, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 import type { TableSession, TableProjection } from '../../../../db/tabletop/TableSession';
-import { PieceImage, pieceName } from './HandPiece';
+import { HandPieceCloseUp } from '../../../../widgets/tabletop/PieceCloseUp';
+import { PieceImage, pieceName, useHandCloseUp } from './HandPiece';
 import styles from './HiddenZone.module.css';
 import { HIDDEN_ZONE_HELP } from './panelGuidance';
 
@@ -33,6 +35,22 @@ export function handMenuAnchor(event: MouseEvent, pieceId: string): HandMenuAnch
   return { pieceId, x: event.clientX, y: event.clientY };
 }
 
+/*
+ * An empty positioning anchor at the pointer, not a control, as the table's piece menu uses.
+ * It lives on the body: fixed against the viewport only there, since a window with a transform or a backdrop filter
+ * (the compass's) would otherwise be its containing block and put it off-screen, where the dropdown hides itself.
+ */
+function PointerAnchor({ x, y, style, ...target }: ComponentProps<'span'> & { x: number; y: number }) {
+  return createPortal(
+    <span
+      aria-hidden
+      {...target}
+      style={{ ...style, position: 'fixed', left: x, top: y, width: 1, height: 1, pointerEvents: 'none' }}
+    />,
+    document.body
+  );
+}
+
 /** A hand piece's right-click menu, opened at the pointer as the table's piece menu is. */
 export function HandPieceMenu({
   anchor,
@@ -49,18 +67,7 @@ export function HandPieceMenu({
   return (
     <Menu opened={!!anchor} onChange={(opened) => !opened && onClose()} withinPortal position="bottom-start">
       <Menu.Target>
-        {/* An empty positioning anchor, not a control, as the table's piece menu uses. */}
-        <span
-          aria-hidden
-          style={{
-            position: 'fixed',
-            left: anchor?.x ?? 0,
-            top: anchor?.y ?? 0,
-            width: 1,
-            height: 1,
-            pointerEvents: 'none',
-          }}
-        />
+        <PointerAnchor x={anchor?.x ?? 0} y={anchor?.y ?? 0} />
       </Menu.Target>
       <Menu.Dropdown aria-labelledby={labelId}>
         <span id={labelId} hidden>
@@ -72,7 +79,7 @@ export function HandPieceMenu({
   );
 }
 
-/* The height the panel scrolling the zone shows, so the zone fills the tab without scrolling, whatever the dock's height. */
+/* The height the window scrolling the zone shows, so the zone fills the window without scrolling, whatever its height. */
 function useScrollParentHeight(ref: RefObject<HTMLElement | null>) {
   const [height, setHeight] = useState<number | null>(null);
   useEffect(() => {
@@ -111,6 +118,7 @@ export function HiddenZone({ client, table, hand }: Props) {
   const enabled = table.canHandleTable;
   const frame = useRef<HTMLDivElement>(null);
   const fitHeight = useScrollParentHeight(frame);
+  const closeUp = useHandCloseUp(pieces);
 
   const drop = (event: DragEvent<HTMLDivElement>) => {
     const pieceId = event.dataTransfer.getData('application/dune-hand');
@@ -192,6 +200,7 @@ export function HiddenZone({ client, table, hand }: Props) {
                     grab.current = null;
                   }}
                   onContextMenu={(event) => setMenu(handMenuAnchor(event, piece.id))}
+                  {...closeUp.hover(piece)}
                 >
                   <PieceImage piece={piece} width={pieceWidth} height={pieceDepth} />
                 </div>
@@ -199,6 +208,7 @@ export function HiddenZone({ client, table, hand }: Props) {
             })}
         </div>
       </div>
+      <HandPieceCloseUp area={frame} piece={closeUp.piece} />
       <HandPieceMenu anchor={menu} label="Hidden zone actions" onClose={() => setMenu(null)}>
         <Menu.Item
           disabled={!enabled}

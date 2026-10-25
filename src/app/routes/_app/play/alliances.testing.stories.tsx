@@ -2,7 +2,7 @@ import { testingPreview } from '@sb/preview';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { VIEWER, faction, alliancesSnapshot } from './alliances.stories.fixture';
-import { openPanel } from './controls.stories.fixture';
+import { openPanel, openPlayer } from './controls.stories.fixture';
 import { gameMeta, install, lastCommand, session } from './game.stories.fixture';
 import { productTransport } from './product.stories.fixture';
 
@@ -15,14 +15,6 @@ const meta = testingPreview.meta({
     },
   ],
 });
-
-async function openPlayer(canvasElement: HTMLElement, name: RegExp) {
-  const page = within(canvasElement.ownerDocument.body);
-  await userEvent.click((await page.findAllByRole('tab', { name }, { timeout: 30_000 }))[0]!);
-  const info = page.getAllByRole('tab', { name: 'Info' }).at(-1)!;
-  await userEvent.click(info);
-  return page;
-}
 
 export const IncomingOffer = meta.story({
   beforeEach: install(() => productTransport(VIEWER, alliancesSnapshot())),
@@ -41,7 +33,8 @@ export const IncomingOffer = meta.story({
 export const AlliedPlayerInfo = meta.story({
   beforeEach: install(() => productTransport(VIEWER, alliancesSnapshot())),
   play: async ({ canvasElement }) => {
-    const page = await openPlayer(canvasElement, /in an alliance/);
+    const ally = alliancesSnapshot().controls!.players.find((player) => player.seat === 'seat-4')!;
+    const page = await openPlayer(canvasElement, ally.name, 'Info');
     await waitFor(() => expect(page.getByText(/^Allied with/)).toBeVisible());
   },
 });

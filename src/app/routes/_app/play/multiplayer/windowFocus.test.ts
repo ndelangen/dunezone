@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vite-plus/test';
 
-import { initialDockFocus, nextDockFocus } from './dockFocus';
-import type { DockFocusInput, DockFocusState } from './dockFocus';
+import { initialWindowFocus, nextWindowFocus } from './windowFocus';
+import type { WindowFocusInput, WindowFocusState } from './windowFocus';
 
 const TABS: Record<string, string | null> = {
   storm: 'phase',
@@ -12,11 +12,11 @@ const TABS: Record<string, string | null> = {
 };
 
 /* Plays renders through the reducer, as the hook does, and returns the focus after each one. */
-function play(state: DockFocusState, renders: readonly Partial<DockFocusInput>[]) {
+function play(state: WindowFocusState, renders: readonly Partial<WindowFocusInput>[]) {
   const seen: (string | null)[] = [];
   for (const render of renders) {
     const phase = render.phase ?? 'play:1:storm';
-    state = nextDockFocus(state, {
+    state = nextWindowFocus(state, {
       playback: false,
       phase,
       phaseTab: TABS[phase.split(':')[2] ?? ''] ?? null,
@@ -28,9 +28,9 @@ function play(state: DockFocusState, renders: readonly Partial<DockFocusInput>[]
   return seen;
 }
 
-describe('the dock follows the live table', () => {
-  test('the phase the table loaded on keeps the player’s tab, and a later return to it opens its tab', () => {
-    const tokens = play(initialDockFocus('play:1:choam', true), [
+describe('the windows follow the live table', () => {
+  test('the phase the table loaded on opens nothing, and a later return to it opens its window', () => {
+    const tokens = play(initialWindowFocus('play:1:choam', true), [
       { phase: 'play:1:choam' },
       { phase: 'play:1:bidding' },
       { phase: 'play:1:choam' },
@@ -41,12 +41,12 @@ describe('the dock follows the live table', () => {
   });
 
   test('a table loaded during setup opens the first phase’s tab when play begins', () => {
-    const [token] = play(initialDockFocus('setup:1:storm', false), [{ phase: 'play:1:storm' }]);
+    const [token] = play(initialWindowFocus('setup:1:storm', false), [{ phase: 'play:1:storm' }]);
     expect(token).toMatch(/^phase:play:1:storm#/);
   });
 
   test('returning to a phase whose tab was the last one opened opens it again', () => {
-    const tokens = play(initialDockFocus('play:1:mentat', true), [
+    const tokens = play(initialWindowFocus('play:1:mentat', true), [
       { phase: 'play:1:storm' },
       { phase: 'play:1:blow' },
       { phase: 'play:1:storm' },
@@ -59,7 +59,7 @@ describe('the dock follows the live table', () => {
 
   test('browsing a replay and coming back to live opens nothing', () => {
     const result = { key: 'result', token: 'ending-1' };
-    const tokens = play(initialDockFocus('play:1:mentat', true), [
+    const tokens = play(initialWindowFocus('play:1:mentat', true), [
       { phase: 'play:1:battle', events: [result] },
       { phase: 'play:1:storm', playback: true, events: [null] },
       { phase: 'play:1:battle', events: [result] },
@@ -69,7 +69,7 @@ describe('the dock follows the live table', () => {
   });
 
   test('a live game that moved on during a replay opens nothing on return, and the next change does', () => {
-    const tokens = play(initialDockFocus('play:1:mentat', true), [
+    const tokens = play(initialWindowFocus('play:1:mentat', true), [
       { phase: 'play:1:storm' },
       { phase: 'play:1:storm', playback: true },
       { phase: 'play:1:bidding' },
@@ -81,7 +81,7 @@ describe('the dock follows the live table', () => {
 
   test('an event wins over the phase change it arrives with, and goes again only when it comes back', () => {
     const battle = { key: 'battle', token: 'battle-7' };
-    const tokens = play(initialDockFocus('play:1:blow', true), [
+    const tokens = play(initialWindowFocus('play:1:blow', true), [
       { phase: 'play:1:battle', events: [battle] },
       { phase: 'play:1:battle', events: [battle] },
       { phase: 'play:1:battle', events: [null] },

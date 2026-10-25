@@ -9,7 +9,7 @@
 
   container: nested-tabs / inline-size;
   display: grid;
-  /* The one row is bounded by the host, so a host given a height (the play panel's dock) bounds
+  /* The one row is bounded by the host, so a host given a height bounds
      the levels and the content panel with it; a host without one sizes to its content as before. */
   grid-template-rows: minmax(0, 1fr);
   width: 100%;

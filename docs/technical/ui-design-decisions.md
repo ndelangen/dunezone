@@ -93,21 +93,18 @@ later the panel spoke four vocabularies (a raw `.button`, a Mantine `Button`, th
 and a kit `Card` on a pane of its own), and the kit `Section` an earlier one had tried rendered its
 title at 1.3:1 because the shell pinned none of the tokens it reads. So the line is drawn at what the kit
 has no concern for. Play's own set is the 3D scene and the labels it projects, the overlays on the
-table, the phase symbol and status, the dock below the table, and the table-view picker;
-`dune-play.css` carries those rules and nothing else. The separators between the table and the dock
-and between the dock's two panes are the kit's `SplitPanels`, so both have its one shape, and the
-shell sets the split's colour properties to the app's muted brass and warm borders. The panel on the dock is
-the kit's `NestedTabs`, in the accepted shape of the play prototype. When every item is a button,
-as on the dock, each level is a vertical tablist and the panel is their tabpanel; a rail of links,
-such as the rulebook editor's, stays navigation. Its tabs
-hold `Section`, `Eyebrow`, Mantine controls and the rest of the kit, on the dark-scheme island the
+table, the phase symbol and status, and the table-view picker; `dune-play.css` carries those rules
+and nothing else. The compass over the table, its windows and the two slots they pin into are play's
+as well, each in its own CSS module under `play/compass/`. A window's (?) is the kit's `HelpMark`,
+the one glyph the control block's help uses. A window's content holds `Section`, `Eyebrow`, Mantine
+controls and the rest of the kit, on the dark-scheme island the
 shell declares with `data-scheme-dark` (`tokens.css` gives that subtree the dark block even outside the app
 chrome, and a nested provider re-emits Mantine's root-scoped scheme variables under it; a
 stylesheet keyed on `html[data-mantine-color-scheme]` does not follow the island). A Select, Menu or
 Combobox dropdown portals out of the shell, so the provider gives every Popover dropdown it renders
 the island's attributes. A tooltip's colours key on an ancestor, so the provider portals its
-tooltips into a child of `body` that carries those attributes. The dock paints the ground; the tabs
-bring the kit's pane, and nothing inside a tab brings a pane of its own. The island shares the app's warm mineral tokens and Mantine ramps. It keeps the provider and portal
+tooltips into a child of `body` that carries those attributes. A window paints the ground, and
+nothing inside a window brings a pane of its own. The island shares the app's warm mineral tokens and Mantine ramps. It keeps the provider and portal
 scoping so controls still paint correctly outside the table, without maintaining a second palette.
 The Three scene reads resolved theme variables from its canvas through `tablePalette.ts`, including
 its table materials, ground and lights. UI colours live in `src/shared/uiPalette.ts`: scoped UI variables,
@@ -133,16 +130,14 @@ per accepted part naming the kit component it becomes or the one concern that ma
 component under the taxonomy; a delivery ticket names what it builds with; and the independent
 review checks that line before the merge.
 
-Play's tooltips are raised rather than glass so they remain distinct from the dock (#2048). The island sets `--tip-surface`,
+Play's tooltips are raised rather than glass so they remain distinct from the windows (#2048). The island sets `--tip-surface`,
 `--tip-ring` and `--tip-title` in `DarkSchemeIsland.css` (not `tokens.css`, which the faction sheet renderer bundles), and the app's one dark tooltip rule reads them with
 the glass as fallback, so every tooltip on the island is a warm mineral card with a brass ring and shadow, a
-titled one takes the pale sand title, and nothing outside the island changes. The dock's guidance lives
-in its tabs, as `NestedTabs` items carry it: hovering a panel tab for five seconds shows its name over a one-line
-description, another 1.45 seconds brings the full help, and keyboard focus keeps the short opening delay, so the
-panels have no help button. A pointer click closes guidance and cancels its timers until the pointer leaves
-and returns. Mouse clicks keep the selected contour without the keyboard focus ring; keyboard input restores
-the ring and focus guidance. Play is desktop-only for the beta, so a touch path to that guidance is
-out of scope until touch is.
+titled one takes the pale sand title, and nothing outside the island changes. A window's guidance lives
+behind the (?) in its header, the kit's `HelpMark`: hovering or focusing it shows the one-line
+description and the full help under it, and the compass's search shows the description as each
+window's hint. Play is desktop-only for the beta, so a touch path to that guidance is out of scope
+until touch is.
 
 *Guarded in part: `check:css-orphans` reads route stylesheets, and the `SchemeIsland` story in
 [`panel.layout.stories.tsx`](../../src/app/routes/_app/play/panel.layout.stories.tsx) holds the island and

@@ -842,6 +842,42 @@ describe('hosted table interaction', () => {
     expect(table(client).deckControls).toBeUndefined();
   });
 
+  test('the hand takes one loose, unlocked card or battle leader, through the piece menu, only while the viewer can handle the table', async () => {
+    const client = await connected();
+    const snapshot = initialSnapshot();
+    const loose = snapshot.table.pieces.find((piece) => piece.id === 'treachery-card-loose')!;
+    const locked = { ...loose, id: 'locked-card', locked: true };
+    const leader = {
+      ...snapshot.table.pieces.find((piece) => piece.kind === 'force')!,
+      id: 'leader',
+      items: [
+        {
+          id: 'leader-1',
+          faceUp: true,
+          artwork: {
+            type: 'token-leader',
+            front: 'https://art.invalid/leader.jpg',
+            back: 'https://art.invalid/leader.jpg',
+          },
+        },
+      ],
+    };
+    snapshot.table.pieces.push(locked, leader);
+    snapshot.versions = { ...snapshot.versions, [locked.id]: 0, [leader.id]: 0 };
+    socket().deliver(view({ snapshot }));
+    const { handControls } = table(client);
+    expect(handControls?.canTake('treachery-card-loose')).toBe(true);
+    expect(handControls?.canTake('leader')).toBe(true);
+    expect(handControls?.canTake('treachery-deck')).toBe(false);
+    expect(handControls?.canTake('locked-card')).toBe(false);
+    expect(handControls?.canTake('no-such-piece')).toBe(false);
+    handControls?.take('treachery-card-loose');
+    expect(command().action).toEqual({ kind: 'hand-take', pieceId: 'treachery-card-loose' });
+
+    socket().deliver(view({ snapshot: { ...snapshot, stage: 'drafting' } }));
+    expect(table(client).handControls).toBeUndefined();
+  });
+
   test('a rejected phase correction does not cancel the active carry', async () => {
     const { client, source, carried } = await grantedWholeCarry();
     socket().deliver(carried);

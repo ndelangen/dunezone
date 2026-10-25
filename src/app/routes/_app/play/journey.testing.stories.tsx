@@ -1,6 +1,7 @@
 import { testingPreview } from '@sb/preview';
-import { expect, userEvent, waitFor, within } from 'storybook/test';
+import { expect, waitFor, within } from 'storybook/test';
 
+import { openControl } from './controls.stories.fixture';
 import { gameMeta } from './game.stories.fixture';
 import {
   chapter,
@@ -49,8 +50,8 @@ export const Walkthrough = meta.story({
     const { page } = await atStep(canvasElement, 1);
     /* No story controls sit over the page: the debugger lives in Storybook's own panel. */
     await expect(page.queryByRole('complementary', { name: 'Journey' })).toBeNull();
-    /* The page itself follows the step: the second player shows once the table fills, and leaves again at the start. */
-    const seated = () => page.queryAllByText(PLAYERS_AT_TABLE_FULL, { exact: true });
+    /* The page itself follows the step: the second player's token joins the chat bar once the table fills, and leaves again at the start. */
+    const seated = () => page.queryAllByRole('button', { name: new RegExp(`^${PLAYERS_AT_TABLE_FULL}`) });
     await expect(seated()).toHaveLength(0);
     /* The Play debugger panel moves the step argument; the story's `beforeEach` then delivers it like this. */
     showJourney(1, 'seat-1');
@@ -63,18 +64,14 @@ export const Walkthrough = meta.story({
   },
 });
 
-/** Opens a tab of the controls panel, which the recorded step may draw a moment after its heading. */
-async function openTab(page: ReturnType<typeof within>, name: string) {
-  await userEvent.click(await page.findByRole('tab', { name }, { timeout: 30_000 }));
-}
-
 /** The Bene Gesserit hand now holds traitor cards for other factions' leaders beside its own. */
 export const TraitorsDealt = meta.story({
   args: { step: chapter('Traitors dealt') },
   play: async ({ canvasElement }) => {
     const { page } = await atStep(canvasElement, chapter('Traitors dealt'));
+    await openControl(page, 'Setup');
     await expect(page.findByRole('region', { name: 'Traitor selection' })).resolves.toBeVisible();
-    await openTab(page, 'Yours');
+    await openControl(page, 'Hand');
     const hand = within(await page.findByRole('region', { name: 'Your hand and leaders' }));
     for (const traitor of ['Thufir Hawat', 'Esmar Tuek', 'Hasimir Fenring']) {
       await expect(hand.getByRole('button', { name: `Drag ${traitor} from hand` })).toBeInTheDocument();
@@ -87,7 +84,7 @@ export const SpiceBlow = meta.story({
   args: { step: chapter('Spice placed') },
   play: async ({ canvasElement }) => {
     const { page } = await atStep(canvasElement, chapter('Spice placed'));
-    await openTab(page, 'History');
+    await openControl(page, 'Game log');
     const log = within(await page.findByRole('region', { name: 'Game log' }));
     await expect(log.findByText('Twaffle took 8 spice from the Spice Bank to the table.')).resolves.toBeVisible();
   },
@@ -98,7 +95,7 @@ export const BattleRevealed = meta.story({
   args: { step: chapter('Battle revealed'), seat: 'neutral' },
   play: async ({ canvasElement }) => {
     const { page } = await atStep(canvasElement, chapter('Battle revealed'));
-    await expect(page.findByRole('region', { name: 'Battle' })).resolves.toBeVisible();
+    await openControl(page, 'Battle');
     await waitFor(() => expect(page.getAllByLabelText(/ plan, troop strength/).length).toBeGreaterThanOrEqual(2));
     await expect(page.getByRole('button', { name: 'Left side won' })).toBeVisible();
   },

@@ -1,18 +1,13 @@
-/* The command palette's second stage: the bar of the palette button and the chats, the shortcut hints, and the window above them. */
-
-.sheet {
-  bottom: 4.6rem;
-  width: min(46rem, 72vw);
-  max-height: min(32rem, calc(100% - var(--play-header-height) - 6rem));
-}
+/* The bar at the bottom of the table: the Controls button, the chats as tokens with their unread counts, and the tip over each. */
 
 .bar {
   position: absolute;
   z-index: 13;
-  bottom: 1rem;
+  bottom: var(--edge-gap);
   left: 50%;
   display: flex;
   align-items: center;
+  max-width: calc(100% - 2 * var(--edge-gap));
   gap: 0.6rem;
   transform: translateX(-50%);
 }
@@ -45,9 +40,16 @@
   color: var(--color-text);
 }
 
+/* A large table's tokens wrap into further rows rather than run past the edge of the table. */
 .chats {
+  flex-wrap: wrap;
+  justify-content: center;
+  min-width: 0;
+  height: auto;
+  min-height: 2.9rem;
   gap: 0.3rem;
-  padding: 0 0.4rem;
+  padding: 0.3rem 0.4rem;
+  border-radius: 1.45rem;
 }
 
 .chat {
@@ -145,4 +147,15 @@
   border: 2px solid var(--ui-ground);
   border-radius: 50%;
   background: var(--color-error);
+}
+
+/* With motion reduced a new count appears in place. */
+:global(html[data-motion="reduce"]) .badge {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :global(html:not([data-motion="ok"])) .badge {
+    animation: none;
+  }
 }

@@ -6,6 +6,7 @@ import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { asset, db } from '@db/storybook';
 
+import { windowNamed } from './controls.stories.fixture';
 import { gameMeta, install, lastCommand, session } from './game.stories.fixture';
 import { openTab, pendingRequestTransport, phaseControls, settled } from './playing.stories.fixture';
 import {
@@ -91,13 +92,15 @@ export const Narrow = meta.story({
       await expect(page.getByRole('button', { name: 'Approve' })).toBeEnabled();
       await expect(page.getByText('House Atreides tokens requested by Twaffle')).toBeVisible();
     });
-    /* The kit's TabGuidance story owns timed tooltip display; this page checks that each tab receives its description and help. */
-    await expect(page.getByRole('tab', { name: 'Shared inventory' })).toHaveAccessibleDescription(
-      'Pieces every player can take. Drag an item onto the table. It lands face down.'
+    /* The kit's HelpMark story owns timed tooltip display; this page checks that each window's (?) carries its description and help. */
+    await expect(
+      within(windowNamed(page, 'Shared inventory')!).getByRole('img', { name: 'Help' })
+    ).toHaveAccessibleDescription(
+      'Pieces every player can take. Drag an item onto the table. It lands face down. Open in the centre, [ pins it bottom left and ] bottom right.'
     );
     await openTab(page, 'Phase');
-    await expect(page.getByRole('tab', { name: 'Phase' })).toHaveAccessibleDescription(
-      'Storm, instructions and actions. Move the storm using the storm controls. Previous changes the tracker only. Pieces and storm position stay as they are.'
+    await expect(within(windowNamed(page, 'Phase')!).getByRole('img', { name: 'Help' })).toHaveAccessibleDescription(
+      'Storm, instructions and actions. Move the storm using the storm controls. Previous changes the tracker only. Pieces and storm position stay as they are. Open in the centre, [ pins it bottom left and ] bottom right.'
     );
   },
 });

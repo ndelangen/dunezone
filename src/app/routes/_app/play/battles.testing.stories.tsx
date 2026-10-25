@@ -7,7 +7,7 @@ import { expect, userEvent, within } from 'storybook/test';
 
 import { dragBattleMarker } from './battles.marker.stories.fixture';
 import { battleSetup, readiness, convexIds, withConvexIds } from './battles.stories.fixture';
-import { openPanel, WAIT } from './controls.stories.fixture';
+import { expectNoControl, openPanel, unpinWindow, WAIT, windowNamed } from './controls.stories.fixture';
 import { gameMeta, install, lastCommand, session } from './game.stories.fixture';
 import { battleStory, expectBattleCalloutPlacement, openTab, settled } from './playing.stories.fixture';
 import { productTransport } from './product.stories.fixture';
@@ -365,19 +365,19 @@ export const PlanArtwork = meta.story({
   },
 });
 
-/** A participant sees their planner once, then keeps their chosen group across battle updates. */
+/** A participant sees their planner open once, then keeps the window they chose across battle updates. */
 export const FocusOnce = meta.story({
   beforeEach: battleSetup('preparing'),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await settled(() => expect(page.getByRole('tab', { name: 'Battle' })).toHaveAttribute('aria-selected', 'true'));
+    await settled(() => expect(windowNamed(page, 'Battle')).toBeVisible());
+    await unpinWindow(page, 'Battle');
     await openTab(page, 'Hand');
     const snapshot = battleStory('preparing');
     snapshot.revision = 1;
     session.transport.deliver(session.transport.view(snapshot));
-    await settled(() => expect(page.getByRole('tab', { name: 'Hand' })).toHaveAttribute('aria-selected', 'true'));
-    await userEvent.click(within(page.getByRole('tablist', { name: 'Controls' })).getByRole('tab', { name: 'Game' }));
-    await expect(page.getByRole('tab', { name: 'Battle' })).toHaveAttribute('aria-selected', 'true');
+    await settled(() => expect(windowNamed(page, 'Hand')).toBeVisible());
+    await expect(windowNamed(page, 'Battle')).toBeNull();
   },
 });
 
@@ -492,11 +492,6 @@ export const Observer = meta.story({
   beforeEach: install(() => productTransport('neutral', battleStory('revealed', true))),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    /* A spectator's dock opens on the battle. */
-    await expect(page.findByRole('tab', { name: 'Battle' }, { timeout: 30_000 })).resolves.toHaveAttribute(
-      'aria-selected',
-      'true'
-    );
     await openTab(page, 'Battle');
     await settled(() => expect(page.getByRole('button', { name: 'No winner' })).toBeDisabled());
     await expect(page.getByText('Both plans are revealed on the table.')).toBeVisible();
@@ -553,9 +548,9 @@ export const Resolved = meta.story({
     session.transport.deliver(
       session.transport.view({ ...snapshot, phase: snapshot.phase + 1, revision: snapshot.revision + 1 })
     );
-    await settled(() => expect(page.getByRole('tab', { name: 'Battles' })).toHaveAttribute('aria-selected', 'true'));
+    await settled(() => expect(windowNamed(page, 'Battles')).toBeVisible());
     await openTab(page, 'Phase');
-    await expect(page.queryByRole('tab', { name: 'Battle' })).toBeNull();
+    await expectNoControl(page, 'Battle');
     await openTab(page, 'Battles');
     await expect(page.getByText('Arrakeen: House Harkonnen against House Atreides. Left side won.')).toBeVisible();
   },

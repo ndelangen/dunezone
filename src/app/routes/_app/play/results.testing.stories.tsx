@@ -4,6 +4,7 @@ import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { STORYBOOK_NOW } from '@db/storybook';
 
+import { unpinWindow, WAIT, windowNamed } from './controls.stories.fixture';
 import { gameMeta, install, lastCommand, session } from './game.stories.fixture';
 import { openTab } from './playing.stories.fixture';
 import { productTransport, SIX } from './product.stories.fixture';
@@ -62,7 +63,7 @@ export const DeclaringKeepsChoiceAcrossTabs = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     const bar = (await page.findByText('Declare the result', {}, { timeout: 30_000 })).closest('section')!;
     await userEvent.click(within(bar).getByText('No winner'));
-    await openTab(page, 'Hand');
+    await unpinWindow(page, 'Result');
     await waitFor(() => expect(page.queryByText('Declare the result')).toBeNull());
     await openTab(page, 'Result');
     const back = (await page.findByText('Declare the result')).closest('section')!;
@@ -71,7 +72,7 @@ export const DeclaringKeepsChoiceAcrossTabs = meta.story({
   },
 });
 
-/* Once the Result tab closes, the Game group opens on a tab that still exists, so Phase stays in reach. */
+/* Once the Result panel goes, its window goes with it, and Phase stays in reach. */
 export const StoppedDeclaringKeepsGameReachable = meta.story({
   beforeEach: install(() => {
     const snapshot = mentatSnapshot('seat-2');
@@ -82,11 +83,18 @@ export const StoppedDeclaringKeepsGameReachable = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await page.findByText('Declare the result', {}, { timeout: 30_000 });
     session.transport.deliver(session.transport.view({ ...mentatSnapshot('seat-2'), revision: 1 }));
-    await waitFor(() => expect(page.queryByRole('tab', { name: 'Result' })).toBeNull());
+    await waitFor(() => expect(windowNamed(page, 'Result')).toBeNull());
     await openTab(page, 'Phase');
     await expect(page.findByRole('button', { name: 'Determine winner' })).resolves.toBeVisible();
   },
 });
+
+/* What sits over a point instead, named by its nearest label and the window holding it, for a failure to read. */
+function coverOf(hit: Element | null) {
+  const frame = hit?.closest('[data-window]');
+  const label = hit?.closest('[aria-label]')?.getAttribute('aria-label');
+  return `${hit?.tagName ?? 'nothing'} ${label ?? ''} in ${frame ? `the ${frame.getAttribute('data-side')} window` : 'no window'}`;
+}
 
 /* The ancestors a finger can scroll, nearest first, as overflow hidden is not. */
 function touchScrollers(element: Element) {
@@ -99,7 +107,7 @@ function touchScrollers(element: Element) {
   return scrollers;
 }
 
-/* On a phone the Result tab outgrows the dock's floor; it scrolls inside the dock, so Declare is in reach. */
+/* On a phone the Result window outgrows the screen; it scrolls inside its frame, so Declare is in reach. */
 export const DeclaringOnAPhone = meta.story({
   globals: { viewport: { value: 'appMobile' }, motion: 'reduce' },
   beforeEach: install(() => {
@@ -115,12 +123,14 @@ export const DeclaringOnAPhone = meta.story({
     const declare = within(bar).getByRole('button', { name: 'Declare' });
     await waitFor(async () => {
       const box = declare.getBoundingClientRect();
-      if (box.bottom > view.innerHeight) {
+      /* Below the window, or below the bottom of the slot that clips it, where the board shows instead. */
+      const covered = !declare.contains(canvasElement.ownerDocument.elementFromPoint(box.left + 4, box.top + 4));
+      if (box.bottom > view.innerHeight || covered) {
         const scrollers = touchScrollers(declare);
         await expect(scrollers, 'Declare sits below the window with nothing to scroll it into view').not.toHaveLength(
           0
         );
-        /* The Result tab sits above the players' pane in the phone's stacked dock, so each pane scrolls to Declare, not to its end, the panel first and then the dock around it. */
+        /* Each scroller scrolls to Declare, not to its end: the section first and then the window around it. */
         for (const scroller of scrollers) {
           const bottom = Math.min(scroller.getBoundingClientRect().bottom, view.innerHeight);
           scroller.scrollTop += Math.max(0, declare.getBoundingClientRect().bottom - bottom);
@@ -128,12 +138,12 @@ export const DeclaringOnAPhone = meta.story({
       }
       const shown = declare.getBoundingClientRect();
       await expect(shown.bottom).toBeLessThanOrEqual(view.innerHeight);
-      await expect(declare.contains(canvasElement.ownerDocument.elementFromPoint(shown.left + 4, shown.top + 4))).toBe(
-        true
-      );
+      const hit = canvasElement.ownerDocument.elementFromPoint(shown.left + 4, shown.top + 4);
+      await expect(declare.contains(hit), `Declare is covered by ${coverOf(hit)}`).toBe(true);
       /* The section holds its whole content, so Declare sits inside its frame. */
       await expect(shown.bottom).toBeLessThanOrEqual(bar.getBoundingClientRect().bottom);
-    });
+      /* The window the table opened by itself settles into its slot over a few frames, which a slow runner draws seconds apart. */
+    }, WAIT);
     /* An alliance is declared only once its factions are picked, and the declaration names them. */
     await expect(declare).toBeDisabled();
     const snapshot = mentatSnapshot('seat-2');

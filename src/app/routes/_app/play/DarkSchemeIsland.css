@@ -1,4 +1,4 @@
-/* Raised tooltips stay distinct from the dock, using the app's warm mineral palette.
+/* Raised tooltips stay distinct from the windows, using the app's warm mineral palette.
  * The portal host carries this attribute, so the same treatment follows tooltips out of the table.
  */
 [data-scheme-dark] {

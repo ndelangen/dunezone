@@ -184,7 +184,7 @@ export const Reconnecting = meta.story({
   beforeEach: install(() => productTransport('seat-2', playingSnapshot())),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await page.findByRole('tab', { name: 'Conversation' });
+    await page.findByRole('button', { name: /^Controls/ }, { timeout: 30_000 });
     session.transport.deliver({ type: 'admission', status: 'suspended' });
     const status = await page.findByRole('status', { name: /^Reconnecting\./ });
     const header = status.closest('.seated-header')!;
@@ -230,7 +230,7 @@ export const ReloadedWhileUnreachable = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     const bar = await page.findByText('Reconnecting', { exact: true }, { timeout: 30_000 });
     await expect(bar.closest('[data-connection]')).not.toHaveAttribute('data-connection', 'authorized');
-    await page.findByRole('tab', { name: 'Conversation' });
+    await page.findByRole('button', { name: /^Controls/ }, { timeout: 30_000 });
     await expect(page.queryByText("Can't reach the server. Retrying...")).toBeNull();
     await expect(session.transport.messages.filter((message) => message.type === 'command')).toEqual([]);
   },

@@ -1,6 +1,7 @@
 import preview from '@sb/preview';
 import { expect, within } from 'storybook/test';
 
+import { openPlayer, WAIT } from './controls.stories.fixture';
 import { gameMeta } from './game.stories.fixture';
 import { chapter, JourneyPage, journeySteps, journeyBeforeEach, journeyViewers } from './journey.stories.fixture';
 import { atStep } from './journey.stories.fixture';
@@ -42,13 +43,14 @@ export const Drafting = meta.story({
   },
 });
 
-/** Trading runs on a clock, and the viewer can offer a trade to another faction. */
+/** Trading runs on a clock, and the viewer can offer a trade to another faction from that player's Info. */
 export const Trading = meta.story({
   args: { step: chapter('Trading') },
   play: async ({ canvasElement }) => {
     const { page } = await atStep(canvasElement, chapter('Trading'));
     await expect(page.findByRole('timer', { name: 'Trading time remaining' })).resolves.toBeVisible();
-    await expect(page.getByRole('button', { name: 'Offer trade to House Atreides' })).toBeVisible();
+    await openPlayer(canvasElement, 'Thialfi', 'Info');
+    await expect(page.findByRole('button', { name: 'Offer trade to House Atreides' }, WAIT)).resolves.toBeVisible();
   },
 });
 
