@@ -2,6 +2,7 @@ import { testingPreview } from '@sb/preview';
 import { waitForFrame } from '@sb/storyWaits';
 import { expect, userEvent, within } from 'storybook/test';
 
+import { openCompass, windowNamed } from './controls.stories.fixture';
 import { gameMeta, install, lastCommand, session } from './game.stories.fixture';
 import { openPieceMenu, openTab, paintedColor, settled } from './playing.stories.fixture';
 import { productTransport, playingSnapshot as initialSnapshot } from './product.stories.fixture';
@@ -18,11 +19,9 @@ const meta = testingPreview.meta({
 });
 
 /**
- * The grouped controls keep Yours first and remember each group's last destination.
- * Private reserves and public history occupy separate panes;
- * the primary rail stays in place.
+ * The windows the compass opens: one at a time in the centre, Hand and Spice as one, and the header's phase controls outside them all.
  */
-export const Tabs = meta.story({
+export const Windows = meta.story({
   beforeEach: install(() =>
     productTransport('seat-2', {
       ...initialSnapshot(),
@@ -32,23 +31,23 @@ export const Tabs = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await openTab(page, 'Shared inventory');
-    const rail = () => page.getByRole('tablist', { name: 'Controls' });
     await settled(async () => {
-      await expect(
-        within(rail())
-          .getAllByRole('tab')
-          .map((item) => item.getAttribute('aria-label'))
-      ).toEqual(['Yours', 'Game', 'Table', 'History']);
-      await expect(page.getByRole('tab', { name: 'Shared inventory' })).toHaveAttribute('aria-selected', 'true');
       await expect(page.getByRole('region', { name: 'Shared inventory' })).toBeVisible();
       await expect(page.queryByRole('heading', { name: 'Spice reserve' })).toBeNull();
     });
-    /* Compared as plain numbers: two DOMRects have no own enumerable properties, so toEqual on the rects themselves is always true. */
-    const railBox = rail().getBoundingClientRect().toJSON();
+    const compass = await openCompass(page);
+    await userEvent.type(compass.getByRole('textbox', { name: 'Search controls' }), 'hand');
+    await settled(async () => {
+      await expect(compass.getAllByRole('option').map((item) => item.textContent)).toContainEqual(
+        expect.stringMatching(/^Hand & spice/)
+      );
+    });
+    await userEvent.keyboard('{Escape}');
 
     await openTab(page, 'Spice');
     await settled(async () => {
       await expect(page.getByRole('region', { name: 'Spice reserve' })).toBeVisible();
+      await expect(page.getByRole('region', { name: 'Your hand and leaders' })).toBeVisible();
       await expect(page.queryByRole('region', { name: 'Public spice transfers' })).toBeNull();
       await expect(page.queryByRole('heading', { name: 'Shared inventory' })).toBeNull();
     });
@@ -58,10 +57,7 @@ export const Tabs = meta.story({
       await expect(page.queryByRole('button', { name: 'Replay from start' })).toBeNull();
       await expect(page.queryByRole('region', { name: 'Hosted connection' })).toBeNull();
       await expect(page.queryByRole('heading', { name: 'Spice reserve' })).toBeNull();
-      await expect(rail().getBoundingClientRect().toJSON()).toEqual(railBox);
     });
-    await userEvent.click(within(rail()).getByRole('tab', { name: 'Yours' }));
-    await expect(page.getByRole('tab', { name: 'Spice' })).toHaveAttribute('aria-selected', 'true');
     await openTab(page, 'Spice transfers');
     await expect(page.getByRole('region', { name: 'Public spice transfers' })).toBeVisible();
     await expect(page.queryByRole('region', { name: 'Spice reserve' })).toBeNull();
@@ -70,7 +66,7 @@ export const Tabs = meta.story({
     await openTab(page, 'Replay');
     await expect(page.getByRole('button', { name: 'Replay from start' })).toBeVisible();
     await openTab(page, 'Hand');
-    /* The phase controls stay in the header, outside the tabs. */
+    /* The phase controls stay in the header, outside the windows. */
     await expect(page.getByRole('group', { name: 'Phase navigation' }).closest('header')).not.toBeNull();
   },
 });
@@ -89,9 +85,8 @@ export const SchemeIsland = meta.story({
     const paint = () => [view.getComputedStyle(balance).color, view.getComputedStyle(button).backgroundColor];
     await expect(root).toHaveAttribute('data-mantine-color-scheme', 'dark');
     const tablePaint = paint();
-    await expect(tablePaint[0]).toBe(
-      paintedColor(island, view.getComputedStyle(island).getPropertyValue('--color-text').trim())
-    );
+    /* The window's ink, which its frame sets for everything inside it. */
+    await expect(tablePaint[0]).toBe(view.getComputedStyle(balance.closest('[data-window]')!).color);
     const deck = initialSnapshot().table.pieces.find((piece) => piece.id === 'treachery-deck')!;
     const glass = paintedColor(island, view.getComputedStyle(island).getPropertyValue('--glass-overlay').trim());
     const menu = await openPieceMenu(canvasElement.ownerDocument, deck, 'Deck actions');
@@ -102,10 +97,10 @@ export const SchemeIsland = meta.story({
     await userEvent.keyboard('{Escape}');
     await waitForFrame(() => expect(page.queryByRole('menu')).toBeNull());
     const raised = paintedColor(island, view.getComputedStyle(island).getPropertyValue('--tip-surface').trim());
-    const help = page.getByRole('tab', { name: 'Spice' });
-    /* By its words, as the tab's tooltip. */
+    const help = within(windowNamed(page, 'Spice')!).getByRole('img', { name: 'Help' });
+    /* By its words, as the window's (?) tooltip. */
     const spiceReserveTip = () =>
-      page.queryAllByRole('tooltip').find((tip) => tip.textContent?.includes('Your private spice reserve')) ?? null;
+      page.queryAllByRole('tooltip').find((tip) => tip.textContent?.includes('Only you see this balance')) ?? null;
     await userEvent.hover(help);
     const tooltip = await waitForFrame(async () => {
       const tip = spiceReserveTip();

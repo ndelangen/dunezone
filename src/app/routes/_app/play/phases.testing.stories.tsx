@@ -4,7 +4,7 @@ import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { STORYBOOK_NOW } from '@db/storybook';
 
-import { openPanel, WAIT } from './controls.stories.fixture';
+import { openPanel, WAIT, windowNamed } from './controls.stories.fixture';
 import { gameMeta, install, lastCommand, session } from './game.stories.fixture';
 import { factionPhaseSnapshot } from './phases.stories.fixture';
 import { expectHeaderPhase, openTab, phaseControls } from './playing.stories.fixture';
@@ -34,7 +34,7 @@ export const Shared = meta.story({
   beforeEach: install(() => productTransport('seat-2')),
   play: async ({ canvasElement }) => {
     const { page, controls, waitForPhase, expectPrevious, pressPrevious } = phaseControls(canvasElement);
-    await waitForPhase(() => expect(page.getByRole('tab', { name: 'Game' })).toBeVisible());
+    await waitForPhase(() => expect(page.getByRole('button', { name: /^Controls/ })).toBeVisible());
     await openTab(page, 'Phase');
     await waitForPhase(async () => {
       await expect(controls().getByRole('button', { name: 'Next phase' })).toBeEnabled();
@@ -83,7 +83,7 @@ export const Observer = meta.story({
   beforeEach: install(() => productTransport('neutral', { ...initialSnapshot(), phase: 5 })),
   play: async ({ canvasElement }) => {
     const { page, controls, waitForPhase, expectPrevious } = phaseControls(canvasElement);
-    await waitForPhase(() => expect(page.getByRole('tab', { name: 'Game' })).toBeVisible());
+    await waitForPhase(() => expect(page.getByRole('button', { name: /^Controls/ })).toBeVisible());
     await openTab(page, 'Phase');
     await waitForPhase(async () => {
       await expect(controls().getByRole('button', { name: 'Next phase' })).toBeDisabled();
@@ -100,12 +100,12 @@ export const FactionPhase = meta.story({
   beforeEach: install(() => productTransport('seat-2', factionPhaseSnapshot(false))),
   play: async ({ canvasElement }) => {
     const { page, waitForPhase } = phaseControls(canvasElement);
-    await waitForPhase(() => expect(page.getByRole('tab', { name: 'Game' })).toBeVisible());
+    await waitForPhase(() => expect(page.getByRole('button', { name: /^Controls/ })).toBeVisible());
     await openTab(page, 'Phase');
     await waitForPhase(() => expect(page.getByRole('region', { name: 'Guild negotiations' })).toBeInTheDocument());
-    const phaseTab = page.getByRole('tab', { name: 'Phase' });
-    /* The kit's TabGuidance story owns timed tooltip display, since a slow frame here can outlast it; this page checks that the tab receives the phase's description and its instructions as help. */
-    await expect(phaseTab).toHaveAccessibleDescription(
+    const phaseHelp = within(windowNamed(page, 'Phase')!).getByRole('img', { name: 'Help' });
+    /* The kit's HelpMark story owns timed tooltip display, since a slow frame here can outlast it; this page checks that the window's (?) carries the phase's description and its instructions. */
+    await expect(phaseHelp).toHaveAccessibleDescription(
       'Guild negotiations, instructions and actions. Agree any shipment deals before bidding opens. Previous changes the tracker only. Pieces and storm position stay as they are.'
     );
     const header = canvasElement.ownerDocument.querySelector('.seated-header') as HTMLElement;
@@ -229,7 +229,7 @@ export const PlaybackKeepsLivePhaseSeparate = meta.story({
   beforeEach: install(() => productTransport('seat-2', { ...initialSnapshot(), phase: 5 })),
   play: async ({ canvasElement }) => {
     const { page, controls, waitForPhase, expectPrevious } = phaseControls(canvasElement);
-    await waitForPhase(() => expect(page.getByRole('tab', { name: 'Game' })).toBeVisible());
+    await waitForPhase(() => expect(page.getByRole('button', { name: /^Controls/ })).toBeVisible());
     await openTab(page, 'Replay');
     await waitForPhase(() => expect(page.getByRole('button', { name: 'Replay from start' })).toBeEnabled());
     await userEvent.click(page.getByRole('button', { name: 'Replay from start' }));

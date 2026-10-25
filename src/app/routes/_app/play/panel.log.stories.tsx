@@ -58,7 +58,7 @@ export const Audit = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await openTab(page, 'Game log');
-    await userEvent.click(await page.findByRole('tab', { name: 'Audit' }));
+    await openTab(page, 'Audit');
     const log = await page.findByRole('region', { name: 'Audit log' });
     await expect(within(log).findByText(/Twaffle keeps seat 1/)).resolves.toBeVisible();
     await expect(within(log).getByText('[deleted user] left seat 6 when the account was deleted.')).toBeVisible();

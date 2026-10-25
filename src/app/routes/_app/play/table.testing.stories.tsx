@@ -96,30 +96,18 @@ export const Controls = meta.story({
       await expect(shell).toHaveAttribute('data-table-view', view);
     }
 
-    /* The header's controls lead the Tab order: Tab from the page start reaches the header before the separator. The pointer rests on the view buttons, not the table, so Tab moves focus instead of pinging (#2043). */
-    const divider = page.getByRole('separator', { name: 'Resize controls panel' });
+    /* The header's controls lead the Tab order: Tab from the page start reaches the header before the chrome under it. The pointer rests on the view buttons, not the table, so Tab moves focus instead of pinging (#2043). */
     const header = shell.querySelector('header')!;
+    const launcher = page.getByRole('button', { name: /^Controls/ });
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
     }
     let focused: Element | null = null;
-    for (let press = 0; press < 50 && focused !== divider && !header.contains(focused); press++) {
+    for (let press = 0; press < 50 && focused !== launcher && !header.contains(focused); press++) {
       await userEvent.tab();
       focused = document.activeElement;
     }
     await expect(header.contains(focused), `Tab reaches ${focused?.outerHTML.slice(0, 80)} first`).toBe(true);
-
-    /* With the real cursor over the board, the arrows would slide the camera instead (#2471), so the pointer is off the canvas first. */
-    leaveTheCanvas(page, document.querySelector('canvas')!, { pointerType: 'mouse' });
-    divider.focus();
-    await userEvent.keyboard('{Home}');
-    await expect(divider.getAttribute('aria-valuenow')).toBe(divider.getAttribute('aria-valuemin'));
-    const minimum = Number(divider.getAttribute('aria-valuenow'));
-    await userEvent.keyboard('{ArrowUp}');
-    await expect(Number(divider.getAttribute('aria-valuenow'))).toBeGreaterThan(minimum);
-    await userEvent.keyboard('{End}');
-    await expect(divider.getAttribute('aria-valuenow')).toBe(divider.getAttribute('aria-valuemax'));
-    await userEvent.tab();
 
     const counters = Array.from(shell.querySelectorAll<HTMLElement>('.scene-piece-count'));
     await expect(counters.length).toBeGreaterThan(0);
@@ -429,8 +417,8 @@ export const PhaseViewWaitsForTheDrop = meta.story({
 });
 
 /**
- * On a short window the dock keeps its floor by growing up over the scene, to above the header's lower edge.
- * The header and the camera dial still paint above it there, so each of their controls takes the pointer at its top, middle and bottom.
+ * On a short window the header's chips and the camera dial still have the table to themselves.
+ * Each of their controls takes the pointer at its top, middle and bottom, and the dial hangs under the toolbar's chip.
  */
 export const ShortWindow = meta.story({
   /* Still, so no iris clips the corners the controls sit in. */
@@ -439,31 +427,10 @@ export const ShortWindow = meta.story({
   play: async ({ canvasElement }) => {
     const { shell } = await tablePage(canvasElement);
     await waitFor(() => expect(shell.parentElement).toHaveAttribute('data-scene-ready', 'true'), { timeout: 5000 });
-    const header = shell.querySelector('header')!;
-    const dock = shell.querySelector('.seated-controls-panel')!;
-    await expect(dock.getBoundingClientRect().top).toBeLessThan(header.getBoundingClientRect().bottom);
-    /* The dock grows up over the scene here, so the fixed split draws no separator across it. */
-    await expect(shell.querySelector('[role="separator"][aria-orientation="horizontal"]')).not.toBeVisible();
     await expectControlsTakeThePointer(shell);
-  },
-});
-
-/* Just above the height where the split is fixed, the scene above the dock is shorter than the dial: it slides down over the dock rather than under the header's chips. */
-export const LowWindow = meta.story({
-  globals: { viewport: { value: 'appLow' }, motion: 'reduce' },
-  beforeEach: install(() => productTransport()),
-  play: async ({ canvasElement }) => {
-    const { shell } = await tablePage(canvasElement);
-    await waitFor(() => expect(shell.parentElement).toHaveAttribute('data-scene-ready', 'true'), { timeout: 5000 });
-    await expect(shell.querySelector('[role="separator"][aria-orientation="horizontal"]')).toBeVisible();
-    await expectControlsTakeThePointer(shell);
-    /* Docked, the dial keeps a column of its own: the panes beside it stay clear of it. */
+    const toolbar = shell.querySelector('.seated-toolbar')!.getBoundingClientRect();
     const camera = shell.querySelector('.seated-camera')!.getBoundingClientRect();
-    for (const pane of shell.querySelectorAll('.seated-controls-panel > :not(.seated-camera)')) {
-      await expect(pane.getBoundingClientRect().right, `${pane.className} runs under the dial`).toBeLessThanOrEqual(
-        camera.left
-      );
-    }
+    await expect(camera.top).toBeGreaterThanOrEqual(toolbar.bottom);
   },
 });
 

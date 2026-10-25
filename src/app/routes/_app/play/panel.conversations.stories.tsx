@@ -3,7 +3,7 @@ import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { STORYBOOK_NOW } from '@db/storybook';
 
-import { openPlayer, WAIT } from './controls.stories.fixture';
+import { openControl, openPlayer, WAIT, windowNamed } from './controls.stories.fixture';
 import {
   conversationMessages,
   conversationPair,
@@ -12,7 +12,7 @@ import {
   session,
   tableMessages,
 } from './game.stories.fixture';
-import { productTransport, playingSnapshot } from './product.stories.fixture';
+import { factions, playingSnapshot, productTransport } from './product.stories.fixture';
 
 const meta = testingPreview.meta({
   ...gameMeta,
@@ -33,7 +33,7 @@ export const WithAPlayer = meta.story({
     productTransport('seat-2', playingSnapshot(), { conversationMessages: conversationMessages() })
   ),
   play: async ({ canvasElement }) => {
-    const page = await openPlayer(canvasElement, 'Twaffle', 'Conversation');
+    const page = await openPlayer(canvasElement, 'Twaffle', 'Chat');
     await expect(page.findByText('Shall we keep the southern route open?', {}, WAIT)).resolves.toBeVisible();
   },
 });
@@ -43,7 +43,7 @@ export const WithTheTable = meta.story({
   globals: { motion: 'reduce' },
   beforeEach: install(() => productTransport('seat-2', playingSnapshot(), { conversationMessages: tableMessages() })),
   play: async ({ canvasElement }) => {
-    const page = await openPlayer(canvasElement, 'Table', 'Conversation');
+    const page = await openPlayer(canvasElement, 'Table chat', 'Chat');
     await expect(page.findByText('Who is bidding on this one?', {}, WAIT)).resolves.toBeVisible();
   },
 });
@@ -58,11 +58,8 @@ export const History = meta.story({
     productTransport('seat-2', playingSnapshot(), { conversationMessages: conversationMessages() })
   ),
   play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await page.findByRole('tab', { name: 'Twaffle' });
-    page.getByRole('separator', { name: 'Resize controls panel' }).focus();
-    await userEvent.keyboard('{End}');
-    await userEvent.click(page.getByRole('tab', { name: 'Info' }));
+    const page = await openPlayer(canvasElement, 'Twaffle', 'Info');
+    const twaffle = () => within(windowNamed(page, 'Twaffle')!);
     const { factionId, peerId } = conversationPair();
     session.transport.deliver({
       type: 'conversations',
@@ -70,9 +67,9 @@ export const History = meta.story({
       generation: 0,
       entries: [{ peerId, latest: 55, unread: 55 }],
     });
-    await expect(page.findByRole('tab', { name: 'Twaffle, 55 unread' })).resolves.toBeVisible();
+    await expect(page.findByRole('button', { name: /^Twaffle.*55 unread$/ })).resolves.toBeVisible();
     await expect(session.transport.messages.some((entry) => entry.type === 'conversation-read')).toBe(false);
-    await userEvent.click(page.getByRole('tab', { name: 'Conversation' }));
+    await userEvent.click(twaffle().getByRole('tab', { name: 'Chat' }));
     await page.findByText('Shall we keep the southern route open?');
     const loadedHistory = page.getByRole('region', { name: 'Conversation history' });
     await waitFor(() =>
@@ -118,7 +115,7 @@ export const History = meta.story({
       generation: 0,
       entries: [{ peerId, latest: 56, unread: 1 }],
     });
-    await expect(page.findByRole('tab', { name: 'Twaffle, 1 unread' })).resolves.toBeVisible();
+    await expect(page.findByRole('button', { name: /^Twaffle.*1 unread$/ })).resolves.toBeVisible();
     await expect(
       session.transport.messages.some((entry) => entry.type === 'conversation-read' && entry.through === 56)
     ).toBe(false);
@@ -141,19 +138,21 @@ export const History = meta.story({
     await waitFor(() => expect(history.scrollHeight - history.scrollTop - history.clientHeight).toBeLessThan(8));
     await expect(page.getByRole('textbox', { name: 'Message' }).getBoundingClientRect().top).toBe(composerTop);
 
-    await userEvent.click(page.getByRole('tab', { name: 'Info' }));
+    await userEvent.click(twaffle().getByRole('tab', { name: 'Info' }));
     await expect(page.queryByRole('textbox', { name: 'Message' })).toBeNull();
-    await userEvent.click(page.getByRole('tab', { name: 'fectumbra' }));
+    await openControl(page, 'fectumbra');
     await expect(page.findByRole('textbox', { name: 'Message' })).resolves.toBeVisible();
-    await userEvent.click(page.getByRole('tab', { name: 'Thialfi' }));
-    await expect(page.queryByRole('tab', { name: 'Conversation' })).toBeNull();
+    /* The viewer's own window, named for their faction, has no chat with themselves. */
+    const own = `You (${factions[1]!.data.name})`;
+    await openControl(page, own);
+    await expect(within(windowNamed(page, own)!).queryByRole('tab', { name: 'Chat' })).toBeNull();
   },
 });
 
 export const Delivery = meta.story({
   beforeEach: install(() => productTransport('seat-2', playingSnapshot())),
   play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
+    const page = await openPlayer(canvasElement, 'Twaffle', 'Chat');
     await page.findByRole('textbox', { name: 'Message' });
     await userEvent.type(page.getByRole('textbox', { name: 'Message' }), 'I can keep the southern route open.');
     await userEvent.click(page.getByRole('button', { name: /^Send$/ }));
@@ -192,8 +191,7 @@ export const Delivery = meta.story({
 export const Offline = meta.story({
   beforeEach: install(() => productTransport('seat-2', playingSnapshot())),
   play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await page.findByRole('tab', { name: 'Conversation' });
+    const page = await openPlayer(canvasElement, 'Twaffle', 'Chat');
     session.transport.deliver({ type: 'admission', status: 'suspended' });
     /* The locked table keeps its conversation panel, so a message written while reconnecting waits there. */
     await expect(

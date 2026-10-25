@@ -9,7 +9,7 @@ import { ConvexHttpClient } from 'convex/browser';
 import { makeFunctionReference } from 'convex/server';
 import type { FunctionArgs, FunctionReturnType } from 'convex/server';
 import { chromium, errors } from 'playwright';
-import type { Browser, BrowserContext, Locator, Page, WebSocket as BrowserSocket } from 'playwright';
+import type { Browser, BrowserContext, Page, WebSocket as BrowserSocket } from 'playwright';
 import sharp from 'sharp';
 import { z } from 'zod';
 
@@ -792,7 +792,7 @@ async function account(label: string) {
 /**
  * A spectator asks for a seat and a seated player approves it where the seat is shown.
  * Drafting: the (+) in the roster on the table, and the requester's ghost there carries Approve.
- * Later: the header's Seats popover names the open seat, and the vacant seat's Info in the player rail carries Approve.
+ * Later: the header's Seats popover names the open seat, and the vacant seat's window carries Approve.
  */
 async function seatThrough(approver: HostedPeer, who: HostedPeer) {
   const drafting = requireView(who).snapshot.stage === 'drafting';
@@ -807,7 +807,12 @@ async function seatThrough(approver: HostedPeer, who: HostedPeer) {
   await request.click();
   await until(() => requireView(who).snapshot.revision > before, 'The seat request did not commit.');
   if (!drafting) {
-    await approver.page.getByRole('tab', { name: /, a spectator asks for this seat/u }).click();
+    /* The vacant seat's window is named for its faction, as every seat without a player is. */
+    const roster = required(requireView(approver).snapshot.roster, 'roster');
+    const seated = new Set(requireView(approver).snapshot.controls?.players.map((player) => player.seat));
+    const vacant = roster.seats.find((seat) => !seated.has(seat.id));
+    assert.ok(vacant, 'No seat is open for the request.');
+    await openTab(approver, vacant.faction?.name ?? vacant.id);
   }
   await act(approver, 'Approve');
   await until(() => requireView(who).viewer.viewerSeat !== SPECTATOR, 'The approved request did not seat its player.');
@@ -990,63 +995,47 @@ async function converged(peers: HostedPeer[]) {
     'Recipient revisions did not converge.'
   );
 }
-const TAB_GROUPS: Record<string, string> = {
-  Hand: 'Yours',
-  'Hidden zone': 'Yours',
-  Spice: 'Yours',
-  Setup: 'Game',
-  Phase: 'Game',
-  Battle: 'Game',
-  Alliances: 'Game',
-  Result: 'Game',
-  'Shared inventory': 'Table',
-  Settings: 'Table',
-  'Game log': 'History',
-  Audit: 'History',
-  Battles: 'History',
-  'Spice transfers': 'History',
-  Replay: 'History',
-};
-/** Shows the group holding a dock tab until the tab stays, outlasting a phase opening its own tab. */
-async function revealTab(who: HostedPeer, name: string, tab: Locator) {
-  /*
-   * The dock opens a phase's own tab once as the phase begins (Spice for Spice Collection, Hand for Bidding), and that
-   * can land just after this looks, moving the dock to another group. So the group is clicked again until the tab stays.
-   */
+/* The window a panel opens in: Hand and Spice share one. */
+const WINDOW_OF: Record<string, string> = { Hand: 'Hand & spice', Spice: 'Hand & spice' };
+/** The window named for a panel, by the label on its frame; the sections inside carry names of their own. */
+function windowOf(who: HostedPeer, name: string) {
+  return who.page.locator(`[data-window][aria-label="${WINDOW_OF[name] ?? name}"]`);
+}
+/**
+ * Opens one window of the controls through the compass's search unless it is open already, in the centre or pinned.
+ * A phase opening its own window as it begins can land just after this looks, which moves the centre to another window.
+ * So the search is repeated until the window asked for stays.
+ */
+async function openTab(who: HostedPeer, name: string) {
+  const label = WINDOW_OF[name] ?? name;
   const deadline = Date.now() + 30_000;
   for (;;) {
-    if ((await tab.count()) > 0) {
-      /* A moment's grace lets a phase's own tab, opened as the phase began, take the dock first. */
+    if ((await windowOf(who, name).count()) > 0) {
+      /* A moment's grace lets a phase's own window, opened as the phase began, take the centre first. */
       await delay(400);
-      if ((await tab.count()) > 0) {
-        break;
+      if ((await windowOf(who, name).count()) > 0) {
+        return;
       }
     }
     if (Date.now() > deadline) {
-      throw new Error(`${who.label} has no ${name} tab.`);
+      throw new Error(`${who.label} has no ${label} window.`);
     }
-    if (TAB_GROUPS[name]) {
-      await who.page
-        .getByRole('tablist', { name: 'Controls' })
-        .getByRole('tab', { name: TAB_GROUPS[name], exact: true })
-        .click();
+    await who.page.getByRole('button', { name: /^Controls/u }).click();
+    const compass = who.page.getByRole('dialog', { name: 'Controls compass' });
+    await compass.getByRole('textbox', { name: 'Search controls' }).fill(label);
+    const option = compass
+      .getByRole('option')
+      .filter({ has: who.page.getByText(label, { exact: true }) })
+      .first();
+    if ((await option.count()) === 0) {
+      await who.page.keyboard.press('Escape');
+      await delay(400);
+      continue;
     }
-    await tab.waitFor({ state: 'attached', timeout: 2000 }).catch(() => {});
-  }
-}
-/** Opens one tab of the controls panel unless it is already the current one. */
-async function openTab(who: HostedPeer, name: string) {
-  const tab = who.page.getByRole('tab', { name, exact: true });
-  await revealTab(who, name, tab);
-  /* A short window can push the lower tabs below the panel's default height. */
-  const box = await tab.boundingBox();
-  if (!box || box.y + box.height > required(who.page.viewportSize(), 'viewport').height) {
-    await who.page.getByRole('separator', { name: 'Resize controls panel' }).press('End');
-  }
-  await tab.waitFor();
-  if ((await tab.getAttribute('aria-selected')) !== 'true') {
-    await tab.click();
-    await who.page.locator(`[role="tab"][aria-label="${name}"][aria-selected="true"]`).waitFor();
+    await option.click();
+    await windowOf(who, name)
+      .waitFor({ timeout: 2000 })
+      .catch(() => {});
   }
 }
 const shownView = (who: HostedPeer) =>
@@ -1425,7 +1414,7 @@ async function visibleActivity(sender: HostedPeer, recipient: HostedPeer, name: 
 async function capturePhaseTooltip(page: Page) {
   return page
     .evaluate(() => {
-      const tab = document.querySelector('[role="tab"][aria-label="Phase"]');
+      const tab = document.querySelector('[data-window="phase"] [role="img"][aria-label="Help"]');
       const box = tab?.getBoundingClientRect();
       const hit = box && document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
       return {
@@ -1455,15 +1444,15 @@ async function displayedPhase(who: HostedPeer, index: number, { held = false } =
   const controls = who.page;
   await openTab(who, 'Phase');
   /*
-   * A real game names the phase's section for assistive technology only, and the Phase tab's tooltip brings the
-   * phase's instructions once the pointer rests on the tab. While this player holds a board gesture the panel refuses
+   * A real game names the phase's section for assistive technology only, and the Phase window's (?) brings the
+   * phase's instructions once the pointer rests on it. While this player holds a board gesture the window refuses
    * the pointer, and hovering would move the held piece, so only the named section is checked then.
    */
   /* The phase's own section leads the panel; the Battle phase adds a battle section of the same name below it. */
   const section = controls.getByRole('region', { name: phase.label, exact: true }).first();
   await section.waitFor({ state: 'attached' });
   if (!held) {
-    await controls.getByRole('tab', { name: 'Phase', exact: true }).hover();
+    await windowOf(who, 'Phase').getByRole('img', { name: 'Help', exact: true }).hover();
     try {
       await controls.getByRole('tooltip').filter({ hasText: phase.instructions }).waitFor();
     } catch (error) {
@@ -1535,8 +1524,8 @@ async function phaseStep(sender: HostedPeer, recipient: HostedPeer, direction = 
 async function sharedPhaseFlow(a: HostedPeer, b: HostedPeer) {
   await focus(a, 'map');
   await focus(b, 'map');
-  /* Both players open the Phase tab now: the panel is inert while a board gesture is held, so a
-     later tab click during the remote-carry step would be refused. */
+  /* Both players open the Phase window now: the windows are inert while a board gesture is held, so
+     opening one during the remote-carry step would be refused. */
   await openTab(a, 'Phase');
   await openTab(b, 'Phase');
   await displayedPhase(a, 0);

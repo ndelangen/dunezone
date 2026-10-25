@@ -1,28 +1,19 @@
 import preview from '@sb/preview';
 import type { GameSnapshot } from '@shared/play/protocol';
-import type { Decorator } from '@storybook/tanstack-react';
 
 import { faction } from '../alliances.stories.fixture';
 import { gameMeta, install } from '../game.stories.fixture';
 import { battleStory } from '../playing.stories.fixture';
 import { productTransport } from '../product.stories.fixture';
-import { TableControlsContext } from '../tableControls';
 
 /*
- * The compass controls (Norbert, 2026-10-24): the compass with search at its centre and suggestions below,
+ * The compass controls: the compass with search at its centre and suggestions below,
  * and two slots, bottom left and bottom right, that a window can be pinned into. The camera dial sits top right.
  */
-const withCompass: Decorator = (Story) => (
-  <TableControlsContext value="compass">
-    <Story />
-  </TableControlsContext>
-);
-
 const meta = preview.meta({
   ...gameMeta,
   title: 'Play/Compass controls',
   globals: { motion: 'on' },
-  decorators: [...gameMeta.decorators, withCompass],
   parameters: { ...gameMeta.parameters, chromatic: { disableSnapshot: true } },
   tags: ['!test'],
   loaders: [

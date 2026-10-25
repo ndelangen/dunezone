@@ -2,6 +2,7 @@ import preview from '@sb/preview';
 import { finishTransitions, waitForFrame } from '@sb/storyWaits';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
+import { windowNamed } from './controls.stories.fixture';
 import { gameMeta, install, lastCommand, session } from './game.stories.fixture';
 import { openTab, settled } from './playing.stories.fixture';
 import { productTransport, playingSnapshot as initialSnapshot } from './product.stories.fixture';
@@ -28,7 +29,7 @@ export const Hand = meta.story({
   }),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await userEvent.click(await page.findByRole('tab', { name: /^Hand$/ }));
+    await openTab(page, 'Hand');
     await expect(page.findByRole('button', { name: 'Drag Snooper from hand' })).resolves.toBeVisible();
     await expect(page.getByRole('button', { name: 'Drag Feyd Rautha from hand' })).toBeVisible();
   },
@@ -44,9 +45,6 @@ export const SpiceReserve = meta.story({
   ),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await waitFor(() => expect(page.getByRole('tab', { name: 'Spice' })).toBeVisible(), {
-      timeout: 30_000,
-    });
     await openTab(page, 'Spice');
     await settled(() => expect(page.getByRole('region', { name: 'Spice reserve' })).toBeVisible());
     await expect(page.getByLabelText('Spice reserve balance')).toHaveTextContent('37');
@@ -87,17 +85,17 @@ export const SpiceReserveNarrow = meta.story({
   ),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await settled(() => expect(page.getByRole('tab', { name: 'Spice' })).toBeVisible());
     await openTab(page, 'Spice');
     await settled(() => expect(page.getByLabelText('Spice reserve balance')).toBeVisible());
-    await userEvent.hover(page.getByRole('tab', { name: 'Spice' }));
-    /* The tooltip's label mounts only from inside an animation-frame callback, so each poll runs the waiting frames itself (https://github.com/ndelangen/dunezone/issues/1422). Resting on the tab brings the reserve's help. */
+    const help = within(windowNamed(page, 'Spice')!).getByRole('img', { name: 'Help' });
+    await userEvent.hover(help);
+    /* The tooltip's label mounts only from inside an animation-frame callback, so each poll runs the waiting frames itself (https://github.com/ndelangen/dunezone/issues/1422). Resting on the (?) brings the reserve's help. */
     await waitForFrame(() =>
       expect(
-        finishTransitions(within(page.getByRole('tooltip')).getByText(/^Only you see this balance\./))
+        finishTransitions(within(page.getByRole('tooltip')).getByText(/Only you see this balance\./))
       ).toBeVisible()
     );
-    await userEvent.unhover(page.getByRole('tab', { name: 'Spice' }));
+    await userEvent.unhover(help);
     await expect(page.getByRole('button', { name: 'Withdraw spice' })).toBeDisabled();
     await expect(page.queryByRole('button', { name: 'Take into spice reserve' })).toBeNull();
   },
