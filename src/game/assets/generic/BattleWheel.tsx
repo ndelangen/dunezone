@@ -140,7 +140,10 @@ function RevealedWheel({
             <span className={styles.spiceIcon} aria-hidden />
             <span className={styles.spiceValue}>{spice}</span>
           </div>
-          <div className={styles.leader} style={{ translate: `${-(leaders.length - 1) * (LEADER_STEP / 3)}px 0` }}>
+          <div
+            className={styles.leader}
+            style={{ translate: `${-Math.max(0, leaders.length - 1) * (LEADER_STEP / 3)}px 0` }}
+          >
             {leaders
               .slice(1)
               .map((behind, index) => ({ behind, index }))

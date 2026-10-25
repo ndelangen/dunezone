@@ -144,8 +144,9 @@ function Stepper({
     }
     onChange(bounded);
   };
-  const wheel = (event: WheelEvent) => {
-    if (disabled || !event.deltaY) {
+  /* Only a field the player is typing in steps with the wheel, so scrolling past a stepper never changes the plan. */
+  const wheel = (event: WheelEvent<HTMLDivElement>) => {
+    if (disabled || !event.deltaY || !event.currentTarget.contains(document.activeElement)) {
       return;
     }
     stepBy(event.deltaY < 0 ? step : -step);

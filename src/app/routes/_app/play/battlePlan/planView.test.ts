@@ -14,6 +14,7 @@ import {
   supportMatters,
   toggleIn,
   toggleLeader,
+  troopLimitOf,
 } from './planView';
 
 const card = (id: string, extra: Partial<TablePiece> = {}): TablePiece => ({
@@ -104,4 +105,20 @@ test('free support that still changes strength keeps its Custom choice, and a Cu
   const even = { ...emptyBattlePlan([face({ supportCost: 0, strength: 1, supportedStrength: 1 })]), pieces: [] };
   expect(supportMatters(even)).toBe(false);
   expect(supportMatters({ ...even, mode: 'custom' })).toBe(true);
+});
+
+test("a troop's two faces share its count, so the back fields only what the front leaves", () => {
+  const plan = {
+    ...emptyBattlePlan([face({ id: 'troop-0-front' }), face({ id: 'troop-0-back' }), face({ id: 'troop-1-front' })]),
+    pieces: [],
+    troops: [{ faceId: 'troop-0-front', undialed: 12, dialed: 3 }],
+  };
+  const props = {
+    plan,
+    troopLimit: { 'troop-0-front': 20, 'troop-0-back': 20, 'troop-1-front': 4 },
+    troopOf: { 'troop-0-front': '0', 'troop-0-back': '0', 'troop-1-front': '1' },
+  };
+  expect(troopLimitOf(props, 'troop-0-back')).toBe(5);
+  expect(troopLimitOf(props, 'troop-0-front')).toBe(20);
+  expect(troopLimitOf(props, 'troop-1-front')).toBe(4);
 });

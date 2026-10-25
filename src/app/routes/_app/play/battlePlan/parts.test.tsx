@@ -63,7 +63,10 @@ test('the scroll wheel steps from the typed count too', () => {
   const onChange = vi.fn();
   render(<Row onChange={onChange} />);
   const field = screen.getByRole('textbox', { name: 'Fedaykin' });
-  fireEvent.focus(field);
+  fireEvent.wheel(field, { deltaY: -1 });
+  /* Scrolling past a stepper the player is not typing in leaves it alone. */
+  expect(onChange).not.toHaveBeenCalled();
+  field.focus();
   fireEvent.change(field, { target: { value: '7' } });
   fireEvent.wheel(field, { deltaY: -1 });
   expect(onChange).toHaveBeenLastCalledWith(8);

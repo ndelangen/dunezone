@@ -7,7 +7,6 @@ import styles from './LedgerPlan.module.css';
 import { DialGrid, DialRow, PieceTile, RevealToggle, TroopLabel } from './parts';
 import { PlanHead } from './PlanHead';
 import {
-  availableSpice,
   capableFaces,
   cardsOf,
   disclosure,
@@ -18,7 +17,7 @@ import {
   setTotal,
   snapSpice,
   spiceMatters,
-  supportMatters,
+  supportableSpice,
   supportedMax,
   toggleCard,
   toggleLeader,
@@ -136,7 +135,7 @@ function DialRows(props: BattlePlanViewProps & { disabled: boolean }) {
   const faces = capableFaces(plan);
   /* A faction with one troop type has just its troops to name. */
   const named = (face: BattleFace) => (faces.length === 1 ? 'Troops' : face.name);
-  if (plan.mode === 'custom' && supportMatters(plan)) {
+  if (plan.mode === 'custom') {
     return faces.map((face) => {
       const own = troopsOf(plan, face.id);
       const limit = troopLimitOf(props, face.id);
@@ -192,9 +191,14 @@ function DialRows(props: BattlePlanViewProps & { disabled: boolean }) {
           }
           name="Spice"
           value={plan.spice}
-          max={availableSpice(plan, balance)}
+          max={supportableSpice(plan, balance).at(-1) ?? 0}
           disabled={disabled}
-          onChange={(spice) => onEdit({ spice: snapSpice(plan, balance, spice) })}
+          onChange={(wanted) => {
+            const spice = snapSpice(plan, balance, wanted);
+            if (spice !== plan.spice) {
+              onEdit({ spice });
+            }
+          }}
           spice
         />
       ) : null}

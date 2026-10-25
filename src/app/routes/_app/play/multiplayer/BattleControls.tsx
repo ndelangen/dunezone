@@ -174,7 +174,8 @@ function planDress(plan: BattlePlan, factionId: string, artwork?: FactionArtwork
   const troopLimit = retained
     ? Object.fromEntries(faces.map(({ id, troopIndex }) => [id, retained.troops[troopIndex]!.count]))
     : undefined;
-  return { wheelArt, troopLimit };
+  const troopOf = Object.fromEntries(faces.map(({ id, troopIndex }) => [id, String(troopIndex)]));
+  return { wheelArt, troopLimit, troopOf };
 }
 
 type PlanProps = Props & { plan: BattlePlan; battle: PublicBattle };

@@ -29,6 +29,15 @@ export function SortableStrip({
 }) {
   const ids = pieces.map((piece) => piece.id);
   const [placed, setPlaced] = useState(() => seated(ids, chosen));
+  /* When the plan's order changes elsewhere, or a reorder is refused, the strip takes the plan's order again. */
+  const [seen, setSeen] = useState(chosen.join());
+  if (seen !== chosen.join()) {
+    setSeen(chosen.join());
+    const shown = arranged(placed, ids).filter((id) => chosen.includes(id));
+    if (shown.join() !== chosen.filter((id) => ids.includes(id)).join()) {
+      setPlaced(seated(arranged(placed, ids), chosen));
+    }
+  }
   const order = arranged(placed, ids);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
   const onDragEnd = ({ active, over }: DragEndEvent) => {

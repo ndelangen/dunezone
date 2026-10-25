@@ -44,6 +44,8 @@ export type BattlePlanViewProps = Readonly<{
   leaderStrength?: Readonly<Record<string, number>>;
   /** How many troops of each face the faction owns, by face id: the most a plan can dial. */
   troopLimit?: Readonly<Record<string, number>>;
+  /** The physical troop each face belongs to, by face id: a troop's two faces share its count. */
+  troopOf?: Readonly<Record<string, string>>;
   /** How the plan's battle wheel is dressed; the wheel stays in view while the plan is edited. */
   wheelArt: WheelArt;
 }> &
@@ -110,7 +112,7 @@ export function setTotal(plan: BattlePlan, faceId: string, total: number): Parti
 }
 
 /** Everything the plan could spend: the reserve and what the plan already holds. */
-export const availableSpice = (plan: BattlePlan, balance: number) => balance + plan.spice;
+const availableSpice = (plan: BattlePlan, balance: number) => balance + plan.spice;
 
 /**
  * Every spice amount whole troops can use up exactly in Max mode, within what the viewer has, lowest first.
@@ -160,8 +162,14 @@ export function supportedMax(plan: BattlePlan, face: BattleFace, balance: number
   return Math.max(0, Math.floor((availableSpice(plan, balance) - others) / face.supportCost));
 }
 
-export function troopLimitOf(props: Pick<BattlePlanViewProps, 'troopLimit'>, faceId: string) {
-  return props.troopLimit?.[faceId] ?? DEFAULT_TROOP_LIMIT;
+/** The most troops a face can field: its troop's count, less what the troop's other face already fields. */
+export function troopLimitOf(props: Pick<BattlePlanViewProps, 'plan' | 'troopLimit' | 'troopOf'>, faceId: string) {
+  const limit = props.troopLimit?.[faceId] ?? DEFAULT_TROOP_LIMIT;
+  const troop = props.troopOf?.[faceId];
+  const fielded = capableFaces(props.plan)
+    .filter((face) => face.id !== faceId && troop !== undefined && props.troopOf?.[face.id] === troop)
+    .reduce((total, face) => total + totalOf(props.plan, face.id), 0);
+  return Math.max(0, limit - fielded);
 }
 
 /**
