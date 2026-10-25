@@ -55,13 +55,7 @@ export function useBump(value: unknown) {
 }
 
 /** A number that counts to its new value instead of jumping, so a change reads as a change. */
-function RollingNumber({
-  value,
-  format = formatStrength,
-}: {
-  value: number;
-  format?: (value: number) => string;
-}) {
+function RollingNumber({ value, format = formatStrength }: { value: number; format?: (value: number) => string }) {
   const motion = useMotionAllowed();
   const [shown, setShown] = useState(value);
   const from = useRef(value);
