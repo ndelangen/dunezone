@@ -7,6 +7,7 @@ import {
   chapter,
   journey,
   journeyDecorator,
+  journeyFrame,
   JourneyPage,
   journeySteps,
   journeyTransport,
@@ -66,7 +67,10 @@ export const Trading = meta.story({
     const { page } = await atStep(canvasElement, chapter('Trading'));
     await expect(page.findByRole('timer', { name: 'Trading time remaining' })).resolves.toBeVisible();
     await openPlayer(canvasElement, 'Thialfi', 'Info');
-    await expect(page.findByRole('button', { name: 'Offer trade to House Atreides' }, WAIT)).resolves.toBeVisible();
+    /* The deal is random, so Thialfi's faction comes from the recorded view. */
+    const { roster } = journeyFrame(chapter('Trading') - 1, 'seat-1').snapshot;
+    const faction = roster!.seats.find((seat) => seat.id === 'seat-2')!.faction!.name;
+    await expect(page.findByRole('button', { name: `Offer trade to ${faction}` }, WAIT)).resolves.toBeVisible();
   },
 });
 

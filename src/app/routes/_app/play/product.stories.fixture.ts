@@ -30,6 +30,12 @@ const RULESET_KEY = 'ruleset:classicrules';
 const imageHref = (path: string) => new URL(path, location.origin).href;
 export const cardBack = () => imageHref('/play-fixtures/dreamrules/cardback.jpg');
 
+/* A troop face as the room shows it to every seat: its battle values stay out, as `supplyInventory` in the game Worker leaves them. */
+function troopArtwork<Face extends { capable?: boolean; combat?: unknown }>(face: Face) {
+  const { capable: _capable, combat: _battleValues, ...artwork } = face;
+  return artwork;
+}
+
 /* Replace the mechanical seed's visible content while retaining its isolated identities. */
 export function productDatabase(baseline: StorybookDatabase) {
   const viewer = SIX[1]!;
@@ -90,7 +96,17 @@ export function swappingSnapshot(): GameSnapshot {
     ...snapshot,
     stage: 'swapping',
     factionArtwork: Object.fromEntries(
-      factions.map(({ slug, data }) => [slug, { background: data.background, logo: data.logo, troops: data.troops }])
+      factions.map(({ slug, data }) => [
+        slug,
+        {
+          background: data.background,
+          logo: data.logo,
+          troops: data.troops.map(({ back, ...front }) => ({
+            ...troopArtwork(front),
+            ...(back ? { back: troopArtwork(back) } : {}),
+          })),
+        },
+      ])
     ),
     swapping: {
       round: 'story-round',

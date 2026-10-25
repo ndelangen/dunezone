@@ -1,22 +1,22 @@
 # Play page fixtures
 
 These stories use one set of six faction definitions copied from the public Dune Zone catalogue on
-21 September 2026. `factions.json` preserves each production id, slug, definition and update time.
+25 October 2026 (first copied on 21 September 2026). `factions.json` preserves each production id,
+slug, definition and update time.
 `ruleset.json` preserves the Dreamrules public record, including its empty About field.
 
 ## Sources
 
 - Public faction pages: `https://dune.zone/factions/<slug>` for House Atreides, House Harkonnen,
   Emperor, Spacing Guild, Fremen and Bene Gesserit. The public catalogue queries supplied the JSON.
-- Faction tokens: `/published/faction-tokens/<faction id>/token.jpg` on `https://dune.zone`.
-- Leaders: `/published/leaders/<faction id>.<member id>/leader.jpg` on `https://dune.zone`.
-- Troop discs and Traitor fronts: rendered through the existing game renderers using the copied
-  faction definitions. These are local captures of real authored data; production does not yet
-  publish those individual faces. `preparedSnapshot` deals each viewer's kept Traitors from the
-  first nine leaders in faction order, so only those nine fronts are kept:
-  `house-atreides-traitor-0` to `-4` and `house-harkonnen-traitor-0` to `-3`. The other 21 fronts
-  were local renderer captures too. They return through the published components of
-  [#1228](https://github.com/ndelangen/dunezone/issues/1228), not as new captures.
+- Faces: every face the public `playCatalogue:factionDefinition` query names, read on 25 October
+  2026 and copied unchanged into `play-fixtures/product`:
+  - faction tokens and their backs (`<slug>-token.jpg`, `<slug>-token-back.jpg`);
+  - leaders (`<slug>-<member id>.jpg`);
+  - troop discs and the one published troop back (`<slug>-troop-<n>.jpg`, `-back.jpg`);
+  - a Traitor front for every leader, in leader order (`<slug>-traitor-<n>.jpg`);
+  - alliance cards (`<slug>-alliance.jpg`) and the alliance back (`alliance-back.jpg`);
+  - the shared prediction card and its back (`prediction.jpg`, `prediction-back.jpg`).
 - Traitor back: the published Administrator preset. `traitor-preset.json` records its URL,
   revision and design. The JPEG is copied unchanged into the isolated story assets.
 - Treachery cards: the card back and the Snooper face, copied from the published Dreamrules deck
