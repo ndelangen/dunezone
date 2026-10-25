@@ -1,50 +1,3 @@
-/*
- * The band takes the top of the window, and the table's page frame starts below it.
- * Its background is the outline drawn behind it, which it shares with its arrow.
- */
-.band {
-  position: absolute;
-  inset: 0 0 auto;
-  pointer-events: auto;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: var(--space-sm);
-  height: 4.5rem;
-  padding-inline: var(--space-sm);
-  color: var(--color-paper);
-}
-
-.chapter,
-.count {
-  display: none;
-}
-
-/* A wide window gives the chapter's name a column of its own; a narrower one gives that room to the task, and the page header below still names the chapter. */
-@container tutorial-guide (width >= 62rem) {
-  .band {
-    grid-template-columns: 12rem minmax(0, 1fr) auto;
-    gap: var(--space-lg);
-    padding-inline: var(--space-lg);
-  }
-
-  .chapter {
-    display: grid;
-    line-height: 1.2;
-  }
-
-  .count {
-    display: revert;
-  }
-}
-
-.task {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  min-width: 0;
-}
-
 .step {
   display: inline-grid;
   flex: none;
@@ -63,20 +16,15 @@
   color: #fff;
 }
 
-.count {
-  white-space: nowrap;
-}
-
 /*
- * The band and its arrow share one shadow, cast by their wrapper, so they read as one shape over the table.
- * The wrapper covers the window but takes no pointer events; only the band does.
+ * The rail and its arrow share one shadow, cast by their wrapper, so they read as one shape beside the table.
+ * The wrapper covers the window but takes no pointer events; only the rail does.
  */
 .guide {
   position: fixed;
   inset: 0;
   z-index: 300;
   pointer-events: none;
-  container: tutorial-guide / inline-size;
   filter: drop-shadow(0 6px 14px rgb(0 0 0 / 0.55));
 }
 
@@ -92,7 +40,7 @@
   fill: var(--color-ink);
 }
 
-/* A fine light edge around band and arrow alike, so the shape holds its line against the dark table. */
+/* A fine light edge around rail and arrow alike, so the shape holds its line against the dark table. */
 .edge {
   fill: none;
   stroke: rgb(255 255 255 / 0.22);
@@ -100,7 +48,7 @@
   stroke-linejoin: round;
 }
 
-/* The guide and the page it wraps share one box; only the custom property it sets reaches the page. */
+/* The guide and the page it wraps share one box; only the custom properties it sets reach the page. */
 .frame {
   display: contents;
 }
@@ -111,8 +59,8 @@
 }
 
 /*
- * The rail down the left of the window (Norbert, 2026-10-25), in large type so it is read before the board,
- * and the page beside it starts at its right edge. Like the band, its background is the outline drawn behind it, shared with its arrow.
+ * The rail down the left of the window, in large type so it is read before the board (Norbert, 2026-10-25),
+ * and the page beside it starts at its right edge. Its background is the outline drawn behind it, shared with its arrow.
  */
 .rail {
   position: absolute;
@@ -126,19 +74,6 @@
   padding: var(--space-lg);
   overflow-y: auto;
   color: var(--color-paper);
-}
-
-.railCurrent {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-md);
-}
-
-.railCurrent .step,
-.railStep .step {
-  width: 2.25rem;
-  height: 2.25rem;
-  font-size: 1.1rem;
 }
 
 .railText {

@@ -12,7 +12,7 @@ import { ChapterConfetti } from './ChapterConfetti';
  * The end of a chapter (Norbert, 2026-10-23): the table stops taking input under a veil, confetti flies,
  * and one button leads on, to the next chapter when that one is built or back to the chapter list when it is not.
  * What the chapter taught comes in one line at a time, and the button only after the last (Norbert, 2026-10-23).
- * The band above stays usable, so Reset still plays the chapter again.
+ * The rail beside it stays usable, so Reset still plays the chapter again.
  */
 export function ChapterComplete({
   learned,
@@ -38,7 +38,7 @@ export function ChapterComplete({
 
   /*
    * The table under the veil is inert, but its keys answer on the window, so they are stopped on the way down,
-   * except in the band and this card. Tab always passes, so focus can always move back to them.
+   * except in the rail and this card. Tab always passes, so focus can always move back to them.
    */
   useEffect(() => {
     const freeze = (event: KeyboardEvent) => {

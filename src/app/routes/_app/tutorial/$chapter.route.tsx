@@ -12,24 +12,19 @@ import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { TableWait } from '../play/TableWait';
 import { chapterAt, TUTORIAL_CHAPTERS } from './chapters';
 import { CHAPTER_SCRIPTS } from './chapterScripts/scripts';
-import type { GuideLayout } from './TutorialGuide';
-
-const GUIDE_LAYOUTS: readonly GuideLayout[] = ['top', 'card', 'list'];
 
 /*
  * The table carries the game Worker's code and the recorded setup, so it loads only in the browser, and only on a chapter page.
  */
 const ChapterPlay = lazy(() => import('./TutorialTable'));
 
-/* A chapter's page: its table and its band, for a chapter that is built. Unlisted like the landing page. */
+/* A chapter's page: its table and its rail, for a chapter that is built. Unlisted like the landing page. */
 export const Route = createFileRoute('/_app/tutorial/$chapter')({
   head: ({ params }) => pageHead(chapterAt(params.chapter)?.title ?? 'Learn to play', { noindex: true }),
   /* `?step=4` opens a chapter at its fourth task, so a later task can be tried without playing the ones before it. */
-  /* `?guide=card` or `list` tries the guide as a rail down the left, while the layouts are compared (Norbert, 2026-10-25). */
-  validateSearch: (params: Record<string, unknown>): { step?: number; guide?: GuideLayout } => {
+  validateSearch: (params: Record<string, unknown>): { step?: number } => {
     const step = Number(params['step']);
-    const guide = GUIDE_LAYOUTS.find((layout) => layout === params['guide']);
-    return { ...(Number.isInteger(step) && step > 1 ? { step } : {}), ...(guide ? { guide } : {}) };
+    return Number.isInteger(step) && step > 1 ? { step } : {};
   },
   component: ChapterPage,
 });
@@ -57,7 +52,7 @@ function nextLinkAfter(slug: string) {
 
 function ChapterPage() {
   const { chapter: slug } = Route.useParams();
-  const { step, guide } = Route.useSearch();
+  const { step } = Route.useSearch();
   const chapter = chapterAt(slug);
   const script = CHAPTER_SCRIPTS[slug];
   if (!chapter || !script) {
@@ -93,7 +88,6 @@ function ChapterPage() {
           chapter={chapter}
           script={script}
           firstTask={step === undefined ? 0 : step - 1}
-          layout={guide}
           chaptersLink={chaptersLink}
           nextLink={nextLinkAfter(slug)}
           exit={exit}

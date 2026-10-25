@@ -7,7 +7,7 @@ import type { Piece } from './guideChecks';
 
 /*
  * Chapter 5, "What goes where": the table at the start of turn 1, seen from the learner's seat.
- * One task for each part of the screen, each done on the table itself, so the band moves on only once the player found it.
+ * One task for each part of the screen, each done on the table itself, so the rail moves on only once the player found it.
  * Moving the camera is chapter 6's (Norbert, 2026-10-24), so this one starts at the decks.
  */
 

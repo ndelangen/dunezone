@@ -1,8 +1,10 @@
 /*
- * The tutorial band and its arrow, drawn as one outline: the band across the top of the window,
- * and a wedge that grows out of its lower edge toward the thing to use.
- * One outline lets the band's inner shadow and its edge run on into the wedge, so the two read as a single shape.
+ * The tutorial rail and its arrow, drawn as one outline: the rail down the left of the window,
+ * and a wedge that grows out of its edge toward the thing to use.
+ * One outline lets the rail's inner shadow and its edge run on into the wedge, so the two read as a single shape.
  * The wedge stops short of its target, so it points at the part without covering it.
+ * The geometry below is worked out as a band across the top of the window, its arrow growing down;
+ * `transposed` turns that onto its side, into the rail.
  */
 
 export type Point = Readonly<{ x: number; y: number }>;

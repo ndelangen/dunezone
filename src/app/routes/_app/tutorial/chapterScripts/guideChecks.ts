@@ -61,7 +61,7 @@ export const onBoard = (piece: { position: readonly number[] }) =>
 const showing = (view: string) => () =>
   document.querySelector(`[aria-label^="Focus on ${view}"]`)?.getAttribute('aria-pressed') === 'true';
 
-/* A camera dial task: the band points at the dial's button for that view, and the task is done once the dial shows it. */
+/* A camera dial task: the arrow points at the dial's button for that view, and the task is done once the dial shows it. */
 export const dialTask = (id: string, view: string, text: string, detail: string) =>
   task({
     id,
