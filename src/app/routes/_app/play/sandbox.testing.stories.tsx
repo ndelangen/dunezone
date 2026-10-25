@@ -199,7 +199,7 @@ export const DeleteACard = meta.story({
  * Seat 1 lays a card from its hand in its hidden zone and a leader on top of it, as a token sits on a tracker card's track.
  * The zone is part of the hand, so no other seat's frame carries it.
  * Right-click a piece in the Hand tab and choose "Move to hidden zone" to try it by hand;
- * drag pieces about in the Hidden zone tab, or onto the table to play them.
+ * carry pieces about in the Hidden zone tab, or onto the table to play them.
  * Hold Alt over a piece in either tab to see it close up.
  */
 export const HiddenZone = meta.story({
@@ -228,6 +228,40 @@ export const HiddenZone = meta.story({
     const zonePieces = await page.findAllByRole('button', { name: /in hidden zone$/ }, { timeout: 30_000 });
     await expect(zonePieces).toHaveLength(2);
 
+    /* Carrying the leader moves the piece itself under the pointer, and letting go lays it there. */
+    const zoneLeader = page.getByRole('button', {
+      name: `Move ${leader.items[0]?.artwork?.name ?? leader.label} in hidden zone`,
+    });
+    const press = (type: string, clientX: number, clientY: number) =>
+      zoneLeader.dispatchEvent(
+        new PointerEvent(type, {
+          bubbles: true,
+          pointerId: 1,
+          pointerType: 'mouse',
+          button: 0,
+          buttons: 1,
+          clientX,
+          clientY,
+        })
+      );
+    const before = zoneLeader.getBoundingClientRect();
+    const fromX = before.left + before.width / 2;
+    const fromY = before.top + before.height / 2;
+    const carried = () => canvasElement.ownerDocument.body.querySelector<HTMLElement>('[class*="carried"]');
+    press('pointerdown', fromX, fromY);
+    press('pointermove', fromX + 30, fromY);
+    await waitFor(() => expect(carried()).not.toBeNull());
+    const first = carried()!.getBoundingClientRect().left;
+    press('pointermove', fromX + 60, fromY + 10);
+    await waitFor(() => expect(carried()!.getBoundingClientRect().left).toBeCloseTo(first + 30, 0));
+    const spotBefore = shown().hand!.find((candidate) => candidate.id === leader.id)!.hiddenZone!;
+    press('pointerup', fromX + 60, fromY + 10);
+    await waitFor(() => expect(carried()).toBeNull());
+    await waitFor(() =>
+      expect(shown().hand!.find((candidate) => candidate.id === leader.id)!.hiddenZone!.x).toBeGreaterThan(spotBefore.x)
+    );
+    await waitFor(() => expect(zoneLeader.getBoundingClientRect().left).toBeCloseTo(before.left + 60, 0));
+
     /* Holding Alt over a piece in the zone, or in the hand, shows its face large beside the pointer, as it does on the table. */
     const closeUp = () => canvasElement.ownerDocument.body.querySelector('[class*="closeUp"]');
     /* The pointer's own events carry Alt, as a real mouse's do while it is held. */
@@ -250,6 +284,16 @@ export const HiddenZone = meta.story({
     await waitFor(() => expect(closeUp()).not.toBeNull());
     window.dispatchEvent(new KeyboardEvent('keyup', { key: 'Alt', altKey: false }));
     await waitFor(() => expect(closeUp()).toBeNull());
+
+    /* Carried out of the zone and let go over the table, the leader is played there, as a drag from the hand plays it. */
+    await openTab(page, 'Hidden zone');
+    const canvas = canvasElement.ownerDocument.querySelector('canvas')!.getBoundingClientRect();
+    const start = zoneLeader.getBoundingClientRect();
+    const overTable = [canvas.left + canvas.width / 2, canvas.top + canvas.height / 2] as const;
+    press('pointerdown', start.left + start.width / 2, start.top + start.height / 2);
+    press('pointermove', overTable[0], overTable[1]);
+    press('pointerup', overTable[0], overTable[1]);
+    await waitFor(() => expect(shown().hand!.some((candidate) => candidate.id === leader.id)).toBe(false));
   },
 });
 

@@ -25,5 +25,21 @@
   display: grid;
   place-items: center;
   cursor: grab;
+  touch-action: none;
   filter: drop-shadow(0 2px 3px rgb(0 0 0 / 50%));
+}
+
+/* Its place stays in the zone, unseen, holding the pointer while the piece itself is carried. */
+.piece[data-carried] {
+  visibility: hidden;
+}
+
+/* A carried piece, lifted over everything on the page and following the pointer. */
+.carried {
+  position: fixed;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  filter: drop-shadow(0 8px 10px rgb(0 0 0 / 55%));
 }

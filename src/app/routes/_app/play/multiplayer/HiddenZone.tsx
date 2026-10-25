@@ -10,7 +10,7 @@ import {
 } from '@shared/play/hiddenZone';
 import type { TablePiece } from '@shared/play/model';
 import { Section } from '@ui/block/Section';
-import type { ComponentProps, DragEvent, MouseEvent, ReactNode, RefObject } from 'react';
+import type { ComponentProps, MouseEvent, PointerEvent, ReactNode, RefObject } from 'react';
 import { useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -24,8 +24,6 @@ import { HIDDEN_ZONE_HELP } from './panelGuidance';
 const inside = (offset: number, max: number) => Math.max(0, Math.min(max, offset));
 
 type Props = { client: TableSession; table: TableProjection; hand: TablePiece[] };
-/* A drag inside the zone carries this type beside the hand's own, so a drop on the table still plays the piece. */
-const ZONE_DRAG = 'application/dune-zone';
 
 export type HandMenuAnchor = { pieceId: string; x: number; y: number };
 
@@ -103,15 +101,55 @@ function useScrollParentHeight(ref: RefObject<HTMLElement | null>) {
   return height;
 }
 
+/* How far the pointer travels before a press on a piece becomes a carry, so a click stays a click. */
+const CARRY_THRESHOLD_PX = 4;
+
+/* A piece being carried: where it was grabbed within its box, and where the pointer is now. */
+type Carry = Readonly<{
+  pieceId: string;
+  pointerId: number;
+  grabX: number;
+  grabY: number;
+  startX: number;
+  startY: number;
+  x: number;
+  y: number;
+  moving: boolean;
+}>;
+
+/* A dropped piece stays where it was let go until the room's answer moves it, so it never jumps back first. */
+type Landing = Readonly<{ pieceId: string; at: { x: number; y: number }; from: TablePiece['hiddenZone'] }>;
+
+/*
+ * A carry let go over the table plays the piece there, through the same drop the hand's drags use,
+ * so the table alone decides where on its plate the piece lands.
+ */
+function dropOnTable(pieceId: string, clientX: number, clientY: number) {
+  const target = document.elementFromPoint(clientX, clientY);
+  if (!(target instanceof HTMLCanvasElement)) {
+    return;
+  }
+  const dataTransfer = new DataTransfer();
+  dataTransfer.setData('application/dune-hand', pieceId);
+  target.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, clientX, clientY, dataTransfer }));
+}
+
 /**
  * The faction's hidden zone: a private top-down patch of table where it lays out pieces from its hand, such as a token on a card's track.
  * Only the faction sees it.
- * Pieces move freely and may overlap, cards below tokens;
- * a drag onto the table plays the piece as the hand does.
+ * Pieces move freely and may overlap, cards below tokens.
+ * A carried piece follows the pointer itself, with no drag image, and a carry let go over the table plays the piece as the hand does.
  */
 export function HiddenZone({ client, table, hand }: Props) {
   const { ref, width, height } = useElementSize<HTMLDivElement>();
-  const grab = useRef<{ dx: number; dy: number } | null>(null);
+  /* The carry in a ref as well, so a release that follows a move before React renders still sees where the pointer went. */
+  const [carry, renderCarry] = useState<Carry | null>(null);
+  const carrying = useRef<Carry | null>(null);
+  const setCarry = (next: Carry | null | ((current: Carry | null) => Carry | null)) => {
+    carrying.current = typeof next === 'function' ? next(carrying.current) : next;
+    renderCarry(carrying.current);
+  };
+  const [landing, setLanding] = useState<Landing | null>(null);
   const [menu, setMenu] = useState<HandMenuAnchor | null>(null);
   const pieces = hiddenZonePieces(hand);
   const { scale, extent } = hiddenZoneView(width, height);
@@ -120,24 +158,38 @@ export function HiddenZone({ client, table, hand }: Props) {
   const fitHeight = useScrollParentHeight(frame);
   const closeUp = useHandCloseUp(pieces);
 
-  const drop = (event: DragEvent<HTMLDivElement>) => {
-    const pieceId = event.dataTransfer.getData('application/dune-hand');
-    /* A grab only starts on a piece the zone drew, so the zone has its width by then. */
-    const offset = grab.current;
-    if (!pieceId || !offset) {
+  /* The spot a piece shows: where it was let go while the room has not answered yet, else where the room keeps it. */
+  const spotOf = (piece: TablePiece) =>
+    landing && landing.pieceId === piece.id && landing.from === piece.hiddenZone ? landing.at : piece.hiddenZone!;
+
+  const release = (event: PointerEvent<HTMLDivElement>, piece: TablePiece) => {
+    const current = carrying.current;
+    setCarry(null);
+    if (!current || current.pointerId !== event.pointerId || !current.moving) {
       return;
     }
-    event.preventDefault();
-    const bounds = event.currentTarget.getBoundingClientRect();
+    /* The frame holds the zone alone, so its box is the zone's. */
+    const zone = frame.current?.getBoundingClientRect();
+    const inside =
+      zone &&
+      event.clientX >= zone.left &&
+      event.clientX <= zone.right &&
+      event.clientY >= zone.top &&
+      event.clientY <= zone.bottom;
+    if (!inside || !zone) {
+      dropOnTable(piece.id, event.clientX, event.clientY);
+      return;
+    }
+    const footprint = hiddenZoneFootprint(piece);
     const at = clampHiddenZoneSpot(
       {
-        x: (event.clientX - bounds.left - offset.dx) / (HIDDEN_ZONE_WIDTH * scale),
-        y: (event.clientY - bounds.top - offset.dy) / (HIDDEN_ZONE_DEPTH * scale),
+        x: (event.clientX - zone.left - current.grabX + (footprint.width * scale) / 2) / (HIDDEN_ZONE_WIDTH * scale),
+        y: (event.clientY - zone.top - current.grabY + (footprint.depth * scale) / 2) / (HIDDEN_ZONE_DEPTH * scale),
       },
       extent
     );
-    grab.current = null;
-    client.command({ kind: 'hand-zone', pieceId, at });
+    setLanding({ pieceId: piece.id, at, from: piece.hiddenZone });
+    client.command({ kind: 'hand-zone', pieceId: piece.id, at });
   };
 
   return (
@@ -147,13 +199,6 @@ export function HiddenZone({ client, table, hand }: Props) {
           ref={ref}
           className={styles.zone}
           style={fitHeight ? { height: fitHeight } : { aspectRatio: `${HIDDEN_ZONE_WIDTH} / ${HIDDEN_ZONE_DEPTH}` }}
-          onDragOver={(event) => {
-            if (event.dataTransfer.types.includes(ZONE_DRAG)) {
-              event.preventDefault();
-              event.dataTransfer.dropEffect = 'move';
-            }
-          }}
-          onDrop={drop}
         >
           {!pieces.length && (
             <Text size="sm" c="dimmed" className={styles.empty}>
@@ -165,44 +210,81 @@ export function HiddenZone({ client, table, hand }: Props) {
               const footprint = hiddenZoneFootprint(piece);
               const pieceWidth = footprint.width * scale;
               const pieceDepth = footprint.depth * scale;
-              const spot = piece.hiddenZone!;
+              const spot = spotOf(piece);
+              const carried = carry?.pieceId === piece.id && carry.moving ? carry : null;
+              /* Kept whole in view: a piece laid out in a roomier tab sits at this one's edge until moved. */
+              const left = inside(spot.x * HIDDEN_ZONE_WIDTH * scale - pieceWidth / 2, width - pieceWidth);
+              const top = inside(spot.y * HIDDEN_ZONE_DEPTH * scale - pieceDepth / 2, height - pieceDepth);
+              const box = { width: pieceWidth, height: pieceDepth };
+              const handlers = {
+                onPointerDown: (event: PointerEvent<HTMLDivElement>) => {
+                  if (!enabled || event.button !== 0) {
+                    return;
+                  }
+                  event.preventDefault();
+                  event.currentTarget.setPointerCapture(event.pointerId);
+                  const bounds = event.currentTarget.getBoundingClientRect();
+                  setCarry({
+                    pieceId: piece.id,
+                    pointerId: event.pointerId,
+                    grabX: event.clientX - bounds.left,
+                    grabY: event.clientY - bounds.top,
+                    startX: event.clientX,
+                    startY: event.clientY,
+                    x: event.clientX,
+                    y: event.clientY,
+                    moving: false,
+                  });
+                },
+                onPointerMove: (event: PointerEvent<HTMLDivElement>) => {
+                  setCarry((current) =>
+                    current && current.pointerId === event.pointerId
+                      ? {
+                          ...current,
+                          x: event.clientX,
+                          y: event.clientY,
+                          moving:
+                            current.moving ||
+                            Math.hypot(event.clientX - current.startX, event.clientY - current.startY) >
+                              CARRY_THRESHOLD_PX,
+                        }
+                      : current
+                  );
+                },
+                onPointerUp: (event: PointerEvent<HTMLDivElement>) => release(event, piece),
+                onPointerCancel: () => setCarry(null),
+                onLostPointerCapture: () => setCarry((current) => (current?.pieceId === piece.id ? null : current)),
+              };
               return (
                 <div
                   key={piece.id}
                   className={styles.piece}
-                  draggable={enabled}
-                  aria-label={`Drag ${pieceName(piece)} in hidden zone`}
+                  data-carried={carried ? true : undefined}
+                  aria-label={`Move ${pieceName(piece)} in hidden zone`}
                   role="button"
                   tabIndex={0}
-                  style={{
-                    /* Kept whole in view: a piece laid out in a roomier tab sits at this one's edge until moved. */
-                    left: inside(spot.x * HIDDEN_ZONE_WIDTH * scale - pieceWidth / 2, width - pieceWidth),
-                    top: inside(spot.y * HIDDEN_ZONE_DEPTH * scale - pieceDepth / 2, height - pieceDepth),
-                    width: pieceWidth,
-                    height: pieceDepth,
-                  }}
-                  onDragStart={(event) => {
-                    const bounds = event.currentTarget.getBoundingClientRect();
-                    grab.current = {
-                      dx: event.clientX - bounds.left - bounds.width / 2,
-                      dy: event.clientY - bounds.top - bounds.height / 2,
-                    };
-                    event.dataTransfer.setData('application/dune-hand', piece.id);
-                    event.dataTransfer.setData(ZONE_DRAG, piece.id);
-                    event.dataTransfer.effectAllowed = 'move';
-                    event.dataTransfer.setDragImage(
-                      event.currentTarget,
-                      event.clientX - bounds.left,
-                      event.clientY - bounds.top
-                    );
-                  }}
-                  onDragEnd={() => {
-                    grab.current = null;
-                  }}
+                  style={{ left, top, ...box }}
+                  onDragStart={(event) => event.preventDefault()}
                   onContextMenu={(event) => setMenu(handMenuAnchor(event, piece.id))}
+                  {...handlers}
                   {...closeUp.hover(piece)}
                 >
                   <PieceImage piece={piece} width={pieceWidth} height={pieceDepth} />
+                  {/*
+                   * The carried piece itself, on the page's body so neither the zone's edge nor a window's transform holds it back:
+                   * it follows the pointer over the table too. Its place in the zone keeps the pointer, unseen, until it is let go.
+                   */}
+                  {carried &&
+                    createPortal(
+                      <div
+                        className={styles.carried}
+                        style={{ left: carried.x - carried.grabX, top: carried.y - carried.grabY, ...box }}
+                        aria-hidden
+                      >
+                        <PieceImage piece={piece} width={pieceWidth} height={pieceDepth} />
+                      </div>,
+                      document.body
+                    )}
                 </div>
               );
             })}
