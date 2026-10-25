@@ -8,7 +8,7 @@ import { CompassEpochContext } from '../play/compass/compassEpoch';
 import { RememberedContext } from '../play/compass/useRemembered';
 import { GameRuntimeContext } from '../play/multiplayer/gameRuntime';
 import HostedTable from '../play/multiplayer/HostedTable';
-import type { PlaytestChapter, TutorialChapter } from './chapters';
+import type { TutorialChapter } from './chapters';
 import type { ChapterScript } from './chapterScripts/chapterScript';
 import setup from './setup/setup.json';
 import { startAt, withOrigin } from './setup/tutorialSetup';
@@ -87,7 +87,7 @@ export default function ChapterPlay({
   nextLink,
   exit,
 }: Readonly<{
-  chapter: TutorialChapter | PlaytestChapter;
+  chapter: TutorialChapter;
   script: ChapterScript;
   /** The task the chapter opens at, counted from 0. */
   firstTask?: number;

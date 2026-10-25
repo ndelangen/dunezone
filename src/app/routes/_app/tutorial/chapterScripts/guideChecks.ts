@@ -14,32 +14,52 @@ export type Piece = GameSnapshot['table']['pieces'][number];
 export const at = (piece: { position: readonly number[] } | undefined) =>
   piece ? (piece.position as Vector3Tuple) : null;
 export const element = (selector: string) => () => document.querySelector(selector);
-const tabSelected = (selector: string) => document.querySelector(selector)?.getAttribute('aria-selected') === 'true';
+/* The last match, as a piece just taken into the hand is listed last. */
+export const lastElement = (selector: string) => () => [...document.querySelectorAll(selector)].at(-1) ?? null;
 
 /* Each task keeps its own kind of baseline; the guide only hands it back. */
 export const task = <Baseline>(definition: GuideTask<Baseline>) => definition as unknown as GuideTask;
 
+/** Whether a compass window shows, in the centre or pinned in a slot. */
+export const windowShown = (key: string) => () => document.querySelector(`[data-window="${key}"]`) !== null;
+
 /*
- * A tab task counts the player pressing or arrowing onto that tab from the moment the task starts, so a tab left open by an earlier run does not count.
- * The tab must end up open as well.
+ * A window task counts the player opening that window from the moment the task starts, so one left open by an earlier
+ * run does not count until it is closed and opened again.
  */
-export const pressedTab = (selector: string) => ({
-  begin: () => {
-    const watch = { pressed: false, stop: new AbortController() };
-    const press = (event: Event) => {
-      if (event.target instanceof Element && event.target.closest(selector)) {
-        watch.pressed = true;
-      }
-    };
-    /* The tabs open as the keyboard moves onto them as well, which comes as focus without a click. */
-    for (const type of ['click', 'focusin']) {
-      document.addEventListener(type, press, { capture: true, signal: watch.stop.signal });
+export const openedWindow = (open: () => boolean) => ({
+  begin: () => ({ was: open(), closed: false }),
+  done: (watch: { was: boolean; closed: boolean }) => {
+    const shown = open();
+    if (!shown) {
+      watch.closed = true;
     }
-    return watch;
+    return shown && (watch.closed || !watch.was);
   },
-  done: (watch: { pressed: boolean }) => watch.pressed && tabSelected(selector),
-  finish: (watch: { stop: AbortController }) => watch.stop.abort(),
 });
+
+/* With the compass open the arrow points at one of its tiles, otherwise at the button that opens it. */
+export const viaCompass = (spot: string) => () =>
+  document.querySelector(
+    document.querySelector('dialog[aria-label="Controls compass"]')
+      ? `dialog[aria-label="Controls compass"] [data-spot="${spot}"]`
+      : '[data-compass-launcher]'
+  );
+
+/* Holding Alt over a card or token shows it flat beside the pointer; the close-up's own mark says it is showing. */
+export const closeUpShown = () => ({
+  begin: () => undefined,
+  done: () => document.querySelector('[data-piece-close-up]') !== null,
+});
+
+/*
+ * Spice cards lying face up on their own. The table hands out cards under handles that change as they move,
+ * so cards are counted by what they show rather than followed by id; a whole deck turned over is one pile, so it does not count.
+ */
+export const singleSpiceFaceUp = (pieces: readonly Piece[]) =>
+  pieces.filter(
+    (piece) => piece.items.length === 1 && piece.items[0]!.faceUp && piece.items[0]!.artwork?.type === 'card-spice'
+  ).length;
 
 /*
  * The ruleset's decks are keyed by their asset, so they are found where the table lays them out:

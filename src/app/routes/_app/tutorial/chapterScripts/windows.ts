@@ -1,20 +1,17 @@
 import type { GuideTask } from '../TutorialGuide';
 import type { ChapterScript } from './chapterScript';
+import { element as first, task, viaCompass } from './guideChecks';
 
 /*
- * The play-test chapter "New controls": the compass, where Space opens a compass over the table,
- * a window opens in the middle and can be pinned to the bottom-left or bottom-right slot, and the chats sit beside the Controls button.
+ * Chapter 8, "Windows": Space opens a compass over the table, a window opens in the middle,
+ * and it can be pinned to the bottom-left or bottom-right slot to stay open while the player plays.
  * Every task is read from the screen, so it moves on only once the player has done it with the controls.
  */
 
-const first = (selector: string) => () => document.querySelector(selector);
 const compassOpen = () => document.querySelector('dialog[aria-label="Controls compass"]') !== null;
 /* Where a window shows: in the middle of the table or in one of the two slots. */
 const windowAt = (where: 'centre' | 'left' | 'right', key: string) =>
   document.querySelector(`[data-side="${where}"][data-window="${key}"]`) !== null;
-/* With the compass open the arrow points at the tile to pick, otherwise at the button that opens it. */
-const viaCompass = (spot: string) => () =>
-  document.querySelector(compassOpen() ? `[data-spot="${spot}"]` : '[data-compass-launcher]');
 const slotHeight = (side: 'left' | 'right') =>
   document.querySelector(`[data-side="${side}"]`)?.getBoundingClientRect().height ?? 0;
 const RESIZE_GRIP = '[data-side="right"] button[aria-label^="Resize"]';
@@ -43,11 +40,27 @@ const resizedTaller = () => ({
 const showing = (view: string) =>
   document.querySelector(`[aria-label^="Focus on ${view}"]`)?.getAttribute('aria-pressed') === 'true';
 
-/* Each task keeps its own kind of baseline; the guide only hands it back. */
-const task = <Baseline>(definition: GuideTask<Baseline>) => definition as unknown as GuideTask;
 const nothing = () => undefined;
+/* A window's (?) explains it on hover or focus, so the task counts the player pointing at one or tabbing onto it. */
+const HELP = '[data-window] [aria-label="Help"]';
+const readHelp = () => ({
+  begin: () => {
+    const watch = { read: false, stop: new AbortController() };
+    const look = (event: Event) => {
+      if (event.target instanceof Element && event.target.closest(HELP)) {
+        watch.read = true;
+      }
+    };
+    for (const type of ['pointerover', 'focusin']) {
+      document.addEventListener(type, look, { capture: true, signal: watch.stop.signal });
+    }
+    return watch;
+  },
+  done: (watch: { read: boolean }) => watch.read,
+  finish: (watch: { stop: AbortController }) => watch.stop.abort(),
+});
 
-/* The compass and the hand it opens, pinned into a slot; the hidden zone waits for a chapter of its own. */
+/* The compass and the hand it opens, what the window is for, and pinning it into a slot. */
 const windowTasks = (): GuideTask[] => [
   task({
     id: 'open-compass',
@@ -66,6 +79,13 @@ const windowTasks = (): GuideTask[] => [
     done: () => windowAt('centre', 'hand'),
   }),
   task({
+    id: 'help',
+    task: 'Find out what a window is for',
+    detail: 'Every window has a (?) beside its name. Point at it to read what the window holds.',
+    anchor: { kind: 'page', element: first(HELP) },
+    ...readHelp(),
+  }),
+  task({
     id: 'pin-hand',
     task: 'Keep your hand open',
     detail:
@@ -76,7 +96,7 @@ const windowTasks = (): GuideTask[] => [
   }),
 ];
 
-/* The chat pinned on the right, made taller, then the chat bar, the search and unpinning. */
+/* The chat pinned on the right and made taller, then the search and unpinning. */
 const slotTasks = (): GuideTask[] => [
   task({
     id: 'table-chat',
@@ -102,15 +122,6 @@ const slotTasks = (): GuideTask[] => [
     ...resizedTaller(),
   }),
   task({
-    id: 'player',
-    task: 'Talk to one player',
-    detail:
-      'The faction tokens beside Controls are your chats, one per player, with a badge when they wrote. Click one.',
-    anchor: { kind: 'page', element: first('nav[aria-label="Chats"] button:nth-of-type(2)') },
-    begin: nothing,
-    done: () => document.querySelector('[data-side="centre"][data-window^="player:"]') !== null,
-  }),
-  task({
     id: 'search',
     task: 'Look at the right bay by typing',
     detail: 'Open the controls and just type: “right” finds the camera view. Press Enter to pick it.',
@@ -132,15 +143,16 @@ const slotTasks = (): GuideTask[] => [
 
 const tasks = () => [...windowTasks(), ...slotTasks()];
 
+/* One line for each part of the chapter, in the order it was played. */
 const learned = [
   'Space opens the compass over the table',
-  'Left is your hand',
+  'Left is your hand, twice left your hidden zone',
   'Right is the table chat, twice right your ally',
   'Up is your battle plan, down the search',
+  'The (?) beside a window’s name says what it is for',
   'Pin a window to the bottom left or right to keep it open',
   'Drag a pinned window’s top edge to resize it',
-  'The tokens beside Controls are your chats',
   'Type anything on the compass to find it',
 ];
 
-export const newControls: ChapterScript = { slug: 'new-controls', checkpoint: 'turn-1-storm', tasks, learned };
+export const windows: ChapterScript = { slug: 'windows', checkpoint: 'turn-1-storm', tasks, learned };

@@ -37,9 +37,7 @@ const chaptersLink = ({ children, ...props }: { children?: ReactNode }) => (
 
 /* The chapter after this one, when it is built: the end of a chapter leads on to it, or back to the list when there is none yet. */
 function nextLinkAfter(slug: string) {
-  const at = TUTORIAL_CHAPTERS.findIndex((chapter) => chapter.slug === slug);
-  /* A play-test chapter is not in the tutorial, so nothing follows it. */
-  const next = at < 0 ? undefined : TUTORIAL_CHAPTERS[at + 1];
+  const next = TUTORIAL_CHAPTERS[TUTORIAL_CHAPTERS.findIndex((chapter) => chapter.slug === slug) + 1];
   if (!next || !CHAPTER_SCRIPTS[next.slug]) {
     return undefined;
   }

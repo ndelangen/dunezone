@@ -3,7 +3,7 @@ import type { Vector3 } from 'three';
 
 import type { GuideTask, GuideView } from '../TutorialGuide';
 import type { ChapterScript } from './chapterScript';
-import { at, dialTask, scrolled, tableDeck, task } from './guideChecks';
+import { at, closeUpShown, dialTask, scrolled, tableDeck, task } from './guideChecks';
 
 /*
  * Chapter 6, "Looking around": the same table as chapter 5, seen through the camera.
@@ -37,12 +37,6 @@ const slid = () => ({
   finish: (watch: { stop: AbortController }) => watch.stop.abort(),
 });
 
-/* Holding Alt over a card or token shows it flat beside the pointer; the close-up's own mark says it is showing. */
-const closeUpShown = () => ({
-  begin: () => undefined,
-  done: () => document.querySelector('[data-piece-close-up]') !== null,
-});
-
 function tasks(snapshot: () => GameSnapshot): GuideTask[] {
   /* The Spice deck lies on the right of the table, where the table lays it out. */
   const spiceDeck = () => tableDeck(snapshot, 'right');
@@ -72,7 +66,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       'look-left',
       'left',
       'Look at the left of the table',
-      'The camera dial, bottom right of the table, jumps the view. Press L.'
+      'The camera dial, top right of the table, jumps the view. Press L.'
     ),
     dialTask(
       'look-right',

@@ -74,9 +74,23 @@ const CHAPTERS: readonly Omit<TutorialChapter, 'number'>[] = [
     part: 'The table',
   },
   {
-    slug: 'what-only-you-see',
-    title: 'What only you see',
-    goal: 'Your hand, hidden zone and spice',
+    slug: 'windows',
+    title: 'Windows',
+    goal: 'Open, pin and resize windows with the compass',
+    minutes: 4,
+    part: 'The table',
+  },
+  {
+    slug: 'your-hand-and-spice',
+    title: 'Your hand and spice',
+    goal: 'Take cards into your hand, play them, withdraw spice',
+    minutes: 3,
+    part: 'The table',
+  },
+  {
+    slug: 'the-hidden-zone',
+    title: 'The hidden zone',
+    goal: 'Keep cards and markers only you can see',
     minutes: 3,
     part: 'The table',
   },
@@ -136,27 +150,9 @@ export const TUTORIAL_CHAPTERS: readonly TutorialChapter[] = CHAPTERS.map((chapt
   number: index + 1,
 }));
 
-/*
- * Chapters for play-testing a prototype with testers, reached only by their link: they are not on the landing page and lead on to nothing.
- * Norbert, 2026-10-24: the compass controls (compass, pinned slots) get a tutorial so testers can try them.
- */
-export type PlaytestChapter = Omit<TutorialChapter, 'number'> & Readonly<{ number: null }>;
-
-const PLAYTEST_CHAPTERS: readonly PlaytestChapter[] = [
-  {
-    slug: 'new-controls',
-    number: null,
-    title: 'New controls',
-    goal: 'Open, pin and resize windows with the compass',
-    minutes: 4,
-    part: 'The table',
-  },
-];
-
-/** A chapter by its slug, from the tutorial or the play-tests. */
-export const chapterAt = (slug: string): TutorialChapter | PlaytestChapter | undefined =>
-  TUTORIAL_CHAPTERS.find((chapter) => chapter.slug === slug) ??
-  PLAYTEST_CHAPTERS.find((chapter) => chapter.slug === slug);
+/** A chapter by its slug. */
+export const chapterAt = (slug: string): TutorialChapter | undefined =>
+  TUTORIAL_CHAPTERS.find((chapter) => chapter.slug === slug);
 
 /*
  * The picture on a chapter's tile: a still of the Play table standing in for the live preview each tile will animate.

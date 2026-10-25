@@ -184,8 +184,8 @@ export function TutorialGuide({
   nextLink,
   children,
 }: Readonly<{
-  /** The chapter's place in the tutorial; a play-test chapter has none. */
-  number: number | null;
+  /** The chapter's place in the tutorial. */
+  number: number;
   title: string;
   tasks: readonly GuideTask[];
   /** The task the guide opens at, counted from 0; Reset still starts from the first. */
@@ -208,7 +208,7 @@ export function TutorialGuide({
   const rail = useRef<HTMLElement>(null);
   const step = useRef<HTMLSpanElement>(null);
   const task = tasks[current];
-  const kicker = number === null ? 'Play-test' : `Chapter ${number}`;
+  const kicker = `Chapter ${number}`;
   /* The loop below follows the task by its id, so a caller that builds its task list afresh on each render does not restart it. */
   const taskId = task?.id;
   const currentTask = useEffectEvent(() => tasks[current]);
