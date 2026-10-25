@@ -228,6 +228,11 @@
   grid-template-rows: minmax(0, 1fr);
 }
 
+/* A notice above the content, such as a refused command, takes its own height; the content keeps the rest and scrolls in it. */
+.bodyFill:has(> :nth-child(2)) {
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
 /* With motion reduced a window appears in place, and a slot stops at its limit without the knock. */
 :global(html[data-motion="reduce"]) .centre,
 :global(html[data-motion="reduce"]) .slot[data-bounce] {

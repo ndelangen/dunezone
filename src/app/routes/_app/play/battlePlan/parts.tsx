@@ -435,7 +435,9 @@ export function OpponentLine({ opponent }: { opponent: Opponent | null }) {
             title={opponent.ready ? `${opponent.name} is ready` : `${opponent.name} is still planning`}
             role="img"
           />
-          <span>against {opponent.name}</span>
+          <span className={styles.opponentName} title={`against ${opponent.name}`}>
+            against {opponent.name}
+          </span>
         </span>
       ) : (
         <span className={styles.opponent}>waiting for a second side</span>
