@@ -91,11 +91,7 @@ export const InBattle = meta.story({
     const before = Number(page.getByLabelText('Spice reserve balance').textContent);
     await userEvent.click(page.getByRole('button', { name: 'One spice more' }));
     await userEvent.click(page.getByRole('button', { name: 'Withdraw spice' }));
-    await waitFor(() =>
-      expect(balance.ownerDocument.querySelector('[aria-label="Spice reserve balance"]')).toHaveTextContent(
-        String(before - 2)
-      )
-    );
+    await waitFor(() => expect(page.getByLabelText('Spice reserve balance')).toHaveTextContent(String(before - 2)));
   },
 });
 
