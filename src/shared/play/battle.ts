@@ -187,19 +187,20 @@ export function emptyBattlePlan(faces: BattleFace[]): StoredBattlePlan {
   };
 }
 
-/* Cards a plan never takes: a Traitor is called, not played; Alliance and prediction cards stay in the hand. */
-const NOT_BATTLE_CARDS = new Set(['card-traitor', 'card-alliance', 'card-prediction']);
-
-/** Only Treachery cards go into a battle plan; Traitor, Alliance and prediction cards stay in the hand. */
+/** Only Treachery cards go into a battle plan: Traitor, Alliance, prediction, Spice and every other card stays out. */
 export function isBattleCard(piece: z.infer<typeof tablePieceSchema>): boolean {
   const artwork = piece.items[0]?.artwork;
-  return (
-    piece.kind === 'card' &&
-    piece.items.length === 1 &&
-    !piece.stackKey?.startsWith('prediction:') &&
-    !artwork?.prediction &&
-    !NOT_BATTLE_CARDS.has(artwork?.type ?? '')
-  );
+  if (
+    piece.kind !== 'card' ||
+    piece.items.length !== 1 ||
+    artwork?.prediction ||
+    piece.stackKey?.startsWith('prediction:')
+  ) {
+    return false;
+  }
+  const type = artwork?.type;
+  /* A card without a published face counts by the deck it was dealt from. */
+  return type ? type === 'card-treachery' : piece.stackKey === 'cards:treachery';
 }
 
 /** Published leader and disc tokens can fight; physical troops and faction tokens stay out of leader selection. */

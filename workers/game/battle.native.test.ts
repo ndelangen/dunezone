@@ -40,7 +40,7 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
       front: 'https://example.test/secret-card.png',
       back: 'https://example.test/back.png',
       name: 'Secret card',
-      type: 'treachery' as const,
+      type: 'card-treachery' as const,
     };
     state.table.pieces.push({
       ...structuredClone(required(state.table.pieces.find((piece) => piece.id === 'harkonnen-force-loose'))),

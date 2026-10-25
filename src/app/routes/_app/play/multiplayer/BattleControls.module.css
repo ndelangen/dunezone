@@ -179,9 +179,11 @@
   height: 100%;
 }
 
+/* Its own stacking context, so leaders stacked behind the first stay in front of the closed wheel. */
 .earlyLayer {
   position: absolute;
   inset: 0;
+  isolation: isolate;
   height: 170px;
   pointer-events: none;
 }

@@ -37,30 +37,31 @@ function battleRoom() {
       },
     ],
   });
-  const traitor = {
+  const card = (id: string, name: string, type: string) => ({
     ...structuredClone(loose),
-    id: 'kept-traitor',
+    id,
     items: [
       {
-        id: 'kept-traitor-item',
+        id: `${id}-item`,
         faceUp: true,
-        artwork: {
-          front: 'https://example.test/t.png',
-          back: 'https://example.test/b.png',
-          name: 'Traitor',
-          type: 'card-traitor',
-        },
+        artwork: { front: 'https://example.test/c.png', back: 'https://example.test/b.png', name, type },
       },
     ],
-  };
-  snapshot.table.pieces.push(leader('stilgar', 'Stilgar'), leader('chani', 'Chani'), traitor);
+  });
+  snapshot.table.pieces.push(
+    leader('stilgar', 'Stilgar'),
+    leader('chani', 'Chani'),
+    card('kept-traitor', 'Traitor', 'card-traitor'),
+    card('kept-alliance', 'Alliance', 'card-alliance'),
+    card('spice-card', 'Spice', 'card-spice')
+  );
   const room = new Room(
     snapshot,
     () => ['harkonnen', 'atreides'],
     (id) => FACTIONS[id]
   );
   const send = (action: RoomAction) => room.accept(room.command(bob, action, room.snapshot.revision, LATER));
-  for (const pieceId of ['stilgar', 'chani', 'kept-traitor']) {
+  for (const pieceId of ['stilgar', 'chani', 'kept-traitor', 'kept-alliance', 'spice-card']) {
     send({ kind: 'hand-take', pieceId });
   }
   room.snapshot.phase = STANDARD_PHASES.findIndex((phase) => phase.id === 'battle');
@@ -99,5 +100,39 @@ describe('the pieces of a battle plan', () => {
         LATER
       )
     ).toThrow(GameRejection);
+  });
+
+  test('refuses a Spice card too: the check asks for Treachery, not for what to leave out', () => {
+    const { room, battleId, plan } = battleRoom();
+    expect(() =>
+      room.command(
+        bob,
+        { kind: 'battle-plan', battleId, plan: plan({ cardIds: ['spice-card'] }) } as RoomAction,
+        room.snapshot.revision,
+        LATER
+      )
+    ).toThrow(GameRejection);
+  });
+
+  test('lets an older plan that holds a Traitor and an Alliance card give them up one at a time', () => {
+    const { room, send, battleId, plan } = battleRoom();
+    const kept = ['kept-traitor', 'kept-alliance'];
+    const inventory = room.snapshot.factionInventories.atreides!;
+    const stored = room.snapshot.battleState!.plans[0]!;
+    stored.cardIds = kept;
+    stored.pieces = inventory.filter((piece) => kept.includes(piece.id));
+    room.snapshot.factionInventories.atreides = inventory.filter((piece) => !kept.includes(piece.id));
+    send({ kind: 'battle-plan', battleId, plan: plan({ cardIds: ['kept-alliance'] }) } as RoomAction);
+    expect(room.snapshot.battleState!.plans[0]!.cardIds).toEqual(['kept-alliance']);
+    expect(() =>
+      room.command(
+        bob,
+        { kind: 'battle-plan', battleId, plan: plan({ cardIds: ['kept-alliance', 'kept-traitor'] }) } as RoomAction,
+        room.snapshot.revision,
+        LATER
+      )
+    ).toThrow(GameRejection);
+    send({ kind: 'battle-plan', battleId, plan: plan({ cardIds: [] }) } as RoomAction);
+    expect(room.snapshot.battleState!.plans[0]!.cardIds).toEqual([]);
   });
 });

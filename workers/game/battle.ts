@@ -145,8 +145,10 @@ function selectedPlanPieces(plan: BattlePlanInput, available: StoredPiece[]) {
   }
   return pieces;
 }
-function validateCardSlots(pieces: StoredPiece[], plan: BattlePlanInput) {
-  if (pieces.some((piece) => plan.cardIds.includes(piece.id) && !isBattleCard(piece))) {
+/* A card an older plan already holds stays allowed, so the player can take such cards out one at a time. */
+function validateCardSlots(pieces: StoredPiece[], plan: BattlePlanInput, before: StoredBattlePlan) {
+  const added = (piece: StoredPiece) => plan.cardIds.includes(piece.id) && !before.cardIds.includes(piece.id);
+  if (pieces.some((piece) => added(piece) && !isBattleCard(piece))) {
     return refuse('Only Treachery cards go into a battle plan.');
   }
 }
@@ -189,7 +191,7 @@ function editPlan({ snapshot, battle, side, factionId }: BattleSide, input: Batt
   keepDisclosed(before, plan);
   const available = [...(snapshot.factionInventories[factionId] ?? []), ...before.pieces];
   const pieces = selectedPlanPieces(plan, available);
-  validateCardSlots(pieces, plan);
+  validateCardSlots(pieces, plan, before);
   validateLeaderSlot(pieces, plan);
   const balance = reservedBalance({ snapshot, battle, factionId }, before, plan);
   const ids = pieces.map((piece) => piece.id);
