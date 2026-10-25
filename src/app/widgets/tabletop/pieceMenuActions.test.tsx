@@ -2,6 +2,7 @@ import { initialSnapshot } from '@shared/play/commands';
 import type { TablePiece } from '@shared/play/model';
 import { expect, test, vi } from 'vite-plus/test';
 
+import { pieceHasMenu } from './pieceMenu';
 import { pieceMenuActions } from './pieceMenuActions';
 import type { MenuControls } from './pieceMenuActions';
 
@@ -67,4 +68,8 @@ test('picking it sends the piece to the hand and closes the ring', () => {
   take.onSelect!();
   expect(menu.take).toHaveBeenCalledWith(card.id);
   expect(onClose).toHaveBeenCalledOnce();
+});
+
+test('a battle leader laid face up by a reveal still opens its ring, where it can go back to the hand', () => {
+  expect(pieceHasMenu({ ...leader, battleOverlay: 'battle' })).toBe(true);
 });
