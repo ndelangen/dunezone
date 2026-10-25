@@ -28,11 +28,22 @@ export type OpenWindows = ReturnType<typeof useOpenWindows>;
 const OPEN_ABOVE = '[role="menu"], [role="listbox"], [role="dialog"], [aria-modal="true"]';
 const EXPANDED = '[aria-expanded="true"]';
 
+/* Shown, not just mounted: a select keeps its list in the document, hidden, while it is shut. */
+function shown(element: Element) {
+  for (let node: Element | null = element; node; node = node.parentElement) {
+    const style = getComputedStyle(node);
+    if (style.display === 'none' || style.visibility === 'hidden') {
+      return false;
+    }
+  }
+  return true;
+}
+
 function escapeTaken(event: KeyboardEvent) {
   const target = event.target;
   return (
     brushTakes(event) ||
-    document.querySelector(OPEN_ABOVE) !== null ||
+    [...document.querySelectorAll(OPEN_ABOVE)].some(shown) ||
     (target instanceof Element && target.closest(EXPANDED) !== null)
   );
 }
@@ -114,14 +125,27 @@ export function useOpenWindows(windows: readonly TableWindow[], compassOpen: boo
     const again = (current: Opened | null) => current?.key === key && (tab === undefined || current.tab === tab);
     setCentre((current) => (again(followed(current)) ? null : opened(key, tab ?? firstTab(key))));
   };
-  /* Brings a window into view without closing anything: a pinned one lights up beside the centre window, one already in the centre stays, else it opens there. */
+  /*
+   * Brings a window the table asks for into view without closing anything: a pinned one lights up, one already in the centre stays.
+   * Else it goes into a free slot, beside the board rather than over it, and only into the centre when both slots hold a window.
+   */
   const reveal = (key: string) => {
     const side = SIDES.find((entry) => slots[entry]?.key === key);
     if (side) {
       setFlash(pulse(side));
       return;
     }
-    setCentre((current) => (followed(current)?.key === key ? current : opened(key, firstTab(key))));
+    if (followed(openCentre)?.key === key) {
+      return;
+    }
+    /* A slot is free when it holds nothing, or a window the table no longer has, such as the last battle's. */
+    const free = SIDES.find((entry) => !windows.some((window) => window.key === slots[entry]?.key));
+    if (free) {
+      setSlots((current) => ({ ...current, [free]: opened(key, firstTab(key)) }));
+      setFlash(pulse(free));
+      return;
+    }
+    setCentre(opened(key, firstTab(key)));
   };
   const pin = (side: Side) => {
     if (!centre) {

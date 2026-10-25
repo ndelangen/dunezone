@@ -7,7 +7,7 @@ import { expect, userEvent, within } from 'storybook/test';
 
 import { dragBattleMarker } from './battles.marker.stories.fixture';
 import { battleSetup, readiness, convexIds, withConvexIds } from './battles.stories.fixture';
-import { expectNoControl, openPanel, WAIT, windowNamed } from './controls.stories.fixture';
+import { expectNoControl, openPanel, unpinWindow, WAIT, windowNamed } from './controls.stories.fixture';
 import { gameMeta, install, lastCommand, session } from './game.stories.fixture';
 import { battleStory, expectBattleCalloutPlacement, openTab, settled } from './playing.stories.fixture';
 import { productTransport } from './product.stories.fixture';
@@ -371,6 +371,7 @@ export const FocusOnce = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await settled(() => expect(windowNamed(page, 'Battle')).toBeVisible());
+    await unpinWindow(page, 'Battle');
     await openTab(page, 'Hand');
     const snapshot = battleStory('preparing');
     snapshot.revision = 1;
