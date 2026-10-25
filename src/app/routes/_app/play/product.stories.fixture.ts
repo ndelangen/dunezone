@@ -112,7 +112,7 @@ export function swappingSnapshot(): GameSnapshot {
   };
 }
 
-/* A faction as the Worker retains it at public assignment, less its alliance card and Extras, with the local renderer captures the README names as its faces. */
+/* A faction as the Worker retains it at public assignment, less its Extras, with the published faces the README names. */
 function capture({ slug, data, token, leaders }: (typeof factions)[number]): FactionCapture {
   const face = (name: string) => imageHref(`/play-fixtures/product/${slug}-${name}.jpg`);
   return {
@@ -120,7 +120,7 @@ function capture({ slug, data, token, leaders }: (typeof factions)[number]): Fac
     capturedAt: 0,
     definition: toStoredHeroKey(data),
     components: {
-      token: { front: imageHref(token), back: null },
+      token: { front: imageHref(token), back: face('token-back') },
       leaders: data.leaders.map((leader, index) => ({
         memberId: leader.memberId,
         name: leader.name,
@@ -134,7 +134,7 @@ function capture({ slug, data, token, leaders }: (typeof factions)[number]): Fac
         front: face(`troop-${index}`),
         back: face(`troop-${index}${troop.back ? '-back' : ''}`),
       })),
-      alliance: { front: null, back: null },
+      alliance: { front: face('alliance'), back: imageHref('/play-fixtures/product/alliance-back.jpg') },
       /* The published Traitor preset supplies the common back. */
       traitors: {
         back: imageHref('/play-fixtures/product/traitor-back.jpg'),
