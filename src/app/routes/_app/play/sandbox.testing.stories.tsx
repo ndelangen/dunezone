@@ -338,6 +338,15 @@ export const HiddenZone = meta.story({
     await waitFor(() => expect(centreX()).toBeCloseTo(turnedX + 60, 0));
     await expect(kept().turn).toBe(1);
 
+    /* Leaving the window while Q is held sends the turn it shows, since the key comes up elsewhere. */
+    over('pointerover');
+    over('pointermove');
+    await new Promise((settle) => requestAnimationFrame(settle));
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'q', bubbles: true }));
+    window.dispatchEvent(new FocusEvent('blur'));
+    await waitFor(() => expect(kept().turn).toBeUndefined());
+    over('pointerout');
+
     /* Holding Alt over a piece in the zone, or in the hand, shows its face large beside the pointer, as it does on the table. */
     const closeUp = () => canvasElement.ownerDocument.body.querySelector('[class*="closeUp"]');
     /* The pointer's own events carry Alt, as a real mouse's do while it is held. */

@@ -136,6 +136,13 @@ type Landing = Readonly<{
 /* A turn the page shows at once and sends when Q or E comes up, as a held key on the table does: `by` 15° steps, clockwise when positive. */
 type Turning = Readonly<{ pieceId: string; by: number }>;
 
+/* The box a piece of `width` by `depth` covers once turned, so a turned card is kept whole in view by its turned size. */
+function turnedReach(width: number, depth: number, spot: HiddenZoneSpot) {
+  const angle = ((spot.turn ?? 0) * Math.PI) / 12;
+  const [cos, sin] = [Math.abs(Math.cos(angle)), Math.abs(Math.sin(angle))];
+  return { across: width * cos + depth * sin, down: width * sin + depth * cos };
+}
+
 /* How the zone draws a piece turned in 15° steps. */
 const turned = (spot: HiddenZoneSpot) => (spot.turn ? `rotate(${spot.turn * 15}deg)` : undefined);
 
@@ -268,13 +275,24 @@ export function HiddenZone({ client, table, hand }: Props) {
     const by = pending && pending.pieceId === pieceId ? pending.by : 0;
     setTurning({ pieceId, by: by + (key === 'q' ? -1 : 1) });
   });
+  const finishTurn = useEffectEvent(() => {
+    const pending = turns.current;
+    const lifted = carrying.current;
+    if (pending && !(lifted && lifted.pieceId === pending.pieceId)) {
+      sendTurn(pending);
+    }
+  });
   useEffect(() => {
     const listen = (event: KeyboardEvent) => turnKey(event);
+    /* A key let go in another window never comes up here, so leaving the window sends the turn it shows, as the table does. */
+    const leave = () => finishTurn();
     window.addEventListener('keydown', listen, true);
     window.addEventListener('keyup', listen, true);
+    window.addEventListener('blur', leave);
     return () => {
       window.removeEventListener('keydown', listen, true);
       window.removeEventListener('keyup', listen, true);
+      window.removeEventListener('blur', leave);
     };
   }, []);
 
@@ -370,9 +388,12 @@ export function HiddenZone({ client, table, hand }: Props) {
               const pieceDepth = footprint.depth * scale;
               const spot = shownSpot(piece);
               const carried = carry?.pieceId === piece.id && carry.moving ? carry : null;
-              /* Kept whole in view: a piece laid out in a roomier tab sits at this one's edge until moved. */
-              const left = inside(spot.x * HIDDEN_ZONE_WIDTH * scale - pieceWidth / 2, width - pieceWidth);
-              const top = inside(spot.y * HIDDEN_ZONE_DEPTH * scale - pieceDepth / 2, height - pieceDepth);
+              /* Kept whole in view, as turned: a piece laid out in a roomier tab sits at this one's edge until moved. */
+              const { across, down } = turnedReach(pieceWidth, pieceDepth, spot);
+              const left =
+                inside(spot.x * HIDDEN_ZONE_WIDTH * scale - across / 2, width - across) + (across - pieceWidth) / 2;
+              const top =
+                inside(spot.y * HIDDEN_ZONE_DEPTH * scale - down / 2, height - down) + (down - pieceDepth) / 2;
               const box = { width: pieceWidth, height: pieceDepth };
               const hover = closeUp.hover(piece);
               const handlers = {
