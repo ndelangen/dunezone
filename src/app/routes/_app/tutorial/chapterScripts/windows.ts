@@ -149,13 +149,13 @@ const slotTasks = (): GuideTask[] => [
   }),
   task({
     id: 'unpin',
-    task: 'Unpin your hand',
+    task: 'Unpin table chat',
     detail:
-      'The crossed-out pin in the hand’s title takes it off the screen at once. {Space} {←} brings it back any time.',
-    anchor: { kind: 'page', element: first('[data-side="left"] [aria-label="Unpin"]') },
+      'The crossed-out pin in the chat’s title takes it off the screen at once. {Space} {→} brings it back any time.',
+    anchor: { kind: 'page', element: first('[data-side="right"] [aria-label="Unpin"]') },
     begin: nothing,
-    /* Whatever ended up pinned bottom left, the slot is empty once it is unpinned. */
-    done: () => document.querySelector('[data-side="left"]') === null,
+    /* Whatever ended up pinned bottom right, the slot is empty once it is unpinned. */
+    done: () => document.querySelector('[data-side="right"]') === null,
   }),
 ];
 
