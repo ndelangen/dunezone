@@ -1387,15 +1387,25 @@ async function clearCentre(who: HostedPeer) {
     throw new Error(`${who.label}'s centre window did not close on Escape.`);
   }
 }
-/** Fails when anything but the board's canvas is topmost at a page point, naming what covers it. */
-async function assertBoardAt(who: HostedPeer, at: Point, what: string) {
-  const cover = await who.page.evaluate(({ x, y }) => {
+/** What covers a page point, or null when the board's canvas is topmost there. */
+async function coverAt(who: HostedPeer, at: Point) {
+  return who.page.evaluate(({ x, y }) => {
     const hit = document.elementFromPoint(x, y);
     return hit instanceof HTMLCanvasElement
       ? null
       : (hit?.closest('[aria-label]')?.getAttribute('aria-label') ?? hit?.tagName ?? 'nothing');
   }, at);
+}
+/** Fails when anything but the board's canvas is topmost at a page point, naming what covers it. */
+async function assertBoardAt(who: HostedPeer, at: Point, what: string) {
+  const cover = await coverAt(who, at);
   assert.equal(cover, null, `${who.label}: ${what} is covered by ${cover}.`);
+}
+/** Whether the 48 px box redPixels samples around a page point lies on the page, with the board topmost at its centre. */
+async function boardShows(who: HostedPeer, at: Point) {
+  const viewport = required(who.page.viewportSize(), 'viewport');
+  const inside = at.x >= 24 && at.y >= 24 && at.x <= viewport.width - 24 && at.y <= viewport.height - 24;
+  return inside && (await coverAt(who, at)) === null;
 }
 
 async function visibleActivity(sender: HostedPeer, recipient: HostedPeer, name: string) {
@@ -1616,20 +1626,46 @@ async function sharedPhaseFlow(a: HostedPeer, b: HostedPeer) {
   const source = piece(b, id);
   const beforeCarry = requireView(a).snapshot.revision;
   const start = await point(b, [source.position[0], source.position[1] + 0.12, source.position[2]]);
-  const target: Vector3Tuple = [-1.5, 0.38, 1.4];
-  const targetPoint = await point(b, target);
   /* The next phase recommends a view other than the map (#1389). At the phase change the idle recipient's
      camera moves there, and the carrying player's camera waits for the drop, so the recipient samples the
-     held token in both views, each against its own empty board. */
+     held token in both views, each against its own empty board. The target is the first spot both views show. */
   const nextView = PHASE_VIEWS[phaseAt(requireView(a).snapshot.phase + 1).id as keyof typeof PHASE_VIEWS];
   assert.notEqual(nextView, 'map', 'The phase after Storm must recommend a view other than the map.');
+  await clearCentre(a);
+  await clearCentre(b);
+  const candidates: Vector3Tuple[] = [
+    [-1.5, 0.38, 1.4],
+    [1.2, 0.38, 1.2],
+    [1.4, 0.38, 0.4],
+    [0.9, 0.38, -0.6],
+  ];
   await focus(a, nextView);
   await a.page.mouse.move(10, 10);
-  const nextViewPoint = await point(a, target);
+  const inNextView = [];
+  for (const candidate of candidates) {
+    const at = await point(a, candidate);
+    if (await boardShows(a, at)) {
+      inNextView.push({ candidate, at });
+    }
+  }
+  await focus(a, 'map');
+  await a.page.mouse.move(10, 10);
+  let chosen: { nextViewPoint: Point; recipientPoint: Point; targetPoint: Point } | undefined;
+  for (const { candidate, at } of inNextView) {
+    const recipientAt = await point(a, candidate);
+    const senderAt = await point(b, candidate);
+    if ((await boardShows(a, recipientAt)) && (await boardShows(b, senderAt))) {
+      chosen = { nextViewPoint: at, recipientPoint: recipientAt, targetPoint: senderAt };
+      break;
+    }
+  }
+  assert.ok(chosen, `No carry target shows on the board in both the map and the ${nextView} view.`);
+  const { nextViewPoint, recipientPoint, targetPoint } = chosen;
+  await focus(a, nextView);
+  await a.page.mouse.move(10, 10);
   const nextViewBaseline = await redPixels(a, b, nextViewPoint);
   await focus(a, 'map');
   await a.page.mouse.move(10, 10);
-  const recipientPoint = await point(a, target);
   const baseline = await redPixels(a, b, recipientPoint);
   await b.page.mouse.move(start.x, start.y);
   await b.page.mouse.down();
