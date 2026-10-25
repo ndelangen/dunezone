@@ -34,8 +34,8 @@ export type TableWindow = Readonly<{
   content: ReactNode;
   /** How the content sits in the window: stacked and padded, flush to the window's sides, or filling the window as a chat does. */
   layout: WindowLayout;
-  /** The content lifts a piece over the window's top edge through `WindowHero`, such as the Battle plan's wheel. */
-  hero?: boolean;
+  /** The content may peek over the window's top edge, as the Battle plan's cards do; it then scrolls its own parts. */
+  peek?: boolean;
   player?: CompassPlayer;
 }>;
 

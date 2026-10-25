@@ -1,4 +1,4 @@
-import { Button, Popover, Tooltip, UnstyledButton } from '@mantine/core';
+import { Button, Popover, Slider, Tooltip, UnstyledButton } from '@mantine/core';
 import type { BattleFace, BattlePlan, Disclosure } from '@shared/play/battle';
 import type { TablePiece } from '@shared/play/model';
 import clsx from 'clsx';
@@ -12,7 +12,7 @@ import { TroopToken } from '@game/assets/faction/troop/Troop';
 import compassStyles from '../compass/CompassControls.module.css';
 import { PieceImage, pieceName } from '../multiplayer/HandPiece';
 import styles from './parts.module.css';
-import { MODE_HELP, formatStrength, isShown } from './planView';
+import { FREE_SUPPORT_HELP, MODE_HELP, formatStrength, isShown, spiceMatters } from './planView';
 import type { BattlePlanViewProps, Opponent, WheelArt } from './planView';
 
 /**
@@ -117,7 +117,7 @@ type StepperProps = {
  * A count with − and + either side: one click per step, the wheel over it steps too, and typing commits on Enter or blur.
  * At either end the value knocks against its limit instead of silently refusing.
  */
-export function Stepper({
+function Stepper({
   label,
   value,
   min = 0,
@@ -210,27 +210,94 @@ export function Stepper({
 export function ModeToggle({
   mode,
   disabled,
+  free,
   onChange,
 }: {
   mode: BattlePlan['mode'];
   disabled?: boolean;
+  /** No troop needs spice to fight at full strength, so there is nothing to choose. */
+  free?: boolean;
   onChange: (mode: BattlePlan['mode']) => void;
 }) {
   const custom = mode === 'custom';
   return (
-    <Tooltip label={MODE_HELP} multiline w={260} withArrow>
+    <Tooltip label={free ? FREE_SUPPORT_HELP : MODE_HELP} multiline w={260} withArrow>
       <button
         type="button"
         className={clsx(compassStyles.iconButton, styles.modeToggle)}
         aria-pressed={custom}
         aria-label={custom ? 'Custom support: on' : 'Custom support: off, spice supports as many troops as it can'}
-        disabled={disabled}
+        disabled={disabled || free}
         onClick={() => onChange(custom ? 'max' : 'custom')}
       >
         <SlidersHorizontal size={16} />
         {custom ? 'Custom' : null}
       </button>
     </Tooltip>
+  );
+}
+
+/** The dial's rows, lined up in shared columns. */
+export function DialGrid({ children, label }: { children: ReactNode; label: string }) {
+  return (
+    <div className={styles.dial} role="group" aria-label={label}>
+      {children}
+    </div>
+  );
+}
+
+/** One row of the dial: a slider to sweep a count and a stepper to nudge it, both on the same value. */
+export function DialRow({
+  label,
+  sub,
+  name,
+  value,
+  max,
+  disabled,
+  onChange,
+  spice,
+}: {
+  /** The row's label, such as the troop's token; a second row of the same troop leaves it out. */
+  label?: ReactNode;
+  /** Beside the label: plain or spiced in Custom mode, or a quick button. */
+  sub?: ReactNode;
+  name: string;
+  value: number;
+  max: number;
+  disabled: boolean;
+  onChange: (value: number) => void;
+  spice?: boolean;
+}) {
+  /* The slider's value follows the thumb and is sent once, when the thumb is let go; the stepper sends each step. */
+  const [draft, setDraft] = useState<number | null>(null);
+  const shown = draft ?? value;
+  return (
+    <div className={styles.dialRow} data-spice={spice || undefined}>
+      <span className={styles.dialLabel}>{label}</span>
+      <span className={styles.dialSub}>{sub}</span>
+      <Slider
+        className={styles.dialSlider}
+        aria-label={name}
+        thumbLabel={name}
+        min={0}
+        max={Math.max(max, 1)}
+        step={1}
+        value={Math.min(shown, Math.max(max, 1))}
+        disabled={disabled || max === 0}
+        label={null}
+        size="sm"
+        onChange={setDraft}
+        onChangeEnd={(next) => {
+          setDraft(null);
+          if (next !== value) {
+            onChange(next);
+          }
+        }}
+      />
+      <span className={styles.dialStep}>
+        <Stepper size="sm" label={name} value={shown} max={max} disabled={disabled} onChange={onChange} />
+      </span>
+    </div>
   );
 }
 
@@ -342,11 +409,10 @@ export function PieceTile({
   );
 }
 
-/** The battle this plan is for, and whether the other side is ready yet. */
-export function BattleLine({ territory, opponent }: { territory: string; opponent: Opponent | null }) {
+/** Who the plan is against, and whether they are ready yet. */
+export function OpponentLine({ opponent }: { opponent: Opponent | null }) {
   return (
     <div className={styles.battleLine}>
-      <span className={styles.territory}>{territory}</span>
       {opponent ? (
         <span className={styles.opponent} data-ready={opponent.ready || undefined}>
           against {opponent.name}
@@ -402,28 +468,30 @@ export function ReadyButton({
 /** The strength the plan adds up to, with its parts underneath. */
 export function StrengthSum({
   props,
-  className,
-  compact,
+  adjust,
 }: {
   props: Pick<BattlePlanViewProps, 'plan' | 'leaderStrength'>;
-  className?: string;
-  compact?: boolean;
+  /** The adjustment button, beside the total it changes. */
+  adjust?: ReactNode;
 }) {
   const { plan } = props;
   const leader = plan.leaderId ? props.leaderStrength?.[plan.leaderId] : undefined;
   const total = plan.strength + (leader ?? 0);
   return (
-    <div className={clsx(styles.sum, compact && styles.sumCompact, className)} aria-live="polite">
-      <span className={styles.sumValue}>
-        <RollingNumber value={total} />
+    <div className={styles.sum} aria-live="polite">
+      <span className={styles.sumTop}>
+        <span className={styles.sumValue}>
+          <RollingNumber value={total} />
+        </span>
+        {adjust}
       </span>
       <span className={styles.sumParts}>
         <span>
           troops {formatStrength(plan.strength - plan.adjustment)}
           {plan.adjustment ? ` ${plan.adjustment > 0 ? '+' : '−'} ${formatStrength(Math.abs(plan.adjustment))}` : ''}
-          {leader !== undefined ? ` + leader ${leader}` : ''}
         </span>
-        <span>{plan.spice} spice</span>
+        {leader !== undefined ? <span>leader {leader}</span> : null}
+        {spiceMatters(plan) ? <span>{plan.spice} spice</span> : null}
       </span>
     </div>
   );

@@ -1,45 +1,36 @@
-/* Sticks to the top of the window's scrolling body, edge to edge, so the strength and Ready never scroll away. */
+/* The strength, the wheel and Ready in a row; the wheel's cards rise over the window's top edge. */
 .head {
-  position: sticky;
-  top: -0.9rem;
-  z-index: 3;
+  --wheel-zoom: 0.62;
+
   display: grid;
-  gap: 0.35rem;
-  margin: -0.9rem -1rem 0;
-  padding: 0.55rem 1rem 0.55rem;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.6rem;
+  padding-bottom: 0.6rem;
   border-bottom: 1px solid var(--edge);
-  background: var(--glass-solid);
 }
 
-/* Room above the wheel for the fanned cards, as the wheel draws them over its top edge. */
-.wheelBox {
-  --wheel-zoom: 0.7;
-
-  position: relative;
+.side {
   display: grid;
-  place-items: center;
-  width: calc(170px * var(--wheel-zoom));
-  padding-top: calc(62px * var(--wheel-zoom));
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.ready {
+  display: grid;
+  justify-items: end;
+}
+
+/* The wheel rises into the title bar's empty middle, so its fanned cards peek out over the window's top edge. */
+.wheelSeat {
+  margin-top: -3.6rem;
 }
 
 .wheel {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   zoom: var(--wheel-zoom);
-  /* Standing over the window's edge, the wheel casts a shadow onto the table below. */
-  filter: drop-shadow(0 6px 12px rgb(from var(--color-shadow) r g b / 0.55));
-  transition: filter 150ms;
-  pointer-events: none;
-}
-
-/* Only the pieces on the wheel take the pointer, so rings drawn around it stay reachable at its corners. */
-.wheel :is(button, [role="button"]) {
-  pointer-events: auto;
-}
-
-/* A piece dragged over the wheel lights its rim: let go and it lands there. */
-.wheelBox[data-over] .wheel {
-  filter: drop-shadow(0 0 6px var(--sand));
+  filter: drop-shadow(0 4px 10px rgb(from var(--color-shadow) r g b / 0.5));
 }
 
 .wheel[data-thunk="0"] {
@@ -71,43 +62,6 @@
 
 .piece:disabled {
   cursor: default;
-}
-
-.sumRow {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  min-width: 0;
-}
-
-.ready {
-  flex: none;
-  margin-left: auto;
-}
-
-.reveals {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem 0.6rem;
-  color: var(--ink-dim);
-  font-size: 0.7rem;
-}
-
-.revealPart {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  max-width: 100%;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.reveal {
-  position: static;
-  flex: none;
-  width: 18px;
-  height: 18px;
 }
 
 :global(html[data-motion="reduce"]) .wheel {

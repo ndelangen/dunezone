@@ -1,8 +1,19 @@
 .ledger {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
   gap: 0.4rem;
-  min-height: 100%;
+  height: 100%;
+}
+
+/* The head stays put; the sheet under it scrolls when the slot is short. */
+.sheet {
+  display: grid;
+  align-content: start;
+  gap: 0.4rem;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: thin;
 }
 
 .row {
@@ -43,35 +54,19 @@
   border: 1px solid var(--edge);
   border-radius: 10px;
   background: rgb(from var(--ui-recess) r g b / 0.5);
+  position: relative;
 }
 
-.dialHead {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
+/* The dial's eye sits on its box's top edge, as each tile's eye sits on the tile's, inside the sheet's scroll. */
+.dial .dialReveal {
+  top: -8px;
+  right: 0.6rem;
+  bottom: auto;
+  left: auto;
 }
 
-.dialReveal {
-  position: static;
-  margin-left: auto;
-}
-
-.field {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.6rem;
-  font-size: 0.82rem;
-}
-
-.pair {
-  display: inline-flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  margin-left: auto;
-  align-items: center;
-  gap: 0.35rem;
+.spiceIcon {
+  color: var(--ui-brass);
 }
 
 .quick {

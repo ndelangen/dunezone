@@ -3,17 +3,17 @@ import type { BattleFace, BattlePlan, BattlePlanInput, Disclosure } from '@share
 import type { TablePiece } from '@shared/play/model';
 import { item } from '@shared/play/setupSupply';
 import { PinOff } from 'lucide-react';
-import type { ComponentType, CSSProperties, ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { useState } from 'react';
 
 import compassStyles from '../compass/CompassControls.module.css';
 import { WindowFrame } from '../compass/WindowFrame';
 import type { TableWindow } from '../compass/windows';
 import { DarkSchemeIsland, darkSchemeIslandAttributes } from '../DarkSchemeIsland';
-import { battleStory } from '../playing.stories.fixture';
 import { cardBack, factions, playingSnapshot } from '../product.stories.fixture';
+import { LedgerPlan } from './LedgerPlan';
 import { ModeToggle } from './parts';
-import { planLocks } from './planView';
+import { planLocks, spiceMatters } from './planView';
 import type { BattlePlanViewProps } from './planView';
 import '../dune-play.css';
 
@@ -27,7 +27,14 @@ const FACE_VALUES: Readonly<Record<string, readonly Pick<BattleFace, 'strength' 
     { strength: 0.5, supportedStrength: 1 },
     { strength: 1, supportedStrength: 2 },
   ],
+  fremen: [
+    { strength: 1, supportedStrength: 1 },
+    { strength: 2, supportedStrength: 2 },
+  ],
 };
+
+/* Factions whose advantage dials troops at full strength with no spice. */
+const FREE_SUPPORT = new Set(['fremen']);
 
 function facesOf(faction: Faction): BattleFace[] {
   return faction.data.troops.map((troop, index) => ({
@@ -35,7 +42,7 @@ function facesOf(faction: Faction): BattleFace[] {
     name: troop.name,
     image: troop.image,
     capable: true,
-    supportCost: 1,
+    supportCost: FREE_SUPPORT.has(faction.slug) ? 0 : 1,
     ...FACE_VALUES[faction.slug]![index]!,
   }));
 }
@@ -69,17 +76,21 @@ function treacheryCards(): TablePiece[] {
   }));
 }
 
-export type Scenario = 'fresh' | 'planned' | 'emperor' | 'ready' | 'countdown';
+export type Scenario = 'fresh' | 'planned' | 'emperor' | 'fremen' | 'ready' | 'countdown';
+
+/* The viewer's seat and faction per scenario, in the playing fixture's seat order. */
+const SEATS = { emperor: ['seat-3', 'emperor'], fremen: ['seat-5', 'fremen'] } as const;
 
 type Harness = Omit<BattlePlanViewProps, 'onEdit' | 'onReady' | 'onDisclose'>;
 
-/** The viewer's side of the story battle at Arrakeen: Harkonnen against Atreides, or the Emperor in its place. */
+/** The viewer's side of the story battle: Harkonnen against Atreides, or the Emperor or the Fremen in its place. */
 export function scenario(name: Scenario): Harness {
   const emperor = name === 'emperor';
-  const faction = factionBySlug(emperor ? 'emperor' : 'house-harkonnen');
-  const story = battleStory('preparing');
+  const fremen = name === 'fremen';
+  const [seat, slug] = emperor || fremen ? SEATS[name] : ['seat-2', 'house-harkonnen'];
+  const faction = factionBySlug(slug);
   /* The viewer's own hand from the playing fixture: leaders, alliance card and kept Traitors, and four Treachery cards drawn since. */
-  const own = playingSnapshot(emperor ? 'seat-3' : 'seat-2').hand!;
+  const own = playingSnapshot(seat).hand!;
   const hand = [...own, ...treacheryCards()];
   const leaders = own.filter(isBattleLeader);
   const faces = facesOf(faction);
@@ -100,7 +111,6 @@ export function scenario(name: Scenario): Harness {
     stage: 'preparing',
     ready: false,
     canAct: true,
-    territory: story.battle!.territory,
     opponent: { name: factionBySlug('house-atreides').data.name, ready: true },
     leaderStrength,
     troopLimit,
@@ -122,10 +132,18 @@ export function scenario(name: Scenario): Harness {
   }
   const committed = simulate(harness, {
     leaderId: leaders[0]!.id,
-    cardIds: ['treachery-crysknife'],
+    cardIds: fremen ? ['treachery-crysknife', 'treachery-shield'] : ['treachery-crysknife'],
     ...(emperor
       ? { mode: 'custom' as const }
-      : { troops: [{ faceId: faces[0]!.id, undialed: 6, dialed: 0 }], spice: 4 }),
+      : fremen
+        ? /* The Fremen dial for free: every troop counts at full strength and no spice is spent. */
+          {
+            troops: [
+              { faceId: faces[0]!.id, undialed: 5, dialed: 0 },
+              { faceId: faces[1]!.id, undialed: 2, dialed: 0 },
+            ],
+          }
+        : { troops: [{ faceId: faces[0]!.id, undialed: 6, dialed: 0 }], spice: 4 }),
   });
   /* Switching to Custom starts the dial over, so the Emperor's troops are dialed after the switch. */
   const planned = emperor
@@ -209,16 +227,8 @@ function disclose(state: Harness, part: Disclosure, shown: boolean): Harness {
   return { ...state, plan: { ...state.plan, disclosed } };
 }
 
-/** A variant, live: its intents change the story's own plan as the Worker would. */
-export function PlanHarness({
-  variant: Variant,
-  initial,
-  size,
-}: {
-  variant: ComponentType<BattlePlanViewProps>;
-  initial: Harness;
-  size: SlotSize;
-}) {
+/** The Ledger, live: its intents change the story's own plan as the Worker would. */
+export function PlanHarness({ initial, size }: { initial: Harness; size: SlotSize }) {
   const [state, setState] = useState(initial);
   return (
     <SlotFrame
@@ -227,11 +237,12 @@ export function PlanHarness({
         <ModeToggle
           mode={state.plan.mode}
           disabled={planLocks(state).dialLocked}
+          free={!spiceMatters(state.plan)}
           onChange={(mode) => setState((before) => simulate(before, { mode }))}
         />
       }
     >
-      <Variant
+      <LedgerPlan
         {...state}
         onEdit={(patch) => setState((before) => simulate(before, patch))}
         onReady={(ready) =>
@@ -253,12 +264,12 @@ const BATTLE_WINDOW: Omit<TableWindow, 'content'> = {
   group: 'Table',
   topic: 'battle',
   description: 'Your private plan for the battle on the table.',
-  layout: 'stack',
-  hero: true,
+  layout: 'fill',
+  peek: true,
 };
 
-/* Room above the slot for the wheel and its cards, which stand over the window's top edge. */
-const HERO_ROOM = 150;
+/* Room above the slot for the wheel's cards, which peek over the window's top edge. */
+const PEEK_ROOM = 60;
 
 export type SlotSize = 'slot' | 'narrow' | 'wide' | 'tall';
 const SLOT_SIZES: Readonly<Record<SlotSize, { width: string; height: string }>> = {
@@ -277,7 +288,7 @@ function SlotFrame({ size, actions, children }: { size: SlotSize; actions: React
       <div
         className="dune-play-shell"
         {...darkSchemeIslandAttributes}
-        style={{ width: `calc(${width} + 24px)`, height: `calc(${height} + 24px + ${HERO_ROOM}px)` }}
+        style={{ width: `calc(${width} + 24px)`, height: `calc(${height} + 24px + ${PEEK_ROOM}px)` }}
       >
         <div className={compassStyles.root} style={{ '--slot-width': width } as CSSProperties}>
           <WindowFrame

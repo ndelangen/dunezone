@@ -14,27 +14,10 @@
 }
 
 /* The centre window keeps clear of the slots either side, and on a narrow table takes the width it needs over them. */
-/* A window whose content stands a piece over its top edge lets it out; its body keeps the rounded corners. */
-.window[data-hero] {
+/* A window whose content peeks over its top edge lets it out: the body no longer clips, and the content scrolls its own parts. */
+.window[data-peek],
+.window[data-peek] .body {
   overflow: visible;
-}
-
-.window[data-hero] .body {
-  border-radius: 0 0 var(--radius) var(--radius);
-}
-
-/* The lifted piece stands on the title bar's top edge, a little into it, in the gap between the name and the buttons. */
-.hero {
-  position: absolute;
-  top: 0.9rem;
-  left: 50%;
-  z-index: 2;
-  translate: -50% -100%;
-  pointer-events: none;
-}
-
-.hero > * {
-  pointer-events: auto;
 }
 
 .centre {

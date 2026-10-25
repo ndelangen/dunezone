@@ -1,13 +1,12 @@
 import { TopicIcon } from '@ui/content/TopicIcon';
 import clsx from 'clsx';
-import { useContext, useState } from 'react';
+import { useContext } from 'react';
 import type { CSSProperties, KeyboardEvent, PointerEvent as ReactPointerEvent, ReactNode } from 'react';
 
 import { CompassTableContext } from './compassTable';
 import type { CompassPlayer } from './compassTable';
 import { PlayerToken } from './PlayerToken';
 import type { Side } from './slotLimits';
-import { WindowHeroContext } from './windowHero';
 import { WindowBody, WindowHelp } from './windows';
 import type { PlayerTab, TableWindow, WindowLayout } from './windows';
 import styles from './Windows.module.css';
@@ -52,7 +51,6 @@ export function WindowFrame({
   onTab,
   actions,
 }: WindowFrameProps) {
-  const [hero, setHero] = useState<HTMLElement | null>(null);
   return (
     <div
       role="group"
@@ -64,15 +62,12 @@ export function WindowFrame({
       inert={inert}
       data-hides-cursor
       data-bounce={bounce}
-      data-hero={entry.hero || undefined}
+      data-peek={entry.peek || undefined}
       style={style}
     >
       {resize && <ResizeEdge resize={resize} />}
-      {entry.hero && <div ref={setHero} className={styles.hero} />}
       <WindowTitle entry={entry} tab={tab} onTab={onTab} actions={actions} />
-      <WindowHeroContext.Provider value={entry.hero ? hero : null}>
-        <WindowContent entry={entry} tab={tab} />
-      </WindowHeroContext.Provider>
+      <WindowContent entry={entry} tab={tab} />
     </div>
   );
 }

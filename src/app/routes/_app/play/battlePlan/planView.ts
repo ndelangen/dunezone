@@ -39,7 +39,6 @@ export type BattlePlanViewProps = Readonly<{
   ready: boolean;
   /** False for a viewer who may not change the table, such as during a replay. */
   canAct: boolean;
-  territory: string;
   opponent: Opponent | null;
   /** Each leader's printed strength by piece id, when the faction's capture names it. */
   leaderStrength?: Readonly<Record<string, number>>;
@@ -58,6 +57,9 @@ const DEFAULT_TROOP_LIMIT = 20;
 
 export const MODE_HELP =
   'Max: say how many troops fight and how much spice backs them, and the spice supports as many as it can. Custom: say for each troop type how many fight unsupported and how many supported; the spice follows.';
+
+export const FREE_SUPPORT_HELP =
+  'Your troops fight at full strength without spice, so there is no support to choose: say how many fight.';
 
 /** The pieces a plan can draw on: the hand and the plan's own, each once. */
 export function planPieces(plan: BattlePlan, hand: readonly TablePiece[]): TablePiece[] {
@@ -81,6 +83,11 @@ export const cardsOf = (pieces: readonly TablePiece[]) =>
   );
 
 export const capableFaces = (plan: BattlePlan) => plan.faces.filter((face) => face.capable);
+
+/** Whether spice changes anything for this faction: some troop fights stronger with spice and has to pay for it. Fremen dial theirs for free. */
+export function spiceMatters(plan: BattlePlan) {
+  return capableFaces(plan).some((face) => face.supportCost > 0 && face.supportedStrength > face.strength);
+}
 
 export function troopsOf(plan: BattlePlan, faceId: string): FaceTroops {
   const troop = plan.troops.find((entry) => entry.faceId === faceId);
