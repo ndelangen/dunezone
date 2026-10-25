@@ -200,6 +200,7 @@ export const DeleteACard = meta.story({
  * The zone is part of the hand, so no other seat's frame carries it.
  * Right-click a piece in the Hand tab and choose "Move to hidden zone" to try it by hand;
  * drag pieces about in the Hidden zone tab, or onto the table to play them.
+ * Hold Alt over a piece in either tab to see it close up.
  */
 export const HiddenZone = meta.story({
   play: async ({ canvasElement }) => {
@@ -224,9 +225,35 @@ export const HiddenZone = meta.story({
     const other = journeyViewers().find((seat) => seat !== table.seat)!;
     await expect(JSON.stringify(table.frame(other).snapshot)).not.toContain('hiddenZone');
     await openTab(page, 'Hidden zone');
-    await expect(page.findAllByRole('button', { name: /in hidden zone$/ }, { timeout: 30_000 })).resolves.toHaveLength(
-      2
-    );
+    const zonePieces = await page.findAllByRole('button', { name: /in hidden zone$/ }, { timeout: 30_000 });
+    await expect(zonePieces).toHaveLength(2);
+
+    /*
+     * Holding Alt over a piece in the zone, or in the hand, shows its face large beside the pointer, as it does on the table.
+     * The card is the recording's Traitor stand-in, with no published face to show, so the leader shows it.
+     */
+    const closeUp = () => canvasElement.ownerDocument.body.querySelector('[class*="closeUp"]');
+    /* The pointer's own events carry Alt, as a real mouse's do while it is held. */
+    const point = (target: Element, type: string) => {
+      const bounds = target.getBoundingClientRect();
+      const at = { clientX: bounds.left + bounds.width / 2, clientY: bounds.top + bounds.height / 2 };
+      target.dispatchEvent(new PointerEvent(type, { bubbles: true, altKey: true, pointerType: 'mouse', ...at }));
+    };
+    const zoneLeader = page.getByRole('button', {
+      name: `Drag ${leader.items[0]?.artwork?.name ?? leader.label} in hidden zone`,
+    });
+    point(zoneLeader, 'pointerover');
+    point(zoneLeader, 'pointermove');
+    await waitFor(() => expect(closeUp()).not.toBeNull());
+    point(zoneLeader, 'pointerout');
+    await waitFor(() => expect(closeUp()).toBeNull());
+    await openTab(page, 'Hand');
+    const handPiece = (await page.findAllByRole('button', { name: /from hand$/ }, { timeout: 30_000 }))[0]!;
+    point(handPiece, 'pointerover');
+    point(handPiece, 'pointermove');
+    await waitFor(() => expect(closeUp()).not.toBeNull());
+    window.dispatchEvent(new KeyboardEvent('keyup', { key: 'Alt', altKey: false }));
+    await waitFor(() => expect(closeUp()).toBeNull());
   },
 });
 
