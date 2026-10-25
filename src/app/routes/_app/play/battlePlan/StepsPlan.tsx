@@ -5,7 +5,8 @@ import type { ReactNode } from 'react';
 import { useState } from 'react';
 
 import { pieceName } from '../multiplayer/HandPiece';
-import { BattleLine, ModeSwitch, PieceTile, ReadyButton, RevealToggle, Stepper, StrengthSum } from './parts';
+import { PieceTile, RevealToggle, Stepper, TroopLabel } from './parts';
+import { PlanHead } from './PlanHead';
 import {
   availableSpice,
   capableFaces,
@@ -76,7 +77,7 @@ export function StepsPlan(props: BattlePlanViewProps) {
   );
   return (
     <div className={styles.steps}>
-      <BattleLine territory={props.territory} opponent={props.opponent} />
+      <PlanHead view={props} />
       <ol className={styles.list}>
         {step(
           'leader',
@@ -169,7 +170,6 @@ export function StepsPlan(props: BattlePlanViewProps) {
           done.has('dial') || plan.troops.length ? dialSummary : null,
           <div className={styles.dial}>
             <div className={styles.dialHead}>
-              <ModeSwitch mode={plan.mode} disabled={locks.dialLocked} onChange={(mode) => onEdit({ mode })} />
               <RevealToggle
                 className={styles.inlineReveal}
                 plan={plan}
@@ -184,6 +184,7 @@ export function StepsPlan(props: BattlePlanViewProps) {
                 {faces.map((face) => (
                   <Chips
                     key={face.id}
+                    icon={<TroopLabel face={face} wheelArt={props.wheelArt} />}
                     label={faces.length === 1 ? 'Troops' : face.name}
                     value={totalOf(plan, face.id)}
                     max={troopLimitOf(props, face.id)}
@@ -203,7 +204,7 @@ export function StepsPlan(props: BattlePlanViewProps) {
             ) : (
               faces.map((face) => (
                 <div key={face.id} className={styles.custom}>
-                  <span>{face.name}</span>
+                  <TroopLabel face={face} wheelArt={props.wheelArt} />
                   <Stepper
                     size="sm"
                     label={`${face.name} unsupported`}
@@ -248,10 +249,6 @@ export function StepsPlan(props: BattlePlanViewProps) {
           </div>
         )}
       </ol>
-      <footer className={styles.footer}>
-        <StrengthSum props={props} compact />
-        <ReadyButton {...props} />
-      </footer>
     </div>
   );
 }
@@ -298,6 +295,7 @@ function Step({
 
 /** Every count from none to the most there can be, one click each; the hinted chip is the count that supports every troop. */
 function Chips({
+  icon,
   label,
   value,
   max,
@@ -305,6 +303,7 @@ function Chips({
   disabled,
   onPick,
 }: {
+  icon?: ReactNode;
   label: string;
   value: number;
   max: number;
@@ -314,7 +313,10 @@ function Chips({
 }) {
   return (
     <div className={styles.chipRow} role="radiogroup" aria-label={label}>
-      <span className={styles.chipLabel}>{label}</span>
+      <span className={styles.chipLabel}>
+        {icon}
+        {label}
+      </span>
       <span className={styles.chips}>
         {Array.from({ length: max + 1 }, (_, count) => (
           <UnstyledButton

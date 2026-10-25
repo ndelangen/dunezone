@@ -1,6 +1,5 @@
 .steps {
   display: grid;
-  grid-template-rows: auto 1fr auto;
   grid-template-columns: minmax(0, 1fr);
   gap: 0.6rem;
   min-height: 100%;
@@ -178,6 +177,9 @@
 }
 
 .chipLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
   color: var(--ink-dim);
   font: 600 0.66rem var(--font-sans);
   letter-spacing: 0.06em;
@@ -239,20 +241,6 @@
   align-items: center;
   gap: 0.5rem;
   font-size: 0.8rem;
-}
-
-.footer {
-  position: sticky;
-  bottom: -1rem;
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 0.6rem;
-  margin: 0 -1rem -1rem;
-  padding: 0.6rem 1rem 0.8rem;
-  border-top: 1px solid var(--edge);
-  background: var(--glass-solid);
 }
 
 :global(html[data-motion="reduce"]) :is(.body, .step, .badge, .chip) {

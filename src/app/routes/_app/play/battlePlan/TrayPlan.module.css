@@ -1,75 +1,25 @@
 .tray {
   display: grid;
-  grid-template-rows: auto auto auto 1fr auto;
   grid-template-columns: minmax(0, 1fr);
   gap: 0.45rem;
   min-height: 100%;
 }
 
-/* The plan: the leader's round slot, the card slots, and the sum at the right. */
-.plan {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  min-height: 4.6rem;
-  padding: 0.4rem 0.7rem;
-  border: 1px solid var(--edge);
-  border-radius: 12px;
-  background: rgb(from var(--ui-recess) r g b / 0.6);
-  transition:
-    border-color 150ms,
-    box-shadow 150ms;
-}
-
-.plan[data-over],
 .hand[data-over] {
   border-color: var(--sand);
   box-shadow: inset 0 0 0 1px var(--sand);
 }
 
-.leaderSlot,
-.cardSlot {
-  display: grid;
-  flex: none;
-  place-items: center;
-  color: var(--ink-dim);
-  font-size: 0.62rem;
-}
-
-.leaderSlot[data-empty] {
-  width: 44px;
-  height: 44px;
-  border: 1.5px dashed rgb(from var(--ui-highlight) r g b / 0.35);
-  border-radius: 50%;
-}
-
-.cardSlots {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  min-width: 0;
-  overflow-x: auto;
-  padding: 6px;
-}
-
-.cardSlot[data-empty] {
-  width: 40px;
-  height: 56px;
-  border: 1.5px dashed rgb(from var(--ui-highlight) r g b / 0.35);
-  border-radius: 5px;
-}
-
-.sum {
-  margin-left: auto;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.1rem;
-  text-align: right;
-}
-
 .piece {
   position: relative;
   flex: none;
+}
+
+/* On the wheel a piece fills the wheel's own leader or card slot. */
+.onWheel,
+.onWheel > .pieceButton {
+  width: 100%;
+  height: 100%;
 }
 
 .pieceButton {
@@ -92,79 +42,53 @@
   translate: 0 -3px;
 }
 
-.sliders {
+.dial {
   display: grid;
-  gap: 0.35rem;
-}
-
-.dialHead {
-  display: flex;
+  grid-template-columns: 30px auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: 0.6rem;
+  gap: 0.35rem 0.55rem;
 }
 
-.dialReveal {
-  position: static;
-  margin-left: auto;
+/* Each row lays its cells straight into the dial's grid, so the sliders and steppers line up in columns. */
+.row {
+  display: contents;
 }
 
-/* Custom mode as a small table: a row per troop type, a column for plain and one for spiced. */
-.custom {
+.row[data-spice] {
+  --slider-color: var(--ui-brass);
+}
+
+.rowLabel {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr);
-  align-items: center;
-  gap: 0.25rem 0.7rem;
+  grid-column: 1;
+  place-items: center;
 }
 
-.columnHead {
+.sub {
+  grid-column: 2;
   color: var(--ink-dim);
   font-size: 0.7rem;
 }
 
-.faceName {
-  max-width: 5.5rem;
-  overflow: hidden;
-  color: var(--ink);
-  font-size: 0.76rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .slider {
-  display: grid;
-  grid-template-columns: 3.4rem minmax(0, 1fr) 3rem;
-  align-items: center;
-  gap: 0.6rem;
+  grid-column: 3;
 }
 
-.slider[data-bare] {
-  grid-template-columns: minmax(0, 1fr) 2.2rem;
-  gap: 0.4rem;
+.nudge {
+  grid-column: 4;
 }
 
-.slider[data-spice] {
-  --slider-color: var(--ui-brass);
+.spiceIcon {
+  color: var(--ui-brass);
 }
 
-.sliderLabel {
-  overflow: hidden;
-  color: var(--ink-dim);
-  font-size: 0.76rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.adjust {
+  display: flex;
+  grid-column: 1 / -1;
+  justify-content: flex-end;
 }
 
-.sliderValue {
-  font-size: 0.82rem;
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-}
-
-.sliderValue small {
-  color: var(--ink-dim);
-}
-
-/* One row that scrolls sideways, so the hand never runs under the Ready bar. */
+/* One row that scrolls sideways, so the hand stays one line. */
 .hand {
   display: flex;
   align-items: center;
@@ -178,26 +102,17 @@
   border-radius: 0 0 10px 10px;
 }
 
-.readyBar {
-  position: sticky;
-  bottom: -1rem;
-  margin: 0 -1rem -1rem;
-  padding: 0.6rem 1rem 0.8rem;
-  border-top: 1px solid var(--edge);
-  background: var(--glass-solid);
-}
-
 .empty {
   color: var(--ink-dim);
   font-size: 0.76rem;
 }
 
-:global(html[data-motion="reduce"]) :is(.plan, .pieceButton) {
+:global(html[data-motion="reduce"]) :is(.hand, .pieceButton) {
   transition: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  :global(html:not([data-motion="ok"])) :is(.plan, .pieceButton) {
+  :global(html:not([data-motion="ok"])) :is(.hand, .pieceButton) {
     transition: none;
   }
 }

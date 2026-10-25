@@ -1,0 +1,116 @@
+/* Sticks to the top of the window's scrolling body, edge to edge, so the wheel never scrolls away. */
+.head {
+  position: sticky;
+  top: -1rem;
+  z-index: 3;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: end;
+  gap: 0.8rem;
+  margin: -1rem -1rem 0;
+  padding: 0.5rem 1rem 0.6rem;
+  border-bottom: 1px solid var(--edge);
+  background: var(--glass-solid);
+}
+
+/* Room above the wheel for the fanned cards, as the wheel draws them over its top edge. */
+.wheelBox {
+  --wheel-zoom: 0.72;
+
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: calc(170px * var(--wheel-zoom));
+  padding-top: calc(62px * var(--wheel-zoom));
+}
+
+.wheel {
+  position: relative;
+  z-index: 1;
+  zoom: var(--wheel-zoom);
+  transition: filter 150ms;
+  pointer-events: none;
+}
+
+/* Only the pieces on the wheel take the pointer, so rings drawn around it stay reachable at its corners. */
+.wheel :is(button, [role="button"]) {
+  pointer-events: auto;
+}
+
+/* A piece dragged over the wheel lights its rim: let go and it lands there. */
+.wheelBox[data-over] .wheel {
+  filter: drop-shadow(0 0 5px var(--sand));
+}
+
+.wheel[data-thunk="0"] {
+  animation: thunk 260ms ease-out;
+}
+
+.wheel[data-thunk="1"] {
+  animation: thunk2 260ms ease-out;
+}
+
+@keyframes thunk {
+  35% {
+    scale: 1.035;
+  }
+}
+
+@keyframes thunk2 {
+  35% {
+    scale: 1.035;
+  }
+}
+
+.piece {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+
+.piece:disabled {
+  cursor: default;
+}
+
+.side {
+  display: grid;
+  align-content: end;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.reveals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.6rem;
+  color: var(--ink-dim);
+  font-size: 0.7rem;
+}
+
+.revealPart {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.reveal {
+  position: static;
+  flex: none;
+  width: 18px;
+  height: 18px;
+}
+
+:global(html[data-motion="reduce"]) .wheel {
+  animation: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :global(html:not([data-motion="ok"])) .wheel {
+    animation: none !important;
+  }
+}

@@ -1,5 +1,4 @@
 import { UnstyledButton } from '@mantine/core';
-import type { BattlePlan } from '@shared/play/battle';
 import type { TablePiece } from '@shared/play/model';
 import clsx from 'clsx';
 import type { KeyboardEvent, PointerEvent as ReactPointerEvent, WheelEvent } from 'react';
@@ -7,21 +6,19 @@ import { useRef, useState } from 'react';
 
 import { Key } from '../compass/glyphs';
 import { PieceImage, pieceName } from '../multiplayer/HandPiece';
-import { AdjustField, BattleLine, ModeSwitch, ReadyButton, RevealToggle, RollingNumber, useBump } from './parts';
+import { AdjustField, TroopLabel } from './parts';
+import { PlanHead } from './PlanHead';
 import {
   availableSpice,
   capableFaces,
   cardsOf,
-  disclosure,
   leadersOf,
   planLocks,
   planPieces,
   setTotal,
   supportedMax,
   toggleCard,
-  toggleLeader,
   totalOf,
-  totalStrength,
   troopLimitOf,
   troopsOf,
   withTroops,
@@ -34,8 +31,9 @@ const SWEEP = 270;
 const START = -135;
 const SIZE = 200;
 const CENTRE = SIZE / 2;
-const OUTER = 86;
-const INNER = 66;
+/* The wheel fills the middle to a radius of about 77; the rings run just outside it. */
+const OUTER = 94;
+const INNER = 84;
 
 function polar(radius: number, degrees: number) {
   const radians = ((degrees - 90) * Math.PI) / 180;
@@ -62,14 +60,12 @@ type RingSpec = { value: number; max: number; set: (value: number) => void; labe
  * Leader and cards sit in the wheel's own slots, filled from the hand below with one click.
  */
 export function WheelPlan(props: BattlePlanViewProps) {
-  const { plan, hand, balance, onEdit, onDisclose } = props;
+  const { plan, hand, balance, onEdit } = props;
   const locks = planLocks(props);
   const pieces = planPieces(plan, hand);
   const faces = capableFaces(plan);
   const [faceId, setFaceId] = useState(faces[0]?.id ?? '');
   const face = faces.find((entry) => entry.id === faceId) ?? faces[0];
-  const leader = pieces.find((entry) => entry.id === plan.leaderId);
-  const planCards = plan.cardIds.flatMap((id) => pieces.filter((entry) => entry.id === id));
   const loose = [...leadersOf(pieces), ...cardsOf(pieces)].filter(
     (entry) => entry.id !== plan.leaderId && !plan.cardIds.includes(entry.id)
   );
@@ -122,94 +118,36 @@ export function WheelPlan(props: BattlePlanViewProps) {
         };
   return (
     <div className={styles.wheelPlan}>
-      <BattleLine territory={props.territory} opponent={props.opponent} />
+      <PlanHead
+        view={props}
+        wheelBox={{ className: styles.ringBox }}
+        around={<Dial rings={rings} locked={locks.dialLocked} />}
+        reveals
+      />
       <div className={styles.controls}>
-        {faces.length > 1 ? (
-          <div className={styles.faces} role="tablist" aria-label="Troop type on the dial">
-            {faces.map((entry) => (
-              <UnstyledButton
-                key={entry.id}
-                role="tab"
-                aria-selected={entry.id === face.id}
-                className={styles.faceTab}
-                onClick={() => setFaceId(entry.id)}
-              >
-                {entry.name} <b>{totalOf(plan, entry.id)}</b>
-              </UnstyledButton>
-            ))}
-          </div>
-        ) : null}
-        <ModeSwitch mode={plan.mode} disabled={locks.dialLocked} onChange={(mode) => onEdit({ mode })} />
-      </div>
-      <div className={styles.stage}>
-        <ul className={styles.fan} aria-label="Cards in the plan">
-          {planCards.map((card, index) => {
-            const offset = index - (planCards.length - 1) / 2;
-            return (
-              <li
-                key={card.id}
-                className={styles.fanCard}
-                style={{ transform: `translateX(calc(-50% + ${offset * 34}px)) rotate(${offset * 12}deg)` }}
-              >
-                <UnstyledButton
-                  aria-label={`Take ${pieceName(card)} back into your hand`}
-                  disabled={locks.cardLocked(card.id)}
-                  onClick={() => onEdit(toggleCard(plan, card.id))}
-                >
-                  <PieceImage piece={card} width={40} height={56} />
-                </UnstyledButton>
-                <RevealToggle
-                  plan={plan}
-                  part={disclosure.card(card.id)}
-                  name="this card"
-                  disabled={locks.revealLocked}
-                  onDisclose={onDisclose}
-                />
-              </li>
-            );
-          })}
-        </ul>
-        <Dial rings={rings} locked={locks.dialLocked} total={totalStrength(props)} />
-        <div className={styles.leaderSlot} data-filled={leader ? true : undefined}>
-          {leader ? (
-            <>
-              <UnstyledButton
-                aria-label={`Take ${pieceName(leader)} back into your hand`}
-                disabled={locks.leaderLocked}
-                onClick={() => onEdit(toggleLeader(plan, leader.id))}
-              >
-                <PieceImage piece={leader} width={48} height={48} />
-              </UnstyledButton>
-              <RevealToggle
-                plan={plan}
-                part={disclosure.leader}
-                name="your leader"
-                disabled={locks.revealLocked}
-                onDisclose={onDisclose}
-              />
-            </>
-          ) : (
-            <span className={styles.slotHint}>Leader</span>
-          )}
+        <div className={styles.faces} role="tablist" aria-label="Troop type on the dial">
+          {faces.map((entry) => (
+            <UnstyledButton
+              key={entry.id}
+              role="tab"
+              aria-selected={entry.id === face.id}
+              className={styles.faceTab}
+              onClick={() => setFaceId(entry.id)}
+            >
+              <TroopLabel face={entry} wheelArt={props.wheelArt} />
+              <b>{totalOf(plan, entry.id)}</b>
+            </UnstyledButton>
+          ))}
         </div>
-        <RevealToggle
-          className={styles.dialReveal}
-          plan={plan}
-          part={disclosure.dial}
-          name="your dial"
-          disabled={locks.revealLocked}
-          onDisclose={onDisclose}
-        />
-      </div>
-      <div className={styles.readout}>
-        <span>
-          <b>{rings.outer.value}</b> {plan.mode === 'max' ? 'troops' : face.name.toLowerCase()} <Key>↑</Key>
-          <Key>↓</Key>
-        </span>
-        <span>
-          <b>{plan.mode === 'max' ? plan.spice : own.dialed}</b> {plan.mode === 'max' ? 'spice' : 'supported'}{' '}
-          <Key>←</Key>
-          <Key>→</Key>
+        <span className={styles.readout}>
+          <span>
+            <b>{rings.outer.value}</b> troops <Key>↑</Key>
+            <Key>↓</Key>
+          </span>
+          <span>
+            <b>{rings.inner.value}</b> {plan.mode === 'max' ? 'spice' : 'supported'} <Key>←</Key>
+            <Key>→</Key>
+          </span>
         </span>
       </div>
       <div className={styles.hand} role="group" aria-label="Your hand">
@@ -217,34 +155,19 @@ export function WheelPlan(props: BattlePlanViewProps) {
           <HandPiece
             key={entry.id}
             piece={entry}
-            plan={plan}
             locked={entry.kind === 'card' ? locks.locked : locks.leaderLocked}
             onPick={() => onEdit(entry.kind === 'card' ? toggleCard(plan, entry.id) : { leaderId: entry.id })}
           />
         ))}
       </div>
-      <footer className={styles.footer}>
-        {locks.dialLocked && !plan.adjustment ? (
-          <span />
-        ) : (
-          <AdjustField plan={plan} disabled={locks.dialLocked} onEdit={onEdit} />
-        )}
-        <ReadyButton {...props} />
-      </footer>
+      <div className={styles.adjust}>
+        <AdjustField plan={plan} disabled={locks.dialLocked} onEdit={onEdit} />
+      </div>
     </div>
   );
 }
 
-function HandPiece({
-  piece,
-  locked,
-  onPick,
-}: {
-  piece: TablePiece;
-  plan: BattlePlan;
-  locked: boolean;
-  onPick: () => void;
-}) {
+function HandPiece({ piece, locked, onPick }: { piece: TablePiece; locked: boolean; onPick: () => void }) {
   const card = piece.kind === 'card';
   return (
     <UnstyledButton
@@ -260,11 +183,11 @@ function HandPiece({
 }
 
 /** The two rings and the strength at their centre. */
-function Dial({ rings, locked, total }: { rings: Record<Ring, RingSpec>; locked: boolean; total: number }) {
+/** The two rings round the battle wheel: troops outside, spice or supported troops inside. */
+function Dial({ rings, locked }: { rings: Record<Ring, RingSpec>; locked: boolean }) {
   const svg = useRef<SVGSVGElement>(null);
   const dragging = useRef<Ring | null>(null);
   const [focus, setFocus] = useState<Ring>('outer');
-  const bump = useBump(total);
   const ringAt = (event: { clientX: number; clientY: number }): Ring => {
     const box = svg.current!.getBoundingClientRect();
     const scale = SIZE / box.width;
@@ -352,7 +275,6 @@ function Dial({ rings, locked, total }: { rings: Record<Ring, RingSpec>; locked:
       onPointerCancel={() => (dragging.current = null)}
       onKeyDown={key}
     >
-      <circle className={styles.face} cx={CENTRE} cy={CENTRE} r={OUTER + 10} />
       {(['outer', 'inner'] as const).map((ring) => {
         const spec = rings[ring];
         const radius = ring === 'outer' ? OUTER : INNER;
@@ -362,21 +284,15 @@ function Dial({ rings, locked, total }: { rings: Record<Ring, RingSpec>; locked:
           <g key={ring} className={styles.ring} data-ring={ring} data-focus={focus === ring || undefined}>
             <path className={styles.track} d={arc(radius, START, START + SWEEP)} />
             {Array.from({ length: ticks + 1 }, (_, index) => {
-              const [x1, y1] = polar(radius - 6, START + (index / Math.max(ticks, 1)) * SWEEP);
-              const [x2, y2] = polar(radius + 6, START + (index / Math.max(ticks, 1)) * SWEEP);
+              const [x1, y1] = polar(radius - 4, START + (index / Math.max(ticks, 1)) * SWEEP);
+              const [x2, y2] = polar(radius + 4, START + (index / Math.max(ticks, 1)) * SWEEP);
               return <line key={index} className={styles.tick} x1={x1} y1={y1} x2={x2} y2={y2} />;
             })}
             {spec.value > 0 ? <path className={styles.fill} d={arc(radius, START, Math.max(to, START + 0.5))} /> : null}
-            <circle className={styles.knob} cx={polar(radius, to)[0]} cy={polar(radius, to)[1]} r={7} />
+            <circle className={styles.knob} cx={polar(radius, to)[0]} cy={polar(radius, to)[1]} r={5.5} />
           </g>
         );
       })}
-      <text className={styles.total} x={CENTRE} y={CENTRE + 6} data-bump={bump}>
-        <RollingNumber value={total} />
-      </text>
-      <text className={styles.totalLabel} x={CENTRE} y={CENTRE + 24}>
-        strength
-      </text>
     </svg>
   );
 }

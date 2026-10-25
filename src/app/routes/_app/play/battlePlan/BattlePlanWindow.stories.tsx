@@ -1,7 +1,7 @@
 import preview from '@sb/preview';
 import type { ComponentType } from 'react';
 
-import { PlanHarness, scenario, SlotFrame } from './battlePlan.stories.fixture';
+import { PlanHarness, scenario } from './battlePlan.stories.fixture';
 import type { Scenario, SlotSize } from './battlePlan.stories.fixture';
 import { LedgerPlan } from './LedgerPlan';
 import type { BattlePlanViewProps } from './planView';
@@ -37,9 +37,12 @@ const meta = preview.meta({
 /* One variant in a slot, its plan reset whenever the scenario changes. */
 function renderVariant(variant: ComponentType<BattlePlanViewProps>) {
   return (args: unknown) => (
-    <SlotFrame size={(args as Args).size}>
-      <PlanHarness key={(args as Args).scenario} variant={variant} initial={scenario((args as Args).scenario)} />
-    </SlotFrame>
+    <PlanHarness
+      key={(args as Args).scenario}
+      variant={variant}
+      initial={scenario((args as Args).scenario)}
+      size={(args as Args).size}
+    />
   );
 }
 
@@ -63,9 +66,12 @@ export const AllFour = meta.story({
       {Object.entries(VARIANTS).map(([name, variant]) => (
         <figure key={name} style={{ margin: 0 }}>
           <figcaption style={{ font: '600 0.8rem sans-serif', marginBottom: 6 }}>{name}</figcaption>
-          <SlotFrame size={(args as Args).size}>
-            <PlanHarness key={(args as Args).scenario} variant={variant} initial={scenario((args as Args).scenario)} />
-          </SlotFrame>
+          <PlanHarness
+            key={(args as Args).scenario}
+            variant={variant}
+            initial={scenario((args as Args).scenario)}
+            size={(args as Args).size}
+          />
         </figure>
       ))}
     </div>

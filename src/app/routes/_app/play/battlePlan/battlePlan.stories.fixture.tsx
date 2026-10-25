@@ -2,6 +2,7 @@ import { emptyBattlePlan, isBattleLeader } from '@shared/play/battle';
 import type { BattleFace, BattlePlan, BattlePlanInput, Disclosure } from '@shared/play/battle';
 import type { TablePiece } from '@shared/play/model';
 import { item } from '@shared/play/setupSupply';
+import { PinOff } from 'lucide-react';
 import type { ComponentType, CSSProperties, ReactNode } from 'react';
 import { useState } from 'react';
 
@@ -11,6 +12,8 @@ import type { TableWindow } from '../compass/windows';
 import { DarkSchemeIsland, darkSchemeIslandAttributes } from '../DarkSchemeIsland';
 import { battleStory } from '../playing.stories.fixture';
 import { cardBack, factions, playingSnapshot } from '../product.stories.fixture';
+import { ModeToggle } from './parts';
+import { planLocks } from './planView';
 import type { BattlePlanViewProps } from './planView';
 import '../dune-play.css';
 
@@ -101,6 +104,18 @@ export function scenario(name: Scenario): Harness {
     opponent: { name: factionBySlug('house-atreides').data.name, ready: true },
     leaderStrength,
     troopLimit,
+    wheelArt: {
+      background: faction.data.background,
+      troops: Object.fromEntries(
+        faction.data.troops.map(({ image, star, hue, striped }, index) => [
+          faces[index]!.id,
+          { background: faction.data.background, image, star, hue, striped },
+        ])
+      ),
+      descriptions: Object.fromEntries(
+        faction.data.troops.map((troop, index) => [faces[index]!.id, troop.description])
+      ),
+    },
   };
   if (name === 'fresh') {
     return { ...harness, opponent: { ...harness.opponent!, ready: false } };
@@ -198,24 +213,37 @@ function disclose(state: Harness, part: Disclosure, shown: boolean): Harness {
 export function PlanHarness({
   variant: Variant,
   initial,
+  size,
 }: {
   variant: ComponentType<BattlePlanViewProps>;
   initial: Harness;
+  size: SlotSize;
 }) {
   const [state, setState] = useState(initial);
   return (
-    <Variant
-      {...state}
-      onEdit={(patch) => setState((before) => simulate(before, patch))}
-      onReady={(ready) =>
-        setState((before) => ({
-          ...before,
-          ready,
-          stage: ready && before.opponent?.ready ? 'countdown' : 'preparing',
-        }))
+    <SlotFrame
+      size={size}
+      actions={
+        <ModeToggle
+          mode={state.plan.mode}
+          disabled={planLocks(state).dialLocked}
+          onChange={(mode) => setState((before) => simulate(before, { mode }))}
+        />
       }
-      onDisclose={(part, shown) => setState((before) => disclose(before, part, shown))}
-    />
+    >
+      <Variant
+        {...state}
+        onEdit={(patch) => setState((before) => simulate(before, patch))}
+        onReady={(ready) =>
+          setState((before) => ({
+            ...before,
+            ready,
+            stage: ready && before.opponent?.ready ? 'countdown' : 'preparing',
+          }))
+        }
+        onDisclose={(part, shown) => setState((before) => disclose(before, part, shown))}
+      />
+    </SlotFrame>
   );
 }
 
@@ -238,7 +266,7 @@ const SLOT_SIZES: Readonly<Record<SlotSize, { width: string; height: string }>> 
 };
 
 /** The window as a pinned slot shows it, alone on the table's ground: its real frame, title and (?) included. */
-export function SlotFrame({ size, children }: { size: SlotSize; children: ReactNode }) {
+function SlotFrame({ size, actions, children }: { size: SlotSize; actions: ReactNode; children: ReactNode }) {
   const { width, height } = SLOT_SIZES[size];
   return (
     <DarkSchemeIsland>
@@ -255,7 +283,19 @@ export function SlotFrame({ size, children }: { size: SlotSize; children: ReactN
             inert={false}
             style={{ height }}
             onTab={() => undefined}
-            actions={null}
+            actions={
+              <>
+                {actions}
+                <button
+                  type="button"
+                  className={compassStyles.iconButton}
+                  aria-label="Unpin"
+                  title="Unpin: it disappears"
+                >
+                  <PinOff size={16} />
+                </button>
+              </>
+            }
           />
         </div>
       </div>

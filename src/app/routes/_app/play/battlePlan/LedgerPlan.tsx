@@ -1,16 +1,8 @@
 import { UnstyledButton } from '@mantine/core';
 
 import styles from './LedgerPlan.module.css';
-import {
-  AdjustField,
-  BattleLine,
-  ModeSwitch,
-  PieceTile,
-  ReadyButton,
-  RevealToggle,
-  Stepper,
-  StrengthSum,
-} from './parts';
+import { AdjustField, PieceTile, RevealToggle, Stepper, TroopLabel } from './parts';
+import { PlanHead } from './PlanHead';
 import {
   availableSpice,
   capableFaces,
@@ -43,7 +35,7 @@ export function LedgerPlan(props: BattlePlanViewProps) {
   const single = faces.length === 1;
   return (
     <div className={styles.ledger}>
-      <BattleLine territory={props.territory} opponent={props.opponent} />
+      <PlanHead view={props} />
       <section className={styles.row} aria-label="Leader">
         <span className={styles.label}>Leader</span>
         <div className={styles.strip}>
@@ -94,7 +86,6 @@ export function LedgerPlan(props: BattlePlanViewProps) {
       </section>
       <section className={styles.dial} aria-label="Dial">
         <header className={styles.dialHead}>
-          <ModeSwitch mode={plan.mode} disabled={locks.dialLocked} onChange={(mode) => onEdit({ mode })} />
           <AdjustField plan={plan} disabled={locks.dialLocked} onEdit={onEdit} />
           <RevealToggle
             className={styles.dialReveal}
@@ -107,8 +98,8 @@ export function LedgerPlan(props: BattlePlanViewProps) {
         </header>
         {faces.map((face) =>
           plan.mode === 'max' ? (
-            <label key={face.id} className={styles.field}>
-              <span>{single ? 'Troops' : face.name}</span>
+            <div key={face.id} className={styles.field}>
+              <TroopLabel face={face} wheelArt={props.wheelArt} />
               <Stepper
                 label={single ? 'Troops' : face.name}
                 value={totalOf(plan, face.id)}
@@ -116,10 +107,10 @@ export function LedgerPlan(props: BattlePlanViewProps) {
                 disabled={locks.dialLocked}
                 onChange={(total) => onEdit(setTotal(plan, face.id, total))}
               />
-            </label>
+            </div>
           ) : (
             <div key={face.id} className={styles.field}>
-              <span>{single ? 'Troops' : face.name}</span>
+              <TroopLabel face={face} wheelArt={props.wheelArt} />
               <span className={styles.pair}>
                 <Stepper
                   size="sm"
@@ -170,10 +161,6 @@ export function LedgerPlan(props: BattlePlanViewProps) {
           </div>
         ) : null}
       </section>
-      <footer className={styles.footer}>
-        <StrengthSum props={props} compact />
-        <ReadyButton {...props} />
-      </footer>
     </div>
   );
 }

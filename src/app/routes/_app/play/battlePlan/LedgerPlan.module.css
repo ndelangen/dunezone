@@ -1,6 +1,5 @@
 .ledger {
   display: grid;
-  grid-template-rows: auto auto auto 1fr auto;
   grid-template-columns: minmax(0, 1fr);
   gap: 0.4rem;
   min-height: 100%;
@@ -86,18 +85,4 @@
 .quick:disabled {
   color: var(--ink-dim);
   opacity: 0.5;
-}
-
-.footer {
-  position: sticky;
-  bottom: -1rem;
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 0.6rem;
-  margin: 0 -1rem -1rem;
-  padding: 0.6rem 1rem 0.8rem;
-  border-top: 1px solid var(--edge);
-  background: var(--glass-solid);
 }

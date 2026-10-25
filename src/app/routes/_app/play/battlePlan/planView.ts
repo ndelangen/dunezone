@@ -1,12 +1,24 @@
 import { isBattleLeader } from '@shared/play/battle';
 import type { BattleFace, BattlePlan, BattlePlanInput, Disclosure, PublicBattle } from '@shared/play/battle';
 import type { TablePiece } from '@shared/play/model';
+import type { ComponentProps } from 'react';
+
+import type { TroopToken } from '@game/assets/faction/troop/Troop';
+import type { BackgroundRenderer } from '@game/assets/utils/BackgroundRenderer';
 
 /** What a battle plan window says it wants: a plan edit, readiness, or a part shown or hidden before the reveal. */
 type PlanIntents = Readonly<{
   onEdit: (patch: Partial<BattlePlanInput>) => void;
   onReady: (ready: boolean) => void;
   onDisclose: (disclosure: Disclosure, shown: boolean) => void;
+}>;
+
+/** The faction's dress for the battle wheel: its background, and each troop face's token artwork by face id. */
+export type WheelArt = Readonly<{
+  background: ComponentProps<typeof BackgroundRenderer>['background'];
+  troops: Readonly<Record<string, ComponentProps<typeof TroopToken>>>;
+  /** Each troop face's description as the faction tells it, by face id. */
+  descriptions?: Readonly<Record<string, string>>;
 }>;
 
 /** The other side of the battle, as far as the viewer may know it. */
@@ -33,6 +45,8 @@ export type BattlePlanViewProps = Readonly<{
   leaderStrength?: Readonly<Record<string, number>>;
   /** How many troops of each face the faction owns, by face id: the most a plan can dial. */
   troopLimit?: Readonly<Record<string, number>>;
+  /** How the plan's battle wheel is dressed; the wheel stays in view while the plan is edited. */
+  wheelArt: WheelArt;
 }> &
   PlanIntents;
 
@@ -135,17 +149,6 @@ export function planLocks(props: Pick<BattlePlanViewProps, 'canAct' | 'ready' | 
     /** Showing parts early is a choice made while preparing, Ready or not. */
     revealLocked: !props.canAct || props.stage !== 'preparing',
   };
-}
-
-/** The plan's leader's printed strength, when known. */
-function leaderStrengthOf(props: Pick<BattlePlanViewProps, 'plan' | 'leaderStrength'>) {
-  const id = props.plan.leaderId;
-  return id ? props.leaderStrength?.[id] : undefined;
-}
-
-/** The plan's whole strength: its troops and adjustment, and its leader where the leader's strength is known. */
-export function totalStrength(props: Pick<BattlePlanViewProps, 'plan' | 'leaderStrength'>) {
-  return props.plan.strength + (leaderStrengthOf(props) ?? 0);
 }
 
 /** A strength as the table writes it: halves as ½. */

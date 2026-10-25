@@ -1,18 +1,19 @@
 import { Button, Tooltip, UnstyledButton } from '@mantine/core';
-import type { BattlePlan, Disclosure } from '@shared/play/battle';
+import type { BattleFace, BattlePlan, Disclosure } from '@shared/play/battle';
 import type { TablePiece } from '@shared/play/model';
-import { HelpMark } from '@ui/content/HelpMark';
 import clsx from 'clsx';
-import { Check, Eye, EyeOff, Minus, Plus } from 'lucide-react';
+import { Check, Eye, EyeOff, Minus, Plus, SlidersHorizontal } from 'lucide-react';
 import type { ReactNode, WheelEvent } from 'react';
 import { useEffect, useRef, useState } from 'react';
 
 import { useMotionAllowed } from '@app/styles/motion';
+import { TroopToken } from '@game/assets/faction/troop/Troop';
 
+import compassStyles from '../compass/CompassControls.module.css';
 import { PieceImage, pieceName } from '../multiplayer/HandPiece';
 import styles from './parts.module.css';
 import { MODE_HELP, formatStrength, isShown } from './planView';
-import type { BattlePlanViewProps, Opponent } from './planView';
+import type { BattlePlanViewProps, Opponent, WheelArt } from './planView';
 
 /** The rare strength adjustment, kept small beside the mode switch: a half-step stepper with its name. */
 export function AdjustField({
@@ -54,7 +55,7 @@ export function useBump(value: unknown) {
 }
 
 /** A number that counts to its new value instead of jumping, so a change reads as a change. */
-export function RollingNumber({
+function RollingNumber({
   value,
   format = formatStrength,
 }: {
@@ -193,36 +194,56 @@ export function Stepper({
   );
 }
 
-/** Max or Custom: how the plan's spice meets its troops. */
-export function ModeSwitch({
+/**
+ * Max or Custom as one icon button for the window's title bar: pressed is Custom, where the player sets the plain and spiced troops themselves.
+ */
+export function ModeToggle({
   mode,
   disabled,
   onChange,
-  help = true,
 }: {
   mode: BattlePlan['mode'];
   disabled?: boolean;
   onChange: (mode: BattlePlan['mode']) => void;
-  help?: boolean;
 }) {
+  const custom = mode === 'custom';
   return (
-    <span className={styles.modeRow}>
-      <span className={styles.mode} role="radiogroup" aria-label="Support mode" data-mode={mode}>
-        {(['max', 'custom'] as const).map((value) => (
-          <UnstyledButton
-            key={value}
-            role="radio"
-            aria-checked={mode === value}
-            disabled={disabled}
-            className={styles.modeOption}
-            onClick={() => mode !== value && onChange(value)}
-          >
-            {value === 'max' ? 'Max' : 'Custom'}
-          </UnstyledButton>
-        ))}
+    <Tooltip label={MODE_HELP} multiline w={260} withArrow>
+      <button
+        type="button"
+        className={clsx(compassStyles.iconButton, styles.modeToggle)}
+        aria-pressed={custom}
+        aria-label={custom ? 'Custom support: on' : 'Custom support: off, spice supports as many troops as it can'}
+        disabled={disabled}
+        onClick={() => onChange(custom ? 'max' : 'custom')}
+      >
+        <SlidersHorizontal size={16} />
+        {custom ? 'Custom' : null}
+      </button>
+    </Tooltip>
+  );
+}
+
+/** A troop type named by its own token, as on the faction sheet; hovering it tells its name and what it does. */
+export function TroopLabel({ face, wheelArt }: { face: BattleFace; wheelArt: WheelArt }) {
+  const artwork = wheelArt.troops[face.id];
+  const description = wheelArt.descriptions?.[face.id];
+  return (
+    <Tooltip
+      label={
+        <span className={styles.troopTip}>
+          <b>{face.name}</b>
+          {description ? <span>{description}</span> : null}
+        </span>
+      }
+      multiline
+      w={240}
+      withArrow
+    >
+      <span className={styles.troopLabel} role="img" aria-label={face.name}>
+        {artwork ? <TroopToken {...artwork} /> : face.name}
       </span>
-      {help ? <HelpMark text={MODE_HELP} /> : null}
-    </span>
+    </Tooltip>
   );
 }
 
