@@ -37,6 +37,10 @@ const session: {
   view: string | null;
   timer: ReturnType<typeof setTimeout> | undefined;
   listening: boolean;
+  /* Counts sockets, so a story that ended cannot retire the one that replaced it. */
+  generation: number;
+  /* Whether a story's socket is open; a story without one has nothing to show. */
+  active: boolean;
 } = {
   source: { title: 'Scripted story', description: '' },
   socketActions: [],
@@ -47,6 +51,8 @@ const session: {
   view: null,
   timer: undefined,
   listening: false,
+  generation: 0,
+  active: false,
 };
 
 const channel = () => addons.getChannel();
@@ -70,7 +76,12 @@ function state(): DebuggerState {
 }
 
 function flush() {
+  /* A replay flushes at once; the batch it overtakes must not fire later, after the session may have ended. */
+  clearTimeout(session.timer);
   session.timer = undefined;
+  if (!session.active) {
+    return;
+  }
   if (session.pending.length) {
     channel().emit(PLAY_DEBUGGER_EVENTS.traffic, session.pending);
     session.pending = [];
@@ -79,6 +90,9 @@ function flush() {
 }
 
 function schedule() {
+  if (!session.active) {
+    return;
+  }
   session.timer ??= setTimeout(flush, FLUSH_MS);
 }
 
@@ -89,6 +103,9 @@ function listen() {
   session.listening = true;
   channel().on(PLAY_DEBUGGER_EVENTS.request, () => {
     channel().emit(PLAY_DEBUGGER_EVENTS.reset);
+    if (!session.active) {
+      return;
+    }
     session.pending = [...session.history];
     flush();
   });
@@ -116,6 +133,9 @@ function runDebuggerAction(id: string) {
 }
 
 function record(direction: TrafficDirection, type: string, summary: string, json: string) {
+  if (!session.active) {
+    return;
+  }
   const entry: TrafficEntry = {
     sequence: ++session.sequence,
     at: Math.round(performance.now() - session.startedAt),
@@ -132,9 +152,8 @@ function record(direction: TrafficDirection, type: string, summary: string, json
   schedule();
 }
 
-/** A new socket for a story: the debugger's history starts over and the story is described afresh. */
-export function beginDebugging(source: DebuggerSource) {
-  listen();
+/* Forgets everything the last socket carried, as its story described it. */
+function retire(source: DebuggerSource, active: boolean) {
   clearTimeout(session.timer);
   Object.assign(session, {
     source,
@@ -145,9 +164,34 @@ export function beginDebugging(source: DebuggerSource) {
     pending: [],
     view: null,
     timer: undefined,
+    active,
   });
   channel().emit(PLAY_DEBUGGER_EVENTS.reset);
+}
+
+/**
+ * A new socket for a story: the debugger's history starts over and the story is described afresh.
+ * The story's transport reports its socket's messages through the returned `traffic`, and calls `end` when it is disposed, so a later story without a socket shows nothing of this one.
+ * Both are bound to this session: a story that ended cannot write into, or end, the one that replaced it.
+ */
+export function beginDebugging(source: DebuggerSource) {
+  listen();
+  const generation = ++session.generation;
+  retire(source, true);
   schedule();
+  const current = () => session.generation === generation;
+  return {
+    traffic: (direction: 'sent' | 'received', json: string) => {
+      if (current()) {
+        traffic(direction, json);
+      }
+    },
+    end: () => {
+      if (current()) {
+        retire({ title: '', description: '' }, false);
+      }
+    },
+  };
 }
 
 /** Replaces what drives the page, as a replay or a live table taking over a socket a scripted transport opened; the socket's own actions stay. */
@@ -180,8 +224,8 @@ function summarize(message: Record<string, unknown>) {
   return parts.join(' · ');
 }
 
-/** A message that crossed the socket, as the JSON text that crossed it; keepalives are left out. */
-export function traffic(direction: 'sent' | 'received', json: string) {
+/* A message that crossed the socket, as the JSON text that crossed it; keepalives are left out. */
+function traffic(direction: 'sent' | 'received', json: string) {
   let message: Record<string, unknown>;
   try {
     message = JSON.parse(json) as Record<string, unknown>;
