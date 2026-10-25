@@ -7,7 +7,7 @@ import { CompassTableContext } from './compassTable';
 import type { CompassPlayer } from './compassTable';
 import { PlayerToken } from './PlayerToken';
 import type { Side } from './slotLimits';
-import { WindowBody } from './windows';
+import { WindowBody, WindowHelp } from './windows';
 import type { PlayerTab, TableWindow } from './windows';
 import styles from './Windows.module.css';
 
@@ -67,6 +67,7 @@ export function WindowFrame({
           {entry.label}
           {player?.factionName && !player.own && <span className={styles.group}> · {player.factionName}</span>}
         </span>
+        <WindowHelp entry={entry} tab={tab} />
         {player && <PlayerTabs player={player} tab={tab} onTab={onTab} />}
         <span className={styles.actions}>{actions}</span>
       </header>
