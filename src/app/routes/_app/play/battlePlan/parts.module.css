@@ -1,0 +1,371 @@
+/* The pieces every battle plan window shares: the stepper, the mode switch, piece tiles, the reveal eye, the battle line, the sum and Ready. */
+
+.stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  height: 2rem;
+  padding: 0 0.15rem;
+  border: 1px solid var(--edge);
+  border-radius: 999px;
+  background: rgb(from var(--ui-recess) r g b / 0.8);
+}
+
+.stepper[data-disabled] {
+  opacity: 0.55;
+}
+
+.stepperSmall {
+  height: 1.7rem;
+}
+
+.stepButton {
+  display: grid;
+  place-items: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  color: var(--ink-dim);
+  transition:
+    background 120ms,
+    color 120ms,
+    scale 120ms;
+}
+
+.stepperSmall .stepButton {
+  width: 1.35rem;
+  height: 1.35rem;
+}
+
+.stepButton:hover:not(:disabled) {
+  background: var(--ui-hover);
+  color: var(--ink);
+}
+
+.stepButton:active:not(:disabled) {
+  scale: 0.88;
+}
+
+.stepValue {
+  width: 2.4ch;
+  min-width: 2.4ch;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: none;
+  color: var(--ink);
+  font: 700 0.95rem/1 var(--font-sans);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  field-sizing: content;
+}
+
+.stepValue:focus {
+  color: var(--sand);
+}
+
+.stepValue[data-bump="0"] {
+  animation: pop 220ms ease-out;
+}
+
+.stepValue[data-bump="1"] {
+  animation: pop2 220ms ease-out;
+}
+
+.stepSuffix {
+  color: var(--ink-dim);
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+/* At a limit the stepper knocks sideways and settles: the value cannot go further. */
+.stepper[data-knock="0"] {
+  animation: knock 300ms ease-out;
+}
+
+.stepper[data-knock="1"] {
+  animation: knock2 300ms ease-out;
+}
+
+@keyframes pop {
+  40% {
+    scale: 1.25;
+  }
+}
+
+@keyframes pop2 {
+  40% {
+    scale: 1.25;
+  }
+}
+
+@keyframes knock {
+  25% {
+    translate: 3px 0;
+  }
+
+  60% {
+    translate: -2px 0;
+  }
+}
+
+@keyframes knock2 {
+  25% {
+    translate: 3px 0;
+  }
+
+  60% {
+    translate: -2px 0;
+  }
+}
+
+.modeRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.mode {
+  position: relative;
+  display: inline-grid;
+  grid-template-columns: 1fr 1fr;
+  padding: 2px;
+  border: 1px solid var(--edge);
+  border-radius: 999px;
+  background: rgb(from var(--ui-recess) r g b / 0.8);
+}
+
+/* The thumb slides under whichever option is on. */
+.mode::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  left: 2px;
+  width: calc(50% - 2px);
+  border-radius: 999px;
+  background: var(--ui-selected);
+  transition: translate 200ms cubic-bezier(0.3, 1.3, 0.5, 1);
+}
+
+.mode[data-mode="custom"]::before {
+  translate: 100% 0;
+}
+
+.modeOption {
+  position: relative;
+  padding: 0.18rem 0.7rem;
+  border-radius: 999px;
+  color: var(--ink-dim);
+  font: 600 0.74rem var(--font-sans);
+  text-align: center;
+}
+
+.modeOption[aria-checked="true"] {
+  color: var(--ink);
+}
+
+.modeOption:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.tile {
+  position: relative;
+  flex: none;
+  transition: translate 180ms cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+
+.tile[data-selected] {
+  translate: 0 -4px;
+}
+
+.tileButton {
+  position: relative;
+  display: block;
+  border-radius: 6px;
+  outline-offset: 2px;
+  transition:
+    filter 150ms,
+    box-shadow 150ms;
+}
+
+.tile[data-leader] .tileButton {
+  border-radius: 50%;
+}
+
+.tile:not([data-selected]) .tileButton {
+  filter: saturate(0.6) brightness(0.8);
+}
+
+.tile:not([data-selected]) .tileButton:hover:not(:disabled) {
+  filter: none;
+}
+
+.tile[data-selected] .tileButton {
+  box-shadow:
+    0 0 0 2px var(--sand),
+    0 6px 14px rgb(from var(--color-shadow) r g b / 0.5);
+}
+
+.tileButton:disabled {
+  cursor: default;
+}
+
+.tileCheck {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--sand);
+  color: var(--ui-ground);
+  animation: check-in 220ms cubic-bezier(0.3, 1.5, 0.5, 1);
+}
+
+@keyframes check-in {
+  from {
+    scale: 0;
+  }
+}
+
+.reveal {
+  position: absolute;
+  bottom: -6px;
+  left: -6px;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--edge);
+  border-radius: 50%;
+  background: var(--ui-ground);
+  color: var(--ink-dim);
+  transition:
+    color 120ms,
+    background 120ms;
+}
+
+.reveal:hover:not(:disabled) {
+  color: var(--ink);
+}
+
+.reveal[data-shown] {
+  border-color: var(--sand);
+  background: var(--sand);
+  color: var(--ui-ground);
+}
+
+.battleLine {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.5rem;
+  font-size: 0.78rem;
+}
+
+.territory {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.opponent {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--ink-dim);
+}
+
+.readyDot {
+  width: 7px;
+  height: 7px;
+  border: 1px solid var(--ink-dim);
+  border-radius: 50%;
+}
+
+.opponent[data-ready] .readyDot {
+  border-color: var(--ui-positive);
+  background: var(--ui-positive);
+  animation: ready-in 400ms ease-out;
+}
+
+@keyframes ready-in {
+  40% {
+    scale: 1.8;
+  }
+}
+
+.ready[data-bump="0"] {
+  animation: settle 300ms ease-out;
+}
+
+.ready[data-bump="1"] {
+  animation: settle2 300ms ease-out;
+}
+
+@keyframes settle {
+  35% {
+    scale: 0.96;
+  }
+}
+
+@keyframes settle2 {
+  35% {
+    scale: 0.96;
+  }
+}
+
+.sum {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.sumValue {
+  min-width: 2ch;
+  color: var(--sand);
+  font: 800 1.9rem/1 var(--font-sans);
+  font-variant-numeric: tabular-nums;
+}
+
+.sumCompact .sumValue {
+  font-size: 1.45rem;
+}
+
+.sumParts {
+  display: grid;
+  min-width: 0;
+  color: var(--ink-dim);
+  font-size: 0.7rem;
+  line-height: 1.3;
+}
+
+.sumParts > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:global(html[data-motion="reduce"]) :is(.stepper, .stepValue, .tileCheck, .readyDot, .ready) {
+  animation: none !important;
+}
+
+:global(html[data-motion="reduce"]) .tile,
+:global(html[data-motion="reduce"]) .mode::before {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :global(html:not([data-motion="ok"])) :is(.stepper, .stepValue, .tileCheck, .readyDot, .ready) {
+    animation: none !important;
+  }
+
+  :global(html:not([data-motion="ok"])) .tile,
+  :global(html:not([data-motion="ok"])) .mode::before {
+    transition: none;
+  }
+}

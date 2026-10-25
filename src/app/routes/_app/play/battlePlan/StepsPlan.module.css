@@ -1,0 +1,274 @@
+.steps {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.6rem;
+  min-height: 100%;
+}
+
+.list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.step {
+  border: 1px solid transparent;
+  border-radius: 10px;
+  transition:
+    background 200ms,
+    border-color 200ms;
+}
+
+.step[data-open] {
+  border-color: var(--edge);
+  background: rgb(from var(--ui-recess) r g b / 0.55);
+}
+
+.stepHead {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding-right: 0.5rem;
+}
+
+.stepButton {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+  padding: 0.45rem 0.55rem;
+  border-radius: 10px;
+}
+
+.badge {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 1.3rem;
+  height: 1.3rem;
+  border: 1px solid var(--edge);
+  border-radius: 50%;
+  color: var(--ink-dim);
+  font: 700 0.7rem var(--font-sans);
+  transition:
+    background 200ms,
+    color 200ms;
+}
+
+.step[data-open] .badge {
+  border-color: var(--sand);
+  color: var(--sand);
+}
+
+/* A finished step's number turns into a tick that pops in. */
+.step[data-done] .badge {
+  border-color: var(--ui-positive);
+  background: var(--ui-positive);
+  color: var(--ui-ground);
+  animation: tick 320ms cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+
+@keyframes tick {
+  from {
+    scale: 0.4;
+  }
+}
+
+.stepTitle {
+  flex: none;
+  font: 600 0.86rem var(--font-sans);
+}
+
+.step:not([data-open]) .stepTitle {
+  flex: none;
+  color: var(--ink-dim);
+}
+
+.summary {
+  min-width: 0;
+  overflow: hidden;
+  margin-left: auto;
+  color: var(--ink);
+  font-size: 0.78rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  animation: fold-in 240ms ease-out;
+}
+
+@keyframes fold-in {
+  from {
+    opacity: 0;
+    translate: -0.4rem 0;
+  }
+}
+
+.inlineReveal {
+  position: static;
+}
+
+/* The body folds by its row's height, so opening and closing a step slides instead of jumping. */
+.body {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 240ms ease-out;
+}
+
+.step[data-open] .body {
+  grid-template-rows: 1fr;
+}
+
+.bodyInner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.step[data-open] .bodyInner {
+  overflow: visible;
+}
+
+.choices {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.5rem 0.7rem 0.75rem;
+}
+
+.none,
+.next {
+  padding: 0.3rem 0.75rem;
+  border: 1px solid var(--edge);
+  border-radius: 999px;
+  color: var(--ink);
+  font: 600 0.74rem var(--font-sans);
+}
+
+.next {
+  margin-left: auto;
+  border-color: var(--sand);
+  color: var(--sand);
+}
+
+.none:disabled,
+.next:disabled {
+  opacity: 0.5;
+}
+
+.dial {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.3rem 0.7rem 0.7rem;
+}
+
+.dialHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.chipRow {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.chipLabel {
+  color: var(--ink-dim);
+  font: 600 0.66rem var(--font-sans);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.chips {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(1.65rem, 1fr));
+  gap: 0.2rem;
+}
+
+.chip {
+  height: 1.55rem;
+  border-radius: 5px;
+  background: rgb(from var(--ui-highlight) r g b / 0.06);
+  color: var(--ink-dim);
+  font: 600 0.74rem var(--font-sans);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  transition:
+    background 120ms,
+    color 120ms,
+    scale 120ms;
+}
+
+.chip:hover:not(:disabled) {
+  background: var(--ui-hover);
+  color: var(--ink);
+}
+
+.chip[aria-checked="true"] {
+  background: var(--sand);
+  color: var(--ui-ground);
+  animation: chip-pick 220ms cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+
+.chip[data-hint] {
+  box-shadow: inset 0 0 0 1px var(--ui-brass);
+  color: var(--ui-brass);
+}
+
+@keyframes chip-pick {
+  from {
+    scale: 0.8;
+  }
+}
+
+.custom {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+}
+
+.adjust {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+}
+
+.footer {
+  position: sticky;
+  bottom: -1rem;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin: 0 -1rem -1rem;
+  padding: 0.6rem 1rem 0.8rem;
+  border-top: 1px solid var(--edge);
+  background: var(--glass-solid);
+}
+
+:global(html[data-motion="reduce"]) :is(.body, .step, .badge, .chip) {
+  transition: none;
+}
+
+:global(html[data-motion="reduce"]) :is(.badge, .summary, .chip) {
+  animation: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :global(html:not([data-motion="ok"])) :is(.body, .step, .badge, .chip) {
+    transition: none;
+  }
+
+  :global(html:not([data-motion="ok"])) :is(.badge, .summary, .chip) {
+    animation: none !important;
+  }
+}

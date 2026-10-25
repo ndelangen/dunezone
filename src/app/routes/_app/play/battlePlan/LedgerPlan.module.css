@@ -1,0 +1,103 @@
+.ledger {
+  display: grid;
+  grid-template-rows: auto auto auto 1fr auto;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.7rem;
+  min-height: 100%;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 3.6rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.label {
+  color: var(--ink-dim);
+  font: 600 0.68rem var(--font-sans);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* Room above and below for a picked tile's lift, its tick and its eye. */
+.strip {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+  padding: 0.45rem 0.4rem 0.45rem 0.4rem;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.empty {
+  color: var(--ink-dim);
+  font-size: 0.78rem;
+}
+
+.dial {
+  display: grid;
+  align-content: start;
+  gap: 0.4rem;
+  padding: 0.55rem 0.7rem 0.65rem;
+  border: 1px solid var(--edge);
+  border-radius: 10px;
+  background: rgb(from var(--ui-recess) r g b / 0.5);
+}
+
+.dialHead {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.dialReveal {
+  position: static;
+  margin-left: auto;
+}
+
+.field {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  font-size: 0.82rem;
+}
+
+.pair {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  margin-left: auto;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.quick {
+  padding: 0.2rem 0.55rem;
+  border: 1px solid var(--edge);
+  border-radius: 999px;
+  color: var(--sand);
+  font: 600 0.72rem var(--font-sans);
+}
+
+.quick:disabled {
+  color: var(--ink-dim);
+  opacity: 0.5;
+}
+
+.footer {
+  position: sticky;
+  bottom: -1rem;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin: 0 -1rem -1rem;
+  padding: 0.6rem 1rem 0.8rem;
+  border-top: 1px solid var(--edge);
+  background: var(--glass-solid);
+}
