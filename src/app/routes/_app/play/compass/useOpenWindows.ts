@@ -1,6 +1,6 @@
 import { useEffect, useEffectEvent, useState } from 'react';
 
-import { territoryBrush } from '../../../../widgets/tabletop/territoryBrush';
+import { brushTakes, territoryBrush } from '../../../../widgets/tabletop/territoryBrush';
 import { pulse } from './pulse';
 import type { Pulse } from './pulse';
 import { SIDES } from './slotLimits';
@@ -28,9 +28,10 @@ export type OpenWindows = ReturnType<typeof useOpenWindows>;
 const OPEN_ABOVE = '[role="menu"], [role="listbox"], [role="dialog"], [aria-modal="true"]';
 const EXPANDED = '[aria-expanded="true"]';
 
-function escapeTaken(target: EventTarget | null) {
+function escapeTaken(event: KeyboardEvent) {
+  const target = event.target;
   return (
-    territoryBrush() !== null ||
+    brushTakes(event) ||
     document.querySelector(OPEN_ABOVE) !== null ||
     (target instanceof Element && target.closest(EXPANDED) !== null)
   );
@@ -153,7 +154,7 @@ export function useOpenWindows(windows: readonly TableWindow[], compassOpen: boo
       return;
     }
     const escape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && !escapeTaken(event.target)) {
+      if (event.key === 'Escape' && !escapeTaken(event)) {
         setCentre(null);
       }
     };

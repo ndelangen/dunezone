@@ -101,6 +101,22 @@ test('Escape while painting territories stops the paintbrush and keeps the windo
   expect(result.current.centre).toBeNull();
 });
 
+test('Escape that stops painting keeps the window even when the paintbrush hears it first', () => {
+  const { result, rerender } = renderHook(({ compassOpen }) => useOpenWindows(windows, compassOpen), {
+    initialProps: { compassOpen: false },
+  });
+  act(() => result.current.show('battle'));
+  act(() => setTerritoryBrush({ tintId: 'tint-1', paint: () => {} }));
+  /* Opening and closing the compass registers the window's Escape listener again, after the paintbrush's. */
+  rerender({ compassOpen: true });
+  rerender({ compassOpen: false });
+  const escape = () => act(() => void globalThis.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })));
+  escape();
+  expect(result.current.centre).toEqual({ key: 'battle', tab: 'public' });
+  escape();
+  expect(result.current.centre).toBeNull();
+});
+
 test('a press on the table while painting territories keeps the window that holds the brush', () => {
   const { result } = renderHook(() => useOpenWindows(windows, false));
   act(() => result.current.show('battle'));
