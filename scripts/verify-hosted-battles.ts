@@ -100,10 +100,9 @@ export async function verifyBattles(toolkit: HostedToolkit) {
       'piece'
     );
     const at = await point(who, [piece.position[0], piece.position[1] + 0.05, piece.position[2]]);
-    await who.page.mouse.click(at.x, at.y);
-    await openTab(who, 'Battle');
     const previousHand = new Set(required(requireView(who).snapshot.hand, 'hand').map((entry) => entry.id));
-    await act(who, 'Take selected piece into hand');
+    await who.page.mouse.click(at.x, at.y, { button: 'right' });
+    await who.page.getByRole('menuitem', { name: 'Take into hand', exact: true }).click();
     await until(
       () => required(requireView(who).snapshot.hand, 'hand').length === previousHand.size + 1,
       'Private inventory did not receive the piece.'

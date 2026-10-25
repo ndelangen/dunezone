@@ -15,6 +15,7 @@
 
 /* The centre window keeps clear of the slots either side, and on a narrow table takes the width it needs over them. */
 .centre {
+  z-index: 13;
   bottom: 4.6rem;
   left: 50%;
   width: min(44rem, max(22rem, 100cqw - 2 * var(--slot-width) - 5rem), 100cqw - 2rem);

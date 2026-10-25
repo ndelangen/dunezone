@@ -792,10 +792,16 @@ function requestView(state: TableViewState, pendingView: PendingView): TableView
   };
 }
 
-/* The view a player's choice asks for: the top-down view chosen again returns to the view it was chosen from. */
+/*
+ * The view a player's choice asks for: the top-down view chosen again returns to the view it was chosen from, or,
+ * while it still waits on an interaction, stays on the view that is showing.
+ */
 function chosenView(state: TableViewState, view: TableView): TableView {
   const showing = state.pendingView?.view ?? state.activeView;
-  return view === 'top' && showing === 'top' ? (state.viewUnderTop ?? 'map') : view;
+  if (view !== 'top' || showing !== 'top') {
+    return view;
+  }
+  return state.activeView === 'top' ? (state.viewUnderTop ?? 'map') : state.activeView;
 }
 
 function changePhase(state: TableViewState, phase: TablePhaseId | null): TableViewState {

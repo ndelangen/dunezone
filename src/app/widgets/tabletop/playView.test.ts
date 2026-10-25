@@ -380,6 +380,16 @@ describe('table views', () => {
     expect(state.activeView).toBe('left');
   });
 
+  test('the top-down view chosen twice during an interaction keeps the view that is showing', () => {
+    let state = createTableViewState('storm');
+    state = reduceTableView(state, { type: 'view.selected', view: 'left' });
+    state = reduceTableView(state, { type: 'interaction.changed', active: true });
+    state = reduceTableView(state, { type: 'view.selected', view: 'top' });
+    state = reduceTableView(state, { type: 'view.selected', view: 'top' });
+    state = reduceTableView(state, { type: 'interaction.changed', active: false });
+    expect(state.activeView).toBe('left');
+  });
+
   test('lets a player override the view of the current phase', () => {
     let state = createTableViewState('storm');
     state = reduceTableView(state, { type: 'phase.changed', phase: 'spice-blow' });
