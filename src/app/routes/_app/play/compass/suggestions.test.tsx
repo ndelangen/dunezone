@@ -66,3 +66,15 @@ test('Pass closes the compass and turns the token over', () => {
   rankSuggestions(all, 'pass')[0]!.run();
   expect(calls).toEqual(['close', 'flip']);
 });
+
+test('"top-down" finds the camera command, which closes the compass and turns the camera straight down', () => {
+  const calls: string[] = [];
+  const all = candidatesOf([], {
+    ...actions(null, () => calls.push('close')),
+    view: (view) => calls.push(`view:${view}`),
+  });
+  const [command] = rankSuggestions(all, 'top-down');
+  expect(command?.label).toBe('Camera: top-down');
+  command!.run();
+  expect(calls).toEqual(['close', 'view:top']);
+});

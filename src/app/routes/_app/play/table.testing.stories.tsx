@@ -128,6 +128,32 @@ export const Controls = meta.story({
   },
 });
 
+/** The dial's hub looks straight down on the board; pressed again, or with U, the camera comes back to the view it left. */
+export const TopDown = meta.story({
+  beforeEach: install(() => productTransport()),
+  play: async ({ canvasElement }) => {
+    const { page, shell } = await tablePage(canvasElement);
+    const dial = within(page.getByRole('group', { name: 'Table view' }));
+    await userEvent.click(dial.getByRole('button', { name: /^Focus on left/ }));
+    await expect(shell).toHaveAttribute('data-table-view', 'left');
+    const hub = dial.getByRole('button', { name: 'Focus on top, straight down' });
+    await userEvent.click(hub);
+    await expect(hub).toHaveAttribute('aria-pressed', 'true');
+    await expect(shell).toHaveAttribute('data-table-view', 'top');
+    await userEvent.click(hub);
+    await expect(hub).toHaveAttribute('aria-pressed', 'false');
+    await expect(shell).toHaveAttribute('data-table-view', 'left');
+    /* The key does the same from the table, with no control focused. */
+    if (canvasElement.ownerDocument.activeElement instanceof HTMLElement) {
+      canvasElement.ownerDocument.activeElement.blur();
+    }
+    await userEvent.keyboard('u');
+    await expect(shell).toHaveAttribute('data-table-view', 'top');
+    await userEvent.keyboard('u');
+    await expect(shell).toHaveAttribute('data-table-view', 'left');
+  },
+});
+
 /* Holding Control names every piece and its owning faction; a shared piece shows its name alone, and letting go clears the names. */
 export const PieceNames = meta.story({
   globals: { motion: 'on' },

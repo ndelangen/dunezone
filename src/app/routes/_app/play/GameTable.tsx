@@ -8,7 +8,17 @@ import { TABLE_SECTOR_COUNT } from '@shared/play/tableSettings';
 import type { TableSeatCount } from '@shared/play/tableSettings';
 import { Section } from '@ui/block/Section';
 import type { TopicIconTopic } from '@ui/content/TopicIcon';
-import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from 'react';
 import type { ReactNode } from 'react';
 
 import {
@@ -23,6 +33,7 @@ import {
   PHASE_VIEWS,
   reduceTableView,
   TABLE_VIEW_OPTIONS,
+  TOP_VIEW,
 } from '../../../widgets/tabletop/playView';
 import type { CameraViewCommand, TableView } from '../../../widgets/tabletop/playView';
 import { PointerSession } from '../../../widgets/tabletop/PointerSession';
@@ -219,15 +230,43 @@ const DIAL_LETTERS: Record<TableView, string> = {
   left: 'L',
   right: 'R',
   bottom: 'B',
+  top: 'U',
 };
 
-/* Where each view sits on the dial: the board at the top, the bays to the sides, the bottom stem below. */
+/* The key that turns the camera straight down and back; the letters of the ring are the dial's buttons alone. */
+const TOP_VIEW_KEY = 'u';
+
+/* Where each view sits on the dial: the board at the top, the bays to the sides, the bottom stem below; the hub needs no needle. */
 const DIAL_ANGLES: Record<TableView, number> = {
   map: 180,
   left: 90,
   right: 270,
   bottom: 0,
+  top: 180,
 };
+
+/*
+ * U turns the camera to the top-down view, and back to the view it came from, from anywhere but a text field.
+ * The compass takes the keys while it is open, so none reach here then.
+ */
+function useTopViewKey(select: (view: TableView) => void) {
+  const choose = useEffectEvent(() => select(TOP_VIEW.id));
+  useEffect(() => {
+    const keydown = (event: KeyboardEvent) => {
+      const typing =
+        event.target instanceof HTMLElement &&
+        (event.target.isContentEditable || event.target.matches('input, textarea, select'));
+      const modified = event.metaKey || event.ctrlKey || event.altKey;
+      if (event.key.toLowerCase() !== TOP_VIEW_KEY || event.repeat || event.defaultPrevented || modified || typing) {
+        return;
+      }
+      event.preventDefault();
+      choose();
+    };
+    window.addEventListener('keydown', keydown);
+    return () => window.removeEventListener('keydown', keydown);
+  }, []);
+}
 
 /* The phase's disc in the header chip: the board's phase colours, with the phase symbol clipped to the disc. */
 function PhaseDisc({ symbol }: Readonly<{ symbol: string }>) {
@@ -295,7 +334,10 @@ function SceneCamera({
   );
 }
 
-/* The camera dial in the scene's corner: the needle points at the view the camera holds, a ring marks the phase's recommended view, and each letter moves the camera there. */
+/*
+ * The camera dial in the scene's corner: the needle points at the view the camera holds, a ring marks the phase's recommended view,
+ * and each letter moves the camera there. The hub is the top-down view, straight down on the whole board; pressed again it returns.
+ */
 function TableViewDial({
   activeView,
   preferredView,
@@ -306,9 +348,19 @@ function TableViewDial({
   onSelect: (view: TableView) => void;
 }) {
   return (
-    <div className="camera-dial" role="group" aria-label="Table view">
+    <div className="camera-dial" role="group" aria-label="Table view" data-view={activeView}>
       <span className="camera-dial__needle" style={{ rotate: `${DIAL_ANGLES[activeView]}deg` }} aria-hidden="true" />
-      <span className="camera-dial__hub" aria-hidden="true" />
+      <button
+        type="button"
+        className="camera-dial__hub"
+        data-view={TOP_VIEW.id}
+        title={`Camera: ${TOP_VIEW.label} (${DIAL_LETTERS.top})`}
+        aria-label="Focus on top, straight down"
+        aria-pressed={activeView === TOP_VIEW.id}
+        onClick={() => onSelect(TOP_VIEW.id)}
+      >
+        {DIAL_LETTERS.top}
+      </button>
       {TABLE_VIEW_OPTIONS.map((view) => {
         const phasePreferred = preferredView === view.id;
         return (
@@ -620,6 +672,7 @@ export function GameTable({
     </>
   );
   const selectView = (view: TableView) => dispatchView({ type: 'view.selected', view });
+  useTopViewKey(selectView);
   const camera = (
     <SceneCamera
       hidden={Boolean(stageOverlay)}

@@ -19,6 +19,7 @@ const CAMERA_VIEWS: Record<TableView, string> = {
   left: 'left bay',
   right: 'right bay',
   bottom: 'bottom bay',
+  top: 'top-down',
 };
 
 /** Letters in order, anywhere in the text: "shinv" finds Shared inventory. Earlier and closer letters score higher. */
@@ -161,7 +162,7 @@ export function candidatesOf(windows: readonly TableWindow[], actions: Suggestio
         actions.close();
         actions.view(view);
       },
-      text: `camera ${view} view`,
+      text: `camera ${view} view ${CAMERA_VIEWS[view]}`,
       weight: 0,
     })),
   ];

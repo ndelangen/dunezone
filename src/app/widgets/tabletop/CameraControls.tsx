@@ -8,7 +8,7 @@ import type { Camera } from 'three';
 
 import {
   CAMERA_CLOSEST_DISTANCE,
-  CAMERA_TOP_DOWN_POLAR_ANGLE,
+  CAMERA_TOP_VIEW_POLAR_ANGLE,
   cameraFogRange,
   cameraGlideShare,
   cameraPoseFor,
@@ -515,7 +515,7 @@ export function CameraControls(props: SeatedCameraProps) {
       enableZoom={false}
       minDistance={CAMERA_CLOSEST_DISTANCE}
       maxDistance={96}
-      minPolarAngle={CAMERA_TOP_DOWN_POLAR_ANGLE}
+      minPolarAngle={CAMERA_TOP_VIEW_POLAR_ANGLE}
       maxPolarAngle={1.08}
       minAzimuthAngle={-0.72}
       maxAzimuthAngle={0.72}

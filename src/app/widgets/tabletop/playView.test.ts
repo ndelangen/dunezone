@@ -194,6 +194,23 @@ describe('table views', () => {
     });
   });
 
+  test('the top-down view looks straight down at the board, centred, framing the whole map, whatever the tilt', () => {
+    const aspectRatio = 1600 / 1000;
+    const frame = mapViewFramingPoints(trackerArcSlots(9));
+    const pose = cameraPoseFor('top', aspectRatio, frame);
+    const height = pose.position[1] - pose.target[1];
+    expect(pose.position[0]).toBe(pose.target[0]);
+    /* Flat to the eye: the camera stands over its target within a hair of straight down. */
+    expect(Math.abs(pose.position[2] - pose.target[2])).toBeLessThan(height * 0.03);
+    expect(height).toBeGreaterThan(cameraPoseFor('map', aspectRatio, frame).position[1]);
+    projectedFrame(pose, aspectRatio).forEach((point) => {
+      expect(Math.abs(point.x)).toBeLessThanOrEqual(MAP_VIEW_HORIZONTAL_LIMIT + 1e-9);
+      expect(point.y).toBeLessThanOrEqual(MAP_VIEW_TOP_LIMIT + 1e-9);
+      expect(point.y).toBeGreaterThanOrEqual(-MAP_VIEW_BOTTOM_LIMIT - 1e-9);
+    });
+    expect(cameraPoseFor('top', aspectRatio, frame, 0.7)).toEqual(pose);
+  });
+
   test('glides rather than steps as the camera turns past a cached tilt', () => {
     const aspectRatio = 1600 / 1000;
     const frame = mapViewFramingPoints(trackerArcSlots(9));
@@ -341,6 +358,26 @@ describe('table views', () => {
     state = reduceTableView(state, { type: 'phase.changed', phase: 'revival' });
     expect(state.activeView).toBe('bottom');
     expect(state.cameraRevision).toBe(1);
+  });
+
+  test('the top-down view returns to the view it was chosen from, and a phase moves on from it', () => {
+    let state = createTableViewState('storm');
+    state = reduceTableView(state, { type: 'view.selected', view: 'left' });
+    state = reduceTableView(state, { type: 'view.selected', view: 'top' });
+    expect(state.activeView).toBe('top');
+    state = reduceTableView(state, { type: 'view.selected', view: 'top' });
+    expect(state.activeView).toBe('left');
+    /* From the opening map there is no view before it, so the hub returns to the map. */
+    state = reduceTableView(createTableViewState('storm'), { type: 'view.selected', view: 'top' });
+    state = reduceTableView(state, { type: 'view.selected', view: 'top' });
+    expect(state.activeView).toBe('map');
+    /* The phase's own view takes over from the top, and the hub afterwards returns to that view. */
+    state = reduceTableView(state, { type: 'view.selected', view: 'top' });
+    state = reduceTableView(state, { type: 'phase.changed', phase: 'bidding' });
+    expect(state.activeView).toBe('left');
+    state = reduceTableView(state, { type: 'view.selected', view: 'top' });
+    state = reduceTableView(state, { type: 'view.selected', view: 'top' });
+    expect(state.activeView).toBe('left');
   });
 
   test('lets a player override the view of the current phase', () => {
