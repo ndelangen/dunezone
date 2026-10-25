@@ -76,7 +76,7 @@ const CHAPTERS: readonly Omit<TutorialChapter, 'number'>[] = [
   {
     slug: 'what-only-you-see',
     title: 'What only you see',
-    goal: 'Your hand, hidden zone and spice',
+    goal: 'Your hand, private side-table and spice',
     minutes: 3,
     part: 'The table',
   },

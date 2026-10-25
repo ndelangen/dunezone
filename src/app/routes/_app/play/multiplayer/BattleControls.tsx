@@ -506,7 +506,7 @@ export function HandControls({ client, table, hand }: Props & { hand: TablePiece
             setMenu(null);
           }}
         >
-          Move to hidden zone
+          Move to private side-table
         </Menu.Item>
       </HandPieceMenu>
     </Section>

@@ -6,6 +6,7 @@ import { gameMeta } from './game.stories.fixture';
 import {
   chapter,
   journey,
+  journeyFrame,
   JourneyPage,
   journeySteps,
   journeyBeforeEach,
@@ -73,7 +74,12 @@ export const TraitorsDealt = meta.story({
     await expect(page.findByRole('region', { name: 'Traitor selection' })).resolves.toBeVisible();
     await openControl(page, 'Hand');
     const hand = within(await page.findByRole('region', { name: 'Your hand and leaders' }));
-    for (const traitor of ['Thufir Hawat', 'Esmar Tuek', 'Hasimir Fenring']) {
+    /* The deal is random, so the four come from the recorded view. */
+    const traitors = journeyFrame(chapter('Traitors dealt') - 1, 'seat-1')
+      .snapshot.hand!.filter((piece) => piece.stackKey === 'cards:traitor')
+      .map((piece) => piece.items[0]?.artwork?.name ?? piece.label);
+    await expect(traitors).toHaveLength(4);
+    for (const traitor of traitors) {
       await expect(hand.getByRole('button', { name: `Drag ${traitor} from hand` })).toBeInTheDocument();
     }
   },
