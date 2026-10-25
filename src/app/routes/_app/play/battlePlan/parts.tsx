@@ -50,6 +50,7 @@ export function AdjustButton({
           min={-20}
           max={20}
           step={0.5}
+          snap={false}
           format={formatStrength}
           disabled={disabled}
           onChange={(next) => onEdit({ adjustment: next })}
@@ -111,6 +112,8 @@ type StepperProps = {
   suffix?: ReactNode;
   format?: (value: number) => string;
   size?: 'sm' | 'md';
+  /** False when a typed value stays as entered: the step is then only what − and + move by. */
+  snap?: boolean;
 };
 
 /**
@@ -128,6 +131,7 @@ function Stepper({
   suffix,
   format = String,
   size = 'md',
+  snap = true,
 }: StepperProps) {
   const [draft, setDraft] = useState<string | null>(null);
   const [knock, setKnock] = useState<number | undefined>(undefined);
@@ -149,7 +153,10 @@ function Stepper({
   /* What the field holds now: a valid typed count, or the plan's own. */
   const current = () => {
     const typed = draft === null || draft.trim() === '' ? NaN : Number(draft);
-    return Number.isFinite(typed) ? Math.round(typed / step) * step : value;
+    if (!Number.isFinite(typed)) {
+      return value;
+    }
+    return snap ? Math.round(typed / step) * step : typed;
   };
   /* A step from the wheel, a key or a button starts from what the field shows, typed or not, and settles the field. */
   const stepBy = (delta: number) => {
