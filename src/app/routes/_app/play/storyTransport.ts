@@ -196,7 +196,7 @@ export function storyTransport(
   }
 
   /* The Play debugger panel shows this socket's traffic and the page's newest view; a replay or a live table describes itself over it. */
-  beginDebugging({
+  const endDebugging = beginDebugging({
     title: 'Scripted story',
     description:
       "A scripted transport answers the page with the story's fixed view. Commands are recorded, never executed.",
@@ -220,6 +220,7 @@ export function storyTransport(
     snapshot,
     runtime,
     dispose: () => {
+      endDebugging();
       for (const socket of sockets) {
         socket.onclose = null;
         socket.close();

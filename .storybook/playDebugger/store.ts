@@ -29,7 +29,7 @@ function set(next: Partial<DebuggerSnapshot>) {
 export function listenForPlay() {
   const channel = addons.getChannel();
   channel.on(STORY_CHANGED, () => set({ state: null, traffic: [] }));
-  channel.on(PLAY_DEBUGGER_EVENTS.reset, () => set({ traffic: [] }));
+  channel.on(PLAY_DEBUGGER_EVENTS.reset, () => set({ state: null, traffic: [] }));
   channel.on(PLAY_DEBUGGER_EVENTS.state, (state: DebuggerState) => set({ state }));
   channel.on(PLAY_DEBUGGER_EVENTS.traffic, (entries: TrafficEntry[]) =>
     set({ traffic: [...snapshot.traffic, ...entries].slice(-KEPT) })
