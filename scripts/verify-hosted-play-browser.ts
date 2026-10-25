@@ -1463,6 +1463,8 @@ async function displayedPhase(who: HostedPeer, index: number, { held = false } =
   const section = controls.getByRole('region', { name: phase.label, exact: true }).first();
   await section.waitFor({ state: 'attached' });
   if (!held) {
+    /* Selecting a tab dismisses its guidance until the pointer leaves and starts a fresh hover. */
+    await who.page.mouse.move(0, 0);
     await controls.getByRole('tab', { name: 'Phase', exact: true }).hover();
     try {
       await controls.getByRole('tooltip').filter({ hasText: phase.instructions }).waitFor();

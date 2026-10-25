@@ -260,7 +260,7 @@ export function RelatedRulesStory() {
               {...blockEditorProps(context, 'PLAN', 'text')}
               references={{ assetsById: {}, factionsById: {}, contents }}
             />
-            <Button onClick={() => dispatch({ kind: 'move' })} disabled={!contents.pagesById.CMPT}>
+            <Button variant="default" onClick={() => dispatch({ kind: 'move' })} disabled={!contents.pagesById.CMPT}>
               Move component page
             </Button>
             <Button variant="subtle" onClick={() => dispatch({ kind: 'remove' })} disabled={!contents.pagesById.CMPT}>

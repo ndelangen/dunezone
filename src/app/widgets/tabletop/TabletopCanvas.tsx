@@ -1,4 +1,5 @@
 /* @jsxImportSource ./three-jsx */
+
 import { Canvas, useFrame, useThree } from '@react-three/fiber/webgpu';
 import type { ComponentProps, ReactNode } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -7,6 +8,7 @@ import { NeutralToneMapping } from 'three';
 import { releaseSharedMeshes } from './sharedMeshes';
 import { TableGraphicsBoundary, TableGraphicsUnavailable } from './TableGraphicsBoundary';
 import { useTableLighting } from './tableLighting';
+import { useTablePalette } from './tablePalette';
 import { useTableGraphics } from './useTableGraphics';
 
 /** Releases the table's shared shapes before Fiber disposes the renderer after root teardown. */
@@ -26,11 +28,12 @@ function ReleaseSharedMeshesOnUnmount() {
 /* The table's lights, scaled by this viewer's lighting choice; only they re-render while the slider moves. */
 function TableLights() {
   const lighting = useTableLighting();
+  const palette = useTablePalette();
   return (
     <>
       <ambientLight intensity={1.25 * lighting} />
-      <directionalLight position={[-4, 9, 5]} intensity={3.1 * lighting} color="#ffe2ae" />
-      <pointLight position={[5, 4, -4]} intensity={14 * lighting} distance={16} color="#d67b44" />
+      <directionalLight position={[-4, 9, 5]} intensity={3.1 * lighting} color={palette.keyLight} />
+      <pointLight position={[5, 4, -4]} intensity={14 * lighting} distance={16} color={palette.fillLight} />
     </>
   );
 }

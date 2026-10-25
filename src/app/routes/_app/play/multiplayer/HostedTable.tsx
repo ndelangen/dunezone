@@ -8,6 +8,7 @@ import { phaseAt, tableProgressFor } from '@shared/play/phases';
 import { setupMapVisible, setupStep } from '@shared/play/setup';
 import type { SpiceTransfer } from '@shared/play/spiceReserve';
 import { DEFAULT_TABLE_SEAT_COUNT } from '@shared/play/tableSettings';
+import { playUiColors } from '@shared/uiPalette';
 import { Link, useLocation } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { Section } from '@ui/block/Section';
@@ -214,16 +215,34 @@ function PredictionCards({ table, factionId, turn }: { table: TableProjection; f
   const name = factionName(table, factionId);
   return (
     <svg width="300" height="190" viewBox="0 0 300 190" role="img" aria-label={`${name}, turn ${turn}`}>
-      <rect x="2" y="2" width="142" height="184" rx="10" fill="#dfcbaa" stroke="#66503a" strokeWidth="3" />
-      <rect x="156" y="2" width="142" height="184" rx="10" fill="#dfcbaa" stroke="#66503a" strokeWidth="3" />
+      <rect
+        x="2"
+        y="2"
+        width="142"
+        height="184"
+        rx="10"
+        fill={playUiColors.demoCard}
+        stroke={playUiColors.demoCardBorder}
+        strokeWidth="3"
+      />
+      <rect
+        x="156"
+        y="2"
+        width="142"
+        height="184"
+        rx="10"
+        fill={playUiColors.demoCard}
+        stroke={playUiColors.demoCardBorder}
+        strokeWidth="3"
+      />
       {token && <image href={token} x="23" y="20" width="100" height="100" />}
-      <text x="73" y="153" textAnchor="middle" fill="#302219" fontSize="13">
+      <text x="73" y="153" textAnchor="middle" fill={playUiColors.demoCardInk} fontSize="13">
         {name}
       </text>
-      <text x="227" y="62" textAnchor="middle" fill="#302219" fontSize="20">
+      <text x="227" y="62" textAnchor="middle" fill={playUiColors.demoCardInk} fontSize="20">
         TURN
       </text>
-      <text x="227" y="135" textAnchor="middle" fill="#302219" fontSize="68">
+      <text x="227" y="135" textAnchor="middle" fill={playUiColors.demoCardInk} fontSize="68">
         {turn}
       </text>
     </svg>
@@ -661,8 +680,7 @@ function SpiceHistory({ client, table }: TableControlProps) {
   );
 }
 
-/* While a lost connection is restored the last table stays on screen, read-only, under this line. */
-/* While the table is locked the top bar says so beside the logo in one short line; the sentence behind it is the tooltip and the accessible description, and a phone keeps only the spinner. */
+/* A lost connection keeps the last table read-only, with recovery stated above it and explained on hover. */
 function ConnectionStatus({ table }: Readonly<{ table: TableProjection }>) {
   if (!table.reconnecting) {
     return null;
@@ -671,8 +689,8 @@ function ConnectionStatus({ table }: Readonly<{ table: TableProjection }>) {
   return (
     <Tooltip label={detail} withinPortal>
       <Group gap={6} wrap="nowrap" role="status" aria-label={`Reconnecting. ${detail}`}>
-        <Loader size="xs" />
-        <Text size="sm" fw={700} visibleFrom="sm" aria-hidden>
+        <Loader size="xs" color="gray.2" />
+        <Text size="sm" fw={700} aria-hidden>
           Reconnecting
         </Text>
       </Group>

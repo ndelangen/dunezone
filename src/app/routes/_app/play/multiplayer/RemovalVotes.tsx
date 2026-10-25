@@ -1,4 +1,5 @@
 import { Avatar, Button, Group, Indicator, Stack, Text, VisuallyHidden } from '@mantine/core';
+import { alliesOf } from '@shared/play/alliances';
 import { TABLE_CONVERSATION } from '@shared/play/conversations';
 import { factionTokenOf } from '@shared/play/factionToken';
 import type { PublicControls } from '@shared/play/inventory';
@@ -15,7 +16,8 @@ import { useEffect, useSyncExternalStore } from 'react';
 import { useFactionPageSlug } from '@db/factions';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
-import { allianceHue, PlayerAlliance } from './Alliances';
+import { alliedFactionColors, allianceRingStyle } from './allianceColors';
+import { PlayerAlliance } from './Alliances';
 import { Conversation } from './Conversation';
 import { FactionDetails } from './FactionDetails';
 import { PLAYER_CONVERSATION_GUIDANCE, PLAYER_INFO_GUIDANCE, TABLE_CONVERSATION_GUIDANCE } from './panelGuidance';
@@ -253,7 +255,7 @@ export function PlayerPanel({
 }
 
 /*
- * One player in the rail, their avatar ringed in their alliance's hue and dotted while a vote, a request or unread messages wait.
+ * One player in the rail, their avatar ringed in their allies' faction colours and dotted while a vote, a request or unread messages wait.
  * It is an element rather than a component because the rail only sees items it is handed directly.
  */
 function playerItem(
@@ -273,31 +275,26 @@ function playerItem(
 ) {
   const token = table.snapshot.swapping?.tokens[entry.seat];
   const unreadLabel = unread ? `, ${unread} unread` : '';
-  const hue = allianceHue(table.snapshot, seatFaction(table, entry.seat));
+  const colors = alliedFactionColors(table.snapshot, seatFaction(table, entry.seat));
   return (
     <NestedTabs.Item
       key={entry.seat}
       as="button"
       type="button"
       path={[entry.seat]}
-      label={`${entry.name}${hue ? ', in an alliance' : ''}${active ? ', removal vote in progress' : ''}${requested ? ', a spectator asks for this seat' : ''}${unreadLabel}`}
+      label={`${entry.name}${colors.length ? ', in an alliance' : ''}${active ? ', removal vote in progress' : ''}${requested ? ', a spectator asks for this seat' : ''}${unreadLabel}`}
       icon={
         <Indicator
-          color={active ? 'red.6' : requested ? 'yellow.5' : undefined}
+          color={active ? 'red.6' : requested ? 'slate.3' : undefined}
           size={16}
           label={unread || undefined}
           disabled={!active && !requested && !unread}
         >
-          <Avatar
-            src={token ?? entry.avatar}
-            size={26}
-            radius="xl"
-            alt=""
-            /* Allies share a ring, one hue per alliance. */
-            style={hue ? { boxShadow: `0 0 0 2px ${hue}` } : undefined}
-          >
-            {entry.name.slice(0, 1)}
-          </Avatar>
+          <span style={allianceRingStyle(colors)}>
+            <Avatar src={token ?? entry.avatar} size={26} radius="xl" alt="">
+              {entry.name.slice(0, 1)}
+            </Avatar>
+          </span>
         </Indicator>
       }
       onClick={() => {
@@ -431,7 +428,8 @@ export function usePlayerWindows(client: TableSession, table: TableProjection, e
   const votes = table.snapshot.removalVotes ?? [];
   const asked = requestedSeats(table);
   const viewerSeat = table.viewer.viewerSeat;
-  const ownHue = viewerSeat ? allianceHue(table.snapshot, seatFaction(table, viewerSeat)) : undefined;
+  const ownFaction = viewerSeat ? seatFaction(table, viewerSeat) : undefined;
+  const allies = ownFaction ? alliesOf(table.snapshot.alliances, ownFaction) : [];
   const players: PlayerWindowEntry[] = seatPlayers(table).map((player) => {
     const faction = rosterSeat(table.snapshot.roster, player.seat)?.faction;
     const peerId = seatFaction(table, player.seat);
@@ -445,7 +443,7 @@ export function usePlayerWindows(client: TableSession, table: TableProjection, e
       own: player.seat === table.viewer.viewerSeat,
       canConverse: Boolean(peerId && conversations.context?.peers.some((peer) => peer.id === peerId)),
       attention: votes.some((vote) => vote.target.seat === player.seat) || asked.has(player.seat),
-      ally: player.seat !== viewerSeat && ownHue !== undefined && allianceHue(table.snapshot, peerId) === ownHue,
+      ally: Boolean(peerId && allies.includes(peerId)),
     };
   });
   return {

@@ -1,44 +1,10 @@
-/*
- * Play's tooltips are raised slate cards with an amber title, so they read off the dock's navy glass,
- * which the app's tooltip glass matches. Norbert picked these values by eye against the dock (#2048),
- * so a palette sweep keeps them. Island tooltips portal into a host carrying this attribute, and the
- * app's dark tooltip rule (mantine-shell-compatibility.css) reads them. They live here rather than in
- * tokens.css, which the faction sheet renderer also bundles, so a play style does not change the
- * Renderer identity. The `--tip-` prefix keeps them apart from Mantine's own `--tooltip-` variables.
+/* Raised tooltips stay distinct from the dock, using the app's warm mineral palette.
+ * The portal host carries this attribute, so the same treatment follows tooltips out of the table.
  */
 [data-scheme-dark] {
-  --tip-surface: #2a3a55;
-  --tip-title: #f4c983;
-  --tip-ring: 0 0 0 1px #6b7f9f, 0 0.5rem 1.5rem rgba(0, 0, 0, 0.55);
-}
-
-/*
- * The sietch kit: the dock and every play panel are cut from the table's own materials (leather,
- * brass, sand) rather than the site's cool navy glass, so board and controls read as one table.
- * Only colours change; NestedTabs and every other kit shape stay as they are. Both island
- * attributes sit on every island root, so this outranks tokens.css's [data-scheme-dark] block.
- */
-[data-scheme-dark][data-mantine-color-scheme] {
-  --color-text: #f2e6cf;
-  --color-muted: #bba98a;
-  --color-link: #f6c67e;
-  --color-brand: #c9a46a;
-  --color-brand-strong: #f3a93c;
-  --color-focus-ring: #f3a93c;
-
-  --button-neutral-bg: #3b2c1e;
-  --button-neutral-hover-bg: #4a3825;
-  --button-neutral-fg: #f2e6cf;
-  --button-toggle-active-bg: #6b4b26;
-
-  --glass-surface-0: rgba(30, 21, 14, 0.62);
-  --glass-surface-1: rgba(38, 27, 18, 0.78);
-  --glass-surface-2: rgba(45, 32, 21, 0.86);
-  --glass-input: rgba(22, 15, 10, 0.9);
-  --glass-overlay: rgba(28, 19, 12, 0.97);
-
-  --panel-border: #5c4327;
-  --surface-hover-tint: #5c4327;
-  --input-border: rgba(222, 184, 126, 0.3);
-  --input-border-strong: rgba(222, 184, 126, 0.48);
+  --tip-surface: var(--button-neutral-hover-bg);
+  --tip-title: var(--color-brand-strong);
+  --tip-ring:
+    0 0 0 1px rgb(from var(--input-border-strong) r g b / var(--input-border-strong-alpha)),
+    0 0.5rem 1.5rem rgb(from var(--play-black) r g b / 0.55);
 }

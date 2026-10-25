@@ -298,7 +298,7 @@ function TokenRow({
       py={6}
       style={{
         borderRadius: 8,
-        border: `1px solid ${open ? 'var(--mantine-color-yellow-5)' : 'var(--mantine-color-default-border)'}`,
+        border: `1px solid ${open ? 'var(--color-caution)' : 'var(--mantine-color-default-border)'}`,
       }}
     >
       <Group justify="space-between" gap="xs" wrap="nowrap">

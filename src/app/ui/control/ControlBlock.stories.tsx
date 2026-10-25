@@ -21,7 +21,7 @@ const meta = preview.meta({
   title: 'Control Block',
   component: ControlBlock,
   globals: {
-    backgrounds: { value: 'light', grid: false },
+    backgrounds: { value: 'dark', grid: false },
   },
   parameters: {
     layout: 'centered',

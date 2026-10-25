@@ -11,7 +11,7 @@ const meta = preview.meta({
   component: AssetSelect,
   render: ControlledAssetSelect,
   globals: {
-    backgrounds: { value: 'light', grid: false },
+    backgrounds: { value: 'dark', grid: false },
   },
   parameters: {
     layout: 'centered',

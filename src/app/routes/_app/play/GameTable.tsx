@@ -101,7 +101,7 @@ type GameTableProps = {
   /** The game menu in the toolbar, present in every stage: what a player can do about their own seat. Previous and Next stay rightmost. */
   gameMenu?: ReactNode;
   toolbarControl?: ReactNode;
-  /** The connection's state, beside the logo where the bar has room, present only while the table is not live. */
+  /** Connection recovery, centred above the table and separate from the phase. */
   connectionStatus?: ReactNode;
   /** Who is allied with whom, under the game's name beside the phase. */
   alliances?: ReactNode;
@@ -988,8 +988,8 @@ export function GameTable({
   const frame = stageFrame(stage);
   /* The camera follows the phase while the header names one: in play, and on the fixture. */
   /* A faction phase takes the camera view of the standard phase it precedes (#1138). */
-  const activeEntry = tableProgress.phases.find((entry) => entry.id === tableProgress.activePhaseId);
-  const viewPhase = frame.word || !activeEntry ? null : standardPhaseOf(activeEntry);
+  const activePhase = tableProgress.phases.find((entry) => entry.id === tableProgress.activePhaseId);
+  const viewPhase = frame.word || !activePhase ? null : standardPhaseOf(activePhase);
   const [viewState, dispatchView] = useReducer(reduceTableView, viewPhase, createTableViewState);
   if (viewState.phase !== viewPhase) {
     /* The phase changed since the last render; the reducer answers it before this render commits. */
@@ -1003,8 +1003,6 @@ export function GameTable({
     }),
     [viewState.activeView, viewState.cameraRevision]
   );
-  const activePhaseIndex = tableProgress.phases.findIndex((phase) => phase.id === tableProgress.activePhaseId);
-  const activePhase = tableProgress.phases[activePhaseIndex];
 
   useRequestedView(requestedView, dispatchView);
 
@@ -1066,12 +1064,14 @@ export function GameTable({
               />
             )}
           </div>
-          {/* The connection status is its own status region, so it stays outside the phase's live region and is announced once. */}
-          {connectionStatus}
         </div>
         <div className="seated-chip seated-chip--game" data-hides-cursor>
           {alliances}
         </div>
+      </div>
+
+      <div className="seated-connection" data-hides-cursor>
+        {connectionStatus}
       </div>
 
       <div className="seated-chip seated-toolbar" data-hides-cursor>

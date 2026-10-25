@@ -6,19 +6,16 @@ import { useEffect, useSyncExternalStore } from 'react';
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 import styles from './Log.module.css';
 
-/*
- * The classifications and their hues as the accepted log fixed them (issue 1149, comment 5654361805): cyan, orange, red and purple for the Game classes, blue and green for Seat and Vote; alliances (#1007) took teal, and gray marks a piece deleted from the game.
- * These are classes of event, not statuses, so the badge takes the hue directly rather than a StatusBadge tone.
- */
+/* Event labels identify the class; their colours reuse the app's semantic families. */
 const CLASSIFICATIONS = {
-  phase: { label: 'Phase', color: 'cyan' },
-  spice: { label: 'Spice', color: 'orange' },
+  phase: { label: 'Phase', color: 'blue' },
+  spice: { label: 'Spice', color: 'yellow' },
   battle: { label: 'Battle', color: 'red' },
-  prediction: { label: 'Prediction', color: 'grape' },
-  alliance: { label: 'Alliance', color: 'teal' },
+  prediction: { label: 'Prediction', color: 'violet' },
+  alliance: { label: 'Alliance', color: 'confirm' },
   deletion: { label: 'Deleted', color: 'gray' },
   seat: { label: 'Seat', color: 'blue' },
-  vote: { label: 'Vote', color: 'green' },
+  vote: { label: 'Vote', color: 'confirm' },
 } as const satisfies Record<LogClass, { label: string; color: string }>;
 
 const TITLES = { game: 'Game log', audit: 'Audit log' } as const satisfies Record<LogTab, string>;
