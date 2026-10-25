@@ -41,6 +41,8 @@ export type CompassControlsProps = Readonly<{
   tabs: readonly PanelTab[];
   /** Moves the camera, as the dial does. */
   onView: (view: TableView) => void;
+  /** The window an event asks for (a battle, the end of the game, a phase with a tab of its own), once per token. */
+  focus?: Readonly<{ key: string; token: string }> | null;
 }>;
 
 export function CompassControls(props: CompassControlsProps) {
@@ -49,7 +51,7 @@ export function CompassControls(props: CompassControlsProps) {
   return <Controls key={epoch} {...props} />;
 }
 
-function Controls({ scene, header, camera, inert, tabs, onView }: CompassControlsProps) {
+function Controls({ scene, header, camera, inert, tabs, onView, focus }: CompassControlsProps) {
   const table = useContext(CompassTableContext);
   const windows = useTableWindows(tabs);
   const [open, setOpen] = useState(false);
@@ -65,6 +67,16 @@ function Controls({ scene, header, camera, inert, tabs, onView }: CompassControl
     right: opened.slots.right?.key ?? null,
   });
   const byKey = (key: string) => windows.find((entry) => entry.key === key);
+  /*
+   * An event opens its window as the dock opens its tab, once per token, answered in the render that brings it;
+   * a token already there when the controls mount is old news. The Spice tab lives in the Hand & spice window.
+   */
+  const [followed, setFollowed] = useState(focus?.token ?? null);
+  const focusKey = focus?.key === 'spice' ? 'hand' : focus?.key;
+  if (focus && focusKey && focus.token !== followed && byKey(focusKey)) {
+    setFollowed(focus.token);
+    opened.reveal(focusKey);
+  }
 
   const openCompass = () => {
     setOpen(true);

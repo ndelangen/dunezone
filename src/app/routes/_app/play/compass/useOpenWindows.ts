@@ -63,6 +63,15 @@ export function useOpenWindows(windows: readonly TableWindow[], compassOpen: boo
     const again = (current: Opened | null) => current?.key === key && (tab === undefined || current.tab === tab);
     setCentre((current) => (again(current) ? null : { key, tab: tab ?? firstTab(key) }));
   };
+  /** Brings a window into view without closing it: a pinned one lights up, one already in the centre stays, else it opens there. */
+  const reveal = (key: string) => {
+    const side = SIDES.find((entry) => slots[entry]?.key === key);
+    if (side) {
+      showPinned(side, key);
+      return;
+    }
+    setCentre((current) => (current?.key === key ? current : { key, tab: firstTab(key) }));
+  };
   const pin = (side: Side) => {
     if (!centre) {
       return;
@@ -97,5 +106,5 @@ export function useOpenWindows(windows: readonly TableWindow[], compassOpen: boo
   }, [compassOpen, centre]);
   useTablePress(close, centre !== null && !compassOpen);
 
-  return { centre, slots, flash, show, pin, unpin, close, showTab, isOpen };
+  return { centre, slots, flash, show, reveal, pin, unpin, close, showTab, isOpen };
 }

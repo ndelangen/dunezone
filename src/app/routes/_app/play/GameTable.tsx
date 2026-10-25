@@ -916,6 +916,7 @@ function TableLayouts({
   players,
   tabs,
   onView,
+  focusTab,
   ...props
 }: Omit<LayoutProps, 'nodes'> &
   Readonly<{
@@ -927,6 +928,8 @@ function TableLayouts({
     tabs: readonly PanelTab[];
     /** Moves the camera, for the compass's camera commands; the dial in `camera` does the same. */
     onView: (view: TableView) => void;
+    /** The tab an event asks for, which the compass opens as a window once per token, as the dock opens the tab. */
+    focusTab: GameTableProps['focusTab'];
   }>) {
   const headerNode = useHeldNode();
   const sceneNode = useHeldNode();
@@ -949,6 +952,7 @@ function TableLayouts({
           inert={props.inert}
           tabs={tabs}
           onView={onView}
+          focus={focusTab}
         />
       ) : layout === 'columns' ? (
         <ColumnsLayout key="columns" nodes={nodes} {...props} />
@@ -1121,6 +1125,7 @@ export function GameTable({
                 inert={overlaysInert}
                 tabs={dockTabs(dock)}
                 onView={selectView}
+                focusTab={focusTab}
               />
             </div>
           </div>
