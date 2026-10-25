@@ -2,7 +2,7 @@ import preview from '@sb/preview';
 
 import type { StoredSnapshot } from '../../../../../../workers/game/state';
 import { gameMeta, install } from '../game.stories.fixture';
-import { chapter, journeyViewers } from '../journey.stories.fixture';
+import { chapter, journeySteps, journeyViewers } from '../journey.stories.fixture';
 import { sandboxTransport } from '../sandbox.stories.fixture';
 import { HandWindowHarness } from './HandWindowHarness.stories.fixture';
 
@@ -17,7 +17,6 @@ const meta = preview.meta({
   component: HandWindowHarness,
   decorators: gameMeta.decorators,
   globals: { motion: 'on' },
-  args: { seat: 'seat-2' },
   argTypes: { seat: { control: 'select', options: journeyViewers().filter((seat) => seat !== 'neutral') } },
   parameters: { layout: 'fullscreen', playDebugger: true, chromatic: { disableSnapshot: true } },
   tags: ['!test'],
@@ -50,13 +49,19 @@ function withTreachery(stored: StoredSnapshot): StoredSnapshot {
   return { ...stored, factionInventories: { ...stored.factionInventories, 'house-atreides': [...hand, ...drawn] } };
 }
 
-/* The live table from the recorded journey: Atreides (seat 2) mid-battle at Arrakeen, or earlier at Shipment with no battle. */
+/* The live table from the recorded journey: Atreides mid-battle at Arrakeen, or earlier at Shipment with no battle. */
+/* The seat Atreides holds at that step, found by its faction, so a re-recorded journey that reseats the factions keeps the same hand. */
+function atreidesSeat(start: number) {
+  const views = journeySteps()[start]!.views;
+  return Object.keys(views).find((seat) => views[seat]!.snapshot.bank?.factionId === 'house-atreides') ?? 'seat-1';
+}
+
 const at =
   (title: string) =>
-  ({ args }: { args: { seat?: string } }) =>
-    install(() =>
-      sandboxTransport({ start: chapter(title) - 1, seat: args.seat ?? 'seat-2', prepare: withTreachery })
-    )();
+  ({ args }: { args: { seat?: string } }) => {
+    const start = chapter(title) - 1;
+    return install(() => sandboxTransport({ start, seat: args.seat ?? atreidesSeat(start), prepare: withTreachery }))();
+  };
 const inBattle = at('Battle plan');
 const quiet = at('Shipment');
 
