@@ -1,9 +1,12 @@
 /* @jsxImportSource @app/widgets/tabletop/three-jsx */
+
 import { useFrame } from '@react-three/fiber/webgpu';
+import { rendererColors } from '@shared/play/assetColors';
 import { factionTokenStackKey, isFactionToken } from '@shared/play/factionToken';
 import type { GameSnapshot } from '@shared/play/protocol';
 import { BOARD_RIM_SURFACE_Y } from '@shared/play/tableGeometry';
 import { PLAYER_RING_RADIUS, tableSeatAngles } from '@shared/play/tableSettings';
+import { playUiColors } from '@shared/uiPalette';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Color, CubicBezierCurve3, SRGBColorSpace, TextureLoader, Vector3 } from 'three';
 import type { Group, Texture } from 'three';
@@ -71,7 +74,7 @@ function TokenFace({ url, vacant }: Readonly<{ url: string; vacant: boolean }>) 
     <meshBasicMaterial
       key={texture?.uuid ?? 'placeholder'}
       map={texture}
-      color={texture ? '#ffffff' : '#b5a985'}
+      color={texture ? rendererColors.white : playUiColors.fallbackTexture}
       toneMapped={false}
       transparent={vacant}
       opacity={vacant ? 0.4 : 1}
@@ -139,7 +142,7 @@ export function SwapScene({ snapshot }: Readonly<{ snapshot: GameSnapshot }>) {
           position={positions.get(seat.id)!}
           angle={angles[seat.position]!}
           vacant={!snapshot.controls?.seats.includes(seat.id)}
-          color={seat.faction?.color ?? '#bbbbbb'}
+          color={seat.faction?.color ?? playUiColors.unknownFaction}
           url={swapping.tokens[seat.id]}
           ready={snapshot.stage === 'swapping' && swapping.ready.includes(seat.id)}
         />
@@ -184,7 +187,7 @@ function SeatToken({
       {ready && (
         <mesh position={[0.42, 0.14, -0.36]}>
           <sphereGeometry args={[0.07, 16, 16]} />
-          <meshBasicMaterial color="#63b89d" />
+          <meshBasicMaterial color={playUiColors.swapDirection} />
         </mesh>
       )}
     </group>
@@ -192,7 +195,7 @@ function SeatToken({
 }
 
 function offerColor(roster: NonNullable<GameSnapshot['roster']>, origin: string) {
-  return roster.seats.find((seat) => seat.id === origin)?.faction?.color ?? '#ffffff';
+  return roster.seats.find((seat) => seat.id === origin)?.faction?.color ?? rendererColors.white;
 }
 
 function seatPositions(roster: GameSnapshot['roster'], angles: readonly number[]) {

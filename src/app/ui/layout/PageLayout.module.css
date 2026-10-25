@@ -20,7 +20,7 @@
      The paper scheme's own link ink falls to 1.65:1 on the sand band, and the kit's darkest navy to 4.4:1 on the compact crop.
      Black measures 4.8:1 or more there in both schemes, since the band does not flip with them (#821).
      It lives here rather than in tokens.css, which the faction sheet renderer also bundles, so a band style does not change the Renderer identity. */
-  --mantine-color-anchor: #000;
+  --mantine-color-anchor: var(--color-shadow);
 }
 
 /* With the ink no longer a link colour, the weight and a permanent underline are what still say "link".

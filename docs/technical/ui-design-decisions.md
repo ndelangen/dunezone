@@ -104,9 +104,24 @@ stylesheet keyed on `html[data-mantine-color-scheme]` does not follow the island
 Combobox dropdown portals out of the shell, so the provider gives every Popover dropdown it renders
 the island's attributes. A tooltip's colours key on an ancestor, so the provider portals its
 tooltips into a child of `body` that carries those attributes. A window paints the ground, and
-nothing inside a window brings a pane of its own. The island resolves the
-glass, input and overlay tokens the kit's panes read to neutral values, as the paper island resolves
-its own in `tokens.css`. The table keeps its leather palette while the app uses warm mineral glass.
+nothing inside a window brings a pane of its own. The island shares the app's warm mineral tokens and Mantine ramps. It keeps the provider and portal
+scoping so controls still paint correctly outside the table, without maintaining a second palette.
+The Three scene reads resolved theme variables from its canvas through `tablePalette.ts`, including
+its table materials, ground and lights. UI colours live in `src/shared/uiPalette.ts`: scoped UI variables,
+Mantine ramps, table materials, interaction feedback and UI fallback roles. Procedural game materials
+live separately in `src/shared/play/assetColors.ts`, alongside neutral rendering utilities. The game
+palette imports no UI theme. [The colour audit](play-colour-audit.md) traces the former mixed swatch group
+to its consumers and source artwork. `bun run generate:palette` produces
+`styles/palette.generated.css`, imported by `tokens.css`; JavaScript consumes the same source directly.
+`verify:palette` checks the generated file, and `check:play-colors` rejects new inline colour literals
+in Play, its tabletop widget and its radial menu. Authored SVGs, bitmap artwork, faction definitions
+and story fixtures retain their own palettes.
+Play's interaction roles and table materials reference `coreColors`, the same pigments that supply
+the app's dark tokens. Targets, selection rings, labels and confetti use brass and cream; readiness
+uses the shared confirmation palette and destructive actions use the shared error palette.
+Printed board and piece colours and faction colours stay independent. Alliance markers take each
+ally's authored faction colour from the roster, with retained table tokens covering older snapshots.
+Multiple allies appear as segments around the marker, matching the coloured coins on the table.
 
 The same drift has a second source: a prototype is accepted from a picture, in prototype-local CSS
 that can never merge, and nothing says which kit component each accepted part becomes, so the
@@ -115,11 +130,10 @@ per accepted part naming the kit component it becomes or the one concern that ma
 component under the taxonomy; a delivery ticket names what it builds with; and the independent
 review checks that line before the merge.
 
-Play's tooltips are raised rather than glass: the app's tooltip glass is the windows' own navy, so a
-tooltip over a window vanished into it (Norbert, #2048). The island sets `--tip-surface`,
+Play's tooltips are raised rather than glass so they remain distinct from the windows (#2048). The island sets `--tip-surface`,
 `--tip-ring` and `--tip-title` in `DarkSchemeIsland.css` (not `tokens.css`, which the faction sheet renderer bundles), and the app's one dark tooltip rule reads them with
-the glass as fallback, so every tooltip on the island is a slate card with a light ring and shadow, a
-titled one takes the amber title, and nothing outside the island changes. A window's guidance lives
+the glass as fallback, so every tooltip on the island is a warm mineral card with a brass ring and shadow, a
+titled one takes the pale sand title, and nothing outside the island changes. A window's guidance lives
 behind the (?) in its header, the kit's `HelpMark`: hovering or focusing it shows the one-line
 description and the full help under it, and the compass's search shows the description as each
 window's hint. Play is desktop-only for the beta, so a touch path to that guidance is out of scope
@@ -343,9 +357,11 @@ The enums are per component and per prop rather than one shared union, because a
 an action's intents are different questions. They draw their words from one language so a reader
 meeting a new component already knows what the words mean.
 
-For actions the words land as you would expect: a forward-moving primary is `positive`, a
-destructive action is `negative`, and auxiliary actions are `neutral`, varying by weight and never
-by hue.
+A forward-moving primary uses the shared bright yellow with dark text. The homepage's primary
+uses the `artwork` variant of `cta`, near-black with cream text against the sandy header.
+The `brand` family retains pale gold for emphasis and selected Play choices. Positive statuses
+remain olive, destructive actions are `negative`, and auxiliary actions are `neutral`.
+`CallToAction` and `SubmitAction` own primary emphasis; callers supply their words and intent.
 
 The rule's subject is app UI. Asset components are not app components and live under their own
 rules, and `src/game`'s renderers are outside it entirely: a renderer draws an artifact, not an
@@ -360,7 +376,9 @@ The language, each word earned by usage the survey found rather than invented:
 | `positive` | affirms or creates | any |
 | `negative` | destroys, or reports a failure | any |
 | `caution` | warns without failing | any |
-| `brand` | ownership | any |
+| `cta` | the forward-moving primary action | buttons |
+| `artwork` | a primary action contrasted against sandy artwork | `cta` buttons |
+| `brand` | active emphasis and ownership | any |
 | `selected` | currently chosen among alternatives | any |
 | `pending` | waiting to start | `StatusBadge`, `StatusMark` |
 | `progress` | running | `StatusBadge`, `StatusMark` |
@@ -378,8 +396,9 @@ before inventing one. The `IconAction` four are a loudness axis rather than a me
 the four Mantine variants the code already used, added when that vendor enum stopped crossing the
 component's boundary. At the token layer, `inverse` also names caution's legible-on-dark-artwork
 value (`--color-caution-inverse`), the same meaning the Eyebrow row gives the word. Default actions,
-hover states, links, ownership marks and keyboard focus use the cool slate UI palette. The former
-dune colour name resolves to that same palette; it must not reintroduce a rust or brown UI accent.
+hover states, links, ownership marks and keyboard focus use the warm mineral UI palette. The former
+dune colour name resolves to that same palette; it must not introduce an independent palette.
+The canonical `cta` role owns the spice-amber action accent.
 Destructive actions use red. Game artwork and authored asset colours remain renderer-owned.
 Selected fills, text and hover states resolve through the `--button-toggle-*` tokens in both schemes.
 Selection controls use `color="selected"`; dropdown options receive the same treatment through

@@ -47,21 +47,43 @@ function typingElsewhere(event: KeyboardEvent, search: HTMLInputElement | null) 
 
 /*
  * Space is the compass's everywhere on the table, even on a button left focused by a click, which keeps Enter.
- * Only an open menu (a piece's radial menu holds Space to confirm), a list being stepped through, a select or a dialog keep it.
+ * Even a piece's radial ring, which stays open after a draw to deal again, gives Space to the compass and closes as the compass takes focus.
+ * Only an open dropdown menu, a list being stepped through, a select or a dialog keep it.
  */
-const KEEPS_SPACE = '[role="menu"], [role="listbox"], select, dialog, [role="dialog"], [aria-modal="true"]';
+const KEEPS_SPACE =
+  '[role="menu"]:not([data-radial-menu]), [role="listbox"], select, dialog, [role="dialog"], [aria-modal="true"]';
 function spaceBelongsTo(target: EventTarget | null) {
   return target instanceof Element && target.closest(KEEPS_SPACE) !== null;
 }
 
-/* A control outside the table, such as a tutorial's guide beside it, keeps Space to press itself. */
+/*
+ * A control outside the table, such as a tutorial's guide beside it, keeps Space to press itself.
+ * A piece's radial ring is the table's own, though it is portalled to the page's body.
+ */
 function outsideTable(target: EventTarget | null) {
   return (
     target instanceof Element &&
     target !== document.body &&
     target !== document.documentElement &&
-    target.closest('[data-compass-controls]') === null
+    target.closest('[data-compass-controls], [data-radial-menu]') === null
   );
+}
+
+/*
+ * The compass is shown in place, not as a modal, so the browser would Tab on past its controls to a field behind the veil,
+ * where its keys no longer reach. Tab moves through its own controls as the browser does, and wraps around at either end.
+ */
+function keepFocus(event: KeyboardEvent, compass: HTMLDialogElement | null) {
+  if (!compass) {
+    return;
+  }
+  const stops = [...compass.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled)')];
+  const inside = event.target instanceof Node && compass.contains(event.target);
+  const edge = event.shiftKey ? stops[0] : stops.at(-1);
+  if (!inside || event.target === edge) {
+    event.preventDefault();
+    (event.shiftKey ? stops.at(-1) : stops[0])?.focus();
+  }
 }
 
 /* A fresh Space on the table, while nothing holds it, opens the compass. */
@@ -170,6 +192,11 @@ export function useCompassKeys(keys: CompassKeys) {
     }
   };
   const keydown = useEffectEvent((event: KeyboardEvent) => {
+    if (keys.open && event.key === 'Tab') {
+      event.stopPropagation();
+      keepFocus(event, keys.input.current?.closest('dialog') ?? null);
+      return;
+    }
     if (typingElsewhere(event, keys.input.current)) {
       return;
     }

@@ -28,11 +28,22 @@ export type OpenWindows = ReturnType<typeof useOpenWindows>;
 const OPEN_ABOVE = '[role="menu"], [role="listbox"], [role="dialog"], [aria-modal="true"]';
 const EXPANDED = '[aria-expanded="true"]';
 
+/* Shown, not just mounted: a select keeps its list in the document, hidden, while it is shut. */
+function shown(element: Element) {
+  for (let node: Element | null = element; node; node = node.parentElement) {
+    const style = getComputedStyle(node);
+    if (style.display === 'none' || style.visibility === 'hidden') {
+      return false;
+    }
+  }
+  return true;
+}
+
 function escapeTaken(event: KeyboardEvent) {
   const target = event.target;
   return (
     brushTakes(event) ||
-    document.querySelector(OPEN_ABOVE) !== null ||
+    [...document.querySelectorAll(OPEN_ABOVE)].some(shown) ||
     (target instanceof Element && target.closest(EXPANDED) !== null)
   );
 }
@@ -66,6 +77,36 @@ function useTablePress(onPress: () => void, enabled: boolean) {
   }, [enabled]);
 }
 
+/* The keys that pin the centre window: [ to the bottom left and ] to the bottom right. */
+export const PIN_KEYS: Readonly<Record<Side, string>> = { left: '[', right: ']' };
+
+function typing(target: EventTarget | null) {
+  return (
+    target instanceof HTMLElement &&
+    (target.isContentEditable || target.closest('input, textarea, select, [role="textbox"]') !== null)
+  );
+}
+
+/* A bare [ or ] away from a text field pins the centre window, as its pin buttons do. */
+function usePinKeys(onPin: (side: Side) => void, enabled: boolean) {
+  const pinTo = useEffectEvent(onPin);
+  useEffect(() => {
+    if (!enabled) {
+      return;
+    }
+    const listener = (event: KeyboardEvent) => {
+      const side = SIDES.find((entry) => PIN_KEYS[entry] === event.key);
+      if (!side || event.repeat || event.metaKey || event.ctrlKey || event.altKey || typing(event.target)) {
+        return;
+      }
+      event.preventDefault();
+      pinTo(side);
+    };
+    window.addEventListener('keydown', listener);
+    return () => window.removeEventListener('keydown', listener);
+  }, [enabled]);
+}
+
 function unlessShown(entry: Opened | null, shown: readonly (Opened | null)[]) {
   return entry && shown.some((other) => other?.key === entry.key) ? null : entry;
 }
@@ -85,11 +126,23 @@ export function useOpenWindows(windows: readonly TableWindow[], compassOpen: boo
     const target = entry?.vote ? windows.find((window) => window.player?.vote === entry.vote) : undefined;
     return entry && target && target.key !== entry.key ? { ...entry, key: target.key } : entry;
   };
+  /* A window that followed its vote to another seat stays there, so it does not jump back once the vote ends. */
+  const [movedLeft, movedRight, movedCentre] = [
+    followed(openSlots.left),
+    followed(openSlots.right),
+    followed(openCentre),
+  ];
+  if (movedLeft !== openSlots.left || movedRight !== openSlots.right) {
+    setSlots({ left: movedLeft, right: movedRight });
+  }
+  if (movedCentre !== openCentre) {
+    setCentre(movedCentre);
+  }
   /* Following a vote can bring two windows onto one player; the slots keep theirs, left first, and the centre gives way. */
-  const left = followed(openSlots.left);
-  const right = unlessShown(followed(openSlots.right), [left]);
+  const left = movedLeft;
+  const right = unlessShown(movedRight, [left]);
   const slots: Slots = { left, right };
-  const centre = unlessShown(followed(openCentre), [left, right]);
+  const centre = unlessShown(movedCentre, [left, right]);
 
   /* A player's window opens on the chat when there is one to have, otherwise on what they show. */
   const firstTab = (key: string): PlayerTab => {
@@ -114,14 +167,27 @@ export function useOpenWindows(windows: readonly TableWindow[], compassOpen: boo
     const again = (current: Opened | null) => current?.key === key && (tab === undefined || current.tab === tab);
     setCentre((current) => (again(followed(current)) ? null : opened(key, tab ?? firstTab(key))));
   };
-  /* Brings a window into view without closing anything: a pinned one lights up beside the centre window, one already in the centre stays, else it opens there. */
+  /*
+   * Brings a window the table asks for into view without closing anything: a pinned one lights up, one already in the centre stays.
+   * Else it goes into a free slot, beside the board rather than over it, and only into the centre when both slots hold a window.
+   */
   const reveal = (key: string) => {
     const side = SIDES.find((entry) => slots[entry]?.key === key);
     if (side) {
       setFlash(pulse(side));
       return;
     }
-    setCentre((current) => (followed(current)?.key === key ? current : opened(key, firstTab(key))));
+    if (followed(openCentre)?.key === key) {
+      return;
+    }
+    /* A slot is free when it holds nothing, or a window the table no longer has, such as the last battle's. */
+    const free = SIDES.find((entry) => !windows.some((window) => window.key === slots[entry]?.key));
+    if (free) {
+      setSlots((current) => ({ ...current, [free]: opened(key, firstTab(key)) }));
+      setFlash(pulse(free));
+      return;
+    }
+    setCentre(opened(key, firstTab(key)));
   };
   const pin = (side: Side) => {
     if (!centre) {
@@ -163,6 +229,7 @@ export function useOpenWindows(windows: readonly TableWindow[], compassOpen: boo
     return () => window.removeEventListener('keydown', escape, true);
   }, [compassOpen, openCentre]);
   useTablePress(close, openCentre !== null && !compassOpen);
+  usePinKeys(pin, openCentre !== null && !compassOpen);
 
   return { centre, slots, flash, show, reveal, pin, unpin, close, showTab, isOpen };
 }

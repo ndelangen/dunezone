@@ -1,4 +1,5 @@
 /* @jsxImportSource @app/widgets/tabletop/three-jsx */
+
 import { Html } from '@react-three/drei/webgpu';
 import { BID_WARNING_MS, biddingFactions, idleBidding } from '@shared/play/bidding';
 import type { BiddingState } from '@shared/play/bidding';
@@ -9,6 +10,7 @@ import type { TableRoster } from '@shared/play/schema';
 import { stormOrder } from '@shared/play/stormSector';
 import { BOARD_RADIUS, BOARD_SURFACE_Y } from '@shared/play/tableGeometry';
 import { PLAYER_RING_RADIUS, tableSeatAngles } from '@shared/play/tableSettings';
+import { playUiColors } from '@shared/uiPalette';
 import { useContext, useEffect, useMemo } from 'react';
 import { ExtrudeGeometry, Shape } from 'three';
 
@@ -108,7 +110,7 @@ function Bidder({ client, table, faded = false }: Props) {
           {/* Three compiles transparency into the material, so fading swaps in a new one. */}
           <meshStandardMaterial
             key={faded ? 'faded' : 'solid'}
-            color="#24150a"
+            color={playUiColors.bidderGround}
             roughness={0.6}
             transparent={faded}
             opacity={faded ? FADED_OPACITY : 1}

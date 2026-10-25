@@ -20,6 +20,13 @@ export function windowNamed(page: Page, name: string) {
   );
 }
 
+/** Unpins a window the table placed in a slot by itself, which takes it off the table until it is opened again. */
+export async function unpinWindow(page: Page, name: string) {
+  const frame = await waitFor(() => windowNamed(page, name) ?? Promise.reject(new Error(`No ${name} window.`)));
+  await userEvent.click(within(frame).getByRole('button', { name: 'Unpin' }));
+  await waitFor(() => expect(windowNamed(page, name)).toBeNull());
+}
+
 /** Opens the compass from its button, unless it is open already. */
 export async function openCompass(page: Page) {
   if (!page.queryByRole('dialog', { name: 'Controls compass' })) {

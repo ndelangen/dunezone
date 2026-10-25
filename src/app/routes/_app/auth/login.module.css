@@ -6,7 +6,7 @@
   color: var(--color-paper);
   font-size: 1.25rem;
   line-height: 1.5;
-  text-shadow: 0 2px 12px rgb(0 0 0 / 60%);
+  text-shadow: 0 2px 12px rgb(from var(--color-shadow) r g b / 60%);
 }
 
 .actions {
@@ -22,7 +22,7 @@
   --provider-bg: var(--color-paper);
   background-color: var(--provider-bg);
   color: var(--color-ink);
-  box-shadow: 0 10px 30px rgb(0 0 0 / 35%);
+  box-shadow: 0 10px 30px rgb(from var(--color-shadow) r g b / 35%);
   transition:
     transform var(--transition-fast),
     box-shadow var(--transition-fast);
@@ -31,7 +31,7 @@
 .provider:hover:not(:disabled) {
   background-color: var(--provider-bg);
   transform: translateY(-1px);
-  box-shadow: 0 14px 34px rgb(0 0 0 / 45%);
+  box-shadow: 0 14px 34px rgb(from var(--color-shadow) r g b / 45%);
 }
 
 /* Discord's own blurple, as Google keeps its four colours in its mark. */
@@ -39,7 +39,7 @@
 .provider[data-provider="discord"]:hover:not(:disabled) {
   --provider-bg: #5865f2;
   background-color: var(--provider-bg);
-  color: white;
+  color: var(--color-inverse);
 }
 
 .provider:disabled {

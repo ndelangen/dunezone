@@ -10,7 +10,10 @@ import { RememberedContext } from './useRemembered';
 import type { TableWindow } from './windows';
 
 beforeEach(() => localStorage.clear());
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  document.body.replaceChildren();
+});
 
 const player: CompassPlayer = {
   seat: 'seat-4',
@@ -44,19 +47,67 @@ test('showing a window opens it in the centre, asking again closes it, and a pla
   expect(result.current.centre).toEqual({ key: 'player:seat-4', tab: 'conversation' });
 });
 
-test('an event reveals a window without closing it: in the centre it stays, pinned it flashes, else it opens', () => {
+test('an event opens its window in a free slot, beside the board, and lights it up when it is there already', () => {
   const { result } = renderHook(() => useOpenWindows(windows, false));
   act(() => result.current.reveal('battle'));
-  expect(result.current.centre).toEqual({ key: 'battle', tab: 'public' });
-  act(() => result.current.reveal('battle'));
-  expect(result.current.centre).toEqual({ key: 'battle', tab: 'public' });
-  act(() => result.current.pin('left'));
   expect(result.current.slots.left).toEqual({ key: 'battle', tab: 'public' });
   expect(result.current.centre).toBeNull();
-  act(() => result.current.reveal('battle'));
-  expect(result.current.centre).toBeNull();
   expect(result.current.flash).toEqual({ side: 'left', at: 1 });
-  expect(result.current.isOpen('battle')).toBe(true);
+  act(() => result.current.reveal('battle'));
+  expect(result.current.slots).toEqual({ left: { key: 'battle', tab: 'public' }, right: null });
+  expect(result.current.flash).toEqual({ side: 'left', at: 2 });
+  act(() => result.current.reveal('player:seat-4'));
+  expect(result.current.slots.right).toEqual({ key: 'player:seat-4', tab: 'conversation' });
+});
+
+test('with both slots taken, an event opens its window in the centre, and one already there stays', () => {
+  const { result } = renderHook(() => useOpenWindows(windows, false));
+  act(() => result.current.show('hand'));
+  act(() => result.current.pin('left'));
+  act(() => result.current.show('player:seat-4'));
+  act(() => result.current.pin('right'));
+  act(() => result.current.reveal('battle'));
+  expect(result.current.centre).toEqual({ key: 'battle', tab: 'public' });
+  act(() => result.current.reveal('battle'));
+  expect(result.current.centre).toEqual({ key: 'battle', tab: 'public' });
+  expect(result.current.slots.left?.key).toBe('hand');
+});
+
+test('a slot holding a window the table no longer has, such as the last battle, is free for the next event', () => {
+  const { result, rerender } = renderHook(({ list }) => useOpenWindows(list, false), {
+    initialProps: { list: windows },
+  });
+  act(() => result.current.reveal('battle'));
+  act(() => result.current.show('hand'));
+  act(() => result.current.pin('right'));
+  rerender({ list: [window('hand'), window('setup'), window('player:seat-4', { player })] });
+  act(() => result.current.reveal('setup'));
+  expect(result.current.slots).toEqual({
+    left: { key: 'setup', tab: 'public' },
+    right: { key: 'hand', tab: 'public' },
+  });
+});
+
+test('[ and ] pin the centre window bottom left and right, but not from a text field or with a modifier', () => {
+  const key = (key: string, target: EventTarget = document.body, extra: KeyboardEventInit = {}) =>
+    act(
+      () => void target.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true, ...extra }))
+    );
+  const field = document.body.appendChild(document.createElement('textarea'));
+  const { result } = renderHook(() => useOpenWindows(windows, false));
+  act(() => result.current.show('hand'));
+  key('[', field);
+  key('[', document.body, { metaKey: true });
+  expect(result.current.centre?.key).toBe('hand');
+  key('[');
+  expect(result.current.slots.left?.key).toBe('hand');
+  act(() => result.current.show('battle'));
+  key(']');
+  expect(result.current.slots).toEqual({
+    left: { key: 'hand', tab: 'public' },
+    right: { key: 'battle', tab: 'public' },
+  });
+  expect(result.current.centre).toBeNull();
 });
 
 test('pinning replaces what the slot held, and unpinning empties it', () => {
@@ -88,6 +139,21 @@ test('a press on the table blurs the focused field before the centre window clos
   expect(result.current.centre).toBeNull();
   field.remove();
   table.remove();
+});
+
+test('a select’s shut list, mounted but hidden, leaves Escape to close the window, and an open list takes it', () => {
+  const list = document.body.appendChild(document.createElement('div'));
+  list.setAttribute('role', 'listbox');
+  list.style.display = 'none';
+  const escape = () => act(() => void globalThis.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })));
+  const { result } = renderHook(() => useOpenWindows(windows, false));
+  act(() => result.current.show('hand'));
+  list.style.display = '';
+  escape();
+  expect(result.current.centre?.key).toBe('hand');
+  list.style.display = 'none';
+  escape();
+  expect(result.current.centre).toBeNull();
 });
 
 test('Escape while painting territories stops the paintbrush and keeps the window; the next Escape closes it', () => {
@@ -155,6 +221,15 @@ test('a player window opened on a removal vote follows its target to the seat th
   rerender({ list: [window('hand'), window('player:seat-4', { player }), voted('seat-2')] });
   expect(result.current.slots.left?.key).toBe('player:seat-2');
   expect(result.current.isOpen('player:seat-2')).toBe(true);
+  /* Once the vote ends the window stays with the player it followed, rather than jump back to the seat they left. */
+  rerender({
+    list: [
+      window('hand'),
+      window('player:seat-4', { player }),
+      window('player:seat-2', { player: { ...player, seat: 'seat-2' } }),
+    ],
+  });
+  expect(result.current.slots.left?.key).toBe('player:seat-2');
 });
 
 test('a tutorial remembers nothing: it neither reads nor overwrites the game layout', () => {

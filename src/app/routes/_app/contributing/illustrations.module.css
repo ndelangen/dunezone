@@ -103,7 +103,7 @@
   width: 100%;
   max-width: 27rem;
   align-self: center;
-  fill: var(--glass-overlay);
+  fill: rgb(from var(--glass-overlay) r g b / var(--glass-overlay-alpha));
   stroke: var(--color-muted);
   stroke-width: 1.5;
 }

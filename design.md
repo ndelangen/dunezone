@@ -19,7 +19,21 @@ decision log in [`docs/technical/ui-design-decisions.md`](docs/technical/ui-desi
 
 ## Design tokens
 
-Global tokens live in `src/app/styles/tokens.css` and are imported by `src/app/routes/__root.tsx`.
+Colour values live in `src/shared/uiPalette.ts`. It supplies Mantine's ramps and generates the CSS
+palette imported by `src/app/styles/tokens.css`. Pigments are opaque. `cssOpacity` records alpha
+treatments separately; consumers apply them to their background, border, fill or shadow color,
+so text and children retain their own opacity. The root route imports those tokens. Play's UI and
+table materials reuse the app's core pigments. Procedural game materials live in
+`src/shared/play/assetColors.ts`; faction colours and board artwork keep their authored palettes.
+
+The canonical palette has 25 pigments. Mantine's ten-slot ramps reuse them; ramp positions are
+adapters, not independent color definitions. Export and progress share blue, publish uses violet,
+positive states use olive, and warnings use amber. Filled semantic controls keep darker companions
+so their cream labels remain readable. Primary actions use bright yellow with dark labels.
+Over the sandy header artwork, the primary uses near-black with cream text for contrast.
+Selections and active-phase emphasis retain pale gold.
+Olive remains the positive status colour. Near-black, cream, brass and warm brown roles cover the
+remaining UI and table furniture. New pigments require a distinct use and a contrast check.
 
 ### Color roles
 

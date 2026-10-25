@@ -78,7 +78,11 @@
 /* The table itself: an SVG top and arc, with the seats laid over it as real elements. */
 .ring {
   --table-top: color-mix(in srgb, var(--panel-border) 62%, transparent);
-  --table-edge: color-mix(in srgb, var(--input-border-strong) 70%, var(--panel-border));
+  --table-edge: color-mix(
+    in srgb,
+    rgb(from var(--input-border-strong) r g b / var(--input-border-strong-alpha)) 70%,
+    var(--panel-border)
+  );
   --laurel-bg: color-mix(in srgb, var(--panel-border) 85%, var(--color-paper));
   --laurel-fg: var(--color-ink);
 
@@ -91,9 +95,9 @@
 }
 
 html[data-mantine-color-scheme="dark"] .ring {
-  --table-top: rgb(201 164 106 / 16%);
-  --table-edge: rgb(201 164 106 / 42%);
-  --laurel-bg: rgb(201 164 106 / 26%);
+  --table-top: color-mix(in srgb, var(--color-brand) 16%, transparent);
+  --table-edge: color-mix(in srgb, var(--color-brand) 42%, transparent);
+  --laurel-bg: color-mix(in srgb, var(--color-brand) 26%, transparent);
   --laurel-fg: var(--color-text);
 }
 
@@ -120,14 +124,14 @@ html[data-mantine-color-scheme="dark"] .ring {
 }
 
 .tick {
-  stroke: var(--input-border-strong);
+  stroke: rgb(from var(--input-border-strong) r g b / var(--input-border-strong-alpha));
   stroke-width: 0.6;
   stroke-linecap: round;
 }
 
 .arcTrack {
   fill: none;
-  stroke: var(--input-border);
+  stroke: rgb(from var(--input-border) r g b / var(--input-border-alpha));
   stroke-width: 0.8;
 }
 
@@ -202,7 +206,7 @@ html[data-mantine-color-scheme="dark"] .ring {
   border: 2px solid var(--seat-edge);
   background: var(--seat-fill);
   color: var(--color-paper);
-  box-shadow: 0 1px 3px rgb(38 24 11 / 28%);
+  box-shadow: 0 1px 3px rgb(from var(--play-shadow-warm) r g b / 0.28);
 }
 
 .seatViewer {
@@ -224,8 +228,8 @@ html[data-mantine-color-scheme="dark"] .ring {
 }
 
 .seatOpen {
-  border: 2px dashed var(--input-border-strong);
-  background: var(--glass-surface-2);
+  border: 2px dashed rgb(from var(--input-border-strong) r g b / var(--input-border-strong-alpha));
+  background: rgb(from var(--glass-surface-2) r g b / var(--glass-surface-2-alpha));
 }
 
 /* The faction's own token, pinned to the lower right of the face like a badge. */
@@ -236,7 +240,7 @@ html[data-mantine-color-scheme="dark"] .ring {
   width: 56%;
   height: 56%;
   border-radius: 50%;
-  box-shadow: 0 1px 2px rgb(38 24 11 / 35%);
+  box-shadow: 0 1px 2px rgb(from var(--play-shadow-warm) r g b / 0.35);
 }
 
 .faction > * {

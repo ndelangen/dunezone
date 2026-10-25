@@ -1,5 +1,7 @@
 /* @jsxImportSource @app/widgets/tabletop/three-jsx */
+
 import { useFrame, useThree } from '@react-three/fiber/webgpu';
+import { rendererColors } from '@shared/play/assetColors';
 import { pieceCount } from '@shared/play/model';
 import type { TablePiece } from '@shared/play/model';
 import {
@@ -55,7 +57,12 @@ function pieceSupports(pieces: readonly TablePiece[]): ConfettiSupport[] {
 
 function createDiscMesh(capacity: number): InstancedMesh {
   const geometry = new CylinderGeometry(DISC_RADIUS, DISC_RADIUS, DISC_THICKNESS, 14);
-  const material = new MeshStandardMaterial({ color: '#ffffff', metalness: 0.35, roughness: 0.3, side: DoubleSide });
+  const material = new MeshStandardMaterial({
+    color: rendererColors.white,
+    metalness: 0.35,
+    roughness: 0.3,
+    side: DoubleSide,
+  });
   const mesh = new InstancedMesh(geometry, material, capacity);
   mesh.instanceMatrix.setUsage(DynamicDrawUsage);
   mesh.instanceColor = new InstancedBufferAttribute(new Float32Array(capacity * 3), 3);

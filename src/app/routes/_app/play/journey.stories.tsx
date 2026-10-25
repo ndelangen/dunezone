@@ -2,16 +2,8 @@ import preview from '@sb/preview';
 import { expect, within } from 'storybook/test';
 
 import { openPlayer, WAIT } from './controls.stories.fixture';
-import { gameMeta, install } from './game.stories.fixture';
-import {
-  chapter,
-  journey,
-  journeyDecorator,
-  JourneyPage,
-  journeySteps,
-  journeyTransport,
-  journeyViewers,
-} from './journey.stories.fixture';
+import { gameMeta } from './game.stories.fixture';
+import { chapter, JourneyPage, journeySteps, journeyBeforeEach, journeyViewers } from './journey.stories.fixture';
 import { atStep } from './journey.stories.fixture';
 
 const meta = preview.meta({
@@ -25,22 +17,14 @@ const meta = preview.meta({
   },
   parameters: {
     ...gameMeta.parameters,
-    controls: { disable: false, include: ['step', 'seat'] },
     docs: {
       description: {
         component:
-          'One real six-seat game recorded from the game Worker, replayed step by step. The panel moves between steps, switches the seat the page is viewed as, and names each step (J01, J02) for feedback. Record it again with `bun run play:record`.',
+          'One real six-seat game recorded from the game Worker, replayed step by step. The Play debugger panel moves between steps, switches the seat the page is viewed as, and names each step (J01, J02) for feedback. Record it again with `bun run play:record`.',
       },
     },
   },
-  beforeEach: ({ args }) => {
-    /* Storybook runs this again on every argument change without unmounting the page, so the page keeps the transport it connected to and the panel delivers the new step there. */
-    if (journey.transport?.connected()) {
-      return;
-    }
-    return install(() => journeyTransport(Number(args.step ?? 1) - 1, String(args.seat ?? 'seat-1')))();
-  },
-  decorators: [...gameMeta.decorators, journeyDecorator],
+  beforeEach: journeyBeforeEach,
   /* The stories load the table chunk before they render, so its cold first load falls outside their first wait (#1302). */
   loaders: [
     async () => {

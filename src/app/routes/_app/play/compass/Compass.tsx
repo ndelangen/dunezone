@@ -1,6 +1,6 @@
 import { Kbd } from '@ui/content/Kbd';
 import { Search } from 'lucide-react';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import type { RefObject } from 'react';
 
 import bar from './ChatBar.module.css';
@@ -72,13 +72,15 @@ type SearchHubProps = Readonly<{
   spot: Spot;
   query: string;
   input: RefObject<HTMLInputElement | null>;
+  /** True while the compass hands the caret back itself, which is no choice of the hub. */
+  steering: RefObject<boolean>;
   onSpot: (spot: Spot) => void;
   onQuery: (query: string) => void;
   onCursor: (cursor: number) => void;
 }>;
 
 /* The search field at the compass's centre; typing starts the matches over from the top. */
-function SearchHub({ spot, query, input, onSpot, onQuery, onCursor }: SearchHubProps) {
+function SearchHub({ spot, query, input, steering, onSpot, onQuery, onCursor }: SearchHubProps) {
   return (
     <label className={styles.hub} data-selected={spot === 'hub' || undefined}>
       <Search size={18} aria-hidden="true" />
@@ -87,7 +89,7 @@ function SearchHub({ spot, query, input, onSpot, onQuery, onCursor }: SearchHubP
         aria-label="Search controls"
         placeholder="Type to search"
         value={query}
-        onFocus={() => spot === 'search' || onSpot('hub')}
+        onFocus={() => steering.current || spot === 'search' || onSpot('hub')}
         onChange={(event) => {
           onQuery(event.target.value);
           onCursor(0);
@@ -164,8 +166,11 @@ export function Compass({
   onClose,
 }: CompassProps) {
   /* The search field keeps the caret while the arrows steer, so typing never needs a click first. */
+  const steering = useRef(false);
   useEffect(() => {
+    steering.current = true;
     input.current?.focus();
+    steering.current = false;
   }, [input, spot]);
   const tile = (entry: Tile) => (
     <CompassTile
@@ -188,7 +193,15 @@ export function Compass({
         {tile(tiles.battle)}
         {tile(tiles.hidden)}
         {tile(tiles.hand)}
-        <SearchHub spot={spot} query={query} input={input} onSpot={onSpot} onQuery={onQuery} onCursor={onCursor} />
+        <SearchHub
+          spot={spot}
+          query={query}
+          input={input}
+          steering={steering}
+          onSpot={onSpot}
+          onQuery={onQuery}
+          onCursor={onCursor}
+        />
         {tile(tiles.table)}
         {tile(tiles.ally)}
         <SuggestionList

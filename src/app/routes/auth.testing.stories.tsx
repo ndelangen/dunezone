@@ -29,7 +29,10 @@ export const BandGrowsAndShrinks = meta.story({
     history.push('/auth/login');
     await page.findByRole('button', { name: 'Continue with Google' }, { timeout: 30_000 });
     /* The grow holds its end state, so the shrink starts from the window-sized band. */
-    await Promise.all(frame.getAnimations({ subtree: true }).map((animation) => animation.finished));
+    const band = frame.querySelector('[data-app-band]')!;
+    /* The band cancels its companion animations when it settles; their finished promises can reject. */
+    await waitFor(() => expect(band.getAnimations()).toHaveLength(0));
+    await expect(band.getBoundingClientRect().height).toBe(document.defaultView!.innerHeight);
     history.push('/faq');
     await waitFor(() => expect(frame).toHaveAttribute('data-band-unwinding'));
     await waitFor(() => expect(frame).not.toHaveAttribute('data-band-unwinding'));
