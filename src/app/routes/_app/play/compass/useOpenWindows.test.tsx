@@ -101,6 +101,21 @@ test('Escape while painting territories stops the paintbrush and keeps the windo
   expect(result.current.centre).toBeNull();
 });
 
+test('a press on the table while painting territories keeps the window that holds the brush', () => {
+  const { result } = renderHook(() => useOpenWindows(windows, false));
+  act(() => result.current.show('battle'));
+  act(() => setTerritoryBrush({ tintId: 'tint-1', paint: () => {} }));
+  const table = document.body.appendChild(document.createElement('canvas'));
+  const press = () =>
+    act(() => void table.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0 })));
+  press();
+  expect(result.current.centre).toEqual({ key: 'battle', tab: 'public' });
+  act(() => setTerritoryBrush(null));
+  press();
+  expect(result.current.centre).toBeNull();
+  table.remove();
+});
+
 test('revealing a pinned window lights its slot and leaves the centre window open', () => {
   const { result } = renderHook(() => useOpenWindows(windows, false));
   act(() => result.current.show('hand'));

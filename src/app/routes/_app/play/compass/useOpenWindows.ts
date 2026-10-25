@@ -36,7 +36,10 @@ function escapeTaken(target: EventTarget | null) {
   );
 }
 
-/* A primary press on the table itself: not on any of the chrome over it, and not the secondary press that opens a piece's menu. */
+/*
+ * A primary press on the table itself: not on any of the chrome over it, and not the secondary press that opens a piece's menu.
+ * While the territory paintbrush is on, a press paints, so the window that holds the brush stays open.
+ */
 function useTablePress(onPress: () => void, enabled: boolean) {
   const press = useEffectEvent(onPress);
   useEffect(() => {
@@ -44,7 +47,7 @@ function useTablePress(onPress: () => void, enabled: boolean) {
       return;
     }
     const listener = (event: PointerEvent) => {
-      if (event.target instanceof HTMLCanvasElement && event.button === 0) {
+      if (event.target instanceof HTMLCanvasElement && event.button === 0 && territoryBrush() === null) {
         /* A field commits its draft on blur, which has to happen before the press closes its window. */
         if (document.activeElement instanceof HTMLElement) {
           document.activeElement.blur();
