@@ -1,3 +1,4 @@
+import { Kbd } from '@ui/content/Kbd';
 import { Search } from 'lucide-react';
 import { useEffect } from 'react';
 import type { RefObject } from 'react';
@@ -6,7 +7,6 @@ import bar from './ChatBar.module.css';
 import styles from './Compass.module.css';
 import type { Spot, TileSpot } from './compassSpots';
 import type { Tile } from './compassTiles';
-import { Key } from './glyphs';
 import type { Suggestion } from './suggestions';
 
 /*
@@ -95,10 +95,10 @@ function SearchHub({ spot, query, input, onSpot, onQuery, onCursor }: SearchHubP
         }}
       />
       <span className={styles.hubHint}>
-        <Key>←</Key>
-        <Key>→</Key>
-        <Key>↑</Key>
-        <Key>↓</Key>
+        <Kbd>←</Kbd>
+        <Kbd>→</Kbd>
+        <Kbd>↑</Kbd>
+        <Kbd>↓</Kbd>
       </span>
     </label>
   );

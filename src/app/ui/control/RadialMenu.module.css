@@ -226,20 +226,6 @@
   color: #ffc9c0;
 }
 
-.key {
-  display: inline-grid;
-  place-items: center;
-  min-width: 1.4rem;
-  height: 1.4rem;
-  padding: 0 0.35rem;
-  border: 1px solid rgba(255, 242, 216, 0.3);
-  border-bottom-width: 2px;
-  border-radius: 0.3rem;
-  background: #2a2018;
-  font-family: ui-monospace, Menlo, monospace;
-  font-size: 0.72rem;
-}
-
 /* The first ring stays mounted while a choice ring is open, so its hold and focus state survive stepping back. */
 .item[hidden] {
   display: none;

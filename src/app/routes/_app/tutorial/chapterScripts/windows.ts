@@ -71,7 +71,7 @@ const windowTasks = (): GuideTask[] => [
   task({
     id: 'open-compass',
     task: 'Open the controls',
-    detail: 'Press Space. The compass opens over the table; Escape or a click outside closes it again.',
+    detail: 'Press {Space}. The compass opens over the table; {Escape} or a click outside closes it again.',
     anchor: { kind: 'page', element: first('[data-compass-launcher]') },
     begin: nothing,
     done: compassOpen,
@@ -79,7 +79,7 @@ const windowTasks = (): GuideTask[] => [
   task({
     id: 'hand',
     task: 'Open your hand',
-    detail: 'Left on the compass is your hand. Press ← then Space, or hold Space, tap ← and let go.',
+    detail: 'Left on the compass is your hand. Press {←} then {Space}, or hold {Space}, tap {←} and let go.',
     anchor: { kind: 'page', element: viaCompass('hand') },
     begin: nothing,
     done: () => windowAt('centre', 'hand'),
@@ -107,7 +107,7 @@ const slotTasks = (): GuideTask[] => [
   task({
     id: 'table-chat',
     task: 'Open the table chat',
-    detail: 'Right on the compass is the chat everyone at the table reads. Hold Space, tap → and let go.',
+    detail: 'Right on the compass is the chat everyone at the table reads. Hold {Space}, tap {→} and let go.',
     anchor: { kind: 'page', element: inCompass('[data-spot="table"]') },
     begin: nothing,
     done: () => windowAt('centre', 'table-chat'),
@@ -130,7 +130,7 @@ const slotTasks = (): GuideTask[] => [
   task({
     id: 'search',
     task: 'Look at the right bay by typing',
-    detail: 'Open the controls and just type: “right” finds the camera view. Press Enter to pick it.',
+    detail: 'Open the controls and just type: “right” finds the camera view. Press {Enter} to pick it.',
     anchor: { kind: 'page', element: inCompass('[aria-label="Search controls"]') },
     begin: nothing,
     done: () => showing('right'),
@@ -138,7 +138,8 @@ const slotTasks = (): GuideTask[] => [
   task({
     id: 'unpin',
     task: 'Unpin your hand',
-    detail: 'The crossed-out pin in the hand’s title takes it off the screen at once. Space ← brings it back any time.',
+    detail:
+      'The crossed-out pin in the hand’s title takes it off the screen at once. {Space} {←} brings it back any time.',
     anchor: { kind: 'page', element: first('[data-side="left"] [aria-label="Unpin"]') },
     begin: nothing,
     /* Whatever ended up pinned bottom left, the slot is empty once it is unpinned. */
@@ -150,7 +151,7 @@ const tasks = () => [...windowTasks(), ...slotTasks()];
 
 /* One line for each part of the chapter, in the order it was played. */
 const learned = [
-  'Space opens the compass over the table',
+  '{Space} opens the compass over the table',
   'Left is your hand, twice left your hidden zone',
   'Right is the table chat, twice right your ally',
   'Up is your battle plan, down the search',

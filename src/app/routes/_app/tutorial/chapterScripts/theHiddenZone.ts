@@ -23,7 +23,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
     task({
       id: 'open-hand',
       task: 'Open your hand',
-      detail: 'You start with a few Treachery cards there. Press Space, then ← and Space again.',
+      detail: 'You start with a few Treachery cards there. Press {Space}, then {←} and {Space} again.',
       anchor: { kind: 'page', element: viaCompass('hand') },
       ...openedWindow(windowShown('hand')),
     }),
@@ -38,7 +38,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
     task({
       id: 'open-zone',
       task: 'Open your hidden zone',
-      detail: 'It sits twice left on the compass: press Space, then ← ← and Space. Nobody else ever sees it.',
+      detail: 'It sits twice left on the compass: press {Space}, then {←} {←} and {Space}. Nobody else ever sees it.',
       anchor: { kind: 'page', element: viaCompass('hidden') },
       ...openedWindow(windowShown('hidden-zone')),
     }),
@@ -69,7 +69,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
 /* One line for each part of the chapter, in the order it was played. */
 const learned = [
   'Right-click a card in your hand to move it to your hidden zone',
-  'Space ← ← opens your hidden zone',
+  '{Space} {←} {←} opens your hidden zone',
   'Only you see what lies there',
   'Pieces stay where you lay them, so a token can mark a card',
   'Right-click a piece there to move it back to your hand',

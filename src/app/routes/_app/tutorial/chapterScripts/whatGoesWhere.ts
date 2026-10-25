@@ -68,7 +68,7 @@ const panelTasks = (snapshot: () => GameSnapshot): GuideTask[] => [
   task({
     id: 'your-spice',
     task: 'Count your spice',
-    detail: 'Your cards and spice are in the Hand & spice window. Press Space, then ← and Space again.',
+    detail: 'Your cards and spice are in the Hand & spice window. Press {Space}, then {←} and {Space} again.',
     anchor: { kind: 'page', element: viaCompass('hand') },
     ...openedWindow(windowShown('hand')),
   }),
@@ -102,7 +102,7 @@ const learned = [
   'Right-click a deck to draw a card',
   'Drag troops from your reserves onto a territory',
   'Press F to turn a card over',
-  'Space opens the compass; left on it is your Hand & spice',
+  '{Space} opens the compass; left on it is your Hand & spice',
   "Each player's token in the chat bar opens their window",
   'Next phase moves the game on',
 ];

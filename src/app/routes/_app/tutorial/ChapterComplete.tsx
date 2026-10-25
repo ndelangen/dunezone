@@ -1,4 +1,5 @@
 import { Stack, Text, Title } from '@mantine/core';
+import { KeyedText } from '@ui/content/Kbd';
 import { CallToAction } from '@ui/control/CallToAction';
 import { Check } from 'lucide-react';
 import { useEffect, useId, useRef } from 'react';
@@ -87,7 +88,9 @@ export function ChapterComplete({
                   <span className={styles.tick} aria-hidden>
                     <Check size={16} strokeWidth={3} />
                   </span>
-                  {line}
+                  <span>
+                    <KeyedText>{line}</KeyedText>
+                  </span>
                 </li>
               ))}
             </ul>

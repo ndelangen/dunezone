@@ -51,7 +51,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
     task({
       id: 'slide',
       task: 'Slide along the board',
-      detail: 'While you are in close, the arrow keys or W, A, S and D slide the view. Hold one for a moment.',
+      detail: 'While you are in close, the arrow keys or {W}, {A}, {S} and {D} slide the view. Hold one for a moment.',
       anchor: { kind: 'table', point: () => [0, 0, 0] },
       ...slid(),
     }),
@@ -83,7 +83,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
     task({
       id: 'close-up',
       task: 'Read a card up close',
-      detail: 'Point at the Spice deck and hold Alt. Its top card shows flat and large beside the pointer.',
+      detail: 'Point at the Spice deck and hold {Alt}. Its top card shows flat and large beside the pointer.',
       anchor: { kind: 'table', point: () => at(spiceDeck()) },
       ...closeUpShown(),
     }),
@@ -94,9 +94,9 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
 /* One line for each part of the chapter, in the order it was played. */
 const learned = [
   'Scroll over the board to look closer, and back to step out',
-  'Slide a close look with the arrow keys or W, A, S and D',
+  'Slide a close look with the arrow keys or {W}, {A}, {S} and {D}',
   'Jump the view with the camera dial: L, R, B and M',
-  'Hold Alt over a card to read it flat and large',
+  'Hold {Alt} over a card to read it flat and large',
 ];
 
 export const lookingAround: ChapterScript = { slug: 'looking-around', checkpoint: 'turn-1-storm', tasks, learned };

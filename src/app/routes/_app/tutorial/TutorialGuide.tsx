@@ -1,11 +1,16 @@
-import { Button, Group, Text } from '@mantine/core';
+import { Button, Group, Text, VisuallyHidden } from '@mantine/core';
 import { _roots } from '@react-three/fiber/webgpu';
-import { Check, RotateCcw } from 'lucide-react';
+import { Eyebrow } from '@ui/content/Eyebrow';
+import { KeyedText } from '@ui/content/Kbd';
+import { RotateCcw } from 'lucide-react';
 import { useEffect, useEffectEvent, useId, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import { Vector3 } from 'three';
 import type { Camera, Vector3Tuple } from 'three';
 
+import { useMotionAllowed } from '@app/styles/motion';
+
+import { DarkSchemeIsland, darkSchemeIslandAttributes } from '../play/DarkSchemeIsland';
 import { ChapterComplete } from './ChapterComplete';
 import { guideShapePath, keepInView, transposed } from './guideArrow';
 import type { Target } from './guideArrow';
@@ -74,7 +79,12 @@ function settling() {
 }
 
 /* The part of the window the guide leaves to the page, where what is out of view is pointed toward from its edge. */
-type Box = Readonly<{ left: number; top: number; right: number; bottom: number }>;
+type Box = Readonly<{
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+}>;
 
 function place(anchor: GuideAnchor, shown: Box): Target | null {
   return anchor.kind === 'page' ? onScreen(anchor.element(), shown) : onTable(anchor.point(), shown);
@@ -94,7 +104,12 @@ function onScreen(element: Element | null, shown: Box): Target | null {
     return null;
   }
   return keepInView(
-    { x: box.left + box.width / 2, y: box.top + box.height / 2, halfWidth: box.width / 2, halfHeight: box.height / 2 },
+    {
+      x: box.left + box.width / 2,
+      y: box.top + box.height / 2,
+      halfWidth: box.width / 2,
+      halfHeight: box.height / 2,
+    },
     shown
   );
 }
@@ -126,7 +141,12 @@ function onTable(point: Vector3Tuple | null, shown: Box): Target | null {
   /* A table scrolled wholly out of the window is pointed toward from the window's edge instead. */
   const empty = visible.left >= visible.right || visible.top >= visible.bottom;
   return keepInView(
-    { x: box.left + ((x + 1) / 2) * box.width, y: box.top + ((1 - y) / 2) * box.height, halfWidth: 0, halfHeight: 0 },
+    {
+      x: box.left + ((x + 1) / 2) * box.width,
+      y: box.top + ((1 - y) / 2) * box.height,
+      halfWidth: 0,
+      halfHeight: 0,
+    },
     empty ? shown : visible
   );
 }
@@ -138,7 +158,12 @@ function onTable(point: Vector3Tuple | null, shown: Box): Target | null {
  */
 function aim(paths: readonly (SVGPathElement | null)[], badge: DOMRect, rail: DOMRect, spot: Target | null) {
   const flip = (box: DOMRect) => new DOMRect(box.y, box.x, box.height, box.width);
-  const along = spot && { x: spot.y, y: spot.x, halfWidth: spot.halfHeight, halfHeight: spot.halfWidth };
+  const along = spot && {
+    x: spot.y,
+    y: spot.x,
+    halfWidth: spot.halfHeight,
+    halfHeight: spot.halfWidth,
+  };
   const edges = flip(rail);
   const mark = flip(badge);
   const margin = 60;
@@ -147,7 +172,10 @@ function aim(paths: readonly (SVGPathElement | null)[], badge: DOMRect, rail: DO
   /* It runs out at least as steeply as it runs along the rail, so a target close beside the rail is not pointed at along its edge. */
   const drop = Math.max(0, (along?.y ?? 0) - edges.bottom);
   const steep = along ? clamp(midway, along.x - drop, along.x + drop) : midway;
-  const root = { x: clamp(steep, edges.left + margin, edges.right - margin), y: edges.bottom };
+  const root = {
+    x: clamp(steep, edges.left + margin, edges.right - margin),
+    y: edges.bottom,
+  };
   const outline = transposed(guideShapePath(edges, root, along));
   /* The shape casts blurred shadows, so it is redrawn only when it changes, not every frame. */
   if (paths[0]?.getAttribute('d') === outline) {
@@ -208,6 +236,7 @@ export function TutorialGuide({
   const rail = useRef<HTMLElement>(null);
   const step = useRef<HTMLSpanElement>(null);
   const task = tasks[current];
+  const motion = useMotionAllowed();
   const kicker = `Chapter ${number}`;
   /* The loop below follows the task by its id, so a caller that builds its task list afresh on each render does not restart it. */
   const taskId = task?.id;
@@ -289,18 +318,33 @@ export function TutorialGuide({
     setRun((count) => count + 1);
   };
 
-  /* A task in the rail, in large type: what to do, and for the one at hand where, with its number on the arrow's side of the list. */
+  /*
+   * A task in the rail, with its number on the arrow's side of the list. The one at hand is large and opens to say where;
+   * done and coming tasks are one small line each, and the coming ones blur the further off they are, so the eye lands on the task at hand.
+   * Each part is always there and only its look changes with the task's state, so a task can grow, shrink and tick over smoothly.
+   */
   const railTask = (index: number) => {
     const item = tasks[index]!;
     const done = index < current || (index === current && finished);
+    const open = index === current && !waiting;
     return (
       <>
-        <span ref={index === current ? step : undefined} className={styles.step} data-done={done || undefined}>
-          {done ? <Check size={18} aria-hidden /> : index + 1}
+        <span ref={index === current ? step : undefined} className={styles.step}>
+          <span className={styles.number}>{index + 1}</span>
+          <svg className={styles.tick} viewBox="0 0 24 24" aria-hidden>
+            <path d="M5 12.5 9.5 17 19 7" pathLength={1} />
+          </svg>
         </span>
         <div className={styles.railText}>
-          <p className={styles.railTitle}>{index === current && waiting ? 'Setting the table…' : item.task}</p>
-          {index === current && !waiting && <p className={styles.railDetail}>{item.detail}</p>}
+          <p className={styles.railTitle}>
+            {index === current && waiting ? 'Setting the table…' : <KeyedText>{item.task}</KeyedText>}
+            {done && <VisuallyHidden> (done)</VisuallyHidden>}
+          </p>
+          <div className={styles.railMore} aria-hidden={!open}>
+            <p className={styles.railDetail}>
+              <KeyedText>{item.detail}</KeyedText>
+            </p>
+          </div>
         </div>
       </>
     );
@@ -308,66 +352,83 @@ export function TutorialGuide({
   const chapterDone = (
     <div className={styles.railText}>
       <p className={styles.railTitle}>Chapter done</p>
-      <p className={styles.railDetail}>Pick the next chapter, or reset to try again.</p>
+      <p className={styles.railEnd}>Pick the next chapter, or reset to try again.</p>
     </div>
   );
-  const frameStyle = { '--page-layout-fullscreen-left': RAIL_WIDTH, '--rail-width': RAIL_WIDTH };
+  const frameStyle = {
+    '--page-layout-fullscreen-left': RAIL_WIDTH,
+    '--rail-width': RAIL_WIDTH,
+  };
 
   return (
     <div className={styles.frame} style={frameStyle as CSSProperties}>
-      <div className={styles.guide}>
-        <svg className={styles.shape} aria-hidden>
-          <defs>
-            {/* A shadow cast inward from every edge of the outline, so the rail's depth follows it into the arrow. */}
-            <filter id={inset} x="-5%" y="-5%" width="110%" height="110%">
-              <feComponentTransfer in="SourceAlpha" result="outside">
-                <feFuncA type="table" tableValues="1 0" />
-              </feComponentTransfer>
-              <feGaussianBlur in="outside" stdDeviation="7" />
-              <feOffset dy="2" result="spread" />
-              <feFlood floodColor="#000" floodOpacity="0.75" />
-              <feComposite in2="spread" operator="in" />
-              <feComposite in2="SourceAlpha" operator="in" result="inset" />
-              <feMerge>
-                <feMergeNode in="SourceGraphic" />
-                <feMergeNode in="inset" />
-              </feMerge>
-            </filter>
-          </defs>
-          <path ref={fill} className={styles.fill} data-tutorial-pointer filter={`url(#${inset})`} />
-          <path ref={edge} className={styles.edge} />
-        </svg>
-        <header ref={rail} className={styles.rail} data-tutorial-free aria-label={`${kicker}: ${title}`}>
-          <div>
-            <Text size="sm" fw={700} tt="uppercase" c="dimmed">
-              {kicker} · {Math.min(current + 1, tasks.length)} of {tasks.length}
-            </Text>
-            <Text fz="xl" fw={700}>
-              {title}
-            </Text>
-          </div>
-          <ol className={styles.railSteps} aria-live="polite">
-            {tasks.map((item, index) => (
-              <li
-                key={item.id}
-                className={styles.railStep}
-                data-state={index < current ? 'done' : index === current ? 'current' : 'next'}
-              >
-                {railTask(index)}
-              </li>
-            ))}
-            {!task && <li className={styles.railStep}>{chapterDone}</li>}
-          </ol>
-          <Group gap="xs" wrap="nowrap" className={styles.railFoot}>
-            <Button variant="default" size="sm" leftSection={<RotateCcw size={14} aria-hidden />} onClick={reset}>
-              Reset
-            </Button>
-            <Button variant="default" size="sm" renderRoot={chaptersLink}>
-              Back to chapters
-            </Button>
-          </Group>
-        </header>
-      </div>
+      <DarkSchemeIsland>
+        <div className={styles.guide} {...darkSchemeIslandAttributes} data-motion={motion ? undefined : 'reduce'}>
+          <svg className={styles.shape} aria-hidden>
+            <defs>
+              {/* A shadow cast inward from every edge of the outline, so the rail's depth follows it into the arrow. */}
+              <filter id={inset} x="-5%" y="-5%" width="110%" height="110%">
+                <feComponentTransfer in="SourceAlpha" result="outside">
+                  <feFuncA type="table" tableValues="1 0" />
+                </feComponentTransfer>
+                <feGaussianBlur in="outside" stdDeviation="7" />
+                <feOffset dy="2" result="spread" />
+                <feFlood floodColor="#000" floodOpacity="0.75" />
+                <feComposite in2="spread" operator="in" />
+                <feComposite in2="SourceAlpha" operator="in" result="inset" />
+                <feMerge>
+                  <feMergeNode in="SourceGraphic" />
+                  <feMergeNode in="inset" />
+                </feMerge>
+              </filter>
+            </defs>
+            <path ref={fill} className={styles.fill} data-tutorial-pointer filter={`url(#${inset})`} />
+            <path ref={edge} className={styles.edge} />
+          </svg>
+          <header ref={rail} className={styles.rail} data-tutorial-free aria-label={`${kicker}: ${title}`}>
+            <div className={styles.railHead}>
+              <Eyebrow>{`${kicker} · ${Math.min(current + 1, tasks.length)} of ${tasks.length}`}</Eyebrow>
+              <Text fz="xl" fw={700}>
+                {title}
+              </Text>
+              <div
+                className={styles.progress}
+                style={
+                  {
+                    '--progress': (current + (finished ? 1 : 0)) / tasks.length,
+                  } as CSSProperties
+                }
+              />
+            </div>
+            <ol className={styles.railSteps} aria-live="polite">
+              {tasks.map((item, index) => (
+                <li
+                  key={item.id}
+                  className={styles.railStep}
+                  data-state={index < current ? 'done' : index === current ? 'current' : 'next'}
+                  data-ticked={index < current || (index === current && finished) || undefined}
+                  style={{ '--ahead': Math.max(0, index - current) } as CSSProperties}
+                >
+                  {railTask(index)}
+                </li>
+              ))}
+              {!task && (
+                <li className={styles.railStep} data-state="current">
+                  {chapterDone}
+                </li>
+              )}
+            </ol>
+            <Group gap="xs" wrap="nowrap" className={styles.railFoot}>
+              <Button variant="default" size="sm" leftSection={<RotateCcw size={14} aria-hidden />} onClick={reset}>
+                Reset
+              </Button>
+              <Button variant="default" size="sm" renderRoot={chaptersLink}>
+                Back to chapters
+              </Button>
+            </Group>
+          </header>
+        </div>
+      </DarkSchemeIsland>
       {/* Under the end of a chapter the table holds still: nothing in it takes focus, clicks or keys. */}
       <div className={styles.table} inert={!task}>
         {children}

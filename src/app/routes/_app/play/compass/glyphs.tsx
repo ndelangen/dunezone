@@ -1,5 +1,3 @@
-import type { ReactNode } from 'react';
-
 import styles from './CompassControls.module.css';
 
 export function CloseIcon() {
@@ -8,9 +6,4 @@ export function CloseIcon() {
       <path d="M6 6l12 12M18 6 6 18" />
     </svg>
   );
-}
-
-/** A key as the compass teaches it: Space, or an arrow. */
-export function Key({ children }: Readonly<{ children: ReactNode }>) {
-  return <kbd className={styles.kbd}>{children}</kbd>;
 }

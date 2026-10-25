@@ -63,14 +63,14 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
     task({
       id: 'open-hand',
       task: 'Open your hand',
-      detail: 'Your hand is in the Hand & spice window. Press Space, then ← and Space again.',
+      detail: 'Your hand is in the Hand & spice window. Press {Space}, then {←} and {Space} again.',
       anchor: { kind: 'page', element: viaCompass('hand') },
       ...openedWindow(windowShown('hand')),
     }),
     task({
       id: 'close-up',
       task: 'Read the card up close',
-      detail: 'Point at the card in your hand and hold Alt. It shows flat and large, as on the table.',
+      detail: 'Point at the card in your hand and hold {Alt}. It shows flat and large, as on the table.',
       anchor: { kind: 'page', element: lastElement(HAND_PIECE) },
       ...closeUpShown(),
     }),
@@ -97,8 +97,8 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
 /* One line for each part of the chapter, in the order it was played. */
 const learned = [
   'Right-click a card on the table and choose Take into hand',
-  'Space ← opens your Hand & spice',
-  'Hold Alt over a card in your hand to read it',
+  '{Space} {←} opens your Hand & spice',
+  'Hold {Alt} over a card in your hand to read it',
   'Drag a card from your hand onto the table to play it',
   'Withdraw spice from your reserve onto the table',
 ];
