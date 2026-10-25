@@ -226,20 +226,6 @@
   color: var(--play-danger-caption);
 }
 
-.key {
-  display: inline-grid;
-  place-items: center;
-  min-width: 1.4rem;
-  height: 1.4rem;
-  padding: 0 0.35rem;
-  border: 1px solid rgb(from var(--input-border) r g b / var(--input-border-alpha));
-  border-bottom-width: 2px;
-  border-radius: 0.3rem;
-  background: var(--button-neutral-bg);
-  font-family: ui-monospace, Menlo, monospace;
-  font-size: 0.72rem;
-}
-
 /* The first ring stays mounted while a choice ring is open, so its hold and focus state survive stepping back. */
 .item[hidden] {
   display: none;

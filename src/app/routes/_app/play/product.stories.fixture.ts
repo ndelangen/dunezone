@@ -30,6 +30,12 @@ const RULESET_KEY = 'ruleset:classicrules';
 const imageHref = (path: string) => new URL(path, location.origin).href;
 export const cardBack = () => imageHref('/play-fixtures/dreamrules/cardback.jpg');
 
+/* A troop face as the room shows it to every seat: its battle values stay out, as `supplyInventory` in the game Worker leaves them. */
+function troopArtwork<Face extends { capable?: boolean; combat?: unknown }>(face: Face) {
+  const { capable: _capable, combat: _battleValues, ...artwork } = face;
+  return artwork;
+}
+
 /* Replace the mechanical seed's visible content while retaining its isolated identities. */
 export function productDatabase(baseline: StorybookDatabase) {
   const viewer = SIX[1]!;
@@ -90,7 +96,17 @@ export function swappingSnapshot(): GameSnapshot {
     ...snapshot,
     stage: 'swapping',
     factionArtwork: Object.fromEntries(
-      factions.map(({ slug, data }) => [slug, { background: data.background, logo: data.logo, troops: data.troops }])
+      factions.map(({ slug, data }) => [
+        slug,
+        {
+          background: data.background,
+          logo: data.logo,
+          troops: data.troops.map(({ back, ...front }) => ({
+            ...troopArtwork(front),
+            ...(back ? { back: troopArtwork(back) } : {}),
+          })),
+        },
+      ])
     ),
     swapping: {
       round: 'story-round',
@@ -112,7 +128,7 @@ export function swappingSnapshot(): GameSnapshot {
   };
 }
 
-/* A faction as the Worker retains it at public assignment, less its alliance card and Extras, with the local renderer captures the README names as its faces. */
+/* A faction as the Worker retains it at public assignment, less its Extras, with the published faces the README names. */
 function capture({ slug, data, token, leaders }: (typeof factions)[number]): FactionCapture {
   const face = (name: string) => imageHref(`/play-fixtures/product/${slug}-${name}.jpg`);
   return {
@@ -120,7 +136,7 @@ function capture({ slug, data, token, leaders }: (typeof factions)[number]): Fac
     capturedAt: 0,
     definition: toStoredHeroKey(data),
     components: {
-      token: { front: imageHref(token), back: null },
+      token: { front: imageHref(token), back: face('token-back') },
       leaders: data.leaders.map((leader, index) => ({
         memberId: leader.memberId,
         name: leader.name,
@@ -134,7 +150,7 @@ function capture({ slug, data, token, leaders }: (typeof factions)[number]): Fac
         front: face(`troop-${index}`),
         back: face(`troop-${index}${troop.back ? '-back' : ''}`),
       })),
-      alliance: { front: null, back: null },
+      alliance: { front: face('alliance'), back: imageHref('/play-fixtures/product/alliance-back.jpg') },
       /* The published Traitor preset supplies the common back. */
       traitors: {
         back: imageHref('/play-fixtures/product/traitor-back.jpg'),

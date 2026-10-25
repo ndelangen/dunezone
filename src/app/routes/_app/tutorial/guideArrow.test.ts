@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vite-plus/test';
 
-import { ARROW_GAP_PX, guideShapePath, keepInView } from './guideArrow';
+import { ARROW_GAP_PX, guideShapePath, keepInView, transposed } from './guideArrow';
 
 const band = { left: 0, right: 1440, bottom: 72 };
 const numbers = (path: string) => path.match(/-?\d+(\.\d+)?/g)!.map(Number);
@@ -66,4 +66,8 @@ describe('keepInView', () => {
     /* From the middle (500, 400) the target lies 1000 across for 1000 down. */
     expect(moved.x - 500).toBeCloseTo(moved.y - 400);
   });
+});
+
+test('a transposed outline swaps every point across the diagonal, curves included', () => {
+  expect(transposed('M -4.0 10.5 L 20.0 30.0 Q 1.0 2.0 3.0 4.0 Z')).toBe('M 10.5 -4.0 L 30.0 20.0 Q 2.0 1.0 4.0 3.0 Z');
 });

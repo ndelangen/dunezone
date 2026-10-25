@@ -18,9 +18,14 @@ import { CHAPTER_SCRIPTS } from './chapterScripts/scripts';
  */
 const ChapterPlay = lazy(() => import('./TutorialTable'));
 
-/* A chapter's page: its table and its band, for a chapter that is built. Unlisted like the landing page. */
+/* A chapter's page: its table and its rail, for a chapter that is built. Unlisted like the landing page. */
 export const Route = createFileRoute('/_app/tutorial/$chapter')({
   head: ({ params }) => pageHead(chapterAt(params.chapter)?.title ?? 'Learn to play', { noindex: true }),
+  /* `?step=4` opens a chapter at its fourth task, so a later task can be tried without playing the ones before it. */
+  validateSearch: (params: Record<string, unknown>): { step?: number } => {
+    const step = Number(params['step']);
+    return Number.isInteger(step) && step > 1 ? { step } : {};
+  },
   component: ChapterPage,
 });
 
@@ -32,9 +37,7 @@ const chaptersLink = ({ children, ...props }: { children?: ReactNode }) => (
 
 /* The chapter after this one, when it is built: the end of a chapter leads on to it, or back to the list when there is none yet. */
 function nextLinkAfter(slug: string) {
-  const at = TUTORIAL_CHAPTERS.findIndex((chapter) => chapter.slug === slug);
-  /* A play-test chapter is not in the tutorial, so nothing follows it. */
-  const next = at < 0 ? undefined : TUTORIAL_CHAPTERS[at + 1];
+  const next = TUTORIAL_CHAPTERS[TUTORIAL_CHAPTERS.findIndex((chapter) => chapter.slug === slug) + 1];
   if (!next || !CHAPTER_SCRIPTS[next.slug]) {
     return undefined;
   }
@@ -47,6 +50,7 @@ function nextLinkAfter(slug: string) {
 
 function ChapterPage() {
   const { chapter: slug } = Route.useParams();
+  const { step } = Route.useSearch();
   const chapter = chapterAt(slug);
   const script = CHAPTER_SCRIPTS[slug];
   if (!chapter || !script) {
@@ -81,6 +85,7 @@ function ChapterPage() {
           key={slug}
           chapter={chapter}
           script={script}
+          firstTask={step === undefined ? 0 : step - 1}
           chaptersLink={chaptersLink}
           nextLink={nextLinkAfter(slug)}
           exit={exit}

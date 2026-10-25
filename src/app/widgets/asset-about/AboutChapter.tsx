@@ -50,7 +50,7 @@ function PhysicalSizeControl({ value, onChange }: PhysicalSizeField) {
   return (
     <ControlBlock
       title="Physical size"
-      description="How big this token is in a player's hidden zone, compared with a standard token. Make it small for a marker that sits on a card's track."
+      description="How big this token is on a player's private side-table, compared with a standard token. Make it small for a marker that sits on a card's track."
       input={
         <Slider
           aria-label="Physical size"

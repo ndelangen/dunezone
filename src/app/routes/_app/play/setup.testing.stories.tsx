@@ -42,7 +42,7 @@ export const StartingTroops = meta.story({
     await expect(page.findByRole('button', { name: 'Next phase' }, { timeout: 30_000 })).resolves.toBeEnabled();
     const setup = await openPanel(canvasElement, 'Setup');
     await expect(
-      setup.findByText(/^10 forces in Carthag and 10 in reserves/, {}, { timeout: 30_000 })
+      setup.findByText(/^10 troops in Carthag and 10 in reserves/, {}, { timeout: 30_000 })
     ).resolves.toBeVisible();
     await userEvent.click(page.getByRole('button', { name: 'Next phase' }));
     await waitFor(() => expect(lastCommand()).toMatchObject({ type: 'command', action: { kind: 'phase' } }));

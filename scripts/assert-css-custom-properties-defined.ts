@@ -33,7 +33,10 @@ const PROVIDED_ELSEWHERE = [
   ['--document-editor-', 'DocumentEditorLayout, via setProperty'],
   ['--editor-plane-width', 'the faction editor plane, via setProperty'],
   ['--brush-cursor', 'TabletopScene while the territory paintbrush is on, via inline style'],
-  ['--page-layout-fullscreen-top', 'TutorialGuide, which puts its band above a fullscreen page, via inline style'],
+  ['--page-layout-fullscreen-left', 'TutorialGuide, which puts its rail beside a fullscreen page, via inline style'],
+  ['--rail-width', 'TutorialGuide, which sizes its rail, via inline style'],
+  ['--progress', 'TutorialGuide, the share of its chapter done, via inline style'],
+  ['--ahead', 'TutorialGuide, how many tasks off each rail task is, via inline style'],
   [
     '--compass-camera-top',
     'the compass controls (useSlotHeights), which hang the camera dial under the toolbar, via setProperty',

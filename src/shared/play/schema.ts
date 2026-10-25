@@ -94,9 +94,18 @@ const storedItemSchema = z.object({
 /** How many standard patches the hidden zone reaches each way, at most. */
 export const HIDDEN_ZONE_SPOT_MAX = 8;
 /* A spot in the hidden zone, in fractions of its standard patch; past 1 where a roomier tab shows more of the zone. */
+/** A piece in the hidden zone turns in this many steps around, 15° each. */
+export const HIDDEN_ZONE_TURNS = 24;
 export const hiddenZoneSpotSchema = z.object({
   x: z.number().min(0).max(HIDDEN_ZONE_SPOT_MAX),
   y: z.number().min(0).max(HIDDEN_ZONE_SPOT_MAX),
+  /* How far the piece is turned clockwise, in 15° steps; absent is upright. */
+  turn: z
+    .number()
+    .int()
+    .min(1)
+    .max(HIDDEN_ZONE_TURNS - 1)
+    .optional(),
 });
 
 /** A piece as the game Worker stores it: every item with artwork carries its type. */

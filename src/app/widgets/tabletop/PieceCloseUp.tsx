@@ -194,7 +194,7 @@ function CloseUp({
   }
   /* On the page's body, so the table's own stacking cannot slide it under a panel it spills over. */
   return createPortal(
-    <div ref={box} className={styles.closeUp} data-round={round || undefined} aria-hidden>
+    <div ref={box} className={styles.closeUp} data-round={round || undefined} data-piece-close-up aria-hidden>
       {/* Only the top item, so a stack of prediction cards that share one front shows the top card's prediction. */}
       <PieceArtwork
         piece={{ ...shown, items: [item] }}
