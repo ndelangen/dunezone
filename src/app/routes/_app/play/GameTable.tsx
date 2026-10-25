@@ -988,8 +988,8 @@ export function GameTable({
   const frame = stageFrame(stage);
   /* The camera follows the phase while the header names one: in play, and on the fixture. */
   /* A faction phase takes the camera view of the standard phase it precedes (#1138). */
-  const activeEntry = tableProgress.phases.find((entry) => entry.id === tableProgress.activePhaseId);
-  const viewPhase = frame.word || !activeEntry ? null : standardPhaseOf(activeEntry);
+  const activePhase = tableProgress.phases.find((entry) => entry.id === tableProgress.activePhaseId);
+  const viewPhase = frame.word || !activePhase ? null : standardPhaseOf(activePhase);
   const [viewState, dispatchView] = useReducer(reduceTableView, viewPhase, createTableViewState);
   if (viewState.phase !== viewPhase) {
     /* The phase changed since the last render; the reducer answers it before this render commits. */
@@ -1003,8 +1003,6 @@ export function GameTable({
     }),
     [viewState.activeView, viewState.cameraRevision]
   );
-  const activePhaseIndex = tableProgress.phases.findIndex((phase) => phase.id === tableProgress.activePhaseId);
-  const activePhase = tableProgress.phases[activePhaseIndex];
 
   useRequestedView(requestedView, dispatchView);
 
