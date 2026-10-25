@@ -105,8 +105,20 @@ export async function verifyBattles(toolkit: HostedToolkit) {
     await who.page.mouse.move(10, 10);
     await who.page.keyboard.press('Escape');
     await who.page.locator('[data-window][data-side="centre"]').waitFor({ state: 'detached' });
+    const cover = await who.page.evaluate(({ x, y }) => {
+      const hit = document.elementFromPoint(x, y);
+      return hit instanceof HTMLCanvasElement
+        ? null
+        : (hit?.closest('[aria-label]')?.getAttribute('aria-label') ?? hit?.tagName ?? 'nothing');
+    }, at);
+    assert.equal(cover, null, `${who.label}: the piece to take is covered by ${cover}.`);
     await who.page.mouse.click(at.x, at.y, { button: 'right' });
-    await who.page.getByRole('menuitem', { name: 'Take into hand', exact: true }).click();
+    const takeItem = who.page.getByRole('menuitem', { name: 'Take into hand', exact: true });
+    await takeItem.waitFor({ timeout: 5000 }).catch(async () => {
+      const items = await who.page.getByRole('menuitem').allTextContents();
+      throw new Error(`${who.label}: the piece's menu offers no Take into hand; it offers [${items.join(', ')}].`);
+    });
+    await takeItem.click();
     await until(
       () => required(requireView(who).snapshot.hand, 'hand').length === previousHand.size + 1,
       'Private inventory did not receive the piece.'
