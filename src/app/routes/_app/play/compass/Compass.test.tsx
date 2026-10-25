@@ -25,20 +25,21 @@ const tiles = Object.fromEntries(
   SPOTS.map((spot): [TileSpot, Tile] => [spot, { spot, label: spot, detail: '', keys: '', icon: null }])
 ) as Record<TileSpot, Tile>;
 
-/* The open compass over the table, with its keys listening as the controls wire them, and a chat field behind the veil. */
+/* The open compass over the table, with its keys and spot wired as the controls wire them, and a chat field behind the veil. */
 function OpenCompass() {
   const input = useRef<HTMLInputElement>(null);
+  const [spot, setSpot] = useState<Spot>('hub');
   useCompassKeys({
     open: true,
     inert: false,
-    spot: 'hub',
+    spot,
     query: '',
     cursor: 0,
     suggestions: 0,
     input,
     onOpen: vi.fn(),
     onClose: vi.fn(),
-    onSpot: vi.fn(),
+    onSpot: setSpot,
     onCursor: vi.fn(),
     onConfirm: vi.fn(),
   });
@@ -48,12 +49,12 @@ function OpenCompass() {
       <Compass
         tiles={tiles}
         suggestions={[]}
-        spot="hub"
+        spot={spot}
         query=""
         cursor={0}
         refused={0}
         input={input}
-        onSpot={vi.fn()}
+        onSpot={setSpot}
         onQuery={vi.fn()}
         onCursor={vi.fn()}
         onConfirm={vi.fn()}
@@ -90,46 +91,8 @@ test('Tab between the compass’s own controls is the browser’s, and Tab from 
   expect(document.activeElement).toBe(buttons[0]);
 });
 
-/* The compass with its spot held as the controls hold it, so the arrows really move the selection. */
-function SteeredCompass() {
-  const input = useRef<HTMLInputElement>(null);
-  const [spot, setSpot] = useState<Spot>('hub');
-  useCompassKeys({
-    open: true,
-    inert: false,
-    spot,
-    query: '',
-    cursor: 0,
-    suggestions: 0,
-    input,
-    onOpen: vi.fn(),
-    onClose: vi.fn(),
-    onSpot: setSpot,
-    onCursor: vi.fn(),
-    onConfirm: vi.fn(),
-  });
-  return (
-    <div data-compass-controls>
-      <Compass
-        tiles={tiles}
-        suggestions={[]}
-        spot={spot}
-        query=""
-        cursor={0}
-        refused={0}
-        input={input}
-        onSpot={setSpot}
-        onQuery={vi.fn()}
-        onCursor={vi.fn()}
-        onConfirm={vi.fn()}
-        onClose={vi.fn()}
-      />
-    </div>
-  );
-}
-
 test('an arrow from a tile Tab reached keeps its selection when the caret goes back to the search', () => {
-  const { container } = render(<SteeredCompass />);
+  const { container } = render(<OpenCompass />);
   const tile = container.querySelector<HTMLElement>('[data-spot="table"]')!;
   act(() => tile.focus());
   act(
