@@ -13,13 +13,13 @@ import { useHeldLiveQuery } from './live';
 test('held queries use the real Convex subscription through pending, answers, failures and argument changes', async () => {
   const client = new ConvexReactClient('https://example.convex.cloud');
   const query = makeFunctionReference<'query', { address: string }, { status: string } | null>(
-    'playGames:getGameByAddress'
+    'playGameDirectory:getGameByAddress'
   );
   const answers = new Map<string, { status: string } | Error | null>();
   const listeners = new Set<() => void>();
   vi.spyOn(client, 'watchQuery').mockImplementation((...parameters) => {
     const [reference, args] = parameters;
-    expect(getFunctionName(reference)).toBe('playGames:getGameByAddress');
+    expect(getFunctionName(reference)).toBe('playGameDirectory:getGameByAddress');
     return {
       localQueryResult: () => {
         const answer = answers.get(String(args?.address));

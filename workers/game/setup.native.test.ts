@@ -59,12 +59,12 @@ describe('Retained supply at setup entry', () => {
     await runtime?.close();
     await peer?.close();
   });
-  const admit = (suffix: string) => admitPlayer(peer, runtime, suffix);
+  const admit = (suffix: string) => admitPlayer(runtime, suffix);
   const stored = async () =>
     readSnapshot((await runtime.exec<{ data: string }>('SELECT data FROM current_state'))[0].data);
 
   it('supplies retained pieces and starting spice once despite source deletion, command replay and cold restore', async () => {
-    const [a, b] = await dealt(peer, runtime);
+    const [a, b] = await dealt(runtime);
     const captures = await runtime.captures();
     peer.catalogue.clear();
     peer.factions.clear();
@@ -154,7 +154,7 @@ describe('Retained supply at setup entry', () => {
   });
 
   it('waits for the last replacement, preserves faction privacy and keeps progression gated', async () => {
-    const [, b] = await dealt(peer, runtime);
+    const [, b] = await dealt(runtime);
     const old = await syncView(b);
     await accepted(b, { kind: 'seat-depart' as const });
     await runtime.offline("UPDATE current_state SET data=json_set(data,'$.swapping.deadline',1)");
@@ -168,7 +168,7 @@ describe('Retained supply at setup entry', () => {
     const spectator = await syncView(await admit('b'));
     expect(spectator.snapshot.bank).toBeUndefined();
     expect(spectator.snapshot.hand).toBeUndefined();
-    for (const action of [{ kind: 'phase' as const }, { kind: 'turn' as const, turn: 2 }, { kind: 'reset' as const }]) {
+    for (const action of [{ kind: 'phase' as const }, { kind: 'reset' as const }]) {
       expect((await sendCommand(c, action)).reply.type).toBe('rejected');
     }
     const balance = required(supplied.snapshot.bank).balance;
@@ -185,7 +185,7 @@ describe('Retained supply at setup entry', () => {
   });
 
   it('rolls supply and its receipt back with the final readiness command', async () => {
-    const [a, b] = await dealt(peer, runtime);
+    const [a, b] = await dealt(runtime);
     await ready(a, 'first-ready');
     const before = await stored();
     await runtime.exec(
@@ -224,7 +224,7 @@ describe('Traitor backs at setup entry', () => {
       const faction = peer.factions.get(id);
       peer.factions.set(id, { ...required(faction), cardbacks: { ...required(faction).cardbacks, traitor } });
     }
-    const [a, b] = await dealt(peer, runtime);
+    const [a, b] = await dealt(runtime);
     await ready(a, 'ready-a');
     const view = await syncView(b);
     return sendCommand(b, {

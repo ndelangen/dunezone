@@ -28,8 +28,6 @@ describe('Seats, factions and stations through native delivery', () => {
   let peer: NativePeer, runtime: NativeRuntime;
   beforeEach(async () => {
     peer = await createPeer();
-    peer.watchMode = 'allow';
-    peer.expiresAt = () => Date.now() + 600_000;
     runtime = await createRuntime(peer, 'game');
     if ((await provision(runtime)).status !== 200) {
       throw new Error('The native fixture did not provision.');
@@ -40,7 +38,7 @@ describe('Seats, factions and stations through native delivery', () => {
     await peer?.close();
   });
 
-  const admit = (suffix: string) => admitPlayer(peer, runtime, suffix);
+  const admit = (suffix: string) => admitPlayer(runtime, suffix);
   const sync = syncView;
 
   async function readJson(table: 'metadata'): Promise<Metadata>;

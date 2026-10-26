@@ -24,9 +24,9 @@ describe('Swapping on a real game', () => {
     await peer?.close();
   });
 
-  const admit = (suffix: string) => admitPlayer(peer, runtime, suffix);
+  const admit = (suffix: string) => admitPlayer(runtime, suffix);
   const ownRequest = (view: NativeView) => required(view.snapshot.controls).seatRequests.find((request) => request.own);
-  const deal = (count = 3) => dealt(peer, runtime, count, 'fremen');
+  const deal = (count = 3) => dealt(runtime, count, 'fremen');
   async function trade(
     connection: NativeConnection,
     action: SwapAction extends infer Action

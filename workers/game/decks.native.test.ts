@@ -16,8 +16,6 @@ describe('Private deck commands through native delivery', () => {
   let peer: NativePeer, runtime: NativeRuntime;
   beforeEach(async () => {
     peer = await createPeer();
-    peer.watchMode = 'allow';
-    peer.expiresAt = () => Date.now() + 600_000;
     runtime = await createRuntime(peer, 'game');
     if ((await provision(runtime)).status !== 200) {
       throw new Error('The isolated fixture did not provision.');
@@ -48,7 +46,7 @@ describe('Private deck commands through native delivery', () => {
     await runtime?.close();
     await peer?.close();
   });
-  const admit = (suffix: string) => admitPlayer(peer, runtime, suffix);
+  const admit = (suffix: string) => admitPlayer(runtime, suffix);
   const deck = (view: { snapshot: { table: GameSnapshot['table'] } }) =>
     view.snapshot.table.pieces.find((piece) => piece.id === 'treachery-deck');
 

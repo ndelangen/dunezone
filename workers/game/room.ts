@@ -22,7 +22,6 @@ import {
   requirePhaseCooldownElapsed,
   STANDARD_PHASES,
   stepPhase,
-  TURN_SELECT_REFUSAL,
 } from '../../src/shared/play/phases';
 import { PIECE_FLIP_DURATION_MS } from '../../src/shared/play/pieceFlip';
 import { pointerRiders } from '../../src/shared/play/pointerRiders';
@@ -605,10 +604,6 @@ export class Room {
   private applyCommand(identity: Identity, action: RoomAction, expectedRevision: number, now: number): StoredSnapshot {
     this.assertActionStage(action);
     this.assertCommand(identity, action, expectedRevision);
-    /* The turn moves only through the phases, so Mentat Pause always asks everyone to be ready (#1683); an older client may still send this. */
-    if (action.kind === 'turn') {
-      throw new GameRejection(TURN_SELECT_REFUSAL);
-    }
     if (isSetupAction(action) || (this.snapshot.stage === 'setup' && ['phase', 'ready'].includes(action.kind))) {
       return setupCommand(this.snapshot, action, {
         factionId: this.requireFaction(identity),

@@ -15,24 +15,34 @@ export function redactReportText(text: string): string {
     );
 }
 
-export function redactReportData(value: unknown): unknown {
+type ReportScope = 'browser' | 'game';
+
+function privateReportKey(key: string, scope: ReportScope) {
+  /* The server's typed game snapshots and captures use token for artwork, never authentication. */
+  if (scope === 'game' && key.toLowerCase() === 'token') {
+    return false;
+  }
+  return PRIVATE_KEYS.test(key);
+}
+
+export function redactReportData(value: unknown, scope: ReportScope = 'browser'): unknown {
   if (typeof value === 'string') {
     return redactReportText(value);
   }
   if (Array.isArray(value)) {
-    return value.map(redactReportData);
+    return value.map((child) => redactReportData(child, scope));
   }
   if (value instanceof Map) {
-    return redactReportData(Object.fromEntries(value));
+    return redactReportData(Object.fromEntries(value), scope);
   }
   if (value instanceof Set) {
-    return redactReportData([...value]);
+    return redactReportData([...value], scope);
   }
   if (value !== null && typeof value === 'object') {
     return Object.fromEntries(
       Object.entries(value)
-        .filter(([key]) => !PRIVATE_KEYS.test(key))
-        .map(([key, child]) => [key, redactReportData(child)])
+        .filter(([key]) => !privateReportKey(key, scope))
+        .map(([key, child]) => [key, redactReportData(child, scope)])
     );
   }
   return value;

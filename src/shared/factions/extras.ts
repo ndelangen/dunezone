@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { CAPTURE_TYPES } from '../play/inventory';
+import { CAPTURE_TYPES } from '../play/captureTypes';
 
 /**
  * Faction Extras (#1226, settled in #1021): catalogue references a faction supplies once at setup.

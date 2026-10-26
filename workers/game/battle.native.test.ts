@@ -25,8 +25,6 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
   let peer: NativePeer, runtime: NativeRuntime, a: NativeConnection, b: NativeConnection, observer: NativeConnection;
   beforeEach(async () => {
     peer = await createPeer();
-    peer.watchMode = 'allow';
-    peer.expiresAt = () => Date.now() + 600_000;
     runtime = await createRuntime(peer, 'game');
     if ((await provision(runtime)).status !== 200) {
       throw new Error('The native fixture did not provision.');
@@ -80,7 +78,7 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     await runtime?.close();
     await peer?.close();
   });
-  const admit = (suffix: string) => admitPlayer(peer, runtime, suffix);
+  const admit = (suffix: string) => admitPlayer(runtime, suffix);
   async function start() {
     const started = await accepted(a, {
       kind: 'battle-start' as const,

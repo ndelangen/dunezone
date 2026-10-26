@@ -19,8 +19,8 @@ export type HistoryRow = {
 };
 
 type RowInput = Pick<HistoryRow, 'kind' | 'data' | 'step' | 'base_revision'>;
-/* Declaring a result and continuing past it are playback steps, as phase and turn changes are. */
-const boundaryActions = new Set(['phase', 'turn', 'result-declare', 'result-continue']);
+/* Declaring a result and continuing past it are playback steps, as phase changes are. */
+const boundaryActions = new Set(['phase', 'result-declare', 'result-continue']);
 /* Ready is a playback step only while setup gates on it; phase is one everywhere. */
 const setupReady = 'ready';
 

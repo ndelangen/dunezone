@@ -38,7 +38,7 @@ function controls(canTake: (pieceId: string) => boolean): MenuControls & { take:
 }
 
 const labels = (piece: TablePiece, menu: MenuControls) =>
-  pieceMenuActions(piece, menu, { reserved: false, touch: false, onClose: () => {} }).map((action) => action.label);
+  pieceMenuActions(piece, menu, { reserved: false, onClose: () => {} }).map((action) => action.label);
 
 test('a loose card and a battle leader offer Take into hand, after the piece’s own actions and before delete', () => {
   const menu = controls(() => true);
@@ -62,9 +62,7 @@ test('the item is absent, not disabled, for a piece the hand cannot take, and wi
 test('picking it sends the piece to the hand and closes the ring', () => {
   const menu = controls(() => true);
   const onClose = vi.fn();
-  const take = pieceMenuActions(card, menu, { reserved: false, touch: false, onClose }).find(
-    (action) => action.key === 'hand'
-  )!;
+  const take = pieceMenuActions(card, menu, { reserved: false, onClose }).find((action) => action.key === 'hand')!;
   take.onSelect!();
   expect(menu.take).toHaveBeenCalledWith(card.id);
   expect(onClose).toHaveBeenCalledOnce();

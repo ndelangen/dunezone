@@ -60,10 +60,10 @@ export function definition(id: string, name: string) {
  * Has the first pick `pick` if given, readies everyone and waits for the deal.
  * Returns the connections in seat order once the game is swapping.
  */
-export async function dealt(peer: NativePeer, runtime: NativeRuntime, count = 2, pick?: string) {
+export async function dealt(runtime: NativeRuntime, count = 2, pick?: string) {
   const connections: NativeConnection[] = [];
   for (const suffix of ['a', 'b', 'c', 'd'].slice(0, count)) {
-    const connection = await admitPlayer(peer, runtime, suffix);
+    const connection = await admitPlayer(runtime, suffix);
     if (connections.length) {
       await seat(connection, connections[0]);
     }
@@ -145,8 +145,6 @@ export async function draftingRuntime(
   const peer = await createPeer();
   peer.testPhaseCooldownMs = testPhaseCooldownMs;
   peer.testStartStage = testStartStage;
-  peer.watchMode = 'allow';
-  peer.expiresAt = () => Date.now() + 600_000;
   peer.game = { rulesetId: 'ruleset-one', minimumPlayers: 2, creator: CREATOR };
   /* This fixture's faction publishes no alliance or traitor faces, so a real game could not deal; the isolated path may. */
   peer.provisional = true;

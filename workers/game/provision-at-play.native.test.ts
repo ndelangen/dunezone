@@ -45,7 +45,7 @@ describe('A real game provisioned at the play stage', () => {
 
   it('arrives at Turn 1 in the shape a game reaches when its players take it there', async () => {
     ({ peer, runtime } = await draftingRuntime([], undefined, { bindings: LOCAL_ISOLATED, testPhaseCooldownMs: 0 }));
-    const played = await dealt(peer, runtime);
+    const played = await dealt(runtime);
     await playToTurnOne(played);
     const byPlayers = shapeAtPlay(await syncView(played[0]));
     await runtime.close();
@@ -56,7 +56,7 @@ describe('A real game provisioned at the play stage', () => {
       testPhaseCooldownMs: 0,
       testStartStage: 'play',
     }));
-    const creator = await admitPlayer(peer, runtime, 'a');
+    const creator = await admitPlayer(runtime, 'a');
     const view = await syncView(creator);
     expect(view.viewer.viewerSeat).toBe('seat-1');
     expect(shapeAtPlay(view)).toEqual(byPlayers);
@@ -104,7 +104,7 @@ describe('A real game provisioned at the play stage', () => {
         });
       },
     }));
-    const { snapshot } = await syncView(await admitPlayer(peer, runtime, 'a'));
+    const { snapshot } = await syncView(await admitPlayer(runtime, 'a'));
     expect(snapshot.stage).toBe('play');
     expect(required(snapshot.setup).steps.map((step) => step.kind)).toEqual([
       'prediction',
@@ -125,7 +125,6 @@ describe('A real game provisioned at the play stage', () => {
     };
     for (const [runtimeName, bindings] of Object.entries(outside)) {
       peer = await createPeer();
-      peer.watchMode = 'allow';
       runtime = await createRuntime(peer, 'game', bindings);
       peer.testStartStage = 'play';
       expect((await provision(runtime)).status, `${runtimeName} accepted the start stage`).toBe(403);
@@ -142,8 +141,8 @@ describe('A real game provisioned at the play stage', () => {
       testPhaseCooldownMs: 0,
       testStartStage: 'play',
     }));
-    const a = await admitPlayer(peer, runtime, 'a');
-    const b = await admitPlayer(peer, runtime, 'b');
+    const a = await admitPlayer(runtime, 'a');
+    const b = await admitPlayer(runtime, 'b');
     expect((await syncView(b)).viewer.viewerSeat).toBe('neutral');
     const seated = await seat(b, a, 'seat-2');
     expect(seated.viewer.viewerSeat).toBe('seat-2');

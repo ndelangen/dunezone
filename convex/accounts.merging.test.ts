@@ -2,6 +2,7 @@
 // @vitest-environment edge-runtime
 import { afterEach, beforeEach, expect, test, vi } from 'vite-plus/test';
 
+import { peekSeatPass } from '../src/shared/play/seatPass';
 import { api, internal } from './_generated/api';
 import { account, setup, stubAuthEnvironment, restoreAuthEnvironment } from './authAccount.test.fixture';
 import { applicationTriggers } from './lib/applicationTriggers';
@@ -18,6 +19,15 @@ function roomAcknowledgesCutoffs(t: ReturnType<typeof setup>) {
     await t.mutation(api.playSessionCutoffs.ackSessionCutoff, { gameId, secret, eventId, through });
     return Response.json({ ok: true });
   });
+}
+
+/** The seat pass an account's session is signed for at a game, as the room would read it. */
+async function passOf(player: ReturnType<ReturnType<typeof setup>['withIdentity']>, gameId: string) {
+  const result = await player.mutation(api.playAdmission.enrolPlayer, { gameId });
+  if (!result.ok) {
+    throw new Error(`Seat pass refused: ${result.reason}`);
+  }
+  return peekSeatPass(result.pass);
 }
 
 beforeEach(stubAuthEnvironment);
@@ -200,7 +210,7 @@ test("a self-service connection never carries the source account's admin rights"
   });
 });
 
-test('a source player survives game reconciliation before and after routing transfer while old sessions lose access', async () => {
+test("a merge takes a game away from the source account's old sessions", async () => {
   const t = setup();
   roomAcknowledgesCutoffs(t);
   const source = await account(t, 'player', 'discord');
@@ -217,25 +227,13 @@ test('a source player survives game reconciliation before and after routing tran
   });
   const admin = t.withIdentity({ subject: `${target.userId}|${target.sessionId}` });
   await admin.mutation(api.accounts.merge, { sourceUserId: source.userId, targetUserId: target.userId });
-  const args = { gameId: game.gameId, secret: game.secret, userIds: [source.userId, target.userId] };
-  expect(await t.query(api.playAdmission.reconcileAccounts, args)).toMatchObject({
-    accounts: [
-      { userId: source.userId, state: 'active' },
-      { userId: target.userId, state: 'active' },
-    ],
-  });
   await t.finishAllScheduledFunctions(() => vi.runAllTimers());
-  expect(await t.query(api.playAdmission.reconcileAccounts, args)).toMatchObject({
-    accounts: [
-      { userId: source.userId, state: 'active' },
-      { userId: target.userId, state: 'active' },
-    ],
-  });
   expect(
     await t
       .withIdentity({ subject: `${source.userId}|${source.sessionId}` })
-      .mutation(api.playAdmission.issueTicket, { gameId: game.gameId })
+      .mutation(api.playAdmission.enrolPlayer, { gameId: game.gameId })
   ).toMatchObject({ ok: false, reason: 'not_authorized' });
+  expect(await passOf(admin, game.gameId)).toMatchObject({ principalId: target.userId });
 });
 
 test('ordinary users cannot perform admin merges, and expired connection credentials cannot authorize a merge', async () => {
@@ -305,18 +303,7 @@ test('merges refuse overlapping private seats and unfinished provisioning, then 
   });
   await admin.mutation(api.accounts.merge, { sourceUserId: source.userId, targetUserId: target.userId });
   await t.finishAllScheduledFunctions(() => vi.runAllTimers());
-  const issued = await admin.mutation(api.playAdmission.issueTicket, { gameId: game.gameId });
-  expect(issued.ok).toBe(true);
-  if (!issued.ok) {
-    throw new Error('Expected admission');
-  }
-  expect(
-    await t.mutation(api.playAdmission.redeemTicket, {
-      gameId: game.gameId,
-      secret: game.secret,
-      ticket: issued.ticket,
-    })
-  ).toMatchObject({ ok: true, userId: source.userId, displayName: 'target' });
+  expect(await passOf(admin, game.gameId)).toMatchObject({ actorId: source.userId, displayName: 'target' });
 });
 
 test.each(['target', 'source'] as const)(
@@ -344,17 +331,7 @@ test.each(['target', 'source'] as const)(
         .unique()
     );
     expect(routing?.actor_user_ids).toContain(creatorId);
-    const issued = await admin.mutation(api.playAdmission.issueTicket, { gameId: game.gameId });
-    if (!issued.ok) {
-      throw new Error('Expected creator admission');
-    }
-    expect(
-      await t.mutation(api.playAdmission.redeemTicket, {
-        gameId: game.gameId,
-        secret: game.secret,
-        ticket: issued.ticket,
-      })
-    ).toMatchObject({ ok: true, userId: creatorId, displayName: 'target' });
+    expect(await passOf(admin, game.gameId)).toMatchObject({ actorId: creatorId, displayName: 'target' });
   }
 );
 
@@ -452,16 +429,8 @@ test('a creator who never entered keeps their seat when merged into an account a
   });
   const admin = t.withIdentity({ subject: `${target.userId}|${target.sessionId}` });
   await admin.mutation(api.accounts.merge, { sourceUserId: source.userId, targetUserId: target.userId });
-  const args = { gameId: game.gameId, secret: game.secret, userIds: [source.userId, target.userId] };
-  const expected = {
-    accounts: [
-      { userId: source.userId, state: 'active' },
-      { userId: target.userId, state: 'active' },
-    ],
-  };
-  expect(await t.query(api.playAdmission.reconcileAccounts, args)).toMatchObject(expected);
   await t.finishAllScheduledFunctions(() => vi.runAllTimers());
-  expect(await t.query(api.playAdmission.reconcileAccounts, args)).toMatchObject(expected);
+  expect(await passOf(admin, game.gameId)).toMatchObject({ actorId: source.userId });
 });
 
 test('a connected Discord account protects the last usable method', async () => {

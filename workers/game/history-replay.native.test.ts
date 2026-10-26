@@ -49,8 +49,6 @@ describe('Replay history through the native game boundary', { timeout: 30_000 },
   let peer: NativePeer, runtime: NativeRuntime, a: NativeConnection, b: NativeConnection, offset: number;
   beforeEach(async () => {
     peer = await createPeer();
-    peer.watchMode = 'allow';
-    peer.expiresAt = () => Date.now() + 600_000;
     runtime = await createRuntime(peer, 'game');
     if ((await provision(runtime)).status !== 200) {
       throw new Error('The native fixture did not provision.');
@@ -61,8 +59,8 @@ describe('Replay history through the native game boundary', { timeout: 30_000 },
     state.factionBanks = { harkonnen: 10, atreides: 10 };
     await runtime.exec('UPDATE current_state SET data=? WHERE id=1', [JSON.stringify(state)]);
     await runtime.restart();
-    a = await admitPlayer(peer, runtime, 'a');
-    b = await admitPlayer(peer, runtime, 'b');
+    a = await admitPlayer(runtime, 'a');
+    b = await admitPlayer(runtime, 'b');
     offset = 0;
   });
   afterEach(async () => {
@@ -182,7 +180,7 @@ describe('Replay history through the native game boundary', { timeout: 30_000 },
     /* A cold restore wakes on the same boundary and current state, and plays on. */
     const before = await syncView(a);
     await runtime.restart();
-    a = await admitPlayer(peer, runtime, 'a');
+    a = await admitPlayer(runtime, 'a');
     const after = await syncView(a);
     expect(after.snapshot.table).toEqual(before.snapshot.table);
     expect(after.snapshot.revision).toBe(before.snapshot.revision);
@@ -260,11 +258,11 @@ describe('Replay history through the native game boundary', { timeout: 30_000 },
   it('keeps older steps without a clock readable and records new steps after a restart', async () => {
     await runtime.exec('DROP TABLE history_clocks');
     await runtime.restart();
-    const observer = await admitPlayer(peer, runtime, 'observer');
+    const observer = await admitPlayer(runtime, 'observer');
     observer.send({ type: 'history', step: 0 });
     const past = await observer.message('history');
     expect(past.recordedAt).toBeUndefined();
-    const rejoined = await admitPlayer(peer, runtime, 'a');
+    const rejoined = await admitPlayer(runtime, 'a');
     const next = await accepted(rejoined, { kind: 'phase', direction: 1 });
     rejoined.send({ type: 'history', step: 1 });
     const current = await rejoined.message('history');

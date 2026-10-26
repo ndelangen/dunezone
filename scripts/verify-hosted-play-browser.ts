@@ -441,7 +441,7 @@ async function peer(label: string, context?: BrowserContext): Promise<HostedPeer
     rawMessages: [],
     sent: [],
     sockets: [],
-    /* The page's Convex sync sockets and its ticket mutations on them, by time only: a ticket is a credential and never recorded. */
+    /* The page's Convex sync sockets and its admission mutations on them, by time only: their answers are credentials and never recorded. */
     admission: { convexSockets: [], tickets: [], authErrors: 0 },
     view: () => {
       const view = state.messages.findLast((message): message is RoomView => message.type === 'view');
@@ -482,13 +482,9 @@ async function peer(label: string, context?: BrowserContext): Promise<HostedPeer
       const message = (values.flow === 'homepage' ? homepageMessageSchema : clientMessageSchema).parse(payload);
       state.sent.push(
         message.type === 'authenticate'
-          ? { type: message.type, ticketLength: message.ticket.length }
+          ? { type: message.type, credentialLength: message.ticket.length }
           : message.type === 'admit'
-            ? {
-                type: message.type,
-                ticketLength: (message.pass ?? message.ticket ?? '').length,
-                credential: message.pass === undefined ? 'ticket' : 'pass',
-              }
+            ? { type: message.type, credentialLength: message.pass.length }
             : message
       );
     });
@@ -524,7 +520,7 @@ async function peer(label: string, context?: BrowserContext): Promise<HostedPeer
   });
   return state;
 }
-/** Records when each Convex sync socket opened and closed, and when each ticket mutation went out and was answered. */
+/** Records when each Convex sync socket opened and closed, and when each admission mutation went out and was answered. */
 function observeAdmission(state: HostedPeer, socket: BrowserSocket) {
   const connection: HostedPeer['admission']['convexSockets'][number] = { openedAt: Date.now(), closedAt: null };
   state.admission.convexSockets.push(connection);
@@ -533,7 +529,7 @@ function observeAdmission(state: HostedPeer, socket: BrowserSocket) {
   });
   socket.on('framesent', (frame: { payload: { toString: () => string } }) => {
     const message = parseFrame(frame.payload);
-    if (message?.type !== 'Mutation' || !(message.udfPath ?? '').endsWith('issueTicket')) {
+    if (message?.type !== 'Mutation' || !ADMISSION_MUTATIONS.some((name) => (message.udfPath ?? '').endsWith(name))) {
       return;
     }
     /* A reconnecting Convex client sends its unanswered mutations again under the same request id. */
@@ -560,6 +556,8 @@ function observeAdmission(state: HostedPeer, socket: BrowserSocket) {
     }
   });
 }
+/* The homepage's ticket and the game's seat pass: the mutations a page asks to be let in with. */
+const ADMISSION_MUTATIONS = ['issueTicket', 'enrolPlayer', 'renewSeatPass'];
 /* Homepage refusal returns null; real-game admission reports ok and a reason. */
 function ticketOutcome(message: Extract<z.infer<typeof admissionFrameSchema>, { type: 'MutationResponse' }>) {
   if (message.success !== true) {
@@ -786,8 +784,7 @@ async function admitted(who: HostedPeer) {
   );
   assert.equal(who.sent[0].type, 'admit');
   /* The page enters with its seat pass; the credential itself never reaches the report. */
-  assert.equal(who.sent[0].credential, 'pass');
-  assert.ok(who.sent[0].ticketLength > 0);
+  assert.ok(who.sent[0].credentialLength > 0);
   if (requireView(who).snapshot.stage === 'play') {
     await who.page.getByRole('group', { name: 'Table view' }).waitFor();
     await tableLoaded(who);

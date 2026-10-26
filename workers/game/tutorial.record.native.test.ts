@@ -45,8 +45,6 @@ async function tutorialRuntime() {
   const supply = rulesetSupplySchema.parse(catalogue.rulesetSupply);
   const draftable = playDraftableFactionsSchema.parse(catalogue.draftableFactions);
   const peer = await createPeer();
-  peer.watchMode = 'allow';
-  peer.expiresAt = () => Date.now() + 3_600_000;
   peer.game = {
     rulesetId: TUTORIAL_RECIPE.ruleset.id,
     minimumPlayers: TUTORIAL_RECIPE.factions.length,

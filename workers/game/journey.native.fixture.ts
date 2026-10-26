@@ -108,8 +108,6 @@ function draftable({ slug, data }: FactionFixture): DraftFaction {
 
 async function journeyRuntime() {
   const peer = await createPeer();
-  peer.watchMode = 'allow';
-  peer.expiresAt = () => Date.now() + 3_600_000;
   peer.game = {
     rulesetId: 'dreamrules',
     minimumPlayers: 6,
@@ -278,7 +276,7 @@ export class JourneyRecorder {
   }
 
   admit(suffix: string) {
-    return admitPlayer(this.peer, this.runtime, suffix);
+    return admitPlayer(this.runtime, suffix);
   }
 
   viewers() {

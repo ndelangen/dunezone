@@ -5,25 +5,15 @@ import { PHASE_CHANGE_COOLDOWN_MS } from './phases';
 import { tableSeatCountSchema } from './schema';
 
 export const PLAY_FIXTURE_KEY = 'hosted-demo';
-export const PLAY_TICKET_TTL_MS = 30_000;
 export const PLAY_PENDING_TIMEOUT_MS = 5000;
-/** The longest wait between reconnects while every new ticket keeps expiring before the Worker redeems it. */
-export const PLAY_TICKET_RETRY_MAX_MS = 30_000;
-/*
- * The reactive subscription is the prompt path for revocation. The uncached lease bounds a stalled
- * subscription over a live transport; the lease must exceed the renewal cadence plus the request
- * timeout so a healthy renewal lands before the previous lease ends. A dead transport is bounded by
- * the Convex client's own inactivity reconnect (60 seconds in convex 1.45.0), not by these values.
- * Decided at https://github.com/ndelangen/dunezone/issues/1014#issuecomment-5649336152.
- */
-export const PLAY_AUTH_LEASE_MS = 300_000;
-export const PLAY_AUTH_RENEWAL_MS = 90_000;
+/** The longest wait between reconnects while every admission keeps failing before the room seats the page. */
+export const PLAY_ADMISSION_RETRY_MAX_MS = 30_000;
+/* The first wait before the room asks Convex again after a failed read. */
 export const PLAY_AUTH_RECOVERY_MS = 1000;
 export const PLAY_REQUEST_TIMEOUT_MS = 3000;
 export const PLAY_PROVISION_TIMEOUT_MS = 60_000;
 export const PLAY_CONFIRMATION_RETRY_MS = 2000;
 export const PLAY_CONFIRMATION_RECOVERY_MS = 30_000;
-export const PLAY_AUTHORIZATION_BATCH_SIZE = 64;
 /**
  * The longest name a game receives for a Player.
  * Convex cuts a longer profile name to it before the game Worker sees it.
@@ -84,14 +74,11 @@ export const playTestPhaseCooldownSchema = z.number().int().min(0).max(PHASE_CHA
 export const playTestStartStageSchema = z.literal('play');
 /*
  * The accounts that take a provisioned game to Turn 1 in place of players (#1594).
- * The game Worker mints one for each seat the creator does not hold, and the synthetic backend that asked for the stage vouches for them when the room reconciles its accounts.
+ * The game Worker mints one for each seat the creator does not hold.
  */
 const PROVISION_PLACEHOLDER_PREFIX = 'provision-seat-';
 export function provisionPlaceholderId(seat: number) {
   return `${PROVISION_PLACEHOLDER_PREFIX}${seat}`;
-}
-export function isProvisionPlaceholderId(userId: string) {
-  return userId.startsWith(PROVISION_PLACEHOLDER_PREFIX);
 }
 const validatedAttemptSchema = playPendingProvisionSchema.omit({ secret: true }).extend({
   ok: z.literal(true),
@@ -106,16 +93,6 @@ export const playProvisioningValidationSchema = z.union([
 ]);
 export const playConfirmationSchema = z.object({ ok: z.boolean() });
 
-export const playIssueTicketRequestSchema = z.strictObject({ gameId: identifierSchema });
-export const playTicketResultSchema = z.union([
-  /* A duration rather than a deadline, so the browser measures it on its monotonic clock and never compares it with its own wall clock. */
-  z.object({ ok: z.literal(true), ticket: playCredentialSchema, expiresInMs: z.number().int().nonnegative() }),
-  z.object({
-    ok: z.literal(false),
-    reason: z.enum(['not_authorized', 'unavailable', 'rate_limited']),
-    retryAfterMs: z.number().nonnegative().optional(),
-  }),
-]);
 /*
  * Enrolling and renewing both answer with a fresh seat pass.
  * Enrolling happens once per account per game; renewing only when a held pass nears its end with no fresher one from the game query.
@@ -134,66 +111,6 @@ export const playSeatLimitRequestSchema = z.strictObject({ ...gameCredentialFiel
 export const playSeatLimitResultSchema = z.union([
   refusedSchema,
   z.object({ ok: z.literal(true), reached: z.boolean() }),
-]);
-export const playRedeemTicketRequestSchema = z.strictObject({
-  ...gameCredentialFields,
-  ticket: playCredentialSchema,
-});
-export const playRedeemTicketResultSchema = z.union([
-  /*
-   * `expired` covers a ticket that lapsed, was already redeemed or is unknown: a new ticket answers each, so the browser
-   * asks for one. `refused` is final.
-   */
-  z.object({ ok: z.literal(false), reason: z.enum(['expired', 'refused']) }),
-  z.object({
-    ok: z.literal(true),
-    registrationId: identifierSchema,
-    userId: identifierSchema,
-    sessionId: identifierSchema,
-    authExpiresAt: timestampSchema,
-    displayName: z.string().max(PLAY_DISPLAY_NAME_MAX_LENGTH),
-    avatarUrl: z.string().max(2048).nullable().optional(),
-    profileSlug: playProfileSlugSchema,
-  }),
-]);
-
-const identityBatchSchema = z.array(identifierSchema).max(PLAY_AUTHORIZATION_BATCH_SIZE);
-export const playWatchAuthorizationsRequestSchema = z.strictObject({
-  ...gameCredentialFields,
-  generation: identifierSchema,
-  registrationIds: identityBatchSchema,
-});
-const playAuthorizationEntrySchema = z.object({
-  registrationId: identifierSchema,
-  userId: identifierSchema.nullable(),
-  sessionId: identifierSchema.nullable(),
-  allowed: z.boolean(),
-  authExpiresAt: timestampSchema,
-});
-export const playWatchAuthorizationsResultSchema = z.union([
-  refusedSchema,
-  z.object({
-    ok: z.literal(true),
-    generation: identifierSchema,
-    entries: z.array(playAuthorizationEntrySchema).max(PLAY_AUTHORIZATION_BATCH_SIZE),
-  }),
-]);
-
-export const playReconcileAccountsRequestSchema = z.strictObject({
-  ...gameCredentialFields,
-  userIds: identityBatchSchema,
-});
-const playAccountEntrySchema = z.object({
-  userId: identifierSchema,
-  state: z.enum(['active', 'deletion_pending', 'deleted', 'unknown']),
-  deletionOperationId: identifierSchema.nullable(),
-});
-export const playReconcileAccountsResultSchema = z.union([
-  refusedSchema,
-  z.object({
-    ok: z.literal(true),
-    accounts: z.array(playAccountEntrySchema).max(PLAY_AUTHORIZATION_BATCH_SIZE),
-  }),
 ]);
 export const playAccountDeletionRequestSchema = z.strictObject({
   ...gameCredentialFields,
@@ -240,38 +157,25 @@ export const playCreateGameResultSchema = z.union([
 ]);
 
 /*
- * What a game page learns before it opens a socket.
- * An id that names no game reads as not found; a pending game is
+ * What a game page learns about an address before it opens a socket.
+ * An address that names no game reads as not found; a pending game is
  * preparing and an expired one unavailable, neither a lifecycle stage.
  */
-export const playGameAccessSchema = z.union([
-  z.object({ status: z.literal('sign_in_required') }),
-  z.object({ status: z.literal('not_found') }),
-  z.object({ status: z.literal('preparing') }),
-  z.object({ status: z.literal('unavailable'), reason: playProvisionFailureReasonSchema.optional() }),
-  z.object({
-    status: z.literal('ready'),
-    gameId: identifierSchema,
-    name: z.string(),
-    ruleset: z.object({ slug: z.string(), name: z.string() }).nullable(),
-    minimumPlayers: playMinimumPlayersSchema.nullable(),
-  }),
-]);
-
-/* The legacy ID query retains its deployed response; only the address query carries canonical metadata. */
 const gameAddress = { gameId: identifierSchema, name: z.string(), slug: z.string().nullable() };
 export const playGameAddressAccessSchema = z.union([
-  playGameAccessSchema.options[0],
-  playGameAccessSchema.options[1],
-  playGameAccessSchema.options[2].extend(gameAddress),
-  playGameAccessSchema.options[3].extend(gameAddress),
-  playGameAccessSchema.options[4].extend({
+  z.object({ status: z.literal('sign_in_required') }),
+  z.object({ status: z.literal('not_found') }),
+  z.object({ status: z.literal('preparing'), ...gameAddress }),
+  z.object({ status: z.literal('unavailable'), ...gameAddress, reason: playProvisionFailureReasonSchema.optional() }),
+  z.object({
+    status: z.literal('ready'),
     ...gameAddress,
+    ruleset: z.object({ slug: z.string(), name: z.string() }).nullable(),
+    minimumPlayers: playMinimumPlayersSchema.nullable(),
     /*
      * The viewer's seat pass for this game, renewed whenever the query re-runs (each sign-in refresh does).
      * Null until the account is enrolled here, which the page asks for once with `playAdmission.enrolPlayer`.
-     * Absent from a deployment that predates passes.
      */
-    pass: z.string().max(4096).nullable().optional(),
+    pass: z.string().max(4096).nullable(),
   }),
 ]);

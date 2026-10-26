@@ -28,7 +28,7 @@ describe('Real-game setup progression', () => {
     await runtime?.close();
     await peer?.close();
   });
-  const admit = (suffix: string) => admitPlayer(peer, runtime, suffix);
+  const admit = (suffix: string) => admitPlayer(runtime, suffix);
   const stored = async () =>
     readSnapshot((await runtime.exec<{ data: string }>('SELECT data FROM current_state'))[0].data);
   async function enter(prediction = false) {

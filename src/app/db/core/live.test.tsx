@@ -29,7 +29,9 @@ import { makeFunctionReference } from 'convex/server';
 
 import { useHeldLiveQuery, useLiveOperation, useLiveQuery } from './live';
 
-const query = makeFunctionReference<'query', { address: string }, { status: string }>('playGames:getGameByAddress');
+const query = makeFunctionReference<'query', { address: string }, { status: string }>(
+  'playGameDirectory:getGameByAddress'
+);
 const ready = { status: 'ready' };
 const timedOut = new Error('Function execution timed out (maximum duration: 3s)');
 

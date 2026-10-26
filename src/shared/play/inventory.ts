@@ -1,43 +1,11 @@
 import { z } from 'zod';
 
 import { PLAY_PROFILE_SLUG_MAX_LENGTH } from './admission';
+import { CAPTURE_TYPES, SPAWN_TYPES } from './captureTypes';
 import { seatRequestSchema } from './participation';
 import { storedPieceSchema, tableCountSchema, tableIdSchema, tablePieceSchema, tableSeatSchema } from './schema';
 
-export const SPAWN_TYPES = [
-  'deck',
-  'bundle',
-  'token-disc',
-  'token-leader',
-  'token-tech',
-  'token-plate',
-  'token-pointer',
-  'token-enhance',
-] as const;
-export type SpawnType = (typeof SPAWN_TYPES)[number];
-
-export function isSpawnType(type: string): type is SpawnType {
-  return (SPAWN_TYPES as readonly string[]).includes(type);
-}
-
 export const spawnSelectionSchema = z.object({ type: z.enum(SPAWN_TYPES), slug: z.string().min(1).max(160) });
-
-/**
- * Every type a game can capture: the spawnable types and single cards.
- * A single card is captured for setup (a faction's Extras) but not offered by the in-play spawn picker, where the newest list would fill with cards.
- * It wears the back of the deck that holds it.
- */
-export const CAPTURE_TYPES = [
-  'card-treachery',
-  'card-spice',
-  'card-custom',
-  'card-leaderability',
-  'card-storm',
-  'card-stronghold',
-  'card-homeworld',
-  'card-nexus',
-  ...SPAWN_TYPES,
-] as const;
 
 export const captureSelectionSchema = z.object({ type: z.enum(CAPTURE_TYPES), slug: z.string().min(1).max(160) });
 export type CaptureSelection = z.infer<typeof captureSelectionSchema>;

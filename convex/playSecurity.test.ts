@@ -57,8 +57,6 @@ const summary = (userIds: string[], extra: Partial<PlayDirectorySummary> = {}): 
 async function playRows(t: Awaited<ReturnType<typeof world>>['t']) {
   return await t.run(async (ctx) => ({
     games: await ctx.db.query('play_games').collect(),
-    tickets: await ctx.db.query('play_tickets').collect(),
-    registrations: await ctx.db.query('play_auth_registrations').collect(),
     accounts: await ctx.db.query('play_game_accounts').collect(),
   }));
 }
@@ -99,7 +97,7 @@ describe('Play functions in Convex refuse callers who may not use them', () => {
       ok: false,
       reason: 'not_authorized',
     });
-    expect(await outsider.mutation(api.playAdmission.issueTicket, { gameId })).toEqual({
+    expect(await outsider.mutation(api.playAdmission.enrolPlayer, { gameId })).toEqual({
       ok: false,
       reason: 'not_authorized',
     });
@@ -111,13 +109,15 @@ describe('Play functions in Convex refuse callers who may not use them', () => {
     const before = await playRows(t);
     const outsider = as(seeded.outsider.subject);
     expect(await outsider.query(api.playGames.creatable, {})).toEqual({ access: 'unauthenticated' });
-    expect(await outsider.query(api.playGames.getGame, { gameId: mine._id })).toEqual({ status: 'sign_in_required' });
+    expect(await outsider.query(api.playGameDirectory.getGameByAddress, { address: mine._id })).toEqual({
+      status: 'sign_in_required',
+    });
     expect(await outsider.query(api.playDirectory.listGames, {})).toEqual({ status: 'sign_in_required' });
     await refusedWrites(outsider, seeded.rulesetId, mine._id);
     expect(await playRows(t)).toEqual(before);
   });
 
-  test.each(Object.keys(lapses))('a session %s creates no game and takes no ticket', async (state) => {
+  test.each(Object.keys(lapses))('a session %s creates no game and takes no seat pass', async (state) => {
     const { t, as, seeded, mine } = await world();
     await t.run(async (ctx) => await lapses[state](ctx, seeded.outsider));
     const before = await playRows(t);
@@ -129,13 +129,15 @@ describe('Play functions in Convex refuse callers who may not use them', () => {
     const { t, seeded, mine } = await world();
     const before = await playRows(t);
     expect(await t.query(api.playGames.creatable, {})).toEqual({ access: 'unauthenticated' });
-    expect(await t.query(api.playGames.getGame, { gameId: mine._id })).toEqual({ status: 'sign_in_required' });
+    expect(await t.query(api.playGameDirectory.getGameByAddress, { address: mine._id })).toEqual({
+      status: 'sign_in_required',
+    });
     expect(await t.query(api.playDirectory.listGames, {})).toEqual({ status: 'sign_in_required' });
     expect(await t.mutation(api.playGames.createGame, { rulesetId: seeded.rulesetId, minimumPlayers: 2 })).toEqual({
       ok: false,
       reason: 'not_authorized',
     });
-    expect(await t.mutation(api.playAdmission.issueTicket, { gameId: mine._id })).toEqual({
+    expect(await t.mutation(api.playAdmission.enrolPlayer, { gameId: mine._id })).toEqual({
       ok: false,
       reason: 'not_authorized',
     });
@@ -144,20 +146,10 @@ describe('Play functions in Convex refuse callers who may not use them', () => {
 
   test("one game's secret opens nothing on another game", async () => {
     const { t, as, seeded, mine, theirs } = await world();
-    /* The rival's player holds a registration on the rival's game. */
-    const issued = await as(seeded.rival.subject).mutation(api.playAdmission.issueTicket, { gameId: theirs._id });
-    if (!issued.ok) {
-      throw new Error('Ticket refused');
-    }
-    const admitted = await t.mutation(api.playAdmission.redeemTicket, {
-      gameId: theirs._id,
-      secret: theirs.secret,
-      ticket: issued.ticket,
-    });
-    if (!admitted.ok) {
-      throw new Error('Admission refused');
-    }
-    const { registrationId } = admitted;
+    /* The rival's player is enrolled at the rival's game. */
+    expect(
+      await as(seeded.rival.subject).mutation(api.playAdmission.enrolPlayer, { gameId: theirs._id })
+    ).toMatchObject({ ok: true });
     const before = await playRows(t);
     const borrowed = { gameId: theirs._id, secret: mine.secret };
 
@@ -168,18 +160,9 @@ describe('Play functions in Convex refuse callers who may not use them', () => {
         summary: summary([seeded.host.userId]),
       })
     ).toEqual({ ok: false });
-    expect(
-      await t.query(api.playAdmission.watchAuthorizations, {
-        ...borrowed,
-        generation: 'g',
-        registrationIds: [registrationId],
-      })
-    ).toEqual({ ok: false });
-    expect(await t.query(api.playAdmission.reconcileAccounts, { ...borrowed, userIds: [seeded.rival.userId] })).toEqual(
-      {
-        ok: false,
-      }
-    );
+    expect(await t.query(api.playAdmission.seatLimitReached, { ...borrowed, userId: seeded.rival.userId })).toEqual({
+      ok: false,
+    });
     for (const provisioning of [api.playProvisioning.validateProvisioning, api.playProvisioning.confirmProvisioning]) {
       expect(await t.mutation(provisioning, { ...borrowed, attemptId: theirs.attempt_id })).toEqual({ ok: false });
     }
@@ -191,21 +174,6 @@ describe('Play functions in Convex refuse callers who may not use them', () => {
       })
     ).toEqual({ ok: false });
 
-    /* With its own secret, a game still learns nothing about another game's players. */
-    const own = { gameId: mine._id, secret: mine.secret };
-    expect(
-      await t.query(api.playAdmission.watchAuthorizations, {
-        ...own,
-        generation: 'g',
-        registrationIds: [registrationId],
-      })
-    ).toMatchObject({ ok: true, entries: [{ registrationId, userId: null, sessionId: null, allowed: false }] });
-    expect(
-      await t.query(api.playAdmission.reconcileAccounts, { ...own, userIds: [seeded.rival.userId] })
-    ).toMatchObject({
-      ok: true,
-      accounts: [{ userId: seeded.rival.userId, state: 'unknown' }],
-    });
     expect(await playRows(t)).toEqual(before);
   });
 
@@ -236,8 +204,8 @@ describe('Play functions in Convex refuse callers who may not use them', () => {
     const outsider = as(seeded.outsider.subject);
     const read = JSON.stringify([
       await outsider.query(api.playDirectory.listGames, {}),
-      await outsider.query(api.playGames.getGame, { gameId: mine._id }),
-      await outsider.query(api.playGames.getGame, { gameId: theirs._id }),
+      await outsider.query(api.playGameDirectory.getGameByAddress, { address: mine._id }),
+      await outsider.query(api.playGameDirectory.getGameByAddress, { address: theirs._id }),
       await outsider.query(api.playGames.creatable, {}),
     ]);
     expect(read).toContain('Rival');

@@ -9,7 +9,7 @@ import { pieceHasMenu } from './pieceMenu';
 import { pieceMenuActions } from './pieceMenuActions';
 import { useTabletopReader, useTabletopSelector } from './TabletopContext';
 
-export type PieceMenuAnchor = { pieceId: string; x: number; y: number; touch: boolean };
+export type PieceMenuAnchor = { pieceId: string; x: number; y: number };
 
 /* A deck's, a spice pile's or a token's actions as a ring at the pointer; it follows the live table while open, apart from the canvas. */
 function PieceMenu({ pieceMenu, onClose }: Readonly<{ pieceMenu: PieceMenuAnchor | null; onClose: () => void }>) {
@@ -35,7 +35,7 @@ function PieceMenu({ pieceMenu, onClose }: Readonly<{ pieceMenu: PieceMenuAnchor
   const actions = pieceMenuActions(
     menuPiece,
     { deckControls, spiceReserveControls, peekControls, deleteControls, handControls },
-    { reserved: menuPieceReserved, touch: pieceMenu.touch, onClose }
+    { reserved: menuPieceReserved, onClose }
   );
   /* A leader offers only Take into hand, which a viewer who cannot act does not get; then there is no ring to show. */
   if (actions.length === 0) {
@@ -81,12 +81,7 @@ export function TabletopTools({
             return;
           }
           const bounds = event.currentTarget.getBoundingClientRect();
-          onMenuChange({
-            pieceId: piece.id,
-            x: bounds.left,
-            y: bounds.bottom,
-            touch: (event.nativeEvent as Partial<PointerEvent>).pointerType === 'touch',
-          });
+          onMenuChange({ pieceId: piece.id, x: bounds.left, y: bounds.bottom });
         }}
       >
         Selected piece actions

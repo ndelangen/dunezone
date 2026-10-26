@@ -1,19 +1,13 @@
-import {
-  PLAY_PENDING_TIMEOUT_MS,
-  PLAY_REQUEST_TIMEOUT_MS,
-  PLAY_TICKET_RETRY_MAX_MS,
-  PLAY_TICKET_TTL_MS,
-} from '@shared/play/admission';
+import { PLAY_ADMISSION_RETRY_MAX_MS, PLAY_PENDING_TIMEOUT_MS, PLAY_REQUEST_TIMEOUT_MS } from '@shared/play/admission';
 import {
   ADMISSION_REFUSED_CLOSE_CODE,
-  ADMISSION_UNAVAILABLE_CLOSE_CODE,
   KEEPALIVE_INTERVAL_MS,
   KEEPALIVE_PING,
   KEEPALIVE_PONG,
+  PASS_EXPIRED_CLOSE_CODE,
   RATE_LIMITED_CLOSE_CODE,
   serverClockSchema,
   serverMessageSchema,
-  TICKET_EXPIRED_CLOSE_CODE,
 } from '@shared/play/protocol';
 import type { ClientMessage, ServerMessage } from '@shared/play/protocol';
 import { peekSeatPass, PLAY_SEAT_PASS_RENEW_MS } from '@shared/play/seatPass';
@@ -31,11 +25,12 @@ import { TableTelemetry, TELEMETRY_REPORT_MS } from './tableTelemetry';
 const UNREACHABLE = 'The table could not be reached. Reconnecting...';
 /* Renewal retries after a refused or failed attempt, doubling from a second, about a minute in all. */
 const PASS_RENEWAL_ATTEMPTS = 6;
+/* How long an admission request still on the wire is waited on by the next attempt rather than asked again. */
+const ADMISSION_REQUEST_REUSE_MS = 30_000;
 
-type TicketResult = Awaited<ReturnType<typeof requestPlayAdmission>>;
-type Credential = { ticket: string } | { pass: string };
-type TicketAttempt = { readonly generation: number; timer?: ReturnType<typeof setTimeout> };
-type TicketRequest = { readonly result: Promise<TicketResult>; readonly requestedAt: number };
+type AdmissionResult = Awaited<ReturnType<typeof requestPlayAdmission>>;
+type AdmissionAttempt = { readonly generation: number; timer?: ReturnType<typeof setTimeout> };
+type AdmissionRequest = { readonly result: Promise<AdmissionResult>; readonly requestedAt: number };
 /**
  * Owns one authenticated player's live view, including admission, patch assembly and reconnects.
  * Local intentions never enter its state and are never replayed after a disconnect.
@@ -53,9 +48,9 @@ export class GameSubscription {
   private silentTicks = 0;
   private stopOnline: (() => void) | undefined;
   private stopVisible: (() => void) | undefined;
-  private ticketAttempt: TicketAttempt | undefined;
-  /* The ticket request still on the wire: an attempt that gives up waiting leaves it there for the next attempt to take its answer. */
-  private ticketRequest: TicketRequest | undefined;
+  private admissionAttempt: AdmissionAttempt | undefined;
+  /* The admission request still on the wire: an attempt that gives up waiting leaves it there for the next attempt to take its answer. */
+  private admissionRequest: AdmissionRequest | undefined;
   private generation = 0;
   private current: RoomView | null = null;
   /* Whether this attempt has shown the table once: a suspended admission before that is still the first connect, not a pause. */
@@ -67,7 +62,7 @@ export class GameSubscription {
   private connectionStatus: TableConnectionStatus = 'connecting';
   /* Server time less monotonic time, the largest since this attempt connected: transit delay only ever makes a frame's reading smaller. */
   private serverOffset = Number.NEGATIVE_INFINITY;
-  /* Admissions retried since the table last showed, for a lapsed ticket or a Worker that could not reach Convex; each one doubles the wait before the next. */
+  /* Admissions retried since the table last showed, for a lapsed pass; each one doubles the wait before the next. */
   private admissionRetries = 0;
   /** Why the last attempt failed before a table showed, kept on screen through the retries so a table that never answers never reads as still connecting. */
   private retryReason: string | null = null;
@@ -83,7 +78,7 @@ export class GameSubscription {
 
   constructor(
     private readonly gameId: string,
-    private readonly requestTicket: typeof requestPlayAdmission,
+    private readonly requestAdmission: typeof requestPlayAdmission,
     private readonly runtime: GameRuntime = browserGameRuntime,
     private readonly watchPass?: typeof watchSeatPass
   ) {
@@ -139,9 +134,9 @@ export class GameSubscription {
     this.reconnectTimer = undefined;
     clearTimeout(this.admissionTimer);
     clearInterval(this.keepaliveTimer);
-    clearTimeout(this.ticketAttempt?.timer);
-    this.ticketAttempt = undefined;
-    this.ticketRequest = undefined;
+    clearTimeout(this.admissionAttempt?.timer);
+    this.admissionAttempt = undefined;
+    this.admissionRequest = undefined;
     const socket = this.socket;
     this.socket = null;
     socket?.close();
@@ -214,9 +209,9 @@ export class GameSubscription {
     }
     const generation = this.generation;
     const pass = this.renewing;
-    let result: TicketResult | undefined;
+    let result: AdmissionResult | undefined;
     try {
-      result = await this.requestTicket(this.gameId, { renew: true });
+      result = await this.requestAdmission(this.gameId, { renew: true });
     } catch {
       /* Convex did not answer; the retry below asks again. */
     }
@@ -272,13 +267,13 @@ export class GameSubscription {
     this.scheduleReconnect(delay);
   }
 
-  /* Every retry asks for a new ticket, so the wait doubles to keep an outage from spending the ticket rate limits. */
+  /* Every retry asks Convex for a fresh pass, so the wait doubles to keep an outage from spending the pass rate limits. */
   private admissionRetryDelay() {
-    return Math.min(1000 * 2 ** this.admissionRetries++, PLAY_TICKET_RETRY_MAX_MS);
+    return Math.min(1000 * 2 ** this.admissionRetries++, PLAY_ADMISSION_RETRY_MAX_MS);
   }
 
-  private renewExpiredTicket() {
-    /* The room said the credential ran out; a held pass the browser still thinks current is renewed rather than offered again. */
+  private renewExpiredPass() {
+    /* The room said the pass ran out; a held pass the browser still thinks current is renewed rather than offered again. */
     this.renewOnOpen = true;
     this.changeStatus('suspended');
     this.scheduleReconnect(this.admissionRetryDelay());
@@ -288,13 +283,12 @@ export class GameSubscription {
     if (!this.listener) {
       return;
     }
-    const attempt: TicketAttempt = { generation: ++this.generation };
-    this.ticketAttempt = attempt;
+    const attempt: AdmissionAttempt = { generation: ++this.generation };
+    this.admissionAttempt = attempt;
     this.sawView = false;
     this.serverOffset = Number.NEGATIVE_INFINITY;
     this.changeStatus('connecting', this.retryReason);
-    const request = this.pendingTicketRequest();
-    const result = await this.acquireTicket(attempt, request);
+    const result = await this.acquireAdmission(attempt, this.pendingAdmissionRequest());
     if (!this.isCurrentAttempt(attempt) || !result) {
       return;
     }
@@ -306,23 +300,15 @@ export class GameSubscription {
       this.retryAfterFailure('The table is temporarily unavailable.', Math.max(1000, result.retryAfterMs ?? 1000));
       return;
     }
-    /* A pass carries its own deadline, which the room checks; a ticket's short lifetime is measured here. */
-    const expiresAt = 'pass' in result ? Number.POSITIVE_INFINITY : request.requestedAt + result.expiresInMs;
-    if (expiresAt <= this.runtime.monotonicNow()) {
-      this.renewExpiredTicket();
-      return;
-    }
-    if ('pass' in result) {
-      this.schedulePassRenewal(result.pass);
-    }
+    this.schedulePassRenewal(result.pass);
     try {
-      this.openSocket('pass' in result ? { pass: result.pass } : { ticket: result.ticket }, expiresAt);
+      this.openSocket(result.pass);
     } catch {
       this.retryAfterFailure('The table could not connect. Reconnecting...');
     }
   }
 
-  private isCurrentAttempt(attempt: TicketAttempt) {
+  private isCurrentAttempt(attempt: AdmissionAttempt) {
     return this.listener !== null && attempt.generation === this.generation;
   }
 
@@ -330,31 +316,33 @@ export class GameSubscription {
    * Reuses the request an earlier attempt stopped waiting for (#1378).
    * Asking again would not overtake it: one client's mutations run in order, so each new request queues behind the old one.
    * A connection whose round trip outlasts the wait would then throw away every answer and never be admitted.
-   * Only a request older than a ticket's whole lifetime is replaced, because nothing it could still answer would be usable.
+   * Only a request that has hung for longer than `ADMISSION_REQUEST_REUSE_MS` is replaced.
    */
-  private pendingTicketRequest(): TicketRequest {
+  private pendingAdmissionRequest(): AdmissionRequest {
     const now = this.runtime.monotonicNow();
-    if (this.ticketRequest && now - this.ticketRequest.requestedAt < PLAY_TICKET_TTL_MS) {
-      return this.ticketRequest;
+    if (this.admissionRequest && now - this.admissionRequest.requestedAt < ADMISSION_REQUEST_REUSE_MS) {
+      return this.admissionRequest;
     }
-    /* The ticket's lifetime starts somewhere inside the request, so measuring from before it can only end early. */
     const renew = this.renewOnOpen;
     this.renewOnOpen = false;
-    const request: TicketRequest = {
-      result: renew ? this.requestTicket(this.gameId, { renew }) : this.requestTicket(this.gameId),
+    const request: AdmissionRequest = {
+      result: renew ? this.requestAdmission(this.gameId, { renew }) : this.requestAdmission(this.gameId),
       requestedAt: now,
     };
-    this.ticketRequest = request;
+    this.admissionRequest = request;
     /* A failed request is never reused; the next attempt asks again. */
     request.result.catch(() => {
-      if (this.ticketRequest === request) {
-        this.ticketRequest = undefined;
+      if (this.admissionRequest === request) {
+        this.admissionRequest = undefined;
       }
     });
     return request;
   }
 
-  private async acquireTicket(attempt: TicketAttempt, request: TicketRequest): Promise<TicketResult | null> {
+  private async acquireAdmission(
+    attempt: AdmissionAttempt,
+    request: AdmissionRequest
+  ): Promise<AdmissionResult | null> {
     try {
       const result = await Promise.race([
         request.result,
@@ -362,9 +350,9 @@ export class GameSubscription {
           attempt.timer = setTimeout(() => reject(new Error('Admission timed out.')), PLAY_REQUEST_TIMEOUT_MS);
         }),
       ]);
-      /* An answer is used once; whatever happens next asks for a fresh ticket. */
-      if (this.ticketRequest === request) {
-        this.ticketRequest = undefined;
+      /* An answer is used once; whatever happens next asks again. */
+      if (this.admissionRequest === request) {
+        this.admissionRequest = undefined;
       }
       return result;
     } catch {
@@ -377,32 +365,21 @@ export class GameSubscription {
     }
   }
 
-  private openSocket(issued: Credential, expiresAt: number) {
+  private openSocket(pass: string) {
     const socket = this.runtime.openSocket(this.gameId);
     this.socket = socket;
-    let credential: Credential | null = issued;
     socket.onopen = () => {
       if (!this.isCurrentSocket(socket)) {
-        return;
-      }
-      /* Detached before closing: the close event reports whatever code the Worker answers with, so the expiry renews the ticket here. */
-      if (expiresAt <= this.runtime.monotonicNow() || !credential) {
-        credential = null;
-        this.socket = null;
-        socket.close();
-        this.renewExpiredTicket();
         return;
       }
       /* The Worker answered, so whatever happens next is not a table that could not be reached. */
       this.retryReason = null;
       const admit: ClientMessage = {
         type: 'admit',
-        supportsBoard: true,
-        ...credential,
+        pass,
         ...(this.connectionId ? { replaces: this.connectionId } : {}),
       };
       socket.send(JSON.stringify(admit));
-      credential = null;
       this.startKeepalive(socket, 0);
     };
     socket.onmessage = (event) => this.receiveSocketMessage(socket, event.data);
@@ -410,7 +387,6 @@ export class GameSubscription {
       if (!this.isCurrentSocket(socket)) {
         return;
       }
-      credential = null;
       this.socket = null;
       clearTimeout(this.admissionTimer);
       clearInterval(this.keepaliveTimer);
@@ -418,12 +394,8 @@ export class GameSubscription {
       if (this.status === 'denied') {
         return;
       }
-      if (event.code === TICKET_EXPIRED_CLOSE_CODE) {
-        this.renewExpiredTicket();
-        return;
-      }
-      if (event.code === ADMISSION_UNAVAILABLE_CLOSE_CODE) {
-        this.retryAfterFailure('The table is temporarily unavailable.', this.admissionRetryDelay());
+      if (event.code === PASS_EXPIRED_CLOSE_CODE) {
+        this.renewExpiredPass();
         return;
       }
       if (event.code === ADMISSION_REFUSED_CLOSE_CODE) {
@@ -565,10 +537,6 @@ export class GameSubscription {
 
   /* The Worker admits every socket as suspended until its authorization is confirmed, so on a first connect the pause is the connection still opening and reads as such. */
   private receiveAdmission(message: Extract<ServerMessage, { type: 'admission' }>) {
-    if (message.status === 'refresh') {
-      this.changeStatus('denied', 'This table needs a newer version of the page. Refresh to continue.');
-      return;
-    }
     if (message.status === 'pass-expired') {
       /* The room holds the table until a fresh pass arrives through the pass watch. */
       void this.renewPass();

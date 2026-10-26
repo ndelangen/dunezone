@@ -52,7 +52,6 @@ describe('The hosted fixture deals the catalogue treachery deck', () => {
   let peer: NativePeer, runtime: NativeRuntime;
   beforeEach(async () => {
     peer = await createPeer();
-    peer.watchMode = 'allow';
   });
   afterEach(async () => {
     await runtime?.close();
@@ -70,7 +69,7 @@ describe('The hosted fixture deals the catalogue treachery deck', () => {
     seedDreamrules(peer);
     runtime = await createRuntime(peer, 'game');
     expect((await provision(runtime)).status).toBe(200);
-    expectDealt(treachery(await syncView(await admitPlayer(peer, runtime, 'a'))));
+    expectDealt(treachery(await syncView(await admitPlayer(runtime, 'a'))));
     expect(required((await readJson('metadata')).fixtureDeck).definitions).toEqual([]);
   });
 
@@ -78,9 +77,9 @@ describe('The hosted fixture deals the catalogue treachery deck', () => {
     seedDreamrules(peer);
     runtime = await createRuntime(peer, 'game');
     expect((await provision(runtime)).status).toBe(200);
-    const first = treachery(await syncView(await admitPlayer(peer, runtime, 'a')));
+    const first = treachery(await syncView(await admitPlayer(runtime, 'a')));
     await runtime.restart();
-    const a = await admitPlayer(peer, runtime, 'a');
+    const a = await admitPlayer(runtime, 'a');
     const reset = await sendCommand(a, { kind: 'reset' });
     expect(reset.reply.type).not.toBe('rejected');
     const dealt = treachery(await syncView(a));
@@ -95,7 +94,7 @@ describe('The hosted fixture deals the catalogue treachery deck', () => {
   it('keeps the placeholder cards when the catalogue has no deck, and adopts the deck on a later wake', async () => {
     runtime = await createRuntime(peer, 'game');
     expect((await provision(runtime)).status).toBe(200);
-    const placeholder = treachery(await syncView(await admitPlayer(peer, runtime, 'a')));
+    const placeholder = treachery(await syncView(await admitPlayer(runtime, 'a')));
     expect(required(placeholder.deck).items).toHaveLength(4);
     expect(required(placeholder.deck).items[0].artwork).toBeUndefined();
     expect((await readJson('metadata')).fixtureDeck).toBeUndefined();
@@ -106,7 +105,7 @@ describe('The hosted fixture deals the catalogue treachery deck', () => {
     /* The woken room retains the deck on its own and leaves the table alone until someone resets it. */
     await eventually(async () => (await readJson('metadata')).fixtureDeck !== undefined, 'deck adopted on wake');
     expect((await readJson('current_state')).revision).toBe(revision);
-    const b = await admitPlayer(peer, runtime, 'a');
+    const b = await admitPlayer(runtime, 'a');
     expect(required(treachery(await syncView(b)).deck).items[0].artwork).toBeUndefined();
     const reset = await sendCommand(b, { kind: 'reset' });
     expect(reset.reply.type).not.toBe('rejected');
