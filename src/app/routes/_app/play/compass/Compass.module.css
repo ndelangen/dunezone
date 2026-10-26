@@ -1,6 +1,9 @@
 /* The compass over the table: a tile at the end of each arm, the search field at its centre, and the suggestions below. */
 
 .veil {
+  /* A block's place in the close: the outer tiles go first, the search field last. */
+  --close-order: 0;
+
   position: absolute;
   z-index: 40;
   inset: 0;
@@ -299,6 +302,50 @@
   font: 400 0.74rem var(--font-sans);
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/*
+ * The close, played on a lifeless copy (Compass leaves it only when motion is welcome): the blocks go from the outside in,
+ * one short beat apart, each shrinking a touch as it fades, the search field last, while the veil lifts under them.
+ */
+.veil[data-closing] {
+  pointer-events: none;
+  animation: veil-lift 230ms ease-in forwards;
+}
+
+.veil[data-closing] .compass {
+  animation: none;
+}
+
+.veil[data-closing] :is(.tile, .hub, .suggestions) {
+  transition: none;
+  animation: block-out 110ms cubic-bezier(0.5, 0, 0.75, 0) both;
+  animation-delay: calc(var(--close-order) * 40ms);
+}
+
+.veil[data-closing] .tile:is([data-spot="hand"], [data-spot="table"]) {
+  --close-order: 1;
+}
+
+.veil[data-closing] :is(.tile[data-spot="battle"], .suggestions) {
+  --close-order: 2;
+}
+
+.veil[data-closing] .hub {
+  --close-order: 3;
+}
+
+@keyframes veil-lift {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes block-out {
+  to {
+    opacity: 0;
+    scale: 0.82;
+  }
 }
 
 /* With motion reduced the compass appears in place, and a refused tile stays still. */

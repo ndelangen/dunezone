@@ -1,11 +1,19 @@
 /** @vitest-environment jsdom */
 
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { StrictMode } from 'react';
 import { afterEach, expect, test, vi } from 'vite-plus/test';
 
 import { RadialMenu } from './RadialMenu';
 
-afterEach(cleanup);
+afterEach(async () => {
+  cleanup();
+  await Promise.resolve();
+  /* Each unmounted ring leaves a closing copy for a moment; the next test starts without them. */
+  for (const copy of document.querySelectorAll('[data-closing]')) {
+    copy.remove();
+  }
+});
 
 function deckMenu(onClose = vi.fn(), recipients = ['Atreides', 'Fremen']) {
   render(
@@ -118,4 +126,36 @@ test('a caption with no room beside the ring stays inside a short window', () =>
   } finally {
     vi.unstubAllGlobals();
   }
+});
+
+test('closing removes the menu at once and leaves only a lifeless copy to play the close', async () => {
+  vi.useFakeTimers();
+  try {
+    const { unmount } = render(
+      <RadialMenu name="Deck actions" hub="12 cards" x={400} y={300} onClose={vi.fn()} actions={[]} />
+    );
+    unmount();
+    await act(async () => {});
+    expect(document.querySelectorAll('[data-closing]')).toHaveLength(1);
+    expect(screen.queryByRole('menu')).toBeNull();
+    const copy = document.querySelector<HTMLElement>('[data-closing]');
+    expect(copy?.getAttribute('aria-hidden')).toBe('true');
+    expect(copy?.querySelector('[role], [id]')).toBeNull();
+    expect(copy?.hasAttribute('data-radial-menu')).toBe(false);
+    vi.advanceTimersByTime(300);
+    expect(document.querySelector('[data-closing]')).toBeNull();
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+test("React's strict remount leaves no closing copy behind", async () => {
+  render(
+    <StrictMode>
+      <RadialMenu name="Deck actions" hub="12 cards" x={400} y={300} onClose={vi.fn()} actions={[]} />
+    </StrictMode>
+  );
+  await act(async () => {});
+  expect(document.querySelector('[data-closing]')).toBeNull();
+  expect(screen.getByRole('menu', { name: 'Deck actions' })).toBeTruthy();
 });

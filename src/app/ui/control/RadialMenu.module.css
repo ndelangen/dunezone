@@ -10,6 +10,10 @@
   --halo-size: 13rem;
   --hold-progress: 0;
   --target-size: 2.6rem;
+  /* Each child's place from the centre and its turn in the open, rewritten inline per child. */
+  --x: 0px;
+  --y: 0px;
+  --order: 0;
 
   position: fixed;
   z-index: 400;
@@ -19,19 +23,80 @@
   color: var(--radial-ink);
   font-family: var(--font-sans, Inter, system-ui, sans-serif);
   outline: none;
-  animation: radial-open 140ms cubic-bezier(0.2, 0.9, 0.3, 1.2);
+  /* A little past the mark and back: the open's short bounce. */
+  --radial-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-@keyframes radial-open {
+/*
+ * Motion, only where the visitor welcomes it (RadialMenu sets data-motion from useMotionAllowed):
+ * the halo swells, each item flies out from the pointer a beat after the one before and settles with a small bounce,
+ * and the caption follows. A stepped-into ring flies out the same way, and stepping back replays the first ring.
+ */
+.ring[data-motion] .halo {
+  transition:
+    width 220ms var(--radial-spring),
+    height 220ms var(--radial-spring);
+  animation: radial-swell 220ms var(--radial-spring) both;
+}
+
+.ring[data-motion] .pivot {
+  animation: radial-pop 180ms var(--radial-spring) both;
+}
+
+.ring[data-motion] :is(.item, .target) {
+  animation: radial-fly 240ms var(--radial-spring) both;
+  animation-delay: calc(var(--order) * 14ms);
+}
+
+.ring[data-motion] .back {
+  animation: radial-pop 200ms var(--radial-spring) both;
+}
+
+.ring[data-motion] .caption {
+  animation: radial-caption 160ms ease-out 60ms both;
+}
+
+/* The close plays on a lifeless copy: it gathers in towards the pointer with a slight breath out first. */
+.ring[data-closing] {
+  pointer-events: none;
+  animation: radial-close 150ms cubic-bezier(0.36, 0, 0.66, -0.56) forwards;
+}
+
+.ring[data-closing] * {
+  transition: none;
+}
+
+@keyframes radial-swell {
   from {
     opacity: 0;
-    transform: scale(0.6);
+    scale: 0.55;
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .ring {
-    animation: none;
+@keyframes radial-pop {
+  from {
+    opacity: 0;
+    scale: 0.3;
+  }
+}
+
+@keyframes radial-fly {
+  from {
+    opacity: 0;
+    transform: translate(calc(-1 * var(--x)), calc(-1 * var(--y))) scale(0.4);
+  }
+}
+
+@keyframes radial-caption {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes radial-close {
+  to {
+    opacity: 0;
+    scale: 0.6;
   }
 }
 
@@ -50,9 +115,6 @@
   );
   translate: -50% -50%;
   pointer-events: none;
-  transition:
-    width 180ms,
-    height 180ms;
 }
 
 .pivot {
@@ -162,19 +224,11 @@
   transition:
     scale 90ms,
     border-color 90ms;
-  animation: radial-target 180ms ease-out both;
 }
 
 .target > * {
   width: 100%;
   height: 100%;
-}
-
-@keyframes radial-target {
-  from {
-    opacity: 0;
-    scale: 0.4;
-  }
 }
 
 .target:hover:not(:disabled),
@@ -193,12 +247,6 @@
 .back .glyph {
   width: 1.1rem;
   height: 1.1rem;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .target {
-    animation: none;
-  }
 }
 
 /* What the pointer is on, to the right of the ring, with its shortcut. */

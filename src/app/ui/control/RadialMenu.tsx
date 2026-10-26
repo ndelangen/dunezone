@@ -5,6 +5,9 @@ import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import type { CSSProperties, KeyboardEvent, ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
+import { useClosingCopy } from '@app/styles/closingCopy';
+import { useMotionAllowed } from '@app/styles/motion';
+
 import styles from './RadialMenu.module.css';
 import { HOLD_SECONDS, useHoldToConfirm } from './useHoldToConfirm';
 
@@ -96,8 +99,11 @@ function slotAngle(slot: number) {
   return -Math.PI / 2 + (slot * 2 * Math.PI) / SLOTS;
 }
 
+/* Where a child sits from the centre; `--x` and `--y` repeat it so the open animation can fly the child out from the centre. */
 function at(angle: number, radius: number): CSSProperties {
-  return { left: Math.cos(angle) * radius, top: Math.sin(angle) * radius };
+  const left = Math.cos(angle) * radius;
+  const top = Math.sin(angle) * radius;
+  return { left, top, '--x': `${left}px`, '--y': `${top}px` } as CSSProperties;
 }
 
 function Glyph({ icon }: Readonly<{ icon: RadialIcon }>) {
@@ -196,6 +202,9 @@ function keepInside(value: number, margin: number, size: number) {
   return 2 * margin >= size ? size / 2 : Math.max(margin, Math.min(value, size - margin));
 }
 
+/* The close is short; past this the copy goes even if no animation reports its end, as when the page is hidden. */
+const CLOSE_MS = 300;
+
 /* How long the pointer rests on an item with choices before the ring steps into it. */
 const STEP_IN_MS = 450;
 
@@ -274,6 +283,11 @@ export function RadialMenu({
     };
   }, []);
 
+  /* The ring closes at once for the table, focus and assistive technology; only a lifeless copy of it shrinks away. */
+  const motion = useMotionAllowed();
+  /* The copy is new to the page, so with its motion mark its items would replay their open while it closes. */
+  useClosingCopy(menu, { enabled: motion, ms: CLOSE_MS, strip: ['data-radial-menu', 'data-motion'] });
+
   /* A press anywhere else closes the ring before that press does its own work, so right-clicking the next piece opens its ring at once. */
   useEffect(() => {
     const close = (event: PointerEvent) => {
@@ -328,6 +342,7 @@ export function RadialMenu({
       aria-describedby={`${labelId}-hub`}
       tabIndex={-1}
       data-radial-menu=""
+      data-motion={motion || undefined}
       className={styles.ring}
       style={centre}
       onKeyDown={onKeyDown}
@@ -372,7 +387,7 @@ export function RadialMenu({
           disabled={action.disabled}
           hidden={Boolean(level)}
           className={styles.item}
-          style={at(slotAngle(slot), RING_RADIUS)}
+          style={{ ...at(slotAngle(slot), RING_RADIUS), '--order': slot } as CSSProperties}
           onClick={() => (action.targets ? stepInto(action) : action.onSelect?.())}
           onPointerEnter={() => {
             setCaption({ text: action.label, shortcut: action.shortcut });
@@ -392,7 +407,7 @@ export function RadialMenu({
           key={held.key}
           action={held}
           hidden={Boolean(level)}
-          style={at(slotAngle(SLOTS - 1), RING_RADIUS)}
+          style={{ ...at(slotAngle(SLOTS - 1), RING_RADIUS), '--order': SLOTS - 1 } as CSSProperties}
           onCaption={setCaption}
         />
       )}
@@ -422,7 +437,7 @@ export function RadialMenu({
                 {
                   ...at(-Math.PI / 2 + (index * 2 * Math.PI) / targets.length, radius),
                   '--target-size': `${disc}px`,
-                  animationDelay: `${index * 12}ms`,
+                  '--order': index,
                 } as CSSProperties
               }
               onClick={target.onSelect}
