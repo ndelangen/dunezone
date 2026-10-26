@@ -43,8 +43,9 @@ export function SpiceReserve({ client, table }: Readonly<{ client: TableSession;
     <Section hiddenHeading={Boolean(table.snapshot.stage)} title="Spice reserve" description={SPICE_RESERVE_HELP}>
       <div className={styles.spice}>
         <div className={styles.balance}>
+          {/* The two keys share one parent, so each names what it counts: the first withdrawal and the first bump are both 1. */}
           <output
-            key={seen.bump}
+            key={`balance-${seen.bump}`}
             aria-label="Spice reserve balance"
             className={styles.balanceNumber}
             data-bump={seen.bump > 0 || undefined}
@@ -52,7 +53,7 @@ export function SpiceReserve({ client, table }: Readonly<{ client: TableSession;
             {balance}
           </output>
           {withdrawn && (
-            <span key={withdrawn.key} className={styles.floatAway} aria-hidden>
+            <span key={`withdrawn-${withdrawn.key}`} className={styles.floatAway} aria-hidden>
               −{withdrawn.amount}
             </span>
           )}

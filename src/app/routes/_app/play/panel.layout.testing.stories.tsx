@@ -31,9 +31,9 @@ export const Windows = meta.story({
   ),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await openTab(page, 'Shared inventory');
+    await openTab(page, 'Shared table inventory');
     await settled(async () => {
-      await expect(page.getByRole('region', { name: 'Shared inventory' })).toBeVisible();
+      await expect(page.getByRole('region', { name: 'Shared table inventory' })).toBeVisible();
       await expect(page.queryByRole('heading', { name: 'Spice reserve' })).toBeNull();
     });
     const compass = await openCompass(page);
@@ -50,7 +50,7 @@ export const Windows = meta.story({
       await expect(page.getByRole('region', { name: 'Spice reserve' })).toBeVisible();
       await expect(page.getByRole('region', { name: 'Your hand and leaders' })).toBeVisible();
       await expect(page.queryByRole('region', { name: 'Public spice transfers' })).toBeNull();
-      await expect(page.queryByRole('heading', { name: 'Shared inventory' })).toBeNull();
+      await expect(page.queryByRole('heading', { name: 'Shared table inventory' })).toBeNull();
     });
 
     await openTab(page, 'Phase');
