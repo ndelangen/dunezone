@@ -85,7 +85,9 @@ function focusKeepsKey(target: EventTarget | null, branch: 'spiceBank' | 'table'
 
 /* An open menu, or a dialog over the table such as a deck held open by a peek, steps through its own items with the arrows. */
 function inOpenMenu(target: EventTarget | null) {
-  return target instanceof Element && target.closest("[role='menu'], [role='dialog']") !== null;
+  return (
+    target instanceof Element && target.closest("[role='menu'], [role='dialog'], dialog, [aria-modal='true']") !== null
+  );
 }
 
 function isArrowKey(event: KeyboardEvent) {

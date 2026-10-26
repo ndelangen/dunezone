@@ -72,7 +72,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       'look-right',
       'right',
       'Look at the right of the table',
-      'R on the same dial turns to the other side, where the Spice deck and your reserves lie.'
+      'R on the same dial turns to the other side, where the Spice deck lies.'
     ),
     dialTask(
       'look-bottom',

@@ -162,7 +162,7 @@ const slotTasks = (): GuideTask[] => [
     id: 'letter',
     task: 'Bring the chat back with one key',
     detail:
-      'Each window has a letter, shown beside it on the compass: {H} your hand, {J} your side-table, {G} the table chat, {F} your ally, {B} your battle plan. Point at an empty part of the table and press {G}.',
+      'Each window has a letter, shown beside it on the compass: {H} your hand, {J} your side-table, {G} the table chat, {F} your ally, {B} your battle plan. Click an empty part of the table, so no piece is picked, then press {G}.',
     anchor: { kind: 'page', element: first('[data-compass-launcher]') },
     ...openedWindow(windowShown('table-chat')),
   }),

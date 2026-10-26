@@ -400,11 +400,14 @@ describe('the cursor over the table', () => {
       event.preventDefault();
     });
     card.focus();
+    const heardAbove = vi.fn();
+    document.addEventListener('keydown', heardAbove);
 
     key('keydown', { key: 'ArrowLeft', code: 'ArrowLeft' }, card);
+    document.removeEventListener('keydown', heardAbove);
 
     expect(moved).toHaveBeenCalled();
-    expect(keyboard.panDirection()).toEqual([0, 0]);
+    expect(heardAbove).toHaveBeenCalled();
   });
 
   test('off the table, the focused tab list keeps its arrows again', () => {

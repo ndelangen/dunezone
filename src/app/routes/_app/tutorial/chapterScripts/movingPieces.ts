@@ -12,32 +12,25 @@ import type { Piece } from './guideChecks';
  */
 
 /*
- * The cards of a deck held open by a peek, by name, top first; null while no deck is open.
- * Names rather than ids: a card moved in the deck gives every card a new handle, so nobody else can follow it.
- * Each card's handle is named for the card and its place, as "Old Gap, Top. Arrow keys move it.".
+ * The cards of a deck held open by a peek, by the handles the peek shows them under, top first; null while no deck is open.
+ * Handles rather than names, since a deck holds several cards of one name.
  */
 const peekedOrder = () => {
   const row = document.querySelector('[role="dialog"][aria-label^="Peeking at"] ol');
-  return row
-    ? [...row.querySelectorAll('[data-card] [role="button"]')].map((card) =>
-        (card.getAttribute('aria-label') ?? '').replace(/, [^,]*$/, '')
-      )
-    : null;
+  return row ? [...row.querySelectorAll('[data-card]')].map((card) => card.getAttribute('data-card') ?? '') : null;
 };
 
 /*
- * Moving a card counts the order the peek first showed against the order it shows now, so the task waits for the deck to open
- * and then for one card to change place, by dragging or by the arrow keys. A card pulled out of the deck changes its size,
- * and the order from then on is the one compared against.
+ * Moving a card in a deck held open gives every card a new handle, so nobody else can follow it, and the peek stays open.
+ * Anything else that changes the deck's handles closes the peek, as a shuffle or a draw does, and pulling a card out changes its size.
+ * So the task waits for the deck to open, then counts a change of handles at the same size while it stays open;
+ * a peek that closes starts over from the order it shows when it opens again.
  */
 const movedInPeek = () => ({
   begin: () => ({ first: null as string[] | null }),
   done: (watch: { first: string[] | null }) => {
     const order = peekedOrder();
-    if (!order) {
-      return false;
-    }
-    if (watch.first?.length !== order.length) {
+    if (!order || watch.first?.length !== order.length) {
       watch.first = order;
       return false;
     }
