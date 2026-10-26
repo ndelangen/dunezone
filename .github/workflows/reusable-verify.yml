@@ -299,7 +299,7 @@ jobs:
       - name: Check for orphaned CSS module classes
         run: bun run check:css-orphans
       - name: Check Play colours stay centralized
-        run: bun run check:play-colors && bun run verify:palette
+        run: bun run check:play-colors && bun run verify:palette && bun run verify:mantine-css
       - name: Check every CSS custom property read resolves
         run: bun run check:css-vars
       - name: Check width media queries sit in the window chrome, on the ladder

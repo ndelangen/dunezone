@@ -2,6 +2,17 @@
 
 Quick reference for understanding and working with the codebase.
 
+## Mantine styles
+
+The application and Storybook import `src/app/styles/mantine.generated.css`. It includes only the
+Mantine components used in `src/` and `.storybook/`, together with their internal dependencies,
+baseline, variables and global helpers. The retained vendor rules and their cascade order stay
+unchanged. Renderer-owned artwork CSS is separate.
+
+Run `bun run generate:mantine-css` after adding or removing a Mantine component. `bun run check`
+verifies that this entry matches the installed package and current imports. The check fails on
+untraceable imports or missing styles rather than publishing partially styled controls.
+
 ## TypeScript source
 
 Maintained scripts, tests, mocks and Convex generated modules use TypeScript. `convex.json`
