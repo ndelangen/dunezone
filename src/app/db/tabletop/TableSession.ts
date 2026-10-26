@@ -259,7 +259,6 @@ export class TableSession {
   private battleCountdownUntil = 0;
   private readonly battle: BattleQueue;
   private catalogueResult?: Extract<ServerMessage, { type: 'catalogue' }>;
-  /* A capture never changes once a game holds it, so each answer is kept across reconnects. */
   private retainedBoard: GameSnapshot['board'];
   private readonly pages: TablePages;
 
