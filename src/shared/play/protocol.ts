@@ -105,6 +105,8 @@ export const gameSnapshotSchema = z.object({
   battle: publicBattleSchema.nullable().optional(),
   battlePlan: battlePlanSchema.nullable().optional(),
   hand: z.array(pieceSchema).optional(),
+  /* The viewer's own order of its hand and planned pieces, by piece id; pieces it does not name follow in the hand's order. */
+  handOrder: z.array(z.string()).optional(),
   /* How many Treachery cards each seated faction holds, by faction id: public, as the rules make the count of a hand public. */
   handCounts: z.record(z.string(), count).optional(),
   /* The piece the viewer's faction is peeking at, faces showing; no other viewer's frame carries it. */
