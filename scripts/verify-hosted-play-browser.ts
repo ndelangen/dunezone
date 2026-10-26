@@ -716,11 +716,14 @@ async function signOutReport() {
         label: who.label,
         sockets,
         storageEventMs: timing ? since(timing.storageAt) : 'unread',
-        longFrames: {
-          count: frames.length,
-          totalMs: frames.reduce((total, frame) => total + frame.ms, 0),
-          longest: longest && { atMs: since(longestAt), ...longestFrame },
-        },
+        /* A tab whose main thread outlasted the read has no frames to count, which is not the same as none. */
+        longFrames: timing
+          ? {
+              count: frames.length,
+              totalMs: frames.reduce((total, frame) => total + frame.ms, 0),
+              longest: longest && { atMs: since(longestAt), ...longestFrame },
+            }
+          : 'unread',
       };
     })
   );
