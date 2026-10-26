@@ -20,7 +20,8 @@ The export also includes the latest page of Game and Audit events, with each pag
 The browser contributes its current game snapshot and local table projection, playback state,
 selected piece, connection state, viewport, pixel ratio, language, user agent and online status.
 It also includes censored chat history, pending sends, delivery errors and history-loading state.
-Message text is censored before serialization. Known message bodies in console strings are also
+The browser sends its conversation data to the game room over the authenticated request. The room
+censors it before serializing the public export. Known message bodies in console strings are also
 censored, including messages serialized as JSON. Existing censorship markers keep their original
 length on repeated passes.
 Its console output, resource errors, uncaught exceptions and unhandled promise rejections are
@@ -79,6 +80,10 @@ from a protected file, never a command-line secret value:
 - `BUG_REPORT_GITHUB_APP_ID`
 - `BUG_REPORT_GITHUB_INSTALLATION_ID`
 - `BUG_REPORT_GITHUB_PRIVATE_KEY`
+
+Create the private `dunezone-bug-report-states` bucket before deployment with
+`wrangler r2 bucket create dunezone-bug-report-states`. The configured bucket name disables
+automatic provisioning. Keep public bucket access disabled; individual exports are served by the Worker.
 
 Create the `reported-bug` repository label before the first report. The checked-in Worker
 configuration adds the R2 binding and the `v3` SQLite migration for the report coordinator.

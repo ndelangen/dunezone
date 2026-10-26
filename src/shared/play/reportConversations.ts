@@ -1,8 +1,10 @@
+import { redactReportText } from './reportRedaction';
+
 export function redactedMessage(length: number): string {
   return `-redacted message, original length: ${length}-`;
 }
 
-export const messageLength = (text: string) => Array.from(text).length;
+const messageLength = (text: string) => Array.from(text).length;
 
 /** Keeps conversation diagnostics while replacing message text and author names before serialization. */
 export function censorReportConversations(value: unknown): unknown {
@@ -33,11 +35,27 @@ export function censorKnownMessage(value: string, message: string): string {
   }
   const replacement = redactedMessage(messageLength(message));
   const escaped = JSON.stringify(message).slice(1, -1);
-  for (const variant of new Set([message, escaped])) {
+  for (const variant of new Set([message, escaped, redactReportText(message), redactReportText(escaped)])) {
+    if (!value.includes(variant)) {
+      continue;
+    }
     value = value
       .split(/(-redacted message, original length: \d+-)/gu)
       .map((part, index) => (index % 2 ? part : part.replaceAll(variant, replacement)))
       .join('');
   }
   return value;
+}
+
+/** Raw browser chat travels only to the room, which combines it with saved messages before censoring the export. */
+export function reportConversationTexts(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.flatMap(reportConversationTexts);
+  }
+  if (!value || typeof value !== 'object') {
+    return [];
+  }
+  return Object.entries(value).flatMap(([key, child]) =>
+    key === 'text' && typeof child === 'string' ? [child] : reportConversationTexts(child)
+  );
 }

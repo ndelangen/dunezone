@@ -102,31 +102,61 @@ function describe(value: unknown): string {
     return redactReportText(value);
   }
   try {
-    const seen = new WeakSet<object>();
-    let nodes = 0;
-    const copy = (child: unknown, depth: number): unknown => {
-      if (++nodes > 200 || depth > 8 || (child && typeof child === 'object' && seen.has(child))) {
-        return '[omitted]';
-      }
-      if (child && typeof child === 'object') {
-        seen.add(child);
-        const entries = Object.entries(Object.getOwnPropertyDescriptors(child)).slice(0, 100);
-        /* Copy values before serialization, so neither getters nor toJSON methods run. */
-        return Object.fromEntries(
-          entries.map(([key, descriptor]) => [
-            key,
-            'value' in descriptor ? copy(descriptor.value, depth + 1) : '[getter]',
-          ])
-        );
-      }
-      return typeof child === 'bigint' || typeof child === 'symbol'
-        ? String(child)
-        : typeof child === 'function'
-          ? '[function]'
-          : child;
-    };
-    return JSON.stringify(redactReportData(censorReportConversations(copy(value, 0)))) ?? String(value);
+    const copied = new ConsoleValueCopy().copy(value, 0);
+    return JSON.stringify(redactReportData(censorReportConversations(copied))) ?? String(value);
   } catch {
     return '[unserializable console argument]';
+  }
+}
+
+class ConsoleValueCopy {
+  private readonly seen = new WeakSet<object>();
+  private nodes = 0;
+
+  private exhausted(depth: number) {
+    if (++this.nodes > 200) {
+      return true;
+    }
+    return depth > 8;
+  }
+
+  copy(child: unknown, depth: number): unknown {
+    if (this.exhausted(depth)) {
+      return '[omitted]';
+    }
+    if (child === null) {
+      return null;
+    }
+    if (typeof child !== 'object') {
+      return consolePrimitive(child);
+    }
+    if (this.seen.has(child)) {
+      return '[omitted]';
+    }
+    this.seen.add(child);
+    return this.properties(child, depth);
+  }
+
+  private properties(child: object, depth: number) {
+    const entries = Object.entries(Object.getOwnPropertyDescriptors(child)).slice(0, 100);
+    /* Copy values before serialization, so neither getters nor toJSON methods run. */
+    return Object.fromEntries(
+      entries.map(([key, descriptor]) => [
+        key,
+        'value' in descriptor ? this.copy(descriptor.value, depth + 1) : '[getter]',
+      ])
+    );
+  }
+}
+
+function consolePrimitive(value: unknown) {
+  switch (typeof value) {
+    case 'bigint':
+    case 'symbol':
+      return String(value);
+    case 'function':
+      return '[function]';
+    default:
+      return value;
   }
 }

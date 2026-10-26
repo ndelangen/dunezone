@@ -22,7 +22,7 @@ export async function sendPlayBugReport(
     body: JSON.stringify({ ...request, pass: admission.pass }),
     signal: AbortSignal.timeout(30_000),
   });
-  const result: unknown = await response.json();
+  const result: unknown = await response.json().catch(() => null);
   if (!response.ok) {
     const error =
       result !== null && typeof result === 'object' && 'error' in result && typeof result.error === 'string'

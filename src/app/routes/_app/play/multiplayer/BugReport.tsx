@@ -1,11 +1,10 @@
 import { Anchor, Button, Checkbox, Stack, Text, Textarea } from '@mantine/core';
 import { BUG_REPORT_DISCLOSURE, bugReportDescriptionSchema, bugReportDiagnosticsSchema } from '@shared/play/bugReports';
 import type { BugReportBrowser, BugReportProgress, BugReportRequest } from '@shared/play/bugReports';
-import { censorKnownMessage, censorReportConversations } from '@shared/play/reportConversations';
 import { FormError } from '@ui/block/FormError';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { useCallback, useEffect, useReducer, useRef } from 'react';
-import type { ReactNode } from 'react';
+import type { Dispatch, ReactNode } from 'react';
 
 import { BugReportRejected, sendPlayBugReport } from '@db/playBugReports';
 
@@ -64,31 +63,18 @@ const STAGES = {
 
 type Submission = Omit<Extract<BugReportRequest, { operation: 'send' }>, 'pass'>;
 
-function collectReport(
-  draft: Draft,
-  requestId: string,
-  table: TableProjection,
-  connection: string,
-  diagnostics: BrowserDiagnostics,
-  pending: Submission | null,
-  client: TableSession
-): Submission {
-  if (draft.requestId && pending) {
-    return pending;
-  }
+type ReportContext = {
+  gameId: string;
+  client: TableSession;
+  table: TableProjection;
+  connection: string;
+  diagnostics: BrowserDiagnostics;
+};
+
+function collectReport(context: ReportContext, description: string, requestId: string): Submission {
+  const { client, table, connection, diagnostics } = context;
   const conversations = client.getSnapshot().conversations;
-  const texts = [
-    ...Object.values(conversations.pages).flatMap((page) => page.entries.map((entry) => entry.text)),
-    ...conversations.pending.map((entry) => entry.request.text),
-  ];
   const captured = diagnostics.snapshot();
-  const logs = captured.logs.map((entry) => {
-    let text = entry.text;
-    for (const message of texts) {
-      text = censorKnownMessage(text, message);
-    }
-    return { ...entry, text: text.length <= 8192 ? text : `-redacted log, original length: ${entry.text.length}-` };
-  });
   const browser: BugReportBrowser = {
     snapshot: JSON.parse(
       JSON.stringify({
@@ -99,9 +85,8 @@ function collectReport(
         liveRevision: table.liveRevision,
       })
     ),
-    conversations: JSON.parse(JSON.stringify(censorReportConversations(conversations))),
+    conversations: JSON.parse(JSON.stringify(conversations)),
     ...captured,
-    logs,
     diagnostics: {
       clientRevision: table.liveRevision,
       connection: bugReportDiagnosticsSchema.shape.connection.parse(connection),
@@ -112,67 +97,102 @@ function collectReport(
       online: navigator.onLine,
     },
   };
-  return { operation: 'send', requestId, description: draft.description, browser };
+  return { operation: 'send', requestId, description, browser };
 }
 
-/** The hosted page owns the draft so closing or pinning its compass window does not lose a report in flight. */
-export function useBugReport(
-  gameId: string,
-  client: TableSession,
-  table: TableProjection,
-  connection: string,
-  diagnostics: BrowserDiagnostics
-): ReactNode {
-  const [draft, dispatch] = useReducer(reduce, initial);
-  const busy = useRef(false);
-  const pending = useRef<Submission | null>(null);
-  const submitted = draft.requestId !== null;
-  const valid = bugReportDescriptionSchema.safeParse({ description: draft.description }).success;
-  const send = async () => {
-    if (busy.current || !draft.acknowledged || !valid) {
+class ReportSubmission {
+  private busy = false;
+  private pending: Submission | null = null;
+
+  async send(context: ReportContext, draft: Draft, dispatch: Dispatch<Event>) {
+    if (this.busy || !draft.acknowledged) {
       return;
     }
-    busy.current = true;
+    if (!bugReportDescriptionSchema.safeParse({ description: draft.description }).success) {
+      return;
+    }
+    this.busy = true;
     const requestId = draft.requestId ?? crypto.randomUUID();
     dispatch({ type: 'sending', requestId });
     try {
-      pending.current = collectReport(draft, requestId, table, connection, diagnostics, pending.current, client);
-      const progress = await sendPlayBugReport(gameId, pending.current);
+      if (!draft.requestId) {
+        this.pending = null;
+      }
+      this.pending ??= collectReport(context, draft.description, requestId);
+      const progress = await sendPlayBugReport(context.gameId, this.pending);
       dispatch({ type: 'progress', progress });
     } catch (error) {
-      /* A lost response may follow an accepted submission. Keep its id and check it instead of sending it twice. */
-      dispatch({
-        type: error instanceof BugReportRejected ? 'rejected' : 'error',
-        message: error instanceof Error ? error.message : 'The report could not be sent.',
-      });
+      /* Keep an ambiguous submission's id so a retry cannot create a second issue. */
+      dispatch(submissionError(error));
     }
-    busy.current = false;
-  };
-  const check = useCallback(async () => {
-    if (busy.current || !draft.requestId) {
+    this.busy = false;
+  }
+
+  async check(gameId: string, requestId: string | null, dispatch: Dispatch<Event>) {
+    if (this.busy || !requestId) {
       return;
     }
-    busy.current = true;
+    this.busy = true;
     try {
-      dispatch({
-        type: 'progress',
-        progress: await sendPlayBugReport(gameId, { operation: 'status', requestId: draft.requestId }),
-      });
+      const progress = await sendPlayBugReport(gameId, { operation: 'status', requestId });
+      dispatch({ type: 'progress', progress });
     } catch (error) {
       dispatch({ type: 'error', message: error instanceof Error ? error.message : 'Could not check the report.' });
     }
-    busy.current = false;
-  }, [gameId, draft.requestId]);
-  const stage = draft.progress?.stage;
+    this.busy = false;
+  }
+}
+
+function submissionError(error: unknown): Event {
+  return {
+    type: error instanceof BugReportRejected ? 'rejected' : 'error',
+    message: error instanceof Error ? error.message : 'The report could not be sent.',
+  };
+}
+
+function shouldPoll(draft: Draft) {
+  if (!draft.requestId || draft.error) {
+    return false;
+  }
+  return !new Set(['complete', 'failed', 'uncertain']).has(draft.progress?.stage ?? '');
+}
+
+type ReportFormProps = {
+  draft: Draft;
+  dispatch: Dispatch<Event>;
+  send: () => void;
+  check: () => void;
+};
+
+/** The hosted page owns the draft so closing or pinning its compass window does not lose a report in flight. */
+export function useBugReport(context: ReportContext): ReactNode {
+  const [draft, dispatch] = useReducer(reduce, initial);
+  const submission = useRef(new ReportSubmission());
+  const check = useCallback(async () => {
+    await submission.current.check(context.gameId, draft.requestId, dispatch);
+  }, [context.gameId, draft.requestId]);
+  const polling = shouldPoll(draft);
   useEffect(() => {
-    if (!draft.requestId || draft.error || stage === 'complete' || stage === 'failed' || stage === 'uncertain') {
+    if (!polling) {
       return;
     }
     const timer = window.setInterval(() => {
       void check();
     }, 1500);
     return () => window.clearInterval(timer);
-  }, [draft.requestId, draft.error, stage, check]);
+  }, [polling, check]);
+  return (
+    <ReportForm
+      draft={draft}
+      dispatch={dispatch}
+      send={() => void submission.current.send(context, draft, dispatch)}
+      check={() => void check()}
+    />
+  );
+}
+
+function ReportForm({ draft, dispatch, send, check }: ReportFormProps) {
+  const submitted = draft.requestId !== null;
   return (
     <Stack gap="md">
       <Text size="sm">{BUG_REPORT_DISCLOSURE}</Text>
@@ -208,28 +228,29 @@ export function useBugReport(
           {draft.progress.message ?? STAGES[draft.progress.stage]}
         </Text>
       )}
+      <ReportActions draft={draft} dispatch={dispatch} send={send} check={check} />
+    </Stack>
+  );
+}
+
+function ReportActions({ draft, dispatch, send, check }: ReportFormProps) {
+  const stage = draft.progress?.stage;
+  return (
+    <>
       {stage === 'complete' && draft.progress?.issueUrl ? (
         <Anchor href={draft.progress.issueUrl} target="_blank" rel="noopener noreferrer">
           Open GitHub issue
         </Anchor>
-      ) : submitted ? (
-        <>
-          {!draft.progress && !draft.error && (
-            <Text role="status" size="sm">
-              Sending report...
-            </Text>
-          )}
-          <Button variant="default" onClick={() => void check()} disabled={draft.sending}>
-            Check report status
-          </Button>
-          {draft.error && !draft.progress && (
-            <Button variant="default" onClick={() => void send()}>
-              Retry sending report
-            </Button>
-          )}
-        </>
+      ) : draft.requestId !== null ? (
+        <SubmittedActions draft={draft} check={check} send={send} />
       ) : (
-        <Button color="cta" onClick={() => void send()} disabled={!draft.acknowledged || !valid}>
+        <Button
+          color="cta"
+          onClick={send}
+          disabled={
+            !draft.acknowledged || !bugReportDescriptionSchema.safeParse({ description: draft.description }).success
+          }
+        >
           Send report
         </Button>
       )}
@@ -238,6 +259,26 @@ export function useBugReport(
           Write another report
         </Button>
       )}
-    </Stack>
+    </>
+  );
+}
+
+function SubmittedActions({ draft, send, check }: Omit<ReportFormProps, 'dispatch'>) {
+  return (
+    <>
+      {!draft.progress && !draft.error && (
+        <Text role="status" size="sm">
+          Sending report...
+        </Text>
+      )}
+      <Button variant="default" onClick={check} disabled={draft.sending}>
+        Check report status
+      </Button>
+      {draft.error && !draft.progress && (
+        <Button variant="default" onClick={send}>
+          Retry sending report
+        </Button>
+      )}
+    </>
   );
 }

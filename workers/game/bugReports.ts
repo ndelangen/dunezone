@@ -1,6 +1,5 @@
 import { DurableObject } from 'cloudflare:workers';
 
-import { BUG_REPORT_REPOSITORY } from '../../src/shared/play/bugReports';
 import type { BugReportBrowser, BugReportDescription, BugReportProgress } from '../../src/shared/play/bugReports';
 import { redactReportText } from '../../src/shared/play/reportRedaction';
 import {
@@ -35,6 +34,30 @@ const safeProse = (value: string) =>
     .replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')
     .replaceAll('>', '&gt;');
+
+function quotaReached(recent: { count: number; latest: number | null }, now: number) {
+  if (recent.count >= 5) {
+    return true;
+  }
+  if (recent.latest === null) {
+    return false;
+  }
+  return now - recent.latest < 60_000;
+}
+
+function presentReport(report: Report): BugReportProgress {
+  const notices: Partial<Record<Report['stage'], string>> = {
+    failed: 'The report could not be sent. Your description is still here.',
+    uncertain: 'GitHub has not confirmed the issue yet. Check its status here before sending another report.',
+  };
+  const message = notices[report.stage];
+  return {
+    requestId: report.id,
+    stage: report.stage,
+    ...(report.issue_url ? { issueUrl: report.issue_url } : {}),
+    ...(message ? { message } : {}),
+  };
+}
 
 /** One account's rate limit and submission receipts. Payloads live only in the R2 export, never in Convex. */
 export class BugReports extends DurableObject<GameEnv & BugReportSecrets> {
@@ -71,7 +94,7 @@ export class BugReports extends DurableObject<GameEnv & BugReportSecrets> {
         now - HOUR
       )
       .one();
-    if (recent.count >= 5 || (recent.latest !== null && now - recent.latest < 60_000)) {
+    if (quotaReached(recent, now)) {
       return {
         status: 429,
         error: 'Please wait before sending another report. You can send up to five reports per hour.',
@@ -96,14 +119,24 @@ export class BugReports extends DurableObject<GameEnv & BugReportSecrets> {
     if (!report || report.game_id !== gameId) {
       return undefined;
     }
-    if (report.stage === 'creating' && !this.running.has(id)) {
-      this.setStage(id, 'uncertain');
+    if (!this.running.has(id)) {
+      this.recoverInterrupted(report);
       report = this.report(id)!;
     }
-    if (report.stage === 'collecting' && !this.running.has(id)) {
-      this.setStage(id, 'failed');
-      report = this.report(id)!;
+    this.resumeDelivery(report);
+    return presentReport(report);
+  }
+
+  private recoverInterrupted(report: Report) {
+    const recovery: Partial<Record<Report['stage'], Report['stage']>> = { creating: 'uncertain', collecting: 'failed' };
+    const stage = recovery[report.stage];
+    if (stage) {
+      this.setStage(report.id, stage);
     }
+  }
+
+  private resumeDelivery(report: Report) {
+    const id = report.id;
     if (report.stage === 'uncertain' && !this.reconciling.has(id)) {
       this.reconciling.add(id);
       this.ctx.waitUntil(this.reconcile(report).finally(() => this.reconciling.delete(id)));
@@ -111,17 +144,6 @@ export class BugReports extends DurableObject<GameEnv & BugReportSecrets> {
     if (report.stage === 'complete' && !report.logged) {
       this.ctx.waitUntil(this.logCompletion(report).catch(() => undefined));
     }
-    return {
-      requestId: id,
-      stage: report.stage,
-      ...(report.issue_url ? { issueUrl: report.issue_url } : {}),
-      ...(report.stage === 'failed'
-        ? { message: 'The report could not be sent. Your description is still here.' }
-        : {}),
-      ...(report.stage === 'uncertain'
-        ? { message: 'GitHub has not confirmed the issue yet. Check its status here before sending another report.' }
-        : {}),
-    };
   }
 
   private setStage(id: string, stage: Report['stage'], issueUrl: string | null = null) {
@@ -200,5 +222,3 @@ export class BugReports extends DurableObject<GameEnv & BugReportSecrets> {
     }
   }
 }
-
-export const bugReportIssuesUrl = `https://github.com/${BUG_REPORT_REPOSITORY}/issues`;

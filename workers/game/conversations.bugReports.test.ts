@@ -101,3 +101,52 @@ test('censors a private message copied into browser console output and keeps del
   expect(JSON.stringify(report)).not.toContain('Trade me two spice');
   expect(JSON.stringify(report)).not.toContain('Unsent private message');
 });
+
+test('scrubs overlapping saved and unsent chat together, including credential-filtered console copies', () => {
+  const conversations = conversationStore();
+  const viewer = { userId: 'u', displayName: 'Author', connectionId: 'c', viewerSeat: 'seat-1', color: '#fff' };
+  for (const [index, text] of ['hi', 'hi there', 'email me at person@example.com'].entries()) {
+    conversations.save(
+      viewer,
+      {
+        type: 'conversation-send',
+        requestId: `request-${index}`,
+        factionId: 'atreides',
+        peerId: 'fremen',
+        text,
+      },
+      1234 + index
+    );
+  }
+  const report = conversations.reportBrowser({
+    snapshot: {},
+    conversations: { pending: [{ request: { text: 'hi there again' }, delivery: { state: 'failed' } }] },
+    logs: [
+      {
+        at: '10ms after navigation',
+        level: 'log',
+        text: 'received hi there again; saved hi there; email me at [redacted email]',
+      },
+    ],
+    droppedLogs: 0,
+    diagnostics: {
+      clientRevision: 1,
+      connection: 'authorized',
+      viewport: [1280, 800],
+      pixelRatio: 1,
+      language: 'en',
+      userAgent: 'test',
+      online: true,
+    },
+  });
+  expect(report).toMatchObject({
+    logs: [
+      {
+        text: 'received -redacted message, original length: 14-; saved -redacted message, original length: 8-; -redacted message, original length: 30-',
+      },
+    ],
+    conversations: {
+      pending: [{ request: { text: '-redacted message, original length: 14-' }, delivery: { state: 'failed' } }],
+    },
+  });
+});

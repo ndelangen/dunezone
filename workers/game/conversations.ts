@@ -8,6 +8,7 @@ import {
   censorKnownMessage,
   censorReportConversations,
   redactedMessage,
+  reportConversationTexts,
 } from '../../src/shared/play/reportConversations';
 import { redactReportData } from '../../src/shared/play/reportRedaction';
 import type { ActorDirectory } from './actors';
@@ -188,8 +189,13 @@ export class Conversations {
   reportBrowser(browser: BugReportBrowser) {
     let logs = browser.logs;
     /* Message bodies never leave the room; only their replacements enter the exported log strings. */
-    for (const row of this.storage.sql.exec<{ text: string }>('SELECT text FROM conversation_messages')) {
-      logs = logs.map((entry) => ({ ...entry, text: censorKnownMessage(entry.text, row.text) }));
+    const messages = new Set(reportConversationTexts(browser.conversations));
+    for (const row of this.storage.sql.exec<{ text: string }>('SELECT DISTINCT text FROM conversation_messages')) {
+      messages.add(row.text);
+    }
+    /* Compare the complete set longest first, before any shorter match can split a message. */
+    for (const message of [...messages].sort((left, right) => right.length - left.length)) {
+      logs = logs.map((entry) => ({ ...entry, text: censorKnownMessage(entry.text, message) }));
     }
     return redactReportData({ ...browser, conversations: censorReportConversations(browser.conversations), logs });
   }

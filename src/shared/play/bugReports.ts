@@ -17,7 +17,7 @@ export const bugReportDiagnosticsSchema = z.strictObject({
   userAgent: z.string().max(1024),
   online: z.boolean(),
 });
-export const bugReportBrowserSchema = z.strictObject({
+const bugReportBrowserSchema = z.strictObject({
   snapshot: z.json(),
   conversations: z.json(),
   logs: z
@@ -62,7 +62,6 @@ export const bugReportProgressSchema = z.strictObject({
   message: z.string().max(600).optional(),
 });
 export type BugReportDescription = z.infer<typeof bugReportDescriptionSchema>;
-export type BugReportDiagnostics = z.infer<typeof bugReportDiagnosticsSchema>;
 export type BugReportBrowser = z.infer<typeof bugReportBrowserSchema>;
 export type BugReportRequest = z.infer<typeof bugReportRequestSchema>;
 export type BugReportProgress = z.infer<typeof bugReportProgressSchema>;

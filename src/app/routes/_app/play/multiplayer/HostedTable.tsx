@@ -1018,6 +1018,7 @@ function ConnectedTable({
   identity,
   gameId,
   diagnostics,
+  reportsEnabled,
 }: Readonly<{
   client: TableSession;
   table: TableProjection;
@@ -1026,8 +1027,9 @@ function ConnectedTable({
   identity: GameIdentity;
   gameId: string;
   diagnostics: BrowserDiagnostics;
+  reportsEnabled: boolean;
 }>) {
-  const bugReport = useBugReport(gameId, client, table, connection, diagnostics);
+  const bugReport = useBugReport({ gameId, client, table, connection, diagnostics });
   const progress = gameProgress(table.snapshot);
   const focus = useWindowFocus(table, progress);
   const celebration = useResultCelebration(table);
@@ -1098,13 +1100,17 @@ function ConnectedTable({
               focus={focus}
               panels={[
                 ...controlPanels({ client, table, error, declare }),
-                {
-                  key: 'report-bug',
-                  label: 'Report a bug',
-                  topic: 'battleUnknown',
-                  description: 'Describe a problem and share the full game state and browser logs.',
-                  content: bugReport,
-                },
+                ...(reportsEnabled
+                  ? [
+                      {
+                        key: 'report-bug',
+                        label: 'Report a bug',
+                        topic: 'battleUnknown' as const,
+                        description: 'Describe a problem and share the full game state and browser logs.',
+                        content: bugReport,
+                      },
+                    ]
+                  : []),
               ]}
               tableGuidance={phaseGuidance(table)}
               tableControls={phaseTabControls({ client, table, error, progress })}
@@ -1163,6 +1169,7 @@ export default function HostedTable({
       <ConnectedTable
         gameId={gameId}
         diagnostics={diagnostics}
+        reportsEnabled={runtime.admission === undefined}
         identity={identity}
         client={client}
         table={view.table}
