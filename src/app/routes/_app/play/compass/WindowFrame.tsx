@@ -157,14 +157,15 @@ function ResizeEdge({ resize }: Readonly<{ resize: Resize }>) {
     }
   };
   return (
-    <button
-      type="button"
-      className={styles.resizeEdge}
-      aria-label="Resize: drag, or press the up and down arrows; double-click to reset"
-      title="Drag to resize; double-click to reset"
-      onPointerDown={resize.onPointerDown}
-      onKeyDown={nudge}
-      onDoubleClick={resize.onReset}
-    />
+    <Tooltip label="Drag to resize; double-click to reset" openDelay={500}>
+      <button
+        type="button"
+        className={styles.resizeEdge}
+        aria-label="Resize: drag, or press the up and down arrows; double-click to reset"
+        onPointerDown={resize.onPointerDown}
+        onKeyDown={nudge}
+        onDoubleClick={resize.onReset}
+      />
+    </Tooltip>
   );
 }

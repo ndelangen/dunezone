@@ -1,0 +1,8 @@
+.target {
+  display: inline-flex;
+}
+
+/* A disabled control hears no pointer in some browsers, so the pointer passes through it to the target. */
+.target > :disabled {
+  pointer-events: none;
+}

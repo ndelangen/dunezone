@@ -1,3 +1,4 @@
+import { Tooltip } from '@mantine/core';
 import { resolveAsset } from '@shared/media/resolveAsset';
 import type { CSSProperties } from 'react';
 
@@ -52,15 +53,21 @@ export function LogoSheet() {
             </div>
             <span className={styles.name}>{name}</span>
             <ul className={styles.variants}>
-              <li className={styles.token} style={{ background: ground }} title="On the token, inside the ring">
-                <Emblem logo={logo} colour={CREAM} />
-              </li>
-              <li className={styles.dark} title="In cream on a dark ground">
-                <Emblem logo={logo} colour={CREAM} />
-              </li>
-              <li className={styles.paper} style={parchment} title="In ink on parchment">
-                <Emblem logo={logo} colour={INK} />
-              </li>
+              <Tooltip label="On the token, inside the ring">
+                <li className={styles.token} style={{ background: ground }}>
+                  <Emblem logo={logo} colour={CREAM} />
+                </li>
+              </Tooltip>
+              <Tooltip label="In cream on a dark ground">
+                <li className={styles.dark}>
+                  <Emblem logo={logo} colour={CREAM} />
+                </li>
+              </Tooltip>
+              <Tooltip label="In ink on parchment">
+                <li className={styles.paper} style={parchment}>
+                  <Emblem logo={logo} colour={INK} />
+                </li>
+              </Tooltip>
             </ul>
             <span className={styles.file}>{logo}.svg</span>
           </li>
