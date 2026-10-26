@@ -90,16 +90,30 @@ const TRACK_SPACES = 7;
 /** Within this many table units of a space's centre, the counter sits on it: under half the gap between two spaces. */
 const ON_SPACE = 0.075;
 
-/** The track space the counter sits on, from 1, or undefined when it sits on none; the card may be turned. */
-function spaceUnder(counter: Spot, card: Spot) {
+/** Where the counter sits in the card's own frame, in table units from its centre: across to the right, down towards its foot; the card may be turned. */
+function onCard(counter: Spot, card: Spot) {
   const dx = (counter.x - card.x) * HIDDEN_ZONE_WIDTH;
   const dy = (counter.y - card.y) * HIDDEN_ZONE_DEPTH;
   const angle = ((card.turn ?? 0) * Math.PI) / 12;
-  const across = dx * Math.cos(angle) + dy * Math.sin(angle);
-  const down = -dx * Math.sin(angle) + dy * Math.cos(angle);
+  return { across: dx * Math.cos(angle) + dy * Math.sin(angle), down: -dx * Math.sin(angle) + dy * Math.cos(angle) };
+}
+
+const trackSpace = (space: number) => ({
+  x: (TRACK_COLUMNS[(space - 1) % 4]! / 900) * CARD_WIDTH,
+  y: (TRACK_ROWS[Math.floor((space - 1) / 4)]! / 1263) * CARD_DEPTH,
+});
+
+/** Whether the counter sits on the card's track: on the card, from a little above the upper row of spaces to the card's foot. */
+function onTrack(counter: Spot, card: Spot) {
+  const { across, down } = onCard(counter, card);
+  return Math.abs(across) < CARD_WIDTH / 2 && down > trackSpace(1).y - 2 * ON_SPACE && down < CARD_DEPTH / 2;
+}
+
+/** The track space the counter sits on, from 1, or undefined when it sits on none. */
+function spaceUnder(counter: Spot, card: Spot) {
+  const { across, down } = onCard(counter, card);
   for (let space = 1; space <= TRACK_SPACES; space++) {
-    const x = (TRACK_COLUMNS[(space - 1) % 4]! / 900) * CARD_WIDTH;
-    const y = (TRACK_ROWS[Math.floor((space - 1) / 4)]! / 1263) * CARD_DEPTH;
+    const { x, y } = trackSpace(space);
     if (Math.hypot(across - x, down - y) < ON_SPACE) {
       return space;
     }
@@ -110,10 +124,10 @@ function spaceUnder(counter: Spot, card: Spot) {
 function tasks(snapshot: () => GameSnapshot): GuideTask[] {
   const spotOf = (name: string) =>
     (snapshot().hand ?? []).find((piece) => piece.items[0]?.artwork?.name === name)?.hiddenZone ?? undefined;
-  const space = () => {
+  const tracked = <T>(read: (counter: Spot, card: Spot) => T) => {
     const card = spotOf(CARD);
     const counter = spotOf(COUNTER);
-    return card && counter ? spaceUnder(counter, card) : undefined;
+    return card && counter ? read(counter, card) : undefined;
   };
   return [
     task({
@@ -150,11 +164,20 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       ...openedWindow(windowShown('hidden-zone')),
     }),
     task({
-      id: 'zoom',
-      task: 'Zoom in on the card',
+      id: 'on-track',
+      task: 'Lay the counter on the card’s track',
       detail:
-        'Scroll over the card to bring its track up close, and drag the felt to look around. Double-click the felt to zoom back out.',
-      anchor: { kind: 'page', element: element(onSideTable(CARD)) },
+        'Drag the tiny counter onto the row of numbered spaces at the foot of the card. Pieces stay exactly where you lay them, which is what the side-table is for.',
+      anchor: { kind: 'page', element: element(onSideTable(COUNTER)) },
+      begin: () => null,
+      done: () => tracked(onTrack) === true,
+    }),
+    task({
+      id: 'zoom',
+      task: 'Zoom in on the track',
+      detail:
+        'Scroll over the counter to bring the track up close. Drag the felt to look around, and double-click to zoom back out.',
+      anchor: { kind: 'page', element: element(onSideTable(COUNTER)) },
       begin: () => null,
       done: () =>
         Number(document.querySelector('[data-window="hidden-zone"] [data-zoom]')?.getAttribute('data-zoom')) >= 2,
@@ -162,11 +185,10 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
     task({
       id: 'first-loss',
       task: 'You lost a troop in battle: put the counter on space 1',
-      detail:
-        'Drag the counter onto the first space of the card’s track. Pieces stay exactly where you lay them, which is what the side-table is for.',
+      detail: 'Drag the counter onto the first space of the track. Up close, it lands exactly where you mean.',
       anchor: { kind: 'page', element: element(onSideTable(COUNTER)) },
       begin: () => null,
-      done: () => space() === 1,
+      done: () => tracked(spaceUnder) === 1,
     }),
     task({
       id: 'more-losses',
@@ -175,7 +197,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
         'Every troop lost in battle moves it one space. After 7 you gain the Kwisatz Haderach, so the card always shows how close you are.',
       anchor: { kind: 'page', element: element(onSideTable(COUNTER)) },
       begin: () => null,
-      done: () => space() === 3,
+      done: () => tracked(spaceUnder) === 3,
     }),
   ];
 }
@@ -184,8 +206,8 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
 const learned = [
   'Right-click a piece in your hand to move it to your private side-table',
   '{Space} {←} {←} opens your private side-table, and only you see it',
-  'Scroll over the side-table to zoom in on a card',
   'Pieces stay where you lay them, so a counter can sit on a card’s track',
+  'Scroll over the side-table to zoom in on a card',
   'Atreides counts troops lost in battles on the Kwisatz Haderach card, and gains it after 7',
 ];
 

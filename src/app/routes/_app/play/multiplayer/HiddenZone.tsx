@@ -431,7 +431,11 @@ export function HiddenZone({ client, table, hand }: Props) {
           style={fitHeight ? { height: fitHeight } : { aspectRatio: `${HIDDEN_ZONE_WIDTH} / ${HIDDEN_ZONE_DEPTH}` }}
           data-zoom={zoomed ? zoom.by.toFixed(2) : undefined}
           onDoubleClick={(event) => {
-            if (event.target === event.currentTarget) {
+            /* Zoomed in, a card can fill the view, so double-clicking it zooms out as the felt does; a token is left alone, as it is moved with quick clicks. */
+            if (
+              event.target === event.currentTarget ||
+              (event.target instanceof Element && event.target.closest('[data-piece-kind="card"]'))
+            ) {
               setZoom(UNZOOMED);
             }
           }}
@@ -538,6 +542,7 @@ export function HiddenZone({ client, table, hand }: Props) {
                   key={piece.id}
                   className={styles.piece}
                   data-carried={carried ? true : undefined}
+                  data-piece-kind={piece.kind}
                   aria-label={`Move ${pieceName(piece)} on private side-table`}
                   role="button"
                   tabIndex={0}
