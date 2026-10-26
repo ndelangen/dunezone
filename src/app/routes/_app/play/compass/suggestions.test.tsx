@@ -14,8 +14,8 @@ const candidate = (label: string, weight = 0) => ({
 });
 
 test('letters in order anywhere in the text match, and adjacent or word-starting letters score higher', () => {
-  expect(fuzzy('Shared inventory', 'shinv')).not.toBeNull();
-  expect(fuzzy('Shared inventory', 'vni')).toBeNull();
+  expect(fuzzy('Shared table inventory', 'shinv')).not.toBeNull();
+  expect(fuzzy('Shared table inventory', 'vni')).toBeNull();
   expect(fuzzy('Hand & spice', 'hand')!).toBeGreaterThan(fuzzy('Hidden zone and more', 'hand')!);
   expect(fuzzy('Table chat', 'tc')!).toBeGreaterThan(fuzzy('Battle act', 'tc')!);
 });
@@ -55,7 +55,7 @@ const actions = (token: Token, close = () => {}, bidding: Bidding = null) => ({
 
 const commandLabels = (token: Token, bidding: Bidding = null) =>
   candidatesOf([], actions(token, undefined, bidding))
-    .filter((entry) => entry.key.startsWith('cmd:') && !entry.key.startsWith('cmd:camera') && entry.key !== 'cmd:next')
+    .filter((entry) => entry.key.startsWith('cmd:') && !entry.key.startsWith('cmd:camera'))
     .map((entry) => `${entry.label}${entry.shortcut ? ` (${entry.shortcut})` : ''}`);
 
 test('the token commands appear only with a token: Pass while it shows its face, Flip faction token up while it does not', () => {

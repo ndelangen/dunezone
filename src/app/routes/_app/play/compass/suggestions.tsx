@@ -35,7 +35,7 @@ const CAMERA_VIEWS: Record<TableView, string> = {
   top: 'top-down',
 };
 
-/** Letters in order, anywhere in the text: "shinv" finds Shared inventory. Earlier and closer letters score higher. */
+/** Letters in order, anywhere in the text: "shinv" finds Shared table inventory. Earlier and closer letters score higher. */
 export function fuzzy(text: string, query: string): number | null {
   const haystack = text.toLowerCase();
   const needle = query.toLowerCase().replace(/\s+/g, '');

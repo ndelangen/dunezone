@@ -20,7 +20,7 @@ import {
 
 const meta = preview.meta({
   ...gameMeta,
-  title: 'Play/Panels/Shared inventory',
+  title: 'Play/Panels/Shared table inventory',
   /* The stories load the table chunk before they render, so its cold first load falls outside their first wait (#1302). */
   loaders: [
     async () => {
@@ -36,7 +36,7 @@ export const Requests = meta.story({
   beforeEach: install(pendingRequestTransport),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await openTab(page, 'Shared inventory');
+    await openTab(page, 'Shared table inventory');
     await expect(page.findByRole('button', { name: 'Approve' }, { timeout: 30_000 })).resolves.toBeEnabled();
     await expect(page.getByRole('button', { name: 'Dismiss' })).toBeEnabled();
     await expect(page.getByRole('button', { name: 'Drag House Atreides tokens onto the table' })).toBeEnabled();
@@ -87,14 +87,14 @@ export const Narrow = meta.story({
   beforeEach: install(pendingRequestTransport),
   play: async ({ canvasElement }) => {
     const { page, waitForPhase } = phaseControls(canvasElement);
-    await openTab(page, 'Shared inventory');
+    await openTab(page, 'Shared table inventory');
     await waitForPhase(async () => {
       await expect(page.getByRole('button', { name: 'Approve' })).toBeEnabled();
       await expect(page.getByText('House Atreides tokens requested by Twaffle')).toBeVisible();
     });
     /* The kit's HelpMark story owns timed tooltip display; this page checks that each window's (?) carries its description and help. */
     await expect(
-      within(windowNamed(page, 'Shared inventory')!).getByRole('img', { name: 'Help' })
+      within(windowNamed(page, 'Shared table inventory')!).getByRole('img', { name: 'Help' })
     ).toHaveAccessibleDescription(
       'Pieces every player can take. Drag an item onto the table. It lands face down. Open in the centre, [ pins it bottom left and ] bottom right.'
     );
@@ -130,7 +130,7 @@ export const Arrival = meta.story({
   }),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await openTab(page, 'Shared inventory');
+    await openTab(page, 'Shared table inventory');
     await settled(async () => {
       for (const label of ['Treachery deck', ...drawerFactions.map(({ data }) => `${data.name} tokens`)]) {
         const thumbnail = page.getByRole('button', { name: `Drag ${label} onto the table` });
@@ -173,7 +173,7 @@ export const HiddenDeckBacks = meta.story({
   }),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await openTab(page, 'Shared inventory');
+    await openTab(page, 'Shared table inventory');
     await waitFor(
       () => expect(page.getByRole('button', { name: 'Drag Treachery deck onto the table' })).toBeVisible(),
       {
@@ -214,7 +214,7 @@ export const Catalogue = meta.story({
   beforeEach: install(() => productTransport('seat-2', initialSnapshot())),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await openTab(page, 'Shared inventory');
+    await openTab(page, 'Shared table inventory');
     await userEvent.click(await page.findByRole('button', { name: 'Add from catalogue' }, { timeout: 30_000 }));
     const options = () => within(page.getByRole('listbox', { name: 'Catalogue assets' })).getAllByRole('option');
     /* The row Enter would pick: Mantine marks it on the row itself, since the rows are inline rather than in a dropdown of their own. */

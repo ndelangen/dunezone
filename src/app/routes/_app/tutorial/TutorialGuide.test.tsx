@@ -50,7 +50,12 @@ test('Reset lets go of the focus, so the Space the first task asks for reaches t
   const reset = screen.getByRole('button', { name: 'Reset' });
   /* A click focuses the button it lands on, as Chrome does. */
   reset.focus();
-  fireEvent.click(reset);
+  fireEvent.click(reset, { detail: 1 });
   expect(onReset).toHaveBeenCalledTimes(1);
   expect(document.activeElement).not.toBe(reset);
+  /* Enter or Space on a focused button clicks it with no pointer, and keyboard focus stays where it was. */
+  reset.focus();
+  fireEvent.click(reset, { detail: 0 });
+  expect(onReset).toHaveBeenCalledTimes(2);
+  expect(document.activeElement).toBe(reset);
 });

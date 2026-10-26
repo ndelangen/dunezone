@@ -318,10 +318,12 @@ export function TutorialGuide({
 
   /*
    * Reset lets go of the focus a click gave it: a control beside the table keeps Space to press itself, so Space would
-   * reset the chapter again instead of opening the compass the first task asks for.
+   * reset the chapter again instead of opening the compass the first task asks for. A key press (detail 0) keeps its focus.
    */
   const reset = (event: MouseEvent<HTMLButtonElement>) => {
-    event.currentTarget.blur();
+    if (event.detail > 0) {
+      event.currentTarget.blur();
+    }
     onReset();
     setCurrent(0);
     setRun((count) => count + 1);
