@@ -1,5 +1,7 @@
 # Preparing the differences rulebook
 
+The [phase 2 research dossier](differences/README.md), prepared on 26 October 2026, now contains the source comparison, six-faction findings, card/deck changes, BGG and Reddit reading, and open questions. It pins the current published books and distinguishes confirmed base-game changes from incomplete expansion announcements. The plan below remains the comparison policy.
+
 The second book will explain the differences between GF9 2.0 and the earlier GF9 rules. Keep every explanation outside the [page-for-page book](transcript.md). This file sets up the comparison; it does not claim to be a complete rules diff.
 
 ## Establish the baseline

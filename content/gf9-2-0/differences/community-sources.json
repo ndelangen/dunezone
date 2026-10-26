@@ -1,0 +1,913 @@
+{
+  "research_date": "2026-10-26",
+  "bgg_access": "Public first-party unauthenticated JSON API. Web page retrieval failed; normal browser remained at automatic security verification. No challenge solved or bypassed.",
+  "bgg_threads": [
+    {
+      "thread_id": "3766917",
+      "title": "Gamefound Update #3",
+      "url": "https://boardgamegeek.com/thread/3766917/gamefound-update-3",
+      "started_at": "2026-09-11T19:00:55+00:00",
+      "post_count": 13,
+      "posts_read": 13,
+      "all_pages_read": true,
+      "retrieval_metadata_url": "https://api.geekdo.com/api/threads/3766917",
+      "retrieval_articles_url": "https://api.geekdo.com/api/articles?threadid=3766917",
+      "metadata_sha256": "ff8bc072f4b62bbf96acaa6f6b452b60990cabac8b4f01a2b7624a6683afc049",
+      "articles_sha256": "eddee5d6e023dbf0340ca4a1f8d795a21488c653c010214dc5eca1207bff47d2",
+      "articles": [
+        {
+          "id": "48166797",
+          "author_id": 841942,
+          "created_at": "2026-09-11T19:00:55+00:00",
+          "edited_at": "2026-09-11T19:00:55+00:00",
+          "url": "https://boardgamegeek.com/thread/3766917/article/48166797#48166797",
+          "body_sha256": "d5a2d7c64556a8ab755dc417281871e6ab731dfa49b187f96d72e0a6e6d1a33c",
+          "author_is_jack_reda": false
+        },
+        {
+          "id": "48166927",
+          "author_id": 356720,
+          "created_at": "2026-09-11T19:22:35+00:00",
+          "edited_at": "2026-09-11T19:22:35+00:00",
+          "url": "https://boardgamegeek.com/thread/3766917/article/48166927#48166927",
+          "body_sha256": "d8a6c38a77f1f2ca174c6a5e0bf6dcd0f2fc58faa5053257225ddb832f141ff8",
+          "author_is_jack_reda": false
+        },
+        {
+          "id": "48167044",
+          "author_id": 841942,
+          "created_at": "2026-09-11T19:50:02+00:00",
+          "edited_at": "2026-09-11T19:50:02+00:00",
+          "url": "https://boardgamegeek.com/thread/3766917/article/48167044#48167044",
+          "body_sha256": "d94e42944114a3f7311bb28929939b9c9cd6fe46e1a75e5caba6d11a56d59351",
+          "author_is_jack_reda": false
+        },
+        {
+          "id": "48167291",
+          "author_id": 1182354,
+          "created_at": "2026-09-11T20:56:24+00:00",
+          "edited_at": "2026-09-11T20:56:24+00:00",
+          "url": "https://boardgamegeek.com/thread/3766917/article/48167291#48167291",
+          "body_sha256": "477060d181ba93c64303b1275bea01db0f50db35e1f86ba9aced41c429bf3866",
+          "author_is_jack_reda": false
+        },
+        {
+          "id": "48170063",
+          "author_id": 370523,
+          "created_at": "2026-09-12T18:37:51+00:00",
+          "edited_at": "2026-09-12T18:37:51+00:00",
+          "url": "https://boardgamegeek.com/thread/3766917/article/48170063#48170063",
+          "body_sha256": "67f31e19089b94c8723d8e870d3ead935e3bbe45f5659fbce5b700dd62b9a597",
+          "author_is_jack_reda": false
+        },
+        {
+          "id": "48172326",
+          "author_id": 115453,
+          "created_at": "2026-09-13T12:56:32+00:00",
+          "edited_at": "2026-09-13T12:56:32+00:00",
+          "url": "https://boardgamegeek.com/thread/3766917/article/48172326#48172326",
+          "body_sha256": "4b75afc9d3d0bbf0e8ae886e0c48bed29e59f70976f755ec6ca34448b3eed58d",
+          "author_is_jack_reda": true
+        },
+        {
+          "id": "48179826",
+          "author_id": 1548156,
+          "created_at": "2026-09-15T10:21:38+00:00",
+          "edited_at": "2026-09-15T10:21:38+00:00",
+          "url": "https://boardgamegeek.com/thread/3766917/article/48179826#48179826",
+          "body_sha256": "774ff1c9c942534d61f9846882f9d385245fbb2f3d260d548e2e570a6b2b7789",
+          "author_is_jack_reda": false
+        },
+        {
+          "id": "48181223",
+          "author_id": 1543597,
+          "created_at": "2026-09-15T16:44:36+00:00",
+          "edited_at": "2026-09-15T16:44:36+00:00",
+          "url": "https://boardgamegeek.com/thread/3766917/article/48181223#48181223",
+          "body_sha256": "15a7d4f87ad8a5276b103db4fa62ed0dd00d3f256258232de9627646e012d7e1",
+          "author_is_jack_reda": false
+        },
+        {
+          "id": "48181301",
+          "author_id": 1543597,
+          "created_at": "2026-09-15T17:01:38+00:00",
+          "edited_at": "2026-09-15T17:01:38+00:00",
+          "url": "https://boardgamegeek.com/thread/3766917/article/48181301#48181301",
+          "body_sha256": "1fb6d101b902a2ce4ac8bc34ae5e9803e849a5b1a17b34da48ee65182febcf86",
+          "author_is_jack_reda": false
+        },
+        {
+          "id": "48184669",
+          "author_id": 3740209,
+          "created_at": "2026-09-16T14:33:47+00:00",
+          "edited_at": "2026-09-16T14:33:47+00:00",
+          "url": "https://boardgamegeek.com/thread/3766917/article/48184669#48184669",
+          "body_sha256": "81953e8fd4eede30dd4b30d206216e718d09ae78eb552cb31b43024ec1a47eba",
+          "author_is_jack_reda": false
+        },
+        {
+          "id": "48184833",
+          "author_id": 841942,
+          "created_at": "2026-09-16T15:12:30+00:00",
+          "edited_at": "2026-09-16T15:12:30+00:00",
+          "url": "https://boardgamegeek.com/thread/3766917/article/48184833#48184833",
+          "body_sha256": "cf767f12967e28ad75e2c59fff99e2f39eed4533f2b64285f0e50cbc9bfeca84",
+          "author_is_jack_reda": false
+        },
+        {
+          "id": "48185072",
+          "author_id": 1860151,
+          "created_at": "2026-09-16T16:08:41+00:00",
+          "edited_at": "2026-09-16T16:08:41+00:00",
+          "url": "https://boardgamegeek.com/thread/3766917/article/48185072#48185072",
+          "body_sha256": "5eba76f3cb763c5930fb47518783181e28e4a7c47b31eeb29058e2889b3e4e33",
+          "author_is_jack_reda": false
+        },
+        {
+          "id": "48234559",
+          "author_id": 3883785,
+          "created_at": "2026-09-30T05:44:51+00:00",
+          "edited_at": "2026-09-30T05:44:51+00:00",
+          "url": "https://boardgamegeek.com/thread/3766917/article/48234559#48234559",
+          "body_sha256": "1bccdff74945a078e8c70268a947aada92b96222feb902437c59e624f3e77764",
+          "author_is_jack_reda": false
+        }
+      ]
+    },
+    {
+      "thread_id": "3767757",
+      "title": "Is this new or a reimplementation or what?",
+      "url": "https://boardgamegeek.com/thread/3767757/is-this-new-or-a-reimplementation-or-what",
+      "started_at": "2026-09-13T14:33:33+00:00",
+      "post_count": 14,
+      "posts_read": 14,
+      "all_pages_read": true,
+      "retrieval_metadata_url": "https://api.geekdo.com/api/threads/3767757",
+      "retrieval_articles_url": "https://api.geekdo.com/api/articles?threadid=3767757",
+      "metadata_sha256": "678c659bb4bd94ceb9141ba392953aa2febdcdf18d5774f5f48b1411b83df7d8",
+      "articles_sha256": "12daac2ca388a9d49b8c8a9e4be96a3c1fd93ab0d1dd61f5565f21167e8391ed",
+      "articles": [
+        {
+          "id": "48172622",
+          "author_id": 2685774,
+          "created_at": "2026-09-13T14:33:33+00:00",
+          "edited_at": "2026-09-13T14:33:33+00:00",
+          "url": "https://boardgamegeek.com/thread/3767757/article/48172622#48172622",
+          "body_sha256": "c24e67324a9e4f8a129e8df5e01c7a60eba96d9613135e0bfae59d0568c0a6b8",
+          "author_is_jack_reda": false
+        },
+        {
+          "id": "48172647",
+          "author_id": 136604,
+          "created_at": "2026-09-13T14:41:43+00:00",
+          "edited_at": "2026-09-14T16:45:42+00:00",
+          "url": "https://boardgamegeek.com/thread/3767757/article/48172647#48172647",
+          "body_sha256": "ce2c9d5d67abbb99a621cf7808269e656c3682acd1bc152d1be6a81d992f3101",
+          "author_is_jack_reda": false
+        },
+        {
+          "id": "48173009",
+          "author_id": 424446,
+          "created_at": "2026-09-13T16:34:33+00:00",
+          "edited_at": "2026-09-13T16:34:33+00:00",
+          "url": "https://boardgamegeek.com/thread/3767757/article/48173009#48173009",
+          "body_sha256": "cfd22a355bbf3b4ed50456e47a91ae2a197103d82b5464e2eb68762849d663bb",
+          "author_is_jack_reda": false
+        },
+        {
+          "id": "48173524",
+          "author_id": 2738015,
+          "created_at": "2026-09-13T19:06:18+00:00",
+          "edited_at": "2026-09-13T19:12:01+00:00",
+          "url": "https://boardgamegeek.com/thread/3767757/article/48173524#48173524",
+          "body_sha256": "01762f6fe1c8415de1febbe4ab820cfe38695eea1b48256753ca8446a17c2481",
+          "author_is_jack_reda": false
+        },
+        {
+          "id": "48176478",
+          "author_id": 3035542,
+          "created_at": "2026-09-14T14:48:39+00:00",
+          "edited_at": "2026-09-14T14:48:39+00:00",
+          "url": "https://boardgamegeek.com/thread/3767757/article/48176478#48176478",
+          "body_sha256": "421fcc506741dc2bc44e946e8c39fb4e3c7a6a9956ceb635847da4b884d7ce00",
+          "author_is_jack_reda": false
+        },
+        {
+          "id": "48179841",
+          "author_id": 1548156,
+          "created_at": "2026-09-15T10:27:08+00:00",
+          "edited_at": "2026-09-15T10:27:08+00:00",
+          "url": "https://boardgamegeek.com/thread/3767757/article/48179841#48179841",
+          "body_sha256": "7458fe5894e6784c24e8c01e158fe2b28d1e9ce8ae7a477065a92cb0a1a07bdf",
+          "author_is_jack_reda": false
+        },
+        {
+          "id": "48181492",
+          "author_id": 3348534,
+          "created_at": "2026-09-15T17:47:51+00:00",
+          "edited_at": "2026-09-15T17:47:51+00:00",
+          "url": "https://boardgamegeek.com/thread/3767757/article/48181492#48181492",
+          "body_sha256": "90ebdb0c8e8f5eeb96977db8931b103331d6c41c6c014313516e719854b43add",
+          "author_is_jack_reda": false
+        },
+        {
+          "id": "48196125",
+          "author_id": 1141903,
+          "created_at": "2026-09-19T17:18:43+00:00",
+          "edited_at": "2026-09-19T17:23:37+00:00",
+          "url": "https://boardgamegeek.com/thread/3767757/article/48196125#48196125",
+          "body_sha256": "7e2f8c3af0d879deffcca0044b867c8781ece7f27df3db9dd8fdefa9828929c9",
+          "author_is_jack_reda": false
+        },
+        {
+          "id": "48273457",
+          "author_id": 4552344,
+          "created_at": "2026-10-10T09:23:37+00:00",
+          "edited_at": "2026-10-10T09:23:37+00:00",
+          "url": "https://boardgamegeek.com/thread/3767757/article/48273457#48273457",
+          "body_sha256": "e313a44dee704bb9c9b24df8234591eb46d9d0ae1ab058aab241a6441f0ae1df",
+          "author_is_jack_reda": false
+        },
+        {
+          "id": "48273495",
+          "author_id": 855867,
+          "created_at": "2026-10-10T09:44:27+00:00",
+          "edited_at": "2026-10-10T09:44:27+00:00",
+          "url": "https://boardgamegeek.com/thread/3767757/article/48273495#48273495",
+          "body_sha256": "9fbd340ffcb4f86208586efb300e498056ab1721fa39ee7bc9338201b1f35eaf",
+          "author_is_jack_reda": false
+        },
+        {
+          "id": "48275281",
+          "author_id": 4552344,
+          "created_at": "2026-10-10T20:17:43+00:00",
+          "edited_at": "2026-10-10T20:17:43+00:00",
+          "url": "https://boardgamegeek.com/thread/3767757/article/48275281#48275281",
+          "body_sha256": "761f06d6d363c95a549e15f511f5ee6a1e853aef1c9073faa2aef7b1ffa0e51a",
+          "author_is_jack_reda": false
+        },
+        {
+          "id": "48275455",
+          "author_id": 2738015,
+          "created_at": "2026-10-10T21:17:23+00:00",
+          "edited_at": "2026-10-10T22:22:43+00:00",
+          "url": "https://boardgamegeek.com/thread/3767757/article/48275455#48275455",
+          "body_sha256": "afd5138ecf8bed7d52c3a9cf2e17c01a8a09f97f4f46eea58db4e5ca023ec942",
+          "author_is_jack_reda": false
+        },
+        {
+          "id": "48275509",
+          "author_id": 2752491,
+          "created_at": "2026-10-10T21:37:02+00:00",
+          "edited_at": "2026-10-10T21:37:02+00:00",
+          "url": "https://boardgamegeek.com/thread/3767757/article/48275509#48275509",
+          "body_sha256": "a87fb25466b41587e3b617c39f6936595924d6ce54a5000927563e468ccc7e19",
+          "author_is_jack_reda": false
+        },
+        {
+          "id": "48275908",
+          "author_id": 4552344,
+          "created_at": "2026-10-10T23:56:43+00:00",
+          "edited_at": "2026-10-10T23:56:43+00:00",
+          "url": "https://boardgamegeek.com/thread/3767757/article/48275908#48275908",
+          "body_sha256": "509b79f3805bdcfa40371c7e731157a3331e058263d8d23eae4182817a64d0a1",
+          "author_is_jack_reda": false
+        }
+      ]
+    },
+    {
+      "thread_id": "3770024",
+      "title": "New and old treachery cards",
+      "url": "https://boardgamegeek.com/thread/3770024/new-and-old-treachery-cards",
+      "started_at": "2026-09-18T10:17:21+00:00",
+      "post_count": 2,
+      "posts_read": 2,
+      "all_pages_read": true,
+      "retrieval_metadata_url": "https://api.geekdo.com/api/threads/3770024",
+      "retrieval_articles_url": "https://api.geekdo.com/api/articles?threadid=3770024",
+      "metadata_sha256": "bc88c92d99b6ac930eae519f48c5ccbf7bfdddd7daa8e0edce9149bb573fd1ba",
+      "articles_sha256": "b6ec93fe01c25a5bf7f48003b9335d6f91ee8d93ccf8316f63414edee284b7cd",
+      "articles": [
+        {
+          "id": "48191660",
+          "author_id": 442206,
+          "created_at": "2026-09-18T10:17:22+00:00",
+          "edited_at": "2026-09-18T10:17:22+00:00",
+          "url": "https://boardgamegeek.com/thread/3770024/article/48191660#48191660",
+          "body_sha256": "6e42c5374242a29fadf822dea03f6daabb65b8f157dece44cabd989dccae6d73",
+          "author_is_jack_reda": false
+        },
+        {
+          "id": "48192139",
+          "author_id": 1548156,
+          "created_at": "2026-09-18T13:12:26+00:00",
+          "edited_at": "2026-09-18T13:12:26+00:00",
+          "url": "https://boardgamegeek.com/thread/3770024/article/48192139#48192139",
+          "body_sha256": "f80a674cb838176553e1d22743077f63525e39c8a16f7b19b96fa6c2cd41d3d3",
+          "author_is_jack_reda": false
+        }
+      ]
+    },
+    {
+      "thread_id": "3773009",
+      "title": "Designer diary: Designing Dune's New Battle System",
+      "url": "https://boardgamegeek.com/thread/3773009/designer-diary-designing-dunes-new-battle-system",
+      "started_at": "2026-09-24T22:08:35+00:00",
+      "post_count": 5,
+      "posts_read": 5,
+      "all_pages_read": true,
+      "retrieval_metadata_url": "https://api.geekdo.com/api/threads/3773009",
+      "retrieval_articles_url": "https://api.geekdo.com/api/articles?threadid=3773009",
+      "metadata_sha256": "a63e8fca7e77f3bae8a9640ac9c01e47ec36096f56b7ce6f36b9b61a2a465e92",
+      "articles_sha256": "930bbd551e1e46fd71cbe8a2d22ab9b9c176e32dd9639c4f5e0b7d7a3d96bc19",
+      "articles": [
+        {
+          "id": "48215383",
+          "author_id": 2738015,
+          "created_at": "2026-09-24T22:08:35+00:00",
+          "edited_at": "2026-09-24T22:09:09+00:00",
+          "url": "https://boardgamegeek.com/thread/3773009/article/48215383#48215383",
+          "body_sha256": "cfefb24350d60ed7032370795e990aeb526159b0e9aef30bb55ca2ace6acd380",
+          "author_is_jack_reda": false
+        },
+        {
+          "id": "48216253",
+          "author_id": 23154,
+          "created_at": "2026-09-25T05:50:36+00:00",
+          "edited_at": "2026-09-25T05:50:36+00:00",
+          "url": "https://boardgamegeek.com/thread/3773009/article/48216253#48216253",
+          "body_sha256": "4da11a95577a53eb046ecf460b512c3d1dc56d758df273b1ca68edbf7fb3128f",
+          "author_is_jack_reda": false
+        },
+        {
+          "id": "48216357",
+          "author_id": 115453,
+          "created_at": "2026-09-25T06:41:22+00:00",
+          "edited_at": "2026-09-25T06:41:22+00:00",
+          "url": "https://boardgamegeek.com/thread/3773009/article/48216357#48216357",
+          "body_sha256": "a35434a98fa06d976e793552192892499ec887389e4c68ac8b566547158e1428",
+          "author_is_jack_reda": true
+        },
+        {
+          "id": "48281017",
+          "author_id": 2120907,
+          "created_at": "2026-10-12T12:38:28+00:00",
+          "edited_at": "2026-10-12T12:38:28+00:00",
+          "url": "https://boardgamegeek.com/thread/3773009/article/48281017#48281017",
+          "body_sha256": "2391e78f44d484461601c7b773d4b7b00a0b5dab8342666cc1115ff8976931b5",
+          "author_is_jack_reda": false
+        },
+        {
+          "id": "48281433",
+          "author_id": 1860151,
+          "created_at": "2026-10-12T14:15:09+00:00",
+          "edited_at": "2026-10-12T14:15:09+00:00",
+          "url": "https://boardgamegeek.com/thread/3773009/article/48281433#48281433",
+          "body_sha256": "0c7879b1a506bb1bc74c963176ff18c9aceb04b25aae92fe09224fbf5c41f377",
+          "author_is_jack_reda": false
+        }
+      ]
+    },
+    {
+      "thread_id": "3776299",
+      "title": "Designer Diary: Why Double Spice Blows",
+      "url": "https://boardgamegeek.com/thread/3776299/designer-diary-why-double-spice-blows",
+      "started_at": "2026-10-02T01:40:47+00:00",
+      "post_count": 1,
+      "posts_read": 1,
+      "all_pages_read": true,
+      "retrieval_metadata_url": "https://api.geekdo.com/api/threads/3776299",
+      "retrieval_articles_url": "https://api.geekdo.com/api/articles?threadid=3776299",
+      "metadata_sha256": "8a95653a8144c88dce0f5c6315b8f4516f7cfddb34ba39c229399b1263e3fdc9",
+      "articles_sha256": "2694a03779a642f452933bf5ca215fe7857d566c2d8a8f4f2c749011f6c726af",
+      "articles": [
+        {
+          "id": "48242951",
+          "author_id": 2738015,
+          "created_at": "2026-10-02T01:40:48+00:00",
+          "edited_at": "2026-10-02T01:40:48+00:00",
+          "url": "https://boardgamegeek.com/thread/3776299/article/48242951#48242951",
+          "body_sha256": "5a6f817323d30b6077caf4ba4886edf4f64e3dc0e859a97810f60ef35bbeed84",
+          "author_is_jack_reda": false
+        }
+      ]
+    },
+    {
+      "thread_id": "3781040",
+      "title": "Designer Diary: Faction Changes for Dune: Kwisatz Haderach Edition",
+      "url": "https://boardgamegeek.com/thread/3781040/designer-diary-faction-changes-for-dune-kwisatz-ha",
+      "started_at": "2026-10-12T05:20:02+00:00",
+      "post_count": 1,
+      "posts_read": 1,
+      "all_pages_read": true,
+      "retrieval_metadata_url": "https://api.geekdo.com/api/threads/3781040",
+      "retrieval_articles_url": "https://api.geekdo.com/api/articles?threadid=3781040",
+      "metadata_sha256": "ff235fc2447384e6e364d62204be746a8cf2668602b2a9a9511bfc37dac44bdb",
+      "articles_sha256": "1538a80052ae50bbc4157f4309cae97ec1709306a80bb924e9808f654e0c1523",
+      "articles": [
+        {
+          "id": "48280048",
+          "author_id": 2738015,
+          "created_at": "2026-10-12T05:20:02+00:00",
+          "edited_at": "2026-10-12T05:20:02+00:00",
+          "url": "https://boardgamegeek.com/thread/3781040/article/48280048#48280048",
+          "body_sha256": "40c3481fbf1d2d953054bfe289c365ee66344ce63b8700737fb8495fe6f754df",
+          "author_is_jack_reda": false
+        }
+      ]
+    },
+    {
+      "thread_id": "3785698",
+      "title": "2nd Edition is out",
+      "url": "https://boardgamegeek.com/thread/3785698/2nd-edition-is-out",
+      "started_at": "2026-10-21T15:23:50+00:00",
+      "post_count": 22,
+      "posts_read": 22,
+      "all_pages_read": true,
+      "retrieval_metadata_url": "https://api.geekdo.com/api/threads/3785698",
+      "retrieval_articles_url": "https://api.geekdo.com/api/articles?threadid=3785698",
+      "metadata_sha256": "25d84dd09b29a02a7b212fdb20a3833d53846dd0a926bba63bc3244c975ac992",
+      "articles_sha256": "94a48165db53e4e6e0b601eea4e6ac9714cb70212df5e1c0682a06718cb61ee9",
+      "articles": [
+        {
+          "id": "48316694",
+          "author_id": 303011,
+          "created_at": "2026-10-21T15:23:50+00:00",
+          "edited_at": "2026-10-21T15:23:50+00:00",
+          "url": "https://boardgamegeek.com/thread/3785698/article/48316694#48316694",
+          "body_sha256": "af80c8d0e4102084227edf63f43ed683234f2d9f15b5a1938a6bd24906f42033",
+          "author_is_jack_reda": false
+        },
+        {
+          "id": "48316737",
+          "author_id": 333698,
+          "created_at": "2026-10-21T15:33:48+00:00",
+          "edited_at": "2026-10-21T15:33:48+00:00",
+          "url": "https://boardgamegeek.com/thread/3785698/article/48316737#48316737",
+          "body_sha256": "0b8faf8b99227935e86305f85640eab0e05ce1e95dfc95b216333b0fd447ab32",
+          "author_is_jack_reda": false
+        },
+        {
+          "id": "48316796",
+          "author_id": 923544,
+          "created_at": "2026-10-21T15:50:56+00:00",
+          "edited_at": "2026-10-21T15:51:09+00:00",
+          "url": "https://boardgamegeek.com/thread/3785698/article/48316796#48316796",
+          "body_sha256": "d12f54931af90286dcfc84c324ff585b7cca2db997a69a9bf45d9b4c495908c1",
+          "author_is_jack_reda": false
+        },
+        {
+          "id": "48316965",
+          "author_id": 809179,
+          "created_at": "2026-10-21T16:34:11+00:00",
+          "edited_at": "2026-10-21T16:34:11+00:00",
+          "url": "https://boardgamegeek.com/thread/3785698/article/48316965#48316965",
+          "body_sha256": "0bee2a114bed33f4f16dcf2adefd1104ae3ca210a18456a10700dd86a7cf2770",
+          "author_is_jack_reda": false
+        },
+        {
+          "id": "48317033",
+          "author_id": 115453,
+          "created_at": "2026-10-21T16:49:08+00:00",
+          "edited_at": "2026-10-21T16:49:08+00:00",
+          "url": "https://boardgamegeek.com/thread/3785698/article/48317033#48317033",
+          "body_sha256": "3dbd5fbf291aaf5338e57078797b7f2fee972c5d1838d03ef8d07b3f0d6cb74f",
+          "author_is_jack_reda": true
+        },
+        {
+          "id": "48317209",
+          "author_id": 370233,
+          "created_at": "2026-10-21T17:30:12+00:00",
+          "edited_at": "2026-10-21T17:30:12+00:00",
+          "url": "https://boardgamegeek.com/thread/3785698/article/48317209#48317209",
+          "body_sha256": "35f7d093ca3c823e6a3d3294129747a5c687fda795db658485c6b49f5f802d89",
+          "author_is_jack_reda": false
+        },
+        {
+          "id": "48317383",
+          "author_id": 787018,
+          "created_at": "2026-10-21T18:19:58+00:00",
+          "edited_at": "2026-10-21T18:19:58+00:00",
+          "url": "https://boardgamegeek.com/thread/3785698/article/48317383#48317383",
+          "body_sha256": "85261e46d74f2e356ea1394132a5f6f5446858e066d2cd4904ca31a2d31feae7",
+          "author_is_jack_reda": false
+        },
+        {
+          "id": "48317515",
+          "author_id": 115453,
+          "created_at": "2026-10-21T18:55:21+00:00",
+          "edited_at": "2026-10-21T18:55:21+00:00",
+          "url": "https://boardgamegeek.com/thread/3785698/article/48317515#48317515",
+          "body_sha256": "15abdb7cbf045a226223dc519cfe39242c24699f3d6db877af9b6066e9aed871",
+          "author_is_jack_reda": true
+        },
+        {
+          "id": "48317644",
+          "author_id": 3063355,
+          "created_at": "2026-10-21T19:31:07+00:00",
+          "edited_at": "2026-10-21T19:31:07+00:00",
+          "url": "https://boardgamegeek.com/thread/3785698/article/48317644#48317644",
+          "body_sha256": "9b921adae94141b34aef14a3ebdd98f5c170ba1d6cc1dce94446ca3b9f737ecb",
+          "author_is_jack_reda": false
+        },
+        {
+          "id": "48317668",
+          "author_id": 23154,
+          "created_at": "2026-10-21T19:35:13+00:00",
+          "edited_at": "2026-10-21T19:35:13+00:00",
+          "url": "https://boardgamegeek.com/thread/3785698/article/48317668#48317668",
+          "body_sha256": "fbceda509669c9af61e9264fe0674a1fcf641674ea633496644232265661c7e9",
+          "author_is_jack_reda": false
+        },
+        {
+          "id": "48317809",
+          "author_id": 3697415,
+          "created_at": "2026-10-21T20:09:51+00:00",
+          "edited_at": "2026-10-21T20:09:51+00:00",
+          "url": "https://boardgamegeek.com/thread/3785698/article/48317809#48317809",
+          "body_sha256": "22a7cdad88660e60b386cd88375ea019db0a0ae2735c7aaedf83a784f61ed8ff",
+          "author_is_jack_reda": false
+        },
+        {
+          "id": "48317944",
+          "author_id": 115453,
+          "created_at": "2026-10-21T20:42:45+00:00",
+          "edited_at": "2026-10-21T20:42:45+00:00",
+          "url": "https://boardgamegeek.com/thread/3785698/article/48317944#48317944",
+          "body_sha256": "4a174dd6b20da10959af7f8c6cceb51da51264ad63669f85b7612f120196ef47",
+          "author_is_jack_reda": true
+        },
+        {
+          "id": "48319173",
+          "author_id": 23154,
+          "created_at": "2026-10-22T05:31:06+00:00",
+          "edited_at": "2026-10-22T05:31:31+00:00",
+          "url": "https://boardgamegeek.com/thread/3785698/article/48319173#48319173",
+          "body_sha256": "03a532e77f79e08e7b2a75d1f6de6e101f70d09dfb0aac26ac2d3aee52cde47c",
+          "author_is_jack_reda": false
+        },
+        {
+          "id": "48319399",
+          "author_id": 3120857,
+          "created_at": "2026-10-22T07:30:52+00:00",
+          "edited_at": "2026-10-22T07:30:52+00:00",
+          "url": "https://boardgamegeek.com/thread/3785698/article/48319399#48319399",
+          "body_sha256": "08d151f9de228cf0d8032f87bca051f9c4259099b5b0ef1f31318fcdc32e4a52",
+          "author_is_jack_reda": false
+        },
+        {
+          "id": "48321940",
+          "author_id": 26552,
+          "created_at": "2026-10-22T20:42:12+00:00",
+          "edited_at": "2026-10-22T20:42:12+00:00",
+          "url": "https://boardgamegeek.com/thread/3785698/article/48321940#48321940",
+          "body_sha256": "3fdb06dd5b192e9918ce0a7ce6009dbaa039a9e79c1525d55c86cb9d972a3d22",
+          "author_is_jack_reda": false
+        },
+        {
+          "id": "48322481",
+          "author_id": 1201836,
+          "created_at": "2026-10-22T23:31:22+00:00",
+          "edited_at": "2026-10-22T23:31:22+00:00",
+          "url": "https://boardgamegeek.com/thread/3785698/article/48322481#48322481",
+          "body_sha256": "623afe67752695b96c5e906a5fb26c7b6a8a7332890776e8739999bc155adf7e",
+          "author_is_jack_reda": false
+        },
+        {
+          "id": "48322522",
+          "author_id": 2738015,
+          "created_at": "2026-10-22T23:52:32+00:00",
+          "edited_at": "2026-10-26T00:51:17+00:00",
+          "url": "https://boardgamegeek.com/thread/3785698/article/48322522#48322522",
+          "body_sha256": "cf98d559db749fbd856b398f5e0d422ed2f67e33e1a4d297692a9b13e1dd97b4",
+          "author_is_jack_reda": false
+        },
+        {
+          "id": "48323225",
+          "author_id": 356472,
+          "created_at": "2026-10-23T06:15:07+00:00",
+          "edited_at": "2026-10-23T06:15:07+00:00",
+          "url": "https://boardgamegeek.com/thread/3785698/article/48323225#48323225",
+          "body_sha256": "fb8e1ccc3c5838a02492f63572f4a4f41d3c4bcf6a8ad811d0dfef85ccf8c112",
+          "author_is_jack_reda": false
+        },
+        {
+          "id": "48323235",
+          "author_id": 91716,
+          "created_at": "2026-10-23T06:19:24+00:00",
+          "edited_at": "2026-10-23T06:19:24+00:00",
+          "url": "https://boardgamegeek.com/thread/3785698/article/48323235#48323235",
+          "body_sha256": "b953ad96777ada1ba6e5425497bb93a800c2bf321d979d92f211b6c59ffca14c",
+          "author_is_jack_reda": false
+        },
+        {
+          "id": "48323247",
+          "author_id": 2738015,
+          "created_at": "2026-10-23T06:28:02+00:00",
+          "edited_at": "2026-10-23T06:28:17+00:00",
+          "url": "https://boardgamegeek.com/thread/3785698/article/48323247#48323247",
+          "body_sha256": "70b00552c002d7c62555b1ea6ad082744e4c870364e1a8841f5e18e1342bb904",
+          "author_is_jack_reda": false
+        },
+        {
+          "id": "48324480",
+          "author_id": 356472,
+          "created_at": "2026-10-23T14:13:19+00:00",
+          "edited_at": "2026-10-23T14:13:19+00:00",
+          "url": "https://boardgamegeek.com/thread/3785698/article/48324480#48324480",
+          "body_sha256": "7f1f12f55a14133ebc4bae12eca185cbf5f23b8175fb27f4469a2eea6ee14b3a",
+          "author_is_jack_reda": false
+        },
+        {
+          "id": "48332141",
+          "author_id": 712203,
+          "created_at": "2026-10-25T18:09:43+00:00",
+          "edited_at": "2026-10-25T18:11:59+00:00",
+          "url": "https://boardgamegeek.com/thread/3785698/article/48332141#48332141",
+          "body_sha256": "619e36ae37f01c2aa9b8e2145c2d2889a2dd553802ea64e3e525c1e9bd8707c2",
+          "author_is_jack_reda": false
+        }
+      ]
+    },
+    {
+      "thread_id": "3785979",
+      "title": "Dune 2ed vs Kwisatz - What is What",
+      "url": "https://boardgamegeek.com/thread/3785979/dune-2ed-vs-kwisatz-what-is-what",
+      "started_at": "2026-10-22T04:56:31+00:00",
+      "post_count": 14,
+      "posts_read": 14,
+      "all_pages_read": true,
+      "retrieval_metadata_url": "https://api.geekdo.com/api/threads/3785979",
+      "retrieval_articles_url": "https://api.geekdo.com/api/articles?threadid=3785979",
+      "metadata_sha256": "a9a2d276126dc82a7d65fa6d44886445576cf674ed1952e062af0ace3ba0f0d0",
+      "articles_sha256": "792015992365141cc1b9c32a68868b946128ebb5084190421719c41c55386449",
+      "articles": [
+        {
+          "id": "48319105",
+          "author_id": 115453,
+          "created_at": "2026-10-22T04:56:31+00:00",
+          "edited_at": "2026-10-22T04:56:31+00:00",
+          "url": "https://boardgamegeek.com/thread/3785979/article/48319105#48319105",
+          "body_sha256": "bc04d559afd2f743d54d991ac46807ecdd50d6e8a02f972a6f4df1c7c0eb6447",
+          "author_is_jack_reda": true
+        },
+        {
+          "id": "48319587",
+          "author_id": 904534,
+          "created_at": "2026-10-22T08:51:52+00:00",
+          "edited_at": "2026-10-22T08:51:52+00:00",
+          "url": "https://boardgamegeek.com/thread/3785979/article/48319587#48319587",
+          "body_sha256": "788828e91fb27fd3752254c0774fbf710d6bea6986f7f6c4c7bcf6a5dc856dd8",
+          "author_is_jack_reda": false
+        },
+        {
+          "id": "48320031",
+          "author_id": 115453,
+          "created_at": "2026-10-22T12:13:08+00:00",
+          "edited_at": "2026-10-22T12:13:08+00:00",
+          "url": "https://boardgamegeek.com/thread/3785979/article/48320031#48320031",
+          "body_sha256": "b62c2ddaf87dd157441c53f831346ef32403c789b42396a475054f1b3f6b2b0d",
+          "author_is_jack_reda": true
+        },
+        {
+          "id": "48320497",
+          "author_id": 841942,
+          "created_at": "2026-10-22T14:32:04+00:00",
+          "edited_at": "2026-10-22T14:32:04+00:00",
+          "url": "https://boardgamegeek.com/thread/3785979/article/48320497#48320497",
+          "body_sha256": "84cbc9a5d4f8c778769cbb86f44800017712209cc03d2483a9ae3a2fa7230fbe",
+          "author_is_jack_reda": false
+        },
+        {
+          "id": "48320615",
+          "author_id": 115453,
+          "created_at": "2026-10-22T15:04:31+00:00",
+          "edited_at": "2026-10-22T15:04:31+00:00",
+          "url": "https://boardgamegeek.com/thread/3785979/article/48320615#48320615",
+          "body_sha256": "3a048a70ef4251b86ca5c774f4ac1e53c6d8ba482824ac72301fe280423b1628",
+          "author_is_jack_reda": true
+        },
+        {
+          "id": "48322392",
+          "author_id": 3973046,
+          "created_at": "2026-10-22T22:54:13+00:00",
+          "edited_at": "2026-10-22T22:54:50+00:00",
+          "url": "https://boardgamegeek.com/thread/3785979/article/48322392#48322392",
+          "body_sha256": "ab869f58ff0debe2bb82da025fa44f2944243f1a9497cf474e56c13a9184df8b",
+          "author_is_jack_reda": false
+        },
+        {
+          "id": "48323667",
+          "author_id": 4743522,
+          "created_at": "2026-10-23T09:22:52+00:00",
+          "edited_at": "2026-10-23T09:22:52+00:00",
+          "url": "https://boardgamegeek.com/thread/3785979/article/48323667#48323667",
+          "body_sha256": "9a98282692d82025e733055bc66fa213fa45ac88a960a614fef006a0e6239ad8",
+          "author_is_jack_reda": false
+        },
+        {
+          "id": "48323794",
+          "author_id": 492078,
+          "created_at": "2026-10-23T10:19:45+00:00",
+          "edited_at": "2026-10-23T10:19:45+00:00",
+          "url": "https://boardgamegeek.com/thread/3785979/article/48323794#48323794",
+          "body_sha256": "e223d3b07a5279a5a46381dfa4cd0764f17fc51a73b86da80de24c4efb65adb2",
+          "author_is_jack_reda": false
+        },
+        {
+          "id": "48324123",
+          "author_id": 115453,
+          "created_at": "2026-10-23T12:30:42+00:00",
+          "edited_at": "2026-10-23T12:30:42+00:00",
+          "url": "https://boardgamegeek.com/thread/3785979/article/48324123#48324123",
+          "body_sha256": "9066a2f0a80e3c43d4dece5fe26a2392fe258b1dea2668a14521618c623711e0",
+          "author_is_jack_reda": true
+        },
+        {
+          "id": "48324128",
+          "author_id": 2642438,
+          "created_at": "2026-10-23T12:32:11+00:00",
+          "edited_at": "2026-10-23T12:32:11+00:00",
+          "url": "https://boardgamegeek.com/thread/3785979/article/48324128#48324128",
+          "body_sha256": "a769c8efd6224c218d50b2d5bd5abaad7b4481117ca46a0cca06918c70fcf0e6",
+          "author_is_jack_reda": false
+        },
+        {
+          "id": "48324366",
+          "author_id": 3157589,
+          "created_at": "2026-10-23T13:39:54+00:00",
+          "edited_at": "2026-10-23T13:39:54+00:00",
+          "url": "https://boardgamegeek.com/thread/3785979/article/48324366#48324366",
+          "body_sha256": "3d87d26d31e0ed6d808260df6135a97ffc558a9b8faf1cca621f4c7883f41692",
+          "author_is_jack_reda": false
+        },
+        {
+          "id": "48327735",
+          "author_id": 3973046,
+          "created_at": "2026-10-24T12:37:56+00:00",
+          "edited_at": "2026-10-24T12:47:41+00:00",
+          "url": "https://boardgamegeek.com/thread/3785979/article/48327735#48327735",
+          "body_sha256": "10d15d48ae6f56edbae1f12a32dae71f2930acea952a9ef888a2f08beb1ce403",
+          "author_is_jack_reda": false
+        },
+        {
+          "id": "48328573",
+          "author_id": 4743522,
+          "created_at": "2026-10-24T17:33:41+00:00",
+          "edited_at": "2026-10-24T17:33:41+00:00",
+          "url": "https://boardgamegeek.com/thread/3785979/article/48328573#48328573",
+          "body_sha256": "6700d35cb834bcb6c1fed5fcd33d37ce04affd24c6a0741fe55ad7d11802401f",
+          "author_is_jack_reda": false
+        },
+        {
+          "id": "48332896",
+          "author_id": 841942,
+          "created_at": "2026-10-25T21:37:49+00:00",
+          "edited_at": "2026-10-25T21:37:49+00:00",
+          "url": "https://boardgamegeek.com/thread/3785979/article/48332896#48332896",
+          "body_sha256": "ec13ca6d6a48c0d3463e6c9f3302fb50ce27275578638e63905275806fc52f66",
+          "author_is_jack_reda": false
+        }
+      ]
+    },
+    {
+      "thread_id": "3786258",
+      "title": "What is going on with the recently announced 2nd edition?",
+      "url": "https://boardgamegeek.com/thread/3786258/what-is-going-on-with-the-recently-announced-2nd-e",
+      "started_at": "2026-10-22T18:34:17+00:00",
+      "post_count": 7,
+      "posts_read": 7,
+      "all_pages_read": true,
+      "retrieval_metadata_url": "https://api.geekdo.com/api/threads/3786258",
+      "retrieval_articles_url": "https://api.geekdo.com/api/articles?threadid=3786258",
+      "metadata_sha256": "c19467dab29ae73ff2c4df7f8dc2d7d62aa760ee8c2363a340cac22e3146a384",
+      "articles_sha256": "28f6c61fab0104f9295d1f547baaba30aa78ec23a1a7abd514de87c0d88d562a",
+      "articles": [
+        {
+          "id": "48321429",
+          "author_id": 1860151,
+          "created_at": "2026-10-22T18:34:18+00:00",
+          "edited_at": "2026-10-22T18:34:18+00:00",
+          "url": "https://boardgamegeek.com/thread/3786258/article/48321429#48321429",
+          "body_sha256": "3b1736b647561e9d52c6f4f9188a039c496a9bc29c4dc1ed25d530f5fa707a2a",
+          "author_is_jack_reda": false
+        },
+        {
+          "id": "48321559",
+          "author_id": 2738015,
+          "created_at": "2026-10-22T18:59:34+00:00",
+          "edited_at": "2026-10-22T22:25:31+00:00",
+          "url": "https://boardgamegeek.com/thread/3786258/article/48321559#48321559",
+          "body_sha256": "d155514884d7284d8aa38268701bbc51b1901631e32ea02717e5b5fb878b9a7a",
+          "author_is_jack_reda": false
+        },
+        {
+          "id": "48321587",
+          "author_id": 22459,
+          "created_at": "2026-10-22T19:06:50+00:00",
+          "edited_at": "2026-10-22T19:06:50+00:00",
+          "url": "https://boardgamegeek.com/thread/3786258/article/48321587#48321587",
+          "body_sha256": "4f351f7ae5df2fe584110fbd829d4bbd96487e55a34db7435e67608e1bbf5125",
+          "author_is_jack_reda": false
+        },
+        {
+          "id": "48321716",
+          "author_id": 23154,
+          "created_at": "2026-10-22T19:44:01+00:00",
+          "edited_at": "2026-10-22T19:44:01+00:00",
+          "url": "https://boardgamegeek.com/thread/3786258/article/48321716#48321716",
+          "body_sha256": "c8461e5250a3a7877bbe87c0c4cad7315d2e0228230f586597199ba5b6ba9fcc",
+          "author_is_jack_reda": false
+        },
+        {
+          "id": "48321957",
+          "author_id": 1860151,
+          "created_at": "2026-10-22T20:46:22+00:00",
+          "edited_at": "2026-10-24T15:24:04+00:00",
+          "url": "https://boardgamegeek.com/thread/3786258/article/48321957#48321957",
+          "body_sha256": "ec5976fee5c25a90ec6b56788a626313488d56a757b009dcbe3e0ff141d5fb58",
+          "author_is_jack_reda": false
+        },
+        {
+          "id": "48322242",
+          "author_id": 370233,
+          "created_at": "2026-10-22T22:01:05+00:00",
+          "edited_at": "2026-10-22T22:01:05+00:00",
+          "url": "https://boardgamegeek.com/thread/3786258/article/48322242#48322242",
+          "body_sha256": "1eb9bed5ffa4e94f839a39132cd77fa94684bf55f3159fd8f89d9d65b630706d",
+          "author_is_jack_reda": false
+        },
+        {
+          "id": "48323024",
+          "author_id": 160234,
+          "created_at": "2026-10-23T04:20:50+00:00",
+          "edited_at": "2026-10-23T04:20:50+00:00",
+          "url": "https://boardgamegeek.com/thread/3786258/article/48323024#48323024",
+          "body_sha256": "8d0d005b95e94d3f970c6a6692d92932266abca3d32037a451eb3ae52ed757a3",
+          "author_is_jack_reda": false
+        }
+      ]
+    }
+  ],
+  "reddit_threads": [
+    {
+      "post_id": "1xddyvy",
+      "title": "I got the new Second Edition: here are the new rules and changes",
+      "date": "2026-10-23",
+      "author": "garragorn",
+      "url": "https://www.reddit.com/r/DuneBoardGame/comments/1xddyvy/",
+      "read_scope": "Displayed original post and rendered comment section; collapsed replies not exhaustively expanded",
+      "access": "web browse open, dates cross-checked against indexed dated result",
+      "complete_nested_comment_coverage": false
+    },
+    {
+      "post_id": "1xdvzq7",
+      "title": "Second edition treachery deck",
+      "date": "2026-10-24",
+      "author": "garragorn",
+      "url": "https://www.reddit.com/r/DuneBoardGame/comments/1xdvzq7/",
+      "read_scope": "Displayed original post and rendered comment section; collapsed replies not exhaustively expanded",
+      "access": "web browse open, dates cross-checked against indexed dated result",
+      "complete_nested_comment_coverage": false
+    },
+    {
+      "post_id": "1xfb5jf",
+      "title": "Solaris Card Confusion",
+      "date": "2026-10-25",
+      "author": "ApuPunchau2026",
+      "url": "https://www.reddit.com/r/DuneBoardGame/comments/1xfb5jf/",
+      "read_scope": "Displayed original post and rendered comment section; collapsed replies not exhaustively expanded",
+      "access": "web browse open, dates cross-checked against indexed dated result",
+      "complete_nested_comment_coverage": false
+    },
+    {
+      "post_id": "1wdwuyl",
+      "title": "Gamefound - Update 3",
+      "date": "2026-09-11",
+      "author": "0101010001001011",
+      "url": "https://www.reddit.com/r/DuneBoardGame/comments/1wdwuyl/",
+      "read_scope": "Displayed original post and rendered comment section; collapsed replies not exhaustively expanded",
+      "access": "web browse open, dates cross-checked against indexed dated result",
+      "complete_nested_comment_coverage": false
+    },
+    {
+      "post_id": "1xcjui9",
+      "title": "Dune: Second Edition has been released",
+      "date": "2026-10-22",
+      "author": "cptcommanche",
+      "url": "https://www.reddit.com/r/boardgames/comments/1xcjui9/",
+      "read_scope": "Displayed original post and rendered comment section; collapsed replies not exhaustively expanded",
+      "access": "web browse open, dates cross-checked against indexed dated result",
+      "complete_nested_comment_coverage": false
+    }
+  ],
+  "designer_identity": {
+    "user_id": 115453,
+    "username": "The Warp",
+    "name": "Jack Reda",
+    "verified_using": "https://api.geekdo.com/api/users/115453",
+    "designer_id": 2223,
+    "public_badge": "Board Game Designer"
+  },
+  "bgg_posts_read_total": 79
+}

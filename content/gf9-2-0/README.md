@@ -68,7 +68,8 @@ The source includes photographs with page curl, perspective, glare and a few cli
 | [ocr/low-confidence.json](ocr/low-confidence.json) | Machine observations below 0.8 confidence that have no logged visual correction. A review queue, not a list of proven source errors. High confidence is not proof of accuracy. |
 | [transcription-review.md](transcription-review.md) | Actual review coverage, unreadable fragments and remaining work. |
 | [block-audit.md](block-audit.md) | Current contracts and rendering behavior, all 36 page compositions, missing capabilities and small adjustment proposals. |
-| [differences-plan.md](differences-plan.md) | Baseline selection, comparison record and candidates for later investigation. |
+| [differences-plan.md](differences-plan.md) | Comparison policy and link to the completed phase 2 research preparation. |
+| [differences/README.md](differences/README.md) | Source-backed old/new findings, BGG and Reddit reading, teaching situations and open questions. |
 | [artwork/provenance.json](artwork/provenance.json) | Sources, perspective correction, crops and tracing operations for the added 2.0 decals. Reference crops are retained beside it. |
 
 ## Added decals

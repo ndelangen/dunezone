@@ -1,0 +1,1668 @@
+{
+  "as_of": "2026-10-26",
+  "sources": [
+    {
+      "id": "DZ-CR",
+      "kind": "published-dune-zone-rulebook",
+      "title": "CHOAM & Richese",
+      "game_ruleset": "gf9",
+      "publication_edition": 2,
+      "published_at": "2026-10-21T17:25:43.356Z",
+      "page_count": 39,
+      "reader_url": "https://dune.zone/rulesets/gf9/rulebooks/choam-richese?edition=2",
+      "html_url": "https://dune.zone/published/rulebooks/pd747zgzak247jfbwtt6xvy1ed8gnxjy/editions/2/rulebook.html",
+      "pdf_url": "https://dune.zone/published/rulebooks/pd747zgzak247jfbwtt6xvy1ed8gnxjy/editions/2/rulebook.pdf",
+      "settings_contents_sha256_canonical_json": "c19b6318be2affd7fbe26eedd75ae734ce1d0a93ed3e3a5a736a245265cb6294",
+      "access": "Public edition contents retrieved in page and Block order through the existing reader query.",
+      "page_map": [
+        {
+          "digital_page": 1,
+          "page_id": "SFND",
+          "anchor": "cover",
+          "title": "CHOAM & Richese"
+        },
+        {
+          "digital_page": 2,
+          "page_id": "U6KE",
+          "anchor": "using-this-expansion",
+          "title": "Add the expansion"
+        },
+        {
+          "digital_page": 3,
+          "page_id": "7ABA",
+          "anchor": "richese-setup-and-cache",
+          "title": "Richese"
+        },
+        {
+          "digital_page": 4,
+          "page_id": "SQSD",
+          "anchor": "richese-auctions",
+          "title": "Sell one cache card"
+        },
+        {
+          "digital_page": 5,
+          "page_id": "PMRG",
+          "anchor": "once-around",
+          "title": "Once Around"
+        },
+        {
+          "digital_page": 6,
+          "page_id": "89K6",
+          "anchor": "silent-auction",
+          "title": "Silent Auction"
+        },
+        {
+          "digital_page": 7,
+          "page_id": "6AQ9",
+          "anchor": "richese-ixian-bidding",
+          "title": "With Ixians and Harkonnen"
+        },
+        {
+          "digital_page": 8,
+          "page_id": "LKT3",
+          "anchor": "richese-no-field",
+          "title": "Ship a hidden force"
+        },
+        {
+          "digital_page": 9,
+          "page_id": "7NAL",
+          "anchor": "no-field-reveal",
+          "title": "Reveal from reserves"
+        },
+        {
+          "digital_page": 10,
+          "page_id": "2EEF",
+          "anchor": "no-field-interactions",
+          "title": "A token counts as a force"
+        },
+        {
+          "digital_page": 11,
+          "page_id": "ZN2V",
+          "anchor": "richese-alliance-and-advanced",
+          "title": "Richese alliance"
+        },
+        {
+          "digital_page": 12,
+          "page_id": "7LNN",
+          "anchor": "richese-black-market",
+          "title": "Advanced Black Market"
+        },
+        {
+          "digital_page": 13,
+          "page_id": "EQXH",
+          "anchor": "choam-setup-and-charity",
+          "title": "CHOAM"
+        },
+        {
+          "digital_page": 14,
+          "page_id": "RZPJ",
+          "anchor": "choam-inflation",
+          "title": "Plan two turns of Charity"
+        },
+        {
+          "digital_page": 15,
+          "page_id": "TFMT",
+          "anchor": "charity-example",
+          "title": "Charity with four factions"
+        },
+        {
+          "digital_page": 16,
+          "page_id": "K2PV",
+          "anchor": "choam-treachery",
+          "title": "Turn spare cards into spice"
+        },
+        {
+          "digital_page": 17,
+          "page_id": "KVJR",
+          "anchor": "worthless-movement",
+          "title": "Worthless movement effects"
+        },
+        {
+          "digital_page": 18,
+          "page_id": "MPV2",
+          "anchor": "worthless-revival",
+          "title": "Revival and Mentat Pause"
+        },
+        {
+          "digital_page": 19,
+          "page_id": "6Y92",
+          "anchor": "choam-alliance-and-advanced",
+          "title": "CHOAM alliance"
+        },
+        {
+          "digital_page": 20,
+          "page_id": "3KPM",
+          "anchor": "choam-auditor",
+          "title": "Advanced Auditor"
+        },
+        {
+          "digital_page": 21,
+          "page_id": "XFGP",
+          "anchor": "choam-battle-income",
+          "title": "Advanced battle income"
+        },
+        {
+          "digital_page": 22,
+          "page_id": "MZTN",
+          "anchor": "richese-cache-reference",
+          "title": "Cards from the cache"
+        },
+        {
+          "digital_page": 23,
+          "page_id": "VY8R",
+          "anchor": "cache-movement-search",
+          "title": "Movement and the discard pile"
+        },
+        {
+          "digital_page": 24,
+          "page_id": "CY7F",
+          "anchor": "cache-stone-burner",
+          "title": "Stone Burner and Karama"
+        },
+        {
+          "digital_page": 25,
+          "page_id": "D8XQ",
+          "anchor": "replacement-card-text",
+          "title": "Use the corrected cards"
+        },
+        {
+          "digital_page": 26,
+          "page_id": "DL3H",
+          "anchor": "current-karama",
+          "title": "Current Karama rules"
+        },
+        {
+          "digital_page": 27,
+          "page_id": "5ETS",
+          "anchor": "deck-counts",
+          "title": "Keep the decks distinct"
+        },
+        {
+          "digital_page": 28,
+          "page_id": "K254",
+          "anchor": "leader-skill-setup",
+          "title": "Optional Leader Skills"
+        },
+        {
+          "digital_page": 29,
+          "page_id": "G54W",
+          "anchor": "leader-skills-in-battle",
+          "title": "Bring the skill to battle"
+        },
+        {
+          "digital_page": 30,
+          "page_id": "S4WP",
+          "anchor": "leader-skill-renewal",
+          "title": "Death, revival and capture"
+        },
+        {
+          "digital_page": 31,
+          "page_id": "S5L2",
+          "anchor": "skills-knowledge",
+          "title": "Knowledge and influence"
+        },
+        {
+          "digital_page": 32,
+          "page_id": "XZ76",
+          "anchor": "skills-payments",
+          "title": "Payments and battle strength"
+        },
+        {
+          "digital_page": 33,
+          "page_id": "PXJP",
+          "anchor": "skills-survival",
+          "title": "Retreat and recovery"
+        },
+        {
+          "digital_page": 34,
+          "page_id": "M52A",
+          "anchor": "skills-poison",
+          "title": "Poison skills"
+        },
+        {
+          "digital_page": 35,
+          "page_id": "F6V8",
+          "anchor": "advanced-stronghold-cards",
+          "title": "Optional Stronghold Cards"
+        },
+        {
+          "digital_page": 36,
+          "page_id": "3EMD",
+          "anchor": "strongholds-cities",
+          "title": "City advantages"
+        },
+        {
+          "digital_page": 37,
+          "page_id": "UNB8",
+          "anchor": "strongholds-desert",
+          "title": "Spice and tied battles"
+        },
+        {
+          "digital_page": 38,
+          "page_id": "ZNRP",
+          "anchor": "karama-choam",
+          "title": "Karama against CHOAM"
+        },
+        {
+          "digital_page": 39,
+          "page_id": "ZFVE",
+          "anchor": "karama-richese",
+          "title": "Karama against Richese"
+        }
+      ]
+    },
+    {
+      "id": "DZ1",
+      "kind": "published-dune-zone-rulebook",
+      "title": "Dune: core rules",
+      "game_ruleset": "gf9",
+      "publication_edition": 2,
+      "published_at": "2026-10-21T18:05:00.515Z",
+      "page_count": 50,
+      "reader_url": "https://dune.zone/rulesets/gf9/rulebooks/dune-core-rules?edition=2",
+      "html_url": "https://dune.zone/published/rulebooks/pd7e9c06czdjw0c8d22f77ph258gmknt/editions/2/rulebook.html",
+      "pdf_url": "https://dune.zone/published/rulebooks/pd7e9c06czdjw0c8d22f77ph258gmknt/editions/2/rulebook.pdf",
+      "settings_contents_sha256_canonical_json": "8055421dba5dd7a727e2c2ed7e044f8095b91db8a5d37fae9adbe8b7642c1941",
+      "access": "Public edition contents retrieved in page and Block order through the existing reader query.",
+      "page_map": [
+        {
+          "digital_page": 1,
+          "page_id": "MS3T",
+          "anchor": "cover",
+          "title": "Dune"
+        },
+        {
+          "digital_page": 2,
+          "page_id": "7HVK",
+          "anchor": "begin",
+          "title": "The struggle for Arrakis"
+        },
+        {
+          "digital_page": 3,
+          "page_id": "WKAY",
+          "anchor": "board",
+          "title": "Read the board"
+        },
+        {
+          "digital_page": 4,
+          "page_id": "L75T",
+          "anchor": "components",
+          "title": "Prepare the components"
+        },
+        {
+          "digital_page": 5,
+          "page_id": "98BN",
+          "anchor": "setup",
+          "title": "Set up the game"
+        },
+        {
+          "digital_page": 6,
+          "page_id": "XDMY",
+          "anchor": "starting-forces",
+          "title": "Starting positions and resources"
+        },
+        {
+          "digital_page": 7,
+          "page_id": "B28E",
+          "anchor": "information",
+          "title": "Information, hands and discards"
+        },
+        {
+          "digital_page": 8,
+          "page_id": "QPJM",
+          "anchor": "turn",
+          "title": "The nine phases of a turn"
+        },
+        {
+          "digital_page": 9,
+          "page_id": "A4B4",
+          "anchor": "first-storm",
+          "title": "Storm"
+        },
+        {
+          "digital_page": 10,
+          "page_id": "BNKX",
+          "anchor": "spice-blow",
+          "title": "Spice blows and Shai-Hulud"
+        },
+        {
+          "digital_page": 11,
+          "page_id": "QS7J",
+          "anchor": "advanced-spice",
+          "title": "Two spice blows"
+        },
+        {
+          "digital_page": 12,
+          "page_id": "GEMD",
+          "anchor": "nexus",
+          "title": "Make or break alliances"
+        },
+        {
+          "digital_page": 13,
+          "page_id": "6WNB",
+          "anchor": "allied-payments",
+          "title": "Helping an ally"
+        },
+        {
+          "digital_page": 14,
+          "page_id": "2EZZ",
+          "anchor": "charity",
+          "title": "CHOAM Charity"
+        },
+        {
+          "digital_page": 15,
+          "page_id": "67RF",
+          "anchor": "bidding",
+          "title": "Auction Treachery Cards"
+        },
+        {
+          "digital_page": 16,
+          "page_id": "UPFK",
+          "anchor": "revive-forces",
+          "title": "Revive forces"
+        },
+        {
+          "digital_page": 17,
+          "page_id": "855V",
+          "anchor": "revive-leaders",
+          "title": "Revive leaders"
+        },
+        {
+          "digital_page": 18,
+          "page_id": "NSYH",
+          "anchor": "shipment",
+          "title": "Ship first, move second"
+        },
+        {
+          "digital_page": 19,
+          "page_id": "ALSK",
+          "anchor": "shipment-range",
+          "title": "Choose one moving group"
+        },
+        {
+          "digital_page": 20,
+          "page_id": "DRKY",
+          "anchor": "shipment-route",
+          "title": "Check the whole route"
+        },
+        {
+          "digital_page": 21,
+          "page_id": "D74W",
+          "anchor": "shipment-strongholds",
+          "title": "Check stronghold access"
+        },
+        {
+          "digital_page": 22,
+          "page_id": "ME97",
+          "anchor": "shipment-position",
+          "title": "Plan where forces remain"
+        },
+        {
+          "digital_page": 23,
+          "page_id": "SXRL",
+          "anchor": "movement",
+          "title": "Movement exceptions and extra moves"
+        },
+        {
+          "digital_page": 24,
+          "page_id": "UEEP",
+          "anchor": "battle-order",
+          "title": "Choose and prepare the battles"
+        },
+        {
+          "digital_page": 25,
+          "page_id": "NUS5",
+          "anchor": "battle-information",
+          "title": "Voice and battle information"
+        },
+        {
+          "digital_page": 26,
+          "page_id": "5YSU",
+          "anchor": "battle-resolution",
+          "title": "Resolve an ordinary battle"
+        },
+        {
+          "digital_page": 27,
+          "page_id": "PDQU",
+          "anchor": "weapons",
+          "title": "Weapons, defenses and explosions"
+        },
+        {
+          "digital_page": 28,
+          "page_id": "9VFE",
+          "anchor": "traitors",
+          "title": "Reveal a traitor"
+        },
+        {
+          "digital_page": 29,
+          "page_id": "FHUN",
+          "anchor": "advanced-battle",
+          "title": "Support forces with spice"
+        },
+        {
+          "digital_page": 30,
+          "page_id": "N3YP",
+          "anchor": "collection",
+          "title": "Spice Collection"
+        },
+        {
+          "digital_page": 31,
+          "page_id": "ASP7",
+          "anchor": "mentat",
+          "title": "Mentat Pause and victory"
+        },
+        {
+          "digital_page": 32,
+          "page_id": "3VEU",
+          "anchor": "deals",
+          "title": "Advanced deals and bribes"
+        },
+        {
+          "digital_page": 33,
+          "page_id": "JT75",
+          "anchor": "atreides",
+          "title": "Atreides"
+        },
+        {
+          "digital_page": 34,
+          "page_id": "RLL7",
+          "anchor": "kwisatz-haderach",
+          "title": "Atreides in the Advanced Game"
+        },
+        {
+          "digital_page": 35,
+          "page_id": "MH2Y",
+          "anchor": "bene-gesserit",
+          "title": "Bene Gesserit"
+        },
+        {
+          "digital_page": 36,
+          "page_id": "FDA3",
+          "anchor": "advisors",
+          "title": "Bene Gesserit advisors and fighters"
+        },
+        {
+          "digital_page": 37,
+          "page_id": "C7ZR",
+          "anchor": "emperor",
+          "title": "Emperor"
+        },
+        {
+          "digital_page": 38,
+          "page_id": "YEX5",
+          "anchor": "fremen",
+          "title": "Fremen"
+        },
+        {
+          "digital_page": 39,
+          "page_id": "WYUA",
+          "anchor": "fremen-advanced",
+          "title": "Fremen in the Advanced Game"
+        },
+        {
+          "digital_page": 40,
+          "page_id": "DJ8P",
+          "anchor": "harkonnen",
+          "title": "Harkonnen"
+        },
+        {
+          "digital_page": 41,
+          "page_id": "25R4",
+          "anchor": "spacing-guild",
+          "title": "Spacing Guild"
+        },
+        {
+          "digital_page": 42,
+          "page_id": "VDHJ",
+          "anchor": "card-reference",
+          "title": "The core Treachery Deck"
+        },
+        {
+          "digital_page": 43,
+          "page_id": "DGNQ",
+          "anchor": "worthless-cheap-hero",
+          "title": "Worthless Cards and Cheap Heroes"
+        },
+        {
+          "digital_page": 44,
+          "page_id": "TTSY",
+          "anchor": "karama",
+          "title": "Karama"
+        },
+        {
+          "digital_page": 45,
+          "page_id": "JN3K",
+          "anchor": "karama-factions",
+          "title": "Karama against the base factions"
+        },
+        {
+          "digital_page": 46,
+          "page_id": "7UL4",
+          "anchor": "special-karama",
+          "title": "Special Karama powers"
+        },
+        {
+          "digital_page": 47,
+          "page_id": "8Q2N",
+          "anchor": "truthtrance",
+          "title": "Truthtrance"
+        },
+        {
+          "digital_page": 48,
+          "page_id": "SGH2",
+          "anchor": "family-atomics",
+          "title": "Family Atomics"
+        },
+        {
+          "digital_page": 49,
+          "page_id": "P3ZN",
+          "anchor": "hajr-ghola-weather",
+          "title": "Movement, revival and weather cards"
+        },
+        {
+          "digital_page": 50,
+          "page_id": "UY2T",
+          "anchor": "alliance-variants",
+          "title": "Optional arrangements and expansions"
+        }
+      ]
+    },
+    {
+      "id": "DZ-EM",
+      "kind": "published-dune-zone-rulebook",
+      "title": "Ecaz & Moritani",
+      "game_ruleset": "gf9",
+      "publication_edition": 2,
+      "published_at": "2026-10-21T17:30:35.950Z",
+      "page_count": 65,
+      "reader_url": "https://dune.zone/rulesets/gf9/rulebooks/ecaz-moritani?edition=2",
+      "html_url": "https://dune.zone/published/rulebooks/pd7a66zssyh5fgyfp3dt10dhxd8gndeq/editions/2/rulebook.html",
+      "pdf_url": "https://dune.zone/published/rulebooks/pd7a66zssyh5fgyfp3dt10dhxd8gndeq/editions/2/rulebook.pdf",
+      "settings_contents_sha256_canonical_json": "c92c8bfe82ddec0652d5c86c4b7ddb8151d425ed862830d7b0d56a05d0e9a1d2",
+      "access": "Public edition contents retrieved in page and Block order through the existing reader query.",
+      "page_map": [
+        {
+          "digital_page": 1,
+          "page_id": "R4EV",
+          "anchor": "cover",
+          "title": "Ecaz & Moritani"
+        },
+        {
+          "digital_page": 2,
+          "page_id": "5QT6",
+          "anchor": "using-this-expansion",
+          "title": "Add the expansion"
+        },
+        {
+          "digital_page": 3,
+          "page_id": "ARNJ",
+          "anchor": "ecaz-setup",
+          "title": "Ecaz"
+        },
+        {
+          "digital_page": 4,
+          "page_id": "827U",
+          "anchor": "place-ambassadors",
+          "title": "Place Ambassadors"
+        },
+        {
+          "digital_page": 5,
+          "page_id": "NP3G",
+          "anchor": "ambassador-effects",
+          "title": "Ambassador effects"
+        },
+        {
+          "digital_page": 6,
+          "page_id": "ADTM",
+          "anchor": "ambassador-spice-and-cards",
+          "title": "Spice and cards"
+        },
+        {
+          "digital_page": 7,
+          "page_id": "QVWN",
+          "anchor": "ambassador-movement",
+          "title": "Move or send forces"
+        },
+        {
+          "digital_page": 8,
+          "page_id": "W7PW",
+          "anchor": "ecaz-co-occupation",
+          "title": "Share territory"
+        },
+        {
+          "digital_page": 9,
+          "page_id": "NQGE",
+          "anchor": "ecaz-battle",
+          "title": "Fight beside your ally"
+        },
+        {
+          "digital_page": 10,
+          "page_id": "E6WR",
+          "anchor": "ecaz-advanced",
+          "title": "Advanced Ecaz"
+        },
+        {
+          "digital_page": 11,
+          "page_id": "943C",
+          "anchor": "moritani-setup-and-terror",
+          "title": "Moritani"
+        },
+        {
+          "digital_page": 12,
+          "page_id": "DXQE",
+          "anchor": "place-terror",
+          "title": "Set a threat"
+        },
+        {
+          "digital_page": 13,
+          "page_id": "VLFM",
+          "anchor": "terror-no-fields",
+          "title": "No-Fields and Terror"
+        },
+        {
+          "digital_page": 14,
+          "page_id": "WKJ4",
+          "anchor": "terror-effects",
+          "title": "Terror effects"
+        },
+        {
+          "digital_page": 15,
+          "page_id": "8XVW",
+          "anchor": "atomics-aftermath",
+          "title": "After Atomics"
+        },
+        {
+          "digital_page": 16,
+          "page_id": "5E7C",
+          "anchor": "terror-sabotage-and-entry",
+          "title": "Discard or enter"
+        },
+        {
+          "digital_page": 17,
+          "page_id": "8WY4",
+          "anchor": "moritani-alliance",
+          "title": "Offer an alliance"
+        },
+        {
+          "digital_page": 18,
+          "page_id": "VWPH",
+          "anchor": "moritani-advanced",
+          "title": "Advanced Moritani"
+        },
+        {
+          "digital_page": 19,
+          "page_id": "JY9G",
+          "anchor": "duke-vidal",
+          "title": "Duke Prad Vidal"
+        },
+        {
+          "digital_page": 20,
+          "page_id": "UY7U",
+          "anchor": "revive-vidal",
+          "title": "Revive Vidal"
+        },
+        {
+          "digital_page": 21,
+          "page_id": "EL2J",
+          "anchor": "ecaz-moritani-karama",
+          "title": "Ordinary Karama"
+        },
+        {
+          "digital_page": 22,
+          "page_id": "B999",
+          "anchor": "homeworld-setup",
+          "title": "Homeworlds"
+        },
+        {
+          "digital_page": 23,
+          "page_id": "4EDN",
+          "anchor": "homeworld-shipment",
+          "title": "Ship to another Homeworld"
+        },
+        {
+          "digital_page": 24,
+          "page_id": "PD93",
+          "anchor": "homeworld-occupation",
+          "title": "Become the Occupier"
+        },
+        {
+          "digital_page": 25,
+          "page_id": "5T29",
+          "anchor": "homeworld-battles-and-emperor",
+          "title": "Battle on a Homeworld"
+        },
+        {
+          "digital_page": 26,
+          "page_id": "GXZG",
+          "anchor": "emperor-homeworlds",
+          "title": "The Emperor has two worlds"
+        },
+        {
+          "digital_page": 27,
+          "page_id": "YBXK",
+          "anchor": "homeworld-caladan",
+          "title": "Caladan"
+        },
+        {
+          "digital_page": 28,
+          "page_id": "FMTZ",
+          "anchor": "homeworld-giedi-prime",
+          "title": "Giedi Prime"
+        },
+        {
+          "digital_page": 29,
+          "page_id": "FL2J",
+          "anchor": "homeworld-arrakis",
+          "title": "Southern Hemisphere on Arrakis"
+        },
+        {
+          "digital_page": 30,
+          "page_id": "D7KN",
+          "anchor": "homeworld-kaitain",
+          "title": "Kaitain"
+        },
+        {
+          "digital_page": 31,
+          "page_id": "5CGC",
+          "anchor": "homeworld-salusa-secundus",
+          "title": "Salusa Secundus"
+        },
+        {
+          "digital_page": 32,
+          "page_id": "5E7E",
+          "anchor": "homeworld-junction",
+          "title": "Junction"
+        },
+        {
+          "digital_page": 33,
+          "page_id": "4K2M",
+          "anchor": "homeworld-wallach-ix",
+          "title": "Wallach IX"
+        },
+        {
+          "digital_page": 34,
+          "page_id": "F4AX",
+          "anchor": "homeworld-ix",
+          "title": "Ix"
+        },
+        {
+          "digital_page": 35,
+          "page_id": "YARE",
+          "anchor": "homeworld-tleilax",
+          "title": "Tleilax"
+        },
+        {
+          "digital_page": 36,
+          "page_id": "XESK",
+          "anchor": "homeworld-tupile",
+          "title": "Tupile"
+        },
+        {
+          "digital_page": 37,
+          "page_id": "DVWE",
+          "anchor": "homeworld-richese",
+          "title": "Richese"
+        },
+        {
+          "digital_page": 38,
+          "page_id": "E3E9",
+          "anchor": "homeworld-ecaz",
+          "title": "Ecaz"
+        },
+        {
+          "digital_page": 39,
+          "page_id": "3ZHR",
+          "anchor": "homeworld-grumman",
+          "title": "Grumman"
+        },
+        {
+          "digital_page": 40,
+          "page_id": "LX8U",
+          "anchor": "nexus-cards",
+          "title": "Nexus Cards"
+        },
+        {
+          "digital_page": 41,
+          "page_id": "8GNF",
+          "anchor": "nexus-atreides",
+          "title": "Atreides Nexus"
+        },
+        {
+          "digital_page": 42,
+          "page_id": "PBSY",
+          "anchor": "nexus-bene-gesserit",
+          "title": "Bene Gesserit Nexus"
+        },
+        {
+          "digital_page": 43,
+          "page_id": "Z8HL",
+          "anchor": "nexus-choam",
+          "title": "CHOAM Nexus"
+        },
+        {
+          "digital_page": 44,
+          "page_id": "LH6B",
+          "anchor": "nexus-ecaz",
+          "title": "Ecaz Nexus"
+        },
+        {
+          "digital_page": 45,
+          "page_id": "HYPM",
+          "anchor": "nexus-emperor",
+          "title": "Emperor Nexus"
+        },
+        {
+          "digital_page": 46,
+          "page_id": "TQV3",
+          "anchor": "nexus-fremen",
+          "title": "Fremen Nexus"
+        },
+        {
+          "digital_page": 47,
+          "page_id": "HZGX",
+          "anchor": "nexus-harkonnen",
+          "title": "Harkonnen Nexus"
+        },
+        {
+          "digital_page": 48,
+          "page_id": "K7QF",
+          "anchor": "nexus-ixians",
+          "title": "Ixians Nexus"
+        },
+        {
+          "digital_page": 49,
+          "page_id": "HX6D",
+          "anchor": "nexus-moritani",
+          "title": "Moritani Nexus"
+        },
+        {
+          "digital_page": 50,
+          "page_id": "CBN6",
+          "anchor": "nexus-richese",
+          "title": "Richese Nexus"
+        },
+        {
+          "digital_page": 51,
+          "page_id": "8S75",
+          "anchor": "nexus-spacing-guild",
+          "title": "Spacing Guild Nexus"
+        },
+        {
+          "digital_page": 52,
+          "page_id": "MEWS",
+          "anchor": "nexus-tleilaxu",
+          "title": "Tleilaxu Nexus"
+        },
+        {
+          "digital_page": 53,
+          "page_id": "WH3J",
+          "anchor": "new-treachery",
+          "title": "Three Treachery Cards"
+        },
+        {
+          "digital_page": 54,
+          "page_id": "DLW6",
+          "anchor": "reinforcements",
+          "title": "Reinforce a Battle Plan"
+        },
+        {
+          "digital_page": 55,
+          "page_id": "EK75",
+          "anchor": "harass-and-withdraw",
+          "title": "Withdraw undialed forces"
+        },
+        {
+          "digital_page": 56,
+          "page_id": "4A2U",
+          "anchor": "discovery-setup-and-cards",
+          "title": "Discovery"
+        },
+        {
+          "digital_page": 57,
+          "page_id": "WBVY",
+          "anchor": "great-maker",
+          "title": "Great Maker"
+        },
+        {
+          "digital_page": 58,
+          "page_id": "77LV",
+          "anchor": "discovery-blows-1",
+          "title": "Discovery Spice Cards"
+        },
+        {
+          "digital_page": 59,
+          "page_id": "7LGT",
+          "anchor": "discovery-blows-3",
+          "title": "Two Discovery blows"
+        },
+        {
+          "digital_page": 60,
+          "page_id": "UTRF",
+          "anchor": "discovering-and-entering",
+          "title": "Reveal a Discovery"
+        },
+        {
+          "digital_page": 61,
+          "page_id": "EM7H",
+          "anchor": "enter-discovery-locations",
+          "title": "Enter a location"
+        },
+        {
+          "digital_page": 62,
+          "page_id": "DVHG",
+          "anchor": "discovery-effects",
+          "title": "Hiereg locations"
+        },
+        {
+          "digital_page": 63,
+          "page_id": "7T8V",
+          "anchor": "smuggler-discoveries",
+          "title": "Smuggler discoveries"
+        },
+        {
+          "digital_page": 64,
+          "page_id": "WFRT",
+          "anchor": "expansion-reference",
+          "title": "Turn reminders"
+        },
+        {
+          "digital_page": 65,
+          "page_id": "L5SE",
+          "anchor": "themed-match-ups",
+          "title": "Choose a match"
+        }
+      ]
+    },
+    {
+      "id": "DZ-IT",
+      "kind": "published-dune-zone-rulebook",
+      "title": "Ixians & Tleilaxu",
+      "game_ruleset": "gf9",
+      "publication_edition": 2,
+      "published_at": "2026-10-21T17:23:02.727Z",
+      "page_count": 31,
+      "reader_url": "https://dune.zone/rulesets/gf9/rulebooks/ixians-tleilaxu?edition=2",
+      "html_url": "https://dune.zone/published/rulebooks/pd757fwer2cfxyq4m9b4z446kx8gmb1g/editions/2/rulebook.html",
+      "pdf_url": "https://dune.zone/published/rulebooks/pd757fwer2cfxyq4m9b4z446kx8gmb1g/editions/2/rulebook.pdf",
+      "settings_contents_sha256_canonical_json": "e998b5f46090ebb26edf4115c072082f7800de23cb958189b530f7de269f82eb",
+      "access": "Public edition contents retrieved in page and Block order through the existing reader query.",
+      "page_map": [
+        {
+          "digital_page": 1,
+          "page_id": "UGY8",
+          "anchor": "cover",
+          "title": "Ixians & Tleilaxu"
+        },
+        {
+          "digital_page": 2,
+          "page_id": "YS7Y",
+          "anchor": "using-this-expansion",
+          "title": "Add the expansion"
+        },
+        {
+          "digital_page": 3,
+          "page_id": "WCPB",
+          "anchor": "ixian-setup",
+          "title": "Ixians"
+        },
+        {
+          "digital_page": 4,
+          "page_id": "JVRB",
+          "anchor": "ixian-bidding",
+          "title": "Know the auction"
+        },
+        {
+          "digital_page": 5,
+          "page_id": "9X5U",
+          "anchor": "cyborgs-and-suboids",
+          "title": "Two kinds of force"
+        },
+        {
+          "digital_page": 6,
+          "page_id": "EDPU",
+          "anchor": "suboid-losses",
+          "title": "Paying battle losses"
+        },
+        {
+          "digital_page": 7,
+          "page_id": "U75A",
+          "anchor": "hidden-mobile-stronghold",
+          "title": "A separate stronghold"
+        },
+        {
+          "digital_page": 8,
+          "page_id": "MANJ",
+          "anchor": "stronghold-movement",
+          "title": "Move before the storm"
+        },
+        {
+          "digital_page": 9,
+          "page_id": "UX7A",
+          "anchor": "ixian-advanced",
+          "title": "Advanced Ixians"
+        },
+        {
+          "digital_page": 10,
+          "page_id": "8W68",
+          "anchor": "tleilaxu-setup",
+          "title": "Tleilaxu"
+        },
+        {
+          "digital_page": 11,
+          "page_id": "CW5G",
+          "anchor": "face-dancer-resolution",
+          "title": "Reveal after the victory"
+        },
+        {
+          "digital_page": 12,
+          "page_id": "P4YQ",
+          "anchor": "face-dancer-cycle",
+          "title": "Keep three Face Dancers"
+        },
+        {
+          "digital_page": 13,
+          "page_id": "3QF6",
+          "anchor": "tleilaxu-revival",
+          "title": "Revival is your income"
+        },
+        {
+          "digital_page": 14,
+          "page_id": "TH8Q",
+          "anchor": "early-leader-revival",
+          "title": "Revive a leader early"
+        },
+        {
+          "digital_page": 15,
+          "page_id": "LSPS",
+          "anchor": "zoal",
+          "title": "Zoal copies a leader"
+        },
+        {
+          "digital_page": 16,
+          "page_id": "M2D7",
+          "anchor": "tleilaxu-advanced",
+          "title": "Advanced Tleilaxu"
+        },
+        {
+          "digital_page": 17,
+          "page_id": "MX5B",
+          "anchor": "tech-token-setup",
+          "title": "Optional Tech Tokens"
+        },
+        {
+          "digital_page": 18,
+          "page_id": "EKHP",
+          "anchor": "tech-control",
+          "title": "Win and lose industries"
+        },
+        {
+          "digital_page": 19,
+          "page_id": "79RZ",
+          "anchor": "tech-income-example",
+          "title": "Two income opportunities"
+        },
+        {
+          "digital_page": 20,
+          "page_id": "NHHR",
+          "anchor": "new-cards",
+          "title": "Sandtrout changes alliances"
+        },
+        {
+          "digital_page": 21,
+          "page_id": "LAD8",
+          "anchor": "treachery-reference",
+          "title": "The new Treachery Cards"
+        },
+        {
+          "digital_page": 22,
+          "page_id": "5GP3",
+          "anchor": "combined-weapons",
+          "title": "More than one threat"
+        },
+        {
+          "digital_page": 23,
+          "page_id": "U9R6",
+          "anchor": "ordinary-new-weapons",
+          "title": "Projectile and poison"
+        },
+        {
+          "digital_page": 24,
+          "page_id": "W58W",
+          "anchor": "alternate-card-roles",
+          "title": "Choose the card's role"
+        },
+        {
+          "digital_page": 25,
+          "page_id": "TFCJ",
+          "anchor": "poison-tooth-artillery",
+          "title": "Both leaders are at risk"
+        },
+        {
+          "digital_page": 26,
+          "page_id": "WJQQ",
+          "anchor": "spice-phase-cards",
+          "title": "Change the Spice Blow"
+        },
+        {
+          "digital_page": 27,
+          "page_id": "C3PH",
+          "anchor": "amal-worthless",
+          "title": "Spice and a Worthless Card"
+        },
+        {
+          "digital_page": 28,
+          "page_id": "J3SZ",
+          "anchor": "voice-special-cards",
+          "title": "Voice and special cards"
+        },
+        {
+          "digital_page": 29,
+          "page_id": "ZUDV",
+          "anchor": "ixian-tleilaxu-karama",
+          "title": "Karama against Ixians"
+        },
+        {
+          "digital_page": 30,
+          "page_id": "UJ6M",
+          "anchor": "karama-dial-example",
+          "title": "Recheck the legal dial"
+        },
+        {
+          "digital_page": 31,
+          "page_id": "L87Z",
+          "anchor": "tleilaxu-karama",
+          "title": "Karama against Tleilaxu"
+        }
+      ]
+    },
+    {
+      "id": "DZ2",
+      "kind": "published-dune-zone-rulebook",
+      "title": "GF9 2.0 Rulebook",
+      "game_ruleset": "gf9-2-0",
+      "publication_edition": 3,
+      "published_at": "2026-10-25T21:55:33.773Z",
+      "page_count": 61,
+      "reader_url": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2-0-rulebook?edition=3",
+      "html_url": "https://dune.zone/published/rulebooks/pd78axr5dcce1vqkcyxpp3asps8gtkd6/editions/3/rulebook.html",
+      "pdf_url": "https://dune.zone/published/rulebooks/pd78axr5dcce1vqkcyxpp3asps8gtkd6/editions/3/rulebook.pdf",
+      "settings_contents_sha256_canonical_json": "ef1ed1896b8e194367e10ed8516f49080a522b02425a9e3c3eb75f4b9a12fc39",
+      "access": "Public edition contents retrieved in page and Block order through the existing reader query.",
+      "page_map": [
+        {
+          "digital_page": 1,
+          "page_id": "SCMH",
+          "anchor": "source-01",
+          "title": "RULEBOOK"
+        },
+        {
+          "digital_page": 2,
+          "page_id": "LLQL",
+          "anchor": "source-02",
+          "title": "PREFACE"
+        },
+        {
+          "digital_page": 3,
+          "page_id": "2VDK",
+          "anchor": "source-03",
+          "title": "NOTES ON THIS EDITION"
+        },
+        {
+          "digital_page": 4,
+          "page_id": "C7U2",
+          "anchor": "source-03-part-2",
+          "title": "Credits"
+        },
+        {
+          "digital_page": 5,
+          "page_id": "874R",
+          "anchor": "source-04",
+          "title": "Faction overview"
+        },
+        {
+          "digital_page": 6,
+          "page_id": "LKXC",
+          "anchor": "source-05",
+          "title": "Faction overview"
+        },
+        {
+          "digital_page": 7,
+          "page_id": "TN3N",
+          "anchor": "source-06",
+          "title": "GAME COMPONENTS"
+        },
+        {
+          "digital_page": 8,
+          "page_id": "MC57",
+          "anchor": "source-08",
+          "title": "SET-UP FOR PLAY"
+        },
+        {
+          "digital_page": 9,
+          "page_id": "NFMC",
+          "anchor": "source-08-continued-2",
+          "title": "SET-UP FOR PLAY"
+        },
+        {
+          "digital_page": 10,
+          "page_id": "XUD9",
+          "anchor": "source-09",
+          "title": "SEQUENCE OF PLAY"
+        },
+        {
+          "digital_page": 11,
+          "page_id": "YEP8",
+          "anchor": "source-10",
+          "title": "PHASE 1: STORM"
+        },
+        {
+          "digital_page": 12,
+          "page_id": "8LF7",
+          "anchor": "source-10-part-2",
+          "title": "Storm movement examples"
+        },
+        {
+          "digital_page": 13,
+          "page_id": "RXDU",
+          "anchor": "source-11",
+          "title": "PHASE 2: SPICE BLOW AND NEXUS"
+        },
+        {
+          "digital_page": 14,
+          "page_id": "FMKT",
+          "anchor": "source-12",
+          "title": "PHASE 3: CHOAM CHARITY"
+        },
+        {
+          "digital_page": 15,
+          "page_id": "P3L4",
+          "anchor": "source-12-continued-2",
+          "title": "PHASE 3: CHOAM CHARITY"
+        },
+        {
+          "digital_page": 16,
+          "page_id": "G8TK",
+          "anchor": "source-13",
+          "title": "PHASE 5: REVIVAL"
+        },
+        {
+          "digital_page": 17,
+          "page_id": "CDJ6",
+          "anchor": "source-14",
+          "title": "PHASE 6: SHIPMENT AND MOVEMENT"
+        },
+        {
+          "digital_page": 18,
+          "page_id": "4Z2S",
+          "anchor": "source-14-continued-2",
+          "title": "PHASE 6: SHIPMENT AND MOVEMENT"
+        },
+        {
+          "digital_page": 19,
+          "page_id": "RNZM",
+          "anchor": "source-15",
+          "title": "PHASE 6: SHIPMENT AND MOVEMENT"
+        },
+        {
+          "digital_page": 20,
+          "page_id": "Q4A6",
+          "anchor": "source-15-part-2",
+          "title": "Shipment and movement examples"
+        },
+        {
+          "digital_page": 21,
+          "page_id": "WLKG",
+          "anchor": "source-15-part-3",
+          "title": "Spacing Guild movement example"
+        },
+        {
+          "digital_page": 22,
+          "page_id": "T4NA",
+          "anchor": "source-16",
+          "title": "PHASE 7: BATTLE"
+        },
+        {
+          "digital_page": 23,
+          "page_id": "6LBR",
+          "anchor": "source-16-continued-2",
+          "title": "PHASE 7: BATTLE"
+        },
+        {
+          "digital_page": 24,
+          "page_id": "PTKA",
+          "anchor": "source-17",
+          "title": "PHASE 7: BATTLE"
+        },
+        {
+          "digital_page": 25,
+          "page_id": "EVTQ",
+          "anchor": "source-17-continued-2",
+          "title": "PHASE 7: BATTLE"
+        },
+        {
+          "digital_page": 26,
+          "page_id": "VKG8",
+          "anchor": "source-18",
+          "title": "PHASE 7: BATTLE"
+        },
+        {
+          "digital_page": 27,
+          "page_id": "ZSCH",
+          "anchor": "source-18-part-2",
+          "title": "Example of a battle"
+        },
+        {
+          "digital_page": 28,
+          "page_id": "GNAH",
+          "anchor": "source-19",
+          "title": "TRAITORS"
+        },
+        {
+          "digital_page": 29,
+          "page_id": "H8P2",
+          "anchor": "source-19-part-2",
+          "title": "Battle result"
+        },
+        {
+          "digital_page": 30,
+          "page_id": "2SM5",
+          "anchor": "source-20",
+          "title": "PHASE 8: SPICE COLLECTION"
+        },
+        {
+          "digital_page": 31,
+          "page_id": "56QM",
+          "anchor": "source-20-continued-2",
+          "title": "PHASE 8: SPICE COLLECTION"
+        },
+        {
+          "digital_page": 32,
+          "page_id": "3TKC",
+          "anchor": "source-21",
+          "title": "ALLIANCES (NEXUS)"
+        },
+        {
+          "digital_page": 33,
+          "page_id": "V6CT",
+          "anchor": "source-21-continued-2",
+          "title": "ALLIANCES (NEXUS)"
+        },
+        {
+          "digital_page": 34,
+          "page_id": "T3NC",
+          "anchor": "source-22",
+          "title": "OTHER RULES"
+        },
+        {
+          "digital_page": 35,
+          "page_id": "ZHTZ",
+          "anchor": "source-22-continued-2",
+          "title": "OTHER RULES"
+        },
+        {
+          "digital_page": 36,
+          "page_id": "SRHY",
+          "anchor": "source-23",
+          "title": "TREACHERY CARDS"
+        },
+        {
+          "digital_page": 37,
+          "page_id": "AYAN",
+          "anchor": "source-24",
+          "title": "TREACHERY CARDS"
+        },
+        {
+          "digital_page": 38,
+          "page_id": "4UQ6",
+          "anchor": "source-25",
+          "title": "TREACHERY CARDS ADDITIONAL INSIGHTS"
+        },
+        {
+          "digital_page": 39,
+          "page_id": "7Y77",
+          "anchor": "source-26",
+          "title": "GAME VARIANTS"
+        },
+        {
+          "digital_page": 40,
+          "page_id": "88DW",
+          "anchor": "source-26-part-2",
+          "title": "Classic spice dialing"
+        },
+        {
+          "digital_page": 41,
+          "page_id": "SDE7",
+          "anchor": "source-26-part-3",
+          "title": "Spirit World Karama"
+        },
+        {
+          "digital_page": 42,
+          "page_id": "W68K",
+          "anchor": "source-27",
+          "title": "FACTIONS"
+        },
+        {
+          "digital_page": 43,
+          "page_id": "4WXN",
+          "anchor": "source-27-continued-2",
+          "title": "FACTIONS"
+        },
+        {
+          "digital_page": 44,
+          "page_id": "27N9",
+          "anchor": "source-28-1",
+          "title": "BENE GESSERIT"
+        },
+        {
+          "digital_page": 45,
+          "page_id": "46PP",
+          "anchor": "source-28-2-part-2",
+          "title": "FREMEN"
+        },
+        {
+          "digital_page": 46,
+          "page_id": "SHV2",
+          "anchor": "source-29",
+          "title": "FREMEN"
+        },
+        {
+          "digital_page": 47,
+          "page_id": "4VYV",
+          "anchor": "source-29-continued-2",
+          "title": "FREMEN"
+        },
+        {
+          "digital_page": 48,
+          "page_id": "GP27",
+          "anchor": "source-30",
+          "title": "EMPEROR"
+        },
+        {
+          "digital_page": 49,
+          "page_id": "CBT5",
+          "anchor": "source-30-continued-2",
+          "title": "EMPEROR"
+        },
+        {
+          "digital_page": 50,
+          "page_id": "QJWF",
+          "anchor": "source-31",
+          "title": "HOUSE ATREIDES"
+        },
+        {
+          "digital_page": 51,
+          "page_id": "44R2",
+          "anchor": "source-31-continued-2",
+          "title": "HOUSE ATREIDES"
+        },
+        {
+          "digital_page": 52,
+          "page_id": "SVS5",
+          "anchor": "source-32",
+          "title": "HOUSE HARKONNEN"
+        },
+        {
+          "digital_page": 53,
+          "page_id": "ECSZ",
+          "anchor": "source-32-continued-2",
+          "title": "HOUSE HARKONNEN"
+        },
+        {
+          "digital_page": 54,
+          "page_id": "EPLF",
+          "anchor": "source-33",
+          "title": "SPACING GUILD"
+        },
+        {
+          "digital_page": 55,
+          "page_id": "3ESE",
+          "anchor": "source-33-continued-2",
+          "title": "SPACING GUILD"
+        },
+        {
+          "digital_page": 56,
+          "page_id": "ZYM3",
+          "anchor": "source-34",
+          "title": "DUNE SYNOPSIS"
+        },
+        {
+          "digital_page": 57,
+          "page_id": "7KDH",
+          "anchor": "source-34-continued-2",
+          "title": "DUNE SYNOPSIS"
+        },
+        {
+          "digital_page": 58,
+          "page_id": "VJCH",
+          "anchor": "source-35",
+          "title": "DUNE SYNOPSIS"
+        },
+        {
+          "digital_page": 59,
+          "page_id": "BY7A",
+          "anchor": "source-35-continued-2",
+          "title": "DUNE SYNOPSIS"
+        },
+        {
+          "digital_page": 60,
+          "page_id": "SBYV",
+          "anchor": "source-36",
+          "title": "TERMINOLOGY"
+        },
+        {
+          "digital_page": 61,
+          "page_id": "37RM",
+          "anchor": "source-36-continued-2",
+          "title": "TERMINOLOGY"
+        }
+      ]
+    },
+    {
+      "id": "P1",
+      "kind": "official-printed-rulebook",
+      "title": "Dune Rulebook, GF9, 2019",
+      "url": "https://raw.githubusercontent.com/ronaldossendrijver/treachery.online/master/Client/wwwroot/docs/Dune-Rulebook.pdf",
+      "sha256": "6c55d28e93b6948a34d20b0f50e1087494e06f237f8c43e7e4c0cac3810b752d",
+      "page_count": 24,
+      "local_file": null,
+      "access": "Official text, downloaded from the established repository mirror; direct publisher URL unavailable."
+    },
+    {
+      "id": "P2",
+      "kind": "official-printed-rulebook",
+      "title": "Dune second edition rulebook, supplied clearer scan",
+      "url": "https://github.com/ndelangen/dunezone/blob/norbert/gf9-2-0-ruleset/content/gf9-2-0/source-clearer.pdf",
+      "sha256": "c681228eaa328fc146cf273c3634216c29140c72be41723730b4c8989f7827ff",
+      "page_count": 36,
+      "local_file": "../source-clearer.pdf",
+      "access": "Supplied scan"
+    },
+    {
+      "id": "F20",
+      "kind": "official-faq",
+      "title": "Dune Questions and Answers, November 2020",
+      "page_count": 9,
+      "sha256": "b6dc77d7778fb0fee800e3995e6fbf620531f7a6b1fd32af2303266f60bf2039",
+      "url": "https://github.com/user-attachments/files/33447700/Dune-FAQ-Nov-2020.pdf",
+      "access": "Fresh download read during this comparison."
+    },
+    {
+      "id": "X1",
+      "kind": "official-expansion-rulebook",
+      "title": "Ixians & Tleilaxu, 2020",
+      "page_count": 12,
+      "sha256": "9dc631968839d6e8935acb30ac301301cfea7ed07a78a3aac266648f21cf357d",
+      "url": "https://github.com/user-attachments/files/33447701/BA7A5BD340F4B147740B6D25209C917D6DF2DFC0_IxianAndTleilaxuRulebook.pdf",
+      "access": "Fresh download read during this comparison."
+    },
+    {
+      "id": "X2",
+      "kind": "official-expansion-rulebook",
+      "title": "CHOAM & Richese, 2021",
+      "page_count": 12,
+      "sha256": "ee08ac180ca9824728532212bbd54de3e258ed81ad30051063f5633928fb7407",
+      "url": "https://github.com/user-attachments/files/33447703/9DD6A03F57C5F1B662DDEAD2D21B210DB2492F64_ChoamAndRichese.Rulebook.pdf",
+      "access": "Fresh download read during this comparison."
+    },
+    {
+      "id": "X3",
+      "kind": "official-expansion-rulebook",
+      "title": "Ecaz & Moritani, 2022",
+      "page_count": 16,
+      "sha256": "196101a82769fd40dca308f5fb8fa3a322321e72b9eb813c255c2e3a24f981a9",
+      "url": "https://github.com/user-attachments/files/33447702/2675E24EDC2A720CCF7B969BF7DC831DD28649D9_EcazMoritani-Rulebook-LOWRES.pdf",
+      "access": "Fresh download read during this comparison."
+    },
+    {
+      "id": "S-SPICE",
+      "kind": "user-supplied-image",
+      "title": "User-supplied second-edition Spice deck sheet",
+      "filename": "spice_deck.png",
+      "sha256": "0e9c3a42461530886cdbab110bc48a304be3ae2ed87a44da53b299141b14f28c",
+      "access": "Original artwork reference supplied in this conversation; not a public web source."
+    },
+    {
+      "id": "S-TREACHERY",
+      "kind": "user-supplied-image",
+      "title": "User-supplied second-edition Treachery deck sheet",
+      "filename": "treachery_deck.png",
+      "sha256": "04cb8629fa144724061a3877769ed0036563b5d7cd5d69c73a4331955921d28a",
+      "access": "Original artwork reference supplied in this conversation; not a public web source."
+    },
+    {
+      "id": "A3",
+      "kind": "publisher-designer-announcement",
+      "title": "Single Ruleset? New Combat System?",
+      "published_date": "2026-09-11",
+      "url": "https://gamefound.com/en/projects/gf9/dune/updates/3",
+      "access": "Full indexed article body read through web search; direct open did not return article text. Announced expansion procedures remain incomplete."
+    },
+    {
+      "id": "A4",
+      "kind": "publisher-designer-announcement",
+      "title": "Map, Karama & Spice Blow Changes!",
+      "published_date": "2026-09-25",
+      "url": "https://gamefound.com/en/projects/gf9/dune/updates/4",
+      "access": "Full indexed article body read through web search; direct open did not return article text. Announced expansion procedures remain incomplete."
+    },
+    {
+      "id": "A5",
+      "kind": "publisher-designer-announcement",
+      "title": "Faction Changes!",
+      "published_date": "2026-10-09",
+      "url": "https://gamefound.com/en/projects/gf9/dune/updates/5",
+      "access": "Full indexed article body read through web search; direct open did not return article text. Announced expansion procedures remain incomplete."
+    }
+  ],
+  "purpose": "Research preparation for a differences-only GF9 2019 to GF9 2.0 rulebook. Publication edition numbers are distinct from game editions.",
+  "capture_method": "Read-only existing public Convex queries, original PDFs, source images, publisher posts and community discussions. No production writes.",
+  "aliases": {
+    "O19": "P1",
+    "N26": "P2",
+    "N": "P2",
+    "FAQ20": "F20",
+    "A5": "A5"
+  },
+  "community_ledger": "community-sources.json",
+  "reading_scope": "See coverage.md and individual report scope statements. Retrieval of a full edition is not a claim to a visual audit of every page."
+}

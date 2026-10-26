@@ -1,0 +1,998 @@
+{
+  "as_of": "2026-10-26",
+  "purpose": "Finding navigation. Records include unchanged rules, clarifications, overlaps and unresolved items; their count is not the number of edition changes.",
+  "records": [
+    {
+      "id": "CORE-C01",
+      "title": "One default ruleset replaces Basic and Advanced",
+      "classification": "mechanical-or-baseline-dependent-change",
+      "evidence": "core.md",
+      "primary": true
+    },
+    {
+      "id": "CORE-C02",
+      "title": "Treachery cards are dealt before traitor selection",
+      "classification": "mechanical-or-baseline-dependent-change",
+      "evidence": "core.md",
+      "primary": true
+    },
+    {
+      "id": "CORE-C03",
+      "title": "Faction selection priority reverses for the prediction-card method",
+      "classification": "unresolved-wording",
+      "evidence": "core.md",
+      "primary": true
+    },
+    {
+      "id": "CORE-C04",
+      "title": "Later storm movement uses a shared nine-card deck",
+      "classification": "mechanical-or-baseline-dependent-change",
+      "evidence": "core.md",
+      "primary": true
+    },
+    {
+      "id": "CORE-C05",
+      "title": "Battles can occur while both sides share the stormed sector",
+      "classification": "mechanical-or-baseline-dependent-change",
+      "evidence": "core.md",
+      "primary": true
+    },
+    {
+      "id": "CORE-C06",
+      "title": "Paired spice territories replace one Basic blow or two Advanced piles",
+      "classification": "mechanical-or-baseline-dependent-change",
+      "evidence": "core.md",
+      "primary": true
+    },
+    {
+      "id": "CORE-C07",
+      "title": "Little Maker adds a different Nexus and spice event",
+      "classification": "mechanical-or-baseline-dependent-change",
+      "evidence": "core.md",
+      "primary": true
+    },
+    {
+      "id": "CORE-C08",
+      "title": "Leader revival no longer cycles through the whole roster",
+      "classification": "mechanical-or-baseline-dependent-change",
+      "evidence": "core.md",
+      "primary": true
+    },
+    {
+      "id": "CORE-C09",
+      "title": "Spice support becomes a bonus to full dialed strength",
+      "classification": "mechanical-or-baseline-dependent-change",
+      "evidence": "core.md",
+      "primary": true
+    },
+    {
+      "id": "CORE-C10",
+      "title": "Commit and pay the new spice strength at reveal, from spendable holdings",
+      "classification": "mechanical-or-baseline-dependent-change",
+      "evidence": "core.md",
+      "primary": true
+    },
+    {
+      "id": "CORE-C11",
+      "title": "Leaderlessness is no longer announced before plans reveal",
+      "classification": "mechanical-or-baseline-dependent-change",
+      "evidence": "core.md",
+      "primary": true
+    },
+    {
+      "id": "CORE-C12",
+      "title": "A later lasgun/shield explosion kills earlier surviving leaders too",
+      "classification": "mechanical-or-baseline-dependent-change",
+      "evidence": "core.md",
+      "primary": true
+    },
+    {
+      "id": "CORE-C13",
+      "title": "A traitor victory releases the winner's leader for another territory",
+      "classification": "clarification",
+      "evidence": "core.md",
+      "primary": true
+    },
+    {
+      "id": "CORE-C14",
+      "title": "Stronghold income becomes default, with a new control term",
+      "classification": "mechanical-or-baseline-dependent-change",
+      "evidence": "core.md",
+      "primary": true
+    },
+    {
+      "id": "CORE-C15",
+      "title": "Simultaneous wins use a hierarchy instead of an automatic shared win",
+      "classification": "mechanical-or-baseline-dependent-change",
+      "evidence": "core.md",
+      "primary": true
+    },
+    {
+      "id": "CORE-C16",
+      "title": "Round-ten fallback is ranked instead of the old no-Guild defaults",
+      "classification": "mechanical-or-baseline-dependent-change",
+      "evidence": "core.md",
+      "primary": true
+    },
+    {
+      "id": "CORE-C17",
+      "title": "Newly allied co-occupants evacuate earlier and retreat to reserves",
+      "classification": "mechanical-or-baseline-dependent-change",
+      "evidence": "core.md",
+      "primary": true
+    },
+    {
+      "id": "CORE-C18",
+      "title": "Bribery and binding nonally deals are part of the default game",
+      "classification": "mechanical-or-baseline-dependent-change",
+      "evidence": "core.md",
+      "primary": true
+    },
+    {
+      "id": "CORE-C19",
+      "title": "Mentat Pause forbids new bribes and Treachery cards",
+      "classification": "mechanical-or-baseline-dependent-change",
+      "evidence": "core.md",
+      "primary": true
+    },
+    {
+      "id": "CORE-C20",
+      "title": "General notes are prohibited, except Atreides' bidding record",
+      "classification": "mechanical-or-baseline-dependent-change",
+      "evidence": "core.md",
+      "primary": true
+    },
+    {
+      "id": "CORE-C21",
+      "title": "Private information exchanges must be visibly announced",
+      "classification": "mechanical-or-baseline-dependent-change",
+      "evidence": "core.md",
+      "primary": true
+    },
+    {
+      "id": "CORE-U01",
+      "title": "Does one-sector movement reverse old multi-sector consolidation?",
+      "classification": "unresolved-wording",
+      "evidence": "core.md",
+      "primary": true
+    },
+    {
+      "id": "CORE-U02",
+      "title": "Can you still ship onto your ally and then move away?",
+      "classification": "unresolved-wording",
+      "evidence": "core.md",
+      "primary": true
+    },
+    {
+      "id": "CORE-U03",
+      "title": "Cheap Hero mandatory or optional when no leader disc is available?",
+      "classification": "unresolved-wording",
+      "evidence": "core.md",
+      "primary": true
+    },
+    {
+      "id": "CORE-U04",
+      "title": "When is control tested for phase-8 stronghold income?",
+      "classification": "unresolved-wording",
+      "evidence": "core.md",
+      "primary": true
+    },
+    {
+      "id": "CORE-U05",
+      "title": "What does a later worm destroy after Little Maker?",
+      "classification": "unresolved-wording",
+      "evidence": "core.md",
+      "primary": true
+    },
+    {
+      "id": "CORE-U06",
+      "title": "Remaining endgame ties and special-condition priority",
+      "classification": "unresolved-wording",
+      "evidence": "core.md",
+      "primary": true
+    },
+    {
+      "id": "CORE-Q01",
+      "title": "Pick one of your own leaders as a safe traitor",
+      "classification": "clarification-or-unchanged",
+      "evidence": "core.md",
+      "primary": true
+    },
+    {
+      "id": "CORE-Q02",
+      "title": "Re-enter an auction after passing",
+      "classification": "clarification-or-unchanged",
+      "evidence": "core.md",
+      "primary": true
+    },
+    {
+      "id": "CORE-Q03",
+      "title": "Full hand can become eligible after playing an action during bidding",
+      "classification": "clarification-or-unchanged",
+      "evidence": "core.md",
+      "primary": true
+    },
+    {
+      "id": "CORE-Q04",
+      "title": "Ten-second bid limit",
+      "classification": "clarification-or-unchanged",
+      "evidence": "core.md",
+      "primary": true
+    },
+    {
+      "id": "CORE-Q05",
+      "title": "Moving to another sector uses a move",
+      "classification": "clarification-or-unchanged",
+      "evidence": "core.md",
+      "primary": true
+    },
+    {
+      "id": "CORE-Q06",
+      "title": "Shipping to a city immediately provides ornithopters for your subsequent move",
+      "classification": "clarification-or-unchanged",
+      "evidence": "core.md",
+      "primary": true
+    },
+    {
+      "id": "CORE-Q07",
+      "title": "No dropoff or pickup during movement",
+      "classification": "clarification-or-unchanged",
+      "evidence": "core.md",
+      "primary": true
+    },
+    {
+      "id": "CORE-Q08",
+      "title": "General payment for an ally's purchase or shipment",
+      "classification": "clarification-or-unchanged",
+      "evidence": "core.md",
+      "primary": true
+    },
+    {
+      "id": "CORE-Q09",
+      "title": "Deferred bribes",
+      "classification": "clarification-or-unchanged",
+      "evidence": "core.md",
+      "primary": true
+    },
+    {
+      "id": "CORE-Q10",
+      "title": "Impossible deal clause void, unanimous cancellation allowed",
+      "classification": "clarification-or-unchanged",
+      "evidence": "core.md",
+      "primary": true
+    },
+    {
+      "id": "CORE-Q11",
+      "title": "Negotiated surrender",
+      "classification": "clarification-or-unchanged",
+      "evidence": "core.md",
+      "primary": true
+    },
+    {
+      "id": "CORE-Q12",
+      "title": "Initiative instead of aggressor",
+      "classification": "clarification-or-unchanged",
+      "evidence": "core.md",
+      "primary": true
+    },
+    {
+      "id": "CORE-Q13",
+      "title": "First player exactly even with storm is last",
+      "classification": "clarification-or-unchanged",
+      "evidence": "core.md",
+      "primary": true
+    },
+    {
+      "id": "CORE-Q14",
+      "title": "No collusion over the initial storm dial",
+      "classification": "clarification-or-unchanged",
+      "evidence": "core.md",
+      "primary": true
+    },
+    {
+      "id": "CORE-Q15",
+      "title": "Keep battle cards only where card text permits",
+      "classification": "clarification-or-unchanged",
+      "evidence": "core.md",
+      "primary": true
+    },
+    {
+      "id": "CORE-Q16",
+      "title": "Discard pile privacy",
+      "classification": "clarification-or-unchanged",
+      "evidence": "core.md",
+      "primary": true
+    },
+    {
+      "id": "CORE-Q17",
+      "title": "The 3/4 victory targets and Mentat Pause timing",
+      "classification": "clarification-or-unchanged",
+      "evidence": "core.md",
+      "primary": true
+    },
+    {
+      "id": "CORE-Q18",
+      "title": "Stronghold blocking",
+      "classification": "clarification-or-unchanged",
+      "evidence": "core.md",
+      "primary": true
+    },
+    {
+      "id": "CORE-Q19",
+      "title": "Faction token inside Polar Sink can form a separate battle territory",
+      "classification": "clarification-or-unchanged",
+      "evidence": "core.md",
+      "primary": true
+    },
+    {
+      "id": "F01",
+      "title": "Atreides",
+      "classification": "component-or-roster-finding",
+      "evidence": "factions.md",
+      "primary": true
+    },
+    {
+      "id": "F02",
+      "title": "Atreides ruler",
+      "classification": "component-or-roster-finding",
+      "evidence": "factions.md",
+      "primary": true
+    },
+    {
+      "id": "F03",
+      "title": "Bene Gesserit",
+      "classification": "component-or-roster-finding",
+      "evidence": "factions.md",
+      "primary": true
+    },
+    {
+      "id": "F04",
+      "title": "Emperor",
+      "classification": "component-or-roster-finding",
+      "evidence": "factions.md",
+      "primary": true
+    },
+    {
+      "id": "F05",
+      "title": "Spacing Guild",
+      "classification": "component-or-roster-finding",
+      "evidence": "factions.md",
+      "primary": true
+    },
+    {
+      "id": "F06",
+      "title": "Fremen and Harkonnen",
+      "classification": "component-or-roster-finding",
+      "evidence": "factions.md",
+      "primary": true
+    },
+    {
+      "id": "K-F01",
+      "title": "Atreides",
+      "classification": "faction-cancellation-window",
+      "evidence": "factions.md",
+      "primary": true
+    },
+    {
+      "id": "K-F02",
+      "title": "Bene Gesserit",
+      "classification": "faction-cancellation-window",
+      "evidence": "factions.md",
+      "primary": true
+    },
+    {
+      "id": "K-F03",
+      "title": "Emperor",
+      "classification": "faction-cancellation-window",
+      "evidence": "factions.md",
+      "primary": true
+    },
+    {
+      "id": "K-F04",
+      "title": "Fremen",
+      "classification": "faction-cancellation-window",
+      "evidence": "factions.md",
+      "primary": true
+    },
+    {
+      "id": "K-F05",
+      "title": "Harkonnen",
+      "classification": "faction-cancellation-window",
+      "evidence": "factions.md",
+      "primary": true
+    },
+    {
+      "id": "K-F06",
+      "title": "Spacing Guild",
+      "classification": "faction-cancellation-window",
+      "evidence": "factions.md",
+      "primary": true
+    },
+    {
+      "id": "F07",
+      "title": "Spice Vision has a wider inspection window",
+      "classification": "faction-finding-see-record",
+      "evidence": "factions.md",
+      "primary": true
+    },
+    {
+      "id": "F08",
+      "title": "Prescience asks for combined force plus spice strength",
+      "classification": "faction-finding-see-record",
+      "evidence": "factions.md",
+      "primary": true
+    },
+    {
+      "id": "F09",
+      "title": "Kwisatz Haderach losses are tracked publicly",
+      "classification": "faction-finding-see-record",
+      "evidence": "factions.md",
+      "primary": true
+    },
+    {
+      "id": "F10",
+      "title": "A dead Kwisatz Haderach may revive before normal leader revival unlocks",
+      "classification": "faction-finding-see-record",
+      "evidence": "factions.md",
+      "primary": true
+    },
+    {
+      "id": "F11",
+      "title": "Allied Prescience explicitly informs both Atreides and ally",
+      "classification": "faction-finding-see-record",
+      "evidence": "factions.md",
+      "primary": true
+    },
+    {
+      "id": "F12",
+      "title": "Golden Path remains whole-plan inspection",
+      "classification": "faction-finding-see-record",
+      "evidence": "factions.md",
+      "primary": true
+    },
+    {
+      "id": "F13",
+      "title": "Use the Advanced setup and advisors as the normal game",
+      "classification": "faction-finding-see-record",
+      "evidence": "factions.md",
+      "primary": true
+    },
+    {
+      "id": "F14",
+      "title": "Voice no longer controls Worthless cards or Cheap Heroes",
+      "classification": "faction-finding-see-record",
+      "evidence": "factions.md",
+      "primary": true
+    },
+    {
+      "id": "F15",
+      "title": "Voice uses printed general types, including Special",
+      "classification": "faction-finding-see-record",
+      "evidence": "factions.md",
+      "primary": true
+    },
+    {
+      "id": "F16",
+      "title": "Transmutation follows the Karama/Solaris split and gains battle-spice payment",
+      "classification": "faction-finding-see-record",
+      "evidence": "factions.md",
+      "primary": true
+    },
+    {
+      "id": "F17",
+      "title": "Advisors no longer automatically become fighters when alone",
+      "classification": "faction-finding-see-record",
+      "evidence": "factions.md",
+      "primary": true
+    },
+    {
+      "id": "F18",
+      "title": "The pre-shipment flip window starts earlier",
+      "classification": "faction-finding-see-record",
+      "evidence": "factions.md",
+      "primary": true
+    },
+    {
+      "id": "F19",
+      "title": "Do not flip a moving group simply to merge into your opposite face",
+      "classification": "faction-finding-see-record",
+      "evidence": "factions.md",
+      "primary": true
+    },
+    {
+      "id": "F20",
+      "title": "Normal shipping brings only fighters; moving fighters can become advisors",
+      "classification": "faction-finding-see-record",
+      "evidence": "factions.md",
+      "primary": true
+    },
+    {
+      "id": "F21",
+      "title": "Intrusion explicitly includes deployments",
+      "classification": "faction-finding-see-record",
+      "evidence": "factions.md",
+      "primary": true
+    },
+    {
+      "id": "F22",
+      "title": "Advisors and allies have an intended coexistence exemption, but cross-reference the general constraint",
+      "classification": "faction-finding-see-record",
+      "evidence": "factions.md",
+      "primary": true
+    },
+    {
+      "id": "F23",
+      "title": "Charity's modifiers are explicit; the two-spice income is old Advanced play",
+      "classification": "faction-finding-see-record",
+      "evidence": "factions.md",
+      "primary": true
+    },
+    {
+      "id": "F24",
+      "title": "Prediction's exclusion is generalized by ability title",
+      "classification": "faction-finding-see-record",
+      "evidence": "factions.md",
+      "primary": true
+    },
+    {
+      "id": "F25",
+      "title": "Starting spice rises from three to four",
+      "classification": "faction-finding-see-record",
+      "evidence": "factions.md",
+      "primary": true
+    },
+    {
+      "id": "F26",
+      "title": "Storm Insight inspects the next top card instead of selecting/shuffling a card",
+      "classification": "faction-finding-see-record",
+      "evidence": "factions.md",
+      "primary": true
+    },
+    {
+      "id": "F27",
+      "title": "Movement and worm riding may enter storm at half loss",
+      "classification": "faction-finding-see-record",
+      "evidence": "factions.md",
+      "primary": true
+    },
+    {
+      "id": "F28",
+      "title": "Half storm loss is a minimum, and counts tokens",
+      "classification": "faction-finding-see-record",
+      "evidence": "factions.md",
+      "primary": true
+    },
+    {
+      "id": "F29",
+      "title": "Call Sandworms now keys off the phase's first worm and resolves placed worms after Nexus",
+      "classification": "faction-finding-see-record",
+      "evidence": "factions.md",
+      "primary": true
+    },
+    {
+      "id": "F30",
+      "title": "Battle Edge is free spice strength, not old full-strength support",
+      "classification": "faction-finding-see-record",
+      "evidence": "factions.md",
+      "primary": true
+    },
+    {
+      "id": "F31",
+      "title": "Ghola can bypass the one-Fedaykin normal revival limit",
+      "classification": "faction-finding-see-record",
+      "evidence": "factions.md",
+      "primary": false,
+      "same_change_as": "CARD-07"
+    },
+    {
+      "id": "F32",
+      "title": "Fremen special victory now accepts the ally's occupation",
+      "classification": "faction-finding-see-record",
+      "evidence": "factions.md",
+      "primary": true
+    },
+    {
+      "id": "F33",
+      "title": "The alliance explicitly grants worm riding and sets total free revival to three",
+      "classification": "faction-finding-see-record",
+      "evidence": "factions.md",
+      "primary": true
+    },
+    {
+      "id": "F34",
+      "title": "Bless the Maker is a drawn-worm effect with a placement choice",
+      "classification": "faction-finding-see-record",
+      "evidence": "factions.md",
+      "primary": true
+    },
+    {
+      "id": "F35",
+      "title": "Allied gifts move to phase boundaries",
+      "classification": "faction-finding-see-record",
+      "evidence": "factions.md",
+      "primary": true
+    },
+    {
+      "id": "F36",
+      "title": "Extra allied revivals are replaced by a battle-spice discount",
+      "classification": "faction-finding-see-record",
+      "evidence": "factions.md",
+      "primary": true
+    },
+    {
+      "id": "F37",
+      "title": "War Machine revives up to four forces AND one leader",
+      "classification": "faction-finding-see-record",
+      "evidence": "factions.md",
+      "primary": true
+    },
+    {
+      "id": "F38",
+      "title": "Replace some or all initially drawn own traitors once",
+      "classification": "faction-finding-see-record",
+      "evidence": "factions.md",
+      "primary": true
+    },
+    {
+      "id": "F39",
+      "title": "Capture return triggers on all own leaders unavailable, not only dead",
+      "classification": "faction-finding-see-record",
+      "evidence": "factions.md",
+      "primary": true
+    },
+    {
+      "id": "F40",
+      "title": "Vendetta replaces one-player hand theft with a table-wide exchange",
+      "classification": "faction-finding-see-record",
+      "evidence": "factions.md",
+      "primary": true
+    },
+    {
+      "id": "F41",
+      "title": "Eight starting spice and a compulsory setup shipment replace five forces fixed in Tuek's",
+      "classification": "faction-finding-see-record",
+      "evidence": "factions.md",
+      "primary": true
+    },
+    {
+      "id": "F42",
+      "title": "Guild cross-shipment loses the half-price discount",
+      "classification": "faction-finding-see-record",
+      "evidence": "factions.md",
+      "primary": true
+    },
+    {
+      "id": "F43",
+      "title": "Allies gain the return-to-reserve option and use the revised Guild Rates",
+      "classification": "faction-finding-see-record",
+      "evidence": "factions.md",
+      "primary": true
+    },
+    {
+      "id": "F44",
+      "title": "Special victory requires matching the leaders in stronghold control",
+      "classification": "faction-finding-see-record",
+      "evidence": "factions.md",
+      "primary": true
+    },
+    {
+      "id": "F45",
+      "title": "Fold Space remains the Advanced timing ability",
+      "classification": "faction-finding-see-record",
+      "evidence": "factions.md",
+      "primary": true
+    },
+    {
+      "id": "F46",
+      "title": "Optional alternate trigger for the same once-per-game power",
+      "classification": "faction-finding-see-record",
+      "evidence": "factions.md",
+      "primary": false,
+      "same_change_as": "VAR-02"
+    },
+    {
+      "id": "CARD-01",
+      "title": "Karama now cancels only the faction's designated vulnerable advantage, or activates its own once-per-game power.",
+      "classification": "card-change",
+      "evidence": "cards.md",
+      "primary": true
+    },
+    {
+      "id": "CARD-02",
+      "title": "The old Karama's economic uses move to a separate Solaris card.",
+      "classification": "card-change",
+      "evidence": "cards.md",
+      "primary": true
+    },
+    {
+      "id": "CARD-03",
+      "title": "Holding Solaris does not permit overbidding your funds.",
+      "classification": "card-change",
+      "evidence": "cards.md",
+      "primary": true
+    },
+    {
+      "id": "CARD-04",
+      "title": "Solaris gains a new third use, paying the battle's spice-strength cost from the Spice Bank.",
+      "classification": "card-change",
+      "evidence": "cards.md",
+      "primary": true
+    },
+    {
+      "id": "CARD-05",
+      "title": "Truthtrance asks about verifiable information, not commitments to future action.",
+      "classification": "card-change",
+      "evidence": "cards.md",
+      "primary": true
+    },
+    {
+      "id": "CARD-06",
+      "title": "A Worthless card revealed in a battle plan must be discarded, even by the winner.",
+      "classification": "card-change",
+      "evidence": "cards.md",
+      "primary": true
+    },
+    {
+      "id": "CARD-07",
+      "title": "Tleilaxu Ghola can revive starred forces beyond the normal one-per-round limit.",
+      "classification": "card-change",
+      "evidence": "cards.md",
+      "primary": true
+    },
+    {
+      "id": "CARD-08",
+      "title": "Weather Control and Family Atomics order is now constrained by storm order.",
+      "classification": "card-change",
+      "evidence": "cards.md",
+      "primary": true
+    },
+    {
+      "id": "DECK-01",
+      "title": "The Spice deck changes from single-territory cards and separate Advanced discard piles to double-Blow cards and one discard pile.",
+      "classification": "deck-change",
+      "evidence": "cards.md",
+      "primary": false,
+      "same_change_as": "CORE-C06"
+    },
+    {
+      "id": "DECK-02",
+      "title": "Three new normal Spice Blow locations and four changed amounts.",
+      "classification": "deck-change",
+      "evidence": "cards.md",
+      "primary": true
+    },
+    {
+      "id": "DECK-03",
+      "title": "Little Maker is a new special blow and Nexus, not Shai-Hulud.",
+      "classification": "deck-change",
+      "evidence": "cards.md",
+      "primary": false,
+      "same_change_as": "CORE-C07"
+    },
+    {
+      "id": "DECK-04",
+      "title": "Storm deck is now standard, nine cards, with discards and three reshuffle instructions.",
+      "classification": "deck-change",
+      "evidence": "cards.md",
+      "primary": false,
+      "same_change_as": "CORE-C04"
+    },
+    {
+      "id": "DECK-05",
+      "title": "Base Treachery total increases from 33 to 35.",
+      "classification": "deck-change",
+      "evidence": "cards.md",
+      "primary": true
+    },
+    {
+      "id": "TERM-01",
+      "title": "Projectile becomes kinetic.",
+      "classification": "terminology-or-component",
+      "evidence": "cards.md",
+      "primary": true
+    },
+    {
+      "id": "TERM-02",
+      "title": "Habbanya Sietch is now Cave of Birds.",
+      "classification": "terminology-or-component",
+      "evidence": "cards.md",
+      "primary": true
+    },
+    {
+      "id": "TERM-03",
+      "title": "Hajr appears as Harj in the new material.",
+      "classification": "terminology-or-component",
+      "evidence": "cards.md",
+      "primary": true
+    },
+    {
+      "id": "TERM-04",
+      "title": "Round replaces turn for the full nine-phase cycle; battle wheel separates force and spice strength.",
+      "classification": "terminology-or-component",
+      "evidence": "cards.md",
+      "primary": true
+    },
+    {
+      "id": "VAR-01",
+      "title": "Classic Spice Dialing is an optional restoration of the 2019 Advanced battle system.",
+      "classification": "optional-variant",
+      "evidence": "cards.md",
+      "primary": true
+    },
+    {
+      "id": "VAR-02",
+      "title": "Spirit World Karama is a new optional route to a faction's existing once-per-game special power.",
+      "classification": "optional-variant",
+      "evidence": "cards.md",
+      "primary": true
+    },
+    {
+      "id": "Q-CARD-01",
+      "title": "Solaris prose says Guild rates for any shipping action, but its printed face specifies a Force Shipment from reserves.",
+      "classification": "unresolved-or-source-gap",
+      "evidence": "cards.md",
+      "primary": true
+    },
+    {
+      "id": "Q-CARD-02",
+      "title": "How should Solaris's spice-strength payment be interpreted under Classic Spice Dialing?",
+      "classification": "unresolved-or-source-gap",
+      "evidence": "cards.md",
+      "primary": true
+    },
+    {
+      "id": "Q-CARD-03",
+      "title": "Do earlier expansion card names/texts change beyond what N26 references?",
+      "classification": "unresolved-or-source-gap",
+      "evidence": "cards.md",
+      "primary": true
+    },
+    {
+      "id": "Q-CARD-04",
+      "title": "Are all prior replacement-card corrections still intended?",
+      "classification": "unresolved-or-source-gap",
+      "evidence": "cards.md",
+      "primary": true
+    },
+    {
+      "id": "Q-CARD-05",
+      "title": "Full Storm deck distribution.",
+      "classification": "unresolved-or-source-gap",
+      "evidence": "cards.md",
+      "primary": true
+    },
+    {
+      "id": "Q-CARD-06",
+      "title": "Are optional larger-alliance arrangements from O19 p24 retained as a supported variant?",
+      "classification": "unresolved-or-source-gap",
+      "evidence": "cards.md",
+      "primary": true
+    },
+    {
+      "id": "Q-CARD-07",
+      "title": "Complete terminology/name mapping for new expansion cards and miniature map labels.",
+      "classification": "unresolved-or-source-gap",
+      "evidence": "cards.md",
+      "primary": true
+    },
+    {
+      "id": "X-I1",
+      "title": "Ixians",
+      "classification": "publisher-announced-incomplete",
+      "evidence": "expansions.md",
+      "primary": true
+    },
+    {
+      "id": "X-T1",
+      "title": "Tleilaxu",
+      "classification": "publisher-announced-incomplete",
+      "evidence": "expansions.md",
+      "primary": true
+    },
+    {
+      "id": "X-C1",
+      "title": "CHOAM",
+      "classification": "publisher-announced-incomplete",
+      "evidence": "expansions.md",
+      "primary": true
+    },
+    {
+      "id": "X-E1",
+      "title": "Ecaz",
+      "classification": "publisher-announced-incomplete",
+      "evidence": "expansions.md",
+      "primary": true
+    },
+    {
+      "id": "X-M1",
+      "title": "Moritani",
+      "classification": "publisher-announced-incomplete",
+      "evidence": "expansions.md",
+      "primary": true
+    },
+    {
+      "id": "X-R1",
+      "title": "Richese",
+      "classification": "publisher-announced-incomplete",
+      "evidence": "expansions.md",
+      "primary": true
+    },
+    {
+      "id": "X-K1",
+      "title": "Expansion Karama targets",
+      "classification": "compatibility-review",
+      "evidence": "expansions.md",
+      "primary": true
+    },
+    {
+      "id": "X-K2",
+      "title": "Ixian Cyborgs and Suboids",
+      "classification": "compatibility-review",
+      "evidence": "expansions.md",
+      "primary": true
+    },
+    {
+      "id": "X-K3",
+      "title": "Tech Tokens",
+      "classification": "compatibility-review",
+      "evidence": "expansions.md",
+      "primary": true
+    },
+    {
+      "id": "X-K4",
+      "title": "Leader Skills",
+      "classification": "compatibility-review",
+      "evidence": "expansions.md",
+      "primary": true
+    },
+    {
+      "id": "X-K5",
+      "title": "Stronghold Cards",
+      "classification": "compatibility-review",
+      "evidence": "expansions.md",
+      "primary": true
+    },
+    {
+      "id": "X-K6",
+      "title": "Nexus Cards",
+      "classification": "compatibility-review",
+      "evidence": "expansions.md",
+      "primary": true
+    },
+    {
+      "id": "X-K7",
+      "title": "Homeworlds",
+      "classification": "compatibility-review",
+      "evidence": "expansions.md",
+      "primary": true
+    },
+    {
+      "id": "X-K8",
+      "title": "Discovery and Spice expansion cards",
+      "classification": "compatibility-review",
+      "evidence": "expansions.md",
+      "primary": true
+    },
+    {
+      "id": "X-K9",
+      "title": "Replacement Poison Tooth, Artillery Strike and Karama",
+      "classification": "compatibility-review",
+      "evidence": "expansions.md",
+      "primary": true
+    },
+    {
+      "id": "X-K10",
+      "title": "Reinforcements and Harass & Withdraw",
+      "classification": "compatibility-review",
+      "evidence": "expansions.md",
+      "primary": true
+    },
+    {
+      "id": "X-K11",
+      "title": "Shield-Snooper, Weirding Way, Chemistry",
+      "classification": "compatibility-review",
+      "evidence": "expansions.md",
+      "primary": true
+    }
+  ]
+}
