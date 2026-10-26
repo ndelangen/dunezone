@@ -1,7 +1,9 @@
+import { factionTokenRingAngle, factionTokenStackKey, isFactionToken } from '@shared/play/factionToken';
 import { STANDARD_PHASES } from '@shared/play/phases';
 import type { GameSnapshot } from '@shared/play/protocol';
 import { TABLE_SURFACE_Y } from '@shared/play/tableGeometry';
 import { trackerArcSlots } from '@shared/play/tableTrackers';
+import { TUTORIAL_RECIPE } from '@shared/tutorial/recipe';
 import type { Vector3Tuple } from 'three';
 
 import type { GuideTask } from '../TutorialGuide';
@@ -10,8 +12,8 @@ import { element, nextPhaseButton, phaseOf, pressEnter, task } from './guideChec
 
 /*
  * Chapter 1, "Welcome": what is on the screen and what each part means, before any of the controls.
- * The rail points at each part in turn: the board, the phase and turn in the corner chip, the phase discs and the turn wheel
- * along the board's far edge, Next phase, and the gear. Nothing on the table checks the rules or takes a step for the players,
+ * The rail points at each part in turn: the board, each player's faction token on a tour round the table,
+ * the phase and turn in the corner chip, the phase discs and the turn wheel along the board's far edge, Next phase, and the gear. Nothing on the table checks the rules or takes a step for the players,
  * so the player moves the game on with Next phase, and copies the game's link from the gear to invite the others;
  * everything else is read and passed with Enter.
  * The controls compass waits for its own chapter.
@@ -33,7 +35,36 @@ const copyLink = () =>
     /game link/i.test(button.textContent ?? '')
   ) ?? null;
 
+/* How long the arrow rests on each faction token as it goes round the table once. */
+const TOKEN_TOUR_MS = 1200;
+
+/*
+ * The arrow's tour of the faction tokens: once round the table from the learner's own, one token at a time, then it rests on theirs.
+ * It runs by the clock from the moment the step starts, so Enter at any point ends the step and the tour with it.
+ */
+function tokenTour(snapshot: () => GameSnapshot) {
+  let startedAt = 0;
+  const point = (): Vector3Tuple | null => {
+    const tokens = snapshot().table.pieces.filter(isFactionToken);
+    const mine = snapshot().roster?.seats.find((seat) => seat.id === TUTORIAL_RECIPE.learner)?.faction?.id;
+    const own = tokens.find((piece) => mine !== undefined && piece.stackKey === factionTokenStackKey(mine));
+    if (tokens.length === 0) {
+      return null;
+    }
+    const from = own ? factionTokenRingAngle(own.position as Vector3Tuple) : 0;
+    const round = (piece: (typeof tokens)[number]) =>
+      (factionTokenRingAngle(piece.position as Vector3Tuple) - from + Math.PI * 4) % (Math.PI * 2);
+    const ordered = [...tokens].sort((a, b) => round(a) - round(b));
+    const step = Math.floor((performance.now() - startedAt) / TOKEN_TOUR_MS);
+    const piece = step < ordered.length ? ordered[step]! : ordered[0]!;
+    return [piece.position[0]!, piece.position[1]!, piece.position[2]!];
+  };
+  return { point, start: () => (startedAt = performance.now()) };
+}
+
 function tasks(snapshot: () => GameSnapshot): GuideTask[] {
+  const tour = tokenTour(snapshot);
+  const enter = pressEnter();
   return [
     task({
       id: 'board',
@@ -42,6 +73,19 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
         'The board, the decks and every player’s pieces lie on one shared table, as around a real board. Press {Enter} on your keyboard to go on.',
       anchor: { kind: 'table', point: () => [0, TABLE_SURFACE_Y, 0] },
       ...pressEnter(),
+    }),
+    task({
+      id: 'players',
+      task: 'The players',
+      detail:
+        'Every player has a faction token at their place around the board; the arrow goes round them once, ending on yours. Press {Enter} to go on.',
+      anchor: { kind: 'table', point: tour.point },
+      begin: () => {
+        tour.start();
+        return enter.begin();
+      },
+      done: enter.done,
+      finish: enter.finish,
     }),
     task({
       id: 'status',
@@ -82,16 +126,22 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       detail:
         'The gear beside Next phase holds the game’s settings: the table’s lighting and labels, how fast the camera pans, and leaving your seat. It also holds the game’s link, which is how you invite the others: open the gear and press Copy game link, then send it to them.',
       anchor: { kind: 'page', element: () => copyLink() ?? document.querySelector('[aria-label="Game menu"]') },
-      begin: () => undefined,
-      done: () => {
-        const text = copyLink()?.textContent ?? '';
-        /* A browser that refuses the clipboard shows the link to copy by hand, which counts as well. */
-        return (
-          text.includes('copied') ||
-          [...document.querySelectorAll('[role="alert"]')].some((alert) =>
-            alert.textContent?.startsWith('Could not copy')
-          )
+      /* Next phase keeps the focus once pressed, so a habitual Enter here would move the game on again. */
+      begin: () => {
+        if (document.activeElement instanceof HTMLElement && document.activeElement === nextPhaseButton()) {
+          document.activeElement.blur();
+        }
+        return { refused: false };
+      },
+      done: (watch: { refused: boolean }) => {
+        if ((copyLink()?.textContent ?? '').includes('copied')) {
+          return true;
+        }
+        /* A browser that refuses the clipboard shows the link to copy by hand; the step waits until the menu closes, so the player can. */
+        watch.refused ||= [...document.querySelectorAll('[role="alert"]')].some((alert) =>
+          alert.textContent?.startsWith('Could not copy')
         );
+        return watch.refused && copyLink() === null;
       },
     }),
   ];
@@ -99,6 +149,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
 
 /* One line for each part of the chapter, in the order it was played. */
 const learned = [
+  'Each player’s faction token marks their place around the board',
   'The chip in the top left shows the turn and the phase',
   'The discs along the board are the phases; the numbered wheel counts the turns',
   'Play is a table, not a referee: you move the game on with Next phase',
