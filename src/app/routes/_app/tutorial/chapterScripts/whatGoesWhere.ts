@@ -1,3 +1,4 @@
+import { phaseAt, STANDARD_PHASES } from '@shared/play/phases';
 import type { GameSnapshot } from '@shared/play/protocol';
 
 import type { GuideTask } from '../TutorialGuide';
@@ -5,14 +6,32 @@ import type { ChapterScript } from './chapterScript';
 import { at, onBoard, singleSpiceFaceUp, tableDeck, task } from './guideChecks';
 
 /*
- * Chapter 5, "What goes where": the table at the start of turn 1, seen from the learner's seat.
- * One task for each part of the table, each done on the table itself, so the rail moves on only once the player found it.
- * Moving the camera is chapter 6's (Norbert, 2026-10-24), so this one starts at the decks; the windows over the table are
- * chapter 9's, and the chat bar is Alliances and talking's (the chapter map Norbert approved, 2026-10-26).
+ * Chapter 5, "What goes where": the first turn played through, so each phase shows where on the table it happens.
+ * Storm to Spice Blow, a Spice card turned over; on to Bidding, a Treachery card drawn; on to Shipment, troops onto the board.
+ * The game here is a table, not a referee, so the player runs each phase by hand (Norbert, 2026-10-26: the chapter needed one thread).
+ * Moving the camera is chapter 6's, the windows over the table chapter 9's, and the chat bar Alliances and talking's.
  */
 
-/* The table's own pieces: a card from a deck, troops onto the board and a card from the other deck. */
-function tableTasks(snapshot: () => GameSnapshot): GuideTask[] {
+/* The phase the game is in, by its id; a fixture without its own turn plays the standard one. */
+const phaseOf = (snapshot: () => GameSnapshot) => phaseAt(snapshot().phase, snapshot().phases ?? STANDARD_PHASES).id;
+
+const NEXT_PHASE = () =>
+  [...document.querySelectorAll('[aria-label="Phase navigation"] button')].find(
+    (button) => button.textContent?.trim() === 'Next phase'
+  ) ?? null;
+
+/* Pressing Next phase until the header names a phase; one already reached counts at once. */
+const onTo = (snapshot: () => GameSnapshot, id: string, phase: string, detail: string) =>
+  task({
+    id: `to-${id}`,
+    task: `Move on to the ${phase}`,
+    detail,
+    anchor: { kind: 'page', element: NEXT_PHASE },
+    begin: () => undefined,
+    done: () => phaseOf(snapshot) === id,
+  });
+
+function tasks(snapshot: () => GameSnapshot): GuideTask[] {
   const pieces = () => snapshot().table.pieces.filter((piece) => !piece.inventory);
   const mine = () => snapshot().bank?.factionId;
   const deck = (side: 'left' | 'right') => tableDeck(snapshot, side);
@@ -22,18 +41,46 @@ function tableTasks(snapshot: () => GameSnapshot): GuideTask[] {
       .filter((piece) => piece.stackKey?.startsWith(`troops:${mine()}:`) && onBoard(piece))
       .reduce((total, piece) => total + piece.items.length, 0);
   return [
+    onTo(
+      snapshot,
+      'spice-blow',
+      'Spice Blow',
+      'Turn 1 starts in the Storm, as the header top left says. Nobody referees here: you move the game on yourself. Press Next phase, top right.'
+    ),
+    task({
+      id: 'spice',
+      task: 'Turn over the top Spice card',
+      detail:
+        'The Spice Blow happens at the Spice deck, on the right of the table. Drag its top card onto the table, then press {F} on your keyboard to turn it over.',
+      anchor: { kind: 'table', point: () => at(deck('right')) },
+      begin: () => singleSpiceFaceUp(pieces()),
+      done: (start) => singleSpiceFaceUp(pieces()) > start,
+    }),
+    onTo(
+      snapshot,
+      'bidding',
+      'Bidding',
+      'Press Next phase until the header says Bidding. CHOAM Charity comes first and needs nothing from you here.'
+    ),
     task({
       id: 'draw',
       task: 'Draw a Treachery card',
-      detail: 'The Treachery deck sits on the left of the table. Right-click it and choose Draw a card.',
+      detail:
+        'Bidding sells cards from the Treachery deck, on the left of the table. The bidder over the board runs the auction, which the Bidding chapter covers. Say you won a card: right-click the deck and choose Draw a card.',
       anchor: { kind: 'table', point: () => at(deck('left')) },
       /* The card must leave the Treachery deck, so a Spice card drawn instead does not count. */
       begin: () => ({ hand: snapshot().hand?.length ?? 0, deck: deck('left')?.items.length ?? 0 }),
       done: (start) => (snapshot().hand?.length ?? 0) > start.hand && (deck('left')?.items.length ?? 0) < start.deck,
     }),
+    onTo(
+      snapshot,
+      'shipment-and-movement',
+      'Shipment and Movement',
+      'Press Next phase until the header says Shipment and Movement. Revival comes first.'
+    ),
     task({
       id: 'ship',
-      task: 'Put troops on the board',
+      task: 'Ship troops onto the board',
       detail:
         'Your reserves wait on the rim at your seat, where the arrow points. Drag a troop from the stack onto any territory.',
       anchor: {
@@ -43,44 +90,15 @@ function tableTasks(snapshot: () => GameSnapshot): GuideTask[] {
       begin: myTroopsOnBoard,
       done: (start) => myTroopsOnBoard() > start,
     }),
-    task({
-      id: 'spice',
-      task: 'Turn over the top Spice card',
-      detail:
-        'The Spice deck sits on the right of the table. Drag its top card onto the table, then press {F} on your keyboard to turn it over.',
-      anchor: { kind: 'table', point: () => at(deck('right')) },
-      begin: () => singleSpiceFaceUp(pieces()),
-      done: (start) => singleSpiceFaceUp(pieces()) > start,
-    }),
   ];
 }
 
-/* The phase in the header, and the button that moves the game on. */
-const phaseTasks = (snapshot: () => GameSnapshot): GuideTask[] => [
-  task({
-    id: 'next-phase',
-    task: 'Move the game on',
-    detail: 'The header says the game is in the Storm. Press Next phase, top right.',
-    anchor: {
-      kind: 'page',
-      element: () =>
-        [...document.querySelectorAll('[aria-label="Phase navigation"] button')].find(
-          (button) => button.textContent?.trim() === 'Next phase'
-        ) ?? null,
-    },
-    begin: () => snapshot().phase,
-    done: (start) => snapshot().phase !== start,
-  }),
-];
-
-const tasks = (snapshot: () => GameSnapshot) => [...tableTasks(snapshot), ...phaseTasks(snapshot)];
-
 /* One line for each part of the chapter, in the order it was played. */
 const learned = [
-  'Right-click a deck to draw a card',
-  'Drag troops from your reserves onto a territory',
-  'Press {F} to turn a card over',
-  'Next phase moves the game on',
+  'You move the game on yourself with Next phase',
+  'Spice Blow: turn over a card from the Spice deck with {F}',
+  'Bidding: right-click the Treachery deck to draw a card',
+  'Shipment: drag troops from your reserves onto a territory',
 ];
 
 export const whatGoesWhere: ChapterScript = { slug: 'what-goes-where', checkpoint: 'turn-1-storm', tasks, learned };
