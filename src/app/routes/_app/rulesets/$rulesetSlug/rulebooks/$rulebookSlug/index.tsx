@@ -1,4 +1,4 @@
-import { Alert, Badge, Group, Menu, Stack, Text, VisuallyHidden } from '@mantine/core';
+import { Alert, Badge, Group, Menu, Stack, Text, Tooltip, VisuallyHidden } from '@mantine/core';
 import { projectRulebookRenderDocument } from '@shared/rulebooks/projectRenderDocument';
 import { createFileRoute, Link, notFound } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
@@ -17,6 +17,7 @@ import type { StatsItem } from '@ui/list/Stats';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowLeft, CalendarPlus, Check, FileText, History, Link2, Pencil, Pin, PinOff } from 'lucide-react';
+import type { RefObject } from 'react';
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 
 import { useRulebookReader, useSoftDeleteRulebook } from '@db/rulebooks';
@@ -356,6 +357,60 @@ function RulebookReaderDelivery({ initial }: { initial: Awaited<ReturnType<typeo
     );
   }
   return <RulebookReader data={data} published={published} />;
+}
+
+/* Frozen publication markup cannot supply React children to Tooltip, so the app binds its shared pane to each faction heading. */
+function FactionHeadingTooltip({ target }: { target: HTMLElement }) {
+  const [opened, setOpened] = useState<boolean | undefined>(undefined);
+  useEffect(() => {
+    const tabIndex = target.getAttribute('tabindex');
+    const focus = () => setOpened(true);
+    const blur = () => setOpened(undefined);
+    const leave = () => {
+      if (target.ownerDocument.activeElement !== target) {
+        setOpened(undefined);
+      }
+    };
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setOpened(false);
+      }
+    };
+    target.setAttribute('tabindex', '0');
+    target.addEventListener('focus', focus);
+    target.addEventListener('blur', blur);
+    target.addEventListener('keydown', escape);
+    target.addEventListener('mouseleave', leave);
+    return () => {
+      if (tabIndex === null) {
+        target.removeAttribute('tabindex');
+      } else {
+        target.setAttribute('tabindex', tabIndex);
+      }
+      target.removeEventListener('focus', focus);
+      target.removeEventListener('blur', blur);
+      target.removeEventListener('keydown', escape);
+      target.removeEventListener('mouseleave', leave);
+    };
+  }, [target]);
+  return <Tooltip target={target} label={target.dataset.factionName} opened={opened} withArrow />;
+}
+
+function factionHeadingTargets(_current: HTMLElement[], event: { kind: 'bind'; targets: HTMLElement[] }) {
+  return event.targets;
+}
+
+function FactionHeadingHints({ root, content }: { root: RefObject<HTMLDivElement | null>; content: unknown }) {
+  const [targets, bind] = useReducer(factionHeadingTargets, []);
+  useEffect(() => {
+    bind({ kind: 'bind', targets: [...(root.current?.querySelectorAll<HTMLElement>('h2[data-faction-name]') ?? [])] });
+  }, [root, content]);
+  return targets.map((target) => (
+    <FactionHeadingTooltip
+      key={`${target.closest('[data-rulebook-page-id]')?.getAttribute('data-rulebook-page-id')}:${target.dataset.rulebookBlockId}`}
+      target={target}
+    />
+  ));
 }
 
 function RulebookReader({ data, published }: Readonly<{ data: ReaderData; published: PublishedRulebook | null }>) {
@@ -827,6 +882,11 @@ function RulebookReader({ data, published }: Readonly<{ data: ReaderData; publis
                 </Stack>
               </nav>
             </Surface>
+            <FactionHeadingHints
+              key={published?.href ?? data.edition.edition_number}
+              root={readerRef}
+              content={published ?? renderDocument}
+            />
             <div ref={readerRef} className={styles.readerDocument} data-rulebook-reader-document>
               {published ? (
                 <div data-published-rulebook>

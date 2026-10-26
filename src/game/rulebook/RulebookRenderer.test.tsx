@@ -309,7 +309,10 @@ describe('Rulebook renderer', () => {
       <RulebookPageRenderer page={createCataloguePage('single-column', { written: true })} />
     );
     expect(container.querySelectorAll('[data-rulebook-block-id]')).toHaveLength(7);
-    expect(container.querySelector('[data-faction-id="atreides"]')?.getAttribute('title')).toBe('Atreides');
+    const heading = container.querySelector('[data-faction-id="atreides"]')!;
+    expect(heading.getAttribute('aria-label')).toBe(`${heading.textContent}, Atreides`);
+    expect(heading.getAttribute('data-faction-name')).toBe('Atreides');
+    expect(container.querySelector('[title]')).toBeNull();
     expect(
       [...container.querySelectorAll('ol > li')].map((item) => item.getAttribute('data-rulebook-item-id'))
     ).toEqual(['choose', 'move']);

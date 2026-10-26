@@ -1,15 +1,58 @@
 import { testingPreview } from '@sb/preview';
 import { waitForFrame } from '@sb/storyWaits';
+import { createRulebookEditorialStarterContents } from '@shared/rulebooks/fixtures';
 import { install } from '@sinonjs/fake-timers';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
-import { SEED_REF_TOKEN, db } from '@db/storybook';
+import { SEED_REF_TOKEN, db, ref } from '@db/storybook';
 
-import { rulebooksMeta, withFailedRulebookPreview, withSizedRulebooks } from './rulebooks.stories.fixture';
+import {
+  rulebooksMeta,
+  withRulebooks,
+  withFailedRulebookPreview,
+  withSizedRulebooks,
+} from './rulebooks.stories.fixture';
 
 const meta = testingPreview.meta({
   ...rulebooksMeta,
   title: 'Rulesets/Rulebooks',
+});
+
+export const FactionHeadingHints = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/book-1' },
+  parameters: {
+    database: db((baseline) => {
+      withRulebooks(baseline);
+      const faction = baseline.factions[0]!;
+      const edition = baseline.rulebook_edition_contents[1]!;
+      edition.contents = createRulebookEditorialStarterContents();
+      const page = edition.contents.pagesById.RULE!;
+      page.blocksById.HEAD = {
+        id: 'HEAD',
+        kind: 'section-heading',
+        title: 'Faction advantages',
+        factionId: ref(faction.$key!) as unknown as string,
+      };
+      page.blockOrderByRegion.content!.unshift('HEAD');
+      return baseline;
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const heading = await page.findByRole('heading', { name: /^Faction advantages, / }, { timeout: 30_000 });
+    const faction = heading.getAttribute('data-faction-name')!;
+    await expect(heading).not.toHaveAttribute('title');
+    await userEvent.hover(heading);
+    await expect(await page.findByRole('tooltip')).toHaveTextContent(faction);
+    await userEvent.unhover(heading);
+    heading.focus();
+    await expect(await page.findByRole('tooltip')).toHaveTextContent(faction);
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(page.queryByRole('tooltip')).toBeNull());
+    heading.blur();
+    await userEvent.hover(heading);
+    await expect(await page.findByRole('tooltip')).toHaveTextContent(faction);
+  },
 });
 
 function describeFocus(storyDocument: Document) {

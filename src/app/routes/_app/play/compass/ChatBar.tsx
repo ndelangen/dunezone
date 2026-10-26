@@ -1,3 +1,4 @@
+import { Tooltip } from '@mantine/core';
 import { Kbd } from '@ui/content/Kbd';
 import clsx from 'clsx';
 import { MessagesSquare } from 'lucide-react';
@@ -63,19 +64,20 @@ export function ChatBar({ inert, isOpen, onOpenCompass, onShow }: ChatBarProps) 
 
 function TableChatToken({ unread, open, onOpen }: Readonly<{ unread: number; open: boolean; onOpen: () => void }>) {
   return (
-    <button
-      type="button"
-      className={styles.chat}
-      aria-pressed={open}
-      aria-label={words('Table chat', unread && `${unread} unread`).join(', ')}
-      data-tip="Table chat · Space →"
-      onClick={onOpen}
-    >
-      <span className={clsx(styles.token, styles.planet)}>
-        <MessagesSquare size={17} />
-      </span>
-      {unread > 0 && <span className={styles.badge}>{unread}</span>}
-    </button>
+    <Tooltip label="Table chat · Space →" position="top" withArrow events={{ hover: true, focus: true, touch: false }}>
+      <button
+        type="button"
+        className={styles.chat}
+        aria-pressed={open}
+        aria-label={words('Table chat', unread && `${unread} unread`).join(', ')}
+        onClick={onOpen}
+      >
+        <span className={clsx(styles.token, styles.planet)}>
+          <MessagesSquare size={17} />
+        </span>
+        {unread > 0 && <span className={styles.badge}>{unread}</span>}
+      </button>
+    </Tooltip>
   );
 }
 
@@ -90,18 +92,26 @@ function waiting(player: CompassPlayer) {
 function ChatToken({ player, open, onOpen }: Readonly<{ player: CompassPlayer; open: boolean; onOpen: () => void }>) {
   const reason = waiting(player);
   return (
-    <button
-      type="button"
-      className={styles.chat}
-      aria-pressed={open}
-      aria-label={words(player.name, player.factionName, reason, player.unread && `${player.unread} unread`).join(', ')}
-      data-tip={words(player.name, player.factionName, reason, player.ally && 'ally · Space → →').join(' · ')}
-      data-ally={player.ally || undefined}
-      onClick={onOpen}
+    <Tooltip
+      label={words(player.name, player.factionName, reason, player.ally && 'ally · Space → →').join(' · ')}
+      position="top"
+      withArrow
+      events={{ hover: true, focus: true, touch: false }}
     >
-      <PlayerToken player={player} />
-      {player.unread > 0 && <span className={styles.badge}>{player.unread}</span>}
-      {player.attention && <span className={styles.attention} data-attention aria-hidden="true" />}
-    </button>
+      <button
+        type="button"
+        className={styles.chat}
+        aria-pressed={open}
+        aria-label={words(player.name, player.factionName, reason, player.unread && `${player.unread} unread`).join(
+          ', '
+        )}
+        data-ally={player.ally || undefined}
+        onClick={onOpen}
+      >
+        <PlayerToken player={player} />
+        {player.unread > 0 && <span className={styles.badge}>{player.unread}</span>}
+        {player.attention && <span className={styles.attention} data-attention aria-hidden="true" />}
+      </button>
+    </Tooltip>
   );
 }

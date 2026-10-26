@@ -377,6 +377,36 @@ const noWallClockRule: Rule = {
   },
 };
 
+const SHARED_OVERLAYS_RULE_NAME = 'shared-overlays';
+
+const ALTERNATIVE_OVERLAYS =
+  /^(?:@radix-ui\/react-(?:tooltip|popover|hover-card)|@tippyjs\/react|tippy\.js|react-tooltip)(?:\/|$)/;
+
+/** Keeps hover hints and floating panes on Mantine's shared theme. */
+const sharedOverlaysRule: Rule = {
+  meta: {
+    name: SHARED_OVERLAYS_RULE_NAME,
+    messages: {
+      sharedOverlay: 'Use Tooltip, Popover or HoverCard from @mantine/core under the app theme.',
+      cssTooltip: 'Use Mantine Tooltip instead of a CSS tooltip stored in a data attribute.',
+    },
+  },
+  create(context) {
+    return {
+      ImportDeclaration(node) {
+        if (ALTERNATIVE_OVERLAYS.test(String(node.source.value))) {
+          context.report({ node, messageId: 'sharedOverlay' });
+        }
+      },
+      JSXAttribute(node) {
+        if (node.name.type === 'JSXIdentifier' && /^data-(?:tip|tooltip)$/.test(node.name.name)) {
+          context.report({ node, messageId: 'cssTooltip' });
+        }
+      },
+    };
+  },
+};
+
 const TITLE_TOOLTIP_RULE_NAME = 'no-title-tooltip';
 
 /* Libraries whose components forward an unknown `title` straight to the element they render. */
@@ -472,5 +502,6 @@ export default {
     [STORY_DESCRIPTION_RULE_NAME]: noAiTellsInStoryDescriptionsRule,
     [WALL_CLOCK_RULE_NAME]: noWallClockRule,
     [TITLE_TOOLTIP_RULE_NAME]: noTitleTooltipRule,
+    [SHARED_OVERLAYS_RULE_NAME]: sharedOverlaysRule,
   },
 };

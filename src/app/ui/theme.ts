@@ -226,6 +226,7 @@ export const appContentTheme = createTheme({
             : {},
       }),
     }),
+    Tooltip: { classNames: { tooltip: styles.tooltip } },
     Popover: {
       styles: {
         dropdown: {
