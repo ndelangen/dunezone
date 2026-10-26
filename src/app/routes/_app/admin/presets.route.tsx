@@ -127,7 +127,7 @@ function PresetsPage() {
   const library = usePresetLibrary();
   if (!library) {
     return (
-      <PageMessage title="Presets">
+      <PageMessage title="Presets" back={<PageMessage.Back to="/admin">All admin tools</PageMessage.Back>}>
         <LoadPending title="Loading presets">Loading the saved designs.</LoadPending>
       </PageMessage>
     );
@@ -140,7 +140,7 @@ function PresetsPage() {
 function InitializePresets() {
   const initialize = useInitializePresetLibrary();
   return (
-    <PageMessage title="Presets">
+    <PageMessage title="Presets" back={<PageMessage.Back to="/admin">All admin tools</PageMessage.Back>}>
       <Stack>
         <Text>
           Import the current DB designs into shared presets. Existing saved presets keep their settings. Linked artwork
