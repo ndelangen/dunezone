@@ -152,12 +152,6 @@ export class ActorDirectory {
     };
   }
 
-  scrubDeletedHistory() {
-    if (this.storage.sql.exec('SELECT 1 FROM actors WHERE deleted=1 LIMIT 1').toArray().length) {
-      this.storage.transactionSync(() => anonymizeHistory(this.storage, null));
-    }
-  }
-
   seatFor(userId: string) {
     return this.storage.sql.exec<Actor>('SELECT * FROM actors WHERE user_id=? AND deleted=0', userId).toArray()[0]
       ?.seat;

@@ -224,7 +224,6 @@ export const clientMessageSchema = z.discriminatedUnion('type', [
   }),
   z.strictObject({
     type: z.literal('admit'),
-    supportsBoard: z.literal(true).optional(),
     /* A page proves who it is with its seat pass for this game. */
     pass: seatPassSchema,
     /* The connection this page held before it reconnected, which the Worker retires once this one is admitted. */
@@ -362,7 +361,7 @@ export const serverMessageSchema = z.discriminatedUnion('type', [
     error: z.string().optional(),
   }),
   /* `pass-expired` holds the table until the page sends a fresh seat pass. */
-  z.object({ type: z.literal('admission'), status: z.enum(['suspended', 'denied', 'refresh', 'pass-expired']) }),
+  z.object({ type: z.literal('admission'), status: z.enum(['suspended', 'denied', 'pass-expired']) }),
   /* `held` is the carried piece as the carrier now sees it, sent after a flip so a face turned up in hand shows at once. */
   z.object({ type: z.literal('carry'), carryId: id, draft: draftSchema, held: pieceSchema.optional() }),
   z.object({ type: z.literal('ping'), ping: pingSchema }),

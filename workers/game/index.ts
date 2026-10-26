@@ -824,23 +824,16 @@ export class GameRoom extends DurableObject<GameEnv> {
     return this.connections.get(socket) === connection && Date.now() < connection.openedAt + PLAY_PENDING_TIMEOUT_MS;
   }
 
-  private canAdmit(socket: WebSocket, connection: Connection, request: Extract<ClientMessage, { type: 'admit' }>) {
+  private canAdmit(socket: WebSocket, connection: Connection) {
     if (connection.admitting || connection.viewer) {
       this.refuseAdmission(socket, 'duplicate');
-      return false;
-    }
-    if (this.session.hasRetainedBoard && !request.supportsBoard) {
-      /* Older clients reject the new status and already show their refresh message. No game view or commands pass this gate. */
-      this.sendAdmission(socket, 'refresh');
-      this.disconnect(socket);
-      socket.close(ADMISSION_REFUSED_CLOSE_CODE, 'Refresh to load this board.');
       return false;
     }
     return true;
   }
 
   private async admit(socket: WebSocket, connection: Connection, request: Extract<ClientMessage, { type: 'admit' }>) {
-    if (!this.canAdmit(socket, connection, request)) {
+    if (!this.canAdmit(socket, connection)) {
       return;
     }
     connection.admitting = true;
@@ -2036,7 +2029,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
   }
 
-  private sendAdmission(socket: WebSocket, status: 'suspended' | 'denied' | 'refresh' | 'pass-expired') {
+  private sendAdmission(socket: WebSocket, status: 'suspended' | 'denied' | 'pass-expired') {
     /* A page that loses its admission drops its summaries, so whatever readmits it receives them again. */
     this.conversationsSent.delete(socket);
     if (socket.readyState === WebSocket.OPEN) {

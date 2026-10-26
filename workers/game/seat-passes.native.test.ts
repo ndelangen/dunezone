@@ -29,7 +29,7 @@ describe('Seat passes admit players without the room asking Convex about them', 
     connection.messages.flatMap((message) => (message.type === 'admission' ? [message.status] : []));
   async function refusedWith(raw: Promise<string>) {
     const connection = await openGame(runtime);
-    connection.send({ type: 'admit', supportsBoard: true, pass: await raw });
+    connection.send({ type: 'admit', pass: await raw });
     await eventually(() => connection.closed, 'refused socket closed');
     return connection;
   }

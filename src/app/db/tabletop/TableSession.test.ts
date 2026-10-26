@@ -405,7 +405,7 @@ describe('hosted table admission', () => {
     await vi.advanceTimersByTimeAsync(0);
     expect(socket().gameId).toBe('fixture-one');
     socket().open();
-    expect(socket().sent).toEqual([{ type: 'admit', supportsBoard: true, pass: 'pass.a' }]);
+    expect(socket().sent).toEqual([{ type: 'admit', pass: 'pass.a' }]);
     client.moveStormBy(1);
     client.beginGesture('harkonnen-force-stack', 'whole');
     client.publishPointer([0, 0, 0]);
@@ -473,7 +473,7 @@ describe('hosted table admission', () => {
     client.publishPointer([0, 0.38, 0]);
     await vi.advanceTimersByTimeAsync(1000);
     expect(client.getSnapshot().table?.state.viewerSeat).toBe('neutral');
-    expect(socket().sent).toEqual([{ type: 'admit', supportsBoard: true, pass: 'pass.a' }]);
+    expect(socket().sent).toEqual([{ type: 'admit', pass: 'pass.a' }]);
   });
 
   test('server time runs on from the freshest frame, whatever the wall clock or a late frame says', async () => {
@@ -550,7 +550,7 @@ describe('hosted table admission', () => {
     old.deliver(view({ epoch: 'old' }));
     expectLocked(client);
     expect(issue).toHaveBeenCalledTimes(2);
-    expect(socket().sent).toEqual([{ type: 'admit', supportsBoard: true, pass: 'pass.2', replaces: 'connection-one' }]);
+    expect(socket().sent).toEqual([{ type: 'admit', pass: 'pass.2', replaces: 'connection-one' }]);
     authorize(initialSnapshot(), { ...viewer, connectionId: 'connection-two' });
     expect(table(client).viewer.connectionId).toBe('connection-two');
   });
@@ -1365,7 +1365,7 @@ test('compact update gaps pause commands until a full resync restores the table'
   const snapshot = initialSnapshot();
   socket().deliver(view({ sequence: 1, snapshot }));
   /* A view asks for nothing, so the admission is the only message before the gap. */
-  expect(socket().sent).toEqual([{ type: 'admit', supportsBoard: true, pass: 'pass.a' }]);
+  expect(socket().sent).toEqual([{ type: 'admit', pass: 'pass.a' }]);
   deliverGap();
   expect(socket().sent.at(-1)).toEqual({ type: 'sync' });
   expect(table(client).canInteract).toBe(false);
@@ -1755,7 +1755,7 @@ describe('fresh reconnect recovery', () => {
         committed ? position : source.position
       );
       expect(socket().sent).toEqual([
-        { type: 'admit', supportsBoard: true, pass: 'pass.a', replaces: 'connection-one' },
+        { type: 'admit', pass: 'pass.a', replaces: 'connection-one' },
       ]);
       expect(client.getSnapshot().error).toBe('The connection dropped as you placed a piece. Check where it landed.');
     }

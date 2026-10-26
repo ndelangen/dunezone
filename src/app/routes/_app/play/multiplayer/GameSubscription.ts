@@ -376,7 +376,6 @@ export class GameSubscription {
       this.retryReason = null;
       const admit: ClientMessage = {
         type: 'admit',
-        supportsBoard: true,
         pass,
         ...(this.connectionId ? { replaces: this.connectionId } : {}),
       };
@@ -538,10 +537,6 @@ export class GameSubscription {
 
   /* The Worker admits every socket as suspended until its authorization is confirmed, so on a first connect the pause is the connection still opening and reads as such. */
   private receiveAdmission(message: Extract<ServerMessage, { type: 'admission' }>) {
-    if (message.status === 'refresh') {
-      this.changeStatus('denied', 'This table needs a newer version of the page. Refresh to continue.');
-      return;
-    }
     if (message.status === 'pass-expired') {
       /* The room holds the table until a fresh pass arrives through the pass watch. */
       void this.renewPass();

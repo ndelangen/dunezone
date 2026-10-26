@@ -125,7 +125,7 @@ test('disconnect forgets the old baseline, rejects its late messages and accepts
 
 test('applies a saved movement patch that the admission never asked for', async () => {
   const { subscription, socket, view } = await subscribed();
-  expect(socket.sent).toEqual([{ type: 'admit', supportsBoard: true, pass: 'pass.a' }]);
+  expect(socket.sent).toEqual([{ type: 'admit', pass: 'pass.a' }]);
   const next = structuredClone(view);
   next.snapshot.revision++;
   next.snapshot.table.pieces[0].position = [2, 0, 2];
@@ -188,7 +188,7 @@ test('an expired pass reconnects with a new one, waiting longer each time until 
   await expire(opened(), 2000);
   await expire(opened(), 4000);
   const admitted = opened();
-  expect(admitted.sent).toEqual([{ type: 'admit', supportsBoard: true, pass: 'pass.4' }]);
+  expect(admitted.sent).toEqual([{ type: 'admit', pass: 'pass.4' }]);
   admitted.deliver(initial());
   expect(subscription.status).toBe('authorized');
   await expire(admitted, 1000);
@@ -257,7 +257,7 @@ test('an admission answered after the request timeout is taken by the next attem
   expect(requestAdmission).toHaveBeenCalledTimes(1);
   const socket = Socket.instances.at(-1)!;
   socket.open();
-  expect(socket.sent).toEqual([{ type: 'admit', supportsBoard: true, pass: 'pass.1' }]);
+  expect(socket.sent).toEqual([{ type: 'admit', pass: 'pass.1' }]);
   socket.deliver(initial());
   expect(subscription.status).toBe('authorized');
 });
@@ -486,7 +486,7 @@ test('a seat pass admits, hands a fresher one to the open socket and renews befo
   await vi.advanceTimersByTimeAsync(0);
   const socket = Socket.instances.at(-1)!;
   socket.open();
-  expect(socket.sent).toEqual([{ type: 'admit', supportsBoard: true, pass: first }]);
+  expect(socket.sent).toEqual([{ type: 'admit', pass: first }]);
   socket.deliver(initial());
   expect(subscription.status).toBe('authorized');
 

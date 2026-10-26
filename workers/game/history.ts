@@ -9,7 +9,6 @@ const object = (value: Json): value is Record<string, Json> =>
 /*
  * Only server-produced patches are stored. An array changes element by element when that is smaller than the whole array:
  * a changed element by its index, an added one at its new index and a shorter array by its `length`.
- * These are the same set operations `applyPatch` has always read, so a room rolled back to an older release still restores them.
  */
 export function diff(base: GameSnapshot | StoredSnapshot, next: GameSnapshot | StoredSnapshot): Patch[] {
   return visit(base as Json, next as Json, []);
