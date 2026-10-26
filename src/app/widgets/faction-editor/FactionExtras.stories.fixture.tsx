@@ -26,12 +26,21 @@ export async function openExtras(canvasElement: HTMLElement) {
   return canvas;
 }
 
-/* The slugs the chapter lists, in order. */
-export function listedSlugs(canvasElement: HTMLElement) {
+/* The names the chapter lists, in order: each row's first line, its address until the catalogue answers. */
+export function listedNames(canvasElement: HTMLElement) {
   const list = within(canvasElement).queryByRole('list', { name: 'Extras' });
   return list
     ? within(list)
         .getAllByRole('listitem')
         .map((item) => item.querySelector('p')?.textContent)
     : [];
+}
+
+/* Opens the add popover on one type and picks the named asset. */
+export async function addExtra(canvasElement: HTMLElement, type: string, name: RegExp) {
+  const canvas = within(canvasElement);
+  await userEvent.click(canvas.getByRole('button', { name: 'Add Extra' }));
+  const body = within(canvasElement.ownerDocument.body);
+  await userEvent.selectOptions(await body.findByRole('combobox', { name: 'Type' }), type);
+  await userEvent.click(await body.findByRole('option', { name }, { timeout: 30_000 }));
 }

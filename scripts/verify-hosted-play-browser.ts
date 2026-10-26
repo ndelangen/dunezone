@@ -807,15 +807,18 @@ async function seatThrough(approver: HostedPeer, who: HostedPeer) {
   await request.click();
   await until(() => requireView(who).snapshot.revision > before, 'The seat request did not commit.');
   if (!drafting) {
-    /* The vacant seat's window is named for its faction, as every seat without a player is. */
+    /* A seat without a player goes by its faction. */
     const roster = required(requireView(approver).snapshot.roster, 'roster');
     const seated = new Set(requireView(approver).snapshot.controls?.players.map((player) => player.seat));
     const vacant = roster.seats.find((seat) => !seated.has(seat.id));
     assert.ok(vacant, 'No seat is open for the request.');
     const name = vacant.faction?.name ?? vacant.id;
-    await openTab(approver, name);
-    /* A seat that kept its faction is still someone to chat with, so its window opens on Chat; the request is under Info. */
-    await windowOf(approver, name).getByRole('tab', { name: 'Info', exact: true }).click();
+    /* The request is answered in Faction info, set on the vacant seat by its token. */
+    await openTab(approver, 'Faction info');
+    await windowOf(approver, 'Faction info')
+      .getByRole('group', { name: 'Factions' })
+      .getByRole('button', { name, exact: true })
+      .click();
   }
   await act(approver, 'Approve');
   await until(() => requireView(who).viewer.viewerSeat !== SPECTATOR, 'The approved request did not seat its player.');

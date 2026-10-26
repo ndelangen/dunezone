@@ -88,18 +88,22 @@ export async function openPanel(canvasElement: HTMLElement, name: string) {
   return page;
 }
 
-/**
- * Opens a player's window, or the table's chat, on one of its tabs ("Info" or "Chat").
- * The table chat has no tabs, and a player who cannot converse has only Info.
- */
-export async function openPlayer(canvasElement: HTMLElement, player: string, tab: 'Info' | 'Chat') {
+/** Opens the chat with a player, or the table's chat. */
+export async function openChat(canvasElement: HTMLElement, player: string) {
   const page = within(canvasElement.ownerDocument.body);
   await openControl(page, player);
-  const frame = within(windowNamed(page, player)!);
-  const button = frame.queryByRole('tab', { name: tab });
-  if (button && button.getAttribute('aria-selected') !== 'true') {
-    await userEvent.click(button);
-    await waitFor(() => expect(frame.getByRole('tab', { name: tab })).toHaveAttribute('aria-selected', 'true'));
+  return page;
+}
+
+/** Opens the Faction info window and sets it on a player's faction by their token. */
+export async function openFactionInfo(canvasElement: HTMLElement, player: string) {
+  const page = within(canvasElement.ownerDocument.body);
+  await openControl(page, 'Faction info');
+  const picker = within(within(windowNamed(page, 'Faction info')!).getByRole('group', { name: 'Factions' }));
+  const token = await picker.findByRole('button', { name: (name) => name === player || name.startsWith(`${player},`) });
+  if (token.getAttribute('aria-pressed') !== 'true') {
+    await userEvent.click(token);
+    await waitFor(() => expect(token).toHaveAttribute('aria-pressed', 'true'));
   }
   return page;
 }

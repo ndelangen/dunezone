@@ -197,7 +197,7 @@ function FactionPageButton({ slug, name }: Readonly<{ slug: string; name: string
   );
 }
 
-/* Each player as a window of their own, and what the compass's chat bar shows for them. */
+/* Each player as the compass sees them: a chat each, their faction's information, and what the chat bar shows for them. */
 
 /** The players as the compass shows them: a token each in the chat bar, with what waits on them. */
 export function usePlayerWindows(client: TableSession, table: TableProjection) {
@@ -233,39 +233,30 @@ export function usePlayerWindows(client: TableSession, table: TableProjection) {
   };
 }
 
-/** One player's window: their conversation, or their public information with any vote and seat request against their seat. */
-export function PlayerWindow({
-  client,
-  table,
-  seat,
-  tab,
-  error,
-}: Props & Readonly<{ seat: string; tab: 'public' | 'conversation'; error: string | null }>) {
+/** The chat with a seat's player, or the table's. */
+export function PlayerChat({ client, table, seat }: Props & Readonly<{ seat: string }>) {
   const { conversations } = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getSnapshot);
-  const player = seatPlayers(table).find((entry) => entry.seat === seat);
-  if (seat === TABLE_CONVERSATION) {
-    return conversations.context ? (
-      <Conversation
-        key={`${conversations.context.factionId}:${TABLE_CONVERSATION}`}
-        client={client}
-        peerId={TABLE_CONVERSATION}
-      />
-    ) : null;
+  const peerId = seat === TABLE_CONVERSATION ? TABLE_CONVERSATION : seatFaction(table, seat);
+  const context = conversations.context;
+  if (!context || !peerId || (peerId !== TABLE_CONVERSATION && !context.peers.some((peer) => peer.id === peerId))) {
+    return null;
   }
+  return <Conversation key={`${context.factionId}:${peerId}`} client={client} peerId={peerId} />;
+}
+
+/** A seat's faction information, with any vote against its player and any request for the seat. */
+export function FactionInfo({ client, table, seat, error }: Props & Readonly<{ seat: string; error: string | null }>) {
+  const player = seatPlayers(table).find((entry) => entry.seat === seat);
   if (!player) {
     return null;
   }
   const vote = (table.snapshot.removalVotes ?? []).find((entry) => entry.target.seat === seat);
-  const peerId = seatFaction(table, seat);
-  if (tab === 'conversation' && peerId && conversations.context?.peers.some((peer) => peer.id === peerId)) {
-    return <Conversation key={`${conversations.context.factionId}:${peerId}`} client={client} peerId={peerId} />;
-  }
   return (
-    <Stack gap="lg">
+    <>
       {error && <FormError title="From the table">{error}</FormError>}
       {vote && <OpenVote client={client} table={table} vote={vote} />}
       <VacantSeatRequests client={client} table={table} seat={seat} />
       <PlayerInformation client={client} table={table} player={player} hasVote={Boolean(vote)} />
-    </Stack>
+    </>
   );
 }

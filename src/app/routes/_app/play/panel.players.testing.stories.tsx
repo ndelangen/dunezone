@@ -3,7 +3,7 @@ import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { seatFactionsResolve } from '@db/storybook';
 
-import { openPlayer, WAIT } from './controls.stories.fixture';
+import { openFactionInfo, WAIT } from './controls.stories.fixture';
 import { gameMeta, install, lastCommand, removalSnapshot, session } from './game.stories.fixture';
 import { openTab } from './playing.stories.fixture';
 import { productTransport, playingSnapshot } from './product.stories.fixture';
@@ -31,7 +31,7 @@ export const Info = meta.story({
   decorators: [seatFactionsResolve],
   beforeEach: install(() => productTransport('seat-2', playingSnapshot())),
   play: async ({ canvasElement }) => {
-    const page = await openPlayer(canvasElement, 'Twaffle', 'Info');
+    const page = await openFactionInfo(canvasElement, 'Twaffle');
     const link = await page.findByRole('link', { name: 'View House Atreides (opens in a new tab)' }, WAIT);
     await expect(link).toHaveAttribute('target', '_blank');
     await expect(link).toHaveAttribute('href', '/factions/house-atreides');
@@ -48,7 +48,7 @@ export const Info = meta.story({
 export const RemovalVote = meta.story({
   beforeEach: install(() => productTransport('seat-2', removalSnapshot())),
   play: async ({ canvasElement }) => {
-    const page = await openPlayer(canvasElement, 'Twaffle', 'Info');
+    const page = await openFactionInfo(canvasElement, 'Twaffle');
     await expect(page.findByRole('button', { name: 'Keep' }, WAIT)).resolves.toBeVisible();
   },
 });
@@ -56,7 +56,7 @@ export const RemovalVote = meta.story({
 export const RemovalVoting = meta.story({
   beforeEach: install(() => productTransport('seat-2', removalSnapshot())),
   play: async ({ canvasElement }) => {
-    const page = await openPlayer(canvasElement, 'Twaffle', 'Info');
+    const page = await openFactionInfo(canvasElement, 'Twaffle');
     /* The token in the chat bar carries a mark while the vote stands, and says so in its name. */
     await expect(attentionOn(page, 'Twaffle')).not.toBeNull();
     await expect(
@@ -88,7 +88,7 @@ export const RemovalResolution = meta.story({
     });
   }),
   play: async ({ canvasElement }) => {
-    const page = await openPlayer(canvasElement, 'Twaffle', 'Info');
+    const page = await openFactionInfo(canvasElement, 'Twaffle');
     await userEvent.click(page.getByRole('button', { name: 'Keep' }));
     const command = lastCommand();
     await expect(command).toMatchObject({ action: { kind: 'removal-ballot', choice: 'keep' } });
@@ -107,7 +107,7 @@ export const RemovalResolution = meta.story({
 export const RemovalRejected = meta.story({
   beforeEach: install(() => productTransport('seat-2', removalSnapshot())),
   play: async ({ canvasElement }) => {
-    const page = await openPlayer(canvasElement, 'Twaffle', 'Info');
+    const page = await openFactionInfo(canvasElement, 'Twaffle');
     await userEvent.click(page.getByRole('button', { name: 'Keep' }));
     session.transport.deliver({
       type: 'rejected',

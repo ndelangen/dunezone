@@ -70,7 +70,7 @@ import {
 } from './panelGuidance';
 import { PlaybackControls } from './PlaybackControls';
 import { publicControlsOf } from './publicControls';
-import { PlayerWindow, usePlayerWindows } from './RemovalVotes';
+import { FactionInfo, PlayerChat, usePlayerWindows } from './RemovalVotes';
 import { useResultCelebration } from './resultCelebration';
 import { GameMenu, SeatPopover } from './SeatRequests';
 import { nextPhaseStep, stageStatus, stageToolbar } from './StageHeader';
@@ -1023,7 +1023,8 @@ function ConnectedTable({
           <CompassTableContext
             value={{
               ...playerWindows,
-              render: (seat, tab) => <PlayerWindow client={client} table={table} seat={seat} tab={tab} error={error} />,
+              chat: (seat) => <PlayerChat client={client} table={table} seat={seat} />,
+              factionInfo: (seat) => <FactionInfo client={client} table={table} seat={seat} error={error} />,
               nextPhase: nextPhaseStep(client, table),
               token: viewerToken(client, table),
             }}

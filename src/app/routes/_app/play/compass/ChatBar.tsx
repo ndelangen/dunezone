@@ -8,16 +8,17 @@ import base from './CompassControls.module.css';
 import { CompassTableContext } from './compassTable';
 import type { CompassPlayer } from './compassTable';
 import { PlayerToken } from './PlayerToken';
-import type { PlayerTab } from './windows';
+import { chattable, FACTION_INFO } from './windows';
 
 /* The bar at the bottom of the table: the Controls button that opens the compass, and a token for each chat. */
 
 type ChatBarProps = Readonly<{
   inert: boolean;
   /** Whether a window is open anywhere, so its token shows pressed. */
-  isOpen: (key: string) => boolean;
+  isOpen: (key: string, seat?: string) => boolean;
   onOpenCompass: () => void;
-  onShow: (key: string, tab: PlayerTab) => void;
+  /** Opens a window, the faction information on the seat given. */
+  onShow: (key: string, seat?: string) => void;
 }>;
 
 /* The words that name a chat token, joined for its accessible name and its tip. */
@@ -43,18 +44,15 @@ export function ChatBar({ inert, isOpen, onOpenCompass, onShow }: ChatBarProps) 
       {(tableChat || others.length > 0) && (
         <nav className={styles.chats} aria-label="Chats">
           {tableChat && (
-            <TableChatToken
-              unread={tableChat.unread}
-              open={isOpen('table-chat')}
-              onOpen={() => onShow('table-chat', 'conversation')}
-            />
+            <TableChatToken unread={tableChat.unread} open={isOpen('table-chat')} onOpen={() => onShow('table-chat')} />
           )}
+          {/* A token opens the chat with its player, or their faction's information when there is no chat to have. */}
           {others.map((player) => (
             <ChatToken
               key={player.seat}
               player={player}
-              open={isOpen(`player:${player.seat}`)}
-              onOpen={() => onShow(`player:${player.seat}`, player.canConverse ? 'conversation' : 'public')}
+              open={chattable(player) ? isOpen(`player:${player.seat}`) : isOpen(FACTION_INFO, player.seat)}
+              onOpen={() => (chattable(player) ? onShow(`player:${player.seat}`) : onShow(FACTION_INFO, player.seat))}
             />
           ))}
         </nav>

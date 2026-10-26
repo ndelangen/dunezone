@@ -316,11 +316,11 @@ function SlotFrame({ size, actions, children }: { size: SlotSize; actions: React
         <div className={compassStyles.root} style={{ '--slot-width': width } as CSSProperties}>
           <WindowFrame
             entry={{ ...BATTLE_WINDOW, content: children }}
-            tab="public"
             where="left"
             inert={false}
             style={{ height }}
-            onTab={() => undefined}
+            onSeat={() => undefined}
+            onFaction={() => undefined}
             actions={
               <>
                 {actions}
