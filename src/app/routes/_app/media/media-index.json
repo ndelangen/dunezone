@@ -11149,5 +11149,23 @@
     "tags": ["tarot", "deck", "cards", "case", "cord", "tassel", "divination", "vector"],
     "subjects": ["culture", "symbols"],
     "sourceHash": "e3b031b1dd8b34aa7edb107aa0846f516d06484402c68fccd70bb98b17f341ff"
+  },
+  "/vector/decal/ascending-soldiers.svg": {
+    "description": "Three helmeted figures with packs rise diagonally, with bent legs and a long weapon held by the lowest figure.",
+    "tags": ["soldiers", "ascending", "flying", "helmets", "packs", "Dune Part Two", "vector"],
+    "subjects": ["people", "weapons"],
+    "sourceHash": "2cf32a4fe8fa97fab5fee09e0e99f94f3c6d133ddf8dc3e8f2251441a843d033"
+  },
+  "/vector/decal/ornate-spear.svg": {
+    "description": "A long horizontal spear has a broad grip, simple collars, a stepped neck and a swept pointed head with a large curved opening.",
+    "tags": ["spear", "staff", "polearm", "blade", "stepped neck", "vector"],
+    "subjects": ["weapons"],
+    "sourceHash": "e441bf3a7ed43c22218578bbe12a7c51f2c46aada0c93970815894b5986bbfd6"
+  },
+  "/vector/decal/box-and-needle.svg": {
+    "description": "A long tapered needle sits above a thick-walled box with an open rectangular cavity, framed top and angular panel cuts.",
+    "tags": ["box", "needle", "cavity", "framed panel", "vector"],
+    "subjects": ["machines", "weapons"],
+    "sourceHash": "927135a200188481a6059a5132ccd8447f59879cd06321a97ff5e37c8e6d69f4"
   }
 }
