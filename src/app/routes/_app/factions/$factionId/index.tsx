@@ -273,6 +273,25 @@ function FactionTroop({ troop, background }: { troop: Troop; background: Faction
   );
 }
 
+function FactionLeader({
+  leader,
+  background,
+  logo,
+}: {
+  leader: FactionData['leaders'][number];
+  background: FactionData['background'];
+  logo: FactionData['logo'];
+}) {
+  const label = `${leader.name}, strength ${leader.strength ?? 'not specified'}`;
+  return (
+    <Tooltip label={label}>
+      <article className={styles.leaderTile} aria-label={label}>
+        <LeaderToken {...leader} background={background} logo={logo} />
+      </article>
+    </Tooltip>
+  );
+}
+
 function FactionDetailError({ error }: ErrorComponentProps) {
   const absent = isFactionNotFound(error);
   useLivePageTitle(absent ? 'Faction not found' : undefined);
@@ -585,16 +604,14 @@ function FactionDetailContent({
                   <div className={styles.horizontalLane}>
                     {/* Position disambiguates: an author may field two identical leaders, and a
                     faction's lists carry no ids of their own. */}
-                    {data.leaders.map((leader, index) => {
-                      const label = `${leader.name}, strength ${leader.strength ?? 'not specified'}`;
-                      return (
-                        <Tooltip key={`${leader.name}-${leader.image}-${index}`} label={label}>
-                          <article className={styles.leaderTile} aria-label={label}>
-                            <LeaderToken {...leader} background={data.background} logo={data.logo} />
-                          </article>
-                        </Tooltip>
-                      );
-                    })}
+                    {data.leaders.map((leader, index) => (
+                      <FactionLeader
+                        key={`${leader.name}-${leader.image}-${index}`}
+                        leader={leader}
+                        background={data.background}
+                        logo={data.logo}
+                      />
+                    ))}
                   </div>
                 </Section>
 
