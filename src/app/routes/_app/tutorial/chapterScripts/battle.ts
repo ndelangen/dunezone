@@ -100,7 +100,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       detail:
         'The battle asks who fights on which side. You attacked, so click Claim left side under the marker. Atreides takes the right side, and your battle plan opens on the left: {B} hides it and brings it back.',
       anchor: { kind: 'page', element: element('[aria-label="Claim left side"]') },
-      ...fightsUntil(() => mySide() === 0),
+      ...fightsUntil(() => mySide() === 0 && Boolean(battle()?.sides[1])),
     }),
     task({
       id: 'leader',

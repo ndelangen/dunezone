@@ -51,7 +51,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
           null,
       },
       begin: () => undefined,
-      done: () => (document.querySelector<HTMLInputElement>(SEARCH)?.value.trim().length ?? 0) >= 3,
+      done: () => /karama/i.test(document.querySelector<HTMLInputElement>(SEARCH)?.value ?? ''),
     }),
   ];
 }
