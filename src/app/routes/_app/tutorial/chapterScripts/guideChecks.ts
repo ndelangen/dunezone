@@ -197,3 +197,20 @@ export const closeGameMenu = () => {
     gameMenuButton()?.click();
   }
 };
+
+/*
+ * Whether the player asked for more while carrying: {T}, or a right-click, takes the next piece from the stack under the pointer.
+ * Either press counts wherever it lands, so the task pairs it with a check that the carry did grow.
+ */
+export const watchTakeMore = () => {
+  const watch = { took: false, stop: new AbortController() };
+  const took = () => {
+    watch.took = true;
+  };
+  window.addEventListener('keydown', (event) => event.key.toLowerCase() === 't' && took(), {
+    capture: true,
+    signal: watch.stop.signal,
+  });
+  window.addEventListener('contextmenu', took, { capture: true, signal: watch.stop.signal });
+  return watch;
+};

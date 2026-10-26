@@ -1,42 +1,16 @@
+import { factionTokenOf } from '@shared/play/factionToken';
 import type { GameSnapshot } from '@shared/play/protocol';
 
 import type { GuideTask } from '../TutorialGuide';
 import type { ChapterScript } from './chapterScript';
-import { at, element, onBoard, tableDeck, task } from './guideChecks';
+import { at, onBoard, task, watchTakeMore } from './guideChecks';
 import type { Piece } from './guideChecks';
 
 /*
  * Chapter 7, "Moving pieces": the hands-on controls chapter 5 only touched, on the same table.
- * A stack split with a number key, carried whole, joined, turned and flipped; then a deck shuffled and peeked at.
- * Taking more with T, locking, dealing and splitting cards off a deck with a number key wait for a later chapter.
+ * A stack split with a number key, carried whole, grown with T while carried, joined, turned and flipped; then the faction
+ * token moved along the rim and flipped. Everything to do with cards is chapter 8's (Norbert, 2026-10-26).
  */
-
-/*
- * The cards of a deck held open by a peek, by the handles the peek shows them under, top first; null while no deck is open.
- * Handles rather than names, since a deck holds several cards of one name.
- */
-const peekedOrder = () => {
-  const row = document.querySelector('[role="dialog"][aria-label^="Peeking at"] ol');
-  return row ? [...row.querySelectorAll('[data-card]')].map((card) => card.getAttribute('data-card') ?? '') : null;
-};
-
-/*
- * Moving a card in a deck held open gives every card a new handle, so nobody else can follow it, and the peek stays open.
- * Anything else that changes the deck's handles closes the peek, as a shuffle or a draw does, and pulling a card out changes its size.
- * So the task waits for the deck to open, then counts a change of handles at the same size while it stays open;
- * a peek that closes starts over from the order it shows when it opens again.
- */
-const movedInPeek = () => ({
-  begin: () => ({ first: null as string[] | null }),
-  done: (watch: { first: string[] | null }) => {
-    const order = peekedOrder();
-    if (!order || watch.first?.length !== order.length) {
-      watch.first = order;
-      return false;
-    }
-    return watch.first.some((card, index) => card !== order[index]);
-  },
-});
 
 /*
  * A piece changed where it lies, by id: turning and flipping leave a piece in place under the same id.
@@ -128,6 +102,22 @@ function stackTasks(snapshot: () => GameSnapshot): GuideTask[] {
       },
     }),
     task({
+      id: 'take-more',
+      task: 'Take a few more',
+      detail:
+        'Quickly drag one troop off your reserves and keep holding it over them. Press {T}, or right-click, once for each troop to add: they join the one you carry. Then drop them all on a territory.',
+      anchor: { kind: 'table', point: () => at(biggestReserve()) },
+      /* As with a whole stack: the troops land together, so the board's count jumps by two or more in one go. */
+      begin: () => ({ last: total(onTheBoard()), ...watchTakeMore() }),
+      done: (watch) => {
+        const now = total(onTheBoard());
+        const jumped = now - watch.last >= 2;
+        watch.last = now;
+        return watch.took && jumped;
+      },
+      finish: (watch) => watch.stop.abort(),
+    }),
+    task({
       id: 'join',
       task: 'Add a troop to them',
       detail: 'Quickly drag one troop from your reserves and let go right on top of your three. It joins their stack.',
@@ -152,49 +142,41 @@ function stackTasks(snapshot: () => GameSnapshot): GuideTask[] {
   ];
 }
 
-/* The Spice deck: shuffled, then peeked at and one card moved. */
-function deckTasks(snapshot: () => GameSnapshot): GuideTask[] {
-  const spiceDeck = () => tableDeck(snapshot, 'right');
+/* The player's faction token on the ring: carried to another sector, then flipped face down. */
+function tokenTasks(snapshot: () => GameSnapshot): GuideTask[] {
+  const token = () => factionTokenOf(snapshot().table.pieces, snapshot().bank?.factionId ?? '');
   return [
     task({
-      id: 'shuffle',
-      task: 'Shuffle the Spice deck',
-      detail: 'Point at the Spice deck on the right of the table and press {R} on your keyboard.',
-      anchor: { kind: 'table', point: () => at(spiceDeck()) },
-      begin: () => spiceDeck()?.shuffleRevision ?? 0,
-      done: (start) => (spiceDeck()?.shuffleRevision ?? 0) > start,
+      id: 'token-move',
+      task: 'Move your faction token',
+      detail:
+        'Your faction token stands on the rim at your seat and marks your place in storm order. Drag it: it slides along the rim and settles in the sector you let go over.',
+      anchor: { kind: 'table', point: () => at(token()) },
+      begin: () => token()?.position.join(),
+      done: (start) => token() !== undefined && token()!.position.join() !== start,
     }),
     task({
-      id: 'peek',
-      task: 'Peek at the Spice deck',
+      id: 'token-flip',
+      task: 'Flip your faction token',
       detail:
-        'Right-click the Spice deck and choose Peek at the deck. Only you see its cards, though the others see that you looked.',
-      anchor: { kind: 'table', point: () => at(spiceDeck()) },
-      begin: () => undefined,
-      done: () => peekedOrder() !== null,
-    }),
-    task({
-      id: 'reorder',
-      task: 'Move a card in the deck',
-      detail:
-        'Drag a card along the row to a new place, or click it and move it with the arrow keys. The deck keeps the new order.',
-      /* The arrow stops at the peek's edge, so its wedge never lies over the peek's own heading. */
-      anchor: { kind: 'page', element: element('[role="dialog"][aria-label^="Peeking at"]') },
-      ...movedInPeek(),
+        'Point at your token and press {F}. Face down, it tells the table you sit something out, such as a round of bidding. {F} again turns it back.',
+      anchor: { kind: 'table', point: () => at(token()) },
+      begin: () => token()?.flipRevision ?? 0,
+      done: (start) => (token()?.flipRevision ?? 0) > start,
     }),
   ];
 }
 
-const tasks = (snapshot: () => GameSnapshot) => [...stackTasks(snapshot), ...deckTasks(snapshot)];
+const tasks = (snapshot: () => GameSnapshot) => [...stackTasks(snapshot), ...tokenTasks(snapshot)];
 
 /* One line for each part of the chapter, in the order it was played. */
 const learned = [
   'Hold a number key over a stack to split that many off',
   'Press and hold before dragging to carry a whole stack',
+  'While carrying, {T} or a right-click over the stack takes one more',
   'Drop a piece on its own kind to join the stack',
   '{Q} and {E} turn a piece, {F} flips a whole stack',
-  '{R} shuffles the deck under your pointer',
-  'Peek at a deck to see it in private, and reorder it',
+  'Your faction token slides along the rim, and {F} turns it face down to sit out',
 ];
 
 export const movingPieces: ChapterScript = { slug: 'moving-pieces', checkpoint: 'turn-1-storm', tasks, learned };

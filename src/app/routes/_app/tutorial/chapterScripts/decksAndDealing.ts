@@ -2,13 +2,14 @@ import type { GameSnapshot } from '@shared/play/protocol';
 
 import type { GuideTask } from '../TutorialGuide';
 import type { ChapterScript } from './chapterScript';
-import { at, tableDeck, task } from './guideChecks';
+import { at, element, tableDeck, task, watchTakeMore } from './guideChecks';
 import type { Piece } from './guideChecks';
 
 /*
  * Chapter 8, "Decks and dealing": what a deck does beyond a draw, on the same table as chapter 7.
- * A card dealt to another player, a few cards split off with a number key, two cards taken in one carry with T, and a deck locked and unlocked.
- * These are the deck controls chapter 7 left for later (the chapter map Norbert approved, 2026-10-26).
+ * A deck shuffled, peeked at and reordered, a card dealt to another player, a few cards split off with a number key,
+ * two cards taken in one carry with T, and a deck locked and unlocked. Everything to do with cards is here, the pieces
+ * themselves in chapter 7 (Norbert, 2026-10-26).
  */
 
 /* Loose cards of one deck lying on the table in stacks of at least `size`, by the stack key they would join the deck with again. */
@@ -30,22 +31,36 @@ const othersHold = (snapshot: GameSnapshot) =>
  * A right-click while carrying takes the next card as T does, so it counts as well.
  */
 const tookWithT = (piles: () => number) => ({
-  begin: () => {
-    const watch = { start: piles(), took: false, stop: new AbortController() };
-    const took = () => {
-      watch.took = true;
-    };
-    const press = (event: KeyboardEvent) => {
-      if (event.key.toLowerCase() === 't') {
-        took();
-      }
-    };
-    window.addEventListener('keydown', press, { capture: true, signal: watch.stop.signal });
-    window.addEventListener('contextmenu', took, { capture: true, signal: watch.stop.signal });
-    return watch;
-  },
+  begin: () => ({ start: piles(), ...watchTakeMore() }),
   done: (watch: { start: number; took: boolean }) => watch.took && piles() > watch.start,
   finish: (watch: { stop: AbortController }) => watch.stop.abort(),
+});
+
+/*
+ * The cards of a deck held open by a peek, by the handles the peek shows them under, top first; null while no deck is open.
+ * Handles rather than names, since a deck holds several cards of one name.
+ */
+const peekedOrder = () => {
+  const row = document.querySelector('[role="dialog"][aria-label^="Peeking at"] ol');
+  return row ? [...row.querySelectorAll('[data-card]')].map((card) => card.getAttribute('data-card') ?? '') : null;
+};
+
+/*
+ * Moving a card in a deck held open gives every card a new handle, so nobody else can follow it, and the peek stays open.
+ * Anything else that changes the deck's handles closes the peek, as a shuffle or a draw does, and pulling a card out changes its size.
+ * So the task waits for the deck to open, then counts a change of handles at the same size while it stays open;
+ * a peek that closes starts over from the order it shows when it opens again.
+ */
+const movedInPeek = () => ({
+  begin: () => ({ first: null as string[] | null }),
+  done: (watch: { first: string[] | null }) => {
+    const order = peekedOrder();
+    if (!order || watch.first?.length !== order.length) {
+      watch.first = order;
+      return false;
+    }
+    return watch.first.some((card, index) => card !== order[index]);
+  },
 });
 
 /* The deck's lock turned to `locked` since the task began, so a lock left over from before it never counts. */
@@ -62,6 +77,32 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
   const treachery = () => tableDeck(snapshot, 'left');
   const spice = () => tableDeck(snapshot, 'right');
   return [
+    task({
+      id: 'shuffle',
+      task: 'Shuffle the Spice deck',
+      detail: 'Point at the Spice deck on the right of the table and press {R} on your keyboard.',
+      anchor: { kind: 'table', point: () => at(spice()) },
+      begin: () => spice()?.shuffleRevision ?? 0,
+      done: (start) => (spice()?.shuffleRevision ?? 0) > start,
+    }),
+    task({
+      id: 'peek',
+      task: 'Peek at the Spice deck',
+      detail:
+        'Right-click the Spice deck and choose Peek at the deck. Only you see its cards, though the others see that you looked.',
+      anchor: { kind: 'table', point: () => at(spice()) },
+      begin: () => undefined,
+      done: () => peekedOrder() !== null,
+    }),
+    task({
+      id: 'reorder',
+      task: 'Move a card in the deck',
+      detail:
+        'Drag a card along the row to a new place, or click it and move it with the arrow keys. The deck keeps the new order.',
+      /* The arrow stops at the peek's edge, so its wedge never lies over the peek's own heading. */
+      anchor: { kind: 'page', element: element('[role="dialog"][aria-label^="Peeking at"]') },
+      ...movedInPeek(),
+    }),
     task({
       id: 'deal',
       task: 'Deal a card to another player',
@@ -84,7 +125,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       id: 'take-two',
       task: 'Pick up two cards in one go',
       detail:
-        'Swipe the top Treachery card off the deck (press down and move at once), hold it back over the deck and press {T}: the next card joins it. Drop the two on the table.',
+        'As with troops: swipe the top Treachery card off the deck (press down and move at once), hold it back over the deck and press {T} or right-click: the next card joins it. Drop the two on the table.',
       anchor: { kind: 'table', point: () => at(treachery()) },
       ...tookWithT(() => looseStacks(pieces(), treachery(), 2)),
     }),
@@ -109,9 +150,11 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
 
 /* One line for each part of the chapter, in the order it was played. */
 const learned = [
+  '{R} shuffles the deck under your pointer',
+  'Peek at a deck to see it in private, and reorder it',
   'Right-click a deck and choose Deal a card to give one to a player',
   'Hold a number key over a deck to split that many cards off it',
-  'Press {T} while carrying a card to take the next one with it',
+  'Press {T} or right-click while carrying a card to take the next one with it',
   '{L} locks a piece in place, and unlocks it again',
 ];
 
