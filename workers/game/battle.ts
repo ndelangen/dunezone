@@ -399,7 +399,8 @@ function planInOrder(snapshot: StoredSnapshot, factionId: string, order: readonl
   }
   const sorted = (ids: readonly string[]) => ids.toSorted((a, b) => order.indexOf(a) - order.indexOf(b));
   const plans: typeof battle.plans = [...battle.plans];
-  const leaderIds = sorted(plan.leaderIds);
+  /* Leaders shown to everyone stay as they were shown, as a plan edit keeps them. */
+  const leaderIds = plan.disclosed.leader ? plan.leaderIds : sorted(plan.leaderIds);
   const cardIds = sorted(plan.cardIds);
   /* The pieces too, as an edit commits them: leaders first, then cards; the public wheel and the disclosure draw from them. */
   const pieces = [...leaderIds, ...cardIds].map((id) => plan.pieces.find((piece) => piece.id === id)!);

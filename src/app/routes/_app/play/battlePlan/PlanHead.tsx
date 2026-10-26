@@ -26,15 +26,18 @@ export function PlanHead({ view }: { view: BattlePlanViewProps }) {
   const piece = (entry: TablePiece) => {
     const isLeader = plan.leaderIds.includes(entry.id);
     return (
+      /* The tooltip sits on a wrapper, since a disabled button takes no hover and a locked piece still says its name. */
       <Tooltip label={pieceName(entry)} withArrow>
-        <UnstyledButton
-          className={styles.piece}
-          aria-label={`Take ${pieceName(entry)} back into your hand`}
-          disabled={isLeader ? locks.leaderLocked : locks.cardLocked(entry.id)}
-          onClick={() => view.onEdit(isLeader ? toggleLeader(plan, entry.id) : toggleCard(plan, entry.id))}
-        >
-          <PieceImage piece={entry} />
-        </UnstyledButton>
+        <span className={styles.tipTarget}>
+          <UnstyledButton
+            className={styles.piece}
+            aria-label={`Take ${pieceName(entry)} back into your hand`}
+            disabled={isLeader ? locks.leaderLocked : locks.cardLocked(entry.id)}
+            onClick={() => view.onEdit(isLeader ? toggleLeader(plan, entry.id) : toggleCard(plan, entry.id))}
+          >
+            <PieceImage piece={entry} />
+          </UnstyledButton>
+        </span>
       </Tooltip>
     );
   };

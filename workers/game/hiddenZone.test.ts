@@ -181,7 +181,10 @@ describe('the hidden zone', () => {
     expect(room.snapshot.battleState!.plans[0]!.cardIds).toEqual([SECOND, LOOSE]);
     /* The committed pieces follow, so the public wheel and a reveal show the same order. */
     expect(room.snapshot.battleState!.plans[0]!.pieces.map((piece) => piece.id)).toEqual([SECOND, LOOSE]);
-    send({ kind: 'hand-order', pieceId: SECOND, before: null });
+    /* A table moved on since the player saw it does not turn the drag away: it names only their own pieces. */
+    room.accept(
+      room.command(bob, { kind: 'hand-order', pieceId: SECOND, before: null }, room.snapshot.revision - 1, LATER)
+    );
     expect(room.snapshot.battleState!.plans[0]!.cardIds).toEqual([LOOSE, SECOND]);
   });
 

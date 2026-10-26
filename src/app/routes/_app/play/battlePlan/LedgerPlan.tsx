@@ -35,7 +35,9 @@ import type { BattlePlanViewProps } from './planView';
  * every count is a slider to sweep and a stepper to nudge.
  */
 export function LedgerPlan(props: BattlePlanViewProps) {
-  const { plan, hand, canAct, onEdit, onReorder, onDisclose } = props;
+  const { plan, hand, canAct, stage, onEdit, onReorder, onDisclose } = props;
+  /* Once revealed, the plan's pieces are the table's, so the rows keep their places. */
+  const fixed = !canAct || stage === 'revealed';
   const locks = planLocks(props);
   const pieces = planPieces(plan, hand);
   const cards = cardsOf(pieces, plan.cardIds);
@@ -59,7 +61,7 @@ export function LedgerPlan(props: BattlePlanViewProps) {
             ) : null}
           </span>
           <div className={styles.strip}>
-            <SortableRow items={leadersOf(pieces)} disabled={!canAct} className={styles.tiles} onMove={onReorder}>
+            <SortableRow items={leadersOf(pieces)} disabled={fixed} className={styles.tiles} onMove={onReorder}>
               {(piece) => (
                 <PieceTile
                   piece={piece}
@@ -74,7 +76,7 @@ export function LedgerPlan(props: BattlePlanViewProps) {
         <section className={styles.row} aria-label="Cards">
           <span className={styles.label}>Cards</span>
           <div className={styles.strip}>
-            <SortableRow items={cards} disabled={!canAct} className={styles.tiles} onMove={onReorder}>
+            <SortableRow items={cards} disabled={fixed} className={styles.tiles} onMove={onReorder}>
               {(piece) => (
                 <PieceTile
                   piece={piece}

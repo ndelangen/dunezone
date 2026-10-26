@@ -411,21 +411,24 @@ export function PieceTile({
       data-selected={selected || undefined}
       data-leader={leader || undefined}
     >
+      {/* On a wrapper, since a disabled button takes no hover and a locked piece still says its name. */}
       <Tooltip label={name} withArrow>
-        <UnstyledButton
-          className={styles.tileButton}
-          aria-pressed={selected}
-          aria-label={`${selected ? 'Take' : 'Put'} ${name} ${selected ? 'out of' : 'into'} the plan`}
-          disabled={disabled}
-          onClick={onToggle}
-        >
-          <PieceImage piece={piece} width={size} height={leader ? size : Math.round(size * 1.4)} />
-          {selected ? (
-            <span className={styles.tileCheck} aria-hidden="true">
-              <Check size={11} strokeWidth={3} />
-            </span>
-          ) : null}
-        </UnstyledButton>
+        <span className={styles.tipTarget}>
+          <UnstyledButton
+            className={styles.tileButton}
+            aria-pressed={selected}
+            aria-label={`${selected ? 'Take' : 'Put'} ${name} ${selected ? 'out of' : 'into'} the plan`}
+            disabled={disabled}
+            onClick={onToggle}
+          >
+            <PieceImage piece={piece} width={size} height={leader ? size : Math.round(size * 1.4)} />
+            {selected ? (
+              <span className={styles.tileCheck} aria-hidden="true">
+                <Check size={11} strokeWidth={3} />
+              </span>
+            ) : null}
+          </UnstyledButton>
+        </span>
       </Tooltip>
       {selected && reveal ? reveal : null}
     </div>

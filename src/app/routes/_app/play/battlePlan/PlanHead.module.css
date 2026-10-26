@@ -63,6 +63,12 @@
   }
 }
 
+.tipTarget {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
 .piece {
   display: block;
   width: 100%;
