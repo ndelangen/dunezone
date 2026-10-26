@@ -3,7 +3,7 @@ import type { GameSnapshot } from '@shared/play/protocol';
 
 import type { GuideTask } from '../TutorialGuide';
 import type { ChapterScript, TablePlayers } from './chapterScript';
-import { at, element, nextPhaseButton, onBoard, openedWindow, task, viaCompass, windowShown } from './guideChecks';
+import { at, buttonIn, nextPhaseButton, onBoard, openedWindow, task, viaCompass, windowShown } from './guideChecks';
 
 /*
  * Chapter 12, "Setup": the game's setup steps as the Setup window runs them, from the Bene Gesserit prediction to the starting troops.
@@ -57,14 +57,20 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
     pieces()
       .filter((piece) => piece.stackKey?.startsWith(`troops:${mine()}:`) && onBoard(piece))
       .reduce((total, piece) => total + piece.items.length, 0);
-  const setupWindow = (selector: string) => element(`[data-window="setup"] ${selector}`);
   return [
     task({
       id: 'prediction',
       task: 'Lock your prediction',
       detail:
         'Setup runs as steps in the Setup window, and the header names the step. You play the Bene Gesserit, whose step comes first: pick a Predicted winner and a Predicted turn, then press Lock prediction. Only you see the choice.',
-      anchor: { kind: 'page', element: setupWindow('button') },
+      /* The faction to pick first, then the button once the choice is complete. */
+      anchor: {
+        kind: 'page',
+        element: () => {
+          const lock = buttonIn('setup', 'Lock prediction')();
+          return lock && !lock.disabled ? lock : document.querySelector('[data-window="setup"] input');
+        },
+      },
       begin: () => undefined,
       done: predictionLocked,
     }),

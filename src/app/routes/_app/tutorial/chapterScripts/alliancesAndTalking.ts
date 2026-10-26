@@ -4,7 +4,7 @@ import type { GameSnapshot } from '@shared/play/protocol';
 import { FACTION_INFO } from '../../play/compass/windows';
 import type { GuideTask } from '../TutorialGuide';
 import type { ChapterScript, TablePlayers } from './chapterScript';
-import { element, openedWindow, task, viaCompass, windowShown } from './guideChecks';
+import { buttonIn, element, openedWindow, task, viaCompass, windowShown } from './guideChecks';
 
 /*
  * Chapter 16, "Alliances and talking": a word with one player, a look at their faction, and an alliance from offer to break.
@@ -61,9 +61,11 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
         element: () =>
           document.querySelector(history() ? `${chatWindow()} [aria-label="Message"]` : `[aria-label*=", ${PARTNER}"]`),
       },
-      begin: () => undefined,
-      /* The answer comes a moment after the learner's message, so a second dated entry in the history means both arrived. */
-      done: () => (history()?.querySelectorAll('time').length ?? 0) >= 2,
+      /* Conversations outlive a Reset, so only entries dated after the task began count: the learner's message and the answer. */
+      begin: () => Date.now(),
+      done: (start) =>
+        [...(history()?.querySelectorAll('time') ?? [])].filter((time) => Date.parse(time.dateTime) >= start).length >=
+        2,
     }),
     task({
       id: 'faction',
@@ -78,7 +80,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       task: 'Offer them an alliance',
       detail:
         'In the faction information, press Offer alliance. An arrow runs from your token to theirs until they answer, and Atreides accepts a moment later.',
-      anchor: { kind: 'page', element: element(`[data-window="${FACTION_INFO}"] button`) },
+      anchor: { kind: 'page', element: buttonIn(FACTION_INFO, 'Offer alliance') },
       begin: () => ({ stop: atreidesAccepts(snapshot, players, partner) }),
       done: allied,
       finish: (watch: { stop: () => void }) => watch.stop(),
