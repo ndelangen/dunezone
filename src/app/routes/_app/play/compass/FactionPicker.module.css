@@ -1,0 +1,49 @@
+/* The faction tokens along the top of the faction information: one per seat, wrapping in a narrow window. */
+
+.picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  padding: 0.5rem 0.6rem;
+  border-bottom: 1px solid var(--edge);
+}
+
+.faction {
+  display: grid;
+  justify-items: center;
+  gap: 0.2rem;
+  width: 4.2rem;
+  padding: 0.3rem 0.2rem;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink-dim);
+  cursor: pointer;
+  font: 500 0.72rem var(--font-sans);
+}
+
+.faction:hover {
+  color: var(--sand);
+}
+
+.faction[aria-pressed="true"] {
+  background: rgb(from var(--color-brand) r g b / 0.16);
+  color: var(--sand);
+}
+
+.faction:focus-visible {
+  outline: 2px solid var(--sand);
+  outline-offset: -2px;
+}
+
+.token {
+  position: relative;
+  display: grid;
+}
+
+.name {
+  overflow: hidden;
+  max-width: 100%;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

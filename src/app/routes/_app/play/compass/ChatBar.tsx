@@ -8,16 +8,17 @@ import base from './CompassControls.module.css';
 import { CompassTableContext } from './compassTable';
 import type { CompassPlayer } from './compassTable';
 import { PlayerToken } from './PlayerToken';
-import type { PlayerTab } from './windows';
+import { chattable, FACTION_INFO } from './windows';
 
-/* The bar at the bottom of the table: the Controls button that opens the compass, a token for each chat, and the viewer's own. */
+/* The bar at the bottom of the table: the Controls button that opens the compass, and a token for each chat. */
 
 type ChatBarProps = Readonly<{
   inert: boolean;
   /** Whether a window is open anywhere, so its token shows pressed. */
   isOpen: (key: string) => boolean;
   onOpenCompass: () => void;
-  onShow: (key: string, tab: PlayerTab) => void;
+  /** Opens a window, the faction information on the seat given. */
+  onShow: (key: string, seat?: string) => void;
 }>;
 
 /* The words that name a chat token, joined for its accessible name and its tip. */
@@ -27,9 +28,8 @@ function words(...parts: (string | null | false | 0 | undefined)[]) {
 
 export function ChatBar({ inert, isOpen, onOpenCompass, onShow }: ChatBarProps) {
   const table = useContext(CompassTableContext);
-  /* The other players to talk to, then the viewer's own token, which opens their faction's information. */
-  const others = table?.players.filter((player) => !player.own) ?? [];
-  const own = table?.players.find((player) => player.own);
+  /* The other players to talk to, and the viewer too while a removal vote stands against them. */
+  const others = table?.players.filter((player) => !player.own || player.vote) ?? [];
   const tableChat = table?.tableChat;
   return (
     <div className={styles.bar} inert={inert} data-hides-cursor data-compass-bar>
@@ -41,33 +41,21 @@ export function ChatBar({ inert, isOpen, onOpenCompass, onShow }: ChatBarProps) 
         Controls
         <Kbd>Space</Kbd>
       </button>
-      {(tableChat || others.length > 0 || own) && (
+      {(tableChat || others.length > 0) && (
         <nav className={styles.chats} aria-label="Chats">
           {tableChat && (
-            <TableChatToken
-              unread={tableChat.unread}
-              open={isOpen('table-chat')}
-              onOpen={() => onShow('table-chat', 'conversation')}
-            />
+            <TableChatToken unread={tableChat.unread} open={isOpen('table-chat')} onOpen={() => onShow('table-chat')} />
           )}
           {others.map((player) => (
             <ChatToken
               key={player.seat}
               player={player}
-              open={isOpen(`player:${player.seat}`)}
-              onOpen={() => onShow(`player:${player.seat}`, player.canConverse ? 'conversation' : 'public')}
+              open={isOpen(opens(player))}
+              onOpen={() =>
+                opens(player) === FACTION_INFO ? onShow(FACTION_INFO, player.seat) : onShow(opens(player))
+              }
             />
           ))}
-          {own && (
-            <>
-              {(tableChat || others.length > 0) && <span className={styles.divider} aria-hidden="true" />}
-              <ChatToken
-                player={own}
-                open={isOpen(`player:${own.seat}`)}
-                onOpen={() => onShow(`player:${own.seat}`, 'public')}
-              />
-            </>
-          )}
         </nav>
       )}
     </div>
@@ -92,6 +80,11 @@ function TableChatToken({ unread, open, onOpen }: Readonly<{ unread: number; ope
   );
 }
 
+/* A token opens the chat with its player, or their faction's information while a vote or a seat request waits there or there is no chat to have. */
+function opens(player: CompassPlayer) {
+  return chattable(player) && !player.attention ? `player:${player.seat}` : FACTION_INFO;
+}
+
 /* What waits on a player, said with their name: a vote to remove them, or a request for their empty seat. */
 function waiting(player: CompassPlayer) {
   if (player.vote) {
@@ -107,18 +100,8 @@ function ChatToken({ player, open, onOpen }: Readonly<{ player: CompassPlayer; o
       type="button"
       className={styles.chat}
       aria-pressed={open}
-      aria-label={words(
-        player.own ? `You (${player.factionName ?? player.name})` : player.name,
-        !player.own && player.factionName,
-        reason,
-        player.unread && `${player.unread} unread`
-      ).join(', ')}
-      data-tip={words(
-        player.own ? 'You' : player.name,
-        player.factionName,
-        reason,
-        player.ally && 'ally · Space → →'
-      ).join(' · ')}
+      aria-label={words(player.name, player.factionName, reason, player.unread && `${player.unread} unread`).join(', ')}
+      data-tip={words(player.name, player.factionName, reason, player.ally && 'ally · Space → →').join(' · ')}
       data-ally={player.ally || undefined}
       onClick={onOpen}
     >

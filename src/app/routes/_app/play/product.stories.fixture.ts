@@ -401,7 +401,7 @@ export function playingSnapshot(viewerSeat = 'seat-2'): GameSnapshot {
   return snapshot;
 }
 
-/** Every story faction's captured sheet by faction id, as a real game answers the Info tab's faction reads. */
+/** Every story faction's captured sheet by faction id, as a real game answers Faction info's reads. */
 export function capturedFactions() {
   return Object.fromEntries(factions.map((faction) => [faction.slug, publicFaction(capture(faction))]));
 }

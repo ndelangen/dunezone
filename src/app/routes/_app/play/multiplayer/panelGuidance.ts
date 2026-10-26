@@ -114,7 +114,10 @@ export const PLAYER_CONVERSATION_GUIDANCE: Guidance = {
   help: CONVERSATION_HELP,
 };
 
-export const PLAYER_INFO_GUIDANCE: Guidance = { description: 'Their faction and seat, and any removal vote.' };
+export const FACTION_INFO_GUIDANCE: Guidance = {
+  description: 'Each faction at the table: what it starts with, its seat, and any removal vote.',
+  help: "A faction's token in a chat window's title opens it here; the tokens along the top switch between the factions.",
+};
 
 export const RESULT_GUIDANCE: Guidance = {
   description: 'Determine the winner, or see who won.',

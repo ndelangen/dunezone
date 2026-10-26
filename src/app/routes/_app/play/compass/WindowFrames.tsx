@@ -9,6 +9,7 @@ import { PIN_KEYS } from './useOpenWindows';
 import type { OpenWindows } from './useOpenWindows';
 import type { SlotHeights } from './useSlotHeights';
 import { WindowFrame } from './WindowFrame';
+import { FACTION_INFO } from './windows';
 import type { TableWindow } from './windows';
 
 /*
@@ -48,11 +49,12 @@ function centreFrame({ byKey, opened, inert }: CentreFrame) {
     <WindowFrame
       key={centre.key}
       entry={centre}
-      tab={opened.centre.tab}
+      seat={opened.centre.seat}
       where="centre"
       inert={inert}
       flash={pulseOf(opened.flash, 'centre')}
-      onTab={(tab) => opened.showTab('centre', centre.key, tab)}
+      onSeat={(seat) => opened.showSeat('centre', centre.key, seat)}
+      onFaction={(seat) => opened.show(FACTION_INFO, seat)}
       actions={<CentreActions byKey={byKey} opened={opened} />}
     />
   );
@@ -111,7 +113,7 @@ function slotFrame({ side, byKey, opened, heights, inert }: SlotFrame) {
     <WindowFrame
       key={entry.key}
       entry={entry}
-      tab={slot.tab}
+      seat={slot.seat}
       where={side}
       inert={inert}
       flash={pulseOf(opened.flash, side)}
@@ -122,7 +124,8 @@ function slotFrame({ side, byKey, opened, heights, inert }: SlotFrame) {
         onNudge: (element, direction) => heights.nudge(side, element, direction),
         onReset: () => heights.reset(side),
       }}
-      onTab={(tab) => opened.showTab(side, entry.key, tab)}
+      onSeat={(seat) => opened.showSeat(side, entry.key, seat)}
+      onFaction={(seat) => opened.show(FACTION_INFO, seat)}
       actions={
         <button
           type="button"
