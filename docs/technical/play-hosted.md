@@ -52,6 +52,18 @@ Its operations coordinate commands, assignment, deadlines, account deletion, con
 retained content. `workers/game/index.ts` owns authorization, sockets, external requests and alarm
 installation. It asks the session for projections instead of reading or changing its stores.
 
+A room hibernates while its players think, so a paused table costs no Durable Object duration.
+The one-second sweep runs only while something can expire on its own: an admission, a carry or a
+pointer. Every message starts it again, and it stops itself on the first quiet tick. The alarm
+covers the battle deadline and the directory retry while the room sleeps. A pass needs no alarm:
+the page renews it before it runs out, and the sweep the next message starts pauses the table of a
+page that did not. Keepalive pings are
+answered by the runtime without waking the room. Each admitted connection keeps its identity, pass
+and admission state in its socket attachment, so a woken room restores its players instead of
+closing their sockets. The delivery baselines live in memory only, so each player's first frame
+after a wake is a full view. A socket with nothing remembered closes with 1012 and the page
+reconnects.
+
 A command and any setup cleanup it enables commit before the Room accepts the result. If saving
 fails, the snapshot, history boundary and unfinished carry stay unchanged so the same command can
 be retried. Activity ending also runs pending cleanup through the session. Connection identities

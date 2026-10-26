@@ -16,6 +16,7 @@ type Operation =
   | 'message'
   | 'socket-send'
   | 'socket-error'
+  | 'socket-attachment'
   | 'draft-catalogue'
   | 'assignment'
   | 'storage-sync'

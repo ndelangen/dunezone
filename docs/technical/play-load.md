@@ -104,7 +104,8 @@ Two readings in `roomTiming` separate the room's own causes. `durableMs` runs fr
 moment the room saw the command's storage write confirmed, both by its own clock. Frames the room
 sends after a write leave only once the write is durable, so a long `durableMs` means the answer
 was held. `stalls` lists the recent moments the room's one-second sweep ran more than 250 ms late,
-which happens when the room is busy running code. In the third 28 September run, every recipient's
+which happens when the room is busy running code. The sweep runs only while an admission, a carry
+or a pointer can expire, so a quiet room records no stalls. In the third 28 September run, every recipient's
 motion stopped for about 2 s at once while the coordinator stayed on schedule, and nothing recorded
 which of the two held it. `motionDropped` counts pointer and pose frames the room dropped because
 their sender's motion bucket was empty. Motion has its own bucket so that a busy room, whose clock

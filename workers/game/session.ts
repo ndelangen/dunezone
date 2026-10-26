@@ -1315,6 +1315,10 @@ export class GameSession {
     this.room?.disconnect(connectionId);
     this.finishSetupCleanup();
   }
+  /** Whether anything here expires on its own: a carry or a pointer. */
+  get hasActivity() {
+    return Boolean(this.room && (this.room.carries.size || this.room.pointers.size));
+  }
   sweep() {
     const swept = this.room?.sweep();
     const cleaned = this.finishSetupCleanup();

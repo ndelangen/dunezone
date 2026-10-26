@@ -327,7 +327,9 @@ production write, so it needs Norbert's approval first. A second run queues noth
 ### Watching a live session
 
 Each game room writes one `game-room-summary` line every ten minutes while players are connected,
-and one when the last player leaves (`workers/game/roomSummary.ts`). A line carries the opaque room
+and one when the last player leaves (`workers/game/roomSummary.ts`). A room that goes quiet writes
+an `idle` line early once a minute has passed since its last one, since hibernation drops what it
+has not written. A line carries the opaque room
 identity and release, connections, messages in and out, bytes sent, saved-command timings from
 handling to a confirmed write, late sweeps, dropped motion, and each Convex function the room called
 with its count, failures and durations. Each browser also reports, every five minutes, how long

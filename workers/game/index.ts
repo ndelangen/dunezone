@@ -66,7 +66,7 @@ import { gameHttpClient } from './gameHttpClient';
 import { isLocalIsolatedRuntime } from './localRuntime';
 import { forwardPrivacyRequest } from './privacyRequests';
 import { CarryHistoryExhausted } from './room';
-import { RoomSummary } from './roomSummary';
+import { ROOM_SUMMARY_IDLE_MS, RoomSummary } from './roomSummary';
 import type { ConvexCall } from './roomSummary';
 import type { HeldPass } from './seatPasses';
 import { heldPass, SeatPasses } from './seatPasses';
@@ -106,6 +106,42 @@ type Connection = {
   commandTokens: number;
   refilledAt: number;
 };
+/*
+ * What an admitted connection keeps in its socket, so the room can hibernate between moves and wake with its players still connected.
+ * The rest is either work in flight, which hibernation never interrupts, or a rate limit that refills while the room sleeps.
+ */
+type RememberedConnection = Pick<
+  Connection,
+  | 'connectionId'
+  | 'openedAt'
+  | 'viewer'
+  | 'seatLimitReached'
+  | 'pass'
+  | 'expiryAnnounced'
+  | 'sessionId'
+  | 'announced'
+  | 'suspensions'
+>;
+function openConnection(
+  state: Pick<Connection, 'connectionId' | 'openedAt'> &
+    Partial<Pick<Connection, keyof RememberedConnection | 'everAuthorized'>>
+): Connection {
+  return {
+    admitting: false,
+    capturing: false,
+    announced: 'pending',
+    suspensions: 0,
+    everAuthorized: false,
+    pointerSeq: -1,
+    pingedAt: 0,
+    rumbledAt: 0,
+    tokens: RATE_BURST,
+    motionTokens: RATE_BURST,
+    commandTokens: COMMAND_BURST,
+    refilledAt: Date.now(),
+    ...state,
+  };
+}
 const json = (body: unknown, status = 200) => Response.json(body, { status, headers: { 'Cache-Control': 'no-store' } });
 const refused = () => json({ error: 'Request refused.' }, 403);
 /* Above a steady load cell's 720 saved commands, so a cell's metrics request still finds its first. */
@@ -243,8 +279,12 @@ export class GameRoom extends DurableObject<GameEnv> {
   /* The conversation summaries each socket last received, so a snapshot update that left them alone sends none. */
   private readonly conversationsSent = new WeakMap<WebSocket, string>();
   private readonly delivery = new RoomDelivery();
+  /* What each socket's attachment last held, so a handler that changed nothing writes none. */
+  private readonly remembered = new WeakMap<WebSocket, string>();
   private activityTimer: ReturnType<typeof setTimeout> | undefined;
   private sweepTimer: ReturnType<typeof setInterval> | undefined;
+  /* The alarm this instance last set, or null for none; undefined until it sets one, since the stored alarm is then unknown. */
+  private alarmAt: number | null | undefined;
   private motionReceived = 0;
   private motionForwarded = 0;
   private motionDropped = 0;
@@ -315,8 +355,61 @@ export class GameRoom extends DurableObject<GameEnv> {
       }
       this.afterDraftChange();
     }
-    for (const socket of ctx.getWebSockets()) {
-      socket.close(1012, 'Reconnect to the table.');
+    this.restoreConnections();
+  }
+
+  /*
+   * A room that wakes from hibernation finds its players' sockets still open, each with what its connection remembered.
+   * A socket with nothing remembered (its attachment failed, or the room can no longer serve it) closes, so the page reconnects.
+   * One still being admitted never meets a wake: its admission keeps the sweep running, which keeps the room awake.
+   * The delivery baselines are gone, so each connection's next frame is a full view.
+   */
+  private restoreConnections() {
+    for (const socket of this.ctx.getWebSockets()) {
+      const remembered =
+        !this.closed && this.metadata?.confirmed
+          ? (socket.deserializeAttachment() as RememberedConnection | null)
+          : null;
+      if (remembered) {
+        this.connections.set(socket, openConnection({ ...remembered, everAuthorized: true }));
+      } else {
+        socket.close(1012, 'Reconnect to the table.');
+      }
+    }
+    if (this.connections.size) {
+      this.summary.connections(this.connections.size);
+      this.reconcileViewers();
+    }
+  }
+
+  /* Writes each admitted connection's attachment when what it remembers changed. */
+  private remember() {
+    for (const [socket, connection] of this.connections) {
+      if (!connection.everAuthorized) {
+        continue;
+      }
+      const remembered: RememberedConnection = {
+        connectionId: connection.connectionId,
+        openedAt: connection.openedAt,
+        viewer: connection.viewer,
+        seatLimitReached: connection.seatLimitReached,
+        pass: connection.pass,
+        expiryAnnounced: connection.expiryAnnounced,
+        sessionId: connection.sessionId,
+        announced: connection.announced,
+        suspensions: connection.suspensions,
+      };
+      const written = JSON.stringify(remembered);
+      if (this.remembered.get(socket) === written) {
+        continue;
+      }
+      try {
+        socket.serializeAttachment(remembered);
+        this.remembered.set(socket, written);
+      } catch (error) {
+        /* Such a connection still plays; only a wake from hibernation closes it for a reconnect. */
+        this.diagnostics.report('socket-attachment', error);
+      }
     }
   }
 
@@ -666,28 +759,15 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
     const [client, server] = Object.values(new WebSocketPair());
     this.ctx.acceptWebSocket(server);
-    this.connections.set(server, {
-      connectionId: crypto.randomUUID(),
-      openedAt: Date.now(),
-      admitting: false,
-      capturing: false,
-      announced: 'pending',
-      suspensions: 0,
-      everAuthorized: false,
-      pointerSeq: -1,
-      pingedAt: 0,
-      rumbledAt: 0,
-      tokens: RATE_BURST,
-      motionTokens: RATE_BURST,
-      commandTokens: COMMAND_BURST,
-      refilledAt: Date.now(),
-    });
+    this.connections.set(server, openConnection({ connectionId: crypto.randomUUID(), openedAt: Date.now() }));
     this.summary.connections(this.connections.size);
     this.ensureSweep();
     return new Response(null, { status: 101, webSocket: client });
   }
 
   override async alarm() {
+    /* The alarm that fired is no longer stored. */
+    this.alarmAt = undefined;
     if (this.loadFailure !== undefined && !this.retired) {
       /* A failed alarm is retried a few times, so a deadline outlives a brief load failure. */
       throw this.loadFailure;
@@ -703,13 +783,26 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
   }
 
-  /** One alarm serves the battle deadline and the directory retry: whichever is due first. */
+  /*
+   * One alarm serves the battle deadline and the directory retry: whichever is due first.
+   * Only a change reaches storage, so a command that leaves the deadlines alone writes no alarm.
+   * A pass that runs out while the room sleeps needs no alarm: the page renews it before then, and
+   * the sweep that the next message starts pauses a table whose page did not.
+   */
   private scheduleAlarm() {
     if (this.closed) {
       return Promise.resolve();
     }
-    const deadline = this.session.nextDeadline();
-    return deadline === undefined ? this.ctx.storage.deleteAlarm() : this.ctx.storage.setAlarm(deadline);
+    const at = this.session.nextDeadline() ?? null;
+    if (at === this.alarmAt) {
+      return Promise.resolve();
+    }
+    this.alarmAt = at;
+    return (at === null ? this.ctx.storage.deleteAlarm() : this.ctx.storage.setAlarm(at)).catch((error: unknown) => {
+      /* A write that failed leaves the stored alarm unknown, so the next schedule writes again. */
+      this.alarmAt = undefined;
+      throw error;
+    });
   }
 
   /** Delivery starts after the current transaction has committed, never from inside it. */
@@ -784,6 +877,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     const epoch = ++this.confirmationEpoch;
     const startedAt = Date.now();
     /* Recovery stays durable while the request is pending, including when it crosses expiry. */
+    this.alarmAt = undefined;
     await this.ctx.storage.setAlarm(
       startedAt + (startedAt < metadata.expiresAt ? PLAY_CONFIRMATION_RETRY_MS : PLAY_CONFIRMATION_RECOVERY_MS)
     );
@@ -924,6 +1018,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       const result = playSeatLimitResultSchema.parse(raw);
       if (result.ok) {
         connection.seatLimitReached = result.reached;
+        this.remember();
         return;
       }
     } catch (error) {
@@ -989,6 +1084,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     } else if (activityChanged || this.session.revision !== revision) {
       this.broadcastActivity();
     }
+    this.remember();
   }
 
   /** A newly admitted connection receives a full view, and every other one the update its seating made. */
@@ -1086,6 +1182,14 @@ export class GameRoom extends DurableObject<GameEnv> {
   }
 
   override async webSocketMessage(socket: WebSocket, input: string | ArrayBuffer) {
+    try {
+      await this.receive(socket, input);
+    } finally {
+      this.remember();
+    }
+  }
+
+  private async receive(socket: WebSocket, input: string | ArrayBuffer) {
     if (this.closed) {
       socket.close(1000, 'This table is closed.');
       return;
@@ -1095,6 +1199,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       return;
     }
     this.summary.message();
+    this.ensureSweep();
     const message = this.readMessage(socket, connection, input);
     if (!message) {
       return;
@@ -2106,6 +2211,10 @@ export class GameRoom extends DurableObject<GameEnv> {
 
   private stopTimers() {
     this.clearActivityTimer();
+    this.stopSweep();
+  }
+
+  private stopSweep() {
     if (this.sweepTimer) {
       clearInterval(this.sweepTimer);
     }
@@ -2121,17 +2230,38 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
   }
 
+  /*
+   * The sweep runs only while something here expires on its own: an admission, a carry or a pointer.
+   * A quiet room stops it, and the alarm covers the deadlines, so the room can hibernate while its
+   * players think. Every message starts it again.
+   */
   private ensureSweep() {
     this.sweepTimer ??= setInterval(() => {
       this.noteStall();
       this.sweepConnections();
-      if (this.summary.due(Date.now())) {
+      const now = Date.now();
+      if (this.summary.due(now)) {
         this.flushSummary('interval');
+      }
+      if (!this.needsSweep()) {
+        this.stopSweep();
+        if (this.summary.due(now, ROOM_SUMMARY_IDLE_MS)) {
+          this.flushSummary('idle');
+        }
       }
     }, SWEEP_MS);
   }
 
-  private flushSummary(reason: 'interval' | 'empty') {
+  /* The native fixture reads this to prove a quiet room stops its sweep. */
+  protected get sweeping() {
+    return this.sweepTimer !== undefined;
+  }
+
+  private needsSweep() {
+    return this.session.hasActivity || [...this.connections.values()].some((connection) => !connection.everAuthorized);
+  }
+
+  private flushSummary(reason: 'interval' | 'empty' | 'idle') {
     this.summary.flush(
       {
         motionReceived: this.motionReceived,
