@@ -122,9 +122,24 @@ export function SortableRow<T extends { id: string }>({
   }, [dragging]);
   const sensors = useSensors(useSensor(FocusedPointerSensor, { activationConstraint: { distance: 6 } }));
   const ids = items.map((item) => item.id);
-  /* Over the row the nearest piece takes the drop; anywhere else nothing does, so the row settles back. */
-  const collision: CollisionDetection = (args) =>
-    args.pointerCoordinates && within(row.current, args.pointerCoordinates) ? closestCenter(args) : [];
+  /*
+   * Over the row the piece nearest the pointer takes the drop; anywhere else nothing does, so the row settles back.
+   * It is judged from the pointer itself: the lifted piece's measured box trails it by a frame or two, so a quick let-go
+   * would land a slot short of where the pointer is.
+   */
+  const collision: CollisionDetection = (args) => {
+    const point = args.pointerCoordinates;
+    if (!point || !within(row.current, point)) {
+      return [];
+    }
+    const { width, height } = args.collisionRect;
+    const left = point.x - width / 2;
+    const top = point.y - height / 2;
+    return closestCenter({
+      ...args,
+      collisionRect: { width, height, left, top, right: left + width, bottom: top + height },
+    });
+  };
   const reset = () => {
     setActive(undefined);
     setOutside(false);
