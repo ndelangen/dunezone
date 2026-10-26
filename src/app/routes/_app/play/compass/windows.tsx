@@ -68,11 +68,11 @@ export function useTableWindows(panels: readonly TablePanel[]): TableWindow[] {
             ...item,
             label: 'Hand & spice',
             description: 'Your cards, leaders and spice reserve.',
-            help: [hand.help, spice.help].filter(Boolean).join(' '),
+            help: [spice.help, hand.help].filter(Boolean).join(' '),
             content: (
               <>
-                {hand.content}
                 {spice.content}
+                {hand.content}
               </>
             ),
           }

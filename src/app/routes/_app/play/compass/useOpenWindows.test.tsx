@@ -156,6 +156,21 @@ test('a select’s shut list, mounted but hidden, leaves Escape to close the win
   expect(result.current.centre).toBeNull();
 });
 
+test('Escape in a field with an edit to drop keeps the window; once the edit is gone, Escape closes it', () => {
+  const field = document.body.appendChild(document.createElement('input'));
+  field.dataset.takesEscape = '';
+  const escape = () =>
+    act(() => void field.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })));
+  const { result } = renderHook(() => useOpenWindows(windows, false));
+  act(() => result.current.show('hand'));
+  escape();
+  expect(result.current.centre?.key).toBe('hand');
+  delete field.dataset.takesEscape;
+  escape();
+  expect(result.current.centre).toBeNull();
+  field.remove();
+});
+
 test('Escape while painting territories stops the paintbrush and keeps the window; the next Escape closes it', () => {
   const { result } = renderHook(() => useOpenWindows(windows, false));
   act(() => result.current.show('battle'));

@@ -28,15 +28,10 @@ export function setupGuidance(step: ReturnType<typeof setupStep>): Guidance {
   return { description: step.title, help: setupHelp(step) };
 }
 
-export function handHelp(table: TableProjection) {
-  return table.snapshot.stage === 'setup'
-    ? 'Drag pieces onto the table face down. Right-click a piece to move it to your private side-table.'
-    : 'Drag pieces onto the table face down. Right-click a piece to move it to your private side-table. Committed pieces stay in your plan until cancellation or reveal.';
-}
+export const HAND_HELP =
+  'Drag a piece onto the table to play it face down. Right-click a piece to play it in front of you or move it to your private side-table. Hold Alt over a piece to see it close up.';
 
-export function handGuidance(table: TableProjection): Guidance {
-  return { description: 'Your cards and leaders. Only you see them.', help: handHelp(table) };
-}
+export const HAND_GUIDANCE: Guidance = { description: 'Your cards and leaders. Only you see them.', help: HAND_HELP };
 
 export const HIDDEN_ZONE_HELP =
   "For pieces that need to sit in a particular spot, such as a marker on a card's track. Lay out pieces from your hand anywhere here; they stay where you put them. Q and E turn the piece under the pointer. Cards stay below tokens. Pieces stay inside it as you drag them; right-click a piece to place it on the table face down, or to move it back to your hand.";

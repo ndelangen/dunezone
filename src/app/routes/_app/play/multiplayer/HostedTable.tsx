@@ -35,11 +35,13 @@ import { FoilConfetti } from '../FoilConfetti';
 import { GameLink } from '../GameLink';
 import { GameTable } from '../GameTable';
 import type { TablePanel } from '../GameTable';
+import { HandShelves } from '../hand/HandShelves';
+import { SpiceReserve } from '../hand/SpiceReserve';
 import { predictionCardInHand } from '../prediction/predictionCardInHand';
 import { TableWait } from '../TableWait';
 import { AllianceCoinsScene } from './AllianceCoins';
 import { AlliancesPanel, AllianceStrip, showsAlliances } from './Alliances';
-import { BattleControls, BattleHistory, BattleScene, HandControls } from './BattleControls';
+import { BattleControls, BattleHistory, BattleScene } from './BattleControls';
 import { BidderScene } from './Bidder';
 import { OfflineConversations } from './Conversation';
 import { DraftingOverlay, DraftingPanel } from './Drafting';
@@ -54,7 +56,7 @@ import {
   AUDIT_LOG_GUIDANCE,
   battleGuidance,
   GAME_LOG_GUIDANCE,
-  handGuidance,
+  HAND_GUIDANCE,
   HIDDEN_ZONE_GUIDANCE,
   LOG_GUIDANCE,
   phaseGuidance,
@@ -65,7 +67,6 @@ import {
   SHARED_INVENTORY_GUIDANCE,
   SHARED_INVENTORY_HELP,
   SPICE_GUIDANCE,
-  SPICE_RESERVE_HELP,
 } from './panelGuidance';
 import { PlaybackControls } from './PlaybackControls';
 import { publicControlsOf } from './publicControls';
@@ -604,44 +605,6 @@ function SpawnRequest({
   );
 }
 
-function SpiceReserveControls({ client, table }: TableControlProps) {
-  const [amount, setAmount] = useState<string | number>(1);
-  const reserve = table.snapshot.bank;
-  if (!reserve) {
-    return null;
-  }
-  const validAmount =
-    typeof amount === 'number' && Number.isSafeInteger(amount) && amount > 0 && amount <= reserve.balance;
-  return (
-    <Section hiddenHeading={Boolean(table.snapshot.stage)} title="Spice reserve" description={SPICE_RESERVE_HELP}>
-      <Stack gap="xs">
-        <Text component="output" aria-label="Spice reserve balance" ff="C_Advokat_Modern, serif" size="64px" lh={1.1}>
-          {reserve.balance}
-        </Text>
-        <Group align="center" wrap="nowrap" gap="xs">
-          <NumberInput
-            aria-label="Spice to withdraw"
-            w={80}
-            style={{ flexShrink: 0 }}
-            value={amount}
-            onChange={setAmount}
-            min={1}
-            allowDecimal={false}
-            allowNegative={false}
-            disabled={!table.canHandleTable}
-          />
-          <Button
-            disabled={!table.canHandleTable || !validAmount}
-            onClick={() => client.command({ kind: 'bank-withdraw', amount: Number(amount) })}
-          >
-            Withdraw spice
-          </Button>
-        </Group>
-      </Stack>
-    </Section>
-  );
-}
-
 /*
  * A transfer's ends are a faction's id, the table or the Spice Bank, as the Worker's spice ledger records them (#1664).
  * The ledger stores the Spice Bank as `supply`; that literal is kept for stored data (see CONTEXT.md).
@@ -759,8 +722,8 @@ function handPanels({ client, table }: TableControlProps) {
       key: 'hand',
       label: 'Hand',
       topic: 'hand' as const,
-      ...handGuidance(table),
-      content: <HandControls client={client} table={table} hand={hand} />,
+      ...HAND_GUIDANCE,
+      content: <HandShelves client={client} table={table} hand={hand} />,
     },
     {
       key: 'hidden-zone',
@@ -804,7 +767,7 @@ function yoursGroup({ client, table }: TableControlProps): TablePanel {
               label: 'Spice',
               topic: 'spice' as const,
               ...SPICE_GUIDANCE,
-              content: <SpiceReserveControls client={client} table={table} />,
+              content: <SpiceReserve client={client} table={table} />,
             },
           ]
         : []),

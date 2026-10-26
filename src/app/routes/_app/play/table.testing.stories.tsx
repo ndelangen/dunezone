@@ -7,6 +7,7 @@ import { BOARD_RADIUS, BOARD_SURFACE_Y, restingPositionAt, stackTopHeight } from
 import { TRACKER_DISC_TOP_Y } from '@shared/play/tableTrackers';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
+import { tableOverlayRects } from '../../../widgets/tabletop/seatedHeader';
 import { gameMeta, install, lastCommand, session } from './game.stories.fixture';
 import { mapViewPoint, openTab, tablePage, waitForPlayCamera, openPieceMenu } from './playing.stories.fixture';
 import {
@@ -326,6 +327,24 @@ export const WheelTakesACloseLook = meta.story({
       return placement!;
     });
 
+    const layout = () => ({
+      viewport: [window.innerWidth, window.innerHeight, window.devicePixelRatio],
+      canvas: canvas.getBoundingClientRect().toJSON(),
+      drawingBuffer: [canvas.width, canvas.height],
+      camera: canvas.getAttribute('data-play-camera'),
+      overlays: tableOverlayRects(canvas),
+    });
+    const baselineLayout = layout();
+    const returnPlacements: { atMs: number; placement: string | undefined }[] = [];
+    const recordReturn = () => {
+      const placement = deckPlacement();
+      returnPlacements.push({ atMs: Math.round(performance.now()), placement });
+      if (returnPlacements.length > 12) {
+        returnPlacements.shift();
+      }
+      return placement;
+    };
+
     await expect(turnWheel(300, true)).toBe(false);
     await expect(turnWheel(300)).toBe(true);
     await waitForFrame(() => expect(deckPlacement()).not.toBe(approved));
@@ -337,11 +356,19 @@ export const WheelTakesACloseLook = meta.story({
     for (let turn = 0; turn < 4; turn++) {
       turnWheel(-600);
     }
-    /* The glide needs frames to finish even when the runner draws them late (#1900). */
-    await waitForFrame(() => expectPlacementNear(deckPlacement(), approved));
-    turnWheel(-600);
-    await new Promise((resolve) => setTimeout(resolve, 100));
-    await expectPlacementNear(deckPlacement(), approved);
+    try {
+      /* The glide needs frames to finish even when the runner draws them late (#1900). */
+      await waitForFrame(() => expectPlacementNear(recordReturn(), approved));
+      turnWheel(-600);
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      await expectPlacementNear(recordReturn(), approved);
+    } catch (error) {
+      /* Keep the failed runner's geometry to distinguish layout reframing from a return-glide defect (#2510). */
+      if (error instanceof Error) {
+        error.message += `\nWheel return geometry: ${JSON.stringify({ approved, baselineLayout, returnedLayout: layout(), returnPlacements })}`;
+      }
+      throw error;
+    }
   },
 });
 

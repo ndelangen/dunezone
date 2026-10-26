@@ -17,7 +17,7 @@ import { BOARD_RADIUS, restingPositionAt } from '../../src/shared/play/tableGeom
 import { clampPositionToTable, nearestCollisionFreePosition } from '../../src/shared/play/tablePhysics';
 import { playFromHandAtAnchor } from '../../src/shared/play/tableState';
 import { holdsPredictionCard } from './predictionCards';
-import { revised } from './state';
+import { orderablePieces, revised } from './state';
 import type { StoredSnapshot, StoredBattle } from './state';
 
 type BattleActor = { snapshot: StoredSnapshot; battle: StoredBattle; factionId: string };
@@ -370,6 +370,22 @@ function arrangeHiddenZone(
   });
 }
 
+/*
+ * The faction's own order of what it holds: its plain hand and its planned pieces, stored apart from the inventory.
+ * Pieces the stored order does not name yet follow in the order they are held, and the new order names only what is held now.
+ */
+function orderHand(snapshot: StoredSnapshot, factionId: string, action: Extract<BattleAction, { kind: 'hand-order' }>) {
+  const held = orderablePieces(snapshot, factionId).map((piece) => piece.id);
+  const stored = snapshot.handOrders[factionId] ?? [];
+  const rank = (id: string) => (stored.includes(id) ? stored.indexOf(id) : stored.length + held.indexOf(id));
+  const order = held.toSorted((a, b) => rank(a) - rank(b)).filter((id) => id !== action.pieceId);
+  if (!held.includes(action.pieceId) || (action.before !== null && !order.includes(action.before))) {
+    return refuse('Choose two pieces of your hand to order.');
+  }
+  order.splice(action.before === null ? order.length : order.indexOf(action.before), 0, action.pieceId);
+  return commit(snapshot, { handOrders: { ...snapshot.handOrders, [factionId]: order } });
+}
+
 function startBattle(snapshot: StoredSnapshot, action: Extract<BattleAction, { kind: 'battle-start' }>) {
   if (snapshot.battleState || phaseAt(snapshot.phase, snapshot.phases).id !== 'battle') {
     return refuse('Start a battle during the Battle phase when no battle is active.');
@@ -502,6 +518,8 @@ export function battleCommand(
       return playFromHand(snapshot, factionId, action);
     case 'hand-zone':
       return arrangeHiddenZone(snapshot, factionId, action);
+    case 'hand-order':
+      return orderHand(snapshot, factionId, action);
     case 'battle-start':
       return startBattle(snapshot, action);
   }
