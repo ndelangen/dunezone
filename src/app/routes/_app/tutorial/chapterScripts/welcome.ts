@@ -12,7 +12,8 @@ import { element, nextPhaseButton, phaseOf, pressEnter, task } from './guideChec
  * Chapter 1, "Welcome": what is on the screen and what each part means, before any of the controls.
  * The rail points at each part in turn: the board, the phase and turn in the corner chip, the phase discs and the turn wheel
  * along the board's far edge, Next phase, and the gear. Nothing on the table checks the rules or takes a step for the players,
- * so the one thing the player does is move the game on with Next phase; everything else is read and passed with Enter.
+ * so the player moves the game on with Next phase, and copies the game's link from the gear to invite the others;
+ * everything else is read and passed with Enter.
  * The controls compass waits for its own chapter.
  */
 
@@ -25,6 +26,12 @@ function trackerAt(snapshot: () => GameSnapshot, kind: 'phase' | 'turn'): Vector
   );
   return slot ? [slot.position[0], slot.position[1], slot.position[2]] : null;
 }
+
+/* The gear menu's button that copies the game's link, once the menu is open. */
+const copyLink = () =>
+  [...document.querySelectorAll('[role="menu"] button')].find((button) =>
+    /game link/i.test(button.textContent ?? '')
+  ) ?? null;
 
 function tasks(snapshot: () => GameSnapshot): GuideTask[] {
   return [
@@ -70,20 +77,22 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       done: () => phaseOf(snapshot).id !== 'storm',
     }),
     task({
-      id: 'gear',
-      task: 'The gear',
+      id: 'share',
+      task: 'Copy the game link',
       detail:
-        'The gear beside Next phase holds the game’s settings: the table’s lighting and labels, how fast the camera pans, and leaving your seat. Press {Enter} to go on.',
-      anchor: { kind: 'page', element: element('[aria-label="Game menu"]') },
-      ...pressEnter(),
-    }),
-    task({
-      id: 'bug',
-      task: 'Know where bugs go',
-      detail:
-        'Something broken in a game? Report a bug from that game’s controls, which a later chapter opens: your words go in with the game as it stands, so we can see what you saw. Press {Enter} to finish.',
-      anchor: { kind: 'page', element: element('[data-compass-launcher]') },
-      ...pressEnter(),
+        'The gear beside Next phase holds the game’s settings: the table’s lighting and labels, how fast the camera pans, and leaving your seat. It also holds the game’s link, which is how you invite the others: open the gear and press Copy game link, then send it to them.',
+      anchor: { kind: 'page', element: () => copyLink() ?? document.querySelector('[aria-label="Game menu"]') },
+      begin: () => undefined,
+      done: () => {
+        const text = copyLink()?.textContent ?? '';
+        /* A browser that refuses the clipboard shows the link to copy by hand, which counts as well. */
+        return (
+          text.includes('copied') ||
+          [...document.querySelectorAll('[role="alert"]')].some((alert) =>
+            alert.textContent?.startsWith('Could not copy')
+          )
+        );
+      },
     }),
   ];
 }
@@ -93,8 +102,7 @@ const learned = [
   'The chip in the top left shows the turn and the phase',
   'The discs along the board are the phases; the numbered wheel counts the turns',
   'Play is a table, not a referee: you move the game on with Next phase',
-  'The gear holds the game’s settings',
-  'In a game, Report a bug on the controls sends your words with the game',
+  'The gear holds the game’s settings and the link that invites the others',
 ];
 
 export const welcome: ChapterScript = { slug: 'welcome', checkpoint: 'turn-1-storm', tasks, learned };
