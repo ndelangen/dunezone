@@ -43,6 +43,18 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
   const inHand = () => (snapshot().hand ?? []).filter((piece) => !piece.hiddenZone).length;
   const reserve = () => snapshot().bank?.balance ?? 0;
   const handOrder = () => JSON.stringify(snapshot().handOrder ?? []);
+  /* The card the player took into their hand, by the id it arrived under, so the arrow finds it among the cards already there. */
+  const taken = { id: null as string | null };
+  const handIds = () => new Set((snapshot().hand ?? []).map((piece) => piece.id));
+  const takenCard = () => {
+    const card = (snapshot().hand ?? []).find((piece) => piece.id === taken.id);
+    const name = card && (card.items[0]?.artwork?.name ?? card.label);
+    return (
+      [...document.querySelectorAll(HAND_PIECE)].find(
+        (tile) => name !== undefined && tile.getAttribute('aria-label') === `Drag ${name} from hand`
+      ) ?? lastElement(HAND_PIECE)()
+    );
+  };
   return [
     task({
       id: 'lay-card',
@@ -59,8 +71,11 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       detail:
         'Right-click the card and choose Take into hand. A card or a leader on the table can always go to your hand.',
       anchor: { kind: 'table', point: () => at(looseSpiceCard(pieces(), spiceDeck())) },
-      begin: inHand,
-      done: (start) => inHand() > start,
+      begin: handIds,
+      done: (start) => {
+        taken.id = (snapshot().hand ?? []).find((piece) => !start.has(piece.id))?.id ?? null;
+        return taken.id !== null;
+      },
     }),
     task({
       id: 'open-hand',
@@ -74,7 +89,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       task: 'Read the card up close',
       detail:
         'Point at the card in your hand and hold {Alt}. It shows flat and large, as on the table; read it, then let go.',
-      anchor: { kind: 'page', element: lastElement(HAND_PIECE) },
+      anchor: { kind: 'page', element: takenCard },
       ...closeUpShown(),
     }),
     task({
@@ -82,7 +97,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       task: 'Play it back onto the table',
       detail:
         'Drag the card out of the window and drop it on the table. Only you saw its face while it was in your hand.',
-      anchor: { kind: 'page', element: lastElement(HAND_PIECE) },
+      anchor: { kind: 'page', element: takenCard },
       begin: inHand,
       done: (start) => inHand() < start,
     }),

@@ -76,7 +76,7 @@ const CHAPTERS: readonly Omit<TutorialChapter, 'number'>[] = [
   {
     slug: 'decks-and-dealing',
     title: 'Decks and dealing',
-    goal: 'Shuffle, peek and reorder, deal, split, take two and lock a deck',
+    goal: 'Shuffle, peek and reorder, deal, split and take two at once',
     minutes: 4,
     part: 'The table',
   },

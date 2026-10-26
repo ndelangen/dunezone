@@ -8,8 +8,8 @@ import type { Piece } from './guideChecks';
 /*
  * Chapter 8, "Decks and dealing": what a deck does beyond a draw, on the same table as chapter 7.
  * A deck shuffled, peeked at and reordered, a card dealt to another player, a few cards split off with a number key,
- * two cards taken in one carry with T, and a deck locked and unlocked. Everything to do with cards is here, the pieces
- * themselves in chapter 7 (Norbert, 2026-10-26).
+ * and two cards taken in one carry with T. Everything to do with cards is here, the pieces themselves in chapter 7;
+ * locking is left out, as it is not worth teaching (Norbert, 2026-10-26).
  */
 
 /* Loose cards of one deck lying on the table in stacks of at least `size`, by the stack key they would join the deck with again. */
@@ -60,15 +60,6 @@ const movedInPeek = () => ({
       return false;
     }
     return watch.first.some((card, index) => card !== order[index]);
-  },
-});
-
-/* The deck's lock turned to `locked` since the task began, so a lock left over from before it never counts. */
-const turnsLocked = (lock: () => boolean | undefined, locked: boolean) => ({
-  begin: () => ({ other: lock() !== locked }),
-  done: (watch: { other: boolean }) => {
-    watch.other ||= lock() !== locked;
-    return watch.other && lock() === locked;
   },
 });
 
@@ -129,22 +120,6 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       anchor: { kind: 'table', point: () => at(treachery()) },
       ...tookWithT(() => looseStacks(pieces(), treachery(), 2)),
     }),
-    task({
-      id: 'lock',
-      task: 'Lock the Spice deck',
-      detail:
-        'Point at the Spice deck and press {L}. A locked piece stays put: nobody can move, draw from or deal from it by accident.',
-      anchor: { kind: 'table', point: () => at(spice()) },
-      ...turnsLocked(() => spice()?.locked, true),
-    }),
-    task({
-      id: 'unlock',
-      task: 'Unlock it again',
-      detail:
-        'Press {L} over it once more. Right-click it first if you like: its draw, deal and shuffle wait greyed out.',
-      anchor: { kind: 'table', point: () => at(spice()) },
-      ...turnsLocked(() => spice()?.locked, false),
-    }),
   ];
 }
 
@@ -155,7 +130,6 @@ const learned = [
   'Right-click a deck and choose Deal a card to give one to a player',
   'Hold a number key over a deck to split that many cards off it',
   'Press {T} or right-click while carrying a card to take the next one with it',
-  '{L} locks a piece in place, and unlocks it again',
 ];
 
 export const decksAndDealing: ChapterScript = {
