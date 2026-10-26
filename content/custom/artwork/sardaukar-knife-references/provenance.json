@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "sourceDescription": "User-supplied LD_SardaukarKnifeAndSheath.webp reference. Original publication and photographer were not identified.",
+  "source": "originals/LD_SardaukarKnifeAndSheath.webp",
+  "sourceSha256": "99584f5960be368f8f36aad5a080ebfe2f64b2730228a719752af8bb5202de62",
+  "approval": {
+    "date": "2026-10-26",
+    "scope": "The user approved the knife-and-sheath outline proposal, then explicitly requested its previously approved catalogue import while the mouse decals were being added. The proposal presents the knife and sheath as separate decals."
+  },
+  "preparation": {
+    "description": "The approved proposal silhouettes and details are preserved. White grip, blade and sheath lines become transparent cutouts through a 4x bitmap trace. Small raster fragments are removed and contours smoothed before the Dune Zone authoring and normalization pipeline.",
+    "bitmapScale": 4,
+    "maskGaussianSigmaPixels": 3.2,
+    "minimumComponentAreaPixels": 200,
+    "trace": "Potrace 1.16, turdsize 8, alphamax 1.0, opttolerance 1.2. Both SVGs inherit paint from their caller."
+  },
+  "assets": {
+    "/vector/decal/sardaukar-knife.svg": {
+      "approvedProposal": "approved-proposals/sardaukar-knife.svg",
+      "bitmapMaster": "bitmaps/sardaukar-knife-4x.png",
+      "details": "Ring opening, crosshatched grip, blade groove and notched tip."
+    },
+    "/vector/decal/sardaukar-sheath.svg": {
+      "approvedProposal": "approved-proposals/sardaukar-sheath.svg",
+      "bitmapMaster": "bitmaps/sardaukar-sheath-4x.png",
+      "details": "Curved silhouette, seam, rivets and two slots."
+    }
+  }
+}

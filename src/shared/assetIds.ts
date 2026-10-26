@@ -712,6 +712,8 @@ export const DECAL = z.enum([
   '/vector/decal/sandmaster.svg',
   '/vector/decal/sandtrout-multicolor.svg',
   '/vector/decal/sandtrout.svg',
+  '/vector/decal/sardaukar-knife.svg',
+  '/vector/decal/sardaukar-sheath.svg',
   '/vector/decal/scatter-bell.svg',
   '/vector/decal/scissor-sword.svg',
   '/vector/decal/scuttle-mine.svg',

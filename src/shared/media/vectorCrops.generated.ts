@@ -320,6 +320,8 @@ export const VECTOR_CROPS = {
   '/vector/decal/sandmaster.svg': [50.125, 54.67999999999999, 99.75, 48.28],
   '/vector/decal/sandtrout-multicolor.svg': [50, 49.995, 100, 57.61],
   '/vector/decal/sandtrout.svg': [49.08, 50.215, 94.84, 57.13],
+  '/vector/decal/sardaukar-knife.svg': [50, 49.985, 100, 62.37],
+  '/vector/decal/sardaukar-sheath.svg': [50, 50.01, 100, 50.74],
   '/vector/decal/scatter-bell.svg': [50.095, 49.879999999999995, 87.55, 51.16],
   '/vector/decal/scissor-sword.svg': [50.305, 49.58, 89.83, 58.98],
   '/vector/decal/scuttle-mine.svg': [50.055, 50.394999999999996, 93.09, 53.59],

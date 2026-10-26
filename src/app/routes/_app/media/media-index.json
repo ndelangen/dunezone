@@ -11119,5 +11119,17 @@
     "tags": ["muaddib", "muad dib", "kangaroo mouse", "desert mouse", "Dune", "Arrakis", "multicolor"],
     "subjects": ["creatures"],
     "sourceHash": "05cef6e80b573674605d6b662cebd0cec9184efd56bdbce13d9fb7f18873f459"
+  },
+  "/vector/decal/sardaukar-knife.svg": {
+    "description": "A curved Sardaukar knife with a ring guard, crosshatched grip and notched blade tip.",
+    "tags": ["Sardaukar", "knife", "blade", "Dune", "weapon", "vector"],
+    "subjects": ["weapons"],
+    "sourceHash": "fc7103527d624c5a2b05c956ee0a322bcfc671402018e8cb78869e87e245dfd6"
+  },
+  "/vector/decal/sardaukar-sheath.svg": {
+    "description": "A curved Sardaukar knife sheath with a seam, rivets and two slots.",
+    "tags": ["Sardaukar", "knife", "blade", "Dune", "sheath", "vector"],
+    "subjects": ["weapons"],
+    "sourceHash": "21576f1a72a5b751902a2da6e6a11e1347177ac41fc6bda2d674fd5d6e1253f5"
   }
 }
