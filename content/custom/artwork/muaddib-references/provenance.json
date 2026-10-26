@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "sourceDescription": "Two AI-generated bitmap illustrations approved by the user, developed from a user-supplied Dune: Part Two kangaroo mouse still and existing Dune Zone creature decals.",
+  "request": {
+    "date": "2026-10-26",
+    "scope": "The user approved both attached bitmaps and requested vector decals in the appropriate collection."
+  },
+  "preparation": {
+    "alphaThreshold": 0.5,
+    "maskGaussianSigmaPixels": 0.65,
+    "minimumComponentAreaPixels": 8,
+    "palette": ["#090907", "#8c8751", "#efe7bc"],
+    "paletteAssignment": "Nearest RGB palette entry. The multicolor layers use the cleaned alpha silhouette, an olive-or-cream mask and a cream mask, painted in that order to avoid seams.",
+    "trace": "Potrace 1.16 SVG output, turdsize 8, alphamax 1.0, opttolerance 0.25. Dune Zone authoring provenance, uniform square normalization and category optimization follow tracing."
+  },
+  "assets": {
+    "/vector/decal/muaddib.svg": {
+      "source": "originals/muaddib-monochrome-approved.png",
+      "bitmapMaster": "bitmaps/muaddib-monochrome.png",
+      "paint": "Inherited from the caller; internal details are transparent cutouts. No perimeter outline is added."
+    },
+    "/vector/decal/muaddib-multicolor.svg": {
+      "source": "originals/muaddib-multicolor-approved.png",
+      "bitmapMasters": ["bitmaps/muaddib-silhouette.png", "bitmaps/muaddib-olive.png", "bitmaps/muaddib-cream.png"],
+      "paint": "Three fixed opaque colors matching the existing creature decal palette."
+    }
+  }
+}

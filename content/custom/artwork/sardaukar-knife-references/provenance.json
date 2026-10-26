@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "sourceDescription": "User-supplied LD_SardaukarKnifeAndSheath.webp reference. The knife uses a user-approved AI-generated bitmap refinement; the sheath retains the original approved outline proposal. Original publication and photographer were not identified.",
+  "source": "originals/LD_SardaukarKnifeAndSheath.webp",
+  "sourceSha256": "99584f5960be368f8f36aad5a080ebfe2f64b2730228a719752af8bb5202de62",
+  "approval": {
+    "date": "2026-10-26",
+    "scope": "The user approved the knife and sheath as separate decals, then requested a cleaner knife. After reviewing the refined bitmap, the user said: okay i approve that vector."
+  },
+  "assets": {
+    "/vector/decal/sardaukar-knife.svg": {
+      "approvedBitmap": "originals/sardaukar-knife-approved.png",
+      "bitmapMaster": "bitmaps/sardaukar-knife-approved-mask.png",
+      "sourceCrop": [103, 83, 1309, 866],
+      "maskGaussianSigmaPixels": 0.65,
+      "minimumComponentAreaPixels": 8,
+      "trace": "The approved bitmap alpha becomes solid ink and transparent cutouts. Potrace 1.16, turdsize 8, alphamax 1.0, opttolerance 0.25, followed by authoring provenance and Dune Zone normalization. Paint is inherited from the caller.",
+      "details": "Orderly grip cuts, ring opening, hooked guard, continuous tapered blade bevel and stepped tip."
+    },
+    "/vector/decal/sardaukar-sheath.svg": {
+      "approvedProposal": "approved-proposals/sardaukar-sheath.svg",
+      "bitmapMaster": "bitmaps/sardaukar-sheath-4x.png",
+      "bitmapScale": 4,
+      "maskGaussianSigmaPixels": 3.2,
+      "minimumComponentAreaPixels": 200,
+      "trace": "White proposal details become transparent cutouts. Potrace 1.16, turdsize 8, alphamax 1.0, opttolerance 1.2, followed by authoring provenance and Dune Zone normalization. Paint is inherited from the caller.",
+      "details": "Curved silhouette, seam, rivets and two slots."
+    }
+  }
+}
