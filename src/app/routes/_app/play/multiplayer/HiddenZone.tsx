@@ -132,8 +132,9 @@ type Carry = Readonly<{
   turn: number;
   /** The zone's box on the page, measured once when the piece is lifted so a move reads no layout. */
   zone: DOMRect;
-  /** Lifted in a zoomed view, where a piece may be bigger than the zone: then only its centre is kept inside. */
-  zoomed: boolean;
+  /** The zoom and pixels per table unit it was lifted at, which hold still while it is carried. */
+  zoom: HiddenZoneZoom;
+  scale: number;
 }>;
 
 /*
@@ -199,21 +200,21 @@ export function HiddenZone({ client, table, hand }: Props) {
   const lifted = useRef<HTMLDivElement | null>(null);
   /* The frame holds the zone alone, so its box is the zone's. */
   const frame = useRef<HTMLDivElement>(null);
-  /* Where a carried piece's upright box lies on the page: under the pointer, kept whole inside the zone as it is turned now. */
+  /*
+   * Where a carried piece's upright box lies on the page: under the pointer, kept where the zone draws a piece laid there,
+   * whole inside the unzoomed view as it is turned now, so it does not move as it lands. Zoomed in, its centre also stays in view.
+   */
   const carriedAt = (current: Carry) => {
-    const left = current.x - current.grabX;
-    const top = current.y - current.grabY;
-    const { zone } = current;
+    const { zone, zoom, scale } = current;
     const pending = turns.current && turns.current.pieceId === current.pieceId ? turns.current.by : 0;
-    const { across, down } = current.zoomed
-      ? { across: 0, down: 0 }
-      : turnedReach(current.width, current.depth, { x: 0, y: 0, turn: current.turn + pending });
-    const sideways = (current.width - across) / 2;
-    const upways = (current.depth - down) / 2;
-    return {
-      left: zone.left + inside(left + sideways - zone.left, zone.width - across) - sideways,
-      top: zone.top + inside(top + upways - zone.top, zone.height - down) - upways,
+    const { across, down } = turnedReach(current.width, current.depth, { x: 0, y: 0, turn: current.turn + pending });
+    const centre = (at: number, reach: number, room: number, from: number) => {
+      const shift = from * scale;
+      return Math.min(room, room * zoom.by - reach / 2 - shift, Math.max(0, reach / 2 - shift, at));
     };
+    const x = centre(current.x - current.grabX + current.width / 2 - zone.left, across, zone.width, zoom.x);
+    const y = centre(current.y - current.grabY + current.depth / 2 - zone.top, down, zone.height, zoom.y);
+    return { left: zone.left + x - current.width / 2, top: zone.top + y - current.depth / 2 };
   };
   const place = () => {
     const current = carrying.current;
@@ -261,8 +262,8 @@ export function HiddenZone({ client, table, hand }: Props) {
       return;
     }
     event.preventDefault();
-    /* A carried piece keeps the size it was lifted at, so the zoom holds still until it is let go. */
-    if (carrying.current?.moving) {
+    /* A held piece keeps the size it was lifted at, so the zoom holds still from the press until it is let go. */
+    if (carrying.current) {
       return;
     }
     const box = event.currentTarget instanceof HTMLElement ? event.currentTarget.getBoundingClientRect() : null;
@@ -524,7 +525,8 @@ export function HiddenZone({ client, table, hand }: Props) {
                     depth: pieceDepth,
                     turn: spotOf(piece).turn ?? 0,
                     zone: frame.current!.getBoundingClientRect(),
-                    zoomed,
+                    zoom,
+                    scale,
                   });
                 },
                 onPointerMove: (event: PointerEvent<HTMLDivElement>) => {
