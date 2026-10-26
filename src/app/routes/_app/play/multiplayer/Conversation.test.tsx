@@ -76,6 +76,37 @@ test('a failed send is an alert', () => {
   expect(screen.getByRole('alert').textContent).toBe('The message could not be saved.');
 });
 
+test('Enter sends the message, and Shift+Enter starts a new line', () => {
+  const client = clientWith({
+    context: { factionId: 'own' } as ConversationView['context'],
+    online: true,
+    summaries: [],
+    pages: { peer: { entries: [], more: false, load: { state: 'idle' } } },
+    pending: [],
+  });
+  render(
+    <MantineProvider theme={appContentTheme}>
+      <Conversation client={client} peerId="peer" />
+    </MantineProvider>
+  );
+  const field = screen.getByRole('textbox', { name: 'Message' }) as HTMLTextAreaElement;
+  const { submit } = client.conversations as unknown as { submit: ReturnType<typeof vi.fn> };
+
+  fireEvent.keyDown(field, { key: 'Enter' });
+  expect(submit).not.toHaveBeenCalled();
+
+  fireEvent.change(field, { target: { value: 'Deal?' } });
+  fireEvent.keyDown(field, { key: 'Enter', shiftKey: true });
+  expect(submit).not.toHaveBeenCalled();
+
+  fireEvent.keyDown(field, { key: 'Enter', keyCode: 229 });
+  expect(submit).not.toHaveBeenCalled();
+
+  fireEvent.keyDown(field, { key: 'Enter' });
+  expect(submit).toHaveBeenCalledWith({ peerId: 'peer', text: 'Deal?' });
+  expect(field.value).toBe('');
+});
+
 function message(sequence: number, author: string, senderFactionId: string, text: string) {
   return {
     sequence,
