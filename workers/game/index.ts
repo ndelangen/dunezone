@@ -2058,6 +2058,11 @@ export class GameRoom extends DurableObject<GameEnv> {
     return this.sweepTimer !== undefined;
   }
 
+  /* The native fixture reads this to tell a directory retry from a pass expiry, since one alarm serves both. */
+  protected get directoryRetryAt() {
+    return this.session.pendingDirectory()?.retryAt ?? null;
+  }
+
   private needsSweep() {
     return this.session.hasActivity || [...this.connections.values()].some((connection) => !connection.everAuthorized);
   }

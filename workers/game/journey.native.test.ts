@@ -207,6 +207,17 @@ describe('A real game from creation to continuation', { timeout: 240_000 }, () =
     expect(restored.snapshot.roster).toEqual(before.snapshot.roster);
     expect(restored.snapshot.table.pieces).toEqual(before.snapshot.table.pieces);
   }
+  /*
+   * One alarm serves the directory retry and, once the room is quiet, the next pass to expire, so a
+   * connected table keeps an alarm armed after the directory settles. These read the retry itself.
+   */
+  async function directoryRetryArmed() {
+    const { scheduledAt, directoryRetryAt } = await runtime.alarm();
+    return directoryRetryAt !== null && scheduledAt !== null && scheduledAt <= directoryRetryAt;
+  }
+  async function directorySettled() {
+    return (await runtime.alarm()).directoryRetryAt === null;
+  }
   /** Advances play to the Mentat Pause, which is never more than one round of phases away. */
   async function toMentat(connection: NativeConnection) {
     const atMentat = (snapshot: { phase: number }) => snapshot.phase % TABLE_PHASES.length === MENTAT;
@@ -230,7 +241,7 @@ describe('A real game from creation to continuation', { timeout: 240_000 }, () =
     await seat(b, a);
     await eventually(() => refusals() >= 1, 'refused directory write');
     expect(required(required(await syncView(a)).snapshot.roster).seats).toHaveLength(2);
-    await eventually(async () => (await runtime.alarm()).scheduledAt !== null, 'directory retry alarm');
+    await eventually(directoryRetryArmed, 'directory retry alarm');
     peer.directoryMode = 'ack';
     /* The retry is due on the room clock, which workerd's alarm does not read; move it past the backoff first. */
     offset += 30_000;
@@ -243,7 +254,10 @@ describe('A real game from creation to continuation', { timeout: 240_000 }, () =
         ),
       'acknowledged summary with two seats'
     );
-    await eventually(async () => (await runtime.alarm()).scheduledAt === null, 'settled directory alarm');
+    /* The room goes quiet with both players connected, and its alarm moves to their passes' expiry. */
+    await eventually(async () => !(await runtime.sweeping()), 'the sweep stopping');
+    await eventually(directorySettled, 'settled directory alarm');
+    expect((await runtime.alarm()).scheduledAt).not.toBeNull();
 
     await accepted(b, { kind: 'draft-ready', ready: true });
     await accepted(a, { kind: 'draft-ready', ready: true });
@@ -289,7 +303,7 @@ describe('A real game from creation to continuation', { timeout: 240_000 }, () =
     const finished = await accepted(a3, { kind: 'result-declare', result: 'faction', factionIds: ['harkonnen'] });
     expect(finished.snapshot.stage).toBe('finished');
     await eventually(() => refusals() > failedBefore, 'refused finished summary');
-    await eventually(async () => (await runtime.alarm()).scheduledAt !== null, 'directory retry alarm');
+    await eventually(directoryRetryArmed, 'directory retry alarm');
     peer.directoryMode = 'ack';
     const refusedCount = summaries().length;
     /*
