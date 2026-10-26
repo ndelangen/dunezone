@@ -1,13 +1,11 @@
 import type { TablePiece, Vector3Tuple } from '@shared/play/model';
 
-import { LONG_PRESS_SLOP_PX } from './longPress';
 import type { TabletopContextValue } from './TabletopContext';
 
 const DRAG_THRESHOLD_PX = 4;
 const STACK_HOLD_MS = 320;
 
-type PointerInput = Pick<PointerEvent, 'pointerId' | 'button' | 'clientX' | 'clientY' | 'timeStamp'> &
-  Partial<Pick<PointerEvent, 'pointerType'>>;
+type PointerInput = Pick<PointerEvent, 'pointerId' | 'button' | 'clientX' | 'clientY' | 'timeStamp'>;
 type Controls = Pick<
   TabletopContextValue,
   'beginGesture' | 'updateGesture' | 'finishGesture' | 'cancelDraft' | 'canHandleTable' | 'publishPointer'
@@ -64,10 +62,6 @@ export class PointerSession {
     if (this.start(input, pieceId, 'panel')) {
       this.beginDrag(pickup);
     }
-  }
-
-  isPressing(pieceId: string) {
-    return this.active?.pieceId === pieceId;
   }
 
   isDragging(pieceId: string) {
@@ -187,9 +181,8 @@ export class PointerSession {
     if (active.dragging) {
       return true;
     }
-    /* A resting finger drifts, and within the long-press slop it is still holding for the piece's menu, not carrying. */
     const distance = Math.hypot(input.clientX - active.input.clientX, input.clientY - active.input.clientY);
-    if (active.input.pointerType === 'touch' ? distance <= LONG_PRESS_SLOP_PX : distance < DRAG_THRESHOLD_PX) {
+    if (distance < DRAG_THRESHOLD_PX) {
       return false;
     }
     this.beginDrag(input.timeStamp - active.input.timeStamp >= STACK_HOLD_MS ? 'whole' : 'top');

@@ -21,7 +21,7 @@ describe('Faction conversations in the game database', () => {
     await runtime?.close();
     await peer?.close();
   });
-  const admit = (suffix: string) => admitPlayer(peer, runtime, suffix);
+  const admit = (suffix: string) => admitPlayer(runtime, suffix);
   async function setup() {
     const a = await admit('a');
     const b = await admit('b');

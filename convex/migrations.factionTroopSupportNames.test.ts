@@ -5,7 +5,6 @@ import { describe, expect, test } from 'vite-plus/test';
 
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { TroopBattleValues, withSupportNames } from '../src/shared/factions/schema';
-import { battleFaceSchema } from '../src/shared/play/battle';
 import { api, internal } from './_generated/api';
 import { factionTest, insertStoredFactions, storedFactionData } from './factions.test.fixture';
 
@@ -130,22 +129,6 @@ describe('faction troop support names migration', () => {
       supportedStrength: 3,
     });
     expect(TroopBattleValues.safeParse({ strength: 1, fundedStrength: 2 }).success).toBe(false);
-    /* A game's stored faces predate the rename too. */
-    expect(
-      battleFaceSchema.parse({
-        id: 'troop-0-front',
-        name: 'Guard',
-        strength: 0.5,
-        fundedStrength: 1,
-      })
-    ).toEqual({
-      id: 'troop-0-front',
-      name: 'Guard',
-      capable: true,
-      strength: 0.5,
-      supportedStrength: 1,
-      supportCost: 1,
-    });
   });
   test('a client reading an unmigrated faction receives the supported names', async () => {
     const t = factionTest();

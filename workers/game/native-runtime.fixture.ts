@@ -11,25 +11,15 @@ import type { IncomingRequestCfProperties, SqlStorageValue } from '@cloudflare/w
 import { build } from 'esbuild';
 import { Miniflare, convertV4MiniflareOptions } from 'miniflare';
 import type { RequestInit, V4WorkerdStructuredLog } from 'miniflare';
-import { WebSocketServer } from 'ws';
-import type { WebSocket as PeerSocket, RawData } from 'ws';
 import { z } from 'zod';
 
 import type { HistoricalFactionPublicationObject } from '../../src/shared/factions/schema';
 import type { homepageAdmissionSchema } from '../../src/shared/homepage/protocol';
 import type { homepageMessageSchema } from '../../src/shared/homepage/protocol';
-import type {
-  playWatchAuthorizationsResultSchema,
-  playGameProvisionSchema,
-  playReconcileAccountsResultSchema,
-  playTestStartStageSchema,
-} from '../../src/shared/play/admission';
+import type { playGameProvisionSchema, playTestStartStageSchema } from '../../src/shared/play/admission';
 import {
-  playWatchAuthorizationsRequestSchema,
-  playReconcileAccountsRequestSchema,
   playProvisionRequestSchema,
   playProvisionFailureSchema,
-  playRedeemTicketRequestSchema,
   playAckAccountDeletionRequestSchema,
   playAckSessionCutoffRequestSchema,
   playSeatLimitRequestSchema,
@@ -47,19 +37,14 @@ import {
 } from '../../src/shared/play/protocol.ts';
 import type { ServerMessage, ClientMessage, PieceAction, ServerClock } from '../../src/shared/play/protocol.ts';
 import type { SeatPassPayload } from '../../src/shared/play/seatPass';
-import { signSeatPass } from '../../src/shared/play/seatPass';
+import { PLAY_SEAT_PASS_TTL_MS, signSeatPass } from '../../src/shared/play/seatPass';
 import type { RoomView } from '../../src/shared/play/updates.ts';
 import { applyRoomUpdate } from '../../src/shared/play/updates.ts';
 import type { StoredSnapshot, storedSnapshotSchema } from './state';
 
-type WatchArgs = z.infer<typeof playWatchAuthorizationsRequestSchema>;
-type WatchResult = Extract<z.infer<typeof playWatchAuthorizationsResultSchema>, { ok: true }>;
-type AccountResult = Extract<z.infer<typeof playReconcileAccountsResultSchema>, { ok: true }>;
-type Allowed = boolean | ((registrationId: string) => boolean);
 export type NativeMessage = ServerMessage & Partial<ServerClock>;
 export type NativeView = RoomView & Partial<ServerClock>;
 const peerBodySchema = z.object({ path: z.string(), args: z.tuple([z.unknown()]) });
-const frameTypeSchema = z.object({ type: z.string() });
 const optionalClockSchema = serverClockSchema.partial();
 const peerRequestSchema = z.discriminatedUnion('function', [
   z.object({
@@ -69,14 +54,11 @@ const peerRequestSchema = z.discriminatedUnion('function', [
   z.object({ function: z.literal('playCatalogue:rulesetSupply'), args: z.object({ rulesetId: z.string() }) }),
   z.object({ function: z.literal('playCatalogue:factionDefinition'), args: z.object({ factionId: z.string() }) }),
   z.object({ function: z.literal('playCatalogue:draftableFactions'), args: z.object({ rulesetId: z.string() }) }),
-  z.object({ function: z.literal('playAdmission:watchAuthorizations'), args: playWatchAuthorizationsRequestSchema }),
   z.object({ function: z.literal('playProvisioning:validateProvisioning'), args: playProvisionRequestSchema }),
   z.object({ function: z.literal('playProvisioning:confirmProvisioning'), args: playProvisionRequestSchema }),
   z.object({ function: z.literal('playProvisioning:failProvisioning'), args: playProvisionFailureSchema }),
   z.object({ function: z.literal('playDirectory:publishSummary'), args: playPublishSummaryRequestSchema }),
   z.object({ function: z.literal('homepageAdmission:redeemTicket'), args: z.object({ ticket: z.string() }) }),
-  z.object({ function: z.literal('playAdmission:redeemTicket'), args: playRedeemTicketRequestSchema }),
-  z.object({ function: z.literal('playAdmission:reconcileAccounts'), args: playReconcileAccountsRequestSchema }),
   z.object({ function: z.literal('playAdmission:ackAccountDeletion'), args: playAckAccountDeletionRequestSchema }),
   z.object({ function: z.literal('playAdmission:seatLimitReached'), args: playSeatLimitRequestSchema }),
   z.object({
@@ -85,7 +67,7 @@ const peerRequestSchema = z.discriminatedUnion('function', [
   }),
   z.object({ function: z.literal('playSessionCutoffs:ackSessionCutoff'), args: playAckSessionCutoffRequestSchema }),
 ]);
-export type PeerRequest = z.infer<typeof peerRequestSchema> & {
+type PeerRequest = z.infer<typeof peerRequestSchema> & {
   path: string | undefined;
   headers: IncomingMessage['headers'];
   startedAt: number;
@@ -94,33 +76,6 @@ export type PeerRequest = z.infer<typeof peerRequestSchema> & {
   // Tests may deliberately return malformed data to exercise the Worker's validation.
   release(value: unknown): void;
 };
-const queryModificationSchema = z.discriminatedUnion('type', [
-  z.object({
-    type: z.literal('Add'),
-    queryId: z.number(),
-    udfPath: z.string(),
-    args: z.tuple([playWatchAuthorizationsRequestSchema]),
-  }),
-  z.object({ type: z.literal('Remove'), queryId: z.number() }),
-]);
-const querySetSchema = z.object({
-  type: z.literal('ModifyQuerySet'),
-  newVersion: z.number(),
-  modifications: z.array(queryModificationSchema),
-});
-type PeerQuery = Extract<z.infer<typeof queryModificationSchema>, { type: 'Add' }>;
-type PeerVersion = { querySet: number; identity: number; ts: string };
-type PeerConnection = {
-  socket: PeerSocket;
-  path: string | undefined;
-  queries: Map<number, PeerQuery>;
-  querySet: number;
-  version: PeerVersion;
-};
-type Subscription = { connection: PeerConnection; query: PeerQuery };
-type TransitionModification =
-  | { type: 'QueryUpdated'; queryId: number; value: WatchResult; logLines: string[]; journal: null }
-  | { type: 'QueryFailed'; queryId: number; errorMessage: string; logLines: string[] };
 export interface NativePeer {
   catalogue: Map<string, AssetSupply>;
   catalogueMode: 'allow' | 'hold';
@@ -141,21 +96,13 @@ export interface NativePeer {
   testPhaseCooldownMs: number | undefined;
   testStartStage: z.infer<typeof playTestStartStageSchema> | undefined;
   directoryMode: 'ack' | 'hold' | 'error';
-  reconcileMode: 'answer' | 'hold' | 'error';
-  deletedAccounts: Set<string>;
   seatLimitReached: Set<string>;
   /* `hold` keeps a pass admission's seat-limit read open, `error` fails it. */
   seatLimitMode: 'answer' | 'hold' | 'error';
+  /* Whether Convex finds a live session behind a bug report's seat pass. */
+  bugReportMode: 'allow' | 'deny';
   summaries: z.infer<typeof playPublishSummaryRequestSchema>[];
-  connections: PeerConnection[];
   requests: PeerRequest[];
-  frames: { type: string }[];
-  httpMode: 'allow' | 'deny' | 'hold' | 'error';
-  watchMode: 'manual' | 'allow' | 'deny';
-  expiresAt: () => number;
-  registrationId: string;
-  redemptionRefusal: 'expired' | 'refused' | null;
-  redemptionMode: 'answer' | 'error' | 'busy' | 'malformed';
   provisionExpiresAt: number;
   confirmed: boolean;
   holdFirstConfirmation: boolean;
@@ -164,13 +111,6 @@ export interface NativePeer {
   confirmationRequests: number;
   homepageAdmission?: z.infer<typeof homepageAdmissionSchema>;
   homepageAdmissionInvalid?: unknown;
-  accountChecks(): Extract<PeerRequest, { function: 'playAdmission:reconcileAccounts' }>[];
-  releaseAccounts(): void;
-  result(args: WatchArgs, allowed?: Allowed, expiresAt?: number): WatchResult;
-  answer(subscription: Subscription, allowed?: Allowed, expiresAt?: number): void;
-  fail(subscription: Subscription, errorMessage?: string): void;
-  latestQuery(): Subscription | undefined;
-  query(predicate?: (subscription: Subscription) => boolean): Promise<Subscription>;
   url: string;
   close(): Promise<void>;
 }
@@ -224,7 +164,6 @@ export function required<T>(value: T, message = 'Expected the fixture value to e
 const directory = dirname(fileURLToPath(import.meta.url));
 const repository = join(directory, '../..');
 const runtimeEntries = {
-  probe: join(directory, 'authorization.native.fixture.ts'),
   game: join(directory, 'game-room.native.fixture.ts'),
   load: join(directory, 'load-limits.native.fixture.ts'),
   homepage: join(directory, 'homepage.native.fixture.ts'),
@@ -247,11 +186,6 @@ const runtimeScripts = new Map(prepared.outputFiles.map((file) => [basename(file
 const gameId = 'fixture-game';
 const secret = 'a'.repeat(64);
 const attemptId = 'b'.repeat(64);
-const stamp = (number: number) => {
-  const bytes = Buffer.alloc(8);
-  bytes.writeBigUInt64LE(BigInt(number));
-  return bytes.toString('base64');
-};
 
 /*
  * The waits in progress.
@@ -332,37 +266,6 @@ function answerConfirmation(peer: NativePeer, record: PeerRequest) {
   }
 }
 
-/* A user a test lists in `peer.seatLimitReached` is admitted as already holding the most seats one player may. */
-function redeemedIdentity(peer: NativePeer) {
-  const suffix = peer.registrationId.split('-').at(-1) ?? '';
-  const userId = `user-${suffix}`;
-  return {
-    ...(peer.seatLimitReached.has(userId) ? { seatLimitReached: true } : {}),
-    ok: true,
-    registrationId: peer.registrationId,
-    userId,
-    sessionId: `session-${suffix}`,
-    authExpiresAt: peer.expiresAt(),
-    displayName: `Synthetic ${suffix.toUpperCase()}`,
-    profileSlug: `synthetic-${suffix}`,
-  };
-}
-
-/* Every account is active unless a test lists it in `peer.deletedAccounts`, which reads as a confirmed deletion. */
-function accountStates(
-  peer: NativePeer,
-  record: Extract<PeerRequest, { function: 'playAdmission:reconcileAccounts' }>
-): AccountResult {
-  return {
-    ok: true,
-    accounts: record.args.userIds.map((userId) =>
-      peer.deletedAccounts.has(userId)
-        ? { userId, state: 'deletion_pending', deletionOperationId: `operation-${userId}` }
-        : { userId, state: 'active', deletionOperationId: null }
-    ),
-  };
-}
-
 function answerPeerRequest(peer: NativePeer, record: PeerRequest) {
   switch (record.function) {
     case 'playCatalogue:assetSupply':
@@ -391,16 +294,8 @@ function answerPeerRequest(peer: NativePeer, record: PeerRequest) {
         record.release({ factions: peer.draftable });
       }
       break;
-    case 'playAdmission:watchAuthorizations':
-      if (peer.httpMode === 'error') {
-        record.response.writeHead(500);
-        record.response.end('Validation unavailable');
-      } else if (peer.httpMode !== 'hold') {
-        record.release(peer.result(record.args, peer.httpMode === 'allow'));
-      }
-      break;
     case 'playBugReports:authorize':
-      record.release(peer.httpMode === 'allow' ? { authExpiresAt: peer.expiresAt() } : null);
+      record.release(peer.bugReportMode === 'allow' ? { authExpiresAt: Date.now() + 3_600_000 } : null);
       break;
     case 'playProvisioning:validateProvisioning':
       /* A test that sets `peer.game` provisions a real game instead of the fixture. */
@@ -439,32 +334,6 @@ function answerPeerRequest(peer: NativePeer, record: PeerRequest) {
           : (peer.homepageAdmission ?? { allowed: false })
       );
       break;
-    case 'playAdmission:redeemTicket':
-      /*
-       * A test that sets `peer.redemptionRefusal` has Convex refuse the ticket with that reason instead of redeeming it.
-       * `peer.redemptionMode` set to `error` fails the request as an outage would, `busy` answers as rate-limited Convex does; `malformed` answers in a shape no deployment sends.
-       */
-      if (peer.redemptionMode === 'error') {
-        record.response.writeHead(503);
-        record.response.end('Redemption unavailable');
-      } else if (peer.redemptionMode === 'busy') {
-        record.response.writeHead(429);
-        record.response.end('Too many requests');
-      } else if (peer.redemptionMode === 'malformed') {
-        record.release({ ok: true, registrationId: peer.registrationId });
-      } else {
-        record.release(peer.redemptionRefusal ? { ok: false, reason: peer.redemptionRefusal } : redeemedIdentity(peer));
-      }
-      break;
-    case 'playAdmission:reconcileAccounts':
-      /* The room's account check: `hold` keeps it open until `peer.releaseAccounts()` answers it, `error` fails it. */
-      if (peer.reconcileMode === 'error') {
-        record.response.writeHead(500);
-        record.response.end('Accounts unavailable');
-      } else if (peer.reconcileMode !== 'hold') {
-        record.release(accountStates(peer, record));
-      }
-      break;
     case 'playAdmission:ackAccountDeletion':
     case 'playSessionCutoffs:ackSessionCutoff':
       record.release(null);
@@ -477,17 +346,6 @@ function answerPeerRequest(peer: NativePeer, record: PeerRequest) {
         record.release({ ok: true, reached: peer.seatLimitReached.has(record.args.userId) });
       }
       break;
-  }
-}
-
-function modifyQueries(connection: PeerConnection, message: z.infer<typeof querySetSchema>) {
-  connection.querySet = message.newVersion;
-  for (const change of message.modifications) {
-    if (change.type === 'Add') {
-      connection.queries.set(change.queryId, change);
-    } else {
-      connection.queries.delete(change.queryId);
-    }
   }
 }
 
@@ -506,20 +364,11 @@ export async function createPeer(): Promise<NativePeer> {
     testPhaseCooldownMs: undefined,
     testStartStage: undefined,
     directoryMode: 'ack',
-    reconcileMode: 'answer',
-    deletedAccounts: new Set(),
     seatLimitReached: new Set(),
     seatLimitMode: 'answer',
+    bugReportMode: 'allow',
     summaries: [],
-    connections: [],
     requests: [],
-    frames: [],
-    httpMode: 'allow',
-    watchMode: 'manual',
-    expiresAt: () => Date.now() + 60_000,
-    registrationId: 'registration-a',
-    redemptionRefusal: null,
-    redemptionMode: 'answer',
     provisionExpiresAt: Date.now() + 60_000,
     confirmed: false,
     holdFirstConfirmation: false,
@@ -527,80 +376,8 @@ export async function createPeer(): Promise<NativePeer> {
     failConfirmationRetries: false,
     confirmationRequests: 0,
     url: '',
-    accountChecks,
-    releaseAccounts,
-    result,
-    answer,
-    fail,
-    latestQuery,
-    query,
     close,
   };
-  let timestamp = 0;
-  function transition(connection: PeerConnection, modifications: TransitionModification[] = []) {
-    const next = { querySet: connection.querySet, identity: 0, ts: stamp(++timestamp) };
-    connection.socket.send(
-      JSON.stringify({ type: 'Transition', startVersion: connection.version, endVersion: next, modifications })
-    );
-    connection.version = next;
-  }
-  function accountChecks() {
-    return peer.requests.filter(
-      (record): record is Extract<PeerRequest, { function: 'playAdmission:reconcileAccounts' }> =>
-        record.function === 'playAdmission:reconcileAccounts'
-    );
-  }
-  /* Answers every account check that `hold` kept open, and every later one at once. */
-  function releaseAccounts() {
-    peer.reconcileMode = 'answer';
-    for (const record of peer.accountChecks()) {
-      if (!record.response.writableEnded) {
-        record.release(accountStates(peer, record));
-      }
-    }
-  }
-  /* `allowed` may be a predicate on the registration id, so one result can deny one registration only. */
-  function result(args: WatchArgs, allowed: Allowed = true, expiresAt = peer.expiresAt()): WatchResult {
-    return {
-      ok: true,
-      generation: args.generation,
-      entries: args.registrationIds.map((registrationId: string) => {
-        const suffix = registrationId.split('-').at(-1);
-        return {
-          registrationId,
-          userId: `user-${suffix}`,
-          sessionId: `session-${suffix}`,
-          allowed: typeof allowed === 'function' ? allowed(registrationId) : allowed,
-          authExpiresAt: expiresAt,
-        };
-      }),
-    };
-  }
-  function answer({ connection, query }: Subscription, allowed: Allowed = true, expiresAt = peer.expiresAt()) {
-    transition(connection, [
-      {
-        type: 'QueryUpdated',
-        queryId: query.queryId,
-        value: peer.result(query.args[0], allowed, expiresAt),
-        logLines: [],
-        journal: null,
-      },
-    ]);
-  }
-  function fail({ connection, query }: Subscription, errorMessage = 'query failed') {
-    transition(connection, [{ type: 'QueryFailed', queryId: query.queryId, errorMessage, logLines: [] }]);
-  }
-  function latestQuery(): Subscription | undefined {
-    const connection = peer.connections.at(-1);
-    const query = connection && [...connection.queries.values()].at(-1);
-    return connection && query ? { connection, query } : undefined;
-  }
-  function query(predicate: (subscription: Subscription) => boolean = () => true) {
-    return eventually(() => {
-      const current = peer.latestQuery();
-      return current && predicate(current) && current;
-    }, 'native subscription');
-  }
   const server = createServer(async (request, response) => {
     let record;
     try {
@@ -620,41 +397,6 @@ export async function createPeer(): Promise<NativePeer> {
     peer.requests.push(record);
     answerPeerRequest(peer, record);
   });
-  function publishQueries(connection: PeerConnection) {
-    if (peer.watchMode === 'manual') {
-      return;
-    }
-    for (const query of connection.queries.values()) {
-      peer.answer({ connection, query }, peer.watchMode === 'allow');
-    }
-  }
-  function receiveQuerySet(connection: PeerConnection, data: RawData) {
-    /* A frame arrives as one Buffer, an ArrayBuffer or Buffer fragments depending on the socket's binaryType, and only a Buffer prints as its text. */
-    const input: unknown = JSON.parse(
-      (Array.isArray(data) ? Buffer.concat(data) : Buffer.isBuffer(data) ? data : Buffer.from(data)).toString()
-    );
-    const message = frameTypeSchema.parse(input);
-    peer.frames.push(message);
-    if (message.type !== 'ModifyQuerySet') {
-      return;
-    }
-    modifyQueries(connection, querySetSchema.parse(input));
-    // An acknowledged subscription is deliberately not a fresh authorization snapshot.
-    transition(connection);
-    publishQueries(connection);
-  }
-  const sockets = new WebSocketServer({ server });
-  sockets.on('connection', (socket, request) => {
-    const connection: PeerConnection = {
-      socket,
-      path: request.url,
-      queries: new Map(),
-      querySet: 0,
-      version: { querySet: 0, identity: 0, ts: stamp(0) },
-    };
-    peer.connections.push(connection);
-    socket.on('message', (data) => receiveQuerySet(connection, data));
-  });
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
   const address = server.address();
   if (!address || typeof address === 'string') {
@@ -662,11 +404,7 @@ export async function createPeer(): Promise<NativePeer> {
   }
   peer.url = `http://127.0.0.1:${address.port}`;
   async function close() {
-    for (const connection of peer.connections) {
-      connection.socket.terminate();
-    }
     server.closeAllConnections();
-    await new Promise<void>((resolve) => sockets.close(() => resolve()));
     await new Promise<void>((resolve) => server.close(() => resolve()));
   }
   return peer;
@@ -674,7 +412,7 @@ export async function createPeer(): Promise<NativePeer> {
 
 export async function createRuntime(
   peer: NativePeer,
-  kind: keyof typeof runtimeEntries = 'probe',
+  kind: keyof typeof runtimeEntries = 'game',
   bindings: NativeBindings = {}
 ) {
   const logs: V4WorkerdStructuredLog[] = [];
@@ -694,11 +432,9 @@ export async function createRuntime(
       compatibilityDate: '2026-08-11',
       compatibilityFlags: ['nodejs_compat'],
       durableObjects:
-        kind === 'probe'
-          ? { PROBE: { className: 'AuthorizationProbe', useSQLite: true } }
-          : kind === 'homepage'
-            ? { HOMEPAGE_ROOMS: { className: 'HomepageRoom', useSQLite: true } }
-            : { GAME_ROOMS: { className: 'GameRoom', useSQLite: true } },
+        kind === 'homepage'
+          ? { HOMEPAGE_ROOMS: { className: 'HomepageRoom', useSQLite: true } }
+          : { GAME_ROOMS: { className: 'GameRoom', useSQLite: true } },
       bindings: {
         PEER_URL: peer.url,
         CONVEX_URL: peer.url,
@@ -932,16 +668,7 @@ export async function openGame(runtime: NativeRuntime, path = `/__play/games/${g
   return connection;
 }
 
-/** Redeems one synthetic ticket for the registration suffix and waits for the first view. */
-export async function admitPlayer(peer: NativePeer, runtime: NativeRuntime, suffix: string) {
-  peer.registrationId = `registration-${suffix}`;
-  const connection = await openGame(runtime);
-  connection.send({ type: 'admit', supportsBoard: true, ticket: 'c'.repeat(64) });
-  await connection.message('view');
-  return connection;
-}
-
-/** A seat pass the fixture game's secret signs for the suffix's synthetic account, valid for a minute unless the overrides say otherwise. */
+/** A seat pass the fixture game's secret signs for the suffix's synthetic account, valid for an hour unless the overrides say otherwise. */
 export function fixturePass(suffix: string, overrides: Partial<SeatPassPayload> = {}, signedWith = secret) {
   const now = Date.now();
   return signSeatPass(signedWith, {
@@ -952,18 +679,18 @@ export function fixturePass(suffix: string, overrides: Partial<SeatPassPayload> 
     sessionId: `session-${suffix}`,
     sessionCreatedAt: now - 1000,
     issuedAt: now,
-    exp: now + 60_000,
+    exp: now + PLAY_SEAT_PASS_TTL_MS,
     displayName: `Synthetic ${suffix.toUpperCase()}`,
-    avatarUrl: null,
+    avatarUrl: `https://dune.zone/user-images/${suffix}.jpg`,
     profileSlug: `synthetic-${suffix}`,
     ...overrides,
   });
 }
 
-/** Admits with a seat pass instead of a ticket and waits for the first view. */
-export async function admitWithPass(runtime: NativeRuntime, suffix: string, overrides: Partial<SeatPassPayload> = {}) {
+/** Admits the suffix's synthetic account with a seat pass and waits for the first view. */
+export async function admitPlayer(runtime: NativeRuntime, suffix: string, overrides: Partial<SeatPassPayload> = {}) {
   const connection = await openGame(runtime);
-  connection.send({ type: 'admit', supportsBoard: true, pass: await fixturePass(suffix, overrides) });
+  connection.send({ type: 'admit', pass: await fixturePass(suffix, overrides) });
   await connection.message('view');
   return connection;
 }

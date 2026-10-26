@@ -10,8 +10,6 @@ import type { Doc, Id } from './_generated/dataModel';
 import { internalAction, internalQuery } from './_generated/server';
 import type { MutationCtx, QueryCtx } from './_generated/server';
 import { internalMutation } from './functions';
-import { gameActorForAccount } from './lib/accountIdentity';
-import { enrolment } from './lib/playSeatPass';
 import { postPlayService } from './lib/playService';
 
 async function queueGameDeletion(
@@ -63,50 +61,8 @@ async function queueDeletionPage(
       operationId: operation._id,
       paginationOpts: { cursor: page.continueCursor, numItems: 32 },
     });
-    return;
   }
-  await ctx.scheduler.runAfter(0, internal.playDeletion.queueCreatorDeletion, {
-    operationId: operation._id,
-    cursor: null,
-  });
 }
-
-/*
- * Games created before creators were enrolled at creation can seat a creator with no routing row, which rooms used to find only by reconciling.
- * Seat-pass rooms no longer reconcile, so the fan-out enrols each such creator and queues the deletion through that row like any other.
- */
-export const queueCreatorDeletion = internalMutation({
-  args: { operationId: v.id('account_deletion_operations'), cursor: v.union(v.string(), v.null()) },
-  returns: v.null(),
-  handler: async (ctx, args) => {
-    const operation = await ctx.db.get(args.operationId);
-    if (!operation) {
-      return null;
-    }
-    const page = await ctx.db
-      .query('play_games')
-      .withIndex('by_creator_id', (q) => q.eq('creator_id', operation.source_user_id))
-      .paginate({ cursor: args.cursor, numItems: 32 });
-    for (const game of page.page) {
-      if (game.state !== 'ready' || (await enrolment(ctx, game._id, operation.source_user_id))) {
-        continue;
-      }
-      const routingId = await ctx.db.insert('play_game_accounts', {
-        game_id: game._id,
-        user_id: operation.source_user_id,
-        actor_user_ids: [await gameActorForAccount(ctx, game._id, operation.source_user_id)],
-      });
-      await queueGameDeletion(ctx, (await ctx.db.get(routingId))!, operation);
-    }
-    if (!page.isDone) {
-      await ctx.scheduler.runAfter(0, internal.playDeletion.queueCreatorDeletion, {
-        operationId: operation._id,
-        cursor: page.continueCursor,
-      });
-    }
-    return null;
-  },
-});
 
 function isDueDeletion(event: Doc<'play_account_deletions'>) {
   return event.state === 'pending' && Date.now() >= event.next_attempt_at;

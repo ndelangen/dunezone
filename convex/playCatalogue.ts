@@ -12,8 +12,9 @@ import {
 import { holdsDeckMembership } from '../src/shared/assets/types';
 import { CanonicalFactionStoredSchema, toStoredHeroKey } from '../src/shared/factions/schema';
 import { assetSupplySchema, factionDefinitionWireSchema, rulesetSupplySchema } from '../src/shared/play/capture';
+import { isSpawnType, SPAWN_TYPES } from '../src/shared/play/captureTypes';
 import { playDraftableFactionsSchema } from '../src/shared/play/drafting';
-import { isSpawnType, SPAWN_PICKER_STEP, SPAWN_TYPES, spawnableAssetsSchema } from '../src/shared/play/inventory';
+import { SPAWN_PICKER_STEP, spawnableAssetsSchema } from '../src/shared/play/inventory';
 import type { SpawnableAsset } from '../src/shared/play/inventory';
 import type { Doc, Id } from './_generated/dataModel';
 import type { QueryCtx } from './_generated/server';

@@ -15,10 +15,10 @@ import { gameSnapshotSchema, KEEPALIVE_PING, KEEPALIVE_PONG } from '../../src/sh
 import type { ServerMessage, Viewer } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
-import { gameHttpClient } from './authorization';
 import { onCurrentBoard } from './boardLayoutSnapshot';
 import { RoomDelivery } from './delivery';
 import { GameDiagnostics } from './diagnostics';
+import { gameHttpClient } from './gameHttpClient';
 import { isLocalIsolatedRuntime } from './localRuntime';
 import { Room } from './room';
 import { storedSnapshotSchema } from './state';

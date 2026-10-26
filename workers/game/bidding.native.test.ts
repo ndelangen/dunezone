@@ -18,8 +18,6 @@ describe('Optional timed bidding through the native game boundary', { timeout: 2
   let peer: NativePeer, runtime: NativeRuntime;
   beforeEach(async () => {
     peer = await createPeer();
-    peer.watchMode = 'allow';
-    peer.expiresAt = () => Date.now() + 600_000;
     runtime = await createRuntime(peer, 'game');
     if ((await provision(runtime)).status !== 200) {
       throw new Error('The native fixture did not provision.');
@@ -37,9 +35,9 @@ describe('Optional timed bidding through the native game boundary', { timeout: 2
   });
 
   it('shares the optional clock, cancels and restarts it, then passes from a persisted alarm with nobody connected', async () => {
-    const a = await admitPlayer(peer, runtime, 'a');
-    const b = await admitPlayer(peer, runtime, 'b');
-    const observer = await admitPlayer(peer, runtime, 'observer');
+    const a = await admitPlayer(runtime, 'a');
+    const b = await admitPlayer(runtime, 'b');
+    const observer = await admitPlayer(runtime, 'observer');
     const faction = required((await syncView(a)).snapshot.bank).factionId;
     await accepted(a, { kind: 'bid-start' as const, factionId: faction });
     expect((await syncView(a)).snapshot.bidding).toMatchObject({ timed: false, deadline: null });
@@ -80,7 +78,7 @@ describe('Optional timed bidding through the native game boundary', { timeout: 2
       const rows = await runtime.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1');
       return required(readSnapshot(rows[0].data).bidding).turn !== faction;
     }, 'automatic pass without a connected browser');
-    const rejoined = await admitPlayer(peer, runtime, 'a');
+    const rejoined = await admitPlayer(runtime, 'a');
     const next = (await syncView(rejoined)).snapshot.bidding;
     expect(next).toMatchObject({ timed: true, started: true, bid: { factionId: faction, amount: 1 } });
     expect(required(next).deadline).toBeGreaterThan(required(deadline));

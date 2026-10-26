@@ -3,9 +3,9 @@
 
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vite-plus/test';
 
-import { PLAY_FIXTURE_KEY, PLAY_TICKET_TTL_MS, provisionPlaceholderId } from '../src/shared/play/admission';
+import { PLAY_FIXTURE_KEY } from '../src/shared/play/admission';
+import { peekSeatPass } from '../src/shared/play/seatPass';
 import { api, internal } from './_generated/api';
-import type { Id } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
 import { applicationTest } from './application.test.fixture';
 
@@ -37,31 +37,6 @@ async function fixture() {
   });
   const player = t.withIdentity({ subject: `${identity.userId}|${identity.sessionId}` });
   return { t, player, credentials, ...identity };
-}
-
-async function admit(subject: Awaited<ReturnType<typeof fixture>>) {
-  const issued = await subject.player.mutation(api.playAdmission.issueTicket, { gameId: subject.credentials.gameId });
-  if (!issued.ok) {
-    throw new Error('Ticket issuance refused');
-  }
-  const admission = await subject.t.mutation(api.playAdmission.redeemTicket, {
-    gameId: subject.credentials.gameId,
-    secret: subject.credentials.secret,
-    ticket: issued.ticket,
-  });
-  if (!admission.ok) {
-    throw new Error('Admission refused');
-  }
-  return { issued, admission };
-}
-
-function watchArgs(subject: Awaited<ReturnType<typeof fixture>>, registrationIds: string[]) {
-  return {
-    gameId: subject.credentials.gameId,
-    secret: subject.credentials.secret,
-    generation: 'synthetic-generation',
-    registrationIds,
-  };
 }
 
 const admissionFailures: Record<
@@ -98,143 +73,37 @@ afterEach(() => {
 });
 
 describe('Play admission', () => {
-  test('serves only safe ready metadata to a signed-in non-administrator', async () => {
-    const subject = await fixture();
-    const { gameId } = subject.credentials;
-    expect(await subject.t.query(api.playGames.getGame, { gameId })).toEqual({ status: 'sign_in_required' });
-    expect(await subject.player.query(api.playGames.getGame, { gameId })).toEqual({
-      status: 'ready',
-      gameId,
-      name: 'Hosted fixture',
-      ruleset: null,
-      minimumPlayers: null,
-    });
-    const { admission, issued } = await admit(subject);
-    expect(issued.ticket).toMatch(/^[0-9a-f]{64}$/);
-    expect(admission).toMatchObject({
-      userId: subject.userId,
-      sessionId: subject.sessionId,
-      displayName: 'Synthetic player',
-    });
-    const stored = await subject.t.run(async (ctx) => await ctx.db.query('play_tickets').first());
-    expect(stored?.digest).not.toBe(issued.ticket);
-    expect(stored).not.toHaveProperty('ticket');
-  });
+  const enrol = (subject: Awaited<ReturnType<typeof fixture>>) =>
+    subject.player.mutation(api.playAdmission.enrolPlayer, { gameId: subject.credentials.gameId });
+  const renew = (subject: Awaited<ReturnType<typeof fixture>>) =>
+    subject.player.mutation(api.playAdmission.renewSeatPass, { gameId: subject.credentials.gameId });
+  async function passOf(result: Awaited<ReturnType<typeof enrol>>) {
+    if (!result.ok) {
+      throw new Error(`Seat pass refused: ${result.reason}`);
+    }
+    return { pass: result.pass, payload: peekSeatPass(result.pass)! };
+  }
 
-  test('consumes each ticket once, including simultaneous attempts, and deduplicates session registrations', async () => {
+  test('closing the hosted fixture refuses its passes', async () => {
     const subject = await fixture();
-    const ticket = await subject.player.mutation(api.playAdmission.issueTicket, { gameId: subject.credentials.gameId });
-    if (!ticket.ok) {
-      throw new Error('Ticket issuance refused');
-    }
-    const request = { gameId: subject.credentials.gameId, secret: subject.credentials.secret, ticket: ticket.ticket };
-    const answers = await Promise.all([
-      subject.t.mutation(api.playAdmission.redeemTicket, request),
-      subject.t.mutation(api.playAdmission.redeemTicket, request),
-    ]);
-    expect(answers.filter((answer) => answer.ok)).toHaveLength(1);
-    expect(answers.find((answer) => !answer.ok)).toEqual({ ok: false, reason: 'expired' });
-    const first = answers.find((answer) => answer.ok);
-    const second = await admit(subject);
-    expect(first?.ok && first.registrationId).toBe(second.admission.registrationId);
-  });
-
-  test('wrong-game, wrong-secret and malformed tickets reveal the same refusal without consuming a valid ticket', async () => {
-    const subject = await fixture();
-    const issued = await subject.player.mutation(api.playAdmission.issueTicket, { gameId: subject.credentials.gameId });
-    if (!issued.ok) {
-      throw new Error('Ticket issuance refused');
-    }
-    for (const request of [
-      { gameId: 'unknown-game', secret: subject.credentials.secret, ticket: issued.ticket },
-      { gameId: subject.credentials.gameId, secret: 'a'.repeat(64), ticket: issued.ticket },
-      { gameId: subject.credentials.gameId, secret: subject.credentials.secret, ticket: 'malformed' },
-    ]) {
-      expect(await subject.t.mutation(api.playAdmission.redeemTicket, request)).toEqual({
-        ok: false,
-        reason: 'refused',
-      });
-    }
-    expect(
-      await subject.t.mutation(api.playAdmission.redeemTicket, {
-        gameId: subject.credentials.gameId,
-        secret: subject.credentials.secret,
-        ticket: issued.ticket,
-      })
-    ).toMatchObject({ ok: true });
-  });
-
-  test('answers a ticket whose duration has passed as expired while Auth remains valid', async () => {
-    const subject = await fixture();
-    const issued = await subject.player.mutation(api.playAdmission.issueTicket, { gameId: subject.credentials.gameId });
-    if (!issued.ok) {
-      throw new Error('Ticket issuance refused');
-    }
-    expect(issued.expiresInMs).toBe(PLAY_TICKET_TTL_MS);
-    vi.setSystemTime(Date.now() + issued.expiresInMs);
-    expect(
-      await subject.t.mutation(api.playAdmission.redeemTicket, {
-        gameId: subject.credentials.gameId,
-        secret: subject.credentials.secret,
-        ticket: issued.ticket,
-      })
-    ).toEqual({ ok: false, reason: 'expired' });
-    expect(
-      await subject.player.mutation(api.playAdmission.issueTicket, { gameId: subject.credentials.gameId })
-    ).toMatchObject({ ok: true });
-  });
-
-  test('closing the hosted fixture refuses its outstanding ticket and denies its registered session', async () => {
-    const subject = await fixture();
-    const { admission } = await admit(subject);
-    const outstanding = await subject.player.mutation(api.playAdmission.issueTicket, {
-      gameId: subject.credentials.gameId,
-    });
-    if (!outstanding.ok) {
-      throw new Error('Ticket issuance refused');
-    }
-    const watch = () =>
-      subject.t.query(api.playAdmission.watchAuthorizations, watchArgs(subject, [admission.registrationId]));
-    expect(await watch()).toMatchObject({ ok: true, entries: [{ allowed: true }] });
+    await passOf(await enrol(subject));
     /* The same row under the hosted fixture's key, as production keeps that game stored. */
     await subject.t.run(
       async (ctx) => await ctx.db.patch(subject.credentials.gameId, { fixture_key: PLAY_FIXTURE_KEY })
     );
-    expect(
-      await subject.t.mutation(api.playAdmission.redeemTicket, {
-        gameId: subject.credentials.gameId,
-        secret: subject.credentials.secret,
-        ticket: outstanding.ticket,
-      })
-    ).toEqual({ ok: false, reason: 'refused' });
-    expect(await watch()).toMatchObject({ ok: true, entries: [{ allowed: false }] });
+    expect(await renew(subject)).toEqual({ ok: false, reason: 'unavailable' });
+    expect(await enrol(subject)).toEqual({ ok: false, reason: 'unavailable' });
   });
 
-  test.each(Object.entries(admissionFailures))(
-    'refuses admission and outstanding tickets after %s',
-    async (_name, change) => {
-      const subject = await fixture();
-      const issued = await subject.player.mutation(api.playAdmission.issueTicket, {
-        gameId: subject.credentials.gameId,
-      });
-      if (!issued.ok) {
-        throw new Error('Ticket issuance refused');
-      }
-      await subject.t.run((ctx) => change(ctx, subject));
-      expect(
-        await subject.player.mutation(api.playAdmission.issueTicket, { gameId: subject.credentials.gameId })
-      ).toEqual({ ok: false, reason: 'not_authorized' });
-      expect(
-        await subject.t.mutation(api.playAdmission.redeemTicket, {
-          gameId: subject.credentials.gameId,
-          secret: subject.credentials.secret,
-          ticket: issued.ticket,
-        })
-      ).toEqual({ ok: false, reason: 'refused' });
-    }
-  );
+  test.each(Object.entries(admissionFailures))('refuses a pass after %s', async (_name, change) => {
+    const subject = await fixture();
+    await passOf(await enrol(subject));
+    await subject.t.run((ctx) => change(ctx, subject));
+    expect(await renew(subject)).toEqual({ ok: false, reason: 'not_authorized' });
+    expect(await enrol(subject)).toEqual({ ok: false, reason: 'not_authorized' });
+  });
 
-  test('finds the unused refresh branch behind more than 128 newer used rows', async () => {
+  test('ends a pass with the unused refresh branch, found behind more than 128 newer used rows', async () => {
     const subject = await fixture();
     await subject.t.run(async (ctx) => {
       for (let index = 0; index < 256; index++) {
@@ -245,173 +114,41 @@ describe('Play admission', () => {
         });
       }
     });
-    expect((await admit(subject)).admission.authExpiresAt).toBe(Date.now() + 600_000);
+    expect((await passOf(await enrol(subject))).payload.exp).toBe(Date.now() + 600_000);
     await subject.t.run(async (ctx) => {
       await ctx.db.insert('authRefreshTokens', { sessionId: subject.sessionId, expirationTime: Date.now() + 120_000 });
     });
-    expect((await admit(subject)).admission.authExpiresAt).toBe(Date.now() + 120_000);
+    expect((await passOf(await renew(subject))).payload.exp).toBe(Date.now() + 120_000);
   });
 
-  test('returns an expiry deadline without treating query execution or game activity as an Auth refresh', async () => {
-    const subject = await fixture();
-    const { admission } = await admit(subject);
-    const request = watchArgs(subject, [admission.registrationId]);
-    const before = await subject.t.query(api.playAdmission.watchAuthorizations, request);
-    vi.setSystemTime(admission.authExpiresAt + 1);
-    expect(await subject.t.query(api.playAdmission.watchAuthorizations, request)).toEqual(before);
-    expect(
-      await subject.player.mutation(api.playAdmission.issueTicket, { gameId: subject.credentials.gameId })
-    ).toEqual({ ok: false, reason: 'not_authorized' });
-  });
-
-  test('uses current refresh and total deadlines even when they move earlier', async () => {
-    const subject = await fixture();
-    const { admission } = await admit(subject);
-    const request = watchArgs(subject, [admission.registrationId]);
-    const before = await subject.t.query(api.playAdmission.watchAuthorizations, request);
-    if (!before.ok || !before.entries[0]) {
-      throw new Error('Missing initial refresh branch');
-    }
-    vi.setSystemTime(Date.now() + 10);
-    const refreshExpiresAt = Date.now() + 120_000;
-    await subject.t.run(async (ctx) => {
-      await ctx.db.patch(subject.refreshId, { firstUsedTime: Date.now() });
-      await ctx.db.insert('authRefreshTokens', { sessionId: subject.sessionId, expirationTime: refreshExpiresAt });
-    });
-    const rotated = await subject.t.query(api.playAdmission.watchAuthorizations, request);
-    if (!rotated.ok || !rotated.entries[0]) {
-      throw new Error('Missing rotated refresh branch');
-    }
-    expect(rotated.entries[0].authExpiresAt).toBe(refreshExpiresAt);
-    expect(rotated.entries[0].authExpiresAt).toBeLessThan(before.entries[0].authExpiresAt);
-    const sessionExpiresAt = Date.now() + 30_000;
-    await subject.t.run(async (ctx) => await ctx.db.patch(subject.sessionId, { expirationTime: sessionExpiresAt }));
-    expect(await subject.t.query(api.playAdmission.watchAuthorizations, request)).toMatchObject({
-      ok: true,
-      entries: [{ authExpiresAt: sessionExpiresAt }],
-    });
-  });
-
-  test('removing Administrator keeps access, while a revocation checkpoint or Auth row deletion denies the live registration', async () => {
+  test('removing Administrator keeps the pass coming, while a revocation checkpoint or Auth row deletion ends it', async () => {
     const subject = await fixture();
     await subject.t.run(async (ctx) => await ctx.db.patch(subject.userId, { isAdmin: true }));
-    const { admission } = await admit(subject);
+    await passOf(await enrol(subject));
     await subject.t.run(async (ctx) => await ctx.db.patch(subject.userId, { isAdmin: false }));
-    expect(
-      await subject.t.query(api.playAdmission.watchAuthorizations, watchArgs(subject, [admission.registrationId]))
-    ).toMatchObject({ ok: true, entries: [{ allowed: true }] });
+    await passOf(await renew(subject));
     await subject.t.run(async (ctx) => {
       const session = await ctx.db.get(subject.sessionId);
       await ctx.db.patch(subject.userId, { auth_sessions_revoked_through: session!._creationTime });
     });
-    expect(
-      await subject.t.query(api.playAdmission.watchAuthorizations, watchArgs(subject, [admission.registrationId]))
-    ).toMatchObject({ ok: true, entries: [{ allowed: false }] });
-    await subject.t.run(async (ctx) => await ctx.db.delete(subject.sessionId));
-    expect(
-      await subject.t.query(api.playAdmission.watchAuthorizations, watchArgs(subject, [admission.registrationId]))
-    ).toMatchObject({ ok: true, entries: [{ allowed: false }] });
+    expect(await renew(subject)).toEqual({ ok: false, reason: 'not_authorized' });
   });
 
-  test('answers every requested registration and refuses oversized batches instead of truncating them', async () => {
+  test('rate limits pass requests across tabs of the same account', async () => {
     const subject = await fixture();
-    const { admission } = await admit(subject);
-    const answer = await subject.t.query(
-      api.playAdmission.watchAuthorizations,
-      watchArgs(subject, [admission.registrationId, 'missing'])
-    );
-    expect(answer).toMatchObject({
-      ok: true,
-      generation: 'synthetic-generation',
-      entries: [
-        { registrationId: admission.registrationId, allowed: true },
-        { registrationId: 'missing', allowed: false, userId: null, sessionId: null },
-      ],
-    });
-    expect(
-      await subject.t.query(
-        api.playAdmission.watchAuthorizations,
-        watchArgs(
-          subject,
-          Array.from({ length: 65 }, () => admission.registrationId)
-        )
-      )
-    ).toEqual({ ok: false });
-    expect(
-      await subject.t.query(api.playAdmission.watchAuthorizations, {
-        ...watchArgs(subject, [admission.registrationId]),
-        secret: 'f'.repeat(64),
-      })
-    ).toEqual({ ok: false });
-  });
-
-  test('expired registration cleanup preserves account routing for sleeping-game deletion', async () => {
-    const subject = await fixture();
-    const { admission } = await admit(subject);
-    vi.setSystemTime(Date.now() + 3_600_000);
-    await subject.t.mutation(internal.playAdmission.expireRegistration, {
-      registrationId: admission.registrationId as Id<'play_auth_registrations'>,
-    });
-    expect(
-      await subject.t.query(api.playAdmission.watchAuthorizations, watchArgs(subject, [admission.registrationId]))
-    ).toMatchObject({ ok: true, entries: [{ allowed: false, userId: null }] });
-    expect(
-      await subject.t.query(api.playAdmission.reconcileAccounts, {
-        gameId: subject.credentials.gameId,
-        secret: subject.credentials.secret,
-        userIds: [subject.userId, 'missing'],
-      })
-    ).toEqual({
-      ok: true,
-      accounts: [
-        { userId: subject.userId, state: 'active', deletionOperationId: null },
-        { userId: 'missing', state: 'unknown', deletionOperationId: null },
-      ],
-    });
-  });
-
-  test('only a synthetic backend vouches for the placeholders that took a provisioned game to Turn 1', async () => {
-    const subject = await fixture();
-    const placeholder = provisionPlaceholderId(2);
-    const reconciled = () =>
-      subject.t.query(api.playAdmission.reconcileAccounts, {
-        gameId: subject.credentials.gameId,
-        secret: subject.credentials.secret,
-        userIds: [placeholder],
-      });
-    expect(await reconciled()).toEqual({
-      ok: true,
-      accounts: [{ userId: placeholder, state: 'active', deletionOperationId: null }],
-    });
-    vi.stubEnv('SITE_URL', 'https://dune.zone');
-    expect(await reconciled()).toEqual({
-      ok: true,
-      accounts: [{ userId: placeholder, state: 'unknown', deletionOperationId: null }],
-    });
-  });
-
-  test('rate limits ticket requests across tabs of the same account', async () => {
-    const subject = await fixture();
-    const requests = Array.from({ length: 11 }, () =>
-      subject.player.mutation(api.playAdmission.issueTicket, { gameId: subject.credentials.gameId })
-    );
-    const results = await Promise.all(requests);
+    const results = await Promise.all(Array.from({ length: 11 }, () => enrol(subject)));
     expect(results.filter((result) => result.ok)).toHaveLength(10);
     expect(results.find((result) => !result.ok)).toMatchObject({ ok: false, reason: 'rate_limited' });
   });
 
-  test('rejected requests from an exhausted account leave ticket capacity for another account', async () => {
+  test('rejected requests from an exhausted account leave pass capacity for another account', async () => {
     const subject = await fixture();
     const request = { gameId: subject.credentials.gameId };
     for (let attempt = 0; attempt < 10; attempt++) {
-      expect(await subject.player.mutation(api.playAdmission.issueTicket, request)).toMatchObject({ ok: true });
+      expect(await enrol(subject)).toMatchObject({ ok: true });
     }
     for (let attempt = 0; attempt < 100; attempt++) {
-      expect(await subject.player.mutation(api.playAdmission.issueTicket, request)).toEqual({
-        ok: false,
-        reason: 'rate_limited',
-        retryAfterMs: 2000,
-      });
+      expect(await enrol(subject)).toEqual({ ok: false, reason: 'rate_limited', retryAfterMs: 2000 });
     }
     const secondIdentity = await subject.t.run(async (ctx) => {
       const userId = await ctx.db.insert('users', { account_state: 'active' });
@@ -419,7 +156,7 @@ describe('Play admission', () => {
       await ctx.db.insert('authRefreshTokens', { sessionId, expirationTime: Date.now() + 600_000 });
       return { subject: `${userId}|${sessionId}` };
     });
-    expect(await subject.t.withIdentity(secondIdentity).mutation(api.playAdmission.issueTicket, request)).toMatchObject(
+    expect(await subject.t.withIdentity(secondIdentity).mutation(api.playAdmission.enrolPlayer, request)).toMatchObject(
       { ok: true }
     );
   });

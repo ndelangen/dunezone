@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test';
-import { z } from 'zod';
 
 import { publishingDeckCardback } from '../../src/shared/assets/fixtures/publishingDeckCardback';
 import { publishingRectangleTokenFace } from '../../src/shared/assets/fixtures/publishingRectangleTokenFace';
@@ -23,7 +22,6 @@ import {
   admitPlayer,
   createPeer,
   createRuntime,
-  openGame,
   provision,
   eventually,
   storedEventMessages,
@@ -58,8 +56,6 @@ describe('Hosted readiness and shared inventory through native commands', () => 
   let peer: NativePeer, runtime: NativeRuntime, number: number, offset: number, committedRevision: number;
   beforeEach(async () => {
     peer = await createPeer();
-    peer.watchMode = 'allow';
-    peer.expiresAt = () => Date.now() + 3_600_000;
     peer.catalogue.set('token-disc/recovery', tokenPage());
     runtime = await createRuntime(peer, 'game');
     number = 0;
@@ -73,7 +69,7 @@ describe('Hosted readiness and shared inventory through native commands', () => 
     await runtime?.close();
     await peer?.close();
   });
-  const admit = (suffix: string) => admitPlayer(peer, runtime, suffix);
+  const admit = (suffix: string) => admitPlayer(runtime, suffix);
   async function snapshot(connection: NativeConnection) {
     return (
       await eventually(
@@ -156,7 +152,6 @@ describe('Hosted readiness and shared inventory through native commands', () => 
     expect(required(state.controls).ready).toEqual([]);
     await act(reconnected, { kind: 'phase' }, 'between phase changes');
     await act(b, { kind: 'phase', direction: -1 }, 'between phase changes');
-    await act(b, { kind: 'turn', turn: 3 }, 'only by moving through the phases');
     await waitPhase();
     state = await act(b, { kind: 'phase', direction: -1 });
     expect(state.phase).toBe(8);
@@ -745,79 +740,6 @@ describe('Hosted readiness and shared inventory through native commands', () => 
     const scrubbed = await runtime.exec('SELECT * FROM history ORDER BY step');
     expect((await deletion()).status).toBe(200);
     expect(await runtime.exec('SELECT * FROM history ORDER BY step')).toEqual(scrubbed);
-    /* Before the spice ledger shipped, deletion removed receipts but left these names. */
-    await runtime.exec('DELETE FROM spice_transfers');
-    for (const table of ['current_state', 'history']) {
-      await runtime.exec(`UPDATE ${table} SET data=replace(data, '[deleted user]', 'Synthetic A')`);
-    }
-    /* A room of that release carries no repair version, which is what makes the next start repair it. */
-    await runtime.exec("UPDATE metadata SET data=json_remove(data, '$.historyRepair')");
-    await runtime.restart();
-    const restored = await admit('b');
-    restored.send({ type: 'history', step: 3 });
-    expect((await restored.message('history')).snapshot).toEqual(historical);
-  }, 30_000);
-
-  it('repairs retained history once per scrub version and leaves later deletions to the deletion transaction', async () => {
-    const a = await admit('a');
-    const b = await admit('b');
-    await act(b, { kind: 'reset' });
-    await act(a, { kind: 'spice-spawn', count: 3 });
-    await act(b, { kind: 'spice-spawn', count: 2 });
-    await waitPhase();
-    await act(b, { kind: 'phase' });
-    const deletion = (userId: string, eventId: string) =>
-      runtime.fetch('/__play/games/fixture-game/account-deletion', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          gameId: 'fixture-game',
-          secret: 'a'.repeat(64),
-          userId,
-          eventId,
-          deletionOperationId: `operation-${eventId}`,
-        }),
-      });
-    expect((await deletion('user-a', 'deletion-a')).status).toBe(200);
-    const restoreNames = () => runtime.exec("UPDATE history SET data=replace(data, '[deleted user]', 'Synthetic A')");
-    const armFailure = () =>
-      runtime.exec(
-        "CREATE TRIGGER fail_history_scrub BEFORE UPDATE ON history BEGIN SELECT RAISE(ABORT, 'Fixture scrub failure'); END"
-      );
-    const version = (rows: { data: string }[]) => JSON.parse(rows[0].data).historyRepair;
-    /* A room provisioned by this release is already repaired; an older room carries no version. */
-    await restoreNames();
-    await runtime.exec("UPDATE metadata SET data=json_remove(data, '$.historyRepair')");
-    await armFailure();
-    await runtime.restart();
-    /* A failed repair rolls back with its version unsaved, and the room refuses until the next start repairs again. */
-    await expect(openGame(runtime)).rejects.toThrow('Socket refused: 403');
-    expect(JSON.stringify(await runtime.offline('SELECT data FROM history'))).toContain('Synthetic A');
-    expect(
-      version(
-        (await runtime.offline('SELECT data FROM metadata')).map((row) => z.object({ data: z.string() }).parse(row))
-      )
-    ).toBeUndefined();
-    await runtime.offline('DROP TRIGGER fail_history_scrub');
-    expect(JSON.stringify(await runtime.exec<{ data: string }>('SELECT data FROM history'))).not.toContain(
-      'Synthetic A'
-    );
-    expect(version(await runtime.exec<{ data: string }>('SELECT data FROM metadata'))).toBe(2);
-    /* A repaired room starts without touching history: the armed trigger never fires. */
-    await restoreNames();
-    await armFailure();
-    await runtime.restart();
-    const restored = await admit('b');
-    expect(restored.closed).toBe(false);
-    await runtime.exec('DROP TRIGGER fail_history_scrub');
-    /* A later deletion scrubs in its own transaction and the result survives the next start. */
-    expect((await deletion('user-b', 'deletion-b')).status).toBe(200);
-    expect(JSON.stringify(await runtime.exec<{ data: string }>('SELECT data FROM history'))).not.toContain('Synthetic');
-    await runtime.restart();
-    const observer = await admit('c');
-    const transfers = JSON.stringify((await snapshot(observer)).spiceTransfers);
-    expect(transfers).toContain('[deleted user]');
-    expect(transfers).not.toContain('Synthetic');
   }, 30_000);
 
   it('retains requests after account deletion and anonymizes attribution in replay and cold recovery', async () => {

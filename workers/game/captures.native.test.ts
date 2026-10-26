@@ -24,7 +24,6 @@ describe('Catalogue capture and retention through the isolated fixture', () => {
   let peer: NativePeer, runtime: NativeRuntime;
   beforeEach(async () => {
     peer = await createPeer();
-    peer.watchMode = 'allow';
     runtime = await createRuntime(peer, 'game');
     if ((await provision(runtime)).status !== 200) {
       throw new Error('The native fixture did not provision.');

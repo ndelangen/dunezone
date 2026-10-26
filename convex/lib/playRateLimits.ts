@@ -5,9 +5,9 @@ import type { Id } from '../_generated/dataModel';
 import type { MutationCtx } from '../_generated/server';
 
 export const playRateLimiter = new RateLimiter(components.rateLimiter, {
-  playTicketPerAccount: { kind: 'token bucket', rate: 30, period: MINUTE, capacity: 10 },
-  playTicketGlobal: { kind: 'token bucket', rate: 600, period: MINUTE, capacity: 100 },
-  playRedeemPerGame: { kind: 'token bucket', rate: 600, period: MINUTE, capacity: 100 },
+  /* Enrolling at a game and renewing its seat pass share these. */
+  playPassPerAccount: { kind: 'token bucket', rate: 30, period: MINUTE, capacity: 10 },
+  playPassGlobal: { kind: 'token bucket', rate: 600, period: MINUTE, capacity: 100 },
   playProvisionValidation: { kind: 'token bucket', rate: 60, period: MINUTE, capacity: 20 },
   /* Creation is open to every signed-in player, so each game row and its provisioning are budgeted per account. */
   playCreatePerAccount: { kind: 'token bucket', rate: 10, period: HOUR, capacity: 3 },
@@ -48,9 +48,9 @@ export async function playCreateQuota(ctx: MutationCtx, userId: string) {
   return null;
 }
 
-export async function playTicketQuota(ctx: MutationCtx, userId: string) {
-  const perAccount = await playRateLimiter.limit(ctx, 'playTicketPerAccount', { key: userId });
-  const quota = perAccount.ok ? await playRateLimiter.limit(ctx, 'playTicketGlobal') : perAccount;
+export async function playPassQuota(ctx: MutationCtx, userId: string) {
+  const perAccount = await playRateLimiter.limit(ctx, 'playPassPerAccount', { key: userId });
+  const quota = perAccount.ok ? await playRateLimiter.limit(ctx, 'playPassGlobal') : perAccount;
   if (quota.ok) {
     return null;
   }

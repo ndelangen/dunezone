@@ -62,7 +62,7 @@ describe('Drafting and public assignment on a real game', () => {
     await peer?.close();
   });
 
-  const admit = (suffix: string) => admitPlayer(peer, runtime, suffix);
+  const admit = (suffix: string) => admitPlayer(runtime, suffix);
   const rejected = async (connection: NativeConnection, action: PieceAction) => {
     const { reply } = await sendCommand(connection, action);
     expect(reply.type).toBe('rejected');

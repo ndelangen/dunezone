@@ -96,8 +96,8 @@ function GameAccessPage() {
   const readStored = useMemo(() => storedGameReader(runtime.tables, address), [runtime, address]);
   const stored = useSyncExternalStore(noSubscription, readStored, () => null);
   const refused = data !== undefined && data.status !== 'ready' && data.status !== 'preparing';
-  /* The game's seat pass rides on the access answer and renews with it; a deployment that sends none leaves the browser on tickets. */
-  const seatPass = data?.status === 'ready' ? ('pass' in data ? (data.pass ?? null) : undefined) : null;
+  /* The game's seat pass rides on the access answer and renews with it. */
+  const seatPass = data?.status === 'ready' ? data.pass : null;
   const passGameId = data?.status === 'ready' ? data.gameId : null;
   useEffect(() => {
     if (passGameId) {

@@ -137,7 +137,7 @@ export function localRuntime(
       socket = new LocalSocket();
       return socket.open();
     },
-    /* The page's ticket has the shape the socket's messages require; nothing checks it but that. */
+    /* The page's pass has the shape the socket's messages require; nothing checks it but that. */
     replaying: () => socket?.replayed ?? false,
     reconnect: () => socket?.close(),
     greet: (name) => {
@@ -145,7 +145,7 @@ export function localRuntime(
     },
     dispose: () => conversations.dispose(),
     admission: {
-      request: () => Promise.resolve({ ok: true as const, ticket: '0'.repeat(64), expiresInMs: 3_600_000 }),
+      request: () => Promise.resolve({ ok: true as const, pass: 'tutorial.local' }),
     },
   };
 }

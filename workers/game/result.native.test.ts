@@ -44,7 +44,7 @@ describe('Determine winner and Continue playing', { timeout: 60_000 }, () => {
     await peer?.close();
   });
 
-  const admit = (suffix: string) => admitPlayer(peer, runtime, suffix);
+  const admit = (suffix: string) => admitPlayer(runtime, suffix);
   const rejected = async (connection: NativeConnection, action: PieceAction) =>
     (await sendCommand(connection, action)).reply.type === 'rejected';
   const factionOf = (view: NativeView) =>
@@ -339,7 +339,6 @@ describe('Determine winner and Continue playing', { timeout: 60_000 }, () => {
       { kind: 'flip', pieceId: required(force).id },
       { kind: 'spice-spawn', count: 1 },
       { kind: 'ready', ready: true },
-      { kind: 'turn', turn: 2 },
     ] satisfies PieceAction[]) {
       expect(messageOf((await sendCommand(other, action)).reply, 'rejected').message).toBe(finishedRefusal);
     }

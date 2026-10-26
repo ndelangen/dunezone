@@ -283,7 +283,7 @@ export class BoundedLoadRoom extends GameRoom {
   }
 
   private async cleanStoppedRun() {
-    await this.stopConnections();
+    this.stopConnections();
     /* In-flight admission and provisioning must finish before their data is removed. */
     await Promise.allSettled(this.active);
     await this.ctx.storage.deleteAlarm();

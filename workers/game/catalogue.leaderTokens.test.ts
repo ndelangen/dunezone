@@ -4,7 +4,7 @@ import { DUKE_PRAD_VIDAL_TOKEN } from '../../src/shared/assets/leaderToken';
 import { GameCatalogue } from './catalogue';
 
 const reads = vi.hoisted(() => ({ query: vi.fn() }));
-vi.mock('./authorization', () => ({ gameHttpClient: () => reads }));
+vi.mock('./gameHttpClient', () => ({ gameHttpClient: () => reads }));
 
 test('a direct standalone leader captures one round token using its single face on either side', async () => {
   const image = '/published/leader-tokens/duke/token.jpg?v=ready';

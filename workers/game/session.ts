@@ -36,10 +36,8 @@ import { isTableSeatCount } from '../../src/shared/play/tableSettings';
 import { eventId as tableEventId } from '../../src/shared/play/tableState';
 import type { RoomFrame } from '../../src/shared/play/updates';
 import { ActorDirectory } from './actors';
-import { HISTORY_REPAIR_VERSION } from './anonymizeHistory';
 import { expireBattle } from './battle';
 import { biddingDeadline, expireBidding } from './bidding';
-import { moveStoredGameOntoCurrentBoard } from './boardLayout';
 import { CaptureStore } from './captures';
 import { Conversations } from './conversations';
 import { DirectoryOutbox } from './directory';
@@ -112,8 +110,6 @@ export type Metadata = {
   provisional?: boolean;
   /* The shorter phase cooldown a synthetic backend provisioned in the isolated local stack; absent means the real one. */
   testPhaseCooldownMs?: number;
-  /* The scrub release this room's history is repaired to: stamped at creation, or committed with a startup repair. */
-  historyRepair?: number;
   /* The catalogue deck the hosted fixture deals as its treachery cards; absent until the catalogue answers. */
   fixtureDeck?: StoredSpawnContents;
 };
@@ -204,8 +200,6 @@ export class GameSession {
       this.metadata = JSON.parse(metadata.data) as Metadata;
       /* Only a real game keeps a log, and a woken room must keep filing it. */
       this.log.enabled = Boolean(this.metadata.game);
-      this.repairDeletedHistory();
-      moveStoredGameOntoCurrentBoard(this.storage);
       this.room = this.openRoom(this.withRoster(this.spiceLedger.project(this.storedSnapshot())));
       this.history.restoreBoundary();
       /* A room evicted mid-attempt wakes owing a deal; the gates are judged again without waiting for a command. */
@@ -213,27 +207,6 @@ export class GameSession {
       this.installSetupProgress();
       this.finishSetupCleanup();
     }
-  }
-
-  /*
-   * Deletion scrubs history inside its own transaction, so startup repairs only rows an older scrub release left.
-   * The version commits with the rewrite; a failed rewrite keeps the old version and the next start repairs again.
-   * In the constructor workerd discards every write of a throwing start anyway; the transaction keeps the method
-   * safe should it ever run from a request.
-   */
-  private repairDeletedHistory() {
-    const metadata = this.metadata!;
-    if (metadata.historyRepair === HISTORY_REPAIR_VERSION) {
-      return;
-    }
-    this.storage.transactionSync(() => {
-      this.actors.scrubDeletedHistory();
-      this.storage.sql.exec(
-        "UPDATE metadata SET data=json_set(data, '$.historyRepair', ?) WHERE id=1",
-        HISTORY_REPAIR_VERSION
-      );
-    });
-    this.reloadMetadata();
   }
 
   private reloadMetadata() {
@@ -346,7 +319,6 @@ export class GameSession {
     const metadata: Metadata = {
       ...provisioned,
       seatCount: roster.seatCount,
-      historyRepair: HISTORY_REPAIR_VERSION,
     };
     this.log.enabled = Boolean(game);
     const snapshot = game
@@ -988,10 +960,6 @@ export class GameSession {
   get info(): Readonly<Metadata> | undefined {
     return this.metadata;
   }
-  get hasRetainedBoard() {
-    return Boolean(this.captures.ruleset()?.board);
-  }
-
   get ready() {
     return this.room !== undefined;
   }
@@ -1094,9 +1062,6 @@ export class GameSession {
     );
     this.reloadMetadata();
     return true;
-  }
-  actorBatch(cursor: string) {
-    return this.actors.batch(cursor);
   }
   seatFor(userId: string) {
     return this.actors.seatFor(userId);

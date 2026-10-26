@@ -20,8 +20,6 @@ export type MenuControls = Pick<
 type MenuOptions = Readonly<{
   /** Another player holds the piece, so it cannot be deleted from under them. */
   reserved: boolean;
-  /** A ring opened by a finger has no keyboard to teach. */
-  touch: boolean;
   onClose: () => void;
 }>;
 
@@ -73,8 +71,7 @@ function spiceActions(
 function deckActions(
   piece: TablePiece,
   deckControls: MenuControls['deckControls'],
-  peek: RadialAction,
-  touch: boolean
+  peek: RadialAction
 ): RadialAction[] {
   const count = piece.items.length;
   const available = !!deckControls && !piece.locked && !piece.inventory && count > 0;
@@ -110,8 +107,8 @@ function deckActions(
       key: 'shuffle',
       label: 'Shuffle',
       icon: 'shuffle',
-      /* Hovering a deck and pressing R shuffles it; a ring opened by a finger has no keyboard to teach. */
-      shortcut: touch ? undefined : 'R',
+      /* Hovering a deck and pressing R shuffles it. */
+      shortcut: 'R',
       disabled: !available || count < 2,
       onSelect: () => deckControls?.shuffle(piece.id),
     },
@@ -156,13 +153,13 @@ function deleteAction(
 }
 
 /* The piece's own actions: a spice pile's, a deck's, or a hidden token's peek. */
-function ownActions(piece: TablePiece, controls: MenuControls, touch: boolean, onClose: () => void): RadialAction[] {
+function ownActions(piece: TablePiece, controls: MenuControls, onClose: () => void): RadialAction[] {
   if (isSpicePiece(piece)) {
     return spiceActions(piece, controls.spiceReserveControls, onClose);
   }
   const peek = peekAction(piece, controls.peekControls, onClose);
   if (piece.kind === 'card') {
-    return deckActions(piece, controls.deckControls, peek, touch);
+    return deckActions(piece, controls.deckControls, peek);
   }
   return peekableToken(piece) ? [peek] : [];
 }
@@ -172,7 +169,7 @@ function ownActions(piece: TablePiece, controls: MenuControls, touch: boolean, o
  * The piece's own actions come first, then the hand's take where the piece can be taken, and last the held delete where the piece can be deleted.
  */
 export function pieceMenuActions(piece: TablePiece, controls: MenuControls, options: MenuOptions): RadialAction[] {
-  const actions = ownActions(piece, controls, options.touch, options.onClose);
+  const actions = ownActions(piece, controls, options.onClose);
   if (controls.handControls?.canTake(piece.id)) {
     actions.push(handAction(piece, controls.handControls, options.onClose));
   }

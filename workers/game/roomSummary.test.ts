@@ -33,8 +33,8 @@ test('a summary reports what changed since the last one, with the room identity 
   }
   summary.stall(300);
   summary.stall(900);
-  summary.convexCall({ path: 'playAdmission:reconcileAccounts', durationMs: 40, ok: true });
-  summary.convexCall({ path: 'playAdmission:reconcileAccounts', durationMs: 120, ok: false });
+  summary.convexCall({ path: 'playAdmission:seatLimitReached', durationMs: 40, ok: true });
+  summary.convexCall({ path: 'playAdmission:seatLimitReached', durationMs: 120, ok: false });
   summary.client('connection-a', telemetry(90, 200));
   summary.client('connection-b', telemetry(60, 80, 120));
   summary.client('connection-b', telemetry(70, 300, 150));
@@ -62,7 +62,7 @@ test('a summary reports what changed since the last one, with the room identity 
     commands: { count: 4, p50Ms: 30, p95Ms: 400, maxMs: 400 },
     stalls: 2,
     worstStallMs: 900,
-    convex: { 'playAdmission:reconcileAccounts': { calls: 2, failures: 1, totalMs: 160, maxMs: 120 } },
+    convex: { 'playAdmission:seatLimitReached': { calls: 2, failures: 1, totalMs: 160, maxMs: 120 } },
     clients: {
       reports: 2,
       worstActionP95Ms: 90,

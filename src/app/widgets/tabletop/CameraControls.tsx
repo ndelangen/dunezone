@@ -12,7 +12,6 @@ import {
   cameraFogRange,
   cameraGlideShare,
   cameraPoseFor,
-  cameraTiltAfterWheel,
   cameraViewTransitionProgress,
   cameraTiltForZoom,
   CAMERA_PAN_AT_REST,
@@ -27,7 +26,6 @@ import { usePointerSession } from './PointerSessionContext';
 import { seatedHeaderOf, tableOverlayRects, tableOverlaysOf } from './seatedHeader';
 import { TableKeyboardContext } from './TableKeyboardContext';
 import { readTablePanSpeed } from './tablePanSpeed';
-import { watchTwoFingerTilt } from './twoFingerTilt';
 
 const CAMERA_POSE_EPSILON_SQUARED = 0.000001;
 /* The table's surface, where the pointer's anchor for a close look lies. */
@@ -200,7 +198,7 @@ function applyCameraDestination(
   return true;
 }
 
-type WheelView = Readonly<{ tilt: number; zoom: CameraZoom; zoomRevision: number }>;
+type WheelView = Readonly<{ zoom: CameraZoom; zoomRevision: number }>;
 
 /** Where a client point lies on the canvas, as normalised device coordinates and the canvas's aspect ratio. */
 function canvasPoint(surface: HTMLElement, clientX: number, clientY: number) {
@@ -220,14 +218,13 @@ type PoseAt = { current: ((tilt: number) => CameraPose) | null };
  * A close look at the board, steered by the wheel while the camera is free: scrolling down moves in toward the point under the pointer,
  * turning toward top-down as it goes, and scrolling up backs out to the view's own distance and angle.
  * While a close look is open, the pan keys slide it, during a carry too.
- * Two fingers over the board still steer the tilt at the view's own distance. `poseAt` is the view's pose at a tilt.
+ * `poseAt` is the view's pose at a tilt.
  */
 function useCloseLook(enabled: boolean, viewKey: string, poseAt: PoseAt): WheelView {
-  const [view, setView] = useState<WheelView>({ tilt: 0, zoom: NO_CAMERA_ZOOM, zoomRevision: 0 });
+  const [view, setView] = useState<WheelView>({ zoom: NO_CAMERA_ZOOM, zoomRevision: 0 });
   /* Only the board itself listens, so a scrollable panel or label over the table keeps its own wheel. */
   const surface = useThree((state) => state.renderer.domElement);
   const invalidate = useThree((state) => state.invalidate);
-  const pointerSession = usePointerSession();
   const keyboard = useContext(TableKeyboardContext);
 
   /* A new view, chosen or the phase's, starts from that view's own distance. */
@@ -236,22 +233,6 @@ function useCloseLook(enabled: boolean, viewKey: string, poseAt: PoseAt): WheelV
     setPreviousViewKey(viewKey);
     setView((current) => (current.zoom === NO_CAMERA_ZOOM ? current : { ...current, zoom: NO_CAMERA_ZOOM }));
   }
-
-  /*
-   * Two fingers listen even while a press holds the table: the first finger usually lands on a piece,
-   * and the second one cancels that press, which frees the camera again.
-   */
-  useEffect(
-    () =>
-      watchTwoFingerTilt(surface, window, {
-        onStart: () => pointerSession.cancel(),
-        onTilt: (deltaY) =>
-          setView((current) =>
-            current.zoom.scale < 1 ? current : { ...current, tilt: cameraTiltAfterWheel(current.tilt, deltaY) }
-          ),
-      }),
-    [pointerSession, surface]
-  );
 
   useEffect(() => {
     if (!enabled) {
@@ -269,7 +250,7 @@ function useCloseLook(enabled: boolean, viewKey: string, poseAt: PoseAt): WheelV
         if (!at) {
           return current;
         }
-        const zoom = cameraZoomAfterWheelAt(current.zoom, current.tilt, at, spot, event.deltaY, event.deltaMode);
+        const zoom = cameraZoomAfterWheelAt(current.zoom, at, spot, event.deltaY, event.deltaMode);
         return { ...current, zoom, zoomRevision: current.zoomRevision + 1 };
       });
     };
@@ -326,7 +307,7 @@ function useCloseLook(enabled: boolean, viewKey: string, poseAt: PoseAt): WheelV
       if (!at) {
         return current;
       }
-      const tilt = cameraTiltForZoom(current.tilt, current.zoom);
+      const tilt = cameraTiltForZoom(current.zoom);
       const cached = panBase.current;
       const base = cached?.at === at && cached.tilt === tilt ? cached.pose : at(tilt);
       panBase.current = { at, tilt, pose: base };
@@ -426,8 +407,8 @@ function useSeatedCameraTransition({ command, enabled, mapFramingPoints }: Seate
   const { camera, invalidate, renderer, size } = useThree();
   const poseAt = useRef<((tilt: number) => CameraPose) | null>(null);
   const pointerSession = usePointerSession();
-  const { tilt: playerTilt, zoom, zoomRevision } = useCloseLook(enabled, `${command.view}:${command.revision}`, poseAt);
-  const tilt = cameraTiltForZoom(playerTilt, zoom);
+  const { zoom, zoomRevision } = useCloseLook(enabled, `${command.view}:${command.revision}`, poseAt);
+  const tilt = cameraTiltForZoom(zoom);
   const aspectRatio = size.width / Math.max(1, size.height);
   const glidingRevision = useRef(zoomRevision);
 

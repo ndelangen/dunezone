@@ -5,13 +5,6 @@ import { DELETED_USER } from './log';
 
 type Attribution = ReturnType<typeof deletedAttribution>;
 
-/**
- * The scrub release a room's retained history has been repaired to.
- * Bump it when the scrub learns to repair more, and every room repairs once more at its next cold start.
- * A bump is also the remedy after a rollback to a release older than the deletion-time scrub handled a deletion, since a stamped room does not repair on its own.
- */
-export const HISTORY_REPAIR_VERSION = 2;
-
 /** The requests a deleted account filed read `[deleted user]` as their requester; the rest are kept as they are. */
 export function scrubRequesters<Request extends { id: string; requesterName: string }>(
   requests: readonly Request[],
@@ -21,7 +14,7 @@ export function scrubRequesters<Request extends { id: string; requesterName: str
 }
 
 /** Scrub retained attribution before deleting the receipts that identify its author. */
-export function anonymizeHistory(storage: DurableObjectStorage, userId: string | null) {
+export function anonymizeHistory(storage: DurableObjectStorage, userId: string) {
   const attribution = deletedAttribution(storage, userId);
   rewriteHistory(storage, attribution);
   const current = storage.sql.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1').toArray()[0];
@@ -38,7 +31,7 @@ export function anonymizeHistory(storage: DurableObjectStorage, userId: string |
   }
 }
 
-function deletedAttribution(storage: DurableObjectStorage, userId: string | null) {
+function deletedAttribution(storage: DurableObjectStorage, userId: string) {
   /* The creator is recorded in the game's metadata, not in a command receipt. */
   const creator = storage.sql
     .exec<{ user_id: string; deleted: number }>(

@@ -47,10 +47,8 @@ afterEach(() => {
 });
 
 describe('Seat passes', () => {
-  test.each([
-    { name: 'compatibility', query: api.playGames.getGameByAddress },
-    { name: 'read-only', query: api.playGameDirectory.getGameByAddress },
-  ])('enrol once and renew through the $name directory for an hour at most', async ({ query }) => {
+  test('enrol once and renew through the game directory for an hour at most', async () => {
+    const query = api.playGameDirectory.getGameByAddress;
     const subject = await fixture();
     const address = { address: subject.gameId };
     expect(await subject.player.query(query, address)).toMatchObject({

@@ -11,8 +11,8 @@ import {
   createPeer,
   createRuntime,
   eventually,
+  fixturePass,
   isFullView,
-  openGame,
   provision,
   syncView,
 } from './native-runtime.fixture.ts';
@@ -25,7 +25,6 @@ let peer: NativePeer;
 let runtime: NativeRuntime;
 beforeEach(async () => {
   peer = await createPeer();
-  peer.watchMode = 'allow';
   runtime = await createRuntime(peer, 'game');
   await provision(runtime);
 });
@@ -35,8 +34,7 @@ afterEach(async () => {
 });
 
 it('coalesces a burst to the latest pointer while preserving an immediate committed snapshot', async () => {
-  const connection = await openGame(runtime);
-  connection.send({ type: 'admit', ticket: 'c'.repeat(64) });
+  const connection = await admitPlayer(runtime, 'a');
   await connection.message('view');
   connection.messages.length = 0;
   const pointerCount = 20;
@@ -60,8 +58,7 @@ it('coalesces a burst to the latest pointer while preserving an immediate commit
 });
 
 it('stamps its clock on every frame but admission', async () => {
-  const connection = await openGame(runtime);
-  connection.send({ type: 'admit', ticket: 'c'.repeat(64) });
+  const connection = await admitPlayer(runtime, 'a');
   await connection.message('view');
   connection.send({ type: 'command', commandId: 'phase', expectedRevision: 0, action: { kind: 'phase' } });
   await connection.message(
@@ -80,8 +77,7 @@ it('stamps its clock on every frame but admission', async () => {
 });
 
 it('supplies a full snapshot on resync between compact updates', async () => {
-  const connection = await openGame(runtime);
-  connection.send({ type: 'admit', ticket: 'c'.repeat(64) });
+  const connection = await admitPlayer(runtime, 'a');
   const initial = await connection.message('view');
   expect((await syncView(connection)).sequence).toBeGreaterThan(required(initial.sequence));
   connection.send({ type: 'command', commandId: 'phase', expectedRevision: 0, action: { kind: 'phase' } });
@@ -101,8 +97,7 @@ it('supplies a full snapshot on resync between compact updates', async () => {
 });
 
 it('an admission takes one full view before its first patch', async () => {
-  const connection = await openGame(runtime);
-  connection.send({ type: 'admit', ticket: 'c'.repeat(64) });
+  const connection = await admitPlayer(runtime, 'a');
   const initial = await connection.message('view');
   connection.send({ type: 'command', commandId: 'phase', expectedRevision: 0, action: { kind: 'phase' } });
   const result = await eventually(
@@ -120,10 +115,10 @@ it('an admission takes one full view before its first patch', async () => {
 
 /* A joining socket has no baseline, so its full view is guarded by the suspended-socket case below, not here. */
 it('announces a join to a synced peer as a compact update', async () => {
-  const a = await admitPlayer(peer, runtime, 'a');
+  const a = await admitPlayer(runtime, 'a');
   const synced = await syncView(a);
   const before = a.messages.length;
-  const b = await admitPlayer(peer, runtime, 'b');
+  const b = await admitPlayer(runtime, 'b');
   expect(
     required(
       required(
@@ -144,26 +139,20 @@ it('announces a join to a synced peer as a compact update', async () => {
   );
 });
 
-it('gives a suspended compact socket a full view when it is re-authorized', async () => {
-  peer.watchMode = 'manual';
-  const connection = await openGame(runtime);
-  connection.send({ type: 'admit', ticket: 'c'.repeat(64) });
-  const previous = await peer.query();
-  peer.answer(previous);
-  await connection.message('view');
+it('gives a socket paused for an expired pass a full view when a renewal resumes it', async () => {
+  const connection = await admitPlayer(runtime, 'a', { exp: Date.now() + 60_000 });
   await syncView(connection);
   const beforeSuspension = connection.messages.length;
-  previous.connection.socket.close(1012, 'controlled reconnect');
+  await runtime.clock(70_000);
   await eventually(
     () =>
       connection.messages
         .slice(beforeSuspension)
-        .some((message) => message.type === 'admission' && message.status === 'suspended'),
+        .some((message) => message.type === 'admission' && message.status === 'pass-expired'),
     'suspension'
   );
-  const current = await peer.query(({ query }) => query.args[0].generation !== previous.query.args[0].generation);
   const beforeRecovery = connection.messages.length;
-  peer.answer(current);
+  connection.send({ type: 'pass', pass: await fixturePass('a', { exp: Date.now() + 200_000 }) });
   const recovered = await eventually(
     () =>
       connection.messages.slice(beforeRecovery).find((message) => message.type === 'update' || message.type === 'view'),
@@ -174,7 +163,7 @@ it('gives a suspended compact socket a full view when it is re-authorized', asyn
 });
 
 it('keeps motion free of unchanged snapshots and still sends saved changes', async () => {
-  const a = await admitPlayer(peer, runtime, 'a');
+  const a = await admitPlayer(runtime, 'a');
   let view = await syncView(a);
   a.send({ type: 'pointer', seq: 1, position: [1, 0, 1] });
   const pointer = await a.message('update', (message) => message.activity.pointers.length > 0);
@@ -208,8 +197,8 @@ it('keeps motion free of unchanged snapshots and still sends saved changes', asy
 });
 
 it('patches saved movement for a socket that admits and syncs without asking for it', async () => {
-  const mover = await admitPlayer(peer, runtime, 'a');
-  const watcher = await admitPlayer(peer, runtime, 'b');
+  const mover = await admitPlayer(runtime, 'a');
+  const watcher = await admitPlayer(runtime, 'b');
   const baseline = await syncView(watcher);
   const pieceId = 'harkonnen-force-loose';
   mover.send({
@@ -236,7 +225,6 @@ it('patches saved movement for a socket that admits and syncs without asking for
 });
 
 it('moves projected cards and replaces revealed artwork without retaining it after concealment or reconnect', async () => {
-  peer.expiresAt = () => Date.now() + 600_000;
   const stored = storedSnapshotSchema.parse(
     JSON.parse((await runtime.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1'))[0].data)
   );
@@ -252,7 +240,7 @@ it('moves projected cards and replaces revealed artwork without retaining it aft
   await runtime.restart();
   const players: NativeConnection[] = [];
   for (const suffix of ['a', 'b', 'c']) {
-    players.push(await admitPlayer(peer, runtime, suffix));
+    players.push(await admitPlayer(runtime, suffix));
   }
   let views = await Promise.all(players.map(syncView));
   const hidden = (message: unknown) => {
@@ -328,7 +316,7 @@ it('moves projected cards and replaces revealed artwork without retaining it aft
     hidden(fresh);
   }
   players[2].socket.close();
-  const reconnected = await admitPlayer(peer, runtime, 'c');
+  const reconnected = await admitPlayer(runtime, 'c');
   const restored = await syncView(reconnected);
   expect(restored.snapshot.table).toEqual(views[2].snapshot.table);
   hidden(restored);

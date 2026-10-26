@@ -58,7 +58,7 @@ test('refuses cross-origin, forged and expired credentials and empty description
 });
 
 test('requires a live Convex session as well as a valid signed pass', async () => {
-  peer.httpMode = 'deny';
+  peer.bugReportMode = 'deny';
   expect((await report()).status).toBe(403);
   expect(peer.requests.filter((request) => request.function === 'playBugReports:authorize')).toHaveLength(1);
 });

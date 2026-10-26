@@ -11,6 +11,7 @@ import {
   createPeer,
   createRuntime,
   eventually,
+  fixturePass,
   provision,
   syncView,
 } from '../../../../../../workers/game/native-runtime.fixture.ts';
@@ -107,17 +108,15 @@ describe('A table client on a bad network (#1696)', { timeout: 60_000 }, () => {
   let peer: NativePeer, runtime: NativeRuntime, network: BridgeNetwork, client: TableSession, stop: () => void;
   beforeEach(async () => {
     peer = await createPeer();
-    peer.watchMode = 'allow';
     runtime = await createRuntime(peer, 'game');
     if ((await provision(runtime)).status !== 200) {
       throw new Error('The native fixture did not provision.');
     }
-    peer.registrationId = 'registration-a';
     network = { down: false, sockets: [] };
-    const ticket = async () => ({ ok: true as const, ticket: 'c'.repeat(64), expiresInMs: 600_000 });
+    const admission = async () => ({ ok: true as const, pass: await fixturePass('a') });
     client = new TableSession(
       gameId,
-      new GameSubscription(gameId, ticket, bridge(runtime, network)),
+      new GameSubscription(gameId, admission, bridge(runtime, network)),
       bridge(runtime, network)
     );
     stop = client.connect();
@@ -146,11 +145,9 @@ describe('A table client on a bad network (#1696)', { timeout: 60_000 }, () => {
     );
   const revision = () => client.getSnapshot().table?.snapshot.revision;
   const server = async () => {
-    peer.registrationId = 'registration-b';
-    const observer = await admitPlayer(peer, runtime, 'b');
+    const observer = await admitPlayer(runtime, 'b');
     const view = await syncView(observer);
     observer.socket.close();
-    peer.registrationId = 'registration-a';
     return view.snapshot;
   };
 

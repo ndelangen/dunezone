@@ -26,10 +26,8 @@ async function world() {
   return { t, ...seeded, player: t.withIdentity({ subject: seeded.subject }) };
 }
 
-describe.each([
-  { name: 'compatibility', directory: api.playGames },
-  { name: 'read-only', directory: api.playGameDirectory },
-])('$name directory', ({ directory }) => {
+describe('Game directory addresses', () => {
+  const directory = api.playGameDirectory;
   test.each(['pending', 'expired', 'ready'] as const)(
     'friendly and ID addresses share the authorized %s game',
     async (state) => {
@@ -47,11 +45,6 @@ describe.each([
       });
       expect(byId).not.toHaveProperty('secret');
       expect(byId).not.toHaveProperty('attempt_id');
-      const legacy = await player.query(directory.getGame, { gameId });
-      expect(legacy).not.toHaveProperty('slug');
-      if (state === 'pending') {
-        expect(legacy).toEqual({ status: 'preparing' });
-      }
     }
   );
 

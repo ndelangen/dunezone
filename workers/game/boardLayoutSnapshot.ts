@@ -58,7 +58,7 @@ export function moveOntoCurrentBoard(snapshot: StoredSnapshot): StoredSnapshot {
 }
 
 /** The layout stamp before parsing adds the current schema's default. */
-export function storedLayout(stored: unknown): unknown {
+function storedLayout(stored: unknown): unknown {
   return stored && typeof stored === 'object' && 'boardLayout' in stored ? stored.boardLayout : undefined;
 }
 

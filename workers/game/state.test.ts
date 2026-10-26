@@ -165,53 +165,6 @@ test('a viewer without a faction never takes an empty battle side as its own, ev
   expect(projection.snapshot(stored, 'atreides').battlePlan).toMatchObject({ spice: 3 });
 });
 
-test('a game stored before the supported rename reads its battle faces and plan faces under the new names', () => {
-  const legacyFace = {
-    id: 'troop-0-front',
-    name: 'Guard',
-    capable: true,
-    strength: 0.5,
-    fundedStrength: 1,
-    fundingCost: 0,
-  };
-  const plan = {
-    mode: 'max',
-    troops: [],
-    spice: 0,
-    adjustment: 0,
-    leaderIds: [],
-    cardIds: [],
-    strength: 0,
-    pieces: [],
-    faces: [legacyFace],
-  };
-  const stored = storedSnapshotSchema.parse({
-    ...initialSnapshot(),
-    combatFaces: { atreides: [legacyFace] },
-    battleState: {
-      id: 'battle',
-      anchor: [0, 0, 0],
-      territory: 'Arrakeen',
-      stage: 'preparing',
-      sides: [{ factionId: 'atreides', ready: false, choice: null }, null],
-      deadline: null,
-      plans: [plan, null],
-    },
-  });
-  const supported = {
-    id: 'troop-0-front',
-    name: 'Guard',
-    capable: true,
-    strength: 0.5,
-    supportedStrength: 1,
-    supportCost: 0,
-  };
-
-  expect(stored.combatFaces.atreides).toEqual([supported]);
-  expect(stored.battleState!.plans[0]!.faces).toEqual([supported]);
-  expect(JSON.stringify(stored)).not.toMatch(/fundedStrength|fundingCost/);
-});
-
 test('every viewer, spectators included, sees how many Treachery cards each seated faction holds, and nothing else of a hand', () => {
   const card = (id: string, type: string) => ({
     id,

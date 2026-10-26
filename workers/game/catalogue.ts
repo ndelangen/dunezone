@@ -33,8 +33,8 @@ import { GameRejection } from '../../src/shared/play/rejection';
 import { labelForCount } from '../../src/shared/play/tableState';
 import type { RulesetAssetSlot } from '../../src/shared/rulesets/assetSlots';
 import { RULESET_ASSET_SLOTS } from '../../src/shared/rulesets/assetSlots';
-import { gameHttpClient } from './authorization';
-import type { ConvexObserver } from './authorization';
+import { gameHttpClient } from './gameHttpClient';
+import type { ConvexObserver } from './gameHttpClient';
 
 type SuppliedMember = AssetSupply['members'][number];
 type SlotAsset = RulesetSupply['slots'][number]['asset'];

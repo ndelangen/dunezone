@@ -17,7 +17,6 @@ import {
   NO_CAMERA_ZOOM,
   cameraFogRange,
   cameraPoseFor,
-  cameraTiltAfterWheel,
   cameraViewTransitionProgress,
   createTableViewState,
   reduceTableView,
@@ -297,16 +296,6 @@ describe('table views', () => {
     }
   });
 
-  test('steers the tilt with the wheel, in pixels, lines or pages, within its range', () => {
-    expect(cameraTiltAfterWheel(0, 100)).toBeCloseTo(1 / 6);
-    expect(cameraTiltAfterWheel(0, 3, 1)).toBeCloseTo(48 / 600);
-    expect(cameraTiltAfterWheel(0, 1, 2)).toBeCloseTo(400 / 600);
-    expect(cameraTiltAfterWheel(0.5, -100)).toBeCloseTo(1 / 3);
-    expect(cameraTiltAfterWheel(0, -100)).toBe(0);
-    expect(cameraTiltAfterWheel(0.9, 1000)).toBe(1);
-    expect(cameraTiltAfterWheel(0.4, Number.NaN)).toBe(0.4);
-  });
-
   test('moves the fog range with responsive camera framing', () => {
     const defaultRange = cameraFogRange(cameraPoseFor('map', 16 / 9).position);
     const distantPose = cameraPoseFor('map', 390 / 844, mapViewFramingPoints(trackerArcSlots(30)));
@@ -465,18 +454,12 @@ describe('close look', () => {
   const zoomIn = (turns: number) => {
     let zoom = NO_CAMERA_ZOOM;
     for (let turn = 0; turn < turns; turn++) {
-      zoom = cameraZoomAfterWheelAt(zoom, 0, poseAt, spot, 100);
+      zoom = cameraZoomAfterWheelAt(zoom, poseAt, spot, 100);
     }
     return zoom;
   };
   const pointUnderSpot = (zoom: typeof NO_CAMERA_ZOOM) =>
-    tablePointUnder(
-      zoomedCameraPose(poseAt(cameraTiltForZoom(0, zoom)), zoom),
-      1.6,
-      spot.ndcX,
-      spot.ndcY,
-      spot.height
-    )!;
+    tablePointUnder(zoomedCameraPose(poseAt(cameraTiltForZoom(zoom)), zoom), 1.6, spot.ndcX, spot.ndcY, spot.height)!;
 
   test('the closest look of every view stays farther out than the controls allow, so its glide arrives', () => {
     for (const view of ['map', 'left', 'right', 'bottom'] as const) {
@@ -484,9 +467,9 @@ describe('close look', () => {
         const viewPoseAt = (tilt: number) => cameraPoseForCloseLook(view, aspectRatio, undefined, tilt);
         let zoom = NO_CAMERA_ZOOM;
         for (let turn = 0; turn < 40; turn++) {
-          zoom = cameraZoomAfterWheelAt(zoom, 0, viewPoseAt, { ...spot, aspectRatio }, 100);
+          zoom = cameraZoomAfterWheelAt(zoom, viewPoseAt, { ...spot, aspectRatio }, 100);
         }
-        const pose = zoomedCameraPose(viewPoseAt(cameraTiltForZoom(0, zoom)), zoom);
+        const pose = zoomedCameraPose(viewPoseAt(cameraTiltForZoom(zoom)), zoom);
         const distance = new Vector3(...pose.position).distanceTo(new Vector3(...pose.target));
         expect(distance).toBeGreaterThan(CAMERA_CLOSEST_DISTANCE * 1.5);
       }
@@ -498,7 +481,7 @@ describe('close look', () => {
     let distance = Infinity;
     for (let turns = 1; turns <= 6; turns++) {
       const zoom = zoomIn(turns);
-      const pose = zoomedCameraPose(poseAt(cameraTiltForZoom(0, zoom)), zoom);
+      const pose = zoomedCameraPose(poseAt(cameraTiltForZoom(zoom)), zoom);
       const nextDistance = new Vector3(...pose.position).distanceTo(new Vector3(...anchor));
       expect(nextDistance).toBeLessThan(distance);
       distance = nextDistance;
@@ -510,7 +493,7 @@ describe('close look', () => {
   test('scrolling back up returns to the view itself', () => {
     let zoom = zoomIn(5);
     for (let turn = 0; turn < 20; turn++) {
-      zoom = cameraZoomAfterWheelAt(zoom, 0, poseAt, spot, -100);
+      zoom = cameraZoomAfterWheelAt(zoom, poseAt, spot, -100);
     }
     expect(zoom).toBe(NO_CAMERA_ZOOM);
   });
@@ -562,7 +545,7 @@ describe('close look', () => {
 
   test('sliding out toward the edge slows to a stop instead of running past it', () => {
     let zoom = zoomIn(5);
-    const base = () => poseAt(cameraTiltForZoom(0, zoom));
+    const base = () => poseAt(cameraTiltForZoom(zoom));
     for (let frame = 0; frame < 600; frame++) {
       zoom = cameraZoomAfterPanMotion(zoom, base(), [20 * zoom.scale, 0], 1 / 60);
     }
@@ -573,7 +556,7 @@ describe('close look', () => {
   test('a close look reaches the card wells and the bottom shelf, but never the empty corners beside them', () => {
     const slide = (velocity: readonly [number, number]) => {
       let zoom = zoomIn(5);
-      const base = () => poseAt(cameraTiltForZoom(0, zoom));
+      const base = () => poseAt(cameraTiltForZoom(zoom));
       for (let frame = 0; frame < 300; frame++) {
         zoom = cameraZoomAfterPanMotion(zoom, base(), [velocity[0] * zoom.scale, velocity[1] * zoom.scale], 1 / 60);
       }

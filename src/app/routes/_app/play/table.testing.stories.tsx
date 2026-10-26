@@ -3,7 +3,7 @@ import { waitForFrame } from '@sb/storyWaits';
 import { TABLE_PHASES } from '@shared/play/phases';
 import { spiceBankSlot, createSpiceStack } from '@shared/play/spiceBank';
 import { SHARED_ITEM_PLACEMENT_ANCHORS } from '@shared/play/tableFurnitureLayout';
-import { BOARD_RADIUS, BOARD_SURFACE_Y, restingPositionAt, stackTopHeight } from '@shared/play/tableGeometry';
+import { restingPositionAt, stackTopHeight } from '@shared/play/tableGeometry';
 import { TRACKER_DISC_TOP_Y } from '@shared/play/tableTrackers';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
@@ -60,10 +60,6 @@ async function expectControlsTakeThePointer(shell: HTMLElement) {
 function deckPoint(document: Document) {
   const deck = playingSnapshot().table.pieces.find((piece) => piece.id === 'treachery-deck')!;
   return mapViewPoint(document, [deck.position[0], deck.position[1] + stackTopHeight(deck), deck.position[2]]);
-}
-
-function touchAt(pointerId: number, clientX: number, clientY: number) {
-  return { bubbles: true, cancelable: true, pointerId, pointerType: 'touch', isPrimary: true, clientX, clientY };
 }
 
 function theDeckShuffled() {
@@ -372,40 +368,6 @@ export const WheelTakesACloseLook = meta.story({
   },
 });
 
-/* Two fingers dragged up over the board tilt the camera toward top-down, and dragged down tilt it back. */
-export const TwoFingersTiltTheCamera = meta.story({
-  globals: { motion: 'on' },
-  beforeEach: install(() => productTransport()),
-  play: async ({ canvasElement }) => {
-    const { shell, document } = await tablePage(canvasElement);
-    const canvas = shell.querySelector('canvas')!;
-    const deckPlacement = () =>
-      document.querySelector('[data-piece-id="treachery-deck"]')?.closest('div')?.parentElement?.style.transform;
-    const box = canvas.getBoundingClientRect();
-    const x = box.left + box.width / 2;
-    const finger = (type: string, pointerId: number, clientX: number, clientY: number) =>
-      new PointerEvent(type, { bubbles: true, cancelable: true, pointerId, pointerType: 'touch', clientX, clientY });
-    const drag = (fromY: number, toY: number) => {
-      canvas.dispatchEvent(finger('pointerdown', 11, x - 40, fromY));
-      canvas.dispatchEvent(finger('pointerdown', 12, x + 40, fromY));
-      for (let step = 1; step <= 6; step++) {
-        const y = fromY + ((toY - fromY) * step) / 6;
-        window.dispatchEvent(finger('pointermove', 11, x - 40, y));
-        window.dispatchEvent(finger('pointermove', 12, x + 40, y));
-      }
-      window.dispatchEvent(finger('pointerup', 11, x - 40, toY));
-      window.dispatchEvent(finger('pointerup', 12, x + 40, toY));
-    };
-    const approved = deckPlacement();
-    await expect(approved).toBeTruthy();
-
-    drag(box.bottom - 10, box.bottom - 10 - 600);
-    await waitFor(() => expect(deckPlacement()).not.toBe(approved));
-    drag(box.bottom - 10 - 600, box.bottom - 10);
-    await waitFor(() => expect(deckPlacement()).toBe(approved));
-  },
-});
-
 /**
  * A phase change moves the camera to the view the new phase recommends, and the view picker marks that view.
  * A table opened mid-phase marks its phase's view and stays on the map: the first move waits for the next phase.
@@ -605,116 +567,5 @@ export const SpiceDiscForgetsAPlaybackHover = meta.story({
     await waitFor(() =>
       expect(lastCommand()).toMatchObject({ type: 'command', action: { kind: 'spice-spawn', count: 3 } })
     );
-  },
-});
-
-/**
- * A tap on the table still reaches the table's own click handlers although the touch leaves the canvas after every tap.
- * Tapping the deck selects it, so L locks it.
- * Tapping the empty board then clears the selection, so L sends nothing.
- */
-export const TapOnTheBoardClearsTheSelection = meta.story({
-  beforeEach: install(() => productTransport()),
-  play: async ({ canvasElement }) => {
-    const { page, document } = await tablePage(canvasElement);
-    const deckOnScreen = deckPoint(document);
-    const boardPoint = mapViewPoint(document, [BOARD_RADIUS * 0.3, BOARD_SURFACE_Y, BOARD_RADIUS * 0.3]);
-    const scene = document.querySelector('canvas')!;
-    const tap = ([clientX, clientY]: [number, number]) => {
-      const touch = touchAt(2, clientX, clientY);
-      scene.dispatchEvent(new PointerEvent('pointerdown', { ...touch, button: 0, buttons: 1 }));
-      scene.dispatchEvent(new PointerEvent('pointerup', { ...touch, button: 0, buttons: 0 }));
-      leaveTheCanvas(page, scene, touch);
-      scene.dispatchEvent(new PointerEvent('click', { ...touch, button: 0 }));
-    };
-    const commands = () => session.transport.messages.filter((message) => message.type === 'command').length;
-
-    await waitFor(
-      async () => {
-        tap(deckOnScreen);
-        await userEvent.keyboard('l');
-        await expect(lastCommand()).toMatchObject({
-          type: 'command',
-          action: { kind: 'lock', pieceId: 'treachery-deck' },
-        });
-      },
-      { timeout: 30_000 }
-    );
-
-    tap(boardPoint);
-    const before = commands();
-    await userEvent.keyboard('l');
-    await expect(commands()).toBe(before);
-  },
-});
-
-/**
- * A finger has no hover, so a tap's jitter over a piece leaves nothing for the keys to act on once the selection moves.
- * Tapping the deck with a jitter selects it, so L locks it.
- * Tapping the empty board then clears the selection, so L sends nothing.
- */
-export const TapJitterLeavesNoHover = meta.story({
-  beforeEach: install(() => productTransport()),
-  play: async ({ canvasElement }) => {
-    const { page, document } = await tablePage(canvasElement);
-    const deckOnScreen = deckPoint(document);
-    const boardPoint = mapViewPoint(document, [BOARD_RADIUS * 0.3, BOARD_SURFACE_Y, BOARD_RADIUS * 0.3]);
-    const scene = document.querySelector('canvas')!;
-    const tap = ([clientX, clientY]: [number, number], jitter: number) => {
-      const touch = touchAt(2, clientX, clientY);
-      scene.dispatchEvent(new PointerEvent('pointerdown', { ...touch, button: 0, buttons: 1 }));
-      if (jitter) {
-        scene.dispatchEvent(new PointerEvent('pointermove', { ...touch, clientX: clientX + jitter, buttons: 1 }));
-      }
-      scene.dispatchEvent(new PointerEvent('pointerup', { ...touch, button: 0, buttons: 0 }));
-      leaveTheCanvas(page, scene, touch);
-      scene.dispatchEvent(new PointerEvent('click', { ...touch, button: 0 }));
-    };
-    const commands = () => session.transport.messages.filter((message) => message.type === 'command').length;
-
-    await waitFor(
-      async () => {
-        tap(deckOnScreen, 2);
-        await userEvent.keyboard('l');
-        await expect(lastCommand()).toMatchObject({
-          type: 'command',
-          action: { kind: 'lock', pieceId: 'treachery-deck' },
-        });
-      },
-      { timeout: 30_000 }
-    );
-
-    tap(boardPoint, 0);
-    const before = commands();
-    await userEvent.keyboard('l');
-    await expect(commands()).toBe(before);
-  },
-});
-
-/**
- * A finger resting on the deck opens the menu a right-click opens, since iOS never sends a context menu for a long press.
- * The menu's Shuffle shuffles that deck, and the finger lifting after the menu opens leaves the menu open.
- */
-export const LongPressOnTheDeckOpensItsMenu = meta.story({
-  beforeEach: install(() => productTransport()),
-  play: async ({ canvasElement }) => {
-    const { page, document } = await tablePage(canvasElement);
-    const [clientX, clientY] = deckPoint(document);
-    const scene = document.querySelector('canvas')!;
-    const touch = touchAt(3, clientX, clientY);
-
-    await waitFor(
-      async () => {
-        /* A press while the ring is open closes it, so the finger only goes down again while no ring shows. */
-        if (!page.queryByRole('menu')) {
-          scene.dispatchEvent(new PointerEvent('pointerdown', { ...touch, button: 0, buttons: 1 }));
-        }
-        await expect(page.findByRole('menuitem', { name: 'Shuffle' }, { timeout: 1500 })).resolves.toBeVisible();
-      },
-      { timeout: 30_000 }
-    );
-    scene.dispatchEvent(new PointerEvent('pointerup', { ...touch, button: 0, buttons: 0 }));
-    await userEvent.click(page.getByRole('menuitem', { name: 'Shuffle' }));
-    await theDeckShuffled();
   },
 });

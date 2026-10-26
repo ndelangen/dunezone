@@ -1,6 +1,6 @@
 import { afterEach, expect, test, vi } from 'vite-plus/test';
 
-import { gameHttpClient } from './authorization';
+import { gameHttpClient } from './gameHttpClient';
 import type { ConvexCall } from './roomSummary';
 
 afterEach(() => {
@@ -18,12 +18,12 @@ test('a function failure is observed as a failed call, and a success as a succes
   const client = gameHttpClient('https://example.convex.cloud', (call) => calls.push(call));
 
   answer(560, { status: 'error', errorMessage: 'boom' });
-  await expect(client.query('playAdmission:reconcileAccounts' as never, {} as never)).rejects.toThrow();
+  await expect(client.query('playAdmission:seatLimitReached' as never, {} as never)).rejects.toThrow();
   answer(200, { status: 'success', value: null, logLines: [] });
-  await client.query('playAdmission:reconcileAccounts' as never, {} as never);
+  await client.query('playAdmission:seatLimitReached' as never, {} as never);
 
   expect(calls.map(({ path, ok }) => ({ path, ok }))).toEqual([
-    { path: 'playAdmission:reconcileAccounts', ok: false },
-    { path: 'playAdmission:reconcileAccounts', ok: true },
+    { path: 'playAdmission:seatLimitReached', ok: false },
+    { path: 'playAdmission:seatLimitReached', ok: true },
   ]);
 });

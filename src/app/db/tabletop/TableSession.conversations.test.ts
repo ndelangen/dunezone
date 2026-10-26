@@ -49,7 +49,7 @@ function authorize(identity = viewer) {
 async function connect() {
   const client = new TableSession(
     'game',
-    new GameSubscription('game', async () => ({ ok: true, ticket: 'a'.repeat(64), expiresInMs: 30_000 }), runtime),
+    new GameSubscription('game', async () => ({ ok: true, pass: 'pass.a' }), runtime),
     runtime
   );
   stop = client.connect();

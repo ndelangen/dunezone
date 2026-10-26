@@ -85,27 +85,22 @@ async function world() {
 }
 
 describe('permanent Play names and addresses', () => {
-  test.each([
-    { surface: 'compatibility', availability: api.playGames.nameAvailability },
-    { surface: 'read-only', availability: api.playGameNameAvailability.nameAvailability },
-  ])(
-    'a free preview reserves nothing and a later collision still creates a numbered link ($surface)',
-    async ({ availability }) => {
-      const { t, viewer, create } = await world();
-      expect(await t.query(availability, { name: 'Arrakeen picnic' })).toBeNull();
-      expect(await viewer.query(availability, { name: 'Arrakeen picnic' })).toEqual({
-        base: 'arrakeen-picnic',
-        duplicate: false,
-      });
-      expect(await t.run(async (ctx) => await ctx.db.query('play_game_slug_reservations').collect())).toEqual([]);
-      await create('Arrakeen picnic');
-      expect(await viewer.query(availability, { name: 'Arrakeen picnic' })).toEqual({
-        base: 'arrakeen-picnic',
-        duplicate: true,
-      });
-      expect(await create('Arrakeen picnic')).toMatchObject({ name: 'Arrakeen picnic', slug: 'arrakeen-picnic-1' });
-    }
-  );
+  test('a free preview reserves nothing and a later collision still creates a numbered link', async () => {
+    const availability = api.playGameNameAvailability.nameAvailability;
+    const { t, viewer, create } = await world();
+    expect(await t.query(availability, { name: 'Arrakeen picnic' })).toBeNull();
+    expect(await viewer.query(availability, { name: 'Arrakeen picnic' })).toEqual({
+      base: 'arrakeen-picnic',
+      duplicate: false,
+    });
+    expect(await t.run(async (ctx) => await ctx.db.query('play_game_slug_reservations').collect())).toEqual([]);
+    await create('Arrakeen picnic');
+    expect(await viewer.query(availability, { name: 'Arrakeen picnic' })).toEqual({
+      base: 'arrakeen-picnic',
+      duplicate: true,
+    });
+    expect(await create('Arrakeen picnic')).toMatchObject({ name: 'Arrakeen picnic', slug: 'arrakeen-picnic-1' });
+  });
 
   test('all reviewed phrases have distinct matching URL spellings and valid display names', () => {
     const vocabulary = playGameNameVocabulary();

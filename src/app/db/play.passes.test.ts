@@ -57,13 +57,6 @@ test('renews a pass near its end, or when the room says it ran out, but not one 
   expect(called()).toEqual(['playAdmission:renewSeatPass', 'playAdmission:renewSeatPass']);
 });
 
-test('falls back to a ticket when the deployment sends no pass', async () => {
-  mocks.mutation.mockResolvedValue({ ok: true, ticket: 'a'.repeat(64), expiresInMs: 30_000 });
-  rememberSeatPass('legacy', undefined);
-  expect(await requestPlayAdmission('legacy')).toMatchObject({ ok: true, ticket: 'a'.repeat(64) });
-  expect(called()).toEqual(['playAdmission:issueTicket']);
-});
-
 test('lets the room force a renewal once a minute has passed since Convex signed the held pass', async () => {
   vi.useFakeTimers({ toFake: ['Date'] });
   const renewed = await seatPass(Date.now() + 60_000);
