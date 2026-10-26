@@ -80,7 +80,9 @@ export const UnsavedFactionReference = meta.story({
     await expect(page.getByRole('button', { name: 'Save' })).toBeEnabled();
     const preview = page.getByRole('article', { name: 'Rulebook page: Introduction' });
     const heading = preview.querySelector('[data-rulebook-block-id="HEAD"]');
-    await waitFor(() => expect(heading).toHaveAttribute('title', 'House Atreides'));
+    await waitFor(() => expect(heading).toHaveAttribute('data-faction-name', 'House Atreides'));
+    await expect(heading).toHaveAccessibleName(/House Atreides/);
+    await expect(heading).not.toHaveAttribute('title');
   },
 });
 
