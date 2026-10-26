@@ -77,6 +77,25 @@ function ListedAsset({ reference, entry }: { reference: AssetReference; entry: A
 }
 
 /**
+ * The listed rows by reference key: an entry, null for one the catalogue no longer has, absent while unread.
+ * Rows already read stay drawn while an add or a remove asks again, so the list never falls back to addresses for rows it knows.
+ */
+function useListedEntries(value: readonly AssetReference[]) {
+  const answer = useAssetsByReference(value.map(({ type, slug }) => ({ type, slug }))).data;
+  const [read, setRead] = useState<{ answer: typeof answer; rows: Map<string, AssetListEntry | null> }>({
+    answer: undefined,
+    rows: new Map(),
+  });
+  /* An answer always matches the references it was asked for, since a new list reads as pending until it arrives. */
+  if (answer !== undefined && answer !== read.answer) {
+    const rows = new Map(read.rows);
+    value.forEach((reference, index) => rows.set(referenceKey(reference), answer[index] ?? null));
+    setRead({ answer, rows });
+  }
+  return read.rows;
+}
+
+/**
  * A Picker that keeps a list: the chosen assets, each drawn the way `AssetPicker` draws its options, with an Add control that picks one more of any offered type.
  * It reads the listed assets while it is on screen, so callers mount it only where the list is shown, such as an editor chapter that mounts with its tab.
  * The add popover reads one type's catalogue at a time, chosen in its type control, and only while it is open.
@@ -85,7 +104,7 @@ function ListedAsset({ reference, entry }: { reference: AssetReference; entry: A
 export function AssetListPicker({ value, types, defaultType, copy, onChange }: AssetListPickerProps) {
   const [picking, setPicking] = useState(false);
   const [type, setType] = useState(defaultType);
-  const entries = useAssetsByReference(value.map(({ type, slug }) => ({ type, slug }))).data;
+  const entries = useListedEntries(value);
   return (
     <Stack gap="sm">
       <Group justify="flex-end">
@@ -140,11 +159,11 @@ export function AssetListPicker({ value, types, defaultType, copy, onChange }: A
         <Stack component="ul" gap="xs" aria-label={copy.listLabel} className={styles.list}>
           {value.map((reference, index) => (
             <Group component="li" key={referenceKey(reference)} gap="sm" wrap="nowrap" justify="space-between">
-              <ListedAsset reference={reference} entry={entries?.[index]} />
+              <ListedAsset reference={reference} entry={entries.get(referenceKey(reference))} />
               <ActionIcon
                 variant="subtle"
                 color="gray"
-                aria-label={`Remove ${entries?.[index]?.name ?? reference.slug}`}
+                aria-label={`Remove ${entries.get(referenceKey(reference))?.name ?? reference.slug}`}
                 onClick={() => onChange(value.filter((_, at) => at !== index))}
               >
                 <X size={16} aria-hidden />

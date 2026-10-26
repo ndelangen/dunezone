@@ -96,6 +96,7 @@ export const Remove = meta.story({
     await expect(proof.getByText('Decks')).toBeVisible();
     await expect(proof.getByText('Bundles')).toBeVisible();
     await userEvent.click(canvas.getByRole('button', { name: 'Remove House Treachery' }));
+    /* The rows already read stay drawn while the shorter list is read again. */
     await expect(listedNames(canvasElement)).toEqual(['Atreides Tokens', 'gone-card']);
     await expect(proof.queryByText('house-treachery')).toBeNull();
   },
