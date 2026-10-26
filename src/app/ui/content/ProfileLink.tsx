@@ -1,3 +1,4 @@
+import { Tooltip } from '@mantine/core';
 import { Link } from '@tanstack/react-router';
 import clsx from 'clsx';
 import type { CSSProperties } from 'react';
@@ -25,7 +26,7 @@ type ProfileLinkBase = {
 };
 
 /*
- * `title` is required exactly when the name is hidden, because the mark beside it is decorative and
+ * `title` shows in a tooltip on hover. It is required exactly when the name is hidden, because the mark beside it is decorative and
  * a link whose only content is decorative has no accessible name at all. A caller cannot reach that
  * state by forgetting something; the type will not let them.
  */
@@ -57,7 +58,7 @@ export const ProfileLink = ({
     <span className={clsx(styles.username, tone === 'inverse' && styles.inverse)}>{name}</span>
   ) : null;
 
-  return (
+  const link = (
     <Link
       to="/profiles/$profileSlug"
       params={{ profileSlug: slug }}
@@ -69,7 +70,6 @@ export const ProfileLink = ({
         className
       )}
       style={style}
-      title={title}
       /* Without the name beside it, `title` is the link's only text; naming it explicitly keeps it announced everywhere. */
       aria-label={showName ? undefined : title}
     >
@@ -87,4 +87,5 @@ export const ProfileLink = ({
       {afterAvatar}
     </Link>
   );
+  return title ? <Tooltip label={title}>{link}</Tooltip> : link;
 };

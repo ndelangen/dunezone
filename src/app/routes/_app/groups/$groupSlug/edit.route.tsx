@@ -123,7 +123,6 @@ function GroupEditor({ initial }: { initial: GroupEntry }) {
               name="name"
               required
               minLength={1}
-              title="Group name may only contain letters and numbers"
               error={nameError}
               value={name}
               onChange={(event) => setName(event.target.value)}

@@ -1,0 +1,113 @@
+{
+  "version": 1,
+  "sourceDescription": "Nine user-supplied Dune logo reference images. Original publications and artists were not identified. The House Atreus reference is labeled fan art.",
+  "preparation": "Alpha threshold 128; lettering excluded by separated lower regions; crop to foreground; Gaussian blur at each asset's recorded source-pixel sigma; 4x Lanczos resize and threshold 128; Potrace 1.16, turdsize 4, alphamax 1.3, opttolerance 1; Dune Zone svg-authoring normalization and stamp.",
+  "approval": {
+    "date": "2026-10-26",
+    "scope": "The user approved the nine cropped, recolorable SVGs shown together in the preview grid: \"I like these\"."
+  },
+  "assets": {
+    "/vector/logo/apocrypha.svg": {
+      "source": "originals/Apocrypha_Icon.webp",
+      "bitmapMaster": "bitmaps/apocrypha-4x.png",
+      "sourceCrop": {
+        "left": 146,
+        "top": 0,
+        "width": 708,
+        "height": 533
+      },
+      "letteringCutoffY": 600,
+      "blurSigmaSourcePixels": 1.2
+    },
+    "/vector/logo/atreides-extended.svg": {
+      "source": "originals/Atreides_Extended.webp",
+      "bitmapMaster": "bitmaps/atreides-extended-4x.png",
+      "sourceCrop": {
+        "left": 12,
+        "top": 0,
+        "width": 976,
+        "height": 1000
+      },
+      "blurSigmaSourcePixels": 0.55
+    },
+    "/vector/logo/bene-gesserit-2021.svg": {
+      "source": "originals/Bene_Gesserit_2021.webp",
+      "bitmapMaster": "bitmaps/bene-gesserit-2021-4x.png",
+      "sourceCrop": {
+        "left": 0,
+        "top": 90,
+        "width": 1000,
+        "height": 820
+      },
+      "blurSigmaSourcePixels": 1.2
+    },
+    "/vector/logo/corrino-extended.svg": {
+      "source": "originals/Corrino_Extended.webp",
+      "bitmapMaster": "bitmaps/corrino-extended-4x.png",
+      "sourceCrop": {
+        "left": 22,
+        "top": 3,
+        "width": 947,
+        "height": 997
+      },
+      "blurSigmaSourcePixels": 0.55
+    },
+    "/vector/logo/dune-encyclopedia.svg": {
+      "source": "originals/Dune_Encyclopedia_Icon.webp",
+      "bitmapMaster": "bitmaps/dune-encyclopedia-4x.png",
+      "sourceCrop": {
+        "left": 146,
+        "top": 0,
+        "width": 708,
+        "height": 561
+      },
+      "letteringCutoffY": 565,
+      "blurSigmaSourcePixels": 0.55
+    },
+    "/vector/logo/expanded-dune.svg": {
+      "source": "originals/Expanded_Dune_Icon.webp",
+      "bitmapMaster": "bitmaps/expanded-dune-4x.png",
+      "sourceCrop": {
+        "left": 150,
+        "top": 0,
+        "width": 708,
+        "height": 646
+      },
+      "letteringCutoffY": 680,
+      "blurSigmaSourcePixels": 1.2
+    },
+    "/vector/logo/harkonnen-dune-prophecy.svg": {
+      "source": "originals/Harkonnen_Dune_Prophecy.webp",
+      "bitmapMaster": "bitmaps/harkonnen-dune-prophecy-4x.png",
+      "sourceCrop": {
+        "left": 225,
+        "top": 0,
+        "width": 550,
+        "height": 1000
+      },
+      "blurSigmaSourcePixels": 0
+    },
+    "/vector/logo/harkonnen-extended.svg": {
+      "source": "originals/Harkonnen_Extended.webp",
+      "bitmapMaster": "bitmaps/harkonnen-extended-4x.png",
+      "sourceCrop": {
+        "left": 9,
+        "top": 0,
+        "width": 987,
+        "height": 1000
+      },
+      "blurSigmaSourcePixels": 1.2
+    },
+    "/vector/logo/house-atreus-fan-art.svg": {
+      "source": "originals/House_Atreus_insignia_%28fan_art%29.webp",
+      "bitmapMaster": "bitmaps/house-atreus-fan-art-4x.png",
+      "sourceCrop": {
+        "left": 0,
+        "top": 76,
+        "width": 1000,
+        "height": 848
+      },
+      "blurSigmaSourcePixels": 1.2
+    }
+  }
+}

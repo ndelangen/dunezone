@@ -1,0 +1,96 @@
+/* The hand's shelves, inside a compass window: the window's own ink, edge and sand accent. */
+
+/* The Treachery cards lead, the leaders take a row of their own beneath them, and the other card groups sit side by side below while they fit. */
+.shelves {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm) 18px;
+}
+
+.shelf {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.shelf[data-group="leaders"] {
+  flex-basis: 100%;
+}
+
+.caption {
+  color: var(--ink-dim);
+  letter-spacing: 0.06em;
+}
+
+.count {
+  color: var(--sand);
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 2px;
+}
+
+/* A piece of the hand, with its motion states. */
+.tile {
+  position: relative;
+  transition:
+    transform 160ms ease-out,
+    opacity 160ms ease-out;
+}
+
+.face {
+  position: relative;
+  display: grid;
+  border: 0;
+  border-radius: 6px;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  cursor: grab;
+  transition:
+    transform 140ms ease-out,
+    filter 140ms ease-out,
+    box-shadow 140ms ease-out;
+}
+
+.tile[data-round] .face {
+  border-radius: 50%;
+}
+
+/* Under the pointer a piece lifts off its shelf, ready to be dragged or right-clicked. */
+.face:hover {
+  transform: translateY(-3px);
+  filter: drop-shadow(0 6px 8px rgb(from var(--color-shadow) r g b / 0.55));
+}
+
+.face:focus-visible {
+  outline: 2px solid var(--sand);
+  outline-offset: 2px;
+}
+
+/* Played onto the table it rises and shrinks away; set on the side-table it sinks. */
+.tile[data-leaving="table"] {
+  transform: translateY(-18px) scale(0.6);
+  opacity: 0;
+}
+
+.tile[data-leaving="side"] {
+  transform: translateY(14px) scale(0.7);
+  opacity: 0;
+}
+
+/* Quiet where the visitor asked for less motion: by the site's own setting, or by the OS unless the site welcomes motion. */
+:global(html[data-motion="reduce"]) .tile,
+:global(html[data-motion="reduce"]) .face {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :global(html:not([data-motion="ok"])) .tile,
+  :global(html:not([data-motion="ok"])) .face {
+    transition: none;
+  }
+}

@@ -11017,5 +11017,59 @@
     "tags": ["House Wydras", "Dune Awakening", "Landsraad", "angular crest", "points", "wings"],
     "subjects": ["symbols"],
     "sourceHash": "ff557fc691ab338443993d090b57702be1fa5546fe1ff38feeb6e218b1216038"
+  },
+  "/vector/logo/apocrypha.svg": {
+    "description": "Eye emblem with a round pupil, crossed bands and two curved trailing strokes.",
+    "tags": ["apocrypha", "eye", "pupil", "crossed bands"],
+    "subjects": ["symbols"],
+    "sourceHash": "805caa6ecbe9a81d990cd5ebe8275c514eccf3bb2e1c4c11915f2beefd7fe0d6"
+  },
+  "/vector/logo/atreides-extended.svg": {
+    "description": "Bird in profile with an upright fan-shaped wing, pointed tail and hooked legs.",
+    "tags": ["atreides", "extended", "hawk", "bird", "wing"],
+    "subjects": ["creatures", "symbols"],
+    "sourceHash": "c615289e86f113abfaf98014b16e1b5e4f5669a1fbec1ee1a92a947d87904cd5"
+  },
+  "/vector/logo/bene-gesserit-2021.svg": {
+    "description": "Symmetrical looping emblem with paired eye-shaped gaps and four curled ends.",
+    "tags": ["bene gesserit", "2021", "loops", "eyes"],
+    "subjects": ["symbols"],
+    "sourceHash": "d1c4301a8153eda491e82e8f36682bd4c3327abcb8f3eccc6ab22c9ebea20860"
+  },
+  "/vector/logo/corrino-extended.svg": {
+    "description": "Lion head in profile with an open mouth and a pointed radiating mane.",
+    "tags": ["corrino", "extended", "lion", "mane"],
+    "subjects": ["creatures", "symbols"],
+    "sourceHash": "4b73f9176cab2e02083a216fced38a402f05a0f84fa1e03b8aef65802506b33f"
+  },
+  "/vector/logo/dune-encyclopedia.svg": {
+    "description": "Open book with three page lines on each side, a bird-shaped mark above and a pointed stem below.",
+    "tags": ["dune encyclopedia", "book", "pages"],
+    "subjects": ["culture", "symbols"],
+    "sourceHash": "a7221bdc654776e4eecf651b1b28d0d076632f99d969345480afbfe6bac324e4"
+  },
+  "/vector/logo/expanded-dune.svg": {
+    "description": "Inverted triangular emblem with a central notch and two descending outer strokes.",
+    "tags": ["expanded dune", "triangle", "notch"],
+    "subjects": ["symbols"],
+    "sourceHash": "7fc11abf555a8e1a1db1ef7bf6fd4b5916992dc066122a04a6f2a323a95e853a"
+  },
+  "/vector/logo/harkonnen-dune-prophecy.svg": {
+    "description": "Two opposing curved spikes, one pointing up and one down.",
+    "tags": ["harkonnen", "dune prophecy", "spikes"],
+    "subjects": ["symbols"],
+    "sourceHash": "78429846d0ea5027ae4da3702c57ac983ba6f55435728cc18e9ff8070481b296"
+  },
+  "/vector/logo/harkonnen-extended.svg": {
+    "description": "Rearing winged creature with an angular beak, claws and a long curved tail.",
+    "tags": ["harkonnen", "extended", "winged creature", "claws", "tail"],
+    "subjects": ["creatures", "symbols"],
+    "sourceHash": "56d5caabbb1d270fa1ec50cbe372dd76ff438bf602b593fc03d9819d220ad4f8"
+  },
+  "/vector/logo/house-atreus-fan-art.svg": {
+    "description": "Two feline figures facing a central column with four dots across its capital.",
+    "tags": ["house atreus", "fan art", "felines", "column", "dots"],
+    "subjects": ["creatures", "symbols", "culture"],
+    "sourceHash": "6195d1456b9525e4e762c2338656fd3455e167fad8bf7ff2ffd313fbd8d9ec15"
   }
 }
