@@ -24,6 +24,11 @@
   animation: rise 200ms ease-out;
 }
 
+/* Where the centre window reaches over a slot, the one last brought up or pressed is on top. */
+.window[data-front] {
+  z-index: 14;
+}
+
 @keyframes rise {
   from {
     opacity: 0;

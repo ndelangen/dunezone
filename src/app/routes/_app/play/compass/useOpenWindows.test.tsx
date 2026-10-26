@@ -268,3 +268,16 @@ test("a chat's faction token brings the faction information up on its seat witho
   expect(result.current.slots.left).toEqual({ key: 'faction-info', seat: 'seat-2' });
   expect(result.current.centre).toEqual({ key: 'player:seat-4' });
 });
+
+test('the window last brought up or pressed is in front, where the centre reaches over a slot', () => {
+  const list = [...windows, window('faction-info')];
+  const { result } = renderHook(() => useOpenWindows(list, false));
+  act(() => result.current.show('player:seat-4'));
+  expect(result.current.front).toBe('centre');
+  act(() => result.current.reveal('faction-info', 'seat-4'));
+  expect(result.current.front).toBe('left');
+  act(() => result.current.raise('centre'));
+  expect(result.current.front).toBe('centre');
+  act(() => result.current.reveal('faction-info', 'seat-2'));
+  expect(result.current.front).toBe('left');
+});

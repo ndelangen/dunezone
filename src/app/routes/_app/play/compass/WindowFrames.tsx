@@ -53,6 +53,8 @@ function centreFrame({ byKey, opened, inert }: CentreFrame) {
       where="centre"
       inert={inert}
       flash={pulseOf(opened.flash, 'centre')}
+      front={opened.front === 'centre'}
+      onRaise={() => opened.raise('centre')}
       onSeat={(seat) => opened.showSeat('centre', centre.key, seat)}
       onFaction={(seat) => opened.reveal(FACTION_INFO, seat)}
       actions={<CentreActions byKey={byKey} opened={opened} />}
@@ -119,6 +121,8 @@ function slotFrame({ side, byKey, opened, heights, inert }: SlotFrame) {
       flash={pulseOf(opened.flash, side)}
       bounce={pulseOf(heights.bounce, side)}
       style={heights.styleOf(side)}
+      front={opened.front === side}
+      onRaise={() => opened.raise(side)}
       resize={{
         onPointerDown: heights.resize(side),
         onNudge: (element, direction) => heights.nudge(side, element, direction),

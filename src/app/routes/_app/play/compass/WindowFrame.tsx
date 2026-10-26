@@ -32,6 +32,9 @@ type WindowFrameProps = Readonly<{
   bounce?: number;
   style?: CSSProperties;
   resize?: Resize;
+  /** In front of the other windows, where they overlap on a narrow table: the one last brought up or pressed. */
+  front?: boolean;
+  onRaise?: () => void;
   /** Sets the faction information on another seat, where it stands. */
   onSeat: (seat: string) => void;
   /** Opens the faction information on a seat, from a chat's token. */
@@ -50,6 +53,8 @@ export function WindowFrame({
   bounce,
   style,
   resize,
+  front,
+  onRaise,
   onSeat,
   onFaction,
   actions,
@@ -61,11 +66,13 @@ export function WindowFrame({
       data-side={where}
       data-window={entry.key}
       data-flash={flash}
+      data-front={front || undefined}
       aria-label={entry.label}
       inert={inert}
       data-hides-cursor
       data-bounce={bounce}
       style={style}
+      onPointerDownCapture={onRaise}
     >
       {resize && <ResizeEdge resize={resize} />}
       <WindowTitle entry={entry} actions={actions} onFaction={onFaction} />

@@ -116,6 +116,11 @@ export function useOpenWindows(windows: readonly TableWindow[], compassOpen: boo
   const [slots, setSlots] = useRemembered<Slots>('slots', { left: null, right: null });
   /* Bumps when a pinned window is asked for again, lighting its slot up. */
   const [flash, setFlash] = useState<Pulse>(null);
+  /*
+   * On a narrow table the centre window reaches over the slots, so the window last brought up or pressed comes to the front:
+   * the faction information a centre chat opens in a slot shows above that chat.
+   */
+  const [front, setFront] = useState<Side | 'centre' | null>(null);
 
   const opened = (key: string, seat?: string): Opened => (seat ? { key, seat } : { key });
   /* Already pinned: the slot shows it, so it lights up (on the seat asked for) rather than opening twice. */
@@ -124,6 +129,7 @@ export function useOpenWindows(windows: readonly TableWindow[], compassOpen: boo
       setSlots((current) => ({ ...current, [side]: opened(key, seat) }));
     }
     setFlash(pulse(side));
+    setFront(side);
     setCentre(null);
   };
   /** Opens a window in the centre; asking again for the one already there closes it. */
@@ -134,6 +140,7 @@ export function useOpenWindows(windows: readonly TableWindow[], compassOpen: boo
       return;
     }
     const again = (current: Opened | null) => current?.key === key && (seat === undefined || current.seat === seat);
+    setFront('centre');
     setCentre((current) =>
       again(current) ? null : opened(key, seat ?? (current?.key === key ? current.seat : undefined))
     );
@@ -153,6 +160,7 @@ export function useOpenWindows(windows: readonly TableWindow[], compassOpen: boo
       if (side) {
         setFlash(pulse(side));
       }
+      setFront(where);
       return;
     }
     /* A slot is free when it holds nothing, or a window the table no longer has, such as the last battle's. */
@@ -160,9 +168,11 @@ export function useOpenWindows(windows: readonly TableWindow[], compassOpen: boo
     if (free) {
       setSlots((current) => ({ ...current, [free]: opened(key, seat) }));
       setFlash(pulse(free));
+      setFront(free);
       return;
     }
     setCentre(opened(key, seat));
+    setFront('centre');
   };
   const pin = (side: Side) => {
     if (!centre) {
@@ -204,5 +214,5 @@ export function useOpenWindows(windows: readonly TableWindow[], compassOpen: boo
   useTablePress(close, centre !== null && !compassOpen);
   usePinKeys(pin, centre !== null && !compassOpen);
 
-  return { centre, slots, flash, show, reveal, pin, unpin, close, showSeat, isOpen };
+  return { centre, slots, flash, front, raise: setFront, show, reveal, pin, unpin, close, showSeat, isOpen };
 }
