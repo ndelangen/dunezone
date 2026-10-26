@@ -79,7 +79,7 @@ test('with the compass open the letters are its search’s', () => {
   expect(onShortcut).not.toHaveBeenCalled();
 });
 
-test('a letter with nothing to do here is left to the table, as U then turns the camera straight down', () => {
+test('a letter with nothing to do here is left to the table', () => {
   page();
   renderHook(() => useShortcutKeys(true, (shortcut) => shortcut !== 'faceUp'));
   expect(press('u').defaultPrevented).toBe(false);

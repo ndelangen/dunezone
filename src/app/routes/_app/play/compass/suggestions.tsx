@@ -24,7 +24,7 @@ type Candidate = Suggestion & Readonly<{ text: string; weight: number }>;
 const SUGGESTED = 6;
 const MATCHES = 8;
 
-/* The table's own key for the top-down camera (GameTable's TOP_VIEW_KEY), which Flip faction token up borrows while it applies. */
+/* U turns the camera straight down whenever Flip faction token up does not have it (useCompass.ts). */
 const TOP_VIEW_SHORTCUT = SHORTCUTS.faceUp;
 
 const CAMERA_VIEWS: Record<TableView, string> = {

@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 
+import { TOP_VIEW } from '../../../../widgets/tabletop/playView';
 import type { TableView } from '../../../../widgets/tabletop/playView';
 import type { CompassProps } from './Compass';
 import type { Spot } from './compassSpots';
@@ -93,8 +94,16 @@ export function useCompass({ open, onOpen, inert, windows, table, onView, onShow
       return false;
     }
     const command = commands[pressed as keyof typeof commands];
-    command?.run();
-    return command !== null;
+    if (command) {
+      command.run();
+      return true;
+    }
+    /* U is the top-down camera's key, and back, whenever it has no token to flip up. */
+    if (pressed === 'faceUp') {
+      onView(TOP_VIEW.id);
+      return true;
+    }
+    return false;
   };
   useShortcutKeys(!open && !inert, shortcut);
   useCompassKeys({
