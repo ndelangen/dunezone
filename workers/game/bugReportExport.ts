@@ -6,9 +6,9 @@ export function bugReportExport(session: GameSession, identity: { gameId: string
     format: 'dunezone-game-report-v1',
     capturedAt: new Date().toISOString(),
     ...identity,
-    state: redactReportData(session.currentSnapshot()),
-    activity: redactReportData(session.bugReportActivity()),
-    captures: redactReportData(session.retainedCaptures()),
+    state: redactReportData(session.currentSnapshot(), 'game'),
+    activity: redactReportData(session.bugReportActivity(), 'game'),
+    captures: redactReportData(session.retainedCaptures(), 'game'),
     conversations: session.bugReportConversations(),
     events: {
       game: session.logPage('game', Number.MAX_SAFE_INTEGER),
