@@ -82,14 +82,19 @@ export function useSpeech() {
   };
 
   useEffect(() => {
-    const leave = () => {
+    const quiet = () => {
       current.current = null;
       synthesis()?.cancel();
+    };
+    /* The button is back at rest too, for a page the browser keeps and shows again on Back. */
+    const leave = () => {
+      quiet();
+      setSpeaking(false);
     };
     window.addEventListener('pagehide', leave);
     return () => {
       window.removeEventListener('pagehide', leave);
-      leave();
+      quiet();
     };
   }, []);
 

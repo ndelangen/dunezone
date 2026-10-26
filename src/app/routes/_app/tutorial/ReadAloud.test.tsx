@@ -76,6 +76,18 @@ test('the button goes back to rest when the voice finishes, and the voice stops 
   expect(voice.cancel).toHaveBeenCalledTimes(1);
 });
 
+test('leaving the page stops the voice and puts the button back at rest, for a page shown again on Back', () => {
+  const { voice } = fakeVoice();
+  show('Open the controls.');
+  fireEvent.click(screen.getByRole('button', { name: 'Read aloud' }));
+  voice.cancel.mockClear();
+  act(() => {
+    window.dispatchEvent(new Event('pagehide'));
+  });
+  expect(voice.cancel).toHaveBeenCalledTimes(1);
+  expect(screen.getByRole('button', { name: 'Read aloud' })).toBeTruthy();
+});
+
 test('where the browser has no voice there is no button', () => {
   show('Open the controls.');
   expect(screen.queryByRole('button')).toBeNull();
