@@ -407,7 +407,7 @@ try {
     const expiry = await admin.mutation(adminMutationReference(internal.playTesting.shortenSession), {
       sessionId: user.sessionId,
       kind,
-      expiresInMs: 3000,
+      expiresInMs: 10_000,
     });
     const peer = await connect(fixture.gameId, user);
     await until(

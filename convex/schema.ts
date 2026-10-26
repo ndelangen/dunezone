@@ -111,7 +111,7 @@ export default defineSchema({
     session_id: v.id('authSessions'),
     expires_at: v.number(),
   }).index('by_digest', ['digest']),
-  /** Retired with the ticket admission path: nothing writes these two tables, which stay declared until their remaining rows are confirmed gone and they are dropped. */
+  /** Retired with the ticket admission path: only the expiry jobs scheduled before it left still delete from these two tables, which stay declared until their remaining rows are confirmed gone and they are dropped. */
   play_tickets: defineTable({
     digest: v.string(),
     game_id: v.id('play_games'),

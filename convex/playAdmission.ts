@@ -1,8 +1,5 @@
 import { zodToConvex } from 'convex-helpers/server/zod4';
-import type { ValidatorTypeToReturnType } from 'convex/server';
 import { v } from 'convex/values';
-import type { Validator } from 'convex/values';
-import type { z } from 'zod';
 
 import {
   playAckAccountDeletionRequestSchema,
@@ -11,8 +8,8 @@ import {
   playSeatPassRequestSchema,
   playSeatPassResultSchema,
 } from '../src/shared/play/admission';
-import type { MutationCtx, QueryCtx } from './_generated/server';
-import { mutation, publicQuery } from './functions';
+import type { MutationCtx } from './_generated/server';
+import { internalMutation, mutation, publicQuery } from './functions';
 import { canonicalAccount } from './lib/accountIdentity';
 import { admitsPlayers, authenticatedPlayRequest, livePlaySession } from './lib/playAuthorization';
 import { playPassQuota } from './lib/playRateLimits';
@@ -60,30 +57,6 @@ export const renewSeatPass = mutation({
   handler: async (ctx, args) => await mutationPass(ctx, args, false),
 });
 
-type GameCredentials = { gameId: string; secret: string };
-
-function readyGameQuery<Args extends GameCredentials, Result extends { ok: true }>(definition: {
-  args: Validator<Args, 'required', string>;
-  returns: Validator<Result | { ok: false }, 'required', string>;
-  schema: z.ZodType<Args>;
-  handler: (
-    ctx: QueryCtx,
-    request: NonNullable<Awaited<ReturnType<typeof authenticatedPlayRequest<Args>>>>
-  ) => ValidatorTypeToReturnType<Result>;
-}) {
-  return publicQuery({
-    args: definition.args,
-    returns: definition.returns,
-    handler: async (ctx, input) => {
-      const request = await authenticatedPlayRequest(ctx, input, definition.schema);
-      if (request?.game.state !== 'ready') {
-        return { ok: false as const };
-      }
-      return await definition.handler(ctx, request);
-    },
-  });
-}
-
 async function acknowledgeDeletion(
   ctx: MutationCtx,
   input: ReturnType<typeof playAckAccountDeletionRequestSchema.parse>
@@ -110,13 +83,42 @@ export const ackAccountDeletion = mutation({
 });
 
 /** Whether the account behind a game actor holds the seat limit in other games; an unknown account reads as at it, so the room refuses. */
-export const seatLimitReached = readyGameQuery({
+export const seatLimitReached = publicQuery({
   args: zodToConvex(playSeatLimitRequestSchema),
   returns: zodToConvex(playSeatLimitResultSchema),
-  schema: playSeatLimitRequestSchema,
-  handler: async (ctx, { game, args }) => {
-    const id = ctx.db.normalizeId('users', args.userId);
+  handler: async (ctx, input) => {
+    const request = await authenticatedPlayRequest(ctx, input, playSeatLimitRequestSchema);
+    if (request?.game.state !== 'ready') {
+      return { ok: false as const };
+    }
+    const id = ctx.db.normalizeId('users', request.args.userId);
     const user = id ? await canonicalAccount(ctx, id) : null;
-    return { ok: true as const, reached: user ? await atPlaySeatLimit(ctx, user._id, game._id) : true };
+    return { ok: true as const, reached: user ? await atPlaySeatLimit(ctx, user._id, request.game._id) : true };
+  },
+});
+
+/*
+ * Ticket and registration expiry jobs scheduled before the ticket path left still fire, the last ones when the longest Auth session
+ * then open ends. These keep them landing and remove the row they were for; drop them with the retired tables.
+ */
+export const expireTicket = internalMutation({
+  args: { ticketId: v.id('play_tickets') },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    if (await ctx.db.get(args.ticketId)) {
+      await ctx.db.delete(args.ticketId);
+    }
+    return null;
+  },
+});
+
+export const expireRegistration = internalMutation({
+  args: { registrationId: v.id('play_auth_registrations') },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    if (await ctx.db.get(args.registrationId)) {
+      await ctx.db.delete(args.registrationId);
+    }
+    return null;
   },
 });

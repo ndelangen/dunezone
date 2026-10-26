@@ -319,6 +319,11 @@ cannot acknowledge (see "A room stuck"). For the retired hosted fixture, `retire
 up after 17 attempts with a logged error, and its comment says running it again from attempt 0
 resumes (`convex/playDeletion.ts:168-199`). The repository does not document the command to do so.
 
+One-off after the release that removed the ticket path: creators deleted before the creator fan-out
+existed were once found by the rooms themselves. Run the fan-out again for every completed deletion,
+once, with `npx convex run --prod playDeletion:requeueCreatorDeletions '{"cursor":null}'`. It is a
+production write, so it needs Norbert's approval first. A second run queues nothing.
+
 ### Watching a live session
 
 Each game room writes one `game-room-summary` line every ten minutes while players are connected,
