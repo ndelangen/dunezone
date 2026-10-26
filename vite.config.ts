@@ -119,6 +119,8 @@ const config = defineConfig({
             codeSplitting: {
               groups: [
                 { name: 'lucide', test: /\/lucide-react\//u, maxSize: 500_000, entriesAware: true },
+                /* Three's three builds share one vendor chunk, the shape the bundle budget recognises, whichever renderer modules import them. */
+                { name: 'three', test: /\/node_modules\/three\/build\/three\.(core|webgpu|tsl)\.js$/u },
                 { name: 'media-index', test: /\/src\/app\/routes\/_app\/media\/media-index\.json$/u },
               ],
             },

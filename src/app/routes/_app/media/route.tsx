@@ -9,8 +9,8 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
 import { Toolbar } from '@ui/surface/Toolbar';
-import { icons, X, Images, Info, ArrowRight } from 'lucide-react';
-import { useReducer, useState } from 'react';
+import { X, Images, Info, ArrowRight } from 'lucide-react';
+import { lazy, Suspense, useReducer, useState } from 'react';
 
 import { catalogueEntries as mediaEntries } from './mediaCatalogue';
 import type { MediaEntry } from './mediaCatalogue';
@@ -33,7 +33,7 @@ export const Route = createFileRoute('/_app/media')({
   component: MediaPage,
 });
 
-const lucideEntries = Object.entries(icons);
+const LucideIcons = lazy(() => import('./LucideIcons'));
 
 function MediaPage() {
   const committedSearch = mediaPathSearch(Route.useSearch(), useParams({ strict: false }));
@@ -51,8 +51,6 @@ function MediaPage() {
   };
   const overview = search.source === 'media' && search.kind === 'all';
   const catalogue = filterCatalogue(overview ? { source: 'media', kind: 'all', q: '', group: '' } : search);
-  const query = search.q.trim().toLowerCase();
-  const total = search.source === 'media' ? catalogue.matches.length : iconMatchCount(search.source, query);
   const focused = focusedMedia(search);
   return (
     <PageLayout>
@@ -68,7 +66,6 @@ function MediaPage() {
         <MediaResults
           search={search}
           catalogue={catalogue}
-          total={total}
           focused={focused}
           onClose={() => updateSearch({ item: undefined })}
         />
@@ -110,19 +107,33 @@ function useMediaQuery(committed: MediaSearch) {
 function MediaResults({
   search,
   catalogue,
-  total,
   focused,
   onClose,
 }: Readonly<{
   search: MediaSearch;
   catalogue: ReturnType<typeof filterCatalogue>;
-  total: number;
   focused?: MediaEntry;
   onClose: () => void;
 }>) {
   if (search.source === 'media' && search.kind === 'all') {
     return <MediaLibraries />;
   }
+  const query = search.q.trim().toLowerCase();
+  if (search.source === 'lucide') {
+    return (
+      <Stack gap="xl">
+        <Suspense fallback={<MediaBreadcrumb search={search} matches={catalogue.matches} />}>
+          <LucideIcons
+            query={query}
+            heading={(lucideTotal) => (
+              <MediaBreadcrumb search={search} matches={catalogue.matches} total={lucideTotal} />
+            )}
+          />
+        </Suspense>
+      </Stack>
+    );
+  }
+  const total = search.source === 'media' ? catalogue.matches.length : topicMatchCount(query);
   return (
     <Stack gap="xl">
       <MediaBreadcrumb search={search} matches={catalogue.matches} total={total} />
@@ -133,7 +144,7 @@ function MediaResults({
           <MediaGroups groups={catalogue.groups} search={search} />
         </>
       ) : (
-        <ExtraIcons source={search.source} query={search.q.trim().toLowerCase()} />
+        <TopicIcons query={query} />
       )}
       {total === 0 && <Text>No artwork matches these filters. Try fewer words or clear the filters.</Text>}
     </Stack>
@@ -154,7 +165,7 @@ function MediaBreadcrumb({
   search,
   matches,
   total,
-}: Readonly<{ search: MediaSearch; matches: MediaEntry[]; total: number }>) {
+}: Readonly<{ search: MediaSearch; matches: MediaEntry[]; total?: number }>) {
   const iconLabels = { topics: 'Topic icons', lucide: 'Lucide icons' };
   const label =
     search.source === 'media'
@@ -166,7 +177,7 @@ function MediaBreadcrumb({
       <Anchor renderRoot={(props) => <Link {...props} to="/media" />}>All media</Anchor>
       <Text size="sm">/ {label}</Text>
       <Text size="sm" c="dimmed" role="status">
-        {resultCount(search, matches, total)}
+        {total === undefined ? null : resultCount(search, matches, total)}
       </Text>
     </Group>
   );
@@ -359,28 +370,17 @@ function MediaGroups({
   );
 }
 
-function ExtraIcons({ source, query }: Readonly<{ source: 'topics' | 'lucide'; query: string }>) {
+function TopicIcons({ query }: Readonly<{ query: string }>) {
   return (
     <div className={styles.grid}>
-      {source === 'topics'
-        ? TOPIC_ICON_TOPICS.filter((name) => name.toLowerCase().includes(query)).map((name) => (
-            <Surface key={name} padding="md" className={styles.card}>
-              <Stack align="center" gap="sm">
-                <TopicIcon topic={name} size={48} />
-                <Text size="xs">{name}</Text>
-              </Stack>
-            </Surface>
-          ))
-        : lucideEntries
-            .filter(([name]) => name.toLowerCase().includes(query))
-            .map(([name, Icon]) => (
-              <Surface key={name} padding="md" className={styles.card}>
-                <Stack align="center" gap="sm">
-                  <Icon size={48} aria-hidden />
-                  <Text size="xs">{name}</Text>
-                </Stack>
-              </Surface>
-            ))}
+      {TOPIC_ICON_TOPICS.filter((name) => name.toLowerCase().includes(query)).map((name) => (
+        <Surface key={name} padding="md" className={styles.card}>
+          <Stack align="center" gap="sm">
+            <TopicIcon topic={name} size={48} />
+            <Text size="xs">{name}</Text>
+          </Stack>
+        </Surface>
+      ))}
     </div>
   );
 }
@@ -530,9 +530,6 @@ function MediaRefinements({
   );
 }
 
-function iconMatchCount(source: 'topics' | 'lucide', query: string) {
-  if (source === 'topics') {
-    return TOPIC_ICON_TOPICS.filter((name) => name.toLowerCase().includes(query)).length;
-  }
-  return lucideEntries.filter(([name]) => name.toLowerCase().includes(query)).length;
+function topicMatchCount(query: string) {
+  return TOPIC_ICON_TOPICS.filter((name) => name.toLowerCase().includes(query)).length;
 }

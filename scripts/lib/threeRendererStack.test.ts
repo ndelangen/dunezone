@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { parseAst } from 'vite-plus';
 import { describe, expect, it } from 'vite-plus/test';
 
-import { pureStaticAssignments, withoutCanvasBackground } from './threeRendererStack.ts';
+import { pureStaticAssignments, withoutCanvasBackground, withoutInspectorSettings } from './threeRendererStack.ts';
 
 /** Evaluates a rewritten module body and returns what it assigned to `exports`. */
 function run(code: string): Record<string, unknown> {
@@ -108,5 +108,7 @@ describe('the installed fiber and drei bundles', () => {
     expect(drei).toContain('const KTX2LoaderService = /* @__PURE__ */ (() => globalThis[SERVICE_KEY]');
     expect(() => parseAst(withoutCanvasBackground(fiber))).not.toThrow();
     expect(() => parseAst(drei)).not.toThrow();
+    expect(withoutInspectorSettings(drei)).not.toContain('inspector/tabs/Settings');
+    expect(() => parseAst(withoutInspectorSettings(drei))).not.toThrow();
   });
 });
