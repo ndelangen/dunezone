@@ -637,12 +637,23 @@ function observeSignOutTiming() {
   try {
     new PerformanceObserver((list) => {
       for (const entry of list.getEntries() as (PerformanceEntry & {
+        renderStart: number;
+        styleAndLayoutStart: number;
         scripts?: { duration: number; invoker: string; sourceURL: string; sourceFunctionName: string }[];
       })[]) {
-        const script = [...(entry.scripts ?? [])].sort((first, second) => second.duration - first.duration)[0];
+        const scripts = entry.scripts ?? [];
+        const script = [...scripts].sort((first, second) => second.duration - first.duration)[0];
+        const end = entry.startTime + entry.duration;
+        /* A frame splits into its task, its rendering callbacks (animation frames, resize observers) and its style, layout and paint. */
+        const renderStart = entry.renderStart || end;
+        const styleAndLayoutStart = entry.styleAndLayoutStart || end;
         timing.longFrames.push({
           at: Math.round(performance.timeOrigin + entry.startTime),
           ms: Math.round(entry.duration),
+          scriptsMs: Math.round(scripts.reduce((total, each) => total + each.duration, 0)),
+          taskMs: Math.round(renderStart - entry.startTime),
+          callbacksMs: Math.round(styleAndLayoutStart - renderStart),
+          layoutMs: Math.round(end - styleAndLayoutStart),
           script: script
             ? `${script.invoker} ${script.sourceFunctionName || '(anonymous)'} ${script.sourceURL.split('/').pop()} ${Math.round(script.duration)} ms`
             : null,
@@ -652,7 +663,18 @@ function observeSignOutTiming() {
     }).observe({ type: 'long-animation-frame' });
   } catch {}
 }
-type SignOutTiming = { storageAt: number | null; longFrames: { at: number; ms: number; script: string | null }[] };
+type SignOutTiming = {
+  storageAt: number | null;
+  longFrames: {
+    at: number;
+    ms: number;
+    scriptsMs: number;
+    taskMs: number;
+    callbacksMs: number;
+    layoutMs: number;
+    script: string | null;
+  }[];
+};
 /** The regular flow's sign-out: the tabs it should close and when Sign out was clicked. */
 let signOut: { clickedAt: number; tabs: HostedPeer[] } | null = null;
 /**
@@ -689,6 +711,7 @@ async function signOutReport() {
         (held, frame) => (held === null || frame.ms > held.ms ? frame : held),
         null
       );
+      const { at: longestAt, ...longestFrame } = longest ?? { at: null };
       return {
         label: who.label,
         sockets,
@@ -696,7 +719,7 @@ async function signOutReport() {
         longFrames: {
           count: frames.length,
           totalMs: frames.reduce((total, frame) => total + frame.ms, 0),
-          longest: longest && { atMs: since(longest.at), ms: longest.ms, script: longest.script },
+          longest: longest && { atMs: since(longestAt), ...longestFrame },
         },
       };
     })
