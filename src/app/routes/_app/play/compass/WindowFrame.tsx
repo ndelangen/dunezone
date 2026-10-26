@@ -118,7 +118,7 @@ function FactionButton({ player, onFaction }: Readonly<{ player: CompassPlayer; 
   );
 }
 
-/* A chat shows the table's conversation with its player; the faction information shows its seat under the faction tokens; any other window shows its own content. */
+/* A chat shows the conversation with its player; the faction information scrolls its tokens with the seat's details, so a short slot keeps both in reach; any other window shows its own content. */
 function WindowContent({
   entry,
   seat,
@@ -131,10 +131,10 @@ function WindowContent({
   if (entry.key === FACTION_INFO && table) {
     const shown = factionSeat(table.players, seat);
     return (
-      <>
+      <WindowBody layout={entry.layout}>
         <FactionTokens players={table.players} seat={shown} onSeat={onSeat} />
-        <WindowBody layout={entry.layout}>{shown && table.factionInfo(shown)}</WindowBody>
-      </>
+        {shown && table.factionInfo(shown)}
+      </WindowBody>
     );
   }
   return <WindowBody layout={entry.layout}>{entry.content}</WindowBody>;

@@ -1,10 +1,14 @@
-/* The faction tokens along the top of the faction information: one per seat, wrapping in a narrow window. */
+/*
+ * The faction tokens along the top of the faction information: one per seat, wrapping in a narrow window.
+ * They sit in the window's scrolling body, run to its sides, and end in a rule above the seat's details.
+ */
 
 .picker {
   display: flex;
   flex-wrap: wrap;
   gap: 0.25rem;
-  padding: 0.5rem 0.6rem;
+  margin: -0.4rem -0.4rem 0;
+  padding-bottom: 0.6rem;
   border-bottom: 1px solid var(--edge);
 }
 
