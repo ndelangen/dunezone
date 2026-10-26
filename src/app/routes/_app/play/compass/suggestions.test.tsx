@@ -124,3 +124,10 @@ test('"top-down" finds the camera command, which closes the compass and turns th
   command!.run();
   expect(calls).toEqual(['close', 'view:top']);
 });
+
+test('Camera: top-down carries U, unless U flips the viewer’s token up just now', () => {
+  const topDown = (token: Token) =>
+    candidatesOf([], actions(token)).find((entry) => entry.key === 'cmd:camera:top')?.shortcut;
+  expect(topDown(null)).toBe('U');
+  expect(topDown({ faceUp: false, flip: () => {}, inBidding: true })).toBeUndefined();
+});

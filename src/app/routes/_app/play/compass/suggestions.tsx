@@ -24,6 +24,9 @@ type Candidate = Suggestion & Readonly<{ text: string; weight: number }>;
 const SUGGESTED = 6;
 const MATCHES = 8;
 
+/* The table's own key for the top-down camera (GameTable's TOP_VIEW_KEY), which Flip faction token up borrows while it applies. */
+const TOP_VIEW_SHORTCUT = SHORTCUTS.faceUp;
+
 const CAMERA_VIEWS: Record<TableView, string> = {
   map: 'board',
   left: 'left bay',
@@ -194,6 +197,8 @@ export function candidatesOf(windows: readonly TableWindow[], actions: Suggestio
         actions.close();
         actions.view(view);
       },
+      /* U turns the camera straight down, unless it is flipping the viewer's token up just now. */
+      shortcut: view === 'top' && !actions.commands.faceUp ? TOP_VIEW_SHORTCUT : undefined,
       text: `camera ${view} view ${CAMERA_VIEWS[view]}`,
       weight: 0,
     })),

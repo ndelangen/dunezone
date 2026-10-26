@@ -18,14 +18,16 @@ export async function openBiddingSettings(canvasElement: HTMLElement) {
   return waitForFrame(() => page.getByRole('menuitemcheckbox', { name: /Timed bidding/ }));
 }
 
-/* Seat 2 holds House Harkonnen; the Emperor's token lies face down, so the Emperor sits this round out. */
-export function biddingSetup(bidding: Partial<BiddingState> | null, viewer = 'seat-2') {
+/* Seat 2 holds House Harkonnen; the Emperor's token lies face down, so the Emperor sits this round out, as do any factions also named. */
+export function biddingSetup(bidding: Partial<BiddingState> | null, viewer = 'seat-2', sittingOut = ['emperor']) {
   return install(() => {
     const snapshot: GameSnapshot = playingSnapshot(viewer);
     snapshot.phase = (snapshot.phases ?? STANDARD_PHASES).findIndex((entry) => entry.id === 'bidding');
-    const emperor = snapshot.table.pieces.find((piece) => piece.stackKey === 'faction-token:emperor');
-    if (emperor) {
-      emperor.items = emperor.items.map((item) => ({ ...item, faceUp: false }));
+    for (const faction of sittingOut) {
+      const token = snapshot.table.pieces.find((piece) => piece.stackKey === `faction-token:${faction}`);
+      if (token) {
+        token.items = token.items.map((item) => ({ ...item, faceUp: false }));
+      }
     }
     if (bidding) {
       snapshot.bidding = { ...idleBidding(), ...bidding };
